@@ -1147,6 +1147,8 @@ function extrachill_artist_platform_register_abilities() {
 				'properties'           => array(
 					'id'         => array( 'type' => 'integer', 'minimum' => 1, 'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ) ),
 					'date_range' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 90, 'description' => __( 'Number of days to query.', 'extrachill-artist-platform' ) ),
+					'start_date' => array( 'type' => 'string', 'pattern' => '^\\d{4}-\\d{2}-\\d{2}$', 'description' => __( 'Inclusive exact window start in Y-m-d format.', 'extrachill-artist-platform' ) ),
+					'end_date'   => array( 'type' => 'string', 'pattern' => '^\\d{4}-\\d{2}-\\d{2}$', 'description' => __( 'Inclusive exact window end in Y-m-d format.', 'extrachill-artist-platform' ) ),
 				),
 				'additionalProperties' => false,
 			),

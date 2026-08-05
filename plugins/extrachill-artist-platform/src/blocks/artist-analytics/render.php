@@ -120,16 +120,16 @@ $config = array(
 // Enqueue the frontend script with localized data
 $asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/artist-analytics/view.asset.php';
 
-// Chart.js is consumed from extrachill-analytics' (ECA) shared, network-
-// activated handle ('extrachill-analytics-chart' → window.ExtraChillChart)
-// rather than bundled locally (extrachill-artist-platform#89,
-// extrachill-analytics#93). Declare it as an explicit dependency so the global
-// is present before this view script runs. wp-scripts won't add it to
-// view.asset.php because it's resolved as a webpack external, so append it here.
+// Analytics owns both shared runtimes. Declare them explicitly so Chart.js and
+// the date-range controller are available before this view script executes.
 $analytics_deps = $asset_file['dependencies'];
-if ( ! in_array( 'extrachill-analytics-chart', $analytics_deps, true ) ) {
-	$analytics_deps[] = 'extrachill-analytics-chart';
+foreach ( array( 'extrachill-analytics-chart', 'extrachill-analytics-date-range' ) as $dependency ) {
+	if ( ! in_array( $dependency, $analytics_deps, true ) ) {
+		$analytics_deps[] = $dependency;
+	}
 }
+
+wp_enqueue_style( 'extrachill-analytics-date-range' );
 
 wp_enqueue_script(
 	'ec-artist-analytics-frontend',

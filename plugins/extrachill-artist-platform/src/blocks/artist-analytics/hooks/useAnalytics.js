@@ -4,43 +4,98 @@
  * Manages analytics data fetching, date range state, and loading/error states.
  */
 
-import { useState, useEffect, useCallback } from '@wordpress/element';
+import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import { getAnalytics } from '../../shared/api/client';
 
-export default function useAnalytics( artistId ) {
-	const [ dateRange, setDateRange ] = useState( 30 );
-	const [ analytics, setAnalytics ] = useState( null );
-	const [ isLoading, setIsLoading ] = useState( true );
-	const [ error, setError ] = useState( null );
+const DEFAULT_SELECTION = { mode: 'preset', days: 30 };
 
-	const fetchAnalytics = useCallback( async () => {
-		if ( ! artistId ) {
-			return;
+export default function useAnalytics( artistId ) {
+	const [ selection, setSelection ] = useState( DEFAULT_SELECTION );
+	const [ analytics, setAnalytics ] = useState( null );
+	const [ isLoading, setIsLoading ] = useState( false );
+	const [ error, setError ] = useState( null );
+	const [ refreshKey, setRefreshKey ] = useState( 0 );
+	const requestId = useRef( 0 );
+
+	useEffect( () => {
+		let range = null;
+		if ( selection.mode === 'preset' ) {
+			range = selection.days;
+		} else if ( selection.startDate && selection.endDate ) {
+			range = {
+				start_date: selection.startDate,
+				end_date: selection.endDate,
+			};
 		}
+		const currentRequest = ++requestId.current;
+
+		if ( ! artistId || ! range ) {
+			setAnalytics( null );
+			setIsLoading( false );
+			setError( null );
+			return undefined;
+		}
+
+		let active = true;
 
 		setIsLoading( true );
 		setError( null );
 
-		try {
-			const data = await getAnalytics( artistId, dateRange );
-			setAnalytics( data );
-		} catch ( err ) {
-			setError( err.message || 'Failed to load analytics' );
-		} finally {
-			setIsLoading( false );
-		}
-	}, [ artistId, dateRange ] );
+		getAnalytics( artistId, range )
+			.then( ( data ) => {
+				if ( active && currentRequest === requestId.current ) {
+					setAnalytics( data );
+				}
+			} )
+			.catch( ( err ) => {
+				if ( active && currentRequest === requestId.current ) {
+					setError( err.message || 'Failed to load analytics' );
+				}
+			} )
+			.finally( () => {
+				if ( active && currentRequest === requestId.current ) {
+					setIsLoading( false );
+				}
+			} );
 
-	useEffect( () => {
-		fetchAnalytics();
-	}, [ fetchAnalytics ] );
+		return () => {
+			active = false;
+		};
+	}, [ artistId, selection, refreshKey ] );
+
+	const selectPreset = useCallback( ( days ) => {
+		setSelection( { mode: 'preset', days } );
+	}, [] );
+
+	const selectCustom = useCallback( () => {
+		setSelection( { mode: 'exact', startDate: null, endDate: null } );
+	}, [] );
+
+	const selectExact = useCallback( ( range ) => {
+		setSelection( {
+			mode: 'exact',
+			startDate: range?.startDate || null,
+			endDate: range?.endDate || null,
+		} );
+	}, [] );
+
+	const reset = useCallback( () => {
+		setSelection( DEFAULT_SELECTION );
+	}, [] );
+
+	const refetch = useCallback( () => {
+		setRefreshKey( ( current ) => current + 1 );
+	}, [] );
 
 	return {
 		analytics,
-		dateRange,
-		setDateRange,
+		selection,
+		selectPreset,
+		selectCustom,
+		selectExact,
+		reset,
 		isLoading,
 		error,
-		refetch: fetchAnalytics,
+		refetch,
 	};
 }

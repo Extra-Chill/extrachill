@@ -15,14 +15,18 @@ defined( 'ABSPATH' ) || exit;
  * Get link page analytics for an artist.
  *
  * @param array $input {
- *     @type int $id         Artist profile post ID.
- *     @type int $date_range Number of days to query (default 30, max 90).
+ *     @type int    $id         Artist profile post ID.
+ *     @type int    $date_range Number of days to query (default 30, max 90).
+ *     @type string $start_date Inclusive exact window start in Y-m-d format.
+ *     @type string $end_date   Inclusive exact window end in Y-m-d format.
  * }
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_artist_get_analytics( array $input ): array|WP_Error {
 	$artist_id  = isset( $input['id'] ) ? (int) $input['id'] : 0;
 	$date_range = isset( $input['date_range'] ) ? (int) $input['date_range'] : 30;
+	$start_date = isset( $input['start_date'] ) ? (string) $input['start_date'] : '';
+	$end_date   = isset( $input['end_date'] ) ? (string) $input['end_date'] : '';
 
 	if ( ! $artist_id ) {
 		return new WP_Error( 'missing_id', 'id is required.' );
@@ -47,11 +51,13 @@ function extrachill_artist_platform_ability_artist_get_analytics( array $input )
 	/**
 	 * Retrieve link page analytics via filter hook.
 	 *
-	 * @param mixed $result       Previous filter result (null if no handler).
-	 * @param int   $link_page_id The link page post ID.
-	 * @param int   $date_range   Number of days to query.
+	 * @param mixed  $result       Previous filter result (null if no handler).
+	 * @param int    $link_page_id The link page post ID.
+	 * @param int    $date_range   Number of days to query.
+	 * @param string $start_date   Inclusive exact window start in Y-m-d format.
+	 * @param string $end_date     Inclusive exact window end in Y-m-d format.
 	 */
-	$result = apply_filters( 'extrachill_get_link_page_analytics', null, $link_page_id, $date_range );
+	$result = apply_filters( 'extrachill_get_link_page_analytics', null, $link_page_id, $date_range, $start_date, $end_date );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

@@ -2,7 +2,7 @@
  * Artist Analytics Block - Frontend Styles
  */
 
-@use '../../../node_modules/@extrachill/components/styles/components' as *;
+@use "../../../node_modules/@extrachill/components/styles/components" as *;
 
 .ec-artist-analytics {
 	max-width: 1200px;
@@ -42,6 +42,13 @@
 	gap: 12px;
 }
 
+.ec-aa__date-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	position: relative;
+}
+
 .ec-aa__date-range {
 	padding: 8px 12px;
 	border-radius: 6px;
@@ -59,6 +66,24 @@
 		border-color: var(--accent);
 		box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
 	}
+}
+
+.ec-aa__exact-dates {
+	min-width: 210px;
+	padding: 8px 12px;
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--background-color);
+}
+
+.ec-aa__date-error {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	max-width: 320px;
+	color: var(--error-color, #b32d2e);
+	font-size: 12px;
+	line-height: 1.4;
 }
 
 .ec-aa__stats {
@@ -135,18 +160,18 @@
 		font-size: 14px;
 	}
 
+	td:last-child {
+		text-align: right;
+		font-weight: 600;
+		color: var(--accent);
+	}
+
 	tr:last-child td {
 		border-bottom: none;
 	}
 
 	tr:hover td {
 		background: var(--card-background);
-	}
-
-	td:last-child {
-		text-align: right;
-		font-weight: 600;
-		color: var(--accent);
 	}
 }
 
@@ -171,12 +196,25 @@
 
 /* Responsive - Tablet */
 @media (max-width: 768px) {
+
 	.ec-aa {
 		gap: 16px;
 	}
 
-	.ec-aa__date-range {
+	.ec-aa__date-controls,
+	.ec-aa__date-range,
+	.ec-aa__exact-dates {
 		width: 100%;
+	}
+
+	.ec-aa__date-controls {
+		flex-wrap: wrap;
+	}
+
+	.ec-aa__date-error {
+		position: static;
+		flex-basis: 100%;
+		max-width: none;
 	}
 
 	.ec-aa__stats {
@@ -194,7 +232,9 @@
 
 /* Responsive - Mobile */
 @media (max-width: 480px) {
+
 	.ec-aa__table {
+
 		th,
 		td {
 			padding: 10px 12px;

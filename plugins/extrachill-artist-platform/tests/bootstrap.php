@@ -1023,6 +1023,10 @@ function apply_filters( $hook_name, $value, ...$args ) {
 		$producer = (string) ( $args[0] ?? '' );
 		return in_array( $producer, $GLOBALS['ec_test']['authorized_local_support_producers'] ?? array(), true );
 	}
+	if ( 'extrachill_get_link_page_analytics' === $hook_name ) {
+		$GLOBALS['ec_test']['analytics_filter_args'][] = $args;
+		return $GLOBALS['ec_test']['analytics_result'] ?? $value;
+	}
 	return $value;
 }
 
