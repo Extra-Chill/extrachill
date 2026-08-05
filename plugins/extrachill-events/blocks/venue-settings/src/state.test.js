@@ -11,10 +11,9 @@ import {
 } from './state';
 
 const validConfig = () => ( {
-	version: 7,
+	version: 8,
 	enabled: true,
 	intake: { version: 1, fields: [] },
-	public_requirements: [],
 	consent: {
 		id: 'booking-privacy',
 		version: 1,

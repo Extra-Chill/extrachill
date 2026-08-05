@@ -21,28 +21,8 @@ export default function PublicBookingDetails( {
 		<Panel>
 			<PanelHeader
 				title="Public booking details"
-				description="Requirements and consent shown on this venue's public inquiry form."
+				description="Field labels and consent shown on this venue's public inquiry form."
 			/>
-			<FieldGroup
-				label="Public requirements"
-				htmlFor={ `${ idPrefix }venue-public-requirements` }
-				help="One plain-text requirement per line. Internal deal and contact details do not belong here."
-			>
-				<textarea
-					id={ `${ idPrefix }venue-public-requirements` }
-					rows="5"
-					value={ config.public_requirements.join( '\n' ) }
-					onChange={ ( event ) =>
-						setConfig( {
-							...config,
-							public_requirements: event.target.value
-								.split( '\n' )
-								.map( ( item ) => item.trim() )
-								.filter( Boolean ),
-						} )
-					}
-				/>
-			</FieldGroup>
 			<FieldGroup
 				label="Built-in field presentation"
 				htmlFor={ `${ idPrefix }venue-booking-presentation` }

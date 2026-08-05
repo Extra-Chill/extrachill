@@ -49,8 +49,7 @@ function Edit( { attributes, setAttributes } ) {
 				<strong>{ heading || 'Booking inquiries' }</strong>
 				<p>
 					The public form resolves the canonical venue profile,
-					booking requirements, spaces, consent, and intake fields at
-					render time.
+					spaces, consent, and intake fields at render time.
 				</p>
 				<p>
 					<small>

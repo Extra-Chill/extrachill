@@ -307,15 +307,6 @@ class VenueBookingConfigAbilities {
 				'required'             => array( 'version', 'fields', 'presentation' ),
 				'additionalProperties' => false,
 			),
-			'public_requirements'       => array(
-				'type'     => 'array',
-				'maxItems' => 20,
-				'items'    => array(
-					'type'      => 'string',
-					'minLength' => 1,
-					'maxLength' => 500,
-				),
-			),
 			'appearance'                => $appearance_schema,
 			'consent'                   => array(
 				'type'                 => 'object',
@@ -431,7 +422,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required            = array( 'version', 'enabled', 'intake', 'public_requirements', 'consent', 'appearance', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'consent', 'appearance', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -456,7 +447,23 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$operational                                  = $schema;
+		$retired_requirements = $schema;
+
+		$retired_requirements['properties']['version']['enum'] = array( VenueBookingConfig::RETIRED_REQUIREMENTS_VERSION );
+
+		$retired_requirements['properties']['public_requirements'] = array(
+			'type'     => 'array',
+			'maxItems' => 20,
+			'items'    => array(
+				'type'      => 'string',
+				'minLength' => 1,
+				'maxLength' => 500,
+			),
+		);
+		$retired_requirements['required'][]                        = 'public_requirements';
+
+		$operational = $retired_requirements;
+
 		$operational['properties']['version']['enum'] = array( VenueBookingConfig::OPERATIONAL_CONFIG_VERSION );
 		$operational['required']                      = array_values( array_diff( $operational['required'], array( 'appearance' ) ) );
 		unset( $operational['properties']['appearance'] );
@@ -481,7 +488,7 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $schema ) );
 	}
 
 	/** Return the strict correspondence configuration schema. */

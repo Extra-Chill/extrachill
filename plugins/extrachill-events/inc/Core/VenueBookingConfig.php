@@ -16,7 +16,8 @@ class VenueBookingConfig {
 
 	public const META_KEY                     = '_extrachill_booking_config';
 	public const HISTORY_META_KEY             = '_extrachill_booking_config_history';
-	public const VERSION                      = 7;
+	public const VERSION                      = 8;
+	public const RETIRED_REQUIREMENTS_VERSION = 7;
 	public const OPERATIONAL_CONFIG_VERSION   = 6;
 	public const RETIRED_GUIDE_CONFIG_VERSION = 4;
 	public const EMBED_CONFIG_VERSION         = 5;
@@ -99,7 +100,7 @@ class VenueBookingConfig {
 		}
 
 		$stored = get_term_meta( $venue_term_id, self::META_KEY, true );
-		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, array( self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::OPERATIONAL_CONFIG_VERSION, self::VERSION ), true ) ) {
+		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, array( self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::OPERATIONAL_CONFIG_VERSION, self::RETIRED_REQUIREMENTS_VERSION, self::VERSION ), true ) ) {
 			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
 		}
 
@@ -114,24 +115,22 @@ class VenueBookingConfig {
 		$fields       = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
 		$presentation = $this->normalize_intake_presentation( $stored['intake']['presentation'] ?? array() );
 		$appearance   = $this->normalize_appearance( $stored['appearance'] ?? array() );
-		$requirements = $this->normalize_public_requirements( $stored['public_requirements'] ?? null );
 		$consent      = $this->normalize_consent( $stored['consent'] ?? null );
 		$spaces       = $this->normalize_spaces( $stored['spaces'] ?? null );
-		foreach ( array( $fields, $presentation, $appearance, $requirements, $consent, $spaces ) as $section ) {
+		foreach ( array( $fields, $presentation, $appearance, $consent, $spaces ) as $section ) {
 			if ( is_wp_error( $section ) ) {
 				return $section;
 			}
 		}
 
 		return array(
-			'enabled'             => ! empty( $stored['enabled'] ),
-			'revision'            => $revision,
-			'fields'              => $fields,
-			'presentation'        => $presentation,
-			'appearance'          => $appearance,
-			'public_requirements' => $requirements,
-			'consent'             => $consent,
-			'spaces'              => $spaces,
+			'enabled'      => ! empty( $stored['enabled'] ),
+			'revision'     => $revision,
+			'fields'       => $fields,
+			'presentation' => $presentation,
+			'appearance'   => $appearance,
+			'consent'      => $consent,
+			'spaces'       => $spaces,
 		);
 	}
 
@@ -283,7 +282,7 @@ class VenueBookingConfig {
 	/** Normalize and validate the complete versioned contract. */
 	public function normalize( array $config ) {
 		$version = $config['version'] ?? self::LEGACY_VERSION;
-		if ( ! is_int( $version ) || ! in_array( $version, array( self::LEGACY_VERSION, self::PREVIOUS_VERSION, self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::OPERATIONAL_CONFIG_VERSION, self::VERSION ), true ) ) {
+		if ( ! is_int( $version ) || ! in_array( $version, array( self::LEGACY_VERSION, self::PREVIOUS_VERSION, self::PUBLIC_INTAKE_VERSION, self::RETIRED_GUIDE_CONFIG_VERSION, self::EMBED_CONFIG_VERSION, self::OPERATIONAL_CONFIG_VERSION, self::RETIRED_REQUIREMENTS_VERSION, self::VERSION ), true ) ) {
 			return new \WP_Error( 'booking_config_version_unsupported', __( 'The venue booking configuration version is unsupported.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		$version_three_fields = array( 'public_requirements', 'consent', 'marketing_triggers' );
@@ -293,11 +292,14 @@ class VenueBookingConfig {
 		if ( $version >= self::PUBLIC_INTAKE_VERSION && ! array_key_exists( 'marketing_triggers', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 3 requires marketing triggers.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
+		if ( self::VERSION === $version && array_key_exists( 'public_requirements', $config ) ) {
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired public requirements.', 'extrachill-events' ), array( 'version' => $version ) );
+		}
 		if ( $version < self::RETIRED_GUIDE_CONFIG_VERSION && array_key_exists( 'booking_guide', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Booking guide settings require venue booking configuration version 4.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		if ( self::VERSION === $version && array_key_exists( 'booking_guide', $config ) ) {
-			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 6 does not support retired booking guide settings.', 'extrachill-events' ), array( 'version' => $version ) );
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired booking guide settings.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		if ( $version < self::EMBED_CONFIG_VERSION && array_key_exists( 'embed', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Embed settings require venue booking configuration version 5.', 'extrachill-events' ), array( 'version' => $version ) );
@@ -339,9 +341,11 @@ class VenueBookingConfig {
 		if ( is_wp_error( $fields ) ) {
 			return $fields;
 		}
-		$requirements = $this->normalize_public_requirements( $config['public_requirements'] ?? array() );
-		if ( is_wp_error( $requirements ) ) {
-			return $requirements;
+		if ( $version >= self::PUBLIC_INTAKE_VERSION && $version <= self::RETIRED_REQUIREMENTS_VERSION ) {
+			$requirements = $this->normalize_public_requirements( $config['public_requirements'] ?? array() );
+			if ( is_wp_error( $requirements ) ) {
+				return $requirements;
+			}
 		}
 		$consent = $this->normalize_consent( $config['consent'] ?? array() );
 		if ( is_wp_error( $consent ) ) {
@@ -396,7 +400,6 @@ class VenueBookingConfig {
 				'fields'       => $fields,
 				'presentation' => $this->normalize_intake_presentation( $config['intake']['presentation'] ?? array() ),
 			),
-			'public_requirements'       => $requirements,
 			'consent'                   => $consent,
 			'appearance'                => $appearance,
 			'embed'                     => $embed,
@@ -430,7 +433,6 @@ class VenueBookingConfig {
 				'fields'       => array(),
 				'presentation' => $this->normalize_intake_presentation( array() ),
 			),
-			'public_requirements'       => array(),
 			'consent'                   => array(
 				'id'       => 'booking-privacy',
 				'version'  => self::CONSENT_VERSION,
@@ -1097,7 +1099,7 @@ class VenueBookingConfig {
 
 	/** Return top-level settings changed by the replacement document. */
 	private function changed_fields( array $current, array $next ): array {
-		$fields  = array( 'enabled', 'intake', 'public_requirements', 'consent', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$fields  = array( 'enabled', 'intake', 'consent', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		$changed = array();
 		foreach ( $fields as $field ) {
 			if ( $current[ $field ] !== $next[ $field ] ) {

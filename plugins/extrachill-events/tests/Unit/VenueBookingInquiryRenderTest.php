@@ -36,7 +36,6 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$config                                      = ( new VenueBookingConfig() )->defaults();
 		$config['enabled']                           = true;
 		$config['revision']                          = 4;
-		$config['public_requirements']               = array( 'Include recent draw and routing.' );
 		$config['spaces']                            = array(
 			array(
 				'key'        => 'main-room',

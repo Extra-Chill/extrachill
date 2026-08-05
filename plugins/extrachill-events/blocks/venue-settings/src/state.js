@@ -48,9 +48,6 @@ export const validateConfig = ( config ) => {
 	if ( config.embed?.allowed_parent_origins?.length > 20 ) {
 		errors.push( 'Use no more than 20 embed parent origins.' );
 	}
-	if ( config.public_requirements.length > 20 ) {
-		errors.push( 'Use no more than 20 public requirements.' );
-	}
 	if (
 		! config.appearance ||
 		! [ 'default', 'custom' ].includes( config.appearance.mode ) ||

@@ -116,7 +116,7 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 7,
+	version: 8,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
@@ -133,7 +133,6 @@ const config = ( id ) => ( {
 			message_help: 'Share routing, timing, or context.',
 		},
 	},
-	public_requirements: [],
 	consent: {
 		id: 'booking-privacy',
 		version: 1,

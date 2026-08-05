@@ -628,7 +628,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$migrated = $service->normalize( array( 'version' => 1, 'enabled' => true ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertArrayHasKey( 'correspondence', $migrated );
-		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 8 ) )->get_error_code() );
+		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 9 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'correspondence' => array( 'version' => 2 ) ) )->get_error_code() );
@@ -694,6 +694,22 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertSame( '#121212', $migrated['appearance']['background_color'] );
 		$this->assertSame( 8, $migrated['appearance']['button_radius'] );
 		$this->assertTrue( $migrated['appearance']['show_logo'] );
+	}
+
+	public function test_config_migrates_version_seven_without_retired_public_requirements(): void {
+		$service                                = new VenueBookingConfig();
+		$version_seven                          = $service->defaults();
+		$version_seven['version']               = VenueBookingConfig::RETIRED_REQUIREMENTS_VERSION;
+		$version_seven['public_requirements']   = array( 'Send a stage plot.' );
+
+		$migrated = $service->normalize( $version_seven );
+
+		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
+		$this->assertArrayNotHasKey( 'public_requirements', $migrated );
+		$this->assertArrayNotHasKey( 'public_requirements', $service->defaults() );
+		$current                                = $service->defaults();
+		$current['public_requirements']         = array( 'Dead configuration.' );
+		$this->assertSame( 'booking_config_version_field_invalid', $service->normalize( $current )->get_error_code() );
 	}
 
 	public function test_config_rejects_unbounded_appearance_values_and_scopes_output(): void {
