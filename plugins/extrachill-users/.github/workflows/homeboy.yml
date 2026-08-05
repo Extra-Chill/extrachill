@@ -17,9 +17,49 @@ permissions:
   issues: write
 
 jobs:
-  lint:
-    uses: Extra-Chill/homeboy-action/.github/workflows/ci.yml@v2
-    with:
-      commands: review lint,review test
-      expected-commands: review lint,review test
-    secrets: inherit
+  homeboy:
+    name: Homeboy (${{ matrix.command }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [review lint, review test]
+    services:
+      mysql:
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        env:
+          MYSQL_ROOT_PASSWORD: ''
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: homeboy_wptests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        continue-on-error: true
+        with:
+          client-id: ${{ secrets.HOMEBOY_APP_ID }}
+          private-key: ${{ secrets.HOMEBOY_APP_PRIVATE_KEY }}
+
+      - name: Run Homeboy ${{ matrix.command }}
+        env:
+          WP_CODEBOX_DB_HOST: 127.0.0.1
+          WP_CODEBOX_DB_PORT: '3306'
+          WP_CODEBOX_DB_USER: root
+          WP_CODEBOX_DB_PASSWORD: ''
+        uses: Extra-Chill/homeboy-action@v2
+        with:
+          commands: ${{ matrix.command }}
+          expected-commands: review lint,review test
+          app-token: ${{ steps.app-token.outputs.token || github.token }}
+          differential-gating: 'true'
