@@ -2,8 +2,8 @@
 /**
  * Campaign Management Abilities
  *
- * Full Sendy campaign management via direct DB access (read) and Sendy API (write).
- * Provides list, get, and delete for campaigns, plus subscriber status checks.
+ * Campaign management delegated to Data Machine Business public abilities.
+ * Provides list, get, and delete operations for Sendy campaigns.
  *
  * @package ExtraChillNewsletter
  * @since 0.3.0
@@ -131,75 +131,35 @@ function extrachill_newsletter_register_campaign_management_abilities() {
 			),
 		)
 	);
-
-	// --- Subscriber Status ---
-	wp_register_ability(
-		'extrachill/subscriber-status',
-		array(
-			'label'               => __( 'Subscriber Status', 'extrachill-newsletter' ),
-			'description'         => __( 'Check a subscriber\'s status in a Sendy list. Returns Subscribed, Unsubscribed, Bounced, etc.', 'extrachill-newsletter' ),
-			'category'            => 'extrachill-newsletter',
-			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
-					'email'   => array(
-						'type'        => 'string',
-						'description' => __( 'Email address to check.', 'extrachill-newsletter' ),
-					),
-					'list_id' => array(
-						'type'        => 'string',
-						'description' => __( 'Sendy list ID (encrypted).', 'extrachill-newsletter' ),
-					),
-				),
-				'required'   => array( 'email', 'list_id' ),
-			),
-			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'status' => array( 'type' => 'string' ),
-					'email'  => array( 'type' => 'string' ),
-				),
-			),
-			'execute_callback'    => 'extrachill_newsletter_ability_subscriber_status',
-			'permission_callback' => function () {
-				return current_user_can( 'manage_options' );
-			},
-			'meta'                => array(
-				'show_in_rest' => false,
-				'annotations'  => array(
-					'readonly'   => true,
-					'idempotent' => true,
-				),
-			),
-		)
-	);
 }
 
 /**
- * Get a generic DMB SendyClient bound to this plugin's Sendy config.
+ * Execute a public Data Machine Business Sendy campaign ability.
  *
- * The campaign read/delete mechanics (Sendy DB queries) live in the generic
- * data-machine-business Sendy primitive. When DMB is active this returns a
- * configured SendyClient so this plugin can delegate the mechanics down a
- * layer; when DMB is absent it returns null and callers fall back to their
- * legacy in-plugin DB queries.
+ * Data Machine Business owns provider configuration and Sendy mechanics.
+ * Newsletter passes only operation input across this boundary.
  *
- * @return \DataMachineBusiness\Sendy\SendyClient|null
+ * @param string $name  Public ability name.
+ * @param array  $input Ability input.
+ * @return array|WP_Error
  */
-function extrachill_newsletter_dmb_sendy_client() {
-	if ( ! class_exists( '\\DataMachineBusiness\\Sendy\\SendyClient' ) ) {
-		return null;
+function extrachill_newsletter_execute_sendy_campaign_ability( $name, $input ) {
+	$ability = extrachill_newsletter_get_sendy_ability( $name );
+	if ( ! $ability ) {
+		return new WP_Error(
+			'sendy_campaign_provider_unavailable',
+			__( 'Sendy campaign management requires the Data Machine Business campaign provider to be active.', 'extrachill-newsletter' )
+		);
 	}
 
-	return new \DataMachineBusiness\Sendy\SendyClient( extrachill_newsletter_sendy_dmb_config() );
+	return $ability->execute( $input );
 }
 
 /**
  * List Sendy campaigns.
  *
- * Delegates the campaigns-table query to the single canonical DMB Sendy client.
- * The Data Machine suite is a hard runtime dependency, so there is no in-plugin
- * DB fallback.
+ * Delegates through the public DMB campaign ability. When that capability is
+ * absent, campaign management returns a stable provider-unavailable error.
  *
  * @param array $input {per_page, offset, status}.
  * @return array|WP_Error Campaign list with totals.
@@ -209,12 +169,8 @@ function extrachill_newsletter_ability_list_campaigns( $input ) {
 	$offset   = isset( $input['offset'] ) ? absint( $input['offset'] ) : 0;
 	$status   = isset( $input['status'] ) ? sanitize_text_field( $input['status'] ) : '';
 
-	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( ! $client ) {
-		return extrachill_newsletter_sendy_client_unavailable_error();
-	}
-
-	return $client->list_campaigns(
+	return extrachill_newsletter_execute_sendy_campaign_ability(
+		'datamachine/sendy-list-campaigns',
 		array(
 			'per_page' => $per_page,
 			'offset'   => $offset,
@@ -236,12 +192,10 @@ function extrachill_newsletter_ability_get_campaign( $input ) {
 		return new WP_Error( 'missing_campaign_id', 'campaign_id is required.' );
 	}
 
-	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( ! $client ) {
-		return extrachill_newsletter_sendy_client_unavailable_error();
-	}
-
-	return $client->get_campaign( $campaign_id );
+	return extrachill_newsletter_execute_sendy_campaign_ability(
+		'datamachine/sendy-get-campaign',
+		array( 'campaign_id' => $campaign_id )
+	);
 }
 
 /**
@@ -257,116 +211,8 @@ function extrachill_newsletter_ability_delete_campaign( $input ) {
 		return new WP_Error( 'missing_campaign_id', 'campaign_id is required.' );
 	}
 
-	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( ! $client ) {
-		return extrachill_newsletter_sendy_client_unavailable_error();
-	}
-
-	return $client->delete_campaign( $campaign_id );
-}
-
-/**
- * Check a subscriber's status in a Sendy list.
- *
- * Uses the Sendy API endpoint for authoritative status.
- *
- * @param array $input {email, list_id}.
- * @return array|WP_Error Status result.
- */
-function extrachill_newsletter_ability_subscriber_status( $input ) {
-	$email   = isset( $input['email'] ) ? sanitize_email( $input['email'] ) : '';
-	$list_id = isset( $input['list_id'] ) ? sanitize_text_field( $input['list_id'] ) : '';
-
-	if ( empty( $email ) || empty( $list_id ) ) {
-		return new WP_Error( 'missing_params', 'email and list_id are required.' );
-	}
-
-	// Delegate the Sendy API status check to the single canonical DMB Sendy
-	// client. The Data Machine suite is a hard runtime dependency, so there is
-	// no in-plugin API fallback.
-	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( ! $client ) {
-		return extrachill_newsletter_sendy_client_unavailable_error();
-	}
-
-	$status = $client->subscriber_status( $list_id, $email );
-	if ( is_wp_error( $status ) ) {
-		return new WP_Error( 'status_check_failed', 'Failed to check subscriber status: ' . $status->get_error_message() );
-	}
-
-	return array(
-		'email'  => $email,
-		'status' => $status,
+	return extrachill_newsletter_execute_sendy_campaign_ability(
+		'datamachine/sendy-delete-campaign',
+		array( 'campaign_id' => $campaign_id )
 	);
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Standard error returned when the canonical DMB Sendy client is unavailable.
- *
- * The Sendy mechanics (API + read-only DB) live in the single config-injected
- * client provided by data-machine-business. The Data Machine suite is a hard
- * runtime dependency of this plugin, so when the client cannot be resolved the
- * correct behaviour is to surface the missing dependency rather than fall back
- * to a duplicate in-plugin implementation.
- *
- * @return WP_Error
- */
-function extrachill_newsletter_sendy_client_unavailable_error() {
-	return new WP_Error(
-		'sendy_primitive_unavailable',
-		__( 'Sendy campaign management requires the Data Machine Business Sendy integration to be active.', 'extrachill-newsletter' )
-	);
-}
-
-/**
- * Resolve Sendy DB connection credentials from explicit configuration.
- *
- * Credentials are NEVER hardcoded or scraped from Sendy's config.php. They are
- * supplied deliberately via (in priority order):
- *
- *   1. The `extrachill_newsletter_sendy_db` filter — the recommended path.
- *      Return an array with host/user/pass/name (and optional port). Wire this
- *      from wp-config.php constants or a secrets manager so secrets stay out of
- *      the database.
- *   2. The `sendy_db` key of the `extrachill_newsletter_settings` network
- *      option, entered through the Newsletter Settings admin screen.
- *
- * @return array|WP_Error {host, user, pass, name, port} or WP_Error if unset.
- */
-function extrachill_newsletter_get_sendy_db_credentials() {
-	$defaults = array(
-		'host' => '',
-		'user' => '',
-		'pass' => '',
-		'name' => '',
-		'port' => '',
-	);
-
-	/**
-	 * Filter the Sendy database connection credentials.
-	 *
-	 * Preferred way to supply Sendy DB credentials without storing them in the
-	 * options table. Return an array of {host, user, pass, name, port}.
-	 *
-	 * @param array $creds Credential array (empty by default).
-	 */
-	$creds = apply_filters( 'extrachill_newsletter_sendy_db', array() );
-
-	if ( empty( $creds ) || ! is_array( $creds ) ) {
-		$settings = get_site_option( 'extrachill_newsletter_settings', array() );
-		$creds    = isset( $settings['sendy_db'] ) && is_array( $settings['sendy_db'] ) ? $settings['sendy_db'] : array();
-	}
-
-	$creds = wp_parse_args( $creds, $defaults );
-
-	if ( empty( $creds['host'] ) || empty( $creds['user'] ) || empty( $creds['name'] ) ) {
-		return new WP_Error(
-			'sendy_db_not_configured',
-			__( 'Sendy database credentials are not configured. Set them via the extrachill_newsletter_sendy_db filter or the Newsletter Settings screen.', 'extrachill-newsletter' )
-		);
-	}
-
-	return $creds;
 }

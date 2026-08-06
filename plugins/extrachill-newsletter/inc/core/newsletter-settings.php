@@ -45,22 +45,6 @@ function ec_newsletter_handle_settings_save() {
 	$settings['reply_to'] = isset( $_POST['reply_to'] ) ? sanitize_email( wp_unslash( $_POST['reply_to'] ) ) : 'chubes@extrachill.com';
 	$settings['brand_id'] = isset( $_POST['brand_id'] ) ? sanitize_text_field( wp_unslash( $_POST['brand_id'] ) ) : '1';
 
-	// Sendy DB connection (read-only campaign queries). Credentials are stored
-	// explicitly here rather than scraped from Sendy's config.php. The password
-	// is preserved when the field is submitted empty so it is never wiped or
-	// echoed back into the page.
-	$existing       = get_site_option( 'extrachill_newsletter_settings', array() );
-	$existing_db    = isset( $existing['sendy_db'] ) && is_array( $existing['sendy_db'] ) ? $existing['sendy_db'] : array();
-	$submitted_pass = isset( $_POST['sendy_db_pass'] ) ? wp_unslash( $_POST['sendy_db_pass'] ) : '';
-
-	$settings['sendy_db'] = array(
-		'host' => isset( $_POST['sendy_db_host'] ) ? sanitize_text_field( wp_unslash( $_POST['sendy_db_host'] ) ) : '',
-		'user' => isset( $_POST['sendy_db_user'] ) ? sanitize_text_field( wp_unslash( $_POST['sendy_db_user'] ) ) : '',
-		'pass' => '' !== $submitted_pass ? $submitted_pass : ( isset( $existing_db['pass'] ) ? $existing_db['pass'] : '' ),
-		'name' => isset( $_POST['sendy_db_name'] ) ? sanitize_text_field( wp_unslash( $_POST['sendy_db_name'] ) ) : '',
-		'port' => isset( $_POST['sendy_db_port'] ) ? sanitize_text_field( wp_unslash( $_POST['sendy_db_port'] ) ) : '',
-	);
-
 	// Integration Sendy list IDs
 	$integrations = get_newsletter_integrations();
 	foreach ( $integrations as $context => $integration ) {
@@ -165,68 +149,6 @@ function ec_newsletter_render_settings_page() {
 						<td>
 							<input type="text" id="brand_id" name="brand_id" value="<?php echo esc_attr( $settings['brand_id'] ); ?>" class="small-text" />
 							<p class="description"><?php _e( 'Sendy brand ID for newsletter campaigns.', 'extrachill-newsletter' ); ?></p>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-
-			<!-- Sendy Database Connection -->
-			<?php
-			$sendy_db = isset( $settings['sendy_db'] ) && is_array( $settings['sendy_db'] ) ? $settings['sendy_db'] : array();
-			$sendy_db = wp_parse_args(
-				$sendy_db,
-				array(
-					'host' => '',
-					'user' => '',
-					'pass' => '',
-					'name' => '',
-					'port' => '',
-				)
-			);
-			?>
-			<h2><?php _e( 'Sendy Database Connection', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php _e( 'Read-only credentials for the Sendy MySQL database (used to list and inspect campaigns). Leave blank if the credentials are supplied via the extrachill_newsletter_sendy_db filter in wp-config.php. The password is write-only — leave it blank to keep the saved value.', 'extrachill-newsletter' ); ?></p>
-			<table class="form-table">
-				<tbody>
-					<tr>
-						<th scope="row">
-							<label for="sendy_db_host"><?php _e( 'DB Host', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="text" id="sendy_db_host" name="sendy_db_host" value="<?php echo esc_attr( $sendy_db['host'] ); ?>" class="regular-text" autocomplete="off" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="sendy_db_name"><?php _e( 'DB Name', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="text" id="sendy_db_name" name="sendy_db_name" value="<?php echo esc_attr( $sendy_db['name'] ); ?>" class="regular-text" autocomplete="off" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="sendy_db_user"><?php _e( 'DB User', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="text" id="sendy_db_user" name="sendy_db_user" value="<?php echo esc_attr( $sendy_db['user'] ); ?>" class="regular-text" autocomplete="off" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="sendy_db_pass"><?php _e( 'DB Password', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="password" id="sendy_db_pass" name="sendy_db_pass" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo ! empty( $sendy_db['pass'] ) ? esc_attr__( '(saved — leave blank to keep)', 'extrachill-newsletter' ) : ''; ?>" />
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="sendy_db_port"><?php _e( 'DB Port', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="text" id="sendy_db_port" name="sendy_db_port" value="<?php echo esc_attr( $sendy_db['port'] ); ?>" class="small-text" autocomplete="off" />
-							<p class="description"><?php _e( 'Optional. Leave blank for the default MySQL port.', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 				</tbody>

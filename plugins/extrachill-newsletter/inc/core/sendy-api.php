@@ -62,40 +62,22 @@ function get_sendy_config() {
 }
 
 /**
- * Build the generic Sendy connection config for the Data Machine Business
- * Sendy primitive.
+ * Build the legacy Sendy connection config required by the Data Machine
+ * Business subscription and metrics abilities.
  *
- * The Sendy MECHANICS (API calls + read-only DB queries) live in the generic
- * `datamachine/sendy-*` abilities provided by data-machine-business. This
- * plugin owns the POLICY (which credentials, list IDs, brand) and passes the
- * connection config down to that primitive. This helper assembles that config:
- * API key + URL from the newsletter settings, and the read-only DB credentials
- * resolved via the `extrachill_newsletter_sendy_db` filter or settings option.
+ * Campaign abilities own their provider configuration and never receive this
+ * payload. The older subscribe and metrics contracts still accept Newsletter's
+ * API configuration until those provider contracts are migrated separately.
  *
- * @return array {api_key, sendy_url, db:{host,user,pass,name,port}}.
+ * @return array {api_key, sendy_url}.
  */
 function extrachill_newsletter_sendy_dmb_config() {
 	$config = get_sendy_config();
 
-	$dmb_config = array(
+	return array(
 		'api_key'   => $config['api_key'],
 		'sendy_url' => $config['sendy_url'],
 	);
-
-	$creds = function_exists( 'extrachill_newsletter_get_sendy_db_credentials' )
-		? extrachill_newsletter_get_sendy_db_credentials()
-		: new WP_Error( 'sendy_db_helper_missing', 'Sendy DB credential helper not loaded.' );
-	if ( ! is_wp_error( $creds ) ) {
-		$dmb_config['db'] = array(
-			'host' => $creds['host'],
-			'user' => $creds['user'],
-			'pass' => $creds['pass'],
-			'name' => $creds['name'],
-			'port' => $creds['port'],
-		);
-	}
-
-	return $dmb_config;
 }
 
 /**
