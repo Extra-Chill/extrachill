@@ -312,7 +312,6 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 		try {
 			$event = get_post( $event_id );
 			if ( ! $event || 'data_machine_events' !== $event->post_type ) {
-				restore_current_blog();
 				continue;
 			}
 

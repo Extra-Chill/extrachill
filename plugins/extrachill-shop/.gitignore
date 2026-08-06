@@ -18,6 +18,7 @@ Thumbs.db
 
 # Logs
 *.log
+.phpunit.result.cache
 
 # Temporary files
 *.tmp
