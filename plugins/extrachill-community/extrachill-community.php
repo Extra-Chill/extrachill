@@ -72,6 +72,7 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/forum-queries.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/content-filters.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/recent-feed.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/recent-public-activity.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/main-site-comments.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/subforum-button-classes.php';
 
