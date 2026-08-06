@@ -1,5 +1,8 @@
 /* global describe, expect, it */
 
+/**
+ * Internal dependencies
+ */
 import {
 	linkCollectionValue,
 	logicalIntakeRows,

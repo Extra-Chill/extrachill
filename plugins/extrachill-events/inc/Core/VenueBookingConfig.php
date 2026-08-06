@@ -100,7 +100,7 @@ class VenueBookingConfig {
 			return $venue;
 		}
 
-		$stored = get_term_meta( $venue_term_id, self::META_KEY, true );
+		$stored          = get_term_meta( $venue_term_id, self::META_KEY, true );
 		$public_versions = array(
 			self::PUBLIC_INTAKE_VERSION,
 			self::RETIRED_GUIDE_CONFIG_VERSION,
