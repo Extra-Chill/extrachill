@@ -24,14 +24,16 @@ function extrachill_analytics_php_error_create_table() {
 	$current_db_version = get_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION );
 
 	if ( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION === $current_db_version ) {
-		return;
+		return true;
 	}
 
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
 	$table_name      = $wpdb->base_prefix . 'extrachill_analytics_php_errors';
 
-	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	if ( ! function_exists( 'dbDelta' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	}
 
 	$sql = "CREATE TABLE {$table_name} (
 		id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -50,12 +52,16 @@ function extrachill_analytics_php_error_create_table() {
 		KEY snapshot_day_idx (snapshot_day)
 	) {$charset_collate};";
 
+	$wpdb->last_error = '';
 	dbDelta( $sql );
 
-	update_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION );
-}
+	if ( '' !== $wpdb->last_error ) {
+		return false;
+	}
 
-add_action( 'admin_init', 'extrachill_analytics_php_error_create_table' );
+	update_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION );
+	return true;
+}
 
 /**
  * Get the PHP error daily counts table name.

@@ -32,6 +32,11 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		return false;
 	}
 
+	if ( ! extrachill_analytics_events_ensure_ready() ) {
+		error_log( 'extrachill_track_analytics_event failed: analytics events schema is not ready.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional write-failure log without request data.
+		return false;
+	}
+
 	$table_name = extrachill_analytics_events_table();
 
 	// Server-side stitching: when the caller didn't supply a valid visitor id

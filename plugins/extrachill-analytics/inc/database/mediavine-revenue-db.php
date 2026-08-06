@@ -35,14 +35,16 @@ function extrachill_analytics_revenue_create_table() {
 	$current_db_version = get_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION );
 
 	if ( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION === $current_db_version ) {
-		return;
+		return true;
 	}
 
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
 	$table_name      = extrachill_analytics_revenue_table();
 
-	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	if ( ! function_exists( 'dbDelta' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+	}
 
 	// One row per (blog_id, slug, period_label, import_batch). period_label is the
 	// canonical time bucket ("2026-05" for a monthly export, "all-time" for the
@@ -88,12 +90,16 @@ function extrachill_analytics_revenue_create_table() {
 		KEY import_batch_idx (import_batch)
 	) {$charset_collate};";
 
+	$wpdb->last_error = '';
 	dbDelta( $sql );
 
-	update_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION );
-}
+	if ( '' !== $wpdb->last_error ) {
+		return false;
+	}
 
-add_action( 'admin_init', 'extrachill_analytics_revenue_create_table' );
+	update_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION, EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION );
+	return true;
+}
 
 /**
  * Get the Mediavine revenue table name.
