@@ -48,11 +48,7 @@ function extrachill_api_newsletter_campaign_push_handler( $request ) {
 	$result = $ability->execute( array( 'post_id' => $post_id ) );
 
 	if ( is_wp_error( $result ) ) {
-		return new WP_Error(
-			'campaign_failed',
-			$result->get_error_message(),
-			array( 'status' => 500 )
-		);
+		return $result;
 	}
 
 	return rest_ensure_response(

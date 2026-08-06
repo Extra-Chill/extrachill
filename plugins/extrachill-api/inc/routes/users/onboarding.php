@@ -122,11 +122,7 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
-		return new WP_Error(
-			$result->get_error_code(),
-			$result->get_error_message(),
-			array( 'status' => 400 )
-		);
+		return $result;
 	}
 
 	return rest_ensure_response( $result );

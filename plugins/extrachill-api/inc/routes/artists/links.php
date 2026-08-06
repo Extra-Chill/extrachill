@@ -105,8 +105,7 @@ function extrachill_api_artist_links_get_handler( WP_REST_Request $request ) {
 	$result = $ability->execute( array( 'artist_id' => $request->get_param( 'id' ) ) );
 
 	if ( is_wp_error( $result ) ) {
-		$status = $result->get_error_code() === 'no_link_page' ? 404 : 500;
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );
@@ -157,7 +156,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		);
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+			return $result;
 		}
 	}
 
@@ -180,7 +179,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		);
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+			return $result;
 		}
 	}
 
@@ -210,7 +209,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		$result = $ability->execute( $settings_input );
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+			return $result;
 		}
 	}
 
@@ -233,7 +232,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 		);
 
 		if ( is_wp_error( $result ) ) {
-			return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+			return $result;
 		}
 	}
 
@@ -246,7 +245,7 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 	$fresh_data = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 	if ( is_wp_error( $fresh_data ) ) {
-		return new WP_Error( $fresh_data->get_error_code(), $fresh_data->get_error_message(), array( 'status' => 500 ) );
+		return $fresh_data;
 	}
 
 	return rest_ensure_response( $fresh_data );

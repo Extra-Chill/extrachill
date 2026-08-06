@@ -129,7 +129,6 @@ function extrachill_api_generate_qr_code( $request ) {
 
 	$result = $ability->execute( $input );
 	if ( is_wp_error( $result ) ) {
-		$result->add_data( array( 'status' => 500 ) );
 		return $result;
 	}
 

@@ -297,8 +297,7 @@ function extrachill_api_artist_access_approve( $request ) {
 	);
 
 	if ( is_wp_error( $result ) ) {
-		$status = 'user_not_found' === $result->get_error_code() ? 404 : 400;
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );
@@ -325,8 +324,7 @@ function extrachill_api_artist_access_reject( $request ) {
 	);
 
 	if ( is_wp_error( $result ) ) {
-		$status = 'user_not_found' === $result->get_error_code() ? 404 : 400;
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );

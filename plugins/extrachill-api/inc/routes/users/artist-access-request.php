@@ -68,7 +68,7 @@ function extrachill_api_user_artist_access_request( WP_REST_Request $request ) {
 	);
 
 	if ( is_wp_error( $result ) ) {
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 400 ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );

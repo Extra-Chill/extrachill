@@ -172,8 +172,7 @@ function extrachill_api_artist_get_handler( WP_REST_Request $request ) {
 	$result = $ability->execute( array( 'artist_id' => $request->get_param( 'id' ) ) );
 
 	if ( is_wp_error( $result ) ) {
-		$status = $result->get_error_code() === 'invalid_artist' ? 404 : 500;
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );
@@ -201,8 +200,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
-		$status = $result->get_error_code() === 'invalid_artist_name' ? 400 : 500;
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );
@@ -235,8 +233,7 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
-		$status = $result->get_error_code() === 'invalid_artist' ? 404 : 500;
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => $status ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );

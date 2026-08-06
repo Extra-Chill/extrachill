@@ -133,7 +133,7 @@ function extrachill_api_artist_socials_put_handler( WP_REST_Request $request ) {
 	);
 
 	if ( is_wp_error( $result ) ) {
-		return new WP_Error( $result->get_error_code(), $result->get_error_message(), array( 'status' => 500 ) );
+		return $result;
 	}
 
 	return rest_ensure_response( $result );
