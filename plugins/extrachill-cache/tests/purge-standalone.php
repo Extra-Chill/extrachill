@@ -158,6 +158,22 @@ foreach ( $public_transitions as $message => $statuses ) {
 }
 
 extrachill_cache_test_reset();
+$GLOBALS['extrachill_cache_test_can_edit'] = true;
+extrachill_cache_test_transition( 'publish', 'publish', 8 );
+extrachill_cache_test_assert_purges( true, 'normal authenticated edit purges' );
+
+extrachill_cache_test_reset();
+$GLOBALS['extrachill_cache_test_can_edit'] = false;
+extrachill_cache_test_transition( 'publish', 'publish', 9 );
+extrachill_cache_test_assert_purges( true, 'no-user programmatic change purges' );
+
+extrachill_cache_test_reset();
+$GLOBALS['extrachill_cache_test_can_edit']   = false;
+$GLOBALS['extrachill_cache_test_doing_cron'] = true;
+extrachill_cache_test_transition( 'publish', 'publish', 10 );
+extrachill_cache_test_assert_purges( true, 'cron or worker change purges' );
+
+extrachill_cache_test_reset();
 $GLOBALS['extrachill_cache_test_post_types'][2] = 'revision';
 extrachill_cache_purge_on_post_transition( 'publish', 'draft', extrachill_cache_test_post( 2, 'publish', 'revision' ) );
 extrachill_cache_test_assert_purges( false, 'revision transition does not purge' );

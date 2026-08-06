@@ -113,12 +113,6 @@ function extrachill_cache_purge_on_post_change( $post_id ) {
 		return;
 	}
 
-	// Match Breeze: skip when the current user can't edit the post, unless
-	// running under cron (purge-cache.php:157).
-	if ( ! current_user_can( 'edit_post', $post_id ) && ! wp_doing_cron() ) {
-		return;
-	}
-
 	/**
 	 * Filter exact public URLs to invalidate for a post change.
 	 *
