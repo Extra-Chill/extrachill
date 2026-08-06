@@ -247,7 +247,6 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 		$artist_id = (int) $artist_id;
 		if ( extrachill_shop_user_can_manage_artist( $artist_id ) ) {
 			update_post_meta( $product_id, '_artist_profile_id', $artist_id );
-			extrachill_shop_sync_product_artist_taxonomy( $product_id, $artist_id );
 		}
 	}
 

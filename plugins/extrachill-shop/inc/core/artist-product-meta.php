@@ -3,8 +3,7 @@
  * Artist Product Meta System
  *
  * Manages the relationship between WooCommerce products and artist profiles via
- * _artist_profile_id post meta. Provides helper functions for querying products
- * by artist and syncing taxonomy terms with meta values.
+ * _artist_profile_id post meta keyed to the canonical Artist-owned profile.
  *
  * @package ExtraChillShop
  * @since 0.2.0
@@ -26,8 +25,6 @@ function extrachill_shop_get_product_artist_id( $product_id ) {
 /**
  * Set the artist profile ID for a product.
  *
- * Also syncs the artist taxonomy term to match the artist profile slug.
- *
  * @param int $product_id WooCommerce product ID.
  * @param int $artist_profile_id Artist profile post ID from Blog ID 4.
  * @return bool True on success, false on failure.
@@ -37,13 +34,12 @@ function extrachill_shop_set_product_artist( $product_id, $artist_profile_id ) {
 		return false;
 	}
 
-	$updated = update_post_meta( $product_id, '_artist_profile_id', (int) $artist_profile_id );
-
-	if ( $updated ) {
-		extrachill_shop_sync_product_artist_taxonomy( $product_id, $artist_profile_id );
+	$artist = extrachill_shop_get_canonical_artist( $artist_profile_id );
+	if ( is_wp_error( $artist ) || absint( $artist['id'] ?? 0 ) !== absint( $artist_profile_id ) ) {
+		return false;
 	}
 
-	return (bool) $updated;
+	return (bool) update_post_meta( $product_id, '_artist_profile_id', (int) $artist_profile_id );
 }
 
 /**
@@ -54,52 +50,6 @@ function extrachill_shop_set_product_artist( $product_id, $artist_profile_id ) {
  */
 function extrachill_shop_remove_product_artist( $product_id ) {
 	delete_post_meta( $product_id, '_artist_profile_id' );
-	wp_set_object_terms( $product_id, array(), 'artist' );
-	return true;
-}
-
-/**
- * Sync the artist taxonomy term with the product's artist profile.
- *
- * Ensures the product has the correct artist taxonomy term based on
- * the artist profile slug from Blog ID 4.
- *
- * @param int $product_id WooCommerce product ID.
- * @param int $artist_profile_id Artist profile post ID from Blog ID 4.
- * @return bool True on success, false on failure.
- */
-function extrachill_shop_sync_product_artist_taxonomy( $product_id, $artist_profile_id ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return false;
-	}
-
-	switch_to_blog( $artist_blog_id );
-	try {
-		$artist_post = get_post( $artist_profile_id );
-		if ( ! $artist_post || 'artist_profile' !== $artist_post->post_type ) {
-			return false;
-		}
-		$artist_slug = $artist_post->post_name;
-		$artist_name = $artist_post->post_title;
-	} finally {
-		restore_current_blog();
-	}
-
-	$term = get_term_by( 'slug', $artist_slug, 'artist' );
-
-	if ( ! $term ) {
-		$term_result = wp_insert_term( $artist_name, 'artist', array( 'slug' => $artist_slug ) );
-		if ( is_wp_error( $term_result ) ) {
-			return false;
-		}
-		$term_id = $term_result['term_id'];
-	} else {
-		$term_id = $term->term_id;
-	}
-
-	wp_set_object_terms( $product_id, array( $term_id ), 'artist' );
-
 	return true;
 }
 
@@ -336,30 +286,6 @@ function extrachill_shop_get_product_count_for_user( $user_id = null ) {
  * @return array|false Artist data array or false if not found.
  */
 function extrachill_shop_get_artist_profile_by_slug_via_id( $artist_profile_id ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return false;
-	}
-
-	switch_to_blog( $artist_blog_id );
-	try {
-		$artist_post = get_post( $artist_profile_id );
-		if ( ! $artist_post || 'artist_profile' !== $artist_post->post_type ) {
-			return false;
-		}
-
-		$profile_image_id  = get_post_thumbnail_id( $artist_post->ID );
-		$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'thumbnail' ) : '';
-
-		return array(
-			'id'                => $artist_post->ID,
-			'name'              => $artist_post->post_title,
-			'slug'              => $artist_post->post_name,
-			'bio'               => $artist_post->post_content,
-			'profile_image_url' => $profile_image_url,
-			'profile_url'       => home_url( '/artists/' . $artist_post->post_name . '/' ),
-		);
-	} finally {
-		restore_current_blog();
-	}
+	$artist = extrachill_shop_get_canonical_artist( $artist_profile_id );
+	return is_wp_error( $artist ) ? false : $artist;
 }

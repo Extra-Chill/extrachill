@@ -2,7 +2,7 @@
 /**
  * Product Card Template
  *
- * Custom product card for Extra Chill shop with artist taxonomy badges.
+ * Custom product card for Extra Chill shop with canonical artist badges.
  *
  * @package ExtraChillShop
  * @version 3.6.0
@@ -25,16 +25,15 @@ if ( empty( $product ) || ! $product->is_visible() ) {
 
 	<div class="product-card-content">
 		<?php
-		$artist_terms = get_the_terms( get_the_ID(), 'artist' );
-		if ( $artist_terms && ! is_wp_error( $artist_terms ) ) :
+		$artist_id = extrachill_shop_get_product_artist_id( get_the_ID() );
+		$artist    = $artist_id ? extrachill_shop_get_canonical_artist( $artist_id ) : false;
+		if ( $artist && ! is_wp_error( $artist ) ) :
 			?>
 		<div class="taxonomy-badges">
-			<?php foreach ( $artist_terms as $term ) : ?>
-				<a href="<?php echo esc_url( get_term_link( $term ) ); ?>"
-				class="taxonomy-badge artist-badge artist-<?php echo esc_attr( $term->slug ); ?>">
-				<?php echo esc_html( $term->name ); ?>
+			<a href="<?php echo esc_url( extrachill_shop_get_artist_store_url( $artist_id ) ); ?>"
+			class="taxonomy-badge artist-badge artist-<?php echo esc_attr( $artist['slug'] ); ?>">
+			<?php echo esc_html( $artist['name'] ); ?>
 			</a>
-			<?php endforeach; ?>
 		</div>
 		<?php endif; ?>
 

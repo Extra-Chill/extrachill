@@ -83,11 +83,11 @@ function extrachill_shop_user_can_manage_artist( $artist_id, $user_id = null ): 
 		$user_id = get_current_user_id();
 	}
 
-	if ( ! function_exists( 'ec_can_manage_artist' ) ) {
-		return user_can( $user_id, 'manage_options' );
+	if ( (int) $user_id !== (int) get_current_user_id() ) {
+		return false;
 	}
 
-	return ec_can_manage_artist( $user_id, $artist_id );
+	return true === extrachill_shop_current_user_can_manage_artist( $artist_id );
 }
 
 // ─── Status / publish validation ─────────────────────────────────────────────
@@ -147,42 +147,23 @@ function extrachill_shop_product_can_publish( $product_id ) {
 		return new WP_Error( 'missing_artist', 'Product is missing an artist association.', array( 'status' => 400 ) );
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error( 'dependency_missing', 'Multisite plugin is not active.', array( 'status' => 500 ) );
-	}
-
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	if ( ! $artist_blog_id ) {
-		return new WP_Error( 'configuration_error', 'Artist blog is not configured.', array( 'status' => 500 ) );
-	}
-
-	$can_receive_payments = false;
-	$stripe_account_id    = '';
-	$stripe_status        = '';
-	try {
-		switch_to_blog( $artist_blog_id );
-		$stripe_account_id    = (string) get_post_meta( $artist_id, '_stripe_connect_account_id', true );
-		$stripe_status        = (string) get_post_meta( $artist_id, '_stripe_connect_status', true );
-		$can_receive_payments = ( 'active' === $stripe_status );
-	} finally {
-		restore_current_blog();
-	}
+	$record               = extrachill_shop_get_stripe_account_record( $artist_id );
+	$stripe_account_id    = $record ? (string) $record['account_id'] : '';
+	$can_receive_payments = $record && 'active' === ( $record['status'] ?? '' );
 
 	if ( ! $can_receive_payments && $stripe_account_id && function_exists( 'extrachill_shop_get_account_status' ) ) {
 		$status = extrachill_shop_get_account_status( $stripe_account_id );
 		if ( ! empty( $status['success'] ) && ! empty( $status['can_receive_payments'] ) ) {
 			$can_receive_payments = true;
 
-			$safe_status = isset( $status['status'] ) ? (string) $status['status'] : '';
-			if ( $safe_status ) {
-				try {
-					switch_to_blog( $artist_blog_id );
-					update_post_meta( $artist_id, '_stripe_connect_status', $safe_status );
-					update_post_meta( $artist_id, '_stripe_connect_onboarding_complete', ! empty( $status['details_submitted'] ) ? '1' : '0' );
-				} finally {
-					restore_current_blog();
-				}
-			}
+			extrachill_shop_set_stripe_account_record(
+				$artist_id,
+				array(
+					'account_id'          => $stripe_account_id,
+					'status'              => (string) ( $status['status'] ?? '' ),
+					'onboarding_complete' => ! empty( $status['details_submitted'] ),
+				)
+			);
 		}
 	}
 

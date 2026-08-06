@@ -40,15 +40,12 @@ function extrachill_shop_filter_bar_items( $items ) {
 		return $items;
 	}
 
-	$current_artist = isset( $_GET['artist'] ) ? sanitize_text_field( wp_unslash( $_GET['artist'] ) ) : '';
+	$current_artist = isset( $_GET['artist'] ) ? absint( wp_unslash( $_GET['artist'] ) ) : 0;
 	$current_sort   = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
 
-	// Artist dropdown (hidden on artist taxonomy archives).
-	if ( ! is_tax( 'artist' ) ) {
-		$artist_item = extrachill_shop_build_artist_dropdown( $current_artist );
-		if ( $artist_item ) {
-			$items[] = $artist_item;
-		}
+	$artist_item = extrachill_shop_build_artist_dropdown( $current_artist );
+	if ( $artist_item ) {
+		$items[] = $artist_item;
 	}
 
 	// Sort dropdown with price options.
@@ -82,27 +79,24 @@ function extrachill_shop_filter_bar_items( $items ) {
 /**
  * Build artist filter dropdown for shop.
  *
- * @param string $current_artist Current artist slug.
+ * @param int $current_artist Current canonical artist ID.
  * @return array|null Dropdown item or null.
  */
 function extrachill_shop_build_artist_dropdown( $current_artist ) {
-	$artists = get_terms(
-		array(
-			'taxonomy'   => 'artist',
-			'hide_empty' => true,
-			'orderby'    => 'name',
-			'order'      => 'ASC',
-		)
-	);
-
-	if ( is_wp_error( $artists ) || empty( $artists ) ) {
+	$artist_ids = extrachill_shop_get_artists_with_products();
+	if ( empty( $artist_ids ) ) {
 		return null;
 	}
 
-	$options = array( '' => __( 'All Artists', 'extrachill-shop' ) );
-	foreach ( $artists as $artist ) {
-		$options[ $artist->slug ] = $artist->name;
+	$artist_options = array();
+	foreach ( $artist_ids as $artist_id ) {
+		$artist = extrachill_shop_get_canonical_artist( $artist_id );
+		if ( ! is_wp_error( $artist ) ) {
+			$artist_options[ (string) $artist_id ] = (string) $artist['name'];
+		}
 	}
+	asort( $artist_options, SORT_NATURAL | SORT_FLAG_CASE );
+	$options = array( '' => __( 'All Artists', 'extrachill-shop' ) ) + $artist_options;
 
 	return array(
 		'type'    => 'dropdown',

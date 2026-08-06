@@ -190,9 +190,6 @@ function extrachill_shop_ability_create_product( array $input ): array|WP_Error 
 			return $variation_result;
 		}
 	}
-
-	extrachill_shop_sync_product_artist_taxonomy( $product_id, $artist_id );
-
 	update_post_meta( $product_id, '_ships_free', $ships_free ? '1' : '0' );
 
 	return extrachill_shop_ability_build_product_response( $product_id );

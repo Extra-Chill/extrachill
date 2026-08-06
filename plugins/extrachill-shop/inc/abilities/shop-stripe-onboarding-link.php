@@ -53,13 +53,7 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
 				if ( ! $artist_id ) {
 					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
 				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-						return new WP_Error( 'cannot_manage_artist', 'You do not have access to this artist.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				return current_user_can( 'manage_options' );
+				return extrachill_shop_current_user_can_manage_artist( $artist_id );
 			},
 			'meta' => array(
 				'show_in_rest' => true,

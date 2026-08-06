@@ -14,7 +14,7 @@ extrachill_breadcrumbs();
 extrachill_filter_bar();
 
 // Get filter params
-$current_artist = isset( $_GET['artist'] ) ? sanitize_text_field( wp_unslash( $_GET['artist'] ) ) : '';
+$current_artist = isset( $_GET['artist'] ) ? absint( wp_unslash( $_GET['artist'] ) ) : 0;
 $current_sort   = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
 $current_search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 $paged          = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1;
@@ -34,11 +34,12 @@ if ( $current_search ) {
 
 // Artist filter
 if ( $current_artist ) {
-	$args['tax_query'] = array(
+	$args['meta_query'] = array(
 		array(
-			'taxonomy' => 'artist',
-			'field'    => 'slug',
-			'terms'    => $current_artist,
+			'key'     => '_artist_profile_id',
+			'value'   => $current_artist,
+			'compare' => '=',
+			'type'    => 'NUMERIC',
 		),
 	);
 }

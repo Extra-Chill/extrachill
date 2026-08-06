@@ -3,7 +3,7 @@
  * Priority Boost WooCommerce Integration
  *
  * Adds event URL field and checkout validation for the priority boost product.
- * Grants priority status on order completion by setting event meta on the events site.
+ * Grants priority status through the Events-owned idempotent ability.
  *
  * @package ExtraChillShop
  * @since 0.6.0
@@ -60,36 +60,34 @@ function extrachill_shop_parse_event_url( $url ) {
 	}
 
 	$slug = sanitize_title( $matches[1] );
-
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error( 'missing_dependency', 'Required function ec_get_blog_id() not available.' );
+	if ( ! function_exists( 'ec_cross_site_rest_request_http' ) ) {
+		return new WP_Error( 'events_runtime_unavailable', 'Events validation is unavailable.' );
 	}
 
-	$events_blog_id = ec_get_blog_id( 'events' );
-	if ( ! $events_blog_id ) {
-		return new WP_Error( 'invalid_blog', 'Events blog not configured.' );
+	$events = ec_cross_site_rest_request_http(
+		'events',
+		'GET',
+		'/wp/v2/data_machine_events',
+		array(
+			'query' => array(
+				'slug'    => $slug,
+				'status'  => 'publish',
+				'_fields' => 'id,slug,title',
+			),
+		)
+	);
+	if ( is_wp_error( $events ) ) {
+		return $events;
+	}
+	if ( empty( $events[0]['id'] ) || $slug !== ( $events[0]['slug'] ?? '' ) ) {
+		return new WP_Error( 'event_not_found', 'Event not found' );
 	}
 
-	switch_to_blog( $events_blog_id );
-	try {
-		$event = get_page_by_path( $slug, OBJECT, 'data_machine_events' );
-		if ( ! $event ) {
-			return new WP_Error( 'event_not_found', 'Event not found' );
-		}
-
-		$event_date = get_post_meta( $event->ID, '_event_date', true );
-		if ( $event_date && $event_date < gmdate( 'Y-m-d' ) ) {
-			return new WP_Error( 'event_past', 'Cannot boost past events' );
-		}
-
-		return array(
-			'id'    => $event->ID,
-			'title' => $event->post_title,
-			'date'  => $event_date,
-		);
-	} finally {
-		restore_current_blog();
-	}
+	return array(
+		'id'        => absint( $events[0]['id'] ),
+		'reference' => $slug,
+		'title'     => wp_strip_all_tags( (string) ( $events[0]['title']['rendered'] ?? $slug ) ),
+	);
 }
 
 function extrachill_shop_add_event_url_field() {
@@ -155,6 +153,7 @@ function extrachill_shop_save_event_to_cart( $cart_item_data, $product_id, $vari
 	}
 
 	$cart_item_data['priority_boost_event_id']    = $event_data['id'];
+	$cart_item_data['priority_boost_event_reference'] = $event_data['reference'];
 	$cart_item_data['priority_boost_event_title'] = $event_data['title'];
 	$cart_item_data['priority_boost_event_url']   = $event_url;
 
@@ -189,34 +188,9 @@ function extrachill_shop_validate_event_cart() {
 			continue;
 		}
 
-		$event_id = absint( $cart_item['priority_boost_event_id'] );
-		if ( ! $event_id ) {
+		$event_reference = sanitize_title( (string) ( $cart_item['priority_boost_event_reference'] ?? '' ) );
+		if ( ! $event_reference ) {
 			wc_add_notice( __( 'Invalid event for Priority Boost.', 'extrachill-shop' ), 'error' );
-			continue;
-		}
-
-		if ( ! function_exists( 'ec_get_blog_id' ) ) {
-			continue;
-		}
-
-		$events_blog_id = ec_get_blog_id( 'events' );
-		if ( ! $events_blog_id ) {
-			continue;
-		}
-
-		switch_to_blog( $events_blog_id );
-		try {
-			$event = get_post( $event_id );
-			if ( ! $event || 'data_machine_events' !== $event->post_type ) {
-				wc_add_notice( __( 'The selected event no longer exists.', 'extrachill-shop' ), 'error' );
-			}
-
-			$event_date = get_post_meta( $event_id, '_event_date', true );
-			if ( $event_date && $event_date < gmdate( 'Y-m-d' ) ) {
-				wc_add_notice( __( 'Cannot boost past events.', 'extrachill-shop' ), 'error' );
-			}
-		} finally {
-			restore_current_blog();
 		}
 	}
 }
@@ -227,6 +201,7 @@ function extrachill_shop_add_event_to_order_item( $item, $cart_item_key, $values
 	}
 
 	$item->add_meta_data( 'priority_boost_event_id', absint( $values['priority_boost_event_id'] ), true );
+	$item->add_meta_data( 'priority_boost_event_reference', sanitize_title( $values['priority_boost_event_reference'] ), true );
 	$item->add_meta_data( 'priority_boost_event_title', sanitize_text_field( $values['priority_boost_event_title'] ), true );
 }
 
@@ -280,15 +255,6 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 		return;
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return;
-	}
-
-	$events_blog_id = ec_get_blog_id( 'events' );
-	if ( ! $events_blog_id ) {
-		return;
-	}
-
 	foreach ( $order->get_items() as $item ) {
 		if ( ! extrachill_shop_is_priority_boost_product_id( $item->get_product_id() ) ) {
 			continue;
@@ -296,34 +262,25 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 
 		$item_id = $item->get_id();
 
-		$idempotency_key = '_extrachill_priority_boost_processed_' . $item_id;
-		if ( $order->get_meta( $idempotency_key, true ) ) {
+		$receipt_key = '_extrachill_priority_boost_receipt_' . $item_id;
+		if ( $order->get_meta( $receipt_key, true ) ) {
 			continue;
 		}
 
-		$event_id    = absint( $item->get_meta( 'priority_boost_event_id', true ) );
 		$event_title = (string) $item->get_meta( 'priority_boost_event_title', true );
-
-		if ( ! $event_id ) {
+		$result      = extrachill_shop_grant_event_priority_boost( $order, $item );
+		if ( is_wp_error( $result ) ) {
+			$order->add_order_note(
+				sprintf(
+					/* translators: %s: stable owner error code */
+					__( 'Priority boost pending: Events owner returned %s.', 'extrachill-shop' ),
+					$result->get_error_code()
+				)
+			);
 			continue;
 		}
 
-		switch_to_blog( $events_blog_id );
-		try {
-			$event = get_post( $event_id );
-			if ( ! $event || 'data_machine_events' !== $event->post_type ) {
-				continue;
-			}
-
-			update_post_meta( $event_id, '_extrachill_priority_event', true );
-			update_post_meta( $event_id, '_extrachill_priority_boost_order_id', $order_id );
-
-			wp_cache_delete( 'extrachill_priority_event_ids', 'extrachill-events' );
-		} finally {
-			restore_current_blog();
-		}
-
-		$order->update_meta_data( $idempotency_key, 1 );
+		$order->update_meta_data( $receipt_key, $result['receipt'] ?? array( 'accepted' => true ) );
 		$order->add_order_note(
 			sprintf(
 				/* translators: %s: event title */
@@ -334,4 +291,34 @@ function extrachill_shop_handle_priority_boost_purchase( $order_id ) {
 	}
 
 	$order->save();
+}
+
+/**
+ * Grant one purchased boost through the Events owner contract.
+ *
+ * @param WC_Order $order Order object.
+ * @param object   $item Order item.
+ * @return array|WP_Error
+ */
+function extrachill_shop_grant_event_priority_boost( $order, $item ) {
+	$event_reference = sanitize_title( (string) $item->get_meta( 'priority_boost_event_reference', true ) );
+	if ( ! $event_reference ) {
+		$event_reference = (string) absint( $item->get_meta( 'priority_boost_event_id', true ) );
+	}
+	if ( ! $event_reference ) {
+		return new WP_Error( 'priority_boost_event_required', __( 'The order item has no canonical event reference.', 'extrachill-shop' ) );
+	}
+
+	$order_id = absint( $order->get_id() );
+	$item_id  = absint( $item->get_id() );
+	return extrachill_shop_execute_owner_ability(
+		'events',
+		'extrachill/grant-event-priority-boost',
+		'POST',
+		array(
+			'event'              => $event_reference,
+			'external_reference' => 'shop-order:' . $order_id,
+			'idempotency_key'    => 'shop-order:' . $order_id . ':item:' . $item_id,
+		)
+	);
 }

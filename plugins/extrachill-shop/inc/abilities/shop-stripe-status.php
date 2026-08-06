@@ -40,12 +40,6 @@ function extrachill_shop_register_stripe_status_ability(): void {
 				'type'       => 'object',
 				'properties' => array(
 					'connected'            => array( 'type' => 'boolean' ),
-					'account_id'           => array(
-						'anyOf' => array(
-							array( 'type' => 'string' ),
-							array( 'type' => 'null' ),
-						),
-					),
 					'status'               => array(
 						'anyOf' => array(
 							array( 'type' => 'string' ),
@@ -67,13 +61,7 @@ function extrachill_shop_register_stripe_status_ability(): void {
 				if ( ! $artist_id ) {
 					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
 				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-						return new WP_Error( 'cannot_manage_artist', 'You do not have access to this artist.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				return current_user_can( 'manage_options' );
+				return extrachill_shop_current_user_can_manage_artist( $artist_id );
 			},
 			'meta' => array(
 				'show_in_rest' => true,
@@ -98,28 +86,16 @@ function extrachill_shop_register_stripe_status_ability(): void {
 function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 	$artist_id = (int) ( $input['artist_id'] ?? 0 );
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error( 'configuration_error', 'Artist blog is not configured.', array( 'status' => 500 ) );
-	}
-
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	if ( ! $artist_blog_id ) {
-		return new WP_Error( 'configuration_error', 'Artist blog is not configured.', array( 'status' => 500 ) );
-	}
-
-	switch_to_blog( $artist_blog_id );
-	try {
-		$account_id = (string) get_post_meta( $artist_id, '_stripe_connect_account_id', true );
-	} finally {
-		restore_current_blog();
-	}
+	$account_id = extrachill_shop_get_artist_stripe_account( $artist_id );
 
 	if ( empty( $account_id ) ) {
 		return array(
 			'connected'            => false,
-			'account_id'           => null,
 			'status'               => null,
 			'can_receive_payments' => false,
+			'charges_enabled'      => false,
+			'payouts_enabled'      => false,
+			'details_submitted'    => false,
 		);
 	}
 
@@ -134,19 +110,17 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 	}
 
 	$safe_status = isset( $status['status'] ) ? (string) $status['status'] : '';
-	if ( $safe_status ) {
-		switch_to_blog( $artist_blog_id );
-		try {
-			update_post_meta( $artist_id, '_stripe_connect_status', $safe_status );
-			update_post_meta( $artist_id, '_stripe_connect_onboarding_complete', ! empty( $status['details_submitted'] ) ? '1' : '0' );
-		} finally {
-			restore_current_blog();
-		}
-	}
+	extrachill_shop_set_stripe_account_record(
+		$artist_id,
+		array(
+			'account_id'          => $account_id,
+			'status'              => $safe_status,
+			'onboarding_complete' => ! empty( $status['details_submitted'] ),
+		)
+	);
 
 	return array(
 		'connected'            => true,
-		'account_id'           => $account_id,
 		'status'               => $safe_status,
 		'can_receive_payments' => ! empty( $status['can_receive_payments'] ),
 		'charges_enabled'      => ! empty( $status['charges_enabled'] ),
