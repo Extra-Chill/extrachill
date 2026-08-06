@@ -352,10 +352,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 					alt=""
 				/>
 			) }
-			<BlockShellHeader
-				title={ `Booking at ${ config.venue.name }` }
-				description={ config.venue.address }
-			/>
+			<BlockShellHeader title={ `Booking at ${ config.venue.name }` } />
 			<BlockShellInner className="ec-panel ec-booking-inquiry__panel">
 				<form
 					className="ec-booking-inquiry__form"

@@ -46,18 +46,6 @@ $canonical = ( static function () use ( $events_blog_id, $venue_id ) {
 			}
 		}
 
-		if ( function_exists( 'data_machine_events_get_venue_data' ) && function_exists( 'data_machine_events_get_venue_address' ) ) {
-			$venue_data = data_machine_events_get_venue_data( $venue_id );
-			$address    = data_machine_events_get_venue_address( $venue_id, $venue_data );
-		} else {
-			$street     = (string) get_term_meta( $venue_id, '_venue_address', true );
-			$city       = (string) get_term_meta( $venue_id, '_venue_city', true );
-			$state      = (string) get_term_meta( $venue_id, '_venue_state', true );
-			$zip        = (string) get_term_meta( $venue_id, '_venue_zip', true );
-			$city_state = implode( ', ', array_filter( array( $city, $state ) ) );
-			$address    = implode( ', ', array_filter( array( $street, $city_state, $zip ) ) );
-		}
-
 		$profile  = function_exists( 'data_machine_events_get_venue_profile' ) ? data_machine_events_get_venue_profile( $venue_id ) : array();
 		$logo_url = is_array( $profile ) ? (string) ( $profile['logo_url'] ?? '' ) : '';
 		$logo_url = filter_var( $logo_url, FILTER_VALIDATE_URL ) ? $logo_url : '';
@@ -68,7 +56,6 @@ $canonical = ( static function () use ( $events_blog_id, $venue_id ) {
 				'id'          => $venue_id,
 				'name'        => $venue->name,
 				'description' => wp_strip_all_tags( $venue->description ),
-				'address'     => $address,
 				'logoUrl'     => $logo_url,
 			),
 		);

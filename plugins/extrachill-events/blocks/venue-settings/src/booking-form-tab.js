@@ -34,14 +34,6 @@ const previewConfig = ( config, venueName, profile, idPrefix ) => ( {
 	venue: {
 		id: profile?.term_id || 0,
 		name: venueName,
-		address: [
-			profile?.address,
-			profile?.city,
-			profile?.state,
-			profile?.zip,
-		]
-			.filter( Boolean )
-			.join( ', ' ),
 		logoUrl: profile?.logo_url || '',
 	},
 	spaces: config.spaces,
