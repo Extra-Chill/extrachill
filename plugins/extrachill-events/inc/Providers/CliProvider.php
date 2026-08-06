@@ -21,7 +21,7 @@ final class CliProvider {
 
 	/** Register commands when the WP-CLI runtime is available. */
 	public static function register(): void {
-		if ( self::$registered || ! defined( 'WP_CLI' ) || ! WP_CLI || ! file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/AddCityCommand.php' ) ) { // @phpstan-ignore booleanAnd.rightAlwaysTrue
+		if ( self::$registered || ! defined( 'WP_CLI' ) || ! file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/AddCityCommand.php' ) ) { // @phpstan-ignore booleanAnd.rightAlwaysTrue
 			return;
 		}
 
