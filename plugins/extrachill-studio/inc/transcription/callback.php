@@ -126,6 +126,7 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 	$content    = isset( $body['content'] ) && is_array( $body['content'] ) ? $body['content'] : array();
 	$stats      = isset( $body['stats'] ) && is_array( $body['stats'] ) ? $body['stats'] : array();
 	$transcript = isset( $content['transcription'] ) ? (string) $content['transcription'] : '';
+	$job_id     = trim( $job_id );
 
 	if ( 'complete' !== $status ) {
 		// We only act on success callbacks for v1. Failure handling is a
@@ -143,44 +144,298 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 	if ( '' === trim( $transcript ) ) {
 		return new \WP_Error( 'empty_transcript', __( 'Callback content has no transcription text.', 'extrachill-studio' ), array( 'status' => 400 ) );
 	}
+	if ( '' === $job_id ) {
+		return new \WP_Error( 'missing_job_id', __( 'Callback content has no job id.', 'extrachill-studio' ), array( 'status' => 400 ) );
+	}
+	if ( strlen( $job_id ) > 191 ) {
+		return new \WP_Error( 'invalid_job_id', __( 'Callback job id is too long.', 'extrachill-studio' ), array( 'status' => 400 ) );
+	}
+
+	$claim = ec_studio_transcription_callback_claim( $user_id, $job_id );
+	if ( is_wp_error( $claim ) ) {
+		return $claim;
+	}
+	if ( ! empty( $claim['duplicate'] ) ) {
+		return rest_ensure_response( ec_studio_transcription_callback_result( $claim['state'] ) );
+	}
+
+	$receipt_key = (string) $claim['key'];
+	$state       = $claim['state'];
 
 	// --- Filename (from job_id metadata if we have it, else best-effort) ---
 	$filename = ec_studio_transcription_callback_pick_filename( $body );
 
 	// --- Create draft on main extrachill.com --------------------------
-	$post_id = ec_studio_transcription_callback_create_draft( $user_id, $filename, $transcript, $job_id, $stats );
-	if ( is_wp_error( $post_id ) ) {
-		return $post_id;
+	$post_id = (int) $state['post_id'];
+	if ( $post_id <= 0 ) {
+		$post_id = ec_studio_transcription_callback_find_draft( $user_id, $job_id );
+	}
+	if ( $post_id <= 0 ) {
+		try {
+			$post_id = ec_studio_transcription_callback_create_draft( $user_id, $filename, $transcript, $job_id, $stats );
+		} catch ( \Throwable $exception ) {
+			$post_id = new \WP_Error( 'draft_create_failed', $exception->getMessage(), array( 'status' => 503 ) );
+		}
+		if ( is_wp_error( $post_id ) ) {
+			ec_studio_transcription_callback_release( $receipt_key, $state );
+			return $post_id;
+		}
+	}
+
+	if ( (int) $state['post_id'] <= 0 ) {
+		$next_state            = $state;
+		$next_state['post_id'] = (int) $post_id;
+		$saved                 = ec_studio_transcription_callback_store( $receipt_key, $state, $next_state );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+		$state = $next_state;
 	}
 
 	// Emit studio_transcription_run (extrachill-users#127 shared contract).
 	// The acting user the analytics table records is 0 here (unauthenticated
 	// HMAC callback), so the uploader's id is passed in the payload.
-	if ( function_exists( 'ec_studio_emit_team_experience_event' ) ) {
-		ec_studio_emit_team_experience_event(
-			EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN,
-			$user_id,
-			array(
-				'post_id'  => (int) $post_id,
-				'job_id'   => $job_id,
-				'segments' => isset( $stats['segments'] ) ? (int) $stats['segments'] : 0,
-			)
-		);
+	if ( empty( $state['analytics_event_id'] ) ) {
+		try {
+			$event_id = function_exists( 'ec_studio_emit_team_experience_event' )
+				? ec_studio_emit_team_experience_event(
+					EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN,
+					$user_id,
+					array(
+						'post_id'  => (int) $post_id,
+						'job_id'   => $job_id,
+						'segments' => isset( $stats['segments'] ) ? (int) $stats['segments'] : 0,
+					)
+				)
+				: 0;
+		} catch ( \Throwable $exception ) {
+			$event_id = 0;
+		}
+		if ( $event_id <= 0 ) {
+			ec_studio_transcription_callback_release( $receipt_key, $state );
+			return new \WP_Error( 'analytics_emit_failed', __( 'The transcription draft was created, but analytics could not be recorded. Retry the callback.', 'extrachill-studio' ), array( 'status' => 503 ) );
+		}
+
+		$next_state                       = $state;
+		$next_state['analytics_event_id'] = (int) $event_id;
+		$saved                            = ec_studio_transcription_callback_store( $receipt_key, $state, $next_state );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+		$state = $next_state;
 	}
 
 	// --- Email the user -----------------------------------------------
-	$email_sent = ec_studio_transcription_callback_send_email( $user, $post_id, $filename, $transcript, $stats );
+	if ( empty( $state['email_sent'] ) ) {
+		try {
+			$email_sent = ec_studio_transcription_callback_send_email( $user, $post_id, $filename, $transcript, $stats );
+		} catch ( \Throwable $exception ) {
+			$email_sent = false;
+		}
+		if ( ! $email_sent ) {
+			ec_studio_transcription_callback_release( $receipt_key, $state );
+			return new \WP_Error( 'notification_failed', __( 'The transcription draft was created, but its notification could not be sent. Retry the callback.', 'extrachill-studio' ), array( 'status' => 503 ) );
+		}
 
-	return rest_ensure_response(
-		array(
-			'received'   => true,
-			'action'     => 'draft_created',
-			'job_id'     => $job_id,
-			'post_id'    => $post_id,
-			'user_id'    => $user_id,
-			'email_sent' => (bool) $email_sent,
-		)
+		$next_state               = $state;
+		$next_state['email_sent'] = true;
+		$saved                    = ec_studio_transcription_callback_store( $receipt_key, $state, $next_state );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+		$state = $next_state;
+	}
+
+	$complete_state           = $state;
+	$complete_state['status'] = 'complete';
+	$saved                    = ec_studio_transcription_callback_store( $receipt_key, $state, $complete_state );
+	if ( is_wp_error( $saved ) ) {
+		return $saved;
+	}
+
+	return rest_ensure_response( ec_studio_transcription_callback_result( $complete_state ) );
+}
+
+/**
+ * Atomically claim a callback receipt stored in main's uniquely keyed options table.
+ *
+ * @param int    $user_id Callback subject.
+ * @param string $job_id  Provider job id.
+ * @return array|\WP_Error Claim details or an error.
+ */
+function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) {
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	if ( $main_blog_id <= 0 ) {
+		return new \WP_Error( 'main_site_unavailable', __( 'The main site could not be resolved.', 'extrachill-studio' ), array( 'status' => 500 ) );
+	}
+
+	$key   = '_ec_studio_transcription_' . hash( 'sha256', $user_id . "\0" . $job_id );
+	$owner = wp_generate_uuid4();
+	$now   = time();
+	$state = array(
+		'subject'            => $user_id,
+		'job_id'             => $job_id,
+		'status'             => 'processing',
+		'owner'              => $owner,
+		'updated_at'         => $now,
+		'post_id'            => 0,
+		'analytics_event_id' => 0,
+		'email_sent'         => false,
 	);
+
+	switch_to_blog( $main_blog_id );
+	try {
+		if ( add_option( $key, $state, '', false ) ) {
+			return array( 'key' => $key, 'state' => $state, 'duplicate' => false );
+		}
+		$existing = get_option( $key, null );
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( ! is_array( $existing ) || (int) ( $existing['subject'] ?? 0 ) !== $user_id || (string) ( $existing['job_id'] ?? '' ) !== $job_id ) {
+		return new \WP_Error( 'callback_receipt_invalid', __( 'The existing callback receipt is invalid.', 'extrachill-studio' ), array( 'status' => 500 ) );
+	}
+	if ( 'complete' === ( $existing['status'] ?? '' ) ) {
+		return array( 'key' => $key, 'state' => $existing, 'duplicate' => true );
+	}
+	if ( 'processing' === ( $existing['status'] ?? '' ) && $now - (int) ( $existing['updated_at'] ?? 0 ) < 300 ) {
+		return new \WP_Error( 'callback_in_progress', __( 'This callback is already being processed. Retry shortly.', 'extrachill-studio' ), array( 'status' => 409 ) );
+	}
+
+	$state               = $existing;
+	$state['status']     = 'processing';
+	$state['owner']      = $owner;
+	$state['updated_at'] = $now;
+	$claimed             = ec_studio_transcription_callback_replace( $main_blog_id, $key, $existing, $state );
+	if ( ! $claimed ) {
+		return new \WP_Error( 'callback_in_progress', __( 'This callback was claimed by another request. Retry shortly.', 'extrachill-studio' ), array( 'status' => 409 ) );
+	}
+
+	return array( 'key' => $key, 'state' => $state, 'duplicate' => false );
+}
+
+/**
+ * Persist an owned callback receipt with compare-and-swap semantics.
+ *
+ * @param string $key      Option key.
+ * @param array  $current  Expected state.
+ * @param array  $next     Replacement state.
+ * @return true|\WP_Error
+ */
+function ec_studio_transcription_callback_store( string $key, array $current, array &$next ) {
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$next['owner']      = (string) ( $current['owner'] ?? '' );
+	$next['updated_at'] = time();
+	if ( $main_blog_id <= 0 || ! ec_studio_transcription_callback_replace( $main_blog_id, $key, $current, $next ) ) {
+		return new \WP_Error( 'callback_claim_lost', __( 'Callback ownership changed while processing. Retry shortly.', 'extrachill-studio' ), array( 'status' => 409 ) );
+	}
+	return true;
+}
+
+/**
+ * Release an owned receipt after a known failure so a retry can resume it.
+ *
+ * @param string $key   Option key.
+ * @param array  $state Current state.
+ */
+function ec_studio_transcription_callback_release( string $key, array $state ): void {
+	$retry_state               = $state;
+	$retry_state['status']     = 'retryable';
+	$retry_state['owner']      = '';
+	$retry_state['updated_at'] = time();
+	$main_blog_id              = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	if ( $main_blog_id > 0 ) {
+		ec_studio_transcription_callback_replace( $main_blog_id, $key, $state, $retry_state );
+	}
+}
+
+/**
+ * Replace one exact option value, preventing stale workers from overwriting a new owner.
+ *
+ * @param int    $blog_id Blog containing the receipt.
+ * @param string $key     Option key.
+ * @param array  $current Expected state.
+ * @param array  $next    Replacement state.
+ * @return bool
+ */
+function ec_studio_transcription_callback_replace( int $blog_id, string $key, array $current, array $next ): bool {
+	global $wpdb;
+
+	switch_to_blog( $blog_id );
+	try {
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Exact-value CAS is required to transfer callback ownership safely.
+			$wpdb->options,
+			array( 'option_value' => maybe_serialize( $next ) ),
+			array(
+				'option_name'  => $key,
+				'option_value' => maybe_serialize( $current ),
+			),
+			array( '%s' ),
+			array( '%s', '%s' )
+		);
+		if ( 1 === (int) $updated ) {
+			wp_cache_delete( $key, 'options' );
+			return true;
+		}
+		return false;
+	} finally {
+		restore_current_blog();
+	}
+}
+
+/**
+ * Build the stable success response persisted by a callback receipt.
+ *
+ * @param array $state Callback receipt.
+ * @return array
+ */
+function ec_studio_transcription_callback_result( array $state ): array {
+	return array(
+		'received'   => true,
+		'action'     => 'draft_created',
+		'job_id'     => (string) $state['job_id'],
+		'post_id'    => (int) $state['post_id'],
+		'user_id'    => (int) $state['subject'],
+		'email_sent' => ! empty( $state['email_sent'] ),
+	);
+}
+
+/**
+ * Resolve a post already stamped for this callback subject and job.
+ *
+ * This closes the recovery window where WordPress created and stamped the post
+ * before the callback receipt could persist its post ID.
+ *
+ * @param int    $user_id Callback subject and post author.
+ * @param string $job_id  Provider job id.
+ * @return int Existing post ID, or zero.
+ */
+function ec_studio_transcription_callback_find_draft( int $user_id, string $job_id ): int {
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	if ( $main_blog_id <= 0 ) {
+		return 0;
+	}
+
+	switch_to_blog( $main_blog_id );
+	try {
+		$posts = get_posts(
+			array(
+				'author'         => $user_id,
+				'fields'         => 'ids',
+				'meta_key'       => '_studio_transcription_job_id',
+				'meta_value'     => $job_id,
+				'no_found_rows'  => true,
+				'order'          => 'ASC',
+				'orderby'        => 'ID',
+				'post_status'    => 'any',
+				'posts_per_page' => 1,
+			)
+		);
+		return isset( $posts[0] ) ? (int) $posts[0] : 0;
+	} finally {
+		restore_current_blog();
+	}
 }
 
 /**
