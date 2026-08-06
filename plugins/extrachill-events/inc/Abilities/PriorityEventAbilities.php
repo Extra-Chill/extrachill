@@ -228,13 +228,15 @@ class PriorityEventAbilities {
 	}
 
 	/**
-	 * Require an authenticated administrator for paid priority grants.
+	 * Require an administrator or a trusted commerce fulfillment context.
 	 *
 	 * @param array $input Validated ability input.
 	 * @return true|\WP_Error
 	 */
 	public function can_grant_priority_boost( array $input ) {
-		unset( $input );
+		if ( $this->priority_boost_is_trusted_commerce_request( $input ) ) {
+			return true;
+		}
 
 		$actor_id = $this->get_priority_boost_actor_id();
 		if ( $actor_id < 1 ) {
@@ -279,6 +281,10 @@ class PriorityEventAbilities {
 
 		if ( is_array( $receipt ) ) {
 			return $this->replay_priority_boost( $option_name, $receipt, $request_hash, $post );
+		}
+
+		if ( ! $this->priority_boost_event_is_eligible( (int) $post->ID ) ) {
+			return new \WP_Error( 'priority_boost_event_ineligible', __( 'Priority boosts are available only for upcoming events.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
 		$existing_priority = $this->is_priority_boosted_event( (int) $post->ID );
@@ -404,6 +410,40 @@ class PriorityEventAbilities {
 	 */
 	protected function priority_boost_actor_can_manage( int $actor_id ): bool {
 		return user_can( $actor_id, 'manage_options' );
+	}
+
+	/**
+	 * Allow the commerce owner to authorize a verified fulfillment call.
+	 *
+	 * The default is deliberately false. The integration must scope its filter
+	 * to the payment-completion call and remove it immediately afterward.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return bool
+	 */
+	protected function priority_boost_is_trusted_commerce_request( array $input ): bool {
+		/**
+		 * Filters whether this execution is trusted commerce fulfillment.
+		 *
+		 * @param bool  $trusted Whether the caller verified the fulfillment. Default false.
+		 * @param array $input   Validated priority boost input.
+		 */
+		return (bool) apply_filters( 'extrachill_events_priority_boost_trusted_commerce', false, $input );
+	}
+
+	/**
+	 * Check that a new grant targets an event that has not passed.
+	 *
+	 * @param int $post_id Event post ID.
+	 * @return bool
+	 */
+	protected function priority_boost_event_is_eligible( int $post_id ): bool {
+		$event_date = trim( (string) get_post_meta( $post_id, '_event_date', true ) );
+		$date       = \DateTimeImmutable::createFromFormat( '!Y-m-d', $event_date );
+
+		return false !== $date
+			&& $date->format( 'Y-m-d' ) === $event_date
+			&& $event_date >= current_time( 'Y-m-d' );
 	}
 
 	/**

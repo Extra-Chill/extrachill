@@ -60,6 +60,20 @@ final class PriorityBoostAbilityDouble extends PriorityEventAbilities {
 	public $can_manage = true;
 
 	/**
+	 * Event dates by event ID.
+	 *
+	 * @var array<int,string>
+	 */
+	public $event_dates = array();
+
+	/**
+	 * Current site date fixture.
+	 *
+	 * @var string
+	 */
+	public $today = '2026-08-06';
+
+	/**
 	 * Resolve an event fixture.
 	 *
 	 * @param string $event_reference Event ID or slug.
@@ -83,6 +97,16 @@ final class PriorityBoostAbilityDouble extends PriorityEventAbilities {
 	protected function priority_boost_actor_can_manage( int $actor_id ): bool {
 		unset( $actor_id );
 		return $this->can_manage;
+	}
+
+	/**
+	 * Return fixture event eligibility.
+	 *
+	 * @param int $post_id Event post ID.
+	 * @return bool
+	 */
+	protected function priority_boost_event_is_eligible( int $post_id ): bool {
+		return isset( $this->event_dates[ $post_id ] ) && $this->event_dates[ $post_id ] >= $this->today;
 	}
 
 	/**

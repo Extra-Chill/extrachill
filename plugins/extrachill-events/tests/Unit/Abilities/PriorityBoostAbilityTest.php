@@ -22,14 +22,15 @@ final class PriorityBoostAbilityTest extends TestCase {
 
 	/** Prepare one canonical event. */
 	protected function setUp(): void {
-		$this->ability               = new PriorityBoostAbilityDouble();
-		$this->ability->events['42'] = (object) array(
+		$this->ability                  = new PriorityBoostAbilityDouble();
+		$this->ability->events['42']    = (object) array(
 			'ID'          => 42,
 			'post_type'   => 'data_machine_events',
 			'post_status' => 'publish',
 			'post_title'  => 'Test Event',
 			'post_name'   => 'test-event',
 		);
+		$this->ability->event_dates[42] = '2026-08-07';
 	}
 
 	/** A valid request grants priority and returns an opaque receipt. */
@@ -42,6 +43,9 @@ final class PriorityBoostAbilityTest extends TestCase {
 		$this->assertTrue( $this->ability->priority[42] );
 		$this->assertSame( 42, $result['event']['post_id'] );
 		$this->assertSame( 7, $result['receipt']['actor_id'] );
+		$this->assertArrayNotHasKey( 'external_reference', $result );
+		$this->assertArrayNotHasKey( 'idempotency_key', $result );
+		$this->assertArrayNotHasKey( 'external_reference', $result['receipt'] );
 	}
 
 	/** Exact retries return the original projection without another write. */
@@ -79,8 +83,40 @@ final class PriorityBoostAbilityTest extends TestCase {
 		$this->assertSame( 'priority_boost_event_not_found', $result->get_error_code() );
 	}
 
-	/** Non-administrator actors receive an explicit capability error. */
-	public function test_unauthorized_actor_returns_explicit_error(): void {
+	/** Trusted commerce fulfillment can execute without a WordPress actor. */
+	public function test_trusted_commerce_allows_user_zero(): void {
+		$this->ability->actor_id   = 0;
+		$this->ability->can_manage = false;
+		$input                     = $this->input();
+		$authorize                 = static function ( bool $trusted, array $received ) use ( $input ): bool {
+			return false === $trusted && $input === $received;
+		};
+		add_filter( 'extrachill_events_priority_boost_trusted_commerce', $authorize, 10, 2 );
+
+		try {
+			$this->assertTrue( $this->ability->can_grant_priority_boost( $input ) );
+			$result = $this->ability->grant_priority_boost( $input );
+			$this->assertTrue( $result['success'] );
+			$this->assertSame( 0, $result['receipt']['actor_id'] );
+		} finally {
+			remove_filter( 'extrachill_events_priority_boost_trusted_commerce', $authorize, 10 );
+		}
+	}
+
+	/** Untrusted user zero remains unauthenticated. */
+	public function test_untrusted_user_zero_requires_authentication(): void {
+		$this->ability->actor_id   = 0;
+		$this->ability->can_manage = false;
+
+		$result = $this->ability->can_grant_priority_boost( $this->input() );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'priority_boost_authentication_required', $result->get_error_code() );
+		$this->assertSame( 401, $result->get_error_data()['status'] );
+	}
+
+	/** Authenticated customers remain forbidden without trusted fulfillment. */
+	public function test_customer_returns_explicit_capability_error(): void {
 		$this->ability->can_manage = false;
 
 		$result = $this->ability->can_grant_priority_boost( $this->input() );
@@ -88,6 +124,38 @@ final class PriorityBoostAbilityTest extends TestCase {
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'priority_boost_forbidden', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
+	/** Administrators retain direct execution authority. */
+	public function test_administrator_remains_authorized(): void {
+		$this->assertTrue( $this->ability->can_grant_priority_boost( $this->input() ) );
+		$result = $this->ability->grant_priority_boost( $this->input() );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 7, $result['receipt']['actor_id'] );
+	}
+
+	/** New grants reject past events before writing state. */
+	public function test_past_event_is_ineligible(): void {
+		$this->ability->event_dates[42] = '2026-08-05';
+
+		$result = $this->ability->grant_priority_boost( $this->input() );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'priority_boost_event_ineligible', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( 0, $this->ability->priority_writes );
+	}
+
+	/** Exact retries retain their receipt after the event date passes. */
+	public function test_completed_grant_replays_after_event_passes(): void {
+		$first                          = $this->ability->grant_priority_boost( $this->input() );
+		$this->ability->event_dates[42] = '2026-08-05';
+
+		$replay = $this->ability->grant_priority_boost( $this->input() );
+
+		$this->assertTrue( $replay['replayed'] );
+		$this->assertSame( $first['receipt'], $replay['receipt'] );
+		$this->assertSame( 1, $this->ability->priority_writes );
 	}
 
 	/** Successful grants invalidate the established Events cache only. */
