@@ -3,6 +3,7 @@
 	<testsuites>
 		<testsuite name="artist-unit">
 			<file>tests/Unit/Abilities/EventsByArtistAbilityTest.php</file>
+			<file>tests/Unit/Abilities/ArtistUrlImportConfigurationContractTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

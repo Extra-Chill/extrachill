@@ -39,8 +39,9 @@
  * `HandlerAbilities` registry — never by referencing the internal
  * `\DataMachineEvents\…\UniversalWebScraper` class. The slug is a public
  * contract; the class is data-machine-events-internal. The approve path
- * already uses only public DM abilities (`datamachine/create-pipeline`,
- * `datamachine/create-flow`, `datamachine/run-flow`).
+ * uses only public DM abilities (`datamachine/create-pipeline`,
+ * `datamachine/create-flow`, `datamachine/get-pipeline-configuration`,
+ * `datamachine/update-step-configuration`, `datamachine/run-flow`).
  *
  * All four abilities use `SelectionMode` constants from Data Machine
  * core (issue #320 hard requirement — no bare strings).
@@ -76,12 +77,6 @@ class ArtistUrlImportAbilities {
 	 * approval creates a NEW FLOW on it.
 	 */
 	private const SHARED_PIPELINE_NAME = 'Artist Tour Import';
-
-	/**
-	 * Site option key caching the shared pipeline_id for the fast path.
-	 * A name-based lookup is the fallback if this option is missing/stale.
-	 */
-	private const SHARED_PIPELINE_OPTION = 'extrachill_events_artist_import_pipeline_id';
 
 	/**
 	 * Default schedule interval for newly approved artist flows.
@@ -155,51 +150,6 @@ class ArtistUrlImportAbilities {
 		}
 
 		return $context;
-	}
-
-	/**
-	 * Read the agent_id for a pipeline.
-	 *
-	 * @param int $pipeline_id
-	 * @return int|null Null when the pipeline does not exist.
-	 */
-	private function getPipelineAgentId( int $pipeline_id ): ?int {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_pipelines';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$agent_id = $wpdb->get_var(
-			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal identifier built from $wpdb->prefix.
-				"SELECT agent_id FROM {$table} WHERE pipeline_id = %d LIMIT 1",
-				$pipeline_id
-			)
-		);
-
-		return null === $agent_id ? null : (int) $agent_id;
-	}
-
-	/**
-	 * Assign an agent to an existing pipeline via the canonical update ability.
-	 *
-	 * @param int $pipeline_id
-	 * @param int $agent_id
-	 * @return bool
-	 */
-	private function assignPipelineAgent( int $pipeline_id, int $agent_id ): bool {
-		$update_ability = wp_get_ability( 'datamachine/update-pipeline' );
-		if ( ! $update_ability ) {
-			return false;
-		}
-
-		$result = $update_ability->execute(
-			array(
-				'pipeline_id' => $pipeline_id,
-				'agent_id'    => $agent_id,
-			)
-		);
-
-		return ! empty( $result['success'] );
 	}
 
 	public function __construct() {
@@ -657,7 +607,7 @@ class ArtistUrlImportAbilities {
 		// config (source_url + PRE_SELECTED artist term). There is no
 		// per-artist pipeline and no per-artist pipeline-level AI prompt.
 		$pipeline_id = $this->resolveSharedArtistImportPipeline();
-		if ( is_wp_error( $pipeline_id ) ) {
+		if ( $pipeline_id instanceof \WP_Error ) {
 			return $pipeline_id;
 		}
 
@@ -726,15 +676,18 @@ class ArtistUrlImportAbilities {
 
 		$flow_id = (int) $flow_result['flow_id'];
 
-		// Defensive patch in case create-flow's step_configs application
-		// doesn't write through (matches CityAbilities' patchFlowSteps
-		// belt-and-braces pattern).
-		$this->patchFlowSteps(
+		// Verify and apply the supported flow settings through Data Machine's
+		// revisioned owner contract.
+		$configured = $this->configureFlowSteps(
+			$pipeline_id,
 			$flow_id,
 			$import_handler_config,
 			$upsert_handler_config,
 			$ai_message
 		);
+		if ( $configured instanceof \WP_Error ) {
+			return $configured;
+		}
 
 		// 3. Update the submission row: approved + linked shared pipeline/flow.
 		ArtistUrlSubmissionsTable::update(
@@ -1312,12 +1265,10 @@ class ArtistUrlImportAbilities {
 	 * Resolve the single shared Artist Tour Import pipeline (architecture
 	 * model B1 — one pipeline reused across all approved artist URLs).
 	 *
-	 * Idempotent: the shared pipeline_id is cached in a site option for
-	 * the fast path, with a name-based fallback so the resolver still
-	 * recovers if the option was cleared or this is the first approval
-	 * after the B1 deploy. If neither yields a live pipeline, a new one
-	 * is created (event_import → ai → upsert), given its artist-agnostic
-	 * AI system prompt once, and its id cached.
+	 * Idempotent: Data Machine resolves the stable exact name through its
+	 * public configuration contract. If no pipeline exists, a new one is
+	 * created (event_import → ai → upsert) and given its artist-agnostic
+	 * AI system prompt once.
 	 *
 	 * Per-artist identity never lives at the pipeline level — it lives on
 	 * each flow (source_url + PRE_SELECTED artist term + per-artist
@@ -1328,26 +1279,18 @@ class ArtistUrlImportAbilities {
 	private function resolveSharedArtistImportPipeline() {
 		$system_context = $this->resolveSystemAgentContext();
 		$agent_id       = $system_context['agent_id'] ?? null;
+		$configuration  = $this->getPipelineConfiguration( array( 'pipeline_name' => self::SHARED_PIPELINE_NAME ) );
 
-		$stored_id = (int) get_option( self::SHARED_PIPELINE_OPTION, 0 );
-
-		if ( $stored_id > 0 && $this->pipelineExists( $stored_id ) ) {
-			$existing_agent_id = $this->getPipelineAgentId( $stored_id );
-			if ( ( null === $existing_agent_id || $existing_agent_id <= 0 ) && $agent_id > 0 ) {
-				$this->assignPipelineAgent( $stored_id, $agent_id );
+		if ( ! $configuration instanceof \WP_Error ) {
+			$pipeline_id = (int) ( $configuration['pipeline']['pipeline_id'] ?? 0 );
+			if ( $pipeline_id <= 0 ) {
+				return new \WP_Error( 'datamachine_configuration_error', __( 'Data Machine returned an invalid pipeline configuration response.', 'extrachill-events' ), array( 'status' => 502 ) );
 			}
-			return $stored_id;
+			return $pipeline_id;
 		}
 
-		// Fallback: locate by stable name if the option is missing/stale.
-		$found_id = $this->findExistingPipeline( self::SHARED_PIPELINE_NAME );
-		if ( $found_id > 0 ) {
-			update_option( self::SHARED_PIPELINE_OPTION, $found_id, false );
-			$existing_agent_id = $this->getPipelineAgentId( $found_id );
-			if ( ( null === $existing_agent_id || $existing_agent_id <= 0 ) && $agent_id > 0 ) {
-				$this->assignPipelineAgent( $found_id, $agent_id );
-			}
-			return $found_id;
+		if ( 'pipeline_not_found' !== $configuration->get_error_code() ) {
+			return $configuration;
 		}
 
 		// Create the shared pipeline scaffold (event_import → ai → upsert).
@@ -1395,56 +1338,27 @@ class ArtistUrlImportAbilities {
 		$pipeline_id = (int) $pipeline_result['pipeline_id'];
 
 		// Set the artist-agnostic AI system prompt ONCE at creation.
-		$this->configureSharedPipelineAiStep( $pipeline_id );
-
-		update_option( self::SHARED_PIPELINE_OPTION, $pipeline_id, false );
+		$configured = $this->configureSharedPipelineAiStep( $pipeline_id );
+		if ( $configured instanceof \WP_Error ) {
+			return $configured;
+		}
 
 		return $pipeline_id;
 	}
 
 	/**
-	 * Lightweight existence check for a pipeline id.
+	 * Read normalized pipeline configuration through Data Machine's owner contract.
 	 *
-	 * @param int $pipeline_id
-	 * @return bool
+	 * @param array $selector Pipeline ID or exact-name selector.
+	 * @return array|\WP_Error
 	 */
-	private function pipelineExists( int $pipeline_id ): bool {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_pipelines';
+	private function getPipelineConfiguration( array $selector ) {
+		$ability = wp_get_ability( 'datamachine/get-pipeline-configuration' );
+		if ( ! $ability ) {
+			return $this->configurationDependencyUnavailable();
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$found = $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal identifier built from $wpdb->prefix; not user input.
-			$wpdb->prepare( "SELECT pipeline_id FROM {$table} WHERE pipeline_id = %d LIMIT 1", $pipeline_id )
-		);
-
-		return ! empty( $found );
-	}
-
-	/**
-	 * Find an existing pipeline by name.
-	 *
-	 * Mirrors CityAbilities::findExistingPipeline() — same table, same
-	 * query shape — so the shared-pipeline name lookup is consistent with
-	 * the rest of the events plugin.
-	 *
-	 * @param string $pipeline_name Pipeline name to search for.
-	 * @return int|null Pipeline ID if found, null otherwise.
-	 */
-	private function findExistingPipeline( string $pipeline_name ): ?int {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_pipelines';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$pipeline_id = $wpdb->get_var(
-			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal identifier built from $wpdb->prefix; not user input.
-				"SELECT pipeline_id FROM {$table} WHERE pipeline_name = %s LIMIT 1",
-				$pipeline_name
-			)
-		);
-
-		return $pipeline_id ? (int) $pipeline_id : null;
+		return $this->normalizeConfigurationResult( $ability->execute( $selector ) );
 	}
 
 	/**
@@ -1457,119 +1371,145 @@ class ArtistUrlImportAbilities {
 	 * Does not set a provider/model — those are resolved by AIStep from
 	 * agent_config and site settings at runtime.
 	 *
-	 * @param int $pipeline_id
+	 * @param int $pipeline_id Pipeline ID.
+	 * @return array|\WP_Error
 	 */
-	private function configureSharedPipelineAiStep( int $pipeline_id ): void {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_pipelines';
+	private function configureSharedPipelineAiStep( int $pipeline_id ) {
+		$configuration = $this->getPipelineConfiguration( array( 'pipeline_id' => $pipeline_id ) );
+		if ( $configuration instanceof \WP_Error ) {
+			return $configuration;
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$pipeline = $wpdb->get_row(
-			$wpdb->prepare( "SELECT pipeline_config FROM {$table} WHERE pipeline_id = %d", $pipeline_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
+		/**
+		 * Filter the events feed name written into the AI step prompt.
+		 *
+		 * @param string $feed_name Default feed name (site name).
+		 */
+		$feed_name = (string) apply_filters( 'extrachill_events_artist_url_feed_name', get_bloginfo( 'name' ) );
+		$prompt    = sprintf(
+			'You process events from tour/events pages for the %s events feed. The artist for each flow is already pre-selected and named in the flow\'s user message — do not change the artist binding. Identify the venue, city/location, and festival (if any) for each event based on the available information. Skip WordPress categories and post tags entirely.',
+			$feed_name
 		);
 
-		if ( ! $pipeline ) {
-			return;
-		}
-
-		$config = json_decode( $pipeline['pipeline_config'], true );
-		if ( ! is_array( $config ) ) {
-			return;
-		}
-
-		foreach ( $config as &$step ) {
-			if ( ( $step['step_type'] ?? '' ) === 'ai' ) {
-				// Do NOT write a provider/model into the pipeline AI step.
-				// AIStep resolves the model/provider from agent_config and
-				// site settings at runtime; baking a literal here silently
-				// overrides the operator's configured model on the shared
-				// artist-import pipeline.
-				/**
-				 * Filter the events feed name written into the AI step prompt.
-				 *
-				 * Defaults to the deploying site's name.
-				 *
-				 * @param string $feed_name Default feed name (site name).
-				 */
-				$feed_name = (string) apply_filters( 'extrachill_events_artist_url_feed_name', get_bloginfo( 'name' ) );
-
-				$step['system_prompt'] = sprintf(
-					'You process events from tour/events pages for the %s events feed. The artist for each flow is already pre-selected and named in the flow\'s user message — do not change the artist binding. Identify the venue, city/location, and festival (if any) for each event based on the available information. Skip WordPress categories and post tags entirely.',
-					$feed_name
-				);
-				$step['enabled_tools'] = array();
-			}
-		}
-		unset( $step );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->update(
-			$table,
-			array( 'pipeline_config' => wp_json_encode( $config ) ),
-			array( 'pipeline_id' => $pipeline_id )
+		return $this->updateStepConfiguration(
+			array(
+				'target'            => 'pipeline',
+				'pipeline_id'       => $pipeline_id,
+				'step_type'         => 'ai',
+				'expected_revision' => (string) ( $configuration['pipeline']['revision'] ?? '' ),
+				'configuration'     => array( 'system_prompt' => $prompt ),
+			)
 		);
 	}
 
 	/**
-	 * Belt-and-braces flow-step patch — writes handler slugs/configs and
-	 * AI user_message directly to the flow_config JSON. Mirrors
-	 * CityAbilities::patchFlowSteps() to harden against the same
-	 * create-flow timing quirks that affected city pipelines.
+	 * Apply supported flow-step settings through Data Machine's revisioned contract.
 	 *
-	 * Patches by step_type. The shared Artist Tour Import pipeline uses
-	 * the `upsert` step type (not the retired `update`), so this matches
-	 * `upsert`.
-	 *
-	 * @param int    $flow_id
-	 * @param array  $import_handler_config
-	 * @param array  $upsert_handler_config
-	 * @param string $ai_message
+	 * @param int    $pipeline_id          Pipeline ID.
+	 * @param int    $flow_id              Flow ID.
+	 * @param array  $import_handler_config Import handler settings.
+	 * @param array  $upsert_handler_config Upsert handler settings.
+	 * @param string $ai_message            Per-artist AI message.
+	 * @return true|\WP_Error
 	 */
-	private function patchFlowSteps( int $flow_id, array $import_handler_config, array $upsert_handler_config, string $ai_message ): void {
-		global $wpdb;
-		$table = $wpdb->prefix . 'datamachine_flows';
+	private function configureFlowSteps( int $pipeline_id, int $flow_id, array $import_handler_config, array $upsert_handler_config, string $ai_message ) {
+		$configuration = $this->getPipelineConfiguration( array( 'pipeline_id' => $pipeline_id ) );
+		if ( $configuration instanceof \WP_Error ) {
+			return $configuration;
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$flow = $wpdb->get_row(
-			$wpdb->prepare( "SELECT flow_config FROM {$table} WHERE flow_id = %d", $flow_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
-			ARRAY_A
+		$flow = null;
+		foreach ( $configuration['flows'] ?? array() as $candidate ) {
+			if ( (int) ( $candidate['flow_id'] ?? 0 ) === $flow_id ) {
+				$flow = $candidate;
+				break;
+			}
+		}
+		if ( null === $flow ) {
+			return new \WP_Error( 'flow_not_found', __( 'Flow not found in Data Machine pipeline configuration.', 'extrachill-events' ), array( 'status' => 404 ) );
+		}
+
+		$revision = (string) ( $flow['revision'] ?? '' );
+		$updates  = array(
+			'event_import' => array(
+				'handler_slug'   => self::SCRAPER_HANDLER_SLUG,
+				'handler_config' => $import_handler_config,
+			),
+			'upsert'       => array(
+				'handler_slug'   => 'upsert_event',
+				'handler_config' => $upsert_handler_config,
+			),
+			'ai'           => array( 'user_message' => $ai_message ),
 		);
-		if ( ! $flow ) {
-			return;
+
+		foreach ( $updates as $step_type => $patch ) {
+			$result = $this->updateStepConfiguration(
+				array(
+					'target'            => 'flow',
+					'flow_id'           => $flow_id,
+					'step_type'         => $step_type,
+					'expected_revision' => $revision,
+					'configuration'     => $patch,
+				)
+			);
+			if ( $result instanceof \WP_Error ) {
+				return $result;
+			}
+			$revision = (string) ( $result['revision'] ?? '' );
 		}
 
-		$config = json_decode( $flow['flow_config'], true );
-		if ( ! is_array( $config ) ) {
-			return;
+		return true;
+	}
+
+	/**
+	 * Update one step through Data Machine's owner contract.
+	 *
+	 * @param array $input Owner-contract input.
+	 * @return array|\WP_Error
+	 */
+	private function updateStepConfiguration( array $input ) {
+		$ability = wp_get_ability( 'datamachine/update-step-configuration' );
+		if ( ! $ability ) {
+			return $this->configurationDependencyUnavailable();
 		}
 
-		foreach ( $config as &$step ) {
-			$step_type = $step['step_type'] ?? '';
+		return $this->normalizeConfigurationResult( $ability->execute( $input ) );
+	}
 
-			if ( 'event_import' === $step_type ) {
-				$step['handler_slugs']   = array( self::SCRAPER_HANDLER_SLUG );
-				$step['handler_configs'] = array( self::SCRAPER_HANDLER_SLUG => $import_handler_config );
-				$step['enabled']         = true;
-			}
-
-			if ( 'upsert' === $step_type ) {
-				$step['handler_slugs']   = array( 'upsert_event' );
-				$step['handler_configs'] = array( 'upsert_event' => $upsert_handler_config );
-				$step['enabled']         = true;
-			}
-
-			if ( 'ai' === $step_type ) {
-				$step['user_message'] = $ai_message;
-			}
+	/**
+	 * Preserve Data Machine error codes, messages, and statuses for callers.
+	 *
+	 * @param mixed $result Ability result.
+	 * @return array|\WP_Error
+	 */
+	private function normalizeConfigurationResult( $result ) {
+		if ( $result instanceof \WP_Error ) {
+			return $result;
 		}
-		unset( $step );
+		if ( ! is_array( $result ) ) {
+			return new \WP_Error( 'datamachine_configuration_error', __( 'Data Machine returned an invalid configuration response.', 'extrachill-events' ), array( 'status' => 502 ) );
+		}
+		if ( empty( $result['success'] ) ) {
+			return new \WP_Error(
+				(string) ( $result['error_code'] ?? 'datamachine_configuration_error' ),
+				(string) ( $result['error'] ?? __( 'Data Machine configuration request failed.', 'extrachill-events' ) ),
+				array( 'status' => (int) ( $result['status'] ?? 500 ) )
+			);
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->update(
-			$table,
-			array( 'flow_config' => wp_json_encode( $config ) ),
-			array( 'flow_id' => $flow_id )
+		return $result;
+	}
+
+	/**
+	 * Return an explicit dependency error instead of bypassing owner storage.
+	 *
+	 * @return \WP_Error
+	 */
+	private function configurationDependencyUnavailable(): \WP_Error {
+		return new \WP_Error(
+			'datamachine_configuration_unavailable',
+			__( 'Data Machine pipeline configuration abilities are not available.', 'extrachill-events' ),
+			array( 'status' => 503 )
 		);
 	}
 
