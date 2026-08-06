@@ -42,6 +42,9 @@ require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/tools/progress-story-tool
 // Conversation runner that dispatches turns through agents-api + wp-ai-client.
 require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/runtime/conversation-runner.php';
 
+// Trusted adventure resolution and signed public gameplay state.
+require_once EXTRACHILL_AI_ADVENTURE_PLUGIN_DIR . 'inc/runtime/game-request.php';
+
 /**
  * Register the AI adventure blocks.
  *
@@ -67,6 +70,7 @@ function extrachill_ai_adventure_register_routes() {
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_ai_adventure_handle_request',
 			'permission_callback' => 'extrachill_ai_adventure_permission_check',
+			'args'                => extrachill_ai_adventure_rest_args(),
 		)
 	);
 }
@@ -77,23 +81,14 @@ add_action( 'rest_api_init', 'extrachill_ai_adventure_register_routes' );
  *
  * @return true|WP_Error
  */
-function extrachill_ai_adventure_permission_check() {
-	$ip          = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
-	$cache_key   = 'ec_ai_adv_rate_' . md5( $ip );
-	$requests    = (int) get_transient( $cache_key );
-	$max_per_min = 30;
-
-	if ( $requests >= $max_per_min ) {
-		return new WP_Error(
-			'rate_limited',
-			__( 'Too many requests. Please slow down.', 'extrachill-ai-adventure' ),
-			array( 'status' => 429 )
-		);
+function extrachill_ai_adventure_permission_check( WP_REST_Request $request ) {
+	$params = $request->get_json_params();
+	$shape  = extrachill_ai_adventure_validate_request_shape( $params );
+	if ( is_wp_error( $shape ) ) {
+		return $shape;
 	}
 
-	set_transient( $cache_key, $requests + 1, MINUTE_IN_SECONDS );
-
-	return true;
+	return extrachill_ai_adventure_admit_request( $request, $params );
 }
 
 /**
@@ -104,37 +99,21 @@ function extrachill_ai_adventure_permission_check() {
  */
 function extrachill_ai_adventure_handle_request( WP_REST_Request $request ) {
 	$params = $request->get_json_params();
-	$game   = extrachill_ai_adventure_extract_params( $params );
+	$shape  = extrachill_ai_adventure_validate_request_shape( $params );
+	if ( is_wp_error( $shape ) ) {
+		return $shape;
+	}
 
-	if ( ! empty( $game['is_introduction'] ) ) {
+	$game = extrachill_ai_adventure_resolve_request( $params );
+	if ( is_wp_error( $game ) ) {
+		return $game;
+	}
+
+	if ( 'play' !== $game['action'] ) {
 		return extrachill_ai_adventure_handle_introduction( $game );
 	}
 
 	return extrachill_ai_adventure_handle_conversation( $game );
-}
-
-/**
- * Extract and sanitize game parameters from request.
- *
- * @param array $params Raw request parameters.
- * @return array Sanitized parameters.
- */
-function extrachill_ai_adventure_extract_params( $params ) {
-	return array(
-		'is_introduction'      => ! empty( $params['isIntroduction'] ),
-		'character_name'       => sanitize_text_field( $params['characterName'] ?? '' ),
-		'adventure_title'      => sanitize_text_field( $params['adventureTitle'] ?? '' ),
-		'adventure_prompt'     => sanitize_textarea_field( $params['adventurePrompt'] ?? '' ),
-		'path_prompt'          => sanitize_textarea_field( $params['pathPrompt'] ?? '' ),
-		'step_prompt'          => sanitize_textarea_field( $params['stepPrompt'] ?? '' ),
-		'persona'              => sanitize_textarea_field( $params['gameMasterPersona'] ?? '' ),
-		'progression_history'  => ( isset( $params['storyProgression'] ) && is_array( $params['storyProgression'] ) ) ? $params['storyProgression'] : array(),
-		'player_input'         => sanitize_text_field( $params['playerInput'] ?? '' ),
-		'triggers'             => ( isset( $params['triggers'] ) && is_array( $params['triggers'] ) ) ? $params['triggers'] : array(),
-		'conversation_history' => ( isset( $params['conversationHistory'] ) && is_array( $params['conversationHistory'] ) ) ? $params['conversationHistory'] : array(),
-		'transition_context'   => ( isset( $params['transitionContext'] ) && is_array( $params['transitionContext'] ) ) ? $params['transitionContext'] : array(),
-		'session_id'           => sanitize_text_field( $params['sessionId'] ?? '' ),
-	);
 }
 
 /**
@@ -147,7 +126,7 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
 	$context = extrachill_ai_adventure_build_context( $params, 'introduction' );
 	$message = 'What happens now?';
 
-	$response = extrachill_ai_adventure_run_conversation( $message, $context, $params['session_id'] );
+	$response = extrachill_ai_adventure_run_conversation( $message, $context, $params['state']['sid'] );
 
 	if ( is_wp_error( $response ) ) {
 		return $response;
@@ -157,7 +136,7 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
 		array(
 			'narrative'  => $response['narrative'],
 			'nextStepId' => $response['next_step_id'] ?? null,
-			'sessionId'  => $response['session_id'],
+			'state'       => extrachill_ai_adventure_advance_state( $params, $response ),
 		),
 		200
 	);
@@ -172,7 +151,7 @@ function extrachill_ai_adventure_handle_introduction( $params ) {
 function extrachill_ai_adventure_handle_conversation( $params ) {
 	$context  = extrachill_ai_adventure_build_context( $params, 'conversation' );
 	$message  = 'Player says/does: ' . $params['player_input'];
-	$response = extrachill_ai_adventure_run_conversation( $message, $context, $params['session_id'] );
+	$response = extrachill_ai_adventure_run_conversation( $message, $context, $params['state']['sid'] );
 
 	if ( is_wp_error( $response ) ) {
 		return $response;
@@ -182,7 +161,7 @@ function extrachill_ai_adventure_handle_conversation( $params ) {
 		array(
 			'narrative'  => $response['narrative'],
 			'nextStepId' => $response['next_step_id'],
-			'sessionId'  => $response['session_id'],
+			'state'       => extrachill_ai_adventure_advance_state( $params, $response ),
 		),
 		200
 	);

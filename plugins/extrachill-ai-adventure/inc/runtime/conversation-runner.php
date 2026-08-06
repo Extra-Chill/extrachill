@@ -12,22 +12,20 @@
  * The only consumer-specific glue that lives here is:
  *
  *   1. System-prompt assembly (SOUL.md prepended to a per-turn game context
- *      block built from the request payload).
+ *      block resolved from saved adventure data and authenticated state).
  *   2. The single progress_story tool declaration + executor
  *      (inc/tools/progress-story-tool.php).
  *   3. Mapping the loop result back to the {narrative, next_step_id, session_id}
  *      shape the REST handlers and block frontend consume.
  *
  * Because AI Adventure's prompt is static (system instruction + the current
- * user turn; the frontend roundtrips full conversationHistory in the context
- * block), it does NOT inject a prompt-input provider — the default identity
- * seam is sufficient and the system prompt is passed through options.
+ * user turn), it does NOT inject a prompt-input provider. The default identity
+ * seam is sufficient and the trusted system prompt is passed through options.
  *
- * Transcript persistence is intentionally a no-op: the frontend already
- * roundtrips full conversationHistory / progression_history /
- * transition_context on every request, so server-side session storage is dead
- * weight here. The session_id parameter is accepted and echoed back for a
- * backward-compatible response shape but is not persisted or read.
+ * Transcript persistence is intentionally a no-op. A short bounded transcript
+ * is authenticated inside the versioned gameplay state, so server-side session
+ * storage is unnecessary. The session_id identifies the signed game session
+ * for admission but is not persisted by the conversation loop.
  *
  * @package ExtraChillAIAdventure
  */

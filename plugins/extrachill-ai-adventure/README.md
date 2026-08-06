@@ -51,7 +51,7 @@ Player types action
 view.js → POST /extrachill/v1/ai-adventure
     │
     ▼
-Plugin builds game context (state, triggers, history) per request
+Plugin verifies signed state and resolves the saved post/block graph
     │
     ▼
 AgentsAPI\AI\AgentConversationLoop::run( $messages, $turn_runner, [ max_turns => 1 ] )
@@ -60,7 +60,7 @@ AgentsAPI\AI\AgentConversationLoop::run( $messages, $turn_runner, [ max_turns =>
 Turn runner closure
     ├── Reads agent/SOUL.md from plugin source
     ├── Prepends SOUL.md to a "Current Game Context" block as the system prompt
-    ├── Builds wp-ai-client message history from rolling conversationHistory
+    ├── Builds bounded context from server-authoritative block data and signed state
     ├── Declares progress_story as a wp-ai-client function declaration
     └── Dispatches one turn through wp_ai_client_prompt() (WP 7.0 core)
           │
@@ -114,14 +114,16 @@ The tool executor is a `ToolExecutorInterface` adapter that delegates to the `ex
 The plugin is **stateless on the server**. There is no transcript table and no chat session.
 
 - `agent/SOUL.md` is read directly from the plugin source on every turn.
-- The frontend roundtrips full `conversationHistory`, `progression_history`, and `transition_context` on every request, and the plugin renders all of it into the per-turn system prompt.
+- The dynamic block emits a signed reference to its published post and saved block fingerprint. Every turn reloads that block before using its prompts, paths, steps, or triggers.
+- The browser sends only an action, bounded player text, and signed versioned state. The state contains a short bounded history, progression, current step, and opaque session ID; clients cannot replace those values without invalidating its signature.
 - `AgentConversationLoop` runs with `max_turns = 1` and a `NullAgentConversationTranscriptPersister` is the implicit default.
-- The `sessionId` parameter is accepted from the client and echoed back unchanged for backward-compatible response shape, but it is not persisted or read.
+- Public turns use Extra Chill API's atomic persistent-cache admission primitive for per-client and verified-session limits.
 
 ## Requirements
 
 - WordPress 7.0+ (provides core's AI Client: `wp_ai_client_prompt()`, `\WordPress\AiClient\*`).
 - [Agents API](https://github.com/Automattic/agents-api) plugin, network-active (provides `wp_register_agent()`, `AgentConversationLoop`, `RuntimeToolDeclaration`, `ToolExecutorInterface`).
+- Extra Chill API, network-active (provides atomic public-write admission).
 - A registered AI provider (e.g. OpenAI) compatible with `wp_ai_client_prompt()`.
 - The `extrachill/progress-story` ability is registered by this plugin via the Abilities API.
 
