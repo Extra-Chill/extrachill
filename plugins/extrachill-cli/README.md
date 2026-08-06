@@ -31,6 +31,21 @@ wp plugin activate extrachill-cli --network --allow-root
 
 ## Commands
 
+### Multisite Owner Context
+
+Commands backed by site-only abilities must use WP-CLI's native `--url` bootstrap
+for the site that owns those abilities. The CLI does not load another plugin's
+PHP after startup.
+
+```bash
+wp --url=https://events.extrachill.com extrachill events market-report
+wp --url=https://artist.extrachill.com extrachill artists count
+```
+
+Running either command group against another network site exits with the exact
+owner URL. If the owner plugin is inactive or incomplete on that site, the
+command exits with an owner-plugin capability error.
+
 ### Platform Experiments
 
 Inspect registered definitions and orphaned lifecycle records, transition
