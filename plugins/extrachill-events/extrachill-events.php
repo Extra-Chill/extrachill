@@ -29,155 +29,18 @@ define( 'EXTRACHILL_EVENTS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_EVENTS_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_EVENTS_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
-// WP-CLI commands.
-if ( defined( 'WP_CLI' ) && WP_CLI && file_exists( __DIR__ . '/inc/Cli/AddCityCommand.php' ) ) { // @phpstan-ignore booleanAnd.rightAlwaysTrue
-	require_once __DIR__ . '/inc/Core/EventSourceRampEvaluator.php';
-	require_once __DIR__ . '/inc/Cli/EventSourceRampCommand.php';
-	\WP_CLI::add_command( 'extrachill events ramp', \ExtraChillEvents\Cli\EventSourceRampCommand::class );
+require_once __DIR__ . '/inc/Providers/CliProvider.php';
+require_once __DIR__ . '/inc/Providers/IngestionProvider.php';
+require_once __DIR__ . '/inc/Providers/PublicExperienceProvider.php';
+require_once __DIR__ . '/inc/Providers/DataMachineEventsProvider.php';
 
-	require_once __DIR__ . '/inc/Cli/AddCityCommand.php';
-	\WP_CLI::add_command( 'extrachill-events add-city', \ExtraChillEvents\Cli\AddCityCommand::class );
-	require_once __DIR__ . '/inc/Cli/ExpandVenuesCommand.php';
-	require_once __DIR__ . '/inc/Cli/VenueExpansionReportCommand.php';
-	\WP_CLI::add_command( 'extrachill-events expand', \ExtraChillEvents\Cli\ExpandVenuesCommand::class );
-	\WP_CLI::add_command( 'extrachill-events expand-report', \ExtraChillEvents\Cli\VenueExpansionReportCommand::class );
-
-	// Qualify v2 — verdict-log subcommands hung off the existing
-	// `wp extrachill venues` parent (registered by extrachill-cli).
-	// Core classes need to load before the CLI commands instantiate them.
-	require_once __DIR__ . '/inc/Core/QualifyVerdict.php';
-	require_once __DIR__ . '/inc/Core/QualifyVerdictsTable.php';
-	require_once __DIR__ . '/inc/Core/QualifyCohortDeriver.php';
-	require_once __DIR__ . '/inc/Core/QualifyVerdictResolver.php';
-	require_once __DIR__ . '/inc/Core/PlatformDetector.php';
-	require_once __DIR__ . '/inc/Core/QualifyFingerprinter.php';
-
-	require_once __DIR__ . '/inc/Cli/QualifyStatsCommand.php';
-	\WP_CLI::add_command( 'extrachill venues qualify-stats', \ExtraChillEvents\Cli\QualifyStatsCommand::class );
-
-	require_once __DIR__ . '/inc/Cli/RequalifyPendingCommand.php';
-	\WP_CLI::add_command( 'extrachill venues requalify-pending', \ExtraChillEvents\Cli\RequalifyPendingCommand::class );
-
-	require_once __DIR__ . '/inc/Cli/FlowOps.php';
-	require_once __DIR__ . '/inc/Cli/FlowHelpers.php';
-
-	require_once __DIR__ . '/inc/Cli/RequalifyFlowCommand.php';
-	\WP_CLI::add_command( 'extrachill venues requalify-flow', \ExtraChillEvents\Cli\RequalifyFlowCommand::class );
-
-	require_once __DIR__ . '/inc/Cli/UnqualifiableFlowsCommand.php';
-	\WP_CLI::add_command( 'extrachill venues unqualifiable-flows', \ExtraChillEvents\Cli\UnqualifiableFlowsCommand::class );
-
-	// Pipeline assignment audit (issue #99). Lives under
-	// `wp extrachill events flows` so it's grouped with the other
-	// events-domain operator tooling rather than the venues surface.
-	require_once __DIR__ . '/inc/Cli/AuditPipelinesCommand.php';
-	\WP_CLI::add_command( 'extrachill events flows audit-pipelines', \ExtraChillEvents\Cli\AuditPipelinesCommand::class );
-
-	// Location / flow_config hygiene (extrachill-events#98).
-	// Issue #98 — Both commands operate against the events subsite (blog 7).
-	// Always invoke with `--url=events.extrachill.com` so $wpdb->prefix is c8c_7_.
-	require_once __DIR__ . '/inc/Core/FlowLocationGuard.php';
-	require_once __DIR__ . '/inc/Cli/RepairFlowLocationsCommand.php';
-	\WP_CLI::add_command( 'extrachill events flows repair-locations', \ExtraChillEvents\Cli\RepairFlowLocationsCommand::class );
-
-	require_once __DIR__ . '/inc/Cli/PruneOrphanLocationsCommand.php';
-	\WP_CLI::add_command( 'extrachill events locations prune-orphans', \ExtraChillEvents\Cli\PruneOrphanLocationsCommand::class );
-
-	require_once __DIR__ . '/inc/Core/LocationIntegrityAuditor.php';
-	require_once __DIR__ . '/inc/Cli/AuditLocationIntegrityCommand.php';
-	\WP_CLI::add_command( 'extrachill events locations audit-integrity', \ExtraChillEvents\Cli\AuditLocationIntegrityCommand::class );
-
-	require_once __DIR__ . '/inc/Cli/BackfillVenueMetaCommand.php';
-	\WP_CLI::add_command( 'extrachill events venues backfill-meta', \ExtraChillEvents\Cli\BackfillVenueMetaCommand::class );
-
-	// Honest authorship backfill (issue #207 Phase 3). Reattributes historical
-	// automation authored under a human (uid 1) onto the network bot account.
-	// Dry-run by default; --apply (or --commit) to mutate. Operates across
-	// blogs 7 (data_machine_events) and 11 (festival_wire); never touches blog 1.
-	require_once __DIR__ . '/inc/Cli/BackfillAuthorshipCommand.php';
-	\WP_CLI::add_command( 'extrachill events backfill-authorship', \ExtraChillEvents\Cli\BackfillAuthorshipCommand::class );
-}
-
-// Recheck handler must be loaded outside the WP_CLI guard so the Action
-// Scheduler hook fires whether the action runs via web request, cron, or
-// CLI runner.
-require_once __DIR__ . '/inc/Core/QualifyVerdict.php';
-require_once __DIR__ . '/inc/Core/QualifyVerdictsTable.php';
-require_once __DIR__ . '/inc/Core/QualifyCohortDeriver.php';
-require_once __DIR__ . '/inc/Cli/FlowOps.php';
-require_once __DIR__ . '/inc/Core/QualifyRecheckHandler.php';
-\ExtraChillEvents\Core\QualifyRecheckHandler::register();
+\ExtraChillEvents\Providers\CliProvider::register();
+\ExtraChillEvents\Providers\IngestionProvider::register();
 
 require_once __DIR__ . '/inc/admin/network-settings.php';
 \ExtraChillEvents\Admin\NetworkSettings::register();
 
 require_once __DIR__ . '/inc/core/datamachine-settings.php';
-
-// Register filters during plugin load, before Data Machine builds its task registry.
-add_filter(
-	'datamachine_tasks',
-	function ( array $tasks ): array {
-		if ( ! class_exists( '\\DataMachine\\Engine\\AI\\System\\Tasks\\SystemTask' ) ) {
-			return $tasks;
-		}
-		require_once __DIR__ . '/inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
-		require_once __DIR__ . '/inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
-		require_once __DIR__ . '/inc/Core/VenueExpansionRunner.php';
-		require_once __DIR__ . '/inc/Steps/VenueExpansion/VenueExpansionSystemTask.php';
-		$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]       = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
-		$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
-		$tasks[ \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::TASK_TYPE ]     = \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::class;
-		return $tasks;
-	}
-);
-
-add_filter(
-	'datamachine_recurring_schedules',
-	function ( array $schedules ): array {
-		require_once __DIR__ . '/inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
-		require_once __DIR__ . '/inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
-		$schedules['extrachill_local_scene_digest'] = apply_filters(
-			'extrachill_local_scene_digest_schedule',
-			array(
-				'task_type'          => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
-				'interval'           => 'weekly',
-				'enabled_setting'    => 'extrachill_local_scene_digest_enabled',
-				'default_enabled'    => false,
-				'label'              => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
-				'first_run_callback' => 'strtotime',
-				'first_run_arg'      => 'next thursday 15:00 UTC',
-				'task_params'        => array(
-					'days'    => 7,
-					'limit'   => 8,
-					'dry_run' => false,
-				),
-			)
-		);
-		/**
-		 * Filter the qualify digest schedule definition. Allows
-		 * operators to flip interval, change the first-run anchor,
-		 * etc. without forking the plugin.
-		 */
-		$schedules['extrachill_qualify_digest'] = apply_filters(
-			'dme_qualify_digest_schedule',
-			array(
-				'task_type'          => \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE,
-				'interval'           => 'weekly',
-				'enabled_setting'    => 'dme_qualify_digest_enabled',
-				'default_enabled'    => true,
-				'label'              => 'Weekly — Mondays 09:00 UTC',
-				'first_run_callback' => 'strtotime',
-				'first_run_arg'      => 'next monday 09:00 UTC',
-				'task_params'        => array(
-					'since'   => '1 week ago',
-					'format'  => 'html',
-					'dry_run' => false,
-				),
-			)
-		);
-		return $schedules;
-	}
-);
 
 /**
  * ExtraChillEvents
@@ -217,7 +80,6 @@ class ExtraChillEvents {
 	private function init_hooks() {
 		add_filter( 'ec_feature_ceilings', array( $this, 'register_feature_ceilings' ) );
 		add_action( 'init', array( $this, 'load_textdomain' ) );
-		add_action( 'init', array( $this, 'init_data_machine_handlers' ), 20 );
 		add_action( 'plugins_loaded', array( $this, 'init_abilities' ), 25 );
 		add_action( 'plugins_loaded', array( $this, 'maybe_install_schema' ), 20 );
 
@@ -332,70 +194,7 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/Controllers/ArtistUrlImport.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/ArtistUrlImportRoutes.php';
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events/init.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/events-by-term-taxonomy-context.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/cache-groups.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/page-cache.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-venue-ordering.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-event-ordering.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-meta.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/archive-map.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-map.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-map.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/artist-map.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-seo.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/account-market.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest.php';
-		extrachill_events_init_local_scene_digest();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/near-me.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/discovery-pages.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/router-pages.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-support-workspace.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/vendor-request-workspace.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/booking-console.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-normalizer.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/calendar-stats.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-venues.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-events.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/breadcrumbs.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/related-events.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/network-bridge.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-scope-token.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-calendar-filter.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-map-filter.php';
-	}
-
-	public function init_data_machine_handlers() {
-		if ( ! class_exists( 'DataMachine\Core\Steps\Fetch\Handlers\FetchHandler' ) ) {
-			return;
-		}
-
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/EventRoundupSettings.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/EventRoundupHandler.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/RoundupPublishSettings.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/handlers/event-roundup/RoundupPublishHandler.php';
-
-		new \ExtraChillEvents\Handlers\EventRoundup\EventRoundupHandler();
-		new \ExtraChillEvents\Handlers\EventRoundup\RoundupPublishHandler();
-
-		// Register the event roundup template with Data Machine's image
-		// template registry. The actual GD work lives in the template class;
-		// the handler/abilities just call datamachine/render-image-template.
-		if ( file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventRoundupTemplate.php' ) ) {
-			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventRoundupTemplate.php';
-			add_filter(
-				'datamachine/image_generation/templates',
-				function ( array $templates ): array {
-					$templates['event_roundup'] = \ExtraChillEvents\Templates\EventRoundupTemplate::class;
-					return $templates;
-				}
-			);
-		}
+		\ExtraChillEvents\Providers\PublicExperienceProvider::register();
 	}
 
 	public function init_abilities() {
@@ -527,9 +326,7 @@ class ExtraChillEvents {
 	 * check survives internal namespace changes in DM-events.
 	 */
 	private function init_integrations() {
-		if ( defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
-			extrachill_events_init_data_machine_integration();
-		}
+		\ExtraChillEvents\Providers\DataMachineEventsProvider::register();
 	}
 
 	public function activate() {

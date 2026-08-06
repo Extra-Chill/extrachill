@@ -117,7 +117,7 @@ class LocalSceneDigestSystemTaskTest extends TestCase {
 	}
 
 	public function test_recurring_schedule_is_default_disabled_and_explicitly_delivers(): void {
-		$bootstrap = file_get_contents( dirname( __DIR__, 3 ) . '/extrachill-events.php' );
+		$bootstrap = file_get_contents( dirname( __DIR__, 3 ) . '/inc/Providers/IngestionProvider.php' );
 		$this->assertIsString( $bootstrap );
 		$this->assertMatchesRegularExpression( "/'enabled_setting'\\s*=>\\s*'extrachill_local_scene_digest_enabled'/", $bootstrap );
 		$this->assertMatchesRegularExpression( "/'default_enabled'\\s*=>\\s*false/", $bootstrap );
