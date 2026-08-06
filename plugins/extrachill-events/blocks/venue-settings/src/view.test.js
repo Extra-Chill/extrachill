@@ -16,6 +16,7 @@ import { act } from 'react';
  * Internal dependencies
  */
 import { VenueSettingsApp } from './view';
+import { VenueWorkspaceHeader } from './venue-workspace-header';
 
 jest.mock( '@wordpress/api-fetch', () => ( {
 	__esModule: true,
@@ -37,8 +38,13 @@ jest.mock( '@extrachill/components', () => {
 				children
 			),
 		BlockShell: Wrapper,
-		BlockShellHeader: ( { title } ) =>
-			React.createElement( 'h1', null, title ),
+		BlockShellHeader: ( { title, actions } ) =>
+			React.createElement(
+				'div',
+				null,
+				React.createElement( 'h1', null, title ),
+				actions
+			),
 		BlockShellInner: Wrapper,
 		FieldGroup: ( { label, help, children } ) =>
 			React.createElement(
@@ -85,10 +91,16 @@ jest.mock( '@extrachill/components', () => {
 					)
 				)
 			),
-		ResponsiveTabs: ( { tabs, active, onChange, renderPanel } ) =>
+		ResponsiveTabs: ( {
+			tabs,
+			active,
+			onChange,
+			renderPanel,
+			contextSurface,
+		} ) =>
 			React.createElement(
 				'div',
-				null,
+				{ 'data-context-surface': contextSurface },
 				tabs.map( ( tab ) =>
 					React.createElement(
 						'button',
@@ -325,6 +337,49 @@ const setControl = async ( control, value ) => {
 };
 
 describe( 'venue settings authorization-facing states', () => {
+	it( 'routes venue card actions through the shared switch callback', async () => {
+		const venue = {
+			id: 44,
+			name: 'Venue 44',
+			slug: 'venue-44',
+			archive_url: 'https://events.example/venue/venue-44/',
+			status: 'active',
+			is_owner: true,
+		};
+		const onSwitchVenue = jest.fn();
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		await act( async () => {
+			root.render(
+				<VenueWorkspaceHeader
+					venues={ [ venue ] }
+					selected={ null }
+					onSwitchVenue={ onSwitchVenue }
+				/>
+			);
+		} );
+		await act( async () =>
+			buttonByText( container, 'Open Venue 44' ).click()
+		);
+		expect( onSwitchVenue ).toHaveBeenLastCalledWith( 44 );
+
+		await act( async () => {
+			root.render(
+				<VenueWorkspaceHeader
+					venues={ [ venue ] }
+					selected={ venue }
+					onSwitchVenue={ onSwitchVenue }
+				/>
+			);
+		} );
+		await act( async () => buttonByText( container, 'My Venues' ).click() );
+		expect( onSwitchVenue ).toHaveBeenLastCalledWith( 0 );
+
+		await act( async () => root.unmount() );
+	} );
+
 	beforeAll( () => {
 		global.IS_REACT_ACT_ENVIRONMENT = true;
 	} );
@@ -383,6 +438,8 @@ describe( 'venue settings authorization-facing states', () => {
 			{
 				id: 44,
 				name: 'Venue 44',
+				slug: 'venue-44',
+				archive_url: 'https://events.example/venue/venue-44/',
 				status: 'active',
 				is_owner: true,
 				can_access: true,
@@ -391,6 +448,8 @@ describe( 'venue settings authorization-facing states', () => {
 			{
 				id: 45,
 				name: 'Venue 45',
+				slug: 'venue-45',
+				archive_url: 'https://events.example/venue/venue-45/',
 				status: 'active',
 				is_owner: false,
 				can_access: true,
@@ -405,15 +464,19 @@ describe( 'venue settings authorization-facing states', () => {
 			} )
 		);
 
-		const selector = container.querySelector( '#venue-workspace' );
-		expect( selector.value ).toBe( '0' );
-		expect( selector.options[ 0 ].textContent ).toBe( 'My Venues' );
-		expect( container.textContent ).toContain( 'Venue 44' );
-		expect( container.textContent ).toContain( 'Venue 45' );
+		expect( container.querySelector( '#venue-workspace' ) ).toBeNull();
 		expect(
-			[ ...container.querySelectorAll( 'button' ) ]
-				.slice( 0, 5 )
-				.map( ( button ) => button.textContent )
+			container.querySelectorAll( 'a.taxonomy-badge.venue-badge' )
+		).toHaveLength( 2 );
+		expect( buttonByText( container, 'Open Venue 44' ) ).toBeDefined();
+		expect( buttonByText( container, 'Open Venue 45' ) ).toBeDefined();
+		expect( container.textContent ).toContain( 'Owner' );
+		expect(
+			[
+				...container.querySelectorAll(
+					'[data-context-surface="venue-settings"] > button'
+				),
+			].map( ( button ) => button.textContent )
 		).toEqual( [
 			'Calendar',
 			'Venue',
@@ -589,9 +652,11 @@ describe( 'venue settings authorization-facing states', () => {
 		const { container, root } = await renderApp( context() );
 		expect( container.textContent ).not.toContain( 'Team' );
 		expect(
-			[ ...container.querySelectorAll( 'button' ) ]
-				.slice( 0, 4 )
-				.map( ( button ) => button.textContent )
+			[
+				...container.querySelectorAll(
+					'[data-context-surface="venue-settings"] > button'
+				),
+			].map( ( button ) => button.textContent )
 		).toEqual( [ 'Calendar', 'Venue', 'Booking Form', 'Settings' ] );
 		for ( const retired of [
 			'Bookings',
@@ -620,9 +685,11 @@ describe( 'venue settings authorization-facing states', () => {
 			} )
 		);
 		expect(
-			[ ...container.querySelectorAll( 'button' ) ]
-				.slice( 0, 5 )
-				.map( ( button ) => button.textContent )
+			[
+				...container.querySelectorAll(
+					'[data-context-surface="venue-settings"] > button'
+				),
+			].map( ( button ) => button.textContent )
 		).toEqual( [
 			'Calendar',
 			'Venue',
@@ -666,6 +733,7 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( administrator.classList.contains( 'ec-badge--solid' ) ).toBe(
 			true
 		);
+		expect( buttonByText( container, 'My Venues' ) ).toBeDefined();
 		const viewTabs = [
 			...container.querySelectorAll( '[role="tab"]' ),
 		].filter( ( tab ) =>

@@ -11,9 +11,9 @@ defined( 'ABSPATH' ) || exit;
 
 $events_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
 $venue_id       = absint( $attributes['venueId'] ?? 0 );
-if ( $venue_id < 1 && (int) get_current_blog_id() === $events_blog_id && function_exists( 'extrachill_events_get_venue_archive_term' ) ) {
-	$archive_venue = extrachill_events_get_venue_archive_term();
-	$venue_id      = $archive_venue ? (int) $archive_venue->term_id : 0;
+if ( $venue_id < 1 && (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
+	$archive_venue = get_queried_object();
+	$venue_id      = $archive_venue instanceof WP_Term && 'venue' === $archive_venue->taxonomy ? (int) $archive_venue->term_id : 0;
 }
 if ( $events_blog_id < 1 || $venue_id < 1 || ! class_exists( VenueBookingConfig::class ) ) {
 	return;

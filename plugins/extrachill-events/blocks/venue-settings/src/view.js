@@ -206,7 +206,7 @@ export function VenueSettingsApp( { context } ) {
 		return () => window.removeEventListener( 'beforeunload', warn );
 	}, [ dirty ] );
 
-	const switchVenue = ( event ) => {
+	const switchVenue = ( venueId ) => {
 		if (
 			dirty &&
 			// eslint-disable-next-line no-alert -- Native navigation guard is keyboard and screen-reader accessible.
@@ -214,7 +214,6 @@ export function VenueSettingsApp( { context } ) {
 		) {
 			return;
 		}
-		const venueId = Number( event.target.value );
 		const url = new URL( context.route_url );
 		if ( venueId ) {
 			url.searchParams.set( 'venue_id', venueId );
