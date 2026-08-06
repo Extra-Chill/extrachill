@@ -247,19 +247,17 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 
 				$query_args['extrachill_fulltext_natural'] = $natural_clause;
 
-				add_filter(
-					'posts_search',
-					function ( $search ) use ( $natural_clause ) {
-						return ' AND ' . $natural_clause;
-					},
-					10,
-					1
-				);
+				$posts_search_filter = function ( $search ) use ( $natural_clause ) {
+					return ' AND ' . $natural_clause;
+				};
 
-				$query = new WP_Query( $query_args );
+				add_filter( 'posts_search', $posts_search_filter, 10, 1 );
 
-				// Remove the closure filter by resetting.
-				remove_all_filters( 'posts_search', 10 );
+				try {
+					$query = new WP_Query( $query_args );
+				} finally {
+					remove_filter( 'posts_search', $posts_search_filter, 10 );
+				}
 			} else {
 				// No FULLTEXT — fetch all and filter in PHP (original fallback).
 				$query_args['posts_per_page'] = -1;
@@ -296,9 +294,9 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 			}
 		} catch ( Exception $e ) {
 			error_log( sprintf( 'Word-level fallback search error on blog %d: %s', $blog_id, $e->getMessage() ) );
+		} finally {
+			restore_current_blog();
 		}
-
-		restore_current_blog();
 	}
 
 	return $all_results;
@@ -466,9 +464,9 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 			}
 		} catch ( Exception $e ) {
 			error_log( sprintf( 'Multisite search error on blog %d: %s', $blog_id, $e->getMessage() ) );
+		} finally {
+			restore_current_blog();
 		}
-
-		restore_current_blog();
 	}
 
 	if ( empty( $all_results ) && ! empty( $search_term ) ) {
