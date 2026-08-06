@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
+import { FieldGroup, Panel } from '@extrachill/components';
 
 export default function PublicBookingDetails( {
 	config,
@@ -19,15 +19,11 @@ export default function PublicBookingDetails( {
 	];
 	return (
 		<Panel>
-			<PanelHeader
-				title="Public booking details"
-				description="Field labels and consent shown on this venue's public inquiry form."
-			/>
-			<FieldGroup
-				label="Built-in field presentation"
-				htmlFor={ `${ idPrefix }venue-booking-presentation` }
-				help="Venue-specific wording for stable contact and details fields."
-			>
+			<details>
+				<summary>
+					<strong>Edit standard wording</strong>
+				</summary>
+				<p>Optional labels shown on the standard booking form.</p>
 				<div id={ `${ idPrefix }venue-booking-presentation` }>
 					{ labels.map( ( [ key, label ] ) => (
 						<FieldGroup
@@ -54,49 +50,7 @@ export default function PublicBookingDetails( {
 						</FieldGroup>
 					) ) }
 				</div>
-			</FieldGroup>
-			<FieldGroup
-				label="Consent label"
-				htmlFor={ `${ idPrefix }venue-booking-consent` }
-				help="Increment the version whenever this wording or policy changes."
-				required
-			>
-				<textarea
-					id={ `${ idPrefix }venue-booking-consent` }
-					rows="3"
-					value={ config.consent.label }
-					onChange={ ( event ) =>
-						setConfig( {
-							...config,
-							consent: {
-								...config.consent,
-								label: event.target.value,
-							},
-						} )
-					}
-				/>
-			</FieldGroup>
-			<FieldGroup
-				label="Consent version"
-				htmlFor={ `${ idPrefix }venue-consent-version` }
-				required
-			>
-				<input
-					id={ `${ idPrefix }venue-consent-version` }
-					type="number"
-					min="1"
-					value={ config.consent.version }
-					onChange={ ( event ) =>
-						setConfig( {
-							...config,
-							consent: {
-								...config.consent,
-								version: Number( event.target.value ),
-							},
-						} )
-					}
-				/>
-			</FieldGroup>
+			</details>
 		</Panel>
 	);
 }

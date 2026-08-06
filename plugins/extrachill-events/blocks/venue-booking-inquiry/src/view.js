@@ -27,6 +27,10 @@ import {
 	errorState,
 	newIdempotencyKey,
 } from './submission';
+import {
+	linkCollectionValue,
+	updateLinkCollection,
+} from '../../venue-settings/src/booking-links';
 
 const initialValues = ( config ) => ( {
 	artistName: '',
@@ -323,6 +327,15 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 	const linkFields = visibleFields.filter( ( field ) =>
 		[ 'url', 'url_list' ].includes( field.type )
 	);
+	const linkCollection = linkFields.length
+		? {
+				...linkFields[ 0 ],
+				key: 'links',
+				label: 'Links',
+				type: 'url_list',
+				required: linkFields.some( ( field ) => field.required ),
+		  }
+		: null;
 	let submitLabel = 'Check availability';
 	if ( checking ) {
 		submitLabel = 'Checking...';
@@ -332,7 +345,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 
 	return (
 		<BlockShell>
-			{ config.appearance?.show_logo && config.venue.logoUrl && (
+			{ config.venue.logoUrl && (
 				<img
 					className="ec-booking-inquiry__logo"
 					src={ config.venue.logoUrl }
@@ -534,32 +547,26 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 										</Grid>
 									</section>
 								) }
-								{ linkFields.length > 0 && (
+								{ linkCollection && (
 									<section className="ec-booking-inquiry__section">
 										<h3>Links</h3>
-										<Grid
-											minColumnWidth="16rem"
-											maxColumns={ 2 }
-										>
-											{ linkFields.map( ( field ) => (
-												<Field
-													key={ field.key }
-													field={ field }
-													value={
-														values.fields[
-															field.key
-														]
-													}
-													prefix={ prefix }
-													onChange={ ( value ) =>
-														updateField(
-															field.key,
-															value
-														)
-													}
-												/>
-											) ) }
-										</Grid>
+										<Field
+											field={ linkCollection }
+											value={ linkCollectionValue(
+												linkFields,
+												values.fields
+											) }
+											prefix={ prefix }
+											onChange={ ( value ) =>
+												update( {
+													fields: updateLinkCollection(
+														linkFields,
+														values.fields,
+														value
+													),
+												} )
+											}
+										/>
 									</section>
 								) }
 							</section>

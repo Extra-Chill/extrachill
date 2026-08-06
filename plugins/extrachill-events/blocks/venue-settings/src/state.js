@@ -42,37 +42,11 @@ export const validateConfig = ( config ) => {
 		)
 	) {
 		errors.push(
-			'Embed parent origins must be exact normalized HTTPS origins.'
+			'Allowed websites must be exact HTTPS website addresses.'
 		);
 	}
 	if ( config.embed?.allowed_parent_origins?.length > 20 ) {
-		errors.push( 'Use no more than 20 embed parent origins.' );
-	}
-	if (
-		! config.appearance ||
-		! [ 'default', 'custom' ].includes( config.appearance.mode ) ||
-		! Number.isInteger( config.appearance.button_radius ) ||
-		config.appearance.button_radius < 0 ||
-		config.appearance.button_radius > 32
-	) {
-		errors.push( 'Booking appearance settings are invalid.' );
-	}
-	if (
-		config.appearance?.mode === 'custom' &&
-		[
-			'background_color',
-			'surface_color',
-			'text_color',
-			'accent_color',
-			'button_text_color',
-			'border_color',
-		].some(
-			( key ) => ! /^#[0-9a-f]{6}$/i.test( config.appearance[ key ] )
-		)
-	) {
-		errors.push(
-			'Custom appearance colors must use six-digit hex values.'
-		);
+		errors.push( 'Use no more than 20 allowed websites.' );
 	}
 	if ( ! config.consent.label.trim() || config.consent.version < 1 ) {
 		errors.push( 'Consent needs public wording and a positive version.' );
@@ -98,14 +72,16 @@ export const validateConfig = ( config ) => {
 	const fieldKeys = new Set();
 	config.intake.fields.forEach( ( field, index ) => {
 		if ( ! field.key || ! field.label ) {
-			errors.push( 'Each intake field needs a label and key.' );
+			errors.push( 'Each extra question needs a label.' );
 		}
 		if ( fieldKeys.has( field.key ) ) {
-			errors.push( 'Intake field keys must be unique.' );
+			errors.push( 'Each extra question must be unique.' );
 		}
 		fieldKeys.add( field.key );
 		if ( field.type === 'select' && ! field.options.length ) {
-			errors.push( 'Select fields need at least one option.' );
+			errors.push(
+				'A saved multiple-choice question needs at least one choice.'
+			);
 		}
 		if (
 			field.visible_when &&
@@ -117,9 +93,7 @@ export const validateConfig = ( config ) => {
 							candidate.key === field.visible_when.field
 					) )
 		) {
-			errors.push(
-				'Conditional fields need an earlier field and matching value.'
-			);
+			errors.push( 'A saved question depends on an unavailable answer.' );
 		}
 	} );
 	if (

@@ -116,7 +116,7 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 8,
+	version: 9,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
@@ -138,17 +138,6 @@ const config = ( id ) => ( {
 		version: 1,
 		label: 'I agree.',
 		required: true,
-	},
-	appearance: {
-		mode: 'default',
-		background_color: '#121212',
-		surface_color: '#1f1f1f',
-		text_color: '#e5e5e5',
-		accent_color: '#0b5394',
-		button_text_color: '#ffffff',
-		border_color: '#3a3a3a',
-		button_radius: 8,
-		show_logo: true,
 	},
 	embed: { allowed_parent_origins: [] },
 	spaces: [],
@@ -1472,7 +1461,7 @@ describe( 'venue settings authorization-facing states', () => {
 			buttonByText( container, 'Booking Form' ).click()
 		);
 		await act( async () =>
-			buttonByText( container, 'Add intake field' ).click()
+			buttonByText( container, 'Add question' ).click()
 		);
 		await setInput(
 			container.querySelector( '#intake-label-0' ),
@@ -1491,7 +1480,7 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( request.data.input.config.intake.fields ).toEqual( [
 			{
-				key: 'recent_draw',
+				key: 'question',
 				label: 'Recent draw',
 				type: 'text',
 				required: false,

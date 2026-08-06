@@ -11,7 +11,7 @@ import {
 } from './state';
 
 const validConfig = () => ( {
-	version: 8,
+	version: 9,
 	enabled: true,
 	intake: { version: 1, fields: [] },
 	consent: {
@@ -19,17 +19,6 @@ const validConfig = () => ( {
 		version: 1,
 		label: 'I agree.',
 		required: true,
-	},
-	appearance: {
-		mode: 'default',
-		background_color: '#121212',
-		surface_color: '#1f1f1f',
-		text_color: '#e5e5e5',
-		accent_color: '#0b5394',
-		button_text_color: '#ffffff',
-		border_color: '#3a3a3a',
-		button_radius: 8,
-		show_logo: true,
 	},
 	embed: { allowed_parent_origins: [] },
 	spaces: [ { key: 'main_room', name: 'Main Room', is_default: true } ],
@@ -93,7 +82,7 @@ describe( 'venue settings state', () => {
 				'Each space needs a name and key.',
 				'Space keys must be unique.',
 				'Choose one default space.',
-				'Select fields need at least one option.',
+				'A saved multiple-choice question needs at least one choice.',
 				'Hold duration must be between 5 minutes and 14 days.',
 			] )
 		);

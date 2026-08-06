@@ -87,35 +87,6 @@
 	font-style: italic;
 }
 
-.ec-booking-form-preview {
-	margin-inline: auto;
-	width: 100%;
-	transition: max-width 160ms ease;
-}
-
-.ec-booking-form-preview.is-mobile {
-	max-width: 24rem;
-}
-
-.ec-booking-form-preview .ec-venue-booking-inquiry {
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
-	overflow: hidden;
-}
-
-.ec-booking-form-qr {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 1rem;
-	margin-block: 1rem;
-}
-
-.ec-booking-form-qr img {
-	width: 12rem;
-	height: 12rem;
-}
-
 .ec-inline-status .button-link {
 	margin-inline-start: 0.75rem;
 }

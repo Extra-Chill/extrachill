@@ -307,7 +307,6 @@ class VenueBookingConfigAbilities {
 				'required'             => array( 'version', 'fields', 'presentation' ),
 				'additionalProperties' => false,
 			),
-			'appearance'                => $appearance_schema,
 			'consent'                   => array(
 				'type'                 => 'object',
 				'properties'           => array(
@@ -422,7 +421,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required            = array( 'version', 'enabled', 'intake', 'consent', 'appearance', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'consent', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -447,7 +446,13 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$retired_requirements = $schema;
+		$retired_appearance = $schema;
+
+		$retired_appearance['properties']['version']['enum'] = array( VenueBookingConfig::RETIRED_APPEARANCE_VERSION );
+		$retired_appearance['properties']['appearance']      = $appearance_schema;
+		$retired_appearance['required'][]                    = 'appearance';
+
+		$retired_requirements = $retired_appearance;
 
 		$retired_requirements['properties']['version']['enum'] = array( VenueBookingConfig::RETIRED_REQUIREMENTS_VERSION );
 
@@ -488,7 +493,7 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $retired_appearance, $schema ) );
 	}
 
 	/** Return the strict correspondence configuration schema. */

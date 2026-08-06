@@ -1,38 +1,49 @@
 /**
  * External dependencies
  */
-import { FieldGroup, Grid, Panel, PanelHeader } from '@extrachill/components';
+import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
 
 /**
  * Internal dependencies
  */
 import PublicBookingDetails from './intake-public';
+import {
+	isLinkField,
+	logicalIntakeRows,
+	updateLogicalLinkFields,
+} from './booking-links';
 import { normalizeKey } from './state';
 
-const INTAKE_TYPES = [
-	'text',
-	'textarea',
-	'email',
-	'phone',
-	'number',
-	'select',
-	'checkbox',
-	'url',
-	'url_list',
-];
+const nextQuestionKey = ( fields ) => {
+	const keys = new Set( fields.map( ( field ) => field.key ) );
+	let number = 1;
+	let key = 'question';
+	while ( keys.has( key ) ) {
+		number += 1;
+		key = `question_${ number }`;
+	}
+	return key;
+};
 
 export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 	const fields = config.intake.fields;
+	const rows = logicalIntakeRows( fields );
 	const setFields = ( next ) =>
 		setConfig( { ...config, intake: { ...config.intake, fields: next } } );
-	const update = ( index, patch ) =>
+	const updateField = ( field, patch ) =>
 		setFields(
-			fields.map( ( field, current ) =>
-				current === index ? { ...field, ...patch } : field
+			fields.map( ( candidate ) =>
+				candidate === field ? { ...candidate, ...patch } : candidate
 			)
 		);
+	const updateLinks = ( patch ) =>
+		setFields( updateLogicalLinkFields( fields, patch ) );
+	const removeLinks = () =>
+		setFields( fields.filter( ( field ) => ! isLinkField( field ) ) );
+	const hasLinks = fields.some( isLinkField );
+
 	return (
-		<Grid minColumnWidth="100%">
+		<>
 			<PublicBookingDetails
 				config={ config }
 				setConfig={ setConfig }
@@ -40,207 +51,140 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 			/>
 			<Panel>
 				<PanelHeader
-					title="Inquiry fields"
-					description="Define the canonical information requested before a booking enters the pipeline."
+					title="Questions"
+					description="Ask only for the extra information your team needs to review an inquiry."
 				/>
-				{ fields.length === 0 && (
-					<p>No custom intake fields configured.</p>
-				) }
-				{ fields.map( ( field, index ) => (
-					<fieldset
-						className="ec-venue-settings__repeater"
-						key={ `${ field.key }-${ index }` }
-					>
-						<legend>Field { index + 1 }</legend>
-						<Grid minColumnWidth="16rem" maxColumns={ 2 }>
+				{ rows.length === 0 && <p>No extra questions configured.</p> }
+				{ rows.map( ( row, rowIndex ) => {
+					const linkRow = Boolean( row.links );
+					const field = linkRow ? row.links[ 0 ] : row.field;
+					const required = linkRow
+						? row.links.some( ( link ) => link.required )
+						: field.required;
+					const rowKeys = linkRow
+						? row.links.map( ( link ) => link.key )
+						: [ field.key ];
+					const isReferenced = fields.some( ( candidate ) =>
+						rowKeys.includes( candidate.visible_when?.field )
+					);
+					return (
+						<fieldset
+							className="ec-venue-settings__repeater"
+							key={ linkRow ? 'links' : field.key }
+						>
+							<legend>{ linkRow ? 'Links' : 'Question' }</legend>
 							<FieldGroup
-								label="Label"
-								htmlFor={ `${ idPrefix }intake-label-${ index }` }
+								label={
+									linkRow ? 'Links label' : 'Question label'
+								}
+								htmlFor={ `${ idPrefix }intake-label-${ rowIndex }` }
 								required
 							>
 								<input
-									id={ `${ idPrefix }intake-label-${ index }` }
+									id={ `${ idPrefix }intake-label-${ rowIndex }` }
 									value={ field.label }
 									onChange={ ( event ) =>
-										update( index, {
-											label: event.target.value,
-											key:
-												field.key ||
-												normalizeKey(
-													event.target.value
-												),
-										} )
+										linkRow
+											? updateLinks( {
+													label: event.target.value,
+											  } )
+											: updateField( field, {
+													label: event.target.value,
+											  } )
 									}
 								/>
 							</FieldGroup>
-							<FieldGroup
-								label="Key"
-								htmlFor={ `${ idPrefix }intake-key-${ index }` }
-								required
+							<label
+								htmlFor={ `${ idPrefix }intake-required-${ rowIndex }` }
 							>
 								<input
-									id={ `${ idPrefix }intake-key-${ index }` }
-									value={ field.key }
+									id={ `${ idPrefix }intake-required-${ rowIndex }` }
+									type="checkbox"
+									checked={ required }
 									onChange={ ( event ) =>
-										update( index, {
-											key: normalizeKey(
-												event.target.value
-											),
-										} )
+										linkRow
+											? updateLinks( {
+													required:
+														event.target.checked,
+											  } )
+											: updateField( field, {
+													required:
+														event.target.checked,
+											  } )
 									}
-								/>
-							</FieldGroup>
-							<FieldGroup
-								label="Type"
-								htmlFor={ `${ idPrefix }intake-type-${ index }` }
-							>
-								<select
-									id={ `${ idPrefix }intake-type-${ index }` }
-									value={ field.type }
-									onChange={ ( event ) =>
-										update( index, {
-											type: event.target.value,
-										} )
-									}
-								>
-									{ INTAKE_TYPES.map( ( type ) => (
-										<option value={ type } key={ type }>
-											{ type }
-										</option>
-									) ) }
-								</select>
-							</FieldGroup>
-						</Grid>
-						{ field.type === 'select' && (
-							<FieldGroup
-								label="Options"
-								htmlFor={ `${ idPrefix }intake-options-${ index }` }
-								help="One option per line."
-							>
-								<textarea
-									id={ `${ idPrefix }intake-options-${ index }` }
-									value={ field.options.join( '\n' ) }
-									onChange={ ( event ) =>
-										update( index, {
-											options: event.target.value
-												.split( '\n' )
-												.map( ( option ) =>
-													option.trim()
+								/>{ ' ' }
+								Required
+							</label>
+							<button
+								type="button"
+								className="button-link-delete"
+								disabled={ isReferenced }
+								onClick={ () =>
+									linkRow
+										? removeLinks()
+										: setFields(
+												fields.filter(
+													( candidate ) =>
+														candidate !== field
 												)
-												.filter( Boolean ),
-										} )
-									}
-								/>
-							</FieldGroup>
-						) }
-						<FieldGroup
-							label="Show only when"
-							htmlFor={ `${ idPrefix }intake-condition-field-${ index }` }
-							help="Optional. Conditional fields may depend on an earlier field."
-						>
-							<select
-								id={ `${ idPrefix }intake-condition-field-${ index }` }
-								value={ field.visible_when?.field || '' }
-								onChange={ ( event ) =>
-									update( index, {
-										visible_when: event.target.value
-											? {
-													field: event.target.value,
-													value:
-														field.visible_when
-															?.value || '',
-											  }
-											: null,
-									} )
+										  )
 								}
 							>
-								<option value="">Always show</option>
-								{ fields
-									.slice( 0, index )
-									.map( ( controller ) => (
-										<option
-											key={ controller.key }
-											value={ controller.key }
-										>
-											{ controller.label ||
-												controller.key }
-										</option>
-									) ) }
-							</select>
-						</FieldGroup>
-						{ field.visible_when && (
-							<FieldGroup
-								label="Matching value"
-								htmlFor={ `${ idPrefix }intake-condition-value-${ index }` }
-								required
-							>
-								<input
-									id={ `${ idPrefix }intake-condition-value-${ index }` }
-									value={ field.visible_when.value }
-									onChange={ ( event ) =>
-										update( index, {
-											visible_when: {
-												...field.visible_when,
-												value: event.target.value,
-											},
-										} )
-									}
-								/>
-							</FieldGroup>
-						) }
-						<label
-							htmlFor={ `${ idPrefix }intake-required-${ index }` }
-						>
-							<input
-								id={ `${ idPrefix }intake-required-${ index }` }
-								type="checkbox"
-								checked={ field.required }
-								onChange={ ( event ) =>
-									update( index, {
-										required: event.target.checked,
-									} )
-								}
-							/>{ ' ' }
-							Required
-						</label>
+								Remove { linkRow ? 'links' : 'question' }
+							</button>
+							{ isReferenced && (
+								<p className="ec-venue-settings__save-note">
+									This question is used by another saved
+									question and cannot be removed.
+								</p>
+							) }
+						</fieldset>
+					);
+				} ) }
+				<div className="ec-action-row">
+					<button
+						type="button"
+						className="button-2"
+						onClick={ () => {
+							const key = nextQuestionKey( fields );
+							setFields( [
+								...fields,
+								{
+									key: normalizeKey( key ),
+									label: 'New question',
+									type: 'text',
+									required: false,
+									options: [],
+									visible_when: null,
+								},
+							] );
+						} }
+					>
+						Add question
+					</button>
+					{ ! hasLinks && (
 						<button
 							type="button"
-							className="button-link-delete"
+							className="button-2"
 							onClick={ () =>
-								setFields(
-									fields.filter(
-										( _, current ) => current !== index
-									)
-								)
+								setFields( [
+									...fields,
+									{
+										key: 'links',
+										label: 'Links',
+										type: 'url_list',
+										required: false,
+										options: [],
+										visible_when: null,
+									},
+								] )
 							}
 						>
-							Remove field
+							Add links
 						</button>
-					</fieldset>
-				) ) }
-				<button
-					type="button"
-					className="button-2"
-					onClick={ () =>
-						setFields( [
-							...fields,
-							{
-								key: '',
-								label: '',
-								type: 'text',
-								required: false,
-								options: [],
-								visible_when: null,
-							},
-						] )
-					}
-				>
-					Add intake field
-				</button>
-				<p className="ec-venue-settings__save-note">
-					Intake changes are saved with this settings revision.
-				</p>
+					) }
+				</div>
 			</Panel>
-		</Grid>
+		</>
 	);
 }

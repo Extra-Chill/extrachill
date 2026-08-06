@@ -10,12 +10,13 @@ const styles = readFileSync( path.resolve( __dirname, 'style.scss' ), 'utf8' );
 const view = readFileSync( path.resolve( __dirname, 'view.js' ), 'utf8' );
 
 describe( 'venue booking inquiry styles', () => {
-	it( 'composes shared components and scopes appearance variables', () => {
+	it( 'composes shared components without a booking-specific palette', () => {
 		expect( styles ).toContain(
 			'@use "@extrachill/components/styles/components.scss";'
 		);
-		expect( styles ).toContain( '.ec-venue-booking-inquiry {' );
 		expect( styles ).not.toContain( ':root' );
+		expect( styles ).not.toContain( '--ec-booking-' );
+		expect( styles ).not.toContain( '.ec-venue-booking-inquiry {' );
 	} );
 
 	it( 'relies on shared form components without local decoration', () => {

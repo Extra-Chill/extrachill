@@ -104,7 +104,6 @@ $public_config = array(
 	'spaces'               => array_values( $booking_config['spaces'] ),
 	'fields'               => array_values( $booking_config['fields'] ),
 	'presentation'         => $booking_config['presentation'],
-	'appearance'           => $booking_config['appearance'],
 	'consent'              => $booking_config['consent'],
 );
 
@@ -112,10 +111,7 @@ $json = wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_A
 if ( false === $json ) {
 	return;
 }
-$wrapper_extra = array(
-	'class' => 'ec-venue-booking-inquiry',
-	'style' => VenueBookingConfig::appearance_style( $booking_config['appearance'] ),
-);
+$wrapper_extra = array( 'class' => 'ec-venue-booking-inquiry' );
 if ( (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
 	$wrapper_extra['id'] = 'booking-inquiry';
 }
