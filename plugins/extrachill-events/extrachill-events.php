@@ -33,6 +33,8 @@ require_once __DIR__ . '/inc/Providers/CliProvider.php';
 require_once __DIR__ . '/inc/Providers/IngestionProvider.php';
 require_once __DIR__ . '/inc/Providers/PublicExperienceProvider.php';
 require_once __DIR__ . '/inc/Providers/DataMachineEventsProvider.php';
+require_once __DIR__ . '/inc/Providers/ArtistUrlImportProvider.php';
+require_once __DIR__ . '/inc/Providers/VenueBookingProvider.php';
 
 \ExtraChillEvents\Providers\CliProvider::register();
 \ExtraChillEvents\Providers\IngestionProvider::register();
@@ -128,71 +130,10 @@ class ExtraChillEvents {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueExpansionRunner.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/EventSourceRampEvaluator.php';
 
-		// Artist URL Import subsystem (migrated from data-machine-events in #200).
-		// Moderation-queue table + REST controller/routes. The abilities load in
-		// init_abilities(); the admin screen instantiates in init_admin().
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistUrlSubmissionsTable.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportSchema.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestSchema.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportAuthorization.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestAuthorization.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationToken.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationDeliveryWorker.php';
-		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportWorkspace.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestNotificationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingNotificationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationAdapter.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCommunicationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCorrespondenceAutomationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingHoldRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingMutationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingEventSyncService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingEventConversionService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingMarketingService.php';
-		\ExtraChillEvents\Core\BookingMarketingService::register();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingLifecycle.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivateFileProvider.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalBookingPrivateFileProvider.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivateFileProviders.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentPolicy.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentDeliveryRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingInquiryAdmissionService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueBookingConfig.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueBookingEmbed.php';
-		\ExtraChillEvents\Core\VenueBookingEmbed::register();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/TicketReconciliationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/TicketSettlementService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ShowSettlementService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingReportingService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivacyService.php';
-		\ExtraChillEvents\Core\BookingPrivacyService::register();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueProfile.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/CanonicalEventPublicationGuard.php';
-		\ExtraChillEvents\Core\BookingHoldRepository::register();
-		\ExtraChillEvents\Core\BookingCommunicationService::register();
-		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
-		\ExtraChillEvents\Core\BookingNotificationService::register();
-		\ExtraChillEvents\Core\LocalSupportNotificationService::register();
-		\ExtraChillEvents\Core\VendorRequestNotificationService::register();
-		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/Controllers/ArtistUrlImport.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Api/ArtistUrlImportRoutes.php';
+		// Artist URL Import table/REST and venue booking dependencies retain their
+		// established order ahead of the public experience.
+		\ExtraChillEvents\Providers\ArtistUrlImportProvider::register();
+		\ExtraChillEvents\Providers\VenueBookingProvider::register();
 
 		\ExtraChillEvents\Providers\PublicExperienceProvider::register();
 	}

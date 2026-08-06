@@ -19,6 +19,8 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertTrue( $result['owner_site'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
+		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['booking_registered'] );
 	}
 
 	/** Unrelated subsites load safe hooks while owner-only callbacks remain guarded. */
@@ -28,6 +30,8 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertFalse( $result['owner_site'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
+		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['booking_registered'] );
 	}
 
 	/** CLI registration remains available and provider calls are idempotent. */
@@ -62,7 +66,11 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$result = $this->run_fixture( 'optional-absent' );
 
 		$this->assertFalse( $result['optional_dependency_seen'] );
+		$this->assertFalse( $result['optional_scheduler_seen'] );
+		$this->assertFalse( $result['optional_users_seen'] );
 		$this->assertTrue( $result['optional_loader_present'] );
+		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['booking_registered'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
 	}
@@ -74,15 +82,21 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertIsString( $bootstrap );
 		$cli       = strpos( $bootstrap, 'CliProvider::register()' );
 		$ingestion = strpos( $bootstrap, 'IngestionProvider::register()' );
+		$artist    = strpos( $bootstrap, 'ArtistUrlImportProvider::register()' );
+		$booking   = strpos( $bootstrap, 'VenueBookingProvider::register()' );
 		$public    = strpos( $bootstrap, 'PublicExperienceProvider::register()' );
 		$optional  = strpos( $bootstrap, 'DataMachineEventsProvider::register()' );
 
 		$this->assertIsInt( $cli );
 		$this->assertIsInt( $ingestion );
+		$this->assertIsInt( $artist );
+		$this->assertIsInt( $booking );
 		$this->assertIsInt( $public );
 		$this->assertIsInt( $optional );
 		$this->assertLessThan( $ingestion, $cli );
 		$this->assertLessThan( $public, $ingestion );
+		$this->assertLessThan( $booking, $artist );
+		$this->assertLessThan( $public, $booking );
 		$this->assertLessThan( $optional, $public );
 	}
 
