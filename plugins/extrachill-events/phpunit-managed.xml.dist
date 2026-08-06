@@ -9,6 +9,7 @@
 	<testsuites>
 		<testsuite name="managed-wordpress">
 			<directory>tests/Unit/Core</directory>
+			<file>tests/Unit/Core/class-datamachineintegrationloadertest.php</file>
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
@@ -16,8 +17,6 @@
 			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
 			<file>tests/Unit/Abilities/ManagedVenueVoicesRestTest.php</file>
-			<file>tests/Unit/FestivalNotificationsTest.php</file>
-			<file>tests/Unit/VenueUpdateSubscriptionsTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>

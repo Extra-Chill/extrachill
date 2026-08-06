@@ -2,6 +2,7 @@
 <phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
 	<testsuites>
 		<testsuite name="local-scene-unit">
+			<file>tests/Unit/Core/class-datamachineintegrationloadertest.php</file>
 			<file>tests/Unit/Core/DataMachineSettingsTest.php</file>
 			<file>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</file>
 			<file>tests/Unit/Core/LocalSceneDigestTest.php</file>

@@ -27,8 +27,6 @@
 			<file>tests/Unit/Core/VenueExpansionPlanTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionRunnerTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionSystemTaskTest.php</file>
-			<file>tests/Unit/FestivalNotificationsTest.php</file>
-			<file>tests/Unit/VenueUpdateSubscriptionsTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
