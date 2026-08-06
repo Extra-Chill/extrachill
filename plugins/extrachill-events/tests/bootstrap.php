@@ -70,6 +70,18 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 	}
 }
 
+if ( ! function_exists( '__' ) ) {
+	/**
+	 * Return untranslated test strings.
+	 *
+	 * @param string $text Source string.
+	 * @return string
+	 */
+	function __( $text ) {
+		return $text;
+	}
+}
+
 // --- Minimal WP polyfills (only what qualify v2 core code touches). ---
 
 if ( ! function_exists( 'wp_parse_url' ) ) {

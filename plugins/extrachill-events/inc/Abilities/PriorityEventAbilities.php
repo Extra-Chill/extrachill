@@ -25,7 +25,7 @@ class PriorityEventAbilities {
 	}
 
 	private function registerAbilities(): void {
-		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
+		\add_action( 'wp_abilities_api_init', array( $this, 'register' ), 10, 1 );
 	}
 
 	public function register(): void {
@@ -156,6 +156,312 @@ class PriorityEventAbilities {
 				),
 			)
 		);
+
+		wp_register_ability(
+			'extrachill/grant-event-priority-boost',
+			array(
+				'label'               => __( 'Grant Event Priority Boost', 'extrachill-events' ),
+				'description'         => __( 'Idempotently grant paid priority to a canonical event.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event'              => array(
+							'type'        => 'string',
+							'minLength'   => 1,
+							'maxLength'   => 191,
+							'description' => __( 'Canonical event post slug or numeric ID.', 'extrachill-events' ),
+						),
+						'external_reference' => array(
+							'type'        => 'string',
+							'minLength'   => 1,
+							'maxLength'   => 191,
+							'description' => __( 'Opaque reference for the external purchase or grant.', 'extrachill-events' ),
+						),
+						'idempotency_key'    => array(
+							'type'        => 'string',
+							'minLength'   => 1,
+							'maxLength'   => 191,
+							'description' => __( 'Stable key identifying this grant operation.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event', 'external_reference', 'idempotency_key' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'success'                     => array( 'type' => 'boolean' ),
+						'replayed'                    => array( 'type' => 'boolean' ),
+						'existing_priority_preserved' => array( 'type' => 'boolean' ),
+						'event'                       => array(
+							'type'       => 'object',
+							'properties' => array(
+								'post_id'  => array( 'type' => 'integer' ),
+								'title'    => array( 'type' => 'string' ),
+								'slug'     => array( 'type' => 'string' ),
+								'priority' => array( 'type' => 'boolean' ),
+							),
+						),
+						'receipt'                     => array(
+							'type'       => 'object',
+							'properties' => array(
+								'operation_id' => array( 'type' => 'string' ),
+								'actor_id'     => array( 'type' => 'integer' ),
+								'granted_at'   => array( 'type' => 'string' ),
+							),
+						),
+					),
+				),
+				'execute_callback'    => array( $this, 'grant_priority_boost' ),
+				'permission_callback' => array( $this, 'can_grant_priority_boost' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => true,
+						'destructive'  => false,
+						'instructions' => __( 'Grant priority after an authorized external purchase. Reuse the same idempotency key only for the same event and external reference.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Require an authenticated administrator for paid priority grants.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return true|\WP_Error
+	 */
+	public function can_grant_priority_boost( array $input ) {
+		unset( $input );
+
+		$actor_id = $this->get_priority_boost_actor_id();
+		if ( $actor_id < 1 ) {
+			return new \WP_Error( 'priority_boost_authentication_required', __( 'Authentication is required to grant event priority.', 'extrachill-events' ), array( 'status' => 401 ) );
+		}
+
+		return $this->priority_boost_actor_can_manage( $actor_id )
+			? true
+			: new \WP_Error( 'priority_boost_forbidden', __( 'Administrator access is required to grant event priority.', 'extrachill-events' ), array( 'status' => 403 ) );
+	}
+
+	/**
+	 * Grant paid event priority with an opaque, atomic replay receipt.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function grant_priority_boost( array $input ) {
+		$event_reference    = trim( (string) ( $input['event'] ?? '' ) );
+		$external_reference = trim( (string) ( $input['external_reference'] ?? '' ) );
+		$idempotency_key    = trim( (string) ( $input['idempotency_key'] ?? '' ) );
+
+		if ( '' === $event_reference ) {
+			return new \WP_Error( 'priority_boost_event_required', __( 'A canonical event reference is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		if ( '' === $external_reference || strlen( $external_reference ) > 191 ) {
+			return new \WP_Error( 'priority_boost_external_reference_invalid', __( 'A bounded external reference is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		if ( '' === $idempotency_key || strlen( $idempotency_key ) > 191 ) {
+			return new \WP_Error( 'priority_boost_idempotency_key_invalid', __( 'A bounded idempotency key is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$post = $this->resolve_priority_boost_event( $event_reference );
+		if ( ! $post || 'data_machine_events' !== $post->post_type || 'trash' === $post->post_status ) {
+			return new \WP_Error( 'priority_boost_event_not_found', __( 'The canonical event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
+		}
+
+		$operation_hash = hash( 'sha256', $idempotency_key );
+		$option_name    = 'extrachill_priority_boost_receipt_' . $operation_hash;
+		$request_hash   = hash( 'sha256', $post->ID . "\0" . $external_reference );
+		$receipt        = $this->get_priority_boost_receipt( $option_name );
+
+		if ( is_array( $receipt ) ) {
+			return $this->replay_priority_boost( $option_name, $receipt, $request_hash, $post );
+		}
+
+		$existing_priority = $this->is_priority_boosted_event( (int) $post->ID );
+		$receipt           = array(
+			'version'                     => 1,
+			'status'                      => 'pending',
+			'request_hash'                => $request_hash,
+			'actor_id'                    => $this->get_priority_boost_actor_id(),
+			'existing_priority_preserved' => $existing_priority,
+			'granted_at'                  => $this->priority_boost_timestamp(),
+			'event'                       => array(
+				'post_id'  => (int) $post->ID,
+				'title'    => (string) $post->post_title,
+				'slug'     => (string) $post->post_name,
+				'priority' => true,
+			),
+		);
+
+		if ( ! $this->add_priority_boost_receipt( $option_name, $receipt ) ) {
+			$concurrent = $this->get_priority_boost_receipt( $option_name );
+			if ( is_array( $concurrent ) ) {
+				return $this->replay_priority_boost( $option_name, $concurrent, $request_hash, $post );
+			}
+
+			return new \WP_Error( 'priority_boost_receipt_unavailable', __( 'The priority boost receipt could not be reserved.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		return $this->complete_priority_boost( $option_name, $receipt, $post, false );
+	}
+
+	/**
+	 * Resolve an exact retry or reject conflicting key reuse.
+	 *
+	 * @param string  $option_name Receipt option name.
+	 * @param array   $receipt Stored operation receipt.
+	 * @param string  $request_hash Hash of canonical inputs.
+	 * @param \WP_Post $post Canonical event.
+	 * @return array|\WP_Error
+	 */
+	private function replay_priority_boost( string $option_name, array $receipt, string $request_hash, $post ) {
+		if ( empty( $receipt['request_hash'] ) || ! hash_equals( (string) $receipt['request_hash'], $request_hash ) ) {
+			return new \WP_Error( 'priority_boost_idempotency_conflict', __( 'The idempotency key was already used for a different priority boost.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+
+		if ( 'complete' !== ( $receipt['status'] ?? '' ) ) {
+			return $this->complete_priority_boost( $option_name, $receipt, $post, true );
+		}
+
+		return $this->priority_boost_projection( $option_name, $receipt, true );
+	}
+
+	/**
+	 * Persist the priority state and complete its reserved receipt.
+	 *
+	 * @param string  $option_name Receipt option name.
+	 * @param array   $receipt Reserved operation receipt.
+	 * @param \WP_Post $post Canonical event.
+	 * @param bool    $replayed Whether this execution reused a reservation.
+	 * @return array|\WP_Error
+	 */
+	private function complete_priority_boost( string $option_name, array $receipt, $post, bool $replayed ) {
+		$this->set_priority_boosted_event( (int) $post->ID );
+		if ( ! $this->is_priority_boosted_event( (int) $post->ID ) ) {
+			return new \WP_Error( 'priority_boost_persistence_failed', __( 'The event priority state could not be saved.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		$this->delete_priority_boost_cache();
+		$receipt['status'] = 'complete';
+		if ( ! $this->update_priority_boost_receipt( $option_name, $receipt ) ) {
+			$stored = $this->get_priority_boost_receipt( $option_name );
+			if ( ! is_array( $stored ) || 'complete' !== ( $stored['status'] ?? '' ) ) {
+				return new \WP_Error( 'priority_boost_receipt_persistence_failed', __( 'The priority boost receipt could not be completed.', 'extrachill-events' ), array( 'status' => 500 ) );
+			}
+			$receipt = $stored;
+		}
+
+		return $this->priority_boost_projection( $option_name, $receipt, $replayed );
+	}
+
+	/**
+	 * Return the stable Events-owned projection without exposing commerce data.
+	 *
+	 * @param string $option_name Receipt option name.
+	 * @param array  $receipt Completed operation receipt.
+	 * @param bool   $replayed Whether this is an exact replay.
+	 * @return array
+	 */
+	private function priority_boost_projection( string $option_name, array $receipt, bool $replayed ): array {
+		return array(
+			'success'                     => true,
+			'replayed'                    => $replayed,
+			'existing_priority_preserved' => ! empty( $receipt['existing_priority_preserved'] ),
+			'event'                       => $receipt['event'],
+			'receipt'                     => array(
+				'operation_id' => substr( $option_name, -64, 32 ),
+				'actor_id'     => (int) $receipt['actor_id'],
+				'granted_at'   => (string) $receipt['granted_at'],
+			),
+		);
+	}
+
+	/**
+	 * Resolve a canonical event reference.
+	 *
+	 * @param string $event_reference Event ID or slug.
+	 * @return \WP_Post|null
+	 */
+	protected function resolve_priority_boost_event( string $event_reference ) {
+		return is_numeric( $event_reference )
+			? get_post( (int) $event_reference )
+			: get_page_by_path( $event_reference, OBJECT, 'data_machine_events' );
+	}
+
+	/** Get the authenticated actor ID. */
+	protected function get_priority_boost_actor_id(): int {
+		return get_current_user_id();
+	}
+
+	/**
+	 * Check paid-priority authority.
+	 *
+	 * @param int $actor_id Actor user ID.
+	 */
+	protected function priority_boost_actor_can_manage( int $actor_id ): bool {
+		return user_can( $actor_id, 'manage_options' );
+	}
+
+	/**
+	 * Read an operation receipt.
+	 *
+	 * @param string $option_name Receipt option name.
+	 * @return array|false
+	 */
+	protected function get_priority_boost_receipt( string $option_name ) {
+		return get_option( $option_name, false );
+	}
+
+	/**
+	 * Atomically reserve an operation receipt.
+	 *
+	 * @param string $option_name Receipt option name.
+	 * @param array  $receipt Receipt payload.
+	 */
+	protected function add_priority_boost_receipt( string $option_name, array $receipt ): bool {
+		return add_option( $option_name, $receipt, '', false );
+	}
+
+	/**
+	 * Complete an operation receipt.
+	 *
+	 * @param string $option_name Receipt option name.
+	 * @param array  $receipt Receipt payload.
+	 */
+	protected function update_priority_boost_receipt( string $option_name, array $receipt ): bool {
+		return update_option( $option_name, $receipt, false );
+	}
+
+	/**
+	 * Read the established priority state.
+	 *
+	 * @param int $post_id Event post ID.
+	 */
+	protected function is_priority_boosted_event( int $post_id ): bool {
+		return (bool) get_post_meta( $post_id, '_extrachill_priority_event', true );
+	}
+
+	/**
+	 * Persist the established priority state.
+	 *
+	 * @param int $post_id Event post ID.
+	 */
+	protected function set_priority_boosted_event( int $post_id ): void {
+		update_post_meta( $post_id, '_extrachill_priority_event', true );
+	}
+
+	/** Invalidate the Events-owned priority cache. */
+	protected function delete_priority_boost_cache(): void {
+		wp_cache_delete( 'extrachill_priority_event_ids', 'extrachill-events' );
+	}
+
+	/** Get the immutable receipt timestamp. */
+	protected function priority_boost_timestamp(): string {
+		return gmdate( 'c' );
 	}
 
 	public function listPriorityEvents( array $input ): array {
@@ -196,7 +502,13 @@ class PriorityEventAbilities {
 		);
 	}
 
-	public function setPriorityEvent( array $input ): array|\WP_Error {
+	/**
+	 * Set manual event priority.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function setPriorityEvent( array $input ) {
 		$event = $input['event'] ?? '';
 
 		if ( empty( $event ) ) {
