@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.59.1] - 2026-08-06
+
+### Changed
+- extract bootstrap feature providers
+- simplify My Venues selection
+- simplify venue booking forms
+- retire entity follow notifications
+- restore managed archive fixture isolation
+
+### Fixed
+- clear CLI provider static analysis
+- clear booking release lint
+- remove duplicate booking form address
+- remove dead public booking requirements
+
 ## [0.59.0] - 2026-08-05
 
 ### Added
