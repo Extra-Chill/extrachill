@@ -6,7 +6,6 @@ define( 'ABSPATH', __DIR__ . '/' );
 define( 'OBJECT', 'OBJECT' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'DAY_IN_SECONDS', 86400 );
-define( 'EC_ANALYTICS_EVENT_ARTIST_PROFILE_CREATED', 'artist_profile_created' );
 define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 
 function plugin_dir_path( $file ) {
@@ -1043,7 +1042,8 @@ function do_action() {
 	return true;
 }
 
-function ec_artist_platform_emit_funnel_event() {
+function ec_artist_platform_emit_funnel_event( ...$args ) {
+	$GLOBALS['ec_test']['funnel_events'][] = $args;
 	return true;
 }
 
