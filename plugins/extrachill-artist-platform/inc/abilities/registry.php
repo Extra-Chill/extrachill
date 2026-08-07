@@ -631,6 +631,7 @@ function extrachill_artist_platform_register_abilities() {
 					'days' => array(
 						'type'        => 'integer',
 						'minimum'     => 0,
+						'maximum'     => 90,
 						'description' => __( 'Window in days for the recent aggregates. 0 disables the recent metrics window. Default 28.', 'extrachill-artist-platform' ),
 					),
 				),
@@ -639,11 +640,16 @@ function extrachill_artist_platform_register_abilities() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'total_artist_profiles'    => array( 'type' => 'integer' ),
-					'total_link_pages'         => array( 'type' => 'integer' ),
-					'profiles_created_recent'  => array( 'type' => 'integer' ),
-					'active_link_pages_recent' => array( 'type' => 'integer' ),
-					'days'                     => array( 'type' => 'integer' ),
+					'total_artist_profiles'      => array( 'type' => 'integer' ),
+					'total_link_pages'           => array( 'type' => 'integer' ),
+					'profiles_created_recent'    => array( 'type' => 'integer' ),
+					'active_link_pages_recent'   => array( 'type' => array( 'integer', 'null' ) ),
+					'link_page_analytics_status' => array(
+						'type' => 'string',
+						'enum' => array( 'available', 'no_data', 'disabled', 'unavailable', 'error', 'malformed_response' ),
+					),
+					'link_page_analytics_error'  => array( 'type' => array( 'string', 'null' ) ),
+					'days'                       => array( 'type' => 'integer' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_artist_platform_ability_get_artist_platform_stats',
