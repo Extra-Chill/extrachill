@@ -157,45 +157,62 @@ function extrachill_blog_prioritize_event_market( $locations, $preferred ) {
 /**
  * Get the latest Festival Wire posts from wire.extrachill.com.
  *
- * Direct cross-blog read via switch_to_blog() — the Wire publishes multiple
- * dispatches per day, so this is the homepage's freshest live signal. Each
- * item carries a humanized age ("3 hours ago") to make recency visible.
+ * Maps the Wire-owned public activity projection into the established
+ * homepage card shape. Each item carries a humanized age ("3 hours ago") to
+ * make recency visible.
  *
  * @param int $limit Number of posts to return.
  * @return array[] Array of items: title, url, time_diff.
  */
 function extrachill_blog_get_wire_latest( $limit = 4 ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return array();
-	}
+	$limit  = max( 1, min( 20, absint( $limit ) ) );
+	$result = extrachill_blog_request_cross_site_ability(
+		'wire',
+		'extrachill-news-wire/get-recent-activity',
+		array( 'limit' => $limit )
+	);
 
-	$wire_blog_id = ec_get_blog_id( 'wire' );
-	if ( ! $wire_blog_id ) {
+	if ( ! extrachill_blog_is_activity_projection( $result ) ) {
 		return array();
 	}
 
 	$items = array();
+	foreach ( array_slice( $result['items'], 0, $limit ) as $activity ) {
+		if ( ! extrachill_blog_is_wire_activity_item( $activity ) ) {
+			continue;
+		}
 
-	switch_to_blog( $wire_blog_id );
-
-	$wire_posts = get_posts(
-		array(
-			'numberposts' => absint( $limit ),
-			'post_type'   => 'festival_wire',
-		)
-	);
-
-	foreach ( $wire_posts as $wire_post ) {
 		$items[] = array(
-			'title'     => get_the_title( $wire_post ),
-			'url'       => get_permalink( $wire_post ),
-			'time_diff' => human_time_diff( (int) get_post_time( 'U', true, $wire_post ), time() ),
+			'title'     => $activity['title'],
+			'url'       => $activity['canonical_url'],
+			'time_diff' => human_time_diff( strtotime( $activity['timestamp'] ), time() ),
 		);
 	}
 
-	restore_current_blog();
-
 	return $items;
+}
+
+/**
+ * Validate one version-one Wire activity item.
+ *
+ * @param mixed $item Owner-projected item.
+ * @return bool
+ */
+function extrachill_blog_is_wire_activity_item( $item ) {
+	if ( ! is_array( $item ) || array( 'canonical_url', 'title', 'timestamp', 'image', 'summary', 'source', 'type' ) !== array_keys( $item ) ) {
+		return false;
+	}
+
+	return is_string( $item['canonical_url'] )
+		&& false !== filter_var( $item['canonical_url'], FILTER_VALIDATE_URL )
+		&& is_string( $item['title'] )
+		&& '' !== $item['title']
+		&& is_string( $item['timestamp'] )
+		&& false !== strtotime( $item['timestamp'] )
+		&& ( null === $item['image'] || ( is_string( $item['image'] ) && false !== filter_var( $item['image'], FILTER_VALIDATE_URL ) ) )
+		&& ( null === $item['summary'] || is_string( $item['summary'] ) )
+		&& 'extra-chill-news-wire' === $item['source']
+		&& 'festival-wire' === $item['type'];
 }
 
 /**

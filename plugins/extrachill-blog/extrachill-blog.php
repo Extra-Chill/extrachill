@@ -30,6 +30,7 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/nav.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/co-authors.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/admin-customizations.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/ads-filter.php';
+require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/core/cross-site-abilities.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/home/homepage-hooks.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/power/power-page.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/submit/artist-dispatch.php';

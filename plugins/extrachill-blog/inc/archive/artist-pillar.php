@@ -100,10 +100,10 @@ add_action( 'extrachill_archive_below_description', 'extrachill_blog_render_arti
 /**
  * Build the artist archive's small, source-owned activity timeline.
  *
- * This is deliberately local to the editorial artist router. Events supply
- * date-aware rows through their existing read ability, while Community's
- * native artist archive supplies topic rows. The Artist Platform contributes
- * only its public profile update timestamp, never profile content.
+ * This is deliberately local to the editorial artist router. Events and
+ * Community supply owner-projected rows through public read abilities. The
+ * Artist Platform contributes only its public profile update timestamp, never
+ * profile content.
  *
  * @param WP_Term $term Artist term.
  * @return array[] Renderable activity items.
@@ -170,30 +170,16 @@ function extrachill_blog_get_artist_coverage_activity( $term ) {
  * @return array[] Activity items.
  */
 function extrachill_blog_get_artist_events_activity( $term ) {
-	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
-		return array();
-	}
-
-	$force_loopback = static function () {
-		return true;
-	};
-	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
-	$result = ec_cross_site_rest_request(
+	$result = extrachill_blog_request_cross_site_ability(
 		'events',
-		'GET',
-		'/wp-abilities/v1/abilities/data-machine-events/events-by-term/run',
+		'data-machine-events/events-by-term',
 		array(
-			'query' => array(
-				'input' => array(
-					'taxonomy'  => 'artist',
-					'term_slug' => $term->slug,
-					'scope'     => 'all',
-					'limit'     => 4,
-				),
-			),
+			'taxonomy'  => 'artist',
+			'term_slug' => $term->slug,
+			'scope'     => 'all',
+			'limit'     => 4,
 		)
 	);
-	remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
 
 	if ( is_wp_error( $result ) || ! is_array( $result ) ) {
 		return array();
@@ -223,73 +209,90 @@ function extrachill_blog_get_artist_events_activity( $term ) {
 }
 
 /**
- * Gather the native Community artist archive's recent topics.
- *
- * Community intentionally exposes this surface as an archive, not a REST
- * collection. Match that archive's topic and post-status scope here.
+ * Gather Community-owned recent artist activity.
  *
  * @param WP_Term $term Artist term.
  * @return array[] Activity items.
  */
 function extrachill_blog_get_artist_community_activity( $term ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) || ! ec_get_blog_id( 'community' ) ) {
+	$result = extrachill_blog_request_cross_site_ability(
+		'community',
+		'extrachill/community-recent-public-activity',
+		array(
+			'artist_slug' => (string) $term->slug,
+			'limit'       => 4,
+		)
+	);
+
+	if ( ! extrachill_blog_is_activity_projection( $result ) ) {
 		return array();
 	}
 
 	$items = array();
-	switch_to_blog( (int) ec_get_blog_id( 'community' ) );
-	try {
-		$community_term = get_term_by( 'slug', $term->slug, 'artist' );
-		if ( ! ( $community_term instanceof WP_Term ) ) {
-			return array();
+	foreach ( $result['items'] as $activity ) {
+		if ( ! extrachill_blog_is_community_activity_item( $activity ) ) {
+			continue;
 		}
 
-		$topics = get_posts(
-			array(
-				'post_type'           => 'topic',
-				'post_status'         => array( 'publish', 'closed' ),
-				'posts_per_page'      => 4,
-				'orderby'             => 'date',
-				'order'               => 'DESC',
-				'ignore_sticky_posts' => true,
-				'tax_query'           => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
-					array(
-						'taxonomy' => 'artist',
-						'field'    => 'term_id',
-						'terms'    => (int) $community_term->term_id,
-					),
-				),
-			)
+		$items[] = extrachill_blog_build_artist_activity_item(
+			$activity['title'],
+			$activity['canonical_url'],
+			$activity['timestamp'],
+			__( 'Community discussion', 'extrachill-blog' )
 		);
-
-		foreach ( $topics as $topic ) {
-			$items[] = extrachill_blog_build_artist_activity_item(
-				get_the_title( $topic ),
-				extrachill_blog_get_artist_community_topic_permalink( $topic ),
-				get_post_time( 'c', true, $topic ),
-				__( 'Community discussion', 'extrachill-blog' )
-			);
-		}
-	} finally {
-		restore_current_blog();
 	}
 
 	return array_filter( $items );
 }
 
 /**
- * Resolve a Community topic's canonical bbPress permalink.
+ * Validate one version-one Community activity item.
  *
- * @param WP_Post $topic Community topic post.
- * @return string Canonical topic URL.
+ * @param mixed $item Owner-projected item.
+ * @return bool
  */
-function extrachill_blog_get_artist_community_topic_permalink( $topic ) {
-	$topic_id = $topic instanceof WP_Post ? (int) $topic->ID : 0;
-	if ( $topic_id && function_exists( 'bbp_get_topic_permalink' ) ) {
-		return bbp_get_topic_permalink( $topic_id );
+function extrachill_blog_is_community_activity_item( $item ) {
+	if ( ! is_array( $item ) || array( 'canonical_url', 'title', 'timestamp', 'activity_type', 'actor', 'relationships' ) !== array_keys( $item ) ) {
+		return false;
 	}
 
-	return $topic_id ? get_permalink( $topic_id ) : '';
+	return is_string( $item['canonical_url'] )
+		&& false !== filter_var( $item['canonical_url'], FILTER_VALIDATE_URL )
+		&& is_string( $item['title'] )
+		&& '' !== $item['title']
+		&& is_string( $item['timestamp'] )
+		&& false !== strtotime( $item['timestamp'] )
+		&& in_array( $item['activity_type'], array( 'discussion', 'reply' ), true )
+		&& is_array( $item['actor'] )
+		&& array( 'display_name', 'profile_url' ) === array_keys( $item['actor'] )
+		&& is_string( $item['actor']['display_name'] )
+		&& ( null === $item['actor']['profile_url'] || ( is_string( $item['actor']['profile_url'] ) && false !== filter_var( $item['actor']['profile_url'], FILTER_VALIDATE_URL ) ) )
+		&& is_array( $item['relationships'] )
+		&& array( 'forum', 'artists' ) === array_keys( $item['relationships'] )
+		&& extrachill_blog_is_community_term_projection( $item['relationships']['forum'] )
+		&& is_array( $item['relationships']['artists'] )
+		&& 10 >= count( $item['relationships']['artists'] )
+		&& array() === array_filter(
+			$item['relationships']['artists'],
+			static function ( $artist ) {
+				return ! extrachill_blog_is_community_term_projection( $artist );
+			}
+		);
+}
+
+/**
+ * Validate a Community forum or artist relationship.
+ *
+ * @param mixed $term Owner-projected relationship.
+ * @return bool
+ */
+function extrachill_blog_is_community_term_projection( $term ) {
+	return is_array( $term )
+		&& array( 'name', 'slug', 'canonical_url' ) === array_keys( $term )
+		&& is_string( $term['name'] )
+		&& is_string( $term['slug'] )
+		&& is_string( $term['canonical_url'] )
+		&& false !== filter_var( $term['canonical_url'], FILTER_VALIDATE_URL );
 }
 
 /**
@@ -307,19 +310,22 @@ function extrachill_blog_get_artist_platform_activity( $term ) {
 		return true;
 	};
 	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
-	$profiles = ec_cross_site_rest_request(
-		'artist',
-		'GET',
-		'/wp/v2/artist_profile',
-		array(
-			'query' => array(
-				'slug'     => $term->slug,
-				'per_page' => 1,
-				'_fields'  => 'link,modified_gmt,modified',
-			),
-		)
-	);
-	remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	try {
+		$profiles = ec_cross_site_rest_request(
+			'artist',
+			'GET',
+			'/wp/v2/artist_profile',
+			array(
+				'query' => array(
+					'slug'     => $term->slug,
+					'per_page' => 1,
+					'_fields'  => 'link,modified_gmt,modified',
+				),
+			)
+		);
+	} finally {
+		remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	}
 
 	if ( is_wp_error( $profiles ) || empty( $profiles[0] ) || ! is_array( $profiles[0] ) ) {
 		return array();

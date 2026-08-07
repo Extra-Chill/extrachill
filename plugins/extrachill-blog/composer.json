@@ -17,6 +17,7 @@
             "php tests/homepage-event-markets.php",
             "php tests/festival-subscriptions.php",
             "php tests/artist-activity.php",
+            "php tests/owner-activity-projections.php",
             "php tests/newsletter-context.php",
             "php tests/network-bridge.php",
             "php tests/artist-dispatch.php",
