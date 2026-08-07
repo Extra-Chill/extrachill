@@ -60,6 +60,7 @@ final class AbilityAuthorizationTest extends TestCase {
 			'extrachill/artist-invitation',
 			'extrachill/artists-list',
 			'extrachill/artist-get',
+			'extrachill/artist-public-projections',
 			'extrachill/artist-get-permissions',
 			'extrachill/artist-subscribe',
 			'extrachill/artist-query-local-support-candidates',
@@ -231,6 +232,7 @@ final class AbilityAuthorizationTest extends TestCase {
 		$abilities = array(
 			'extrachill/artists-list'          => array(),
 			'extrachill/artist-get'            => array( 'id' => 42 ),
+			'extrachill/artist-public-projections' => array( 'schema_version' => '1', 'slugs' => array( 'test-artist' ) ),
 			'extrachill/artist-get-permissions' => array( 'id' => 42 ),
 			'extrachill/artist-subscribe'      => array( 'id' => 42, 'email' => 'fan@example.com' ),
 		);

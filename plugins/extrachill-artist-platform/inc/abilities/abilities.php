@@ -27,6 +27,7 @@ require_once __DIR__ . '/handlers/save-social-links.php';
 // Artist-domain ability handlers (issue #27).
 require_once __DIR__ . '/handlers/artists-list.php';
 require_once __DIR__ . '/handlers/artist-get.php';
+require_once __DIR__ . '/handlers/artist-public-projections.php';
 require_once __DIR__ . '/handlers/artist-get-links.php';
 require_once __DIR__ . '/handlers/artist-update-links.php';
 require_once __DIR__ . '/handlers/artist-get-permissions.php';

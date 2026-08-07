@@ -85,6 +85,78 @@ function extrachill_artist_platform_register_abilities() {
 		)
 	);
 
+	wp_register_ability(
+		'extrachill/artist-public-projections',
+		array(
+			'label'               => __( 'Resolve Public Artist Projections', 'extrachill-artist-platform' ),
+			'description'         => __( 'Resolve canonical public artist names and profile URLs from subscription slugs.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artist-platform',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'required'             => array( 'schema_version', 'slugs' ),
+				'properties'           => array(
+					'schema_version' => array(
+						'type' => 'string',
+						'enum' => array( '1' ),
+					),
+					'slugs'          => array(
+						'type'        => 'array',
+						'minItems'    => 1,
+						'maxItems'    => 100,
+						'uniqueItems' => true,
+						'items'       => array(
+							'type'      => 'string',
+							'minLength' => 1,
+							'maxLength' => 200,
+							'pattern'   => '^[a-z0-9]+(?:-[a-z0-9]+)*$',
+						),
+					),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'                 => 'object',
+				'required'             => array( 'schema_version', 'items' ),
+				'properties'           => array(
+					'schema_version' => array(
+						'type' => 'string',
+						'enum' => array( '1' ),
+					),
+					'items'          => array(
+						'type'     => 'array',
+						'minItems' => 1,
+						'maxItems' => 100,
+						'items'    => array(
+							'type'                 => 'object',
+							'required'             => array( 'slug', 'status', 'name', 'url' ),
+							'properties'           => array(
+								'slug'   => array( 'type' => 'string' ),
+								'status' => array(
+									'type' => 'string',
+									'enum' => array( 'resolved', 'not_found' ),
+								),
+								'name'   => array( 'type' => 'string' ),
+								'url'    => array( 'type' => 'string' ),
+							),
+							'additionalProperties' => false,
+						),
+					),
+				),
+				'additionalProperties' => false,
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_artist_public_projections',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
 	// --- Write abilities ---
 
 	wp_register_ability(

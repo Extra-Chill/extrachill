@@ -1114,6 +1114,7 @@ require_once dirname( __DIR__ ) . '/inc/core/filters/data.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/permissions.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-platform-post-types.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';
+require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-public-projections.php';
 require_once dirname( __DIR__ ) . '/inc/local-support/availability.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/helpers.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-term-binding.php';

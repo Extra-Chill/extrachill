@@ -34,7 +34,7 @@ function ec_artist_binding_blog_ids() {
  *
  * @param int $profile_id    Artist profile post ID.
  * @param int $artist_blog_id Artist blog ID.
- * @return array{id:int,term_id:int,slug:string,title:string}|array{}
+ * @return array{id:int,term_id:int,slug:string,title:string,status:string}|array{}
  */
 function ec_artist_binding_read_profile( $profile_id, $artist_blog_id ) {
 	$profile = array();
@@ -47,6 +47,7 @@ function ec_artist_binding_read_profile( $profile_id, $artist_blog_id ) {
 				'term_id' => (int) get_post_meta( $profile_id, '_artist_term_id', true ),
 				'slug'    => (string) $post->post_name,
 				'title'   => (string) $post->post_title,
+				'status'  => (string) $post->post_status,
 			);
 		}
 	} finally {
