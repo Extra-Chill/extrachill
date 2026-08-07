@@ -35,6 +35,7 @@ interface WpPost {
 
 export interface SelectedImage {
 	url: string;
+	sourceId: string;
 	alt?: string;
 	title?: string;
 }
@@ -65,6 +66,7 @@ const PlatformPublishPane = ( { slug, label, username, config, draft, onDraftCha
 			...draft,
 			images: [ ...images, {
 				url,
+				sourceId: item.sourceId,
 				alt: item.alt || undefined,
 				title: item.title || undefined,
 			} ],
@@ -310,7 +312,12 @@ const PlatformPublishPane = ( { slug, label, username, config, draft, onDraftCha
 					meta: {
 						_studio_social_platforms: [ slug ],
 						_studio_social_caption: caption.trim(),
-						_studio_social_images: images.map( ( { url, alt, title } ) => ( { url, alt, title } ) ),
+						_studio_social_images: images.map( ( { url, sourceId, alt, title } ) => ( {
+							url,
+							source_id: sourceId,
+							alt,
+							title,
+						} ) ),
 						_studio_social_media_kind: images.length > 1 ? 'carousel' : 'image',
 					},
 				},

@@ -28,7 +28,7 @@ const META_MEDIA_KIND   = '_studio_social_media_kind';
 const META_VIDEO_URL    = '_studio_social_video_url';
 const META_COVER_URL    = '_studio_social_cover_url';
 const META_PUBLISH_LOG  = '_studio_social_publish_log';
-const META_JOB_ID       = '_studio_social_job_id';
+const META_DELIVERY_REF = '_studio_social_delivery_ref';
 
 /**
  * Register post meta for social drafts.
@@ -66,7 +66,8 @@ function register_social_meta() {
 					'items' => array(
 						'type'       => 'object',
 						'properties' => array(
-							'url' => array( 'type' => 'string' ),
+							'url'       => array( 'type' => 'string' ),
+							'source_id' => array( 'type' => 'string' ),
 						),
 					),
 				),
@@ -120,19 +121,21 @@ function register_social_meta() {
 							'post_id'   => array( 'type' => 'string' ),
 							'url'       => array( 'type' => 'string' ),
 							'error'     => array( 'type' => 'string' ),
+							'code'      => array( 'type' => 'string' ),
+							'retryable' => array( 'type' => 'boolean' ),
 							'timestamp' => array( 'type' => 'string' ),
 						),
 					),
 				),
 			),
 		),
-		META_JOB_ID       => array(
-			'type'              => 'integer',
-			'description'       => 'Data Machine job ID for async cross-post tracking.',
-			'default'           => 0,
+		META_DELIVERY_REF => array(
+			'type'              => 'string',
+			'description'       => 'Opaque Data Machine Socials delivery reference.',
+			'default'           => '',
 			'single'            => true,
 			'show_in_rest'      => true,
-			'sanitize_callback' => 'absint',
+			'sanitize_callback' => 'sanitize_text_field',
 		),
 	);
 
@@ -185,64 +188,186 @@ function on_publish_crosspost( string $new_status, string $old_status, \WP_Post 
 		return;
 	}
 
-	// Require DM Task System for async execution.
-	if ( ! class_exists( 'DataMachine\\Engine\\Tasks\\TaskScheduler' ) ) {
-		log_publish_result( $post->ID, array(
-			array(
-				'platform'  => 'system',
-				'success'   => false,
-				'error'     => 'Data Machine Task System not available.',
-				'timestamp' => gmdate( 'c' ),
-			),
-		) );
+	$result = enqueue_social_publish( $post );
+	if ( empty( $result['success'] ) ) {
+		log_publish_error( $post->ID, $result );
 		return;
 	}
 
-	$images       = get_post_meta( $post->ID, META_IMAGES, true );
-	$images       = $images ? $images : array();
-	$aspect_ratio = get_post_meta( $post->ID, META_ASPECT_RATIO, true );
-	$aspect_ratio = $aspect_ratio ? $aspect_ratio : '4:5';
-	$media_kind   = get_post_meta( $post->ID, META_MEDIA_KIND, true );
-	$media_kind   = $media_kind ? $media_kind : 'image';
-	$video_url    = get_post_meta( $post->ID, META_VIDEO_URL, true );
-	$video_url    = $video_url ? $video_url : '';
-	$cover_url    = get_post_meta( $post->ID, META_COVER_URL, true );
-	$cover_url    = $cover_url ? $cover_url : '';
+	store_social_delivery( $post->ID, $result );
+}
+add_action( 'transition_post_status', __NAMESPACE__ . '\\on_publish_crosspost', 10, 3 );
 
-	// Schedule async cross-post via DM Task System.
-	$job_id = \DataMachine\Engine\Tasks\TaskScheduler::schedule(
-		'social_cross_post',
+/**
+ * Enqueue a published Studio social draft through the Socials owner contract.
+ *
+ * @param \WP_Post $post Published social draft.
+ * @return array Stable Socials result.
+ */
+function enqueue_social_publish( \WP_Post $post ): array {
+	$caption = (string) get_post_meta( $post->ID, META_CAPTION, true );
+	$assets  = social_asset_refs( $post->ID );
+	if ( is_wp_error( $assets ) ) {
+		return social_publish_error( (string) $assets->get_error_code(), $assets->get_error_message(), false );
+	}
+
+	$platforms  = get_post_meta( $post->ID, META_PLATFORMS, true );
+	$media_kind = (string) get_post_meta( $post->ID, META_MEDIA_KIND, true );
+	$result     = execute_social_publish_ability(
+		'datamachine/enqueue-social-publish',
 		array(
-			'post_id'      => $post->ID,
-			'platforms'    => $platforms,
-			'caption'      => $caption,
-			'images'       => $images,
-			'aspect_ratio' => $aspect_ratio,
-			'media_kind'   => $media_kind,
-			'video_url'    => $video_url,
-			'cover_url'    => $cover_url,
-		),
-		array(
-			'user_id' => (int) $post->post_author,
-			'origin'  => 'studio_publish',
+			'content_ref'     => array(
+				'post_id'      => $post->ID,
+				'source_url'   => get_permalink( $post ),
+				'caption'      => $caption,
+				'content_hash' => hash( 'sha256', $caption ),
+				'asset_refs'   => $assets,
+			),
+			'target_policy'   => array(
+				'channels'   => array_values( (array) $platforms ),
+				'media_kind' => $media_kind ? $media_kind : 'image',
+			),
+			'idempotency_key' => social_publish_idempotency_key( $post->ID ),
 		)
 	);
 
-	if ( $job_id ) {
-		// Store job reference on the post for traceability.
-		update_post_meta( $post->ID, '_studio_social_job_id', $job_id );
-	} else {
-		log_publish_result( $post->ID, array(
+	return $result;
+}
+
+/**
+ * Build canonical Socials asset references from NetworkMediaItem metadata.
+ *
+ * URL-only entries are resolved for already-persisted review drafts created
+ * before Studio retained NetworkMediaItem::sourceId.
+ *
+ * @param int $post_id Studio post ID.
+ * @return array|\WP_Error
+ */
+function social_asset_refs( int $post_id ) {
+	$images = get_post_meta( $post_id, META_IMAGES, true );
+	$images = is_array( $images ) ? $images : array();
+	$refs   = array();
+
+	foreach ( $images as $image ) {
+		$source_id = is_array( $image ) ? (string) ( $image['source_id'] ?? '' ) : '';
+		if ( ! preg_match( '/^[1-9][0-9]*:[1-9][0-9]*$/', $source_id ) ) {
+			$source_id = resolve_legacy_social_asset( is_array( $image ) ? (string) ( $image['url'] ?? '' ) : '' );
+		}
+		if ( '' === $source_id ) {
+			return new \WP_Error( 'social_publish_asset_unavailable', __( 'A selected social asset could not be resolved.', 'extrachill-studio' ) );
+		}
+		$refs[] = array(
+			'source_id' => $source_id,
+			'role'      => 'image',
+		);
+	}
+
+	return $refs;
+}
+
+/** Resolve a pre-sourceId main-library image URL. */
+function resolve_legacy_social_asset( string $url ): string {
+	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	if ( $main_blog_id <= 0 || '' === $url ) {
+		return '';
+	}
+
+	$switched = get_current_blog_id() !== $main_blog_id;
+	if ( $switched ) {
+		switch_to_blog( $main_blog_id );
+	}
+
+	try {
+		$attachment_id = attachment_url_to_postid( $url );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	return $attachment_id > 0 ? $main_blog_id . ':' . $attachment_id : '';
+}
+
+/** Stable idempotency identity for one Studio draft publication. */
+function social_publish_idempotency_key( int $post_id ): string {
+	return sprintf( 'studio-social-publish:%d:%d', get_current_blog_id(), $post_id );
+}
+
+/** Execute one Socials ability without exposing dependency internals. */
+function execute_social_publish_ability( string $name, array $input ): array {
+	if ( ! function_exists( 'wp_get_ability' ) ) {
+		return social_publish_error( 'social_publish_capability_unavailable', __( 'Social publishing is currently unavailable.', 'extrachill-studio' ), true );
+	}
+
+	$ability = wp_get_ability( $name );
+	if ( ! $ability ) {
+		return social_publish_error( 'social_publish_capability_unavailable', __( 'Social publishing is currently unavailable.', 'extrachill-studio' ), true );
+	}
+
+	$result = $ability->execute( $input );
+	if ( is_wp_error( $result ) ) {
+		return social_publish_error( (string) $result->get_error_code(), $result->get_error_message(), true );
+	}
+
+	return is_array( $result ) && array_key_exists( 'success', $result )
+		? $result
+		: social_publish_error( 'social_publish_response_invalid', __( 'Social publishing returned an invalid response.', 'extrachill-studio' ), true );
+}
+
+/** Construct the stable public failure shape used by Socials abilities. */
+function social_publish_error( string $code, string $message, bool $retryable ): array {
+	return array(
+		'success' => false,
+		'error'   => array(
+			'code'      => sanitize_key( $code ),
+			'message'   => $message,
+			'retryable' => $retryable,
+		),
+	);
+}
+
+/** Persist only the opaque owner receipt, never a copy of Socials state. */
+function store_social_delivery( int $post_id, array $result ): void {
+	$delivery = is_array( $result['delivery'] ?? null ) ? $result['delivery'] : array();
+	$ref      = (string) ( $delivery['delivery_ref'] ?? '' );
+	if ( preg_match( '/^dop_[a-f0-9]{64}$/', $ref ) ) {
+		update_post_meta( $post_id, META_DELIVERY_REF, $ref );
+		clear_publish_errors( $post_id );
+	}
+}
+
+/** Record a failed pre-receipt handoff so an editor can retry it. */
+function log_publish_error( int $post_id, array $result ): void {
+	$error = is_array( $result['error'] ?? null ) ? $result['error'] : array();
+	log_publish_result(
+		$post_id,
+		array(
 			array(
 				'platform'  => 'system',
 				'success'   => false,
-				'error'     => 'Failed to schedule cross-post job.',
+				'code'      => (string) ( $error['code'] ?? 'social_publish_failed' ),
+				'error'     => (string) ( $error['message'] ?? __( 'Social publishing failed.', 'extrachill-studio' ) ),
+				'retryable' => ! empty( $error['retryable'] ),
 				'timestamp' => gmdate( 'c' ),
 			),
-		) );
-	}
+		)
+	);
 }
-add_action( 'transition_post_status', __NAMESPACE__ . '\\on_publish_crosspost', 10, 3 );
+
+/** Remove obsolete handoff failures after an idempotent enqueue succeeds. */
+function clear_publish_errors( int $post_id ): void {
+	$existing = get_post_meta( $post_id, META_PUBLISH_LOG, true );
+	$existing = is_array( $existing ) ? $existing : array();
+	$kept     = array_values(
+		array_filter(
+			$existing,
+			static function ( $entry ) {
+				return ! is_array( $entry ) || 'system' !== ( $entry['platform'] ?? '' );
+			}
+		)
+	);
+	update_post_meta( $post_id, META_PUBLISH_LOG, $kept );
+}
 
 /**
  * Store cross-post results in post meta.
@@ -255,6 +380,145 @@ function log_publish_result( int $post_id, array $results ) {
 	$existing = $existing ? $existing : array();
 	$merged   = array_merge( $existing, $results );
 	update_post_meta( $post_id, META_PUBLISH_LOG, $merged );
+}
+
+/**
+ * Authorize Socials owner operations against the exact Studio post and actor.
+ *
+ * @param bool  $authorized Existing authorization decision.
+ * @param array $context    Socials delegated operation context.
+ * @return bool
+ */
+function authorize_social_publish( bool $authorized, array $context ): bool {
+	if ( $authorized ) {
+		return true;
+	}
+
+	$input    = is_array( $context['input'] ?? null ) ? $context['input'] : array();
+	$actor    = is_array( $context['actor'] ?? null ) ? $context['actor'] : array();
+	$post_id  = (int) ( $input['post_id'] ?? 0 );
+	$user_id  = (int) ( $actor['user_id'] ?? 0 );
+	$post     = $post_id > 0 ? get_post( $post_id ) : null;
+	$channels = $post_id > 0 ? get_post_meta( $post_id, META_PLATFORMS, true ) : array();
+
+	return $post instanceof \WP_Post
+		&& 'post' === $post->post_type
+		&& 'publish' === $post->post_status
+		&& is_array( $channels )
+		&& ! empty( $channels )
+		&& $user_id > 0
+		&& user_can( $user_id, 'edit_post', $post_id );
+}
+add_filter( 'datamachine_socials_delegated_cross_post_authorized', __NAMESPACE__ . '\\authorize_social_publish', 10, 2 );
+
+/** Retrieve the current owner-projected delivery state for a Studio post. */
+function get_social_publish_state( int $post_id ): array {
+	$ref = (string) get_post_meta( $post_id, META_DELIVERY_REF, true );
+	if ( ! preg_match( '/^dop_[a-f0-9]{64}$/', $ref ) ) {
+		return social_publish_error( 'social_publish_delivery_pending', __( 'This social delivery has not received an owner receipt yet.', 'extrachill-studio' ), true );
+	}
+
+	return execute_social_publish_ability(
+		'datamachine/get-social-publish',
+		array( 'delivery_ref' => $ref )
+	);
+}
+
+/** Explicitly retry either a failed delivery or its pre-receipt handoff. */
+function retry_social_publish( int $post_id ): array {
+	$post = get_post( $post_id );
+	if ( ! $post instanceof \WP_Post || 'post' !== $post->post_type || 'publish' !== $post->post_status ) {
+		return social_publish_error( 'social_publish_post_unavailable', __( 'A published social draft is required.', 'extrachill-studio' ), false );
+	}
+
+	$ref = (string) get_post_meta( $post_id, META_DELIVERY_REF, true );
+	if ( preg_match( '/^dop_[a-f0-9]{64}$/', $ref ) ) {
+		$result = execute_social_publish_ability(
+			'datamachine/retry-social-publish',
+			array( 'delivery_ref' => $ref )
+		);
+	} else {
+		$result = enqueue_social_publish( $post );
+	}
+
+	if ( ! empty( $result['success'] ) ) {
+		store_social_delivery( $post_id, $result );
+	}
+
+	return $result;
+}
+
+/** Register Studio's resource-scoped state and retry operations. */
+function register_social_publish_abilities(): void {
+	if ( ! function_exists( 'wp_register_ability' ) ) {
+		return;
+	}
+
+	$input_schema  = array(
+		'type'                 => 'object',
+		'required'             => array( 'post_id' ),
+		'properties'           => array(
+			'post_id' => array(
+				'type'    => 'integer',
+				'minimum' => 1,
+			),
+		),
+		'additionalProperties' => false,
+	);
+	$output_schema = array(
+		'type'                 => 'object',
+		'required'             => array( 'success' ),
+		'properties'           => array(
+			'success'  => array( 'type' => 'boolean' ),
+			'delivery' => array( 'type' => 'object' ),
+			'error'    => array( 'type' => 'object' ),
+		),
+		'additionalProperties' => false,
+	);
+
+	foreach (
+		array(
+			'extrachill/get-social-publish-state' => array( __( 'Get Social Publish State', 'extrachill-studio' ), __NAMESPACE__ . '\\execute_get_social_publish_state' ),
+			'extrachill/retry-social-publish'     => array( __( 'Retry Social Publish', 'extrachill-studio' ), __NAMESPACE__ . '\\execute_retry_social_publish' ),
+		) as $name => $definition
+	) {
+		wp_register_ability(
+			$name,
+			array(
+				'label'               => $definition[0],
+				'description'         => __( 'Read or retry the Socials-owned delivery for an editable Studio post.', 'extrachill-studio' ),
+				'category'            => 'extrachill',
+				'input_schema'        => $input_schema,
+				'output_schema'       => $output_schema,
+				'execute_callback'    => $definition[1],
+				'permission_callback' => static function () {
+					return current_user_can( 'edit_posts' );
+				},
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+	}
+}
+add_action( 'wp_abilities_api_init', __NAMESPACE__ . '\\register_social_publish_abilities' );
+
+/** Ability callback for owner-projected delivery state. */
+function execute_get_social_publish_state( array $input ): array {
+	$post_id = (int) ( $input['post_id'] ?? 0 );
+	if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {
+		return social_publish_error( 'social_publish_forbidden', __( 'You cannot inspect this social delivery.', 'extrachill-studio' ), false );
+	}
+
+	return get_social_publish_state( $post_id );
+}
+
+/** Ability callback for an explicit owner-authorized retry. */
+function execute_retry_social_publish( array $input ): array {
+	$post_id = (int) ( $input['post_id'] ?? 0 );
+	if ( $post_id <= 0 || ! current_user_can( 'edit_post', $post_id ) ) {
+		return social_publish_error( 'social_publish_forbidden', __( 'You cannot retry this social delivery.', 'extrachill-studio' ), false );
+	}
+
+	return retry_social_publish( $post_id );
 }
 
 /**
@@ -287,8 +551,25 @@ function render_admin_columns( string $column, int $post_id ) {
 	}
 
 	if ( 'studio_status' === $column ) {
+		$delivery_ref = (string) get_post_meta( $post_id, META_DELIVERY_REF, true );
+		if ( preg_match( '/^dop_[a-f0-9]{64}$/', $delivery_ref ) ) {
+			$state = get_social_publish_state( $post_id );
+			if ( ! empty( $state['success'] ) && is_array( $state['delivery'] ?? null ) ) {
+				$status = (string) ( $state['delivery']['status'] ?? 'unknown' );
+				echo esc_html( ucwords( str_replace( '_', ' ', $status ) ) );
+				return;
+			}
+		}
+
 		$log = get_post_meta( $post_id, META_PUBLISH_LOG, true );
 		if ( ! empty( $log ) && is_array( $log ) ) {
+			$retryable = array_filter( $log, static function ( $entry ) {
+				return is_array( $entry ) && ! empty( $entry['retryable'] );
+			} );
+			if ( ! empty( $retryable ) ) {
+				echo esc_html__( 'Retry needed', 'extrachill-studio' );
+				return;
+			}
 			$success = count( array_filter( $log, function ( $entry ) {
 				return ! empty( $entry['success'] );
 			} ) );
