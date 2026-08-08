@@ -10,7 +10,11 @@
     "start": "wp-scripts start",
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
-    "format": "wp-scripts format"
+    "format": "wp-scripts format",
+    "test:js": "npm run build && node --test tests/image-voting-contract.test.js",
+    "test:php": "npm run build && composer run-script test",
+    "typecheck": "tsc --noEmit",
+    "verify:assets": "npm run build && node --test tests/image-voting-contract.test.js"
   },
   "devDependencies": {
     "@wordpress/scripts": "^30.15.0"

@@ -38,3 +38,4 @@ docs/.docs-sync.json
 
 # Composer
 vendor/
+.phpunit.result.cache

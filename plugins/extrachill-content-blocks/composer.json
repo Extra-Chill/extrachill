@@ -14,7 +14,7 @@
 	"scripts": {
 		"lint:php": "vendor/bin/phpcs --standard=WordPress --extensions=php .",
 		"lint:fix": "vendor/bin/phpcbf --standard=WordPress --extensions=php .",
-		"test": "vendor/bin/phpunit"
+		"test": "vendor/bin/phpunit --configuration phpunit.xml.dist"
 	},
 	"config": {
 		"allow-plugins": {
