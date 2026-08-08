@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_event_submission_route' );
 
+/** Register the public event submission adapter. */
 function extrachill_api_register_event_submission_route() {
 	// Captcha (Cloudflare Turnstile) is enforced here, at the human-facing
 	// boundary. The underlying extrachill/submit-event ability is captcha-
@@ -32,6 +33,22 @@ function extrachill_api_register_event_submission_route() {
 			'callback'            => 'extrachill_api_handle_event_submission',
 			'permission_callback' => $turnstile_callback,
 			'args'                => array(
+				'event_title'        => array(
+					'required' => true,
+					'type'     => 'string',
+				),
+				'event_date'         => array(
+					'required' => true,
+					'type'     => 'string',
+				),
+				'event_time'         => array( 'type' => 'string' ),
+				'venue_name'         => array( 'type' => 'string' ),
+				'event_city'         => array( 'type' => 'string' ),
+				'event_lineup'       => array( 'type' => 'string' ),
+				'event_link'         => array( 'type' => 'string' ),
+				'notes'              => array( 'type' => 'string' ),
+				'contact_name'       => array( 'type' => 'string' ),
+				'contact_email'      => array( 'type' => 'string' ),
 				'turnstile_response' => array(
 					'required' => false,
 					'type'     => 'string',
@@ -45,6 +62,12 @@ function extrachill_api_register_event_submission_route() {
 	);
 }
 
+/**
+ * Execute an admitted event submission through the owner ability.
+ *
+ * @param WP_REST_Request $request Admitted REST request.
+ * @return WP_REST_Response|WP_Error Submission response.
+ */
 function extrachill_api_handle_event_submission( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/submit-event' );
 	if ( ! $ability ) {

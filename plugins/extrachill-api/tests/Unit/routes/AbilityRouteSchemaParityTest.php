@@ -130,6 +130,51 @@ final class AbilityRouteSchemaParityTest extends WP_UnitTestCase {
 		);
 	}
 
+	/** Route affinity resolves existing owner contracts plus API-owned exact routes. */
+	public function test_route_site_affinity_resolution() {
+		$this->assertSame( 'community', extrachill_api_rest_ability_route_site( '/extrachill/v1/community/topics' ) );
+		$this->assertSame( 'artist', extrachill_api_rest_ability_route_site( '/extrachill/v1/artists' ) );
+		$this->assertSame( 'events', extrachill_api_rest_ability_route_site( '/extrachill/v1/event-submissions' ) );
+		$this->assertSame( 'studio', extrachill_api_rest_ability_route_site( '/extrachill/v1/giveaway/run' ) );
+		$this->assertSame( 'main', extrachill_api_rest_ability_route_site( '/extrachill/v1/users/me' ) );
+	}
+
+	/** An absent ability is expected only when concrete affinity names another site. */
+	public function test_affinity_audit_classifies_expected_absence() {
+		$routes = $this->registered_route_fixture( '/extrachill/v1/community/parity-absent', 'extrachill/parity-absent' );
+
+		$report = extrachill_api_rest_ability_adapter_audit( $routes, 'main' );
+
+		$this->assertSame( 'expected_absence', $report[0]['code'] );
+		$this->assertSame( 'main', $report[0]['site'] );
+		$this->assertSame( 'community', $report[0]['owner_site'] );
+		$this->assertStringContainsString( 'affinity contract', $report[0]['reason'] );
+	}
+
+	/** Explicit audit contexts cannot claim a runtime that was not bootstrapped. */
+	public function test_affinity_audit_rejects_wrong_site_execution() {
+		$report = extrachill_api_rest_ability_adapter_audit( array(), 'community' );
+
+		$this->assertSame( 'wrong_site_context', $report[0]['code'] );
+		$this->assertSame( 'community', $report[0]['owner_site'] );
+	}
+
+	/** Malformed affinity metadata remains an unexplained finding. */
+	public function test_affinity_audit_reports_malformed_metadata() {
+		$filter = static function ( $contract ) {
+			$contract['site'] = 'not-configured';
+			return $contract;
+		};
+		add_filter( 'extrachill_api_rest_ability_adapter_contract', $filter );
+		$routes = $this->registered_route_fixture( '/extrachill/v1/parity-malformed-affinity', 'extrachill/parity-absent' );
+
+		$report = extrachill_api_rest_ability_adapter_audit( $routes, 'main' );
+		remove_filter( 'extrachill_api_rest_ability_adapter_contract', $filter );
+
+		$this->assertSame( 'malformed_affinity', $report[0]['code'] );
+		$this->assertSame( 'not-configured', $report[0]['owner_site'] );
+	}
+
 	/** Legitimate transport metadata requires a field-level documented exception. */
 	public function test_documented_transport_metadata_is_allowed() {
 		$schema = $this->schema();
@@ -324,6 +369,20 @@ final class AbilityRouteSchemaParityTest extends WP_UnitTestCase {
 	/** Return a minimal endpoint. */
 	private function endpoint() {
 		return array( 'methods' => array( 'GET' => true ), 'args' => array() );
+	}
+
+	/** Return a route fixture discoverable through an API-owned callback. */
+	private function registered_route_fixture( $route, $ability ) {
+		return array(
+			$route => array(
+				array(
+					'methods'                => array( 'GET' => true ),
+					'callback'               => 'extrachill_api_events_upcoming_counts_handler',
+					'args'                   => array(),
+					'_extrachill_abilities' => array( $ability ),
+				),
+			),
+		);
 	}
 
 	/** Return a default adapter contract. */

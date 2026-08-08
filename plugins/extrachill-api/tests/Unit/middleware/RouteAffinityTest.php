@@ -144,6 +144,16 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		$this->assertSame( 2, $this->request_count );
 	}
 
+	/** Site-scoped handlers use their registered owner runtime. */
+	public function test_api_owned_site_scoped_route_affinity() {
+		$map = extrachill_api_add_artist_route_affinity( array() );
+
+		$this->assertSame( 'artist', $map['/extrachill/v1/admin/artist-relationships'] );
+		$this->assertSame( 'events', $map['/extrachill/v1/event-submissions'] );
+		$this->assertSame( 'studio', $map['/extrachill/v1/giveaway/'] );
+		$this->assertSame( 'studio', $map['/extrachill/v1/instagram/'] );
+	}
+
 	/**
 	 * External callers cannot forge either legacy or new affinity headers.
 	 */

@@ -12,6 +12,8 @@
  *
  * Phase 1 of the network-wide unified media library tracked in
  * extrachill-multisite#2 — currently scoped to blog 1.
+ *
+ * @package ExtraChillAPI
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_network_media_routes' );
 
+/** Register network media list and upload adapters. */
 function extrachill_api_register_network_media_routes() {
 	register_rest_route(
 		'extrachill/v1',
@@ -58,6 +61,10 @@ function extrachill_api_register_network_media_routes() {
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => 'extrachill_api_network_media_upload',
 				'permission_callback' => 'extrachill_api_network_media_permission',
+				'args'                => array(
+					'title' => array( 'type' => 'string' ),
+					'alt'   => array( 'type' => 'string' ),
+				),
 			),
 		)
 	);
@@ -68,6 +75,9 @@ function extrachill_api_register_network_media_routes() {
  *
  * Defers to the ability's own permission_callback so the rule lives in
  * one place. The ability requires `upload_files` on blog 1.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return bool|WP_Error Permission result.
  */
 function extrachill_api_network_media_permission( WP_REST_Request $request ) {
 	if ( ! function_exists( 'wp_get_ability' ) ) {
@@ -94,6 +104,9 @@ function extrachill_api_network_media_permission( WP_REST_Request $request ) {
  * Builds the ability input by including only params that were actually
  * provided on the request. Empty strings for optional enum fields
  * (e.g. `media_type`) would fail schema validation, so we omit them.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response|WP_Error Media response.
  */
 function extrachill_api_network_media_list( WP_REST_Request $request ) {
 	$ability = wp_get_ability( 'extrachill/network-media-list' );
@@ -131,6 +144,9 @@ function extrachill_api_network_media_list( WP_REST_Request $request ) {
  * Marshals `$_FILES['file']` into the ability's input shape. The ability
  * runs the actual `wp_handle_upload` + `wp_insert_attachment` in blog 1's
  * context.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response|WP_Error Upload response.
  */
 function extrachill_api_network_media_upload( WP_REST_Request $request ) {
 	$files = $request->get_file_params();

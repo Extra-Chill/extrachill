@@ -108,7 +108,12 @@ function extrachill_api_rest_ability_schema_findings( array $endpoint, $ability,
 	return $findings;
 }
 
-/** Validate the object shape needed for route projection. */
+/**
+ * Validate the object shape needed for route projection.
+ *
+ * @param array $schema Ability input schema.
+ * @return bool Whether the schema can be projected.
+ */
 function extrachill_api_rest_ability_schema_is_valid( array $schema ) {
 	if ( 'object' !== ( $schema['type'] ?? null ) ) {
 		return false;
@@ -129,7 +134,12 @@ function extrachill_api_rest_ability_schema_is_valid( array $schema ) {
 	return true;
 }
 
-/** Normalize REST method declarations for strict comparison. */
+/**
+ * Normalize REST method declarations for strict comparison.
+ *
+ * @param mixed $methods REST method declaration.
+ * @return string[] Normalized method names.
+ */
 function extrachill_api_rest_ability_schema_methods( $methods ) {
 	if ( is_string( $methods ) ) {
 		$methods = explode( ',', $methods );
@@ -145,7 +155,12 @@ function extrachill_api_rest_ability_schema_methods( $methods ) {
 	return $methods;
 }
 
-/** Keep only validation semantics shared by ability and REST schemas. */
+/**
+ * Keep only validation semantics shared by ability and REST schemas.
+ *
+ * @param array $schema Projected schema fragment.
+ * @return array Canonical validation contract.
+ */
 function extrachill_api_rest_ability_schema_contract( array $schema ) {
 	$keywords = array(
 		'type',
@@ -180,7 +195,13 @@ function extrachill_api_rest_ability_schema_contract( array $schema ) {
 	return extrachill_api_rest_ability_schema_canonicalize( $contract );
 }
 
-/** Canonicalize unordered schema sets and associative maps. */
+/**
+ * Canonicalize unordered schema sets and associative maps.
+ *
+ * @param mixed  $value Schema value.
+ * @param string $key   Parent schema keyword.
+ * @return mixed Canonical value.
+ */
 function extrachill_api_rest_ability_schema_canonicalize( $value, $key = '' ) {
 	if ( ! is_array( $value ) ) {
 		return $value;
@@ -200,7 +221,14 @@ function extrachill_api_rest_ability_schema_canonicalize( $value, $key = '' ) {
 	return $value;
 }
 
-/** Return dotted paths for every schema constraint difference. */
+/**
+ * Return dotted paths for every schema constraint difference.
+ *
+ * @param mixed  $expected Expected schema value.
+ * @param mixed  $actual   Actual schema value.
+ * @param string $prefix   Current dotted path.
+ * @return string[] Difference paths.
+ */
 function extrachill_api_rest_ability_schema_diff_paths( $expected, $actual, $prefix ) {
 	if ( ! is_array( $expected ) || ! is_array( $actual ) ) {
 		return $expected === $actual ? array() : array( $prefix );
@@ -219,7 +247,15 @@ function extrachill_api_rest_ability_schema_diff_paths( $expected, $actual, $pre
 	return $paths;
 }
 
-/** Build a stable finding payload. */
+/**
+ * Build a stable finding payload.
+ *
+ * @param string $code    Finding classification.
+ * @param string $route   Registered REST route.
+ * @param string $ability Backing ability name.
+ * @param string $path    Schema field or metadata path.
+ * @return array<string, string> Finding payload.
+ */
 function extrachill_api_rest_ability_schema_finding( $code, $route, $ability, $path ) {
 	return array(
 		'code'    => (string) $code,
@@ -227,6 +263,121 @@ function extrachill_api_rest_ability_schema_finding( $code, $route, $ability, $p
 		'ability' => (string) $ability,
 		'path'    => (string) $path,
 	);
+}
+
+/**
+ * Resolve a route through the same owner contract used by affinity dispatch.
+ *
+ * @param string $route Registered REST route.
+ * @return string Site key.
+ */
+function extrachill_api_rest_ability_route_site( $route ) {
+	if ( '/extrachill/v1/artists' === $route ) {
+		return 'artist';
+	}
+
+	$site = function_exists( 'ec_get_route_site_affinity' ) ? ec_get_route_site_affinity( $route ) : null;
+	return $site ? $site : 'main';
+}
+
+/**
+ * Document deliberate field translations at API transport boundaries.
+ *
+ * @param array $contract Adapter contract.
+ * @return array Adapter contract with field-level evidence.
+ */
+function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
+	$key = $contract['route'] . '|' . $contract['ability'];
+	$map = array(
+		'/extrachill/v1/event-submissions|extrachill/submit-event' => array(
+			'ability_only'   => array( 'flyer' => 'Multipart flyer data is read from get_file_params(), not the scalar REST argument map.' ),
+			'transport_only' => array( 'turnstile_response' => 'Turnstile is consumed by public-write admission before ability execution.' ),
+		),
+		'/extrachill/v1/network-media|extrachill/network-media-upload' => array(
+			'ability_only' => array(
+				'tmp_name' => 'Derived from the admitted multipart file payload.',
+				'name'     => 'Derived from the admitted multipart file payload.',
+				'type'     => 'Derived from the admitted multipart file payload.',
+				'size'     => 'Derived from the admitted multipart file payload.',
+			),
+		),
+		'/extrachill/v1/community/notifications|extrachill/get-notifications' => array(
+			'ability_only'   => array(
+				'user_id'  => 'Derived from the authenticated WordPress actor.',
+				'per_page' => 'The public limit alias is translated to the canonical ability field.',
+			),
+			'transport_only' => array( 'limit' => 'Preserved public alias translated to the ability per_page field.' ),
+		),
+		'/extrachill/v1/community/notifications/mark-read|extrachill/mark-notifications-read' => array(
+			'ability_only' => array(
+				'user_id'         => 'Derived from the authenticated WordPress actor.',
+				'notification_id' => 'Deliberately omitted to preserve the route\'s mark-all behavior.',
+			),
+		),
+		'/extrachill/v1/users/me/profile|extrachill/get-user-profile' => array(
+			'ability_only' => array( 'user_id' => 'Derived from the authenticated WordPress actor.' ),
+		),
+		'/extrachill/v1/users/onboarding|extrachill/get-onboarding-status' => array(
+			'ability_only' => array( 'user_id' => 'Derived from the authenticated WordPress actor.' ),
+		),
+		'/extrachill/v1/users/onboarding|extrachill/complete-onboarding' => array(
+			'ability_only' => array( 'user_id' => 'Derived from the authenticated WordPress actor.' ),
+		),
+		'/extrachill/v1/users/(?P<id>\d+)|extrachill/get-user-profile' => array(
+			'ability_only'   => array( 'user_id' => 'The public path ID is translated to the canonical ability field.' ),
+			'transport_only' => array( 'id' => 'Public path alias translated to user_id.' ),
+		),
+		'/extrachill/v1/newsletter/subscribe|extrachill/subscribe' => array(
+			'transport_only' => array(
+				'turnstile_response' => 'Turnstile is consumed before ability execution.',
+				'emails'             => 'Legacy batch transport input is normalized before individual ability execution.',
+				'source'             => 'Public attribution metadata is normalized into the subscription context.',
+			),
+		),
+		'/extrachill/v1/admin/artist-access/(?P<user_id>\d+)/approve|extrachill/approve-artist-access' => array(
+			'transport_only' => array( 'token' => 'Approval token is verified by the REST admission layer before ability execution.' ),
+		),
+	);
+
+	if ( isset( $map[ $key ] ) ) {
+		$contract['exceptions'] = array_replace_recursive( $contract['exceptions'] ?? array(), $map[ $key ] );
+	}
+
+	return $contract;
+}
+add_filter( 'extrachill_api_rest_ability_adapter_contract', 'extrachill_api_rest_ability_contract_exceptions' );
+
+/**
+ * Resolve the configured site key for the active runtime without switching blogs.
+ *
+ * @param array $manifest Adapter manifest for the audit matrix.
+ * @return string|null Site key when the runtime is represented.
+ */
+function extrachill_api_rest_ability_current_site( array $manifest = array() ) {
+	if ( function_exists( 'extrachill_get_current_site_key' ) ) {
+		return extrachill_get_current_site_key();
+	}
+
+	if ( ! function_exists( 'ec_get_blog_id' ) ) {
+		return null;
+	}
+
+	$sites = array( 'main' );
+	foreach ( $manifest as $adapter ) {
+		$site = $adapter['contract']['site'] ?? null;
+		if ( is_string( $site ) && '' !== $site ) {
+			$sites[] = $site;
+		}
+	}
+
+	$current_blog_id = get_current_blog_id();
+	foreach ( array_unique( $sites ) as $site ) {
+		if ( (int) ec_get_blog_id( $site ) === (int) $current_blog_id ) {
+			return $site;
+		}
+	}
+
+	return null;
 }
 
 /**
@@ -269,6 +420,7 @@ function extrachill_api_rest_ability_adapter_manifest( $routes = null ) {
 					'route'                => $route,
 					'callback'             => $callback,
 					'ability'              => $ability_name,
+					'site'                 => extrachill_api_rest_ability_route_site( $route ),
 					'methods'              => extrachill_api_rest_ability_schema_methods( $endpoint['methods'] ?? array() ),
 					'additionalProperties' => str_contains( $source, '->get_params(' ),
 					'exceptions'           => array(),
@@ -293,17 +445,101 @@ function extrachill_api_rest_ability_adapter_manifest( $routes = null ) {
 	return $manifest;
 }
 
-/** Audit every discovered API-owned adapter against the active ability registry. */
-function extrachill_api_rest_ability_adapter_audit( $routes = null ) {
-	$findings = array();
-	foreach ( extrachill_api_rest_ability_adapter_manifest( $routes ) as $adapter ) {
-		$name     = $adapter['contract']['ability'];
-		$ability  = function_exists( 'wp_has_ability' ) && wp_has_ability( $name ) ? wp_get_ability( $name ) : null;
-		$findings = array_merge(
-			$findings,
-			extrachill_api_rest_ability_schema_findings( $adapter['endpoint'], $ability, $adapter['contract'] )
+/**
+ * Audit every discovered API-owned adapter against the active ability registry.
+ *
+ * @param array|null  $routes Optional registered route map.
+ * @param string|null $site   Site key expected to own the active runtime.
+ * @return array<int, array<string, string>> Structured audit records.
+ */
+function extrachill_api_rest_ability_adapter_audit( $routes = null, $site = null ) {
+	$report       = array();
+	$manifest     = extrachill_api_rest_ability_adapter_manifest( $routes );
+	$current_site = extrachill_api_rest_ability_current_site( $manifest );
+	$audit_site   = null === $site ? $current_site : $site;
+
+	if ( ! is_string( $audit_site ) || '' === $audit_site || $audit_site !== $current_site ) {
+		return array(
+			extrachill_api_rest_ability_audit_record( 'wrong_site_context', '', '', 'site', (string) $current_site, (string) $audit_site, 'The requested audit site does not match the bootstrapped WordPress runtime.' ),
 		);
 	}
 
-	return $findings;
+	foreach ( $manifest as $adapter ) {
+		$contract   = $adapter['contract'];
+		$name       = $contract['ability'];
+		$owner_site = $contract['site'] ?? null;
+		$ability    = function_exists( 'wp_has_ability' ) && wp_has_ability( $name ) ? wp_get_ability( $name ) : null;
+
+		if ( ! is_string( $owner_site ) || '' === $owner_site || ! function_exists( 'ec_get_blog_id' ) || ! ec_get_blog_id( $owner_site ) ) {
+			$report[] = extrachill_api_rest_ability_audit_record( 'malformed_affinity', $contract['route'], $name, 'site', $audit_site, (string) $owner_site, 'Route affinity must name a configured network site.' );
+			continue;
+		}
+
+		if ( $owner_site !== $audit_site ) {
+			if ( ! $ability instanceof WP_Ability ) {
+				$report[] = extrachill_api_rest_ability_audit_record( 'expected_absence', $contract['route'], $name, $name, $audit_site, $owner_site, sprintf( 'The route affinity contract assigns this binding to the %s runtime.', $owner_site ) );
+			}
+			continue;
+		}
+
+		foreach ( extrachill_api_rest_ability_schema_findings( $adapter['endpoint'], $ability, $contract ) as $finding ) {
+			$report[] = extrachill_api_rest_ability_audit_record( $finding['code'], $finding['route'], $finding['ability'], $finding['path'], $audit_site, $owner_site, 'No documented field exception or owner remediation is registered.' );
+		}
+
+		foreach ( $contract['exceptions'] ?? array() as $group => $exceptions ) {
+			if ( ! is_array( $exceptions ) ) {
+				continue;
+			}
+			foreach ( $exceptions as $path => $reason ) {
+				if ( is_string( $path ) && '' !== $path && is_string( $reason ) && '' !== trim( $reason ) ) {
+					$report[] = extrachill_api_rest_ability_audit_record( 'documented_exception', $contract['route'], $name, $group . '.' . $path, $audit_site, $owner_site, $reason );
+				}
+			}
+		}
+	}
+
+	return $report;
+}
+
+/**
+ * Build one concrete affinity audit record.
+ *
+ * @param string $code       Finding classification.
+ * @param string $route      Registered REST route.
+ * @param string $ability    Backing ability name.
+ * @param string $path       Schema field or metadata path.
+ * @param string $site       Audited runtime site key.
+ * @param string $owner_site Route owner site key.
+ * @param string $reason     Concrete classification reason.
+ * @return array<string, string> Audit record.
+ */
+function extrachill_api_rest_ability_audit_record( $code, $route, $ability, $path, $site, $owner_site, $reason ) {
+	return array(
+		'code'       => (string) $code,
+		'route'      => (string) $route,
+		'ability'    => (string) $ability,
+		'path'       => (string) $path,
+		'site'       => (string) $site,
+		'owner_site' => (string) $owner_site,
+		'reason'     => (string) $reason,
+	);
+}
+
+/** Expose the active-runtime audit to Homeboy and CI through WP-CLI. */
+function extrachill_api_register_schema_parity_command() {
+	WP_CLI::add_command(
+		'extrachill-api schema-parity',
+		static function () {
+			$report      = extrachill_api_rest_ability_adapter_audit();
+			$unexplained = array_filter( $report, static fn( $finding ) => ! in_array( $finding['code'], array( 'expected_absence', 'documented_exception' ), true ) );
+			WP_CLI::line( (string) wp_json_encode( $report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			if ( $unexplained ) {
+				WP_CLI::halt( 1 );
+			}
+		}
+	);
+}
+
+if ( defined( 'WP_CLI' ) ) {
+	extrachill_api_register_schema_parity_command();
 }

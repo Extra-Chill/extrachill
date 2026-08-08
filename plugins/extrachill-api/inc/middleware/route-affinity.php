@@ -20,13 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Keep artist item affinity on a path-segment boundary.
+ * Add API-owned route families whose handlers require site-scoped plugins.
  *
  * @param array $affinity_map Route prefix to site key map.
  * @return array
  */
 function extrachill_api_add_artist_route_affinity( $affinity_map ) {
-	$affinity_map['/extrachill/v1/artists/'] = 'artist';
+	$affinity_map['/extrachill/v1/admin/artist-relationships'] = 'artist';
+	$affinity_map['/extrachill/v1/event-submissions']          = 'events';
+	$affinity_map['/extrachill/v1/giveaway/']                  = 'studio';
+	$affinity_map['/extrachill/v1/instagram/']                 = 'studio';
+	$affinity_map['/extrachill/v1/artists/']                   = 'artist';
 
 	return $affinity_map;
 }
