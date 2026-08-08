@@ -10,8 +10,8 @@
 	&__empty {
 		padding: 40px;
 		text-align: center;
-		background: #f9f9f9;
-		border: 1px solid #ddd;
+		background: var(--card-background, #f9f9f9);
+		border: 1px solid var(--border-color, #ddd);
 		border-radius: 4px;
 
 		.components-spinner {
@@ -42,10 +42,10 @@
 	align-items: center;
 	margin-top: 15px;
 	padding-top: 15px;
-	border-top: 1px solid #eee;
+	border-top: 1px solid var(--border-color, #eee);
 
 	&__info {
-		color: #646970;
+		color: var(--muted-text, #646970);
 		font-size: 13px;
 	}
 
@@ -666,14 +666,14 @@
 .ec-badge--success.ec-badge--subtle,
 .ec-badge--yes.ec-badge--subtle {
 	background: #d4edda;
-	color: #155724;
+	color: var(--success-color, #155724);
 	border-color: #c3e6cb;
 }
 
 .ec-badge--error.ec-badge--subtle,
 .ec-badge--no.ec-badge--subtle {
 	background: #f8d7da;
-	color: #721c24;
+	color: var(--error-color, #721c24);
 	border-color: #f5c6cb;
 }
 
@@ -709,12 +709,12 @@
 }
 
 .ec-badge--success.ec-badge--outline {
-	color: #155724;
+	color: var(--success-color, #155724);
 	border-color: #c3e6cb;
 }
 
 .ec-badge--error.ec-badge--outline {
-	color: #721c24;
+	color: var(--error-color, #721c24);
 	border-color: #f5c6cb;
 }
 
@@ -761,7 +761,7 @@
 	// the brighter dark variant. Light-mode token (#0b5394) and dark-mode
 	// token (#93c5fd) both work as a solid background.
 	background: var(--info-color, #0d6efd);
-	color: #fff;
+	color: var(--button-text-color, #fff);
 }
 
 // Toolbar — horizontal bar with left content + right actions

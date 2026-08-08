@@ -10,7 +10,7 @@
     "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "noEmit": false,
     "strict": true,
     "skipLibCheck": true,

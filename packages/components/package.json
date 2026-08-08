@@ -3,6 +3,10 @@
   "version": "0.9.2",
   "description": "Shared React components for the Extra Chill Platform.",
   "type": "module",
+  "sideEffects": [
+    "./dist/components.css",
+    "./styles/components.scss"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -11,28 +15,138 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./styles/components.scss": "./styles/components.scss",
-    "./styles/*": "./styles/*",
-    "./src": {
-      "types": "./src/index.tsx",
-      "default": "./src/index.tsx"
+    "./ActionRow": {
+      "types": "./dist/ActionRow.d.ts",
+      "default": "./dist/ActionRow.js"
     },
-    "./src/*": {
-      "types": "./src/*.tsx",
-      "default": "./src/*.tsx"
-    }
+    "./Badge": {
+      "types": "./dist/Badge.d.ts",
+      "default": "./dist/Badge.js"
+    },
+    "./BlockIntro": {
+      "types": "./dist/BlockIntro.d.ts",
+      "default": "./dist/BlockIntro.js"
+    },
+    "./BlockShell": {
+      "types": "./dist/BlockShell.d.ts",
+      "default": "./dist/BlockShell.js"
+    },
+    "./BlockShellHeader": {
+      "types": "./dist/BlockShellHeader.d.ts",
+      "default": "./dist/BlockShellHeader.js"
+    },
+    "./BlockShellInner": {
+      "types": "./dist/BlockShellInner.d.ts",
+      "default": "./dist/BlockShellInner.js"
+    },
+    "./DataTable": {
+      "types": "./dist/DataTable.d.ts",
+      "default": "./dist/DataTable.js"
+    },
+    "./FieldGroup": {
+      "types": "./dist/FieldGroup.d.ts",
+      "default": "./dist/FieldGroup.js"
+    },
+    "./Grid": {
+      "types": "./dist/Grid.d.ts",
+      "default": "./dist/Grid.js"
+    },
+    "./ImagePreview": {
+      "types": "./dist/ImagePreview.d.ts",
+      "default": "./dist/ImagePreview.js"
+    },
+    "./InlineStatus": {
+      "types": "./dist/InlineStatus.d.ts",
+      "default": "./dist/InlineStatus.js"
+    },
+    "./MediaField": {
+      "types": "./dist/MediaField.d.ts",
+      "default": "./dist/MediaField.js"
+    },
+    "./Modal": {
+      "types": "./dist/Modal.d.ts",
+      "default": "./dist/Modal.js"
+    },
+    "./Pagination": {
+      "types": "./dist/Pagination.d.ts",
+      "default": "./dist/Pagination.js"
+    },
+    "./Panel": {
+      "types": "./dist/Panel.d.ts",
+      "default": "./dist/Panel.js"
+    },
+    "./PanelHeader": {
+      "types": "./dist/PanelHeader.d.ts",
+      "default": "./dist/PanelHeader.js"
+    },
+    "./ProgressBar": {
+      "types": "./dist/ProgressBar.d.ts",
+      "default": "./dist/ProgressBar.js"
+    },
+    "./ResponsiveTabs": {
+      "types": "./dist/ResponsiveTabs.d.ts",
+      "default": "./dist/ResponsiveTabs.js"
+    },
+    "./SearchBox": {
+      "types": "./dist/SearchBox.d.ts",
+      "default": "./dist/SearchBox.js"
+    },
+    "./Section": {
+      "types": "./dist/Section.d.ts",
+      "default": "./dist/Section.js"
+    },
+    "./ShellTabs": {
+      "types": "./dist/ShellTabs.d.ts",
+      "default": "./dist/ShellTabs.js"
+    },
+    "./StatGroup": {
+      "types": "./dist/StatGroup.d.ts",
+      "default": "./dist/StatGroup.js"
+    },
+    "./StatTile": {
+      "types": "./dist/StatTile.d.ts",
+      "default": "./dist/StatTile.js"
+    },
+    "./Subsection": {
+      "types": "./dist/Subsection.d.ts",
+      "default": "./dist/Subsection.js"
+    },
+    "./Surface": {
+      "types": "./dist/Surface.d.ts",
+      "default": "./dist/Surface.js"
+    },
+    "./Tabs": {
+      "types": "./dist/Tabs.d.ts",
+      "default": "./dist/Tabs.js"
+    },
+    "./Toolbar": {
+      "types": "./dist/Toolbar.d.ts",
+      "default": "./dist/Toolbar.js"
+    },
+    "./initResponsiveTabsDom": {
+      "types": "./dist/initResponsiveTabsDom.d.ts",
+      "default": "./dist/initResponsiveTabsDom.js"
+    },
+    "./useTabClientContext": {
+      "types": "./dist/useTabClientContext.d.ts",
+      "default": "./dist/useTabClientContext.js"
+    },
+    "./styles/components.css": "./dist/components.css",
+    "./styles/components.scss": "./styles/components.scss",
+    "./styles/*": "./styles/*"
   },
   "files": [
-    "src",
     "dist",
     "styles",
     "README.md",
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "rm -rf dist *.tsbuildinfo && tsc",
+    "build": "rm -rf dist *.tsbuildinfo && tsc && sass --no-source-map styles/components.scss dist/components.css",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test test/*.test.mjs",
+    "test": "npm run build && npm run test:consumer && node --test test/*.test.mjs",
+    "test:consumer": "tsc --project fixtures/tsconfig.json",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -54,10 +168,18 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@extrachill/tokens": "^0.8.1",
     "react": "^18.0.0 || ^19.0.0"
   },
+  "peerDependenciesMeta": {
+    "@extrachill/tokens": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@extrachill/tokens": "^0.8.1",
     "@types/react": "^19.0.0",
+    "sass": "^1.90.0",
     "typescript": "^5.9.3"
   }
 }

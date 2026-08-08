@@ -47,7 +47,7 @@ test( 'tabs activate and focus adjacent, first, and last tabs from the keyboard'
 } );
 
 test( 'responsive mode modifiers override the default CSS breakpoint', async () => {
-	const styles = await readFile( new URL( '../styles/components.scss', import.meta.url ), 'utf8' );
+	const styles = await readFile( new URL( '../dist/components.css', import.meta.url ), 'utf8' );
 	assert.match( styles, /\.ec-responsive-tabs--desktop \.ec-responsive-tabs__accordion/ );
 	assert.match( styles, /\.ec-responsive-tabs--mobile \.ec-tabs__tabs/ );
 	assert.match( styles, /:not\(\.ec-responsive-tabs--desktop\) \.ec-tabs__tabs/ );
