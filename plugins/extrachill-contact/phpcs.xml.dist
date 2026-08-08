@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ruleset name="Extra Chill Contact">
+	<description>Extra Chill Contact coding standards.</description>
+	<file>extrachill-contact.php</file>
+	<file>inc</file>
+	<file>includes</file>
+	<exclude-pattern>vendor/*</exclude-pattern>
+	<arg name="extensions" value="php"/>
+	<arg value="ps"/>
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>tests/bootstrap.php</exclude-pattern>
+	</rule>
+	<rule ref="PHPCompatibilityWP">
+		<properties>
+			<property name="testVersion" value="7.4-"/>
+		</properties>
+	</rule>
+</ruleset>

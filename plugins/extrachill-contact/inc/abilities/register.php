@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Abilities Registration
  *
@@ -9,6 +8,8 @@ declare(strict_types=1);
  * @package ExtraChillContact
  * @since   2.1.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
