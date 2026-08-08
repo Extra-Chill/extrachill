@@ -69,9 +69,6 @@ function extrachill_shop_register_owned_state_migration_command() {
 		function ( $args, $assoc_args ) {
 			unset( $args );
 			$apply  = ! empty( $assoc_args['apply'] );
-			if ( $apply && ! current_user_can( 'manage_options' ) ) {
-				WP_CLI::error( 'Use --user=<administrator> with --apply so the Events owner can authorize paid boost migration.' );
-			}
 			$report = extrachill_shop_run_owned_state_migration( $apply );
 			WP_CLI::log( wp_json_encode( $report, JSON_PRETTY_PRINT ) );
 			if ( ! empty( $report['conflict'] ) || ! empty( $report['error'] ) ) {
@@ -117,7 +114,7 @@ function extrachill_shop_run_owned_state_migration( $apply = false ) {
 						'post_type'      => 'artist_profile',
 						'post_status'    => 'any',
 						'posts_per_page' => -1,
-						'meta_key'       => '_stripe_connect_account_id',
+						'meta_key'       => '_stripe_connect_account_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit one-time legacy migration.
 						'fields'         => 'ids',
 					)
 				);
@@ -161,7 +158,7 @@ function extrachill_shop_run_owned_state_migration( $apply = false ) {
 			'post_type'      => 'product',
 			'post_status'    => 'any',
 			'posts_per_page' => -1,
-			'meta_key'       => '_artist_profile_id',
+			'meta_key'       => '_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit one-time legacy migration.
 			'fields'         => 'ids',
 		)
 	);

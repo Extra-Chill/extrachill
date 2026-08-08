@@ -14,8 +14,11 @@ final class CommerceStateMigrationTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_owner_calls']    = array();
+		$GLOBALS['test_assertions']     = array();
 		$GLOBALS['test_owner_callback'] = static function () {
-			return array( 'receipt' => array( 'operation_id' => 'migrated' ) );
+			$response                            = priority_boost_owner_response();
+			$response['receipt']['operation_id'] = 'migrated';
+			return $response;
 		};
 	}
 
@@ -44,6 +47,43 @@ final class CommerceStateMigrationTest extends TestCase {
 		$this->assertSame( 'migrated', extrachill_shop_migrate_priority_boost_item( $order, $item, true ) );
 		$this->assertSame( 'unchanged', extrachill_shop_migrate_priority_boost_item( $order, $item, true ) );
 		$this->assertSame( '101', $GLOBALS['test_owner_calls'][0]['args']['body']['input']['event'] );
+		$this->assertSame( EXTRACHILL_SHOP_PRIORITY_BOOST_SERVICE_SCOPE, $GLOBALS['test_owner_calls'][0]['args']['service_assertion']['scope'] );
+	}
+
+	public function test_source_grant_is_exact_and_configuration_driven(): void {
+		$secret = str_repeat( 's', 32 );
+		$grant  = extrachill_shop_priority_boost_build_source_grant(
+			array(
+				'source_site_id' => 3,
+				'target_site_id' => 7,
+				'target_host'    => 'EVENTS.EXTRACHILL.COM',
+				'active_key_id'  => 'current',
+				'keys'           => array( 'current' => $secret ),
+			)
+		);
+
+		$this->assertSame( 'extrachill.events.priority-boost', $grant['service_id'] );
+		$this->assertSame( 'extrachill/events:priority-boost', $grant['scope'] );
+		$this->assertSame( 'POST', $grant['method'] );
+		$this->assertSame( '/wp-abilities/v1/abilities/extrachill/grant-event-priority-boost/run', $grant['route'] );
+		$this->assertSame( 'events.extrachill.com', $grant['target_host'] );
+		$this->assertSame( 'current', $grant['active_key_id'] );
+		$this->assertSame( $secret, $grant['keys']['current'] );
+	}
+
+	public function test_unconfigured_or_wrong_source_grant_fails_closed(): void {
+		$this->assertNull(
+			extrachill_shop_priority_boost_build_source_grant(
+				array(
+					'source_site_id' => 3,
+					'target_site_id' => 7,
+					'target_host'    => 'events.extrachill.com',
+					'active_key_id'  => 'missing',
+					'keys'           => array( 'current' => str_repeat( 's', 32 ) ),
+				)
+			)
+		);
+		$this->assertSame( array(), extrachill_shop_register_priority_boost_source_grant( array() ) );
 	}
 
 	public function test_canonical_artist_identity_uses_artist_read_contract(): void {
