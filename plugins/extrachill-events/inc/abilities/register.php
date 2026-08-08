@@ -51,5 +51,6 @@ require_once __DIR__ . '/events-geocode.php';
 require_once __DIR__ . '/events-upcoming-counts.php';
 require_once __DIR__ . '/events-list-venues.php';
 require_once __DIR__ . '/events-get-venue.php';
+require_once __DIR__ . '/events-public-entity-projections.php';
 require_once __DIR__ . '/events-check-venue-duplicate.php';
 require_once __DIR__ . '/events-by-artist.php';

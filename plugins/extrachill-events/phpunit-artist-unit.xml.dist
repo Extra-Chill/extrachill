@@ -4,6 +4,7 @@
 		<testsuite name="artist-unit">
 			<file>tests/Unit/Abilities/EventsByArtistAbilityTest.php</file>
 			<file>tests/Unit/Abilities/ArtistUrlImportConfigurationContractTest.php</file>
+			<file>tests/Unit/Core/FeatureProviderBootstrapTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>
