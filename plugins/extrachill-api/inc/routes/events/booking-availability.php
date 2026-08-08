@@ -19,9 +19,10 @@ function extrachill_api_register_booking_availability_route() {
 		'extrachill/v1',
 		'/venues/(?P<venue>\d+)/booking-availability',
 		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_handle_booking_availability',
-			'permission_callback' => 'extrachill_api_booking_availability_permission',
+			'methods'               => WP_REST_Server::CREATABLE,
+			'callback'              => 'extrachill_api_handle_booking_availability',
+			'permission_callback'   => 'extrachill_api_booking_availability_permission',
+			'_extrachill_abilities' => array( EXTRACHILL_API_BOOKING_AVAILABILITY_ABILITY ),
 		)
 	);
 }

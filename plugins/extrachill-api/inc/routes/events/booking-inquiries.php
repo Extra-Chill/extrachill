@@ -55,10 +55,11 @@ function extrachill_api_register_booking_inquiry_route() {
 		'extrachill/v1',
 		'/venues/(?P<venue>\d+)/booking-inquiries',
 		array(
-			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => 'extrachill_api_handle_booking_inquiry',
-			'permission_callback' => 'extrachill_api_booking_inquiry_permission',
-			'args'                => extrachill_api_booking_inquiry_args(),
+			'methods'               => WP_REST_Server::CREATABLE,
+			'callback'              => 'extrachill_api_handle_booking_inquiry',
+			'permission_callback'   => 'extrachill_api_booking_inquiry_permission',
+			'args'                  => extrachill_api_booking_inquiry_args(),
+			'_extrachill_abilities' => array( EXTRACHILL_API_BOOKING_ABILITY ),
 		)
 	);
 }

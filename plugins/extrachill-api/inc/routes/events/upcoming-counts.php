@@ -38,13 +38,13 @@ function extrachill_api_register_events_upcoming_counts_route() {
 				),
 				'slug'          => array(
 					'required'          => false,
-					'type'              => 'string',
+					'type'              => array( 'string', 'null' ),
 					'description'       => 'Specific term slug. If provided, returns single term data.',
 					'sanitize_callback' => 'sanitize_title',
 				),
 				'location_slug' => array(
 					'required'          => false,
-					'type'              => 'string',
+					'type'              => array( 'string', 'null' ),
 					'description'       => 'Optional location term slug to scope bulk venue counts to a single city. Only applied when taxonomy is "venue".',
 					'sanitize_callback' => 'sanitize_title',
 				),
@@ -55,6 +55,11 @@ function extrachill_api_register_events_upcoming_counts_route() {
 					'minimum'           => 0,
 					'description'       => 'Max terms to return for bulk queries. 0 = unlimited (default).',
 					'sanitize_callback' => 'absint',
+				),
+				'rollup'        => array(
+					'required' => false,
+					'type'     => 'boolean',
+					'default'  => false,
 				),
 			),
 		)
@@ -84,6 +89,7 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 	$input = array(
 		'taxonomy' => $request->get_param( 'taxonomy' ),
 		'limit'    => (int) $request->get_param( 'limit' ),
+		'rollup'   => (bool) $request->get_param( 'rollup' ),
 	);
 
 	$slug = $request->get_param( 'slug' );

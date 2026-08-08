@@ -41,6 +41,7 @@ final class ExtraChill_API_Plugin {
 	 * Bootstraps plugin hooks.
 	 */
 	private function __construct() {
+		require_once EXTRACHILL_API_PATH . 'inc/route-ability-schema-parity.php';
 		$this->load_route_files();
 		$this->load_middleware();
 		add_action( 'plugins_loaded', array( $this, 'boot' ) );
