@@ -59,6 +59,9 @@ final class PriorityBoostAbilityDouble extends PriorityEventAbilities {
 	 */
 	public $can_manage = true;
 
+	/** @var bool Whether the target runtime supplied exact verified service authority. */
+	public $verified_service_authority = false;
+
 	/**
 	 * Event dates by event ID.
 	 *
@@ -97,6 +100,16 @@ final class PriorityBoostAbilityDouble extends PriorityEventAbilities {
 	protected function priority_boost_actor_can_manage( int $actor_id ): bool {
 		unset( $actor_id );
 		return $this->can_manage;
+	}
+
+	/**
+	 * Return target-runtime service authority.
+	 *
+	 * @param array $input Validated ability input.
+	 */
+	protected function priority_boost_is_trusted_commerce_request( array $input ): bool {
+		unset( $input );
+		return $this->verified_service_authority;
 	}
 
 	/**

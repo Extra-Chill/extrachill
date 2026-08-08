@@ -413,22 +413,16 @@ class PriorityEventAbilities {
 	}
 
 	/**
-	 * Allow the commerce owner to authorize a verified fulfillment call.
-	 *
-	 * The default is deliberately false. The integration must scope its filter
-	 * to the payment-completion call and remove it immediately afterward.
+	 * Accept only exact target-runtime service authority verified by Network.
 	 *
 	 * @param array $input Validated ability input.
 	 * @return bool
 	 */
 	protected function priority_boost_is_trusted_commerce_request( array $input ): bool {
-		/**
-		 * Filters whether this execution is trusted commerce fulfillment.
-		 *
-		 * @param bool  $trusted Whether the caller verified the fulfillment. Default false.
-		 * @param array $input   Validated priority boost input.
-		 */
-		return (bool) apply_filters( 'extrachill_events_priority_boost_trusted_commerce', false, $input );
+		unset( $input );
+
+		return function_exists( 'extrachill_events_priority_boost_has_verified_service_authority' )
+			&& extrachill_events_priority_boost_has_verified_service_authority();
 	}
 
 	/**

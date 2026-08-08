@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-boost-service-authority.php';
+
 function extrachill_events() {
 	return ExtraChillEvents::get_instance();
 }

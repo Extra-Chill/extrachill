@@ -8,6 +8,7 @@
 use PHPUnit\Framework\TestCase;
 
 require_once dirname( __DIR__, 3 ) . '/inc/Abilities/PriorityEventAbilities.php';
+require_once dirname( __DIR__, 3 ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__, 2 ) . '/Support/PriorityBoostAbilityDouble.php';
 
 /** Covers the paid event priority operation contract. */
@@ -83,24 +84,16 @@ final class PriorityBoostAbilityTest extends TestCase {
 		$this->assertSame( 'priority_boost_event_not_found', $result->get_error_code() );
 	}
 
-	/** Trusted commerce fulfillment can execute without a WordPress actor. */
-	public function test_trusted_commerce_allows_user_zero(): void {
-		$this->ability->actor_id   = 0;
-		$this->ability->can_manage = false;
-		$input                     = $this->input();
-		$authorize                 = static function ( bool $trusted, array $received ) use ( $input ): bool {
-			return false === $trusted && $input === $received;
-		};
-		add_filter( 'extrachill_events_priority_boost_trusted_commerce', $authorize, 10, 2 );
+	/** Exact target-runtime service authority can execute as user zero. */
+	public function test_verified_target_service_allows_user_zero(): void {
+		$this->ability->actor_id                   = 0;
+		$this->ability->can_manage                 = false;
+		$this->ability->verified_service_authority = true;
 
-		try {
-			$this->assertTrue( $this->ability->can_grant_priority_boost( $input ) );
-			$result = $this->ability->grant_priority_boost( $input );
-			$this->assertTrue( $result['success'] );
-			$this->assertSame( 0, $result['receipt']['actor_id'] );
-		} finally {
-			remove_filter( 'extrachill_events_priority_boost_trusted_commerce', $authorize, 10 );
-		}
+		$this->assertTrue( $this->ability->can_grant_priority_boost( $this->input() ) );
+		$result = $this->ability->grant_priority_boost( $this->input() );
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 0, $result['receipt']['actor_id'] );
 	}
 
 	/** Untrusted user zero remains unauthenticated. */
@@ -132,6 +125,99 @@ final class PriorityBoostAbilityTest extends TestCase {
 		$result = $this->ability->grant_priority_boost( $this->input() );
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 7, $result['receipt']['actor_id'] );
+	}
+
+	/** Fresh transport assertions retain business duplicate semantics. */
+	public function test_fresh_assertions_replay_duplicate_business_callback(): void {
+		$this->ability->actor_id                   = 0;
+		$this->ability->can_manage                 = false;
+		$this->ability->verified_service_authority = true;
+
+		$this->assertTrue( $this->ability->can_grant_priority_boost( $this->input() ) );
+		$first = $this->ability->grant_priority_boost( $this->input() );
+
+		// A retry arrives with separately verified transport claims.
+		$this->ability->verified_service_authority = true;
+		$this->assertTrue( $this->ability->can_grant_priority_boost( $this->input() ) );
+		$second = $this->ability->grant_priority_boost( $this->input() );
+
+		$this->assertFalse( $first['replayed'] );
+		$this->assertTrue( $second['replayed'] );
+		$this->assertSame( $first['receipt'], $second['receipt'] );
+		$this->assertSame( 1, $this->ability->priority_writes );
+	}
+
+	/** Events registers one exact target operation with no embedded secret. */
+	public function test_builds_exact_target_grant_from_product_configuration(): void {
+		$grant = extrachill_events_priority_boost_build_target_grant(
+			array(
+				'source_site_id' => 3,
+				'target_site_id' => 7,
+				'target_host'    => 'EVENTS.EXTRACHILL.COM',
+				'keys'           => array( 'current' => str_repeat( 's', 32 ) ),
+			)
+		);
+
+		$this->assertSame( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ID, $grant['service_id'] );
+		$this->assertSame( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_SCOPE, $grant['scope'] );
+		$this->assertSame( 'POST', $grant['method'] );
+		$this->assertSame( EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, $grant['route'] );
+		$this->assertSame( 'events.extrachill.com', $grant['target_host'] );
+		$this->assertArrayNotHasKey( 'active_key_id', $grant );
+	}
+
+	/** Missing key configuration keeps target service authority disabled. */
+	public function test_incomplete_target_grant_fails_closed(): void {
+		$this->assertNull(
+			extrachill_events_priority_boost_build_target_grant(
+				array(
+					'source_site_id' => 3,
+					'target_site_id' => 7,
+					'target_host'    => 'events.extrachill.com',
+					'keys'           => array(),
+				)
+			)
+		);
+	}
+
+	/** Only exact Network-verified product claims match the target grant. */
+	public function test_rejects_mismatched_or_missing_verified_claims(): void {
+		$grant  = $this->target_grant();
+		$claims = array_intersect_key( $grant, array_flip( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) ) );
+
+		$this->assertTrue( extrachill_events_priority_boost_service_claims_match( $claims, $grant ) );
+
+		foreach ( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) as $field ) {
+			$mismatched           = $claims;
+			$mismatched[ $field ] = 'wrong';
+			$this->assertFalse( extrachill_events_priority_boost_service_claims_match( $mismatched, $grant ), $field );
+		}
+
+		$this->assertFalse( extrachill_events_priority_boost_service_claims_match( array(), $grant ) );
+	}
+
+	/** Target policy binds verified claims to the exact ability request. */
+	public function test_target_policy_requires_exact_route_method_and_verified_context(): void {
+		$grant  = $this->target_grant();
+		$claims = array_intersect_key( $grant, array_flip( array( 'service_id', 'scope', 'source_site_id', 'target_site_id', 'target_host' ) ) );
+
+		$this->assertTrue( extrachill_events_priority_boost_service_request_is_authorized( 'POST', EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, $claims, $grant ) );
+		$this->assertFalse( extrachill_events_priority_boost_service_request_is_authorized( 'GET', EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, $claims, $grant ) );
+		$this->assertFalse( extrachill_events_priority_boost_service_request_is_authorized( 'POST', '/wp-abilities/v1/abilities/extrachill/other/run', $claims, $grant ) );
+		$this->assertFalse( extrachill_events_priority_boost_service_request_is_authorized( 'POST', EXTRACHILL_EVENTS_PRIORITY_BOOST_SERVICE_ROUTE, array(), $grant ) );
+	}
+
+	/** Invalid transport assertions never become Events service authority. */
+	public function test_transport_rejections_remain_untrusted_at_integration_boundary(): void {
+		$this->ability->actor_id   = 0;
+		$this->ability->can_manage = false;
+
+		foreach ( array( 'forged', 'expired', 'replayed', 'wrong-route', 'wrong-method', 'wrong-body' ) as $transport_failure ) {
+			$this->ability->verified_service_authority = false;
+			$result                                    = $this->ability->can_grant_priority_boost( $this->input() );
+			$this->assertInstanceOf( WP_Error::class, $result, $transport_failure );
+			$this->assertSame( 'priority_boost_authentication_required', $result->get_error_code(), $transport_failure );
+		}
 	}
 
 	/** New grants reject past events before writing state. */
@@ -182,6 +268,18 @@ final class PriorityBoostAbilityTest extends TestCase {
 			'event'              => '42',
 			'external_reference' => 'order:100:item:5',
 			'idempotency_key'    => 'priority-boost:100:5',
+		);
+	}
+
+	/** Return one complete target grant fixture. */
+	private function target_grant(): array {
+		return extrachill_events_priority_boost_build_target_grant(
+			array(
+				'source_site_id' => 3,
+				'target_site_id' => 7,
+				'target_host'    => 'events.extrachill.com',
+				'keys'           => array( 'current' => str_repeat( 's', 32 ) ),
+			)
 		);
 	}
 }
