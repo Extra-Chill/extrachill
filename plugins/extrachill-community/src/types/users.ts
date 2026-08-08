@@ -136,6 +136,12 @@ export interface EntitySubscriptionList {
 }
 
 export interface ResolvedSubscriptionEntity extends EntitySubscriptionIdentity {
+	status:
+		| 'resolved'
+		| 'not_found'
+		| 'provider_unavailable'
+		| 'provider_error'
+		| 'malformed_response';
 	name: string;
 	url: string;
 	resolved: boolean;

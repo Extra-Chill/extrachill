@@ -578,6 +578,7 @@ function SubscriptionsTab() {
 		const load = async () => {
 			try {
 				const identities: EntitySubscriptionIdentity[] = [];
+				const unresolved: ResolvedSubscriptionEntity[] = [];
 				let page = 1;
 				let totalPages = 1;
 				do {
@@ -586,14 +587,37 @@ function SubscriptionsTab() {
 							'extrachill/list-entity-subscriptions',
 							{ page, per_page: 100 }
 						);
-					identities.push(
-						...result.subscriptions.filter(
+					result.subscriptions
+						.filter(
 							( item ) =>
 								! RETIRED_EMAIL_SHARING_TYPES.has(
 									item.entity_type
 								)
 						)
-					);
+						.forEach( ( item ) => {
+							const supported =
+								( item.entity_type === 'artist' &&
+									item.taxonomy === 'artist' ) ||
+								( item.entity_type === 'festival' &&
+									item.taxonomy === 'festival' ) ||
+								( item.entity_type === 'venue' &&
+									item.taxonomy === 'venue' ) ||
+								( item.entity_type === 'location' &&
+									item.taxonomy === 'location' ) ||
+								( item.entity_type === 'local_scene_digest' &&
+									item.taxonomy === 'location' );
+							if ( supported ) {
+								identities.push( item );
+							} else {
+								unresolved.push( {
+									...item,
+									status: 'not_found',
+									name: '',
+									url: '',
+									resolved: false,
+								} );
+							}
+						} );
 					totalPages = Math.max( 1, result.total_pages );
 					page += 1;
 				} while ( page <= totalPages );
@@ -610,14 +634,17 @@ function SubscriptionsTab() {
 					chunks.map( ( chunk ) =>
 						client
 							.execute< {
+								schema_version: '1';
 								entities: ResolvedSubscriptionEntity[];
 							} >(
 								'extrachill/community-resolve-subscription-entities',
-								{ identities: chunk }
+								{ schema_version: '1', identities: chunk }
 							)
 							.catch( () => ( {
+								schema_version: '1' as const,
 								entities: chunk.map( ( identity ) => ( {
 									...identity,
+									status: 'provider_error' as const,
 									name: '',
 									url: '',
 									resolved: false,
@@ -625,9 +652,10 @@ function SubscriptionsTab() {
 							} ) )
 					)
 				);
-				setSubscriptions(
-					enriched.flatMap( ( result ) => result.entities )
-				);
+					setSubscriptions( [
+						...enriched.flatMap( ( result ) => result.entities ),
+						...unresolved,
+					] );
 			} catch ( err ) {
 				setNotice( {
 					type: 'error',

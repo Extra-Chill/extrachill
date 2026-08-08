@@ -46,6 +46,9 @@
     "tests/subscription-inventory-smoke.php": {
       "environment": "standalone-php"
     },
+	"tests/subscription-inventory-wp-ability-schema-smoke.php": {
+	  "environment": "wordpress"
+	},
     "tests/topic-reply-author-authorization-smoke.php": {
       "environment": "standalone-php"
     },

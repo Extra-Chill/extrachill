@@ -83,12 +83,16 @@ function installMocks( identities: Array< Record< string, string > > ) {
 		if (
 			ability === 'extrachill/community-resolve-subscription-entities'
 		) {
-			const resolvedIdentities = (
-				input as { identities: Array< Record< string, string > > }
-			 ).identities;
+			const versionedInput = input as {
+				schema_version: string;
+				identities: Array< Record< string, string > >;
+			};
+			const resolvedIdentities = versionedInput.identities;
 			return Promise.resolve( {
+				schema_version: '1',
 				entities: resolvedIdentities.map( ( item ) => ( {
 					...item,
+					status: item.slug === 'missing' ? 'not_found' : 'resolved',
 					name:
 						item.slug === 'missing'
 							? ''
@@ -174,6 +178,7 @@ describe( 'subscription inventory', () => {
 		expect( mockExecute ).toHaveBeenCalledWith(
 			'extrachill/community-resolve-subscription-entities',
 			{
+				schema_version: '1',
 				identities: [
 					{
 						entity_type: 'artist',
