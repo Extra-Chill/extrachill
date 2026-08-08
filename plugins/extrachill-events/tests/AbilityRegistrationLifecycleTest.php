@@ -41,11 +41,11 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_full_runtime_early_registry_keeps_events_abilities_registered(): void {
-		$bootstrap = file_get_contents( dirname( __DIR__ ) . '/extrachill-events.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test fixture.
+		$bootstrap = file_get_contents( dirname( __DIR__ ) . '/inc/Providers/AbilitiesProvider.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test fixture.
 
 		$this->assertIsString( $bootstrap );
-		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( \$this, 'init_abilities' ), 25 );", $bootstrap );
-		$this->assertStringNotContainsString( "add_action( 'init', array( \$this, 'init_abilities' ), 25 );", $bootstrap );
+		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 25 );", $bootstrap );
+		$this->assertStringNotContainsString( "add_action( 'init', array( self::class, 'initialize' ), 25 );", $bootstrap );
 		$this->assertStringContainsString( 'BookingSchema::is_ready()', $bootstrap );
 		$this->assertStringContainsString( 'LocalSupportSchema::is_ready()', $bootstrap );
 

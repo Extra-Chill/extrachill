@@ -62,5 +62,6 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-scope-token.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-calendar-filter.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-map-filter.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/bootstrap.php';
 	}
 }

@@ -13,6 +13,8 @@ namespace {
 	define( 'MINUTE_IN_SECONDS', 60 );
 	$GLOBALS['bootstrap_matrix_hooks'] = array();
 	$GLOBALS['bootstrap_matrix_blog']  = 'unrelated' === ( $argv[1] ?? '' ) ? 2 : 7;
+	$GLOBALS['bootstrap_matrix_fail']  = 'provider-throwing' === ( $argv[1] ?? '' );
+	$GLOBALS['bootstrap_matrix_provider_failures'] = array();
 
 	function plugin_dir_path( $file ) {
 		return trailingslashit( dirname( $file ) );
@@ -31,12 +33,22 @@ namespace {
 	}
 
 	function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+		if ( $GLOBALS['bootstrap_matrix_fail'] && 'datamachine_tasks' === $hook ) {
+			$GLOBALS['bootstrap_matrix_fail'] = false;
+			throw new RuntimeException( 'Injected ingestion provider failure.' );
+		}
 		$GLOBALS['bootstrap_matrix_hooks'][] = array( $hook, $callback, $priority, $accepted_args );
 		return true;
 	}
 
 	function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 		return add_filter( $hook, $callback, $priority, $accepted_args );
+	}
+
+	function do_action( $hook, ...$args ) {
+		if ( 'extrachill_events_provider_failed' === $hook ) {
+			$GLOBALS['bootstrap_matrix_provider_failures'][] = $args[0] ?? '';
+		}
 	}
 
 	function register_activation_hook() {}
@@ -69,9 +81,13 @@ namespace {
 	$hooks_before_repeat = count( $GLOBALS['bootstrap_matrix_hooks'] );
 	\ExtraChillEvents\Providers\CliProvider::register();
 	\ExtraChillEvents\Providers\IngestionProvider::register();
+	\ExtraChillEvents\Providers\AdministrationProvider::register();
+	\ExtraChillEvents\Providers\LifecycleProvider::register();
+	\ExtraChillEvents\Providers\CoreRuntimeProvider::register();
 	\ExtraChillEvents\Providers\ArtistUrlImportProvider::register();
 	\ExtraChillEvents\Providers\VenueBookingProvider::register();
 	\ExtraChillEvents\Providers\PublicExperienceProvider::register();
+	\ExtraChillEvents\Providers\AbilitiesProvider::register();
 	\ExtraChillEvents\Providers\DataMachineEventsProvider::register();
 
 	echo json_encode(
@@ -87,6 +103,14 @@ namespace {
 			'optional_users_seen'      => function_exists( 'ec_users_notify_with_receipts' ),
 			'cli_commands'             => class_exists( 'WP_CLI', false ) ? count( WP_CLI::$commands ) : 0,
 			'cli_command_names'        => class_exists( 'WP_CLI', false ) ? array_keys( WP_CLI::$commands ) : array(),
+			'provider_failures'        => $GLOBALS['bootstrap_matrix_provider_failures'],
+			'ability_lifecycle_hooked' => in_array( array( 'plugins_loaded', array( \ExtraChillEvents\Providers\AbilitiesProvider::class, 'initialize' ), 25, 1 ), $GLOBALS['bootstrap_matrix_hooks'], true ),
+			'public_contract_hooks'    => array_values(
+				array_intersect(
+					array( 'extrachill_homepage_content', 'extrachill_template_archive', 'template_redirect', 'admin_post_ec_accept_venue_invitation', 'admin_post_nopriv_ec_accept_venue_invitation', 'ec_points_sources' ),
+					array_column( $GLOBALS['bootstrap_matrix_hooks'], 0 )
+				)
+			),
 			'hooks_before_repeat'      => $hooks_before_repeat,
 			'hooks_after_repeat'       => count( $GLOBALS['bootstrap_matrix_hooks'] ),
 		)
