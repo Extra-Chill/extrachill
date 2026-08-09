@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Save advanced settings for a link page. Merges with existing settings.
  *
- * @param array $input { artist_id: int, settings?: array, bio?: string, background_image_id?: int, profile_image_id?: int }
+ * @param array $input { artist_id: int, settings?: array, bio?: string, background_image_id?: int, profile_image_id?: int }.
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_save_link_page_settings( $input ) {
@@ -25,8 +25,9 @@ function extrachill_artist_platform_ability_save_link_page_settings( $input ) {
 		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
 	}
 
-	$link_page_id = ec_get_link_page_for_artist( $artist_id );
-	if ( ! $link_page_id ) {
+	$owner_reference = ec_artist_link_page_owner_reference( $artist_id );
+	$link_page_id    = is_wp_error( $owner_reference ) ? $owner_reference : ec_get_link_page_id_for_owner( $owner_reference );
+	if ( is_wp_error( $link_page_id ) || ! $link_page_id ) {
 		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
 	}
 
@@ -53,11 +54,17 @@ function extrachill_artist_platform_ability_save_link_page_settings( $input ) {
 		return new WP_Error( 'empty_input', 'No settings provided to save.' );
 	}
 
-	$result = ec_handle_link_page_save( $link_page_id, $save_data );
+	$result = ec_save_link_page(
+		array(
+			'link_page_id'    => $link_page_id,
+			'owner_reference' => $owner_reference,
+		),
+		$save_data
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
 
-	return ec_get_link_page_data( $artist_id, $link_page_id );
+	return $result;
 }

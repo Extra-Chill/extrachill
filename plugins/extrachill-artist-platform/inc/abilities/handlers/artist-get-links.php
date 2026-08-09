@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artist-get-links
  *
@@ -9,15 +8,17 @@ declare(strict_types=1);
  * @since   1.9.0
  */
 
+declare(strict_types=1);
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Get complete link page data for an artist.
  *
- * @param array $input { @type int $id Artist profile post ID. }
+ * @param array $input { @type int $id Artist profile post ID. }.
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_get_links( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_get_links( array $input ) {
 	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
 
 	if ( ! $artist_id ) {
@@ -32,9 +33,10 @@ function extrachill_artist_platform_ability_artist_get_links( array $input ): ar
 		return new WP_Error( 'dependency_missing', 'Link page data function not available.' );
 	}
 
-	$data = ec_get_link_page_data( $artist_id );
+	$owner_reference = ec_artist_link_page_owner_reference( $artist_id );
+	$data            = is_wp_error( $owner_reference ) ? $owner_reference : ec_read_link_page( $owner_reference );
 
-	if ( empty( $data ) || empty( $data['link_page_id'] ) ) {
+	if ( is_wp_error( $data ) || empty( $data ) || empty( $data['link_page_id'] ) ) {
 		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
 	}
 
