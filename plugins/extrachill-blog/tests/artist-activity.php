@@ -81,14 +81,8 @@ assert_same( 'taxonomy-badge location-badge', $partial_badges[0]['class'], 'A re
 assert_same( array(), extrachill_blog_get_artist_activity_badges( array( 'venue' => 'invalid' ) ), 'Malformed relationship data must be omitted.' );
 assert_same( array(), extrachill_blog_build_artist_activity_item( 'Coverage', 'https://example.test/coverage', '2026-07-14', 'Editorial coverage' )['relationships'], 'Non-event activity rows must not gain relationship badges.' );
 
-$artist_pillar_source         = file_get_contents( dirname( __DIR__ ) . '/inc/archive/artist-pillar.php' );
-$festival_subscriptions_source = file_get_contents( dirname( __DIR__ ) . '/inc/archive/festival-subscriptions.php' );
+$artist_pillar_source = file_get_contents( dirname( __DIR__ ) . '/inc/archive/artist-pillar.php' );
 assert_true( false !== strpos( $artist_pillar_source, 'extrachill/community-recent-public-activity' ), 'Community activity must use the owner projection.' );
-assert_same( 2, substr_count( $artist_pillar_source, 'class="button-1 button-medium entity-pillar-subscription-button"' ), 'Artist preference controls should use theme button classes.' );
-assert_true( false !== strpos( $artist_pillar_source, 'Artist preferences' ), 'Artist preferences should use one coherent heading.' );
-assert_true( false !== strpos( $artist_pillar_source, "ec_get_site_url( 'docs' )" ), 'Artist preferences should resolve documentation through the network site registry.' );
-assert_true( false === strpos( $artist_pillar_source, 'entity-pillar-preferences__row' ), 'Artist preferences should not render nested notice rows.' );
-assert_same( 2, substr_count( $festival_subscriptions_source, 'class="button-1 button-medium entity-pillar-subscription-button"' ), 'Festival subscription controls should use theme button classes.' );
 
 $sorted = extrachill_blog_sort_artist_activity(
 	array(

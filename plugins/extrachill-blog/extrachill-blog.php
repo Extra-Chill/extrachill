@@ -38,7 +38,6 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/submit/artist-dispatch.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/blog-archive-routing.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/breadcrumbs.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-pillar.php';
-require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-subscriptions.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/artist-pillar.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/network-bridge.php';
@@ -67,17 +66,6 @@ function extrachill_blog_register_styles() {
 		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/css/entity-pillar.css',
 		array( 'extrachill-root' ),
 		$entity_pillar_version
-	);
-
-	$entity_subscription_version = filemtime( EXTRACHILL_BLOG_PLUGIN_DIR . 'assets/js/entity-subscriptions.js' );
-	$entity_subscription_version = false === $entity_subscription_version ? null : (string) $entity_subscription_version;
-
-	wp_register_script(
-		'extrachill-blog-entity-subscriptions',
-		EXTRACHILL_BLOG_PLUGIN_URL . 'assets/js/entity-subscriptions.js',
-		array(),
-		$entity_subscription_version,
-		true
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_blog_register_styles', 5 );
