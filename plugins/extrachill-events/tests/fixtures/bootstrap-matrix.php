@@ -15,6 +15,29 @@ namespace {
 	$GLOBALS['bootstrap_matrix_blog']  = 'unrelated' === ( $argv[1] ?? '' ) ? 2 : 7;
 	$GLOBALS['bootstrap_matrix_fail']  = 'provider-throwing' === ( $argv[1] ?? '' );
 	$GLOBALS['bootstrap_matrix_provider_failures'] = array();
+	$GLOBALS['bootstrap_matrix_translation_calls'] = array();
+
+	function __( $text, $domain = 'default' ) {
+		if ( 'extrachill-events' === $domain ) {
+			$trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 );
+			$GLOBALS['bootstrap_matrix_translation_calls'][] = array(
+				'file' => $trace[1]['file'] ?? '',
+				'line' => $trace[1]['line'] ?? 0,
+			);
+		}
+		return $text;
+	}
+
+	function wp_register_ability() {}
+
+	function get_option( $option, $default = false ) {
+		$values = array(
+			'extrachill_events_booking_schema_version'        => '16',
+			'extrachill_events_local_support_schema_version'  => '1',
+			'extrachill_events_vendor_request_schema_version' => '1',
+		);
+		return $values[ $option ] ?? $default;
+	}
 
 	function plugin_dir_path( $file ) {
 		return trailingslashit( dirname( $file ) );
@@ -43,6 +66,10 @@ namespace {
 
 	function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 		return add_filter( $hook, $callback, $priority, $accepted_args );
+	}
+
+	function apply_filters( $hook, $value ) {
+		return $value;
 	}
 
 	function do_action( $hook, ...$args ) {
@@ -78,6 +105,12 @@ namespace {
 
 	require dirname( __DIR__, 2 ) . '/extrachill-events.php';
 
+	foreach ( $GLOBALS['bootstrap_matrix_hooks'] as $registered_hook ) {
+		if ( 'plugins_loaded' === $registered_hook[0] && array( \ExtraChillEvents\Providers\AbilitiesProvider::class, 'initialize' ) === $registered_hook[1] ) {
+			call_user_func( $registered_hook[1] );
+		}
+	}
+
 	$hooks_before_repeat = count( $GLOBALS['bootstrap_matrix_hooks'] );
 	\ExtraChillEvents\Providers\CliProvider::register();
 	\ExtraChillEvents\Providers\IngestionProvider::register();
@@ -104,6 +137,7 @@ namespace {
 			'cli_commands'             => class_exists( 'WP_CLI', false ) ? count( WP_CLI::$commands ) : 0,
 			'cli_command_names'        => class_exists( 'WP_CLI', false ) ? array_keys( WP_CLI::$commands ) : array(),
 			'provider_failures'        => $GLOBALS['bootstrap_matrix_provider_failures'],
+			'translation_calls'        => $GLOBALS['bootstrap_matrix_translation_calls'],
 			'ability_lifecycle_hooked' => in_array( array( 'plugins_loaded', array( \ExtraChillEvents\Providers\AbilitiesProvider::class, 'initialize' ), 25, 1 ), $GLOBALS['bootstrap_matrix_hooks'], true ),
 			'public_contract_hooks'    => array_values(
 				array_intersect(

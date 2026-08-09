@@ -32,7 +32,7 @@ class BookingAttachmentAbilities {
 	private $bookings;
 	/** Attachment service.
 	 *
-	 * @var BookingAttachmentService
+	 * @var BookingAttachmentService|null
 	 */
 	private $service;
 	/** Venue authorization policy.
@@ -53,7 +53,8 @@ class BookingAttachmentAbilities {
 		$this->attachments   = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->bookings      = $bookings ? $bookings : new BookingRepository();
 		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->service       = $service ? $service : new BookingAttachmentService( $this->attachments, $this->bookings, null, null, null, $this->authorization );
+		$this->service       = $service;
+		// @phpstan-ignore arguments.count
 		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 	}
 
@@ -124,7 +125,7 @@ class BookingAttachmentAbilities {
 		$input['uploader_type']    = 'user';
 		$input['uploader_user_id'] = get_current_user_id();
 		unset( $input['uploader_reference'] );
-		$result = $this->service->attach( $input );
+		$result = $this->service()->attach( $input );
 		return is_array( $result ) ? $this->present( $result ) : $result;
 	}
 
@@ -137,7 +138,7 @@ class BookingAttachmentAbilities {
 		$input['uploader_type']    = 'user';
 		$input['uploader_user_id'] = get_current_user_id();
 		unset( $input['uploader_reference'] );
-		$result = $this->service->replace( $input );
+		$result = $this->service()->replace( $input );
 		return is_array( $result ) ? $this->present( $result ) : $result;
 	}
 
@@ -147,7 +148,7 @@ class BookingAttachmentAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function delete( array $input ) {
-		$result = $this->service->delete( (int) $input['booking_id'], (int) $input['attachment_id'], get_current_user_id() );
+		$result = $this->service()->delete( (int) $input['booking_id'], (int) $input['attachment_id'], get_current_user_id() );
 		return is_array( $result ) ? $this->present( $result ) : $result;
 	}
 
@@ -157,7 +158,7 @@ class BookingAttachmentAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function download( array $input ) {
-		return $this->service->download_descriptor( (int) $input['booking_id'], (int) $input['attachment_id'], get_current_user_id() );
+		return $this->service()->download_descriptor( (int) $input['booking_id'], (int) $input['attachment_id'], get_current_user_id() );
 	}
 
 	/**
@@ -166,7 +167,7 @@ class BookingAttachmentAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function record_delivery( array $input ) {
-		return $this->service->record_delivery_outcome(
+		return $this->service()->record_delivery_outcome(
 			(int) $input['booking_id'],
 			(int) $input['attachment_id'],
 			(string) $input['correlation_id'],
@@ -182,7 +183,16 @@ class BookingAttachmentAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function inspect_deliveries( array $input ) {
-		return $this->service->delivery_diagnostics( (int) $input['booking_id'], get_current_user_id(), 100 );
+		return $this->service()->delivery_diagnostics( (int) $input['booking_id'], get_current_user_id(), 100 );
+	}
+
+	/** Resolve private storage only when an attachment operation executes. */
+	private function service(): BookingAttachmentService {
+		if ( null === $this->service ) {
+			$this->service = new BookingAttachmentService( $this->attachments, $this->bookings, null, null, null, $this->authorization );
+		}
+
+		return $this->service;
 	}
 
 	/**

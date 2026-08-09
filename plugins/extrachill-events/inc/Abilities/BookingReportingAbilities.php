@@ -19,11 +19,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Registers stable read-only reports over canonical booking records. */
 class BookingReportingAbilities {
 	private static bool $registered = false;
-	/** @var BookingReportingService */
+	/** @var BookingReportingService|null */
 	private $service;
 
 	public function __construct( ?BookingReportingService $service = null ) {
-		$this->service = $service ? $service : new BookingReportingService();
+		$this->service = $service;
 		if ( ! self::$registered ) {
 			// @phpstan-ignore arguments.count
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
@@ -61,21 +61,29 @@ class BookingReportingAbilities {
 	}
 
 	public function operations( array $input ) {
-		return $this->service->operations( $input, get_current_user_id() );
+		return $this->service()->operations( $input, get_current_user_id() );
 	}
 
 	public function finance( array $input ) {
-		return $this->service->finance( $input, get_current_user_id() );
+		return $this->service()->finance( $input, get_current_user_id() );
 	}
 
 	public function can_read_operations( array $input ) {
-		$result = $this->service->authorize_operations( $input, get_current_user_id() );
+		$result = $this->service()->authorize_operations( $input, get_current_user_id() );
 		return $result instanceof \WP_Error ? $result : true;
 	}
 
 	public function can_read_finance( array $input ) {
-		$result = $this->service->authorize_finance( $input, get_current_user_id() );
+		$result = $this->service()->authorize_finance( $input, get_current_user_id() );
 		return $result instanceof \WP_Error ? $result : true;
+	}
+
+	private function service(): BookingReportingService {
+		if ( null === $this->service ) {
+			$this->service = new BookingReportingService();
+		}
+
+		return $this->service;
 	}
 
 	private function input_schema( bool $finance ): array {

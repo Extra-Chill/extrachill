@@ -22,21 +22,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Registers stable finance contracts over the ticket settlement service. */
 class TicketSettlementAbilities {
 	private static bool $registered = false;
-	/** @var TicketSettlementService */
+	/** @var TicketSettlementService|null */
 	private $service;
 	/** @var BookingRepository */
 	private $bookings;
 	/** @var VenueAuthorization */
 	private $authorization;
-	/** @var TicketReconciliationService */
+	/** @var TicketReconciliationService|null */
 	private $reconciliation;
 
 	public function __construct( ?TicketSettlementService $service = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?TicketReconciliationService $reconciliation = null ) {
 		$this->bookings       = $bookings ? $bookings : new BookingRepository();
 		$this->authorization  = $authorization ? $authorization : new VenueAuthorization();
-		$this->reconciliation = $reconciliation ? $reconciliation : new TicketReconciliationService( $this->bookings, null, $this->authorization );
-		$this->service        = $service ? $service : new TicketSettlementService( $this->bookings, null, $this->authorization, null, $this->reconciliation );
+		$this->reconciliation = $reconciliation;
+		$this->service        = $service;
 		if ( ! self::$registered ) {
+			// @phpstan-ignore arguments.count
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
 		}
@@ -120,48 +121,64 @@ class TicketSettlementAbilities {
 	}
 
 	public function record_sales( array $input ) {
-		return $this->service->record_sales( $input, get_current_user_id() );
+		return $this->service()->record_sales( $input, get_current_user_id() );
 	}
 
 	public function register_source( array $input ) {
-		return $this->reconciliation->register_source( $input, get_current_user_id() );
+		return $this->reconciliation()->register_source( $input, get_current_user_id() );
 	}
 
 	public function list_sources( array $input ) {
-		$result = $this->reconciliation->list_sources( (int) $input['booking_id'], get_current_user_id() );
+		$result = $this->reconciliation()->list_sources( (int) $input['booking_id'], get_current_user_id() );
 		return is_array( $result ) ? array_values( $result ) : $result;
 	}
 
 	public function import_csv( array $input ) {
-		return $this->service->import_csv( $input, get_current_user_id() );
+		return $this->service()->import_csv( $input, get_current_user_id() );
 	}
 
 	public function diagnostics( array $input ) {
-		return $this->reconciliation->diagnostics( (int) $input['booking_id'], get_current_user_id() );
+		return $this->reconciliation()->diagnostics( (int) $input['booking_id'], get_current_user_id() );
 	}
 
 	public function resolve( array $input ) {
-		return $this->reconciliation->resolve( $input, get_current_user_id() );
+		return $this->reconciliation()->resolve( $input, get_current_user_id() );
 	}
 
 	public function list_sales( array $input ) {
-		return $this->service->list_sales( (int) $input['booking_id'], get_current_user_id(), (int) ( $input['limit'] ?? 100 ), (int) ( $input['offset'] ?? 0 ) );
+		return $this->service()->list_sales( (int) $input['booking_id'], get_current_user_id(), (int) ( $input['limit'] ?? 100 ), (int) ( $input['offset'] ?? 0 ) );
 	}
 
 	public function calculate( array $input ) {
-		return $this->service->calculate( $input, get_current_user_id() );
+		return $this->service()->calculate( $input, get_current_user_id() );
 	}
 
 	public function finalize( array $input ) {
-		return $this->service->finalize( $input, get_current_user_id() );
+		return $this->service()->finalize( $input, get_current_user_id() );
 	}
 
 	public function mark_paid( array $input ) {
-		return $this->service->mark_paid( $input, get_current_user_id() );
+		return $this->service()->mark_paid( $input, get_current_user_id() );
 	}
 
 	public function void_settlement( array $input ) {
-		return $this->service->void( $input, get_current_user_id() );
+		return $this->service()->void( $input, get_current_user_id() );
+	}
+
+	private function reconciliation(): TicketReconciliationService {
+		if ( null === $this->reconciliation ) {
+			$this->reconciliation = new TicketReconciliationService( $this->bookings, null, $this->authorization );
+		}
+
+		return $this->reconciliation;
+	}
+
+	private function service(): TicketSettlementService {
+		if ( null === $this->service ) {
+			$this->service = new TicketSettlementService( $this->bookings, null, $this->authorization, null, $this->reconciliation() );
+		}
+
+		return $this->service;
 	}
 
 	public function can_access_booking( array $input ) {

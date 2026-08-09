@@ -63,6 +63,13 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertSame( $result['hooks_before_repeat'], $result['hooks_after_repeat'] );
 	}
 
+	/** Plugin bootstrap must not evaluate translated strings before init. */
+	public function test_cli_boot_does_not_trigger_early_translations(): void {
+		$result = $this->run_fixture( 'cli' );
+
+		$this->assertSame( array(), $result['translation_calls'] );
+	}
+
 	/** A missing optional sibling does not suppress unrelated providers. */
 	public function test_optional_dependency_absence_does_not_suppress_other_features(): void {
 		$result = $this->run_fixture( 'optional-absent' );

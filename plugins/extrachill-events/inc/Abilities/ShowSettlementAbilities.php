@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Registers bounded private finance operations over immutable show revisions. */
 class ShowSettlementAbilities {
 	private static bool $registered = false;
-	/** @var ShowSettlementService */
+	/** @var ShowSettlementService|null */
 	private $service;
 	/** @var BookingRepository */
 	private $bookings;
@@ -35,8 +35,9 @@ class ShowSettlementAbilities {
 		$this->bookings             = $bookings ? $bookings : new BookingRepository();
 		$this->authorization        = $authorization ? $authorization : new VenueAuthorization();
 		$this->artist_authorization = $artist_authorization ? $artist_authorization : new LocalSupportAuthorization( $this->authorization );
-		$this->service              = $service ? $service : new ShowSettlementService( $this->bookings, null, $this->authorization, null, null, null, $this->artist_authorization );
+		$this->service              = $service;
 		if ( ! self::$registered ) {
+			// @phpstan-ignore arguments.count
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 			self::$registered = true;
 		}
@@ -79,39 +80,47 @@ class ShowSettlementAbilities {
 	}
 
 	public function draft( array $input ) {
-		return $this->service->draft( $input, get_current_user_id() );
+		return $this->service()->draft( $input, get_current_user_id() );
 	}
 
 	public function read( array $input ) {
-		return $this->service->get( (int) $input['booking_id'], get_current_user_id(), isset( $input['revision'] ) ? (int) $input['revision'] : null );
+		return $this->service()->get( (int) $input['booking_id'], get_current_user_id(), isset( $input['revision'] ) ? (int) $input['revision'] : null );
 	}
 
 	public function revise( array $input ) {
-		return $this->service->revise( $input, get_current_user_id() );
+		return $this->service()->revise( $input, get_current_user_id() );
 	}
 
 	public function finalize( array $input ) {
-		return $this->service->finalize( $input, get_current_user_id() );
+		return $this->service()->finalize( $input, get_current_user_id() );
 	}
 
 	public function acknowledge( array $input ) {
-		return $this->service->acknowledge( $input, get_current_user_id() );
+		return $this->service()->acknowledge( $input, get_current_user_id() );
 	}
 
 	public function dispute( array $input ) {
-		return $this->service->dispute( $input, get_current_user_id() );
+		return $this->service()->dispute( $input, get_current_user_id() );
 	}
 
 	public function correct( array $input ) {
-		return $this->service->correct( $input, get_current_user_id() );
+		return $this->service()->correct( $input, get_current_user_id() );
 	}
 
 	public function mark_paid( array $input ) {
-		return $this->service->mark_paid( $input, get_current_user_id() );
+		return $this->service()->mark_paid( $input, get_current_user_id() );
 	}
 
 	public function void_settlement( array $input ) {
-		return $this->service->void( $input, get_current_user_id() );
+		return $this->service()->void( $input, get_current_user_id() );
+	}
+
+	private function service(): ShowSettlementService {
+		if ( null === $this->service ) {
+			$this->service = new ShowSettlementService( $this->bookings, null, $this->authorization, null, null, null, $this->artist_authorization );
+		}
+
+		return $this->service;
 	}
 
 	public function can_manage( array $input ) {
