@@ -157,27 +157,16 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 		return $results;
 	}
 
+	// The Newsletter subscribe policy delegates to this public DMB provider.
+	// Fail once before processing instead of producing one error per address.
+	if ( ! extrachill_newsletter_get_sendy_ability( 'datamachine/sendy-subscribe' ) ) {
+		return new WP_Error(
+			'sendy_sync_provider_unavailable',
+			__( 'Subscriber sync requires the Data Machine Business Sendy subscribe provider to be active.', 'extrachill-newsletter' )
+		);
+	}
+
 	foreach ( $emails as $email ) {
-		// Guard: check subscription status before subscribing.
-		// Skip anyone who previously unsubscribed, bounced, or complained.
-		$status = extrachill_newsletter_check_subscriber_status( $email, $list_id );
-
-		if ( is_wp_error( $status ) ) {
-			// Status check failed — skip to avoid re-subscribing blindly.
-			$results['skipped']++;
-			$results['errors'][] = $email . ': status check failed (' . $status->get_error_message() . ')';
-			continue;
-		}
-
-		// Skip users who explicitly opted out or had deliverability issues.
-		if ( in_array( $status, array( 'Unsubscribed', 'Bounced', 'Complained', 'Soft bounced' ), true ) ) {
-			$results['skipped']++;
-			continue;
-		}
-
-		// "Email does not exist in list" means they're new — safe to subscribe.
-		// "Subscribed" or "Unconfirmed" — re-subscribing is fine.
-
 		$result = $subscribe_ability->execute(
 			array(
 				'email'   => $email,
@@ -187,43 +176,20 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 		);
 
 		if ( is_wp_error( $result ) ) {
-			$results['failed']++;
+			++$results['failed'];
 			$results['errors'][] = $email . ': ' . $result->get_error_message();
 			continue;
 		}
 
 		if ( ! empty( $result['success'] ) ) {
-			$results['synced']++;
+			++$results['synced'];
 		} elseif ( isset( $result['status'] ) && 'already_subscribed' === $result['status'] ) {
-			$results['already_subscribed']++;
+			++$results['already_subscribed'];
 		} else {
-			$results['failed']++;
+			++$results['failed'];
 			$results['errors'][] = $email . ': ' . ( isset( $result['message'] ) ? $result['message'] : 'Unknown error' );
 		}
 	}
 
 	return $results;
-}
-
-/**
- * Check a subscriber's status in a Sendy list.
- *
- * Returns the status string from Sendy: Subscribed, Unsubscribed, Bounced,
- * Complained, Unconfirmed, Soft bounced, or "Email does not exist in list".
- *
- * Delegates the Sendy API status check to the single canonical DMB Sendy
- * client. The Data Machine suite is a hard runtime dependency, so there is no
- * in-plugin API fallback.
- *
- * @param string $email   Email address.
- * @param string $list_id Encrypted Sendy list ID.
- * @return string|WP_Error Status string or error.
- */
-function extrachill_newsletter_check_subscriber_status( $email, $list_id ) {
-	$client = extrachill_newsletter_dmb_sendy_client();
-	if ( ! $client ) {
-		return extrachill_newsletter_sendy_client_unavailable_error();
-	}
-
-	return $client->subscriber_status( $list_id, $email );
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Smoke coverage for Newsletter's credential-free Sendy campaign boundary.
+ * Smoke coverage for Newsletter's public Sendy provider boundaries.
  *
  * Run with: php tests/sendy-campaign-consumer-smoke.php
  */
@@ -39,8 +39,23 @@ final class NewsletterSendyAbility {
 	}
 }
 
+final class NewsletterSyncAbility {
+	public $calls = array();
+	private $results;
+
+	public function __construct( $results = array() ) {
+		$this->results = $results;
+	}
+
+	public function execute( $input ) {
+		$this->calls[] = $input;
+		return array_shift( $this->results );
+	}
+}
+
 $GLOBALS['newsletter_sendy_abilities'] = array();
 $GLOBALS['newsletter_registered_abilities'] = array();
+$GLOBALS['newsletter_sync_settings'] = array( 'main_list_id' => 'list-123' );
 
 function __( $text, $domain = '' ) {
 	unset( $domain );
@@ -78,6 +93,17 @@ function sanitize_text_field( $value ) {
 	return trim( (string) $value );
 }
 
+function get_newsletter_integrations() {
+	return array(
+		'main' => array( 'list_id_key' => 'main_list_id' ),
+	);
+}
+
+function get_site_option( $name, $default = array() ) {
+	unset( $name, $default );
+	return $GLOBALS['newsletter_sync_settings'];
+}
+
 function is_wp_error( $value ) {
 	return $value instanceof WP_Error;
 }
@@ -85,6 +111,7 @@ function is_wp_error( $value ) {
 require_once dirname( __DIR__ ) . '/inc/core/sendy-api.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/campaign-management.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/campaign.php';
+require_once dirname( __DIR__ ) . '/inc/core/abilities/sync.php';
 
 $failures = array();
 $passes   = 0;
@@ -155,9 +182,71 @@ $campaign = array(
 $assert( $push_result === extrachill_newsletter_sendy_push_campaign( $campaign ), 'provider push result is preserved' );
 $assert( $campaign === $push->calls[0] && ! isset( $push->calls[0]['config'] ), 'push never crosses credentials into the provider ability' );
 
+$subscribe = new NewsletterSyncAbility();
+$GLOBALS['newsletter_sendy_abilities']['extrachill/subscribe'] = $subscribe;
+
+$dry_run = extrachill_newsletter_ability_sync_subscribers(
+	array(
+		'context' => 'main',
+		'emails'  => array( 'dry-run@example.com' ),
+		'dry_run' => true,
+	)
+);
+$assert( ! is_wp_error( $dry_run ) && true === $dry_run['dry_run'], 'subscriber dry run succeeds without the DMB provider' );
+$assert( 1 === $dry_run['total'] && 0 === $dry_run['synced'], 'subscriber dry run preserves counts without subscribing' );
+$assert( array() === $subscribe->calls, 'subscriber dry run does not execute the subscribe ability' );
+
+$unavailable = extrachill_newsletter_ability_sync_subscribers(
+	array(
+		'context' => 'main',
+		'emails'  => array( 'unavailable@example.com' ),
+	)
+);
+$assert( is_wp_error( $unavailable ), 'non-dry-run provider absence returns an error' );
+$assert( 'sendy_sync_provider_unavailable' === $unavailable->get_error_code(), 'subscriber provider absence uses a stable error code' );
+$assert( array() === $subscribe->calls, 'subscriber provider absence fails before processing addresses' );
+
+$GLOBALS['newsletter_sendy_abilities']['datamachine/sendy-subscribe'] = new NewsletterSyncAbility();
+$subscribe = new NewsletterSyncAbility(
+	array(
+		array( 'success' => true, 'status' => 'subscribed' ),
+		array( 'success' => false, 'status' => 'already_subscribed' ),
+		array( 'success' => false, 'status' => 'failed', 'message' => 'Email is suppressed.' ),
+		new WP_Error( 'sendy_timeout', 'The Sendy provider timed out.' ),
+	)
+);
+$GLOBALS['newsletter_sendy_abilities']['extrachill/subscribe'] = $subscribe;
+
+$executed = extrachill_newsletter_ability_sync_subscribers(
+	array(
+		'context' => 'main',
+		'emails'  => array(
+			'new@example.com',
+			'existing@example.com',
+			'suppressed@example.com',
+			'timeout@example.com',
+		),
+	)
+);
+$assert( ! is_wp_error( $executed ), 'non-dry-run executes through the public subscribe policy' );
+$assert( 1 === $executed['synced'], 'successful subscriber provider result is counted as synced' );
+$assert( 1 === $executed['already_subscribed'], 'existing subscriber is counted without failing' );
+$assert( 2 === $executed['failed'] && 0 === $executed['skipped'], 'subscriber provider failures are counted without a private status preflight' );
+$assert( 4 === $executed['total'] && 2 === count( $executed['errors'] ), 'subscriber execution preserves totals and bounded errors' );
+$assert(
+	array(
+		'email'   => 'new@example.com',
+		'list_id' => 'list-123',
+		'context' => 'main',
+	) === $subscribe->calls[0],
+	'non-dry-run passes policy input through the Newsletter subscribe ability'
+);
+$assert( ! function_exists( 'extrachill_newsletter_dmb_sendy_client' ), 'removed DMB client helper is not reintroduced' );
+$assert( ! function_exists( 'extrachill_newsletter_check_subscriber_status' ), 'unsupported subscriber-status helper is removed' );
+
 if ( ! empty( $failures ) ) {
 	fwrite( STDERR, implode( PHP_EOL, $failures ) . PHP_EOL );
 	exit( 1 );
 }
 
-echo "Sendy campaign consumer smoke checks passed ({$passes} assertions).\n";
+echo "Sendy consumer smoke checks passed ({$passes} assertions).\n";
