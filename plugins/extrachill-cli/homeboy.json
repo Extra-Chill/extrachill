@@ -17,6 +17,7 @@
       "php tests/OutboundCommandTest.php",
       "php tests/ConversionCommandTest.php",
       "php tests/RouteTransitionsCommandTest.php",
+      "php tests/HealthCommandTest.php",
       "php tests/SummaryCommandTest.php",
       "php tests/RetentionCommandTest.php",
       "php tests/UserLocalSceneCommandTest.php",

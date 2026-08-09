@@ -105,40 +105,42 @@ class HealthCommand {
 			'jobs'       => function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/get-jobs-summary' ) : null,
 		);
 
-		// Network-global signals come from host-wide / network-scoped sources
-		// (a single debug.log, a single network-scoped jobs table). They are
-		// computed ONCE so the scorecard never implies false per-site
-		// granularity by repeating identical numbers on every row.
+		// The error log is host-wide. Queue storage is site-owned, and the jobs
+		// ability is bound to the bootstrap site's $wpdb->prefix when WordPress
+		// loads. Switching blogs here would not rebind its repositories.
 		$network = array(
 			'errors_per_day' => $this->compose_errors( $abilities['errors'], $days ),
-			'queue_failed'   => $this->compose_queue( $abilities['jobs'], 'failed' ),
-			'queue_stuck'    => $this->compose_queue( $abilities['jobs'], 'stuck' ),
+		);
+		$queue   = array(
+			'blog_id' => get_current_blog_id(),
+			'failed'  => $this->compose_queue( $abilities['jobs'], 'failed' ),
+			'stuck'   => $this->compose_queue( $abilities['jobs'], 'stuck' ),
 		);
 
 		$records = array();
 		foreach ( $this->get_network_sites() as $blog_id => $hostname ) {
-			$records[] = $this->compose_site( $blog_id, $hostname, $days, $abilities );
+			$record                 = $this->compose_site( $blog_id, $hostname, $days, $abilities );
+			$record['queue_failed'] = $queue['blog_id'] === $blog_id ? $queue['failed'] : self::GAP;
+			$record['queue_stuck']  = $queue['blog_id'] === $blog_id ? $queue['stuck'] : self::GAP;
+			$records[]              = $record;
 		}
 
 		if ( 'table' !== $format ) {
-			// In machine-readable output, attach the network-global signals to
-			// every record so each row is self-describing for piping/jq, while
-			// keeping their network-scoped meaning explicit via the key name.
+			// Keep the host-wide error signal explicit while queue fields remain
+			// attached only to the site context that the ability actually read.
 			$rows = array();
 			foreach ( $records as $r ) {
 				$rows[] = array_merge(
 					$r,
 					array(
 						'network_errors_per_day' => $network['errors_per_day'],
-						'network_queue_failed'   => $network['queue_failed'],
-						'network_queue_stuck'    => $network['queue_stuck'],
 					)
 				);
 			}
 			Utils\format_items(
 				$format,
 				$rows,
-				array( 'site', 'blog_id', 'sessions', 'organic_pct', 'direct_pct', 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'network_queue_failed', 'network_queue_stuck' )
+				array( 'site', 'blog_id', 'sessions', 'organic_pct', 'direct_pct', 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'queue_failed', 'queue_stuck' )
 			);
 			return;
 		}
@@ -356,9 +358,8 @@ class HealthCommand {
 	/**
 	 * Compose a queue-health metric from datamachine/get-jobs-summary.
 	 *
-	 * Data Machine jobs live in a single network-scoped table (under the base
-	 * prefix), so this is a network-global signal — independent of blog
-	 * context and computed once for the whole platform.
+	 * Data Machine jobs use the current site's table prefix. The resolved
+	 * ability reads only the site used to bootstrap this WP-CLI process.
 	 *
 	 * @param \WP_Ability|null $ability Jobs-summary ability (or null if absent).
 	 * @param string      $metric  Either 'failed' or 'stuck'.
@@ -458,11 +459,10 @@ class HealthCommand {
 		}
 		WP_CLI::log( '' );
 
-		// Network-global signals (host-wide error log + network-scoped jobs
-		// table) are reported once, not faked into per-site granularity.
+		// The host-wide error signal is reported once. Queue health is rendered
+		// below only for the site whose context bootstrapped the jobs ability.
 		WP_CLI::log( 'Network-wide' );
 		WP_CLI::log( sprintf( '    Errors/day:  %s', $this->fmt( $network['errors_per_day'] ) ) );
-		WP_CLI::log( sprintf( '    Queue:       %s failed   %s stuck', $this->fmt( $network['queue_failed'] ), $this->fmt( $network['queue_stuck'] ) ) );
 		WP_CLI::log( '' );
 		WP_CLI::log( 'Per-surface' );
 		WP_CLI::log( str_repeat( '─', 72 ) );
@@ -473,6 +473,7 @@ class HealthCommand {
 			WP_CLI::log( sprintf( '    Return rate: %s', $this->pct( $r['return_rate'] ) ) );
 			WP_CLI::log( sprintf( '    Search gaps: %s', $this->fmt( $r['search_gaps'] ) ) );
 			WP_CLI::log( sprintf( '    Content:     %s', $r['content'] ) );
+			WP_CLI::log( sprintf( '    Queue:       %s failed   %s stuck', $this->fmt( $r['queue_failed'] ), $this->fmt( $r['queue_stuck'] ) ) );
 			WP_CLI::log( '' );
 		}
 
