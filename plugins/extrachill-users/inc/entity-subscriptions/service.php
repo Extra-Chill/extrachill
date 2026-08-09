@@ -28,8 +28,8 @@ add_action( 'init', 'extrachill_users_maybe_install_entity_subscriptions_table' 
 /**
  * Normalize and validate an entity identity.
  *
- * The default map defines the network's canonical entity/taxonomy pairs. A
- * feature may extend it without changing this generic persistence layer.
+ * Feature plugins register their bounded entity/taxonomy pairs without
+ * changing this generic persistence layer.
  *
  * @param string $entity_type Entity type.
  * @param string $taxonomy Taxonomy.
@@ -43,12 +43,7 @@ function extrachill_users_normalize_entity_subscription( $entity_type, $taxonomy
 	$slug              = sanitize_title( $slug );
 	$entities          = apply_filters(
 		'extrachill_users_entity_subscription_entities',
-		array(
-			'festival' => 'festival',
-			'artist'   => 'artist',
-			'venue'    => 'venue',
-			'location' => 'location',
-		)
+		array()
 	);
 	$definition        = $entities[ $entity_type ] ?? null;
 	$expected_taxonomy = is_array( $definition ) ? sanitize_key( $definition['taxonomy'] ?? '' ) : sanitize_key( $definition );
@@ -77,12 +72,7 @@ function extrachill_users_entity_subscription_uses_notification_email_preference
 	$entity_type = sanitize_key( $entity_type );
 	$entities    = apply_filters(
 		'extrachill_users_entity_subscription_entities',
-		array(
-			'festival' => 'festival',
-			'artist'   => 'artist',
-			'venue'    => 'venue',
-			'location' => 'location',
-		)
+		array()
 	);
 	$definition  = $entities[ $entity_type ] ?? null;
 

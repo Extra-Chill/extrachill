@@ -25,8 +25,9 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 	}
 
 	public function register_scoped_test_identities( array $entities ): array {
-		$entities['venue-announcements'] = array(
-			'taxonomy'                           => 'venue',
+		$entities['topic']               = 'topic';
+		$entities['topic-announcements'] = array(
+			'taxonomy'                           => 'topic',
 			'uses_notification_email_preference' => false,
 		);
 
@@ -36,13 +37,13 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 	public function test_subscribe_normalizes_and_deduplicates(): void {
 		$user_id = self::factory()->user->create();
 
-		$first  = extrachill_users_subscribe_to_entity( $user_id, 'Festival', 'festival', 'Big Fest 2026' );
-		$second = extrachill_users_subscribe_to_entity( $user_id, 'festival', 'festival', 'big-fest-2026' );
+		$first  = extrachill_users_subscribe_to_entity( $user_id, 'Topic', 'topic', 'Release Notes' );
+		$second = extrachill_users_subscribe_to_entity( $user_id, 'topic', 'topic', 'release-notes' );
 
 		$this->assertTrue( $first['subscribed'] );
-		$this->assertSame( 'big-fest-2026', $first['slug'] );
+		$this->assertSame( 'release-notes', $first['slug'] );
 		$this->assertTrue( $second['subscribed'] );
-		$this->assertSame( array( $user_id ), extrachill_users_entity_subscription_recipients( 'test-producer', 'festival', 'festival', 'big-fest-2026' ) );
+		$this->assertSame( array( $user_id ), extrachill_users_entity_subscription_recipients( 'test-producer', 'topic', 'topic', 'release-notes' ) );
 	}
 
 	public function test_abilities_include_private_recipient_resolution(): void {
@@ -59,22 +60,22 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		wp_set_current_user( $user_id );
 		$result = $subscribe->execute(
 			array(
-				'entity_type' => 'festival',
-				'taxonomy'    => 'festival',
-				'slug'        => 'bonnaroo',
+				'entity_type' => 'topic',
+				'taxonomy'    => 'topic',
+				'slug'        => 'release-notes',
 			)
 		);
 
-		$this->assertSame( 'bonnaroo', $result['slug'] );
+		$this->assertSame( 'release-notes', $result['slug'] );
 		$this->assertTrue( $result['subscribed'] );
 	}
 
 	public function test_list_is_self_only_bounded_and_preserves_purpose_identity(): void {
 		$user_id       = self::factory()->user->create();
 		$other_user_id = self::factory()->user->create();
-		extrachill_users_subscribe_to_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
-		extrachill_users_subscribe_to_entity( $user_id, 'venue-announcements', 'venue', 'the-royal-american' );
-		extrachill_users_subscribe_to_entity( $other_user_id, 'artist', 'artist', 'phish' );
+		extrachill_users_subscribe_to_entity( $user_id, 'topic', 'topic', 'release-notes' );
+		extrachill_users_subscribe_to_entity( $user_id, 'topic-announcements', 'topic', 'release-notes' );
+		extrachill_users_subscribe_to_entity( $other_user_id, 'topic', 'topic', 'roadmap' );
 		wp_set_current_user( $user_id );
 
 		$result = extrachill_users_ability_list_entity_subscriptions(
@@ -87,23 +88,23 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		$this->assertSame( 2, $result['total'] );
 		$this->assertSame( 1, $result['per_page'] );
 		$this->assertSame( 2, $result['total_pages'] );
-		$this->assertContains( $result['subscriptions'][0]['entity_type'], array( 'venue', 'venue-announcements' ) );
+		$this->assertContains( $result['subscriptions'][0]['entity_type'], array( 'topic', 'topic-announcements' ) );
 	}
 
 	public function test_status_and_unsubscribe_are_self_contained(): void {
 		$user_id = self::factory()->user->create();
-		extrachill_users_subscribe_to_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
+		extrachill_users_subscribe_to_entity( $user_id, 'topic', 'topic', 'release-notes' );
 
-		$this->assertTrue( extrachill_users_entity_subscription_status( $user_id, 'venue', 'venue', 'the-royal-american' )['subscribed'] );
-		$this->assertFalse( extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' )['subscribed'] );
-		$this->assertFalse( extrachill_users_entity_subscription_status( $user_id, 'venue', 'venue', 'the-royal-american' )['subscribed'] );
+		$this->assertTrue( extrachill_users_entity_subscription_status( $user_id, 'topic', 'topic', 'release-notes' )['subscribed'] );
+		$this->assertFalse( extrachill_users_unsubscribe_from_entity( $user_id, 'topic', 'topic', 'release-notes' )['subscribed'] );
+		$this->assertFalse( extrachill_users_entity_subscription_status( $user_id, 'topic', 'topic', 'release-notes' )['subscribed'] );
 	}
 
 	public function test_unsubscribe_is_idempotent_when_no_row_exists(): void {
 		$user_id = self::factory()->user->create();
 
-		$first  = extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
-		$second = extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
+		$first  = extrachill_users_unsubscribe_from_entity( $user_id, 'topic', 'topic', 'release-notes' );
+		$second = extrachill_users_unsubscribe_from_entity( $user_id, 'topic', 'topic', 'release-notes' );
 
 		$this->assertFalse( $first['subscribed'] );
 		$this->assertFalse( $second['subscribed'] );
@@ -125,7 +126,7 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		$previous_suppression = $wpdb->suppress_errors( true );
 		add_filter( 'query', $fail );
 		try {
-			$result = extrachill_users_unsubscribe_from_entity( $user_id, 'venue', 'venue', 'the-royal-american' );
+			$result = extrachill_users_unsubscribe_from_entity( $user_id, 'topic', 'topic', 'release-notes' );
 		} finally {
 			remove_filter( 'query', $fail );
 			$wpdb->suppress_errors( $previous_suppression );
@@ -137,7 +138,15 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 
 	public function test_invalid_entity_pair_is_rejected(): void {
 		$user_id = self::factory()->user->create();
-		$result  = extrachill_users_subscribe_to_entity( $user_id, 'festival', 'artist', 'big-fest' );
+		$result  = extrachill_users_subscribe_to_entity( $user_id, 'topic', 'category', 'release-notes' );
+
+		$this->assertWPError( $result );
+		$this->assertSame( 'invalid_entity_subscription', $result->get_error_code() );
+	}
+
+	public function test_unregistered_identity_is_rejected(): void {
+		$user_id = self::factory()->user->create();
+		$result  = extrachill_users_subscribe_to_entity( $user_id, 'unregistered', 'unregistered', 'release-notes' );
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'invalid_entity_subscription', $result->get_error_code() );
@@ -145,9 +154,9 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 
 	public function test_recipient_resolution_requires_producer_authorization(): void {
 		$user_id = self::factory()->user->create();
-		extrachill_users_subscribe_to_entity( $user_id, 'location', 'location', 'charleston-sc' );
+		extrachill_users_subscribe_to_entity( $user_id, 'topic', 'topic', 'release-notes' );
 
-		$denied = extrachill_users_entity_subscription_recipients( 'untrusted', 'location', 'location', 'charleston-sc' );
+		$denied = extrachill_users_entity_subscription_recipients( 'untrusted', 'topic', 'topic', 'release-notes' );
 		$this->assertWPError( $denied );
 		$this->assertSame( 'entity_subscription_producer_forbidden', $denied->get_error_code() );
 	}
@@ -155,11 +164,11 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 	public function test_direct_email_recipient_resolution_respects_digest_preference(): void {
 		$enabled_user  = self::factory()->user->create();
 		$disabled_user = self::factory()->user->create();
-		extrachill_users_subscribe_to_entity( $enabled_user, 'artist', 'artist', 'phish' );
-		extrachill_users_subscribe_to_entity( $disabled_user, 'artist', 'artist', 'phish' );
+		extrachill_users_subscribe_to_entity( $enabled_user, 'topic', 'topic', 'release-notes' );
+		extrachill_users_subscribe_to_entity( $disabled_user, 'topic', 'topic', 'release-notes' );
 		ec_users_set_notification_emails_disabled( $disabled_user, true );
 
-		$this->assertSame( array( $enabled_user, $disabled_user ), extrachill_users_entity_subscription_recipients( 'test-producer', 'artist', 'artist', 'phish' ) );
-		$this->assertSame( array( $enabled_user ), extrachill_users_entity_subscription_recipients( 'test-producer', 'artist', 'artist', 'phish', 'email' ) );
+		$this->assertSame( array( $enabled_user, $disabled_user ), extrachill_users_entity_subscription_recipients( 'test-producer', 'topic', 'topic', 'release-notes' ) );
+		$this->assertSame( array( $enabled_user ), extrachill_users_entity_subscription_recipients( 'test-producer', 'topic', 'topic', 'release-notes', 'email' ) );
 	}
 }
