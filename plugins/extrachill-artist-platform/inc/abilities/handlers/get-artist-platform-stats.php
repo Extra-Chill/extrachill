@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $input Input arguments containing the optional recent-metrics window.
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_get_artist_platform_stats( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_get_artist_platform_stats( array $input ) {
 	$days = isset( $input['days'] ) ? min( 90, max( 0, (int) $input['days'] ) ) : 28;
 
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
@@ -81,7 +81,12 @@ function extrachill_artist_platform_ability_get_artist_platform_stats( array $in
 		)
 	);
 	$total_link_pages = (int) $link_page_query->found_posts;
-	$link_page_ids    = array_map( 'intval', $link_page_query->posts );
+	$link_page_ids    = array_map(
+		static function ( $post ) {
+			return $post instanceof WP_Post ? (int) $post->ID : (int) $post;
+		},
+		$link_page_query->posts
+	);
 
 	// Artist profiles created in the last N days.
 	$profiles_created_recent = 0;

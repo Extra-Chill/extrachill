@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $input Validated ability input.
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_public_projections( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_public_projections( array $input ) {
 	$blog_ids = ec_artist_binding_blog_ids();
 	if ( empty( $blog_ids ) ) {
 		return new WP_Error( 'artist_projection_owner_unavailable', __( 'Artist projection owner sites are unavailable.', 'extrachill-artist-platform' ) );
@@ -37,9 +37,6 @@ function extrachill_artist_platform_ability_artist_public_projections( array $in
 			restore_current_blog();
 		}
 
-		if ( is_wp_error( $term ) ) {
-			return $term;
-		}
 		if ( ! $term ) {
 			$items[] = $item;
 			continue;
