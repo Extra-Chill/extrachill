@@ -21,11 +21,11 @@ if ( ! $newsletter_blog_id ) {
 switch_to_blog( $newsletter_blog_id );
 
 $newsletter_args = array(
-	'post_type' => 'newsletter',
+	'post_type'      => 'newsletter',
 	'posts_per_page' => 3,
-	'post_status' => 'publish',
-	'orderby' => 'date',
-	'order' => 'DESC',
+	'post_status'    => 'publish',
+	'orderby'        => 'date',
+	'order'          => 'DESC',
 );
 
 $newsletter_query = new WP_Query( $newsletter_args );
@@ -40,15 +40,16 @@ if ( $newsletter_query->have_posts() ) :
 		<h3 class="widget-title"><?php esc_html_e( 'Recent Newsletters', 'extrachill-newsletter' ); ?></h3>
 		<ul class="recent-newsletters-list">
 			<?php
-			while ( $newsletter_query->have_posts() ) : $newsletter_query->the_post();
+			while ( $newsletter_query->have_posts() ) :
+				$newsletter_query->the_post();
 				// Already on newsletter site from query - get data directly
-				$newsletter_id = get_the_ID();
+				$newsletter_id = (int) get_the_ID();
 
 				// Switch back to newsletter site for permalink generation
 				switch_to_blog( $newsletter_blog_id );
-				$newsletter_permalink = get_permalink( $newsletter_id );
-				$newsletter_title = get_the_title( $newsletter_id );
-				$newsletter_date = get_the_date( '', $newsletter_id );
+				$newsletter_permalink = (string) get_permalink( $newsletter_id );
+				$newsletter_title     = (string) get_the_title( $newsletter_id );
+				$newsletter_date      = (string) get_the_date( '', $newsletter_id );
 				restore_current_blog();
 				?>
 				<li>

@@ -13,17 +13,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/** @var array $args Newsletter form arguments. */
+/** @var string $context Newsletter form context. */
 $defaults = array(
-	'wrapper_element'    => 'div',
-	'wrapper_class'      => '',
-	'heading'            => null,
-	'heading_level'      => 'h3',
-	'description'        => null,
-	'layout'             => 'section',
-	'placeholder'        => __( 'Enter your email', 'extrachill-newsletter' ),
-	'button_text'        => __( 'Subscribe', 'extrachill-newsletter' ),
-	'show_archive_link'  => false,
-	'archive_link_text'  => __( 'Browse past newsletters', 'extrachill-newsletter' ),
+	'wrapper_element'   => 'div',
+	'wrapper_class'     => '',
+	'heading'           => null,
+	'heading_level'     => 'h3',
+	'description'       => null,
+	'layout'            => 'section',
+	'placeholder'       => __( 'Enter your email', 'extrachill-newsletter' ),
+	'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
+	'show_archive_link' => false,
+	'archive_link_text' => __( 'Browse past newsletters', 'extrachill-newsletter' ),
 );
 
 $args = wp_parse_args( $args, $defaults );
@@ -36,17 +38,17 @@ $wrapper_class = trim( $args['wrapper_class'] . ' newsletter-form-wrapper' );
 $heading_tag   = tag_escape( $args['heading_level'] );
 ?>
 
-<<?php echo $wrapper_tag; ?> class="<?php echo esc_attr( $wrapper_class ); ?>">
+<<?php echo esc_attr( $wrapper_tag ); ?> class="<?php echo esc_attr( $wrapper_class ); ?>">
 
 	<?php if ( $args['heading'] || $args['description'] ) : ?>
-		<?php if ( $args['layout'] === 'section' ) : ?>
+		<?php if ( 'section' === $args['layout'] ) : ?>
 			<div class="newsletter-form-header">
 		<?php endif; ?>
 
 		<?php if ( $args['heading'] ) : ?>
-			<<?php echo $heading_tag; ?> class="newsletter-form-heading">
+			<<?php echo esc_attr( $heading_tag ); ?> class="newsletter-form-heading">
 				<?php echo esc_html( $args['heading'] ); ?>
-			</<?php echo $heading_tag; ?>>
+			</<?php echo esc_attr( $heading_tag ); ?>>
 		<?php endif; ?>
 
 		<?php if ( $args['description'] ) : ?>
@@ -55,7 +57,7 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 			</p>
 		<?php endif; ?>
 
-		<?php if ( $args['layout'] === 'section' ) : ?>
+		<?php if ( 'section' === $args['layout'] ) : ?>
 			</div>
 		<?php endif; ?>
 	<?php endif; ?>
@@ -80,7 +82,7 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 		// REST permission_callback in extrachill-api.
 		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
 			echo ec_render_turnstile_widget( array( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- widget output is built from escaped attrs internally.
-				'data-size'     => 'invisible',
+				'data-size' => 'invisible',
 			) );
 		}
 		?>
@@ -102,4 +104,4 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 
 	</form>
 
-</<?php echo $wrapper_tag; ?>>
+</<?php echo esc_attr( $wrapper_tag ); ?>>

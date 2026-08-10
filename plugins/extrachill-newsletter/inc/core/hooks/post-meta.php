@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_filter(
 	'extrachill_post_meta_parts',
 	function( $parts, $post_id, $post_type ) {
-		if ( $post_type !== 'newsletter' ) {
+		if ( 'newsletter' !== $post_type ) {
 			return $parts;
 		}
 
@@ -30,7 +30,7 @@ add_filter(
 add_filter(
 	'extrachill_post_meta_published_prefix',
 	function( $prefix, $post_id, $post_type ) {
-		if ( $post_type !== 'newsletter' ) {
+		if ( 'newsletter' !== $post_type ) {
 			return $prefix;
 		}
 

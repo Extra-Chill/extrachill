@@ -49,15 +49,15 @@ function extrachill_newsletter_register_sync_ability() {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'synced'            => array( 'type' => 'integer' ),
+					'synced'             => array( 'type' => 'integer' ),
 					'already_subscribed' => array( 'type' => 'integer' ),
-					'skipped'           => array( 'type' => 'integer' ),
-					'failed'            => array( 'type' => 'integer' ),
-					'errors'            => array(
+					'skipped'            => array( 'type' => 'integer' ),
+					'failed'             => array( 'type' => 'integer' ),
+					'errors'             => array(
 						'type'  => 'array',
 						'items' => array( 'type' => 'string' ),
 					),
-					'total'             => array( 'type' => 'integer' ),
+					'total'              => array( 'type' => 'integer' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_newsletter_ability_sync_subscribers',
@@ -124,11 +124,11 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 
 		if ( empty( $emails ) ) {
 			return array(
-				'synced'            => 0,
+				'synced'             => 0,
 				'already_subscribed' => 0,
-				'failed'            => 0,
-				'errors'            => array(),
-				'total'             => 0,
+				'failed'             => 0,
+				'errors'             => array(),
+				'total'              => 0,
 			);
 		}
 	}
@@ -143,12 +143,12 @@ function extrachill_newsletter_ability_sync_subscribers( $input ) {
 	}
 
 	$results = array(
-		'synced'            => 0,
+		'synced'             => 0,
 		'already_subscribed' => 0,
-		'skipped'           => 0,
-		'failed'            => 0,
-		'errors'            => array(),
-		'total'             => count( $emails ),
+		'skipped'            => 0,
+		'failed'             => 0,
+		'errors'             => array(),
+		'total'              => count( $emails ),
 	);
 
 	if ( $dry_run ) {

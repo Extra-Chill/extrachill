@@ -1,3 +1,4 @@
 parameters:
 	scanFiles:
 		- tests/phpstan/datamachine-stubs.php
+		- tests/phpstan/theme-stubs.php

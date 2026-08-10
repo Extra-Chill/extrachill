@@ -47,7 +47,10 @@ function extrachill_newsletter_get_email_logo_url() {
 
 	if ( ! $newsletter_base ) {
 		$upload_dir      = wp_upload_dir();
-		$newsletter_base = isset( $upload_dir['baseurl'] ) ? preg_replace( '#/wp-content/uploads(/sites/\d+)?$#', '', $upload_dir['baseurl'] ) : home_url();
+		$newsletter_base = preg_replace( '#/wp-content/uploads(/sites/\d+)?$#', '', $upload_dir['baseurl'] );
+		if ( ! $newsletter_base ) {
+			$newsletter_base = home_url();
+		}
 	}
 
 	// Multisite stores per-site uploads under /wp-content/uploads/sites/{blog_id}/.
@@ -82,7 +85,7 @@ function extrachill_newsletter_get_email_logo_url() {
  * @return array {subject, html_template, plain_text}.
  */
 function prepare_newsletter_email_content( $post ) {
-	$content = apply_filters( 'the_content', $post->post_content );
+	$content = (string) apply_filters( 'the_content', $post->post_content );
 
 	// Ensure images are responsive.
 	$content = preg_replace( '/<img(.+?)src="(.*?)"(.*?)>/i', '<img$1src="$2"$3 style="height: auto; max-width: 100%;">', $content );
@@ -91,8 +94,8 @@ function prepare_newsletter_email_content( $post ) {
 	$content = preg_replace_callback(
 		'/<figure[^>]*>\s*<div class="wp-block-embed__wrapper">\s*<iframe[^>]+src="https:\/\/www\.youtube\.com\/embed\/([a-zA-Z0-9_\-]+)[^"]*"[^>]*><\/iframe>\s*<\/div>\s*<\/figure>/s',
 		function( $matches ) {
-			$video_id = $matches[1];
-			$video_url = "https://www.youtube.com/watch?v={$video_id}";
+			$video_id      = $matches[1];
+			$video_url     = "https://www.youtube.com/watch?v={$video_id}";
 			$thumbnail_url = "https://img.youtube.com/vi/{$video_id}/maxresdefault.jpg";
 			return '<a href="' . esc_url( $video_url ) . '" target="_blank"><img src="' . esc_url( $thumbnail_url ) . '" alt="Watch our video" style="height: auto; max-width: 100%; display: block; margin: 0 auto;"></a>';
 		},
@@ -109,7 +112,7 @@ function prepare_newsletter_email_content( $post ) {
 
 	$main_site_url       = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
 	$subject             = $post->post_title;
-	$read_on_web_url     = get_permalink( $post->ID );
+	$read_on_web_url     = (string) get_permalink( $post->ID );
 	$newsletter_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'newsletter' ) : home_url();
 
 	$navbar_links = array(
@@ -163,13 +166,13 @@ function generate_email_html_template( $subject, $content, $unsubscribe_link, $r
 	$preheader_text = wp_strip_all_tags( $subject );
 
 	$footer_links_html = '';
-	$footer_separator = ' &nbsp;|&nbsp; ';
+	$footer_separator  = ' &nbsp;|&nbsp; ';
 	foreach ( $navbar_links as $label => $url ) {
 		if ( empty( $url ) ) {
 			continue;
 		}
 
-		$link = '<a href="' . esc_url( $url ) . '" style="color: #0b5394; text-decoration: none;">' . esc_html( $label ) . '</a>';
+		$link              = '<a href="' . esc_url( $url ) . '" style="color: #0b5394; text-decoration: none;">' . esc_html( $label ) . '</a>';
 		$footer_links_html = $footer_links_html ? $footer_links_html . $footer_separator . $link : $link;
 	}
 

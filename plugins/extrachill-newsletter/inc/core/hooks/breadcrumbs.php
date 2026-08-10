@@ -99,6 +99,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_bread
  * @since 0.1.0
  */
 function newsletter_back_to_home_label( $label, $url ) {
+	unset( $url );
 	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $label;

@@ -111,7 +111,6 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 	);
 
 	if ( is_wp_error( $result ) ) {
-		error_log( 'Sendy campaign send/update failed: ' . $result->get_error_message() );
 		return array(
 			'success'     => false,
 			'campaign_id' => $campaign_id,
@@ -132,7 +131,6 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 	// Persist a newly-created campaign ID in post meta.
 	if ( ! empty( $result['created'] ) && $new_campaign_id ) {
 		update_post_meta( $post_id, '_sendy_campaign_id', $new_campaign_id );
-		error_log( sprintf( 'Newsletter campaign created for post %d with campaign ID: %s', $post_id, $new_campaign_id ) );
 	}
 
 	return array(

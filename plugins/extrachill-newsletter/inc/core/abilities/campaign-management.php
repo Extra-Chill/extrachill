@@ -43,7 +43,7 @@ function extrachill_newsletter_register_campaign_management_abilities() {
 				),
 			),
 			'output_schema'       => array(
-				'type'  => 'object',
+				'type' => 'object',
 			),
 			'execute_callback'    => 'extrachill_newsletter_ability_list_campaigns',
 			'permission_callback' => function () {
@@ -77,7 +77,7 @@ function extrachill_newsletter_register_campaign_management_abilities() {
 				'required'   => array( 'campaign_id' ),
 			),
 			'output_schema'       => array(
-				'type'  => 'object',
+				'type' => 'object',
 			),
 			'execute_callback'    => 'extrachill_newsletter_ability_get_campaign',
 			'permission_callback' => function () {

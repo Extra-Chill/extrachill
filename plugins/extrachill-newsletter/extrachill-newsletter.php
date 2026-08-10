@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Newsletter
  * Description: Complete newsletter system with Sendy integration for email campaigns and subscriptions. Provides custom newsletter post type, multiple subscription forms, email template generation, and admin management tools.
-  * Version: 0.5.1
+ * Version: 0.5.1
  * Author: Chris Huber
  * Network: true
  * Text Domain: extrachill-newsletter
@@ -70,8 +70,8 @@ add_filter( 'extrachill_single_post_style_post_types', 'newsletter_single_post_s
  * @since 0.2.8
  */
 function newsletter_sidebar_style_types( $post_types ) {
-    $post_types[] = 'newsletter';
-    return $post_types;
+	$post_types[] = 'newsletter';
+	return $post_types;
 }
 add_filter( 'extrachill_sidebar_style_post_types', 'newsletter_sidebar_style_types' );
 
@@ -100,7 +100,7 @@ add_action( 'plugins_loaded', function() {
  */
 function extrachill_get_newsletter_context_presets() {
 	return array(
-		'homepage' => array(
+		'homepage'   => array(
 			'wrapper_class'     => 'home-newsletter-signup newsletter-grid-section',
 			'heading'           => __( 'Subscribe', 'extrachill-newsletter' ),
 			'heading_level'     => 'h3',
@@ -121,7 +121,7 @@ function extrachill_get_newsletter_context_presets() {
 			'show_archive_link' => true,
 			'archive_link_text' => __( 'See past newsletters', 'extrachill-newsletter' ),
 		),
-		'content' => array(
+		'content'    => array(
 			'wrapper_class'     => 'newsletter-content-section',
 			'heading'           => __( 'Stay Connected with Extra Chill', 'extrachill-newsletter' ),
 			'heading_level'     => 'h3',
@@ -132,7 +132,7 @@ function extrachill_get_newsletter_context_presets() {
 			'show_archive_link' => true,
 			'archive_link_text' => __( 'Browse past newsletters', 'extrachill-newsletter' ),
 		),
-		'archive' => array(
+		'archive'    => array(
 			'wrapper_class'     => 'newsletter-subscription-form',
 			'heading'           => __( 'Subscribe to Our Newsletter', 'extrachill-newsletter' ),
 			'heading_level'     => 'h2',

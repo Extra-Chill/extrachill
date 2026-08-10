@@ -136,10 +136,11 @@ function extrachill_newsletter_get_raw_settings() {
  * @return array Settings data with integrations and warnings.
  */
 function extrachill_newsletter_ability_get_settings( $input ) {
-	$settings      = extrachill_newsletter_get_raw_settings();
-	$integrations  = get_newsletter_integrations();
-	$computed      = array();
-	$warnings      = array();
+	unset( $input );
+	$settings     = extrachill_newsletter_get_raw_settings();
+	$integrations = get_newsletter_integrations();
+	$computed     = array();
+	$warnings     = array();
 
 	foreach ( $integrations as $context => $integration ) {
 		$list_id_key = $integration['list_id_key'];

@@ -20,7 +20,7 @@ function newsletter_enqueue_frontend_assets() {
 			'extrachill-newsletter-forms',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/newsletter-forms.css',
 			array(),
-			filemtime( $forms_css_path )
+			(string) filemtime( $forms_css_path )
 		);
 	}
 
@@ -31,16 +31,15 @@ function newsletter_enqueue_frontend_assets() {
 			'extrachill-newsletter-sidebar',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/sidebar.css',
 			array(),
-			filemtime( $sidebar_css_path )
+			(string) filemtime( $sidebar_css_path )
 		);
 	}
 
-    // Newsletter page CSS - loaded only on newsletter pages
-    $newsletter_blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
-    $load_newsletter_css = ( $newsletter_blog_id && get_current_blog_id() === $newsletter_blog_id && is_front_page() ) ||
-                           is_post_type_archive( 'newsletter' ) ||
-                           is_singular( 'newsletter' );
-
+	// Newsletter page CSS - loaded only on newsletter pages
+	$newsletter_blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$load_newsletter_css = ( $newsletter_blog_id && get_current_blog_id() === $newsletter_blog_id && is_front_page() ) ||
+		is_post_type_archive( 'newsletter' ) ||
+		is_singular( 'newsletter' );
 
 	if ( $load_newsletter_css ) {
 		$newsletter_css_path = EXTRACHILL_NEWSLETTER_PLUGIN_DIR . 'assets/css/newsletter.css';
@@ -49,7 +48,7 @@ function newsletter_enqueue_frontend_assets() {
 				'extrachill-newsletter',
 				EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/newsletter.css',
 				array( 'extrachill-newsletter-forms' ),
-				filemtime( $newsletter_css_path )
+				(string) filemtime( $newsletter_css_path )
 			);
 		}
 	}
@@ -69,7 +68,7 @@ function newsletter_enqueue_frontend_assets() {
 			'extrachill-newsletter',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/js/newsletter.js',
 			array(),
-			filemtime( $newsletter_js_path ),
+			(string) filemtime( $newsletter_js_path ),
 			array(
 				'strategy'  => 'defer',
 				'in_footer' => true,
@@ -89,7 +88,7 @@ function newsletter_enqueue_frontend_assets() {
 add_action( 'wp_enqueue_scripts', 'newsletter_enqueue_frontend_assets' );
 function newsletter_enqueue_admin_assets( $hook ) {
 	// Only load on the newsletter settings page
-	if ( ! isset( $_GET['page'] ) || 'newsletter-settings' !== $_GET['page'] ) {
+	if ( 'newsletter_page_newsletter-settings' !== $hook ) {
 		return;
 	}
 
@@ -99,7 +98,7 @@ function newsletter_enqueue_admin_assets( $hook ) {
 			'extrachill-newsletter-admin',
 			EXTRACHILL_NEWSLETTER_PLUGIN_URL . 'assets/css/admin.css',
 			array(),
-			filemtime( $admin_css_path )
+			(string) filemtime( $admin_css_path )
 		);
 	}
 }
@@ -119,7 +118,7 @@ function newsletter_enqueue_theme_archive_css() {
 				'extrachill-archive',
 				get_template_directory_uri() . '/assets/css/archive.css',
 				array(),
-				filemtime( $archive_css )
+				(string) filemtime( $archive_css )
 			);
 		}
 	}

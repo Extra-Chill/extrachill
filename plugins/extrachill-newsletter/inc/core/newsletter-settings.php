@@ -26,24 +26,22 @@ function ec_newsletter_add_settings_menu() {
 add_action( 'admin_post_ec_newsletter_settings', 'ec_newsletter_handle_settings_save' );
 function ec_newsletter_handle_settings_save() {
 	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( __( 'You do not have permission to access this page.', 'extrachill-newsletter' ) );
+		wp_die( esc_html__( 'You do not have permission to access this page.', 'extrachill-newsletter' ) );
 	}
 
-	if ( ! wp_verify_nonce( $_POST['ec_newsletter_nonce'], 'ec_newsletter_settings' ) ) {
-		wp_die( __( 'Security check failed.', 'extrachill-newsletter' ) );
-	}
+	check_admin_referer( 'ec_newsletter_settings', 'ec_newsletter_nonce' );
 
 	$settings = array();
 
 	// API Configuration
 	$settings['sendy_api_key'] = isset( $_POST['sendy_api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['sendy_api_key'] ) ) : '';
-	$settings['sendy_url'] = isset( $_POST['sendy_url'] ) ? esc_url_raw( wp_unslash( $_POST['sendy_url'] ) ) : EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT;
+	$settings['sendy_url']     = isset( $_POST['sendy_url'] ) ? esc_url_raw( wp_unslash( $_POST['sendy_url'] ) ) : EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT;
 
 	// Email Configuration
-	$settings['from_name'] = isset( $_POST['from_name'] ) ? sanitize_text_field( wp_unslash( $_POST['from_name'] ) ) : 'Extra Chill';
+	$settings['from_name']  = isset( $_POST['from_name'] ) ? sanitize_text_field( wp_unslash( $_POST['from_name'] ) ) : 'Extra Chill';
 	$settings['from_email'] = isset( $_POST['from_email'] ) ? sanitize_email( wp_unslash( $_POST['from_email'] ) ) : 'newsletter@extrachill.com';
-	$settings['reply_to'] = isset( $_POST['reply_to'] ) ? sanitize_email( wp_unslash( $_POST['reply_to'] ) ) : 'chubes@extrachill.com';
-	$settings['brand_id'] = isset( $_POST['brand_id'] ) ? sanitize_text_field( wp_unslash( $_POST['brand_id'] ) ) : '1';
+	$settings['reply_to']   = isset( $_POST['reply_to'] ) ? sanitize_email( wp_unslash( $_POST['reply_to'] ) ) : 'chubes@extrachill.com';
+	$settings['brand_id']   = isset( $_POST['brand_id'] ) ? sanitize_text_field( wp_unslash( $_POST['brand_id'] ) ) : '1';
 
 	// Integration Sendy list IDs
 	$integrations = get_newsletter_integrations();
@@ -57,26 +55,27 @@ function ec_newsletter_handle_settings_save() {
 	$redirect_url = add_query_arg(
 		array(
 			'post_type' => 'newsletter',
-			'page' => 'newsletter-settings',
-			'updated' => 'true',
+			'page'      => 'newsletter-settings',
+			'updated'   => 'true',
 		),
 		admin_url( 'edit.php' )
 	);
 
-	wp_redirect( $redirect_url );
+	wp_safe_redirect( $redirect_url );
 	exit;
 }
 
 function ec_newsletter_render_settings_page() {
-	$settings = get_newsletter_settings();
+	$settings     = get_newsletter_settings();
 	$integrations = get_newsletter_integrations();
+	$updated      = filter_input( INPUT_GET, 'updated', FILTER_VALIDATE_BOOLEAN );
 	?>
 	<div class="wrap">
-		<h1><?php _e( 'Newsletter Settings', 'extrachill-newsletter' ); ?></h1>
+		<h1><?php esc_html_e( 'Newsletter Settings', 'extrachill-newsletter' ); ?></h1>
 
-		<?php if ( isset( $_GET['updated'] ) ): ?>
+		<?php if ( $updated ) : ?>
 			<div class="notice notice-success is-dismissible">
-				<p><?php _e( 'Newsletter settings updated successfully.', 'extrachill-newsletter' ); ?></p>
+				<p><?php esc_html_e( 'Newsletter settings updated successfully.', 'extrachill-newsletter' ); ?></p>
 			</div>
 		<?php endif; ?>
 
@@ -85,92 +84,94 @@ function ec_newsletter_render_settings_page() {
 			<?php wp_nonce_field( 'ec_newsletter_settings', 'ec_newsletter_nonce' ); ?>
 
 			<!-- API Configuration -->
-			<h2><?php _e( 'API Configuration', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php _e( 'Configure your Sendy API connection settings.', 'extrachill-newsletter' ); ?></p>
+			<h2><?php esc_html_e( 'API Configuration', 'extrachill-newsletter' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Configure your Sendy API connection settings.', 'extrachill-newsletter' ); ?></p>
 			<table class="form-table">
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="sendy_api_key"><?php _e( 'Sendy API Key', 'extrachill-newsletter' ); ?></label>
+							<label for="sendy_api_key"><?php esc_html_e( 'Sendy API Key', 'extrachill-newsletter' ); ?></label>
 						</th>
 						<td>
 							<input type="password" id="sendy_api_key" name="sendy_api_key" value="<?php echo esc_attr( $settings['sendy_api_key'] ); ?>" class="regular-text" />
-							<p class="description"><?php _e( 'Your Sendy API key from Sendy settings.', 'extrachill-newsletter' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Your Sendy API key from Sendy settings.', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="sendy_url"><?php _e( 'Sendy URL', 'extrachill-newsletter' ); ?></label>
+							<label for="sendy_url"><?php esc_html_e( 'Sendy URL', 'extrachill-newsletter' ); ?></label>
 						</th>
 						<td>
 							<input type="url" id="sendy_url" name="sendy_url" value="<?php echo esc_attr( $settings['sendy_url'] ); ?>" class="regular-text" />
-							<p class="description"><?php _e( 'Your Sendy installation URL (without trailing slash).', 'extrachill-newsletter' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Your Sendy installation URL (without trailing slash).', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 				</tbody>
 			</table>
 
 			<!-- Email Configuration -->
-			<h2><?php _e( 'Email Configuration', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php _e( 'Configure email sender information and branding.', 'extrachill-newsletter' ); ?></p>
+			<h2><?php esc_html_e( 'Email Configuration', 'extrachill-newsletter' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Configure email sender information and branding.', 'extrachill-newsletter' ); ?></p>
 			<table class="form-table">
 				<tbody>
 					<tr>
 						<th scope="row">
-							<label for="from_name"><?php _e( 'From Name', 'extrachill-newsletter' ); ?></label>
+							<label for="from_name"><?php esc_html_e( 'From Name', 'extrachill-newsletter' ); ?></label>
 						</th>
 						<td>
 							<input type="text" id="from_name" name="from_name" value="<?php echo esc_attr( $settings['from_name'] ); ?>" class="regular-text" />
-							<p class="description"><?php _e( 'Name that appears in the "From" field of newsletters.', 'extrachill-newsletter' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Name that appears in the "From" field of newsletters.', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="from_email"><?php _e( 'From Email', 'extrachill-newsletter' ); ?></label>
+							<label for="from_email"><?php esc_html_e( 'From Email', 'extrachill-newsletter' ); ?></label>
 						</th>
 						<td>
 							<input type="email" id="from_email" name="from_email" value="<?php echo esc_attr( $settings['from_email'] ); ?>" class="regular-text" />
-							<p class="description"><?php _e( 'Email address that appears in the "From" field of newsletters.', 'extrachill-newsletter' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Email address that appears in the "From" field of newsletters.', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="reply_to"><?php _e( 'Reply To', 'extrachill-newsletter' ); ?></label>
+							<label for="reply_to"><?php esc_html_e( 'Reply To', 'extrachill-newsletter' ); ?></label>
 						</th>
 						<td>
 							<input type="email" id="reply_to" name="reply_to" value="<?php echo esc_attr( $settings['reply_to'] ); ?>" class="regular-text" />
-							<p class="description"><?php _e( 'Email address for replies to newsletters.', 'extrachill-newsletter' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Email address for replies to newsletters.', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="brand_id"><?php _e( 'Brand ID', 'extrachill-newsletter' ); ?></label>
+							<label for="brand_id"><?php esc_html_e( 'Brand ID', 'extrachill-newsletter' ); ?></label>
 						</th>
 						<td>
 							<input type="text" id="brand_id" name="brand_id" value="<?php echo esc_attr( $settings['brand_id'] ); ?>" class="small-text" />
-							<p class="description"><?php _e( 'Sendy brand ID for newsletter campaigns.', 'extrachill-newsletter' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Sendy brand ID for newsletter campaigns.', 'extrachill-newsletter' ); ?></p>
 						</td>
 					</tr>
 				</tbody>
 			</table>
 
 			<!-- Integration Configuration -->
-			<h2><?php _e( 'Form Integrations', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php _e( 'Configure Sendy list IDs for each subscription form context.', 'extrachill-newsletter' ); ?></p>
+			<h2><?php esc_html_e( 'Form Integrations', 'extrachill-newsletter' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Configure Sendy list IDs for each subscription form context.', 'extrachill-newsletter' ); ?></p>
 
 			<table class="form-table">
 				<tbody>
-					<?php foreach ( $integrations as $context => $integration ): ?>
+					<?php foreach ( $integrations as $context => $integration ) : ?>
 					<tr>
 						<th scope="row">
 							<label for="<?php echo esc_attr( $integration['list_id_key'] ); ?>"><?php echo esc_html( $integration['label'] ); ?></label>
 						</th>
 						<td>
-							<input type="text"
-								   id="<?php echo esc_attr( $integration['list_id_key'] ); ?>"
-								   name="<?php echo esc_attr( $integration['list_id_key'] ); ?>"
-								   value="<?php echo esc_attr( $settings[ $integration['list_id_key'] ] ?? '' ); ?>"
-								   class="regular-text" />
+							<input
+								type="text"
+								id="<?php echo esc_attr( $integration['list_id_key'] ); ?>"
+								name="<?php echo esc_attr( $integration['list_id_key'] ); ?>"
+								value="<?php echo esc_attr( $settings[ $integration['list_id_key'] ] ?? '' ); ?>"
+								class="regular-text"
+							/>
 							<p class="description"><?php echo esc_html( $integration['description'] ); ?></p>
 						</td>
 					</tr>

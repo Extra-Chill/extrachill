@@ -138,7 +138,6 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 	$result = extrachill_newsletter_sendy_subscribe( $list_id, $email, $name );
 
 	if ( is_wp_error( $result ) ) {
-		error_log( 'Newsletter subscription failed: ' . $result->get_error_message() );
 		return array(
 			'success' => false,
 			'message' => __( 'Subscription service unavailable', 'extrachill-newsletter' ),
@@ -175,8 +174,6 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 			'status'  => 'subscribed',
 		);
 	}
-
-	error_log( sprintf( 'Newsletter subscription failed for %s via %s: %s', $email, $source, isset( $result['raw'] ) ? $result['raw'] : $status ) );
 
 	if ( 'already_subscribed' === $status ) {
 		return array(

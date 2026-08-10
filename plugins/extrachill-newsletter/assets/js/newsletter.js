@@ -4,15 +4,16 @@
  * Generic REST API subscription handler for all newsletter forms.
  * Forms must use data-newsletter-form and data-newsletter-context attributes.
  *
- * @package ExtraChillNewsletter
+ * @package
  * @since 0.1.2
  */
 
 (function() {
     'use strict';
 
-    if (!window.newsletterParams || !newsletterParams.restNonce || !newsletterParams.restUrl) {
-        console.error('extrachill-newsletter: newsletterParams missing, aborting form handler.');
+    const { newsletterParams } = window;
+
+    if (!newsletterParams || !newsletterParams.restNonce || !newsletterParams.restUrl) {
         return;
     }
 
@@ -30,6 +31,8 @@
      * - If a token is already attached to the widget (e.g. resolved on render),
      *   reuse it.
      * - Otherwise, call turnstile.execute() to fetch a fresh token.
+     *
+     * @param {HTMLFormElement} form Newsletter form element.
      */
     function getTurnstileToken(form) {
         return new Promise(function(resolve) {
@@ -50,21 +53,21 @@
                     resolve(existing);
                     return;
                 }
-            } catch (e) {
+            } catch {
                 // getResponse can throw if the widget isn't fully initialized;
                 // fall through to execute().
             }
 
             try {
                 window.turnstile.execute(widget, {
-                    callback: function(token) {
+                    callback(token) {
                         resolve(token || '');
                     },
-                    'error-callback': function() {
+                    'error-callback'() {
                         resolve('');
                     }
                 });
-            } catch (e) {
+            } catch {
                 resolve('');
             }
         });
@@ -81,7 +84,7 @@
 
         const body = {
             emails: [{ email: emailInput.value, name: '' }],
-            context: context,
+            context,
             source_url: window.location.href
         };
 
@@ -135,7 +138,7 @@
                 if (widget) {
                     try {
                         window.turnstile.reset(widget);
-                    } catch (e) {
+                    } catch {
                         // Widget may not be initialized yet; ignore.
                     }
                 }
@@ -147,13 +150,18 @@
         const context = form.dataset.newsletterContext;
         const emailInput = form.querySelector('input[type="email"], input[name="email"]');
         const submitButton = form.querySelector('button[type="submit"]');
-        const feedback = findFeedback(form);
 
-        if (!emailInput || !submitButton || !context) return;
+        if (!emailInput || !submitButton || !context) {
+            return;
+        }
+
+        const feedback = findFeedback(form);
 
         submitButton.disabled = true;
         submitButton.textContent = 'Subscribing...';
-        if (feedback) feedback.style.display = 'none';
+        if (feedback) {
+            feedback.style.display = 'none';
+        }
 
         getTurnstileToken(form).then(function(token) {
             return submitToServer(form, token);
