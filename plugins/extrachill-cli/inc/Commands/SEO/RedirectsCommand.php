@@ -80,7 +80,8 @@ class RedirectsCommand {
 	public function list_rules( $args, $assoc_args ) {
 		$this->ensure_seo();
 
-		$rules = \ExtraChill\SEO\Core\extrachill_seo_get_redirects(
+		$rules = $this->call_dependency(
+			'ExtraChill\\SEO\\Core\\extrachill_seo_get_redirects',
 			array(
 				'search'  => $assoc_args['search'] ?? '',
 				'active'  => (int) ( $assoc_args['active'] ?? -1 ),
@@ -90,7 +91,8 @@ class RedirectsCommand {
 			)
 		);
 
-		$total = \ExtraChill\SEO\Core\extrachill_seo_count_redirects(
+		$total = $this->call_dependency(
+			'ExtraChill\\SEO\\Core\\extrachill_seo_count_redirects',
 			array(
 				'search' => $assoc_args['search'] ?? '',
 				'active' => (int) ( $assoc_args['active'] ?? -1 ),
@@ -307,7 +309,7 @@ class RedirectsCommand {
 		$code = (int) ( $assoc_args['code'] ?? 301 );
 		$note = $assoc_args['note'] ?? '';
 
-		$id = \ExtraChill\SEO\Core\extrachill_seo_add_redirect( $from, $to, $code, $note, 'cli' );
+		$id = $this->call_dependency( 'ExtraChill\\SEO\\Core\\extrachill_seo_add_redirect', $from, $to, $code, $note, 'cli' );
 
 		if ( false === $id ) {
 			WP_CLI::error( sprintf( 'Failed — a redirect rule may already exist for %s', $from ) );
@@ -334,7 +336,7 @@ class RedirectsCommand {
 		$this->ensure_seo();
 
 		$id      = (int) $args[0];
-		$deleted = \ExtraChill\SEO\Core\extrachill_seo_delete_redirect( $id );
+		$deleted = $this->call_dependency( 'ExtraChill\\SEO\\Core\\extrachill_seo_delete_redirect', $id );
 
 		if ( ! $deleted ) {
 			WP_CLI::error( sprintf( 'Redirect #%d not found.', $id ) );
@@ -358,11 +360,11 @@ class RedirectsCommand {
 	 * @subcommand test
 	 */
 	public function test( $args, $assoc_args ) {
-		$assoc_args;
+		unset( $assoc_args );
 		$this->ensure_seo();
 
 		$url  = $args[0];
-		$rule = \ExtraChill\SEO\Core\extrachill_seo_get_redirect_by_url( $url );
+		$rule = $this->call_dependency( 'ExtraChill\\SEO\\Core\\extrachill_seo_get_redirect_by_url', $url );
 
 		if ( ! $rule ) {
 			WP_CLI::log( sprintf( 'No redirect rule matches: %s', $url ) );
@@ -519,7 +521,8 @@ class RedirectsCommand {
 				'' === $opp['scope'] ? '' : ', scope ' . $opp['scope']
 			);
 
-			$id = \ExtraChill\SEO\Core\extrachill_seo_add_redirect(
+			$id = $this->call_dependency(
+				'ExtraChill\\SEO\\Core\\extrachill_seo_add_redirect',
 				$opp['legacy_url'],
 				$opp['destination'],
 				301,
@@ -627,8 +630,8 @@ class RedirectsCommand {
 		$dry_run  = Utils\get_flag_value( $assoc_args, 'dry-run', false );
 		$fuzzy    = Utils\get_flag_value( $assoc_args, 'fuzzy', false );
 
-		$table     = extrachill_analytics_events_table();
-		$date_from = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$table     = $this->call_dependency( 'extrachill_analytics_events_table' );
+		$date_from = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$days} days" ) );
 
 		// Get top 404 URLs.
 		// phpcs:disable WordPress.DB.PreparedSQL -- Table name from helper, not user input.
@@ -729,14 +732,14 @@ class RedirectsCommand {
 			$from_path = untrailingslashit( $from_path );
 
 			// Check if redirect already exists.
-			$existing = \ExtraChill\SEO\Core\extrachill_seo_get_redirect_by_url( $from_path );
+			$existing = $this->call_dependency( 'ExtraChill\\SEO\\Core\\extrachill_seo_get_redirect_by_url', $from_path );
 			if ( $existing ) {
 				++$skipped_exists;
 				continue;
 			}
 
 			// Skip self-redirects.
-			$to_path = wp_make_link_relative( $permalink );
+			$to_path = wp_make_link_relative( (string) $permalink );
 			if ( untrailingslashit( $from_path ) === untrailingslashit( $to_path ) ) {
 				++$skipped_no_match;
 				continue;
@@ -753,7 +756,7 @@ class RedirectsCommand {
 
 			if ( ! $dry_run ) {
 				$note = sprintf( 'Auto-imported from 404 data (%d hits, post #%d, match: %s)', $row->hits, $post_id, $match_method );
-				$id   = \ExtraChill\SEO\Core\extrachill_seo_add_redirect( $from_path, $permalink, 301, $note, 'cli-import' );
+				$id   = $this->call_dependency( 'ExtraChill\\SEO\\Core\\extrachill_seo_add_redirect', $from_path, $permalink, 301, $note, 'cli-import' );
 				if ( $id ) {
 					++$created;
 				}
@@ -1075,7 +1078,7 @@ class RedirectsCommand {
 
 		// Normalize to a leading slash, strip query/fragment for matching.
 		$path = strtok( $url, '?' );
-		$path = strtok( $path, '#' );
+		$path = strtok( (string) $path, '#' );
 		$path = '/' . ltrim( (string) $path, '/' );
 
 		foreach ( (array) $prefixes as $prefix ) {
@@ -1105,7 +1108,7 @@ class RedirectsCommand {
 	 */
 	private function url_already_resolves( $url ) {
 		$path = strtok( $url, '?' );
-		$path = strtok( $path, '#' );
+		$path = strtok( (string) $path, '#' );
 		$path = '/' . ltrim( (string) $path, '/' );
 
 		// Layer 1: posts/pages — fast, no network.
@@ -1181,8 +1184,8 @@ class RedirectsCommand {
 	 */
 	private function extract_slug( $url ) {
 		$url  = strtok( $url, '?' );
-		$url  = strtok( $url, '#' );
-		$url  = preg_replace( '#\.html/?$#', '', $url );
+		$url  = strtok( (string) $url, '#' );
+		$url  = preg_replace( '#\.html/?$#', '', (string) $url );
 		$url  = preg_replace( '#^/\d{4}/\d{2}/#', '/', $url );
 		$slug = trim( $url, '/' );
 		if ( strpos( $slug, '/' ) !== false ) {
@@ -1227,5 +1230,21 @@ class RedirectsCommand {
 		if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
 			WP_CLI::error( 'extrachill-analytics plugin is not active. Required for import command.' );
 		}
+	}
+
+	/**
+	 * Invoke a function supplied by an owner plugin.
+	 *
+	 * @param string $callback Function name.
+	 * @param mixed  ...$args Function arguments.
+	 * @return mixed
+	 */
+	private function call_dependency( $callback, ...$args ) {
+		if ( ! is_callable( $callback ) ) {
+			WP_CLI::error( sprintf( 'Required function %s is not available.', $callback ) );
+			return null;
+		}
+
+		return $callback( ...$args );
 	}
 }

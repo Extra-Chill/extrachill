@@ -396,7 +396,7 @@ class FourOhFourCommand {
 
 		if ( ! empty( $result['daily'] ) ) {
 			WP_CLI::log( 'Daily breakdown:' );
-			$max_hits = max( array_column( $result['daily'], 'hits' ) );
+			$max_hits = max( array_merge( array( 0 ), array_column( $result['daily'], 'hits' ) ) );
 			foreach ( $result['daily'] as $day ) {
 				$bar_width = $max_hits > 0 ? (int) ( $day['hits'] / $max_hits * 40 ) : 0;
 				$bar       = str_repeat( '█', max( $bar_width, 0 ) );
@@ -625,17 +625,17 @@ class FourOhFourCommand {
 
 		$patterns = array(
 			'facebookexternalhit' => 'Facebook',
-			'Googlebot'          => 'Googlebot',
-			'bingbot'            => 'Bingbot',
-			'Verity'             => 'GumGum/Verity',
-			'gumgum'             => 'GumGum/Verity',
-			'Grammarly'          => 'Grammarly',
-			'axios'              => 'Axios bot',
-			'Mediavine'          => 'Mediavine',
-			'Chrome'             => 'Chrome',
-			'Firefox'            => 'Firefox',
-			'Safari'             => 'Safari',
-			'curl'               => 'curl',
+			'Googlebot'           => 'Googlebot',
+			'bingbot'             => 'Bingbot',
+			'Verity'              => 'GumGum/Verity',
+			'gumgum'              => 'GumGum/Verity',
+			'Grammarly'           => 'Grammarly',
+			'axios'               => 'Axios bot',
+			'Mediavine'           => 'Mediavine',
+			'Chrome'              => 'Chrome',
+			'Firefox'             => 'Firefox',
+			'Safari'              => 'Safari',
+			'curl'                => 'curl',
 		);
 
 		foreach ( $patterns as $needle => $label ) {

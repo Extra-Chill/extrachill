@@ -70,7 +70,7 @@ class TeamCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 

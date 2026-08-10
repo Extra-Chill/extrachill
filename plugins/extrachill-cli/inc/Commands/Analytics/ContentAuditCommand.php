@@ -237,7 +237,7 @@ class ContentAuditCommand {
 	private function num( $value ) {
 		$float = (float) $value;
 
-		if ( $float === floor( $float ) ) {
+		if ( floor( $float ) === $float ) {
 			return (string) (int) $float;
 		}
 

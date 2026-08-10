@@ -128,7 +128,7 @@ class RouteTransitionsCommand {
 		}
 
 		if ( 'csv' === $format ) {
-			Utils\format_items( 'csv', array( $this->csv_row( $result ) ), array_keys( $result ) );
+			Utils\format_items( 'csv', array( $this->csv_row( $result ) ), array_map( 'strval', array_keys( $result ) ) );
 			return;
 		}
 

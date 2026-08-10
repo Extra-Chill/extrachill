@@ -60,11 +60,11 @@ class RevenueCommand {
 	 * @when after_wp_load
 	 */
 	public function fetch( $args, $assoc_args ) {
-		$reports = $this->ability( 'datamachine/mediavine-reports', 'Data Machine Business' );
-		$ingest  = $this->ability( 'extrachill/ingest-revenue', 'Extra Chill Analytics' );
-		$periods = $this->fetch_periods( $assoc_args );
-		$dry_run = isset( $assoc_args['dry-run'] );
-		$mode    = $assoc_args['mode'] ?? 'replace';
+		$reports  = $this->ability( 'datamachine/mediavine-reports', 'Data Machine Business' );
+		$ingest   = $this->ability( 'extrachill/ingest-revenue', 'Extra Chill Analytics' );
+		$periods  = $this->fetch_periods( $assoc_args );
+		$dry_run  = isset( $assoc_args['dry-run'] );
+		$mode     = $assoc_args['mode'] ?? 'replace';
 		$snapshot = $assoc_args['snapshot'] ?? '';
 		if ( ! in_array( $mode, array( 'replace', 'additive' ), true ) ) {
 			WP_CLI::error( '--mode must be replace or additive.' );

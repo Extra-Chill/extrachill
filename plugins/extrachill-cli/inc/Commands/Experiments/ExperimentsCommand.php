@@ -185,7 +185,7 @@ class ExperimentsCommand {
 		WP_CLI::log( 'Before:' );
 		$this->display_definition( $before );
 		WP_CLI::log( 'Transition:' );
-		Utils\format_items( 'table', array( $transition ), array_keys( $transition ) );
+		Utils\format_items( 'table', array( $transition ), array_map( 'strval', array_keys( $transition ) ) );
 		WP_CLI::log( 'After:' );
 		$this->display_definition( $after );
 	}
@@ -242,7 +242,7 @@ class ExperimentsCommand {
 	public function report( $args, $assoc_args ) {
 		$definition = $this->definition( $args[0] ?? '' );
 		$this->require_registered( $definition, 'report' );
-		$input      = array(
+		$input    = array(
 			'experiment_key'  => (string) $definition['key'],
 			'control_variant' => (string) ( $assoc_args['control-variant'] ?? $definition['control_variant'] ),
 			'variants'        => isset( $assoc_args['variants'] ) ? $this->csv_values( $assoc_args['variants'] ) : array_keys( (array) $definition['variants'] ),
@@ -371,7 +371,10 @@ class ExperimentsCommand {
 		}
 		$rows = array();
 		foreach ( (array) $metrics as $key => $value ) {
-			$rows[] = array( 'metric' => $key, 'value' => $this->human_value( $value ) );
+			$rows[] = array(
+				'metric' => $key,
+				'value'  => $this->human_value( $value ),
+			);
 		}
 		if ( empty( $rows ) ) {
 			WP_CLI::log( '  unavailable / insufficient data' );
@@ -401,7 +404,7 @@ class ExperimentsCommand {
 
 	/** Parse a comma-separated owner argument without changing its values. */
 	private function csv_values( $value ) {
-		return array_values( array_filter( array_map( 'trim', explode( ',', (string) $value ) ), 'strlen' ) );
+		return array_values( array_filter( array_map( 'trim', explode( ',', (string) $value ) ) ) );
 	}
 
 	/** Format arbitrary owner values for human output while preserving null. */

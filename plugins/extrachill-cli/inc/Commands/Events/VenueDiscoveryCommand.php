@@ -84,7 +84,7 @@ class VenueDiscoveryCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 			return;
 		}
 
@@ -106,10 +106,10 @@ class VenueDiscoveryCommand {
 		$rows = array();
 		foreach ( $result['venues'] as $venue ) {
 			$rows[] = array(
-				'name'     => $venue['name'],
-				'address'  => mb_substr( $venue['address'], 0, 45 ),
-				'website'  => $venue['website'] ? $venue['website'] : '(none)',
-				'known'    => $venue['is_known'] ? 'yes' : 'NEW',
+				'name'    => $venue['name'],
+				'address' => mb_substr( $venue['address'], 0, 45 ),
+				'website' => $venue['website'] ? $venue['website'] : '(none)',
+				'known'   => $venue['is_known'] ? 'yes' : 'NEW',
 			);
 		}
 
@@ -170,7 +170,7 @@ class VenueDiscoveryCommand {
 			WP_CLI::error( 'extrachill/qualify-venue ability not available. Is extrachill-events active on this site?' );
 		}
 
-		$name = $assoc_args['name'] ?? '';
+		$name  = $assoc_args['name'] ?? '';
 		$label = $name ? "{$name} ({$url})" : $url;
 		WP_CLI::log( sprintf( 'Qualifying %s...', $label ) );
 
@@ -186,7 +186,7 @@ class VenueDiscoveryCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 			return;
 		}
 

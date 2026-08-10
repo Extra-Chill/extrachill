@@ -186,7 +186,7 @@ class BanCommand {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+		WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 	}
 
 	private function resolve_user( $identifier ) {

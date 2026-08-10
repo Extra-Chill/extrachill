@@ -62,7 +62,7 @@ class ProfileCommand {
 
 		if ( 'table' === $format ) {
 			$links_count = isset( $result['links'] ) ? count( $result['links'] ) : 0;
-			$fields = array(
+			$fields      = array(
 				array(
 					'Field' => 'user_id',
 					'Value' => $result['user_id'],
@@ -98,7 +98,7 @@ class ProfileCommand {
 			);
 			WP_CLI\Utils\format_items( 'table', $fields, array( 'Field', 'Value' ) );
 		} else {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -185,7 +185,7 @@ class ProfileCommand {
 		}
 
 		WP_CLI::success( sprintf( 'Profile updated for user %d (%s).', (int) $user->ID, $user->user_login ) );
-		WP_CLI::log( wp_json_encode( count( $results ) === 1 ? reset( $results ) : $results, JSON_PRETTY_PRINT ) );
+		WP_CLI::log( (string) wp_json_encode( count( $results ) === 1 ? reset( $results ) : $results, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -214,6 +214,8 @@ class ProfileCommand {
 	 * @when after_wp_load
 	 */
 	public function update_links( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$user = $this->resolve_user( $args[0] ?? '' );
 		if ( ! $user ) {
 			WP_CLI::error( 'User not found.' );
@@ -244,7 +246,7 @@ class ProfileCommand {
 
 		$count = isset( $result['links'] ) ? count( $result['links'] ) : 0;
 		WP_CLI::success( sprintf( 'Updated %d link(s) for user %d (%s).', $count, (int) $user->ID, $user->user_login ) );
-		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+		WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 	}
 
 	private function resolve_user( $identifier ) {

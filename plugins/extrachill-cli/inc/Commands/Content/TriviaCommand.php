@@ -145,7 +145,7 @@ class TriviaCommand {
 		);
 
 		if ( ( $assoc_args['format'] ?? 'table' ) === 'json' ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -206,7 +206,7 @@ class TriviaCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -240,6 +240,8 @@ class TriviaCommand {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function read_questions_json( $source ) {
+		global $wp_filesystem;
+
 		if ( '' === $source ) {
 			WP_CLI::error( '--questions is required (a JSON file path, or `-` for stdin).' );
 		}
@@ -250,14 +252,18 @@ class TriviaCommand {
 			if ( ! is_readable( $source ) ) {
 				WP_CLI::error( sprintf( 'Cannot read questions file: %s', $source ) );
 			}
-			$raw = file_get_contents( $source );
+			if ( ! $wp_filesystem ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+				WP_Filesystem();
+			}
+			$raw = $wp_filesystem ? $wp_filesystem->get_contents( $source ) : false;
 		}
 
 		if ( false === $raw || '' === trim( (string) $raw ) ) {
 			WP_CLI::error( 'No JSON content found in --questions input.' );
 		}
 
-		$decoded = json_decode( $raw, true );
+		$decoded = json_decode( (string) $raw, true );
 		if ( null === $decoded && JSON_ERROR_NONE !== json_last_error() ) {
 			WP_CLI::error( sprintf( 'Invalid JSON in --questions: %s', json_last_error_msg() ) );
 		}

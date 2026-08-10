@@ -33,14 +33,12 @@ class WarmCommand {
 	 * @subcommand warm
 	 */
 	public function warm( $args, $assoc_args ) {
-		if ( ! function_exists( 'ec_badge_warmer_run' ) ) {
-			WP_CLI::error( 'Badge count warmer not available. Is extrachill-multisite active?' );
-		}
+		unset( $args, $assoc_args );
 
 		WP_CLI::log( 'Warming badge count caches for ' . home_url() . '...' );
 
-		$start  = microtime( true );
-		$warmed = ec_badge_warmer_run();
+		$start   = microtime( true );
+		$warmed  = $this->call_dependency( 'ec_badge_warmer_run' );
 		$elapsed = round( microtime( true ) - $start, 2 );
 
 		if ( empty( $warmed ) ) {
@@ -66,6 +64,8 @@ class WarmCommand {
 	 * @subcommand status
 	 */
 	public function status( $args, $assoc_args ) {
+		unset( $args, $assoc_args );
+
 		$next = wp_next_scheduled( 'ec_warm_badge_counts' );
 		if ( $next ) {
 			$diff = $next - time();
@@ -116,5 +116,15 @@ class WarmCommand {
 		} else {
 			WP_CLI::log( 'No badge counts configured for this site.' );
 		}
+	}
+
+	/** Invoke the badge warmer supplied by the network runtime. */
+	private function call_dependency( $callback ) {
+		if ( ! is_callable( $callback ) ) {
+			WP_CLI::error( 'Badge count warmer not available. Is extrachill-multisite active?' );
+			return array();
+		}
+
+		return $callback();
 	}
 }

@@ -101,7 +101,7 @@ class SettingsCommand {
 			);
 			WP_CLI\Utils\format_items( 'table', $fields, array( 'Field', 'Value' ) );
 		} else {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -181,7 +181,7 @@ class SettingsCommand {
 		}
 
 		WP_CLI::success( sprintf( 'Settings updated for user %d (%s).', (int) $user->ID, $user->user_login ) );
-		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+		WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -207,6 +207,8 @@ class SettingsCommand {
 	 * @when after_wp_load
 	 */
 	public function change_email( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$user = $this->resolve_user( $args[0] ?? '' );
 		if ( ! $user ) {
 			WP_CLI::error( 'User not found.' );

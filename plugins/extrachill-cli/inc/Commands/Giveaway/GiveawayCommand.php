@@ -190,8 +190,10 @@ class GiveawayCommand {
 	 * @when after_wp_load
 	 */
 	public function schedule( $args, $assoc_args ) {
-		if ( ! class_exists( 'DataMachine\\Engine\\Tasks\\TaskScheduler' ) ) {
+		$schedule = array( 'DataMachine\\Engine\\Tasks\\TaskScheduler', 'schedule' );
+		if ( ! is_callable( $schedule ) ) {
 			WP_CLI::error( 'Data Machine Task System not available.' );
+			return;
 		}
 
 		$run_at    = $assoc_args['run-at'] ?? '';
@@ -216,7 +218,7 @@ class GiveawayCommand {
 			'message'      => $assoc_args['message'] ?? 'Congratulations @{username}, you won the giveaway! Check your DMs for details.',
 		);
 
-		$job_id = \DataMachine\Engine\Tasks\TaskScheduler::schedule(
+		$job_id = $schedule(
 			'giveaway',
 			$params,
 			array(
@@ -251,6 +253,8 @@ class GiveawayCommand {
 	 * @when after_wp_load
 	 */
 	public function resolve( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$ability = wp_get_ability( 'extrachill/resolve-instagram-media' );
 		if ( ! $ability ) {
 			WP_CLI::error( 'extrachill/resolve-instagram-media ability not available.' );

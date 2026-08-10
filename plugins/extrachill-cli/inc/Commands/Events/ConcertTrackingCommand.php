@@ -185,7 +185,7 @@ class ConcertTrackingCommand {
 		);
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $data, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $data, JSON_PRETTY_PRINT ) );
 		} else {
 			$rows = array();
 			foreach ( $data as $key => $value ) {
@@ -278,7 +278,7 @@ class ConcertTrackingCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -357,7 +357,7 @@ class ConcertTrackingCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $stats, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $stats, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -499,7 +499,7 @@ class ConcertTrackingCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $data, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $data, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -658,8 +658,8 @@ class ConcertTrackingCommand {
 		}
 
 		$switched = get_current_blog_id() !== $events_blog_id;
-		if ( $switched && ! switch_to_blog( $events_blog_id ) ) {
-			return new \WP_Error( 'events_site_unavailable', 'The canonical Events site is unavailable.' );
+		if ( $switched ) {
+			switch_to_blog( $events_blog_id );
 		}
 
 		try {
@@ -715,12 +715,17 @@ class ConcertTrackingCommand {
 			$user = $this->resolve_user_by_identifier( $assoc_args['user'] );
 		} else {
 			$user = wp_get_current_user();
-			if ( ! $user || ! $user->ID ) {
+			if ( ! $user->ID ) {
 				$user = get_user_by( 'id', 1 );
 			}
 		}
 
-		if ( ! $user || ! $user->ID ) {
+		if ( ! $user ) {
+			WP_CLI::error( 'User not found.' );
+			return new \WP_User();
+		}
+
+		if ( ! $user->ID ) {
 			WP_CLI::error( 'User not found.' );
 		}
 
@@ -756,13 +761,18 @@ class ConcertTrackingCommand {
 	 */
 	private function ensure_cli_actor() {
 		$current_user = wp_get_current_user();
-		if ( $current_user && $current_user->ID ) {
+		if ( $current_user->ID ) {
 			return;
 		}
 
 		$administrator = get_user_by( 'id', 1 );
-		if ( ! $administrator || ! $administrator->ID ) {
+		if ( ! $administrator ) {
 			WP_CLI::error( 'No authenticated CLI user and no administrator account is available.' );
+			return;
+		}
+		if ( ! $administrator->ID ) {
+			WP_CLI::error( 'No authenticated CLI user and no administrator account is available.' );
+			return;
 		}
 
 		wp_set_current_user( (int) $administrator->ID );

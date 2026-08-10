@@ -117,7 +117,7 @@ class ArtistAccessCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -222,6 +222,8 @@ class ArtistAccessCommand {
 	 * @when after_wp_load
 	 */
 	public function reject( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$user = $this->resolve_user( $args[0] ?? '' );
 		if ( ! $user ) {
 			WP_CLI::error( 'User not found.' );

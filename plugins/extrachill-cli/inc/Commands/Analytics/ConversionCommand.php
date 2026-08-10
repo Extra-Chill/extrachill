@@ -119,9 +119,9 @@ class ConversionCommand {
 
 		$result = $ability->execute(
 			array(
-				'days'               => $days,
-				'session_gap_mins'   => $session_gap_mins,
-				'top_articles'       => $top_articles,
+				'days'                    => $days,
+				'session_gap_mins'        => $session_gap_mins,
+				'top_articles'            => $top_articles,
 				'min_entry_sessions'      => $min_entry_sessions,
 				'return_observation_days' => $return_observation_days,
 			)
@@ -140,13 +140,13 @@ class ConversionCommand {
 			Utils\format_items(
 				$format,
 				array( $this->csv_row( $result ) ),
-				array_keys( $result )
+				array_map( 'strval', array_keys( $result ) )
 			);
 			return;
 		}
 
 		$overall      = $result['overall'] ?? array();
-		$period_label = $days > 0 ? "Last {$days} days" : 'All time';
+		$period_label = "Last {$days} days";
 		WP_CLI::log( sprintf( 'Cross-Surface Conversion Map — %s (%s)', $period_label, $result['period'] ?? '' ) );
 		if ( ! empty( $result['since'] ) ) {
 			WP_CLI::log( sprintf( 'Window (UTC): created_at >= %s  (as of %s)', $result['since'], $result['as_of'] ?? '' ) );
@@ -225,7 +225,7 @@ class ConversionCommand {
 	 * @return void
 	 */
 	private function display_outcomes( array $outcomes ) {
-		$overall = (array) ( $outcomes['overall'] ?? array() );
+		$overall  = (array) ( $outcomes['overall'] ?? array() );
 		$coverage = (array) ( $outcomes['coverage'] ?? array() );
 
 		if ( empty( $overall ) ) {
@@ -242,14 +242,14 @@ class ConversionCommand {
 			$journey       = (array) ( $attribution['visitor_journey'] ?? array() );
 			$outcome       = str_replace( '_', ' ', (string) $type );
 
-			$event_rows[] = array(
+			$event_rows[]   = array(
 				'outcome'       => $outcome,
 				'stored'        => $this->count( $type_coverage['stored_events'] ?? 0 ),
 				'auto_excluded' => $this->count( $type_coverage['automatic_registration_excluded'] ?? 0 ),
 				'deduplicated'  => $this->count( $type_coverage['deduplicated_outcomes'] ?? 0 ),
 				'duplicates'    => $this->count( $type_coverage['duplicate_events'] ?? 0 ),
 			);
-			$direct_rows[] = array(
+			$direct_rows[]  = array(
 				'outcome'           => $outcome,
 				'count'             => $this->count( $direct['count'] ?? null ),
 				'coverage'          => (string) ( $direct['coverage_status'] ?? 'unknown' ),
@@ -259,15 +259,15 @@ class ConversionCommand {
 				'unresolved_source' => $this->count( $type_coverage['unresolved_source_url'] ?? 0 ),
 			);
 			$journey_rows[] = array(
-				'outcome'            => $outcome,
-				'same_session'       => $this->count( $journey['same_session_count'] ?? null ),
-				'later_session'      => $this->count( $journey['later_session_count'] ?? null ),
-				'coverage'           => (string) ( $journey['coverage_status'] ?? 'unknown' ),
-				'with_identity'      => $this->count( $type_coverage['with_visitor_identity'] ?? 0 ),
-				'attributed'         => $this->count( $type_coverage['visitor_journey_attributed'] ?? 0 ),
-				'missing_identity'   => $this->count( $type_coverage['missing_visitor_identity'] ?? 0 ),
-				'no_entry_journey'   => $this->count( $type_coverage['identity_without_eligible_journey'] ?? 0 ),
-				'before_entry'       => $this->count( $type_coverage['outcome_before_entry'] ?? 0 ),
+				'outcome'          => $outcome,
+				'same_session'     => $this->count( $journey['same_session_count'] ?? null ),
+				'later_session'    => $this->count( $journey['later_session_count'] ?? null ),
+				'coverage'         => (string) ( $journey['coverage_status'] ?? 'unknown' ),
+				'with_identity'    => $this->count( $type_coverage['with_visitor_identity'] ?? 0 ),
+				'attributed'       => $this->count( $type_coverage['visitor_journey_attributed'] ?? 0 ),
+				'missing_identity' => $this->count( $type_coverage['missing_visitor_identity'] ?? 0 ),
+				'no_entry_journey' => $this->count( $type_coverage['identity_without_eligible_journey'] ?? 0 ),
+				'before_entry'     => $this->count( $type_coverage['outcome_before_entry'] ?? 0 ),
 			);
 		}
 

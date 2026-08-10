@@ -91,7 +91,7 @@ class ArtistCommand {
 		$format = $assoc_args['format'] ?? 'count';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( array( 'total' => $total ), JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( array( 'total' => $total ), JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -143,7 +143,7 @@ class ArtistCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		} else {
 			$display = array();
 			foreach ( $result as $key => $value ) {
@@ -225,7 +225,7 @@ class ArtistCommand {
 
 		$format = $assoc_args['format'] ?? 'table';
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -311,7 +311,7 @@ class ArtistCommand {
 
 		$format = $assoc_args['format'] ?? 'table';
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -359,9 +359,14 @@ class ArtistCommand {
 		$format = $assoc_args['format'] ?? 'json';
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		} elseif ( 'yaml' === $format ) {
-			WP_CLI::log( \Spyc::YAMLDump( $result, false, false, true ) );
+			$yaml_dump = array( 'Spyc', 'YAMLDump' );
+			if ( ! is_callable( $yaml_dump ) ) {
+				WP_CLI::error( 'YAML formatter not available.' );
+				return;
+			}
+			WP_CLI::log( (string) $yaml_dump( $result, false, false, true ) );
 		}
 	}
 
@@ -423,7 +428,7 @@ class ArtistCommand {
 
 		$format = $assoc_args['format'] ?? 'json';
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -447,6 +452,7 @@ class ArtistCommand {
 	 */
 	public function save_links( $args, $assoc_args ) {
 		$this->ensure_artist_site_context();
+		unset( $assoc_args );
 
 		$artist_id = absint( $args[0] );
 		$links     = json_decode( $args[1], true );
@@ -477,7 +483,7 @@ class ArtistCommand {
 		}
 
 		WP_CLI::success( sprintf( 'Saved %d link(s) for artist %d.', $total_links, $artist_id ) );
-		WP_CLI::log( wp_json_encode( $result['links'], JSON_PRETTY_PRINT ) );
+		WP_CLI::log( (string) wp_json_encode( $result['links'], JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -524,7 +530,7 @@ class ArtistCommand {
 		if ( ! $read_ability ) {
 			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
 		}
-		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+		$current = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $current ) ) {
 			WP_CLI::error( $current->get_error_message() );
@@ -602,6 +608,7 @@ class ArtistCommand {
 	 */
 	public function remove_link( $args, $assoc_args ) {
 		$this->ensure_artist_site_context();
+		unset( $assoc_args );
 
 		$artist_id  = absint( $args[0] );
 		$identifier = $args[1];
@@ -611,14 +618,15 @@ class ArtistCommand {
 		if ( ! $read_ability ) {
 			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
 		}
-		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+		$current = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $current ) ) {
 			WP_CLI::error( $current->get_error_message() );
 		}
 
-		$links = $current['links'] ?? array();
-		$found = false;
+		$links        = $current['links'] ?? array();
+		$found        = false;
+		$removed_text = '';
 
 		foreach ( $links as $si => $section ) {
 			foreach ( $section['links'] as $li => $link ) {
@@ -697,7 +705,7 @@ class ArtistCommand {
 		if ( ! $read_ability ) {
 			WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
 		}
-		$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+		$current = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 		if ( is_wp_error( $current ) ) {
 			WP_CLI::error( $current->get_error_message() );
@@ -705,8 +713,8 @@ class ArtistCommand {
 
 		$links      = $current['links'] ?? array();
 		$found      = false;
-		$found_link = null;
-		$from_si    = null;
+		$found_link = array( 'link_text' => '' );
+		$from_si    = 0;
 
 		// Find and remove the link from its current position.
 		foreach ( $links as $si => $section ) {
@@ -748,6 +756,7 @@ class ArtistCommand {
 			array_splice( $target_links, $to_pos, 0, array( $found_link ) );
 		} else {
 			$target_links[] = $found_link;
+			$to_pos         = count( $target_links ) - 1;
 		}
 
 		// Save.
@@ -771,7 +780,7 @@ class ArtistCommand {
 			'Moved "%s" to section %d, position %d.',
 			$found_link['link_text'],
 			$to_section,
-			isset( $assoc_args['to-position'] ) ? $to_pos : count( $target_links ) - 1
+			$to_pos
 		) );
 	}
 
@@ -835,7 +844,7 @@ class ArtistCommand {
 			if ( ! $read_ability ) {
 				WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
 			}
-			$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+			$current = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 			if ( is_wp_error( $current ) ) {
 				WP_CLI::error( $current->get_error_message() );
@@ -878,8 +887,8 @@ class ArtistCommand {
 			foreach ( $raw_vars as $pair ) {
 				$eq_pos = strpos( $pair, '=' );
 				if ( false !== $eq_pos ) {
-					$key            = substr( $pair, 0, $eq_pos );
-					$value          = substr( $pair, $eq_pos + 1 );
+					$key              = substr( $pair, 0, $eq_pos );
+					$value            = substr( $pair, $eq_pos + 1 );
 					$css_vars[ $key ] = $value;
 				}
 			}
@@ -944,7 +953,7 @@ class ArtistCommand {
 			if ( ! $read_ability ) {
 				WP_CLI::error( 'extrachill/get-link-page-data ability not available.' );
 			}
-			$current      = $read_ability->execute( array( 'artist_id' => $artist_id ) );
+			$current = $read_ability->execute( array( 'artist_id' => $artist_id ) );
 
 			if ( is_wp_error( $current ) ) {
 				WP_CLI::error( $current->get_error_message() );
@@ -1057,16 +1066,28 @@ class ArtistCommand {
 			Utils\format_items(
 				$format,
 				array( $result ),
-				array_keys( $result )
+				array_map( 'strval', array_keys( $result ) )
 			);
 			return;
 		}
 
 		$display = array(
-			array( 'Metric' => 'Total published artist profiles', 'Value' => (string) $result['total_artist_profiles'] ),
-			array( 'Metric' => 'Total published link pages', 'Value' => (string) $result['total_link_pages'] ),
-			array( 'Metric' => sprintf( 'Profiles created (last %d days)', $result['days'] ), 'Value' => (string) $result['profiles_created_recent'] ),
-			array( 'Metric' => sprintf( 'Active link pages (last %d days)', $result['days'] ), 'Value' => (string) $result['active_link_pages_recent'] ),
+			array(
+				'Metric' => 'Total published artist profiles',
+				'Value'  => (string) $result['total_artist_profiles'],
+			),
+			array(
+				'Metric' => 'Total published link pages',
+				'Value'  => (string) $result['total_link_pages'],
+			),
+			array(
+				'Metric' => sprintf( 'Profiles created (last %d days)', $result['days'] ),
+				'Value'  => (string) $result['profiles_created_recent'],
+			),
+			array(
+				'Metric' => sprintf( 'Active link pages (last %d days)', $result['days'] ),
+				'Value'  => (string) $result['active_link_pages_recent'],
+			),
 		);
 		Utils\format_items( 'table', $display, array( 'Metric', 'Value' ) );
 	}

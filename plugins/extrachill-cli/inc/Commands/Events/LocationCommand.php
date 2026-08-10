@@ -251,7 +251,7 @@ class LocationCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -383,7 +383,7 @@ class LocationCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -495,7 +495,7 @@ class LocationCommand {
 		$format = $assoc_args['format'] ?? 'table';
 
 		if ( 'json' === $format ) {
-			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -686,8 +686,8 @@ class LocationCommand {
 
 		foreach (
 			array(
-				'date-start'     => 'date_start',
-				'date-end'       => 'date_end',
+				'date-start' => 'date_start',
+				'date-end'   => 'date_end',
 			) as $cli_key => $ability_key
 		) {
 			if ( isset( $assoc_args[ $cli_key ] ) && '' !== $assoc_args[ $cli_key ] ) {

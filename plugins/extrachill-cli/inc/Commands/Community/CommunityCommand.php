@@ -28,6 +28,8 @@ class CommunityCommand {
 	 * @when after_wp_load
 	 */
 	public function stats( $args, $assoc_args ) {
+		unset( $args, $assoc_args );
+
 		$ability = wp_get_ability( 'extrachill/community-get-stats' );
 		if ( ! $ability ) {
 			WP_CLI::error( 'extrachill/community-get-stats ability not available. Is extrachill-community active on this site?' );
@@ -344,8 +346,9 @@ class CommunityCommand {
 	 */
 	public function points( $args, $assoc_args ) {
 		$user = $this->resolve_user( $args[0] ?? '' );
-		if ( ! $user ) {
+		if ( ! $user instanceof \WP_User ) {
 			WP_CLI::error( 'User not found.' );
+			return;
 		}
 
 		$recalculate = Utils\get_flag_value( $assoc_args, 'recalculate', false );
@@ -408,6 +411,8 @@ class CommunityCommand {
 	 * @when after_wp_load
 	 */
 	public function recalculate_all( $args, $assoc_args ) {
+		unset( $args, $assoc_args );
+
 		$ability = wp_get_ability( 'extrachill/community-recalculate-points' );
 		if ( ! $ability ) {
 			WP_CLI::error( 'extrachill/community-recalculate-points ability not available.' );
@@ -480,8 +485,9 @@ class CommunityCommand {
 	 */
 	public function notifications( $args, $assoc_args ) {
 		$user = $this->resolve_user( $args[0] ?? '' );
-		if ( ! $user ) {
+		if ( ! $user instanceof \WP_User ) {
 			WP_CLI::error( 'User not found.' );
+			return;
 		}
 
 		$user_id = (int) $user->ID;
@@ -525,7 +531,7 @@ class CommunityCommand {
 			return;
 		}
 
-		// Default: list notifications.
+		// List notifications by default.
 		$ability = wp_get_ability( 'extrachill/get-notifications' );
 		if ( ! $ability ) {
 			WP_CLI::error( 'extrachill/get-notifications ability not available.' );
@@ -563,7 +569,7 @@ class CommunityCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result['notifications'], JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result['notifications'], JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -713,8 +719,9 @@ class CommunityCommand {
 
 		if ( isset( $assoc_args['user'] ) ) {
 			$user = $this->resolve_user( (string) $assoc_args['user'] );
-			if ( ! $user ) {
+			if ( ! $user instanceof \WP_User ) {
 				WP_CLI::error( 'User not found.' );
+				return;
 			}
 			$input['user_id'] = (int) $user->ID;
 		}
@@ -867,11 +874,11 @@ class CommunityCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
-		$t = $result['topic'];
+		$t     = $result['topic'];
 		$items = array(
 			array(
 				'Field' => 'Topic ID',
@@ -1002,8 +1009,9 @@ class CommunityCommand {
 
 		if ( isset( $assoc_args['user'] ) ) {
 			$user = $this->resolve_user( (string) $assoc_args['user'] );
-			if ( ! $user ) {
+			if ( ! $user instanceof \WP_User ) {
 				WP_CLI::error( 'User not found.' );
+				return;
 			}
 			$input['user_id'] = (int) $user->ID;
 		}
@@ -1083,8 +1091,9 @@ class CommunityCommand {
 
 		if ( isset( $assoc_args['user'] ) ) {
 			$user = $this->resolve_user( (string) $assoc_args['user'] );
-			if ( ! $user ) {
+			if ( ! $user instanceof \WP_User ) {
 				WP_CLI::error( 'User not found.' );
+				return;
 			}
 			$input['user_id'] = (int) $user->ID;
 		}
@@ -1112,6 +1121,8 @@ class CommunityCommand {
 	 * @when after_wp_load
 	 */
 	public function flush_cache( $args, $assoc_args ) {
+		unset( $args, $assoc_args );
+
 		$ability = wp_get_ability( 'extrachill/community-flush-cache' );
 		if ( ! $ability ) {
 			WP_CLI::error( 'extrachill/community-flush-cache ability not available.' );

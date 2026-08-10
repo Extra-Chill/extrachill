@@ -107,7 +107,8 @@ class MigratePostCommand {
 		$dry_run       = ! empty( $assoc_args['dry-run'] );
 		$delete_source = ! empty( $assoc_args['delete-source'] );
 
-		$result = ec_migrate_post(
+		$result = $this->call_dependency(
+			'ec_migrate_post',
 			$source_blog_id,
 			$post_id,
 			$dest_blog_id,
@@ -124,12 +125,12 @@ class MigratePostCommand {
 
 		// Porcelain: only the new post ID (empty string on dry-run).
 		if ( ! empty( $assoc_args['porcelain'] ) ) {
-			WP_CLI::line( (string) ( $result['dest_post_id'] ?: '' ) );
+			WP_CLI::line( (string) ( $result['dest_post_id'] ? $result['dest_post_id'] : '' ) );
 			return;
 		}
 
 		if ( 'json' === ( $assoc_args['format'] ?? 'table' ) ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -222,5 +223,15 @@ class MigratePostCommand {
 				)
 			);
 		}
+	}
+
+	/** Invoke a migration function supplied by the network runtime. */
+	private function call_dependency( $callback, ...$args ) {
+		if ( ! is_callable( $callback ) ) {
+			WP_CLI::error( 'Post migration API is not available.' );
+			return null;
+		}
+
+		return $callback( ...$args );
 	}
 }

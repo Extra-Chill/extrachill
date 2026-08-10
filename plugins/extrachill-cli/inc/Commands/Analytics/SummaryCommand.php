@@ -116,7 +116,7 @@ class SummaryCommand {
 			Utils\format_items(
 				$format,
 				array( $this->csv_row( $result ) ),
-				array_keys( $result )
+				array_map( 'strval', array_keys( $result ) )
 			);
 			return;
 		}

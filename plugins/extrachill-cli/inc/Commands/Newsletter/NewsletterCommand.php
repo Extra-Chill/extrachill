@@ -188,6 +188,8 @@ class NewsletterCommand {
 	 * @when after_wp_load
 	 */
 	public function push_campaign( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$post_id = absint( $args[0] ?? 0 );
 
 		if ( ! $post_id ) {
@@ -240,7 +242,7 @@ class NewsletterCommand {
 		}
 
 		// Call the execute callback directly (bypasses permission check for CLI).
-		$result = extrachill_newsletter_ability_get_settings( array() );
+		$result = $this->call_dependency( 'extrachill_newsletter_ability_get_settings', array() );
 
 		$format = $assoc_args['format'] ?? 'json';
 
@@ -261,8 +263,8 @@ class NewsletterCommand {
 			foreach ( $result['integrations'] as $context => $integration ) {
 				$int_rows[] = array(
 					'Context'    => $context,
-					'Label'     => $integration['label'],
-					'List ID'   => $integration['list_id'] ? $integration['list_id'] : '(not set)',
+					'Label'      => $integration['label'],
+					'List ID'    => $integration['list_id'] ? $integration['list_id'] : '(not set)',
 					'Configured' => $integration['list_id_set'] ? 'Yes' : 'No',
 				);
 			}
@@ -278,7 +280,7 @@ class NewsletterCommand {
 				}
 			}
 		} else {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -311,10 +313,13 @@ class NewsletterCommand {
 	 * @when after_wp_load
 	 */
 	public function campaigns( $args, $assoc_args ) {
-		$result = extrachill_newsletter_ability_list_campaigns( array(
-			'per_page' => (int) ( $assoc_args['per-page'] ?? 20 ),
-			'status'   => $assoc_args['status'] ?? '',
-		) );
+		$result = $this->call_dependency(
+			'extrachill_newsletter_ability_list_campaigns',
+			array(
+				'per_page' => (int) ( $assoc_args['per-page'] ?? 20 ),
+				'status'   => $assoc_args['status'] ?? '',
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -337,7 +342,7 @@ class NewsletterCommand {
 			WP_CLI::line( sprintf( 'Showing %d of %d campaigns', count( $rows ), $result['total'] ) );
 			\WP_CLI\Utils\format_items( 'table', $rows, array( 'ID', 'Title', 'Status', 'Sent', 'To Send', 'Recipients' ) );
 		} else {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 		}
 	}
 
@@ -356,19 +361,21 @@ class NewsletterCommand {
 	 * @when after_wp_load
 	 */
 	public function campaign( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$campaign_id = absint( $args[0] ?? 0 );
 
 		if ( ! $campaign_id ) {
 			WP_CLI::error( 'Campaign ID is required.' );
 		}
 
-		$result = extrachill_newsletter_ability_get_campaign( array( 'campaign_id' => $campaign_id ) );
+		$result = $this->call_dependency( 'extrachill_newsletter_ability_get_campaign', array( 'campaign_id' => $campaign_id ) );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
 		}
 
-		WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+		WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 	}
 
 	/**
@@ -386,13 +393,15 @@ class NewsletterCommand {
 	 * @when after_wp_load
 	 */
 	public function delete_campaign( $args, $assoc_args ) {
+		unset( $assoc_args );
+
 		$campaign_id = absint( $args[0] ?? 0 );
 
 		if ( ! $campaign_id ) {
 			WP_CLI::error( 'Campaign ID is required.' );
 		}
 
-		$result = extrachill_newsletter_ability_delete_campaign( array( 'campaign_id' => $campaign_id ) );
+		$result = $this->call_dependency( 'extrachill_newsletter_ability_delete_campaign', array( 'campaign_id' => $campaign_id ) );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -430,10 +439,13 @@ class NewsletterCommand {
 			WP_CLI::error( '--list-id is required.' );
 		}
 
-		$result = extrachill_newsletter_ability_subscriber_status( array(
-			'email'   => $email,
-			'list_id' => $list_id,
-		) );
+		$result = $this->call_dependency(
+			'extrachill_newsletter_ability_subscriber_status',
+			array(
+				'email'   => $email,
+				'list_id' => $list_id,
+			)
+		);
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -487,7 +499,8 @@ class NewsletterCommand {
 			WP_CLI::error( 'extrachill/newsletter-subscriber-stats ability not available. Ensure extrachill-newsletter plugin is activated.' );
 		}
 
-		$result = extrachill_newsletter_ability_subscriber_stats(
+		$result = $this->call_dependency(
+			'extrachill_newsletter_ability_subscriber_stats',
 			array(
 				'force_refresh' => ! empty( $assoc_args['refresh'] ),
 				'source'        => $assoc_args['source'] ?? 'auto',
@@ -506,7 +519,7 @@ class NewsletterCommand {
 		}
 
 		if ( 'json' === $format ) {
-			WP_CLI::log( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::log( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
@@ -532,5 +545,21 @@ class NewsletterCommand {
 		}
 
 		\WP_CLI\Utils\format_items( 'table', $rows, array( 'List ID', 'Name', 'Active' ) );
+	}
+
+	/**
+	 * Invoke a function supplied by the Newsletter runtime.
+	 *
+	 * @param string $callback Function name.
+	 * @param mixed  ...$args Function arguments.
+	 * @return mixed
+	 */
+	private function call_dependency( $callback, ...$args ) {
+		if ( ! is_callable( $callback ) ) {
+			WP_CLI::error( sprintf( 'Newsletter function %s is not available.', $callback ) );
+			return null;
+		}
+
+		return $callback( ...$args );
 	}
 }
