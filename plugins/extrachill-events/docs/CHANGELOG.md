@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.60.0] - 2026-08-10
+
+### Added
+- expose public Events entity projections
+- add idempotent event priority boosts
+
+### Changed
+- isolate Events bootstrap providers
+- use public pipeline configuration contracts
+- extract venue booking providers
+
+### Fixed
+- clear release lint blockers
+- defer translated booking service errors
+- authorize priority boosts with service assertions
+- authorize trusted priority boost fulfillment
+
 ## [0.59.1] - 2026-08-06
 
 ### Changed
