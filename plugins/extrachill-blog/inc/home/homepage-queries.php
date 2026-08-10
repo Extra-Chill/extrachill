@@ -355,14 +355,10 @@ function extrachill_blog_get_hero_stats() {
 	$keys  = array( 'events_count', 'events_cities', 'total_members', 'artist_profiles' );
 	$stats = ec_get_network_stats( $keys );
 
-	if ( ! is_array( $stats ) ) {
-		return array();
-	}
-
 	$values = array();
 
 	foreach ( $keys as $key ) {
-		if ( empty( $stats[ $key ] ) || ! is_array( $stats[ $key ] ) ) {
+		if ( empty( $stats[ $key ] ) ) {
 			continue;
 		}
 

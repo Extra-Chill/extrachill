@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param string $site_key     Network site key.
  * @param string $ability_name Registered Ability name.
  * @param array  $input        Ability input.
- * @return array|WP_Error Owner response or transport error.
+ * @return array|string|WP_Error Owner response or transport error.
  */
 function extrachill_blog_request_cross_site_ability( $site_key, $ability_name, $input = array() ) {
 	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
