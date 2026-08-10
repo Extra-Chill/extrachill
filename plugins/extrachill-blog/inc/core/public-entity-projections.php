@@ -226,9 +226,6 @@ function extrachill_blog_get_public_entity_projections( $input ) {
 		}
 
 		$term = get_term_by( 'slug', $slug, 'festival' );
-		if ( is_wp_error( $term ) ) {
-			return $term;
-		}
 		if ( ! ( $term instanceof WP_Term ) || (int) $term->count < 1 ) {
 			$items[] = $item;
 			continue;
@@ -238,7 +235,7 @@ function extrachill_blog_get_public_entity_projections( $input ) {
 		if ( is_wp_error( $url ) ) {
 			return $url;
 		}
-		if ( ! is_string( $url ) || '' === $url ) {
+		if ( '' === $url ) {
 			return new WP_Error( 'extrachill_blog_projection_permalink_unavailable', __( 'The festival canonical permalink is unavailable.', 'extrachill-blog' ) );
 		}
 

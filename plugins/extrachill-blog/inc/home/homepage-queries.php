@@ -306,7 +306,7 @@ function extrachill_blog_fetch_recently_shipped() {
 
 		$release = $release_data;
 
-		if ( empty( $release['tag_name'] ) || empty( $release['published_at'] ) || empty( $release['html_url'] ) ) {
+		if ( empty( $release['published_at'] ) || empty( $release['html_url'] ) ) {
 			continue;
 		}
 

@@ -39,7 +39,7 @@ function home_url( $path = '' ) {
 function number_format_i18n( $number ) {
 	return number_format( $number );
 }
-function ec_get_network_stats() {
+function ec_get_network_stats( $keys = array() ) {
 	return array();
 }
 function ec_get_site_url( $site_key ) {

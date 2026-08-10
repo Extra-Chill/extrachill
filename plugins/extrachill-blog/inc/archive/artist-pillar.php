@@ -105,7 +105,7 @@ add_action( 'extrachill_archive_below_description', 'extrachill_blog_render_arti
  * Artist Platform contributes only its public profile update timestamp, never
  * profile content.
  *
- * @param WP_Term $term Artist term.
+ * @param mixed $term Artist term.
  * @return array[] Renderable activity items.
  */
 function extrachill_blog_get_artist_activity( $term ) {
@@ -155,7 +155,7 @@ function extrachill_blog_get_artist_coverage_activity( $term ) {
 		$items[] = extrachill_blog_build_artist_activity_item(
 			get_the_title( $post ),
 			get_permalink( $post ),
-			get_post_time( 'c', true, $post ),
+			(string) get_post_time( 'c', true, $post ),
 			__( 'Editorial coverage', 'extrachill-blog' )
 		);
 	}
@@ -181,7 +181,7 @@ function extrachill_blog_get_artist_events_activity( $term ) {
 		)
 	);
 
-	if ( is_wp_error( $result ) || ! is_array( $result ) ) {
+	if ( is_wp_error( $result ) ) {
 		return array();
 	}
 
@@ -354,7 +354,7 @@ function extrachill_blog_get_artist_platform_activity( $term ) {
  * @param string $date_display Source-formatted date, when available.
  * @param string $context      Source-owned venue and time context, when available.
  * @param string $timing       Source-owned upcoming or past timing, when available.
- * @param array  $relationships Events-owned venue, location, and festival relationships.
+ * @param mixed  $relationships Events-owned venue, location, and festival relationships.
  * @return array|null Activity item.
  */
 function extrachill_blog_build_artist_activity_item( $title, $url, $date, $source, $date_display = '', $context = '', $timing = '', $relationships = array() ) {
@@ -379,7 +379,7 @@ function extrachill_blog_build_artist_activity_item( $title, $url, $date, $sourc
 /**
  * Return renderable taxonomy badges from Events-owned relationship objects.
  *
- * @param array $relationships Event relationship data.
+ * @param mixed $relationships Event relationship data.
  * @return array[] Badge data.
  */
 function extrachill_blog_get_artist_activity_badges( $relationships ) {
