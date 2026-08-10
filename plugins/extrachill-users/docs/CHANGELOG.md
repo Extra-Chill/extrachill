@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.3] - 2026-08-10
+
+### Changed
+- require registered subscription identities
+
+### Fixed
+- provide Homeboy database test environment
+
 ## [0.41.2] - 2026-08-04
 
 ### Changed
