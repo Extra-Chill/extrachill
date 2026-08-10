@@ -11,8 +11,11 @@ function wp_get_ability( string $name ) {
 	return $GLOBALS['ec_persisted_qualification_abilities'][ $name ] ?? null;
 }
 
-function is_wp_error(): bool {
-	return false;
+/**
+ * @phpstan-assert-if-true \WP_Error $thing
+ */
+function is_wp_error( $thing ): bool {
+	return $thing instanceof \WP_Error;
 }
 
 function wp_remote_get(): array {
@@ -42,10 +45,15 @@ class QualifyVerdictsTable {
 
 namespace ExtraChillEvents\Abilities;
 
-function add_action(): void {}
+function add_action( $hook_name, $callback, $priority = 10, $accepted_args = 1 ): bool {
+	return true;
+}
 
-function is_wp_error(): bool {
-	return false;
+/**
+ * @phpstan-assert-if-true \WP_Error $thing
+ */
+function is_wp_error( $thing ): bool {
+	return $thing instanceof \WP_Error;
 }
 
 function wp_remote_get(): array {
@@ -107,8 +115,11 @@ class EventIdentifierGenerator {
 
 namespace ExtraChillEvents\Cli;
 
-function is_wp_error(): bool {
-	return false;
+/**
+ * @phpstan-assert-if-true \WP_Error $thing
+ */
+function is_wp_error( $thing ): bool {
+	return $thing instanceof \WP_Error;
 }
 
 class FlowOps {

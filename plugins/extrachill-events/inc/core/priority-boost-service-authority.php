@@ -198,6 +198,5 @@ function extrachill_events_priority_boost_has_verified_service_authority(): bool
 
 	$claims = ec_cross_site_verified_service_context( $request );
 
-	return is_array( $claims )
-		&& extrachill_events_priority_boost_service_request_is_authorized( $request->get_method(), $request->get_route(), $claims, $grant );
+	return extrachill_events_priority_boost_service_request_is_authorized( $request->get_method(), $request->get_route(), $claims, $grant );
 }

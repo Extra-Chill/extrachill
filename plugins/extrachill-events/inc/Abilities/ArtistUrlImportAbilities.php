@@ -319,14 +319,16 @@ class ArtistUrlImportAbilities {
 	// ────────────────────────────────────────────────────────────────────
 
 	public function permissionLoggedIn(): bool {
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		$is_cli = defined( 'WP_CLI' ) ? wp_validate_boolean( constant( 'WP_CLI' ) ) : false;
+		if ( $is_cli ) {
 			return true;
 		}
 		return is_user_logged_in();
 	}
 
 	public function permissionAdmin(): bool {
-		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		$is_cli = defined( 'WP_CLI' ) ? wp_validate_boolean( constant( 'WP_CLI' ) ) : false;
+		if ( $is_cli ) {
 			return true;
 		}
 		return current_user_can( 'manage_options' );
@@ -336,7 +338,11 @@ class ArtistUrlImportAbilities {
 	// preview-artist-url
 	// ────────────────────────────────────────────────────────────────────
 
-	public function executePreview( array $input ): array|\WP_Error {
+	/**
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function executePreview( array $input ) {
 		$raw_url = isset( $input['url'] ) ? (string) $input['url'] : '';
 		$url     = esc_url_raw( $raw_url );
 
@@ -407,7 +413,11 @@ class ArtistUrlImportAbilities {
 	// submit-artist-url
 	// ────────────────────────────────────────────────────────────────────
 
-	public function executeSubmit( array $input ): array|\WP_Error {
+	/**
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function executeSubmit( array $input ) {
 		$raw_url = isset( $input['url'] ) ? (string) $input['url'] : '';
 		$url     = esc_url_raw( $raw_url );
 		if ( '' === $url ) {
@@ -559,7 +569,11 @@ class ArtistUrlImportAbilities {
 	// approve-artist-url-submission
 	// ────────────────────────────────────────────────────────────────────
 
-	public function executeApprove( array $input ): array|\WP_Error {
+	/**
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function executeApprove( array $input ) {
 		$submission_id = (int) ( $input['submission_id'] ?? 0 );
 		if ( $submission_id <= 0 ) {
 			return new \WP_Error( 'invalid_submission_id', __( 'submission_id is required.', 'extrachill-events' ), array( 'status' => 400 ) );
@@ -715,7 +729,7 @@ class ArtistUrlImportAbilities {
 			$events_found_count
 		);
 		$artist_archive_link = get_term_link( $artist_term_id, 'artist' );
-		if ( is_wp_error( $artist_archive_link ) || ! is_string( $artist_archive_link ) || '' === $artist_archive_link ) {
+		if ( is_wp_error( $artist_archive_link ) || '' === $artist_archive_link ) {
 			$artist_archive_link = home_url();
 		}
 
@@ -755,7 +769,11 @@ class ArtistUrlImportAbilities {
 	// reject-artist-url-submission
 	// ────────────────────────────────────────────────────────────────────
 
-	public function executeReject( array $input ): array|\WP_Error {
+	/**
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function executeReject( array $input ) {
 		$submission_id = (int) ( $input['submission_id'] ?? 0 );
 		if ( $submission_id <= 0 ) {
 			return new \WP_Error( 'invalid_submission_id', __( 'submission_id is required.', 'extrachill-events' ), array( 'status' => 400 ) );
@@ -954,10 +972,9 @@ class ArtistUrlImportAbilities {
 
 		// Fill in any handler defaults the same way test-handler does, so
 		// the probe matches a real flow run's config surface.
-		if ( method_exists( $abilities, 'applyDefaults' ) ) {
-			$config = $abilities->applyDefaults( self::SCRAPER_HANDLER_SLUG, $config );
-		}
+		$config = $abilities->applyDefaults( self::SCRAPER_HANDLER_SLUG, $config );
 
+		/** @var \DataMachine\Core\Steps\Fetch\Handlers\FetchHandler $handler */
 		$handler = new $handler_class();
 
 		try {
@@ -966,7 +983,7 @@ class ArtistUrlImportAbilities {
 			return new \WP_Error( 'scraper_failed', $e->getMessage(), array( 'status' => 502 ) );
 		}
 
-		return is_array( $results ) ? $results : array();
+		return $results;
 	}
 
 	/**
@@ -1160,13 +1177,13 @@ class ArtistUrlImportAbilities {
 
 		// Try an exact match first (cheap path, common case).
 		$exact = get_term_by( 'name', $name, 'artist' );
-		if ( $exact && ! is_wp_error( $exact ) ) {
+		if ( $exact instanceof \WP_Term ) {
 			return (int) $exact->term_id;
 		}
 
 		// Fall back to slug match — handles minor casing/punctuation drift.
 		$by_slug = get_term_by( 'slug', sanitize_title( $name ), 'artist' );
-		if ( $by_slug && ! is_wp_error( $by_slug ) ) {
+		if ( $by_slug instanceof \WP_Term ) {
 			return (int) $by_slug->term_id;
 		}
 
@@ -1223,7 +1240,7 @@ class ArtistUrlImportAbilities {
 
 		if ( $explicit_id > 0 ) {
 			$term = get_term( $explicit_id, 'artist' );
-			if ( $term && ! is_wp_error( $term ) ) {
+			if ( $term instanceof \WP_Term ) {
 				return (int) $term->term_id;
 			}
 		}
@@ -1231,7 +1248,7 @@ class ArtistUrlImportAbilities {
 		$explicit_name = trim( $explicit_name );
 		if ( '' !== $explicit_name ) {
 			$existing = get_term_by( 'name', $explicit_name, 'artist' );
-			if ( $existing && ! is_wp_error( $existing ) ) {
+			if ( $existing instanceof \WP_Term ) {
 				return (int) $existing->term_id;
 			}
 
@@ -1239,7 +1256,7 @@ class ArtistUrlImportAbilities {
 			if ( is_wp_error( $inserted ) ) {
 				// Slug collision — try slug lookup as a recovery.
 				$by_slug = get_term_by( 'slug', sanitize_title( $explicit_name ), 'artist' );
-				if ( $by_slug && ! is_wp_error( $by_slug ) ) {
+				if ( $by_slug instanceof \WP_Term ) {
 					return (int) $by_slug->term_id;
 				}
 				return new \WP_Error( 'artist_create_failed', $inserted->get_error_message(), array( 'status' => 500 ) );
@@ -1249,7 +1266,7 @@ class ArtistUrlImportAbilities {
 
 		if ( $suggested_id > 0 ) {
 			$term = get_term( $suggested_id, 'artist' );
-			if ( $term && ! is_wp_error( $term ) ) {
+			if ( $term instanceof \WP_Term ) {
 				return (int) $term->term_id;
 			}
 		}
