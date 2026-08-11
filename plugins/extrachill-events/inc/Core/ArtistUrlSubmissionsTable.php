@@ -2,13 +2,10 @@
 /**
  * Artist URL Submissions Table
  *
- * Stores the moderation queue for URL-based artist tour imports submitted
- * via the event-submission block (extrachill-events#320). A row is
- * inserted when a logged-in user submits an artist tour URL; an admin
- * reviews the row and either approves it — at which point a Data Machine
- * pipeline + flow are created via `datamachine/create-flow` — or rejects
- * it. Failed scrapes are recorded with `status = 'scraping_failed'` so
- * admins can review URLs that need handler-format expansion.
+ * Stores the moderation queue for qualified recurring event sources. The
+ * original table name and artist columns remain compatibility contracts;
+ * generic source identity, canonical URL, and qualification fields extend
+ * those rows without moving or rewriting deployed data.
  *
  * Ownership note (extrachill-events#200): this subsystem was migrated out
  * of the generic `data-machine-events` substrate, which must not carry
@@ -42,7 +39,7 @@ class ArtistUrlSubmissionsTable {
 	/**
 	 * Schema version. Bump when CREATE TABLE definition changes.
 	 */
-	const SCHEMA_VERSION = '1';
+	const SCHEMA_VERSION = '2';
 
 	/**
 	 * Site option key that stores the installed schema version.
@@ -88,6 +85,13 @@ class ArtistUrlSubmissionsTable {
 			contact_name varchar(255) NULL,
 			url varchar(2048) NOT NULL,
 			url_hash char(64) NOT NULL,
+			canonical_url varchar(2048) NULL,
+			source_kind varchar(32) NULL,
+			entity_taxonomy varchar(32) NULL,
+			entity_term_id bigint(20) unsigned NULL,
+			entity_name varchar(255) NULL,
+			qualification_verdict varchar(64) NULL,
+			qualification_data longtext NULL,
 			suggested_artist_name varchar(255) NULL,
 			suggested_artist_term_id bigint(20) unsigned NULL,
 			detected_format varchar(64) NULL,
@@ -148,55 +152,17 @@ class ArtistUrlSubmissionsTable {
 	 * @return string Normalized URL, or empty string if the input is not parseable.
 	 */
 	public static function normalize_url( string $url ): string {
-		$url = trim( $url );
-		if ( '' === $url ) {
-			return '';
-		}
-
-		$parts = wp_parse_url( $url );
-		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
-			return '';
-		}
-
-		$scheme = strtolower( $parts['scheme'] );
-		$host   = strtolower( $parts['host'] );
-		$port   = $parts['port'] ?? '';
-		$path   = $parts['path'] ?? '/';
-		$query  = $parts['query'] ?? '';
-
-		// Strip default ports.
-		if ( ( 'http' === $scheme && 80 === (int) $port ) || ( 'https' === $scheme && 443 === (int) $port ) ) {
-			$port = '';
-		}
-
-		// Trim trailing slash on non-root paths.
-		if ( strlen( $path ) > 1 && '/' === substr( $path, -1 ) ) {
-			$path = rtrim( $path, '/' );
-		}
-		if ( '' === $path ) {
-			$path = '/';
-		}
-
-		$normalized = $scheme . '://' . $host;
-		if ( '' !== (string) $port ) {
-			$normalized .= ':' . $port;
-		}
-		$normalized .= $path;
-		if ( '' !== $query ) {
-			$normalized .= '?' . $query;
-		}
-
-		return $normalized;
+		return QualifyVerdict::canonicalize_url( $url );
 	}
 
 	/**
-	 * Compute the dedupe hash for a normalized URL.
+	 * Compute the dedupe hash for a URL's canonical identity.
 	 *
-	 * @param string $normalized_url URL already passed through normalize_url().
+	 * @param string $url Operational or canonical URL.
 	 * @return string sha256 hex.
 	 */
-	public static function url_hash( string $normalized_url ): string {
-		return hash( 'sha256', $normalized_url );
+	public static function url_hash( string $url ): string {
+		return hash( 'sha256', self::normalize_url( $url ) );
 	}
 
 	/**
@@ -215,7 +181,48 @@ class ArtistUrlSubmissionsTable {
 			ARRAY_A
 		);
 
-		return $row ? $row : null;
+		return $row ? self::with_compatibility_defaults( $row ) : null;
+	}
+
+	/**
+	 * Find a pending or approved source by canonical URL identity.
+	 *
+	 * The hash fast path covers Phase 1 rows. The legacy scan keeps old
+	 * artist records readable when their stored hash includes tracking/query or
+	 * trailing-slash variants from the pre-canonical schema.
+	 */
+	public static function find_tracked_by_url( string $url, int $exclude_id = 0 ): ?array {
+		$canonical = self::normalize_url( $url );
+		if ( '' === $canonical ) {
+			return null;
+		}
+		$hashed = self::find_by_hash( self::url_hash( $canonical ) );
+		if ( $hashed && (int) $hashed['id'] !== $exclude_id && in_array( $hashed['status'], array( self::STATUS_PENDING_REVIEW, self::STATUS_APPROVED ), true ) ) {
+			return $hashed;
+		}
+
+		global $wpdb;
+		$table = self::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				"SELECT * FROM {$table} WHERE status IN (%s, %s) ORDER BY id DESC",
+				self::STATUS_PENDING_REVIEW,
+				self::STATUS_APPROVED
+			),
+			ARRAY_A
+		);
+		foreach ( (array) $rows as $row ) {
+			if ( (int) $row['id'] === $exclude_id ) {
+				continue;
+			}
+			$candidate = (string) ( $row['canonical_url'] ?? $row['url'] ?? '' );
+			if ( self::normalize_url( $candidate ) === $canonical ) {
+				return self::with_compatibility_defaults( $row );
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -234,7 +241,7 @@ class ArtistUrlSubmissionsTable {
 			ARRAY_A
 		);
 
-		return $row ? $row : null;
+		return $row ? self::with_compatibility_defaults( $row ) : null;
 	}
 
 	/**
@@ -253,6 +260,13 @@ class ArtistUrlSubmissionsTable {
 			'contact_name'             => null,
 			'url'                      => '',
 			'url_hash'                 => '',
+			'canonical_url'            => null,
+			'source_kind'              => null,
+			'entity_taxonomy'          => null,
+			'entity_term_id'           => null,
+			'entity_name'              => null,
+			'qualification_verdict'    => null,
+			'qualification_data'       => null,
 			'suggested_artist_name'    => null,
 			'suggested_artist_term_id' => null,
 			'detected_format'          => null,
@@ -294,6 +308,13 @@ class ArtistUrlSubmissionsTable {
 			'pipeline_id',
 			'flow_id',
 			'artist_term_id',
+			'canonical_url',
+			'source_kind',
+			'entity_taxonomy',
+			'entity_term_id',
+			'entity_name',
+			'qualification_verdict',
+			'qualification_data',
 			'suggested_artist_name',
 			'suggested_artist_term_id',
 			'detected_format',
@@ -352,7 +373,36 @@ class ArtistUrlSubmissionsTable {
 			);
 		}
 
-		return $rows ? $rows : array();
+		return $rows ? array_map( array( self::class, 'with_compatibility_defaults' ), $rows ) : array();
+	}
+
+	/**
+	 * Read legacy artist rows through the generic event-source model.
+	 *
+	 * Existing records predate the source columns, so an empty source kind is
+	 * concrete evidence of the shipped artist-tour contract rather than an
+	 * unknown classification.
+	 */
+	public static function with_compatibility_defaults( array $row ): array {
+		if ( empty( $row['source_kind'] ) ) {
+			$row['source_kind']          = 'artist';
+			$row['compatibility_legacy'] = true;
+		} else {
+			$row['compatibility_legacy'] = false;
+		}
+		if ( empty( $row['canonical_url'] ) ) {
+			$row['canonical_url'] = (string) ( $row['url'] ?? '' );
+		}
+		if ( empty( $row['entity_taxonomy'] ) && 'artist' === $row['source_kind'] ) {
+			$row['entity_taxonomy'] = 'artist';
+		}
+		if ( empty( $row['entity_term_id'] ) && ! empty( $row['suggested_artist_term_id'] ) ) {
+			$row['entity_term_id'] = (int) $row['suggested_artist_term_id'];
+		}
+		if ( empty( $row['entity_name'] ) && ! empty( $row['suggested_artist_name'] ) ) {
+			$row['entity_name'] = (string) $row['suggested_artist_name'];
+		}
+		return $row;
 	}
 
 	/**

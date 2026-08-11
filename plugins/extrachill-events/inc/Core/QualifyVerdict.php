@@ -354,6 +354,7 @@ final class QualifyVerdict {
 
 		$scheme = strtolower( $parts['scheme'] ?? 'https' );
 		$host   = strtolower( $parts['host'] );
+		$port   = isset( $parts['port'] ) ? (int) $parts['port'] : 0;
 		$path   = $parts['path'] ?? '';
 		$query  = $parts['query'] ?? '';
 
@@ -383,7 +384,11 @@ final class QualifyVerdict {
 			}
 		}
 
-		$canonical = $scheme . '://' . $host . $path;
+		$canonical = $scheme . '://' . $host;
+		if ( $port > 0 && ! ( 'http' === $scheme && 80 === $port ) && ! ( 'https' === $scheme && 443 === $port ) ) {
+			$canonical .= ':' . $port;
+		}
+		$canonical .= $path;
 		if ( '' !== $kept_query ) {
 			$canonical .= '?' . $kept_query;
 		}

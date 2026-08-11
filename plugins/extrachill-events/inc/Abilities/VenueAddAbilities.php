@@ -162,21 +162,20 @@ class VenueAddAbilities {
 			}
 		}
 
-		// Validate pipeline exists.
-		$pipeline = $this->getPipeline( $pipeline_id );
-		if ( ! $pipeline ) {
-			return new \WP_Error( 'pipeline_not_found', sprintf( 'Pipeline %d not found.', $pipeline_id ), array( 'status' => 404 ) );
+		$pipeline_context = $this->validateCityPipeline( $pipeline_id );
+		if ( is_wp_error( $pipeline_context ) ) {
+			return $pipeline_context;
 		}
+		$pipeline = $pipeline_context['pipeline'];
 
 		$pipeline_name = $pipeline['pipeline_name'] ?? '';
+		$location_term = (string) $pipeline_context['location_term_id'];
+		$location      = $pipeline_context['location'];
 
-		// Derive city from pipeline name if not provided (e.g. "Nashville Events" → "Nashville").
+		// The canonical location binding owns city identity; pipeline names are display only.
 		if ( empty( $city ) ) {
-			$city = str_ireplace( ' Events', '', $pipeline_name );
+			$city = (string) $location->name;
 		}
-
-		// Derive location term from pipeline name.
-		$location_term = str_ireplace( ' Events', '', $pipeline_name );
 
 		// Check for idempotency — does a flow with this venue already exist in this pipeline?
 		$existing_flow = $this->findExistingVenueFlow( $pipeline_id, $name );
@@ -270,6 +269,85 @@ class VenueAddAbilities {
 		return $wpdb->get_row(
 			$wpdb->prepare( "SELECT * FROM {$table} WHERE pipeline_id = %d", $pipeline_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is a trusted internal identifier built from $wpdb->prefix.
 			ARRAY_A
+		);
+	}
+
+	/**
+	 * Validate that a pipeline is an event-import city pipeline with one
+	 * concrete canonical location binding.
+	 */
+	public function validateCityPipeline( int $pipeline_id ) {
+		$pipeline = $this->getPipeline( $pipeline_id );
+		if ( ! $pipeline ) {
+			return new \WP_Error( 'pipeline_not_found', sprintf( 'Pipeline %d not found.', $pipeline_id ), array( 'status' => 404 ) );
+		}
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_flows';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				"SELECT flow_config FROM {$table} WHERE pipeline_id = %d",
+				$pipeline_id
+			),
+			ARRAY_A
+		);
+
+		$location_ids      = array();
+		$coherent_flows    = 0;
+		$invalid_structure = false;
+		foreach ( (array) $rows as $row ) {
+			$config           = json_decode( (string) ( $row['flow_config'] ?? '' ), true );
+			$has_event_import = false;
+			$has_event_upsert = false;
+			$flow_locations   = array();
+			foreach ( (array) $config as $step ) {
+				if ( 'event_import' === ( $step['step_type'] ?? '' ) ) {
+					$has_event_import = true;
+				}
+				if ( 'upsert' !== ( $step['step_type'] ?? '' ) ) {
+					continue;
+				}
+				$upsert = $step['handler_config'] ?? $step['handler_configs']['upsert_event'] ?? array();
+				if ( ! is_array( $upsert ) ) {
+					continue;
+				}
+				$has_event_upsert = true;
+				$value            = (string) ( $upsert['taxonomy_location_selection'] ?? '' );
+				if ( ctype_digit( $value ) && (int) $value > 0 ) {
+					$flow_locations[ (int) $value ] = true;
+				} else {
+					$invalid_structure = true;
+				}
+			}
+			if ( $has_event_import !== $has_event_upsert ) {
+				$invalid_structure = true;
+				continue;
+			}
+			if ( $has_event_import && $has_event_upsert ) {
+				if ( 1 !== count( $flow_locations ) ) {
+					$invalid_structure = true;
+					continue;
+				}
+				++$coherent_flows;
+				$location_ids[ (int) array_key_first( $flow_locations ) ] = true;
+			}
+		}
+
+		if ( $invalid_structure || $coherent_flows < 1 || 1 !== count( $location_ids ) ) {
+			return new \WP_Error( 'invalid_city_pipeline', 'The selected pipeline is not an event city pipeline with one canonical location.', array( 'status' => 400 ) );
+		}
+		$location_id = (int) array_key_first( $location_ids );
+		$location    = get_term( $location_id, 'location' );
+		if ( ! $location instanceof \WP_Term ) {
+			return new \WP_Error( 'invalid_pipeline_location', 'The selected pipeline location is not a canonical location term.', array( 'status' => 400 ) );
+		}
+
+		return array(
+			'pipeline'         => $pipeline,
+			'location'         => $location,
+			'location_term_id' => $location_id,
 		);
 	}
 
@@ -373,6 +451,7 @@ class VenueAddAbilities {
 						'post_status'                 => 'publish',
 						'include_images'              => false,
 						'post_author'                 => self::DEFAULT_POST_AUTHOR,
+						'taxonomy_venue_selection'    => (string) $venue_term_id,
 						'taxonomy_category_selection' => 'skip',
 						'taxonomy_post_tag_selection' => 'skip',
 						'taxonomy_location_selection' => $location_term,

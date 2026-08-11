@@ -2,9 +2,10 @@
 /**
  * Artist URL Import REST Routes
  *
- * Registers the four artist-URL-import REST routes under this plugin's own
- * `extrachill/v1` namespace (matching `extrachill/v1/event-submissions`).
- * Migrated out of data-machine-events in extrachill-events#200.
+ * Registers generic event-source routes under this plugin's own
+ * `extrachill/v1` namespace. The four shipped `artist-url` routes remain
+ * Phase 1 compatibility aliases and delegate through the artist ability
+ * aliases to the same generic intake implementation.
  *
  * The one-release `datamachine/v1/artist-url/*` compatibility aliases that
  * shipped with the #200 migration were retired in extrachill-events#256: the
@@ -126,15 +127,133 @@ function register_artist_url_routes_for( string $route_namespace ): void {
 	);
 }
 
+/** Register the source-neutral Phase 1 routes. */
+function register_event_source_routes_for( string $route_namespace ): void {
+	$controller = new ArtistUrlImport();
+	register_rest_route(
+		$route_namespace,
+		'/event-source/preview',
+		array(
+			'methods'             => 'POST',
+			'callback'            => array( $controller, 'preview_event_source' ),
+			'permission_callback' => array( ArtistUrlImport::class, 'permission_logged_in' ),
+			'args'                => array(
+				'url' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				),
+			),
+		)
+	);
+	register_rest_route(
+		$route_namespace,
+		'/event-source/submit',
+		array(
+			'methods'             => 'POST',
+			'callback'            => array( $controller, 'submit_event_source' ),
+			'permission_callback' => array( ArtistUrlImport::class, 'permission_logged_in' ),
+			'args'                => array(
+				'url'           => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'esc_url_raw',
+				),
+				'contact_email' => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_email',
+				),
+				'contact_name'  => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+			),
+		)
+	);
+	register_rest_route(
+		$route_namespace,
+		'/event-source/(?P<id>\d+)/approve',
+		array(
+			'methods'             => 'POST',
+			'callback'            => array( $controller, 'approve_event_source' ),
+			'permission_callback' => array( ArtistUrlImport::class, 'permission_admin' ),
+			'args'                => array(
+				'id'                => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'source_kind'       => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_key',
+				),
+				'entity_term_id'    => array(
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'entity_name'       => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'venue_term_id'     => array(
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'venue_name'        => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'artist_term_id'    => array(
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'artist_name'       => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'pipeline_id'       => array(
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'schedule_interval' => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_key',
+				),
+			),
+		)
+	);
+	register_rest_route(
+		$route_namespace,
+		'/event-source/(?P<id>\d+)/reject',
+		array(
+			'methods'             => 'POST',
+			'callback'            => array( $controller, 'reject_event_source' ),
+			'permission_callback' => array( ArtistUrlImport::class, 'permission_admin' ),
+			'args'                => array(
+				'id'     => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
+				),
+				'reason' => array(
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_textarea_field',
+				),
+			),
+		)
+	);
+}
+
 /**
  * Register all artist-url routes on rest_api_init.
  *
- * Only the canonical `extrachill/v1` namespace is registered; the
- * `datamachine/v1` one-release aliases were retired in extrachill-events#256.
+ * Both generic event-source routes and shipped artist compatibility routes
+ * are registered in the canonical `extrachill/v1` namespace.
  *
  * @return void
  */
 function register_artist_url_routes(): void {
+	register_event_source_routes_for( ARTIST_URL_NAMESPACE );
 	register_artist_url_routes_for( ARTIST_URL_NAMESPACE );
 }
 

@@ -155,6 +155,48 @@ class ArtistUrlImport {
 		);
 	}
 
+	public function preview_event_source( \WP_REST_Request $request ) {
+		if ( ! self::looks_like_xhr( $request ) ) {
+			return self::direct_nav_404();
+		}
+		return self::run_ability( 'extrachill-events/preview-event-source', array( 'url' => (string) $request->get_param( 'url' ) ) );
+	}
+
+	public function submit_event_source( \WP_REST_Request $request ) {
+		if ( ! self::looks_like_xhr( $request ) ) {
+			return self::direct_nav_404();
+		}
+		return self::run_ability(
+			'extrachill-events/submit-event-source',
+			array(
+				'url'           => (string) $request->get_param( 'url' ),
+				'contact_email' => (string) $request->get_param( 'contact_email' ),
+				'contact_name'  => (string) $request->get_param( 'contact_name' ),
+			)
+		);
+	}
+
+	public function approve_event_source( \WP_REST_Request $request ) {
+		$input = array( 'submission_id' => (int) $request->get_param( 'id' ) );
+		foreach ( array( 'source_kind', 'entity_term_id', 'entity_name', 'venue_term_id', 'venue_name', 'artist_term_id', 'artist_name', 'pipeline_id', 'schedule_interval' ) as $key ) {
+			$value = $request->get_param( $key );
+			if ( null !== $value ) {
+				$input[ $key ] = $value;
+			}
+		}
+		return self::run_ability( 'extrachill-events/approve-event-source-submission', $input );
+	}
+
+	public function reject_event_source( \WP_REST_Request $request ) {
+		return self::run_ability(
+			'extrachill-events/reject-event-source-submission',
+			array(
+				'submission_id' => (int) $request->get_param( 'id' ),
+				'reason'        => (string) $request->get_param( 'reason' ),
+			)
+		);
+	}
+
 	// ────────────────────────────────────────────────────────────────────
 	// Permission callbacks
 	// ────────────────────────────────────────────────────────────────────

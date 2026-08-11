@@ -204,7 +204,6 @@ class VenueQualificationAbilities {
 			return new \WP_Error( 'missing_url', 'URL is required.', array( 'status' => 400 ) );
 		}
 
-		$url = rtrim( $url, '/' );
 		if ( ! preg_match( '#^https?://#', $url ) ) {
 			$url = 'https://' . $url;
 		}

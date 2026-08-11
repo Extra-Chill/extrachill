@@ -55,6 +55,8 @@ namespace ExtraChillEvents\Abilities;
 use DataMachine\Core\Selection\SelectionMode;
 use DataMachine\Abilities\HandlerAbilities;
 use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
+use ExtraChillEvents\Core\QualifyVerdict;
+use ExtraChillEvents\Core\VenueExpansionRunner;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -93,6 +95,17 @@ class ArtistUrlImportAbilities {
 	 * the auto-detected name. similar_text() percentage.
 	 */
 	private const ARTIST_FUZZY_MATCH_THRESHOLD = 85;
+
+	/** Host-owned platform/aggregator pages are not bounded recurring entities. */
+	private const UNSUPPORTED_SOURCE_HOSTS = array(
+		'axs.com'         => 'platform',
+		'bandsintown.com' => 'aggregator',
+		'dice.fm'         => 'platform',
+		'eventbrite.com'  => 'platform',
+		'jambase.com'     => 'aggregator',
+		'songkick.com'    => 'aggregator',
+		'allevents.in'    => 'aggregator',
+	);
 
 	/**
 	 * Default author for events published by an approved pipeline.
@@ -166,6 +179,7 @@ class ArtistUrlImportAbilities {
 	 */
 	private function registerAbilities(): void {
 		$register_callback = function () {
+			$this->registerGenericAbilities();
 			$this->registerPreviewAbility();
 			$this->registerSubmitAbility();
 			$this->registerApproveAbility();
@@ -173,6 +187,268 @@ class ArtistUrlImportAbilities {
 		};
 
 		add_action( 'wp_abilities_api_init', $register_callback );
+	}
+
+	/** Register the Phase 1 source-neutral contracts. */
+	private function registerGenericAbilities(): void {
+		$qualify_schema = array(
+			'type'       => 'object',
+			'required'   => array( 'url' ),
+			'properties' => array(
+				'url' => array(
+					'type'   => 'string',
+					'format' => 'uri',
+				),
+			),
+		);
+
+		wp_register_ability(
+			'extrachill/qualify-event-source',
+			array(
+				'label'               => __( 'Qualify Event Source', 'extrachill-events' ),
+				'description'         => __( 'Discover and test a canonical recurring event source, classify its bounded domain identity, and recommend moderation routing.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => $qualify_schema,
+				'output_schema'       => $this->qualificationOutputSchema(),
+				'execute_callback'    => array( $this, 'executeQualifyEventSource' ),
+				'permission_callback' => array( $this, 'permissionLoggedIn' ),
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill-events/preview-event-source',
+			array(
+				'label'               => __( 'Preview Event Source', 'extrachill-events' ),
+				'description'         => __( 'Compatibility-shaped preview of qualified event-source intake.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => $qualify_schema,
+				'output_schema'       => $this->qualificationOutputSchema(),
+				'execute_callback'    => array( $this, 'executePreview' ),
+				'permission_callback' => array( $this, 'permissionLoggedIn' ),
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill-events/submit-event-source',
+			array(
+				'label'               => __( 'Submit Event Source', 'extrachill-events' ),
+				'description'         => __( 'Server-side requalify and persist an event source for moderation.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'required'   => array( 'url' ),
+					'properties' => array(
+						'url'           => array(
+							'type'   => 'string',
+							'format' => 'uri',
+						),
+						'contact_email' => array( 'type' => 'string' ),
+						'contact_name'  => array( 'type' => 'string' ),
+					),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'required'   => array( 'success', 'submission_id', 'status', 'message', 'events_found', 'source_kind' ),
+					'properties' => array(
+						'success'       => array( 'type' => 'boolean' ),
+						'submission_id' => array( 'type' => 'integer' ),
+						'status'        => array( 'type' => 'string' ),
+						'message'       => array( 'type' => 'string' ),
+						'events_found'  => array( 'type' => 'integer' ),
+						'source_kind'   => array(
+							'type' => 'string',
+							'enum' => array( 'artist', 'venue' ),
+						),
+					),
+				),
+				'execute_callback'    => array( $this, 'executeSubmit' ),
+				'permission_callback' => array( $this, 'permissionLoggedIn' ),
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+
+		$approval_properties = array(
+			'submission_id'     => array( 'type' => 'integer' ),
+			'source_kind'       => array(
+				'type' => 'string',
+				'enum' => array( 'artist', 'venue', 'unknown' ),
+			),
+			'entity_term_id'    => array( 'type' => 'integer' ),
+			'entity_name'       => array( 'type' => 'string' ),
+			'artist_term_id'    => array( 'type' => 'integer' ),
+			'artist_name'       => array( 'type' => 'string' ),
+			'venue_term_id'     => array( 'type' => 'integer' ),
+			'venue_name'        => array( 'type' => 'string' ),
+			'pipeline_id'       => array( 'type' => 'integer' ),
+			'schedule_interval' => array( 'type' => 'string' ),
+		);
+		wp_register_ability(
+			'extrachill-events/approve-event-source-submission',
+			array(
+				'label'               => __( 'Approve Event Source Submission', 'extrachill-events' ),
+				'description'         => __( 'Approve a moderated artist or venue source through its existing owner flow primitive.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'required'   => array( 'submission_id' ),
+					'properties' => $approval_properties,
+				),
+				'output_schema'       => array(
+					'oneOf' => array(
+						array(
+							'type'       => 'object',
+							'required'   => array( 'success', 'pipeline_id', 'flow_id', 'source_kind', 'artist_term_id' ),
+							'properties' => array(
+								'success'        => array( 'type' => 'boolean' ),
+								'pipeline_id'    => array( 'type' => 'integer' ),
+								'flow_id'        => array( 'type' => 'integer' ),
+								'source_kind'    => array(
+									'type' => 'string',
+									'enum' => array( 'artist' ),
+								),
+								'artist_term_id' => array( 'type' => 'integer' ),
+								'events_imported_immediately' => array( 'type' => array( 'integer', 'null' ) ),
+							),
+						),
+						array(
+							'type'       => 'object',
+							'required'   => array( 'success', 'pipeline_id', 'flow_id', 'source_kind', 'venue_term_id' ),
+							'properties' => array(
+								'success'       => array( 'type' => 'boolean' ),
+								'pipeline_id'   => array( 'type' => 'integer' ),
+								'flow_id'       => array( 'type' => 'integer' ),
+								'source_kind'   => array(
+									'type' => 'string',
+									'enum' => array( 'venue' ),
+								),
+								'venue_term_id' => array( 'type' => 'integer' ),
+							),
+						),
+					),
+				),
+				'execute_callback'    => array( $this, 'executeApprove' ),
+				'permission_callback' => array( $this, 'permissionAdmin' ),
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill-events/reject-event-source-submission',
+			array(
+				'label'               => __( 'Reject Event Source Submission', 'extrachill-events' ),
+				'description'         => __( 'Reject a moderated event source.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'required'   => array( 'submission_id' ),
+					'properties' => array(
+						'submission_id' => array( 'type' => 'integer' ),
+						'reason'        => array( 'type' => 'string' ),
+					),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'required'   => array( 'success' ),
+					'properties' => array( 'success' => array( 'type' => 'boolean' ) ),
+				),
+				'execute_callback'    => array( $this, 'executeReject' ),
+				'permission_callback' => array( $this, 'permissionAdmin' ),
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+	}
+
+	/** JSON Schema for qualification and generic preview responses. */
+	private function qualificationOutputSchema(): array {
+		$binding = array(
+			'type'       => 'object',
+			'properties' => array(
+				'taxonomy' => array( 'type' => 'string' ),
+				'term_id'  => array( 'type' => array( 'integer', 'null' ) ),
+				'name'     => array( 'type' => 'string' ),
+			),
+		);
+		return array(
+			'type'       => 'object',
+			'required'   => array( 'success', 'qualified', 'canonical_events_url', 'source_identity_url', 'verdict', 'events_found', 'events_preview', 'extraction_method', 'source_kind', 'classification_confidence', 'entity_candidates', 'existing_coverage', 'warnings', 'recommended_route', 'recommended_binding', 'recurring_eligible' ),
+			'properties' => array(
+				'success'                   => array( 'type' => 'boolean' ),
+				'qualified'                 => array( 'type' => 'boolean' ),
+				'canonical_events_url'      => array(
+					'type'   => 'string',
+					'format' => 'uri',
+				),
+				'source_identity_url'       => array(
+					'type'   => 'string',
+					'format' => 'uri',
+				),
+				'verdict'                   => array( 'type' => 'string' ),
+				'events_found'              => array( 'type' => 'integer' ),
+				'events_preview'            => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'title'     => array( 'type' => 'string' ),
+							'startDate' => array( 'type' => 'string' ),
+							'startTime' => array( 'type' => 'string' ),
+							'venue'     => array( 'type' => 'string' ),
+							'ticketUrl' => array( 'type' => 'string' ),
+						),
+					),
+				),
+				'extraction_method'         => array( 'type' => 'string' ),
+				'source_kind'               => array(
+					'type' => 'string',
+					'enum' => array( 'artist', 'venue', 'unknown' ),
+				),
+				'classification_confidence' => array(
+					'type' => 'string',
+					'enum' => array( 'low', 'medium', 'high' ),
+				),
+				'entity_candidates'         => array(
+					'type'  => 'array',
+					'items' => $binding,
+				),
+				'existing_coverage'         => array(
+					'type'       => 'object',
+					'required'   => array( 'covered', 'type' ),
+					'properties' => array(
+						'covered'   => array( 'type' => 'boolean' ),
+						'type'      => array( 'type' => 'string' ),
+						'flow_id'   => array( 'type' => 'integer' ),
+						'flow_name' => array( 'type' => 'string' ),
+					),
+				),
+				'warnings'                  => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'string' ),
+				),
+				'recommended_route'         => array(
+					'type' => 'string',
+					'enum' => array( 'moderation', 'reject_duplicate', 'explicit_review' ),
+				),
+				'recommended_binding'       => $binding,
+				'recurring_eligible'        => array( 'type' => 'boolean' ),
+				'scope_evidence'            => array(
+					'type'       => 'object',
+					'required'   => array( 'bounded', 'type', 'host' ),
+					'properties' => array(
+						'bounded'          => array( 'type' => 'boolean' ),
+						'type'             => array( 'type' => 'string' ),
+						'host'             => array( 'type' => 'string' ),
+						'official_host'    => array( 'type' => 'string' ),
+						'event_page_shape' => array( 'type' => 'string' ),
+					),
+				),
+				'detected_format'           => array( 'type' => 'string' ),
+				'source_metadata'           => array( 'type' => 'object' ),
+				'suggested_artist_name'     => array( 'type' => 'string' ),
+				'suggested_artist_term_id'  => array( 'type' => array( 'integer', 'null' ) ),
+			),
+		);
 	}
 
 	// ────────────────────────────────────────────────────────────────────
@@ -209,7 +485,7 @@ class ArtistUrlImportAbilities {
 						'source_metadata'          => array( 'type' => 'object' ),
 					),
 				),
-				'execute_callback'    => array( $this, 'executePreview' ),
+				'execute_callback'    => array( $this, 'executeArtistPreview' ),
 				'permission_callback' => array( $this, 'permissionLoggedIn' ),
 				'meta'                => array( 'show_in_rest' => true ),
 			)
@@ -245,7 +521,7 @@ class ArtistUrlImportAbilities {
 						'events_found'  => array( 'type' => 'integer' ),
 					),
 				),
-				'execute_callback'    => array( $this, 'executeSubmit' ),
+				'execute_callback'    => array( $this, 'executeArtistSubmit' ),
 				'permission_callback' => array( $this, 'permissionLoggedIn' ),
 				'meta'                => array( 'show_in_rest' => true ),
 			)
@@ -279,7 +555,7 @@ class ArtistUrlImportAbilities {
 						'events_imported_immediately' => array( 'type' => array( 'integer', 'null' ) ),
 					),
 				),
-				'execute_callback'    => array( $this, 'executeApprove' ),
+				'execute_callback'    => array( $this, 'executeArtistApprove' ),
 				'permission_callback' => array( $this, 'permissionAdmin' ),
 				'meta'                => array( 'show_in_rest' => true ),
 			)
@@ -338,40 +614,329 @@ class ArtistUrlImportAbilities {
 	// preview-artist-url
 	// ────────────────────────────────────────────────────────────────────
 
+	/** Artist ability compatibility alias. */
+	public function executeArtistPreview( array $input ) {
+		$input['compat_artist'] = true;
+		return $this->executePreview( $input );
+	}
+
+	/** Artist submission compatibility alias. */
+	public function executeArtistSubmit( array $input ) {
+		$input['compat_artist'] = true;
+		return $this->executeSubmit( $input );
+	}
+
+	/** Artist approval compatibility alias. */
+	public function executeArtistApprove( array $input ) {
+		$input['source_kind']   = 'artist';
+		$input['compat_artist'] = true;
+		return $this->executeApprove( $input );
+	}
+
+	/** Testable admission seam; mutations must always call this fresh. */
+	protected function qualifyForAdmission( string $url, bool $compat_artist = false ) {
+		return $this->executeQualifyEventSource(
+			array(
+				'url'           => $url,
+				'compat_artist' => $compat_artist,
+			)
+		);
+	}
+
+	/**
+	 * Source-neutral qualification facade over the existing venue qualifier
+	 * and Data Machine Events scraper handler.
+	 */
+	public function executeQualifyEventSource( array $input ) {
+		$url = $this->normalizeInputUrl( (string) ( $input['url'] ?? '' ) );
+		if ( is_wp_error( $url ) ) {
+			return $url;
+		}
+
+		$qualification = ( new VenueQualificationAbilities() )->executeQualifyVenue(
+			array(
+				'url'             => $url,
+				'persist_verdict' => true,
+			)
+		);
+		if ( is_wp_error( $qualification ) ) {
+			return $qualification;
+		}
+
+		$events_url = $this->normalizeInputUrl( (string) ( $qualification['events_url'] ?? $url ) );
+		if ( is_wp_error( $events_url ) ) {
+			$events_url = $url;
+		}
+		$identity_url = ArtistUrlSubmissionsTable::normalize_url( $events_url );
+		$probe        = $this->probeUrl( $events_url );
+		if ( is_wp_error( $probe ) ) {
+			return $probe;
+		}
+
+		$coverage = array(
+			'covered' => false,
+			'type'    => 'none',
+		);
+		$flow     = ( new VenueExpansionRunner() )->lookupExistingFlow( $events_url );
+		if ( $flow ) {
+			$coverage = array(
+				'covered'   => true,
+				'type'      => 'universal_scraper_flow',
+				'flow_id'   => (int) ( $flow['flow_id'] ?? 0 ),
+				'flow_name' => (string) ( $flow['flow_name'] ?? '' ),
+			);
+		}
+		foreach ( (array) ( $qualification['warnings'] ?? array() ) as $warning ) {
+			if ( false !== stripos( (string) $warning, 'already covered' ) ) {
+				$coverage = array(
+					'covered' => true,
+					'type'    => 'platform_pipeline',
+				);
+				break;
+			}
+		}
+
+		$host_scope = $this->unsupportedHostScope( $events_url );
+		if ( $host_scope && empty( $coverage['covered'] ) ) {
+			$coverage = array(
+				'covered' => false,
+				'type'    => 'unsupported_' . $host_scope,
+			);
+		}
+		$classification = $this->classifySource( $events_url, $probe, $qualification, ! empty( $input['compat_artist'] ) );
+		$warnings       = array_values( array_unique( array_merge( (array) ( $qualification['warnings'] ?? array() ), $classification['warnings'] ) ) );
+		if ( ! empty( $coverage['covered'] ) ) {
+			$warnings[] = __( 'This source is already covered and should not create another recurring flow.', 'extrachill-events' );
+		}
+
+		$recurring_eligible = ! empty( $qualification['qualified'] )
+			&& (int) $probe['events_found'] >= 2
+			&& in_array( $classification['source_kind'], array( 'artist', 'venue' ), true )
+			&& empty( $coverage['covered'] );
+		$extraction_method  = '' !== (string) $probe['detected_format']
+			? (string) $probe['detected_format']
+			: (string) ( $qualification['method'] ?? '' );
+
+		return array(
+			'success'                   => (int) $probe['events_found'] > 0,
+			'qualified'                 => ! empty( $qualification['qualified'] ),
+			'canonical_events_url'      => $events_url,
+			'source_identity_url'       => $identity_url,
+			'verdict'                   => (string) ( $qualification['verdict'] ?? '' ),
+			'events_found'              => (int) $probe['events_found'],
+			'events_preview'            => $probe['events_preview'],
+			'extraction_method'         => $extraction_method,
+			'source_kind'               => $classification['source_kind'],
+			'classification_confidence' => $classification['confidence'],
+			'scope_evidence'            => $classification['scope_evidence'],
+			'entity_candidates'         => $classification['candidates'],
+			'existing_coverage'         => $coverage,
+			'warnings'                  => array_values( array_unique( $warnings ) ),
+			'recommended_route'         => $recurring_eligible ? 'moderation' : ( ! empty( $coverage['covered'] ) ? 'reject_duplicate' : 'explicit_review' ),
+			'recommended_binding'       => $classification['binding'],
+			'recurring_eligible'        => $recurring_eligible,
+			'detected_format'           => (string) $probe['detected_format'],
+			'source_metadata'           => $probe['source_metadata'],
+			'suggested_artist_name'     => 'artist' === $classification['source_kind'] ? (string) ( $classification['binding']['name'] ?? '' ) : '',
+			'suggested_artist_term_id'  => 'artist' === $classification['source_kind'] ? ( $classification['binding']['term_id'] ?? null ) : null,
+		);
+	}
+
+	/** Validate an operational http(s) source URL without changing its query. */
+	private function normalizeInputUrl( string $raw_url ) {
+		$url = esc_url_raw( $raw_url );
+		if ( '' === $url ) {
+			return new \WP_Error( 'invalid_url', __( 'URL is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+			return new \WP_Error( 'invalid_protocol', __( 'Only http and https URLs are supported.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+			return new \WP_Error( 'invalid_url', __( 'URL could not be parsed.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		return preg_replace( '/#.*$/', '', $url );
+	}
+
+	/** Classify bounded artist/venue identity from repeated extracted events. */
+	protected function classifySource( string $url, array $probe, array $qualification = array(), bool $force_artist = false ): array {
+		$venues     = array();
+		$performers = array();
+		foreach ( (array) ( $probe['raw_events'] ?? array() ) as $event ) {
+			$venue = $event['venue'] ?? '';
+			if ( is_array( $venue ) ) {
+				$venue = $venue['name'] ?? '';
+			}
+			$performer = $event['performer'] ?? $event['artist'] ?? '';
+			if ( is_array( $performer ) ) {
+				$performer = $performer['name'] ?? '';
+			}
+			if ( is_string( $venue ) && '' !== trim( $venue ) ) {
+				$venues[ strtolower( trim( $venue ) ) ] = trim( $venue );
+			}
+			if ( is_string( $performer ) && '' !== trim( $performer ) ) {
+				$performers[ strtolower( trim( $performer ) ) ] = trim( $performer );
+			}
+		}
+
+		$artist     = $this->suggestArtist( $url, $probe );
+		$venue_name = 1 === count( $venues ) ? (string) reset( $venues ) : '';
+		$candidates = array();
+		if ( '' !== $artist['name'] ) {
+			$candidates[] = array(
+				'source_kind' => 'artist',
+				'taxonomy'    => 'artist',
+				'term_id'     => $artist['term_id'],
+				'name'        => $artist['name'],
+			);
+		}
+		$venue_term_id = $this->matchTerm( $venue_name, 'venue' );
+		if ( '' !== $venue_name ) {
+			$candidates[] = array(
+				'source_kind' => 'venue',
+				'taxonomy'    => 'venue',
+				'term_id'     => $venue_term_id,
+				'name'        => $venue_name,
+			);
+		}
+
+		$kind              = 'unknown';
+		$confidence        = 'low';
+		$warnings          = array();
+		$scope_evidence    = array(
+			'bounded'          => false,
+			'type'             => 'none',
+			'host'             => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
+			'event_page_shape' => (string) ( $qualification['fingerprint']['structured_data']['event_page_shape'] ?? '' ),
+		);
+		$binding           = array(
+			'taxonomy' => '',
+			'term_id'  => null,
+			'name'     => '',
+		);
+		$unsupported_scope = $this->unsupportedHostScope( $url );
+		if ( $unsupported_scope ) {
+			$warnings[] = sprintf(
+				/* translators: %s: unsupported source scope. */
+				__( 'This %s host is not a bounded artist or venue source.', 'extrachill-events' ),
+				$unsupported_scope
+			);
+		} elseif ( (int) $probe['events_found'] < 2 ) {
+			$warnings[] = __( 'A one-off event page is not enough evidence for a recurring source.', 'extrachill-events' );
+		} elseif ( 1 === count( $venues ) && count( $performers ) > 1 ) {
+			$ownership = $this->venueOwnershipEvidence( $venue_term_id, $url );
+			if ( $ownership['bounded'] ) {
+				$kind           = 'venue';
+				$confidence     = 'high';
+				$scope_evidence = $ownership;
+				$binding        = array(
+					'taxonomy' => 'venue',
+					'term_id'  => $venue_term_id,
+					'name'     => $venue_name,
+				);
+			} else {
+				$warnings[] = __( 'Repeated venue data does not prove that this host is the venue’s official source.', 'extrachill-events' );
+			}
+		} elseif ( 1 === count( $performers ) && count( $venues ) > 1 ) {
+			$performer_name = (string) reset( $performers );
+			$performer_id   = $this->matchTerm( $performer_name, 'artist' );
+			$kind           = 'artist';
+			$confidence     = null !== $performer_id ? 'high' : 'medium';
+			$scope_evidence = array(
+				'bounded' => true,
+				'type'    => 'single_performer_multiple_venues',
+				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
+			);
+			$binding        = array(
+				'taxonomy' => 'artist',
+				'term_id'  => $performer_id,
+				'name'     => $performer_name,
+			);
+		} elseif ( $force_artist && count( $venues ) > 1 && null !== $artist['term_id'] ) {
+			$kind           = 'artist';
+			$confidence     = 'high';
+			$scope_evidence = array(
+				'bounded' => true,
+				'type'    => 'legacy_artist_identity_multiple_venues',
+				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
+			);
+			$binding        = array(
+				'taxonomy' => 'artist',
+				'term_id'  => $artist['term_id'],
+				'name'     => $artist['name'],
+			);
+		} else {
+			$warnings[] = __( 'The extracted events do not establish one bounded artist or venue identity.', 'extrachill-events' );
+		}
+
+		return array(
+			'source_kind'    => $kind,
+			'confidence'     => $confidence,
+			'candidates'     => $candidates,
+			'warnings'       => $warnings,
+			'binding'        => $binding,
+			'scope_evidence' => $scope_evidence,
+		);
+	}
+
+	/** Return the unsupported scope for a known platform/aggregator host. */
+	private function unsupportedHostScope( string $url ): string {
+		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$host = preg_replace( '/^www\./', '', $host );
+		foreach ( self::UNSUPPORTED_SOURCE_HOSTS as $domain => $scope ) {
+			if ( $host === $domain || str_ends_with( $host, '.' . $domain ) ) {
+				return $scope;
+			}
+		}
+		return '';
+	}
+
+	/** Prove venue ownership by matching the source to its stored official website. */
+	private function venueOwnershipEvidence( ?int $venue_term_id, string $url ): array {
+		$source_host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		$website     = '';
+		if ( $venue_term_id && function_exists( 'data_machine_events_get_venue_data' ) ) {
+			$data    = data_machine_events_get_venue_data( $venue_term_id );
+			$website = is_array( $data ) ? (string) ( $data['website'] ?? '' ) : '';
+		} elseif ( $venue_term_id ) {
+			$website = (string) get_term_meta( $venue_term_id, '_venue_website', true );
+		}
+		$website_host = strtolower( (string) wp_parse_url( $website, PHP_URL_HOST ) );
+		$matches      = '' !== $source_host && '' !== $website_host
+			&& ( $source_host === $website_host || str_ends_with( $source_host, '.' . $website_host ) || str_ends_with( $website_host, '.' . $source_host ) );
+		return array(
+			'bounded'       => $matches,
+			'type'          => $matches ? 'official_venue_website' : 'unverified_venue_host',
+			'host'          => $source_host,
+			'official_host' => $website_host,
+		);
+	}
+
+	/** Exact taxonomy candidate lookup without creating terms during preview. */
+	private function matchTerm( string $name, string $taxonomy ): ?int {
+		if ( '' === $name || ! taxonomy_exists( $taxonomy ) ) {
+			return null;
+		}
+		$term = get_term_by( 'name', $name, $taxonomy );
+		if ( ! $term instanceof \WP_Term ) {
+			$term = get_term_by( 'slug', sanitize_title( $name ), $taxonomy );
+		}
+		return $term instanceof \WP_Term ? (int) $term->term_id : null;
+	}
+
 	/**
 	 * @param array $input Ability input.
 	 * @return array|\WP_Error
 	 */
 	public function executePreview( array $input ) {
-		$raw_url = isset( $input['url'] ) ? (string) $input['url'] : '';
-		$url     = esc_url_raw( $raw_url );
-
-		if ( '' === $url ) {
-			return new \WP_Error( 'invalid_url', __( 'URL is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		$normalized = $this->normalizeInputUrl( (string) ( $input['url'] ?? '' ) );
+		if ( is_wp_error( $normalized ) ) {
+			return $normalized;
 		}
 
-		// Protocol whitelist — http/https only. esc_url_raw() already enforces
-		// this against the default allowed protocols, but be explicit.
-		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
-		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
-			return new \WP_Error( 'invalid_protocol', __( 'Only http and https URLs are supported.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-
-		$normalized = ArtistUrlSubmissionsTable::normalize_url( $url );
-		if ( '' === $normalized ) {
-			return new \WP_Error( 'invalid_url', __( 'URL could not be parsed.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-
-		$hash     = ArtistUrlSubmissionsTable::url_hash( $normalized );
-		$existing = ArtistUrlSubmissionsTable::find_by_hash( $hash );
-		if ( $existing && in_array(
-			$existing['status'],
-			array(
-				ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
-				ArtistUrlSubmissionsTable::STATUS_APPROVED,
-			),
-			true
-		) ) {
+		$existing = ArtistUrlSubmissionsTable::find_tracked_by_url( $normalized );
+		if ( $existing ) {
 			return new \WP_Error(
 				'url_already_tracked',
 				__( 'This URL is already being tracked.', 'extrachill-events' ),
@@ -383,12 +948,24 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$probe = $this->probeUrl( $normalized );
-		if ( is_wp_error( $probe ) ) {
-			return $probe;
+		$result = $this->qualifyForAdmission( $normalized, ! empty( $input['compat_artist'] ) );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		$canonical_row = ArtistUrlSubmissionsTable::find_tracked_by_url( (string) $result['canonical_events_url'] );
+		if ( $canonical_row ) {
+			return new \WP_Error(
+				'url_already_tracked',
+				__( 'This event source is already being tracked.', 'extrachill-events' ),
+				array(
+					'status'          => 409,
+					'existing_status' => $canonical_row['status'],
+					'submission_id'   => (int) $canonical_row['id'],
+				)
+			);
 		}
 
-		if ( 0 === $probe['events_found'] ) {
+		if ( 0 === $result['events_found'] ) {
 			return new \WP_Error(
 				'no_events_found',
 				__( "We couldn't extract events from that page. Try the manual form below.", 'extrachill-events' ),
@@ -396,17 +973,7 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$suggestion = $this->suggestArtist( $normalized, $probe );
-
-		return array(
-			'success'                  => true,
-			'detected_format'          => (string) $probe['detected_format'],
-			'events_found'             => (int) $probe['events_found'],
-			'events_preview'           => $probe['events_preview'],
-			'suggested_artist_name'    => (string) $suggestion['name'],
-			'suggested_artist_term_id' => $suggestion['term_id'],
-			'source_metadata'          => $probe['source_metadata'],
-		);
+		return $result;
 	}
 
 	// ────────────────────────────────────────────────────────────────────
@@ -418,32 +985,13 @@ class ArtistUrlImportAbilities {
 	 * @return array|\WP_Error
 	 */
 	public function executeSubmit( array $input ) {
-		$raw_url = isset( $input['url'] ) ? (string) $input['url'] : '';
-		$url     = esc_url_raw( $raw_url );
-		if ( '' === $url ) {
-			return new \WP_Error( 'invalid_url', __( 'URL is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		$normalized = $this->normalizeInputUrl( (string) ( $input['url'] ?? '' ) );
+		if ( is_wp_error( $normalized ) ) {
+			return $normalized;
 		}
 
-		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
-		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
-			return new \WP_Error( 'invalid_protocol', __( 'Only http and https URLs are supported.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-
-		$normalized = ArtistUrlSubmissionsTable::normalize_url( $url );
-		if ( '' === $normalized ) {
-			return new \WP_Error( 'invalid_url', __( 'URL could not be parsed.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-
-		$hash     = ArtistUrlSubmissionsTable::url_hash( $normalized );
-		$existing = ArtistUrlSubmissionsTable::find_by_hash( $hash );
-		if ( $existing && in_array(
-			$existing['status'],
-			array(
-				ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
-				ArtistUrlSubmissionsTable::STATUS_APPROVED,
-			),
-			true
-		) ) {
+		$existing = ArtistUrlSubmissionsTable::find_tracked_by_url( $normalized );
+		if ( $existing ) {
 			return new \WP_Error(
 				'url_already_tracked',
 				__( 'This URL is already being tracked.', 'extrachill-events' ),
@@ -470,52 +1018,59 @@ class ArtistUrlImportAbilities {
 			// anonymous to match that contract.
 			return new \WP_Error(
 				'login_required',
-				__( 'You must be logged in to submit a tour URL.', 'extrachill-events' ),
+				__( 'You must be logged in to submit an event source.', 'extrachill-events' ),
 				array( 'status' => 401 )
 			);
 		}
 
-		// Re-probe server-side regardless of what the preview saw.
-		$probe = $this->probeUrl( $normalized );
+		// Re-qualify server-side regardless of what the preview saw.
+		$qualification = $this->qualifyForAdmission( $normalized, ! empty( $input['compat_artist'] ) );
 
-		if ( is_wp_error( $probe ) || 0 === ( $probe['events_found'] ?? 0 ) ) {
-			$submission_id = ArtistUrlSubmissionsTable::insert(
+		if ( is_wp_error( $qualification ) ) {
+			return $qualification;
+		}
+		if ( empty( $qualification['recurring_eligible'] ) ) {
+			return new \WP_Error(
+				'source_not_admissible',
+				__( 'This page is not eligible for a recurring event import. Submit individual events with the manual form.', 'extrachill-events' ),
 				array(
-					'user_id'            => $user_id,
-					'contact_email'      => $contact_email,
-					'contact_name'       => $contact_name,
-					'url'                => $normalized,
-					'url_hash'           => $hash,
-					'detected_format'    => '',
-					'events_found_count' => 0,
-					'status'             => ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED,
+					'status'        => 422,
+					'qualification' => $qualification,
 				)
-			);
-
-			if ( null !== $submission_id ) {
-				$this->notifyAdminSubmission(
-					array(
-						'url'                   => $normalized,
-						'contact_name'          => $contact_name,
-						'contact_email'         => $contact_email,
-						'detected_format'       => '',
-						'events_found_count'    => 0,
-						'suggested_artist_name' => '',
-						'status'                => ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED,
-					)
-				);
-			}
-
-			return array(
-				'success'       => false,
-				'submission_id' => (int) $submission_id,
-				'status'        => ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED,
-				'message'       => __( "We couldn't extract events from that page. Try the manual form below.", 'extrachill-events' ),
-				'events_found'  => 0,
 			);
 		}
 
-		$suggestion = $this->suggestArtist( $normalized, $probe );
+		if ( ! empty( $qualification['existing_coverage']['covered'] ) ) {
+			return new \WP_Error(
+				'source_already_covered',
+				__( 'This event source is already covered by an existing import.', 'extrachill-events' ),
+				array(
+					'status'            => 409,
+					'existing_coverage' => $qualification['existing_coverage'],
+				)
+			);
+		}
+		$canonical_url  = (string) ( $qualification['canonical_events_url'] ?? $normalized );
+		$canonical_hash = ArtistUrlSubmissionsTable::url_hash( $canonical_url );
+		$canonical_row  = ArtistUrlSubmissionsTable::find_tracked_by_url( $canonical_url );
+		if ( $canonical_row ) {
+			return new \WP_Error(
+				'url_already_tracked',
+				__( 'This event source is already being tracked.', 'extrachill-events' ),
+				array(
+					'status'          => 409,
+					'existing_status' => $canonical_row['status'],
+					'submission_id'   => (int) $canonical_row['id'],
+				)
+			);
+		}
+
+		$binding     = (array) ( $qualification['recommended_binding'] ?? array() );
+		$source_kind = (string) ( $qualification['source_kind'] ?? 'unknown' );
+		$suggestion  = array(
+			'name'    => 'artist' === $source_kind ? (string) ( $binding['name'] ?? '' ) : '',
+			'term_id' => 'artist' === $source_kind ? ( $binding['term_id'] ?? null ) : null,
+		);
 
 		$submission_id = ArtistUrlSubmissionsTable::insert(
 			array(
@@ -523,11 +1078,18 @@ class ArtistUrlImportAbilities {
 				'contact_email'            => $contact_email,
 				'contact_name'             => $contact_name,
 				'url'                      => $normalized,
-				'url_hash'                 => $hash,
+				'url_hash'                 => $canonical_hash,
+				'canonical_url'            => $canonical_url,
+				'source_kind'              => $source_kind,
+				'entity_taxonomy'          => (string) ( $binding['taxonomy'] ?? '' ),
+				'entity_term_id'           => isset( $binding['term_id'] ) ? (int) $binding['term_id'] : null,
+				'entity_name'              => (string) ( $binding['name'] ?? '' ),
+				'qualification_verdict'    => (string) ( $qualification['verdict'] ?? '' ),
+				'qualification_data'       => wp_json_encode( $qualification ),
 				'suggested_artist_name'    => $suggestion['name'],
 				'suggested_artist_term_id' => $suggestion['term_id'],
-				'detected_format'          => $probe['detected_format'],
-				'events_found_count'       => (int) $probe['events_found'],
+				'detected_format'          => $qualification['extraction_method'],
+				'events_found_count'       => (int) $qualification['events_found'],
 				'status'                   => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
 			)
 		);
@@ -541,8 +1103,8 @@ class ArtistUrlImportAbilities {
 				'url'                   => $normalized,
 				'contact_name'          => $contact_name,
 				'contact_email'         => $contact_email,
-				'detected_format'       => $probe['detected_format'],
-				'events_found_count'    => (int) $probe['events_found'],
+				'detected_format'       => $qualification['extraction_method'],
+				'events_found_count'    => (int) $qualification['events_found'],
 				'suggested_artist_name' => $suggestion['name'],
 				'status'                => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
 			)
@@ -561,7 +1123,8 @@ class ArtistUrlImportAbilities {
 			'submission_id' => (int) $submission_id,
 			'status'        => ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
 			'message'       => __( "Submitted for review. We'll set up automatic imports if approved.", 'extrachill-events' ),
-			'events_found'  => (int) $probe['events_found'],
+			'events_found'  => (int) $qualification['events_found'],
+			'source_kind'   => $source_kind,
 		);
 	}
 
@@ -596,11 +1159,85 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		// Resolve artist term.
+		$is_legacy     = ! empty( $submission['compatibility_legacy'] );
+		$compat_artist = ! empty( $input['compat_artist'] ) || $is_legacy;
+		$fresh         = $this->qualifyForAdmission( (string) ( $submission['canonical_url'] ?? $submission['url'] ), $compat_artist );
+		if ( is_wp_error( $fresh ) ) {
+			return $fresh;
+		}
+		$legacy_admission = false;
+		if ( empty( $fresh['recurring_eligible'] ) ) {
+			$legacy_check = $this->validateLegacyArtistAdmission( $submission, $fresh, $input );
+			if ( is_wp_error( $legacy_check ) ) {
+				return $legacy_check;
+			}
+			$legacy_admission = true;
+		}
+
+		$source_kind = $this->resolveApprovalKind( (string) ( $submission['source_kind'] ?? 'artist' ), $input['source_kind'] ?? null );
+		if ( is_wp_error( $source_kind ) ) {
+			return $source_kind;
+		}
+		if ( $legacy_admission && 'artist' !== $source_kind ) {
+			return new \WP_Error( 'legacy_artist_only', __( 'Legacy artist submissions can only be approved as artists.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( ! $legacy_admission && $source_kind !== (string) $fresh['source_kind'] ) {
+			return new \WP_Error(
+				'source_kind_changed',
+				__( 'Fresh qualification does not match the selected source kind.', 'extrachill-events' ),
+				array(
+					'status'        => 409,
+					'qualification' => $fresh,
+				)
+			);
+		}
+		$duplicate = ArtistUrlSubmissionsTable::find_tracked_by_url( (string) $fresh['canonical_events_url'], $submission_id );
+		if ( $duplicate ) {
+			return new \WP_Error(
+				'source_already_covered',
+				__( 'Another moderation record already tracks this canonical event source.', 'extrachill-events' ),
+				array(
+					'status'        => 409,
+					'submission_id' => (int) $duplicate['id'],
+				)
+			);
+		}
+
+		$fresh_binding                     = (array) ( $fresh['recommended_binding'] ?? array() );
+		$submission['canonical_url']       = (string) $fresh['canonical_events_url'];
+		$submission['fresh_qualification'] = $fresh;
+
+		if ( 'venue' === $source_kind ) {
+			$fresh_venue_id = (int) ( $fresh_binding['term_id'] ?? 0 );
+			$selected_id    = (int) ( $input['venue_term_id'] ?? $input['entity_term_id'] ?? $fresh_venue_id );
+			if ( $fresh_venue_id <= 0 || $selected_id !== $fresh_venue_id ) {
+				return new \WP_Error( 'venue_identity_changed', __( 'Venue approval must use the canonical venue proven by fresh qualification.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+			$pipeline_check = ( new VenueAddAbilities() )->validateCityPipeline( (int) ( $input['pipeline_id'] ?? 0 ) );
+			if ( is_wp_error( $pipeline_check ) ) {
+				return $pipeline_check;
+			}
+			$input['venue_term_id'] = $fresh_venue_id;
+			$input['venue_name']    = (string) ( $fresh_binding['name'] ?? '' );
+			return $this->approveVenueSubmission( $submission_id, $submission, $input );
+		}
+
+		$expected_artist_id   = $legacy_admission ? (int) ( $submission['entity_term_id'] ?? $submission['suggested_artist_term_id'] ?? 0 ) : (int) ( $fresh_binding['term_id'] ?? 0 );
+		$expected_artist_name = $legacy_admission ? (string) ( $submission['entity_name'] ?? $submission['suggested_artist_name'] ?? '' ) : (string) ( $fresh_binding['name'] ?? '' );
+		$artist_identity      = $this->validateArtistApprovalIdentity( $expected_artist_id, $expected_artist_name, $input, $is_legacy );
+		if ( is_wp_error( $artist_identity ) ) {
+			return $artist_identity;
+		}
+		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
+		if ( ! $flow_ability ) {
+			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		// Resolve or create only the identity that passed every admission gate.
 		$artist_term_id = $this->resolveArtistTerm(
-			isset( $input['artist_term_id'] ) ? (int) $input['artist_term_id'] : 0,
-			isset( $input['artist_name'] ) ? (string) $input['artist_name'] : '',
-			isset( $submission['suggested_artist_term_id'] ) ? (int) $submission['suggested_artist_term_id'] : 0
+			$artist_identity['term_id'],
+			$artist_identity['name'],
+			$expected_artist_id
 		);
 
 		if ( is_wp_error( $artist_term_id ) ) {
@@ -627,11 +1264,6 @@ class ArtistUrlImportAbilities {
 
 		// 2. Create the flow with universal_web_scraper handler and the
 		// SelectionMode-driven taxonomy bindings on the shared pipeline.
-		$flow_ability = wp_get_ability( 'datamachine/create-flow' );
-		if ( ! $flow_ability ) {
-			return new \WP_Error( 'missing_ability', __( 'datamachine/create-flow ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
-		}
-
 		$upsert_handler_config = array(
 			'post_status'                 => 'publish',
 			'include_images'              => false,
@@ -646,7 +1278,7 @@ class ArtistUrlImportAbilities {
 		);
 
 		$import_handler_config = array(
-			'source_url'       => $submission['url'],
+			'source_url'       => (string) ( $submission['canonical_url'] ?? $submission['url'] ),
 			'search'           => '',
 			'exclude_keywords' => '',
 		);
@@ -706,13 +1338,20 @@ class ArtistUrlImportAbilities {
 		// 3. Update the submission row: approved + linked shared pipeline/flow.
 		ArtistUrlSubmissionsTable::update(
 			$submission_id,
-			array(
-				'status'         => ArtistUrlSubmissionsTable::STATUS_APPROVED,
-				'pipeline_id'    => $pipeline_id,
-				'flow_id'        => $flow_id,
-				'artist_term_id' => $artist_term_id,
-				'reviewed_at'    => current_time( 'mysql', true ),
-				'reviewed_by'    => get_current_user_id(),
+			array_merge(
+				$this->freshQualificationPersistence( $submission ),
+				array(
+					'status'          => ArtistUrlSubmissionsTable::STATUS_APPROVED,
+					'pipeline_id'     => $pipeline_id,
+					'flow_id'         => $flow_id,
+					'artist_term_id'  => $artist_term_id,
+					'source_kind'     => 'artist',
+					'entity_taxonomy' => 'artist',
+					'entity_term_id'  => $artist_term_id,
+					'entity_name'     => $artist_name,
+					'reviewed_at'     => current_time( 'mysql', true ),
+					'reviewed_by'     => get_current_user_id(),
+				)
 			)
 		);
 
@@ -760,8 +1399,223 @@ class ArtistUrlImportAbilities {
 			'success'                     => true,
 			'pipeline_id'                 => $pipeline_id,
 			'flow_id'                     => $flow_id,
+			'source_kind'                 => 'artist',
 			'artist_term_id'              => $artist_term_id,
 			'events_imported_immediately' => $events_imported_immediately,
+		);
+	}
+
+	/** Resolve approval dispatch without silently coercing unknown sources. */
+	private function resolveApprovalKind( string $stored_kind, $explicit_kind = null ) {
+		$kind = null !== $explicit_kind ? sanitize_key( (string) $explicit_kind ) : sanitize_key( $stored_kind );
+		if ( in_array( $kind, array( 'artist', 'venue' ), true ) ) {
+			return $kind;
+		}
+		return new \WP_Error(
+			'explicit_source_kind_required',
+			__( 'Select artist or venue and a concrete entity before approving this ambiguous source.', 'extrachill-events' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	/** Admit only previously accepted artist rows through the legacy exception. */
+	private function validateLegacyArtistAdmission( array $submission, array $fresh, array $input ) {
+		if ( empty( $submission['compatibility_legacy'] ) ) {
+			return new \WP_Error(
+				'source_no_longer_admissible',
+				__( 'Fresh qualification no longer admits this source for a recurring import.', 'extrachill-events' ),
+				array(
+					'status'        => 409,
+					'qualification' => $fresh,
+				)
+			);
+		}
+		$explicit_id   = (int) ( $input['artist_term_id'] ?? $input['entity_term_id'] ?? 0 );
+		$explicit_name = trim( (string) ( $input['artist_name'] ?? $input['entity_name'] ?? '' ) );
+		$stored_name   = trim( (string) ( $submission['entity_name'] ?? $submission['suggested_artist_name'] ?? '' ) );
+		$coverage_type = (string) ( $fresh['existing_coverage']['type'] ?? 'none' );
+		$verdict       = (string) ( $fresh['verdict'] ?? '' );
+		$unsafe        = array(
+			QualifyVerdict::QUALIFIED_FOR_FLYER,
+			QualifyVerdict::UNSUPPORTED_SOURCE,
+			QualifyVerdict::RESERVATION_ONLY,
+			QualifyVerdict::BOT_BLOCKED,
+			QualifyVerdict::UNREACHABLE,
+			QualifyVerdict::COVERED_ELSEWHERE,
+		);
+
+		if ( (int) ( $submission['events_found_count'] ?? 0 ) < 1 || '' === (string) ( $submission['detected_format'] ?? '' ) || '' === $stored_name ) {
+			return new \WP_Error( 'legacy_evidence_missing', __( 'This legacy row does not contain the accepted artist-source evidence required for approval.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( $explicit_id <= 0 && '' === $explicit_name ) {
+			return new \WP_Error( 'legacy_artist_required', __( 'Select an explicit artist identity to approve this legacy submission.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		if ( empty( $fresh['success'] ) || (int) ( $fresh['events_found'] ?? 0 ) < 1 || ! empty( $fresh['existing_coverage']['covered'] ) || str_starts_with( $coverage_type, 'unsupported_' ) || in_array( $verdict, $unsafe, true ) || str_contains( strtolower( (string) ( $fresh['extraction_method'] ?? '' ) ), 'vision' ) ) {
+			return new \WP_Error(
+				'legacy_source_unsafe',
+				__( 'Fresh scraper safety checks do not admit this legacy artist source.', 'extrachill-events' ),
+				array(
+					'status'        => 409,
+					'qualification' => $fresh,
+				)
+			);
+		}
+		if ( 'venue' === (string) ( $fresh['source_kind'] ?? 'unknown' ) ) {
+			return new \WP_Error( 'legacy_source_kind_changed', __( 'Fresh qualification identifies this legacy source as a venue.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$fresh_name = 'artist' === (string) ( $fresh['source_kind'] ?? '' ) ? trim( (string) ( $fresh['recommended_binding']['name'] ?? '' ) ) : '';
+		if ( '' !== $fresh_name && ! $this->artistNamesMatch( $stored_name, $fresh_name ) ) {
+			return new \WP_Error( 'artist_identity_changed', __( 'Fresh qualification identifies a different artist than the legacy submission.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		return true;
+	}
+
+	/** Validate moderator identity against the artist proven by admission. */
+	private function validateArtistApprovalIdentity( int $expected_id, string $expected_name, array $input, bool $require_explicit ) {
+		$explicit_id   = (int) ( $input['artist_term_id'] ?? $input['entity_term_id'] ?? 0 );
+		$explicit_name = trim( (string) ( $input['artist_name'] ?? $input['entity_name'] ?? '' ) );
+		$expected_name = trim( $expected_name );
+		$expected_term = $expected_id > 0 ? get_term( $expected_id, 'artist' ) : null;
+		if ( $expected_term instanceof \WP_Term && '' === $expected_name ) {
+			$expected_name = (string) $expected_term->name;
+		}
+		if ( $require_explicit && $explicit_id <= 0 && '' === $explicit_name ) {
+			return new \WP_Error( 'legacy_artist_required', __( 'Select an explicit artist identity to approve this legacy submission.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$explicit_term = null;
+		if ( $explicit_id > 0 ) {
+			$explicit_term = get_term( $explicit_id, 'artist' );
+			if ( ! $explicit_term instanceof \WP_Term ) {
+				return new \WP_Error( 'artist_not_found', __( 'The selected artist term does not exist.', 'extrachill-events' ), array( 'status' => 404 ) );
+			}
+		}
+		if ( $expected_id > 0 && $explicit_id > 0 && $expected_id !== $explicit_id ) {
+			return new \WP_Error( 'artist_identity_changed', __( 'Artist approval must use the artist proven by fresh qualification.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( '' !== $expected_name && $explicit_term instanceof \WP_Term && ! $this->artistNamesMatch( $expected_name, (string) $explicit_term->name ) ) {
+			return new \WP_Error( 'artist_identity_changed', __( 'The selected artist term does not match the artist proven by qualification.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( '' !== $expected_name && '' !== $explicit_name && ! $this->artistNamesMatch( $expected_name, $explicit_name ) ) {
+			return new \WP_Error( 'artist_identity_changed', __( 'The supplied artist name does not match the artist proven by qualification.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( $explicit_term instanceof \WP_Term && '' !== $explicit_name && ! $this->artistNamesMatch( (string) $explicit_term->name, $explicit_name ) ) {
+			return new \WP_Error( 'artist_identity_changed', __( 'The supplied artist name does not match the selected artist term.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		$resolved_name = '' !== $expected_name ? $expected_name : $explicit_name;
+		if ( '' === $resolved_name && $explicit_term instanceof \WP_Term ) {
+			$resolved_name = (string) $explicit_term->name;
+		}
+		if ( $expected_id <= 0 && $explicit_id <= 0 && '' === $resolved_name ) {
+			return new \WP_Error( 'artist_required', __( 'Qualification did not prove a concrete artist identity.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		return array(
+			'term_id' => $explicit_id > 0 ? $explicit_id : $expected_id,
+			'name'    => $resolved_name,
+		);
+	}
+
+	/** Compare artist labels without allowing unrelated term substitution. */
+	private function artistNamesMatch( string $left, string $right ): bool {
+		return '' !== trim( $left ) && sanitize_title( $left ) === sanitize_title( $right );
+	}
+
+	/** Persist fresh qualification evidence only with a successful approval. */
+	private function freshQualificationPersistence( array $submission ): array {
+		$fresh   = (array) ( $submission['fresh_qualification'] ?? array() );
+		$binding = (array) ( $fresh['recommended_binding'] ?? array() );
+		return array(
+			'canonical_url'         => (string) ( $fresh['canonical_events_url'] ?? $submission['canonical_url'] ?? $submission['url'] ?? '' ),
+			'qualification_verdict' => (string) ( $fresh['verdict'] ?? '' ),
+			'qualification_data'    => wp_json_encode( $fresh ),
+			'detected_format'       => (string) ( $fresh['extraction_method'] ?? '' ),
+			'events_found_count'    => (int) ( $fresh['events_found'] ?? 0 ),
+			'entity_taxonomy'       => (string) ( $binding['taxonomy'] ?? '' ),
+			'entity_term_id'        => isset( $binding['term_id'] ) ? (int) $binding['term_id'] : null,
+			'entity_name'           => (string) ( $binding['name'] ?? '' ),
+		);
+	}
+
+	/** Approve a venue source through the existing city/venue flow owner. */
+	private function approveVenueSubmission( int $submission_id, array $submission, array $input ) {
+		$pipeline_id = (int) ( $input['pipeline_id'] ?? 0 );
+		if ( $pipeline_id <= 0 ) {
+			return new \WP_Error( 'venue_pipeline_required', __( 'A city pipeline_id is required for venue approval.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$venue_term_id = (int) ( $input['venue_term_id'] ?? $input['entity_term_id'] ?? $submission['entity_term_id'] ?? 0 );
+		$venue_name    = sanitize_text_field( (string) ( $input['venue_name'] ?? $input['entity_name'] ?? $submission['entity_name'] ?? '' ) );
+		if ( $venue_term_id > 0 ) {
+			$term = get_term( $venue_term_id, 'venue' );
+			if ( $term instanceof \WP_Term ) {
+				$venue_name = (string) $term->name;
+			}
+		}
+		if ( '' === $venue_name ) {
+			return new \WP_Error( 'venue_required', __( 'Select a venue term or provide a venue name.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$interval = isset( $input['schedule_interval'] ) ? sanitize_key( (string) $input['schedule_interval'] ) : 'daily';
+		$ability  = wp_get_ability( 'extrachill/add-venue' );
+		if ( ! $ability ) {
+			return new \WP_Error( 'missing_ability', __( 'extrachill/add-venue ability is not available.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+		$result = $ability->execute(
+			array(
+				'pipeline_id'   => $pipeline_id,
+				'name'          => $venue_name,
+				'venue_term_id' => $venue_term_id,
+				'url'           => (string) ( $submission['canonical_url'] ?? $submission['url'] ),
+				'website'       => (string) $submission['url'],
+				'interval'      => $interval,
+			)
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$flow_id       = (int) ( $result['flow_id'] ?? 0 );
+		$venue_term_id = (int) ( $result['venue_term_id'] ?? $venue_term_id );
+		ArtistUrlSubmissionsTable::update(
+			$submission_id,
+			array_merge(
+				$this->freshQualificationPersistence( $submission ),
+				array(
+					'status'          => ArtistUrlSubmissionsTable::STATUS_APPROVED,
+					'pipeline_id'     => $pipeline_id,
+					'flow_id'         => $flow_id,
+					'source_kind'     => 'venue',
+					'entity_taxonomy' => 'venue',
+					'entity_term_id'  => $venue_term_id,
+					'entity_name'     => $venue_name,
+					'reviewed_at'     => current_time( 'mysql', true ),
+					'reviewed_by'     => get_current_user_id(),
+				)
+			)
+		);
+
+		delete_transient( 'user_points_' . (int) $submission['user_id'] );
+		$link = get_term_link( $venue_term_id, 'venue' );
+		$this->notifySubmitter(
+			$submission,
+			'event_source_approved',
+			/* translators: %s: venue name. */
+			sprintf( __( 'Your event source for %s was approved', 'extrachill-events' ), $venue_name ),
+			is_wp_error( $link ) ? home_url() : $link,
+			$venue_term_id
+		);
+
+		$run_ability = wp_get_ability( 'datamachine/run-flow' );
+		if ( $run_ability && $flow_id > 0 ) {
+			$run_ability->execute( array( 'flow_id' => $flow_id ) );
+		}
+
+		return array(
+			'success'       => true,
+			'pipeline_id'   => $pipeline_id,
+			'flow_id'       => $flow_id,
+			'source_kind'   => 'venue',
+			'venue_term_id' => $venue_term_id,
 		);
 	}
 
@@ -797,11 +1651,11 @@ class ArtistUrlImportAbilities {
 		);
 
 		// Notify the submitter that the import was rejected.
-		$reject_title = __( 'Your tour import submission was not approved', 'extrachill-events' );
+		$reject_title = __( 'Your event source submission was not approved', 'extrachill-events' );
 		if ( '' !== $reason ) {
 			$reject_title = sprintf(
 				/* translators: %s: rejection reason */
-				__( 'Your tour import submission was not approved: %s', 'extrachill-events' ),
+				__( 'Your event source submission was not approved: %s', 'extrachill-events' ),
 				$reason
 			);
 		}
@@ -858,6 +1712,7 @@ class ArtistUrlImportAbilities {
 				'events_preview'  => array(),
 				'source_metadata' => array(),
 				'raw_first_event' => array(),
+				'raw_events'      => array(),
 				'page_html'       => '',
 			);
 		}
@@ -879,6 +1734,7 @@ class ArtistUrlImportAbilities {
 
 		$events_preview  = array();
 		$raw_first_event = array();
+		$raw_events      = array();
 		$count           = 0;
 		foreach ( $packet_entries as $entry ) {
 			$body    = (string) ( $entry['data']['body'] ?? '' );
@@ -891,6 +1747,7 @@ class ArtistUrlImportAbilities {
 				continue;
 			}
 			++$count;
+			$raw_events[] = $event;
 			if ( empty( $raw_first_event ) ) {
 				$raw_first_event = $event;
 			}
@@ -911,6 +1768,7 @@ class ArtistUrlImportAbilities {
 			'events_preview'  => $events_preview,
 			'source_metadata' => $first_meta,
 			'raw_first_event' => $raw_first_event,
+			'raw_events'      => $raw_events,
 			'page_html'       => $this->fetchPageHtml( $url ),
 		);
 	}
@@ -1562,18 +2420,18 @@ class ArtistUrlImportAbilities {
 
 		$subject = sprintf(
 			/* translators: 1: site name, 2: status label. */
-			__( '[%1$s] New Artist URL Submission: %2$s', 'extrachill-events' ),
+			__( '[%1$s] New Event Source Submission: %2$s', 'extrachill-events' ),
 			$site_name,
 			$status_label
 		);
 
 		$preheader = sprintf(
 			/* translators: %s: submitter name. */
-			__( 'Artist URL submission from %s.', 'extrachill-events' ),
+			__( 'Event source submission from %s.', 'extrachill-events' ),
 			(string) ( $data['contact_name'] ?? '' )
 		);
 
-		$body_html  = '<p>' . esc_html__( 'A new artist URL submission has been received:', 'extrachill-events' ) . '</p>';
+		$body_html  = '<p>' . esc_html__( 'A new event source submission has been received:', 'extrachill-events' ) . '</p>';
 		$body_html .= '<ul>';
 		$body_html .= '<li>' . sprintf(
 			/* translators: %s: submitted URL. */
@@ -1615,7 +2473,7 @@ class ArtistUrlImportAbilities {
 
 		$queue_url = $this->moderationQueueUrl();
 
-		$body_html .= '<p><a href="' . esc_url( $queue_url ) . '">' . esc_html__( 'Review artist URL submissions', 'extrachill-events' ) . '</a></p>';
+		$body_html .= '<p><a href="' . esc_url( $queue_url ) . '">' . esc_html__( 'Review event source submissions', 'extrachill-events' ) . '</a></p>';
 
 		$context = array(
 			'subject_html' => esc_html( $subject ),
@@ -1632,7 +2490,7 @@ class ArtistUrlImportAbilities {
 					$context,
 					array(
 						'cta_url'   => $queue_url,
-						'cta_label' => __( 'Review artist URL submissions', 'extrachill-events' ),
+						'cta_label' => __( 'Review event source submissions', 'extrachill-events' ),
 					)
 				),
 			),
@@ -1661,18 +2519,18 @@ class ArtistUrlImportAbilities {
 
 		$subject = sprintf(
 			/* translators: 1: site name, 2: submitted URL. */
-			__( '[%1$s] Artist URL Submission Received: %2$s', 'extrachill-events' ),
+			__( '[%1$s] Event Source Submission Received: %2$s', 'extrachill-events' ),
 			$site_name,
 			$url
 		);
 
 		$preheader = sprintf(
 			/* translators: %s: submitted URL. */
-			__( 'We received your tour URL submission for %s.', 'extrachill-events' ),
+			__( 'We received your event source submission for %s.', 'extrachill-events' ),
 			$url
 		);
 
-		$body_html  = '<p>' . esc_html__( 'Thanks for submitting an artist tour URL!', 'extrachill-events' ) . '</p>';
+		$body_html  = '<p>' . esc_html__( 'Thanks for submitting a recurring event source!', 'extrachill-events' ) . '</p>';
 		$body_html .= '<p>' . sprintf(
 			/* translators: %s: submitted URL. */
 			esc_html__( 'We received your submission for: %s', 'extrachill-events' ),

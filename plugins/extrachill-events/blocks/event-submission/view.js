@@ -115,16 +115,18 @@
 	};
 
 	// ────────────────────────────────────────────────────────────────────
-	// Artist URL import (extrachill-events#320)
+	// Qualified event-source import (extrachill-events#628)
 	//
 	// Sits on top of the manual form. When the user types a URL into the
-	// import field, we probe it via `extrachill/v1/artist-url/preview`
+	// import field, we probe it via `extrachill/v1/event-source/preview`
 	// and, on success, swap the manual form for a confirmation panel
 	// (events found + Submit for review). The manual form keeps working
 	// byte-identically when no URL is provided.
 	// ────────────────────────────────────────────────────────────────────
 
-	const urlImportTimeoutMs = 8000;
+	// Qualification may test a discovered calendar plus several bounded
+	// candidates. Keep the request finite without racing the server's work.
+	const urlImportTimeoutMs = 60000;
 
 	const fetchJson = async ( url, body, nonce ) => {
 		const controller = new AbortController();
@@ -217,8 +219,8 @@
 			'.ec-event-submission__url-import-cancel'
 		);
 
-		const previewUrl = container.dataset.artistUrlPreview;
-		const submitUrl = container.dataset.artistUrlSubmit;
+		const previewUrl = container.dataset.eventSourcePreview;
+		const submitUrl = container.dataset.eventSourceSubmit;
 		const nonce = container.dataset.restNonce;
 
 		const setState = ( state ) => {
@@ -281,12 +283,36 @@
 					showManualForm( container );
 					return;
 				}
+				if ( payload?.existing_coverage?.covered ) {
+					setUrlStatus(
+						'This source is already covered by an existing import.',
+						true
+					);
+					setState( 'error' );
+					showManualForm( container );
+					return;
+				}
+				if ( ! payload?.recurring_eligible ) {
+					setUrlStatus(
+						payload?.warnings?.[ 0 ] ||
+							'This page is not eligible for a recurring import. Use the manual form below.',
+						true
+					);
+					setState( 'error' );
+					showManualForm( container );
+					return;
+				}
 
 				const count = Number( payload?.events_found || 0 );
-				const artist = payload?.suggested_artist_name || 'this artist';
+				const binding = payload?.recommended_binding || {};
+				const sourceLabel =
+					binding.name ||
+					( payload?.source_kind === 'unknown'
+						? 'an unclassified source'
+						: `this ${ payload?.source_kind || 'source' }` );
 				summaryEl.textContent = `Found ${ count } event${
 					count === 1 ? '' : 's'
-				} from ${ artist }. Submit for review?`;
+				} from ${ sourceLabel }. Submit for review?`;
 				renderConfirmationEvents(
 					eventsListEl,
 					payload?.events_preview || []

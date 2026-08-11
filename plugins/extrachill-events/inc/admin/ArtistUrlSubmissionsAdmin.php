@@ -72,8 +72,8 @@ class ArtistUrlSubmissionsAdmin {
 	public function register_submenu(): void {
 		add_submenu_page(
 			'edit.php?post_type=' . self::events_post_type(),
-			__( 'Artist URL Submissions', 'extrachill-events' ),
-			__( 'Artist URL Imports', 'extrachill-events' ),
+			__( 'Event Source Submissions', 'extrachill-events' ),
+			__( 'Event Source Imports', 'extrachill-events' ),
 			'manage_options',
 			self::PAGE_SLUG,
 			array( $this, 'render_page' )
@@ -106,8 +106,8 @@ class ArtistUrlSubmissionsAdmin {
 		$flash = isset( $_GET['flash'] ) ? sanitize_key( wp_unslash( (string) $_GET['flash'] ) ) : '';
 
 		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__( 'Artist URL Imports', 'extrachill-events' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Moderation queue for URL-based artist tour imports submitted via the event-submission form. Approving a row creates a Data Machine pipeline scoped to the chosen artist; rejecting closes it without creating one.', 'extrachill-events' ) . '</p>';
+		echo '<h1>' . esc_html__( 'Event Source Imports', 'extrachill-events' ) . '</h1>';
+		echo '<p>' . esc_html__( 'Moderation queue for recurring artist tour pages and venue calendars. Ambiguous sources require an explicit source kind and entity before approval.', 'extrachill-events' ) . '</p>';
 
 		if ( 'approved' === $flash ) {
 			echo '<div class="notice notice-success"><p>' . esc_html__( 'Submission approved and pipeline created.', 'extrachill-events' ) . '</p></div>';
@@ -153,7 +153,7 @@ class ArtistUrlSubmissionsAdmin {
 		echo '<th>' . esc_html__( 'ID', 'extrachill-events' ) . '</th>';
 		echo '<th>' . esc_html__( 'URL', 'extrachill-events' ) . '</th>';
 		echo '<th>' . esc_html__( 'Submitter', 'extrachill-events' ) . '</th>';
-		echo '<th>' . esc_html__( 'Suggested artist', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Source / entity', 'extrachill-events' ) . '</th>';
 		echo '<th>' . esc_html__( 'Events found', 'extrachill-events' ) . '</th>';
 		echo '<th>' . esc_html__( 'Detected format', 'extrachill-events' ) . '</th>';
 		echo '<th>' . esc_html__( 'Submitted', 'extrachill-events' ) . '</th>';
@@ -178,13 +178,15 @@ class ArtistUrlSubmissionsAdmin {
 			}
 		}
 
-		$suggested = (string) ( $row['suggested_artist_name'] ?? '' );
-		if ( ! empty( $row['suggested_artist_term_id'] ) ) {
-			$term = get_term( (int) $row['suggested_artist_term_id'], 'artist' );
+		$source_kind = (string) ( $row['source_kind'] ?? 'artist' );
+		$suggested   = (string) ( $row['entity_name'] ?? $row['suggested_artist_name'] ?? '' );
+		if ( ! empty( $row['entity_term_id'] ) ) {
+			$term = get_term( (int) $row['entity_term_id'], (string) ( $row['entity_taxonomy'] ?? $source_kind ) );
 			if ( $term && ! is_wp_error( $term ) ) {
 				$suggested .= sprintf( ' (term #%d: %s)', $term->term_id, $term->name );
 			}
 		}
+		$suggested = $source_kind . ( $suggested ? ': ' . $suggested : '' );
 
 		echo '<tr>';
 		echo '<td>' . esc_html( (string) $row['id'] ) . '</td>';
@@ -224,19 +226,34 @@ class ArtistUrlSubmissionsAdmin {
 		$action_url        = admin_url( 'admin-post.php' );
 		$suggested_term_id = (int) ( $row['suggested_artist_term_id'] ?? 0 );
 		$suggested_name    = (string) ( $row['suggested_artist_name'] ?? '' );
+		$source_kind       = (string) ( $row['source_kind'] ?? 'artist' );
+		$entity_term_id    = (int) ( $row['entity_term_id'] ?? $suggested_term_id );
+		$entity_name       = (string) ( $row['entity_name'] ?? $suggested_name );
 		?>
 		<form method="post" action="<?php echo esc_url( $action_url ); ?>" style="display: block; margin-bottom: 6px;">
 			<?php wp_nonce_field( self::NONCE_APPROVE . '_' . $submission_id ); ?>
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::NONCE_APPROVE ); ?>" />
 			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $submission_id ); ?>" />
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'Source kind:', 'extrachill-events' ); ?>
+				<select name="source_kind">
+					<option value="unknown" <?php selected( $source_kind, 'unknown' ); ?>><?php esc_html_e( 'Unknown (cannot approve)', 'extrachill-events' ); ?></option>
+					<option value="artist" <?php selected( $source_kind, 'artist' ); ?>><?php esc_html_e( 'Artist', 'extrachill-events' ); ?></option>
+					<option value="venue" <?php selected( $source_kind, 'venue' ); ?>><?php esc_html_e( 'Venue', 'extrachill-events' ); ?></option>
+				</select>
+			</label>
 
 			<label style="display: block; margin: 2px 0;">
-				<?php esc_html_e( 'Existing artist term ID:', 'extrachill-events' ); ?>
-				<input type="number" name="artist_term_id" min="0" value="<?php echo esc_attr( $suggested_term_id ? $suggested_term_id : '' ); ?>" style="width: 100px;" />
+				<?php esc_html_e( 'Entity term ID:', 'extrachill-events' ); ?>
+				<input type="number" name="entity_term_id" min="0" value="<?php echo esc_attr( $entity_term_id ? $entity_term_id : '' ); ?>" style="width: 100px;" />
 			</label>
 			<label style="display: block; margin: 2px 0;">
-				<?php esc_html_e( 'OR new artist name:', 'extrachill-events' ); ?>
-				<input type="text" name="artist_name" value="<?php echo esc_attr( $suggested_term_id ? '' : $suggested_name ); ?>" style="width: 200px;" />
+				<?php esc_html_e( 'Entity name:', 'extrachill-events' ); ?>
+				<input type="text" name="entity_name" value="<?php echo esc_attr( $entity_name ); ?>" style="width: 200px;" />
+			</label>
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'City pipeline ID (venue only):', 'extrachill-events' ); ?>
+				<input type="number" name="pipeline_id" min="0" style="width: 100px;" />
 			</label>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Schedule:', 'extrachill-events' ); ?>
@@ -279,7 +296,7 @@ class ArtistUrlSubmissionsAdmin {
 		$submission_id = isset( $_POST['submission_id'] ) ? (int) $_POST['submission_id'] : 0;
 		check_admin_referer( self::NONCE_APPROVE . '_' . $submission_id );
 
-		$ability = wp_get_ability( 'extrachill-events/approve-artist-url-submission' );
+		$ability = wp_get_ability( 'extrachill-events/approve-event-source-submission' );
 		if ( ! $ability ) {
 			$this->redirect_with_flash( 'pending_review', 'error', __( 'Ability not registered.', 'extrachill-events' ) );
 		}
@@ -287,8 +304,10 @@ class ArtistUrlSubmissionsAdmin {
 		$result = $ability->execute(
 			array(
 				'submission_id'     => $submission_id,
-				'artist_term_id'    => isset( $_POST['artist_term_id'] ) ? (int) $_POST['artist_term_id'] : 0,
-				'artist_name'       => isset( $_POST['artist_name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['artist_name'] ) ) : '',
+				'source_kind'       => isset( $_POST['source_kind'] ) ? sanitize_key( wp_unslash( (string) $_POST['source_kind'] ) ) : 'unknown',
+				'entity_term_id'    => isset( $_POST['entity_term_id'] ) ? (int) $_POST['entity_term_id'] : 0,
+				'entity_name'       => isset( $_POST['entity_name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['entity_name'] ) ) : '',
+				'pipeline_id'       => isset( $_POST['pipeline_id'] ) ? (int) $_POST['pipeline_id'] : 0,
 				'schedule_interval' => isset( $_POST['schedule_interval'] ) ? sanitize_key( wp_unslash( (string) $_POST['schedule_interval'] ) ) : 'weekly',
 			)
 		);
@@ -308,7 +327,7 @@ class ArtistUrlSubmissionsAdmin {
 		$submission_id = isset( $_POST['submission_id'] ) ? (int) $_POST['submission_id'] : 0;
 		check_admin_referer( self::NONCE_REJECT . '_' . $submission_id );
 
-		$ability = wp_get_ability( 'extrachill-events/reject-artist-url-submission' );
+		$ability = wp_get_ability( 'extrachill-events/reject-event-source-submission' );
 		if ( ! $ability ) {
 			$this->redirect_with_flash( 'pending_review', 'error', __( 'Ability not registered.', 'extrachill-events' ) );
 		}

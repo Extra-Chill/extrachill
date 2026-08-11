@@ -337,6 +337,11 @@ class VenueExpansionRunner {
 		return ( $this->flow_for_url )( $url );
 	}
 
+	/** Return an existing universal-scraper flow for a canonical source URL. */
+	public function lookupExistingFlow( string $url ): ?array {
+		return $this->findExistingFlow( $url );
+	}
+
 	/** Remember a newly created flow before the next candidate is processed. */
 	private function rememberFlow( string $url, array $row ): void {
 		$canonical = QualifyVerdict::canonicalize_url( $url );

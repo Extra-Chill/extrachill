@@ -18,16 +18,14 @@ $defaults   = array(
 );
 $attributes = wp_parse_args( $attributes, $defaults );
 
-$headline        = $attributes['headline'] ?? '';
-$description     = $attributes['description'] ?? '';
-$success_message = $attributes['successMessage'] ?? '';
-$button_label    = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'extrachill-events' );
-$system_prompt   = $attributes['systemPrompt'] ?? '';
-$endpoint        = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
-// Artist URL import endpoints moved from the data-machine-events substrate to
-// this plugin's own extrachill/v1 namespace in extrachill-events#200.
-$preview_endpoint = esc_url( rest_url( 'extrachill/v1/artist-url/preview' ) );
-$submit_endpoint  = esc_url( rest_url( 'extrachill/v1/artist-url/submit' ) );
+$headline         = $attributes['headline'] ?? '';
+$description      = $attributes['description'] ?? '';
+$success_message  = $attributes['successMessage'] ?? '';
+$button_label     = $attributes['buttonLabel'] ? $attributes['buttonLabel'] : __( 'Send Submission', 'extrachill-events' );
+$system_prompt    = $attributes['systemPrompt'] ?? '';
+$endpoint         = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
+$preview_endpoint = esc_url( rest_url( 'extrachill/v1/event-source/preview' ) );
+$submit_endpoint  = esc_url( rest_url( 'extrachill/v1/event-source/submit' ) );
 $rest_nonce       = wp_create_nonce( 'wp_rest' );
 $form_id          = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-event-form-' ) : 'ec-event-form-' . uniqid();
 
@@ -41,8 +39,8 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 <div
 	class="ec-event-submission"
 	data-endpoint="<?php echo esc_url( $endpoint ); ?>"
-	data-artist-url-preview="<?php echo esc_url( $preview_endpoint ); ?>"
-	data-artist-url-submit="<?php echo esc_url( $submit_endpoint ); ?>"
+	data-event-source-preview="<?php echo esc_url( $preview_endpoint ); ?>"
+	data-event-source-submit="<?php echo esc_url( $submit_endpoint ); ?>"
 	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
 	data-success-message="<?php echo esc_attr( $success_attr ); ?>"
 	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
@@ -59,16 +57,16 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 		<?php if ( is_user_logged_in() ) : ?>
 		<div class="ec-event-submission__url-import" data-state="idle">
 			<div class="ec-event-submission__url-import-intro">
-				<label for="<?php echo esc_attr( $form_id ); ?>-artist-url">
-					<strong><?php esc_html_e( 'Have an artist tour page?', 'extrachill-events' ); ?></strong>
+				<label for="<?php echo esc_attr( $form_id ); ?>-event-source-url">
+					<strong><?php esc_html_e( 'Have a reliable event source?', 'extrachill-events' ); ?></strong>
 				</label>
 				<p class="ec-event-submission__url-import-hint">
-					<?php esc_html_e( "Paste the URL and we'll import all their events automatically. Leave blank to submit a single event manually below.", 'extrachill-events' ); ?>
+					<?php esc_html_e( 'Try an artist tour page, venue calendar, or festival schedule. We will test it and review reliable recurring sources; use the manual form below for one event.', 'extrachill-events' ); ?>
 				</p>
 				<div class="ec-event-submission__url-import-row">
 					<input
 						type="url"
-						id="<?php echo esc_attr( $form_id ); ?>-artist-url"
+						id="<?php echo esc_attr( $form_id ); ?>-event-source-url"
 						class="ec-event-submission__url-import-input"
 						placeholder="https://"
 						autocomplete="off"
