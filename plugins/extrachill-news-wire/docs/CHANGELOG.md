@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.0] - 2026-08-12
+
+### Added
+- expose bounded recent Wire activity
+
 ## [0.5.2] - 2026-07-29
 
 ### Changed
