@@ -57,6 +57,8 @@ $script = $enqueued_scripts[0];
 expect( 'extrachill-festival-wire' === $style['handle'], 'The stylesheet must keep the extrachill-festival-wire handle.' );
 expect( $style['handle'] !== $script['handle'], 'The script must use a handle distinct from the stylesheet.' );
 expect( is_array( $script['deps'] ), 'The script dependencies must be an array.' );
+expect( (string) filemtime( dirname( __DIR__ ) . '/assets/festival-wire.css' ) === $style['ver'], 'The stylesheet version must preserve its modification time as a string.' );
+expect( (string) filemtime( dirname( __DIR__ ) . '/assets/festival-wire.js' ) === $script['ver'], 'The script version must preserve its modification time as a string.' );
 
 $invalid_script_deps = array_intersect( $script['deps'], $theme_stylesheet_handles );
 expect( empty( $invalid_script_deps ), 'The script must not declare stylesheet handles as dependencies: ' . implode( ', ', $invalid_script_deps ) );

@@ -47,7 +47,7 @@ function enqueue_festival_wire_assets() {
 				'extrachill-festival-wire',
 				$css_file_uri,
 				array( 'extrachill-root', 'extrachill-style' ),
-				filemtime( $css_file_path )
+				(string) filemtime( $css_file_path )
 			);
 		}
 
@@ -63,7 +63,7 @@ function enqueue_festival_wire_assets() {
 				'extrachill-festival-wire-script',
 				$js_file_uri,
 				array(),
-				filemtime( $js_file_path ),
+				(string) filemtime( $js_file_path ),
 				true
 			);
 		}
@@ -76,7 +76,7 @@ function enqueue_festival_wire_assets() {
 				'extrachill-festival-wire',
 				$css_file_uri,
 				array(),
-				filemtime( $css_file_path )
+				(string) filemtime( $css_file_path )
 			);
 		}
 	}
