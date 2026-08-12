@@ -372,17 +372,21 @@ class HealthCommand {
 
 		$result = $ability->execute( array() );
 
-		if ( is_wp_error( $result ) || empty( $result['summary'] ) ) {
-			return 0;
+		if (
+			is_wp_error( $result )
+			|| ! is_array( $result )
+			|| ! isset( $result['failed_count'], $result['stuck_processing_count'] )
+			|| ! is_int( $result['failed_count'] )
+			|| ! is_int( $result['stuck_processing_count'] )
+		) {
+			return self::GAP;
 		}
-
-		$summary = $result['summary'];
 
 		if ( 'stuck' === $metric ) {
-			return (int) ( $summary['stuck_processing_count'] ?? 0 );
+			return $result['stuck_processing_count'];
 		}
 
-		return (int) ( $summary['failed_count'] ?? 0 );
+		return $result['failed_count'];
 	}
 
 	/**

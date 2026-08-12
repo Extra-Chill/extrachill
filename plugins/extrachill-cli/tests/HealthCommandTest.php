@@ -14,6 +14,8 @@ namespace {
 		}
 	}
 
+	class WP_Error {}
+
 	class HealthCommandTestAbility {
 		public $result = array();
 
@@ -68,7 +70,7 @@ namespace {
 	}
 
 	function is_wp_error( $value ) {
-		return false;
+		return $value instanceof WP_Error;
 	}
 
 	function health_command_assert_same( $expected, $actual, $message ) {
@@ -98,10 +100,8 @@ namespace {
 
 	// A clean main-site ability result must not be repeated as a false network total.
 	$health_command_jobs_ability->result = array(
-		'summary' => array(
-			'failed_count'           => 0,
-			'stuck_processing_count' => 0,
-		),
+		'failed_count'           => 0,
+		'stuck_processing_count' => 0,
 	);
 	$command->health( array(), array( 'format' => 'json' ) );
 	$main_rows = $health_command_formats[0]['items'];
@@ -115,17 +115,28 @@ namespace {
 	// Bootstrapping the Events site exposes its site-owned queue on the Events row.
 	$health_command_current_blog = 7;
 	$health_command_jobs_ability->result = array(
-		'summary' => array(
-			'failed_count'           => 5681,
-			'stuck_processing_count' => 80,
-		),
+		'failed_count'           => 1027,
+		'stuck_processing_count' => 626,
 	);
 	$command->health( array(), array( 'format' => 'json' ) );
 	$events_rows = $health_command_formats[1]['items'];
 	health_command_assert_same( HealthCommand::GAP, $events_rows[0]['queue_failed'], 'The main-site row must remain uninstrumented in an Events bootstrap.' );
 	health_command_assert_same( HealthCommand::GAP, $events_rows[0]['queue_stuck'], 'The main-site row must remain uninstrumented in an Events bootstrap.' );
-	health_command_assert_same( 5681, $events_rows[1]['queue_failed'], 'The Events row must expose its failed jobs.' );
-	health_command_assert_same( 80, $events_rows[1]['queue_stuck'], 'The Events row must expose its stuck processing jobs.' );
+	health_command_assert_same( 1027, $events_rows[1]['queue_failed'], 'The Events row must expose its failed jobs.' );
+	health_command_assert_same( 626, $events_rows[1]['queue_stuck'], 'The Events row must expose its stuck processing jobs.' );
+
+	// A partial or malformed owner payload must remain visibly uninstrumented.
+	$health_command_jobs_ability->result = array( 'failed_count' => 0 );
+	$command->health( array(), array( 'format' => 'json' ) );
+	$malformed_rows = $health_command_formats[2]['items'];
+	health_command_assert_same( HealthCommand::GAP, $malformed_rows[1]['queue_failed'], 'A partial payload must not become a healthy failed count.' );
+	health_command_assert_same( HealthCommand::GAP, $malformed_rows[1]['queue_stuck'], 'A partial payload must not become a healthy stuck count.' );
+
+	$health_command_jobs_ability->result = new WP_Error();
+	$command->health( array(), array( 'format' => 'json' ) );
+	$error_rows = $health_command_formats[3]['items'];
+	health_command_assert_same( HealthCommand::GAP, $error_rows[1]['queue_failed'], 'An owner error must not become a healthy failed count.' );
+	health_command_assert_same( HealthCommand::GAP, $error_rows[1]['queue_stuck'], 'An owner error must not become a healthy stuck count.' );
 
 	echo "HealthCommandTest passed\n";
 }
