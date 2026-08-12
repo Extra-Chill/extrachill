@@ -83,7 +83,7 @@ function extrachill_community_get_managed_artist_voices( $user_id ) {
  * No body or user override is sent. The Events ability binds authority to the
  * authenticated execution identity and restores its own multisite context.
  *
- * @return array<string,array<string,mixed>>|WP_Error Voices keyed by reference.
+ * @return bool Whether to force an HTTP loopback request.
  */
 function extrachill_community_venue_voices_use_http_loopback( bool $use_http, string $site_key, string $method, string $path, array $args ): bool {
 	unset( $args );
@@ -93,7 +93,7 @@ function extrachill_community_venue_voices_use_http_loopback( bool $use_http, st
 	}
 
 	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
-	return $events_blog_id <= 0 || ! function_exists( 'get_current_blog_id' ) || $events_blog_id !== (int) get_current_blog_id();
+	return 0 >= $events_blog_id || ! function_exists( 'get_current_blog_id' ) || (int) get_current_blog_id() !== $events_blog_id;
 }
 add_filter( 'ec_cross_site_use_http_loopback', 'extrachill_community_venue_voices_use_http_loopback', 10, 5 );
 
