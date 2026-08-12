@@ -2,7 +2,7 @@
 /**
  * Artist URL Import REST Controller
  *
- * Thin wrappers around the four ArtistUrlImportAbilities. Each route is
+ * Thin wrappers around the event-source abilities. Each route is
  * just `wp_get_ability( ... )->execute( $input )` — business logic
  * lives in the ability, not here.
  *
@@ -106,54 +106,6 @@ class ArtistUrlImport {
 	// ────────────────────────────────────────────────────────────────────
 	// Route callbacks
 	// ────────────────────────────────────────────────────────────────────
-
-	public function preview( \WP_REST_Request $request ) {
-		if ( ! self::looks_like_xhr( $request ) ) {
-			return self::direct_nav_404();
-		}
-
-		return self::run_ability(
-			'extrachill-events/preview-artist-url',
-			array( 'url' => (string) $request->get_param( 'url' ) )
-		);
-	}
-
-	public function submit( \WP_REST_Request $request ) {
-		if ( ! self::looks_like_xhr( $request ) ) {
-			return self::direct_nav_404();
-		}
-
-		return self::run_ability(
-			'extrachill-events/submit-artist-url',
-			array(
-				'url'           => (string) $request->get_param( 'url' ),
-				'contact_email' => (string) $request->get_param( 'contact_email' ),
-				'contact_name'  => (string) $request->get_param( 'contact_name' ),
-			)
-		);
-	}
-
-	public function approve( \WP_REST_Request $request ) {
-		return self::run_ability(
-			'extrachill-events/approve-artist-url-submission',
-			array(
-				'submission_id'     => (int) $request->get_param( 'id' ),
-				'artist_term_id'    => (int) $request->get_param( 'artist_term_id' ),
-				'artist_name'       => (string) $request->get_param( 'artist_name' ),
-				'schedule_interval' => (string) $request->get_param( 'schedule_interval' ),
-			)
-		);
-	}
-
-	public function reject( \WP_REST_Request $request ) {
-		return self::run_ability(
-			'extrachill-events/reject-artist-url-submission',
-			array(
-				'submission_id' => (int) $request->get_param( 'id' ),
-				'reason'        => (string) $request->get_param( 'reason' ),
-			)
-		);
-	}
 
 	public function preview_event_source( \WP_REST_Request $request ) {
 		if ( ! self::looks_like_xhr( $request ) ) {

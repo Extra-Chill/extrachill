@@ -286,28 +286,9 @@ final class EventSourceAbilityDouble {
 class TestableEventSourceIntake extends ArtistUrlImportAbilities {
 	public array $qualifications = array();
 
-	protected function qualifyForAdmission( string $url, bool $compat_artist = false ) {
+	protected function qualifyForAdmission( string $url, bool $legacy_artist = false ) {
 		$result = array_shift( $this->qualifications );
-		return is_callable( $result ) ? $result( $url, $compat_artist ) : $result;
-	}
-}
-
-class CompatibilityEventSourceIntake extends ArtistUrlImportAbilities {
-	public array $received = array();
-
-	public function executePreview( array $input ) {
-		$this->received['preview'] = $input;
-		return array( 'path' => 'preview' );
-	}
-
-	public function executeSubmit( array $input ) {
-		$this->received['submit'] = $input;
-		return array( 'path' => 'submit' );
-	}
-
-	public function executeApprove( array $input ) {
-		$this->received['approve'] = $input;
-		return array( 'path' => 'approve' );
+		return is_callable( $result ) ? $result( $url, $legacy_artist ) : $result;
 	}
 }
 
@@ -686,18 +667,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		);
 	}
 
-	public function test_ability_aliases_delegate_with_compatibility_flags(): void {
-		$intake = ( new ReflectionClass( CompatibilityEventSourceIntake::class ) )->newInstanceWithoutConstructor();
-		$this->assertSame( 'preview', $intake->executeArtistPreview( array( 'url' => 'https://artist.test' ) )['path'] );
-		$this->assertTrue( $intake->received['preview']['compat_artist'] );
-		$this->assertSame( 'submit', $intake->executeArtistSubmit( array( 'url' => 'https://artist.test' ) )['path'] );
-		$this->assertTrue( $intake->received['submit']['compat_artist'] );
-		$this->assertSame( 'approve', $intake->executeArtistApprove( array( 'submission_id' => 1 ) )['path'] );
-		$this->assertSame( 'artist', $intake->received['approve']['source_kind'] );
-		$this->assertTrue( $intake->received['approve']['compat_artist'] );
-	}
-
-	public function test_generic_ability_schemas_and_rest_routes_register_behaviorally(): void {
+	public function test_only_generic_ability_schemas_and_rest_routes_register(): void {
 		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'registerGenericAbilities' );
 		$method->setAccessible( true );
 		$method->invoke( $this->intake );
@@ -706,17 +676,25 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$approve    = $registered['extrachill-events/approve-event-source-submission'];
 		$this->assertArrayHasKey( 'recurring_eligible', $qualify['output_schema']['properties'] );
 		$this->assertCount( 2, $approve['output_schema']['oneOf'] );
+		foreach ( array( 'preview', 'submit', 'approve', 'reject' ) as $action ) {
+			$this->assertArrayNotHasKey( "extrachill-events/{$action}-artist-url" . ( in_array( $action, array( 'approve', 'reject' ), true ) ? '-submission' : '' ), $registered );
+		}
 
 		\ExtraChillEvents\Api\register_event_source_routes_for( 'extrachill/v1' );
-		\ExtraChillEvents\Api\register_artist_url_routes_for( 'extrachill/v1' );
 		$this->assertArrayHasKey( 'extrachill/v1/event-source/preview', $GLOBALS['event_source_registered_routes'] );
-		$this->assertArrayHasKey( 'extrachill/v1/artist-url/preview', $GLOBALS['event_source_registered_routes'] );
+		$this->assertCount( 4, $GLOBALS['event_source_registered_routes'] );
+		foreach ( array_keys( $GLOBALS['event_source_registered_routes'] ) as $route ) {
+			$this->assertStringNotContainsString( '/artist-url/', $route );
+		}
+		foreach ( array_keys( $registered ) as $ability_name ) {
+			$this->assertStringNotContainsString( 'artist-url', $ability_name );
+		}
 	}
 
-	public function test_rest_compatibility_callback_invokes_artist_alias(): void {
+	public function test_generic_rest_callback_invokes_event_source_ability(): void {
 		$ability = new EventSourceAbilityDouble( array( 'success' => true ) );
-		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => 'extrachill-events/preview-artist-url' === $name ? $ability : null;
-		$response = ( new ArtistUrlImport() )->preview( new WP_REST_Request( array( 'url' => 'https://artist.test/tour' ) ) );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => 'extrachill-events/preview-event-source' === $name ? $ability : null;
+		$response = ( new ArtistUrlImport() )->preview_event_source( new WP_REST_Request( array( 'url' => 'https://artist.test/tour' ) ) );
 
 		$this->assertInstanceOf( WP_REST_Response::class, $response );
 		$this->assertSame( 'https://artist.test/tour', $ability->calls[0]['url'] );

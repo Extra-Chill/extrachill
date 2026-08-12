@@ -1,37 +1,9 @@
 <?php
 /**
- * Artist URL Import Abilities
+ * Event Source Import Abilities
  *
- * Four abilities backing the URL-based artist tour import flow added in
- * extrachill-events#320 and migrated out of the generic data-machine-events
- * substrate in extrachill-events#200 (layer purity — the substrate must not
- * carry "artist" domain knowledge):
- *
- *   1. extrachill-events/preview-artist-url
- *      Non-destructive probe: scrapes the URL via the registered
- *      `universal_web_scraper` event-import handler and returns the
- *      detected format, the event count, a preview of the first few
- *      events, and a suggested artist (term ID if a fuzzy match exists,
- *      name otherwise).
- *
- *   2. extrachill-events/submit-artist-url
- *      Inserts a row into `artist_url_submissions` in
- *      `pending_review` status (or `scraping_failed` if the re-probe
- *      yields no events). Re-runs the preview server-side; never trusts
- *      client-provided detection.
- *
- *   3. extrachill-events/approve-artist-url-submission
- *      Admin-only. Resolves the artist taxonomy term (existing term, or
- *      a new term created via wp_insert_term), creates a flow on the
- *      single shared `Artist Tour Import` pipeline (find-or-create once,
- *      reused across every artist — architecture model B1), binds the
- *      artist to the flow's upsert step with `PRE_SELECTED` and leaves
- *      venue/location/festival on `AI_DECIDES`, then triggers a first
- *      run via `datamachine/run-flow`.
- *
- *   4. extrachill-events/reject-artist-url-submission
- *      Admin-only. Marks the submission row rejected with an optional
- *      reason. No side effects.
+ * Qualifies, previews, submits, approves, and rejects recurring artist and
+ * venue event sources through the canonical generic ability contracts.
  *
  * Substrate consumption (layer purity): the preview probe consumes the
  * generic scraping primitive by its *registered handler slug*
@@ -173,23 +145,19 @@ class ArtistUrlImportAbilities {
 	}
 
 	/**
-	 * Register all four abilities. Each registration is gated on
+	 * Register the event-source abilities. Registration is gated on
 	 * `wp_abilities_api_init` so registration is idempotent regardless
 	 * of when this class is instantiated.
 	 */
 	private function registerAbilities(): void {
 		$register_callback = function () {
 			$this->registerGenericAbilities();
-			$this->registerPreviewAbility();
-			$this->registerSubmitAbility();
-			$this->registerApproveAbility();
-			$this->registerRejectAbility();
 		};
 
 		add_action( 'wp_abilities_api_init', $register_callback );
 	}
 
-	/** Register the Phase 1 source-neutral contracts. */
+	/** Register the source-neutral contracts. */
 	private function registerGenericAbilities(): void {
 		$qualify_schema = array(
 			'type'       => 'object',
@@ -220,7 +188,7 @@ class ArtistUrlImportAbilities {
 			'extrachill-events/preview-event-source',
 			array(
 				'label'               => __( 'Preview Event Source', 'extrachill-events' ),
-				'description'         => __( 'Compatibility-shaped preview of qualified event-source intake.', 'extrachill-events' ),
+				'description'         => __( 'Preview a qualified recurring event source.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => $qualify_schema,
 				'output_schema'       => $this->qualificationOutputSchema(),
@@ -455,141 +423,6 @@ class ArtistUrlImportAbilities {
 	// Ability registration
 	// ────────────────────────────────────────────────────────────────────
 
-	private function registerPreviewAbility(): void {
-		wp_register_ability(
-			'extrachill-events/preview-artist-url',
-			array(
-				'label'               => __( 'Preview Artist Tour URL', 'extrachill-events' ),
-				'description'         => __( 'Probe a tour/events URL via the universal web scraper. Returns detected format, event count, preview events, and a suggested artist binding. Non-destructive — no submission row is created.', 'extrachill-events' ),
-				'category'            => 'extrachill-events',
-				'input_schema'        => array(
-					'type'       => 'object',
-					'required'   => array( 'url' ),
-					'properties' => array(
-						'url' => array(
-							'type'        => 'string',
-							'format'      => 'uri',
-							'description' => __( 'Tour/events page URL to probe.', 'extrachill-events' ),
-						),
-					),
-				),
-				'output_schema'       => array(
-					'type'       => 'object',
-					'properties' => array(
-						'success'                  => array( 'type' => 'boolean' ),
-						'detected_format'          => array( 'type' => 'string' ),
-						'events_found'             => array( 'type' => 'integer' ),
-						'events_preview'           => array( 'type' => 'array' ),
-						'suggested_artist_name'    => array( 'type' => 'string' ),
-						'suggested_artist_term_id' => array( 'type' => array( 'integer', 'null' ) ),
-						'source_metadata'          => array( 'type' => 'object' ),
-					),
-				),
-				'execute_callback'    => array( $this, 'executeArtistPreview' ),
-				'permission_callback' => array( $this, 'permissionLoggedIn' ),
-				'meta'                => array( 'show_in_rest' => true ),
-			)
-		);
-	}
-
-	private function registerSubmitAbility(): void {
-		wp_register_ability(
-			'extrachill-events/submit-artist-url',
-			array(
-				'label'               => __( 'Submit Artist Tour URL', 'extrachill-events' ),
-				'description'         => __( 'Submit a tour/events URL for admin review. Re-probes the URL server-side and inserts a moderation-queue row.', 'extrachill-events' ),
-				'category'            => 'extrachill-events',
-				'input_schema'        => array(
-					'type'       => 'object',
-					'required'   => array( 'url' ),
-					'properties' => array(
-						'url'           => array(
-							'type'   => 'string',
-							'format' => 'uri',
-						),
-						'contact_email' => array( 'type' => 'string' ),
-						'contact_name'  => array( 'type' => 'string' ),
-					),
-				),
-				'output_schema'       => array(
-					'type'       => 'object',
-					'properties' => array(
-						'success'       => array( 'type' => 'boolean' ),
-						'submission_id' => array( 'type' => 'integer' ),
-						'status'        => array( 'type' => 'string' ),
-						'message'       => array( 'type' => 'string' ),
-						'events_found'  => array( 'type' => 'integer' ),
-					),
-				),
-				'execute_callback'    => array( $this, 'executeArtistSubmit' ),
-				'permission_callback' => array( $this, 'permissionLoggedIn' ),
-				'meta'                => array( 'show_in_rest' => true ),
-			)
-		);
-	}
-
-	private function registerApproveAbility(): void {
-		wp_register_ability(
-			'extrachill-events/approve-artist-url-submission',
-			array(
-				'label'               => __( 'Approve Artist URL Submission', 'extrachill-events' ),
-				'description'         => __( 'Approve a pending submission: resolves the artist term, creates a pipeline+flow with universal_web_scraper, runs the first scrape immediately.', 'extrachill-events' ),
-				'category'            => 'extrachill-events',
-				'input_schema'        => array(
-					'type'       => 'object',
-					'required'   => array( 'submission_id' ),
-					'properties' => array(
-						'submission_id'     => array( 'type' => 'integer' ),
-						'artist_term_id'    => array( 'type' => 'integer' ),
-						'artist_name'       => array( 'type' => 'string' ),
-						'schedule_interval' => array( 'type' => 'string' ),
-					),
-				),
-				'output_schema'       => array(
-					'type'       => 'object',
-					'properties' => array(
-						'success'                     => array( 'type' => 'boolean' ),
-						'pipeline_id'                 => array( 'type' => 'integer' ),
-						'flow_id'                     => array( 'type' => 'integer' ),
-						'artist_term_id'              => array( 'type' => 'integer' ),
-						'events_imported_immediately' => array( 'type' => array( 'integer', 'null' ) ),
-					),
-				),
-				'execute_callback'    => array( $this, 'executeArtistApprove' ),
-				'permission_callback' => array( $this, 'permissionAdmin' ),
-				'meta'                => array( 'show_in_rest' => true ),
-			)
-		);
-	}
-
-	private function registerRejectAbility(): void {
-		wp_register_ability(
-			'extrachill-events/reject-artist-url-submission',
-			array(
-				'label'               => __( 'Reject Artist URL Submission', 'extrachill-events' ),
-				'description'         => __( 'Mark a pending submission as rejected with an optional reason.', 'extrachill-events' ),
-				'category'            => 'extrachill-events',
-				'input_schema'        => array(
-					'type'       => 'object',
-					'required'   => array( 'submission_id' ),
-					'properties' => array(
-						'submission_id' => array( 'type' => 'integer' ),
-						'reason'        => array( 'type' => 'string' ),
-					),
-				),
-				'output_schema'       => array(
-					'type'       => 'object',
-					'properties' => array(
-						'success' => array( 'type' => 'boolean' ),
-					),
-				),
-				'execute_callback'    => array( $this, 'executeReject' ),
-				'permission_callback' => array( $this, 'permissionAdmin' ),
-				'meta'                => array( 'show_in_rest' => true ),
-			)
-		);
-	}
-
 	// ────────────────────────────────────────────────────────────────────
 	// Permission callbacks
 	// ────────────────────────────────────────────────────────────────────
@@ -610,35 +443,12 @@ class ArtistUrlImportAbilities {
 		return current_user_can( 'manage_options' );
 	}
 
-	// ────────────────────────────────────────────────────────────────────
-	// preview-artist-url
-	// ────────────────────────────────────────────────────────────────────
-
-	/** Artist ability compatibility alias. */
-	public function executeArtistPreview( array $input ) {
-		$input['compat_artist'] = true;
-		return $this->executePreview( $input );
-	}
-
-	/** Artist submission compatibility alias. */
-	public function executeArtistSubmit( array $input ) {
-		$input['compat_artist'] = true;
-		return $this->executeSubmit( $input );
-	}
-
-	/** Artist approval compatibility alias. */
-	public function executeArtistApprove( array $input ) {
-		$input['source_kind']   = 'artist';
-		$input['compat_artist'] = true;
-		return $this->executeApprove( $input );
-	}
-
 	/** Testable admission seam; mutations must always call this fresh. */
-	protected function qualifyForAdmission( string $url, bool $compat_artist = false ) {
+	protected function qualifyForAdmission( string $url, bool $legacy_artist = false ) {
 		return $this->executeQualifyEventSource(
 			array(
 				'url'           => $url,
-				'compat_artist' => $compat_artist,
+				'legacy_artist' => $legacy_artist,
 			)
 		);
 	}
@@ -703,7 +513,7 @@ class ArtistUrlImportAbilities {
 				'type'    => 'unsupported_' . $host_scope,
 			);
 		}
-		$classification = $this->classifySource( $events_url, $probe, $qualification, ! empty( $input['compat_artist'] ) );
+		$classification = $this->classifySource( $events_url, $probe, $qualification, ! empty( $input['legacy_artist'] ) );
 		$warnings       = array_values( array_unique( array_merge( (array) ( $qualification['warnings'] ?? array() ), $classification['warnings'] ) ) );
 		if ( ! empty( $coverage['covered'] ) ) {
 			$warnings[] = __( 'This source is already covered and should not create another recurring flow.', 'extrachill-events' );
@@ -948,7 +758,7 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$result = $this->qualifyForAdmission( $normalized, ! empty( $input['compat_artist'] ) );
+		$result = $this->qualifyForAdmission( $normalized );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -977,7 +787,7 @@ class ArtistUrlImportAbilities {
 	}
 
 	// ────────────────────────────────────────────────────────────────────
-	// submit-artist-url
+	// Submit event source.
 	// ────────────────────────────────────────────────────────────────────
 
 	/**
@@ -1024,7 +834,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		// Re-qualify server-side regardless of what the preview saw.
-		$qualification = $this->qualifyForAdmission( $normalized, ! empty( $input['compat_artist'] ) );
+		$qualification = $this->qualifyForAdmission( $normalized );
 
 		if ( is_wp_error( $qualification ) ) {
 			return $qualification;
@@ -1129,7 +939,7 @@ class ArtistUrlImportAbilities {
 	}
 
 	// ────────────────────────────────────────────────────────────────────
-	// approve-artist-url-submission
+	// Approve event source submission.
 	// ────────────────────────────────────────────────────────────────────
 
 	/**
@@ -1159,9 +969,8 @@ class ArtistUrlImportAbilities {
 			);
 		}
 
-		$is_legacy     = ! empty( $submission['compatibility_legacy'] );
-		$compat_artist = ! empty( $input['compat_artist'] ) || $is_legacy;
-		$fresh         = $this->qualifyForAdmission( (string) ( $submission['canonical_url'] ?? $submission['url'] ), $compat_artist );
+		$is_legacy = ! empty( $submission['compatibility_legacy'] );
+		$fresh     = $this->qualifyForAdmission( (string) ( $submission['canonical_url'] ?? $submission['url'] ), $is_legacy );
 		if ( is_wp_error( $fresh ) ) {
 			return $fresh;
 		}
@@ -1620,7 +1429,7 @@ class ArtistUrlImportAbilities {
 	}
 
 	// ────────────────────────────────────────────────────────────────────
-	// reject-artist-url-submission
+	// Reject event source submission.
 	// ────────────────────────────────────────────────────────────────────
 
 	/**

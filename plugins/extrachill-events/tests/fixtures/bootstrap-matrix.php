@@ -130,7 +130,7 @@ namespace {
 			'optional_loader_present'  => function_exists( 'extrachill_events_init_data_machine_integration' ),
 			'optional_dependency_seen' => defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ),
 			'ingestion_hooked'         => in_array( 'datamachine_tasks', array_column( $GLOBALS['bootstrap_matrix_hooks'], 0 ), true ),
-			'artist_url_registered'    => function_exists( 'ExtraChillEvents\\Api\\register_artist_url_routes' ),
+			'event_source_registered'  => function_exists( 'ExtraChillEvents\\Api\\register_event_source_routes' ),
 			'booking_registered'       => class_exists( 'ExtraChillEvents\\Core\\BookingRepository', false ),
 			'optional_scheduler_seen'  => function_exists( 'as_schedule_single_action' ),
 			'optional_users_seen'      => function_exists( 'ec_users_notify_with_receipts' ),

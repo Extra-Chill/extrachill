@@ -3,8 +3,8 @@
  * Artist URL Submissions Admin
  *
  * Adds a submenu under the Events post-type menu for moderating
- * URL-based artist tour import submissions queued by the
- * `extrachill-events/submit-artist-url` ability.
+ * recurring event-source submissions queued by the
+ * `extrachill-events/submit-event-source` ability.
  *
  * Migrated out of data-machine-events in extrachill-events#200. The screen
  * still hangs off the data-machine-events Events post-type menu, but it

@@ -19,7 +19,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertTrue( $result['owner_site'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
-		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['event_source_registered'] );
 		$this->assertTrue( $result['booking_registered'] );
 		$this->assertTrue( $result['ability_lifecycle_hooked'] );
 	}
@@ -32,7 +32,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
 		$this->assertTrue( $result['ability_lifecycle_hooked'] );
-		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['event_source_registered'] );
 		$this->assertTrue( $result['booking_registered'] );
 	}
 
@@ -78,7 +78,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertFalse( $result['optional_scheduler_seen'] );
 		$this->assertFalse( $result['optional_users_seen'] );
 		$this->assertTrue( $result['optional_loader_present'] );
-		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['event_source_registered'] );
 		$this->assertTrue( $result['booking_registered'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
@@ -90,7 +90,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 
 		$this->assertSame( array( 'ingestion' ), $result['provider_failures'] );
 		$this->assertFalse( $result['ingestion_hooked'] );
-		$this->assertTrue( $result['artist_url_registered'] );
+		$this->assertTrue( $result['event_source_registered'] );
 		$this->assertTrue( $result['booking_registered'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ability_lifecycle_hooked'] );
