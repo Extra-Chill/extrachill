@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.25.0] - 2026-08-12
+
+### Added
+- expose recent public community activity
+
+### Changed
+- resolve subscription presentation through owners
+
+### Fixed
+- satisfy public voices release lint
+- bootstrap venue voice authority
+
 ## [1.24.2] - 2026-08-04
 
 ### Changed
