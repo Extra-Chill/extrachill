@@ -64,6 +64,7 @@ namespace {
 	$GLOBALS['_voice_venue_mode']   = 'active';
 	$GLOBALS['_voice_artist_active'] = true;
 	$GLOBALS['_voice_posts']        = array();
+	$GLOBALS['_voice_filters']      = array();
 
 	function voice_reset() {
 		$GLOBALS['_voice_actions']       = array();
@@ -110,7 +111,14 @@ namespace {
 		$GLOBALS['_voice_actions'][ $hook ][] = $callback;
 	}
 	function add_filter( $hook, $callback ) {
-		$GLOBALS['_voice_actions'][ $hook ][] = $callback;
+		$GLOBALS['_voice_filters'][ $hook ][] = $callback;
+	}
+	function apply_filters( $hook, $value ) {
+		$args = array_slice( func_get_args(), 2 );
+		foreach ( $GLOBALS['_voice_filters'][ $hook ] ?? array() as $callback ) {
+			$value = $callback( $value, ...$args );
+		}
+		return $value;
 	}
 	function __( $value ) { return $value; }
 	function esc_html__( $value ) { return $value; }
@@ -134,7 +142,7 @@ namespace {
 	function get_current_blog_id() { return $GLOBALS['_voice_blog']; }
 	function switch_to_blog( $blog_id ) { $GLOBALS['_voice_blog_stack'][] = $GLOBALS['_voice_blog']; $GLOBALS['_voice_blog'] = (int) $blog_id; }
 	function restore_current_blog() { $GLOBALS['_voice_blog'] = array_pop( $GLOBALS['_voice_blog_stack'] ); }
-	function ec_get_blog_id( $site = '' ) { return 'artist' === $site ? 4 : 2; }
+	function ec_get_blog_id( $site = '' ) { return 'artist' === $site ? 4 : ( 'events' === $site ? 7 : 2 ); }
 	function ec_get_artists_for_user( $user_id ) { return 7 === (int) $user_id && $GLOBALS['_voice_artist_active'] ? array( 101 ) : array(); }
 	function ec_user_can( $capability, $context = array() ) { return 'manage_artist' === $capability && 7 === (int) ( $context['user_id'] ?? 0 ) && 101 === (int) ( $context['artist_id'] ?? 0 ) && $GLOBALS['_voice_artist_active']; }
 	function get_post( $post_id ) { return isset( $GLOBALS['_voice_posts'][ $post_id ] ) ? clone $GLOBALS['_voice_posts'][ $post_id ] : null; }
@@ -150,7 +158,8 @@ namespace {
 
 	function ec_cross_site_rest_request() {
 		$args = func_get_args();
-		$GLOBALS['_voice_cross_calls'][] = $args;
+		$use_http = apply_filters( 'ec_cross_site_use_http_loopback', false, $args[0], $args[1], $args[2], $args[3] ?? array() );
+		$GLOBALS['_voice_cross_calls'][] = array( 'args' => $args, 'use_http' => $use_http );
 		if ( '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run' === $args[2] ) {
 			if ( 'failure' === $GLOBALS['_voice_venue_mode'] ) {
 				return new WP_Error( 'events_unavailable', 'Events unavailable.' );
@@ -219,7 +228,13 @@ namespace {
 
 	$venues = extrachill_community_get_managed_venue_voices();
 	voice_assert( isset( $venues['venue:55'] ), 'Venue discovery must consume the direct voices envelope.' );
-	voice_assert( array( 'events', 'GET', '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run' ) === $GLOBALS['_voice_cross_calls'][0], 'Venue discovery must use the exact zero-input Events ability call.' );
+	voice_assert( array( 'events', 'GET', '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run' ) === $GLOBALS['_voice_cross_calls'][0]['args'], 'Venue discovery must use the exact zero-input Events ability call.' );
+	voice_assert( true === $GLOBALS['_voice_cross_calls'][0]['use_http'], 'Venue discovery must bootstrap the Events runtime from Community.' );
+	voice_assert( false === extrachill_community_venue_voices_use_http_loopback( false, 'events', 'POST', '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run', array() ), 'Non-GET requests must preserve transport selection.' );
+	voice_assert( false === extrachill_community_venue_voices_use_http_loopback( false, 'community', 'GET', '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run', array() ), 'Non-Events requests must preserve transport selection.' );
+	$GLOBALS['_voice_blog'] = 7;
+	voice_assert( false === extrachill_community_venue_voices_use_http_loopback( false, 'events', 'GET', '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run', array() ), 'Events-local requests must stay in process.' );
+	$GLOBALS['_voice_blog'] = 1;
 
 	voice_assert( 'invalid_public_voice' === extrachill_community_authorize_public_voice( 'venue:55<script>', 7 )->get_error_code(), 'Malformed voice references must fail closed.' );
 	$GLOBALS['_voice_venue_mode'] = 'revoked';

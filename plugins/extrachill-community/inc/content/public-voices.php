@@ -85,6 +85,18 @@ function extrachill_community_get_managed_artist_voices( $user_id ) {
  *
  * @return array<string,array<string,mixed>>|WP_Error Voices keyed by reference.
  */
+function extrachill_community_venue_voices_use_http_loopback( bool $use_http, string $site_key, string $method, string $path, array $args ): bool {
+	unset( $args );
+
+	if ( $use_http || 'events' !== $site_key || 'GET' !== $method || '/wp-abilities/v1/abilities/extrachill/get-managed-venue-voices/run' !== $path ) {
+		return $use_http;
+	}
+
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	return $events_blog_id <= 0 || ! function_exists( 'get_current_blog_id' ) || $events_blog_id !== (int) get_current_blog_id();
+}
+add_filter( 'ec_cross_site_use_http_loopback', 'extrachill_community_venue_voices_use_http_loopback', 10, 5 );
+
 function extrachill_community_get_managed_venue_voices() {
 	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 		return new WP_Error( 'managed_venue_voices_unavailable', __( 'Managed venues are temporarily unavailable.', 'extra-chill-community' ) );
