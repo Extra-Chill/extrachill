@@ -12,6 +12,7 @@ namespace ExtraChill\SEO\Abilities;
 use function ExtraChill\SEO\Core\ec_seo_get_default_og_image_id;
 use function ExtraChill\SEO\Core\ec_seo_set_default_og_image_id;
 use function ExtraChill\SEO\Core\ec_seo_get_indexnow_key;
+use function ExtraChill\SEO\Core\ec_seo_is_indexnow_enabled;
 use function ExtraChill\SEO\Core\ec_seo_set_indexnow_key;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -41,7 +42,7 @@ function extrachill_seo_ability_get_config( $input = array() ) {
 		'default_og_image_id'  => $og_image_id,
 		'default_og_image_url' => $og_image_url,
 		'indexnow_key'         => $indexnow_key,
-		'indexnow_enabled'     => ! empty( $indexnow_key ),
+		'indexnow_enabled'     => ec_seo_is_indexnow_enabled(),
 	);
 }
 

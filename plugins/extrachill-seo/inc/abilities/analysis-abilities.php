@@ -10,7 +10,7 @@
 namespace ExtraChill\SEO\Abilities;
 
 use function ExtraChill\SEO\Audit\Checks\ec_seo_check_url_redirect;
-use function ExtraChill\SEO\Core\ec_seo_get_indexnow_key;
+use function ExtraChill\SEO\Core\ec_seo_indexnow_submit_urls;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -409,16 +409,6 @@ function extrachill_seo_analyze_social( $url ) {
  * @return array|\WP_Error Result.
  */
 function extrachill_seo_ability_ping_indexnow( $input = array() ) {
-	$indexnow_key = ec_seo_get_indexnow_key();
-
-	if ( empty( $indexnow_key ) ) {
-		return new \WP_Error(
-			'indexnow_not_configured',
-			__( 'IndexNow is not configured. Set an IndexNow key in SEO settings.', 'extrachill-seo' ),
-			array( 'status' => 400 )
-		);
-	}
-
 	$urls = array();
 
 	if ( ! empty( $input['urls'] ) && is_array( $input['urls'] ) ) {
@@ -446,46 +436,16 @@ function extrachill_seo_ability_ping_indexnow( $input = array() ) {
 		);
 	}
 
-	$payload = array(
-		'host'        => wp_parse_url( home_url(), PHP_URL_HOST ),
-		'key'         => $indexnow_key,
-		'keyLocation' => home_url( '/' . rawurlencode( $indexnow_key ) . '.txt' ),
-		'urlList'     => array_values( $urls ),
-	);
-
-	$response = wp_remote_post(
-		'https://api.indexnow.org/indexnow',
-		array(
-			'timeout' => 10,
-			'headers' => array( 'Content-Type' => 'application/json; charset=utf-8' ),
-			'body'    => wp_json_encode( $payload ),
-		)
-	);
-
-	$response_code = 0;
-	$message       = '';
-
-	if ( is_wp_error( $response ) ) {
-		$message = $response->get_error_message();
-	} else {
-		$response_code = wp_remote_retrieve_response_code( $response );
-
-		if ( 200 === $response_code || 202 === $response_code ) {
-			$message = __( 'URLs successfully submitted to IndexNow.', 'extrachill-seo' );
-		} else {
-			$message = sprintf(
-				/* translators: %d: HTTP response code */
-				__( 'IndexNow returned status code %d.', 'extrachill-seo' ),
-				$response_code
-			);
-		}
+	$result = ec_seo_indexnow_submit_urls( $urls );
+	if ( is_wp_error( $result ) ) {
+		return $result;
 	}
 
 	return array(
-		'success'       => ( 200 === $response_code || 202 === $response_code ),
+		'success'       => ! empty( $result['success'] ),
 		'submitted'     => count( $urls ),
-		'urls'          => $urls,
-		'response_code' => $response_code,
-		'message'       => $message,
+		'urls'          => array_values( $urls ),
+		'response_code' => (int) ( $result['status_code'] ?? 0 ),
+		'message'       => (string) ( $result['message'] ?? $result['error'] ?? '' ),
 	);
 }

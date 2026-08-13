@@ -5,8 +5,6 @@
  * Provides:
  * - URL pings on post publish/unpublish/delete
  *
- * Note: The IndexNow key file must be hosted as a static `/{key}.txt` at the domain root.
- *
  * @package ExtraChill\SEO
  */
 
@@ -17,8 +15,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'transition_post_status', __NAMESPACE__ . '\\ec_seo_indexnow_on_status_transition', 20, 3 );
-add_action( 'deleted_post', __NAMESPACE__ . '\\ec_seo_indexnow_on_deleted_post', 20, 1 );
+add_action( 'deleted_post', __NAMESPACE__ . '\\ec_seo_indexnow_on_deleted_post', 20, 2 );
 add_action( 'post_updated', __NAMESPACE__ . '\\ec_seo_indexnow_on_post_updated', 20, 3 );
+add_filter( 'datamachine_indexnow_skip_auto_submit', __NAMESPACE__ . '\\ec_seo_indexnow_skip_generic_auto_submit', 10, 3 );
+
+/**
+ * Extra Chill SEO owns automatic submission policy while this module is active.
+ */
+function ec_seo_indexnow_skip_generic_auto_submit( $skip, $post_id = 0, $post = null ) {
+	return true;
+}
+
+/**
+ * Applies external auto-submit suppression without this module's DMB guard.
+ */
+function ec_seo_indexnow_should_skip_auto_submit( $post_id, $post ) {
+	if ( ! ec_seo_is_indexnow_enabled() ) {
+		return true;
+	}
+
+	$callback = __NAMESPACE__ . '\\ec_seo_indexnow_skip_generic_auto_submit';
+
+	remove_filter( 'datamachine_indexnow_skip_auto_submit', $callback, 10 );
+	$skip = apply_filters( 'datamachine_indexnow_skip_auto_submit', false, $post_id, $post );
+	add_filter( 'datamachine_indexnow_skip_auto_submit', $callback, 10, 3 );
+
+	return $skip;
+}
 
 function ec_seo_indexnow_on_status_transition( $new_status, $old_status, $post ) {
 	$post_id = isset( $post->ID ) ? (int) $post->ID : 0;
@@ -27,6 +50,14 @@ function ec_seo_indexnow_on_status_transition( $new_status, $old_status, $post )
 	}
 
 	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		return;
+	}
+
+	if ( ! ec_seo_indexnow_is_supported_post( $post ) ) {
+		return;
+	}
+
+	if ( ec_seo_indexnow_should_skip_auto_submit( $post_id, $post ) ) {
 		return;
 	}
 
@@ -43,8 +74,16 @@ function ec_seo_indexnow_on_status_transition( $new_status, $old_status, $post )
 	}
 }
 
-function ec_seo_indexnow_on_deleted_post( $post_id ) {
-	$permalink = get_permalink( $post_id );
+function ec_seo_indexnow_on_deleted_post( $post_id, $post = null ) {
+	if ( ! ( $post instanceof \WP_Post ) || 'publish' !== $post->post_status || ! ec_seo_indexnow_is_supported_post( $post ) ) {
+		return;
+	}
+
+	if ( ec_seo_indexnow_should_skip_auto_submit( $post_id, $post ) ) {
+		return;
+	}
+
+	$permalink = get_permalink( $post );
 	if ( $permalink ) {
 		ec_seo_indexnow_submit_urls( array( $permalink ) );
 	}
@@ -68,8 +107,11 @@ function ec_seo_indexnow_on_post_updated( $post_id, $post_after, $post_before ) 
 		return;
 	}
 
-	$post_type_object = get_post_type_object( $post_after->post_type );
-	if ( ! $post_type_object || empty( $post_type_object->publicly_queryable ) ) {
+	if ( ! ec_seo_indexnow_is_supported_post( $post_after ) || ! ec_seo_indexnow_is_meaningful_update( $post_after, $post_before ) ) {
+		return;
+	}
+
+	if ( ec_seo_indexnow_should_skip_auto_submit( $post_id, $post_after ) ) {
 		return;
 	}
 
@@ -80,47 +122,38 @@ function ec_seo_indexnow_on_post_updated( $post_id, $post_after, $post_before ) 
 }
 
 function ec_seo_indexnow_submit_urls( $urls ) {
-	/**
-	 * Filters whether to skip an automatic IndexNow submission.
-	 *
-	 * Lets bulk/background operations (e.g. large historical imports)
-	 * suppress the outbound IndexNow POST, which would otherwise fire one
-	 * synchronous HTTP request per published post and ask search engines to
-	 * crawl thousands of pages at once. Shares the canonical filter name with
-	 * Data Machine's IndexNow integration so a single filter suppresses both.
-	 * Callers should restore the filter after the bulk operation completes.
-	 *
-	 * @param bool $skip Whether to skip the submission. Default false.
-	 */
-	if ( apply_filters( 'datamachine_indexnow_skip_auto_submit', false ) ) {
-		return;
-	}
-
-	$indexnow_key = ec_seo_get_indexnow_key();
-	if ( empty( $indexnow_key ) ) {
-		return;
-	}
-
 	$urls = array_filter( array_map( 'esc_url_raw', (array) $urls ) );
 	$urls = array_values( array_unique( $urls ) );
 
 	if ( empty( $urls ) ) {
-		return;
+		return new \WP_Error( 'no_urls', __( 'No valid URLs to submit.', 'extrachill-seo' ) );
 	}
 
-	$payload = array(
-		'host'        => wp_parse_url( home_url(), PHP_URL_HOST ),
-		'key'         => $indexnow_key,
-		'keyLocation' => home_url( '/' . rawurlencode( $indexnow_key ) . '.txt' ),
-		'urlList'     => $urls,
-	);
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'datamachine/indexnow-submit' ) : null;
+	if ( ! $ability ) {
+		return new \WP_Error( 'indexnow_unavailable', __( 'The IndexNow submission ability is unavailable.', 'extrachill-seo' ) );
+	}
 
-	wp_remote_post(
-		'https://api.indexnow.org/indexnow',
-		array(
-			'timeout' => 5,
-			'headers' => array( 'Content-Type' => 'application/json; charset=utf-8' ),
-			'body'    => wp_json_encode( $payload ),
-		)
-	);
+	return $ability->execute( array( 'urls' => $urls ) );
+}
+
+function ec_seo_indexnow_is_supported_post( $post ) {
+	if ( ! ( $post instanceof \WP_Post ) ) {
+		return false;
+	}
+
+	$post_type_object = get_post_type_object( $post->post_type );
+
+	return $post_type_object && ! empty( $post_type_object->publicly_queryable );
+}
+
+function ec_seo_indexnow_is_meaningful_update( $post_after, $post_before ) {
+	$fields = array( 'post_title', 'post_content', 'post_excerpt', 'post_name', 'post_parent' );
+	foreach ( $fields as $field ) {
+		if ( $post_after->$field !== $post_before->$field ) {
+			return true;
+		}
+	}
+
+	return false;
 }
