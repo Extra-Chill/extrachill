@@ -36,7 +36,7 @@
  * Generated from @extrachill/tokens — DO NOT EDIT MANUALLY.
  * Source: tokens.json > categories > taxonomy-badge
  *
- * 233 badges across 5 taxonomies
+ * 228 badges across 5 taxonomies
  */
 
 /* === Festival Badges === */
@@ -957,26 +957,18 @@
 .taxonomy-badge.venue-badge {
     background-color: var(--badge-venue-default-bg);
     color: var(--badge-venue-default-text);
+    border-color: var(--badge-venue-default-bg);
 }
-.taxonomy-badge.venue-the-royal-american {
-    background-color: var(--badge-venue-the-royal-american-bg);
-    color: var(--badge-venue-the-royal-american-text);
+
+.taxonomy-badges > .taxonomy-badge.venue-badge:nth-child(even of .venue-badge) {
+    background-color: var(--badge-venue-default-text);
+    color: var(--badge-venue-default-bg);
+    border-color: var(--badge-venue-default-bg);
 }
-.taxonomy-badge.venue-the-bounty-bar {
-    background-color: var(--badge-venue-the-bounty-bar-bg);
-    color: var(--badge-venue-the-bounty-bar-text);
-}
-.taxonomy-badge.venue-the-refinery {
-    background-color: var(--badge-venue-the-refinery-bg);
-    color: var(--badge-venue-the-refinery-text);
-}
-.taxonomy-badge.venue-lo-fi-brewing {
-    background-color: var(--badge-venue-lo-fi-brewing-bg);
-    color: var(--badge-venue-lo-fi-brewing-text);
-}
-.taxonomy-badge.venue-charleston-tin-roof {
-    background-color: var(--badge-venue-charleston-tin-roof-bg);
-    color: var(--badge-venue-charleston-tin-roof-text);
+.taxonomy-badge.venue-badge:hover,
+.taxonomy-badges > .taxonomy-badge.venue-badge:nth-child(even of .venue-badge):hover {
+    background-color: var(--badge-venue-default-bg);
+    color: var(--badge-venue-default-text);
 }
 
 /* === Artist Badges === */
