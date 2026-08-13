@@ -50,7 +50,27 @@ const tokensCSS = fs.readFileSync(
   'utf8'
 );
 
-const output = baseStyles + '\n' + tokensCSS;
+const venueStyles = `/* === Venue Badge Checker === */
+.taxonomy-badge.venue-badge {
+  background-color: var(--badge-venue-default-bg);
+  color: var(--badge-venue-default-text);
+  border-color: var(--badge-venue-default-bg);
+}
+
+.taxonomy-badges > .taxonomy-badge.venue-badge:nth-child(even of .venue-badge) {
+  background-color: var(--badge-venue-default-text);
+  color: var(--badge-venue-default-bg);
+  border-color: var(--badge-venue-default-bg);
+}
+
+.taxonomy-badge.venue-badge:hover,
+.taxonomy-badges > .taxonomy-badge.venue-badge:nth-child(even of .venue-badge):hover {
+  background-color: var(--badge-venue-default-bg);
+  color: var(--badge-venue-default-text);
+}
+`;
+
+const output = baseStyles + '\n' + tokensCSS + '\n' + venueStyles;
 const outPath = path.join(__dirname, '..', 'assets', 'css', 'taxonomy-badges.css');
 
 fs.writeFileSync(outPath, output);
