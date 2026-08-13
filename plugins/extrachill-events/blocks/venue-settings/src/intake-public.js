@@ -1,7 +1,17 @@
 /**
  * External dependencies
  */
-import { FieldGroup, Panel } from '@extrachill/components';
+import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
+
+const STANDARD_FIELDS = [
+	'Requested date (required)',
+	'Requested space when the venue has more than one',
+	'Artist or project name (required)',
+	'Contact name (required)',
+	'Contact email (required)',
+	'Contact phone (optional)',
+	'Additional details (required)',
+];
 
 export default function PublicBookingDetails( {
 	config,
@@ -19,6 +29,15 @@ export default function PublicBookingDetails( {
 	];
 	return (
 		<Panel>
+			<PanelHeader
+				title="Standard fields"
+				description="Every venue booking form includes these basic fields. Add venue-specific fields in the Custom fields section below."
+			/>
+			<ul>
+				{ STANDARD_FIELDS.map( ( field ) => (
+					<li key={ field }>{ field }</li>
+				) ) }
+			</ul>
 			<details>
 				<summary>
 					<strong>Edit standard wording</strong>

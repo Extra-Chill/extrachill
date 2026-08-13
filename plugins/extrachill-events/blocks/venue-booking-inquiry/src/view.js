@@ -27,10 +27,6 @@ import {
 	errorState,
 	newIdempotencyKey,
 } from './submission';
-import {
-	linkCollectionValue,
-	updateLinkCollection,
-} from '../../venue-settings/src/booking-links';
 
 const initialValues = ( config ) => ( {
 	artistName: '',
@@ -321,21 +317,6 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			field.visible_when.value
 		);
 	} );
-	const proposalFields = visibleFields.filter(
-		( field ) => ! [ 'url', 'url_list' ].includes( field.type )
-	);
-	const linkFields = visibleFields.filter( ( field ) =>
-		[ 'url', 'url_list' ].includes( field.type )
-	);
-	const linkCollection = linkFields.length
-		? {
-				...linkFields[ 0 ],
-				key: 'links',
-				label: 'Links',
-				type: 'url_list',
-				required: linkFields.some( ( field ) => field.required ),
-		  }
-		: null;
 	let submitLabel = 'Check availability';
 	if ( checking ) {
 		submitLabel = 'Checking...';
@@ -516,14 +497,14 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 										</FieldGroup>
 									</Grid>
 								</section>
-								{ proposalFields.length > 0 && (
+								{ visibleFields.length > 0 && (
 									<section className="ec-booking-inquiry__section">
 										<h3>Event details</h3>
 										<Grid
 											minColumnWidth="16rem"
 											maxColumns={ 2 }
 										>
-											{ proposalFields.map( ( field ) => (
+											{ visibleFields.map( ( field ) => (
 												<Field
 													key={ field.key }
 													field={ field }
@@ -542,28 +523,6 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 												/>
 											) ) }
 										</Grid>
-									</section>
-								) }
-								{ linkCollection && (
-									<section className="ec-booking-inquiry__section">
-										<h3>Links</h3>
-										<Field
-											field={ linkCollection }
-											value={ linkCollectionValue(
-												linkFields,
-												values.fields
-											) }
-											prefix={ prefix }
-											onChange={ ( value ) =>
-												update( {
-													fields: updateLinkCollection(
-														linkFields,
-														values.fields,
-														value
-													),
-												} )
-											}
-										/>
 									</section>
 								) }
 							</section>

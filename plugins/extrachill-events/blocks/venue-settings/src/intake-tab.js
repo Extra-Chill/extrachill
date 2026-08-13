@@ -7,27 +7,33 @@ import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
  * Internal dependencies
  */
 import PublicBookingDetails from './intake-public';
-import {
-	isLinkField,
-	logicalIntakeRows,
-	updateLogicalLinkFields,
-} from './booking-links';
 import { normalizeKey } from './state';
 
-const nextQuestionKey = ( fields ) => {
+const FIELD_TYPES = [
+	[ 'text', 'Short text' ],
+	[ 'textarea', 'Long text' ],
+	[ 'email', 'Email address' ],
+	[ 'phone', 'Phone number' ],
+	[ 'number', 'Number' ],
+	[ 'select', 'Multiple choice' ],
+	[ 'checkbox', 'Checkbox' ],
+	[ 'url', 'Website link' ],
+	[ 'url_list', 'List of links' ],
+];
+
+const nextCustomFieldKey = ( fields ) => {
 	const keys = new Set( fields.map( ( field ) => field.key ) );
 	let number = 1;
-	let key = 'question';
+	let key = 'custom_field';
 	while ( keys.has( key ) ) {
 		number += 1;
-		key = `question_${ number }`;
+		key = `custom_field_${ number }`;
 	}
 	return key;
 };
 
 export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 	const fields = config.intake.fields;
-	const rows = logicalIntakeRows( fields );
 	const setFields = ( next ) =>
 		setConfig( { ...config, intake: { ...config.intake, fields: next } } );
 	const updateField = ( field, patch ) =>
@@ -36,12 +42,6 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 				candidate === field ? { ...candidate, ...patch } : candidate
 			)
 		);
-	const updateLinks = ( patch ) =>
-		setFields( updateLogicalLinkFields( fields, patch ) );
-	const removeLinks = () =>
-		setFields( fields.filter( ( field ) => ! isLinkField( field ) ) );
-	const hasLinks = fields.some( isLinkField );
-
 	return (
 		<>
 			<PublicBookingDetails
@@ -51,32 +51,23 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 			/>
 			<Panel>
 				<PanelHeader
-					title="Questions"
-					description="Ask only for the extra information your team needs to review an inquiry."
+					title="Custom fields"
+					description="Add only the venue-specific information your team needs beyond the standard booking fields."
 				/>
-				{ rows.length === 0 && <p>No extra questions configured.</p> }
-				{ rows.map( ( row, rowIndex ) => {
-					const linkRow = Boolean( row.links );
-					const field = linkRow ? row.links[ 0 ] : row.field;
-					const required = linkRow
-						? row.links.some( ( link ) => link.required )
-						: field.required;
-					const rowKeys = linkRow
-						? row.links.map( ( link ) => link.key )
-						: [ field.key ];
-					const isReferenced = fields.some( ( candidate ) =>
-						rowKeys.includes( candidate.visible_when?.field )
+				{ fields.length === 0 && <p>No custom fields added.</p> }
+				{ fields.map( ( field, rowIndex ) => {
+					const isReferenced = fields.some(
+						( candidate ) =>
+							field.key === candidate.visible_when?.field
 					);
 					return (
 						<fieldset
 							className="ec-venue-settings__repeater"
-							key={ linkRow ? 'links' : field.key }
+							key={ field.key }
 						>
-							<legend>{ linkRow ? 'Links' : 'Question' }</legend>
+							<legend>Custom field</legend>
 							<FieldGroup
-								label={
-									linkRow ? 'Links label' : 'Question label'
-								}
+								label="Field label"
 								htmlFor={ `${ idPrefix }intake-label-${ rowIndex }` }
 								required
 							>
@@ -84,58 +75,94 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 									id={ `${ idPrefix }intake-label-${ rowIndex }` }
 									value={ field.label }
 									onChange={ ( event ) =>
-										linkRow
-											? updateLinks( {
-													label: event.target.value,
-											  } )
-											: updateField( field, {
-													label: event.target.value,
-											  } )
+										updateField( field, {
+											label: event.target.value,
+										} )
 									}
 								/>
 							</FieldGroup>
+							<FieldGroup
+								label="Field type"
+								htmlFor={ `${ idPrefix }intake-type-${ rowIndex }` }
+							>
+								<select
+									id={ `${ idPrefix }intake-type-${ rowIndex }` }
+									value={ field.type }
+									onChange={ ( event ) =>
+										updateField( field, {
+											type: event.target.value,
+											options:
+												event.target.value === 'select'
+													? field.options
+													: [],
+										} )
+									}
+								>
+									{ FIELD_TYPES.map( ( [ value, label ] ) => (
+										<option key={ value } value={ value }>
+											{ label }
+										</option>
+									) ) }
+								</select>
+							</FieldGroup>
+							{ field.type === 'select' && (
+								<FieldGroup
+									label="Choices"
+									htmlFor={ `${ idPrefix }intake-options-${ rowIndex }` }
+									help="Enter one choice per line."
+									required
+								>
+									<textarea
+										id={ `${ idPrefix }intake-options-${ rowIndex }` }
+										rows="4"
+										value={ field.options.join( '\n' ) }
+										onChange={ ( event ) =>
+											updateField( field, {
+												options: event.target.value
+													.split( /\r?\n/ )
+													.map( ( option ) =>
+														option.trim()
+													)
+													.filter( Boolean ),
+											} )
+										}
+									/>
+								</FieldGroup>
+							) }
 							<label
+								className="ec-checkbox-row"
 								htmlFor={ `${ idPrefix }intake-required-${ rowIndex }` }
 							>
 								<input
 									id={ `${ idPrefix }intake-required-${ rowIndex }` }
 									type="checkbox"
-									checked={ required }
+									checked={ field.required }
 									onChange={ ( event ) =>
-										linkRow
-											? updateLinks( {
-													required:
-														event.target.checked,
-											  } )
-											: updateField( field, {
-													required:
-														event.target.checked,
-											  } )
+										updateField( field, {
+											required: event.target.checked,
+										} )
 									}
 								/>{ ' ' }
 								Required
 							</label>
 							<button
 								type="button"
-								className="button-link-delete"
+								className="button-danger button-small"
 								disabled={ isReferenced }
 								onClick={ () =>
-									linkRow
-										? removeLinks()
-										: setFields(
-												fields.filter(
-													( candidate ) =>
-														candidate !== field
-												)
-										  )
+									setFields(
+										fields.filter(
+											( candidate ) => candidate !== field
+										)
+									)
 								}
 							>
-								Remove { linkRow ? 'links' : 'question' }
+								Remove field
 							</button>
 							{ isReferenced && (
 								<p className="ec-venue-settings__save-note">
-									This question is used by another saved
-									question and cannot be removed.
+									This field controls another saved field and
+									cannot be removed.
 								</p>
 							) }
 						</fieldset>
@@ -144,14 +171,14 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 				<div className="ec-action-row">
 					<button
 						type="button"
-						className="button-2"
+						className="button-2 button-medium"
 						onClick={ () => {
-							const key = nextQuestionKey( fields );
+							const key = nextCustomFieldKey( fields );
 							setFields( [
 								...fields,
 								{
 									key: normalizeKey( key ),
-									label: 'New question',
+									label: 'New field',
 									type: 'text',
 									required: false,
 									options: [],
@@ -160,29 +187,8 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 							] );
 						} }
 					>
-						Add question
+						Add custom field
 					</button>
-					{ ! hasLinks && (
-						<button
-							type="button"
-							className="button-2"
-							onClick={ () =>
-								setFields( [
-									...fields,
-									{
-										key: 'links',
-										label: 'Links',
-										type: 'url_list',
-										required: false,
-										options: [],
-										visible_when: null,
-									},
-								] )
-							}
-						>
-							Add links
-						</button>
-					) }
 				</div>
 			</Panel>
 		</>

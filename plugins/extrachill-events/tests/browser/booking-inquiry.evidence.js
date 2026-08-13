@@ -254,11 +254,11 @@ const measure = ( page ) =>
 			.getByText( /That date is available for submissions/ )
 			.waitFor();
 		await page.getByLabel( 'Artist or project name' ).waitFor();
-		assert.equal( await page.getByLabel( 'Links' ).count(), 1 );
-		assert.equal( await page.getByLabel( 'Press links' ).count(), 0 );
+		assert.equal( await page.getByLabel( 'Artist website' ).count(), 1 );
+		assert.equal( await page.getByLabel( 'Press links' ).count(), 1 );
 		assert.equal(
 			await page
-				.locator( 'textarea#ec-booking-browser-proof-links' )
+				.locator( 'textarea#ec-booking-browser-proof-press_links' )
 				.count(),
 			1
 		);

@@ -71,12 +71,12 @@ export function BookingFormTab( {
 			<Panel>
 				<PanelHeader
 					title="Embed your booking form"
-					description="Add the websites where this form may appear, then copy the secure embed code into your website."
+					description="Authorize your venue website, then copy the secure embed code into the page where you want the form to appear."
 				/>
 				<FieldGroup
-					label="Allowed websites"
+					label="Website where you'll embed this form"
 					htmlFor={ `${ idPrefix }venue-booking-websites` }
-					help="Enter one exact HTTPS website address per line, such as https://venue.example. The first website is used in the code below."
+					help="Enter the HTTPS address of your website, such as https://venue.example. You can place the form on any page of that website. Add another website on a new line if needed."
 				>
 					<textarea
 						id={ `${ idPrefix }venue-booking-websites` }
@@ -111,7 +111,7 @@ export function BookingFormTab( {
 						<ActionRow>
 							<button
 								type="button"
-								className="button-1"
+								className="button-1 button-medium"
 								onClick={ copyEmbed }
 							>
 								Copy embed code
@@ -123,7 +123,7 @@ export function BookingFormTab( {
 					</>
 				) : (
 					<p className="ec-venue-settings__save-note">
-						Add an allowed website to generate its embed code.
+						Add your website to generate its embed code.
 					</p>
 				) }
 			</Panel>
@@ -163,7 +163,7 @@ export function BookingFormTab( {
 			<ActionRow>
 				<button
 					type="button"
-					className="button-1"
+					className="button-1 button-medium"
 					disabled={ ! dirty || saving || errors.length > 0 }
 					onClick={ onSave }
 				>

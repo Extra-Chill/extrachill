@@ -1529,7 +1529,7 @@ describe( 'venue settings authorization-facing states', () => {
 			buttonByText( container, 'Booking Form' ).click()
 		);
 		await act( async () =>
-			buttonByText( container, 'Add question' ).click()
+			buttonByText( container, 'Add custom field' ).click()
 		);
 		await setInput(
 			container.querySelector( '#intake-label-0' ),
@@ -1548,7 +1548,7 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( request.data.input.config.intake.fields ).toEqual( [
 			{
-				key: 'question',
+				key: 'custom_field',
 				label: 'Recent draw',
 				type: 'text',
 				required: false,
