@@ -106,6 +106,23 @@ function renderSection( section, entries ) {
 
 		lines.push( `    background-color: var(${ varBg });` );
 		lines.push( `    color: var(${ varText });` );
+		if ( key === 'venue-default' ) {
+			lines.push( `    border-color: var(${ varBg });` );
+		}
+		lines.push( `}` );
+	}
+
+	if ( section === 'venue' ) {
+		lines.push( '' );
+		lines.push( `.taxonomy-badges > .taxonomy-badge.venue-badge:nth-child(even of .venue-badge) {` );
+		lines.push( `    background-color: var(--badge-venue-default-text);` );
+		lines.push( `    color: var(--badge-venue-default-bg);` );
+		lines.push( `    border-color: var(--badge-venue-default-bg);` );
+		lines.push( `}` );
+		lines.push( `.taxonomy-badge.venue-badge:hover,` );
+		lines.push( `.taxonomy-badges > .taxonomy-badge.venue-badge:nth-child(even of .venue-badge):hover {` );
+		lines.push( `    background-color: var(--badge-venue-default-bg);` );
+		lines.push( `    color: var(--badge-venue-default-text);` );
 		lines.push( `}` );
 	}
 
