@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.2] - 2026-08-13
+
+### Fixed
+- alternate venue badge contrast
+
 ## [0.8.1] - 2026-06-19
 
 ### Fixed
