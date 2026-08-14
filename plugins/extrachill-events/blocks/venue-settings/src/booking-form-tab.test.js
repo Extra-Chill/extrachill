@@ -84,6 +84,11 @@ describe( 'booking form workspace', () => {
 		expect( intake ).toContain( 'Multiple choice' );
 		expect( intake ).toContain( 'Enter one choice per line.' );
 		expect( intake ).toContain( 'ec-booking-field__row' );
+		expect( intake ).toContain( '<details' );
+		expect( intake ).toContain( '<summary' );
+		expect( intake ).toContain( 'ec-booking-field__summary-meta' );
+		expect( intake ).toContain( "'Optional'" );
+		expect( intake ).toContain( 'pendingFocusKey.current = key' );
 		expect( intake ).toContain( 'Move ${ field.label } up' );
 		expect( intake ).toContain( 'Move ${ field.label } down' );
 		expect( intake ).not.toContain( 'Add question' );
@@ -108,6 +113,16 @@ describe( 'booking form workspace', () => {
 		expect( styles ).not.toContain( '.ec-booking-fields__add {' );
 		expect( intake ).toContain( 'button-danger button-small' );
 		expect( workspace + intake ).not.toContain( 'button-link-delete' );
+	} );
+
+	it( 'uses theme tokens and a compact mobile field summary', () => {
+		expect( styles ).toContain( '.ec-booking-field__summary-meta' );
+		expect( styles ).toContain( 'color: var(--muted-text)' );
+		expect( styles ).toContain( 'background: var(--background-color)' );
+		expect( styles ).toContain( '@media screen and (max-width: 480px)' );
+		expect( styles ).toContain(
+			'.ec-booking-field__summary-content {\n\t\tgrid-template-columns: auto minmax(0, 1fr);'
+		);
 	} );
 
 	it( 'edits and renders link fields independently', () => {

@@ -20,6 +20,7 @@
 	}
 
 	button:focus-visible,
+	summary:focus-visible,
 	input:focus-visible,
 	select:focus-visible,
 	textarea:focus-visible {
@@ -96,21 +97,53 @@
 }
 
 .ec-booking-field {
-	padding: var(--spacing-sm);
 	border: 1px solid var(--border-color);
 	border-radius: var(--border-radius-md);
 	background: var(--background-color);
 }
 
-.ec-booking-field__row {
+.ec-booking-field__summary {
+	padding: var(--spacing-sm);
+	cursor: pointer;
+}
+
+.ec-booking-field__summary-content {
 	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) minmax(9rem, 0.65fr);
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: var(--spacing-sm);
+	align-items: center;
+	margin-inline-start: var(--spacing-xs);
+}
+
+.ec-booking-field__question {
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+.ec-booking-field__summary-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs) var(--spacing-sm);
+	justify-content: flex-end;
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+}
+
+.ec-booking-field__editor {
+	padding: 0 var(--spacing-sm) var(--spacing-sm);
+	border-block-start: 1px solid var(--border-color);
+}
+
+.ec-booking-field__row {
+	padding-block-start: var(--spacing-sm);
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.65fr);
 	gap: var(--spacing-sm);
 	align-items: center;
 }
 
 .ec-booking-field__required {
-	grid-column: 2;
+	grid-column: 1;
 }
 
 .ec-booking-field__position {
@@ -140,7 +173,7 @@
 .ec-booking-field__actions {
 	display: flex;
 	gap: var(--spacing-xs);
-	grid-column: 3;
+	grid-column: 2;
 	justify-content: flex-end;
 }
 
@@ -548,13 +581,22 @@
 	}
 
 	.ec-booking-field__row {
-		grid-template-columns: auto minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.ec-booking-field__type,
 	.ec-booking-field__required,
 	.ec-booking-field__actions {
+		grid-column: 1;
+	}
+
+	.ec-booking-field__summary-content {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+
+	.ec-booking-field__summary-meta {
 		grid-column: 2;
+		justify-content: flex-start;
 	}
 
 	.ec-booking-calendar__weekdays {

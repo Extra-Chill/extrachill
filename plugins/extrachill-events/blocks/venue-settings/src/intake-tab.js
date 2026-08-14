@@ -1,4 +1,9 @@
 /**
+ * WordPress dependencies
+ */
+import { useEffect, useRef, useState } from '@wordpress/element';
+
+/**
  * External dependencies
  */
 import { FieldGroup, Panel, PanelHeader } from '@extrachill/components';
@@ -35,6 +40,9 @@ const nextCustomFieldKey = ( fields ) => {
 
 export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 	const fields = config.intake.fields;
+	const [ openFieldKey, setOpenFieldKey ] = useState( null );
+	const fieldLabelRefs = useRef( new Map() );
+	const pendingFocusKey = useRef( null );
 	const setFields = ( next ) =>
 		setConfig( { ...config, intake: { ...config.intake, fields: next } } );
 	const updateField = ( field, patch ) =>
@@ -65,6 +73,13 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 		reordered.splice( target, 0, field );
 		return hasValidFieldOrder( reordered );
 	};
+	useEffect( () => {
+		if ( pendingFocusKey.current !== openFieldKey ) {
+			return;
+		}
+		fieldLabelRefs.current.get( openFieldKey )?.focus();
+		pendingFocusKey.current = null;
+	}, [ fields, openFieldKey ] );
 	return (
 		<>
 			<PublicBookingDetails
@@ -88,158 +103,219 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 							( candidate ) =>
 								field.key === candidate.visible_when?.field
 						);
+						const typeLabel = FIELD_TYPES.find(
+							( [ value ] ) => value === field.type
+						)?.[ 1 ];
 						return (
-							<div className="ec-booking-field" key={ field.key }>
-								<div className="ec-booking-field__row">
-									<span
-										className="ec-booking-field__position"
-										aria-hidden="true"
-									>
-										{ rowIndex + 1 }
+							<details
+								className="ec-booking-field"
+								key={ field.key }
+								open={ openFieldKey === field.key }
+							>
+								<summary
+									className="ec-booking-field__summary"
+									onClick={ ( event ) => {
+										event.preventDefault();
+										setOpenFieldKey( ( current ) =>
+											current === field.key
+												? null
+												: field.key
+										);
+									} }
+								>
+									<span className="ec-booking-field__summary-content">
+										<span
+											className="ec-booking-field__position"
+											aria-hidden="true"
+										>
+											{ rowIndex + 1 }
+										</span>
+										<span className="ec-booking-field__question">
+											{ field.label ||
+												`Field ${ rowIndex + 1 }` }
+										</span>
+										<span className="ec-booking-field__summary-meta">
+											<span>
+												{ typeLabel || field.type }
+											</span>
+											<span>
+												{ field.required
+													? 'Required'
+													: 'Optional' }
+											</span>
+										</span>
 									</span>
-									<input
-										id={ `${ idPrefix }intake-label-${ rowIndex }` }
-										type="text"
-										className="ec-booking-field__label"
-										aria-label={ `Field ${
-											rowIndex + 1
-										} label` }
-										value={ field.label }
-										placeholder="Field label"
-										required
-										onChange={ ( event ) =>
-											updateField( field, {
-												label: event.target.value,
-											} )
-										}
-									/>
-									<select
-										id={ `${ idPrefix }intake-type-${ rowIndex }` }
-										className="ec-booking-field__type"
-										aria-label={ `${
-											field.label ||
-											`Field ${ rowIndex + 1 }`
-										} type` }
-										value={ field.type }
-										onChange={ ( event ) =>
-											updateField( field, {
-												type: event.target.value,
-												options:
-													event.target.value ===
-													'select'
-														? field.options
-														: [],
-											} )
-										}
-									>
-										{ FIELD_TYPES.map(
-											( [ value, label ] ) => (
-												<option
-													key={ value }
-													value={ value }
-												>
-													{ label }
-												</option>
-											)
-										) }
-									</select>
-									<label
-										className="ec-booking-field__required"
-										htmlFor={ `${ idPrefix }intake-required-${ rowIndex }` }
-									>
+								</summary>
+								<div className="ec-booking-field__editor">
+									<div className="ec-booking-field__row">
 										<input
-											id={ `${ idPrefix }intake-required-${ rowIndex }` }
+											id={ `${ idPrefix }intake-label-${ rowIndex }` }
+											type="text"
+											className="ec-booking-field__label"
+											ref={ ( element ) => {
+												if ( element ) {
+													fieldLabelRefs.current.set(
+														field.key,
+														element
+													);
+												} else {
+													fieldLabelRefs.current.delete(
+														field.key
+													);
+												}
+											} }
+											aria-label={ `Field ${
+												rowIndex + 1
+											} label` }
+											value={ field.label }
+											placeholder="Field label"
+											required
+											onChange={ ( event ) =>
+												updateField( field, {
+													label: event.target.value,
+												} )
+											}
+										/>
+										<select
+											id={ `${ idPrefix }intake-type-${ rowIndex }` }
+											className="ec-booking-field__type"
 											aria-label={ `${
 												field.label ||
 												`Field ${ rowIndex + 1 }`
-											} required` }
-											type="checkbox"
-											checked={ field.required }
+											} type` }
+											value={ field.type }
 											onChange={ ( event ) =>
 												updateField( field, {
-													required:
-														event.target.checked,
+													type: event.target.value,
+													options:
+														event.target.value ===
+														'select'
+															? field.options
+															: [],
 												} )
 											}
-										/>
-										Required
-									</label>
-									<div className="ec-booking-field__actions">
-										<button
-											type="button"
-											className="button-3 button-small"
-											disabled={
-												! canMove( rowIndex, -1 )
-											}
-											onClick={ () =>
-												moveField( rowIndex, -1 )
-											}
-											aria-label={ `Move ${ field.label } up` }
 										>
-											Up
-										</button>
-										<button
-											type="button"
-											className="button-3 button-small"
-											disabled={
-												! canMove( rowIndex, 1 )
-											}
-											onClick={ () =>
-												moveField( rowIndex, 1 )
-											}
-											aria-label={ `Move ${ field.label } down` }
-										>
-											Down
-										</button>
-										<button
-											type="button"
-											className="button-danger button-small"
-											disabled={ isReferenced }
-											onClick={ () =>
-												setFields(
-													fields.filter(
-														( candidate ) =>
-															candidate !== field
-													)
+											{ FIELD_TYPES.map(
+												( [ value, label ] ) => (
+													<option
+														key={ value }
+														value={ value }
+													>
+														{ label }
+													</option>
 												)
-											}
+											) }
+										</select>
+										<label
+											className="ec-booking-field__required"
+											htmlFor={ `${ idPrefix }intake-required-${ rowIndex }` }
 										>
-											Remove
-										</button>
-									</div>
-								</div>
-								{ field.type === 'select' && (
-									<FieldGroup
-										className="ec-booking-field__choices"
-										label="Choices"
-										htmlFor={ `${ idPrefix }intake-options-${ rowIndex }` }
-										help="Enter one choice per line."
-										required
-									>
-										<textarea
-											id={ `${ idPrefix }intake-options-${ rowIndex }` }
-											rows="4"
-											value={ field.options.join( '\n' ) }
-											onChange={ ( event ) =>
-												updateField( field, {
-													options: event.target.value
-														.split( /\r?\n/ )
-														.map( ( option ) =>
-															option.trim()
+											<input
+												id={ `${ idPrefix }intake-required-${ rowIndex }` }
+												aria-label={ `${
+													field.label ||
+													`Field ${ rowIndex + 1 }`
+												} required` }
+												type="checkbox"
+												checked={ field.required }
+												onChange={ ( event ) =>
+													updateField( field, {
+														required:
+															event.target
+																.checked,
+													} )
+												}
+											/>
+											Required
+										</label>
+										<div className="ec-booking-field__actions">
+											<button
+												type="button"
+												className="button-3 button-small"
+												disabled={
+													! canMove( rowIndex, -1 )
+												}
+												onClick={ () =>
+													moveField( rowIndex, -1 )
+												}
+												aria-label={ `Move ${ field.label } up` }
+											>
+												Up
+											</button>
+											<button
+												type="button"
+												className="button-3 button-small"
+												disabled={
+													! canMove( rowIndex, 1 )
+												}
+												onClick={ () =>
+													moveField( rowIndex, 1 )
+												}
+												aria-label={ `Move ${ field.label } down` }
+											>
+												Down
+											</button>
+											<button
+												type="button"
+												className="button-danger button-small"
+												disabled={ isReferenced }
+												onClick={ () =>
+													setFields(
+														fields.filter(
+															( candidate ) =>
+																candidate !==
+																field
 														)
-														.filter( Boolean ),
-												} )
-											}
-										/>
-									</FieldGroup>
-								) }
-								{ isReferenced && (
-									<p className="ec-booking-field__note">
-										This field controls another saved field
-										and cannot be removed.
-									</p>
-								) }
-							</div>
+													)
+												}
+											>
+												Remove
+											</button>
+										</div>
+									</div>
+									{ field.type === 'select' && (
+										<FieldGroup
+											className="ec-booking-field__choices"
+											label="Choices"
+											htmlFor={ `${ idPrefix }intake-options-${ rowIndex }` }
+											help="Enter one choice per line."
+											required
+										>
+											<textarea
+												id={ `${ idPrefix }intake-options-${ rowIndex }` }
+												rows="4"
+												value={ field.options.join(
+													'\n'
+												) }
+												onChange={ ( event ) =>
+													updateField( field, {
+														options:
+															event.target.value
+																.split(
+																	/\r?\n/
+																)
+																.map(
+																	(
+																		option
+																	) =>
+																		option.trim()
+																)
+																.filter(
+																	Boolean
+																),
+													} )
+												}
+											/>
+										</FieldGroup>
+									) }
+									{ isReferenced && (
+										<p className="ec-booking-field__note">
+											This field controls another saved
+											field and cannot be removed.
+										</p>
+									) }
+								</div>
+							</details>
 						);
 					} ) }
 				</div>
@@ -248,6 +324,8 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 					className="ec-booking-fields__add button-2 button-medium button-block"
 					onClick={ () => {
 						const key = nextCustomFieldKey( fields );
+						pendingFocusKey.current = key;
+						setOpenFieldKey( key );
 						setFields( [
 							...fields,
 							{
