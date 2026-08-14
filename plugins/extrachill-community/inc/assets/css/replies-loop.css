@@ -426,6 +426,18 @@ span.bbp-topic-post-date {
     align-items: baseline;
 }
 
+.topic-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.topic-actions__separator {
+    color: var(--muted-text);
+}
+
 span.bbp-admin-links {
     float: right;
     color: var(--muted-text);

@@ -52,6 +52,9 @@
     "tests/topic-reply-author-authorization-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/topic-actions-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/topic-term-correction-smoke.php": {
       "environment": "standalone-php"
     },

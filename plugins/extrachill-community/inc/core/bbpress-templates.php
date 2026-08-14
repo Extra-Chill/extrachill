@@ -77,6 +77,52 @@ add_filter( 'bbp_get_single_forum_description', '__return_empty_string' );
 add_filter( 'bbp_no_breadcrumb', '__return_true' );
 
 /**
+ * Let topic templates own the separator between engagement actions.
+ *
+ * bbPress otherwise restores its pipe prefix after an AJAX subscription
+ * toggle, even when the initial template requested no prefix.
+ *
+ * @param array $args Subscription link arguments.
+ * @return array
+ */
+function extrachill_community_remove_topic_subscription_prefix( $args ) {
+	$object_id = isset( $args['object_id'] ) ? (int) $args['object_id'] : 0;
+
+	if ( $object_id && bbp_get_topic_post_type() === get_post_type( $object_id ) ) {
+		$args['before'] = '';
+	}
+
+	return $args;
+}
+add_filter( 'bbp_before_get_user_subscribe_link_parse_args', 'extrachill_community_remove_topic_subscription_prefix' );
+
+/**
+ * Apply the shared secondary-button classes to topic engagement links.
+ *
+ * This output filter also runs for bbPress AJAX responses, so toggled links
+ * retain the same presentation without replacing bbPress behavior.
+ *
+ * @param string $html      Action link markup.
+ * @param array  $args      Action link arguments.
+ * @param int    $user_id   User ID.
+ * @param int    $object_id Object ID.
+ * @return string
+ */
+function extrachill_community_style_topic_action_link( $html, $args, $user_id, $object_id ) {
+	if ( bbp_get_topic_post_type() !== get_post_type( $object_id ) ) {
+		return $html;
+	}
+
+	return str_replace(
+		array( 'class="subscription-toggle"', 'class="favorite-toggle"' ),
+		array( 'class="subscription-toggle button-3 button-small"', 'class="favorite-toggle button-3 button-small"' ),
+		$html
+	);
+}
+add_filter( 'bbp_get_user_subscribe_link', 'extrachill_community_style_topic_action_link', 10, 4 );
+add_filter( 'bbp_get_user_favorites_link', 'extrachill_community_style_topic_action_link', 10, 4 );
+
+/**
  * Keep topic conversations compatible with bbPress reply pagination.
  *
  * bbPress intentionally queries and renders every reply when threading is

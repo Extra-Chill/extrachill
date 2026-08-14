@@ -38,9 +38,25 @@ defined( 'ABSPATH' ) || exit;
 				?>
 			</div>
 			<?php
-			bbp_topic_subscription_link();
+			$topic_actions = array_filter(
+				array(
+					bbp_get_topic_subscription_link( array( 'before' => '', 'after' => '' ) ),
+					bbp_get_topic_favorite_link( array( 'before' => '', 'after' => '' ) ),
+				)
+			);
 
-			bbp_topic_favorite_link();
+			if ( $topic_actions ) :
+				?>
+				<nav class="topic-actions" aria-label="<?php esc_attr_e( 'Topic actions', 'extra-chill-community' ); ?>">
+					<?php foreach ( array_values( $topic_actions ) as $index => $topic_action ) : ?>
+						<?php if ( $index > 0 ) : ?>
+							<span class="topic-actions__separator" aria-hidden="true">|</span>
+						<?php endif; ?>
+						<span class="topic-actions__item"><?php echo wp_kses_post( $topic_action ); ?></span>
+					<?php endforeach; ?>
+				</nav>
+				<?php
+			endif;
 
 			do_action( 'bbp_template_before_single_topic' );
 
