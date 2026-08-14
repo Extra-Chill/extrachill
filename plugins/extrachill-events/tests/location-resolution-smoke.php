@@ -42,6 +42,11 @@ $GLOBALS['ec_resolution_terms'] = array(
 	12 => new WP_Term( 12, 'London', 'london-on', 5 ),
 	13 => new WP_Term( 13, 'London', 'london-uk', 7 ),
 	14 => new WP_Term( 14, 'Oxford', 'oxford-uk', 7 ),
+	15 => new WP_Term( 15, 'South Carolina', 'south-carolina', 1 ),
+	16 => new WP_Term( 16, 'Quebec', 'quebec', 4 ),
+	17 => new WP_Term( 17, 'Charleston', 'charleston-sc', 15 ),
+	18 => new WP_Term( 18, 'Montreal', 'montreal-qc', 16 ),
+	19 => new WP_Term( 19, 'Toronto', 'toronto-on', 5 ),
 );
 $GLOBALS['ec_resolution_venue']       = new WP_Term( 20, 'Resolution Venue', 'resolution-venue' );
 $GLOBALS['ec_resolution_location']    = $GLOBALS['ec_resolution_terms'][10];
@@ -54,6 +59,7 @@ $GLOBALS['ec_resolution_meta']        = array(
 );
 
 function add_action() {}
+function add_filter() {}
 function is_wp_error() {
 	return false;
 }
@@ -62,6 +68,9 @@ function wp_is_post_revision() {
 }
 function wp_is_post_autosave() {
 	return false;
+}
+function get_post_type() {
+	return 'data_machine_events';
 }
 function get_the_terms( $post_id, $taxonomy ) {
 	return 'venue' === $taxonomy
@@ -102,6 +111,9 @@ $cases = array(
 	array( 'London', '', '', 'Canada', 12, 'country context selects Canada hierarchy' ),
 	array( 'London', '', '', 'GB', 13, 'country code selects United Kingdom hierarchy' ),
 	array( 'Oxford', 'Mississippi', '', 'US', null, 'sole city match rejects conflicting hierarchy' ),
+	array( 'Charleston', 'SC', '', 'US', 17, 'Charleston resolves through South Carolina hierarchy' ),
+	array( 'Montreal', 'QC', '', 'CA', 18, 'Montreal resolves through Quebec hierarchy' ),
+	array( 'Toronto', 'ON', '', 'CA', 19, 'Toronto resolves through Ontario hierarchy' ),
 );
 
 $failures = 0;
@@ -130,6 +142,19 @@ if ( array() !== $GLOBALS['ec_resolution_assignments'] ) {
 	printf( "FAIL: an already-correct canonical assignment must not be rewritten\n" );
 }
 
+$guarded = extrachill_events_prevent_dynamic_location_creation( 'Wilmington, NC', 'location', 150479 );
+if ( '10' !== $guarded ) {
+	++$failures;
+	printf( "FAIL: AI-decided location must resolve to an existing canonical term ID\n" );
+}
+$GLOBALS['ec_resolution_meta']['_venue_state'] = 'PA';
+$guarded = extrachill_events_prevent_dynamic_location_creation( 'Wilmington, PA', 'location', 150479 );
+if ( '' !== $guarded ) {
+	++$failures;
+	printf( "FAIL: unresolved AI-decided location must be refused instead of created\n" );
+}
+$GLOBALS['ec_resolution_meta']['_venue_state'] = 'NC';
+
 $ability = new ExtraChillEvents\Abilities\EventLocationAlignmentAbilities();
 $method  = new ReflectionMethod( $ability, 'resolveExpectedLocationTerm' );
 $result  = $method->invoke( $ability, 'Wilmington', '', '', 'US', $GLOBALS['ec_resolution_terms'][11] );
@@ -138,5 +163,5 @@ if ( null !== $result['term'] || 'ambiguous_location_hierarchy' !== $result['rea
 	printf( "FAIL: ambiguous hierarchy must not fall back to a flow term in audit/fix mode\n" );
 }
 
-printf( "%d passed, %d failed\n", count( $cases ) + 4 - $failures, $failures );
+printf( "%d passed, %d failed\n", count( $cases ) + 6 - $failures, $failures );
 exit( $failures > 0 ? 1 : 0 );

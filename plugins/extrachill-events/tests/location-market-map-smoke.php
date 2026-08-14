@@ -25,7 +25,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Minimal WP shims used while loading the normalizer file. Only the market-map
 // resolver path is exercised here, which performs no WP lookups.
 if ( ! function_exists( 'add_action' ) ) {
+	/** Ignore hook registration in this isolated smoke test. */
 	function add_action() {}
+}
+if ( ! function_exists( 'add_filter' ) ) {
+	/** Ignore filter registration in this isolated smoke test. */
+	function add_filter() {}
 }
 if ( ! function_exists( 'get_term_by' ) ) {
 	function get_term_by() {

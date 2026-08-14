@@ -74,6 +74,11 @@ final class CliProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/AuditLocationIntegrityCommand.php';
 		\WP_CLI::add_command( 'extrachill events locations audit-integrity', \ExtraChillEvents\Cli\AuditLocationIntegrityCommand::class );
 
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifiedRootLocation.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/RootLocationRepair.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/ReconcileRootLocationsCommand.php';
+		\WP_CLI::add_command( 'extrachill events locations reconcile-roots', \ExtraChillEvents\Cli\ReconcileRootLocationsCommand::class );
+
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/BackfillVenueMetaCommand.php';
 		\WP_CLI::add_command( 'extrachill events venues backfill-meta', \ExtraChillEvents\Cli\BackfillVenueMetaCommand::class );
 

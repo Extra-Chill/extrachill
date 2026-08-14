@@ -32,6 +32,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'datamachine_event_taxonomy_processed', 'extrachill_events_normalize_location' );
+add_filter( 'datamachine_taxonomy_assign_value', 'extrachill_events_prevent_dynamic_location_creation', 10, 3 );
+
+/**
+ * Resolve AI-decided event locations without allowing dynamic term creation.
+ *
+ * Data Machine's generic taxonomy handler creates unknown AI values. Location
+ * identity is instead owned by the event venue and the canonical hierarchy, so
+ * return an existing term ID or skip assignment. The normalizer runs after the
+ * taxonomy pass and applies the same resolver as a final invariant.
+ *
+ * @param mixed  $value     AI-supplied taxonomy value.
+ * @param string $taxonomy Taxonomy slug.
+ * @param int    $post_id   Event post ID.
+ * @return mixed
+ */
+function extrachill_events_prevent_dynamic_location_creation( $value, string $taxonomy, int $post_id ) {
+	if ( 'location' !== $taxonomy || 'data_machine_events' !== get_post_type( $post_id ) ) {
+		return $value;
+	}
+
+	$venues = get_the_terms( $post_id, 'venue' );
+	if ( ! $venues || is_wp_error( $venues ) ) {
+		return '';
+	}
+
+	$venue    = reset( $venues );
+	$resolved = extrachill_events_resolve_location_term_for_venue_city(
+		(string) get_term_meta( $venue->term_id, '_venue_city', true ),
+		(string) get_term_meta( $venue->term_id, '_venue_state', true ),
+		(string) get_term_meta( $venue->term_id, '_venue_zip', true ),
+		(string) get_term_meta( $venue->term_id, '_venue_country', true )
+	);
+
+	return $resolved instanceof \WP_Term ? (string) $resolved->term_id : '';
+}
 
 /**
  * Normalize event location based on venue city/state/zip.
