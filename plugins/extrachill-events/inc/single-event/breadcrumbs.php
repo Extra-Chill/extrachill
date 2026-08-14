@@ -93,6 +93,8 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
  * "Extra Chill → Events" prefix. Only applies on blog ID 7 (events.extrachill.com).
  *
  * Output patterns:
+ * - Location directory: "Extra Chill → Events → Live Music by Location"
+ * - All events: "Extra Chill → Events → All Live Music Events"
  * - Taxonomy: "Extra Chill → Events → [Term Name]"
  * - Post type: "Extra Chill → Events"
  *
@@ -104,6 +106,12 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail
 function ec_events_breadcrumb_trail_archives( $custom_trail ) {
 	if ( ! ec_is_events_site() ) {
 		return $custom_trail;
+	}
+	if ( extrachill_events_is_location_index() ) {
+		return '<span>' . esc_html__( 'Live Music by Location', 'extrachill-events' ) . '</span>';
+	}
+	if ( extrachill_events_is_all_events_page() ) {
+		return '<span>' . esc_html__( 'All Live Music Events', 'extrachill-events' ) . '</span>';
 	}
 	if ( is_tax() ) {
 		$term = get_queried_object();
