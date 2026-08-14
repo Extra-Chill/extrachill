@@ -84,7 +84,7 @@ function ec_news_wire_invalid_classification_reason( $value, $taxonomy ) {
  * @param string $value           Candidate value.
  * @param string $taxonomy        Taxonomy slug.
  * @param int    $current_term_id Existing term being audited, if any.
- * @return object|null
+ * @return WP_Term|null
  */
 function ec_news_wire_find_canonical_term( $value, $taxonomy, $current_term_id = 0 ) {
 	$terms = get_terms(
@@ -115,7 +115,7 @@ function ec_news_wire_find_canonical_term( $value, $taxonomy, $current_term_id =
 
 	$key = ec_news_wire_classification_key( $value );
 	foreach ( $terms as $term ) {
-		if ( $key === ec_news_wire_classification_key( $term->name ) ) {
+		if ( ec_news_wire_classification_key( $term->name ) === $key ) {
 			$matches[ (int) $term->term_id ] = $term;
 		}
 	}
@@ -140,7 +140,7 @@ function ec_news_wire_find_canonical_term( $value, $taxonomy, $current_term_id =
  * Find a possible concise city term without assuming it is geographically equivalent.
  *
  * @param string $value Candidate location.
- * @return object|null
+ * @return WP_Term|null
  */
 function ec_news_wire_find_location_review_candidate( $value ) {
 	if ( false === strpos( $value, ',' ) ) {
@@ -148,7 +148,11 @@ function ec_news_wire_find_location_review_candidate( $value ) {
 	}
 
 	$city  = trim( strtok( $value, ',' ) );
-	$terms = get_terms( array( 'taxonomy' => 'location', 'hide_empty' => false, 'number' => 0 ) );
+	$terms = get_terms( array(
+		'taxonomy'   => 'location',
+		'hide_empty' => false,
+		'number'     => 0,
+	) );
 	if ( is_wp_error( $terms ) ) {
 		return null;
 	}
@@ -174,7 +178,12 @@ function ec_news_wire_classify_value( $value, $taxonomy, $current_term_id = 0 ) 
 	$value  = trim( sanitize_text_field( (string) $value ) );
 	$reason = ec_news_wire_invalid_classification_reason( $value, $taxonomy );
 	if ( '' !== $reason ) {
-		return array( 'status' => 'invalid', 'value' => '', 'reason' => $reason, 'term_id' => 0 );
+		return array(
+			'status'  => 'invalid',
+			'value'   => '',
+			'reason'  => $reason,
+			'term_id' => 0,
+		);
 	}
 
 	$review_term = 'location' === $taxonomy ? ec_news_wire_find_location_review_candidate( $value ) : null;
@@ -197,7 +206,12 @@ function ec_news_wire_classify_value( $value, $taxonomy, $current_term_id = 0 ) 
 		);
 	}
 
-	return array( 'status' => 'valid', 'value' => $value, 'reason' => '', 'term_id' => 0 );
+	return array(
+		'status'  => 'valid',
+		'value'   => $value,
+		'reason'  => '',
+		'term_id' => 0,
+	);
 }
 
 /**
@@ -224,7 +238,12 @@ function ec_news_wire_validate_classification( $taxonomy_value, $taxonomy_name, 
 				'datamachine_log',
 				'warning',
 				'Festival Wire rejected or held taxonomy classification',
-				array( 'post_id' => $post_id, 'taxonomy' => $taxonomy_name, 'value' => $value, 'reason' => $result['reason'] )
+				array(
+					'post_id'  => $post_id,
+					'taxonomy' => $taxonomy_name,
+					'value'    => $value,
+					'reason'   => $result['reason'],
+				)
 			);
 			continue;
 		}
@@ -249,7 +268,11 @@ function ec_news_wire_audit_classifications( $apply = false ) {
 	$findings = array();
 
 	foreach ( array( 'festival', 'location' ) as $taxonomy ) {
-		$terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'number' => 0 ) );
+		$terms = get_terms( array(
+			'taxonomy'   => $taxonomy,
+			'hide_empty' => false,
+			'number'     => 0,
+		) );
 		if ( is_wp_error( $terms ) ) {
 			$findings[] = array(
 				'taxonomy' => $taxonomy,
@@ -279,7 +302,7 @@ function ec_news_wire_audit_classifications( $apply = false ) {
 				}
 			);
 
-			$findings[] = array(
+			$findings[]    = array(
 				'taxonomy' => $taxonomy,
 				'term_id'  => (int) $term->term_id,
 				'name'     => $term->name,
@@ -316,7 +339,7 @@ function ec_news_wire_audit_classifications( $apply = false ) {
 			}
 
 			$remaining = get_term( (int) $term->term_id, $taxonomy );
-			if ( ! empty( $object_ids ) && $remaining && ! is_wp_error( $remaining ) && 0 === (int) $remaining->count ) {
+			if ( $remaining && ! is_wp_error( $remaining ) && 0 === (int) $remaining->count ) {
 				$deleted = wp_delete_term( (int) $term->term_id, $taxonomy );
 				if ( is_wp_error( $deleted ) || false === $deleted ) {
 					++$errors;
@@ -331,33 +354,5 @@ function ec_news_wire_audit_classifications( $apply = false ) {
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-	/** Festival Wire classification maintenance. */
-	class EC_News_Wire_Classification_Command {
-		/**
-		 * Audit classifications. Mutations require --apply.
-		 *
-		 * ## OPTIONS
-		 *
-		 * [--apply]
-		 * : Reassign or detach reported Festival Wire terms. Default is dry-run.
-		 */
-		public function audit( $args, $assoc_args ) {
-			$apply    = isset( $assoc_args['apply'] );
-			$findings = ec_news_wire_audit_classifications( $apply );
-
-			if ( empty( $findings ) ) {
-				WP_CLI::success( 'No malformed Festival Wire classifications found.' );
-				return;
-			}
-
-			WP_CLI\Utils\format_items( 'table', $findings, array( 'taxonomy', 'term_id', 'name', 'action', 'target', 'posts', 'reason', 'result' ) );
-			$partial = array_filter( $findings, function ( $finding ) { return 0 === strpos( $finding['result'], 'partial' ); } );
-			if ( ! empty( $partial ) ) {
-				WP_CLI::error( sprintf( '%s with partial failures in %d of %d finding(s).', $apply ? 'Completed' : 'Audit incomplete', count( $partial ), count( $findings ) ) );
-			}
-			WP_CLI::success( sprintf( '%s %d classification finding(s).', $apply ? 'Processed' : 'Dry-run found', count( $findings ) ) );
-		}
-	}
-
-	WP_CLI::add_command( 'extrachill-news-wire classifications', 'EC_News_Wire_Classification_Command' );
+	require_once __DIR__ . '/classification-command.php';
 }

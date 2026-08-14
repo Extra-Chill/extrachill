@@ -16,9 +16,10 @@ do_action( 'extrachill_before_body_content' );
 
 			<?php
 			// Display breadcrumbs
-			extrachill_breadcrumbs();
+			extrachill_breadcrumbs(); // @phpstan-ignore function.notFound (Provided by the required Extra Chill theme.)
 
-			if ( have_posts() ) : ?>
+			if ( have_posts() ) :
+				?>
 
 				<header class="page-header ec-edge-gutter">
 					<div class="archive-header-row">
@@ -41,16 +42,22 @@ do_action( 'extrachill_before_body_content' );
 											<?php
 											$current_festival = get_query_var( 'festival' );
 											// Get festival filter options
-											$festivals = get_terms(array('taxonomy' => 'festival', 'hide_empty' => true));
+											$festivals     = get_terms(array(
+												'taxonomy' => 'festival',
+												'hide_empty' => true,
+											));
 											$festival_data = array();
-											if (!is_wp_error($festivals)) {
-												foreach ($festivals as $festival) {
-													$festival_data[] = array('slug' => $festival->slug, 'name' => $festival->name);
+											if ( ! is_wp_error($festivals) ) {
+												foreach ( $festivals as $festival ) {
+													$festival_data[] = array(
+														'slug' => $festival->slug,
+														'name' => $festival->name,
+													);
 												}
 											}
-											
-											if (!empty($festival_data)) {
-												foreach ($festival_data as $festival) {
+
+											if ( ! empty($festival_data) ) {
+												foreach ( $festival_data as $festival ) {
 													echo '<option value="' . esc_attr($festival['slug']) . '"' . selected( $current_festival, $festival['slug'], false ) . '>' . esc_html($festival['name']) . '</option>';
 												}
 											}
@@ -68,11 +75,14 @@ do_action( 'extrachill_before_body_content' );
 										<?php
 										$current_location = get_query_var( 'location' );
 										// Get location filter options
-										$locations = get_terms(array('taxonomy' => 'location', 'hide_empty' => true));
-										if (!is_wp_error($locations) && !empty($locations)) {
+										$locations = get_terms(array(
+											'taxonomy'   => 'location',
+											'hide_empty' => true,
+										));
+										if ( ! is_wp_error($locations) && ! empty($locations) ) {
 											echo '<select id="location-filter" name="location" class="location-dropdown">';
 											echo '<option value="">All Locations</option>';
-											foreach ($locations as $location) {
+											foreach ( $locations as $location ) {
 												echo '<option value="' . esc_attr($location->slug) . '"' . selected( $current_location, $location->slug, false ) . '>' . esc_html($location->name) . '</option>';
 											}
 											echo '</select>';
@@ -98,18 +108,24 @@ do_action( 'extrachill_before_body_content' );
 
 				<?php
 				// --- Display Last Updated Time ---
-				$latest_post = get_posts(array('numberposts' => 1, 'post_type' => 'festival_wire', 'orderby' => 'modified', 'order' => 'DESC'));
+				$latest_post         = get_posts(array(
+					'numberposts' => 1,
+					'post_type'   => 'festival_wire',
+					'orderby'     => 'modified',
+					'order'       => 'DESC',
+				));
 				$last_updated_string = '';
-				
-				if (!empty($latest_post)) {
+
+				if ( ! empty($latest_post) ) {
 					$last_updated_string = 'Last updated: ' . get_the_modified_date('F j, Y \a\t g:i A', $latest_post[0]->ID);
 				}
 
 				// Output the string if it was generated
-				if (!empty($last_updated_string)) : ?>
-				    <div class="festival-wire-last-updated">
-				        <?php echo esc_html($last_updated_string); ?>
-				    </div>
+				if ( ! empty($last_updated_string) ) :
+					?>
+					<div class="festival-wire-last-updated">
+						<?php echo esc_html($last_updated_string); ?>
+					</div>
 				<?php endif; ?>
 				<?php // --- End Display Last Updated Time --- ?>
 
@@ -117,7 +133,8 @@ do_action( 'extrachill_before_body_content' );
 					<div id="festival-wire-posts-container" class="festival-wire-grid">
 					<?php
 					/* Start the Loop */
-					while ( have_posts() ) : the_post();
+					while ( have_posts() ) :
+						the_post();
 						/**
 						 * Include the Post-Format-specific template for the content.
 						 * If you want to override this in a child theme, then include a file
@@ -131,7 +148,7 @@ do_action( 'extrachill_before_body_content' );
 
 					</div><!-- .festival-wire-grid-container -->
 
-				<div class="ec-edge-gutter"><?php extrachill_pagination( null, 'festival-wire', 'post' ); ?></div>
+				<div class="ec-edge-gutter"><?php extrachill_pagination( null, 'festival-wire', 'post' ); // @phpstan-ignore function.notFound (Provided by the required Extra Chill theme.) ?></div>
 
 				<!-- Music Festivals Forum CTA -->
 				<div class="forum-cta-container">
@@ -212,11 +229,11 @@ do_action( 'extrachill_before_body_content' );
 					</div><!-- .faq-accordion -->
 				</div><!-- .festival-wire-faq-container -->
 
-			<?php
-			else : 
+				<?php
+			else :
 				// If no content, include the "No posts found" template.
-				extrachill_no_results();
-			?>
+				extrachill_no_results(); // @phpstan-ignore function.notFound (Provided by the required Extra Chill theme.)
+				?>
 			<?php endif; ?>
 
 	</div><!-- .festival-wire-page -->

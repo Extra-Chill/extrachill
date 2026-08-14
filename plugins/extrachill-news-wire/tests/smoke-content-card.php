@@ -38,7 +38,7 @@ function the_post_thumbnail( $size ) {
 	echo '<img src="https://wire.example.test/image.jpg" alt="Original image alt" data-size="' . $size . '">';
 }
 
-function extrachill_display_taxonomy_badges() {
+function extrachill_display_taxonomy_badges( $post_id = null, $args = array() ) {
 	echo '<div class="taxonomy-badges"><a href="https://wire.example.test/festival/test">Test Festival</a></div>';
 }
 
@@ -54,7 +54,7 @@ function esc_url( $value ) {
 	return $value;
 }
 
-function get_the_time() {
+function get_post_time() {
 	return 1000;
 }
 
