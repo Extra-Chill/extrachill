@@ -33,7 +33,7 @@
 		<?php
 		// Display taxonomy badges using theme function with custom styling
 		if ( function_exists('extrachill_display_taxonomy_badges') ) {
-			extrachill_display_taxonomy_badges( get_the_ID(), array(
+			extrachill_display_taxonomy_badges( (int) get_the_ID(), array(
 				'wrapper_style' => 'position: relative; z-index: 2;',
 			) );
 		}

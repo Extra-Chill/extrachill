@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ec_news_wire_normalize_classification( $value ) {
 	$resolver = '\\DataMachine\\Abilities\\Taxonomy\\ResolveTermAbility';
-	if ( class_exists( $resolver ) && is_callable( array( $resolver, 'normalize_name_for_matching' ) ) ) {
+	if ( class_exists( $resolver ) ) {
 		return $resolver::normalize_name_for_matching( (string) $value );
 	}
 
@@ -103,7 +103,7 @@ function ec_news_wire_find_canonical_term( $value, $taxonomy, $current_term_id =
 	// cannot win over an established canonical term.
 	$resolver = '\\DataMachine\\Abilities\\Taxonomy\\ResolveTermAbility';
 	$matches  = array();
-	if ( 0 === (int) $current_term_id && class_exists( $resolver ) && is_callable( array( $resolver, 'resolve' ) ) ) {
+	if ( 0 === (int) $current_term_id && class_exists( $resolver ) ) {
 		$resolved = $resolver::resolve( (string) $value, $taxonomy, false, array(), true );
 		if ( ! empty( $resolved['success'] ) ) {
 			$term = get_term( (int) $resolved['term_id'], $taxonomy );
