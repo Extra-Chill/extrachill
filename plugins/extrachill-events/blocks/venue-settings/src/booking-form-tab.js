@@ -84,6 +84,11 @@ export function BookingFormTab( {
 	return (
 		<div className="ec-booking-form-editor">
 			<div className="ec-booking-form-editor__controls">
+				<IntakeTab
+					config={ config }
+					setConfig={ setConfig }
+					idPrefix={ idPrefix }
+				/>
 				<Panel>
 					<PanelHeader
 						title="Embed your booking form"
@@ -148,11 +153,6 @@ export function BookingFormTab( {
 						</p>
 					) }
 				</Panel>
-				<IntakeTab
-					config={ config }
-					setConfig={ setConfig }
-					idPrefix={ idPrefix }
-				/>
 				{ errors.length > 0 && (
 					<InlineStatus tone="error">
 						<strong>Resolve before saving:</strong>

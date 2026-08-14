@@ -42,7 +42,7 @@
 
 .ec-booking-form-editor {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
 	gap: var(--spacing-lg);
 	align-items: start;
 }
@@ -50,12 +50,27 @@
 .ec-booking-form-editor__controls {
 	display: grid;
 	gap: var(--spacing-md);
+	min-width: 0;
 }
 
 .ec-booking-form-editor__preview {
 	position: sticky;
 	top: var(--spacing-md);
 	min-width: 0;
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-background);
+	box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 8%));
+}
+
+.ec-booking-form-editor__preview > .ec-panel-header {
+	margin-block-end: var(--spacing-md);
+}
+
+.ec-booking-form-editor__preview .ec-venue-booking-inquiry {
+	min-width: 0;
+	overflow: hidden;
 }
 
 .ec-booking-standard-fields__list {
@@ -418,6 +433,16 @@
 	text-align: center;
 }
 
+@media screen and (max-width: 960px) {
+	.ec-booking-form-editor {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ec-booking-form-editor__preview {
+		position: static;
+	}
+}
+
 @media screen and (max-width: 480px) {
 	.ec-booking-console__toolbar {
 		grid-template-columns: 1fr;
@@ -434,7 +459,7 @@
 	}
 
 	.ec-booking-form-editor__preview {
-		position: static;
+		padding: var(--spacing-sm);
 	}
 
 	.ec-booking-standard-fields__list {
