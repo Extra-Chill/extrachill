@@ -4,16 +4,33 @@
 
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleButtons, LoginPanel } from '../../blocks/login-register/view';
+import {
+	GoogleButtons,
+	LoginPanel,
+	LoginRegisterApp,
+} from '../../blocks/login-register/view';
 
 jest.mock( '@extrachill/components', () => {
 	const React = require( 'react' );
 	return {
-		BlockShell: ( { children } ) => React.createElement( 'div', null, children ),
-		BlockShellHeader: () => null,
-		BlockShellInner: ( { children } ) => React.createElement( 'div', null, children ),
+		BlockShell: ( { children } ) =>
+			React.createElement( 'div', null, children ),
+		BlockShellInner: ( { children } ) =>
+			React.createElement( 'div', null, children ),
 		Panel: ( { children } ) => React.createElement( 'div', null, children ),
-		ResponsiveTabs: () => null,
+		ResponsiveTabs: ( { tabs, active, renderPanel } ) =>
+			React.createElement(
+				'div',
+				null,
+				tabs.map( ( tab ) =>
+					React.createElement(
+						'button',
+						{ key: tab.id, role: 'tab' },
+						tab.label
+					)
+				),
+				renderPanel( active )
+			),
 	};
 } );
 
@@ -162,6 +179,30 @@ describe( 'login continuation requests', () => {
 		expect( request.redirect_to ).toBe( continuation );
 
 		act( () => root.unmount() );
+	} );
+} );
+
+describe( 'authentication page hierarchy', () => {
+	test( 'leaves the page title authoritative while retaining labeled auth controls', () => {
+		const previousActEnvironment = global.IS_REACT_ACT_ENVIRONMENT;
+		global.IS_REACT_ACT_ENVIRONMENT = true;
+		const container = document.createElement( 'div' );
+		const root = createRoot( container );
+
+		act( () => {
+			root.render( <LoginRegisterApp config={ authConfig() } /> );
+		} );
+
+		expect( container.textContent ).not.toContain( 'Login or Register' );
+		expect(
+			Array.from(
+				container.querySelectorAll( '[role="tab"]' ),
+				( tab ) => tab.textContent
+			)
+		).toEqual( [ 'Login', 'Register' ] );
+
+		act( () => root.unmount() );
+		global.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
 	} );
 } );
 

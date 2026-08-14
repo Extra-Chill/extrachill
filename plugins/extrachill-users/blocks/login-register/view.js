@@ -3,7 +3,12 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BlockShell, BlockShellHeader, BlockShellInner, Panel, ResponsiveTabs } from '@extrachill/components';
+import {
+	BlockShell,
+	BlockShellInner,
+	Panel,
+	ResponsiveTabs,
+} from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
 export function GoogleButtons( { redirectUrl, registration = false } ) {
@@ -423,7 +428,7 @@ function waitForGoogleIdentity( timeoutMs = 5000 ) {
 	} );
 }
 
-function LoginRegisterApp( { config } ) {
+export function LoginRegisterApp( { config } ) {
 	const [ activeTab, setActiveTab ] = useState( 'login' );
 	const [ loginNotice, setLoginNotice ] = useState( null );
 	const [ registerNotice, setRegisterNotice ] = useState(
@@ -482,10 +487,6 @@ function LoginRegisterApp( { config } ) {
 	return (
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
-				<BlockShellHeader
-					title="Login or Register"
-					description="Access the Extra Chill community and artist platform."
-				/>
 				<ResponsiveTabs
 					tabs={ tabs }
 					active={ activeTab }
