@@ -24,14 +24,15 @@ const publicForm = readFileSync(
 );
 
 describe( 'booking form workspace', () => {
-	it( 'puts secure embed setup first and keeps preview collapsed', () => {
+	it( 'puts secure embed setup first and keeps preview visible', () => {
 		expect( workspace.indexOf( 'Embed your booking form' ) ).toBeLessThan(
 			workspace.indexOf( '<IntakeTab' )
 		);
 		expect( workspace ).toContain( 'Copy embed code' );
-		expect( workspace ).toContain( '<details' );
-		expect( workspace ).toContain( '<summary>' );
-		expect( workspace ).toContain( 'Preview booking form' );
+		expect( workspace ).toContain( 'ec-booking-form-editor__preview' );
+		expect( workspace ).toContain(
+			'Live preview of your public booking form.'
+		);
 		expect( workspace ).not.toContain( 'previewDevice' );
 		expect( workspace ).not.toContain( 'QR' );
 		expect( wording ).toContain( 'Edit standard wording' );
@@ -60,15 +61,19 @@ describe( 'booking form workspace', () => {
 		expect( wording ).toContain( 'Contact email (required)' );
 		expect( intake ).toContain( 'Custom fields' );
 		expect( intake ).toContain( 'Add custom field' );
-		expect( intake ).toContain( 'Field type' );
+		expect( intake ).toContain( 'ec-booking-field__type' );
 		expect( intake ).toContain( 'Multiple choice' );
 		expect( intake ).toContain( 'Enter one choice per line.' );
+		expect( intake ).toContain( 'ec-booking-field__row' );
+		expect( intake ).toContain( 'Move ${ field.label } up' );
+		expect( intake ).toContain( 'Move ${ field.label } down' );
 		expect( intake ).not.toContain( 'Add question' );
+		expect( intake ).not.toContain( 'fieldset' );
 	} );
 
 	it( 'uses complete theme button variants', () => {
 		expect( workspace ).toContain( 'button-1 button-medium' );
-		expect( intake ).toContain( 'button-2 button-medium' );
+		expect( intake ).toContain( 'ec-booking-fields__add' );
 		expect( intake ).toContain( 'button-danger button-small' );
 		expect( workspace + intake ).not.toContain( 'button-link-delete' );
 	} );

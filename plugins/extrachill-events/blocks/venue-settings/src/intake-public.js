@@ -28,12 +28,12 @@ export default function PublicBookingDetails( {
 		[ 'message_help', 'Additional details help' ],
 	];
 	return (
-		<Panel>
+		<Panel className="ec-booking-standard-fields">
 			<PanelHeader
 				title="Standard fields"
 				description="Every venue booking form includes these basic fields. Add venue-specific fields in the Custom fields section below."
 			/>
-			<ul>
+			<ul className="ec-booking-standard-fields__list">
 				{ STANDARD_FIELDS.map( ( field ) => (
 					<li key={ field }>{ field }</li>
 				) ) }

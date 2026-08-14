@@ -9,7 +9,6 @@ import { useState } from '@wordpress/element';
 import {
 	ActionRow,
 	FieldGroup,
-	Grid,
 	InlineStatus,
 	Panel,
 	PanelHeader,
@@ -67,75 +66,112 @@ export function BookingFormTab( {
 	};
 
 	return (
-		<Grid minColumnWidth="100%">
-			<Panel>
-				<PanelHeader
-					title="Embed your booking form"
-					description="Authorize your venue website, then copy the secure embed code into the page where you want the form to appear."
-				/>
-				<FieldGroup
-					label="Website where you'll embed this form"
-					htmlFor={ `${ idPrefix }venue-booking-websites` }
-					help="Enter the HTTPS address of your website, such as https://venue.example. You can place the form on any page of that website. Add another website on a new line if needed."
-				>
-					<textarea
-						id={ `${ idPrefix }venue-booking-websites` }
-						rows="4"
-						value={ websites.join( '\n' ) }
-						onChange={ ( event ) =>
-							setConfig( {
-								...config,
-								embed: {
-									allowed_parent_origins: event.target.value
-										.split( /\r?\n/ )
-										.map( ( website ) => website.trim() )
-										.filter( Boolean ),
-								},
-							} )
-						}
+		<div className="ec-booking-form-editor">
+			<div className="ec-booking-form-editor__controls">
+				<Panel>
+					<PanelHeader
+						title="Embed your booking form"
+						description="Authorize your venue website, then copy the secure embed code into the page where you want the form to appear."
 					/>
-				</FieldGroup>
-				{ embedSnippet ? (
-					<>
-						<FieldGroup
-							label="Embed code"
-							htmlFor={ `${ idPrefix }venue-booking-embed-code` }
-						>
-							<textarea
-								id={ `${ idPrefix }venue-booking-embed-code` }
-								rows="8"
-								readOnly
-								value={ embedSnippet }
-							/>
-						</FieldGroup>
-						<ActionRow>
-							<button
-								type="button"
-								className="button-1 button-medium"
-								onClick={ copyEmbed }
+					<FieldGroup
+						label="Website where you'll embed this form"
+						htmlFor={ `${ idPrefix }venue-booking-websites` }
+						help="Enter the HTTPS address of your website, such as https://venue.example. You can place the form on any page of that website. Add another website on a new line if needed."
+					>
+						<textarea
+							id={ `${ idPrefix }venue-booking-websites` }
+							rows="4"
+							value={ websites.join( '\n' ) }
+							onChange={ ( event ) =>
+								setConfig( {
+									...config,
+									embed: {
+										allowed_parent_origins:
+											event.target.value
+												.split( /\r?\n/ )
+												.map( ( website ) =>
+													website.trim()
+												)
+												.filter( Boolean ),
+									},
+								} )
+							}
+						/>
+					</FieldGroup>
+					{ embedSnippet ? (
+						<>
+							<FieldGroup
+								label="Embed code"
+								htmlFor={ `${ idPrefix }venue-booking-embed-code` }
 							>
-								Copy embed code
-							</button>
-							{ copied && (
-								<span role="status">Embed code copied.</span>
-							) }
-						</ActionRow>
-					</>
-				) : (
-					<p className="ec-venue-settings__save-note">
-						Add your website to generate its embed code.
-					</p>
+								<textarea
+									id={ `${ idPrefix }venue-booking-embed-code` }
+									rows="8"
+									readOnly
+									value={ embedSnippet }
+								/>
+							</FieldGroup>
+							<ActionRow>
+								<button
+									type="button"
+									className="button-1 button-medium"
+									onClick={ copyEmbed }
+								>
+									Copy embed code
+								</button>
+								{ copied && (
+									<span role="status">
+										Embed code copied.
+									</span>
+								) }
+							</ActionRow>
+						</>
+					) : (
+						<p className="ec-venue-settings__save-note">
+							Add your website to generate its embed code.
+						</p>
+					) }
+				</Panel>
+				<IntakeTab
+					config={ config }
+					setConfig={ setConfig }
+					idPrefix={ idPrefix }
+				/>
+				{ errors.length > 0 && (
+					<InlineStatus tone="error">
+						<strong>Resolve before saving:</strong>
+						<ul>
+							{ errors.map( ( error ) => (
+								<li key={ error }>{ error }</li>
+							) ) }
+						</ul>
+					</InlineStatus>
 				) }
-			</Panel>
-			<IntakeTab
-				config={ config }
-				setConfig={ setConfig }
-				idPrefix={ idPrefix }
-			/>
-			<details>
-				<summary>
-					<strong>Preview booking form</strong>
-				</summary>
+				<Status state={ status } />
+				<ActionRow>
+					<button
+						type="button"
+						className="button-1 button-medium"
+						disabled={ ! dirty || saving || errors.length > 0 }
+						onClick={ onSave }
+					>
+						{ saving ? 'Saving...' : 'Save booking form' }
+					</button>
+					{ dirty && (
+						<span className="ec-venue-settings__dirty">
+							Unsaved booking form changes
+						</span>
+					) }
+				</ActionRow>
+			</div>
+			<aside
+				className="ec-booking-form-editor__preview"
+				aria-label="Booking form preview"
+			>
+				<PanelHeader
+					title="Preview"
+					description="Live preview of your public booking form."
+				/>
 				<div className="ec-venue-booking-inquiry">
 					<BookingInquiry
 						config={ previewConfig(
@@ -148,33 +184,7 @@ export function BookingFormTab( {
 						preview
 					/>
 				</div>
-			</details>
-			{ errors.length > 0 && (
-				<InlineStatus tone="error">
-					<strong>Resolve before saving:</strong>
-					<ul>
-						{ errors.map( ( error ) => (
-							<li key={ error }>{ error }</li>
-						) ) }
-					</ul>
-				</InlineStatus>
-			) }
-			<Status state={ status } />
-			<ActionRow>
-				<button
-					type="button"
-					className="button-1 button-medium"
-					disabled={ ! dirty || saving || errors.length > 0 }
-					onClick={ onSave }
-				>
-					{ saving ? 'Saving...' : 'Save booking form' }
-				</button>
-				{ dirty && (
-					<span className="ec-venue-settings__dirty">
-						Unsaved booking form changes
-					</span>
-				) }
-			</ActionRow>
-		</Grid>
+			</aside>
+		</div>
 	);
 }
