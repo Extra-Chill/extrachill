@@ -478,7 +478,7 @@ describe( 'venue settings authorization-facing states', () => {
 				),
 			].map( ( button ) => button.textContent )
 		).toEqual( [
-			'Calendar',
+			'Bookings',
 			'Venue',
 			'Booking Form',
 			'Settings',
@@ -657,9 +657,8 @@ describe( 'venue settings authorization-facing states', () => {
 					'[data-context-surface="venue-settings"] > button'
 				),
 			].map( ( button ) => button.textContent )
-		).toEqual( [ 'Calendar', 'Venue', 'Booking Form', 'Settings' ] );
+		).toEqual( [ 'Bookings', 'Venue', 'Booking Form', 'Settings' ] );
 		for ( const retired of [
-			'Bookings',
 			'Local Support',
 			'Profile',
 			'Booking',
@@ -678,6 +677,19 @@ describe( 'venue settings authorization-facing states', () => {
 	} );
 
 	it( 'shows exactly five venue tabs to authorized managers', async () => {
+		apiFetch.mockImplementation( ( request ) => {
+			const input = requestInput( request );
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'list-venue-bookings' ) ) {
+				return Promise.resolve( [ booking( 9 ) ] );
+			}
+			return Promise.resolve( [] );
+		} );
 		const { container, root } = await renderApp(
 			context( {
 				user: { id: 1, name: 'Admin', is_admin: true },
@@ -691,7 +703,7 @@ describe( 'venue settings authorization-facing states', () => {
 				),
 			].map( ( button ) => button.textContent )
 		).toEqual( [
-			'Calendar',
+			'Bookings',
 			'Venue',
 			'Booking Form',
 			'Settings',
@@ -700,6 +712,9 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( container.textContent ).not.toContain( 'Venue claims' );
 		await act( async () => buttonByText( container, 'List' ).click() );
 		expect( container.textContent ).toContain( 'Booking pipeline' );
+		expect(
+			container.querySelector( 'ul.ec-booking-console__list' )
+		).not.toBeNull();
 		await act( async () => root.unmount() );
 	} );
 
@@ -734,18 +749,22 @@ describe( 'venue settings authorization-facing states', () => {
 			true
 		);
 		expect( buttonByText( container, 'My Venues' ) ).toBeDefined();
-		const viewTabs = [
-			...container.querySelectorAll( '[role="tab"]' ),
-		].filter( ( tab ) =>
-			[ 'Calendar', 'List' ].includes( tab.textContent )
+		const viewSwitcher = container.querySelector(
+			'.ec-booking-console__view-switcher'
 		);
-		expect( viewTabs ).toHaveLength( 2 );
-		expect( buttonByText( container, 'List' ).className ).toContain(
-			'ec-tabs__tab'
+		expect( viewSwitcher.querySelector( 'legend' ).textContent ).toBe(
+			'View'
 		);
-		expect( buttonByText( container, 'List' ).className ).not.toContain(
-			'button-2'
-		);
+		expect(
+			[ ...viewSwitcher.querySelectorAll( 'button' ) ].map(
+				( button ) => button.textContent
+			)
+		).toEqual( [ 'Calendar', 'List' ] );
+		expect(
+			container.querySelectorAll(
+				'[data-context-surface="venue-settings"] > button'
+			)
+		).toHaveLength( 4 );
 		await act( async () => root.unmount() );
 	} );
 
@@ -831,10 +850,10 @@ describe( 'venue settings authorization-facing states', () => {
 			} )
 		);
 		expect( container.textContent ).toContain( 'Kid Lake at Venue 44' );
-		expect( container.textContent ).toContain( 'Find local support' );
+		expect( container.textContent ).toContain( 'Open support request' );
 		expect(
 			[ ...container.querySelectorAll( 'a' ) ]
-				.find( ( link ) => link.textContent === 'Find local support' )
+				.find( ( link ) => link.textContent === 'Open support request' )
 				.getAttribute( 'href' )
 		).toBe( 'https://events.example/local-support/?event_id=901' );
 		await act( async () => root.unmount() );
@@ -1079,6 +1098,17 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( container.textContent ).toContain( 'Booking #9' );
 		expect( container.textContent ).toContain( 'Booking Submitted' );
+		expect(
+			[ ...container.querySelector( '#booking-transition' ).options ].map(
+				( option ) => option.value
+			)
+		).toEqual( [
+			'',
+			'needs_info',
+			'under_review',
+			'declined',
+			'withdrawn',
+		] );
 		await act( async () => {
 			const select = container.querySelector( '#booking-transition' );
 			select.value = 'under_review';

@@ -198,6 +198,45 @@
 	margin-bottom: 0;
 }
 
+.ec-booking-console__view-switcher {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.ec-booking-console__view-switcher legend {
+	float: left;
+	font-size: 0.85rem;
+	font-weight: 750;
+}
+
+.ec-booking-console__view-switcher > div {
+	display: inline-flex;
+	padding: 0.2rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-background);
+}
+
+.ec-booking-console__view-switcher button {
+	padding: 0.4rem 0.75rem;
+	border: 0;
+	border-radius: var(--border-radius-sm);
+	background: transparent;
+	color: var(--text-color);
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.ec-booking-console__view-switcher button.is-active {
+	background: var(--header-background);
+	color: var(--header-text-color);
+}
+
 .ec-booking-console__toolbar label {
 	display: grid;
 	gap: 0.35rem;
@@ -206,7 +245,15 @@
 }
 
 .ec-booking-card {
+	display: grid;
+	grid-template-columns: minmax(10rem, 1fr) minmax(10rem, auto) minmax(8rem, auto);
+	align-items: center;
+	gap: 1rem;
 	width: 100%;
+	padding: 1rem;
+	border: 0;
+	border-left: 3px solid transparent;
+	background: transparent;
 	color: inherit;
 	font: inherit;
 	text-align: left;
@@ -215,13 +262,34 @@
 
 .ec-booking-card:hover,
 .ec-booking-card.is-active {
-	border-color: var(--focus-border-color);
-	box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus-border-color) 18%, transparent);
+	border-left-color: var(--focus-border-color);
+	background: color-mix(in srgb, var(--focus-border-color) 7%, transparent);
 }
 
 .ec-booking-card__title {
 	font-size: 1.05rem;
 	font-weight: 750;
+}
+
+.ec-booking-card__identity,
+.ec-booking-card__state {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.ec-booking-card__state {
+	justify-items: start;
+}
+
+.ec-booking-console__list {
+	margin: 0;
+	padding: 0;
+	border-block-start: 1px solid var(--border-color);
+	list-style: none;
+}
+
+.ec-booking-console__list li {
+	border-block-end: 1px solid var(--border-color);
 }
 
 .ec-booking-calendar__weekdays,
@@ -311,6 +379,22 @@
 
 .ec-booking-calendar__item span {
 	font-weight: 750;
+}
+
+.ec-booking-calendar__event {
+	display: grid;
+	gap: 0.2rem;
+}
+
+.ec-booking-calendar__support-action {
+	display: block;
+	padding: 0.25rem 0.4rem;
+	border-radius: var(--border-radius-sm);
+	background: var(--card-background);
+	font-size: 0.7rem;
+	font-weight: 700;
+	line-height: 1.2;
+	text-align: center;
 }
 
 .ec-booking-detail__header {
@@ -436,6 +520,11 @@
 	.ec-booking-console__timeline li {
 		align-items: flex-start;
 		flex-direction: column;
+	}
+
+	.ec-booking-card {
+		grid-template-columns: 1fr;
+		gap: 0.5rem;
 	}
 
 	.ec-venue-settings__records li {

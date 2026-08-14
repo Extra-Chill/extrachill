@@ -19,12 +19,16 @@ describe( 'venue booking workspace composition', () => {
 		);
 		expect( consoleSource ).toContain( '<Badge tone=' );
 		expect( consoleSource ).toContain( '<PanelHeader' );
-		expect( consoleSource ).toContain( '<Tabs' );
-		expect( consoleSource ).not.toContain( 'aria-pressed={ view ===' );
+		expect( consoleSource ).toContain(
+			'className="ec-booking-console__view-switcher"'
+		);
+		expect( consoleSource ).toContain( 'aria-pressed={ view ===' );
 		expect( consoleSource ).toContain(
 			'className="ec-booking-console__toolbar"'
 		);
-		expect( consoleSource ).toContain( '`ec-panel ec-booking-card${' );
+		expect( consoleSource ).toContain(
+			'<ul className="ec-booking-console__list">'
+		);
 	} );
 
 	it( 'uses canonical semantic tokens for unique calendar states', () => {

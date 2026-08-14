@@ -15,7 +15,6 @@ import {
 	Panel,
 	PanelHeader,
 	SearchBox,
-	Tabs,
 } from '@extrachill/components';
 
 /**
@@ -23,18 +22,37 @@ import {
  */
 import { errorDetails, runAbility } from './api';
 
-export const BOOKING_STATUSES = [
-	'submitted',
-	'needs_info',
-	'under_review',
-	'negotiating',
-	'held',
-	'confirmed',
-	'declined',
-	'withdrawn',
-	'cancelled',
-	'completed',
-];
+export const BOOKING_TRANSITIONS = {
+	submitted: [ 'needs_info', 'under_review', 'declined', 'withdrawn' ],
+	needs_info: [ 'submitted', 'under_review', 'declined', 'withdrawn' ],
+	under_review: [ 'needs_info', 'negotiating', 'declined', 'withdrawn' ],
+	negotiating: [
+		'needs_info',
+		'under_review',
+		'held',
+		'confirmed',
+		'declined',
+		'withdrawn',
+	],
+	held: [ 'negotiating', 'confirmed', 'declined', 'withdrawn', 'cancelled' ],
+	confirmed: [ 'cancelled', 'completed' ],
+	declined: [],
+	withdrawn: [],
+	cancelled: [],
+	completed: [],
+};
+
+const STATUS_FILTERS = {
+	active: [
+		'submitted',
+		'needs_info',
+		'under_review',
+		'negotiating',
+		'held',
+	],
+	confirmed: [ 'confirmed', 'completed' ],
+	closed: [ 'declined', 'withdrawn', 'cancelled' ],
+};
 
 const STATUS_LABELS = {
 	submitted: 'Submitted',
@@ -137,25 +155,34 @@ export const calendarEntries = ( bookings, events, supportEvents = [] ) => {
 	];
 };
 
-export const filterBookings = ( bookings, search ) => {
+export const filterBookings = ( bookings, search, statusFilter = '' ) => {
 	const query = search.trim().toLowerCase();
-	if ( ! query ) {
+	if ( ! query && ! statusFilter ) {
 		return bookings;
 	}
-	return bookings.filter( ( booking ) =>
-		[
-			booking.artist_name,
-			booking.contact_name,
-			booking.contact_email,
-			booking.public_id,
-			booking.status,
-			booking.venue_name,
-		]
-			.filter( Boolean )
-			.some( ( value ) =>
-				String( value ).toLowerCase().includes( query )
-			)
-	);
+	return bookings.filter( ( booking ) => {
+		if (
+			statusFilter &&
+			! STATUS_FILTERS[ statusFilter ]?.includes( booking.status )
+		) {
+			return false;
+		}
+		return (
+			! query ||
+			[
+				booking.artist_name,
+				booking.contact_name,
+				booking.contact_email,
+				booking.public_id,
+				booking.status,
+				booking.venue_name,
+			]
+				.filter( Boolean )
+				.some( ( value ) =>
+					String( value ).toLowerCase().includes( query )
+				)
+		);
+	} );
 };
 
 const formatDate = ( value, fallback = 'Not set' ) => {
@@ -644,27 +671,35 @@ function ErrorState( { message, onRetry } ) {
 
 function BookingCard( { booking, active, holds, onSelect } ) {
 	return (
-		<button
-			type="button"
-			className={ `ec-panel ec-booking-card${
-				active ? ' is-active' : ''
-			}` }
-			onClick={ () => onSelect( booking.id ) }
-			aria-pressed={ active }
-		>
-			<span className="ec-booking-card__title">
-				{ booking.artist_name }
-			</span>
-			{ booking.venue_name && <span>{ booking.venue_name }</span> }
-			<BookingStatus status={ booking.status } />
-			<span>{ formatDate( booking.requested_start_at ) }</span>
-			{ holds.length > 0 && (
-				<span>
-					{ holds.length } active{ ' ' }
-					{ holds.length === 1 ? 'hold' : 'holds' }
+		<li>
+			<button
+				type="button"
+				className={ `ec-booking-card${ active ? ' is-active' : '' }` }
+				onClick={ () => onSelect( booking.id ) }
+				aria-pressed={ active }
+			>
+				<span className="ec-booking-card__identity">
+					<strong className="ec-booking-card__title">
+						{ booking.artist_name }
+					</strong>
+					{ booking.venue_name && (
+						<span>{ booking.venue_name }</span>
+					) }
 				</span>
-			) }
-		</button>
+				<span className="ec-booking-card__date">
+					{ formatDate( booking.requested_start_at ) }
+				</span>
+				<span className="ec-booking-card__state">
+					<BookingStatus status={ booking.status } />
+					{ holds.length > 0 && (
+						<small>
+							{ holds.length } active{ ' ' }
+							{ holds.length === 1 ? 'hold' : 'holds' }
+						</small>
+					) }
+				</span>
+			</button>
+		</li>
 	);
 }
 
@@ -795,7 +830,10 @@ function Calendar( {
 								);
 								const className = `ec-booking-calendar__item ec-booking-calendar__item--${ entry.status }`;
 								return entry.type === 'event' ? (
-									<span key={ `event-${ entry.id }` }>
+									<div
+										className="ec-booking-calendar__event"
+										key={ `event-${ entry.id }` }
+									>
 										<a
 											className={ className }
 											href={ entry.permalink }
@@ -804,17 +842,18 @@ function Calendar( {
 										</a>
 										{ entry.support && (
 											<a
+												className="ec-booking-calendar__support-action"
 												href={
 													entry.support.workspace_url
 												}
 											>
 												{ entry.support.status ===
 												'not_seeking'
-													? 'Find local support'
-													: 'Manage local support' }
+													? 'Open support request'
+													: 'Manage support request' }
 											</a>
 										) }
-									</span>
+									</div>
 								) : (
 									<button
 										type="button"
@@ -1050,6 +1089,7 @@ function BookingDetail( {
 		}
 	};
 	const activeHolds = holds.filter( ( hold ) => hold.status === 'active' );
+	const availableTransitions = BOOKING_TRANSITIONS[ booking.status ] || [];
 	return (
 		<Panel className="ec-booking-detail">
 			<PanelHeader
@@ -1106,57 +1146,57 @@ function BookingDetail( {
 
 			<section className="ec-booking-detail__section ec-booking-detail__actions">
 				<h3>Operations</h3>
-				<Grid minColumnWidth="16rem" maxColumns={ 1 }>
-					<FieldGroup
-						label="Lifecycle status"
-						htmlFor="booking-transition"
-					>
-						<select
-							id="booking-transition"
-							value={ transition }
-							onChange={ ( event ) =>
-								setTransition( event.target.value )
-							}
+				{ availableTransitions.length ? (
+					<Grid minColumnWidth="16rem" maxColumns={ 1 }>
+						<FieldGroup
+							label="Lifecycle status"
+							htmlFor="booking-transition"
 						>
-							<option value="">
-								Choose canonical transition
-							</option>
-							{ BOOKING_STATUSES.filter(
-								( item ) => item !== booking.status
-							).map( ( item ) => (
-								<option key={ item } value={ item }>
-									{ statusLabel( item ) }
-								</option>
-							) ) }
-						</select>
-						<input
-							value={ note }
-							onChange={ ( event ) =>
-								setNote( event.target.value )
-							}
-							placeholder="Optional transition note"
-						/>
-						<button
-							type="button"
-							className="button-1"
-							disabled={ ! transition || pending !== '' }
-							onClick={ () =>
-								mutate(
-									'Transition',
-									'extrachill/transition-venue-booking',
-									{
-										booking_id: booking.id,
-										to_status: transition,
-										expected_version: booking.version,
-										note: note || null,
-									}
-								)
-							}
-						>
-							Apply transition
-						</button>
-					</FieldGroup>
-				</Grid>
+							<select
+								id="booking-transition"
+								value={ transition }
+								onChange={ ( event ) =>
+									setTransition( event.target.value )
+								}
+							>
+								<option value="">Choose next status</option>
+								{ availableTransitions.map( ( item ) => (
+									<option key={ item } value={ item }>
+										{ statusLabel( item ) }
+									</option>
+								) ) }
+							</select>
+							<input
+								value={ note }
+								onChange={ ( event ) =>
+									setNote( event.target.value )
+								}
+								placeholder="Optional transition note"
+							/>
+							<button
+								type="button"
+								className="button-1"
+								disabled={ ! transition || pending !== '' }
+								onClick={ () =>
+									mutate(
+										'Transition',
+										'extrachill/transition-venue-booking',
+										{
+											booking_id: booking.id,
+											to_status: transition,
+											expected_version: booking.version,
+											note: note || null,
+										}
+									)
+								}
+							>
+								Apply transition
+							</button>
+						</FieldGroup>
+					</Grid>
+				) : (
+					<p>This booking is in a final state.</p>
+				) }
 			</section>
 
 			<section className="ec-booking-detail__section">
@@ -1489,9 +1529,6 @@ export function BookingConsole( {
 						input.range_start = range.start;
 						input.range_end = range.end;
 					}
-					if ( filterStatus ) {
-						input.status = filterStatus;
-					}
 					const [ bookingResult, holdResult, eventResult ] =
 						await Promise.allSettled( [
 							listAllVenueRecords(
@@ -1640,7 +1677,7 @@ export function BookingConsole( {
 
 	useEffect( () => {
 		loadList();
-	}, [ filterStatus, month, view ] ); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [ month, view ] ); // eslint-disable-line react-hooks/exhaustive-deps
 	useEffect( () => {
 		loadDetail();
 	}, [ selectedId ] ); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1678,7 +1715,7 @@ export function BookingConsole( {
 	const refreshAfterMutation = async () => {
 		await Promise.all( [ loadList(), loadDetail() ] );
 	};
-	const visible = filterBookings( bookings, search );
+	const visible = filterBookings( bookings, search, filterStatus );
 	const selectedHolds = holds.filter(
 		( hold ) => hold.booking_id === selectedId
 	);
@@ -1690,14 +1727,25 @@ export function BookingConsole( {
 
 	return (
 		<div className="ec-booking-console">
-			<Tabs
-				tabs={ [
-					{ id: 'calendar', label: 'Calendar' },
-					{ id: 'list', label: 'List' },
-				] }
-				active={ view }
-				onChange={ setView }
-			/>
+			<fieldset className="ec-booking-console__view-switcher">
+				<legend>View</legend>
+				<div>
+					{ [
+						{ id: 'calendar', label: 'Calendar' },
+						{ id: 'list', label: 'List' },
+					].map( ( option ) => (
+						<button
+							type="button"
+							key={ option.id }
+							className={ view === option.id ? 'is-active' : '' }
+							aria-pressed={ view === option.id }
+							onClick={ () => setView( option.id ) }
+						>
+							{ option.label }
+						</button>
+					) ) }
+				</div>
+			</fieldset>
 			<Grid
 				className="ec-booking-console__toolbar"
 				minColumnWidth="12rem"
@@ -1718,12 +1766,10 @@ export function BookingConsole( {
 							setFilterStatus( event.target.value )
 						}
 					>
-						<option value="">All statuses</option>
-						{ BOOKING_STATUSES.map( ( item ) => (
-							<option value={ item } key={ item }>
-								{ statusLabel( item ) }
-							</option>
-						) ) }
+						<option value="">All bookings</option>
+						<option value="active">Active inquiries</option>
+						<option value="confirmed">Confirmed shows</option>
+						<option value="closed">Closed inquiries</option>
 					</select>
 				</label>
 			</Grid>
@@ -1751,11 +1797,7 @@ export function BookingConsole( {
 								description="A bounded venue-authorized list across the selected venue scope. Filters are reapplied by canonical abilities."
 							/>
 							{ visible.length ? (
-								<Grid
-									className="ec-booking-console__list"
-									minColumnWidth="15rem"
-									gap="0.75rem"
-								>
+								<ul className="ec-booking-console__list">
 									{ visible.map( ( booking ) => (
 										<BookingCard
 											key={ booking.id }
@@ -1767,7 +1809,7 @@ export function BookingConsole( {
 											onSelect={ selectBooking }
 										/>
 									) ) }
-								</Grid>
+								</ul>
 							) : (
 								<EmptyState>
 									No bookings match this venue scope and
