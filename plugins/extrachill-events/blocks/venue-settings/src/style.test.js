@@ -22,6 +22,10 @@ describe( 'venue booking workspace composition', () => {
 		expect( consoleSource ).toContain(
 			'className="ec-booking-console__view-switcher"'
 		);
+		expect( consoleSource ).not.toContain( '<legend>View</legend>' );
+		expect( consoleSource ).toContain(
+			'className="ec-booking-console__search"'
+		);
 		expect( consoleSource ).toContain( 'aria-pressed={ view ===' );
 		expect( consoleSource ).toContain(
 			'className="ec-booking-console__toolbar"'

@@ -752,9 +752,21 @@ describe( 'venue settings authorization-facing states', () => {
 		const viewSwitcher = container.querySelector(
 			'.ec-booking-console__view-switcher'
 		);
-		expect( viewSwitcher.querySelector( 'legend' ).textContent ).toBe(
-			'View'
+		expect( viewSwitcher.parentElement.classList ).toContain(
+			'ec-booking-console__toolbar'
 		);
+		expect( viewSwitcher.querySelector( 'legend' ) ).toBeNull();
+		expect( viewSwitcher.getAttribute( 'aria-label' ) ).toBe(
+			'Booking view'
+		);
+		expect(
+			viewSwitcher.parentElement.querySelector(
+				'.ec-booking-console__search'
+			)
+		).not.toBeNull();
+		expect(
+			viewSwitcher.parentElement.querySelector( '#booking-status-filter' )
+		).not.toBeNull();
 		expect(
 			[ ...viewSwitcher.querySelectorAll( 'button' ) ].map(
 				( button ) => button.textContent

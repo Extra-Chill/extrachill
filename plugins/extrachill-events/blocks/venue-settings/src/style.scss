@@ -476,6 +476,20 @@
 }
 
 @media screen and (max-width: 480px) {
+	.ec-booking-console__toolbar {
+		grid-template-columns: 1fr;
+		align-items: stretch;
+	}
+
+	.ec-booking-console__view-switcher,
+	.ec-booking-console__view-switcher button {
+		width: 100%;
+	}
+
+	.ec-booking-console__view-switcher button {
+		justify-content: center;
+	}
+
 	.ec-booking-form-editor__preview {
 		position: static;
 	}

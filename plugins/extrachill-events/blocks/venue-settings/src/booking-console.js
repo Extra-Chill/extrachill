@@ -1727,9 +1727,12 @@ export function BookingConsole( {
 
 	return (
 		<div className="ec-booking-console">
-			<fieldset className="ec-booking-console__view-switcher">
-				<legend>View</legend>
-				<div>
+			<div className="ec-booking-console__toolbar">
+				<div
+					className="ec-booking-console__view-switcher"
+					role="group"
+					aria-label="Booking view"
+				>
 					{ [
 						{ id: 'calendar', label: 'Calendar' },
 						{ id: 'list', label: 'List' },
@@ -1745,18 +1748,14 @@ export function BookingConsole( {
 						</button>
 					) ) }
 				</div>
-			</fieldset>
-			<Grid
-				className="ec-booking-console__toolbar"
-				minColumnWidth="12rem"
-				maxColumns={ 2 }
-			>
-				<SearchBox
-					value={ search }
-					onSearch={ setSearch }
-					onClear={ () => setSearch( '' ) }
-					placeholder="Search artist, contact, email, or booking ID"
-				/>
+				<div className="ec-booking-console__search">
+					<SearchBox
+						value={ search }
+						onSearch={ setSearch }
+						onClear={ () => setSearch( '' ) }
+						placeholder="Search artist, contact, email, or booking ID"
+					/>
+				</div>
 				<label htmlFor="booking-status-filter">
 					Status
 					<select
@@ -1772,7 +1771,7 @@ export function BookingConsole( {
 						<option value="closed">Closed inquiries</option>
 					</select>
 				</label>
-			</Grid>
+			</div>
 			{ error && <ErrorState message={ error } onRetry={ loadList } /> }
 			{ loading ? (
 				<Panel>
