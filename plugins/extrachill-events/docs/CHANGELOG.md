@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.61.5] - 2026-08-14
+
+### Fixed
+- defer hidden My Shows map mounting
+- improve venue booking operations
+- simplify booking form builder
+- prevent booking editor column overlap
+- prefill booking embed website
+- align venue controls with theme buttons
+- consolidate venue booking toolbar
+
 ## [0.61.4] - 2026-08-14
 
 ### Fixed
