@@ -894,6 +894,70 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it.each( [
+		[ 'profile before config', 'profile', 'config' ],
+		[ 'config before profile', 'config', 'profile' ],
+	] )(
+		'keeps automatic booking website initialization clean when %s loads',
+		async ( label, firstRequest, secondRequest ) => {
+			const requests = {
+				profile: deferred(),
+				config: deferred(),
+			};
+			apiFetch.mockImplementation( ( request ) => {
+				if ( request.path.includes( 'get-venue-profile' ) ) {
+					return requests.profile.promise;
+				}
+				if ( request.path.includes( 'get-venue-booking-config' ) ) {
+					return requests.config.promise;
+				}
+				return Promise.resolve( [] );
+			} );
+			const { container, root } = await renderApp( context() );
+			await act( async () =>
+				buttonByText( container, 'Booking Form' ).click()
+			);
+
+			await act( async () => {
+				requests[ firstRequest ].resolve(
+					firstRequest === 'profile'
+						? {
+								...profile( 44 ),
+								website: 'https://venue.example/about',
+						  }
+						: config( 44 )
+				);
+				await Promise.resolve();
+			} );
+			await act( async () => {
+				requests[ secondRequest ].resolve(
+					secondRequest === 'profile'
+						? {
+								...profile( 44 ),
+								website: 'https://venue.example/about',
+						  }
+						: config( 44 )
+				);
+				await Promise.resolve();
+			} );
+
+			expect(
+				container.querySelector( '#venue-booking-websites' ).value
+			).toBe( 'https://venue.example' );
+			expect(
+				buttonByText( container, 'Save booking form' ).disabled
+			).toBe( true );
+			expect( container.textContent ).not.toContain(
+				'Unsaved booking form changes'
+			);
+			const unload = new Event( 'beforeunload', { cancelable: true } );
+			window.dispatchEvent( unload );
+			expect( unload.defaultPrevented ).toBe( false );
+
+			await act( async () => root.unmount() );
+		}
+	);
+
 	it( 'shows human-readable hold duration choices in booking settings', async () => {
 		const { container, root } = await renderApp( context() );
 		await act( async () => buttonByText( container, 'Settings' ).click() );

@@ -377,6 +377,10 @@ export function VenueSettingsApp( { context } ) {
 					setConfig={ ( value ) =>
 						setVenueState( setConfigs, venue.id, value )
 					}
+					onInitializeConfig={ ( value ) => {
+						setVenueState( setConfigs, venue.id, value );
+						setVenueState( setConfigBaselines, venue.id, value );
+					} }
 					onSave={ () => saveConfig( venue ) }
 					saving={ Boolean( savingConfigs[ venue.id ] ) }
 					status={ configStatuses[ venue.id ] }

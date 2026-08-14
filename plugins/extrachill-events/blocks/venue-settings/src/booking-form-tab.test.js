@@ -51,6 +51,7 @@ describe( 'booking form workspace', () => {
 		expect( workspace ).toContain(
 			'embed: { allowed_parent_origins: [ origin ] }'
 		);
+		expect( workspace ).toContain( 'onInitializeConfig( {' );
 		expect( workspace ).toContain(
 			'initializedWebsite.current || websites.length'
 		);
