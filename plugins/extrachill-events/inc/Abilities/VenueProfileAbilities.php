@@ -167,30 +167,64 @@ class VenueProfileAbilities {
 	/** Return the canonical DME profile schema. */
 	private function profile_schema(): array {
 		$text = array( 'type' => 'string' );
-		return array(
-			'type'                 => 'object',
+		$logo = array(
+			'type'                 => array( 'object', 'null' ),
 			'properties'           => array(
-				'term_id'     => array(
+				'attachment_id' => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'name'        => $text,
-				'description' => $text,
-				'address'     => $text,
-				'city'        => $text,
-				'state'       => $text,
-				'zip'         => $text,
-				'country'     => $text,
-				'phone'       => $text,
-				'website'     => $text,
-				'ticketing_url' => $text,
-				'capacity'    => $text,
-				'revision'    => array(
+				'site_id'       => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+				'url'           => array(
+					'type'   => 'string',
+					'format' => 'uri',
+				),
+				'alt'           => $text,
+				'mime_type'     => $text,
+				'width'         => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'height'        => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+			),
+			'required'             => array( 'attachment_id', 'site_id', 'url', 'alt', 'mime_type', 'width', 'height' ),
+			'additionalProperties' => false,
+		);
+		return array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'term_id'            => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+				'name'               => $text,
+				'description'        => $text,
+				'address'            => $text,
+				'city'               => $text,
+				'state'              => $text,
+				'zip'                => $text,
+				'country'            => $text,
+				'phone'              => $text,
+				'website'            => $text,
+				'ticketing_url'      => $text,
+				'capacity'           => $text,
+				'logo_attachment_id' => array(
+					'type'    => 'integer',
+					'minimum' => 0,
+				),
+				'logo'               => $logo,
+				'revision'           => array(
 					'type'    => 'string',
 					'pattern' => '^[a-f0-9]{64}$',
 				),
 			),
-			'required'             => array( 'term_id', 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'ticketing_url', 'capacity', 'revision' ),
+			'required'             => array( 'term_id', 'name', 'description', 'address', 'city', 'state', 'zip', 'country', 'phone', 'website', 'ticketing_url', 'capacity', 'logo_attachment_id', 'logo', 'revision' ),
 			'additionalProperties' => false,
 		);
 	}

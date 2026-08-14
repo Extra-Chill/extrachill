@@ -875,8 +875,54 @@ function Calendar( {
 	);
 }
 
+function RecordValue( { value } ) {
+	if ( Array.isArray( value ) ) {
+		return value.length ? (
+			<ul>
+				{ value.map( ( item, index ) => (
+					<li key={ `${ item }-${ index }` }>
+						<RecordValue value={ item } />
+					</li>
+				) ) }
+			</ul>
+		) : (
+			'None'
+		);
+	}
+	if ( value && typeof value === 'object' ) {
+		return (
+			<dl>
+				{ Object.entries( value ).map( ( [ key, nested ] ) => (
+					<div key={ key }>
+						<dt>{ key.replaceAll( '_', ' ' ) }</dt>
+						<dd>
+							<RecordValue value={ nested } />
+						</dd>
+					</div>
+				) ) }
+			</dl>
+		);
+	}
+	const text = String( value ?? 'Not set' );
+	return /^https?:\/\//i.test( text ) ? (
+		<a href={ text } target="_blank" rel="noreferrer">
+			{ text }
+		</a>
+	) : (
+		text
+	);
+}
+
 function JsonRecord( { title, value, empty } ) {
-	const entries = Object.entries( value?.data || value || {} );
+	const entries = Object.entries( value?.data || value || {} ).flatMap(
+		( [ key, item ] ) =>
+			key === 'fields' &&
+			item &&
+			typeof item === 'object' &&
+			! Array.isArray( item )
+				? Object.entries( item )
+				: [ [ key, item ] ]
+	);
 	return (
 		<section className="ec-booking-detail__section">
 			<h3>{ title }</h3>
@@ -886,9 +932,7 @@ function JsonRecord( { title, value, empty } ) {
 						<div key={ key }>
 							<dt>{ key.replaceAll( '_', ' ' ) }</dt>
 							<dd>
-								{ Array.isArray( item )
-									? item.join( ', ' ) || 'None'
-									: String( item ?? 'Not set' ) }
+								<RecordValue value={ item } />
 							</dd>
 						</div>
 					) ) }
@@ -1102,7 +1146,7 @@ function BookingDetail( {
 						<span>{ booking.artist_name }</span>
 					</>
 				}
-				description={ `Booking #${ booking.id } · version ${ booking.version }` }
+				description={ `Booking #${ booking.id }` }
 				actions={
 					<button
 						type="button"
@@ -1150,10 +1194,7 @@ function BookingDetail( {
 				<h3>Operations</h3>
 				{ availableTransitions.length ? (
 					<Grid minColumnWidth="16rem" maxColumns={ 1 }>
-						<FieldGroup
-							label="Lifecycle status"
-							htmlFor="booking-transition"
-						>
+						<FieldGroup label="Status" htmlFor="booking-transition">
 							<select
 								id="booking-transition"
 								value={ transition }
@@ -1204,7 +1245,7 @@ function BookingDetail( {
 			<section className="ec-booking-detail__section">
 				<h3>Performance and holds</h3>
 				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
-					<FieldGroup label="Space key" htmlFor="booking-space">
+					<FieldGroup label="Space" htmlFor="booking-space">
 						<input
 							id="booking-space"
 							value={ space }
@@ -1318,120 +1359,126 @@ function BookingDetail( {
 				value={ booking.intake }
 				empty="No intake answers were supplied."
 			/>
-			<DealEditor
-				key={ `deal-${ booking.id }-${ booking.version }` }
-				booking={ booking }
-				defaultDeal={ defaultDeal }
-				pending={ pending }
-				onSave={ ( deal ) =>
-					mutate(
-						'Deal update',
-						'extrachill/update-venue-booking-deal',
-						{
-							booking_id: booking.id,
-							expected_version: booking.version,
-							deal,
-						}
-					)
-				}
-			/>
-			<ProductionEditor
-				key={ `production-${ booking.id }-${ booking.version }` }
-				booking={ booking }
-				pending={ pending }
-				onSave={ ( production ) =>
-					mutate(
-						'Production update',
-						'extrachill/update-venue-booking-production',
-						{
-							booking_id: booking.id,
-							expected_version: booking.version,
-							production,
-						}
-					)
-				}
-			/>
-
-			<section className="ec-booking-detail__section">
-				<h3>Canonical event</h3>
-				<p>
-					{ booking.event_id
-						? `Linked event #${ booking.event_id } is synchronized through booking-owned abilities.`
-						: 'No canonical event has been created.' }
-				</p>
-				{ operations.conversion.status === 'failed' && (
-					<InlineStatus
-						tone={
-							operations.conversion.retryable
-								? 'warning'
-								: 'error'
-						}
-					>
-						Conversion attempt { operations.conversion.attempt }{ ' ' }
-						failed
-						{ operations.conversion.failure_code
-							? ` (${ operations.conversion.failure_code })`
-							: '' }
-						.{ ' ' }
-						{ operations.conversion.retryable
-							? 'Retry is available.'
-							: 'Manual review is required before retrying.' }
-					</InlineStatus>
-				) }
-				{ operations.conversion.status === 'pending' && (
-					<InlineStatus tone="warning">
-						Conversion attempt { operations.conversion.attempt } has
-						no terminal result yet.
-					</InlineStatus>
-				) }
-				{ booking.event_id && operations.sync.status !== 'none' && (
-					<InlineStatus
-						tone={
-							[ 'failed', 'conflict', 'retryable' ].includes(
-								operations.sync.status
-							)
-								? 'warning'
-								: 'info'
-						}
-					>
-						Event synchronization:{ ' ' }
-						{ activityLabel( operations.sync.status ) }
-						{ operations.sync.code
-							? ` (${ operations.sync.code })`
-							: '' }
-						.
-						{ operations.sync.retryable
-							? ' Reconciliation can be retried.'
-							: '' }
-					</InlineStatus>
-				) }
-				<button
-					type="button"
-					className="button-1"
-					disabled={
-						pending !== '' ||
-						( ! booking.event_id &&
-							operations.conversion.status === 'failed' &&
-							! operations.conversion.retryable )
-					}
-					onClick={ () =>
+			<details className="ec-booking-detail__disclosure">
+				<summary>Deal and production</summary>
+				<DealEditor
+					key={ `deal-${ booking.id }-${ booking.version }` }
+					booking={ booking }
+					defaultDeal={ defaultDeal }
+					pending={ pending }
+					onSave={ ( deal ) =>
 						mutate(
-							booking.event_id
-								? 'Event reconciliation'
-								: 'Event conversion',
-							booking.event_id
-								? 'extrachill/reconcile-booking-event'
-								: 'extrachill/convert-booking-to-event',
+							'Deal update',
+							'extrachill/update-venue-booking-deal',
 							{
 								booking_id: booking.id,
 								expected_version: booking.version,
+								deal,
 							}
 						)
 					}
-				>
-					{ eventActionLabel( booking, operations ) }
-				</button>
-			</section>
+				/>
+				<ProductionEditor
+					key={ `production-${ booking.id }-${ booking.version }` }
+					booking={ booking }
+					pending={ pending }
+					onSave={ ( production ) =>
+						mutate(
+							'Production update',
+							'extrachill/update-venue-booking-production',
+							{
+								booking_id: booking.id,
+								expected_version: booking.version,
+								production,
+							}
+						)
+					}
+				/>
+			</details>
+
+			<details className="ec-booking-detail__disclosure">
+				<summary>Event listing</summary>
+				<section className="ec-booking-detail__section">
+					<h3>Event listing</h3>
+					<p>
+						{ booking.event_id
+							? `Linked event #${ booking.event_id } is synchronized through booking-owned abilities.`
+							: 'No canonical event has been created.' }
+					</p>
+					{ operations.conversion.status === 'failed' && (
+						<InlineStatus
+							tone={
+								operations.conversion.retryable
+									? 'warning'
+									: 'error'
+							}
+						>
+							Conversion attempt { operations.conversion.attempt }{ ' ' }
+							failed
+							{ operations.conversion.failure_code
+								? ` (${ operations.conversion.failure_code })`
+								: '' }
+							.{ ' ' }
+							{ operations.conversion.retryable
+								? 'Retry is available.'
+								: 'Manual review is required before retrying.' }
+						</InlineStatus>
+					) }
+					{ operations.conversion.status === 'pending' && (
+						<InlineStatus tone="warning">
+							Conversion attempt { operations.conversion.attempt }{ ' ' }
+							has no terminal result yet.
+						</InlineStatus>
+					) }
+					{ booking.event_id && operations.sync.status !== 'none' && (
+						<InlineStatus
+							tone={
+								[ 'failed', 'conflict', 'retryable' ].includes(
+									operations.sync.status
+								)
+									? 'warning'
+									: 'info'
+							}
+						>
+							Event synchronization:{ ' ' }
+							{ activityLabel( operations.sync.status ) }
+							{ operations.sync.code
+								? ` (${ operations.sync.code })`
+								: '' }
+							.
+							{ operations.sync.retryable
+								? ' Reconciliation can be retried.'
+								: '' }
+						</InlineStatus>
+					) }
+					<button
+						type="button"
+						className="button-1"
+						disabled={
+							pending !== '' ||
+							( ! booking.event_id &&
+								operations.conversion.status === 'failed' &&
+								! operations.conversion.retryable )
+						}
+						onClick={ () =>
+							mutate(
+								booking.event_id
+									? 'Event reconciliation'
+									: 'Event conversion',
+								booking.event_id
+									? 'extrachill/reconcile-booking-event'
+									: 'extrachill/convert-booking-to-event',
+								{
+									booking_id: booking.id,
+									expected_version: booking.version,
+								}
+							)
+						}
+					>
+						{ eventActionLabel( booking, operations ) }
+					</button>
+				</section>
+			</details>
 
 			<Correspondence
 				booking={ booking }
@@ -1439,12 +1486,10 @@ function BookingDetail( {
 				onRefresh={ onRefreshCommunications }
 			/>
 
-			<InlineStatus tone="info">
-				Marketing execution, finance and settlement, promoter tools, and
-				private-file operations are not included in this focused console
-				slice.
-			</InlineStatus>
-			<ActivityTimeline operations={ operations } />
+			<details className="ec-booking-detail__disclosure">
+				<summary>Activity history</summary>
+				<ActivityTimeline operations={ operations } />
+			</details>
 		</Panel>
 	);
 }
@@ -1709,6 +1754,7 @@ export function BookingConsole( {
 		setSelectedId( 0 );
 		setSelected( null );
 		setDetailLoading( false );
+		setDetailError( '' );
 		const url = new URL( window.location.href );
 		url.searchParams.delete( 'booking_id' );
 		url.searchParams.delete( 'booking_venue_id' );
@@ -1729,104 +1775,127 @@ export function BookingConsole( {
 
 	return (
 		<div className="ec-booking-console">
-			<div className="ec-booking-console__toolbar">
-				<div
-					className="ec-booking-console__view-switcher"
-					role="group"
-					aria-label="Booking view"
-				>
-					{ [
-						{ id: 'calendar', label: 'Calendar' },
-						{ id: 'list', label: 'List' },
-					].map( ( option ) => (
-						<button
-							type="button"
-							key={ option.id }
-							className={
-								view === option.id
-									? 'button-1 button-medium is-active'
-									: 'button-3 button-medium'
-							}
-							aria-pressed={ view === option.id }
-							onClick={ () => setView( option.id ) }
-						>
-							{ option.label }
-						</button>
-					) ) }
-				</div>
-				<div className="ec-booking-console__search">
-					<SearchBox
-						value={ search }
-						onSearch={ setSearch }
-						onClear={ () => setSearch( '' ) }
-						placeholder="Search artist, contact, email, or booking ID"
-					/>
-				</div>
-				<label htmlFor="booking-status-filter">
-					Status
-					<select
-						id="booking-status-filter"
-						value={ filterStatus }
-						onChange={ ( event ) =>
-							setFilterStatus( event.target.value )
-						}
-					>
-						<option value="">All bookings</option>
-						<option value="active">Active inquiries</option>
-						<option value="confirmed">Confirmed shows</option>
-						<option value="closed">Closed inquiries</option>
-					</select>
-				</label>
-			</div>
-			{ error && <ErrorState message={ error } onRetry={ loadList } /> }
-			{ loading ? (
-				<Panel>
-					<p aria-live="polite">Loading venue bookings...</p>
-				</Panel>
-			) : (
+			{ ( selectedId === 0 || detailLoading ) && (
 				<>
-					{ view === 'calendar' ? (
-						<Calendar
-							bookings={ visible }
-							events={ events }
-							holds={ holds }
-							month={ month }
-							onMonthChange={ setMonth }
-							onSelect={ selectBooking }
-							supportEvents={ supportEvents }
-						/>
-					) : (
-						<Panel>
-							<PanelHeader
-								title="Booking pipeline"
-								description="A bounded venue-authorized list across the selected venue scope. Filters are reapplied by canonical abilities."
+					<div className="ec-booking-console__toolbar">
+						<div
+							className="ec-booking-console__view-switcher"
+							role="group"
+							aria-label="Booking view"
+						>
+							{ [
+								{ id: 'calendar', label: 'Calendar' },
+								{ id: 'list', label: 'List' },
+							].map( ( option ) => (
+								<button
+									type="button"
+									key={ option.id }
+									className={
+										view === option.id
+											? 'button-1 button-medium is-active'
+											: 'button-3 button-medium'
+									}
+									aria-pressed={ view === option.id }
+									onClick={ () => setView( option.id ) }
+								>
+									{ option.label }
+								</button>
+							) ) }
+						</div>
+						<div className="ec-booking-console__search">
+							<SearchBox
+								value={ search }
+								onSearch={ setSearch }
+								onClear={ () => setSearch( '' ) }
+								placeholder="Search artist, contact, email, or booking ID"
 							/>
-							{ visible.length ? (
-								<ul className="ec-booking-console__list">
-									{ visible.map( ( booking ) => (
-										<BookingCard
-											key={ booking.id }
-											booking={ booking }
-											active={ booking.id === selectedId }
-											holds={ activeHoldsFor(
-												booking.id
-											) }
-											onSelect={ selectBooking }
-										/>
-									) ) }
-								</ul>
-							) : (
-								<EmptyState>
-									No bookings match this venue scope and
-									filter.
-								</EmptyState>
-							) }
+						</div>
+						<label htmlFor="booking-status-filter">
+							Status
+							<select
+								id="booking-status-filter"
+								value={ filterStatus }
+								onChange={ ( event ) =>
+									setFilterStatus( event.target.value )
+								}
+							>
+								<option value="">All bookings</option>
+								<option value="active">Active inquiries</option>
+								<option value="confirmed">
+									Confirmed shows
+								</option>
+								<option value="closed">Closed inquiries</option>
+							</select>
+						</label>
+					</div>
+					{ error && (
+						<ErrorState message={ error } onRetry={ loadList } />
+					) }
+					{ loading ? (
+						<Panel>
+							<p aria-live="polite">Loading venue bookings...</p>
 						</Panel>
+					) : (
+						<>
+							{ view === 'calendar' ? (
+								<Calendar
+									bookings={ visible }
+									events={ events }
+									holds={ holds }
+									month={ month }
+									onMonthChange={ setMonth }
+									onSelect={ selectBooking }
+									supportEvents={ supportEvents }
+								/>
+							) : (
+								<Panel>
+									<PanelHeader
+										title="Booking pipeline"
+										description="Review and manage booking inquiries for this venue."
+									/>
+									{ visible.length ? (
+										<ul className="ec-booking-console__list">
+											{ visible.map( ( booking ) => (
+												<BookingCard
+													key={ booking.id }
+													booking={ booking }
+													active={
+														booking.id ===
+														selectedId
+													}
+													holds={ activeHoldsFor(
+														booking.id
+													) }
+													onSelect={ selectBooking }
+												/>
+											) ) }
+										</ul>
+									) : (
+										<EmptyState>
+											No bookings match this venue scope
+											and filter.
+										</EmptyState>
+									) }
+								</Panel>
+							) }
+						</>
 					) }
 				</>
 			) }
 			{ detailError && (
-				<ErrorState message={ detailError } onRetry={ loadDetail } />
+				<div className="ec-booking-detail__error">
+					<ErrorState
+						message={ detailError }
+						onRetry={ loadDetail }
+					/>
+					<button
+						type="button"
+						className="button-2"
+						onClick={ closeDetail }
+					>
+						Back to bookings
+					</button>
+				</div>
 			) }
 			{ detailLoading && (
 				<Panel>

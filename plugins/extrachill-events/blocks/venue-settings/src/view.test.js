@@ -124,7 +124,10 @@ const profile = ( id ) => ( {
 	country: '',
 	phone: '',
 	website: '',
+	ticketing_url: '',
 	capacity: '',
+	logo_attachment_id: 0,
+	logo: null,
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
@@ -374,7 +377,9 @@ describe( 'venue settings authorization-facing states', () => {
 				/>
 			);
 		} );
-		await act( async () => buttonByText( container, 'My Venues' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Back to My Venues' ).click()
+		);
 		expect( onSwitchVenue ).toHaveBeenLastCalledWith( 0 );
 
 		await act( async () => root.unmount() );
@@ -748,7 +753,7 @@ describe( 'venue settings authorization-facing states', () => {
 		expect( administrator.classList.contains( 'ec-badge--solid' ) ).toBe(
 			true
 		);
-		expect( buttonByText( container, 'My Venues' ) ).toBeDefined();
+		expect( buttonByText( container, 'Back to My Venues' ) ).toBeDefined();
 		const viewSwitcher = container.querySelector(
 			'.ec-booking-console__view-switcher'
 		);
@@ -889,16 +894,22 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'shows the fourteen-day hold limit in booking settings', async () => {
+	it( 'shows human-readable hold duration choices in booking settings', async () => {
 		const { container, root } = await renderApp( context() );
 		await act( async () => buttonByText( container, 'Settings' ).click() );
 
-		expect( container.querySelector( '#venue-hold-ttl' ).max ).toBe(
-			'20160'
-		);
+		const holdDuration = container.querySelector( '#venue-hold-ttl' );
+		expect( holdDuration.tagName ).toBe( 'SELECT' );
+		expect(
+			[ ...holdDuration.options ].some(
+				( option ) =>
+					option.value === '20160' && option.text === '14 days'
+			)
+		).toBe( true );
 		expect( container.textContent ).toContain(
-			'Between 5 minutes and 14 days.'
+			'No marketing automation is configured.'
 		);
+		expect( container.textContent ).not.toContain( 'Comma-separated' );
 		await act( async () => root.unmount() );
 	} );
 
@@ -1094,7 +1105,20 @@ describe( 'venue settings authorization-facing states', () => {
 				return Promise.resolve( bookingActivity() );
 			}
 			if ( request.path.includes( 'get-venue-booking' ) ) {
-				return Promise.resolve( booking( input.booking_id ) );
+				return Promise.resolve( {
+					...booking( input.booking_id ),
+					intake: {
+						version: 1,
+						data: {
+							fields: {
+								hometown: 'Charleston',
+								press_links: [
+									'https://example.com/press-kit',
+								],
+							},
+						},
+					},
+				} );
 			}
 			if ( request.path.includes( 'transition-venue-booking' ) ) {
 				return Promise.resolve( {
@@ -1110,6 +1134,10 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( container.textContent ).toContain( 'Booking #9' );
 		expect( container.textContent ).toContain( 'Booking Submitted' );
+		expect( container.textContent ).toContain( 'Charleston' );
+		expect(
+			container.querySelector( 'a[href="https://example.com/press-kit"]' )
+		).not.toBeNull();
 		expect(
 			[ ...container.querySelector( '#booking-transition' ).options ].map(
 				( option ) => option.value
@@ -1140,6 +1168,38 @@ describe( 'venue settings authorization-facing states', () => {
 					request.data.input.to_status === 'under_review'
 			)
 		).toBe( true );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'returns to the booking list after a detail request fails', async () => {
+		apiFetch.mockImplementation( ( request ) => {
+			const input = request.data?.input || requestInput( request.path );
+			if ( request.path.includes( 'get-venue-profile' ) ) {
+				return Promise.resolve( profile( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking-config' ) ) {
+				return Promise.resolve( config( input.venue_term_id ) );
+			}
+			if ( request.path.includes( 'get-venue-booking' ) ) {
+				return Promise.reject( {
+					message: 'Booking detail unavailable.',
+				} );
+			}
+			return Promise.resolve( [] );
+		} );
+		const { container, root } = await renderApp(
+			context( { booking_id: 19 } )
+		);
+		expect( container.textContent ).toContain(
+			'Booking detail unavailable.'
+		);
+		await act( async () =>
+			buttonByText( container, 'Back to bookings' ).click()
+		);
+		expect( container.textContent ).not.toContain(
+			'Booking detail unavailable.'
+		);
+		expect( buttonByText( container, 'Calendar' ) ).toBeDefined();
 		await act( async () => root.unmount() );
 	} );
 
@@ -1461,6 +1521,9 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( container.textContent ).toContain( 'Booking #23' );
 		await act( async () =>
+			buttonByText( container, 'Close detail' ).click()
+		);
+		await act( async () =>
 			buttonContaining( container, 'Pending Artist' ).click()
 		);
 		expect( container.textContent ).toContain(
@@ -1522,6 +1585,9 @@ describe( 'venue settings authorization-facing states', () => {
 		} );
 		await act( async () =>
 			buttonByText( container, 'Apply transition' ).click()
+		);
+		await act( async () =>
+			buttonByText( container, 'Close detail' ).click()
 		);
 		await act( async () =>
 			buttonContaining( container, 'Mutation Artist B' ).click()

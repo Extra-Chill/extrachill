@@ -21,6 +21,26 @@ import {
 	validateConfig,
 } from './state';
 
+const HOLD_DURATIONS = [
+	[ 60, '1 hour' ],
+	[ 240, '4 hours' ],
+	[ 720, '12 hours' ],
+	[ 1440, '1 day' ],
+	[ 4320, '3 days' ],
+	[ 10080, '7 days' ],
+	[ 20160, '14 days' ],
+];
+const DEAL_TYPES = [
+	[ 'custom', 'Custom terms' ],
+	[ 'guarantee', 'Guarantee' ],
+	[ 'door_split', 'Door split' ],
+];
+const CURRENCIES = [ 'USD', 'CAD', 'EUR', 'GBP' ];
+const MARKETING_CHANNEL_LABELS = {
+	social: 'Social media',
+	newsletter: 'Newsletter',
+};
+
 function SpacesEditor( { spaces, onChange, idPrefix } ) {
 	const update = ( index, patch ) =>
 		onChange(
@@ -66,22 +86,25 @@ function SpacesEditor( { spaces, onChange, idPrefix } ) {
 							}
 						/>
 					</FieldGroup>
-					<FieldGroup
-						label="Key"
-						htmlFor={ `${ idPrefix }space-key-${ index }` }
-						help="Stable machine-readable key used by booking records."
-						required
-					>
-						<input
-							id={ `${ idPrefix }space-key-${ index }` }
-							value={ space.key }
-							onChange={ ( event ) =>
-								update( index, {
-									key: normalizeKey( event.target.value ),
-								} )
-							}
-						/>
-					</FieldGroup>
+					<details className="ec-venue-settings__advanced">
+						<summary>Advanced space identifier</summary>
+						<FieldGroup
+							label="Space identifier"
+							htmlFor={ `${ idPrefix }space-key-${ index }` }
+							help="Keep this stable after bookings use the space."
+							required
+						>
+							<input
+								id={ `${ idPrefix }space-key-${ index }` }
+								value={ space.key }
+								onChange={ ( event ) =>
+									update( index, {
+										key: normalizeKey( event.target.value ),
+									} )
+								}
+							/>
+						</FieldGroup>
+					</details>
 					<label htmlFor={ `${ idPrefix }space-default-${ index }` }>
 						<input
 							id={ `${ idPrefix }space-default-${ index }` }
@@ -96,8 +119,16 @@ function SpacesEditor( { spaces, onChange, idPrefix } ) {
 					</label>
 					<button
 						type="button"
-						className="button-link-delete"
+						className="button-link-delete button-small"
 						onClick={ () =>
+							// eslint-disable-next-line no-alert -- Removing a routable booking space requires confirmation.
+							window.confirm(
+								`Remove ${
+									space.name ||
+									space.key ||
+									'this booking space'
+								}? Existing bookings will keep their saved space identifier.`
+							) &&
 							onChange(
 								spaces.filter(
 									( _, current ) => current !== index
@@ -164,15 +195,12 @@ export function BookingTab( {
 					Accept booking inquiries
 				</label>
 				<FieldGroup
-					label="Default hold duration (minutes)"
+					label="Default hold duration"
 					htmlFor={ `${ idPrefix }venue-hold-ttl` }
-					help="Between 5 minutes and 14 days."
+					help="How long a temporary date hold remains active."
 				>
-					<input
+					<select
 						id={ `${ idPrefix }venue-hold-ttl` }
-						type="number"
-						min="5"
-						max={ HOLD_TTL_MAX_MINUTES }
 						value={ config.hold_ttl_minutes }
 						onChange={ ( event ) =>
 							setConfig( {
@@ -180,48 +208,63 @@ export function BookingTab( {
 								hold_ttl_minutes: Number( event.target.value ),
 							} )
 						}
-					/>
+					>
+						{ ! HOLD_DURATIONS.some(
+							( [ minutes ] ) =>
+								minutes === config.hold_ttl_minutes
+						) && (
+							<option value={ config.hold_ttl_minutes }>
+								{ config.hold_ttl_minutes } minutes (current)
+							</option>
+						) }
+						{ HOLD_DURATIONS.filter(
+							( [ minutes ] ) => minutes <= HOLD_TTL_MAX_MINUTES
+						).map( ( [ minutes, label ] ) => (
+							<option key={ minutes } value={ minutes }>
+								{ label }
+							</option>
+						) ) }
+					</select>
 				</FieldGroup>
-				<FieldGroup
-					label="Ticket provider reference"
-					htmlFor={ `${ idPrefix }venue-ticket-provider` }
-					help="Account, venue, or provider reference used when ticket records are connected."
-				>
-					<input
-						id={ `${ idPrefix }venue-ticket-provider` }
-						value={ config.ticket_provider_reference || '' }
-						onChange={ ( event ) =>
-							setConfig( {
-								...config,
-								ticket_provider_reference:
-									event.target.value || null,
-							} )
-						}
-					/>
-				</FieldGroup>
-				<FieldGroup
-					label="Default marketing channels"
-					htmlFor={ `${ idPrefix }venue-marketing-channels` }
-					help="Comma-separated canonical channel keys, for example instagram, newsletter."
-				>
-					<input
-						id={ `${ idPrefix }venue-marketing-channels` }
-						value={ config.marketing_channels.join( ', ' ) }
-						onChange={ ( event ) =>
-							setConfig( {
-								...config,
-								marketing_channels: [
-									...new Set(
-										event.target.value
-											.split( ',' )
-											.map( normalizeKey )
-											.filter( Boolean )
-									),
-								],
-							} )
-						}
-					/>
-				</FieldGroup>
+				<details className="ec-venue-settings__advanced">
+					<summary>Advanced integrations</summary>
+					<FieldGroup
+						label="Ticket provider reference"
+						htmlFor={ `${ idPrefix }venue-ticket-provider` }
+						help="Account, venue, or provider reference used when ticket records are connected."
+					>
+						<input
+							id={ `${ idPrefix }venue-ticket-provider` }
+							value={ config.ticket_provider_reference || '' }
+							onChange={ ( event ) =>
+								setConfig( {
+									...config,
+									ticket_provider_reference:
+										event.target.value || null,
+								} )
+							}
+						/>
+					</FieldGroup>
+					<div className="ec-venue-settings__choices">
+						<strong>Marketing automation</strong>
+						{ config.marketing_channels.length ? (
+							<ul>
+								{ config.marketing_channels.map( ( key ) => (
+									<li key={ key }>
+										{ MARKETING_CHANNEL_LABELS[ key ] ||
+											key.replaceAll( '_', ' ' ) }
+									</li>
+								) ) }
+							</ul>
+						) : (
+							<p>No marketing automation is configured.</p>
+						) }
+						<small>
+							Marketing automation is managed with its delivery
+							policies.
+						</small>
+					</div>
+				</details>
 			</Panel>
 			<SpacesEditor
 				spaces={ config.spaces }
@@ -238,7 +281,7 @@ export function BookingTab( {
 						label="Deal type"
 						htmlFor={ `${ idPrefix }venue-deal-type` }
 					>
-						<input
+						<select
 							id={ `${ idPrefix }venue-deal-type` }
 							value={ deal.type }
 							onChange={ ( event ) =>
@@ -246,7 +289,20 @@ export function BookingTab( {
 									type: normalizeKey( event.target.value ),
 								} )
 							}
-						/>
+						>
+							{ ! DEAL_TYPES.some(
+								( [ value ] ) => value === deal.type
+							) && (
+								<option value={ deal.type }>
+									{ deal.type }
+								</option>
+							) }
+							{ DEAL_TYPES.map( ( [ value, label ] ) => (
+								<option key={ value } value={ value }>
+									{ label }
+								</option>
+							) ) }
+						</select>
 					</FieldGroup>
 					<FieldGroup
 						label="Guarantee"
@@ -314,16 +370,26 @@ export function BookingTab( {
 						label="Currency"
 						htmlFor={ `${ idPrefix }venue-currency` }
 					>
-						<input
+						<select
 							id={ `${ idPrefix }venue-currency` }
-							maxLength="3"
 							value={ deal.currency }
 							onChange={ ( event ) =>
 								setDeal( {
 									currency: event.target.value.toUpperCase(),
 								} )
 							}
-						/>
+						>
+							{ ! CURRENCIES.includes( deal.currency ) && (
+								<option value={ deal.currency }>
+									{ deal.currency }
+								</option>
+							) }
+							{ CURRENCIES.map( ( currency ) => (
+								<option key={ currency } value={ currency }>
+									{ currency }
+								</option>
+							) ) }
+						</select>
 					</FieldGroup>
 				</Grid>
 			</Panel>

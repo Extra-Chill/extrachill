@@ -66,6 +66,18 @@ class VenueMembershipService {
 		if ( is_wp_error( $allowed ) ) {
 			return $allowed;
 		}
-		return $this->memberships->list_for_venue( $venue_term_id, $filters, $actor_user_id );
+		$memberships = $this->memberships->list_for_venue( $venue_term_id, $filters, $actor_user_id );
+		if ( ! is_array( $memberships ) ) {
+			return $memberships;
+		}
+		return array_map(
+			static function ( array $membership ): array {
+				$user                       = get_userdata( $membership['user_id'] );
+				$membership['display_name'] = $user instanceof \WP_User ? (string) $user->display_name : '';
+				$membership['email']        = $user instanceof \WP_User ? (string) $user->user_email : '';
+				return $membership;
+			},
+			$memberships
+		);
 	}
 }

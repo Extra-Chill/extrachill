@@ -28,6 +28,8 @@ export function TeamTab( {
 	onRefresh,
 	idPrefix = '',
 } ) {
+	const personLabel = ( person ) =>
+		person.display_name || person.email || `User #${ person.user_id }`;
 	const [ email, setEmail ] = useState( '' );
 	const [ owner, setOwner ] = useState( false );
 	const [ action, setAction ] = useState( null );
@@ -110,7 +112,7 @@ export function TeamTab( {
 			<Panel>
 				<PanelHeader
 					title="Memberships"
-					description="Capability access is controlled by WordPress; ownership only controls team administration."
+					description="Members can work with this venue. Owners can also manage the team."
 				/>
 				{ members.length === 0 ? (
 					<p>No membership records found.</p>
@@ -119,7 +121,10 @@ export function TeamTab( {
 						{ members.map( ( member ) => (
 							<li key={ member.id }>
 								<div>
-									<strong>User #{ member.user_id }</strong>
+									<strong>{ personLabel( member ) }</strong>
+									{ member.email && (
+										<div>{ member.email }</div>
+									) }
 									<div>
 										<Badge>{ member.status }</Badge>{ ' ' }
 										{ member.is_owner && (
@@ -159,7 +164,9 @@ export function TeamTab( {
 											onClick={ () =>
 												// eslint-disable-next-line no-alert -- Destructive membership action requires explicit confirmation.
 												window.confirm(
-													'Revoke this venue membership?'
+													`Revoke venue access for ${ personLabel(
+														member
+													) }?`
 												) &&
 												mutate(
 													'extrachill/revoke-venue-membership',
@@ -195,8 +202,11 @@ export function TeamTab( {
 							<li key={ invitation.id }>
 								<div>
 									<strong>
-										User #{ invitation.user_id }
+										{ personLabel( invitation ) }
 									</strong>
+									{ invitation.email && (
+										<div>{ invitation.email }</div>
+									) }
 									<div>
 										<Badge>{ invitation.status }</Badge>{ ' ' }
 										<Badge>

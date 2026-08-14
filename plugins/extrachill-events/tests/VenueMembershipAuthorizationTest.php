@@ -1254,6 +1254,9 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$service = new VenueMembershipService();
 		$service->create( 1, 55, 2, true );
 		$service->create( 2, 55, 3, false );
+		$members = $service->list( 2, 55 );
+		$this->assertSame( 'User 3', $members[1]['display_name'] );
+		$this->assertSame( 'member3@example.com', $members[1]['email'] );
 
 		$GLOBALS['wpdb']->before_list = static function ( VenueMembershipWpdb $wpdb ): void {
 			foreach ( $wpdb->rows['wp_7_ec_venue_members'] as &$row ) {
@@ -1540,8 +1543,11 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->create_member( 55, 2, true );
 		$service  = new VenueOnboardingService();
 		$existing = $service->invite( 2, 55, 'existing@example.com', false );
+		$listed   = $service->list_invitations( 2, 55 );
 
 		$this->assertFalse( $existing['account_created'] );
+		$this->assertSame( 'User 7', $listed[0]['display_name'] );
+		$this->assertSame( 'existing@example.com', $listed[0]['email'] );
 		$this->assertTrue( $existing['delivery_queued'] );
 		$this->assertSame( 0, $GLOBALS['venue_membership_test']['reset_key_calls'] );
 		$this->assertSame( array(), $GLOBALS['venue_membership_test']['sent_emails'] );
@@ -1971,6 +1977,14 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertSame( 'string', $update['input_schema']['properties']['expected_revision']['type'] );
 		$this->assertSame( 'string', $get['output_schema']['properties']['ticketing_url']['type'] );
 		$this->assertContains( 'ticketing_url', $get['output_schema']['required'] );
+		$this->assertSame( 'integer', $get['output_schema']['properties']['logo_attachment_id']['type'] );
+		$this->assertSame( array( 'object', 'null' ), $get['output_schema']['properties']['logo']['type'] );
+		$this->assertSame(
+			array( 'attachment_id', 'site_id', 'url', 'alt', 'mime_type', 'width', 'height' ),
+			$get['output_schema']['properties']['logo']['required']
+		);
+		$this->assertContains( 'logo_attachment_id', $get['output_schema']['required'] );
+		$this->assertContains( 'logo', $get['output_schema']['required'] );
 
 		$GLOBALS['venue_membership_test']['current_user_id'] = 4;
 		$this->set_current_user( 4 );

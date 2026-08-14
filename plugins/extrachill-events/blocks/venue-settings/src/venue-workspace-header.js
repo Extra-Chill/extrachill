@@ -58,8 +58,12 @@ export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
 	return (
 		<>
 			<BlockShellHeader
-				title="Manage venues"
-				description="Manage every venue together or open one venue."
+				title={ selected ? selected.name : 'Manage venues' }
+				description={
+					selected
+						? 'Manage bookings, public details, settings, and team access for this venue.'
+						: 'Manage every venue together or open one venue.'
+				}
 				actions={
 					selected ? (
 						<button
@@ -67,7 +71,7 @@ export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
 							className="button-2"
 							onClick={ () => onSwitchVenue( 0 ) }
 						>
-							My Venues
+							Back to My Venues
 						</button>
 					) : null
 				}

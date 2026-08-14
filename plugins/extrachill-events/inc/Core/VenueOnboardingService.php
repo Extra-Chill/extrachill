@@ -159,7 +159,16 @@ class VenueOnboardingService {
 		if ( ! is_array( $result ) ) {
 			return $result;
 		}
-		return array_map( array( $this->repository, 'public_invitation' ), $result );
+		return array_map(
+			function ( array $invitation ): array {
+				$invitation                 = $this->repository->public_invitation( $invitation );
+				$user                       = get_userdata( $invitation['user_id'] );
+				$invitation['display_name'] = $user instanceof \WP_User ? (string) $user->display_name : '';
+				$invitation['email']        = $user instanceof \WP_User ? (string) $user->user_email : '';
+				return $invitation;
+			},
+			$result
+		);
 	}
 
 	/**

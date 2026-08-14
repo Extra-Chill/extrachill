@@ -167,6 +167,43 @@
 	margin-block-end: var(--spacing-sm);
 }
 
+.ec-venue-settings__advanced {
+	margin-block-start: var(--spacing-md);
+}
+
+.ec-venue-settings__advanced > summary {
+	cursor: pointer;
+	font-weight: 650;
+}
+
+.ec-venue-settings__advanced[open] > summary {
+	margin-block-end: var(--spacing-sm);
+}
+
+.ec-venue-settings__choices {
+	display: grid;
+	gap: var(--spacing-xs);
+	margin: 0;
+}
+
+.ec-venue-settings__choices > strong {
+	font-weight: 700;
+}
+
+.ec-venue-settings .button-link-delete {
+	border: 0;
+	background: transparent;
+	color: var(--error-color);
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.ec-booking-detail__error {
+	display: grid;
+	gap: var(--spacing-sm);
+	justify-items: start;
+}
+
 .ec-venue-settings__records {
 	display: grid;
 	gap: 0;
@@ -423,6 +460,18 @@
 
 .ec-booking-detail__facts--summary {
 	margin-block-start: 1rem;
+}
+
+.ec-booking-detail__disclosure {
+	margin-block-start: 1.5rem;
+	border-block-start: 1px solid var(--border-color);
+	padding-block-start: 1rem;
+}
+
+.ec-booking-detail__disclosure > summary {
+	cursor: pointer;
+	font-size: var(--font-size-lg);
+	font-weight: 750;
 }
 
 .ec-booking-console__timeline {

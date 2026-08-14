@@ -207,6 +207,8 @@ class VenueMembershipAbilities {
 				'id'                 => array( 'type' => 'integer' ),
 				'venue_term_id'      => array( 'type' => 'integer' ),
 				'user_id'            => array( 'type' => 'integer' ),
+				'display_name'       => array( 'type' => 'string' ),
+				'email'              => array( 'type' => 'string' ),
 				'is_owner'           => array( 'type' => 'boolean' ),
 				'status'             => array(
 					'type' => 'string',
