@@ -89,6 +89,15 @@ describe( 'booking form workspace', () => {
 		expect( intake ).not.toContain( 'fieldset' );
 	} );
 
+	it( 'keeps custom field labels on theme-native form surfaces', () => {
+		const labelInput = intake.match(
+			/<input[\s\S]*?className="ec-booking-field__label"[\s\S]*?\/>/
+		)?.[ 0 ];
+
+		expect( labelInput ).toContain( 'type="text"' );
+		expect( styles ).not.toContain( '.ec-booking-field__label {' );
+	} );
+
 	it( 'uses complete theme button variants', () => {
 		expect( workspace ).toContain( 'button-1 button-medium' );
 		expect( intake ).toContain( 'ec-booking-fields__add' );

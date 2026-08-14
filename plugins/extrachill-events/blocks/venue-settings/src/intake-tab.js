@@ -99,6 +99,7 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 									</span>
 									<input
 										id={ `${ idPrefix }intake-label-${ rowIndex }` }
+										type="text"
 										className="ec-booking-field__label"
 										aria-label={ `Field ${
 											rowIndex + 1
