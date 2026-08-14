@@ -79,7 +79,7 @@ export function BookingFormTab( {
 		} );
 	}, [ config, onInitializeConfig, profile?.website, websites.length ] );
 	useEffect( () => {
-		const mobilePreview = window.matchMedia( '(max-width: 960px)' );
+		const mobilePreview = window.matchMedia( '(max-width: 1200px)' );
 		const syncPreview = () => setPreviewOpen( ! mobilePreview.matches );
 		syncPreview();
 		mobilePreview.addEventListener( 'change', syncPreview );

@@ -67,6 +67,12 @@ describe( 'venue booking workspace composition', () => {
 		expect( styles ).toContain(
 			'.ec-booking-form-editor__preview-toggle.button-2'
 		);
-		expect( styles ).toContain( '@media screen and (max-width: 960px)' );
+		expect( styles ).toContain( '@media screen and (max-width: 1200px)' );
+	} );
+
+	it( 'reserves enough desktop width for the production form preview', () => {
+		expect( styles ).toContain(
+			'grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);'
+		);
 	} );
 } );

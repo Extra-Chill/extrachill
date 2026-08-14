@@ -124,5 +124,8 @@ describe( 'booking form workspace', () => {
 		);
 		expect( workspace ).toContain( '<BookingInquiry' );
 		expect( workspace ).not.toContain( 'booking-embed=1' );
+		expect( workspace ).toContain(
+			"window.matchMedia( '(max-width: 1200px)' )"
+		);
 	} );
 } );
