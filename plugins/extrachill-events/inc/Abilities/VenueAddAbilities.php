@@ -314,9 +314,10 @@ class VenueAddAbilities {
 					continue;
 				}
 				$has_event_upsert = true;
-				$value            = (string) ( $upsert['taxonomy_location_selection'] ?? '' );
-				if ( ctype_digit( $value ) && (int) $value > 0 ) {
-					$flow_locations[ (int) $value ] = true;
+				$value            = $upsert['taxonomy_location_selection'] ?? '';
+				$location         = $this->resolveCanonicalLocationTerm( $value );
+				if ( $location ) {
+					$flow_locations[ (int) $location->term_id ] = true;
 				} else {
 					$invalid_structure = true;
 				}
@@ -349,6 +350,38 @@ class VenueAddAbilities {
 			'location'         => $location,
 			'location_term_id' => $location_id,
 		);
+	}
+
+	/**
+	 * Resolve a supported flow location selection to one canonical term.
+	 *
+	 * @param mixed $value Location term ID or exact canonical name.
+	 */
+	private function resolveCanonicalLocationTerm( $value ): ?\WP_Term {
+		$value = is_int( $value ) || is_string( $value ) ? trim( (string) $value ) : '';
+		if ( '' === $value ) {
+			return null;
+		}
+
+		if ( ctype_digit( $value ) && (int) $value > 0 ) {
+			$term = get_term( (int) $value, 'location' );
+			return $term instanceof \WP_Term ? $term : null;
+		}
+
+		$terms = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'name'       => $value,
+				'hide_empty' => false,
+				'number'     => 2,
+			)
+		);
+
+		if ( is_wp_error( $terms ) || 1 !== count( $terms ) ) {
+			return null;
+		}
+
+		return $terms[0] instanceof \WP_Term ? $terms[0] : null;
 	}
 
 	/**

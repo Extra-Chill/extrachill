@@ -120,7 +120,11 @@ if ( ! function_exists( 'get_term' ) ) {
 if ( ! function_exists( 'get_terms' ) ) {
 	function get_terms( $args = array() ) {
 		if ( 'location' === ( $args['taxonomy'] ?? '' ) ) {
-			return array_values( array_filter( $GLOBALS['event_source_term_ids'], static fn( $term, $key ) => str_starts_with( $key, 'location:' ), ARRAY_FILTER_USE_BOTH ) );
+			$terms = array_values( array_filter( $GLOBALS['event_source_term_ids'], static fn( $term, $key ) => str_starts_with( $key, 'location:' ), ARRAY_FILTER_USE_BOTH ) );
+			if ( isset( $args['name'] ) ) {
+				$terms = array_values( array_filter( $terms, static fn( $term ) => 0 === strcasecmp( $term->name, (string) $args['name'] ) ) );
+			}
+			return isset( $args['number'] ) && (int) $args['number'] > 0 ? array_slice( $terms, 0, (int) $args['number'] ) : $terms;
 		}
 		return array( 72 => 'The Band' );
 	}
@@ -649,6 +653,57 @@ final class EventSourceIntakeTest extends BookingTestCase {
 
 		$this->assertSame( 10, $result['location_term_id'] );
 		$this->assertSame( 'Charleston', $result['location']->name );
+	}
+
+	public function test_city_pipeline_normalizes_mixed_location_representations(): void {
+		$GLOBALS['event_source_term_ids']['location:7682'] = new WP_Term( 7682, 'Phoenix' );
+		$this->wpdb->pipelines[41]                         = array( 'pipeline_id' => 41, 'pipeline_name' => 'Phoenix Events' );
+		foreach ( array( 7682, '7682', 'Phoenix' ) as $value ) {
+			$this->wpdb->flows[] = array(
+				'pipeline_id' => 41,
+				'flow_config' => wp_json_encode(
+					array(
+						'import' => array( 'step_type' => 'event_import' ),
+						'upsert' => array(
+							'step_type'       => 'upsert',
+							'handler_configs' => array( 'upsert_event' => array( 'taxonomy_location_selection' => $value ) ),
+						),
+					)
+				),
+			);
+		}
+
+		$validator = ( new ReflectionClass( VenueAddAbilities::class ) )->newInstanceWithoutConstructor();
+		$result    = $validator->validateCityPipeline( 41 );
+
+		$this->assertSame( 7682, $result['location_term_id'] );
+		$this->assertSame( 'Phoenix', $result['location']->name );
+	}
+
+	public function test_city_pipeline_rejects_conflicting_canonical_locations(): void {
+		$GLOBALS['event_source_term_ids']['location:7682'] = new WP_Term( 7682, 'Phoenix' );
+		$GLOBALS['event_source_term_ids']['location:7683'] = new WP_Term( 7683, 'Tucson' );
+		$this->wpdb->pipelines[41]                         = array( 'pipeline_id' => 41, 'pipeline_name' => 'Arizona Events' );
+		foreach ( array( 'Phoenix', 7683 ) as $value ) {
+			$this->wpdb->flows[] = array(
+				'pipeline_id' => 41,
+				'flow_config' => wp_json_encode(
+					array(
+						'import' => array( 'step_type' => 'event_import' ),
+						'upsert' => array(
+							'step_type'       => 'upsert',
+							'handler_configs' => array( 'upsert_event' => array( 'taxonomy_location_selection' => $value ) ),
+						),
+					)
+				),
+			);
+		}
+
+		$validator = ( new ReflectionClass( VenueAddAbilities::class ) )->newInstanceWithoutConstructor();
+		$result    = $validator->validateCityPipeline( 41 );
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_city_pipeline', $result->get_error_code() );
 	}
 
 	public function test_canonical_dedup_reads_legacy_tracking_variants(): void {
