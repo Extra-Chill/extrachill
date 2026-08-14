@@ -27,14 +27,19 @@ do_action( 'extrachill_before_body_content' );
 					</div>
 					<div class="archive-description">Stay updated with the latest music festival news, announcements, and updates.</div>
 					
-					<div class="festival-filter-controls">
+					<form class="festival-filter-controls" action="<?php echo esc_url( (string) get_post_type_archive_link( 'festival_wire' ) ); ?>" method="get">
 						<div class="festival-filter-inner">
 							<div class="filter-dropdowns">
 								<div class="filter-group">
+									<label class="filter-label" for="festival-search" hidden>Search festivals</label>
+									<input id="festival-search" class="filter-search" type="search" autocomplete="off" aria-controls="festival-filter" hidden>
+									<div id="festival-search-status" class="screen-reader-text" aria-live="polite"></div>
+									<label class="filter-label" for="festival-filter">Festival</label>
 									<div class="filter-input">
-										<select id="festival-filter" class="festival-dropdown">
-											<option value="all">All Festivals</option>
+										<select id="festival-filter" name="festival" class="festival-dropdown">
+											<option value="">All Festivals</option>
 											<?php
+											$current_festival = get_query_var( 'festival' );
 											// Get festival filter options
 											$festivals = get_terms(array('taxonomy' => 'festival', 'hide_empty' => true));
 											$festival_data = array();
@@ -46,7 +51,7 @@ do_action( 'extrachill_before_body_content' );
 											
 											if (!empty($festival_data)) {
 												foreach ($festival_data as $festival) {
-													echo '<option value="' . esc_attr($festival['slug']) . '">' . esc_html($festival['name']) . '</option>';
+													echo '<option value="' . esc_attr($festival['slug']) . '"' . selected( $current_festival, $festival['slug'], false ) . '>' . esc_html($festival['name']) . '</option>';
 												}
 											}
 											?>
@@ -55,30 +60,35 @@ do_action( 'extrachill_before_body_content' );
 								</div>
 								
 								<div class="filter-group">
+									<label class="filter-label" for="location-search" hidden>Search locations</label>
+									<input id="location-search" class="filter-search" type="search" autocomplete="off" aria-controls="location-filter" hidden>
+									<div id="location-search-status" class="screen-reader-text" aria-live="polite"></div>
+									<label class="filter-label" for="location-filter">Location</label>
 									<div class="filter-input">
 										<?php
+										$current_location = get_query_var( 'location' );
 										// Get location filter options
 										$locations = get_terms(array('taxonomy' => 'location', 'hide_empty' => true));
 										if (!is_wp_error($locations) && !empty($locations)) {
-											echo '<select id="location-filter" class="location-dropdown">';
-											echo '<option value="all">All Locations</option>';
+											echo '<select id="location-filter" name="location" class="location-dropdown">';
+											echo '<option value="">All Locations</option>';
 											foreach ($locations as $location) {
-												echo '<option value="' . esc_attr($location->slug) . '">' . esc_html($location->name) . '</option>';
+												echo '<option value="' . esc_attr($location->slug) . '"' . selected( $current_location, $location->slug, false ) . '>' . esc_html($location->name) . '</option>';
 											}
 											echo '</select>';
 										} else {
-											echo '<select id="location-filter" class="location-dropdown" disabled><option value="all">No Locations Found</option></select>';
+											echo '<select id="location-filter" name="location" class="location-dropdown" disabled><option value="">No Locations Found</option></select>';
 										}
 										?>
 									</div>
 								</div>
 							</div>
 							<div class="filter-actions">
-								<button id="festival-filter-button" class="filter-button button-1 button-medium">Apply Filters</button>
-								<a href="<?php echo esc_url(get_post_type_archive_link('festival_wire')); ?>" class="filter-reset">Reset Filters</a>
+								<button id="festival-filter-button" class="filter-button button-1 button-medium" type="submit">Apply Filters</button>
+								<a href="<?php echo esc_url( (string) get_post_type_archive_link( 'festival_wire' ) ); ?>" class="filter-reset">Reset Filters</a>
 							</div>
 						</div>
-					</div>
+					</form>
 				</header><!-- .page-header -->
 
 				<?php

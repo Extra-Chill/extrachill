@@ -12,76 +12,62 @@
     });
 
     /**
-     * Initialize the Festival Filter functionality
+     * Add searchable option lists while preserving the native GET form.
      */
     function initFestivalFilter() {
-        const filterButton = document.getElementById('festival-filter-button');
         const festivalSelect = document.getElementById('festival-filter');
         const locationSelect = document.getElementById('location-filter');
+        const festivalSearch = document.getElementById('festival-search');
+        const locationSearch = document.getElementById('location-search');
 
-        if (!filterButton || !festivalSelect || !locationSelect) {
+        if (!festivalSelect || !locationSelect || !festivalSearch || !locationSearch) {
             return;
         }
 
-        filterButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            applyFestivalFilter();
-        });
-
-        festivalSelect.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                applyFestivalFilter();
-            }
-        });
-
-        locationSelect.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                applyFestivalFilter();
-            }
-        });
-
-        function applyFestivalFilter() {
-            const selectedFestival = festivalSelect.value;
-            const selectedLocation = locationSelect.value;
-
-            if (selectedFestival === 'all' && selectedLocation === 'all') {
-                window.location.href = window.location.pathname;
+        function makeSelectSearchable(searchInput, select, statusId, itemLabel) {
+            if (select.disabled) {
                 return;
             }
 
-            const filterUrl = new URL(window.location.href);
+            const options = Array.from(select.options).map(function(option) {
+                return {
+                    value: option.value,
+                    text: option.text,
+                    disabled: option.disabled,
+                };
+            });
+            const status = document.getElementById(statusId);
 
-            filterUrl.searchParams.delete('festival');
-            filterUrl.searchParams.delete('location');
-
-            if (selectedFestival !== 'all') {
-                filterUrl.searchParams.set('festival', selectedFestival);
+            searchInput.hidden = false;
+            if (searchInput.labels.length) {
+                searchInput.labels[0].hidden = false;
             }
+            searchInput.addEventListener('input', function() {
+                const query = searchInput.value.trim().toLocaleLowerCase();
+                const selectedValue = select.value;
+                const matches = options.filter(function(option, index) {
+                    return index === 0 || option.text.toLocaleLowerCase().includes(query);
+                });
 
-            if (selectedLocation !== 'all') {
-                filterUrl.searchParams.set('location', selectedLocation);
-            }
+                select.replaceChildren();
+                matches.forEach(function(optionData) {
+                    const option = document.createElement('option');
+                    option.text = optionData.text;
+                    option.value = optionData.value;
+                    option.disabled = optionData.disabled;
+                    option.selected = optionData.value === selectedValue;
+                    select.add(option);
+                });
 
-            window.location.href = filterUrl.toString();
+                if (status) {
+                    const resultCount = Math.max(0, matches.length - 1);
+                    status.textContent = resultCount + ' ' + itemLabel + (resultCount === 1 ? '' : 's') + ' found.';
+                }
+            });
         }
 
-        function preSelectCurrentFilters() {
-            const urlParams = new URLSearchParams(window.location.search);
-
-            const currentFestival = urlParams.get('festival');
-            if (currentFestival) {
-                festivalSelect.value = currentFestival;
-            }
-
-            const currentLocation = urlParams.get('location');
-            if (currentLocation) {
-                locationSelect.value = currentLocation;
-            }
-        }
-
-        preSelectCurrentFilters();
+        makeSelectSearchable(festivalSearch, festivalSelect, 'festival-search-status', 'festival');
+        makeSelectSearchable(locationSearch, locationSelect, 'location-search-status', 'location');
     }
 
     /**

@@ -82,6 +82,7 @@
     width: 100%;
 }
 
+.filter-search,
 .festival-dropdown,
 .location-dropdown {
     background-color: var(--background-color);
@@ -99,6 +100,12 @@
     background-position: right 0.7rem center;
     background-size: 1rem;
     padding-right: 2.5rem;
+}
+
+.filter-search {
+    background-image: none;
+    margin-bottom: 0.75rem;
+    padding-right: 1rem;
 }
 
 .filter-actions {
@@ -379,6 +386,7 @@
         margin-bottom: 0.5rem;
     }
     
+    .filter-search,
     .festival-dropdown,
     .location-dropdown {
         width: 100%;
