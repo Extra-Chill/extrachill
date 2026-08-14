@@ -39,6 +39,18 @@ describe( 'booking form workspace', () => {
 		expect( wording ).toContain( 'Edit standard wording' );
 	} );
 
+	it( 'prefills an empty embed website from the venue profile', () => {
+		expect( workspace ).toContain(
+			"bookingOriginFromWebsite( profile?.website || '' )"
+		);
+		expect( workspace ).toContain(
+			'embed: { allowed_parent_origins: [ origin ] }'
+		);
+		expect( workspace ).toContain(
+			'initializedWebsite.current || websites.length'
+		);
+	} );
+
 	it( 'hides schema and legal implementation vocabulary', () => {
 		for ( const vocabulary of [
 			'label="Key"',

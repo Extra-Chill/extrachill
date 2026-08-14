@@ -24,6 +24,15 @@ export const normalizeBookingOrigin = ( value ) => {
 	}
 };
 
+export const bookingOriginFromWebsite = ( value ) => {
+	try {
+		const url = new URL( value );
+		return normalizeBookingOrigin( url.origin );
+	} catch {
+		return null;
+	}
+};
+
 const escapeAttribute = ( value ) =>
 	String( value )
 		.replaceAll( '&', '&amp;' )

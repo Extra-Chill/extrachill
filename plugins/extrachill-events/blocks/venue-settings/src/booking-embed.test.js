@@ -6,6 +6,7 @@
 import {
 	bookingButtonSnippet,
 	bookingEmbedSnippet,
+	bookingOriginFromWebsite,
 	normalizeBookingOrigin,
 } from './booking-embed';
 
@@ -25,6 +26,14 @@ describe( 'venue booking embed generator', () => {
 		].forEach( ( origin ) =>
 			expect( normalizeBookingOrigin( origin ) ).toBeNull()
 		);
+	} );
+
+	it( 'derives an embed origin from a venue website URL', () => {
+		expect(
+			bookingOriginFromWebsite( 'https://Venue.Example/about?ref=events' )
+		).toBe( 'https://venue.example' );
+		expect( bookingOriginFromWebsite( 'http://venue.example' ) ).toBeNull();
+		expect( bookingOriginFromWebsite( '' ) ).toBeNull();
 	} );
 
 	it( 'builds accessible link and iframe markup without hand-edited IDs', () => {

@@ -1,7 +1,7 @@
 /**
  * WordPress dependencies
  */
-import { useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 
 /**
  * External dependencies
@@ -18,7 +18,7 @@ import {
  * Internal dependencies
  */
 import { BookingInquiry } from '../../venue-booking-inquiry/src/view';
-import { bookingEmbedSnippet } from './booking-embed';
+import { bookingEmbedSnippet, bookingOriginFromWebsite } from './booking-embed';
 import { IntakeTab } from './intake-tab';
 import { Status } from './status';
 import { sameDocument, validateConfig } from './state';
@@ -54,12 +54,28 @@ export function BookingFormTab( {
 	idPrefix = '',
 } ) {
 	const [ copied, setCopied ] = useState( false );
+	const initializedWebsite = useRef( false );
 	const errors = validateConfig( config );
 	const dirty = ! sameDocument( config, baseline );
 	const websites = config.embed.allowed_parent_origins;
 	const embedSnippet = websites.length
 		? bookingEmbedSnippet( bookingUrl, venueName, websites[ 0 ] )
 		: '';
+	useEffect( () => {
+		if ( initializedWebsite.current || websites.length ) {
+			initializedWebsite.current = true;
+			return;
+		}
+		const origin = bookingOriginFromWebsite( profile?.website || '' );
+		if ( ! origin ) {
+			return;
+		}
+		initializedWebsite.current = true;
+		setConfig( {
+			...config,
+			embed: { allowed_parent_origins: [ origin ] },
+		} );
+	}, [ config, profile?.website, setConfig, websites.length ] );
 	const copyEmbed = async () => {
 		await navigator.clipboard.writeText( embedSnippet );
 		setCopied( true );
