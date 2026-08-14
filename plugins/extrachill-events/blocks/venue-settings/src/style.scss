@@ -64,8 +64,12 @@
 	box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 8%));
 }
 
-.ec-booking-form-editor__preview > .ec-panel-header {
+.ec-booking-form-editor__preview-content > .ec-panel-header {
 	margin-block-end: var(--spacing-md);
+}
+
+.ec-booking-form-editor__preview-toggle.button-2 {
+	display: none;
 }
 
 .ec-booking-form-editor__preview .ec-venue-booking-inquiry {
@@ -100,9 +104,13 @@
 
 .ec-booking-field__row {
 	display: grid;
-	grid-template-columns: auto minmax(10rem, 1fr) minmax(8rem, 0.55fr) auto auto;
+	grid-template-columns: auto minmax(0, 1fr) minmax(9rem, 0.65fr);
 	gap: var(--spacing-sm);
 	align-items: center;
+}
+
+.ec-booking-field__required {
+	grid-column: 2;
 }
 
 .ec-booking-field__position {
@@ -132,6 +140,8 @@
 .ec-booking-field__actions {
 	display: flex;
 	gap: var(--spacing-xs);
+	grid-column: 3;
+	justify-content: flex-end;
 }
 
 .ec-booking-field__choices {
@@ -142,6 +152,19 @@
 	margin: var(--spacing-xs) 0 0;
 	color: var(--muted-text);
 	font-size: var(--font-size-sm);
+}
+
+.ec-booking-embed-advanced {
+	margin-block-start: var(--spacing-md);
+}
+
+.ec-booking-embed-advanced > summary {
+	cursor: pointer;
+	font-weight: 650;
+}
+
+.ec-booking-embed-advanced[open] > summary {
+	margin-block-end: var(--spacing-sm);
 }
 
 .ec-venue-settings__records {
@@ -440,6 +463,15 @@
 
 	.ec-booking-form-editor__preview {
 		position: static;
+		padding: 0;
+	}
+
+	.ec-booking-form-editor__preview-toggle.button-2 {
+		display: flex;
+	}
+
+	.ec-booking-form-editor__preview-content {
+		padding: 0 var(--spacing-md) var(--spacing-md);
 	}
 }
 
@@ -458,8 +490,8 @@
 		justify-content: center;
 	}
 
-	.ec-booking-form-editor__preview {
-		padding: var(--spacing-sm);
+	.ec-booking-form-editor__preview-content {
+		padding: 0 var(--spacing-sm) var(--spacing-sm);
 	}
 
 	.ec-booking-standard-fields__list {

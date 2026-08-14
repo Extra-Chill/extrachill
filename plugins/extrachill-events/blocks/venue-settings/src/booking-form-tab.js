@@ -54,6 +54,7 @@ export function BookingFormTab( {
 	idPrefix = '',
 } ) {
 	const [ copied, setCopied ] = useState( false );
+	const [ previewOpen, setPreviewOpen ] = useState( true );
 	const initializedWebsite = useRef( false );
 	const errors = validateConfig( config );
 	const dirty = ! sameDocument( config, baseline );
@@ -76,6 +77,13 @@ export function BookingFormTab( {
 			embed: { allowed_parent_origins: [ origin ] },
 		} );
 	}, [ config, profile?.website, setConfig, websites.length ] );
+	useEffect( () => {
+		const mobilePreview = window.matchMedia( '(max-width: 960px)' );
+		const syncPreview = () => setPreviewOpen( ! mobilePreview.matches );
+		syncPreview();
+		mobilePreview.addEventListener( 'change', syncPreview );
+		return () => mobilePreview.removeEventListener( 'change', syncPreview );
+	}, [] );
 	const copyEmbed = async () => {
 		await navigator.clipboard.writeText( embedSnippet );
 		setCopied( true );
@@ -89,6 +97,32 @@ export function BookingFormTab( {
 					setConfig={ setConfig }
 					idPrefix={ idPrefix }
 				/>
+				{ errors.length > 0 && (
+					<InlineStatus tone="error">
+						<strong>Resolve before saving:</strong>
+						<ul>
+							{ errors.map( ( error ) => (
+								<li key={ error }>{ error }</li>
+							) ) }
+						</ul>
+					</InlineStatus>
+				) }
+				<Status state={ status } />
+				<ActionRow>
+					<button
+						type="button"
+						className="button-1 button-medium"
+						disabled={ ! dirty || saving || errors.length > 0 }
+						onClick={ onSave }
+					>
+						{ saving ? 'Saving...' : 'Save booking form' }
+					</button>
+					{ dirty && (
+						<span className="ec-venue-settings__dirty">
+							Unsaved booking form changes
+						</span>
+					) }
+				</ActionRow>
 				<Panel>
 					<PanelHeader
 						title="Embed your booking form"
@@ -121,17 +155,6 @@ export function BookingFormTab( {
 					</FieldGroup>
 					{ embedSnippet ? (
 						<>
-							<FieldGroup
-								label="Embed code"
-								htmlFor={ `${ idPrefix }venue-booking-embed-code` }
-							>
-								<textarea
-									id={ `${ idPrefix }venue-booking-embed-code` }
-									rows="8"
-									readOnly
-									value={ embedSnippet }
-								/>
-							</FieldGroup>
 							<ActionRow>
 								<button
 									type="button"
@@ -146,6 +169,20 @@ export function BookingFormTab( {
 									</span>
 								) }
 							</ActionRow>
+							<details className="ec-booking-embed-advanced">
+								<summary>Show advanced embed code</summary>
+								<FieldGroup
+									label="Embed code"
+									htmlFor={ `${ idPrefix }venue-booking-embed-code` }
+								>
+									<textarea
+										id={ `${ idPrefix }venue-booking-embed-code` }
+										rows="8"
+										readOnly
+										value={ embedSnippet }
+									/>
+								</FieldGroup>
+							</details>
 						</>
 					) : (
 						<p className="ec-venue-settings__save-note">
@@ -153,52 +190,43 @@ export function BookingFormTab( {
 						</p>
 					) }
 				</Panel>
-				{ errors.length > 0 && (
-					<InlineStatus tone="error">
-						<strong>Resolve before saving:</strong>
-						<ul>
-							{ errors.map( ( error ) => (
-								<li key={ error }>{ error }</li>
-							) ) }
-						</ul>
-					</InlineStatus>
-				) }
-				<Status state={ status } />
-				<ActionRow>
-					<button
-						type="button"
-						className="button-1 button-medium"
-						disabled={ ! dirty || saving || errors.length > 0 }
-						onClick={ onSave }
-					>
-						{ saving ? 'Saving...' : 'Save booking form' }
-					</button>
-					{ dirty && (
-						<span className="ec-venue-settings__dirty">
-							Unsaved booking form changes
-						</span>
-					) }
-				</ActionRow>
 			</div>
 			<aside
 				className="ec-booking-form-editor__preview"
 				aria-label="Booking form preview"
 			>
-				<PanelHeader
-					title="Preview"
-					description="Live preview of your public booking form."
-				/>
-				<div className="ec-venue-booking-inquiry">
-					<BookingInquiry
-						config={ previewConfig(
-							config,
-							venueName,
-							profile,
-							idPrefix
-						) }
-						wrapper={ null }
-						preview
+				<button
+					type="button"
+					className="ec-booking-form-editor__preview-toggle button-2 button-medium button-block"
+					aria-expanded={ previewOpen }
+					aria-controls={ `${ idPrefix }booking-form-preview` }
+					onClick={ () => setPreviewOpen( ( open ) => ! open ) }
+				>
+					{ previewOpen
+						? 'Hide booking form preview'
+						: 'Preview booking form' }
+				</button>
+				<div
+					id={ `${ idPrefix }booking-form-preview` }
+					className="ec-booking-form-editor__preview-content"
+					hidden={ ! previewOpen }
+				>
+					<PanelHeader
+						title="Preview"
+						description="Live preview of your public booking form."
 					/>
+					<div className="ec-venue-booking-inquiry">
+						<BookingInquiry
+							config={ previewConfig(
+								config,
+								venueName,
+								profile,
+								idPrefix
+							) }
+							wrapper={ null }
+							preview
+						/>
+					</div>
 				</div>
 			</aside>
 		</div>

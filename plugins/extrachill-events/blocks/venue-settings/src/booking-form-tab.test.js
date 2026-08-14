@@ -25,12 +25,17 @@ const publicForm = readFileSync(
 );
 
 describe( 'booking form workspace', () => {
-	it( 'puts form building first and keeps preview visible', () => {
+	it( 'prioritizes form building and keeps technical details optional', () => {
 		expect( workspace.indexOf( '<IntakeTab' ) ).toBeLessThan(
 			workspace.indexOf( 'Embed your booking form' )
 		);
+		expect( workspace.indexOf( 'Save booking form' ) ).toBeLessThan(
+			workspace.indexOf( 'Embed your booking form' )
+		);
 		expect( workspace ).toContain( 'Copy embed code' );
+		expect( workspace ).toContain( 'Show advanced embed code' );
 		expect( workspace ).toContain( 'ec-booking-form-editor__preview' );
+		expect( workspace ).toContain( 'Preview booking form' );
 		expect( workspace ).toContain(
 			'Live preview of your public booking form.'
 		);
