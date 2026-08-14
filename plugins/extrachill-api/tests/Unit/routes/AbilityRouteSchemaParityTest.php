@@ -268,6 +268,28 @@ final class AbilityRouteSchemaParityTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'captured' => true ), $response->get_data() );
 	}
 
+	/** Omitting rollup preserves the ability's existing leaf-count behavior. */
+	public function test_upcoming_counts_defaults_rollup_to_false() {
+		$schema = array(
+			'type'                 => 'object',
+			'properties'           => array(
+				'taxonomy' => array( 'type' => 'string' ),
+				'limit'    => array( 'type' => 'integer' ),
+				'rollup'   => array( 'type' => 'boolean' ),
+			),
+			'required'             => array( 'taxonomy' ),
+			'additionalProperties' => false,
+		);
+		$this->register_ability( 'extrachill/events-upcoming-counts', $schema, true );
+		$request = new WP_REST_Request( 'GET' );
+		$request->set_query_params( array( 'taxonomy' => 'location', 'limit' => 25 ) );
+
+		$response = extrachill_api_events_upcoming_counts_handler( $request );
+
+		$this->assertSame( array( 'taxonomy' => 'location', 'limit' => 25, 'rollup' => false ), $this->captured_input );
+		$this->assertSame( array( 'captured' => true ), $response->get_data() );
+	}
+
 	/** Every executing API route is represented, including dynamic ability constants. */
 	public function test_manifest_covers_all_ability_executing_route_callbacks() {
 		do_action( 'rest_api_init' );
