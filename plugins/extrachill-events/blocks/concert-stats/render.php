@@ -268,18 +268,14 @@ $wrapper_attributes = get_block_wrapper_attributes(
 
 	<?php if ( $render_embedded_map ) : ?>
 		<div class="ec-concert-stats__embedded-map" data-tab="map" hidden>
-			<?php
-			// Same auto-gating pattern as the calendar wrapper above.
-			// The my-shows-map-filter callbacks scope the venue set +
-			// per-venue events to the user's tracked shows; the events-map
-			// block stays generic and unaware of the concert-tracking
-			// table. chronologicalRouteMode = true: polyline + first/last
-			// marker styling + multi-date popups against the user's
-			// attendance timeline. height=500 matches the calendar
-			// block's vertical footprint so tab swapping doesn't shift
-			// page layout.
-			echo do_blocks( '<!-- wp:data-machine-events/events-map {"chronologicalRouteMode":true,"height":500} /-->' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- block render output is trusted.
-			?>
+			<template class="ec-concert-stats__embedded-map-template">
+				<?php
+				// Keep the map inert until its tab is opened. This prevents
+				// Leaflet from mounting inside a hidden ancestor and avoids
+				// requesting tiles for users who never open the Map tab.
+				echo do_blocks( '<!-- wp:data-machine-events/events-map {"chronologicalRouteMode":true,"height":500} /-->' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- block render output is trusted.
+				?>
+			</template>
 		</div>
 	<?php endif; ?>
 </div>

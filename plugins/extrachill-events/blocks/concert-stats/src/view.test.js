@@ -37,12 +37,19 @@ jest.mock( '@extrachill/components', () => {
 			React.createElement( 'h2', null, title ),
 		Grid: Wrapper,
 		InlineStatus: Wrapper,
-		ResponsiveTabs: ( { tabs, active, renderPanel } ) =>
+		ResponsiveTabs: ( { tabs, active, onChange, renderPanel } ) =>
 			React.createElement(
 				'div',
 				null,
 				tabs.map( ( tab ) =>
-					React.createElement( 'button', { key: tab.id }, tab.label )
+					React.createElement(
+						'button',
+						{
+							key: tab.id,
+							onClick: () => onChange( tab.id ),
+						},
+						tab.label
+					)
 				),
 				renderPanel( active )
 			),
@@ -118,7 +125,18 @@ async function renderApp( { isOwn, tab, userId = 34 } ) {
 		`/my-shows/?user_id=34${ tab ? `&tab=${ tab }` : '' }`
 	);
 	const container = document.createElement( 'div' );
-	document.body.appendChild( container );
+	const shell = document.createElement( 'div' );
+	shell.className = 'ec-concert-stats-shell';
+	const map = document.createElement( 'div' );
+	map.className = 'ec-concert-stats__embedded-map';
+	map.hidden = true;
+	map.innerHTML = `
+		<template class="ec-concert-stats__embedded-map-template">
+			<div class="data-machine-events-map-root"></div>
+		</template>
+	`;
+	shell.append( container, map );
+	document.body.appendChild( shell );
 	const root = createRoot( container );
 	const render = ( nextUserId ) => (
 		<ConcertStatsApp
@@ -139,6 +157,7 @@ async function renderApp( { isOwn, tab, userId = 34 } ) {
 
 	return {
 		container,
+		map,
 		root,
 		rerenderUser: async ( nextUserId ) => {
 			await act( async () => {
@@ -239,6 +258,58 @@ describe( 'ConcertStatsApp request boundaries', () => {
 			)
 		).toBe( true );
 
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'mounts the embedded map only when its tab is opened', async () => {
+		let loadedEvents = 0;
+		const onLoaded = () => loadedEvents++;
+		document.addEventListener( 'data-machine-events-loaded', onLoaded );
+		const { container, map, root } = await renderApp( {
+			isOwn: true,
+			tab: 'past',
+		} );
+
+		expect( map.hidden ).toBe( true );
+		expect( map.querySelector( 'template' ) ).not.toBeNull();
+		expect(
+			map.querySelector( '.data-machine-events-map-root' )
+		).toBeNull();
+
+		const mapButton = [ ...container.querySelectorAll( 'button' ) ].find(
+			( button ) => button.textContent === 'Map'
+		);
+		const pastButton = [ ...container.querySelectorAll( 'button' ) ].find(
+			( button ) => button.textContent === 'Past'
+		);
+		expect( mapButton ).toBeDefined();
+		expect( pastButton ).toBeDefined();
+		await act( async () => {
+			mapButton.click();
+			await Promise.resolve();
+		} );
+
+		expect( map.hidden ).toBe( false );
+		expect( map.querySelector( 'template' ) ).toBeNull();
+		expect(
+			map.querySelector( '.data-machine-events-map-root' )
+		).not.toBeNull();
+		expect( loadedEvents ).toBe( 1 );
+
+		await act( async () => {
+			pastButton.click();
+			await Promise.resolve();
+		} );
+		expect( map.hidden ).toBe( true );
+
+		await act( async () => {
+			mapButton.click();
+			await Promise.resolve();
+		} );
+		expect( map.hidden ).toBe( false );
+		expect( loadedEvents ).toBe( 1 );
+
+		document.removeEventListener( 'data-machine-events-loaded', onLoaded );
 		await act( async () => root.unmount() );
 	} );
 

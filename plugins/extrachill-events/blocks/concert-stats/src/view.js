@@ -328,6 +328,18 @@ export function ConcertStatsApp( {
 		}
 		const wasHidden = map.hidden;
 		map.hidden = activeTab !== 'map';
+		if ( ! map.hidden ) {
+			const template = map.querySelector(
+				'.ec-concert-stats__embedded-map-template'
+			);
+			if ( template ) {
+				map.appendChild( template.content.cloneNode( true ) );
+				template.remove();
+				document.dispatchEvent(
+					new CustomEvent( 'data-machine-events-loaded' )
+				);
+			}
+		}
 		if ( wasHidden && ! map.hidden && typeof window !== 'undefined' ) {
 			// Leaflet listens for window resize via invalidateSize hooks.
 			// Defer to next frame so the layout has settled before the
