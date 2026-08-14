@@ -106,6 +106,16 @@ Festival Wire posts support all standard WordPress features:
 
 See [docs/provenance.md](docs/provenance.md) for source attribution, execution tracking, AI authority, story identity, and revision rules.
 
+### Classification Audit
+
+News Wire validates AI-decided festival and location values before Data Machine resolves or creates terms. Audit existing classifications without writing by default:
+
+```bash
+wp extrachill-news-wire classifications audit
+```
+
+After reviewing the proposed detach and merge actions, pass `--apply` to perform them.
+
 ## Development
 
 ### Build Process

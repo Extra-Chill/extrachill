@@ -21,6 +21,7 @@ define( 'FESTIVAL_WIRE_TEMPLATE_DIR', FESTIVAL_WIRE_PLUGIN_DIR . 'templates/' );
 
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-post-type.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-query-filters.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'classification.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-metadata.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-notifications.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'recent-activity-ability.php';
