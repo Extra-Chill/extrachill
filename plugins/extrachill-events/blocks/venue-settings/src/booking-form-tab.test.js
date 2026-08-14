@@ -14,6 +14,7 @@ const intake = readFileSync(
 	path.resolve( __dirname, 'intake-tab.js' ),
 	'utf8'
 );
+const styles = readFileSync( path.resolve( __dirname, 'style.scss' ), 'utf8' );
 const wording = readFileSync(
 	path.resolve( __dirname, 'intake-public.js' ),
 	'utf8'
@@ -74,6 +75,10 @@ describe( 'booking form workspace', () => {
 	it( 'uses complete theme button variants', () => {
 		expect( workspace ).toContain( 'button-1 button-medium' );
 		expect( intake ).toContain( 'ec-booking-fields__add' );
+		expect( intake ).toContain(
+			'ec-booking-fields__add button-2 button-medium button-block'
+		);
+		expect( styles ).not.toContain( '.ec-booking-fields__add {' );
 		expect( intake ).toContain( 'button-danger button-small' );
 		expect( workspace + intake ).not.toContain( 'button-link-delete' );
 	} );

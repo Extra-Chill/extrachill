@@ -674,7 +674,9 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 		<li>
 			<button
 				type="button"
-				className={ `ec-booking-card${ active ? ' is-active' : '' }` }
+				className={ `ec-booking-card button-3 button-medium button-block${
+					active ? ' is-active' : ''
+				}` }
 				onClick={ () => onSelect( booking.id ) }
 				aria-pressed={ active }
 			>
@@ -842,7 +844,7 @@ function Calendar( {
 										</a>
 										{ entry.support && (
 											<a
-												className="ec-booking-calendar__support-action"
+												className="ec-booking-calendar__support-action button-2 button-small"
 												href={
 													entry.support.workspace_url
 												}
@@ -1740,7 +1742,11 @@ export function BookingConsole( {
 						<button
 							type="button"
 							key={ option.id }
-							className={ view === option.id ? 'is-active' : '' }
+							className={
+								view === option.id
+									? 'button-1 button-medium is-active'
+									: 'button-3 button-medium'
+							}
 							aria-pressed={ view === option.id }
 							onClick={ () => setView( option.id ) }
 						>

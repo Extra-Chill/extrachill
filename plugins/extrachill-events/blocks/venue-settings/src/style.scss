@@ -129,25 +129,6 @@
 	font-size: var(--font-size-sm);
 }
 
-.ec-booking-fields__add {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	padding: var(--spacing-sm) var(--spacing-md);
-	border: 1px dashed var(--border-color);
-	border-radius: var(--border-radius-md);
-	background: transparent;
-	color: var(--muted-text);
-	font: inherit;
-	cursor: pointer;
-}
-
-.ec-booking-fields__add:hover {
-	border-color: var(--accent);
-	color: var(--accent);
-}
-
 .ec-venue-settings__records {
 	display: grid;
 	gap: 0;
@@ -191,50 +172,26 @@
 }
 
 .ec-booking-console__toolbar {
+	display: grid;
+	grid-template-columns: auto minmax(16rem, 1fr) minmax(10rem, 14rem);
 	align-items: end;
+	gap: 1rem;
 }
 
-.ec-booking-console__toolbar .ec-search-box {
+.ec-booking-console__search,
+.ec-booking-console__search .ec-search-box,
+.ec-booking-console__search input {
+	width: 100%;
+}
+
+.ec-booking-console__search .ec-search-box {
 	margin-bottom: 0;
 }
 
 .ec-booking-console__view-switcher {
-	display: flex;
-	align-items: center;
-	gap: 0.65rem;
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-
-.ec-booking-console__view-switcher legend {
-	float: left;
-	font-size: 0.85rem;
-	font-weight: 750;
-}
-
-.ec-booking-console__view-switcher > div {
 	display: inline-flex;
-	padding: 0.2rem;
-	border: 1px solid var(--border-color);
-	border-radius: var(--border-radius-md);
-	background: var(--card-background);
-}
-
-.ec-booking-console__view-switcher button {
-	padding: 0.4rem 0.75rem;
-	border: 0;
-	border-radius: var(--border-radius-sm);
-	background: transparent;
-	color: var(--text-color);
-	font: inherit;
-	font-weight: 700;
-	cursor: pointer;
-}
-
-.ec-booking-console__view-switcher button.is-active {
-	background: var(--header-background);
-	color: var(--header-text-color);
+	align-items: center;
+	gap: var(--spacing-xs);
 }
 
 .ec-booking-console__toolbar label {
@@ -244,20 +201,12 @@
 	font-weight: 700;
 }
 
-.ec-booking-card {
+.ec-booking-card.button-3 {
 	display: grid;
 	grid-template-columns: minmax(10rem, 1fr) minmax(10rem, auto) minmax(8rem, auto);
 	align-items: center;
 	gap: 1rem;
-	width: 100%;
-	padding: 1rem;
-	border: 0;
-	border-left: 3px solid transparent;
-	background: transparent;
-	color: inherit;
-	font: inherit;
 	text-align: left;
-	cursor: pointer;
 }
 
 .ec-booking-card:hover,
@@ -388,12 +337,6 @@
 
 .ec-booking-calendar__support-action {
 	display: block;
-	padding: 0.25rem 0.4rem;
-	border-radius: var(--border-radius-sm);
-	background: var(--card-background);
-	font-size: 0.7rem;
-	font-weight: 700;
-	line-height: 1.2;
 	text-align: center;
 }
 
@@ -536,7 +479,7 @@
 		flex-direction: column;
 	}
 
-	.ec-booking-card {
+	.ec-booking-card.button-3 {
 		grid-template-columns: 1fr;
 		gap: 0.5rem;
 	}

@@ -244,7 +244,7 @@ export function IntakeTab( { config, setConfig, idPrefix = '' } ) {
 				</div>
 				<button
 					type="button"
-					className="ec-booking-fields__add"
+					className="ec-booking-fields__add button-2 button-medium button-block"
 					onClick={ () => {
 						const key = nextCustomFieldKey( fields );
 						setFields( [
