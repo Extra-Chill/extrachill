@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.1] - 2026-08-14
+
+### Fixed
+- clear remaining Wire release lint
+- clear Wire release lint blockers
+- validate Wire classifications
+- make Festival Wire filters accessible and searchable
+- add Wire card image fallback
+- normalize asset cache versions
+
 ## [0.6.0] - 2026-08-12
 
 ### Added
