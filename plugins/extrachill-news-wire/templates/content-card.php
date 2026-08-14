@@ -15,14 +15,19 @@
  */
 ?>
 
+<?php $has_featured_image = has_post_thumbnail(); ?>
 <article id="post-<?php the_ID(); ?>" <?php post_class('festival-wire-card'); ?>>
-	<?php if (has_post_thumbnail()): ?>
-	<div class="festival-wire-card-image">
-        <a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
-            <?php the_post_thumbnail( 'medium' ); ?>
-        </a>
+	<div class="festival-wire-card-image<?php echo $has_featured_image ? '' : ' festival-wire-card-image--fallback'; ?>">
+		<?php if ( $has_featured_image ) : ?>
+			<a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>">
+				<?php the_post_thumbnail( 'medium' ); ?>
+			</a>
+		<?php else : ?>
+			<a href="<?php the_permalink(); ?>" title="<?php the_title_attribute(); ?>" aria-label="<?php the_title_attribute(); ?>">
+				<span>Festival Wire</span>
+			</a>
+		<?php endif; ?>
 	</div>
-	<?php endif; ?>
 	
 	<div class="festival-wire-card-content">
 		<?php
@@ -73,4 +78,4 @@
 			<?php echo wp_trim_words( get_the_excerpt(), 30, '...' ); // Use consistent excerpt trimming ?>
 		</div><!-- .entry-summary -->
 	</div>
-</article><!-- #post-<?php the_ID(); ?> --> 
+</article><!-- #post-<?php the_ID(); ?> -->

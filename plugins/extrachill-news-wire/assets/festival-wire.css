@@ -180,6 +180,24 @@
     margin-bottom: 0;
 }
 
+.festival-wire-card-image--fallback a {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, var(--accent-2) 0 65%, var(--accent) 65% 100%);
+    color: var(--button-text-color);
+    text-decoration: none;
+}
+
+.festival-wire-card-image--fallback span {
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+}
+
 .festival-wire-card:hover .festival-wire-card-image img {
     transform: scale(1.05);
 }
