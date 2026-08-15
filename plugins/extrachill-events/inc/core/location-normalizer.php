@@ -194,10 +194,10 @@ function extrachill_events_resolve_location_term_for_venue_city( $venue_city, $v
 function extrachill_events_filter_locations_by_hierarchy( array $matches, string $venue_state, string $country ): array {
 	$venue_state = trim( $venue_state );
 	$country     = trim( $country );
-	$state_names = array( strtolower( $venue_state ) );
+	$state_names = array( extrachill_events_location_identity_key( $venue_state ) );
 	$full_name   = extrachill_events_get_state_abbreviation_map()[ strtoupper( $venue_state ) ] ?? null;
 	if ( $full_name ) {
-		$state_names[] = strtolower( $full_name );
+		$state_names[] = extrachill_events_location_identity_key( $full_name );
 	}
 	$country_name = extrachill_events_normalize_country_name( $country );
 	$filtered     = array();
@@ -212,7 +212,7 @@ function extrachill_events_filter_locations_by_hierarchy( array $matches, string
 			continue;
 		}
 
-		if ( '' !== $venue_state && ! in_array( strtolower( $parent->name ), $state_names, true ) ) {
+		if ( '' !== $venue_state && ! in_array( extrachill_events_location_identity_key( $parent->name ), $state_names, true ) ) {
 			continue;
 		}
 
@@ -230,13 +230,24 @@ function extrachill_events_filter_locations_by_hierarchy( array $matches, string
 }
 
 /**
+ * Normalize a location hierarchy identity for exact comparison.
+ *
+ * @param string $value Location identity.
+ * @return string Normalized identity.
+ */
+function extrachill_events_location_identity_key( string $value ): string {
+	$value = trim( $value );
+	return strtolower( function_exists( 'remove_accents' ) ? remove_accents( $value ) : $value );
+}
+
+/**
  * Normalize common country names and ISO codes for hierarchy comparisons.
  *
  * @param string $country Country name or code.
  * @return string Normalized country identity.
  */
 function extrachill_events_normalize_country_name( string $country ): string {
-	$country = strtolower( trim( $country ) );
+	$country = extrachill_events_location_identity_key( $country );
 	$aliases = array(
 		'us'                       => 'united states',
 		'usa'                      => 'united states',

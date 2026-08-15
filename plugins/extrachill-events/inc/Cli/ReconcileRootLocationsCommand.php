@@ -21,7 +21,7 @@ final class ReconcileRootLocationsCommand {
 	 * ## OPTIONS
 	 *
 	 * [--apply]
-	 * : Move relationships, create and verify redirects, and delete safe duplicates. Default is dry-run.
+	 * : Move relationships, create and verify redirects, and delete safe duplicates. Requires an administrator user context. Default is dry-run.
 	 *
 	 * [--format=<format>]
 	 * : Output format: table, json, or csv. Default: table.
@@ -29,7 +29,7 @@ final class ReconcileRootLocationsCommand {
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill events locations reconcile-roots --url=events.extrachill.com
-	 *     wp extrachill events locations reconcile-roots --url=events.extrachill.com --apply
+	 *     wp extrachill events locations reconcile-roots --url=events.extrachill.com --user=<administrator-login-or-id> --apply
 	 *
 	 * @param array $args       Positional arguments (unused).
 	 * @param array $assoc_args Named arguments.
@@ -38,6 +38,11 @@ final class ReconcileRootLocationsCommand {
 		unset( $args );
 		if ( ! taxonomy_exists( 'location' ) ) {
 			\WP_CLI::error( 'The location taxonomy is not registered. Use --url=events.extrachill.com.' );
+		}
+
+		$apply = ! empty( $assoc_args['apply'] );
+		if ( $apply ) {
+			$this->assert_apply_ready();
 		}
 
 		$terms = get_terms(
@@ -51,7 +56,6 @@ final class ReconcileRootLocationsCommand {
 			\WP_CLI::error( $terms->get_error_message() );
 		}
 
-		$apply  = ! empty( $assoc_args['apply'] );
 		$repair = $apply ? $this->repair_service() : null;
 		$rows   = array();
 
@@ -92,6 +96,26 @@ final class ReconcileRootLocationsCommand {
 
 		if ( ! $apply ) {
 			\WP_CLI::log( 'Dry run: no redirects, relationships, or terms changed. Re-run with --apply only after reviewing every row.' );
+		}
+	}
+
+	/** Ensure apply mode can use every redirect ability before inspecting candidates. */
+	private function assert_apply_ready(): void {
+		$ability_names = array(
+			'extrachill-seo/list-redirects',
+			'extrachill-seo/add-redirect',
+			'extrachill-seo/delete-redirect',
+		);
+
+		foreach ( $ability_names as $ability_name ) {
+			$ability = wp_get_ability( $ability_name );
+			if ( ! $ability ) {
+				\WP_CLI::error( sprintf( 'Apply requires the %s ability, but it is unavailable.', $ability_name ) );
+			}
+
+			if ( true !== $ability->check_permissions() ) {
+				\WP_CLI::error( 'Apply requires an authorized WordPress administrator context for redirect management. Re-run with --user=<administrator-login-or-id>.' );
+			}
 		}
 	}
 
