@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.26.0] - 2026-08-15
+
+### Added
+- expose canonical forum read abilities
+
+### Fixed
+- satisfy Community release type checks
+- clear release lint findings
+- separate topic engagement actions
+
 ## [1.25.0] - 2026-08-12
 
 ### Added
