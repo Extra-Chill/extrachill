@@ -197,7 +197,6 @@ function extrachill_community_register_infrastructure_abilities() {
 /**
  * Get overall community statistics.
  *
- * @param array $input Ability input.
  * @return array
  */
 function extrachill_community_ability_get_stats() {
@@ -338,7 +337,6 @@ function extrachill_community_ability_toggle_forum_archive( $input ) {
 /**
  * Flush all community caches.
  *
- * @param array $input Ability input.
  * @return array
  */
 function extrachill_community_ability_flush_cache() {

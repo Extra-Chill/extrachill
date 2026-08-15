@@ -84,12 +84,14 @@ defined( 'ABSPATH' ) || exit;
 
 				endif;
 
-				if ( bbp_has_replies() ) :
+				/** @var bool $has_replies */
+				$has_replies = bbp_has_replies();
+				if ( $has_replies ) :
 
 					bbp_get_template_part( 'loop', 'replies' );
 
 					$bbp = bbpress();
-					if ( ! empty( $bbp->reply_query ) && bbp_get_topic_reply_count() > 0 ) {
+					if ( $bbp->reply_query instanceof WP_Query && bbp_get_topic_reply_count() > 0 ) {
 						extrachill_pagination( $bbp->reply_query, 'bbpress' );
 					}
 

@@ -61,6 +61,10 @@ function extrachill_community_ability_list_topics( $input ) {
 	$topics = array();
 
 	foreach ( $query->posts as $post ) {
+		if ( ! $post instanceof WP_Post ) {
+			continue;
+		}
+
 		if ( ! extrachill_community_can_read_forum( $post->post_parent ) ) {
 			continue;
 		}
@@ -124,6 +128,10 @@ function extrachill_community_ability_get_topic( $input ) {
 
 		$replies = array();
 		foreach ( $reply_query->posts as $reply_post ) {
+			if ( ! $reply_post instanceof WP_Post ) {
+				continue;
+			}
+
 			$replies[] = extrachill_community_format_reply( $reply_post );
 		}
 
@@ -173,6 +181,10 @@ function extrachill_community_ability_list_replies( $input ) {
 
 	$replies = array();
 	foreach ( $query->posts as $post ) {
+		if ( ! $post instanceof WP_Post ) {
+			continue;
+		}
+
 		$replies[] = extrachill_community_format_reply( $post );
 	}
 
