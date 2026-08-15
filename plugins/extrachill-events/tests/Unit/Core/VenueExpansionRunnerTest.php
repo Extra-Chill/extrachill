@@ -19,6 +19,58 @@ class VenueExpansionRunnerTest extends TestCase {
 		$this->assertSame( 55, $method->invoke( new VenueDiscoveryAbilities(), 'The Lizard Lounge Boston', array( 'lizard lounge' => 55 ) ) );
 	}
 
+	public function test_discovery_does_not_match_unrelated_venues_on_a_generic_word(): void {
+		$method = new \ReflectionMethod( VenueDiscoveryAbilities::class, 'findKnownVenueId' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 0, $method->invoke( new VenueDiscoveryAbilities(), 'Copper Blues Rock Pub & Kitchen', array( 'the rock' => 9770 ) ) );
+	}
+
+	public function test_custom_discovery_query_keeps_the_requested_city(): void {
+		$method = new \ReflectionMethod( VenueDiscoveryAbilities::class, 'buildSearchQuery' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 'live music venue in Phoenix, AZ', $method->invoke( new VenueDiscoveryAbilities(), 'Phoenix, AZ', 'live music venue' ) );
+		$this->assertSame( 'jazz clubs in Phoenix', $method->invoke( new VenueDiscoveryAbilities(), 'Phoenix, AZ', 'jazz clubs in Phoenix' ) );
+	}
+
+	public function test_discovery_rejects_results_outside_the_requested_location(): void {
+		$method = new \ReflectionMethod( VenueDiscoveryAbilities::class, 'matchesRequestedLocation' );
+		$method->setAccessible( true );
+		$ability = new VenueDiscoveryAbilities();
+
+		$this->assertTrue(
+			$method->invoke(
+				$ability,
+				'Phoenix, AZ',
+				array(
+					'city'  => 'Phoenix',
+					'state' => 'AZ',
+				)
+			)
+		);
+		$this->assertFalse(
+			$method->invoke(
+				$ability,
+				'Phoenix, AZ',
+				array(
+					'city'  => 'Houston',
+					'state' => 'TX',
+				)
+			)
+		);
+		$this->assertFalse(
+			$method->invoke(
+				$ability,
+				'Phoenix, AZ',
+				array(
+					'city'  => 'Phoenix',
+					'state' => 'OR',
+				)
+			)
+		);
+	}
+
 	public function test_existing_city_venue_flow_and_verdict_are_idempotent(): void {
 		$calls     = array();
 		$abilities = $this->abilities(

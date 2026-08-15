@@ -116,7 +116,7 @@ class VenueDiscoveryAbilities {
 			return new \WP_Error( 'missing_city', 'City is required.', array( 'status' => 400 ) );
 		}
 
-		$query = ! empty( $custom_query ) ? $custom_query : "music venues in {$city}";
+		$query = $this->buildSearchQuery( $city, $custom_query );
 
 		// Get access token.
 		$token = $this->getAccessToken();
@@ -137,6 +137,7 @@ class VenueDiscoveryAbilities {
 		$venues      = array();
 		$new_count   = 0;
 		$known_count = 0;
+		$total_found = 0;
 
 		foreach ( $places as $place ) {
 			$name               = $place['displayName']['text'] ?? '';
@@ -148,9 +149,11 @@ class VenueDiscoveryAbilities {
 			$types              = $place['types'] ?? array();
 			$maps               = $place['googleMapsUri'] ?? '';
 
-			if ( empty( $name ) ) {
+			if ( empty( $name ) || ! $this->matchesRequestedLocation( $city, $address_components ) ) {
 				continue;
 			}
+
+			++$total_found;
 
 			// Clean up Google's UTM-heavy website URLs.
 			$website = $this->cleanWebsiteUrl( $website );
@@ -188,11 +191,80 @@ class VenueDiscoveryAbilities {
 		return array(
 			'city'         => $city,
 			'query'        => $query,
-			'total_found'  => count( $places ),
+			'total_found'  => $total_found,
 			'new_venues'   => $new_count,
 			'known_venues' => $known_count,
 			'venues'       => $venues,
 		);
+	}
+
+	/**
+	 * Build a Places query that cannot discard the requested city.
+	 *
+	 * @param string $city         Requested city and optional state.
+	 * @param string $custom_query Optional caller-provided search terms.
+	 * @return string Location-aware Places query.
+	 */
+	private function buildSearchQuery( string $city, string $custom_query ): string {
+		if ( '' === $custom_query ) {
+			return "music venues in {$city}";
+		}
+
+		$requested_city = trim( explode( ',', $city, 2 )[0] );
+		if ( '' !== $requested_city && false !== stripos( $custom_query, $requested_city ) ) {
+			return $custom_query;
+		}
+
+		return "{$custom_query} in {$city}";
+	}
+
+	/**
+	 * Check a Places result against the requested city and optional state.
+	 *
+	 * @param string $requested_location Requested city and optional state.
+	 * @param array  $address_components Canonical Places address fields.
+	 * @return bool Whether the result belongs to the requested location.
+	 */
+	private function matchesRequestedLocation( string $requested_location, array $address_components ): bool {
+		$requested_parts = array_map( 'trim', explode( ',', $requested_location, 2 ) );
+		$requested_city  = $requested_parts[0] ?? '';
+		$requested_state = $requested_parts[1] ?? '';
+		$result_city     = (string) ( $address_components['city'] ?? '' );
+
+		if ( '' === $requested_city || '' === $result_city || $this->normalizeLocationPart( $requested_city ) !== $this->normalizeLocationPart( $result_city ) ) {
+			return false;
+		}
+
+		if ( '' === $requested_state ) {
+			return true;
+		}
+
+		return $this->normalizeState( $requested_state ) === $this->normalizeState( (string) ( $address_components['state'] ?? '' ) );
+	}
+
+	/**
+	 * Normalize state abbreviations and full names for comparison.
+	 *
+	 * @param string $state State abbreviation or full name.
+	 * @return string Normalized state identifier.
+	 */
+	private function normalizeState( string $state ): string {
+		$state = trim( $state );
+		if ( function_exists( 'extrachill_events_get_state_abbreviation_map' ) ) {
+			$state = extrachill_events_get_state_abbreviation_map()[ strtoupper( $state ) ] ?? $state;
+		}
+
+		return $this->normalizeLocationPart( $state );
+	}
+
+	/**
+	 * Normalize a location component without requiring WordPress formatting APIs.
+	 *
+	 * @param string $value Location component.
+	 * @return string Lowercase alphanumeric identifier.
+	 */
+	private function normalizeLocationPart( string $value ): string {
+		return preg_replace( '/[^a-z0-9]+/', '', strtolower( $value ) ) ?? '';
 	}
 
 	/**
@@ -378,15 +450,31 @@ class VenueDiscoveryAbilities {
 
 			// One contains the other.
 			if ( str_contains( $normalized, $existing_without_the ) || str_contains( $existing_without_the, $without_the ) ) {
-				// Only match if the shorter string is at least 4 chars (avoid false positives).
-				$shorter = min( strlen( $without_the ), strlen( $existing_without_the ) );
-				if ( $shorter >= 4 ) {
+				$shorter_name = strlen( $without_the ) <= strlen( $existing_without_the ) ? $without_the : $existing_without_the;
+				if ( $this->isDistinctiveVenueName( $shorter_name ) ) {
 					return (int) $term_id;
 				}
 			}
 		}
 
 		return 0;
+	}
+
+	/**
+	 * Reject generic contained names that commonly occur in unrelated venues.
+	 *
+	 * @param string $name Shorter normalized venue name.
+	 * @return bool Whether the name is distinctive enough for containment matching.
+	 */
+	private function isDistinctiveVenueName( string $name ): bool {
+		$split  = preg_split( '/[^a-z0-9]+/', $name );
+		$tokens = array_values( array_filter( false === $split ? array() : $split ) );
+		if ( count( $tokens ) > 1 ) {
+			return true;
+		}
+
+		$token = $tokens[0] ?? '';
+		return strlen( $token ) >= 4 && ! in_array( $token, array( 'bar', 'club', 'hall', 'live', 'music', 'rock', 'room', 'stage', 'theater', 'theatre', 'venue' ), true );
 	}
 
 	/** Extract canonical venue location fields from Places address components. */
