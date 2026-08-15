@@ -19,14 +19,29 @@ function extrachill_community_register_infrastructure_abilities() {
 	$forum_schema = array(
 		'type'                 => 'object',
 		'properties'           => array(
-			'forum_id'        => array( 'type' => 'integer', 'minimum' => 1 ),
+			'forum_id'        => array(
+				'type'    => 'integer',
+				'minimum' => 1,
+			),
 			'title'           => array( 'type' => 'string' ),
-			'parent_id'       => array( 'type' => 'integer', 'minimum' => 0 ),
+			'parent_id'       => array(
+				'type'    => 'integer',
+				'minimum' => 0,
+			),
 			'status'          => array( 'type' => 'string' ),
-			'topic_count'     => array( 'type' => 'integer', 'minimum' => 0 ),
-			'reply_count'     => array( 'type' => 'integer', 'minimum' => 0 ),
+			'topic_count'     => array(
+				'type'    => 'integer',
+				'minimum' => 0,
+			),
+			'reply_count'     => array(
+				'type'    => 'integer',
+				'minimum' => 0,
+			),
 			'show_in_archive' => array( 'type' => 'boolean' ),
-			'url'             => array( 'type' => 'string', 'format' => 'uri' ),
+			'url'             => array(
+				'type'   => 'string',
+				'format' => 'uri',
+			),
 		),
 		'required'             => array( 'forum_id', 'title', 'parent_id', 'status', 'topic_count', 'reply_count', 'show_in_archive', 'url' ),
 		'additionalProperties' => false,
@@ -264,14 +279,14 @@ function extrachill_community_ability_list_forums( $input ) {
 		}
 
 		$result[] = array(
-			'forum_id'         => (int) $forum->ID,
-			'title'            => $forum->post_title,
-			'parent_id'        => (int) $forum->post_parent,
-			'status'           => (string) $forum->post_status,
-			'topic_count'      => function_exists( 'bbp_get_forum_topic_count' ) ? (int) bbp_get_forum_topic_count( $forum->ID ) : 0,
-			'reply_count'      => function_exists( 'bbp_get_forum_reply_count' ) ? (int) bbp_get_forum_reply_count( $forum->ID ) : 0,
-			'show_in_archive'  => (bool) get_post_meta( $forum->ID, '_show_on_homepage', true ),
-			'url'              => function_exists( 'bbp_get_forum_permalink' ) ? bbp_get_forum_permalink( $forum->ID ) : get_permalink( $forum->ID ),
+			'forum_id'        => (int) $forum->ID,
+			'title'           => $forum->post_title,
+			'parent_id'       => (int) $forum->post_parent,
+			'status'          => (string) $forum->post_status,
+			'topic_count'     => function_exists( 'bbp_get_forum_topic_count' ) ? (int) bbp_get_forum_topic_count( $forum->ID ) : 0,
+			'reply_count'     => function_exists( 'bbp_get_forum_reply_count' ) ? (int) bbp_get_forum_reply_count( $forum->ID ) : 0,
+			'show_in_archive' => (bool) get_post_meta( $forum->ID, '_show_on_homepage', true ),
+			'url'             => function_exists( 'bbp_get_forum_permalink' ) ? bbp_get_forum_permalink( $forum->ID ) : get_permalink( $forum->ID ),
 		);
 	}
 

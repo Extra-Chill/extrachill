@@ -40,8 +40,18 @@ defined( 'ABSPATH' ) || exit;
 			<?php
 			$topic_actions = array_filter(
 				array(
-					bbp_get_topic_subscription_link( array( 'before' => '', 'after' => '' ) ),
-					bbp_get_topic_favorite_link( array( 'before' => '', 'after' => '' ) ),
+					bbp_get_topic_subscription_link(
+						array(
+							'before' => '',
+							'after'  => '',
+						)
+					),
+					bbp_get_topic_favorite_link(
+						array(
+							'before' => '',
+							'after'  => '',
+						)
+					),
 				)
 			);
 

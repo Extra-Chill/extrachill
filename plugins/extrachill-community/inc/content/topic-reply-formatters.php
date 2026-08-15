@@ -32,13 +32,11 @@ function extrachill_community_maybe_convert_markdown( $content, $format ) {
 	}
 
 	if ( ! function_exists( 'bfb_convert' ) ) {
-		error_log( '[Extrachill Community] Markdown format requested but bfb_convert() is unavailable — falling back to raw HTML handling.' );
 		return $content;
 	}
 
 	$converted = bfb_convert( $content, 'markdown', 'blocks' );
 	if ( '' === $converted ) {
-		error_log( '[Extrachill Community] bfb_convert() returned an empty string for markdown input — falling back to raw content.' );
 		return $content;
 	}
 
@@ -62,8 +60,8 @@ function extrachill_community_format_topic( $post, $include_content = false ) {
 		'author_id'   => (int) $post->post_author,
 		'author_name' => $author ? $author->display_name : '',
 		'status'      => (string) $post->post_status,
-		'date'        => mysql2date( DATE_W3C, $post->post_date_gmt ?: $post->post_date, false ),
-		'modified'    => mysql2date( DATE_W3C, $post->post_modified_gmt ?: $post->post_modified, false ),
+		'date'        => mysql2date( DATE_W3C, $post->post_date_gmt ? $post->post_date_gmt : $post->post_date, false ),
+		'modified'    => mysql2date( DATE_W3C, $post->post_modified_gmt ? $post->post_modified_gmt : $post->post_modified, false ),
 		'reply_count' => function_exists( 'bbp_get_topic_reply_count' ) ? (int) bbp_get_topic_reply_count( $post->ID ) : 0,
 		'voice_count' => function_exists( 'bbp_get_topic_voice_count' ) ? (int) bbp_get_topic_voice_count( $post->ID ) : 0,
 		'url'         => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
@@ -105,7 +103,7 @@ function extrachill_community_format_reply( $post ) {
 		'author_name' => $author ? $author->display_name : '',
 		'content'     => $post->post_content,
 		'status'      => (string) $post->post_status,
-		'date'        => mysql2date( DATE_W3C, $post->post_date_gmt ?: $post->post_date, false ),
+		'date'        => mysql2date( DATE_W3C, $post->post_date_gmt ? $post->post_date_gmt : $post->post_date, false ),
 		'reply_to'    => function_exists( 'bbp_get_reply_to' ) ? (int) bbp_get_reply_to( $post->ID ) : 0,
 		'url'         => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $post->ID ) : get_permalink( $post->ID ),
 	);
