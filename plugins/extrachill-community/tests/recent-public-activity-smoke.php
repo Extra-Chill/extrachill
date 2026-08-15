@@ -116,6 +116,7 @@ function recent_activity_assert( $condition, $message ) {
 	}
 }
 
+require dirname( __DIR__ ) . '/inc/core/ability-helpers.php';
 require dirname( __DIR__ ) . '/inc/content/recent-public-activity.php';
 if ( $standalone ) {
 	extrachill_community_register_recent_public_activity_ability();
@@ -133,35 +134,42 @@ if ( $standalone ) {
 	register_taxonomy( 'artist', 'topic', array( 'public' => true ) );
 }
 
-$forum  = recent_activity_post( 10, 'forum', 'publish', 0 );
-$public = recent_activity_post( 20, 'topic', 'publish', $forum->ID );
-$closed = recent_activity_post( 21, 'topic', 'closed', $forum->ID );
-$reply  = recent_activity_post( 30, 'reply', 'publish', $forum->ID );
+$forum         = recent_activity_post( 10, 'forum', 'publish', 0 );
+$private_forum = recent_activity_post( 11, 'forum', 'private', 0 );
+$nested_forum  = recent_activity_post( 12, 'forum', 'publish', $private_forum->ID );
+$public        = recent_activity_post( 20, 'topic', 'publish', $forum->ID );
+$closed        = recent_activity_post( 21, 'topic', 'closed', $forum->ID );
+$reply         = recent_activity_post( 30, 'reply', 'publish', $forum->ID );
 $reply->topic_id = $public->ID;
 $private = recent_activity_post( 22, 'topic', 'private', $forum->ID );
 $draft   = recent_activity_post( 23, 'topic', 'draft', $forum->ID );
 $trash   = recent_activity_post( 24, 'topic', 'trash', $forum->ID );
+$nested  = recent_activity_post( 25, 'topic', 'publish', $nested_forum->ID );
 $orphan  = recent_activity_post( 31, 'reply', 'publish', $forum->ID );
 $orphan->topic_id = 999;
 
 $GLOBALS['_recent_activity_posts'] = array(
-	$forum->ID   => $forum,
-	$public->ID  => $public,
-	$closed->ID  => $closed,
-	$private->ID => $private,
-	$draft->ID   => $draft,
-	$trash->ID   => $trash,
-	$reply->ID   => $reply,
-	$orphan->ID  => $orphan,
+	$forum->ID         => $forum,
+	$private_forum->ID => $private_forum,
+	$nested_forum->ID  => $nested_forum,
+	$public->ID        => $public,
+	$closed->ID        => $closed,
+	$private->ID       => $private,
+	$draft->ID         => $draft,
+	$trash->ID         => $trash,
+	$nested->ID        => $nested,
+	$reply->ID         => $reply,
+	$orphan->ID        => $orphan,
 );
 $GLOBALS['_recent_activity_terms'][ $public->ID ] = array( (object) array( 'name' => 'Test Artist', 'slug' => 'test-artist' ) );
 if ( ! $standalone ) {
 	wp_set_object_terms( $public->ID, 'Test Artist', 'artist' );
 }
-$GLOBALS['_recent_activity_query_posts'] = array( $public, $closed, $reply, $private, $draft, $trash, $orphan );
+$GLOBALS['_recent_activity_query_posts'] = array( $public, $closed, $reply, $private, $draft, $trash, $nested, $orphan );
 
 $result = extrachill_community_ability_recent_public_activity( array( 'limit' => 999 ) );
 recent_activity_assert( 3 === count( $result['items'] ), 'Only public, closed-public, and publicly parented reply activity may escape.' );
+recent_activity_assert( false === in_array( bbp_get_topic_permalink( $nested->ID ), array_column( $result['items'], 'canonical_url' ), true ), 'Public child forums beneath private ancestors must not escape.' );
 recent_activity_assert( 2 === count( array_keys( array_column( $result['items'], 'activity_type' ), 'discussion', true ) ), 'Closed discussions remain public without exposing their storage status.' );
 recent_activity_assert( 1 === count( array_keys( array_column( $result['items'], 'activity_type' ), 'reply', true ) ), 'Public replies remain distinguishable without exposing post types.' );
 if ( $standalone ) {

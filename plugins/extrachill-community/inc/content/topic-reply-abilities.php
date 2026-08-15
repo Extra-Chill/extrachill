@@ -23,6 +23,49 @@ add_action( 'wp_abilities_api_init', 'extrachill_community_register_topic_reply_
  * Register topic and reply CRUD abilities.
  */
 function extrachill_community_register_topic_reply_abilities() {
+	$public_status       = function_exists( 'bbp_get_public_status_id' ) ? bbp_get_public_status_id() : 'publish';
+	$closed_status       = function_exists( 'bbp_get_closed_status_id' ) ? bbp_get_closed_status_id() : 'closed';
+	$public_voice_schema = extrachill_community_public_voice_output_schema();
+	$topic_schema        = array(
+		'type'                 => 'object',
+		'properties'           => array(
+			'topic_id'     => array( 'type' => 'integer', 'minimum' => 1 ),
+			'title'        => array( 'type' => 'string' ),
+			'forum_id'     => array( 'type' => 'integer', 'minimum' => 1 ),
+			'author_id'    => array( 'type' => 'integer', 'minimum' => 0 ),
+			'author_name'  => array( 'type' => 'string' ),
+			'status'       => array( 'type' => 'string', 'enum' => array( $public_status, $closed_status ) ),
+			'date'         => array( 'type' => 'string', 'format' => 'date-time' ),
+			'modified'     => array( 'type' => 'string', 'format' => 'date-time' ),
+			'reply_count'  => array( 'type' => 'integer', 'minimum' => 0 ),
+			'voice_count'  => array( 'type' => 'integer', 'minimum' => 0 ),
+			'url'          => array( 'type' => 'string', 'format' => 'uri' ),
+			'content'      => array( 'type' => 'string' ),
+			'public_voice' => $public_voice_schema,
+			'upvote_count' => array( 'type' => 'integer', 'minimum' => 1 ),
+		),
+		'required'             => array( 'topic_id', 'title', 'forum_id', 'author_id', 'author_name', 'status', 'date', 'modified', 'reply_count', 'voice_count', 'url' ),
+		'additionalProperties' => false,
+	);
+	$reply_schema        = array(
+		'type'                 => 'object',
+		'properties'           => array(
+			'reply_id'     => array( 'type' => 'integer', 'minimum' => 1 ),
+			'topic_id'     => array( 'type' => 'integer', 'minimum' => 1 ),
+			'forum_id'     => array( 'type' => 'integer', 'minimum' => 1 ),
+			'author_id'    => array( 'type' => 'integer', 'minimum' => 0 ),
+			'author_name'  => array( 'type' => 'string' ),
+			'content'      => array( 'type' => 'string' ),
+			'status'       => array( 'type' => 'string', 'enum' => array( $public_status ) ),
+			'date'         => array( 'type' => 'string', 'format' => 'date-time' ),
+			'reply_to'     => array( 'type' => 'integer', 'minimum' => 0 ),
+			'url'          => array( 'type' => 'string', 'format' => 'uri' ),
+			'public_voice' => $public_voice_schema,
+			'upvote_count' => array( 'type' => 'integer', 'minimum' => 1 ),
+		),
+		'required'             => array( 'reply_id', 'topic_id', 'forum_id', 'author_id', 'author_name', 'content', 'status', 'date', 'reply_to', 'url' ),
+		'additionalProperties' => false,
+	);
 
 	// ─── List Topics ───────────────────────────────────────────────────────────
 
@@ -33,44 +76,53 @@ function extrachill_community_register_topic_reply_abilities() {
 			'description'         => __( 'List topics for a forum or across all forums, with pagination.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'forum_id' => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
 						'description' => 'Filter by forum ID (omit for all forums)',
 					),
 					'per_page' => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
+						'maximum'     => 100,
 						'description' => 'Topics per page (default 20, max 100)',
 					),
 					'page'     => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
 						'description' => 'Page number (default 1)',
 					),
 					'orderby'  => array(
 						'type'        => 'string',
+						'enum'        => array( 'date', 'modified', 'title' ),
 						'description' => 'Order by: date, modified, title (default date)',
 					),
 					'order'    => array(
 						'type'        => 'string',
+						'enum'        => array( 'ASC', 'DESC' ),
 						'description' => 'Sort order: ASC or DESC (default DESC)',
 					),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'topics'   => array( 'type' => 'array' ),
-					'total'    => array( 'type' => 'integer' ),
-					'pages'    => array( 'type' => 'integer' ),
-					'page'     => array( 'type' => 'integer' ),
-					'per_page' => array( 'type' => 'integer' ),
+				'type'                 => 'object',
+				'properties'           => array(
+					'topics'   => array( 'type' => 'array', 'items' => $topic_schema ),
+					'total'    => array( 'type' => 'integer', 'minimum' => 0 ),
+					'pages'    => array( 'type' => 'integer', 'minimum' => 0 ),
+					'page'     => array( 'type' => 'integer', 'minimum' => 1 ),
+					'per_page' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 100 ),
 				),
+				'required'             => array( 'topics', 'total', 'pages', 'page', 'per_page' ),
+				'additionalProperties' => false,
 			),
 			'execute_callback'    => 'extrachill_community_ability_list_topics',
 			'permission_callback' => '__return_true',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
 					'idempotent'  => true,
@@ -89,10 +141,11 @@ function extrachill_community_register_topic_reply_abilities() {
 			'description'         => __( 'Get a single topic with its content, metadata, and replies.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'topic_id'         => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
 						'description' => 'Topic post ID',
 					),
 					'include_replies'  => array(
@@ -101,26 +154,34 @@ function extrachill_community_register_topic_reply_abilities() {
 					),
 					'replies_per_page' => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
+						'maximum'     => 100,
 						'description' => 'Replies per page (default 30, max 100)',
 					),
 					'replies_page'     => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
 						'description' => 'Replies page number (default 1)',
 					),
 				),
 				'required'   => array( 'topic_id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'topic'   => array( 'type' => 'object' ),
-					'replies' => array( 'type' => 'array' ),
+				'type'                 => 'object',
+				'properties'           => array(
+					'topic'         => $topic_schema,
+					'replies'       => array( 'type' => 'array', 'items' => $reply_schema ),
+					'replies_total' => array( 'type' => 'integer', 'minimum' => 0 ),
+					'replies_pages' => array( 'type' => 'integer', 'minimum' => 0 ),
 				),
+				'required'             => array( 'topic' ),
+				'additionalProperties' => false,
 			),
 			'execute_callback'    => 'extrachill_community_ability_get_topic',
 			'permission_callback' => '__return_true',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
 					'idempotent'  => true,
@@ -509,37 +570,44 @@ function extrachill_community_register_topic_reply_abilities() {
 			'description'         => __( 'List replies for a topic with pagination.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'topic_id' => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
 						'description' => 'Topic post ID',
 					),
 					'per_page' => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
+						'maximum'     => 100,
 						'description' => 'Replies per page (default 30, max 100)',
 					),
 					'page'     => array(
 						'type'        => 'integer',
+						'minimum'     => 1,
 						'description' => 'Page number (default 1)',
 					),
 				),
 				'required'   => array( 'topic_id' ),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'replies'  => array( 'type' => 'array' ),
-					'total'    => array( 'type' => 'integer' ),
-					'pages'    => array( 'type' => 'integer' ),
-					'page'     => array( 'type' => 'integer' ),
-					'per_page' => array( 'type' => 'integer' ),
+				'type'                 => 'object',
+				'properties'           => array(
+					'replies'  => array( 'type' => 'array', 'items' => $reply_schema ),
+					'total'    => array( 'type' => 'integer', 'minimum' => 0 ),
+					'pages'    => array( 'type' => 'integer', 'minimum' => 0 ),
+					'page'     => array( 'type' => 'integer', 'minimum' => 1 ),
+					'per_page' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 100 ),
 				),
+				'required'             => array( 'replies', 'total', 'pages', 'page', 'per_page' ),
+				'additionalProperties' => false,
 			),
 			'execute_callback'    => 'extrachill_community_ability_list_replies',
 			'permission_callback' => '__return_true',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
 					'idempotent'  => true,

@@ -63,6 +63,9 @@
     },
     "tests/public-voice-wp-ability-schema-smoke.php": {
       "environment": "wordpress"
+    },
+    "tests/forum-read-abilities-rest-smoke.php": {
+      "environment": "wordpress"
     }
   }
 }

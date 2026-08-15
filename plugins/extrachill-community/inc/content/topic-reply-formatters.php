@@ -61,8 +61,9 @@ function extrachill_community_format_topic( $post, $include_content = false ) {
 		'forum_id'    => (int) $post->post_parent,
 		'author_id'   => (int) $post->post_author,
 		'author_name' => $author ? $author->display_name : '',
-		'date'        => $post->post_date_gmt,
-		'modified'    => $post->post_modified_gmt,
+		'status'      => (string) $post->post_status,
+		'date'        => mysql2date( DATE_W3C, $post->post_date_gmt ?: $post->post_date, false ),
+		'modified'    => mysql2date( DATE_W3C, $post->post_modified_gmt ?: $post->post_modified, false ),
 		'reply_count' => function_exists( 'bbp_get_topic_reply_count' ) ? (int) bbp_get_topic_reply_count( $post->ID ) : 0,
 		'voice_count' => function_exists( 'bbp_get_topic_voice_count' ) ? (int) bbp_get_topic_voice_count( $post->ID ) : 0,
 		'url'         => function_exists( 'bbp_get_topic_permalink' ) ? bbp_get_topic_permalink( $post->ID ) : get_permalink( $post->ID ),
@@ -99,11 +100,14 @@ function extrachill_community_format_reply( $post ) {
 	$reply = array(
 		'reply_id'    => (int) $post->ID,
 		'topic_id'    => function_exists( 'bbp_get_reply_topic_id' ) ? (int) bbp_get_reply_topic_id( $post->ID ) : (int) $post->post_parent,
+		'forum_id'    => function_exists( 'bbp_get_reply_forum_id' ) ? (int) bbp_get_reply_forum_id( $post->ID ) : 0,
 		'author_id'   => (int) $post->post_author,
 		'author_name' => $author ? $author->display_name : '',
 		'content'     => $post->post_content,
-		'date'        => $post->post_date_gmt,
+		'status'      => (string) $post->post_status,
+		'date'        => mysql2date( DATE_W3C, $post->post_date_gmt ?: $post->post_date, false ),
 		'reply_to'    => function_exists( 'bbp_get_reply_to' ) ? (int) bbp_get_reply_to( $post->ID ) : 0,
+		'url'         => function_exists( 'bbp_get_reply_url' ) ? bbp_get_reply_url( $post->ID ) : get_permalink( $post->ID ),
 	);
 
 	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {

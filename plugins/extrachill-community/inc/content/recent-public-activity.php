@@ -221,7 +221,7 @@ function extrachill_community_prepare_recent_public_activity_item( $activity ) {
 
 	$forum_id = (int) bbp_get_topic_forum_id( $topic_id );
 	$forum    = $forum_id ? get_post( $forum_id ) : null;
-	if ( ! $forum || bbp_get_forum_post_type() !== $forum->post_type || $public_status !== $forum->post_status ) {
+	if ( ! $forum || ! extrachill_community_is_public_forum( $forum_id ) ) {
 		return null;
 	}
 

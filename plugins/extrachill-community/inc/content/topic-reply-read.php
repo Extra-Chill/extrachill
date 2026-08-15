@@ -30,7 +30,7 @@ function extrachill_community_ability_list_topics( $input ) {
 
 	$args = array(
 		'post_type'      => bbp_get_topic_post_type(),
-		'post_status'    => bbp_get_public_status_id(),
+		'post_status'    => array( bbp_get_public_status_id(), bbp_get_closed_status_id() ),
 		'posts_per_page' => $per_page,
 		'paged'          => $page,
 		'orderby'        => $orderby,
@@ -38,13 +38,32 @@ function extrachill_community_ability_list_topics( $input ) {
 	);
 
 	if ( ! empty( $input['forum_id'] ) ) {
-		$args['post_parent'] = (int) $input['forum_id'];
+		$forum_id = (int) $input['forum_id'];
+		if ( ! extrachill_community_can_read_forum( $forum_id ) ) {
+			return new WP_Error( 'forum_not_found', 'Forum is unavailable.', array( 'status' => 404 ) );
+		}
+		$args['post_parent'] = $forum_id;
+	} else {
+		$forum_ids = extrachill_community_get_readable_forum_ids();
+		if ( empty( $forum_ids ) ) {
+			return array(
+				'topics'   => array(),
+				'total'    => 0,
+				'pages'    => 0,
+				'page'     => $page,
+				'per_page' => $per_page,
+			);
+		}
+		$args['post_parent__in'] = $forum_ids;
 	}
 
 	$query  = new WP_Query( $args );
 	$topics = array();
 
 	foreach ( $query->posts as $post ) {
+		if ( ! extrachill_community_can_read_forum( $post->post_parent ) ) {
+			continue;
+		}
 		$topics[] = extrachill_community_format_topic( $post );
 	}
 
@@ -75,11 +94,11 @@ function extrachill_community_ability_get_topic( $input ) {
 
 	$post = get_post( $topic_id );
 	if ( ! $post || bbp_get_topic_post_type() !== $post->post_type ) {
-		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.' );
+		return new WP_Error( 'not_a_topic', 'Post ID is not a valid topic.', array( 'status' => 404 ) );
 	}
 
-	if ( bbp_get_public_status_id() !== $post->post_status ) {
-		return new WP_Error( 'topic_not_published', 'Topic is not published.' );
+	if ( ! in_array( $post->post_status, array( bbp_get_public_status_id(), bbp_get_closed_status_id() ), true ) || ! extrachill_community_can_read_forum( $post->post_parent ) ) {
+		return new WP_Error( 'topic_not_published', 'Topic is not published.', array( 'status' => 404 ) );
 	}
 
 	$topic  = extrachill_community_format_topic( $post, true );
@@ -130,6 +149,11 @@ function extrachill_community_ability_list_replies( $input ) {
 	$topic_id = isset( $input['topic_id'] ) ? (int) $input['topic_id'] : 0;
 	if ( ! $topic_id ) {
 		return new WP_Error( 'missing_topic_id', 'A topic_id is required.' );
+	}
+
+	$topic = get_post( $topic_id );
+	if ( ! $topic || bbp_get_topic_post_type() !== $topic->post_type || ! in_array( $topic->post_status, array( bbp_get_public_status_id(), bbp_get_closed_status_id() ), true ) || ! extrachill_community_can_read_forum( $topic->post_parent ) ) {
+		return new WP_Error( 'topic_not_published', 'Topic is not published.', array( 'status' => 404 ) );
 	}
 
 	$per_page = isset( $input['per_page'] ) ? min( max( (int) $input['per_page'], 1 ), 100 ) : 30;

@@ -16,6 +16,21 @@ add_action( 'wp_abilities_api_init', 'extrachill_community_register_infrastructu
  * Register infrastructure abilities.
  */
 function extrachill_community_register_infrastructure_abilities() {
+	$forum_schema = array(
+		'type'                 => 'object',
+		'properties'           => array(
+			'forum_id'        => array( 'type' => 'integer', 'minimum' => 1 ),
+			'title'           => array( 'type' => 'string' ),
+			'parent_id'       => array( 'type' => 'integer', 'minimum' => 0 ),
+			'status'          => array( 'type' => 'string' ),
+			'topic_count'     => array( 'type' => 'integer', 'minimum' => 0 ),
+			'reply_count'     => array( 'type' => 'integer', 'minimum' => 0 ),
+			'show_in_archive' => array( 'type' => 'boolean' ),
+			'url'             => array( 'type' => 'string', 'format' => 'uri' ),
+		),
+		'required'             => array( 'forum_id', 'title', 'parent_id', 'status', 'topic_count', 'reply_count', 'show_in_archive', 'url' ),
+		'additionalProperties' => false,
+	);
 
 	wp_register_ability(
 		'extrachill/community-get-stats',
@@ -62,24 +77,30 @@ function extrachill_community_register_infrastructure_abilities() {
 			'description'         => __( 'List all forums with topic/reply counts and forum-archive visibility status.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'properties' => array(
+				'type'                 => 'object',
+				'properties'           => array(
 					'archive_only' => array(
 						'type'        => 'boolean',
 						'description' => 'Only return forums shown in the forum archive (/forums/) list',
 					),
 				),
+				'additionalProperties' => false,
 			),
 			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'forums' => array( 'type' => 'array' ),
+				'type'                 => 'object',
+				'properties'           => array(
+					'forums' => array(
+						'type'  => 'array',
+						'items' => $forum_schema,
+					),
 				),
+				'required'             => array( 'forums' ),
+				'additionalProperties' => false,
 			),
 			'execute_callback'    => 'extrachill_community_ability_list_forums',
 			'permission_callback' => '__return_true',
 			'meta'                => array(
-				'show_in_rest' => false,
+				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
 					'idempotent'  => true,
@@ -208,10 +229,17 @@ function extrachill_community_ability_list_forums( $input ) {
 	}
 
 	$archive_only = ! empty( $input['archive_only'] );
+	$statuses     = array( bbp_get_public_status_id() );
+	if ( function_exists( 'bbp_get_private_status_id' ) ) {
+		$statuses[] = bbp_get_private_status_id();
+	}
+	if ( function_exists( 'bbp_get_hidden_status_id' ) ) {
+		$statuses[] = bbp_get_hidden_status_id();
+	}
 
 	$args = array(
 		'post_type'      => bbp_get_forum_post_type(),
-		'post_status'    => 'publish',
+		'post_status'    => array_unique( $statuses ),
 		'posts_per_page' => -1,
 		'orderby'        => 'menu_order title',
 		'order'          => 'ASC',
@@ -231,10 +259,15 @@ function extrachill_community_ability_list_forums( $input ) {
 	$result = array();
 
 	foreach ( $forums as $forum ) {
+		if ( ! extrachill_community_can_read_forum( $forum->ID ) ) {
+			continue;
+		}
+
 		$result[] = array(
 			'forum_id'         => (int) $forum->ID,
 			'title'            => $forum->post_title,
 			'parent_id'        => (int) $forum->post_parent,
+			'status'           => (string) $forum->post_status,
 			'topic_count'      => function_exists( 'bbp_get_forum_topic_count' ) ? (int) bbp_get_forum_topic_count( $forum->ID ) : 0,
 			'reply_count'      => function_exists( 'bbp_get_forum_reply_count' ) ? (int) bbp_get_forum_reply_count( $forum->ID ) : 0,
 			'show_in_archive'  => (bool) get_post_meta( $forum->ID, '_show_on_homepage', true ),
