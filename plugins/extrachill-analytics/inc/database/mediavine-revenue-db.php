@@ -90,7 +90,6 @@ function extrachill_analytics_revenue_create_table() {
 		KEY import_batch_idx (import_batch)
 	) {$charset_collate};";
 
-	$wpdb->last_error = '';
 	dbDelta( $sql );
 
 	if ( '' !== $wpdb->last_error ) {
@@ -541,7 +540,8 @@ function extrachill_analytics_revenue_resolve_period( $period = '', $start = '',
 	if ( preg_match( '/^(\d{4})-(\d{2})$/', $period, $m ) ) {
 		$label         = $period;
 		$derived_start = sprintf( '%04d-%02d-01', (int) $m[1], (int) $m[2] );
-		$derived_end   = gmdate( 'Y-m-t', strtotime( $derived_start ) );
+		$month_start   = strtotime( $derived_start );
+		$derived_end   = false === $month_start ? '' : gmdate( 'Y-m-t', $month_start );
 	} elseif ( preg_match( '/^(\d{4})$/', $period, $m ) ) {
 		$label         = $period;
 		$derived_start = $m[1] . '-01-01';

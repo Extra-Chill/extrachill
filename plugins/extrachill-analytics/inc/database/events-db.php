@@ -51,7 +51,6 @@ function extrachill_analytics_events_create_table() {
 		KEY visitor_created (visitor_id, created_at)
 	) {$charset_collate};";
 
-	$wpdb->last_error = '';
 	dbDelta( $sql );
 
 	if ( '' !== $wpdb->last_error ) {

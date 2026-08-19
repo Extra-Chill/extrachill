@@ -52,7 +52,6 @@ function extrachill_analytics_php_error_create_table() {
 		KEY snapshot_day_idx (snapshot_day)
 	) {$charset_collate};";
 
-	$wpdb->last_error = '';
 	dbDelta( $sql );
 
 	if ( '' !== $wpdb->last_error ) {

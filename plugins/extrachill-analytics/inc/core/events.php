@@ -69,8 +69,7 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	// hasn't already supplied one, so an explicit upstream classification (none
 	// today) would still win. We pass the resolved cookie state so the verdict
 	// uses the same visitor_id the row is stored under.
-	if ( is_array( $event_data )
-		&& ! array_key_exists( 'is_bot', $event_data )
+	if ( ! array_key_exists( 'is_bot', $event_data )
 		&& function_exists( 'extrachill_analytics_classify_request' )
 	) {
 		$verdict              = extrachill_analytics_classify_request(
@@ -90,7 +89,6 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 	// explicit source (a future upstream caller threading its own surface
 	// still wins), and only when the classifier is loaded.
 	if ( EC_ANALYTICS_EVENT_SEARCH === $event_type
-		&& is_array( $event_data )
 		&& ! array_key_exists( 'source', $event_data )
 		&& function_exists( 'extrachill_analytics_classify_search_source' )
 	) {
@@ -340,7 +338,7 @@ function extrachill_get_analytics_event_stats( $event_type, $days = 30, $blog_id
 
 	if ( $days > 0 ) {
 		$where[]  = 'created_at >= %s';
-		$values[] = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$values[] = gmdate( 'Y-m-d H:i:s', time() - ( (int) $days * DAY_IN_SECONDS ) );
 	}
 
 	if ( $blog_id > 0 ) {
