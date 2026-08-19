@@ -33,6 +33,7 @@ register_activation_hook( __FILE__, 'extrachill_analytics_activate' );
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/event-types.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/events.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/report-result-cache.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/network-density.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/date-range.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/security-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/visitor-classifier.php';
