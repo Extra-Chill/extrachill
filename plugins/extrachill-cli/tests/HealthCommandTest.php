@@ -23,8 +23,10 @@ namespace {
 
 	class HealthCommandTestAbility {
 		public $result = array();
+		public $inputs = array();
 
 		public function execute( $input ) {
+			$this->inputs[] = $input;
 			return $this->result;
 		}
 	}
@@ -119,8 +121,11 @@ namespace {
 
 	// JSON must preserve network and site scopes as distinct typed structures.
 	$health_command_jobs_ability->result = array(
-		'failed_count'           => 0,
-		'stuck_processing_count' => 0,
+		'success' => true,
+		'summary' => array(
+			'failed_count'           => 0,
+			'stuck_processing_count' => 0,
+		),
 	);
 	$command->health( array(), array( 'format' => 'json' ) );
 	$main_json = WP_CLI::$printed[0]['value'];
@@ -129,6 +134,7 @@ namespace {
 	health_command_assert_same( array( 'format' => 'json' ), WP_CLI::$printed[0]['args'], 'JSON must use WP-CLI structured output.' );
 	health_command_assert_same( 0, $main_rows[0]['queue_failed'], 'The bootstrap site must receive its own failed count.' );
 	health_command_assert_same( 0, $main_rows[0]['queue_stuck'], 'The bootstrap site must receive its own stuck count.' );
+	health_command_assert_same( array( 'compact' => true ), $health_command_jobs_ability->inputs[0], 'Queue health must request the owner ability compact response.' );
 	health_command_assert_same( HealthCommand::GAP, $main_rows[1]['queue_failed'], 'A subsite must not inherit the main-site failed count.' );
 	health_command_assert_same( HealthCommand::GAP, $main_rows[1]['queue_stuck'], 'A subsite must not inherit the main-site stuck count.' );
 	health_command_assert_same( false, array_key_exists( 'network_errors_per_day', $main_rows[0] ), 'JSON site rows must not duplicate the network error rate.' );
@@ -137,8 +143,11 @@ namespace {
 	// Bootstrapping the Events site exposes its site-owned queue on the Events row.
 	$health_command_current_blog = 7;
 	$health_command_jobs_ability->result = array(
-		'failed_count'           => 1027,
-		'stuck_processing_count' => 626,
+		'success' => true,
+		'summary' => array(
+			'failed_count'           => 1027,
+			'stuck_processing_count' => 626,
+		),
 	);
 	$command->health( array(), array( 'format' => 'json' ) );
 	$events_rows = WP_CLI::$printed[1]['value']['sites'];
@@ -148,7 +157,10 @@ namespace {
 	health_command_assert_same( 626, $events_rows[1]['queue_stuck'], 'The Events row must expose its stuck processing jobs.' );
 
 	// A partial or malformed owner payload must remain visibly uninstrumented.
-	$health_command_jobs_ability->result = array( 'failed_count' => 0 );
+	$health_command_jobs_ability->result = array(
+		'success' => true,
+		'summary' => array( 'failed_count' => 0 ),
+	);
 	$command->health( array(), array( 'format' => 'json' ) );
 	$malformed_rows = WP_CLI::$printed[2]['value']['sites'];
 	health_command_assert_same( HealthCommand::GAP, $malformed_rows[1]['queue_failed'], 'A partial payload must not become a healthy failed count.' );
@@ -163,8 +175,11 @@ namespace {
 	// CSV must carry the host-wide rate only on an explicitly scoped network row.
 	$health_command_current_blog = 1;
 	$health_command_jobs_ability->result = array(
-		'failed_count'           => 3,
-		'stuck_processing_count' => 1,
+		'success' => true,
+		'summary' => array(
+			'failed_count'           => 3,
+			'stuck_processing_count' => 1,
+		),
 	);
 	$command->health( array(), array( 'format' => 'csv' ) );
 	$csv = $health_command_formats[0];

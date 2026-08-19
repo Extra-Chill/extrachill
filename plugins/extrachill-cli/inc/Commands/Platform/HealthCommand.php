@@ -410,23 +410,28 @@ class HealthCommand {
 			return self::GAP;
 		}
 
-		$result = $ability->execute( array() );
+		$result  = $ability->execute( array( 'compact' => true ) );
+		$summary = is_array( $result ) && isset( $result['summary'] ) && is_array( $result['summary'] )
+			? $result['summary']
+			: null;
 
 		if (
 			is_wp_error( $result )
 			|| ! is_array( $result )
-			|| ! isset( $result['failed_count'], $result['stuck_processing_count'] )
-			|| ! is_int( $result['failed_count'] )
-			|| ! is_int( $result['stuck_processing_count'] )
+			|| true !== ( $result['success'] ?? false )
+			|| ! is_array( $summary )
+			|| ! isset( $summary['failed_count'], $summary['stuck_processing_count'] )
+			|| ! is_int( $summary['failed_count'] )
+			|| ! is_int( $summary['stuck_processing_count'] )
 		) {
 			return self::GAP;
 		}
 
 		if ( 'stuck' === $metric ) {
-			return $result['stuck_processing_count'];
+			return $summary['stuck_processing_count'];
 		}
 
-		return $result['failed_count'];
+		return $summary['failed_count'];
 	}
 
 	/**
