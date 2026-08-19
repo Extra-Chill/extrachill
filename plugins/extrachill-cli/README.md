@@ -31,6 +31,21 @@ wp plugin activate extrachill-cli --network --allow-root
 
 ## Commands
 
+### Platform Health
+
+The platform health command keeps host-wide and site-owned signals in distinct
+machine-readable scopes. JSON returns a `network` object and a `sites` array.
+CSV returns one row with `scope=network`, followed by `scope=site` rows; the
+`network_errors_per_day` cell is populated only on the network row.
+
+```bash
+wp extrachill platform health --format=json
+wp extrachill platform health --format=csv
+```
+
+This scoped contract intentionally replaces the older JSON/CSV shape that
+repeated the host-wide error rate on every site record.
+
 ### Multisite Owner Context
 
 Commands backed by site-only abilities must use WP-CLI's native `--url` bootstrap

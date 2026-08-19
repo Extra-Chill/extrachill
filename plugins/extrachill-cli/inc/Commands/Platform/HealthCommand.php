@@ -63,8 +63,9 @@ class HealthCommand {
 	 * ---
 	 *
 	 * [--format=<format>]
-	 * : Output format. The "table" format prints a compact per-site block;
-	 *   "json" / "csv" emit one structured record per site.
+	 * : Output format. The "table" format prints a compact per-site block.
+	 *   JSON returns separate "network" and "sites" scopes. CSV emits an
+	 *   explicit network row followed by site rows.
 	 * ---
 	 * default: table
 	 * options:
@@ -125,27 +126,66 @@ class HealthCommand {
 			$records[]              = $record;
 		}
 
-		if ( 'table' !== $format ) {
-			// Keep the host-wide error signal explicit while queue fields remain
-			// attached only to the site context that the ability actually read.
-			$rows = array();
-			foreach ( $records as $r ) {
-				$rows[] = array_merge(
-					$r,
-					array(
-						'network_errors_per_day' => $network['errors_per_day'],
-					)
-				);
-			}
+		if ( 'json' === $format ) {
+			WP_CLI::print_value(
+				array(
+					'network' => $network,
+					'sites'   => $records,
+				),
+				array( 'format' => 'json' )
+			);
+			return;
+		}
+
+		if ( 'csv' === $format ) {
 			Utils\format_items(
 				$format,
-				$rows,
-				array( 'site', 'blog_id', 'sessions', 'organic_pct', 'direct_pct', 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'queue_failed', 'queue_stuck' )
+				$this->csv_rows( $records, $network ),
+				array( 'scope', 'site', 'blog_id', 'sessions', 'organic_pct', 'direct_pct', 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'queue_failed', 'queue_stuck' )
 			);
 			return;
 		}
 
 		$this->render_table( $records, $network, $days, $abilities );
+	}
+
+	/**
+	 * Build flat CSV rows without assigning network signals to a site.
+	 *
+	 * @param array<int, array<string, mixed>> $records Per-site records.
+	 * @param array<string, mixed>             $network Network-global signals.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function csv_rows( array $records, array $network ) {
+		$empty_site = array(
+			'site'         => '',
+			'blog_id'      => '',
+			'sessions'     => '',
+			'organic_pct'  => '',
+			'direct_pct'   => '',
+			'return_rate'  => '',
+			'search_gaps'  => '',
+			'content'      => '',
+			'queue_failed' => '',
+			'queue_stuck'  => '',
+		);
+		$rows       = array(
+			array_merge(
+				array( 'scope' => 'network' ),
+				$empty_site,
+				array( 'network_errors_per_day' => $network['errors_per_day'] )
+			),
+		);
+
+		foreach ( $records as $record ) {
+			$rows[] = array_merge(
+				array( 'scope' => 'site' ),
+				$record,
+				array( 'network_errors_per_day' => '' )
+			);
+		}
+
+		return $rows;
 	}
 
 	/**
