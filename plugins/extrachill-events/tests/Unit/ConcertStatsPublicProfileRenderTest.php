@@ -111,11 +111,30 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'ec-concert-stats-shell--marketing', $output );
 		$this->assertStringContainsString( 'Every show has a story. Keep yours.', $output );
 		$this->assertStringContainsString( 'id="how-it-works"', $output );
-		$this->assertStringContainsString( '/register/', $output );
+		$this->assertStringNotContainsString( '/register/', $output );
 		$this->assertStringContainsString( '/events-calendar/getting-started-with-my-shows/', $output );
 		$this->assertStringContainsString( '/events-calendar/importing-concert-history/', $output );
 		$this->assertStringContainsString( '/events-calendar/concert-history-privacy/', $output );
 		$this->assertStringNotContainsString( 'class="ec-concert-stats"', $output );
+	}
+
+	/** Signup CTAs consume the Users-owned registration and continuation contract. */
+	public function test_signup_ctas_use_canonical_registration_with_only_my_shows_continuation(): void {
+		$this->assertTrue( function_exists( 'extrachill_users_get_registration_url' ) );
+		$this->assertTrue( function_exists( 'ec_users_login_url_with_redirect' ) );
+
+		$canonical_registration = extrachill_users_get_registration_url();
+		$this->assertSame( network_home_url( '/login/', 'https' ) . '#tab-register', $canonical_registration );
+
+		$my_shows_url = trailingslashit( ec_get_site_url( 'events' ) ) . 'my-shows/';
+		$expected_url = ec_users_login_url_with_redirect( $canonical_registration, $my_shows_url );
+		$output       = $this->render_block();
+
+		$this->assertSame( 2, substr_count( $output, 'href="' . esc_url( $expected_url ) . '"' ) );
+		$this->assertStringContainsString( 'redirect_to=', $expected_url );
+		$this->assertSame( 'tab-register', wp_parse_url( $expected_url, PHP_URL_FRAGMENT ) );
+		parse_str( (string) wp_parse_url( $expected_url, PHP_URL_QUERY ), $query );
+		$this->assertSame( array( 'redirect_to' => $my_shows_url ), $query );
 	}
 
 	public function test_invalid_selection_does_not_fall_back_to_viewer(): void {

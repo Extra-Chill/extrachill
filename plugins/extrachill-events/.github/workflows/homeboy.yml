@@ -65,6 +65,13 @@ jobs:
           ref: feabb8756de9bf322f4d0d18116e722fbea710c2
           path: .ci/extrachill-network
 
+      - name: Checkout Extra Chill Users
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Extra-Chill/extrachill-users
+          ref: 54790e6916edb366127abc9ea3396ea2efc89e2f
+          path: .ci/extrachill-users
+
       - name: Checkout Homeboy Extensions adapter fix
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -126,7 +133,7 @@ jobs:
       - name: Run Homeboy ${{ matrix.command }}
         env:
           HOMEBOY_SETTINGS_JSON: >-
-            {"database_type":"mysql","validation_dependencies":["${{ github.workspace }}/.ci/data-machine","${{ github.workspace }}/.ci/data-machine-events","${{ github.workspace }}/.ci/extrachill-network"],"wp_codebox_multisite":true,"wp_codebox_phpunit_bootstrap_mode":"managed"}
+            {"database_type":"mysql","validation_dependencies":["${{ github.workspace }}/.ci/data-machine","${{ github.workspace }}/.ci/data-machine-events","${{ github.workspace }}/.ci/extrachill-network","${{ github.workspace }}/.ci/extrachill-users"],"wp_codebox_multisite":true,"wp_codebox_phpunit_bootstrap_mode":"managed"}
           HOMEBOY_WP_CODEBOX_ARTIFACTS_DIR: ${{ github.workspace }}/wp-codebox-artifacts
           HOMEBOY_WP_CODEBOX_INSTALL_MODE: source
           HOMEBOY_WP_CODEBOX_REF: f437f518e3f3bd5629b58b713929cf272ba6d630

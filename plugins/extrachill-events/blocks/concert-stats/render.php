@@ -81,18 +81,22 @@ if ( $on_my_shows && isset( $_GET['user_id'] ) ) {
 // for free.
 if ( ! $user_id ) {
 	if ( ! is_user_logged_in() ) {
-		// Signup lives on the community site (canonical registration
-		// surface for the platform). Login lives on the events site
-		// itself when the My Shows page is being viewed; keep the
-		// same `redirect_to=/my-shows/` pattern the deleted
-		// auth-gate used so post-login the user lands back here.
-		$signup_url = function_exists( 'ec_get_site_url' )
-			? trailingslashit( ec_get_site_url( 'community' ) ) . 'register/'
+		// Extra Chill Users owns the canonical network registration surface and
+		// validates cross-site auth continuations. Keep the WordPress fallback for
+		// isolated environments where that required network plugin is unavailable.
+		$my_shows_url     = function_exists( 'ec_get_site_url' )
+			? trailingslashit( ec_get_site_url( 'events' ) ) . 'my-shows/'
+			: home_url( '/my-shows/' );
+		$registration_url = function_exists( 'extrachill_users_get_registration_url' )
+			? extrachill_users_get_registration_url()
 			: wp_registration_url();
-		$login_url  = function_exists( 'ec_get_site_url' )
-			? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( home_url( '/my-shows/' ) )
-			: wp_login_url( home_url( '/my-shows/' ) );
-		$docs_url   = function_exists( 'ec_get_site_url' )
+		$signup_url       = function_exists( 'ec_users_login_url_with_redirect' )
+			? ec_users_login_url_with_redirect( $registration_url, $my_shows_url )
+			: add_query_arg( 'redirect_to', rawurlencode( $my_shows_url ), $registration_url );
+		$login_url        = function_exists( 'ec_get_site_url' )
+			? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( $my_shows_url )
+			: wp_login_url( $my_shows_url );
+		$docs_url         = function_exists( 'ec_get_site_url' )
 			? trailingslashit( ec_get_site_url( 'docs' ) ) . 'events-calendar/'
 			: 'https://docs.extrachill.com/events-calendar/';
 

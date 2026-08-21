@@ -26,7 +26,8 @@
           "data-machine-events",
           "data-machine-socials",
           "extrachill-newsletter",
-          "extrachill-network"
+          "extrachill-network",
+          "extrachill-users"
         ],
         "wp_codebox_phpunit_preload_files": [
           "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php"
