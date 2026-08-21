@@ -5,13 +5,14 @@
  * @package ExtraChillEvents\Tests
  */
 
+use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
+use ExtraChillEvents\Core\BookingAttachmentReadiness;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueBookingEmbed;
-use ExtraChillEvents\Abilities\VenueBookingAbilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
@@ -628,12 +629,82 @@ final class BookingFoundationTest extends BookingTestCase {
 		$migrated = $service->normalize( array( 'version' => 1, 'enabled' => true ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
 		$this->assertArrayHasKey( 'correspondence', $migrated );
-		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 10 ) )->get_error_code() );
+		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => 11 ) )->get_error_code() );
 		$this->assertSame( 'booking_config_version_unsupported', $service->normalize( array( 'version' => '1junk' ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'intake' => array( 'version' => 2 ) ) )->get_error_code() );
 		$this->assertSame( 'booking_config_section_version_unsupported', $service->normalize( array( 'correspondence' => array( 'version' => 2 ) ) )->get_error_code() );
 		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = array( 'version' => 99 );
 		$this->assertSame( 'booking_config_version_unsupported', $service->get( 55 )->get_error_code() );
+	}
+
+	public function test_attachment_policy_migrates_disabled_and_rejects_ambiguous_subsets(): void {
+		$service  = new VenueBookingConfig();
+		$migrated = $service->normalize( array( 'version' => VenueBookingConfig::PRE_ATTACHMENT_POLICY_VERSION, 'enabled' => true, 'marketing_triggers' => array() ) );
+
+		$this->assertSame( VenueBookingConfig::VERSION, $migrated['version'] );
+		$this->assertSame( array( 'version' => 1, 'enabled' => false, 'purposes' => array() ), $migrated['attachment_policy'] );
+
+		$config = $service->defaults();
+		$config['attachment_policy'] = array(
+			'version'  => 1,
+			'enabled'  => true,
+			'purposes' => array(
+				array( 'key' => 'stage_plot', 'requirement' => 'invited' ),
+				array( 'key' => 'stage_plot', 'requirement' => 'required' ),
+			),
+		);
+		$this->assertSame( 'invalid_booking_attachment_policy_purpose', $service->normalize( $config )->get_error_code() );
+
+		$config['attachment_policy']['purposes'] = array();
+		$this->assertSame( 'inconsistent_booking_attachment_policy', $service->normalize( $config )->get_error_code() );
+		$config['attachment_policy'] = array( 'version' => 1, 'enabled' => false, 'purposes' => array( array( 'key' => 'epk', 'requirement' => 'invited' ) ) );
+		$this->assertSame( 'inconsistent_booking_attachment_policy', $service->normalize( $config )->get_error_code() );
+	}
+
+	public function test_attachment_public_projection_is_allowlisted_and_governance_closed(): void {
+		$provider = new BookingTestPrivateFileProvider();
+		$GLOBALS['ec_test_filters']['extrachill_events_booking_private_file_provider'] = array(
+			10 => array(
+				array(
+					static function () use ( $provider ) {
+						return $provider;
+					},
+					1,
+				),
+			),
+		);
+		$config                              = ( new VenueBookingConfig() )->defaults();
+		$config['enabled']                   = true;
+		$config['revision']                  = 7;
+		$config['updated_by_user_id']        = 44;
+		$config['updated_at']                = '2026-08-21 20:00:00';
+		$config['attachment_policy']         = array(
+			'version'  => 1,
+			'enabled'  => true,
+			'purposes' => array(
+				array( 'key' => 'stage_plot', 'requirement' => 'required' ),
+				array( 'key' => 'epk', 'requirement' => 'invited' ),
+			),
+		);
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
+
+		$closed = ( new VenueBookingConfig() )->get_public_projection( 55 )['attachments'];
+		$this->assertFalse( $closed['ready'], 'A healthy provider cannot bypass incomplete #336 governance.' );
+
+		$ready = ( new VenueBookingConfig( null, new BookingAttachmentReadiness( static function (): bool { return true; } ) ) )->get_public_projection( 55 )['attachments'];
+		$this->assertTrue( $ready['ready'] );
+		$this->assertSame(
+			array( 'version', 'enabled', 'ready', 'config_revision', 'purposes', 'allowed_extensions', 'allowed_mime_types', 'max_files', 'max_file_bytes', 'max_aggregate_bytes', 'privacy_notice', 'retention_notice' ),
+			array_keys( $ready )
+		);
+		$this->assertSame( array( 'key', 'label', 'required' ), array_keys( $ready['purposes'][0] ) );
+		$this->assertSame( 7, $ready['config_revision'] );
+		$this->assertSame( 5, $ready['max_files'] );
+		$this->assertSame( 52428800, $ready['max_aggregate_bytes'] );
+		$this->assertArrayNotHasKey( 'provider', $ready );
+		$this->assertArrayNotHasKey( 'storage_reference', $ready );
+		$this->assertArrayNotHasKey( 'scanner', $ready );
+		unset( $GLOBALS['ec_test_filters']['extrachill_events_booking_private_file_provider'] );
 	}
 
 	public function test_config_normalizes_exact_https_embed_origins_and_migrates_version_four(): void {
@@ -650,6 +721,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 		$version_four = $service->defaults();
 		$version_four['version'] = 4;
+		unset( $version_four['attachment_policy'] );
 		$version_four['booking_guide'] = array(
 			'version' => 1,
 			'entries' => array(
@@ -669,6 +741,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 		$version_five                           = $service->defaults();
 		$version_five['version']                = VenueBookingConfig::EMBED_CONFIG_VERSION;
+		unset( $version_five['attachment_policy'] );
 		$version_five['revision']               = 9;
 		$version_five['booking_guide']          = $version_four['booking_guide'];
 		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $version_five;
@@ -685,6 +758,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$service                                = new VenueBookingConfig();
 		$version_seven                          = $service->defaults();
 		$version_seven['version']               = VenueBookingConfig::RETIRED_REQUIREMENTS_VERSION;
+		unset( $version_seven['attachment_policy'] );
 		$version_seven['public_requirements']   = array( 'Send a stage plot.' );
 
 		$migrated = $service->normalize( $version_seven );
@@ -701,6 +775,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$service = new VenueBookingConfig();
 		$config  = $service->defaults();
 		$config['version']                         = VenueBookingConfig::RETIRED_APPEARANCE_VERSION;
+		unset( $config['attachment_policy'] );
 		$config['appearance']['mode']             = 'custom';
 		$config['appearance']['background_color'] = '#aabbcc';
 		$config['revision']                         = 12;

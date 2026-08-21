@@ -4,6 +4,17 @@
 import { normalizeBookingOrigin } from './booking-embed';
 
 export const HOLD_TTL_MAX_MINUTES = 20160;
+export const BOOKING_ATTACHMENT_PURPOSES = [
+	[ 'promo_image', 'Promotional image' ],
+	[ 'epk', 'Electronic press kit' ],
+	[ 'press_release', 'Press release' ],
+	[ 'stage_plot', 'Stage plot' ],
+	[ 'technical_rider', 'Technical rider' ],
+	[ 'hospitality_rider', 'Hospitality rider' ],
+	[ 'insurance', 'Insurance document' ],
+	[ 'contract', 'Contract' ],
+	[ 'other_private_evidence', 'Other private booking document' ],
+];
 
 export const editableConfig = ( config ) => {
 	const editable = { ...config };
@@ -104,6 +115,42 @@ export const validateConfig = ( config ) => {
 	}
 	if ( ! Number.isFinite( config.hold_ttl_minutes ) ) {
 		errors.push( 'Hold duration must be a number.' );
+	}
+	const attachmentPolicy = config.attachment_policy;
+	if (
+		! attachmentPolicy ||
+		attachmentPolicy.version !== 1 ||
+		! Array.isArray( attachmentPolicy.purposes )
+	) {
+		errors.push( 'Attachment policy is unavailable.' );
+	} else {
+		const allowedPurposes = new Set(
+			BOOKING_ATTACHMENT_PURPOSES.map( ( [ key ] ) => key )
+		);
+		const selectedPurposes = new Set();
+		let requiredPurposes = 0;
+		attachmentPolicy.purposes.forEach( ( purpose ) => {
+			if (
+				! allowedPurposes.has( purpose.key ) ||
+				selectedPurposes.has( purpose.key ) ||
+				! [ 'invited', 'required' ].includes( purpose.requirement )
+			) {
+				errors.push( 'Choose each supported attachment purpose once.' );
+			}
+			selectedPurposes.add( purpose.key );
+			requiredPurposes += purpose.requirement === 'required' ? 1 : 0;
+		} );
+		if ( attachmentPolicy.enabled && ! attachmentPolicy.purposes.length ) {
+			errors.push( 'Choose at least one attachment purpose.' );
+		}
+		if ( ! attachmentPolicy.enabled && attachmentPolicy.purposes.length ) {
+			errors.push(
+				'Disable all attachment purposes before turning files off.'
+			);
+		}
+		if ( requiredPurposes > 5 ) {
+			errors.push( 'Require no more than five attachment purposes.' );
+		}
 	}
 	if (
 		! Number.isFinite( config.default_deal.guarantee_cents ) ||

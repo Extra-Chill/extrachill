@@ -388,6 +388,7 @@ final class BookingMarketingTest extends BookingTestCase {
 			'version'            => VenueBookingConfig::VERSION,
 			'revision'           => $revision,
 			'enabled'            => true,
+			'attachment_policy'  => $this->disabled_attachment_policy(),
 			'marketing_channels' => array_column( $channels, 'key' ),
 			'marketing_triggers' => array(
 				array(
@@ -396,6 +397,14 @@ final class BookingMarketingTest extends BookingTestCase {
 					'channels' => $channels,
 				),
 			),
+		);
+	}
+
+	private function disabled_attachment_policy(): array {
+		return array(
+			'version'  => VenueBookingConfig::ATTACHMENT_POLICY_VERSION,
+			'enabled'  => false,
+			'purposes' => array(),
 		);
 	}
 
@@ -1191,6 +1200,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result               = $config->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'attachment_policy'  => $this->disabled_attachment_policy(),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1208,6 +1218,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result            = $config->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'attachment_policy'  => $this->disabled_attachment_policy(),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1225,6 +1236,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result                = $config->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'attachment_policy'  => $this->disabled_attachment_policy(),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1274,6 +1286,7 @@ final class BookingMarketingTest extends BookingTestCase {
 		$result  = ( new VenueBookingConfig() )->normalize(
 			array(
 				'version'            => VenueBookingConfig::VERSION,
+				'attachment_policy'  => $this->disabled_attachment_policy(),
 				'marketing_channels' => array( 'social' ),
 				'marketing_triggers' => array(
 					array(
@@ -1295,7 +1308,7 @@ final class BookingMarketingTest extends BookingTestCase {
 	public function test_version_two_configs_migrate_without_implicit_marketing_triggers(): void {
 		$config            = ( new VenueBookingConfig() )->defaults();
 		$config['version'] = VenueBookingConfig::PREVIOUS_VERSION;
-		unset( $config['consent'], $config['marketing_triggers'], $config['embed'] );
+		unset( $config['consent'], $config['marketing_triggers'], $config['embed'], $config['attachment_policy'] );
 		$normalized = ( new VenueBookingConfig() )->normalize( $config );
 		$this->assertSame( VenueBookingConfig::VERSION, $normalized['version'] );
 		$this->assertSame( array(), $normalized['marketing_triggers'] );

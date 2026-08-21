@@ -14,32 +14,51 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Validates one versioned termmeta document on canonical venue terms. */
 class VenueBookingConfig {
 
-	public const META_KEY                     = '_extrachill_booking_config';
-	public const HISTORY_META_KEY             = '_extrachill_booking_config_history';
-	public const VERSION                      = 9;
-	public const RETIRED_APPEARANCE_VERSION   = 8;
-	public const RETIRED_REQUIREMENTS_VERSION = 7;
-	public const OPERATIONAL_CONFIG_VERSION   = 6;
-	public const RETIRED_GUIDE_CONFIG_VERSION = 4;
-	public const EMBED_CONFIG_VERSION         = 5;
-	public const PUBLIC_INTAKE_VERSION        = 3;
-	public const PREVIOUS_VERSION             = 2;
-	public const LEGACY_VERSION               = 1;
-	public const CORRESPONDENCE_VERSION       = 1;
-	public const TEMPLATE_VERSION             = 1;
-	public const REMINDER_POLICY_VERSION      = 1;
-	public const CORRESPONDENCE_TEMPLATES     = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
-	public const CORRESPONDENCE_VARIABLES     = array( 'artist_name', 'booking_id', 'contact_name', 'requested_date', 'venue_name' );
-	public const CONSENT_VERSION              = 1;
-	public const HOLD_TTL_MAX_MINUTES         = 20160;
-	public const SOCIAL_MARKETING_ACTION      = 'datamachine-socials/cross-post';
-	public const NEWSLETTER_MARKETING_ACTION  = 'extrachill-newsletter/canonical-post-campaign';
+	public const META_KEY                      = '_extrachill_booking_config';
+	public const HISTORY_META_KEY              = '_extrachill_booking_config_history';
+	public const VERSION                       = 10;
+	public const PRE_ATTACHMENT_POLICY_VERSION = 9;
+	public const RETIRED_APPEARANCE_VERSION    = 8;
+	public const RETIRED_REQUIREMENTS_VERSION  = 7;
+	public const OPERATIONAL_CONFIG_VERSION    = 6;
+	public const RETIRED_GUIDE_CONFIG_VERSION  = 4;
+	public const EMBED_CONFIG_VERSION          = 5;
+	public const PUBLIC_INTAKE_VERSION         = 3;
+	public const PREVIOUS_VERSION              = 2;
+	public const LEGACY_VERSION                = 1;
+	public const CORRESPONDENCE_VERSION        = 1;
+	public const TEMPLATE_VERSION              = 1;
+	public const REMINDER_POLICY_VERSION       = 1;
+	public const CORRESPONDENCE_TEMPLATES      = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
+	public const CORRESPONDENCE_VARIABLES      = array( 'artist_name', 'booking_id', 'contact_name', 'requested_date', 'venue_name' );
+	public const CONSENT_VERSION               = 1;
+	public const ATTACHMENT_POLICY_VERSION     = 1;
+	public const HOLD_TTL_MAX_MINUTES          = 20160;
+	public const SOCIAL_MARKETING_ACTION       = 'datamachine-socials/cross-post';
+	public const NEWSLETTER_MARKETING_ACTION   = 'extrachill-newsletter/canonical-post-campaign';
 
-	/** @var VenueAuthorization|null */
+	/**
+	 * Venue authorization owner.
+	 *
+	 * @var VenueAuthorization|null
+	 */
 	private $authorization;
+	/**
+	 * Attachment readiness gates.
+	 *
+	 * @var BookingAttachmentReadiness
+	 */
+	private $attachment_readiness;
 
-	public function __construct( ?VenueAuthorization $authorization = null ) {
-		$this->authorization = $authorization;
+	/**
+	 * Build the config owner with shared authorization and readiness contracts.
+	 *
+	 * @param VenueAuthorization|null         $authorization        Venue authorization owner.
+	 * @param BookingAttachmentReadiness|null $attachment_readiness Attachment readiness gates.
+	 */
+	public function __construct( ?VenueAuthorization $authorization = null, ?BookingAttachmentReadiness $attachment_readiness = null ) {
+		$this->authorization        = $authorization;
+		$this->attachment_readiness = $attachment_readiness ? $attachment_readiness : new BookingAttachmentReadiness();
 	}
 
 	/**
@@ -108,6 +127,7 @@ class VenueBookingConfig {
 			self::OPERATIONAL_CONFIG_VERSION,
 			self::RETIRED_REQUIREMENTS_VERSION,
 			self::RETIRED_APPEARANCE_VERSION,
+			self::PRE_ATTACHMENT_POLICY_VERSION,
 			self::VERSION,
 		);
 		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, $public_versions, true ) ) {
@@ -126,7 +146,10 @@ class VenueBookingConfig {
 		$presentation = $this->normalize_intake_presentation( $stored['intake']['presentation'] ?? array() );
 		$consent      = $this->normalize_consent( $stored['consent'] ?? null );
 		$spaces       = $this->normalize_spaces( $stored['spaces'] ?? null );
-		foreach ( array( $fields, $presentation, $consent, $spaces ) as $section ) {
+		$attachments  = self::VERSION === ( $stored['version'] ?? null )
+			? $this->normalize_attachment_policy( $stored['attachment_policy'] ?? null )
+			: $this->default_attachment_policy();
+		foreach ( array( $fields, $presentation, $consent, $spaces, $attachments ) as $section ) {
 			if ( is_wp_error( $section ) ) {
 				return $section;
 			}
@@ -139,6 +162,7 @@ class VenueBookingConfig {
 			'presentation' => $presentation,
 			'consent'      => $consent,
 			'spaces'       => $spaces,
+			'attachments'  => $this->attachment_public_projection( $attachments, $revision, ! empty( $stored['enabled'] ) ),
 		);
 	}
 
@@ -299,6 +323,7 @@ class VenueBookingConfig {
 			self::OPERATIONAL_CONFIG_VERSION,
 			self::RETIRED_REQUIREMENTS_VERSION,
 			self::RETIRED_APPEARANCE_VERSION,
+			self::PRE_ATTACHMENT_POLICY_VERSION,
 			self::VERSION,
 		);
 		if ( ! is_int( $version ) || ! in_array( $version, $supported_versions, true ) ) {
@@ -322,6 +347,12 @@ class VenueBookingConfig {
 		}
 		if ( self::VERSION === $version && array_key_exists( 'appearance', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired appearance settings.', 'extrachill-events' ), array( 'version' => $version ) );
+		}
+		if ( $version < self::VERSION && array_key_exists( 'attachment_policy', $config ) ) {
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Attachment policy settings require venue booking configuration version 10.', 'extrachill-events' ), array( 'version' => $version ) );
+		}
+		if ( self::VERSION === $version && ! array_key_exists( 'attachment_policy', $config ) ) {
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 10 requires an attachment policy.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		if ( $version < self::EMBED_CONFIG_VERSION && array_key_exists( 'embed', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Embed settings require venue booking configuration version 5.', 'extrachill-events' ), array( 'version' => $version ) );
@@ -372,6 +403,12 @@ class VenueBookingConfig {
 		$consent = $this->normalize_consent( $config['consent'] ?? array() );
 		if ( is_wp_error( $consent ) ) {
 			return $consent;
+		}
+		$attachment_policy = self::VERSION === $version
+			? $this->normalize_attachment_policy( $config['attachment_policy'] )
+			: $this->default_attachment_policy();
+		if ( is_wp_error( $attachment_policy ) ) {
+			return $attachment_policy;
 		}
 		$embed = $this->normalize_embed( $config['embed'] ?? array() );
 		if ( is_wp_error( $embed ) ) {
@@ -425,6 +462,7 @@ class VenueBookingConfig {
 				'presentation' => $this->normalize_intake_presentation( $config['intake']['presentation'] ?? array() ),
 			),
 			'consent'                   => $consent,
+			'attachment_policy'         => $attachment_policy,
 			'embed'                     => $embed,
 			'spaces'                    => $spaces,
 			'default_deal'              => array(
@@ -462,6 +500,7 @@ class VenueBookingConfig {
 				'label'    => __( 'I agree that this venue may use these details to review and respond to my booking inquiry.', 'extrachill-events' ),
 				'required' => true,
 			),
+			'attachment_policy'         => $this->default_attachment_policy(),
 			'embed'                     => array( 'allowed_parent_origins' => array() ),
 			'spaces'                    => array(),
 			'default_deal'              => array(
@@ -766,6 +805,93 @@ class VenueBookingConfig {
 			'version'  => $version,
 			'label'    => $label,
 			'required' => ! empty( $consent['required'] ),
+		);
+	}
+
+	/** Return the migration-safe attachment policy default. */
+	private function default_attachment_policy(): array {
+		return array(
+			'version'  => self::ATTACHMENT_POLICY_VERSION,
+			'enabled'  => false,
+			'purposes' => array(),
+		);
+	}
+
+	/**
+	 * Normalize one explicit venue subset of canonical attachment purposes.
+	 *
+	 * @param mixed $policy Proposed venue attachment policy.
+	 */
+	private function normalize_attachment_policy( $policy ) {
+		if ( ! is_array( $policy ) || self::ATTACHMENT_POLICY_VERSION !== ( $policy['version'] ?? null ) || ! is_bool( $policy['enabled'] ?? null ) || ! is_array( $policy['purposes'] ?? null ) || count( $policy['purposes'] ) > count( BookingAttachmentPolicy::PURPOSES ) ) {
+			return new \WP_Error( 'invalid_booking_attachment_policy', __( 'The venue attachment policy is malformed.', 'extrachill-events' ) );
+		}
+
+		$purposes       = array();
+		$seen           = array();
+		$required_count = 0;
+		foreach ( $policy['purposes'] as $purpose ) {
+			if ( ! is_array( $purpose ) || array_diff( array_keys( $purpose ), array( 'key', 'requirement' ) ) ) {
+				return new \WP_Error( 'invalid_booking_attachment_policy_purpose', __( 'Each venue attachment purpose needs one unambiguous requirement.', 'extrachill-events' ) );
+			}
+			$key         = sanitize_key( (string) ( $purpose['key'] ?? '' ) );
+			$requirement = sanitize_key( (string) ( $purpose['requirement'] ?? '' ) );
+			if ( ! in_array( $key, BookingAttachmentPolicy::PURPOSES, true ) || isset( $seen[ $key ] ) || ! in_array( $requirement, array( 'invited', 'required' ), true ) ) {
+				return new \WP_Error( 'invalid_booking_attachment_policy_purpose', __( 'Venue attachment purposes must be unique canonical purposes marked invited or required.', 'extrachill-events' ) );
+			}
+			$required_count += 'required' === $requirement ? 1 : 0;
+			$seen[ $key ]    = true;
+			$purposes[]      = array(
+				'key'         => $key,
+				'requirement' => $requirement,
+			);
+		}
+
+		$enabled = $policy['enabled'];
+		if ( ( $enabled && empty( $purposes ) ) || ( ! $enabled && ! empty( $purposes ) ) || $required_count > BookingAttachmentPolicy::MAX_FILES ) {
+			return new \WP_Error( 'inconsistent_booking_attachment_policy', __( 'Enabled attachment policies need purposes, disabled policies cannot invite files, and required purposes cannot exceed the upload count.', 'extrachill-events' ) );
+		}
+
+		return array(
+			'version'  => self::ATTACHMENT_POLICY_VERSION,
+			'enabled'  => $enabled,
+			'purposes' => $purposes,
+		);
+	}
+
+	/**
+	 * Build the only attachment fields safe for public preflight guidance.
+	 *
+	 * @param array $policy          Normalized venue attachment policy.
+	 * @param int   $revision        Current booking config revision.
+	 * @param bool  $booking_enabled Whether public booking is enabled.
+	 */
+	private function attachment_public_projection( array $policy, int $revision, bool $booking_enabled ): array {
+		$labels   = BookingAttachmentPolicy::purpose_labels();
+		$purposes = array_map(
+			static function ( array $purpose ) use ( $labels ): array {
+				return array(
+					'key'      => $purpose['key'],
+					'label'    => $labels[ $purpose['key'] ],
+					'required' => 'required' === $purpose['requirement'],
+				);
+			},
+			$policy['purposes']
+		);
+
+		return array(
+			'version'             => self::ATTACHMENT_POLICY_VERSION,
+			'enabled'             => $policy['enabled'],
+			'ready'               => $booking_enabled && $policy['enabled'] && $this->attachment_readiness->is_operationally_ready(),
+			'config_revision'     => $revision,
+			'purposes'            => $purposes,
+			'allowed_extensions'  => BookingAttachmentPolicy::allowed_extensions(),
+			'allowed_mime_types'  => array_values( array_unique( BookingAttachmentPolicy::allowed_mimes() ) ),
+			'max_files'           => BookingAttachmentPolicy::MAX_FILES,
+			'max_file_bytes'      => BookingAttachmentPolicy::max_bytes(),
+			'max_aggregate_bytes' => BookingAttachmentPolicy::MAX_AGGREGATE_BYTES,
+			'privacy_notice'      => __( 'Files are private and available only to authorized venue booking operators.', 'extrachill-events' ),
+			'retention_notice'    => __( 'Files may be retained for booking, legal, or audit obligations under the venue privacy policy.', 'extrachill-events' ),
 		);
 	}
 
@@ -1101,7 +1227,7 @@ class VenueBookingConfig {
 
 	/** Return top-level settings changed by the replacement document. */
 	private function changed_fields( array $current, array $next ): array {
-		$fields  = array( 'enabled', 'intake', 'consent', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$fields  = array( 'enabled', 'intake', 'consent', 'attachment_policy', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		$changed = array();
 		foreach ( $fields as $field ) {
 			if ( $current[ $field ] !== $next[ $field ] ) {

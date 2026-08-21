@@ -223,6 +223,30 @@
 	font-weight: 700;
 }
 
+.ec-venue-settings__help {
+	color: var(--muted-text);
+}
+
+.ec-venue-settings__attachment-purpose {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: var(--spacing-sm);
+	align-items: center;
+	padding-block: var(--spacing-xs);
+}
+
+.ec-venue-settings__attachment-purpose label:first-child {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	min-width: 0;
+}
+
+.ec-venue-settings__attachment-purpose input,
+.ec-venue-settings__attachment-purpose select {
+	width: auto;
+}
+
 .ec-venue-settings .button-link-delete {
 	border: 0;
 	background: transparent;
@@ -311,7 +335,10 @@
 
 .ec-booking-card.button-3 {
 	display: grid;
-	grid-template-columns: minmax(10rem, 1fr) minmax(10rem, auto) minmax(8rem, auto);
+	grid-template-columns: minmax(10rem, 1fr) minmax(10rem, auto) minmax(
+			8rem,
+			auto
+		);
 	align-items: center;
 	gap: 1rem;
 	text-align: left;
@@ -577,6 +604,13 @@
 }
 
 @media screen and (max-width: 480px) {
+	.ec-venue-settings__attachment-purpose {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ec-venue-settings__attachment-purpose select {
+		width: 100%;
+	}
 	.ec-booking-console__toolbar {
 		grid-template-columns: 1fr;
 		align-items: stretch;

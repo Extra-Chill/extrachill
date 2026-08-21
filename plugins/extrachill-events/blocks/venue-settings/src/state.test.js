@@ -11,7 +11,7 @@ import {
 } from './state';
 
 const validConfig = () => ( {
-	version: 9,
+	version: 10,
 	enabled: true,
 	intake: { version: 1, fields: [] },
 	consent: {
@@ -20,6 +20,7 @@ const validConfig = () => ( {
 		label: 'I agree.',
 		required: true,
 	},
+	attachment_policy: { version: 1, enabled: false, purposes: [] },
 	embed: { allowed_parent_origins: [] },
 	spaces: [ { key: 'main_room', name: 'Main Room', is_default: true } ],
 	default_deal: {
@@ -96,6 +97,37 @@ describe( 'venue settings state', () => {
 		config.hold_ttl_minutes = 20161;
 		expect( validateConfig( config ) ).toContain(
 			'Hold duration must be between 5 minutes and 14 days.'
+		);
+	} );
+
+	it( 'fails closed for inconsistent attachment invitations and requirements', () => {
+		const config = validConfig();
+		config.attachment_policy = { version: 1, enabled: true, purposes: [] };
+		expect( validateConfig( config ) ).toContain(
+			'Choose at least one attachment purpose.'
+		);
+
+		config.attachment_policy.purposes = Array.from(
+			{ length: 6 },
+			( _, index ) => ( {
+				key: [
+					'promo_image',
+					'epk',
+					'press_release',
+					'stage_plot',
+					'technical_rider',
+					'hospitality_rider',
+				][ index ],
+				requirement: 'required',
+			} )
+		);
+		expect( validateConfig( config ) ).toContain(
+			'Require no more than five attachment purposes.'
+		);
+
+		config.attachment_policy.enabled = false;
+		expect( validateConfig( config ) ).toContain(
+			'Disable all attachment purposes before turning files off.'
 		);
 	} );
 } );

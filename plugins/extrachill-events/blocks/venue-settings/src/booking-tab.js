@@ -15,6 +15,7 @@ import {
  */
 import { Status } from './status';
 import {
+	BOOKING_ATTACHMENT_PURPOSES,
 	HOLD_TTL_MAX_MINUTES,
 	normalizeKey,
 	sameDocument,
@@ -156,6 +157,123 @@ function SpacesEditor( { spaces, onChange, idPrefix } ) {
 	);
 }
 
+function AttachmentPolicyEditor( { policy, onChange, idPrefix } ) {
+	const selected = new Map(
+		policy.purposes.map( ( purpose ) => [ purpose.key, purpose ] )
+	);
+	const updatePurpose = ( key, patch ) => {
+		const current = selected.get( key );
+		onChange( {
+			...policy,
+			purposes: current
+				? policy.purposes.map( ( purpose ) =>
+						purpose.key === key ? { ...purpose, ...patch } : purpose
+				  )
+				: [
+						...policy.purposes,
+						{ key, requirement: 'invited', ...patch },
+				  ],
+		} );
+	};
+
+	return (
+		<Panel>
+			<PanelHeader
+				title="Private booking files"
+				description="Choose exactly which private documents artists may send. Operational readiness is approved separately."
+			/>
+			<label
+				className="ec-venue-settings__toggle"
+				htmlFor={ `${ idPrefix }booking-attachments-enabled` }
+			>
+				<input
+					id={ `${ idPrefix }booking-attachments-enabled` }
+					type="checkbox"
+					checked={ policy.enabled }
+					onChange={ ( event ) =>
+						onChange( {
+							...policy,
+							enabled: event.target.checked,
+							purposes: event.target.checked
+								? policy.purposes
+								: [],
+						} )
+					}
+				/>{ ' ' }
+				Allow private booking files when operations are ready
+			</label>
+			<p className="ec-venue-settings__help">
+				Saving this policy does not enable uploads until private storage
+				and governance checks also pass.
+			</p>
+			{ policy.enabled && (
+				<fieldset className="ec-venue-settings__choices">
+					<legend>Allowed purposes</legend>
+					{ BOOKING_ATTACHMENT_PURPOSES.map( ( [ key, label ] ) => {
+						const purpose = selected.get( key );
+						return (
+							<div
+								className="ec-venue-settings__attachment-purpose"
+								key={ key }
+							>
+								<label
+									htmlFor={ `${ idPrefix }attachment-${ key }` }
+								>
+									<input
+										id={ `${ idPrefix }attachment-${ key }` }
+										type="checkbox"
+										checked={ Boolean( purpose ) }
+										onChange={ ( event ) =>
+											event.target.checked
+												? updatePurpose( key, {} )
+												: onChange( {
+														...policy,
+														purposes:
+															policy.purposes.filter(
+																( item ) =>
+																	item.key !==
+																	key
+															),
+												  } )
+										}
+									/>{ ' ' }
+									{ label }
+								</label>
+								{ purpose && (
+									<label
+										htmlFor={ `${ idPrefix }attachment-${ key }-requirement` }
+									>
+										<span className="screen-reader-text">
+											{ label } requirement
+										</span>
+										<select
+											id={ `${ idPrefix }attachment-${ key }-requirement` }
+											value={ purpose.requirement }
+											onChange={ ( event ) =>
+												updatePurpose( key, {
+													requirement:
+														event.target.value,
+												} )
+											}
+										>
+											<option value="invited">
+												Invited
+											</option>
+											<option value="required">
+												Required
+											</option>
+										</select>
+									</label>
+								) }
+							</div>
+						);
+					} ) }
+				</fieldset>
+			) }
+		</Panel>
+	);
+}
+
 export function BookingTab( {
 	config,
 	baseline,
@@ -269,6 +387,16 @@ export function BookingTab( {
 			<SpacesEditor
 				spaces={ config.spaces }
 				onChange={ ( spaces ) => setConfig( { ...config, spaces } ) }
+				idPrefix={ idPrefix }
+			/>
+			<AttachmentPolicyEditor
+				policy={ config.attachment_policy }
+				onChange={ ( attachmentPolicy ) =>
+					setConfig( {
+						...config,
+						attachment_policy: attachmentPolicy,
+					} )
+				}
 				idPrefix={ idPrefix }
 			/>
 			<Panel>

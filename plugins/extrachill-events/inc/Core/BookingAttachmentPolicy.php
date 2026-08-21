@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class BookingAttachmentPolicy {
 
 	public const MAX_BYTES = 20971520;
+	public const MAX_FILES = 5;
+	public const MAX_AGGREGATE_BYTES = 52428800;
 	public const PURPOSES  = array( 'promo_image', 'epk', 'press_release', 'stage_plot', 'technical_rider', 'hospitality_rider', 'insurance', 'contract', 'other_private_evidence' );
 	public const STATES    = array( 'active', 'replaced', 'deleted', 'purged' );
 	public const UPLOADERS = array( 'anonymous', 'user', 'email', 'system' );
@@ -39,6 +41,30 @@ final class BookingAttachmentPolicy {
 	/** Return the domain MIME allowlist keyed by extensions. */
 	public static function allowed_mimes(): array {
 		return self::MIMES;
+	}
+
+	/** Return facade-safe extension guidance without storage details. */
+	public static function allowed_extensions(): array {
+		$extensions = array();
+		foreach ( array_keys( self::MIMES ) as $group ) {
+			$extensions = array_merge( $extensions, explode( '|', $group ) );
+		}
+		return array_values( array_unique( $extensions ) );
+	}
+
+	/** Return public labels for the closed purpose vocabulary. */
+	public static function purpose_labels(): array {
+		return array(
+			'promo_image'            => __( 'Promotional image', 'extrachill-events' ),
+			'epk'                    => __( 'Electronic press kit', 'extrachill-events' ),
+			'press_release'          => __( 'Press release', 'extrachill-events' ),
+			'stage_plot'             => __( 'Stage plot', 'extrachill-events' ),
+			'technical_rider'        => __( 'Technical rider', 'extrachill-events' ),
+			'hospitality_rider'      => __( 'Hospitality rider', 'extrachill-events' ),
+			'insurance'              => __( 'Insurance document', 'extrachill-events' ),
+			'contract'               => __( 'Contract', 'extrachill-events' ),
+			'other_private_evidence' => __( 'Other private booking document', 'extrachill-events' ),
+		);
 	}
 
 	/**

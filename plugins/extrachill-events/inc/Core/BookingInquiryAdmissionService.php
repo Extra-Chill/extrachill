@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns the staged-file saga behind the hidden inquiry ability. */
 final class BookingInquiryAdmissionService {
 
-	public const MAX_FILES           = 5;
-	public const MAX_AGGREGATE_BYTES = 52428800;
+	public const MAX_FILES           = BookingAttachmentPolicy::MAX_FILES;
+	public const MAX_AGGREGATE_BYTES = BookingAttachmentPolicy::MAX_AGGREGATE_BYTES;
 
 	/**
 	 * Inquiry lifecycle.
@@ -55,6 +55,18 @@ final class BookingInquiryAdmissionService {
 	private $activity;
 	/** @var BookingHoldRepository */
 	private $availability;
+	/**
+	 * Venue policy owner.
+	 *
+	 * @var VenueBookingConfig
+	 */
+	private $config;
+	/**
+	 * Attachment readiness gates.
+	 *
+	 * @var BookingAttachmentReadiness
+	 */
+	private $attachment_readiness;
 
 	/**
 	 * Build the admission coordinator from existing domain services.
@@ -67,19 +79,23 @@ final class BookingInquiryAdmissionService {
 	 * @param BookingRepository|null           $bookings            Booking reads.
 	 * @param BookingActivityRepository|null   $activity            Activity writes.
 	 * @param BookingHoldRepository|null       $availability        Filled-interval policy.
+	 * @param VenueBookingConfig|null          $config              Venue attachment policy.
+	 * @param BookingAttachmentReadiness|null  $attachment_readiness Runtime readiness gates.
 	 */
-	public function __construct( ?BookingLifecycle $lifecycle = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, $provider = null, ?BookingAttachmentPolicy $policy = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingHoldRepository $availability = null ) {
-		$this->lifecycle          = $lifecycle ? $lifecycle : new BookingLifecycle();
-		$this->attachments        = $attachments ? $attachments : new BookingAttachmentRepository();
-		$this->bookings           = $bookings ? $bookings : new BookingRepository();
-		$this->activity           = $activity ? $activity : new BookingActivityRepository();
-		$this->availability       = $availability ? $availability : new BookingHoldRepository( $this->bookings, $this->activity );
-		$this->policy             = $policy ? $policy : new BookingAttachmentPolicy();
-		$resolved                 = null !== $provider ? $provider : BookingPrivateFileProviders::resolve();
-		$this->provider           = $resolved instanceof BookingPrivateFileProvider || is_wp_error( $resolved )
+	public function __construct( ?BookingLifecycle $lifecycle = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, $provider = null, ?BookingAttachmentPolicy $policy = null, ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?BookingHoldRepository $availability = null, ?VenueBookingConfig $config = null, ?BookingAttachmentReadiness $attachment_readiness = null ) {
+		$this->lifecycle            = $lifecycle ? $lifecycle : new BookingLifecycle();
+		$this->attachments          = $attachments ? $attachments : new BookingAttachmentRepository();
+		$this->bookings             = $bookings ? $bookings : new BookingRepository();
+		$this->activity             = $activity ? $activity : new BookingActivityRepository();
+		$this->availability         = $availability ? $availability : new BookingHoldRepository( $this->bookings, $this->activity );
+		$this->config               = $config ? $config : new VenueBookingConfig();
+		$this->attachment_readiness = $attachment_readiness ? $attachment_readiness : new BookingAttachmentReadiness();
+		$this->policy               = $policy ? $policy : new BookingAttachmentPolicy();
+		$resolved                   = null !== $provider ? $provider : BookingPrivateFileProviders::resolve();
+		$this->provider             = $resolved instanceof BookingPrivateFileProvider || is_wp_error( $resolved )
 			? $resolved
 			: new \WP_Error( 'booking_private_storage_invalid_provider', __( 'The private booking file provider is invalid.', 'extrachill-events' ) );
-		$this->attachment_service = $attachment_service ? $attachment_service : new BookingAttachmentService( $this->attachments, null, null, $this->policy, $this->provider );
+		$this->attachment_service   = $attachment_service ? $attachment_service : new BookingAttachmentService( $this->attachments, null, null, $this->policy, $this->provider );
 	}
 
 	/**
@@ -102,6 +118,10 @@ final class BookingInquiryAdmissionService {
 		$files = $this->preflight_files( $input['attachments'] ?? array() );
 		if ( is_wp_error( $files ) ) {
 			return $this->public_error( $files );
+		}
+		$attachment_policy = $this->validate_attachment_admission( $input, $files );
+		if ( is_wp_error( $attachment_policy ) ) {
+			return $this->public_error( $attachment_policy );
 		}
 		unset( $input['attachments'] );
 		unset( $input['user_id'], $input['uploader_user_id'], $input['submitter_user_id'] );
@@ -344,6 +364,59 @@ final class BookingInquiryAdmissionService {
 			);
 		}
 		return $normalized;
+	}
+
+	/**
+	 * Enforce current venue policy independently of public preflight guidance.
+	 *
+	 * @param array $input Hidden ability input.
+	 * @param array $files Preflighted attachment files.
+	 */
+	private function validate_attachment_admission( array $input, array $files ) {
+		$config = $this->config->get( absint( $input['venue_term_id'] ?? 0 ) );
+		if ( is_wp_error( $config ) ) {
+			return $config;
+		}
+		$policy   = $config['attachment_policy'] ?? array();
+		$purposes = is_array( $policy['purposes'] ?? null ) ? $policy['purposes'] : array();
+		$required = array_values(
+			array_map(
+				static function ( array $purpose ): string {
+					return (string) $purpose['key'];
+				},
+				array_filter(
+					$purposes,
+					static function ( $purpose ): bool {
+						return is_array( $purpose ) && 'required' === ( $purpose['requirement'] ?? null );
+					}
+				)
+			)
+		);
+
+		if ( empty( $files ) && empty( $required ) ) {
+			return true;
+		}
+		if ( empty( $policy['enabled'] ) ) {
+			return new \WP_Error( 'booking_attachments_disabled', __( 'This venue is not accepting private booking files.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$submitted_revision = $input['intake']['config_revision'] ?? null;
+		if ( ! is_int( $submitted_revision ) || $submitted_revision !== (int) $config['revision'] ) {
+			return new \WP_Error( 'booking_config_revision_conflict', __( 'The venue booking configuration changed since this form loaded.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( ! $this->attachment_readiness->is_ready( $this->provider ) ) {
+			return new \WP_Error( 'booking_attachments_unavailable', __( 'Private booking files are not currently available.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+
+		$allowed   = array_column( $purposes, 'key' );
+		$submitted = array_column( $files, 'purpose' );
+		if ( array_diff( $submitted, $allowed ) ) {
+			return new \WP_Error( 'invalid_booking_attachment_purpose', __( 'An attachment purpose is not enabled for this venue.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		if ( array_diff( $required, $submitted ) ) {
+			return new \WP_Error( 'required_booking_attachment_missing', __( 'A required venue booking attachment is missing.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		return true;
 	}
 
 	/**

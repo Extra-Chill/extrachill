@@ -5,6 +5,7 @@ require_once __DIR__ . '/BookingAttachmentMySQLIntegrationTest.php';
 
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingAttachmentRepository;
+use ExtraChillEvents\Core\BookingAttachmentReadiness;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingInquiryAdmissionService;
 use ExtraChillEvents\Core\BookingLifecycle;
@@ -248,11 +249,25 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQL
 	public function test_concurrent_exact_inquiry_retry_reuses_one_complete_winner(): void {
 		global $wpdb;
 		$this->assertTrue( function_exists( 'pcntl_fork' ), 'The MySQL concurrency proof requires pcntl_fork().' );
+		$this->assertNotFalse( update_term_meta( $this->venue_id, '_venue_timezone', 'America/New_York' ) );
 		$config_service    = new VenueBookingConfig();
 		$config            = $config_service->get( $this->venue_id );
 		$config['enabled'] = true;
+		$config['spaces']  = array(
+			array(
+				'key'        => 'main-room',
+				'name'       => 'Main Room',
+				'is_default' => true,
+			),
+		);
+		$config['attachment_policy'] = array(
+			'version'  => 1,
+			'enabled'  => true,
+			'purposes' => array( array( 'key' => 'press_release', 'requirement' => 'invited' ) ),
+		);
 		$config            = $config_service->update( $this->venue_id, $config, 0, $this->actor_id );
 		$this->assertIsArray( $config, is_wp_error( $config ) ? $config->get_error_code() : 'booking config was not committed' );
+		$this->assertNotFalse( $wpdb->query( 'COMMIT' ), 'The inquiry fixture must be visible after the winner reconnects.' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Publishes the fixture before genuine cross-process contention.
 		add_filter( 'extrachill_events_allow_test_booking_file', '__return_true' );
 		$path        = wp_tempnam( 'booking-inquiry.txt' );
 		$event_log   = wp_tempnam( 'booking-inquiry-events.txt' );
@@ -261,11 +276,23 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQL
 		$winner_file = $path . '.winner';
 		file_put_contents( $path, 'concurrent inquiry' );
 		$input = array(
-			'idempotency_key' => 'mysql-concurrent-inquiry',
-			'venue_term_id'   => $this->venue_id,
-			'artist_name'     => 'Concurrent Artist',
-			'intake'          => array(),
-			'attachments'     => array(
+			'idempotency_key'     => 'mysql-concurrent-inquiry',
+			'venue_term_id'       => $this->venue_id,
+			'artist_name'         => 'Concurrent Artist',
+			'requested_space_key' => 'main-room',
+			'requested_start_at'  => '2030-08-01 20:00:00',
+			'requested_end_at'    => '2030-08-01 23:00:00',
+			'intake'              => array(
+				'config_revision' => $config['revision'],
+				'message'         => 'Please consider us.',
+				'fields'          => array(),
+				'consent'         => array(
+					'id'       => 'booking-privacy',
+					'version'  => 1,
+					'accepted' => true,
+				),
+			),
+			'attachments'         => array(
 				array(
 					'name'     => 'booking-inquiry.txt',
 					'tmp_name' => $path,
@@ -293,7 +320,7 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQL
 				}
 			};
 			$winner_bookings = new BookingRepository();
-			$winner_service  = new BookingInquiryAdmissionService( new BookingLifecycle( $winner_bookings ), new BookingAttachmentRepository(), null, $winner_provider, null, $winner_bookings, new BookingActivityRepository() );
+			$winner_service  = new BookingInquiryAdmissionService( new BookingLifecycle( $winner_bookings ), new BookingAttachmentRepository(), null, $winner_provider, null, $winner_bookings, new BookingActivityRepository(), null, null, new BookingAttachmentReadiness( static function (): bool { return true; } ) );
 			$result          = $winner_service->admit( $input );
 			file_put_contents(
 				$winner_file,
@@ -307,10 +334,13 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingAttachmentMySQL
 		while ( ! file_exists( $stage_held ) && microtime( true ) < $deadline ) {
 			usleep( 10000 );
 		}
+		if ( ! file_exists( $stage_held ) && file_exists( $winner_file ) ) {
+			$this->fail( 'The winner failed before provider stage: ' . (string) file_get_contents( $winner_file ) );
+		}
 		$this->assertFileExists( $stage_held, 'The winner never entered provider stage while holding the saga lock.' );
 		$bookings    = new BookingRepository();
 		$attachments = new BookingAttachmentRepository();
-		$service     = new BookingInquiryAdmissionService( new BookingLifecycle( $bookings ), $attachments, null, $this->provider, null, $bookings, new BookingActivityRepository() );
+		$service     = new BookingInquiryAdmissionService( new BookingLifecycle( $bookings ), $attachments, null, $this->provider, null, $bookings, new BookingActivityRepository(), null, null, new BookingAttachmentReadiness( static function (): bool { return true; } ) );
 		$contention  = $service->admit( $input );
 		$this->assertWPError( $contention );
 		$this->assertSame( 'booking_inquiry_processing', $contention->get_error_code() );

@@ -92,6 +92,7 @@ $public_config = array(
 	'fields'               => array_values( $booking_config['fields'] ),
 	'presentation'         => $booking_config['presentation'],
 	'consent'              => $booking_config['consent'],
+	'attachments'          => $booking_config['attachments'],
 );
 
 $json = wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );

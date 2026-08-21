@@ -131,7 +131,7 @@ const profile = ( id ) => ( {
 	revision: String( id ).padStart( 64, '0' ),
 } );
 const config = ( id ) => ( {
-	version: 9,
+	version: 10,
 	revision: id,
 	updated_by_user_id: null,
 	updated_at: null,
@@ -154,6 +154,7 @@ const config = ( id ) => ( {
 		label: 'I agree.',
 		required: true,
 	},
+	attachment_policy: { version: 1, enabled: false, purposes: [] },
 	embed: { allowed_parent_origins: [] },
 	spaces: [],
 	default_deal: {
@@ -992,6 +993,33 @@ describe( 'venue settings authorization-facing states', () => {
 			'No marketing automation is configured.'
 		);
 		expect( container.textContent ).not.toContain( 'Comma-separated' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'configures a private attachment purpose without implying readiness', async () => {
+		const { container, root } = await renderApp( context() );
+		await act( async () =>
+			buttonByText( container, 'Booking Rules' ).click()
+		);
+
+		const enabled = container.querySelector(
+			'#booking-attachments-enabled'
+		);
+		expect( enabled.checked ).toBe( false );
+		expect( container.textContent ).toContain(
+			'does not enable uploads until private storage and governance checks also pass'
+		);
+		await act( async () => enabled.click() );
+		const stagePlot = container.querySelector( '#attachment-stage_plot' );
+		await act( async () => stagePlot.click() );
+		expect(
+			container.querySelector( '#attachment-stage_plot-requirement' )
+				.value
+		).toBe( 'invited' );
+		expect( buttonByText( container, 'Save settings' ).disabled ).toBe(
+			false
+		);
+
 		await act( async () => root.unmount() );
 	} );
 

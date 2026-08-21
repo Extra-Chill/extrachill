@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Core\BookingAttachmentRepository;
+use ExtraChillEvents\Core\BookingAttachmentReadiness;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingInquiryAdmissionService;
@@ -13,6 +14,7 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingNotificationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueBookingConfig;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
@@ -56,12 +58,35 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 			),
 			'meta'            => array(
 				7 => array(
-					55 => array( '_extrachill_booking_config' => array( 'enabled' => true ) ),
+					55 => array(
+						'_extrachill_booking_config' => array( 'enabled' => true ),
+						'_venue_timezone'            => 'America/New_York',
+					),
 				),
 			),
 			'posts'           => array(),
 			'post_meta'       => array(),
 		);
+		$config                              = ( new VenueBookingConfig() )->defaults();
+		$config['enabled']                   = true;
+		$config['spaces']                    = array(
+			array(
+				'key'        => 'main-room',
+				'name'       => 'Main Room',
+				'is_default' => true,
+			),
+		);
+		$config['attachment_policy']         = array(
+			'version'  => 1,
+			'enabled'  => true,
+			'purposes' => array_map(
+				static function ( string $purpose ): array {
+					return array( 'key' => $purpose, 'requirement' => 'invited' );
+				},
+				\ExtraChillEvents\Core\BookingAttachmentPolicy::PURPOSES
+			),
+		);
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
 		$GLOBALS['wpdb']           = new BookingWpdb();
 		$GLOBALS['extrachill_events_booking_reference_lock_uncertainty']         = array();
 		$GLOBALS['extrachill_events_booking_database_connection_quarantined']    = false;
@@ -92,12 +117,13 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 	 *
 	 * @param BookingTestAuthorization|null $authorization Authorization spy.
 	 */
-	private function service( ?BookingTestAuthorization $authorization = null ): BookingInquiryAdmissionService {
+	private function service( ?BookingTestAuthorization $authorization = null, ?BookingAttachmentReadiness $readiness = null ): BookingInquiryAdmissionService {
 		$bookings           = new BookingRepository();
 		$attachments        = new BookingAttachmentRepository();
 		$lifecycle          = new BookingLifecycle( $bookings );
 		$attachment_service = new BookingAttachmentService( $attachments, $bookings, null, null, $this->provider, $authorization ? $authorization : new BookingTestAuthorization() );
-		return new BookingInquiryAdmissionService( $lifecycle, $attachments, $attachment_service, $this->provider );
+		$readiness = $readiness ? $readiness : new BookingAttachmentReadiness( static function (): bool { return true; } );
+		return new BookingInquiryAdmissionService( $lifecycle, $attachments, $attachment_service, $this->provider, null, null, null, null, null, $readiness );
 	}
 
 	/**
@@ -111,7 +137,19 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 			'idempotency_key' => $key,
 			'venue_term_id'   => 55,
 			'artist_name'     => 'New Band',
-			'intake'          => array( 'message' => 'Please consider us.' ),
+			'requested_space_key' => 'main-room',
+			'requested_start_at'  => '2027-01-15 20:00:00',
+			'requested_end_at'    => '2027-01-15 23:00:00',
+			'intake'          => array(
+				'config_revision' => 0,
+				'message'         => 'Please consider us.',
+				'fields'          => array(),
+				'consent'         => array(
+					'id'       => 'booking-privacy',
+					'version'  => 1,
+					'accepted' => true,
+				),
+			),
 			'attachments'     => $files,
 		);
 	}
@@ -318,11 +356,36 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 			new BookingLifecycle( $bookings ),
 			$attachments,
 			null,
-			new WP_Error( 'booking_private_storage_unavailable' )
+			new WP_Error( 'booking_private_storage_unavailable' ),
+			null,
+			null,
+			null,
+			null,
+			null,
+			new BookingAttachmentReadiness( static function (): bool { return true; } )
 		);
 		$error       = $service->admit( $this->input( array( $this->upload( 'press.txt', 'press', 'press_release' ) ), 'storage-disabled' ) );
 
 		$this->assertSame( 'booking_inquiry_unavailable', $error->get_error_code() );
+		$this->assertNoInquirySideEffects();
+	}
+
+	public function test_venue_policy_revision_purpose_requirement_and_governance_fail_closed(): void {
+		$stale                              = $this->input( array( $this->upload( 'plot.txt', 'plot', 'stage_plot' ) ), 'stale-policy' );
+		$stale['intake']['config_revision'] = 1;
+		$this->assertSame( 'booking_config_revision_conflict', $this->service()->admit( $stale )->get_error_code() );
+
+		$config                              = $GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ];
+		$config['attachment_policy']['purposes'] = array( array( 'key' => 'epk', 'requirement' => 'required' ) );
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
+		$wrong_purpose = $this->service()->admit( $this->input( array( $this->upload( 'plot.txt', 'plot', 'stage_plot' ) ), 'wrong-purpose' ) );
+		$this->assertSame( 'invalid_booking_attachment_purpose', $wrong_purpose->get_error_code() );
+		$this->assertSame( 'required_booking_attachment_missing', $this->service()->admit( $this->input( array(), 'required-missing' ) )->get_error_code() );
+
+		$config['attachment_policy']['purposes'] = array( array( 'key' => 'epk', 'requirement' => 'invited' ) );
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
+		$governance = $this->service( null, new BookingAttachmentReadiness() )->admit( $this->input( array( $this->upload( 'kit.txt', 'kit', 'epk' ) ), 'governance-incomplete' ) );
+		$this->assertSame( 'booking_inquiry_unavailable', $governance->get_error_code() );
 		$this->assertNoInquirySideEffects();
 	}
 

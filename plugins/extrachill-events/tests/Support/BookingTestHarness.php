@@ -2177,11 +2177,12 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalBookingPrivateFileProvider.
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateStorageReadiness.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateFileProviders.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentPolicy.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentReadiness.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentDeliveryRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentService.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingInquiryAdmissionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingInquiryAdmissionService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingEmbed.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCorrespondenceAutomationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketReconciliationService.php';

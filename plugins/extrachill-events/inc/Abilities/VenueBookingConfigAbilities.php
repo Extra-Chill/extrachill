@@ -9,6 +9,7 @@ namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueBookingConfig;
+use ExtraChillEvents\Core\BookingAttachmentPolicy;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -329,6 +330,38 @@ class VenueBookingConfigAbilities {
 				'required'             => array( 'id', 'version', 'label', 'required' ),
 				'additionalProperties' => false,
 			),
+			'attachment_policy'         => array(
+				'type'                 => 'object',
+				'properties'           => array(
+					'version'  => array(
+						'type' => 'integer',
+						'enum' => array( VenueBookingConfig::ATTACHMENT_POLICY_VERSION ),
+					),
+					'enabled'  => array( 'type' => 'boolean' ),
+					'purposes' => array(
+						'type'        => 'array',
+						'maxItems'    => count( BookingAttachmentPolicy::PURPOSES ),
+						'uniqueItems' => true,
+						'items'       => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'key'         => array(
+									'type' => 'string',
+									'enum' => BookingAttachmentPolicy::PURPOSES,
+								),
+								'requirement' => array(
+									'type' => 'string',
+									'enum' => array( 'invited', 'required' ),
+								),
+							),
+							'required'             => array( 'key', 'requirement' ),
+							'additionalProperties' => false,
+						),
+					),
+				),
+				'required'             => array( 'version', 'enabled', 'purposes' ),
+				'additionalProperties' => false,
+			),
 			'embed'                     => array(
 				'type'                 => 'object',
 				'properties'           => array(
@@ -421,7 +454,7 @@ class VenueBookingConfigAbilities {
 			),
 			'correspondence'            => $this->correspondence_schema(),
 		);
-		$required            = array( 'version', 'enabled', 'intake', 'consent', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
+		$required            = array( 'version', 'enabled', 'intake', 'consent', 'attachment_policy', 'embed', 'spaces', 'default_deal', 'ticket_provider_reference', 'marketing_channels', 'marketing_triggers', 'hold_ttl_minutes', 'correspondence' );
 		if ( $include_metadata ) {
 			$properties['revision']           = array(
 				'type'    => 'integer',
@@ -446,7 +479,13 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$retired_appearance = $schema;
+		$pre_attachment = $schema;
+
+		$pre_attachment['properties']['version']['enum'] = array( VenueBookingConfig::PRE_ATTACHMENT_POLICY_VERSION );
+		$pre_attachment['required']                      = array_values( array_diff( $pre_attachment['required'], array( 'attachment_policy' ) ) );
+		unset( $pre_attachment['properties']['attachment_policy'] );
+
+		$retired_appearance = $pre_attachment;
 
 		$retired_appearance['properties']['version']['enum'] = array( VenueBookingConfig::RETIRED_APPEARANCE_VERSION );
 		$retired_appearance['properties']['appearance']      = $appearance_schema;
@@ -493,7 +532,7 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $retired_appearance, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $retired_appearance, $pre_attachment, $schema ) );
 	}
 
 	/** Return the strict correspondence configuration schema. */

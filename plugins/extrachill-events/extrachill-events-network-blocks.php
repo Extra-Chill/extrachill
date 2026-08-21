@@ -18,6 +18,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/inc/Core/BookingAttachmentPolicy.php';
+require_once __DIR__ . '/inc/Core/BookingAttachmentReadiness.php';
 require_once __DIR__ . '/inc/Core/VenueBookingConfig.php';
 
 /**
