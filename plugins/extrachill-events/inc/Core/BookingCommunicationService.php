@@ -115,13 +115,15 @@ class BookingCommunicationService {
 		if ( is_wp_error( $existing ) ) {
 			return $this->rollback( $existing );
 		}
-		$hash = $this->request_hash( $normalized, $actor_id );
+		$hash = $this->request_hash( $normalized );
 		if ( is_array( $existing ) ) {
 			$committed = $this->commit();
 			if ( is_wp_error( $committed ) ) {
 				return $committed;
 			}
-			if ( ! hash_equals( (string) ( $existing['payload']['data']['request_hash'] ?? '' ), $hash ) ) {
+			$stored_hash = (string) ( $existing['payload']['data']['request_hash'] ?? '' );
+			$legacy_hash = $this->legacy_request_hash( $normalized, (int) $existing['actor_id'] );
+			if ( ! hash_equals( $stored_hash, $hash ) && ! hash_equals( $stored_hash, $legacy_hash ) ) {
 				return new \WP_Error( 'booking_message_idempotency_conflict', __( 'The idempotency key was already used for a different message.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			return $this->resume( $existing );
@@ -605,13 +607,14 @@ class BookingCommunicationService {
 		$data       = is_array( $activity['payload']['data'] ?? null ) ? $activity['payload']['data'] : array();
 		$is_request = 'booking_message_requested' === $activity['kind'];
 		return array(
-			'activity_id' => (int) $activity['id'],
-			'booking_id'  => (int) $activity['booking_id'],
-			'kind'        => (string) $activity['kind'],
-			'direction'   => (string) $activity['direction'],
-			'channel'     => (string) $activity['channel'],
-			'occurred_at' => (string) $activity['occurred_at'],
-			'message'     => $is_request ? array(
+			'activity_id'     => (int) $activity['id'],
+			'booking_id'      => (int) $activity['booking_id'],
+			'idempotency_key' => $is_request ? preg_replace( '/^booking-message-request:/', '', (string) $activity['idempotency_key'] ) : null,
+			'kind'            => (string) $activity['kind'],
+			'direction'       => (string) $activity['direction'],
+			'channel'         => (string) $activity['channel'],
+			'occurred_at'     => (string) $activity['occurred_at'],
+			'message'         => $is_request ? array(
 				'template'  => (string) ( $data['template'] ?? '' ),
 				'recipient' => (string) ( $data['recipient'] ?? '' ),
 				'subject'   => (string) ( $data['subject'] ?? '' ),
@@ -619,7 +622,7 @@ class BookingCommunicationService {
 				'reply_to'  => (string) ( $data['reply_to'] ?? '' ),
 				'send_at'   => is_string( $data['send_at'] ?? null ) ? $data['send_at'] : null,
 			) : null,
-			'state'       => $is_request ? null : array(
+			'state'           => $is_request ? null : array(
 				'intent_id' => (int) ( $data['intent_id'] ?? 0 ),
 				'status'    => (string) ( $data['status'] ?? $data['stage'] ?? '' ),
 				'reason'    => is_string( $data['reason'] ?? null ) ? $data['reason'] : null,
@@ -1239,7 +1242,17 @@ class BookingCommunicationService {
 		return false !== $date && $date->format( 'Y-m-d H:i:s' ) === $value ? $date : false;
 	}
 
-	private function request_hash( array $request, int $actor_id ): string {
+	private function request_hash( array $request ): string {
+		ksort( $request );
+		return hash_hmac(
+			'sha256',
+			wp_json_encode( $request ),
+			wp_salt( 'auth' )
+		);
+	}
+
+	/** Preserve retries for durable intents written before actor-independent hashes. */
+	private function legacy_request_hash( array $request, int $actor_id ): string {
 		ksort( $request );
 		return hash_hmac(
 			'sha256',

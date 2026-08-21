@@ -225,25 +225,26 @@ class VenueBookingCommunicationAbilities {
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'activity_id' => array(
+				'activity_id'     => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'booking_id'  => array(
+				'booking_id'      => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
-				'kind'        => array( 'type' => 'string' ),
-				'direction'   => array(
+				'idempotency_key' => $nullable_string,
+				'kind'            => array( 'type' => 'string' ),
+				'direction'       => array(
 					'type' => 'string',
 					'enum' => array( 'outbound' ),
 				),
-				'channel'     => array(
+				'channel'         => array(
 					'type' => 'string',
 					'enum' => array( 'email' ),
 				),
-				'occurred_at' => array( 'type' => 'string' ),
-				'message'     => array(
+				'occurred_at'     => array( 'type' => 'string' ),
+				'message'         => array(
 					'type'                 => array( 'object', 'null' ),
 					'properties'           => array(
 						'template'  => array(
@@ -265,7 +266,7 @@ class VenueBookingCommunicationAbilities {
 					'required'             => array( 'template', 'recipient', 'subject', 'message', 'reply_to', 'send_at' ),
 					'additionalProperties' => false,
 				),
-				'state'       => array(
+				'state'           => array(
 					'type'                 => array( 'object', 'null' ),
 					'properties'           => array(
 						'intent_id' => array(
@@ -279,7 +280,7 @@ class VenueBookingCommunicationAbilities {
 					'additionalProperties' => false,
 				),
 			),
-			'required'             => array( 'activity_id', 'booking_id', 'kind', 'direction', 'channel', 'occurred_at', 'message', 'state' ),
+			'required'             => array( 'activity_id', 'booking_id', 'idempotency_key', 'kind', 'direction', 'channel', 'occurred_at', 'message', 'state' ),
 			'additionalProperties' => false,
 		);
 	}

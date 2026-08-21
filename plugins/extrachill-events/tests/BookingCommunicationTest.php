@@ -425,6 +425,45 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertSame( 'booking_message_idempotency_conflict', $conflict->get_error_code() );
 	}
 
+	public function test_teammate_retry_reuses_the_same_durable_intent(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$service = $this->service( $queued, $scheduled, $cancelled, new BookingTestAuthorization( array( '13:55' => true ) ) );
+
+		$first = $service->request( $this->input( $booking['id'] ), 12 );
+		$retry = $service->request( $this->input( $booking['id'] ), 13 );
+
+		$this->assertSame( $first, $retry );
+		$this->assertCount( 1, $queued );
+		$public = $service->list_for_booking( $booking['id'], 13 );
+		$this->assertSame( 'message-1', $public[2]['idempotency_key'] );
+	}
+
+	public function test_teammate_retry_accepts_a_persisted_actor_scoped_hash(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$service = $this->service( $queued, $scheduled, $cancelled, new BookingTestAuthorization( array( '13:55' => true ) ) );
+		$input   = $this->input( $booking['id'] );
+		$first   = $service->request( $input, 12 );
+		$intent  = ( new BookingActivityRepository() )->find_by_idempotency( $booking['id'], 'booking-message-request:message-1' );
+		$request = array(
+			'booking_id'       => $booking['id'],
+			'idempotency_key'  => 'message-1',
+			'template'         => 'operator_message',
+			'template_version' => null,
+			'recipient'        => 'artist@example.com',
+			'message'          => 'We would like to discuss the date.',
+			'reply_to'         => 'bookings@extrachill.com',
+		);
+		ksort( $request );
+		$row_payload                                  = json_decode( $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ][ $intent['id'] ]['payload'], true );
+		$row_payload['data']['request_hash']          = hash_hmac( 'sha256', wp_json_encode( array( 'actor_id' => 12, 'request' => $request ) ), wp_salt( 'auth' ) );
+		$GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ][ $intent['id'] ]['payload'] = wp_json_encode( $row_payload );
+
+		$this->assertSame( $first, $service->request( $input, 13 ) );
+		$this->assertCount( 1, $queued );
+	}
+
 	public function test_concurrent_retry_observes_dispatch_claim_without_duplicate_queueing(): void {
 		$booking = $this->booking();
 		$input   = $this->input( $booking['id'] );
@@ -1123,7 +1162,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertSame( 200, $GLOBALS['wpdb']->communication_public_rows_returned );
 		$this->assertSame( $pending_ids[2], $public[0]['state']['intent_id'] );
 		$this->assertNotContains( 'booking_note_added', array_column( $public, 'kind' ) );
-		$this->assertSame( array( 'activity_id', 'booking_id', 'kind', 'direction', 'channel', 'occurred_at', 'message', 'state' ), array_keys( $public[0] ) );
+		$this->assertSame( array( 'activity_id', 'booking_id', 'idempotency_key', 'kind', 'direction', 'channel', 'occurred_at', 'message', 'state' ), array_keys( $public[0] ) );
 	}
 
 	public function test_public_presenter_has_exact_allowlisted_shape_without_private_metadata(): void {
@@ -1134,15 +1173,17 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$public    = $service->list_for_booking( $booking['id'], 12 );
 		$request   = $public[2];
 		$state     = $public[0];
-		$top_level = array( 'activity_id', 'booking_id', 'kind', 'direction', 'channel', 'occurred_at', 'message', 'state' );
+		$top_level = array( 'activity_id', 'booking_id', 'idempotency_key', 'kind', 'direction', 'channel', 'occurred_at', 'message', 'state' );
 		$this->assertSame( $top_level, array_keys( $request ) );
 		$this->assertSame( $top_level, array_keys( $state ) );
 		$this->assertSame( array( 'template', 'recipient', 'subject', 'message', 'reply_to', 'send_at' ), array_keys( $request['message'] ) );
 		$this->assertNull( $request['state'] );
 		$this->assertNull( $state['message'] );
+		$this->assertSame( 'message-1', $request['idempotency_key'] );
+		$this->assertNull( $state['idempotency_key'] );
 		$this->assertSame( array( 'intent_id', 'status', 'reason' ), array_keys( $state['state'] ) );
 		$encoded = wp_json_encode( $public );
-		foreach ( array( 'request_hash', 'booking_version', 'expected_statuses', 'template_version', 'config_revision', 'reminder_policy_version', 'idempotency_key', 'external_id', 'actor_id', 'actor_type', 'created_at', 'mail_site_id', 'from_name', 'identity', '"cc"', 'action_id', 'attempt', 'retryable', 'scheduler_status' ) as $private_key ) {
+		foreach ( array( 'request_hash', 'booking_version', 'expected_statuses', 'template_version', 'config_revision', 'reminder_policy_version', 'external_id', 'actor_id', 'actor_type', 'created_at', 'mail_site_id', 'from_name', 'identity', '"cc"', 'action_id', 'attempt', 'retryable', 'scheduler_status' ) as $private_key ) {
 			$this->assertStringNotContainsString( $private_key, $encoded );
 		}
 	}

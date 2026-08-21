@@ -82,6 +82,33 @@ const STATUS_TONES = {
 
 const pad = ( value ) => String( value ).padStart( 2, '0' );
 
+export const bookingMessageIdentity = ( input ) =>
+	JSON.stringify( [
+		Number( input.bookingId ),
+		'operator_message',
+		String( input.recipient || '' )
+			.trim()
+			.toLowerCase(),
+		String( input.subject || '' ).trim(),
+		String( input.message || '' )
+			.replaceAll( '\r\n', '\n' )
+			.trim(),
+		String( input.replyTo || '' )
+			.trim()
+			.toLowerCase(),
+	] );
+
+export const bookingMessageKey = async ( input, generation = 0 ) => {
+	const bytes = new TextEncoder().encode(
+		`${ bookingMessageIdentity( input ) }\n${ generation }`
+	);
+	const digest = await window.crypto.subtle.digest( 'SHA-256', bytes );
+	const hash = Array.from( new Uint8Array( digest ), ( byte ) =>
+		byte.toString( 16 ).padStart( 2, '0' )
+	).join( '' );
+	return `console-${ input.bookingId }-${ hash }`;
+};
+
 export const monthKey = ( date = new Date() ) =>
 	`${ date.getFullYear() }-${ pad( date.getMonth() + 1 ) }`;
 
@@ -1155,38 +1182,121 @@ function JsonRecord( { title, value, empty } ) {
 	);
 }
 
-function Correspondence( { booking, items, onRefresh, timezone } ) {
+export function Correspondence( { booking, items, onRefresh, timezone } ) {
 	const [ message, setMessage ] = useState( '' );
 	const [ subject, setSubject ] = useState( '' );
 	const [ replyTo, setReplyTo ] = useState( '' );
 	const [ sending, setSending ] = useState( false );
 	const [ status, setStatus ] = useState( null );
+	const sendingRef = useRef( false );
+	const identityRef = useRef( { signature: '', generation: 0, key: '' } );
+	const clearDraft = () => {
+		setMessage( '' );
+		setSubject( '' );
+	};
+	const refreshForKey = async ( key ) => {
+		const refreshed = await onRefresh();
+		return refreshed.some(
+			( item ) =>
+				item.kind === 'booking_message_requested' &&
+				item.idempotency_key === key
+		);
+	};
 	const send = async ( event ) => {
 		event.preventDefault();
+		if ( sendingRef.current ) {
+			return;
+		}
+		sendingRef.current = true;
 		setSending( true );
 		setStatus( null );
+		const input = {
+			bookingId: booking.id,
+			recipient: booking.contact_email,
+			subject,
+			message,
+			replyTo,
+		};
+		const signature = bookingMessageIdentity( input );
+		if ( identityRef.current.signature !== signature ) {
+			identityRef.current = { signature, generation: 0, key: '' };
+		}
+		let key = identityRef.current.key;
 		try {
-			await runAbility( 'extrachill/send-booking-message', {
-				booking_id: booking.id,
-				idempotency_key: `console-${ booking.id }-${ Date.now() }`,
-				template: 'operator_message',
-				recipient: booking.contact_email,
-				subject,
-				message,
-				reply_to: replyTo,
-				expected_statuses: [ booking.status ],
-				approval: 'direct',
-			} );
-			setMessage( '' );
-			setSubject( '' );
-			setStatus( { tone: 'success', message: 'Message queued.' } );
-			await onRefresh();
+			if ( ! key ) {
+				key = await bookingMessageKey(
+					input,
+					identityRef.current.generation
+				);
+				identityRef.current.key = key;
+			}
+			const result = await runAbility(
+				'extrachill/send-booking-message',
+				{
+					booking_id: booking.id,
+					idempotency_key: key,
+					template: 'operator_message',
+					recipient: booking.contact_email,
+					subject,
+					message,
+					reply_to: replyTo,
+					expected_statuses: [ booking.status ],
+					approval: 'direct',
+				}
+			);
+			if ( result.status !== 'queued' ) {
+				throw Object.assign(
+					new Error( 'The send outcome requires reconciliation.' ),
+					{ uncertain: true }
+				);
+			}
+			clearDraft();
+			try {
+				await onRefresh();
+				setStatus( { tone: 'success', message: 'Message queued.' } );
+			} catch {
+				setStatus( {
+					tone: 'warning',
+					message:
+						'Message queued. Correspondence could not be refreshed.',
+				} );
+			}
 		} catch ( error ) {
-			setStatus( {
-				tone: 'error',
-				message: errorDetails( error ).message,
-			} );
+			const details = errorDetails( error );
+			try {
+				if ( await refreshForKey( key ) ) {
+					clearDraft();
+					setStatus( {
+						tone: 'success',
+						message: 'Message recorded. Delivery status refreshed.',
+					} );
+				} else if (
+					! error.uncertain &&
+					details.status >= 400 &&
+					details.status < 500
+				) {
+					identityRef.current = {
+						...identityRef.current,
+						generation: identityRef.current.generation + 1,
+						key: '',
+					};
+					setStatus( { tone: 'error', message: details.message } );
+				} else {
+					setStatus( {
+						tone: 'warning',
+						message:
+							'Send outcome not confirmed. Draft preserved; retry will safely reuse the same message identity.',
+					} );
+				}
+			} catch {
+				setStatus( {
+					tone: 'warning',
+					message:
+						'Send outcome not confirmed and correspondence could not be refreshed. Draft preserved; retry will safely reuse the same message identity.',
+				} );
+			}
 		} finally {
+			sendingRef.current = false;
 			setSending( false );
 		}
 	};
@@ -1270,9 +1380,11 @@ function Correspondence( { booking, items, onRefresh, timezone } ) {
 				</InlineStatus>
 			) }
 			{ status && (
-				<InlineStatus tone={ status.tone }>
-					{ status.message }
-				</InlineStatus>
+				<div role="status" aria-live="polite">
+					<InlineStatus tone={ status.tone }>
+						{ status.message }
+					</InlineStatus>
+				</div>
 			) }
 		</section>
 	);
@@ -1993,6 +2105,18 @@ export function BookingConsole( {
 		}
 	};
 
+	const loadCommunications = async () => {
+		const bookingId = selectedIdRef.current;
+		const messages = await runAbility(
+			'extrachill/list-booking-communications',
+			{ booking_id: bookingId }
+		);
+		if ( selectedIdRef.current === bookingId ) {
+			setCommunications( messages );
+		}
+		return messages;
+	};
+
 	useEffect( () => {
 		loadList();
 	}, [ month, view ] ); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2210,7 +2334,7 @@ export function BookingConsole( {
 						}
 						onMutate={ refreshAfterMutation }
 						onClose={ closeDetail }
-						onRefreshCommunications={ loadDetail }
+						onRefreshCommunications={ loadCommunications }
 						timezone={ selected.venue_timezone }
 					/>
 				) }

@@ -23,6 +23,7 @@
 		"test:browser:booking-inquiry": "node tests/browser/booking-inquiry.evidence.js",
 		"test:browser:booking-form-preview": "node tests/browser/booking-form-preview.evidence.js",
 		"test:browser:booking-embed": "node tests/browser/booking-embed.evidence.js",
+		"test:browser:booking-correspondence": "node tests/browser/booking-correspondence.evidence.js",
 		"test:browser:city-calendar-priority": "node tests/browser/city-calendar-priority.evidence.js",
 		"lint:js": "wp-scripts lint-js",
 		"lint:js:fix": "wp-scripts lint-js --fix"
