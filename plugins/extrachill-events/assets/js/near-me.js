@@ -68,19 +68,18 @@
 	// No Geolocation API — show fallback immediately.
 	if ( ! navigator.geolocation ) {
 		showFallback();
-		return;
+	} else {
+		// Show loading state.
+		if ( loading ) {
+			loading.style.display = 'flex';
+		}
+		// Request location.
+		navigator.geolocation.getCurrentPosition( onSuccess, onError, {
+			enableHighAccuracy: true,
+			timeout: 10000,
+			maximumAge: 300000,
+		} );
 	}
-
-	// Show loading state.
-	if ( loading ) {
-		loading.style.display = 'flex';
-	}
-	// Request location.
-	navigator.geolocation.getCurrentPosition( onSuccess, onError, {
-		enableHighAccuracy: true,
-		timeout: 10000,
-		maximumAge: 300000,
-	} );
 
 	function onSuccess( position ) {
 		const lat = position.coords.latitude.toFixed( 6 );
