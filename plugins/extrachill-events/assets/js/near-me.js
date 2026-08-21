@@ -27,6 +27,16 @@
 	}
 
 	const detect = document.querySelector( '.near-me-detect' );
+
+	// Already have location in URL — map renders with server-side center,
+	// dynamic mode fetches venues, geo-sync updates calendar.
+	if ( ecNearMe.hasLocation ) {
+		if ( detect ) {
+			detect.style.display = 'none';
+		}
+		return;
+	}
+
 	const loading = document.querySelector( '.near-me-loading' );
 	const spinner = document.querySelector( '.near-me-spinner' );
 	const cities = document.querySelector( '.near-me-cities' );
@@ -54,15 +64,6 @@
 			revealScopedResults();
 		}
 	} );
-
-	// Already have location in URL — map renders with server-side center,
-	// dynamic mode fetches venues, geo-sync updates calendar.
-	if ( ecNearMe.hasLocation ) {
-		if ( detect ) {
-			detect.style.display = 'none';
-		}
-		return;
-	}
 
 	// No Geolocation API — show fallback immediately.
 	if ( ! navigator.geolocation ) {
@@ -137,7 +138,7 @@
 		showLoading( 'Found you! Loading nearby events...' );
 	}
 
-	function onError( _error ) {
+	function onError() {
 		// The server-rendered calendar/map already use the account market.
 		// Keep that result instead of dropping to anonymous city discovery.
 		if ( ecNearMe.hasAccountMarket ) {

@@ -1,7 +1,7 @@
 /**
  * Near Me location-state coverage.
  */
-/* global CustomEvent, beforeEach, describe, expect, it, jest */
+/* global beforeEach, describe, expect, it, jest */
 
 const fallbackMessage =
 	"We couldn't determine your location. Choose a city or search an area.";
