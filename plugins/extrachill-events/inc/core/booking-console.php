@@ -203,11 +203,11 @@ function ec_events_get_venue_archive_workspace_action( int $venue_term_id, int $
 
 	$user_id       = $user_id > 0 ? $user_id : get_current_user_id();
 	$authorization = new VenueAuthorization();
-	if ( $authorization->can( $user_id, $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE ) ) {
-		return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'member' );
-	}
 	if ( $authorization->is_administrator( $user_id ) ) {
 		return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'administrator' );
+	}
+	if ( $authorization->can( $user_id, $venue_term_id, VenueAuthorization::ACTION_ACCESS_VENUE ) ) {
+		return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'member' );
 	}
 
 	return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'non_member' );
@@ -225,12 +225,13 @@ function ec_events_render_venue_archive_workspace_action(): void {
 		return;
 	}
 	?>
-	<aside class="events-market-context events-market-context--quiet" data-venue-workspace-action>
-		<div class="events-market-context__copy">
-			<strong><?php esc_html_e( 'Operate this venue?', 'extrachill-events' ); ?></strong>
-			<span><?php esc_html_e( 'Manage inquiries, holds, calendar details, and venue access in the existing workspace.', 'extrachill-events' ); ?></span>
+	<details class="venue-workspace-disclosure" data-venue-workspace-action>
+		<summary><?php esc_html_e( 'Own or manage this venue?', 'extrachill-events' ); ?></summary>
+		<div class="venue-workspace-disclosure__content">
+			<p><?php esc_html_e( 'Venue operators can manage inquiries, calendar details, and team access.', 'extrachill-events' ); ?></p>
+			<a class="button-3 button-small" href="<?php echo esc_url( $action['url'] ); ?>"><?php echo esc_html( $action['label'] ); ?></a>
 		</div>
-		<a class="button-1 button-small" href="<?php echo esc_url( $action['url'] ); ?>"><?php echo esc_html( $action['label'] ); ?></a>
-	</aside>
+	</details>
 	<?php
 }
+add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 );

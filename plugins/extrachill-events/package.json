@@ -25,6 +25,7 @@
 		"test:browser:booking-embed": "node tests/browser/booking-embed.evidence.js",
 		"test:browser:booking-correspondence": "node tests/browser/booking-correspondence.evidence.js",
 		"test:browser:city-calendar-priority": "node tests/browser/city-calendar-priority.evidence.js",
+		"test:browser:venue-claim-acquisition": "node tests/browser/venue-claim-acquisition.evidence.js",
 		"lint:js": "wp-scripts lint-js",
 		"lint:js:fix": "wp-scripts lint-js --fix"
 	},

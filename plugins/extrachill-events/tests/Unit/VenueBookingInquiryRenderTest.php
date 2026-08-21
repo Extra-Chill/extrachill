@@ -7,6 +7,8 @@
 
 use ExtraChillEvents\Core\VenueBookingConfig;
 
+require_once dirname( __DIR__ ) . '/Support/archive-template-stubs.php';
+
 /** Proves the Events-owned booking block across canonical network contexts. */
 final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 	private const EVENTS_BLOG_ID = 7;
@@ -24,26 +26,27 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		wp_set_current_user( 0 );
+		add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 );
 		switch_to_blog( self::EVENTS_BLOG_ID );
-		$term                                        = self::factory()->term->create_and_get(
+		$term                       = self::factory()->term->create_and_get(
 			array(
 				'taxonomy'    => 'venue',
 				'name'        => 'Test Room',
 				'description' => 'Independent room in Charleston.',
 			)
 		);
-		$this->venue_id                              = (int) $term->term_id;
-		$config                                      = ( new VenueBookingConfig() )->defaults();
-		$config['enabled']                           = true;
-		$config['revision']                          = 4;
-		$config['spaces']                            = array(
+		$this->venue_id             = (int) $term->term_id;
+		$config                     = ( new VenueBookingConfig() )->defaults();
+		$config['enabled']          = true;
+		$config['revision']         = 4;
+		$config['spaces']           = array(
 			array(
 				'key'        => 'main-room',
 				'name'       => 'Main Room',
 				'is_default' => true,
 			),
 		);
-		$config['intake']['fields']                  = array(
+		$config['intake']['fields'] = array(
 			array(
 				'key'      => 'draw',
 				'label'    => 'Recent draw',
@@ -60,8 +63,8 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			),
 		);
 		$config['intake']['presentation']['contact_phone_label'] = 'Phone (Emergency use only)';
-		$config['ticket_provider_reference']         = 'private-provider-account';
-		$config['correspondence']['booking_address'] = 'private-booking@example.com';
+		$config['ticket_provider_reference']                     = 'private-provider-account';
+		$config['correspondence']['booking_address']             = 'private-booking@example.com';
 		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
 		update_term_meta( $this->venue_id, '_venue_address', '42 Test Street' );
 		update_term_meta( $this->venue_id, '_venue_city', 'Charleston' );
@@ -97,7 +100,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 	public function test_disabled_config_fails_closed_without_form_markup(): void {
 		switch_to_blog( self::EVENTS_BLOG_ID );
 		$config            = get_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, true );
-		$config['enabled']                          = false;
+		$config['enabled'] = false;
 		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
 		restore_current_blog();
 
@@ -152,17 +155,20 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		try {
 			$archive_url = get_term_link( $this->venue_id, 'venue' );
 			$this->go_to( $archive_url );
-			$output            = $this->render( array() );
+			$output            = $this->render_archive();
 			$heading_position  = strpos( $output, 'class="page-title"' );
 			$cta_position      = strpos( $output, 'Submit a booking inquiry' );
-			$calendar_position = strpos( $output, 'events-calendar-container' );
+			$operator_position = strpos( $output, 'data-venue-workspace-action' );
+			$calendar_position = strpos( $output, 'data-machine-events-calendar' );
 
 			$this->assertNotFalse( $heading_position );
 			$this->assertNotFalse( $cta_position );
+			$this->assertNotFalse( $operator_position );
 			$this->assertNotFalse( $calendar_position );
 			$this->assertStringContainsString( 'href="' . esc_url( $archive_url . '#booking-inquiry' ) . '"', $output );
 			$this->assertLessThan( $heading_position, $cta_position );
-			$this->assertLessThan( $cta_position, $calendar_position );
+			$this->assertLessThan( $cta_position, $operator_position );
+			$this->assertLessThan( $operator_position, $calendar_position );
 			$this->assertSame( 1, substr_count( $output, 'Submit a booking inquiry' ) );
 		} finally {
 			$wp_query     = $previous_query;
@@ -184,8 +190,9 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 
 		try {
 			$this->go_to( get_term_link( $this->venue_id, 'venue' ) );
-			$output = $this->render( array() );
+			$output = $this->render_archive();
 			$this->assertStringNotContainsString( 'Submit a booking inquiry', $output );
+			$this->assertStringContainsString( 'data-venue-workspace-action', $output );
 		} finally {
 			$wp_query     = $previous_query;
 			$wp_the_query = $previous_main_query;
@@ -261,7 +268,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			update_option( 'active_plugins', array_keys( $required ) );
 			$die_handler = static function () {
 				return static function ( $message ): void {
-					throw new RuntimeException( wp_strip_all_tags( $message ) );
+					throw new RuntimeException( wp_strip_all_tags( $message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test catches this exception; it is never rendered.
 				};
 			};
 			add_filter( 'wp_die_handler', $die_handler );
@@ -314,5 +321,12 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$this->assertSame( $blog_id, get_current_blog_id() );
 		$this->assertCount( $switch_depth, $GLOBALS['_wp_switched_stack'] ?? array() );
 		return $output;
+	}
+
+	/** Render the canonical archive template for hierarchy assertions. */
+	private function render_archive(): string {
+		ob_start();
+		include dirname( __DIR__, 2 ) . '/inc/templates/archive.php';
+		return (string) ob_get_clean();
 	}
 }

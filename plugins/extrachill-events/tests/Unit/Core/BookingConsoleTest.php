@@ -165,6 +165,26 @@ final class BookingConsoleTest extends TestCase {
 		}
 	}
 
+	/** The archive action remains subordinate progressive disclosure. */
+	public function test_archive_action_is_registered_as_quiet_progressive_disclosure(): void {
+		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-console.php' );
+
+		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 )", $source );
+		$this->assertStringContainsString( '<details class="venue-workspace-disclosure" data-venue-workspace-action>', $source );
+		$this->assertStringContainsString( "esc_html_e( 'Own or manage this venue?'", $source );
+		$this->assertStringContainsString( 'class="button-3 button-small"', $source );
+		$this->assertStringNotContainsString( '<aside class="events-market-context events-market-context--quiet" data-venue-workspace-action>', $source );
+	}
+
+	/** Expired sessions rebuild login continuation with exact venue context. */
+	public function test_signed_out_workspace_preserves_requested_venue_for_login(): void {
+		$source = file_get_contents( dirname( __DIR__, 3 ) . '/blocks/venue-settings/render.php' );
+
+		$this->assertStringContainsString( '$login_venue_id = $requested_venue_id ? $requested_venue_id : $requested_booking_venue_id;', $source );
+		$this->assertStringContainsString( 'wp_login_url( ec_events_get_booking_console_url( $login_venue_id, $requested_booking_id ) )', $source );
+		$this->assertLessThan( strpos( $source, 'if ( ! is_user_logged_in() )' ), strpos( $source, '$requested_venue_id' ) );
+	}
+
 	/** Provide member, non-member, logged-out, and administrator states. */
 	public function venue_workspace_states(): array {
 		$workspace = $this->expected_workspace_url();

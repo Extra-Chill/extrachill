@@ -104,6 +104,39 @@
     flex-shrink: 0;
 }
 
+/* Keep venue-operator acquisition available without competing with booking. */
+.venue-workspace-disclosure {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--spacing-lg);
+}
+
+.venue-workspace-disclosure summary {
+    color: var(--link-color);
+    cursor: pointer;
+    width: fit-content;
+}
+
+.venue-workspace-disclosure summary:hover {
+    color: var(--link-hover-color);
+}
+
+.venue-workspace-disclosure__content {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: space-between;
+    padding-top: var(--spacing-sm);
+}
+
+.venue-workspace-disclosure__content p {
+    margin: 0;
+}
+
+.venue-workspace-disclosure__content .button-3 {
+    flex-shrink: 0;
+}
+
 /* Progressive homepage router: search, preferred market, sample, directories. */
 .events-home-router {
     display: grid;
@@ -186,6 +219,11 @@
 }
 
 @media (max-width: 600px) {
+    .venue-workspace-disclosure__content {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
     .events-market-context {
         align-items: flex-start;
         flex-direction: column;
