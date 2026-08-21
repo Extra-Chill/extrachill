@@ -18,7 +18,7 @@ get_header(); ?>
 
 		<?php extrachill_breadcrumbs(); ?>
 
-	<article id="post-<?php the_ID(); ?>" class="single-post-card ec-mobile-full-width-panel">
+	<article id="post-<?php the_ID(); ?>" <?php post_class( array( 'single-post-card', 'ec-mobile-full-width-panel' ) ); ?>>
 		<?php do_action( 'extrachill_before_post_content' ); ?>
 
 		<header id="postvote">
