@@ -2174,6 +2174,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMarketingService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingLifecycle.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateFileProvider.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalBookingPrivateFileProvider.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateStorageReadiness.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingPrivateFileProviders.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentPolicy.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentRepository.php';

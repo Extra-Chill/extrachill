@@ -9,7 +9,7 @@ Booking attachment metadata, policy, and private local bytes belong to Extra Chi
 - Event submission flyer handling temporarily uses WordPress upload handling and copies the flyer into the Data Machine flow-file repository. That is appropriate for public event artwork, not contracts, insurance, riders, or tax documents.
 - Booking metadata, activity, lifecycle, and exact venue authorization already live in site-scoped transactional tables in this plugin.
 
-Data Machine declined a generic private-object capability in `Extra-Chill/data-machine#2966`. The byte provider therefore belongs to the Events booking domain. Production provisioning, backups, retention approval, malware policy, capacity monitoring, and restore evidence remain blocked on `Extra-Chill/extrachill-events#336`.
+Data Machine declined a generic private-object capability in `Extra-Chill/data-machine#2966`. The byte provider therefore belongs to the Events booking domain. The repository-owned readiness gate and exact live operator checklist are documented in [private booking storage readiness](private-booking-storage-readiness.md). Production provisioning and evidence remain blocked on `Extra-Chill/extrachill-events#336`.
 
 ## Privacy Model
 
@@ -25,7 +25,7 @@ The provider must atomically claim provisional bytes using the supplied claim ke
 
 - Public/publishable assets: promo images, EPKs, and press releases may intentionally use public media elsewhere. References attached to a booking through this private contract are still treated as private.
 - Private operational evidence: stage plots, technical riders, hospitality riders, insurance, contracts, and other private evidence require the private provider.
-- Tax identity documents: W-9/tax/TIN/EIN/SSN-like filenames and unsupported tax purposes are default-denied. These forms require a separately approved secure vault, access policy, and retention policy.
+- Tax identity and banking documents: W-9/tax/TIN/EIN/SSN, banking, routing, and direct-deposit-like filenames are default-denied. These forms require a separately approved secure vault, access policy, and retention policy.
 - Maximum object size: the lower of 20 MiB and WordPress's effective `wp_max_upload_size()`. Production currently reports 2 MiB; ops #336 must align the Nginx/PHP/WordPress chain before raising it.
 - Allowed content: JPEG, PNG, WebP, PDF, DOCX, XLSX, CSV, and plain text. Provider-detected MIME must agree with the filename extension.
 - Filenames must already equal WordPress's sanitized basename. SHA-256 metadata is required.

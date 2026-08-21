@@ -30,4 +30,6 @@ Anonymization clears the submitter link and contact fields, replaces intake and 
 
 Output contains only booking public references, statuses, timestamps, and internal operation IDs. Contact, intake, correspondence, and delivery payloads are never included.
 
-Private attachment storage, malware scanning, backups, retention, and orphan cleanup remain disabled and deferred to [issue #336](https://github.com/Extra-Chill/extrachill-events/issues/336).
+Private attachment defaults are versioned separately: rejected attachment bytes retain for 365 days, active bytes for 730 days, and confirmed bytes for 2555 days. Confirmed/completed contracts, insurance, riders, stage plots, and other private evidence remain legal-hold sensitive. Cleanup still requires explicit actor, retention, and legal-hold inputs.
+
+The existing diagnostic projection now includes the redacted private-storage readiness state. Live storage, scanning, backup/restore, limits, capacity, and denial evidence remain disabled and operator-blocked under [issue #336](https://github.com/Extra-Chill/extrachill-events/issues/336) until every [readiness check](private-booking-storage-readiness.md) passes.

@@ -15,6 +15,7 @@
 			<file>tests/BookingAttachmentTest.php</file>
 			<file>tests/BookingInquiryAdmissionTest.php</file>
 			<file>tests/BookingPrivateFileProviderTest.php</file>
+			<file>tests/BookingPrivateStorageReadinessTest.php</file>
 			<file>tests/BookingHoldTest.php</file>
 			<file>tests/BookingMutationTest.php</file>
 			<file>tests/BookingEventConversionTest.php</file>

@@ -121,7 +121,14 @@ class BookingPrivacyService {
 			'notification_receipt_days' => 365,
 			'operational_audit_days'    => 2555,
 			'financial_audit_days'      => 2555,
-			'attachments'               => 'deferred_to_issue_336',
+			'attachments'               => array(
+				'version'             => 1,
+				'rejected_days'       => 365,
+				'active_days'         => 730,
+				'confirmed_days'      => 2555,
+				'legal_hold_statuses' => array( 'confirmed', 'completed' ),
+				'legal_hold_purposes' => array( 'stage_plot', 'technical_rider', 'hospitality_rider', 'insurance', 'contract', 'other_private_evidence' ),
+			),
 		);
 		$filtered = apply_filters( 'extrachill_events_booking_retention_policy', $policy );
 		return self::valid_policy( $filtered ) ? $filtered : $policy;
@@ -463,7 +470,7 @@ class BookingPrivacyService {
 			'correspondence_automation'      => $communications,
 			'stuck_event_handoffs'           => $handoffs,
 			'overdue_retained_inquiries'     => $overdue,
-			'private_attachment_diagnostics' => 'deferred_to_issue_336',
+			'private_attachment_diagnostics' => BookingPrivateFileProviders::readiness(),
 		);
 	}
 
@@ -607,7 +614,7 @@ class BookingPrivacyService {
 	}
 
 	private static function valid_policy( $policy ): bool {
-		if ( ! is_array( $policy ) || ! isset( $policy['statuses'], $policy['categories'] ) ) {
+		if ( ! is_array( $policy ) || ! isset( $policy['statuses'], $policy['categories'], $policy['attachments'] ) ) {
 			return false;
 		}
 		foreach ( BookingRepository::STATUSES as $status ) {
@@ -621,6 +628,16 @@ class BookingPrivacyService {
 				}
 			}
 		}
-		return true;
+		$attachments = $policy['attachments'];
+		if ( ! is_array( $attachments ) || 1 !== (int) ( $attachments['version'] ?? 0 ) ) {
+			return false;
+		}
+		foreach ( array( 'rejected_days', 'active_days', 'confirmed_days' ) as $field ) {
+			if ( ! is_int( $attachments[ $field ] ?? null ) || $attachments[ $field ] < 1 ) {
+				return false;
+			}
+		}
+		return array( 'confirmed', 'completed' ) === ( $attachments['legal_hold_statuses'] ?? null )
+			&& array( 'stage_plot', 'technical_rider', 'hospitality_rider', 'insurance', 'contract', 'other_private_evidence' ) === ( $attachments['legal_hold_purposes'] ?? null );
 	}
 }

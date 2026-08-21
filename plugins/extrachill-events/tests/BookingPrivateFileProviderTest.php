@@ -170,7 +170,9 @@ final class BookingPrivateFileProviderTest extends BookingTestCase {
 		$source   = $this->source( 'evidence.txt', 'four' );
 		$provider = new LocalBookingPrivateFileProvider( $this->root );
 		$this->assertSame( 'invalid_booking_attachment_filename', $provider->stage( $source, '../evidence.txt', 'other_private_evidence' )->get_error_code() );
-		$this->assertSame( 'booking_tax_document_denied', $provider->stage( $source, 'artist-w-9.txt', 'other_private_evidence' )->get_error_code() );
+		foreach ( array( 'artist-w-9.txt', 'bank-account.txt', 'routing-number.txt', 'direct-deposit.txt' ) as $filename ) {
+			$this->assertSame( 'booking_tax_document_denied', $provider->stage( $source, $filename, 'other_private_evidence' )->get_error_code() );
+		}
 
 		$GLOBALS['ec_artist_test']['max_upload_size'] = 3;
 		$result                                       = $provider->stage( $source, 'evidence.txt', 'other_private_evidence' );

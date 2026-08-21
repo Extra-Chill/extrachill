@@ -105,7 +105,7 @@ final class BookingAttachmentPolicy {
 	 * @param string $filename Safe original filename.
 	 */
 	public function is_default_denied_filename( string $filename ): bool {
-		return 1 === preg_match( '/(?:^|[-_.\s])(?:w[-_.\s]?9|tax|tin|ein|ssn)(?:[-_.\s]|$)/i', $filename );
+		return 1 === preg_match( '/(?:^|[-_.\s])(?:w[-_.\s]?9|tax|tin|ein|ssn|bank(?:ing)?|routing|direct[-_.\s]?deposit)(?:[-_.\s]|$)/i', $filename );
 	}
 
 	/**

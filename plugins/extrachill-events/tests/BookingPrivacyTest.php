@@ -35,7 +35,9 @@ final class BookingPrivacyTest extends BookingTestCase {
 		$this->assertSame( 180, $policy['categories']['rejected']['contact_intake_days'] );
 		$this->assertSame( 730, $policy['categories']['active']['contact_intake_days'] );
 		$this->assertSame( 2555, $policy['financial_audit_days'] );
-		$this->assertSame( 'deferred_to_issue_336', $policy['attachments'] );
+		$this->assertSame( 1, $policy['attachments']['version'] );
+		$this->assertSame( 2555, $policy['attachments']['confirmed_days'] );
+		$this->assertSame( array( 'confirmed', 'completed' ), $policy['attachments']['legal_hold_statuses'] );
 		$this->assertSame( array(), array_diff( \ExtraChillEvents\Core\BookingRepository::STATUSES, array_keys( $policy['statuses'] ) ) );
 
 		add_filter(
@@ -46,6 +48,15 @@ final class BookingPrivacyTest extends BookingTestCase {
 			}
 		);
 		$this->assertSame( 90, BookingPrivacyService::retention_policy()['categories']['rejected']['contact_intake_days'] );
+
+		add_filter(
+			'extrachill_events_booking_retention_policy',
+			static function ( array $filtered ): array {
+				unset( $filtered['attachments'] );
+				return $filtered;
+			}
+		);
+		$this->assertSame( 1, BookingPrivacyService::retention_policy()['attachments']['version'] );
 	}
 
 	public function test_exporter_paginates_and_uses_fail_closed_account_and_anonymous_matching(): void {
