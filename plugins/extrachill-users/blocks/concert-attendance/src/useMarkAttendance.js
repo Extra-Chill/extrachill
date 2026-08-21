@@ -2,7 +2,7 @@
  * useMarkAttendance — concert-attendance toggle hook.
  *
  * Single client-side implementation of the write against
- * `/extrachill/v1/concert-tracking/toggle` for the single-event attendance
+ * `extrachill/set-event-mark` for the single-event attendance
  * button. Mirrors the canonical hook of the same name shipped by
  * extrachill-events (blocks/concert-stats/src/hooks/useMarkAttendance.js):
  * both call sites converge on one React + apiFetch contract instead of the
@@ -38,7 +38,7 @@ const useMarkAttendance = () => {
 
 	const inFlight = useRef( false );
 
-	const mark = useCallback( ( { eventId, blogId } = {} ) => {
+	const mark = useCallback( ( { eventId, blogId, marked = true } = {} ) => {
 		if ( inFlight.current ) {
 			return Promise.resolve( null );
 		}
@@ -47,15 +47,15 @@ const useMarkAttendance = () => {
 		setIsMarking( true );
 		setError( null );
 
-		const data = { event_id: eventId };
+		const data = { event_id: eventId, marked };
 		if ( blogId ) {
 			data.blog_id = blogId;
 		}
 
 		return apiFetch( {
-			path: '/extrachill/v1/concert-tracking/toggle',
+			path: '/wp-abilities/v1/abilities/extrachill/set-event-mark/run',
 			method: 'POST',
-			data,
+			data: { input: data },
 		} )
 			.then( ( response ) => {
 				inFlight.current = false;

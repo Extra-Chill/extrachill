@@ -18,7 +18,7 @@
 /**
  * WordPress dependencies
  */
-import { useState } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -38,6 +38,8 @@ import useMarkAttendance from './useMarkAttendance';
  * @param {string}  props.redirectTo    Optional explicit post-login return URL.
  *                                      When empty, the current request URL is
  *                                      used (prior default behavior).
+ * @param {boolean} props.pendingIntent Whether a signed attendance continuation should resume.
+ * @param {string}  props.intentToken   Signed continuation added before authentication.
  */
 const AttendanceButton = ( {
 	eventId,
@@ -49,12 +51,62 @@ const AttendanceButton = ( {
 	labelActive,
 	loginUrl,
 	redirectTo,
+	pendingIntent,
+	intentToken,
 } ) => {
 	const [ marked, setMarked ] = useState( !! initialMarked );
 	const [ countLabel, setCountLabel ] = useState(
 		initialCount && initialCount.label ? initialCount.label : ''
 	);
 	const { mark, isMarking, error } = useMarkAttendance();
+	const buttonRef = useRef( null );
+	const attemptedIntent = useRef( false );
+	const [ status, setStatus ] = useState( '' );
+
+	const completeIntent = useCallback( ( response = null ) => {
+		setMarked( response ? !! response.marked : true );
+		if ( response ) {
+			setCountLabel(
+				response.count > 0 ? response.count_label || '' : ''
+			);
+		}
+		setStatus( 'Attendance saved.' );
+		const url = new URL( window.location.href );
+		url.searchParams.delete( 'ec_attendance_intent' );
+		window.history.replaceState( {}, '', url.toString() );
+		buttonRef.current?.focus();
+	}, [] );
+
+	useEffect( () => {
+		if (
+			! isLoggedIn ||
+			! pendingIntent ||
+			attemptedIntent.current ||
+			isMarking
+		) {
+			return;
+		}
+		attemptedIntent.current = true;
+		if ( marked ) {
+			completeIntent();
+			return;
+		}
+		mark( { eventId, blogId, marked: true } )
+			.then( ( response ) => response && completeIntent( response ) )
+			.catch( () => {
+				attemptedIntent.current = false;
+				setStatus( '' );
+			} );
+	}, [
+		blogId,
+		completeIntent,
+		eventId,
+		isLoggedIn,
+		isMarking,
+		mark,
+		marked,
+		pendingIntent,
+	] );
 
 	const handleClick = () => {
 		// Logged-out: send to login, preserving return URL. Composition can
@@ -63,8 +115,16 @@ const AttendanceButton = ( {
 		if ( ! isLoggedIn ) {
 			const target = loginUrl || '/login/';
 			const returnTo = redirectTo || window.location.href;
-			window.location.href =
-				target + '?redirect_to=' + encodeURIComponent( returnTo );
+			const continuation = new URL( returnTo, window.location.href );
+			if ( intentToken ) {
+				continuation.searchParams.set(
+					'ec_attendance_intent',
+					intentToken
+				);
+			}
+			const login = new URL( target, window.location.href );
+			login.searchParams.set( 'redirect_to', continuation.toString() );
+			window.location.href = login.toString();
 			return;
 		}
 
@@ -76,13 +136,18 @@ const AttendanceButton = ( {
 		const previous = marked;
 		setMarked( ! previous );
 
-		mark( { eventId, blogId } )
+		mark( { eventId, blogId, marked: ! previous } )
 			.then( ( response ) => {
 				if ( ! response ) {
 					return;
 				}
 				// Reconcile with server truth.
 				setMarked( !! response.marked );
+				setStatus(
+					response.marked
+						? 'Attendance saved.'
+						: 'Attendance removed.'
+				);
 				setCountLabel(
 					response.count > 0 ? response.count_label || '' : ''
 				);
@@ -90,6 +155,7 @@ const AttendanceButton = ( {
 			.catch( () => {
 				// Revert; the hook exposes the error message.
 				setMarked( previous );
+				setStatus( '' );
 			} );
 	};
 
@@ -99,11 +165,13 @@ const AttendanceButton = ( {
 	return (
 		<>
 			<button
+				ref={ buttonRef }
 				type="button"
 				className={ `ec-attendance__button ${ buttonClass } button-medium` }
 				onClick={ handleClick }
 				disabled={ isMarking }
 				aria-pressed={ marked }
+				aria-busy={ isMarking }
 			>
 				{ marked && (
 					<span className="ec-attendance__check" aria-hidden="true">
@@ -120,6 +188,14 @@ const AttendanceButton = ( {
 					{ error }
 				</span>
 			) }
+			<span
+				className="ec-attendance__status"
+				role="status"
+				aria-live="polite"
+				aria-atomic="true"
+			>
+				{ status }
+			</span>
 		</>
 	);
 };

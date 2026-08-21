@@ -51,6 +51,8 @@ domReady( () => {
 			labelActive={ mount.dataset.labelActive || '' }
 			loginUrl={ mount.dataset.loginUrl || '/login/' }
 			redirectTo={ mount.dataset.redirectTo || '' }
+			pendingIntent={ mount.dataset.pendingIntent === '1' }
+			intentToken={ mount.dataset.attendanceIntent || '' }
 		/>
 	);
 } );

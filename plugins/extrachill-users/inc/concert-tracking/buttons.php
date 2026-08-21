@@ -17,6 +17,69 @@
 
 defined( 'ABSPATH' ) || exit;
 
+const EC_USERS_ATTENDANCE_INTENT_PARAM = 'ec_attendance_intent';
+const EC_USERS_ATTENDANCE_INTENT_TTL   = 10 * MINUTE_IN_SECONDS;
+
+/**
+ * Create a signed continuation for one explicit attendance action.
+ *
+ * @param int    $event_id Event post ID.
+ * @param int    $blog_id  Events blog ID.
+ * @param string $action   Attendance action.
+ * @return string Signed intent token.
+ */
+function ec_users_create_attendance_intent( int $event_id, int $blog_id, string $action = 'mark' ): string {
+	$expires   = time() + EC_USERS_ATTENDANCE_INTENT_TTL;
+	$payload   = implode( '|', array( $event_id, $blog_id, $action, $expires ) );
+	$signature = hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) );
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- URL-safe transport for a signed, non-secret intent payload.
+	return rtrim( strtr( base64_encode( $payload . '|' . $signature ), '+/', '-_' ), '=' );
+}
+
+/**
+ * Resolve and validate the attendance continuation on its event page.
+ *
+ * @param int $expected_event_id Event represented by the page.
+ * @param int $expected_blog_id  Blog represented by the page.
+ * @return array{event_id:int,blog_id:int,action:string}|null Valid intent.
+ */
+function ec_users_get_attendance_intent( int $expected_event_id, int $expected_blog_id ): ?array {
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The signed token is read-only continuation state.
+	if ( ! isset( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] ) ) {
+		return null;
+	}
+
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The signed token is read-only continuation state.
+	$encoded = sanitize_text_field( wp_unslash( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] ) );
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	$base64 = strtr( $encoded, '-_', '+/' );
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decode the signed URL transport.
+	$decoded = base64_decode( $base64 . str_repeat( '=', ( 4 - strlen( $base64 ) % 4 ) % 4 ), true );
+	$parts   = false !== $decoded ? explode( '|', $decoded ) : array();
+	if ( 5 !== count( $parts ) ) {
+		return null;
+	}
+
+	[ $event_id, $blog_id, $action, $expires, $signature ] = $parts;
+	$payload = implode( '|', array( $event_id, $blog_id, $action, $expires ) );
+	if ( ! ctype_digit( $event_id ) || ! ctype_digit( $blog_id ) || ! ctype_digit( $expires )
+		|| 'mark' !== $action || (int) $expires < time()
+		|| ! hash_equals( hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) ), $signature )
+		|| (int) $event_id !== $expected_event_id || (int) $blog_id !== $expected_blog_id ) {
+		return null;
+	}
+
+	if ( is_wp_error( ec_users_validate_event_target( (int) $event_id, (int) $blog_id ) ) ) {
+		return null;
+	}
+
+	return array(
+		'event_id' => (int) $event_id,
+		'blog_id'  => (int) $blog_id,
+		'action'   => $action,
+	);
+}
+
 /**
  * Render the attendance button for an event.
  *
@@ -204,9 +267,11 @@ function ec_users_render_attendance_mount(
 	// Optional explicit post-login redirect target. When omitted the React
 	// component falls back to the current request URL (its existing behavior),
 	// so the default markup stays unchanged.
-	$redirect_to = isset( $args['redirect_to'] ) && '' !== $args['redirect_to']
+	$redirect_to  = isset( $args['redirect_to'] ) && '' !== $args['redirect_to']
 		? (string) $args['redirect_to']
 		: '';
+	$intent_token = ! $is_logged_in ? ec_users_create_attendance_intent( $event_id, $blog_id ) : '';
+	$pending      = $is_logged_in ? ec_users_get_attendance_intent( $event_id, $blog_id ) : null;
 
 	// Server-render the first-paint markup so the button is visible (and
 	// SEO/no-JS friendly) before the React mount hydrates. The mount root
@@ -224,18 +289,21 @@ function ec_users_render_attendance_mount(
 		data-count-label="<?php echo esc_attr( $count > 0 ? $count_label : '' ); ?>"
 		data-is-logged-in="<?php echo $is_logged_in ? '1' : '0'; ?>"
 		data-login-url="<?php echo esc_attr( wp_login_url() ); ?>"
+		data-attendance-intent="<?php echo esc_attr( $intent_token ); ?>"
+		data-pending-intent="<?php echo $pending ? '1' : '0'; ?>"
 		<?php if ( '' !== $redirect_to ) : ?>
 		data-redirect-to="<?php echo esc_attr( $redirect_to ); ?>"
 		<?php endif; ?>
 		data-label-default="<?php echo esc_attr( $label_set['default'] ); ?>"
 		data-label-active="<?php echo esc_attr( $label_set['active'] ); ?>">
 		<button class="ec-attendance__button <?php echo esc_attr( $button_class ); ?> button-medium"
-				type="button">
+				type="button" aria-pressed="<?php echo $is_marked ? 'true' : 'false'; ?>">
 			<?php if ( $is_marked ) : ?>
 				<span class="ec-attendance__check" aria-hidden="true">&#10003;</span>
 			<?php endif; ?>
 			<span class="ec-attendance__label"><?php echo esc_html( $button_label ); ?></span>
 		</button>
+		<span class="ec-attendance__status" role="status" aria-live="polite"></span>
 		<?php if ( $count > 0 ) : ?>
 			<span class="ec-attendance__count"><?php echo esc_html( $count_label ); ?></span>
 		<?php endif; ?>
