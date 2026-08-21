@@ -45,25 +45,6 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A dispatch state lookup failure does not undo a completed moderation action.
-	 */
-	public function test_dispatch_state_error_does_not_report_failed_moderation(): void {
-		$user_id = self::factory()->user->create();
-		$filter  = static function () {
-			return new WP_Error( 'artist_dispatch_state_unavailable' );
-		};
-
-		add_filter( 'ec_users_artist_dispatch_state', $filter );
-		$result = extrachill_users_apply_moderation_action( $user_id, array( 'reason_key' => 'other' ) );
-		remove_filter( 'ec_users_artist_dispatch_state', $filter );
-
-		$this->assertNotWPError( $result );
-		$this->assertSame( 'banned', $result['state'] );
-		$this->assertSame( 'artist_dispatch_state_unavailable', $result['results']['artist_dispatch']['error'] );
-		$this->assertTrue( extrachill_users_is_blocked( $user_id ) );
-	}
-
-	/**
 	 * Owned artist profiles and link pages are hidden across the network.
 	 */
 	public function test_moderation_hides_owned_artist_content_cross_site(): void {

@@ -146,5 +146,5 @@ function extrachill_users_send_moderation_email( WP_User $user, array $status ) 
 		)
 	);
 
-	return ! empty( $result['success'] );
+	return is_array( $result ) && ! empty( $result['success'] );
 }

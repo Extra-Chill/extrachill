@@ -210,8 +210,7 @@ function ec_users_get_artist_dispatch_eligibility( $user_id ) {
  */
 function ec_users_get_artist_dispatch_state( $user_id ) {
 	$state = get_user_meta( absint( $user_id ), EC_USERS_ARTIST_DISPATCH_STATE_META, true );
-	$state = apply_filters( 'ec_users_artist_dispatch_state', $state, absint( $user_id ) );
-	return is_wp_error( $state ) ? $state : ( is_array( $state ) ? $state : array() );
+	return is_array( $state ) ? $state : array();
 }
 
 /**
@@ -1166,9 +1165,6 @@ function ec_users_revoke_artist_dispatch_access( $user_id, $request_id, $reason,
  */
 function ec_users_revoke_artist_dispatch_for_moderation( $user_id, $actor_id, $reason ) {
 	$state = ec_users_get_artist_dispatch_state( $user_id );
-	if ( is_wp_error( $state ) ) {
-		return $state;
-	}
 	if ( 'approved' !== ( $state['status'] ?? '' ) ) {
 		return $state;
 	}
