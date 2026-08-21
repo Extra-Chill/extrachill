@@ -10,21 +10,91 @@ use PHPUnit\Framework\TestCase;
 
 /** Proves the network companion in a cold non-Events process. */
 final class NetworkBookingBlockColdTest extends TestCase {
-	/** Load only the network companion for this process. */
+	/**
+	 * Generated fixture files created by this suite.
+	 *
+	 * @var string[]
+	 */
+	private static array $fixture_files = array();
+
+	/**
+	 * Generated fixture directories created by this suite.
+	 *
+	 * @var string[]
+	 */
+	private static array $fixture_directories = array();
+
+	/**
+	 * Load only the network companion for this process.
+	 *
+	 * @throws RuntimeException When the compiled fixture cannot be created.
+	 */
 	public static function setUpBeforeClass(): void {
+		$plugin_dir = dirname( __DIR__ );
+		$build_root = $plugin_dir . '/build';
+		$build_dir  = $build_root . '/venue-booking-inquiry';
+
+		if ( ! is_dir( $build_root ) ) {
+			self::$fixture_directories[] = $build_root;
+		}
+		if ( ! is_dir( $build_dir ) ) {
+			self::$fixture_directories[] = $build_dir;
+		}
+		// The cold process does not load WordPress's filesystem abstraction.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir
+		if ( ! is_dir( $build_dir ) && ! mkdir( $build_dir, 0777, true ) && ! is_dir( $build_dir ) ) {
+			throw new RuntimeException( 'Unable to create the cold block build fixture.' );
+		}
+
+		foreach ( array( 'block.json', 'render.php' ) as $file ) {
+			$source      = $plugin_dir . '/blocks/venue-booking-inquiry/' . $file;
+			$destination = $build_dir . '/' . $file;
+			if ( ! file_exists( $destination ) ) {
+				if ( ! copy( $source, $destination ) ) {
+					throw new RuntimeException( 'Unable to create the cold block build fixture.' );
+				}
+				self::$fixture_files[] = $destination;
+			}
+		}
+
 		require_once dirname( __DIR__ ) . '/extrachill-events-network-blocks.php';
+	}
+
+	/** Remove generated assets so the cold suite leaves a clean worktree. */
+	public static function tearDownAfterClass(): void {
+		foreach ( array_reverse( self::$fixture_files ) as $file ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- WordPress is intentionally not loaded.
+			unlink( $file );
+		}
+		foreach ( array_reverse( self::$fixture_directories ) as $directory ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- WordPress is intentionally not loaded.
+			rmdir( $directory );
+		}
 	}
 
 	/** Reset the simulated network request and activation state. */
 	protected function setUp(): void {
-		$GLOBALS['ec_network_block_test']['blog_id']         = 1;
-		$GLOBALS['ec_network_block_test']['stack']           = array();
-		$GLOBALS['ec_network_block_test']['registered']      = array();
-		$GLOBALS['ec_network_block_test']['nocache_headers'] = 0;
-		$GLOBALS['ec_network_block_test']['network_plugins'] = array(
+		$GLOBALS['ec_network_block_test']['blog_id']            = 1;
+		$GLOBALS['ec_network_block_test']['stack']              = array();
+		$GLOBALS['ec_network_block_test']['registered']         = array();
+		$GLOBALS['ec_network_block_test']['nocache_headers']    = 0;
+		$GLOBALS['ec_network_block_test']['turnstile_enqueued'] = false;
+		$GLOBALS['ec_network_block_test']['network_plugins']    = array(
 			'extrachill-network/extrachill-network.php',
 			'extrachill-api/extrachill-api.php',
 		);
+	}
+
+	/** Verify and restore the simulated multisite request context. */
+	protected function tearDown(): void {
+		$blog_id = get_current_blog_id();
+		$stack   = $GLOBALS['ec_network_block_test']['stack'];
+
+		$GLOBALS['ec_network_block_test']['blog_id'] = 1;
+		$GLOBALS['ec_network_block_test']['stack']   = array();
+
+		$this->assertSame( 1, $blog_id );
+		$this->assertSame( array(), $stack );
 	}
 
 	/** Render without loading private booking-domain dependencies. */
