@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.63.0] - 2026-08-21
+
+### Added
+- make venue booking management action-first
+- make artist booking intake resilient
+- expose venue booking from archive headers
+
+### Changed
+- refresh Homeboy Extensions routing pin
+
 ## [0.62.3] - 2026-08-15
 
 ### Fixed
