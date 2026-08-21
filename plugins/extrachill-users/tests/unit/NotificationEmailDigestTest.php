@@ -4,9 +4,6 @@
  * Regression tests for queued notification digest delivery.
  *
  * @package ExtraChill\Users
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class Test_Notification_Email_Digest extends WP_UnitTestCase {
 
@@ -22,21 +19,7 @@ class Test_Notification_Email_Digest extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->query( 'DELETE FROM ' . extrachill_users_notifications_table_name() ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- test table from trusted helper.
 
-		if ( ! class_exists( '\\DataMachine\\Abilities\\PermissionHelper' ) ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.eval -- test-only stub for an optional dependency.
-			eval(
-				'namespace DataMachine\\Abilities;' .
-				' class PermissionHelper {' .
-				' public static function run_as_authenticated( callable $callback, int $acting_user_id = 0 ): mixed {' .
-				' $GLOBALS["test_permission_helper_called"] = true;' .
-				' return $callback();' .
-				' }' .
-				' }'
-			);
-		}
-
-		$GLOBALS['test_permission_helper_called']    = false;
-		$GLOBALS['test_digest_queue_called']         = false;
+		$GLOBALS['test_digest_queue_called'] = false;
 		delete_user_meta( get_current_user_id(), EC_NOTIFICATIONS_LAST_EMAILED_META );
 	}
 
@@ -44,7 +27,7 @@ class Test_Notification_Email_Digest extends WP_UnitTestCase {
 	 * Tear down the digest test fixture.
 	 */
 	protected function tearDown(): void {
-		unset( $GLOBALS['test_digest_queue_args'], $GLOBALS['test_digest_queue_called'], $GLOBALS['test_permission_helper_called'] );
+		unset( $GLOBALS['test_digest_queue_args'], $GLOBALS['test_digest_queue_called'] );
 		parent::tearDown();
 	}
 
