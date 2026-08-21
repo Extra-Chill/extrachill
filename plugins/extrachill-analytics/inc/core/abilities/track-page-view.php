@@ -87,6 +87,19 @@ function extrachill_analytics_register_track_page_view_ability(): void {
  * @return array{recorded: bool}|WP_Error Confirmation or error.
  */
 function extrachill_analytics_ability_track_page_view( array $input ) {
+	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
+		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
+		: '';
+	$is_bot     = function_exists( 'extrachill_analytics_classify_user_agent' )
+		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
+
+	// Exclusion is a normal analytics outcome, not a failed browser request.
+	// Return before admission, identity, counters, or event persistence so known
+	// crawlers and headless agents produce neither telemetry nor noisy errors.
+	if ( $is_bot ) {
+		return array( 'recorded' => false );
+	}
+
 	$post_id      = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
 	$referrer     = isset( $input['referrer'] ) ? (string) $input['referrer'] : '';
 	$source_path  = isset( $input['source_path'] ) ? extrachill_analytics_normalize_route_path( $input['source_path'] ) : '';
@@ -156,14 +169,7 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	// pageview we want counted anonymously. Requiring the cookie here would drop
 	// those legitimate humans. Per-visitor retention metrics already exclude
 	// NULL-visitor_id rows downstream, so anonymous pageviews never distort them.
-	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
-		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
-		: '';
-
-	$is_bot = function_exists( 'extrachill_analytics_classify_user_agent' )
-		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
-
-	if ( ! $is_bot && function_exists( 'extrachill_track_analytics_event' ) ) {
+	if ( function_exists( 'extrachill_track_analytics_event' ) ) {
 		$permalink  = $post_id > 0 ? get_permalink( $post_id ) : home_url( $source_path );
 		$event_data = array(
 			'route_family' => $route_family,

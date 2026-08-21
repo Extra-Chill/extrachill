@@ -15,8 +15,12 @@
 		route_family: config.routeFamily,
 		proof: config.proof,
 	};
-	if ( config.postId ) {
-		input.post_id = config.postId;
+	// wp_localize_script() stringified scalar values in previously cached HTML.
+	// Normalize those positive IDs while ensuring its truthy "0" never reaches
+	// Core's integer schema as an invalid route-level post_id.
+	const postId = Number.parseInt( config.postId, 10 );
+	if ( Number.isInteger( postId ) && postId > 0 ) {
+		input.post_id = postId;
 	}
 
 	// Capture the TRUE referrer client-side. This beacon fires after page load,

@@ -445,13 +445,6 @@ function extrachill_analytics_enqueue_view_tracking() {
 		return;
 	}
 
-	$post_id = is_singular() ? (int) get_the_ID() : 0;
-	// Existing custom-domain singular views remain anonymous and post-backed;
-	// route-level collection is first-party only.
-	if ( $post_id <= 0 && ! extrachill_analytics_request_host_is_first_party() ) {
-		return;
-	}
-
 	$request_uri = isset( $_SERVER['REQUEST_URI'] )
 		? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
 		: '/';
@@ -460,6 +453,13 @@ function extrachill_analytics_enqueue_view_tracking() {
 		return;
 	}
 	$route_family = extrachill_analytics_classify_current_route( $source_path );
+	$post_id      = 'singular' === $route_family && is_singular() ? (int) get_the_ID() : 0;
+	// Existing custom-domain singular views remain anonymous and post-backed;
+	// route-level collection is first-party only.
+	if ( $post_id <= 0 && ! extrachill_analytics_request_host_is_first_party() ) {
+		return;
+	}
+
 	$request_host = isset( $_SERVER['HTTP_HOST'] )
 		? wp_parse_url( 'https://' . sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ), PHP_URL_HOST )
 		: '';
@@ -483,16 +483,18 @@ function extrachill_analytics_enqueue_view_tracking() {
 		)
 	);
 
-	wp_localize_script(
+	$config = array(
+		'postId'      => $post_id,
+		'sourcePath'  => $source_path,
+		'routeFamily' => $route_family,
+		'proof'       => extrachill_analytics_pageview_proof( $post_id, $source_path, $route_family, $request_host ),
+		'endpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
+	);
+
+	wp_add_inline_script(
 		'extrachill-view-tracking',
-		'ecViewTracking',
-		array(
-			'postId'      => $post_id,
-			'sourcePath'  => $source_path,
-			'routeFamily' => $route_family,
-			'proof'       => extrachill_analytics_pageview_proof( $post_id, $source_path, $route_family, $request_host ),
-			'endpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
-		)
+		'window.ecViewTracking = ' . wp_json_encode( $config ) . ';',
+		'before'
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_view_tracking' );

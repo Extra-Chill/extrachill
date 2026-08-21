@@ -49,6 +49,7 @@ final class RouteJourneyTrackingTest extends TestCase {
 			$_SERVER['HTTP_USER_AGENT'],
 			$_SERVER['REMOTE_ADDR'],
 			$_SERVER['HTTP_SEC_GPC'],
+			$_SERVER['HTTP_DNT'],
 			$_SERVER['REQUEST_METHOD'],
 			$_COOKIE['ec_vid']
 		);
@@ -113,6 +114,11 @@ final class RouteJourneyTrackingTest extends TestCase {
 		$this->assertStringContainsString( 'JSON.stringify( { input } )', $script );
 		$this->assertStringContainsString( 'source_path: config.sourcePath', $script );
 		$this->assertStringContainsString( 'route_family: config.routeFamily', $script );
+		$this->assertStringContainsString( 'Number.parseInt( config.postId, 10 )', $script );
+		$this->assertStringContainsString( 'wp_add_inline_script(', $assets );
+		$this->assertStringContainsString( 'window.ecViewTracking = ', $assets );
+		$this->assertStringContainsString( "'singular' === \$route_family && is_singular()", $assets );
+		$this->assertStringNotContainsString( "wp_localize_script(\n\t\t'extrachill-view-tracking'", $assets );
 		$this->assertStringNotContainsString( "rest_url( 'extrachill/v1/analytics/view' )", $assets );
 		$this->assertStringContainsString( "'required'   => array( 'source_path', 'route_family', 'proof' )", $ability );
 	}
@@ -182,6 +188,64 @@ final class RouteJourneyTrackingTest extends TestCase {
 
 		$this->assertTrue( extrachill_analytics_is_eligible_public_template_request() );
 		$this->assertFalse( extrachill_analytics_should_prime_visitor_cookie() );
+	}
+
+	/**
+	 * Privacy signals suppress identity while preserving aggregate pageviews.
+	 *
+	 * @dataProvider privacy_signal_provider
+	 *
+	 * @param string $header Privacy request header.
+	 */
+	public function test_privacy_signal_records_anonymous_route_view( $header ): void {
+		$_SERVER[ $header ] = '1';
+
+		$result = extrachill_analytics_ability_track_page_view(
+			$this->with_proof(
+				array(
+					'source_path'  => '/locations/charleston/?scope=weekend&search=indie',
+					'route_family' => 'archive',
+				)
+			)
+		);
+
+		$this->assertSame( array( 'recorded' => true ), $result );
+		$this->assertCount( 1, $GLOBALS['extrachill_analytics_test_events'] );
+		$this->assertSame( '', $GLOBALS['extrachill_analytics_test_events'][0][3] );
+		$this->assertSame( 'https://extrachill.com/locations/charleston/', $GLOBALS['extrachill_analytics_test_events'][0][2] );
+	}
+
+	/**
+	 * Privacy request headers.
+	 *
+	 * @return array<string,array{string}>
+	 */
+	public function privacy_signal_provider() {
+		return array(
+			'gpc' => array( 'HTTP_SEC_GPC' ),
+			'dnt' => array( 'HTTP_DNT' ),
+		);
+	}
+
+	/**
+	 * Known automation receives a successful no-op without any side effect.
+	 */
+	public function test_intentional_bot_exclusion_is_successful_no_op(): void {
+		$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 HeadlessChrome/127.0';
+
+		$result = extrachill_analytics_ability_track_page_view(
+			array(
+				'source_path'  => '/events/show/',
+				'route_family' => 'singular',
+				'proof'        => 'not-used-for-an-excluded-request',
+				'post_id'      => 42,
+			)
+		);
+
+		$this->assertSame( array( 'recorded' => false ), $result );
+		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_tracked_post_views'] );
+		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_events'] );
+		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_cache'] );
 	}
 
 	/**

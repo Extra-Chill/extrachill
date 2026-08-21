@@ -873,7 +873,7 @@ if ( ! function_exists( 'extrachill_analytics_classify_user_agent' ) ) {
 	 * @return string Browser or bot class.
 	 */
 	function extrachill_analytics_classify_user_agent( $user_agent ) {
-		return false !== stripos( (string) $user_agent, 'bot' ) ? 'bot' : 'browser';
+		return preg_match( '/bot|headlesschrome/i', (string) $user_agent ) ? 'bot' : 'browser';
 	}
 }
 if ( ! function_exists( 'extrachill_track_analytics_event' ) ) {
