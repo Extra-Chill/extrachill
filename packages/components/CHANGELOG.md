@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.3] - 2026-08-21
+
+### Changed
+- publish stable compiled component contract
+
+### Fixed
+- give SearchBox an accessible name
+
 ## [0.9.2] - 2026-07-15
 
 ### Fixed
