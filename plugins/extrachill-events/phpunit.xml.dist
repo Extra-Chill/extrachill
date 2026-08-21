@@ -28,6 +28,7 @@
 			<file>tests/Unit/Abilities/ArtistUrlImportConfigurationContractTest.php</file>
 			<file>tests/Unit/Abilities/EventSourceIntakeTest.php</file>
 			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
+			<file>tests/Unit/Abilities/EventsUpcomingCountsTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionPlanTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionRunnerTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionSystemTaskTest.php</file>

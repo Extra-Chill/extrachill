@@ -4,7 +4,8 @@
  *
  * Returns upcoming-event counts per taxonomy term.  Supports bulk
  * queries (all terms in a taxonomy) and single-term lookups by slug.
- * Results are cached with a 6-hour transient.
+ * Bulk results delegate directly to the optimized owning ability so inventory
+ * changes are reflected immediately.
  *
  * @package ExtraChillEvents
  * @since   0.19.0
@@ -119,33 +120,13 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
 		return array( $single );
 	}
 
-	// Bulk query — check transient, delegate to the data-machine-events
-	// ability on cold cache. Cache key varies by every parameter that
-	// changes the result set.
-	$cache_key = 'ec_upcoming_counts_' . $taxonomy;
-	if ( '' !== $location_slug ) {
-		$cache_key .= '_loc_' . $location_slug;
-	}
-	if ( $rollup ) {
-		$cache_key .= '_rollup';
-	}
-	$cached = get_transient( $cache_key );
-
-	if ( false !== $cached ) {
-		$results = $cached;
-		if ( $limit > 0 ) {
-			$results = array_slice( $results, 0, $limit );
-		}
-		return $results;
-	}
-
-	// Cold cache — delegate to the owning ability.
+	// The owning ability uses one grouped query against its denormalized event
+	// dates table. Do not cache here: every taxonomy, rollup, and location scope
+	// must reflect event inventory changes immediately.
 	$terms = extrachill_events_query_upcoming_counts( $taxonomy, $location_slug, $rollup );
 	if ( is_wp_error( $terms ) ) {
 		return $terms;
 	}
-
-	set_transient( $cache_key, $terms, 6 * HOUR_IN_SECONDS );
 
 	if ( $limit > 0 ) {
 		$terms = array_slice( $terms, 0, $limit );
@@ -161,8 +142,8 @@ function extrachill_events_ability_upcoming_counts( array $input ): array|\WP_Er
  * single source of truth for the count query. This function owns only the
  * EC-specific concerns the generic layer should not: mapping a venue
  * `location_slug` scope onto the ability's co-occurrence filter, and passing
- * through the optional hierarchy `rollup` mode. Caching + limit slicing are
- * handled by the caller.
+ * through the optional hierarchy `rollup` mode. Limit slicing is handled by
+ * the caller.
  *
  * @param string $taxonomy      Taxonomy slug.
  * @param string $location_slug Optional location term slug to scope venue counts to.
