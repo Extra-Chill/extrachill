@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Near Me state fixture</title>
+	<link rel="stylesheet" href="/assets/css/near-me.css">
+	<style>
+		body { max-width: 70rem; margin: 0 auto; padding: 1rem; font-family: sans-serif; }
+		.data-machine-events-map-root { min-height: 12rem; border: 1px solid #ccc; }
+		.data-machine-events-calendar { padding: 1rem; border: 2px solid #b91c1c; }
+	</style>
+</head>
+<body>
+	<h1>Live Music Near Me</h1>
+	<div class="near-me-detect">
+		<div class="near-me-loading" role="status" aria-live="polite" style="display:flex;">
+			<div class="near-me-spinner" aria-hidden="true"></div>
+			<p class="near-me-status">Detecting your location...</p>
+		</div>
+	</div>
+	<div class="near-me-cities" style="display:block;">
+		<h2>Browse by City</h2>
+		<div class="near-me-city-grid">
+			<a class="near-me-city-card" href="#charleston">Charleston</a>
+			<a class="near-me-city-card" href="#austin">Austin</a>
+		</div>
+	</div>
+	<div class="near-me-results is-location-pending">
+		<div class="data-machine-events-map-root" data-initialized="1">Search an area</div>
+		<div class="data-machine-events-calendar">Worldwide calendar: London, Portland, Paris</div>
+	</div>
+	<script>
+		window.ecNearMe = {
+			hasLocation: false,
+			hasAccountMarket: false,
+			pageUrl: window.location.origin + '/near-me/'
+		};
+		const scenario = new URLSearchParams( window.location.search ).get( 'scenario' ) || 'unresolved';
+		const errors = { denied: 1, 'lookup-failure': 2, timeout: 3 };
+		Object.defineProperty( navigator, 'geolocation', {
+			configurable: true,
+			value: scenario === 'unsupported' ? undefined : {
+				getCurrentPosition( success, error ) {
+					if ( scenario === 'unresolved' ) return;
+					setTimeout( () => {
+						if ( scenario === 'success' ) {
+							success( { coords: { latitude: 32.7765, longitude: -79.9311 } } );
+							return;
+						}
+						error( {
+							code: errors[ scenario ],
+							PERMISSION_DENIED: 1,
+							POSITION_UNAVAILABLE: 2,
+							TIMEOUT: 3
+						} );
+					}, 30 );
+				}
+			}
+		} );
+		document.addEventListener( 'data-machine-map-recenter', ( event ) => {
+			document.dispatchEvent( new CustomEvent( 'data-machine-map-bounds-changed', {
+				detail: { authority: event.detail.authority }
+			} ) );
+			setTimeout( () => {
+				const calendar = document.querySelector( '.data-machine-events-calendar' );
+				calendar.textContent = 'Scoped nearby calendar: Charleston';
+				calendar.dispatchEvent( new CustomEvent( 'data-machine-calendar-content-updated' ) );
+			}, 30 );
+		} );
+	</script>
+	<script src="/assets/js/near-me.js"></script>
+</body>
+</html>

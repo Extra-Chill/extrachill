@@ -39,6 +39,11 @@
 	margin: 0;
 }
 
+/* Keep the map's area search usable without presenting global events as nearby. */
+.near-me-results.is-location-pending .data-machine-events-calendar {
+	display: none;
+}
+
 /* Map controls — location search is now part of the EventsMap block (data-machine layer) */
 
 /* City grid fallback */

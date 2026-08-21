@@ -27,6 +27,33 @@
 	}
 
 	const detect = document.querySelector( '.near-me-detect' );
+	const loading = document.querySelector( '.near-me-loading' );
+	const spinner = document.querySelector( '.near-me-spinner' );
+	const cities = document.querySelector( '.near-me-cities' );
+	const status = document.querySelector( '.near-me-status' );
+	const results = document.querySelector( '.near-me-results' );
+	const calendar = results?.querySelector( '.data-machine-events-calendar' );
+	let awaitingScopedResults = false;
+
+	document.addEventListener( 'data-machine-map-bounds-changed', ( event ) => {
+		if (
+			! results?.classList.contains( 'is-location-pending' ) ||
+			! [ 'manual-search', 'user-location' ].includes(
+				event.detail?.authority
+			)
+		) {
+			return;
+		}
+
+		awaitingScopedResults = true;
+		showLoading( 'Loading events for that area...' );
+	} );
+
+	calendar?.addEventListener( 'data-machine-calendar-content-updated', () => {
+		if ( awaitingScopedResults ) {
+			revealScopedResults();
+		}
+	} );
 
 	// Already have location in URL — map renders with server-side center,
 	// dynamic mode fetches venues, geo-sync updates calendar.
@@ -39,24 +66,14 @@
 
 	// No Geolocation API — show fallback immediately.
 	if ( ! navigator.geolocation ) {
-		showFallback(
-			'Your browser does not support location detection. Browse by city below.'
-		);
+		showFallback();
 		return;
 	}
-
-	const loading = document.querySelector( '.near-me-loading' );
-	const cities = document.querySelector( '.near-me-cities' );
-	const status = document.querySelector( '.near-me-status' );
 
 	// Show loading state.
 	if ( loading ) {
 		loading.style.display = 'flex';
 	}
-	if ( cities ) {
-		cities.style.display = 'none';
-	}
-
 	// Request location.
 	navigator.geolocation.getCurrentPosition( onSuccess, onError, {
 		enableHighAccuracy: true,
@@ -72,6 +89,7 @@
 		if ( status ) {
 			status.textContent = 'Found you! Loading nearby events...';
 		}
+		awaitingScopedResults = true;
 
 		// Update URL via History API — no page reload.
 		const url = new URL( ecNearMe.pageUrl );
@@ -99,6 +117,7 @@
 							lat: parseFloat( lat ),
 							lng: parseFloat( lng ),
 							zoom: 12,
+							authority: 'user-location',
 						},
 					} )
 				);
@@ -115,11 +134,10 @@
 			}
 		}
 
-		// Hide the detection UI — map and calendar are now loading.
-		hideDetectUI();
+		showLoading( 'Found you! Loading nearby events...' );
 	}
 
-	function onError( error ) {
+	function onError( _error ) {
 		// The server-rendered calendar/map already use the account market.
 		// Keep that result instead of dropping to anonymous city discovery.
 		if ( ecNearMe.hasAccountMarket ) {
@@ -127,23 +145,7 @@
 			return;
 		}
 
-		let msg;
-		switch ( error.code ) {
-			case error.PERMISSION_DENIED:
-				msg =
-					'Location access denied. Browse by city below, or check your browser settings.';
-				break;
-			case error.POSITION_UNAVAILABLE:
-				msg =
-					'Could not determine your location. Browse by city below.';
-				break;
-			case error.TIMEOUT:
-				msg = 'Location request timed out. Browse by city below.';
-				break;
-			default:
-				msg = 'Could not detect your location. Browse by city below.';
-		}
-		showFallback( msg );
+		showFallback();
 	}
 
 	function hideDetectUI() {
@@ -156,16 +158,39 @@
 		window.dispatchEvent( new Event( 'resize' ) );
 	}
 
-	function showFallback( msg ) {
+	function showLoading( msg ) {
 		if ( loading ) {
-			loading.style.display = 'none';
+			loading.style.display = 'flex';
+		}
+		if ( spinner ) {
+			spinner.style.display = 'block';
 		}
 		if ( status ) {
 			status.textContent = msg;
-			status.style.display = 'block';
+		}
+	}
+
+	function showFallback() {
+		if ( loading ) {
+			loading.style.display = 'flex';
+		}
+		if ( spinner ) {
+			spinner.style.display = 'none';
+		}
+		if ( status ) {
+			status.textContent =
+				"We couldn't determine your location. Choose a city or search an area.";
 		}
 		if ( cities ) {
 			cities.style.display = 'block';
 		}
+	}
+
+	function revealScopedResults() {
+		results?.classList.remove( 'is-location-pending' );
+		if ( cities ) {
+			cities.style.display = 'none';
+		}
+		hideDetectUI();
 	}
 } )();

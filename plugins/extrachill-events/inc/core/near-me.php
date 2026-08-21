@@ -237,8 +237,11 @@ function extrachill_events_near_me_content( string $content ): string {
 		return $content;
 	}
 
-	$geo          = extrachill_events_get_geo_params();
-	$has_location = null !== $geo['lat'] && null !== $geo['lng'];
+	$geo                = extrachill_events_get_geo_params();
+	$has_location       = null !== $geo['lat'] && null !== $geo['lng'];
+	$account_market     = extrachill_events_is_exploring_all_markets() ? null : extrachill_events_get_account_market();
+	$has_account_market = null !== $account_market && null !== $account_market['lat'] && null !== $account_market['lon'];
+	$has_scoped_results = $has_location || $has_account_market;
 
 	// Detection UI — hidden when URL already has location.
 	$detect_style = $has_location ? ' style="display:none;"' : '';
@@ -247,9 +250,9 @@ function extrachill_events_near_me_content( string $content ): string {
 
 	// Loading state (visible by default when no location, JS hides if geo fails).
 	$loading_display = $has_location ? 'none' : 'flex';
-	$html           .= '<div class="near-me-loading" style="display:' . $loading_display . ';">';
-	$html           .= '<div class="near-me-spinner"></div>';
-	$html           .= '<p class="near-me-status">Detecting your location...</p>';
+	$html           .= '<div class="near-me-loading" role="status" aria-live="polite" style="display:' . $loading_display . ';">';
+	$html           .= '<div class="near-me-spinner" aria-hidden="true"></div>';
+	$html           .= '<p class="near-me-status">' . esc_html__( 'Detecting your location...', 'extrachill-events' ) . '</p>';
 	$html           .= '</div>';
 
 	$html .= '</div>';
@@ -258,7 +261,7 @@ function extrachill_events_near_me_content( string $content ): string {
 	extrachill_events_render_account_market_context();
 	$html = (string) ob_get_clean() . $html;
 
-	// City grid fallback (hidden by default, JS reveals if geo denied).
+	// City browsing remains available while browser location is unresolved.
 	$locations = get_terms(
 		array(
 			'taxonomy'   => 'location',
@@ -276,9 +279,10 @@ function extrachill_events_near_me_content( string $content ): string {
 	);
 
 	if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
-		$html .= '<div class="near-me-cities" style="display:none;">';
-		$html .= '<h2>Browse by City</h2>';
-		$html .= '<div class="near-me-city-grid">';
+		$cities_display = $has_location ? 'none' : 'block';
+		$html          .= '<div class="near-me-cities" style="display:' . $cities_display . ';">';
+		$html          .= '<h2>' . esc_html__( 'Browse by City', 'extrachill-events' ) . '</h2>';
+		$html          .= '<div class="near-me-city-grid">';
 
 		foreach ( $locations as $location ) {
 			$url = get_term_link( $location );
@@ -298,11 +302,12 @@ function extrachill_events_near_me_content( string $content ): string {
 		$html .= '</div>';
 	}
 
-	// Noscript fallback — show city grid for users without JS.
+	// Noscript fallback — show city discovery but never the unscoped calendar.
 	$html .= '<noscript><style>.near-me-loading{display:none!important}.near-me-cities{display:block!important}</style></noscript>';
 
-	// Blocks container — always rendered, JS populates via REST.
-	$html .= '<div class="near-me-results">' . $content . '</div>';
+	// Keep the map's area search available, but conceal an unscoped calendar.
+	$results_class = $has_scoped_results ? 'near-me-results' : 'near-me-results is-location-pending';
+	$html         .= '<div class="' . esc_attr( $results_class ) . '">' . $content . '</div>';
 
 	return $html;
 }
