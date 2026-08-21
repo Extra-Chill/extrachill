@@ -151,56 +151,69 @@ const measure = ( page ) =>
 		const page = await browser.newPage( {
 			viewport: { width: 1280, height: 900 },
 		} );
-		await page.setContent( fixture );
-		await page.addStyleTag( { content: fixtureStyles } );
-		await page.addStyleTag( {
-			path: path.join(
-				root,
-				'build/venue-booking-inquiry/style-index.css'
-			),
-		} );
-		await page.addScriptTag( {
-			path: path.join(
-				root,
-				'node_modules/react/umd/react.production.min.js'
-			),
-		} );
-		await page.addScriptTag( {
-			path: path.join(
-				root,
-				'node_modules/react-dom/umd/react-dom.production.min.js'
-			),
-		} );
-		await page.evaluate( () => {
-			window.wp = {
-				element: {
-					...window.React,
-					createRoot: window.ReactDOM.createRoot,
-				},
-			};
-			window.bookingAvailable = false;
-			window.fetch = async ( url ) => {
-				if ( String( url ).includes( 'booking-availability' ) ) {
+		await page.route( 'https://booking.test/**', ( route ) =>
+			route.fulfill( { body: fixture, contentType: 'text/html' } )
+		);
+		const mount = async () => {
+			await page.goto( 'https://booking.test/' );
+			await page.addStyleTag( { content: fixtureStyles } );
+			await page.addStyleTag( {
+				path: path.join(
+					root,
+					'build/venue-booking-inquiry/style-index.css'
+				),
+			} );
+			if ( ! ( await page.evaluate( () => Boolean( window.React ) ) ) ) {
+				await page.addScriptTag( {
+					path: path.join(
+						root,
+						'node_modules/react/umd/react.production.min.js'
+					),
+				} );
+				await page.addScriptTag( {
+					path: path.join(
+						root,
+						'node_modules/react-dom/umd/react-dom.production.min.js'
+					),
+				} );
+			}
+			await page.evaluate( () => {
+				window.wp = {
+					element: {
+						...window.React,
+						createRoot: window.ReactDOM.createRoot,
+					},
+				};
+				window.bookingAvailable = false;
+				window.fetch = async ( url ) => {
+					if ( String( url ).includes( 'booking-availability' ) ) {
+						return new Response(
+							JSON.stringify( {
+								available: window.bookingAvailable,
+							} ),
+							{
+								status: 200,
+								headers: {
+									'Content-Type': 'application/json',
+								},
+							}
+						);
+					}
 					return new Response(
-						JSON.stringify( {
-							available: window.bookingAvailable,
-						} ),
+						JSON.stringify( { public_id: 'proof' } ),
 						{
-							status: 200,
+							status: 201,
 							headers: { 'Content-Type': 'application/json' },
 						}
 					);
-				}
-				return new Response( JSON.stringify( { public_id: 'proof' } ), {
-					status: 201,
-					headers: { 'Content-Type': 'application/json' },
-				} );
-			};
-		} );
-		await page.addScriptTag( {
-			path: path.join( root, 'build/venue-booking-inquiry/view.js' ),
-		} );
-		await page.waitForSelector( '.ec-booking-inquiry__form' );
+				};
+			} );
+			await page.addScriptTag( {
+				path: path.join( root, 'build/venue-booking-inquiry/view.js' ),
+			} );
+			await page.waitForSelector( '.ec-booking-inquiry__form' );
+		};
+		await mount();
 
 		assert.equal(
 			await page.getByText( 'Booking at The Room' ).count(),
@@ -213,6 +226,26 @@ const measure = ( page ) =>
 		assert.equal( await page.getByText( 'Signed in' ).count(), 0 );
 		assert.equal(
 			await page.getByText( 'Send a concise booking pitch' ).count(),
+			1
+		);
+		assert.equal(
+			await page
+				.getByText(
+					/saved on this device for reload and Back recovery/
+				)
+				.count(),
+			1
+		);
+		assert.equal(
+			await page
+				.getByLabel( 'Keep this draft on this device for 24 hours' )
+				.isChecked(),
+			false
+		);
+		assert.equal(
+			await page
+				.getByRole( 'button', { name: 'Clear saved draft' } )
+				.count(),
 			1
 		);
 		assert.equal(
@@ -230,6 +263,35 @@ const measure = ( page ) =>
 		assert.equal(
 			await page.locator( 'input[type="datetime-local"]' ).count(),
 			0
+		);
+		await page.getByLabel( 'Requested date' ).fill( '2030-08-01' );
+		const clearDraftButton = page.getByRole( 'button', {
+			name: 'Clear saved draft',
+		} );
+		await clearDraftButton.focus();
+		assert.equal(
+			await clearDraftButton.evaluate(
+				( button ) => button === button.ownerDocument.activeElement
+			),
+			true
+		);
+		await clearDraftButton.press( 'Enter' );
+		assert.equal(
+			await page
+				.locator( '.ec-booking-inquiry__draft-status' )
+				.textContent(),
+			'Saved draft cleared. The form is empty.'
+		);
+		assert.equal(
+			await page.getByLabel( 'Requested date' ).inputValue(),
+			''
+		);
+		assert.deepEqual(
+			await page.evaluate( () => ( {
+				local: Object.keys( localStorage ),
+				session: Object.keys( sessionStorage ),
+			} ) ),
+			{ local: [], session: [] }
 		);
 		await page.getByLabel( 'Requested date' ).fill( '2030-08-01' );
 		await page
@@ -314,6 +376,79 @@ const measure = ( page ) =>
 		await page
 			.getByLabel( 'Additional performance details' )
 			.fill( 'Routing through Charleston.' );
+		await page.waitForFunction( () => sessionStorage.length === 1 );
+		const sessionDraft = await page.evaluate( () =>
+			JSON.parse( sessionStorage.getItem( sessionStorage.key( 0 ) ) )
+		);
+		assert.equal( sessionDraft.scope, 'session' );
+		assert.equal( await page.evaluate( () => localStorage.length ), 0 );
+		assert.deepEqual( Object.keys( sessionDraft.values ).sort(), [
+			'artistName',
+			'contactEmail',
+			'contactName',
+			'contactPhone',
+			'fields',
+			'message',
+			'requestedDate',
+			'spaceKey',
+		] );
+		assert.equal(
+			JSON.stringify( sessionDraft ).includes( 'consent' ),
+			false
+		);
+
+		await mount();
+		await page
+			.getByText( 'Your draft from this browser tab was restored.' )
+			.waitFor();
+		assert.equal(
+			await page.getByLabel( 'Requested date' ).inputValue(),
+			'2030-08-01'
+		);
+		await page.evaluate( () => {
+			window.bookingAvailable = true;
+		} );
+		await page
+			.getByRole( 'button', { name: 'Check availability' } )
+			.click();
+		await page.getByLabel( 'Artist or project name' ).waitFor();
+		assert.equal(
+			await page.getByLabel( 'Artist or project name' ).inputValue(),
+			'Proof Band'
+		);
+		assert.equal(
+			await page.getByLabel( /I agree that this venue/ ).isChecked(),
+			false
+		);
+		await page
+			.getByLabel( 'Keep this draft on this device for 24 hours' )
+			.check();
+		await page.waitForFunction(
+			() => localStorage.length === 1 && sessionStorage.length === 0
+		);
+		await mount();
+		await page
+			.getByText( 'Your saved 24-hour device draft was restored.' )
+			.waitFor();
+		assert.equal(
+			await page
+				.getByLabel( 'Keep this draft on this device for 24 hours' )
+				.isChecked(),
+			true
+		);
+		await page
+			.getByLabel( 'Keep this draft on this device for 24 hours' )
+			.uncheck();
+		await page.waitForFunction(
+			() => sessionStorage.length === 1 && localStorage.length === 0
+		);
+		await page.evaluate( () => {
+			window.bookingAvailable = true;
+		} );
+		await page
+			.getByRole( 'button', { name: 'Check availability' } )
+			.click();
+		await page.getByLabel( 'Artist or project name' ).waitFor();
 		await page.getByLabel( /I agree that this venue/ ).check();
 		await page
 			.getByRole( 'button', { name: 'Send booking inquiry' } )
@@ -363,10 +498,43 @@ const measure = ( page ) =>
 			.getByRole( 'button', { name: 'Send booking inquiry' } )
 			.click();
 		await page.getByText( /Inquiry received/ ).waitFor();
+		assert.deepEqual(
+			await page.evaluate( () => ( {
+				local: Object.keys( localStorage ),
+				session: Object.keys( sessionStorage ),
+			} ) ),
+			{ local: [], session: [] }
+		);
 		await page.screenshot( {
 			path: path.join( artifacts, 'booking-inquiry-mobile.png' ),
 			fullPage: true,
 		} );
+
+		await page.addInitScript( () => {
+			Object.defineProperty( window, 'sessionStorage', {
+				configurable: true,
+				get: () => {
+					throw new Error( 'session storage denied' );
+				},
+			} );
+			Object.defineProperty( window, 'localStorage', {
+				configurable: true,
+				get: () => {
+					throw new Error( 'local storage denied' );
+				},
+			} );
+		} );
+		await mount();
+		await page
+			.getByText(
+				'Draft storage is unavailable. Your details will remain only on this page.'
+			)
+			.waitFor();
+		await page.getByLabel( 'Requested date' ).fill( '2030-09-01' );
+		await page
+			.getByRole( 'button', { name: 'Check availability' } )
+			.click();
+		await page.getByText( /That date is unavailable/ ).waitFor();
 
 		const evidence = {
 			status: 'passed',

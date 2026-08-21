@@ -27,6 +27,20 @@
 	margin: 0.35rem 0 0;
 }
 
+.ec-booking-inquiry__draft-controls {
+	margin-block-start: 0.75rem;
+	padding-block-start: 0.75rem;
+	border-block-start: 1px solid var(--border-color, #d6d6d6);
+}
+
+.ec-booking-inquiry__draft-controls .button-2 {
+	margin-block-start: 0.65rem;
+}
+
+.ec-booking-inquiry__draft-status:not(:empty) {
+	margin-block-start: 0.5rem;
+}
+
 .ec-booking-inquiry__optional-fields {
 	margin-block: 1rem;
 	padding-block: 0.75rem;

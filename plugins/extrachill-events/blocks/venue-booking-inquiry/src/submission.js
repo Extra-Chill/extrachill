@@ -7,20 +7,31 @@ export const newIdempotencyKey = () => {
 		.slice( 2 ) }`;
 };
 
-export const DRAFT_VERSION = 1;
+export const DRAFT_VERSION = 2;
 export const DRAFT_TTL = 24 * 60 * 60 * 1000;
 const DRAFT_MAX_BYTES = 12000;
+export const DRAFT_SCOPE_SESSION = 'session';
+export const DRAFT_SCOPE_DEVICE = 'device';
 
-const browserStorage = () => {
-	try {
-		return window.localStorage;
-	} catch {
-		return null;
-	}
-};
+const browserStorage = () => ( {
+	session: ( () => {
+		try {
+			return window.sessionStorage;
+		} catch {
+			return null;
+		}
+	} )(),
+	device: ( () => {
+		try {
+			return window.localStorage;
+		} catch {
+			return null;
+		}
+	} )(),
+} );
 
 export const draftStorageKey = ( config ) =>
-	`extrachill.booking-inquiry.v${ DRAFT_VERSION }.${ config.venue.id }.${ config.revision }`;
+	`extrachill.booking-inquiry.v1.${ config.venue.id }.${ config.revision }`;
 
 const draftValues = ( config, values ) => ( {
 	artistName: String( values.artistName || '' ),
@@ -40,23 +51,66 @@ const draftValues = ( config, values ) => ( {
 	),
 } );
 
-export const saveDraft = ( config, values, storage = browserStorage() ) => {
+const hasDraftValues = ( values ) =>
+	[
+		values.artistName,
+		values.contactName,
+		values.contactEmail,
+		values.contactPhone,
+		values.requestedDate,
+		values.message,
+	].some( Boolean ) ||
+	Object.values( values.fields || {} ).some( ( value ) => Boolean( value ) );
+
+const clearStaleDrafts = ( config, storage ) => {
+	const prefix = `extrachill.booking-inquiry.v1.${ config.venue.id }.`;
+	const current = draftStorageKey( config );
+	for ( let index = storage.length - 1; index >= 0; index-- ) {
+		const key = storage.key( index );
+		if ( key?.startsWith( prefix ) && key !== current ) {
+			storage.removeItem( key );
+		}
+	}
+};
+
+export const saveDraft = (
+	config,
+	values,
+	scope = DRAFT_SCOPE_SESSION,
+	storage = browserStorage(),
+	now = Date.now()
+) => {
 	try {
-		if ( ! storage ) {
-			return;
+		const selected = storage[ scope ];
+		const other =
+			storage[
+				scope === DRAFT_SCOPE_DEVICE
+					? DRAFT_SCOPE_SESSION
+					: DRAFT_SCOPE_DEVICE
+			];
+		if ( ! selected ) {
+			return false;
+		}
+		other?.removeItem( draftStorageKey( config ) );
+		if ( ! hasDraftValues( values ) ) {
+			selected.removeItem( draftStorageKey( config ) );
+			return true;
 		}
 		const draft = JSON.stringify( {
 			version: DRAFT_VERSION,
 			venueId: config.venue.id,
 			revision: config.revision,
-			savedAt: Date.now(),
+			scope,
+			savedAt: now,
 			values: draftValues( config, values ),
 		} );
 		if ( draft.length <= DRAFT_MAX_BYTES ) {
-			storage.setItem( draftStorageKey( config ), draft );
+			selected.setItem( draftStorageKey( config ), draft );
+			return true;
 		}
+		return false;
 	} catch {
-		// Private browsing and full storage must not interrupt the inquiry.
+		return false;
 	}
 };
 
@@ -66,46 +120,78 @@ export const loadDraft = (
 	storage = browserStorage(),
 	now = Date.now()
 ) => {
-	try {
-		if ( ! storage ) {
-			return initial;
+	let sessionReadFailed = false;
+	for ( const scope of [ DRAFT_SCOPE_SESSION, DRAFT_SCOPE_DEVICE ] ) {
+		const selected = storage[ scope ];
+		if ( ! selected ) {
+			sessionReadFailed ||= scope === DRAFT_SCOPE_SESSION;
+			continue;
 		}
-		const raw = storage.getItem( draftStorageKey( config ) );
-		if ( ! raw ) {
-			return initial;
+		try {
+			clearStaleDrafts( config, selected );
+			const raw = selected.getItem( draftStorageKey( config ) );
+			if ( ! raw ) {
+				continue;
+			}
+			const draft = JSON.parse( raw );
+			const validSavedAt = Number.isFinite( draft.savedAt );
+			const expired =
+				validSavedAt &&
+				( now - draft.savedAt > DRAFT_TTL || now < draft.savedAt );
+			if (
+				draft.version !== DRAFT_VERSION ||
+				draft.venueId !== config.venue.id ||
+				draft.revision !== config.revision ||
+				draft.scope !== scope ||
+				! validSavedAt ||
+				! draft.values ||
+				expired
+			) {
+				selected.removeItem( draftStorageKey( config ) );
+				return {
+					values: initial,
+					scope: DRAFT_SCOPE_SESSION,
+					outcome: expired ? 'expired' : 'incompatible',
+				};
+			}
+			return {
+				values: {
+					...initial,
+					...draft.values,
+					consent: false,
+					fields: {
+						...initial.fields,
+						...( draft.values.fields || {} ),
+					},
+				},
+				scope,
+				outcome: 'restored',
+			};
+		} catch {
+			sessionReadFailed ||= scope === DRAFT_SCOPE_SESSION;
 		}
-		const draft = JSON.parse( raw );
-		if (
-			draft.version !== DRAFT_VERSION ||
-			draft.venueId !== config.venue.id ||
-			draft.revision !== config.revision ||
-			! draft.values ||
-			now - draft.savedAt > DRAFT_TTL ||
-			now < draft.savedAt
-		) {
-			storage.removeItem( draftStorageKey( config ) );
-			return initial;
-		}
-		return {
-			...initial,
-			...draft.values,
-			consent: false,
-			fields: { ...initial.fields, ...( draft.values.fields || {} ) },
-		};
-	} catch {
-		return initial;
 	}
+	return {
+		values: initial,
+		scope: DRAFT_SCOPE_SESSION,
+		outcome: sessionReadFailed ? 'read-failed' : 'none',
+	};
 };
 
 export const clearDraft = ( config, storage = browserStorage() ) => {
-	try {
-		if ( ! storage ) {
-			return;
+	let cleared = true;
+	for ( const scope of [ DRAFT_SCOPE_SESSION, DRAFT_SCOPE_DEVICE ] ) {
+		try {
+			if ( ! storage[ scope ] ) {
+				cleared = false;
+				continue;
+			}
+			storage[ scope ].removeItem( draftStorageKey( config ) );
+		} catch {
+			cleared = false;
 		}
-		storage.removeItem( draftStorageKey( config ) );
-	} catch {
-		// Storage failures must not affect a successful submission.
 	}
+	return cleared;
 };
 
 export const bookingDateInterval = ( value ) => {
