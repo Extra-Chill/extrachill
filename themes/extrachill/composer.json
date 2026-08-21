@@ -30,7 +30,7 @@
     "scripts": {
         "lint:php": "vendor/bin/phpcs",
         "lint:fix": "vendor/bin/phpcbf",
-        "test": "vendor/bin/phpcs"
+        "test": "vendor/bin/phpcs && php tests/single-post-template.php"
     },
     "extra": {
         "installer-name": "extrachill"
