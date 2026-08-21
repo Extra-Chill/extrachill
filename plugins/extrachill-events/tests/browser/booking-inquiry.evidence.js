@@ -212,8 +212,8 @@ const measure = ( page ) =>
 		);
 		assert.equal( await page.getByText( 'Signed in' ).count(), 0 );
 		assert.equal(
-			await page.getByText( 'Have your pitch ready' ).count(),
-			0
+			await page.getByText( 'Send a concise booking pitch' ).count(),
+			1
 		);
 		assert.equal(
 			await page.getByText( 'Event type (required)' ).count(),
@@ -256,6 +256,10 @@ const measure = ( page ) =>
 		await page.getByLabel( 'Artist or project name' ).waitFor();
 		assert.equal( await page.getByLabel( 'Artist website' ).count(), 1 );
 		assert.equal( await page.getByLabel( 'Press links' ).count(), 1 );
+		assert.equal(
+			await page.getByText( 'Optional links and details' ).count(),
+			1
+		);
 		assert.equal(
 			await page
 				.locator( 'textarea#ec-booking-browser-proof-press_links' )
@@ -320,6 +324,45 @@ const measure = ( page ) =>
 				.count(),
 			1
 		);
+		await page.evaluate( () => {
+			const originalFetch = window.fetch;
+			window.fetch = async ( url, options ) => {
+				if (
+					! String( url ).includes( 'booking-availability' ) &&
+					window.retryFailed
+				) {
+					return new Response(
+						JSON.stringify( { message: 'Temporary failure.' } ),
+						{ status: 503 }
+					);
+				}
+				return originalFetch( url, options );
+			};
+			window.retryFailed = true;
+			const token = document.createElement( 'input' );
+			token.name = 'cf-turnstile-response';
+			token.value = 'browser-proof-token';
+			document.querySelector( '.cf-turnstile' ).appendChild( token );
+		} );
+		await page
+			.getByRole( 'button', { name: 'Send booking inquiry' } )
+			.click();
+		await page.getByText( 'Temporary failure.' ).waitFor();
+		assert.equal(
+			await page.getByLabel( 'Artist or project name' ).inputValue(),
+			'Proof Band'
+		);
+		await page.evaluate( () => {
+			window.retryFailed = false;
+			const token = document.createElement( 'input' );
+			token.name = 'cf-turnstile-response';
+			token.value = 'browser-proof-token-retry';
+			document.querySelector( '.cf-turnstile' ).appendChild( token );
+		} );
+		await page
+			.getByRole( 'button', { name: 'Send booking inquiry' } )
+			.click();
+		await page.getByText( /Inquiry received/ ).waitFor();
 		await page.screenshot( {
 			path: path.join( artifacts, 'booking-inquiry-mobile.png' ),
 			fullPage: true,

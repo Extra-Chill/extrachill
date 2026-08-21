@@ -24,8 +24,11 @@ import {
 	availabilityErrorState,
 	buildAvailabilityPayload,
 	buildPayload,
+	clearDraft,
 	errorState,
+	loadDraft,
 	newIdempotencyKey,
+	saveDraft,
 } from './submission';
 
 const initialValues = ( config ) => ( {
@@ -125,7 +128,11 @@ const Field = ( { field, value, onChange, prefix } ) => {
 };
 
 export function BookingInquiry( { config, wrapper, preview = false } ) {
-	const [ values, setValues ] = useState( () => initialValues( config ) );
+	const [ values, setValues ] = useState( () =>
+		preview
+			? initialValues( config )
+			: loadDraft( config, initialValues( config ) )
+	);
 	const [ status, setStatus ] = useState( null );
 	const [ submitting, setSubmitting ] = useState( false );
 	const [ checking, setChecking ] = useState( false );
@@ -145,6 +152,11 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			turnstileTarget.current.appendChild( source );
 		}
 	}, [ wrapper, intervalOpen, preview ] );
+	useEffect( () => {
+		if ( ! preview && ! receipt ) {
+			saveDraft( config, values );
+		}
+	}, [ config, values, preview, receipt ] );
 	useEffect( () => {
 		if ( status || receipt ) {
 			resultRef.current?.focus();
@@ -264,6 +276,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 				setStatus( next );
 				return;
 			}
+			clearDraft( config );
 			setReceipt( payload );
 			setStatus( null );
 		} catch {
@@ -297,7 +310,13 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 								.
 							</h3>
 							<p>
-								Keep this submission reference for your records:
+								Your inquiry is now with the venue for review.
+								If they are interested, they will follow up
+								using the contact details you provided.
+							</p>
+							<p>
+								Keep this confirmation reference for your
+								records:
 							</p>
 							<strong className="ec-booking-inquiry__reference">
 								{ receipt.public_id }
@@ -341,6 +360,29 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 					noValidate={ false }
 				>
 					<section className="ec-booking-inquiry__step">
+						<div className="ec-booking-inquiry__preflight">
+							<strong>Send a concise booking pitch</strong>
+							<p>
+								Plan for a few minutes to share your project,
+								requested date, contact details, and the
+								configured event information. After submission,
+								the venue reviews it and follows up directly.
+							</p>
+							{ config.fields.some(
+								( field ) => field.required
+							) && (
+								<p>
+									Have ready:{ ' ' }
+									{ config.fields
+										.filter( ( field ) => field.required )
+										.map( ( field ) => field.label )
+										.join( ', ' ) }
+								</p>
+							) }
+							{ config.presentation.message_help && (
+								<p>{ config.presentation.message_help }</p>
+							) }
+						</div>
 						<h3>1. Check your requested date</h3>
 						<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 							{ config.spaces.length > 1 && (
@@ -497,33 +539,77 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 										</FieldGroup>
 									</Grid>
 								</section>
-								{ visibleFields.length > 0 && (
+								{ visibleFields.filter(
+									( field ) => field.required
+								).length > 0 && (
 									<section className="ec-booking-inquiry__section">
 										<h3>Event details</h3>
 										<Grid
 											minColumnWidth="16rem"
 											maxColumns={ 2 }
 										>
-											{ visibleFields.map( ( field ) => (
-												<Field
-													key={ field.key }
-													field={ field }
-													value={
-														values.fields[
-															field.key
-														]
-													}
-													prefix={ prefix }
-													onChange={ ( value ) =>
-														updateField(
-															field.key,
-															value
-														)
-													}
-												/>
-											) ) }
+											{ visibleFields.map(
+												( field ) =>
+													field.required && (
+														<Field
+															key={ field.key }
+															field={ field }
+															value={
+																values.fields[
+																	field.key
+																]
+															}
+															prefix={ prefix }
+															onChange={ (
+																value
+															) =>
+																updateField(
+																	field.key,
+																	value
+																)
+															}
+														/>
+													)
+											) }
 										</Grid>
 									</section>
+								) }
+								{ visibleFields.filter(
+									( field ) => ! field.required
+								).length > 0 && (
+									<details className="ec-booking-inquiry__optional-fields">
+										<summary>
+											Optional links and details
+										</summary>
+										<Grid
+											minColumnWidth="16rem"
+											maxColumns={ 2 }
+										>
+											{ visibleFields.map(
+												( field ) =>
+													! field.required && (
+														<Field
+															key={ field.key }
+															field={ field }
+															value={
+																values.fields[
+																	field.key
+																]
+															}
+															prefix={ prefix }
+															onChange={ (
+																value
+															) =>
+																updateField(
+																	field.key,
+																	value
+																)
+															}
+														/>
+													)
+											) }
+										</Grid>
+									</details>
 								) }
 							</section>
 							<section className="ec-booking-inquiry__section">

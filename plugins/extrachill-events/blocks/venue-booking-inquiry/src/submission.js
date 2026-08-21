@@ -7,6 +7,107 @@ export const newIdempotencyKey = () => {
 		.slice( 2 ) }`;
 };
 
+export const DRAFT_VERSION = 1;
+export const DRAFT_TTL = 24 * 60 * 60 * 1000;
+const DRAFT_MAX_BYTES = 12000;
+
+const browserStorage = () => {
+	try {
+		return window.localStorage;
+	} catch {
+		return null;
+	}
+};
+
+export const draftStorageKey = ( config ) =>
+	`extrachill.booking-inquiry.v${ DRAFT_VERSION }.${ config.venue.id }.${ config.revision }`;
+
+const draftValues = ( config, values ) => ( {
+	artistName: String( values.artistName || '' ),
+	contactName: String( values.contactName || '' ),
+	contactEmail: String( values.contactEmail || '' ),
+	contactPhone: String( values.contactPhone || '' ),
+	spaceKey: String( values.spaceKey || '' ),
+	requestedDate: String( values.requestedDate || '' ),
+	message: String( values.message || '' ),
+	fields: Object.fromEntries(
+		( config.fields || [] ).map( ( field ) => [
+			field.key,
+			field.type === 'checkbox'
+				? values.fields?.[ field.key ] === true
+				: String( values.fields?.[ field.key ] || '' ),
+		] )
+	),
+} );
+
+export const saveDraft = ( config, values, storage = browserStorage() ) => {
+	try {
+		if ( ! storage ) {
+			return;
+		}
+		const draft = JSON.stringify( {
+			version: DRAFT_VERSION,
+			venueId: config.venue.id,
+			revision: config.revision,
+			savedAt: Date.now(),
+			values: draftValues( config, values ),
+		} );
+		if ( draft.length <= DRAFT_MAX_BYTES ) {
+			storage.setItem( draftStorageKey( config ), draft );
+		}
+	} catch {
+		// Private browsing and full storage must not interrupt the inquiry.
+	}
+};
+
+export const loadDraft = (
+	config,
+	initial,
+	storage = browserStorage(),
+	now = Date.now()
+) => {
+	try {
+		if ( ! storage ) {
+			return initial;
+		}
+		const raw = storage.getItem( draftStorageKey( config ) );
+		if ( ! raw ) {
+			return initial;
+		}
+		const draft = JSON.parse( raw );
+		if (
+			draft.version !== DRAFT_VERSION ||
+			draft.venueId !== config.venue.id ||
+			draft.revision !== config.revision ||
+			! draft.values ||
+			now - draft.savedAt > DRAFT_TTL ||
+			now < draft.savedAt
+		) {
+			storage.removeItem( draftStorageKey( config ) );
+			return initial;
+		}
+		return {
+			...initial,
+			...draft.values,
+			consent: false,
+			fields: { ...initial.fields, ...( draft.values.fields || {} ) },
+		};
+	} catch {
+		return initial;
+	}
+};
+
+export const clearDraft = ( config, storage = browserStorage() ) => {
+	try {
+		if ( ! storage ) {
+			return;
+		}
+		storage.removeItem( draftStorageKey( config ) );
+	} catch {
+		// Storage failures must not affect a successful submission.
+	}
+};
+
 export const bookingDateInterval = ( value ) => {
 	if ( ! value ) {
 		return { start: null, end: null };

@@ -128,7 +128,9 @@ describe( 'booking form workspace', () => {
 	it( 'edits and renders link fields independently', () => {
 		expect( intake ).toContain( "[ 'url', 'Website link' ]" );
 		expect( intake ).toContain( "[ 'url_list', 'List of links' ]" );
-		expect( publicForm ).toContain( 'visibleFields.map( ( field )' );
+		expect( publicForm ).toContain( 'visibleFields.map(' );
+		expect( publicForm ).toContain( 'field.required &&' );
+		expect( publicForm ).toContain( '! field.required &&' );
 		expect( publicForm ).not.toContain( 'linkCollection' );
 		expect( publicForm ).not.toContain( "label: 'Links'" );
 	} );

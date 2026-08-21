@@ -14,3 +14,26 @@
 	margin: 0 auto 1rem;
 	object-fit: contain;
 }
+
+.ec-booking-inquiry__preflight {
+	margin-block: 0 1rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--border-color, #d6d6d6);
+	border-radius: 0.5rem;
+	background: var(--background-color, #f7f7f7);
+}
+
+.ec-booking-inquiry__preflight p {
+	margin: 0.35rem 0 0;
+}
+
+.ec-booking-inquiry__optional-fields {
+	margin-block: 1rem;
+	padding-block: 0.75rem;
+	border-block: 1px solid var(--border-color, #d6d6d6);
+}
+
+.ec-booking-inquiry__optional-fields summary {
+	cursor: pointer;
+	font-weight: 600;
+}

@@ -8,7 +8,12 @@ import {
 	bookingDateInterval,
 	buildAvailabilityPayload,
 	buildPayload,
+	clearDraft,
+	DRAFT_TTL,
+	draftStorageKey,
 	errorState,
+	loadDraft,
+	saveDraft,
 } from './submission';
 
 const config = {
@@ -26,6 +31,15 @@ const values = {
 	message: 'Routing through Charleston.',
 	fields: { draw: '150' },
 	consent: true,
+};
+
+const storage = () => {
+	const data = new Map();
+	return {
+		getItem: ( key ) => data.get( key ) || null,
+		setItem: ( key, value ) => data.set( key, value ),
+		removeItem: ( key ) => data.delete( key ),
+	};
 };
 
 describe( 'booking inquiry transport helpers', () => {
@@ -76,6 +90,32 @@ describe( 'booking inquiry transport helpers', () => {
 			requested_start_at: '2026-08-12 00:00:00',
 			requested_end_at: '2026-08-13 00:00:00',
 		} );
+	} );
+
+	test( 'scopes, versions, bounds, and expires local drafts without consent', () => {
+		const local = storage();
+		saveDraft( config, values, local );
+		const restored = loadDraft( config, values, local, Date.now() + 1000 );
+		expect( restored.artistName ).toBe( 'Test Band' );
+		expect( restored.consent ).toBe( false );
+		expect(
+			local.getItem( draftStorageKey( { ...config, revision: 8 } ) )
+		).toBeNull();
+		const expired = loadDraft(
+			config,
+			values,
+			local,
+			Date.now() + DRAFT_TTL + 1
+		);
+		expect( expired ).toEqual( values );
+		expect( local.getItem( draftStorageKey( config ) ) ).toBeNull();
+	} );
+
+	test( 'clears only the successful inquiry draft', () => {
+		const local = storage();
+		saveDraft( config, values, local );
+		clearDraft( config, local );
+		expect( local.getItem( draftStorageKey( config ) ) ).toBeNull();
 	} );
 
 	test( 'distinguishes safe retry, stale config, and reconciliation states', () => {
