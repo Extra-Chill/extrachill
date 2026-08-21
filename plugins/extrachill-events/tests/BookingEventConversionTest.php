@@ -499,13 +499,16 @@ final class BookingEventConversionTest extends BookingTestCase {
 
 	public function test_independent_timezone_mapping_handles_overnight_and_dst(): void {
 		$ability = $this->install_ability();
+		$afternoon = $this->booking( array( 'performance_start_at' => '2026-08-21 20:00:00', 'performance_end_at' => '2026-08-21 23:00:00' ) );
+		$this->service()->convert( $afternoon['id'], 1, 12 );
+		$this->assertSame( array( '2026-08-21', '16:00', '2026-08-21', '19:00' ), array_values( array_intersect_key( $ability->calls[0]['event'], array_flip( array( 'startDate', 'startTime', 'endDate', 'endTime' ) ) ) ) );
 		$overnight = $this->booking( array( 'performance_start_at' => '2030-01-02 04:30:00', 'performance_end_at' => '2030-01-02 07:30:00' ) );
 		$this->service()->convert( $overnight['id'], 1, 12 );
-		$this->assertSame( array( '2030-01-01', '23:30', '2030-01-02', '02:30' ), array_values( array_intersect_key( $ability->calls[0]['event'], array_flip( array( 'startDate', 'startTime', 'endDate', 'endTime' ) ) ) ) );
+		$this->assertSame( array( '2030-01-01', '23:30', '2030-01-02', '02:30' ), array_values( array_intersect_key( $ability->calls[1]['event'], array_flip( array( 'startDate', 'startTime', 'endDate', 'endTime' ) ) ) ) );
 		$dst = $this->booking( array( 'performance_start_at' => '2030-03-10 06:30:00', 'performance_end_at' => '2030-03-10 07:30:00' ) );
 		$this->service()->convert( $dst['id'], 1, 12 );
-		$this->assertSame( '01:30', $ability->calls[1]['event']['startTime'] );
-		$this->assertSame( '03:30', $ability->calls[1]['event']['endTime'] );
+		$this->assertSame( '01:30', $ability->calls[2]['event']['startTime'] );
+		$this->assertSame( '03:30', $ability->calls[2]['event']['endTime'] );
 	}
 
 	public function test_preflight_fails_closed_for_status_selection_deal_venue_timezone_and_converted_hold(): void {

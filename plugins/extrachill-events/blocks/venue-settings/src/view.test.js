@@ -220,7 +220,15 @@ const bookingActivity = ( overrides = {} ) => ( {
 } );
 const context = ( overrides = {} ) => ( {
 	user: { id: 7, name: 'Operator', is_admin: false },
-	venues: [ { id: 44, name: 'Venue 44', status: 'active', is_owner: false } ],
+	venues: [
+		{
+			id: 44,
+			name: 'Venue 44',
+			status: 'active',
+			is_owner: false,
+			timezone: 'America/New_York',
+		},
+	],
 	claim_venues: [ { id: 44, name: 'Venue 44' } ],
 	selected_venue: {
 		id: 44,
@@ -229,6 +237,7 @@ const context = ( overrides = {} ) => ( {
 		archive_url: 'https://events.example/venue/venue-44/',
 		status: 'active',
 		is_owner: false,
+		timezone: 'America/New_York',
 	},
 	can_access: true,
 	can_manage: false,
@@ -1249,6 +1258,80 @@ describe( 'venue settings authorization-facing states', () => {
 		).toBe( true );
 		await act( async () => root.unmount() );
 	} );
+
+	it.each( [ 1280, 390 ] )(
+		'preserves the venue-local performance instant at %ipx',
+		async ( width ) => {
+			Object.defineProperty( window, 'innerWidth', {
+				configurable: true,
+				value: width,
+			} );
+			apiFetch.mockImplementation( ( request ) => {
+				const input =
+					request.data?.input || requestInput( request.path );
+				if ( request.path.includes( 'get-venue-profile' ) ) {
+					return Promise.resolve( profile( input.venue_term_id ) );
+				}
+				if ( request.path.includes( 'get-venue-booking-config' ) ) {
+					return Promise.resolve( config( input.venue_term_id ) );
+				}
+				if ( request.path.includes( 'get-venue-booking-activity' ) ) {
+					return Promise.resolve( bookingActivity() );
+				}
+				if ( request.path.includes( 'get-venue-booking' ) ) {
+					return Promise.resolve( {
+						...booking( input.booking_id ),
+						space_key: 'main-room',
+						performance_start_at: '2026-08-21 20:00:00',
+						performance_end_at: '2026-08-21 23:00:00',
+					} );
+				}
+				if (
+					request.path.includes( 'select-venue-booking-performance' )
+				) {
+					return Promise.resolve( booking( input.booking_id ) );
+				}
+				return Promise.resolve( [] );
+			} );
+			const { container, root } = await renderApp(
+				context( { booking_id: 23 } )
+			);
+
+			expect( container.textContent ).toContain(
+				'Performance times use the venue timezone: America/New_York.'
+			);
+			expect( container.textContent ).toContain(
+				'Aug 21, 2026, 4:00 PM'
+			);
+			expect( container.querySelector( '#booking-start' ).value ).toBe(
+				'2026-08-21T16:00'
+			);
+			expect( container.querySelector( '#booking-end' ).value ).toBe(
+				'2026-08-21T19:00'
+			);
+			expect(
+				container
+					.querySelector( '#booking-start' )
+					.getAttribute( 'aria-describedby' )
+			).toBe( 'booking-performance-timezone' );
+
+			await act( async () => {
+				buttonByText( container, 'Save performance' ).click();
+				await Promise.resolve();
+			} );
+			const selection = apiFetch.mock.calls.find( ( [ request ] ) =>
+				request.path.includes( 'select-venue-booking-performance' )
+			)[ 0 ].data.input;
+			expect( selection ).toEqual( {
+				booking_id: 23,
+				expected_version: 4,
+				space_key: 'main-room',
+				start_at: '2026-08-21 20:00:00',
+				end_at: '2026-08-21 23:00:00',
+			} );
+			await act( async () => root.unmount() );
+		}
+	);
 
 	it( 'returns to the booking list after a detail request fails', async () => {
 		apiFetch.mockImplementation( ( request ) => {

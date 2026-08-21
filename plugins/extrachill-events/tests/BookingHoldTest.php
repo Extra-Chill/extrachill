@@ -145,7 +145,10 @@ final class BookingHoldTest extends BookingTestCase {
 		$this->assertSame( 'invalid_booking_date_range', $this->booking( '2030-08-01 20:00:00', '2030-08-01 20:00:00' )->get_error_code() );
 		$holds = $this->holds();
 		$first = $this->booking();
-		$this->assertSame( 2, $holds->create( $first['id'], 1, 12 )['booking_version'] );
+		$first_hold = $holds->create( $first['id'], 1, 12 );
+		$this->assertSame( 2, $first_hold['booking_version'] );
+		$this->assertSame( $first['performance_start_at'], $first_hold['hold']['start_at'] );
+		$this->assertSame( $first['performance_end_at'], $first_hold['hold']['end_at'] );
 		$adjacent = $this->booking( '2030-08-01 23:00:00', '2030-08-02 01:00:00' );
 		$this->assertSame( 'active', $holds->create( $adjacent['id'], 1, 12 )['hold']['status'] );
 		$patio = $this->booking( '2030-08-01 23:00:00', '2030-08-02 01:00:00', 'patio' );

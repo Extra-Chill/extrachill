@@ -115,11 +115,20 @@ export const calendarDays = ( month ) => {
 	} );
 };
 
-const bookingDate = ( booking ) =>
-	( booking.performance_start_at || booking.requested_start_at || '' ).slice(
-		0,
-		10
-	);
+const bookingDate = ( booking ) => {
+	const value = booking.performance_start_at || booking.requested_start_at;
+	if ( ! value ) {
+		return '';
+	}
+	try {
+		return toVenueLocalInput( value, booking.venue_timezone ).slice(
+			0,
+			10
+		);
+	} catch {
+		return value.slice( 0, 10 );
+	}
+};
 
 const bookingDateValue = ( booking ) =>
 	booking.performance_start_at ||
@@ -231,23 +240,145 @@ export const filterBookings = ( bookings, search, statusFilter = '' ) => {
 	} );
 };
 
-const formatDate = ( value, fallback = 'Not set' ) => {
+const canonicalUtcDate = ( value ) => {
+	if ( ! /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test( value || '' ) ) {
+		throw new Error( 'The stored UTC date is invalid.' );
+	}
+	const parsed = new Date( `${ value.replace( ' ', 'T' ) }Z` );
+	if (
+		Number.isNaN( parsed.getTime() ) ||
+		parsed.toISOString().slice( 0, 19 ).replace( 'T', ' ' ) !== value
+	) {
+		throw new Error( 'The stored UTC date is invalid.' );
+	}
+	return parsed;
+};
+
+const venueDateParts = ( date, timezone ) =>
+	Object.fromEntries(
+		new Intl.DateTimeFormat( 'en-US', {
+			timeZone: timezone,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit',
+			hourCycle: 'h23',
+		} )
+			.formatToParts( date )
+			.filter( ( part ) => part.type !== 'literal' )
+			.map( ( part ) => [ part.type, part.value ] )
+	);
+
+const venueWallValue = ( date, timezone ) => {
+	const parts = venueDateParts( date, timezone );
+	return `${ parts.year }-${ parts.month }-${ parts.day }T${ parts.hour }:${ parts.minute }:${ parts.second }`;
+};
+
+const isValidVenueTimezone = ( timezone ) => {
+	try {
+		new Intl.DateTimeFormat( 'en-US', { timeZone: timezone } );
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+export const toVenueLocalInput = ( value, timezone ) =>
+	venueWallValue( canonicalUtcDate( value ), timezone );
+
+export const venueLocalToUtc = ( value, timezone ) => {
+	const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+		value || ''
+	);
+	if ( ! match ) {
+		throw new Error( 'Enter a complete local date and time.' );
+	}
+	const normalized = `${ match[ 1 ] }-${ match[ 2 ] }-${ match[ 3 ] }T${
+		match[ 4 ]
+	}:${ match[ 5 ] }:${ match[ 6 ] || '00' }`;
+	const wallTimestamp = Date.UTC(
+		...match
+			.slice( 1 )
+			.map( Number )
+			.map( ( part, index ) => ( index === 1 ? part - 1 : part ) )
+	);
+	if (
+		new Date( wallTimestamp ).toISOString().slice( 0, 19 ) !== normalized
+	) {
+		throw new Error( 'Enter a valid local date and time.' );
+	}
+
+	let offsets;
+	try {
+		offsets = new Set(
+			[ -36, -12, 0, 12, 36 ].map( ( hours ) => {
+				const instant = new Date(
+					wallTimestamp + hours * 60 * 60 * 1000
+				);
+				const parts = venueDateParts( instant, timezone );
+				return (
+					Date.UTC(
+						Number( parts.year ),
+						Number( parts.month ) - 1,
+						Number( parts.day ),
+						Number( parts.hour ),
+						Number( parts.minute ),
+						Number( parts.second )
+					) - instant.getTime()
+				);
+			} )
+		);
+	} catch {
+		throw new Error(
+			`The venue timezone ${ timezone || '(missing)' } is invalid.`
+		);
+	}
+	const candidates = [ ...offsets ]
+		.map( ( offset ) => new Date( wallTimestamp - offset ) )
+		.filter(
+			( candidate ) =>
+				venueWallValue( candidate, timezone ) === normalized
+		);
+	if ( candidates.length === 0 ) {
+		throw new Error(
+			`${ normalized.replace(
+				'T',
+				' '
+			) } does not exist in ${ timezone } because the clocks move forward.`
+		);
+	}
+	if ( candidates.length > 1 ) {
+		throw new Error(
+			`${ normalized.replace(
+				'T',
+				' '
+			) } occurs twice in ${ timezone } because the clocks move back. Choose an unambiguous time.`
+		);
+	}
+	return candidates[ 0 ].toISOString().slice( 0, 19 ).replace( 'T', ' ' );
+};
+
+export const formatVenueDate = ( value, timezone, fallback = 'Not set' ) => {
 	if ( ! value ) {
 		return fallback;
 	}
-	const parsed = new Date( value.replace( ' ', 'T' ) + 'Z' );
-	return Number.isNaN( parsed.getTime() )
-		? value
-		: parsed.toLocaleString( [], {
-				dateStyle: 'medium',
-				timeStyle: 'short',
-		  } );
+	try {
+		return canonicalUtcDate( value ).toLocaleString( [], {
+			dateStyle: 'medium',
+			timeStyle: 'short',
+			timeZone: timezone,
+		} );
+	} catch {
+		return value;
+	}
 };
 
-const toDatabaseDate = ( value ) =>
+const utcInputToDatabaseDate = ( value ) =>
 	value ? `${ value.replace( 'T', ' ' ) }:00` : null;
 
-const toLocalInput = ( value ) =>
+const utcDatabaseToInput = ( value ) =>
 	value ? value.replace( ' ', 'T' ).slice( 0, 16 ) : '';
 
 const statusLabel = ( status ) => STATUS_LABELS[ status ] || status;
@@ -530,11 +661,13 @@ function DealEditor( { booking, defaultDeal, pending, onSave } ) {
 						<input
 							id="booking-deal-on-sale"
 							type="datetime-local"
-							value={ toLocalInput( deal.tickets_on_sale_at ) }
+							value={ utcDatabaseToInput(
+								deal.tickets_on_sale_at
+							) }
 							onChange={ ( event ) =>
 								update(
 									'tickets_on_sale_at',
-									toDatabaseDate( event.target.value )
+									utcInputToDatabaseDate( event.target.value )
 								)
 							}
 						/>
@@ -668,7 +801,7 @@ function ProductionEditor( { booking, pending, onSave } ) {
 	);
 }
 
-function ActivityTimeline( { operations } ) {
+function ActivityTimeline( { operations, timezone } ) {
 	return (
 		<section className="ec-booking-detail__section">
 			<h3>Activity</h3>
@@ -677,7 +810,12 @@ function ActivityTimeline( { operations } ) {
 					{ operations.activity.map( ( item ) => (
 						<li key={ item.id }>
 							<strong>{ activityLabel( item.kind ) }</strong>
-							<small>{ formatDate( item.occurred_at ) }</small>
+							<small>
+								{ formatVenueDate(
+									item.occurred_at,
+									timezone
+								) }
+							</small>
 						</li>
 					) ) }
 				</ul>
@@ -735,7 +873,10 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 					) }
 				</span>
 				<span className="ec-booking-card__date">
-					{ formatDate( bookingDateValue( booking ) ) }
+					{ formatVenueDate(
+						bookingDateValue( booking ),
+						booking.venue_timezone
+					) }
 				</span>
 				<span className="ec-booking-card__state">
 					<BookingStatus status={ booking.status } />
@@ -1014,7 +1155,7 @@ function JsonRecord( { title, value, empty } ) {
 	);
 }
 
-function Correspondence( { booking, items, onRefresh } ) {
+function Correspondence( { booking, items, onRefresh, timezone } ) {
 	const [ message, setMessage ] = useState( '' );
 	const [ subject, setSubject ] = useState( '' );
 	const [ replyTo, setReplyTo ] = useState( '' );
@@ -1060,7 +1201,12 @@ function Correspondence( { booking, items, onRefresh } ) {
 								{ item.message?.subject || item.kind }
 							</strong>
 							<span>{ item.state?.status || 'Recorded' }</span>
-							<small>{ formatDate( item.occurred_at ) }</small>
+							<small>
+								{ formatVenueDate(
+									item.occurred_at,
+									timezone
+								) }
+							</small>
 						</li>
 					) ) }
 				</ul>
@@ -1141,6 +1287,7 @@ function BookingDetail( {
 	onMutate,
 	onClose,
 	onRefreshCommunications,
+	timezone,
 } ) {
 	const [ status, setStatus ] = useState( null );
 	const [ pending, setPending ] = useState( '' );
@@ -1150,27 +1297,33 @@ function BookingDetail( {
 		booking.space_key || booking.requested_space_key || ''
 	);
 	const [ starts, setStarts ] = useState(
-		toLocalInput(
-			booking.performance_start_at || booking.requested_start_at
+		toVenueLocalInput(
+			booking.performance_start_at || booking.requested_start_at,
+			timezone
 		)
 	);
 	const [ ends, setEnds ] = useState(
-		toLocalInput( booking.performance_end_at || booking.requested_end_at )
+		toVenueLocalInput(
+			booking.performance_end_at || booking.requested_end_at,
+			timezone
+		)
 	);
 
 	useEffect( () => {
 		setSpace( booking.space_key || booking.requested_space_key || '' );
 		setStarts(
-			toLocalInput(
-				booking.performance_start_at || booking.requested_start_at
+			toVenueLocalInput(
+				booking.performance_start_at || booking.requested_start_at,
+				timezone
 			)
 		);
 		setEnds(
-			toLocalInput(
-				booking.performance_end_at || booking.requested_end_at
+			toVenueLocalInput(
+				booking.performance_end_at || booking.requested_end_at,
+				timezone
 			)
 		);
-	}, [ booking ] );
+	}, [ booking, timezone ] );
 
 	const mutate = async ( label, ability, input ) => {
 		setPending( label );
@@ -1206,6 +1359,28 @@ function BookingDetail( {
 	};
 	const activeHolds = holds.filter( ( hold ) => hold.status === 'active' );
 	const availableTransitions = BOOKING_TRANSITIONS[ booking.status ] || [];
+	const savePerformance = () => {
+		let startAt;
+		let endAt;
+		try {
+			startAt = venueLocalToUtc( starts, timezone );
+			endAt = venueLocalToUtc( ends, timezone );
+		} catch ( error ) {
+			setStatus( { tone: 'error', message: error.message } );
+			return;
+		}
+		mutate(
+			'Performance selection',
+			'extrachill/select-venue-booking-performance',
+			{
+				booking_id: booking.id,
+				expected_version: booking.version,
+				space_key: space,
+				start_at: startAt,
+				end_at: endAt,
+			}
+		);
+	};
 	return (
 		<Panel className="ec-booking-detail">
 			<PanelHeader
@@ -1234,12 +1409,22 @@ function BookingDetail( {
 			) }
 			<div className="ec-booking-detail__facts ec-booking-detail__facts--summary">
 				<div>
-					<dt>Requested</dt>
-					<dd>{ formatDate( booking.requested_start_at ) }</dd>
+					<dt>{ `Requested (${ timezone })` }</dt>
+					<dd>
+						{ formatVenueDate(
+							booking.requested_start_at,
+							timezone
+						) }
+					</dd>
 				</div>
 				<div>
-					<dt>Performance</dt>
-					<dd>{ formatDate( booking.performance_start_at ) }</dd>
+					<dt>{ `Performance (${ timezone })` }</dt>
+					<dd>
+						{ formatVenueDate(
+							booking.performance_start_at,
+							timezone
+						) }
+					</dd>
 				</div>
 				<div>
 					<dt>Space</dt>
@@ -1314,6 +1499,10 @@ function BookingDetail( {
 
 			<section className="ec-booking-detail__section">
 				<h3>Performance and holds</h3>
+				<p id="booking-performance-timezone">
+					Performance times use the venue timezone:{ ' ' }
+					<strong>{ timezone }</strong>.
+				</p>
 				<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 					<FieldGroup label="Space" htmlFor="booking-space">
 						<input
@@ -1324,20 +1513,30 @@ function BookingDetail( {
 							}
 						/>
 					</FieldGroup>
-					<FieldGroup label="Starts" htmlFor="booking-start">
+					<FieldGroup
+						label={ `Starts (${ timezone })` }
+						htmlFor="booking-start"
+					>
 						<input
 							id="booking-start"
 							type="datetime-local"
+							step="1"
+							aria-describedby="booking-performance-timezone"
 							value={ starts }
 							onChange={ ( event ) =>
 								setStarts( event.target.value )
 							}
 						/>
 					</FieldGroup>
-					<FieldGroup label="Ends" htmlFor="booking-end">
+					<FieldGroup
+						label={ `Ends (${ timezone })` }
+						htmlFor="booking-end"
+					>
 						<input
 							id="booking-end"
 							type="datetime-local"
+							step="1"
+							aria-describedby="booking-performance-timezone"
 							value={ ends }
 							onChange={ ( event ) =>
 								setEnds( event.target.value )
@@ -1352,19 +1551,7 @@ function BookingDetail( {
 						disabled={
 							! space || ! starts || ! ends || pending !== ''
 						}
-						onClick={ () =>
-							mutate(
-								'Performance selection',
-								'extrachill/select-venue-booking-performance',
-								{
-									booking_id: booking.id,
-									expected_version: booking.version,
-									space_key: space,
-									start_at: toDatabaseDate( starts ),
-									end_at: toDatabaseDate( ends ),
-								}
-							)
-						}
+						onClick={ savePerformance }
 					>
 						Save performance
 					</button>
@@ -1396,7 +1583,11 @@ function BookingDetail( {
 							<li key={ hold.id }>
 								<strong>{ hold.space_key }</strong>
 								<span>
-									Expires { formatDate( hold.expires_at ) }
+									Expires{ ' ' }
+									{ formatVenueDate(
+										hold.expires_at,
+										timezone
+									) }
 								</span>
 								<button
 									type="button"
@@ -1554,11 +1745,15 @@ function BookingDetail( {
 				booking={ booking }
 				items={ communications }
 				onRefresh={ onRefreshCommunications }
+				timezone={ timezone }
 			/>
 
 			<details className="ec-booking-detail__disclosure">
 				<summary>Activity history</summary>
-				<ActivityTimeline operations={ operations } />
+				<ActivityTimeline
+					operations={ operations }
+					timezone={ timezone }
+				/>
 			</details>
 		</Panel>
 	);
@@ -1609,6 +1804,8 @@ export function BookingConsole( {
 } ) {
 	const scopeVenues = venues.length ? venues : [ context.selected_venue ];
 	const venueIds = scopeVenues.map( ( venue ) => venue.id );
+	const timezoneForVenue = ( venueId ) =>
+		scopeVenues.find( ( venue ) => venue.id === venueId )?.timezone || '';
 	const aggregateScope = ! context.selected_venue && venues.length > 0;
 	const [ bookings, setBookings ] = useState( [] );
 	const [ events, setEvents ] = useState( [] );
@@ -1705,6 +1902,7 @@ export function BookingConsole( {
 						result.bookingRows.map( ( booking ) => ( {
 							...booking,
 							venue_name: result.venue.name,
+							venue_timezone: result.venue.timezone,
 						} ) )
 					)
 				);
@@ -1769,7 +1967,10 @@ export function BookingConsole( {
 			) {
 				return;
 			}
-			setSelected( booking );
+			setSelected( {
+				...booking,
+				venue_timezone: timezoneForVenue( booking.venue_term_id ),
+			} );
 			setCommunications( messages );
 			setOperations( activity );
 		} catch ( caught ) {
@@ -1985,20 +2186,34 @@ export function BookingConsole( {
 					) }
 				</Panel>
 			) }
-			{ selected && operations && ! detailLoading && (
-				<BookingDetail
-					booking={ selected }
-					holds={ selectedHolds }
-					communications={ communications }
-					operations={ operations }
-					defaultDeal={
-						defaultDeals[ selected.venue_term_id ] || defaultDeal
-					}
-					onMutate={ refreshAfterMutation }
-					onClose={ closeDetail }
-					onRefreshCommunications={ loadDetail }
-				/>
-			) }
+			{ selected &&
+				operations &&
+				! detailLoading &&
+				! isValidVenueTimezone( selected.venue_timezone ) && (
+					<InlineStatus tone="error">
+						The canonical venue timezone is unavailable. Performance
+						times cannot be edited safely.
+					</InlineStatus>
+				) }
+			{ selected &&
+				operations &&
+				! detailLoading &&
+				isValidVenueTimezone( selected.venue_timezone ) && (
+					<BookingDetail
+						booking={ selected }
+						holds={ selectedHolds }
+						communications={ communications }
+						operations={ operations }
+						defaultDeal={
+							defaultDeals[ selected.venue_term_id ] ||
+							defaultDeal
+						}
+						onMutate={ refreshAfterMutation }
+						onClose={ closeDetail }
+						onRefreshCommunications={ loadDetail }
+						timezone={ selected.venue_timezone }
+					/>
+				) }
 		</div>
 	);
 }

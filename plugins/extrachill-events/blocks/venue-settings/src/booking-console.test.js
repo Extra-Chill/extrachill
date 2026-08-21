@@ -14,6 +14,8 @@ import {
 	monthRange,
 	moveMonth,
 	sortBookingsChronologically,
+	toVenueLocalInput,
+	venueLocalToUtc,
 } from './booking-console';
 
 describe( 'venue booking console state helpers', () => {
@@ -68,6 +70,41 @@ describe( 'venue booking console state helpers', () => {
 				date: '2026-08-09',
 			} ),
 		] );
+	} );
+
+	it( 'groups canonical UTC bookings on the venue-local calendar date', () => {
+		const entries = calendarEntries(
+			[
+				{
+					id: 10,
+					artist_name: 'Late Show',
+					performance_start_at: '2026-08-02 02:00:00',
+					venue_timezone: 'America/New_York',
+					status: 'confirmed',
+				},
+			],
+			[]
+		);
+
+		expect( entries[ 0 ].date ).toBe( '2026-08-01' );
+	} );
+
+	it( 'round trips one instant through venue-local controls', () => {
+		expect(
+			toVenueLocalInput( '2026-08-21 20:00:00', 'America/New_York' )
+		).toBe( '2026-08-21T16:00:00' );
+		expect(
+			venueLocalToUtc( '2026-08-21T16:00:00', 'America/New_York' )
+		).toBe( '2026-08-21 20:00:00' );
+	} );
+
+	it( 'rejects DST gaps and repeated venue wall times', () => {
+		expect( () =>
+			venueLocalToUtc( '2030-03-10T02:30:00', 'America/New_York' )
+		).toThrow( 'does not exist' );
+		expect( () =>
+			venueLocalToUtc( '2030-11-03T01:30:00', 'America/New_York' )
+		).toThrow( 'occurs twice' );
 	} );
 
 	it( 'deduplicates a converted booking against its canonical event', () => {

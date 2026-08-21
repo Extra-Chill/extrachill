@@ -111,6 +111,8 @@ foreach ( $managed_venues as &$venue ) {
 	$venue['slug']           = $venue_term instanceof WP_Term ? $venue_term->slug : '';
 	$venue['archive_url']    = is_wp_error( $archive_url ) ? '' : $archive_url;
 	$venue['booking_url']    = $venue['can_access'] && $venue_term instanceof WP_Term ? \ExtraChillEvents\Core\VenueBookingEmbed::booking_url( $venue_term ) : '';
+	$venue_data              = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : null;
+	$venue['timezone']       = is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '';
 	$venue['support_events'] = $venue['can_access'] && function_exists( 'extrachill_events_local_support_organizer_events' )
 		? extrachill_events_local_support_organizer_events( $user_id, $venue_id )
 		: array();
