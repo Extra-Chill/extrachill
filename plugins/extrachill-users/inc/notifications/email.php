@@ -454,10 +454,11 @@ function ec_notifications_email_in_cooldown( $user_id, $now ) {
  * digest (the once-per-notification guard). A user only receives a fresh digest
  * when NEW (never-emailed) notifications arrive.
  *
- * @param int $user_id Recipient user ID.
+ * @param int           $user_id       Recipient user ID.
+ * @param callable|null $queue_callback Optional queue implementation for tests.
  * @return bool True when a digest send was enqueued.
  */
-function ec_notifications_email_send_digest( $user_id ) {
+function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) {
 	$user_id = (int) $user_id;
 	if ( $user_id <= 0 ) {
 		return false;
@@ -548,30 +549,50 @@ function ec_notifications_email_send_digest( $user_id ) {
 		$body_html .= $unsubscribe_html;
 	}
 
-	// Enqueue one async send per recipient. ec_send_email_queued() delegates to
-	// the datamachine/send-email-queued ability, which returns
-	// [ 'success' => bool, 'action_id' => int, ... ].
-	$envelope = ec_send_email_queued(
-		array(
-			'to'       => $user->user_email,
-			'subject'  => $digest['subject'],
-			'template' => 'extrachill/branded',
-			'context'  => array(
-				'subject_html'   => esc_html( $digest['subject'] ),
-				'recipient_name' => $user->display_name,
-				'body_html'      => $body_html,
-				'cta_url'        => $digest['cta_url'],
-				'cta_label'      => __( 'View Notifications', 'extrachill-users' ),
-				'preheader'      => $digest['preheader'],
-			),
-		)
+	// Enqueue one async send per recipient. The digest has already authorized
+	// this notification-domain operation, so run the ability through the
+	// canonical authenticated seam required by scheduler requests.
+	$queue_args = array(
+		'to'       => $user->user_email,
+		'subject'  => $digest['subject'],
+		'template' => 'extrachill/branded',
+		'context'  => array(
+			'subject_html'   => esc_html( $digest['subject'] ),
+			'recipient_name' => $user->display_name,
+			'body_html'      => $body_html,
+			'cta_url'        => $digest['cta_url'],
+			'cta_label'      => __( 'View Notifications', 'extrachill-users' ),
+			'preheader'      => $digest['preheader'],
+		),
 	);
-
-	$queued = ! empty( $envelope['success'] );
+	$queue      = static function () use ( $queue_args, $queue_callback ) {
+		return is_callable( $queue_callback )
+			? call_user_func( $queue_callback, $queue_args )
+			: ec_send_email_queued( $queue_args );
+	};
+	$helper     = '\\DataMachine\\Abilities\\PermissionHelper';
+	$envelope   = class_exists( $helper )
+		? $helper::run_as_authenticated( $queue )
+		: $queue();
+	$queued     = is_array( $envelope ) && ! empty( $envelope['success'] );
 
 	if ( ! $queued ) {
-		$error = isset( $envelope['error'] ) ? (string) $envelope['error'] : 'unknown error';
-		error_log( sprintf( 'ec_notifications_email: digest enqueue failed for user %d: %s', $user_id, $error ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- canonical operational logging surface.
+		if ( is_wp_error( $envelope ) ) {
+			$error_code = $envelope->get_error_code();
+			$error      = $envelope->get_error_message( $error_code );
+		} elseif ( is_array( $envelope ) ) {
+			$error_code = isset( $envelope['error_code'] ) ? (string) $envelope['error_code'] : 'queue_failed';
+			$error      = isset( $envelope['error'] ) ? $envelope['error'] : 'queue returned unsuccessful result';
+			if ( ! is_scalar( $error ) ) {
+				$error = 'queue returned a non-scalar error value';
+			}
+		} else {
+			$error_code = 'invalid_queue_result';
+			$error      = 'queue returned ' . gettype( $envelope ) . ' instead of an array';
+		}
+		$error_code = substr( (string) $error_code, 0, 80 );
+		$error      = substr( (string) $error, 0, 200 );
+		error_log( sprintf( 'ec_notifications_email: digest enqueue failed for user %d [%s]: %s', $user_id, $error_code, $error ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- canonical operational logging surface.
 		return false;
 	}
 
