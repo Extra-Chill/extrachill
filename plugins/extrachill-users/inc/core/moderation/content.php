@@ -188,12 +188,24 @@ function extrachill_users_apply_spam_visibility_to_user_content( int $user_id ) 
 				continue;
 			}
 
-			wp_update_post(
-				array(
-					'ID'          => $post_id,
-					'post_status' => 'draft',
-				)
-			);
+			if ( in_array( $post_type, array( 'artist_profile', 'artist_link_page' ), true ) ) {
+				global $wpdb;
+				$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Cross-site CPTs are not registered in the moderation request context.
+					$wpdb->posts,
+					array( 'post_status' => 'draft' ),
+					array( 'ID' => $post_id ),
+					array( '%s' ),
+					array( '%d' )
+				);
+				clean_post_cache( $post_id );
+			} else {
+				wp_update_post(
+					array(
+						'ID'          => $post_id,
+						'post_status' => 'draft',
+					)
+				);
+			}
 			++$results['posts'];
 		} finally {
 			restore_current_blog();

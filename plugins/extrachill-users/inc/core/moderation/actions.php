@@ -72,8 +72,10 @@ function extrachill_users_apply_moderation_action( int $user_id, array $args = a
 	if ( function_exists( 'ec_users_revoke_artist_dispatch_for_moderation' ) && empty( $status['active'] ) ) {
 		$dispatch_reason = $payload['reason'] ? $payload['reason'] : $reason_key;
 		$dispatch_result = ec_users_revoke_artist_dispatch_for_moderation( $user_id, $actor_id, $dispatch_reason );
+		// Moderation remains successful when optional Artist Dispatch cleanup fails.
+		// The ban and content visibility changes above are already committed.
 		if ( is_wp_error( $dispatch_result ) ) {
-			return $dispatch_result;
+			$results['artist_dispatch'] = array( 'error' => $dispatch_result->get_error_code() );
 		}
 	}
 

@@ -45,6 +45,57 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A dispatch state lookup failure does not undo a completed moderation action.
+	 */
+	public function test_dispatch_state_error_does_not_report_failed_moderation(): void {
+		$user_id = self::factory()->user->create();
+		$filter  = static function () {
+			return new WP_Error( 'artist_dispatch_state_unavailable' );
+		};
+
+		add_filter( 'ec_users_artist_dispatch_state', $filter );
+		$result = extrachill_users_apply_moderation_action( $user_id, array( 'reason_key' => 'other' ) );
+		remove_filter( 'ec_users_artist_dispatch_state', $filter );
+
+		$this->assertNotWPError( $result );
+		$this->assertSame( 'banned', $result['state'] );
+		$this->assertSame( 'artist_dispatch_state_unavailable', $result['results']['artist_dispatch']['error'] );
+		$this->assertTrue( extrachill_users_is_blocked( $user_id ) );
+	}
+
+	/**
+	 * Owned artist profiles and link pages are hidden across the network.
+	 */
+	public function test_moderation_hides_owned_artist_content_cross_site(): void {
+		if ( ! function_exists( 'ec_get_blog_id' ) ) {
+			$this->markTestSkipped( 'The canonical artist-site map is unavailable.' );
+		}
+
+		$user_id        = self::factory()->user->create();
+		$artist_blog_id = (int) ec_get_blog_id( 'artist' );
+		if ( $artist_blog_id <= 0 ) {
+			$this->markTestSkipped( 'The canonical artist site is unavailable.' );
+		}
+
+		switch_to_blog( $artist_blog_id );
+		register_post_type( 'artist_profile', array( 'public' => true ) );
+		register_post_type( 'artist_link_page', array( 'public' => true ) );
+		$artist_id = self::factory()->post->create( array( 'post_type' => 'artist_profile' ) );
+		$link_id   = self::factory()->post->create( array( 'post_type' => 'artist_link_page' ) );
+		update_post_meta( $link_id, '_associated_artist_profile_id', (string) $artist_id );
+		restore_current_blog();
+		update_user_meta( $user_id, '_artist_profile_ids', array( $artist_id ) );
+
+		$result = extrachill_users_apply_moderation_action( $user_id, array( 'reason_key' => 'spam' ) );
+
+		$this->assertNotWPError( $result );
+		switch_to_blog( $artist_blog_id );
+		$this->assertSame( 'draft', get_post_status( $artist_id ) );
+		$this->assertSame( 'draft', get_post_status( $link_id ) );
+		restore_current_blog();
+	}
+
+	/**
 	 * Native refresh tokens issued before moderation stay invalid after unban.
 	 */
 	public function test_ban_revokes_native_refresh_sessions_for_only_the_moderated_user(): void {
