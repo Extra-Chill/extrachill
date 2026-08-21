@@ -69,7 +69,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: f9a92eb3753e0dd81d779e63465a77e00725a929
+          ref: f36ba27143249ecbaa056799fb2e0c38b52b51b6
           path: .ci/homeboy-extensions
 
       - name: Record MySQL readiness and version
