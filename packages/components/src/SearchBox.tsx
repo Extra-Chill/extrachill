@@ -4,6 +4,7 @@ export interface SearchBoxProps {
 	value?: string;
 	onSearch: (value: string) => void;
 	placeholder?: string;
+	label?: string;
 	onClear?: () => void;
 }
 
@@ -11,6 +12,7 @@ export function SearchBox({
 	value = '',
 	onSearch,
 	placeholder = 'Search...',
+	label = 'Search',
 	onClear,
 }: SearchBoxProps) {
 	const [inputValue, setInputValue] = useState(value);
@@ -41,6 +43,7 @@ export function SearchBox({
 				value={inputValue}
 				onChange={(e) => setInputValue(e.target.value)}
 				placeholder={placeholder}
+				aria-label={label}
 				onKeyDown={handleKeyDown}
 			/>
 			<button

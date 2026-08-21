@@ -1,5 +1,6 @@
 import {
 	Panel,
+	SearchBox,
 	Tabs as RootTabs,
 	type PanelProps,
 	type TabItem,
@@ -18,5 +19,7 @@ export const consumerContract = (
 	<Panel { ...panelProps }>
 		<RootTabs { ...tabProps } />
 		<Tabs { ...tabProps } />
+		<SearchBox onSearch={ () => {} } />
+		<SearchBox label="Search venue bookings" onSearch={ () => {} } />
 	</Panel>
 );
