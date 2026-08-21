@@ -8,10 +8,12 @@ jest.mock( '@extrachill/components', () => ( {} ) );
 import {
 	calendarDays,
 	calendarEntries,
+	bookingSummary,
 	filterBookings,
 	monthKey,
 	monthRange,
 	moveMonth,
+	sortBookingsChronologically,
 } from './booking-console';
 
 describe( 'venue booking console state helpers', () => {
@@ -114,5 +116,39 @@ describe( 'venue booking console state helpers', () => {
 			bookings[ 1 ],
 		] );
 		expect( filterBookings( bookings, '' ) ).toBe( bookings );
+	} );
+
+	it( 'sorts the inbox by booking date with a stable id fallback', () => {
+		const bookings = [
+			{ id: 3, requested_start_at: '2026-08-12 20:00:00' },
+			{ id: 1, requested_start_at: '2026-08-04 20:00:00' },
+			{ id: 2, created_at: '2026-08-01 12:00:00' },
+		];
+		expect(
+			sortBookingsChronologically( bookings ).map( ( item ) => item.id )
+		).toEqual( [ 2, 1, 3 ] );
+	} );
+
+	it( 'counts only canonical records and dated expiring holds', () => {
+		expect(
+			bookingSummary(
+				[
+					{ status: 'submitted' },
+					{ status: 'needs_info' },
+					{ status: 'confirmed' },
+				],
+				[
+					{ status: 'active', expires_at: '2026-08-02 00:00:00' },
+					{ status: 'active' },
+					{ status: 'released', expires_at: '2026-08-01 13:00:00' },
+				],
+				new Date( '2026-08-01T12:00:00Z' )
+			)
+		).toEqual( {
+			newSubmissions: 1,
+			needsInfo: 1,
+			activeHolds: 2,
+			expiringHolds: 1,
+		} );
 	} );
 } );

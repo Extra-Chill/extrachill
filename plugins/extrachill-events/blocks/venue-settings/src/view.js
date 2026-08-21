@@ -294,7 +294,7 @@ export function VenueSettingsApp( { context } ) {
 					{ id: 'calendar', label: 'Bookings' },
 					{ id: 'venue', label: 'Venue' },
 					{ id: 'booking-form', label: 'Booking Form' },
-					{ id: 'settings', label: 'Settings' },
+					{ id: 'settings', label: 'Booking Rules' },
 			  ]
 			: [] ),
 		...( manageableVenues.length ? [ { id: 'team', label: 'Team' } ] : [] ),

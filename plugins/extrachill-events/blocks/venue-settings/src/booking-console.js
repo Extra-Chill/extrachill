@@ -121,6 +121,52 @@ const bookingDate = ( booking ) =>
 		10
 	);
 
+const bookingDateValue = ( booking ) =>
+	booking.performance_start_at ||
+	booking.requested_start_at ||
+	booking.created_at ||
+	'';
+
+export const sortBookingsChronologically = ( bookings ) =>
+	[ ...bookings ].sort( ( left, right ) => {
+		const leftDate = bookingDateValue( left );
+		const rightDate = bookingDateValue( right );
+		if ( leftDate === rightDate ) {
+			return Number( left.id ) - Number( right.id );
+		}
+		if ( ! leftDate ) {
+			return 1;
+		}
+		if ( ! rightDate ) {
+			return -1;
+		}
+		return leftDate.localeCompare( rightDate );
+	} );
+
+export const bookingSummary = ( bookings, holds, now = new Date() ) => {
+	const expiresBy = now.getTime() + 48 * 60 * 60 * 1000;
+	const activeHolds = holds.filter( ( hold ) => hold.status === 'active' );
+	const expiringHolds = activeHolds.filter( ( hold ) => {
+		if ( ! hold.expires_at ) {
+			return false;
+		}
+		const expiresAt = new Date(
+			hold.expires_at.replace( ' ', 'T' ) + 'Z'
+		).getTime();
+		return ! Number.isNaN( expiresAt ) && expiresAt <= expiresBy;
+	} );
+	return {
+		newSubmissions: bookings.filter(
+			( booking ) => booking.status === 'submitted'
+		).length,
+		needsInfo: bookings.filter(
+			( booking ) => booking.status === 'needs_info'
+		).length,
+		activeHolds: activeHolds.length,
+		expiringHolds: expiringHolds.length,
+	};
+};
+
 export const calendarEntries = ( bookings, events, supportEvents = [] ) => {
 	const eventIds = new Set( events.map( ( event ) => Number( event.id ) ) );
 	const supportByEvent = new Map(
@@ -689,7 +735,7 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 					) }
 				</span>
 				<span className="ec-booking-card__date">
-					{ formatDate( booking.requested_start_at ) }
+					{ formatDate( bookingDateValue( booking ) ) }
 				</span>
 				<span className="ec-booking-card__state">
 					<BookingStatus status={ booking.status } />
@@ -702,6 +748,30 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 				</span>
 			</button>
 		</li>
+	);
+}
+
+function BookingInboxSummary( { summary } ) {
+	const items = [
+		[ 'New submissions', summary.newSubmissions ],
+		[ 'Needs info', summary.needsInfo ],
+		[ 'Active holds', summary.activeHolds ],
+	];
+	if ( summary.expiringHolds > 0 ) {
+		items.push( [ 'Expiring holds', summary.expiringHolds ] );
+	}
+	return (
+		<ul
+			className="ec-booking-console__summary"
+			aria-label="Booking actions"
+		>
+			{ items.map( ( [ label, count ] ) => (
+				<li key={ label }>
+					<strong>{ count }</strong>
+					<span>{ label }</span>
+				</li>
+			) ) }
+		</ul>
 	);
 }
 
@@ -1556,7 +1626,7 @@ export function BookingConsole( {
 	const [ search, setSearch ] = useState( '' );
 	const [ filterStatus, setFilterStatus ] = useState( '' );
 	const [ month, setMonth ] = useState( monthKey() );
-	const [ view, setView ] = useState( 'calendar' );
+	const [ view, setView ] = useState( 'list' );
 	const requestId = useRef( 0 );
 	const detailRequestId = useRef( 0 );
 	const selectedIdRef = useRef( context.booking_id || 0 );
@@ -1763,7 +1833,10 @@ export function BookingConsole( {
 	const refreshAfterMutation = async () => {
 		await Promise.all( [ loadList(), loadDetail() ] );
 	};
-	const visible = filterBookings( bookings, search, filterStatus );
+	const visible = sortBookingsChronologically(
+		filterBookings( bookings, search, filterStatus )
+	);
+	const summary = bookingSummary( bookings, holds );
 	const selectedHolds = holds.filter(
 		( hold ) => hold.booking_id === selectedId
 	);
@@ -1850,9 +1923,10 @@ export function BookingConsole( {
 							) : (
 								<Panel>
 									<PanelHeader
-										title="Booking pipeline"
-										description="Review and manage booking inquiries for this venue."
+										title="Booking inbox"
+										description="Review the next booking action in date order."
 									/>
+									<BookingInboxSummary summary={ summary } />
 									{ visible.length ? (
 										<ul className="ec-booking-console__list">
 											{ visible.map( ( booking ) => (

@@ -42,6 +42,8 @@ describe( 'venue booking workspace composition', () => {
 		expect( consoleSource ).toContain(
 			'<ul className="ec-booking-console__list">'
 		);
+		expect( consoleSource ).toContain( 'Booking inbox' );
+		expect( consoleSource ).toContain( 'Booking actions' );
 		expect( styles ).toContain(
 			'grid-template-columns: auto minmax(16rem, 1fr) minmax(10rem, 14rem);'
 		);

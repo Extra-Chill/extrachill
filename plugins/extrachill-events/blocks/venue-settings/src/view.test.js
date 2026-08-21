@@ -486,7 +486,7 @@ describe( 'venue settings authorization-facing states', () => {
 			'Bookings',
 			'Venue',
 			'Booking Form',
-			'Settings',
+			'Booking Rules',
 			'Team',
 		] );
 		expect( container.textContent ).not.toContain( 'Open workspace' );
@@ -506,7 +506,12 @@ describe( 'venue settings authorization-facing states', () => {
 		expect(
 			container.querySelectorAll( '.ec-venue-settings__venue-scope > h2' )
 		).toHaveLength( 2 );
-		for ( const tab of [ 'Venue', 'Booking Form', 'Settings', 'Team' ] ) {
+		for ( const tab of [
+			'Venue',
+			'Booking Form',
+			'Booking Rules',
+			'Team',
+		] ) {
 			await act( async () => buttonByText( container, tab ).click() );
 			const ids = [ ...container.querySelectorAll( '[id]' ) ].map(
 				( element ) => element.id
@@ -577,6 +582,7 @@ describe( 'venue settings authorization-facing states', () => {
 				can_access: false,
 			} )
 		);
+		await act( async () => buttonByText( container, 'Calendar' ).click() );
 
 		for ( const id of [ 44, 45 ] ) {
 			expect( container.textContent ).toContain( `Artist ${ id }` );
@@ -662,7 +668,7 @@ describe( 'venue settings authorization-facing states', () => {
 					'[data-context-surface="venue-settings"] > button'
 				),
 			].map( ( button ) => button.textContent )
-		).toEqual( [ 'Bookings', 'Venue', 'Booking Form', 'Settings' ] );
+		).toEqual( [ 'Bookings', 'Venue', 'Booking Form', 'Booking Rules' ] );
 		for ( const retired of [
 			'Local Support',
 			'Profile',
@@ -711,12 +717,12 @@ describe( 'venue settings authorization-facing states', () => {
 			'Bookings',
 			'Venue',
 			'Booking Form',
-			'Settings',
+			'Booking Rules',
 			'Team',
 		] );
 		expect( container.textContent ).not.toContain( 'Venue claims' );
 		await act( async () => buttonByText( container, 'List' ).click() );
-		expect( container.textContent ).toContain( 'Booking pipeline' );
+		expect( container.textContent ).toContain( 'Booking inbox' );
 		expect(
 			container.querySelector( 'ul.ec-booking-console__list' )
 		).not.toBeNull();
@@ -866,6 +872,7 @@ describe( 'venue settings authorization-facing states', () => {
 				],
 			} )
 		);
+		await act( async () => buttonByText( container, 'Calendar' ).click() );
 		expect( container.textContent ).toContain( 'Kid Lake at Venue 44' );
 		expect( container.textContent ).toContain( 'Open support request' );
 		expect(
@@ -960,7 +967,9 @@ describe( 'venue settings authorization-facing states', () => {
 
 	it( 'shows human-readable hold duration choices in booking settings', async () => {
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Settings' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Booking Rules' ).click()
+		);
 
 		const holdDuration = container.querySelector( '#venue-hold-ttl' );
 		expect( holdDuration.tagName ).toBe( 'SELECT' );
@@ -995,7 +1004,9 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Settings' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Booking Rules' ).click()
+		);
 		await setInput(
 			container.querySelector( '#venue-ticket-provider' ),
 			'dirty-ticket-account'
@@ -1005,7 +1016,9 @@ describe( 'venue settings authorization-facing states', () => {
 			buttonByText( container, 'Retry profile' ).click();
 			await Promise.resolve();
 		} );
-		await act( async () => buttonByText( container, 'Settings' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Booking Rules' ).click()
+		);
 		expect(
 			container.querySelector( '#venue-ticket-provider' ).value
 		).toBe( 'dirty-ticket-account' );
@@ -1037,7 +1050,9 @@ describe( 'venue settings authorization-facing states', () => {
 			container.querySelector( '#venue-profile-name' ),
 			'Locally edited venue'
 		);
-		await act( async () => buttonByText( container, 'Settings' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Booking Rules' ).click()
+		);
 		await act( async () => {
 			buttonByText( container, 'Retry booking settings' ).click();
 			await Promise.resolve();
@@ -1692,7 +1707,9 @@ describe( 'venue settings authorization-facing states', () => {
 			return Promise.resolve( [] );
 		} );
 		const { container, root } = await renderApp( context() );
-		await act( async () => buttonByText( container, 'Settings' ).click() );
+		await act( async () =>
+			buttonByText( container, 'Booking Rules' ).click()
+		);
 		await setInput(
 			container.querySelector( '#venue-ticket-provider' ),
 			'venue-account'
