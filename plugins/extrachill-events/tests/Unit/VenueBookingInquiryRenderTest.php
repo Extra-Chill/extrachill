@@ -141,6 +141,58 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** Enabled venue archives expose one canonical booking link near the heading. */
+	public function test_enabled_venue_archive_renders_booking_cta_before_calendar(): void {
+		global $wp_query, $wp_the_query;
+
+		switch_to_blog( self::EVENTS_BLOG_ID );
+		$previous_query      = $wp_query;
+		$previous_main_query = $wp_the_query;
+
+		try {
+			$archive_url = get_term_link( $this->venue_id, 'venue' );
+			$this->go_to( $archive_url );
+			$output            = $this->render( array() );
+			$heading_position  = strpos( $output, 'class="page-title"' );
+			$cta_position      = strpos( $output, 'Submit a booking inquiry' );
+			$calendar_position = strpos( $output, 'events-calendar-container' );
+
+			$this->assertNotFalse( $heading_position );
+			$this->assertNotFalse( $cta_position );
+			$this->assertNotFalse( $calendar_position );
+			$this->assertStringContainsString( 'href="' . esc_url( $archive_url . '#booking-inquiry' ) . '"', $output );
+			$this->assertLessThan( $heading_position, $cta_position );
+			$this->assertLessThan( $cta_position, $calendar_position );
+			$this->assertSame( 1, substr_count( $output, 'Submit a booking inquiry' ) );
+		} finally {
+			$wp_query     = $previous_query;
+			$wp_the_query = $previous_main_query;
+			restore_current_blog();
+		}
+	}
+
+	/** Disabled venue archives do not expose a booking CTA or destination. */
+	public function test_disabled_venue_archive_hides_booking_cta(): void {
+		global $wp_query, $wp_the_query;
+
+		switch_to_blog( self::EVENTS_BLOG_ID );
+		$config            = get_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, true );
+		$config['enabled'] = false;
+		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
+		$previous_query      = $wp_query;
+		$previous_main_query = $wp_the_query;
+
+		try {
+			$this->go_to( get_term_link( $this->venue_id, 'venue' ) );
+			$output = $this->render( array() );
+			$this->assertStringNotContainsString( 'Submit a booking inquiry', $output );
+		} finally {
+			$wp_query     = $previous_query;
+			$wp_the_query = $previous_main_query;
+			restore_current_blog();
+		}
+	}
+
 	/** Register the existing dynamic block assets without the Events runtime. */
 	public function test_network_entrypoint_registers_existing_assets_on_all_intended_sites(): void {
 		require_once dirname( __DIR__, 2 ) . '/extrachill-events-network-blocks.php';

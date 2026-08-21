@@ -25,6 +25,19 @@ extrachill_breadcrumbs();
 		?>
 		<header class="taxonomy-archive-header venue-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
+			<?php
+			if ( class_exists( '\ExtraChillEvents\Core\VenueBookingConfig' ) && class_exists( '\ExtraChillEvents\Core\VenueBookingEmbed' ) ) :
+				$booking_config = ( new \ExtraChillEvents\Core\VenueBookingConfig() )->get_public_projection( (int) $queried_term->term_id );
+				if ( ! is_wp_error( $booking_config ) && ! empty( $booking_config['enabled'] ) ) :
+					$booking_url = \ExtraChillEvents\Core\VenueBookingEmbed::booking_url( $queried_term );
+					if ( $booking_url ) :
+						?>
+						<p class="venue-booking-cta"><a class="button-1" href="<?php echo esc_url( $booking_url ); ?>"><?php esc_html_e( 'Submit a booking inquiry', 'extrachill-events' ); ?></a></p>
+						<?php
+					endif;
+				endif;
+			endif;
+			?>
 			
 			<?php if ( ! empty( $queried_term->description ) ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $queried_term->description ) ); ?></div>
