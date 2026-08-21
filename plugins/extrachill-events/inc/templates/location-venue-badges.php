@@ -76,34 +76,46 @@ $priority_venue_ids = function_exists( 'ec_get_priority_venue_ids' )
 	? ec_get_priority_venue_ids()
 	: array();
 
-if ( ! empty( $priority_venue_ids ) ) {
-	usort(
-		$venue_counts,
-		function ( $a, $b ) use ( $priority_venue_ids ) {
-			$a_priority = in_array( (int) ( $a['term_id'] ?? 0 ), $priority_venue_ids, true );
-			$b_priority = in_array( (int) ( $b['term_id'] ?? 0 ), $priority_venue_ids, true );
+usort(
+	$venue_counts,
+	function ( $a, $b ) use ( $priority_venue_ids ) {
+		$a_priority = in_array( (int) ( $a['term_id'] ?? 0 ), $priority_venue_ids, true );
+		$b_priority = in_array( (int) ( $b['term_id'] ?? 0 ), $priority_venue_ids, true );
 
-			if ( $a_priority !== $b_priority ) {
-				return $a_priority ? -1 : 1;
-			}
+		if ( $a_priority !== $b_priority ) {
+			return $a_priority ? -1 : 1;
+		}
 
-			// Same tier — preserve count-descending order from the ability.
-			$a_count = (int) ( $a['count'] ?? 0 );
-			$b_count = (int) ( $b['count'] ?? 0 );
-
+		$a_count = (int) ( $a['count'] ?? 0 );
+		$b_count = (int) ( $b['count'] ?? 0 );
+		if ( $a_count !== $b_count ) {
 			return $b_count <=> $a_count;
 		}
-	);
-}
+
+		$name_order = strcasecmp( (string) ( $a['name'] ?? '' ), (string) ( $b['name'] ?? '' ) );
+		return 0 !== $name_order ? $name_order : (int) ( $a['term_id'] ?? 0 ) <=> (int) ( $b['term_id'] ?? 0 );
+	}
+);
 ?>
-	<div class="taxonomy-badges ec-edge-gutter location-archive-venue-badges">
-	<?php
-	foreach ( $venue_counts as $venue ) :
-		$is_priority    = ! empty( $priority_venue_ids ) && in_array( (int) ( $venue['term_id'] ?? 0 ), $priority_venue_ids, true );
-		$priority_class = $is_priority ? ' venue-badge-priority' : '';
-		?>
-		<a href="<?php echo esc_url( $venue['url'] ); ?>" class="taxonomy-badge venue-badge venue-<?php echo esc_attr( $venue['slug'] ); ?><?php echo esc_attr( $priority_class ); ?>">
-			<?php echo esc_html( $venue['name'] ); ?> (<?php echo esc_html( $venue['count'] ); ?>)
-		</a>
-	<?php endforeach; ?>
-	</div>
+	<details class="location-archive-venue-directory">
+		<summary class="location-archive-venue-directory__summary">
+			<?php
+			printf(
+				/* translators: %s: Number of active venues. */
+				esc_html( _n( 'Browse %s venue', 'Browse %s venues', count( $venue_counts ), 'extrachill-events' ) ),
+				esc_html( number_format_i18n( count( $venue_counts ) ) )
+			);
+			?>
+		</summary>
+		<div class="taxonomy-badges ec-edge-gutter location-archive-venue-badges">
+		<?php
+		foreach ( $venue_counts as $venue ) :
+			$is_priority    = ! empty( $priority_venue_ids ) && in_array( (int) ( $venue['term_id'] ?? 0 ), $priority_venue_ids, true );
+			$priority_class = $is_priority ? ' venue-badge-priority' : '';
+			?>
+			<a href="<?php echo esc_url( $venue['url'] ); ?>" class="taxonomy-badge venue-badge venue-<?php echo esc_attr( $venue['slug'] ); ?><?php echo esc_attr( $priority_class ); ?>">
+				<?php echo esc_html( $venue['name'] ); ?> (<?php echo esc_html( $venue['count'] ); ?>)
+			</a>
+		<?php endforeach; ?>
+		</div>
+	</details>

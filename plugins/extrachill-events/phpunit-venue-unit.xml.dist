@@ -3,6 +3,7 @@
 	<testsuites>
 		<testsuite name="venue-unit">
 			<file>tests/VenueMembershipAuthorizationTest.php</file>
+			<file>tests/Unit/LocationVenueBadgesTemplateTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

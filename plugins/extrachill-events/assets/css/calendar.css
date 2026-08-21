@@ -211,6 +211,26 @@
     margin-bottom: var(--spacing-md);
 }
 
+/* Keep venue navigation available without placing the directory ahead of the calendar. */
+.location-archive-venue-directory {
+    margin-bottom: var(--spacing-lg);
+}
+
+.location-archive-venue-directory__summary {
+    color: var(--link-color);
+    cursor: pointer;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.location-archive-venue-directory__summary:hover {
+    color: var(--link-hover-color);
+}
+
+.location-archive-venue-directory[open] .location-archive-venue-badges {
+    margin-top: var(--spacing-md);
+}
+
 /* Priority event indicator */
 .extrachill-priority-event {
     position: relative;
