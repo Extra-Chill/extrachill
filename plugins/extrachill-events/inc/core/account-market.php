@@ -386,6 +386,72 @@ function extrachill_events_update_archive_scene( WP_Term $term, string $nonce ):
 }
 
 /**
+ * Build the safe login continuation for an explicit archive intent.
+ *
+ * The signed envelope is carried by the existing auth continuation rather than
+ * stored by Events. It is deliberately short-lived and scoped to one term and
+ * one action.
+ *
+ * @param WP_Term $term   Location term.
+ * @param string  $intent Either save_scene or subscribe_digest.
+ * @return string Login URL.
+ */
+function extrachill_events_archive_intent_login_url( WP_Term $term, string $intent ): string {
+	$archive_url = get_term_link( $term );
+	if ( is_wp_error( $archive_url ) || ! in_array( $intent, array( 'save_scene', 'subscribe_digest' ), true ) ) {
+		return wp_login_url( home_url( '/' ) );
+	}
+
+	$expires   = time() + ( 15 * 60 );
+	$action    = 'extrachill_events_archive_intent_' . $intent . '_' . $term->slug . '_' . $expires;
+	$signature = hash_hmac( 'sha256', $action, wp_salt( 'auth' ) );
+	$return    = add_query_arg(
+		array(
+			'ec_events_intent'           => $intent,
+			'ec_events_intent_expires'   => $expires,
+			'ec_events_intent_signature' => $signature,
+		),
+		$archive_url
+	);
+
+	return wp_login_url( $return );
+}
+
+/**
+ * Read and validate the current archive auth intent.
+ *
+ * @param WP_Term $term Location term.
+ * @return string|null Valid intent, or null when absent or invalid.
+ */
+function extrachill_events_get_archive_auth_intent( WP_Term $term ): ?string {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The signed nonce is verified below; this is a read-only continuation.
+	$intent = isset( $_GET['ec_events_intent'] ) && is_scalar( $_GET['ec_events_intent'] ) ? sanitize_key( wp_unslash( $_GET['ec_events_intent'] ) ) : '';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- See the intent nonce verification below.
+	$expires = isset( $_GET['ec_events_intent_expires'] ) && is_scalar( $_GET['ec_events_intent_expires'] ) ? absint( $_GET['ec_events_intent_expires'] ) : 0;
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- See the intent signature verification below.
+	$signature = isset( $_GET['ec_events_intent_signature'] ) && is_scalar( $_GET['ec_events_intent_signature'] ) ? sanitize_text_field( wp_unslash( $_GET['ec_events_intent_signature'] ) ) : '';
+
+	if ( ! in_array( $intent, array( 'save_scene', 'subscribe_digest' ), true ) || $expires < time() || $expires > time() + ( 15 * 60 ) || '' === $signature ) {
+		return null;
+	}
+
+	$action   = 'extrachill_events_archive_intent_' . $intent . '_' . $term->slug . '_' . $expires;
+	$expected = hash_hmac( 'sha256', $action, wp_salt( 'auth' ) );
+	return hash_equals( $expected, $signature ) ? $intent : null;
+}
+
+/**
+ * Return the archive URL without continuation parameters.
+ *
+ * @param WP_Term $term Location term.
+ * @return string Clean archive URL.
+ */
+function extrachill_events_archive_intent_clean_url( WP_Term $term ): string {
+	$url = get_term_link( $term );
+	return is_wp_error( $url ) ? home_url( '/' ) : remove_query_arg( array( 'ec_events_intent', 'ec_events_intent_expires', 'ec_events_intent_signature' ), $url );
+}
+
+/**
  * Handle the archive Local Scene form submission.
  */
 function extrachill_events_handle_archive_scene_update(): void {
@@ -400,12 +466,25 @@ function extrachill_events_handle_archive_scene_update(): void {
 	if ( is_wp_error( $archive_url ) ) {
 		return;
 	}
-	if ( ! wp_verify_nonce( $nonce, 'extrachill_events_save_scene_' . $term->term_id ) ) {
+	$scene_action = is_scalar( $_POST['extrachill_events_scene_action'] ) ? sanitize_key( wp_unslash( $_POST['extrachill_events_scene_action'] ) ) : '';
+	$nonce_action = 'subscribe_digest' === $scene_action ? 'extrachill_events_subscribe_scene_' . $term->term_id : 'extrachill_events_save_scene_' . $term->term_id;
+	if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
 		wp_safe_redirect( add_query_arg( 'scene_status', 'failed', $archive_url ) );
 		exit;
 	}
 
-	$status = extrachill_events_update_archive_scene( $term, $nonce ) ? 'saved' : 'failed';
+	$scene_nonce          = 'subscribe_digest' === $scene_action ? wp_create_nonce( 'extrachill_events_save_scene_' . $term->term_id ) : $nonce;
+	$saved                = 'save' === $scene_action || 'subscribe_digest' === $scene_action ? extrachill_events_update_archive_scene( $term, $scene_nonce ) : false;
+	$subscription_ability = 'subscribe_digest' === $scene_action && $saved && function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/entity-subscribe' ) : null;
+	$subscription_result  = $subscription_ability ? $subscription_ability->execute(
+		array(
+			'entity_type' => 'local_scene_digest',
+			'taxonomy'    => 'location',
+			'slug'        => sanitize_title( $term->slug ),
+		)
+	) : null;
+	$subscribed           = 'subscribe_digest' === $scene_action && ! is_wp_error( $subscription_result ) && is_array( $subscription_result ) && ! empty( $subscription_result['subscribed'] );
+	$status               = 'subscribe_digest' === $scene_action ? ( $subscribed ? 'subscribed' : ( $saved ? 'scene_saved' : 'failed' ) ) : ( $saved ? 'saved' : 'failed' );
 	wp_safe_redirect( add_query_arg( 'scene_status', $status, $archive_url ) );
 	exit;
 }
@@ -425,6 +504,7 @@ function extrachill_events_render_archive_scene_cta(): void {
 		return;
 	}
 	$is_logged_in = is_user_logged_in();
+	$intent       = ! $is_logged_in ? null : extrachill_events_get_archive_auth_intent( $term );
 	$current      = extrachill_events_get_account_market();
 	$is_current   = $current && (int) $current['term_id'] === (int) $term->term_id;
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash status set by this handler's nonce-protected redirect.
@@ -444,16 +524,26 @@ function extrachill_events_render_archive_scene_cta(): void {
 				<span><?php esc_html_e( 'We could not update your Local Scene. Please try again.', 'extrachill-events' ); ?></span>
 			<?php elseif ( $is_current || 'saved' === $status ) : ?>
 				<span><?php esc_html_e( 'This is your Local Scene.', 'extrachill-events' ); ?></span>
+			<?php elseif ( 'save_scene' === $intent ) : ?>
+				<span><?php esc_html_e( 'Confirm this one-step action to save it to your account.', 'extrachill-events' ); ?></span>
 			<?php endif; ?>
 		</div>
 		<div class="events-market-context__actions">
 			<?php if ( ! $is_logged_in ) : ?>
-				<a class="button-1 button-small" href="<?php echo esc_url( wp_login_url( $archive_url ) ); ?>"><?php esc_html_e( 'Sign in to save', 'extrachill-events' ); ?></a>
-			<?php elseif ( ! $is_current && 'saved' !== $status ) : ?>
+				<a class="button-1 button-small" href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'save_scene' ) ); ?>"><?php esc_html_e( 'Sign in to save', 'extrachill-events' ); ?></a>
+			<?php elseif ( ! $is_current && 'saved' !== $status && 'save_scene' !== $intent ) : ?>
 				<form method="post" action="<?php echo esc_url( $archive_url ); ?>">
 					<?php wp_nonce_field( 'extrachill_events_save_scene_' . $term->term_id, 'extrachill_events_scene_nonce' ); ?>
 					<input type="hidden" name="extrachill_events_scene_action" value="save">
 					<button class="button-1 button-small" type="submit"><?php esc_html_e( 'Make this my Local Scene', 'extrachill-events' ); ?></button>
+				</form>
+			<?php endif; ?>
+			<?php if ( $is_logged_in && 'save_scene' === $intent ) : ?>
+				<p><?php esc_html_e( 'You asked to save this Local Scene before signing in.', 'extrachill-events' ); ?></p>
+				<form method="post" action="<?php echo esc_url( extrachill_events_archive_intent_clean_url( $term ) ); ?>">
+					<?php wp_nonce_field( 'extrachill_events_save_scene_' . $term->term_id, 'extrachill_events_scene_nonce' ); ?>
+					<input type="hidden" name="extrachill_events_scene_action" value="save">
+					<button class="button-1 button-small" type="submit" autofocus><?php esc_html_e( 'Confirm: save this Local Scene', 'extrachill-events' ); ?></button>
 				</form>
 			<?php endif; ?>
 		</div>

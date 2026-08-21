@@ -9,6 +9,9 @@
 
 // phpcs:disable -- Isolated test doubles intentionally mirror WordPress globals.
 
+// Conditional scope prevents standalone global doubles from compiling in WordPress.
+if ( ! defined( 'WPINC' ) ) {
+
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
@@ -165,3 +168,4 @@ if ( null !== $result['term'] || 'ambiguous_location_hierarchy' !== $result['rea
 
 printf( "%d passed, %d failed\n", count( $cases ) + 6 - $failures, $failures );
 exit( $failures > 0 ? 1 : 0 );
+}

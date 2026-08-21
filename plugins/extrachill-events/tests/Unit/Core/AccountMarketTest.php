@@ -89,6 +89,19 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_salt' ) ) {
+	function wp_salt( $scheme = 'auth' ) {
+		unset( $scheme );
+		return 'account-market-test-secret';
+	}
+}
+
+if ( ! function_exists( 'sanitize_key' ) ) {
+	function sanitize_key( $value ) {
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) );
+	}
+}
+
 if ( ! function_exists( 'is_tax' ) ) {
 	function is_tax() {
 		return (bool) ( $GLOBALS['test_is_tax'] ?? false );
@@ -240,7 +253,11 @@ if ( ! function_exists( 'remove_query_arg' ) ) {
 }
 
 if ( ! function_exists( 'add_query_arg' ) ) {
-	function add_query_arg( $key, $value, $url ) {
+	function add_query_arg( $key, $value = null, $url = '' ) {
+		if ( is_array( $key ) ) {
+			$url = (string) $value;
+			return $url . '?' . http_build_query( $key );
+		}
 		return $url . '?' . rawurlencode( $key ) . '=' . rawurlencode( $value );
 	}
 }
@@ -1311,5 +1328,56 @@ final class AccountMarketTest extends TestCase {
 		$valid_nonce = class_exists( 'WP_Abilities_Registry' ) ? wp_create_nonce( 'extrachill_events_save_scene_' . $term->term_id ) : $valid_nonce;
 		$this->assertTrue( extrachill_events_update_archive_scene( $term, $valid_nonce ) );
 		$this->assertSame( array( array( 'local_scene' => 'charleston' ) ), $calls->getArrayCopy() );
+	}
+
+	/** Signed continuations preserve distinct save and subscription actions. */
+	public function test_archive_auth_intents_are_distinct_and_signed(): void {
+		$term       = $this->term( 1618, 'Charleston', 'charleston' );
+		$save_url   = extrachill_events_archive_intent_login_url( $term, 'save_scene' );
+		$digest_url = extrachill_events_archive_intent_login_url( $term, 'subscribe_digest' );
+
+		$this->assertStringContainsString( 'ec_events_intent=save_scene', rawurldecode( $save_url ) );
+		$this->assertStringContainsString( 'ec_events_intent=subscribe_digest', rawurldecode( $digest_url ) );
+		$this->assertNotSame( $save_url, $digest_url );
+	}
+
+	/** Tampered and expired archive continuations fail closed. */
+	public function test_archive_auth_intent_fails_closed_when_tampered_or_expired(): void {
+		$term = $this->term( 1618, 'Charleston', 'charleston' );
+		$url  = extrachill_events_archive_intent_login_url( $term, 'save_scene' );
+		parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $login_query );
+		parse_str( (string) parse_url( rawurldecode( $login_query['redirect_to'] ), PHP_URL_QUERY ), $_GET );
+		$this->assertSame( 'save_scene', extrachill_events_get_archive_auth_intent( $term ) );
+
+		$_GET['ec_events_intent'] = 'subscribe_digest';
+		$this->assertNull( extrachill_events_get_archive_auth_intent( $term ) );
+		$_GET['ec_events_intent']         = 'save_scene';
+		$_GET['ec_events_intent_expires'] = time() - 1;
+		$this->assertNull( extrachill_events_get_archive_auth_intent( $term ) );
+	}
+
+	/** A valid post-auth save continuation renders one explicit confirmation. */
+	public function test_archive_save_intent_renders_accessible_confirmation(): void {
+		$this->use_logged_in_user();
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$GLOBALS['test_is_tax']            = true;
+		$GLOBALS['test_queried_term']      = $this->term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']    = array( 22, 1 );
+		$GLOBALS['test_term_link']         = 'https://events.example/location/charleston/';
+		$this->use_archive_query( $GLOBALS['test_queried_term'] );
+
+		$url = extrachill_events_archive_intent_login_url( $GLOBALS['test_queried_term'], 'save_scene' );
+		parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $login_query );
+		parse_str( (string) parse_url( rawurldecode( $login_query['redirect_to'] ), PHP_URL_QUERY ), $_GET );
+
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'You asked to save this Local Scene before signing in.', $output );
+		$this->assertStringContainsString( 'Confirm: save this Local Scene', $output );
+		$this->assertStringContainsString( 'autofocus', $output );
+		$this->assertStringContainsString( 'role="status"', $output );
+		$this->assertStringNotContainsString( 'Make this my Local Scene', $output );
 	}
 }
