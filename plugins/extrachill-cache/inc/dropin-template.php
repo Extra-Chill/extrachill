@@ -163,10 +163,9 @@ if ( false === $ec_cache_payload ) {
 
 // HIT: emit stored headers + body and exit before WordPress loads.
 if ( ! empty( $ec_cache_payload['headers'] ) && is_array( $ec_cache_payload['headers'] ) ) {
-	foreach ( $ec_cache_payload['headers'] as $ec_cache_header ) {
-		if ( isset( $ec_cache_header['name'], $ec_cache_header['value'] ) ) {
-			header( $ec_cache_header['name'] . ': ' . $ec_cache_header['value'] );
-		}
+	$ec_cache_headers = extrachill_cache_filter_headers( $ec_cache_payload['headers'] );
+	foreach ( $ec_cache_headers as $ec_cache_header ) {
+		header( $ec_cache_header['name'] . ': ' . $ec_cache_header['value'], false );
 	}
 }
 header( 'X-Extrachill-Cache: HIT' );

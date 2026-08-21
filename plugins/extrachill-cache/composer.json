@@ -12,7 +12,7 @@
 	"scripts": {
 		"lint:php": "phpcs --standard=WordPress .",
 		"lint:fix": "phpcbf --standard=WordPress .",
-		"test": "php tests/purge-standalone.php"
+		"test": "php tests/purge-standalone.php && php tests/headers-standalone.php"
 	},
 	"config": {
 		"allow-plugins": {

@@ -91,6 +91,85 @@ if ( ! function_exists( 'extrachill_cache_key' ) ) {
 	}
 }
 
+if ( ! function_exists( 'extrachill_cache_filter_headers' ) ) {
+	/**
+	 * Keep only response headers that are safe to replay from a shared cache.
+	 *
+	 * Header names are matched case-insensitively and emitted in allowlist order.
+	 * Content-Type and Last-Modified use the final valid value. Distinct repeated
+	 * policy values are retained in encounter order because multiple policies can
+	 * be additive; exact duplicates are discarded.
+	 *
+	 * @param mixed $headers Header lines or arrays with name/value keys.
+	 * @return array<int,array{name:string,value:string}> Safe canonical headers.
+	 */
+	function extrachill_cache_filter_headers( $headers ) {
+		$allowed = array(
+			'content-type'                        => 'Content-Type',
+			'last-modified'                       => 'Last-Modified',
+			'content-security-policy'             => 'Content-Security-Policy',
+			'content-security-policy-report-only' => 'Content-Security-Policy-Report-Only',
+			'permissions-policy'                  => 'Permissions-Policy',
+			'referrer-policy'                     => 'Referrer-Policy',
+			'strict-transport-security'           => 'Strict-Transport-Security',
+			'x-content-type-options'              => 'X-Content-Type-Options',
+			'x-frame-options'                     => 'X-Frame-Options',
+			'cross-origin-embedder-policy'        => 'Cross-Origin-Embedder-Policy',
+			'cross-origin-opener-policy'          => 'Cross-Origin-Opener-Policy',
+			'cross-origin-resource-policy'        => 'Cross-Origin-Resource-Policy',
+			'origin-agent-cluster'                => 'Origin-Agent-Cluster',
+		);
+		$values  = array_fill_keys( array_keys( $allowed ), array() );
+
+		if ( ! is_array( $headers ) ) {
+			return array();
+		}
+
+		foreach ( $headers as $header ) {
+			if ( is_string( $header ) ) {
+				$parts = explode( ':', $header, 2 );
+				if ( 2 !== count( $parts ) ) {
+					continue;
+				}
+				$name  = trim( $parts[0] );
+				$value = trim( $parts[1] );
+			} elseif ( is_array( $header ) && isset( $header['name'], $header['value'] ) ) {
+				$name  = trim( (string) $header['name'] );
+				$value = trim( (string) $header['value'] );
+			} else {
+				continue;
+			}
+
+			$lower_name = strtolower( $name );
+			if (
+				'' === $value ||
+				! isset( $allowed[ $lower_name ] ) ||
+				preg_match( '/[\x00-\x1F\x7F]/', $name . $value )
+			) {
+				continue;
+			}
+
+			if ( 'content-type' === $lower_name || 'last-modified' === $lower_name ) {
+				$values[ $lower_name ] = array( $value );
+			} elseif ( ! in_array( $value, $values[ $lower_name ], true ) ) {
+				$values[ $lower_name ][] = $value;
+			}
+		}
+
+		$filtered = array();
+		foreach ( $allowed as $lower_name => $canonical_name ) {
+			foreach ( $values[ $lower_name ] as $value ) {
+				$filtered[] = array(
+					'name'  => $canonical_name,
+					'value' => $value,
+				);
+			}
+		}
+
+		return $filtered;
+	}
+}
+
 if ( ! function_exists( 'extrachill_cache_file_path' ) ) {
 	/**
 	 * Full path to the cache file for a given key + blog.
@@ -123,6 +202,7 @@ if ( ! function_exists( 'extrachill_cache_url_identity' ) ) {
 
 		$tracking_keys = array( 'fbclid', 'gclid', 'dclid', 'msclkid', 'mc_cid', 'mc_eid', '_ga' );
 		foreach ( array_keys( $args ) as $key ) {
+			$key = (string) $key;
 			if ( 0 !== strpos( $key, 'utm_' ) && ! in_array( $key, $tracking_keys, true ) ) {
 				return false;
 			}

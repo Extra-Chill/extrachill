@@ -148,16 +148,12 @@ function extrachill_cache_output_buffer( $buffer ) {
 	$modified_time = time();
 	$stamped       = $buffer . "\n<!-- Cached by Extra Chill Cache - " . gmdate( 'D, d M Y H:i:s', $modified_time ) . " GMT -->\n";
 
-	$headers = array(
-		array(
-			'name'  => 'Content-Type',
-			'value' => 'text/html; charset=UTF-8',
-		),
-		array(
-			'name'  => 'Last-Modified',
-			'value' => gmdate( 'D, d M Y H:i:s', $modified_time ) . ' GMT',
-		),
+	$response_headers = array_merge(
+		array( 'Content-Type: text/html; charset=UTF-8' ),
+		headers_list(),
+		array( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $modified_time ) . ' GMT' )
 	);
+	$headers          = extrachill_cache_filter_headers( $response_headers );
 
 	extrachill_cache_write( $key, $stamped, $headers, get_current_blog_id() );
 
