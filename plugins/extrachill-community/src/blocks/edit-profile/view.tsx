@@ -5,6 +5,7 @@ import {
 	useState,
 	useEffect,
 	useCallback,
+	useRef,
 	createRoot,
 } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
@@ -83,7 +84,12 @@ function Notice( {
 	message: string;
 } ) {
 	return (
-		<div className={ `notice notice-${ type }` }>
+		<div
+			className={ `notice notice-${ type }` }
+			role={ type === 'error' ? 'alert' : 'status' }
+			aria-live={ type === 'error' ? 'assertive' : 'polite' }
+			aria-atomic="true"
+		>
 			<p>{ message }</p>
 		</div>
 	);
@@ -93,21 +99,30 @@ function AvatarUpload( {
 	avatarUrl,
 	userId,
 	onAvatarChange,
+	onNotice,
 }: {
 	avatarUrl: string;
 	userId: number;
 	onAvatarChange: ( url: string ) => void;
+	onNotice: (
+		notice: {
+			type: 'success' | 'error';
+			message: string;
+		} | null
+	) => void;
 } ) {
 	const [ uploading, setUploading ] = useState( false );
 
 	const handleFileChange = useCallback(
 		async ( e: React.ChangeEvent< HTMLInputElement > ) => {
-			const file = e.target.files?.[ 0 ];
+			const input = e.currentTarget;
+			const file = input.files?.[ 0 ];
 			if ( ! file ) {
 				return;
 			}
 
 			setUploading( true );
+			onNotice( null );
 
 			try {
 				// B1 exception: avatar upload is a multipart POST with no backing
@@ -126,14 +141,30 @@ function AvatarUpload( {
 					method: 'POST',
 					body: formData,
 				} );
-				if ( result.url ) {
-					onAvatarChange( result.url );
+				if ( ! result.url ) {
+					throw new Error( 'The upload did not return an image.' );
 				}
-			} catch {}
 
-			setUploading( false );
+				onAvatarChange( result.url );
+				onNotice( {
+					type: 'success',
+					message: 'Avatar updated successfully.',
+				} );
+			} catch ( err ) {
+				const reason =
+					err instanceof Error
+						? err.message
+						: 'The avatar could not be uploaded.';
+				onNotice( {
+					type: 'error',
+					message: `${ reason } Please choose the image again and retry.`,
+				} );
+			} finally {
+				setUploading( false );
+				input.value = '';
+			}
 		},
-		[ onAvatarChange, userId ]
+		[ onAvatarChange, onNotice, userId ]
 	);
 
 	return (
@@ -282,7 +313,7 @@ function LinksManager( {
 
 type TabId = 'avatar-title' | 'about' | 'links' | 'artist-profiles';
 
-function EditProfileApp( {
+export function EditProfileApp( {
 	artistSiteUrl,
 	userId,
 	profileUrl,
@@ -300,6 +331,7 @@ function EditProfileApp( {
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState< string | null >( null );
 	const [ saving, setSaving ] = useState( false );
+	const savingRef = useRef( false );
 	const [ notice, setNotice ] = useState< {
 		type: 'success' | 'error';
 		message: string;
@@ -348,11 +380,16 @@ function EditProfileApp( {
 	}, [] );
 
 	const handleSave = useCallback( async () => {
+		if ( savingRef.current ) {
+			return;
+		}
+
+		savingRef.current = true;
 		setSaving( true );
 		setNotice( null );
 
 		try {
-			const [ profileResult ] = await Promise.all( [
+			const [ profileResult, linksResult ] = await Promise.allSettled( [
 				client.execute< UserProfile >(
 					'extrachill/update-user-profile',
 					{
@@ -363,19 +400,47 @@ function EditProfileApp( {
 				client.execute( 'extrachill/update-user-links', { links } ),
 			] );
 
-			setProfile( profileResult );
-			setNotice( {
-				type: 'success',
-				message: 'Profile updated successfully.',
-			} );
-		} catch ( err ) {
+			if ( profileResult.status === 'fulfilled' ) {
+				setProfile( profileResult.value );
+			}
+
+			if (
+				profileResult.status === 'fulfilled' &&
+				linksResult.status === 'fulfilled'
+			) {
+				setNotice( {
+					type: 'success',
+					message: 'Profile details and links updated successfully.',
+				} );
+			} else if ( profileResult.status === 'fulfilled' ) {
+				setNotice( {
+					type: 'error',
+					message:
+						'Profile details were saved, but links were not. Please retry.',
+				} );
+			} else if ( linksResult.status === 'fulfilled' ) {
+				setNotice( {
+					type: 'error',
+					message:
+						'Links were saved, but profile details were not. Please retry.',
+				} );
+			} else {
+				setNotice( {
+					type: 'error',
+					message:
+						'Profile details and links were not saved. Please retry.',
+				} );
+			}
+		} catch {
 			setNotice( {
 				type: 'error',
-				message: err instanceof Error ? err.message : 'Update failed.',
+				message:
+					'Profile details and links were not saved. Please retry.',
 			} );
+		} finally {
+			savingRef.current = false;
+			setSaving( false );
 		}
-
-		setSaving( false );
 	}, [ customTitle, bio, links ] );
 
 	if ( loading ) {
@@ -427,6 +492,7 @@ function EditProfileApp( {
 											avatarUrl={ avatarUrl }
 											userId={ userId }
 											onAvatarChange={ setAvatarUrl }
+											onNotice={ setNotice }
 										/>
 										<FieldGroup
 											label={ `Custom Title${
