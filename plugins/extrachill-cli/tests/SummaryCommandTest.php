@@ -145,6 +145,7 @@ namespace {
 	summary_command_test_assert_same( 'table', $table['format'], 'Summary must continue to default to table output.' );
 	summary_command_test_assert_same( array( 'event_type', 'count', 'daily_avg' ), $table['fields'], 'Table columns must remain backward compatible.' );
 	summary_command_test_assert_same( '1,000', $table['items'][0]['count'], 'Table counts must retain human formatting.' );
+	summary_command_test_assert_same( true, false !== strpos( implode( "\n", WP_CLI::$messages ), 'Raw unfiltered event rows' ), 'Human summary output must not present raw outcome rows as conversion KPIs.' );
 
 	fwrite( STDOUT, "SummaryCommand tests passed.\n" );
 }

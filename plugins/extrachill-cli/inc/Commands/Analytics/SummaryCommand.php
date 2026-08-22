@@ -25,7 +25,7 @@ class SummaryCommand {
 	/**
 	 * Show analytics event summary by type.
 	 *
-	 * Displays event counts grouped by type with daily averages.
+	 * Displays raw, unfiltered event-row counts grouped by type with daily averages.
 	 *
 	 * ## OPTIONS
 	 *
@@ -140,6 +140,7 @@ class SummaryCommand {
 			$period_label = $days > 0 ? "Last {$days} days" : 'All time';
 			$site_label   = $this->format_site_label();
 			WP_CLI::log( sprintf( 'Analytics Summary — %s (%s) — %s', $period_label, $result['period'], $site_label ) );
+			WP_CLI::warning( 'Raw unfiltered event rows: outcome counts are not human conversion KPIs. Use `wp extrachill analytics conversion` for trust-classified outcomes.' );
 			// Surface the exact UTC window the counts were computed over. The window is
 			// rolling (computed at query time), so reporting only the day granularity
 			// hides why a re-run minutes later returns a slightly different count. With

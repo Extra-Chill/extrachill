@@ -85,9 +85,15 @@ namespace {
 			'coverage'              => array(
 				'newsletter_signup' => array(
 					'stored_events'                     => 20,
+					'confirmed_bot_events_excluded'     => 1,
 					'automatic_registration_excluded'   => 1,
 					'deduplicated_outcomes'             => 18,
 					'duplicate_events'                  => 1,
+					'trusted_outcomes'                  => 17,
+					'authenticated_server_outcomes'     => 5,
+					'visitor_identified_browser_outcomes' => 12,
+					'unclassified_outcomes'             => 1,
+					'trust_coverage_status'             => 'partial',
 					'with_source_url'                   => 15,
 					'direct_source_attributed'          => 12,
 					'missing_source_url'                => 3,
@@ -100,9 +106,15 @@ namespace {
 				),
 				'user_registration' => array(
 					'stored_events'                     => 5,
+					'confirmed_bot_events_excluded'     => 0,
 					'automatic_registration_excluded'   => 0,
 					'deduplicated_outcomes'             => 5,
 					'duplicate_events'                  => 0,
+					'trusted_outcomes'                  => 5,
+					'authenticated_server_outcomes'     => 5,
+					'visitor_identified_browser_outcomes' => 0,
+					'unclassified_outcomes'             => 0,
+					'trust_coverage_status'             => 'measured',
 					'with_source_url'                   => 0,
 					'direct_source_attributed'          => 0,
 					'missing_source_url'                => 5,
@@ -195,8 +207,10 @@ namespace {
 	conversion_command_test_assert_same( 7, $conversion_command_test_ability->inputs[1]['return_observation_days'], 'Default return observation days must match the ability default.' );
 
 	$event_coverage = $conversion_command_test_formats[1];
-	conversion_command_test_assert_same( array( 'outcome', 'stored', 'auto_excluded', 'deduplicated', 'duplicates' ), $event_coverage['fields'], 'Human output must expose outcome event coverage.' );
+	conversion_command_test_assert_same( array( 'outcome', 'stored', 'bot_excluded', 'auto_excluded', 'trusted', 'authenticated', 'visitor', 'unclassified', 'trust_coverage', 'deduplicated', 'duplicates' ), $event_coverage['fields'], 'Human output must expose owner-classified outcome trust coverage.' );
 	conversion_command_test_assert_same( '20', $event_coverage['items'][0]['stored'], 'Human coverage counts must be formatted for display.' );
+	conversion_command_test_assert_same( '17', $event_coverage['items'][0]['trusted'], 'Human coverage must expose the trustworthy outcome count.' );
+	conversion_command_test_assert_same( 'partial', $event_coverage['items'][0]['trust_coverage'], 'Human coverage must disclose unclassified outcome gaps.' );
 
 	$direct = $conversion_command_test_formats[2];
 	conversion_command_test_assert_same( array( 'outcome', 'count', 'coverage', 'with_source', 'attributed', 'missing_source', 'unresolved_source' ), $direct['fields'], 'Direct-source output must expose source coverage.' );

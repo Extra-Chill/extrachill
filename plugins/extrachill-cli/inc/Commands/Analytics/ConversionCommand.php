@@ -243,11 +243,17 @@ class ConversionCommand {
 			$outcome       = str_replace( '_', ' ', (string) $type );
 
 			$event_rows[]   = array(
-				'outcome'       => $outcome,
-				'stored'        => $this->count( $type_coverage['stored_events'] ?? 0 ),
-				'auto_excluded' => $this->count( $type_coverage['automatic_registration_excluded'] ?? 0 ),
-				'deduplicated'  => $this->count( $type_coverage['deduplicated_outcomes'] ?? 0 ),
-				'duplicates'    => $this->count( $type_coverage['duplicate_events'] ?? 0 ),
+				'outcome'        => $outcome,
+				'stored'         => $this->count( $type_coverage['stored_events'] ?? 0 ),
+				'bot_excluded'   => $this->count( $type_coverage['confirmed_bot_events_excluded'] ?? 0 ),
+				'auto_excluded'  => $this->count( $type_coverage['automatic_registration_excluded'] ?? 0 ),
+				'trusted'        => $this->count( $type_coverage['trusted_outcomes'] ?? 0 ),
+				'authenticated'  => $this->count( $type_coverage['authenticated_server_outcomes'] ?? 0 ),
+				'visitor'        => $this->count( $type_coverage['visitor_identified_browser_outcomes'] ?? 0 ),
+				'unclassified'   => $this->count( $type_coverage['unclassified_outcomes'] ?? 0 ),
+				'trust_coverage' => (string) ( $type_coverage['trust_coverage_status'] ?? 'unknown' ),
+				'deduplicated'   => $this->count( $type_coverage['deduplicated_outcomes'] ?? 0 ),
+				'duplicates'     => $this->count( $type_coverage['duplicate_events'] ?? 0 ),
 			);
 			$direct_rows[]  = array(
 				'outcome'           => $outcome,
@@ -271,8 +277,8 @@ class ConversionCommand {
 			);
 		}
 
-		WP_CLI::log( 'Outcome event coverage (before attribution):' );
-		Utils\format_items( 'table', $event_rows, array( 'outcome', 'stored', 'auto_excluded', 'deduplicated', 'duplicates' ) );
+		WP_CLI::log( 'Trust-classified outcome coverage (before attribution):' );
+		Utils\format_items( 'table', $event_rows, array( 'outcome', 'stored', 'bot_excluded', 'auto_excluded', 'trusted', 'authenticated', 'visitor', 'unclassified', 'trust_coverage', 'deduplicated', 'duplicates' ) );
 		WP_CLI::log( 'Direct-source lens (source URL resolves to a published entry article):' );
 		Utils\format_items( 'table', $direct_rows, array( 'outcome', 'count', 'coverage', 'with_source', 'attributed', 'missing_source', 'unresolved_source' ) );
 		WP_CLI::log( 'Visitor-journey lens (identified outcome follows a mature entry journey):' );
