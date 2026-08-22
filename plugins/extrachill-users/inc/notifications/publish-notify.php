@@ -325,27 +325,32 @@ function ec_users_publish_notify_queue_email( \WP_User $user, string $subject, s
 		esc_html( $post_title )
 	) . '</p><p>' . esc_html__( 'Thanks for contributing. Your post is live and ready to share.', 'extrachill-users' ) . '</p>';
 	try {
-		$result = ec_send_email_queued(
-			array(
-				'to'       => $user->user_email,
-				'subject'  => $subject,
-				'template' => 'extrachill/branded',
-				'context'  => array(
-					'subject_html'   => esc_html( $subject ),
-					'recipient_name' => $user->display_name,
-					'body_html'      => $body_html,
-					'cta_url'        => $link,
-					'cta_label'      => __( 'Read your post', 'extrachill-users' ),
-					'preheader'      => __( 'Your Extra Chill submission is live.', 'extrachill-users' ),
-				),
-			)
+		$queue_args = array(
+			'to'       => $user->user_email,
+			'subject'  => $subject,
+			'template' => 'extrachill/branded',
+			'context'  => array(
+				'subject_html'   => esc_html( $subject ),
+				'recipient_name' => $user->display_name,
+				'body_html'      => $body_html,
+				'cta_url'        => $link,
+				'cta_label'      => __( 'Read your post', 'extrachill-users' ),
+				'preheader'      => __( 'Your Extra Chill submission is live.', 'extrachill-users' ),
+			),
 		);
+		$queue      = static function () use ( $queue_args ) {
+			return ec_send_email_queued( $queue_args );
+		};
+		$helper     = '\\DataMachine\\Abilities\\PermissionHelper';
+		$result     = class_exists( $helper )
+			? $helper::run_as_authenticated( $queue )
+			: $queue();
 	} catch ( \Throwable $exception ) {
 		error_log( sprintf( 'ec_users_publish_notify: email queue exception for user %1$d: %2$s', $user->ID, $exception->getMessage() ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
 		return false;
 	}
 
-	return ! empty( $result['success'] );
+	return is_array( $result ) && ! empty( $result['success'] );
 }
 
 /**
