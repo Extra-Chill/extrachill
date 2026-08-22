@@ -929,7 +929,12 @@ function wp_generate_uuid4() {
 	return '00000000-0000-4000-8000-' . str_pad( (string) $GLOBALS['ec_test']['uuid_sequence'], 12, '0', STR_PAD_LEFT );
 }
 
-function get_page_by_path() {
+function get_page_by_path( $path ) {
+	foreach ( ec_test_blog_store( 'posts' ) as $post ) {
+		if ( 'page' === $post->post_type && $path === $post->post_name ) {
+			return $post;
+		}
+	}
 	return null;
 }
 
