@@ -603,6 +603,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 			'by_category'           => $category_outcomes,
 			'coverage'              => $outcome_coverage,
 			'attribution_semantics' => 'direct_source resolves the outcome event source_url to a published main-site article. visitor_journey attributes an identified outcome occurring after that visitor\'s first eligible mature entry journey, split at the configured pageview-session boundary. Outcome identity is event_data.user_id then stored user_id, with visitor_id stitched to a user only when this window observes exactly one user for that visitor; ambiguous visitors are not merged. Repeated person/outcome rows count once, while later rows may supply attribution missing from an earlier duplicate. The lenses are independent and may both attribute one outcome; do not add them as unique people. Coverage status measured, partial, or not_instrumented must be read with each count.',
+			'trust_semantics'       => 'trusted_outcomes combines deduplicated authenticated_server_outcomes and visitor_identified_browser_outcomes. Positive stored or payload user identity is authoritative even when request heuristics stamped the row as a bot. Anonymous is_bot:true rows are confirmed_bot_events_excluded before deduplication or attribution. unclassified_outcomes remain visible but are not included in trusted_outcomes. trust_coverage_status measured, partial, or not_instrumented describes whether the eligible outcome population has person evidence.',
 		),
 		'days'                        => $days,
 		'start_date'                  => $start_date,
@@ -615,7 +616,7 @@ function extrachill_analytics_compute_conversion_map( $input ) {
 		'since'                       => $since,
 		'until'                       => $window_end,
 		'as_of'                       => $now_utc,
-		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post; route views never become editorial entries. Same-session and return reach include eligible collected events/community/artist routes. Newsletter signup, registration, onboarding completion, and artist profile first publication are successful server-side outcomes reported through separate direct-source and visitor-journey lenses. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity and outcome types absent from the window remain explicit coverage, never an inferred zero. Route-level destination collection is additive from issue #182 onward, so historical periods remain singular-only. Pageviews include one inactivity-gap before the lower boundary; outcomes use two bounded keyset passes ordered by created_at then row ID for ambiguity-safe visitor/user stitching and attribution. Late entries without the configured return observation period and NULL-visitor pageviews (GPC/DNT opt-out) are excluded.',
+		'note'                        => 'First-party, bot-filtered editorial-to-platform funnel. entry_sessions is a legacy field name: it counts one first eligible, mature entry journey per visitor, not every entry session. Eligible entries start on a published blog-1 post; route views never become editorial entries. Same-session and return reach include eligible collected events/community/artist routes. Newsletter signup, registration, onboarding completion, and artist profile first publication are successful server-side outcomes reported through separate direct-source and visitor-journey lenses. Outcome coverage separately reports trusted authenticated/server and visitor-identified browser outcomes, excluded anonymous bot rows, and unclassified rows; raw event totals are not human conversion KPIs. Automatic registration newsletter subscriptions are excluded. Missing source or visitor identity and outcome types absent from the window remain explicit coverage, never an inferred zero. Route-level destination collection is additive from issue #182 onward, so historical periods remain singular-only. Pageviews include one inactivity-gap before the lower boundary; outcomes use two bounded keyset passes ordered by created_at then row ID for ambiguity-safe visitor/user stitching and attribution. Late entries without the configured return observation period and NULL-visitor pageviews (GPC/DNT opt-out) are excluded.',
 	);
 }
 
@@ -809,6 +810,11 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 			++$outcome_coverage[ $type ]['automatic_registration_excluded'];
 			continue;
 		}
+		$trust_class = extrachill_analytics_conversion_outcome_trust_class( $outcome );
+		if ( 'confirmed_bot' === $trust_class ) {
+			++$outcome_coverage[ $type ]['confirmed_bot_events_excluded'];
+			continue;
+		}
 
 		$person_id = extrachill_analytics_conversion_outcome_dedupe_key( $outcome, $visitor_to_user );
 		if ( isset( $outcome_records[ $type ][ $person_id ] ) ) {
@@ -824,9 +830,11 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 				'saw_before_entry'     => false,
 				'journey_stage'        => '',
 				'journey_post_id'      => 0,
+				'trust_class'          => $trust_class,
 			);
 		}
-		$record = &$outcome_records[ $type ][ $person_id ];
+		$record                = &$outcome_records[ $type ][ $person_id ];
+		$record['trust_class'] = extrachill_analytics_conversion_stronger_outcome_trust_class( $record['trust_class'], $trust_class );
 
 		// A later duplicate may still carry source instrumentation.
 		if ( $has_source_url && 0 === $record['direct_post_id'] ) {
@@ -877,6 +885,14 @@ function extrachill_analytics_conversion_collect_outcome_rows( $rows, $entry_blo
 function extrachill_analytics_conversion_apply_outcome_records( $records, &$outcome_overall, &$outcomes_by_article, &$outcomes_by_category, &$outcome_coverage ) {
 	foreach ( $records as $type => $people ) {
 		foreach ( $people as $record ) {
+			$trust_counter = (string) $record['trust_class'] . '_outcomes';
+			if ( isset( $outcome_coverage[ $type ][ $trust_counter ] ) ) {
+				++$outcome_coverage[ $type ][ $trust_counter ];
+			}
+			if ( 'unclassified' !== $record['trust_class'] ) {
+				++$outcome_coverage[ $type ]['trusted_outcomes'];
+			}
+
 			if ( $record['direct_post_id'] > 0 ) {
 				++$outcome_coverage[ $type ]['with_source_url'];
 				++$outcome_coverage[ $type ]['direct_source_attributed'];
@@ -937,20 +953,25 @@ function extrachill_analytics_conversion_outcome_zero_bucket( $outcome_types = n
  */
 function extrachill_analytics_conversion_outcome_zero_coverage() {
 	return array(
-		'stored_events'                     => 0,
-		'automatic_registration_excluded'   => 0,
-		'deduplicated_outcomes'             => 0,
-		'duplicate_events'                  => 0,
-		'with_source_url'                   => 0,
-		'direct_source_attributed'          => 0,
-		'missing_source_url'                => 0,
-		'unresolved_source_url'             => 0,
-		'source_outside_scope'              => 0,
-		'with_visitor_identity'             => 0,
-		'missing_visitor_identity'          => 0,
-		'visitor_journey_attributed'        => 0,
-		'identity_without_eligible_journey' => 0,
-		'outcome_before_entry'              => 0,
+		'stored_events'                       => 0,
+		'automatic_registration_excluded'     => 0,
+		'confirmed_bot_events_excluded'       => 0,
+		'deduplicated_outcomes'               => 0,
+		'duplicate_events'                    => 0,
+		'trusted_outcomes'                    => 0,
+		'authenticated_server_outcomes'       => 0,
+		'visitor_identified_browser_outcomes' => 0,
+		'unclassified_outcomes'               => 0,
+		'with_source_url'                     => 0,
+		'direct_source_attributed'            => 0,
+		'missing_source_url'                  => 0,
+		'unresolved_source_url'               => 0,
+		'source_outside_scope'                => 0,
+		'with_visitor_identity'               => 0,
+		'missing_visitor_identity'            => 0,
+		'visitor_journey_attributed'          => 0,
+		'identity_without_eligible_journey'   => 0,
+		'outcome_before_entry'                => 0,
 	);
 }
 
@@ -1116,6 +1137,13 @@ function extrachill_analytics_conversion_finalize_outcome_coverage( $coverage, $
 	$coverage['instrumentation_status'] = 0 === (int) $coverage['stored_events'] ? 'not_observed' : 'observed';
 	$coverage['direct_source_status']   = $direct_status;
 	$coverage['visitor_journey_status'] = $journey_status;
+	if ( 0 === $total || 0 === (int) $coverage['unclassified_outcomes'] ) {
+		$coverage['trust_coverage_status'] = 'measured';
+	} elseif ( 0 === (int) $coverage['trusted_outcomes'] ) {
+		$coverage['trust_coverage_status'] = 'not_instrumented';
+	} else {
+		$coverage['trust_coverage_status'] = 'partial';
+	}
 	return $coverage;
 }
 

@@ -7,6 +7,8 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
+require_once dirname( __DIR__ ) . '/inc/core/outcome-trust.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-conversion-map.php';
 
 /**
@@ -57,6 +59,56 @@ final class ConversionMapOutcomesTest extends TestCase {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Outcome trust uses user identity before the canonical bot stamp.
+	 */
+	public function test_outcome_trust_classifies_server_browser_bot_and_unknown_rows(): void {
+		$this->assertSame(
+			'authenticated_server',
+			extrachill_analytics_conversion_outcome_trust_class(
+				array(
+					'event_data' => array(
+						'is_bot' => true,
+						'user_id' => 23,
+					),
+				)
+			)
+		);
+		$this->assertSame( 'confirmed_bot', extrachill_analytics_conversion_outcome_trust_class( array( 'event_data' => array( 'is_bot' => true ) ) ) );
+		$this->assertSame( 'visitor_identified_browser', extrachill_analytics_conversion_outcome_trust_class( array( 'event_data' => array( 'is_bot' => false ), 'visitor_id' => 'visitor-a' ) ) );
+		$this->assertSame( 'unclassified', extrachill_analytics_conversion_outcome_trust_class( array( 'event_data' => array( 'is_bot' => false ) ) ) );
+	}
+
+	/**
+	 * Bot scanner rows are excluded while identified outcomes remain reportable.
+	 */
+	public function test_outcome_coverage_separates_trusted_bot_and_unclassified_rows(): void {
+		$type   = 'newsletter_signup';
+		$result = $this->run_outcome_pages(
+			array(
+				array(
+					$this->outcome_row( 1, $type, 0, '', 1000, array( 'is_bot' => true ) ),
+					$this->outcome_row( 2, $type, 0, '', 1100, array( 'is_bot' => true ) ),
+					$this->outcome_row( 3, $type, 23, '', 1200, array( 'is_bot' => true ) ),
+					$this->outcome_row( 4, $type, 0, 'visitor-a', 1300, array( 'is_bot' => false ) ),
+					$this->outcome_row( 5, $type, 0, '', 1400, array( 'is_bot' => false ) ),
+				),
+			),
+			array(),
+			array( $type )
+		);
+		$coverage = extrachill_analytics_conversion_finalize_outcome_coverage( $result['coverage'][ $type ] );
+
+		$this->assertSame( 5, $coverage['stored_events'] );
+		$this->assertSame( 2, $coverage['confirmed_bot_events_excluded'] );
+		$this->assertSame( 3, $coverage['deduplicated_outcomes'] );
+		$this->assertSame( 2, $coverage['trusted_outcomes'] );
+		$this->assertSame( 1, $coverage['authenticated_server_outcomes'] );
+		$this->assertSame( 1, $coverage['visitor_identified_browser_outcomes'] );
+		$this->assertSame( 1, $coverage['unclassified_outcomes'] );
+		$this->assertSame( 'partial', $coverage['trust_coverage_status'] );
 	}
 
 	/**
@@ -360,13 +412,18 @@ final class ConversionMapOutcomesTest extends TestCase {
 	 * @param int    $user_id    Payload user identity.
 	 * @param string $visitor_id Anonymous visitor identity.
 	 * @param int    $timestamp  Event timestamp.
+	 * @param array  $event_data Additional event payload.
 	 * @return object Outcome row.
 	 */
-	private function outcome_row( int $id, string $event_type, int $user_id, string $visitor_id, int $timestamp ): object {
+	private function outcome_row( int $id, string $event_type, int $user_id, string $visitor_id, int $timestamp, array $event_data = array() ): object {
+		if ( $user_id > 0 ) {
+			$event_data['user_id'] = $user_id;
+		}
+
 		return (object) array(
 			'id'         => $id,
 			'event_type' => $event_type,
-			'event_data' => wp_json_encode( $user_id > 0 ? array( 'user_id' => $user_id ) : array() ),
+			'event_data' => wp_json_encode( $event_data ),
 			'source_url' => '',
 			'user_id'    => 0,
 			'visitor_id' => $visitor_id,
