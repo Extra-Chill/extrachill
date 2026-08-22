@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.31.1] - 2026-08-22
+
+### Fixed
+- restore multisite API suite validation
+
 ## [0.31.0] - 2026-08-22
 
 ### Added
