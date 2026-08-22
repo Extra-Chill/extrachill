@@ -337,6 +337,31 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 		'/extrachill/v1/admin/artist-access/(?P<user_id>\d+)/approve|extrachill/approve-artist-access' => array(
 			'transport_only' => array( 'token' => 'Approval token is verified by the REST admission layer before ability execution.' ),
 		),
+		'/extrachill/v1/venues/(?P<venue>\d+)/booking-inquiries/follow-through/status|' . EXTRACHILL_API_BOOKING_STATUS_ABILITY => array(
+			'ability_only'   => array( 'venue_term_id' => 'Derived exclusively from the trusted venue path segment before ability execution.' ),
+			'transport_only' => array( 'venue' => 'The venue path segment is the signed route-affinity boundary and is verified against the internal ability result.' ),
+		),
+		'/extrachill/v1/venues/(?P<venue>\d+)/booking-inquiries/follow-through/correction|' . EXTRACHILL_API_BOOKING_CORRECTION_ABILITY => array(
+			'ability_only'   => array( 'venue_term_id' => 'Derived exclusively from the trusted venue path segment before ability execution.' ),
+			'transport_only' => array(
+				'venue'              => 'The venue path segment is the signed route-affinity boundary and is verified against the internal ability result.',
+				'turnstile_response' => 'Turnstile is consumed before ability execution and is never forwarded to Events.',
+			),
+		),
+		'/extrachill/v1/venues/(?P<venue>\d+)/booking-inquiries/follow-through/withdrawal|' . EXTRACHILL_API_BOOKING_WITHDRAWAL_ABILITY => array(
+			'ability_only'   => array( 'venue_term_id' => 'Derived exclusively from the trusted venue path segment before ability execution.' ),
+			'transport_only' => array(
+				'venue'              => 'The venue path segment is the signed route-affinity boundary and is verified against the internal ability result.',
+				'turnstile_response' => 'Turnstile is consumed before ability execution and is never forwarded to Events.',
+			),
+		),
+		'/extrachill/v1/venues/(?P<venue>\d+)/booking-inquiries/follow-through/receipt-recovery|' . EXTRACHILL_API_BOOKING_RECOVERY_ABILITY => array(
+			'ability_only'   => array( 'venue_term_id' => 'Derived exclusively from the trusted venue path segment before ability execution.' ),
+			'transport_only' => array(
+				'venue'              => 'The venue path segment is the signed route-affinity boundary and is verified against the internal ability result.',
+				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
+			),
+		),
 	);
 
 	if ( isset( $map[ $key ] ) ) {

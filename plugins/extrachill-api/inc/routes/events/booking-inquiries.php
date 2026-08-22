@@ -10,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const EXTRACHILL_API_BOOKING_ABILITY             = 'extrachill/create-booking-inquiry';
+const EXTRACHILL_API_BOOKING_STATUS_ABILITY      = 'extrachill-events/get-artist-booking-inquiry';
+const EXTRACHILL_API_BOOKING_CORRECTION_ABILITY  = 'extrachill-events/request-artist-booking-correction';
+const EXTRACHILL_API_BOOKING_WITHDRAWAL_ABILITY  = 'extrachill-events/withdraw-artist-booking-inquiry';
+const EXTRACHILL_API_BOOKING_RECOVERY_ABILITY    = 'extrachill-events/recover-artist-booking-inquiry-receipt';
 const EXTRACHILL_API_BOOKING_FILES               = '_ec_affinity_files';
 const EXTRACHILL_API_BOOKING_MAX_FILES           = 5;
 const EXTRACHILL_API_BOOKING_MAX_FILE_BYTES      = 20 * MB_IN_BYTES;
@@ -25,7 +29,7 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_booking_i
 function extrachill_api_booking_transport_error_headers( $response, $server, $request ) {
 	unset( $server );
 	$route = $request->get_route();
-	if ( ! preg_match( '#^/extrachill/v1/(?:venues/\d+/(?:booking-inquiries|booking-availability)|events/bookings/\d+/attachments/\d+/download)$#', $route ) ) {
+	if ( ! preg_match( '#^/extrachill/v1/(?:venues/\d+/(?:booking-inquiries(?:/follow-through/(?:status|correction|withdrawal|receipt-recovery))?|booking-availability)|events/bookings/\d+/attachments/\d+/download)$#', $route ) ) {
 		return $response;
 	}
 	$data    = $response->get_data();
@@ -62,6 +66,93 @@ function extrachill_api_register_booking_inquiry_route() {
 			'_extrachill_abilities' => array( EXTRACHILL_API_BOOKING_ABILITY ),
 		)
 	);
+
+	$routes = array(
+		'status'           => array( EXTRACHILL_API_BOOKING_STATUS_ABILITY, 'extrachill_api_booking_follow_through_status_permission' ),
+		'correction'       => array( EXTRACHILL_API_BOOKING_CORRECTION_ABILITY, 'extrachill_api_booking_follow_through_write_permission' ),
+		'withdrawal'       => array( EXTRACHILL_API_BOOKING_WITHDRAWAL_ABILITY, 'extrachill_api_booking_follow_through_write_permission' ),
+		'receipt-recovery' => array( EXTRACHILL_API_BOOKING_RECOVERY_ABILITY, 'extrachill_api_booking_follow_through_write_permission' ),
+	);
+	foreach ( $routes as $operation => $contract ) {
+		register_rest_route(
+			'extrachill/v1',
+			'/venues/(?P<venue>\d+)/booking-inquiries/follow-through/' . $operation,
+			array(
+				'methods'               => WP_REST_Server::CREATABLE,
+				'callback'              => 'extrachill_api_handle_booking_follow_through',
+				'permission_callback'   => $contract[1],
+				'args'                  => extrachill_api_booking_follow_through_args( $operation ),
+				'_extrachill_abilities' => array( $contract[0] ),
+			)
+		);
+	}
+}
+
+/** Return the strict transport schema for one artist follow-through operation. */
+function extrachill_api_booking_follow_through_args( $operation ) {
+	$args = array(
+		'venue'     => array(
+			'required' => true,
+			'type'     => 'integer',
+			'minimum'  => 1,
+		),
+		'public_id' => array(
+			'required' => true,
+			'type'     => 'string',
+			'format'   => 'uuid',
+		),
+	);
+	if ( 'receipt-recovery' !== $operation ) {
+		$args['capability'] = array(
+			'required'          => false,
+			'type'              => 'string',
+			'minLength'         => 64,
+			'maxLength'         => 64,
+			'validate_callback' => 'extrachill_api_validate_booking_capability',
+		);
+	}
+	if ( in_array( $operation, array( 'correction', 'withdrawal' ), true ) ) {
+		$args['expected_version'] = array(
+			'required' => true,
+			'type'     => 'integer',
+			'minimum'  => 1,
+		);
+	}
+	if ( 'status' !== $operation ) {
+		$args['idempotency_key']    = array(
+			'required'  => true,
+			'type'      => 'string',
+			'minLength' => 1,
+			'maxLength' => 120,
+		);
+		$args['turnstile_response'] = array(
+			'required' => true,
+			'type'     => 'string',
+		);
+	}
+	if ( 'correction' === $operation ) {
+		$args['correction'] = array(
+			'required'  => true,
+			'type'      => 'string',
+			'minLength' => 1,
+			'maxLength' => 2000,
+		);
+	}
+	if ( 'receipt-recovery' === $operation ) {
+		$args['contact_email'] = array(
+			'required'  => true,
+			'type'      => 'string',
+			'format'    => 'email',
+			'maxLength' => 255,
+		);
+	}
+
+	return $args;
+}
+
+/** Require the canonical lowercase anonymous booking capability form. */
+function extrachill_api_validate_booking_capability( $value ) {
+	return is_string( $value ) && 1 === preg_match( '/^[a-f0-9]{64}$/', $value );
 }
 
 /** Return the facade schema, including transport-only fields. */
@@ -168,6 +259,16 @@ function extrachill_api_booking_inquiry_permission( WP_REST_Request $request ) {
 			return new WP_Error( 'booking_identity_not_allowed', __( 'Caller identity cannot be submitted as form data.', 'extrachill-api' ), array( 'status' => 400 ) );
 		}
 	}
+	$turnstile = extrachill_api_booking_check_turnstile( $request );
+	if ( is_wp_error( $turnstile ) ) {
+		return $turnstile;
+	}
+	$limit = (int) apply_filters( 'extrachill_api_booking_inquiry_rate_limit', 10 );
+	return extrachill_api_check_public_write_rate_limit( $request, 'booking-inquiry', $limit );
+}
+
+/** Verify Turnstile against only the trusted affinity client address. */
+function extrachill_api_booking_check_turnstile( WP_REST_Request $request ) {
 	if ( ! function_exists( 'ec_turnstile_check_request' ) ) {
 		return new WP_Error( 'booking_security_unavailable', __( 'Security verification is unavailable.', 'extrachill-api' ), array( 'status' => 503 ) );
 	}
@@ -189,8 +290,151 @@ function extrachill_api_booking_inquiry_permission( WP_REST_Request $request ) {
 	if ( is_wp_error( $turnstile ) ) {
 		return extrachill_api_booking_public_error( $turnstile );
 	}
-	$limit = (int) apply_filters( 'extrachill_api_booking_inquiry_rate_limit', 10 );
-	return extrachill_api_check_public_write_rate_limit( $request, 'booking-inquiry', $limit );
+
+	return true;
+}
+
+/** Apply bounded read admission before artist-safe status execution. */
+function extrachill_api_booking_follow_through_status_permission( WP_REST_Request $request ) {
+	$valid = extrachill_api_booking_follow_through_request_valid( $request, true );
+	if ( is_wp_error( $valid ) ) {
+		return $valid;
+	}
+	$limit = (int) apply_filters( 'extrachill_api_booking_follow_through_read_rate_limit', 30 );
+	return extrachill_api_check_public_read_rate_limit( $request, 'booking-follow-through-status', $limit );
+}
+
+/** Apply Turnstile and bounded write admission before artist mutations. */
+function extrachill_api_booking_follow_through_write_permission( WP_REST_Request $request ) {
+	$valid = extrachill_api_booking_follow_through_request_valid( $request, true );
+	if ( is_wp_error( $valid ) ) {
+		return $valid;
+	}
+	$turnstile = extrachill_api_booking_check_turnstile( $request );
+	if ( is_wp_error( $turnstile ) ) {
+		return $turnstile;
+	}
+	$limit = (int) apply_filters( 'extrachill_api_booking_follow_through_write_rate_limit', 10 );
+	return extrachill_api_check_public_write_rate_limit( $request, 'booking-follow-through-' . extrachill_api_booking_follow_through_operation( $request ), $limit );
+}
+
+/** Reject submitted authority, attestations, and capabilities outside the POST body. */
+function extrachill_api_booking_follow_through_request_valid( WP_REST_Request $request, $reject_attestations ) {
+	foreach ( array( 'user_id', 'submitter_user_id', 'uploader_user_id', 'actor_id', 'current_user_id' ) as $identity_field ) {
+		if ( null !== $request->get_param( $identity_field ) ) {
+			return new WP_Error( 'booking_identity_not_allowed', __( 'Caller identity cannot be submitted as form data.', 'extrachill-api' ), array( 'status' => 400 ) );
+		}
+	}
+	if ( $reject_attestations ) {
+		foreach ( array( 'contact_verified', 'rate_limit_consumed' ) as $attestation ) {
+			if ( null !== $request->get_param( $attestation ) ) {
+				return new WP_Error( 'booking_attestation_not_allowed', __( 'Internal booking attestations cannot be submitted.', 'extrachill-api' ), array( 'status' => 400 ) );
+			}
+		}
+	}
+	if ( array_key_exists( 'capability', $request->get_query_params() ) || null !== $request->get_header( 'X-Booking-Capability' ) ) {
+		return new WP_Error( 'booking_capability_location_invalid', __( 'Booking capability values are accepted only in the POST body.', 'extrachill-api' ), array( 'status' => 400 ) );
+	}
+
+	return true;
+}
+
+/** Return only parsed POST body fields, never query-string fallbacks. */
+function extrachill_api_booking_follow_through_body( WP_REST_Request $request ) {
+	return $request->is_json_content_type() ? (array) $request->get_json_params() : (array) $request->get_body_params();
+}
+
+/** Resolve the operation from the fixed route suffix. */
+function extrachill_api_booking_follow_through_operation( WP_REST_Request $request ) {
+	return preg_match( '#/follow-through/(status|correction|withdrawal|receipt-recovery)$#', $request->get_route(), $matches ) ? $matches[1] : '';
+}
+
+/** Read venue affinity only from the matched route path. */
+function extrachill_api_booking_follow_through_venue( WP_REST_Request $request ) {
+	$url_params = $request->get_url_params();
+	return absint( $url_params['venue'] ?? 0 );
+}
+
+/** Execute exactly one hidden Events artist ability with a strict input projection. */
+function extrachill_api_handle_booking_follow_through( WP_REST_Request $request ) {
+	$identity = extrachill_api_booking_validate_canonical_identity();
+	if ( is_wp_error( $identity ) ) {
+		return $identity;
+	}
+	$operation    = extrachill_api_booking_follow_through_operation( $request );
+	$abilities    = array(
+		'status'           => EXTRACHILL_API_BOOKING_STATUS_ABILITY,
+		'correction'       => EXTRACHILL_API_BOOKING_CORRECTION_ABILITY,
+		'withdrawal'       => EXTRACHILL_API_BOOKING_WITHDRAWAL_ABILITY,
+		'receipt-recovery' => EXTRACHILL_API_BOOKING_RECOVERY_ABILITY,
+	);
+	$ability_name = $abilities[ $operation ] ?? '';
+	$ability      = '' !== $ability_name ? wp_get_ability( $ability_name ) : null;
+	if ( ! extrachill_api_booking_ability_is_hidden( $ability ) ) {
+		return new WP_Error( 'booking_follow_through_unavailable', __( 'Booking inquiry access is temporarily unavailable.', 'extrachill-api' ), array( 'status' => 503 ) );
+	}
+	$input = extrachill_api_booking_follow_through_input( $request, $operation );
+	if ( is_wp_error( $input ) ) {
+		return $input;
+	}
+	$result = $ability->execute( $input );
+	if ( is_wp_error( $result ) ) {
+		return extrachill_api_booking_follow_through_error( $result, $operation );
+	}
+	if ( ! is_array( $result ) || ! isset( $result['venue_term_id'] ) || ! is_int( $result['venue_term_id'] ) || extrachill_api_booking_follow_through_venue( $request ) !== $result['venue_term_id'] ) {
+		if ( 'receipt-recovery' === $operation ) {
+			return extrachill_api_booking_recovery_accepted();
+		}
+		return extrachill_api_booking_follow_through_unavailable();
+	}
+	if ( 'receipt-recovery' === $operation ) {
+		return extrachill_api_booking_recovery_accepted();
+	}
+	$projected = extrachill_api_booking_follow_through_response( $result, $operation );
+	return is_wp_error( $projected ) ? $projected : new WP_REST_Response( $projected, 200 );
+}
+
+/** Require explicit hidden ability metadata and reject malformed providers. */
+function extrachill_api_booking_ability_is_hidden( $ability ) {
+	return is_object( $ability ) && is_callable( array( $ability, 'get_meta_item' ) ) && false === $ability->get_meta_item( 'show_in_rest', null );
+}
+
+/** Build only the Events ability's accepted fields from the POST body. */
+function extrachill_api_booking_follow_through_input( WP_REST_Request $request, $operation ) {
+	$body = extrachill_api_booking_follow_through_body( $request );
+	if ( empty( $body['public_id'] ) ) {
+		return new WP_Error( 'booking_follow_through_invalid_request', __( 'A booking inquiry reference is required.', 'extrachill-api' ), array( 'status' => 400 ) );
+	}
+	$venue = extrachill_api_booking_follow_through_venue( $request );
+	if ( $venue < 1 ) {
+		return extrachill_api_booking_follow_through_unavailable();
+	}
+	$input = array(
+		'public_id'     => sanitize_text_field( (string) $body['public_id'] ),
+		'venue_term_id' => $venue,
+	);
+	if ( 'status' !== $operation ) {
+		$key = (string) ( $body['idempotency_key'] ?? '' );
+		if ( '' === $key || strlen( $key ) > 120 || trim( $key ) !== $key || sanitize_text_field( $key ) !== $key ) {
+			return new WP_Error( 'booking_idempotency_key_invalid', __( 'A valid idempotency key is required.', 'extrachill-api' ), array( 'status' => 400 ) );
+		}
+		$input['idempotency_key'] = $key;
+	}
+	if ( 'receipt-recovery' === $operation ) {
+		$input['contact_email'] = sanitize_email( (string) ( $body['contact_email'] ?? '' ) );
+		return $input;
+	}
+	if ( isset( $body['capability'] ) && '' !== $body['capability'] ) {
+		$input['capability'] = sanitize_text_field( (string) $body['capability'] );
+	}
+	if ( in_array( $operation, array( 'correction', 'withdrawal' ), true ) ) {
+		$input['expected_version'] = absint( $body['expected_version'] ?? 0 );
+	}
+	if ( 'correction' === $operation ) {
+		$input['correction'] = mb_substr( sanitize_textarea_field( (string) ( $body['correction'] ?? '' ) ), 0, 2000 );
+	}
+
+	return $input;
 }
 
 /** Normalize and invoke the Events-owned inquiry and attachment contracts. */
@@ -344,6 +588,105 @@ function extrachill_api_normalize_booking_files( WP_REST_Request $request ) {
 
 	return $files;
 }
+
+/** Return only the operation-specific artist-safe response fields. */
+function extrachill_api_booking_follow_through_response( array $result, $operation ) {
+	$allowlists = array(
+		'status'     => array( 'public_id', 'venue', 'submitted_at', 'updated_at', 'status', 'status_label', 'version', 'requested_interval', 'requested_space', 'permitted_actions' ),
+		'correction' => array( 'public_id', 'operation', 'version' ),
+		'withdrawal' => array( 'public_id', 'operation', 'status', 'status_label', 'version' ),
+	);
+	$required   = array(
+		'status'     => array( 'public_id', 'venue', 'submitted_at', 'updated_at', 'status', 'status_label', 'version', 'requested_interval', 'requested_space', 'permitted_actions' ),
+		'correction' => array( 'public_id', 'operation', 'version' ),
+		'withdrawal' => array( 'public_id', 'operation', 'version' ),
+	);
+	if ( ! isset( $allowlists[ $operation ] ) || array_diff( $required[ $operation ], array_keys( $result ) ) ) {
+		return extrachill_api_booking_follow_through_unavailable();
+	}
+
+	$projected = array_intersect_key( $result, array_flip( $allowlists[ $operation ] ) );
+	if ( 'status' === $operation ) {
+		$projected['venue']              = array_intersect_key( (array) $result['venue'], array( 'name' => true ) );
+		$projected['requested_interval'] = array_intersect_key(
+			(array) $result['requested_interval'],
+			array(
+				'start_at' => true,
+				'end_at'   => true,
+			)
+		);
+		$projected['requested_space']    = array_intersect_key(
+			(array) $result['requested_space'],
+			array(
+				'key'   => true,
+				'label' => true,
+			)
+		);
+		$projected['permitted_actions']  = array_values( array_intersect( (array) $result['permitted_actions'], array( 'request_correction', 'withdraw', 'request_cancellation' ) ) );
+	}
+
+	return $projected;
+}
+
+/** Collapse authorization failures and unknown references to one public shape. */
+function extrachill_api_booking_follow_through_unavailable() {
+	return new WP_Error( 'booking_inquiry_unavailable', __( 'This booking inquiry is unavailable.', 'extrachill-api' ), array( 'status' => 404 ) );
+}
+
+/** Return the same recovery response whether or not Events found a match. */
+function extrachill_api_booking_recovery_accepted() {
+	return new WP_REST_Response( array( 'accepted' => true ), 202 );
+}
+
+/** Collapse affinity transport failures without exposing hosts or network details. */
+function extrachill_api_booking_follow_through_affinity_error( WP_Error $error ) {
+	$data        = (array) $error->get_error_data();
+	$headers     = is_array( $data['headers'] ?? null ) ? $data['headers'] : array();
+	$retry_after = $data['retry_after'] ?? $headers['Retry-After'] ?? $headers['retry-after'] ?? null;
+	$public_data = array( 'status' => 503 );
+	if ( is_numeric( $retry_after ) ) {
+		$retry_after                = min( HOUR_IN_SECONDS, max( 1, (int) $retry_after ) );
+		$public_data['retry_after'] = $retry_after;
+		$public_data['headers']     = array( 'Retry-After' => (string) $retry_after );
+	}
+
+	return new WP_Error( 'booking_follow_through_unavailable', __( 'Booking inquiry access is temporarily unavailable.', 'extrachill-api' ), $public_data );
+}
+
+/** Map Events failures without forwarding messages or private error metadata. */
+function extrachill_api_booking_follow_through_error( WP_Error $error, $operation ) {
+	$code = $error->get_error_code();
+	if ( 'receipt-recovery' === $operation && in_array( $code, array( 'booking_receipt_recovery_forbidden', 'booking_receipt_recovery_status_forbidden' ), true ) ) {
+		return extrachill_api_booking_recovery_accepted();
+	}
+	if ( in_array( $code, array( 'booking_inquiry_forbidden', 'booking_receipt_recovery_forbidden' ), true ) ) {
+		return extrachill_api_booking_follow_through_unavailable();
+	}
+	if ( 'booking_version_conflict' === $code ) {
+		$data = (array) $error->get_error_data();
+		return new WP_Error(
+			'booking_version_conflict',
+			__( 'The booking changed since it was read.', 'extrachill-api' ),
+			array(
+				'status'          => 409,
+				'current_version' => max( 1, absint( $data['current_version'] ?? 1 ) ),
+			)
+		);
+	}
+	$contracts = array(
+		'booking_inquiry_terminal'               => array( 'booking_inquiry_terminal', 409, __( 'This booking inquiry no longer accepts artist changes.', 'extrachill-api' ) ),
+		'booking_artist_idempotency_conflict'    => array( 'booking_idempotency_conflict', 409, __( 'This request key was already used for different details.', 'extrachill-api' ) ),
+		'booking_artist_idempotency_key_invalid' => array( 'booking_idempotency_key_invalid', 400, __( 'A valid idempotency key is required.', 'extrachill-api' ) ),
+		'booking_artist_correction_invalid'      => array( 'booking_correction_invalid', 400, __( 'Describe the correction you need the venue to review.', 'extrachill-api' ) ),
+	);
+	if ( isset( $contracts[ $code ] ) ) {
+		$contract = $contracts[ $code ];
+		return new WP_Error( $contract[0], $contract[2], array( 'status' => $contract[1] ) );
+	}
+
+	return new WP_Error( 'booking_follow_through_unavailable', __( 'Booking inquiry access is temporarily unavailable.', 'extrachill-api' ), array( 'status' => 503 ) );
+}
+
 /** Map only explicitly contracted domain errors to fixed public responses. */
 function extrachill_api_booking_public_error( WP_Error $error ) {
 	$contracts = array(

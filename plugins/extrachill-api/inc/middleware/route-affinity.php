@@ -302,6 +302,7 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 	if ( ! str_starts_with( $route, '/extrachill/v1/' ) ) {
 		return $result;
 	}
+	$booking_follow_through = 1 === preg_match( '#^/extrachill/v1/venues/\d+/booking-inquiries/follow-through/(?:status|correction|withdrawal|receipt-recovery)$#', $route );
 
 	// Check if the multisite helper is available.
 	if ( ! function_exists( 'ec_get_route_site_affinity' ) || ! function_exists( 'ec_cross_site_rest_request' ) ) {
@@ -354,7 +355,8 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 	$target_url  = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( $target_site ) : '';
 	$target_host = $target_url ? wp_parse_url( $target_url, PHP_URL_HOST ) : '';
 	if ( ! $target_host ) {
-		return new WP_Error( 'route_affinity_target_invalid', 'Could not resolve route-affinity target host.', array( 'status' => 500 ) );
+		$error = new WP_Error( 'route_affinity_target_invalid', 'Could not resolve route-affinity target host.', array( 'status' => 500 ) );
+		return $booking_follow_through && function_exists( 'extrachill_api_booking_follow_through_affinity_error' ) ? extrachill_api_booking_follow_through_affinity_error( $error ) : $error;
 	}
 
 	$private_stream = function_exists( 'extrachill_api_is_booking_attachment_download_route' ) && extrachill_api_is_booking_attachment_download_route( $route );
@@ -460,6 +462,8 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 	} catch ( Throwable $throwable ) {
 		if ( $private_stream ) {
 			$response = extrachill_api_booking_attachment_download_error( 502 );
+		} elseif ( $booking_follow_through && function_exists( 'extrachill_api_booking_follow_through_affinity_error' ) ) {
+			$response = extrachill_api_booking_follow_through_affinity_error( new WP_Error( 'route_affinity_transport_failed', $throwable->getMessage(), array( 'status' => 503 ) ) );
 		} else {
 			throw $throwable;
 		}
@@ -499,6 +503,15 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		}
 		if ( preg_match( '#^/extrachill/v1/venues/\d+/booking-inquiries$#', $route ) && function_exists( 'extrachill_api_booking_public_error' ) ) {
 			$response = extrachill_api_booking_public_error( $response );
+		} elseif ( $booking_follow_through && function_exists( 'extrachill_api_booking_follow_through_affinity_error' ) ) {
+			$affinity_error = is_wp_error( $forwarded_http_response ) ? $forwarded_http_response : $response;
+			$response       = extrachill_api_booking_follow_through_affinity_error( $affinity_error );
+			$rest_response  = rest_convert_error_to_response( $response );
+			$error_data     = (array) $response->get_error_data();
+			if ( isset( $error_data['headers']['Retry-After'] ) ) {
+				$rest_response->header( 'Retry-After', (string) $error_data['headers']['Retry-After'] );
+			}
+			return function_exists( 'extrachill_api_booking_transport_error_headers' ) ? extrachill_api_booking_transport_error_headers( $rest_response, $server, $request ) : $rest_response;
 		} elseif ( preg_match( '#^/extrachill/v1/venues/\d+/booking-availability$#', $route ) && function_exists( 'extrachill_api_booking_availability_public_error' ) ) {
 			$response = extrachill_api_booking_availability_public_error( $response );
 		}

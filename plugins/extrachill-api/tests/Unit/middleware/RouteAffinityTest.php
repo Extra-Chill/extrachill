@@ -584,6 +584,55 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		}
 	}
 
+	/** Follow-through capabilities remain body-bound across the Events affinity hop. */
+	public function test_booking_follow_through_affinity_forwards_capability_only_in_body() {
+		$capability = str_repeat( 'a', 64 );
+		$request    = $this->json_request(
+			'POST',
+			'/extrachill/v1/venues/42/booking-inquiries/follow-through/status',
+			array(
+				'public_id'  => '11111111-1111-4111-8111-111111111111',
+				'capability' => $capability,
+			)
+		);
+
+		$this->dispatch_affinity( $request );
+		$body = json_decode( $this->last_http_args['body'], true );
+
+		$this->assertStringEndsWith( '/wp-json/extrachill/v1/venues/42/booking-inquiries/follow-through/status', $this->last_http_url );
+		$this->assertStringNotContainsString( $capability, $this->last_http_url );
+		$this->assertSame( $capability, $body['capability'] );
+		$this->assertStringNotContainsString( $capability, wp_json_encode( $this->last_http_args['headers'] ) );
+	}
+
+	/** Every follow-through loopback failure uses one private retryable contract. */
+	public function test_booking_follow_through_loopback_failures_are_normalized() {
+		foreach ( array( 'status', 'correction', 'withdrawal', 'receipt-recovery' ) as $operation ) {
+			$this->downstream_response = new WP_Error(
+				'http_request_failed',
+				'cURL private-events-host timed out.',
+				array(
+					'status'      => 502,
+					'retry_after' => 120,
+					'headers'     => array( 'Retry-After' => '120' ),
+				)
+			);
+			$response = $this->dispatch_affinity(
+				$this->json_request(
+					'POST',
+					'/extrachill/v1/venues/42/booking-inquiries/follow-through/' . $operation,
+					array( 'public_id' => '11111111-1111-4111-8111-111111111111' )
+				)
+			);
+
+			$this->assertSame( 503, $response->get_status(), $operation );
+			$this->assertSame( 'booking_follow_through_unavailable', $response->get_data()['code'], $operation );
+			$this->assertSame( '120', $response->get_headers()['Retry-After'] ?? $response->get_headers()['retry-after'] ?? null, $operation );
+			$this->assertStringNotContainsString( 'cURL', wp_json_encode( $response->get_data() ), $operation );
+			$this->assertStringNotContainsString( 'private-events-host', wp_json_encode( $response->get_data() ), $operation );
+		}
+	}
+
 	/** JSON booking transport failures use the stable booking error contract. */
 	public function test_json_booking_transport_failure_does_not_leak_network_error() {
 		$this->downstream_response = new WP_Error( 'http_request_failed', 'cURL error 28: private upstream timed out.', array( 'status' => 502 ) );
