@@ -179,14 +179,24 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
 		'edit_private_artist_profiles',
 		'edit_published_artist_profiles',
 	);
-	$cap         = $args[0] ?? '';
-	$object_id   = isset( $args[2] ) ? absint( $args[2] ) : 0;
+
+	$cap = $args[0] ?? '';
 	if ( in_array( $cap, $admin_caps, true ) && user_can( $user->ID, 'manage_options' ) ) {
 		$allcaps[ $cap ] = true;
 		return $allcaps;
 	}
 
-	if ( ! $object_id || ! in_array( $cap, $object_caps, true ) ) {
+	if ( ! in_array( $cap, $object_caps, true ) ) {
+		return $allcaps;
+	}
+
+	$object_id_arg = $args[2] ?? null;
+	if ( ! is_int( $object_id_arg ) && ( ! is_string( $object_id_arg ) || ! ctype_digit( $object_id_arg ) ) ) {
+		return $allcaps;
+	}
+
+	$object_id = absint( $object_id_arg );
+	if ( ! $object_id ) {
 		return $allcaps;
 	}
 

@@ -212,4 +212,53 @@ final class ArtistObjectCapabilitiesTest extends TestCase {
 			ec_map_artist_object_capabilities( array( 'do_not_allow' ), 'delete_post', 7, array( 40 ) )
 		);
 	}
+
+	/**
+	 * Unrelated object arguments must not be interpreted as artist IDs.
+	 */
+	public function test_unrelated_capabilities_with_object_arguments_are_untouched_without_warnings(): void {
+		$allcaps  = array( 'edit_posts' => true );
+		$warnings = array();
+		$contexts = array(
+			(object) array(
+				'name' => 'core/edit-post',
+				'post' => (object) array( 'post_type' => 'topic' ),
+			),
+			new stdClass(),
+		);
+
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Captures the regression warning.
+		set_error_handler(
+			static function ( $severity, $message ) use ( &$warnings ) {
+				$warnings[] = $message;
+				return true;
+			},
+			E_WARNING
+		);
+
+		try {
+			foreach ( $contexts as $context ) {
+				$this->assertSame(
+					$allcaps,
+					ec_filter_user_capabilities( $allcaps, array( 'edit_block_bindings' ), array( 'edit_block_binding', 7, $context ), (object) array( 'ID' => 7 ) )
+				);
+			}
+		} finally {
+			restore_error_handler();
+		}
+
+		$this->assertSame( array(), $warnings );
+	}
+
+	/**
+	 * Owned object capabilities require a numeric object ID.
+	 */
+	public function test_owned_capability_requires_an_object_id_argument(): void {
+		$allcaps = array( 'edit_posts' => true );
+
+		$this->assertSame(
+			$allcaps,
+			ec_filter_user_capabilities( $allcaps, array( 'edit_others_artist_profiles' ), array( 'edit_post', 7, new stdClass() ), (object) array( 'ID' => 7 ) )
+		);
+	}
 }
