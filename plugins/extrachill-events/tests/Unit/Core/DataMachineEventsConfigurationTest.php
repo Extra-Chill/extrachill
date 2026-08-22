@@ -27,7 +27,7 @@ final class DataMachineEventsConfigurationTest extends TestCase {
 	}
 
 	public function test_configures_network_bot_for_automated_imports(): void {
-		$this->assertSame( 42, apply_filters( 'data_machine_events_fallback_author_id', 0, array(), null ) );
+		$this->assertSame( ec_get_network_bot_user_id(), apply_filters( 'data_machine_events_fallback_author_id', 0, array(), null ) );
 	}
 
 	public function test_configures_events_retention_policy(): void {

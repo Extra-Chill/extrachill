@@ -126,13 +126,13 @@ export function BookingFormTab( {
 				</ActionRow>
 				<Panel>
 					<PanelHeader
-						title="Embed your booking form"
-						description="Authorize your venue website, then copy the secure embed code into the page where you want the form to appear."
+						title="Put this booking form on your website"
+						description="Add your venue website address so the form will only work there. Entering the address does not publish the form."
 					/>
 					<FieldGroup
-						label="Website where you'll embed this form"
+						label="Your venue website address"
 						htmlFor={ `${ idPrefix }venue-booking-websites` }
-						help="Enter the HTTPS address of your website, such as https://venue.example. You can place the form on any page of that website. Add another website on a new line if needed."
+						help="Enter the main HTTPS address, such as https://venue.example. This tells Extra Chill which website may display your form. Add another website on a new line if needed."
 					>
 						<textarea
 							id={ `${ idPrefix }venue-booking-websites` }
@@ -156,24 +156,30 @@ export function BookingFormTab( {
 					</FieldGroup>
 					{ embedSnippet ? (
 						<>
+							<p>
+								Copy this code, then paste it into the page
+								where you want the form or send it to the person
+								who manages your website.
+							</p>
 							<ActionRow>
 								<button
 									type="button"
 									className="button-1 button-medium"
 									onClick={ copyEmbed }
 								>
-									Copy embed code
+									Copy website code
 								</button>
 								{ copied && (
 									<span role="status">
-										Embed code copied.
+										Code copied. It still needs to be added
+										to your website.
 									</span>
 								) }
 							</ActionRow>
 							<details className="ec-booking-embed-advanced">
-								<summary>Show advanced embed code</summary>
+								<summary>View advanced website code</summary>
 								<FieldGroup
-									label="Embed code"
+									label="Website code"
 									htmlFor={ `${ idPrefix }venue-booking-embed-code` }
 								>
 									<textarea
@@ -187,7 +193,8 @@ export function BookingFormTab( {
 						</>
 					) : (
 						<p className="ec-venue-settings__save-note">
-							Add your website to generate its embed code.
+							Add your website address to prepare the code you
+							will need.
 						</p>
 					) }
 				</Panel>
