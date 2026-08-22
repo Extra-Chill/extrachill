@@ -234,7 +234,7 @@ function extrachill_send_welcome_email_complete( $user_data ) {
 function extrachill_send_welcome_email_incomplete( $user_data ) {
 	$email         = $user_data->user_email;
 	$community_url = ec_get_site_url( 'community' );
-	$profile_url   = $community_url . '/settings/';
+	$profile_url   = extrachill_get_user_community_profile_edit_url( $user_data->ID, $email );
 	$events_url    = ec_get_site_url( 'events' );
 	$artist_url    = ec_get_site_url( 'artist' );
 

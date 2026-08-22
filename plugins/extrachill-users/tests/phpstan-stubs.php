@@ -23,6 +23,7 @@ namespace {
 
 	function ec_get_site_url( string $site ): string {}
 	function ec_get_blog_id( string $site ): int {}
+	function extrachill_get_user_community_profile_edit_url( int $user_id, string $user_email = '' ): string {}
 	function extrachill_set_notice( string $message, string $type = 'info' ): void {}
 	function ec_render_turnstile_widget(): string {}
 	function ec_verify_turnstile_response( string $token ): bool {}

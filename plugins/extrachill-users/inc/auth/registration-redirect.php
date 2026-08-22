@@ -104,12 +104,15 @@ function ec_users_handle_account_created_notice() {
 	}
 
 	if ( function_exists( 'extrachill_set_notice' ) ) {
-		$args = array();
-		if ( function_exists( 'ec_get_site_url' ) ) {
+		$args             = array();
+		$profile_edit_url = function_exists( 'extrachill_get_user_community_profile_edit_url' )
+			? extrachill_get_user_community_profile_edit_url( get_current_user_id() )
+			: '';
+		if ( '' !== $profile_edit_url ) {
 			$args['actions'] = array(
 				array(
 					'label' => __( 'Customize Your Profile', 'extrachill-users' ),
-					'url'   => ec_get_site_url( 'community' ) . '/settings/',
+					'url'   => $profile_edit_url,
 				),
 			);
 		}

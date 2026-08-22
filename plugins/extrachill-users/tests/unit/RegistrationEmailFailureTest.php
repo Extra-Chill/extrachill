@@ -68,6 +68,10 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		if ( ! function_exists( 'ec_get_site_url' ) ) {
 			eval( 'function ec_get_site_url( $site ) { return "https://community.extrachill.com"; }' );
 		}
+
+		if ( ! function_exists( 'extrachill_get_user_community_profile_edit_url' ) ) {
+			eval( 'function extrachill_get_user_community_profile_edit_url( $user_id, $user_email = "" ) { return "https://community.extrachill.com/u/test-user/edit/"; }' );
+		}
 	}
 
 	protected function tearDown(): void {
@@ -270,6 +274,8 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Do I need to finish my profile?', $args['context']['body_html'] );
 		$this->assertStringContainsString( 'Is Extra Chill just a music blog?', $args['context']['body_html'] );
 		$this->assertStringContainsString( 'Find shows and track concerts', $args['context']['body_html'] );
+		$this->assertStringContainsString( 'https://community.extrachill.com/u/test-user/edit/', $args['context']['body_html'] );
+		$this->assertStringNotContainsString( 'https://community.extrachill.com/settings/', $args['context']['body_html'] );
 		$this->assertDoesNotMatchRegularExpression( '/\bfollow(?:er|ers|ing|s|ed)?\b/i', $args['context']['body_html'] );
 	}
 
