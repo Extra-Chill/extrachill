@@ -151,6 +151,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertCount( 1, $queued );
 		$this->assertSame( 'operator@example.com,owner@example.com', $queued[0]['cc'] );
 		$this->assertSame( 'Extra Chill Bookings', $queued[0]['from_name'] );
+		$this->assertSame( 'Booking update', $queued[0]['subject'] );
 		$this->assertSame( 'venue-booking@example.com', $queued[0]['reply_to'] );
 		$this->assertStringContainsString( 'Powered by Extra Chill', $queued[0]['body'] );
 		$this->assertStringNotContainsString( 'Extra Chill Bot', $queued[0]['body'] );
@@ -307,7 +308,8 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertContains( 'booking_reminder_suppressed', array_column( ( new BookingActivityRepository() )->list_for_booking( $booking['id'] ), 'kind' ) );
 	}
 
-	public function test_preview_and_queued_delivery_share_the_exact_rendering_contract(): void {
+	/** Operator subjects reach the queue without bypassing template body policy. */
+	public function test_operator_subject_overrides_template_without_changing_body_policy(): void {
 		$booking = $this->booking();
 		$config  = ( new VenueBookingConfig() )->get( 55 );
 		$config['correspondence']['templates']['operator_message'] = array(
@@ -332,7 +334,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 				$booking['id'],
 				array(
 					'template_version' => 2,
-					'subject'          => 'Caller subject must not win',
+					'subject'          => 'Operator custom subject',
 					'message'          => $variables['message'],
 				)
 			),
@@ -340,13 +342,39 @@ final class BookingCommunicationTest extends BookingTestCase {
 		);
 
 		$this->assertSame( 'queued', $result['status'] );
-		$this->assertSame( $preview['subject'], $queued[0]['subject'] );
+		$this->assertSame( 'Operator custom subject', $queued[0]['subject'] );
 		$this->assertSame( $preview['body'], $queued[0]['body'] );
 		$this->assertSame( 'operator@example.com,owner@example.com', $queued[0]['cc'] );
 		$this->assertSame( 'The Room Bookings', $queued[0]['from_name'] );
 		$this->assertStringContainsString( 'Powered by The Room on Extra Chill', $queued[0]['body'] );
 		$this->assertStringNotContainsString( '<b>', $queued[0]['body'] );
 		$this->assertStringContainsString( '{{venue_name}}', $queued[0]['body'] );
+	}
+
+	/** Omitted subjects retain the configured template default. */
+	public function test_omitted_subject_uses_the_configured_template_subject(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$input = $this->input( $booking['id'] );
+		unset( $input['subject'] );
+
+		$result = $this->service( $queued, $scheduled, $cancelled )->request( $input, 12 );
+
+		$this->assertSame( 'queued', $result['status'] );
+		$this->assertSame( 'Booking update for Test Band', $queued[0]['subject'] );
+	}
+
+	/** Unsafe or unbounded subjects fail before durable intent creation. */
+	public function test_subject_rejects_blank_oversized_and_header_injection_input(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$service = $this->service( $queued, $scheduled, $cancelled );
+
+		foreach ( array( '', str_repeat( 'a', 201 ), "Offer details\r\nBcc: attacker@example.com", '<b>Offer details</b>' ) as $index => $subject ) {
+			$result = $service->request( $this->input( $booking['id'], array( 'idempotency_key' => 'invalid-subject-' . $index, 'subject' => $subject ) ), 12 );
+			$this->assertSame( 'booking_message_subject_invalid', $result->get_error_code() );
+		}
+		$this->assertCount( 0, $queued );
 	}
 
 	public function test_legacy_default_receipt_subject_upgrades_without_overwriting_custom_templates(): void {
@@ -423,6 +451,8 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$this->assertCount( 1, $queued );
 		$conflict = $service->request( $this->input( $booking['id'], array( 'message' => 'Different message.' ) ), 12 );
 		$this->assertSame( 'booking_message_idempotency_conflict', $conflict->get_error_code() );
+		$subject_conflict = $service->request( $this->input( $booking['id'], array( 'subject' => 'Different subject' ) ), 12 );
+		$this->assertSame( 'booking_message_idempotency_conflict', $subject_conflict->get_error_code() );
 	}
 
 	public function test_teammate_retry_reuses_the_same_durable_intent(): void {
@@ -461,6 +491,32 @@ final class BookingCommunicationTest extends BookingTestCase {
 		$GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ][ $intent['id'] ]['payload'] = wp_json_encode( $row_payload );
 
 		$this->assertSame( $first, $service->request( $input, 13 ) );
+		$this->assertCount( 1, $queued );
+	}
+
+	/** Pre-subject durable intent hashes remain retryable. */
+	public function test_retry_accepts_a_persisted_pre_subject_hash(): void {
+		$booking = $this->booking();
+		$queued = $scheduled = $cancelled = array();
+		$service = $this->service( $queued, $scheduled, $cancelled );
+		$input   = $this->input( $booking['id'] );
+		$first   = $service->request( $input, 12 );
+		$intent  = ( new BookingActivityRepository() )->find_by_idempotency( $booking['id'], 'booking-message-request:message-1' );
+		$request = array(
+			'booking_id'       => $booking['id'],
+			'idempotency_key'  => 'message-1',
+			'template'         => 'operator_message',
+			'template_version' => null,
+			'recipient'        => 'artist@example.com',
+			'message'          => 'We would like to discuss the date.',
+			'reply_to'         => 'bookings@extrachill.com',
+		);
+		ksort( $request );
+		$row_payload                                  = json_decode( $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ][ $intent['id'] ]['payload'], true );
+		$row_payload['data']['request_hash']          = hash_hmac( 'sha256', wp_json_encode( $request ), wp_salt( 'auth' ) );
+		$GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ][ $intent['id'] ]['payload'] = wp_json_encode( $row_payload );
+
+		$this->assertSame( $first, $service->request( $input, 12 ) );
 		$this->assertCount( 1, $queued );
 	}
 

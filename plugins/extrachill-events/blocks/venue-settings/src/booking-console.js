@@ -1210,10 +1210,12 @@ export function Correspondence( { booking, items, onRefresh, timezone } ) {
 		sendingRef.current = true;
 		setSending( true );
 		setStatus( null );
+		const canonicalSubject = subject.trim();
+		setSubject( canonicalSubject );
 		const input = {
 			bookingId: booking.id,
 			recipient: booking.contact_email,
-			subject,
+			subject: canonicalSubject,
 			message,
 			replyTo,
 		};
@@ -1237,7 +1239,7 @@ export function Correspondence( { booking, items, onRefresh, timezone } ) {
 					idempotency_key: key,
 					template: 'operator_message',
 					recipient: booking.contact_email,
-					subject,
+					subject: canonicalSubject,
 					message,
 					reply_to: replyTo,
 					expected_statuses: [ booking.status ],
@@ -1333,6 +1335,7 @@ export function Correspondence( { booking, items, onRefresh, timezone } ) {
 							<input
 								id="booking-message-subject"
 								value={ subject }
+								maxLength={ 200 }
 								onChange={ ( event ) =>
 									setSubject( event.target.value )
 								}

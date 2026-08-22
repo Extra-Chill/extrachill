@@ -121,9 +121,10 @@ class BookingCommunicationService {
 			if ( is_wp_error( $committed ) ) {
 				return $committed;
 			}
-			$stored_hash = (string) ( $existing['payload']['data']['request_hash'] ?? '' );
-			$legacy_hash = $this->legacy_request_hash( $normalized, (int) $existing['actor_id'] );
-			if ( ! hash_equals( $stored_hash, $hash ) && ! hash_equals( $stored_hash, $legacy_hash ) ) {
+			$stored_hash      = (string) ( $existing['payload']['data']['request_hash'] ?? '' );
+			$pre_subject_hash = $this->pre_subject_request_hash( $normalized );
+			$legacy_hash      = $this->legacy_request_hash( $normalized, (int) $existing['actor_id'] );
+			if ( ! hash_equals( $stored_hash, $hash ) && ! hash_equals( $stored_hash, $pre_subject_hash ) && ! hash_equals( $stored_hash, $legacy_hash ) ) {
 				return new \WP_Error( 'booking_message_idempotency_conflict', __( 'The idempotency key was already used for a different message.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			return $this->resume( $existing );
@@ -1127,9 +1128,17 @@ class BookingCommunicationService {
 		$key              = mb_substr( sanitize_text_field( (string) ( $input['idempotency_key'] ?? '' ) ), 0, 120 );
 		$template         = sanitize_key( (string) ( $input['template'] ?? '' ) );
 		$recipient        = sanitize_email( (string) ( $input['recipient'] ?? '' ) );
+		$subject          = null;
 		$message          = mb_substr( sanitize_textarea_field( (string) ( $input['message'] ?? '' ) ), 0, 10000 );
 		$reply_to         = sanitize_email( (string) ( $input['reply_to'] ?? '' ) );
 		$template_version = isset( $input['template_version'] ) ? (int) $input['template_version'] : null;
+		if ( array_key_exists( 'subject', $input ) ) {
+			$raw_subject = trim( (string) $input['subject'] );
+			if ( '' === $raw_subject || mb_strlen( $raw_subject ) > 200 || preg_match( '/[\r\n]/', $raw_subject ) || sanitize_text_field( $raw_subject ) !== $raw_subject ) {
+				return new \WP_Error( 'booking_message_subject_invalid', __( 'The booking message subject is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
+			}
+			$subject = $raw_subject;
+		}
 		if ( $booking_id < 1 || '' === $key || ! in_array( $template, self::TEMPLATES, true ) || '' === $recipient || '' === $message || '' === $reply_to || ( null !== $template_version && $template_version < 1 ) ) {
 			return new \WP_Error( 'booking_message_invalid', __( 'The booking message request is invalid.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
@@ -1139,6 +1148,7 @@ class BookingCommunicationService {
 			'template'         => $template,
 			'template_version' => $template_version,
 			'recipient'        => $recipient,
+			'subject'          => $subject,
 			'message'          => $message,
 			'reply_to'         => $reply_to,
 		);
@@ -1180,7 +1190,7 @@ class BookingCommunicationService {
 			array(
 				'template_version'        => (int) $prepared['template_version'],
 				'config_revision'         => (int) $prepared['config_revision'],
-				'subject'                 => $prepared['subject'],
+				'subject'                 => null !== ( $request['subject'] ?? null ) ? $request['subject'] : $prepared['subject'],
 				'body'                    => $prepared['body'],
 				'from_name'               => $prepared['from_name'],
 				'reply_to'                => $prepared['booking_address'] ? $prepared['booking_address'] : $request['reply_to'],
@@ -1271,8 +1281,20 @@ class BookingCommunicationService {
 		);
 	}
 
+	/**
+	 * Preserve retries for durable intents written before operator subjects were canonical.
+	 *
+	 * @param array $request Canonical request data.
+	 * @return string Request hash.
+	 */
+	private function pre_subject_request_hash( array $request ): string {
+		unset( $request['subject'] );
+		return $this->request_hash( $request );
+	}
+
 	/** Preserve retries for durable intents written before actor-independent hashes. */
 	private function legacy_request_hash( array $request, int $actor_id ): string {
+		unset( $request['subject'] );
 		ksort( $request );
 		return hash_hmac(
 			'sha256',

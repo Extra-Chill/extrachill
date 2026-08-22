@@ -98,7 +98,7 @@ const renderCorrespondence = async (
 		);
 	} );
 	await act( async () => {
-		fill( container, '#booking-message-subject', 'Offer details' );
+		fill( container, '#booking-message-subject', ' Offer details ' );
 		fill( container, '#booking-message-reply-to', 'venue@example.com' );
 		fill( container, '#booking-message-body', 'Hold this date.' );
 	} );
@@ -127,6 +127,12 @@ describe( 'booking correspondence delivery state', () => {
 
 		await act( async () => submit( container ) );
 
+		expect( runAbility.mock.calls[ 0 ][ 1 ].subject ).toBe(
+			'Offer details'
+		);
+		expect(
+			container.querySelector( '#booking-message-subject' ).maxLength
+		).toBe( 200 );
 		expect( container.querySelector( '[role="status"]' ).textContent ).toBe(
 			'Message queued. Correspondence could not be refreshed.'
 		);
@@ -201,6 +207,9 @@ describe( 'booking correspondence delivery state', () => {
 		expect( container.querySelector( '#booking-message-body' ).value ).toBe(
 			'Hold this date.'
 		);
+		expect(
+			container.querySelector( '#booking-message-subject' ).value
+		).toBe( 'Offer details' );
 		expect(
 			container.querySelector( '[role="status"]' ).textContent
 		).toContain( 'Draft preserved' );

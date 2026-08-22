@@ -188,7 +188,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			$heading_position  = strpos( $output, 'class="page-title"' );
 			$cta_position      = strpos( $output, 'Submit a booking inquiry' );
 			$operator_position = strpos( $output, 'data-venue-workspace-action' );
-			$calendar_position = strpos( $output, 'data-machine-events-calendar' );
+			$calendar_position = strpos( $output, 'class="data-machine-events-calendar' );
 
 			$this->assertNotFalse( $heading_position );
 			$this->assertNotFalse( $cta_position );

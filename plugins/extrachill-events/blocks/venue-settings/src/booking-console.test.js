@@ -71,6 +71,12 @@ describe( 'venue booking console state helpers', () => {
 			} )
 		);
 		expect( await bookingMessageKey( message ) ).not.toBe(
+			await bookingMessageKey( {
+				...message,
+				subject: 'Changed subject',
+			} )
+		);
+		expect( await bookingMessageKey( message ) ).not.toBe(
 			await bookingMessageKey( message, 1 )
 		);
 	} );

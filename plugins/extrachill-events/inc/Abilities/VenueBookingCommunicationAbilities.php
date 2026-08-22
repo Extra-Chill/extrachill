@@ -106,6 +106,7 @@ class VenueBookingCommunicationAbilities {
 						'recipient'        => $input['recipient'],
 						'template'         => $input['template'],
 						'template_version' => $input['template_version'] ?? null,
+						'subject'          => $input['subject'] ?? null,
 						'message'          => $input['message'],
 					),
 					'user_id'       => get_current_user_id(),

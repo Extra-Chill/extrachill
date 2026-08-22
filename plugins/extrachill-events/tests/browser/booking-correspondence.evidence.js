@@ -13,7 +13,7 @@ const fixture = `<!doctype html>
 			<section class="ec-booking-detail__section">
 				<h3>Correspondence</h3>
 				<form class="ec-booking-console__form">
-					<div class="ec-card-grid"><label>Subject<input value="Offer details"></label><label>Reply-to email<input value="venue@example.com"></label></div>
+					<div class="ec-card-grid"><label>Subject<input value="Offer details" maxlength="200" required></label><label>Reply-to email<input value="venue@example.com"></label></div>
 					<label>Message<textarea>Hold this date.</textarea></label>
 					<button type="submit" class="button-1">Email artist@example.com</button>
 				</form>
@@ -28,6 +28,8 @@ const measure = ( page ) =>
 		const status = document.querySelector( '[role="status"]' );
 		return {
 			announcement: status.textContent,
+			subject: document.querySelector( 'input' ).value,
+			subjectMaxLength: document.querySelector( 'input' ).maxLength,
 			live: status.getAttribute( 'aria-live' ),
 			documentWidth: document.documentElement.scrollWidth,
 			viewportWidth: document.documentElement.clientWidth,
@@ -53,6 +55,8 @@ const measure = ( page ) =>
 			results[ width ] = await measure( page );
 			assert.equal( results[ width ].live, 'polite' );
 			assert.match( results[ width ].announcement, /Draft preserved/ );
+			assert.equal( results[ width ].subject, 'Offer details' );
+			assert.equal( results[ width ].subjectMaxLength, 200 );
 			assert.equal(
 				results[ width ].documentWidth,
 				results[ width ].viewportWidth
