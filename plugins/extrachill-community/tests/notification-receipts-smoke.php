@@ -19,7 +19,7 @@ function current_time() {
 	return '2026-07-29 12:00:00';
 }
 function get_post_field( $field, $post_id ) {
-	return 100 === (int) $post_id ? 10 : 20;
+	return 100 === (int) $post_id ? '10' : '20';
 }
 function get_the_title( $post_id ) {
 	return 'Topic ' . (int) $post_id;
@@ -134,6 +134,9 @@ notification_test_assert( notification_test_canonical_payload( $payload ), 'Repl
 notification_test_assert( 'extrachill-community/replies' === $payload['producer'] && 'reply:200' === $payload['idempotency_key'], 'Reply receipt identity is unstable.' );
 notification_test_assert( 100 === $payload['item_id'], 'Reply item context must remain the topic for mention deduplication.' );
 
+extrachill_capture_reply_notifications( 201, 100, 1, array(), 10 );
+notification_test_assert( 1 === count( $GLOBALS['_notification_calls'] ), 'Self-reply notification was not suppressed across scalar ID types.' );
+
 extrachill_capture_mention_notifications( 200, 100, 1, array(), 20 );
 list( $recipients, $payload ) = $GLOBALS['_notification_calls'][1];
 notification_test_assert( 10 === $recipients && 200 === $payload['item_id'], 'Mention content context changed.' );
@@ -145,6 +148,9 @@ extrachill_capture_mention_notifications( 101, 101, 1, array() );
 list( $recipients, $payload ) = $GLOBALS['_notification_calls'][2];
 notification_test_assert( 10 === $recipients && 101 === $payload['item_id'], 'Topic mention content context changed.' );
 notification_test_assert( 'content:101' === $payload['idempotency_key'], 'Topic mention receipt identity is unstable.' );
+
+extrachill_capture_mention_notifications( 100, 100, 1, array() );
+notification_test_assert( 3 === count( $GLOBALS['_notification_calls'] ), 'Self-mention notification was not suppressed across scalar ID types.' );
 
 extrachill_capture_subscription_notifications( 200, 100, 1, array(), 20 );
 list( $recipients, $payload ) = $GLOBALS['_notification_calls'][3];

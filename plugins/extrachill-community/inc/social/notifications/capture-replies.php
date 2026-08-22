@@ -30,7 +30,7 @@ function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id,
 	}
 
 	// Prevent self-notification (author replying to own topic)
-	if ( get_post_field('post_author', $topic_id) === $reply_author ) {
+	if ( (int) get_post_field( 'post_author', $topic_id ) === (int) $reply_author ) {
 		return;
 	}
 

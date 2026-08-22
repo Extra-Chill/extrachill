@@ -47,7 +47,7 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 		$user = get_user_by('slug', $username);
 
 		// Validate user exists, is active, and isn't mentioning themselves
-		if ( $user && ! bbp_is_user_inactive($user->ID) && $user->ID !== $action_author_id ) {
+		if ( $user && ! bbp_is_user_inactive( $user->ID ) && (int) $user->ID !== (int) $action_author_id ) {
 			// Send mention notification.
 			ec_users_notify_with_receipts(
 				$user->ID,
@@ -66,7 +66,7 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 			// remove the (more generic) reply notification the reply-capture
 			// handler just fired for the same actor/topic. Mention notifications
 			// are more specific. This now targets the network substrate table.
-			if ( get_post_field('post_author', $actual_topic_id_for_context) === $user->ID ) {
+			if ( (int) get_post_field( 'post_author', $actual_topic_id_for_context ) === (int) $user->ID ) {
 				extrachill_community_dedupe_reply_notification(
 					(int) $user->ID,
 					(int) $action_author_id,
