@@ -101,11 +101,23 @@
             },
             body: JSON.stringify(body)
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => Promise.reject(err));
+        .then(async response => {
+            let data;
+
+            try {
+                data = await response.json();
+            } catch {
+                throw new Error('An error occurred. Please try again.');
             }
-            return response.json();
+
+            if (!response.ok || !data || data.success !== true) {
+                const message = data && typeof data.message === 'string' && data.message.trim()
+                    ? data.message
+                    : 'An error occurred. Please try again.';
+                throw new Error(message);
+            }
+
+            return data;
         })
         .then(data => {
             if (feedback) {
