@@ -23,7 +23,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION = 2;
+const EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION = 3;
 
 add_action( 'wp_abilities_api_init', 'extrachill_docs_register_upsert_doc_page_ability' );
 

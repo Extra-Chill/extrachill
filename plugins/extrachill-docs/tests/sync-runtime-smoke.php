@@ -126,7 +126,7 @@ namespace {
 	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( $titled_markdown, 'artist-preferences.md' ), 'source H1 remains the page title' );
 	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( 'Introduction.', 'artist-preferences.md' ), 'title falls back to the filename without an H1' );
 	$assert( 'Introduction.' === extrachill_docs_strip_title_heading_from_markdown( 'Introduction.' ), 'markdown without an H1 is unchanged' );
-	$assert( 2 === EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION, 'content transform version forces existing pages through the corrected conversion' );
+	$assert( 3 === EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION, 'content transform version forces existing pages through the corrected conversion' );
 	$team_caps = extrachill_docs_grant_team_private_page_access( array( 'access_studio' => true ) );
 	$assert( ! empty( $team_caps['read_private_pages'] ), 'Studio access grants private docs access' );
 	$public_caps = extrachill_docs_grant_team_private_page_access( array( 'read' => true ) );
