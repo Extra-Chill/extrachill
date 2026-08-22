@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.41.4] - 2026-08-22
+
+### Fixed
+- Fix first-session onboarding and registration feedback
+- stabilize queued email tests
+- authorize hourly digest queue
+- handle moderation email queue errors
+- harden moderation cleanup failures
+- resume attendance intent after authentication
+- remove redundant auth block heading
+
 ## [0.41.3] - 2026-08-10
 
 ### Changed
