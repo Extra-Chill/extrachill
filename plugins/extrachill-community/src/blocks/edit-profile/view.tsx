@@ -300,7 +300,7 @@ function EditProfileApp( {
 	const [ loading, setLoading ] = useState( true );
 	const [ error, setError ] = useState< string | null >( null );
 	const [ saving, setSaving ] = useState( false );
-	const [ , setNotice ] = useState< {
+	const [ notice, setNotice ] = useState< {
 		type: 'success' | 'error';
 		message: string;
 	} | null >( null );
@@ -522,6 +522,9 @@ function EditProfileApp( {
 						}
 					} }
 				/>
+				{ notice && (
+					<Notice type={ notice.type } message={ notice.message } />
+				) }
 				<ActionRow>
 					<button
 						type="button"
