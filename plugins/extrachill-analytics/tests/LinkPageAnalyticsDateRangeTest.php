@@ -145,6 +145,16 @@ final class LinkPageAnalyticsDateRangeTest extends TestCase {
 		$this->assertSame( array( '2026-03-09', '2026-03-10' ), $result['chart_data']['labels'] );
 	}
 
+	/** Empty optional dates preserve the numeric relative window. */
+	public function test_empty_date_pair_preserves_relative_range(): void {
+		$result = extrachill_analytics_provide_link_page_analytics( null, 42, 2, '', '' );
+
+		$this->assertSame( '2026-03-09', $result['start_date'] );
+		$this->assertSame( '2026-03-10', $result['end_date'] );
+		$this->assertSame( 2, $result['days'] );
+		$this->assertSame( array( '2026-03-09', '2026-03-10' ), $result['chart_data']['labels'] );
+	}
+
 	/** The ability exposes paired dates and uses the shared 90-day validator. */
 	public function test_ability_date_contract_uses_shared_validation(): void {
 		$source = file_get_contents( dirname( __DIR__ ) . '/inc/core/abilities/get-link-page-analytics.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source fixture.
