@@ -32,6 +32,13 @@ class User_Settings_Privacy_RoutesTest extends WP_UnitTestCase {
 	private $update_inputs = array();
 
 	/**
+	 * Optional owner error returned by the controlled update ability.
+	 *
+	 * @var WP_Error|null
+	 */
+	private $update_error;
+
+	/**
 	 * Whether the test registered its ability category.
 	 *
 	 * @var bool
@@ -50,6 +57,7 @@ class User_Settings_Privacy_RoutesTest extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+		$this->update_error = null;
 
 		$category_registry = WP_Ability_Categories_Registry::get_instance();
 		if ( ! wp_has_ability_category( 'extrachill-api-settings-tests' ) ) {
@@ -133,6 +141,18 @@ class User_Settings_Privacy_RoutesTest extends WP_UnitTestCase {
 		$this->assertSame( 'ability_invalid_input', $response->get_data()['code'] );
 		$this->assertSame( 'public', $this->get_user_settings( $user_id )[ $field ] );
 		$this->assertEmpty( $this->update_inputs );
+	}
+
+	/** Owner-provided HTTP status remains authoritative. */
+	public function test_owner_validation_status_is_preserved() {
+		$user_id = self::factory()->user->create();
+		wp_set_current_user( $user_id );
+		$this->update_error = new WP_Error( 'ability_invalid_input', 'Owner validation failed.', array( 'status' => 422 ) );
+
+		$response = $this->dispatch( 'POST', array( 'concert_history_visibility' => 'private' ) );
+
+		$this->assertSame( 422, $response->get_status() );
+		$this->assertSame( 'ability_invalid_input', $response->get_data()['code'] );
 	}
 
 	/**
@@ -244,6 +264,9 @@ class User_Settings_Privacy_RoutesTest extends WP_UnitTestCase {
 	 */
 	public function execute_update_settings( array $input ) {
 		$this->update_inputs[] = $input;
+		if ( $this->update_error ) {
+			return $this->update_error;
+		}
 		$user_id               = get_current_user_id();
 		$settings              = $this->get_user_settings( $user_id );
 		foreach ( array_keys( $settings ) as $field ) {

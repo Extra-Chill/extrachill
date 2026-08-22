@@ -189,6 +189,12 @@ function extrachill_api_user_settings_update( WP_REST_Request $request ) {
 	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
+		$error_data = $result->get_error_data();
+		if ( 'ability_invalid_input' === $result->get_error_code() && ( ! is_array( $error_data ) || ! isset( $error_data['status'] ) ) ) {
+			$error_data           = is_array( $error_data ) ? $error_data : array();
+			$error_data['status'] = 400;
+			$result->add_data( $error_data, 'ability_invalid_input' );
+		}
 		return $result;
 	}
 
