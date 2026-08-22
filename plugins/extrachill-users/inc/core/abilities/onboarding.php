@@ -550,7 +550,7 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 		);
 
 		if ( false === $result ) {
-			return ec_users_onboarding_error( 'update_failed', __( 'Failed to update username.', 'extrachill-users' ), $user_id );
+			return ec_users_onboarding_error( 'update_failed', __( 'Failed to update username.', 'extrachill-users' ), $user_id, 500 );
 		}
 
 		if ( '' !== $local_scene ) {

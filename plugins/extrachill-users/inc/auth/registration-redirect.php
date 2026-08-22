@@ -10,7 +10,47 @@ defined( 'ABSPATH' ) || exit;
 /**
  * One-time query marker used to show account-creation confirmation.
  */
-const EC_USERS_ACCOUNT_CREATED_PARAM = 'ec_account_created';
+const EC_USERS_ACCOUNT_CREATED_PARAM     = 'ec_account_created';
+const EC_USERS_ACCOUNT_CREATED_TOKEN_TTL = 5 * MINUTE_IN_SECONDS;
+
+/**
+ * Create a short-lived, one-time registration continuation token.
+ *
+ * WordPress nonces are bound to the current request's session cookie, which is
+ * not available yet when REST registration has just emitted a new auth cookie.
+ * A network transient keeps the continuation valid across multisite redirects.
+ *
+ * @param int $user_id Newly registered user ID.
+ * @return string Opaque continuation token.
+ */
+function ec_users_create_account_created_token( int $user_id ): string {
+	$token = wp_generate_password( 32, false, false );
+	set_site_transient( 'ec_users_account_created_' . hash( 'sha256', $token ), $user_id, EC_USERS_ACCOUNT_CREATED_TOKEN_TTL );
+
+	return $token;
+}
+
+/**
+ * Consume a registration continuation token for the authenticated user.
+ *
+ * @param string $token   Opaque continuation token.
+ * @param int    $user_id Authenticated user ID.
+ * @return bool Whether the token was valid and consumed.
+ */
+function ec_users_consume_account_created_token( string $token, int $user_id ): bool {
+	if ( '' === $token || $user_id < 1 ) {
+		return false;
+	}
+
+	$key    = 'ec_users_account_created_' . hash( 'sha256', $token );
+	$stored = (int) get_site_transient( $key );
+	if ( $stored !== $user_id ) {
+		return false;
+	}
+
+	delete_site_transient( $key );
+	return true;
+}
 
 /**
  * Resolve the destination after account creation.
@@ -59,7 +99,7 @@ function ec_users_handle_account_created_notice() {
 	}
 
 	$notice_nonce = sanitize_text_field( wp_unslash( $_GET[ EC_USERS_ACCOUNT_CREATED_PARAM ] ) );
-	if ( ! wp_verify_nonce( $notice_nonce, 'ec_account_created' ) ) {
+	if ( ! ec_users_consume_account_created_token( $notice_nonce, get_current_user_id() ) ) {
 		return;
 	}
 

@@ -366,7 +366,7 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 		}
 	}
 
-	$account_created_token = $is_new && $set_cookie ? wp_create_nonce( 'ec_account_created' ) : '';
+	$account_created_token = $is_new && $set_cookie ? ec_users_create_account_created_token( (int) $user_id ) : '';
 	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, $onboarding_completed, $safe_success_redirect_url, $account_created_token );
 
 	return array(

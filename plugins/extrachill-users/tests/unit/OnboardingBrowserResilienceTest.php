@@ -44,6 +44,7 @@ class Test_Onboarding_Browser_Resilience extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'name="action" value="extrachill_complete_onboarding"', $html );
 		$this->assertStringContainsString( 'name="onboarding_nonce"', $html );
 		$this->assertStringContainsString( 'name="local_scene"', $html );
+		$this->assertStringContainsString( 'pattern="[a-zA-Z0-9_\-]+"', $html );
 		$this->assertSame( 10, has_action( 'admin_post_extrachill_complete_onboarding', 'extrachill_users_handle_onboarding_form' ) );
 		$this->assertSame( 10, has_action( 'admin_post_nopriv_extrachill_complete_onboarding', 'extrachill_users_handle_onboarding_form' ) );
 	}

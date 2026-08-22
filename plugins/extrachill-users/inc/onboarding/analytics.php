@@ -123,14 +123,15 @@ function ec_users_get_onboarding_attribution( int $user_id ): array {
  * @param string $code Stable error code.
  * @param string $message User-facing message.
  * @param int    $user_id User ID.
+ * @param int    $status  HTTP status for REST consumers.
  * @return WP_Error Onboarding error.
  */
-function ec_users_onboarding_error( string $code, string $message, int $user_id ): WP_Error {
+function ec_users_onboarding_error( string $code, string $message, int $user_id, int $status = 400 ): WP_Error {
 	ec_users_emit_onboarding_event(
 		EC_ANALYTICS_EVENT_ONBOARDING_SUBMISSION_FAILED,
 		$user_id,
 		array( 'error_code' => sanitize_key( $code ) )
 	);
 
-	return new WP_Error( $code, $message );
+	return new WP_Error( $code, $message, array( 'status' => $status ) );
 }

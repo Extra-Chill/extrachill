@@ -520,7 +520,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 
 	$tokens = extrachill_users_mint_token_pair( (int) $user_id, $device_id, $device_name );
 
-	$account_created_token = $set_cookie ? wp_create_nonce( 'ec_account_created' ) : '';
+	$account_created_token = $set_cookie ? ec_users_create_account_created_token( (int) $user_id ) : '';
 	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, false, $success_redirect_url, $account_created_token );
 
 	$response = array(

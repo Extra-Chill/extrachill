@@ -64,6 +64,16 @@ class Test_Registration_Redirect extends WP_UnitTestCase {
 		$this->assertSame( 'test-confirmation', $query[ EC_USERS_ACCOUNT_CREATED_PARAM ] ?? '' );
 	}
 
+	public function test_account_created_token_is_user_bound_and_consumed_once(): void {
+		$user_id  = self::factory()->user->create();
+		$other_id = self::factory()->user->create();
+		$token    = ec_users_create_account_created_token( $user_id );
+
+		$this->assertFalse( ec_users_consume_account_created_token( $token, $other_id ) );
+		$this->assertTrue( ec_users_consume_account_created_token( $token, $user_id ) );
+		$this->assertFalse( ec_users_consume_account_created_token( $token, $user_id ) );
+	}
+
 	public function test_browser_registration_resumes_requested_feature(): void {
 		$user_id      = self::factory()->user->create();
 		$calendar_url = 'https://events.extrachill.com/calendar/';

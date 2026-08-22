@@ -111,6 +111,7 @@ class Test_Onboarding_Artist_Access_Grant extends WP_UnitTestCase {
 
 		$this->assertWPError( $replay );
 		$this->assertSame( 'already_completed', $replay->get_error_code() );
+		$this->assertSame( 400, $replay->get_error_data()['status'] );
 		$this->assertCount( 1, $this->grant_events() );
 	}
 

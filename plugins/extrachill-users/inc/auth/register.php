@@ -346,7 +346,7 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 		update_user_meta( $user_id, 'onboarding_redirect_url', $final_redirect_url );
 	}
 
-	$account_created_token = wp_create_nonce( 'ec_account_created' );
+	$account_created_token = ec_users_create_account_created_token( $user_id );
 	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, false, $final_redirect_url, $account_created_token );
 	if ( $invitation_outcome ) {
 		$query_args = array( 'artist_invitation' => $invitation_outcome['status'] );

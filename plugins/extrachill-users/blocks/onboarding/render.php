@@ -76,7 +76,7 @@ ec_users_emit_onboarding_viewed_once( $user_id );
 					required 
 					minlength="3" 
 					maxlength="60"
-					pattern="[a-zA-Z0-9_-]+"
+					pattern="[a-zA-Z0-9_\-]+"
 					placeholder="<?php esc_attr_e( 'Your username', 'extrachill-users' ); ?>"
 				>
 				<small class="onboarding-field-hint"><?php esc_html_e( 'Letters, numbers, hyphens, and underscores only. 3-60 characters.', 'extrachill-users' ); ?></small>
