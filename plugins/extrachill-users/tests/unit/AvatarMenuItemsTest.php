@@ -76,6 +76,7 @@ class Test_Avatar_Menu_Items extends WP_UnitTestCase {
 			array( 'ID' => $user_id )
 		);
 		clean_user_cache( $user_id );
+		$this->setExpectedIncorrectUsage( 'WP_Object_Cache::add' );
 
 		$items = $this->index_items_by_id( extrachill_users_get_avatar_menu_items( $user_id ) );
 
