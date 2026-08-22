@@ -2,6 +2,20 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.31.0] - 2026-08-22
+
+### Added
+- add artist booking follow-through transport
+
+### Changed
+- preserve upcoming count rollup default
+
+### Fixed
+- forward registration newsletter consent
+- audit REST parity in owner site runtimes
+- detect REST ability schema drift
+- preserve ability errors in REST adapters
+
 ## [0.30.0] - 2026-08-05
 
 ### Added
