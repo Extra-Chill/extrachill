@@ -29,22 +29,26 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 		return array();
 	}
 
-	$items = array(
-		array(
+	$profile_url      = extrachill_get_user_community_profile_url( $user_id, $user->user_email );
+	$profile_edit_url = ! empty( $profile_url ) ? trailingslashit( $profile_url ) . 'edit/' : '';
+	$items            = array();
+
+	if ( ! empty( $profile_url ) && ! empty( $profile_edit_url ) ) {
+		$items[] = array(
 			'id'       => 'view_profile',
 			'label'    => __( 'View Profile', 'extrachill-users' ),
-			'url'      => ec_get_site_url( 'community' ) . '/u/' . $user->user_login . '/',
+			'url'      => $profile_url,
 			'priority' => 10,
 			'danger'   => false,
-		),
-		array(
+		);
+		$items[] = array(
 			'id'       => 'edit_profile',
 			'label'    => __( 'Edit Profile', 'extrachill-users' ),
-			'url'      => ec_get_site_url( 'community' ) . '/u/' . $user->user_login . '/edit/',
+			'url'      => $profile_edit_url,
 			'priority' => 20,
 			'danger'   => false,
-		),
-	);
+		);
+	}
 
 	$user_artist_ids = ec_get_artists_for_user( $user_id );
 	$artist_count    = count( $user_artist_ids );
