@@ -259,6 +259,7 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 	$from_join            = ! empty( $options['from_join'] );
 	$success_redirect_url = isset( $options['success_redirect_url'] ) ? (string) $options['success_redirect_url'] : '';
 	$registration_source  = isset( $options['registration_source'] ) ? sanitize_text_field( (string) $options['registration_source'] ) : '';
+	$newsletter_consent   = ! empty( $options['newsletter_consent'] );
 
 	if ( empty( $registration_source ) ) {
 		$registration_source = 'web';
@@ -324,6 +325,17 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 			'extrachill_not_a_member',
 			'User is not a member of the community site.',
 			array( 'status' => 403 )
+		);
+	}
+
+	if ( $is_new ) {
+		extrachill_users_record_registration_newsletter_consent(
+			(int) $user_id,
+			(string) $user->user_email,
+			$newsletter_consent,
+			$registration_source,
+			(string) $options['registration_method'],
+			(string) $registration_data['registration_page']
 		);
 	}
 

@@ -57,6 +57,25 @@
     margin-bottom: 15px; /* Auth-specific spacing */
 }
 
+.registration-newsletter-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.registration-newsletter-consent input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 3px 0 0;
+}
+
+.registration-newsletter-consent label {
+    margin: 0;
+    font-weight: 400;
+}
+
 /* Remember Me */
 .login-remember-me {
     margin-bottom: 15px;

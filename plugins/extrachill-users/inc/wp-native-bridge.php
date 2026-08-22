@@ -11,7 +11,7 @@
  *  - wp_native_auth_pre_authenticate  (filter) — Turnstile gate (structured no-op v0.1)
  *  - wp_native_auth_after_login       (action) — fire EC after-login hooks
  *  - wp_native_auth_pre_register      (filter) — EC username override
- *  - wp_native_auth_after_register    (action) — community provisioning, newsletter, metadata
+ *  - wp_native_auth_after_register    (action) — community provisioning and metadata
  *
  * @package ExtraChill\Users
  */
@@ -174,7 +174,7 @@ add_action( 'wp_native_auth_after_login', 'extrachill_users_wp_native_after_logi
 /**
  * Pre-register gate: fail closed when site registration policy cannot run.
  *
- * wp-native-auth deliberately exposes a generic registration ability, but its
+ * WordPress native auth deliberately exposes a generic registration ability, but its
  * schema cannot carry Extra Chill's Turnstile proof. Block that path before
  * user creation; branded registration remains the only public site surface.
  *
@@ -204,8 +204,8 @@ function extrachill_users_wp_native_pre_register( null|WP_Error $result, array &
 add_filter( 'wp_native_auth_pre_register', 'extrachill_users_wp_native_pre_register', 10, 3 );
 
 /**
- * After-register action: provisions community membership, newsletter subscription,
- * registration metadata, and fires the EC after-register hook.
+ * After-register action: provisions community membership, records default-off
+ * newsletter consent, registration metadata, and fires the EC after-register hook.
  *
  * Delegates to existing extrachill-users / EC functions — no new business logic.
  * Mirrors the post-creation steps in extrachill_users_register_with_tokens()
@@ -236,16 +236,8 @@ function extrachill_users_wp_native_after_register( int $user_id, string $device
 		apply_filters( 'extrachill_create_community_user', $user_id, $registration_data );
 	}
 
-	// Newsletter subscription: same call as service.php.
-	if ( function_exists( 'extrachill_network_subscribe' ) ) {
-		$email = $user ? $user->user_email : '';
-		if ( $email ) {
-			$sync_result = extrachill_network_subscribe( $email, 'registration' );
-			if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
-				error_log( 'wp-native-bridge: registration newsletter subscription failed for user ' . $user_id . ': ' . ( isset( $sync_result['message'] ) ? $sync_result['message'] : '' ) );
-			}
-		}
+	if ( $user ) {
+		extrachill_users_record_registration_newsletter_consent( $user_id, $user->user_email, false, 'wp-native', 'native' );
 	}
 
 	// Registration metadata: mirrors service.php post-creation meta.

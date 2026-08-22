@@ -8,6 +8,7 @@ import {
 	GoogleButtons,
 	LoginPanel,
 	LoginRegisterApp,
+	RegisterPanel,
 } from '../../blocks/login-register/view';
 
 jest.mock( '@extrachill/components', () => {
@@ -225,5 +226,85 @@ describe( 'Google authentication intent', () => {
 
 		act( () => root.unmount() );
 		global.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
+	} );
+} );
+
+describe( 'registration newsletter consent', () => {
+	let root;
+	let container;
+	let googleCredentialCallback;
+
+	beforeEach( () => {
+		global.IS_REACT_ACT_ENVIRONMENT = true;
+		container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		root = createRoot( container );
+		window.ECAuthUtils = {
+			getDeviceId: jest.fn( () => '550e8400-e29b-41d4-a716-446655440000' ),
+			getRestRoot: jest.fn( () => 'https://community.extrachill.com/wp-json/' ),
+			setSubmitting: jest.fn( () => jest.fn() ),
+			renderNotice: jest.fn(),
+		};
+		global.fetch = jest.fn( () => Promise.resolve( {
+			ok: false,
+			json: async () => ( { message: 'Expected test stop.' } ),
+		} ) );
+		global.google = {
+			accounts: {
+				id: {
+					initialize: jest.fn( ( config ) => {
+						googleCredentialCallback = config.callback;
+					} ),
+					renderButton: jest.fn(),
+				},
+			},
+		};
+		jest.resetModules();
+		act( () => {
+			root.render( <RegisterPanel config={ authConfig() } notice={ null } setNotice={ jest.fn() } /> );
+		} );
+	} );
+
+	afterEach( () => {
+		act( () => root.unmount() );
+		document.body.innerHTML = '';
+	} );
+
+	test.each( [ false, true ] )( 'submits explicit consent value %s', async ( consented ) => {
+		container.querySelector( '#extrachill_email' ).value = 'person@example.com';
+		container.querySelector( '#extrachill_password' ).value = 'password123';
+		container.querySelector( '#extrachill_password_confirm' ).value = 'password123';
+		container.querySelector( '#newsletter_consent' ).checked = consented;
+
+		await act( async () => {
+			container.querySelector( 'form' ).dispatchEvent( new Event( 'submit', { bubbles: true, cancelable: true } ) );
+		} );
+		await flushPromises();
+
+		const request = JSON.parse( fetch.mock.calls[0][1].body );
+		expect( request.newsletter_consent ).toBe( consented );
+	} );
+
+	test( 'renders an unchecked checkbox with an associated plain-language label', () => {
+		const checkbox = container.querySelector( '#newsletter_consent' );
+		const label = container.querySelector( 'label[for="newsletter_consent"]' );
+
+		expect( checkbox.checked ).toBe( false );
+		expect( label.textContent ).toBe( 'Email me the Extra Chill newsletter' );
+	} );
+
+	test( 'shares the checked choice with Google registration', async () => {
+		container.querySelector( '#newsletter_consent' ).checked = true;
+		require( '../../assets/js/google-signin.js' );
+		window.ECGoogleSignIn.init( {
+			clientId: 'client-id',
+			restUrl: 'https://community.extrachill.com/wp-json/extrachill/v1/',
+		} );
+
+		googleCredentialCallback( { credential: 'google-id-token' } );
+		await flushPromises();
+
+		const request = JSON.parse( fetch.mock.calls[0][1].body );
+		expect( request.newsletter_consent ).toBe( true );
 	} );
 } );

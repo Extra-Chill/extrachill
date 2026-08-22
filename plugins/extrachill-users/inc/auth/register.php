@@ -208,9 +208,10 @@ function extrachill_handle_registration() {
 	$redirect->verify_nonce( 'extrachill_register_nonce_field', 'extrachill_register_nonce' );
 
 	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified above through EC_Redirect_Handler.
-	$email            = sanitize_email( wp_unslash( $_POST['extrachill_email'] ) );
-	$password         = isset( $_POST['extrachill_password'] ) ? wp_unslash( $_POST['extrachill_password'] ) : '';
-	$password_confirm = isset( $_POST['extrachill_password_confirm'] ) ? wp_unslash( $_POST['extrachill_password_confirm'] ) : '';
+	$email              = sanitize_email( wp_unslash( $_POST['extrachill_email'] ) );
+	$password           = isset( $_POST['extrachill_password'] ) ? wp_unslash( $_POST['extrachill_password'] ) : '';
+	$password_confirm   = isset( $_POST['extrachill_password_confirm'] ) ? wp_unslash( $_POST['extrachill_password_confirm'] ) : '';
+	$newsletter_consent = isset( $_POST['newsletter_consent'] ) && '1' === (string) wp_unslash( $_POST['newsletter_consent'] );
 
 	$check = extrachill_users_validate_registration_form_request( $_POST );
 	if ( is_wp_error( $check ) ) {
@@ -275,13 +276,7 @@ function extrachill_handle_registration() {
 
 	update_user_meta( $user_id, 'registration_timestamp', current_time( 'mysql' ) );
 
-	if ( function_exists( 'extrachill_network_subscribe' ) ) {
-		$sync_result = extrachill_network_subscribe( $email, 'registration' );
-		if ( ! $sync_result['success'] ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
-			error_log( 'Registration newsletter subscription failed: ' . $sync_result['message'] );
-		}
-	}
+	extrachill_users_record_registration_newsletter_consent( $user_id, $email, $newsletter_consent, 'web', 'standard', $registration_page );
 
 	$processed_invite_artist_id = null;
 	$invitation_outcome         = array();

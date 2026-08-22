@@ -132,6 +132,7 @@
         // drift even if the URL is mutated client-side after render.
         const fromJoin = Boolean(config && config.fromJoin) || isFromJoinFlow();
         const successRedirectUrl = getSuccessRedirectUrl();
+        const newsletterConsent = Boolean(document.querySelector('input[name="newsletter_consent"]:checked'));
 
         setGlobalLoading(true);
 
@@ -153,7 +154,8 @@
                 success_redirect_url: successRedirectUrl,
                 registration_page: window.location.href,
                 registration_source: 'web',
-                registration_method: 'google'
+                registration_method: 'google',
+                newsletter_consent: newsletterConsent
             })
         })
             .then(function (res) {

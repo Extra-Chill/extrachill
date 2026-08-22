@@ -331,6 +331,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$registration_page    = isset( $payload['registration_page'] ) ? esc_url_raw( (string) $payload['registration_page'] ) : '';
 	$registration_source  = isset( $payload['registration_source'] ) ? sanitize_text_field( (string) $payload['registration_source'] ) : '';
 	$registration_method  = isset( $payload['registration_method'] ) ? sanitize_text_field( (string) $payload['registration_method'] ) : '';
+	$newsletter_consent   = ! empty( $payload['newsletter_consent'] );
 	$success_redirect_url = isset( $payload['success_redirect_url'] ) ? (string) $payload['success_redirect_url'] : '';
 	if ( ! function_exists( 'ec_users_is_valid_return_to_url' )
 		|| ! ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
@@ -476,13 +477,7 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		update_user_meta( (int) $user_id, 'onboarding_redirect_url', $success_redirect_url );
 	}
 
-	if ( function_exists( 'extrachill_network_subscribe' ) ) {
-		$sync_result = extrachill_network_subscribe( $email, 'registration' );
-		if ( isset( $sync_result['success'] ) && ! $sync_result['success'] ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for newsletter sync failures.
-			error_log( 'Registration newsletter subscription failed: ' . ( isset( $sync_result['message'] ) ? $sync_result['message'] : '' ) );
-		}
-	}
+	extrachill_users_record_registration_newsletter_consent( (int) $user_id, $email, $newsletter_consent, $registration_source, $registration_method, $registration_page );
 
 	$processed_invite_artist_id = null;
 	$invitation_outcome         = array();

@@ -271,6 +271,7 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 		const email = String( formData.get( 'extrachill_email' ) || '' ).trim();
 		const password = String( formData.get( 'extrachill_password' ) || '' );
 		const passwordConfirm = String( formData.get( 'extrachill_password_confirm' ) || '' );
+		const newsletterConsent = formData.get( 'newsletter_consent' ) === '1';
 
 		if ( ! email || ! password || ! passwordConfirm ) {
 			setNotice( { type: 'error', message: 'All fields are required.' } );
@@ -316,6 +317,7 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 					registration_page: config.currentUrl,
 					registration_source: 'web',
 					registration_method: 'standard',
+					newsletter_consent: newsletterConsent,
 					success_redirect_url: config.successRedirectUrl,
 					invite_token: inviteToken,
 					invite_artist_id: inviteArtistId,
@@ -362,6 +364,10 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 					<input type="password" name="extrachill_password" id="extrachill_password" placeholder="Create a password" required minLength={ 8 } />
 					<label htmlFor="extrachill_password_confirm">Confirm Password</label>
 					<input type="password" name="extrachill_password_confirm" id="extrachill_password_confirm" placeholder="Repeat your password" required minLength={ 8 } />
+					<div className="registration-newsletter-consent">
+						<input type="checkbox" name="newsletter_consent" id="newsletter_consent" value="1" />
+						<label htmlFor="newsletter_consent">Email me the Extra Chill newsletter</label>
+					</div>
 					<div className="registration-submit-section">
 						<input type="submit" name="extrachill_register" className="button-1 button-medium" value="Join Now" />
 					</div>
