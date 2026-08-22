@@ -145,6 +145,7 @@
     "build": "rm -rf dist *.tsbuildinfo && tsc && sass --no-source-map styles/components.scss dist/components.css",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "pretest": "playwright install chromium",
     "test": "npm run build && npm run test:consumer && node --test test/*.test.mjs",
     "test:consumer": "tsc --project fixtures/tsconfig.json",
     "prepublishOnly": "npm run build"
@@ -179,6 +180,7 @@
   "devDependencies": {
     "@extrachill/tokens": "^0.8.1",
     "@types/react": "^19.0.0",
+    "playwright": "^1.62.1",
     "sass": "^1.90.0",
     "typescript": "^5.9.3"
   }

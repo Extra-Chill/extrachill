@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Mobile breakout fixture</title>
+	<link rel="stylesheet" href="../dist/components.css">
+	<style>
+		:root {
+			--spacing-md: 1rem;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		html,
+		body {
+			margin: 0;
+		}
+
+		.fixture-content {
+			padding-inline: var(--spacing-md);
+		}
+
+		.fixture-section {
+			margin-block: 1rem;
+		}
+
+		.fixture-box {
+			min-height: 2rem;
+			border: 1px solid;
+		}
+	</style>
+</head>
+<body>
+	<main class="fixture-content">
+		<section class="fixture-section" data-fixture="standalone">
+			<div class="ec-block-shell ec-mobile-full-width-panel">
+				<div class="ec-block-shell-inner">
+					<div class="ec-panel fixture-box">Standalone shell</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="fixture-section" data-fixture="nested">
+			<div class="ec-block-shell ec-mobile-full-width-panel">
+				<div class="ec-block-shell-inner">
+					<div class="ec-block-shell fixture-box">Nested shell</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="fixture-section" data-fixture="responsive-tabs">
+			<div class="ec-block-shell ec-mobile-full-width-panel">
+				<div class="ec-responsive-tabs ec-responsive-tabs--mobile">
+					<div class="ec-responsive-tabs__inner">
+						<div class="ec-responsive-tabs__accordion">
+							<div class="ec-responsive-tabs__item is-active">
+								<button class="ec-responsive-tabs__trigger is-active" type="button">Open panel</button>
+								<div class="ec-responsive-tabs__panel">
+									<div class="ec-block-shell">
+										<div class="ec-panel fixture-box">Responsive panel shell</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+</body>
+</html>
