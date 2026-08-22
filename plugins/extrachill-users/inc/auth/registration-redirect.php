@@ -94,11 +94,14 @@ function ec_users_post_registration_redirect_url( $from_join, $onboarding_comple
  * from repeating the notice while preserving feature-specific query parameters.
  */
 function ec_users_handle_account_created_notice() {
+	// The query value is a user-bound, one-time continuation token verified and consumed below.
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended
 	if ( ! is_user_logged_in() || ! isset( $_GET[ EC_USERS_ACCOUNT_CREATED_PARAM ] ) ) {
 		return;
 	}
 
 	$notice_nonce = sanitize_text_field( wp_unslash( $_GET[ EC_USERS_ACCOUNT_CREATED_PARAM ] ) );
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	if ( ! ec_users_consume_account_created_token( $notice_nonce, get_current_user_id() ) ) {
 		return;
 	}

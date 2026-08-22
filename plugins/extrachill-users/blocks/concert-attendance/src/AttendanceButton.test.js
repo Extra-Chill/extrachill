@@ -1,6 +1,14 @@
+/* global jest, describe, beforeEach, afterEach, test, expect */
+
+/**
+ * External dependencies
+ */
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
+/**
+ * Internal dependencies
+ */
 import AttendanceButton from './AttendanceButton';
 import useMarkAttendance from './useMarkAttendance';
 
