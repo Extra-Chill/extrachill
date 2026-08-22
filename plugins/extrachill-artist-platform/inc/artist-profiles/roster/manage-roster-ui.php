@@ -146,5 +146,3 @@ function ec_display_manage_members_section( $artist_id, $current_user_id ) {
     <?php
 }
 } // Close the function_exists check
-
-?> 
