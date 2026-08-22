@@ -10,7 +10,7 @@ use ExtraChillEvents\Core\VenueBookingEmbed;
 defined( 'ABSPATH' ) || exit;
 
 $context = VenueBookingEmbed::context();
-$markup  = do_blocks( '<!-- wp:extrachill/venue-booking-inquiry {"venueId":' . absint( $context['venue_id'] ?? 0 ) . '} /-->' );
+$markup  = do_blocks( '<!-- wp:extrachill/venue-booking-inquiry {"venueId":' . absint( $context['venue_id'] ?? 0 ) . ',"headingLevel":1} /-->' );
 ?><!doctype html>
 <html <?php language_attributes(); ?>>
 <head>

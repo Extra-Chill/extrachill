@@ -10,6 +10,7 @@
 	"attributes": {
 		"venueId": { "type": "integer", "default": 0 },
 		"heading": { "type": "string", "default": "Booking inquiries" },
+		"headingLevel": { "type": "integer", "default": 2 },
 		"buttonLabel": { "type": "string", "default": "Send booking inquiry" }
 	},
 	"supports": {

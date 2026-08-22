@@ -64,6 +64,7 @@ const resetTurnstile = ( wrapper ) => {
 export function ReceiptRecovery( {
 	config,
 	wrapper,
+	heading,
 	initialReference = '',
 	onCancel,
 	onAccess,
@@ -195,6 +196,7 @@ export function ReceiptRecovery( {
 
 	return (
 		<BlockShell>
+			{ heading }
 			<BlockShellInner className="ec-panel ec-booking-inquiry__panel">
 				<form
 					className="ec-booking-inquiry__recovery"
@@ -325,6 +327,7 @@ export function BookingFollowThrough( {
 	config,
 	receipt,
 	wrapper,
+	heading,
 	onClear,
 	onReceipt,
 } ) {
@@ -516,6 +519,7 @@ export function BookingFollowThrough( {
 			<ReceiptRecovery
 				config={ config }
 				wrapper={ wrapper }
+				heading={ heading }
 				initialReference={ receipt.public_id }
 				onCancel={ () => setRecovering( false ) }
 				onAccess={ onReceipt }
@@ -527,6 +531,7 @@ export function BookingFollowThrough( {
 	const actionDisabled = loading || ! actionsFresh;
 	return (
 		<BlockShell>
+			{ heading }
 			<BlockShellInner>
 				<Panel>
 					<div

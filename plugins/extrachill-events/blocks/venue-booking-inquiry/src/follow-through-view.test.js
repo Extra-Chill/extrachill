@@ -26,7 +26,7 @@ jest.mock( '@extrachill/components', () => {
 		ActionRow: Wrapper,
 		BlockShell: Wrapper,
 		BlockShellHeader: ( { title } ) =>
-			React.createElement( 'h2', null, title ),
+			React.createElement( 'div', null, title ),
 		BlockShellInner: Wrapper,
 		Grid: Wrapper,
 		Panel: Wrapper,
@@ -132,6 +132,35 @@ describe( 'artist booking inquiry follow-through UI', () => {
 	} );
 	afterEach( () => {
 		document.body.replaceChildren();
+	} );
+
+	it( 'renders the caller-selected semantic heading with an instance-scoped id', async () => {
+		const { container, root } = await render( ( wrapper ) => (
+			<>
+				<BookingInquiry
+					config={ { ...config, headingLevel: 4 } }
+					wrapper={ wrapper }
+				/>
+				<BookingInquiry
+					config={ {
+						...config,
+						instanceId: 'booking-test-secondary',
+						headingLevel: 2,
+					} }
+					wrapper={ wrapper }
+				/>
+			</>
+		) );
+		const heading = container.querySelector( 'h4' );
+		expect( heading.id ).toBe( 'booking-test-heading' );
+		expect( heading.textContent ).toBe( 'Booking at The Room' );
+		expect(
+			container.querySelectorAll( '#booking-test-heading' )
+		).toHaveLength( 1 );
+		expect( container.querySelector( 'h2' ).id ).toBe(
+			'booking-test-secondary-heading'
+		);
+		await act( async () => root.unmount() );
 	} );
 
 	it( 'loads anonymous status with body authority and renders only permitted actions', async () => {

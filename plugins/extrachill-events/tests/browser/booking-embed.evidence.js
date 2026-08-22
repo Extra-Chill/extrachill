@@ -3,7 +3,7 @@
 const assert = require( 'node:assert/strict' );
 const { chromium } = require( 'playwright' );
 
-const child = `<!doctype html><html><body style="margin:0"><main style="height:840px"><h1>Book The Room</h1><a href="https://events.example/venue/the-room/#booking-inquiry" target="_blank">Open this booking form on Extra Chill</a></main><script>(function(){const parentOrigin='https://allowed.example';const sendHeight=()=>window.parent.postMessage({type:'extrachill:booking-height',height:Math.ceil(document.documentElement.scrollHeight)},parentOrigin);new ResizeObserver(sendHeight).observe(document.documentElement);window.addEventListener('load',sendHeight);}());</script></body></html>`;
+const child = `<!doctype html><html><body style="margin:0"><main style="height:840px"><section aria-labelledby="ec-booking-embed-heading"><h1 id="ec-booking-embed-heading">Booking at The Room</h1></section><a href="https://events.example/venue/the-room/#booking-inquiry" target="_blank">Open this booking form on Extra Chill</a></main><script>(function(){const parentOrigin='https://allowed.example';const sendHeight=()=>window.parent.postMessage({type:'extrachill:booking-height',height:Math.ceil(document.documentElement.scrollHeight)},parentOrigin);new ResizeObserver(sendHeight).observe(document.documentElement);window.addEventListener('load',sendHeight);}());</script></body></html>`;
 const parent = ( childUrl ) =>
 	`<!doctype html><html><body><iframe id="booking" src="${ childUrl }" title="Book The Room" loading="lazy" style="width:100%;min-height:320px;border:0"></iframe><script>(function(){const frame=document.getElementById('booking');window.bookingMessages=[];window.addEventListener('message',function(event){const data=event.data;if(event.source!==frame.contentWindow||event.origin!=='https://events.example'||!data||data.type!=='extrachill:booking-height'||!Number.isInteger(data.height)||data.height<320||data.height>10000){return;}window.bookingMessages.push(data);frame.style.height=data.height+'px';});}());</script></body></html>`;
 
@@ -45,6 +45,23 @@ const parent = ( childUrl ) =>
 			'height',
 			'type',
 		] );
+		assert.equal(
+			await allowed
+				.frameLocator( '#booking' )
+				.getByRole( 'heading', {
+					level: 1,
+					name: 'Booking at The Room',
+				} )
+				.count(),
+			1
+		);
+		assert.equal(
+			await allowed
+				.frameLocator( '#booking' )
+				.getByRole( 'region', { name: 'Booking at The Room' } )
+				.count(),
+			1
+		);
 		assert.equal(
 			await allowed
 				.frameLocator( '#booking' )

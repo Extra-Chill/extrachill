@@ -24,6 +24,7 @@ const config = {
 	restNonce: 'booking-proof-nonce',
 	authenticated: true,
 	heading: 'Booking inquiries',
+	headingLevel: 2,
 	buttonLabel: 'Send booking inquiry',
 	revision: 7,
 	venue: {
@@ -94,7 +95,7 @@ const fixture = `<!doctype html>
 	</head>
 	<body>
 		<main>
-			<section class="wp-block-extrachill-venue-booking-inquiry ec-venue-booking-inquiry">
+			<section class="wp-block-extrachill-venue-booking-inquiry ec-venue-booking-inquiry" aria-labelledby="ec-booking-browser-proof-heading">
 				<div data-booking-app></div>
 				<script type="application/json">${ JSON.stringify( config ) }</script>
 				<div data-booking-turnstile><div class="cf-turnstile">Security check</div></div>
@@ -254,7 +255,25 @@ const measure = ( page ) =>
 			} );
 			await page.waitForSelector( expectedSelector );
 		};
+		const assertBookingSemantics = async () => {
+			const heading = page.getByRole( 'heading', {
+				level: 2,
+				name: 'Booking at The Room',
+			} );
+			assert.equal( await heading.count(), 1 );
+			assert.equal(
+				await heading.getAttribute( 'id' ),
+				'ec-booking-browser-proof-heading'
+			);
+			assert.equal(
+				await page
+					.getByRole( 'region', { name: 'Booking at The Room' } )
+					.count(),
+				1
+			);
+		};
 		await mount();
+		await assertBookingSemantics();
 
 		assert.equal(
 			await page.getByText( 'Booking at The Room' ).count(),
@@ -547,6 +566,7 @@ const measure = ( page ) =>
 			.getByRole( 'button', { name: 'Send booking inquiry' } )
 			.click();
 		await page.getByText( /Inquiry received/ ).waitFor();
+		await assertBookingSemantics();
 		await page.getByText( 'Pending review' ).waitFor();
 		assert.equal(
 			await page

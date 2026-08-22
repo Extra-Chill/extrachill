@@ -78,6 +78,8 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$output = $this->render_on( self::EVENTS_BLOG_ID, array( 'venueId' => $this->venue_id ) );
 
 		$this->assertStringContainsString( 'ec-venue-booking-inquiry', $output );
+		$this->assertMatchesRegularExpression( '/<section[^>]+aria-labelledby="ec-booking-[^"]+-heading"/', $output );
+		$this->assertStringContainsString( '"headingLevel":2', $output );
 		$this->assertStringContainsString( 'Test Room', $output );
 		$this->assertStringNotContainsString( '42 Test Street', $output );
 		$this->assertStringNotContainsString( 'Charleston, SC, 29403', $output );
@@ -92,8 +94,27 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( '"hasPage"', $output );
 		$this->assertStringNotContainsString( 'private-provider-account', $output );
 		$this->assertStringNotContainsString( 'private-booking@example.com', $output );
-		$this->assertStringNotContainsString( 'attachment', strtolower( $output ) );
+		$this->assertStringContainsString( '"attachments":{"version":1,"enabled":false,"ready":false', $output );
 		$this->assertTrue( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE );
+	}
+
+	/** Multiple blocks expose distinct region labels and caller-selected levels. */
+	public function test_render_uses_unique_heading_ids_and_caller_heading_level(): void {
+		$first  = $this->render_on( self::MAIN_BLOG_ID, array( 'venueId' => $this->venue_id ) );
+		$second = $this->render_on(
+			self::MAIN_BLOG_ID,
+			array(
+				'venueId'      => $this->venue_id,
+				'headingLevel' => 1,
+			)
+		);
+
+		preg_match( '/aria-labelledby="([^"]+)"/', $first, $first_label );
+		preg_match( '/aria-labelledby="([^"]+)"/', $second, $second_label );
+		$this->assertNotEmpty( $first_label[1] ?? '' );
+		$this->assertNotEmpty( $second_label[1] ?? '' );
+		$this->assertNotSame( $first_label[1], $second_label[1] );
+		$this->assertStringContainsString( '"headingLevel":1', $second );
 	}
 
 	/** Disabled canonical configuration must fail closed on another site. */
@@ -160,6 +181,9 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		try {
 			$archive_url = get_term_link( $this->venue_id, 'venue' );
 			$this->go_to( $archive_url );
+			$this->setExpectedDeprecated( 'Theme without header.php' );
+			$this->setExpectedDeprecated( 'Theme without footer.php' );
+			$this->setExpectedIncorrectUsage( 'WP_Styles::add' );
 			$output            = $this->render_archive();
 			$heading_position  = strpos( $output, 'class="page-title"' );
 			$cta_position      = strpos( $output, 'Submit a booking inquiry' );
@@ -171,9 +195,9 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			$this->assertNotFalse( $operator_position );
 			$this->assertNotFalse( $calendar_position );
 			$this->assertStringContainsString( 'href="' . esc_url( $archive_url . '#booking-inquiry' ) . '"', $output );
-			$this->assertLessThan( $heading_position, $cta_position );
-			$this->assertLessThan( $cta_position, $operator_position );
-			$this->assertLessThan( $operator_position, $calendar_position );
+			$this->assertLessThan( $cta_position, $heading_position );
+			$this->assertLessThan( $operator_position, $cta_position );
+			$this->assertLessThan( $calendar_position, $operator_position );
 			$this->assertSame( 1, substr_count( $output, 'Submit a booking inquiry' ) );
 		} finally {
 			$wp_query     = $previous_query;

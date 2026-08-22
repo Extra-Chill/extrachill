@@ -157,6 +157,19 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 	const resultRef = useRef();
 	const skipDraftSave = useRef( false );
 	const prefix = config.instanceId;
+	const HeadingTag = `h${ config.headingLevel || 2 }`;
+	const heading = (
+		<BlockShellHeader
+			title={
+				<HeadingTag
+					id={ `${ prefix }-heading` }
+					className="ec-booking-inquiry__heading"
+				>
+					Booking at { config.venue.name }
+				</HeadingTag>
+			}
+		/>
+	);
 
 	useEffect( () => {
 		if ( preview || ! wrapper ) {
@@ -396,6 +409,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 				config={ config }
 				receipt={ receipt }
 				wrapper={ wrapper }
+				heading={ heading }
 				onClear={ () => {
 					resetPrivateFormState();
 					setReceipt( null );
@@ -409,6 +423,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			<ReceiptRecovery
 				config={ config }
 				wrapper={ wrapper }
+				heading={ heading }
 				onCancel={ () => setRecoveryOpen( false ) }
 				onAccess={ acceptRecoveredReceipt }
 			/>
@@ -439,7 +454,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 					alt=""
 				/>
 			) }
-			<BlockShellHeader title={ `Booking at ${ config.venue.name }` } />
+			{ heading }
 			<BlockShellInner className="ec-panel ec-booking-inquiry__panel">
 				<form
 					className="ec-booking-inquiry__form"

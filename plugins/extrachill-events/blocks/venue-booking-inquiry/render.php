@@ -71,6 +71,8 @@ if ( ! is_array( $canonical ) ) {
 
 $booking_config = $canonical['booking_config'];
 $instance       = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-booking-' ) : 'ec-booking-' . $venue_id;
+$heading_level  = absint( $attributes['headingLevel'] ?? 2 );
+$heading_level  = $heading_level >= 1 && $heading_level <= 6 ? $heading_level : 2;
 $logged_in      = is_user_logged_in();
 if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 	define( 'DONOTCACHEPAGE', true );
@@ -82,6 +84,7 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 
 $public_config = array(
 	'instanceId'           => $instance,
+	'headingLevel'         => $heading_level,
 	'endpoint'             => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries' ),
 	'availabilityEndpoint' => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-availability' ),
 	'followThrough'        => array(
@@ -105,7 +108,10 @@ $json = wp_json_encode( $public_config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_A
 if ( false === $json ) {
 	return;
 }
-$wrapper_extra = array( 'class' => 'ec-venue-booking-inquiry' );
+$wrapper_extra = array(
+	'class'           => 'ec-venue-booking-inquiry',
+	'aria-labelledby' => $instance . '-heading',
+);
 if ( (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
 	$wrapper_extra['id'] = 'booking-inquiry';
 }

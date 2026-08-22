@@ -42,7 +42,7 @@ jest.mock( '@extrachill/components', () => {
 			React.createElement(
 				'div',
 				null,
-				React.createElement( 'h1', null, title ),
+				React.createElement( 'div', null, title ),
 				actions
 			),
 		BlockShellInner: Wrapper,
