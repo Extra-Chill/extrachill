@@ -79,7 +79,10 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 		$range      = (int) $date_window['days'];
 		$start_date = $date_window['start_date'];
 		$end_date   = $date_window['end_date'];
-	} elseif ( is_string( $date_window ) || is_string( $end_date_input ) ) {
+	} elseif (
+		( is_string( $date_window ) && '' !== trim( $date_window ) )
+		|| ( is_string( $end_date_input ) && '' !== trim( $end_date_input ) )
+	) {
 		$resolved_window = extrachill_analytics_resolve_date_range(
 			array(
 				'start_date' => is_string( $date_window ) ? $date_window : '',
