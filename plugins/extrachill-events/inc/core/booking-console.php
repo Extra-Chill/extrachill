@@ -215,7 +215,7 @@ function ec_events_get_venue_archive_workspace_action( int $venue_term_id, int $
 
 /** Render contextual venue management acquisition on canonical archives. */
 function ec_events_render_venue_archive_workspace_action(): void {
-	$term = function_exists( 'extrachill_events_get_venue_archive_term' ) ? extrachill_events_get_venue_archive_term() : null;
+	$term = is_tax( 'venue' ) ? get_queried_object() : null;
 	if ( ! $term instanceof WP_Term ) {
 		return;
 	}

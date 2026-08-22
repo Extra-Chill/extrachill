@@ -170,6 +170,8 @@ final class BookingConsoleTest extends TestCase {
 		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-console.php' );
 
 		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 )", $source );
+		$this->assertStringContainsString( '$term = is_tax( \'venue\' ) ? get_queried_object() : null;', $source );
+		$this->assertStringNotContainsString( 'extrachill_events_get_venue_archive_term', $source );
 		$this->assertStringContainsString( '<details class="venue-workspace-disclosure" data-venue-workspace-action>', $source );
 		$this->assertStringContainsString( "esc_html_e( 'Own or manage this venue?'", $source );
 		$this->assertStringContainsString( 'class="button-3 button-small"', $source );
