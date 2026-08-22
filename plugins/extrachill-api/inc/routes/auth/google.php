@@ -54,6 +54,11 @@ function extrachill_api_register_auth_google_route() {
 					'type'     => 'boolean',
 					'default'  => false,
 				),
+				'newsletter_consent'   => array(
+					'required' => false,
+					'type'     => 'boolean',
+					'default'  => false,
+				),
 				'success_redirect_url' => array(
 					'required'          => false,
 					'type'              => 'string',
@@ -121,7 +126,24 @@ function extrachill_api_auth_google_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	$options = array(
+	$options = extrachill_api_auth_google_options( $request );
+
+	$result = ec_google_login_with_tokens( $id_token, $device_id, $options );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Map the Google auth request to the Users-owned service options.
+ *
+ * @param WP_REST_Request $request Google auth request.
+ * @return array Google service options.
+ */
+function extrachill_api_auth_google_options( WP_REST_Request $request ): array {
+	return array(
 		'device_name'          => (string) $request->get_param( 'device_name' ),
 		'remember'             => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
 		'set_cookie'           => rest_sanitize_boolean( (string) $request->get_param( 'set_cookie' ) ),
@@ -130,12 +152,6 @@ function extrachill_api_auth_google_handler( WP_REST_Request $request ) {
 		'registration_page'    => (string) $request->get_param( 'registration_page' ),
 		'registration_source'  => (string) $request->get_param( 'registration_source' ),
 		'registration_method'  => (string) $request->get_param( 'registration_method' ),
+		'newsletter_consent'   => rest_sanitize_boolean( (string) $request->get_param( 'newsletter_consent' ) ),
 	);
-
-	$result = ec_google_login_with_tokens( $id_token, $device_id, $options );
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	return rest_ensure_response( $result );
 }

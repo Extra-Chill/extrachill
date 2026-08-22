@@ -101,6 +101,11 @@ function extrachill_api_register_auth_register_route() {
 					'type'     => 'boolean',
 					'default'  => false,
 				),
+				'newsletter_consent'   => array(
+					'required' => false,
+					'type'     => 'boolean',
+					'default'  => false,
+				),
 				'referrer'             => array(
 					'required'          => false,
 					'type'              => 'string',
@@ -147,7 +152,25 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 		);
 	}
 
-	$payload = array(
+	$payload = extrachill_api_auth_registration_payload( $request, $device_id );
+
+	$result = extrachill_users_register_with_tokens( $payload );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	return rest_ensure_response( $result );
+}
+
+/**
+ * Map the registration request to the Users-owned service payload.
+ *
+ * @param WP_REST_Request $request   Registration request.
+ * @param string          $device_id Validated device identifier.
+ * @return array Registration service payload.
+ */
+function extrachill_api_auth_registration_payload( WP_REST_Request $request, string $device_id ): array {
+	return array(
 		'email'                => (string) $request->get_param( 'email' ),
 		'password'             => (string) $request->get_param( 'password' ),
 		'password_confirm'     => (string) $request->get_param( 'password_confirm' ),
@@ -157,6 +180,7 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 		'set_cookie'           => rest_sanitize_boolean( (string) $request->get_param( 'set_cookie' ) ),
 		'remember'             => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
 		'from_join'            => rest_sanitize_boolean( (string) $request->get_param( 'from_join' ) ),
+		'newsletter_consent'   => rest_sanitize_boolean( (string) $request->get_param( 'newsletter_consent' ) ),
 		'invite_token'         => sanitize_text_field( (string) $request->get_param( 'invite_token' ) ),
 		'invite_artist_id'     => absint( $request->get_param( 'invite_artist_id' ) ),
 		'registration_page'    => (string) $request->get_param( 'registration_page' ),
@@ -168,11 +192,4 @@ function extrachill_api_auth_register_handler( WP_REST_Request $request ) {
 		'referrer'             => (string) $request->get_param( 'referrer' ),
 		'utm'                  => (array) $request->get_param( 'utm' ),
 	);
-
-	$result = extrachill_users_register_with_tokens( $payload );
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	return rest_ensure_response( $result );
 }
