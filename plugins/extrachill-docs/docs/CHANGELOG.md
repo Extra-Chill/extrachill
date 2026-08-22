@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.6.1] - 2026-08-22
+
+### Fixed
+- regenerate docs with corrected transformer
+
 ## [0.6.0] - 2026-08-04
 
 ### Added
