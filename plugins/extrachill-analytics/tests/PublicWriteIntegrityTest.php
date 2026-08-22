@@ -111,6 +111,29 @@ final class PublicWriteIntegrityTest extends TestCase {
 	}
 
 	/**
+	 * Cached pre-v0.36.2 route payloads retain their zero post sentinel.
+	 */
+	public function test_cached_route_view_zero_post_sentinel_is_accepted(): void {
+		$GLOBALS['extrachill_analytics_registered_abilities'] = array();
+		extrachill_analytics_register_track_page_view_ability();
+		$ability = $GLOBALS['extrachill_analytics_registered_abilities']['extrachill/track-page-view'];
+		$proof   = extrachill_analytics_pageview_proof( 0, '/', 'home', 'extrachill.com' );
+
+		$this->assertSame( 0, $ability['input_schema']['properties']['post_id']['minimum'] );
+		$this->assertSame(
+			array( 'recorded' => true ),
+			extrachill_analytics_ability_track_page_view(
+				array(
+					'post_id'      => '0',
+					'source_path'  => '/',
+					'route_family' => 'home',
+					'proof'        => $proof,
+				)
+			)
+		);
+	}
+
+	/**
 	 * A proof cannot be moved to another post, path, host, or route family.
 	 */
 	public function test_pageview_proof_rejects_changed_source_tuple(): void {

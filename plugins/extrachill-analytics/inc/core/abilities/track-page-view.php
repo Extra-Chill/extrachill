@@ -28,8 +28,8 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 				'properties' => array(
 					'post_id'      => array(
 						'type'        => 'integer',
-						'description' => __( 'Optional post ID for a singular post-backed view.', 'extrachill-analytics' ),
-						'minimum'     => 1,
+						'description' => __( 'Optional post ID for a singular post-backed view. Zero is accepted as the legacy route-view sentinel.', 'extrachill-analytics' ),
+						'minimum'     => 0,
 					),
 					'source_path'  => array(
 						'type'        => 'string',
