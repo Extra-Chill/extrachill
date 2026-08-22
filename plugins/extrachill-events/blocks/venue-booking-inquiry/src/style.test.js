@@ -8,6 +8,10 @@ import path from 'path';
 
 const styles = readFileSync( path.resolve( __dirname, 'style.scss' ), 'utf8' );
 const view = readFileSync( path.resolve( __dirname, 'view.js' ), 'utf8' );
+const followThroughView = readFileSync(
+	path.resolve( __dirname, 'follow-through-view.js' ),
+	'utf8'
+);
 
 describe( 'venue booking inquiry styles', () => {
 	it( 'composes shared components without a booking-specific palette', () => {
@@ -25,7 +29,7 @@ describe( 'venue booking inquiry styles', () => {
 		);
 		expect( view ).toContain( 'Grid minColumnWidth="16rem"' );
 		expect( view ).not.toContain( '<Badge' );
-		expect( view ).toContain( 'className="taxonomy-badge"' );
+		expect( followThroughView ).toContain( 'className="taxonomy-badge"' );
 		expect( styles ).toContain( '.ec-booking-inquiry__powered' );
 	} );
 

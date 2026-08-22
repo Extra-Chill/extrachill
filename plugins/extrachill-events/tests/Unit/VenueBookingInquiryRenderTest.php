@@ -116,6 +116,11 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 
 			$this->assertStringContainsString( 'Test Room', $output, 'Canonical venue data should render on blog ' . $blog_id );
 			$this->assertStringContainsString( $encoded_endpoint, $output, 'The caller-site route-affinity endpoint should render on blog ' . $blog_id );
+			foreach ( array( 'status', 'correction', 'withdrawal', 'receipt-recovery' ) as $action ) {
+				$follow_through = get_rest_url( $blog_id, 'extrachill/v1/venues/' . $this->venue_id . '/booking-inquiries/follow-through/' . $action );
+				$this->assertStringContainsString( trim( wp_json_encode( $follow_through ), '"' ), $output );
+			}
+			$this->assertStringNotContainsString( 'capability=', $output );
 		}
 	}
 

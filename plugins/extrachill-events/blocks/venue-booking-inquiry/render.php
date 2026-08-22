@@ -84,6 +84,12 @@ $public_config = array(
 	'instanceId'           => $instance,
 	'endpoint'             => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries' ),
 	'availabilityEndpoint' => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-availability' ),
+	'followThrough'        => array(
+		'status'          => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries/follow-through/status' ),
+		'correction'      => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries/follow-through/correction' ),
+		'withdrawal'      => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries/follow-through/withdrawal' ),
+		'receiptRecovery' => rest_url( 'extrachill/v1/venues/' . $venue_id . '/booking-inquiries/follow-through/receipt-recovery' ),
+	),
 	'restNonce'            => $logged_in ? wp_create_nonce( 'wp_rest' ) : '',
 	'buttonLabel'          => sanitize_text_field( (string) ( $attributes['buttonLabel'] ?? __( 'Send booking inquiry', 'extrachill-events' ) ) ),
 	'revision'             => (int) $booking_config['revision'],

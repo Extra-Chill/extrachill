@@ -34,7 +34,8 @@
 }
 
 .ec-booking-inquiry__draft-controls .button-2 {
-	margin-block-start: 0.65rem;
+	margin-block: 0.65rem 0;
+	margin-inline-end: 0.5rem;
 }
 
 .ec-booking-inquiry__draft-status:not(:empty) {
@@ -50,4 +51,42 @@
 .ec-booking-inquiry__optional-fields summary {
 	cursor: pointer;
 	font-weight: 600;
+}
+
+.ec-booking-inquiry__reference {
+	display: block;
+	overflow-wrap: anywhere;
+}
+
+.ec-booking-inquiry__status-card {
+	display: grid;
+	gap: 0.25rem;
+	margin-block: 1rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--border-color, #d6d6d6);
+	border-radius: 0.5rem;
+	background: var(--background-color, #f7f7f7);
+}
+
+.ec-booking-inquiry__recovery {
+	display: grid;
+	gap: 1rem;
+}
+
+.ec-booking-inquiry__recovery > * {
+	min-width: 0;
+	margin-block: 0;
+}
+
+.ec-booking-inquiry__access-code {
+	display: grid;
+	gap: 0.75rem;
+	padding-block: 1rem;
+	border-block: 1px solid var(--border-color, #d6d6d6);
+}
+
+.ec-booking-inquiry__access-code > *,
+.ec-booking-inquiry__action-help {
+	min-width: 0;
+	margin-block: 0;
 }

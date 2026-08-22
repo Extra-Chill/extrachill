@@ -19,7 +19,7 @@ class BookingCommunicationService {
 	public const SCHEDULER_GROUP        = 'extrachill-events-booking-reminders';
 	public const SUPPRESSION_BATCH_SIZE = 25;
 	public const MAX_ATTEMPTS           = 3;
-	public const TEMPLATES              = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'date_filled' );
+	public const TEMPLATES              = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'inquiry_access_recovery', 'date_filled' );
 	public const TERMINAL_STATUSES      = array( 'declined', 'withdrawn', 'cancelled', 'completed' );
 
 	/** @var BookingRepository */
@@ -165,25 +165,38 @@ class BookingCommunicationService {
 	}
 
 	/** Persist deterministic lifecycle correspondence without operator impersonation. */
-	public function request_automatic( int $booking_id, int $source_activity_id, string $template, string $message ) {
+	public function request_automatic( int $booking_id, int $source_activity_id, string $template, string $message, ?string $recovery_key = null ) {
 		$source  = $this->activity->get( $source_activity_id );
 		$booking = $this->bookings->get( $booking_id );
 		$allowed = array(
-			'inquiry_receipt' => 'inquiry_submitted',
-			'date_filled'     => 'deal_confirmed',
+			'inquiry_receipt'         => 'inquiry_submitted',
+			'inquiry_access_recovery' => 'inquiry_submitted',
+			'date_filled'             => 'deal_confirmed',
 		);
 		if ( ! is_array( $source ) || ! is_array( $booking ) || ( $allowed[ $template ] ?? null ) !== $source['kind'] || empty( $booking['contact_email'] ) ) {
 			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
 		}
-		if ( 'inquiry_receipt' === $template && (int) $source['booking_id'] !== $booking_id ) {
+		if ( in_array( $template, array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) && (int) $source['booking_id'] !== $booking_id ) {
 			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
 		}
-		$key      = sprintf( 'booking-message-request:automatic:%s:%d:%d', $template, $source_activity_id, $booking_id );
+		$is_recovery  = null !== $recovery_key;
+		$recovery_key = $is_recovery ? $recovery_key : '';
+		if ( $is_recovery && ( '' === $recovery_key || strlen( $recovery_key ) > 120 || sanitize_text_field( $recovery_key ) !== $recovery_key ) ) {
+			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
+		}
+		$key      = sprintf( 'booking-message-request:automatic:%s:%d:%d%s', $template, $source_activity_id, $booking_id, '' === $recovery_key ? '' : ':' . $recovery_key );
 		$existing = $this->activity->find_by_idempotency( $booking_id, $key );
 		if ( is_wp_error( $existing ) ) {
 			return $existing;
 		}
 		if ( is_array( $existing ) ) {
+			if ( $is_recovery ) {
+				$data               = $existing['payload']['data'] ?? array();
+				$normalized_message = mb_substr( sanitize_textarea_field( $message ), 0, 10000 );
+				if ( ! is_array( $data ) || (string) ( $data['template'] ?? '' ) !== $template || (int) ( $data['source_activity_id'] ?? 0 ) !== $source_activity_id || (string) ( $data['recipient'] ?? '' ) !== (string) $booking['contact_email'] || (string) ( $data['message'] ?? '' ) !== $normalized_message ) {
+					return new \WP_Error( 'booking_message_idempotency_conflict', __( 'The idempotency key was already used for a different message.', 'extrachill-events' ), array( 'status' => 409 ) );
+				}
+			}
 			return $this->resume( $existing );
 		}
 		$started = $this->begin();
@@ -198,7 +211,7 @@ class BookingCommunicationService {
 		$request = $this->prepare_request(
 			array(
 				'booking_id'       => $booking_id,
-				'idempotency_key'  => sprintf( 'automatic:%s:%d:%d', $template, $source_activity_id, $booking_id ),
+				'idempotency_key'  => sprintf( 'automatic:%s:%d:%d%s', $template, $source_activity_id, $booking_id, '' === $recovery_key ? '' : ':' . $recovery_key ),
 				'template'         => $template,
 				'template_version' => null,
 				'recipient'        => $booking['contact_email'],
@@ -988,11 +1001,18 @@ class BookingCommunicationService {
 
 	private function queue_input( array $intent ): array {
 		$data = $intent['payload']['data'];
+		$body = $data['body'];
+		if ( in_array( (string) ( $data['template'] ?? '' ), array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) ) {
+			$booking = $this->bookings->get( (int) $intent['booking_id'] );
+			if ( is_array( $booking ) && empty( $booking['submitter_user_id'] ) && preg_match( '/^[a-f0-9]{64}$/', (string) ( $booking['inquiry_request_hash'] ?? '' ) ) ) {
+				$body .= "\n\nAccess code: " . ArtistBookingInquiryService::capability_for( $booking ) . "\nKeep this access code private. You will need it to manage this inquiry without signing in.";
+			}
+		}
 		return array(
 			'to'           => $data['recipient'],
-			'cc'           => $this->delivery_cc,
+			'cc'           => in_array( (string) ( $data['template'] ?? '' ), array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) ? '' : $this->delivery_cc,
 			'subject'      => $data['subject'],
-			'body'         => $data['body'],
+			'body'         => $body,
 			'context'      => array(
 				'booking_communication_intent_id'  => (int) $intent['id'],
 				'booking_communication_intent_ref' => 'intent:' . (int) $intent['id'],
@@ -1179,7 +1199,7 @@ class BookingCommunicationService {
 
 	/** Revalidate server-owned automatic correspondence immediately before queueing. */
 	private function automatic_message_applicable( array $booking, array $source, string $template ): bool {
-		if ( 'inquiry_receipt' === $template ) {
+		if ( in_array( $template, array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) ) {
 			return 'inquiry_submitted' === $source['kind'] && (int) $source['booking_id'] === (int) $booking['id'];
 		}
 		if ( 'date_filled' !== $template || 'deal_confirmed' !== $source['kind'] || in_array( $booking['status'], array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed' ), true ) ) {

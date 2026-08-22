@@ -551,6 +551,7 @@ final class BookingWpdb {
 	public $fail_venue_lock                      = false;
 	public $venue_lock_queries                   = 0;
 	public $reference_locks                      = array();
+	public $transaction_start_reference_lock_counts = array();
 	public $lock_sequence                        = array();
 	public $reference_lock_queries               = 0;
 	public $fail_reference_unlock                = false;
@@ -1407,7 +1408,7 @@ final class BookingWpdb {
 				array_filter(
 					$this->rows[ $this->prefix . 'ec_booking_activity' ] ?? array(),
 					static function ( $row ) use ( $requests ) {
-						return in_array( $row['kind'], array( 'inquiry_submitted', 'assignment_changed', 'status_changed', 'hold_expired', 'event_conversion_failed' ), true ) && ! in_array( (string) $row['id'], $requests, true );
+						return in_array( $row['kind'], array( 'inquiry_submitted', 'assignment_changed', 'status_changed', 'hold_expired', 'event_conversion_failed', 'artist_correction_requested', 'artist_cancellation_requested', 'artist_withdrawn' ), true ) && ! in_array( (string) $row['id'], $requests, true );
 					}
 				)
 			);
@@ -1933,6 +1934,7 @@ final class BookingWpdb {
 		$this->last_query = $query;
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
+			$this->transaction_start_reference_lock_counts[] = array_sum( $this->reference_locks );
 			if ( $this->transaction_active ) {
 				++$this->nested_transaction_starts;
 			}
@@ -2090,6 +2092,21 @@ final class BookingWpdb {
 			unset( $row );
 			return $count;
 		}
+		if ( false !== strpos( $query, "release_reason = 'artist_withdrawn'" ) && preg_match( '/UPDATE ([^ ]+)/', $query, $release_table ) && preg_match( "/WHERE booking_id = (\d+) AND status = 'active' AND expires_at > UTC_TIMESTAMP\(\)/", $query, $release_booking ) ) {
+			$count                            = 0;
+			$this->rows[ $release_table[1] ] = $this->rows[ $release_table[1] ] ?? array();
+			foreach ( $this->rows[ $release_table[1] ] as &$row ) {
+				if ( (int) $row['booking_id'] === (int) $release_booking[1] && 'active' === $row['status'] && ( $row['expires_at'] ?? '' ) > $this->current_database_time() ) {
+					$row['status']              = 'released';
+					$row['released_by_user_id'] = null;
+					$row['release_reason']       = 'artist_withdrawn';
+					++$row['version'];
+					++$count;
+				}
+			}
+			unset( $row );
+			return $count;
+		}
 		if ( preg_match( "/UPDATE ([^ ]*ec_booking_holds) SET venue_term_id = (\d+), space_key = '([^']+)', start_at = '([^']+)', end_at = '([^']+)', version = version \+ 1, updated_at = '([^']+)' WHERE booking_id = (\d+) AND status = 'converted'/", $query, $hold_update ) ) {
 			$count = 0;
 			foreach ( $this->rows[ $hold_update[1] ] ?? array() as &$row ) {
@@ -2183,6 +2200,7 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentDeliveryReposit
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingAttachmentService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingInquiryAdmissionService.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/ArtistBookingInquiryService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueBookingEmbed.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCorrespondenceAutomationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketReconciliationService.php';

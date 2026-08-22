@@ -81,6 +81,9 @@ class VenueBookingAbilities {
 		'booking_reminder_scheduling',
 		'booking_reminder_scheduled',
 		'booking_reminder_suppressed',
+		'artist_correction_requested',
+		'artist_cancellation_requested',
+		'artist_withdrawn',
 	);
 
 	/**
@@ -608,6 +611,11 @@ class VenueBookingAbilities {
 					'minimum' => 1,
 				),
 				'submitted_at'  => array( 'type' => 'string' ),
+				'capability'    => array(
+					'type'      => 'string',
+					'minLength' => 64,
+					'maxLength' => 64,
+				),
 			),
 			'required'             => array( 'public_id', 'venue_term_id', 'submitted_at' ),
 			'additionalProperties' => false,
@@ -715,9 +723,13 @@ class VenueBookingAbilities {
 					'items'    => array(
 						'type'                 => 'object',
 						'properties'           => array(
-							'id'          => array( 'type' => 'integer' ),
-							'kind'        => array( 'type' => 'string' ),
-							'occurred_at' => array( 'type' => 'string' ),
+							'id'                    => array( 'type' => 'integer' ),
+							'kind'                  => array( 'type' => 'string' ),
+							'occurred_at'           => array( 'type' => 'string' ),
+							'artist_request_detail' => array(
+								'type'      => 'string',
+								'maxLength' => 2000,
+							),
 						),
 						'required'             => array( 'id', 'kind', 'occurred_at' ),
 						'additionalProperties' => false,
@@ -765,11 +777,18 @@ class VenueBookingAbilities {
 	 * @param array $activity Hydrated activity record.
 	 */
 	public function present_activity( array $activity ): array {
-		return array(
+		$presented = array(
 			'id'          => $activity['id'],
 			'kind'        => $activity['kind'],
 			'occurred_at' => $activity['occurred_at'],
 		);
+		if ( 'artist_correction_requested' === $activity['kind'] ) {
+			$detail = $activity['payload']['data']['correction'] ?? null;
+			if ( is_string( $detail ) && '' !== $detail ) {
+				$presented['artist_request_detail'] = mb_substr( $detail, 0, 2000 );
+			}
+		}
+		return $presented;
 	}
 
 	/**

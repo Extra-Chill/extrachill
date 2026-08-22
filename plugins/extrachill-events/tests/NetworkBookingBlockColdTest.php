@@ -112,6 +112,10 @@ final class NetworkBookingBlockColdTest extends TestCase {
 
 		$this->assertStringContainsString( 'Cold Room', $output );
 		$this->assertStringContainsString( 'https:\/\/extrachill.com\/wp-json\/extrachill\/v1\/venues\/1524\/booking-inquiries', $output );
+		foreach ( array( 'status', 'correction', 'withdrawal', 'receipt-recovery' ) as $action ) {
+			$this->assertStringContainsString( 'https:\/\/extrachill.com\/wp-json\/extrachill\/v1\/venues\/1524\/booking-inquiries\/follow-through\/' . $action, $output );
+		}
+		$this->assertStringNotContainsString( 'capability=', $output );
 		$this->assertStringContainsString( '"artist_name_label":"Artist or project name"', $output );
 		$this->assertStringNotContainsString( 'Booking guide', $output );
 		$this->assertTrue( $GLOBALS['ec_network_block_test']['turnstile_enqueued'] );

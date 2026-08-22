@@ -15,6 +15,12 @@ const config = {
 	instanceId: 'ec-booking-browser-proof',
 	endpoint: '/booking-inquiries',
 	availabilityEndpoint: '/booking-availability',
+	followThrough: {
+		status: '/follow-through/status',
+		correction: '/follow-through/correction',
+		withdrawal: '/follow-through/withdrawal',
+		receiptRecovery: '/follow-through/receipt-recovery',
+	},
 	restNonce: 'booking-proof-nonce',
 	authenticated: true,
 	heading: 'Booking inquiries',
@@ -154,7 +160,9 @@ const measure = ( page ) =>
 		await page.route( 'https://booking.test/**', ( route ) =>
 			route.fulfill( { body: fixture, contentType: 'text/html' } )
 		);
-		const mount = async () => {
+		const mount = async (
+			expectedSelector = '.ec-booking-inquiry__form'
+		) => {
 			await page.goto( 'https://booking.test/' );
 			await page.addStyleTag( { content: fixtureStyles } );
 			await page.addStyleTag( {
@@ -185,7 +193,9 @@ const measure = ( page ) =>
 					},
 				};
 				window.bookingAvailable = false;
+				window.requestedUrls = [];
 				window.fetch = async ( url ) => {
+					window.requestedUrls.push( String( url ) );
 					if ( String( url ).includes( 'booking-availability' ) ) {
 						return new Response(
 							JSON.stringify( {
@@ -199,8 +209,39 @@ const measure = ( page ) =>
 							}
 						);
 					}
+					if ( String( url ).includes( 'follow-through/status' ) ) {
+						return new Response(
+							JSON.stringify( {
+								public_id:
+									'123e4567-e89b-42d3-a456-426614174000',
+								status: 'submitted',
+								status_label: 'Pending review',
+								version: 1,
+								requested_interval: {
+									start_at: '2030-08-01 00:00:00',
+									end_at: '2030-08-02 00:00:00',
+								},
+								requested_space: {
+									key: 'main',
+									label: 'Main Room',
+								},
+								permitted_actions: [
+									'request_correction',
+									'withdraw',
+								],
+							} ),
+							{
+								status: 200,
+								headers: { 'Content-Type': 'application/json' },
+							}
+						);
+					}
 					return new Response(
-						JSON.stringify( { public_id: 'proof' } ),
+						JSON.stringify( {
+							public_id: '123e4567-e89b-42d3-a456-426614174000',
+							venue_term_id: 55,
+							capability: 'a'.repeat( 64 ),
+						} ),
 						{
 							status: 201,
 							headers: { 'Content-Type': 'application/json' },
@@ -211,7 +252,7 @@ const measure = ( page ) =>
 			await page.addScriptTag( {
 				path: path.join( root, 'build/venue-booking-inquiry/view.js' ),
 			} );
-			await page.waitForSelector( '.ec-booking-inquiry__form' );
+			await page.waitForSelector( expectedSelector );
 		};
 		await mount();
 
@@ -245,6 +286,14 @@ const measure = ( page ) =>
 		assert.equal(
 			await page
 				.getByRole( 'button', { name: 'Clear saved draft' } )
+				.count(),
+			1
+		);
+		assert.equal(
+			await page
+				.getByRole( 'button', {
+					name: 'Recover an existing inquiry',
+				} )
 				.count(),
 			1
 		);
@@ -498,17 +547,102 @@ const measure = ( page ) =>
 			.getByRole( 'button', { name: 'Send booking inquiry' } )
 			.click();
 		await page.getByText( /Inquiry received/ ).waitFor();
+		await page.getByText( 'Pending review' ).waitFor();
+		assert.equal(
+			await page
+				.getByText(
+					/confirmation email should arrive within a few minutes/i
+				)
+				.count(),
+			1
+		);
+		assert.equal(
+			await page
+				.getByRole( 'button', { name: 'Withdraw inquiry' } )
+				.count(),
+			1
+		);
 		assert.deepEqual(
 			await page.evaluate( () => ( {
 				local: Object.keys( localStorage ),
 				session: Object.keys( sessionStorage ),
 			} ) ),
-			{ local: [], session: [] }
+			{
+				local: [],
+				session: [ 'extrachill.booking-inquiry.receipt.v1.55' ],
+			}
+		);
+		const storedReceipt = await page.evaluate( () =>
+			JSON.parse(
+				sessionStorage.getItem(
+					'extrachill.booking-inquiry.receipt.v1.55'
+				)
+			)
+		);
+		assert.deepEqual( Object.keys( storedReceipt ).sort(), [
+			'capability',
+			'public_id',
+			'venue_term_id',
+		] );
+		assert.equal(
+			await page.evaluate( () =>
+				window.requestedUrls.some( ( url ) =>
+					url.includes( 'a'.repeat( 64 ) )
+				)
+			),
+			false
+		);
+		await mount( '.ec-booking-inquiry__result' );
+		await page.getByText( 'Pending review' ).waitFor();
+		assert.equal(
+			await page
+				.getByRole( 'button', { name: 'Refresh status' } )
+				.count(),
+			1
+		);
+		const withdraw = page.getByRole( 'button', {
+			name: 'Withdraw inquiry',
+		} );
+		await withdraw.focus();
+		await withdraw.press( 'Enter' );
+		await page
+			.getByRole( 'button', { name: 'Confirm withdrawal' } )
+			.waitFor();
+		assert.equal(
+			await page
+				.getByText( /ends this pending inquiry immediately/ )
+				.count(),
+			1
+		);
+		assert.equal(
+			await page
+				.locator( '.ec-booking-inquiry__result' )
+				.evaluate(
+					( node ) => node === node.ownerDocument.activeElement
+				),
+			true
 		);
 		await page.screenshot( {
 			path: path.join( artifacts, 'booking-inquiry-mobile.png' ),
 			fullPage: true,
 		} );
+		await page.evaluate( () => {
+			const key = 'extrachill.booking-inquiry.v1.55.7';
+			sessionStorage.setItem( key, 'private-session-draft' );
+			localStorage.setItem( key, 'private-device-draft' );
+		} );
+		await page
+			.getByRole( 'button', { name: 'Clear this receipt' } )
+			.click();
+		await page.getByLabel( 'Requested date' ).waitFor();
+		assert.deepEqual(
+			await page.evaluate( () => ( {
+				session: sessionStorage.length,
+				device: localStorage.length,
+				date: document.querySelector( 'input[type="date"]' ).value,
+			} ) ),
+			{ session: 0, device: 0, date: '' }
+		);
 
 		await page.addInitScript( () => {
 			Object.defineProperty( window, 'sessionStorage', {

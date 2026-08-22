@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Core\BookingActivityRepository;
+use ExtraChillEvents\Core\ArtistBookingInquiryService;
 use ExtraChillEvents\Core\BookingCommunicationService;
 use ExtraChillEvents\Core\BookingCorrespondenceAutomationService;
 use ExtraChillEvents\Core\BookingRepository;
@@ -66,6 +67,8 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 					'requested_space_key' => 'main-room',
 					'requested_start_at'  => '2030-08-01 20:00:00',
 					'requested_end_at'    => '2030-08-01 23:00:00',
+					'inquiry_idempotency_key' => 'receipt-' . wp_generate_uuid4(),
+					'inquiry_request_hash'    => hash( 'sha256', wp_generate_uuid4() ),
 					'intake'              => array(),
 				),
 				$overrides
@@ -115,7 +118,7 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
 		$this->assertCount( 1, $queued );
 		$this->assertSame( 'artist@example.com', $queued[0]['to'] );
-		$this->assertSame( 'operator@example.com,owner@example.com', $queued[0]['cc'] );
+		$this->assertSame( '', $queued[0]['cc'] );
 		$this->assertSame( 'Extra Chill Bookings', $queued[0]['from_name'] );
 		$this->assertSame( 'booking@lofi.example', $queued[0]['reply_to'] );
 		$this->assertSame( 'Booking inquiry received: Test Band at Lo-Fi Brewing - Aug 1', $queued[0]['subject'] );
@@ -125,10 +128,73 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertStringNotContainsString( ' UTC', $queued[0]['body'] );
 		$this->assertStringContainsString( 'does not place a hold or confirm', $queued[0]['body'] );
 		$this->assertStringContainsString( $booking['public_id'], $queued[0]['body'] );
+		$capability = ArtistBookingInquiryService::capability_for( $booking );
+		$this->assertStringContainsString( 'Access code: ' . $capability, $queued[0]['body'] );
+		$this->assertStringNotContainsString( $capability, $queued[0]['subject'] );
+		$this->assertStringNotContainsString( $capability, wp_json_encode( $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ] ) );
 		$this->assertStringContainsString( 'Powered by Extra Chill', $queued[0]['body'] );
 		$this->assertStringNotContainsString( 'Extra Chill Bot', $queued[0]['body'] );
 		$this->assertStringNotContainsString( 'Chris', $queued[0]['body'] );
 		$this->assertArrayNotHasKey( 'attachments', $queued[0] );
+	}
+
+	public function test_authenticated_receipt_omits_anonymous_access_code(): void {
+		$booking = $this->booking( array( 'submitter_user_id' => 44 ) );
+		$source  = $this->source( $booking, 'inquiry_submitted' );
+		$queued  = array();
+		$this->service( $queued )->reconcile_source( $source['id'] );
+		$this->assertCount( 1, $queued );
+		$this->assertStringNotContainsString( 'Access code:', $queued[0]['body'] );
+		$this->assertStringNotContainsString( ArtistBookingInquiryService::capability_for( $booking ), wp_json_encode( $queued[0] ) );
+		$this->assertSame( '', $queued[0]['cc'] );
+	}
+
+	public function test_capability_receipt_executes_real_queued_email_cc_string_contract(): void {
+		$booking = $this->booking();
+		$source  = $this->source( $booking, 'inquiry_submitted' );
+		$ability = new class() {
+			public $inputs = array();
+
+			public function get_input_schema(): array {
+				return array(
+					'type'       => 'object',
+					'properties' => array(
+						'cc' => array( 'type' => 'string' ),
+					),
+					'required'   => array( 'cc' ),
+				);
+			}
+
+			public function execute( array $input ) {
+				$schema = $this->get_input_schema();
+				if ( ! isset( $input['cc'] ) || 'string' !== $schema['properties']['cc']['type'] || ! is_string( $input['cc'] ) ) {
+					return new WP_Error( 'ability_input_schema_invalid' );
+				}
+				$this->inputs[] = $input;
+				return array( 'success' => true, 'action_id' => 501 );
+			}
+		};
+		$GLOBALS['ec_artist_test']['ability_objects']['datamachine/send-email-queued'] = $ability;
+		$communication = new BookingCommunicationService(
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			null,
+			static function (): array {
+				return array( 'owner@example.com' );
+			}
+		);
+		$service = new BookingCorrespondenceAutomationService( null, null, $communication );
+
+		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
+		$this->assertCount( 1, $ability->inputs );
+		$this->assertSame( 'string', $ability->get_input_schema()['properties']['cc']['type'] );
+		$this->assertSame( '', $ability->inputs[0]['cc'] );
+		$this->assertStringContainsString( 'Access code:', $ability->inputs[0]['body'] );
 	}
 
 	public function test_failed_queue_retries_from_durable_intent_without_duplicate_request(): void {

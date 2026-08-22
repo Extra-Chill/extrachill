@@ -138,6 +138,22 @@ final class BookingNotificationTest extends BookingTestCase {
 		$this->assertSame( (string) $ignored['id'], $ignored_rows[0]['external_id'] );
 	}
 
+	/** Crash recovery recognizes every landed artist follow-through source. */
+	public function test_recovery_recognizes_artist_follow_through_sources(): void {
+		$booking = $this->booking();
+		$sources = array(
+			BookingNotificationService::TYPE_ARTIST_CORRECTION_REQUESTED   => $this->source( $booking, 'artist_correction_requested', array( 'expected_version' => 1 ) ),
+			BookingNotificationService::TYPE_ARTIST_CANCELLATION_REQUESTED => $this->source( $booking, 'artist_cancellation_requested', array( 'expected_version' => 1 ) ),
+			BookingNotificationService::TYPE_ARTIST_WITHDREW                => $this->source( $booking, 'artist_withdrawn', array( 'from_status' => 'submitted', 'to_status' => 'withdrawn' ) ),
+		);
+		$summary = ( new BookingNotificationService() )->reconcile_pending();
+		$this->assertSame( 3, $summary['recovered'] );
+		foreach ( $sources as $type => $source ) {
+			$request = ( new BookingActivityRepository() )->find_by_external_id( $booking['id'], 'notification_requested', (string) $source['id'] );
+			$this->assertSame( $type, $request['payload']['data']['notification_type'] );
+		}
+	}
+
 	/** Production reconciliation calls the landed Users receipt contract. */
 	public function test_production_users_receipt_payload_is_idempotent_and_complete(): void {
 		$booking = $this->booking();

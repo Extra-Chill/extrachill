@@ -942,6 +942,36 @@ class BookingHoldRepository {
 		);
 	}
 
+	/** Re-read artist withdrawal state under venue -> current-space lock order. */
+	public function with_artist_withdrawal_lock( array $booking, int $expected_version, callable $callback ) {
+		return $this->with_lock(
+			self::venue_lock_name( (int) $booking['venue_term_id'] ),
+			function () use ( $booking, $expected_version, $callback ) {
+				$current = $this->bookings->get( (int) $booking['id'] );
+				if ( ! is_array( $current ) ) {
+					return is_wp_error( $current ) ? $current : new \WP_Error( 'booking_not_found', __( 'The booking could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
+				}
+				if ( (int) $current['version'] !== $expected_version ) {
+					return $this->booking_version_conflict( $current );
+				}
+				if ( 'held' !== $current['status'] ) {
+					return $callback( $current );
+				}
+				$selection = $this->selection( $current );
+				return is_wp_error( $selection ) ? $selection : $this->with_lock( self::venue_space_lock_name( (int) $current['venue_term_id'], (string) $current['space_key'] ), static fn() => $callback( $current ) );
+			}
+		);
+	}
+
+	/** Release only live holds inside the artist-withdrawal transaction. */
+	public function release_for_artist_withdrawal( int $booking_id ) {
+		global $wpdb;
+		$now    = gmdate( 'Y-m-d H:i:s' );
+		$table  = BookingSchema::holds_table();
+		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'released', version = version + 1, updated_at = %s, released_at = %s, released_by_user_id = NULL, release_reason = 'artist_withdrawn' WHERE booking_id = %d AND status = 'active' AND expires_at > UTC_TIMESTAMP()", $now, $now, $booking_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns the venue-space lock and booking transaction; database time preserves elapsed holds.
+		return false === $result ? new \WP_Error( 'booking_hold_release_failed', __( 'Booking holds could not be released.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : true;
+	}
+
 	/** Return an exact active hold; elapsed rows are opportunistically expired and never block. */
 	private function matching_active_hold( array $booking ) {
 		global $wpdb;

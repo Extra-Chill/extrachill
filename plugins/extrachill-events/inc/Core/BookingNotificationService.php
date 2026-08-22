@@ -19,10 +19,13 @@ class BookingNotificationService {
 	public const SCHEDULER_GROUP = 'extrachill-events-booking-notifications';
 	public const MAX_ATTEMPTS    = 5;
 
-	public const TYPE_INQUIRY_SUBMITTED    = 'booking_inquiry_submitted';
-	public const TYPE_INFORMATION_RECEIVED = 'booking_information_received';
-	public const TYPE_HOLD_EXPIRED         = 'booking_hold_expired';
-	public const TYPE_EVENT_HANDOFF_FAILED = 'booking_event_handoff_failed';
+	public const TYPE_INQUIRY_SUBMITTED             = 'booking_inquiry_submitted';
+	public const TYPE_INFORMATION_RECEIVED          = 'booking_information_received';
+	public const TYPE_HOLD_EXPIRED                  = 'booking_hold_expired';
+	public const TYPE_EVENT_HANDOFF_FAILED          = 'booking_event_handoff_failed';
+	public const TYPE_ARTIST_CORRECTION_REQUESTED   = 'booking_artist_correction_requested';
+	public const TYPE_ARTIST_CANCELLATION_REQUESTED = 'booking_artist_cancellation_requested';
+	public const TYPE_ARTIST_WITHDREW               = 'booking_artist_withdrew';
 
 	// Future producer seams. No source activity is synthesized here.
 	public const TYPE_ARTIST_REPLIED          = 'booking_artist_replied';
@@ -374,13 +377,13 @@ class BookingNotificationService {
 	/** Return landed mappings and future source seams. */
 	private function definitions(): array {
 		return array(
-			self::TYPE_INQUIRY_SUBMITTED       => array(
+			self::TYPE_INQUIRY_SUBMITTED             => array(
 				'kind'       => 'inquiry_submitted',
 				'title'      => __( 'New booking inquiry', 'extrachill-events' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
-			self::TYPE_INFORMATION_RECEIVED    => array(
+			self::TYPE_INFORMATION_RECEIVED          => array(
 				'kind'       => 'status_changed',
 				'title'      => __( 'Booking information received', 'extrachill-events' ),
 				'from'       => 'needs_info',
@@ -388,35 +391,53 @@ class BookingNotificationService {
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
-			self::TYPE_HOLD_EXPIRED            => array(
+			self::TYPE_HOLD_EXPIRED                  => array(
 				'kind'       => 'hold_expired',
 				'title'      => __( 'Booking hold expired', 'extrachill-events' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
-			self::TYPE_EVENT_HANDOFF_FAILED    => array(
+			self::TYPE_EVENT_HANDOFF_FAILED          => array(
 				'kind'       => 'event_conversion_failed',
 				'title'      => __( 'Booking event handoff failed', 'extrachill-events' ),
 				'recipients' => 'owners',
 				'landed'     => true,
 			),
-			self::TYPE_ARTIST_REPLIED          => array(
+			self::TYPE_ARTIST_CORRECTION_REQUESTED   => array(
+				'kind'       => 'artist_correction_requested',
+				'title'      => __( 'Artist requested a booking correction', 'extrachill-events' ),
+				'recipients' => 'owners',
+				'landed'     => true,
+			),
+			self::TYPE_ARTIST_CANCELLATION_REQUESTED => array(
+				'kind'       => 'artist_cancellation_requested',
+				'title'      => __( 'Artist requested booking cancellation', 'extrachill-events' ),
+				'recipients' => 'owners',
+				'landed'     => true,
+			),
+			self::TYPE_ARTIST_WITHDREW               => array(
+				'kind'       => 'artist_withdrawn',
+				'title'      => __( 'Artist withdrew a booking inquiry', 'extrachill-events' ),
+				'recipients' => 'owners',
+				'landed'     => true,
+			),
+			self::TYPE_ARTIST_REPLIED                => array(
 				'kind'  => 'artist_replied',
 				'title' => __( 'Artist replied about a booking', 'extrachill-events' ),
 			),
-			self::TYPE_HOLD_EXPIRING           => array(
+			self::TYPE_HOLD_EXPIRING                 => array(
 				'kind'  => 'hold_expiring',
 				'title' => __( 'Booking hold expiring', 'extrachill-events' ),
 			),
-			self::TYPE_MARKETING_FAILED        => array(
+			self::TYPE_MARKETING_FAILED              => array(
 				'kind'  => 'marketing_action_failed',
 				'title' => __( 'Booking marketing action failed', 'extrachill-events' ),
 			),
-			self::TYPE_SETTLEMENT_READY        => array(
+			self::TYPE_SETTLEMENT_READY              => array(
 				'kind'  => 'settlement_ready',
 				'title' => __( 'Booking settlement ready', 'extrachill-events' ),
 			),
-			self::TYPE_OPERATOR_ACTION_OVERDUE => array(
+			self::TYPE_OPERATOR_ACTION_OVERDUE       => array(
 				'kind'  => 'operator_action_overdue',
 				'title' => __( 'Booking action overdue', 'extrachill-events' ),
 			),

@@ -97,6 +97,15 @@ class BookingCorrespondenceAutomationService {
 		return is_array( $source ) ? $this->process_source( $source ) : new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-events' ) );
 	}
 
+	/** Queue one artist-authorized access recovery through the existing outbox. */
+	public function resend_receipt( int $source_activity_id, string $recovery_key ) {
+		$source = $this->activity->get( $source_activity_id );
+		if ( ! is_array( $source ) || 'inquiry_submitted' !== $source['kind'] ) {
+			return new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-events' ) );
+		}
+		return $this->process_receipt( $source, $recovery_key );
+	}
+
 	private function process_source( array $source ) {
 		$done = $this->activity->find_by_external_id( (int) $source['booking_id'], 'booking_correspondence_source_completed', (string) $source['id'] );
 		if ( is_wp_error( $done ) || is_array( $done ) ) {
@@ -111,7 +120,7 @@ class BookingCorrespondenceAutomationService {
 		return new \WP_Error( 'booking_correspondence_source_invalid', __( 'The booking correspondence source is invalid.', 'extrachill-events' ) );
 	}
 
-	private function process_receipt( array $source ) {
+	private function process_receipt( array $source, ?string $recovery_key = null ) {
 		$booking = $this->bookings->get( (int) $source['booking_id'] );
 		if ( ! is_array( $booking ) ) {
 			return is_wp_error( $booking ) ? $booking : new \WP_Error( 'booking_correspondence_booking_missing', __( 'The booking correspondence record is unavailable.', 'extrachill-events' ) );
@@ -124,15 +133,25 @@ class BookingCorrespondenceAutomationService {
 		if ( is_wp_error( $interval ) ) {
 			return $interval;
 		}
-		$message = sprintf(
-			"We received your booking inquiry and it is pending review.\n\nArtist: %s\nVenue: %s\nRequested interval: %s\nRequested space: %s\nReference: %s\n\nSubmitting an inquiry does not place a hold or confirm the booking. Reply to this email to continue this booking thread.",
-			$booking['artist_name'],
-			$venue->name,
-			$interval['display'],
-			$this->space_name( $booking, true ),
-			$booking['public_id']
-		);
-		$result  = $this->communication->request_automatic( (int) $booking['id'], (int) $source['id'], 'inquiry_receipt', $message );
+		$message  = null === $recovery_key
+			? sprintf(
+				"We received your booking inquiry and it is pending review.\n\nArtist: %s\nVenue: %s\nRequested interval: %s\nRequested space: %s\nReference: %s\n\nSubmitting an inquiry does not place a hold or confirm the booking. Reply to this email to continue this booking thread.",
+				$booking['artist_name'],
+				$venue->name,
+				$interval['display'],
+				$this->space_name( $booking, true ),
+				$booking['public_id']
+			)
+			: sprintf(
+				"Here is the private access receipt you requested for your booking inquiry at %s.\n\nReference: %s\n\nThis email does not indicate the inquiry's current status. Open the venue booking form, choose the existing-inquiry access option, and enter the reference and access code below to view the current status. Keep both private.",
+				$venue->name,
+				$booking['public_id']
+			);
+		$template = null === $recovery_key ? 'inquiry_receipt' : 'inquiry_access_recovery';
+		$result   = $this->communication->request_automatic( (int) $booking['id'], (int) $source['id'], $template, $message, $recovery_key );
+		if ( null !== $recovery_key ) {
+			return $result;
+		}
 		return $this->accepted( $result ) ? $this->complete_source( $source, array( 'template' => 'inquiry_receipt' ) ) : $result;
 	}
 

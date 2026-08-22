@@ -14,7 +14,6 @@ import {
 	FieldGroup,
 	Grid,
 	InlineStatus,
-	Panel,
 } from '@extrachill/components';
 
 /**
@@ -32,6 +31,8 @@ import {
 	newIdempotencyKey,
 	saveDraft,
 } from './submission';
+import { clearReceipt, loadReceipt, saveReceipt } from './follow-through';
+import { BookingFollowThrough, ReceiptRecovery } from './follow-through-view';
 
 const initialValues = ( config ) => ( {
 	artistName: '',
@@ -147,10 +148,14 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 	const [ submitting, setSubmitting ] = useState( false );
 	const [ checking, setChecking ] = useState( false );
 	const [ intervalOpen, setIntervalOpen ] = useState( preview );
-	const [ receipt, setReceipt ] = useState( null );
+	const [ receipt, setReceipt ] = useState( () =>
+		preview ? null : loadReceipt( config )
+	);
+	const [ recoveryOpen, setRecoveryOpen ] = useState( false );
 	const key = useRef( newIdempotencyKey() );
 	const turnstileTarget = useRef();
 	const resultRef = useRef();
+	const skipDraftSave = useRef( false );
 	const prefix = config.instanceId;
 
 	useEffect( () => {
@@ -164,6 +169,10 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 	}, [ wrapper, intervalOpen, preview ] );
 	useEffect( () => {
 		if ( ! preview && ! receipt ) {
+			if ( skipDraftSave.current ) {
+				skipDraftSave.current = false;
+				return;
+			}
 			const saved = saveDraft( config, values, draftScope );
 			if ( ! saved ) {
 				setDraftStatus(
@@ -234,6 +243,12 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			widget.replaceChildren();
 			widget.removeAttribute( 'data-ec-turnstile-rendered' );
 			window.ecTurnstileBoot?.();
+		}
+	};
+	const parkTurnstile = () => {
+		const source = wrapper?.querySelector( '[data-booking-turnstile]' );
+		if ( source ) {
+			wrapper.appendChild( source );
 		}
 	};
 	const checkAvailability = async () => {
@@ -332,6 +347,8 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 				return;
 			}
 			clearDraft( config );
+			parkTurnstile();
+			saveReceipt( config, payload );
 			setReceipt( payload );
 			setStatus( null );
 		} catch {
@@ -345,41 +362,56 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			setSubmitting( false );
 		}
 	};
+	const resetPrivateFormState = () => {
+		parkTurnstile();
+		const receiptCleared = clearReceipt( config );
+		const draftsCleared = clearDraft( config );
+		skipDraftSave.current = true;
+		key.current = newIdempotencyKey();
+		setValues( initialValues( config ) );
+		setDraftScope( DRAFT_SCOPE_SESSION );
+		setDraftStatus(
+			receiptCleared && draftsCleared
+				? 'Receipt and saved form details cleared.'
+				: "The form was reset, but browser storage may remain. Close this tab and clear this device's site data before leaving a shared device."
+		);
+		setIntervalOpen( false );
+		setStatus( null );
+		setRecoveryOpen( false );
+	};
+	const acceptRecoveredReceipt = ( nextReceipt ) => {
+		clearDraft( config );
+		key.current = newIdempotencyKey();
+		setValues( initialValues( config ) );
+		setDraftScope( DRAFT_SCOPE_SESSION );
+		setIntervalOpen( false );
+		setStatus( null );
+		setRecoveryOpen( false );
+		setReceipt( nextReceipt );
+	};
 
 	if ( receipt ) {
 		return (
-			<BlockShell>
-				<BlockShellInner>
-					<Panel>
-						<div
-							className="ec-booking-inquiry__result"
-							ref={ resultRef }
-							tabIndex="-1"
-							role="status"
-						>
-							<span className="taxonomy-badge">
-								Inquiry received
-							</span>
-							<h3>
-								Thanks for reaching out to { config.venue.name }
-								.
-							</h3>
-							<p>
-								Your inquiry is now with the venue for review.
-								If they are interested, they will follow up
-								using the contact details you provided.
-							</p>
-							<p>
-								Keep this confirmation reference for your
-								records:
-							</p>
-							<strong className="ec-booking-inquiry__reference">
-								{ receipt.public_id }
-							</strong>
-						</div>
-					</Panel>
-				</BlockShellInner>
-			</BlockShell>
+			<BookingFollowThrough
+				config={ config }
+				receipt={ receipt }
+				wrapper={ wrapper }
+				onClear={ () => {
+					resetPrivateFormState();
+					setReceipt( null );
+				} }
+				onReceipt={ acceptRecoveredReceipt }
+			/>
+		);
+	}
+	if ( recoveryOpen ) {
+		return (
+			<ReceiptRecovery
+				config={ config }
+				wrapper={ wrapper }
+				onCancel={ () => setRecoveryOpen( false ) }
+				onAccess={ acceptRecoveredReceipt }
+			/>
 		);
 	}
 	const visibleFields = config.fields.filter( ( field ) => {
@@ -475,6 +507,16 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 									onClick={ clearSavedDraft }
 								>
 									Clear saved draft
+								</button>
+								<button
+									type="button"
+									className="button-2"
+									onClick={ () => {
+										parkTurnstile();
+										setRecoveryOpen( true );
+									} }
+								>
+									Recover an existing inquiry
 								</button>
 								<div
 									className="ec-booking-inquiry__draft-status"

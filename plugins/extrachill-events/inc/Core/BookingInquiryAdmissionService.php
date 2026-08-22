@@ -243,11 +243,15 @@ final class BookingInquiryAdmissionService {
 
 	/** Build the stable public admission receipt. */
 	private function receipt( array $booking ): array {
-		return array(
+		$receipt = array(
 			'public_id'     => $booking['public_id'],
 			'venue_term_id' => $booking['venue_term_id'],
 			'submitted_at'  => $booking['created_at'],
 		);
+		if ( empty( $booking['submitter_user_id'] ) ) {
+			$receipt['capability'] = ArtistBookingInquiryService::capability_for( $booking );
+		}
+		return $receipt;
 	}
 
 	/** Acquire the deterministic complete-saga ownership lock. */
