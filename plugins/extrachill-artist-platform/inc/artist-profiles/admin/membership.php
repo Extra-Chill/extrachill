@@ -255,7 +255,10 @@ function ec_get_artist_membership_failure() {
 }
 
 /**
- * Acquire the relationship-wide lock.
+ * Acquire the relationship-wide membership lock.
+ *
+ * When an operation also locks canonical profile/term binding authority, it
+ * must acquire the Artist Platform binding lock before this distinct lock.
  *
  * @param int $user_id   User ID.
  * @param int $artist_id Artist ID.

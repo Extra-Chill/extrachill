@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/MySQLIntegration/bootstrap.php" colors="true">
+	<testsuites>
+		<testsuite name="Artist binding MySQL concurrency">
+			<directory suffix="Proof.php">tests/MySQLIntegration</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

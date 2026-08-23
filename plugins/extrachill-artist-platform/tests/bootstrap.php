@@ -42,6 +42,7 @@ class WP_Term {
 class EcTestWpdb {
 	public $last_error = '';
 	public $options    = 'wp_options';
+	public $suppress_errors = false;
 
 	public function prepare( $query, ...$args ) {
 		return array( 'query' => $query, 'args' => $args );
@@ -52,6 +53,7 @@ class EcTestWpdb {
 		$query = $prepared['query'];
 		$name  = (string) ( $prepared['args'][0] ?? '' );
 		if ( str_contains( $query, 'GET_LOCK' ) ) {
+			$GLOBALS['ec_test']['db_lock_order'][] = $name;
 			$GLOBALS['ec_test']['db_lock_get_calls'][ $name ] = ( $GLOBALS['ec_test']['db_lock_get_calls'][ $name ] ?? 0 ) + 1;
 			if ( 'contention' === ( $GLOBALS['ec_test']['advisory_lock_result'] ?? '' ) ) {
 				return '0';
@@ -86,6 +88,17 @@ class EcTestWpdb {
 
 	public function query( $prepared ) {
 		$this->last_error = '';
+		if ( is_string( $prepared ) ) {
+			$GLOBALS['ec_test']['raw_queries'][] = $prepared;
+			if ( str_starts_with( $prepared, 'SET TRANSACTION ISOLATION LEVEL' ) ) {
+				if ( ! empty( $GLOBALS['ec_test']['in_transaction'] ) || ! empty( $GLOBALS['ec_test']['boundary_query_error'] ) ) {
+					$this->last_error = 'Transaction characteristics cannot be changed.';
+					return false;
+				}
+				return 0;
+			}
+			return false;
+		}
 		if ( ! empty( $GLOBALS['ec_test']['fallback_lock_query_error'] ) ) {
 			$this->last_error = 'Network lock query failed.';
 			return false;
@@ -112,6 +125,13 @@ class EcTestWpdb {
 			return 1;
 		}
 		return false;
+	}
+
+	public function suppress_errors( $suppress = true ) {
+		$previous             = $this->suppress_errors;
+		$this->suppress_errors = (bool) $suppress;
+		$GLOBALS['ec_test']['error_suppression'][] = $this->suppress_errors;
+		return $previous;
 	}
 }
 
@@ -657,22 +677,41 @@ function wp_insert_post( $post_data, $return_error = false ) {
 }
 
 function wp_delete_post( $post_id, $force_delete = false ) {
-	if ( ! empty( $GLOBALS['ec_test']['fail_post_delete'] ) ) {
-		return false;
-	}
 	$blog_id = $GLOBALS['ec_test']['current_blog_id'];
 	$post    = $GLOBALS['ec_test']['blogs'][ $blog_id ]['posts'][ $post_id ] ?? null;
+	if ( $post && function_exists( 'ec_artist_binding_pre_delete_post' ) ) {
+		$check = ec_artist_binding_pre_delete_post( null, $post, $force_delete );
+		if ( null !== $check ) {
+			return $check;
+		}
+	}
 	if ( isset( $GLOBALS['ec_test']['before_post_delete'] ) ) {
 		$callback = $GLOBALS['ec_test']['before_post_delete'];
 		unset( $GLOBALS['ec_test']['before_post_delete'] );
 		$callback( $post_id, $post );
 	}
-	if ( $post && 'artist_profile' === $post->post_type && function_exists( 'ec_delete_artist_profile_term_binding' ) ) {
-		ec_delete_artist_profile_term_binding( $post_id );
+	if ( ! empty( $GLOBALS['ec_test']['fail_post_delete'] ) ) {
+		return false;
 	}
 	unset( $GLOBALS['ec_test']['blogs'][ $blog_id ]['posts'][ $post_id ], $GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ] );
 	$GLOBALS['ec_test']['deleted_posts'][] = $post_id;
+	if ( $post && function_exists( 'ec_artist_binding_after_delete_post' ) ) {
+		ec_artist_binding_after_delete_post( $post_id, $post );
+	}
 	return $post;
+}
+
+function clean_post_cache( $post_id ) {
+	$post_id = is_object( $post_id ) ? $post_id->ID : $post_id;
+	$GLOBALS['ec_test']['clean_post_cache_calls'][] = array( get_current_blog_id(), (int) $post_id );
+}
+
+function clean_term_cache( $term_id, $taxonomy = '' ) {
+	$GLOBALS['ec_test']['clean_term_cache_calls'][] = array( get_current_blog_id(), (int) $term_id, $taxonomy );
+}
+
+function clean_taxonomy_cache( $taxonomy ) {
+	$GLOBALS['ec_test']['clean_taxonomy_cache_calls'][] = array( get_current_blog_id(), $taxonomy );
 }
 
 function delete_post_meta( $post_id, $key, $value = '' ) {
@@ -728,6 +767,14 @@ function get_term_by( $field, $value, $taxonomy ) {
 
 function get_terms( $args = array() ) {
 	$GLOBALS['ec_test']['get_terms_calls'][] = $args;
+	if ( ! empty( $GLOBALS['ec_test']['fail_get_terms'] ) || (int) ( $GLOBALS['ec_test']['fail_get_terms_on_call'] ?? 0 ) === count( $GLOBALS['ec_test']['get_terms_calls'] ) ) {
+		if ( isset( $GLOBALS['ec_test']['before_get_terms_failure'] ) ) {
+			$callback = $GLOBALS['ec_test']['before_get_terms_failure'];
+			unset( $GLOBALS['ec_test']['before_get_terms_failure'] );
+			$callback();
+		}
+		return new WP_Error( 'term_query_failed', 'Term query failed.' );
+	}
 	$term_ids   = array();
 	$meta_query = $args['meta_query'][0] ?? array();
 	foreach ( ec_test_blog_store( 'terms' ) as $term_id => $term ) {
@@ -780,11 +827,42 @@ function update_term_meta( $term_id, $key, $value ) {
 	return true;
 }
 
+function add_term_meta( $term_id, $key, $value, $unique = false ) {
+	$blog_id = $GLOBALS['ec_test']['current_blog_id'];
+	$GLOBALS['ec_test']['term_meta_add_calls'][ $key ] = ( $GLOBALS['ec_test']['term_meta_add_calls'][ $key ] ?? 0 ) + 1;
+	if ( ! empty( $GLOBALS['ec_test']['fail_term_meta_add_keys'][ $key ] ) ) {
+		--$GLOBALS['ec_test']['fail_term_meta_add_keys'][ $key ];
+		return false;
+	}
+	if ( ! empty( $GLOBALS['ec_test']['term_meta_add_reports_success_without_add'] ) ) {
+		return true;
+	}
+	$current = $GLOBALS['ec_test']['blogs'][ $blog_id ]['term_meta'][ $term_id ][ $key ] ?? null;
+	if ( $unique && null !== $current ) {
+		return false;
+	}
+	if ( null === $current ) {
+		$GLOBALS['ec_test']['blogs'][ $blog_id ]['term_meta'][ $term_id ][ $key ] = $value;
+	} else {
+		$values = is_array( $current ) ? $current : array( $current );
+		$values[] = $value;
+		$GLOBALS['ec_test']['blogs'][ $blog_id ]['term_meta'][ $term_id ][ $key ] = $values;
+	}
+	return true;
+}
+
 function delete_term_meta( $term_id, $key, $value = '' ) {
 	$blog_id = $GLOBALS['ec_test']['current_blog_id'];
+	$GLOBALS['ec_test']['term_meta_delete_calls'][ $key ] = ( $GLOBALS['ec_test']['term_meta_delete_calls'][ $key ] ?? 0 ) + 1;
+	if ( (int) ( $GLOBALS['ec_test']['fail_term_meta_delete_on_call'][ $key ] ?? 0 ) === $GLOBALS['ec_test']['term_meta_delete_calls'][ $key ] ) {
+		return false;
+	}
 	if ( ! empty( $GLOBALS['ec_test']['fail_term_meta_delete_keys'][ $key ] ) ) {
 		--$GLOBALS['ec_test']['fail_term_meta_delete_keys'][ $key ];
 		return false;
+	}
+	if ( ! empty( $GLOBALS['ec_test']['term_meta_delete_reports_success_without_delete'] ) ) {
+		return true;
 	}
 	$current = $GLOBALS['ec_test']['blogs'][ $blog_id ]['term_meta'][ $term_id ][ $key ] ?? null;
 	if ( is_array( $current ) && '' !== $value ) {
@@ -920,7 +998,8 @@ function get_main_site_id() {
 	return 1;
 }
 
-function wp_cache_delete() {
+function wp_cache_delete( $key = '', $group = '' ) {
+	$GLOBALS['ec_test']['cache_delete_calls'][] = array( get_current_blog_id(), $key, $group );
 	return true;
 }
 

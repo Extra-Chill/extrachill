@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class ArtistMembershipContractTest extends TestCase {
 	protected function setUp(): void {
 		unset( $GLOBALS['ec_artist_membership_locks'] );
+		unset( $GLOBALS['ec_artist_binding_lock'], $GLOBALS['ec_artist_binding_lock_pending'], $GLOBALS['ec_artist_binding_delete_locks'], $GLOBALS['ec_artist_binding_deferred_locks'], $GLOBALS['ec_artist_binding_release_failure'] );
 		$GLOBALS['wpdb'] = new EcTestWpdb();
 		$GLOBALS['ec_test'] = array(
 			'current_blog_id' => 1,
