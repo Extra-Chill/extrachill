@@ -13,6 +13,7 @@ if ( ! function_exists( 'get_current_blog_id' ) ) :
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'MINUTE_IN_SECONDS', 60 );
 
 $current_blog_id = 1;
 $blog_stack      = array();
@@ -20,6 +21,11 @@ $filters         = array();
 $content_queries = array();
 $query_vars      = array();
 $search_scope    = 'site';
+$object_cache    = array();
+$cache_expiries  = array();
+$cache_adds      = array();
+$posts_generation = array( 1 => 'generation-1', 2 => 'generation-2', 3 => 'generation-3' );
+$logged_in       = false;
 
 class Search_State_Test_WPDB {
 	public $posts = 'wp_posts';
@@ -48,7 +54,7 @@ class WP_Query {
 	public $found_posts = 0;
 	public $max_num_pages = 0;
 	private $args = array();
-	private $posts = array();
+	public $posts = array();
 	private $index = 0;
 	private $main = false;
 	private $search = false;
@@ -75,7 +81,7 @@ class WP_Query {
 			if ( ! is_user_logged_in() && '' !== $post->post_password ) {
 				continue;
 			}
-			$this->posts[] = $post;
+			$this->posts[] = 'ids' === ( $args['fields'] ?? '' ) ? $post->ID : $post;
 		}
 	}
 
@@ -101,7 +107,7 @@ class WP_Query {
 
 	public function the_post() {
 		global $post;
-		$post = $this->posts[ $this->index ];
+		$post = get_post( $this->posts[ $this->index ] );
 		++$this->index;
 	}
 }
@@ -209,7 +215,8 @@ function is_admin() {
 }
 
 function is_user_logged_in() {
-	return false;
+	global $logged_in;
+	return $logged_in;
 }
 
 function wp_parse_args( $args, $defaults ) {
@@ -242,13 +249,18 @@ function assert_same( $expected, $actual, $message ) {
 }
 
 function reset_search_state() {
-	global $blog_stack, $content_queries, $current_blog_id, $filters, $query_vars, $search_scope, $wpdb;
+	global $blog_stack, $cache_adds, $cache_expiries, $content_queries, $current_blog_id, $filters, $logged_in, $object_cache, $posts_generation, $query_vars, $search_scope, $wpdb;
 	$blog_stack       = array();
 	$content_queries  = array();
 	$current_blog_id  = 1;
 	$filters          = array();
 	$query_vars       = array();
 	$search_scope     = 'site';
+	$object_cache     = array();
+	$cache_expiries   = array();
+	$cache_adds       = array();
+	$posts_generation = array( 1 => 'generation-1', 2 => 'generation-2', 3 => 'generation-3' );
+	$logged_in        = false;
 	$wpdb->posts      = 'wp_posts';
 	WP_Query::$throw  = false;
 	WP_Query::$instances = array();
@@ -256,6 +268,7 @@ function reset_search_state() {
 }
 
 require_once __DIR__ . '/fixtures/SearchRequestFunctions.php';
+require_once __DIR__ . '/fixtures/SearchCandidateCacheFunctions.php';
 require_once dirname( __DIR__ ) . '/inc/core/index-health.php';
 require_once dirname( __DIR__ ) . '/inc/core/search-algorithm.php';
 require_once dirname( __DIR__ ) . '/templates/template-functions.php';
@@ -284,12 +297,13 @@ assert_same( 200, $site_query['posts_per_page'], 'Production candidate window is
 $content_queries    = array();
 $query_vars['paged'] = 2;
 $site_page_two      = extrachill_get_search_results();
-assert_same( 1, count( $content_queries ), 'Pagination reran or skipped the site content query.' );
+assert_same( 0, count( $content_queries ), 'Warm pagination reran the site candidate query.' );
 assert_same( array( 23 ), wp_list_pluck( $site_page_two['results'], 'ID' ), 'Exact pagination changed.' );
 
 $content_queries    = array();
 $query_vars['paged'] = 1;
 $search_scope       = 'network';
+$object_cache       = array();
 $network_instance_offset = count( WP_Query::$instances );
 $network_page       = extrachill_get_search_results();
 assert_same( 2, count( $content_queries ), 'Network request did not execute one content query per targeted site.' );
@@ -297,12 +311,60 @@ assert_same( 4, $network_page['total'], 'Multisite aggregation changed the rende
 $network_instances = array_slice( WP_Query::$instances, $network_instance_offset );
 assert_same( array( 2, 3 ), wp_list_pluck( $network_instances, 'blog_id' ), 'Network routing omitted a targeted site.' );
 
-// Broad and selective requests retain one bounded FULLTEXT query per site.
+// Broad requests cache bounded IDs; selective requests retain one query each.
 $content_queries = array();
 extrachill_network_search( 'music', array( 'site2.test' ) );
+extrachill_network_search( 'MUSIC', array( 'site2.test' ) );
 extrachill_network_search( 'needlefest 21', array( 'site2.test' ) );
 assert_same( 2, count( $content_queries ), 'Broad or selective search duplicated the canonical query.' );
 assert_same( false, false !== strpos( $content_queries[0], '+music*' ), 'Broad search expanded the indexed token prefix.' );
+
+// Cache keys are private, scoped, short-lived, invalidated, and fixed-cardinality.
+$broad_args = array(
+	'post_type'      => array( 'post' ),
+	'post_status'    => array( 'publish' ),
+	'posts_per_page' => 200,
+	'fields'         => 'ids',
+	'orderby'        => 'date',
+	'order'          => 'DESC',
+	'no_found_rows'  => true,
+);
+$public_identity = extrachill_get_candidate_cache_identity( $broad_args, 'private search' );
+assert_same( false, $public_identity, 'Selective terms were incorrectly cache eligible.' );
+$public_identity = extrachill_get_candidate_cache_identity( $broad_args, 'secretterm' );
+assert_same( false, false !== strpos( $public_identity['key'], 'secretterm' ), 'Raw search text leaked into the cache key.' );
+$logged_in = true;
+$authenticated_identity = extrachill_get_candidate_cache_identity( $broad_args, 'secretterm' );
+assert_same( false, $public_identity['digest'] === $authenticated_identity['digest'], 'Password visibility scope was omitted from the cache identity.' );
+$logged_in = false;
+$ascending_args          = array_merge( $broad_args, array( 'order' => 'ASC' ) );
+$ascending_identity      = extrachill_get_candidate_cache_identity( $ascending_args, 'secretterm' );
+assert_same( false, $public_identity['digest'] === $ascending_identity['digest'], 'Ordering mode was omitted from the cache identity.' );
+switch_to_blog( 3 );
+$other_site_identity = extrachill_get_candidate_cache_identity( $broad_args, 'secretterm' );
+restore_current_blog();
+assert_same( false, $public_identity['key'] === $other_site_identity['key'], 'Multisite cache keys were not physically separated.' );
+
+$keys = array();
+for ( $index = 0; $index < 200; ++$index ) {
+	$identity = extrachill_get_candidate_cache_identity( $broad_args, 'term' . $index );
+	$keys[ $identity['key'] ] = true;
+}
+assert_same( true, count( $keys ) <= 64, 'Arbitrary terms created more than 64 candidate cache slots per site.' );
+
+$content_queries = array();
+$object_cache     = array();
+$cache_adds       = array();
+extrachill_network_search( 'music', array( 'site2.test' ) );
+$candidate_keys = array_filter( array_keys( $object_cache['extrachill-search-candidates'] ), static function ( $key ) { return false === strpos( $key, '-lock' ); } );
+assert_same( 1, count( $candidate_keys ), 'Cold broad search did not write one candidate slot.' );
+assert_same( 5 * MINUTE_IN_SECONDS, $cache_expiries['extrachill-search-candidates'][ reset( $candidate_keys ) ], 'Candidate TTL is not bounded at five minutes.' );
+assert_same( 1, count( $cache_adds ), 'Cold broad search did not acquire exactly one atomic cache lock.' );
+$remaining_locks = array_filter( array_keys( $object_cache['extrachill-search-candidates'] ), static function ( $key ) { return false !== strpos( $key, '-lock' ); } );
+assert_same( array(), array_values( $remaining_locks ), 'Candidate lock was not released after cache fill.' );
+$posts_generation[2] = 'generation-2b';
+extrachill_network_search( 'music', array( 'site2.test' ) );
+assert_same( 2, count( $content_queries ), 'Content generation change served stale candidate IDs.' );
 
 // Empty canonical and fallback result sets remain empty without leaking sites.
 reset_search_state();

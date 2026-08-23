@@ -196,6 +196,145 @@ function extrachill_fulltext_query( $query_args, $search_term ) {
 }
 
 /**
+ * Build the private cache identity for an eligible broad candidate query.
+ *
+ * A fixed physical bucket is derived from this identity, while the complete
+ * digest is stored with the value to make bucket collisions safe.
+ *
+ * @param array  $query_args  Candidate WP_Query arguments.
+ * @param string $search_term Search term.
+ * @return array{digest:string,key:string,lock_key:string}|false Cache identity, or false when ineligible.
+ */
+function extrachill_get_candidate_cache_identity( $query_args, $search_term ) {
+	$normalized = preg_replace( '/\s+/', ' ', extrachill_normalize_search_term( $search_term ) );
+	if ( ! is_string( $normalized ) ) {
+		return false;
+	}
+
+	$normalized = strtolower( trim( $normalized ) );
+	$words      = preg_split( '/\s+/', $normalized, -1, PREG_SPLIT_NO_EMPTY );
+
+	if (
+		false === $words
+		|| 1 !== count( $words )
+		|| 'ids' !== ( $query_args['fields'] ?? '' )
+		|| 200 !== (int) ( $query_args['posts_per_page'] ?? 0 )
+		|| empty( $query_args['no_found_rows'] )
+		|| ! empty( $query_args['meta_query'] )
+		|| ! empty( $query_args['tax_query'] )
+	) {
+		return false;
+	}
+
+	$post_types    = array_values( (array) ( $query_args['post_type'] ?? array( 'post' ) ) );
+	$post_statuses = array_values( (array) ( $query_args['post_status'] ?? array( 'publish' ) ) );
+	sort( $post_types );
+	sort( $post_statuses );
+
+	$scope         = array(
+		'schema'          => 1,
+		'blog_id'         => get_current_blog_id(),
+		'term_hash'       => hash( 'sha256', $normalized ),
+		'post_types'      => $post_types,
+		'post_statuses'   => $post_statuses,
+		'password_scope'  => is_user_logged_in() ? 'authenticated' : 'public',
+		'orderby'         => (string) ( $query_args['orderby'] ?? 'date' ),
+		'order'           => strtoupper( (string) ( $query_args['order'] ?? 'DESC' ) ),
+		'relevance'       => 'fulltext_boolean_exact_required',
+		'candidate_limit' => (int) $query_args['posts_per_page'],
+		'generation'      => wp_cache_get_last_changed( 'posts' ),
+	);
+	$encoded_scope = wp_json_encode( $scope );
+	if ( false === $encoded_scope ) {
+		return false;
+	}
+
+	$digest = hash( 'sha256', $encoded_scope );
+	$bucket = hexdec( substr( $digest, 0, 8 ) ) % 64;
+	$key    = sprintf( 'candidate-v1-b%d-s%d', get_current_blog_id(), $bucket );
+
+	return array(
+		'digest'   => $digest,
+		'key'      => $key,
+		'lock_key' => $key . '-lock',
+	);
+}
+
+/**
+ * Get one site's bounded FULLTEXT candidate IDs, using fixed object-cache slots.
+ *
+ * @param array  $query_args  Candidate WP_Query arguments.
+ * @param string $search_term Search term.
+ * @return int[] Candidate post IDs in database relevance order.
+ */
+function extrachill_get_fulltext_candidate_ids( $query_args, $search_term ) {
+	$status = extrachill_get_fulltext_index_status();
+	if ( ! $status['ready'] ) {
+		extrachill_report_fulltext_index_failure( $status );
+		// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+		throw new RuntimeException( sprintf( 'Search index is not ready for blog %d: %s', $status['blog_id'], $status['reason'] ) );
+	}
+
+	$identity = extrachill_get_candidate_cache_identity( $query_args, $search_term );
+	if ( false === $identity ) {
+		$query = extrachill_fulltext_query( $query_args, $search_term );
+		return array_map(
+			static function ( $post ) {
+				return $post instanceof WP_Post ? (int) $post->ID : (int) $post;
+			},
+			$query->posts
+		);
+	}
+
+	$group  = 'extrachill-search-candidates';
+	$cached = wp_cache_get( $identity['key'], $group );
+	if ( is_array( $cached ) && hash_equals( $identity['digest'], $cached['digest'] ?? '' ) ) {
+		return array_map( 'intval', (array) ( $cached['ids'] ?? array() ) );
+	}
+
+	$lock_token = uniqid( '', true );
+	$has_lock   = wp_cache_add( $identity['lock_key'], $lock_token, $group, 10 );
+	if ( ! $has_lock ) {
+		for ( $attempt = 0; $attempt < 40; ++$attempt ) {
+			usleep( 50000 );
+			$cached = wp_cache_get( $identity['key'], $group );
+			if ( is_array( $cached ) && hash_equals( $identity['digest'], $cached['digest'] ?? '' ) ) {
+				return array_map( 'intval', (array) ( $cached['ids'] ?? array() ) );
+			}
+		}
+	}
+
+	try {
+		$query_args['cache_results'] = false;
+		$query                       = extrachill_fulltext_query( $query_args, $search_term );
+		$post_ids                    = array_map(
+			static function ( $post ) {
+				return $post instanceof WP_Post ? (int) $post->ID : (int) $post;
+			},
+			$query->posts
+		);
+
+		if ( $has_lock ) {
+			wp_cache_set(
+				$identity['key'],
+				array(
+					'digest' => $identity['digest'],
+					'ids'    => $post_ids,
+				),
+				$group,
+				5 * MINUTE_IN_SECONDS
+			);
+		}
+	} finally {
+		if ( $has_lock && wp_cache_get( $identity['lock_key'], $group ) === $lock_token ) {
+			wp_cache_delete( $identity['lock_key'], $group );
+		}
+	}
+
+	return $post_ids;
+}
+
+/**
  * Word-level search fallback when primary search returns zero results.
  *
  * Uses FULLTEXT NATURAL LANGUAGE MODE (more forgiving than BOOLEAN MODE)
@@ -455,13 +594,17 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 				$query_args['tax_query'] = $args['tax_query'];
 			}
 
-			$query = extrachill_fulltext_query( $query_args, $search_term );
+			$post_ids = extrachill_get_fulltext_candidate_ids( $query_args, $search_term );
 
-			if ( $query->have_posts() ) {
-				while ( $query->have_posts() ) {
-					$query->the_post();
-					global $post;
+			if ( ! empty( $post_ids ) ) {
+				_prime_post_caches( $post_ids, true, true );
+				foreach ( $post_ids as $post_id ) {
+					$post = get_post( $post_id );
+					if ( ! $post ) {
+						continue;
+					}
 
+					setup_postdata( $post );
 					$all_results[] = extrachill_hydrate_search_result( $post, $blog_id, $blog_details );
 				}
 				wp_reset_postdata();
