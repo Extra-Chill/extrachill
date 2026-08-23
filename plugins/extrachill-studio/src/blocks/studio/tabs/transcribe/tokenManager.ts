@@ -9,7 +9,7 @@
  * The token does NOT cross between tabs — it's minted lazily on the first
  * sweatpants call from the Transcribe tab.
  *
- * @package ExtraChillStudio
+ * @package
  */
 
 import apiFetch from '@wordpress/api-fetch';
@@ -18,7 +18,8 @@ import type { SweatpantsToken } from './types';
 // The Abilities API exposes its REST surface under /wp-abilities/v1, NOT
 // /wp/v2/abilities, and the action verb is /run, not /execute. Verified
 // against the live `/wp-json/` discovery on studio.extrachill.com.
-const TOKEN_ABILITY_PATH = '/wp-abilities/v1/abilities/extrachill/sweatpants-token/run';
+const TOKEN_ABILITY_PATH =
+	'/wp-abilities/v1/abilities/extrachill/sweatpants-token/run';
 // `callback:write` lets sweatpants sign and POST a completion callback
 // back to our REST endpoint when the job finishes — this is how the user
 // gets an email + draft post without keeping the browser tab open.
@@ -37,8 +38,11 @@ const nowSeconds = (): number => Math.floor( Date.now() / 1000 );
 /**
  * Returns true if the cached token exists and has at least
  * `EXPIRY_BUFFER_SECONDS` of life remaining.
+ * @param token
  */
-const tokenIsFresh = ( token: SweatpantsToken | null ): token is SweatpantsToken => {
+const tokenIsFresh = (
+	token: SweatpantsToken | null
+): token is SweatpantsToken => {
 	if ( ! token ) {
 		return false;
 	}
@@ -68,7 +72,11 @@ const mintToken = async (): Promise< SweatpantsToken > => {
 		},
 	} );
 
-	if ( ! response || typeof response.token !== 'string' || typeof response.expires_at !== 'number' ) {
+	if (
+		! response ||
+		typeof response.token !== 'string' ||
+		typeof response.expires_at !== 'number'
+	) {
 		throw new Error( 'Token ability returned an unexpected payload.' );
 	}
 

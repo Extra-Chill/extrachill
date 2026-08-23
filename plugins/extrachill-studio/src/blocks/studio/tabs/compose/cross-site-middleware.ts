@@ -111,7 +111,10 @@ let liveInstances = 0;
  * @param name    Header name to look up.
  * @return The header value, or undefined when absent.
  */
-function readHeader( options: APIFetchOptions, name: string ): string | undefined {
+function readHeader(
+	options: APIFetchOptions,
+	name: string
+): string | undefined {
 	const headers = options.headers;
 	if ( ! headers || typeof headers !== 'object' ) {
 		return undefined;
@@ -134,7 +137,9 @@ function readHeader( options: APIFetchOptions, name: string ): string | undefine
  * @param options apiFetch options.
  * @return New options with the compose marker header set.
  */
-export function markComposeRequest< T extends APIFetchOptions >( options: T ): T {
+export function markComposeRequest< T extends APIFetchOptions >(
+	options: T
+): T {
 	return {
 		...options,
 		headers: {
@@ -200,7 +205,9 @@ function rewritePath( path: string ): string | null {
 	const normalized = route.startsWith( '/' ) ? route : `/${ route }`;
 
 	// /wp/v2/posts/<id>/autosaves
-	const autosaveMatch = normalized.match( /^\/wp\/v2\/posts\/(\d+)\/autosaves$/ );
+	const autosaveMatch = normalized.match(
+		/^\/wp\/v2\/posts\/(\d+)\/autosaves$/
+	);
 	if ( autosaveMatch ) {
 		return `${ PROXY_PREFIX }/posts/${ autosaveMatch[ 1 ] }/autosaves${ query }`;
 	}
@@ -269,7 +276,10 @@ function registerMiddlewareOnce(): void {
 	}
 	registered = true;
 
-	const middleware: APIFetchMiddleware = ( options: APIFetchOptions, next ) => {
+	const middleware: APIFetchMiddleware = (
+		options: APIFetchOptions,
+		next
+	) => {
 		if ( ! shouldRewrite( options ) ) {
 			return next( options );
 		}

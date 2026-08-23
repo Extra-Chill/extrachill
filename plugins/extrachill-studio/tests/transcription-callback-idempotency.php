@@ -80,7 +80,10 @@ function __($text) { return $text; }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function rest_ensure_response( $value ) { return new WP_REST_Response( $value ); }
 function get_site_option( $key, $default = false ) { return 'sweatpants_signed_token_secret' === $key ? 'secret' : $default; }
-function wp_native_auth_verify_external_token() { return array( 'scope' => 'callback:write', 'sub' => 7 ); }
+function wp_native_auth_verify_external_token( $token, $secret, $now = 0 ) {
+	unset( $token, $secret, $now );
+	return array( 'scope' => 'callback:write', 'sub' => 7 );
+}
 function get_user_by() { return new WP_User(); }
 function ec_get_blog_id() { return 1; }
 function switch_to_blog() {}

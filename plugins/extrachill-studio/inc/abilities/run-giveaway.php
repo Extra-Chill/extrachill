@@ -187,7 +187,7 @@ function ec_studio_register_run_giveaway_ability(): void {
  * @param array $input Input parameters.
  * @return array|\WP_Error Result.
  */
-function ec_studio_execute_run_giveaway( array $input ): array|\WP_Error {
+function ec_studio_execute_run_giveaway( array $input ) {
 	$media_input  = $input['media_input'] ?? '';
 	$require_tag  = $input['require_tag'] ?? true;
 	$min_tags     = max( 1, absint( $input['min_tags'] ?? 1 ) );

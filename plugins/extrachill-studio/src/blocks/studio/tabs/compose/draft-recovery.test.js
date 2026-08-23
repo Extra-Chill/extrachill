@@ -1,5 +1,3 @@
-/* global describe, expect, it, jest */
-
 /**
  * External dependencies
  */
@@ -97,9 +95,9 @@ describe( 'Compose draft hydration contract', () => {
 			'utf8'
 		);
 
-		expect( source ).toContain(
-			'const initialDraft = result.length > 0\n\t\t\t\t? await loadDraftContent( result[ 0 ] )'
+		expect( source ).toMatch(
+			/const initialDraft =\s+result\.length > 0\s+\? await loadDraftContent\( result\[ 0 \] \)/
 		);
-		expect( source ).toContain( '} = await loadDraftContent( post );' );
+		expect( source ).toMatch( /\} =\s+await loadDraftContent\( post \);/ );
 	} );
 } );

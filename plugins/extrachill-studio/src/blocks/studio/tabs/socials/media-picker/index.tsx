@@ -1,16 +1,29 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
+import {
+	createElement,
+	useEffect,
+	useRef,
+	useState,
+	useCallback,
+} from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
-import { ActionRow, FieldGroup, InlineStatus, Panel } from '@extrachill/components';
+import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+} from '@extrachill/components';
 import type { NetworkMediaItem } from '@extrachill/api-client';
 
 import { studioClient } from '../../../app/client';
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
-const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
 
 const PER_PAGE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -35,8 +48,14 @@ export interface MediaPickerProps {
  *
  * Selection is single-click — the parent receives the chosen URL and
  * decides what to do with it (e.g. add to publish queue).
+ * @param root0
+ * @param root0.onSelect
+ * @param root0.className
  */
-const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement => {
+const MediaPicker = ( {
+	onSelect,
+	className,
+}: MediaPickerProps ): ReactElement => {
 	const [ items, setItems ] = useState< NetworkMediaItem[] >( [] );
 	const [ page, setPage ] = useState( 1 );
 	const [ totalPages, setTotalPages ] = useState( 1 );
@@ -48,10 +67,16 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 	const [ error, setError ] = useState( '' );
 
 	const fileInputRef = useRef< HTMLInputElement | null >( null );
-	const searchDebounceRef = useRef< ReturnType< typeof setTimeout > | null >( null );
+	const searchDebounceRef = useRef< ReturnType< typeof setTimeout > | null >(
+		null
+	);
 
 	const fetchPage = useCallback(
-		async ( targetPage: number, search: string, mode: 'replace' | 'append' ): Promise< void > => {
+		async (
+			targetPage: number,
+			search: string,
+			mode: 'replace' | 'append'
+		): Promise< void > => {
 			setIsLoading( true );
 			setError( '' );
 
@@ -63,15 +88,22 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 					page: targetPage,
 				} );
 
-				const fetched = Array.isArray( response?.items ) ? response.items : [];
-				setItems( ( current ) => ( mode === 'append' ? [ ...current, ...fetched ] : fetched ) );
+				const fetched = Array.isArray( response?.items )
+					? response.items
+					: [];
+				setItems( ( current ) =>
+					mode === 'append' ? [ ...current, ...fetched ] : fetched
+				);
 				setPage( response?.page || targetPage );
 				setTotalPages( response?.total_pages || 1 );
 				setTotalItems( response?.total || fetched.length );
 			} catch ( fetchError ) {
 				setError(
 					( fetchError as Error )?.message ||
-						__( 'Unable to load media library.', 'extrachill-studio' )
+						__(
+							'Unable to load media library.',
+							'extrachill-studio'
+						)
 				);
 				if ( mode === 'replace' ) {
 					setItems( [] );
@@ -125,14 +157,18 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 	const handleFileChange = useCallback(
 		async ( event: ChangeEvent< HTMLInputElement > ): Promise< void > => {
 			const file = event.target.files?.[ 0 ];
-			if ( ! file ) return;
+			if ( ! file ) {
+				return;
+			}
 
 			setIsUploading( true );
 			setError( '' );
 
 			try {
-				const formData = studioClient.networkMedia.buildUploadForm( file );
-				const uploaded = await studioClient.networkMedia.upload( formData );
+				const formData =
+					studioClient.networkMedia.buildUploadForm( file );
+				const uploaded =
+					await studioClient.networkMedia.upload( formData );
 
 				// Prepend the new upload so it's immediately visible at the top.
 				setItems( ( current ) => [ uploaded, ...current ] );
@@ -156,10 +192,7 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 		[ onSelect ]
 	);
 
-	const wrapperClass = [
-		'ec-studio-media-picker',
-		className || '',
-	]
+	const wrapperClass = [ 'ec-studio-media-picker', className || '' ]
 		.filter( Boolean )
 		.join( ' ' );
 
@@ -172,26 +205,38 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 			{
 				label: __( 'Search media library', 'extrachill-studio' ),
 				htmlFor: 'ec-studio-media-picker-search',
-				help: totalItems > 0
-					? sprintf(
-						/* translators: %d: total number of media items */
-						__( '%d images in library', 'extrachill-studio' ),
-						totalItems
-					)
-					: null,
+				help:
+					totalItems > 0
+						? sprintf(
+								/* translators: %d: total number of media items */
+								__(
+									'%d images in library',
+									'extrachill-studio'
+								),
+								totalItems
+						  )
+						: null,
 			},
 			createElement( 'input', {
 				id: 'ec-studio-media-picker-search',
 				type: 'search',
 				value: searchInput,
-				onChange: ( event: ChangeEvent< HTMLInputElement > ) => setSearchInput( event.target.value ),
-				placeholder: __( 'Search by filename or title…', 'extrachill-studio' ),
+				onChange: ( event: ChangeEvent< HTMLInputElement > ) =>
+					setSearchInput( event.target.value ),
+				placeholder: __(
+					'Search by filename or title…',
+					'extrachill-studio'
+				),
 				autoComplete: 'off',
 			} )
 		),
 
 		error
-			? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error )
+			? h(
+					InlineStatusView,
+					{ tone: 'error', className: 'ec-studio-message' },
+					error
+			  )
 			: null,
 
 		// Hidden native file input wired to the upload tile.
@@ -210,7 +255,11 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 			// Upload tile (always first)
 			createElement(
 				'li',
-				{ className: 'ec-studio-media-picker__tile ec-studio-media-picker__tile--upload', key: '__upload__' },
+				{
+					className:
+						'ec-studio-media-picker__tile ec-studio-media-picker__tile--upload',
+					key: '__upload__',
+				},
 				createElement(
 					'button',
 					{
@@ -218,9 +267,19 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 						className: 'ec-studio-media-picker__upload-btn',
 						onClick: triggerUpload,
 						disabled: isUploading,
-						'aria-label': __( 'Upload new image', 'extrachill-studio' ),
+						'aria-label': __(
+							'Upload new image',
+							'extrachill-studio'
+						),
 					},
-					createElement( 'span', { className: 'ec-studio-media-picker__upload-icon', 'aria-hidden': true }, '+' ),
+					createElement(
+						'span',
+						{
+							className: 'ec-studio-media-picker__upload-icon',
+							'aria-hidden': true,
+						},
+						'+'
+					),
 					createElement(
 						'span',
 						{ className: 'ec-studio-media-picker__upload-label' },
@@ -234,7 +293,10 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 			...items.map( ( item ) =>
 				createElement(
 					'li',
-					{ key: item.sourceId, className: 'ec-studio-media-picker__tile' },
+					{
+						key: item.sourceId,
+						className: 'ec-studio-media-picker__tile',
+					},
 					createElement(
 						'button',
 						{
@@ -264,40 +326,43 @@ const MediaPicker = ( { onSelect, className }: MediaPickerProps ): ReactElement 
 			{ className: 'ec-studio-media-picker__footer' },
 			isLoading && items.length === 0
 				? createElement(
-					'span',
-					{ className: 'ec-studio-composer__hint' },
-					__( 'Loading…', 'extrachill-studio' )
-				)
+						'span',
+						{ className: 'ec-studio-composer__hint' },
+						__( 'Loading…', 'extrachill-studio' )
+				  )
 				: null,
 			! isLoading && items.length === 0
 				? createElement(
-					'span',
-					{ className: 'ec-studio-composer__hint' },
-					activeSearch
-						? __( 'No matches.', 'extrachill-studio' )
-						: __( 'No media yet — upload to get started.', 'extrachill-studio' )
-				)
+						'span',
+						{ className: 'ec-studio-composer__hint' },
+						activeSearch
+							? __( 'No matches.', 'extrachill-studio' )
+							: __(
+									'No media yet — upload to get started.',
+									'extrachill-studio'
+							  )
+				  )
 				: null,
 			page < totalPages
 				? createElement(
-					'button',
-					{
-						type: 'button',
-						className: 'button-1 button-medium',
-						onClick: loadMore,
-						disabled: isLoading,
-					},
-					isLoading
-						? __( 'Loading…', 'extrachill-studio' )
-						: __( 'Load more', 'extrachill-studio' )
-				)
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium',
+							onClick: loadMore,
+							disabled: isLoading,
+						},
+						isLoading
+							? __( 'Loading…', 'extrachill-studio' )
+							: __( 'Load more', 'extrachill-studio' )
+				  )
 				: null,
 			page >= totalPages && items.length > 0
 				? createElement(
-					'span',
-					{ className: 'ec-studio-composer__hint' },
-					__( 'End of library.', 'extrachill-studio' )
-				)
+						'span',
+						{ className: 'ec-studio-composer__hint' },
+						__( 'End of library.', 'extrachill-studio' )
+				  )
 				: null
 		)
 	);

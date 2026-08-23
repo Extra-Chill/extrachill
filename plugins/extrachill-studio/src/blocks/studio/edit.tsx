@@ -1,5 +1,9 @@
 import { __ } from '@wordpress/i18n';
-import { InspectorControls, RichText, useBlockProps } from '@wordpress/block-editor';
+import {
+	InspectorControls,
+	RichText,
+	useBlockProps,
+} from '@wordpress/block-editor';
 import { PanelBody, TextareaControl } from '@wordpress/components';
 import { Tabs } from '@extrachill/components';
 
@@ -24,12 +28,20 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 	return (
 		<>
 			<InspectorControls>
-				<PanelBody title={ __( 'Studio Settings', 'extrachill-studio' ) } initialOpen>
+				<PanelBody
+					title={ __( 'Studio Settings', 'extrachill-studio' ) }
+					initialOpen
+				>
 					<TextareaControl
 						label={ __( 'Denied Message', 'extrachill-studio' ) }
 						value={ deniedMessage }
-						onChange={ ( value: string ) => setAttributes( { deniedMessage: value } ) }
-						help={ __( 'Displayed when a logged-in user does not have team member access.', 'extrachill-studio' ) }
+						onChange={ ( value: string ) =>
+							setAttributes( { deniedMessage: value } )
+						}
+						help={ __(
+							'Displayed when a logged-in user does not have team member access.',
+							'extrachill-studio'
+						) }
 					/>
 				</PanelBody>
 			</InspectorControls>
@@ -38,24 +50,41 @@ export default function Edit( { attributes, setAttributes }: EditProps ) {
 				<RichText
 					tagName="h3"
 					className="ec-studio-editor__headline"
-					placeholder={ __( 'Add a Studio headline…', 'extrachill-studio' ) }
+					placeholder={ __(
+						'Add a Studio headline…',
+						'extrachill-studio'
+					) }
 					value={ headline }
-					onChange={ ( value: string ) => setAttributes( { headline: value } ) }
+					onChange={ ( value: string ) =>
+						setAttributes( { headline: value } )
+					}
 					allowedFormats={ [] }
 				/>
 
 				<RichText
 					tagName="p"
 					className="ec-studio-editor__description"
-					placeholder={ __( 'Describe what the Studio is for…', 'extrachill-studio' ) }
+					placeholder={ __(
+						'Describe what the Studio is for…',
+						'extrachill-studio'
+					) }
 					value={ description }
-					onChange={ ( value: string ) => setAttributes( { description: value } ) }
-					allowedFormats={ [ 'core/bold', 'core/italic', 'core/link' ] }
+					onChange={ ( value: string ) =>
+						setAttributes( { description: value } )
+					}
+					allowedFormats={ [
+						'core/bold',
+						'core/italic',
+						'core/link',
+					] }
 				/>
 
 				<div className="ec-studio-editor__preview">
 					<Tabs
-						tabs={ tabs.map( ( tab ) => ( { id: tab.id, label: tab.label } ) ) }
+						tabs={ tabs.map( ( tab ) => ( {
+							id: tab.id,
+							label: tab.label,
+						} ) ) }
 						active={ tabs[ 0 ]?.id || 'compose' }
 						onChange={ () => undefined }
 					/>

@@ -12,16 +12,37 @@
  * Persistence: jobs live only in this component's React state — no local
  * store. Past transcriptions disappear when the user navigates away.
  *
- * @package ExtraChillStudio
+ * @package
  */
 
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useCallback, useEffect, useRef, useState } from '@wordpress/element';
-import type { ChangeEvent, DragEvent, KeyboardEvent, ReactElement } from 'react';
-import { ActionRow, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import {
+	createElement,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from '@wordpress/element';
+import type {
+	ChangeEvent,
+	DragEvent,
+	KeyboardEvent,
+	ReactElement,
+} from 'react';
+import {
+	ActionRow,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+} from '@extrachill/components';
 
-import type { StudioPaneProps } from '../../types/studio';
-import { createJob, getJob, getResults, MAX_UPLOAD_BYTES, uploadAudio } from './client';
+import {
+	createJob,
+	getJob,
+	getResults,
+	MAX_UPLOAD_BYTES,
+	uploadAudio,
+} from './client';
 import type {
 	ActiveJob,
 	SweatpantsJobStatus,
@@ -29,10 +50,12 @@ import type {
 	WhisperModel,
 } from './types';
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
-const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
 
 /** Polling interval while jobs are pending or running (ms). */
 const POLL_INTERVAL_MS = 5000;
@@ -75,9 +98,14 @@ const DEFAULT_DIARIZE = false;
  */
 const REMOVE_FILLERS = true;
 
-const TERMINAL_STATUSES: ReadonlyArray< SweatpantsJobStatus > = [ 'completed', 'failed', 'stopped' ];
+const TERMINAL_STATUSES: ReadonlyArray< SweatpantsJobStatus > = [
+	'completed',
+	'failed',
+	'stopped',
+];
 
-const isTerminal = ( status: SweatpantsJobStatus ): boolean => TERMINAL_STATUSES.includes( status );
+const isTerminal = ( status: SweatpantsJobStatus ): boolean =>
+	TERMINAL_STATUSES.includes( status );
 
 /**
  * Pick the best transcript field from the results `content` map.
@@ -90,27 +118,48 @@ const isTerminal = ( status: SweatpantsJobStatus ): boolean => TERMINAL_STATUSES
  *
  * The `transcription_clean` slot is populated when `remove_fillers=true`
  * regardless of whether `diarize` ran — see sweatpants-modules#6.
+ * @param content
  */
 const pickTranscript = ( content: Record< string, string > ): string => {
-	if ( typeof content.combined_txt_clean === 'string' && content.combined_txt_clean.length > 0 ) {
+	if (
+		typeof content.combined_txt_clean === 'string' &&
+		content.combined_txt_clean.length > 0
+	) {
 		return content.combined_txt_clean;
 	}
-	if ( typeof content.combined_txt === 'string' && content.combined_txt.length > 0 ) {
+	if (
+		typeof content.combined_txt === 'string' &&
+		content.combined_txt.length > 0
+	) {
 		return content.combined_txt;
 	}
-	if ( typeof content.transcription_clean === 'string' && content.transcription_clean.length > 0 ) {
+	if (
+		typeof content.transcription_clean === 'string' &&
+		content.transcription_clean.length > 0
+	) {
 		return content.transcription_clean;
 	}
-	if ( typeof content.transcription === 'string' && content.transcription.length > 0 ) {
+	if (
+		typeof content.transcription === 'string' &&
+		content.transcription.length > 0
+	) {
 		return content.transcription;
 	}
 	return '';
 };
 
-/** Format byte count as MB with one decimal. */
-const formatMB = ( bytes: number ): string => `${ ( bytes / 1024 / 1024 ).toFixed( 1 ) } MB`;
+/**
+ * Format byte count as MB with one decimal.
+ * @param bytes
+ */
+const formatMB = ( bytes: number ): string =>
+	`${ ( bytes / 1024 / 1024 ).toFixed( 1 ) } MB`;
 
-/** Format elapsed seconds as "M:SS". */
+/**
+ * Format elapsed seconds as "M:SS".
+ * @param startedAt
+ * @param completedAt
+ */
 const formatElapsed = ( startedAt: number, completedAt?: number ): string => {
 	const end = completedAt || Date.now();
 	const seconds = Math.max( 0, Math.floor( ( end - startedAt ) / 1000 ) );
@@ -119,8 +168,12 @@ const formatElapsed = ( startedAt: number, completedAt?: number ): string => {
 	return `${ m }:${ s.toString().padStart( 2, '0' ) }`;
 };
 
-/** Strip extension off a filename for the .transcript.txt download name. */
-const stripExtension = ( filename: string ): string => filename.replace( /\.\w+$/, '' );
+/**
+ * Strip extension off a filename for the .transcript.txt download name.
+ * @param filename
+ */
+const stripExtension = ( filename: string ): string =>
+	filename.replace( /\.\w+$/, '' );
 
 /**
  * Compact label for a job — used in history.
@@ -129,6 +182,7 @@ const stripExtension = ( filename: string ): string => filename.replace( /\.\w+$
  * always on, so listing it told the reader nothing. The model is kept because
  * it is still useful provenance for a transcript someone is about to edit.
  * e.g. "medium · speakers" or "medium".
+ * @param options
  */
 const formatOptionsLabel = ( options: TranscribeOptions ): string => {
 	const parts: string[] = [ options.model ];
@@ -140,8 +194,13 @@ const formatOptionsLabel = ( options: TranscribeOptions ): string => {
 
 /**
  * Trigger a browser blob download for a plain-text transcript.
+ * @param transcript
+ * @param originalFilename
  */
-const downloadTranscriptBlob = ( transcript: string, originalFilename: string ): void => {
+const downloadTranscriptBlob = (
+	transcript: string,
+	originalFilename: string
+): void => {
 	const blob = new Blob( [ transcript ], { type: 'text/plain' } );
 	const url = URL.createObjectURL( blob );
 	const a = document.createElement( 'a' );
@@ -153,7 +212,7 @@ const downloadTranscriptBlob = ( transcript: string, originalFilename: string ):
 	URL.revokeObjectURL( url );
 };
 
-const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
+const TranscribePane = (): ReactElement => {
 	const fileInputRef = useRef< HTMLInputElement >( null );
 
 	const [ selectedFile, setSelectedFile ] = useState< File | null >( null );
@@ -168,9 +227,13 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 	const [ stageMessage, setStageMessage ] = useState( '' );
 	const [ error, setError ] = useState( '' );
 	const [ copiedJobId, setCopiedJobId ] = useState< string | null >( null );
-	const [ expandedJobId, setExpandedJobId ] = useState< string | null >( null );
+	const [ expandedJobId, setExpandedJobId ] = useState< string | null >(
+		null
+	);
 
-	const pollTimerRef = useRef< ReturnType< typeof setInterval > | null >( null );
+	const pollTimerRef = useRef< ReturnType< typeof setInterval > | null >(
+		null
+	);
 	const activeJobRef = useRef< ActiveJob | null >( null );
 	activeJobRef.current = activeJob;
 
@@ -189,19 +252,29 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		if ( file.size > MAX_UPLOAD_BYTES ) {
 			setSelectedFile( null );
-			setError( sprintf(
-				/* translators: %s: human-readable file size, e.g. "612.4 MB" */
-				__( 'File is %s — sweatpants caps uploads at 500 MB.', 'extrachill-studio' ),
-				formatMB( file.size )
-			) );
+			setError(
+				sprintf(
+					/* translators: %s: human-readable file size, e.g. "612.4 MB" */
+					__(
+						'File is %s — sweatpants caps uploads at 500 MB.',
+						'extrachill-studio'
+					),
+					formatMB( file.size )
+				)
+			);
 			return;
 		}
 
 		setSelectedFile( file );
 	}, [] );
 
-	const onFilePickerChange = ( event: ChangeEvent< HTMLInputElement > ): void => {
-		const file = event.target.files && event.target.files[ 0 ] ? event.target.files[ 0 ] : null;
+	const onFilePickerChange = (
+		event: ChangeEvent< HTMLInputElement >
+	): void => {
+		const file =
+			event.target.files && event.target.files[ 0 ]
+				? event.target.files[ 0 ]
+				: null;
 		validateAndSetFile( file );
 	};
 
@@ -227,7 +300,10 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		event.preventDefault();
 		event.stopPropagation();
 		setIsDragging( false );
-		const file = event.dataTransfer.files && event.dataTransfer.files[ 0 ] ? event.dataTransfer.files[ 0 ] : null;
+		const file =
+			event.dataTransfer.files && event.dataTransfer.files[ 0 ]
+				? event.dataTransfer.files[ 0 ]
+				: null;
 		validateAndSetFile( file );
 	};
 
@@ -244,50 +320,69 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 	 * Promote the active job into history once it reaches a terminal state.
 	 * Pulls results for completed jobs; pulls error detail for failed jobs.
 	 */
-	const finalizeJob = useCallback( async ( job: ActiveJob ): Promise< void > => {
-		stopPolling();
+	const finalizeJob = useCallback(
+		async ( job: ActiveJob ): Promise< void > => {
+			stopPolling();
 
-		if ( job.status === 'completed' ) {
-			setStageMessage( __( 'Fetching transcript…', 'extrachill-studio' ) );
-			try {
-				const results = await getResults( job.jobId );
-				const first = results.results && results.results[ 0 ];
-				const transcript = first ? pickTranscript( first.data.content ) : '';
-				const finalized: ActiveJob = {
-					...job,
-					completedAt: Date.now(),
-					transcript: transcript || __( '(empty transcript)', 'extrachill-studio' ),
-				};
-				setActiveJob( null );
-				setHistory( ( prev ) => [ finalized, ...prev ] );
-				setExpandedJobId( finalized.jobId );
-				setStageMessage( '' );
-			} catch ( resultsErr ) {
-				const failed: ActiveJob = {
-					...job,
-					status: 'failed',
-					completedAt: Date.now(),
-					error: ( resultsErr as Error )?.message || __( 'Failed to fetch results.', 'extrachill-studio' ),
-				};
-				setActiveJob( null );
-				setHistory( ( prev ) => [ failed, ...prev ] );
-				setStageMessage( '' );
-				setError( failed.error || '' );
+			if ( job.status === 'completed' ) {
+				setStageMessage(
+					__( 'Fetching transcript…', 'extrachill-studio' )
+				);
+				try {
+					const results = await getResults( job.jobId );
+					const first = results.results && results.results[ 0 ];
+					const transcript = first
+						? pickTranscript( first.data.content )
+						: '';
+					const finalized: ActiveJob = {
+						...job,
+						completedAt: Date.now(),
+						transcript:
+							transcript ||
+							__( '(empty transcript)', 'extrachill-studio' ),
+					};
+					setActiveJob( null );
+					setHistory( ( prev ) => [ finalized, ...prev ] );
+					setExpandedJobId( finalized.jobId );
+					setStageMessage( '' );
+				} catch ( resultsErr ) {
+					const failed: ActiveJob = {
+						...job,
+						status: 'failed',
+						completedAt: Date.now(),
+						error:
+							( resultsErr as Error )?.message ||
+							__(
+								'Failed to fetch results.',
+								'extrachill-studio'
+							),
+					};
+					setActiveJob( null );
+					setHistory( ( prev ) => [ failed, ...prev ] );
+					setStageMessage( '' );
+					setError( failed.error || '' );
+				}
+				return;
 			}
-			return;
-		}
 
-		// failed | stopped
-		const failed: ActiveJob = {
-			...job,
-			completedAt: Date.now(),
-			error: job.error || __( 'Job did not complete successfully.', 'extrachill-studio' ),
-		};
-		setActiveJob( null );
-		setHistory( ( prev ) => [ failed, ...prev ] );
-		setStageMessage( '' );
-		setError( failed.error || '' );
-	}, [ stopPolling ] );
+			// failed | stopped
+			const failed: ActiveJob = {
+				...job,
+				completedAt: Date.now(),
+				error:
+					job.error ||
+					__(
+						'Job did not complete successfully.',
+						'extrachill-studio'
+					),
+			};
+			setActiveJob( null );
+			setHistory( ( prev ) => [ failed, ...prev ] );
+			setStageMessage( '' );
+			setError( failed.error || '' );
+		},
+		[ stopPolling ]
+	);
 
 	const pollOnce = useCallback( async (): Promise< void > => {
 		const current = activeJobRef.current;
@@ -296,7 +391,10 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 
 		// Pause polling while the browser tab is hidden — resume on focus.
-		if ( typeof document !== 'undefined' && document.visibilityState === 'hidden' ) {
+		if (
+			typeof document !== 'undefined' &&
+			document.visibilityState === 'hidden'
+		) {
 			return;
 		}
 
@@ -307,7 +405,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			stopPolling();
 			setStageMessage(
 				__(
-					'Job is still running on the worker. We\'ll email you when it\'s done — you can close this tab.',
+					"Job is still running on the worker. We'll email you when it's done — you can close this tab.",
 					'extrachill-studio'
 				)
 			);
@@ -316,7 +414,11 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const fresh = await getJob( current.jobId );
-			const updated: ActiveJob = { ...current, status: fresh.status, error: fresh.error || undefined };
+			const updated: ActiveJob = {
+				...current,
+				status: fresh.status,
+				error: fresh.error || undefined,
+			};
 			setActiveJob( updated );
 			activeJobRef.current = updated;
 
@@ -325,7 +427,10 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			}
 		} catch ( pollErr ) {
 			// Network blip — keep polling, but surface the latest error.
-			setError( ( pollErr as Error )?.message || __( 'Polling failed.', 'extrachill-studio' ) );
+			setError(
+				( pollErr as Error )?.message ||
+					__( 'Polling failed.', 'extrachill-studio' )
+			);
 		}
 	}, [ finalizeJob, stopPolling ] );
 
@@ -339,13 +444,20 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 	// Resume polling when the tab regains focus.
 	useEffect( () => {
 		const onVisibilityChange = (): void => {
-			if ( document.visibilityState === 'visible' && activeJobRef.current && ! isTerminal( activeJobRef.current.status ) ) {
+			if (
+				document.visibilityState === 'visible' &&
+				activeJobRef.current &&
+				! isTerminal( activeJobRef.current.status )
+			) {
 				pollOnce();
 			}
 		};
 		document.addEventListener( 'visibilitychange', onVisibilityChange );
 		return () => {
-			document.removeEventListener( 'visibilitychange', onVisibilityChange );
+			document.removeEventListener(
+				'visibilitychange',
+				onVisibilityChange
+			);
 		};
 	}, [ pollOnce ] );
 
@@ -364,7 +476,11 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		}
 
 		setError( '' );
-		const options: TranscribeOptions = { model: MODEL, diarize, removeFillers: REMOVE_FILLERS };
+		const options: TranscribeOptions = {
+			model: MODEL,
+			diarize,
+			removeFillers: REMOVE_FILLERS,
+		};
 		const startedAt = Date.now();
 
 		try {
@@ -373,7 +489,9 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			setStageMessage( __( 'Uploading audio…', 'extrachill-studio' ) );
 			const upload = await uploadAudio( selectedFile );
 
-			setStageMessage( __( 'Submitting transcription job…', 'extrachill-studio' ) );
+			setStageMessage(
+				__( 'Submitting transcription job…', 'extrachill-studio' )
+			);
 			const job = await createJob( {
 				uploadPath: upload.path,
 				model: options.model,
@@ -397,7 +515,7 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 
 			setStageMessage(
 				__(
-					'Submitted. We\'ll email you when it\'s done — usually 5–60 minutes depending on length. You can close this tab.',
+					"Submitted. We'll email you when it's done — usually 5–60 minutes depending on length. You can close this tab.",
 					'extrachill-studio'
 				)
 			);
@@ -407,14 +525,21 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			pollOnce();
 		} catch ( pipelineErr ) {
 			setStageMessage( '' );
-			setError( ( pipelineErr as Error )?.message || __( 'Transcription failed to start.', 'extrachill-studio' ) );
+			setError(
+				( pipelineErr as Error )?.message ||
+					__( 'Transcription failed to start.', 'extrachill-studio' )
+			);
 		}
 	};
 
 	const retryFromHistory = ( job: ActiveJob ): void => {
 		// Drop the failed entry from history so the UI reads clean; user must re-pick the file.
-		setHistory( ( prev ) => prev.filter( ( h ) => h.jobId !== job.jobId ) );
-		setError( __( 'Re-select the audio file to retry.', 'extrachill-studio' ) );
+		setHistory( ( prev ) =>
+			prev.filter( ( historyJob ) => historyJob.jobId !== job.jobId )
+		);
+		setError(
+			__( 'Re-select the audio file to retry.', 'extrachill-studio' )
+		);
 	};
 
 	// ── Clipboard / download / view ──────────────────────────────────
@@ -427,10 +552,17 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			await navigator.clipboard.writeText( job.transcript );
 			setCopiedJobId( job.jobId );
 			setTimeout( () => {
-				setCopiedJobId( ( current ) => ( current === job.jobId ? null : current ) );
+				setCopiedJobId( ( current ) =>
+					current === job.jobId ? null : current
+				);
 			}, COPY_FEEDBACK_MS );
 		} catch {
-			setError( __( 'Clipboard copy failed — your browser may have blocked it.', 'extrachill-studio' ) );
+			setError(
+				__(
+					'Clipboard copy failed — your browser may have blocked it.',
+					'extrachill-studio'
+				)
+			);
 		}
 	};
 
@@ -445,7 +577,9 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		setExpandedJobId( ( current ) => ( current === jobId ? null : jobId ) );
 	};
 
-	const onDropZoneKeyDown = ( event: KeyboardEvent< HTMLDivElement > ): void => {
+	const onDropZoneKeyDown = (
+		event: KeyboardEvent< HTMLDivElement >
+	): void => {
 		if ( event.key === 'Enter' || event.key === ' ' ) {
 			event.preventDefault();
 			onPickButtonClick();
@@ -454,7 +588,9 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 
 	// ── Render ────────────────────────────────────────────────────────
 
-	const dropZoneClass = `ec-studio-transcribe__dropzone${ isDragging ? ' is-dragging' : '' }${ selectedFile ? ' has-file' : '' }`;
+	const dropZoneClass = `ec-studio-transcribe__dropzone${
+		isDragging ? ' is-dragging' : ''
+	}${ selectedFile ? ' has-file' : '' }`;
 
 	const dropZone = h(
 		'div',
@@ -483,34 +619,52 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		} ),
 		selectedFile
 			? h(
-				'div',
-				{ className: 'ec-studio-transcribe__file' },
-				createElement( 'strong', null, selectedFile.name ),
-				createElement( 'span', { className: 'ec-studio-transcribe__file-meta' }, formatMB( selectedFile.size ) )
-			)
-			: h(
-				'div',
-				{ className: 'ec-studio-transcribe__dropzone-prompt' },
-				createElement( 'div', { className: 'ec-studio-transcribe__dropzone-headline' },
-					__( 'Drag audio here or click to upload', 'extrachill-studio' )
-				),
-				createElement( 'div', { className: 'ec-studio-transcribe__dropzone-meta' },
-					__(
-						'Any audio or video file · Max 500 MB · auto-converted via ffmpeg',
-						'extrachill-studio'
+					'div',
+					{ className: 'ec-studio-transcribe__file' },
+					createElement( 'strong', null, selectedFile.name ),
+					createElement(
+						'span',
+						{ className: 'ec-studio-transcribe__file-meta' },
+						formatMB( selectedFile.size )
 					)
-				)
-			)
+			  )
+			: h(
+					'div',
+					{ className: 'ec-studio-transcribe__dropzone-prompt' },
+					createElement(
+						'div',
+						{
+							className:
+								'ec-studio-transcribe__dropzone-headline',
+						},
+						__(
+							'Drag audio here or click to upload',
+							'extrachill-studio'
+						)
+					),
+					createElement(
+						'div',
+						{ className: 'ec-studio-transcribe__dropzone-meta' },
+						__(
+							'Any audio or video file · Max 500 MB · auto-converted via ffmpeg',
+							'extrachill-studio'
+						)
+					)
+			  )
 	);
 
 	const diarizeCheckbox = createElement(
 		'label',
-		{ className: 'ec-checkbox-row', htmlFor: 'ec-studio-transcribe-diarize' },
+		{
+			className: 'ec-checkbox-row',
+			htmlFor: 'ec-studio-transcribe-diarize',
+		},
 		createElement( 'input', {
 			id: 'ec-studio-transcribe-diarize',
 			type: 'checkbox',
 			checked: diarize,
-			onChange: ( event: ChangeEvent< HTMLInputElement > ) => setDiarize( event.target.checked ),
+			onChange: ( event: ChangeEvent< HTMLInputElement > ) =>
+				setDiarize( event.target.checked ),
 			disabled: isBusy,
 		} ),
 		createElement(
@@ -521,7 +675,10 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		createElement(
 			'span',
 			{ className: 'ec-checkbox-row__hint' },
-			__( 'adds ~15 min · best for multi-speaker interviews', 'extrachill-studio' )
+			__(
+				'adds ~15 min · best for multi-speaker interviews',
+				'extrachill-studio'
+			)
 		)
 	);
 
@@ -533,7 +690,9 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			onClick: startTranscription,
 			disabled: ! selectedFile || isBusy,
 		},
-		isBusy ? __( 'Working…', 'extrachill-studio' ) : __( 'Transcribe', 'extrachill-studio' )
+		isBusy
+			? __( 'Working…', 'extrachill-studio' )
+			: __( 'Transcribe', 'extrachill-studio' )
 	);
 
 	const renderActiveJob = (): ReactElement | null => {
@@ -543,23 +702,40 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		const elapsed = formatElapsed( activeJob.startedAt );
 		return h(
 			PanelView,
-			{ className: 'ec-studio-panel ec-studio-transcribe__active', compact: true },
-			h( PanelHeader, { description: __( 'Active job', 'extrachill-studio' ) } ),
+			{
+				className: 'ec-studio-panel ec-studio-transcribe__active',
+				compact: true,
+			},
+			h( PanelHeader, {
+				description: __( 'Active job', 'extrachill-studio' ),
+			} ),
 			createElement(
 				'div',
 				{ className: 'ec-studio-transcribe__active-meta' },
 				createElement( 'strong', null, activeJob.filename ),
 				createElement( 'span', null, ' · ' ),
-				createElement( 'span', { className: 'ec-studio-transcribe__status' }, activeJob.status ),
+				createElement(
+					'span',
+					{ className: 'ec-studio-transcribe__status' },
+					activeJob.status
+				),
 				createElement( 'span', null, ' · ' ),
-				createElement( 'span', null, sprintf(
-					/* translators: %s: elapsed M:SS */
-					__( '%s elapsed', 'extrachill-studio' ),
-					elapsed
-				) )
+				createElement(
+					'span',
+					null,
+					sprintf(
+						/* translators: %s: elapsed M:SS */
+						__( '%s elapsed', 'extrachill-studio' ),
+						elapsed
+					)
+				)
 			),
 			stageMessage
-				? h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, stageMessage )
+				? h(
+						InlineStatusView,
+						{ tone: 'info', className: 'ec-studio-message' },
+						stageMessage
+				  )
 				: null
 		);
 	};
@@ -573,7 +749,9 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			'div',
 			{ className: 'ec-studio-transcribe__history-header' },
 			createElement( 'strong', null, job.filename ),
-			createElement( 'span', { className: 'ec-studio-transcribe__history-meta' },
+			createElement(
+				'span',
+				{ className: 'ec-studio-transcribe__history-meta' },
 				` · ${ job.status } · ${ optionsLabel } · ${ elapsed }`
 			)
 		);
@@ -581,16 +759,24 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 		if ( job.status === 'failed' || job.status === 'stopped' ) {
 			return createElement(
 				'li',
-				{ key: job.jobId, className: 'ec-studio-transcribe__history-item is-failed' },
+				{
+					key: job.jobId,
+					className: 'ec-studio-transcribe__history-item is-failed',
+				},
 				headerLine,
 				job.error
-					? createElement( 'div', { className: 'ec-studio-transcribe__history-error' },
-						sprintf(
-							/* translators: %s: server-reported error */
-							__( 'Error: %s', 'extrachill-studio' ),
-							job.error
-						)
-					)
+					? createElement(
+							'div',
+							{
+								className:
+									'ec-studio-transcribe__history-error',
+							},
+							sprintf(
+								/* translators: %s: server-reported error */
+								__( 'Error: %s', 'extrachill-studio' ),
+								job.error
+							)
+					  )
 					: null,
 				createElement(
 					'div',
@@ -653,10 +839,10 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			),
 			isExpanded && job.transcript
 				? createElement(
-					'pre',
-					{ className: 'ec-studio-transcribe__transcript' },
-					job.transcript
-				)
+						'pre',
+						{ className: 'ec-studio-transcribe__transcript' },
+						job.transcript
+				  )
 				: null
 		);
 	};
@@ -668,7 +854,10 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				description: __( 'Transcribe audio with Whisper. Upload a file and get a plain-text transcript.', 'extrachill-studio' ),
+				description: __(
+					'Transcribe audio with Whisper. Upload a file and get a plain-text transcript.',
+					'extrachill-studio'
+				),
 			} ),
 			h(
 				'div',
@@ -685,22 +874,31 @@ const TranscribePane = ( _props: StudioPaneProps ): ReactElement => {
 					transcribeButton
 				)
 			),
-			error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null
+			error
+				? h(
+						InlineStatusView,
+						{ tone: 'error', className: 'ec-studio-message' },
+						error
+				  )
+				: null
 		),
 		renderActiveJob(),
 		history.length > 0
 			? h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, {
-					description: __( 'Recent transcriptions (this session)', 'extrachill-studio' ),
-				} ),
-				createElement(
-					'ul',
-					{ className: 'ec-studio-transcribe__history' },
-					...history.map( renderHistoryItem )
-				)
-			)
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					h( PanelHeader, {
+						description: __(
+							'Recent transcriptions (this session)',
+							'extrachill-studio'
+						),
+					} ),
+					createElement(
+						'ul',
+						{ className: 'ec-studio-transcribe__history' },
+						...history.map( renderHistoryItem )
+					)
+			  )
 			: null
 	);
 };

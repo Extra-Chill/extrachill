@@ -4,7 +4,7 @@
  * Shapes mirror the sweatpants worker REST contract (https://sweatpants.chubes.net)
  * and the extrachill/sweatpants-token WordPress ability response.
  *
- * @package ExtraChillStudio
+ * @package
  */
 
 /**
@@ -46,7 +46,12 @@ export interface SweatpantsUpload {
 }
 
 /** Lifecycle states reported by sweatpants for a job. */
-export type SweatpantsJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'stopped';
+export type SweatpantsJobStatus =
+	| 'pending'
+	| 'running'
+	| 'completed'
+	| 'failed'
+	| 'stopped';
 
 /** Result of GET /jobs/{id} on sweatpants. */
 export interface SweatpantsJob {

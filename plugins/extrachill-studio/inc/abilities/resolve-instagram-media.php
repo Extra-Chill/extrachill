@@ -181,7 +181,7 @@ function ec_studio_register_resolve_instagram_media_ability(): void {
  * @param array $input Input parameters.
  * @return array|\WP_Error Result.
  */
-function ec_studio_execute_resolve_instagram_media( array $input ): array|\WP_Error {
+function ec_studio_execute_resolve_instagram_media( array $input ) {
 	$raw = $input['input'] ?? '';
 
 	if ( '' === trim( $raw ) ) {

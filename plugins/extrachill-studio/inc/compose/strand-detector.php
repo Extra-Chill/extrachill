@@ -184,10 +184,10 @@ function ec_studio_post_looks_like_social_draft( int $post_id ): bool {
 		}
 	}
 
-	// A scheduled/cross-posted job id is a social-draft signal.
-	if ( metadata_exists( 'post', $post_id, \ExtraChillStudio\META_JOB_ID ) ) {
-		$job_id = (int) get_post_meta( $post_id, \ExtraChillStudio\META_JOB_ID, true );
-		if ( $job_id > 0 ) {
+	// A queued delivery reference is a social-draft signal.
+	if ( metadata_exists( 'post', $post_id, \ExtraChillStudio\META_DELIVERY_REF ) ) {
+		$delivery_ref = (string) get_post_meta( $post_id, \ExtraChillStudio\META_DELIVERY_REF, true );
+		if ( '' !== $delivery_ref ) {
 			return true;
 		}
 	}
@@ -295,6 +295,6 @@ function ec_studio_get_guard_rejection_record(): array {
  * WP-CLI surface.
  * ---------------------------------------------------------------------------
  */
-if ( defined( 'WP_CLI' ) && WP_CLI ) {
+if ( defined( 'WP_CLI' ) ) {
 	require_once __DIR__ . '/strand-detector-cli.php';
 }
