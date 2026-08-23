@@ -33,6 +33,7 @@ The plugin is network-activated across all sites in the Extra Chill Platform net
 
 ### Administration & Security
 - [Admin Access Control](admin-access.md) - Team members, permissions, and overrides
+- [Chris Gardner Persona Contract](gardner-persona.md) - Canonical nontechnical power-user identity and oracle vocabulary
 
 ### API Reference
 - [API Endpoints](api-endpoints.md) - REST API documentation for all endpoints

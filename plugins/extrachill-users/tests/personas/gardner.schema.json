@@ -1,0 +1,151 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://github.com/Extra-Chill/extrachill-users/tests/personas/gardner.schema.json",
+	"title": "Extra Chill Users Persona Contract",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"persona_id",
+		"contract_version",
+		"reference_persona",
+		"fixture_identity",
+		"network_access",
+		"behavioral_traits",
+		"oracles",
+		"safety"
+	],
+	"properties": {
+		"persona_id": {
+			"const": "extra-chill-users/chris-gardner"
+		},
+		"contract_version": {
+			"type": "string",
+			"pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"
+		},
+		"reference_persona": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name", "archetype"],
+			"properties": {
+				"name": { "const": "Chris Gardner" },
+				"archetype": { "const": "network-nontechnical-power-user" }
+			}
+		},
+		"fixture_identity": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["username", "display_name", "email", "non_production"],
+			"properties": {
+				"username": {
+					"type": "string",
+					"pattern": "^[a-z0-9_-]+$"
+				},
+				"display_name": { "const": "Chris Gardner (Test Persona)" },
+				"email": {
+					"type": "string",
+					"pattern": "^[^@]+@example\\.invalid$"
+				},
+				"non_production": { "const": true }
+			}
+		},
+		"network_access": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"team_role",
+				"site_membership",
+				"baseline_capabilities",
+				"explicit_user_grants"
+			],
+			"properties": {
+				"team_role": { "const": "extra_chill_team" },
+				"site_membership": {
+					"type": "object",
+					"additionalProperties": false,
+					"required": ["scope", "role"],
+					"properties": {
+						"scope": { "const": "every-active-network-site" },
+						"role": { "const": "extra_chill_team" }
+					}
+				},
+				"baseline_capabilities": {
+					"type": "array",
+					"minItems": 11,
+					"uniqueItems": true,
+					"items": { "type": "string", "minLength": 1 }
+				},
+				"explicit_user_grants": {
+					"type": "array",
+					"minItems": 1,
+					"uniqueItems": true,
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["capability", "scope"],
+						"properties": {
+							"capability": { "type": "string", "minLength": 1 },
+							"scope": { "const": "every-active-network-site" }
+						}
+					}
+				}
+			}
+		},
+		"behavioral_traits": {
+			"type": "array",
+			"minItems": 11,
+			"uniqueItems": true,
+			"items": {
+				"enum": [
+					"power-user",
+					"nontechnical",
+					"impatient",
+					"observant",
+					"particular",
+					"confused-by-unclear-state",
+					"confused-by-jargon",
+					"double-submits",
+					"reloads",
+					"backtracks",
+					"changes-mind"
+				]
+			}
+		},
+		"oracles": {
+			"type": "array",
+			"minItems": 9,
+			"uniqueItems": true,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "expectation"],
+				"properties": {
+					"id": {
+						"enum": [
+							"task-completion",
+							"obvious-state",
+							"reload-persistence",
+							"safe-retry",
+							"duplicate-prevention",
+							"attribution",
+							"actionable-errors",
+							"jargon-avoidance",
+							"server-authorization"
+						]
+					},
+					"expectation": { "type": "string", "minLength": 1 }
+				}
+			}
+		},
+		"safety": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["production_credentials", "tokens", "personal_contact_data", "live_external_writes"],
+			"properties": {
+				"production_credentials": { "const": false },
+				"tokens": { "const": false },
+				"personal_contact_data": { "const": false },
+				"live_external_writes": { "const": false }
+			}
+		}
+	}
+}

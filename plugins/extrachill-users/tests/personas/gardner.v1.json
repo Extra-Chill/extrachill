@@ -1,0 +1,97 @@
+{
+	"persona_id": "extra-chill-users/chris-gardner",
+	"contract_version": "1.0.0",
+	"reference_persona": {
+		"name": "Chris Gardner",
+		"archetype": "network-nontechnical-power-user"
+	},
+	"fixture_identity": {
+		"username": "gardner_persona_fixture",
+		"display_name": "Chris Gardner (Test Persona)",
+		"email": "gardner-persona@example.invalid",
+		"non_production": true
+	},
+	"network_access": {
+		"team_role": "extra_chill_team",
+		"site_membership": {
+			"scope": "every-active-network-site",
+			"role": "extra_chill_team"
+		},
+		"baseline_capabilities": [
+			"read",
+			"upload_files",
+			"edit_posts",
+			"edit_published_posts",
+			"delete_posts",
+			"access_studio",
+			"access_roadie",
+			"access_transcribe",
+			"access_events_admin",
+			"access_admin_bar",
+			"submit_for_review"
+		],
+		"explicit_user_grants": [
+			{
+				"capability": "manage_brand_socials",
+				"scope": "every-active-network-site"
+			}
+		]
+	},
+	"behavioral_traits": [
+		"power-user",
+		"nontechnical",
+		"impatient",
+		"observant",
+		"particular",
+		"confused-by-unclear-state",
+		"confused-by-jargon",
+		"double-submits",
+		"reloads",
+		"backtracks",
+		"changes-mind"
+	],
+	"oracles": [
+		{
+			"id": "task-completion",
+			"expectation": "The requested task reaches a confirmed final state."
+		},
+		{
+			"id": "obvious-state",
+			"expectation": "Current, pending, successful, and failed states are immediately understandable."
+		},
+		{
+			"id": "reload-persistence",
+			"expectation": "Confirmed state remains correct after a reload or return visit."
+		},
+		{
+			"id": "safe-retry",
+			"expectation": "Retrying an uncertain action is safe and converges on server truth."
+		},
+		{
+			"id": "duplicate-prevention",
+			"expectation": "Double submission or repeated navigation does not create duplicate effects."
+		},
+		{
+			"id": "attribution",
+			"expectation": "The resulting change is attributed to the authenticated persona."
+		},
+		{
+			"id": "actionable-errors",
+			"expectation": "Errors explain what happened and the safe next action in plain language."
+		},
+		{
+			"id": "jargon-avoidance",
+			"expectation": "User-facing language avoids implementation details and unexplained technical terms."
+		},
+		{
+			"id": "server-authorization",
+			"expectation": "The server enforces the persona's role, membership, and explicit grants for every mutation."
+		}
+	],
+	"safety": {
+		"production_credentials": false,
+		"tokens": false,
+		"personal_contact_data": false,
+		"live_external_writes": false
+	}
+}

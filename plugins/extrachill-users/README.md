@@ -79,4 +79,5 @@ homeboy review build extrachill-users
 
 - [AGENTS.md](AGENTS.md) — Technical reference for contributors
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — Version history
+- [docs/gardner-persona.md](docs/gardner-persona.md) — Canonical nontechnical power-user test contract
 - [docs/notifications.md](docs/notifications.md) — Notification producer and receipt contracts
