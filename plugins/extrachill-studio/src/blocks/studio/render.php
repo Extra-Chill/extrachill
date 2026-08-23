@@ -98,12 +98,7 @@ if ( is_multisite() ) {
  *
  * @param string[] $platforms Allowed platform slugs. Empty = show all.
  */
-$allowed_platforms = apply_filters( 'extrachill_studio_social_platforms', array(
-	'instagram',
-	'twitter',
-	'bluesky',
-	'facebook',
-) );
+$allowed_platforms = apply_filters( 'extrachill_studio_social_platforms', array() );
 
 /*
  * Whether this user may access the shared brand social accounts. The Socials

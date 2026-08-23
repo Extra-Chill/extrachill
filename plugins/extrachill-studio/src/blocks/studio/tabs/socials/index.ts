@@ -1,8 +1,12 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createElement, useEffect, useMemo, useState } from '@wordpress/element';
+import {
+	createElement,
+	useEffect,
+	useMemo,
+	useState,
+} from '@wordpress/element';
 import type { ComponentType, ReactElement } from 'react';
 import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
-import type { SocialPlatformConfig } from '@extrachill/api-client';
 
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
@@ -10,12 +14,16 @@ import SocialsSidebar from './sidebar';
 import type { SidebarPlatform } from './sidebar';
 import PlatformPublishPane from './publish';
 import type { PlatformPublishDraft } from './publish';
+import { filterAvailablePlatforms } from './publish/contract';
+import type { ComposerPlatformConfig } from './publish/contract';
 import CommentsView from './comments';
 import GiveawayView from '../giveaway';
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
-const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
 
 /**
  * View component registry.
@@ -34,12 +42,18 @@ const VIEW_REGISTRY: Record< string, ComponentType< any > > = {
 
 const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	const allowedSlugs = context.socialPlatforms;
-	const [ platforms, setPlatforms ] = useState< SocialPlatformConfig[] >( [] );
+	const [ platforms, setPlatforms ] = useState< ComposerPlatformConfig[] >(
+		[]
+	);
 	const [ error, setError ] = useState( '' );
 	const [ isLoading, setIsLoading ] = useState( true );
-	const [ activePlatform, setActivePlatform ] = useState< string | null >( null );
+	const [ activePlatform, setActivePlatform ] = useState< string | null >(
+		null
+	);
 	const [ activeCapability, setActiveCapability ] = useState( 'publish' );
-	const [ publishDrafts, setPublishDrafts ] = useState< Record< string, PlatformPublishDraft > >( {} );
+	const [ publishDrafts, setPublishDrafts ] = useState<
+		Record< string, PlatformPublishDraft >
+	>( {} );
 
 	useEffect( () => {
 		const loadPlatforms = async (): Promise< void > => {
@@ -48,10 +62,20 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 
 			try {
 				const response = await studioClient.socials.getPlatforms();
-				setPlatforms( Array.isArray( response?.platforms ) ? response.platforms : [] );
+				setPlatforms(
+					Array.isArray( response?.platforms )
+						? ( response.platforms as ComposerPlatformConfig[] )
+						: []
+				);
 			} catch ( fetchError ) {
 				setPlatforms( [] );
-				setError( ( fetchError as Error )?.message || __( 'Unable to load social platforms.', 'extrachill-studio' ) );
+				setError(
+					( fetchError as Error )?.message ||
+						__(
+							'Unable to load social platforms.',
+							'extrachill-studio'
+						)
+				);
 			} finally {
 				setIsLoading( false );
 			}
@@ -66,26 +90,20 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	 * Server controls sort order (authenticated-first then alphabetical) and
 	 * pre-filters fetch handlers, so the client just renders in array order.
 	 */
-	const availablePlatforms: SocialPlatformConfig[] = useMemo( () => {
-		return platforms.filter( ( platform ) => {
-			if ( ! platform.authenticated ) {
-				return false;
-			}
-			if ( allowedSlugs.length > 0 && ! allowedSlugs.includes( platform.slug ) ) {
-				return false;
-			}
-			return true;
-		} );
-	}, [ platforms, allowedSlugs ] );
+	const availablePlatforms = useMemo(
+		() => filterAvailablePlatforms( platforms, allowedSlugs ),
+		[ platforms, allowedSlugs ]
+	);
 
 	/** Shape platforms for the sidebar component. */
 	const sidebarPlatforms: SidebarPlatform[] = useMemo(
-		() => availablePlatforms.map( ( p ) => ( {
-			slug: p.slug,
-			label: p.label,
-			username: p.username,
-			capabilities: p.capabilities,
-		} ) ),
+		() =>
+			availablePlatforms.map( ( p ) => ( {
+				slug: p.slug,
+				label: p.label,
+				username: p.username,
+				capabilities: p.capabilities,
+			} ) ),
 		[ availablePlatforms ]
 	);
 
@@ -94,7 +112,7 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		if ( ! activePlatform && availablePlatforms.length > 0 ) {
 			setActivePlatform( availablePlatforms[ 0 ].slug );
 		}
-	}, [ activePlatform, availablePlatforms.length ] );
+	}, [ activePlatform, availablePlatforms ] );
 
 	// Reset capability if the newly selected platform doesn't support the current one.
 	useEffect( () => {
@@ -102,13 +120,23 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			return;
 		}
 
-		const platform = availablePlatforms.find( ( p ) => p.slug === activePlatform );
-		if ( platform && ! platform.capabilities.some( ( c ) => c.slug === activeCapability ) ) {
-			setActiveCapability( platform.capabilities[ 0 ]?.slug || 'publish' );
+		const platform = availablePlatforms.find(
+			( p ) => p.slug === activePlatform
+		);
+		if (
+			platform &&
+			! platform.capabilities.some( ( c ) => c.slug === activeCapability )
+		) {
+			setActiveCapability(
+				platform.capabilities[ 0 ]?.slug || 'publish'
+			);
 		}
-	}, [ activePlatform ] );
+	}, [ activeCapability, activePlatform, availablePlatforms ] );
 
-	const handleSidebarSelect = ( platformSlug: string, capability: string ): void => {
+	const handleSidebarSelect = (
+		platformSlug: string,
+		capability: string
+	): void => {
 		setActivePlatform( platformSlug );
 		setActiveCapability( capability );
 	};
@@ -122,7 +150,11 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			h(
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' }, __( 'Loading social platforms…', 'extrachill-studio' ) )
+				h(
+					InlineStatusView,
+					{ tone: 'info', className: 'ec-studio-message' },
+					__( 'Loading social platforms…', 'extrachill-studio' )
+				)
 			)
 		);
 	}
@@ -134,7 +166,11 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			h(
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error )
+				h(
+					InlineStatusView,
+					{ tone: 'error', className: 'ec-studio-message' },
+					error
+				)
 			)
 		);
 	}
@@ -147,16 +183,28 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
 				h( PanelHeader, {
-					description: __( 'No social platforms are connected yet.', 'extrachill-studio' ),
+					description: __(
+						'No social platforms are connected yet.',
+						'extrachill-studio'
+					),
 				} ),
-				h( InlineStatusView, { tone: 'warning', className: 'ec-studio-message' }, __( 'Authenticate a social platform in Data Machine Socials to get started.', 'extrachill-studio' ) )
+				h(
+					InlineStatusView,
+					{ tone: 'warning', className: 'ec-studio-message' },
+					__(
+						'Authenticate a social platform in Data Machine Socials to get started.',
+						'extrachill-studio'
+					)
+				)
 			)
 		);
 	}
 
 	// ── Active platform and view rendering ──
 
-	const selectedPlatform = availablePlatforms.find( ( p ) => p.slug === activePlatform ) || availablePlatforms[ 0 ];
+	const selectedPlatform =
+		availablePlatforms.find( ( p ) => p.slug === activePlatform ) ||
+		availablePlatforms[ 0 ];
 
 	const renderContent = (): ReactElement => {
 		const ViewComponent = VIEW_REGISTRY[ activeCapability ];
@@ -166,8 +214,17 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			return h(
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( InlineStatusView, { tone: 'info', className: 'ec-studio-message' },
-					sprintf( __( 'The "%s" view is not available in this version of Studio.', 'extrachill-studio' ), activeCapability )
+				h(
+					InlineStatusView,
+					{ tone: 'info', className: 'ec-studio-message' },
+					sprintf(
+						/* translators: %s: capability slug. */
+						__(
+							'The "%s" view is not available in this version of Studio.',
+							'extrachill-studio'
+						),
+						activeCapability
+					)
 				)
 			);
 		}
@@ -189,9 +246,17 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		};
 
 		if ( activeCapability === 'publish' ) {
-			viewProps.draft = publishDrafts[ selectedPlatform.slug ] || { caption: '', images: [] };
+			viewProps.draft = publishDrafts[ selectedPlatform.slug ] || {
+				caption: '',
+				images: [],
+				mediaKind: '',
+				fields: {},
+			};
 			viewProps.onDraftChange = ( draft: PlatformPublishDraft ) => {
-				setPublishDrafts( ( current ) => ( { ...current, [ selectedPlatform.slug ]: draft } ) );
+				setPublishDrafts( ( current ) => ( {
+					...current,
+					[ selectedPlatform.slug ]: draft,
+				} ) );
 			};
 		}
 
@@ -200,18 +265,17 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 
 	return h(
 		'div',
-		{ className: 'ec-studio-pane ec-studio-pane--socials ec-studio-socials-layout' },
+		{
+			className:
+				'ec-studio-pane ec-studio-pane--socials ec-studio-socials-layout',
+		},
 		h( SocialsSidebar, {
 			platforms: sidebarPlatforms,
-			activePlatform: activePlatform,
+			activePlatform,
 			activeCapability,
 			onSelect: handleSidebarSelect,
 		} ),
-		h(
-			'div',
-			{ className: 'ec-studio-socials-content' },
-			renderContent()
-		)
+		h( 'div', { className: 'ec-studio-socials-content' }, renderContent() )
 	);
 };
 
