@@ -34,9 +34,41 @@ class FulltextSearchTest extends WP_UnitTestCase {
 		$order  = extrachill_fulltext_posts_orderby( 'post_date DESC', $query );
 
 		$this->assertStringContainsString( 'MATCH(', $search );
-		$this->assertStringContainsString( "AGAINST('+live* +music*' IN BOOLEAN MODE)", $search );
+		$this->assertStringContainsString( "AGAINST('+live +music' IN BOOLEAN MODE)", $search );
+		$this->assertStringNotContainsString( '*', $search );
 		$this->assertStringNotContainsString( 'LIKE', $search );
 		$this->assertStringContainsString( 'MATCH(', $order );
+	}
+
+	public function test_fulltext_query_selects_bounded_ids_and_core_hydrates_posts() {
+		$query = extrachill_fulltext_query(
+			array(
+				'fields'         => 'ids',
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'posts_per_page' => 200,
+				'no_found_rows'  => true,
+			),
+			'music'
+		);
+
+		$this->assertStringContainsString( 'SELECT', $query->request );
+		$this->assertStringContainsString( '.ID', $query->request );
+		$this->assertStringContainsString( 'LIMIT 0, 200', $query->request );
+		$this->assertStringNotContainsString( '+music*', $query->request );
+
+		$post_id       = self::factory()->post->create();
+		$hydrate_query = new WP_Query(
+			array(
+				'fields'    => 'ids',
+				'post__in'  => array( $post_id ),
+				'post_type' => 'post',
+			)
+		);
+		$hydrate_query->the_post();
+		$this->assertInstanceOf( WP_Post::class, $GLOBALS['post'] );
+		$this->assertSame( $post_id, $GLOBALS['post']->ID );
+		wp_reset_postdata();
 	}
 
 	public function test_frontend_main_search_is_template_owned() {

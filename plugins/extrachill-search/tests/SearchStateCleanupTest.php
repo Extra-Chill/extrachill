@@ -274,8 +274,12 @@ assert_same( array(), $content_queries, 'Frontend main query executed a discarde
 $query_vars = array( 's' => 'needlefest', 'paged' => 1 );
 $site_page  = extrachill_get_search_results();
 assert_same( 1, count( $content_queries ), 'Site request did not execute one canonical content search.' );
+assert_same( false, false !== strpos( $content_queries[0], '*' ), 'Canonical search retained broad prefix expansion.' );
 assert_same( 3, $site_page['total'], 'Status or password constraints changed rendered totals.' );
 assert_same( array( 21, 22 ), wp_list_pluck( $site_page['results'], 'ID' ), 'Rendered site results changed.' );
+$site_query = WP_Query::$instances[ count( WP_Query::$instances ) - 1 ]['args'];
+assert_same( 'ids', $site_query['fields'], 'Canonical query filesorted complete post rows.' );
+assert_same( 200, $site_query['posts_per_page'], 'Production candidate window is no longer bounded at 200 rows.' );
 
 $content_queries    = array();
 $query_vars['paged'] = 2;
@@ -292,6 +296,21 @@ assert_same( 2, count( $content_queries ), 'Network request did not execute one 
 assert_same( 4, $network_page['total'], 'Multisite aggregation changed the rendered total.' );
 $network_instances = array_slice( WP_Query::$instances, $network_instance_offset );
 assert_same( array( 2, 3 ), wp_list_pluck( $network_instances, 'blog_id' ), 'Network routing omitted a targeted site.' );
+
+// Broad and selective requests retain one bounded FULLTEXT query per site.
+$content_queries = array();
+extrachill_network_search( 'music', array( 'site2.test' ) );
+extrachill_network_search( 'needlefest 21', array( 'site2.test' ) );
+assert_same( 2, count( $content_queries ), 'Broad or selective search duplicated the canonical query.' );
+assert_same( false, false !== strpos( $content_queries[0], '+music*' ), 'Broad search expanded the indexed token prefix.' );
+
+// Empty canonical and fallback result sets remain empty without leaking sites.
+reset_search_state();
+WP_Query::$posts_by_blog = array( 2 => array() );
+$empty_results = extrachill_network_search( 'absent', array( 'site2.test' ), array( 'return_count' => true ) );
+assert_same( array(), $empty_results['results'], 'Empty search returned hydrated results.' );
+assert_same( 0, $empty_results['total'], 'Empty search returned a non-zero total.' );
+assert_same( 1, get_current_blog_id(), 'Empty search leaked the switched blog context.' );
 
 reset_search_state();
 add_filter( 'extrachill_search_site_post_types', '__return_empty_array' );

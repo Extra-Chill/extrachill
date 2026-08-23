@@ -13,6 +13,14 @@ function wp_unslash( $value ) {
 	return $value;
 }
 
+function wp_parse_url( $url, $component = -1 ) {
+	return parse_url( $url, $component );
+}
+
+function wp_strip_all_tags( $text ) {
+	return strip_tags( $text );
+}
+
 function get_search_query() {
 	global $query_vars;
 	return $query_vars['s'] ?? '';

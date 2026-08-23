@@ -208,7 +208,8 @@ $order_sql       = extrachill_fulltext_posts_orderby( 'post_date DESC', $canonic
 assert_contains( 'MATCH(c8c_posts.post_title, c8c_posts.post_excerpt, c8c_posts.post_content)', $search_sql, 'Search SQL did not use MATCH().' );
 assert_same( false, false !== strpos( $search_sql, 'LIKE' ), 'FULLTEXT SQL retained LIKE predicates.' );
 assert_contains( "c8c_posts.post_password = ''", $search_sql, 'Public FULLTEXT SQL exposed password-protected posts.' );
-assert_contains( "AGAINST('+live* +music*' IN BOOLEAN MODE) DESC", $order_sql, 'FULLTEXT relevance order was not applied.' );
+assert_contains( "AGAINST('+live +music' IN BOOLEAN MODE) DESC", $order_sql, 'FULLTEXT relevance order was not applied.' );
+assert_same( false, false !== strpos( $search_sql, '*' ), 'FULLTEXT SQL retained broad prefix expansion.' );
 
 $secondary_query = new WP_Query( array( 's' => 'live music' ), false, true );
 extrachill_route_frontend_search( $secondary_query );
