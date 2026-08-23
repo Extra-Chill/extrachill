@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.1] - 2026-08-23
+
+### Fixed
+- preserve embedded article media
+
 ## [0.27.0] - 2026-08-23
 
 ### Added
