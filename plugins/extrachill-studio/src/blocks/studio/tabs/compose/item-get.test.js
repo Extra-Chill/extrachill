@@ -1,5 +1,3 @@
-/* global describe, expect, it */
-
 /**
  * External dependencies
  */

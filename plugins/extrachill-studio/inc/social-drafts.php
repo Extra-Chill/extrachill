@@ -229,9 +229,9 @@ function enqueue_social_publish( \WP_Post $post ): array {
 		return social_publish_error( (string) $assets->get_error_code(), $assets->get_error_message(), false );
 	}
 
-	$platforms  = get_post_meta( $post->ID, META_PLATFORMS, true );
-	$media_kind = (string) get_post_meta( $post->ID, META_MEDIA_KIND, true );
-	$input      = array(
+	$platforms   = get_post_meta( $post->ID, META_PLATFORMS, true );
+	$media_kind  = (string) get_post_meta( $post->ID, META_MEDIA_KIND, true );
+	$input       = array(
 		'content_ref'     => array(
 			'post_id'      => $post->ID,
 			'source_url'   => get_permalink( $post ),

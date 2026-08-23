@@ -176,7 +176,7 @@ add_action( 'init', 'ec_studio_register_sweatpants_token_ability', 20 );
  * @param array $input Validated input matching the ability's input schema.
  * @return array|\WP_Error { token, expires_at, scope } on success, WP_Error otherwise.
  */
-function ec_studio_execute_sweatpants_token( array $input ): array|\WP_Error {
+function ec_studio_execute_sweatpants_token( array $input ) {
 	if ( ! function_exists( 'wp_native_auth_sign_external_token' ) ) {
 		return new \WP_Error(
 			'signer_unavailable',
@@ -213,7 +213,10 @@ function ec_studio_execute_sweatpants_token( array $input ): array|\WP_Error {
 	}
 
 	$requested_scopes = preg_split( '/\s+/', $requested_scope );
-	$invalid_scopes   = array_diff( $requested_scopes, EC_STUDIO_SWEATPANTS_TOKEN_ALLOWED_SCOPES );
+	if ( false === $requested_scopes ) {
+		$requested_scopes = array();
+	}
+	$invalid_scopes = array_diff( $requested_scopes, EC_STUDIO_SWEATPANTS_TOKEN_ALLOWED_SCOPES );
 	if ( ! empty( $invalid_scopes ) ) {
 		return new \WP_Error(
 			'scope_not_allowed',

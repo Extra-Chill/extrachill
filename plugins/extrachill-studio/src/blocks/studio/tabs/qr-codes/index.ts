@@ -1,16 +1,23 @@
 import { __ } from '@wordpress/i18n';
 import { createElement, useState } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+} from '@extrachill/components';
 
 import { studioClient } from '../../app/client';
-import type { StudioPaneProps } from '../../types/studio';
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
-const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
 
 const QR_SIZE = 1000;
 
@@ -18,7 +25,7 @@ interface QrCodeResult {
 	image_url?: string;
 }
 
-const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
+const QrCodesPane = (): ReactElement => {
 	const [ url, setUrl ] = useState( '' );
 	const [ imageUrl, setImageUrl ] = useState( '' );
 	const [ status, setStatus ] = useState( '' );
@@ -29,7 +36,9 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 		const trimmedUrl = url.trim();
 
 		if ( ! trimmedUrl ) {
-			setError( __( 'Paste a URL to generate a QR code.', 'extrachill-studio' ) );
+			setError(
+				__( 'Paste a URL to generate a QR code.', 'extrachill-studio' )
+			);
 			setStatus( '' );
 			return;
 		}
@@ -39,13 +48,22 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 		setStatus( __( 'Generating…', 'extrachill-studio' ) );
 
 		try {
-			const responseData = await studioClient.admin.generateQrCode( trimmedUrl, QR_SIZE ) as QrCodeResult;
+			const responseData = ( await studioClient.admin.generateQrCode(
+				trimmedUrl,
+				QR_SIZE
+			) ) as QrCodeResult;
 			setImageUrl( responseData.image_url || '' );
 			setStatus( '' );
 		} catch ( fetchError ) {
 			setImageUrl( '' );
 			setStatus( '' );
-			setError( ( fetchError as Error )?.message || __( 'QR generation failed. Please try again.', 'extrachill-studio' ) );
+			setError(
+				( fetchError as Error )?.message ||
+					__(
+						'QR generation failed. Please try again.',
+						'extrachill-studio'
+					)
+			);
 		} finally {
 			setIsLoading( false );
 		}
@@ -58,19 +76,26 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				description: __( 'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.', 'extrachill-studio' ),
+				description: __(
+					'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.',
+					'extrachill-studio'
+				),
 			} ),
 			h(
 				'div',
 				{ className: 'ec-studio-composer' },
 				h(
 					FieldGroupView,
-					{ label: __( 'URL', 'extrachill-studio' ), htmlFor: 'ec-studio-qr-url' },
+					{
+						label: __( 'URL', 'extrachill-studio' ),
+						htmlFor: 'ec-studio-qr-url',
+					},
 					createElement( 'input', {
 						id: 'ec-studio-qr-url',
 						type: 'url',
 						value: url,
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => setUrl( event.target.value ),
+						onChange: ( event: ChangeEvent< HTMLInputElement > ) =>
+							setUrl( event.target.value ),
 						placeholder: 'https://extrachill.com/',
 						autoComplete: 'url',
 					} )
@@ -86,36 +111,51 @@ const QrCodesPane = ( _props: StudioPaneProps ): ReactElement => {
 							onClick: generateQrCode,
 							disabled: isLoading,
 						},
-						isLoading ? __( 'Generating…', 'extrachill-studio' ) : __( 'Generate', 'extrachill-studio' )
+						isLoading
+							? __( 'Generating…', 'extrachill-studio' )
+							: __( 'Generate', 'extrachill-studio' )
 					)
 				)
 			),
-			error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
-			! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null
+			error
+				? h(
+						InlineStatusView,
+						{ tone: 'error', className: 'ec-studio-message' },
+						error
+				  )
+				: null,
+			! error && status
+				? h(
+						InlineStatusView,
+						{ tone: 'success', className: 'ec-studio-message' },
+						status
+				  )
+				: null
 		),
 		imageUrl
 			? h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				createElement(
-					'div',
-					{ className: 'ec-studio-qr-result' },
-					createElement( 'img', {
-						className: 'ec-studio-qr-result__image',
-						alt: __( 'Generated QR code', 'extrachill-studio' ),
-						src: imageUrl,
-					} ),
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
 					createElement(
-						'a',
-						{
-							className: 'button-1 button-medium ec-studio-qr-result__download',
-							href: imageUrl,
-							download: 'extrachill-qr-code.png',
-						},
-						__( 'Download PNG', 'extrachill-studio' )
+						'div',
+						{ className: 'ec-studio-qr-result' },
+						createElement( 'img', {
+							className: 'ec-studio-qr-result__image',
+							alt: __( 'Generated QR code', 'extrachill-studio' ),
+							src: imageUrl,
+						} ),
+						createElement(
+							'a',
+							{
+								className:
+									'button-1 button-medium ec-studio-qr-result__download',
+								href: imageUrl,
+								download: 'extrachill-qr-code.png',
+							},
+							__( 'Download PNG', 'extrachill-studio' )
+						)
 					)
-				)
-			)
+			  )
 			: null
 	);
 };

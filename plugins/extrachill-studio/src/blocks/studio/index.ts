@@ -9,9 +9,12 @@ type StudioAttributes = {
 	deniedMessage: string;
 };
 
-registerBlockType< StudioAttributes >( metadata as BlockConfiguration< StudioAttributes >, {
-	edit: Edit,
-	save() {
-		return null;
-	},
-} );
+registerBlockType< StudioAttributes >(
+	metadata as BlockConfiguration< StudioAttributes >,
+	{
+		edit: Edit,
+		save() {
+			return null;
+		},
+	}
+);

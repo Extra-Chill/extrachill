@@ -3,7 +3,7 @@ import { createElement } from '@wordpress/element';
 import type { ReactElement } from 'react';
 import { Badge } from '@extrachill/components';
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const BadgeView = Badge as unknown as ( props: any ) => ReactElement;
 
 export interface CapabilityEntry {
@@ -31,6 +31,11 @@ export interface SocialsSidebarProps {
  * Fully data-driven — renders whatever platforms and capabilities the server
  * declares. No hardcoded labels or ordering on the client. The handler owns
  * both the capability slug and its display label.
+ * @param root0
+ * @param root0.platforms
+ * @param root0.activePlatform
+ * @param root0.activeCapability
+ * @param root0.onSelect
  */
 const SocialsSidebar = ( {
 	platforms,
@@ -68,7 +73,11 @@ const SocialsSidebar = ( {
 						{
 							type: 'button',
 							className: 'ec-socials-sidebar__platform-header',
-							onClick: () => onSelect( platform.slug, caps[ 0 ]?.slug || 'publish' ),
+							onClick: () =>
+								onSelect(
+									platform.slug,
+									caps[ 0 ]?.slug || 'publish'
+								),
 							'aria-expanded': isPlatformActive,
 						},
 						h(
@@ -78,42 +87,52 @@ const SocialsSidebar = ( {
 						),
 						platform.username
 							? h(
-								BadgeView,
-								{
-									tone: 'muted',
-									variant: 'subtle',
-									size: 'sm',
-								},
-								sprintf( '@%s', platform.username )
-							)
+									BadgeView,
+									{
+										tone: 'muted',
+										variant: 'subtle',
+										size: 'sm',
+									},
+									sprintf( '@%s', platform.username )
+							  )
 							: null
 					),
 					// Capability sub-items — visible when platform is active and has >1 capability
 					isPlatformActive && caps.length > 1
 						? h(
-							'ul',
-							{ className: 'ec-socials-sidebar__capabilities' },
-							...caps.map( ( cap ) =>
-								h(
-									'li',
-									{ key: cap.slug },
+								'ul',
+								{
+									className:
+										'ec-socials-sidebar__capabilities',
+								},
+								...caps.map( ( cap ) =>
 									h(
-										'button',
-										{
-											type: 'button',
-											className: [
-												'ec-socials-sidebar__capability',
-												activeCapability === cap.slug ? 'is-active' : '',
-											]
-												.filter( Boolean )
-												.join( ' ' ),
-											onClick: () => onSelect( platform.slug, cap.slug ),
-										},
-										cap.label
+										'li',
+										{ key: cap.slug },
+										h(
+											'button',
+											{
+												type: 'button',
+												className: [
+													'ec-socials-sidebar__capability',
+													activeCapability ===
+													cap.slug
+														? 'is-active'
+														: '',
+												]
+													.filter( Boolean )
+													.join( ' ' ),
+												onClick: () =>
+													onSelect(
+														platform.slug,
+														cap.slug
+													),
+											},
+											cap.label
+										)
 									)
 								)
-							)
-						)
+						  )
 						: null
 				);
 			} )

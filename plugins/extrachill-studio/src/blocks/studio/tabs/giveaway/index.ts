@@ -1,35 +1,47 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useRef, useState } from '@wordpress/element';
 import type { ReactElement, ChangeEvent } from 'react';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+} from '@extrachill/components';
 
 import { studioSocialsApi } from '../../app/client';
 import type { SocialComment } from '../../app/client';
-import type { StudioPaneProps } from '../../types/studio';
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
-const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
 
 /**
  * Instagram shortcode alphabet for base64 decoding.
  * Shortcodes use this custom alphabet to encode the numeric media ID.
  */
-const IG_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const IG_ALPHABET =
+	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 /**
  * Decode an Instagram shortcode to a numeric media ID.
  * Pure math — no API call needed.
+ * @param shortcode
  */
 const shortcodeToMediaId = ( shortcode: string ): string => {
+	if (
+		! [ ...shortcode ].every( ( char ) => IG_ALPHABET.includes( char ) )
+	) {
+		return '';
+	}
+
 	let id = BigInt( 0 );
 	for ( const char of shortcode ) {
 		const index = IG_ALPHABET.indexOf( char );
-		if ( index === -1 ) {
-			return '';
-		}
 		id = id * BigInt( 64 ) + BigInt( index );
 	}
 	return id.toString();
@@ -38,9 +50,12 @@ const shortcodeToMediaId = ( shortcode: string ): string => {
 /**
  * Extract a shortcode from an Instagram URL.
  * Supports /p/SHORTCODE/, /reel/SHORTCODE/, /tv/SHORTCODE/.
+ * @param url
  */
 const extractShortcode = ( url: string ): string | null => {
-	const match = url.match( /instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/ );
+	const match = url.match(
+		/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/
+	);
 	return match ? match[ 1 ] : null;
 };
 
@@ -49,8 +64,11 @@ const extractShortcode = ( url: string ): string | null => {
  * Accepts:
  *   - A numeric media ID (e.g. 17891234567890123)
  *   - An Instagram URL (e.g. https://www.instagram.com/p/CxYz1234abc/)
+ * @param input
  */
-const parseMediaInput = ( input: string ): { platform: string; mediaId: string } | null => {
+const parseMediaInput = (
+	input: string
+): { platform: string; mediaId: string } | null => {
 	const trimmed = input.trim();
 
 	if ( ! trimmed ) {
@@ -106,6 +124,9 @@ interface GiveawayStats {
 /**
  * Apply giveaway rules to a list of comments.
  * Returns filtered valid entries and stats.
+ * @param comments
+ * @param rules
+ * @param excludeUsernames
  */
 const filterEntries = (
 	comments: SocialComment[],
@@ -114,7 +135,9 @@ const filterEntries = (
 ): { entries: SocialComment[]; stats: GiveawayStats } => {
 	const seen = new Set< string >();
 	const entries: SocialComment[] = [];
-	const excludeSet = new Set( excludeUsernames.map( ( u ) => u.toLowerCase() ) );
+	const excludeSet = new Set(
+		excludeUsernames.map( ( u ) => u.toLowerCase() )
+	);
 
 	for ( const comment of comments ) {
 		const username = ( comment.author_username || '' ).toLowerCase();
@@ -130,7 +153,10 @@ const filterEntries = (
 		}
 
 		// Must have @mentions if required.
-		if ( rules.requireTag && ( comment.mentions?.length ?? 0 ) < rules.minTags ) {
+		if (
+			rules.requireTag &&
+			( comment.mentions?.length ?? 0 ) < rules.minTags
+		) {
 			continue;
 		}
 
@@ -151,8 +177,13 @@ const filterEntries = (
 
 /**
  * Crypto-secure random selection of winners from entries.
+ * @param entries
+ * @param count
  */
-const pickWinners = ( entries: SocialComment[], count: number ): GiveawayWinner[] => {
+const pickWinners = (
+	entries: SocialComment[],
+	count: number
+): GiveawayWinner[] => {
 	if ( entries.length === 0 || count <= 0 ) {
 		return [];
 	}
@@ -182,7 +213,7 @@ const pickWinners = ( entries: SocialComment[], count: number ): GiveawayWinner[
 	} ) );
 };
 
-const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
+const GiveawayPane = (): ReactElement => {
 	// Input state.
 	const [ mediaInput, setMediaInput ] = useState( '' );
 	const [ platform, setPlatform ] = useState( 'instagram' );
@@ -223,12 +254,19 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		setHasPreview( false );
 	};
 
-	const updateRule = < K extends keyof GiveawayRules >( key: K, value: GiveawayRules[K] ): void => {
+	const updateRule = < K extends keyof GiveawayRules >(
+		key: K,
+		value: GiveawayRules[ K ]
+	): void => {
 		setRules( ( current ) => ( { ...current, [ key ]: value } ) );
 		// Re-filter if we already have comments.
 		if ( allComments.length > 0 ) {
 			const newRules = { ...rules, [ key ]: value };
-			const { stats: newStats } = filterEntries( allComments, newRules, excludedWinners );
+			const { stats: newStats } = filterEntries(
+				allComments,
+				newRules,
+				excludedWinners
+			);
 			setStats( newStats );
 		}
 	};
@@ -241,7 +279,12 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		const parsed = parseMediaInput( mediaInput );
 
 		if ( ! parsed || ! parsed.mediaId ) {
-			setError( __( 'Paste an Instagram post URL or numeric media ID.', 'extrachill-studio' ) );
+			setError(
+				__(
+					'Paste an Instagram post URL or numeric media ID.',
+					'extrachill-studio'
+				)
+			);
 			return;
 		}
 
@@ -253,13 +296,19 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		setExcludedWinners( [] );
 
 		try {
-			const response = await studioSocialsApi.getAllComments( parsed.platform, parsed.mediaId );
+			const response = await studioSocialsApi.getAllComments(
+				parsed.platform,
+				parsed.mediaId
+			);
 			if ( requestId !== previewRequestRef.current ) {
 				return;
 			}
 
 			if ( ! response.success ) {
-				throw new Error( response.error || __( 'Failed to fetch comments.', 'extrachill-studio' ) );
+				throw new Error(
+					response.error ||
+						__( 'Failed to fetch comments.', 'extrachill-studio' )
+				);
 			}
 
 			const comments = response.data.comments || [];
@@ -269,18 +318,36 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 			setStats( newStats );
 			setHasPreview( true );
 
-			const pageInfo = response.data.pages ? sprintf( __( ' (%d pages)', 'extrachill-studio' ), response.data.pages ) : '';
-			const partialInfo = response.data.partial ? ' ' + __( '(partial — some pages could not be fetched)', 'extrachill-studio' ) : '';
+			const pageInfo = response.data.pages
+				? sprintf(
+						/* translators: %d: number of comment result pages. */
+						__( '(%d pages)', 'extrachill-studio' ),
+						response.data.pages
+				  )
+				: '';
+			const partialInfo = response.data.partial
+				? ' ' +
+				  __(
+						'(partial — some pages could not be fetched)',
+						'extrachill-studio'
+				  )
+				: '';
 
-			setStatus( sprintf(
-				__( 'Loaded %d comments%s%s', 'extrachill-studio' ),
-				comments.length,
-				pageInfo,
-				partialInfo
-			) );
+			setStatus(
+				sprintf(
+					/* translators: 1: comment count, 2: page count suffix, 3: partial-result suffix. */
+					__( 'Loaded %1$d comments%2$s%3$s', 'extrachill-studio' ),
+					comments.length,
+					pageInfo,
+					partialInfo
+				)
+			);
 		} catch ( fetchError ) {
 			if ( requestId === previewRequestRef.current ) {
-				setError( ( fetchError as Error )?.message || __( 'Failed to fetch comments.', 'extrachill-studio' ) );
+				setError(
+					( fetchError as Error )?.message ||
+						__( 'Failed to fetch comments.', 'extrachill-studio' )
+				);
 				setStatus( '' );
 			}
 		} finally {
@@ -297,11 +364,20 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		setIsDrawing( true );
 		setError( '' );
 
-		const { entries, stats: newStats } = filterEntries( allComments, rules, excludedWinners );
+		const { entries, stats: newStats } = filterEntries(
+			allComments,
+			rules,
+			excludedWinners
+		);
 		setStats( newStats );
 
 		if ( entries.length === 0 ) {
-			setError( __( 'No valid entries after applying rules.', 'extrachill-studio' ) );
+			setError(
+				__(
+					'No valid entries after applying rules.',
+					'extrachill-studio'
+				)
+			);
 			setIsDrawing( false );
 			return;
 		}
@@ -309,11 +385,17 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 		const selected = pickWinners( entries, rules.winnerCount );
 		setWinners( selected );
 
-		setStatus( sprintf(
-			__( 'Drew %d winner(s) from %d valid entries.', 'extrachill-studio' ),
-			selected.length,
-			entries.length
-		) );
+		setStatus(
+			sprintf(
+				/* translators: 1: winner count, 2: valid entry count. */
+				__(
+					'Drew %1$d winner(s) from %2$d valid entries.',
+					'extrachill-studio'
+				),
+				selected.length,
+				entries.length
+			)
+		);
 
 		setIsDrawing( false );
 	};
@@ -322,8 +404,13 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 	 * Re-draw: exclude current winners and pick again.
 	 */
 	const redraw = (): void => {
-		const currentWinnerUsernames = winners.map( ( w ) => w.comment.author_username );
-		setExcludedWinners( ( current ) => [ ...current, ...currentWinnerUsernames ] );
+		const currentWinnerUsernames = winners.map(
+			( w ) => w.comment.author_username
+		);
+		setExcludedWinners( ( current ) => [
+			...current,
+			...currentWinnerUsernames,
+		] );
 		setWinners( [] );
 
 		// Use setTimeout to let state update before re-drawing.
@@ -332,29 +419,55 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 
 	/**
 	 * Announce winner by replying to their comment.
+	 * @param winner
 	 */
-	const announceWinner = async ( winner: GiveawayWinner ): Promise< void > => {
+	const announceWinner = async (
+		winner: GiveawayWinner
+	): Promise< void > => {
 		setIsAnnouncing( winner.comment.id );
 		setError( '' );
 
 		const message = sprintf(
-			__( 'Congratulations @%s, you won the giveaway! Check your DMs for details.', 'extrachill-studio' ),
+			/* translators: %s: winner's social username. */
+			__(
+				'Congratulations @%s, you won the giveaway! Check your DMs for details.',
+				'extrachill-studio'
+			),
 			winner.comment.author_username
 		);
 
 		try {
-			const response = await studioSocialsApi.replyToComment( platform, winner.comment.id, message );
+			const response = await studioSocialsApi.replyToComment(
+				platform,
+				winner.comment.id,
+				message
+			);
 
 			if ( ! response.success ) {
-				throw new Error( response.error || __( 'Failed to post announcement.', 'extrachill-studio' ) );
+				throw new Error(
+					response.error ||
+						__(
+							'Failed to post announcement.',
+							'extrachill-studio'
+						)
+				);
 			}
 
-			setStatus( sprintf(
-				__( 'Winner announced! Replied to @%s\'s comment.', 'extrachill-studio' ),
-				winner.comment.author_username
-			) );
+			setStatus(
+				sprintf(
+					/* translators: %s: winner's social username. */
+					__(
+						"Winner announced! Replied to @%s's comment.",
+						'extrachill-studio'
+					),
+					winner.comment.author_username
+				)
+			);
 		} catch ( replyError ) {
-			setError( ( replyError as Error )?.message || __( 'Failed to announce winner.', 'extrachill-studio' ) );
+			setError(
+				( replyError as Error )?.message ||
+					__( 'Failed to announce winner.', 'extrachill-studio' )
+			);
 		} finally {
 			setIsAnnouncing( '' );
 		}
@@ -369,7 +482,10 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 			PanelView,
 			{ className: 'ec-studio-panel', compact: true },
 			h( PanelHeader, {
-				description: __( 'Pick a random winner from Instagram post comments. Paste a post URL, load the comments, and draw.', 'extrachill-studio' ),
+				description: __(
+					'Pick a random winner from Instagram post comments. Paste a post URL, load the comments, and draw.',
+					'extrachill-studio'
+				),
 			} ),
 			h(
 				'div',
@@ -377,18 +493,26 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 
 				h(
 					FieldGroupView,
-					{ label: __( 'Instagram Post', 'extrachill-studio' ), htmlFor: 'ec-studio-giveaway-post' },
+					{
+						label: __( 'Instagram Post', 'extrachill-studio' ),
+						htmlFor: 'ec-studio-giveaway-post',
+					},
 					createElement( 'input', {
 						id: 'ec-studio-giveaway-post',
 						type: 'text',
 						value: mediaInput,
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => {
+						onChange: (
+							event: ChangeEvent< HTMLInputElement >
+						) => {
 							if ( event.target.value !== mediaInput ) {
 								setMediaInput( event.target.value );
 								resetPreview();
 							}
 						},
-						placeholder: __( 'https://www.instagram.com/p/... or numeric media ID', 'extrachill-studio' ),
+						placeholder: __(
+							'https://www.instagram.com/p/… or numeric media ID',
+							'extrachill-studio'
+						),
 					} )
 				),
 
@@ -399,41 +523,77 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 					createElement(
 						'div',
 						{ className: 'ec-studio-giveaway-rules' },
-						createElement( 'label', { className: 'ec-studio-giveaway-rules__rule' },
+						createElement(
+							'label',
+							{ className: 'ec-studio-giveaway-rules__rule' },
 							createElement( 'input', {
 								type: 'checkbox',
 								checked: rules.requireTag,
-								onChange: ( event: ChangeEvent< HTMLInputElement > ) => updateRule( 'requireTag', event.target.checked ),
+								onChange: (
+									event: ChangeEvent< HTMLInputElement >
+								) =>
+									updateRule(
+										'requireTag',
+										event.target.checked
+									),
 							} ),
 							__( 'Must tag a friend', 'extrachill-studio' ),
 							rules.requireTag
-								? h( 'span', { className: 'ec-studio-giveaway-rules__inline' },
-									__( ' (min:', 'extrachill-studio' ),
-									createElement( 'input', {
-										type: 'number',
-										min: 1,
-										max: 10,
-										value: rules.minTags,
-										onChange: ( event: ChangeEvent< HTMLInputElement > ) => updateRule( 'minTags', Math.max( 1, parseInt( event.target.value, 10 ) || 1 ) ),
-										className: 'ec-studio-giveaway-rules__number',
-									} ),
-									')'
-								)
+								? h(
+										'span',
+										{
+											className:
+												'ec-studio-giveaway-rules__inline',
+										},
+										__( '(min:', 'extrachill-studio' ),
+										createElement( 'input', {
+											type: 'number',
+											min: 1,
+											max: 10,
+											value: rules.minTags,
+											onChange: (
+												event: ChangeEvent< HTMLInputElement >
+											) =>
+												updateRule(
+													'minTags',
+													Math.max(
+														1,
+														parseInt(
+															event.target.value,
+															10
+														) || 1
+													)
+												),
+											className:
+												'ec-studio-giveaway-rules__number',
+										} ),
+										')'
+								  )
 								: null
-						),
+						)
 					)
 				),
 
 				h(
 					FieldGroupView,
-					{ label: __( 'Number of Winners', 'extrachill-studio' ), htmlFor: 'ec-studio-giveaway-winners' },
+					{
+						label: __( 'Number of Winners', 'extrachill-studio' ),
+						htmlFor: 'ec-studio-giveaway-winners',
+					},
 					createElement( 'input', {
 						id: 'ec-studio-giveaway-winners',
 						type: 'number',
 						min: 1,
 						max: 50,
 						value: rules.winnerCount,
-						onChange: ( event: ChangeEvent< HTMLInputElement > ) => updateRule( 'winnerCount', Math.max( 1, parseInt( event.target.value, 10 ) || 1 ) ),
+						onChange: ( event: ChangeEvent< HTMLInputElement > ) =>
+							updateRule(
+								'winnerCount',
+								Math.max(
+									1,
+									parseInt( event.target.value, 10 ) || 1
+								)
+							),
 					} )
 				),
 
@@ -449,115 +609,267 @@ const GiveawayPane = ( _props: StudioPaneProps ): ReactElement => {
 							onClick: loadPreview,
 							disabled: isLoading || ! mediaInput.trim(),
 						},
-						isLoading ? __( 'Loading…', 'extrachill-studio' ) : __( 'Load Comments', 'extrachill-studio' )
+						isLoading
+							? __( 'Loading…', 'extrachill-studio' )
+							: __( 'Load Comments', 'extrachill-studio' )
 					),
 					hasPreview
 						? createElement(
-							'button',
-							{
-								type: 'button',
-								className: 'button-1 button-medium',
-								onClick: drawWinners,
-								disabled: isDrawing || ! stats || stats.validEntries === 0,
-							},
-							isDrawing ? __( 'Drawing…', 'extrachill-studio' ) : __( 'Draw Winner', 'extrachill-studio' )
-						)
+								'button',
+								{
+									type: 'button',
+									className: 'button-1 button-medium',
+									onClick: drawWinners,
+									disabled:
+										isDrawing ||
+										! stats ||
+										stats.validEntries === 0,
+								},
+								isDrawing
+									? __( 'Drawing…', 'extrachill-studio' )
+									: __( 'Draw Winner', 'extrachill-studio' )
+						  )
 						: null
 				)
 			),
-			error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
-			! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null
+			error
+				? h(
+						InlineStatusView,
+						{ tone: 'error', className: 'ec-studio-message' },
+						error
+				  )
+				: null,
+			! error && status
+				? h(
+						InlineStatusView,
+						{ tone: 'success', className: 'ec-studio-message' },
+						status
+				  )
+				: null
 		),
 
 		// ── Stats Panel ──
 		stats
 			? h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, { description: __( 'Entry breakdown after applying rules.', 'extrachill-studio' ) } ),
-				createElement(
-					'div',
-					{ className: 'ec-card-grid ec-studio-giveaway-stats' },
-					createElement( 'div', { className: 'ec-studio-giveaway-stats__item' },
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__value' }, String( stats.totalComments ) ),
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__label' }, __( 'Total Comments', 'extrachill-studio' ) )
-					),
-					createElement( 'div', { className: 'ec-studio-giveaway-stats__item' },
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__value' }, String( stats.validEntries ) ),
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__label' }, __( 'Valid Entries', 'extrachill-studio' ) )
-					),
-					createElement( 'div', { className: 'ec-studio-giveaway-stats__item' },
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__value' }, String( stats.filteredOut ) ),
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__label' }, __( 'Filtered Out', 'extrachill-studio' ) )
-					),
-					createElement( 'div', { className: 'ec-studio-giveaway-stats__item' },
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__value' }, String( stats.uniqueUsers ) ),
-						createElement( 'span', { className: 'ec-studio-giveaway-stats__label' }, __( 'Unique Users', 'extrachill-studio' ) )
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					h( PanelHeader, {
+						description: __(
+							'Entry breakdown after applying rules.',
+							'extrachill-studio'
+						),
+					} ),
+					createElement(
+						'div',
+						{ className: 'ec-card-grid ec-studio-giveaway-stats' },
+						createElement(
+							'div',
+							{ className: 'ec-studio-giveaway-stats__item' },
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__value',
+								},
+								String( stats.totalComments )
+							),
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__label',
+								},
+								__( 'Total Comments', 'extrachill-studio' )
+							)
+						),
+						createElement(
+							'div',
+							{ className: 'ec-studio-giveaway-stats__item' },
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__value',
+								},
+								String( stats.validEntries )
+							),
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__label',
+								},
+								__( 'Valid Entries', 'extrachill-studio' )
+							)
+						),
+						createElement(
+							'div',
+							{ className: 'ec-studio-giveaway-stats__item' },
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__value',
+								},
+								String( stats.filteredOut )
+							),
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__label',
+								},
+								__( 'Filtered Out', 'extrachill-studio' )
+							)
+						),
+						createElement(
+							'div',
+							{ className: 'ec-studio-giveaway-stats__item' },
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__value',
+								},
+								String( stats.uniqueUsers )
+							),
+							createElement(
+								'span',
+								{
+									className:
+										'ec-studio-giveaway-stats__label',
+								},
+								__( 'Unique Users', 'extrachill-studio' )
+							)
+						)
 					)
-				)
-			)
+			  )
 			: null,
 
 		// ── Winners Panel ──
 		winners.length > 0
 			? h(
-				PanelView,
-				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, { description: __( 'Giveaway results — announce winners by replying to their comment.', 'extrachill-studio' ) } ),
-				createElement(
-					'ul',
-					{ className: 'ec-studio-giveaway-winners' },
-					...winners.map( ( winner, i ) => createElement(
-						'li',
-						{ key: winner.comment.id, className: 'ec-studio-giveaway-winners__item' },
-						createElement(
-							'div',
-							{ className: 'ec-studio-giveaway-winners__header' },
-							createElement( 'span', { className: 'ec-studio-giveaway-winners__rank' },
-								sprintf( __( 'Winner #%d', 'extrachill-studio' ), i + 1 )
-							),
-							createElement( 'strong', { className: 'ec-studio-giveaway-winners__username' },
-								`@${ winner.comment.author_username }`
-							)
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					h( PanelHeader, {
+						description: __(
+							'Giveaway results — announce winners by replying to their comment.',
+							'extrachill-studio'
 						),
-						createElement( 'p', { className: 'ec-studio-giveaway-winners__text' }, winner.comment.text ),
-						winner.comment.mentions.length > 0
-							? createElement( 'p', { className: 'ec-studio-giveaway-winners__mentions' },
-								__( 'Tagged: ', 'extrachill-studio' ) + winner.comment.mentions.map( ( m ) => `@${ m }` ).join( ', ' )
-							)
-							: null,
-						h(
-							ActionRowView,
-							{ className: 'ec-studio-composer__actions' },
+					} ),
+					createElement(
+						'ul',
+						{ className: 'ec-studio-giveaway-winners' },
+						...winners.map( ( winner, i ) =>
 							createElement(
-								'button',
+								'li',
 								{
-									type: 'button',
-									className: 'button-1 button-medium',
-									onClick: () => announceWinner( winner ),
-									disabled: isAnnouncing === winner.comment.id,
+									key: winner.comment.id,
+									className:
+										'ec-studio-giveaway-winners__item',
 								},
-								isAnnouncing === winner.comment.id
-									? __( 'Announcing…', 'extrachill-studio' )
-									: __( 'Announce Winner', 'extrachill-studio' )
+								createElement(
+									'div',
+									{
+										className:
+											'ec-studio-giveaway-winners__header',
+									},
+									createElement(
+										'span',
+										{
+											className:
+												'ec-studio-giveaway-winners__rank',
+										},
+										sprintf(
+											/* translators: %d: winner's ordinal number. */
+											__(
+												'Winner #%d',
+												'extrachill-studio'
+											),
+											i + 1
+										)
+									),
+									createElement(
+										'strong',
+										{
+											className:
+												'ec-studio-giveaway-winners__username',
+										},
+										`@${ winner.comment.author_username }`
+									)
+								),
+								createElement(
+									'p',
+									{
+										className:
+											'ec-studio-giveaway-winners__text',
+									},
+									winner.comment.text
+								),
+								winner.comment.mentions.length > 0
+									? createElement(
+											'p',
+											{
+												className:
+													'ec-studio-giveaway-winners__mentions',
+											},
+											__(
+												'Tagged:',
+												'extrachill-studio'
+											) +
+												winner.comment.mentions
+													.map( ( m ) => `@${ m }` )
+													.join( ', ' )
+									  )
+									: null,
+								h(
+									ActionRowView,
+									{
+										className:
+											'ec-studio-composer__actions',
+									},
+									createElement(
+										'button',
+										{
+											type: 'button',
+											className: 'button-1 button-medium',
+											onClick: () =>
+												announceWinner( winner ),
+											disabled:
+												isAnnouncing ===
+												winner.comment.id,
+										},
+										isAnnouncing === winner.comment.id
+											? __(
+													'Announcing…',
+													'extrachill-studio'
+											  )
+											: __(
+													'Announce Winner',
+													'extrachill-studio'
+											  )
+									)
+								)
 							)
 						)
-					) )
-				),
-				h(
-					ActionRowView,
-					{ className: 'ec-studio-composer__actions' },
-					createElement(
-						'button',
-						{
-							type: 'button',
-							className: 'button-2 button-medium',
-							onClick: redraw,
-						},
-						__( 'Re-draw (exclude current winners)', 'extrachill-studio' )
+					),
+					h(
+						ActionRowView,
+						{ className: 'ec-studio-composer__actions' },
+						createElement(
+							'button',
+							{
+								type: 'button',
+								className: 'button-2 button-medium',
+								onClick: redraw,
+							},
+							__(
+								'Re-draw (exclude current winners)',
+								'extrachill-studio'
+							)
+						)
 					)
-				)
-			)
+			  )
 			: null
 	);
 };

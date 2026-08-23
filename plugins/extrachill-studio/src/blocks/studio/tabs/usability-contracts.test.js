@@ -1,21 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const readTab = ( relativePath ) => fs.readFileSync(
-	path.resolve( __dirname, relativePath ),
-	'utf8'
-);
+const readTab = ( relativePath ) =>
+	fs.readFileSync( path.resolve( __dirname, relativePath ), 'utf8' );
 
 describe( 'Studio usability regression contracts', () => {
 	it( 'names the draft picker and tears down Blocks Everywhere', () => {
 		const source = readTab( 'compose/index.ts' );
 		expect( source ).toContain( "'aria-label': __( 'Choose draft'" );
-		expect( source ).toContain( 'window.blocksEverywhere.unmount( textarea )' );
+		expect( source ).toContain(
+			'window.blocksEverywhere.unmount( textarea )'
+		);
 	} );
 
 	it( 'activates the Transcribe dropzone from Enter and Space', () => {
 		const source = readTab( 'transcribe/index.ts' );
-		expect( source ).toContain( "event.key === 'Enter' || event.key === ' '" );
+		expect( source ).toContain(
+			"event.key === 'Enter' || event.key === ' '"
+		);
 		expect( source ).toContain( 'onKeyDown: onDropZoneKeyDown' );
 	} );
 

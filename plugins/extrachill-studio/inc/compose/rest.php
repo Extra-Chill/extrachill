@@ -405,7 +405,7 @@ function ec_studio_compose_require_cross_site() {
  *
  * @since 0.16.0
  *
- * @param array|\WP_Error|\WP_REST_Response $response Cross-site request result.
+ * @param array|string|\WP_Error|\WP_REST_Response $response Cross-site request result.
  * @return \WP_REST_Response|\WP_Error
  */
 function ec_studio_compose_relay_response( $response ) {
@@ -702,7 +702,7 @@ function ec_studio_compose_guard_reviewable_post( int $post_id ) {
  *
  * @since 0.17.0
  *
- * @param array|\WP_Error $response  Cross-site write result.
+ * @param array|string|\WP_Error $response  Cross-site write result.
  * @param string          $status    Resolved post status that was written.
  * @param int             $user_id   Acting/subject user id.
  * @param bool            $is_create Whether this was a create (vs update).
@@ -713,7 +713,7 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
 		return;
 	}
 
-	if ( is_wp_error( $response ) ) {
+	if ( ! is_array( $response ) ) {
 		return;
 	}
 
@@ -748,13 +748,13 @@ function ec_studio_compose_emit_lifecycle_event( $response, string $status, int 
  * unique Action Scheduler action crosses that boundary without elevating the
  * submitting request. The delivery receipt still provides the final dedupe.
  *
- * @param array|\WP_Error $response Cross-site write result.
+ * @param array|string|\WP_Error $response Cross-site write result.
  * @param string          $status   Resolved post status that was written.
  * @param int             $user_id  Submitting user ID.
  * @return void
  */
 function ec_studio_compose_schedule_editor_notification( $response, string $status, int $user_id ): void {
-	if ( 'pending' !== $status || is_wp_error( $response ) ) {
+	if ( 'pending' !== $status || ! is_array( $response ) ) {
 		return;
 	}
 
@@ -982,16 +982,15 @@ const EC_STUDIO_ORIGIN_BLOG_META = '_ec_studio_origin_blog';
  *
  * @since 0.20.1
  *
- * @param array|\WP_Error $response Cross-site write result.
+ * @param array|string|\WP_Error $response Cross-site write result.
  * @param int             $user_id  Acting/subject user id.
  * @return void
  */
 function ec_studio_compose_stamp_origin_meta( $response, int $user_id ): void {
-	if ( is_wp_error( $response ) ) {
+	if ( ! is_array( $response ) ) {
 		return;
 	}
 
-	// After the WP_Error guard, a successful cross-site write is an array.
 	$post_id = isset( $response['id'] ) ? (int) $response['id'] : 0;
 	if ( $post_id <= 0 ) {
 		return;

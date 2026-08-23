@@ -13,7 +13,9 @@ export interface StudioTabOptions {
 	canBrandSocials?: boolean;
 }
 
-export const getStudioTabs = ( options: StudioTabOptions = {} ): StudioTab[] => {
+export const getStudioTabs = (
+	options: StudioTabOptions = {}
+): StudioTab[] => {
 	const { canBrandSocials = true } = options;
 
 	const tabs: StudioTab[] = [
@@ -21,25 +23,37 @@ export const getStudioTabs = ( options: StudioTabOptions = {} ): StudioTab[] => 
 			id: 'compose',
 			pane: 'compose',
 			label: __( 'Blog', 'extrachill-studio' ),
-			preview: __( 'Draft and submit blog posts using the block editor.', 'extrachill-studio' ),
+			preview: __(
+				'Draft and submit blog posts using the block editor.',
+				'extrachill-studio'
+			),
 		},
 		{
 			id: 'socials',
 			pane: 'socials',
 			label: __( 'Socials', 'extrachill-studio' ),
-			preview: __( 'Publish and manage posts across social platforms.', 'extrachill-studio' ),
+			preview: __(
+				'Publish and manage posts across social platforms.',
+				'extrachill-studio'
+			),
 		},
 		{
 			id: 'transcribe',
 			pane: 'transcribe',
 			label: __( 'Transcribe', 'extrachill-studio' ),
-			preview: __( 'Transcribe audio with Whisper.', 'extrachill-studio' ),
+			preview: __(
+				'Transcribe audio with Whisper.',
+				'extrachill-studio'
+			),
 		},
 		{
 			id: 'qr-codes',
 			pane: 'qr-codes',
 			label: __( 'QR Codes', 'extrachill-studio' ),
-			preview: __( 'Generate downloadable QR codes for any URL.', 'extrachill-studio' ),
+			preview: __(
+				'Generate downloadable QR codes for any URL.',
+				'extrachill-studio'
+			),
 		},
 		{
 			// Visible to ALL team members — no extra feature gate. The server
@@ -48,7 +62,10 @@ export const getStudioTabs = ( options: StudioTabOptions = {} ): StudioTab[] => 
 			id: 'network',
 			pane: 'network',
 			label: __( 'Network', 'extrachill-studio' ),
-			preview: __( 'Platform health — traffic, growth, retention, and conversion.', 'extrachill-studio' ),
+			preview: __(
+				'Platform health — traffic, growth, retention, and conversion.',
+				'extrachill-studio'
+			),
 		},
 	];
 

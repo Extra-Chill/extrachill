@@ -53,11 +53,11 @@ if ( ! current_user_can( 'manage_options' ) && ! ec_is_team_member() ) :
 	return;
 endif;
 
-$studio_user = wp_get_current_user();
-$site_name   = get_bloginfo( 'name' );
-$site_url    = home_url( '/' );
-$rest_nonce  = wp_create_nonce( 'wp_rest' );
-$socials_api = rest_url( 'datamachine/v1/socials/' );
+$studio_user   = wp_get_current_user();
+$site_name     = get_bloginfo( 'name' );
+$site_url      = home_url( '/' );
+$rest_nonce    = wp_create_nonce( 'wp_rest' );
+$socials_api   = rest_url( 'datamachine/v1/socials/' );
 $network_sites = array();
 
 if ( is_multisite() ) {
@@ -72,7 +72,7 @@ if ( is_multisite() ) {
 	);
 
 	foreach ( $sites as $site ) {
-		$site_id   = (int) $site->blog_id;
+		$site_id          = (int) $site->blog_id;
 		$network_site_url = get_home_url( $site_id, '/' );
 		$site_host        = wp_parse_url( $network_site_url, PHP_URL_HOST );
 
@@ -98,7 +98,15 @@ if ( is_multisite() ) {
  *
  * @param string[] $platforms Allowed platform slugs. Empty = show all.
  */
-$allowed_platforms = apply_filters( 'extrachill_studio_social_platforms', array() );
+$allowed_platforms      = apply_filters( 'extrachill_studio_social_platforms', array() );
+$allowed_platforms_json = wp_json_encode( $allowed_platforms );
+if ( false === $allowed_platforms_json ) {
+	$allowed_platforms_json = '[]';
+}
+$network_sites_json = wp_json_encode( $network_sites );
+if ( false === $network_sites_json ) {
+	$network_sites_json = '[]';
+}
 
 /*
  * Whether this user may access the shared brand social accounts. The Socials
@@ -123,9 +131,9 @@ $can_brand_socials = current_user_can( 'manage_brand_socials' )
 	data-socials-api-base="<?php echo esc_url( $socials_api ); ?>"
 	data-headline="<?php echo esc_attr( $headline ); ?>"
 	data-description="<?php echo esc_attr( $description ); ?>"
-	data-social-platforms="<?php echo esc_attr( wp_json_encode( $allowed_platforms ) ); ?>"
+	data-social-platforms="<?php echo esc_attr( $allowed_platforms_json ); ?>"
 	data-can-brand-socials="<?php echo $can_brand_socials ? 'true' : 'false'; ?>"
-	data-network-sites="<?php echo esc_attr( wp_json_encode( $network_sites ) ); ?>"
+	data-network-sites="<?php echo esc_attr( $network_sites_json ); ?>"
 >
 	<div class="ec-studio-app__mount" data-ec-studio-app></div>
 </div>

@@ -99,7 +99,11 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 
 	// --- Scope check --------------------------------------------------
 	$scope  = isset( $payload['scope'] ) ? (string) $payload['scope'] : '';
-	$scopes = array_filter( preg_split( '/\s+/', $scope ) );
+	$scopes = preg_split( '/\s+/', $scope );
+	if ( false === $scopes ) {
+		$scopes = array();
+	}
+	$scopes = array_filter( $scopes );
 	if ( ! in_array( 'callback:write', $scopes, true ) ) {
 		return new \WP_Error( 'forbidden_scope', __( 'Token lacks callback:write scope.', 'extrachill-studio' ), array( 'status' => 403 ) );
 	}
@@ -117,9 +121,6 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
 
 	// --- Payload ------------------------------------------------------
 	$body = $request->get_json_params();
-	if ( ! is_array( $body ) ) {
-		return new \WP_Error( 'invalid_body', __( 'Callback body must be JSON.', 'extrachill-studio' ), array( 'status' => 400 ) );
-	}
 
 	$job_id     = isset( $body['job_id'] ) ? (string) $body['job_id'] : '';
 	$status     = isset( $body['status'] ) ? (string) $body['status'] : '';
@@ -286,7 +287,11 @@ function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) 
 	switch_to_blog( $main_blog_id );
 	try {
 		if ( add_option( $key, $state, '', false ) ) {
-			return array( 'key' => $key, 'state' => $state, 'duplicate' => false );
+			return array(
+				'key'       => $key,
+				'state'     => $state,
+				'duplicate' => false,
+			);
 		}
 		$existing = get_option( $key, null );
 	} finally {
@@ -297,7 +302,11 @@ function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) 
 		return new \WP_Error( 'callback_receipt_invalid', __( 'The existing callback receipt is invalid.', 'extrachill-studio' ), array( 'status' => 500 ) );
 	}
 	if ( 'complete' === ( $existing['status'] ?? '' ) ) {
-		return array( 'key' => $key, 'state' => $existing, 'duplicate' => true );
+		return array(
+			'key'       => $key,
+			'state'     => $existing,
+			'duplicate' => true,
+		);
 	}
 	if ( 'processing' === ( $existing['status'] ?? '' ) && $now - (int) ( $existing['updated_at'] ?? 0 ) < 300 ) {
 		return new \WP_Error( 'callback_in_progress', __( 'This callback is already being processed. Retry shortly.', 'extrachill-studio' ), array( 'status' => 409 ) );
@@ -312,7 +321,11 @@ function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) 
 		return new \WP_Error( 'callback_in_progress', __( 'This callback was claimed by another request. Retry shortly.', 'extrachill-studio' ), array( 'status' => 409 ) );
 	}
 
-	return array( 'key' => $key, 'state' => $state, 'duplicate' => false );
+	return array(
+		'key'       => $key,
+		'state'     => $state,
+		'duplicate' => false,
+	);
 }
 
 /**
@@ -324,7 +337,7 @@ function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) 
  * @return true|\WP_Error
  */
 function ec_studio_transcription_callback_store( string $key, array $current, array &$next ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id       = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
 	$next['owner']      = (string) ( $current['owner'] ?? '' );
 	$next['updated_at'] = time();
 	if ( $main_blog_id <= 0 || ! ec_studio_transcription_callback_replace( $main_blog_id, $key, $current, $next ) ) {
@@ -658,5 +671,5 @@ function ec_studio_transcription_callback_send_email(
 		)
 	);
 
-	return is_array( $result ) && ! empty( $result['success'] );
+	return ! empty( $result['success'] );
 }

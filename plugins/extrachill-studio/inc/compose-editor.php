@@ -75,7 +75,9 @@ function register_compose_context( array $contexts ): array {
 		'editor_setup' => function ( $engine ) {
 			// Add .gutenberg-support body class so BE's scoped toolbar/component
 			// dark mode styles in style-index.min.css apply.
-			add_filter( 'body_class', array( $engine, 'body_class' ) );
+			if ( is_object( $engine ) && is_callable( array( $engine, 'body_class' ) ) ) {
+				add_filter( 'body_class', array( $engine, 'body_class' ) );
+			}
 
 			// BE renders inline (shouldIframe=false), not in an iframe.
 			// Theme root.css variables are available on the host page, but

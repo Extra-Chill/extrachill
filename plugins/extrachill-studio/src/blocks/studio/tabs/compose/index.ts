@@ -6,21 +6,36 @@ import {
 	getOrCreateClientContextRegistry,
 	registerClientContextProvider,
 } from '@extrachill/chat';
-import { ActionRow, FieldGroup, InlineStatus, Panel, PanelHeader } from '@extrachill/components';
+import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+} from '@extrachill/components';
 
 /**
  * WordPress dependencies
  */
 import apiFetch from '@wordpress/api-fetch';
 import { select } from '@wordpress/data';
-import { createElement, useEffect, useRef, useState, useCallback } from '@wordpress/element';
+import {
+	createElement,
+	useEffect,
+	useRef,
+	useState,
+	useCallback,
+} from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
 import type { StudioPaneProps } from '../../types/studio';
-import { markComposeRequest, registerComposeInstance } from './cross-site-middleware';
+import {
+	markComposeRequest,
+	registerComposeInstance,
+} from './cross-site-middleware';
 import { installChatRefreshAdapter } from './refresh-adapter';
 import { openComposePreview } from './preview';
 import type { AutosavePreviewResponse, ComposeSnapshot } from './preview';
@@ -41,11 +56,13 @@ const composeApiFetch = < T = unknown >(
 	options: import('@wordpress/api-fetch').APIFetchOptions< true >
 ): Promise< T > => apiFetch< T >( markComposeRequest( options ) );
 
-const h = createElement as typeof import( 'react' ).createElement;
+const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
 const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
 const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
-const InlineStatusView = InlineStatus as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
 
 declare global {
 	interface Window {
@@ -53,7 +70,9 @@ declare global {
 			textarea: HTMLTextAreaElement,
 			options?: { settings?: Record< string, unknown > }
 		) => void;
-		blocksEverywhereGetContentApi?: ( textarea: HTMLTextAreaElement ) => BlocksEverywhereContentApi | null;
+		blocksEverywhereGetContentApi?: (
+			textarea: HTMLTextAreaElement
+		) => BlocksEverywhereContentApi | null;
 		blocksEverywhere?: {
 			unmount: ( mountOrTextarea: HTMLElement ) => void;
 		};
@@ -76,12 +95,21 @@ function extractPlainText( html: string ): string {
 		return '';
 	}
 
-	if ( typeof window !== 'undefined' && typeof window.DOMParser !== 'undefined' ) {
-		const parsed = new window.DOMParser().parseFromString( html, 'text/html' );
+	if (
+		typeof window !== 'undefined' &&
+		typeof window.DOMParser !== 'undefined'
+	) {
+		const parsed = new window.DOMParser().parseFromString(
+			html,
+			'text/html'
+		);
 		return ( parsed.body.textContent || '' ).replace( /\s+/g, ' ' ).trim();
 	}
 
-	return html.replace( /<[^>]+>/g, ' ' ).replace( /\s+/g, ' ' ).trim();
+	return html
+		.replace( /<[^>]+>/g, ' ' )
+		.replace( /\s+/g, ' ' )
+		.trim();
 }
 
 /**
@@ -118,7 +146,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const [ isLoadingDrafts, setIsLoadingDrafts ] = useState( true );
 
 	// Autosave tracking refs.
-	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
+	const autosaveTimerRef = useRef< ReturnType< typeof setTimeout > | null >(
+		null
+	);
 	const lastSavedPayloadRef = useRef( '' );
 	const isAutosavingRef = useRef( false );
 	const inFlightPromiseRef = useRef< Promise< void > | null >( null );
@@ -147,7 +177,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	const activePostIdRef = useRef< number | null >( null );
 	const titleRef = useRef( '' );
 	const contentSnapshotRef = useRef( '' );
-	const clientContextTimerRef = useRef< ReturnType< typeof setTimeout > | null >( null );
+	const clientContextTimerRef = useRef< ReturnType<
+		typeof setTimeout
+	> | null >( null );
 	const unregisterClientContextRef = useRef< ( () => void ) | null >( null );
 
 	// Keep refs in sync with state.
@@ -168,7 +200,8 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				postType: 'post',
 				id: activeDraftId,
 				status: activeDraftId ? 'draft' : 'unsaved',
-				title: currentTitle || __( 'Untitled Draft', 'extrachill-studio' ),
+				title:
+					currentTitle || __( 'Untitled Draft', 'extrachill-studio' ),
 			},
 			content: {
 				hasContent: plainText.length > 0,
@@ -189,15 +222,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		}, CLIENT_CONTEXT_UPDATE_DELAY );
 	}, [] );
 
-
-
 	/** Get the content API from the Blocks Everywhere ContentBridge. */
-	const getContentApi = useCallback( (): BlocksEverywhereContentApi | null => {
-		if ( ! textareaRef.current || ! window.blocksEverywhereGetContentApi ) {
-			return null;
-		}
-		return window.blocksEverywhereGetContentApi( textareaRef.current );
-	}, [] );
+	const getContentApi =
+		useCallback( (): BlocksEverywhereContentApi | null => {
+			if (
+				! textareaRef.current ||
+				! window.blocksEverywhereGetContentApi
+			) {
+				return null;
+			}
+			return window.blocksEverywhereGetContentApi( textareaRef.current );
+		}, [] );
 
 	/** Read serialized block content — prefer content API, fall back to textarea. */
 	const getContent = useCallback( (): string => {
@@ -213,12 +248,15 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	 *
 	 * @param html Serialized block content.
 	 */
-	const replaceEditorContent = useCallback( ( html: string ): void => {
-		const api = getContentApi();
-		if ( api ) {
-			api.replaceContent( html );
-		}
-	}, [ getContentApi ] );
+	const replaceEditorContent = useCallback(
+		( html: string ): void => {
+			const api = getContentApi();
+			if ( api ) {
+				api.replaceContent( html );
+			}
+		},
+		[ getContentApi ]
+	);
 
 	/**
 	 * Refetch the current content of a post from main via the compose
@@ -335,10 +373,14 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	 */
 	const loadDrafts = useCallback( async (): Promise< WpPost[] > => {
 		try {
-			const currentUser = ( select( 'core' ) as { getCurrentUser?: () => { id?: number } | undefined } )
-				.getCurrentUser?.();
+			const currentUser = (
+				select( 'core' ) as {
+					getCurrentUser?: () => { id?: number } | undefined;
+				}
+			 ).getCurrentUser?.();
 			const userId = currentUser?.id;
-			let path = '/wp/v2/posts?status=draft&per_page=20&orderby=modified&order=desc&context=edit';
+			let path =
+				'/wp/v2/posts?status=draft&per_page=20&orderby=modified&order=desc&context=edit';
 			if ( userId ) {
 				path += `&author=${ userId }`;
 			}
@@ -358,7 +400,7 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			select( 'core' ) as {
 				getCurrentUser?: () => { id?: number } | undefined;
 			}
-		).getCurrentUser?.();
+		 ).getCurrentUser?.();
 
 		return recoverDraftContent( post, currentUser?.id, ( postId ) =>
 			composeApiFetch< WpAutosave[] >( {
@@ -400,7 +442,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
-		const payload = JSON.stringify( { title: currentTitle, content: currentContent } );
+		const payload = JSON.stringify( {
+			title: currentTitle,
+			content: currentContent,
+		} );
 		if ( payload === lastSavedPayloadRef.current ) {
 			return;
 		}
@@ -426,7 +471,11 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					const post = await composeApiFetch< WpPost >( {
 						path: '/wp/v2/posts',
 						method: 'POST',
-						data: { title: currentTitle, content: currentContent, status: 'draft' },
+						data: {
+							title: currentTitle,
+							content: currentContent,
+							status: 'draft',
+						},
 					} );
 					// Capture new ID on first-create so subsequent saves target the same draft.
 					if ( post?.id ) {
@@ -451,47 +500,53 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 	 * Switch to a draft or start blank. Flushes any unsaved changes to the
 	 * current draft first, then replaces editor content via ContentBridge.
 	 */
-	const switchToDraft = useCallback( async ( post: WpPost | null ): Promise< void > => {
-		// Save current draft before switching away.
-		await flushCurrentDraft();
+	const switchToDraft = useCallback(
+		async ( post: WpPost | null ): Promise< void > => {
+			// Save current draft before switching away.
+			await flushCurrentDraft();
 
-		if ( post ) {
-			activePostIdRef.current = post.id;
-			setActivePostId( post.id );
+			if ( post ) {
+				activePostIdRef.current = post.id;
+				setActivePostId( post.id );
 
-			// Since autosaves migrated to /wp/v2/posts/<id>/autosaves (per-user
-			// revision rows), the parent post body returned in the drafts list
-			// is stale relative to in-flight typing. Check for a user autosave
-			// newer than the parent and prefer it. Falls back to parent on any
-			// error so the picker always works.
-			const {
-				title: recoveredTitle,
-				content: recoveredContent,
-			} = await loadDraftContent( post );
+				// Since autosaves migrated to /wp/v2/posts/<id>/autosaves (per-user
+				// revision rows), the parent post body returned in the drafts list
+				// is stale relative to in-flight typing. Check for a user autosave
+				// newer than the parent and prefer it. Falls back to parent on any
+				// error so the picker always works.
+				const { title: recoveredTitle, content: recoveredContent } =
+					await loadDraftContent( post );
 
-			titleRef.current = recoveredTitle;
-			setTitle( recoveredTitle );
-			contentSnapshotRef.current = recoveredContent;
-			replaceEditorContent( recoveredContent );
-			lastSavedPayloadRef.current = JSON.stringify( {
-				title: recoveredTitle,
-				content: recoveredContent,
-			} );
-		} else {
-			activePostIdRef.current = null;
-			titleRef.current = '';
-			contentSnapshotRef.current = '';
-			setActivePostId( null );
-			setTitle( '' );
-			replaceEditorContent( '' );
-			lastSavedPayloadRef.current = '';
-		}
+				titleRef.current = recoveredTitle;
+				setTitle( recoveredTitle );
+				contentSnapshotRef.current = recoveredContent;
+				replaceEditorContent( recoveredContent );
+				lastSavedPayloadRef.current = JSON.stringify( {
+					title: recoveredTitle,
+					content: recoveredContent,
+				} );
+			} else {
+				activePostIdRef.current = null;
+				titleRef.current = '';
+				contentSnapshotRef.current = '';
+				setActivePostId( null );
+				setTitle( '' );
+				replaceEditorContent( '' );
+				lastSavedPayloadRef.current = '';
+			}
 
-		setHasUnsavedChanges( false );
-		setError( '' );
-		setStatus( '' );
-		scheduleClientContextUpdate();
-	}, [ flushCurrentDraft, loadDraftContent, replaceEditorContent, scheduleClientContextUpdate ] );
+			setHasUnsavedChanges( false );
+			setError( '' );
+			setStatus( '' );
+			scheduleClientContextUpdate();
+		},
+		[
+			flushCurrentDraft,
+			loadDraftContent,
+			replaceEditorContent,
+			scheduleClientContextUpdate,
+		]
+	);
 
 	const startNew = useCallback( async (): Promise< void > => {
 		if ( isPreviewingRef.current ) {
@@ -540,7 +595,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			return;
 		}
 
-		const payload = JSON.stringify( { title: currentTitle, content: currentContent } );
+		const payload = JSON.stringify( {
+			title: currentTitle,
+			content: currentContent,
+		} );
 		if ( payload === lastSavedPayloadRef.current ) {
 			return;
 		}
@@ -573,7 +631,11 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					const post = await composeApiFetch< WpPost >( {
 						path: '/wp/v2/posts',
 						method: 'POST',
-						data: { title: currentTitle, content: currentContent, status: 'draft' },
+						data: {
+							title: currentTitle,
+							content: currentContent,
+							status: 'draft',
+						},
 					} );
 					// Capture new ID on first-create so subsequent autosaves
 					// update the same draft instead of creating duplicates.
@@ -606,11 +668,18 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				// single transient blip doesn't spook the user, but real
 				// outages become visible.
 				if ( consecutiveFailuresRef.current >= 2 ) {
-					const message = ( err as Error )?.message || __( 'Unknown error', 'extrachill-studio' );
+					const message =
+						( err as Error )?.message ||
+						__( 'Unknown error', 'extrachill-studio' );
 					autosaveErrorActiveRef.current = true;
 					setError(
 						/* translators: 1: number of consecutive failures, 2: error message */
-						`${ __( 'Autosave failed', 'extrachill-studio' ) } (${ consecutiveFailuresRef.current } ${ __( 'attempt(s)', 'extrachill-studio' ) }): ${ message }`
+						`${ __( 'Autosave failed', 'extrachill-studio' ) } (${
+							consecutiveFailuresRef.current
+						} ${ __(
+							'attempt(s)',
+							'extrachill-studio'
+						) }): ${ message }`
 					);
 				}
 			} finally {
@@ -702,9 +771,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// Fetch drafts first so we can pre-fill the textarea before mounting the editor.
 			setIsLoadingDrafts( true );
 			const result = await loadDrafts();
-			const initialDraft = result.length > 0
-				? await loadDraftContent( result[ 0 ] )
-				: null;
+			const initialDraft =
+				result.length > 0
+					? await loadDraftContent( result[ 0 ] )
+					: null;
 
 			if ( cancelled ) {
 				return;
@@ -716,7 +786,8 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// Pre-fill textarea with the most recent draft.
 			if ( result.length > 0 && textareaRef.current ) {
 				const post = result[ 0 ];
-				const { title: initialTitle, content: initialContent } = initialDraft!;
+				const { title: initialTitle, content: initialContent } =
+					initialDraft!;
 				activePostIdRef.current = post.id;
 				titleRef.current = initialTitle;
 				setActivePostId( post.id );
@@ -737,7 +808,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			// external-edit refresh wiring so an accepted Roadie edit refreshes
 			// the open editor instead of being clobbered by the next autosave.
 			if ( ! editorMountedRef.current && textareaRef.current ) {
-				if ( typeof window.blocksEverywhereCreateEditor === 'function' ) {
+				if (
+					typeof window.blocksEverywhereCreateEditor === 'function'
+				) {
 					window.blocksEverywhereCreateEditor( textareaRef.current, {
 						settings: {
 							blocksEverywhere: {
@@ -748,7 +821,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					editorMountedRef.current = true;
 					setEditorReady( true );
 				} else {
-					setError( __( 'Block editor not available. Ensure Blocks Everywhere plugin is active.', 'extrachill-studio' ) );
+					setError(
+						__(
+							'Block editor not available. Ensure Blocks Everywhere plugin is active.',
+							'extrachill-studio'
+						)
+					);
 				}
 			}
 
@@ -762,8 +840,6 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		};
 	}, [ loadDraftContent, loadDrafts, scheduleClientContextUpdate ] );
 
-
-
 	// Listen for content changes on the textarea for autosave.
 	useEffect( () => {
 		const textarea = textareaRef.current;
@@ -774,7 +850,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		const onContentChange = (): void => {
 			editSeqRef.current += 1;
 			contentSnapshotRef.current = getContent();
-			const payload = JSON.stringify( { title: titleRef.current.trim(), content: contentSnapshotRef.current.trim() } );
+			const payload = JSON.stringify( {
+				title: titleRef.current.trim(),
+				content: contentSnapshotRef.current.trim(),
+			} );
 			setHasUnsavedChanges( payload !== lastSavedPayloadRef.current );
 			scheduleClientContextUpdate();
 			scheduleAutosave();
@@ -789,14 +868,24 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				performAutosave();
 			}
 		};
-	}, [ getContent, scheduleAutosave, performAutosave, scheduleClientContextUpdate ] );
+	}, [
+		getContent,
+		scheduleAutosave,
+		performAutosave,
+		scheduleClientContextUpdate,
+	] );
 
 	// This effect follows autosave cleanup so the latest editor value is
 	// captured before Blocks Everywhere removes its React tree.
 	useEffect( () => {
+		const textarea = textareaRef.current;
+
 		return () => {
-			const textarea = textareaRef.current;
-			if ( editorMountedRef.current && textarea && window.blocksEverywhere?.unmount ) {
+			if (
+				editorMountedRef.current &&
+				textarea &&
+				window.blocksEverywhere?.unmount
+			) {
 				window.blocksEverywhere.unmount( textarea );
 				editorMountedRef.current = false;
 			}
@@ -850,7 +939,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				// /wp/v2 endpoint, which would write to Studio (blog 12). The
 				// apiFetch middleware can't help here: sendBeacon bypasses
 				// apiFetch entirely, so the proxy path is hardcoded.
-				const url = `/wp-json/extrachill/v1/studio/compose/posts/${ postId }/autosaves?_wpnonce=${ encodeURIComponent( restNonce ) }`;
+				const url = `/wp-json/extrachill/v1/studio/compose/posts/${ postId }/autosaves?_wpnonce=${ encodeURIComponent(
+					restNonce
+				) }`;
 				navigator.sendBeacon( url, blob );
 			} catch {
 				// Best-effort — nothing else we can do during unload.
@@ -879,7 +970,8 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 
 		try {
 			const result = await openComposePreview( {
-				openWindow: () => window.open( '', 'ec-studio-compose-preview' ),
+				openWindow: () =>
+					window.open( '', 'ec-studio-compose-preview' ),
 				cancelPendingSave: () => {
 					if ( autosaveTimerRef.current ) {
 						clearTimeout( autosaveTimerRef.current );
@@ -889,8 +981,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				waitForPendingSaves: async () => {
 					// An autosave can schedule one trailing rerun in its finally block.
 					// Drain the live refs until both write paths are quiescent.
-					while ( inFlightPromiseRef.current || manualSavePromiseRef.current ) {
-						await ( inFlightPromiseRef.current || manualSavePromiseRef.current );
+					while (
+						inFlightPromiseRef.current ||
+						manualSavePromiseRef.current
+					) {
+						await ( inFlightPromiseRef.current ||
+							manualSavePromiseRef.current );
 					}
 				},
 				getSnapshot: (): ComposeSnapshot => ( {
@@ -910,11 +1006,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 					activePostIdRef.current = postId;
 					setActivePostId( postId );
 				},
-				createAutosave: ( postId, snapshot ) => composeApiFetch< AutosavePreviewResponse >( {
-					path: `/wp/v2/posts/${ postId }/autosaves`,
-					method: 'POST',
-					data: snapshot,
-				} ),
+				createAutosave: ( postId, snapshot ) =>
+					composeApiFetch< AutosavePreviewResponse >( {
+						path: `/wp/v2/posts/${ postId }/autosaves`,
+						method: 'POST',
+						data: snapshot,
+					} ),
 			} );
 
 			const savedPayload = JSON.stringify( result.snapshot );
@@ -927,12 +1024,17 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			if ( currentPayload !== savedPayload ) {
 				pendingRerunRef.current = true;
 			}
-			setStatus( __( 'Preview opened in a new tab.', 'extrachill-studio' ) );
+			setStatus(
+				__( 'Preview opened in a new tab.', 'extrachill-studio' )
+			);
 		} catch ( previewError ) {
 			setStatus( '' );
 			setError(
 				( previewError as Error )?.message ||
-				__( 'Failed to open the post preview. Try again.', 'extrachill-studio' )
+					__(
+						'Failed to open the post preview. Try again.',
+						'extrachill-studio'
+					)
 			);
 		} finally {
 			isPreviewingRef.current = false;
@@ -950,7 +1052,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		}
 
 		if ( ! title.trim() ) {
-			setError( __( 'Add a title before submitting.', 'extrachill-studio' ) );
+			setError(
+				__( 'Add a title before submitting.', 'extrachill-studio' )
+			);
 			setStatus( '' );
 			return;
 		}
@@ -958,7 +1062,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		const content = getContent();
 
 		if ( ! content.trim() ) {
-			setError( __( 'Write some content before submitting.', 'extrachill-studio' ) );
+			setError(
+				__(
+					'Write some content before submitting.',
+					'extrachill-studio'
+				)
+			);
 			setStatus( '' );
 			return;
 		}
@@ -973,7 +1082,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		setStatus( __( 'Submitting for review…', 'extrachill-studio' ) );
 
 		try {
-			const path = activePostId ? `/wp/v2/posts/${ activePostId }` : '/wp/v2/posts';
+			const path = activePostId
+				? `/wp/v2/posts/${ activePostId }`
+				: '/wp/v2/posts';
 
 			await composeApiFetch< WpPost >( {
 				path,
@@ -996,7 +1107,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			switchToDraft( null );
 		} catch ( submitError ) {
 			setStatus( '' );
-			setError( ( submitError as Error )?.message || __( 'Failed to submit post.', 'extrachill-studio' ) );
+			setError(
+				( submitError as Error )?.message ||
+					__( 'Failed to submit post.', 'extrachill-studio' )
+			);
 		} finally {
 			setIsSubmitting( false );
 		}
@@ -1011,7 +1125,12 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		const currentTitle = titleRef.current.trim();
 
 		if ( ! currentTitle && ! content.trim() ) {
-			setError( __( 'Add a title or content before saving.', 'extrachill-studio' ) );
+			setError(
+				__(
+					'Add a title or content before saving.',
+					'extrachill-studio'
+				)
+			);
 			setStatus( '' );
 			return;
 		}
@@ -1028,7 +1147,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		const operation = ( async (): Promise< void > => {
 			try {
 				const postId = activePostIdRef.current;
-				const path = postId ? `/wp/v2/posts/${ postId }` : '/wp/v2/posts';
+				const path = postId
+					? `/wp/v2/posts/${ postId }`
+					: '/wp/v2/posts';
 				const post = await composeApiFetch< WpPost >( {
 					path,
 					method: 'POST',
@@ -1039,7 +1160,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				titleRef.current = currentTitle;
 				contentSnapshotRef.current = content;
 				setActivePostId( post.id );
-				lastSavedPayloadRef.current = JSON.stringify( { title: currentTitle, content } );
+				lastSavedPayloadRef.current = JSON.stringify( {
+					title: currentTitle,
+					content,
+				} );
 				setHasUnsavedChanges( false );
 				setStatus( __( 'Draft saved.', 'extrachill-studio' ) );
 
@@ -1048,7 +1172,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 				scheduleClientContextUpdate();
 			} catch ( saveError ) {
 				setStatus( '' );
-				setError( ( saveError as Error )?.message || __( 'Failed to save draft.', 'extrachill-studio' ) );
+				setError(
+					( saveError as Error )?.message ||
+						__( 'Failed to save draft.', 'extrachill-studio' )
+				);
 			} finally {
 				setIsSubmitting( false );
 				manualSavePromiseRef.current = null;
@@ -1059,7 +1186,9 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		await operation;
 	};
 
-	const onDraftSelect = async ( e: ChangeEvent< HTMLSelectElement > ): Promise< void > => {
+	const onDraftSelect = async (
+		e: ChangeEvent< HTMLSelectElement >
+	): Promise< void > => {
 		if ( isPreviewingRef.current ) {
 			return;
 		}
@@ -1093,7 +1222,10 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 		setError( '' );
 		setStatus( '' );
 		const currentContent = getContent().trim();
-		const payload = JSON.stringify( { title: e.target.value.trim(), content: currentContent } );
+		const payload = JSON.stringify( {
+			title: e.target.value.trim(),
+			content: currentContent,
+		} );
 		setHasUnsavedChanges( payload !== lastSavedPayloadRef.current );
 		scheduleClientContextUpdate();
 		scheduleAutosave();
@@ -1119,7 +1251,11 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			createElement(
 				'option',
 				{ key: d.id, value: d.id },
-				`#${ d.id } — ${ ( d.title.raw || d.title.rendered || __( 'Untitled', 'extrachill-studio' ) ).slice( 0, 50 ) }`
+				`#${ d.id } — ${ (
+					d.title.raw ||
+					d.title.rendered ||
+					__( 'Untitled', 'extrachill-studio' )
+				).slice( 0, 50 ) }`
 			)
 		)
 	);
@@ -1138,19 +1274,29 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 			{ className: 'ec-studio-pane__grid ec-studio-pane__grid--compose' },
 			h(
 				PanelView,
-				{ className: 'ec-studio-panel ec-studio-panel--editor', compact: true },
+				{
+					className: 'ec-studio-panel ec-studio-panel--editor',
+					compact: true,
+				},
 				h( PanelHeader, {
-					description: __( 'Draft blog content and submit for editorial review.', 'extrachill-studio' ),
+					description: __(
+						'Draft blog content and submit for editorial review.',
+						'extrachill-studio'
+					),
 					actions: h(
 						ActionRowView,
 						{ className: 'ec-studio-compose-toolbar' },
 						createElement(
 							'div',
-							{ className: 'ec-studio-compose-toolbar__controls' },
+							{
+								className:
+									'ec-studio-compose-toolbar__controls',
+							},
 							createElement(
 								'a',
 								{
-									className: 'button-1 button-small button-secondary',
+									className:
+										'button-1 button-small button-secondary',
 									href: 'https://docs.extrachill.com/studio/team-contribution-guide/',
 									target: '_blank',
 									rel: 'noopener noreferrer',
@@ -1164,19 +1310,36 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 									type: 'button',
 									className: 'button-1 button-small',
 									onClick: startNew,
-									disabled: isSubmitting || isSwitching || isPreviewing || ! activePostId,
+									disabled:
+										isSubmitting ||
+										isSwitching ||
+										isPreviewing ||
+										! activePostId,
 								},
 								__( 'New', 'extrachill-studio' )
 							),
 							hasUnsavedChanges
-								? createElement( 'span', { className: 'ec-studio-compose-toolbar__unsaved' }, __( 'Unsaved changes', 'extrachill-studio' ) )
+								? createElement(
+										'span',
+										{
+											className:
+												'ec-studio-compose-toolbar__unsaved',
+										},
+										__(
+											'Unsaved changes',
+											'extrachill-studio'
+										)
+								  )
 								: null
 						)
-					)
+					),
 				} ),
 				h(
 					FieldGroupView,
-					{ label: __( 'Title', 'extrachill-studio' ), htmlFor: 'ec-studio-compose-title' },
+					{
+						label: __( 'Title', 'extrachill-studio' ),
+						htmlFor: 'ec-studio-compose-title',
+					},
 					createElement( 'input', {
 						id: 'ec-studio-compose-title',
 						type: 'text',
@@ -1196,9 +1359,19 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 						defaultValue: '',
 					} )
 				),
-				error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
+				error
+					? h(
+							InlineStatusView,
+							{ tone: 'error', className: 'ec-studio-message' },
+							error
+					  )
+					: null,
 				! error && status
-					? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status )
+					? h(
+							InlineStatusView,
+							{ tone: 'success', className: 'ec-studio-message' },
+							status
+					  )
 					: null,
 				h(
 					ActionRowView,
@@ -1209,43 +1382,71 @@ const ComposePane = ( props: StudioPaneProps ): ReactElement => {
 							type: 'button',
 							className: 'button-1 button-medium',
 							onClick: submitForReview,
-							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
+							disabled:
+								isSubmitting ||
+								isSwitching ||
+								isPreviewing ||
+								! editorReady,
 						},
-						isSubmitting ? __( 'Submitting…', 'extrachill-studio' ) : __( 'Submit for Review', 'extrachill-studio' )
+						isSubmitting
+							? __( 'Submitting…', 'extrachill-studio' )
+							: __( 'Submit for Review', 'extrachill-studio' )
 					),
 					createElement(
 						'button',
 						{
 							type: 'button',
-							className: 'button-1 button-medium button-secondary',
+							className:
+								'button-1 button-medium button-secondary',
 							onClick: previewPost,
-							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
-							'aria-label': __( 'Preview post on extrachill.com in a new tab', 'extrachill-studio' ),
+							disabled:
+								isSubmitting ||
+								isSwitching ||
+								isPreviewing ||
+								! editorReady,
+							'aria-label': __(
+								'Preview post on extrachill.com in a new tab',
+								'extrachill-studio'
+							),
 						},
-						isPreviewing ? __( 'Preparing Preview…', 'extrachill-studio' ) : __( 'Preview in New Tab', 'extrachill-studio' )
+						isPreviewing
+							? __( 'Preparing Preview…', 'extrachill-studio' )
+							: __( 'Preview in New Tab', 'extrachill-studio' )
 					),
 					createElement(
 						'button',
 						{
 							type: 'button',
-							className: 'button-1 button-medium button-secondary',
+							className:
+								'button-1 button-medium button-secondary',
 							onClick: saveDraft,
-							disabled: isSubmitting || isSwitching || isPreviewing || ! editorReady,
+							disabled:
+								isSubmitting ||
+								isSwitching ||
+								isPreviewing ||
+								! editorReady,
 						},
 						saveButtonLabel
 					)
 				)
 			),
-				h(
-					PanelView,
-					{ className: 'ec-studio-panel ec-studio-panel--compose-sidebar', compact: true },
-					h( PanelHeader, {
-						description: __( 'Add blocks to build your post.', 'extrachill-studio' ),
-					} ),
-					createElement( 'div', {
-						className: 'ec-studio-compose-sidebar__slot',
-					} )
-				)
+			h(
+				PanelView,
+				{
+					className:
+						'ec-studio-panel ec-studio-panel--compose-sidebar',
+					compact: true,
+				},
+				h( PanelHeader, {
+					description: __(
+						'Add blocks to build your post.',
+						'extrachill-studio'
+					),
+				} ),
+				createElement( 'div', {
+					className: 'ec-studio-compose-sidebar__slot',
+				} )
+			)
 		)
 	);
 };
