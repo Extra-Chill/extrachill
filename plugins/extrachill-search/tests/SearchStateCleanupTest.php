@@ -12,10 +12,14 @@ declare( strict_types=1 );
 if ( ! function_exists( 'get_current_blog_id' ) ) :
 
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'DAY_IN_SECONDS', 86400 );
 
 $current_blog_id = 1;
 $blog_stack      = array();
 $filters         = array();
+$content_queries = array();
+$query_vars      = array();
+$search_scope    = 'site';
 
 class Search_State_Test_WPDB {
 	public $posts = 'wp_posts';
@@ -39,15 +43,66 @@ class Search_State_Test_WPDB {
 
 class WP_Query {
 	public static $throw = false;
+	public static $instances = array();
+	public static $posts_by_blog = array();
+	public $found_posts = 0;
+	public $max_num_pages = 0;
+	private $args = array();
+	private $posts = array();
+	private $index = 0;
+	private $main = false;
+	private $search = false;
 
-	public function __construct( $args = array() ) {
+	public function __construct( $args = array(), $main = false, $search = false ) {
+		global $content_queries, $current_blog_id;
 		if ( self::$throw ) {
 			throw new Error( 'Query failure' );
 		}
+
+		$this->args   = $args;
+		$this->main   = $main;
+		$this->search = $search;
+		self::$instances[] = array( 'blog_id' => $current_blog_id, 'args' => $args );
+
+		if ( ! empty( $args['extrachill_fulltext_term'] ) ) {
+			$content_queries[] = extrachill_fulltext_posts_search( '', $this );
+		}
+
+		foreach ( self::$posts_by_blog[ $current_blog_id ] ?? array() as $post ) {
+			if ( ! in_array( $post->post_status, (array) ( $args['post_status'] ?? array( 'publish' ) ), true ) ) {
+				continue;
+			}
+			if ( ! is_user_logged_in() && '' !== $post->post_password ) {
+				continue;
+			}
+			$this->posts[] = $post;
+		}
+	}
+
+	public function get( $key ) {
+		return $this->args[ $key ] ?? '';
+	}
+
+	public function set( $key, $value ) {
+		$this->args[ $key ] = $value;
+	}
+
+	public function is_main_query() {
+		return $this->main;
+	}
+
+	public function is_search() {
+		return $this->search;
 	}
 
 	public function have_posts() {
-		return false;
+		return $this->index < count( $this->posts );
+	}
+
+	public function the_post() {
+		global $post;
+		$post = $this->posts[ $this->index ];
+		++$this->index;
 	}
 }
 
@@ -120,11 +175,25 @@ function get_blog_details( $blog_id ) {
 }
 
 function extrachill_get_site_post_types() {
-	return array( 2 => array( 'post' ) );
+	return array( 2 => array( 'post' ), 3 => array( 'post' ) );
 }
 
-function extrachill_resolve_site_urls() {
-	return array( 2 );
+function extrachill_resolve_site_urls( $site_urls ) {
+	$map = array( 'site2.test' => 2, 'site3.test' => 3, 'example.test' => 2 );
+	return array_values(
+		array_filter(
+			array_map(
+				static function ( $site_url ) use ( $map ) {
+					return $map[ $site_url ] ?? null;
+				},
+				$site_urls
+			)
+		)
+	);
+}
+
+function extrachill_get_network_sites() {
+	return array( array( 'id' => 2 ), array( 'id' => 3 ) );
 }
 
 function extrachill_normalize_search_term( $term ) {
@@ -133,6 +202,10 @@ function extrachill_normalize_search_term( $term ) {
 
 function is_multisite() {
 	return true;
+}
+
+function is_admin() {
+	return false;
 }
 
 function is_user_logged_in() {
@@ -169,16 +242,56 @@ function assert_same( $expected, $actual, $message ) {
 }
 
 function reset_search_state() {
-	global $blog_stack, $current_blog_id, $filters, $wpdb;
+	global $blog_stack, $content_queries, $current_blog_id, $filters, $query_vars, $search_scope, $wpdb;
 	$blog_stack       = array();
+	$content_queries  = array();
 	$current_blog_id  = 1;
 	$filters          = array();
+	$query_vars       = array();
+	$search_scope     = 'site';
 	$wpdb->posts      = 'wp_posts';
-	WP_Query::$throw = false;
+	WP_Query::$throw  = false;
+	WP_Query::$instances = array();
+	WP_Query::$posts_by_blog = array();
 }
 
+require_once __DIR__ . '/fixtures/SearchRequestFunctions.php';
 require_once dirname( __DIR__ ) . '/inc/core/index-health.php';
 require_once dirname( __DIR__ ) . '/inc/core/search-algorithm.php';
+require_once dirname( __DIR__ ) . '/templates/template-functions.php';
+
+// A frontend request executes no discarded main SQL and one query per target.
+reset_search_state();
+WP_Query::$posts_by_blog = array(
+	2 => array( search_test_post( 21 ), search_test_post( 22 ), search_test_post( 23 ), search_test_post( 24, 'draft' ), search_test_post( 25, 'publish', 'secret' ) ),
+	3 => array( search_test_post( 31 ) ),
+);
+$main_query = new WP_Query( array( 's' => 'needlefest' ), true, true );
+extrachill_route_frontend_search( $main_query );
+assert_same( array(), extrachill_short_circuit_frontend_search( null, $main_query ), 'Frontend main query was not short-circuited.' );
+assert_same( array(), $content_queries, 'Frontend main query executed a discarded content search.' );
+
+$query_vars = array( 's' => 'needlefest', 'paged' => 1 );
+$site_page  = extrachill_get_search_results();
+assert_same( 1, count( $content_queries ), 'Site request did not execute one canonical content search.' );
+assert_same( 3, $site_page['total'], 'Status or password constraints changed rendered totals.' );
+assert_same( array( 21, 22 ), wp_list_pluck( $site_page['results'], 'ID' ), 'Rendered site results changed.' );
+
+$content_queries    = array();
+$query_vars['paged'] = 2;
+$site_page_two      = extrachill_get_search_results();
+assert_same( 1, count( $content_queries ), 'Pagination reran or skipped the site content query.' );
+assert_same( array( 23 ), wp_list_pluck( $site_page_two['results'], 'ID' ), 'Exact pagination changed.' );
+
+$content_queries    = array();
+$query_vars['paged'] = 1;
+$search_scope       = 'network';
+$network_instance_offset = count( WP_Query::$instances );
+$network_page       = extrachill_get_search_results();
+assert_same( 2, count( $content_queries ), 'Network request did not execute one content query per targeted site.' );
+assert_same( 4, $network_page['total'], 'Multisite aggregation changed the rendered total.' );
+$network_instances = array_slice( WP_Query::$instances, $network_instance_offset );
+assert_same( array( 2, 3 ), wp_list_pluck( $network_instances, 'blog_id' ), 'Network routing omitted a targeted site.' );
 
 reset_search_state();
 add_filter( 'extrachill_search_site_post_types', '__return_empty_array' );

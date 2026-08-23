@@ -39,21 +39,52 @@ class FulltextSearchTest extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'MATCH(', $order );
 	}
 
-	public function test_frontend_main_search_routes_without_found_rows() {
-		global $wp_the_query;
+	public function test_frontend_main_search_is_template_owned() {
+		global $wp_query, $wp_the_query;
 
-		$previous_query = $wp_the_query;
-		$query          = new WP_Query();
-		$query->parse_query( array( 's' => 'festival' ) );
-		$wp_the_query = $query;
+		$previous_query     = $wp_query;
+		$previous_the_query = $wp_the_query;
+		$query              = new WP_Query();
+		$wp_query           = $query;
+		$wp_the_query       = $query;
+		$content_queries    = array();
+		$query_filter       = static function ( $sql ) use ( &$content_queries ) {
+			if ( false !== strpos( $sql, 'LIKE' ) || false !== strpos( $sql, 'MATCH(' ) ) {
+				$content_queries[] = $sql;
+			}
+			return $sql;
+		};
+		add_filter( 'query', $query_filter );
 
 		try {
-			extrachill_route_frontend_search( $query );
-			$this->assertSame( 'festival', $query->get( 'extrachill_fulltext_term' ) );
-			$this->assertTrue( $query->get( 'no_found_rows' ) );
+			$query->query( array( 's' => 'festival' ) );
+
+			$this->assertTrue( $query->is_search() );
+			$this->assertSame( 'festival', $query->get( 's' ) );
+			$this->assertSame( 'festival', get_search_query( false ) );
+			$this->assertTrue( $query->get( 'extrachill_template_owned_search' ) );
+			$this->assertSame( array(), $query->posts );
+			$this->assertSame( 0, $query->found_posts );
+			$this->assertSame( 0, $query->max_num_pages );
+			$this->assertSame( array(), $content_queries, 'The discarded main query executed a content search.' );
 		} finally {
-			$wp_the_query = $previous_query;
+			remove_filter( 'query', $query_filter );
+			$wp_query     = $previous_query;
+			$wp_the_query = $previous_the_query;
 		}
+	}
+
+	public function test_empty_or_secondary_search_is_not_short_circuited() {
+		$empty = new WP_Query();
+		$empty->parse_query( array( 's' => '' ) );
+		extrachill_route_frontend_search( $empty );
+
+		$secondary = new WP_Query();
+		$secondary->parse_query( array( 's' => 'festival' ) );
+		extrachill_route_frontend_search( $secondary );
+
+		$this->assertFalse( (bool) $empty->get( 'extrachill_template_owned_search' ) );
+		$this->assertFalse( (bool) $secondary->get( 'extrachill_template_owned_search' ) );
 	}
 
 	public function test_ready_index_repair_is_idempotent() {

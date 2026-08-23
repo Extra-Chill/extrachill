@@ -126,11 +126,10 @@ function extrachill_fulltext_posts_orderby( $orderby, $query ) {
 }
 
 /**
- * Route the public frontend main search query through the indexed SQL path.
+ * Mark the public frontend main search query as template-owned.
  *
- * The plugin template performs its own network query, but WordPress executes
- * the main query first. Marking that query here prevents a discarded LIKE
- * scan and avoids counting rows that no consumer reads.
+ * WordPress must retain the parsed search state for template selection and
+ * request globals, but the plugin template owns the canonical network query.
  *
  * @param WP_Query $query Main query candidate.
  * @return void
@@ -145,17 +144,30 @@ function extrachill_route_frontend_search( $query ) {
 		return;
 	}
 
-	$query->set( 'no_found_rows', true );
+	$query->set( 'extrachill_template_owned_search', true );
+}
 
-	$status = extrachill_get_fulltext_index_status();
-	if ( ! $status['ready'] ) {
-		extrachill_report_fulltext_index_failure( $status );
-		$query->set( 's', '' );
-		$query->set( 'post__in', array( 0 ) );
-		return;
+/**
+ * Skip database execution for the template-owned frontend main query.
+ *
+ * Returning an empty posts array through WordPress's native short-circuit
+ * keeps the main WP_Query and its search conditionals intact while ensuring
+ * the network query rendered by the search template is the only content
+ * search executed.
+ *
+ * @param WP_Post[]|int[]|null $posts Posts from an earlier short-circuit, or null.
+ * @param WP_Query             $query Query instance.
+ * @return WP_Post[]|int[]|null Empty posts for the marked main query, otherwise unchanged.
+ */
+function extrachill_short_circuit_frontend_search( $posts, $query ) {
+	if ( null !== $posts || ! $query->get( 'extrachill_template_owned_search' ) ) {
+		return $posts;
 	}
 
-	$query->set( 'extrachill_fulltext_term', $search_term );
+	$query->found_posts   = 0;
+	$query->max_num_pages = 0;
+
+	return array();
 }
 
 /**

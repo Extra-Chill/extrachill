@@ -49,6 +49,7 @@ class ExtraChill_Search_Plugin {
         add_action( 'wp_footer', array( $this, 'inject_search_source_tracking' ) );
 		add_action( 'extrachill_search_performed', array( $this, 'track_search_analytics' ), 10, 3 );
 		add_action( 'pre_get_posts', 'extrachill_route_frontend_search', 20 );
+		add_filter( 'posts_pre_query', 'extrachill_short_circuit_frontend_search', 10, 2 );
 		add_action( 'wp_initialize_site', array( $this, 'initialize_site_search_index' ), 10, 1 );
 		add_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10, 2 );
 		add_filter( 'posts_orderby', 'extrachill_fulltext_posts_orderby', 10, 2 );

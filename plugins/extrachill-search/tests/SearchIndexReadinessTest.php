@@ -48,6 +48,8 @@ class Search_Index_Test_WPDB {
 
 class WP_Query {
 	public static $instances = array();
+	public $found_posts = null;
+	public $max_num_pages = null;
 	private $vars;
 	private $main;
 	private $search;
@@ -188,15 +190,21 @@ $wpdb->rows = fulltext_rows();
 $ready      = extrachill_ensure_fulltext_index( 7, false );
 assert_same( 'none', $ready['action'], 'Ready index did not make repair idempotent.' );
 
-// Main frontend searches route through FULLTEXT and skip discarded exact totals.
+// Main frontend searches retain request state but skip the discarded SQL query.
 $wpdb->rows = fulltext_rows();
 extrachill_get_fulltext_index_status( true );
 $query      = new WP_Query( array( 's' => 'live music' ), true, true );
 extrachill_route_frontend_search( $query );
-assert_same( 'live music', $query->get( 'extrachill_fulltext_term' ), 'Frontend caller bypassed FULLTEXT routing.' );
-assert_same( true, $query->get( 'no_found_rows' ), 'Discarded main query still requested exact totals.' );
-$search_sql = extrachill_fulltext_posts_search( ' AND legacy LIKE scan', $query );
-$order_sql  = extrachill_fulltext_posts_orderby( 'post_date DESC', $query );
+assert_same( 'live music', $query->get( 's' ), 'Frontend routing discarded the search request state.' );
+assert_same( true, $query->get( 'extrachill_template_owned_search' ), 'Frontend query was not marked as template-owned.' );
+assert_same( array(), extrachill_short_circuit_frontend_search( null, $query ), 'Template-owned main query was not short-circuited.' );
+assert_same( 0, $query->found_posts, 'Short-circuited query retained a result count.' );
+assert_same( 0, $query->max_num_pages, 'Short-circuited query retained pagination state.' );
+
+// The canonical network query still uses FULLTEXT with public-password constraints.
+$canonical_query = new WP_Query( array( 'extrachill_fulltext_term' => 'live music' ) );
+$search_sql      = extrachill_fulltext_posts_search( ' AND legacy LIKE scan', $canonical_query );
+$order_sql       = extrachill_fulltext_posts_orderby( 'post_date DESC', $canonical_query );
 assert_contains( 'MATCH(c8c_posts.post_title, c8c_posts.post_excerpt, c8c_posts.post_content)', $search_sql, 'Search SQL did not use MATCH().' );
 assert_same( false, false !== strpos( $search_sql, 'LIKE' ), 'FULLTEXT SQL retained LIKE predicates.' );
 assert_contains( "c8c_posts.post_password = ''", $search_sql, 'Public FULLTEXT SQL exposed password-protected posts.' );
@@ -204,15 +212,19 @@ assert_contains( "AGAINST('+live* +music*' IN BOOLEAN MODE) DESC", $order_sql, '
 
 $secondary_query = new WP_Query( array( 's' => 'live music' ), false, true );
 extrachill_route_frontend_search( $secondary_query );
-assert_same( '', $secondary_query->get( 'extrachill_fulltext_term' ), 'Secondary query was incorrectly routed as public search.' );
+assert_same( '', $secondary_query->get( 'extrachill_template_owned_search' ), 'Secondary query was incorrectly marked as template-owned.' );
+
+$empty_query = new WP_Query( array( 's' => '' ), true, true );
+extrachill_route_frontend_search( $empty_query );
+assert_same( '', $empty_query->get( 'extrachill_template_owned_search' ), 'Empty search was incorrectly marked as template-owned.' );
 
 // Missing readiness fails closed for both public and programmatic callers.
 $wpdb->rows = array();
 extrachill_get_fulltext_index_status( true );
 $query      = new WP_Query( array( 's' => 'festival' ), true, true );
 extrachill_route_frontend_search( $query );
-assert_same( '', $query->get( 's' ), 'Missing index retained native search input.' );
-assert_same( array( 0 ), $query->get( 'post__in' ), 'Missing index did not fail the public query closed.' );
+assert_same( 'festival', $query->get( 's' ), 'Missing index discarded frontend request state.' );
+assert_same( array(), extrachill_short_circuit_frontend_search( null, $query ), 'Missing index allowed a discarded main query.' );
 try {
 	extrachill_fulltext_query( array(), 'festival' );
 	throw new RuntimeException( 'Missing index unexpectedly ran a programmatic query.' );
