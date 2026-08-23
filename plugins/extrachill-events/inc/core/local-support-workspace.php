@@ -7,6 +7,8 @@
 
 use ExtraChillEvents\Core\LocalSupportAuthorization;
 use ExtraChillEvents\Core\LocalSupportWorkspace;
+use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\VenueMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -70,44 +72,194 @@ function extrachill_events_process_local_support_action( array $input, int $user
 /**
  * Resolve exact venue or attached-artist organizer identities for an event.
  *
- * @param int $event_id Canonical event ID.
- * @param int $user_id Acting user ID.
+ * @param int        $event_id Canonical event ID.
+ * @param int        $user_id Acting user ID.
+ * @param array|null $scope Optional pre-resolved organizer scope.
  * @return array Authorized organizer choices.
  */
-function extrachill_events_local_support_organizer_options( int $event_id, int $user_id ): array {
+function extrachill_events_local_support_organizer_options( int $event_id, int $user_id, ?array $scope = null ): array {
+	$options = extrachill_events_local_support_resolve_organizer_options( $event_id, $user_id, $scope );
+	return is_wp_error( $options ) ? array() : $options;
+}
+
+/**
+ * Resolve organizer options while preserving operational errors.
+ *
+ * @param int        $event_id Canonical event ID.
+ * @param int        $user_id Acting user ID.
+ * @param array|null $scope Optional pre-resolved organizer scope.
+ * @return array|WP_Error Authorized organizer choices or an operational error.
+ */
+function extrachill_events_local_support_resolve_organizer_options( int $event_id, int $user_id, ?array $scope = null ) {
 	$authorization = new LocalSupportAuthorization();
 	$context       = $authorization->event_context( $event_id );
 	if ( is_wp_error( $context ) ) {
-		return array();
+		return $context;
 	}
 	$options = array();
-	$venue   = get_term( (int) $context['venue_term_id'], 'venue' );
-	$request = array(
+	$venue   = $authorization->organizer_term( (int) $context['venue_term_id'], 'venue' );
+	if ( is_wp_error( $venue ) ) {
+		return $venue;
+	}
+	if ( ! $venue instanceof WP_Term || 'venue' !== $venue->taxonomy ) {
+		return new WP_Error( 'local_support_event_venues_unavailable', __( 'The event venue binding could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
+	$request       = array(
 		'event_id'       => $event_id,
 		'venue_term_id'  => (int) $context['venue_term_id'],
 		'organizer_type' => 'venue',
 		'organizer_id'   => (int) $context['venue_term_id'],
 	);
-	if ( true === $authorization->authorize_organizer( $request, $user_id ) ) {
+	$venue_allowed = $authorization->authorize_organizer( $request, $user_id );
+	if ( true === $venue_allowed ) {
 		$options[] = array(
 			'type'  => 'venue',
 			'id'    => (int) $context['venue_term_id'],
-			'label' => $venue instanceof WP_Term ? $venue->name : __( 'Venue', 'extrachill-events' ),
+			'label' => $venue->name,
 		);
+	} elseif ( is_wp_error( $venue_allowed ) && 'venue_action_forbidden' !== $venue_allowed->get_error_code() ) {
+		return $venue_allowed;
 	}
-	foreach ( (array) wp_get_object_terms( $event_id, 'artist', array( 'fields' => 'ids' ) ) as $artist_term_id ) {
+	$event_artists = $authorization->event_artist_term_ids( $event_id );
+	$scope         = null === $scope ? extrachill_events_local_support_organizer_scope( $user_id ) : $scope;
+	if ( is_wp_error( $event_artists ) ) {
+		return new WP_Error( 'local_support_event_artists_unavailable', __( 'Event artist bindings could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
+	if ( is_wp_error( $scope ) ) {
+		return $scope;
+	}
+	$event_artists = array_map( 'intval', (array) $event_artists );
+	foreach ( $scope['artists'] as $canonical_term_id => $local_term_id ) {
+		if ( ! in_array( $local_term_id, $event_artists, true ) ) {
+			continue;
+		}
 		$request['organizer_type'] = 'artist';
-		$request['organizer_id']   = absint( $artist_term_id );
-		if ( true === $authorization->authorize_organizer( $request, $user_id ) ) {
-			$term      = get_term( absint( $artist_term_id ), 'artist' );
+		$request['organizer_id']   = (int) $canonical_term_id;
+		$artist_allowed            = $authorization->authorize_organizer( $request, $user_id );
+		if ( true === $artist_allowed ) {
+			$term = $authorization->organizer_term( $local_term_id, 'artist' );
+			if ( is_wp_error( $term ) ) {
+				return $term;
+			}
+			if ( ! $term instanceof WP_Term || 'artist' !== $term->taxonomy ) {
+				return new WP_Error( 'local_support_event_artists_unavailable', __( 'Event artist bindings could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+			}
 			$options[] = array(
 				'type'  => 'artist',
-				'id'    => absint( $artist_term_id ),
-				'label' => $term instanceof WP_Term ? $term->name : __( 'Touring artist', 'extrachill-events' ),
+				'id'    => (int) $canonical_term_id,
+				'label' => $term->name,
 			);
+		} elseif ( is_wp_error( $artist_allowed ) && 'local_support_forbidden' !== $artist_allowed->get_error_code() ) {
+			return $artist_allowed;
 		}
 	}
 	return $options;
+}
+
+/**
+ * Resolve bounded venue and canonical-to-local artist authority for one user.
+ *
+ * @param int $user_id Acting user ID.
+ * @return array{venues:int[],artists:array<int,int>}|WP_Error Authorized query scope.
+ */
+function extrachill_events_local_support_organizer_scope( int $user_id ) {
+	$scope_limit = 100;
+	$venues      = ( new VenueMembershipRepository() )->list_active_venue_ids_for_user( $user_id );
+	if ( is_wp_error( $venues ) ) {
+		return $venues;
+	}
+	$venues = array_values( array_unique( array_map( 'intval', (array) $venues ) ) );
+	if ( count( $venues ) > 500 ) {
+		return new WP_Error( 'local_support_venue_membership_overflow', __( 'The organizer venue membership state exceeds the supported bound.', 'extrachill-events' ) );
+	}
+	$authorized_venues = array();
+	$venue_policy      = new VenueAuthorization();
+	$scope_terms       = new LocalSupportAuthorization();
+	foreach ( $venues as $venue_id ) {
+		if ( $venue_id < 1 ) {
+			return new WP_Error( 'local_support_venue_scope_corrupt', __( 'The organizer venue scope is invalid.', 'extrachill-events' ) );
+		}
+		$venue = $scope_terms->organizer_term( $venue_id, 'venue' );
+		if ( is_wp_error( $venue ) ) {
+			return $venue;
+		}
+		if ( ! $venue instanceof WP_Term || 'venue' !== $venue->taxonomy ) {
+			return new WP_Error( 'local_support_venue_scope_corrupt', __( 'The organizer venue scope is invalid.', 'extrachill-events' ) );
+		}
+		$allowed = $venue_policy->authorize( $user_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		if ( true === $allowed ) {
+			$authorized_venues[] = $venue_id;
+		} elseif ( is_wp_error( $allowed ) && 'venue_action_forbidden' !== $allowed->get_error_code() ) {
+			return $allowed;
+		}
+	}
+	if ( count( $authorized_venues ) > $scope_limit ) {
+		return new WP_Error( 'local_support_venue_scope_overflow', __( 'The organizer venue scope exceeds the supported bound.', 'extrachill-events' ) );
+	}
+
+	$artists = array();
+	if ( function_exists( 'ec_get_artists_for_user' ) ) {
+		$profile_ids = array_values( array_unique( array_map( 'intval', (array) ec_get_artists_for_user( $user_id ) ) ) );
+		if ( count( $profile_ids ) > $scope_limit ) {
+			return new WP_Error( 'local_support_artist_scope_overflow', __( 'The organizer artist scope exceeds the supported bound.', 'extrachill-events' ) );
+		}
+		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+		if ( ! empty( $profile_ids ) && $artist_blog_id < 1 ) {
+			return new WP_Error( 'local_support_artist_scope_unavailable', __( 'The organizer artist scope is unavailable.', 'extrachill-events' ) );
+		}
+		if ( ! empty( $profile_ids ) && ( ! function_exists( 'extrachill_events_resolve_artist_term' ) || ! function_exists( 'extrachill_events_read_artist_mapping_claims' ) ) ) {
+			return new WP_Error( 'local_support_artist_mapping_unavailable', __( 'Canonical artist mapping is unavailable.', 'extrachill-events' ) );
+		}
+		foreach ( $profile_ids as $profile_id ) {
+			if ( $profile_id < 1 ) {
+				return new WP_Error( 'local_support_artist_scope_corrupt', __( 'The organizer artist scope is invalid.', 'extrachill-events' ) );
+			}
+			switch_to_blog( $artist_blog_id );
+			try {
+				$profile           = get_post( $profile_id );
+				$canonical_term_id = absint( get_post_meta( $profile_id, '_artist_term_id', true ) );
+			} finally {
+				restore_current_blog();
+			}
+			if ( ! $profile || 'artist_profile' !== $profile->post_type || 'publish' !== $profile->post_status || $canonical_term_id < 1 ) {
+				return new WP_Error( 'local_support_artist_scope_corrupt', __( 'An organizer artist binding is invalid.', 'extrachill-events' ) );
+			}
+			$authorized = ( new LocalSupportAuthorization() )->authorize_artist( $canonical_term_id, $user_id );
+			if ( true !== $authorized ) {
+				return is_wp_error( $authorized ) ? $authorized : new WP_Error( 'local_support_artist_scope_corrupt', __( 'An organizer artist binding is invalid.', 'extrachill-events' ) );
+			}
+			$mapped = extrachill_events_resolve_artist_term( $canonical_term_id );
+			if ( is_wp_error( $mapped ) ) {
+				return $mapped;
+			}
+			if ( empty( $mapped['term_id'] ) ) {
+				return new WP_Error( 'local_support_artist_scope_corrupt', __( 'An organizer artist mapping is invalid.', 'extrachill-events' ) );
+			}
+			$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+			if ( $main_blog_id < 1 ) {
+				return new WP_Error( 'local_support_artist_mapping_unavailable', __( 'Canonical artist mapping is unavailable.', 'extrachill-events' ) );
+			}
+			switch_to_blog( $main_blog_id );
+			try {
+				$claims = extrachill_events_read_artist_mapping_claims( (int) $mapped['term_id'] );
+			} finally {
+				restore_current_blog();
+			}
+			if ( is_wp_error( $claims ) ) {
+				return $claims;
+			}
+			$claims = array_values( array_unique( array_map( 'intval', (array) $claims ) ) );
+			if ( array( $canonical_term_id ) !== $claims ) {
+				return new WP_Error( 'local_support_artist_mapping_claims_invalid', __( 'Canonical artist mapping has conflicting claims.', 'extrachill-events' ), array( 'status' => 409 ) );
+			}
+			$artists[ $canonical_term_id ] = (int) $mapped['term_id'];
+		}
+	}
+
+	return array(
+		'venues'  => $authorized_venues,
+		'artists' => $artists,
+	);
 }
 
 /**
@@ -127,47 +279,122 @@ function extrachill_events_local_support_organizer_events( int $user_id, int $ve
 		return array();
 	}
 
-	$dates       = $wpdb->prefix . 'datamachine_event_dates';
-	$venue_where = $venue_term_id > 0 ? 'AND venue_tt.term_id = %d' : '';
-	$values      = array( 'data_machine_events', current_time( 'mysql' ) );
-	if ( $venue_term_id > 0 ) {
-		$values[] = $venue_term_id;
+	$scope = extrachill_events_local_support_organizer_scope( $user_id );
+	if ( is_wp_error( $scope ) ) {
+		return array();
 	}
-	$values[] = 100;
-	$sql      = "SELECT p.ID, p.post_title, dates.start_datetime, venue_tt.term_id AS venue_term_id
-		FROM {$wpdb->posts} p
-		INNER JOIN {$dates} dates ON dates.post_id = p.ID
-		INNER JOIN {$wpdb->term_relationships} venue_tr ON venue_tr.object_id = p.ID
-		INNER JOIN {$wpdb->term_taxonomy} venue_tt ON venue_tt.term_taxonomy_id = venue_tr.term_taxonomy_id AND venue_tt.taxonomy = 'venue'
-		WHERE p.post_type = %s AND p.post_status = 'publish' AND dates.start_datetime >= %s {$venue_where}
-		ORDER BY dates.start_datetime ASC LIMIT %d";
-	$rows     = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Current-site core and canonical date tables with prepared values.
-	if ( ! is_array( $rows ) || '' !== (string) $wpdb->last_error ) {
+	if ( $venue_term_id > 0 ) {
+		if ( ! in_array( $venue_term_id, $scope['venues'], true ) ) {
+			return array();
+		}
+		$scope['venues']  = array( $venue_term_id );
+		$scope['artists'] = array();
+	}
+	if ( empty( $scope['venues'] ) && empty( $scope['artists'] ) ) {
 		return array();
 	}
 
-	$repository = new ExtraChillEvents\Core\LocalSupportRepository();
-	$events     = array();
-	foreach ( $rows as $row ) {
-		$event_id = (int) $row['ID'];
-		$options  = extrachill_events_local_support_organizer_options( $event_id, $user_id );
-		if ( empty( $options ) ) {
-			continue;
+	$dates        = $wpdb->prefix . 'datamachine_event_dates';
+	$scope_where  = array();
+	$scope_values = array();
+	if ( ! empty( $scope['venues'] ) ) {
+		$scope_where[] = "(scope_tt.taxonomy = 'venue' AND scope_tt.term_id IN (" . implode( ', ', array_fill( 0, count( $scope['venues'] ), '%d' ) ) . '))';
+		$scope_values  = array_merge( $scope_values, $scope['venues'] );
+	}
+	if ( ! empty( $scope['artists'] ) ) {
+		$scope_where[] = "(scope_tt.taxonomy = 'artist' AND scope_tt.term_id IN (" . implode( ', ', array_fill( 0, count( $scope['artists'] ), '%d' ) ) . '))';
+		$scope_values  = array_merge( $scope_values, array_values( $scope['artists'] ) );
+	}
+
+	$repository  = new ExtraChillEvents\Core\LocalSupportRepository();
+	$events      = array();
+	$event_count = 0;
+	$scanned     = 0;
+	$cursor      = null;
+	$cutoff      = current_time( 'mysql' );
+	while ( $scanned < 500 && $event_count < 100 ) {
+		$cursor_where = '';
+		$values       = array( 'data_machine_events', $cutoff );
+		if ( is_array( $cursor ) ) {
+			$cursor_where = ' AND (dates.start_datetime > %s OR (dates.start_datetime = %s AND p.ID > %d))';
+			$values[]     = $cursor['start_datetime'];
+			$values[]     = $cursor['start_datetime'];
+			$values[]     = $cursor['id'];
 		}
-		$request = $repository->get_request_by_event( $event_id );
-		if ( is_wp_error( $request ) ) {
-			continue;
+		$values = array_merge( $values, $scope_values );
+		if ( $venue_term_id > 0 ) {
+			$values[] = $venue_term_id;
 		}
-		$events[] = array(
-			'id'             => $event_id,
-			'title'          => (string) $row['post_title'],
-			'start_datetime' => (string) $row['start_datetime'],
-			'venue_term_id'  => (int) $row['venue_term_id'],
-			'status'         => is_array( $request ) ? (string) $request['status'] : 'not_seeking',
-			'workspace_url'  => is_array( $request )
-				? home_url( '/local-support/' . (int) $request['id'] . '/' )
-				: add_query_arg( 'event_id', $event_id, home_url( '/local-support/' ) ),
-			'permalink'      => get_permalink( $event_id ),
+		$remaining_scan = 500 - $scanned;
+		$values[]       = min( 101, $remaining_scan + 1 );
+		$sql            = "SELECT DISTINCT p.ID, p.post_title, dates.start_datetime, venue_tt.term_id AS venue_term_id
+			FROM {$wpdb->posts} p
+			INNER JOIN {$dates} dates ON dates.post_id = p.ID
+			INNER JOIN {$wpdb->term_relationships} venue_tr ON venue_tr.object_id = p.ID
+			INNER JOIN {$wpdb->term_taxonomy} venue_tt ON venue_tt.term_taxonomy_id = venue_tr.term_taxonomy_id AND venue_tt.taxonomy = 'venue'
+			INNER JOIN {$wpdb->term_relationships} scope_tr ON scope_tr.object_id = p.ID
+			INNER JOIN {$wpdb->term_taxonomy} scope_tt ON scope_tt.term_taxonomy_id = scope_tr.term_taxonomy_id
+			WHERE p.post_type = %s AND p.post_status = 'publish' AND dates.post_status = 'publish' AND dates.start_datetime >= %s{$cursor_where}
+				AND (" . implode( ' OR ', $scope_where ) . ')' . ( $venue_term_id > 0 ? ' AND venue_tt.term_id = %d' : '' ) . '
+			ORDER BY dates.start_datetime ASC, p.ID ASC LIMIT %d';
+		$rows           = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded keyset pages over current-site core and canonical date tables with prepared values.
+		if ( ! is_array( $rows ) || '' !== (string) $wpdb->last_error ) {
+			return array();
+		}
+		$page_rows = array_slice( $rows, 0, min( 100, $remaining_scan ) );
+		$has_more  = count( $rows ) > count( $page_rows );
+		foreach ( $page_rows as $row ) {
+			++$scanned;
+			$event_id = (int) $row['ID'];
+			$options  = extrachill_events_local_support_resolve_organizer_options( $event_id, $user_id, $scope );
+			if ( is_wp_error( $options ) ) {
+				if ( in_array( $options->get_error_code(), array( 'invalid_local_support_event', 'invalid_local_support_event_venue' ), true ) ) {
+					continue;
+				}
+				return array();
+			}
+			if ( empty( $options ) ) {
+				continue;
+			}
+			$request = $repository->get_request_by_event( $event_id );
+			if ( is_wp_error( $request ) ) {
+				return array();
+			}
+			$events[] = array(
+				'id'             => $event_id,
+				'title'          => (string) $row['post_title'],
+				'start_datetime' => (string) $row['start_datetime'],
+				'venue_term_id'  => (int) $row['venue_term_id'],
+				'status'         => is_array( $request ) ? (string) $request['status'] : 'not_seeking',
+				'workspace_url'  => is_array( $request )
+					? home_url( '/local-support/' . (int) $request['id'] . '/' )
+					: add_query_arg( 'event_id', $event_id, home_url( '/local-support/' ) ),
+				'permalink'      => get_permalink( $event_id ),
+			);
+			++$event_count;
+			if ( 100 === $event_count ) {
+				return $events;
+			}
+		}
+		if ( ! $has_more ) {
+			return $events;
+		}
+		if ( $scanned >= 500 || empty( $page_rows ) ) {
+			do_action(
+				'datamachine_log',
+				'error',
+				'Local Support organizer candidate scan overflow',
+				array(
+					'code'    => 'local_support_candidate_scan_overflow',
+					'user_id' => $user_id,
+				)
+			);
+			return array();
+		}
+		$last   = end( $page_rows );
+		$cursor = array(
+			'start_datetime' => (string) $last['start_datetime'],
+			'id'             => (int) $last['ID'],
 		);
 	}
 

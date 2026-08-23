@@ -854,6 +854,10 @@ class LocalSupportAuthorityWpdb {
 	public $after_profile_binding_lock;
 	public $binding_change_waited = false;
 
+	public function flush(): void {
+		$this->last_error = '';
+	}
+
 	public function prepare( $query, ...$args ) {
 		$i = 0;
 		return preg_replace_callback( '/%[ds]/', static function ( $match ) use ( &$args, &$i ) {

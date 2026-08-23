@@ -137,8 +137,11 @@ function extrachill_events_resolve_artist_term( int $artist_term_id ) {
 
 	switch_to_blog( $main_blog_id );
 	try {
-		$canonical = get_term( $artist_term_id, 'artist' );
-		if ( ! $canonical || is_wp_error( $canonical ) || 'artist' !== $canonical->taxonomy ) {
+		$canonical = extrachill_events_read_artist_term( $artist_term_id );
+		if ( is_wp_error( $canonical ) ) {
+			return $canonical;
+		}
+		if ( ! $canonical || 'artist' !== $canonical->taxonomy ) {
 			return new WP_Error( 'invalid_canonical_artist', __( 'The canonical artist term is missing or invalid.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
@@ -147,7 +150,10 @@ function extrachill_events_resolve_artist_term( int $artist_term_id ) {
 			return new WP_Error( 'artist_mapping_missing', __( 'No Events artist mapping exists.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
-		$claims = extrachill_events_find_artist_mapping_claims( $mapped_term_id );
+		$claims = extrachill_events_read_artist_mapping_claims( $mapped_term_id );
+		if ( is_wp_error( $claims ) ) {
+			return $claims;
+		}
 		if ( count( $claims ) > 1 ) {
 			return new WP_Error( 'duplicate_artist_mapping', __( 'Multiple canonical artists claim the same Events artist term.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
@@ -157,8 +163,11 @@ function extrachill_events_resolve_artist_term( int $artist_term_id ) {
 
 	switch_to_blog( $events_blog_id );
 	try {
-		$local = get_term( $mapped_term_id, 'artist' );
-		if ( ! $local || is_wp_error( $local ) || 'artist' !== $local->taxonomy ) {
+		$local = extrachill_events_read_artist_term( $mapped_term_id );
+		if ( is_wp_error( $local ) ) {
+			return $local;
+		}
+		if ( ! $local || 'artist' !== $local->taxonomy ) {
 			return new WP_Error( 'stale_artist_mapping', __( 'The mapped Events artist term is missing or has the wrong taxonomy.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
@@ -185,7 +194,7 @@ function extrachill_events_find_artist_mapping_claims( int $events_term_id ): ar
 }
 
 /**
- * Read reverse mapping claims without the term-query result cache.
+ * Read reverse mapping claims without hiding taxonomy or database errors.
  *
  * Must be called in main-site context. Lock-owning mutation callers use this
  * after acquiring ArtistMappingLock so a concurrent canonical claim cannot pass.
@@ -194,9 +203,13 @@ function extrachill_events_find_artist_mapping_claims( int $events_term_id ): ar
  * @return int[]|WP_Error Canonical claimant IDs or a read error.
  */
 function extrachill_events_read_artist_mapping_claims( int $events_term_id ) {
+	global $wpdb;
+
+	$wpdb->flush();
 	// A single indexed metadata value bounds this duplicate-claim check.
 	// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-	$claims = get_terms(
+	$query  = new WP_Term_Query();
+	$claims = $query->query(
 		array(
 			'taxonomy'      => 'artist',
 			'hide_empty'    => false,
@@ -207,8 +220,39 @@ function extrachill_events_read_artist_mapping_claims( int $events_term_id ) {
 		)
 	);
 	// phpcs:enable
+	$database_error = (string) $wpdb->last_error;
+	if ( '' !== $database_error ) {
+		return new WP_Error( 'artist_mapping_claims_query_failed', __( 'Canonical artist mapping claims could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
 
 	return is_wp_error( $claims ) ? $claims : array_map( 'intval', (array) $claims );
+}
+
+/**
+ * Read one uncached artist term while preserving database failures.
+ *
+ * @param int $artist_term_id Artist term ID on the current site.
+ * @return WP_Term|null|WP_Error Term, absence, or read error.
+ */
+function extrachill_events_read_artist_term( int $artist_term_id ) {
+	global $wpdb;
+
+	$wpdb->flush();
+	$query          = new WP_Term_Query();
+	$terms          = $query->query(
+		array(
+			'taxonomy'      => 'artist',
+			'hide_empty'    => false,
+			'include'       => array( $artist_term_id ),
+			'number'        => 1,
+			'cache_results' => false,
+		)
+	);
+	$database_error = (string) $wpdb->last_error;
+	if ( '' !== $database_error || is_wp_error( $terms ) ) {
+		return new WP_Error( 'artist_term_query_failed', __( 'Artist taxonomy data could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
+	return empty( $terms ) ? null : reset( $terms );
 }
 
 /**

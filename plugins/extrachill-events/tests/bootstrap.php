@@ -64,6 +64,14 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_Term_Query' ) ) {
+	class WP_Term_Query {
+		public function query( array $args ) {
+			return get_terms( $args );
+		}
+	}
+}
+
 if ( ! function_exists( 'is_wp_error' ) ) {
 	function is_wp_error( $value ) {
 		return $value instanceof WP_Error;
@@ -204,6 +212,11 @@ if ( ! function_exists( 'wp_json_encode' ) ) {
 
 if ( ! function_exists( 'current_time' ) ) {
 	function current_time( $type, $gmt = 0 ) {
+		if ( 'mysql' === $type && isset( $GLOBALS['ec_artist_test']['current_time_calls'] ) ) {
+			++$GLOBALS['ec_artist_test']['current_time_calls'];
+			$times = $GLOBALS['ec_artist_test']['current_times'] ?? array();
+			return empty( $times ) ? '2030-01-01 00:00:00' : (string) $times[ min( count( $times ) - 1, $GLOBALS['ec_artist_test']['current_time_calls'] - 1 ) ];
+		}
 		return 'mysql' === $type ? gmdate( 'Y-m-d H:i:s' ) : time();
 	}
 }

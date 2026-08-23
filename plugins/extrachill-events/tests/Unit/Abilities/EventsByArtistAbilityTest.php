@@ -12,12 +12,17 @@ use PHPUnit\Framework\TestCase;
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
 		private string $code;
+		private array $data;
 		public function __construct( string $code, string $message = '', array $data = array() ) {
-			unset( $message, $data );
+			unset( $message );
 			$this->code = $code;
+			$this->data = $data;
 		}
 		public function get_error_code(): string {
 			return $this->code;
+		}
+		public function get_error_data(): array {
+			return $this->data;
 		}
 	}
 }
@@ -107,8 +112,20 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 }
 if ( ! function_exists( 'get_terms' ) ) {
 	function get_terms( $args ) {
+		if ( ! empty( $GLOBALS['ec_artist_test']['term_query_db_error'] ) || ! empty( $GLOBALS['ec_artist_test']['term_query_db_error_blogs'][ get_current_blog_id() ] ) ) {
+			$GLOBALS['wpdb']->last_error = 'simulated empty term query database failure';
+			return array();
+		}
+		if ( isset( $args['meta_key'] ) && ! empty( $GLOBALS['ec_artist_test']['mapping_claims_db_error'] ) ) {
+			$GLOBALS['wpdb']->last_error = 'simulated empty mapping claims database failure';
+			return array();
+		}
 		$terms = array_values( $GLOBALS['ec_artist_test']['terms'][ get_current_blog_id() ] ?? array() );
 		$terms = array_values( array_filter( $terms, static fn( $term ) => $term->taxonomy === $args['taxonomy'] ) );
+		if ( ! empty( $args['include'] ) ) {
+			$include = array_map( 'intval', (array) $args['include'] );
+			$terms   = array_values( array_filter( $terms, static fn( $term ) => in_array( (int) $term->term_id, $include, true ) ) );
+		}
 		if ( isset( $args['meta_key'] ) ) {
 			$terms = array_values(
 				array_filter(
@@ -143,6 +160,10 @@ final class EventsByArtistWpdb {
 	public $release_result = 1;
 	public $after_mapping_lock;
 	public $locks = array();
+
+	public function flush(): void {
+		$this->last_error = '';
+	}
 
 	public function prepare( $query, ...$args ) {
 		$i = 0;
@@ -181,6 +202,7 @@ final class EventsByArtistAbilityTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		$GLOBALS['wpdb'] = new EventsByArtistWpdb();
 		$this->original_ability_resolver     = $GLOBALS['ec_test_ability_resolver'] ?? null;
 		$GLOBALS['ec_test_ability_resolver'] = static fn() => $GLOBALS['ec_artist_test']['ability'] ?? null;
 		$GLOBALS['ec_artist_test']           = array(
@@ -461,6 +483,44 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 'duplicate_artist_mapping', $result->get_error_code() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_empty_reverse_claim_result_with_database_error_fails_closed(): void {
+		$this->addTerm( 1, 101, 'one' );
+		$this->addTerm( 7, 501, 'local' );
+		$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
+		$GLOBALS['ec_artist_test']['mapping_claims_db_error'] = true;
+
+		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
+
+		$this->assertSame( 'artist_mapping_claims_query_failed', $result->get_error_code() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_canonical_term_database_error_is_propagated(): void {
+		$this->addTerm( 1, 101, 'one' );
+		$this->addTerm( 7, 501, 'local' );
+		$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
+		$GLOBALS['ec_artist_test']['term_query_db_error_blogs'][1] = true;
+
+		$result = extrachill_events_resolve_artist_term( 101 );
+
+		$this->assertSame( 'artist_term_query_failed', $result->get_error_code() );
+		$this->assertSame( 503, $result->get_error_data()['status'] );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_local_term_database_error_is_propagated(): void {
+		$this->addTerm( 1, 101, 'one' );
+		$this->addTerm( 7, 501, 'local' );
+		$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
+		$GLOBALS['ec_artist_test']['term_query_db_error_blogs'][7] = true;
+
+		$result = extrachill_events_resolve_artist_term( 101 );
+
+		$this->assertSame( 'artist_term_query_failed', $result->get_error_code() );
+		$this->assertSame( 503, $result->get_error_data()['status'] );
 		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 

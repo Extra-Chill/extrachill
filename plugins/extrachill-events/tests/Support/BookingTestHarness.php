@@ -194,6 +194,31 @@ if ( ! function_exists( 'get_term' ) ) {
 		return $term && ( '' === $taxonomy || $taxonomy === $term->taxonomy ) ? $term : null;
 	}
 }
+if ( ! function_exists( 'get_terms' ) ) {
+	function get_terms( $args ) {
+		$taxonomy = (string) ( $args['taxonomy'] ?? '' );
+		$include  = array_map( 'intval', (array) ( $args['include'] ?? array() ) );
+		$error_id = empty( $include ) ? 0 : (int) reset( $include );
+		if ( ! empty( $GLOBALS['ec_artist_test']['term_query_db_errors'][ $taxonomy ][ $error_id ] ) ) {
+			$GLOBALS['wpdb']->last_error = 'simulated empty term query database failure';
+			return array();
+		}
+		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
+			$terms = array_values( $GLOBALS['venue_membership_test']['terms'] ?? array() );
+		} else {
+			$terms = array_values( $GLOBALS['ec_artist_test']['terms'][ get_current_blog_id() ] ?? array() );
+		}
+		$terms = array_values(
+			array_filter(
+				$terms,
+				static function ( $term ) use ( $taxonomy, $include ): bool {
+					return $taxonomy === $term->taxonomy && ( empty( $include ) || in_array( (int) $term->term_id, $include, true ) );
+				}
+			)
+		);
+		return 'ids' === ( $args['fields'] ?? '' ) ? array_map( static fn( $term ): int => (int) $term->term_id, $terms ) : $terms;
+	}
+}
 if ( ! function_exists( 'get_term_meta' ) ) {
 	function get_term_meta( $term_id, $key, $single = false ) {
 		unset( $single );
@@ -327,6 +352,13 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 }
 if ( ! function_exists( 'wp_get_object_terms' ) ) {
 	function wp_get_object_terms( $post_id, $taxonomy, $args = array() ) {
+		if ( ! empty( $GLOBALS['ec_artist_test']['event_term_db_errors'][ $taxonomy ][ $post_id ] ) ) {
+			$GLOBALS['wpdb']->last_error = 'simulated empty object-term database failure';
+			return array();
+		}
+		if ( ! empty( $GLOBALS['ec_artist_test']['event_term_errors'][ $taxonomy ][ $post_id ] ) ) {
+			return new WP_Error( 'simulated_event_terms_failure', 'simulated event taxonomy read failure' );
+		}
 		if ( ! empty( $GLOBALS['ec_artist_test']['venue_terms_error'] ) ) {
 			return new WP_Error( 'venue_terms_read_failed', 'simulated venue taxonomy read failure' );
 		}
@@ -343,6 +375,9 @@ if ( ! function_exists( 'wp_get_object_terms' ) ) {
 }
 if ( ! function_exists( 'extrachill_events_resolve_artist_term' ) ) {
 	function extrachill_events_resolve_artist_term( $artist_term_id ) {
+		if ( isset( $GLOBALS['ec_artist_test']['artist_mapping_errors'][ (int) $artist_term_id ] ) ) {
+			return $GLOBALS['ec_artist_test']['artist_mapping_errors'][ (int) $artist_term_id ];
+		}
 		$mapped = $GLOBALS['ec_artist_test']['artist_mappings'][ (int) $artist_term_id ] ?? 0;
 		return $mapped > 0 ? array(
 			'term_id'   => $mapped,
@@ -352,13 +387,25 @@ if ( ! function_exists( 'extrachill_events_resolve_artist_term' ) ) {
 }
 if ( ! function_exists( 'extrachill_events_read_artist_mapping_claims' ) ) {
 	function extrachill_events_read_artist_mapping_claims( $events_term_id ) {
-		$claims = array();
-		foreach ( (array) ( $GLOBALS['ec_artist_test']['artist_mappings'] ?? array() ) as $canonical_id => $mapped_id ) {
-			if ( (int) $mapped_id === (int) $events_term_id ) {
-				$claims[] = (int) $canonical_id;
+		$GLOBALS['wpdb']->flush();
+		if ( ! empty( $GLOBALS['ec_artist_test']['artist_mapping_claims_error'] ) ) {
+			return new WP_Error( 'artist_mapping_claims_read_failed' );
+		}
+		if ( array_key_exists( (int) $events_term_id, $GLOBALS['ec_artist_test']['artist_mapping_claims'] ?? array() ) ) {
+			$claims = $GLOBALS['ec_artist_test']['artist_mapping_claims'][ (int) $events_term_id ];
+		} else {
+			$claims = array();
+			foreach ( (array) ( $GLOBALS['ec_artist_test']['artist_mappings'] ?? array() ) as $canonical_id => $mapped_id ) {
+				if ( (int) $mapped_id === (int) $events_term_id ) {
+					$claims[] = (int) $canonical_id;
+				}
 			}
 		}
-		return $claims;
+		if ( ! empty( $GLOBALS['ec_artist_test']['artist_mapping_claims_db_error'] ) ) {
+			$GLOBALS['wpdb']->last_error = 'simulated empty reverse mapping database failure';
+			$claims = array();
+		}
+		return '' !== (string) $GLOBALS['wpdb']->last_error ? new WP_Error( 'artist_mapping_claims_query_failed' ) : $claims;
 	}
 }
 if ( ! function_exists( 'ec_user_can' ) ) {
@@ -443,6 +490,9 @@ if ( ! function_exists( 'ec_feature_available' ) ) {
 	function ec_feature_available( $feature, $user_id ) {
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
 			return VenueAuthorization::FEATURE === $feature && ! empty( $GLOBALS['venue_membership_test']['feature_available'] );
+		}
+		if ( array_key_exists( 'feature_available', $GLOBALS['ec_artist_test'] ?? array() ) ) {
+			return 'venue_booking' === $feature && ! empty( $GLOBALS['ec_artist_test']['feature_available'] );
 		}
 		return 'venue_booking' === $feature && (int) $user_id > 0; }
 }
@@ -592,6 +642,11 @@ final class BookingWpdb {
 	public $release_lock_errors                  = array();
 	public $lock_names                           = array();
 	public $event_dates                          = array();
+	public $local_support_candidate_rows          = array();
+	public $local_support_candidate_query         = '';
+	public $local_support_candidate_queries       = array();
+	public $fail_local_support_candidate_reads    = false;
+	public $fail_local_support_request_reads      = false;
 	public $booking_lock_queries                 = 0;
 	public $communication_state_queries          = 0;
 	public $communication_attempt_queries        = 0;
@@ -621,6 +676,10 @@ final class BookingWpdb {
 		return addcslashes( $text, '_%\\' );
 	}
 
+	public function flush() {
+		$this->last_error = '';
+	}
+
 	public function suppress_errors( $suppress = true ) {
 		$previous              = $this->suppress_errors;
 		$this->suppress_errors = (bool) $suppress;
@@ -639,6 +698,26 @@ final class BookingWpdb {
 			},
 			$query
 		);
+	}
+
+	public function get_col( $query ) {
+		$this->last_query = $query;
+		$this->last_error = '';
+		if ( $this->fail_reads ) {
+			$this->last_error = 'simulated column read failure';
+			return null;
+		}
+		if ( preg_match( "/SELECT venue_term_id FROM .*ec_venue_members WHERE user_id = (\d+) AND status = 'active'/", $query, $match ) ) {
+			$ids = array();
+			foreach ( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() as $row ) {
+				if ( (int) $row['user_id'] === (int) $match[1] && 'active' === $row['status'] ) {
+					$ids[] = (int) $row['venue_term_id'];
+				}
+			}
+			sort( $ids, SORT_NUMERIC );
+			return $ids;
+		}
+		return array();
 	}
 
 	public function apply_schema( $sql ) {
@@ -971,6 +1050,10 @@ final class BookingWpdb {
 		unset( $output );
 		$this->last_query = $query;
 		$this->last_error = '';
+		if ( $this->fail_local_support_request_reads && false !== strpos( $query, 'ec_local_support_requests' ) ) {
+			$this->last_error = 'simulated local support request read failure';
+			return null;
+		}
 		if ( false !== strpos( $query, 'DATE_ADD(UTC_TIMESTAMP()' ) ) {
 			if ( $this->fail_reads || $this->fail_clock_reads ) {
 				$this->last_error = 'simulated clock read failure';
@@ -1391,6 +1474,56 @@ final class BookingWpdb {
 		if ( $this->fail_reads ) {
 			$this->last_error = 'simulated result read failure';
 			return null; }
+		if ( false !== strpos( $query, 'SELECT DISTINCT p.ID' ) && false !== strpos( $query, 'datamachine_event_dates' ) ) {
+			$this->local_support_candidate_query = $query;
+			$this->local_support_candidate_queries[] = $query;
+			if ( $this->fail_local_support_candidate_reads ) {
+				$this->last_error = 'simulated local support candidate read failure';
+				return null;
+			}
+			$venue_ids  = array();
+			$artist_ids = array();
+			if ( preg_match( "/scope_tt.taxonomy = 'venue' AND scope_tt.term_id IN \(([^)]+)\)/", $query, $match ) ) {
+				$venue_ids = array_map( 'intval', explode( ',', $match[1] ) );
+			}
+			if ( preg_match( "/scope_tt.taxonomy = 'artist' AND scope_tt.term_id IN \(([^)]+)\)/", $query, $match ) ) {
+				$artist_ids = array_map( 'intval', explode( ',', $match[1] ) );
+			}
+			preg_match( "/start_datetime >= '([^']+)'/", $query, $start );
+			preg_match( "/start_datetime > '([^']+)' OR \(dates.start_datetime = '([^']+)' AND p.ID > (\d+)\)/", $query, $cursor );
+			preg_match( '/AND venue_tt.term_id = (\d+)/', $query, $exact_venue );
+			preg_match( '/LIMIT (\d+)/', $query, $limit );
+			$rows = array_values(
+				array_filter(
+					$this->local_support_candidate_rows,
+					static function ( array $row ) use ( $venue_ids, $artist_ids, $start, $cursor, $exact_venue ): bool {
+						$in_scope = in_array( (int) $row['venue_term_id'], $venue_ids, true )
+							|| ! empty( array_intersect( array_map( 'intval', $row['artist_term_ids'] ?? array() ), $artist_ids ) );
+						$after_cursor = empty( $cursor[1] )
+							|| (string) $row['start_datetime'] > (string) $cursor[1]
+							|| ( (string) $row['start_datetime'] === (string) $cursor[2] && (int) $row['ID'] > (int) $cursor[3] );
+						return $in_scope
+							&& (string) $row['start_datetime'] >= (string) ( $start[1] ?? '' )
+							&& $after_cursor
+							&& ( empty( $exact_venue[1] ) || (int) $row['venue_term_id'] === (int) $exact_venue[1] );
+					}
+				)
+			);
+			usort(
+				$rows,
+				static function ( array $left, array $right ): int {
+					return array( $left['start_datetime'], (int) $left['ID'] ) <=> array( $right['start_datetime'], (int) $right['ID'] );
+				}
+			);
+			$rows = array_slice( $rows, 0, (int) ( $limit[1] ?? 100 ) );
+			return array_map(
+				static function ( array $row ): array {
+					unset( $row['artist_term_ids'] );
+					return $row;
+				},
+				$rows
+			);
+		}
 		if ( false !== strpos( $query, 'SELECT source.* FROM' ) && false !== strpos( $query, "source.kind IN ('inquiry_submitted', 'deal_confirmed')" ) ) {
 			preg_match( '/LIMIT (\d+)/', $query, $limit );
 			$completed = array();

@@ -24,7 +24,11 @@ class LocalSupportAuthorization {
 	public const ACTION_ORGANIZE_LOCAL_SUPPORT = 'organize_local_support';
 	private const MAX_ARTIST_AUTHORITY_IDS     = 100;
 
-	/** @var VenueAuthorization */
+	/**
+	 * Venue authorization policy.
+	 *
+	 * @var VenueAuthorization
+	 */
 	private $venues;
 
 	/** @var string[] Artist relationship advisory locks held through commit/rollback. */
@@ -71,13 +75,19 @@ class LocalSupportAuthorization {
 		if ( ! $post || 'data_machine_events' !== $post->post_type || 'trash' === $post->post_status ) {
 			return new \WP_Error( 'invalid_local_support_event', __( 'A valid canonical event is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$venues = wp_get_object_terms( $event_id, 'venue', array( 'fields' => 'ids' ) );
-		if ( is_wp_error( $venues ) || 1 !== count( (array) $venues ) ) {
+		$venues = $this->read_object_term_ids( $event_id, 'venue', 'local_support_event_venues_unavailable' );
+		if ( is_wp_error( $venues ) ) {
+			return new \WP_Error( 'local_support_event_venues_unavailable', __( 'The event venue binding could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		if ( 1 !== count( (array) $venues ) ) {
 			return new \WP_Error( 'invalid_local_support_event_venue', __( 'The event must have one canonical venue.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		$venue_id = (int) reset( $venues );
-		$venue    = get_term( $venue_id, 'venue' );
-		if ( ! $venue || is_wp_error( $venue ) || 'venue' !== $venue->taxonomy ) {
+		$venue    = $this->read_term( $venue_id, 'venue', 'local_support_event_venues_unavailable' );
+		if ( is_wp_error( $venue ) ) {
+			return new \WP_Error( 'local_support_event_venues_unavailable', __( 'The event venue binding could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		if ( ! $venue || 'venue' !== $venue->taxonomy ) {
 			return new \WP_Error( 'invalid_local_support_event_venue', __( 'The event venue binding is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		return array(
@@ -298,11 +308,22 @@ class LocalSupportAuthorization {
 		if ( is_wp_error( $mapped ) ) {
 			return $mapped;
 		}
-		$artists = wp_get_object_terms( $event_id, 'artist', array( 'fields' => 'ids' ) );
+		$artists = $this->event_artist_term_ids( $event_id );
 		if ( is_wp_error( $artists ) ) {
 			return new \WP_Error( 'local_support_event_artists_unavailable', __( 'Event artist bindings could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		return in_array( (int) $mapped['term_id'], array_map( 'intval', (array) $artists ), true );
+	}
+
+	/** Read attached Events artist IDs without hiding database failures. */
+	public function event_artist_term_ids( int $event_id ) {
+		return $this->read_object_term_ids( $event_id, 'artist', 'local_support_event_artists_unavailable' );
+	}
+
+	/** Read one organizer term without using a potentially stale object cache. */
+	public function organizer_term( int $term_id, string $taxonomy ) {
+		$error_code = 'venue' === $taxonomy ? 'local_support_event_venues_unavailable' : 'local_support_event_artists_unavailable';
+		return $this->read_term( $term_id, $taxonomy, $error_code );
 	}
 
 	/** Resolve and verify a canonical term's bidirectional Artist Platform profile. */
@@ -314,8 +335,11 @@ class LocalSupportAuthorization {
 		}
 		switch_to_blog( $main_blog_id );
 		try {
-			$term       = get_term( $artist_term_id, 'artist' );
-			$profile_id = $term && ! is_wp_error( $term ) ? absint( get_term_meta( $artist_term_id, '_artist_profile_id', true ) ) : 0;
+			$term = $this->read_term( $artist_term_id, 'artist', 'local_support_artist_terms_unavailable' );
+			if ( is_wp_error( $term ) ) {
+				return $term;
+			}
+			$profile_id = $term ? absint( get_term_meta( $artist_term_id, '_artist_profile_id', true ) ) : 0;
 		} finally {
 			restore_current_blog();
 		}
@@ -333,6 +357,48 @@ class LocalSupportAuthorization {
 			return new \WP_Error( 'invalid_local_support_artist', __( 'The artist profile binding is invalid.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		return $profile_id;
+	}
+
+	/** Execute one uncached object-term query and preserve wpdb failures. */
+	private function read_object_term_ids( int $event_id, string $taxonomy, string $error_code ) {
+		global $wpdb;
+
+		$wpdb->flush();
+		$terms          = wp_get_object_terms(
+			$event_id,
+			$taxonomy,
+			array(
+				'fields'        => 'ids',
+				'cache_results' => false,
+			)
+		);
+		$database_error = (string) $wpdb->last_error;
+		if ( '' !== $database_error || is_wp_error( $terms ) ) {
+			return new \WP_Error( $error_code, __( 'Event taxonomy bindings could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		return array_map( 'intval', (array) $terms );
+	}
+
+	/** Execute one uncached term query and preserve wpdb failures. */
+	private function read_term( int $term_id, string $taxonomy, string $error_code ) {
+		global $wpdb;
+
+		$wpdb->flush();
+		$query          = new \WP_Term_Query();
+		$terms          = $query->query(
+			array(
+				'taxonomy'      => $taxonomy,
+				'hide_empty'    => false,
+				'include'       => array( $term_id ),
+				'number'        => 1,
+				'cache_results' => false,
+			)
+		);
+		$database_error = (string) $wpdb->last_error;
+		if ( '' !== $database_error || is_wp_error( $terms ) ) {
+			return new \WP_Error( $error_code, __( 'Organizer taxonomy data could not be validated.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		return empty( $terms ) ? null : reset( $terms );
 	}
 
 	/** Lock the event's bounded venue relationship range and derive its venue. */
