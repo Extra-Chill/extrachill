@@ -6,16 +6,22 @@
  */
 
 final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
+	private const EVENTS_BLOG_ID = 7;
+
 	private int $owner_id;
 	private int $viewer_id;
 	private int $original_user_id;
 	private array $original_get;
+	private array $original_url_filters;
+	private string $events_url             = 'https://events.example.org';
 	private bool $registered_test_category = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		$this->original_user_id = get_current_user_id();
 		$this->original_get     = $_GET;
+		$this->isolate_url_policy_filters();
+		switch_to_blog( self::EVENTS_BLOG_ID );
 		if ( ! wp_has_ability_category( 'extrachill-events-tests' ) ) {
 			$this->registered_test_category = true;
 			WP_Ability_Categories_Registry::get_instance()->register(
@@ -66,6 +72,8 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		}
 		$_GET = $this->original_get;
 		wp_set_current_user( $this->original_user_id );
+		restore_current_blog();
+		$this->restore_url_policy_filters();
 		parent::tearDown();
 	}
 
@@ -137,6 +145,20 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'redirect_to' => $my_shows_url ), $query );
 	}
 
+	/** A preceding redirect-policy filter cannot contaminate the owned fixture. */
+	public function test_signup_continuation_survives_preceding_foreign_url_policy_filters(): void {
+		add_filter( 'ec_site_url_override', '__return_empty_string', 1 );
+		add_filter( 'ec_allowed_redirect_hosts', '__return_empty_array', 1 );
+		add_filter( 'allowed_redirect_hosts', '__return_empty_array', 1 );
+
+		$my_shows_url = $this->events_url . '/my-shows/';
+		$signup_url   = ec_users_login_url_with_redirect( extrachill_users_get_registration_url(), $my_shows_url );
+		$output       = $this->render_block();
+
+		$this->assertStringContainsString( 'redirect_to=', $signup_url );
+		$this->assertSame( 2, substr_count( $output, 'href="' . esc_url( $signup_url ) . '"' ) );
+	}
+
 	public function test_invalid_selection_does_not_fall_back_to_viewer(): void {
 		wp_set_current_user( $this->viewer_id );
 		$_GET['user_id'] = '999999';
@@ -174,5 +196,57 @@ final class ConcertStatsPublicProfileRenderTest extends WP_UnitTestCase {
 		ob_start();
 		include dirname( __DIR__, 2 ) . '/blocks/concert-stats/render.php';
 		return (string) ob_get_clean();
+	}
+
+	/** Replace shared managed-runtime URL policy with this test's complete fixture. */
+	private function isolate_url_policy_filters(): void {
+		global $wp_filter;
+
+		$this->original_url_filters = array();
+		foreach ( array( 'ec_site_url_override', 'ec_allowed_redirect_hosts', 'allowed_redirect_hosts' ) as $hook_name ) {
+			$this->original_url_filters[ $hook_name ] = isset( $wp_filter[ $hook_name ] ) ? clone $wp_filter[ $hook_name ] : null;
+			remove_all_filters( $hook_name );
+		}
+
+		add_filter( 'ec_site_url_override', array( $this, 'filter_site_url' ), PHP_INT_MAX, 3 );
+		add_filter( 'ec_allowed_redirect_hosts', array( $this, 'filter_allowed_redirect_hosts' ), PHP_INT_MAX );
+		add_filter( 'allowed_redirect_hosts', array( $this, 'filter_allowed_redirect_hosts' ), PHP_INT_MAX );
+	}
+
+	/** Restore the exact hook registry entries present before the test. */
+	private function restore_url_policy_filters(): void {
+		global $wp_filter;
+
+		foreach ( $this->original_url_filters as $hook_name => $hook ) {
+			remove_all_filters( $hook_name );
+			if ( null === $hook ) {
+				unset( $wp_filter[ $hook_name ] );
+			} else {
+				$wp_filter[ $hook_name ] = $hook;
+			}
+		}
+	}
+
+	/**
+	 * Return the deterministic Events URL without relying on managed site options.
+	 *
+	 * @param mixed  $url Existing override.
+	 * @param string $key Logical site key.
+	 * @return mixed Deterministic Events URL or the existing override.
+	 */
+	public function filter_site_url( $url, string $key ) {
+		return 'events' === $key ? $this->events_url : $url;
+	}
+
+	/**
+	 * Ensure the deterministic Events host remains in both redirect allowlists.
+	 *
+	 * @param string[] $hosts Allowed redirect hosts.
+	 * @return string[] Allowed redirect hosts including the Events fixture.
+	 */
+	public function filter_allowed_redirect_hosts( array $hosts ): array {
+		$hosts[] = (string) wp_parse_url( $this->events_url, PHP_URL_HOST );
+
+		return array_unique( $hosts );
 	}
 }
