@@ -206,6 +206,8 @@
     "verify": true
   },
   "metadata": {
+    "coverageTier": "smoke",
+    "scenarioOwnership": "Studio social-operator smoke coverage only; canonical Gardner identity is owned by Extra Chill Users.",
     "persona": "nontechnical-team-social-manager",
     "referenceUser": "Chris Gardner",
     "product": "Extra Chill Studio",
