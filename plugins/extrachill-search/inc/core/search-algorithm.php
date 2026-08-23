@@ -232,7 +232,7 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 			$query_args = array(
 				'post_type'      => array_values( $post_types ),
 				'post_status'    => $args['post_status'],
-				'posts_per_page' => 200,
+				'posts_per_page' => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- Bounded relevance candidate window.
 				'fields'         => 'ids',
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
@@ -293,6 +293,7 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 				wp_reset_postdata();
 			}
 		} catch ( Exception $e ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Search failures need server-side diagnostics.
 			error_log( sprintf( 'Word-level fallback search error on blog %d: %s', $blog_id, $e->getMessage() ) );
 		} finally {
 			restore_current_blog();
@@ -310,14 +311,14 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
  *
  * @param WP_Post $post         Post object.
  * @param int     $blog_id      Blog ID.
- * @param object  $blog_details Blog details object.
+ * @param WP_Site $blog_details Blog details object.
  * @return array Hydrated search result.
  */
 function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
 	$post_title = get_the_title();
 	$permalink  = get_permalink();
 
-	if ( $post->post_type === 'reply' && ! empty( $post->post_parent ) ) {
+	if ( 'reply' === $post->post_type && ! empty( $post->post_parent ) ) {
 		$topic_id    = $post->post_parent;
 		$topic_title = get_the_title( $topic_id );
 
@@ -363,7 +364,7 @@ function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
 		'post_author'   => $post->post_author,
 		'site_id'       => $blog_id,
 		'site_name'     => $blog_details->blogname,
-		'site_url'      => parse_url( $blog_details->siteurl, PHP_URL_HOST ),
+		'site_url'      => wp_parse_url( $blog_details->siteurl, PHP_URL_HOST ),
 		'permalink'     => $permalink,
 		'taxonomies'    => $taxonomies,
 		'thumbnail'     => $thumbnail_data,
@@ -380,10 +381,11 @@ function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
  * @param string $search_term Search query.
  * @param array  $site_urls   Optional site URL/domain list to restrict search.
  * @param array  $args        Optional overrides (limit, offset, filters).
- * @return array|array[] Either results array or paginated data when return_count true.
+ * @return array<int, array<string, mixed>>|array{results: array<int, array<string, mixed>>, total: int} Either results array or paginated data.
  */
 function extrachill_network_search( $search_term, $site_urls = array(), $args = array() ) {
 	if ( ! is_multisite() ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Invalid runtime state needs server-side diagnostics.
 		error_log( 'Multisite search error: WordPress multisite not detected' );
 		return array();
 	}
@@ -438,7 +440,7 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 			$query_args = array(
 				'post_type'      => array_values( $post_types ),
 				'post_status'    => $args['post_status'],
-				'posts_per_page' => 200,
+				'posts_per_page' => 200, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- Bounded relevance candidate window.
 				'fields'         => 'ids',
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
@@ -465,6 +467,7 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 				wp_reset_postdata();
 			}
 		} catch ( Exception $e ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Per-site failures need server-side diagnostics.
 			error_log( sprintf( 'Multisite search error on blog %d: %s', $blog_id, $e->getMessage() ) );
 		} finally {
 			restore_current_blog();
@@ -483,19 +486,19 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 		usort(
 			$all_results,
 			function ( $a, $b ) {
-				$score_diff = $b['_search_score'] - $a['_search_score'];
-				if ( $score_diff !== 0 ) {
+				$score_diff = $b['_search_score'] <=> $a['_search_score'];
+				if ( 0 !== $score_diff ) {
 					return $score_diff;
 				}
-				return strtotime( $b['post_date'] ) - strtotime( $a['post_date'] );
+				return strtotime( $b['post_date'] ) <=> strtotime( $a['post_date'] );
 			}
 		);
-	} elseif ( $args['orderby'] === 'date' ) {
+	} elseif ( 'date' === $args['orderby'] ) {
 		usort(
 			$all_results,
 			function ( $a, $b ) use ( $args ) {
-				$comparison = strtotime( $b['post_date'] ) - strtotime( $a['post_date'] );
-				return $args['order'] === 'ASC' ? -$comparison : $comparison;
+				$comparison = strtotime( $b['post_date'] ) <=> strtotime( $a['post_date'] );
+				return 'ASC' === $args['order'] ? -$comparison : $comparison;
 			}
 		);
 	}
@@ -506,6 +509,9 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 	// Prefer JS-injected source_page over unreliable wp_get_referer().
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	$search_source_url = ! empty( $_GET['source_page'] ) ? esc_url_raw( wp_unslash( $_GET['source_page'] ) ) : wp_get_referer();
+	if ( false === $search_source_url ) {
+		$search_source_url = '';
+	}
 
 	/**
 	 * Fires after a search is performed.
@@ -545,10 +551,10 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
  * @return int Relevance score.
  */
 function extrachill_calculate_search_score( $result, $search_term ) {
-	$score       = 0;
-	$term_lower  = strtolower( extrachill_normalize_search_term( $search_term ) );
-	$title_lower = strtolower( extrachill_normalize_search_term( $result['post_title'] ) );
-	$content_lower = strtolower( extrachill_normalize_search_term( strip_tags( $result['post_content'] ) ) );
+	$score         = 0;
+	$term_lower    = strtolower( extrachill_normalize_search_term( $search_term ) );
+	$title_lower   = strtolower( extrachill_normalize_search_term( $result['post_title'] ) );
+	$content_lower = strtolower( extrachill_normalize_search_term( wp_strip_all_tags( $result['post_content'] ) ) );
 
 	$weights = apply_filters(
 		'extrachill_search_scoring_weights',
@@ -565,24 +571,27 @@ function extrachill_calculate_search_score( $result, $search_term ) {
 		)
 	);
 
-	if ( $title_lower === $term_lower ) {
+	if ( $term_lower === $title_lower ) {
 		$score += $weights['exact_title_match'];
-	} elseif ( strpos( $title_lower, $term_lower ) !== false ) {
+	} elseif ( false !== strpos( $title_lower, $term_lower ) ) {
 		$score += $weights['title_phrase_match'];
-		if ( strpos( $title_lower, $term_lower ) === 0 ) {
+		if ( 0 === strpos( $title_lower, $term_lower ) ) {
 			$score += $weights['title_start_bonus'];
 		}
 	} else {
 		$search_words = preg_split( '/\s+/', $term_lower, -1, PREG_SPLIT_NO_EMPTY );
 		$words_found  = 0;
+		if ( false === $search_words ) {
+			$search_words = array();
+		}
 
 		foreach ( $search_words as $word ) {
-			if ( strpos( $title_lower, $word ) !== false ) {
-				$words_found++;
+			if ( false !== strpos( $title_lower, $word ) ) {
+				++$words_found;
 			}
 		}
 
-		if ( $words_found === count( $search_words ) && count( $search_words ) > 1 ) {
+		if ( count( $search_words ) === $words_found && 1 < count( $search_words ) ) {
 			$score += $weights['all_words_in_title'];
 			$score += $words_found * $weights['per_word_in_title'];
 		}
