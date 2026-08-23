@@ -83,6 +83,7 @@ describe( 'article social source contract', () => {
 		expect( searched.searchParams.get( 'search' ) ).toBe( 'local music' );
 		expect( searched.searchParams.get( 'orderby' ) ).toBe( 'relevance' );
 		expect( searched.searchParams.get( '_embed' ) ).toContain( 'author' );
+		expect( searched.searchParams.get( '_fields' ) ).toContain( '_links' );
 	} );
 
 	it( 'normalizes canonical post, author, excerpt, and featured media fields', () => {

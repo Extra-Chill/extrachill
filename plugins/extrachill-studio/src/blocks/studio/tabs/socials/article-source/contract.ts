@@ -62,7 +62,7 @@ export const articlePostsUrl = ( mainSiteUrl: string, search = '' ): string => {
 	url.searchParams.set( '_embed', 'author,wp:featuredmedia' );
 	url.searchParams.set(
 		'_fields',
-		'id,date,link,title,excerpt,featured_media,_embedded'
+		'id,date,link,title,excerpt,featured_media,_links,_embedded'
 	);
 	if ( search ) {
 		url.searchParams.set( 'search', search );
