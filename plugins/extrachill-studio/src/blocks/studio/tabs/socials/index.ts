@@ -18,6 +18,9 @@ import { filterAvailablePlatforms } from './publish/contract';
 import type { ComposerPlatformConfig } from './publish/contract';
 import CommentsView from './comments';
 import GiveawayView from '../giveaway';
+import ArticleSourcePicker from './article-source';
+import { applyArticleSource } from './article-source/contract';
+import type { ArticleSource } from './article-source/contract';
 
 const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -54,6 +57,8 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	const [ publishDrafts, setPublishDrafts ] = useState<
 		Record< string, PlatformPublishDraft >
 	>( {} );
+	const [ selectedSource, setSelectedSource ] =
+		useState< ArticleSource | null >( null );
 
 	useEffect( () => {
 		const loadPlatforms = async (): Promise< void > => {
@@ -139,6 +144,31 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	): void => {
 		setActivePlatform( platformSlug );
 		setActiveCapability( capability );
+	};
+
+	const emptyDraft = (): PlatformPublishDraft => ( {
+		caption: '',
+		images: [],
+		mediaKind: '',
+		fields: {},
+		sourcePostId: null,
+		sourceUrl: '',
+	} );
+
+	const handleSourceSelect = ( source: ArticleSource | null ): void => {
+		setSelectedSource( source );
+		setPublishDrafts( ( current ) =>
+			Object.fromEntries(
+				availablePlatforms.map( ( platform ) => [
+					platform.slug,
+					applyArticleSource(
+						current[ platform.slug ] || emptyDraft(),
+						source,
+						platform
+					),
+				] )
+			)
+		);
 	};
 
 	// ── Loading / Error / Empty states ──
@@ -246,12 +276,8 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		};
 
 		if ( activeCapability === 'publish' ) {
-			viewProps.draft = publishDrafts[ selectedPlatform.slug ] || {
-				caption: '',
-				images: [],
-				mediaKind: '',
-				fields: {},
-			};
+			viewProps.draft =
+				publishDrafts[ selectedPlatform.slug ] || emptyDraft();
 			viewProps.onDraftChange = ( draft: PlatformPublishDraft ) => {
 				setPublishDrafts( ( current ) => ( {
 					...current,
@@ -275,7 +301,22 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			activeCapability,
 			onSelect: handleSidebarSelect,
 		} ),
-		h( 'div', { className: 'ec-studio-socials-content' }, renderContent() )
+		h(
+			'div',
+			{ className: 'ec-studio-socials-content' },
+			activeCapability === 'publish'
+				? h( ArticleSourcePicker, {
+						mainSiteUrl:
+							context.networkSites.find(
+								( site ) => site.id === 1
+							)?.url || 'https://extrachill.com/',
+						mainBlogId: 1,
+						selected: selectedSource,
+						onSelect: handleSourceSelect,
+				  } )
+				: null,
+			renderContent()
+		)
 	);
 };
 

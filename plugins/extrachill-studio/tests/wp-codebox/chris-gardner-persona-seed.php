@@ -90,6 +90,21 @@ if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
 wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $image_path ) );
 $image_url = wp_get_attachment_url( $attachment_id );
 
+$article_id = wp_insert_post(
+	array(
+		'post_title'   => 'Tonight at The Royal American',
+		'post_excerpt' => 'Three local bands bring a packed night of live music to Charleston.',
+		'post_content' => '<p>Three local bands bring a packed night of live music to Charleston.</p>',
+		'post_status'  => 'publish',
+		'post_author'  => 101,
+	),
+	true
+);
+if ( is_wp_error( $article_id ) || ! $article_id ) {
+	throw new RuntimeException( 'Unable to seed the Studio persona article fixture.' );
+}
+set_post_thumbnail( $article_id, $attachment_id );
+
 $asset = require $studio_asset_file;
 $state = array(
 	'asset_url'     => plugins_url( 'extrachill-studio/build/blocks/studio/view.js' ),
@@ -105,6 +120,7 @@ $state = array(
 	),
 	'version'       => isset( $asset['version'] ) ? (string) $asset['version'] : '0',
 	'attachment_id' => (int) $attachment_id,
+	'article_id'    => (int) $article_id,
 	'image_url'     => $image_url,
 );
 
@@ -136,6 +152,8 @@ add_action( 'init', static function () {
 	foreach ( array( '_studio_social_caption', '_studio_social_media_kind' ) as $key ) {
 		register_post_meta( 'post', $key, array( 'type' => 'string', 'single' => true, 'show_in_rest' => true ) );
 	}
+	register_post_meta( 'post', '_studio_social_source_post_id', array( 'type' => 'integer', 'single' => true, 'show_in_rest' => true ) );
+	register_post_meta( 'post', '_studio_social_source_url', array( 'type' => 'string', 'single' => true, 'show_in_rest' => true ) );
 	register_post_meta(
 		'post',
 		'_studio_social_images',
@@ -196,6 +214,30 @@ add_action( 'rest_api_init', static function () use ( &$studio_persona, $studio_
 				foreach ( $platforms as &$platform ) {
 					$platform['type']          = 'publish';
 					$platform['authenticated'] = true;
+					$media_kinds = ! empty( $platform['supportedMediaKinds'] ) ? $platform['supportedMediaKinds'] : array( 'image' );
+					$platform['composer'] = array(
+						'crossPostCompatible' => true,
+						'mediaKinds'          => $media_kinds,
+						'target'              => array( 'transport' => 'rest', 'name' => 'datamachine/v1/socials/post' ),
+						'inputSchema'         => array(
+							'type'       => 'object',
+							'required'   => array( 'platforms', 'caption', 'media_kind' ),
+							'properties' => array(
+								'platforms'  => array( 'type' => 'array' ),
+								'caption'    => array( 'type' => 'string' ),
+								'media_kind' => array( 'type' => 'string', 'enum' => $media_kinds ),
+								'images'     => array( 'type' => 'array' ),
+								'post_id'    => array( 'type' => 'integer' ),
+								'post_site_id' => array( 'type' => 'integer' ),
+								'source_url' => array( 'type' => 'string', 'format' => 'uri' ),
+							),
+						),
+						'mediaRequirements' => array(
+							'image'    => array( 'required' => array( 'caption', 'images' ) ),
+							'carousel' => array( 'required' => array( 'caption', 'images' ) ),
+							'video'    => array( 'required' => array( 'caption' ) ),
+						),
+					);
 				}
 				unset( $platform );
 
@@ -451,6 +493,7 @@ echo wp_json_encode(
 		'persona'       => 'nontechnical-team-social-manager',
 		'url'           => '/studio-persona/',
 		'attachment_id' => (int) $attachment_id,
+		'article_id'    => (int) $article_id,
 		'external_writes' => false,
 	),
 	JSON_PRETTY_PRINT

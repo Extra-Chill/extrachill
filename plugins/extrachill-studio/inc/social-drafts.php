@@ -29,6 +29,8 @@ const META_VIDEO_URL    = '_studio_social_video_url';
 const META_COVER_URL    = '_studio_social_cover_url';
 const META_PUBLISH_LOG  = '_studio_social_publish_log';
 const META_DELIVERY_REF = '_studio_social_delivery_ref';
+const META_SOURCE_POST  = '_studio_social_source_post_id';
+const META_SOURCE_URL   = '_studio_social_source_url';
 
 /**
  * Register post meta for social drafts.
@@ -137,6 +139,22 @@ function register_social_meta() {
 			'show_in_rest'      => true,
 			'sanitize_callback' => 'sanitize_text_field',
 		),
+		META_SOURCE_POST  => array(
+			'type'              => 'integer',
+			'description'       => 'Canonical main-site article post ID used for this social draft.',
+			'default'           => 0,
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'absint',
+		),
+		META_SOURCE_URL   => array(
+			'type'              => 'string',
+			'description'       => 'Canonical main-site article URL used for this social draft.',
+			'default'           => '',
+			'single'            => true,
+			'show_in_rest'      => true,
+			'sanitize_callback' => 'sanitize_url',
+		),
 	);
 
 	foreach ( $meta_fields as $key => $args ) {
@@ -213,25 +231,88 @@ function enqueue_social_publish( \WP_Post $post ): array {
 
 	$platforms  = get_post_meta( $post->ID, META_PLATFORMS, true );
 	$media_kind = (string) get_post_meta( $post->ID, META_MEDIA_KIND, true );
-	$result     = execute_social_publish_ability(
+	$input      = array(
+		'content_ref'     => array(
+			'post_id'      => $post->ID,
+			'source_url'   => get_permalink( $post ),
+			'caption'      => $caption,
+			'content_hash' => hash( 'sha256', $caption ),
+			'asset_refs'   => $assets,
+		),
+		'target_policy'   => array(
+			'channels'   => array_values( (array) $platforms ),
+			'media_kind' => $media_kind ? $media_kind : 'image',
+		),
+		'idempotency_key' => social_publish_idempotency_key( $post->ID ),
+	);
+	$attribution = social_source_attribution( $post->ID );
+	if ( is_wp_error( $attribution ) ) {
+		return social_publish_error( (string) $attribution->get_error_code(), $attribution->get_error_message(), false );
+	}
+	if ( $attribution ) {
+		$input['attribution_post'] = $attribution;
+	}
+
+	$result = execute_social_publish_ability(
 		'datamachine/enqueue-social-publish',
-		array(
-			'content_ref'     => array(
-				'post_id'      => $post->ID,
-				'source_url'   => get_permalink( $post ),
-				'caption'      => $caption,
-				'content_hash' => hash( 'sha256', $caption ),
-				'asset_refs'   => $assets,
-			),
-			'target_policy'   => array(
-				'channels'   => array_values( (array) $platforms ),
-				'media_kind' => $media_kind ? $media_kind : 'image',
-			),
-			'idempotency_key' => social_publish_idempotency_key( $post->ID ),
-		)
+		$input
 	);
 
 	return $result;
+}
+
+/**
+ * Resolve canonical article attribution without replacing the review resource.
+ *
+ * @return array|null|\WP_Error Attribution, null for legacy drafts, or a stable
+ *                              error when declared attribution is invalid.
+ */
+function social_source_attribution( int $review_post_id ) {
+	$source_post_id = (int) get_post_meta( $review_post_id, META_SOURCE_POST, true );
+	$source_url     = (string) get_post_meta( $review_post_id, META_SOURCE_URL, true );
+	$main_blog_id   = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+
+	if ( $source_post_id <= 0 && '' === $source_url ) {
+		return null;
+	}
+	if ( $source_post_id <= 0 || '' === $source_url || $main_blog_id <= 0 ) {
+		return social_attribution_error();
+	}
+
+	$switched = get_current_blog_id() !== $main_blog_id;
+	if ( $switched ) {
+		switch_to_blog( $main_blog_id );
+	}
+
+	try {
+		$source    = get_post( $source_post_id );
+		$canonical = $source instanceof \WP_Post ? get_permalink( $source ) : false;
+		if (
+			! $source instanceof \WP_Post
+			|| 'publish' !== $source->post_status
+			|| ! is_string( $canonical )
+			|| ! hash_equals( $canonical, $source_url )
+		) {
+			return social_attribution_error();
+		}
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	return array(
+		'site_id' => $main_blog_id,
+		'post_id' => $source_post_id,
+	);
+}
+
+/** Construct the stable fail-closed error for invalid declared attribution. */
+function social_attribution_error(): \WP_Error {
+	return new \WP_Error(
+		'social_publish_attribution_invalid',
+		__( 'The source article attribution is no longer valid.', 'extrachill-studio' )
+	);
 }
 
 /**

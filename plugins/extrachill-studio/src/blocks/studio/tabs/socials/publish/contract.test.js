@@ -66,11 +66,21 @@ describe( 'social composer contract', () => {
 
 	it( 'routes generic publishers through their declared REST target', () => {
 		expect(
-			buildComposerRequest( composer(), { platforms: [ 'anything' ] } )
+			buildComposerRequest( composer(), {
+				platforms: [ 'anything' ],
+				post_id: 42,
+				post_site_id: 1,
+				source_url: 'https://extrachill.com/article/',
+			} )
 		).toEqual( {
 			path: '/datamachine/v1/socials/post',
 			method: 'POST',
-			data: { platforms: [ 'anything' ] },
+			data: {
+				platforms: [ 'anything' ],
+				post_id: 42,
+				post_site_id: 1,
+				source_url: 'https://extrachill.com/article/',
+			},
 		} );
 	} );
 

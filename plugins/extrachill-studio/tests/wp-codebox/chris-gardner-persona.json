@@ -72,6 +72,28 @@
           "auth-user-id=101",
           "url=/studio-persona/",
           "step-timeout=30s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/studio-persona/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-article-source__results button:has-text(\\\"Tonight at The Royal American\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-studio-article-source__results button:has-text(\\\"Tonight at The Royal American\\\")\"},{\"kind\":\"fill\",\"selector\":\"#ec-studio-instagram-caption\",\"value\":\"Editable article-based caption.\"},{\"kind\":\"click\",\"selector\":\"button:has-text(\\\"Submit for Review\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-message:has-text(\\\"submitted for review\\\")\"},{\"kind\":\"screenshot\",\"name\":\"article-social-review\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=101",
+          "url=/studio-persona/",
+          "step-timeout=30s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/studio-persona/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-article-source__results button:has-text(\\\"Tonight at The Royal American\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-studio-article-source__results button:has-text(\\\"Tonight at The Royal American\\\")\"},{\"kind\":\"expect\",\"selector\":\".ec-studio-article-source__selected:has-text(\\\"Tonight at The Royal American\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\"#ec-studio-instagram-caption\",\"value\":\"Tonight at The Royal American\\n\\nThree local bands bring a packed night of live music to Charleston.\"},{\"kind\":\"fill\",\"selector\":\"#ec-studio-instagram-caption\",\"value\":\"Editable article-based caption.\"},{\"kind\":\"click\",\"selector\":\"button:has-text(\\\"Clear source\\\")\"},{\"kind\":\"expect\",\"selector\":\".ec-studio-article-source__selected\",\"state\":\"detached\"},{\"kind\":\"screenshot\",\"name\":\"article-social-source\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=101",
+          "url=/studio-persona/",
+          "step-timeout=30s",
           "timeout=180s",
           "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
           "steps-json=[{\"kind\":\"navigate\",\"url\":\"/studio-persona/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Blog\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Network\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-socials-layout\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Instagram\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\"button[aria-label=\\\"Select Festival crowd\\\"]\"},{\"kind\":\"fill\",\"selector\":\"#ec-studio-instagram-caption\",\"value\":\"Tonight at The Royal American: three local bands, one packed room. Read the full preview on Extra Chill.\"},{\"kind\":\"click\",\"selector\":\"button:has-text(\\\"Submit for Review\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-message:has-text(\\\"submitted for review\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-socials-sidebar__capability:has-text(\\\"Comments\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-comment-list__item\"},{\"kind\":\"fill\",\"selector\":\".ec-studio-comment-list__item textarea\",\"value\":\"Thanks for supporting local music. See you there!\"},{\"kind\":\"click\",\"selector\":\".ec-studio-comment-list__item button:has-text(\\\"Reply\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-message:has-text(\\\"Loaded 1 comments\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Network\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-tabs__tab:has-text(\\\"Conversion\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Conversion\\\")\"},{\"kind\":\"expect\",\"selector\":\"select option:has-text(\\\"My posts\\\")\",\"state\":\"attached\"},{\"kind\":\"screenshot\",\"name\":\"social-manager-complete\"}]"
@@ -199,8 +221,6 @@
       "responsive and accessible adaptive exploration"
     ],
     "knownGaps": [
-      "existing WordPress posts are not yet offered as social source material",
-      "video and specialized publishers need the declarative composer contract tracked in data-machine-socials#232",
       "personal social account ownership is not modeled",
       "live platform writes are replaced with deterministic fixture responses"
     ]
