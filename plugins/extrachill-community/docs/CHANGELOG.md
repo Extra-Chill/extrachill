@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.1] - 2026-08-23
+
+### Fixed
+- announce profile mutation outcomes
+- normalize notification author IDs
+- show profile save feedback
+
 ## [1.26.0] - 2026-08-15
 
 ### Added
