@@ -24,6 +24,7 @@
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
 			<file>tests/MySQLIntegration/BookingSchemaMultisiteTest.php</file>
+			<file>tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

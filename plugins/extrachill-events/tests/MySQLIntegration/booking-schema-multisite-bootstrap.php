@@ -46,6 +46,7 @@ if ( ! wp_is_site_initialized( 7 ) ) {
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/PromoterAuthoritySchema.php';
 switch_to_blog( 7 );
 try {
 	DataMachineEvents\Core\EventDatesTable::create_table();
@@ -53,6 +54,11 @@ try {
 	if ( true !== $booking_schema ) {
 		$failure = is_wp_error( $booking_schema ) ? $booking_schema->get_error_code() . ': ' . wp_json_encode( $booking_schema->get_error_data() ) : 'unknown error';
 		throw new RuntimeException( 'Unable to provision the Events booking schema: ' . $failure );
+	}
+	$promoter_schema = ExtraChillEvents\Core\PromoterAuthoritySchema::install();
+	if ( true !== $promoter_schema ) {
+		$failure = is_wp_error( $promoter_schema ) ? $promoter_schema->get_error_code() . ': ' . wp_json_encode( $promoter_schema->get_error_data() ) : 'unknown error';
+		throw new RuntimeException( 'Unable to provision the Events promoter authority schema: ' . $failure );
 	}
 } finally {
 	restore_current_blog();

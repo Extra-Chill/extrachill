@@ -9,6 +9,7 @@
 	<testsuites>
 		<testsuite name="venue-membership-authorization">
 			<file>tests/VenueMembershipAuthorizationTest.php</file>
+			<file>tests/PromoterAuthorityTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

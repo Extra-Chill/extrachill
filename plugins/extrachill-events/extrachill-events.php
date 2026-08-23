@@ -40,6 +40,7 @@ require_once __DIR__ . '/inc/Providers/AdministrationProvider.php';
 require_once __DIR__ . '/inc/Providers/LifecycleProvider.php';
 require_once __DIR__ . '/inc/Providers/CoreRuntimeProvider.php';
 require_once __DIR__ . '/inc/Providers/ArtistUrlImportProvider.php';
+require_once __DIR__ . '/inc/Providers/PromoterAuthorityProvider.php';
 require_once __DIR__ . '/inc/Providers/VenueBookingProvider.php';
 require_once __DIR__ . '/inc/Providers/PublicExperienceProvider.php';
 require_once __DIR__ . '/inc/Providers/AbilitiesProvider.php';

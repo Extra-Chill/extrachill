@@ -125,6 +125,7 @@ jobs:
           vendor/bin/phpunit --configuration phpunit-venue-unit.xml.dist
           vendor/bin/phpunit --configuration phpunit-local-scene-unit.xml.dist
           vendor/bin/phpunit --configuration phpunit-network-block.xml.dist
+          vendor/bin/phpunit --configuration phpunit-membership.xml.dist
 
       - name: Select managed WordPress suite
         if: ${{ matrix.command == 'review test' }}

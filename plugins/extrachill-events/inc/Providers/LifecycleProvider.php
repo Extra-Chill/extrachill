@@ -57,6 +57,9 @@ final class LifecycleProvider {
 	public static function activate(): void {
 		\ExtraChillEvents\Core\QualifyVerdictsTable::create_table();
 		\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::create_table();
+		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
+			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
+		}
 		\ExtraChillEvents\Core\BookingSchema::install();
 		\ExtraChillEvents\Core\LocalSupportSchema::install();
 		\ExtraChillEvents\Core\VendorRequestSchema::install();
@@ -78,6 +81,9 @@ final class LifecycleProvider {
 		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) ) {
 			\ExtraChillEvents\Core\BookingSchema::maybe_install();
+		}
+		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
+			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();
 		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\LocalSupportSchema' ) ) {
 			\ExtraChillEvents\Core\LocalSupportSchema::maybe_install();
