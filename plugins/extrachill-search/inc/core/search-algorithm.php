@@ -19,35 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Check if the current site's posts table has a FULLTEXT index.
- *
- * Caches the result per blog_id for the duration of the request.
- *
- * @return bool Whether FULLTEXT index exists on the posts table.
- */
-function extrachill_has_fulltext_index() {
-	global $wpdb;
-	static $cache = array();
-
-	$table = $wpdb->posts;
-	if ( isset( $cache[ $table ] ) ) {
-		return $cache[ $table ];
-	}
-
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
-	$indexes = $wpdb->get_results(
-		$wpdb->prepare(
-			'SHOW INDEX FROM %i WHERE Index_type = %s',
-			$wpdb->posts,
-			'FULLTEXT'
-		)
-	);
-
-	$cache[ $table ] = ! empty( $indexes );
-	return $cache[ $table ];
-}
-
-/**
  * Build a FULLTEXT MATCH AGAINST clause for the current posts table.
  *
  * Uses BOOLEAN MODE for precise matching: each word must appear.
@@ -122,14 +93,20 @@ function extrachill_fulltext_posts_search( $search, $query ) {
 		return $search;
 	}
 
-	return ' AND ' . $clause;
+	$search = ' AND ' . $clause;
+	if ( ! is_user_logged_in() ) {
+		global $wpdb;
+		$search .= " AND ({$wpdb->posts}.post_password = '') ";
+	}
+
+	return $search;
 }
 
 /**
  * Filter: Add FULLTEXT relevance to ORDER BY.
  *
- * Hooked to 'posts_search_orderby' to sort by MySQL's FULLTEXT relevance
- * score instead of WordPress's default date ordering for searches.
+ * Hooked to 'posts_orderby' to sort by MySQL's FULLTEXT relevance score
+ * instead of WordPress's default date ordering for marked queries.
  *
  * @param string   $orderby SQL orderby clause for search.
  * @param WP_Query $query   WP_Query instance.
@@ -149,43 +126,67 @@ function extrachill_fulltext_posts_orderby( $orderby, $query ) {
 }
 
 /**
+ * Route the public frontend main search query through the indexed SQL path.
+ *
+ * The plugin template performs its own network query, but WordPress executes
+ * the main query first. Marking that query here prevents a discarded LIKE
+ * scan and avoids counting rows that no consumer reads.
+ *
+ * @param WP_Query $query Main query candidate.
+ * @return void
+ */
+function extrachill_route_frontend_search( $query ) {
+	if ( is_admin() || ! $query->is_main_query() || ! $query->is_search() ) {
+		return;
+	}
+
+	$search_term = $query->get( 's' );
+	if ( '' === trim( (string) $search_term ) ) {
+		return;
+	}
+
+	$query->set( 'no_found_rows', true );
+
+	$status = extrachill_get_fulltext_index_status();
+	if ( ! $status['ready'] ) {
+		extrachill_report_fulltext_index_failure( $status );
+		$query->set( 's', '' );
+		$query->set( 'post__in', array( 0 ) );
+		return;
+	}
+
+	$query->set( 'extrachill_fulltext_term', $search_term );
+}
+
+/**
  * Run a WP_Query with FULLTEXT search enabled.
  *
- * Adds the FULLTEXT filters before the query and removes them after.
- * Falls back to standard WP_Query 's' parameter if no FULLTEXT index.
+ * Missing or drifted index state fails closed rather than scanning with LIKE.
  *
  * @param array  $query_args  WP_Query arguments (without 's' param).
  * @param string $search_term Search term.
  * @return WP_Query Query result.
  */
 function extrachill_fulltext_query( $query_args, $search_term ) {
-	if ( ! empty( $search_term ) && extrachill_has_fulltext_index() ) {
-		// Use FULLTEXT: set custom query var, don't use 's' (avoids LIKE).
-		$query_args['extrachill_fulltext_term'] = $search_term;
-
-		add_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10, 2 );
-		add_filter( 'posts_search_orderby', 'extrachill_fulltext_posts_orderby', 10, 2 );
-
-		$query = new WP_Query( $query_args );
-
-		remove_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10 );
-		remove_filter( 'posts_search_orderby', 'extrachill_fulltext_posts_orderby', 10 );
-	} else {
-		// Fallback: standard WordPress LIKE search.
-		if ( ! empty( $search_term ) ) {
-			$query_args['s'] = extrachill_normalize_search_term( $search_term );
+	if ( ! empty( $search_term ) ) {
+		$status = extrachill_get_fulltext_index_status();
+		if ( ! $status['ready'] ) {
+			extrachill_report_fulltext_index_failure( $status );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new RuntimeException( sprintf( 'Search index is not ready for blog %d: %s', $status['blog_id'], $status['reason'] ) );
 		}
-		$query = new WP_Query( $query_args );
+
+		$query_args['extrachill_fulltext_term'] = $search_term;
 	}
 
-	return $query;
+	return new WP_Query( $query_args );
 }
 
 /**
  * Word-level search fallback when primary search returns zero results.
  *
  * Uses FULLTEXT NATURAL LANGUAGE MODE (more forgiving than BOOLEAN MODE)
- * to find partial matches. Falls back to PHP strpos if no FULLTEXT index.
+ * to find partial matches. Sites without a ready index fail closed.
  *
  * @param string $search_term Search query.
  * @param array  $blog_ids    Blog IDs to inspect.
@@ -193,8 +194,7 @@ function extrachill_fulltext_query( $query_args, $search_term ) {
  * @return array Matching search results.
  */
 function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args ) {
-	$search_words   = preg_split( '/\s+/', strtolower( extrachill_normalize_search_term( $search_term ) ), -1, PREG_SPLIT_NO_EMPTY );
-	$all_results    = array();
+	$all_results     = array();
 	$site_post_types = extrachill_get_site_post_types();
 
 	foreach ( $blog_ids as $blog_id ) {
@@ -222,6 +222,7 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 				'posts_per_page' => 200,
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
+				'no_found_rows'  => true,
 			);
 
 			if ( ! empty( $args['meta_query'] ) ) {
@@ -248,7 +249,12 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 				$query_args['extrachill_fulltext_natural'] = $natural_clause;
 
 				$posts_search_filter = function ( $search ) use ( $natural_clause ) {
-					return ' AND ' . $natural_clause;
+					$search = ' AND ' . $natural_clause;
+					if ( ! is_user_logged_in() ) {
+						global $wpdb;
+						$search .= " AND ({$wpdb->posts}.post_password = '') ";
+					}
+					return $search;
 				};
 
 				add_filter( 'posts_search', $posts_search_filter, 10, 1 );
@@ -259,34 +265,14 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 					remove_filter( 'posts_search', $posts_search_filter, 10 );
 				}
 			} else {
-				// No FULLTEXT — fetch all and filter in PHP (original fallback).
-				$query_args['posts_per_page'] = -1;
-				$query = new WP_Query( $query_args );
+				extrachill_report_fulltext_index_failure( extrachill_get_fulltext_index_status() );
+				continue;
 			}
 
 			if ( $query->have_posts() ) {
 				while ( $query->have_posts() ) {
 					$query->the_post();
 					global $post;
-
-					// If no FULLTEXT, verify all words exist in PHP.
-					if ( ! extrachill_has_fulltext_index() ) {
-						$title_normalized   = strtolower( extrachill_normalize_search_term( get_the_title() ) );
-						$content_normalized = strtolower( extrachill_normalize_search_term( strip_tags( get_the_content() ) ) );
-						$combined           = $title_normalized . ' ' . $content_normalized;
-
-						$all_words_found = true;
-						foreach ( $search_words as $word ) {
-							if ( strpos( $combined, $word ) === false ) {
-								$all_words_found = false;
-								break;
-							}
-						}
-
-						if ( ! $all_words_found ) {
-							continue;
-						}
-					}
 
 					$all_results[] = extrachill_hydrate_search_result( $post, $blog_id, $blog_details );
 				}
@@ -374,8 +360,8 @@ function extrachill_hydrate_search_result( $post, $blog_id, $blog_details ) {
  * Search across multisite network with relevance scoring.
  *
  * Uses FULLTEXT indexes (MATCH AGAINST) when available for sub-second
- * searches across all network sites. Falls back to WordPress LIKE
- * search when FULLTEXT index is missing on a site.
+ * searches across all network sites. Sites without an exact matching index
+ * fail closed and emit diagnostics rather than scanning with LIKE.
  *
  * @param string $search_term Search query.
  * @param array  $site_urls   Optional site URL/domain list to restrict search.
@@ -441,6 +427,7 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 				'posts_per_page' => 200,
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
+				'no_found_rows'  => true,
 			);
 
 			if ( ! empty( $args['meta_query'] ) ) {

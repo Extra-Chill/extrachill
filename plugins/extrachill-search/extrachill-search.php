@@ -48,6 +48,11 @@ class ExtraChill_Search_Plugin {
         add_action( 'template_redirect', array( $this, 'fix_search_404' ), 1 );
         add_action( 'wp_footer', array( $this, 'inject_search_source_tracking' ) );
 		add_action( 'extrachill_search_performed', array( $this, 'track_search_analytics' ), 10, 3 );
+		add_action( 'pre_get_posts', 'extrachill_route_frontend_search', 20 );
+		add_action( 'wp_initialize_site', array( $this, 'initialize_site_search_index' ), 10, 1 );
+		add_filter( 'posts_search', 'extrachill_fulltext_posts_search', 10, 2 );
+		add_filter( 'posts_orderby', 'extrachill_fulltext_posts_orderby', 10, 2 );
+		add_filter( 'site_status_tests', 'extrachill_register_search_site_health_test' );
     }
 
 	/**
@@ -130,6 +135,7 @@ class ExtraChill_Search_Plugin {
 
 		require_once $includes_dir . 'core/search-functions.php';
 		require_once $includes_dir . 'core/search-scope.php';
+		require_once $includes_dir . 'core/index-health.php';
 		require_once $includes_dir . 'core/search-algorithm.php';
 		require_once $includes_dir . 'core/taxonomy-functions.php';
 
@@ -141,9 +147,40 @@ class ExtraChill_Search_Plugin {
         require_once $templates_dir . 'site-badge.php';
     }
 
-    public function activate() {
-        flush_rewrite_rules();
-    }
+	public function activate( $network_wide = false ) {
+		if ( is_multisite() && $network_wide ) {
+			foreach ( get_sites( array( 'number' => 0 ) ) as $site ) {
+				$this->ensure_site_search_index( (int) $site->blog_id );
+			}
+		} else {
+			$this->ensure_site_search_index( get_current_blog_id() );
+		}
+
+		flush_rewrite_rules();
+	}
+
+	/**
+	 * Install the index when a new multisite site is initialized.
+	 *
+	 * @param WP_Site $site New site object.
+	 * @return void
+	 */
+	public function initialize_site_search_index( $site ) {
+		$this->ensure_site_search_index( (int) $site->blog_id );
+	}
+
+	/**
+	 * Apply and verify one site's idempotent index setup.
+	 *
+	 * @param int $blog_id Site ID.
+	 * @return void
+	 */
+	private function ensure_site_search_index( $blog_id ) {
+		$status = extrachill_ensure_fulltext_index( $blog_id, true );
+		if ( ! $status['ready'] ) {
+			extrachill_report_fulltext_index_failure( $status );
+		}
+	}
 
     public function deactivate() {
         flush_rewrite_rules();
