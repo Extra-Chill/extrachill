@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.27.0] - 2026-08-23
+
+### Added
+- start social drafts from articles
+- consume social composer contracts
+
+### Changed
+- use Socials publish contract
+
+### Fixed
+- align Studio social manager access
+- preserve social reply feedback
+- make transcription callbacks idempotent
+
 ## [0.26.0] - 2026-08-05
 
 ### Added
