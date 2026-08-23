@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
+require_once dirname( __DIR__ ) . '/Core/ArtistMappingLock.php';
+
 const EXTRACHILL_EVENTS_ARTIST_TERM_META       = '_extrachill_events_artist_term_id';
 const EXTRACHILL_EVENTS_ARTIST_BACKFILL_OPTION = 'extrachill_events_artist_identity_backfill_1';
 
@@ -178,20 +180,35 @@ function extrachill_events_resolve_artist_term( int $artist_term_id ) {
  * @return int[] Canonical artist term IDs.
  */
 function extrachill_events_find_artist_mapping_claims( int $events_term_id ): array {
+	$claims = extrachill_events_read_artist_mapping_claims( $events_term_id );
+	return is_wp_error( $claims ) ? array() : $claims;
+}
+
+/**
+ * Read reverse mapping claims without the term-query result cache.
+ *
+ * Must be called in main-site context. Lock-owning mutation callers use this
+ * after acquiring ArtistMappingLock so a concurrent canonical claim cannot pass.
+ *
+ * @param int $events_term_id Events artist term ID.
+ * @return int[]|WP_Error Canonical claimant IDs or a read error.
+ */
+function extrachill_events_read_artist_mapping_claims( int $events_term_id ) {
 	// A single indexed metadata value bounds this duplicate-claim check.
 	// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 	$claims = get_terms(
 		array(
-			'taxonomy'   => 'artist',
-			'hide_empty' => false,
-			'fields'     => 'ids',
-			'meta_key'   => EXTRACHILL_EVENTS_ARTIST_TERM_META,
-			'meta_value' => $events_term_id,
+			'taxonomy'      => 'artist',
+			'hide_empty'    => false,
+			'fields'        => 'ids',
+			'meta_key'      => EXTRACHILL_EVENTS_ARTIST_TERM_META,
+			'meta_value'    => $events_term_id,
+			'cache_results' => false,
 		)
 	);
 	// phpcs:enable
 
-	return is_wp_error( $claims ) ? array() : array_map( 'intval', (array) $claims );
+	return is_wp_error( $claims ) ? $claims : array_map( 'intval', (array) $claims );
 }
 
 /**
@@ -375,22 +392,63 @@ function extrachill_events_backfill_artist_identity() {
 			continue;
 		}
 
-		$local_id = (int) $candidates[0]->term_id;
-		if ( ! empty( $claims[ $local_id ] ) ) {
-			$report['collisions'][] = array(
-				'events_term_id'  => $local_id,
-				'artist_term_ids' => array_merge( $claims[ $local_id ], array( $canonical_id ) ),
+		$local_id     = (int) $candidates[0]->term_id;
+		$mapping_lock = \ExtraChillEvents\Core\ArtistMappingLock::acquire( $local_id );
+		if ( is_wp_error( $mapping_lock ) ) {
+			$report['complete']         = false;
+			$report['write_failures'][] = array(
+				'artist_term_id' => $canonical_id,
+				'events_term_id' => $local_id,
 			);
 			continue;
 		}
 
-		switch_to_blog( $main_blog_id );
+		$release_failed = false;
+		$already_mapped = false;
 		try {
-			$updated = update_term_meta( $canonical_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, $local_id );
+			switch_to_blog( $main_blog_id );
+			try {
+				$current_claims = extrachill_events_read_artist_mapping_claims( $local_id );
+				if ( is_wp_error( $current_claims ) ) {
+					$updated = $current_claims;
+				} elseif ( array_diff( $current_claims, array( $canonical_id ) ) ) {
+					$updated = null;
+				} elseif ( in_array( $canonical_id, $current_claims, true ) ) {
+					$already_mapped = true;
+					$updated        = true;
+				} else {
+					$updated = update_term_meta( $canonical_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, $local_id );
+				}
+			} finally {
+				restore_current_blog();
+			}
 		} finally {
-			restore_current_blog();
+			$released       = \ExtraChillEvents\Core\ArtistMappingLock::release( $mapping_lock );
+			$release_failed = is_wp_error( $released );
 		}
-		if ( false === $updated || is_wp_error( $updated ) ) {
+		if ( null === $updated ) {
+			$report['collisions'][] = array(
+				'events_term_id'  => $local_id,
+				'artist_term_ids' => array_values( array_unique( array_merge( $current_claims, array( $canonical_id ) ) ) ),
+			);
+			if ( $release_failed ) {
+				$report['complete']         = false;
+				$report['write_failures'][] = array(
+					'artist_term_id' => $canonical_id,
+					'events_term_id' => $local_id,
+				);
+			}
+			continue;
+		}
+		if ( $already_mapped && ! $release_failed ) {
+			$claims[ $local_id ]  = array( $canonical_id );
+			$report['existing'][] = array(
+				'artist_term_id' => $canonical_id,
+				'events_term_id' => $local_id,
+			);
+			continue;
+		}
+		if ( false === $updated || is_wp_error( $updated ) || $release_failed ) {
 			$report['complete']         = false;
 			$report['write_failures'][] = array(
 				'artist_term_id' => $canonical_id,

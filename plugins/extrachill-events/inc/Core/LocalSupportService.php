@@ -39,9 +39,21 @@ class LocalSupportService {
 	/** @var LocalSupportAuthorization */
 	private $authorization;
 
+	/** @var bool Whether this service owns an active transaction. */
+	private $transaction_active = false;
+
+	/** @var object Opaque authorization-scope owner token. */
+	private $transaction_token;
+
+	/** @var \WP_Error|null Token claim failure for a reused authorization instance. */
+	private $transaction_owner_error;
+
 	public function __construct( ?LocalSupportRepository $repository = null, ?LocalSupportAuthorization $authorization = null ) {
 		$this->repository    = $repository ? $repository : new LocalSupportRepository();
 		$this->authorization = $authorization ? $authorization : new LocalSupportAuthorization();
+		$this->transaction_token = new \stdClass();
+		$claimed = $this->authorization->claim_transaction_owner( $this->transaction_token );
+		$this->transaction_owner_error = $claimed instanceof \WP_Error ? $claimed : null;
 	}
 
 	/** Open one request per canonical event. */
@@ -84,30 +96,26 @@ class LocalSupportService {
 			return $this->replay( $existing, $key, $hash );
 		}
 
-		$started = $this->begin();
-		if ( is_wp_error( $started ) ) {
-			return $started;
-		}
-		$allowed = $this->authorization->authorize_organizer( $request, $actor_id );
-		if ( true !== $allowed ) {
-			return $this->rollback( $allowed );
-		}
-		$created = $this->repository->create_request( array_merge( $request, array( 'actor_id' => $actor_id ) ) );
+		$created = $this->transaction(
+			function ( object $scope ) use ( $request, $actor_id, $key, $hash ) {
+				$allowed = $this->authorization->authorize_organizer_locked( $request, $actor_id, $scope );
+				if ( true !== $allowed ) {
+					return $allowed;
+				}
+				$created = $this->repository->create_request( array_merge( $request, array( 'actor_id' => $actor_id ) ) );
+				if ( is_wp_error( $created ) ) {
+					return $created;
+				}
+				$activity = $this->record( $created['id'], null, 'request_opened', $actor_id, $key, $hash, 1, array( 'status' => 'open' ) );
+				return is_wp_error( $activity ) ? $activity : $created;
+			}
+		);
 		if ( is_wp_error( $created ) ) {
-			$rolled = $this->rollback( $created );
-			if ( 'local_support_request_create_failed' !== $rolled->get_error_code() ) {
-				return $rolled;
+			if ( 'local_support_request_create_failed' !== $created->get_error_code() ) {
+				return $created;
 			}
 			$winner = $this->repository->get_request_by_event( $event_id );
-			return is_array( $winner ) ? $this->replay( $winner, $key, $hash ) : $rolled;
-		}
-		$activity = $this->record( $created['id'], null, 'request_opened', $actor_id, $key, $hash, 1, array( 'status' => 'open' ) );
-		if ( is_wp_error( $activity ) ) {
-			return $this->rollback( $activity );
-		}
-		$committed = $this->commit();
-		if ( is_wp_error( $committed ) ) {
-			return $committed;
+			return is_array( $winner ) ? $this->replay( $winner, $key, $hash ) : $created;
 		}
 		$this->emit( 'request_opened', $created['id'], null, 1 );
 		return $created;
@@ -191,46 +199,53 @@ class LocalSupportService {
 			$replayed = $this->replay( $request, $key, $hash );
 			return is_wp_error( $replayed ) ? $replayed : $existing;
 		}
-		$started = $this->begin();
-		if ( is_wp_error( $started ) ) {
-			return $started;
-		}
-		$allowed = $this->authorization->authorize_artist( $artist_term_id, $actor_id );
-		if ( true !== $allowed ) {
-			return $this->rollback( $allowed );
-		}
-		$interest = $this->repository->create_interest( $request_id, $artist_term_id, $actor_id );
+		$interest = $this->transaction(
+			function ( object $scope ) use ( $request_id, $artist_term_id, $actor_id, $key, $hash ) {
+				$locked_request = $this->repository->get_request( $request_id, true );
+				if ( ! is_array( $locked_request ) || 'open' !== $locked_request['status'] ) {
+					return is_array( $locked_request ) ? new \WP_Error( 'local_support_request_not_open', __( 'This support request is not accepting interest.', 'extrachill-events' ), array( 'status' => 409 ) ) : $this->not_found();
+				}
+				$attached = $this->authorization->artist_attached_to_event_locked( $locked_request['event_id'], $artist_term_id, $scope );
+				if ( is_wp_error( $attached ) ) {
+					return $attached;
+				}
+				if ( $attached ) {
+					return new \WP_Error( 'local_support_artist_already_attached', __( 'Artists already attached to the event cannot express local-support interest.', 'extrachill-events' ), array( 'status' => 409 ) );
+				}
+				$allowed = $this->authorization->authorize_artist_locked( $artist_term_id, $actor_id, $scope );
+				if ( true !== $allowed ) {
+					return $allowed;
+				}
+				$interest = $this->repository->create_interest( $request_id, $artist_term_id, $actor_id );
+				if ( is_wp_error( $interest ) ) {
+					return $interest;
+				}
+				$activity = $this->record(
+					$request_id,
+					$interest['id'],
+					'interest_expressed',
+					$actor_id,
+					$key,
+					$hash,
+					1,
+					array(
+						'artist_term_id' => $artist_term_id,
+						'status'         => 'interested',
+					)
+				);
+				return is_wp_error( $activity ) ? $activity : $interest;
+			}
+		);
 		if ( is_wp_error( $interest ) ) {
-			$rolled = $this->rollback( $interest );
-			if ( 'local_support_interest_create_failed' !== $rolled->get_error_code() ) {
-				return $rolled;
+			if ( 'local_support_interest_create_failed' !== $interest->get_error_code() ) {
+				return $interest;
 			}
 			$winner = $this->repository->get_interest_for_artist( $request_id, $artist_term_id );
 			if ( ! is_array( $winner ) ) {
-				return $rolled;
+				return $interest;
 			}
 			$replayed = $this->replay( $request, $key, $hash );
 			return is_wp_error( $replayed ) ? $replayed : $winner;
-		}
-		$activity = $this->record(
-			$request_id,
-			$interest['id'],
-			'interest_expressed',
-			$actor_id,
-			$key,
-			$hash,
-			1,
-			array(
-				'artist_term_id' => $artist_term_id,
-				'status'         => 'interested',
-			)
-		);
-		if ( is_wp_error( $activity ) ) {
-			return $this->rollback( $activity );
-		}
-		$committed = $this->commit();
-		if ( is_wp_error( $committed ) ) {
-			return $committed;
 		}
 		$this->emit( 'interest_expressed', $request_id, $interest['id'], 1 );
 		return $interest;
@@ -381,29 +396,25 @@ class LocalSupportService {
 		if ( $request['version'] !== $expected_version ) {
 			return $this->conflict( $request['version'] );
 		}
-		$started = $this->begin();
-		if ( is_wp_error( $started ) ) {
-			return $started;
+		$updated = $this->transaction(
+			function ( object $scope ) use ( $request, $expected_version, $actor_id, $changes, $kind, $key, $hash, $payload ) {
+				$locked = $this->repository->get_request( $request['id'], true );
+				if ( ! is_array( $locked ) || $locked['version'] !== $expected_version ) {
+					return is_array( $locked ) ? $this->conflict( $locked['version'] ) : $this->not_found();
+				}
+				$allowed = $this->authorization->authorize_organizer_locked( $locked, $actor_id, $scope );
+				if ( true !== $allowed ) {
+					return $allowed;
+				}
+				$updated = $this->repository->update_request( $locked['id'], $expected_version, $changes );
+				$event   = is_wp_error( $updated ) ? $updated : $this->record( $locked['id'], null, $kind, $actor_id, $key, $hash, $updated['version'], $payload );
+				return is_wp_error( $event ) ? $event : $updated;
+			}
+		);
+		if ( is_wp_error( $updated ) ) {
+			return 'local_support_version_conflict' === $updated->get_error_code() ? $this->concurrent_replay( $request['id'], $key, $hash, $updated, 'request', $request['id'] ) : $updated;
 		}
-		$locked = $this->repository->get_request( $request['id'], true );
-		if ( ! is_array( $locked ) || $locked['version'] !== $expected_version ) {
-			$rolled = $this->rollback( is_array( $locked ) ? $this->conflict( $locked['version'] ) : $this->not_found() );
-			return is_array( $locked ) ? $this->concurrent_replay( $request['id'], $key, $hash, $rolled, 'request', $request['id'] ) : $rolled;
-		}
-		$allowed = $this->authorization->authorize_organizer( $locked, $actor_id );
-		if ( true !== $allowed ) {
-			return $this->rollback( $allowed );
-		}
-		$updated = $this->repository->update_request( $locked['id'], $expected_version, $changes );
-		$event   = is_wp_error( $updated ) ? $updated : $this->record( $locked['id'], null, $kind, $actor_id, $key, $hash, $updated['version'], $payload );
-		if ( is_wp_error( $event ) ) {
-			return $this->rollback( $event );
-		}
-		$committed = $this->commit();
-		if ( is_wp_error( $committed ) ) {
-			return $committed;
-		}
-		$this->emit( $kind, $locked['id'], null, $updated['version'] );
+		$this->emit( $kind, $request['id'], null, $updated['version'] );
 		return $updated;
 	}
 
@@ -431,31 +442,31 @@ class LocalSupportService {
 		if ( $interest['version'] !== $expected_version ) {
 			return $this->conflict( $interest['version'] );
 		}
-		$started = $this->begin();
-		if ( is_wp_error( $started ) ) {
-			return $started;
+		$updated = $this->transaction(
+			function ( object $scope ) use ( $request, $interest, $expected_version, $artist_owned, $actor_id, $changes, $kind, $key, $hash, $payload ) {
+				$locked_request = $this->repository->get_request( $request['id'], true );
+				if ( ! is_array( $locked_request ) ) {
+					return $this->not_found();
+				}
+				$locked = $this->repository->get_interest( $interest['id'], true );
+				if ( ! is_array( $locked ) || $locked['version'] !== $expected_version ) {
+					return is_array( $locked ) ? $this->conflict( $locked['version'] ) : $this->not_found();
+				}
+				$allowed = $artist_owned
+					? $this->authorization->authorize_artist_locked( $locked['artist_term_id'], $actor_id, $scope )
+					: $this->authorization->authorize_organizer_locked( $locked_request, $actor_id, $scope );
+				if ( true !== $allowed ) {
+					return $allowed;
+				}
+				$updated = $this->repository->update_interest( $locked['id'], $expected_version, $changes );
+				$event   = is_wp_error( $updated ) ? $updated : $this->record( $request['id'], $locked['id'], $kind, $actor_id, $key, $hash, $updated['version'], $payload );
+				return is_wp_error( $event ) ? $event : $updated;
+			}
+		);
+		if ( is_wp_error( $updated ) ) {
+			return 'local_support_version_conflict' === $updated->get_error_code() ? $this->concurrent_replay( $request['id'], $key, $hash, $updated, 'interest', $interest['id'] ) : $updated;
 		}
-		$locked = $this->repository->get_interest( $interest['id'], true );
-		if ( ! is_array( $locked ) || $locked['version'] !== $expected_version ) {
-			$rolled = $this->rollback( is_array( $locked ) ? $this->conflict( $locked['version'] ) : $this->not_found() );
-			return is_array( $locked ) ? $this->concurrent_replay( $request['id'], $key, $hash, $rolled, 'interest', $interest['id'] ) : $rolled;
-		}
-		$allowed = $artist_owned
-			? $this->authorization->authorize_artist( $locked['artist_term_id'], $actor_id )
-			: $this->authorization->authorize_organizer( $request, $actor_id );
-		if ( true !== $allowed ) {
-			return $this->rollback( $allowed );
-		}
-		$updated = $this->repository->update_interest( $locked['id'], $expected_version, $changes );
-		$event   = is_wp_error( $updated ) ? $updated : $this->record( $request['id'], $locked['id'], $kind, $actor_id, $key, $hash, $updated['version'], $payload );
-		if ( is_wp_error( $event ) ) {
-			return $this->rollback( $event );
-		}
-		$committed = $this->commit();
-		if ( is_wp_error( $committed ) ) {
-			return $committed;
-		}
-		$this->emit( $kind, $request['id'], $locked['id'], $updated['version'] );
+		$this->emit( $kind, $request['id'], $interest['id'], $updated['version'] );
 		return $updated;
 	}
 
@@ -572,26 +583,175 @@ class LocalSupportService {
 		}
 	}
 
+	/** Execute one service-owned transaction and always close its lock scope. */
+	private function transaction( callable $callback ) {
+		if ( is_wp_error( $this->transaction_owner_error ) ) {
+			return $this->transaction_owner_error;
+		}
+		$started = $this->begin();
+		if ( is_wp_error( $started ) ) {
+			return $started;
+		}
+		try {
+			$scope = $this->authorization->open_transaction_scope( $this->transaction_token );
+		} catch ( \Throwable $throwable ) {
+			if ( $this->transaction_active ) {
+				$this->rollback_transaction( new \WP_Error( 'local_support_transaction_interrupted', __( 'The local support transaction was interrupted.', 'extrachill-events' ) ) );
+			}
+			throw $throwable;
+		}
+		if ( is_wp_error( $scope ) ) {
+			return $this->rollback_transaction( $scope );
+		}
+
+		$result    = null;
+		$committed = false;
+		try {
+			$result = call_user_func( $callback, $scope );
+			if ( is_wp_error( $result ) ) {
+				$result = $this->rollback_transaction( $result );
+			} else {
+				$commit = $this->commit_transaction();
+				if ( is_wp_error( $commit ) ) {
+					$result = $commit;
+				} else {
+					$committed = true;
+				}
+			}
+		} catch ( \Throwable $throwable ) {
+			if ( $this->transaction_active ) {
+				$this->rollback_transaction( new \WP_Error( 'local_support_transaction_interrupted', __( 'The local support transaction was interrupted.', 'extrachill-events' ) ) );
+			}
+			throw $throwable;
+		} finally {
+			try {
+				$released = $this->authorization->close_transaction_scope( $scope );
+				if ( is_wp_error( $released ) ) {
+					do_action(
+						'extrachill_events_local_support_authority_release_failed',
+						array(
+							'code'      => $released->get_error_code(),
+							'committed' => $committed,
+						)
+					);
+				}
+			} catch ( \Throwable $release_throwable ) {
+				do_action(
+					'extrachill_events_local_support_authority_release_failed',
+					array(
+						'code'      => 'local_support_artist_authority_release_threw',
+						'committed' => $committed,
+					)
+				);
+			}
+		}
+		return $result;
+	}
+
+	/** Start only when this connection is not already in a transaction. */
 	private function begin() {
 		global $wpdb;
-		return false === $wpdb->query( 'START TRANSACTION' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
-			? new \WP_Error( 'local_support_transaction_start_failed', __( 'The local support transaction could not start.', 'extrachill-events' ) )
-			: true;
-	}
-
-	private function commit() {
-		global $wpdb;
-		return false === $wpdb->query( 'COMMIT' ) // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
-			? new \WP_Error( 'local_support_transaction_commit_uncertain', __( 'The local support transaction outcome is uncertain.', 'extrachill-events' ) )
-			: true;
-	}
-
-	private function rollback( \WP_Error $cause ): \WP_Error {
-		global $wpdb;
-		if ( false === $wpdb->query( 'ROLLBACK' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
-			return new \WP_Error( 'local_support_transaction_rollback_failed', __( 'The local support transaction could not roll back.', 'extrachill-events' ), array( 'cause' => $cause->get_error_code() ) );
+		if ( $this->transaction_active ) {
+			return new \WP_Error( 'local_support_nested_transaction_forbidden', __( 'Local support cannot start a nested transaction.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		return $cause;
+		$previous = method_exists( $wpdb, 'suppress_errors' ) ? $wpdb->suppress_errors( true ) : null;
+		try {
+			$boundary = $wpdb->query( 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Portable MySQL/MariaDB active-transaction rejection and required next-key isolation.
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			$boundary = false;
+		} finally {
+			if ( method_exists( $wpdb, 'suppress_errors' ) ) {
+				$wpdb->suppress_errors( $previous );
+			}
+		}
+		if ( false === $boundary ) {
+			return new \WP_Error( 'local_support_transaction_boundary_forbidden', __( 'Local support requires an isolated transaction boundary.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
+			return new \WP_Error( 'local_support_transaction_start_failed', __( 'The local support transaction could not start.', 'extrachill-events' ) );
+		}
+		$this->transaction_active = true;
+		return true;
+	}
+
+	/** Commit without attempting rollback after an uncertain successful command. */
+	private function commit_transaction() {
+		global $wpdb;
+		try {
+			$result = $wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			$result = false;
+		}
+		if ( false !== $result ) {
+			$this->transaction_active = false;
+			return true;
+		}
+		return $this->quarantine_uncertain_commit();
+	}
+
+	/** Roll back an active service transaction while preserving its cause. */
+	private function rollback_transaction( \WP_Error $cause ): \WP_Error {
+		global $wpdb;
+		try {
+			$result = $wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate transaction boundary.
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			$result = false;
+		}
+		if ( false !== $result ) {
+			$this->transaction_active = false;
+			return $cause;
+		}
+		return $this->quarantine_transaction( $cause );
+	}
+
+	/** Close a connection whose transaction could not be safely terminated. */
+	private function quarantine_transaction( \WP_Error $cause ): \WP_Error {
+		global $wpdb;
+		$closed = false;
+		try {
+			$closed = method_exists( $wpdb, 'close' ) && true === $wpdb->close();
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+		}
+		if ( property_exists( $wpdb, 'ready' ) ) {
+			$wpdb->ready = false;
+		}
+		$this->transaction_active = false;
+		return new \WP_Error(
+			'local_support_transaction_rollback_failed',
+			__( 'The local support transaction could not roll back and its connection was retired.', 'extrachill-events' ),
+			array(
+				'cause'                  => $cause->get_error_code(),
+				'connection_quarantined' => true,
+				'disconnect_confirmed'   => $closed,
+			)
+		);
+	}
+
+	/** Retire a connection when failed commit state cannot be observed safely. */
+	private function quarantine_uncertain_commit(): \WP_Error {
+		global $wpdb;
+		$closed = false;
+		try {
+			$closed = method_exists( $wpdb, 'close' ) && true === $wpdb->close();
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+		}
+		if ( property_exists( $wpdb, 'ready' ) ) {
+			$wpdb->ready = false;
+		}
+		$this->transaction_active = false;
+		return new \WP_Error(
+			'local_support_transaction_commit_uncertain',
+			__( 'The local support transaction outcome is uncertain and its connection was retired.', 'extrachill-events' ),
+			array(
+				'connection_quarantined' => true,
+				'disconnect_confirmed'   => $closed,
+			)
+		);
 	}
 
 	private function conflict( int $version ): \WP_Error {

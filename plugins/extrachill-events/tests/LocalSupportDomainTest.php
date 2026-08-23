@@ -16,6 +16,7 @@ use ExtraChillEvents\Core\VenueAuthorization;
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
 final class LocalSupportDomainTest extends BookingTestCase {
+	private $authorization_tokens = array();
 
 	/** @var LocalSupportMemoryRepository */
 	private $repository;
@@ -137,6 +138,330 @@ final class LocalSupportDomainTest extends BookingTestCase {
 		$this->assertSame( 'local_support_forbidden', $this->service->express_interest( $request['id'], 202, 'denied-interest', 20 )->get_error_code() );
 	}
 
+	public function test_mutations_reauthorize_under_lock_after_request_row_lock(): void {
+		$request = $this->open_request();
+		$this->authorization->locked_organizer_allowed = false;
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'lock-denied', 12 );
+		$this->assertSame( 'local_support_forbidden', $error->get_error_code() );
+		$this->assertSame( array( 'request:1', 'organizer-authority' ), array_slice( $this->authorization->lock_sequence, -2 ) );
+		$this->assertSame( 1, $this->repository->requests[1]['version'] );
+
+		$this->authorization->locked_organizer_allowed = true;
+		$this->authorization->locked_artist_allowed    = false;
+		$error = $this->service->express_interest( $request['id'], 202, 'artist-lock-denied', 20 );
+		$this->assertSame( 'local_support_forbidden', $error->get_error_code() );
+		$this->assertSame( array( 'request:1', 'artist-authority' ), array_slice( $this->authorization->lock_sequence, -2 ) );
+		$this->assertCount( 0, $this->repository->interests );
+		$this->assertSame( 0, $GLOBALS['wpdb']->nested_transaction_starts );
+	}
+
+	public function test_locked_venue_authority_uses_only_the_exact_actor_row_without_a_cap(): void {
+		$this->configure_real_authority_fixture();
+		$GLOBALS['ec_artist_test']['options'][\ExtraChillEvents\Core\BookingSchema::VERSION_OPTION] = \ExtraChillEvents\Core\BookingSchema::SCHEMA_VERSION;
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->venue_rows = array( $this->venue_membership_row( 1, 55, 12 ) );
+		$authorization = new LocalSupportAuthorization();
+		$request = array( 'event_id' => 900, 'venue_term_id' => 55, 'organizer_type' => 'venue', 'organizer_id' => 55 );
+		$scope = $this->open_authorization_scope( $authorization );
+
+		$this->assertTrue( $authorization->authorize_organizer_locked( $request, 12, $scope ) );
+		$this->assertStringContainsString( 'object_id = 900', $wpdb->queries[0] );
+		$this->assertStringContainsString( 'venue_term_id = 55 AND user_id = 12 FOR UPDATE', $wpdb->row_queries[0] );
+		$this->assertStringNotContainsString( 'LIMIT', $wpdb->row_queries[0] );
+		for ( $index = 0; $index < 150; ++$index ) {
+			$wpdb->venue_rows[] = $this->venue_membership_row( 10 + $index, 55, 1000 + $index );
+		}
+		$this->assertTrue( $authorization->authorize_organizer_locked( $request, 12, $scope ) );
+		$wpdb->venue_rows = array( $this->venue_membership_row( 2, 56, 12 ) );
+		$this->assertSame( 'venue_action_forbidden', $authorization->authorize_organizer_locked( $request, 12, $scope )->get_error_code() );
+
+		$wpdb->fail_results = true;
+		$this->assertSame( 'local_support_event_venue_lock_failed', $authorization->authorize_organizer_locked( $request, 12, $scope )->get_error_code() );
+		$wpdb->fail_results = false;
+		$wpdb->fail_row = true;
+		$this->assertSame( 'venue_membership_read_failed', $authorization->authorize_organizer_locked( $request, 12, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+	}
+
+	public function test_locked_artist_authority_uses_reciprocal_exact_rows_and_restores_context(): void {
+		$this->configure_real_authority_fixture();
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->artist_rows = array( array( 'meta_id' => 1, 'meta_value' => serialize( array( 30 ) ) ) );
+		$wpdb->user_rows   = array( array( 'umeta_id' => 2, 'meta_value' => serialize( array( 501 ) ) ) );
+		$authorization = new LocalSupportAuthorization();
+		$scope = $this->open_authorization_scope( $authorization );
+
+		$this->assertTrue( $authorization->authorize_artist_locked( 101, 30, $scope ) );
+		$this->assertSame( 7, get_current_blog_id() );
+		$this->assertSame( array( 'membership-advisory', 'profile-binding', 'term-binding', 'artist', 'user' ), $wpdb->lock_sequence );
+		$this->assertStringContainsString( 'post_id = 501', $wpdb->queries[0] );
+		$this->assertStringContainsString( 'term_id = 101', $wpdb->queries[1] );
+		$this->assertStringContainsString( 'user_id = 30', $wpdb->queries[3] );
+		$authorization->close_transaction_scope( $scope );
+		$this->assertSame( 'membership-release', end( $wpdb->lock_sequence ) );
+
+		$wpdb->lock_sequence = array();
+		$wpdb->user_rows = array( array( 'umeta_id' => 2, 'meta_value' => serialize( array( 999 ) ) ) );
+		$scope = $this->open_authorization_scope( $authorization );
+		$this->assertSame( 'local_support_forbidden', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+		$wpdb->user_rows = array_fill( 0, 2, array( 'umeta_id' => 2, 'meta_value' => serialize( array( 501 ) ) ) );
+		$scope = $this->open_authorization_scope( $authorization );
+		$this->assertSame( 'local_support_artist_authority_rows_corrupt', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+	}
+
+	public function test_locked_artist_authority_fails_on_database_error_and_oversized_values(): void {
+		$this->configure_real_authority_fixture();
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->artist_rows = array( array( 'meta_id' => 1, 'meta_value' => serialize( array( 30 ) ) ) );
+		$wpdb->user_rows   = array( array( 'umeta_id' => 2, 'meta_value' => serialize( range( 1, 101 ) ) ) );
+		$authorization = new LocalSupportAuthorization();
+		$scope = $this->open_authorization_scope( $authorization );
+		$this->assertSame( 'local_support_artist_authority_corrupt', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+
+		$wpdb->fail_results = true;
+		$scope = $this->open_authorization_scope( $authorization );
+		$this->assertSame( 'local_support_artist_authority_read_failed', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$this->assertSame( 7, get_current_blog_id() );
+		$authorization->close_transaction_scope( $scope );
+	}
+
+	public function test_locked_event_relationship_and_artist_binding_changes_fail_closed(): void {
+		$this->configure_real_authority_fixture();
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->venue_rows = array( $this->venue_membership_row( 1, 55, 12 ) );
+		$wpdb->artist_rows = array( array( 'meta_id' => 1, 'meta_value' => serialize( array( 30 ) ) ) );
+		$wpdb->user_rows = array( array( 'umeta_id' => 2, 'meta_value' => serialize( array( 501 ) ) ) );
+		$authorization = new LocalSupportAuthorization();
+		$scope = $this->open_authorization_scope( $authorization );
+		$venue_request = array( 'event_id' => 900, 'venue_term_id' => 55, 'organizer_type' => 'venue', 'organizer_id' => 55 );
+		$artist_request = array( 'event_id' => 900, 'venue_term_id' => 55, 'organizer_type' => 'artist', 'organizer_id' => 101 );
+
+		$wpdb->event_venue_rows = array( array( 'term_id' => 56, 'term_taxonomy_id' => 556 ) );
+		$this->assertSame( 'invalid_local_support_event_venue', $authorization->authorize_organizer_locked( $venue_request, 12, $scope )->get_error_code() );
+		$wpdb->event_venue_rows = array( array( 'term_id' => 55, 'term_taxonomy_id' => 555 ) );
+		$wpdb->mapping_rows[0]['meta_value'] = '999';
+		$this->assertSame( 'local_support_artist_mapping_changed', $authorization->authorize_organizer_locked( $artist_request, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+		$scope = $this->open_authorization_scope( $authorization );
+		$wpdb->mapping_rows[0]['meta_value'] = '1001';
+		$GLOBALS['ec_artist_test']['artist_mappings'][102] = 1001;
+		$this->assertSame( 'local_support_artist_mapping_claims_invalid', $authorization->authorize_organizer_locked( $artist_request, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+		$scope = $this->open_authorization_scope( $authorization );
+		unset( $GLOBALS['ec_artist_test']['artist_mappings'][102] );
+		$wpdb->event_artist_rows = array();
+		$this->assertSame( 'local_support_forbidden', $authorization->authorize_organizer_locked( $artist_request, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+		$scope = $this->open_authorization_scope( $authorization );
+		$wpdb->event_artist_rows = array( array( 'term_id' => 1001, 'term_taxonomy_id' => 10001 ) );
+		$wpdb->profile_binding_rows[0]['meta_value'] = '999';
+		$this->assertSame( 'invalid_local_support_artist', $authorization->authorize_organizer_locked( $artist_request, 30, $scope )->get_error_code() );
+		$this->assertSame( array( 'membership-advisory', 'profile-binding', 'term-binding' ), array_slice( $wpdb->lock_sequence, -3 ) );
+		$authorization->close_transaction_scope( $scope );
+		$this->assertSame( array( 'membership-release', 'mapping-release' ), array_slice( $wpdb->lock_sequence, -2 ) );
+	}
+
+	public function test_mapping_release_failure_is_distinct_and_retains_tracking(): void {
+		$this->configure_real_authority_fixture();
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->artist_rows = array( array( 'meta_id' => 1, 'meta_value' => serialize( array( 30 ) ) ) );
+		$wpdb->user_rows = array( array( 'umeta_id' => 2, 'meta_value' => serialize( array( 501 ) ) ) );
+		$authorization = new LocalSupportAuthorization();
+		$scope = $this->open_authorization_scope( $authorization );
+		$request = array( 'event_id' => 900, 'venue_term_id' => 55, 'organizer_type' => 'artist', 'organizer_id' => 101 );
+		$this->assertTrue( $authorization->authorize_organizer_locked( $request, 30, $scope ) );
+
+		$wpdb->mapping_release_result = 0;
+		$this->assertSame( 'events_artist_mapping_release_failed', $authorization->close_transaction_scope( $scope )->get_error_code() );
+		$wpdb->mapping_release_result = 1;
+		$this->assertTrue( $authorization->close_transaction_scope( $scope ) );
+		$this->assertSame( array( 'membership-release', 'mapping-release', 'mapping-release' ), array_slice( $wpdb->lock_sequence, -3 ) );
+	}
+
+	public function test_artist_binding_rows_are_exact_and_release_failure_retains_tracking(): void {
+		$this->configure_real_authority_fixture();
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->artist_rows = array( array( 'meta_id' => 1, 'meta_value' => serialize( array( 30 ) ) ) );
+		$wpdb->user_rows = array( array( 'umeta_id' => 2, 'meta_value' => serialize( array( 501 ) ) ) );
+		$wpdb->after_profile_binding_lock = static function () use ( $wpdb ): void {
+			$wpdb->binding_change_waited = true;
+		};
+		$authorization = new LocalSupportAuthorization();
+		$scope = $this->open_authorization_scope( $authorization );
+		$this->assertTrue( $authorization->authorize_artist_locked( 101, 30, $scope ) );
+		$this->assertTrue( $wpdb->binding_change_waited, 'A binding writer arriving after the profile lock must wait behind authorization.' );
+
+		$wpdb->membership_release_result = 0;
+		$this->assertSame( 'local_support_artist_authority_release_failed', $authorization->close_transaction_scope( $scope )->get_error_code() );
+		$wpdb->membership_release_result = 1;
+		$this->assertTrue( $authorization->close_transaction_scope( $scope ) );
+		$this->assertSame( array( 'membership-release', 'membership-release' ), array_slice( $wpdb->lock_sequence, -2 ) );
+
+		$scope = $this->open_authorization_scope( $authorization );
+		$wpdb->profile_binding_rows = array();
+		$this->assertSame( 'local_support_artist_binding_corrupt', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+		$scope = $this->open_authorization_scope( $authorization );
+		$wpdb->profile_binding_rows = array_fill( 0, 2, array( 'meta_id' => 10, 'meta_value' => '101' ) );
+		$this->assertSame( 'local_support_artist_binding_corrupt', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+	}
+
+	public function test_lock_current_scope_and_mysql_advisory_support_fail_closed(): void {
+		$this->configure_real_authority_fixture();
+		$wpdb = new LocalSupportAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$wpdb->transaction_active = false;
+		$authorization = new LocalSupportAuthorization();
+		$owner = new stdClass();
+		$this->assertTrue( $authorization->claim_transaction_owner( $owner ) );
+		$this->assertSame( 'local_support_transaction_scope_required', $authorization->open_transaction_scope( new stdClass() )->get_error_code() );
+		$scope = $authorization->open_transaction_scope( $owner );
+		$this->assertIsObject( $scope );
+		$authorization->close_transaction_scope( $scope );
+
+		$wpdb = new LocalSupportSqliteAuthorityWpdb();
+		$GLOBALS['wpdb'] = $wpdb;
+		$authorization = new LocalSupportAuthorization();
+		$scope = $this->open_authorization_scope( $authorization );
+		$this->assertSame( 'local_support_artist_advisory_locks_unsupported', $authorization->authorize_artist_locked( 101, 30, $scope )->get_error_code() );
+		$authorization->close_transaction_scope( $scope );
+	}
+
+	public function test_repeatable_read_boundary_succeeds_and_restores_error_suppression(): void {
+		$wpdb = $GLOBALS['wpdb'];
+		$wpdb->suppress_errors = true;
+		$this->assertIsArray( $this->open_request() );
+		$this->assertSame( array( 'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ' ), $wpdb->transaction_boundary_queries );
+		$this->assertTrue( $wpdb->suppress_errors );
+	}
+
+	public function test_repeatable_read_boundary_failure_and_throw_fail_before_start(): void {
+		$wpdb = $GLOBALS['wpdb'];
+		$wpdb->fail_transaction_boundary = true;
+		$error = $this->service->open_request( array( 'event_id' => 900, 'organizer_type' => 'venue', 'organizer_id' => 55, 'idempotency_key' => 'boundary-failure' ), 12 );
+		$this->assertSame( 'local_support_transaction_boundary_forbidden', $error->get_error_code() );
+		$this->assertSame( array(), $wpdb->transaction_start_reference_lock_counts );
+		$this->assertFalse( $wpdb->suppress_errors );
+
+		$wpdb->fail_transaction_boundary = false;
+		$wpdb->throw_transaction_boundary = true;
+		$error = $this->service->open_request( array( 'event_id' => 900, 'organizer_type' => 'venue', 'organizer_id' => 55, 'idempotency_key' => 'boundary-throw' ), 12 );
+		$this->assertSame( 'local_support_transaction_boundary_forbidden', $error->get_error_code() );
+		$this->assertSame( array(), $wpdb->transaction_start_reference_lock_counts );
+	}
+
+	public function test_throwable_rolls_back_and_closes_scope_without_nested_transaction(): void {
+		$request = $this->open_request();
+		$this->repository->throw_on_update = true;
+		try {
+			$this->service->transition_request( $request['id'], 'paused', 1, 'throw-update', 12 );
+			$this->fail( 'Expected the repository exception.' );
+		} catch ( RuntimeException $exception ) {
+			$this->assertSame( 'simulated update throwable', $exception->getMessage() );
+		}
+		$this->assertSame( 1, $GLOBALS['wpdb']->rollback_queries );
+		$this->assertSame( 2, $this->authorization->scope_closes );
+		$this->assertFalse( $GLOBALS['wpdb']->transaction_active );
+
+		$GLOBALS['wpdb']->transaction_active = true;
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'nested', 12 );
+		$this->assertSame( 'local_support_transaction_boundary_forbidden', $error->get_error_code() );
+		$this->assertSame( 0, $GLOBALS['wpdb']->nested_transaction_starts );
+		$GLOBALS['wpdb']->transaction_active = false;
+	}
+
+	public function test_committed_mutation_keeps_success_semantics_when_scope_release_is_recorded(): void {
+		$request = $this->open_request();
+		$this->authorization->close_failure = true;
+		$paused = $this->service->transition_request( $request['id'], 'paused', 1, 'release-failure', 12 );
+		$this->assertSame( 'paused', $paused['status'] );
+		$events = $GLOBALS['ec_artist_test']['fired_actions']['extrachill_events_local_support_authority_release_failed'];
+		$this->assertSame( 'local_support_artist_authority_release_failed', $events[0][0]['code'] );
+		$this->assertTrue( $events[0][0]['committed'] );
+	}
+
+	public function test_commit_failure_quarantines_without_rollback_and_releases_advisory_scope(): void {
+		$request = $this->open_request();
+		$this->authorization->use_advisory_scope = true;
+		$GLOBALS['wpdb']->fail_transaction_commit = true;
+
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'commit-false', 12 );
+
+		$this->assertSame( 'local_support_transaction_commit_uncertain', $error->get_error_code() );
+		$this->assertFalse( $GLOBALS['wpdb']->transaction_active );
+		$this->assertSame( 0, $GLOBALS['wpdb']->rollback_queries );
+		$this->assertSame( 1, $GLOBALS['wpdb']->close_calls );
+		$this->assertSame( array(), $GLOBALS['wpdb']->reference_locks );
+	}
+
+	public function test_commit_throw_quarantines_without_rollback_and_releases_advisory_scope(): void {
+		$request = $this->open_request();
+		$this->authorization->use_advisory_scope = true;
+		$GLOBALS['wpdb']->throw_transaction_commit = true;
+
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'commit-throw', 12 );
+
+		$this->assertSame( 'local_support_transaction_commit_uncertain', $error->get_error_code() );
+		$this->assertFalse( $GLOBALS['wpdb']->transaction_active );
+		$this->assertSame( 0, $GLOBALS['wpdb']->rollback_queries );
+		$this->assertSame( 1, $GLOBALS['wpdb']->close_calls );
+		$this->assertSame( array(), $GLOBALS['wpdb']->reference_locks );
+	}
+
+	public function test_post_commit_throw_does_not_issue_unsafe_rollback(): void {
+		$request = $this->open_request();
+		$this->authorization->use_advisory_scope = true;
+		$GLOBALS['wpdb']->throw_transaction_commit_after_success = true;
+
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'commit-post-throw', 12 );
+
+		$this->assertSame( 'local_support_transaction_commit_uncertain', $error->get_error_code() );
+		$this->assertFalse( $GLOBALS['wpdb']->transaction_active );
+		$this->assertSame( 0, $GLOBALS['wpdb']->rollback_queries );
+		$this->assertSame( 1, $GLOBALS['wpdb']->close_calls );
+		$this->assertSame( array(), $GLOBALS['wpdb']->reference_locks );
+	}
+
+	public function test_rollback_failure_quarantines_connection_and_clears_owned_state(): void {
+		$request = $this->open_request();
+		$this->authorization->use_advisory_scope = true;
+		$this->authorization->locked_organizer_allowed = false;
+		$GLOBALS['wpdb']->fail_transaction_rollback = true;
+
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'rollback-false', 12 );
+
+		$this->assertSame( 'local_support_transaction_rollback_failed', $error->get_error_code() );
+		$this->assertTrue( $error->get_error_data()['connection_quarantined'] );
+		$this->assertFalse( $GLOBALS['wpdb']->transaction_active );
+		$this->assertSame( 1, $GLOBALS['wpdb']->close_calls );
+		$this->assertSame( array(), $GLOBALS['wpdb']->reference_locks );
+	}
+
+	public function test_rollback_throw_quarantines_connection_and_clears_owned_state(): void {
+		$request = $this->open_request();
+		$this->authorization->use_advisory_scope = true;
+		$this->authorization->locked_organizer_allowed = false;
+		$GLOBALS['wpdb']->throw_transaction_rollback = true;
+
+		$error = $this->service->transition_request( $request['id'], 'paused', 1, 'rollback-throw', 12 );
+
+		$this->assertSame( 'local_support_transaction_rollback_failed', $error->get_error_code() );
+		$this->assertTrue( $error->get_error_data()['connection_quarantined'] );
+		$this->assertFalse( $GLOBALS['wpdb']->transaction_active );
+		$this->assertSame( 1, $GLOBALS['wpdb']->close_calls );
+		$this->assertSame( array(), $GLOBALS['wpdb']->reference_locks );
+	}
+
 	public function test_contact_is_absent_until_explicit_consent_and_revocation_is_audited(): void {
 		$request  = $this->open_request();
 		$interest = $this->service->express_interest( $request['id'], 202, 'interest-202', 20 );
@@ -239,6 +564,56 @@ final class LocalSupportDomainTest extends BookingTestCase {
 			12
 		);
 	}
+
+	private function open_authorization_scope( LocalSupportAuthorization $authorization ): object {
+		$id = spl_object_id( $authorization );
+		if ( ! isset( $this->authorization_tokens[ $id ] ) ) {
+			$this->authorization_tokens[ $id ] = new stdClass();
+			$this->assertTrue( $authorization->claim_transaction_owner( $this->authorization_tokens[ $id ] ) );
+		}
+		$scope = $authorization->open_transaction_scope( $this->authorization_tokens[ $id ] );
+		$this->assertIsObject( $scope );
+		return $scope;
+	}
+
+	private function configure_real_authority_fixture(): void {
+		$GLOBALS['ec_artist_test'] = array_merge(
+			$GLOBALS['ec_artist_test'],
+			array(
+				'blog_id'         => 7,
+				'stack'           => array(),
+				'terms'           => array(
+					1 => array( 101 => (object) array( 'term_id' => 101, 'taxonomy' => 'artist' ) ),
+					7 => array( 55 => (object) array( 'term_id' => 55, 'taxonomy' => 'venue' ) ),
+				),
+				'meta'            => array( 1 => array( 101 => array( '_artist_profile_id' => 501 ) ) ),
+				'posts'           => array(
+					4 => array( 501 => (object) array( 'ID' => 501, 'post_type' => 'artist_profile', 'post_status' => 'publish' ) ),
+					7 => array( 900 => (object) array( 'ID' => 900, 'post_type' => 'data_machine_events', 'post_status' => 'publish' ) ),
+				),
+				'post_meta'       => array( 4 => array( 501 => array( '_artist_term_id' => 101 ) ) ),
+				'event_venues'    => array( 7 => array( 900 => array( 55 ) ) ),
+				'event_artists'   => array( 7 => array( 900 => array( 1001 ) ) ),
+				'artist_mappings' => array( 101 => 1001 ),
+				'user_caps'       => array( 12 => array( VenueAuthorization::ACCESS_CAPABILITY => true ) ),
+			)
+		);
+	}
+
+	private function venue_membership_row( int $id, int $venue_id, int $user_id ): array {
+		return array(
+			'id'                 => $id,
+			'venue_term_id'      => $venue_id,
+			'user_id'            => $user_id,
+			'is_owner'           => '0',
+			'status'             => VenueAuthorization::STATUS_ACTIVE,
+			'version'            => 1,
+			'created_by_user_id' => 12,
+			'created_at'         => '2026-01-01 00:00:00',
+			'updated_at'         => '2026-01-01 00:00:00',
+			'revoked_at'         => null,
+		);
+	}
 }
 
 /** In-memory persistence double that exercises service behavior without SQL parsing. */
@@ -246,6 +621,7 @@ final class LocalSupportMemoryRepository extends LocalSupportRepository {
 	public $requests  = array();
 	public $interests = array();
 	public $activity  = array();
+	public $throw_on_update = false;
 
 	public function create_request( array $data ) {
 		$id                    = count( $this->requests ) + 1;
@@ -266,7 +642,9 @@ final class LocalSupportMemoryRepository extends LocalSupportRepository {
 	}
 
 	public function get_request( int $id, bool $for_update = false ) {
-		unset( $for_update );
+		if ( $for_update && isset( $GLOBALS['local_support_test_authorization'] ) ) {
+			$GLOBALS['local_support_test_authorization']->lock_sequence[] = 'request:' . $id;
+		}
 		return $this->requests[ $id ] ?? null;
 	}
 
@@ -328,6 +706,9 @@ final class LocalSupportMemoryRepository extends LocalSupportRepository {
 	}
 
 	public function update_request( int $id, int $expected_version, array $changes ) {
+		if ( $this->throw_on_update ) {
+			throw new RuntimeException( 'simulated update throwable' );
+		}
 		if ( ! isset( $this->requests[ $id ] ) || $this->requests[ $id ]['version'] !== $expected_version ) {
 			return new WP_Error( 'local_support_version_conflict' );
 		}
@@ -363,7 +744,19 @@ final class LocalSupportMemoryRepository extends LocalSupportRepository {
 final class LocalSupportTestAuthorization extends LocalSupportAuthorization {
 	public $organizer_allowed = true;
 	public $artist_allowed    = true;
+	public $locked_organizer_allowed = true;
+	public $locked_artist_allowed    = true;
 	public $attached_artists  = array( 101 );
+	public $lock_sequence     = array();
+	public $scope_closes      = 0;
+	public $close_failure     = false;
+	public $use_advisory_scope = false;
+	private $advisory_scopes = array();
+
+	public function __construct() {
+		parent::__construct();
+		$GLOBALS['local_support_test_authorization'] = $this;
+	}
 
 	public function event_context( int $event_id ) {
 		return 900 === $event_id ? array(
@@ -385,9 +778,167 @@ final class LocalSupportTestAuthorization extends LocalSupportAuthorization {
 		return $this->artist_allowed ? true : new WP_Error( 'local_support_forbidden' );
 	}
 
+	public function authorize_organizer_locked( array $request, int $user_id, object $scope ) {
+		unset( $scope );
+		$this->lock_sequence[] = 'organizer-authority';
+		return $this->locked_organizer_allowed ? $this->authorize_organizer( $request, $user_id ) : new WP_Error( 'local_support_forbidden' );
+	}
+
+	public function authorize_artist_locked( int $artist_term_id, int $user_id, object $scope ) {
+		unset( $scope );
+		$this->lock_sequence[] = 'artist-authority';
+		return $this->locked_artist_allowed ? $this->authorize_artist( $artist_term_id, $user_id ) : new WP_Error( 'local_support_forbidden' );
+	}
+
 	public function artist_attached_to_event( int $event_id, int $artist_term_id ) {
 		return 900 === $event_id && in_array( $artist_term_id, $this->attached_artists, true );
 	}
+
+	public function artist_attached_to_event_locked( int $event_id, int $artist_term_id, object $scope ) {
+		unset( $scope );
+		return $this->artist_attached_to_event( $event_id, $artist_term_id );
+	}
+
+	public function open_transaction_scope( object $owner ) {
+		$scope = parent::open_transaction_scope( $owner );
+		if ( ! is_wp_error( $scope ) && $this->use_advisory_scope ) {
+			global $wpdb;
+			$lock_name = 'local_support_test_scope_' . spl_object_id( $scope );
+			$wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 0 ) );
+			$this->advisory_scopes[ spl_object_id( $scope ) ] = $lock_name;
+		}
+		return $scope;
+	}
+
+	public function close_transaction_scope( object $scope ) {
+		++$this->scope_closes;
+		$release_failed = false;
+		$scope_id       = spl_object_id( $scope );
+		if ( isset( $this->advisory_scopes[ $scope_id ] ) ) {
+			global $wpdb;
+			$released       = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $this->advisory_scopes[ $scope_id ] ) );
+			$release_failed = '1' !== (string) $released;
+			unset( $this->advisory_scopes[ $scope_id ] );
+		}
+		$result = parent::close_transaction_scope( $scope );
+		return $this->close_failure || $release_failed ? new WP_Error( 'local_support_artist_authority_release_failed' ) : $result;
+	}
+}
+
+/** Minimal lock-aware database double for current organizer authority. */
+class LocalSupportAuthorityWpdb {
+	public $prefix = 'wp_7_';
+	public $last_error = '';
+	public $usermeta = 'wp_usermeta';
+	public $postmeta = 'wp_4_postmeta';
+	public $termmeta = 'wp_termmeta';
+	public $term_relationships = 'wp_7_term_relationships';
+	public $term_taxonomy = 'wp_7_term_taxonomy';
+	public $venue_rows = array();
+	public $event_venue_rows = array( array( 'term_id' => 55, 'term_taxonomy_id' => 555 ) );
+	public $event_artist_rows = array( array( 'term_id' => 1001, 'term_taxonomy_id' => 10001 ) );
+	public $mapping_rows = array( array( 'meta_id' => 9, 'meta_value' => '1001' ) );
+	public $profile_binding_rows = array( array( 'meta_id' => 10, 'meta_value' => '101' ) );
+	public $term_binding_rows = array( array( 'meta_id' => 11, 'meta_value' => '501' ) );
+	public $artist_rows = array();
+	public $user_rows = array();
+	public $queries = array();
+	public $row_queries = array();
+	public $lock_sequence = array();
+	public $fail_results = false;
+	public $fail_row = false;
+	public $transaction_active = true;
+	public $suppress_errors = false;
+	public $mapping_release_result = 1;
+	public $membership_release_result = 1;
+	public $after_profile_binding_lock;
+	public $binding_change_waited = false;
+
+	public function prepare( $query, ...$args ) {
+		$i = 0;
+		return preg_replace_callback( '/%[ds]/', static function ( $match ) use ( &$args, &$i ) {
+			$value = $args[ $i++ ];
+			return '%d' === $match[0] ? (string) (int) $value : "'" . addslashes( (string) $value ) . "'";
+		}, $query );
+	}
+
+	public function suppress_errors( $suppress = true ) {
+		$previous              = $this->suppress_errors;
+		$this->suppress_errors = (bool) $suppress;
+		return $previous;
+	}
+
+	public function get_var( $query ) {
+		$this->last_error = '';
+		if ( false !== strpos( $query, 'GET_LOCK' ) ) {
+			$this->lock_sequence[] = false !== strpos( $query, 'ec_events_artist_mapping_' ) ? 'mapping-advisory' : 'membership-advisory';
+			return 1;
+		}
+		if ( false !== strpos( $query, 'RELEASE_LOCK' ) ) {
+			$is_mapping = false !== strpos( $query, 'ec_events_artist_mapping_' );
+			$this->lock_sequence[] = $is_mapping ? 'mapping-release' : 'membership-release';
+			return $is_mapping ? $this->mapping_release_result : $this->membership_release_result;
+		}
+		return null;
+	}
+
+	public function get_results( $query, $output = null ) {
+		unset( $output );
+		$this->queries[] = $query;
+		$this->last_error = $this->fail_results ? 'simulated authority read failure' : '';
+		if ( $this->fail_results ) {
+			return null;
+		}
+		if ( false !== strpos( $query, "tt.taxonomy = 'venue'" ) ) {
+			return $this->event_venue_rows;
+		}
+		if ( false !== strpos( $query, "tt.taxonomy = 'artist'" ) ) {
+			return $this->event_artist_rows;
+		}
+		if ( false !== strpos( $query, '_extrachill_events_artist_term_id' ) ) {
+			$this->lock_sequence[] = 'artist-mapping';
+			return $this->mapping_rows;
+		}
+		if ( false !== strpos( $query, '_artist_term_id' ) ) {
+			$this->lock_sequence[] = 'profile-binding';
+			if ( is_callable( $this->after_profile_binding_lock ) ) {
+				$callback = $this->after_profile_binding_lock;
+				$this->after_profile_binding_lock = null;
+				$callback();
+			}
+			return $this->profile_binding_rows;
+		}
+		if ( false !== strpos( $query, '_artist_profile_id' ) && false !== strpos( $query, 'term_id' ) ) {
+			$this->lock_sequence[] = 'term-binding';
+			return $this->term_binding_rows;
+		}
+		if ( false !== strpos( $query, '_artist_member_ids' ) ) {
+			$this->lock_sequence[] = 'artist';
+			return $this->artist_rows;
+		}
+		$this->lock_sequence[] = 'user';
+		return $this->user_rows;
+	}
+
+	public function get_row( $query, $output = null ) {
+		unset( $output );
+		$this->row_queries[] = $query;
+		$this->last_error = $this->fail_row ? 'simulated authority row failure' : '';
+		if ( $this->fail_row ) {
+			return null;
+		}
+		preg_match( '/venue_term_id = (\d+) AND user_id = (\d+)/', $query, $match );
+		foreach ( $this->venue_rows as $row ) {
+			if ( (int) $row['venue_term_id'] === (int) $match[1] && (int) $row['user_id'] === (int) $match[2] ) {
+				return $row;
+			}
+		}
+		return null;
+	}
+}
+
+/** Non-MySQL runtime double for explicit advisory-lock incompatibility. */
+final class LocalSupportSqliteAuthorityWpdb extends LocalSupportAuthorityWpdb {
 }
 
 /** Exact venue policy double used while exercising the real support authorization. */

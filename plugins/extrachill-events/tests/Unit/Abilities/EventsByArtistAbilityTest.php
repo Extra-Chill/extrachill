@@ -137,6 +137,41 @@ if ( ! function_exists( 'wp_get_ability' ) ) {
 	}
 }
 
+/** Minimal advisory-lock database double for plain identity tests. */
+final class EventsByArtistWpdb {
+	public $last_error = '';
+	public $release_result = 1;
+	public $after_mapping_lock;
+	public $locks = array();
+
+	public function prepare( $query, ...$args ) {
+		$i = 0;
+		return preg_replace_callback(
+			'/%[ds]/',
+			static function ( $match ) use ( &$args, &$i ) {
+				$value = $args[ $i++ ];
+				return '%d' === $match[0] ? (string) (int) $value : "'" . addslashes( (string) $value ) . "'";
+			},
+			$query
+		);
+	}
+
+	public function get_var( $query ) {
+		$this->last_error = '';
+		if ( false !== strpos( $query, 'GET_LOCK' ) ) {
+			$this->locks[] = 'acquire';
+			if ( is_callable( $this->after_mapping_lock ) ) {
+				$callback = $this->after_mapping_lock;
+				$this->after_mapping_lock = null;
+				$callback();
+			}
+			return 1;
+		}
+		$this->locks[] = 'release';
+		return $this->release_result;
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/abilities/events-by-artist.php';
 
 final class EventsByArtistAbilityTest extends TestCase {
@@ -158,6 +193,9 @@ final class EventsByArtistAbilityTest extends TestCase {
 			'fail_updates' => array(),
 			'registered'   => array(),
 		);
+		if ( ! class_exists( 'WP_UnitTestCase' ) ) {
+			$GLOBALS['wpdb'] = new EventsByArtistWpdb();
+		}
 		$this->starting_blog_id = get_current_blog_id();
 		$GLOBALS['ec_artist_test']['ability'] = new class() {
 			public function execute( array $input ): array {
@@ -515,6 +553,41 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->assertCount( 0, $report['mapped'] );
 		$this->assertCount( 1, $report['write_failures'] );
 		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
+	}
+
+	public function test_backfill_rechecks_reverse_claims_after_mapping_lock(): void {
+		$this->addTerm( 1, 101, 'candidate' );
+		$this->addTerm( 1, 102, 'racer' );
+		$this->bindProfile( 101, 1101 );
+		$this->addTerm( 7, 501, 'candidate' );
+		$GLOBALS['wpdb']->after_mapping_lock = static function (): void {
+			$GLOBALS['ec_artist_test']['meta'][1][102][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] = 501;
+		};
+
+		$report = extrachill_events_backfill_artist_identity();
+
+		$this->assertCount( 0, $report['mapped'] );
+		$this->assertCount( 1, $report['collisions'] );
+		$this->assertSame( array( 102, 101 ), $report['collisions'][0]['artist_term_ids'] );
+		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_ARTIST_TERM_META, $GLOBALS['ec_artist_test']['meta'][1][101] );
+		$this->assertSame( array( 'acquire', 'release' ), $GLOBALS['wpdb']->locks );
+	}
+
+	public function test_backfill_reports_mapping_lock_release_failure_and_retains_lock(): void {
+		$this->addTerm( 1, 101, 'candidate' );
+		$this->bindProfile( 101, 1101 );
+		$this->addTerm( 7, 501, 'candidate' );
+		$GLOBALS['wpdb']->release_result = 0;
+
+		$report = extrachill_events_backfill_artist_identity();
+
+		$this->assertFalse( $report['complete'] );
+		$this->assertCount( 0, $report['mapped'] );
+		$this->assertCount( 1, $report['write_failures'] );
+		$this->assertSame( 501, (int) $GLOBALS['ec_artist_test']['meta'][1][101][ EXTRACHILL_EVENTS_ARTIST_TERM_META ] );
+		$this->assertSame( 'events_artist_mapping_lock_busy', \ExtraChillEvents\Core\ArtistMappingLock::acquire( 501 )->get_error_code() );
+		$GLOBALS['wpdb']->release_result = 1;
+		$this->assertTrue( \ExtraChillEvents\Core\ArtistMappingLock::release( 'ec_events_artist_mapping_501' ) );
 	}
 
 	public function test_input_schema_requires_only_a_canonical_id(): void {

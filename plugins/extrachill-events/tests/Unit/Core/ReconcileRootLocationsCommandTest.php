@@ -32,6 +32,9 @@ if ( ! function_exists( 'get_terms' ) ) {
 final class ReconcileRootLocationsCommandTest extends TestCase {
 
 	protected function setUp(): void {
+		if ( ! property_exists( \WP_CLI::class, 'logs' ) || ! property_exists( \WP_CLI::class, 'formatted' ) ) {
+			$this->markTestSkipped( 'Requires the isolated WP-CLI capture stub; managed real-WP-CLI coverage is tracked in #749.' );
+		}
 		$GLOBALS['ec_reconcile_cli_test'] = array(
 			'term_queries' => 0,
 			'terms'        => array(),
