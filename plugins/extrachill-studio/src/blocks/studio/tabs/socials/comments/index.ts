@@ -17,6 +17,11 @@ export interface CommentsViewProps {
 	label: string;
 }
 
+interface ReplyFeedback {
+	tone: 'success' | 'error' | 'info';
+	message: string;
+}
+
 /**
  * Standalone comments view for a social platform.
  *
@@ -28,6 +33,9 @@ const CommentsView = ( { slug, label }: CommentsViewProps ): ReactElement => {
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const [ status, setStatus ] = useState( '' );
+	const [ replyFeedback, setReplyFeedback ] = useState< ReplyFeedback | null >(
+		null
+	);
 	const [ replyDrafts, setReplyDrafts ] = useState< Record< string, string > >( {} );
 	const [ replyingCommentId, setReplyingCommentId ] = useState( '' );
 	const [ postFilter, setPostFilter ] = useState( '' );
@@ -84,25 +92,42 @@ const CommentsView = ( { slug, label }: CommentsViewProps ): ReactElement => {
 		const message = ( replyDrafts[ commentId ] || '' ).trim();
 
 		if ( ! message ) {
-			setError( __( 'Write a reply before posting.', 'extrachill-studio' ) );
-			setStatus( '' );
+			setReplyFeedback( {
+				tone: 'error',
+				message: __(
+					'Write a reply before posting.',
+					'extrachill-studio'
+				),
+			} );
 			return;
 		}
 
 		setReplyingCommentId( commentId );
-		setError( '' );
-		setStatus( __( 'Posting reply…', 'extrachill-studio' ) );
+		setReplyFeedback( {
+			tone: 'info',
+			message: __( 'Posting reply…', 'extrachill-studio' ),
+		} );
 
 		try {
 			await studioSocialsApi.replyToComment( slug, commentId, message );
 			setReplyDraft( commentId, '' );
-			setStatus( __( 'Reply posted successfully.', 'extrachill-studio' ) );
+			setReplyFeedback( {
+				tone: 'success',
+				message: __(
+					'Reply posted successfully.',
+					'extrachill-studio'
+				),
+			} );
 
 			// Refresh the comment list.
 			await loadComments( activeFilter );
 		} catch ( replyError ) {
-			setStatus( '' );
-			setError( ( replyError as Error )?.message || __( 'Failed to reply to comment.', 'extrachill-studio' ) );
+			setReplyFeedback( {
+				tone: 'error',
+				message:
+					( replyError as Error )?.message ||
+					__( 'Failed to reply to comment.', 'extrachill-studio' ),
+			} );
 		} finally {
 			setReplyingCommentId( '' );
 		}
@@ -174,6 +199,25 @@ const CommentsView = ( { slug, label }: CommentsViewProps ): ReactElement => {
 			)
 		),
 		// Status / Error
+		replyFeedback
+			? createElement(
+				'div',
+				{
+					role: replyFeedback.tone === 'error' ? 'alert' : 'status',
+					'aria-live':
+						replyFeedback.tone === 'error' ? 'assertive' : 'polite',
+					'aria-atomic': true,
+				},
+				h(
+					InlineStatusView,
+					{
+						tone: replyFeedback.tone,
+						className: 'ec-studio-message',
+					},
+					replyFeedback.message
+				)
+			)
+			: null,
 		error ? h( InlineStatusView, { tone: 'error', className: 'ec-studio-message' }, error ) : null,
 		! error && status ? h( InlineStatusView, { tone: 'success', className: 'ec-studio-message' }, status ) : null,
 		// Comment list
