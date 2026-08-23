@@ -22,7 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Build a FULLTEXT MATCH AGAINST clause for the current posts table.
  *
  * Uses BOOLEAN MODE for precise matching: each word must appear.
- * Prefixes each word with '+' so all terms are required.
+ * Prefixes each word with '+' so all terms are required without expanding
+ * broad terms into every indexed word that shares the same prefix.
  *
  * @param string $search_term Raw search term.
  * @return string|false MATCH() AGAINST() clause, or false if term is empty.
@@ -40,10 +41,10 @@ function extrachill_build_fulltext_clause( $search_term ) {
 	// Build boolean search: +word1 +word2 (all required).
 	//
 	// Strip MySQL FULLTEXT BOOLEAN MODE operators ( + - ( ) < > ~ * " @ ) from
-	// each word before wrapping it as `+word*`. These characters are syntax in
+	// each word before wrapping it as `+word`. These characters are syntax in
 	// boolean mode, so passing raw user input through (e.g. "(various" from a
 	// term like "Blind Tiger (various artists)") produces an unbalanced
-	// expression — `+(various* +artists)*` — that MariaDB rejects with
+	// expression that MariaDB rejects with
 	// "syntax error ... FTS_TERM", failing the query network-wide. _real_escape()
 	// guards against SQL injection but does not neutralize these operators.
 	$boolean_terms = array();
@@ -53,7 +54,7 @@ function extrachill_build_fulltext_clause( $search_term ) {
 			continue;
 		}
 		$escaped         = $wpdb->_real_escape( $cleaned );
-		$boolean_terms[] = '+' . $escaped . '*';
+		$boolean_terms[] = '+' . $escaped;
 	}
 
 	// All words were pure operators / stripped away — no usable query. Returning
@@ -232,6 +233,7 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 				'post_type'      => array_values( $post_types ),
 				'post_status'    => $args['post_status'],
 				'posts_per_page' => 200,
+				'fields'         => 'ids',
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
 				'no_found_rows'  => true,
@@ -437,6 +439,7 @@ function extrachill_network_search( $search_term, $site_urls = array(), $args = 
 				'post_type'      => array_values( $post_types ),
 				'post_status'    => $args['post_status'],
 				'posts_per_page' => 200,
+				'fields'         => 'ids',
 				'orderby'        => $args['orderby'],
 				'order'          => $args['order'],
 				'no_found_rows'  => true,
