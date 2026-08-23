@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.41.5] - 2026-08-23
+
+### Changed
+- account for malformed identity cache notice
+
+### Fixed
+- use canonical avatar profile URLs
+- require newsletter consent during registration
+- restore clean release lint
+- send profile setup links to the editor
+
 ## [0.41.4] - 2026-08-22
 
 ### Fixed
