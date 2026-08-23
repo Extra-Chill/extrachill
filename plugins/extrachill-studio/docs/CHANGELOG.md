@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.2] - 2026-08-23
+
+### Fixed
+- clear release lint baseline
+
 ## [0.27.1] - 2026-08-23
 
 ### Fixed
