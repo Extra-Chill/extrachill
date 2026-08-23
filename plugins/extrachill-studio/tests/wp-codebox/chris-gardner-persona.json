@@ -1,0 +1,208 @@
+{
+  "schema": "wp-codebox/workspace-recipe/v1",
+  "runtime": {
+    "backend": "wordpress",
+    "name": "extrachill-studio-social-manager-persona",
+    "wp": "trunk"
+  },
+  "inputs": {
+    "mounts": [
+      {
+        "source": "../../build",
+        "target": "/wordpress/wp-content/plugins/extrachill-studio/build",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-build",
+          "slug": "extrachill-studio",
+          "repo": "Extra-Chill/extrachill-studio",
+          "default_branch": "main",
+          "editable": false
+        }
+      }
+    ],
+    "fixtureUsers": [
+      {
+        "name": "social-manager",
+        "userId": 101,
+        "username": "studio-social-manager",
+        "displayName": "Studio Social Manager",
+        "role": "editor"
+      },
+      {
+        "name": "team-contributor",
+        "userId": 102,
+        "username": "studio-team-contributor",
+        "displayName": "Studio Team Contributor",
+        "role": "author"
+      }
+    ],
+    "userSessions": [
+      {
+        "name": "social-manager-session",
+        "user": "social-manager"
+      },
+      {
+        "name": "team-contributor-session",
+        "user": "team-contributor"
+      }
+    ],
+    "browserActors": [
+      {
+        "name": "social-manager",
+        "userSession": "social-manager-session"
+      },
+      {
+        "name": "team-contributor",
+        "userSession": "team-contributor-session"
+      }
+    ]
+  },
+  "workflow": {
+    "steps": [
+      {
+        "command": "wordpress.run-php",
+        "args": [
+          "code-file=tests/wp-codebox/chris-gardner-persona-seed.php"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=101",
+          "url=/studio-persona/",
+          "step-timeout=30s",
+          "timeout=180s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/studio-persona/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Blog\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Network\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-socials-layout\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Instagram\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\"button[aria-label=\\\"Select Festival crowd\\\"]\"},{\"kind\":\"fill\",\"selector\":\"#ec-studio-instagram-caption\",\"value\":\"Tonight at The Royal American: three local bands, one packed room. Read the full preview on Extra Chill.\"},{\"kind\":\"click\",\"selector\":\"button:has-text(\\\"Submit for Review\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-message:has-text(\\\"submitted for review\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-socials-sidebar__capability:has-text(\\\"Comments\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-comment-list__item\"},{\"kind\":\"fill\",\"selector\":\".ec-studio-comment-list__item textarea\",\"value\":\"Thanks for supporting local music. See you there!\"},{\"kind\":\"click\",\"selector\":\".ec-studio-comment-list__item button:has-text(\\\"Reply\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-message:has-text(\\\"Loaded 1 comments\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Network\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-tabs__tab:has-text(\\\"Conversion\\\")\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Conversion\\\")\"},{\"kind\":\"expect\",\"selector\":\"select option:has-text(\\\"My posts\\\")\",\"state\":\"attached\"},{\"kind\":\"screenshot\",\"name\":\"social-manager-complete\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=101",
+          "url=/studio-persona/",
+          "capture=steps,console,errors,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/studio-persona/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-socials-layout\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Instagram\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Facebook\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"X / Twitter\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Bluesky\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Threads\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Pinterest\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"LinkedIn\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Mastodon\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Tumblr\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"TikTok\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"YouTube\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\".ec-socials-sidebar__platform-header:has-text(\\\"YouTube\\\")\"},{\"kind\":\"expect\",\"selector\":\"#ec-studio-youtube-caption\",\"state\":\"visible\"},{\"kind\":\"screenshot\",\"name\":\"all-social-platforms\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=102",
+          "url=/studio-persona/",
+          "capture=steps,console,errors,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/studio-persona/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Blog\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"detached\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Network\\\")\",\"state\":\"visible\"},{\"kind\":\"screenshot\",\"name\":\"ordinary-team-boundary\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": [
+          "code=$reply = get_option( 'studio_persona_last_reply', '' ); if ( 'Thanks for supporting local music. See you there!' !== $reply ) { throw new RuntimeException( 'Social reply fixture effect was not recorded.' ); } echo wp_json_encode( array( 'reply_recorded' => true ) );"
+        ]
+      }
+    ]
+  },
+  "adversarialCampaigns": [
+    {
+      "schema": "wp-codebox/adversarial-recipe-campaign/v1",
+      "id": "studio-social-manager-adaptive-browser",
+      "seed": "chris-gardner-path-v1",
+      "corpus": [
+        {
+          "id": "social-manager-workspace",
+          "actions": [
+            {
+              "type": "explore-social-manager"
+            }
+          ],
+          "signals": [
+            "persona:team-social-manager",
+            "surface:studio"
+          ]
+        }
+      ],
+      "caseTemplates": [
+        {
+          "id": "explore-social-manager",
+          "phases": {
+            "action": [
+              {
+                "command": "wordpress.browser-actions",
+                "args": [
+                  "auth=wordpress-admin",
+                  "auth-user-id=101",
+                  "adaptive-exploration-json={\"schema\":\"wp-codebox/browser-adaptive-exploration/v1\",\"seed\":\"chris-gardner-path-v1\",\"startUrl\":\"/studio-persona/\",\"budgets\":{\"maxActions\":24,\"maxStates\":16,\"maxTransitions\":32,\"maxDurationMs\":60000,\"maxArtifactBytes\":4194304,\"maxErrors\":10},\"actionFamilies\":[\"click\",\"fill\",\"select\",\"submit\",\"keyboard\",\"back\",\"reload\",\"repeat\",\"double-submit\"],\"resetPolicy\":{\"mode\":\"start-url\"},\"accessibility\":{\"ruleTags\":[\"accessible-name\",\"keyboard-reachable\",\"focus-visible\",\"dialog-focus\",\"aria-state\"],\"impactThreshold\":\"serious\",\"cadence\":[\"initial\",\"novel-state\",\"final\"],\"capabilities\":{\"rules\":\"required\",\"focus\":\"required\",\"accessibilityTree\":\"optional\"},\"budgets\":{\"maxScans\":20,\"maxViolationsPerScan\":25,\"maxFocusTransitions\":80,\"maxTreeChars\":20000,\"maxKeyboardActions\":8}}}",
+                  "capture=steps,console,errors,network,html,screenshot,dom-snapshot"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "mutators": [
+        "sequence"
+      ],
+      "oracles": [
+        {
+          "id": "runtime-status",
+          "severity": "high"
+        }
+      ],
+      "concurrency": 1,
+      "budgets": {
+        "maxCases": 2,
+        "maxActionsPerCase": 4,
+        "maxInputBytes": 65536,
+        "maxCaseTimeMs": 90000,
+        "maxWallTimeMs": 180000,
+        "maxArtifactBytes": 20971520
+      },
+      "resetPolicy": {
+        "mode": "none"
+      },
+      "requiredCapabilities": [
+        "adversarial-campaign",
+        "artifact-export",
+        "command:wordpress.browser-actions"
+      ],
+      "novelty": {
+        "retainSignals": true
+      },
+      "shrinking": {
+        "enabled": true
+      },
+      "replay": {
+        "selection": "findings"
+      }
+    }
+  ],
+  "artifacts": {
+    "directory": "./artifacts/wp-codebox/chris-gardner-persona",
+    "verify": true
+  },
+  "metadata": {
+    "persona": "nontechnical-team-social-manager",
+    "referenceUser": "Chris Gardner",
+    "product": "Extra Chill Studio",
+    "coverage": [
+      "team access boundary",
+      "shared social account discovery",
+      "all advertised publish platforms",
+      "video-first platform discovery",
+      "WordPress media reuse",
+      "social review submission",
+      "comment inbox and reply",
+      "team-readable content analytics",
+      "responsive and accessible adaptive exploration"
+    ],
+    "knownGaps": [
+      "existing WordPress posts are not yet offered as social source material",
+      "video and specialized publishers need the declarative composer contract tracked in data-machine-socials#232",
+      "personal social account ownership is not modeled",
+      "live platform writes are replaced with deterministic fixture responses"
+    ]
+  }
+}

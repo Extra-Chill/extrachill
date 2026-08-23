@@ -109,13 +109,12 @@ $allowed_platforms = apply_filters( 'extrachill_studio_social_platforms', array(
  * Whether this user may access the shared brand social accounts. The Socials
  * tab operates the official Extra Chill accounts (credentials stored
  * network-wide), so it is gated behind the EC `brand_socials` rollout feature
- * (admin-only by default). The boolean is passed to the React app, which drops
- * the Socials tab when it is false. Defaults to true if the gate helper is
- * unavailable so the surface is not hidden by a missing dependency.
+ * (admin-only by default) or an explicit per-person capability grant. The
+ * boolean is passed to the React app, which drops the Socials tab when false.
+ * Missing gate dependencies fail closed unless the explicit capability exists.
  */
-$can_brand_socials = function_exists( 'ec_feature_available' )
-	? ec_feature_available( 'brand_socials' )
-	: true;
+$can_brand_socials = current_user_can( 'manage_brand_socials' )
+	|| ( function_exists( 'ec_feature_available' ) && ec_feature_available( 'brand_socials' ) );
 
 ?>
 
