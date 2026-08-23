@@ -21,8 +21,19 @@ on:
       - inc/Core/BookingSchema.php
       - inc/Core/VenueAuthorization.php
       - inc/Core/VenueMembershipRepository.php
+      - inc/Core/PromoterAuthoritySchema.php
+      - inc/Core/PromoterAuthorityRepository.php
+      - inc/Core/PromoterVenueGrantRepository.php
+      - inc/Core/PromoterVenueAuthorization.php
+      - inc/Core/PromoterVenueGrantService.php
+      - inc/Abilities/PromoterVenueGrantAbilities.php
+      - inc/Providers/PromoterAuthorityProvider.php
+      - inc/Providers/AbilitiesProvider.php
       - phpunit-booking-mysql.xml.dist
       - phpunit-booking-concurrency.xml.dist
+      - phpunit-managed.xml.dist
+      - phpunit-membership.xml.dist
+      - phpunit-promoter-authority.xml.dist
       - inc/Abilities/VenueBookingAbilities.php
       - inc/Abilities/VenueBookingEventAbilities.php
       - inc/Abilities/TicketSettlementAbilities.php
@@ -30,6 +41,8 @@ on:
       - tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php
       - tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php
       - tests/MySQLIntegration/BookingSchemaMultisiteTest.php
+      - tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php
+      - tests/PromoterAuthorityTest.php
       - tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php
       - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
       - tests/MySQLIntegration/booking-schema-multisite-bootstrap.php
@@ -192,7 +205,7 @@ jobs:
             | ($runs | length) == 1
               and $runs[0].exitCode == 0
               and $runs[0].result.status == "ok"
-              and ($runs[0].stdout | test("OK \\(9 tests, [1-9][0-9]* assertions?\\)"))
+              and ($runs[0].stdout | test("OK \\(10 tests, [1-9][0-9]* assertions?\\)"))
               and (($runs[0].stdout | test("skip|no tests executed|OK, but"; "i")) | not)
           ' "$commands" >/dev/null
           jq -e '
@@ -201,7 +214,7 @@ jobs:
           ' "$metadata" >/dev/null
           jq -rs '[.[] | select(.command == "wordpress.phpunit")][0].stdout' "$commands" > "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
           printf '%s\n' "Verified application-level MySQL proof:"
-          grep -E 'OK \(9 tests, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
+          grep -E 'OK \(10 tests, [1-9][0-9]* assertions?\)' "$ARTIFACTS_DIR/booking-attachment-mysql-phpunit.txt"
 
       - name: Upload WP Codebox evidence
         if: always()

@@ -6,9 +6,15 @@
  */
 
 use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
+use ExtraChillEvents\Abilities\PromoterVenueGrantAbilities;
+use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\PromoterAuthorityService;
+use ExtraChillEvents\Core\PromoterVenueAuthorization;
+use ExtraChillEvents\Core\PromoterVenueGrantRepository;
+use ExtraChillEvents\Core\PromoterVenueGrantService;
+use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -83,7 +89,15 @@ if ( ! function_exists( 'get_userdata' ) ) {
 }
 if ( ! function_exists( 'user_can' ) ) {
 	function user_can( $user_id, $capability ) {
-		return 'manage_options' === $capability && ! empty( $GLOBALS['promoter_test']['administrators'][ $user_id ] ); }
+		if ( 'manage_options' === $capability ) {
+			return ! empty( $GLOBALS['promoter_test']['administrators'][ $user_id ] );
+		}
+		return VenueAuthorization::ACCESS_CAPABILITY === $capability && ! empty( $GLOBALS['promoter_test']['team_access'][ $user_id ] ); }
+}
+if ( ! function_exists( 'ec_feature_available' ) ) {
+	function ec_feature_available( $feature, $user_id = null ) {
+		return VenueAuthorization::FEATURE === $feature && ! empty( $GLOBALS['promoter_test']['feature_access'][ $user_id ] );
+	}
 }
 if ( ! function_exists( 'get_current_user_id' ) ) {
 	function get_current_user_id() {
@@ -98,11 +112,18 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 		$GLOBALS['promoter_test']['abilities'][ $name ] = $definition; }
 }
 
+require_once dirname( __DIR__ ) . '/inc/Core/BookingSchema.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityService.php';
+require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueGrantRepository.php';
+require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueAuthorization.php';
+require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueGrantService.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterAuthorityAbilities.php';
+require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterVenueGrantAbilities.php';
 
 /** Minimal transaction-aware database double for promoter authority. */
 final class PromoterAuthorityWpdb {
@@ -149,6 +170,18 @@ final class PromoterAuthorityWpdb {
 	 */
 	public $fail_organization_insert = false;
 	/**
+	 * Whether an external grant insert should win a simulated race.
+	 *
+	 * @var bool
+	 */
+	public $race_grant_insert = false;
+	/**
+	 * Whether grant insertion should fail without a winner.
+	 *
+	 * @var bool
+	 */
+	public $fail_grant_insert = false;
+	/**
 	 * Transaction snapshot.
 	 *
 	 * @var array|null
@@ -160,6 +193,12 @@ final class PromoterAuthorityWpdb {
 	 * @var array|null
 	 */
 	private $external_winner;
+	/**
+	 * Simulated externally committed grant winner.
+	 *
+	 * @var array|null
+	 */
+	private $external_grant_winner;
 
 	public function prepare( $query, ...$args ) {
 		if ( 1 === count( $args ) && is_array( $args[0] ) ) {
@@ -178,6 +217,17 @@ final class PromoterAuthorityWpdb {
 
 	public function insert( $table, $row ) {
 		$this->last_error = '';
+		if ( PromoterAuthoritySchema::venue_grants_table() === $table && $this->race_grant_insert ) {
+			$this->race_grant_insert     = false;
+			$this->last_error            = 'Duplicate grant natural key';
+			$row['id']                   = ++$this->insert_id;
+			$this->external_grant_winner = $row;
+			return false;
+		}
+		if ( PromoterAuthoritySchema::venue_grants_table() === $table && $this->fail_grant_insert ) {
+			$this->last_error = 'Grant storage unavailable';
+			return false;
+		}
 		if ( PromoterAuthoritySchema::organizations_table() === $table && $this->race_organization_insert ) {
 			$this->race_organization_insert = false;
 			$this->last_error               = 'Duplicate entry for promoter term';
@@ -194,11 +244,15 @@ final class PromoterAuthorityWpdb {
 			return false;
 		}
 		foreach ( $this->rows[ $table ] ?? array() as $existing ) {
+			if ( isset( $row['venue_term_id'], $row['action'] ) && (int) $existing['promoter_term_id'] === (int) $row['promoter_term_id'] && (int) $existing['venue_term_id'] === (int) $row['venue_term_id'] && $existing['action'] === $row['action'] ) {
+				$this->last_error = 'duplicate promoter venue action';
+				return false;
+			}
 			if ( isset( $row['promoter_term_id'] ) && isset( $row['user_id'] ) && (int) $existing['promoter_term_id'] === (int) $row['promoter_term_id'] && (int) ( $existing['user_id'] ?? 0 ) === (int) $row['user_id'] ) {
 				$this->last_error = 'duplicate promoter user';
 				return false;
 			}
-			if ( isset( $row['promoter_term_id'] ) && ! isset( $row['user_id'] ) && ! isset( $row['event'] ) && (int) $existing['promoter_term_id'] === (int) $row['promoter_term_id'] ) {
+			if ( isset( $row['promoter_term_id'] ) && ! isset( $row['user_id'] ) && ! isset( $row['venue_term_id'] ) && ! isset( $row['event'] ) && (int) $existing['promoter_term_id'] === (int) $row['promoter_term_id'] ) {
 				$this->last_error = 'duplicate promoter';
 				return false;
 			}
@@ -220,11 +274,40 @@ final class PromoterAuthorityWpdb {
 				$this->rows[ PromoterAuthoritySchema::organizations_table() ][] = $this->external_winner;
 				$this->external_winner = null;
 			}
+			if ( $this->external_grant_winner ) {
+				$this->rows[ PromoterAuthoritySchema::venue_grants_table() ][] = $this->external_grant_winner;
+				$this->external_grant_winner                                   = null;
+			}
 			return 1;
 		}
 		if ( 'COMMIT' === $query ) {
 			$this->snapshot = null;
 			return 1;
+		}
+		if ( preg_match( "/UPDATE (\\S+) SET (.+) WHERE promoter_term_id = (\\d+) AND venue_term_id = (\\d+) AND action = '([^']+)' AND version = (\\d+)/", $query, $grant_match ) ) {
+			$table = $grant_match[1];
+			foreach ( $this->rows[ $table ] ?? array() as $index => $row ) {
+				if ( (int) $row['promoter_term_id'] !== (int) $grant_match[3] || (int) $row['venue_term_id'] !== (int) $grant_match[4] || stripslashes( $grant_match[5] ) !== $row['action'] || (int) $row['version'] !== (int) $grant_match[6] ) {
+					continue;
+				}
+				++$row['version'];
+				preg_match( "/status = '([^']+)'/", $grant_match[2], $status );
+				$row['status'] = $status[1];
+				preg_match( '/updated_by_user_id = (\d+)/', $grant_match[2], $updater );
+				$row['updated_by_user_id'] = (int) $updater[1];
+				$row['updated_at']         = gmdate( 'Y-m-d H:i:s' );
+				if ( false !== strpos( $grant_match[2], 'revoked_by_user_id = NULL' ) ) {
+					$row['revoked_by_user_id'] = null;
+					$row['revoked_at']         = null;
+				} else {
+					preg_match( '/revoked_by_user_id = (\d+)/', $grant_match[2], $revoker );
+					$row['revoked_by_user_id'] = (int) $revoker[1];
+					$row['revoked_at']         = gmdate( 'Y-m-d H:i:s' );
+				}
+				$this->rows[ $table ][ $index ] = $row;
+				return 1;
+			}
+			return 0;
 		}
 		if ( preg_match( '/UPDATE (\S+) SET (.+) WHERE promoter_term_id = (\d+)(?: AND user_id = (\d+))? AND version = (\d+)/', $query, $match ) ) {
 			$table = $match[1];
@@ -259,6 +342,22 @@ final class PromoterAuthorityWpdb {
 	public function get_row( $query, $output = null ) {
 		unset( $output );
 		$this->last_error = '';
+		if ( preg_match( "/FROM (\\S+) WHERE promoter_term_id = (\\d+) AND venue_term_id = (\\d+) AND action = '([^']+)'/", $query, $grant_match ) ) {
+			foreach ( $this->rows[ $grant_match[1] ] ?? array() as $row ) {
+				if ( (int) $row['promoter_term_id'] === (int) $grant_match[2] && (int) $row['venue_term_id'] === (int) $grant_match[3] && stripslashes( $grant_match[4] ) === $row['action'] ) {
+					return $row;
+				}
+			}
+			return null;
+		}
+		if ( preg_match( '/FROM (\S+) WHERE venue_term_id = (\d+) AND user_id = (\d+)/', $query, $venue_match ) ) {
+			foreach ( $this->rows[ $venue_match[1] ] ?? array() as $row ) {
+				if ( (int) $row['venue_term_id'] === (int) $venue_match[2] && (int) $row['user_id'] === (int) $venue_match[3] ) {
+					return $row;
+				}
+			}
+			return null;
+		}
 		if ( ! preg_match( '/FROM (\S+) WHERE promoter_term_id = (\d+)(?: AND user_id = (\d+))?/', $query, $match ) ) {
 			return null;
 		}
@@ -273,15 +372,39 @@ final class PromoterAuthorityWpdb {
 	public function get_results( $query, $output = null ) {
 		unset( $output );
 		$this->last_error = '';
+		if ( preg_match( '/FROM (\S+) WHERE venue_term_id = (\d+)/', $query, $venue_match ) ) {
+			return array_values(
+				array_filter(
+					$this->rows[ $venue_match[1] ] ?? array(),
+					static function ( $row ) use ( $venue_match ) {
+						return (int) $row['venue_term_id'] === (int) $venue_match[2];
+					}
+				)
+			);
+		}
 		preg_match( '/FROM (\S+) WHERE promoter_term_id = (\d+)/', $query, $match );
+		$venue_term_id = preg_match( '/AND venue_term_id = (\d+)/', $query, $pair_match ) ? (int) $pair_match[1] : 0;
 		return array_values(
 			array_filter(
 				$this->rows[ $match[1] ] ?? array(),
-				static function ( $row ) use ( $match ) {
-					return (int) $row['promoter_term_id'] === (int) $match[2];
+				static function ( $row ) use ( $match, $venue_term_id ) {
+					return (int) $row['promoter_term_id'] === (int) $match[2] && ( 0 === $venue_term_id || (int) $row['venue_term_id'] === $venue_term_id );
 				}
 			)
 		);
+	}
+
+	public function get_col( $query ) {
+		$this->last_error = '';
+		preg_match( "/FROM (\\S+) WHERE promoter_term_id = (\\d+) AND action = '([^']+)' AND status = '([^']+)'/", $query, $match );
+		$ids = array();
+		foreach ( $this->rows[ $match[1] ] ?? array() as $row ) {
+			if ( (int) $row['promoter_term_id'] === (int) $match[2] && stripslashes( $match[3] ) === $row['action'] && $match[4] === $row['status'] ) {
+				$ids[] = $row['venue_term_id'];
+			}
+		}
+		sort( $ids );
+		return $ids;
 	}
 }
 
@@ -289,7 +412,10 @@ final class PromoterAuthorityWpdb {
 final class PromoterAuthorityTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['promoter_test']         = array(
-			'options'         => array( PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION ),
+			'options'         => array(
+				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
+				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
+			),
 			'terms'           => array(
 				100 => (object) array(
 					'term_id'  => 100,
@@ -299,26 +425,59 @@ final class PromoterAuthorityTest extends TestCase {
 					'term_id'  => 101,
 					'taxonomy' => 'venue',
 				),
+				102 => (object) array(
+					'term_id'  => 102,
+					'taxonomy' => 'promoter',
+				),
+				200 => (object) array(
+					'term_id'  => 200,
+					'taxonomy' => 'venue',
+				),
+				201 => (object) array(
+					'term_id'  => 201,
+					'taxonomy' => 'venue',
+				),
 			),
 			'users'           => array(
 				1 => (object) array( 'ID' => 1 ),
 				2 => (object) array( 'ID' => 2 ),
 				3 => (object) array( 'ID' => 3 ),
 				4 => (object) array( 'ID' => 4 ),
+				5 => (object) array( 'ID' => 5 ),
+				6 => (object) array( 'ID' => 6 ),
 			),
 			'administrators'  => array( 1 => true ),
+			'team_access'     => array(
+				2 => true,
+				3 => true,
+				4 => true,
+				5 => true,
+				6 => true,
+			),
+			'feature_access'  => array(
+				2 => true,
+				3 => true,
+				4 => true,
+				5 => true,
+				6 => true,
+			),
 			'current_user_id' => 1,
 			'actions'         => array(),
 			'abilities'       => array(),
 			'database_errors' => array(),
 		);
 		$GLOBALS['venue_membership_test'] = array(
-			'options'         => array( PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION ),
-			'terms'           => $GLOBALS['promoter_test']['terms'],
-			'users'           => $GLOBALS['promoter_test']['users'],
-			'administrators'  => $GLOBALS['promoter_test']['administrators'],
-			'current_user_id' => 1,
-			'abilities'       => array(),
+			'options'           => array(
+				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
+				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
+			),
+			'terms'             => $GLOBALS['promoter_test']['terms'],
+			'users'             => $GLOBALS['promoter_test']['users'],
+			'administrators'    => $GLOBALS['promoter_test']['administrators'],
+			'team_access'       => $GLOBALS['promoter_test']['team_access'],
+			'feature_available' => true,
+			'current_user_id'   => 1,
+			'abilities'         => array(),
 		);
 		$GLOBALS['ec_test_filters']       = array();
 		add_action(
@@ -334,6 +493,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'wp_7_ec_promoter_organizations', PromoterAuthoritySchema::organizations_table() );
 		$this->assertSame( 'wp_7_ec_promoter_members', PromoterAuthoritySchema::memberships_table() );
 		$this->assertSame( 'wp_7_ec_promoter_authority_activity', PromoterAuthoritySchema::activity_table() );
+		$this->assertSame( 'wp_7_ec_promoter_venue_grants', PromoterAuthoritySchema::venue_grants_table() );
 	}
 
 	public function test_verification_requires_exact_term_and_users_and_does_not_enroll_admin(): void {
@@ -470,6 +630,190 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'promoter_authority_forbidden', $service->list_memberships( 2, 100 )->get_error_code() );
 	}
 
+	public function test_multiple_promoters_share_one_venue_without_direct_membership_widening(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$grants = new PromoterVenueGrantService();
+		$action = PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT;
+
+		$this->assertIsArray( $grants->create( 4, 100, 200, $action ) );
+		$this->assertIsArray( $grants->create( 4, 102, 200, $action ) );
+		$authorization = new PromoterVenueAuthorization();
+		$this->assertTrue( $authorization->authorize( 3, 100, 200, $action ) );
+		$this->assertTrue( $authorization->authorize( 6, 102, 200, $action ) );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 1, 100, 200, $action )->get_error_code() );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 3, 102, 200, $action )->get_error_code() );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 3, 100, 201, $action )->get_error_code() );
+		$this->assertSame( array( 200 ), $authorization->effective_venue_ids( 3, 100, $action ) );
+		unset( $GLOBALS['promoter_test']['team_access'][3], $GLOBALS['venue_membership_test']['team_access'][3] );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 3, 100, 200, $action )->get_error_code() );
+
+		$venues = new VenueAuthorization();
+		foreach ( array( VenueAuthorization::ACTION_ACCESS_VENUE, VenueAuthorization::ACTION_MANAGE_MEMBERS, VenueAuthorization::ACTION_MANAGE_FINANCES ) as $venue_action ) {
+			$this->assertSame( 'venue_action_forbidden', $venues->authorize( 3, 200, $venue_action )->get_error_code() );
+		}
+		$this->assertNull( ( new ExtraChillEvents\Core\VenueMembershipRepository() )->get( 200, 3 ) );
+	}
+
+	public function test_direct_owner_issues_promoter_owner_relinquishes_and_only_direct_owner_reactivates(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$grants = new PromoterVenueGrantService();
+		$action = PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT;
+
+		$this->assertSame( 'promoter_venue_action_forbidden', $grants->create( 1, 100, 200, $action )->get_error_code() );
+		$this->assertSame( 'promoter_venue_action_forbidden', $grants->create( 2, 100, 200, $action )->get_error_code() );
+		$created = $grants->create( 4, 100, 200, $action );
+		$this->assertSame( 1, $created['version'] );
+		$revoked = $grants->revoke( 2, 100, 200, $action, 1 );
+		$this->assertSame( 'revoked', $revoked['status'] );
+		$this->assertSame( 2, $revoked['version'] );
+		$this->assertSame( 'promoter_venue_action_forbidden', $grants->reactivate( 2, 100, 200, $action, 2 )->get_error_code() );
+		$reactivated = $grants->reactivate( 4, 100, 200, $action, 2 );
+		$this->assertSame( 'active', $reactivated['status'] );
+		$this->assertSame( 3, $reactivated['version'] );
+		$this->assertSame( 'promoter_venue_grant_version_conflict', $grants->revoke( 4, 100, 200, $action, 2 )->get_error_code() );
+	}
+
+	public function test_effective_authorization_fails_for_revoked_member_organization_or_grant(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$action        = PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT;
+		$grants        = new PromoterVenueGrantService();
+		$authorization = new PromoterVenueAuthorization();
+		$grants->create( 4, 100, 200, $action );
+		$grants->create( 5, 100, 201, $action );
+		$this->assertTrue( $authorization->authorize( 3, 100, 200, $action ) );
+
+		$grants->revoke( 4, 100, 200, $action, 1 );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 3, 100, 200, $action )->get_error_code() );
+		$this->assertTrue( $authorization->authorize( 3, 100, 201, $action ) );
+		$grants->reactivate( 4, 100, 200, $action, 2 );
+		( new PromoterAuthorityService() )->revoke_membership( 2, 100, 3, 1 );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 3, 100, 200, $action )->get_error_code() );
+
+		( new PromoterAuthorityService() )->revoke_organization( 1, 100, 1 );
+		$this->assertSame( 'promoter_venue_action_forbidden', $authorization->authorize( 2, 100, 200, $action )->get_error_code() );
+	}
+
+	public function test_grants_fail_closed_for_unsupported_or_corrupt_values(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$repository = new PromoterVenueGrantRepository();
+		$this->assertSame( 'invalid_promoter_venue_grant_action', $repository->create( 100, 200, 'manage_finances', 4 )->get_error_code() );
+		$this->assertSame(
+			'promoter_venue_grant_corrupt_status',
+			$repository->hydrate(
+				array(
+					'status' => 'trusted',
+					'action' => PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT,
+				)
+			)->get_error_code()
+		);
+		$this->assertSame(
+			'promoter_venue_grant_corrupt_action',
+			$repository->hydrate(
+				array(
+					'status' => 'active',
+					'action' => 'access_venue',
+				)
+			)->get_error_code()
+		);
+	}
+
+	public function test_grant_creation_race_has_deterministic_safe_winner_or_500(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$action                             = PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT;
+		$GLOBALS['wpdb']->race_grant_insert = true;
+		$error                              = ( new PromoterVenueGrantService() )->create( 4, 100, 200, $action );
+		$this->assertSame( 'promoter_venue_grant_exists', $error->get_error_code() );
+		$this->assertSame(
+			array(
+				'status'          => 409,
+				'current_version' => 1,
+			),
+			$error->get_error_data()
+		);
+
+		$this->setUp();
+		$this->bootstrap_promoter_grant_fixtures();
+		$GLOBALS['wpdb']->fail_grant_insert = true;
+		$error                              = ( new PromoterVenueGrantService() )->create( 4, 100, 200, $action );
+		$this->assertSame( 'promoter_venue_grant_create_failed', $error->get_error_code() );
+		$this->assertSame( array( 'status' => 500 ), $error->get_error_data() );
+		$this->assertSame( 'Grant storage unavailable', $GLOBALS['promoter_test']['database_errors'][0]['database_error'] );
+	}
+
+	public function test_lock_context_rejects_promoter_membership_overflow(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$table = PromoterAuthoritySchema::memberships_table();
+		for ( $index = 0; $index < 99; ++$index ) {
+			$GLOBALS['wpdb']->rows[ $table ][] = $this->promoter_membership_row( 2000 + $index, 100, 1000 + $index );
+		}
+		$error = ( new PromoterVenueGrantService() )->create( 4, 100, 200, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT );
+		$this->assertSame( 'promoter_venue_grant_promoter_membership_limit_exceeded', $error->get_error_code() );
+		$this->assertSame(
+			array(
+				'status'  => 409,
+				'maximum' => 100,
+			),
+			$error->get_error_data()
+		);
+	}
+
+	public function test_lock_context_rejects_venue_membership_overflow(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$table = BookingSchema::memberships_table();
+		for ( $index = 0; $index < 100; ++$index ) {
+			$GLOBALS['wpdb']->rows[ $table ][] = $this->venue_membership_row( 3000 + $index, 200, 1000 + $index );
+		}
+		$error = ( new PromoterVenueGrantService() )->create( 4, 100, 200, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT );
+		$this->assertSame( 'promoter_venue_grant_venue_membership_limit_exceeded', $error->get_error_code() );
+		$this->assertSame(
+			array(
+				'status'  => 409,
+				'maximum' => 100,
+			),
+			$error->get_error_data()
+		);
+	}
+
+	public function test_ability_permission_cannot_bypass_execute_time_reauthorization(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$GLOBALS['promoter_test']['current_user_id']         = 4;
+		$GLOBALS['venue_membership_test']['current_user_id'] = 4;
+		$input     = array(
+			'promoter_term_id' => 100,
+			'venue_term_id'    => 200,
+			'action'           => PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT,
+		);
+		$abilities = new PromoterVenueGrantAbilities();
+		$this->assertTrue( $abilities->can_issue( $input ) );
+
+		$table                                        = BookingSchema::memberships_table();
+		$GLOBALS['wpdb']->rows[ $table ][0]['status'] = VenueAuthorization::STATUS_REVOKED;
+		$this->assertSame( 'promoter_venue_action_forbidden', $abilities->create( $input )->get_error_code() );
+		$this->assertNull( ( new PromoterVenueGrantRepository() )->get( 100, 200, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT ) );
+	}
+
+	public function test_effective_venue_ids_propagates_repository_errors(): void {
+		$repository = new class() extends PromoterAuthorityRepository {
+			public function get_organization( int $promoter_term_id ) {
+				unset( $promoter_term_id );
+				return new WP_Error( 'promoter_storage_failed', 'Storage unavailable.', array( 'status' => 500 ) );
+			}
+		};
+		$error      = ( new PromoterVenueAuthorization( $repository ) )->effective_venue_ids( 2, 100, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT );
+		$this->assertSame( 'promoter_storage_failed', $error->get_error_code() );
+	}
+
+	public function test_grant_ability_schemas_are_closed(): void {
+		$abilities = new PromoterVenueGrantAbilities();
+		$abilities->register();
+		$registered = $this->registered_abilities();
+		$this->assertCount( 4, $registered );
+		foreach ( $registered as $definition ) {
+			$this->assertFalse( $definition['input_schema']['additionalProperties'] );
+			$this->assertClosedSchema( $definition['output_schema'] );
+		}
+	}
+
 	public function test_ability_object_schemas_are_closed(): void {
 		$abilities = new PromoterAuthorityAbilities();
 		$abilities->register();
@@ -491,6 +835,51 @@ final class PromoterAuthorityTest extends TestCase {
 			return $GLOBALS['promoter_test']['abilities'];
 		}
 		return $GLOBALS['venue_membership_test']['abilities'] ?? array();
+	}
+
+	private function bootstrap_promoter_grant_fixtures(): void {
+		$promoters = new PromoterAuthorityService();
+		$promoters->verify( 1, 100, 2 );
+		$promoters->create_membership( 2, 100, 3, false );
+		$promoters->verify( 1, 102, 6 );
+		$this->seed_venue_owner( 200, 4 );
+		$this->seed_venue_owner( 201, 5 );
+	}
+
+	private function seed_venue_owner( int $venue_term_id, int $user_id ): void {
+		$table                             = BookingSchema::memberships_table();
+		$GLOBALS['wpdb']->rows[ $table ][] = $this->venue_membership_row( 1000 + $venue_term_id, $venue_term_id, $user_id );
+	}
+
+	private function venue_membership_row( int $id, int $venue_term_id, int $user_id ): array {
+		return array(
+			'id'                 => $id,
+			'venue_term_id'      => $venue_term_id,
+			'user_id'            => $user_id,
+			'is_owner'           => 1,
+			'status'             => VenueAuthorization::STATUS_ACTIVE,
+			'version'            => 1,
+			'created_by_user_id' => $user_id,
+			'created_at'         => '2026-01-01 00:00:00',
+			'updated_at'         => '2026-01-01 00:00:00',
+			'revoked_at'         => null,
+		);
+	}
+
+	private function promoter_membership_row( int $id, int $promoter_term_id, int $user_id ): array {
+		return array(
+			'id'                 => $id,
+			'promoter_term_id'   => $promoter_term_id,
+			'user_id'            => $user_id,
+			'is_owner'           => 0,
+			'status'             => PromoterAuthorityRepository::STATUS_ACTIVE,
+			'version'            => 1,
+			'created_by_user_id' => 2,
+			'created_at'         => '2026-01-01 00:00:00',
+			'updated_at'         => '2026-01-01 00:00:00',
+			'revoked_by_user_id' => null,
+			'revoked_at'         => null,
+		);
 	}
 
 	private function assertClosedSchema( array $schema ): void {
