@@ -1,0 +1,342 @@
+{
+  "schema": "wp-codebox/workspace-recipe/v1",
+  "runtime": {
+    "backend": "wordpress",
+    "name": "extrachill-studio-gardner-social-operator",
+    "wp": "trunk",
+    "phpVersion": "8.4"
+  },
+  "inputs": {
+    "mounts": [
+      {
+        "source": "../../build",
+        "target": "/wordpress/wp-content/plugins/extrachill-studio/build",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-build",
+          "slug": "extrachill-studio",
+          "repo": "Extra-Chill/extrachill-studio",
+          "default_branch": "main",
+          "editable": false
+        }
+      },
+      {
+        "source": "../../inc",
+        "target": "/wordpress/wp-content/plugins/extrachill-studio/inc",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "studio-runtime-source",
+          "scenario": "social-operations",
+          "editable": false
+        }
+      },
+      {
+        "source": "../../extrachill-studio.php",
+        "target": "/wordpress/wp-content/plugins/extrachill-studio/extrachill-studio.php",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "studio-plugin-entrypoint",
+          "editable": false
+        }
+      }
+    ],
+    "extra_plugins": [
+      {
+        "source": "https://github.com/Extra-Chill/data-machine/releases/download/v0.175.18/data-machine.zip",
+        "slug": "data-machine",
+        "pluginFile": "data-machine/data-machine.php",
+        "activate": true,
+        "sha256": "5402b37795dfe1a88b0b26044935b949fa518f5eeb271d72520226b29af3c3e6",
+        "metadata": {
+          "version": "0.175.18",
+          "runtimeBoundary": "real"
+        }
+      },
+      {
+        "source": "https://github.com/Extra-Chill/data-machine-socials/releases/download/v0.20.1/data-machine-socials.zip",
+        "slug": "data-machine-socials",
+        "pluginFile": "data-machine-socials/data-machine-socials.php",
+        "activate": true,
+        "sha256": "f6281174dc9486dea757e62971948a2f16683d639f1f8ccba76b8d613dd3e8bb",
+        "metadata": {
+          "version": "0.20.1",
+          "runtimeBoundary": "real"
+        }
+      },
+      {
+        "source": "https://github.com/Extra-Chill/extrachill-analytics/releases/download/v0.36.3/extrachill-analytics.zip",
+        "slug": "extrachill-analytics",
+        "pluginFile": "extrachill-analytics/extrachill-analytics.php",
+        "activate": false,
+        "sha256": "fd2d22f02a9acc98200227a767936f73cbbe80a846ab5b868b3652890cd58a63",
+        "metadata": {
+          "version": "0.36.3",
+          "runtimeBoundary": "real",
+          "reason": "Registers Studio production browser asset dependencies"
+        }
+      },
+      {
+        "source": "https://github.com/Extra-Chill/extrachill-network/releases/download/v2.9.0/extrachill-network.zip",
+        "slug": "extrachill-network",
+        "pluginFile": "extrachill-network/extrachill-network.php",
+        "activate": false,
+        "sha256": "6b2efcbb648fb0a15ac92e0ef83f9e791da115f5c6093ce5aef835cac05b911a",
+        "metadata": {
+          "version": "2.9.0",
+          "runtimeBoundary": "real",
+          "reason": "Required dependency of the canonical Users runtime"
+        }
+      },
+      {
+        "source": "https://github.com/Extra-Chill/extrachill-api/releases/download/v0.31.1/extrachill-api.zip",
+        "slug": "extrachill-api",
+        "pluginFile": "extrachill-api/extrachill-api.php",
+        "activate": false,
+        "sha256": "d1b6d24c5753997fbee336a1b2819802736a6ce8abe3474f13c0ce7972169d42",
+        "metadata": {
+          "version": "0.31.1",
+          "runtimeBoundary": "real",
+          "reason": "Required dependency of the canonical Users runtime"
+        }
+      },
+      {
+        "source": "https://github.com/Extra-Chill/extrachill-users/releases/download/v0.41.5/extrachill-users.zip",
+        "slug": "extrachill-users",
+        "pluginFile": "extrachill-users/extrachill-users.php",
+        "activate": false,
+        "sha256": "ffc8925a01a4bb07a277def39559a0bd8f42f78832327e51acc7f0be236c3808",
+        "metadata": {
+          "version": "0.41.5",
+          "runtimeBoundary": "real",
+          "identityContractOwner": "Extra-Chill/extrachill-users"
+        }
+      }
+    ],
+    "stagedFiles": [
+      {
+        "source": "./chris-gardner-social-operator-provider-stub.php",
+        "target": "/wordpress/wp-content/mu-plugins/chris-gardner-social-operator-provider-stub.php"
+      }
+    ],
+    "externalServices": [
+      {
+        "id": "instagram-provider-fixture",
+        "label": "Instagram provider HTTP fixture",
+        "environment": "fixture",
+        "allowedHosts": ["graph.facebook.com", "graph.instagram.com"],
+        "blockedHosts": ["facebook.com", "instagram.com"],
+        "writes": "forbidden",
+        "secretEnv": [],
+        "redaction": {
+          "policy": "metadata-only"
+        }
+      },
+      {
+        "id": "bluesky-provider-fixture",
+        "label": "Bluesky provider HTTP fixture",
+        "environment": "fixture",
+        "allowedHosts": ["bsky.social"],
+        "blockedHosts": ["bsky.app"],
+        "writes": "forbidden",
+        "secretEnv": [],
+        "redaction": {
+          "policy": "metadata-only"
+        }
+      }
+    ],
+    "fixtureUsers": [
+      {
+        "name": "gardner-social-operator",
+        "userId": 101,
+        "username": "chris-gardner-operator",
+        "displayName": "Chris Gardner",
+        "role": "editor",
+        "metadata": {
+          "canonicalIdentityContract": {
+            "id": "extra-chill-users/chris-gardner",
+            "version": "1.0.0",
+            "commit": "627533b541ebdedd7107d543edfef186c07cb48e"
+          },
+          "scenarioRole": "Studio social operator"
+        }
+      },
+      {
+        "name": "ordinary-team-user",
+        "userId": 102,
+        "username": "ordinary-team-operator",
+        "displayName": "Ordinary Team User",
+        "role": "author"
+      },
+      {
+        "name": "system-owner",
+        "userId": 103,
+        "username": "studio-operator-system-owner",
+        "displayName": "Studio Operator System Owner",
+        "role": "administrator"
+      }
+    ],
+    "userSessions": [
+      {"name": "gardner-session", "user": "gardner-social-operator"},
+      {"name": "ordinary-team-session", "user": "ordinary-team-user"}
+    ],
+    "browserActors": [
+      {"name": "gardner", "userSession": "gardner-session"},
+      {"name": "ordinary-team", "userSession": "ordinary-team-session"}
+    ]
+  },
+  "workflow": {
+    "steps": [
+      {
+        "command": "wordpress.wp-cli",
+        "args": ["command=wp core multisite-convert --title=Studio-Operator-Network --base=/"]
+      },
+      {
+        "command": "wordpress.wp-cli",
+        "args": ["command=wp plugin activate extrachill-network --network"]
+      },
+      {
+        "command": "wordpress.wp-cli",
+        "args": ["command=wp plugin activate extrachill-api --network"]
+      },
+      {
+        "command": "wordpress.wp-cli",
+        "args": ["command=wp plugin activate extrachill-users --network"]
+      },
+      {
+        "command": "wordpress.wp-cli",
+        "args": ["command=wp plugin activate extrachill-analytics --network"]
+      },
+      {
+        "command": "wordpress.plugin-state",
+        "args": ["action=activate", "plugin=extrachill-studio"]
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": ["code-file=tests/wp-codebox/chris-gardner-social-operator-setup.php"]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=101",
+          "url=/?page_id=9",
+          "step-timeout=30s",
+          "timeout=120s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/?page_id=9\",\"waitFor\":\"load\"},{\"kind\":\"expect\",\"selector\":\"[data-ec-studio-root][data-can-brand-socials=\\\"true\\\"]\",\"state\":\"attached\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-socials-layout\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Instagram\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Bluesky\\\")\",\"state\":\"visible\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=102",
+          "url=/?page_id=9",
+          "step-timeout=30s",
+          "timeout=120s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/?page_id=9\",\"waitFor\":\"load\"},{\"kind\":\"expect\",\"selector\":\"[data-ec-studio-root][data-can-brand-socials=\\\"false\\\"]\",\"state\":\"attached\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"detached\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": ["code-file=tests/wp-codebox/chris-gardner-social-operator-deliver.php"],
+        "timeoutMs": 180000
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": ["code-file=tests/wp-codebox/chris-gardner-social-operator-reload.php"],
+        "timeoutMs": 180000
+      }
+    ]
+  },
+  "adversarialCampaigns": [
+    {
+      "schema": "wp-codebox/adversarial-recipe-campaign/v1",
+      "id": "studio-gardner-social-operator-adaptive",
+      "seed": "studio-gardner-social-operator-v1",
+      "corpus": [
+        {
+          "id": "impatient-social-operator",
+          "actions": [{"type": "explore-social-operator"}],
+          "signals": ["identity:canonical-gardner", "scenario:studio-social-operations", "behavior:impatient-stateful"]
+        }
+      ],
+      "caseTemplates": [
+        {
+          "id": "explore-social-operator",
+          "phases": {
+            "action": [
+              {
+                "command": "wordpress.browser-actions",
+                "args": [
+                  "auth=wordpress-admin",
+                  "auth-user-id=101",
+                  "adaptive-exploration-json={\"schema\":\"wp-codebox/browser-adaptive-exploration/v1\",\"seed\":\"studio-gardner-social-operator-v1\",\"startUrl\":\"/?page_id=9\",\"budgets\":{\"maxActions\":28,\"maxStates\":18,\"maxTransitions\":40,\"maxDurationMs\":75000,\"maxArtifactBytes\":4194304,\"maxErrors\":12},\"actionFamilies\":[\"click\",\"fill\",\"select\",\"submit\",\"keyboard\",\"back\",\"reload\",\"repeat\",\"double-submit\"],\"resetPolicy\":{\"mode\":\"start-url\"}}",
+                  "capture=steps,console,errors,network,html,screenshot,dom-snapshot"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "mutators": ["sequence", "structured"],
+      "oracles": [
+        {
+          "id": "runtime-status",
+          "severity": "critical",
+          "description": "Runtime failures are combined with Studio-owned social domain oracles.",
+          "metadata": {
+            "domainOracles": ["duplicate-effects", "state-loss", "authorization-bypass", "attribution-mismatch", "unexplained-status", "unexpected-network", "unsafe-retry"]
+          }
+        }
+      ],
+      "concurrency": 1,
+      "budgets": {
+        "maxCases": 2,
+        "maxActionsPerCase": 4,
+        "maxInputBytes": 65536,
+        "maxCaseTimeMs": 100000,
+        "maxWallTimeMs": 200000,
+        "maxArtifactBytes": 20971520
+      },
+      "resetPolicy": {"mode": "none"},
+      "requiredCapabilities": ["adversarial-campaign", "artifact-export", "command:wordpress.browser-actions"],
+      "novelty": {"retainSignals": true},
+      "shrinking": {"enabled": true},
+      "replay": {"selection": "findings"},
+      "metadata": {
+        "deterministicWorkflowIndependent": true,
+        "identityContractOwner": "Extra-Chill/extrachill-users",
+        "scenarioOwner": "Extra-Chill/extrachill-studio social operations"
+      }
+    }
+  ],
+  "artifacts": {
+    "directory": "./artifacts/wp-codebox/chris-gardner-social-operator",
+    "verify": {"enabled": true, "strict": true},
+    "paths": [
+      {"name": "provider-call-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/provider-call-ledger.json", "required": true, "parseJson": true},
+      {"name": "transition-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/transition-ledger.json", "required": true, "parseJson": true},
+      {"name": "capability-gap-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/capability-gap-ledger.json", "required": true, "parseJson": true},
+      {"name": "oracle-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/oracle-ledger.json", "required": true, "parseJson": true}
+    ]
+  },
+  "metadata": {
+    "coverageTier": "stateful-operator",
+    "scenario": "Studio social operations only",
+    "canonicalIdentityContract": {
+      "id": "extra-chill-users/chris-gardner",
+      "version": "1.0.0",
+      "repository": "Extra-Chill/extrachill-users",
+      "commit": "627533b541ebdedd7107d543edfef186c07cb48e"
+    },
+    "scenarioOwnership": "Studio owns only this social-operator journey and its evidence.",
+    "runtimeBoundary": {
+      "real": ["Data Machine 0.175.18", "Data Machine Socials 0.20.1", "Extra Chill Analytics 0.36.3", "Extra Chill API 0.31.1", "Extra Chill Network 2.9.0", "Extra Chill Users 0.41.5", "Studio PHP and browser build", "WordPress REST, posts, cron, abilities, jobs, retries, and share tracking"],
+      "stubbed": ["final outbound Instagram and Bluesky provider HTTP only"]
+    },
+    "scenarioMatrix": ["grant-and-denial-boundaries", "canonical-article-and-jpeg-media", "pending-multiplatform-draft", "edit-before-approval", "core-future-and-due-cron", "idempotency-and-stale-tabs", "partial-delivery", "persisted-reload", "safe-retry", "final-share-history", "media-reuse-and-duplicate-rejection", "instagram-comments-states"],
+    "liveSocialWritesPossible": false
+  }
+}
