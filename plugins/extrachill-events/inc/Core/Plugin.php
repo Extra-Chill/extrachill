@@ -84,6 +84,12 @@ final class ExtraChillEvents {
 		}
 
 		try {
+			\ExtraChillEvents\Providers\VenueLinkPagesProvider::register();
+		} catch ( \Throwable $error ) {
+			$this->provider_failed( 'venue-link-pages', $error );
+		}
+
+		try {
 			\ExtraChillEvents\Providers\PublicExperienceProvider::register();
 		} catch ( \Throwable $error ) {
 			$this->provider_failed( 'public-experience', $error );

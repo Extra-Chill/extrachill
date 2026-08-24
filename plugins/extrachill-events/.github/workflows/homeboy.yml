@@ -19,6 +19,8 @@ jobs:
   homeboy:
     name: Homeboy (${{ matrix.command }})
     runs-on: ubuntu-latest
+    env:
+      LINK_PAGES_WORKTREE: ${{ github.workspace }}/.ci/extrachill-link-pages
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +59,13 @@ jobs:
           repository: Extra-Chill/data-machine-events
           ref: e684ea4dbe7532cd2569f72a586933fe1e4fab51
           path: .ci/data-machine-events
+
+      - name: Checkout Extra Chill Link Pages dependency
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Extra-Chill/extrachill-link-pages
+          ref: main
+          path: .ci/extrachill-link-pages
 
       - name: Checkout Extra Chill Network
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -126,6 +135,14 @@ jobs:
           vendor/bin/phpunit --configuration phpunit-local-scene-unit.xml.dist
           vendor/bin/phpunit --configuration phpunit-network-block.xml.dist
           vendor/bin/phpunit --configuration phpunit-membership.xml.dist
+
+      - name: Assert Link Pages coordinated dependency entry
+        if: ${{ matrix.command == 'review test' }}
+        run: test -f .ci/extrachill-link-pages/extrachill-link-pages.php
+
+      - name: Run coordinated Link Pages tests
+        if: ${{ matrix.command == 'review test' }}
+        run: vendor/bin/phpunit --configuration phpunit.xml.dist tests/VenueLinkPagesCoordinatedRuntimeTest.php
 
       - name: Select managed WordPress suite
         if: ${{ matrix.command == 'review test' }}
