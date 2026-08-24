@@ -1,7 +1,7 @@
 <?php
 
 if ( empty( $GLOBALS['smoke']['omit_api_version'] ) ) {
-	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', $GLOBALS['smoke']['api_version'] ?? '1' );
+	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', $GLOBALS['smoke']['api_version'] ?? '3' );
 }
 define( 'EC_LINK_PAGE_POST_TYPE', $GLOBALS['smoke']['post_type_constant'] ?? 'artist_link_page' );
 define( 'EC_LINK_PAGE_OWNER_META_KEY', $GLOBALS['smoke']['owner_meta_constant'] ?? '_ec_link_page_owner_reference' );
@@ -17,6 +17,7 @@ function ec_register_link_page_owner_compatibility_provider( $name, $callback, $
 	$GLOBALS['smoke']['owner_providers'][ $name ] = $callback;
 	return true;
 }
+function ec_can_register_link_page_owner_compatibility_provider( $name, $callback, $priority = 10 ) { return true; }
 
 function ec_register_link_page_operation_provider( $name, $callback, $priority = 10 ) {
 	if ( isset( $GLOBALS['smoke']['operation_providers'][ $name ] ) ) {
@@ -25,6 +26,7 @@ function ec_register_link_page_operation_provider( $name, $callback, $priority =
 	$GLOBALS['smoke']['operation_providers'][ $name ] = $callback;
 	return true;
 }
+function ec_can_register_link_page_operation_provider( $name, $callback, $priority = 10 ) { return true; }
 
 function ec_format_link_page_owner_reference( $owner ) {
 	return sprintf( '%s:%d:%s:%d', $owner['kind'], $owner['blog_id'], $owner['subtype'], $owner['object_id'] );
@@ -106,6 +108,40 @@ function ec_backfill_link_page_owner_references( $limit = 100, $offset = 0 ) {
 function ec_link_page_operation_provider_registry() {
 	return (object) array();
 }
+
+function ec_link_page_defaults() { return array( 'styles' => array(), 'settings' => array() ); }
+function ec_link_page_defaults_for( $category ) { return ec_link_page_defaults()[ $category ] ?? array(); }
+function ec_link_page_default( $category, $key, $fallback = null ) { return $fallback; }
+function ec_sanitize_link_page_links( $links, $link_page_id = 0 ) { return $links; }
+function ec_sanitize_link_page_css_vars( $vars, $existing = array() ) { return $vars; }
+function ec_sanitize_link_page_settings( $settings ) { return $settings; }
+function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) { return $overrides; }
+function ec_save_link_page_persistence( $link_page_id, $data ) { return $data; }
+function ec_save_link_page_persistence_composed( $link_page_id, $data, $finalizer ) { return call_user_func( $finalizer, $link_page_id, $data ); }
+function ec_create_owned_link_page( $owner, $title, $slug, $force = false ) { return 40; }
+function ec_provision_owned_link_page( $owner, $title, $slug, $force = false, $precondition = null ) { return array( 'link_page_id' => 40, 'created' => true ); }
+function ec_provision_owned_link_page_composed( $owner, $title, $slug, $finalizer, $force = false, $precondition = null ) { $result = call_user_func( $finalizer, 40, $owner ); return is_wp_error( $result ) ? $result : array( 'link_page_id' => 40, 'created' => true ); }
+function ec_invoke_link_page_provision_precondition( $precondition, $owner ) { return true; }
+function ec_create_owned_link_page_unlocked( $owner, $title, $slug, $force = false ) { return 40; }
+function ec_with_link_page_lock_scope( $id, $callback, $scope = 'generic' ) { return call_user_func( $callback ); }
+function ec_link_page_public_projection_registry() { return (object) array(); }
+function ec_register_link_page_public_projection_provider( $name, $callback, $priority = 10 ) {
+	if ( isset( $GLOBALS['smoke']['projection_providers'][ $name ] ) ) {
+		return new WP_Error( 'duplicate_link_page_public_projection_provider', 'Duplicate provider.' );
+	}
+	$GLOBALS['smoke']['projection_providers'][ $name ] = $callback;
+	return true;
+}
+function ec_can_register_link_page_public_projection_provider( $name, $callback, $priority = 10 ) { return true; }
+function ec_sanitize_link_page_public_projection_snapshot( $projection ) { return $projection; }
+function ec_save_link_page_public_projection_snapshot( $id, $owner, $projection ) { return array(); }
+function ec_read_link_page_public_projection_snapshot( $id, $owner = '' ) { return array(); }
+function ec_render_stored_link_page_social_links( $links ) { return ''; }
+function ec_get_link_page_public_projection( $link_page_id, $request = array() ) { return array(); }
+function ec_render_link_page_public_components( $projection, $slot ) { return ''; }
+function ec_get_link_page_public_url( $link_page_id ) { return 'https://extrachill.link/example/'; }
+function ec_link_page_public_urls( $link_page_id ) { return array( ec_get_link_page_public_url( $link_page_id ) ); }
+function ec_validate_link_pages_runtime( $check_readiness = true ) { return true; }
 
 function ec_resolve_link_page_operation_target( $target ) {
 	return array( 'link_page_id' => 40, 'owner' => ec_get_link_page_owner( 40 ), 'owner_reference' => 'post:4:artist_profile:20' );

@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Save social links for an artist profile. Full replacement.
  *
- * @param array $input { artist_id: int, social_links: array }
+ * @param array $input { artist_id: int, social_links: array }.
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_save_social_links( $input ) {
@@ -34,33 +34,32 @@ function extrachill_artist_platform_ability_save_social_links( $input ) {
 		return new WP_Error( 'dependency_missing', 'Social links manager not available.' );
 	}
 
-	$link_page_id = ec_get_link_page_for_artist( $artist_id );
-	if ( ! $link_page_id ) {
-		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
-	}
-
-	$sanitized_socials = extrachill_artist_platform_sanitize_socials( $social_links, $link_page_id );
-
-	$social_manager = extrachill_artist_platform_social_links();
-	$result         = $social_manager->save( $artist_id, $sanitized_socials );
-
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	// Build enriched response.
-	$saved_socials = $social_manager->get( $artist_id );
-	$enriched      = array();
-
-	if ( is_array( $saved_socials ) ) {
-		foreach ( $saved_socials as $social_link ) {
-			if ( ! is_array( $social_link ) || empty( $social_link['type'] ) || empty( $social_link['id'] ) ) {
-				continue;
+	return ec_artist_with_link_page_lock(
+		$artist_id,
+		static function ( $link_page_id ) use ( $artist_id, $social_links ) {
+			$social_manager    = extrachill_artist_platform_social_links();
+			$previous_socials  = $social_manager->get( $artist_id );
+			$previous_socials  = is_array( $previous_socials ) ? $previous_socials : array();
+			$sanitized_socials = extrachill_artist_platform_sanitize_socials( $social_links, $link_page_id );
+			$result            = $social_manager->save( $artist_id, $sanitized_socials );
+			if ( is_wp_error( $result ) || false === $result ) {
+				$social_manager->save( $artist_id, $previous_socials );
+				return is_wp_error( $result ) ? $result : new WP_Error( 'social_save_failed', 'Social links could not be persisted.' );
 			}
-			$social_link['icon_class'] = $social_manager->get_icon_class( $social_link['type'], $social_link );
-			$enriched[]                = $social_link;
-		}
-	}
-
-	return array( 'social_links' => $enriched );
+			$saved_socials = $social_manager->get( $artist_id );
+			$enriched      = array();
+			if ( is_array( $saved_socials ) ) {
+				foreach ( $saved_socials as $social_link ) {
+					if ( ! is_array( $social_link ) || empty( $social_link['type'] ) || empty( $social_link['id'] ) ) {
+						continue;
+					}
+					$social_link['icon_class'] = $social_manager->get_icon_class( $social_link['type'], $social_link );
+					$enriched[]                = $social_link;
+				}
+			}
+			do_action( 'ec_link_page_save', $link_page_id );
+			return array( 'social_links' => $enriched );
+		},
+		true
+	);
 }

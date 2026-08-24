@@ -675,4 +675,26 @@ final class LinkPageOwnerReferenceTest extends TestCase {
 		$this->assertStringNotContainsString( 'artist', $source );
 		$this->assertStringNotContainsString( 'venue', $source );
 	}
+
+	public function test_fallback_cross_blog_mutation_uses_artist_site_guard_and_restores_context(): void {
+		$GLOBALS['ec_test']['blogs'][1] = array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() );
+		$this->addPost( 4, 40, 'artist_link_page', 'test-artist' );
+		update_post_meta( 40, '_associated_artist_profile_id', 20 );
+		update_post_meta( 40, EC_LINK_PAGE_OWNER_META_KEY, 'post:4:artist_profile:20' );
+		update_post_meta( 20, '_extrch_link_page_id', 40 );
+		switch_to_blog( 1 );
+		$entry_stack = $GLOBALS['_wp_switched_stack'];
+		$result = ec_artist_with_link_page_lock(
+			20,
+			static function ( $link_page_id ) {
+				return array( 'link_page_id' => $link_page_id, 'blog_id' => get_current_blog_id() );
+			},
+			true
+		);
+		$this->assertSame( array( 'link_page_id' => 40, 'blog_id' => 4 ), $result );
+		$this->assertSame( 1, get_current_blog_id() );
+		$this->assertSame( $entry_stack, $GLOBALS['_wp_switched_stack'] );
+		$this->assertArrayNotHasKey( 'ec_artist_link_page_local_lock', $GLOBALS );
+		restore_current_blog();
+	}
 }

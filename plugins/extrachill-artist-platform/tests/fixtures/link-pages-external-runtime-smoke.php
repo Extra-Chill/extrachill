@@ -48,6 +48,9 @@ function add_action( $hook, $callback, $priority = 10 ) {
 	$GLOBALS['smoke']['actions'][] = array( $hook, $callback, $priority );
 }
 
+function add_filter() {
+}
+
 function is_wp_error( $value ) {
 	return $value instanceof WP_Error;
 }
@@ -136,6 +139,7 @@ echo json_encode(
 		'owner_meta_constant'    => EC_LINK_PAGE_OWNER_META_KEY,
 		'owner_providers'        => count( $GLOBALS['smoke']['owner_providers'] ),
 		'operation_providers'    => count( $GLOBALS['smoke']['operation_providers'] ),
+		'projection_providers'   => count( $GLOBALS['smoke']['projection_providers'] ),
 		'link_page_cpt_owner'    => $GLOBALS['smoke']['registered_post_types']['artist_link_page']['owner'] ?? '',
 		'artist_profile_exists'  => isset( $GLOBALS['smoke']['registered_post_types']['artist_profile'] ),
 		'legacy_owner_reference'=> is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],

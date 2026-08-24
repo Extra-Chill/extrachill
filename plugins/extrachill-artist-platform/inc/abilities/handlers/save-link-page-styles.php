@@ -40,6 +40,9 @@ function extrachill_artist_platform_ability_save_link_page_styles( $input ) {
 	$existing_vars = is_array( $existing_vars ) ? $existing_vars : array();
 
 	$sanitized_vars = extrachill_artist_platform_sanitize_css_vars( $css_vars );
+	if ( is_wp_error( $sanitized_vars ) ) {
+		return $sanitized_vars;
+	}
 	$merged_vars    = array_merge( $existing_vars, $sanitized_vars );
 
 	$save_data = array( 'css_vars' => $merged_vars );

@@ -32,7 +32,9 @@ class ExtraChillArtistPlatform_PageTemplates {
      * Sets up filters for custom template loading for post types.
      */
     private function init_hooks() {
-        add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
+		if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
+			add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
+		}
         add_filter( 'extrachill_template_archive', array( $this, 'load_artist_profile_archive_template' ), 10 );
     }
 

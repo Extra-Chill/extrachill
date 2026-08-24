@@ -74,6 +74,10 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
         return array();
     }
 
+	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
+		return ec_get_external_artist_link_page_data( $artist_id, $link_page_id, $overrides );
+	}
+
     $all_meta = get_post_meta( $link_page_id );
 
     $data = array(
@@ -201,6 +205,75 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
     return apply_filters( 'extrachill_artist_get_link_page_data', $display_data, $artist_id, $link_page_id, $overrides );
 }
 
+/** Build the legacy artist response around standalone generic persistence. */
+function ec_get_external_artist_link_page_data( $artist_id, $link_page_id, $overrides = array() ) {
+	$persistence = ec_read_link_page_persistence( $link_page_id );
+	if ( is_wp_error( $persistence ) ) {
+		return array();
+	}
+	$socials = get_post_meta( $artist_id, '_artist_profile_social_links', true );
+	$socials = is_array( $socials ) ? $socials : array();
+	$css_vars = $persistence['css_vars'];
+	$raw_fonts = array(
+		'title_font' => $css_vars['--link-page-title-font-family'] ?? '',
+		'body_font'  => $css_vars['--link-page-body-font-family'] ?? '',
+	);
+	if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
+		$css_vars = ExtraChillArtistPlatform_Fonts::instance()->process_font_css_vars( $css_vars );
+	}
+	$settings = array_merge(
+		$persistence['settings'],
+		array(
+			'subscribe_display_mode' => get_post_meta( $link_page_id, '_link_page_subscribe_display_mode', true ) ?: 'icon_modal',
+			'subscribe_description'  => (string) get_post_meta( $link_page_id, '_link_page_subscribe_description', true ),
+			'profile_image_id'       => get_post_thumbnail_id( $artist_id ) ?: '',
+		)
+	);
+	$data = array(
+		'display_title' => ! empty( $overrides['artist_profile_title'] ) ? $overrides['artist_profile_title'] : (string) get_the_title( $artist_id ),
+		'bio' => ! empty( $overrides['link_page_bio_text'] ) ? $overrides['link_page_bio_text'] : $persistence['bio'],
+		'profile_img_url' => ! empty( $overrides['profile_img_url'] ) ? $overrides['profile_img_url'] : ( get_the_post_thumbnail_url( $artist_id, 'large' ) ?: '' ),
+		'social_links' => isset( $overrides['social_links'] ) ? $overrides['social_links'] : $socials,
+		'socials' => $socials,
+		'link_sections' => $persistence['link_sections'],
+		'css_vars' => $css_vars,
+		'background_type' => $css_vars['--link-page-background-type'] ?? 'color',
+		'background_style' => '',
+		'powered_by' => true,
+		'artist_id' => (int) $artist_id,
+		'link_page_id' => (int) $link_page_id,
+		'profile_img_shape' => $settings['profile_image_shape'],
+		'_link_page_social_icons_position' => $settings['social_icons_position'],
+		'_link_page_subscribe_display_mode' => $settings['subscribe_display_mode'],
+		'_link_page_subscribe_description' => $settings['subscribe_description'],
+		'_actual_link_page_id_for_template' => (int) $link_page_id,
+		'artist_profile' => get_post( $artist_id ),
+		'settings' => $settings,
+		'links' => $persistence['links'],
+		'raw_font_values' => $raw_fonts,
+		'background_image_id' => $persistence['background_image_id'],
+		'background_image_url' => $persistence['background_image_url'],
+	);
+	if ( isset( $overrides['artist_profile_social_links_json'] ) ) {
+		$decoded = json_decode( $overrides['artist_profile_social_links_json'], true );
+		if ( is_array( $decoded ) ) {
+			$data['social_links'] = $decoded;
+			$data['socials']      = $decoded;
+		}
+	}
+	if ( isset( $overrides['link_page_links_json'] ) ) {
+		$decoded = json_decode( $overrides['link_page_links_json'], true );
+		if ( is_array( $decoded ) ) {
+			$data['links']         = $decoded;
+			$data['link_sections'] = isset( $decoded[0]['links'] ) || empty( $decoded ) ? $decoded : array( array( 'section_title' => '', 'links' => $decoded ) );
+		}
+	}
+	if ( isset( $overrides['css_vars'] ) ) {
+		$data['css_vars'] = is_array( $overrides['css_vars'] ) ? $overrides['css_vars'] : array();
+	}
+	return apply_filters( 'extrachill_artist_get_link_page_data', $data, $artist_id, $link_page_id, $overrides );
+}
+
 /**
  * Single source of truth for artist profile data.
  * Centralizes meta access, normalization, and derived display fields.
@@ -272,6 +345,7 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
     return $data;
 }
 
+if ( ( ! function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) || ! extrachill_artist_platform_uses_external_link_pages_runtime() ) && ! function_exists( 'ec_generate_css_variables_style_block' ) ) {
 function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {
     if ( empty( $css_vars ) || ! is_array( $css_vars ) ) {
         return '';
@@ -286,6 +360,7 @@ function ec_generate_css_variables_style_block( $css_vars, $element_id = 'link-p
     $output .= '}</style>';
 
     return $output;
+}
 }
 
 function ec_render_single_link( $link_data, $args = array() ) {

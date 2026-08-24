@@ -40,6 +40,8 @@ function is_wp_error( $value ) {
 function add_action( $hook, $callback ) {
 	$GLOBALS['smoke_actions'][] = array( $hook, $callback );
 }
+function add_filter() {
+}
 
 require_once $root . '/inc/link-pages/runtime-handoff.php';
 $result = extrachill_artist_platform_boot_link_pages_runtime();

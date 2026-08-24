@@ -61,6 +61,9 @@ function add_action( $hook, $callback ) {
 	$GLOBALS['smoke']['actions'][] = array( $hook, $callback );
 }
 
+function add_filter() {
+}
+
 require_once $root . '/inc/link-pages/runtime-handoff.php';
 require_once __DIR__ . '/fake-external-link-pages-runtime.php';
 $result = extrachill_artist_platform_boot_link_pages_runtime();

@@ -159,6 +159,28 @@ final class AbilityAuthorizationTest extends TestCase {
 		$this->assertSame( 'invalid_link_page', $result->get_error_code() );
 	}
 
+	public function test_legacy_match_cannot_override_conflicting_canonical_owner(): void {
+		$GLOBALS['ec_test']['current_user_id']    = 7;
+		$GLOBALS['ec_test']['managed_artists'][7] = array( 42 );
+		$GLOBALS['ec_test']['blogs'][4] = array(
+			'posts' => array(
+				42 => (object) array( 'ID' => 42, 'post_type' => 'artist_profile', 'post_status' => 'publish' ),
+				84 => (object) array( 'ID' => 84, 'post_type' => 'artist_profile', 'post_status' => 'publish' ),
+				99 => (object) array( 'ID' => 99, 'post_type' => 'artist_link_page', 'post_status' => 'publish' ),
+			),
+			'post_meta' => array(
+				99 => array(
+					'_associated_artist_profile_id' => 42,
+					EC_LINK_PAGE_OWNER_META_KEY     => 'post:4:artist_profile:84',
+				),
+			),
+		);
+
+		$this->assertFalse( extrachill_artist_platform_ability_link_page_belongs_to_artist( 42, 99 ) );
+		$result = extrachill_artist_platform_ability_get_link_page_data( array( 'artist_id' => 42, 'link_page_id' => 99 ) );
+		$this->assertSame( 'invalid_link_page', $result->get_error_code() );
+	}
+
 	public function test_rest_exposed_sensitive_abilities_deny_unrelated_users_before_handlers(): void {
 		$GLOBALS['ec_test']['current_user_id'] = 7;
 

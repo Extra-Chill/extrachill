@@ -49,6 +49,9 @@ function add_action( $hook, $callback, $priority = 10 ) {
 	$GLOBALS['smoke']['actions'][] = array( $hook, $callback, $priority );
 }
 
+function add_filter() {
+}
+
 function register_activation_hook( $file, $callback ) {
 	$GLOBALS['smoke']['activation_callback'] = $callback;
 }

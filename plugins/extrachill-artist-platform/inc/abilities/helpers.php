@@ -180,8 +180,15 @@ function extrachill_artist_platform_ability_link_page_belongs_to_artist( $artist
 	}
 
 	try {
-		return 'artist_link_page' === get_post_type( $link_page_id )
-			&& (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) === (int) $artist_id;
+		if ( 'artist_link_page' !== get_post_type( $link_page_id ) || (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== (int) $artist_id ) {
+			return false;
+		}
+		if ( function_exists( 'ec_get_link_page_owner' ) && function_exists( 'ec_artist_link_page_owner_reference' ) ) {
+			$owner     = ec_get_link_page_owner( $link_page_id );
+			$reference = ec_artist_link_page_owner_reference( $artist_id );
+			return ! is_wp_error( $owner ) && ! is_wp_error( $reference ) && $owner['reference'] === $reference;
+		}
+		return true;
 	} finally {
 		if ( $did_switch ) {
 			restore_current_blog();
@@ -286,7 +293,7 @@ function extrachill_artist_platform_sync_counter_from_id( $link_page_id, $type, 
  *
  * @param array $links        Raw links data (array of sections with nested links).
  * @param int   $link_page_id Link page post ID for counter-based ID generation.
- * @return array Sanitized links array.
+ * @return array|WP_Error Sanitized links array.
  */
 function extrachill_artist_platform_sanitize_links( $links, $link_page_id = 0 ) {
 	if ( ! is_array( $links ) ) {
@@ -350,9 +357,12 @@ function extrachill_artist_platform_sanitize_links( $links, $link_page_id = 0 ) 
  * Sanitize CSS variables for link page styles.
  *
  * @param array $vars Raw CSS variables.
- * @return array Sanitized CSS variables.
+ * @return array|WP_Error Sanitized CSS variables.
  */
 function extrachill_artist_platform_sanitize_css_vars( $vars ) {
+	if ( function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) && extrachill_artist_platform_uses_external_link_pages_runtime() && function_exists( 'ec_sanitize_link_page_css_vars' ) ) {
+		return ec_sanitize_link_page_css_vars( $vars );
+	}
 	if ( ! is_array( $vars ) ) {
 		return array();
 	}

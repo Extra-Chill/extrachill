@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artist-delete-social
  *
@@ -9,15 +8,14 @@ declare(strict_types=1);
  * @since   1.9.0
  */
 
+declare(strict_types=1);
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Delete a single social link by social_id.
  *
- * @param array $input {
- *     @type int    $id        Artist profile post ID.
- *     @type string $social_id Social link ID to delete.
- * }
+ * @param array $input Ability input.
  * @return array|WP_Error Updated social links.
  */
 function extrachill_artist_platform_ability_artist_delete_social( array $input ): array|WP_Error {
@@ -44,50 +42,51 @@ function extrachill_artist_platform_ability_artist_delete_social( array $input )
 		return new WP_Error( 'dependency_missing', 'Social links manager not available.' );
 	}
 
-	$social_manager = extrachill_artist_platform_social_links();
-	$existing       = $social_manager->get( $artist_id );
-
-	if ( ! is_array( $existing ) ) {
-		return new WP_Error( 'not_found', 'Social link not found.' );
-	}
-
-	$filtered = array();
-	$found    = false;
-	foreach ( $existing as $social_link ) {
-		if ( is_array( $social_link ) && isset( $social_link['id'] ) && $social_link['id'] === $social_id ) {
-			$found = true;
-			continue; // Skip this one (delete it).
-		}
-		$filtered[] = $social_link;
-	}
-
-	if ( ! $found ) {
-		return new WP_Error( 'not_found', 'Social link not found.' );
-	}
-
-	$result = $social_manager->save( $artist_id, $filtered );
-
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	// Build enriched response.
-	$saved_socials = $social_manager->get( $artist_id );
-	$enriched      = array();
-
-	if ( is_array( $saved_socials ) ) {
-		foreach ( $saved_socials as $s ) {
-			if ( ! is_array( $s ) || empty( $s['type'] ) || empty( $s['id'] ) ) {
-				continue;
+	return ec_artist_with_link_page_lock(
+		$artist_id,
+		static function ( $link_page_id ) use ( $artist_id, $social_id ) {
+			$social_manager = extrachill_artist_platform_social_links();
+			$existing       = $social_manager->get( $artist_id );
+			if ( ! is_array( $existing ) ) {
+				return new WP_Error( 'not_found', 'Social link not found.' );
 			}
-			$s['icon_class'] = $social_manager->get_icon_class( $s['type'], $s );
-			$enriched[]      = $s;
+			$previous = $existing;
+			$filtered = array();
+			$found    = false;
+			foreach ( $existing as $social_link ) {
+				if ( is_array( $social_link ) && isset( $social_link['id'] ) && $social_link['id'] === $social_id ) {
+					$found = true;
+					continue;
+				}
+				$filtered[] = $social_link;
+			}
+			if ( ! $found ) {
+				return new WP_Error( 'not_found', 'Social link not found.' );
+			}
+			$result = $social_manager->save( $artist_id, $filtered );
+			if ( is_wp_error( $result ) || false === $result ) {
+				$social_manager->save( $artist_id, $previous );
+				return is_wp_error( $result ) ? $result : new WP_Error( 'social_save_failed', 'Social links could not be persisted.' );
+			}
+			$saved_socials = $social_manager->get( $artist_id );
+			$enriched      = array();
+			if ( is_array( $saved_socials ) ) {
+				foreach ( $saved_socials as $social ) {
+					if ( ! is_array( $social ) || empty( $social['type'] ) || empty( $social['id'] ) ) {
+						continue;
+					}
+					$social['icon_class'] = $social_manager->get_icon_class( $social['type'], $social );
+					$enriched[]           = $social;
+				}
+			}
+			if ( $link_page_id ) {
+				do_action( 'ec_link_page_save', $link_page_id );
+			}
+			return array(
+				'deleted'      => true,
+				'social_id'    => $social_id,
+				'social_links' => $enriched,
+			);
 		}
-	}
-
-	return array(
-		'deleted'      => true,
-		'social_id'    => $social_id,
-		'social_links' => $enriched,
 	);
 }

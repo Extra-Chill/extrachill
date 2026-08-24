@@ -36,7 +36,12 @@ function extrachill_artist_platform_ability_save_link_page_links( $input ) {
 		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
 	}
 
-	$sanitized_links = extrachill_artist_platform_sanitize_links( $links, $link_page_id );
+	$sanitized_links = function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) && extrachill_artist_platform_uses_external_link_pages_runtime()
+		? $links
+		: extrachill_artist_platform_sanitize_links( $links, $link_page_id );
+	if ( is_wp_error( $sanitized_links ) ) {
+		return $sanitized_links;
+	}
 
 	$save_data = array( 'links' => $sanitized_links );
 	$result    = ec_save_link_page(

@@ -4,13 +4,15 @@
  *
  * Renders the link page editor React app on the frontend.
  * Handles authentication, artist resolution, and data localization.
+ *
+ * @package ExtraChillArtistPlatform
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Authentication check
+// Authentication check.
 if ( ! is_user_logged_in() ) {
 	echo '<div class="notice notice-info">';
 	echo '<p>' . esc_html__( 'Please log in to manage your link page.', 'extrachill-artist-platform' ) . '</p>';
@@ -20,7 +22,7 @@ if ( ! is_user_logged_in() ) {
 
 $current_user_id = get_current_user_id();
 
-// Get user's artists
+// Get the user's artists.
 if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
 	echo '<div class="notice notice-error">';
 	echo '<p>' . esc_html__( 'Artist platform is not properly configured.', 'extrachill-artist-platform' ) . '</p>';
@@ -30,18 +32,7 @@ if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
 
 $user_artists = ec_get_artists_for_user( $current_user_id, true );
 
-// Auto-create link pages for any artists that don't have them yet
-if ( function_exists( 'ec_create_link_page' ) && function_exists( 'ec_get_link_page_for_artist' ) ) {
-	foreach ( $user_artists as $artist_id ) {
-		$existing_link_page_id = ec_get_link_page_for_artist( $artist_id );
-		if ( ! $existing_link_page_id ) {
-			// Create link page for this artist
-			ec_create_link_page( $artist_id );
-		}
-	}
-}
-
-// No artists - show creation prompt
+// No artists: show the creation prompt.
 if ( empty( $user_artists ) ) {
 	if ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $current_user_id ) ) {
 		echo '<div class="notice notice-info">';
@@ -56,60 +47,61 @@ if ( empty( $user_artists ) ) {
 	return;
 }
 
-// Build user artists data for switcher (only artists with link pages)
-$user_artists_data = array();
+// Build switcher data for artists with Link Pages.
+$user_artists_data               = array();
 $user_artist_ids_with_link_pages = array();
 
 foreach ( $user_artists as $ua_id ) {
-    $artist_post = get_post( $ua_id );
-    if ( ! $artist_post || $artist_post->post_status !== 'publish' ) {
-        continue;
-    }
+	$artist_post = get_post( $ua_id );
+	if ( ! $artist_post || 'publish' !== $artist_post->post_status ) {
+		continue;
+	}
 
-    $link_page_id = function_exists( 'ec_get_link_page_for_artist' )
-        ? ec_get_link_page_for_artist( $ua_id )
-        : 0;
+	$link_page_id = function_exists( 'ec_get_link_page_for_artist' )
+		? ec_get_link_page_for_artist( $ua_id )
+		: 0;
 
-    if ( $link_page_id && get_post_status( $link_page_id ) === 'publish' ) {
-        $user_artists_data[] = array(
-            'id'   => (int) $ua_id,
-            'name' => $artist_post->post_title,
-            'slug' => $artist_post->post_name,
-        );
-        $user_artist_ids_with_link_pages[] = (int) $ua_id;
-    }
+	if ( $link_page_id && get_post_status( $link_page_id ) === 'publish' ) {
+		$user_artists_data[]               = array(
+			'id'   => (int) $ua_id,
+			'name' => $artist_post->post_title,
+			'slug' => $artist_post->post_name,
+		);
+		$user_artist_ids_with_link_pages[] = (int) $ua_id;
+	}
 }
 
-// No link pages yet for this user (should not happen due to auto-creation above)
+// Provisioning is mutation-only; rendering the editor must never write on GET.
 if ( empty( $user_artists_data ) ) {
-    echo '<div class="notice notice-error">';
-    echo '<p>' . esc_html__( 'Unable to create link page. Please try refreshing the page or contact support.', 'extrachill-artist-platform' ) . '</p>';
-    echo '</div>';
-    return;
+	echo '<div class="notice notice-info" data-link-page-setup-state="required">';
+	echo '<p>' . esc_html__( 'Your Link Page has not been provisioned yet. Complete artist setup to create it.', 'extrachill-artist-platform' ) . '</p>';
+	echo '<a href="' . esc_url( site_url( '/manage-artist/' ) ) . '" class="button-1">' . esc_html__( 'Complete Artist Setup', 'extrachill-artist-platform' ) . '</a>';
+	echo '</div>';
+	return;
 }
 
-// Get the artist to edit (prefer latest with a link page)
+// Get the artist to edit, preferring the latest with a Link Page.
 $artist_id = 0;
 if ( function_exists( 'ec_get_latest_artist_for_user' ) ) {
-    $latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
-    if ( $latest_artist_id && in_array( (int) $latest_artist_id, $user_artist_ids_with_link_pages, true ) ) {
-        $artist_id = (int) $latest_artist_id;
-    }
+	$latest_artist_id = ec_get_latest_artist_for_user( $current_user_id );
+	if ( $latest_artist_id && in_array( (int) $latest_artist_id, $user_artist_ids_with_link_pages, true ) ) {
+		$artist_id = (int) $latest_artist_id;
+	}
 }
 
 if ( ! $artist_id ) {
-    $artist_id = (int) $user_artists_data[0]['id'];
+	$artist_id = (int) $user_artists_data[0]['id'];
 }
 
 if ( ! $artist_id ) {
-    echo '<div class="notice notice-error">';
-    echo '<p>' . esc_html__( 'Could not determine which artist to edit.', 'extrachill-artist-platform' ) . '</p>';
-    echo '</div>';
-    return;
+	echo '<div class="notice notice-error">';
+	echo '<p>' . esc_html__( 'Could not determine which artist to edit.', 'extrachill-artist-platform' ) . '</p>';
+	echo '</div>';
+	return;
 }
 
 
-// Get fonts for dropdown and local font CSS for defaults
+// Get fonts for the dropdown and local default CSS.
 $fonts_data      = array();
 $local_fonts_css = '';
 if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
@@ -123,25 +115,25 @@ if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
 	);
 }
 
-// Get social link types and transform to array format for React
+// Get social link types and transform them for React.
 $social_types = array();
 if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
 	$social_manager = extrachill_artist_platform_social_links();
 	$raw_types      = $social_manager->get_supported_types();
-	
-    // Transform associative array to indexed array with id/label/icon_class for React
-    foreach ( $raw_types as $type_id => $type_data ) {
-        $icon_value = isset( $type_data['icon'] ) ? $type_data['icon'] : '';
-        $social_types[] = array(
-            'id'         => $type_id,
-            'label'      => $type_data['label'],
-            'icon_class' => $icon_value,
-        );
-    }
+
+	// Transform the associative map to indexed React options.
+	foreach ( $raw_types as $type_id => $type_data ) {
+		$icon_value     = isset( $type_data['icon'] ) ? $type_data['icon'] : '';
+		$social_types[] = array(
+			'id'         => $type_id,
+			'label'      => $type_data['label'],
+			'icon_class' => $icon_value,
+		);
+	}
 }
 
 
-// Localize configuration data
+// Localize configuration data.
 $config = array(
 	'artistId'          => (int) $artist_id,
 	'userArtists'       => $user_artists_data,
@@ -150,15 +142,15 @@ $config = array(
 	'fonts'             => $fonts_data,
 	'localFontsCss'     => $local_fonts_css,
 	'socialTypes'       => $social_types,
-'linkPageCssUrl'     => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
-    'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
-    'shareModalCssUrl'  => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-share-modal.css',
-    'fontAwesomeUrl'    => '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css',
-    'iconSpriteUrl'     => get_template_directory_uri() . '/assets/fonts/extrachill.svg?v=' . filemtime( get_template_directory() . '/assets/fonts/extrachill.svg' ),
+	'linkPageCssUrl'    => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-links.css',
+	'socialIconsCssUrl' => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/custom-social-icons.css',
+	'shareModalCssUrl'  => EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'assets/css/extrch-share-modal.css',
+	'fontAwesomeUrl'    => '//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css',
+	'iconSpriteUrl'     => get_template_directory_uri() . '/assets/fonts/extrachill.svg?v=' . filemtime( get_template_directory() . '/assets/fonts/extrachill.svg' ),
 );
 
 
-// Enqueue the frontend script with localized data
+// Enqueue the frontend script with localized data.
 $asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/link-page-editor/view.asset.php';
 
 wp_enqueue_script(
@@ -171,11 +163,13 @@ wp_enqueue_script(
 
 wp_localize_script( 'ec-link-page-editor-frontend', 'ecLinkPageEditorConfig', $config );
 
-// Render mount point
-$wrapper_attributes = get_block_wrapper_attributes( array(
-	'class' => 'ec-link-page-editor',
-) );
+// Render the mount point.
+$wrapper_attributes = get_block_wrapper_attributes(
+	array(
+		'class' => 'ec-link-page-editor',
+	)
+);
 
-echo '<div ' . $wrapper_attributes . '>';
+echo '<div ' . $wrapper_attributes . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Generated by get_block_wrapper_attributes().
 echo '<div id="ec-link-page-editor-root" data-artist-id="' . esc_attr( $artist_id ) . '"></div>';
 echo '</div>';
