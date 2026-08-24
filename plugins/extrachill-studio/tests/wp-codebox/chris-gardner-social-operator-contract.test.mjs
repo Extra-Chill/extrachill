@@ -60,11 +60,19 @@ test("deterministic matrix and bounded adaptive domain oracles are declared", ()
 	for (const scenario of requiredScenarios) assert.ok(operator.metadata.scenarioMatrix.includes(scenario));
 	const campaign = operator.adversarialCampaigns[0];
 	assert.equal(campaign.concurrency, 1);
-	assert.ok(campaign.budgets.maxCases <= 2);
-	assert.ok(campaign.budgets.maxWallTimeMs <= 200000);
+	assert.equal(campaign.budgets.maxCases, 2);
+	const action = campaign.caseTemplates[0].phases.action[0];
+	const actionTimeoutMs = Number.parseInt(action.args.find((value) => value.startsWith("timeout="))?.slice("timeout=".length), 10) * 1000;
+	const { maxCaseTimeMs, maxWallTimeMs } = campaign.budgets;
+	const cancellationSettlementMs = maxCaseTimeMs - actionTimeoutMs;
+	assert.equal(actionTimeoutMs, 90000);
+	assert.ok(actionTimeoutMs < maxCaseTimeMs);
+	assert.equal(cancellationSettlementMs, 30000);
+	assert.equal(maxWallTimeMs, campaign.budgets.maxCases * (maxCaseTimeMs + cancellationSettlementMs));
+	assert.ok(maxWallTimeMs > campaign.budgets.maxCases * maxCaseTimeMs);
 	const oracles = campaign.oracles[0].metadata.domainOracles;
 	for (const oracle of ["duplicate-effects", "state-loss", "authorization-bypass", "attribution-mismatch", "unexplained-status", "unexpected-network", "unsafe-retry"]) assert.ok(oracles.includes(oracle));
-	const exploration = campaign.caseTemplates[0].phases.action[0].args.find((value) => value.startsWith("adaptive-exploration-json="));
+	const exploration = action.args.find((value) => value.startsWith("adaptive-exploration-json="));
 	for (const action of ["click", "fill", "select", "submit", "keyboard", "back", "reload", "repeat", "double-submit"]) assert.match(exploration, new RegExp(`\\"${action}\\"`));
 });
 

@@ -275,6 +275,7 @@
                 "args": [
                   "auth=wordpress-admin",
                   "auth-user-id=101",
+                  "timeout=90s",
                   "adaptive-exploration-json={\"schema\":\"wp-codebox/browser-adaptive-exploration/v1\",\"seed\":\"studio-gardner-social-operator-v1\",\"startUrl\":\"/\",\"budgets\":{\"maxActions\":28,\"maxStates\":18,\"maxTransitions\":40,\"maxDurationMs\":75000,\"maxArtifactBytes\":4194304,\"maxErrors\":12},\"actionFamilies\":[\"click\",\"fill\",\"select\",\"submit\",\"keyboard\",\"back\",\"reload\",\"repeat\",\"double-submit\"],\"resetPolicy\":{\"mode\":\"start-url\"}}",
                   "capture=steps,console,errors,network,html,screenshot,dom-snapshot"
                 ],
@@ -300,8 +301,8 @@
         "maxCases": 2,
         "maxActionsPerCase": 4,
         "maxInputBytes": 65536,
-        "maxCaseTimeMs": 100000,
-        "maxWallTimeMs": 200000,
+        "maxCaseTimeMs": 120000,
+        "maxWallTimeMs": 300000,
         "maxArtifactBytes": 20971520
       },
       "resetPolicy": {"mode": "none"},
