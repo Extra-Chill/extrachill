@@ -46,8 +46,10 @@ add_action( 'switch_theme', 'extrachill_cache_purge_current_blog', 10, 0 );
 add_action( 'customize_save_after', 'extrachill_cache_purge_current_blog', 10, 0 );
 
 // Programmatic hook — mirrors Breeze's `purge_post_cache` action so existing
-// callers keep working. Also expose a namespaced flush action.
+// callers keep working. The namespaced post action is for trusted, in-process
+// callers that have already authorized and committed their domain mutation.
 add_action( 'purge_post_cache', 'extrachill_cache_purge_on_post_change', 10, 1 );
+add_action( 'extrachill_cache_purge_post', 'extrachill_cache_purge_post', 10, 1 );
 add_action( 'extrachill_cache_flush', 'extrachill_cache_purge_current_blog', 10, 0 );
 
 /**
@@ -104,14 +106,38 @@ function extrachill_cache_is_public_post_status( $status ) {
  * @return void
  */
 function extrachill_cache_purge_on_post_change( $post_id ) {
+	extrachill_cache_purge_post( $post_id );
+}
+
+/**
+ * Purge public cache affected by an already-authorized post mutation.
+ *
+ * This function and its same-named action are an internal PHP contract only.
+ * Repeated calls are harmless: URL and directory deletion are idempotent.
+ *
+ * @param int $post_id Post ID.
+ * @return void
+ */
+function extrachill_cache_purge_post( $post_id ) {
+	if ( ! is_int( $post_id ) && ( ! is_string( $post_id ) || ! ctype_digit( $post_id ) ) ) {
+		return;
+	}
+
+	$post_id = (int) $post_id;
+	if ( $post_id <= 0 ) {
+		return;
+	}
+
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 		return;
 	}
 
-	$post_type = get_post_type( $post_id );
-	if ( 'revision' === $post_type ) {
+	$post = get_post( $post_id );
+	if ( ! $post || wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
 		return;
 	}
+
+	$post_type = get_post_type( $post );
 
 	/**
 	 * Filter exact public URLs to invalidate for a post change.
