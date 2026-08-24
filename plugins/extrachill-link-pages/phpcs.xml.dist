@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<ruleset name="Extra Chill Link Pages">
+	<description>WordPress coding standards for the Link Pages runtime.</description>
+	<rule ref="WordPress">
+		<exclude name="Squiz.Commenting.FunctionComment.Missing"/>
+		<exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
+		<exclude name="Squiz.Commenting.VariableComment.Missing"/>
+	</rule>
+	<arg name="colors"/>
+</ruleset>

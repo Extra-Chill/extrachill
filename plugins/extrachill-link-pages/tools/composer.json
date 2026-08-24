@@ -1,0 +1,27 @@
+{
+  "name": "extra-chill/extrachill-link-pages-dev-tools",
+  "description": "Development-only test and lint tools for Extra Chill Link Pages",
+  "type": "project",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "phpunit/phpunit": "^9.0",
+    "squizlabs/php_codesniffer": "^3.0",
+    "wp-coding-standards/wpcs": "^3.0"
+  },
+  "scripts": {
+    "test": "phpunit -c ../phpunit.xml.dist",
+    "lint:php": "phpcs --standard=../phpcs.xml.dist ../inc/ ../extrachill-link-pages.php"
+  },
+  "config": {
+    "platform": {
+      "php": "7.4.0"
+    },
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}

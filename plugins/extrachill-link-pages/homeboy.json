@@ -1,0 +1,39 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "settings": {
+        "package_excludes": [
+          "/tests/",
+          "/vendor/",
+          "/tools/",
+          "/composer.json",
+          "/composer.lock",
+          "/phpunit.xml.dist",
+          "/phpcs.xml.dist",
+          "/homeboy.json",
+          "/docs/",
+          "/.claude/",
+          "/.datamachine/",
+          "/.github/",
+          "/AGENTS.md",
+          "/CLAUDE.md"
+        ]
+      }
+    }
+  },
+  "id": "extrachill-link-pages",
+  "remote_path": "wp-content/plugins/extrachill-link-pages",
+  "remote_url": "https://github.com/Extra-Chill/extrachill-link-pages.git",
+  "version_targets": [
+    {
+      "file": "extrachill-link-pages.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-link-pages.php",
+      "pattern": "EXTRACHILL_LINK_PAGES_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+# Version control and agent configuration.
+.git
+.gitignore
+.gitattributes
+.github/
+.claude/
+.datamachine/
+AGENTS.md
+CLAUDE.md
+
+# Tests and development tooling.
+tests/
+vendor/
+tools/
+composer.json
+composer.lock
+phpunit.xml
+phpunit.xml.dist
+phpcs.xml
+phpcs.xml.dist
+homeboy.json
+.phpunit.result.cache
+.buildignore
+
+# Non-runtime documentation and generated artifacts.
+docs/
+build/
+dist/
+*.zip
+*.tar.gz
+.DS_Store
+._*
+*.log
+*.tmp
+*.temp
+.env*
