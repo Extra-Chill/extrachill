@@ -5,6 +5,11 @@ defined( 'ABSPATH' ) || exit;
 
 use DataMachine\Core\Database\Jobs\Jobs;
 use DataMachine\Core\Bootstrap\RuntimeServiceProvider;
+use DataMachine\Abilities\StepTypeAbilities;
+use DataMachine\Core\Steps\WorkflowConfigFactory;
+use DataMachine\Core\Steps\WorkflowSpecValidator;
+use DataMachine\Engine\ExecutionPlan;
+use DataMachine\Engine\Tasks\TaskRegistry;
 use DataMachineSocials\Operations\DelegatedCrossPostAction;
 
 if ( ! function_exists( 'ec_get_blog_id' ) ) {
@@ -30,15 +35,21 @@ function ec_studio_operator_assert( bool $condition, string $oracle ): void {
 function ec_studio_operator_execute_job( array $job ): array {
 	$ability = wp_get_ability( 'datamachine/execute-step' );
 	ec_studio_operator_assert( (bool) $ability, 'real execute-step ability exists' );
-	$result = $ability->execute(
-		array(
-			'job_id'                => (int) $job['job_id'],
-			'flow_step_id'          => (string) $job['operation_step_id'],
-			'operation_generation'  => (int) $job['operation_generation'],
-			'operation_claim_token' => (string) $job['operation_claim_token'],
-		)
-	);
-	ec_studio_operator_assert( ! is_wp_error( $result ), 'delegated operation executes without runtime error' );
+	$acting_user_id = get_current_user_id();
+	wp_set_current_user( (int) $job['user_id'] );
+	try {
+		$result = $ability->execute(
+			array(
+				'job_id'                => (int) $job['job_id'],
+				'flow_step_id'          => (string) $job['operation_step_id'],
+				'operation_generation'  => (int) $job['operation_generation'],
+				'operation_claim_token' => (string) $job['operation_claim_token'],
+			)
+		);
+	} finally {
+		wp_set_current_user( $acting_user_id );
+	}
+	ec_studio_operator_assert( ! is_wp_error( $result ), 'delegated operation executes without runtime error' . ( is_wp_error( $result ) ? ' (' . $result->get_error_code() . ': ' . $result->get_error_message() . ')' : '' ) );
 	return is_array( $result ) ? $result : array();
 }
 
@@ -143,6 +154,61 @@ $wpdb->update(
 clean_post_cache( $draft_id );
 do_action( 'publish_future_post', $draft_id );
 ec_studio_operator_assert( 'publish' === get_post_status( $draft_id ), 'due cron transitions future to publish' );
+$publish_input['content_ref']['source_url'] = get_permalink( $draft_id );
+
+$owner_context = array(
+	'phase'         => 'submit',
+	'action'        => DelegatedCrossPostAction::ACTION_ID,
+	'operation_id'  => $publish_input['idempotency_key'],
+	'operation_ref' => 'dop_' . str_repeat( 'a', 64 ),
+	'actor'         => array( 'user_id' => get_current_user_id(), 'agent_id' => 0 ),
+);
+$owner_input = DelegatedCrossPostAction::normalize_input(
+	array(
+		'post_id'          => $publish_input['content_ref']['post_id'],
+		'source_url'       => $publish_input['content_ref']['source_url'],
+		'caption'          => $publish_input['content_ref']['caption'],
+		'content_hash'     => $publish_input['content_ref']['content_hash'],
+		'channels'         => $publish_input['target_policy']['channels'],
+		'media_kind'       => $publish_input['target_policy']['media_kind'],
+		'asset_refs'       => $publish_input['content_ref']['asset_refs'],
+		'attribution_post' => $publish_input['attribution_post'],
+	),
+	$owner_context
+);
+$owner_context['input'] = is_array( $owner_input ) ? $owner_input : array();
+$owner_policy = is_array( $owner_input ) ? DelegatedCrossPostAction::authorize( $owner_context ) : $owner_input;
+$prepared = is_array( $owner_input ) ? DelegatedCrossPostAction::prepare( $owner_input, $owner_context ) : $owner_input;
+$prepared_workflow = is_array( $prepared ) ? ( $prepared['workflow'] ?? null ) : null;
+$workflow_validation = WorkflowSpecValidator::validate( $prepared_workflow );
+$execution_plan = array( 'valid' => false, 'first_step_id' => null, 'error' => null );
+if ( ! empty( $workflow_validation['valid'] ) ) {
+	try {
+		$configs = WorkflowConfigFactory::buildEphemeralConfigs( $prepared_workflow );
+		$execution_plan['first_step_id'] = ExecutionPlan::from_flow_config( $configs['flow_config'] )->first_step_id();
+		$execution_plan['valid'] = ! empty( $execution_plan['first_step_id'] );
+	} catch ( Throwable $exception ) {
+		$execution_plan['error'] = $exception->getMessage();
+	}
+}
+$diagnostic = array(
+	'blog_id'                  => get_current_blog_id(),
+	'multisite'                => is_multisite(),
+	'acting_user_id'           => get_current_user_id(),
+	'execution_owner_user_id'  => $state['execution_owner_user_id'],
+	'execution_owner_agent_id' => $state['execution_owner_agent_id'],
+	'source_post'              => array( 'id' => $article_id, 'status' => get_post_status( $article_id ), 'url' => get_permalink( $article_id ) ),
+	'draft_post'               => array( 'id' => $draft_id, 'status' => get_post_status( $draft_id ), 'platforms' => get_post_meta( $draft_id, '_studio_social_platforms', true ), 'caption_hash' => hash( 'sha256', (string) get_post_meta( $draft_id, '_studio_social_caption', true ) ) ),
+	'operation_id'             => $publish_input['idempotency_key'],
+	'operation_fingerprint'    => hash( 'sha256', (string) wp_json_encode( $publish_input ) ),
+	'step_types'               => array_keys( ( new StepTypeAbilities() )->getAllStepTypes() ),
+	'task_handlers'            => array_keys( TaskRegistry::getHandlers() ),
+	'owner_policy'             => true === $owner_policy ? 'authorized' : ( is_wp_error( $owner_policy ) ? $owner_policy->get_error_code() : 'denied' ),
+	'prepared_workflow'        => $prepared_workflow,
+	'workflow_validation'      => $workflow_validation,
+	'execution_plan'           => $execution_plan,
+	'delegated_submit_ability' => wp_get_ability( 'datamachine/submit-delegated-operation' ) ? 'available' : 'missing',
+);
 
 $delivery_ref = (string) get_post_meta( $draft_id, '_studio_social_delivery_ref', true );
 $handoff_retries = array();
@@ -156,33 +222,6 @@ $job  = $jobs->get_job_by_idempotency_key( $key );
 $job_diagnostic = is_array( $job )
 	? array_intersect_key( $job, array_flip( array( 'job_id', 'status', 'operation_state', 'operation_generation', 'operation_action_id' ) ) )
 	: null;
-if ( '' === $delivery_ref ) {
-	$blocker = array(
-		'id'                => 'GARDNER-DELEGATED-DELIVERY-PREPARE-BLOCKED',
-		'severity'          => 'high',
-		'explanation'       => 'Gardner schedules the post successfully, but Studio cannot create the durable social delivery and bounded safe retries do not recover it.',
-		'backend_primitive' => 'datamachine/enqueue-social-publish and extrachill/retry-social-publish',
-		'evidence_ref'      => 'https://github.com/Extra-Chill/data-machine-socials/issues/246',
-		'error_code'        => 'delegated_action_prepare_failed',
-		'attempts'          => 1 + count( $handoff_retries ),
-	);
-	$transitions   = get_option( 'ec_studio_operator_transition_ledger', array() );
-	$transitions[] = array( 'state' => 'future', 'effects' => 0, 'core_event' => 'publish_future_post' );
-	$transitions[] = array( 'state' => 'published-handoff-incomplete', 'effects' => 0, 'job_count' => 0, 'finding' => $blocker['id'] );
-	update_option( 'ec_studio_operator_transition_ledger', $transitions, false );
-	$state['delivery_blocker'] = $blocker;
-	update_option( 'ec_studio_operator_state', $state, false );
-	echo wp_json_encode(
-		array(
-			'schema'  => 'extrachill-studio/social-operator-delivery-phase/v1',
-			'status'  => 'incomplete-with-findings',
-			'finding' => $blocker,
-			'external_writes_possible' => false,
-		),
-		JSON_PRETTY_PRINT
-	);
-	return;
-}
 ec_studio_operator_assert(
 	1 === preg_match( '/^dop_[a-f0-9]{64}$/', $delivery_ref ),
 	'one opaque delegated receipt is stored (log=' . (string) wp_json_encode( get_post_meta( $draft_id, '_studio_social_publish_log', true ) ) . ', job=' . (string) wp_json_encode( $job_diagnostic ) . ', handoff_retries=' . (string) wp_json_encode( $handoff_retries ) . ', as=' . ( function_exists( 'as_schedule_single_action' ) ? 'loaded' : 'missing' ) . ')'
@@ -247,6 +286,7 @@ $state['delivery_ref'] = $delivery_ref;
 $state['job_id']       = $job_id;
 $state['idempotency_key'] = $key;
 $state['stale_caption_hash'] = hash( 'sha256', $stale_caption );
+$state['product_contract_diagnostic'] = $diagnostic;
 update_option( 'ec_studio_operator_state', $state, false );
 
 echo wp_json_encode(

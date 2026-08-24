@@ -19,7 +19,7 @@ Real sandbox runtime:
 - Mounted Studio PHP and production browser build
 - WordPress REST, Core future-post cron, post/meta persistence, Abilities, Data Machine delegated jobs/retries, provider abilities, and SocialShareTracker
 
-The recipe converts the disposable WordPress runtime to multisite before network-activating Network, API, and Users. This preserves the canonical Users plugin activation contract.
+The recipe declares `WP_AGENT_RUNTIME=1` through Codebox `runtimeEnv`, then converts the disposable WordPress runtime to multisite before network-activating Network, API, and Users. The runtime declaration loads Data Machine's supported full operator surface before plugin bootstrap without manual ability registration.
 
 Stubbed boundary:
 
@@ -33,9 +33,9 @@ Build, validate, and replay:
 ```bash
 npm run build
 node --test tests/wp-codebox/chris-gardner-social-operator-contract.test.mjs
-WP_CODEBOX_ALLOW_NETWORK_DOWNLOADS=1 WP_CODEBOX_ALLOWED_DOWNLOAD_HOSTS=github.com,release-assets.githubusercontent.com wp-codebox recipe validate --recipe tests/wp-codebox/chris-gardner-social-operator.json --json
-WP_CODEBOX_ALLOW_NETWORK_DOWNLOADS=1 WP_CODEBOX_ALLOWED_DOWNLOAD_HOSTS=github.com,release-assets.githubusercontent.com wp-codebox recipe-run --recipe tests/wp-codebox/chris-gardner-social-operator.json --json
-WP_CODEBOX_ALLOW_NETWORK_DOWNLOADS=1 WP_CODEBOX_ALLOWED_DOWNLOAD_HOSTS=github.com,release-assets.githubusercontent.com wp-codebox adversarial run --recipe tests/wp-codebox/chris-gardner-social-operator.json --json
+WP_CODEBOX_ALLOW_NETWORK_DOWNLOADS=1 WP_CODEBOX_ALLOWED_DOWNLOAD_HOSTS=github.com,release-assets.githubusercontent.com node /var/www/extrachill.com/wp-content/plugins/wp-codebox/vendor/wp-codebox-cli/packages/cli/dist/index.js recipe validate --recipe tests/wp-codebox/chris-gardner-social-operator.json --json
+WP_CODEBOX_ALLOW_NETWORK_DOWNLOADS=1 WP_CODEBOX_ALLOWED_DOWNLOAD_HOSTS=github.com,release-assets.githubusercontent.com node /var/www/extrachill.com/wp-content/plugins/wp-codebox/vendor/wp-codebox-cli/packages/cli/dist/index.js recipe-run --recipe tests/wp-codebox/chris-gardner-social-operator.json --json
+WP_CODEBOX_ALLOW_NETWORK_DOWNLOADS=1 WP_CODEBOX_ALLOWED_DOWNLOAD_HOSTS=github.com,release-assets.githubusercontent.com node /var/www/extrachill.com/wp-content/plugins/wp-codebox/vendor/wp-codebox-cli/packages/cli/dist/index.js adversarial run --recipe tests/wp-codebox/chris-gardner-social-operator.json --json
 ```
 
 The deterministic workflow completes before the adaptive campaign. Capability gaps and confusion remain structured findings and do not become fake passes. Provider-call, transition (state-transition evidence), capability-gap, and oracle ledgers are required verified artifacts.

@@ -33,6 +33,7 @@ test("released runtime dependencies are pinned, hashed, and ordered", () => {
 	}
 	assert.equal(plugins[0].activate, true);
 	assert.equal(plugins[1].activate, true);
+	assert.equal(operator.inputs.runtimeEnv.WP_AGENT_RUNTIME, "1");
 	assert.match(JSON.stringify(operator.workflow.steps), /multisite-convert/);
 	assert.match(JSON.stringify(operator.workflow.steps), /plugin activate extrachill-users --network/);
 });
@@ -78,9 +79,18 @@ test("all required capability gaps are stable structured findings", () => {
 });
 
 test("verified artifacts include all three required ledgers", () => {
-	const names = operator.artifacts.paths.map(({ name }) => name);
+	const names = operator.artifacts.typed.map(({ name }) => name);
 	assert.ok(names.includes("provider-call-ledger"));
 	assert.ok(names.includes("capability-gap-ledger"));
 	assert.ok(names.includes("transition-ledger"));
+	assert.ok(names.includes("oracle-ledger"));
+	assert.ok(names.includes("product-contract-diagnostic"));
+	assert.equal(operator.artifacts.typed.every(({ type, parseJson }) => type.startsWith("extrachill-studio/") && parseJson), true);
 	assert.deepEqual(operator.artifacts.verify, { enabled: true, strict: true });
+});
+
+test("false delegated preparation blocker is removed", () => {
+	assert.doesNotMatch(`${deliver}\n${reload}`, /GARDNER-DELEGATED-DELIVERY-PREPARE-BLOCKED/);
+	assert.match(reload, /data-machine\/issues\/3359/);
+	assert.match(reload, /data-machine-socials\/issues\/247/);
 });

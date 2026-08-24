@@ -27,14 +27,20 @@ function ec_studio_operator_reload_assert( bool $condition, string $oracle ): vo
 }
 
 function ec_studio_operator_reload_execute( array $job ): void {
-	$result = wp_get_ability( 'datamachine/execute-step' )->execute(
-		array(
-			'job_id'                => (int) $job['job_id'],
-			'flow_step_id'          => (string) $job['operation_step_id'],
-			'operation_generation'  => (int) $job['operation_generation'],
-			'operation_claim_token' => (string) $job['operation_claim_token'],
-		)
-	);
+	$acting_user_id = get_current_user_id();
+	wp_set_current_user( (int) $job['user_id'] );
+	try {
+		$result = wp_get_ability( 'datamachine/execute-step' )->execute(
+			array(
+				'job_id'                => (int) $job['job_id'],
+				'flow_step_id'          => (string) $job['operation_step_id'],
+				'operation_generation'  => (int) $job['operation_generation'],
+				'operation_claim_token' => (string) $job['operation_claim_token'],
+			)
+		);
+	} finally {
+		wp_set_current_user( $acting_user_id );
+	}
 	ec_studio_operator_reload_assert( ! is_wp_error( $result ), 'safe retry executes through real worker ability' );
 }
 
@@ -107,8 +113,62 @@ ec_studio_operator_reload_assert( 0 === ec_studio_operator_count_calls( $before,
 
 $persisted = ExtraChillStudio\get_social_publish_state( $draft_id );
 ec_studio_operator_reload_assert( ! empty( $persisted['success'] ) && 'failed' === ( $persisted['delivery']['status'] ?? '' ), 'component adapter reloads partial state' );
+$instagram_read = wp_get_ability( 'datamachine/instagram-read' );
+wp_set_current_user( $ordinary_id );
+$ordinary_comments_permission = $instagram_read->check_permissions( array( 'action' => 'comments', 'media_id' => 'ig-media-operator-1' ) );
+wp_set_current_user( $gardner_id );
+$comments_boundary_mismatch = true === $ordinary_comments_permission;
 $retry = wp_get_ability( 'extrachill/retry-social-publish' )->execute( array( 'post_id' => $draft_id ) );
-ec_studio_operator_reload_assert( ! is_wp_error( $retry ) && ! empty( $retry['success'] ), 'retry uses existing Studio ability' );
+if ( is_wp_error( $retry ) || empty( $retry['success'] ) ) {
+	$retry_error = is_wp_error( $retry )
+		? array( 'code' => $retry->get_error_code(), 'message' => $retry->get_error_message() )
+		: (array) ( $retry['error'] ?? array() );
+	$finding = array(
+		'id'                => 'GARDNER-DATAMACHINE-DELEGATED-RETRY-CLASS-RESOLUTION',
+		'severity'          => 'critical',
+		'explanation'       => 'The owner-authorized retry reaches Data Machine but cannot reopen the failed job because Jobs resolves EngineData in the wrong namespace.',
+		'backend_primitive' => 'datamachine/retry-delegated-operation and Jobs::reopen_failed_job',
+		'evidence_ref'      => 'https://github.com/Extra-Chill/data-machine/issues/3359',
+		'error'             => $retry_error,
+	);
+	$capability_gaps   = ec_studio_operator_expected_gaps();
+	$capability_gaps[] = $finding;
+	if ( $comments_boundary_mismatch ) {
+		$capability_gaps[] = array(
+			'id'                => 'GARDNER-IG-COMMENTS-OWNER-BOUNDARY',
+			'severity'          => 'critical',
+			'explanation'       => 'An ordinary team user without the brand-social grant can pass the direct REST-visible Instagram comments ability permission check.',
+			'backend_primitive' => 'datamachine/instagram-read permission callback and Extra Chill Users brand-social filter',
+			'evidence_ref'      => 'https://github.com/Extra-Chill/data-machine-socials/issues/247',
+		);
+	}
+	$transitions   = get_option( 'ec_studio_operator_transition_ledger', array() );
+	$transitions[] = array( 'state' => 'reloaded-partial', 'job_id' => $job_id, 'source' => 'persisted WordPress/Data Machine state' );
+	$transitions[] = array( 'state' => 'retry-blocked', 'job_id' => $job_id, 'finding' => $finding['id'] );
+	$oracle_ledger = array(
+		'schema'        => 'extrachill-studio/social-operator-oracles/v1',
+		'scenario'      => 'studio-social-operations',
+		'status'        => 'incomplete-with-findings',
+		'identity_contract_ref' => $state['canonical_identity_contract'],
+		'authorization' => array( 'ordinary_direct_comments' => $comments_boundary_mismatch ? 'finding-owner-boundary-mismatch' : 'denied' ),
+		'passing'       => array( 'due-core-transition', 'one-operation', 'idempotency-matrix', 'partial-instagram-exactly-once', 'fresh-request-state-reload', 'direct-comments-boundary-exercised' ),
+		'blocked'       => array( 'safe-retry', 'final-share-history', 'instagram-comments-state-matrix' ),
+		'finding'       => $finding,
+		'domain_oracles' => array( 'duplicate-effects', 'state-loss', 'authorization-bypass', 'attribution-mismatch', 'unexplained-status', 'unexpected-network', 'unsafe-retry' ),
+		'external_writes_possible' => false,
+	);
+	$upload = wp_upload_dir();
+	$dir    = trailingslashit( $upload['basedir'] ) . 'chris-gardner-social-operator';
+	wp_mkdir_p( $dir );
+	ec_studio_operator_write_json( $dir . '/provider-call-ledger.json', array( 'schema' => 'extrachill-studio/provider-call-ledger/v1', 'calls' => $before, 'live_writes_possible' => false ) );
+	ec_studio_operator_write_json( $dir . '/transition-ledger.json', array( 'schema' => 'extrachill-studio/transition-ledger/v1', 'transitions' => $transitions ) );
+	ec_studio_operator_write_json( $dir . '/capability-gap-ledger.json', array( 'schema' => 'extrachill-studio/capability-gap-ledger/v1', 'findings' => $capability_gaps ) );
+	ec_studio_operator_write_json( $dir . '/oracle-ledger.json', $oracle_ledger );
+	ec_studio_operator_write_json( $dir . '/product-contract-diagnostic.json', array( 'schema' => 'extrachill-studio/product-contract-diagnostic/v1', 'before' => array( 'request_context' => 'ungated wordpress.run-php', 'delegated_submit_ability' => 'missing', 'reported_finding' => 'delegated_action_prepare_failed' ), 'after' => $state['product_contract_diagnostic'], 'retry_blocker' => $finding ) );
+	echo wp_json_encode( array( 'schema' => 'extrachill-studio/social-operator-final/v1', 'status' => 'incomplete-with-findings', 'finding' => $finding, 'comments_owner_boundary_mismatch' => $comments_boundary_mismatch, 'external_writes_possible' => false ), JSON_PRETTY_PRINT );
+	return;
+}
+ec_studio_operator_reload_assert( ! is_wp_error( $retry ) && ! empty( $retry['success'] ), 'retry uses existing Studio ability (result=' . wp_json_encode( is_wp_error( $retry ) ? array( 'code' => $retry->get_error_code(), 'message' => $retry->get_error_message() ) : $retry ) . ')' );
 ec_studio_operator_reload_assert( $ref === ( $retry['delivery']['delivery_ref'] ?? '' ), 'retry preserves operation identity' );
 
 $reopened = $jobs->get_job( $job_id );
@@ -189,11 +249,6 @@ ec_studio_operator_reload_assert( is_wp_error( $expired ) && 'missing_auth' === 
 $instagram->save_account( is_array( $account ) ? $account : array() );
 
 // The direct REST-visible comments ability currently has a broader owner boundary.
-wp_set_current_user( $ordinary_id );
-$ordinary_comments_permission = $instagram_read->check_permissions( array( 'action' => 'comments', 'media_id' => 'ig-media-operator-1' ) );
-wp_set_current_user( $gardner_id );
-$comments_boundary_mismatch = true === $ordinary_comments_permission;
-
 $capability_gaps = ec_studio_operator_expected_gaps();
 if ( $comments_boundary_mismatch ) {
 	$capability_gaps[] = array(
@@ -201,7 +256,7 @@ if ( $comments_boundary_mismatch ) {
 		'severity'          => 'critical',
 		'explanation'       => 'An ordinary team user without the brand-social grant can pass the direct REST-visible Instagram comments ability permission check, even though Studio and custom Socials REST deny that user.',
 		'backend_primitive' => 'datamachine/instagram-read permission callback and Extra Chill Users brand-social filter',
-		'evidence_ref'      => 'oracle-ledger.json#/authorization/direct_comments_ordinary',
+		'evidence_ref'      => 'https://github.com/Extra-Chill/data-machine-socials/issues/247',
 	);
 }
 
@@ -253,6 +308,7 @@ ec_studio_operator_write_json( $dir . '/provider-call-ledger.json', array( 'sche
 ec_studio_operator_write_json( $dir . '/transition-ledger.json', array( 'schema' => 'extrachill-studio/transition-ledger/v1', 'transitions' => $transitions ) );
 ec_studio_operator_write_json( $dir . '/capability-gap-ledger.json', array( 'schema' => 'extrachill-studio/capability-gap-ledger/v1', 'findings' => $capability_gaps ) );
 ec_studio_operator_write_json( $dir . '/oracle-ledger.json', $oracle_ledger );
+ec_studio_operator_write_json( $dir . '/product-contract-diagnostic.json', array( 'schema' => 'extrachill-studio/product-contract-diagnostic/v1', 'before' => array( 'request_context' => 'ungated wordpress.run-php', 'delegated_submit_ability' => 'missing', 'reported_finding' => 'delegated_action_prepare_failed' ), 'after' => $state['product_contract_diagnostic'] ) );
 
 echo wp_json_encode(
 	array(

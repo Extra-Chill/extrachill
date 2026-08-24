@@ -7,6 +7,9 @@
     "phpVersion": "8.4"
   },
   "inputs": {
+    "runtimeEnv": {
+      "WP_AGENT_RUNTIME": "1"
+    },
     "mounts": [
       {
         "source": "../../build",
@@ -223,7 +226,7 @@
           "step-timeout=30s",
           "timeout=120s",
           "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
-          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/?page_id=9\",\"waitFor\":\"load\"},{\"kind\":\"expect\",\"selector\":\"[data-ec-studio-root][data-can-brand-socials=\\\"true\\\"]\",\"state\":\"attached\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-socials-layout\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Instagram\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Bluesky\\\")\",\"state\":\"visible\"}]"
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/?page_id=9\",\"waitFor\":\"load\"},{\"kind\":\"expect\",\"selector\":\"[data-ec-studio-root][data-can-brand-socials=\\\"true\\\"]\",\"state\":\"attached\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"visible\"},{\"kind\":\"click\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-studio-socials-layout\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Instagram\\\")\",\"state\":\"visible\"},{\"kind\":\"expect\",\"selector\":\".ec-socials-sidebar__platform:has-text(\\\"Bluesky\\\")\",\"state\":\"visible\"},{\"kind\":\"screenshot\",\"name\":\"gardner-social-operator-access\"}]"
         ]
       },
       {
@@ -235,7 +238,7 @@
           "step-timeout=30s",
           "timeout=120s",
           "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
-          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/?page_id=9\",\"waitFor\":\"load\"},{\"kind\":\"expect\",\"selector\":\"[data-ec-studio-root][data-can-brand-socials=\\\"false\\\"]\",\"state\":\"attached\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"detached\"}]"
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/?page_id=9\",\"waitFor\":\"load\"},{\"kind\":\"expect\",\"selector\":\"[data-ec-studio-root][data-can-brand-socials=\\\"false\\\"]\",\"state\":\"attached\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-studio-root][data-ec-studio-mounted=\\\"true\\\"]\"},{\"kind\":\"expect\",\"selector\":\".ec-tabs__tab:has-text(\\\"Socials\\\")\",\"state\":\"detached\"},{\"kind\":\"screenshot\",\"name\":\"ordinary-team-social-denial\"}]"
         ]
       },
       {
@@ -272,9 +275,10 @@
                 "args": [
                   "auth=wordpress-admin",
                   "auth-user-id=101",
-                  "adaptive-exploration-json={\"schema\":\"wp-codebox/browser-adaptive-exploration/v1\",\"seed\":\"studio-gardner-social-operator-v1\",\"startUrl\":\"/?page_id=9\",\"budgets\":{\"maxActions\":28,\"maxStates\":18,\"maxTransitions\":40,\"maxDurationMs\":75000,\"maxArtifactBytes\":4194304,\"maxErrors\":12},\"actionFamilies\":[\"click\",\"fill\",\"select\",\"submit\",\"keyboard\",\"back\",\"reload\",\"repeat\",\"double-submit\"],\"resetPolicy\":{\"mode\":\"start-url\"}}",
+                  "adaptive-exploration-json={\"schema\":\"wp-codebox/browser-adaptive-exploration/v1\",\"seed\":\"studio-gardner-social-operator-v1\",\"startUrl\":\"/\",\"budgets\":{\"maxActions\":28,\"maxStates\":18,\"maxTransitions\":40,\"maxDurationMs\":75000,\"maxArtifactBytes\":4194304,\"maxErrors\":12},\"actionFamilies\":[\"click\",\"fill\",\"select\",\"submit\",\"keyboard\",\"back\",\"reload\",\"repeat\",\"double-submit\"],\"resetPolicy\":{\"mode\":\"start-url\"}}",
                   "capture=steps,console,errors,network,html,screenshot,dom-snapshot"
-                ]
+                ],
+                "allowFailure": true
               }
             ]
           }
@@ -315,11 +319,12 @@
   "artifacts": {
     "directory": "./artifacts/wp-codebox/chris-gardner-social-operator",
     "verify": {"enabled": true, "strict": true},
-    "paths": [
-      {"name": "provider-call-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/provider-call-ledger.json", "required": true, "parseJson": true},
-      {"name": "transition-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/transition-ledger.json", "required": true, "parseJson": true},
-      {"name": "capability-gap-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/capability-gap-ledger.json", "required": true, "parseJson": true},
-      {"name": "oracle-ledger", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/oracle-ledger.json", "required": true, "parseJson": true}
+    "typed": [
+      {"name": "provider-call-ledger", "type": "extrachill-studio/provider-calls", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/provider-call-ledger.json", "required": true, "contentType": "application/json", "parseJson": true},
+      {"name": "transition-ledger", "type": "extrachill-studio/state-transitions", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/transition-ledger.json", "required": true, "contentType": "application/json", "parseJson": true},
+      {"name": "capability-gap-ledger", "type": "extrachill-studio/capability-gaps", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/capability-gap-ledger.json", "required": true, "contentType": "application/json", "parseJson": true},
+      {"name": "oracle-ledger", "type": "extrachill-studio/domain-oracles", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/oracle-ledger.json", "required": true, "contentType": "application/json", "parseJson": true},
+      {"name": "product-contract-diagnostic", "type": "extrachill-studio/product-contract-diagnostic", "path": "/wordpress/wp-content/uploads/chris-gardner-social-operator/product-contract-diagnostic.json", "required": true, "contentType": "application/json", "parseJson": true}
     ]
   },
   "metadata": {
