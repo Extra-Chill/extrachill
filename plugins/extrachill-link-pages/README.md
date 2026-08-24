@@ -22,8 +22,10 @@ provider, but delegate generic persistence to:
 
 - `ec_read_link_page_persistence( int $link_page_id, array $overrides = array() )`
 - `ec_save_link_page_persistence( int $link_page_id, array $data )`
+- `ec_save_link_page_persistence_composed( int $link_page_id, array $data, callable $finalizer )`
 - `ec_create_owned_link_page( string|array $owner, string $title, string $slug, bool $force = false )`
 - `ec_provision_owned_link_page( string|array $owner, string $title, string $slug, bool $force = false, ?callable $precondition = null )`
+- `ec_provision_owned_link_page_composed( string|array $owner, string $title, string $slug, callable $finalizer, bool $force = false, ?callable $precondition = null )`
 
 The create primitive validates the canonical owner, rejects an occupied slug,
 verifies that WordPress did not suffix the requested slug, assigns the owner,
@@ -34,6 +36,14 @@ The provisioning primitive serializes by canonical owner and returns
 `array( 'link_page_id' => int, 'created' => bool )`. Its optional precondition
 runs inside the owner lock immediately before lookup or creation; the historical
 create wrapper continues returning only the integer ID.
+
+The composed save finalizer receives `( $link_page_id, $persistence )`; the
+composed provision finalizer receives `( $link_page_id, $owner_reference )` for
+new, force-replaced, and existing exact owner pages. Finalizers return exactly
+`true` or `WP_Error`. Both run under the exact Link Page lock before any generic
+success hook. On failure, generic save metadata is restored or a newly created
+page is removed; an existing page remains unchanged. The finalizer owns
+compensation for state outside the generic Link Page storage snapshots.
 
 Public display is registered with
 `ec_register_link_page_public_projection_provider( $name, $callback, $priority = 10 )`.

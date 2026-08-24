@@ -180,6 +180,10 @@ function ec_link_pages_runtime_function_contract() {
 			'required' => 2,
 			'total'    => 2,
 		),
+		'ec_save_link_page_persistence_composed'           => array(
+			'required' => 3,
+			'total'    => 3,
+		),
 		'ec_create_owned_link_page'                        => array(
 			'required' => 3,
 			'total'    => 4,
@@ -187,6 +191,14 @@ function ec_link_pages_runtime_function_contract() {
 		'ec_provision_owned_link_page'                     => array(
 			'required' => 3,
 			'total'    => 5,
+		),
+		'ec_provision_owned_link_page_composed'            => array(
+			'required' => 4,
+			'total'    => 6,
+		),
+		'ec_provision_owned_link_page_internal'            => array(
+			'required' => 6,
+			'total'    => 6,
 		),
 		'ec_invoke_link_page_provision_precondition'       => array(
 			'required' => 2,
@@ -358,6 +370,14 @@ function ec_link_pages_runtime_function_contract() {
 			'required' => 2,
 			'total'    => 2,
 		),
+		'ec_save_link_page_persistence_composed_locked'  => array(
+			'required' => 3,
+			'total'    => 3,
+		),
+		'ec_invoke_link_page_mutation_finalizer'         => array(
+			'required' => 2,
+			'total'    => 2,
+		),
 		'ec_purge_link_page_after_mutation'              => array(
 			'required' => 1,
 			'total'    => 1,
@@ -372,6 +392,10 @@ function ec_link_pages_runtime_function_contract() {
 		),
 		'ec_compensate_link_page_creation_error'         => array(
 			'required' => 4,
+			'total'    => 4,
+		),
+		'ec_prepare_owned_link_page_creation'            => array(
+			'required' => 3,
 			'total'    => 4,
 		),
 		'ec_cleanup_expired_link_page_links'             => array(
@@ -541,7 +565,7 @@ $ec_link_pages_owner_contract         = $ec_link_pages_subset( array( 'ec_link_p
 $ec_link_pages_lifecycle_contract     = $ec_link_pages_subset( array( 'ec_get_link_page_storage_blog_id', 'ec_with_link_page_storage_blog', 'ec_register_link_page_post_type', 'ec_register_link_page_post_type_if_ready', 'ec_restore_link_pages_site_context', 'ec_invoke_link_pages_site_callback', 'ec_for_each_link_pages_site', 'ec_flush_link_pages_site', 'ec_prepare_link_pages_activation', 'ec_activate_link_pages', 'ec_deactivate_link_pages', 'ec_unregister_and_flush_link_pages_site', 'ec_link_pages_is_network_active', 'ec_initialize_link_pages_site', 'ec_flush_queued_link_pages_sites' ) );
 $ec_link_pages_compatibility_contract = $ec_link_pages_subset( array( 'ec_register_link_page_public_compatibility_aliases' ) );
 $ec_link_pages_operation_contract     = $ec_link_pages_subset( array( 'ec_link_page_operation_provider_registry', 'ec_register_link_page_operation_provider', 'ec_resolve_link_page_operation_target', 'ec_invoke_link_page_operation_callback', 'ec_get_link_page_operation_provider', 'ec_prepare_link_page_operation', 'ec_read_link_page', 'ec_save_link_page' ) );
-$ec_link_pages_storage_contract       = $ec_link_pages_subset( array( 'ec_link_page_defaults', 'ec_link_page_defaults_for', 'ec_link_page_default', 'ec_link_page_id_meta_keys', 'ec_link_page_needs_id_assignment', 'ec_with_link_page_lock_scope', 'ec_with_link_page_id_lock', 'ec_link_page_next_element_id', 'ec_link_page_sync_element_counter', 'ec_sanitize_link_page_links', 'ec_collect_link_page_element_ids', 'ec_sanitize_link_page_links_locked', 'ec_sanitize_link_page_css_vars', 'ec_sanitize_link_page_settings', 'ec_read_link_page_persistence', 'ec_snapshot_link_page_meta', 'ec_write_link_page_meta', 'ec_restore_link_page_meta_snapshots', 'ec_compensate_link_page_save_error', 'ec_purge_link_page_after_mutation', 'ec_save_link_page_persistence', 'ec_save_link_page_persistence_locked', 'ec_compensate_created_link_page', 'ec_restore_replaced_link_page', 'ec_compensate_link_page_creation_error', 'ec_provision_owned_link_page', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page', 'ec_create_owned_link_page_unlocked', 'ec_cleanup_expired_link_page_links', 'ec_purge_link_page_before_delete', 'ec_schedule_link_page_expiration_cleanup', 'ec_unschedule_link_page_expiration_cleanup' ) );
+$ec_link_pages_storage_contract       = $ec_link_pages_subset( array( 'ec_link_page_defaults', 'ec_link_page_defaults_for', 'ec_link_page_default', 'ec_link_page_id_meta_keys', 'ec_link_page_needs_id_assignment', 'ec_with_link_page_lock_scope', 'ec_with_link_page_id_lock', 'ec_link_page_next_element_id', 'ec_link_page_sync_element_counter', 'ec_sanitize_link_page_links', 'ec_collect_link_page_element_ids', 'ec_sanitize_link_page_links_locked', 'ec_sanitize_link_page_css_vars', 'ec_sanitize_link_page_settings', 'ec_read_link_page_persistence', 'ec_snapshot_link_page_meta', 'ec_write_link_page_meta', 'ec_restore_link_page_meta_snapshots', 'ec_compensate_link_page_save_error', 'ec_purge_link_page_after_mutation', 'ec_save_link_page_persistence', 'ec_save_link_page_persistence_composed', 'ec_save_link_page_persistence_locked', 'ec_save_link_page_persistence_composed_locked', 'ec_invoke_link_page_mutation_finalizer', 'ec_compensate_created_link_page', 'ec_restore_replaced_link_page', 'ec_compensate_link_page_creation_error', 'ec_provision_owned_link_page', 'ec_provision_owned_link_page_composed', 'ec_provision_owned_link_page_internal', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page', 'ec_create_owned_link_page_unlocked', 'ec_prepare_owned_link_page_creation', 'ec_cleanup_expired_link_page_links', 'ec_purge_link_page_before_delete', 'ec_schedule_link_page_expiration_cleanup', 'ec_unschedule_link_page_expiration_cleanup' ) );
 $ec_link_pages_projection_contract    = $ec_link_pages_subset( array( 'ec_link_page_public_projection_registry', 'ec_register_link_page_public_projection_provider', 'ec_can_register_link_page_public_projection_provider', 'ec_invoke_link_page_public_projection_callback', 'ec_validate_link_page_public_projection', 'ec_sanitize_link_page_public_projection_snapshot', 'ec_save_link_page_public_projection_snapshot', 'ec_read_link_page_public_projection_snapshot', 'ec_render_stored_link_page_social_links', 'ec_get_link_page_public_projection', 'ec_render_link_page_public_components', 'ec_prepare_link_page_public_render' ) );
 $ec_link_pages_public_contract        = $ec_link_pages_subset( array( 'ec_is_link_page_public_host', 'ec_get_link_page_public_url', 'ec_get_link_page_public_query_var', 'ec_get_link_page_public_query_vars', 'ec_get_link_page_public_exclusions', 'ec_link_page_public_urls', 'ec_link_page_cache_post_change_urls', 'ec_register_link_page_public_rewrites', 'ec_add_link_page_public_query_vars', 'ec_terminate_link_page_request', 'ec_maybe_flush_link_page_public_rewrites', 'ec_prevent_link_page_public_canonical_redirect', 'ec_link_page_public_redirect', 'ec_resolve_link_page_public_query', 'ec_link_page_public_template', 'ec_redirect_direct_link_page_request', 'ec_enqueue_link_page_minimal_assets', 'ec_link_page_css_variables_style_block', 'ec_render_link_page_section', 'ec_render_link_page_public_head', 'ec_link_page_sitemap_urls' ) );
 

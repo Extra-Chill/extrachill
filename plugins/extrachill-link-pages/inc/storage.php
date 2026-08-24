@@ -492,14 +492,19 @@ function ec_purge_link_page_after_mutation( $link_page_id ) {
 
 /** Persist only generic Link Page fields. */
 function ec_save_link_page_persistence( $link_page_id, $save_data ) {
+	return ec_save_link_page_persistence_composed( $link_page_id, $save_data, '__return_true' );
+}
+
+/** Persist generic fields and finalize owner state under one exact page lock. */
+function ec_save_link_page_persistence_composed( $link_page_id, $save_data, $finalizer ) {
 	$storage_blog_id = ec_get_link_page_storage_blog_id();
 	if ( ! $storage_blog_id ) {
 		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
 	}
 	if ( get_current_blog_id() !== $storage_blog_id ) {
 		return ec_with_link_page_storage_blog(
-			static function () use ( $link_page_id, $save_data ) {
-				return ec_save_link_page_persistence( $link_page_id, $save_data );
+			static function () use ( $link_page_id, $save_data, $finalizer ) {
+				return ec_save_link_page_persistence_composed( $link_page_id, $save_data, $finalizer );
 			}
 		);
 	}
@@ -507,16 +512,24 @@ function ec_save_link_page_persistence( $link_page_id, $save_data ) {
 	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) || ! is_array( $save_data ) ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid Link Page save request.' );
 	}
+	if ( ! is_callable( $finalizer ) ) {
+		return new WP_Error( 'invalid_link_page_mutation_finalizer', 'The Link Page mutation finalizer is invalid.' );
+	}
 	return ec_with_link_page_lock_scope(
 		$link_page_id,
-		static function () use ( $link_page_id, $save_data ) {
-			return ec_save_link_page_persistence_locked( $link_page_id, $save_data );
+		static function () use ( $link_page_id, $save_data, $finalizer ) {
+			return ec_save_link_page_persistence_composed_locked( $link_page_id, $save_data, $finalizer );
 		}
 	);
 }
 
 /** Persist generic fields while the exact per-page advisory lock is held. */
 function ec_save_link_page_persistence_locked( $link_page_id, $save_data ) {
+	return ec_save_link_page_persistence_composed_locked( $link_page_id, $save_data, '__return_true' );
+}
+
+/** Persist and finalize a composed save while the exact page lock is held. */
+function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_data, $finalizer ) {
 	$meta_keys = array(
 		'links'                   => '_link_page_links',
 		'css_vars'                => '_link_page_custom_css_vars',
@@ -607,8 +620,44 @@ function ec_save_link_page_persistence_locked( $link_page_id, $save_data ) {
 			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $primary );
 		}
 	}
+	$persistence = ec_read_link_page_persistence( $link_page_id );
+	if ( is_wp_error( $persistence ) ) {
+		return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $persistence );
+	}
+	$finalized = ec_invoke_link_page_mutation_finalizer( $finalizer, array( $link_page_id, $persistence ) );
+	if ( is_wp_error( $finalized ) ) {
+		return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $finalized );
+	}
 	do_action( 'ec_link_page_persistence_saved', $link_page_id, array_keys( $writes ) );
-	return ec_read_link_page_persistence( $link_page_id );
+	return $persistence;
+}
+
+/** Invoke a composed mutation finalizer without allowing storage-context leakage. */
+function ec_invoke_link_page_mutation_finalizer( $finalizer, $arguments ) {
+	if ( ! is_callable( $finalizer ) || ! is_array( $arguments ) ) {
+		return new WP_Error( 'invalid_link_page_mutation_finalizer', 'The Link Page mutation finalizer is invalid.' );
+	}
+	$blog_id  = get_current_blog_id();
+	$stack    = isset( $GLOBALS['_wp_switched_stack'] ) && is_array( $GLOBALS['_wp_switched_stack'] ) ? $GLOBALS['_wp_switched_stack'] : array();
+	$switched = ! empty( $GLOBALS['switched'] );
+	$result   = null;
+	try {
+		$result = call_user_func_array( $finalizer, $arguments );
+	} catch ( Throwable $throwable ) {
+		$result = new WP_Error( 'link_page_mutation_finalizer_exception', 'The Link Page mutation finalizer failed with an exception.' );
+	}
+	$leaked   = get_current_blog_id() !== $blog_id || ( $GLOBALS['_wp_switched_stack'] ?? array() ) !== $stack || ! empty( $GLOBALS['switched'] ) !== $switched;
+	$restored = ec_restore_link_pages_site_context( $blog_id, $stack, $switched );
+	if ( ! $restored ) {
+		return new WP_Error( 'link_page_mutation_finalizer_restore_failed', 'The Link Page mutation finalizer context could not be restored.' );
+	}
+	if ( $leaked ) {
+		return new WP_Error( 'link_page_mutation_finalizer_context_leak', 'The Link Page mutation finalizer leaked its site context.' );
+	}
+	if ( true !== $result && ! is_wp_error( $result ) ) {
+		return new WP_Error( 'link_page_mutation_finalizer_invalid_result', 'The Link Page mutation finalizer returned an invalid result.' );
+	}
+	return $result;
 }
 
 /** Remove a newly inserted page after failed ownership assignment. */
@@ -649,6 +698,19 @@ function ec_compensate_link_page_creation_error( $error, $existing, $owner_refer
 
 /** Provision under the canonical owner lock and report whether this call won. */
 function ec_provision_owned_link_page( $owner_reference, $title, $slug, $force = false, $precondition = null ) {
+	return ec_provision_owned_link_page_internal( $owner_reference, $title, $slug, null, $force, $precondition );
+}
+
+/** Provision and finalize owner state before reporting successful creation. */
+function ec_provision_owned_link_page_composed( $owner_reference, $title, $slug, $finalizer, $force = false, $precondition = null ) {
+	if ( ! is_callable( $finalizer ) ) {
+		return new WP_Error( 'invalid_link_page_mutation_finalizer', 'The Link Page mutation finalizer is invalid.' );
+	}
+	return ec_provision_owned_link_page_internal( $owner_reference, $title, $slug, $finalizer, $force, $precondition );
+}
+
+/** Run direct or composed provisioning under the canonical owner lock. */
+function ec_provision_owned_link_page_internal( $owner_reference, $title, $slug, $finalizer, $force, $precondition ) {
 	global $wpdb;
 	$storage_blog_id = ec_get_link_page_storage_blog_id();
 	if ( ! $storage_blog_id ) {
@@ -656,8 +718,8 @@ function ec_provision_owned_link_page( $owner_reference, $title, $slug, $force =
 	}
 	if ( get_current_blog_id() !== $storage_blog_id ) {
 		return ec_with_link_page_storage_blog(
-			static function () use ( $owner_reference, $title, $slug, $force, $precondition ) {
-				return ec_provision_owned_link_page( $owner_reference, $title, $slug, $force, $precondition );
+			static function () use ( $owner_reference, $title, $slug, $finalizer, $force, $precondition ) {
+				return ec_provision_owned_link_page_internal( $owner_reference, $title, $slug, $finalizer, $force, $precondition );
 			}
 		);
 	}
@@ -688,13 +750,46 @@ function ec_provision_owned_link_page( $owner_reference, $title, $slug, $force =
 			return $existing;
 		}
 		if ( $existing && ! $force ) {
+			if ( null !== $finalizer ) {
+				$finalized = ec_with_link_page_lock_scope(
+					$existing,
+					static function () use ( $existing, $owner_reference, $finalizer ) {
+						return ec_invoke_link_page_mutation_finalizer( $finalizer, array( (int) $existing, $owner_reference ) );
+					},
+					'combined'
+				);
+				if ( is_wp_error( $finalized ) ) {
+					return $finalized;
+				}
+			}
 			return array(
 				'link_page_id' => (int) $existing,
 				'created'      => false,
 			);
 		}
-		$result = ec_create_owned_link_page_unlocked( $owner_reference, $title, $slug, $force );
-		return is_wp_error( $result ) ? $result : array(
+		$previous_slug = $existing && $force ? (string) get_post_field( 'post_name', $existing ) : '';
+		$result        = ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $force );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		if ( null !== $finalizer ) {
+			$finalized = ec_with_link_page_lock_scope(
+				$result,
+				static function () use ( $result, $owner_reference, $finalizer ) {
+					return ec_invoke_link_page_mutation_finalizer( $finalizer, array( (int) $result, $owner_reference ) );
+				},
+				'combined'
+			);
+			if ( is_wp_error( $finalized ) ) {
+				$compensated = ec_compensate_created_link_page( $result );
+				if ( is_wp_error( $compensated ) ) {
+					return new WP_Error( 'link_page_creation_compensation_failed', 'The failed Link Page creation could not be compensated.', array( 'cause' => $finalized->get_error_code() ) );
+				}
+				return ec_compensate_link_page_creation_error( $finalized, $existing, $owner_reference, $previous_slug );
+			}
+		}
+		do_action( 'ec_owned_link_page_created', $result, $owner_reference, (bool) $force );
+		return array(
 			'link_page_id' => (int) $result,
 			'created'      => true,
 		);
@@ -743,6 +838,15 @@ function ec_create_owned_link_page( $owner_reference, $title, $slug, $force = fa
 
 /** Create and assign a page while the canonical owner lock is held. */
 function ec_create_owned_link_page_unlocked( $owner_reference, $title, $slug, $force = false ) {
+	$result = ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $force );
+	if ( ! is_wp_error( $result ) ) {
+		do_action( 'ec_owned_link_page_created', $result, ec_normalize_link_page_owner_reference( $owner_reference ), (bool) $force );
+	}
+	return $result;
+}
+
+/** Create and assign a page without emitting its deferred success event. */
+function ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $force = false ) {
 	$owner_reference = ec_normalize_link_page_owner_reference( $owner_reference );
 	$title           = sanitize_text_field( (string) $title );
 	$slug            = sanitize_title( (string) $slug );
@@ -823,7 +927,6 @@ function ec_create_owned_link_page_unlocked( $owner_reference, $title, $slug, $f
 		$error       = is_wp_error( $compensated ) ? $compensated : new WP_Error( 'link_page_default_styles_failed', 'The Link Page default styles could not be persisted.' );
 		return ec_compensate_link_page_creation_error( $error, $existing, $owner_reference, $previous_slug );
 	}
-	do_action( 'ec_owned_link_page_created', $link_page_id, $owner_reference, (bool) $force );
 	return (int) $link_page_id;
 }
 

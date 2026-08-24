@@ -63,10 +63,210 @@ final class PublicRuntimeTest extends TestCase {
 		$first = ec_provision_owned_link_page( 'term:7:place:30', 'Place', 'place' );
 		$this->assertTrue( $first['created'] );
 		$this->assertIsInt( $first['link_page_id'] );
+		$this->assertSame( 1, $GLOBALS['ec_test']['lock_acquires'] );
+		$this->assertSame( 1, $GLOBALS['ec_test']['lock_releases'] );
 		$second = ec_provision_owned_link_page( 'term:7:place:30', 'Ignored', 'other' );
 		$this->assertFalse( $second['created'] );
 		$this->assertSame( $first['link_page_id'], $second['link_page_id'] );
+		$this->assertSame( 2, $GLOBALS['ec_test']['lock_acquires'] );
+		$this->assertSame( 2, $GLOBALS['ec_test']['lock_releases'] );
 		$this->assertSame( $first['link_page_id'], ec_create_owned_link_page( 'term:7:place:30', 'Ignored', 'other' ) );
+	}
+
+	public function test_composed_save_finalizes_under_exact_lock_before_one_success_hook(): void {
+		update_post_meta( 40, '_link_page_bio_text', 'Before' );
+		$result = ec_save_link_page_persistence_composed(
+			40,
+			array( 'bio' => 'After' ),
+			static function ( $link_page_id, $persistence ) {
+				$GLOBALS['ec_test']['finalizer_lock'] = array(
+					$GLOBALS['ec_test']['advisory_lock_held'],
+					$GLOBALS['ec_link_page_lock_scope']['link_page_id'] ?? 0,
+				);
+				do_action( 'ec_test_owner_finalized', $link_page_id, $persistence['bio'] );
+				return true;
+			}
+		);
+
+		$this->assertSame( 'After', $result['bio'] );
+		$this->assertSame( array( true, 40 ), $GLOBALS['ec_test']['finalizer_lock'] );
+		$hooks = array_values( array_filter( array_column( $GLOBALS['ec_test']['fired_actions'], 0 ), static function ( $hook ) { return in_array( $hook, array( 'ec_test_owner_finalized', 'ec_link_page_persistence_saved' ), true ); } ) );
+		$this->assertSame( array( 'ec_test_owner_finalized', 'ec_link_page_persistence_saved' ), $hooks );
+		$this->assertSame( 1, count( array_keys( $hooks, 'ec_link_page_persistence_saved', true ) ) );
+	}
+
+	public function test_composed_save_finalizer_failure_restores_generic_storage_without_success_hook(): void {
+		update_post_meta( 40, '_link_page_bio_text', 'Before' );
+		$result = ec_save_link_page_persistence_composed(
+			40,
+			array( 'bio' => 'After' ),
+			static function () { return new WP_Error( 'owner_finalization_failed', 'Failed.' ); }
+		);
+
+		$this->assertSame( 'owner_finalization_failed', $this->errorCode( $result ) );
+		$this->assertSame( 'Before', get_post_meta( 40, '_link_page_bio_text', true ) );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'] ?? array(), static function ( $action ) { return 'ec_link_page_persistence_saved' === $action[0]; } ) );
+	}
+
+	public function test_composed_save_reports_compensation_failure_with_finalizer_cause(): void {
+		update_post_meta( 40, '_link_page_bio_text', 'Before' );
+		$GLOBALS['ec_test']['meta_write_calls']     = 0;
+		$GLOBALS['ec_test']['fail_meta_write_calls'] = array( 2 );
+		$result = ec_save_link_page_persistence_composed(
+			40,
+			array( 'bio' => 'After' ),
+			static function () { return new WP_Error( 'owner_finalization_failed', 'Failed.' ); }
+		);
+
+		$this->assertSame( 'link_page_save_compensation_failed', $this->errorCode( $result ) );
+		$this->assertSame( 'owner_finalization_failed', $result->get_error_data()['cause'] );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'] ?? array(), static function ( $action ) { return 'ec_link_page_persistence_saved' === $action[0]; } ) );
+	}
+
+	public function test_composed_provision_finalizes_under_page_lock_before_one_creation_hook(): void {
+		$result = ec_provision_owned_link_page_composed(
+			'term:7:place:30',
+			'Place',
+			'place',
+			static function ( $link_page_id, $owner_reference ) {
+				$GLOBALS['ec_test']['finalizer_lock'] = array(
+					$GLOBALS['ec_test']['advisory_lock_held'],
+					$GLOBALS['ec_link_page_lock_scope']['link_page_id'] ?? 0,
+				);
+				do_action( 'ec_test_owner_finalized', $link_page_id, $owner_reference );
+				return true;
+			}
+		);
+
+		$this->assertTrue( $result['created'] );
+		$this->assertSame( array( true, $result['link_page_id'] ), $GLOBALS['ec_test']['finalizer_lock'] );
+		$this->assertSame( 2, $GLOBALS['ec_test']['lock_acquires'] );
+		$this->assertSame( 2, $GLOBALS['ec_test']['lock_releases'] );
+		$this->assertFalse( $GLOBALS['ec_test']['advisory_lock_held'] );
+		$hooks = array_values( array_filter( array_column( $GLOBALS['ec_test']['fired_actions'], 0 ), static function ( $hook ) { return in_array( $hook, array( 'ec_test_owner_finalized', 'ec_owned_link_page_created' ), true ); } ) );
+		$this->assertSame( array( 'ec_test_owner_finalized', 'ec_owned_link_page_created' ), $hooks );
+		$this->assertSame( 1, count( array_keys( $hooks, 'ec_owned_link_page_created', true ) ) );
+	}
+
+	public function test_composed_existing_provision_finalizes_under_exact_lock_without_creation_hook(): void {
+		$existing = ec_provision_owned_link_page( 'term:7:place:30', 'Place', 'place' );
+		$GLOBALS['ec_test']['fired_actions'] = array();
+		$GLOBALS['ec_test']['lock_acquires'] = 0;
+		$GLOBALS['ec_test']['lock_releases'] = 0;
+		$result = ec_provision_owned_link_page_composed(
+			'term:7:place:30',
+			'Ignored',
+			'other',
+			static function ( $link_page_id, $owner_reference ) {
+				$GLOBALS['ec_test']['existing_finalizer'] = array(
+					$link_page_id,
+					$owner_reference,
+					$GLOBALS['ec_test']['advisory_lock_held'],
+					$GLOBALS['ec_link_page_lock_scope']['link_page_id'] ?? 0,
+				);
+				return true;
+			}
+		);
+
+		$this->assertSame( array( 'link_page_id' => $existing['link_page_id'], 'created' => false ), $result );
+		$this->assertSame( array( $existing['link_page_id'], 'term:7:place:30', true, $existing['link_page_id'] ), $GLOBALS['ec_test']['existing_finalizer'] );
+		$this->assertSame( 2, $GLOBALS['ec_test']['lock_acquires'] );
+		$this->assertSame( 2, $GLOBALS['ec_test']['lock_releases'] );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'], static function ( $action ) { return 'ec_owned_link_page_created' === $action[0]; } ) );
+	}
+
+	public function test_composed_existing_provision_finalizer_failure_preserves_page(): void {
+		$existing = ec_provision_owned_link_page( 'term:7:place:30', 'Place', 'place' );
+		$before_posts = $GLOBALS['ec_test']['blogs'][4]['posts'];
+		$before_meta  = $GLOBALS['ec_test']['blogs'][4]['post_meta'];
+		$GLOBALS['ec_test']['fired_actions'] = array();
+		$result = ec_provision_owned_link_page_composed(
+			'term:7:place:30',
+			'Ignored',
+			'other',
+			static function () { return new WP_Error( 'owner_finalization_failed', 'Failed.' ); }
+		);
+
+		$this->assertSame( 'owner_finalization_failed', $this->errorCode( $result ) );
+		$this->assertSame( $before_posts, $GLOBALS['ec_test']['blogs'][4]['posts'] );
+		$this->assertSame( $before_meta, $GLOBALS['ec_test']['blogs'][4]['post_meta'] );
+		$this->assertSame( $existing['link_page_id'], ec_get_link_page_id_for_owner( 'term:7:place:30' ) );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'], static function ( $action ) { return 'ec_owned_link_page_created' === $action[0]; } ) );
+	}
+
+	public function test_composed_existing_provision_finalizer_context_leak_fails_closed(): void {
+		$existing = ec_provision_owned_link_page( 'term:7:place:30', 'Place', 'place' );
+		$before = $GLOBALS['ec_test']['blogs'][4]['posts'];
+		$result = ec_provision_owned_link_page_composed(
+			'term:7:place:30',
+			'Ignored',
+			'other',
+			static function () { switch_to_blog( 7 ); return true; }
+		);
+
+		$this->assertSame( 'link_page_mutation_finalizer_context_leak', $this->errorCode( $result ) );
+		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( $before, $GLOBALS['ec_test']['blogs'][4]['posts'] );
+		$this->assertSame( $existing['link_page_id'], ec_get_link_page_id_for_owner( 'term:7:place:30' ) );
+	}
+
+	public function test_composed_provision_finalizer_failure_removes_page_without_creation_hook(): void {
+		$before = $GLOBALS['ec_test']['blogs'][4]['posts'];
+		$result = ec_provision_owned_link_page_composed(
+			'term:7:place:30',
+			'Place',
+			'place',
+			static function () { return new WP_Error( 'owner_finalization_failed', 'Failed.' ); }
+		);
+
+		$this->assertSame( 'owner_finalization_failed', $this->errorCode( $result ) );
+		$this->assertSame( $before, $GLOBALS['ec_test']['blogs'][4]['posts'] );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'] ?? array(), static function ( $action ) { return 'ec_owned_link_page_created' === $action[0]; } ) );
+	}
+
+	public function test_failed_composed_force_provision_restores_replaced_page(): void {
+		$this->assignPostOwner();
+		$before = $GLOBALS['ec_test']['blogs'][4]['posts'];
+		$result = ec_provision_owned_link_page_composed(
+			'post:4:profile:20',
+			'Replacement',
+			'legacy-page',
+			static function () { return new WP_Error( 'owner_finalization_failed', 'Failed.' ); },
+			true
+		);
+
+		$this->assertSame( 'owner_finalization_failed', $this->errorCode( $result ) );
+		$this->assertSame( $before, $GLOBALS['ec_test']['blogs'][4]['posts'] );
+		$this->assertSame( 'legacy-page', get_post_field( 'post_name', 40 ) );
+		$this->assertSame( array( 'post:4:profile:20' ), ec_get_stored_link_page_owner_references( 40 ) );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'] ?? array(), static function ( $action ) { return 'ec_owned_link_page_created' === $action[0]; } ) );
+	}
+
+	public function test_composed_provision_reports_creation_compensation_failure(): void {
+		$GLOBALS['ec_test']['fail_wp_delete_post'] = true;
+		$result = ec_provision_owned_link_page_composed(
+			'term:7:place:30',
+			'Place',
+			'place',
+			static function () { return new WP_Error( 'owner_finalization_failed', 'Failed.' ); }
+		);
+
+		$this->assertSame( 'link_page_creation_compensation_failed', $this->errorCode( $result ) );
+		$this->assertSame( 'owner_finalization_failed', $result->get_error_data()['cause'] );
+		$this->assertCount( 0, array_filter( $GLOBALS['ec_test']['fired_actions'] ?? array(), static function ( $action ) { return 'ec_owned_link_page_created' === $action[0]; } ) );
+	}
+
+	public function test_composed_mutation_api_signatures_and_finalizer_validation_are_exact(): void {
+		$signatures = array(
+			'ec_save_link_page_persistence_composed' => array( 3, 3 ),
+			'ec_provision_owned_link_page_composed'  => array( 4, 6 ),
+		);
+		foreach ( $signatures as $function => $expected ) {
+			$reflection = new ReflectionFunction( $function );
+			$this->assertSame( $expected, array( $reflection->getNumberOfRequiredParameters(), $reflection->getNumberOfParameters() ) );
+		}
+		$this->assertSame( 'invalid_link_page_mutation_finalizer', $this->errorCode( ec_save_link_page_persistence_composed( 40, array(), null ) ) );
+		$this->assertSame( 'invalid_link_page_mutation_finalizer', $this->errorCode( ec_provision_owned_link_page_composed( 'term:7:place:30', 'Place', 'place', null ) ) );
 	}
 
 	public function test_owner_locked_precondition_denial_creates_nothing(): void {

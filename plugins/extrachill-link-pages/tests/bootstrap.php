@@ -42,12 +42,19 @@ class EcTestWpdb {
 	public function get_var( $query ) {
 		if ( false !== strpos( $query, 'GET_LOCK' ) ) {
 			++$GLOBALS['ec_test']['lock_acquires'];
-			if ( ! empty( $GLOBALS['ec_test']['fail_advisory_lock'] ) || ! empty( $this->locks ) ) { return '0'; }
-			$this->locks[] = $query;
+			preg_match( "/GET_LOCK\('([^']+)'/", $query, $matches );
+			$lock_name = $matches[1] ?? $query;
+			if ( ! empty( $GLOBALS['ec_test']['fail_advisory_lock'] ) || isset( $this->locks[ $lock_name ] ) ) { return '0'; }
+			$this->locks[ $lock_name ] = true;
 			$GLOBALS['ec_test']['advisory_lock_held'] = true;
 			return '1';
 		}
-		if ( false !== strpos( $query, 'RELEASE_LOCK' ) ) { ++$GLOBALS['ec_test']['lock_releases']; $this->locks = array(); $GLOBALS['ec_test']['advisory_lock_held'] = false; }
+		if ( false !== strpos( $query, 'RELEASE_LOCK' ) ) {
+			++$GLOBALS['ec_test']['lock_releases'];
+			preg_match( "/RELEASE_LOCK\('([^']+)'/", $query, $matches );
+			unset( $this->locks[ $matches[1] ?? $query ] );
+			$GLOBALS['ec_test']['advisory_lock_held'] = ! empty( $this->locks );
+		}
 		return '1';
 	}
 }
@@ -301,7 +308,11 @@ function wp_update_post( $data, $wp_error = false ) {
 	foreach ( $data as $key => $value ) { if ( 'ID' !== $key ) { $post->{$key} = $value; } }
 	return (int) $post->ID;
 }
-function wp_delete_post( $post_id ) { unset( $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $post_id ], $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['post_meta'][ $post_id ] ); return (object) array( 'ID' => $post_id ); }
+function wp_delete_post( $post_id ) {
+	if ( ! empty( $GLOBALS['ec_test']['fail_wp_delete_post'] ) ) { return false; }
+	unset( $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $post_id ], $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['post_meta'][ $post_id ] );
+	return (object) array( 'ID' => $post_id );
+}
 function wp_get_attachment_url( $id ) { return $id ? 'https://media.example/' . $id . '.jpg' : false; }
 function current_time() { return (int) ( $GLOBALS['ec_test']['now'] ?? time() ); }
 function current_datetime() { return new DateTimeImmutable( '@' . (int) ( $GLOBALS['ec_test']['now'] ?? time() ) ); }
