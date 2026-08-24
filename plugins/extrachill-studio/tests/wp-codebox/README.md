@@ -24,8 +24,9 @@ The recipe declares `WP_AGENT_RUNTIME=1` through Codebox `runtimeEnv`, then conv
 Stubbed boundary:
 
 - Only final outbound provider HTTP is intercepted by `chris-gardner-social-operator-provider-stub.php` through `pre_http_request`.
+- The fixture removes only WordPress's named update-check callbacks and uses Core's ping-environment filter, so update and Pingomatic traffic never enters the provider-effect ledger.
 - The stub records method, host, path, provider-call classification, and optional payload hashes. It never records tokens, Authorization headers, request bodies, or secrets.
-- Unexpected external hosts fail closed. No live social write can leave the sandbox.
+- Unexpected external hosts, provider paths, and provider methods fail closed. No live social write can leave the sandbox.
 - No replacement `datamachine/v1/socials/*` route is registered.
 
 Build, validate, and replay:

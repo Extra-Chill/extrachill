@@ -6,6 +6,16 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Keep WordPress maintenance traffic out of the provider-effect fixture entirely.
+remove_action( 'admin_init', '_maybe_update_core' );
+remove_action( 'admin_init', '_maybe_update_plugins' );
+remove_action( 'admin_init', '_maybe_update_themes' );
+remove_action( 'wp_version_check', 'wp_version_check' );
+remove_action( 'wp_update_plugins', 'wp_update_plugins' );
+remove_action( 'wp_update_themes', 'wp_update_themes' );
+remove_action( 'init', 'wp_schedule_update_checks' );
+add_filter( 'wp_should_disable_pings_for_environment', '__return_true' );
+
 /** Append one sanitized provider call without request payloads or credentials. */
 function ec_studio_operator_record_provider_call( string $method, string $host, string $path, string $provider_call, string $payload_hash = '' ): void {
 	$ledger   = get_option( 'ec_studio_operator_provider_ledger', array() );
@@ -118,7 +128,7 @@ add_filter(
 		if ( 'bsky.social' === $host ) {
 			$state = get_option( 'ec_studio_operator_provider_state', array() );
 			$state = is_array( $state ) ? $state : array();
-			if ( str_ends_with( $path, '/com.atproto.server.createSession' ) ) {
+			if ( 'POST' === $method && str_ends_with( $path, '/com.atproto.server.createSession' ) ) {
 				ec_studio_operator_record_provider_call( $method, $host, $path, 'bluesky.create-session' );
 				return ec_studio_operator_http_response(
 					200,
@@ -130,7 +140,7 @@ add_filter(
 					)
 				);
 			}
-			if ( str_ends_with( $path, '/com.atproto.repo.uploadBlob' ) ) {
+			if ( 'POST' === $method && str_ends_with( $path, '/com.atproto.repo.uploadBlob' ) ) {
 				ec_studio_operator_record_provider_call( $method, $host, $path, 'bluesky.upload-blob' );
 				$remaining = max( 0, (int) ( $state['bluesky_failures_remaining'] ?? 0 ) );
 				if ( $remaining > 0 ) {
@@ -143,7 +153,7 @@ add_filter(
 					array( 'blob' => array( '$type' => 'blob', 'ref' => array( '$link' => 'fixture-blob-cid' ), 'mimeType' => 'image/jpeg', 'size' => 128 ) )
 				);
 			}
-			if ( str_ends_with( $path, '/com.atproto.repo.createRecord' ) ) {
+			if ( 'POST' === $method && str_ends_with( $path, '/com.atproto.repo.createRecord' ) ) {
 				$decoded      = json_decode( (string) ( $args['body'] ?? '' ), true );
 				$caption_hash = is_array( $decoded ) ? hash( 'sha256', (string) ( $decoded['record']['text'] ?? '' ) ) : '';
 				ec_studio_operator_record_provider_call( $method, $host, $path, 'bluesky.publish-effect', $caption_hash );

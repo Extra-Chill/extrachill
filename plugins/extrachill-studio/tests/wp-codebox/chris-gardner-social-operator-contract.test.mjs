@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -46,6 +47,12 @@ test("provider boundary is a top-level fail-closed MU-plugin with no fake routes
 	assert.doesNotMatch(stub, /register_rest_route/);
 	assert.doesNotMatch(`${stub}\n${deliver}\n${reload}`, /register_rest_route\s*\(/);
 	assert.equal(operator.inputs.externalServices.every(({ writes }) => writes === "forbidden"), true);
+});
+
+test("provider boundary isolates WordPress background traffic without weakening fail-closed matching", () => {
+	const contract = new URL("chris-gardner-social-operator-provider-contract.php", directory);
+	const output = execFileSync("php", [contract.pathname], { encoding: "utf8" });
+	assert.match(output, /Gardner provider boundary assertions passed/);
 });
 
 test("deterministic matrix and bounded adaptive domain oracles are declared", () => {
