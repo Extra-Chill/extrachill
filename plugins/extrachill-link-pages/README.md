@@ -37,6 +37,12 @@ The provisioning primitive serializes by canonical owner and returns
 runs inside the owner lock immediately before lookup or creation; the historical
 create wrapper continues returning only the integer ID.
 
+On multisite, canonical storage resolves in this order: a valid
+`EC_LINK_PAGE_STORAGE_BLOG_ID` configuration constant, the
+`ec_link_page_storage_blog_id` filter, then the persisted network option. The
+constant supports fresh network activation before host plugins can register
+runtime filters.
+
 The composed save finalizer receives `( $link_page_id, $persistence )`; the
 composed provision finalizer receives `( $link_page_id, $owner_reference )` for
 new, force-replaced, and existing exact owner pages. Finalizers return exactly

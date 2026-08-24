@@ -22,6 +22,12 @@ function ec_get_link_page_storage_blog_id() {
 	if ( ! $multisite ) {
 		return ec_validate_link_page_storage_blog_id( (int) get_current_blog_id() );
 	}
+	if ( defined( 'EC_LINK_PAGE_STORAGE_BLOG_ID' ) ) {
+		$explicit = ec_validate_link_page_storage_blog_id( (int) EC_LINK_PAGE_STORAGE_BLOG_ID );
+		if ( $explicit ) {
+			return $explicit;
+		}
+	}
 	if ( function_exists( 'has_filter' ) && has_filter( 'ec_link_page_storage_blog_id' ) ) {
 		$explicit = ec_validate_link_page_storage_blog_id( (int) apply_filters( 'ec_link_page_storage_blog_id', 0 ) );
 		if ( $explicit ) {

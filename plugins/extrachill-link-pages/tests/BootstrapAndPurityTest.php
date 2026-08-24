@@ -28,6 +28,16 @@ final class BootstrapAndPurityTest extends TestCase {
 		$this->assertSame( array( 'fallback' ), $result['fallback'] );
 	}
 
+	public function test_multisite_storage_constant_is_validated_before_activation(): void {
+		$valid = $this->fixture( 'storage-constant.php', array( 'STORAGE_BLOG_ID' => '4' ) );
+		$this->assertSame( 4, $valid['storage_blog_id'] );
+		$this->assertTrue( $valid['activation_ready'] );
+
+		$invalid = $this->fixture( 'storage-constant.php', array( 'STORAGE_BLOG_ID' => '999' ) );
+		$this->assertSame( 0, $invalid['storage_blog_id'] );
+		$this->assertSame( 'link_page_network_storage_unconfigured', $invalid['activation_error'] );
+	}
+
 	public function test_real_external_adapter_registers_against_runtime(): void {
 		$path = $this->artistWorktree();
 		$result = $this->fixture( 'external-adapter.php', array( 'ARTIST_PLATFORM_WORKTREE' => $path ) );
