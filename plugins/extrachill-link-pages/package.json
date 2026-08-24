@@ -1,0 +1,7 @@
+{
+  "name": "extrachill-link-pages-tests",
+  "private": true,
+  "scripts": {
+    "test": "node tests/js/assets.test.js && node tests/js/dom.test.js"
+  }
+}

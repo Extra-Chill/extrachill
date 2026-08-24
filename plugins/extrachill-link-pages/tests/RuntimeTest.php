@@ -29,7 +29,7 @@ final class RuntimeTest extends TestCase {
 
 	public function test_runtime_contract_and_post_type_are_legacy_compatible(): void {
 		$this->assertTrue( ec_link_pages_runtime_ready() );
-		$this->assertSame( '1', EC_LINK_PAGES_RUNTIME_API_VERSION );
+		$this->assertSame( '3', EC_LINK_PAGES_RUNTIME_API_VERSION );
 		$this->assertSame( 'artist_link_page', EC_LINK_PAGE_POST_TYPE );
 		unset( $GLOBALS['ec_test']['blogs'][4]['posts'][40] );
 		ec_register_link_page_post_type();

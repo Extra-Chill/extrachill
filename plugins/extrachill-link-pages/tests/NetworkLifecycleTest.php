@@ -7,31 +7,43 @@ final class NetworkLifecycleTest extends TestCase {
 		ec_test_reset();
 	}
 
-	public function test_network_activation_and_deactivation_flush_every_site_once_in_bounded_pages(): void {
+	public function test_network_activation_and_deactivation_touch_only_canonical_storage(): void {
 		for ( $site_id = 1; $site_id <= 205; ++$site_id ) {
 			$GLOBALS['ec_test']['blogs'][ $site_id ] = array( 'posts' => array(), 'post_meta' => array(), 'terms' => array() );
 		}
 		$GLOBALS['ec_test']['current_blog_id'] = 4;
 
 		$this->assertTrue( ec_prepare_link_pages_activation( true ) );
-		$this->assertCount( 205, $GLOBALS['ec_test']['site_flushes'] );
-		$this->assertSame( array( 100, 100, 100 ), array_map( static function ( $query ) { return $query['number']; }, $GLOBALS['ec_test']['site_queries'] ) );
-		$this->assertSame( array( 0, 100, 200 ), array_map( static function ( $query ) { return $query['offset']; }, $GLOBALS['ec_test']['site_queries'] ) );
+		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['site_flushes'] );
+		$this->assertSame( array(), $GLOBALS['ec_test']['site_queries'] ?? array() );
 		$this->assertSame( 4, get_current_blog_id() );
 		$this->assertSame( array(), $GLOBALS['_wp_switched_stack'] );
+		$this->assertSame( 4, $GLOBALS['ec_test']['site_options'][ EC_LINK_PAGE_STORAGE_BLOG_OPTION ] );
 
 		$GLOBALS['ec_test']['site_queries'] = array();
 		$GLOBALS['ec_test']['site_flushes'] = array();
 		$GLOBALS['ec_test']['site_rule_snapshots'] = array();
 		ec_deactivate_link_pages( true );
-		$this->assertCount( 205, $GLOBALS['ec_test']['site_flushes'] );
-		$this->assertSame( array( 1 => 1 ), $GLOBALS['ec_test']['unregister_calls'] );
+		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['site_flushes'] );
+		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['unregister_calls'] );
 		$this->assertFalse( post_type_exists( EC_LINK_PAGE_POST_TYPE ) );
 		foreach ( $GLOBALS['ec_test']['site_rule_snapshots'] as $snapshots ) {
 			$this->assertSame( array( false ), $snapshots );
 		}
-		$this->assertSame( array( 0, 100, 200 ), array_map( static function ( $query ) { return $query['offset']; }, $GLOBALS['ec_test']['site_queries'] ) );
+		$this->assertSame( array(), $GLOBALS['ec_test']['site_queries'] );
 		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( 4, $GLOBALS['ec_test']['site_options'][ EC_LINK_PAGE_STORAGE_BLOG_OPTION ] );
+	}
+
+	public function test_persisted_storage_is_used_without_provider_and_unconfigured_network_activation_fails(): void {
+		$GLOBALS['ec_test']['filters']['ec_link_page_storage_blog_id'] = array();
+		$this->assertSame( 0, ec_get_link_page_storage_blog_id() );
+		$result = ec_prepare_link_pages_activation( true );
+		$this->assertSame( 'link_page_network_storage_unconfigured', $result->get_error_code() );
+
+		$GLOBALS['ec_test']['site_options'][ EC_LINK_PAGE_STORAGE_BLOG_OPTION ] = 4;
+		$this->assertSame( 4, ec_get_link_page_storage_blog_id() );
+		$this->assertTrue( ec_prepare_link_pages_activation( true ) );
 	}
 
 	public function test_standalone_deactivation_unregisters_before_its_single_flush(): void {
@@ -59,7 +71,7 @@ final class NetworkLifecycleTest extends TestCase {
 	}
 
 	public function test_network_failure_is_explicit_and_restores_nested_entry_context(): void {
-		$GLOBALS['ec_test']['throw_flush_on_blog'] = 7;
+		$GLOBALS['ec_test']['throw_flush_on_blog'] = 4;
 		switch_to_blog( 7 );
 		switch_to_blog( 4 );
 
@@ -67,7 +79,7 @@ final class NetworkLifecycleTest extends TestCase {
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'ec_link_pages_site_callback_failed', $result->get_error_code() );
-		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['site_flushes'] );
+		$this->assertSame( array(), $GLOBALS['ec_test']['site_flushes'] ?? array() );
 		$this->assertSame( 4, get_current_blog_id() );
 		$this->assertSame( array( 4, 7 ), $GLOBALS['_wp_switched_stack'] );
 		$this->assertTrue( $GLOBALS['switched'] );
@@ -76,7 +88,8 @@ final class NetworkLifecycleTest extends TestCase {
 	}
 
 	public function test_activation_hook_terminates_on_observable_network_failure(): void {
-		$GLOBALS['ec_test']['fail_switch_to_blog'] = 7;
+		$GLOBALS['ec_test']['current_blog_id'] = 7;
+		$GLOBALS['ec_test']['fail_switch_to_blog'] = 4;
 
 		try {
 			ec_activate_link_pages( true );
@@ -86,7 +99,7 @@ final class NetworkLifecycleTest extends TestCase {
 		}
 
 		$this->assertSame( 'ec_link_pages_site_switch_failed', $GLOBALS['ec_link_pages_runtime_error']->get_error_code() );
-		$this->assertSame( 4, get_current_blog_id() );
+		$this->assertSame( 7, get_current_blog_id() );
 		$this->assertSame( array(), $GLOBALS['_wp_switched_stack'] );
 	}
 
@@ -107,7 +120,7 @@ final class NetworkLifecycleTest extends TestCase {
 
 		$GLOBALS['ec_test']['site_options']['active_sitewide_plugins'] = array( EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME => time() );
 		ec_initialize_link_pages_site( $site );
-		$this->assertSame( 1, $GLOBALS['ec_test']['site_flushes'][8] );
+		$this->assertArrayNotHasKey( 8, $GLOBALS['ec_test']['site_flushes'] ?? array() );
 		$this->assertSame( 4, get_current_blog_id() );
 		$this->assertSame( array(), $GLOBALS['_wp_switched_stack'] );
 	}
@@ -119,11 +132,11 @@ final class NetworkLifecycleTest extends TestCase {
 
 		ec_initialize_link_pages_site( (object) array( 'id' => 8 ) );
 		$this->assertArrayNotHasKey( 8, $GLOBALS['ec_test']['site_flushes'] ?? array() );
-		$this->assertSame( array( 8 => 8 ), $GLOBALS['ec_link_pages_queued_site_flushes'] );
+		$this->assertSame( array(), $GLOBALS['ec_link_pages_queued_site_flushes'] ?? array() );
 
 		$GLOBALS['ec_test']['did_actions']['wp_loaded'] = 1;
 		$this->assertTrue( ec_flush_queued_link_pages_sites() );
-		$this->assertSame( 1, $GLOBALS['ec_test']['site_flushes'][8] );
+		$this->assertArrayNotHasKey( 8, $GLOBALS['ec_test']['site_flushes'] ?? array() );
 		$this->assertSame( 4, get_current_blog_id() );
 		$this->assertSame( array(), $GLOBALS['_wp_switched_stack'] );
 	}

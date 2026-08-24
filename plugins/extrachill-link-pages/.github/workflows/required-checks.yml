@@ -5,7 +5,12 @@ on:
     paths:
       - '*.php'
       - 'inc/**/*.php'
+      - 'templates/**/*.php'
+      - 'assets/**/*.css'
+      - 'assets/**/*.js'
       - 'tests/**/*.php'
+      - 'tests/**/*.js'
+      - 'package.json'
       - 'tools/composer.json'
       - 'tools/composer.lock'
       - 'phpunit.xml.dist'
@@ -33,6 +38,11 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
       - name: Install development dependencies
         run: composer install --working-dir=tools --no-interaction --no-progress --prefer-dist
 
@@ -42,7 +52,7 @@ jobs:
       - name: Check runtime PHP syntax
         run: |
           php -l extrachill-link-pages.php
-          for file in inc/*.php; do
+          for file in inc/*.php templates/*.php templates/components/*.php; do
             php -l "$file"
           done
 
@@ -51,3 +61,6 @@ jobs:
 
       - name: Run standalone tests and package contract
         run: composer --working-dir=tools test
+
+      - name: Run public asset contract tests
+        run: npm test

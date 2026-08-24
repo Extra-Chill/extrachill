@@ -11,7 +11,7 @@ final class PackageContractTest extends TestCase {
 
 		$config = json_decode( file_get_contents( $root . '/homeboy.json' ), true );
 		$configured = $config['extensions']['wordpress']['settings']['package_excludes'];
-		foreach ( array( '/tests/', '/vendor/', '/tools/', '/composer.json', '/composer.lock', '/phpunit.xml.dist', '/phpcs.xml.dist', '/homeboy.json', '/docs/', '/.claude/', '/.datamachine/', '/.github/', '/AGENTS.md', '/CLAUDE.md' ) as $excluded ) {
+		foreach ( array( '/tests/', '/vendor/', '/tools/', '/composer.json', '/composer.lock', '/package.json', '/phpunit.xml.dist', '/phpcs.xml.dist', '/homeboy.json', '/docs/', '/.claude/', '/.datamachine/', '/.github/', '/AGENTS.md', '/CLAUDE.md' ) as $excluded ) {
 			$this->assertContains( $excluded, $configured );
 		}
 
@@ -30,10 +30,24 @@ final class PackageContractTest extends TestCase {
 		$this->assertSame(
 			array(
 				'README.md',
+				'assets/css/custom-social-icons.css',
+				'assets/css/extrch-links.css',
+				'assets/css/extrch-share-modal.css',
+				'assets/js/extrch-share-modal.js',
+				'assets/js/link-page-public-tracking.js',
+				'assets/js/link-page-youtube-embed.js',
 				'extrachill-link-pages.php',
+				'inc/compatibility.php',
 				'inc/operations.php',
 				'inc/owner-reference.php',
 				'inc/post-type.php',
+				'inc/public-projections.php',
+				'inc/public-runtime.php',
+				'inc/storage.php',
+				'templates/components/single-link.php',
+				'templates/link-page.php',
+				'templates/share-modal.php',
+				'templates/single-link-page.php',
 			),
 			$files
 		);

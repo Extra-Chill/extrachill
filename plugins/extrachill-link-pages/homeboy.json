@@ -10,6 +10,7 @@
           "/tools/",
           "/composer.json",
           "/composer.lock",
+          "/package.json",
           "/phpunit.xml.dist",
           "/phpcs.xml.dist",
           "/homeboy.json",

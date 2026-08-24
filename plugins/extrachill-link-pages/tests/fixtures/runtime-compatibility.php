@@ -7,7 +7,7 @@ if ( 'wrong_constants' === $mode ) {
 	define( 'EC_LINK_PAGE_OWNER_META_KEY', '_wrong_key' );
 }
 if ( 'wrong_api' === $mode ) {
-	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '2' );
+	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '1' );
 }
 
 class WP_Error {
@@ -33,9 +33,22 @@ function __( $text ) { return $text; }
 function _x( $text ) { return $text; }
 function esc_html( $value ) { return $value; }
 function get_site_option( $key, $default = false ) { return $default; }
+function update_site_option() { return true; }
+function get_current_blog_id() { return 1; }
+function get_main_site_id() { return 1; }
+function get_site( $id ) { return (object) array( 'blog_id' => $id ); }
+function apply_filters( $hook, $value ) { return $value; }
+function switch_to_blog() { return true; }
+function restore_current_blog() { return true; }
 
 if ( 'partial' === $mode ) {
 	function ec_link_page_owner_compatibility_registry() {}
+}
+if ( 'partial_storage' === $mode ) {
+	function ec_link_page_defaults() { return array(); }
+}
+if ( 'partial_lifecycle' === $mode ) {
+	function ec_get_link_page_storage_blog_id() { return 1; }
 }
 
 if ( 'incompatible_signature' === $mode ) {
@@ -70,7 +83,7 @@ if ( 'operations_only' === $mode ) {
 }
 require_once $root . '/extrachill-link-pages.php';
 $validation = ec_validate_link_pages_runtime();
-$activation = ec_prepare_link_pages_activation( false );
+$activation = function_exists( 'ec_prepare_link_pages_activation' ) ? ec_prepare_link_pages_activation( false ) : $validation;
 echo json_encode( array(
 	'validation' => is_wp_error( $validation ) ? $validation->get_error_code() : true,
 	'activation' => is_wp_error( $activation ) ? $activation->get_error_code() : true,

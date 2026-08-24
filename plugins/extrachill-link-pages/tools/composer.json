@@ -14,7 +14,7 @@
   },
   "scripts": {
     "test": "phpunit -c ../phpunit.xml.dist",
-    "lint:php": "phpcs --standard=../phpcs.xml.dist ../inc/ ../extrachill-link-pages.php"
+    "lint:php": "phpcs --standard=../phpcs.xml.dist ../inc/ ../templates/ ../extrachill-link-pages.php"
   },
   "config": {
     "platform": {

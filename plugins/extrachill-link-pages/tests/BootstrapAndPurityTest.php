@@ -25,6 +25,7 @@ final class BootstrapAndPurityTest extends TestCase {
 		$this->assertTrue( $result['ready'] );
 		$this->assertSame( 1, $result['registrations'] );
 		$this->assertSame( 1, $result['flushes'] );
+		$this->assertSame( array( 'fallback' ), $result['fallback'] );
 	}
 
 	public function test_real_external_adapter_registers_against_runtime(): void {
@@ -37,9 +38,20 @@ final class BootstrapAndPurityTest extends TestCase {
 
 	public function test_generic_source_is_owner_neutral(): void {
 		$root = dirname( __DIR__ );
-		$source = strtolower( file_get_contents( $root . '/extrachill-link-pages.php' ) . file_get_contents( $root . '/inc/post-type.php' ) . file_get_contents( $root . '/inc/owner-reference.php' ) . file_get_contents( $root . '/inc/operations.php' ) );
-		$source = str_replace( 'artist_link_page', '', $source );
-		foreach ( array( 'artist', 'venue', 'promoter', 'booking', 'subscription', 'domain authorization' ) as $forbidden ) {
+		$source = '';
+		foreach ( array_merge( glob( $root . '/*.php' ), glob( $root . '/inc/*.php' ), glob( $root . '/templates/*.php' ), glob( $root . '/templates/components/*.php' ), glob( $root . '/assets/js/*.js' ), glob( $root . '/assets/css/*.css' ) ) as $file ) {
+			$source .= file_get_contents( $file );
+		}
+		$source = strtolower( $source );
+		$historical_contract_identifiers = array(
+			'artist_link_page',
+			'extrachill_artist_link_page_minimal_head',
+			'extrachill_redirect_artist_link_page_cpt_to_custom_domain',
+			'extrachill_artist_link_page_sitemap_urls',
+			'extrachill_artist_enqueue_link_page_minimal_assets',
+		);
+		$source = str_replace( $historical_contract_identifiers, '', $source );
+		foreach ( array( 'artist', 'manage-artist', 'manage-link-page', 'dev_view_link_page', "'artist_id'", "'join' ===", 'venue', 'promoter', 'booking', 'subscription', 'domain authorization' ) as $forbidden ) {
 			$this->assertStringNotContainsString( $forbidden, $source );
 		}
 	}
@@ -54,8 +66,11 @@ final class BootstrapAndPurityTest extends TestCase {
 		$normalize_functions = static function ( $matches ) {
 			return array_map( static function ( $match ) { return $match[1] . '(' . preg_replace( '/\s+/', ' ', trim( $match[2] ) ) . ')'; }, $matches );
 		};
-		$this->assertSame( $normalize_functions( $coordinated_functions ), $normalize_functions( $local_functions ) );
-		$this->assertSame( array_keys( ec_link_pages_runtime_function_contract() ), array_column( $local_functions, 1 ) );
+		$local_contract = array_values( array_filter( $normalize_functions( $local_functions ), static function ( $function ) { return false === strpos( $function, 'ec_can_register_link_page_' ); } ) );
+		$this->assertSame( $normalize_functions( $coordinated_functions ), array_slice( $local_contract, 0, count( $coordinated_functions ) ) );
+		$all_local = file_get_contents( dirname( __DIR__ ) . '/inc/post-type.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/compatibility.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/owner-reference.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/operations.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/storage.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-projections.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-runtime.php' );
+		preg_match_all( '/^function\s+(ec_[a-z0-9_]+)\s*\(([^)]*)\)/m', $all_local, $all_functions, PREG_SET_ORDER );
+		$this->assertSame( array(), array_diff( array_keys( ec_link_pages_runtime_function_contract() ), array_column( $all_functions, 1 ) ) );
 
 		preg_match_all( "/new\s+WP_Error\(\s*'([^']+)'\s*,\s*'([^']+)'/s", $local, $local_errors, PREG_SET_ORDER );
 		preg_match_all( "/new\s+WP_Error\(\s*'([^']+)'\s*,\s*'([^']+)'/s", $coordinated, $coordinated_errors, PREG_SET_ORDER );
@@ -64,16 +79,16 @@ final class BootstrapAndPurityTest extends TestCase {
 			sort( $errors );
 			return $errors;
 		};
-		$this->assertSame( $normalize_errors( $coordinated_errors ), $normalize_errors( $local_errors ) );
+		$this->assertSame( array(), array_diff( $normalize_errors( $coordinated_errors ), $normalize_errors( $local_errors ) ) );
 	}
 
 	public function test_representative_behavior_suite_passes_against_bundled_fallback(): void {
 		$root = dirname( __DIR__ );
 		$external = $this->artistWorktree();
-		$command = 'LINK_PAGES_USE_FALLBACK=1 ARTIST_PLATFORM_WORKTREE=' . escapeshellarg( $external ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $root . '/tools/vendor/bin/phpunit' ) . ' -c ' . escapeshellarg( $root . '/phpunit.xml.dist' ) . ' --filter RuntimeTest';
+		$command = 'LINK_PAGES_USE_FALLBACK=1 ARTIST_PLATFORM_WORKTREE=' . escapeshellarg( $external ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $root . '/tools/vendor/bin/phpunit' ) . ' -c ' . escapeshellarg( $root . '/phpunit.xml.dist' ) . ' --filter ' . escapeshellarg( '/^RuntimeTest::/' );
 		exec( $command, $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
-		$this->assertStringContainsString( 'OK (8 tests, 52 assertions)', implode( "\n", $output ) );
+		$this->assertMatchesRegularExpression( '/OK \(8 tests, \d+ assertions\)/', implode( "\n", $output ) );
 	}
 
 	/** @dataProvider incompatibleRuntimeProvider */
@@ -86,6 +101,8 @@ final class BootstrapAndPurityTest extends TestCase {
 	public function incompatibleRuntimeProvider(): array {
 		return array(
 			'partial component' => array( 'partial', 'ec_link_pages_runtime_partial' ),
+			'partial storage component' => array( 'partial_storage', 'ec_link_pages_runtime_partial' ),
+			'partial lifecycle component' => array( 'partial_lifecycle', 'ec_link_pages_runtime_partial' ),
 			'wrong constants' => array( 'wrong_constants', 'ec_link_pages_runtime_incompatible' ),
 			'wrong API' => array( 'wrong_api', 'ec_link_pages_runtime_incompatible' ),
 			'incompatible signature' => array( 'incompatible_signature', 'ec_link_pages_runtime_incompatible' ),

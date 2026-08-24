@@ -14,12 +14,17 @@ function ec_link_page_operation_provider_registry() {
 		$registry = new class() {
 			private $providers = array();
 
-			public function register( $name, $callback, $priority ) {
+			public function can_register( $name, $callback, $priority ) {
 				if ( ! is_string( $name ) || 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/', $name ) || ! is_callable( $callback ) || ! is_int( $priority ) ) {
 					return new WP_Error( 'invalid_link_page_operation_provider', 'The Link Page operation provider registration is invalid.' );
 				}
-				if ( isset( $this->providers[ $name ] ) ) {
-					return new WP_Error( 'duplicate_link_page_operation_provider', 'The Link Page operation provider is already registered.' );
+				return isset( $this->providers[ $name ] ) ? new WP_Error( 'duplicate_link_page_operation_provider', 'The Link Page operation provider is already registered.' ) : true;
+			}
+
+			public function register( $name, $callback, $priority ) {
+				$valid = $this->can_register( $name, $callback, $priority );
+				if ( is_wp_error( $valid ) ) {
+					return $valid;
 				}
 				$this->providers[ $name ] = array(
 					'name'     => $name,
@@ -50,8 +55,24 @@ function ec_register_link_page_operation_provider( $name, $callback, $priority =
 	return ec_link_page_operation_provider_registry()->register( $name, $callback, $priority );
 }
 
+/** Preflight an operation provider registration without mutating the registry. */
+function ec_can_register_link_page_operation_provider( $name, $callback, $priority = 10 ) {
+	return ec_link_page_operation_provider_registry()->can_register( $name, $callback, $priority );
+}
+
 /** Resolve a page ID, owner reference, or exact pair to one target. */
 function ec_resolve_link_page_operation_target( $target ) {
+	$storage_blog_id = ec_get_link_page_storage_blog_id();
+	if ( ! $storage_blog_id ) {
+		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
+	}
+	if ( get_current_blog_id() !== $storage_blog_id ) {
+		return ec_with_link_page_storage_blog(
+			static function () use ( $target ) {
+				return ec_resolve_link_page_operation_target( $target );
+			}
+		);
+	}
 	$link_page_id  = 0;
 	$reference     = '';
 	$has_page      = false;
@@ -215,6 +236,17 @@ function ec_prepare_link_page_operation( $target, $operation ) {
 
 /** Read Link Page data through its owner provider. */
 function ec_read_link_page( $target ) {
+	$storage_blog_id = ec_get_link_page_storage_blog_id();
+	if ( ! $storage_blog_id ) {
+		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
+	}
+	if ( get_current_blog_id() !== $storage_blog_id ) {
+		return ec_with_link_page_storage_blog(
+			static function () use ( $target ) {
+				return ec_read_link_page( $target );
+			}
+		);
+	}
 	$prepared = ec_prepare_link_page_operation( $target, 'read' );
 	if ( is_wp_error( $prepared ) ) {
 		return $prepared;
@@ -228,6 +260,17 @@ function ec_read_link_page( $target ) {
 
 /** Save Link Page data through its owner provider. */
 function ec_save_link_page( $target, $data ) {
+	$storage_blog_id = ec_get_link_page_storage_blog_id();
+	if ( ! $storage_blog_id ) {
+		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
+	}
+	if ( get_current_blog_id() !== $storage_blog_id ) {
+		return ec_with_link_page_storage_blog(
+			static function () use ( $target, $data ) {
+				return ec_save_link_page( $target, $data );
+			}
+		);
+	}
 	if ( ! is_array( $data ) ) {
 		return new WP_Error( 'invalid_link_page_operation_data', 'The Link Page save data must be an array.' );
 	}
@@ -235,7 +278,12 @@ function ec_save_link_page( $target, $data ) {
 	if ( is_wp_error( $prepared ) ) {
 		return $prepared;
 	}
-	$result = ec_invoke_link_page_operation_callback( $prepared['provider']['save'], array( $prepared['resolved'], $data ) );
+	$result = ec_with_link_page_lock_scope(
+		$prepared['resolved']['link_page_id'],
+		static function () use ( $prepared, $data ) {
+			return ec_invoke_link_page_operation_callback( $prepared['provider']['save'], array( $prepared['resolved'], $data ) );
+		}
+	);
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
