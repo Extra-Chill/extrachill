@@ -7,8 +7,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const EC_LINK_PAGE_OWNER_META_KEY = '_ec_link_page_owner_reference';
-
 /**
  * Return the function-private owner compatibility registry.
  *

@@ -6,7 +6,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 define( 'OBJECT', 'OBJECT' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'DAY_IN_SECONDS', 86400 );
-define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 
 function plugin_dir_path( $file ) {
 	return trailingslashit( dirname( $file ) );
@@ -1196,6 +1196,7 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-list-orphan-art
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/admin-cleanup-artist-relationships.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/data.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/permissions.php';
+require_once dirname( __DIR__ ) . '/inc/link-pages/runtime-handoff.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-platform-post-types.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-public-projections.php';
@@ -1211,6 +1212,8 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/onboard-external-arti
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-invitation.php';
 require_once dirname( __DIR__ ) . '/inc/link-pages/owner-reference.php';
 require_once dirname( __DIR__ ) . '/inc/link-pages/artist-owner-compatibility.php';
+require_once dirname( __DIR__ ) . '/inc/link-pages/operations.php';
+require_once dirname( __DIR__ ) . '/inc/link-pages/artist-owner-operations.php';
 require_once dirname( __DIR__ ) . '/inc/core/filters/create.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-links.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/save-link-page-styles.php';

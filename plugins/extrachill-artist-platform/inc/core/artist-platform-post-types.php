@@ -2,8 +2,7 @@
 /**
  * Artist Platform Custom Post Types
  * 
- * Centralized registration of all custom post types for the artist platform.
- * Registers artist_profile and artist_link_page CPTs with appropriate settings.
+ * Registration of Artist Platform custom post types.
  *
  * @package ExtraChillArtistPlatform
  * @since 1.0.0
@@ -76,6 +75,9 @@ function extrachill_register_artist_profile_cpt() {
  * Register artist_link_page Custom Post Type
  */
 function extrachill_register_artist_link_page_cpt() {
+	if ( extrachill_artist_platform_uses_external_link_pages_runtime() || post_type_exists( 'artist_link_page' ) ) {
+		return;
+	}
 
     $labels = array(
         'name'                  => _x( 'Link Pages', 'Post Type General Name', 'extrachill-artist-platform' ),
@@ -136,10 +138,8 @@ function extrachill_register_artist_link_page_cpt() {
 /**
  * Initialize post type registration
  */
-function extrachill_init_post_types() {
-    extrachill_register_artist_profile_cpt();
-    extrachill_register_artist_link_page_cpt();
-}
+add_action( 'init', 'extrachill_register_artist_profile_cpt', 5 );
 
-// Hook to init with proper priority for post type registration
-add_action( 'init', 'extrachill_init_post_types', 5 );
+if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
+	add_action( 'init', 'extrachill_register_artist_link_page_cpt', 5 );
+}

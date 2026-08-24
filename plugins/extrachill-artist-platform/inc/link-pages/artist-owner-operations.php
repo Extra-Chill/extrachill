@@ -88,5 +88,3 @@ function ec_artist_link_page_operation_save( $resolved, $data ) {
 
 	return ec_artist_link_page_operation_read( $resolved );
 }
-
-ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );

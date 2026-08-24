@@ -72,7 +72,3 @@ function ec_artist_link_page_owner_compatibility_provider( $operation, $context 
 	}
 	return $claims;
 }
-ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
-
-require_once __DIR__ . '/operations.php';
-require_once __DIR__ . '/artist-owner-operations.php';
