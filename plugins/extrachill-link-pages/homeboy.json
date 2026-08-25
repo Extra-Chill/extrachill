@@ -11,6 +11,8 @@
           "/composer.json",
           "/composer.lock",
           "/package.json",
+          "/package-lock.json",
+          "/src/",
           "/phpunit.xml.dist",
           "/phpcs.xml.dist",
           "/homeboy.json",

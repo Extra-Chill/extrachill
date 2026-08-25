@@ -89,6 +89,20 @@ function plugin_basename( $file ) { return basename( dirname( $file ) ) . '/' . 
 function plugins_url( $path ) { return 'https://example.test/plugins/extrachill-link-pages/' . ltrim( $path, '/' ); }
 function register_activation_hook( $file, $callback ) { $GLOBALS['ec_test']['activation_hook'] = $callback; }
 function register_deactivation_hook( $file, $callback ) { $GLOBALS['ec_test']['deactivation_hook'] = $callback; }
+class WP_Block_Type_Registry {
+	private static $instance;
+	private $registered = array();
+	public static function get_instance() { return self::$instance ?? ( self::$instance = new self() ); }
+	public function is_registered( $name ) { return isset( $this->registered[ $name ] ); }
+	public function register( $name, $source ) { $this->registered[ $name ] = $source; }
+	public function source( $name ) { return $this->registered[ $name ] ?? ''; }
+	public function reset() { $this->registered = array(); }
+}
+function register_block_type( $path ) {
+	$metadata = json_decode( file_get_contents( rtrim( $path, '/' ) . '/block.json' ), true );
+	WP_Block_Type_Registry::get_instance()->register( $metadata['name'], $path );
+	$GLOBALS['ec_test']['registered_blocks'][] = $path;
+}
 function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['ec_test']['actions'][] = array( $hook, $callback, $priority, $accepted_args ); }
 function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) { $GLOBALS['ec_test']['filters'][ $hook ][] = array( $callback, $priority, $accepted_args ); }
 function apply_filters( $hook, $value, ...$args ) {

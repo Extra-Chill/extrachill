@@ -11,7 +11,7 @@ final class PackageContractTest extends TestCase {
 
 		$config = json_decode( file_get_contents( $root . '/homeboy.json' ), true );
 		$configured = $config['extensions']['wordpress']['settings']['package_excludes'];
-		foreach ( array( '/tests/', '/vendor/', '/tools/', '/composer.json', '/composer.lock', '/package.json', '/phpunit.xml.dist', '/phpcs.xml.dist', '/homeboy.json', '/docs/', '/.claude/', '/.datamachine/', '/.github/', '/AGENTS.md', '/CLAUDE.md' ) as $excluded ) {
+		foreach ( array( '/tests/', '/vendor/', '/tools/', '/composer.json', '/composer.lock', '/package.json', '/package-lock.json', '/src/', '/phpunit.xml.dist', '/phpcs.xml.dist', '/homeboy.json', '/docs/', '/.claude/', '/.datamachine/', '/.github/', '/AGENTS.md', '/CLAUDE.md' ) as $excluded ) {
 			$this->assertContains( $excluded, $configured );
 		}
 
@@ -36,6 +36,16 @@ final class PackageContractTest extends TestCase {
 				'assets/js/extrch-share-modal.js',
 				'assets/js/link-page-public-tracking.js',
 				'assets/js/link-page-youtube-embed.js',
+				'build/editor/block-rtl.css',
+				'build/editor/block.asset.php',
+				'build/editor/block.css',
+				'build/editor/block.js',
+				'build/editor/block.json',
+				'build/editor/index.asset.php',
+				'build/editor/index.js',
+				'build/editor/render.php',
+				'build/editor/style-index-rtl.css',
+				'build/editor/style-index.css',
 				'extrachill-link-pages.php',
 				'inc/compatibility.php',
 				'inc/operations.php',
@@ -51,5 +61,15 @@ final class PackageContractTest extends TestCase {
 			),
 			$files
 		);
+	}
+
+	public function test_required_workflow_installs_javascript_dependencies_before_tests(): void {
+		$workflow = file_get_contents( dirname( __DIR__ ) . '/.github/workflows/required-checks.yml' );
+		$install  = strpos( $workflow, 'run: npm ci' );
+		$test     = strpos( $workflow, 'run: npm test' );
+
+		$this->assertNotFalse( $install );
+		$this->assertNotFalse( $test );
+		$this->assertLessThan( $test, $install );
 	}
 }

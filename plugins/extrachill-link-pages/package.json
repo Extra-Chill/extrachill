@@ -1,7 +1,14 @@
 {
-  "name": "extrachill-link-pages-tests",
-  "private": true,
-  "scripts": {
-    "test": "node tests/js/assets.test.js && node tests/js/dom.test.js"
-  }
+	"name": "extrachill-link-pages",
+	"private": true,
+	"scripts": {
+		"build": "wp-scripts build src/editor/index.js src/editor/block.js --output-path=build/editor && cp src/editor/block.json src/editor/render.php build/editor/ && rm -rf build/editor/editor",
+		"lint:js": "wp-scripts lint-js src/editor/index.js src/editor/block.js",
+		"test:react": "wp-scripts test-unit-js src/editor/index.test.js --runInBand",
+		"test": "node tests/js/assets.test.js && node tests/js/dom.test.js && node tests/js/editor-contract.test.js && npm run test:react"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^30.15.0",
+		"typescript": "^5.7.3"
+	}
 }

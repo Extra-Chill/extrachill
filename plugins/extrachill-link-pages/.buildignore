@@ -11,10 +11,13 @@ CLAUDE.md
 # Tests and development tooling.
 tests/
 vendor/
+node_modules/
 tools/
 composer.json
 composer.lock
 package.json
+package-lock.json
+src/
 phpunit.xml
 phpunit.xml.dist
 phpcs.xml
@@ -25,7 +28,6 @@ homeboy.json
 
 # Non-runtime documentation and generated artifacts.
 docs/
-build/
 dist/
 *.zip
 *.tar.gz

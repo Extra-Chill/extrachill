@@ -10,7 +10,10 @@ on:
       - 'assets/**/*.js'
       - 'tests/**/*.php'
       - 'tests/**/*.js'
+      - 'src/**/*.js'
+      - 'src/**/*.scss'
       - 'package.json'
+      - 'package-lock.json'
       - 'tools/composer.json'
       - 'tools/composer.lock'
       - 'phpunit.xml.dist'
@@ -45,6 +48,9 @@ jobs:
 
       - name: Install development dependencies
         run: composer install --working-dir=tools --no-interaction --no-progress --prefer-dist
+
+      - name: Install JavaScript dependencies
+        run: npm ci
 
       - name: Validate development Composer project
         run: composer validate --working-dir=tools --strict
