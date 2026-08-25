@@ -9,7 +9,6 @@
  * Verify avatar-menu profile links use the canonical Community identity.
  */
 class Test_Avatar_Menu_Items extends WP_UnitTestCase {
-
 	/**
 	 * Verify normalized public slugs are used instead of login identifiers.
 	 *
@@ -86,6 +85,72 @@ class Test_Avatar_Menu_Items extends WP_UnitTestCase {
 		foreach ( $items as $item ) {
 			$this->assertStringNotContainsString( 'private.login@example.com', $item['url'] );
 		}
+	}
+
+	/** Verify anonymous and identity-free account navigation. */
+	public function test_anonymous_and_users_without_identities_preserve_artist_creation_discovery(): void {
+		$this->assertSame( array(), extrachill_users_get_avatar_menu_items( 0 ) );
+
+		$user_id = self::factory()->user->create();
+		$items   = $this->index_items_by_id( extrachill_users_get_avatar_menu_items( $user_id ) );
+
+		$this->assertArrayHasKey( 'view_profile', $items );
+		$this->assertArrayHasKey( 'edit_profile', $items );
+		$this->assertArrayHasKey( 'settings', $items );
+		$this->assertArrayHasKey( 'logout', $items );
+		if ( isset( $items['create_artist'] ) ) {
+			$this->assertSame( ec_get_site_url( 'artist' ) . '/create-artist/', $items['create_artist']['url'] );
+		}
+		$this->assertArrayNotHasKey( 'manage_link_pages', $items );
+	}
+
+	/** Verify domain contributions cannot replace universal account actions. */
+	public function test_universal_account_destinations_are_reserved(): void {
+		$user_id = self::factory()->user->create();
+		$filter  = static function ( $items ) {
+			$items[] = array(
+				'id'       => 'logout',
+				'label'    => 'Not Logout',
+				'url'      => 'https://example.com/not-logout/',
+				'priority' => 1,
+			);
+			$items[] = array(
+				'id'       => 'settings',
+				'label'    => 'Not Settings',
+				'url'      => 'https://example.com/not-settings/',
+				'priority' => 1,
+			);
+			return $items;
+		};
+		add_filter( 'ec_avatar_menu_items', $filter );
+
+		$items = $this->index_items_by_id( extrachill_users_get_avatar_menu_items( $user_id ) );
+		remove_filter( 'ec_avatar_menu_items', $filter );
+
+		$this->assertSame( 'Settings', $items['settings']['label'] );
+		$this->assertSame( 'Log Out', $items['logout']['label'] );
+		$this->assertTrue( $items['logout']['danger'] );
+	}
+
+	/** Verify shop discovery composes without duplicate IDs. */
+	public function test_shop_contribution_is_preserved_without_duplication(): void {
+		$user_id = self::factory()->user->create();
+		$filter  = static function ( $items ) {
+			$items[] = array(
+				'id'       => 'manage_shop',
+				'label'    => 'Manage Shop',
+				'url'      => 'https://artist.extrachill.com/manage-shop/',
+				'priority' => 50,
+			);
+			return $items;
+		};
+		add_filter( 'ec_avatar_menu_items', $filter );
+
+		$items = extrachill_users_get_avatar_menu_items( $user_id );
+		remove_filter( 'ec_avatar_menu_items', $filter );
+
+		$this->assertCount( 1, array_filter( $items, static fn( $item ) => 'manage_shop' === $item['id'] ) );
+		$this->assertSame( 'Manage Shop', $this->index_items_by_id( $items )['manage_shop']['label'] );
 	}
 
 	/**

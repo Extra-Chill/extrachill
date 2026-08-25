@@ -71,36 +71,15 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 	}
 
 	if ( $artist_count > 0 ) {
-		$artist_label = 1 === $artist_count
-			? __( 'Manage Artist', 'extrachill-users' )
-			: __( 'Manage Artists', 'extrachill-users' );
-
 		$items[] = array(
 			'id'       => 'manage_artists',
-			'label'    => $artist_label,
+			'label'    => 1 === $artist_count
+				? __( 'Manage Artist', 'extrachill-users' )
+				: __( 'Manage Artists', 'extrachill-users' ),
 			'url'      => ec_get_site_url( 'artist' ) . '/manage-artist/',
 			'priority' => 30,
 			'danger'   => false,
 		);
-
-		$link_page_count = ec_get_link_page_count_for_user( $user_id );
-
-		if ( 0 === $link_page_count ) {
-			$link_page_label = __( 'Create Link Page', 'extrachill-users' );
-		} elseif ( 1 === $link_page_count ) {
-			$link_page_label = __( 'Manage Link Page', 'extrachill-users' );
-		} else {
-			$link_page_label = __( 'Manage Link Pages', 'extrachill-users' );
-		}
-
-		$items[] = array(
-			'id'       => 'manage_link_pages',
-			'label'    => $link_page_label,
-			'url'      => ec_get_site_url( 'artist' ) . '/manage-link-page/',
-			'priority' => 40,
-			'danger'   => false,
-		);
-
 	} elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $user_id ) ) {
 		$items[] = array(
 			'id'       => 'create_artist',
@@ -113,22 +92,15 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 
 	$custom_items = apply_filters( 'ec_avatar_menu_items', array(), $user_id );
 	if ( ! empty( $custom_items ) && is_array( $custom_items ) ) {
-		usort(
-			$custom_items,
-			function ( $a, $b ) {
-				$priority_a = isset( $a['priority'] ) ? (int) $a['priority'] : 10;
-				$priority_b = isset( $b['priority'] ) ? (int) $b['priority'] : 10;
-				return $priority_a <=> $priority_b;
-			}
-		);
-
+		$reserved_ids = array( 'view_profile', 'edit_profile', 'settings', 'logout' );
 		foreach ( $custom_items as $custom_item ) {
-			if ( empty( $custom_item['label'] ) || empty( $custom_item['url'] ) ) {
+			$custom_id = isset( $custom_item['id'] ) ? (string) $custom_item['id'] : '';
+			if ( empty( $custom_item['label'] ) || empty( $custom_item['url'] ) || in_array( $custom_id, $reserved_ids, true ) ) {
 				continue;
 			}
 
 			$items[] = array(
-				'id'       => isset( $custom_item['id'] ) ? (string) $custom_item['id'] : 'custom_' . md5( (string) $custom_item['url'] ),
+				'id'       => '' !== $custom_id ? $custom_id : 'custom_' . md5( (string) $custom_item['url'] ),
 				'label'    => (string) $custom_item['label'],
 				'url'      => (string) $custom_item['url'],
 				'priority' => isset( $custom_item['priority'] ) ? (int) $custom_item['priority'] : 10,
@@ -152,6 +124,37 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 		'priority' => 100,
 		'danger'   => true,
 	);
+
+	$seen_ids = array();
+	$items    = array_values(
+		array_filter(
+			$items,
+			static function ( $item ) use ( &$seen_ids ) {
+				if ( isset( $seen_ids[ $item['id'] ] ) ) {
+					return false;
+				}
+				$seen_ids[ $item['id'] ] = true;
+				return true;
+			}
+		)
+	);
+
+	foreach ( $items as $order => &$item ) {
+		$item['_order'] = $order;
+	}
+	unset( $item );
+
+	usort(
+		$items,
+		static function ( $a, $b ) {
+			$priority_order = $a['priority'] <=> $b['priority'];
+			return 0 !== $priority_order ? $priority_order : ( $a['_order'] <=> $b['_order'] );
+		}
+	);
+	foreach ( $items as &$item ) {
+		unset( $item['_order'] );
+	}
+	unset( $item );
 
 	return $items;
 }
