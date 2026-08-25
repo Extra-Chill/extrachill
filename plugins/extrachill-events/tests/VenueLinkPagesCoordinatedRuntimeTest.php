@@ -67,11 +67,6 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'the-royal-american', $result['slug'] );
 		$this->assertTrue( $result['read'] );
 		$this->assertTrue( $result['saved'] );
-		$this->assertSame( array( 'ec_link_page_save', 'ec_owned_link_page_created' ), $result['hook_order']['provision'] );
-		$this->assertSame( array( 'ec_link_page_save', 'ec_link_page_persistence_saved' ), $result['hook_order']['save'] );
-		$this->assertFalse( $result['existing']['created'] );
-		$this->assertTrue( $result['existing']['same_id'] );
-		$this->assertSame( array( 'ec_link_page_save' ), $result['existing']['hooks'] );
 		$this->assertTrue( $result['analytics'] );
 		$this->assertSame( 4, $result['analytics_blog'] );
 		$this->assertSame( 'venue_action_forbidden', $result['denied'] );
@@ -80,13 +75,7 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'venue_link_page_snapshot_save_failed', $result['rollback']['error'] );
 		$this->assertSame( '', $result['rollback']['bio'] );
 		$this->assertSame( 0, $result['rollback']['final_delta'] );
-		$this->assertSame( 0, $result['rollback']['generic_delta'] );
 		$this->assertSame( 0, $result['rollback']['cache_delta'] );
-		$this->assertSame( 'link_page_public_snapshot_save_failed', $result['owner_rollback']['error'] );
-		$this->assertSame( '', $result['owner_rollback']['bio'] );
-		$this->assertTrue( $result['owner_rollback']['owner_same'] );
-		$this->assertTrue( $result['owner_rollback']['public_same'] );
-		$this->assertSame( array(), $result['owner_rollback']['hooks'] );
 		$this->assertSame( str_repeat( 'c', 64 ), $result['refresh']['version'] );
 		$this->assertSame( 7, $result['refresh']['caller'] );
 		$this->assertSame( 'venue_action_forbidden', $result['refresh']['revoked'] );

@@ -11,6 +11,7 @@ use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\PromoterAuthorityService;
+use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterVenueAuthorization;
 use ExtraChillEvents\Core\PromoterVenueGrantRepository;
 use ExtraChillEvents\Core\PromoterVenueGrantService;
@@ -187,6 +188,8 @@ final class PromoterAuthorityWpdb {
 	 * @var array|null
 	 */
 	private $snapshot;
+	/** @var string|null */
+	private $page_status_snapshot;
 	/**
 	 * Simulated externally committed organization winner.
 	 *
@@ -265,11 +268,15 @@ final class PromoterAuthorityWpdb {
 	public function query( $query ) {
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
-			$this->snapshot = $this->rows;
+			$this->snapshot             = $this->rows;
+			$this->page_status_snapshot = $GLOBALS['promoter_test']['page_status'] ?? null;
 			return 1;
 		}
 		if ( 'ROLLBACK' === $query ) {
 			$this->rows = $this->snapshot;
+			if ( null !== $this->page_status_snapshot ) {
+				$GLOBALS['promoter_test']['page_status'] = $this->page_status_snapshot;
+			}
 			if ( $this->external_winner ) {
 				$this->rows[ PromoterAuthoritySchema::organizations_table() ][] = $this->external_winner;
 				$this->external_winner = null;
@@ -281,7 +288,8 @@ final class PromoterAuthorityWpdb {
 			return 1;
 		}
 		if ( 'COMMIT' === $query ) {
-			$this->snapshot = null;
+			$this->snapshot             = null;
+			$this->page_status_snapshot = null;
 			return 1;
 		}
 		if ( preg_match( "/UPDATE (\\S+) SET (.+) WHERE promoter_term_id = (\\d+) AND venue_term_id = (\\d+) AND action = '([^']+)' AND version = (\\d+)/", $query, $grant_match ) ) {
@@ -372,6 +380,22 @@ final class PromoterAuthorityWpdb {
 	public function get_results( $query, $output = null ) {
 		unset( $output );
 		$this->last_error = '';
+		if ( preg_match( "/FROM (\S+) WHERE status = 'active' ORDER BY promoter_term_id ASC LIMIT (\d+)/", $query, $organization_match ) ) {
+			if ( ! empty( $GLOBALS['promoter_test']['fail_active_organization_list'] ) ) {
+				$this->last_error = 'simulated approved promoter query failure';
+				return array();
+			}
+			$rows = array_values(
+				array_filter(
+					$this->rows[ $organization_match[1] ] ?? array(),
+					static function ( $row ) {
+						return PromoterAuthorityRepository::STATUS_ACTIVE === $row['status'];
+					}
+				)
+			);
+			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id']; } );
+			return array_slice( $rows, 0, (int) $organization_match[2] );
+		}
 		if ( preg_match( '/FROM (\S+) WHERE venue_term_id = (\d+)/', $query, $venue_match ) ) {
 			return array_values(
 				array_filter(
@@ -567,6 +591,196 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertFalse( $demoted['is_owner'] );
 		$last_owner = $service->revoke_membership( 3, 100, 3, 2 );
 		$this->assertSame( 'promoter_membership_last_owner', $last_owner->get_error_code() );
+	}
+
+	/** Active non-owner members may manage promoter product surfaces only with current access. */
+	public function test_promoter_product_access_requires_exact_active_member_and_current_feature_access(): void {
+		$service       = new PromoterAuthorityService();
+		$authorization = new PromoterAuthorization();
+		$service->verify( 1, 100, 2 );
+		$service->create_membership( 2, 100, 3, false );
+
+		$this->assertTrue( $authorization->authorize( 2, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER ) );
+		$this->assertTrue( $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER ) );
+		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 1, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 4, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+
+		unset( $GLOBALS['promoter_test']['feature_access'][3] );
+		$venue_feature_available = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
+		$GLOBALS['venue_membership_test']['feature_available'] = false;
+		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		if ( null === $venue_feature_available ) {
+			unset( $GLOBALS['venue_membership_test']['feature_available'] );
+		} else {
+			$GLOBALS['venue_membership_test']['feature_available'] = $venue_feature_available;
+		}
+		$GLOBALS['promoter_test']['feature_access'][3] = true;
+		$service->revoke_membership( 2, 100, 3, 1 );
+		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+	}
+
+	/** Approved discovery is active-only, bounded, deterministic, and fails closed. */
+	public function test_approved_organization_listing_fails_closed_on_database_error_and_overflow(): void {
+		$service    = new PromoterAuthorityService();
+		$repository = new PromoterAuthorityRepository();
+		$service->verify( 1, 100, 2 );
+		$service->verify( 1, 102, 3 );
+		$service->revoke_organization( 1, 102, 1 );
+
+		$listed = $repository->list_active_organizations();
+		$this->assertCount( 1, $listed );
+		$this->assertSame( 100, $listed[0]['promoter_term_id'] );
+
+		$GLOBALS['promoter_test']['fail_active_organization_list'] = true;
+		$error = $repository->list_active_organizations();
+		$this->assertSame( 'approved_promoter_list_failed', $error->get_error_code() );
+		unset( $GLOBALS['promoter_test']['fail_active_organization_list'] );
+
+		$table = PromoterAuthoritySchema::organizations_table();
+		for ( $index = 0; $index <= PromoterAuthorityRepository::MAX_ORGANIZATIONS; ++$index ) {
+			$GLOBALS['wpdb']->rows[ $table ][] = array(
+				'id'                    => 1000 + $index,
+				'promoter_term_id'      => 1000 + $index,
+				'status'                => PromoterAuthorityRepository::STATUS_ACTIVE,
+				'version'               => 1,
+				'verified_by_user_id'   => 1,
+				'verified_at'           => '2026-08-24 00:00:00',
+				'updated_at'            => '2026-08-24 00:00:00',
+				'revoked_by_user_id'    => null,
+				'revoked_at'            => null,
+			);
+		}
+		$error = $repository->list_active_organizations();
+		$this->assertSame( 'approved_promoter_limit_exceeded', $error->get_error_code() );
+	}
+
+	/** Domain change hooks contain no user identifiers and fire only after commits. */
+	public function test_authority_mutations_emit_privacy_safe_post_commit_changes(): void {
+		$changes = array();
+		add_action(
+			'extrachill_events_promoter_authority_changed',
+			static function ( $promoter_term_id, $change ) use ( &$changes ): void {
+				$changes[] = array( $promoter_term_id, $change );
+			},
+			10,
+			2
+		);
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		$service->create_membership( 2, 100, 3, false );
+		$service->revoke_membership( 2, 100, 3, 1 );
+		$service->revoke_organization( 1, 100, 1 );
+
+		$this->assertSame(
+			array(
+				array( 100, 'organization_verified' ),
+				array( 100, 'membership_created' ),
+				array( 100, 'membership_revoked' ),
+				array( 100, 'organization_revoked' ),
+			),
+			$changes
+		);
+	}
+
+	/** Revocation rolls authority and its domain withdrawal back together. */
+	public function test_revocation_precommit_failure_rolls_back_authority_and_public_state(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		$GLOBALS['promoter_test']['page_status'] = 'publish';
+		$withdraw = static function ( $allowed, $promoter_term_id, $change ) {
+			if ( true === $allowed && 100 === $promoter_term_id && 'organization_revoked' === $change ) {
+				$GLOBALS['promoter_test']['page_status'] = 'draft';
+				return new WP_Error( 'simulated_withdrawal_failure', 'Withdrawal failed.' );
+			}
+			return $allowed;
+		};
+		add_filter( 'extrachill_events_promoter_authority_precommit', $withdraw, 10, 3 );
+		$result = $service->revoke_organization( 1, 100, 1 );
+		remove_filter( 'extrachill_events_promoter_authority_precommit', $withdraw, 10 );
+
+		$this->assertSame( 'simulated_withdrawal_failure', $result->get_error_code() );
+		$this->assertSame( 'publish', $GLOBALS['promoter_test']['page_status'] );
+		$organization = ( new PromoterAuthorityRepository() )->get_organization( 100 );
+		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $organization['status'] );
+		$this->assertSame( 1, $organization['version'] );
+	}
+
+	/** Authority audit failure occurs before any public withdrawal callback. */
+	public function test_revocation_audit_failure_never_invokes_public_withdrawal(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		$GLOBALS['promoter_test']['page_status'] = 'publish';
+		$withdrawals = 0;
+		$withdraw = static function ( $allowed, $promoter_term_id, $change ) use ( &$withdrawals ) {
+			if ( true === $allowed && 100 === $promoter_term_id && 'organization_revoked' === $change ) {
+				++$withdrawals;
+				$GLOBALS['promoter_test']['page_status'] = 'draft';
+			}
+			return $allowed;
+		};
+		add_filter( 'extrachill_events_promoter_authority_precommit', $withdraw, 10, 3 );
+		$GLOBALS['wpdb']->fail_activity = true;
+		$result = $service->revoke_organization( 1, 100, 1 );
+		remove_filter( 'extrachill_events_promoter_authority_precommit', $withdraw, 10 );
+
+		$this->assertSame( 'promoter_authority_audit_failed', $result->get_error_code() );
+		$this->assertSame( 0, $withdrawals );
+		$this->assertSame( 'publish', $GLOBALS['promoter_test']['page_status'] );
+		$organization = ( new PromoterAuthorityRepository() )->get_organization( 100 );
+		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $organization['status'] );
+		$this->assertSame( 1, $organization['version'] );
+	}
+
+	/** Throwing post-commit listeners are observable but cannot obscure success. */
+	public function test_throwing_post_commit_notification_cannot_ambiguate_committed_mutation(): void {
+		$failures = array();
+		$thrower  = static function ( $promoter_term_id, $change ): void {
+			if ( 100 === $promoter_term_id && 'organization_verified' === $change ) {
+				throw new RuntimeException( 'Listener failed.' );
+			}
+		};
+		$observer = static function ( $promoter_term_id, $change, $throwable ) use ( &$failures ): void {
+			$failures[] = array( $promoter_term_id, $change, get_class( $throwable ) );
+		};
+		add_action( 'extrachill_events_promoter_authority_changed', $thrower, 1, 2 );
+		add_action( 'extrachill_events_promoter_authority_notification_failed', $observer, 10, 3 );
+		$result = ( new PromoterAuthorityService() )->verify( 1, 100, 2 );
+		remove_action( 'extrachill_events_promoter_authority_changed', $thrower, 1 );
+		remove_action( 'extrachill_events_promoter_authority_notification_failed', $observer, 10 );
+
+		$this->assertIsArray( $result );
+		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $result['organization']['status'] );
+		$this->assertSame( array( array( 100, 'organization_verified', RuntimeException::class ) ), $failures );
+	}
+
+	/** Lock-current mutation callbacks reject authority revoked before acquisition. */
+	public function test_locked_promoter_mutation_revalidates_current_authority(): void {
+		$service    = new PromoterAuthorityService();
+		$repository = new PromoterAuthorityRepository();
+		$service->verify( 1, 100, 2 );
+		$calls  = 0;
+		$result = $repository->with_active_membership_lock(
+			100,
+			2,
+			static function () use ( &$calls ) {
+				++$calls;
+				return 'mutated';
+			}
+		);
+		$this->assertSame( 'mutated', $result );
+		$this->assertSame( 1, $calls );
+
+		$service->revoke_organization( 1, 100, 1 );
+		$result = $repository->with_active_membership_lock(
+			100,
+			2,
+			static function () use ( &$calls ) {
+				++$calls;
+				return 'must-not-run';
+			}
+		);
+		$this->assertSame( 'promoter_authority_forbidden', $result->get_error_code() );
+		$this->assertSame( 1, $calls );
 	}
 
 	public function test_revocation_is_preserved_and_corrupt_values_fail_closed(): void {

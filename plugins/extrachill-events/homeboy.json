@@ -21,12 +21,15 @@
         },
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_config_defines": {
+          "EC_LINK_PAGE_STORAGE_BLOG_ID": 1
+        },
         "validation_dependencies": [
           "data-machine",
           "data-machine-events",
           "data-machine-socials",
           "extrachill-newsletter",
-          "Extra-Chill/extrachill-link-pages@main",
+          "extrachill-link-pages",
           "extrachill-network",
           "extrachill-users"
         ],

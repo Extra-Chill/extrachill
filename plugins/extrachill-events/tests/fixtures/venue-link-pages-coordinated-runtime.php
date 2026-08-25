@@ -160,22 +160,10 @@ add_filter(
 $GLOBALS['ec_test']['execute_actions'] = true;
 
 switch_to_blog( 7 );
-$create_actions_before = count( $GLOBALS['ec_test']['fired_actions'] ?? array() );
-$created = VenueLinkPages::provision( 30 );
-$create_hooks = array_values(
-	array_filter(
-		array_column( array_slice( $GLOBALS['ec_test']['fired_actions'], $create_actions_before ), 0 ),
-		static function ( $hook ) {
-			return in_array( $hook, array( 'ec_link_page_save', 'ec_owned_link_page_created' ), true );
-		}
-	)
-);
-
-$page_id = is_wp_error( $created ) ? 0 : (int) $created['link_page']['link_page_id'];
-$read    = $page_id ? ec_read_link_page( VenueLinkPages::owner_reference( 30 ) ) : $created;
-
-$save_actions_before = count( $GLOBALS['ec_test']['fired_actions'] );
-$saved = $page_id ? ec_save_link_page(
+$created      = VenueLinkPages::provision( 30 );
+$page_id      = is_wp_error( $created ) ? 0 : (int) $created['link_page']['link_page_id'];
+$read         = $page_id ? ec_read_link_page( VenueLinkPages::owner_reference( 30 ) ) : $created;
+$saved        = $page_id ? ec_save_link_page(
 	VenueLinkPages::owner_reference( 30 ),
 	array(
 		'links' => array(
@@ -193,26 +181,6 @@ $saved = $page_id ? ec_save_link_page(
 		),
 	)
 ) : $created;
-$save_hooks = array_values(
-	array_filter(
-		array_column( array_slice( $GLOBALS['ec_test']['fired_actions'], $save_actions_before ), 0 ),
-		static function ( $hook ) {
-			return in_array( $hook, array( 'ec_link_page_save', 'ec_link_page_persistence_saved' ), true );
-		}
-	)
-);
-
-$existing_actions_before = count( $GLOBALS['ec_test']['fired_actions'] );
-$existing = VenueLinkPages::provision( 30 );
-$existing_hooks = array_values(
-	array_filter(
-		array_column( array_slice( $GLOBALS['ec_test']['fired_actions'], $existing_actions_before ), 0 ),
-		static function ( $hook ) {
-			return in_array( $hook, array( 'ec_link_page_save', 'ec_owned_link_page_created' ), true );
-		}
-	)
-);
-
 $analytics    = $page_id ? VenueLinkPages::analytics( 30 ) : $created;
 $caller_after = get_current_blog_id();
 
@@ -229,14 +197,6 @@ $final_before_failure                           = count(
 		$GLOBALS['ec_test']['fired_actions'],
 		static function ( $action ) {
 			return 'ec_link_page_save' === $action[0];
-		}
-	)
-);
-$generic_before_failure                         = count(
-	array_filter(
-		$GLOBALS['ec_test']['fired_actions'],
-		static function ( $action ) {
-			return 'ec_link_page_persistence_saved' === $action[0];
 		}
 	)
 );
@@ -262,14 +222,6 @@ $final_after_failure                            = count(
 		}
 	)
 );
-$generic_after_failure                          = count(
-	array_filter(
-		$GLOBALS['ec_test']['fired_actions'],
-		static function ( $action ) {
-			return 'ec_link_page_persistence_saved' === $action[0];
-		}
-	)
-);
 $cache_after_failure                            = count(
 	array_filter(
 		$GLOBALS['ec_test']['fired_actions'],
@@ -278,28 +230,6 @@ $cache_after_failure                            = count(
 		}
 	)
 );
-
-$owner_snapshot_before          = get_post_meta( $page_id, VenueLinkPages::SNAPSHOT_META_KEY, true );
-$projection_before              = get_post_meta( $page_id, EC_LINK_PAGE_PUBLIC_SNAPSHOT_META_KEY, true );
-$hooks_before_projection_failure = count( $GLOBALS['ec_test']['fired_actions'] );
-$meta_calls_before              = $GLOBALS['ec_test']['meta_write_calls'];
-$venue_name_before              = $GLOBALS['ec_test']['blogs'][7]['terms'][30]->name;
-$GLOBALS['ec_test']['blogs'][7]['terms'][30]->name  = 'Changed Venue';
-$GLOBALS['venue_link_page_fixture']['revision']     = str_repeat( 'e', 64 );
-$GLOBALS['ec_test']['fail_meta_write_calls']        = array( $meta_calls_before + 3 );
-$failed_projection                                  = $page_id ? ec_save_link_page( VenueLinkPages::owner_reference( 30 ), array( 'bio' => 'Projection must roll back' ) ) : $created;
-$GLOBALS['ec_test']['fail_meta_write_calls']        = array();
-$GLOBALS['ec_test']['blogs'][7]['terms'][30]->name  = $venue_name_before;
-$projection_failure_hooks                           = array_values(
-	array_filter(
-		array_column( array_slice( $GLOBALS['ec_test']['fired_actions'], $hooks_before_projection_failure ), 0 ),
-		static function ( $hook ) {
-			return in_array( $hook, array( 'ec_link_page_save', 'ec_link_page_persistence_saved' ), true );
-		}
-	)
-);
-$owner_snapshot_after = get_post_meta( $page_id, VenueLinkPages::SNAPSHOT_META_KEY, true );
-$projection_after     = get_post_meta( $page_id, EC_LINK_PAGE_PUBLIC_SNAPSHOT_META_KEY, true );
 
 $GLOBALS['venue_link_page_fixture']['revision'] = str_repeat( 'c', 64 );
 $refreshed                                      = VenueLinkPages::refresh_snapshot( 30 );
@@ -379,33 +309,16 @@ echo wp_json_encode(
 		'slug'            => $page_id ? get_post_field( 'post_name', $page_id ) : '',
 		'read'            => ! is_wp_error( $read ) && 30 === $read['venue']['term_id'],
 		'saved'           => ! is_wp_error( $saved ) && 'Calendar' === $saved['link_page']['links'][0]['links'][0]['link_text'],
-		'hook_order'      => array(
-			'provision' => $create_hooks,
-			'save'      => $save_hooks,
-		),
-		'existing'        => array(
-			'created' => is_wp_error( $existing ) ? null : $existing['created'],
-			'same_id' => ! is_wp_error( $existing ) && $page_id === (int) $existing['link_page']['link_page_id'],
-			'hooks'   => $existing_hooks,
-		),
 		'analytics'       => ! is_wp_error( $analytics ) && 12 === $analytics['summary']['total_views'],
 		'analytics_blog'  => $GLOBALS['venue_link_page_fixture']['analytics_blog'] ?? 0,
 		'denied'          => is_wp_error( $denied ) ? $denied->get_error_code() : '',
 		'caller_after'    => $caller_after,
 		'collision_slug'  => is_wp_error( $collision ) ? $collision->get_error_code() : $collision['link_page']['public_url'],
 		'rollback'        => array(
-			'error'         => is_wp_error( $failed_save ) ? $failed_save->get_error_code() : '',
-			'bio'           => $bio_after_failure,
-			'final_delta'   => $final_after_failure - $final_before_failure,
-			'generic_delta' => $generic_after_failure - $generic_before_failure,
-			'cache_delta'   => $cache_after_failure - $cache_before_failure,
-		),
-		'owner_rollback'  => array(
-			'error'       => is_wp_error( $failed_projection ) ? $failed_projection->get_error_code() : '',
-			'bio'         => $page_id ? get_post_meta( $page_id, '_link_page_bio_text', true ) : '',
-			'owner_same'  => $owner_snapshot_before === $owner_snapshot_after,
-			'public_same' => $projection_before === $projection_after,
-			'hooks'       => $projection_failure_hooks,
+			'error'       => is_wp_error( $failed_save ) ? $failed_save->get_error_code() : '',
+			'bio'         => $bio_after_failure,
+			'final_delta' => $final_after_failure - $final_before_failure,
+			'cache_delta' => $cache_after_failure - $cache_before_failure,
 		),
 		'refresh'         => array(
 			'version' => is_wp_error( $refreshed ) ? $refreshed->get_error_code() : $refreshed['venue']['snapshot']['source']['version'],

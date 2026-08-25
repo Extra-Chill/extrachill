@@ -14,6 +14,7 @@ final class PromoterAuthorization {
 	public const ACTION_VERIFY_ORGANIZATION = 'verify_organization';
 	public const ACTION_REVOKE_ORGANIZATION = 'revoke_organization';
 	public const ACTION_MANAGE_MEMBERS      = 'manage_members';
+	public const ACTION_ACCESS_PROMOTER     = 'access_promoter';
 
 	/**
 	 * Promoter authority persistence.
@@ -39,7 +40,7 @@ final class PromoterAuthorization {
 	 * @param string $action           Supported authority action.
 	 */
 	public function authorize( int $user_id, int $promoter_term_id, string $action ) {
-		if ( ! in_array( $action, array( self::ACTION_VERIFY_ORGANIZATION, self::ACTION_REVOKE_ORGANIZATION, self::ACTION_MANAGE_MEMBERS ), true ) ) {
+		if ( ! in_array( $action, array( self::ACTION_VERIFY_ORGANIZATION, self::ACTION_REVOKE_ORGANIZATION, self::ACTION_MANAGE_MEMBERS, self::ACTION_ACCESS_PROMOTER ), true ) ) {
 			return new \WP_Error( 'invalid_promoter_authority_action', __( 'The requested promoter authority action is not supported.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		if ( ! PromoterAuthoritySchema::is_ready() ) {
@@ -66,6 +67,10 @@ final class PromoterAuthorization {
 		$membership = $this->repository->get_active_membership( $promoter_term_id, $user_id );
 		if ( is_wp_error( $membership ) ) {
 			return $membership;
+		}
+		if ( self::ACTION_ACCESS_PROMOTER === $action ) {
+			$has_feature = user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
+			return is_array( $membership ) && $has_feature ? true : $this->denied();
 		}
 		return is_array( $membership ) && $membership['is_owner'] ? true : $this->denied();
 	}

@@ -11,9 +11,10 @@ defined( 'ABSPATH' ) || exit;
 
 /** Executes serialized organization and membership mutations. */
 class PromoterAuthorityRepository {
-	public const STATUS_ACTIVE  = 'active';
-	public const STATUS_REVOKED = 'revoked';
-	public const MAX_MEMBERS    = 100;
+	public const STATUS_ACTIVE     = 'active';
+	public const STATUS_REVOKED    = 'revoked';
+	public const MAX_MEMBERS       = 100;
+	public const MAX_ORGANIZATIONS = 500;
 
 	/** Return every persisted authority status. */
 	public static function statuses(): array {
@@ -110,6 +111,7 @@ class PromoterAuthorityRepository {
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes atomic bootstrap.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
+		$this->domain_changed( $promoter_term_id, 'organization_verified' );
 		return array(
 			'organization' => $this->get_organization( $promoter_term_id ),
 			'membership'   => $this->get_membership( $promoter_term_id, $owner_user_id ),
@@ -166,9 +168,15 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
 		}
+		$precommit = $this->run_precommit( $promoter_term_id, 'organization_revoked' );
+		if ( true !== $precommit ) {
+			$this->rollback();
+			return $precommit;
+		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes revocation.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
+		$this->domain_changed( $promoter_term_id, 'organization_revoked' );
 		return $this->get_organization( $promoter_term_id );
 	}
 
@@ -245,6 +253,7 @@ class PromoterAuthorityRepository {
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes creation.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
+		$this->domain_changed( $promoter_term_id, 'membership_created' );
 		return $this->get_membership( $promoter_term_id, $user_id );
 	}
 
@@ -309,6 +318,81 @@ class PromoterAuthorityRepository {
 		return is_array( $membership ) && self::STATUS_ACTIVE !== $membership['status'] ? null : $membership;
 	}
 
+	/** Execute a promoter mutation while its active organization and membership rows are locked. */
+	public function with_active_membership_lock( int $promoter_term_id, int $user_id, callable $callback ) {
+		$valid = $this->validate_principals( $promoter_term_id, array( $user_id ) );
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
+		}
+		global $wpdb;
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes promoter-owned mutations against revocation.
+			return $this->database_error( 'promoter_authority_transaction_failed', __( 'The promoter authority transaction could not start.', 'extrachill-events' ) );
+		}
+		$locked = $this->lock_rows( $promoter_term_id );
+		if ( is_wp_error( $locked ) ) {
+			$this->rollback();
+			return $locked;
+		}
+		$allowed = false;
+		if ( is_array( $locked['organization'] ) && self::STATUS_ACTIVE === $locked['organization']['status'] ) {
+			foreach ( $locked['memberships'] as $membership ) {
+				if ( $membership['user_id'] === $user_id && self::STATUS_ACTIVE === $membership['status'] ) {
+					$allowed = true;
+					break;
+				}
+			}
+		}
+		if ( ! $allowed ) {
+			$this->rollback();
+			return $this->forbidden();
+		}
+		try {
+			$result = $callback();
+		} catch ( \Throwable $throwable ) {
+			$this->rollback();
+			return new \WP_Error( 'promoter_authority_mutation_failed', __( 'The promoter mutation failed while authority was locked.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) );
+		}
+		if ( is_wp_error( $result ) ) {
+			$this->rollback();
+			return $result;
+		}
+		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes serialized promoter-owned mutation.
+			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
+		}
+		return $result;
+	}
+
+	/** Execute a trusted promoter mutation while its active organization row is locked. */
+	public function with_active_organization_lock( int $promoter_term_id, callable $callback ) {
+		$term = get_term( $promoter_term_id, 'promoter' );
+		if ( $promoter_term_id < 1 || ! $term || is_wp_error( $term ) || 'promoter' !== $term->taxonomy ) {
+			return new \WP_Error( 'invalid_promoter_authority_term', __( 'A valid current-site promoter term is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		global $wpdb;
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes trusted promoter mutations against revocation.
+			return $this->database_error( 'promoter_authority_transaction_failed', __( 'The promoter authority transaction could not start.', 'extrachill-events' ) );
+		}
+		$locked = $this->lock_rows( $promoter_term_id );
+		if ( is_wp_error( $locked ) || ! is_array( $locked['organization'] ) || self::STATUS_ACTIVE !== $locked['organization']['status'] ) {
+			$this->rollback();
+			return is_wp_error( $locked ) ? $locked : $this->forbidden();
+		}
+		try {
+			$result = $callback();
+		} catch ( \Throwable $throwable ) {
+			$this->rollback();
+			return new \WP_Error( 'promoter_authority_mutation_failed', __( 'The promoter mutation failed while authority was locked.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) );
+		}
+		if ( is_wp_error( $result ) ) {
+			$this->rollback();
+			return $result;
+		}
+		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes serialized trusted promoter mutation.
+			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
+		}
+		return $result;
+	}
+
 	/**
 	 * List memberships deterministically within the hard organization bound.
 	 *
@@ -340,6 +424,35 @@ class PromoterAuthorityRepository {
 			$memberships[] = $membership;
 		}
 		return $memberships;
+	}
+
+	/** List every approved promoter identity within the public network bound. */
+	public function list_active_organizations() {
+		global $wpdb;
+		$table = PromoterAuthoritySchema::organizations_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE status = %s ORDER BY promoter_term_id ASC LIMIT %d", self::STATUS_ACTIVE, self::MAX_ORGANIZATIONS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded canonical approval projection.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return $this->database_error( 'approved_promoter_list_failed', __( 'Approved promoters could not be listed.', 'extrachill-events' ) );
+		}
+		if ( count( (array) $rows ) > self::MAX_ORGANIZATIONS ) {
+			return new \WP_Error(
+				'approved_promoter_limit_exceeded',
+				__( 'Approved promoter discovery exceeds its supported bound.', 'extrachill-events' ),
+				array(
+					'status'  => 503,
+					'maximum' => self::MAX_ORGANIZATIONS,
+				)
+			);
+		}
+		$organizations = array();
+		foreach ( (array) $rows as $row ) {
+			$organization = $this->hydrate_organization( $row );
+			if ( is_wp_error( $organization ) ) {
+				return $organization;
+			}
+			$organizations[] = $organization;
+		}
+		return $organizations;
 	}
 
 	/**
@@ -458,7 +571,32 @@ class PromoterAuthorityRepository {
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes mutation.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
+		$this->domain_changed( $promoter_term_id, $revoke ? 'membership_revoked' : 'membership_owner_updated' );
 		return $this->get_membership( $promoter_term_id, $user_id );
+	}
+
+	/** Run domain-owned transactional side effects before authority commits. */
+	private function run_precommit( int $promoter_term_id, string $change ) {
+		try {
+			$result = apply_filters( 'extrachill_events_promoter_authority_precommit', true, $promoter_term_id, $change );
+		} catch ( \Throwable $throwable ) {
+			return new \WP_Error( 'promoter_authority_precommit_failed', __( 'The promoter authority change could not be finalized.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) );
+		}
+		return true === $result ? true : ( is_wp_error( $result ) ? $result : new \WP_Error( 'promoter_authority_precommit_failed', __( 'The promoter authority change could not be finalized.', 'extrachill-events' ) ) );
+	}
+
+	/** Emit a privacy-safe domain signal only after a confirmed commit. */
+	private function domain_changed( int $promoter_term_id, string $change ): void {
+		try {
+			do_action( 'extrachill_events_promoter_authority_changed', $promoter_term_id, $change );
+		} catch ( \Throwable $throwable ) {
+			error_log( sprintf( 'Extra Chill Events promoter authority notification failed for %d (%s): %s', $promoter_term_id, $change, get_class( $throwable ) ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- A committed domain notification failure must remain observable.
+			try {
+				do_action( 'extrachill_events_promoter_authority_notification_failed', $promoter_term_id, $change, $throwable );
+			} catch ( \Throwable $failure_hook_error ) {
+				unset( $failure_hook_error );
+			}
+		}
 	}
 
 	/**

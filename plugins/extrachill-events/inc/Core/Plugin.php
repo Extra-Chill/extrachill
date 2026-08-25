@@ -90,6 +90,12 @@ final class ExtraChillEvents {
 		}
 
 		try {
+			\ExtraChillEvents\Providers\PromoterLinkPagesProvider::register();
+		} catch ( \Throwable $error ) {
+			$this->provider_failed( 'promoter-link-pages', $error );
+		}
+
+		try {
 			\ExtraChillEvents\Providers\PublicExperienceProvider::register();
 		} catch ( \Throwable $error ) {
 			$this->provider_failed( 'public-experience', $error );

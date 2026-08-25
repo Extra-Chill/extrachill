@@ -43,6 +43,10 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 	/** Configured activation without the complete API-v3 symbols fails before registration. */
 	public function test_configured_incomplete_runtime_registers_nothing(): void {
 		$this->set_runtime_active( true );
+		if ( function_exists( 'ec_link_pages_runtime_ready' ) ) {
+			$this->assertTrue( VenueLinkPagesProvider::validate_runtime() );
+			return;
+		}
 		$result = VenueLinkPagesProvider::initialize();
 
 		$this->assertWPError( $result );

@@ -142,7 +142,9 @@ jobs:
 
       - name: Run coordinated Link Pages tests
         if: ${{ matrix.command == 'review test' }}
-        run: vendor/bin/phpunit --configuration phpunit.xml.dist tests/VenueLinkPagesCoordinatedRuntimeTest.php
+        run: |
+          vendor/bin/phpunit --configuration phpunit.xml.dist tests/VenueLinkPagesCoordinatedRuntimeTest.php
+          vendor/bin/phpunit --configuration phpunit.xml.dist tests/PromoterLinkPagesCoordinatedRuntimeTest.php
 
       - name: Select managed WordPress suite
         if: ${{ matrix.command == 'review test' }}

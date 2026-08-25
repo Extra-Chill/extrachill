@@ -37,6 +37,7 @@
 			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
 			<file>tests/AbilityRegistrationLifecycleTest.php</file>
 			<file>tests/VenueLinkPagesCoordinatedRuntimeTest.php</file>
+			<file>tests/PromoterLinkPagesCoordinatedRuntimeTest.php</file>
 		</testsuite>
 		<testsuite name="venue-membership-authorization">
 			<file>tests/VenueMembershipAuthorizationTest.php</file>

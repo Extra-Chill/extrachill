@@ -43,6 +43,7 @@ require_once __DIR__ . '/inc/Providers/ArtistUrlImportProvider.php';
 require_once __DIR__ . '/inc/Providers/PromoterAuthorityProvider.php';
 require_once __DIR__ . '/inc/Providers/VenueBookingProvider.php';
 require_once __DIR__ . '/inc/Providers/VenueLinkPagesProvider.php';
+require_once __DIR__ . '/inc/Providers/PromoterLinkPagesProvider.php';
 require_once __DIR__ . '/inc/Providers/PublicExperienceProvider.php';
 require_once __DIR__ . '/inc/Providers/AbilitiesProvider.php';
 require_once __DIR__ . '/inc/Providers/DataMachineEventsProvider.php';
