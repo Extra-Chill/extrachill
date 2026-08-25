@@ -105,41 +105,61 @@ final class VenueLinkPages {
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : self::forbidden();
 		}
-		$allowed_keys = array( 'links', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id' );
+		$allowed_keys = array( 'links', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id', 'expected_revision' );
 		if ( ! is_array( $data ) || array_diff( array_keys( $data ), $allowed_keys ) ) {
 			return new \WP_Error( 'invalid_venue_link_page_save', __( 'The venue Link Page save contains unsupported fields.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		$link_page_id = (int) $resolved['link_page_id'];
-		$snapshot     = self::build_snapshot( (int) $resolved['owner']['object_id'], $resolved['owner_reference'] );
+		$current      = ec_read_link_page_persistence( $link_page_id );
+		if ( is_wp_error( $current ) ) {
+			return $current;
+		}
+		$expected_revision = isset( $data['expected_revision'] ) ? (string) $data['expected_revision'] : '';
+		$lock_revision     = self::persistence_revision( $current );
+		unset( $data['expected_revision'] );
+		$snapshot = self::build_snapshot( (int) $resolved['owner']['object_id'], $resolved['owner_reference'] );
 		if ( is_wp_error( $snapshot ) ) {
 			return $snapshot;
 		}
-		$meta_keys = array_values(
-			array_unique(
-				array_merge(
-					array( self::SNAPSHOT_META_KEY, EC_LINK_PAGE_PUBLIC_SNAPSHOT_META_KEY, '_link_page_links', '_link_page_custom_css_vars', '_link_page_bio_text', '_link_expiration_enabled', '_link_page_redirect_enabled', '_link_page_redirect_target_url', '_enable_youtube_inline_embed', '_link_page_meta_pixel_id', '_link_page_google_tag_id', '_link_page_google_tag_manager_id', '_link_page_social_icons_position', '_link_page_profile_img_shape', '_link_page_background_image_id' ),
-					array_values( ec_link_page_id_meta_keys() )
-				)
-			)
+		$saved = ec_save_link_page_persistence_composed(
+			$link_page_id,
+			$data,
+			static function ( $finalized_link_page_id, $persistence ) use ( $snapshot, $resolved, $expected_revision, $lock_revision ) {
+				unset( $persistence );
+				if ( $expected_revision && ! hash_equals( $lock_revision, $expected_revision ) ) {
+					return new \WP_Error( 'venue_link_page_revision_conflict', __( 'The Link Page changed before this save could be applied.', 'extrachill-events' ), array( 'status' => 409 ) );
+				}
+				return self::finalize_owner_state( (int) $finalized_link_page_id, (string) $resolved['owner_reference'], $snapshot );
+			}
 		);
-		$before    = array();
-		foreach ( $meta_keys as $meta_key ) {
-			$before[ $meta_key ] = ec_snapshot_link_page_meta( $link_page_id, $meta_key );
-		}
-		$saved = ec_save_link_page_persistence_locked( $link_page_id, $data );
 		if ( is_wp_error( $saved ) ) {
 			return $saved;
 		}
+		return self::compose_response( $saved, $snapshot );
+	}
+
+	/** Finalize and compensate venue-owned projections inside the composed save. */
+	private static function finalize_owner_state( int $link_page_id, string $reference, array $snapshot ) {
+		$before = array(
+			self::SNAPSHOT_META_KEY               => ec_snapshot_link_page_meta( $link_page_id, self::SNAPSHOT_META_KEY ),
+			EC_LINK_PAGE_PUBLIC_SNAPSHOT_META_KEY => ec_snapshot_link_page_meta( $link_page_id, EC_LINK_PAGE_PUBLIC_SNAPSHOT_META_KEY ),
+		);
 		if ( ! ec_write_link_page_meta( $link_page_id, self::SNAPSHOT_META_KEY, $snapshot ) ) {
 			$error = new \WP_Error( 'venue_link_page_snapshot_save_failed', __( 'The venue Link Page snapshot could not be saved.', 'extrachill-events' ) );
 			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $error : new \WP_Error( 'venue_link_page_save_compensation_failed', __( 'The failed venue Link Page save could not be compensated.', 'extrachill-events' ), array( 'cause' => $error->get_error_code() ) );
 		}
-		$public_snapshot = ec_save_link_page_public_projection_snapshot( $link_page_id, $resolved['owner_reference'], self::projection_from_snapshot( $snapshot, $link_page_id ) );
-		if ( is_wp_error( $public_snapshot ) ) {
-			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $public_snapshot : new \WP_Error( 'venue_link_page_save_compensation_failed', __( 'The failed venue Link Page save could not be compensated.', 'extrachill-events' ), array( 'cause' => $public_snapshot->get_error_code() ) );
+		$public = ec_save_link_page_public_projection_snapshot( $link_page_id, $reference, self::projection_from_snapshot( $snapshot, $link_page_id ) );
+		if ( is_wp_error( $public ) ) {
+			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $public : new \WP_Error( 'venue_link_page_save_compensation_failed', __( 'The failed venue Link Page save could not be compensated.', 'extrachill-events' ), array( 'cause' => $public->get_error_code() ) );
 		}
-		do_action( 'ec_link_page_save', $link_page_id );
-		return self::compose_response( ec_read_link_page_persistence( $link_page_id ), $snapshot );
+		try {
+			do_action( 'ec_link_page_save', $link_page_id );
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			$error = new \WP_Error( 'venue_link_page_final_hook_failed', __( 'The venue Link Page final mutation hook failed.', 'extrachill-events' ) );
+			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $error : new \WP_Error( 'venue_link_page_save_compensation_failed', __( 'The failed venue Link Page save could not be compensated.', 'extrachill-events' ), array( 'cause' => $error->get_error_code() ) );
+		}
+		return true;
 	}
 
 	/** Provision one page under an owner-level lock and deterministic slug tiers. */
@@ -609,7 +629,8 @@ final class VenueLinkPages {
 		if ( is_wp_error( $data ) ) {
 			return $data;
 		}
-		$link_page_id = (int) $data['link_page_id'];
+		$link_page_id     = (int) $data['link_page_id'];
+		$data['revision'] = self::persistence_revision( $data );
 		return array(
 			'venue'     => array(
 				'term_id'         => (int) $snapshot['source']['venue_term_id'],
@@ -625,6 +646,12 @@ final class VenueLinkPages {
 				)
 			),
 		);
+	}
+
+	/** Hash only canonical generic persistence fields for optimistic concurrency. */
+	private static function persistence_revision( array $data ): string {
+		$encoded = wp_json_encode( array_intersect_key( $data, array_flip( array( 'links', 'css_vars', 'bio', 'settings', 'background_image_id' ) ) ) );
+		return hash( 'sha256', false === $encoded ? '{}' : $encoded );
 	}
 
 	/** Return deterministic unique candidates from least to most qualified. */

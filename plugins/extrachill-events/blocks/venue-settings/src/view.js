@@ -25,6 +25,7 @@ import { ClaimPanel, ClaimsTab } from './claims-tab';
 import {
 	ManagedIdentitySelector,
 	PromoterWorkspacePanel,
+	SharedLinkPageEditor,
 	VenuePromoterRelationships,
 } from './managed-workspace';
 import { ProfileTab } from './profile-tab';
@@ -56,8 +57,9 @@ export function VenueSettingsApp( { context } ) {
 	const [ configStatuses, setConfigStatuses ] = useState( {} );
 	const [ savingProfiles, setSavingProfiles ] = useState( {} );
 	const [ savingConfigs, setSavingConfigs ] = useState( {} );
-	const [ promoterLinkPageDirty, setPromoterLinkPageDirty ] =
-		useState( false );
+	const [ linkPageDirtyByIdentity, setLinkPageDirtyByIdentity ] = useState(
+		{}
+	);
 	const profileRequestIds = useRef( {} );
 	const configRequestIds = useRef( {} );
 	const teamRequestIds = useRef( {} );
@@ -100,7 +102,15 @@ export function VenueSettingsApp( { context } ) {
 			)
 		);
 	} );
-	const dirty = promoterLinkPageDirty || venueDirty;
+	const linkPageDirty = Object.values( linkPageDirtyByIdentity ).some(
+		Boolean
+	);
+	const dirty = linkPageDirty || venueDirty;
+	const setLinkPageDirty = ( reference, value ) =>
+		setLinkPageDirtyByIdentity( ( current ) => ( {
+			...current,
+			[ reference ]: value,
+		} ) );
 
 	const loadTeam = async ( venue ) => {
 		if ( ! canManage( venue ) ) {
@@ -329,6 +339,7 @@ export function VenueSettingsApp( { context } ) {
 			? [
 					{ id: 'calendar', label: 'Bookings' },
 					{ id: 'venue', label: 'Venue' },
+					{ id: 'link-page', label: 'Link Page' },
 					{ id: 'booking-form', label: 'Booking Form' },
 					{ id: 'settings', label: 'Booking Rules' },
 			  ]
@@ -353,6 +364,19 @@ export function VenueSettingsApp( { context } ) {
 		const errors = loadErrors[ venue.id ] || {};
 		const config = configs[ venue.id ];
 		const idPrefix = selected ? '' : `venue-${ venue.id }-`;
+		if ( tab === 'link-page' ) {
+			return (
+				<SharedLinkPageEditor
+					identityType="venue"
+					identityId={ venue.id }
+					identityName={ venue.name }
+					initialStatus={ venue.link_page?.status || 'unavailable' }
+					onDirtyChange={ ( value ) =>
+						setLinkPageDirty( `venue:${ venue.id }`, value )
+					}
+				/>
+			);
+		}
 		if ( tab === 'venue' ) {
 			if ( errors.profile ) {
 				return (
@@ -531,7 +555,12 @@ export function VenueSettingsApp( { context } ) {
 			return (
 				<PromoterWorkspacePanel
 					workspace={ workspace }
-					onLinkPageDirtyChange={ setPromoterLinkPageDirty }
+					onLinkPageDirtyChange={ ( value ) =>
+						setLinkPageDirty(
+							`promoter:${ workspace.promoter?.id || 0 }`,
+							value
+						)
+					}
 				/>
 			);
 		}

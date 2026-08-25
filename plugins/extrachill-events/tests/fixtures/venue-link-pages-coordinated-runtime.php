@@ -107,7 +107,9 @@ function data_machine_events_get_venue_profile( $term_id ) {
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueLinkPages.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueLinkPageAbilities.php';
 
+use ExtraChillEvents\Abilities\VenueLinkPageAbilities;
 use ExtraChillEvents\Core\VenueLinkPages;
 
 $GLOBALS['venue_link_page_fixture']          = array(
@@ -160,10 +162,10 @@ add_filter(
 $GLOBALS['ec_test']['execute_actions'] = true;
 
 switch_to_blog( 7 );
-$created      = VenueLinkPages::provision( 30 );
-$page_id      = is_wp_error( $created ) ? 0 : (int) $created['link_page']['link_page_id'];
-$read         = $page_id ? ec_read_link_page( VenueLinkPages::owner_reference( 30 ) ) : $created;
-$saved        = $page_id ? ec_save_link_page(
+$created                  = VenueLinkPages::provision( 30 );
+$page_id                  = is_wp_error( $created ) ? 0 : (int) $created['link_page']['link_page_id'];
+$read                     = $page_id ? ec_read_link_page( VenueLinkPages::owner_reference( 30 ) ) : $created;
+$saved                    = $page_id ? ec_save_link_page(
 	VenueLinkPages::owner_reference( 30 ),
 	array(
 		'links' => array(
@@ -181,8 +183,87 @@ $saved        = $page_id ? ec_save_link_page(
 		),
 	)
 ) : $created;
-$analytics    = $page_id ? VenueLinkPages::analytics( 30 ) : $created;
-$caller_after = get_current_blog_id();
+$atomic_save_hooks_before = count(
+	array_filter(
+		$GLOBALS['ec_test']['fired_actions'],
+		static function ( $action ) {
+			return 'ec_link_page_persistence_saved' === $action[0];
+		}
+	)
+);
+$atomic_patch             = $page_id ? ( new VenueLinkPageAbilities() )->patch(
+	array(
+		'venue_term_id'     => 30,
+		'expected_revision' => $saved['link_page']['revision'] ?? '',
+		'links'             => array(
+			array(
+				'id'            => $saved['link_page']['links'][0]['id'],
+				'section_title' => 'Atomic',
+				'links'         => $saved['link_page']['links'][0]['links'],
+			),
+		),
+		'css_vars'          => array( '--link-page-background-color' => '#000000' ),
+	)
+) : $created;
+$atomic_save_hooks_after  = count(
+	array_filter(
+		$GLOBALS['ec_test']['fired_actions'],
+		static function ( $action ) {
+			return 'ec_link_page_persistence_saved' === $action[0];
+		}
+	)
+);
+$GLOBALS['venue_link_page_fixture']['revoke_on_page_lock'] = static function () use ( $page_id ) {
+	update_post_meta( $page_id, '_link_page_bio_text', 'Concurrent winner' );
+};
+$interleaved       = $page_id ? ( new VenueLinkPageAbilities() )->patch(
+	array(
+		'venue_term_id'     => 30,
+		'expected_revision' => $atomic_patch['link_page']['revision'] ?? '',
+		'links'             => array(
+			array(
+				'id'            => $atomic_patch['link_page']['links'][0]['id'],
+				'section_title' => 'Concurrent loser',
+				'links'         => $atomic_patch['link_page']['links'][0]['links'],
+			),
+		),
+	)
+) : $created;
+$interleaved_bio   = $page_id ? ec_with_link_page_storage_blog(
+	static function () use ( $page_id ) {
+		return get_post_meta( $page_id, '_link_page_bio_text', true );
+	}
+) : '';
+$interleaved_links = $page_id ? ec_with_link_page_storage_blog(
+	static function () use ( $page_id ) {
+		return get_post_meta( $page_id, '_link_page_links', true );
+	}
+) : array();
+$stale_bio_before  = $page_id ? get_post_meta( $page_id, '_link_page_bio_text', true ) : '';
+$stale_save        = $page_id ? ec_save_link_page(
+	VenueLinkPages::owner_reference( 30 ),
+	array(
+		'expected_revision' => $read['link_page']['revision'] ?? '',
+		'bio'               => 'Stale overwrite',
+	)
+) : $created;
+$stale_bio_after   = $page_id ? get_post_meta( $page_id, '_link_page_bio_text', true ) : '';
+$analytics         = $page_id ? VenueLinkPages::analytics( 30 ) : $created;
+$caller_after      = get_current_blog_id();
+
+add_action(
+	'ec_link_page_save',
+	static function () {
+		if ( ! empty( $GLOBALS['venue_link_page_fixture']['throw_final_hook'] ) ) {
+			throw new RuntimeException( 'Final hook failed.' );
+		}
+	}
+);
+$final_hook_bio_before                                  = $page_id ? get_post_meta( $page_id, '_link_page_bio_text', true ) : '';
+$GLOBALS['venue_link_page_fixture']['throw_final_hook'] = true;
+$final_hook_failure                                     = $page_id ? ec_save_link_page( VenueLinkPages::owner_reference( 30 ), array( 'bio' => 'Must compensate final hook' ) ) : $created;
+$GLOBALS['venue_link_page_fixture']['throw_final_hook'] = false;
+$final_hook_bio_after                                   = $page_id ? get_post_meta( $page_id, '_link_page_bio_text', true ) : '';
 
 restore_current_blog();
 ec_create_owned_link_page( 'term:7:place:90', 'Collision One', 'other-venue' );
@@ -304,53 +385,75 @@ $cache_after_delete = count(
 
 echo wp_json_encode(
 	array(
-		'created'         => $page_id > 0,
-		'owner'           => $page_id ? ec_get_stored_link_page_owner_references( $page_id ) : array(),
-		'slug'            => $page_id ? get_post_field( 'post_name', $page_id ) : '',
-		'read'            => ! is_wp_error( $read ) && 30 === $read['venue']['term_id'],
-		'saved'           => ! is_wp_error( $saved ) && 'Calendar' === $saved['link_page']['links'][0]['links'][0]['link_text'],
-		'analytics'       => ! is_wp_error( $analytics ) && 12 === $analytics['summary']['total_views'],
-		'analytics_blog'  => $GLOBALS['venue_link_page_fixture']['analytics_blog'] ?? 0,
-		'denied'          => is_wp_error( $denied ) ? $denied->get_error_code() : '',
-		'caller_after'    => $caller_after,
-		'collision_slug'  => is_wp_error( $collision ) ? $collision->get_error_code() : $collision['link_page']['public_url'],
-		'rollback'        => array(
+		'created'            => $page_id > 0,
+		'owner'              => $page_id ? ec_get_stored_link_page_owner_references( $page_id ) : array(),
+		'slug'               => $page_id ? get_post_field( 'post_name', $page_id ) : '',
+		'read'               => ! is_wp_error( $read ) && 30 === $read['venue']['term_id'],
+		'saved'              => ! is_wp_error( $saved ) && 'Calendar' === $saved['link_page']['links'][0]['links'][0]['link_text'],
+		'atomic_patch'       => array(
+			'error'            => is_wp_error( $atomic_patch ) ? $atomic_patch->get_error_code() : '',
+			'section_title'    => is_wp_error( $atomic_patch ) ? '' : $atomic_patch['link_page']['links'][0]['section_title'],
+			'background_color' => is_wp_error( $atomic_patch ) ? '' : $atomic_patch['link_page']['css_vars']['--link-page-background-color'],
+			'revision_changed' => ! is_wp_error( $atomic_patch ) && $atomic_patch['link_page']['revision'] !== $saved['link_page']['revision'],
+			'save_hook_delta'  => $atomic_save_hooks_after - $atomic_save_hooks_before,
+		),
+		'interleaved'        => array(
+			'error'         => is_wp_error( $interleaved ) ? $interleaved->get_error_code() : '',
+			'bio'           => $interleaved_bio,
+			'section_title' => $interleaved_links[0]['section_title'] ?? '',
+		),
+		'stale_save'         => array(
+			'error'      => is_wp_error( $stale_save ) ? $stale_save->get_error_code() : '',
+			'bio_before' => $stale_bio_before,
+			'bio_after'  => $stale_bio_after,
+		),
+		'analytics'          => ! is_wp_error( $analytics ) && 12 === $analytics['summary']['total_views'],
+		'analytics_blog'     => $GLOBALS['venue_link_page_fixture']['analytics_blog'] ?? 0,
+		'denied'             => is_wp_error( $denied ) ? $denied->get_error_code() : '',
+		'caller_after'       => $caller_after,
+		'collision_slug'     => is_wp_error( $collision ) ? $collision->get_error_code() : $collision['link_page']['public_url'],
+		'rollback'           => array(
 			'error'       => is_wp_error( $failed_save ) ? $failed_save->get_error_code() : '',
 			'bio'         => $bio_after_failure,
 			'final_delta' => $final_after_failure - $final_before_failure,
 			'cache_delta' => $cache_after_failure - $cache_before_failure,
 		),
-		'refresh'         => array(
+		'final_hook_failure' => array(
+			'error'      => is_wp_error( $final_hook_failure ) ? $final_hook_failure->get_error_code() : '',
+			'bio_before' => $final_hook_bio_before,
+			'bio_after'  => $final_hook_bio_after,
+		),
+		'refresh'            => array(
 			'version' => is_wp_error( $refreshed ) ? $refreshed->get_error_code() : $refreshed['venue']['snapshot']['source']['version'],
 			'caller'  => $refresh_caller,
 			'revoked' => is_wp_error( $revoked_refresh ) ? $revoked_refresh->get_error_code() : '',
 		),
-		'trusted_refresh' => $trusted_snapshot['source']['version'] ?? '',
-		'projection'      => ! is_wp_error( $projection ) ? array(
+		'trusted_refresh'    => $trusted_snapshot['source']['version'] ?? '',
+		'projection'         => ! is_wp_error( $projection ) ? array(
 			'title'         => $projection['display_title'],
 			'owner_type'    => $projection['body_attributes']['data-extrch-owner-type'],
 			'schema_type'   => $projection['seo']['schema'][0]['@type'],
 			'has_artist_id' => isset( $projection['body_attributes']['data-extrch-artist-id'] ),
 			'components'    => $projection['components'],
 		) : array( 'error' => $projection->get_error_code() ),
-		'social_html'     => $html,
-		'snapshot_source' => $snapshot['source'] ?? array(),
-		'corrupt'         => is_wp_error( $corrupt ) ? $corrupt->get_error_code() : '',
-		'deleted_owner'   => is_wp_error( $deleted_owner ) ? array( $deleted_owner->get_error_code(), $deleted_owner->get_error_data()['status'] ?? 0 ) : array(),
-		'deletion'        => array(
+		'social_html'        => $html,
+		'snapshot_source'    => $snapshot['source'] ?? array(),
+		'corrupt'            => is_wp_error( $corrupt ) ? $corrupt->get_error_code() : '',
+		'deleted_owner'      => is_wp_error( $deleted_owner ) ? array( $deleted_owner->get_error_code(), $deleted_owner->get_error_data()['status'] ?? 0 ) : array(),
+		'deletion'           => array(
 			'status'      => $page_id ? get_post_field( 'post_status', $page_id ) : '',
 			'audit'       => $page_id ? get_post_meta( $page_id, VenueLinkPages::ORPHAN_META_KEY, true ) : array(),
 			'cache_delta' => $cache_after_delete - $cache_before_delete,
 		),
-		'http_functions'  => array( function_exists( 'wp_remote_get' ), function_exists( 'wp_remote_post' ) ),
-		'final_hooks'     => count(
+		'http_functions'     => array( function_exists( 'wp_remote_get' ), function_exists( 'wp_remote_post' ) ),
+		'final_hooks'        => count(
 			array_filter(
 				$GLOBALS['ec_test']['fired_actions'],
 				static function ( $action ) {
 					return 'ec_link_page_save' === $action[0]; }
 			)
 		),
-		'cache_hooks'     => count(
+		'cache_hooks'        => count(
 			array_filter(
 				$GLOBALS['ec_test']['fired_actions'],
 				static function ( $action ) {

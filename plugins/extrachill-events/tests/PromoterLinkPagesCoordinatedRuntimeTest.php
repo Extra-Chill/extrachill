@@ -29,7 +29,7 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 
 	public function test_abilities_are_closed_and_deliberately_rest_visible(): void {
 		$result = $this->fixture( 'promoter-link-pages-abilities.php' );
-		$this->assertCount( 8, $result );
+		$this->assertCount( 9, $result );
 		foreach ( $result as $contract ) {
 			$this->assertTrue( $contract['input_closed'] );
 			$this->assertTrue( $contract['output_closed'] );
@@ -72,6 +72,12 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( array( 'term:7:promoter:30' ), $result['owner'] );
 		$this->assertTrue( $result['read'] );
 		$this->assertTrue( $result['saved'] );
+		$this->assertSame( '', $result['atomic_patch']['error'] );
+		$this->assertSame( 'Promoter Atomic', $result['atomic_patch']['section_title'] );
+		$this->assertSame( '#111111', $result['atomic_patch']['background_color'] );
+		$this->assertTrue( $result['atomic_patch']['revision_changed'] );
+		$this->assertSame( 'promoter_link_page_revision_conflict', $result['stale_save']['error'] );
+		$this->assertSame( 'Promoter managed bio.', $result['stale_save']['bio'] );
 		$this->assertSame( array( 'legacy_save' => 1, 'generic_save' => 1, 'generic_create' => 0 ), $result['saved_hooks'] );
 		$this->assertTrue( $result['flat_output_valid'] );
 		$this->assertTrue( $result['analytics'] );
@@ -133,7 +139,7 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertStringNotContainsString( 'MusicVenue', $files );
 		$this->assertStringNotContainsString( 'PostalAddress', $files );
 		$this->assertStringNotContainsString( 'subscribe', strtolower( $files ) );
-		$this->assertSame( 8, substr_count( file_get_contents( $root . '/inc/Abilities/PromoterLinkPageAbilities.php' ), "'extrachill/" ) );
+		$this->assertSame( 9, substr_count( file_get_contents( $root . '/inc/Abilities/PromoterLinkPageAbilities.php' ), "'extrachill/" ) );
 		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 31 )", $files );
 		$this->assertStringContainsString( 'ec_save_link_page_persistence_composed(', $files );
 		$this->assertStringContainsString( 'ec_provision_owned_link_page_composed(', $files );

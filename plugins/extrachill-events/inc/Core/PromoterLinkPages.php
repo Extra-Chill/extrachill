@@ -123,20 +123,30 @@ final class PromoterLinkPages {
 
 	/** Save generic persistence and promoter state through one composed mutation. */
 	private static function operation_save_locked( array $resolved, $data ) {
-		$allowed_keys = array( 'links', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id' );
+		$allowed_keys = array( 'links', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id', 'expected_revision' );
 		if ( ! is_array( $data ) || array_diff( array_keys( $data ), $allowed_keys ) ) {
 			return new \WP_Error( 'invalid_promoter_link_page_save', __( 'The promoter Link Page save contains unsupported fields.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		$link_page_id = (int) $resolved['link_page_id'];
-		$snapshot     = self::build_snapshot( (int) $resolved['owner']['object_id'], (string) $resolved['owner_reference'] );
+		$current      = ec_read_link_page_persistence( $link_page_id );
+		if ( is_wp_error( $current ) ) {
+			return $current;
+		}
+		$expected_revision = isset( $data['expected_revision'] ) ? (string) $data['expected_revision'] : '';
+		$lock_revision     = self::persistence_revision( $current );
+		unset( $data['expected_revision'] );
+		$snapshot = self::build_snapshot( (int) $resolved['owner']['object_id'], (string) $resolved['owner_reference'] );
 		if ( is_wp_error( $snapshot ) ) {
 			return $snapshot;
 		}
 		$saved = ec_save_link_page_persistence_composed(
 			$link_page_id,
 			$data,
-			static function ( $finalized_link_page_id, $persistence ) use ( $snapshot, $resolved ) {
+			static function ( $finalized_link_page_id, $persistence ) use ( $snapshot, $resolved, $expected_revision, $lock_revision ) {
 				unset( $persistence );
+				if ( $expected_revision && ! hash_equals( $lock_revision, $expected_revision ) ) {
+					return new \WP_Error( 'promoter_link_page_revision_conflict', __( 'The Link Page changed before this save could be applied.', 'extrachill-events' ), array( 'status' => 409 ) );
+				}
 				return self::finalize_owner_state( (int) $finalized_link_page_id, (string) $resolved['owner_reference'], $snapshot, 'save' );
 			}
 		);
@@ -616,6 +626,7 @@ final class PromoterLinkPages {
 		if ( is_wp_error( $data ) ) {
 			return $data;
 		}
+		$data['revision'] = self::persistence_revision( $data );
 		return array(
 			'promoter'  => array(
 				'term_id'         => (int) $snapshot['source']['promoter_term_id'],
@@ -626,6 +637,12 @@ final class PromoterLinkPages {
 			),
 			'link_page' => array_merge( $data, array( 'public_url' => ec_get_link_page_public_url( (int) $data['link_page_id'] ) ) ),
 		);
+	}
+
+	/** Hash only canonical generic persistence fields for optimistic concurrency. */
+	private static function persistence_revision( array $data ): string {
+		$encoded = wp_json_encode( array_intersect_key( $data, array_flip( array( 'links', 'css_vars', 'bio', 'settings', 'background_image_id' ) ) ) );
+		return hash( 'sha256', false === $encoded ? '{}' : $encoded );
 	}
 
 	/** Deterministic base, optional canonical qualifier, and stable ID suffix. */

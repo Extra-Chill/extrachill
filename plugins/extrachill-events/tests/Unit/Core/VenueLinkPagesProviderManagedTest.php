@@ -53,7 +53,7 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 		$this->assertSame( 'venue_link_pages_runtime_incomplete', $result->get_error_code() );
 		$this->assertSame( $result, $GLOBALS['extrachill_events_venue_link_pages_error'] );
 		$this->assertFalse( class_exists( '\\ExtraChillEvents\\Core\\VenueLinkPages', false ) );
-		foreach ( array( 'provision-venue-link-page', 'get-venue-link-page', 'save-venue-link-page-links', 'save-venue-link-page-styles', 'save-venue-link-page-settings', 'refresh-venue-link-page-snapshot', 'get-venue-link-page-analytics' ) as $ability ) {
+		foreach ( array( 'provision-venue-link-page', 'get-venue-link-page', 'save-venue-link-page-links', 'save-venue-link-page-styles', 'save-venue-link-page-settings', 'patch-venue-link-page', 'refresh-venue-link-page-snapshot', 'get-venue-link-page-analytics' ) as $ability ) {
 			$this->assertFalse( wp_has_ability( 'extrachill/' . $ability ) );
 		}
 	}

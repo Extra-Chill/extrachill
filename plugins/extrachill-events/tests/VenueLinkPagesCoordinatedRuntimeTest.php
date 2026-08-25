@@ -52,12 +52,24 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 	/** Every Events-owned ability is a deliberate core-runner contract. */
 	public function test_ability_inputs_outputs_and_rest_visibility_are_closed_and_deliberate(): void {
 		$contracts = $this->fixture( 'venue-link-pages-abilities.php' );
-		$this->assertCount( 7, $contracts );
+		$this->assertCount( 8, $contracts );
 		foreach ( $contracts as $contract ) {
 			$this->assertTrue( $contract['input_closed'] );
 			$this->assertTrue( $contract['output_closed'] );
 			$this->assertTrue( $contract['show_in_rest'] );
 		}
+		$this->assertSame(
+			array(
+				'sections'          => 10,
+				'links_per_section' => 25,
+				'id'                => 100,
+				'section_title'     => 200,
+				'link_text'         => 200,
+				'link_url'          => 2048,
+				'expires_at'        => 64,
+			),
+			$contracts['extrachill/save-venue-link-page-links']['limits']
+		);
 	}
 
 	public function test_real_standalone_runtime_provisions_reads_saves_projects_and_delegates_analytics(): void {
@@ -67,6 +79,16 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'the-royal-american', $result['slug'] );
 		$this->assertTrue( $result['read'] );
 		$this->assertTrue( $result['saved'] );
+		$this->assertSame( '', $result['atomic_patch']['error'] );
+		$this->assertSame( 'Atomic', $result['atomic_patch']['section_title'] );
+		$this->assertSame( '#000000', $result['atomic_patch']['background_color'] );
+		$this->assertTrue( $result['atomic_patch']['revision_changed'] );
+		$this->assertSame( 1, $result['atomic_patch']['save_hook_delta'] );
+		$this->assertSame( 'venue_link_page_revision_conflict', $result['interleaved']['error'] );
+		$this->assertSame( 'Concurrent winner', $result['interleaved']['bio'] );
+		$this->assertSame( 'Atomic', $result['interleaved']['section_title'] );
+		$this->assertSame( 'venue_link_page_revision_conflict', $result['stale_save']['error'] );
+		$this->assertSame( $result['stale_save']['bio_before'], $result['stale_save']['bio_after'] );
 		$this->assertTrue( $result['analytics'] );
 		$this->assertSame( 4, $result['analytics_blog'] );
 		$this->assertSame( 'venue_action_forbidden', $result['denied'] );
@@ -76,6 +98,8 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( '', $result['rollback']['bio'] );
 		$this->assertSame( 0, $result['rollback']['final_delta'] );
 		$this->assertSame( 0, $result['rollback']['cache_delta'] );
+		$this->assertSame( 'venue_link_page_final_hook_failed', $result['final_hook_failure']['error'] );
+		$this->assertSame( $result['final_hook_failure']['bio_before'], $result['final_hook_failure']['bio_after'] );
 		$this->assertSame( str_repeat( 'c', 64 ), $result['refresh']['version'] );
 		$this->assertSame( 7, $result['refresh']['caller'] );
 		$this->assertSame( 'venue_action_forbidden', $result['refresh']['revoked'] );
@@ -93,7 +117,7 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'draft_on_owner_deletion', $result['deletion']['audit']['policy'] );
 		$this->assertGreaterThanOrEqual( 1, $result['deletion']['cache_delta'] );
 		$this->assertSame( array( false, false ), $result['http_functions'] );
-		$this->assertSame( $result['final_hooks'] + $result['deletion']['cache_delta'], $result['cache_hooks'] );
+		$this->assertSame( $result['final_hooks'] - 1 + $result['deletion']['cache_delta'], $result['cache_hooks'] );
 	}
 
 	public function test_bootstrap_abilities_and_source_layering_contracts_are_explicit(): void {
@@ -106,8 +130,8 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertStringNotContainsString( 'Requires Plugins: data-machine, data-machine-events, extrachill-link-pages', $plugin );
 		$this->assertStringContainsString( 'Add the native plugin dependency after Link Pages PR #4', $provider );
 		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 30 )", $provider );
-		$this->assertSame( 7, substr_count( $abilities, "'extrachill/" ) );
-		$this->assertSame( 1, substr_count( $abilities, "'show_in_rest' => true" ) );
+		$this->assertSame( 8, substr_count( $abilities, "'extrachill/" ) );
+		$this->assertSame( 2, substr_count( $abilities, "'show_in_rest' => true" ) );
 		$this->assertStringNotContainsString( 'register_rest_route', $core . $abilities . $provider );
 		$this->assertStringNotContainsString( 'WP_CLI', $core . $abilities . $provider );
 		$this->assertStringNotContainsString( 'wp_remote_', $core . $abilities . $provider );

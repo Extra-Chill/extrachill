@@ -138,6 +138,14 @@ foreach ( $managed_venues as &$venue ) {
 	$venue['support_events'] = $venue['can_access'] && function_exists( 'extrachill_events_local_support_organizer_events' )
 		? extrachill_events_local_support_organizer_events( $user_id, $venue_id )
 		: array();
+	$venue['link_page']      = array( 'status' => 'unavailable' );
+	if ( function_exists( 'ec_link_page_editor_is_available' ) && ec_link_page_editor_is_available() && function_exists( 'ec_get_link_page_id_for_owner' ) ) {
+		$reference = \ExtraChillEvents\Core\VenueLinkPages::owner_reference( $venue_id );
+		$page_id   = is_wp_error( $reference ) ? $reference : ec_get_link_page_id_for_owner( $reference );
+		if ( ! is_wp_error( $page_id ) ) {
+			$venue['link_page']['status'] = $page_id ? 'available' : 'not_provisioned';
+		}
+	}
 }
 unset( $venue );
 
@@ -207,8 +215,10 @@ if ( ! $promoter_mode ) {
 		)
 	);
 }
-$context_id       = wp_unique_id( 'ec-venue-settings-context-' );
-$support_requests = ! $promoter_mode && $can_access && LocalSupportSchema::is_ready()
+$context_id                            = wp_unique_id( 'ec-venue-settings-context-' );
+$editor_available                      = function_exists( 'ec_enqueue_link_page_editor' ) && ec_enqueue_link_page_editor();
+$context['link_page_editor_available'] = $editor_available;
+$support_requests                      = ! $promoter_mode && $can_access && LocalSupportSchema::is_ready()
 	? ( new LocalSupportWorkspace() )->venue_requests( (int) $selected['id'], $user_id )
 	: array();
 ?>

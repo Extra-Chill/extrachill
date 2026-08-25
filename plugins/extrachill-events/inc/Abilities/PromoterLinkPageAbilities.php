@@ -41,9 +41,40 @@ final class PromoterLinkPageAbilities {
 	public function register(): void {
 		$this->register_management( 'extrachill/provision-promoter-link-page', __( 'Provision Promoter Link Page', 'extrachill-events' ), array(), array( $this, 'provision' ), false, true );
 		$this->register_management( 'extrachill/get-promoter-link-page', __( 'Get Promoter Link Page', 'extrachill-events' ), array(), array( $this, 'get' ), true, true );
-		$this->register_management( 'extrachill/save-promoter-link-page-links', __( 'Save Promoter Link Page Links', 'extrachill-events' ), array( 'links' => $this->links_input_schema() ), array( $this, 'save_links' ), false, false );
-		$this->register_management( 'extrachill/save-promoter-link-page-styles', __( 'Save Promoter Link Page Styles', 'extrachill-events' ), array( 'css_vars' => $this->styles_schema() ), array( $this, 'save_styles' ), false, false );
-		$this->register_management( 'extrachill/save-promoter-link-page-settings', __( 'Save Promoter Link Page Settings', 'extrachill-events' ), array( 'settings' => $this->settings_schema() ), array( $this, 'save_settings' ), false, false );
+		$this->register_management(
+			'extrachill/save-promoter-link-page-links',
+			__( 'Save Promoter Link Page Links', 'extrachill-events' ),
+			array(
+				'links'             => $this->links_input_schema(),
+				'expected_revision' => $this->revision_schema(),
+			),
+			array( $this, 'save_links' ),
+			false,
+			false
+		);
+		$this->register_management(
+			'extrachill/save-promoter-link-page-styles',
+			__( 'Save Promoter Link Page Styles', 'extrachill-events' ),
+			array(
+				'css_vars'          => $this->styles_schema(),
+				'expected_revision' => $this->revision_schema(),
+			),
+			array( $this, 'save_styles' ),
+			false,
+			false
+		);
+		$this->register_management(
+			'extrachill/save-promoter-link-page-settings',
+			__( 'Save Promoter Link Page Settings', 'extrachill-events' ),
+			array(
+				'settings'          => $this->settings_schema(),
+				'expected_revision' => $this->revision_schema(),
+			),
+			array( $this, 'save_settings' ),
+			false,
+			false
+		);
+		$this->register_patch_ability();
 		$this->register_management( 'extrachill/refresh-promoter-link-page-snapshot', __( 'Refresh Promoter Link Page Snapshot', 'extrachill-events' ), array(), array( $this, 'refresh' ), false, true );
 		$this->register_management(
 			'extrachill/get-promoter-link-page-analytics',
@@ -95,6 +126,49 @@ final class PromoterLinkPageAbilities {
 		);
 	}
 
+	/** Register one atomic sparse patch contract for the shared editor. */
+	private function register_patch_ability(): void {
+		wp_register_ability(
+			'extrachill/patch-promoter-link-page',
+			array(
+				'label'               => __( 'Patch Promoter Link Page', 'extrachill-events' ),
+				'description'         => __( 'Atomically patch changed promoter Link Page areas.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'promoter_term_id'    => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
+						'expected_revision'   => $this->revision_schema(),
+						'links'               => $this->links_input_schema(),
+						'css_vars'            => $this->styles_schema(),
+						'settings'            => $this->settings_schema(),
+						'background_image_id' => array(
+							'type'    => 'integer',
+							'minimum' => 0,
+						),
+					),
+					'required'             => array( 'promoter_term_id', 'expected_revision' ),
+					'minProperties'        => 3,
+					'additionalProperties' => false,
+				),
+				'output_schema'       => $this->document_schema(),
+				'execute_callback'    => array( $this, 'patch' ),
+				'permission_callback' => array( $this, 'authorize' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => false,
+						'destructive' => true,
+					),
+				),
+			)
+		);
+	}
+
 	/**
 	 * Register a REST-visible management ability with a closed request.
 	 *
@@ -117,7 +191,7 @@ final class PromoterLinkPageAbilities {
 			$properties
 		);
 		$required   = array( 'promoter_term_id' );
-		foreach ( array( 'links', 'css_vars', 'settings' ) as $field ) {
+		foreach ( array( 'links', 'css_vars', 'settings', 'expected_revision' ) as $field ) {
 			if ( isset( $properties[ $field ] ) ) {
 				$required[] = $field;
 			}
@@ -192,7 +266,13 @@ final class PromoterLinkPageAbilities {
 		if ( true !== $valid ) {
 			return $valid;
 		}
-		return $this->save( $input, array( 'links' => $input['links'] ) );
+		return $this->save(
+			$input,
+			array(
+				'links'             => $input['links'],
+				'expected_revision' => $input['expected_revision'],
+			)
+		);
 	}
 
 	/**
@@ -201,7 +281,13 @@ final class PromoterLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function save_styles( array $input ) {
-		return $this->save( $input, array( 'css_vars' => $input['css_vars'] ) );
+		return $this->save(
+			$input,
+			array(
+				'css_vars'          => $input['css_vars'],
+				'expected_revision' => $input['expected_revision'],
+			)
+		);
 	}
 
 	/**
@@ -210,7 +296,21 @@ final class PromoterLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function save_settings( array $input ) {
-		return $this->save( $input, $input['settings'] );
+		return $this->save( $input, array_merge( $input['settings'], array( 'expected_revision' => $input['expected_revision'] ) ) );
+	}
+
+	/** Atomically save only supplied generic areas under one canonical lock. */
+	public function patch( array $input ) {
+		$data = array( 'expected_revision' => $input['expected_revision'] );
+		foreach ( array( 'links', 'css_vars', 'background_image_id' ) as $field ) {
+			if ( array_key_exists( $field, $input ) ) {
+				$data[ $field ] = $input[ $field ];
+			}
+		}
+		if ( isset( $input['settings'] ) ) {
+			$data = array_merge( $data, $input['settings'] );
+		}
+		return $this->save( $input, $data );
 	}
 
 	/**
@@ -394,6 +494,16 @@ final class PromoterLinkPageAbilities {
 		);
 	}
 
+	/** Closed optimistic concurrency token. */
+	private function revision_schema(): array {
+		return array(
+			'type'      => 'string',
+			'minLength' => 64,
+			'maxLength' => 64,
+			'pattern'   => '^[a-f0-9]{64}$',
+		);
+	}
+
 	/** Closed composed management response. */
 	private function document_schema(): array {
 		$link                           = $this->link_schema( true );
@@ -514,8 +624,9 @@ final class PromoterLinkPageAbilities {
 						'background_image_id'  => array( 'type' => 'integer' ),
 						'background_image_url' => array( 'type' => 'string' ),
 						'public_url'           => array( 'type' => 'string' ),
+						'revision'             => $this->revision_schema(),
 					),
-					'required'             => array( 'link_page_id', 'css_vars', 'links', 'link_sections', 'bio', 'settings', 'background_image_id', 'background_image_url', 'public_url' ),
+					'required'             => array( 'link_page_id', 'css_vars', 'links', 'link_sections', 'bio', 'settings', 'background_image_id', 'background_image_url', 'public_url', 'revision' ),
 					'additionalProperties' => false,
 				),
 			),

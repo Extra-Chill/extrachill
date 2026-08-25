@@ -39,5 +39,19 @@ foreach ( $GLOBALS['venue_link_page_abilities'] as $name => $args ) {
 		'output_closed' => $schema_is_closed( $args['output_schema'] ),
 		'show_in_rest'  => true === $args['meta']['show_in_rest'],
 	);
+	if ( 'extrachill/save-venue-link-page-links' === $name ) {
+		$sections = $args['input_schema']['properties']['links'];
+		$section  = $sections['items'];
+		$link     = $section['properties']['links']['items'];
+		$contracts[ $name ]['limits'] = array(
+			'sections'          => $sections['maxItems'],
+			'links_per_section' => $section['properties']['links']['maxItems'],
+			'id'                => $section['properties']['id']['maxLength'],
+			'section_title'     => $section['properties']['section_title']['maxLength'],
+			'link_text'         => $link['properties']['link_text']['maxLength'],
+			'link_url'          => $link['properties']['link_url']['maxLength'],
+			'expires_at'        => $link['properties']['expires_at']['maxLength'],
+		);
+	}
 }
 echo json_encode( $contracts );
