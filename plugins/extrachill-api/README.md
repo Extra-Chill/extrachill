@@ -74,7 +74,7 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `GET /activity` - Activity feed with filtering and pagination (authenticated)
 - `GET /object` - Object resolver for posts, comments, and artists (authenticated)
 
-### Admin Endpoints (14)
+### Admin Endpoints
 - `GET /admin/artist-access` - List pending artist access requests
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
@@ -84,7 +84,6 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `GET /admin/team-members` - List all team members with search/pagination
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
-- `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
 - `GET /admin/tag-migration` - List tags for migration searching
 - `GET /admin/forum-topics` - List and manage bbPress topics across network
 - `GET /admin/forum-topics/{topic_id}` - Manage a single bbPress topic
@@ -214,6 +213,9 @@ Routes are automatically loaded using PHP's RecursiveIteratorIterator:
 - `extrachill_api_bootstrap` - Initialization during `plugins_loaded`
 - `extrachill_api_register_routes` - Route registration during `rest_api_init`
 
+### Taxonomy Projection Ownership
+Extra Chill API does not synchronize or persist shared taxonomy terms. On-demand term projection is owned by Extra Chill Network through the `extrachill/project-network-term` ability.
+
 ## Directory Structure
 
 ```
@@ -247,7 +249,6 @@ extrachill-api/
         │   ├── artist-relationships.php
         │   ├── forum-topics.php
         │   ├── tags.php
-        │   ├── taxonomy-sync.php
         │   └── team-members.php
         ├── activity/
         │   ├── feed.php

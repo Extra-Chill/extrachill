@@ -39,7 +39,6 @@ extrachill-api/
 │       │   ├── artist-relationships.php (User-artist relationship management)
 │       │   ├── forum-topics.php (bbPress forum topic management)
 │       │   ├── tags.php (Tag migration management)
-│       │   ├── taxonomy-sync.php (Taxonomy sync across sites)
 │       │   └── team-members.php (Team member sync and management)
 │       ├── analytics/
 │       │   ├── click.php (Unified click tracking - shares, link page clicks)
@@ -189,7 +188,7 @@ All endpoints are under the `extrachill/v1` namespace.
 
 **Documentation**: [docs/routes/activity/](../extrachill-plugins/extrachill-api/docs/routes/activity/)
 
-### Admin Endpoints (23)
+### Admin Endpoints
 - `GET /admin/artist-access` - List all pending requests
 - `GET/POST /admin/artist-access/{user_id}/approve` - Approve artist access request
 - `POST /admin/artist-access/{user_id}/reject` - Reject artist access request
@@ -199,7 +198,6 @@ All endpoints are under the `extrachill/v1` namespace.
 - `GET /admin/team-members` - List all team members with search/pagination
 - `POST /admin/team-members/sync` - Sync team members
 - `PUT /admin/team-members/{user_id}` - Manage team member status
-- `POST /admin/taxonomies/sync` - Sync shared taxonomies across sites
 - `GET /admin/tags` - List tags for migration searching
 - `POST /admin/tags/migrate` - Migrate tags between taxonomies
 - `GET /admin/forum-topics/forums` - List all forums with topic counts
