@@ -47,7 +47,7 @@ class ExtraChillArtistPlatform {
 
 
     private function init_hooks() {
-        add_action( 'init', 'extrachill_artist_platform_register_blocks' );
+        add_action( 'init', 'extrachill_artist_platform_register_blocks', 30 );
         add_action( 'init', array( $this, 'init' ), 15 );
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         add_action( 'plugins_loaded', 'extrachill_artist_platform_boot_link_pages_runtime', 20 );
@@ -100,6 +100,7 @@ class ExtraChillArtistPlatform {
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/subscribe-data-functions.php';
 
         require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
+        require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/editor-adapter.php';
         // Link-page analytics (write path, read provider, prune, and tables) is
         // owned by extrachill-analytics (ECA) as of extrachill-artist-platform#89
         // / extrachill-analytics#94. AP consumes it via the
@@ -191,7 +192,9 @@ extrachill_artist_platform();
  * Register Gutenberg blocks from build directory.
  */
 function extrachill_artist_platform_register_blocks() {
-    register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+    if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'extrachill/link-page-editor' ) ) {
+        register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+    }
     register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
     register_block_type( __DIR__ . '/build/blocks/artist-manager' );
     register_block_type( __DIR__ . '/build/blocks/artist-creator' );
