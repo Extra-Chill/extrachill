@@ -319,6 +319,25 @@ class PromoterAuthorityRepository {
 	}
 
 	/**
+	 * Test for one active membership in one current active promoter organization.
+	 *
+	 * @param int $user_id Network user ID.
+	 */
+	public function has_active_organization_for_user( int $user_id ) {
+		if ( $user_id < 1 ) {
+			return false;
+		}
+		global $wpdb;
+		$memberships   = PromoterAuthoritySchema::memberships_table();
+		$organizations = PromoterAuthoritySchema::organizations_table();
+		$found         = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$memberships} AS membership INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.promoter_term_id AND organization.status = %s INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.promoter_term_id AND identity.taxonomy = %s WHERE membership.user_id = %d AND membership.status = %s LIMIT 1", self::STATUS_ACTIVE, 'promoter', $user_id, self::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded current-user authority existence check against an active current promoter organization.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter workspace access could not be read.', 'extrachill-events' ) );
+		}
+		return null !== $found;
+	}
+
+	/**
 	 * List active promoter memberships for one exact network user.
 	 *
 	 * @param int $user_id Network user ID.

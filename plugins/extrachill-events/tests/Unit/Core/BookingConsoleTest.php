@@ -95,8 +95,8 @@ final class BookingConsoleTest extends TestCase {
 		);
 	}
 
-	/** Ensure administrators receive one canonical venue workspace link. */
-	public function test_administrator_receives_one_manage_venue_header_action(): void {
+	/** Ensure administrators retain one canonical Events workspace link. */
+	public function test_administrator_receives_one_manage_events_header_action(): void {
 		$previous_user_id = get_current_user_id();
 		$test_user_id     = 0;
 		$events_blog_id   = (int) ec_get_blog_id( 'events' );
@@ -122,11 +122,11 @@ final class BookingConsoleTest extends TestCase {
 				array(
 					array(
 						'url'      => ec_events_get_booking_console_url( 0 ),
-						'label'    => 'Manage Venue',
+						'label'    => 'Manage Events',
 						'priority' => 8,
 					),
 				),
-				ec_events_add_venue_workspace_header_item( array() )
+				ec_events_add_events_workspace_header_item( array() )
 			);
 		} finally {
 			if ( $test_user_id > 0 ) {
@@ -139,6 +139,44 @@ final class BookingConsoleTest extends TestCase {
 				restore_current_blog();
 			}
 		}
+	}
+
+	/** Existing menu items make both navigation callbacks idempotent before discovery. */
+	public function test_navigation_composition_does_not_duplicate_existing_events_destination(): void {
+		$avatar = array(
+			array(
+				'id'       => 'manage_events',
+				'label'    => 'Manage Events',
+				'url'      => ec_events_get_booking_console_url( 0 ),
+				'priority' => 45,
+			),
+		);
+		$header = array(
+			array(
+				'url'      => ec_events_get_booking_console_url( 0 ),
+				'label'    => 'Manage Events',
+				'priority' => 8,
+			),
+		);
+
+		$this->assertSame( $avatar, ec_events_add_manage_events_avatar_item( $avatar, 1 ) );
+		$this->assertSame( $header, ec_events_add_events_workspace_header_item( $header ) );
+	}
+
+	/** Navigation discovery remains bounded, provider-safe, and multisite-safe by contract. */
+	public function test_managed_identity_discovery_source_contract(): void {
+		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-console.php' );
+
+		foreach ( array( 'BookingSchema::class', 'VenueAuthorization::class', 'VenueMembershipRepository::class', 'PromoterAuthoritySchema::class', 'PromoterAuthorityRepository::class' ) as $dependency ) {
+			$this->assertStringContainsString( "class_exists( {$dependency} )", $source );
+		}
+		$this->assertStringContainsString( 'has_feature_access( $user_id )', $source );
+		$this->assertStringContainsString( 'has_active_venue_for_user( $user_id )', $source );
+		$this->assertStringContainsString( 'has_active_organization_for_user( $user_id )', $source );
+		$this->assertStringContainsString( 'try {', $source );
+		$this->assertStringContainsString( 'finally {', $source );
+		$this->assertStringContainsString( 'restore_current_blog();', $source );
+		$this->assertStringNotContainsString( 'PromoterWorkspace', $source );
 	}
 
 	/**
@@ -212,8 +250,8 @@ final class BookingConsoleTest extends TestCase {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local source contracts.
 		$feature_cards = file_get_contents( $plugin_root . '/inc/home/feature-cards.php' );
 
-		$this->assertStringContainsString( "add_filter( 'ec_avatar_menu_items', 'ec_events_add_manage_venue_avatar_item'", $booking_console );
-		$this->assertStringContainsString( "add_filter( 'extrachill_secondary_header_items', 'ec_events_add_venue_workspace_header_item'", $booking_console );
+		$this->assertStringContainsString( "add_filter( 'ec_avatar_menu_items', 'ec_events_add_manage_events_avatar_item'", $booking_console );
+		$this->assertStringContainsString( "add_filter( 'extrachill_secondary_header_items', 'ec_events_add_events_workspace_header_item'", $booking_console );
 		$this->assertStringContainsString( 'ec_events_user_has_active_venue_membership( get_current_user_id() )', $feature_cards );
 		$this->assertStringContainsString( 'Review inquiries, manage holds, and keep your venue calendar up to date.', $feature_cards );
 	}

@@ -139,6 +139,8 @@ final class PromoterAuthorityWpdb {
 	 * @var string
 	 */
 	public $prefix = 'wp_7_';
+	/** @var string Current site taxonomy table. */
+	public $term_taxonomy = 'wp_7_term_taxonomy';
 	/**
 	 * Last database error.
 	 *
@@ -163,6 +165,12 @@ final class PromoterAuthorityWpdb {
 	 * @var bool
 	 */
 	public $fail_activity = false;
+	/** @var bool Whether the bounded identity read should fail. */
+	public $fail_identity_read = false;
+	/** @var int Number of bounded identity reads. */
+	public $identity_queries = 0;
+	/** @var string Last bounded identity query. */
+	public $identity_query = '';
 	/**
 	 * Whether an external organization insert should win a simulated race.
 	 *
@@ -221,6 +229,34 @@ final class PromoterAuthorityWpdb {
 			},
 			$query
 		);
+	}
+
+	public function get_var( $query ) {
+		$this->last_error = '';
+		if ( false === strpos( $query, 'SELECT 1 FROM ' . PromoterAuthoritySchema::memberships_table() . ' AS membership' ) ) {
+			return null;
+		}
+		++$this->identity_queries;
+		$this->identity_query = $query;
+		if ( $this->fail_identity_read ) {
+			$this->last_error = 'simulated promoter identity read failure';
+			return null;
+		}
+		preg_match( '/membership\.user_id = (\d+)/', $query, $user_match );
+		preg_match( "/membership\.status = '([^']+)'/", $query, $status_match );
+		foreach ( $this->rows[ PromoterAuthoritySchema::memberships_table() ] ?? array() as $membership ) {
+			if ( (int) $membership['user_id'] !== (int) $user_match[1] || $membership['status'] !== stripslashes( $status_match[1] ) ) {
+				continue;
+			}
+			$promoter_term_id = (int) $membership['promoter_term_id'];
+			$term             = $GLOBALS['promoter_test']['terms'][ $promoter_term_id ] ?? null;
+			foreach ( $this->rows[ PromoterAuthoritySchema::organizations_table() ] ?? array() as $organization ) {
+				if ( (int) $organization['promoter_term_id'] === $promoter_term_id && PromoterAuthorityRepository::STATUS_ACTIVE === $organization['status'] && $term && 'promoter' === $term->taxonomy ) {
+					return '1';
+				}
+			}
+		}
+		return null;
 	}
 
 	public function insert( $table, $row ) {
@@ -561,6 +597,34 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'wp_7_ec_promoter_members', PromoterAuthoritySchema::memberships_table() );
 		$this->assertSame( 'wp_7_ec_promoter_authority_activity', PromoterAuthoritySchema::activity_table() );
 		$this->assertSame( 'wp_7_ec_promoter_venue_grants', PromoterAuthoritySchema::venue_grants_table() );
+	}
+
+	/** The bounded promoter predicate requires active membership, organization, and taxonomy identity. */
+	public function test_active_promoter_existence_predicate_uses_canonical_authority_state(): void {
+		$service    = new PromoterAuthorityService();
+		$repository = new PromoterAuthorityRepository();
+		$service->verify( 1, 100, 2 );
+		$service->create_membership( 2, 100, 3, false );
+
+		$this->assertTrue( $repository->has_active_organization_for_user( 2 ) );
+		$this->assertTrue( $repository->has_active_organization_for_user( 3 ) );
+		$this->assertFalse( $repository->has_active_organization_for_user( 4 ) );
+		$service->revoke_membership( 2, 100, 3, 1 );
+		$this->assertFalse( $repository->has_active_organization_for_user( 3 ) );
+		$term = $GLOBALS['promoter_test']['terms'][100];
+		unset( $GLOBALS['promoter_test']['terms'][100] );
+		$this->assertFalse( $repository->has_active_organization_for_user( 2 ) );
+		$GLOBALS['promoter_test']['terms'][100] = $term;
+		foreach ( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::organizations_table() ] as &$organization ) {
+			$organization['status'] = PromoterAuthorityRepository::STATUS_REVOKED;
+		}
+		unset( $organization );
+		$this->assertFalse( $repository->has_active_organization_for_user( 2 ) );
+		$GLOBALS['wpdb']->fail_identity_read = true;
+		$this->assertSame( 'promoter_membership_list_failed', $repository->has_active_organization_for_user( 2 )->get_error_code() );
+		$this->assertSame( 7, $GLOBALS['wpdb']->identity_queries );
+		$this->assertStringContainsString( 'SELECT 1 FROM wp_7_ec_promoter_members AS membership', $GLOBALS['wpdb']->identity_query );
+		$this->assertStringContainsString( 'LIMIT 1', $GLOBALS['wpdb']->identity_query );
 	}
 
 	public function test_verification_requires_exact_term_and_users_and_does_not_enroll_admin(): void {

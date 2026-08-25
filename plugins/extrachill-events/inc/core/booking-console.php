@@ -6,7 +6,10 @@
  */
 
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\PromoterAuthorityRepository;
+use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\VenueMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -106,47 +109,95 @@ function ec_events_user_has_active_venue_membership( int $user_id ): bool {
 }
 
 /**
- * Add the venue workspace to the shared avatar menu for active members.
+ * Test whether a user has any currently authorized Events managed identity.
+ *
+ * @param int $user_id User ID.
+ */
+function ec_events_user_has_managed_identity( int $user_id ): bool {
+	if ( $user_id < 1 || ! function_exists( 'ec_get_blog_id' ) ) {
+		return false;
+	}
+	if ( ! class_exists( BookingSchema::class ) || ! class_exists( VenueAuthorization::class ) || ! class_exists( VenueMembershipRepository::class ) || ! class_exists( PromoterAuthoritySchema::class ) || ! class_exists( PromoterAuthorityRepository::class ) ) {
+		return false;
+	}
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
+	if ( $events_blog_id < 1 ) {
+		return false;
+	}
+
+	$switched = get_current_blog_id() !== $events_blog_id;
+	if ( $switched ) {
+		switch_to_blog( $events_blog_id );
+	}
+	try {
+		if ( ! ( new VenueAuthorization() )->has_feature_access( $user_id ) ) {
+			return false;
+		}
+		if ( BookingSchema::is_ready() && true === ( new VenueMembershipRepository() )->has_active_venue_for_user( $user_id ) ) {
+			return true;
+		}
+		return PromoterAuthoritySchema::is_ready() && true === ( new PromoterAuthorityRepository() )->has_active_organization_for_user( $user_id );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+}
+
+/**
+ * Add one Events workspace to the shared avatar menu for active identities.
  *
  * @param array $items   Existing custom menu items.
  * @param int   $user_id User ID.
  */
-function ec_events_add_manage_venue_avatar_item( array $items, int $user_id ): array {
-	if ( ! ec_events_user_has_active_venue_membership( $user_id ) ) {
+function ec_events_add_manage_events_avatar_item( array $items, int $user_id ): array {
+	foreach ( $items as $item ) {
+		if ( 'manage_events' === ( $item['id'] ?? '' ) ) {
+			return $items;
+		}
+	}
+	if ( ! ec_events_user_has_managed_identity( $user_id ) ) {
 		return $items;
 	}
 	$items[] = array(
-		'id'       => 'manage_venue',
-		'label'    => __( 'Manage Venue', 'extrachill-events' ),
+		'id'       => 'manage_events',
+		'label'    => __( 'Manage Events', 'extrachill-events' ),
 		'url'      => ec_events_get_booking_console_url( 0 ),
 		'priority' => 45,
 	);
 	return $items;
 }
-add_filter( 'ec_avatar_menu_items', 'ec_events_add_manage_venue_avatar_item', 10, 2 );
+add_filter( 'ec_avatar_menu_items', 'ec_events_add_manage_events_avatar_item', 10, 2 );
 
 /**
- * Add role-aware venue workspace access to the Events secondary header.
+ * Add role-aware Events workspace access to the Events secondary header.
  *
  * @param array $items Existing secondary header items.
  */
-function ec_events_add_venue_workspace_header_item( array $items ): array {
+function ec_events_add_events_workspace_header_item( array $items ): array {
 	if ( ! ec_is_events_site() || ! is_user_logged_in() ) {
 		return $items;
 	}
 
+	$workspace_url = ec_events_get_booking_console_url( 0 );
+	foreach ( $items as $item ) {
+		if ( ( $item['url'] ?? '' ) === $workspace_url ) {
+			return $items;
+		}
+	}
+
 	$user_id = get_current_user_id();
-	if ( current_user_can( 'manage_options' ) || ec_events_user_has_active_venue_membership( $user_id ) ) {
+	if ( current_user_can( 'manage_options' ) || ec_events_user_has_managed_identity( $user_id ) ) {
 		$items[] = array(
-			'url'      => ec_events_get_booking_console_url( 0 ),
-			'label'    => __( 'Manage Venue', 'extrachill-events' ),
+			'url'      => $workspace_url,
+			'label'    => __( 'Manage Events', 'extrachill-events' ),
 			'priority' => 8,
 		);
 	}
 
 	return $items;
 }
-add_filter( 'extrachill_secondary_header_items', 'ec_events_add_venue_workspace_header_item' );
+add_filter( 'extrachill_secondary_header_items', 'ec_events_add_events_workspace_header_item' );
 
 /**
  * Resolve one contextual workspace action from an authorization state.

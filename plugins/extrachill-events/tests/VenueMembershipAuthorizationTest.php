@@ -386,6 +386,9 @@ final class VenueMembershipWpdb {
 	public $fail_invitation_insert = false;
 	public $after_start           = null;
 	public $before_list           = null;
+	public $fail_identity_read    = false;
+	public $identity_queries      = 0;
+	public $identity_query        = '';
 	private $snapshot             = null;
 	private $meta_snapshot        = null;
 	private $history_snapshot     = null;
@@ -526,6 +529,23 @@ final class VenueMembershipWpdb {
 
 	public function get_var( $query ) {
 		$this->last_error = '';
+		if ( false !== strpos( $query, 'SELECT 1 FROM ' . $this->prefix . 'ec_venue_members AS membership' ) ) {
+			++$this->identity_queries;
+			$this->identity_query = $query;
+			if ( $this->fail_identity_read ) {
+				$this->last_error = 'simulated venue identity read failure';
+				return null;
+			}
+			preg_match( '/membership\.user_id = (\d+)/', $query, $user_match );
+			preg_match( "/membership\.status = '([^']+)'/", $query, $status_match );
+			foreach ( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() as $row ) {
+				$term = $GLOBALS['venue_membership_test']['terms'][ (int) $row['venue_term_id'] ] ?? null;
+				if ( (int) $row['user_id'] === (int) $user_match[1] && $row['status'] === stripslashes( $status_match[1] ) && $term && 'venue' === $term->taxonomy ) {
+					return '1';
+				}
+			}
+			return null;
+		}
 		if ( preg_match( "/SHOW TABLES LIKE '([^']+)'/", $query, $table_match ) ) {
 			return $table_match[1];
 		}
@@ -1143,6 +1163,27 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertFalse( $authorization->can( 3, 55, VenueAuthorization::ACTION_ACCESS_VENUE ) );
 		$this->assertFalse( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_FINANCES ) );
 		$this->assertTrue( $authorization->can( 3, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS ) );
+	}
+
+	/** The bounded venue existence predicate requires active membership and a current venue term. */
+	public function test_active_venue_existence_predicate_uses_canonical_status_and_term(): void {
+		$repository = new VenueMembershipRepository();
+		$this->create_member( 55, 2, true );
+		$this->create_member( 56, 4, true, VenueAuthorization::STATUS_INVITED );
+		$this->create_member( 56, 5, true, VenueAuthorization::STATUS_REVOKED );
+
+		$this->assertTrue( $repository->has_active_venue_for_user( 2 ) );
+		$this->assertFalse( $repository->has_active_venue_for_user( 4 ) );
+		$this->assertFalse( $repository->has_active_venue_for_user( 5 ) );
+		$term = $GLOBALS['venue_membership_test']['terms'][55];
+		unset( $GLOBALS['venue_membership_test']['terms'][55] );
+		$this->assertFalse( $repository->has_active_venue_for_user( 2 ) );
+		$GLOBALS['venue_membership_test']['terms'][55] = $term;
+		$GLOBALS['wpdb']->fail_identity_read           = true;
+		$this->assertSame( 'venue_membership_read_failed', $repository->has_active_venue_for_user( 2 )->get_error_code() );
+		$this->assertSame( 5, $GLOBALS['wpdb']->identity_queries );
+		$this->assertStringContainsString( 'SELECT 1 FROM wp_7_ec_venue_members AS membership', $GLOBALS['wpdb']->identity_query );
+		$this->assertStringContainsString( 'LIMIT 1', $GLOBALS['wpdb']->identity_query );
 	}
 
 	public function test_administrator_override_validates_venue_and_cross_venue_access_is_denied(): void {
