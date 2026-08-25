@@ -73,15 +73,6 @@ export class AdminResource extends BaseResource {
     return this.post(`extrachill/v1/admin/team-members/${userId}`, { action });
   }
 
-  // ─── Taxonomy Sync ───────────────────────────────────────────────────
-
-  syncTaxonomies(taxonomies: string[], targetSites: number[]): Promise<{ synced: number }> {
-    return this.post('extrachill/v1/admin/taxonomies/sync', {
-      taxonomies,
-      target_sites: targetSites,
-    });
-  }
-
   // ─── QR Code ─────────────────────────────────────────────────────────
 
   generateQrCode(url: string, size?: number): Promise<QrCodeResponse> {

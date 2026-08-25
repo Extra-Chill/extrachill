@@ -54,7 +54,6 @@ const client = new ExtraChillClient(
   })
 );
 
-await client.admin.syncTaxonomies();
 ```
 
 ## Architecture
