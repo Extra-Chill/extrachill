@@ -4,7 +4,7 @@
 defined( 'ABSPATH' ) || exit;
 
 use DataMachine\Core\Database\Jobs\Jobs;
-use DataMachine\Core\Bootstrap\RuntimeServiceProvider;
+use DataMachine\Core\Steps\SystemTask\SystemTaskStep;
 use DataMachineSocials\Handlers\Instagram\InstagramAuth;
 use DataMachineSocials\Operations\DelegatedCrossPostAction;
 use DataMachineSocials\Tracking\SocialShareTracker;
@@ -16,7 +16,7 @@ if ( ! function_exists( 'ec_get_blog_id' ) ) {
 }
 
 datamachine_register_core_actions();
-RuntimeServiceProvider::register_step_types();
+new SystemTaskStep();
 datamachine_socials_bootstrap();
 DataMachine\Engine\Tasks\TaskRegistry::reset();
 

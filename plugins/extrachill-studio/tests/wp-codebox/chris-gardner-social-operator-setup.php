@@ -4,10 +4,10 @@
 defined( 'ABSPATH' ) || exit;
 
 use DataMachine\Core\Bootstrap\ActivationServiceProvider;
-use DataMachine\Core\Bootstrap\RuntimeServiceProvider;
 use DataMachine\Core\Agents\AgentBundler;
 use DataMachine\Core\Database\Agents\Agents;
 use DataMachine\Core\FilesRepository\DirectoryManager;
+use DataMachine\Core\Steps\SystemTask\SystemTaskStep;
 use DataMachineSocials\Handlers\Bluesky\BlueskyAuth;
 use DataMachineSocials\Handlers\Instagram\InstagramAuth;
 
@@ -20,7 +20,7 @@ if ( ! defined( 'EXTRACHILL_STUDIO_VERSION' ) || ! function_exists( 'ExtraChillS
 
 ActivationServiceProvider::ensure_all_tables();
 datamachine_register_core_actions();
-RuntimeServiceProvider::register_step_types();
+new SystemTaskStep();
 datamachine_socials_bootstrap();
 DataMachine\Engine\Tasks\TaskRegistry::reset();
 
