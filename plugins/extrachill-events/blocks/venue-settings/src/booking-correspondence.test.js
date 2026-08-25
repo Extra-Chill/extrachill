@@ -126,6 +126,7 @@ describe( 'booking correspondence delivery state', () => {
 		const { container } = await renderCorrespondence( onRefresh );
 
 		await act( async () => submit( container ) );
+		await waitFor( () => runAbility.mock.calls.length === 1 );
 
 		expect( runAbility.mock.calls[ 0 ][ 1 ].subject ).toBe(
 			'Offer details'

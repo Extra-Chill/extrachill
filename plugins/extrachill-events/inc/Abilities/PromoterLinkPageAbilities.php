@@ -13,8 +13,20 @@ defined( 'ABSPATH' ) || exit;
 
 /** Registers concrete promoter management and approved identity operations. */
 final class PromoterLinkPageAbilities {
+	public const MAX_LINK_SECTIONS     = 10;
+	public const MAX_LINKS_PER_SECTION = 25;
+	public const MAX_LINK_ITEMS        = 250;
+	public const MAX_ID_LENGTH         = 100;
+	public const MAX_TITLE_LENGTH      = 200;
+	public const MAX_LINK_TEXT_LENGTH  = 200;
+	public const MAX_URL_LENGTH        = 2048;
+	public const MAX_EXPIRATION_LENGTH = 64;
 
-	/** @var bool */
+	/**
+	 * Whether ability registration has been attached.
+	 *
+	 * @var bool
+	 */
 	private static $registered = false;
 
 	/** Attach registration once. */
@@ -83,7 +95,17 @@ final class PromoterLinkPageAbilities {
 		);
 	}
 
-	/** Register a REST-visible management ability with a closed request. */
+	/**
+	 * Register a REST-visible management ability with a closed request.
+	 *
+	 * @param string     $name          Ability name.
+	 * @param string     $label         Human-readable label.
+	 * @param array      $properties    Input properties.
+	 * @param callable   $execute       Execution callback.
+	 * @param bool       $is_readonly   Whether the operation is read-only.
+	 * @param bool       $idempotent    Whether the operation is idempotent.
+	 * @param array|null $output_schema Optional output schema.
+	 */
 	private function register_management( string $name, string $label, array $properties, callable $execute, bool $is_readonly, bool $idempotent, ?array $output_schema = null ): void {
 		$properties = array_merge(
 			array(
@@ -127,7 +149,11 @@ final class PromoterLinkPageAbilities {
 		);
 	}
 
-	/** Authorize the exact active verified promoter member. */
+	/**
+	 * Authorize the exact active verified promoter member.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function authorize( array $input ) {
 		return PromoterLinkPages::authorize_promoter( absint( $input['promoter_term_id'] ?? 0 ) );
 	}
@@ -137,40 +163,85 @@ final class PromoterLinkPageAbilities {
 		return true;
 	}
 
+	/**
+	 * Provision a promoter Link Page.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function provision( array $input ) {
 		return PromoterLinkPages::provision( absint( $input['promoter_term_id'] ) );
 	}
 
+	/**
+	 * Read a promoter Link Page.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function get( array $input ) {
 		$reference = PromoterLinkPages::owner_reference( absint( $input['promoter_term_id'] ) );
 		return is_wp_error( $reference ) ? $reference : ec_read_link_page( $reference );
 	}
 
+	/**
+	 * Save bounded promoter links.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function save_links( array $input ) {
+		$valid = $this->validate_links( $input['links'] ?? null );
+		if ( true !== $valid ) {
+			return $valid;
+		}
 		return $this->save( $input, array( 'links' => $input['links'] ) );
 	}
 
+	/**
+	 * Save promoter styles.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function save_styles( array $input ) {
 		return $this->save( $input, array( 'css_vars' => $input['css_vars'] ) );
 	}
 
+	/**
+	 * Save promoter settings.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function save_settings( array $input ) {
 		return $this->save( $input, $input['settings'] );
 	}
 
+	/**
+	 * Refresh the promoter snapshot.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function refresh( array $input ) {
 		return PromoterLinkPages::refresh_snapshot( absint( $input['promoter_term_id'] ) );
 	}
 
+	/**
+	 * Read promoter Link Page analytics.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function analytics( array $input ) {
 		return PromoterLinkPages::analytics( absint( $input['promoter_term_id'] ), absint( $input['date_range'] ?? 30 ), (string) ( $input['start_date'] ?? '' ), (string) ( $input['end_date'] ?? '' ) );
 	}
 
+	/** List approved promoters. */
 	public function approved_promoters() {
 		return PromoterLinkPages::approved_promoters();
 	}
 
-	/** Save through the standalone operation boundary, which reauthorizes. */
+	/**
+	 * Save through the standalone operation boundary, which reauthorizes.
+	 *
+	 * @param array $input Ability input.
+	 * @param array $data  Bounded save data.
+	 */
 	private function save( array $input, array $data ) {
 		$reference = PromoterLinkPages::owner_reference( absint( $input['promoter_term_id'] ) );
 		return is_wp_error( $reference ) ? $reference : ec_save_link_page( $reference, $data );
@@ -179,15 +250,23 @@ final class PromoterLinkPageAbilities {
 	/** Closed links request schema. */
 	private function links_input_schema(): array {
 		return array(
-			'type'  => 'array',
-			'items' => array(
+			'type'     => 'array',
+			'maxItems' => self::MAX_LINK_SECTIONS,
+			'items'    => array(
 				'type'                 => 'object',
 				'properties'           => array(
-					'id'            => array( 'type' => 'string' ),
-					'section_title' => array( 'type' => 'string' ),
+					'id'            => array(
+						'type'      => 'string',
+						'maxLength' => self::MAX_ID_LENGTH,
+					),
+					'section_title' => array(
+						'type'      => 'string',
+						'maxLength' => self::MAX_TITLE_LENGTH,
+					),
 					'links'         => array(
-						'type'  => 'array',
-						'items' => $this->link_schema( false ),
+						'type'     => 'array',
+						'maxItems' => self::MAX_LINKS_PER_SECTION,
+						'items'    => $this->link_schema( false ),
 					),
 				),
 				'required'             => array( 'links' ),
@@ -196,22 +275,81 @@ final class PromoterLinkPageAbilities {
 		);
 	}
 
-	/** Link item schema shared by input and output. */
+	/**
+	 * Link item schema shared by input and output.
+	 *
+	 * @param bool $output Whether this is an output schema.
+	 */
 	private function link_schema( bool $output ): array {
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'id'         => array( 'type' => 'string' ),
-				'link_text'  => array( 'type' => 'string' ),
-				'link_url'   => array(
-					'type'   => 'string',
-					'format' => $output ? 'uri-reference' : 'uri',
+				'id'         => array(
+					'type'      => 'string',
+					'maxLength' => self::MAX_ID_LENGTH,
 				),
-				'expires_at' => array( 'type' => 'string' ),
+				'link_text'  => array(
+					'type'      => 'string',
+					'maxLength' => self::MAX_LINK_TEXT_LENGTH,
+				),
+				'link_url'   => array(
+					'type'      => 'string',
+					'format'    => $output ? 'uri-reference' : 'uri',
+					'maxLength' => self::MAX_URL_LENGTH,
+				),
+				'expires_at' => array(
+					'type'      => 'string',
+					'maxLength' => self::MAX_EXPIRATION_LENGTH,
+				),
 			),
 			'required'             => $output ? array( 'id', 'link_text', 'link_url' ) : array( 'link_text', 'link_url' ),
 			'additionalProperties' => false,
 		);
+	}
+
+	/**
+	 * Reject over-limit payloads even when execute_callback is invoked directly.
+	 *
+	 * @param mixed $sections Submitted sections.
+	 */
+	private function validate_links( $sections ) {
+		if ( ! is_array( $sections ) || count( $sections ) > self::MAX_LINK_SECTIONS ) {
+			return $this->invalid_links();
+		}
+		foreach ( $sections as $section ) {
+			if ( ! is_array( $section ) || ! isset( $section['links'] ) || ! is_array( $section['links'] ) || count( $section['links'] ) > self::MAX_LINKS_PER_SECTION ) {
+				return $this->invalid_links();
+			}
+			if ( ! $this->bounded_string( $section['id'] ?? '', self::MAX_ID_LENGTH ) || ! $this->bounded_string( $section['section_title'] ?? '', self::MAX_TITLE_LENGTH ) ) {
+				return $this->invalid_links();
+			}
+			foreach ( $section['links'] as $link ) {
+				if ( ! is_array( $link ) || ! $this->bounded_string( $link['id'] ?? '', self::MAX_ID_LENGTH ) || ! $this->bounded_string( $link['link_text'] ?? null, self::MAX_LINK_TEXT_LENGTH, false ) || ! $this->bounded_string( $link['link_url'] ?? null, self::MAX_URL_LENGTH, false ) || ! $this->bounded_string( $link['expires_at'] ?? '', self::MAX_EXPIRATION_LENGTH ) ) {
+					return $this->invalid_links();
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Check one scalar string against a concrete character bound.
+	 *
+	 * @param mixed $value       Submitted value.
+	 * @param int   $maximum     Maximum characters.
+	 * @param bool  $allow_empty Whether an empty string is accepted.
+	 */
+	private function bounded_string( $value, int $maximum, bool $allow_empty = true ): bool {
+		if ( ! is_string( $value ) || ( ! $allow_empty && '' === trim( $value ) ) ) {
+			return false;
+		}
+		$length = function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value );
+		return $length <= $maximum;
+	}
+
+	/** Build the stable direct-execution validation error. */
+	private function invalid_links(): \WP_Error {
+		return new \WP_Error( 'invalid_promoter_link_page_links', __( 'Promoter Link Page links exceed the supported limits or contain invalid values.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
 	/** Closed standalone style map. */
@@ -262,11 +400,18 @@ final class PromoterLinkPageAbilities {
 		$section                        = array(
 			'type'                 => 'object',
 			'properties'           => array(
-				'id'            => array( 'type' => 'string' ),
-				'section_title' => array( 'type' => 'string' ),
+				'id'            => array(
+					'type'      => 'string',
+					'maxLength' => self::MAX_ID_LENGTH,
+				),
+				'section_title' => array(
+					'type'      => 'string',
+					'maxLength' => self::MAX_TITLE_LENGTH,
+				),
 				'links'         => array(
-					'type'  => 'array',
-					'items' => $link,
+					'type'     => 'array',
+					'maxItems' => self::MAX_LINKS_PER_SECTION,
+					'items'    => $link,
 				),
 			),
 			'required'             => array( 'id', 'section_title', 'links' ),
@@ -355,12 +500,14 @@ final class PromoterLinkPageAbilities {
 						'link_page_id'         => array( 'type' => 'integer' ),
 						'css_vars'             => $styles,
 						'links'                => array(
-							'type'  => 'array',
-							'items' => array( 'oneOf' => array( $section, $link ) ),
+							'type'     => 'array',
+							'maxItems' => self::MAX_LINK_ITEMS,
+							'items'    => array( 'oneOf' => array( $section, $link ) ),
 						),
 						'link_sections'        => array(
-							'type'  => 'array',
-							'items' => $normalized_section,
+							'type'     => 'array',
+							'maxItems' => self::MAX_LINK_SECTIONS,
+							'items'    => $normalized_section,
 						),
 						'bio'                  => array( 'type' => 'string' ),
 						'settings'             => $settings,

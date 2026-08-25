@@ -72,6 +72,13 @@ describe( 'venue booking workspace composition', () => {
 		expect( styles ).toContain( '@media screen and (max-width: 1200px)' );
 	} );
 
+	it( 'keeps managed identity and promoter cards responsive at the existing mobile breakpoint', () => {
+		expect( styles ).toContain( '.ec-managed-identity' );
+		expect( styles ).toContain( '.ec-promoter-workspace__venues' );
+		expect( styles ).toContain( '@media screen and (max-width: 480px)' );
+		expect( styles ).toContain( 'grid-template-columns: minmax(0, 1fr);' );
+	} );
+
 	it( 'reserves enough desktop width for the production form preview', () => {
 		expect( styles ).toContain(
 			'grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);'

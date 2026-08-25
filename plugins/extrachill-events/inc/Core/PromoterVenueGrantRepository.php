@@ -159,6 +159,39 @@ class PromoterVenueGrantRepository {
 		return $grants;
 	}
 
+	/**
+	 * List every bounded promoter relationship for one exact venue.
+	 *
+	 * @param int $venue_term_id Exact venue term ID.
+	 */
+	public function list_for_venue( int $venue_term_id ) {
+		global $wpdb;
+		$table = PromoterAuthoritySchema::venue_grants_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY promoter_term_id ASC, action ASC, id ASC LIMIT %d", $venue_term_id, self::MAX_GRANTS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded exact-venue authority projection.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return $this->database_error( 'promoter_venue_relationship_list_failed', __( 'Promoter venue relationships could not be listed.', 'extrachill-events' ) );
+		}
+		if ( count( (array) $rows ) > self::MAX_GRANTS ) {
+			return new \WP_Error(
+				'promoter_venue_relationship_limit_exceeded',
+				__( 'This venue exceeds the supported promoter relationship limit.', 'extrachill-events' ),
+				array(
+					'status'  => 409,
+					'maximum' => self::MAX_GRANTS,
+				)
+			);
+		}
+		$grants = array();
+		foreach ( (array) $rows as $row ) {
+			$grant = $this->hydrate( $row );
+			if ( is_wp_error( $grant ) ) {
+				return $grant;
+			}
+			$grants[] = $grant;
+		}
+		return $grants;
+	}
+
 	/** Return exact active venue IDs for one promoter and action.
 	 *
 	 * @param int    $promoter_term_id Promoter term ID.
@@ -423,7 +456,7 @@ class PromoterVenueGrantRepository {
 
 	/** Check the current feature and capability gate. @param int $user_id Network user ID. */
 	private function has_feature_access( int $user_id ): bool {
-		return user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
+		return PromoterAuthorization::user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
 	}
 
 	/** Append privacy-safe grant mutation evidence. */

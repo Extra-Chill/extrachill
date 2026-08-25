@@ -35,6 +35,23 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 			$this->assertTrue( $contract['output_closed'] );
 			$this->assertTrue( $contract['show_in_rest'] );
 		}
+		$links = $result['extrachill/save-promoter-link-page-links'];
+		$this->assertSame(
+			array(
+				'sections'          => 10,
+				'links_per_section' => 25,
+				'id'                => 100,
+				'section_title'     => 200,
+				'link_text'         => 200,
+				'link_url'          => 2048,
+				'expires_at'        => 64,
+				'output_links'      => 250,
+				'output_sections'   => 10,
+			),
+			$links['limits']
+		);
+		$this->assertSame( 'invalid_promoter_link_page_links', $links['direct_error'] );
+		$this->assertSame( 'invalid_promoter_link_page_links', $links['direct_length_error'] );
 	}
 
 	/** Failed drafting restores owner audit metadata or reports failed compensation. */
@@ -100,6 +117,9 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'draft_on_term_deleted', $result['deleted_audit']['policy'] );
 		$this->assertSame( array( 'events-venues', 'events-promoters' ), $result['registries'][0] );
 		$this->assertSame( array( 'events-venues', 'events-promoters' ), $result['registries'][1] );
+		$this->assertSame( '/venue-settings/', $result['management_route']['path'] );
+		$this->assertSame( 'promoter:30', $result['management_route']['identity'] );
+		$this->assertSame( 'promoter-link-page', $result['management_route']['fragment'] );
 		$this->assertSame( array( false, false ), $result['http_functions'] );
 	}
 

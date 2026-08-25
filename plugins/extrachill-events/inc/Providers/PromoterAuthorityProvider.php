@@ -23,7 +23,7 @@ final class PromoterAuthorityProvider {
 		if ( self::$registered ) {
 			return true;
 		}
-		foreach ( array( 'PromoterAuthoritySchema', 'PromoterAuthorityRepository', 'PromoterAuthorization', 'PromoterAuthorityService', 'PromoterVenueGrantRepository', 'PromoterVenueAuthorization', 'PromoterVenueGrantService' ) as $class ) {
+		foreach ( array( 'PromoterAuthoritySchema', 'PromoterAuthorityRepository', 'PromoterAuthorization', 'PromoterAuthorityService', 'PromoterVenueGrantRepository', 'PromoterVenueAuthorization', 'PromoterVenueGrantService', 'PromoterWorkspace' ) as $class ) {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/' . $class . '.php';
 		}
 		self::$registered = true;

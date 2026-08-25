@@ -24,12 +24,88 @@ final class PromoterAuthorization {
 	private $repository;
 
 	/**
+	 * Whether capability checks must compose the active execution principal.
+	 *
+	 * @var bool
+	 */
+	private $use_execution_principal;
+
+	/**
 	 * Construct against the canonical repository.
 	 *
-	 * @param PromoterAuthorityRepository|null $repository Repository override.
+	 * @param PromoterAuthorityRepository|null $repository              Repository override.
+	 * @param bool                             $use_execution_principal Whether to apply an active agent principal.
 	 */
-	public function __construct( ?PromoterAuthorityRepository $repository = null ) {
-		$this->repository = $repository ? $repository : new PromoterAuthorityRepository();
+	public function __construct( ?PromoterAuthorityRepository $repository = null, bool $use_execution_principal = true ) {
+		$this->repository              = $repository ? $repository : new PromoterAuthorityRepository();
+		$this->use_execution_principal = $use_execution_principal;
+	}
+
+	/** Resolve the active execution principal, or null for a normal WordPress request. */
+	public static function execution_principal() {
+		$principal_class = '\\AgentsAPI\\AI\\WP_Agent_Execution_Principal';
+		if ( ! class_exists( $principal_class ) ) {
+			return null;
+		}
+		try {
+			$principal = $principal_class::resolve();
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			return false;
+		}
+		return $principal instanceof $principal_class ? $principal : null;
+	}
+
+	/** Resolve the WordPress user represented by the active execution envelope. */
+	public static function effective_user_id(): int {
+		$principal = self::execution_principal();
+		if ( false === $principal ) {
+			return 0;
+		}
+		return $principal ? max( 0, (int) $principal->acting_user_id ) : get_current_user_id();
+	}
+
+	/**
+	 * Compose an active principal ceiling with a represented user's capability.
+	 *
+	 * @param int    $user_id                 Represented WordPress user ID.
+	 * @param string $capability              Required WordPress capability.
+	 * @param bool   $use_execution_principal Whether to apply an active agent principal.
+	 */
+	public static function user_can( int $user_id, string $capability, bool $use_execution_principal = true ): bool {
+		if ( ! $use_execution_principal ) {
+			return user_can( $user_id, $capability );
+		}
+		$principal = self::execution_principal();
+		if ( null === $principal ) {
+			return user_can( $user_id, $capability );
+		}
+		if ( false === $principal || (int) $principal->acting_user_id !== $user_id || ! class_exists( '\\WP_Agent_WordPress_Authorization_Policy' ) ) {
+			return false;
+		}
+		try {
+			$policy = new \WP_Agent_WordPress_Authorization_Policy();
+			return $policy->can( $principal, $capability );
+		} catch ( \Throwable $throwable ) {
+			unset( $throwable );
+			return false;
+		}
+	}
+
+	/**
+	 * Apply a capability only as an active execution-principal ceiling.
+	 *
+	 * Normal WordPress requests retain their established domain-only policy.
+	 *
+	 * @param int    $user_id    Represented WordPress user ID.
+	 * @param string $capability Capability ceiling to enforce for a principal.
+	 */
+	public static function principal_allows( int $user_id, string $capability ): bool {
+		$principal = self::execution_principal();
+		if ( null === $principal ) {
+			return true;
+		}
+		return false !== $principal && self::user_can( $user_id, $capability );
 	}
 
 	/**
@@ -54,7 +130,7 @@ final class PromoterAuthorization {
 			return $this->denied();
 		}
 		if ( in_array( $action, array( self::ACTION_VERIFY_ORGANIZATION, self::ACTION_REVOKE_ORGANIZATION ), true ) ) {
-			return user_can( $user_id, 'manage_options' ) ? true : $this->denied();
+			return self::user_can( $user_id, 'manage_options', $this->use_execution_principal ) ? true : $this->denied();
 		}
 
 		$organization = $this->repository->get_organization( $promoter_term_id );
@@ -68,11 +144,17 @@ final class PromoterAuthorization {
 		if ( is_wp_error( $membership ) ) {
 			return $membership;
 		}
-		if ( self::ACTION_ACCESS_PROMOTER === $action ) {
-			$has_feature = user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
-			return is_array( $membership ) && $has_feature ? true : $this->denied();
+		if ( ! is_array( $membership ) ) {
+			return $this->denied();
 		}
-		return is_array( $membership ) && $membership['is_owner'] ? true : $this->denied();
+		if ( self::ACTION_ACCESS_PROMOTER === $action ) {
+			$has_feature = self::user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY, $this->use_execution_principal ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
+			return $has_feature ? true : $this->denied();
+		}
+		if ( ! $membership['is_owner'] ) {
+			return $this->denied();
+		}
+		return ! $this->use_execution_principal || self::principal_allows( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) ? true : $this->denied();
 	}
 
 	/** Build the shared non-enumerating denial. */

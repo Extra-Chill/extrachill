@@ -45,6 +45,12 @@ class PromoterAuthorityRepository {
 final class PromoterAuthorization {
 	public const ACTION_ACCESS_PROMOTER = 'access_promoter';
 
+	public static function effective_user_id(): int {
+		$principal_class = '\\AgentsAPI\\AI\\WP_Agent_Execution_Principal';
+		$principal       = class_exists( $principal_class ) ? $principal_class::resolve() : null;
+		return $principal instanceof $principal_class ? (int) $principal->acting_user_id : get_current_user_id();
+	}
+
 	public function authorize( int $user_id, int $promoter_term_id, string $action ) {
 		$key          = $user_id . ':' . $promoter_term_id;
 		$organization = $GLOBALS['promoter_link_page_fixture']['organizations'][ $promoter_term_id ] ?? null;

@@ -23,6 +23,7 @@ describe( 'venue settings ability transport', () => {
 		'extrachill/get-venue-booking-config',
 		'extrachill/list-venue-memberships',
 		'extrachill/list-booking-holds',
+		'extrachill/get-promoter-link-page',
 	] )( 'sends object input through GET for %s', async ( ability ) => {
 		const input = { venue_term_id: 44 };
 		await runAbility( ability, input );

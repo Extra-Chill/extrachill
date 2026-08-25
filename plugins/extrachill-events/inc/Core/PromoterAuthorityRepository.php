@@ -33,7 +33,7 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
-		if ( ! user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! PromoterAuthorization::user_can( $actor_user_id, 'manage_options' ) ) {
 			return $this->forbidden();
 		}
 
@@ -130,7 +130,7 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
-		if ( ! user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! PromoterAuthorization::user_can( $actor_user_id, 'manage_options' ) ) {
 			return $this->forbidden();
 		}
 		global $wpdb;
@@ -316,6 +316,42 @@ class PromoterAuthorityRepository {
 	public function get_active_membership( int $promoter_term_id, int $user_id ) {
 		$membership = $this->get_membership( $promoter_term_id, $user_id );
 		return is_array( $membership ) && self::STATUS_ACTIVE !== $membership['status'] ? null : $membership;
+	}
+
+	/**
+	 * List active promoter memberships for one exact network user.
+	 *
+	 * @param int $user_id Network user ID.
+	 */
+	public function list_active_memberships_for_user( int $user_id ) {
+		if ( $user_id < 1 ) {
+			return array();
+		}
+		global $wpdb;
+		$table = PromoterAuthoritySchema::memberships_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d AND status = %s ORDER BY promoter_term_id ASC, id ASC LIMIT %d", $user_id, self::STATUS_ACTIVE, self::MAX_ORGANIZATIONS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded current-user authority projection.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter memberships could not be listed.', 'extrachill-events' ) );
+		}
+		if ( count( (array) $rows ) > self::MAX_ORGANIZATIONS ) {
+			return new \WP_Error(
+				'promoter_membership_user_limit_exceeded',
+				__( 'This user exceeds the supported promoter membership limit.', 'extrachill-events' ),
+				array(
+					'status'  => 409,
+					'maximum' => self::MAX_ORGANIZATIONS,
+				)
+			);
+		}
+		$memberships = array();
+		foreach ( (array) $rows as $row ) {
+			$membership = $this->hydrate_membership( $row );
+			if ( is_wp_error( $membership ) ) {
+				return $membership;
+			}
+			$memberships[] = $membership;
+		}
+		return $memberships;
 	}
 
 	/** Execute a promoter mutation while its active organization and membership rows are locked. */
@@ -639,6 +675,9 @@ class PromoterAuthorityRepository {
 	 */
 	private function authorize_locked_owner( int $actor_user_id, array $locked ) {
 		if ( ! is_array( $locked['organization'] ) || self::STATUS_ACTIVE !== $locked['organization']['status'] ) {
+			return $this->forbidden();
+		}
+		if ( ! PromoterAuthorization::principal_allows( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) ) {
 			return $this->forbidden();
 		}
 		foreach ( $locked['memberships'] as $membership ) {

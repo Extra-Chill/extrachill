@@ -12,6 +12,8 @@
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\LocalSupportSchema;
 use ExtraChillEvents\Core\LocalSupportWorkspace;
+use ExtraChillEvents\Core\PromoterAuthorization;
+use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -21,9 +23,19 @@ $wrapper_attributes = get_block_wrapper_attributes(
 
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only venue selection; Ability authorization remains authoritative.
 $requested_venue_id         = isset( $_GET['venue_id'] ) && is_scalar( $_GET['venue_id'] ) ? absint( wp_unslash( $_GET['venue_id'] ) ) : 0;
+$requested_identity         = isset( $_GET['identity'] ) && is_scalar( $_GET['identity'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['identity'] ) ) : '';
 $requested_booking_id       = isset( $_GET['booking_id'] ) && is_scalar( $_GET['booking_id'] ) ? absint( wp_unslash( $_GET['booking_id'] ) ) : 0;
 $requested_booking_venue_id = isset( $_GET['booking_venue_id'] ) && is_scalar( $_GET['booking_venue_id'] ) ? absint( wp_unslash( $_GET['booking_venue_id'] ) ) : 0;
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+if ( '' === $requested_identity && $requested_venue_id ) {
+	$requested_identity = 'venue:' . $requested_venue_id;
+}
+if ( preg_match( '/^venue:([1-9][0-9]{0,9})$/', $requested_identity, $identity_match ) ) {
+	$requested_venue_id = (int) $identity_match[1];
+} elseif ( 0 === strpos( $requested_identity, 'promoter:' ) ) {
+	$requested_venue_id = 0;
+}
 
 if ( ! is_user_logged_in() ) {
 	$login_venue_id = $requested_venue_id ? $requested_venue_id : $requested_booking_venue_id;
@@ -56,14 +68,17 @@ if ( ! BookingSchema::is_ready() ) {
 $user_id       = get_current_user_id();
 $authorization = new VenueAuthorization();
 $is_admin      = $authorization->is_administrator( $user_id );
-$all_terms     = get_terms(
-	array(
-		'taxonomy'   => 'venue',
-		'hide_empty' => false,
-		'orderby'    => 'name',
-		'order'      => 'ASC',
-	)
-);
+$promoter_mode = '' !== $requested_identity && 0 === strpos( $requested_identity, 'promoter' );
+$all_terms     = $promoter_mode
+	? array()
+	: get_terms(
+		array(
+			'taxonomy'   => 'venue',
+			'hide_empty' => false,
+			'orderby'    => 'name',
+			'order'      => 'ASC',
+		)
+	);
 $all_terms     = is_wp_error( $all_terms ) ? array() : $all_terms;
 $claim_venues  = array_map(
 	static function ( WP_Term $term ): array {
@@ -76,7 +91,7 @@ $claim_venues  = array_map(
 );
 
 $managed_venues = array();
-if ( $is_admin ) {
+if ( ! $promoter_mode && $is_admin ) {
 	$active_venue_ids = ( new VenueMembershipRepository() )->list_active_venue_ids();
 	$active_venue_ids = is_wp_error( $active_venue_ids ) ? array() : $active_venue_ids;
 	foreach ( $claim_venues as $venue ) {
@@ -91,7 +106,7 @@ if ( $is_admin ) {
 			)
 		);
 	}
-} else {
+} elseif ( ! $promoter_mode ) {
 	global $wpdb;
 	$table = BookingSchema::memberships_table();
 	$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT venue_term_id, is_owner, status FROM {$table} WHERE user_id = %d ORDER BY created_at ASC", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private current-user bootstrap scoped to the Events site.
@@ -145,26 +160,55 @@ if ( ! $selected && $requested_booking_id && $requested_booking_venue_id ) {
 		}
 	}
 }
-$context          = array(
-	'user'               => array(
+$workspace = ( new PromoterWorkspace( null, null, null, false ) )->resolve_for_user( $user_id, $requested_identity );
+if ( is_wp_error( $workspace ) ) {
+	$browser_user = get_userdata( $user_id );
+	$workspace    = array(
+		'actor'                  => array(
+			'id'   => $user_id,
+			'name' => $browser_user ? (string) ( $browser_user->display_name ?? '' ) : '',
+		),
+		'identities'             => array(),
+		'selection'              => array(
+			'reference' => $requested_identity,
+			'state'     => 'denied',
+			'type'      => $promoter_mode ? 'promoter' : 'venue',
+			'reason'    => $promoter_mode ? 'invalid' : 'unavailable',
+		),
+		'promoter'               => null,
+		'venue'                  => null,
+		'granted_venues'         => array(),
+		'promoter_relationships' => array(),
+	);
+}
+$context = array(
+	'user'      => array(
 		'id'       => $user_id,
 		'name'     => wp_get_current_user()->display_name,
 		'is_admin' => $is_admin,
 	),
-	'venues'             => $managed_venues,
-	'claim_venues'       => $claim_venues,
-	'selected_venue'     => $selected,
-	'can_access'         => $can_access,
-	'can_manage'         => $can_manage,
-	'route_url'          => home_url( '/venue-settings/' ),
-	'requested_venue_id' => in_array( $requested_venue_id, array_column( $claim_venues, 'id' ), true ) ? $requested_venue_id : 0,
-	'booking_id'         => $booking_venue_id ? $requested_booking_id : 0,
-	'booking_venue_id'   => $booking_venue_id,
-	'booking_url'        => $selected['booking_url'] ?? '',
-	'support_events'     => $selected['support_events'] ?? array(),
+	'route_url' => home_url( '/venue-settings/' ),
+	'workspace' => $workspace,
 );
+if ( ! $promoter_mode ) {
+	$context = array_merge(
+		$context,
+		array(
+			'venues'             => $managed_venues,
+			'claim_venues'       => $claim_venues,
+			'selected_venue'     => $selected,
+			'can_access'         => $can_access,
+			'can_manage'         => $can_manage,
+			'requested_venue_id' => in_array( $requested_venue_id, array_column( $claim_venues, 'id' ), true ) ? $requested_venue_id : 0,
+			'booking_id'         => $booking_venue_id ? $requested_booking_id : 0,
+			'booking_venue_id'   => $booking_venue_id,
+			'booking_url'        => $selected['booking_url'] ?? '',
+			'support_events'     => $selected['support_events'] ?? array(),
+		)
+	);
+}
 $context_id       = wp_unique_id( 'ec-venue-settings-context-' );
-$support_requests = $can_access && LocalSupportSchema::is_ready()
+$support_requests = ! $promoter_mode && $can_access && LocalSupportSchema::is_ready()
 	? ( new LocalSupportWorkspace() )->venue_requests( (int) $selected['id'], $user_id )
 	: array();
 ?>

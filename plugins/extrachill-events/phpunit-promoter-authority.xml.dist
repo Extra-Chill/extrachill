@@ -9,6 +9,7 @@
 	<testsuites>
 		<testsuite name="promoter-authority">
 			<file>tests/PromoterAuthorityTest.php</file>
+			<file>tests/PromoterWorkspaceRenderTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

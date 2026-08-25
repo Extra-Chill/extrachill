@@ -7,6 +7,7 @@
 
 use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
 use ExtraChillEvents\Abilities\PromoterVenueGrantAbilities;
+use ExtraChillEvents\Abilities\PromoterWorkspaceAbilities;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
@@ -15,6 +16,7 @@ use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterVenueAuthorization;
 use ExtraChillEvents\Core\PromoterVenueGrantRepository;
 use ExtraChillEvents\Core\PromoterVenueGrantService;
+use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
@@ -123,8 +125,11 @@ require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueGrantRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueGrantService.php';
+require_once dirname( __DIR__ ) . '/inc/Core/PromoterWorkspace.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterAuthorityAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterVenueGrantAbilities.php';
+require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterWorkspaceAbilities.php';
+require_once __DIR__ . '/fixtures/promoter-link-pages-principal.php';
 
 /** Minimal transaction-aware database double for promoter authority. */
 final class PromoterAuthorityWpdb {
@@ -396,6 +401,18 @@ final class PromoterAuthorityWpdb {
 			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id']; } );
 			return array_slice( $rows, 0, (int) $organization_match[2] );
 		}
+		if ( preg_match( "/FROM (\S+) WHERE user_id = (\d+) AND status = 'active' ORDER BY promoter_term_id ASC, id ASC LIMIT (\d+)/", $query, $membership_match ) ) {
+			$rows = array_values(
+				array_filter(
+					$this->rows[ $membership_match[1] ] ?? array(),
+					static function ( $row ) use ( $membership_match ) {
+						return (int) $row['user_id'] === (int) $membership_match[2] && PromoterAuthorityRepository::STATUS_ACTIVE === $row['status'];
+					}
+				)
+			);
+			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id']; } );
+			return array_slice( $rows, 0, (int) $membership_match[3] );
+		}
 		if ( preg_match( '/FROM (\S+) WHERE venue_term_id = (\d+)/', $query, $venue_match ) ) {
 			return array_values(
 				array_filter(
@@ -420,6 +437,26 @@ final class PromoterAuthorityWpdb {
 
 	public function get_col( $query ) {
 		$this->last_error = '';
+		if ( preg_match( "/SELECT DISTINCT venue_term_id FROM (\S+) WHERE status = '([^']+)' ORDER BY venue_term_id ASC/", $query, $active_venue_match ) ) {
+			$ids = array();
+			foreach ( $this->rows[ $active_venue_match[1] ] ?? array() as $row ) {
+				if ( $active_venue_match[2] === $row['status'] ) {
+					$ids[] = $row['venue_term_id'];
+				}
+			}
+			sort( $ids );
+			return array_values( array_unique( $ids ) );
+		}
+		if ( preg_match( "/FROM (\S+) WHERE user_id = (\d+) AND status = '([^']+)' ORDER BY venue_term_id ASC/", $query, $venue_match ) ) {
+			$ids = array();
+			foreach ( $this->rows[ $venue_match[1] ] ?? array() as $row ) {
+				if ( (int) $row['user_id'] === (int) $venue_match[2] && $venue_match[3] === $row['status'] ) {
+					$ids[] = $row['venue_term_id'];
+				}
+			}
+			sort( $ids );
+			return $ids;
+		}
 		preg_match( "/FROM (\\S+) WHERE promoter_term_id = (\\d+) AND action = '([^']+)' AND status = '([^']+)'/", $query, $match );
 		$ids = array();
 		foreach ( $this->rows[ $match[1] ] ?? array() as $row ) {
@@ -435,6 +472,8 @@ final class PromoterAuthorityWpdb {
 /** Covers verified promoter organization authority. */
 final class PromoterAuthorityTest extends TestCase {
 	protected function setUp(): void {
+		unset( $GLOBALS['promoter_link_page_fixture']['principal_user_id'] );
+		unset( $GLOBALS['promoter_link_page_fixture']['principal_capabilities'] );
 		$GLOBALS['promoter_test']         = array(
 			'options'         => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
@@ -444,6 +483,7 @@ final class PromoterAuthorityTest extends TestCase {
 				100 => (object) array(
 					'term_id'  => 100,
 					'taxonomy' => 'promoter',
+					'name'     => 'Extra Chill',
 				),
 				101 => (object) array(
 					'term_id'  => 101,
@@ -452,23 +492,26 @@ final class PromoterAuthorityTest extends TestCase {
 				102 => (object) array(
 					'term_id'  => 102,
 					'taxonomy' => 'promoter',
+					'name'     => 'Second Promoter',
 				),
 				200 => (object) array(
 					'term_id'  => 200,
 					'taxonomy' => 'venue',
+					'name'     => 'The Royal American',
 				),
 				201 => (object) array(
 					'term_id'  => 201,
 					'taxonomy' => 'venue',
+					'name'     => 'Charleston Pour House',
 				),
 			),
 			'users'           => array(
-				1 => (object) array( 'ID' => 1 ),
-				2 => (object) array( 'ID' => 2 ),
-				3 => (object) array( 'ID' => 3 ),
-				4 => (object) array( 'ID' => 4 ),
-				5 => (object) array( 'ID' => 5 ),
-				6 => (object) array( 'ID' => 6 ),
+				1 => (object) array( 'ID' => 1, 'display_name' => 'Admin' ),
+				2 => (object) array( 'ID' => 2, 'display_name' => 'Chris' ),
+				3 => (object) array( 'ID' => 3, 'display_name' => 'Gardner' ),
+				4 => (object) array( 'ID' => 4, 'display_name' => 'Venue Owner One' ),
+				5 => (object) array( 'ID' => 5, 'display_name' => 'Venue Owner Two' ),
+				6 => (object) array( 'ID' => 6, 'display_name' => 'Other Promoter' ),
 			),
 			'administrators'  => array( 1 => true ),
 			'team_access'     => array(
@@ -617,6 +660,26 @@ final class PromoterAuthorityTest extends TestCase {
 		$GLOBALS['promoter_test']['feature_access'][3] = true;
 		$service->revoke_membership( 2, 100, 3, 1 );
 		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+	}
+
+	public function test_normal_owner_membership_management_survives_feature_rollout_loss(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		unset( $GLOBALS['promoter_test']['feature_access'][2] );
+		$venue_feature_available = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
+		$GLOBALS['venue_membership_test']['feature_available'] = false;
+
+		$authorization = new PromoterAuthorization();
+		$this->assertTrue( $authorization->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 2, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
+		if ( null === $venue_feature_available ) {
+			unset( $GLOBALS['venue_membership_test']['feature_available'] );
+		} else {
+			$GLOBALS['venue_membership_test']['feature_available'] = $venue_feature_available;
+		}
+		$created = $service->create_membership( 2, 100, 5, false );
+		$this->assertIsArray( $created );
+		$this->assertSame( 5, $created['user_id'] );
 	}
 
 	/** Approved discovery is active-only, bounded, deterministic, and fails closed. */
@@ -1044,6 +1107,178 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertStringNotContainsString( 'BookingSchema::is_ready() && \\ExtraChillEvents\\Core\\PromoterAuthoritySchema::is_ready()', $provider );
 	}
 
+	public function test_workspace_honors_effective_principal_without_treating_selection_as_authority(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$this->set_current_user( 1 );
+		$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = 3;
+		$workspace = new PromoterWorkspace();
+
+		$allowed = $workspace->resolve( 'promoter:100' );
+		$this->assertSame( 3, $allowed['actor']['id'] );
+		$this->assertSame( 'active', $allowed['selection']['state'] );
+		$this->assertSame( array( 200, 201 ), array_column( $allowed['granted_venues'], 'id' ) );
+
+		$denied = $workspace->resolve( 'promoter:102' );
+		$this->assertSame( 'denied', $denied['selection']['state'] );
+		$this->assertNull( $denied['promoter'] );
+		$this->assertSame( array(), $denied['granted_venues'] );
+	}
+
+	public function test_restricted_principal_cannot_exceed_administrator_or_owner_capability_ceiling(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$GLOBALS['promoter_link_page_fixture']['principal_user_id']      = 1;
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array();
+		$admin = ( new PromoterAuthorization() )->authorize( 1, 100, PromoterAuthorization::ACTION_REVOKE_ORGANIZATION );
+		$this->assertSame( 'promoter_authority_forbidden', $admin->get_error_code() );
+		$admin_write = ( new PromoterAuthorityRepository() )->revoke_organization( 100, 1, 1 );
+		$this->assertSame( 'promoter_authority_forbidden', $admin_write->get_error_code() );
+		$this->assertSame( array(), ( new PromoterWorkspace() )->identities()['identities'] );
+
+		$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = 2;
+		$promoter_access = ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
+		$promoter_manage = ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS );
+		$this->assertSame( 'promoter_authority_forbidden', $promoter_access->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $promoter_manage->get_error_code() );
+		$membership_write = ( new PromoterAuthorityService() )->create_membership( 2, 100, 5, false );
+		$this->assertSame( 'promoter_authority_forbidden', $membership_write->get_error_code() );
+
+		$GLOBALS['promoter_link_page_fixture']['principal_user_id'] = 4;
+		$venue_owner = ( new PromoterVenueGrantService() )->can_issue( 4, 100, 200 );
+		$this->assertSame( 'promoter_venue_action_forbidden', $venue_owner->get_error_code() );
+		$grant_write = ( new PromoterVenueGrantService() )->create( 4, 100, 200, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT );
+		$this->assertSame( 'promoter_venue_action_forbidden', $grant_write->get_error_code() );
+
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( VenueAuthorization::ACCESS_CAPABILITY );
+		$this->assertTrue( ( new PromoterVenueGrantService() )->can_issue( 4, 100, 200 ) );
+	}
+
+	public function test_browser_workspace_uses_explicit_current_user_when_principal_differs(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$GLOBALS['promoter_link_page_fixture']['principal_user_id']      = 3;
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array();
+		$browser = ( new PromoterWorkspace( null, null, null, false ) )->resolve_for_user( 2, 'promoter:100' );
+
+		$this->assertSame( 2, $browser['actor']['id'] );
+		$this->assertSame( 'active', $browser['selection']['state'] );
+		$this->assertSame( array( 200, 201 ), array_column( $browser['granted_venues'], 'id' ) );
+	}
+
+	public function test_administrator_typed_venues_preserve_management_without_synthetic_access(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$this->set_current_user( 1 );
+		$workspace = new PromoterWorkspace();
+		$listed    = $workspace->identities();
+		$venues    = array_values( array_filter( $listed['identities'], static function ( $identity ) { return 'venue' === $identity['type']; } ) );
+
+		$this->assertSame( array( 'venue:200', 'venue:201' ), array_column( $venues, 'reference' ) );
+		foreach ( $venues as $venue ) {
+			$this->assertFalse( $venue['is_owner'] );
+			$this->assertSame( array( VenueAuthorization::ACTION_MANAGE_MEMBERS ), $venue['permissions'] );
+		}
+		$selected = $workspace->resolve( 'venue:200' );
+		$this->assertSame( array(), $selected['promoter_relationships'] );
+	}
+
+	public function test_workspace_members_share_only_their_current_organization_grants(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$workspace = new PromoterWorkspace();
+
+		foreach ( array( 2, 3 ) as $member_id ) {
+			$this->set_current_user( $member_id );
+			$result = $workspace->resolve( 'promoter:100' );
+			$this->assertSame( 'active', $result['selection']['state'] );
+			$this->assertSame( array( 200, 201 ), array_column( $result['granted_venues'], 'id' ) );
+			$this->assertSame( array( 'promoter:100' ), array_values( array_filter( array_column( $result['identities'], 'reference' ), static function ( $reference ) { return 0 === strpos( $reference, 'promoter:' ); } ) ) );
+		}
+
+		$this->set_current_user( 6 );
+		$result = $workspace->resolve( 'promoter:102' );
+		$this->assertSame( array( 'promoter:102' ), array_column( $result['identities'], 'reference' ) );
+		$this->assertSame( array( 200 ), array_column( $result['granted_venues'], 'id' ) );
+		$this->assertSame( 'denied', $workspace->resolve( 'promoter:100' )['selection']['state'] );
+	}
+
+	public function test_workspace_direct_venue_owner_sees_all_promoter_relationships(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$this->set_current_user( 4 );
+		$result = ( new PromoterWorkspace() )->resolve( 'venue:200' );
+
+		$this->assertSame( 'active', $result['selection']['state'] );
+		$this->assertTrue( $result['venue']['is_owner'] );
+		$this->assertSame( array( 100, 102 ), array_column( $result['promoter_relationships'], 'promoter_term_id' ) );
+		$this->assertSame( array_fill( 0, 2, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT ), array_column( $result['promoter_relationships'], 'action' ) );
+	}
+
+	public function test_workspace_stale_cross_promoter_and_revoked_selections_fail_without_fallback(): void {
+		$this->bootstrap_promoter_workspace_fixtures();
+		$this->set_current_user( 3 );
+		$workspace = new PromoterWorkspace();
+		$this->assertSame( 'denied', $workspace->resolve( 'promoter:102' )['selection']['state'] );
+		$this->assertSame( 'stale', $workspace->resolve( 'promoter:999' )['selection']['state'] );
+
+		foreach ( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::memberships_table() ] as &$membership ) {
+			if ( 100 === (int) $membership['promoter_term_id'] && 3 === (int) $membership['user_id'] ) {
+				$membership['status'] = PromoterAuthorityRepository::STATUS_REVOKED;
+			}
+		}
+		unset( $membership );
+		$revoked = $workspace->resolve( 'promoter:100' );
+		$this->assertSame( 'stale', $revoked['selection']['state'] );
+		$this->assertNull( $revoked['promoter'] );
+		$this->assertSame( array(), $revoked['granted_venues'] );
+	}
+
+	public function test_workspace_abilities_are_self_scoped_closed_and_rest_visible(): void {
+		( new PromoterWorkspaceAbilities() )->register();
+		$registered = $this->registered_abilities();
+		$this->assertArrayHasKey( 'extrachill/list-managed-workspace-identities', $registered );
+		$this->assertArrayHasKey( 'extrachill/resolve-managed-workspace-context', $registered );
+		foreach ( array( 'extrachill/list-managed-workspace-identities', 'extrachill/resolve-managed-workspace-context' ) as $name ) {
+			$this->assertFalse( $registered[ $name ]['input_schema']['additionalProperties'] );
+			$this->assertTrue( $registered[ $name ]['meta']['show_in_rest'] );
+			$this->assertTrue( $registered[ $name ]['meta']['annotations']['readonly'] );
+			$this->assertClosedSchema( $registered[ $name ]['output_schema'] );
+			$this->assertArrayNotHasKey( 'user_id', $registered[ $name ]['input_schema']['properties'] );
+		}
+		$this->assertSame( array( 'selected_reference' ), $registered['extrachill/resolve-managed-workspace-context']['input_schema']['required'] );
+	}
+
+	public function test_workspace_repository_reads_fail_explicitly_at_their_hard_bounds(): void {
+		$promoter_memberships = PromoterAuthoritySchema::memberships_table();
+		for ( $index = 1; $index <= PromoterAuthorityRepository::MAX_ORGANIZATIONS + 1; ++$index ) {
+			$GLOBALS['wpdb']->rows[ $promoter_memberships ][] = $this->promoter_membership_row( $index, 100, 2 );
+		}
+		$promoter_error = ( new PromoterAuthorityRepository() )->list_active_memberships_for_user( 2 );
+		$this->assertSame( 'promoter_membership_user_limit_exceeded', $promoter_error->get_error_code() );
+
+		$venue_memberships = BookingSchema::memberships_table();
+		for ( $index = 1; $index <= \ExtraChillEvents\Core\VenueMembershipRepository::MAX_USER_VENUES + 1; ++$index ) {
+			$GLOBALS['wpdb']->rows[ $venue_memberships ][] = $this->venue_membership_row( $index, 200, 4 );
+		}
+		$venue_error = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->list_active_venue_ids_for_user( 4 );
+		$this->assertSame( 'venue_membership_user_limit_exceeded', $venue_error->get_error_code() );
+
+		$grants = PromoterAuthoritySchema::venue_grants_table();
+		for ( $index = 1; $index <= PromoterVenueGrantRepository::MAX_GRANTS + 1; ++$index ) {
+			$GLOBALS['wpdb']->rows[ $grants ][] = array(
+				'id'                 => $index,
+				'promoter_term_id'   => 100 + $index,
+				'venue_term_id'      => 200,
+				'action'             => PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT,
+				'status'             => PromoterAuthorityRepository::STATUS_ACTIVE,
+				'version'            => 1,
+				'created_by_user_id' => 4,
+				'created_at'         => '2026-01-01 00:00:00',
+				'updated_by_user_id' => 4,
+				'updated_at'         => '2026-01-01 00:00:00',
+				'revoked_by_user_id' => null,
+				'revoked_at'         => null,
+			);
+		}
+		$relationship_error = ( new PromoterVenueGrantRepository() )->list_for_venue( 200 );
+		$this->assertSame( 'promoter_venue_relationship_limit_exceeded', $relationship_error->get_error_code() );
+	}
+
 	private function registered_abilities(): array {
 		if ( ! empty( $GLOBALS['promoter_test']['abilities'] ) ) {
 			return $GLOBALS['promoter_test']['abilities'];
@@ -1058,6 +1293,20 @@ final class PromoterAuthorityTest extends TestCase {
 		$promoters->verify( 1, 102, 6 );
 		$this->seed_venue_owner( 200, 4 );
 		$this->seed_venue_owner( 201, 5 );
+	}
+
+	private function set_current_user( int $user_id ): void {
+		$GLOBALS['promoter_test']['current_user_id']         = $user_id;
+		$GLOBALS['venue_membership_test']['current_user_id'] = $user_id;
+	}
+
+	private function bootstrap_promoter_workspace_fixtures(): void {
+		$this->bootstrap_promoter_grant_fixtures();
+		$grants = new PromoterVenueGrantService();
+		$action = PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT;
+		$grants->create( 4, 100, 200, $action );
+		$grants->create( 5, 100, 201, $action );
+		$grants->create( 4, 102, 200, $action );
 	}
 
 	private function seed_venue_owner( int $venue_term_id, int $user_id ): void {

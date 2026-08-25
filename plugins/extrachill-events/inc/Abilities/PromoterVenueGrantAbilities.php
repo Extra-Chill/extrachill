@@ -9,6 +9,7 @@ namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\PromoterVenueGrantRepository;
 use ExtraChillEvents\Core\PromoterVenueGrantService;
+use ExtraChillEvents\Core\PromoterAuthorization;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -89,32 +90,32 @@ final class PromoterVenueGrantAbilities {
 
 	/** Authorize direct venue-owner issuance. */
 	public function can_issue( array $input ) {
-		return $this->service->can_issue( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ) );
+		return $this->service->can_issue( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	/** Authorize direct venue owners or exact promoter owners. */
 	public function can_manage( array $input ) {
-		return $this->service->can_manage( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ) );
+		return $this->service->can_manage( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	/** Execute grant creation. */
 	public function create( array $input ) {
-		return $this->service->create( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ), (string) ( $input['action'] ?? '' ) );
+		return $this->service->create( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ), (string) ( $input['action'] ?? '' ) );
 	}
 
 	/** Execute grant revocation. */
 	public function revoke( array $input ) {
-		return $this->service->revoke( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ), (string) ( $input['action'] ?? '' ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->service->revoke( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ), (string) ( $input['action'] ?? '' ), absint( $input['expected_version'] ?? 0 ) );
 	}
 
 	/** Execute grant reactivation. */
 	public function reactivate( array $input ) {
-		return $this->service->reactivate( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ), (string) ( $input['action'] ?? '' ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->service->reactivate( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ), (string) ( $input['action'] ?? '' ), absint( $input['expected_version'] ?? 0 ) );
 	}
 
 	/** Execute bounded exact-pair listing. */
 	public function list_grants( array $input ) {
-		return $this->service->list( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ) );
+		return $this->service->list( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['venue_term_id'] ?? 0 ) );
 	}
 
 	/** Register one strict ability contract. */

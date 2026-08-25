@@ -250,6 +250,53 @@ const context = ( overrides = {} ) => ( {
 	...overrides,
 } );
 
+const promoterContext = ( linkPageStatus = 'available' ) =>
+	context( {
+		user: { id: 7, name: 'Operator', is_admin: false },
+		venues: undefined,
+		claim_venues: undefined,
+		selected_venue: undefined,
+		workspace: {
+			actor: { id: 7, name: 'Operator' },
+			identities: [
+				{
+					reference: 'venue:44',
+					type: 'venue',
+					id: 44,
+					name: 'Venue 44',
+					is_owner: true,
+					permissions: [ 'access_venue' ],
+				},
+				{
+					reference: 'promoter:100',
+					type: 'promoter',
+					id: 100,
+					name: 'Extra Chill',
+					is_owner: true,
+					permissions: [ 'access_promoter' ],
+				},
+			],
+			selection: {
+				reference: 'promoter:100',
+				type: 'promoter',
+				id: 100,
+				state: 'active',
+			},
+			promoter: {
+				reference: 'promoter:100',
+				type: 'promoter',
+				id: 100,
+				name: 'Extra Chill',
+				is_owner: true,
+				permissions: [ 'access_promoter' ],
+				link_page: { status: linkPageStatus, management_url: '' },
+			},
+			venue: null,
+			granted_venues: [],
+			promoter_relationships: [],
+		},
+	} );
+
 const normalizeQueryInput = ( value ) => {
 	if ( Array.isArray( value ) ) {
 		return value.map( normalizeQueryInput );
@@ -287,6 +334,29 @@ const installApi = () =>
 		}
 		if ( request.path.includes( 'get-venue-booking-activity' ) ) {
 			return Promise.resolve( bookingActivity() );
+		}
+		if ( request.path.includes( 'get-promoter-link-page' ) ) {
+			return Promise.resolve( {
+				promoter: { term_id: 100, title: 'Extra Chill' },
+				link_page: {
+					link_page_id: 55,
+					public_url: 'https://extrachill.link/extra-chill/',
+					links: [],
+					link_sections: [
+						{
+							id: 'main',
+							section_title: 'Main',
+							links: [
+								{
+									id: 'website',
+									link_text: 'Website',
+									link_url: 'https://extrachill.com/',
+								},
+							],
+						},
+					],
+				},
+			} );
 		}
 		if (
 			request.path.includes( 'list-venue-memberships' ) ||
@@ -431,6 +501,97 @@ describe( 'venue settings authorization-facing states', () => {
 		}
 	);
 
+	it( 'does not initialize venue resources for a selected promoter identity', async () => {
+		const { container, root } = await renderApp(
+			context( {
+				user: { id: 7, name: 'Operator', is_admin: true },
+				venues: undefined,
+				claim_venues: undefined,
+				selected_venue: undefined,
+				booking_url: undefined,
+				support_events: undefined,
+				workspace: {
+					actor: { id: 7, name: 'Operator' },
+					identities: [
+						{
+							reference: 'promoter:100',
+							type: 'promoter',
+							id: 100,
+							name: 'Extra Chill',
+							is_owner: false,
+							permissions: [ 'access_promoter' ],
+						},
+					],
+					selection: {
+						reference: 'promoter:100',
+						type: 'promoter',
+						id: 100,
+						state: 'active',
+					},
+					promoter: {
+						reference: 'promoter:100',
+						type: 'promoter',
+						id: 100,
+						name: 'Extra Chill',
+						is_owner: false,
+						permissions: [ 'access_promoter' ],
+						link_page: {
+							status: 'not_provisioned',
+							management_url: '',
+						},
+					},
+					venue: null,
+					granted_venues: [],
+					promoter_relationships: [],
+				},
+			} )
+		);
+		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( container.textContent ).toContain( 'Extra Chill' );
+		expect( container.textContent ).toContain( 'no active venue grants' );
+		expect( container.textContent ).not.toContain( 'Booking Rules' );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'does not initialize promoter Link Page abilities in venue mode', async () => {
+		const { root } = await renderApp( context() );
+		expect(
+			apiFetch.mock.calls.some( ( [ request ] ) =>
+				request.path.includes( 'promoter-link-page' )
+			)
+		).toBe( false );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'protects dirty promoter Link Page edits from unload and identity switches', async () => {
+		const confirm = jest
+			.spyOn( window, 'confirm' )
+			.mockReturnValue( false );
+		const { container, root } = await renderApp( promoterContext() );
+		await act( async () => {
+			await Promise.resolve();
+			await Promise.resolve();
+		} );
+		const input = container.querySelector( 'input[type="text"][required]' );
+		await setInput( input, 'Unsaved promoter link' );
+		const unload = new Event( 'beforeunload', { cancelable: true } );
+		window.dispatchEvent( unload );
+		expect( unload.defaultPrevented ).toBe( true );
+
+		const selector = container.querySelector(
+			'#ec-managed-identity-select'
+		);
+		await act( async () => {
+			selector.value = 'venue:44';
+			selector.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		} );
+		expect( confirm ).toHaveBeenCalledWith(
+			'Discard unsaved changes and switch identities?'
+		);
+		confirm.mockRestore();
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'preselects venue context for a non-member claim', async () => {
 		const { container, root } = await renderApp(
 			context( {
@@ -444,7 +605,10 @@ describe( 'venue settings authorization-facing states', () => {
 				requested_venue_id: 45,
 			} )
 		);
-		expect( container.querySelector( 'select' ).value ).toBe( '45' );
+		const claimSelect = [ ...container.querySelectorAll( 'select' ) ].find(
+			( select ) => select.querySelector( 'option[value="45"]' )
+		);
+		expect( claimSelect.value ).toBe( '45' );
 		await act( async () => root.unmount() );
 	} );
 

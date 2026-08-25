@@ -23,11 +23,24 @@ final class PromoterVenueAuthorization {
 	 * @var PromoterVenueGrantRepository
 	 */
 	private $grants;
+	/**
+	 * Whether to compose the active execution principal.
+	 *
+	 * @var bool
+	 */
+	private $use_execution_principal;
 
-	/** Construct the effective authorization boundary. */
-	public function __construct( ?PromoterAuthorityRepository $promoters = null, ?PromoterVenueGrantRepository $grants = null ) {
-		$this->promoters = $promoters ? $promoters : new PromoterAuthorityRepository();
-		$this->grants    = $grants ? $grants : new PromoterVenueGrantRepository();
+	/**
+	 * Construct the effective authorization boundary.
+	 *
+	 * @param PromoterAuthorityRepository|null  $promoters              Promoter repository override.
+	 * @param PromoterVenueGrantRepository|null $grants                 Grant repository override.
+	 * @param bool                               $use_execution_principal Whether to apply an active agent principal.
+	 */
+	public function __construct( ?PromoterAuthorityRepository $promoters = null, ?PromoterVenueGrantRepository $grants = null, bool $use_execution_principal = true ) {
+		$this->promoters               = $promoters ? $promoters : new PromoterAuthorityRepository();
+		$this->grants                  = $grants ? $grants : new PromoterVenueGrantRepository();
+		$this->use_execution_principal = $use_execution_principal;
 	}
 
 	/** Authorize one explicit member for one exact promoter, venue, and action. */
@@ -101,7 +114,7 @@ final class PromoterVenueAuthorization {
 		if ( ! in_array( $action, PromoterVenueGrantRepository::actions(), true ) ) {
 			return new \WP_Error( 'invalid_promoter_venue_grant_action', __( 'The delegated venue action is not supported.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		if ( $user_id < 1 || ! get_userdata( $user_id ) || ! user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) || ! function_exists( 'ec_feature_available' ) || ! ec_feature_available( VenueAuthorization::FEATURE, $user_id ) ) {
+		if ( $user_id < 1 || ! get_userdata( $user_id ) || ! PromoterAuthorization::user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY, $this->use_execution_principal ) || ! function_exists( 'ec_feature_available' ) || ! ec_feature_available( VenueAuthorization::FEATURE, $user_id ) ) {
 			return $this->denied();
 		}
 		return true;

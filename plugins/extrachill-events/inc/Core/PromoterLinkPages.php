@@ -640,33 +640,22 @@ final class PromoterLinkPages {
 		return array_values( array_unique( array_filter( $candidates ) ) );
 	}
 
-	/** Build the Events-owned promoter management destination. */
-	private static function management_url( int $promoter_term_id ): string {
-		return add_query_arg( 'promoter_id', $promoter_term_id, get_home_url( self::events_blog_id(), '/promoter-settings/' ) ) . '#tab-link-page';
+	/**
+	 * Build the Events-owned promoter management destination.
+	 *
+	 * @param int $promoter_term_id Exact promoter term ID.
+	 */
+	public static function management_url( int $promoter_term_id ): string {
+		return add_query_arg( 'identity', 'promoter:' . $promoter_term_id, get_home_url( self::events_blog_id(), '/venue-settings/' ) ) . '#promoter-link-page';
 	}
 
 	/** Require exact active verified membership plus current product access. */
 	private static function authorize( int $promoter_term_id ) {
 		return self::with_events_blog(
 			static function () use ( $promoter_term_id ) {
-				return ( new PromoterAuthorization() )->authorize( self::effective_user_id(), $promoter_term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
+				return ( new PromoterAuthorization() )->authorize( PromoterAuthorization::effective_user_id(), $promoter_term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
 			}
 		);
-	}
-
-	/** Resolve the WordPress user represented by the active execution envelope. */
-	private static function effective_user_id(): int {
-		$principal_class = '\\AgentsAPI\\AI\\WP_Agent_Execution_Principal';
-		if ( ! class_exists( $principal_class ) ) {
-			return get_current_user_id();
-		}
-		try {
-			$principal = $principal_class::resolve();
-		} catch ( \Throwable $throwable ) {
-			unset( $throwable );
-			return 0;
-		}
-		return $principal instanceof $principal_class ? max( 0, (int) $principal->acting_user_id ) : get_current_user_id();
 	}
 
 	/** Serialize a promoter mutation against organization revocation. */
@@ -677,7 +666,7 @@ final class PromoterLinkPages {
 				if ( $trusted ) {
 					return $repository->with_active_organization_lock( $promoter_term_id, $callback );
 				}
-				$user_id = self::effective_user_id();
+				$user_id = PromoterAuthorization::effective_user_id();
 				return $repository->with_active_membership_lock(
 					$promoter_term_id,
 					$user_id,

@@ -22,6 +22,11 @@ import { BookingConsole } from './booking-console';
 import { BookingFormTab } from './booking-form-tab';
 import { BookingTab } from './booking-tab';
 import { ClaimPanel, ClaimsTab } from './claims-tab';
+import {
+	ManagedIdentitySelector,
+	PromoterWorkspacePanel,
+	VenuePromoterRelationships,
+} from './managed-workspace';
 import { ProfileTab } from './profile-tab';
 import { LoadingPanel, Status } from './status';
 import { TeamTab } from './team-tab';
@@ -30,6 +35,13 @@ import { editableConfig, profileChanges, sameDocument } from './state';
 
 export function VenueSettingsApp( { context } ) {
 	const selected = context.selected_venue;
+	const workspace = context.workspace || {
+		identities: [],
+		selection: { reference: '', state: 'empty' },
+		granted_venues: [],
+		promoter_relationships: [],
+	};
+	const promoterMode = workspace.selection?.type === 'promoter';
 	const [ activeTab, setActiveTab ] = useState( 'calendar' );
 	const [ loadErrors, setLoadErrors ] = useState( {} );
 	const [ profiles, setProfiles ] = useState( {} );
@@ -44,10 +56,15 @@ export function VenueSettingsApp( { context } ) {
 	const [ configStatuses, setConfigStatuses ] = useState( {} );
 	const [ savingProfiles, setSavingProfiles ] = useState( {} );
 	const [ savingConfigs, setSavingConfigs ] = useState( {} );
+	const [ promoterLinkPageDirty, setPromoterLinkPageDirty ] =
+		useState( false );
 	const profileRequestIds = useRef( {} );
 	const configRequestIds = useRef( {} );
 	const teamRequestIds = useRef( {} );
-	const scopedVenues = selected ? [ selected ] : context.venues;
+	let scopedVenues = selected ? [ selected ] : context.venues;
+	if ( promoterMode ) {
+		scopedVenues = [];
+	}
 	const canAccess = ( venue ) =>
 		typeof venue.can_access === 'boolean'
 			? venue.can_access
@@ -65,7 +82,7 @@ export function VenueSettingsApp( { context } ) {
 			...current,
 			[ venueId ]: { ...current[ venueId ], [ key ]: value },
 		} ) );
-	const dirty = scopedVenues.some( ( venue ) => {
+	const venueDirty = scopedVenues.some( ( venue ) => {
 		const profile = profiles[ venue.id ];
 		const profileBaseline = profileBaselines[ venue.id ];
 		const config = configs[ venue.id ];
@@ -83,6 +100,7 @@ export function VenueSettingsApp( { context } ) {
 			)
 		);
 	} );
+	const dirty = promoterLinkPageDirty || venueDirty;
 
 	const loadTeam = async ( venue ) => {
 		if ( ! canManage( venue ) ) {
@@ -117,7 +135,7 @@ export function VenueSettingsApp( { context } ) {
 		);
 	};
 	const loadClaims = async () => {
-		if ( ! context.user.is_admin ) {
+		if ( promoterMode || ! context.user.is_admin ) {
 			return;
 		}
 		try {
@@ -217,6 +235,24 @@ export function VenueSettingsApp( { context } ) {
 		const url = new URL( context.route_url );
 		if ( venueId ) {
 			url.searchParams.set( 'venue_id', venueId );
+			url.searchParams.set( 'identity', `venue:${ venueId }` );
+		}
+		window.location.assign( url.toString() );
+	};
+	const switchIdentity = ( reference ) => {
+		if (
+			dirty &&
+			// eslint-disable-next-line no-alert -- Native navigation guard is keyboard and screen-reader accessible.
+			! window.confirm( 'Discard unsaved changes and switch identities?' )
+		) {
+			return;
+		}
+		const url = new URL( context.route_url );
+		if ( reference ) {
+			url.searchParams.set( 'identity', reference );
+			if ( reference.startsWith( 'venue:' ) ) {
+				url.searchParams.set( 'venue_id', reference.slice( 6 ) );
+			}
 		}
 		window.location.assign( url.toString() );
 	};
@@ -491,6 +527,14 @@ export function VenueSettingsApp( { context } ) {
 		</>
 	) : null;
 	const renderWorkspace = () => {
+		if ( promoterMode ) {
+			return (
+				<PromoterWorkspacePanel
+					workspace={ workspace }
+					onLinkPageDirtyChange={ setPromoterLinkPageDirty }
+				/>
+			);
+		}
 		if ( selected && ! canAccess( selected ) && ! canManage( selected ) ) {
 			if ( context.user.is_admin ) {
 				return claimsQueue;
@@ -527,6 +571,11 @@ export function VenueSettingsApp( { context } ) {
 					syncWithHash
 					contextSurface="venue-settings"
 				/>
+				{ selected?.is_owner && (
+					<VenuePromoterRelationships
+						relationships={ workspace.promoter_relationships || [] }
+					/>
+				) }
 			</>
 		);
 	};
@@ -534,11 +583,18 @@ export function VenueSettingsApp( { context } ) {
 	return (
 		<BlockShell className="ec-venue-settings__shell">
 			<BlockShellInner>
-				<VenueWorkspaceHeader
-					venues={ context.venues }
-					selected={ selected }
-					onSwitchVenue={ switchVenue }
+				<ManagedIdentitySelector
+					identities={ workspace.identities || [] }
+					selectedReference={ workspace.selection?.reference || '' }
+					onChange={ switchIdentity }
 				/>
+				{ ! promoterMode && (
+					<VenueWorkspaceHeader
+						venues={ context.venues }
+						selected={ selected }
+						onSwitchVenue={ switchVenue }
+					/>
+				) }
 				{ renderWorkspace() }
 			</BlockShellInner>
 		</BlockShell>

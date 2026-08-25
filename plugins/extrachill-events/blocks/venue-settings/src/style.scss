@@ -33,6 +33,76 @@
 	margin-block-start: 1rem;
 }
 
+.ec-managed-identity {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(14rem, 22rem);
+	gap: var(--spacing-md);
+	align-items: center;
+	margin-block-end: var(--spacing-lg);
+	padding: var(--spacing-md);
+	border: 2px solid var(--focus-border-color);
+	border-radius: var(--border-radius-md);
+	background: color-mix(in srgb, var(--focus-border-color) 6%, var(--card-background));
+}
+
+.ec-managed-identity h2,
+.ec-managed-identity p {
+	margin-block: 0 var(--spacing-xs);
+}
+
+.ec-managed-identity__empty {
+	grid-column: 1 / -1;
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+}
+
+.ec-promoter-workspace {
+	display: grid;
+	gap: var(--spacing-lg);
+}
+
+.ec-promoter-workspace__venues {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+	gap: var(--spacing-md);
+}
+
+.ec-promoter-workspace__venues h3 {
+	margin-block-start: 0;
+}
+
+.ec-promoter-link-page-manager__form {
+	display: grid;
+	gap: var(--spacing-md);
+}
+
+.ec-promoter-link-page-manager__form fieldset {
+	display: grid;
+	gap: var(--spacing-sm);
+	margin: 0;
+	padding: var(--spacing-md);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+}
+
+.ec-promoter-link-page-manager__form legend {
+	padding-inline: var(--spacing-xs);
+	font-weight: 700;
+}
+
+.ec-promoter-link-page-manager__link {
+	display: grid;
+	grid-template-columns: minmax(10rem, 0.8fr) minmax(14rem, 1.2fr) auto;
+	gap: var(--spacing-sm);
+	align-items: end;
+}
+
+.ec-venue-collaborations {
+	margin-block-start: var(--spacing-lg);
+	padding-block-start: var(--spacing-md);
+	border-block-start: 1px solid var(--border-color);
+}
+
 .ec-venue-settings__toggle {
 	display: flex;
 	align-items: center;
@@ -604,6 +674,19 @@
 }
 
 @media screen and (max-width: 480px) {
+	.ec-managed-identity {
+		grid-template-columns: minmax(0, 1fr);
+		padding: var(--spacing-sm);
+	}
+
+	.ec-promoter-workspace__venues {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ec-promoter-link-page-manager__link {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	.ec-venue-settings__attachment-purpose {
 		grid-template-columns: minmax(0, 1fr);
 	}

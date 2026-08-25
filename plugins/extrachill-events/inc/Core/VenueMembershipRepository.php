@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Provides bounded persistence for venue/user relationships. */
 class VenueMembershipRepository {
+	public const MAX_USER_VENUES = 500;
 
 	/** Create one unique venue/user relationship. */
 	public function create( array $data ) {
@@ -148,9 +149,19 @@ class VenueMembershipRepository {
 		}
 
 		$table = BookingSchema::memberships_table();
-		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT venue_term_id FROM {$table} WHERE user_id = %d AND status = %s ORDER BY venue_term_id ASC", $user_id, VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority table, reduced to canonical public IDs.
+		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT venue_term_id FROM {$table} WHERE user_id = %d AND status = %s ORDER BY venue_term_id ASC LIMIT %d", $user_id, VenueAuthorization::STATUS_ACTIVE, self::MAX_USER_VENUES + 1 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded private authority projection reduced to canonical public IDs.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+		if ( count( (array) $ids ) > self::MAX_USER_VENUES ) {
+			return new \WP_Error(
+				'venue_membership_user_limit_exceeded',
+				__( 'This user exceeds the supported managed venue limit.', 'extrachill-events' ),
+				array(
+					'status'  => 409,
+					'maximum' => self::MAX_USER_VENUES,
+				)
+			);
 		}
 
 		return array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
@@ -240,7 +251,7 @@ class VenueMembershipRepository {
 		foreach ( array( 'id', 'venue_term_id', 'user_id', 'version', 'created_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
-		$row['is_owner']   = (bool) (int) ( $row['is_owner'] ?? 0 );
+		$row['is_owner']   = (bool) (int) $row['is_owner'];
 		$row['revoked_at'] = empty( $row['revoked_at'] ) ? null : (string) $row['revoked_at'];
 		return $row;
 	}

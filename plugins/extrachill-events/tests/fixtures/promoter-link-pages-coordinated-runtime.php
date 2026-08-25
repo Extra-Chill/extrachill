@@ -468,6 +468,9 @@ foreach ( array( ec_link_page_owner_compatibility_registry(), ec_link_page_opera
 	$providers->setAccessible( true );
 	$registries[] = array_keys( $providers->getValue( $registry ) );
 }
+$management_url   = PromoterLinkPages::management_url( 30 );
+$management_parts = wp_parse_url( $management_url );
+parse_str( (string) ( $management_parts['query'] ?? '' ), $management_query );
 
 echo wp_json_encode(
 	array(
@@ -524,6 +527,11 @@ echo wp_json_encode(
 		'cross_blog_deleted_audit' => $cross_blog_deleted_audit,
 		'deleted_audit'       => $deleted_audit,
 		'registries'          => $registries,
+		'management_route'    => array(
+			'path'     => $management_parts['path'] ?? '',
+			'identity' => $management_query['identity'] ?? '',
+			'fragment' => $management_parts['fragment'] ?? '',
+		),
 		'http_functions'      => array( function_exists( 'wp_remote_get' ), function_exists( 'wp_remote_post' ) ),
 	)
 );

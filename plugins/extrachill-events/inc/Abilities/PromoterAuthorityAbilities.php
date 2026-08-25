@@ -181,7 +181,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_verify( array $input ) {
-		return $this->authorization->authorize( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_VERIFY_ORGANIZATION );
+		return $this->authorization->authorize( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_VERIFY_ORGANIZATION );
 	}
 
 	/**
@@ -190,7 +190,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_revoke_organization( array $input ) {
-		return $this->authorization->authorize( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_REVOKE_ORGANIZATION );
+		return $this->authorization->authorize( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_REVOKE_ORGANIZATION );
 	}
 
 	/**
@@ -199,7 +199,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function can_manage_members( array $input ) {
-		return $this->authorization->authorize( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_MANAGE_MEMBERS );
+		return $this->authorization->authorize( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), PromoterAuthorization::ACTION_MANAGE_MEMBERS );
 	}
 
 	/**
@@ -208,7 +208,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function verify( array $input ) {
-		return $this->service->verify( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['owner_user_id'] ?? 0 ) );
+		return $this->service->verify( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['owner_user_id'] ?? 0 ) );
 	}
 
 	/**
@@ -217,7 +217,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function revoke_organization( array $input ) {
-		return $this->service->revoke_organization( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->service->revoke_organization( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ) );
 	}
 
 	/**
@@ -226,7 +226,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function create_membership( array $input ) {
-		return $this->service->create_membership( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ) );
+		return $this->service->create_membership( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ) );
 	}
 
 	/**
@@ -235,7 +235,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function update_membership( array $input ) {
-		return $this->service->update_membership( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->service->update_membership( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), (bool) ( $input['is_owner'] ?? false ), absint( $input['expected_version'] ?? 0 ) );
 	}
 
 	/**
@@ -244,7 +244,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function revoke_membership( array $input ) {
-		return $this->service->revoke_membership( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ) );
+		return $this->service->revoke_membership( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['user_id'] ?? 0 ), absint( $input['expected_version'] ?? 0 ) );
 	}
 
 	/**
@@ -253,7 +253,7 @@ final class PromoterAuthorityAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function list_memberships( array $input ) {
-		return $this->service->list_memberships( get_current_user_id(), absint( $input['promoter_term_id'] ?? 0 ) );
+		return $this->service->list_memberships( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ) );
 	}
 
 	/**
