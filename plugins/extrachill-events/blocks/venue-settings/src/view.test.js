@@ -383,6 +383,28 @@ async function renderApp( appContext ) {
 	return { container, root };
 }
 
+/**
+ * Render the booking console and switch it to the List view.
+ *
+ * The console opens on the calendar, so assertions about the booking inbox
+ * list must select List first.
+ */
+async function renderAppOnBookingList( appContext ) {
+	const rendered = await renderApp( appContext );
+	const listView = [
+		...rendered.container.querySelectorAll(
+			'.ec-booking-console__view-switcher button'
+		),
+	].find( ( button ) => button.textContent === 'List' );
+	if ( listView ) {
+		await act( async () => {
+			listView.click();
+			await Promise.resolve();
+		} );
+	}
+	return rendered;
+}
+
 const buttonByText = ( container, text ) =>
 	[ ...container.querySelectorAll( 'button' ) ].find(
 		( button ) => button.textContent === text
@@ -1868,7 +1890,7 @@ describe( 'venue settings authorization-facing states', () => {
 			}
 			return Promise.resolve( [] );
 		} );
-		const { container, root } = await renderApp( context() );
+		const { container, root } = await renderAppOnBookingList( context() );
 		await act( async () =>
 			buttonContaining( container, 'Artist A' ).click()
 		);
@@ -1914,7 +1936,7 @@ describe( 'venue settings authorization-facing states', () => {
 			}
 			return Promise.resolve( [] );
 		} );
-		const { container, root } = await renderApp( context() );
+		const { container, root } = await renderAppOnBookingList( context() );
 		await act( async () =>
 			buttonContaining( container, 'Loaded Artist' ).click()
 		);
@@ -1973,7 +1995,7 @@ describe( 'venue settings authorization-facing states', () => {
 			}
 			return Promise.resolve( [] );
 		} );
-		const { container, root } = await renderApp( context() );
+		const { container, root } = await renderAppOnBookingList( context() );
 		await act( async () =>
 			buttonContaining( container, 'Mutation Artist A' ).click()
 		);
@@ -2026,7 +2048,7 @@ describe( 'venue settings authorization-facing states', () => {
 			}
 			return Promise.resolve( [] );
 		} );
-		const { container, root } = await renderApp( context() );
+		const { container, root } = await renderAppOnBookingList( context() );
 		await act( async () =>
 			buttonByText( container, 'Booking Rules' ).click()
 		);
@@ -2038,7 +2060,7 @@ describe( 'venue settings authorization-facing states', () => {
 			buttonByText( container, 'Booking Form' ).click()
 		);
 		await act( async () =>
-			buttonByText( container, 'Add custom field' ).click()
+			buttonByText( container, 'Add a question' ).click()
 		);
 		await setInput(
 			container.querySelector( '#intake-label-0' ),
@@ -2057,7 +2079,7 @@ describe( 'venue settings authorization-facing states', () => {
 		);
 		expect( request.data.input.config.intake.fields ).toEqual( [
 			{
-				key: 'custom_field',
+				key: 'question',
 				label: 'Recent draw',
 				type: 'text',
 				required: false,

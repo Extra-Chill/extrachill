@@ -69,6 +69,9 @@ final class BookingInquiryAdmissionTest extends BookingTestCase {
 		);
 		$config                              = ( new VenueBookingConfig() )->defaults();
 		$config['enabled']                   = true;
+		// Admission, idempotency, and attribution are the subject here, so the
+		// form asks nothing beyond the built-in fields.
+		$config['intake']['fields']          = array();
 		$config['spaces']                    = array(
 			array(
 				'key'        => 'main-room',

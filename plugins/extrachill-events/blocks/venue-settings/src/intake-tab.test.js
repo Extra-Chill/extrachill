@@ -14,7 +14,6 @@ import { act } from 'react';
  * Internal dependencies
  */
 import { IntakeTab } from './intake-tab';
-import { hasValidFieldOrder } from './intake-field-order';
 
 jest.mock( '@extrachill/components', () => {
 	const React = require( 'react' );
@@ -45,7 +44,7 @@ const presentation = {
 	contact_name_label: 'Contact name',
 	contact_email_label: 'Contact email',
 	contact_phone_label: 'Contact phone',
-	message_label: 'Anything else?',
+	message_label: 'What is your vision for the show?',
 	message_help: 'Share details.',
 };
 
@@ -83,7 +82,12 @@ async function click( element ) {
 	} );
 }
 
-describe( 'custom booking field disclosures', () => {
+const addButton = ( container ) =>
+	[ ...container.querySelectorAll( 'button' ) ].find(
+		( button ) => button.textContent === 'Add a question'
+	);
+
+describe( 'booking form question editor', () => {
 	beforeAll( () => {
 		global.IS_REACT_ACT_ENVIRONMENT = true;
 	} );
@@ -94,72 +98,100 @@ describe( 'custom booking field disclosures', () => {
 		document.body.innerHTML = '';
 	} );
 
-	it( 'keeps the empty state clear and ready for its first field', async () => {
+	it( 'tells the venue which questions are always asked', async () => {
 		const { container, root } = await renderIntake( [] );
 
-		expect( container.textContent ).toContain( 'No custom fields added.' );
-		expect(
-			container.querySelectorAll( '.ec-booking-field' )
-		).toHaveLength( 0 );
-		expect( container.textContent ).toContain( 'Add custom field' );
+		expect( container.textContent ).toContain( 'Requested date' );
+		expect( container.textContent ).toContain( 'Artist or project name' );
+		expect( container.textContent ).toContain(
+			'What is your vision for the show?'
+		);
+		expect( container.textContent ).toContain( 'Add a question' );
 
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'keeps a 12-field form scannable and opens one editor at a time', async () => {
+	it( 'shows every question inline with no disclosure to open', async () => {
 		const { container, root } = await renderIntake(
-			Array.from( { length: 12 }, ( unused, index ) =>
-				field( index + 1 )
-			)
-		);
-		const disclosures = [
-			...container.querySelectorAll( '.ec-booking-field' ),
-		];
-		const summaries = disclosures.map( ( item ) =>
-			item.querySelector( 'summary' )
+			Array.from( { length: 4 }, ( unused, index ) => field( index + 1 ) )
 		);
 
-		expect( disclosures ).toHaveLength( 12 );
-		expect( disclosures.every( ( item ) => ! item.open ) ).toBe( true );
-		expect( summaries[ 1 ].textContent ).toContain( 'Question 2' );
-		expect( summaries[ 1 ].textContent ).toContain( 'Short text' );
-		expect( summaries[ 1 ].textContent ).toContain( 'Required' );
-		expect( summaries[ 2 ].textContent ).toContain( 'Multiple choice' );
-		expect( summaries[ 2 ].textContent ).toContain( 'Optional' );
+		expect(
+			container.querySelectorAll( '.ec-booking-field' )
+		).toHaveLength( 4 );
+		expect( container.querySelectorAll( 'details' ) ).toHaveLength( 0 );
+		expect( container.querySelectorAll( 'summary' ) ).toHaveLength( 0 );
 
-		await click( summaries[ 0 ] );
-		expect( disclosures[ 0 ].open ).toBe( true );
-		await click( summaries[ 1 ] );
-		expect( disclosures.filter( ( item ) => item.open ) ).toEqual( [
-			disclosures[ 1 ],
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'offers only the four answer shapes a venue needs', async () => {
+		const { container, root } = await renderIntake( [ field( 1 ) ] );
+		const options = [
+			...container.querySelector( '.ec-booking-field__type' ).options,
+		].map( ( option ) => option.textContent );
+
+		expect( options ).toEqual( [
+			'Short answer',
+			'Long answer',
+			'Link',
+			'Choose one',
 		] );
 
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'opens and focuses a newly added field', async () => {
-		const { container, root } = await renderIntake( [ field( 1 ) ] );
-		const addButton = [ ...container.querySelectorAll( 'button' ) ].find(
-			( button ) => button.textContent === 'Add custom field'
-		);
+	it( 'preserves a saved answer shape the editor no longer offers', async () => {
+		const { container, root } = await renderIntake( [
+			field( 1, { type: 'url_list' } ),
+		] );
+		const select = container.querySelector( '.ec-booking-field__type' );
 
-		await click( addButton );
-		const disclosures = container.querySelectorAll( '.ec-booking-field' );
-		const newDisclosure = disclosures[ disclosures.length - 1 ];
-		const newLabel = newDisclosure.querySelector(
-			'input[aria-label="Field 2 label"]'
-		);
-
-		expect( newDisclosure.open ).toBe( true );
-		expect( document.activeElement ).toBe( newLabel );
+		expect( select.value ).toBe( 'url_list' );
 		expect(
-			newDisclosure.querySelector( 'summary' ).textContent
-		).toContain( 'New field' );
+			[ ...select.options ].map( ( option ) => option.value )
+		).toContain( 'url_list' );
 
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'retains accessible reorder controls and referenced-field removal rules', async () => {
+	it( 'adds an empty question and focuses it for typing', async () => {
+		const { container, root } = await renderIntake( [ field( 1 ) ] );
+
+		await click( addButton( container ) );
+		const rows = container.querySelectorAll( '.ec-booking-field' );
+		const added = rows[ rows.length - 1 ].querySelector(
+			'.ec-booking-field__label'
+		);
+
+		expect( rows ).toHaveLength( 2 );
+		expect( added.value ).toBe( '' );
+		expect( added.placeholder ).toBe( 'Ask a question' );
+		expect( document.activeElement ).toBe( added );
+
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'removes a question without confirmation ceremony', async () => {
+		const { container, root } = await renderIntake( [
+			field( 1 ),
+			field( 2 ),
+		] );
+
+		await click(
+			container.querySelector( 'button[aria-label="Remove Question 1"]' )
+		);
+
+		const remaining = [
+			...container.querySelectorAll( '.ec-booking-field__label' ),
+		].map( ( input ) => input.value );
+
+		expect( remaining ).toEqual( [ 'Question 2' ] );
+
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'protects a saved question another question still depends on', async () => {
 		const controller = field( 1 );
 		const dependent = field( 2, {
 			visible_when: { field: controller.key, value: 'Yes' },
@@ -169,45 +201,13 @@ describe( 'custom booking field disclosures', () => {
 			dependent,
 		] );
 
-		await click( container.querySelector( 'summary' ) );
 		expect(
-			container.querySelector( 'button[aria-label="Move Question 1 up"]' )
-		).toHaveProperty( 'disabled', true );
-		expect(
-			container.querySelector(
-				'button[aria-label="Move Question 1 down"]'
-			)
-		).toHaveProperty( 'disabled', true );
-		expect(
-			[ ...container.querySelectorAll( 'button' ) ].find(
-				( button ) => button.textContent === 'Remove'
-			)
+			container.querySelector( 'button[aria-label="Remove Question 1"]' )
 		).toHaveProperty( 'disabled', true );
 		expect( container.textContent ).toContain(
-			'This field controls another saved field and cannot be removed.'
+			'Another question depends on this answer, so it cannot be removed.'
 		);
 
 		await act( async () => root.unmount() );
-	} );
-} );
-
-describe( 'booking custom field order', () => {
-	it( 'allows independent fields in any order', () => {
-		expect(
-			hasValidFieldOrder( [
-				{ key: 'draw', visible_when: null },
-				{ key: 'genre', visible_when: null },
-			] )
-		).toBe( true );
-	} );
-
-	it( 'requires a controlling field to remain before its dependent field', () => {
-		const controller = { key: 'event_type', visible_when: null };
-		const dependent = {
-			key: 'other_event',
-			visible_when: { field: 'event_type', value: 'Other' },
-		};
-		expect( hasValidFieldOrder( [ controller, dependent ] ) ).toBe( true );
-		expect( hasValidFieldOrder( [ dependent, controller ] ) ).toBe( false );
 	} );
 } );

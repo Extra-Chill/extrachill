@@ -481,6 +481,44 @@ class VenueBookingConfig {
 		);
 	}
 
+	/**
+	 * Starter questions every new venue form asks.
+	 *
+	 * These are ordinary intake fields, not a privileged field class. A venue
+	 * may relabel, retype, or remove any of them from the booking form editor.
+	 */
+	public function starter_intake_fields(): array {
+		return array(
+			array(
+				'key'          => 'played_area_before',
+				'label'        => __( 'Have you played in the area before?', 'extrachill-events' ),
+				'type'         => 'select',
+				'required'     => true,
+				'options'      => array(
+					__( 'Yes', 'extrachill-events' ),
+					__( 'No', 'extrachill-events' ),
+				),
+				'visible_when' => null,
+			),
+			array(
+				'key'          => 'listen_link',
+				'label'        => __( 'Link to listen', 'extrachill-events' ),
+				'type'         => 'url',
+				'required'     => true,
+				'options'      => array(),
+				'visible_when' => null,
+			),
+			array(
+				'key'          => 'socials_link',
+				'label'        => __( 'Link to socials', 'extrachill-events' ),
+				'type'         => 'url',
+				'required'     => false,
+				'options'      => array(),
+				'visible_when' => null,
+			),
+		);
+	}
+
 	/** Default disabled venue contract. */
 	public function defaults(): array {
 		return array(
@@ -491,7 +529,7 @@ class VenueBookingConfig {
 			'enabled'                   => false,
 			'intake'                    => array(
 				'version'      => 1,
-				'fields'       => array(),
+				'fields'       => $this->starter_intake_fields(),
 				'presentation' => $this->normalize_intake_presentation( array() ),
 			),
 			'consent'                   => array(
@@ -723,8 +761,8 @@ class VenueBookingConfig {
 			'contact_name_label'  => __( 'Contact name', 'extrachill-events' ),
 			'contact_email_label' => __( 'Contact email', 'extrachill-events' ),
 			'contact_phone_label' => __( 'Contact phone', 'extrachill-events' ),
-			'message_label'       => __( 'Additional performance details', 'extrachill-events' ),
-			'message_help'        => __( 'Share routing, scheduling, and anything else the venue should know.', 'extrachill-events' ),
+			'message_label'       => __( 'What is your vision for the show?', 'extrachill-events' ),
+			'message_help'        => __( 'Who else is on the bill, what the set looks like, and anything the venue should know.', 'extrachill-events' ),
 		);
 		$presentation = is_array( $presentation ) ? $presentation : array();
 		foreach ( $defaults as $key => $default ) {

@@ -24,7 +24,6 @@ import {
 	buildAvailabilityPayload,
 	buildPayload,
 	clearDraft,
-	DRAFT_SCOPE_DEVICE,
 	DRAFT_SCOPE_SESSION,
 	errorState,
 	loadDraft,
@@ -186,29 +185,12 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 				skipDraftSave.current = false;
 				return;
 			}
-			const saved = saveDraft( config, values, draftScope );
-			if ( ! saved ) {
-				setDraftStatus(
-					'Draft storage is unavailable. Your details will remain only on this page.'
-				);
-			}
+			saveDraft( config, values, draftScope );
 		}
 	}, [ config, draftScope, values, preview, receipt ] );
 	useEffect( () => {
 		if ( restored.current.outcome === 'restored' ) {
-			setDraftStatus(
-				restored.current.scope === DRAFT_SCOPE_DEVICE
-					? 'Your saved 24-hour device draft was restored.'
-					: 'Your draft from this browser tab was restored.'
-			);
-		} else if ( restored.current.outcome === 'expired' ) {
-			setDraftStatus( 'Your expired saved draft was cleared.' );
-		} else if ( restored.current.outcome === 'incompatible' ) {
-			setDraftStatus( 'An outdated saved draft was cleared.' );
-		} else if ( restored.current.outcome === 'read-failed' ) {
-			setDraftStatus(
-				'Draft storage is unavailable. Your details will remain only on this page.'
-			);
+			setDraftStatus( 'Your saved answers were restored.' );
 		}
 	}, [] );
 	useEffect( () => {
@@ -227,29 +209,6 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 	};
 	const updateField = ( fieldKey, value ) =>
 		update( { fields: { ...values.fields, [ fieldKey ]: value } } );
-	const changeDraftScope = ( persistOnDevice ) => {
-		const nextScope = persistOnDevice
-			? DRAFT_SCOPE_DEVICE
-			: DRAFT_SCOPE_SESSION;
-		setDraftScope( nextScope );
-		setDraftStatus(
-			persistOnDevice
-				? 'This draft will be kept on this device for up to 24 hours.'
-				: 'This draft will be kept only in this browser tab.'
-		);
-	};
-	const clearSavedDraft = () => {
-		const cleared = clearDraft( config );
-		setValues( initialValues( config ) );
-		setDraftScope( DRAFT_SCOPE_SESSION );
-		setIntervalOpen( false );
-		setStatus( null );
-		setDraftStatus(
-			cleared
-				? 'Saved draft cleared. The form is empty.'
-				: 'The form is empty, but browser storage could not be fully cleared. Close this tab before leaving this device.'
-		);
-	};
 	const resetTurnstile = () => {
 		const widget = wrapper.querySelector( '.cf-turnstile' );
 		if ( widget ) {
@@ -462,86 +421,6 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 					noValidate={ false }
 				>
 					<section className="ec-booking-inquiry__step">
-						<div className="ec-booking-inquiry__preflight">
-							<strong>Send a concise booking pitch</strong>
-							<p>
-								Plan for a few minutes to share your project,
-								requested date, contact details, and the
-								configured event information. After submission,
-								the venue reviews it and follows up directly.
-							</p>
-							{ config.fields.some(
-								( field ) => field.required
-							) && (
-								<p>
-									Have ready:{ ' ' }
-									{ config.fields
-										.filter( ( field ) => field.required )
-										.map( ( field ) => field.label )
-										.join( ', ' ) }
-								</p>
-							) }
-							{ config.presentation.message_help && (
-								<p>{ config.presentation.message_help }</p>
-							) }
-							<div className="ec-booking-inquiry__draft-controls">
-								<p>
-									As you type, these details are saved on this
-									device for reload and Back recovery. By
-									default, they stay only in this browser tab
-									and are removed when you close it.
-								</p>
-								<label
-									className="ec-checkbox-row"
-									htmlFor={ `${ prefix }-persist-draft` }
-								>
-									<input
-										id={ `${ prefix }-persist-draft` }
-										type="checkbox"
-										checked={
-											draftScope === DRAFT_SCOPE_DEVICE
-										}
-										onChange={ ( event ) =>
-											changeDraftScope(
-												event.target.checked
-											)
-										}
-									/>{ ' ' }
-									<span>
-										Keep this draft on this device for 24
-										hours
-									</span>
-								</label>
-								<p>
-									On a shared device, leave that option off
-									and clear the draft when finished.
-								</p>
-								<button
-									type="button"
-									className="button-2"
-									onClick={ clearSavedDraft }
-								>
-									Clear saved draft
-								</button>
-								<button
-									type="button"
-									className="button-2"
-									onClick={ () => {
-										parkTurnstile();
-										setRecoveryOpen( true );
-									} }
-								>
-									Recover an existing inquiry
-								</button>
-								<div
-									className="ec-booking-inquiry__draft-status"
-									role="status"
-									aria-live="polite"
-								>
-									{ draftStatus }
-								</div>
-							</div>
-						</div>
 						<h3>1. Check your requested date</h3>
 						<Grid minColumnWidth="16rem" maxColumns={ 2 }>
 							{ config.spaces.length > 1 && (
@@ -842,8 +721,26 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 							the public venue page.
 						</span>
 					</ActionRow>
+					<div
+						className="ec-booking-inquiry__draft-status"
+						role="status"
+						aria-live="polite"
+					>
+						{ draftStatus }
+					</div>
 					<p className="ec-booking-inquiry__powered">
 						Powered by Extra Chill
+						{ ' · ' }
+						<button
+							type="button"
+							className="ec-booking-inquiry__recover"
+							onClick={ () => {
+								parkTurnstile();
+								setRecoveryOpen( true );
+							} }
+						>
+							Recover an existing inquiry
+						</button>
 					</p>
 				</form>
 			</BlockShellInner>

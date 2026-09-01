@@ -21,31 +21,21 @@
 	font: inherit;
 }
 
-.ec-booking-inquiry__preflight {
-	margin-block: 0 1rem;
-	padding: 0.85rem 1rem;
-	border: 1px solid var(--border-color, #d6d6d6);
-	border-radius: 0.5rem;
-	background: var(--background-color, #f7f7f7);
-}
-
-.ec-booking-inquiry__preflight p {
-	margin: 0.35rem 0 0;
-}
-
-.ec-booking-inquiry__draft-controls {
-	margin-block-start: 0.75rem;
-	padding-block-start: 0.75rem;
-	border-block-start: 1px solid var(--border-color, #d6d6d6);
-}
-
-.ec-booking-inquiry__draft-controls .button-2 {
-	margin-block: 0.65rem 0;
-	margin-inline-end: 0.5rem;
+.ec-booking-inquiry__recover {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
 }
 
 .ec-booking-inquiry__draft-status:not(:empty) {
 	margin-block-start: 0.5rem;
+	opacity: 0.58;
+	font-size: 0.78rem;
+	text-align: center;
 }
 
 .ec-booking-inquiry__optional-fields {

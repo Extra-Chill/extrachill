@@ -779,7 +779,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$config['appearance']['mode']             = 'custom';
 		$config['appearance']['background_color'] = '#aabbcc';
 		$config['revision']                         = 12;
-		$config['intake']['fields'][]               = array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array(), 'visible_when' => null );
+		$config['intake']['fields']                 = array( array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array(), 'visible_when' => null ) );
 
 		$migrated = $service->normalize( $config );
 
@@ -1161,7 +1161,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$config                        = ( new VenueBookingConfig() )->defaults();
 		$config['enabled']             = true;
 		$config['revision']            = 3;
-		$config['intake']['fields'][]  = array( 'key' => 'draw', 'label' => 'Recent draw', 'type' => 'number', 'required' => true, 'options' => array() );
+		$config['intake']['fields']    = array( array( 'key' => 'draw', 'label' => 'Recent draw', 'type' => 'number', 'required' => true, 'options' => array() ) );
 		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
 		$lifecycle                     = new BookingLifecycle();
 		$input                         = array(
@@ -1489,5 +1489,31 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertCount( $authorization_calls + 1, $authorization->calls );
 		$this->assertSame( 'venue_action_forbidden', $abilities->can_access_booking( array( 'booking_id' => 999 ) )->get_error_code() );
 		$this->assertCount( $authorization_calls + 1, $authorization->calls, 'Missing bookings must not reach authorization with a guessed venue.' );
+	}
+
+	public function test_new_venues_start_with_a_short_answerable_booking_form(): void {
+		$service = new VenueBookingConfig();
+		$fields  = $service->defaults()['intake']['fields'];
+
+		$this->assertSame(
+			array( 'played_area_before', 'listen_link', 'socials_link' ),
+			array_column( $fields, 'key' ),
+			'A venue that never opens the form editor still asks the questions that qualify an inquiry.'
+		);
+		$this->assertSame( array( 'Yes', 'No' ), $fields[0]['options'] );
+		$this->assertSame( array( true, true, false ), array_column( $fields, 'required' ) );
+		$this->assertSame( array( 'select', 'url', 'url' ), array_column( $fields, 'type' ) );
+		$this->assertSame( array( null, null, null ), array_column( $fields, 'visible_when' ) );
+
+		$normalized = $service->normalize( $service->defaults() );
+		$this->assertIsArray( $normalized, 'The starter questions must satisfy the same contract as venue-authored ones.' );
+		$this->assertSame( $fields, $normalized['intake']['fields'] );
+	}
+
+	public function test_default_message_field_asks_for_the_show_vision(): void {
+		$presentation = ( new VenueBookingConfig() )->defaults()['intake']['presentation'];
+
+		$this->assertSame( 'What is your vision for the show?', $presentation['message_label'] );
+		$this->assertNotSame( '', $presentation['message_help'] );
 	}
 }

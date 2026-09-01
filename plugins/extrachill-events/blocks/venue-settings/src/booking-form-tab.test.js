@@ -15,10 +15,6 @@ const intake = readFileSync(
 	'utf8'
 );
 const styles = readFileSync( path.resolve( __dirname, 'style.scss' ), 'utf8' );
-const wording = readFileSync(
-	path.resolve( __dirname, 'intake-public.js' ),
-	'utf8'
-);
 const publicForm = readFileSync(
 	path.resolve( __dirname, '../../venue-booking-inquiry/src/view.js' ),
 	'utf8'
@@ -41,7 +37,6 @@ describe( 'booking form workspace', () => {
 		);
 		expect( workspace ).not.toContain( 'previewDevice' );
 		expect( workspace ).not.toContain( 'QR' );
-		expect( wording ).toContain( 'Edit standard wording' );
 	} );
 
 	it( 'prefills an empty embed website from the venue profile', () => {
@@ -77,25 +72,45 @@ describe( 'booking form workspace', () => {
 		expect( workspace ).not.toContain( 'secure embed code' );
 	} );
 
-	it( 'separates universal booking fields from venue custom fields', () => {
-		expect( wording ).toContain( 'Standard fields' );
-		expect( wording ).toContain( 'Requested date (required)' );
-		expect( wording ).toContain( 'Contact email (required)' );
-		expect( intake ).toContain( 'Custom fields' );
-		expect( intake ).toContain( 'Add custom field' );
+	it( 'names the always-asked questions beside the venue additions', () => {
+		expect( intake ).toContain( 'Requested date' );
+		expect( intake ).toContain( 'Artist or project name' );
+		expect( intake ).toContain( 'What is your vision for the show?' );
+		expect( intake ).toContain( 'Booking form questions' );
+		expect( intake ).toContain( 'Add a question' );
 		expect( intake ).toContain( 'ec-booking-field__type' );
-		expect( intake ).toContain( 'Multiple choice' );
-		expect( intake ).toContain( 'Enter one choice per line.' );
 		expect( intake ).toContain( 'ec-booking-field__row' );
-		expect( intake ).toContain( '<details' );
-		expect( intake ).toContain( '<summary' );
-		expect( intake ).toContain( 'ec-booking-field__summary-meta' );
-		expect( intake ).toContain( "'Optional'" );
-		expect( intake ).toContain( 'pendingFocusKey.current = key' );
-		expect( intake ).toContain( 'Move ${ field.label } up' );
-		expect( intake ).toContain( 'Move ${ field.label } down' );
-		expect( intake ).not.toContain( 'Add question' );
-		expect( intake ).not.toContain( 'fieldset' );
+	} );
+
+	it( 'keeps the question editor free of form-builder ceremony', () => {
+		for ( const ceremony of [
+			'<details',
+			'<summary',
+			'fieldset',
+			'Move ${ field.label } up',
+			'Move ${ field.label } down',
+			'hasValidFieldOrder',
+			'ec-booking-field__summary-meta',
+			'ec-booking-field__position',
+		] ) {
+			expect( intake ).not.toContain( ceremony );
+		}
+	} );
+
+	it( 'offers only the answer shapes that are not already standard fields', () => {
+		expect( intake ).toContain( "[ 'text', 'Short answer' ]" );
+		expect( intake ).toContain( "[ 'textarea', 'Long answer' ]" );
+		expect( intake ).toContain( "[ 'url', 'Link' ]" );
+		expect( intake ).toContain( "[ 'select', 'Choose one' ]" );
+		for ( const retired of [
+			"'Email address'",
+			"'Phone number'",
+			"'Number'",
+			"'Checkbox'",
+			"'List of links'",
+		] ) {
+			expect( intake ).not.toContain( retired );
+		}
 	} );
 
 	it( 'keeps custom field labels on theme-native form surfaces', () => {
@@ -129,8 +144,6 @@ describe( 'booking form workspace', () => {
 	} );
 
 	it( 'edits and renders link fields independently', () => {
-		expect( intake ).toContain( "[ 'url', 'Website link' ]" );
-		expect( intake ).toContain( "[ 'url_list', 'List of links' ]" );
 		expect( publicForm ).toContain( 'visibleFields.map(' );
 		expect( publicForm ).toContain( 'field.required &&' );
 		expect( publicForm ).toContain( '! field.required &&' );
