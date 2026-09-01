@@ -37,12 +37,10 @@ final class VenueBookingProvider {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistMappingLock.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistAuthorization.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationToken.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingRepository.php';
@@ -50,9 +48,6 @@ final class VenueBookingProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationDeliveryWorker.php';
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCommunicationService.php';
@@ -90,7 +85,6 @@ final class VenueBookingProvider {
 		\ExtraChillEvents\Core\BookingCommunicationService::register();
 		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
 		\ExtraChillEvents\Core\BookingNotificationService::register();
-		\ExtraChillEvents\Core\VendorRequestNotificationService::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
 
 		self::$registered = true;

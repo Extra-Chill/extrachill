@@ -33,7 +33,6 @@ namespace {
 	function get_option( $option, $default = false ) {
 		$values = array(
 			'extrachill_events_booking_schema_version'        => '16',
-			'extrachill_events_vendor_request_schema_version' => '1',
 		);
 		return $values[ $option ] ?? $default;
 	}

@@ -61,7 +61,6 @@ final class LifecycleProvider {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
 		}
 		\ExtraChillEvents\Core\BookingSchema::install();
-		\ExtraChillEvents\Core\VendorRequestSchema::install();
 		flush_rewrite_rules();
 	}
 
@@ -83,9 +82,6 @@ final class LifecycleProvider {
 		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();
-		}
-		if ( class_exists( '\\ExtraChillEvents\\Core\\VendorRequestSchema' ) ) {
-			\ExtraChillEvents\Core\VendorRequestSchema::maybe_install();
 		}
 	}
 }

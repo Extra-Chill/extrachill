@@ -18,7 +18,6 @@
 		"start:concert-stats": "wp-scripts start blocks/concert-stats/src/index.js blocks/concert-stats/src/view.js --output-path=build/concert-stats",
 		"test:js": "wp-scripts test-unit-js",
 		"test:browser:near-me": "node tests/browser/near-me.evidence.js",
-		"test:browser:vendor-request": "node tests/browser/vendor-request.evidence.js",
 		"test:browser:booking-inquiry": "node tests/browser/booking-inquiry.evidence.js",
 		"test:browser:booking-form-preview": "node tests/browser/booking-form-preview.evidence.js",
 		"test:browser:booking-setup-copy": "node tests/browser/booking-setup-copy.evidence.js",
