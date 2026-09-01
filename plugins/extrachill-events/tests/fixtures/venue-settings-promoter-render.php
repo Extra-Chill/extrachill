@@ -11,13 +11,6 @@ namespace ExtraChillEvents\Core {
 			return true;
 		}
 	}
-	final class LocalSupportSchema {
-		public static function is_ready(): bool {
-			++$GLOBALS['venue_settings_render_fixture']['private_loader_calls'];
-			return true;
-		}
-	}
-	final class LocalSupportWorkspace {}
 	final class VenueMembershipRepository {}
 	final class VenueAuthorization {
 		public function is_administrator( int $user_id ): bool {

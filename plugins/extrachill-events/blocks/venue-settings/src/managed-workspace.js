@@ -365,9 +365,9 @@ export function PromoterWorkspacePanel( { workspace, onLinkPageDirtyChange } ) {
 			/>
 
 			<InlineStatus tone="info">
-				Promoter access is limited to organizing local support at the
-				venues shown here. Venue settings, private booking data, team
-				access, and finances remain venue-owned.
+				Promoter access is limited to the delegated actions granted at
+				the venues shown here. Venue settings, private booking data,
+				team access, and finances remain venue-owned.
 			</InlineStatus>
 		</div>
 	);

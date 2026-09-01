@@ -357,9 +357,6 @@ export function VenueSettingsApp( { context } ) {
 			can_manage: canManage( venue ),
 			booking_id: selected?.id === venue.id ? context.booking_id : 0,
 			booking_url: venue.booking_url || context.booking_url || '',
-			support_events:
-				venue.support_events ||
-				( selected?.id === venue.id ? context.support_events : [] ),
 		};
 		const errors = loadErrors[ venue.id ] || {};
 		const config = configs[ venue.id ];
@@ -497,18 +494,6 @@ export function VenueSettingsApp( { context } ) {
 							venue.id,
 							configs[ venue.id ]?.default_deal,
 						] )
-					) }
-					supportEvents={ accessibleVenues.flatMap( ( venue ) =>
-						(
-							venue.support_events ||
-							( selected?.id === venue.id
-								? context.support_events
-								: [] )
-						).map( ( event ) => ( {
-							...event,
-							venue_term_id: venue.id,
-							venue_name: venue.name,
-						} ) )
 					) }
 				/>
 			);

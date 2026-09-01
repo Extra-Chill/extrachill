@@ -203,11 +203,8 @@ export const bookingSummary = ( bookings, holds, now = new Date() ) => {
 	};
 };
 
-export const calendarEntries = ( bookings, events, supportEvents = [] ) => {
+export const calendarEntries = ( bookings, events ) => {
 	const eventIds = new Set( events.map( ( event ) => Number( event.id ) ) );
-	const supportByEvent = new Map(
-		supportEvents.map( ( event ) => [ Number( event.id ), event ] )
-	);
 	return [
 		...events.map( ( event ) => ( {
 			type: 'event',
@@ -216,7 +213,6 @@ export const calendarEntries = ( bookings, events, supportEvents = [] ) => {
 			title: event.title,
 			status: 'published',
 			permalink: event.permalink,
-			support: supportByEvent.get( Number( event.id ) ) || null,
 			venueName: event.venue_name || '',
 		} ) ),
 		...bookings
@@ -950,9 +946,8 @@ function Calendar( {
 	month,
 	onMonthChange,
 	onSelect,
-	supportEvents,
 } ) {
-	const entries = calendarEntries( bookings, events, supportEvents );
+	const entries = calendarEntries( bookings, events );
 	const byDay = entries.reduce( ( grouped, entry ) => {
 		if ( entry.date ) {
 			grouped[ entry.date ] = [
@@ -1080,19 +1075,6 @@ function Calendar( {
 										>
 											{ content }
 										</a>
-										{ entry.support && (
-											<a
-												className="ec-booking-calendar__support-action button-2 button-small"
-												href={
-													entry.support.workspace_url
-												}
-											>
-												{ entry.support.status ===
-												'not_seeking'
-													? 'Open support request'
-													: 'Manage support request' }
-											</a>
-										) }
 									</div>
 								) : (
 									<button
@@ -1915,7 +1897,6 @@ export function BookingConsole( {
 	venues = [],
 	defaultDeal,
 	defaultDeals = {},
-	supportEvents = [],
 } ) {
 	const scopeVenues = venues.length ? venues : [ context.selected_venue ];
 	const venueIds = scopeVenues.map( ( venue ) => venue.id );
@@ -2246,7 +2227,6 @@ export function BookingConsole( {
 									month={ month }
 									onMonthChange={ setMonth }
 									onSelect={ selectBooking }
-									supportEvents={ supportEvents }
 								/>
 							) : (
 								<Panel>

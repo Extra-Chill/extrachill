@@ -10,8 +10,6 @@
  */
 
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\LocalSupportSchema;
-use ExtraChillEvents\Core\LocalSupportWorkspace;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -135,9 +133,6 @@ foreach ( $managed_venues as &$venue ) {
 	$venue['booking_url']    = $venue['can_access'] && $venue_term instanceof WP_Term ? \ExtraChillEvents\Core\VenueBookingEmbed::booking_url( $venue_term ) : '';
 	$venue_data              = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : null;
 	$venue['timezone']       = is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '';
-	$venue['support_events'] = $venue['can_access'] && function_exists( 'extrachill_events_local_support_organizer_events' )
-		? extrachill_events_local_support_organizer_events( $user_id, $venue_id )
-		: array();
 	$venue['link_page']      = array( 'status' => 'unavailable' );
 	if ( function_exists( 'ec_link_page_editor_is_available' ) && ec_link_page_editor_is_available() && function_exists( 'ec_get_link_page_id_for_owner' ) ) {
 		$reference = \ExtraChillEvents\Core\VenueLinkPages::owner_reference( $venue_id );
@@ -211,16 +206,12 @@ if ( ! $promoter_mode ) {
 			'booking_id'         => $booking_venue_id ? $requested_booking_id : 0,
 			'booking_venue_id'   => $booking_venue_id,
 			'booking_url'        => $selected['booking_url'] ?? '',
-			'support_events'     => $selected['support_events'] ?? array(),
 		)
 	);
 }
 $context_id                            = wp_unique_id( 'ec-venue-settings-context-' );
 $editor_available                      = function_exists( 'ec_enqueue_link_page_editor' ) && ec_enqueue_link_page_editor();
 $context['link_page_editor_available'] = $editor_available;
-$support_requests                      = ! $promoter_mode && $can_access && LocalSupportSchema::is_ready()
-	? ( new LocalSupportWorkspace() )->venue_requests( (int) $selected['id'], $user_id )
-	: array();
 ?>
 <div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 	<div class="ec-venue-settings__root" data-context-id="<?php echo esc_attr( $context_id ); ?>">
@@ -231,17 +222,4 @@ $support_requests                      = ! $promoter_mode && $can_access && Loca
 		</div>
 	</div>
 	<script id="<?php echo esc_attr( $context_id ); ?>" type="application/json"><?php echo wp_json_encode( $context, JSON_HEX_TAG | JSON_HEX_AMP ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON is hex-escaped for an inert script element. ?></script>
-	<?php if ( ! empty( $support_requests ) ) : ?>
-		<section class="ec-block-shell ec-venue-settings__support" aria-labelledby="ec-venue-support-heading">
-			<div class="ec-block-shell-inner ec-block-shell-inner--narrow">
-				<h2 id="ec-venue-support-heading"><?php esc_html_e( 'Local support requests', 'extrachill-events' ); ?></h2>
-				<p><?php esc_html_e( 'Private opportunities for this exact venue.', 'extrachill-events' ); ?></p>
-				<ul class="ec-venue-settings__records">
-					<?php foreach ( $support_requests as $request ) : ?>
-						<li><span><?php echo esc_html( get_the_title( (int) $request['event_id'] ) ); ?> <small><?php echo esc_html( ucfirst( $request['status'] ) ); ?></small></span><a class="button-2 button-small" href="<?php echo esc_url( home_url( '/local-support/' . (int) $request['id'] . '/' ) ); ?>"><?php esc_html_e( 'Open workspace', 'extrachill-events' ); ?></a></li>
-					<?php endforeach; ?>
-				</ul>
-			</div>
-		</section>
-	<?php endif; ?>
 </div>

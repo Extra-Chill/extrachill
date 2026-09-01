@@ -34,9 +34,6 @@ describe( 'venue booking workspace composition', () => {
 			'ec-booking-card button-3 button-medium button-block'
 		);
 		expect( consoleSource ).toContain(
-			'ec-booking-calendar__support-action button-2 button-small'
-		);
-		expect( consoleSource ).toContain(
 			'className="ec-booking-console__toolbar"'
 		);
 		expect( consoleSource ).toContain(

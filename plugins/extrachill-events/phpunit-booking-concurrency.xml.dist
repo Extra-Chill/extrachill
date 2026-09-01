@@ -9,7 +9,6 @@
 	<testsuites>
 		<testsuite name="booking-admission-concurrency">
 			<file>tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php</file>
-			<file>tests/MySQLIntegration/LocalSupportAuthorityConcurrencyMySQLProof.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

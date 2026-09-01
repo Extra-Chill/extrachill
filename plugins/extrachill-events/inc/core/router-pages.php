@@ -12,7 +12,6 @@
  *                when they have events. This lives at the taxonomy's own base
  *                slug rather than an invented route.
  *   /venue-settings/ — authenticated venue onboarding and settings app.
- *   /local-support/<request-id>/ — private event-scoped support workspace.
  *   /vendor-requests/<request-id>/ — private event vendor workspace.
  *   /vendor-apply/<public-id>/ — public contact-safe vendor application.
  *
@@ -37,15 +36,12 @@ function extrachill_events_router_rewrite_rules() {
 		return;
 	}
 
-	add_rewrite_tag( '%ec_events_router%', '(all|venue-settings|local-support|vendor-requests|vendor-apply)' );
-	add_rewrite_tag( '%ec_local_support_request%', '([0-9]+)' );
+	add_rewrite_tag( '%ec_events_router%', '(all|venue-settings|vendor-requests|vendor-apply)' );
 	add_rewrite_tag( '%ec_vendor_request%', '([0-9]+)' );
 	add_rewrite_tag( '%ec_vendor_apply%', '([a-f0-9-]{36})' );
 	add_rewrite_rule( '^all/?$', 'index.php?ec_events_router=all', 'top' );
 	add_rewrite_rule( '^all/page/([0-9]{1,})/?$', 'index.php?ec_events_router=all&paged=$matches[1]', 'top' );
 	add_rewrite_rule( '^venue-settings/?$', 'index.php?ec_events_router=venue-settings', 'top' );
-	add_rewrite_rule( '^local-support/?$', 'index.php?ec_events_router=local-support', 'top' );
-	add_rewrite_rule( '^local-support/([0-9]+)/?$', 'index.php?ec_events_router=local-support&ec_local_support_request=$matches[1]', 'top' );
 	add_rewrite_rule( '^vendor-requests/?$', 'index.php?ec_events_router=vendor-requests', 'top' );
 	add_rewrite_rule( '^vendor-requests/([0-9]+)/?$', 'index.php?ec_events_router=vendor-requests&ec_vendor_request=$matches[1]', 'top' );
 	add_rewrite_rule( '^vendor-apply/([a-f0-9-]{36})/?$', 'index.php?ec_events_router=vendor-apply&ec_vendor_apply=$matches[1]', 'top' );
@@ -69,11 +65,6 @@ function extrachill_events_is_all_events_page(): bool {
 /** Whether the current request is the venue settings application page. */
 function extrachill_events_is_venue_settings_page(): bool {
 	return ec_is_events_site() && 'venue-settings' === get_query_var( 'ec_events_router', '' );
-}
-
-/** Whether the current request is a private local support workspace. */
-function extrachill_events_is_local_support_page(): bool {
-	return ec_is_events_site() && 'local-support' === get_query_var( 'ec_events_router', '' );
 }
 
 function extrachill_events_is_vendor_request_page(): bool {
@@ -171,7 +162,7 @@ function extrachill_events_is_location_index(): bool {
  * @return bool
  */
 function extrachill_events_is_router_page(): bool {
-	return extrachill_events_is_all_events_page() || extrachill_events_is_location_index() || extrachill_events_is_venue_settings_page() || extrachill_events_is_local_support_page() || extrachill_events_is_vendor_request_page() || extrachill_events_is_vendor_application_page();
+	return extrachill_events_is_all_events_page() || extrachill_events_is_location_index() || extrachill_events_is_venue_settings_page() || extrachill_events_is_vendor_request_page() || extrachill_events_is_vendor_application_page();
 }
 
 /**
@@ -185,7 +176,7 @@ function extrachill_events_query_is_router_page( $query ): bool {
 		return false;
 	}
 
-	if ( in_array( $query->get( 'ec_events_router', '' ), array( 'all', 'venue-settings', 'local-support', 'vendor-requests', 'vendor-apply' ), true ) ) {
+	if ( in_array( $query->get( 'ec_events_router', '' ), array( 'all', 'venue-settings', 'vendor-requests', 'vendor-apply' ), true ) ) {
 		return true;
 	}
 
@@ -214,10 +205,6 @@ function extrachill_events_router_template( string $template ): string {
 
 	if ( extrachill_events_is_venue_settings_page() ) {
 		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/venue-settings.php';
-	}
-
-	if ( extrachill_events_is_local_support_page() ) {
-		return EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/local-support.php';
 	}
 
 	if ( extrachill_events_is_vendor_request_page() || extrachill_events_is_vendor_application_page() ) {
@@ -283,8 +270,6 @@ function extrachill_events_router_title( array $parts ): array {
 		$parts['title'] = __( 'Live Music by Location', 'extrachill-events' );
 	} elseif ( extrachill_events_is_venue_settings_page() ) {
 		$parts['title'] = __( 'Venue Settings', 'extrachill-events' );
-	} elseif ( extrachill_events_is_local_support_page() ) {
-		$parts['title'] = __( 'Local Support Workspace', 'extrachill-events' );
 	} elseif ( extrachill_events_is_vendor_request_page() ) {
 		$parts['title'] = __( 'Vendor Request Workspace', 'extrachill-events' );
 	} elseif ( extrachill_events_is_vendor_application_page() ) {

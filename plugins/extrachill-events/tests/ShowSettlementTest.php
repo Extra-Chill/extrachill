@@ -324,7 +324,7 @@ final class ShowSettlementTest extends BookingTestCase {
 				'note'                                    => 'Artist manager accepts the statement.',
 			)
 		);
-		$this->assertSame( 'local_support_forbidden', $this->service->acknowledge( $verified, 12 )->get_error_code(), 'A venue operator cannot spoof direct counterparty attestation.' );
+		$this->assertSame( 'artist_authority_forbidden', $this->service->acknowledge( $verified, 12 )->get_error_code(), 'A venue operator cannot spoof direct counterparty attestation.' );
 		$acknowledged = $this->service->acknowledge( $verified, 21 );
 		$this->assertSame( 'acknowledged', $acknowledged['status'] );
 		$this->assertSame( 21, $acknowledged['actions'][1]['payload']['attested_by_user_id'] );
@@ -342,7 +342,7 @@ final class ShowSettlementTest extends BookingTestCase {
 				'acknowledgement_evidence_attachment_ids' => array(),
 			)
 		);
-		$this->assertSame( 'local_support_forbidden', $this->service->acknowledge( $revoked, 21 )->get_error_code() );
+		$this->assertSame( 'artist_authority_forbidden', $this->service->acknowledge( $revoked, 21 )->get_error_code() );
 	}
 
 	public function test_payment_denial_does_not_consume_private_evidence(): void {

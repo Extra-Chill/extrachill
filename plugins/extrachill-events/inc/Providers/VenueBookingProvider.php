@@ -37,12 +37,11 @@ final class VenueBookingProvider {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistMappingLock.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportAuthorization.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestAuthorization.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationToken.php';
@@ -51,16 +50,11 @@ final class VenueBookingProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationDeliveryWorker.php';
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportWorkspace.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VendorRequestNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingNotificationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationAdapter.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/LocalSupportNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCommunicationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCorrespondenceAutomationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingHoldRepository.php';
@@ -96,7 +90,6 @@ final class VenueBookingProvider {
 		\ExtraChillEvents\Core\BookingCommunicationService::register();
 		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
 		\ExtraChillEvents\Core\BookingNotificationService::register();
-		\ExtraChillEvents\Core\LocalSupportNotificationService::register();
 		\ExtraChillEvents\Core\VendorRequestNotificationService::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
 

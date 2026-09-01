@@ -84,10 +84,6 @@ final class AbilitiesProvider {
 			}
 		}
 
-		if ( class_exists( '\\ExtraChillEvents\\Core\\LocalSupportSchema' ) && \ExtraChillEvents\Core\LocalSupportSchema::is_ready() ) {
-			$abilities[] = 'LocalSupportAbilities';
-		}
-
 		if ( class_exists( '\\ExtraChillEvents\\Core\\VendorRequestSchema' ) && \ExtraChillEvents\Core\VendorRequestSchema::is_ready() ) {
 			$abilities[] = 'VendorRequestAbilities';
 		}

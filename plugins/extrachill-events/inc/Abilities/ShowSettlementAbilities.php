@@ -11,7 +11,7 @@ namespace ExtraChillEvents\Abilities;
 // phpcs:disable Generic.Commenting.DocComment.MissingShort,Squiz.Commenting.FunctionComment.Missing,Squiz.Commenting.VariableComment.Missing,WordPress.WP.I18n.NonSingularStringLiteralText
 
 use ExtraChillEvents\Core\BookingRepository;
-use ExtraChillEvents\Core\LocalSupportAuthorization;
+use ExtraChillEvents\Core\ArtistAuthorization;
 use ExtraChillEvents\Core\ShowSettlementService;
 use ExtraChillEvents\Core\VenueAuthorization;
 
@@ -28,13 +28,13 @@ class ShowSettlementAbilities {
 	private $bookings;
 	/** @var VenueAuthorization */
 	private $authorization;
-	/** @var LocalSupportAuthorization */
+	/** @var ArtistAuthorization */
 	private $artist_authorization;
 
-	public function __construct( ?ShowSettlementService $service = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?LocalSupportAuthorization $artist_authorization = null ) {
+	public function __construct( ?ShowSettlementService $service = null, ?BookingRepository $bookings = null, ?VenueAuthorization $authorization = null, ?ArtistAuthorization $artist_authorization = null ) {
 		$this->bookings             = $bookings ? $bookings : new BookingRepository();
 		$this->authorization        = $authorization ? $authorization : new VenueAuthorization();
-		$this->artist_authorization = $artist_authorization ? $artist_authorization : new LocalSupportAuthorization( $this->authorization );
+		$this->artist_authorization = $artist_authorization ? $artist_authorization : new ArtistAuthorization();
 		$this->service              = $service;
 		if ( ! self::$registered ) {
 			// @phpstan-ignore arguments.count

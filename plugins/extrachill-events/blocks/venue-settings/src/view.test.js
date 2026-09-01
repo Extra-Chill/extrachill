@@ -246,7 +246,6 @@ const context = ( overrides = {} ) => ( {
 	booking_url: 'https://events.example/venue/venue-44/#booking-inquiry',
 	requested_venue_id: 0,
 	booking_id: 0,
-	support_events: [],
 	...overrides,
 } );
 
@@ -538,7 +537,6 @@ describe( 'venue settings authorization-facing states', () => {
 				claim_venues: undefined,
 				selected_venue: undefined,
 				booking_url: undefined,
-				support_events: undefined,
 				workspace: {
 					actor: { id: 7, name: 'Operator' },
 					identities: [
@@ -1067,60 +1065,6 @@ describe( 'venue settings authorization-facing states', () => {
 				request.path.includes( 'get-venue-profile' )
 			)
 		).toBe( false );
-		await act( async () => root.unmount() );
-	} );
-
-	it( 'surfaces local-support actions on matching calendar events', async () => {
-		apiFetch.mockImplementation( ( request ) => {
-			const input = requestInput( request );
-			if ( request.path.includes( 'get-venue-profile' ) ) {
-				return Promise.resolve( profile( input.venue_term_id ) );
-			}
-			if ( request.path.includes( 'get-venue-booking-config' ) ) {
-				return Promise.resolve( config( input.venue_term_id ) );
-			}
-			if ( request.path.includes( 'events-calendar' ) ) {
-				return Promise.resolve( {
-					dates: [
-						{
-							events: [
-								{
-									id: 901,
-									title: 'Kid Lake at Venue 44',
-									datetime: '2026-08-01 20:00:00',
-									permalink:
-										'https://events.example/kid-lake/',
-								},
-							],
-						},
-					],
-				} );
-			}
-			return Promise.resolve( [] );
-		} );
-		const { container, root } = await renderApp(
-			context( {
-				support_events: [
-					{
-						id: 901,
-						title: 'Kid Lake at Venue 44',
-						start_datetime: '2026-08-01 20:00:00',
-						status: 'not_seeking',
-						workspace_url:
-							'https://events.example/local-support/?event_id=901',
-						permalink: 'https://events.example/kid-lake/',
-					},
-				],
-			} )
-		);
-		await act( async () => buttonByText( container, 'Calendar' ).click() );
-		expect( container.textContent ).toContain( 'Kid Lake at Venue 44' );
-		expect( container.textContent ).toContain( 'Open support request' );
-		expect(
-			[ ...container.querySelectorAll( 'a' ) ]
-				.find( ( link ) => link.textContent === 'Open support request' )
-				.getAttribute( 'href' )
-		).toBe( 'https://events.example/local-support/?event_id=901' );
 		await act( async () => root.unmount() );
 	} );
 

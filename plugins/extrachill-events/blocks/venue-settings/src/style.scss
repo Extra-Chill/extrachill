@@ -29,10 +29,6 @@
 	}
 }
 
-.ec-venue-settings__support {
-	margin-block-start: 1rem;
-}
-
 .ec-managed-identity {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) minmax(14rem, 22rem);
@@ -557,11 +553,6 @@
 .ec-booking-calendar__event {
 	display: grid;
 	gap: 0.2rem;
-}
-
-.ec-booking-calendar__support-action {
-	display: block;
-	text-align: center;
 }
 
 .ec-booking-detail__header {

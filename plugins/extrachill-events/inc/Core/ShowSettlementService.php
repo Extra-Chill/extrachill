@@ -31,19 +31,19 @@ class ShowSettlementService {
 	private $attachments;
 	/** @var BookingAttachmentService */
 	private $attachment_service;
-	/** @var LocalSupportAuthorization */
+	/** @var ArtistAuthorization */
 	private $artist_authorization;
 	/** @var bool */
 	private $transaction_active = false;
 
-	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?TicketSettlementService $commissions = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, ?LocalSupportAuthorization $artist_authorization = null ) {
+	public function __construct( ?BookingRepository $bookings = null, ?BookingActivityRepository $activity = null, ?VenueAuthorization $authorization = null, ?TicketSettlementService $commissions = null, ?BookingAttachmentRepository $attachments = null, ?BookingAttachmentService $attachment_service = null, ?ArtistAuthorization $artist_authorization = null ) {
 		$this->bookings             = $bookings ? $bookings : new BookingRepository();
 		$this->activity             = $activity ? $activity : new BookingActivityRepository();
 		$this->authorization        = $authorization ? $authorization : new VenueAuthorization();
 		$this->commissions          = $commissions ? $commissions : new TicketSettlementService( $this->bookings, $this->activity, $this->authorization );
 		$this->attachments          = $attachments ? $attachments : new BookingAttachmentRepository();
 		$this->attachment_service   = $attachment_service ? $attachment_service : new BookingAttachmentService( $this->attachments, $this->bookings, $this->activity, null, null, $this->authorization );
-		$this->artist_authorization = $artist_authorization ? $artist_authorization : new LocalSupportAuthorization( $this->authorization );
+		$this->artist_authorization = $artist_authorization ? $artist_authorization : new ArtistAuthorization();
 	}
 
 	/** Calculate and append the first immutable draft revision. */

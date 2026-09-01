@@ -26,7 +26,6 @@ use ExtraChillEvents\Abilities\VenueBookingMutationAbilities;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use ExtraChillEvents\Abilities\VenueBookingCommunicationAbilities;
 use ExtraChillEvents\Core\VenueAuthorization;
-use ExtraChillEvents\Core\LocalSupportSchema;
 
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );
@@ -642,11 +641,6 @@ final class BookingWpdb {
 	public $release_lock_errors                  = array();
 	public $lock_names                           = array();
 	public $event_dates                          = array();
-	public $local_support_candidate_rows          = array();
-	public $local_support_candidate_query         = '';
-	public $local_support_candidate_queries       = array();
-	public $fail_local_support_candidate_reads    = false;
-	public $fail_local_support_request_reads      = false;
 	public $booking_lock_queries                 = 0;
 	public $communication_state_queries          = 0;
 	public $communication_attempt_queries        = 0;
@@ -1050,10 +1044,6 @@ final class BookingWpdb {
 		unset( $output );
 		$this->last_query = $query;
 		$this->last_error = '';
-		if ( $this->fail_local_support_request_reads && false !== strpos( $query, 'ec_local_support_requests' ) ) {
-			$this->last_error = 'simulated local support request read failure';
-			return null;
-		}
 		if ( false !== strpos( $query, 'DATE_ADD(UTC_TIMESTAMP()' ) ) {
 			if ( $this->fail_reads || $this->fail_clock_reads ) {
 				$this->last_error = 'simulated clock read failure';
@@ -1474,56 +1464,6 @@ final class BookingWpdb {
 		if ( $this->fail_reads ) {
 			$this->last_error = 'simulated result read failure';
 			return null; }
-		if ( false !== strpos( $query, 'SELECT DISTINCT p.ID' ) && false !== strpos( $query, 'datamachine_event_dates' ) ) {
-			$this->local_support_candidate_query = $query;
-			$this->local_support_candidate_queries[] = $query;
-			if ( $this->fail_local_support_candidate_reads ) {
-				$this->last_error = 'simulated local support candidate read failure';
-				return null;
-			}
-			$venue_ids  = array();
-			$artist_ids = array();
-			if ( preg_match( "/scope_tt.taxonomy = 'venue' AND scope_tt.term_id IN \(([^)]+)\)/", $query, $match ) ) {
-				$venue_ids = array_map( 'intval', explode( ',', $match[1] ) );
-			}
-			if ( preg_match( "/scope_tt.taxonomy = 'artist' AND scope_tt.term_id IN \(([^)]+)\)/", $query, $match ) ) {
-				$artist_ids = array_map( 'intval', explode( ',', $match[1] ) );
-			}
-			preg_match( "/start_datetime >= '([^']+)'/", $query, $start );
-			preg_match( "/start_datetime > '([^']+)' OR \(dates.start_datetime = '([^']+)' AND p.ID > (\d+)\)/", $query, $cursor );
-			preg_match( '/AND venue_tt.term_id = (\d+)/', $query, $exact_venue );
-			preg_match( '/LIMIT (\d+)/', $query, $limit );
-			$rows = array_values(
-				array_filter(
-					$this->local_support_candidate_rows,
-					static function ( array $row ) use ( $venue_ids, $artist_ids, $start, $cursor, $exact_venue ): bool {
-						$in_scope = in_array( (int) $row['venue_term_id'], $venue_ids, true )
-							|| ! empty( array_intersect( array_map( 'intval', $row['artist_term_ids'] ?? array() ), $artist_ids ) );
-						$after_cursor = empty( $cursor[1] )
-							|| (string) $row['start_datetime'] > (string) $cursor[1]
-							|| ( (string) $row['start_datetime'] === (string) $cursor[2] && (int) $row['ID'] > (int) $cursor[3] );
-						return $in_scope
-							&& (string) $row['start_datetime'] >= (string) ( $start[1] ?? '' )
-							&& $after_cursor
-							&& ( empty( $exact_venue[1] ) || (int) $row['venue_term_id'] === (int) $exact_venue[1] );
-					}
-				)
-			);
-			usort(
-				$rows,
-				static function ( array $left, array $right ): int {
-					return array( $left['start_datetime'], (int) $left['ID'] ) <=> array( $right['start_datetime'], (int) $right['ID'] );
-				}
-			);
-			$rows = array_slice( $rows, 0, (int) ( $limit[1] ?? 100 ) );
-			return array_map(
-				static function ( array $row ): array {
-					unset( $row['artist_term_ids'] );
-					return $row;
-				},
-				$rows
-			);
-		}
 		if ( false !== strpos( $query, 'SELECT source.* FROM' ) && false !== strpos( $query, "source.kind IN ('inquiry_submitted', 'deal_confirmed')" ) ) {
 			preg_match( '/LIMIT (\d+)/', $query, $limit );
 			$completed = array();
@@ -2358,19 +2298,13 @@ final class BookingWpdb {
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportSchema.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueAuthorization.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/ArtistAuthorization.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/ArtistMappingLock.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingRepository.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportRepository.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportAuthorization.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportService.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportWorkspace.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingActivityRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingNotificationService.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportNotificationAdapter.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Core/LocalSupportNotificationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingCommunicationService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingMutationService.php';
@@ -2397,7 +2331,6 @@ require_once dirname( __DIR__, 2 ) . '/inc/Core/TicketSettlementService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/ShowSettlementService.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/CanonicalEventPublicationGuard.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingAbilities.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Abilities/LocalSupportAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/BookingAttachmentAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingHoldAbilities.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueBookingMutationAbilities.php';
