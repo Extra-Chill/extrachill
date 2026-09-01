@@ -1938,7 +1938,7 @@ export function BookingConsole( {
 	const [ search, setSearch ] = useState( '' );
 	const [ filterStatus, setFilterStatus ] = useState( '' );
 	const [ month, setMonth ] = useState( monthKey() );
-	const [ view, setView ] = useState( 'list' );
+	const [ view, setView ] = useState( 'calendar' );
 	const requestId = useRef( 0 );
 	const detailRequestId = useRef( 0 );
 	const selectedIdRef = useRef( context.booking_id || 0 );
