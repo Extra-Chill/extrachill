@@ -1,6 +1,6 @@
 {
   "name": "@extrachill/components",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Shared React components for the Extra Chill Platform.",
   "type": "module",
   "sideEffects": [

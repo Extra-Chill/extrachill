@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.4] - 2026-09-02
+
+### Fixed
+- style Modal with theme tokens and mark it as a dialog
+- prevent nested mobile shell overflow
+
 ## [0.9.3] - 2026-08-21
 
 ### Changed
