@@ -56,6 +56,19 @@ jest.mock( '@extrachill/components', () => {
 			),
 		Grid: Wrapper,
 		InlineStatus: Wrapper,
+		Modal: ( { title, isOpen, onClose, children } ) =>
+			isOpen
+				? React.createElement(
+						'div',
+						{ role: 'dialog', 'aria-label': title },
+						React.createElement(
+							'button',
+							{ type: 'button', onClick: onClose },
+							'Close'
+						),
+						children
+				  )
+				: null,
 		Panel: Wrapper,
 		PanelHeader: ( { title, description, actions } ) =>
 			React.createElement(
@@ -379,6 +392,8 @@ async function renderApp( appContext ) {
  *
  * The console opens on the calendar, so assertions about the booking inbox
  * list must select List first.
+ *
+ * @param {Object} appContext Venue settings app context.
  */
 async function renderAppOnBookingList( appContext ) {
 	const rendered = await renderApp( appContext );

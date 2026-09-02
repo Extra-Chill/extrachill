@@ -14,6 +14,7 @@ import {
 	FieldGroup,
 	Grid,
 	InlineStatus,
+	Modal,
 } from '@extrachill/components';
 
 /**
@@ -154,6 +155,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 		preview ? null : loadReceipt( config )
 	);
 	const [ recoveryOpen, setRecoveryOpen ] = useState( false );
+	const [ formOpen, setFormOpen ] = useState( preview );
 	const key = useRef( newIdempotencyKey() );
 	const turnstileTarget = useRef();
 	const resultRef = useRef();
@@ -181,7 +183,7 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 		if ( source && turnstileTarget.current ) {
 			turnstileTarget.current.appendChild( source );
 		}
-	}, [ wrapper, intervalOpen, preview ] );
+	}, [ wrapper, intervalOpen, preview, formOpen ] );
 	useEffect( () => {
 		if ( ! preview && ! receipt ) {
 			if ( skipDraftSave.current ) {
@@ -411,6 +413,11 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 		submitLabel = submitting ? 'Sending...' : config.buttonLabel;
 	}
 
+	const closeForm = () => {
+		parkTurnstile();
+		setFormOpen( false );
+	};
+
 	return (
 		<BlockShell>
 			{ config.venue.logoUrl && (
@@ -422,6 +429,48 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 			) }
 			{ heading }
 			<BlockShellInner className="ec-panel ec-booking-inquiry__panel">
+				<ActionRow>
+					<button
+						type="button"
+						className="button-1 button-large"
+						disabled={ preview }
+						onClick={ () => setFormOpen( true ) }
+					>
+						Start a booking inquiry
+					</button>
+					<span className="ec-booking-inquiry__privacy">
+						Your inquiry is sent privately and never added to the
+						public venue page.
+					</span>
+				</ActionRow>
+				<div
+					className="ec-booking-inquiry__draft-status"
+					role="status"
+					aria-live="polite"
+				>
+					{ draftStatus }
+				</div>
+				<p className="ec-booking-inquiry__powered">
+					Powered by Extra Chill
+					{ ' · ' }
+					<button
+						type="button"
+						className="ec-booking-inquiry__recover"
+						onClick={ () => {
+							parkTurnstile();
+							setRecoveryOpen( true );
+						} }
+					>
+						Recover an existing inquiry
+					</button>
+				</p>
+			</BlockShellInner>
+			<Modal
+				title="Booking inquiry"
+				isOpen={ formOpen }
+				onClose={ closeForm }
+				className="ec-booking-inquiry__modal"
+			>
 				<form
 					className="ec-booking-inquiry__form"
 					onSubmit={ submit }
@@ -710,34 +759,16 @@ export function BookingInquiry( { config, wrapper, preview = false } ) {
 						>
 							{ submitLabel }
 						</button>
-						<span className="ec-booking-inquiry__privacy">
-							Your inquiry is sent privately and never added to
-							the public venue page.
-						</span>
-					</ActionRow>
-					<div
-						className="ec-booking-inquiry__draft-status"
-						role="status"
-						aria-live="polite"
-					>
-						{ draftStatus }
-					</div>
-					<p className="ec-booking-inquiry__powered">
-						Powered by Extra Chill
-						{ ' · ' }
 						<button
+							className="button-3 button-large"
 							type="button"
-							className="ec-booking-inquiry__recover"
-							onClick={ () => {
-								parkTurnstile();
-								setRecoveryOpen( true );
-							} }
+							onClick={ closeForm }
 						>
-							Recover an existing inquiry
+							Cancel
 						</button>
-					</p>
+					</ActionRow>
 				</form>
-			</BlockShellInner>
+			</Modal>
 		</BlockShell>
 	);
 }

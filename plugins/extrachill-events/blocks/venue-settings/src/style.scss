@@ -144,6 +144,25 @@
 	overflow: hidden;
 }
 
+/*
+ * The public form lives in a modal. Inside the editor preview it renders
+ * inline so operators can see the whole form, so pin the overlay back into
+ * the preview panel instead of covering the workspace.
+ */
+.ec-booking-form-editor__preview .ec-modal {
+	position: static;
+	padding: 0;
+}
+
+.ec-booking-form-editor__preview .ec-modal__backdrop {
+	display: none;
+}
+
+.ec-booking-form-editor__preview .ec-modal__content {
+	width: 100%;
+	max-height: none;
+}
+
 .ec-booking-fields {
 	display: grid;
 	gap: var(--spacing-sm);

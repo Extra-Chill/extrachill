@@ -129,7 +129,7 @@ const measure = ( page ) =>
 			viewportWidth: document.documentElement.clientWidth,
 			scrollWidth: document.documentElement.scrollWidth,
 			shell,
-			panel: bounds( '.ec-booking-inquiry__panel' ),
+			panel: bounds( '.ec-modal__content' ),
 			form,
 			grid: bounds( '.ec-booking-inquiry__step .ec-card-grid' ),
 			turnstile: bounds( '.ec-booking-inquiry__turnstile' ),
@@ -154,7 +154,8 @@ const measure = ( page ) =>
 			route.fulfill( { body: fixture, contentType: 'text/html' } )
 		);
 		const mount = async (
-			expectedSelector = '.ec-booking-inquiry__form'
+			expectedSelector = '.ec-booking-inquiry__form',
+			openForm = true
 		) => {
 			await page.goto( 'https://booking.test/' );
 			await page.addStyleTag( { content: fixtureStyles } );
@@ -245,6 +246,14 @@ const measure = ( page ) =>
 			await page.addScriptTag( {
 				path: path.join( root, 'build/venue-booking-inquiry/view.js' ),
 			} );
+			// The form opens in a modal behind the block's inquiry button.
+			if ( openForm ) {
+				await page
+					.getByRole( 'button', {
+						name: 'Start a booking inquiry',
+					} )
+					.click();
+			}
 			await page.waitForSelector( expectedSelector );
 		};
 		const assertBookingSemantics = async () => {
@@ -362,7 +371,7 @@ const measure = ( page ) =>
 		assert.ok(
 			Number.parseFloat(
 				await page
-					.locator( '.ec-booking-inquiry__panel' )
+					.locator( '.ec-modal__content' )
 					.evaluate(
 						( panel ) => getComputedStyle( panel ).borderLeftWidth
 					)
@@ -528,7 +537,7 @@ const measure = ( page ) =>
 			),
 			false
 		);
-		await mount( '.ec-booking-inquiry__result' );
+		await mount( '.ec-booking-inquiry__result', false );
 		await page.getByText( 'Pending review' ).waitFor();
 		assert.equal(
 			await page
@@ -569,6 +578,9 @@ const measure = ( page ) =>
 		} );
 		await page
 			.getByRole( 'button', { name: 'Clear this receipt' } )
+			.click();
+		await page
+			.getByRole( 'button', { name: 'Start a booking inquiry' } )
 			.click();
 		await page.getByLabel( 'Requested date' ).waitFor();
 		assert.deepEqual(

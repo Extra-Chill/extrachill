@@ -40,6 +40,19 @@ jest.mock( '@extrachill/components', () => {
 			),
 		InlineStatus: ( { children } ) =>
 			React.createElement( 'div', null, children ),
+		Modal: ( { title, isOpen, onClose, children } ) =>
+			isOpen
+				? React.createElement(
+						'div',
+						{ role: 'dialog', 'aria-label': title },
+						React.createElement(
+							'button',
+							{ type: 'button', onClick: onClose },
+							'Close'
+						),
+						children
+				  )
+				: null,
 	};
 } );
 
@@ -103,6 +116,12 @@ const button = ( container, label ) =>
 	[ ...container.querySelectorAll( 'button' ) ].find(
 		( item ) => item.textContent === label
 	);
+// The inquiry form lives in a modal behind the block's inquiry button.
+const openBookingForm = async ( container ) =>
+	act( async () => {
+		button( container, 'Start a booking inquiry' ).click();
+		await flush();
+	} );
 const addToken = ( wrapper, value ) => {
 	const input = document.createElement( 'input' );
 	input.name = 'cf-turnstile-response';
@@ -690,11 +709,12 @@ describe( 'artist booking inquiry follow-through UI', () => {
 			sessionStorage.getItem( draftStorageKey( config ) )
 		).toBeNull();
 		expect( localStorage.getItem( draftStorageKey( config ) ) ).toBeNull();
-		expect( container.querySelector( 'input[type="date"]' ).value ).toBe(
-			''
-		);
 		expect( container.textContent ).toContain(
 			'Receipt and saved form details cleared.'
+		);
+		await openBookingForm( container );
+		expect( container.querySelector( 'input[type="date"]' ).value ).toBe(
+			''
 		);
 		await act( async () => root.unmount() );
 	} );
@@ -723,12 +743,38 @@ describe( 'artist booking inquiry follow-through UI', () => {
 			expect( container.textContent ).toContain(
 				"clear this device's site data"
 			);
+			await openBookingForm( container );
 			expect(
 				container.querySelector( 'input[type="date"]' ).value
 			).toBe( '' );
 		} finally {
 			Storage.prototype.removeItem = removeItem;
 		}
+		await act( async () => root.unmount() );
+	} );
+	it( 'keeps the inquiry form in a modal behind the block trigger', async () => {
+		const { container, root } = await render( ( wrapper ) => (
+			<BookingInquiry config={ config } wrapper={ wrapper } />
+		) );
+
+		expect( container.querySelector( '[role="dialog"]' ) ).toBeNull();
+		expect( container.querySelector( 'input[type="date"]' ) ).toBeNull();
+		expect( button( container, 'Start a booking inquiry' ) ).toBeTruthy();
+
+		await openBookingForm( container );
+
+		const dialog = container.querySelector( '[role="dialog"]' );
+		expect( dialog ).toBeTruthy();
+		expect( dialog.getAttribute( 'aria-label' ) ).toBe( 'Booking inquiry' );
+		expect( container.querySelector( 'input[type="date"]' ) ).toBeTruthy();
+
+		await act( async () => {
+			button( container, 'Cancel' ).click();
+			await flush();
+		} );
+
+		expect( container.querySelector( '[role="dialog"]' ) ).toBeNull();
+		expect( container.querySelector( 'input[type="date"]' ) ).toBeNull();
 		await act( async () => root.unmount() );
 	} );
 } );
