@@ -62,7 +62,7 @@ const config = {
 		{
 			key: 'press_links',
 			label: 'Press links',
-			type: 'url_list',
+			type: 'url',
 			required: false,
 			options: [],
 		},

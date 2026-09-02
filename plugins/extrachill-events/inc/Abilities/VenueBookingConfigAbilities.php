@@ -199,7 +199,7 @@ class VenueBookingConfigAbilities {
 				),
 				'type'         => array(
 					'type' => 'string',
-					'enum' => array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url', 'url_list' ),
+					'enum' => VenueBookingConfig::INTAKE_FIELD_TYPES,
 				),
 				'required'     => array( 'type' => 'boolean' ),
 				'options'      => array(

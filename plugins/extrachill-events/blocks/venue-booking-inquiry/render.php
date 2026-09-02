@@ -39,9 +39,8 @@ $canonical = ( static function () use ( $events_blog_id, $venue_id ) {
 			return null;
 		}
 
-		$supported_types = array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url', 'url_list' );
 		foreach ( $booking_config['fields'] as $field ) {
-			if ( ! in_array( $field['type'], $supported_types, true ) ) {
+			if ( ! in_array( $field['type'], VenueBookingConfig::INTAKE_FIELD_TYPES, true ) ) {
 				return null;
 			}
 		}

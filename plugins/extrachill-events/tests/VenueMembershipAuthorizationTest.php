@@ -1858,7 +1858,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$intake_output = $config_output['properties']['intake'];
 		$this->assertNotContains( 'presentation', $intake_output['required'] );
 		$this->assertArrayNotHasKey( 'presentation', $intake_output['properties'] );
-		$this->assertContains( 'url_list', $intake_output['properties']['fields']['items']['properties']['type']['enum'] );
+		$this->assertSame( array( 'text', 'textarea', 'url', 'select' ), $intake_output['properties']['fields']['items']['properties']['type']['enum'] );
 		$this->assertSame( array( 'object', 'null' ), $intake_output['properties']['fields']['items']['properties']['visible_when']['type'] );
 		$this->assertNotContains( 'presentation', $config_input['oneOf'][0]['properties']['intake']['required'] );
 		$this->assertNotContains( 'presentation', $config_input['oneOf'][10]['properties']['intake']['required'] );

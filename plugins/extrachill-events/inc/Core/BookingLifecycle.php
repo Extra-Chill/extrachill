@@ -140,6 +140,8 @@ class BookingLifecycle {
 		if ( is_wp_error( $config ) ) {
 			return $this->rollback( $config );
 		}
+		// Runtime wpdb can report an error independently of the test double's declared default.
+		// @phpstan-ignore notIdentical.alwaysFalse
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->rollback( new \WP_Error( 'booking_inquiry_config_read_failed', __( 'The venue booking admission state could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) );
 		}
@@ -212,15 +214,17 @@ class BookingLifecycle {
 			$condition = $field['visible_when'] ?? null;
 			$visible   = ! is_array( $condition ) || (string) ( $normalized[ $condition['field'] ] ?? '' ) === (string) $condition['value'];
 			if ( ! $visible ) {
-				$normalized[ $field['key'] ] = 'checkbox' === $field['type'] ? false : ( 'url_list' === $field['type'] ? array() : '' );
+				$normalized[ $field['key'] ] = '';
 				continue;
 			}
-			$value = $values[ $field['key'] ] ?? ( 'checkbox' === $field['type'] ? false : '' );
-			if ( 'checkbox' === $field['type'] ) {
-				$value = true === $value;
-			} elseif ( 'number' === $field['type'] ) {
-				$value = '' === $value ? '' : filter_var( $value, FILTER_VALIDATE_FLOAT );
-				if ( false === $value ) {
+			$value = $values[ $field['key'] ] ?? '';
+			if ( 'textarea' === $field['type'] ) {
+				$value = sanitize_textarea_field( (string) $value );
+			} elseif ( 'url' === $field['type'] ) {
+				$sanitized = esc_url_raw( (string) $value );
+				$scheme    = wp_parse_url( $sanitized, PHP_URL_SCHEME );
+				$host      = wp_parse_url( $sanitized, PHP_URL_HOST );
+				if ( '' !== (string) $value && ( '' === $sanitized || ! in_array( $scheme, array( 'http', 'https' ), true ) || ! is_string( $host ) || '' === $host ) ) {
 					return new \WP_Error(
 						'booking_inquiry_field_invalid',
 						__( 'A configured booking field is invalid.', 'extrachill-events' ),
@@ -230,35 +234,11 @@ class BookingLifecycle {
 						)
 					);
 				}
-			} elseif ( 'textarea' === $field['type'] ) {
-				$value = sanitize_textarea_field( (string) $value );
-			} elseif ( 'email' === $field['type'] ) {
-				$value = sanitize_email( (string) $value );
-			} elseif ( 'url_list' === $field['type'] ) {
-				$lines = is_array( $value ) ? $value : preg_split( '/\R/', (string) $value );
-				$value = array_values( array_filter( array_map( 'trim', array_slice( (array) $lines, 0, 20 ) ) ) );
-				foreach ( $value as $index => $url ) {
-					$sanitized = esc_url_raw( $url );
-					$scheme    = wp_parse_url( $sanitized, PHP_URL_SCHEME );
-					$host      = wp_parse_url( $sanitized, PHP_URL_HOST );
-					if ( '' === $sanitized || $sanitized !== $url || ! in_array( $scheme, array( 'http', 'https' ), true ) || ! is_string( $host ) || '' === $host ) {
-						return new \WP_Error(
-							'booking_inquiry_field_invalid',
-							__( 'A configured booking field is invalid.', 'extrachill-events' ),
-							array(
-								'status' => 400,
-								'field'  => $field['key'],
-							)
-						);
-					}
-					$value[ $index ] = $sanitized;
-				}
-			} elseif ( 'url' === $field['type'] ) {
-				$value = esc_url_raw( (string) $value );
+				$value = $sanitized;
 			} else {
 				$value = sanitize_text_field( (string) $value );
 			}
-			if ( $field['required'] && ( false === $value || '' === $value || array() === $value ) ) {
+			if ( $field['required'] && '' === $value ) {
 				return new \WP_Error(
 					'booking_inquiry_field_required',
 					__( 'A required booking field is missing.', 'extrachill-events' ),

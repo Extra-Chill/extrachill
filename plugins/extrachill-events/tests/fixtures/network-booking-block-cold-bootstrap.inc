@@ -118,7 +118,7 @@ function get_term_meta( $term_id, $key, $single ) {
 					array(
 						'key'      => 'draw',
 						'label'    => 'Recent draw',
-						'type'     => 'number',
+						'type'     => 'text',
 						'required' => true,
 						'options'  => array(),
 					),

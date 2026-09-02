@@ -35,8 +35,17 @@ class VenueBookingConfig {
 	public const CONSENT_VERSION               = 1;
 	public const ATTACHMENT_POLICY_VERSION     = 1;
 	public const HOLD_TTL_MAX_MINUTES          = 20160;
-	public const SOCIAL_MARKETING_ACTION       = 'datamachine-socials/cross-post';
-	public const NEWSLETTER_MARKETING_ACTION   = 'extrachill-newsletter/canonical-post-campaign';
+
+	/**
+	 * Answer shapes a venue may ask for beyond the built-in questions.
+	 *
+	 * Contact name, email, and phone are already standard fields, so per-question
+	 * email, phone, and number shapes only ever produced duplicate questions.
+	 * `checkbox` and `url_list` are covered by `select` and `url`.
+	 */
+	public const INTAKE_FIELD_TYPES          = array( 'text', 'textarea', 'url', 'select' );
+	public const SOCIAL_MARKETING_ACTION     = 'datamachine-socials/cross-post';
+	public const NEWSLETTER_MARKETING_ACTION = 'extrachill-newsletter/canonical-post-campaign';
 
 	/**
 	 * Venue authorization owner.
@@ -718,7 +727,7 @@ class VenueBookingConfig {
 		}
 		$normalized = array();
 		$seen       = array();
-		$types      = array( 'text', 'textarea', 'email', 'phone', 'number', 'select', 'checkbox', 'url', 'url_list' );
+		$types      = self::INTAKE_FIELD_TYPES;
 		foreach ( $fields as $field ) {
 			$key   = mb_substr( sanitize_key( (string) ( $field['key'] ?? '' ) ), 0, 64 );
 			$type  = sanitize_key( (string) ( $field['type'] ?? 'text' ) );

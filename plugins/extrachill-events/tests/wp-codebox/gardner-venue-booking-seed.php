@@ -106,13 +106,13 @@ $config['intake']     = array(
 	'fields'  => array(
 		array(
 			'key'      => 'draw',
-			'type'     => 'number',
+			'type'     => 'text',
 			'label'    => 'How many people do you usually draw in Charleston?',
 			'required' => false,
 		),
 		array(
 			'key'      => 'links',
-			'type'     => 'url_list',
+			'type'     => 'url',
 			'label'    => 'Links to your music',
 			'required' => false,
 		),

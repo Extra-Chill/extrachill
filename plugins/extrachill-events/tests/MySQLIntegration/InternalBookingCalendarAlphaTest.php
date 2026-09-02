@@ -303,7 +303,7 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 		$config['intake']['fields'] = array(
 			array( 'key' => 'event_type', 'label' => 'Event type', 'type' => 'select', 'required' => false, 'options' => array( 'Concert', 'Market', 'Other' ), 'visible_when' => null ),
 			array( 'key' => 'other_event', 'label' => 'Other event details', 'type' => 'text', 'required' => false, 'options' => array(), 'visible_when' => array( 'field' => 'event_type', 'value' => 'Other' ) ),
-			array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array(), 'visible_when' => null ),
+			array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url', 'required' => false, 'options' => array(), 'visible_when' => null ),
 		);
 		$config['correspondence']['reminder_policies']['hold_expiring']['version']          += 1;
 		$config['correspondence']['reminder_policies']['hold_expiring']['enabled']           = true;
@@ -315,7 +315,7 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 		$updated = $this->ability_data( 'extrachill/update-venue-booking-config', array( 'venue_term_id' => $venue_id, 'expected_revision' => $revision, 'config' => $config ), $operator_id );
 		$this->assertTrue( $updated['enabled'] );
 		$this->assertCount( count( $space_keys ), $updated['spaces'] );
-		$this->assertSame( 'url_list', $updated['intake']['fields'][2]['type'] );
+		$this->assertSame( 'url', $updated['intake']['fields'][2]['type'] );
 		$this->assertSame( array( 'field' => 'event_type', 'value' => 'Other' ), $updated['intake']['fields'][1]['visible_when'] );
 	}
 

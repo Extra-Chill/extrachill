@@ -779,7 +779,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$config['appearance']['mode']             = 'custom';
 		$config['appearance']['background_color'] = '#aabbcc';
 		$config['revision']                         = 12;
-		$config['intake']['fields']                 = array( array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array(), 'visible_when' => null ) );
+		$config['intake']['fields']                 = array( array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url', 'required' => false, 'options' => array(), 'visible_when' => null ) );
 
 		$migrated = $service->normalize( $config );
 
@@ -1157,11 +1157,59 @@ final class BookingFoundationTest extends BookingTestCase {
 		$this->assertCount( 3, $GLOBALS['wpdb']->rows[ BookingSchema::bookings_table() ] );
 	}
 
+	public function test_intake_answer_shapes_match_the_editor_contract(): void {
+		$service = new VenueBookingConfig();
+		$this->assertSame( array( 'text', 'textarea', 'url', 'select' ), VenueBookingConfig::INTAKE_FIELD_TYPES );
+		foreach ( array( 'email', 'phone', 'number', 'checkbox', 'url_list' ) as $retired ) {
+			$config                     = $service->defaults();
+			$config['enabled']          = true;
+			$config['intake']['fields'] = array( array( 'key' => 'x', 'label' => 'X', 'type' => $retired, 'required' => false, 'options' => array() ) );
+			$this->assertSame( 'invalid_booking_intake_field', $service->normalize( $config )->get_error_code(), "{$retired} must be rejected" );
+		}
+	}
+
+	public function test_public_inquiry_accepts_the_live_venue_answer_shape(): void {
+		$service                    = new VenueBookingConfig();
+		$config                     = $service->defaults();
+		$config['enabled']          = true;
+		$config['revision']         = 1;
+		$config['intake']['fields'] = array(
+			array( 'key' => 'played_area_before', 'label' => 'Have you played in the area before?', 'type' => 'select', 'required' => true, 'options' => array( 'Yes', 'No' ) ),
+			array( 'key' => 'listen_link', 'label' => 'Link to listen', 'type' => 'url', 'required' => true, 'options' => array() ),
+			array( 'key' => 'socials_link', 'label' => 'Link to socials', 'type' => 'url', 'required' => false, 'options' => array() ),
+		);
+		$normalized = $service->normalize( $config );
+		$this->assertIsArray( $normalized );
+		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $normalized;
+
+		$created = ( new BookingLifecycle() )->create_inquiry(
+			array(
+				'idempotency_key' => 'live-answer-shape',
+				'venue_term_id'   => 55,
+				'artist_name'     => 'Test Band',
+				'intake'          => array(
+					'config_revision' => (int) $normalized['revision'],
+					'message'         => 'Our vision for the show.',
+					'fields'          => array(
+						'played_area_before' => 'Yes',
+						'listen_link'        => 'https://example.com/listen',
+						'socials_link'       => '',
+					),
+					'consent'         => array( 'id' => 'booking-privacy', 'version' => 1, 'accepted' => true ),
+				),
+			)
+		);
+		$this->assertIsArray( $created );
+		$this->assertSame( 'Yes', $created['intake']['data']['fields']['played_area_before'] );
+		$this->assertSame( 'https://example.com/listen', $created['intake']['data']['fields']['listen_link'] );
+		$this->assertSame( '', $created['intake']['data']['fields']['socials_link'] );
+	}
+
 	public function test_public_inquiry_validates_config_revision_consent_and_fields(): void {
 		$config                        = ( new VenueBookingConfig() )->defaults();
 		$config['enabled']             = true;
 		$config['revision']            = 3;
-		$config['intake']['fields']    = array( array( 'key' => 'draw', 'label' => 'Recent draw', 'type' => 'number', 'required' => true, 'options' => array() ) );
+		$config['intake']['fields']    = array( array( 'key' => 'draw', 'label' => 'Recent draw', 'type' => 'text', 'required' => true, 'options' => array() ) );
 		$GLOBALS['ec_artist_test']['meta'][7][55][ VenueBookingConfig::META_KEY ] = $config;
 		$lifecycle                     = new BookingLifecycle();
 		$input                         = array(
@@ -1178,7 +1226,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 		$created = $lifecycle->create_inquiry( $input );
 		$this->assertIsArray( $created );
-		$this->assertSame( 125, $created['intake']['data']['fields']['draw'] );
+		$this->assertSame( '125', $created['intake']['data']['fields']['draw'] );
 		$stale = $lifecycle->create_inquiry( array_replace_recursive( $input, array( 'idempotency_key' => 'public-stale', 'intake' => array( 'config_revision' => 2 ) ) ) );
 		$this->assertSame( 'booking_config_revision_conflict', $stale->get_error_code() );
 		$missing = $lifecycle->create_inquiry( array_replace_recursive( $input, array( 'idempotency_key' => 'public-missing', 'intake' => array( 'fields' => array( 'draw' => '' ) ) ) ) );
@@ -1192,7 +1240,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$config['intake']['fields']   = array(
 			array( 'key' => 'event_type', 'label' => 'Event type', 'type' => 'select', 'required' => true, 'options' => array( 'Concert', 'Market', 'Other' ) ),
 			array( 'key' => 'other_event', 'label' => 'Other event details', 'type' => 'text', 'required' => true, 'options' => array(), 'visible_when' => array( 'field' => 'event_type', 'value' => 'Other' ) ),
-			array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url_list', 'required' => false, 'options' => array() ),
+			array( 'key' => 'press_links', 'label' => 'Press links', 'type' => 'url', 'required' => false, 'options' => array() ),
 		);
 		$normalized                    = ( new VenueBookingConfig() )->normalize( $config );
 		$this->assertIsArray( $normalized );
@@ -1206,14 +1254,14 @@ final class BookingFoundationTest extends BookingTestCase {
 				'fields'          => array(
 					'event_type' => 'Concert',
 					'other_event' => '',
-					'press_links' => "https://example.com/press\nhttps://example.com/review",
+					'press_links' => 'https://example.com/press',
 				),
 				'consent'         => array( 'id' => 'booking-privacy', 'version' => 1, 'accepted' => true ),
 			),
 		);
 		$concert = ( new BookingLifecycle() )->create_inquiry( array_merge( $base, array( 'idempotency_key' => 'conditional-concert' ) ) );
 		$this->assertSame( '', $concert['intake']['data']['fields']['other_event'] );
-		$this->assertSame( array( 'https://example.com/press', 'https://example.com/review' ), $concert['intake']['data']['fields']['press_links'] );
+		$this->assertSame( 'https://example.com/press', $concert['intake']['data']['fields']['press_links'] );
 
 		$other = $base;
 		$other['idempotency_key'] = 'conditional-other';

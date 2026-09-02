@@ -50,14 +50,14 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			array(
 				'key'      => 'draw',
 				'label'    => 'Recent draw',
-				'type'     => 'number',
+				'type'     => 'text',
 				'required' => true,
 				'options'  => array(),
 			),
 			array(
 				'key'      => 'press_links',
 				'label'    => 'Press links',
-				'type'     => 'url_list',
+				'type'     => 'url',
 				'required' => false,
 				'options'  => array(),
 			),

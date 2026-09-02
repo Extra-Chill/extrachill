@@ -50,35 +50,16 @@ const initialValues = ( config ) => ( {
 	message: '',
 	consent: false,
 	fields: Object.fromEntries(
-		config.fields.map( ( field ) => [
-			field.key,
-			field.type === 'checkbox' ? false : '',
-		] )
+		config.fields.map( ( field ) => [ field.key, '' ] )
 	),
 } );
 
 const Field = ( { field, value, onChange, prefix } ) => {
 	const id = `${ prefix }-${ field.key }`;
-	if ( field.type === 'checkbox' ) {
-		return (
-			<label className="ec-checkbox-row" htmlFor={ id }>
-				<input
-					id={ id }
-					type="checkbox"
-					checked={ value === true }
-					required={ field.required }
-					onChange={ ( event ) => onChange( event.target.checked ) }
-				/>{ ' ' }
-				{ field.label }
-				{ field.required && <span aria-hidden="true"> *</span> }
-			</label>
-		);
-	}
-	const inputType = field.type === 'phone' ? 'tel' : field.type;
 	let control = (
 		<input
 			id={ id }
-			type={ inputType }
+			type={ field.type }
 			value={ value }
 			required={ field.required }
 			onChange={ ( event ) => onChange( event.target.value ) }
@@ -91,17 +72,6 @@ const Field = ( { field, value, onChange, prefix } ) => {
 				rows="4"
 				value={ value }
 				required={ field.required }
-				onChange={ ( event ) => onChange( event.target.value ) }
-			/>
-		);
-	} else if ( field.type === 'url_list' ) {
-		control = (
-			<textarea
-				id={ id }
-				rows="2"
-				value={ value }
-				required={ field.required }
-				placeholder="One https:// link per line"
 				onChange={ ( event ) => onChange( event.target.value ) }
 			/>
 		);
