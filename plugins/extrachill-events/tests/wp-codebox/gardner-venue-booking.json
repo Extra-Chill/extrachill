@@ -1,0 +1,179 @@
+{
+  "schema": "wp-codebox/workspace-recipe/v1",
+  "runtime": {
+    "backend": "wordpress",
+    "name": "extrachill-events-gardner-venue-booking",
+    "wp": "7.0.2",
+    "phpVersion": "8.4"
+  },
+  "inputs": {
+    "runtimeEnv": {
+      "WP_AGENT_RUNTIME": "1"
+    },
+    "mounts": [
+      {
+        "type": "directory",
+        "source": "../../../extrachill-users",
+        "target": "/wordpress/wp-content/plugins/extrachill-users",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill-users",
+          "repo": "Extra-Chill/extrachill-users",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../extrachill-api",
+        "target": "/wordpress/wp-content/plugins/extrachill-api",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill-api",
+          "repo": "Extra-Chill/extrachill-api",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../extrachill-network",
+        "target": "/wordpress/wp-content/plugins/extrachill-network",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill-network",
+          "repo": "Extra-Chill/extrachill-network",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../data-machine",
+        "target": "/wordpress/wp-content/plugins/data-machine",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "data-machine",
+          "repo": "Extra-Chill/data-machine",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../data-machine-events",
+        "target": "/wordpress/wp-content/plugins/data-machine-events",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "data-machine-events",
+          "repo": "Extra-Chill/data-machine-events",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../..",
+        "target": "/wordpress/wp-content/plugins/extrachill-events",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-under-test",
+          "slug": "extrachill-events",
+          "repo": "Extra-Chill/extrachill-events",
+          "default_branch": "main",
+          "editable": false
+        }
+      }
+    ],
+    "fixtureUsers": [],
+    "userSessions": [],
+    "browserActors": []
+  },
+  "workflow": {
+    "steps": [
+      {
+        "command": "wordpress.plugin-state",
+        "args": [
+          "action=activate",
+          "plugin=extrachill-network"
+        ]
+      },
+      {
+        "command": "wordpress.plugin-state",
+        "args": [
+          "action=activate",
+          "plugin=extrachill-api"
+        ]
+      },
+      {
+        "command": "wordpress.plugin-state",
+        "args": [
+          "action=activate",
+          "plugin=extrachill-users"
+        ]
+      },
+      {
+        "command": "wordpress.plugin-state",
+        "args": [
+          "action=activate",
+          "plugin=data-machine"
+        ]
+      },
+      {
+        "command": "wordpress.plugin-state",
+        "args": [
+          "action=activate",
+          "plugin=data-machine-events"
+        ]
+      },
+      {
+        "command": "wordpress.plugin-state",
+        "args": [
+          "action=activate",
+          "plugin=extrachill-events"
+        ]
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": [
+          "code-file=tests/wp-codebox/gardner-venue-booking-seed.php"
+        ],
+        "timeoutMs": 180000
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": [
+          "code-file=tests/wp-codebox/gardner-venue-booking-journey.php"
+        ],
+        "timeoutMs": 300000
+      }
+    ]
+  },
+  "artifacts": {
+    "directory": "./artifacts/wp-codebox/gardner-venue-booking"
+  },
+  "metadata": {
+    "coverageTier": "persona-journey",
+    "scenario": "Venue booking operations for one neighborhood venue",
+    "canonicalIdentityContract": {
+      "id": "extra-chill-users/chris-gardner",
+      "version": "1.0.0",
+      "repository": "Extra-Chill/extrachill-users"
+    },
+    "scenarioOwnership": "Events owns only the venue-booking journey and its findings.",
+    "liveExternalWrites": false,
+    "runtimeBoundary": {
+      "real": [
+        "Data Machine",
+        "Data Machine Events",
+        "Extra Chill Network",
+        "Extra Chill API",
+        "Extra Chill Users",
+        "Extra Chill Events booking abilities, schema, and authorization"
+      ],
+      "stubbed": [
+        "none"
+      ]
+    }
+  }
+}

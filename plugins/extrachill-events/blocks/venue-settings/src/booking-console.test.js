@@ -15,6 +15,7 @@ import {
 	calendarDays,
 	calendarEntries,
 	bookingSummary,
+	bookingContention,
 	bookingMessageIdentity,
 	bookingMessageKey,
 	filterBookings,
@@ -249,5 +250,97 @@ describe( 'venue booking console state helpers', () => {
 			activeHolds: 2,
 			expiringHolds: 1,
 		} );
+	} );
+} );
+
+describe( 'bookingContention', () => {
+	const taproomNight = ( id, status ) => ( {
+		id,
+		status,
+		requested_space_key: 'taproom',
+		requested_start_at: '2028-03-18 00:00:00',
+		requested_end_at: '2028-03-18 03:00:00',
+	} );
+
+	it( 'flags two open requests for the same space and night', () => {
+		const contention = bookingContention( [
+			taproomNight( 1, 'submitted' ),
+			taproomNight( 2, 'submitted' ),
+		] );
+		expect( contention.get( 1 ).competing ).toBe( 1 );
+		expect( contention.get( 2 ).competing ).toBe( 1 );
+	} );
+
+	it( 'ignores requests for a different space', () => {
+		const patio = {
+			...taproomNight( 2, 'submitted' ),
+			requested_space_key: 'patio',
+		};
+		const contention = bookingContention( [
+			taproomNight( 1, 'submitted' ),
+			patio,
+		] );
+		expect( contention.size ).toBe( 0 );
+	} );
+
+	it( 'ignores requests that do not overlap in time', () => {
+		const later = {
+			...taproomNight( 2, 'submitted' ),
+			requested_start_at: '2028-03-19 00:00:00',
+			requested_end_at: '2028-03-19 03:00:00',
+		};
+		const contention = bookingContention( [
+			taproomNight( 1, 'submitted' ),
+			later,
+		] );
+		expect( contention.size ).toBe( 0 );
+	} );
+
+	it( 'reports when the night is already confirmed for another artist', () => {
+		const contention = bookingContention( [
+			taproomNight( 1, 'submitted' ),
+			taproomNight( 2, 'confirmed' ),
+		] );
+		expect( contention.get( 1 ).bookedElsewhere ).toBe( true );
+	} );
+
+	it( 'reports when another artist holds the night', () => {
+		const contention = bookingContention(
+			[ taproomNight( 1, 'submitted' ) ],
+			[
+				{
+					booking_id: 2,
+					status: 'active',
+					space_key: 'taproom',
+					start_at: '2028-03-18 00:00:00',
+					end_at: '2028-03-18 03:00:00',
+				},
+			]
+		);
+		expect( contention.get( 1 ).heldElsewhere ).toBe( true );
+	} );
+
+	it( 'does not flag a booking against its own hold', () => {
+		const contention = bookingContention(
+			[ taproomNight( 1, 'negotiating' ) ],
+			[
+				{
+					booking_id: 1,
+					status: 'active',
+					space_key: 'taproom',
+					start_at: '2028-03-18 00:00:00',
+					end_at: '2028-03-18 03:00:00',
+				},
+			]
+		);
+		expect( contention.size ).toBe( 0 );
+	} );
+
+	it( 'ignores closed requests', () => {
+		const contention = bookingContention( [
+			taproomNight( 1, 'submitted' ),
+			taproomNight( 2, 'declined' ),
+		] );
+		expect( contention.size ).toBe( 0 );
 	} );
 } );

@@ -23,7 +23,8 @@
         "lint:php": "phpcs --standard=WordPress --extensions=php .",
         "lint:fix": "phpcbf --standard=WordPress --extensions=php .",
         "test": "phpunit",
-        "test:booking-network-e2e": "node tests/NetworkE2E/booking/run.mjs"
+        "test:booking-network-e2e": "node tests/NetworkE2E/booking/run.mjs",
+        "test:gardner-venue-booking": "wp-codebox recipe-run --recipe tests/wp-codebox/gardner-venue-booking.json --timeout 20m --json"
     },
     "config": {
         "platform": {

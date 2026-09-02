@@ -505,6 +505,39 @@ class BookingLifecycle {
 	}
 
 	/**
+	 * Return the operator-facing label for one lifecycle status.
+	 *
+	 * These match the labels shown in the booking console so an error names a
+	 * status exactly as the operator sees it on screen.
+	 *
+	 * @param string $status Lifecycle status.
+	 */
+	private static function status_label( string $status ): string {
+		$labels = array(
+			'submitted'    => __( 'submitted', 'extrachill-events' ),
+			'needs_info'   => __( 'needs info', 'extrachill-events' ),
+			'under_review' => __( 'under review', 'extrachill-events' ),
+			'negotiating'  => __( 'negotiating', 'extrachill-events' ),
+			'held'         => __( 'held', 'extrachill-events' ),
+			'confirmed'    => __( 'confirmed', 'extrachill-events' ),
+			'declined'     => __( 'declined', 'extrachill-events' ),
+			'withdrawn'    => __( 'withdrawn', 'extrachill-events' ),
+			'cancelled'    => __( 'cancelled', 'extrachill-events' ),
+			'completed'    => __( 'completed', 'extrachill-events' ),
+		);
+		return isset( $labels[ $status ] ) ? $labels[ $status ] : $status;
+	}
+
+	/**
+	 * Join lifecycle statuses into one readable list.
+	 *
+	 * @param array $statuses Lifecycle statuses.
+	 */
+	private static function status_list( array $statuses ): string {
+		return implode( ', ', array_map( array( self::class, 'status_label' ), $statuses ) );
+	}
+
+	/**
 	 * Validate one explicit edge and its target-state prerequisites.
 	 *
 	 * @param array  $booking   Hydrated booking.
@@ -513,9 +546,21 @@ class BookingLifecycle {
 	public function validate_transition( array $booking, string $to_status ) {
 		$from_status = (string) ( $booking['status'] ?? '' );
 		if ( ! isset( self::TRANSITIONS[ $from_status ] ) || ! in_array( $to_status, self::TRANSITIONS[ $from_status ], true ) ) {
+			$available = isset( self::TRANSITIONS[ $from_status ] ) ? self::TRANSITIONS[ $from_status ] : array();
 			return new \WP_Error(
 				'booking_transition_forbidden',
-				__( 'The requested booking transition is not allowed.', 'extrachill-events' ),
+				$available
+					? sprintf(
+						/* translators: 1: current booking status, 2: comma-separated list of available statuses. */
+						__( 'This booking is %1$s, so it cannot move there yet. You can move it to %2$s.', 'extrachill-events' ),
+						self::status_label( $from_status ),
+						self::status_list( $available )
+					)
+					: sprintf(
+						/* translators: %s: current booking status. */
+						__( 'This booking is %s and cannot be changed any further.', 'extrachill-events' ),
+						self::status_label( $from_status )
+					),
 				array(
 					'status'      => 409,
 					'from_status' => $from_status,
@@ -524,14 +569,14 @@ class BookingLifecycle {
 			);
 		}
 		if ( 'held' === $to_status && ( empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) || empty( $booking['space_key'] ) ) ) {
-			return new \WP_Error( 'booking_hold_selection_required', __( 'A hold requires a selected date range and space.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_hold_selection_required', __( 'Save the set time and space for this booking before holding the date.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		if ( 'confirmed' === $to_status ) {
 			if ( empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) || empty( $booking['space_key'] ) ) {
-				return new \WP_Error( 'booking_confirmation_selection_required', __( 'Confirmation requires a selected date range and space.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_confirmation_selection_required', __( 'Save the set time and space for this booking before confirming the show.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			if ( empty( $booking['deal']['data'] ) ) {
-				return new \WP_Error( 'booking_confirmation_deal_required', __( 'Confirmation requires deal terms.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_confirmation_deal_required', __( 'Add the agreed deal terms before confirming the show.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			$normalized_deal = BookingMutationService::normalize_deal_document( $booking['deal']['data'] );
 			if ( is_wp_error( $normalized_deal ) || ! BookingMutationService::documents_equal( $normalized_deal, $booking['deal']['data'] ) ) {
@@ -600,7 +645,7 @@ class BookingLifecycle {
 				? new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) )
 				: new \WP_Error(
 					'booking_version_conflict',
-					__( 'The booking changed since it was read.', 'extrachill-events' ),
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
 					array(
 						'status'          => 409,
 						'current_version' => is_array( $latest ) ? $latest['version'] : null,
@@ -689,7 +734,7 @@ class BookingLifecycle {
 	private function version_conflict( array $current ): \WP_Error {
 		return new \WP_Error(
 			'booking_version_conflict',
-			__( 'The booking changed since it was read.', 'extrachill-events' ),
+			__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
 			array(
 				'status'          => 409,
 				'current_version' => $current['version'],

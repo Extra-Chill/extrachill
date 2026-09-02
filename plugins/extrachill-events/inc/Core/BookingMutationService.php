@@ -276,7 +276,7 @@ class BookingMutationService {
 			return $this->rollback(
 				new \WP_Error(
 					'booking_version_conflict',
-					__( 'The booking changed since it was read.', 'extrachill-events' ),
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
 					array(
 						'status'          => 409,
 						'current_version' => $current['version'],
@@ -342,7 +342,7 @@ class BookingMutationService {
 		$table    = BookingSchema::bookings_table();
 		$result   = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE id = %d AND version = %d', $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Internal columns determine the prepared value count.
 		if ( 1 !== $result ) {
-			return $this->rollback( false === $result ? new \WP_Error( 'booking_mutation_update_failed', __( 'The booking mutation could not be saved.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : new \WP_Error( 'booking_version_conflict', __( 'The booking changed since it was read.', 'extrachill-events' ), array( 'status' => 409 ) ) );
+			return $this->rollback( false === $result ? new \WP_Error( 'booking_mutation_update_failed', __( 'The booking mutation could not be saved.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : new \WP_Error( 'booking_version_conflict', __( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ), array( 'status' => 409 ) ) );
 		}
 		$before = array();
 		$after  = array();

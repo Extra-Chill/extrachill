@@ -726,12 +726,24 @@ class VenueBookingAbilities {
 							'id'                    => array( 'type' => 'integer' ),
 							'kind'                  => array( 'type' => 'string' ),
 							'occurred_at'           => array( 'type' => 'string' ),
+							'actor'                 => array(
+								'type'                 => 'object',
+								'properties'           => array(
+									'type' => array(
+										'type' => 'string',
+										'enum' => array( 'user', 'artist', 'system' ),
+									),
+									'name' => $nullable_string,
+								),
+								'required'             => array( 'type', 'name' ),
+								'additionalProperties' => false,
+							),
 							'artist_request_detail' => array(
 								'type'      => 'string',
 								'maxLength' => 2000,
 							),
 						),
-						'required'             => array( 'id', 'kind', 'occurred_at' ),
+						'required'             => array( 'id', 'kind', 'occurred_at', 'actor' ),
 						'additionalProperties' => false,
 					),
 				),
@@ -772,6 +784,33 @@ class VenueBookingAbilities {
 	}
 
 	/**
+	 * Present who performed one activity without leaking identities outward.
+	 *
+	 * Venue team members are named, because the console is private to the venue
+	 * and "who confirmed this?" is the question the history exists to answer.
+	 * Artist-side and automated actions are labelled by role only, so a venue's
+	 * team identities are never exposed through an artist-visible surface.
+	 *
+	 * @param array $activity Hydrated activity record.
+	 */
+	private function present_actor( array $activity ): array {
+		$type     = (string) ( $activity['actor_type'] ?? 'system' );
+		$actor_id = (int) ( $activity['actor_id'] ?? 0 );
+		if ( 'user' !== $type || $actor_id < 1 ) {
+			return array(
+				'type' => 'anonymous' === $type ? 'artist' : $type,
+				'name' => null,
+			);
+		}
+		$user = get_userdata( $actor_id );
+		$name = $user ? trim( (string) $user->display_name ) : '';
+		return array(
+			'type' => 'user',
+			'name' => '' !== $name ? $name : null,
+		);
+	}
+
+	/**
 	 * Remove activity payloads outside this console's operational scope.
 	 *
 	 * @param array $activity Hydrated activity record.
@@ -781,6 +820,7 @@ class VenueBookingAbilities {
 			'id'          => $activity['id'],
 			'kind'        => $activity['kind'],
 			'occurred_at' => $activity['occurred_at'],
+			'actor'       => $this->present_actor( $activity ),
 		);
 		if ( 'artist_correction_requested' === $activity['kind'] ) {
 			$detail = $activity['payload']['data']['correction'] ?? null;

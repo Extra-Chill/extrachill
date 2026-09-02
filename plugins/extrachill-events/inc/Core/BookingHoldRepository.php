@@ -1379,7 +1379,7 @@ class BookingHoldRepository {
 
 	private function selection( array $booking ) {
 		if ( empty( $booking['space_key'] ) || empty( $booking['performance_start_at'] ) || empty( $booking['performance_end_at'] ) ) {
-			return new \WP_Error( 'booking_hold_selection_required', __( 'A persisted booking space and date range are required.', 'extrachill-events' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'booking_hold_selection_required', __( 'Save the set time and space for this booking before holding the date.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 		if ( $booking['performance_end_at'] <= $booking['performance_start_at'] ) {
 			return new \WP_Error( 'invalid_booking_date_range', __( 'The performance end must be later than the performance start.', 'extrachill-events' ), array( 'status' => 409 ) );
@@ -1479,7 +1479,7 @@ class BookingHoldRepository {
 	private function booking_version_conflict( $booking ): \WP_Error {
 		return new \WP_Error(
 			'booking_version_conflict',
-			__( 'The booking changed since it was read.', 'extrachill-events' ),
+			__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
 			array(
 				'status'          => 409,
 				'current_version' => is_array( $booking ) ? $booking['version'] : null,

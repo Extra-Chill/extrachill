@@ -125,7 +125,7 @@ class BookingCommunicationService {
 			$pre_subject_hash = $this->pre_subject_request_hash( $normalized );
 			$legacy_hash      = $this->legacy_request_hash( $normalized, (int) $existing['actor_id'] );
 			if ( ! hash_equals( $stored_hash, $hash ) && ! hash_equals( $stored_hash, $pre_subject_hash ) && ! hash_equals( $stored_hash, $legacy_hash ) ) {
-				return new \WP_Error( 'booking_message_idempotency_conflict', __( 'The idempotency key was already used for a different message.', 'extrachill-events' ), array( 'status' => 409 ) );
+				return new \WP_Error( 'booking_message_idempotency_conflict', __( 'This message was already sent, so your edit was not delivered. Send your update as a new message to the artist.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
 			return $this->resume( $existing );
 		}
@@ -195,7 +195,7 @@ class BookingCommunicationService {
 				$data               = $existing['payload']['data'] ?? array();
 				$normalized_message = mb_substr( sanitize_textarea_field( $message ), 0, 10000 );
 				if ( ! is_array( $data ) || (string) ( $data['template'] ?? '' ) !== $template || (int) ( $data['source_activity_id'] ?? 0 ) !== $source_activity_id || (string) ( $data['recipient'] ?? '' ) !== (string) $booking['contact_email'] || (string) ( $data['message'] ?? '' ) !== $normalized_message ) {
-					return new \WP_Error( 'booking_message_idempotency_conflict', __( 'The idempotency key was already used for a different message.', 'extrachill-events' ), array( 'status' => 409 ) );
+					return new \WP_Error( 'booking_message_idempotency_conflict', __( 'This message was already sent, so your edit was not delivered. Send your update as a new message to the artist.', 'extrachill-events' ), array( 'status' => 409 ) );
 				}
 			}
 			return $this->resume( $existing );

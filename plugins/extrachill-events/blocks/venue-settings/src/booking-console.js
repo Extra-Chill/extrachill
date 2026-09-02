@@ -203,6 +203,98 @@ export const bookingSummary = ( bookings, holds, now = new Date() ) => {
 	};
 };
 
+const OPEN_STATUSES = [
+	'submitted',
+	'needs_info',
+	'under_review',
+	'negotiating',
+	'held',
+];
+
+const slotTimes = ( start, end ) => {
+	const from = new Date(
+		String( start ).replace( ' ', 'T' ) + 'Z'
+	).getTime();
+	const to = new Date( String( end ).replace( ' ', 'T' ) + 'Z' ).getTime();
+	return Number.isNaN( from ) || Number.isNaN( to ) || to <= from
+		? null
+		: { from, to };
+};
+
+const bookingSlot = ( booking ) => {
+	const space = booking.space_key || booking.requested_space_key || '';
+	const times =
+		slotTimes( booking.performance_start_at, booking.performance_end_at ) ||
+		slotTimes( booking.requested_start_at, booking.requested_end_at );
+	return space && times ? { space, ...times } : null;
+};
+
+const slotsOverlap = ( a, b ) =>
+	a.space === b.space && a.from < b.to && a.to > b.from;
+
+/**
+ * Identify bookings competing for the same space and time.
+ *
+ * Two bands asking for the same Friday in the same room is the most common
+ * real booking situation. The server already refuses to confirm both, but the
+ * operator needs to see the collision before it becomes a problem.
+ *
+ * Returns a map of booking ID to its competing context.
+ *
+ * @param {Array} bookings Bookings in the current venue scope.
+ * @param {Array} holds    Holds in the current venue scope.
+ */
+export const bookingContention = ( bookings, holds = [] ) => {
+	const activeHolds = holds.filter( ( hold ) => hold.status === 'active' );
+	const contention = new Map();
+	bookings.forEach( ( booking ) => {
+		if ( ! OPEN_STATUSES.includes( booking.status ) ) {
+			return;
+		}
+		const slot = bookingSlot( booking );
+		if ( ! slot ) {
+			return;
+		}
+		const competing = bookings.filter( ( other ) => {
+			if ( other.id === booking.id ) {
+				return false;
+			}
+			if (
+				! OPEN_STATUSES.includes( other.status ) &&
+				other.status !== 'confirmed'
+			) {
+				return false;
+			}
+			const otherSlot = bookingSlot( other );
+			return otherSlot && slotsOverlap( slot, otherSlot );
+		} );
+		const heldElsewhere = activeHolds.some( ( hold ) => {
+			if ( Number( hold.booking_id ) === Number( booking.id ) ) {
+				return false;
+			}
+			const holdSlot = slotTimes( hold.start_at, hold.end_at );
+			return (
+				holdSlot &&
+				slotsOverlap( slot, {
+					space: hold.space_key || '',
+					...holdSlot,
+				} )
+			);
+		} );
+		const bookedElsewhere = competing.some(
+			( other ) => other.status === 'confirmed'
+		);
+		if ( competing.length || heldElsewhere ) {
+			contention.set( booking.id, {
+				competing: competing.length,
+				heldElsewhere,
+				bookedElsewhere,
+			} );
+		}
+	} );
+	return contention;
+};
+
 export const calendarEntries = ( bookings, events ) => {
 	const eventIds = new Set( events.map( ( event ) => Number( event.id ) ) );
 	return [
@@ -405,6 +497,17 @@ const utcDatabaseToInput = ( value ) =>
 	value ? value.replace( ' ', 'T' ).slice( 0, 16 ) : '';
 
 const statusLabel = ( status ) => STATUS_LABELS[ status ] || status;
+
+// Name venue team members; label artist and automated actions by role only.
+const actorLabel = ( actor ) => {
+	if ( ! actor ) {
+		return '';
+	}
+	if ( actor.type === 'user' ) {
+		return actor.name || 'Venue team';
+	}
+	return actor.type === 'artist' ? 'Artist' : 'Automatic';
+};
 
 const payloadData = ( value ) => {
 	if ( value === null || value === undefined ) {
@@ -834,6 +937,8 @@ function ActivityTimeline( { operations, timezone } ) {
 						<li key={ item.id }>
 							<strong>{ activityLabel( item.kind ) }</strong>
 							<small>
+								{ actorLabel( item.actor ) }
+								{ actorLabel( item.actor ) ? ' \u2022 ' : '' }
 								{ formatVenueDate(
 									item.occurred_at,
 									timezone
@@ -876,7 +981,23 @@ function ErrorState( { message, onRetry } ) {
 	);
 }
 
-function BookingCard( { booking, active, holds, onSelect } ) {
+// One sentence naming the exact date conflict the operator needs to see.
+const contentionSummary = ( contention ) => {
+	if ( ! contention ) {
+		return '';
+	}
+	if ( contention.bookedElsewhere ) {
+		return 'This date and space are already confirmed for another artist.';
+	}
+	if ( contention.heldElsewhere ) {
+		return 'This date and space are on hold for another artist.';
+	}
+	return contention.competing === 1
+		? 'Another artist asked for this date and space.'
+		: `${ contention.competing } other artists asked for this date and space.`;
+};
+
+function BookingCard( { booking, active, holds, contention, onSelect } ) {
 	return (
 		<li>
 			<button
@@ -907,6 +1028,11 @@ function BookingCard( { booking, active, holds, onSelect } ) {
 						<small>
 							{ holds.length } active{ ' ' }
 							{ holds.length === 1 ? 'hold' : 'holds' }
+						</small>
+					) }
+					{ contention && (
+						<small className="ec-booking-card__contention">
+							{ contentionSummary( contention ) }
 						</small>
 					) }
 				</span>
@@ -1385,6 +1511,7 @@ function BookingDetail( {
 	onClose,
 	onRefreshCommunications,
 	timezone,
+	contention,
 } ) {
 	const [ status, setStatus ] = useState( null );
 	const [ pending, setPending ] = useState( '' );
@@ -1502,6 +1629,12 @@ function BookingDetail( {
 			{ status && (
 				<InlineStatus tone={ status.tone }>
 					{ status.message }
+				</InlineStatus>
+			) }
+			{ contention && (
+				<InlineStatus tone="warning">
+					{ contentionSummary( contention ) } Check the calendar
+					before confirming this booking.
 				</InlineStatus>
 			) }
 			<div className="ec-booking-detail__facts ec-booking-detail__facts--summary">
@@ -2146,6 +2279,7 @@ export function BookingConsole( {
 		filterBookings( bookings, search, filterStatus )
 	);
 	const summary = bookingSummary( bookings, holds );
+	const contention = bookingContention( bookings, holds );
 	const selectedHolds = holds.filter(
 		( hold ) => hold.booking_id === selectedId
 	);
@@ -2248,6 +2382,9 @@ export function BookingConsole( {
 													holds={ activeHoldsFor(
 														booking.id
 													) }
+													contention={ contention.get(
+														booking.id
+													) }
 													onSelect={ selectBooking }
 												/>
 											) ) }
@@ -2319,6 +2456,7 @@ export function BookingConsole( {
 						onClose={ closeDetail }
 						onRefreshCommunications={ loadCommunications }
 						timezone={ selected.venue_timezone }
+						contention={ contention.get( selected.id ) }
 					/>
 				) }
 		</div>

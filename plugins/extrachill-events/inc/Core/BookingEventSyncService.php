@@ -330,7 +330,7 @@ class BookingEventSyncService {
 			return $this->rollback(
 				new \WP_Error(
 					'booking_version_conflict',
-					__( 'The booking changed since it was read.', 'extrachill-events' ),
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
 					array(
 						'status'          => 409,
 						'current_version' => $booking['version'],
