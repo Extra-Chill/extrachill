@@ -9,6 +9,8 @@
 
 		const analyticsUrl = container.dataset.analyticsUrl || '';
 		const analyticsNonce = container.dataset.analyticsNonce || '';
+		const sceneGapUrl = container.dataset.sceneGapUrl || '';
+		const sceneGapNonce = container.dataset.sceneGapNonce || '';
 		function track(outcome, errorCode) {
 			if (!analyticsUrl || !analyticsNonce) {
 				return;
@@ -84,6 +86,31 @@
 			if (field) {
 				field.focus();
 			}
+		}
+
+		// Record an unmatched Local Scene search as a zero-result `search` event.
+		//
+		// This deliberately does NOT use the onboarding analytics endpoint: the
+		// onboarding payload contract is explicitly limited to non-PII fields and
+		// forbids free-form user input and Local Scene names, so a raw search term
+		// cannot travel that path. The `search` contract is the one that already
+		// owns search_term/result_count, already routes through the server-side
+		// attack classifier, and already feeds search-gaps reporting.
+		function trackSceneGap(term) {
+			if (!sceneGapUrl || !sceneGapNonce || !term) {
+				return;
+			}
+
+			fetch(sceneGapUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({
+					action: 'extrachill_onboarding_local_scene_gap',
+					nonce: sceneGapNonce,
+					search_term: term
+				})
+			}).catch(function () {});
 		}
 
         if (sceneInput && sceneSlugInput && sceneResults) {
@@ -174,9 +201,16 @@
                 return;
             }
 
+            // Local Scene is optional. Typed text with no selected slug means the
+            // member searched for a scene we have no location term for, so there was
+            // never anything to click. Blocking here stranded them with no way out
+            // (Extra-Chill/extrachill-users#380), so we submit without a scene and
+            // record the unmatched text as a normal zero-result `search` event. That
+            // reuses the existing search/search-gaps primitive — no new event type,
+            // no new storage — so unmet Local Scene demand shows up in
+            // `wp extrachill analytics search-gaps` alongside every other gap.
             if (sceneInput && sceneInput.value.trim() && !localScene) {
-				fail('local_scene_unselected', 'Choose a Local Scene from the search results, or clear the field to skip it.', sceneInput);
-                return;
+                trackSceneGap(sceneInput.value.trim());
             }
 
             if (fromJoin && !isArtist && !isProfessional) {

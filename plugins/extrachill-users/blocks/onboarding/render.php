@@ -54,6 +54,8 @@ ec_users_emit_onboarding_viewed_once( $user_id );
 		data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>"
 		data-analytics-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
 		data-analytics-nonce="<?php echo esc_attr( wp_create_nonce( 'extrachill_onboarding_analytics' ) ); ?>"
+		data-scene-gap-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
+		data-scene-gap-nonce="<?php echo esc_attr( wp_create_nonce( 'extrachill_onboarding_local_scene_gap' ) ); ?>"
 		data-username="<?php echo esc_attr( $current_username ); ?>"
 	>
 		<?php if ( $onboarding_notice ) : ?>
