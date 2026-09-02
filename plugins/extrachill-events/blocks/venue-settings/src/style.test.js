@@ -55,6 +55,18 @@ describe( 'venue booking workspace composition', () => {
 		} );
 	} );
 
+	it( 'colors needs_info bookings as in flight rather than terminal', () => {
+		expect( styles ).toContain(
+			'.ec-booking-calendar__item--held,\n.ec-booking-calendar__item--negotiating,\n.ec-booking-calendar__item--needs_info {\n\tborder-left-color: var(--warning-color);'
+		);
+		expect( styles ).toContain(
+			'.ec-booking-calendar__item--declined,\n.ec-booking-calendar__item--withdrawn,\n.ec-booking-calendar__item--cancelled {\n\tborder-left-color: var(--error-color);'
+		);
+		expect( styles ).not.toContain(
+			'.ec-booking-calendar__item--needs_info,\n.ec-booking-calendar__item--declined'
+		);
+	} );
+
 	it( 'does not reintroduce local colors or arbitrary breakpoints', () => {
 		expect( styles ).not.toMatch( /#[0-9a-f]{3,8}\b/i );
 		expect( styles ).not.toMatch( /max-width:\s*(?:700|720)px/ );

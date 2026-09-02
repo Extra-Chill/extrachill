@@ -513,7 +513,8 @@
 }
 
 .ec-booking-calendar__item--held,
-.ec-booking-calendar__item--negotiating {
+.ec-booking-calendar__item--negotiating,
+.ec-booking-calendar__item--needs_info {
 	border-left-color: var(--warning-color);
 	background: var(--warning-bg);
 }
@@ -530,7 +531,6 @@
 	text-decoration: none;
 }
 
-.ec-booking-calendar__item--needs_info,
 .ec-booking-calendar__item--declined,
 .ec-booking-calendar__item--withdrawn,
 .ec-booking-calendar__item--cancelled {
