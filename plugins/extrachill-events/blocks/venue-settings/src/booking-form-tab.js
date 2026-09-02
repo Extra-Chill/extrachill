@@ -37,7 +37,6 @@ const previewConfig = ( config, venueName, profile, idPrefix ) => ( {
 	},
 	spaces: config.spaces,
 	fields: config.intake.fields,
-	presentation: config.intake.presentation,
 	consent: config.consent,
 } );
 

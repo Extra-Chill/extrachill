@@ -62,14 +62,6 @@ const config = {
 	buttonLabel: 'Send booking inquiry',
 	spaces: [ { key: 'main', name: 'Main Room', is_default: true } ],
 	fields: [],
-	presentation: {
-		artist_name_label: 'Artist name',
-		contact_name_label: 'Contact name',
-		contact_email_label: 'Contact email',
-		contact_phone_label: 'Contact phone',
-		message_label: 'Message',
-		message_help: '',
-	},
 	consent: { id: 'privacy', version: 1, required: true, label: 'Agree' },
 };
 const inquiry = ( overrides = {} ) => ( {

@@ -72,6 +72,15 @@ describe( 'booking form workspace', () => {
 		expect( workspace ).not.toContain( 'secure embed code' );
 	} );
 
+	it( 'retires the standard-field summary and wording overrides', () => {
+		expect( workspace + intake ).not.toContain( 'Standard fields' );
+		expect( workspace + intake ).not.toContain( 'Edit standard wording' );
+		expect( workspace + intake ).not.toContain( 'intake-public' );
+		expect( workspace + intake ).not.toContain( 'presentation' );
+		expect( publicForm ).not.toContain( 'config.presentation' );
+		expect( styles ).not.toContain( 'ec-booking-standard-fields' );
+	} );
+
 	it( 'names the always-asked questions beside the venue additions', () => {
 		expect( intake ).toContain( 'Requested date' );
 		expect( intake ).toContain( 'Artist or project name' );

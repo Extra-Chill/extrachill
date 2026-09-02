@@ -67,14 +67,6 @@ const config = {
 			options: [],
 		},
 	],
-	presentation: {
-		artist_name_label: 'Artist or project name',
-		contact_name_label: 'Contact name',
-		contact_email_label: 'Contact email',
-		contact_phone_label: 'Phone (Emergency use only)',
-		message_label: 'Additional performance details',
-		message_help: 'Share routing and scheduling notes.',
-	},
 	linkPage: {
 		url: 'https://artist.example/manage-link-page/',
 		hasPage: true,
@@ -286,27 +278,7 @@ const measure = ( page ) =>
 		assert.equal( await page.getByText( 'Signed in' ).count(), 0 );
 		assert.equal(
 			await page.getByText( 'Send a concise booking pitch' ).count(),
-			1
-		);
-		assert.equal(
-			await page
-				.getByText(
-					/saved on this device for reload and Back recovery/
-				)
-				.count(),
-			1
-		);
-		assert.equal(
-			await page
-				.getByLabel( 'Keep this draft on this device for 24 hours' )
-				.isChecked(),
-			false
-		);
-		assert.equal(
-			await page
-				.getByRole( 'button', { name: 'Clear saved draft' } )
-				.count(),
-			1
+			0
 		);
 		assert.equal(
 			await page
@@ -322,7 +294,7 @@ const measure = ( page ) =>
 		);
 		assert.equal( await page.getByText( 'Press links' ).count(), 0 );
 		assert.equal(
-			await page.getByLabel( 'Artist or project name' ).count(),
+			await page.getByLabel( 'Artist or band name' ).count(),
 			0
 		);
 		assert.ok( await page.getByLabel( 'Requested date' ).count() );
@@ -333,41 +305,12 @@ const measure = ( page ) =>
 			0
 		);
 		await page.getByLabel( 'Requested date' ).fill( '2030-08-01' );
-		const clearDraftButton = page.getByRole( 'button', {
-			name: 'Clear saved draft',
-		} );
-		await clearDraftButton.focus();
-		assert.equal(
-			await clearDraftButton.evaluate(
-				( button ) => button === button.ownerDocument.activeElement
-			),
-			true
-		);
-		await clearDraftButton.press( 'Enter' );
-		assert.equal(
-			await page
-				.locator( '.ec-booking-inquiry__draft-status' )
-				.textContent(),
-			'Saved draft cleared. The form is empty.'
-		);
-		assert.equal(
-			await page.getByLabel( 'Requested date' ).inputValue(),
-			''
-		);
-		assert.deepEqual(
-			await page.evaluate( () => ( {
-				local: Object.keys( localStorage ),
-				session: Object.keys( sessionStorage ),
-			} ) ),
-			{ local: [], session: [] }
-		);
-		await page.getByLabel( 'Requested date' ).fill( '2030-08-01' );
 		await page
 			.getByRole( 'button', { name: 'Check availability' } )
 			.click();
 		await page.getByText( /That date is unavailable/ ).waitFor();
 		assert.equal(
-			await page.getByLabel( 'Artist or project name' ).count(),
+			await page.getByLabel( 'Artist or band name' ).count(),
 			0
 		);
 		assert.equal(
@@ -383,7 +326,7 @@ const measure = ( page ) =>
 		await page
 			.getByText( /That date is available for submissions/ )
 			.waitFor();
-		await page.getByLabel( 'Artist or project name' ).waitFor();
+		await page.getByLabel( 'Artist or band name' ).waitFor();
 		assert.equal( await page.getByLabel( 'Artist website' ).count(), 1 );
 		assert.equal( await page.getByLabel( 'Press links' ).count(), 1 );
 		assert.equal(
@@ -437,12 +380,12 @@ const measure = ( page ) =>
 		assert.ok( mobile.form.right < mobile.viewportWidth );
 		assert.equal( mobile.controlsInsideViewport, true );
 
-		await page.getByLabel( 'Artist or project name' ).fill( 'Proof Band' );
-		await page.getByLabel( 'Contact name' ).fill( 'Booking Agent' );
-		await page.getByLabel( 'Contact email' ).fill( 'agent@example.com' );
+		await page.getByLabel( 'Artist or band name' ).fill( 'Proof Band' );
+		await page.getByLabel( 'Your name' ).fill( 'Booking Agent' );
+		await page.getByLabel( 'Email' ).fill( 'agent@example.com' );
 		await page.getByLabel( 'Event type' ).selectOption( 'Concert' );
 		await page
-			.getByLabel( 'Additional performance details' )
+			.getByLabel( "What's your vision for the show?" )
 			.fill( 'Routing through Charleston.' );
 		await page.waitForFunction( () => sessionStorage.length === 1 );
 		const sessionDraft = await page.evaluate( () =>
@@ -466,9 +409,7 @@ const measure = ( page ) =>
 		);
 
 		await mount();
-		await page
-			.getByText( 'Your draft from this browser tab was restored.' )
-			.waitFor();
+		await page.getByText( 'Your saved answers were restored.' ).waitFor();
 		assert.equal(
 			await page.getByLabel( 'Requested date' ).inputValue(),
 			'2030-08-01'
@@ -479,44 +420,19 @@ const measure = ( page ) =>
 		await page
 			.getByRole( 'button', { name: 'Check availability' } )
 			.click();
-		await page.getByLabel( 'Artist or project name' ).waitFor();
+		await page.getByLabel( 'Artist or band name' ).waitFor();
 		assert.equal(
-			await page.getByLabel( 'Artist or project name' ).inputValue(),
+			await page.getByLabel( 'Artist or band name' ).inputValue(),
 			'Proof Band'
 		);
 		assert.equal(
 			await page.getByLabel( /I agree that this venue/ ).isChecked(),
 			false
 		);
-		await page
-			.getByLabel( 'Keep this draft on this device for 24 hours' )
-			.check();
-		await page.waitForFunction(
-			() => localStorage.length === 1 && sessionStorage.length === 0
-		);
-		await mount();
-		await page
-			.getByText( 'Your saved 24-hour device draft was restored.' )
-			.waitFor();
-		assert.equal(
-			await page
-				.getByLabel( 'Keep this draft on this device for 24 hours' )
-				.isChecked(),
-			true
-		);
-		await page
-			.getByLabel( 'Keep this draft on this device for 24 hours' )
-			.uncheck();
+		// Drafts are session-scoped only; the device-scope opt-in was retired.
 		await page.waitForFunction(
 			() => sessionStorage.length === 1 && localStorage.length === 0
 		);
-		await page.evaluate( () => {
-			window.bookingAvailable = true;
-		} );
-		await page
-			.getByRole( 'button', { name: 'Check availability' } )
-			.click();
-		await page.getByLabel( 'Artist or project name' ).waitFor();
 		await page.getByLabel( /I agree that this venue/ ).check();
 		await page
 			.getByRole( 'button', { name: 'Send booking inquiry' } )
@@ -552,7 +468,7 @@ const measure = ( page ) =>
 			.click();
 		await page.getByText( 'Temporary failure.' ).waitFor();
 		assert.equal(
-			await page.getByLabel( 'Artist or project name' ).inputValue(),
+			await page.getByLabel( 'Artist or band name' ).inputValue(),
 			'Proof Band'
 		);
 		await page.evaluate( () => {

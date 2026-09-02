@@ -294,18 +294,17 @@ class VenueBookingConfigAbilities {
 			'intake'                    => array(
 				'type'                 => 'object',
 				'properties'           => array(
-					'version'      => array(
+					'version' => array(
 						'type' => 'integer',
 						'enum' => array( 1 ),
 					),
-					'fields'       => array(
+					'fields'  => array(
 						'type'     => 'array',
 						'maxItems' => 50,
 						'items'    => $field_schema,
 					),
-					'presentation' => $presentation_schema,
 				),
-				'required'             => array( 'version', 'fields', 'presentation' ),
+				'required'             => array( 'version', 'fields' ),
 				'additionalProperties' => false,
 			),
 			'consent'                   => array(
@@ -479,7 +478,13 @@ class VenueBookingConfigAbilities {
 		if ( ! $accept_legacy ) {
 			return $schema;
 		}
-		$pre_attachment = $schema;
+		$retired_presentation = $schema;
+
+		$retired_presentation['properties']['version']['enum']                      = array( VenueBookingConfig::RETIRED_PRESENTATION_VERSION );
+		$retired_presentation['properties']['intake']['properties']['presentation'] = $presentation_schema;
+		$retired_presentation['properties']['intake']['required'][]                 = 'presentation';
+
+		$pre_attachment = $retired_presentation;
 
 		$pre_attachment['properties']['version']['enum'] = array( VenueBookingConfig::PRE_ATTACHMENT_POLICY_VERSION );
 		$pre_attachment['required']                      = array_values( array_diff( $pre_attachment['required'], array( 'attachment_policy' ) ) );
@@ -532,7 +537,7 @@ class VenueBookingConfigAbilities {
 		$legacy['properties']['version']['enum'] = array( VenueBookingConfig::LEGACY_VERSION );
 		$legacy['required']                      = array_values( array_diff( $legacy['required'], array( 'correspondence' ) ) );
 		unset( $legacy['properties']['correspondence'] );
-		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $retired_appearance, $pre_attachment, $schema ) );
+		return array( 'oneOf' => array( $legacy, $previous, $public_intake, $legacy_guide, $embedded_guide, $operational, $retired_requirements, $retired_appearance, $pre_attachment, $retired_presentation, $schema ) );
 	}
 
 	/** Return the strict correspondence configuration schema. */

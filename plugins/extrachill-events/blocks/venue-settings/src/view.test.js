@@ -139,14 +139,6 @@ const config = ( id ) => ( {
 	intake: {
 		version: 1,
 		fields: [],
-		presentation: {
-			artist_name_label: 'Artist or project name',
-			contact_name_label: 'Contact name',
-			contact_email_label: 'Contact email',
-			contact_phone_label: 'Contact phone',
-			message_label: 'Anything else?',
-			message_help: 'Share routing, timing, or context.',
-		},
 	},
 	consent: {
 		id: 'booking-privacy',
@@ -412,6 +404,15 @@ const buttonContaining = ( container, text ) =>
 	[ ...container.querySelectorAll( 'button' ) ].find( ( button ) =>
 		button.textContent.includes( text )
 	);
+// The booking console opens on the calendar, whose entries resolve from several
+// async sources. Flush them before asserting on rendered console content.
+const flushBookingConsole = async () =>
+	act( async () => {
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+	} );
+
 const deferred = () => {
 	let resolve;
 	const promise = new Promise( ( done ) => {
@@ -488,8 +489,15 @@ describe( 'venue settings authorization-facing states', () => {
 
 	beforeAll( () => {
 		global.IS_REACT_ACT_ENVIRONMENT = true;
+		// The booking console opens on the current month, so pin the clock to
+		// the month these booking, hold, and event fixtures are dated in.
+		jest.useFakeTimers( {
+			doNotFake: [ 'nextTick', 'queueMicrotask' ],
+			now: new Date( '2026-08-15T12:00:00Z' ),
+		} );
 	} );
 	afterAll( () => {
+		jest.useRealTimers();
 		delete global.IS_REACT_ACT_ENVIRONMENT;
 	} );
 	beforeEach( () => {
@@ -814,7 +822,7 @@ describe( 'venue settings authorization-facing states', () => {
 				can_access: false,
 			} )
 		);
-		await act( async () => buttonByText( container, 'Calendar' ).click() );
+		await flushBookingConsole();
 
 		for ( const id of [ 44, 45 ] ) {
 			expect( container.textContent ).toContain( `Artist ${ id }` );

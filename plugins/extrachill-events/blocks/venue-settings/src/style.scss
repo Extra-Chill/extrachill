@@ -144,14 +144,6 @@
 	overflow: hidden;
 }
 
-.ec-booking-standard-fields__list {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: var(--spacing-xs) var(--spacing-md);
-	margin-block: 0 var(--spacing-md);
-	padding-inline-start: var(--spacing-lg);
-}
-
 .ec-booking-fields {
 	display: grid;
 	gap: var(--spacing-sm);
@@ -701,10 +693,6 @@
 
 	.ec-booking-form-editor__preview-content {
 		padding: 0 var(--spacing-sm) var(--spacing-sm);
-	}
-
-	.ec-booking-standard-fields__list {
-		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.ec-booking-field__row {

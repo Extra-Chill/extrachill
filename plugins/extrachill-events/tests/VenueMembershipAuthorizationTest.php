@@ -1835,17 +1835,19 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertSame( 'venue_action_forbidden', call_user_func( $get['permission_callback'], array( 'venue_term_id' => 56 ) )->get_error_code() );
 		$config_input  = $update['input_schema']['properties']['config'];
 		$config_output = $get['output_schema'];
-		$this->assertCount( 10, $config_input['oneOf'] );
+		$this->assertCount( 11, $config_input['oneOf'] );
 		$this->assertSame( range( 1, VenueBookingConfig::VERSION ), array_map( static fn( $schema ) => $schema['properties']['version']['enum'][0], $config_input['oneOf'] ) );
 		$this->assertSame( array( VenueBookingConfig::RETIRED_APPEARANCE_VERSION ), $config_input['oneOf'][7]['properties']['version']['enum'] );
 		$this->assertContains( 'appearance', $config_input['oneOf'][7]['required'] );
 		$this->assertSame( '^#[0-9a-fA-F]{6}$', $config_input['oneOf'][7]['properties']['appearance']['properties']['background_color']['pattern'] );
 		$this->assertSame( array( VenueBookingConfig::PRE_ATTACHMENT_POLICY_VERSION ), $config_input['oneOf'][8]['properties']['version']['enum'] );
 		$this->assertNotContains( 'attachment_policy', $config_input['oneOf'][8]['required'] );
-		$this->assertSame( array( VenueBookingConfig::VERSION ), $config_input['oneOf'][9]['properties']['version']['enum'] );
-		$this->assertNotContains( 'appearance', $config_input['oneOf'][9]['required'] );
-		$this->assertArrayNotHasKey( 'appearance', $config_input['oneOf'][9]['properties'] );
-		$this->assertContains( 'attachment_policy', $config_input['oneOf'][9]['required'] );
+		$this->assertSame( array( VenueBookingConfig::RETIRED_PRESENTATION_VERSION ), $config_input['oneOf'][9]['properties']['version']['enum'] );
+		$this->assertContains( 'presentation', $config_input['oneOf'][9]['properties']['intake']['required'] );
+		$this->assertSame( array( VenueBookingConfig::VERSION ), $config_input['oneOf'][10]['properties']['version']['enum'] );
+		$this->assertNotContains( 'appearance', $config_input['oneOf'][10]['required'] );
+		$this->assertArrayNotHasKey( 'appearance', $config_input['oneOf'][10]['properties'] );
+		$this->assertContains( 'attachment_policy', $config_input['oneOf'][10]['required'] );
 		$this->assertSame( array( 'invited', 'required' ), $config_output['properties']['attachment_policy']['properties']['purposes']['items']['properties']['requirement']['enum'] );
 		$this->assertSame( array( VenueBookingConfig::VERSION ), $config_output['properties']['version']['enum'] );
 		$correspondence_output = $config_output['properties']['correspondence'];
@@ -1854,15 +1856,12 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertContains( 'from_name', $correspondence_output['required'] );
 		$this->assertContains( 'footer', $correspondence_output['required'] );
 		$intake_output = $config_output['properties']['intake'];
-		$this->assertContains( 'presentation', $intake_output['required'] );
-		$this->assertSame(
-			array( 'artist_name_label', 'contact_name_label', 'contact_email_label', 'contact_phone_label', 'message_label', 'message_help' ),
-			$intake_output['properties']['presentation']['required']
-		);
+		$this->assertNotContains( 'presentation', $intake_output['required'] );
+		$this->assertArrayNotHasKey( 'presentation', $intake_output['properties'] );
 		$this->assertContains( 'url_list', $intake_output['properties']['fields']['items']['properties']['type']['enum'] );
 		$this->assertSame( array( 'object', 'null' ), $intake_output['properties']['fields']['items']['properties']['visible_when']['type'] );
 		$this->assertNotContains( 'presentation', $config_input['oneOf'][0]['properties']['intake']['required'] );
-		$this->assertContains( 'presentation', $config_input['oneOf'][9]['properties']['intake']['required'] );
+		$this->assertNotContains( 'presentation', $config_input['oneOf'][10]['properties']['intake']['required'] );
 		$this->assertContains( 'correspondence', $config_output['required'] );
 		$this->assertNotContains( 'public_requirements', $config_output['required'] );
 		$this->assertArrayNotHasKey( 'public_requirements', $config_output['properties'] );
@@ -1872,7 +1871,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertContains( 'marketing_triggers', $config_output['required'] );
 		$this->assertNotContains( 'booking_guide', $config_output['required'] );
 		$this->assertArrayNotHasKey( 'booking_guide', $config_output['properties'] );
-		$this->assertSame( 20160, $config_input['oneOf'][9]['properties']['hold_ttl_minutes']['maximum'] );
+		$this->assertSame( 20160, $config_input['oneOf'][10]['properties']['hold_ttl_minutes']['maximum'] );
 		$this->assertSame( 20160, $config_output['properties']['hold_ttl_minutes']['maximum'] );
 
 		$legacy = ( new VenueBookingConfig() )->defaults();
@@ -1883,7 +1882,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$current = call_user_func( $get['execute_callback'], array( 'venue_term_id' => 55 ) );
 		$this->assertSame( VenueBookingConfig::VERSION, $current['version'] );
 		$this->assertArrayNotHasKey( 'appearance', $current );
-		$this->assertSame( 'Contact phone', $current['intake']['presentation']['contact_phone_label'] );
+		$this->assertArrayNotHasKey( 'presentation', $current['intake'] );
 		$this->assertArrayHasKey( 'correspondence', $current );
 		$this->assertSame( array( 'version' => 1, 'enabled' => false, 'purposes' => array() ), $current['attachment_policy'] );
 		$this->assertSame( array(), $current['marketing_triggers'] );

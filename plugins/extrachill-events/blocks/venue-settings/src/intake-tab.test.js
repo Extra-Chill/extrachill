@@ -39,15 +39,6 @@ jest.mock( '@extrachill/components', () => {
 	};
 } );
 
-const presentation = {
-	artist_name_label: 'Artist or project name',
-	contact_name_label: 'Contact name',
-	contact_email_label: 'Contact email',
-	contact_phone_label: 'Contact phone',
-	message_label: 'What is your vision for the show?',
-	message_help: 'Share details.',
-};
-
 const field = ( index, overrides = {} ) => ( {
 	key: `field_${ index }`,
 	label: `Question ${ index }`,
@@ -60,7 +51,7 @@ const field = ( index, overrides = {} ) => ( {
 
 function Harness( { initialFields } ) {
 	const [ config, setConfig ] = useState( {
-		intake: { fields: initialFields, presentation },
+		intake: { fields: initialFields },
 	} );
 	return <IntakeTab config={ config } setConfig={ setConfig } />;
 }

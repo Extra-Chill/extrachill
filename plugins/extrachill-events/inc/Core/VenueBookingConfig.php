@@ -16,7 +16,8 @@ class VenueBookingConfig {
 
 	public const META_KEY                      = '_extrachill_booking_config';
 	public const HISTORY_META_KEY              = '_extrachill_booking_config_history';
-	public const VERSION                       = 10;
+	public const VERSION                       = 11;
+	public const RETIRED_PRESENTATION_VERSION  = 10;
 	public const PRE_ATTACHMENT_POLICY_VERSION = 9;
 	public const RETIRED_APPEARANCE_VERSION    = 8;
 	public const RETIRED_REQUIREMENTS_VERSION  = 7;
@@ -128,6 +129,7 @@ class VenueBookingConfig {
 			self::RETIRED_REQUIREMENTS_VERSION,
 			self::RETIRED_APPEARANCE_VERSION,
 			self::PRE_ATTACHMENT_POLICY_VERSION,
+			self::RETIRED_PRESENTATION_VERSION,
 			self::VERSION,
 		);
 		if ( ! is_array( $stored ) || ! in_array( $stored['version'] ?? null, $public_versions, true ) ) {
@@ -142,27 +144,25 @@ class VenueBookingConfig {
 			return new \WP_Error( 'invalid_booking_public_config', __( 'The public venue booking configuration is unavailable.', 'extrachill-events' ) );
 		}
 
-		$fields       = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
-		$presentation = $this->normalize_intake_presentation( $stored['intake']['presentation'] ?? array() );
-		$consent      = $this->normalize_consent( $stored['consent'] ?? null );
-		$spaces       = $this->normalize_spaces( $stored['spaces'] ?? null );
-		$attachments  = self::VERSION === ( $stored['version'] ?? null )
+		$fields      = $this->normalize_intake_fields( $stored['intake']['fields'] ?? null );
+		$consent     = $this->normalize_consent( $stored['consent'] ?? null );
+		$spaces      = $this->normalize_spaces( $stored['spaces'] ?? null );
+		$attachments = in_array( $stored['version'], array( self::RETIRED_PRESENTATION_VERSION, self::VERSION ), true )
 			? $this->normalize_attachment_policy( $stored['attachment_policy'] ?? null )
 			: $this->default_attachment_policy();
-		foreach ( array( $fields, $presentation, $consent, $spaces, $attachments ) as $section ) {
+		foreach ( array( $fields, $consent, $spaces, $attachments ) as $section ) {
 			if ( is_wp_error( $section ) ) {
 				return $section;
 			}
 		}
 
 		return array(
-			'enabled'      => ! empty( $stored['enabled'] ),
-			'revision'     => $revision,
-			'fields'       => $fields,
-			'presentation' => $presentation,
-			'consent'      => $consent,
-			'spaces'       => $spaces,
-			'attachments'  => $this->attachment_public_projection( $attachments, $revision, ! empty( $stored['enabled'] ) ),
+			'enabled'     => ! empty( $stored['enabled'] ),
+			'revision'    => $revision,
+			'fields'      => $fields,
+			'consent'     => $consent,
+			'spaces'      => $spaces,
+			'attachments' => $this->attachment_public_projection( $attachments, $revision, ! empty( $stored['enabled'] ) ),
 		);
 	}
 
@@ -324,6 +324,7 @@ class VenueBookingConfig {
 			self::RETIRED_REQUIREMENTS_VERSION,
 			self::RETIRED_APPEARANCE_VERSION,
 			self::PRE_ATTACHMENT_POLICY_VERSION,
+			self::RETIRED_PRESENTATION_VERSION,
 			self::VERSION,
 		);
 		if ( ! is_int( $version ) || ! in_array( $version, $supported_versions, true ) ) {
@@ -348,11 +349,14 @@ class VenueBookingConfig {
 		if ( self::VERSION === $version && array_key_exists( 'appearance', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired appearance settings.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
-		if ( $version < self::VERSION && array_key_exists( 'attachment_policy', $config ) ) {
+		if ( $version < self::RETIRED_PRESENTATION_VERSION && array_key_exists( 'attachment_policy', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Attachment policy settings require venue booking configuration version 10.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
-		if ( self::VERSION === $version && ! array_key_exists( 'attachment_policy', $config ) ) {
+		if ( $version >= self::RETIRED_PRESENTATION_VERSION && ! array_key_exists( 'attachment_policy', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Venue booking configuration version 10 requires an attachment policy.', 'extrachill-events' ), array( 'version' => $version ) );
+		}
+		if ( self::VERSION === $version && array_key_exists( 'presentation', (array) ( $config['intake'] ?? array() ) ) ) {
+			return new \WP_Error( 'booking_config_version_field_invalid', __( 'The current venue booking configuration does not support retired intake presentation labels.', 'extrachill-events' ), array( 'version' => $version ) );
 		}
 		if ( $version < self::EMBED_CONFIG_VERSION && array_key_exists( 'embed', $config ) ) {
 			return new \WP_Error( 'booking_config_version_field_invalid', __( 'Embed settings require venue booking configuration version 5.', 'extrachill-events' ), array( 'version' => $version ) );
@@ -404,7 +408,7 @@ class VenueBookingConfig {
 		if ( is_wp_error( $consent ) ) {
 			return $consent;
 		}
-		$attachment_policy = self::VERSION === $version
+		$attachment_policy = $version >= self::RETIRED_PRESENTATION_VERSION
 			? $this->normalize_attachment_policy( $config['attachment_policy'] )
 			: $this->default_attachment_policy();
 		if ( is_wp_error( $attachment_policy ) ) {
@@ -457,9 +461,8 @@ class VenueBookingConfig {
 			'updated_at'                => $updated_at,
 			'enabled'                   => ! empty( $config['enabled'] ),
 			'intake'                    => array(
-				'version'      => 1,
-				'fields'       => $fields,
-				'presentation' => $this->normalize_intake_presentation( $config['intake']['presentation'] ?? array() ),
+				'version' => 1,
+				'fields'  => $fields,
 			),
 			'consent'                   => $consent,
 			'attachment_policy'         => $attachment_policy,
@@ -528,9 +531,8 @@ class VenueBookingConfig {
 			'updated_at'                => null,
 			'enabled'                   => false,
 			'intake'                    => array(
-				'version'      => 1,
-				'fields'       => $this->starter_intake_fields(),
-				'presentation' => $this->normalize_intake_presentation( array() ),
+				'version' => 1,
+				'fields'  => $this->starter_intake_fields(),
 			),
 			'consent'                   => array(
 				'id'       => 'booking-privacy',
@@ -748,28 +750,6 @@ class VenueBookingConfig {
 			);
 		}
 		return $normalized;
-	}
-
-	/**
-	 * Normalize configurable labels for the stable built-in inquiry fields.
-	 *
-	 * @param mixed $presentation Proposed presentation values.
-	 */
-	private function normalize_intake_presentation( $presentation ): array {
-		$defaults     = array(
-			'artist_name_label'   => __( 'Artist or project name', 'extrachill-events' ),
-			'contact_name_label'  => __( 'Contact name', 'extrachill-events' ),
-			'contact_email_label' => __( 'Contact email', 'extrachill-events' ),
-			'contact_phone_label' => __( 'Contact phone', 'extrachill-events' ),
-			'message_label'       => __( 'What is your vision for the show?', 'extrachill-events' ),
-			'message_help'        => __( 'Who else is on the bill, what the set looks like, and anything the venue should know.', 'extrachill-events' ),
-		);
-		$presentation = is_array( $presentation ) ? $presentation : array();
-		foreach ( $defaults as $key => $default ) {
-			$value            = mb_substr( sanitize_text_field( (string) ( $presentation[ $key ] ?? $default ) ), 0, 500 );
-			$defaults[ $key ] = '' === $value ? $default : $value;
-		}
-		return $defaults;
 	}
 
 	/**

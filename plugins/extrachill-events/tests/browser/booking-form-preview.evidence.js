@@ -28,8 +28,8 @@ const fixture = `<!doctype html>
 										<section class="ec-booking-inquiry__step">
 											<h3>Complete your booking inquiry</h3>
 											<div class="ec-card-grid" style="--ec-card-grid-min:16rem;max-width:calc(16rem * 2 + var(--spacing-md, 1rem))">
-												<label class="ec-field-group"><span class="ec-field-group__label">Artist or project name</span><span class="ec-field-group__control"><input></span></label>
-												<label class="ec-field-group"><span class="ec-field-group__label">Phone (Emergency use only)</span><span class="ec-field-group__control"><input type="tel"></span></label>
+												<label class="ec-field-group"><span class="ec-field-group__label">Artist or band name</span><span class="ec-field-group__control"><input></span></label>
+												<label class="ec-field-group"><span class="ec-field-group__label">Phone (optional)</span><span class="ec-field-group__control"><input type="tel"></span></label>
 											</div>
 										</section>
 										<label class="ec-checkbox-row"><input type="checkbox"><span>I agree that this venue may use these details to review and respond to my booking inquiry.</span></label>

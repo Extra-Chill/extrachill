@@ -99,7 +99,6 @@ $public_config = array(
 	'venue'                => $canonical['venue'],
 	'spaces'               => array_values( $booking_config['spaces'] ),
 	'fields'               => array_values( $booking_config['fields'] ),
-	'presentation'         => $booking_config['presentation'],
 	'consent'              => $booking_config['consent'],
 	'attachments'          => $booking_config['attachments'],
 );

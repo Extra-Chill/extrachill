@@ -62,9 +62,8 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 				'options'  => array(),
 			),
 		);
-		$config['intake']['presentation']['contact_phone_label'] = 'Phone (Emergency use only)';
-		$config['ticket_provider_reference']                     = 'private-provider-account';
-		$config['correspondence']['booking_address']             = 'private-booking@example.com';
+		$config['ticket_provider_reference']         = 'private-provider-account';
+		$config['correspondence']['booking_address'] = 'private-booking@example.com';
 		update_term_meta( $this->venue_id, VenueBookingConfig::META_KEY, $config );
 		update_term_meta( $this->venue_id, '_venue_address', '42 Test Street' );
 		update_term_meta( $this->venue_id, '_venue_city', 'Charleston' );
@@ -86,7 +85,8 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$this->assertStringNotContainsString( 'Include recent draw and routing.', $output );
 		$this->assertStringNotContainsString( 'Booking guide', $output );
 		$this->assertStringContainsString( '"revision":4', $output );
-		$this->assertStringContainsString( 'Phone (Emergency use only)', $output );
+		$this->assertStringNotContainsString( '"presentation"', $output );
+		$this->assertStringNotContainsString( 'contact_phone_label', $output );
 		$this->assertStringNotContainsString( '"appearance"', $output );
 		$this->assertStringNotContainsString( '--ec-booking-', $output );
 		$this->assertStringNotContainsString( ':root', $output );
