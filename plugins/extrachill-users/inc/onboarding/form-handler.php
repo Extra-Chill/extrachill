@@ -55,7 +55,6 @@ function extrachill_users_get_onboarding_client_event( string $outcome, string $
 		'username_too_short',
 		'username_too_long',
 		'username_invalid_chars',
-		'local_scene_unselected',
 		'role_required',
 		'invalid_response',
 		'response_rejected',
@@ -92,3 +91,60 @@ function extrachill_users_onboarding_client_analytics() {
 	wp_send_json_success();
 }
 add_action( 'wp_ajax_extrachill_onboarding_analytics', 'extrachill_users_onboarding_client_analytics' );
+
+/**
+ * Record an unmatched Local Scene search as a zero-result search event.
+ *
+ * Local Scene is optional during onboarding. When a member types a scene we have
+ * no location term for, the autocomplete returns nothing to click, so the form
+ * now submits without a scene rather than stranding them (issue #380). The text
+ * they typed is real, unmet demand for a scene, so it is worth keeping.
+ *
+ * This routes through the existing `search` contract rather than the onboarding
+ * one on purpose. The onboarding payload contract is explicitly limited to
+ * non-PII fields and forbids free-form user input and Local Scene names, so a
+ * raw term cannot travel that path. `search` already owns search_term and
+ * result_count, already passes through the server-side attack classifier and
+ * bot stamping in extrachill-analytics, and already feeds search-gaps
+ * reporting. Reusing it means unmet Local Scene demand becomes queryable with
+ * no new event type and no new storage.
+ *
+ * The explicit `source` is preserved by the analytics layer, which only derives
+ * a source when the caller omits one, so these rows bucket as their own surface
+ * instead of being misattributed to nav or archive search.
+ */
+function extrachill_users_onboarding_local_scene_gap() {
+	check_ajax_referer( 'extrachill_onboarding_local_scene_gap', 'nonce' );
+
+	if ( ! is_user_logged_in() ) {
+		wp_send_json_error( null, 403 );
+	}
+
+	$search_term = isset( $_POST['search_term'] ) ? sanitize_text_field( wp_unslash( $_POST['search_term'] ) ) : '';
+	$search_term = trim( $search_term );
+	if ( '' === $search_term || strlen( $search_term ) > 100 ) {
+		wp_send_json_error( null, 400 );
+	}
+
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/track-analytics-event' ) : null;
+	if ( ! $ability ) {
+		wp_send_json_error( null, 500 );
+	}
+
+	$referer = wp_get_referer();
+
+	$ability->execute(
+		array(
+			'event_type' => EC_ANALYTICS_EVENT_SEARCH,
+			'event_data' => array(
+				'search_term'  => $search_term,
+				'result_count' => 0,
+				'source'       => 'onboarding_local_scene',
+			),
+			'source_url' => $referer ? $referer : '',
+		)
+	);
+
+	wp_send_json_success();
+}
+add_action( 'wp_ajax_extrachill_onboarding_local_scene_gap', 'extrachill_users_onboarding_local_scene_gap' );

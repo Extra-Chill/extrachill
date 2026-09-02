@@ -17,6 +17,7 @@ namespace {
 	const EC_ANALYTICS_EVENT_ONBOARDING_REMINDER_SENT          = 'onboarding_reminder_sent';
 	const EC_ANALYTICS_EVENT_ONBOARDING_SUBMISSION_FAILED      = 'onboarding_submission_failed';
 	const EC_ANALYTICS_EVENT_ONBOARDING_VIEWED                 = 'onboarding_viewed';
+	const EC_ANALYTICS_EVENT_SEARCH                            = 'search';
 	const EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED                 = 'team_member_added';
 	const EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED               = 'team_member_removed';
 	const EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS                  = array( 'team_member_added', 'team_member_removed' );
