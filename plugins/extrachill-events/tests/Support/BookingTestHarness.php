@@ -528,6 +528,24 @@ if ( ! function_exists( 'get_term_link' ) ) {
 		return 'https://events.example/venue/' . ( is_object( $term ) ? $term->slug : (int) $term );
 	}
 }
+if ( ! function_exists( 'ec_events_get_booking_console_url' ) ) {
+	/**
+	 * Build the deterministic booking console URL used by correspondence bodies.
+	 *
+	 * @param int $venue_term_id Venue term ID.
+	 * @param int $booking_id    Optional booking ID.
+	 */
+	function ec_events_get_booking_console_url( int $venue_term_id, int $booking_id = 0 ): string {
+		$args = array();
+		if ( $venue_term_id > 0 ) {
+			$args[] = 'venue_id=' . $venue_term_id;
+		}
+		if ( $booking_id > 0 ) {
+			$args[] = 'booking_id=' . $booking_id;
+		}
+		return 'https://events.example/venue-settings/' . ( $args ? '?' . implode( '&', $args ) : '' ) . '#tab-calendar';
+	}
+}
 if ( ! function_exists( 'ec_events_resolve_booking_console_destination' ) ) {
 	function ec_events_resolve_booking_console_destination( array $booking, array $recipient_ids, array $locked_rows ) {
 		$venue_id = (int) ( $booking['venue_term_id'] ?? 0 );

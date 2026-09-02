@@ -172,6 +172,33 @@ final class BookingNotificationTest extends BookingTestCase {
 		$this->assertSame( 'extrachill-events-booking', $captured['payload']['producer'] );
 		$this->assertSame( 'notification-request:booking_inquiry_submitted:' . $source['id'], $captured['payload']['idempotency_key'] );
 		$this->assertSame( 'https://events.example/venue/55', $captured['payload']['link'] );
+		$this->assertTrue( $captured['payload']['producer_owns_email'] );
+	}
+
+	/** Only the producer-emailed inquiry type leaves the generic digest sweep. */
+	public function test_only_inquiry_submitted_claims_producer_owned_email(): void {
+		$booking  = $this->booking();
+		$captured = array();
+		$this->member( 1, 55, 10, VenueAuthorization::STATUS_ACTIVE, true );
+		$GLOBALS['ec_artist_test']['users_receipt'] = static function ( array $recipients, array $payload ) use ( &$captured ): array {
+			unset( $recipients );
+			$captured[ $payload['type'] ] = $payload;
+			return array( 'recipients' => array( 10 => array( 'status' => 'inserted', 'notification_id' => 100 ) ) );
+		};
+		$types = array(
+			BookingNotificationService::TYPE_INQUIRY_SUBMITTED => $this->source( $booking, 'inquiry_submitted' ),
+			BookingNotificationService::TYPE_HOLD_EXPIRED      => $this->source( $booking, 'hold_expired', array( 'status' => 'submitted' ) ),
+			BookingNotificationService::TYPE_ARTIST_WITHDREW   => $this->source( $booking, 'artist_withdrawn', array( 'from_status' => 'submitted', 'to_status' => 'withdrawn' ) ),
+		);
+		foreach ( $types as $type => $source ) {
+			$service = new BookingNotificationService( null, null, null, null, static function (): int { return 99; } );
+			$request = $service->request( $type, $source['id'] );
+			$this->assertSame( 'notification_delivered', $service->reconcile( $request['id'] )['kind'] );
+		}
+
+		$this->assertTrue( $captured[ BookingNotificationService::TYPE_INQUIRY_SUBMITTED ]['producer_owns_email'] );
+		$this->assertArrayNotHasKey( 'producer_owns_email', $captured[ BookingNotificationService::TYPE_HOLD_EXPIRED ] );
+		$this->assertArrayNotHasKey( 'producer_owns_email', $captured[ BookingNotificationService::TYPE_ARTIST_WITHDREW ] );
 	}
 
 	/** Partial and zero delivery receipts remain retryable until every user resolves. */

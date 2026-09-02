@@ -19,8 +19,15 @@ class BookingCommunicationService {
 	public const SCHEDULER_GROUP        = 'extrachill-events-booking-reminders';
 	public const SUPPRESSION_BATCH_SIZE = 25;
 	public const MAX_ATTEMPTS           = 3;
-	public const TEMPLATES              = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'inquiry_access_recovery', 'date_filled' );
+	public const TEMPLATES              = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'inquiry_access_recovery', 'inquiry_received_venue', 'date_filled' );
 	public const TERMINAL_STATUSES      = array( 'declined', 'withdrawn', 'cancelled', 'completed' );
+
+	/** Artist-facing inquiry correspondence delivered privately to the submitter alone. */
+	public const ARTIST_INQUIRY_TEMPLATES = array( 'inquiry_receipt', 'inquiry_access_recovery' );
+	/** Venue-facing inquiry correspondence delivered to authorized venue recipients. */
+	public const VENUE_INQUIRY_TEMPLATE = 'inquiry_received_venue';
+	/** Every template whose source is the submitting booking's own inquiry event. */
+	public const INQUIRY_TEMPLATES = array( 'inquiry_receipt', 'inquiry_access_recovery', 'inquiry_received_venue' );
 
 	/** @var BookingRepository */
 	private $bookings;
@@ -172,12 +179,13 @@ class BookingCommunicationService {
 		$allowed = array(
 			'inquiry_receipt'         => 'inquiry_submitted',
 			'inquiry_access_recovery' => 'inquiry_submitted',
+			'inquiry_received_venue'  => 'inquiry_submitted',
 			'date_filled'             => 'deal_confirmed',
 		);
 		if ( ! is_array( $source ) || ! is_array( $booking ) || ( $allowed[ $template ] ?? null ) !== $source['kind'] || empty( $booking['contact_email'] ) ) {
 			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
 		}
-		if ( in_array( $template, array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) && (int) $source['booking_id'] !== $booking_id ) {
+		if ( in_array( $template, self::INQUIRY_TEMPLATES, true ) && (int) $source['booking_id'] !== $booking_id ) {
 			return new \WP_Error( 'booking_automatic_message_invalid', __( 'The automatic booking message is invalid.', 'extrachill-events' ) );
 		}
 		$is_recovery  = null !== $recovery_key;
@@ -1001,17 +1009,21 @@ class BookingCommunicationService {
 	}
 
 	private function queue_input( array $intent ): array {
-		$data = $intent['payload']['data'];
-		$body = $data['body'];
-		if ( in_array( (string) ( $data['template'] ?? '' ), array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) ) {
+		$data     = $intent['payload']['data'];
+		$template = (string) ( $data['template'] ?? '' );
+		$body     = $data['body'];
+		if ( in_array( $template, self::ARTIST_INQUIRY_TEMPLATES, true ) ) {
 			$booking = $this->bookings->get( (int) $intent['booking_id'] );
 			if ( is_array( $booking ) && empty( $booking['submitter_user_id'] ) && preg_match( '/^[a-f0-9]{64}$/', (string) ( $booking['inquiry_request_hash'] ?? '' ) ) ) {
 				$body .= "\n\nAccess code: " . ArtistBookingInquiryService::capability_for( $booking ) . "\nKeep this access code private. You will need it to manage this inquiry without signing in.";
 			}
 		}
+		$venue_directed = self::VENUE_INQUIRY_TEMPLATE === $template;
 		return array(
-			'to'           => $data['recipient'],
-			'cc'           => in_array( (string) ( $data['template'] ?? '' ), array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) ? '' : $this->delivery_cc,
+			// Venue-directed correspondence resolves its authorized recipients at
+			// delivery time so member addresses are never persisted in the ledger.
+			'to'           => $venue_directed ? $this->delivery_cc : $data['recipient'],
+			'cc'           => $venue_directed || in_array( $template, self::ARTIST_INQUIRY_TEMPLATES, true ) ? '' : $this->delivery_cc,
 			'subject'      => $data['subject'],
 			'body'         => $body,
 			'context'      => array(
@@ -1193,7 +1205,9 @@ class BookingCommunicationService {
 				'subject'                 => null !== ( $request['subject'] ?? null ) ? $request['subject'] : $prepared['subject'],
 				'body'                    => $prepared['body'],
 				'from_name'               => $prepared['from_name'],
-				'reply_to'                => $prepared['booking_address'] ? $prepared['booking_address'] : $request['reply_to'],
+				// Venue-directed correspondence must reply to the artist, never to the
+				// venue's own booking address, so an operator reply reaches the artist.
+				'reply_to'                => $prepared['booking_address'] && self::VENUE_INQUIRY_TEMPLATE !== $request['template'] ? $prepared['booking_address'] : $request['reply_to'],
 				'send_at'                 => $send_at,
 				'expected_statuses'       => $expected_statuses,
 				'reminder_policy_version' => $policy_version,
@@ -1209,7 +1223,7 @@ class BookingCommunicationService {
 
 	/** Revalidate server-owned automatic correspondence immediately before queueing. */
 	private function automatic_message_applicable( array $booking, array $source, string $template ): bool {
-		if ( in_array( $template, array( 'inquiry_receipt', 'inquiry_access_recovery' ), true ) ) {
+		if ( in_array( $template, self::INQUIRY_TEMPLATES, true ) ) {
 			return 'inquiry_submitted' === $source['kind'] && (int) $source['booking_id'] === (int) $booking['id'];
 		}
 		if ( 'date_filled' !== $template || 'deal_confirmed' !== $source['kind'] || in_array( $booking['status'], array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed' ), true ) ) {

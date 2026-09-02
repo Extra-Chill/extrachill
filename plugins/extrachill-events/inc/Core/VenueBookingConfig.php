@@ -30,7 +30,7 @@ class VenueBookingConfig {
 	public const CORRESPONDENCE_VERSION        = 1;
 	public const TEMPLATE_VERSION              = 1;
 	public const REMINDER_POLICY_VERSION       = 1;
-	public const CORRESPONDENCE_TEMPLATES      = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'inquiry_access_recovery', 'date_filled' );
+	public const CORRESPONDENCE_TEMPLATES      = array( 'operator_message', 'follow_up', 'hold_expiring', 'inquiry_receipt', 'inquiry_access_recovery', 'inquiry_received_venue', 'date_filled' );
 	public const CORRESPONDENCE_VARIABLES      = array( 'artist_name', 'booking_id', 'contact_name', 'requested_date', 'venue_name' );
 	public const CONSENT_VERSION               = 1;
 	public const ATTACHMENT_POLICY_VERSION     = 1;
@@ -587,6 +587,11 @@ class VenueBookingConfig {
 						'version' => self::TEMPLATE_VERSION,
 						'subject' => 'Your private booking inquiry access at {{venue_name}}',
 						'body'    => "Hello {{contact_name}},\n\n{{message}}",
+					),
+					'inquiry_received_venue'  => array(
+						'version' => self::TEMPLATE_VERSION,
+						'subject' => 'New booking inquiry: {{artist_name}} at {{venue_name}} - {{requested_date}}',
+						'body'    => '{{message}}',
 					),
 					'date_filled'             => array(
 						'version' => self::TEMPLATE_VERSION,

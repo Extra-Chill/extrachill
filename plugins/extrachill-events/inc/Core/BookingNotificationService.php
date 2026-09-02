@@ -483,6 +483,11 @@ class BookingNotificationService {
 	private function deliver_structured( array $recipient_ids, array $payload, string $idempotency_key ) {
 		$payload['producer']        = 'extrachill-events-booking';
 		$payload['idempotency_key'] = $idempotency_key;
+		if ( self::TYPE_INQUIRY_SUBMITTED === ( $payload['type'] ?? '' ) ) {
+			// Booking correspondence sends its own venue inquiry email, so the bell
+			// notification stays unread and visible but leaves the generic digest sweep.
+			$payload['producer_owns_email'] = true;
+		}
 		if ( $this->delivery ) {
 			return call_user_func( $this->delivery, $recipient_ids, $payload, $payload['producer'], $idempotency_key );
 		}

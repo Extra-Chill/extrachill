@@ -116,7 +116,7 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 
 		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
 		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
-		$this->assertCount( 1, $queued );
+		$this->assertCount( 2, $queued );
 		$this->assertSame( 'artist@example.com', $queued[0]['to'] );
 		$this->assertSame( '', $queued[0]['cc'] );
 		$this->assertSame( 'Extra Chill Bookings', $queued[0]['from_name'] );
@@ -138,14 +138,133 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$this->assertArrayNotHasKey( 'attachments', $queued[0] );
 	}
 
+	/** The venue email carries every operator fact the bell notification omits. */
+	public function test_venue_inquiry_email_carries_operator_facts_and_replies_to_the_artist(): void {
+		$booking = $this->booking( array( 'intake' => array( 'message' => 'We tour through in August and would love a Thursday.' ) ) );
+		$source  = $this->source( $booking, 'inquiry_submitted' );
+		$queued  = array();
+		$service = $this->service( $queued );
+
+		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
+		$this->assertCount( 2, $queued );
+		$venue = $queued[1];
+		$this->assertSame( 'operator@example.com,owner@example.com', $venue['to'] );
+		$this->assertSame( '', $venue['cc'] );
+		$this->assertSame( 'artist@example.com', $venue['reply_to'] );
+		$this->assertSame( 'Extra Chill Bookings', $venue['from_name'] );
+		$this->assertSame( 'New booking inquiry: Test Band at Lo-Fi Brewing - Aug 1', $venue['subject'] );
+		$this->assertStringContainsString( 'Artist: Test Band', $venue['body'] );
+		$this->assertStringContainsString( 'Contact: Band Manager', $venue['body'] );
+		$this->assertStringContainsString( 'Thursday, August 1, 2030, 8:00 PM to 11:00 PM EDT (America/New_York)', $venue['body'] );
+		$this->assertStringNotContainsString( ' UTC', $venue['body'] );
+		$this->assertStringContainsString( 'Requested space: Main Room', $venue['body'] );
+		$this->assertStringContainsString( 'Reference: ' . $booking['public_id'], $venue['body'] );
+		$this->assertStringContainsString( 'We tour through in August and would love a Thursday.', $venue['body'] );
+		$this->assertStringContainsString( 'https://events.example/venue-settings/?venue_id=55&booking_id=' . $booking['id'] . '#tab-calendar', $venue['body'] );
+		$this->assertStringContainsString( 'Powered by Extra Chill', $venue['body'] );
+		$this->assertStringNotContainsString( ArtistBookingInquiryService::capability_for( $booking ), wp_json_encode( $venue ) );
+	}
+
+	/** Replays and reconciliation passes reuse the per-template idempotency key. */
+	public function test_venue_inquiry_email_is_idempotent_under_replay_and_reconciliation(): void {
+		$booking = $this->booking();
+		$source  = $this->source( $booking, 'inquiry_submitted' );
+		$queued  = array();
+
+		$this->assertSame( array( 'completed' => true ), $this->service( $queued )->reconcile_source( $source['id'] ) );
+		$this->assertSame( array( 'completed' => true ), $this->service( $queued )->reconcile_source( $source['id'] ) );
+		$this->assertSame( array( 'completed' => 0 ), $this->service( $queued )->reconcile_pending() );
+		$this->assertCount( 2, $queued );
+
+		$requests = array_values(
+			array_filter(
+				$GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ],
+				static function ( array $row ): bool {
+					return 'booking_message_requested' === $row['kind'];
+				}
+			)
+		);
+		$this->assertCount( 2, $requests );
+		$keys = array_map(
+			static function ( array $row ): string {
+				return (string) $row['idempotency_key'];
+			},
+			$requests
+		);
+		sort( $keys );
+		$this->assertSame(
+			array(
+				'booking-message-request:automatic:inquiry_receipt:' . $source['id'] . ':' . $booking['id'],
+				'booking-message-request:automatic:inquiry_received_venue:' . $source['id'] . ':' . $booking['id'],
+			),
+			$keys
+		);
+	}
+
+	/** A crash between the two legs resumes at the venue email, never the receipt. */
+	public function test_venue_leg_failure_leaves_the_source_open_without_resending_the_artist_receipt(): void {
+		$booking = $this->booking();
+		$source  = $this->source( $booking, 'inquiry_submitted' );
+		$calls   = array();
+		$fail    = true;
+		$queue   = static function ( array $input ) use ( &$calls, &$fail ) {
+			$calls[] = $input['to'];
+			if ( $fail && 'artist@example.com' !== $input['to'] ) {
+				return array( 'success' => false, 'error' => 'temporary' );
+			}
+			return array( 'success' => true, 'action_id' => 300 + count( $calls ) );
+		};
+		$automation = static function () use ( $queue ): BookingCorrespondenceAutomationService {
+			$recipients = static function (): array {
+				return array( 'owner@example.com' );
+			};
+			return new BookingCorrespondenceAutomationService( null, null, new BookingCommunicationService( null, null, null, $queue, null, null, null, null, $recipients ) );
+		};
+
+		$first = $automation()->reconcile_source( $source['id'] );
+		$this->assertSame( 'booking_message_queue_failed', $first->get_error_code() );
+		$this->assertSame( array( 'artist@example.com', 'owner@example.com' ), $calls );
+		$this->assertEmpty(
+			array_filter(
+				$GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ],
+				static function ( array $row ): bool {
+					return 'booking_correspondence_source_completed' === $row['kind'];
+				}
+			)
+		);
+
+		$fail = false;
+		$this->assertSame( array( 'completed' => true ), $automation()->reconcile_source( $source['id'] ) );
+		$this->assertSame( array( 'artist@example.com', 'owner@example.com', 'owner@example.com' ), $calls );
+	}
+
+	/** Missing venue recipients degrade without failing the inquiry itself. */
+	public function test_unavailable_venue_recipients_degrade_without_duplicating_the_artist_receipt(): void {
+		$booking = $this->booking();
+		$source  = $this->source( $booking, 'inquiry_submitted' );
+		$queued  = array();
+		$queue   = static function ( array $input ) use ( &$queued ) {
+			$queued[] = $input;
+			return array( 'success' => true, 'action_id' => 400 + count( $queued ) );
+		};
+		$empty   = static function (): array {
+			return array();
+		};
+		$result  = ( new BookingCorrespondenceAutomationService( null, null, new BookingCommunicationService( null, null, null, $queue, null, null, null, null, $empty ) ) )->reconcile_source( $source['id'] );
+
+		$this->assertSame( 'booking_correspondence_venue_recipients_unavailable', $result->get_error_code() );
+		$this->assertCount( 0, $queued );
+		$this->assertSame( 'submitted', ( new BookingRepository() )->get( $booking['id'] )['status'] );
+	}
+
 	public function test_authenticated_receipt_omits_anonymous_access_code(): void {
 		$booking = $this->booking( array( 'submitter_user_id' => 44 ) );
 		$source  = $this->source( $booking, 'inquiry_submitted' );
 		$queued  = array();
 		$this->service( $queued )->reconcile_source( $source['id'] );
-		$this->assertCount( 1, $queued );
+		$this->assertCount( 2, $queued );
 		$this->assertStringNotContainsString( 'Access code:', $queued[0]['body'] );
-		$this->assertStringNotContainsString( ArtistBookingInquiryService::capability_for( $booking ), wp_json_encode( $queued[0] ) );
+		$this->assertStringNotContainsString( ArtistBookingInquiryService::capability_for( $booking ), wp_json_encode( $queued ) );
 		$this->assertSame( '', $queued[0]['cc'] );
 	}
 
@@ -191,10 +310,12 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$service = new BookingCorrespondenceAutomationService( null, null, $communication );
 
 		$this->assertSame( array( 'completed' => true ), $service->reconcile_source( $source['id'] ) );
-		$this->assertCount( 1, $ability->inputs );
+		$this->assertCount( 2, $ability->inputs );
 		$this->assertSame( 'string', $ability->get_input_schema()['properties']['cc']['type'] );
 		$this->assertSame( '', $ability->inputs[0]['cc'] );
+		$this->assertSame( '', $ability->inputs[1]['cc'] );
 		$this->assertStringContainsString( 'Access code:', $ability->inputs[0]['body'] );
+		$this->assertStringNotContainsString( 'Access code:', $ability->inputs[1]['body'] );
 	}
 
 	public function test_failed_queue_retries_from_durable_intent_without_duplicate_request(): void {
@@ -207,7 +328,7 @@ final class BookingCorrespondenceAutomationTest extends BookingTestCase {
 		$recovered = $this->service( $queued, true )->reconcile_source( $source['id'] );
 		$this->assertSame( array( 'completed' => true ), $recovered );
 		$activities = array_values( $GLOBALS['wpdb']->rows[ BookingSchema::activity_table() ] );
-		$this->assertCount( 1, array_filter( $activities, static function ( array $row ): bool { return 'booking_message_requested' === $row['kind']; } ) );
+		$this->assertCount( 2, array_filter( $activities, static function ( array $row ): bool { return 'booking_message_requested' === $row['kind']; } ) );
 	}
 
 	public function test_receipt_fails_closed_for_nonexistent_and_ambiguous_venue_times(): void {

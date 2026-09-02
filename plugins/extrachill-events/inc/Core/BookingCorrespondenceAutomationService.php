@@ -152,7 +152,58 @@ class BookingCorrespondenceAutomationService {
 		if ( null !== $recovery_key ) {
 			return $result;
 		}
-		return $this->accepted( $result ) ? $this->complete_source( $source, array( 'template' => 'inquiry_receipt' ) ) : $result;
+		if ( ! $this->accepted( $result ) ) {
+			return $result;
+		}
+		// The artist receipt is queued first and its durable intent is replayed by
+		// key, so a crash before the venue email leaves the source incomplete and
+		// reconciliation resumes at the venue leg without resending the receipt.
+		$venue_message = $this->venue_inquiry_message( $booking, (string) $venue->name, $interval );
+		if ( is_wp_error( $venue_message ) ) {
+			return $venue_message;
+		}
+		$venue_result = $this->communication->request_automatic( (int) $booking['id'], (int) $source['id'], BookingCommunicationService::VENUE_INQUIRY_TEMPLATE, $venue_message );
+		if ( ! $this->accepted( $venue_result ) ) {
+			return $venue_result;
+		}
+		return $this->complete_source( $source, array( 'templates' => array( 'inquiry_receipt', BookingCommunicationService::VENUE_INQUIRY_TEMPLATE ) ) );
+	}
+
+	/**
+	 * Compose the operator-facing facts the bell notification omits.
+	 *
+	 * @param array  $booking    Canonical booking row.
+	 * @param string $venue_name Canonical venue term name.
+	 * @param array  $interval   Resolved venue-local requested interval.
+	 * @return string|\WP_Error
+	 */
+	private function venue_inquiry_message( array $booking, string $venue_name, array $interval ) {
+		if ( ! function_exists( 'ec_events_get_booking_console_url' ) ) {
+			return new \WP_Error( 'booking_correspondence_console_destination_unavailable', __( 'The booking console destination is unavailable for correspondence.', 'extrachill-events' ) );
+		}
+		$console = ec_events_get_booking_console_url( (int) $booking['venue_term_id'], (int) $booking['id'] );
+		$message = $this->artist_message( $booking );
+		return sprintf(
+			"%s received a new booking inquiry.\n\nArtist: %s\nContact: %s\nRequested interval: %s\nRequested space: %s\nReference: %s\n\nWhat the artist wrote:\n%s\n\nReview and respond in the booking console:\n%s\n\nReply to this email to answer the artist directly.",
+			$venue_name,
+			$booking['artist_name'],
+			$booking['contact_name'],
+			$interval['display'],
+			$this->space_name( $booking, true ),
+			$booking['public_id'],
+			'' === $message ? __( 'No message was provided.', 'extrachill-events' ) : $message,
+			$console
+		);
+	}
+
+	/**
+	 * Read the submitted artist message from the validated intake envelope.
+	 *
+	 * @param array $booking Canonical booking row.
+	 */
+	private function artist_message( array $booking ): string {
+		$intake = is_array( $booking['intake'] ?? null ) ? ( $booking['intake']['data'] ?? array() ) : array();
+		return is_array( $intake ) ? trim( (string) ( $intake['message'] ?? '' ) ) : '';
 	}
 
 	private function process_competitors( array $source ) {
