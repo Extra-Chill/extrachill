@@ -58,6 +58,7 @@ const tokenNames = [
 	'font-size-2xl',
 	'font-size-base',
 	'font-size-body',
+	'font-size-lg',
 	'font-size-sm',
 	'font-size-xs',
 	'header-background',

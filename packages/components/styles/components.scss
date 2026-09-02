@@ -67,11 +67,65 @@
 	}
 }
 
-// Modal overrides
+// Modal
 .ec-modal {
-	.components-modal__content {
-		min-width: 500px;
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: grid;
+	place-items: center;
+	padding: var(--spacing-md, 1rem);
+}
+
+.ec-modal__backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgb(0 0 0 / 60%);
+}
+
+.ec-modal__content {
+	position: relative;
+	display: flex;
+	overflow: hidden;
+	flex-direction: column;
+	width: min(40rem, 100%);
+	max-height: min(85vh, 100%);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 8px);
+	background: var(--card-background, #fff);
+	color: var(--text-color, #111);
+}
+
+.ec-modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #ddd);
+
+	h2 {
+		margin: 0;
+		font-size: var(--font-size-lg, 1.25rem);
 	}
+
+	button {
+		border: 0;
+		background: none;
+		color: var(--muted-text, #666);
+		cursor: pointer;
+		font-size: var(--font-size-lg, 1.25rem);
+		line-height: 1;
+
+		&:hover {
+			color: var(--text-color, #111);
+		}
+	}
+}
+
+.ec-modal__body {
+	overflow-y: auto;
+	padding: var(--spacing-md, 1rem);
 }
 
 // Tabs — default styles for classPrefix="ec-tabs"

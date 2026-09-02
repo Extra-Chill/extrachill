@@ -36,7 +36,12 @@ export function Modal({
 	}
 
 	return (
-		<div className={`ec-modal ${className}`} role="dialog" aria-label={title}>
+		<div
+			className={`ec-modal ${className}`}
+			role="dialog"
+			aria-modal="true"
+			aria-label={title}
+		>
 			<div className="ec-modal__backdrop" onClick={onClose} aria-hidden="true" />
 			<div className="ec-modal__content">
 				<div className="ec-modal__header">
