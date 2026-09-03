@@ -135,6 +135,7 @@ jobs:
           vendor/bin/phpunit --configuration phpunit-local-scene-unit.xml.dist
           vendor/bin/phpunit --configuration phpunit-network-block.xml.dist
           vendor/bin/phpunit --configuration phpunit-membership.xml.dist
+          vendor/bin/phpunit --configuration phpunit-venue-calendar-feed.xml.dist
 
       - name: Assert Link Pages coordinated dependency entry
         if: ${{ matrix.command == 'review test' }}

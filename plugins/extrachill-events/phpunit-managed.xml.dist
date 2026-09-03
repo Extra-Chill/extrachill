@@ -13,6 +13,12 @@
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
+			<!--
+				Stubs WP_Error and a few helpers behind function_exists, which
+				cannot bind when real WordPress is loaded. Runs under the plain
+				bootstrap instead. See phpunit-venue-calendar-feed.xml.dist.
+			-->
+			<exclude>tests/Unit/Core/VenueCalendarFeedTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>

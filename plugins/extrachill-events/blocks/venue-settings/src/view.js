@@ -28,6 +28,7 @@ import {
 	SharedLinkPageEditor,
 	VenuePromoterRelationships,
 } from './managed-workspace';
+import { CalendarFeedTab } from './calendar-feed-tab';
 import { ProfileTab } from './profile-tab';
 import { LoadingPanel, Status } from './status';
 import { TeamTab } from './team-tab';
@@ -339,6 +340,7 @@ export function VenueSettingsApp( { context } ) {
 			? [
 					{ id: 'calendar', label: 'Bookings' },
 					{ id: 'venue', label: 'Venue' },
+					{ id: 'calendar-feed', label: 'Calendar Feed' },
 					{ id: 'link-page', label: 'Link Page' },
 					{ id: 'booking-form', label: 'Booking Form' },
 					{ id: 'settings', label: 'Booking Rules' },
@@ -373,6 +375,9 @@ export function VenueSettingsApp( { context } ) {
 					}
 				/>
 			);
+		}
+		if ( tab === 'calendar-feed' ) {
+			return <CalendarFeedTab venue={ venue } />;
 		}
 		if ( tab === 'venue' ) {
 			if ( errors.profile ) {

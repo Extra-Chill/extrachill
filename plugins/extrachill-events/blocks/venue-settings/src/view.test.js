@@ -739,6 +739,7 @@ describe( 'venue settings authorization-facing states', () => {
 		).toEqual( [
 			'Bookings',
 			'Venue',
+			'Calendar Feed',
 			'Link Page',
 			'Booking Form',
 			'Booking Rules',
@@ -926,6 +927,7 @@ describe( 'venue settings authorization-facing states', () => {
 		).toEqual( [
 			'Bookings',
 			'Venue',
+			'Calendar Feed',
 			'Link Page',
 			'Booking Form',
 			'Booking Rules',
@@ -948,7 +950,7 @@ describe( 'venue settings authorization-facing states', () => {
 		await act( async () => root.unmount() );
 	} );
 
-	it( 'shows exactly five venue tabs to authorized managers', async () => {
+	it( 'shows exactly six venue tabs to authorized managers', async () => {
 		apiFetch.mockImplementation( ( request ) => {
 			const input = requestInput( request );
 			if ( request.path.includes( 'get-venue-profile' ) ) {
@@ -977,6 +979,7 @@ describe( 'venue settings authorization-facing states', () => {
 		).toEqual( [
 			'Bookings',
 			'Venue',
+			'Calendar Feed',
 			'Link Page',
 			'Booking Form',
 			'Booking Rules',
@@ -1049,7 +1052,7 @@ describe( 'venue settings authorization-facing states', () => {
 			container.querySelectorAll(
 				'[data-context-surface="venue-settings"] > button'
 			)
-		).toHaveLength( 5 );
+		).toHaveLength( 6 );
 		await act( async () => root.unmount() );
 	} );
 

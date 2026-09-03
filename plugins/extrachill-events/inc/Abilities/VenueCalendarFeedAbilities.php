@@ -22,6 +22,7 @@ namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueCalendarFeed;
+use ExtraChillEvents\Core\VenueCalendarFeedSync;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -80,6 +81,18 @@ class VenueCalendarFeedAbilities {
 			),
 			array( 'venue_term_id', 'feed_url' ),
 			array( $this, 'set_feed' ),
+			false,
+			true,
+			false
+		);
+
+		$this->register_ability(
+			'extrachill/sync-venue-calendar-feed',
+			__( 'Sync Venue Calendar Feed', 'extrachill-events' ),
+			__( 'Import the bound calendar feed for one authorized venue immediately.', 'extrachill-events' ),
+			$venue_property,
+			array( 'venue_term_id' ),
+			array( $this, 'sync_feed' ),
 			false,
 			true,
 			false
@@ -153,6 +166,39 @@ class VenueCalendarFeedAbilities {
 
 	public function remove_feed( array $input ) {
 		return VenueCalendarFeed::unbind( absint( $input['venue_term_id'] ?? 0 ) );
+	}
+
+	/**
+	 * Import the bound feed immediately.
+	 *
+	 * Runs synchronously so the console can report what actually happened.
+	 * A venue owner who just bound a feed should not have to wait for the next
+	 * scheduled sweep to find out whether it worked.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error Sync counts merged with the current binding state.
+	 */
+	public function sync_feed( array $input ) {
+		$venue_term_id = absint( $input['venue_term_id'] ?? 0 );
+		$binding       = VenueCalendarFeed::get( $venue_term_id );
+
+		if ( empty( $binding['bound'] ) ) {
+			return new \WP_Error(
+				'venue_calendar_feed_not_bound',
+				__( 'No calendar feed is connected to this venue.', 'extrachill-events' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// A parked binding is reactivated by an explicit operator retry; that
+		// is the intended way out of the failure backoff.
+		if ( VenueCalendarFeed::STATUS_ACTIVE !== $binding['status'] ) {
+			VenueCalendarFeed::bind( $venue_term_id, $binding['feed_url'] );
+		}
+
+		$result = VenueCalendarFeedSync::sync_venue( $venue_term_id );
+
+		return array_merge( VenueCalendarFeed::get( $venue_term_id ), $result );
 	}
 
 	/**
@@ -266,6 +312,11 @@ class VenueCalendarFeedAbilities {
 				'last_synced'   => array( 'type' => 'string' ),
 				'last_error'    => array( 'type' => 'string' ),
 				'event_count'   => array( 'type' => 'integer' ),
+				'created'       => array( 'type' => 'integer' ),
+				'updated'       => array( 'type' => 'integer' ),
+				'unchanged'     => array( 'type' => 'integer' ),
+				'cancelled'     => array( 'type' => 'integer' ),
+				'skipped'       => array( 'type' => 'integer' ),
 			),
 		);
 	}

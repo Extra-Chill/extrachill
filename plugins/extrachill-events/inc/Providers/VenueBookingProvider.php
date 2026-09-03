@@ -46,6 +46,7 @@ final class VenueBookingProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueCalendarFeed.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueCalendarFeedSync.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationDeliveryWorker.php';
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
@@ -86,6 +87,7 @@ final class VenueBookingProvider {
 		\ExtraChillEvents\Core\BookingCommunicationService::register();
 		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
 		\ExtraChillEvents\Core\BookingNotificationService::register();
+		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
 
 		self::$registered = true;
