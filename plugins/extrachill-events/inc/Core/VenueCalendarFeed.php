@@ -53,6 +53,22 @@ class VenueCalendarFeed {
 	 */
 	public const SOURCE_NAME = 'venue_calendar_feed';
 
+	/**
+	 * ICS CLASS values that mark an entry as not for publication.
+	 *
+	 * RFC 5545 access classifications. An entry the author explicitly marked
+	 * private must never be imported, regardless of what else it looks like.
+	 */
+	public const PRIVATE_CLASSES = array( 'PRIVATE', 'CONFIDENTIAL' );
+
+	/**
+	 * ICS STATUS values that are not a confirmed public show.
+	 *
+	 * TENTATIVE is a hold, not a booking. CANCELLED is not happening. Neither
+	 * should be published as a live event.
+	 */
+	public const NON_PUBLIC_STATUSES = array( 'TENTATIVE', 'CANCELLED' );
+
 	/** Maximum bytes read from a feed response. */
 	public const MAX_FEED_BYTES = 5242880;
 
@@ -62,6 +78,36 @@ class VenueCalendarFeed {
 	/** Return every supported binding status. */
 	public static function statuses(): array {
 		return array( self::STATUS_ACTIVE, self::STATUS_PAUSED, self::STATUS_ERROR );
+	}
+
+	/**
+	 * Whether a feed entry is eligible for import at all.
+	 *
+	 * A venue may bind a working calendar rather than a dedicated public shows
+	 * calendar. Entries the author marked private, or that are holds or
+	 * cancellations, must never become events on the site.
+	 *
+	 * This is a hard exclusion, not a review step: an entry marked
+	 * CLASS:PRIVATE should not appear in a review queue either, because
+	 * surfacing "Staff meeting - payroll" to a reviewer already leaks it.
+	 *
+	 * @param array $event Normalized event from IcsExtractor.
+	 * @return bool
+	 */
+	public static function is_importable( array $event ): bool {
+		$class = strtoupper( trim( (string) ( $event['class'] ?? '' ) ) );
+
+		if ( in_array( $class, self::PRIVATE_CLASSES, true ) ) {
+			return false;
+		}
+
+		$status = strtoupper( trim( (string) ( $event['eventStatus'] ?? '' ) ) );
+
+		if ( in_array( $status, self::NON_PUBLIC_STATUSES, true ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

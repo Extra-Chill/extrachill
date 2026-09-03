@@ -156,7 +156,9 @@ describe( 'venue calendar feed tab', () => {
 
 		await click( button( container, 'Connect calendar' ) );
 
-		expect( container.textContent ).toContain( 'Found 12 events' );
+		expect( container.textContent ).toContain(
+			'Found 12 importable events'
+		);
 	} );
 
 	it( 'surfaces a specific bind failure rather than a generic message', async () => {
@@ -201,6 +203,75 @@ describe( 'venue calendar feed tab', () => {
 		expect( container.textContent ).toContain(
 			'8 added, 2 updated, 40 unchanged, 1 removed'
 		);
+	} );
+
+	/**
+	 * A venue owner needs to see that private entries were left alone, or they
+	 * cannot tell the difference between "we skipped your staff meetings" and
+	 * "the import missed events".
+	 */
+	it( 'reports entries excluded as private or unconfirmed', async () => {
+		runAbility.mockResolvedValueOnce( bound ).mockResolvedValueOnce( {
+			...bound,
+			created: 3,
+			updated: 0,
+			unchanged: 0,
+			cancelled: 0,
+			skipped: 0,
+			excluded: 5,
+		} );
+
+		const container = await renderTab();
+
+		await click( button( container, 'Import now' ) );
+
+		expect( container.textContent ).toContain(
+			'5 private or unconfirmed, not imported'
+		);
+	} );
+
+	/**
+	 * Nothing from a feed goes public unreviewed, so the owner must be told
+	 * that newly imported events are still pending.
+	 */
+	it( 'says new events await review', async () => {
+		runAbility.mockResolvedValueOnce( bound ).mockResolvedValueOnce( {
+			...bound,
+			created: 4,
+			updated: 0,
+			unchanged: 0,
+			cancelled: 0,
+			skipped: 0,
+			excluded: 0,
+		} );
+
+		const container = await renderTab();
+
+		await click( button( container, 'Import now' ) );
+
+		expect( container.textContent ).toContain( 'awaiting review' );
+	} );
+
+	/**
+	 * An update-only sync touched nothing new, so the review notice would be
+	 * noise.
+	 */
+	it( 'omits the review notice when nothing new was created', async () => {
+		runAbility.mockResolvedValueOnce( bound ).mockResolvedValueOnce( {
+			...bound,
+			created: 0,
+			updated: 3,
+			unchanged: 10,
+			cancelled: 0,
+			skipped: 0,
+			excluded: 0,
+		} );
+
+		const container = await renderTab();
+
+		await click( button( container, 'Import now' ) );
+
+		expect( container.textContent ).not.toContain( 'awaiting review' );
 	} );
 
 	it( 'shows the parked error message when a binding has failed', async () => {

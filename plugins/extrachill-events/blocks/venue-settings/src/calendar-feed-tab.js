@@ -55,7 +55,18 @@ const summarize = ( result ) => {
 	if ( result.skipped ) {
 		parts.push( `${ result.skipped } skipped` );
 	}
-	return parts.length ? parts.join( ', ' ) : 'No events found in the feed';
+	if ( result.excluded ) {
+		parts.push(
+			`${ result.excluded } private or unconfirmed, not imported`
+		);
+	}
+	if ( ! parts.length ) {
+		return 'No events found in the feed';
+	}
+	const summary = parts.join( ', ' );
+	return result.created
+		? `${ summary }. New events are awaiting review before they go public.`
+		: summary;
 };
 
 export function CalendarFeedTab( { venue } ) {
@@ -98,9 +109,9 @@ export function CalendarFeedTab( { venue } ) {
 				tone: 'success',
 				message: `Calendar connected. Found ${
 					result.event_count
-				} event${
+				} importable event${
 					result.event_count === 1 ? '' : 's'
-				}. Import it now to add them.`,
+				}. Import now to add them for review.`,
 			} );
 		} catch ( error ) {
 			setStatus( {
@@ -185,8 +196,15 @@ export function CalendarFeedTab( { venue } ) {
 		<Panel>
 			<PanelHeader
 				title="Calendar feed"
-				description="Connect this venue's public calendar and its shows will appear on Extra Chill automatically."
+				description="Connect this venue's calendar and its shows will be imported for review before they appear on Extra Chill."
 			/>
+
+			<p className="ec-venue-settings__hint">
+				Entries marked private or confidential in your calendar, and
+				anything still tentative or cancelled, are never imported.
+				Everything else is added for review first, so nothing goes
+				public until someone approves it.
+			</p>
 
 			{ feed.bound && feed.status === 'error' && (
 				<InlineStatus tone="error">

@@ -148,6 +148,7 @@ class VenueCalendarFeedSync {
 			'unchanged'     => 0,
 			'cancelled'     => 0,
 			'skipped'       => 0,
+			'excluded'      => 0,
 		);
 
 		if ( empty( $binding['bound'] ) || VenueCalendarFeed::STATUS_ACTIVE !== $binding['status'] ) {
@@ -170,6 +171,15 @@ class VenueCalendarFeedSync {
 		$seen = array();
 
 		foreach ( $events as $event ) {
+			// Entries marked private, or that are holds or cancellations, are
+			// excluded before anything else happens. They are never imported,
+			// never queued for review, and never counted as seen - so they are
+			// also never treated as "disappeared" on a later sync.
+			if ( ! VenueCalendarFeed::is_importable( $event ) ) {
+				++$result['excluded'];
+				continue;
+			}
+
 			$identity = (string) ( $event['occurrenceIdentity'] ?? '' );
 
 			// No stable feed-authored identity means no safe way to converge on
@@ -294,7 +304,17 @@ class VenueCalendarFeedSync {
 		$input = array(
 			'source'      => VenueCalendarFeed::SOURCE_NAME,
 			'source_id'   => $identity,
-			'post_status' => 'publish',
+			// New imports land pending for human review. A venue may bind a
+			// working calendar rather than a dedicated public shows calendar,
+			// and privacy markers only protect entries the author bothered to
+			// mark - a "Private party (buyout)" carries no marker at all.
+			// Publishing straight from an unreviewed feed would put whatever
+			// is on that calendar on the public site.
+			//
+			// Once an event has been reviewed and published, subsequent syncs
+			// update it in place rather than reverting it to pending, so a
+			// venue correcting a set time does not re-enter the queue.
+			'post_status' => $existing ? self::existing_status( $existing ) : 'pending',
 			'event'       => array_filter(
 				$payload,
 				static function ( $value ) {
@@ -351,6 +371,22 @@ class VenueCalendarFeedSync {
 		// owned_event_query() requests fields => ids; narrowed explicitly
 		// because get_posts() is typed as int|WP_Post either way.
 		return (int) ( is_object( $found ) ? $found->ID : $found );
+	}
+
+	/**
+	 * Current status of an already-imported event.
+	 *
+	 * Preserves a reviewer's decision across syncs. An event approved and
+	 * published stays published; one left pending stays pending; one a
+	 * reviewer deliberately drafted is not resurrected by the next sync.
+	 *
+	 * @param int $post_id Existing event post ID.
+	 * @return string Post status to write.
+	 */
+	private static function existing_status( int $post_id ): string {
+		$status = (string) get_post_status( $post_id );
+
+		return '' === $status ? 'pending' : $status;
 	}
 
 	/**

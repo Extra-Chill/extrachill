@@ -205,4 +205,66 @@ class VenueCalendarFeedTest extends TestCase {
 	public function test_source_name_is_distinct_and_stable() {
 		$this->assertSame( 'venue_calendar_feed', VenueCalendarFeed::SOURCE_NAME );
 	}
+
+	/**
+	 * A venue may bind a working calendar rather than a dedicated public shows
+	 * calendar. Entries the author explicitly marked private must never be
+	 * imported - not even into a review queue, since surfacing
+	 * "Staff meeting - payroll" to a reviewer already leaks it.
+	 *
+	 * @dataProvider private_entries
+	 */
+	public function test_private_entries_are_not_importable( array $event ) {
+		$this->assertFalse( VenueCalendarFeed::is_importable( $event ) );
+	}
+
+	public function private_entries(): array {
+		return array(
+			'private'            => array( array( 'class' => 'PRIVATE' ) ),
+			'confidential'       => array( array( 'class' => 'CONFIDENTIAL' ) ),
+			'lowercase private'  => array( array( 'class' => 'private' ) ),
+			'padded private'     => array( array( 'class' => ' PRIVATE ' ) ),
+			'tentative hold'     => array( array( 'eventStatus' => 'TENTATIVE' ) ),
+			'cancelled show'     => array( array( 'eventStatus' => 'CANCELLED' ) ),
+			'lowercase cancelled' => array( array( 'eventStatus' => 'cancelled' ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider public_entries
+	 */
+	public function test_public_entries_are_importable( array $event ) {
+		$this->assertTrue( VenueCalendarFeed::is_importable( $event ) );
+	}
+
+	public function public_entries(): array {
+		return array(
+			'explicitly public' => array( array( 'class' => 'PUBLIC' ) ),
+			'confirmed'         => array( array( 'eventStatus' => 'CONFIRMED' ) ),
+			'public confirmed'  => array(
+				array(
+					'class'       => 'PUBLIC',
+					'eventStatus' => 'CONFIRMED',
+				),
+			),
+			'no markers at all' => array( array( 'title' => 'Some Show' ) ),
+			'empty markers'     => array(
+				array(
+					'class'       => '',
+					'eventStatus' => '',
+				),
+			),
+		);
+	}
+
+	/**
+	 * An unmarked entry is importable, which is exactly why import is not the
+	 * same as publication. A venue buyout carries no CLASS marker, so markers
+	 * alone cannot be the only defense - the review step is.
+	 */
+	public function test_unmarked_private_sounding_entry_is_still_importable() {
+		$this->assertTrue(
+			VenueCalendarFeed::is_importable( array( 'title' => 'Private party (buyout)' ) )
+		);
+	}
 }

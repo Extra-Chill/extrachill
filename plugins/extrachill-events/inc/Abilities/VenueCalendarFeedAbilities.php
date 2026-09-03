@@ -265,7 +265,16 @@ class VenueCalendarFeedAbilities {
 			);
 		}
 
-		return count( $extractor->extract( $body, $url ) );
+		// Count only what would actually be imported. Reporting the raw entry
+		// count would tell an owner "Found 40 events" when 12 are shows and 28
+		// are staff meetings, which is exactly the confusion this needs to
+		// avoid.
+		$importable = array_filter(
+			$extractor->extract( $body, $url ),
+			array( VenueCalendarFeed::class, 'is_importable' )
+		);
+
+		return count( $importable );
 	}
 
 	/** Register one operation with shared authorization and metadata. */
@@ -317,6 +326,7 @@ class VenueCalendarFeedAbilities {
 				'unchanged'     => array( 'type' => 'integer' ),
 				'cancelled'     => array( 'type' => 'integer' ),
 				'skipped'       => array( 'type' => 'integer' ),
+				'excluded'      => array( 'type' => 'integer' ),
 			),
 		);
 	}
