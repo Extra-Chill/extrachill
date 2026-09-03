@@ -67,6 +67,12 @@ describe( 'venue booking workspace composition', () => {
 		);
 	} );
 
+	it( 'keeps published calendar items visually distinct without underlining them', () => {
+		expect( styles ).toContain(
+			'.ec-booking-calendar__item--published {\n\tborder-left-color: var(--success-color);\n\tbackground: color-mix(in srgb, var(--success-color) 16%, transparent);\n\ttext-decoration: none;'
+		);
+	} );
+
 	it( 'does not reintroduce local colors or arbitrary breakpoints', () => {
 		expect( styles ).not.toMatch( /#[0-9a-f]{3,8}\b/i );
 		expect( styles ).not.toMatch( /max-width:\s*(?:700|720)px/ );

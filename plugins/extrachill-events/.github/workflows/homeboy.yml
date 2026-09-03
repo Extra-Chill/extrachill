@@ -95,16 +95,16 @@ jobs:
 
       - name: Prepare pinned Homeboy binary
         run: |
-          mkdir -p "${RUNNER_TEMP}/homeboy-0.319.2"
+          mkdir -p "${RUNNER_TEMP}/homeboy-0.367.6"
           curl --fail --silent --show-error --location \
-            'https://github.com/Extra-Chill/homeboy/releases/download/v0.319.2/homeboy-x86_64-unknown-linux-gnu.tar.xz' \
-            --output "${RUNNER_TEMP}/homeboy-0.319.2.tar.xz"
+            'https://github.com/Extra-Chill/homeboy/releases/download/v0.367.6/homeboy-x86_64-unknown-linux-gnu.tar.xz' \
+            --output "${RUNNER_TEMP}/homeboy-0.367.6.tar.xz"
           printf '%s  %s\n' \
-            'b6ebc201fdeae12af95df08f7df29378dc40a7e425bd10975db0bb4cb0f68cd9' \
-            "${RUNNER_TEMP}/homeboy-0.319.2.tar.xz" | sha256sum --check --strict
-          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.319.2.tar.xz" \
-            --directory "${RUNNER_TEMP}/homeboy-0.319.2" --strip-components=1
-          chmod +x "${RUNNER_TEMP}/homeboy-0.319.2/homeboy"
+            '4e918a6b870351ff824947251b9c7611d0570ded6d48a9186227d1352ae9e54c' \
+            "${RUNNER_TEMP}/homeboy-0.367.6.tar.xz" | sha256sum --check --strict
+          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.367.6.tar.xz" \
+            --directory "${RUNNER_TEMP}/homeboy-0.367.6" --strip-components=1
+          chmod +x "${RUNNER_TEMP}/homeboy-0.367.6/homeboy"
 
       - name: Install Data Machine dependencies
         working-directory: .ci/data-machine
@@ -165,7 +165,7 @@ jobs:
           WP_CODEBOX_DB_PASSWORD: ''
         uses: Extra-Chill/homeboy-action@beedc218296bf2b66b04794f669611abf4e7cc7f
         with:
-          binary-path: ${{ runner.temp }}/homeboy-0.319.2/homeboy
+          binary-path: ${{ runner.temp }}/homeboy-0.367.6/homeboy
           commands: ${{ matrix.command }}
           args: ${{ github.event_name == 'workflow_dispatch' && '--changed-since=origin/main' || '' }}
           auto-issue: ${{ github.event_name == 'workflow_dispatch' && 'false' || '' }}
@@ -177,8 +177,8 @@ jobs:
         run: |
           mkdir -p wp-codebox-artifacts
           jq --null-input \
-            --arg homeboy_version '0.319.2' \
-            --arg homeboy_digest 'sha256:b6ebc201fdeae12af95df08f7df29378dc40a7e425bd10975db0bb4cb0f68cd9' \
+            --arg homeboy_version '0.367.6' \
+            --arg homeboy_digest 'sha256:4e918a6b870351ff824947251b9c7611d0570ded6d48a9186227d1352ae9e54c' \
             --arg wp_codebox_sha 'f437f518e3f3bd5629b58b713929cf272ba6d630' \
             --arg mysql_image 'mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b' \
             '{schema:"extrachill-events/managed-runtime-sources/v1",homeboy:{version:$homeboy_version,artifact_digest:$homeboy_digest},wp_codebox:{source:"https://github.com/Automattic/wp-codebox.git",commit:$wp_codebox_sha},mysql:{provider:"external",image:$mysql_image}}' \
