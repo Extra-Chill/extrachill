@@ -73,6 +73,18 @@ describe( 'venue booking workspace composition', () => {
 		);
 	} );
 
+	it( 'separates locked-in bookings from published events within the success band', () => {
+		// Confirmed, completed, and published all share --success-color, so the
+		// tint strength is the only signal distinguishing a booking the venue
+		// has locked in from an event already on sale.
+		expect( styles ).toContain(
+			'.ec-booking-calendar__item--confirmed,\n.ec-booking-calendar__item--completed {\n\tborder-left-color: var(--success-color);\n\tbackground: color-mix(in srgb, var(--success-color) 10%, transparent);'
+		);
+		expect( styles ).toContain(
+			'color-mix(in srgb, var(--success-color) 16%, transparent)'
+		);
+	} );
+
 	it( 'does not reintroduce local colors or arbitrary breakpoints', () => {
 		expect( styles ).not.toMatch( /#[0-9a-f]{3,8}\b/i );
 		expect( styles ).not.toMatch( /max-width:\s*(?:700|720)px/ );

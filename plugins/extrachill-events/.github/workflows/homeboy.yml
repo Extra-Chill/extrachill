@@ -85,7 +85,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: f36ba27143249ecbaa056799fb2e0c38b52b51b6
+          ref: 77d279f28e767d874cf2258dc64fc5955751dc78
           path: .ci/homeboy-extensions
 
       - name: Record MySQL readiness and version
@@ -156,7 +156,7 @@ jobs:
             {"database_type":"mysql","validation_dependencies":["${{ github.workspace }}/.ci/data-machine","${{ github.workspace }}/.ci/data-machine-events","${{ github.workspace }}/.ci/extrachill-network","${{ github.workspace }}/.ci/extrachill-users"],"wp_codebox_multisite":true,"wp_codebox_phpunit_bootstrap_mode":"managed"}
           HOMEBOY_WP_CODEBOX_ARTIFACTS_DIR: ${{ github.workspace }}/wp-codebox-artifacts
           HOMEBOY_WP_CODEBOX_INSTALL_MODE: source
-          HOMEBOY_WP_CODEBOX_REF: f437f518e3f3bd5629b58b713929cf272ba6d630
+          HOMEBOY_WP_CODEBOX_REF: 9c37251d5251f8eedebbb5599423d186b80ed23c
           HOMEBOY_WP_CODEBOX_SOURCE: https://github.com/Automattic/wp-codebox.git
           HOMEBOY_WORDPRESS_MULTISITE: '1'
           WP_CODEBOX_DB_HOST: 127.0.0.1
@@ -179,7 +179,7 @@ jobs:
           jq --null-input \
             --arg homeboy_version '0.367.6' \
             --arg homeboy_digest 'sha256:4e918a6b870351ff824947251b9c7611d0570ded6d48a9186227d1352ae9e54c' \
-            --arg wp_codebox_sha 'f437f518e3f3bd5629b58b713929cf272ba6d630' \
+            --arg wp_codebox_sha '9c37251d5251f8eedebbb5599423d186b80ed23c' \
             --arg mysql_image 'mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b' \
             '{schema:"extrachill-events/managed-runtime-sources/v1",homeboy:{version:$homeboy_version,artifact_digest:$homeboy_digest},wp_codebox:{source:"https://github.com/Automattic/wp-codebox.git",commit:$wp_codebox_sha},mysql:{provider:"external",image:$mysql_image}}' \
             > wp-codebox-artifacts/managed-runtime-source-evidence.json
