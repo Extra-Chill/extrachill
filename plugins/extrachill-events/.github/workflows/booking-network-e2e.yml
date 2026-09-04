@@ -48,35 +48,35 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/data-machine
-          ref: 25dbfc8e6c7e371afc80b64d58cd7761b902e3ac
+          ref: cbd6b42b7f5c978c1ea09df5a74a6be5c228fb20
           path: .ci/data-machine
 
       - name: Checkout Data Machine Events
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/data-machine-events
-          ref: 2fb1839a241c798bff0271f0de0f7412abcd5193
+          ref: efd7579fab38beb73f6961fc33da538a8f112d93
           path: .ci/data-machine-events
 
       - name: Checkout Extra Chill API
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/extrachill-api
-          ref: d449ed353f17b4c81cfd466fcbbefaa5ee637609
+          ref: e7948d46be12e6dad988fbb8a27dfd3d3b10e3cc
           path: .ci/extrachill-api
 
       - name: Checkout Extra Chill Network
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/extrachill-network
-          ref: fda028bbf7e0776ad25276d80e364ce309fea0dd
+          ref: bd7e73a69d20b05515cad9d2101220f84e25c176
           path: .ci/extrachill-network
 
       - name: Checkout Extra Chill Users
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/extrachill-users
-          ref: fb33dd4ce0fff86ad7c5dc58b03fde19b94a384e
+          ref: 346889fb9563138a0ec231dc0ac30d484e83bdc5
           path: .ci/extrachill-users
 
       - name: Checkout Extra Chill theme
@@ -90,14 +90,14 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: c75e18227f29524b1d403b54c46feba5402e7137
+          ref: 3da3634d1b85e536bb33315a9b722b7d02468c39
           path: .ci/homeboy-extensions
 
       - name: Checkout WP Codebox
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Automattic/wp-codebox
-          ref: 89cb2f9a91fb12afeb0b8ecd6c55816e1a8a1cac
+          ref: 82e02165dba2510ca04f5ce7e5a429804952404a
           path: .ci/wp-codebox
 
       - name: Set up Node.js
@@ -119,15 +119,15 @@ jobs:
         env:
           BOOKING_E2E_ARTIFACT_ROOT: ${{ github.workspace }}/artifacts/booking-network-e2e
           BOOKING_E2E_DATA_MACHINE: ${{ github.workspace }}/.ci/data-machine
-          BOOKING_E2E_DATA_MACHINE_REV: 25dbfc8e6c7e371afc80b64d58cd7761b902e3ac
+          BOOKING_E2E_DATA_MACHINE_REV: cbd6b42b7f5c978c1ea09df5a74a6be5c228fb20
           BOOKING_E2E_DATA_MACHINE_EVENTS: ${{ github.workspace }}/.ci/data-machine-events
-          BOOKING_E2E_DATA_MACHINE_EVENTS_REV: 2fb1839a241c798bff0271f0de0f7412abcd5193
+          BOOKING_E2E_DATA_MACHINE_EVENTS_REV: efd7579fab38beb73f6961fc33da538a8f112d93
           BOOKING_E2E_EXTRACHILL_API: ${{ github.workspace }}/.ci/extrachill-api
-          BOOKING_E2E_EXTRACHILL_API_REV: d449ed353f17b4c81cfd466fcbbefaa5ee637609
+          BOOKING_E2E_EXTRACHILL_API_REV: e7948d46be12e6dad988fbb8a27dfd3d3b10e3cc
           BOOKING_E2E_EXTRACHILL_NETWORK: ${{ github.workspace }}/.ci/extrachill-network
-          BOOKING_E2E_EXTRACHILL_NETWORK_REV: fda028bbf7e0776ad25276d80e364ce309fea0dd
+          BOOKING_E2E_EXTRACHILL_NETWORK_REV: bd7e73a69d20b05515cad9d2101220f84e25c176
           BOOKING_E2E_EXTRACHILL_USERS: ${{ github.workspace }}/.ci/extrachill-users
-          BOOKING_E2E_EXTRACHILL_USERS_REV: fb33dd4ce0fff86ad7c5dc58b03fde19b94a384e
+          BOOKING_E2E_EXTRACHILL_USERS_REV: 346889fb9563138a0ec231dc0ac30d484e83bdc5
           BOOKING_E2E_EXTRACHILL_THEME: ${{ github.workspace }}/.ci/extrachill
           BOOKING_E2E_EXTRACHILL_THEME_REV: 9c3be95c571f61147c904f7fc9869cb146c96957
           BOOKING_E2E_RIG_RUNNER: ${{ github.workspace }}/.ci/homeboy-extensions/wordpress/rigs/wordpress-multisite-e2e/run.mjs

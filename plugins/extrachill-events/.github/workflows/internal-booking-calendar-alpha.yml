@@ -62,42 +62,42 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Extra-Chill/extrachill-network
-          ref: main
+          ref: bd7e73a69d20b05515cad9d2101220f84e25c176
           path: .ci/extrachill-network
 
       - name: Checkout Extra Chill API
         uses: actions/checkout@v4
         with:
           repository: Extra-Chill/extrachill-api
-          ref: main
+          ref: e7948d46be12e6dad988fbb8a27dfd3d3b10e3cc
           path: .ci/extrachill-api
 
       - name: Checkout Data Machine
         uses: actions/checkout@v4
         with:
           repository: Extra-Chill/data-machine
-          ref: main
+          ref: cbd6b42b7f5c978c1ea09df5a74a6be5c228fb20
           path: .ci/data-machine
 
       - name: Checkout Data Machine Events
         uses: actions/checkout@v4
         with:
           repository: Extra-Chill/data-machine-events
-          ref: main
+          ref: efd7579fab38beb73f6961fc33da538a8f112d93
           path: .ci/data-machine-events
 
       - name: Checkout WP Codebox
         uses: actions/checkout@v4
         with:
           repository: Automattic/wp-codebox
-          ref: main
+          ref: 82e02165dba2510ca04f5ce7e5a429804952404a
           path: .ci/wp-codebox
 
       - name: Checkout Homeboy WordPress test adapter
         uses: actions/checkout@v4
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: main
+          ref: 3da3634d1b85e536bb33315a9b722b7d02468c39
           path: .ci/homeboy-extensions
 
       - name: Set up Node.js
