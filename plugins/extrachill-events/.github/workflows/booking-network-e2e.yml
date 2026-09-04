@@ -90,7 +90,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: 3da3634d1b85e536bb33315a9b722b7d02468c39
+          ref: 0445d47adddf1e6fd66b433a1d2183c24f40841a
           path: .ci/homeboy-extensions
 
       - name: Checkout WP Codebox

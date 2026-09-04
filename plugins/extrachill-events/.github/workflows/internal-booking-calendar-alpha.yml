@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: 3da3634d1b85e536bb33315a9b722b7d02468c39
+          ref: 0445d47adddf1e6fd66b433a1d2183c24f40841a
           path: .ci/homeboy-extensions
 
       - name: Set up Node.js
