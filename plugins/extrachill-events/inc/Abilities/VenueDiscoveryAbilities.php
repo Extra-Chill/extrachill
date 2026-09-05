@@ -24,10 +24,6 @@ class VenueDiscoveryAbilities {
 	 */
 	private const PLACES_API_URL = 'https://places.googleapis.com/v1/places:searchText';
 
-	/**
-	 * Google OAuth2 token endpoint.
-	 */
-	private const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
 	/**
 	 * OAuth2 scope for Places API.
@@ -119,7 +115,7 @@ class VenueDiscoveryAbilities {
 		$query = $this->buildSearchQuery( $city, $custom_query );
 
 		// Get access token.
-		$token = $this->getAccessToken();
+		$token = $this->accessToken();
 		if ( is_wp_error( $token ) ) {
 			return $token;
 		}
@@ -258,6 +254,29 @@ class VenueDiscoveryAbilities {
 	}
 
 	/**
+	 * Obtain a Places access token.
+	 *
+	 * Delegates to the shared service account provider, which owns JWT
+	 * assembly, RS256 signing, the token exchange, and network-wide caching.
+	 * The credential is read from the Analytics option this ability has always
+	 * used, so existing installs keep working.
+	 *
+	 * @return string|\WP_Error Access token, or a failure.
+	 */
+	private function accessToken() {
+		if ( ! class_exists( '\DataMachineBusiness\OAuth\Providers\GoogleServiceAccountAuth' ) ) {
+			return new \WP_Error(
+				'venue_discovery_provider_unavailable',
+				'Google service account authentication is unavailable. Activate Data Machine Business.'
+			);
+		}
+
+		$provider = new \DataMachineBusiness\OAuth\Providers\GoogleServiceAccountAuth( self::CONFIG_OPTION );
+
+		return $provider->get_access_token( self::SCOPE );
+	}
+
+	/**
 	 * Normalize a location component without requiring WordPress formatting APIs.
 	 *
 	 * @param string $value Location component.
@@ -267,81 +286,6 @@ class VenueDiscoveryAbilities {
 		return preg_replace( '/[^a-z0-9]+/', '', strtolower( $value ) ) ?? '';
 	}
 
-	/**
-	 * Get OAuth2 access token using service account JWT.
-	 *
-	 * @return string|\WP_Error Access token or error.
-	 */
-	private function getAccessToken() {
-		$config = get_site_option( self::CONFIG_OPTION, array() );
-
-		if ( empty( $config['service_account_json'] ) ) {
-			return new \WP_Error(
-				'no_service_account',
-				'Google service account not configured. Set it in Data Machine Analytics settings.'
-			);
-		}
-
-		$sa = json_decode( $config['service_account_json'], true );
-		if ( empty( $sa['client_email'] ) || empty( $sa['private_key'] ) ) {
-			return new \WP_Error( 'invalid_service_account', 'Service account JSON missing client_email or private_key.' );
-		}
-
-		$now = time();
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Base64url is required by the JWT spec to encode the token header; not obfuscation.
-		$header = base64_encode(
-			wp_json_encode(
-				array(
-					'alg' => 'RS256',
-					'typ' => 'JWT',
-				)
-			)
-		);
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Base64url is required by the JWT spec to encode the token claim set; not obfuscation.
-		$claims = base64_encode(
-			wp_json_encode(
-				array(
-					'iss'   => $sa['client_email'],
-					'scope' => self::SCOPE,
-					'aud'   => self::TOKEN_URL,
-					'exp'   => $now + 3600,
-					'iat'   => $now,
-				)
-			)
-		);
-
-		$unsigned  = $header . '.' . $claims;
-		$signature = '';
-
-		if ( ! openssl_sign( $unsigned, $signature, $sa['private_key'], 'SHA256' ) ) {
-			return new \WP_Error( 'jwt_sign_failed', 'Failed to sign JWT.' );
-		}
-
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Base64url is required by the JWT spec to encode the RS256 signature; not obfuscation.
-		$jwt = $unsigned . '.' . str_replace( array( '+', '/', '=' ), array( '-', '_', '' ), base64_encode( $signature ) );
-
-		$response = wp_remote_post(
-			self::TOKEN_URL,
-			array(
-				'body' => array(
-					'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-					'assertion'  => $jwt,
-				),
-			)
-		);
-
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-		if ( empty( $body['access_token'] ) ) {
-			return new \WP_Error( 'token_error', 'Failed to get access token: ' . wp_json_encode( $body ) );
-		}
-
-		return $body['access_token'];
-	}
 
 	/**
 	 * Search Google Places API for venues.
