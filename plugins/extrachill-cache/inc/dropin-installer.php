@@ -38,6 +38,14 @@ function extrachill_cache_dropin_path() {
  * to blog_id, mirroring the switch Breeze hand-maintained in its
  * advanced-cache.php.
  *
+ * get_sites() only returns rows that live in wp_blogs. Some network setups
+ * additionally map extra hostnames onto an existing blog via a `sunrise.php`
+ * domain alias (a vanity/short domain that never gets its own wp_blogs row).
+ * get_sites() structurally cannot see those hosts, so this generic, vendor-
+ * agnostic layer has no way to discover them itself — see the
+ * `extrachill_cache_dropin_alias_hosts` filter below for how a feature plugin
+ * that owns such a mapping declares it.
+ *
  * @return array<string,int>
  */
 function extrachill_cache_build_blog_map() {
@@ -49,6 +57,29 @@ function extrachill_cache_build_blog_map() {
 			$host = strtolower( (string) $site->domain );
 			if ( '' !== $host ) {
 				$map[ $host ] = (int) $site->blog_id;
+			}
+		}
+	}
+
+	/**
+	 * Declare additional host => blog_id aliases invisible to get_sites().
+	 *
+	 * This plugin is a generic, network-wide layer and must not hardcode any
+	 * vendor-specific hostname. A feature plugin that owns a sunrise.php (or
+	 * equivalent) domain alias — mapping a hostname to an existing blog_id
+	 * without a wp_blogs row of its own — should hook this filter to declare
+	 * that mapping so the cache drop-in can resolve, partition, and invalidate
+	 * it correctly instead of silently collapsing to blog_id 0.
+	 *
+	 * @param array<string,int> $aliases Host => blog_id map. Empty by default.
+	 */
+	$aliases = apply_filters( 'extrachill_cache_dropin_alias_hosts', array() );
+	if ( is_array( $aliases ) ) {
+		foreach ( $aliases as $alias_host => $alias_blog_id ) {
+			$alias_host    = strtolower( (string) $alias_host );
+			$alias_blog_id = (int) $alias_blog_id;
+			if ( '' !== $alias_host && $alias_blog_id > 0 ) {
+				$map[ $alias_host ] = $alias_blog_id;
 			}
 		}
 	}

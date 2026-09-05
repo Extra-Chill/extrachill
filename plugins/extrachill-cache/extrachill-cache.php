@@ -81,6 +81,10 @@ require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/cli.php';
 // the early serve gate. Only wired to activation/deactivation hooks.
 require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/dropin-installer.php';
 
+// Site Health: detects drift between the baked drop-in host->blog_id map and
+// the live network + declared aliases (see extrachill_cache_dropin_alias_hosts).
+require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/site-health.php';
+
 register_activation_hook( __FILE__, 'extrachill_cache_activate' );
 register_deactivation_hook( __FILE__, 'extrachill_cache_deactivate' );
 

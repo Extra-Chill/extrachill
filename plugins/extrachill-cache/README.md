@@ -84,7 +84,37 @@ Two entry points share one cache store:
    the current blog's partition.
 5. **`inc/dropin-installer.php` — drop-in management.** Composes the
    `advanced-cache.php` file (injected constants + host→blog_id map + template)
-   and toggles `WP_CACHE`. Only runs on activation/deactivation.
+   and toggles `WP_CACHE`. Only runs on activation/deactivation. The host→blog_id
+   map is built from `get_sites()` plus any hosts declared through the
+   `extrachill_cache_dropin_alias_hosts` filter — see "Domain aliases" below.
+6. **`inc/site-health.php` — host-map staleness detector.** A WordPress Site
+   Health check that diffs the map baked into the installed drop-in against
+   what the generator would produce right now, so a network change that
+   silently drops a host to the shared blog-0 partition is surfaced instead of
+   discovered by symptom.
+
+## Domain aliases (sunrise.php mappings)
+
+`get_sites()` only returns rows that live in `wp_blogs`. Some deployments
+additionally map an extra hostname onto an existing blog via a `sunrise.php`
+domain alias — a vanity/short domain that never gets its own `wp_blogs` row.
+`get_sites()` structurally cannot see those hosts, and this plugin is a
+generic, vendor-agnostic layer that must not hardcode any specific alias
+domain in its source.
+
+A feature plugin that owns such a mapping should declare it via:
+
+```php
+add_filter( 'extrachill_cache_dropin_alias_hosts', function ( $aliases ) {
+	$aliases['example-alias.com'] = 4; // Maps to blog_id 4.
+	return $aliases;
+} );
+```
+
+Declared aliases are merged into the host→blog_id map the next time the
+drop-in is regenerated (plugin reactivation). The Site Health check
+(`inc/site-health.php`) will flag drift if a declared or live host is missing
+from the currently-installed drop-in.
 
 On-disk layout: `wp-content/cache/extrachill-cache/{blog_id}/{sha512}.html`,
 each file a serialized `array( 'body' => ..., 'headers' => ... )` (same shape
