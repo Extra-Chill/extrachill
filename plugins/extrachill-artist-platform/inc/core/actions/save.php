@@ -277,55 +277,53 @@ function ec_get_link_page_public_urls( $link_page_id ) {
 }
 
 /**
- * Include public link page URLs when Breeze purges a link page post.
+ * Return link page pages affected by a link page change.
  *
- * @param string[] $urls    URLs queued for purge.
- * @param int      $post_id Post ID being purged.
- * @param string   $context Purge context.
- * @return string[] URLs queued for purge.
+ * This integration keeps Link-Page-specific URL knowledge out of the generic
+ * cache layer. Registered for post type `artist_link_page` so any core-driven
+ * post lifecycle event (publish, trash, delete) that reaches
+ * extrachill_cache_purge_on_post_change() purges only the affected public URLs
+ * instead of the whole blog.
+ *
+ * @param null|array $urls      URLs supplied by another integration.
+ * @param int        $post_id   Changed post ID.
+ * @param string     $post_type Changed post type.
+ * @return null|array Exact URLs to invalidate, or $urls untouched for other post types.
  */
-function ec_add_link_page_urls_to_breeze_purge( $urls, $post_id, $context ) {
-    if ( get_post_type( $post_id ) !== 'artist_link_page' ) {
+function ec_link_page_cache_invalidation_urls( $urls, $post_id, $post_type ) {
+    if ( 'artist_link_page' !== $post_type ) {
         return $urls;
     }
 
-    return array_merge( $urls, ec_get_link_page_public_urls( $post_id ) );
+    return ec_get_link_page_public_urls( $post_id );
 }
-add_filter( 'breeze_purge_post_cache_urls', 'ec_add_link_page_urls_to_breeze_purge', 10, 3 );
+add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_invalidation_urls', 10, 3 );
 
 /**
- * Request cache purge after link page saves.
+ * Purge public link page URLs after a link page save.
+ *
+ * Link page saves are meta-only (no wp_update_post call), so they never fire
+ * WordPress's transition_post_status hook and never reach
+ * extrachill_cache_purge_on_post_change() on their own. This mirrors that
+ * function's targeted-URL behavior directly, the same way extrachill-events
+ * purges its venue booking archive after a non-post-status config change.
  *
  * @param int $link_page_id The saved link page ID.
  */
 function ec_purge_link_page_cache( $link_page_id ) {
+    if ( ! function_exists( 'extrachill_cache_delete_url' ) ) {
+        return;
+    }
+
     $urls = ec_get_link_page_public_urls( $link_page_id );
     if ( empty( $urls ) ) {
         return;
     }
 
-    if ( function_exists( 'breeze_get_filesystem' ) && function_exists( 'breeze_get_cache_base_path' ) ) {
-        $wp_filesystem = breeze_get_filesystem();
-        foreach ( $urls as $url ) {
-            $cache_path = breeze_get_cache_base_path() . hash( 'sha512', $url );
-            if ( $wp_filesystem->exists( $cache_path ) ) {
-                $wp_filesystem->rmdir( $cache_path, true );
-            }
-        }
+    $blog_id = get_current_blog_id();
+    foreach ( $urls as $url ) {
+        extrachill_cache_delete_url( $url, $blog_id );
     }
-
-    if ( class_exists( 'Breeze_CloudFlare_Helper' ) && method_exists( 'Breeze_CloudFlare_Helper', 'purge_cloudflare_cache_urls' ) ) {
-        Breeze_CloudFlare_Helper::purge_cloudflare_cache_urls( $urls );
-    }
-
-    if ( class_exists( 'Breeze_PurgeVarnish' ) ) {
-        $varnish = new Breeze_PurgeVarnish();
-        foreach ( $urls as $url ) {
-            $varnish->purge_cache( untrailingslashit( $url ) . '/?breeze' );
-        }
-    }
-
-    do_action( 'ec_link_page_cache_purged', $link_page_id, $urls );
 }
 add_action( 'ec_link_page_save', 'ec_purge_link_page_cache', 20, 1 );
 }
