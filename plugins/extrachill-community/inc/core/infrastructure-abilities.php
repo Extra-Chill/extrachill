@@ -344,9 +344,7 @@ function extrachill_community_ability_flush_cache() {
 		extrachill_delete_leaderboard_cache();
 	}
 
-	if ( function_exists( 'breeze_purge_cache' ) ) {
-		breeze_purge_cache();
-	}
+	do_action( 'extrachill_cache_flush' );
 
 	return array( 'flushed' => true );
 }

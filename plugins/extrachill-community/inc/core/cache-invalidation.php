@@ -82,7 +82,6 @@ function extrachill_handle_forum_cache_invalidation($post_id) {
 	$user_ids = array_unique(array_filter($user_ids));
 
 	extrachill_clear_user_points_cache($user_ids);
-	extrachill_purge_forum_edge_cache($topic_id, $forum_id);
 	extrachill_update_parent_forum_last_active_times($forum_id);
 }
 
@@ -152,40 +151,76 @@ function extrachill_queue_user_points_recalculation($user_ids) {
 }
 
 /**
- * Purge Breeze/Varnish caches for affected URLs when available.
+ * Register targeted forum/topic edge cache invalidation with extrachill-cache.
  *
- * @param int $topic_id Topic ID.
- * @param int $forum_id Forum ID.
+ * Runs on plugins_loaded so bbPress helper functions are guaranteed to
+ * exist by the time the filter fires later (transition_post_status /
+ * before_delete_post happen well after plugin bootstrap).
  */
-function extrachill_purge_forum_edge_cache($topic_id, $forum_id) {
-	$urls = array();
+add_action('plugins_loaded', function () {
+	add_filter('extrachill_cache_post_change_urls', 'extrachill_community_cache_invalidation_urls', 10, 3);
+});
+
+/**
+ * Return forum pages affected by a bbPress topic/reply/forum change.
+ *
+ * Keeps bbPress-specific URL knowledge out of the generic cache layer,
+ * mirroring the extrachill-events integration pattern
+ * (extrachill-events/inc/core/page-cache.php).
+ *
+ * @param null|array $urls      URLs supplied by another integration.
+ * @param int        $post_id   Changed post ID.
+ * @param string     $post_type Changed post type.
+ * @return null|array Exact URLs to invalidate, or the incoming value untouched.
+ */
+function extrachill_community_cache_invalidation_urls($urls, $post_id, $post_type) {
+	if ( ! function_exists('bbp_get_topic_post_type') ) {
+		return $urls;
+	}
+
+	$topic_post_type = bbp_get_topic_post_type();
+	$reply_post_type = bbp_get_reply_post_type();
+	$forum_post_type = bbp_get_forum_post_type();
+
+	if ( ! in_array($post_type, array( $topic_post_type, $reply_post_type, $forum_post_type ), true) ) {
+		return $urls;
+	}
+
+	if ( $reply_post_type === $post_type ) {
+		$topic_id = bbp_get_reply_topic_id($post_id);
+	} elseif ( $topic_post_type === $post_type ) {
+		$topic_id = $post_id;
+	} else {
+		$topic_id = 0;
+	}
+
+	$forum_id = 0;
+	if ( $forum_post_type === $post_type ) {
+		$forum_id = $post_id;
+	} elseif ( $topic_id ) {
+		$forum_id = bbp_get_topic_forum_id($topic_id);
+	}
+
+	$edge_urls = array();
 
 	if ( $forum_id ) {
-		$urls[] = bbp_get_forum_permalink($forum_id);
+		$forum_url = bbp_get_forum_permalink($forum_id);
+		if ( $forum_url ) {
+			$edge_urls[] = $forum_url;
+		}
 	}
 
 	if ( $topic_id ) {
-		$urls[] = bbp_get_topic_permalink($topic_id);
-	}
-
-	$urls[] = home_url('/community');
-	$urls[] = home_url('/recent');
-
-	$urls = array_filter(array_unique($urls));
-
-	foreach ( $urls as $url ) {
-		if ( function_exists('breeze_purge_url') ) {
-			breeze_purge_url($url);
-		}
-
-		if ( has_action('breeze_purge_url') ) {
-			do_action('breeze_purge_url', $url);
+		$topic_url = bbp_get_topic_permalink($topic_id);
+		if ( $topic_url ) {
+			$edge_urls[] = $topic_url;
 		}
 	}
 
-	if ( function_exists('breeze_purge_cache') ) {
-		breeze_purge_cache();
-	}
+	$edge_urls[] = home_url('/community');
+	$edge_urls[] = home_url('/recent');
+
+	return array_values(array_unique(array_filter($edge_urls)));
 }
 
 /**
