@@ -21,6 +21,36 @@
         },
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_phpunit_suites": [
+          {
+            "name": "booking-mysql",
+            "config": "phpunit-booking-mysql.xml.dist"
+          },
+          {
+            "name": "booking-concurrency",
+            "config": "phpunit-booking-concurrency.xml.dist"
+          },
+          {
+            "name": "managed-wordpress",
+            "config": "phpunit-managed.xml.dist"
+          },
+          {
+            "name": "membership",
+            "config": "phpunit-membership.xml.dist"
+          },
+          {
+            "name": "promoter-authority",
+            "config": "phpunit-promoter-authority.xml.dist"
+          },
+          {
+            "name": "booking-alpha",
+            "config": "phpunit-booking-alpha.xml.dist"
+          },
+          {
+            "name": "booking-alpha-concurrency",
+            "config": "phpunit-booking-alpha-concurrency.xml.dist"
+          }
+        ],
         "wp_config_defines": {
           "EC_LINK_PAGE_STORAGE_BLOG_ID": 1
         },
@@ -28,6 +58,7 @@
           "data-machine",
           "data-machine-events",
           "data-machine-socials",
+          "extrachill-api",
           "extrachill-newsletter",
           "extrachill-link-pages",
           "extrachill-network",
