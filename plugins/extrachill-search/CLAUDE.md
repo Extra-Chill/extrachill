@@ -28,7 +28,8 @@ Network-activated WordPress plugin providing centralized multisite search for th
 **Universal Network Search** (`inc/core/search-functions.php`):
 - **`extrachill_multisite_search( $term, $site_urls = array(), $args = array() )`**: Core search primitive. An empty `$site_urls` searches every network site; a non-empty list restricts to those sites.
 - **Canonical Site Map**: `extrachill_get_network_site_map()` builds the searchable site list from `ec_get_domain_map()` (extrachill-multisite), filtered via `extrachill_search_site_map`. No `get_sites()` discovery.
-- **Per-Site Post Types**: `extrachill_get_site_post_types()` maps each blog ID to its searchable post types (filterable via `extrachill_search_site_post_types_map`).
+- **Search Exclusions**: `extrachill_get_network_search_excluded_blog_ids()` (filterable via `extrachill_search_excluded_blog_ids`) lists network sites deliberately kept out of public search even though they exist in `ec_get_domain_map()`. Studio (blog 12) is excluded by default — it's the internal editorial tool site, not published editorial content. Excluded blogs never reach `extrachill_get_network_site_map()`.
+- **Per-Site Post Types**: `extrachill_get_site_post_types()` maps each blog ID to its searchable post types (filterable via `extrachill_search_site_post_types_map`). A Site Health check (`extrachill_search_post_type_map_site_health_test()` in `inc/core/index-health.php`) flags any domain-map blog missing from this map (and not excluded) or any stale map entry with no domain-map match.
 - **Pagination and Sorting**: Supports limit, offset, orderby, order with cross-site date + relevance sorting.
 - **Relevance Scoring**: Weighted algorithm prioritizing exact matches, phrase matches, and word-level matching (FULLTEXT MATCH AGAINST where indexed, with a word-level fallback).
 - **Network Site Discovery**: `extrachill_get_network_sites()` with static caching for performance.

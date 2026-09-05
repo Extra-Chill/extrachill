@@ -219,5 +219,96 @@ function extrachill_register_search_site_health_test( $tests ) {
 		'test'  => 'extrachill_search_index_site_health_test',
 	);
 
+	$tests['direct']['extrachill_search_post_type_map'] = array(
+		'label' => __( 'Is the ExtraChill Search post-type map up to date?', 'extrachill-search' ),
+		'test'  => 'extrachill_search_post_type_map_site_health_test',
+	);
+
 	return $tests;
+}
+
+/**
+ * Report post-type map drift against the canonical domain map through Site Health.
+ *
+ * extrachill_get_site_post_types() is a hand-maintained map of blog ID =>
+ * searchable post types, required because switch_to_blog() does not load
+ * the target site's plugins, so search cannot introspect what CPTs a
+ * remote blog actually registers. That map silently drifts out of sync
+ * whenever a network site is added, removed, or (like Studio) deliberately
+ * excluded from search without a corresponding map update.
+ *
+ * This check compares the post-type map's keys against every blog ID in
+ * ec_get_domain_map(), excluding blog IDs deliberately excluded from
+ * search (extrachill_get_network_search_excluded_blog_ids()), and flags:
+ * - Domain-map blogs with no post-type map entry (a real site search
+ *   cannot yet route correctly, silently falling back to array('post','page')).
+ * - Post-type map entries with no corresponding domain-map blog (a stale
+ *   entry for a decommissioned or renamed site).
+ *
+ * @return array Site Health test result.
+ */
+function extrachill_search_post_type_map_site_health_test() {
+	$result = array(
+		'label'       => __( 'ExtraChill Search post-type map matches the network', 'extrachill-search' ),
+		'status'      => 'good',
+		'badge'       => array(
+			'label' => __( 'Performance', 'extrachill-search' ),
+			'color' => 'blue',
+		),
+		'description' => '<p>' . esc_html__( 'Every network site is either mapped to explicit searchable post types or deliberately excluded from search.', 'extrachill-search' ) . '</p>',
+		'test'        => 'extrachill_search_post_type_map',
+	);
+
+	if ( ! function_exists( 'ec_get_domain_map' ) || ! function_exists( 'extrachill_get_site_post_types' ) ) {
+		return $result;
+	}
+
+	$domain_map  = ec_get_domain_map();
+	$domain_ids  = array();
+	foreach ( $domain_map as $domain => $blog_id ) {
+		$domain_ids[ (int) $blog_id ] = $domain;
+	}
+
+	$excluded_ids   = function_exists( 'extrachill_get_network_search_excluded_blog_ids' )
+		? array_map( 'intval', extrachill_get_network_search_excluded_blog_ids() )
+		: array();
+	$post_type_map  = extrachill_get_site_post_types();
+	$post_type_ids  = array_map( 'intval', array_keys( $post_type_map ) );
+
+	$missing_from_map = array();
+	foreach ( $domain_ids as $blog_id => $domain ) {
+		if ( in_array( $blog_id, $excluded_ids, true ) ) {
+			continue;
+		}
+		if ( ! in_array( $blog_id, $post_type_ids, true ) ) {
+			$missing_from_map[] = sprintf( '%s (blog %d)', $domain, $blog_id );
+		}
+	}
+
+	$stale_in_map = array();
+	foreach ( $post_type_ids as $blog_id ) {
+		if ( ! isset( $domain_ids[ $blog_id ] ) ) {
+			$stale_in_map[] = (string) $blog_id;
+		}
+	}
+
+	if ( empty( $missing_from_map ) && empty( $stale_in_map ) ) {
+		return $result;
+	}
+
+	$result['label']  = __( 'ExtraChill Search post-type map is out of date', 'extrachill-search' );
+	$result['status'] = 'recommended';
+
+	$description = '';
+	if ( ! empty( $missing_from_map ) ) {
+		$description .= '<p>' . esc_html__( 'These network sites have no entry in extrachill_get_site_post_types() and silently fall back to array(\'post\',\'page\') when included in search:', 'extrachill-search' ) . ' ' . esc_html( implode( ', ', $missing_from_map ) ) . '</p>';
+	}
+	if ( ! empty( $stale_in_map ) ) {
+		$description .= '<p>' . esc_html__( 'These blog IDs appear in extrachill_get_site_post_types() but no longer exist in ec_get_domain_map() (decommissioned or renamed):', 'extrachill-search' ) . ' ' . esc_html( implode( ', ', $stale_in_map ) ) . '</p>';
+	}
+
+	$result['description'] = $description;
+	$result['actions']     = '<p>' . esc_html__( 'Add the missing blog to extrachill_get_site_post_types() with its actual searchable post types, add it to extrachill_get_network_search_excluded_blog_ids() if it should be excluded from search instead, or remove the stale entry.', 'extrachill-search' ) . '</p>';
+
+	return $result;
 }

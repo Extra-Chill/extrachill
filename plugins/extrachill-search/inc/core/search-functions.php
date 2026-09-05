@@ -10,6 +10,38 @@
  */
 
 /**
+ * Blog IDs deliberately excluded from public network search.
+ *
+ * These are real, active network sites (present in ec_get_domain_map()) that
+ * are intentionally NOT searchable from the reader-facing network scope.
+ * This is a documented decision, not an omission — see the per-entry reason.
+ *
+ * - Studio (blog 12, studio.extrachill.com): internal editorial tool site
+ *   (compose, media proxy, autosave, review queue, social drafts). Its
+ *   `post`/`page` content is staff-facing working material, not published
+ *   editorial, and should not surface in public search results.
+ *
+ * @return int[] Excluded blog IDs.
+ */
+function extrachill_get_network_search_excluded_blog_ids() {
+	$excluded = array();
+
+	if ( function_exists( 'ec_get_blog_id' ) ) {
+		$studio_blog_id = ec_get_blog_id( 'studio' );
+		if ( null !== $studio_blog_id ) {
+			$excluded[] = $studio_blog_id;
+		}
+	}
+
+	/**
+	 * Filter the blog IDs excluded from public network search.
+	 *
+	 * @param int[] $excluded Excluded blog IDs.
+	 */
+	return apply_filters( 'extrachill_search_excluded_blog_ids', $excluded );
+}
+
+/**
  * Retrieve hardcoded multisite map keyed by blog ID.
  *
  * Mirrors the documented network architecture to avoid runtime discovery.
@@ -28,12 +60,18 @@ function extrachill_get_network_site_map() {
 		return array();
 	}
 
-	$domain_map = ec_get_domain_map();
-	$site_map = array();
+	$domain_map        = ec_get_domain_map();
+	$excluded_blog_ids = extrachill_get_network_search_excluded_blog_ids();
+	$site_map          = array();
 
 	foreach ( $domain_map as $domain => $blog_id ) {
 		// Skip duplicate mappings (extrachill.link, www.extrachill.link)
 		if ( isset( $site_map[ $blog_id ] ) ) {
+			continue;
+		}
+
+		// Skip sites deliberately excluded from public search (e.g. Studio).
+		if ( in_array( (int) $blog_id, $excluded_blog_ids, true ) ) {
 			continue;
 		}
 
@@ -135,6 +173,10 @@ function extrachill_resolve_site_urls( $site_urls ) {
  *
  * Centralizes post type mapping for search queries, SEO audits, and fallbacks.
  * Blog ID 6 is unused. Blog ID 8 was stream.extrachill.com (decommissioned April 2026).
+ * Studio (blog 12) has no entry here on purpose — see
+ * extrachill_get_network_search_excluded_blog_ids() for why it never reaches
+ * this map's fallback path in the first place. If a blog is neither excluded
+ * nor mapped here, extrachill_search_post_type_map_site_health_test() flags it.
  *
  * @return array<int, array<int, string>>
  */
