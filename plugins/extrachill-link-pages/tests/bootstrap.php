@@ -20,6 +20,9 @@ class WP_Error {
 
 class EcTestActivationException extends RuntimeException {}
 
+/** Raised when production code reaches for a multisite-only API on single site. */
+class EcTestMultisiteApiUnavailable extends RuntimeException {}
+
 class EcTestWpdb {
 	private $locks = array();
 	public function prepare( $query, ...$args ) { return vsprintf( str_replace( '%s', "'%s'", $query ), $args ); }
@@ -201,7 +204,25 @@ function restore_current_blog() {
 	$GLOBALS['switched'] = (bool) $GLOBALS['_wp_switched_stack'];
 	return true;
 }
+/**
+ * Multisite-only site lookup.
+ *
+ * WordPress defines get_site() in wp-includes/ms-site.php, which is loaded
+ * only on multisite. Calling it on single site is a fatal "undefined function"
+ * error. This harness cannot un-define a function, so it models that boundary
+ * instead: invoking get_site() while is_multisite() is false throws, which
+ * fails any test whose code path would fatal on a real single-site install.
+ *
+ * Without this guard the harness silently grants production code a multisite
+ * API that will not exist at runtime — the exact gap that let a single-site
+ * activation fatal ship undetected (issue #15).
+ */
 function get_site( $blog_id ) {
+	if ( ! is_multisite() ) {
+		throw new EcTestMultisiteApiUnavailable(
+			'get_site() is unavailable on single-site WordPress; guard the call with function_exists( \'get_site\' ) or is_multisite().'
+		);
+	}
 	if ( ! isset( $GLOBALS['ec_test']['blogs'][ $blog_id ] ) ) {
 		return null;
 	}

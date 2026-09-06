@@ -9,10 +9,27 @@ defined( 'ABSPATH' ) || exit;
 
 defined( 'EC_LINK_PAGE_STORAGE_BLOG_OPTION' ) || define( 'EC_LINK_PAGE_STORAGE_BLOG_OPTION', 'ec_link_page_storage_blog_id' );
 
-/** Validate a candidate canonical storage site. */
+/**
+ * Validate a candidate canonical storage site.
+ *
+ * `get_site()` lives in wp-includes/ms-site.php and is only loaded on
+ * multisite, so it must never be called unconditionally. On single site there
+ * is exactly one blog and no site record to inspect, so the only meaningful
+ * check is that the candidate is the current blog.
+ *
+ * @param int $blog_id Candidate storage blog ID.
+ * @return int Validated blog ID, or 0 when the candidate is unusable.
+ */
 function ec_validate_link_page_storage_blog_id( $blog_id ) {
 	$blog_id = max( 0, (int) $blog_id );
-	$site    = $blog_id ? get_site( $blog_id ) : null;
+	if ( ! $blog_id ) {
+		return 0;
+	}
+	$multisite = function_exists( 'is_multisite' ) && is_multisite();
+	if ( ! $multisite || ! function_exists( 'get_site' ) ) {
+		return (int) get_current_blog_id() === $blog_id ? $blog_id : 0;
+	}
+	$site = get_site( $blog_id );
 	return $site && empty( $site->deleted ) && empty( $site->archived ) && empty( $site->spam ) ? $blog_id : 0;
 }
 
