@@ -25,12 +25,20 @@
           {
             "name": "booking-mysql",
             "config": "phpunit-booking-mysql.xml.dist",
-            "runtime": "sandbox"
+            "runtime": "sandbox",
+            "preload_files": [
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php"
+            ]
           },
           {
             "name": "booking-concurrency",
             "config": "phpunit-booking-concurrency.xml.dist",
-            "runtime": "sandbox"
+            "runtime": "sandbox",
+            "preload_files": [
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php"
+            ]
           },
           {
             "name": "managed-wordpress",
@@ -40,22 +48,38 @@
           {
             "name": "membership",
             "config": "phpunit-membership.xml.dist",
-            "runtime": "sandbox"
+            "runtime": "sandbox",
+            "preload_files": [
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
+            ]
           },
           {
             "name": "promoter-authority",
             "config": "phpunit-promoter-authority.xml.dist",
-            "runtime": "sandbox"
+            "runtime": "sandbox",
+            "preload_files": [
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
+            ]
           },
           {
             "name": "booking-alpha",
             "config": "phpunit-booking-alpha.xml.dist",
-            "runtime": "sandbox"
+            "runtime": "sandbox",
+            "preload_files": [
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/internal-booking-alpha-bootstrap.php"
+            ]
           },
           {
             "name": "booking-alpha-concurrency",
             "config": "phpunit-booking-alpha-concurrency.xml.dist",
-            "runtime": "sandbox"
+            "runtime": "sandbox",
+            "preload_files": [
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/internal-booking-alpha-bootstrap.php"
+            ]
           },
           {
             "name": "artist-unit",
