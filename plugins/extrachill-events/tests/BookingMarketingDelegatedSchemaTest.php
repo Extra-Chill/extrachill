@@ -6,18 +6,22 @@
  */
 
 namespace DataMachine\Core\DelegatedOperations {
-	class DelegatedOperationService {
-		public function submit( array $input ): array {
-			return $input;
-		}
-		public function reconcile( array $input ): array {
-			return $input;
-		}
-		public function retry( array $input ): array {
-			return $input;
-		}
-		public function cancel( array $input ): array {
-			return $input;
+	// Guarded because Data Machine ships this class. Whenever it is a loaded
+	// dependency the real one already exists and redeclaring it is fatal.
+	if ( ! class_exists( 'DataMachine\\Core\\DelegatedOperations\\DelegatedOperationService' ) ) {
+		class DelegatedOperationService {
+			public function submit( array $input ): array {
+				return $input;
+			}
+			public function reconcile( array $input ): array {
+				return $input;
+			}
+			public function retry( array $input ): array {
+				return $input;
+			}
+			public function cancel( array $input ): array {
+				return $input;
+			}
 		}
 	}
 }

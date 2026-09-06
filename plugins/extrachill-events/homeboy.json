@@ -48,20 +48,12 @@
           {
             "name": "membership",
             "config": "phpunit-membership.xml.dist",
-            "runtime": "sandbox",
-            "preload_files": [
-              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
-              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
-            ]
+            "runtime": "host"
           },
           {
             "name": "promoter-authority",
             "config": "phpunit-promoter-authority.xml.dist",
-            "runtime": "sandbox",
-            "preload_files": [
-              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
-              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
-            ]
+            "runtime": "host"
           },
           {
             "name": "booking-alpha",
