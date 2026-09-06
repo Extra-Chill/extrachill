@@ -143,8 +143,6 @@ jobs:
 
       - name: Run Homeboy ${{ matrix.command }}
         env:
-          HOMEBOY_SETTINGS_JSON: >-
-            {"database_type":"mysql","validation_dependencies":["${{ github.workspace }}/.ci/data-machine","${{ github.workspace }}/.ci/data-machine-events","${{ github.workspace }}/.ci/extrachill-network","${{ github.workspace }}/.ci/extrachill-users"],"wp_codebox_multisite":true,"wp_codebox_phpunit_bootstrap_mode":"managed"}
           HOMEBOY_WP_CODEBOX_ARTIFACTS_DIR: ${{ github.workspace }}/wp-codebox-artifacts
           HOMEBOY_WP_CODEBOX_INSTALL_MODE: source
           HOMEBOY_WP_CODEBOX_REF: 82e02165dba2510ca04f5ce7e5a429804952404a
