@@ -24,31 +24,63 @@
         "wp_codebox_phpunit_suites": [
           {
             "name": "booking-mysql",
-            "config": "phpunit-booking-mysql.xml.dist"
+            "config": "phpunit-booking-mysql.xml.dist",
+            "runtime": "sandbox"
           },
           {
             "name": "booking-concurrency",
-            "config": "phpunit-booking-concurrency.xml.dist"
+            "config": "phpunit-booking-concurrency.xml.dist",
+            "runtime": "sandbox"
           },
           {
             "name": "managed-wordpress",
-            "config": "phpunit-managed.xml.dist"
+            "config": "phpunit-managed.xml.dist",
+            "runtime": "sandbox"
           },
           {
             "name": "membership",
-            "config": "phpunit-membership.xml.dist"
+            "config": "phpunit-membership.xml.dist",
+            "runtime": "sandbox"
           },
           {
             "name": "promoter-authority",
-            "config": "phpunit-promoter-authority.xml.dist"
+            "config": "phpunit-promoter-authority.xml.dist",
+            "runtime": "sandbox"
           },
           {
             "name": "booking-alpha",
-            "config": "phpunit-booking-alpha.xml.dist"
+            "config": "phpunit-booking-alpha.xml.dist",
+            "runtime": "sandbox"
           },
           {
             "name": "booking-alpha-concurrency",
-            "config": "phpunit-booking-alpha-concurrency.xml.dist"
+            "config": "phpunit-booking-alpha-concurrency.xml.dist",
+            "runtime": "sandbox"
+          },
+          {
+            "name": "artist-unit",
+            "config": "phpunit-artist-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "venue-unit",
+            "config": "phpunit-venue-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "local-scene-unit",
+            "config": "phpunit-local-scene-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "network-block",
+            "config": "phpunit-network-block.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "venue-calendar-feed",
+            "config": "phpunit-venue-calendar-feed.xml.dist",
+            "runtime": "host"
           }
         ],
         "wp_config_defines": {
