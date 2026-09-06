@@ -697,7 +697,8 @@ function extrachill_calculate_search_score( $result, $search_term ) {
 	$score         = 0;
 	$term_lower    = strtolower( extrachill_normalize_search_term( $search_term ) );
 	$title_lower   = strtolower( extrachill_normalize_search_term( $result['post_title'] ) );
-	$content_lower = strtolower( extrachill_normalize_search_term( wp_strip_all_tags( $result['post_content'] ) ) );
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- Preserve the established relevance input exactly.
+	$content_lower = strtolower( extrachill_normalize_search_term( strip_tags( $result['post_content'] ) ) );
 
 	$weights = apply_filters(
 		'extrachill_search_scoring_weights',
