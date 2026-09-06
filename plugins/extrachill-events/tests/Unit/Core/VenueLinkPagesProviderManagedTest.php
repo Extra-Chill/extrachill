@@ -21,6 +21,7 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 		$this->active_plugins  = (array) get_option( 'active_plugins', array() );
 		$this->network_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
 		unset( $GLOBALS['extrachill_events_venue_link_pages_error'] );
+		delete_option( 'extrachill_events_venue_link_pages_logged_error' );
 		$this->set_runtime_active( false );
 	}
 
@@ -28,6 +29,7 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 		update_option( 'active_plugins', $this->active_plugins );
 		update_site_option( 'active_sitewide_plugins', $this->network_plugins );
 		unset( $GLOBALS['extrachill_events_venue_link_pages_error'] );
+		delete_option( 'extrachill_events_venue_link_pages_logged_error' );
 		parent::tearDown();
 	}
 
@@ -56,6 +58,33 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 		foreach ( array( 'provision-venue-link-page', 'get-venue-link-page', 'save-venue-link-page-links', 'save-venue-link-page-styles', 'save-venue-link-page-settings', 'patch-venue-link-page', 'refresh-venue-link-page-snapshot', 'get-venue-link-page-analytics' ) as $ability ) {
 			$this->assertFalse( wp_has_ability( 'extrachill/' . $ability ) );
 		}
+	}
+
+	/** `validate_runtime()` never translates on `plugins_loaded`; messages stay in English until render time. */
+	public function test_validate_runtime_error_messages_are_untranslated(): void {
+		$result = VenueLinkPagesProvider::validate_runtime();
+		$this->assertWPError( $result );
+		$this->assertSame( 'Extra Chill Link Pages must be active before venue Link Pages can load.', $result->get_error_message() );
+	}
+
+	/** The stored integration error is translated only when the admin notice actually renders. */
+	public function test_error_notice_translates_the_stored_error(): void {
+		VenueLinkPagesProvider::initialize();
+		ob_start();
+		VenueLinkPagesProvider::error_notice();
+		$output = ob_get_clean();
+		$this->assertStringContainsString( __( 'Extra Chill Link Pages must be active before venue Link Pages can load.', 'extrachill-events' ), $output );
+	}
+
+	/** A permanently-unsatisfied optional dependency logs its failure at most once, not on every request. */
+	public function test_record_error_logs_only_once_per_distinct_error_code(): void {
+		VenueLinkPagesProvider::initialize();
+		$this->assertSame( 'venue_link_pages_runtime_not_configured', get_option( 'extrachill_events_venue_link_pages_logged_error' ) );
+
+		update_option( 'extrachill_events_venue_link_pages_logged_error', 'venue_link_pages_runtime_not_configured' );
+		VenueLinkPagesProvider::initialize();
+		VenueLinkPagesProvider::initialize();
+		$this->assertSame( 'venue_link_pages_runtime_not_configured', get_option( 'extrachill_events_venue_link_pages_logged_error' ) );
 	}
 
 	/** Toggle only the configured activation signal; never load standalone code. */

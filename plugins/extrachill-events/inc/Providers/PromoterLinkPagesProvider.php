@@ -52,14 +52,47 @@ final class PromoterLinkPagesProvider {
 		\ExtraChillEvents\Core\PromoterLinkPages::register_hooks();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/PromoterLinkPageAbilities.php';
 		new \ExtraChillEvents\Abilities\PromoterLinkPageAbilities();
+		self::clear_logged_error();
 		return true;
 	}
 
-	/** Publish an operator-visible integration failure. */
+	/** Site option recording the last error code that was written to the log. */
+	private const LOGGED_ERROR_OPTION = 'extrachill_events_promoter_link_pages_logged_error';
+
+	/**
+	 * Publish an operator-visible integration failure.
+	 *
+	 * The same underlying `WP_Error` is already recorded and logged once by
+	 * `VenueLinkPagesProvider::record_error()` (called first, at priority 30,
+	 * one tick before this provider runs at priority 31). Without a guard here
+	 * this provider would write a second, redundant `error_log()` line for the
+	 * exact same failure on every request forever, in addition to the venue
+	 * provider's own line — the double-logging this method's own docblock
+	 * exists to avoid conflicts with. Log at most once per distinct error code.
+	 */
 	private static function record_error( \WP_Error $error ) {
 		$GLOBALS['extrachill_events_promoter_link_pages_error'] = $error;
-		error_log( 'Extra Chill Events promoter Link Pages: ' . $error->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Cross-plugin registration failures must be visible.
+		$code = $error->get_error_code();
+		if ( get_option( self::LOGGED_ERROR_OPTION, '' ) !== $code ) {
+			update_option( self::LOGGED_ERROR_OPTION, $code, false );
+			error_log( 'Extra Chill Events promoter Link Pages: ' . $error->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Cross-plugin registration failures must be visible, logged once per distinct error state.
+		}
 		do_action( 'extrachill_events_promoter_link_pages_error', $error );
 		return $error;
+	}
+
+	/**
+	 * Forget the last logged error so a later recurrence is logged again.
+	 *
+	 * Without this, the log-once guard would suppress a genuine regression:
+	 * once the runtime recovers, the stale error code stays recorded, and an
+	 * identical failure later would be silently swallowed instead of surfacing
+	 * in `debug.log`. Clearing on success bounds the guard to a single
+	 * contiguous failure state rather than the lifetime of the install.
+	 */
+	private static function clear_logged_error(): void {
+		if ( '' !== (string) get_option( self::LOGGED_ERROR_OPTION, '' ) ) {
+			delete_option( self::LOGGED_ERROR_OPTION );
+		}
 	}
 }

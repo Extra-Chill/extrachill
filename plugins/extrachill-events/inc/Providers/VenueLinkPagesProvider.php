@@ -67,19 +67,28 @@ final class VenueLinkPagesProvider {
 		\ExtraChillEvents\Core\VenueLinkPages::register_hooks();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/VenueLinkPageAbilities.php';
 		new \ExtraChillEvents\Abilities\VenueLinkPageAbilities();
+		self::clear_logged_error();
 		return true;
 	}
 
-	/** Validate configured activation and the complete standalone API-v3 marker. */
+	/**
+	 * Validate configured activation and the complete standalone API-v3 marker.
+	 *
+	 * Runs on `plugins_loaded` (before `init`), so every branch here must return
+	 * an UNTRANSLATED error message. Translating on `plugins_loaded` trips core's
+	 * `_load_textdomain_just_in_time()` "too early" notice on every request. The
+	 * message is translated lazily at render time in `error_notice()`, which only
+	 * runs on `admin_notices`/`network_admin_notices` (safely after `init`).
+	 */
 	public static function validate_runtime() {
 		$active         = (array) get_option( 'active_plugins', array() );
 		$network_active = (array) get_site_option( 'active_sitewide_plugins', array() );
 		if ( ! in_array( self::PLUGIN, $active, true ) && ! isset( $network_active[ self::PLUGIN ] ) ) {
-			return new \WP_Error( 'venue_link_pages_runtime_not_configured', __( 'Extra Chill Link Pages must be active before venue Link Pages can load.', 'extrachill-events' ) );
+			return new \WP_Error( 'venue_link_pages_runtime_not_configured', 'Extra Chill Link Pages must be active before venue Link Pages can load.' );
 		}
 		$runtime_version = defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ? constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) : null;
 		if ( '3' !== $runtime_version ) {
-			return new \WP_Error( 'venue_link_pages_runtime_incomplete', __( 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.', 'extrachill-events' ) );
+			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.' );
 		}
 		$signatures        = array(
 			'ec_validate_link_pages_runtime'               => array( 1, 0 ),
@@ -120,16 +129,16 @@ final class VenueLinkPagesProvider {
 		$user_functions    = array_map( 'strtolower', $defined_functions['user'] );
 		foreach ( $signatures as $function => $arity ) {
 			if ( ! in_array( strtolower( $function ), $user_functions, true ) ) {
-				return new \WP_Error( 'venue_link_pages_runtime_incomplete', __( 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.', 'extrachill-events' ) );
+				return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.' );
 			}
 			$reflection = new \ReflectionFunction( $function );
 			if ( $arity[0] !== $reflection->getNumberOfParameters() || $arity[1] !== $reflection->getNumberOfRequiredParameters() ) {
-				return new \WP_Error( 'venue_link_pages_runtime_incompatible', __( 'The configured Extra Chill Link Pages API-v3 runtime has an incompatible signature.', 'extrachill-events' ), array( 'function' => $function ) );
+				return new \WP_Error( 'venue_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages API-v3 runtime has an incompatible signature.', array( 'function' => $function ) );
 			}
 		}
 		$storage_callback = 'ec_get_link_page_storage_blog_id';
 		if ( ! call_user_func( $storage_callback ) ) {
-			return new \WP_Error( 'venue_link_pages_storage_unavailable', __( 'The canonical Link Page storage blog is unavailable.', 'extrachill-events' ) );
+			return new \WP_Error( 'venue_link_pages_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
 		}
 		$validation_callback = 'ec_validate_link_pages_runtime';
 		$readiness_callback  = 'ec_link_pages_runtime_ready';
@@ -137,23 +146,78 @@ final class VenueLinkPagesProvider {
 		if ( is_wp_error( $valid ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_incompatible', $valid->get_error_message(), array( 'cause' => $valid->get_error_code() ) );
 		}
-		return true === call_user_func( $readiness_callback ) ? true : new \WP_Error( 'venue_link_pages_runtime_incomplete', __( 'The configured Extra Chill Link Pages runtime is not ready.', 'extrachill-events' ) );
+		return true === call_user_func( $readiness_callback ) ? true : new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is not ready.' );
 	}
 
-	/** Make integration failure visible without partially registering adapters. */
+	/** Site option recording the last error code that was written to the log. */
+	private const LOGGED_ERROR_OPTION = 'extrachill_events_venue_link_pages_logged_error';
+
+	/**
+	 * Make integration failure visible without partially registering adapters.
+	 *
+	 * The admin notice (added below) already provides ongoing operator
+	 * visibility on every admin page load, so `error_log()` only needs to fire
+	 * once per distinct error state, not once per request forever. Without this
+	 * guard, a permanently-unsatisfied optional dependency (the common case:
+	 * the sibling plugin is not installed at all) writes an identical line to
+	 * `debug.log` on every single request indefinitely.
+	 *
+	 * @param \WP_Error $error Untranslated integration failure to record.
+	 */
 	private static function record_error( \WP_Error $error ): void {
 		$GLOBALS['extrachill_events_venue_link_pages_error'] = $error;
-		error_log( 'Extra Chill Events venue Link Pages: ' . $error->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- A partial cross-plugin runtime must be operator-visible.
+		$code = $error->get_error_code();
+		if ( get_option( self::LOGGED_ERROR_OPTION, '' ) !== $code ) {
+			update_option( self::LOGGED_ERROR_OPTION, $code, false );
+			error_log( 'Extra Chill Events venue Link Pages: ' . $error->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- A partial cross-plugin runtime must be operator-visible, logged once per distinct error state.
+		}
 		add_action( 'admin_notices', array( self::class, 'error_notice' ) );
 		add_action( 'network_admin_notices', array( self::class, 'error_notice' ) );
 		do_action( 'extrachill_events_venue_link_pages_error', $error );
 	}
 
-	/** Render the stored integration error. */
+	/**
+	 * Forget the last logged error so a later recurrence is logged again.
+	 *
+	 * Without this, the log-once guard would suppress a genuine regression:
+	 * once the runtime recovers, the stale error code stays recorded, and an
+	 * identical failure later would be silently swallowed instead of surfacing
+	 * in `debug.log`. Clearing on success bounds the guard to a single
+	 * contiguous failure state rather than the lifetime of the install.
+	 */
+	private static function clear_logged_error(): void {
+		if ( '' !== (string) get_option( self::LOGGED_ERROR_OPTION, '' ) ) {
+			delete_option( self::LOGGED_ERROR_OPTION );
+		}
+	}
+
+	/**
+	 * Render the stored integration error.
+	 *
+	 * Runs on `admin_notices`/`network_admin_notices`, both of which fire after
+	 * `init`, so translating here is safe and does not trigger core's
+	 * "translation loaded too early" notice.
+	 */
 	public static function error_notice(): void {
 		$error = $GLOBALS['extrachill_events_venue_link_pages_error'] ?? null;
 		if ( is_wp_error( $error ) ) {
-			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( $error->get_error_message() ) );
+			printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( self::translate_error_message( $error ) ) );
 		}
+	}
+
+	/**
+	 * Translate a runtime validation error message for display, safe only after `init`.
+	 *
+	 * @param \WP_Error $error Untranslated integration failure to render.
+	 * @return string Translated message, or the stored message when the code is unmapped.
+	 */
+	public static function translate_error_message( \WP_Error $error ): string {
+		$translations = array(
+			'venue_link_pages_runtime_not_configured' => __( 'Extra Chill Link Pages must be active before venue Link Pages can load.', 'extrachill-events' ),
+			'venue_link_pages_runtime_incomplete'     => __( 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.', 'extrachill-events' ),
+			'venue_link_pages_runtime_incompatible'   => __( 'The configured Extra Chill Link Pages API-v3 runtime has an incompatible signature.', 'extrachill-events' ),
+			'venue_link_pages_storage_unavailable'    => __( 'The canonical Link Page storage blog is unavailable.', 'extrachill-events' ),
+		);
+		return $translations[ $error->get_error_code() ] ?? $error->get_error_message();
 	}
 }
