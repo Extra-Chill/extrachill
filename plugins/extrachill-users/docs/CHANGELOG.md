@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.41.6] - 2026-09-07
+
+### Changed
+- Refactor account navigation composition
+- define Gardner persona contract
+
+### Fixed
+- digest body counts and previews only never-emailed notifications
+- stop unmatched Local Scene text from blocking onboarding
+
 ## [0.41.5] - 2026-08-23
 
 ### Changed
