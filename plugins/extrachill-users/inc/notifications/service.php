@@ -412,6 +412,10 @@ function ec_users_enrich_notification( array $row ): array {
  *     @type bool $exclude_producer_owned_email Exclude notifications whose
  *                                               producer owns email delivery.
  *                                               Default false.
+ *     @type bool $unmailed_only Only include unread notifications that have
+ *                                never been emailed (emailed_at IS NULL), the
+ *                                same predicate that makes a user eligible for
+ *                                the digest sweep. Default false.
  * }
  * @return array{ user_id:int, total:int, unread_count:int, page:int, pages:int, notifications:array }
  */
@@ -423,13 +427,20 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 		'page'                         => 1,
 		'per_page'                     => 50,
 		'exclude_producer_owned_email' => false,
+		'unmailed_only'                => false,
 	);
 	$args     = wp_parse_args( $args, $defaults );
 
 	$unread_only   = ! empty( $args['unread'] );
 	$exclude_owned = ! empty( $args['exclude_producer_owned_email'] );
+	$unmailed_only = ! empty( $args['unmailed_only'] );
 	$per_page      = max( 1, min( 100, (int) $args['per_page'] ) );
 	$page          = max( 1, (int) $args['page'] );
+
+	// Never-emailed predicate — matches the digest sweep's eligibility filter
+	// so callers can scope both the count and the list to what is NEW since the
+	// last digest. Uses the idx_email_sweep index.
+	$unmailed_sql = $unmailed_only ? ' AND emailed_at IS NULL' : '';
 
 	$table = extrachill_users_notifications_table_name();
 
@@ -447,14 +458,14 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 	if ( $exclude_owned ) {
 		$unread_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0{$unmailed_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id
 			)
 		);
 	} else {
 		$unread_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				"SELECT COUNT(*) FROM {$table} WHERE user_id = %d AND is_read = 0{$unmailed_sql}", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id
 			)
 		);
@@ -496,7 +507,7 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 	if ( $unread_only && $exclude_owned ) {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				"SELECT * FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0{$unmailed_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id,
 				$per_page,
 				$offset
@@ -506,7 +517,7 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 	} elseif ( $unread_only ) {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE user_id = %d AND is_read = 0 ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				"SELECT * FROM {$table} WHERE user_id = %d AND is_read = 0{$unmailed_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id,
 				$per_page,
 				$offset
@@ -516,7 +527,7 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 	} elseif ( $exclude_owned ) {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE user_id = %d AND producer_owns_email = 0 ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				"SELECT * FROM {$table} WHERE user_id = %d AND producer_owns_email = 0{$unmailed_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id,
 				$per_page,
 				$offset
@@ -526,7 +537,7 @@ function ec_users_get_notifications( int $user_id, array $args = array() ): arra
 	} else {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE user_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				"SELECT * FROM {$table} WHERE user_id = %d{$unmailed_sql} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 				$user_id,
 				$per_page,
 				$offset

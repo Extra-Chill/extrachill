@@ -486,6 +486,11 @@ function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) 
 	}
 
 	// Pull the unread count + a small preview using the substrate reader.
+	// `unmailed_only` scopes both to never-emailed notifications so the digest
+	// describes only what is NEW since the last digest — matching the same
+	// emailed_at IS NULL predicate that made this user eligible. Without it,
+	// long-lived already-emailed unread items would be re-surfaced (counted and
+	// previewed) by every fresh notification.
 	$result = ec_users_get_notifications(
 		$user_id,
 		array(
@@ -493,6 +498,7 @@ function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) 
 			'page'                         => 1,
 			'per_page'                     => EC_NOTIFICATIONS_EMAIL_PREVIEW_COUNT,
 			'exclude_producer_owned_email' => true,
+			'unmailed_only'                => true,
 		)
 	);
 
@@ -501,6 +507,22 @@ function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) 
 		// Nothing unread anymore — skip without burning the cooldown.
 		return false;
 	}
+
+	// Older backlog: unread notifications already surfaced by a prior digest —
+	// everything the new-only count does not cover. Derived BEFORE the stale
+	// reminder discount so a stale new reminder is never misreported as older.
+	// Never counted or previewed again; at most mentioned once as a trailing
+	// line so the user still knows the backlog exists.
+	$all_unread   = ec_users_get_notifications(
+		$user_id,
+		array(
+			'unread'                       => true,
+			'page'                         => 1,
+			'per_page'                     => 1,
+			'exclude_producer_owned_email' => true,
+		)
+	);
+	$older_unread = max( 0, (int) $all_unread['unread_count'] - $unread_count );
 
 	// Discount stale show reminders. A `show_reminder` notification is created
 	// while a show is upcoming, but if the user never reads it the row lingers
@@ -530,6 +552,7 @@ function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) 
 				'page'                         => 1,
 				'per_page'                     => 100,
 				'exclude_producer_owned_email' => true,
+				'unmailed_only'                => true,
 			)
 		);
 		$preview = array_slice(
@@ -540,6 +563,17 @@ function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) 
 	}
 
 	$digest = ec_notifications_email_build_digest( $user, $unread_count, $preview );
+
+	// Mention the already-emailed backlog once, after the preview list and
+	// before the unsubscribe footer — count only, never listed or linked, and
+	// omitted entirely when there is no backlog.
+	if ( $older_unread > 0 ) {
+		$digest['body_html'] .= '<p>' . sprintf(
+			/* translators: %d: number of older unread notifications already included in a previous digest. */
+			esc_html( _n( 'You also have %d older unread notification.', 'You also have %d older unread notifications.', $older_unread, 'extrachill-users' ) ),
+			$older_unread
+		) . '</p>';
+	}
 
 	// Append a tokenized one-click unsubscribe footer line. Built here (not in
 	// the pure build_digest assembler) because it mints a per-user signed URL.
@@ -646,11 +680,15 @@ function ec_notifications_email_count_unmailed_unread( $user_id ) {
  * reminder whose event is no longer `upcoming` is counted as stale so the
  * digest can discount it from the unread total that justifies sending.
  *
+ * Only never-emailed reminders are counted: the digest count is scoped to
+ * new (unmailed) notifications, so the discount here must use the same
+ * predicate or it could exceed the count it is discounting from.
+ *
  * Returns 0 when the event-timing primitive is unavailable rather than guessing,
  * so a missing dependency can never over-suppress a digest.
  *
  * @param int $user_id User ID.
- * @return int Number of unread, stale show reminders.
+ * @return int Number of unread, never-emailed, stale show reminders.
  */
 function ec_notifications_email_count_stale_unread_reminders( $user_id ) {
 	global $wpdb;
@@ -664,7 +702,7 @@ function ec_notifications_email_count_stale_unread_reminders( $user_id ) {
 
 	$rows = $wpdb->get_results(
 		$wpdb->prepare(
-			"SELECT item_id FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 AND type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+			"SELECT item_id FROM {$table} WHERE user_id = %d AND is_read = 0 AND producer_owns_email = 0 AND emailed_at IS NULL AND type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
 			$user_id,
 			EC_USERS_SHOW_REMINDER_TYPE
 		),
