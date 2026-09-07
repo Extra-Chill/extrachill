@@ -285,7 +285,7 @@ class EventLocationAlignmentAbilities {
 		$venue_state   = trim( (string) get_term_meta( $venue->term_id, '_venue_state', true ) );
 		$venue_zip     = trim( (string) get_term_meta( $venue->term_id, '_venue_zip', true ) );
 		$venue_country = trim( (string) get_term_meta( $venue->term_id, '_venue_country', true ) );
-		$expected      = $this->resolveExpectedLocationTerm( $venue_city, $venue_state, $venue_zip, $venue_country, $flow_location['term'] );
+		$expected      = $this->resolveExpectedLocationTerm( $venue_city, $venue_state, $venue_zip, $venue_country, $flow_location['term'], $apply );
 
 		if ( ! $expected['term'] ) {
 			return array(
@@ -376,9 +376,10 @@ class EventLocationAlignmentAbilities {
 	 * @param string        $venue_zip     Venue zip code.
 	 * @param string        $venue_country Venue country name or code.
 	 * @param \WP_Term|null $flow_term     Flow-configured location term.
+	 * @param bool          $create        Create missing canonical terms (apply mode only).
 	 * @return array{term: \WP_Term|null, reason: string}
 	 */
-	private function resolveExpectedLocationTerm( string $venue_city, string $venue_state, string $venue_zip, string $venue_country, ?\WP_Term $flow_term ): array {
+	private function resolveExpectedLocationTerm( string $venue_city, string $venue_state, string $venue_zip, string $venue_country, ?\WP_Term $flow_term, bool $create = false ): array {
 		if ( '' === $venue_city ) {
 			// No venue city — fall back to flow config if available.
 			if ( $flow_term ) {
@@ -397,7 +398,7 @@ class EventLocationAlignmentAbilities {
 		// inc/core/location-normalizer.php so the create-time normalizer and
 		// this audit ability stay in lockstep (extrachill-events#145).
 		if ( function_exists( 'extrachill_events_resolve_location_term_for_venue_city' ) ) {
-			$resolved = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $venue_zip, $venue_country );
+			$resolved = extrachill_events_resolve_location_term_for_venue_city( $venue_city, $venue_state, $venue_zip, $venue_country, $create );
 			if ( $resolved instanceof \WP_Term ) {
 				return array(
 					'term'   => $resolved,
