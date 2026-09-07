@@ -5,7 +5,7 @@
     "wordpress": {
       "database_type": "mysql",
       "settings": {
-        "validation_dependencies": ["data-machine-events"],
+        "validation_dependencies": ["data-machine-events", "extrachill-analytics"],
         "wp_codebox_database_service": {
           "provider": "external",
           "engine": "mysql",
