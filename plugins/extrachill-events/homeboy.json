@@ -28,7 +28,8 @@
             "runtime": "sandbox",
             "preload_files": [
               "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
-              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php"
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
             ]
           },
           {
@@ -37,7 +38,8 @@
             "runtime": "sandbox",
             "preload_files": [
               "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
-              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php"
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
             ]
           },
           {
@@ -61,7 +63,8 @@
             "runtime": "sandbox",
             "preload_files": [
               "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
-              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/internal-booking-alpha-bootstrap.php"
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/internal-booking-alpha-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
             ]
           },
           {
@@ -70,7 +73,8 @@
             "runtime": "sandbox",
             "preload_files": [
               "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
-              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/internal-booking-alpha-bootstrap.php"
+              "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/internal-booking-alpha-bootstrap.php",
+              "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
             ]
           },
           {
@@ -113,7 +117,8 @@
           "extrachill-users"
         ],
         "wp_codebox_phpunit_preload_files": [
-          "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php"
+          "/wordpress/wp-content/plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php",
+          "/wordpress/wp-content/plugins/extrachill-events/tests/bootstrap.php"
         ]
       }
     }
