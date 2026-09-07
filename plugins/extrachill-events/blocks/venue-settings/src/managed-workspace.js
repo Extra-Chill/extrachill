@@ -356,13 +356,17 @@ export function PromoterWorkspacePanel( { workspace, onLinkPageDirtyChange } ) {
 				) }
 			</section>
 
-			<SharedLinkPageEditor
-				identityType="promoter"
-				identityId={ promoter.id }
-				identityName={ promoter.name }
-				initialStatus={ promoter.link_page.status }
-				onDirtyChange={ onLinkPageDirtyChange }
-			/>
+			{ /* PromoterLinkPages::management_url() links to #promoter-link-page,
+			     so this anchor is part of that URL contract, not decoration. */ }
+			<div id="promoter-link-page">
+				<SharedLinkPageEditor
+					identityType="promoter"
+					identityId={ promoter.id }
+					identityName={ promoter.name }
+					initialStatus={ promoter.link_page.status }
+					onDirtyChange={ onLinkPageDirtyChange }
+				/>
+			</div>
 
 			<InlineStatus tone="info">
 				Promoter access is limited to the delegated actions granted at
