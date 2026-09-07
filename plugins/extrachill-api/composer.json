@@ -16,8 +16,8 @@
 		"phpunit/phpunit": "^9.0"
 	},
 	"scripts": {
-		"lint:php": "vendor/bin/phpcs --standard=WordPress --extensions=php .",
-		"lint:fix": "vendor/bin/phpcbf --standard=WordPress --extensions=php .",
+		"lint:php": "homeboy extension exec wordpress -- vendor/bin/phpcs --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+		"lint:fix": "homeboy extension exec wordpress -- vendor/bin/phpcbf --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
 		"test": "vendor/bin/phpunit"
 	},
 	"config": {
