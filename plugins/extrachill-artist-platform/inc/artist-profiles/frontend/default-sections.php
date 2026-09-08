@@ -67,7 +67,7 @@ add_filter( 'ec_artist_profile_sections', 'ec_register_default_artist_profile_se
  * @return void
  */
 function ec_render_artist_profile_hero_section( $artist_profile_id, $artist_term_id = 0 ) {
-    $genre      = get_post_meta( $artist_profile_id, '_genre', true );
+    $genre      = implode( ', ', ec_artist_get_genre_labels( $artist_profile_id ) );
     $local_city = get_post_meta( $artist_profile_id, '_local_city', true );
 
     // Prepare for Hero Section

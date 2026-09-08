@@ -16,10 +16,32 @@ final class ArtistProfileDataTest extends TestCase {
 			),
 			'meta'       => array(
 				12 => array(
-					'_genre'                          => array( 'Psych rock' ),
 					'_local_city'                     => array( 'Charleston, SC' ),
 					'_artist_profile_header_image_id' => array( 34 ),
-					'_artist_profile_social_links'    => array( array( array( 'type' => 'spotify', 'url' => 'https://spotify.com/artist/chill' ) ) ),
+					'_artist_profile_social_links'    => array(
+						array(
+							array(
+								'type' => 'spotify',
+								'url'  => 'https://spotify.com/artist/chill',
+							),
+						),
+					),
+				),
+			),
+			'blogs'      => array(
+				4 => array(
+					'terms'        => array(
+						900 => (object) array(
+							'term_id'  => 900,
+							'taxonomy' => 'genre',
+							'slug'     => 'psych-rock',
+							'name'     => 'Psych rock',
+							'count'    => 0,
+						),
+					),
+					'object_terms' => array(
+						'genre' => array( 12 => array( 900 ) ),
+					),
 				),
 			),
 			'thumbnails' => array( 12 => 56 ),
@@ -34,13 +56,19 @@ final class ArtistProfileDataTest extends TestCase {
 				'slug'              => 'the-chill-band',
 				'permalink'         => 'https://artist.example/artists/the-chill-band/',
 				'bio'               => 'A short bio.',
-				'genre'             => 'Psych rock',
+				'genres'            => array( 'psych-rock' ),
+				'genre_labels'      => array( 'Psych rock' ),
 				'local_city'        => 'Charleston, SC',
 				'website_url'       => '',
 				'spotify_url'       => '',
 				'apple_music_url'   => '',
 				'bandcamp_url'      => '',
-				'social_links'      => array( array( 'type' => 'spotify', 'url' => 'https://spotify.com/artist/chill' ) ),
+				'social_links'      => array(
+					array(
+						'type' => 'spotify',
+						'url'  => 'https://spotify.com/artist/chill',
+					),
+				),
 				'header_image_id'   => 34,
 				'header_image_url'  => 'https://artist.example/media/34.jpg',
 				'profile_image_id'  => 56,
@@ -56,12 +84,17 @@ final class ArtistProfileDataTest extends TestCase {
 
 		$this->assertSame( 'https://artist.example/artists/the-chill-band/', $result['permalink'] );
 		$this->assertSame(
-			array( array( 'type' => 'spotify', 'url' => 'https://spotify.com/artist/chill' ) ),
+			array(
+				array(
+					'type' => 'spotify',
+					'url'  => 'https://spotify.com/artist/chill',
+				),
+			),
 			$result['official_links']
 		);
 
 		$GLOBALS['ec_test']['posts'][12]->post_status = 'draft';
-		$result = extrachill_artist_platform_ability_artist_get( array( 'id' => 12 ) );
+		$result                                       = extrachill_artist_platform_ability_artist_get( array( 'id' => 12 ) );
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'invalid_artist', $result->get_error_code() );

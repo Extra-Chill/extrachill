@@ -31,7 +31,7 @@ function extrachill_artist_platform_resolve_local_support_scene( $slug ) {
  * @return array|WP_Error
  */
 function extrachill_artist_platform_get_local_support_availability( $artist_id ) {
-	$artist_id     = absint( $artist_id );
+	$artist_id      = absint( $artist_id );
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'artist' ) ) : 0;
 	if ( ! $artist_id || ! $artist_blog_id ) {
 		return new WP_Error( 'invalid_artist', __( 'A valid artist profile is required.', 'extrachill-artist-platform' ) );
@@ -189,13 +189,15 @@ function extrachill_artist_platform_get_local_support_manager_ids( $artist_id ) 
 /**
  * Resolve privacy-safe candidates for an authorized producer.
  *
- * @param string $producer Producer identifier authorized by its owning plugin.
- * @param string $scene_slug Canonical Events location slug.
- * @param string $genre Optional exact, case-insensitive genre.
- * @param int[]  $exclude_artist_ids Artist profile IDs already attached to an event.
+ * @param string   $producer Producer identifier authorized by its owning plugin.
+ * @param string   $scene_slug Canonical Events location slug.
+ * @param string[] $genres Optional genre filter (slugs or names). Each value is
+ *                         resolved through the network genre resolver and a
+ *                         candidate matches when its genre set intersects.
+ * @param int[]    $exclude_artist_ids Artist profile IDs already attached to an event.
  * @return array|WP_Error
  */
-function extrachill_artist_platform_resolve_local_support_candidates( $producer, $scene_slug, $genre = '', $exclude_artist_ids = array() ) {
+function extrachill_artist_platform_resolve_local_support_candidates( $producer, $scene_slug, $genres = array(), $exclude_artist_ids = array() ) {
 	$producer = sanitize_key( $producer );
 	$scene    = extrachill_artist_platform_resolve_local_support_scene( $scene_slug );
 	if ( is_wp_error( $scene ) ) {
@@ -210,7 +212,25 @@ function extrachill_artist_platform_resolve_local_support_candidates( $producer,
 		return new WP_Error( 'dependency_missing', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ) );
 	}
 
-	$genre              = trim( sanitize_text_field( $genre ) );
+	$requested_genre_values = ec_artist_normalize_genre_input( $genres );
+	if ( ! empty( $requested_genre_values ) && ! function_exists( 'extrachill_network_resolve_genre' ) ) {
+		return new WP_Error( 'genre_vocabulary_unavailable', __( 'The genre vocabulary is unavailable, so genres cannot be resolved.', 'extrachill-artist-platform' ) );
+	}
+	$requested_genre_slugs = array();
+	foreach ( $requested_genre_values as $genre_value ) {
+		$genre_slug = extrachill_network_resolve_genre( $genre_value );
+		if ( '' !== $genre_slug ) {
+			$requested_genre_slugs[] = $genre_slug;
+		}
+	}
+	$requested_genre_slugs = array_values( array_unique( $requested_genre_slugs ) );
+	if ( ! empty( $requested_genre_values ) && empty( $requested_genre_slugs ) ) {
+		// A genre filter that resolves to nothing can match no candidate.
+		return array(
+			'location'   => $scene,
+			'candidates' => array(),
+		);
+	}
 	$exclude_artist_ids = array_unique( array_filter( array_map( 'absint', (array) $exclude_artist_ids ) ) );
 	$did_switch         = get_current_blog_id() !== $artist_blog_id;
 	if ( $did_switch ) {
@@ -235,8 +255,8 @@ function extrachill_artist_platform_resolve_local_support_candidates( $producer,
 				continue;
 			}
 
-			$artist_genre = (string) get_post_meta( $artist_id, '_genre', true );
-			if ( '' !== $genre && 0 !== strcasecmp( $genre, trim( $artist_genre ) ) ) {
+			$artist_genres = ec_artist_get_genres( $artist_id );
+			if ( ! empty( $requested_genre_slugs ) && empty( array_intersect( $requested_genre_slugs, $artist_genres ) ) ) {
 				continue;
 			}
 
@@ -254,7 +274,8 @@ function extrachill_artist_platform_resolve_local_support_candidates( $producer,
 				'name'              => get_the_title( $artist_id ),
 				'slug'              => get_post_field( 'post_name', $artist_id ),
 				'permalink'         => get_permalink( $artist_id ),
-				'genre'             => '' !== $artist_genre ? $artist_genre : null,
+				'genres'            => $artist_genres,
+				'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
 				'local_city'        => get_post_meta( $artist_id, '_local_city', true ) ?: null,
 				'profile_image_url' => $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'medium' ) : null,
 				'header_image_url'  => $header_image_id ? wp_get_attachment_image_url( $header_image_id, 'large' ) : null,

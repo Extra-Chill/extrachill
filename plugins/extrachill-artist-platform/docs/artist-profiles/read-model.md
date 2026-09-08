@@ -9,7 +9,9 @@ The response is authoritative on the Artist Platform site and contains:
 - `id`, `name`, `slug`, and `permalink`
 - `bio` from the artist profile post content
 - `profile_image_id` / `profile_image_url` and `header_image_id` / `header_image_url`
-- `local_city` for the hometown or local scene and `genre` for the artist style
+- `local_city` for the hometown or local scene, `genres` for the canonical
+  genre slugs (closed-vocabulary `genre` taxonomy terms, max 3), and
+  `genre_labels` for the display names
 - `official_links`, normalized from the artist-managed social-link store
 - `link_page_id` when the artist has a link page
 

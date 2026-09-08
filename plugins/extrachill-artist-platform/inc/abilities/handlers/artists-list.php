@@ -65,7 +65,8 @@ function extrachill_artist_platform_ability_artists_list( array $input ): array|
 				'name'              => get_the_title(),
 				'slug'              => get_post_field( 'post_name', $artist_id ),
 				'local_city'        => get_post_meta( $artist_id, '_local_city', true ) ?: null,
-				'genre'             => get_post_meta( $artist_id, '_genre', true ) ?: null,
+				'genres'            => ec_artist_get_genres( $artist_id ),
+				'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
 				'profile_image_url' => $profile_image_url,
 			);
 		}

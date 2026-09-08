@@ -303,7 +303,8 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
         'slug' => get_post_field( 'post_name', $artist_id ) ?: '',
         'permalink' => get_permalink( $artist_id ) ?: '',
         'bio' => ( get_post( $artist_id )->post_content ?? '' ),
-        'genre' => $meta['_genre'][0] ?? '',
+        'genres' => ec_artist_get_genres( $artist_id ),
+        'genre_labels' => ec_artist_get_genre_labels( $artist_id ),
         'local_city' => $meta['_local_city'][0] ?? '',
         'website_url' => $meta['_website_url'][0] ?? '',
         'spotify_url' => $meta['_spotify_url'][0] ?? '',
@@ -335,7 +336,7 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
         $data['social_links'] = $overrides['social_links'];
     }
 
-    $field_overrides = array( 'genre', 'local_city', 'website_url', 'spotify_url', 'apple_music_url', 'bandcamp_url' );
+    $field_overrides = array( 'genres', 'genre_labels', 'local_city', 'website_url', 'spotify_url', 'apple_music_url', 'bandcamp_url' );
     foreach ( $field_overrides as $field_key ) {
         if ( isset( $overrides[ $field_key ] ) ) {
             $data[ $field_key ] = $overrides[ $field_key ];

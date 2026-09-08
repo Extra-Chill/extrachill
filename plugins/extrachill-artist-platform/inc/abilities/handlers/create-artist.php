@@ -11,14 +11,14 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Create a new artist profile.
  *
- * @param array $input { name: string, bio?: string, local_city?: string, genre?: string, user_id?: int }.
+ * @param array $input { name: string, bio?: string, local_city?: string, genres?: string[], user_id?: int }.
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_create_artist( $input ) {
 	$name       = isset( $input['name'] ) ? trim( sanitize_text_field( $input['name'] ) ) : '';
 	$bio        = isset( $input['bio'] ) ? wp_kses_post( wp_unslash( $input['bio'] ) ) : '';
 	$local_city = isset( $input['local_city'] ) ? sanitize_text_field( wp_unslash( $input['local_city'] ) ) : '';
-	$genre      = isset( $input['genre'] ) ? sanitize_text_field( wp_unslash( $input['genre'] ) ) : '';
+	$genres     = isset( $input['genres'] ) ? ec_artist_normalize_genre_input( wp_unslash( $input['genres'] ) ) : array();
 	$user_id    = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : extrachill_artist_platform_ability_acting_user_id();
 
 	if ( ! extrachill_artist_platform_ability_create_permission( $input ) ) {
@@ -108,8 +108,30 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		update_post_meta( $artist_id, '_local_city', $local_city );
 	}
 
-	if ( '' !== $genre ) {
-		update_post_meta( $artist_id, '_genre', $genre );
+	// Fail closed: a genre write that cannot be resolved against the network
+	// vocabulary rolls the whole creation back instead of leaving a profile
+	// that silently lost its genres.
+	if ( ! empty( $genres ) ) {
+		$genre_result = ec_artist_set_genres( $artist_id, $genres );
+		if ( is_wp_error( $genre_result ) ) {
+			if ( function_exists( 'ec_remove_artist_membership' ) ) {
+				ec_remove_artist_membership( $user_id, $artist_id );
+			}
+			$deleted = wp_delete_post( $artist_id, true );
+			restore_current_blog();
+			if ( ! $deleted ) {
+				return new WP_Error(
+					'artist_creation_rollback_failed',
+					'Artist genre resolution failed and profile rollback also failed. Manual reconciliation is required.',
+					array(
+						'artist_id'        => (int) $artist_id,
+						'genre_error_code' => $genre_result->get_error_code(),
+						'retryable'        => false,
+					)
+				);
+			}
+			return $genre_result;
+		}
 	}
 
 	// Emit the funnel event while still in the artist blog context so the

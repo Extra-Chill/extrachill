@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class ArtistTermBindingTest extends TestCase {
 	protected function setUp(): void {
 		unset( $GLOBALS['ec_artist_binding_lock'], $GLOBALS['ec_artist_binding_lock_pending'], $GLOBALS['ec_artist_binding_delete_locks'], $GLOBALS['ec_artist_binding_deferred_locks'], $GLOBALS['ec_artist_binding_release_failure'] );
-		$GLOBALS['wpdb'] = new EcTestWpdb();
+		$GLOBALS['wpdb']    = new EcTestWpdb();
 		$GLOBALS['ec_test'] = array(
 			'current_blog_id' => 4,
 			'blog_stack'      => array(),
@@ -60,7 +60,7 @@ final class ArtistTermBindingTest extends TestCase {
 			'post_title'  => 'Unrelated post',
 			'post_name'   => 'unrelated-post',
 		);
-		$GLOBALS['ec_test']['current_blog_id'] = 1;
+		$GLOBALS['ec_test']['current_blog_id']       = 1;
 
 		$this->assertSame( 12, ec_get_artist_profile_id( 101 ) );
 		$this->assertSame( 101, $GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id'] );
@@ -121,6 +121,26 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->assertArrayNotHasKey( '_artist_profile_id', $GLOBALS['ec_test']['blogs'][1]['term_meta'][101] );
 	}
 
+	public function test_rebinding_moves_the_genre_mirror_to_the_new_term(): void {
+		$this->addProfile( 12, 'the-band', 101 );
+		$this->addTerm( 101, 'old-name', 12 );
+		$this->addTerm( 102, 'new-name' );
+		$GLOBALS['ec_test']['blogs'][4]['terms'][950]                = (object) array(
+			'term_id'  => 950,
+			'taxonomy' => 'genre',
+			'slug'     => 'rock',
+			'name'     => 'Rock',
+			'count'    => 0,
+		);
+		$GLOBALS['ec_test']['blogs'][4]['object_terms']              = array( 'genre' => array( 12 => array( 950 ) ) );
+		$GLOBALS['ec_test']['blogs'][1]['term_meta'][101]['_genres'] = '["rock"]';
+
+		$this->assertTrue( ec_bind_artist_profile_to_term( 12, 102 ) );
+
+		$this->assertSame( '["rock"]', $GLOBALS['ec_test']['blogs'][1]['term_meta'][102]['_genres'] );
+		$this->assertArrayNotHasKey( '_genres', $GLOBALS['ec_test']['blogs'][1]['term_meta'][101] );
+	}
+
 	public function test_create_uses_and_releases_the_canonical_lock(): void {
 		$this->addProfile( 12, 'the-band' );
 		$this->addTerm( 101, 'the-band' );
@@ -179,9 +199,12 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->addTerm( 101, 'the-band', 12 );
 		$this->assertSame( 'artist_binding_lock_required', ec_read_locked_artist_binding( 12, 101 )->get_error_code() );
 
-		$lock = ec_acquire_artist_binding_lock();
+		$lock                                 = ec_acquire_artist_binding_lock();
 		$GLOBALS['ec_test']['in_transaction'] = true;
-		$this->assertSame( array( 'profile_id' => 12, 'term_id' => 101 ), ec_read_locked_artist_binding( 12, 101 ) );
+		$this->assertSame( array(
+			'profile_id' => 12,
+			'term_id'    => 101,
+		), ec_read_locked_artist_binding( 12, 101 ) );
 		$this->assertContains( array( 4, 12 ), $GLOBALS['ec_test']['clean_post_cache_calls'] );
 		$this->assertContains( array( 1, 101, 'artist' ), $GLOBALS['ec_test']['clean_term_cache_calls'] );
 		$this->assertSame( 'artist_binding_release_transaction_active', ec_release_artist_binding_lock( $lock )->get_error_code() );
@@ -205,7 +228,7 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->addTerm( 101, 'the-band' );
 		$this->addTerm( 102, 'winning-band' );
 		$GLOBALS['ec_test']['after_external_artist_lock'] = static function () {
-			$GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id']      = 102;
+			$GLOBALS['ec_test']['blogs'][4]['post_meta'][12]['_artist_term_id']     = 102;
 			$GLOBALS['ec_test']['blogs'][1]['term_meta'][102]['_artist_profile_id'] = 12;
 		};
 
@@ -236,7 +259,10 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->addProfile( 12, 'the-band', 101 );
 		$this->addTerm( 101, 'the-band', 12 );
 		$binding_lock = ec_acquire_artist_binding_lock();
-		$this->assertSame( array( 'profile_id' => 12, 'term_id' => 101 ), ec_read_locked_artist_binding( 12, 101 ) );
+		$this->assertSame( array(
+			'profile_id' => 12,
+			'term_id'    => 101,
+		), ec_read_locked_artist_binding( 12, 101 ) );
 		$this->assertTrue( ec_acquire_artist_membership_lock( 7, 12 ) );
 
 		$this->assertSame( array( 'ec_artist_binding_v1', 'ec_artist_membership_7_12' ), $GLOBALS['ec_test']['db_lock_order'] );
@@ -312,7 +338,7 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->addProfile( 12, 'the-band' );
 		$this->addTerm( 102, 'the-band' );
 		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
-		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_artist_term_id'] = 5;
+		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_artist_term_id']    = 5;
 
 		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
 		$this->assertSame( 'artist_binding_compensation_failed', ec_get_artist_binding_failure()->get_error_code() );
@@ -324,7 +350,7 @@ final class ArtistTermBindingTest extends TestCase {
 	public function test_term_side_compensation_exhaustion_is_reported_for_manual_repair(): void {
 		$this->addProfile( 12, 'the-band' );
 		$this->addTerm( 102, 'the-band' );
-		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id'] = 1;
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id']    = 1;
 		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 5;
 
 		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
@@ -339,7 +365,7 @@ final class ArtistTermBindingTest extends TestCase {
 		$this->addTerm( 101, 'old-name', 12 );
 		$this->addTerm( 102, 'new-name' );
 		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
-		$GLOBALS['ec_test']['fail_post_meta_update_on_calls'] = array( 2, 3, 4 );
+		$GLOBALS['ec_test']['fail_post_meta_update_on_calls']                   = array( 2, 3, 4 );
 
 		$this->assertFalse( ec_bind_artist_profile_to_term( 12, 102 ) );
 		$this->assertSame( 'artist_binding_compensation_failed', ec_get_artist_binding_failure()->get_error_code() );
@@ -351,7 +377,7 @@ final class ArtistTermBindingTest extends TestCase {
 	public function test_sync_propagates_resolver_compensation_failure_without_cleanup(): void {
 		$this->addProfile( 12, 'the-band' );
 		$this->addTerm( 102, 'the-band' );
-		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id'] = 1;
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id']    = 1;
 		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 5;
 
 		$result = ec_sync_artist_profile_term_binding( 12 );
@@ -500,7 +526,7 @@ final class ArtistTermBindingTest extends TestCase {
 	public function test_delete_compensation_never_overwrites_changed_term_state(): void {
 		$this->addProfile( 12, 'the-band', 101 );
 		$this->addTerm( 101, 'the-band', 12 );
-		$GLOBALS['ec_test']['fail_get_terms_on_call'] = 2;
+		$GLOBALS['ec_test']['fail_get_terms_on_call']   = 2;
 		$GLOBALS['ec_test']['before_get_terms_failure'] = static function () {
 			$GLOBALS['ec_test']['blogs'][1]['term_meta'][101]['_artist_profile_id'] = 99;
 		};
@@ -608,7 +634,7 @@ final class ArtistTermBindingTest extends TestCase {
 	public function test_profile_deletion_does_not_mutate_a_colliding_main_blog_post(): void {
 		$this->addProfile( 12, 'the-band' );
 		$this->addTerm( 101, 'the-band', 12 );
-		$GLOBALS['ec_test']['blogs'][1]['posts'][12] = (object) array(
+		$GLOBALS['ec_test']['blogs'][1]['posts'][12]                           = (object) array(
 			'ID'          => 12,
 			'post_type'   => 'post',
 			'post_status' => 'publish',

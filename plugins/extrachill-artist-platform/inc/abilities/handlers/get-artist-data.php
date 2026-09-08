@@ -53,7 +53,8 @@ function extrachill_artist_platform_read_artist_data( $artist_id ) {
 	}
 
 	$local_city = get_post_meta( $artist_id, '_local_city', true );
-	$genre      = get_post_meta( $artist_id, '_genre', true );
+	$genres       = ec_artist_get_genres( $artist_id );
+	$genre_labels = ec_artist_get_genre_labels( $artist_id );
 
 	$profile_image_id  = get_post_thumbnail_id( $artist_id );
 	$profile_image_url = $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'medium' ) : null;
@@ -76,7 +77,8 @@ function extrachill_artist_platform_read_artist_data( $artist_id ) {
 		'slug'              => $artist->post_name,
 		'bio'               => $artist->post_content,
 		'local_city'        => '' !== $local_city ? $local_city : null,
-		'genre'             => '' !== $genre ? $genre : null,
+		'genres'            => $genres,
+		'genre_labels'      => $genre_labels,
 		'profile_image_id'  => $profile_image_id ? (int) $profile_image_id : null,
 		'profile_image_url' => $profile_image_url,
 		'header_image_id'   => $header_image_id ? (int) $header_image_id : null,

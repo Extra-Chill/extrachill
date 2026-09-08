@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Update an existing artist profile. Supports partial updates.
  *
- * @param array $input { artist_id: int, name?: string, bio?: string, local_city?: string, genre?: string, profile_image_id?: int, header_image_id?: int }.
+ * @param array $input { artist_id: int, name?: string, bio?: string, local_city?: string, genres?: string[], profile_image_id?: int, header_image_id?: int }.
  * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_update_artist( $input ) {
@@ -22,7 +22,7 @@ function extrachill_artist_platform_ability_update_artist( $input ) {
 	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
 		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
 	}
-	$projection_fields  = array( 'name', 'bio', 'genre', 'profile_image_id' );
+	$projection_fields  = array( 'name', 'bio', 'genres', 'profile_image_id' );
 	$affects_projection = (bool) array_intersect( $projection_fields, array_keys( $input ) );
 	if ( ! $affects_projection ) {
 		return extrachill_artist_platform_ability_update_artist_under_lock( $input, 0 );
@@ -91,12 +91,14 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 		}
 	}
 
-	if ( array_key_exists( 'genre', $input ) ) {
-		$genre = sanitize_text_field( wp_unslash( $input['genre'] ) );
-		if ( '' === $genre ) {
-			delete_post_meta( $artist_id, '_genre' );
-		} else {
-			update_post_meta( $artist_id, '_genre', $genre );
+	// Genres resolve to closed-vocabulary terms. An empty array clears them.
+	if ( array_key_exists( 'genres', $input ) ) {
+		$genre_result = ec_artist_set_genres( $artist_id, wp_unslash( $input['genres'] ) );
+		if ( is_wp_error( $genre_result ) ) {
+			if ( $did_switch ) {
+				restore_current_blog();
+			}
+			return $genre_result;
 		}
 	}
 

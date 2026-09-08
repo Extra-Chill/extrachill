@@ -20,6 +20,8 @@ define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME', plugin_basename( __FILE__ 
 
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-pages.php';
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/runtime-handoff.php';
+require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-genres.php';
+require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/cli/MigrateGenreCommand.php';
 
 if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
     define( 'EXTRCH_LINKPAGE_DEV', false );

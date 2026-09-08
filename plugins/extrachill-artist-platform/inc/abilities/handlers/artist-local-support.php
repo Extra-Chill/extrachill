@@ -35,7 +35,7 @@ function extrachill_artist_platform_ability_query_local_support_candidates( $inp
 	return extrachill_artist_platform_resolve_local_support_candidates(
 		$input['producer'] ?? '',
 		$input['scene_slug'] ?? '',
-		$input['genre'] ?? '',
+		$input['genres'] ?? array(),
 		$input['exclude_artist_ids'] ?? array()
 	);
 }

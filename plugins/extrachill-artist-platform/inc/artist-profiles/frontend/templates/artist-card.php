@@ -48,7 +48,7 @@ if ( $profile_image_id ) {
 $header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id', true );
 $header_image_url = $header_image_id ? wp_get_attachment_image_url( absint( $header_image_id ), 'large' ) : '';
 
-$genre      = get_post_meta( $artist_id, '_genre', true );
+$genre      = implode( ', ', ec_artist_get_genre_labels( $artist_id ) );
 $local_city = get_post_meta( $artist_id, '_local_city', true );
 
 $hero_style = $header_image_url ? 'background-image: url(' . esc_url( $header_image_url ) . ');' : '';

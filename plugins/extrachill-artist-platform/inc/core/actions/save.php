@@ -631,7 +631,6 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
 
     // Handle meta data updates
     $meta_fields = array(
-        'genre' => '_genre',
         'local_city' => '_local_city'
     );
 
@@ -642,6 +641,14 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
             } else {
                 update_post_meta( $artist_id, $meta_key, $save_data[$key] );
             }
+        }
+    }
+
+    // Genres resolve to closed-vocabulary taxonomy terms (never free text).
+    if ( array_key_exists( 'genres', $save_data ) ) {
+        $genre_result = ec_artist_set_genres( $artist_id, $save_data['genres'] );
+        if ( is_wp_error( $genre_result ) ) {
+            return $genre_result;
         }
     }
 
@@ -707,7 +714,7 @@ add_action( 'ec_artist_profile_save', 'ec_handle_artist_profile_save_completion'
  * Prepare save data from POST array for artist profiles
  * 
  * Sanitizes and validates all form data for artist profile saves.
- * Handles title, bio, genre, location, forum settings, and member
+ * Handles title, bio, genres, location, forum settings, and member
  * management data with proper sanitization.
  * 
  * @param array $post_data $_POST array from form submission
@@ -726,9 +733,10 @@ function ec_prepare_artist_profile_save_data( $post_data ) {
         $save_data['post_content'] = wp_kses_post( wp_unslash( $post_data['artist_bio'] ) );
     }
 
-    // Genre
-    if ( isset( $post_data['genre'] ) ) {
-        $save_data['genre'] = sanitize_text_field( $post_data['genre'] );
+    // Genres (closed vocabulary; the save resolves names/slugs through the
+    // network genre resolver and assigns taxonomy terms)
+    if ( isset( $post_data['genres'] ) ) {
+        $save_data['genres'] = ec_artist_normalize_genre_input( $post_data['genres'] );
     }
 
     // Local Scene (City)

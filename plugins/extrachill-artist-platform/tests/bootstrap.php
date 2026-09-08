@@ -40,20 +40,23 @@ class WP_Term {
 }
 
 class EcTestWpdb {
-	public $last_error = '';
-	public $options    = 'wp_options';
+	public $last_error      = '';
+	public $options         = 'wp_options';
 	public $suppress_errors = false;
 
 	public function prepare( $query, ...$args ) {
-		return array( 'query' => $query, 'args' => $args );
+		return array(
+			'query' => $query,
+			'args'  => $args,
+		);
 	}
 
 	public function get_var( $prepared ) {
 		$this->last_error = '';
-		$query = $prepared['query'];
-		$name  = (string) ( $prepared['args'][0] ?? '' );
+		$query            = $prepared['query'];
+		$name             = (string) ( $prepared['args'][0] ?? '' );
 		if ( str_contains( $query, 'GET_LOCK' ) ) {
-			$GLOBALS['ec_test']['db_lock_order'][] = $name;
+			$GLOBALS['ec_test']['db_lock_order'][]            = $name;
 			$GLOBALS['ec_test']['db_lock_get_calls'][ $name ] = ( $GLOBALS['ec_test']['db_lock_get_calls'][ $name ] ?? 0 ) + 1;
 			if ( 'contention' === ( $GLOBALS['ec_test']['advisory_lock_result'] ?? '' ) ) {
 				return '0';
@@ -108,7 +111,7 @@ class EcTestWpdb {
 		$args  = $prepared['args'];
 		if ( str_starts_with( $query, 'UPDATE ' ) ) {
 			list( $replacement, $option, $expected ) = $args;
-			$current = $GLOBALS['ec_test']['options'][ $option ] ?? false;
+			$current                                 = $GLOBALS['ec_test']['options'][ $option ] ?? false;
 			if ( maybe_serialize( $current ) !== $expected ) {
 				return 0;
 			}
@@ -117,7 +120,7 @@ class EcTestWpdb {
 		}
 		if ( str_starts_with( $query, 'DELETE ' ) ) {
 			list( $option, $expected ) = $args;
-			$current = $GLOBALS['ec_test']['options'][ $option ] ?? false;
+			$current                   = $GLOBALS['ec_test']['options'][ $option ] ?? false;
 			if ( maybe_serialize( $current ) !== $expected ) {
 				return 0;
 			}
@@ -128,8 +131,8 @@ class EcTestWpdb {
 	}
 
 	public function suppress_errors( $suppress = true ) {
-		$previous             = $this->suppress_errors;
-		$this->suppress_errors = (bool) $suppress;
+		$previous                                  = $this->suppress_errors;
+		$this->suppress_errors                     = (bool) $suppress;
 		$GLOBALS['ec_test']['error_suppression'][] = $this->suppress_errors;
 		return $previous;
 	}
@@ -171,11 +174,11 @@ function ec_test_blog_store( $type ) {
 }
 
 function switch_to_blog( $blog_id ) {
-	$previous_blog_id = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
-	$GLOBALS['ec_test']['blog_stack'][] = $previous_blog_id;
-	$GLOBALS['_wp_switched_stack'][]    = $previous_blog_id;
+	$previous_blog_id                      = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
+	$GLOBALS['ec_test']['blog_stack'][]    = $previous_blog_id;
+	$GLOBALS['_wp_switched_stack'][]       = $previous_blog_id;
 	$GLOBALS['ec_test']['current_blog_id'] = (int) $blog_id;
-	$GLOBALS['switched'] = true;
+	$GLOBALS['switched']                   = true;
 	return true;
 }
 
@@ -211,7 +214,12 @@ function get_site( $blog_id = null ) {
 		return null;
 	}
 	return (object) array_merge(
-		array( 'blog_id' => (int) $blog_id, 'deleted' => '0', 'archived' => '0', 'spam' => '0' ),
+		array(
+			'blog_id'  => (int) $blog_id,
+			'deleted'  => '0',
+			'archived' => '0',
+			'spam'     => '0',
+		),
 		$GLOBALS['ec_test']['sites'][ $blog_id ] ?? array()
 	);
 }
@@ -226,6 +234,49 @@ function post_type_exists( $post_type ) {
 		}
 	}
 	return false;
+}
+
+function register_taxonomy_for_object_type( $taxonomy, $object_type ) {
+	$GLOBALS['ec_test']['taxonomy_object_types'][ $taxonomy ][ $object_type ] = true;
+	return true;
+}
+
+function get_the_terms( $post_id, $taxonomy ) {
+	$assignments = ec_test_blog_store( 'object_terms' );
+	$term_ids    = $assignments[ $taxonomy ][ $post_id ] ?? array();
+	$terms       = array();
+	foreach ( (array) $term_ids as $term_id ) {
+		$term = get_term( $term_id, $taxonomy );
+		if ( $term ) {
+			$terms[] = $term;
+		}
+	}
+	return empty( $terms ) ? false : $terms;
+}
+
+function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
+	if ( ! empty( $GLOBALS['ec_test']['fail_object_terms'] ) ) {
+		return new WP_Error( 'object_terms_failed', 'Term assignment failed.' );
+	}
+	$blog_id  = $GLOBALS['ec_test']['current_blog_id'];
+	$term_ids = array();
+	foreach ( (array) $terms as $term ) {
+		$found = null;
+		if ( is_int( $term ) ) {
+			$found = get_term( $term, $taxonomy );
+		} else {
+			$found = get_term_by( 'slug', (string) $term, $taxonomy );
+		}
+		if ( ! $found ) {
+			continue;
+		}
+		$term_ids[] = (int) $found->term_id;
+	}
+	$existing = $GLOBALS['ec_test']['blogs'][ $blog_id ]['object_terms'][ $taxonomy ][ $object_id ] ?? array();
+	$GLOBALS['ec_test']['blogs'][ $blog_id ]['object_terms'][ $taxonomy ][ $object_id ] = $append
+		? array_values( array_unique( array_merge( $existing, $term_ids ) ) )
+		: $term_ids;
+	return true;
 }
 
 function taxonomy_exists( $taxonomy ) {
@@ -504,7 +555,7 @@ function add_post_meta( $post_id, $key, $value, $unique = false ) {
 	}
 	$blog_id = $GLOBALS['ec_test']['current_blog_id'];
 	$GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $key ] = $value;
-	$meta_id = ( $GLOBALS['ec_test']['next_post_meta_id'] ?? 0 ) + 1;
+	$meta_id                                 = ( $GLOBALS['ec_test']['next_post_meta_id'] ?? 0 ) + 1;
 	$GLOBALS['ec_test']['next_post_meta_id'] = $meta_id;
 	$GLOBALS['ec_test']['post_meta_rows'][ $meta_id ] = array(
 		'blog_id'    => $blog_id,
@@ -569,7 +620,7 @@ function delete_metadata_by_mid( $meta_type, $meta_id ) {
 }
 
 function update_post_meta( $post_id, $key, $value, $previous = '' ) {
-	$blog_id = $GLOBALS['ec_test']['current_blog_id'];
+	$blog_id                                      = $GLOBALS['ec_test']['current_blog_id'];
 	$GLOBALS['ec_test']['post_meta_update_calls'] = ( $GLOBALS['ec_test']['post_meta_update_calls'] ?? 0 ) + 1;
 	if ( ! empty( $GLOBALS['ec_test']['fail_post_meta_update_keys'][ $key ] ) ) {
 		--$GLOBALS['ec_test']['fail_post_meta_update_keys'][ $key ];
@@ -702,7 +753,7 @@ function wp_delete_post( $post_id, $force_delete = false ) {
 }
 
 function clean_post_cache( $post_id ) {
-	$post_id = is_object( $post_id ) ? $post_id->ID : $post_id;
+	$post_id                                        = is_object( $post_id ) ? $post_id->ID : $post_id;
 	$GLOBALS['ec_test']['clean_post_cache_calls'][] = array( get_current_blog_id(), (int) $post_id );
 }
 
@@ -844,7 +895,7 @@ function add_term_meta( $term_id, $key, $value, $unique = false ) {
 	if ( null === $current ) {
 		$GLOBALS['ec_test']['blogs'][ $blog_id ]['term_meta'][ $term_id ][ $key ] = $value;
 	} else {
-		$values = is_array( $current ) ? $current : array( $current );
+		$values   = is_array( $current ) ? $current : array( $current );
 		$values[] = $value;
 		$GLOBALS['ec_test']['blogs'][ $blog_id ]['term_meta'][ $term_id ][ $key ] = $values;
 	}
@@ -926,6 +977,7 @@ function wp_insert_term( $title, $taxonomy, $args = array() ) {
 		'term_id'  => $term_id,
 		'taxonomy' => $taxonomy,
 		'slug'     => $args['slug'] ?? $title,
+		'name'     => $title,
 		'count'    => 0,
 	);
 	return array( 'term_id' => $term_id );
@@ -1152,7 +1204,7 @@ function ec_get_link_page_id( $artist_id ) {
 
 function ec_get_link_page_defaults_for() {
 	return array(
-		'--link-page-card-bg-color'        => '#fff',
+		'--link-page-card-bg-color'         => '#fff',
 		'--link-page-link-text-color'       => '#000',
 		'--link-page-title-font-family'     => 'sans-serif',
 		'--link-page-body-font-family'      => 'sans-serif',
@@ -1234,5 +1286,7 @@ require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-export-subscri
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-list-subscribers.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-get-analytics.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/artist-local-support.php';
+require_once dirname( __DIR__ ) . '/inc/core/artist-genres.php';
 require_once dirname( __DIR__ ) . '/inc/core/actions/save.php';
 require_once dirname( __DIR__ ) . '/inc/core/platform-artist-provisioning.php';
+require_once dirname( __DIR__ ) . '/inc/cli/MigrateGenreCommand.php';

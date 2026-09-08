@@ -390,9 +390,11 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'string',
 						'description' => __( 'Local city/scene.', 'extrachill-artist-platform' ),
 					),
-					'genre'      => array(
-						'type'        => 'string',
-						'description' => __( 'Genre.', 'extrachill-artist-platform' ),
+					'genres'     => array(
+						'type'        => 'array',
+						'items'       => array( 'type' => 'string' ),
+						'maxItems'    => 3,
+						'description' => __( 'Genre slugs or names, resolved against the network genre vocabulary (max 3). Unresolvable values are dropped.', 'extrachill-artist-platform' ),
 					),
 					'user_id'    => array(
 						'type'        => 'integer',
@@ -443,9 +445,11 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'string',
 						'description' => __( 'Local city/scene.', 'extrachill-artist-platform' ),
 					),
-					'genre'            => array(
-						'type'        => 'string',
-						'description' => __( 'Genre.', 'extrachill-artist-platform' ),
+					'genres'           => array(
+						'type'        => 'array',
+						'items'       => array( 'type' => 'string' ),
+						'maxItems'    => 3,
+						'description' => __( 'Genre slugs or names, resolved against the network genre vocabulary (max 3). Unresolvable values are dropped. Empty array clears genres.', 'extrachill-artist-platform' ),
 					),
 					'profile_image_id' => array(
 						'type'        => 'integer',
@@ -771,7 +775,14 @@ function extrachill_artist_platform_register_abilities() {
 					),
 					'bio'               => array( 'type' => 'string' ),
 					'local_city'        => array( 'type' => array( 'string', 'null' ) ),
-					'genre'             => array( 'type' => array( 'string', 'null' ) ),
+					'genres'            => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'string' ),
+					),
+					'genre_labels'      => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'string' ),
+					),
 					'profile_image_id'  => array( 'type' => array( 'integer', 'null' ) ),
 					'profile_image_url' => array( 'type' => array( 'string', 'null' ) ),
 					'header_image_id'   => array( 'type' => array( 'integer', 'null' ) ),
@@ -922,7 +933,10 @@ function extrachill_artist_platform_register_abilities() {
 				'properties'           => array(
 					'producer'           => array( 'type' => 'string' ),
 					'scene_slug'         => array( 'type' => 'string' ),
-					'genre'              => array( 'type' => 'string' ),
+					'genres'             => array(
+						'type'  => 'array',
+						'items' => array( 'type' => 'string' ),
+					),
 					'exclude_artist_ids' => array(
 						'type'  => 'array',
 						'items' => array( 'type' => 'integer' ),
@@ -939,7 +953,7 @@ function extrachill_artist_platform_register_abilities() {
 						'type'  => 'array',
 						'items' => array(
 							'type'                 => 'object',
-							'required'             => array( 'artist_profile_id', 'artist_term_id', 'name', 'slug', 'permalink', 'genre', 'local_city', 'profile_image_url', 'header_image_url', 'manager_user_ids' ),
+							'required'             => array( 'artist_profile_id', 'artist_term_id', 'name', 'slug', 'permalink', 'genres', 'genre_labels', 'local_city', 'profile_image_url', 'header_image_url', 'manager_user_ids' ),
 							'properties'           => array(
 								'artist_profile_id' => array( 'type' => 'integer' ),
 								'artist_term_id'    => array( 'type' => 'integer' ),
@@ -949,7 +963,14 @@ function extrachill_artist_platform_register_abilities() {
 									'type'   => 'string',
 									'format' => 'uri',
 								),
-								'genre'             => array( 'type' => array( 'string', 'null' ) ),
+								'genres'            => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
+								'genre_labels'      => array(
+									'type'  => 'array',
+									'items' => array( 'type' => 'string' ),
+								),
 								'local_city'        => array( 'type' => array( 'string', 'null' ) ),
 								'profile_image_url' => array( 'type' => array( 'string', 'null' ) ),
 								'header_image_url'  => array( 'type' => array( 'string', 'null' ) ),

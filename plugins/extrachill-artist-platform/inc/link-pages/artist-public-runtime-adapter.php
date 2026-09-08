@@ -210,9 +210,11 @@ function extrachill_artist_link_page_seo_context( $artist_id, $link_page_id ) {
 		'name'  => $artist->post_title,
 		'url'   => $profile_url,
 	);
+	if ( ! empty( $artist_data['genre_labels'] ) ) {
+		$music_group['genre'] = $artist_data['genre_labels'];
+	}
 	foreach ( array(
 		'bio'               => 'description',
-		'genre'             => 'genre',
 		'profile_image_url' => 'image',
 	) as $source => $target ) {
 		if ( ! empty( $artist_data[ $source ] ) ) {

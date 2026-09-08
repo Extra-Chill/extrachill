@@ -182,8 +182,8 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 			<FieldGroup label="Genre">
 				<input
 					type="text"
-					value={formState.genre}
-					onChange={(e) => setFormState((prev) => ({ ...prev, genre: e.target.value }))}
+					value={formState.genres}
+					onChange={(e) => setFormState((prev) => ({ ...prev, genres: e.target.value }))}
 				/>
 			</FieldGroup>
 
@@ -501,7 +501,7 @@ const getInitialFormState = (artist) => ({
 	name: artist?.name || '',
 	bio: artist?.bio || '',
 	localCity: artist?.local_city || '',
-	genre: artist?.genre || '',
+	genres: Array.isArray(artist?.genre_labels) ? artist.genre_labels.join(', ') : '',
 	profileImage: artist?.profile_image_url || '',
 	headerImage: artist?.header_image_url || '',
 	profileImageId: artist?.profile_image_id || null,
@@ -576,7 +576,10 @@ const App = () => {
 			name: formState.name,
 			bio: formState.bio,
 			local_city: formState.localCity,
-			genre: formState.genre,
+			genres: formState.genres
+				.split(',')
+				.map((g) => g.trim())
+				.filter(Boolean),
 			profile_image_id: formState.profileImageId,
 			header_image_id: formState.headerImageId,
 		};

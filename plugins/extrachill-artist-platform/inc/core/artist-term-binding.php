@@ -459,6 +459,9 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 		} finally {
 			restore_current_blog();
 		}
+		if ( $wrote_profile || $wrote_term ) {
+			ec_artist_mirror_genres_to_term( (int) $profile_id );
+		}
 		return true;
 	}
 	if ( $wrote_profile ) {
@@ -718,6 +721,10 @@ function ec_bind_artist_profile_to_term_locked( $profile_id, $term_id, $main_blo
 		} finally {
 			restore_current_blog();
 		}
+		if ( $previous_term_id > 0 && $previous_term_id !== $term_id ) {
+			ec_artist_genres_clear_term_mirror( $previous_term_id );
+		}
+		ec_artist_mirror_genres_to_term( $profile_id );
 		ec_set_artist_binding_failure();
 		return true;
 	}
