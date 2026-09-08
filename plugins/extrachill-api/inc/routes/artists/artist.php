@@ -43,10 +43,19 @@ function extrachill_api_register_artist_routes() {
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'genre'      => array(
+					'genres'     => array(
 						'required'          => false,
-						'type'              => 'string',
-						'sanitize_callback' => 'sanitize_text_field',
+						'type'              => 'array',
+						'maxItems'          => 3,
+						'items'             => array(
+							'type' => 'string',
+						),
+						'sanitize_callback' => function ( $value ) {
+							if ( ! is_array( $value ) ) {
+								return array();
+							}
+							return array_map( 'sanitize_text_field', $value );
+						},
 					),
 				),
 			),
@@ -189,7 +198,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 
 	$input = array( 'name' => $request->get_param( 'name' ) );
 
-	$optional = array( 'bio', 'local_city', 'genre' );
+	$optional = array( 'bio', 'local_city', 'genres' );
 	foreach ( $optional as $field ) {
 		$value = $request->get_param( $field );
 		if ( null !== $value ) {
@@ -223,7 +232,7 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 
 	$input = array( 'artist_id' => $request->get_param( 'id' ) );
 
-	$fields = array( 'name', 'bio', 'local_city', 'genre', 'profile_image_id', 'header_image_id' );
+	$fields = array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id' );
 	foreach ( $fields as $field ) {
 		if ( array_key_exists( $field, $body ) ) {
 			$input[ $field ] = $body[ $field ];

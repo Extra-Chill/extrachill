@@ -20,6 +20,9 @@ No request body needed. Artist ID is extracted from the URL path.
   "name": "Artist Name",
   "slug": "artist-slug",
   "bio": "Artist bio text",
+  "local_city": "Charleston",
+  "genres": ["psych-rock", "shoegaze"],
+  "genre_labels": ["Psych Rock", "Shoegaze"],
   "profile_image_id": 456,
   "profile_image_url": "https://example.com/wp-content/uploads/image.jpg",
   "header_image_id": 789,
@@ -28,15 +31,20 @@ No request body needed. Artist ID is extracted from the URL path.
 }
 ```
 
+`genres` are resolved genre term slugs (max 3, closed network vocabulary). `genre_labels` are the matching display names, index-aligned with `genres`.
+
 ## PUT Request
 Supports partial updates. Only include fields you want to change.
 
 ```json
 {
   "name": "New Artist Name",
-  "bio": "Updated bio text"
+  "bio": "Updated bio text",
+  "genres": ["psych-rock", "shoegaze"]
 }
 ```
+
+`genres` accepts genre slugs or names (string array, max 3); they are resolved against the network genre vocabulary and unresolvable values are dropped. An empty array clears genres. There is no legacy `genre` string field.
 
 ### PUT Response
 Returns the full updated artist object with all fields (same structure as GET).
