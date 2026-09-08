@@ -103,7 +103,11 @@ function get_page_by_path( $slug, $output = OBJECT, $post_type = 'page' ) {
 }
 
 function get_post_status( $post ) {
-	return is_object( $post ) ? $post->post_status : 'publish';
+	if ( is_object( $post ) ) {
+		return $post->post_status;
+	}
+	$resolved = get_post( $post );
+	return $resolved ? $resolved->post_status : false;
 }
 
 function get_posts( $args ) {

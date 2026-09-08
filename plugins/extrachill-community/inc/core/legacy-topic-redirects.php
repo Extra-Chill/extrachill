@@ -126,7 +126,9 @@ function extrachill_community_get_legacy_shortlink_redirect_url(): string {
 	}
 
 	// A future local ID collision on this blog must never be redirected away.
-	if ( get_post( $post_id ) ) {
+	// get_post_status() (not get_post()) so static analysis does not narrow the
+	// identical get_post() call made after switch_to_blog() below.
+	if ( false !== get_post_status( $post_id ) ) {
 		return '';
 	}
 
