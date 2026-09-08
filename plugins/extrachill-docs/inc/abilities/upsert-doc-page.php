@@ -8,10 +8,9 @@
  * _source_path }.
  *
  * Composability: this ability is the single write path for every doc page
- * on docs.extrachill.com. The sync orchestrator (cron, WP-CLI) calls it
- * once per file. The migration script (#38) calls it once per ec_doc post.
- * Future agents in chat could call it to fix a single page without running
- * a full repo walk.
+ * on docs.extrachill.com. The ec_doc → page migration (#38) reuses its
+ * parent-resolution helper, and agents in chat or flows can call the
+ * ability to create or refresh a single page.
  *
  * Dependencies:
  *   - DataMachine\Core\Content\ContentFormat (provided by data-machine)
@@ -120,10 +119,9 @@ function extrachill_docs_register_upsert_doc_page_ability(): void {
 /**
  * Permission callback for upsert-doc-page.
  *
- * Restricts to administrators by default. The sync orchestrator runs in a
- * cron context where current_user_can() returns true for all caps (no
- * user), so cron-driven calls always succeed. Manual REST/CLI calls
- * require admin.
+ * Restricts to administrators by default. Background contexts (cron,
+ * WP-CLI) run without a user or as a trusted operator, so system-driven
+ * calls always succeed. Manual REST calls require admin.
  *
  * @since 0.5.0
  * @return bool
@@ -399,8 +397,8 @@ function extrachill_docs_find_synced_page( string $repo, string $path ): ?\WP_Po
 /**
  * Resolve the parent page ID for a given slug, creating it if absent.
  *
- * Parent pages are non-synced (no _source_repo meta) so they are not
- * locked down by SyncedPageGuard — admins can edit titles/content/order
+ * Parent pages are non-synced (no _source_repo meta) so they remain
+ * normal, editable pages — admins can edit titles/content/order
  * directly. The parent's content is intentionally left blank for the
  * theme to render an archive-style listing of its children.
  *

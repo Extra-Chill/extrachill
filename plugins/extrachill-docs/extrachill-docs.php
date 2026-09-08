@@ -11,7 +11,7 @@
  * Text Domain: extrachill-docs
  * Requires at least: 6.9
  * Requires PHP: 8.2
- * Requires Plugins: data-machine, data-machine-code
+ * Requires Plugins: data-machine
  * Network: false
  *
  * Deployed on docs.extrachill.com (Blog ID 10). Uses ec_doc custom post type
@@ -52,19 +52,26 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/sidebar.php';
 // Custom rewrite rules for /{platform}/{doc}/ URL structure.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/rewrite-rules.php';
 
+// Platform map — per-repo parent-page identity parsed from
+// runner-configs/platform-map.yml. Shared by the ec_doc → page migration
+// and future platform-identity consumers.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/platform-map.php';
+
 // Docs agent execution mode — registers the `docs` mode with Data Machine
 // and provides its editorial guidance (writing rules) for any AI step
 // configured with agent_modes: ['docs']. See runner-configs/README.md.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
 
-// Sync infrastructure — upsert-doc-page ability, scheduled cron, WP-CLI
-// command, edit lockdown on synced pages. See inc/sync/*.
-// The ability category must be registered before any ability assigns
-// itself to it, so load it first.
+// Docs write path — the `extrachill-docs/upsert-doc-page` ability that
+// converts markdown into hierarchical pages. The ability category must be
+// registered before any ability assigns itself to it, so load it first.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/category.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/upsert-doc-page.php';
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/synced-page-guard.php';
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/sync-orchestrator.php';
+
+// One-shot cleanup of the removed repo→docs sync subsystem (leftover cron
+// event + per-page sync meta). Runs once after upgrade; see
+// inc/core/sync-cleanup.php.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/sync-cleanup.php';
 
 // One-shot ec_doc → page migration. Registers the WP-CLI command
 // `wp extrachill docs migrate-ec-docs`. Runs once before #39 removes
@@ -72,7 +79,6 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/sync/sync-orchestrator.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/migration/ec-doc-to-page-migration.php';
 
 register_activation_hook( __FILE__, 'extrachill_docs_activate' );
-register_deactivation_hook( __FILE__, 'extrachill_docs_deactivate' );
 
 /**
  * Seeds default platform terms on plugin activation.
@@ -85,24 +91,6 @@ function extrachill_docs_activate() {
 	extrachill_docs_register_post_type();
 	extrachill_docs_seed_platforms();
 
-	// Schedule the docs sync cron event. Safe to call repeatedly — no-op if
-	// already scheduled. See inc/sync/sync-orchestrator.php.
-	extrachill_docs_schedule_sync_cron();
-
 	// Flush rewrite rules for clean URLs.
 	flush_rewrite_rules();
-}
-
-/**
- * Tear down scheduled events on deactivation.
- *
- * Leaves all CPT / taxonomy / page data intact — deactivation should not
- * destroy content. Only cleans up the recurring cron event so it doesn't
- * fire against a deactivated plugin.
- *
- * @since 0.5.0
- * @return void
- */
-function extrachill_docs_deactivate() {
-	extrachill_docs_unschedule_sync_cron();
 }

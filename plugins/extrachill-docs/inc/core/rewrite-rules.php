@@ -16,22 +16,23 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add custom rewrite rules for ec_doc posts and ec_doc_platform taxonomy
  */
 function extrachill_docs_add_rewrite_rules() {
-	// Register exact synced Pages before the legacy catch-all rules.
-	$synced_page_ids = get_posts(
+	// Register exact rules for child Pages before the legacy catch-all
+	// rules. Hierarchical page URLs (/{parent-slug}/{child-slug}/) would
+	// otherwise be swallowed by the ec_doc catch-all below.
+	$child_page_ids = get_posts(
 		array(
-			'post_type'      => 'page',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'meta_key'       => '_source_repo',
-			'meta_compare'   => 'EXISTS',
-			'orderby'        => 'ID',
-			'order'          => 'ASC',
-			'no_found_rows'  => true,
+			'post_type'           => 'page',
+			'post_status'         => 'publish',
+			'posts_per_page'      => -1,
+			'fields'              => 'ids',
+			'post_parent__not_in' => array( 0 ),
+			'orderby'             => 'ID',
+			'order'               => 'ASC',
+			'no_found_rows'       => true,
 		)
 	);
 
-	foreach ( $synced_page_ids as $page_id ) {
+	foreach ( $child_page_ids as $page_id ) {
 		$page_uri = get_page_uri( $page_id );
 		if ( ! is_string( $page_uri ) || '' === $page_uri ) {
 			continue;

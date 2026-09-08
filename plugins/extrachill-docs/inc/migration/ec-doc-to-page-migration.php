@@ -3,11 +3,12 @@
  * Ec_doc → Hierarchical Page Migration
  *
  * One-shot WP-CLI command that converts the existing ec_doc posts on
- * docs.extrachill.com into hierarchical WordPress pages using the same
- * upsert-doc-page ability the sync uses. This guarantees migrated pages
- * are shape-identical to sync-produced pages — same meta keys, same
- * parent-child relationships, same URL structure — so #39 can later
- * remove the ec_doc CPT without orphaning any data.
+ * docs.extrachill.com into hierarchical WordPress pages, reusing the
+ * parent-page resolution helper from the upsert-doc-page ability. This
+ * guarantees migrated pages are shape-identical to ability-produced
+ * pages — same meta keys, same parent-child relationships, same URL
+ * structure — so #39 can later remove the ec_doc CPT without orphaning
+ * any data.
  *
  * Algorithm:
  *
@@ -16,9 +17,9 @@
  *        platform-map.yml entry to get the destination plugin repo +
  *        parent slug + parent title.
  *     2. Synthesize _source_path = "docs/user/<post_name>.md" so the
- *        migrated page sits in the coordinate space that future sync
- *        runs will eventually write to. When the real markdown file
- *        appears in the source repo, sync sees the existing page and
+ *        migrated page sits in the coordinate space keyed by
+ *        { _source_repo, _source_path }. If the corresponding markdown
+ *        file is ever upserted, the ability sees the existing page and
  *        updates content instead of duplicating.
  *     3. Preserve the existing Gutenberg block content directly while
  *        creating the same source-coordinate metadata shape as the sync
@@ -192,7 +193,7 @@ function extrachill_docs_migration_migrate_one( \WP_Post $ec_doc, bool $dry_run 
 	// The existing post_content is already Gutenberg blocks. To produce a
 	// page with that exact content, we bypass the upsert-doc-page ability's
 	// markdown-to-blocks conversion and write directly — but still preserve
-	// the same shape (meta keys, parent resolution) the sync ability would
+	// the same shape (meta keys, parent resolution) the ability would
 	// produce. This is the one case where the migration cannot reuse the
 	// ability verbatim because the source data is already in the target
 	// format.

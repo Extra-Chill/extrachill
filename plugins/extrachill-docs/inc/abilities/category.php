@@ -38,7 +38,7 @@ function extrachill_docs_register_ability_category(): void {
 		'extrachill-docs',
 		array(
 			'label'       => __( 'Extra Chill Documentation', 'extrachill-docs' ),
-			'description' => __( 'Documentation sync and management operations for docs.extrachill.com', 'extrachill-docs' ),
+			'description' => __( 'Documentation creation and management operations for docs.extrachill.com', 'extrachill-docs' ),
 		)
 	);
 }
