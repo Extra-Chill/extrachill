@@ -93,5 +93,8 @@ final class CliProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/ClassifyVenueTierCommand.php';
 		\WP_CLI::add_command( 'extrachill venues classify-tier', \ExtraChillEvents\Cli\ClassifyVenueTierCommand::class );
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/ClassifyGenreCommand.php';
+		\WP_CLI::add_command( 'extrachill artists classify-genre', \ExtraChillEvents\Cli\ClassifyGenreCommand::class );
 	}
 }

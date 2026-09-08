@@ -35,6 +35,7 @@
 			<file>tests/Unit/Core/GenreSyncTest.php</file>
 			<file>tests/Unit/Cli/BackfillEventTypeClassifyTest.php</file>
 			<file>tests/Unit/Cli/ClassifyVenueTierScoreTest.php</file>
+			<file>tests/Unit/Cli/ClassifyGenreDeterministicTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
