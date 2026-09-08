@@ -103,7 +103,7 @@ All four options available in a single dropdown for unified user experience:
 
 It also reads `get_query_var( 'artist' )` and calls `$query->set( 'artist', $artist )` when present.
 
-`artist` is a registered custom taxonomy (`/inc/core/custom-taxonomies.php`) with `query_var => true` and `rewrite => [ 'slug' => 'artist' ]`.
+`artist` is a network taxonomy registered by extrachill-network with `query_var => true` and `rewrite => [ 'slug' => 'artist' ]`.
 ## Artist Filtering
 
 **Categories**: Song Meanings, Music History

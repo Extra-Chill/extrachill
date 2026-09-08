@@ -63,7 +63,6 @@ extrachill/
     ├── core/                 # WordPress feature wiring
     │   ├── actions.php
     │   ├── assets.php
-    │   ├── custom-taxonomies.php
     │   ├── icons.php
     │   ├── notices.php
     │   ├── rewrite.php

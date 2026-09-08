@@ -10,7 +10,7 @@ This document tracks hardcoded values in Extra Chill theme that limit adaptabili
 
 ### 1. Custom Taxonomies (DEFERRED)
 
-- [x] **inc/core/custom-taxonomies.php** - Music-specific taxonomies (KEEPING IN THEME)
+- [x] ~~inc/core/custom-taxonomies.php~~ - Moved to extrachill-network (#82)
   - Current: Theme registers `artist`, `venue`, `festival`, `location` taxonomies
   - Decision: Keep in theme. The theme is opinionated about being for music sites.
   - Rationale: Anyone making "their own Extra Chill" would likely want these taxonomies
@@ -86,7 +86,7 @@ The following items have been **completed** or **no longer exist**:
 
 The following were reviewed and confirmed appropriate for a generic theme:
 
-- ✅ **Custom Taxonomies** (inc/core/custom-taxonomies.php) - Theme is music-oriented, taxonomies are appropriate
+- ✅ **Custom Taxonomies** - Registered by extrachill-network as of #82; the theme only consumes them
 - ✅ **Instagram embed handler** (inc/core/editor/instagram-embeds.php) - Generic social media, widely used by bloggers
 - ✅ **Bandcamp embed handler** (inc/core/editor/bandcamp-embeds.php) - Music-related but provides value for music bloggers using any theme
 

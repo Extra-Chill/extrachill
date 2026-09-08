@@ -115,7 +115,6 @@ extrachill/
 │   │   ├── templates/          # Shared template components
 │   │   ├── editor/             # Custom embed handlers
 │   │   ├── assets.php          # Asset management
-│   │   ├── custom-taxonomies.php # Music taxonomies
 │   │   └── template-router.php # Template routing
 │   ├── footer/                 # Footer functionality
 │   ├── header/                 # Header functionality
