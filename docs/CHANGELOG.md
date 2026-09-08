@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.12.1] - 2026-09-08
+
+### Changed
+- drop theme taxonomy registration; extrachill-network owns it
+
+### Fixed
+- restore filtered singular post classes
+- consume alternating venue badges
+
 ## [2.12.0] - 2026-07-13
 
 ### Added
