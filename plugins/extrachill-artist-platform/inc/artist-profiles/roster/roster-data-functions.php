@@ -60,8 +60,8 @@ if ( ! defined( 'EC_INVITE_STATUS_NEW_USER' ) ) {
  * @return array Array of pending invitation objects/arrays
  */
 function ec_get_pending_invitations( $artist_id ) {
-    $invitations = get_post_meta( $artist_id, '_pending_invitations', true );
-    return is_array( $invitations ) ? $invitations : array();
+	$invitations = get_post_meta( $artist_id, '_pending_invitations', true );
+	return is_array( $invitations ) ? $invitations : array();
 }
 
 /**
@@ -69,7 +69,7 @@ function ec_get_pending_invitations( $artist_id ) {
  * @return string The unique token.
  */
 function ec_generate_invite_token() {
-    return wp_generate_password( 32, false, false ); // 32 chars, no special chars
+	return wp_generate_password( 32, false, false ); // 32 chars, no special chars
 }
 
 /**
@@ -83,52 +83,52 @@ function ec_generate_invite_token() {
  *                             or a specific error string like 'error_not_artist' or 'error_already_pending'.
  */
 function ec_add_pending_invitation( $artist_id, $display_name, $email ) { // Removed $status_hint as it will be determined internally
-    if ( empty( $email ) || !is_email( $email ) ) {
-        return false; // General validation failure
-    }
+	if ( empty( $email ) || ! is_email( $email ) ) {
+		return false; // General validation failure
+	}
 
-    $new_invite_id = 'inv_' . wp_generate_password( 12, false );
-    $token = ec_generate_invite_token();
-    $final_status = '';
+	$new_invite_id = 'inv_' . wp_generate_password( 12, false );
+	$token         = ec_generate_invite_token();
+	$final_status  = '';
 
-    $existing_user_id = email_exists( $email );
-    if ( $existing_user_id ) {
-        // User exists. We will invite them. 
-        // The acceptance process will handle adding 'user_is_artist' meta if needed.
-        $final_status = EC_INVITE_STATUS_EXISTING_ARTIST; // Use this status; acceptance will verify/add meta.
-    } else {
-        // New user
-        $final_status = EC_INVITE_STATUS_NEW_USER;
-    }
+	$existing_user_id = email_exists( $email );
+	if ( $existing_user_id ) {
+		// User exists. We will invite them.
+		// The acceptance process will handle adding 'user_is_artist' meta if needed.
+		$final_status = EC_INVITE_STATUS_EXISTING_ARTIST; // Use this status; acceptance will verify/add meta.
+	} else {
+		// New user
+		$final_status = EC_INVITE_STATUS_NEW_USER;
+	}
 
-    $new_invite_entry = array(
-        'id'            => $new_invite_id,
-        'display_name'  => sanitize_text_field( $display_name ),
-        'email'         => sanitize_email( $email ),
-        'token'         => $token,
-        'status'        => sanitize_key( $final_status ), 
-        'invited_on'    => time() // GMT Unix timestamp (replaces deprecated current_time( 'timestamp', true ))
-    );
+	$new_invite_entry = array(
+		'id'           => $new_invite_id,
+		'display_name' => sanitize_text_field( $display_name ),
+		'email'        => sanitize_email( $email ),
+		'token'        => $token,
+		'status'       => sanitize_key( $final_status ),
+		'invited_on'   => time(), // GMT Unix timestamp (replaces deprecated current_time( 'timestamp', true ))
+	);
 
-    for ( $attempt = 0; $attempt < 5; ++$attempt ) {
-        $current = get_post_meta( $artist_id, '_pending_invitations', true );
-        $invitations = is_array( $current ) ? $current : array();
-        foreach ( $invitations as $invite ) {
-            if ( isset( $invite['email'] ) && strtolower($invite['email']) === strtolower($email) ) {
-                return 'error_already_pending'; // Specific error for already pending
-            }
-        }
+	for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+		$current     = get_post_meta( $artist_id, '_pending_invitations', true );
+		$invitations = is_array( $current ) ? $current : array();
+		foreach ( $invitations as $invite ) {
+			if ( isset( $invite['email'] ) && strtolower($invite['email']) === strtolower($email) ) {
+				return 'error_already_pending'; // Specific error for already pending
+			}
+		}
 
-        $updated_invitations   = $invitations;
-        $updated_invitations[] = $new_invite_entry;
-        if ( ec_compare_and_swap_pending_invitations( $artist_id, $current, $updated_invitations ) ) {
-            return $new_invite_entry;
-        }
-        if ( maybe_serialize( get_post_meta( $artist_id, '_pending_invitations', true ) ) === maybe_serialize( $current ) ) {
-            return false;
-        }
-    }
-    return false; // General failure to save meta
+		$updated_invitations   = $invitations;
+		$updated_invitations[] = $new_invite_entry;
+		if ( ec_compare_and_swap_pending_invitations( $artist_id, $current, $updated_invitations ) ) {
+			return $new_invite_entry;
+		}
+		if ( maybe_serialize( get_post_meta( $artist_id, '_pending_invitations', true ) ) === maybe_serialize( $current ) ) {
+			return false;
+		}
+	}
+	return false; // General failure to save meta
 }
 
 /**
@@ -138,29 +138,29 @@ function ec_add_pending_invitation( $artist_id, $display_name, $email ) { // Rem
  * @return bool True on success, false on failure.
  */
 function ec_remove_pending_invitation( $artist_id, $pending_invite_id ) {
-    for ( $attempt = 0; $attempt < 5; ++$attempt ) {
-        $current = get_post_meta( $artist_id, '_pending_invitations', true );
-        $invitations = is_array( $current ) ? $current : array();
-        $updated_invitations = array();
-        $found = false;
-        foreach ( $invitations as $invite ) {
-            if ( isset( $invite['id'] ) && $invite['id'] === $pending_invite_id ) {
-                $found = true;
-                continue; // Skip this invitation
-            }
-            $updated_invitations[] = $invite;
-        }
-        if ( ! $found ) {
-            return true;
-        }
-        if ( ec_compare_and_swap_pending_invitations( $artist_id, $current, $updated_invitations ) ) {
-            return true;
-        }
-        if ( maybe_serialize( get_post_meta( $artist_id, '_pending_invitations', true ) ) === maybe_serialize( $current ) ) {
-            return false;
-        }
-    }
-    return false;
+	for ( $attempt = 0; $attempt < 5; ++$attempt ) {
+		$current             = get_post_meta( $artist_id, '_pending_invitations', true );
+		$invitations         = is_array( $current ) ? $current : array();
+		$updated_invitations = array();
+		$found               = false;
+		foreach ( $invitations as $invite ) {
+			if ( isset( $invite['id'] ) && $invite['id'] === $pending_invite_id ) {
+				$found = true;
+				continue; // Skip this invitation
+			}
+			$updated_invitations[] = $invite;
+		}
+		if ( ! $found ) {
+			return true;
+		}
+		if ( ec_compare_and_swap_pending_invitations( $artist_id, $current, $updated_invitations ) ) {
+			return true;
+		}
+		if ( maybe_serialize( get_post_meta( $artist_id, '_pending_invitations', true ) ) === maybe_serialize( $current ) ) {
+			return false;
+		}
+	}
+	return false;
 }
 
 /**
@@ -222,7 +222,10 @@ function ec_accept_artist_membership_invitation( $user_id, $artist_id, $pending_
 		return new WP_Error(
 			'artist_membership_failed',
 			__( 'The artist invitation could not be applied.', 'extrachill-artist-platform' ),
-			array( 'status' => 500, 'retryable' => false )
+			array(
+				'status'    => 500,
+				'retryable' => false,
+			)
 		);
 	}
 

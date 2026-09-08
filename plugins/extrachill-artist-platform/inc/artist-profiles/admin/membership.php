@@ -303,7 +303,7 @@ function ec_acquire_artist_membership_lock( $user_id, $artist_id ) {
  */
 function ec_artist_membership_database_supports_advisory_locks() {
 	global $wpdb;
-	$class_name = strtolower( get_class( $wpdb ) );
+	$class_name = strtolower( (string) get_class( $wpdb ) );
 	return ! preg_match( '/sqlite|pgsql|postgres/', $class_name );
 }
 
@@ -318,8 +318,8 @@ function ec_artist_membership_database_supports_advisory_locks() {
  */
 function ec_acquire_artist_membership_network_lock( $lock_name ) {
 	global $wpdb;
-	$option  = 'ec_artist_membership_lock_' . md5( $lock_name );
-	$payload = array(
+	$option   = 'ec_artist_membership_lock_' . md5( $lock_name );
+	$payload  = array(
 		'owner'   => wp_generate_uuid4(),
 		'expires' => time() + 30,
 	);
@@ -333,7 +333,7 @@ function ec_acquire_artist_membership_network_lock( $lock_name ) {
 			$insert_error = $wpdb->last_error;
 			$existing     = get_option( $option, false );
 			if ( false === $existing ) {
-				ec_set_artist_membership_lock_failure( $insert_error ?: $wpdb->last_error );
+				ec_set_artist_membership_lock_failure( ( $insert_error ? $insert_error : $wpdb->last_error ) );
 				return false;
 			}
 			if ( is_array( $existing ) && (int) ( $existing['expires'] ?? 0 ) > time() ) {
@@ -362,6 +362,7 @@ function ec_acquire_artist_membership_network_lock( $lock_name ) {
 		restore_current_blog();
 	}
 
+	// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: retained in case lock acquisition paths change.)
 	if ( ! $acquired ) {
 		return false;
 	}
@@ -477,6 +478,7 @@ function ec_update_artist_relationship_ids( $object_type, $object_id, $meta_key,
 			if ( $add_meta( $object_id, $meta_key, $next, true ) ) {
 				return true;
 			}
+			// @phpstan-ignore phpstan.if.alwaysFalse (concurrency guard: another writer may have created the meta between the failed add and this check.)
 			if ( metadata_exists( $object_type, $object_id, $meta_key ) ) {
 				continue;
 			}

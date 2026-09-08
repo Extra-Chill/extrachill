@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $input Ability input.
  * @return array|WP_Error Updated social links.
  */
-function extrachill_artist_platform_ability_artist_update_social( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_update_social( array $input ) {
 	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
 	$social_id = isset( $input['social_id'] ) ? sanitize_text_field( $input['social_id'] ) : '';
 

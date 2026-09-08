@@ -43,7 +43,7 @@ function extrachill_artist_platform_ability_save_link_page_styles( $input ) {
 	if ( is_wp_error( $sanitized_vars ) ) {
 		return $sanitized_vars;
 	}
-	$merged_vars    = array_merge( $existing_vars, $sanitized_vars );
+	$merged_vars = array_merge( $existing_vars, $sanitized_vars );
 
 	$save_data = array( 'css_vars' => $merged_vars );
 	$result    = ec_save_link_page(

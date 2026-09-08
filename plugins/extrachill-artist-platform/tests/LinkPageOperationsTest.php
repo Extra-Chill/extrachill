@@ -14,17 +14,27 @@ final class LinkPageOperationsTest extends TestCase {
 			'current_blog_id' => 4,
 			'blog_stack'      => array(),
 			'blogs'           => array(
-				4 => array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() ),
-				7 => array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() ),
+				4 => array(
+					'terms'     => array(),
+					'term_meta' => array(),
+					'posts'     => array(),
+					'post_meta' => array(),
+				),
+				7 => array(
+					'terms'     => array(),
+					'term_meta' => array(),
+					'posts'     => array(),
+					'post_meta' => array(),
+				),
 			),
 		);
 		extrachill_register_artist_profile_cpt();
 		extrachill_register_artist_link_page_cpt();
 		$this->addPost( 4, 20, 'artist_profile', 'test-owner' );
 		$this->addPost( 4, 40, 'artist_link_page', 'test-page' );
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id']             = 40;
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40]['_associated_artist_profile_id']    = 20;
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40][ EC_LINK_PAGE_OWNER_META_KEY ]       = 'post:4:artist_profile:20';
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id']          = 40;
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40]['_associated_artist_profile_id'] = 20;
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40][ EC_LINK_PAGE_OWNER_META_KEY ]   = 'post:4:artist_profile:20';
 	}
 
 	protected function tearDown(): void {
@@ -73,7 +83,10 @@ final class LinkPageOperationsTest extends TestCase {
 
 		$this->assertSame(
 			$expected,
-			extrachill_artist_platform_ability_get_link_page_data( array( 'artist_id' => 20, 'link_page_id' => 40 ) )
+			extrachill_artist_platform_ability_get_link_page_data( array(
+				'artist_id'    => 20,
+				'link_page_id' => 40,
+			) )
 		);
 
 		$result = extrachill_artist_platform_ability_save_link_page_links(
@@ -121,23 +134,30 @@ final class LinkPageOperationsTest extends TestCase {
 
 	public function invalidTargetProvider(): array {
 		return array(
-			'empty target' => array( static function () {}, array(), 'invalid_link_page_operation_target' ),
-			'extra target field' => array(
+			'empty target'         => array( static function () {}, array(), 'invalid_link_page_operation_target' ),
+			'extra target field'   => array(
 				static function () {},
-				array( 'link_page_id' => 40, 'owner_reference' => 'post:4:artist_profile:20', 'artist_id' => 20 ),
+				array(
+					'link_page_id'    => 40,
+					'owner_reference' => 'post:4:artist_profile:20',
+					'artist_id'       => 20,
+				),
 				'invalid_link_page_operation_target',
 			),
-			'malformed' => array( static function () {}, 'post/4/type/20', 'invalid_link_page_owner_reference' ),
-			'missing page' => array( static function () {}, 999, 'invalid_link_page' ),
-			'unavailable owner' => array( static function () {}, 'post:99:type:20', 'invalid_link_page_owner_blog' ),
-			'divergent pair' => array(
+			'malformed'            => array( static function () {}, 'post/4/type/20', 'invalid_link_page_owner_reference' ),
+			'missing page'         => array( static function () {}, 999, 'invalid_link_page' ),
+			'unavailable owner'    => array( static function () {}, 'post:99:type:20', 'invalid_link_page_owner_blog' ),
+			'divergent pair'       => array(
 				static function ( $test ) {
 					$test->addPost( 4, 21, 'artist_profile', 'other-owner' );
 					$test->addPost( 4, 41, 'artist_link_page', 'other-page' );
 					$GLOBALS['ec_test']['blogs'][4]['post_meta'][41]['_associated_artist_profile_id'] = 21;
 					$GLOBALS['ec_test']['blogs'][4]['post_meta'][41][ EC_LINK_PAGE_OWNER_META_KEY ]    = 'post:4:artist_profile:21';
 				},
-				array( 'link_page_id' => 40, 'owner_reference' => 'post:4:artist_profile:21' ),
+				array(
+					'link_page_id'    => 40,
+					'owner_reference' => 'post:4:artist_profile:21',
+				),
 				'link_page_operation_target_divergence',
 			),
 			'duplicate references' => array(
@@ -150,7 +170,7 @@ final class LinkPageOperationsTest extends TestCase {
 				40,
 				'duplicate_link_page_owner_references',
 			),
-			'duplicate pages' => array(
+			'duplicate pages'      => array(
 				static function ( $test ) {
 					$test->addPost( 4, 41, 'artist_link_page', 'duplicate-page' );
 					$GLOBALS['ec_test']['blogs'][4]['post_meta'][41]['_associated_artist_profile_id'] = 20;
@@ -258,7 +278,11 @@ final class LinkPageOperationsTest extends TestCase {
 
 	public function test_cross_blog_owner_normalization_and_provider_matching_restore_context_exactly(): void {
 		$this->resetRegistry( ec_link_page_operation_provider_registry(), 'providers' );
-		$GLOBALS['ec_test']['blogs'][7]['terms'][30] = (object) array( 'term_id' => 30, 'taxonomy' => 'place', 'slug' => 'room' );
+		$GLOBALS['ec_test']['blogs'][7]['terms'][30]                                    = (object) array(
+			'term_id'  => 30,
+			'taxonomy' => 'place',
+			'slug'     => 'room',
+		);
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40][ EC_LINK_PAGE_OWNER_META_KEY ] = 'term:7:place:30';
 		unset( $GLOBALS['ec_test']['blogs'][4]['post_meta'][40]['_associated_artist_profile_id'] );
 		ec_register_link_page_operation_provider(
@@ -278,7 +302,10 @@ final class LinkPageOperationsTest extends TestCase {
 
 		switch_to_blog( 7 );
 		switch_to_blog( 4 );
-		$result = ec_read_link_page( array( 'link_page_id' => 40, 'owner_reference' => 'term:7:place:30' ) );
+		$result = ec_read_link_page( array(
+			'link_page_id'    => 40,
+			'owner_reference' => 'term:7:place:30',
+		) );
 
 		$this->assertSame( 'term:7:place:30', $result['owner_reference'] );
 		$this->assertSame( 4, get_current_blog_id() );
@@ -311,6 +338,7 @@ final class LinkPageOperationsTest extends TestCase {
 	}
 
 	public function test_generic_operation_source_contains_no_domain_policy(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
 		$source = strtolower( file_get_contents( dirname( __DIR__ ) . '/inc/link-pages/operations.php' ) );
 
 		foreach ( array( 'artist', 'venue', 'booking', 'events', '_associated_artist_profile_id' ) as $term ) {

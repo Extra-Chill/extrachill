@@ -128,6 +128,7 @@ function extrachill_artist_platform_ability_artist_permission( $input ) {
 
 	return $artist_id
 		&& function_exists( 'ec_user_can' )
+		// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 		&& ec_user_can(
 			'manage_artist',
 			array(
@@ -161,6 +162,7 @@ function extrachill_artist_platform_ability_create_permission( $input ) {
 	}
 
 	return function_exists( 'ec_user_can' )
+		// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 		&& ec_user_can( 'create_artist_profile', array( 'user_id' => $actor_user_id ) );
 }
 
@@ -245,7 +247,7 @@ function extrachill_artist_platform_get_next_id( $link_page_id, $type ) {
 
 	$meta_key   = $map[ $type ];
 	$next_index = (int) get_post_meta( $link_page_id, $meta_key, true );
-	$next_index++;
+	++$next_index;
 	update_post_meta( $link_page_id, $meta_key, $next_index );
 
 	return sprintf( '%d-%s-%d', $link_page_id, $type, $next_index );
@@ -293,9 +295,10 @@ function extrachill_artist_platform_sync_counter_from_id( $link_page_id, $type, 
  *
  * @param array $links        Raw links data (array of sections with nested links).
  * @param int   $link_page_id Link page post ID for counter-based ID generation.
- * @return array|WP_Error Sanitized links array.
+ * @return array Sanitized links array.
  */
 function extrachill_artist_platform_sanitize_links( $links, $link_page_id = 0 ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
 	if ( ! is_array( $links ) ) {
 		return array();
 	}
@@ -363,6 +366,7 @@ function extrachill_artist_platform_sanitize_css_vars( $vars ) {
 	if ( function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) && extrachill_artist_platform_uses_external_link_pages_runtime() && function_exists( 'ec_sanitize_link_page_css_vars' ) ) {
 		return ec_sanitize_link_page_css_vars( $vars );
 	}
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
 	if ( ! is_array( $vars ) ) {
 		return array();
 	}
@@ -370,7 +374,7 @@ function extrachill_artist_platform_sanitize_css_vars( $vars ) {
 	$sanitized = array();
 
 	foreach ( $vars as $key => $value ) {
-		if ( strpos( $key, '--link-page-' ) !== 0 && $key !== 'overlay' ) {
+		if ( strpos( $key, '--link-page-' ) !== 0 && 'overlay' !== $key ) {
 			continue;
 		}
 
@@ -404,6 +408,7 @@ function extrachill_artist_platform_sanitize_css_vars( $vars ) {
  * @return array Sanitized settings as flat keys for ec_handle_link_page_save().
  */
 function extrachill_artist_platform_sanitize_link_settings( $settings ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
 	if ( ! is_array( $settings ) ) {
 		return array();
 	}
@@ -451,6 +456,7 @@ function extrachill_artist_platform_sanitize_link_settings( $settings ) {
  * @return array Sanitized social links array.
  */
 function extrachill_artist_platform_sanitize_socials( $socials, $link_page_id = 0 ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
 	if ( ! is_array( $socials ) ) {
 		return array();
 	}

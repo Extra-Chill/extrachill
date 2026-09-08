@@ -52,7 +52,7 @@ function extrachill_artist_platform_read_artist_data( $artist_id ) {
 		return new WP_Error( 'invalid_artist', 'Artist not found.' );
 	}
 
-	$local_city = get_post_meta( $artist_id, '_local_city', true );
+	$local_city   = get_post_meta( $artist_id, '_local_city', true );
 	$genres       = ec_artist_get_genres( $artist_id );
 	$genre_labels = ec_artist_get_genre_labels( $artist_id );
 

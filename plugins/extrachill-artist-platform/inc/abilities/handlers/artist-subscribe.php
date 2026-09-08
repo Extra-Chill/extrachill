@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artist-subscribe
  *
@@ -8,6 +7,7 @@ declare(strict_types=1);
  * @package ExtraChillArtistPlatform
  * @since   1.9.0
  */
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -40,6 +40,7 @@ function extrachill_artist_platform_ability_artist_subscribe( array $input ): ar
 	$table = $wpdb->prefix . 'artist_subscribers';
 
 	// Check for existing subscription.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is a trusted internal identifier built from $wpdb->prefix; values use placeholders.
 	$exists = $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT COUNT(*) FROM {$table} WHERE artist_profile_id = %d AND subscriber_email = %s",
@@ -47,6 +48,7 @@ function extrachill_artist_platform_ability_artist_subscribe( array $input ): ar
 			$email
 		)
 	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 	if ( $exists ) {
 		return new WP_Error(

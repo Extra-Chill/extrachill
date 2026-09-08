@@ -96,7 +96,7 @@ function ec_action_artist_add_link( $link_page_id, $link_data, $user_id ) {
 
 	// Get current data via existing centralized function
 	$current_data = ec_get_link_page_data( $artist_id, $link_page_id );
-	$links = $current_data['links'] ?? array();
+	$links        = $current_data['links'] ?? array();
 
 	// Determine section (default: first section)
 	$section_index = isset( $link_data['section_index'] ) ? absint( $link_data['section_index'] ) : 0;
@@ -105,7 +105,7 @@ function ec_action_artist_add_link( $link_page_id, $link_data, $user_id ) {
 	if ( ! isset( $links[ $section_index ] ) ) {
 		$links[ $section_index ] = array(
 			'section_title' => '',
-			'links' => array()
+			'links'         => array(),
 		);
 	}
 
@@ -119,7 +119,7 @@ function ec_action_artist_add_link( $link_page_id, $link_data, $user_id ) {
 
 	// Save via existing centralized function
 	$save_data = array( 'links' => $links );
-	$result = ec_handle_link_page_save( $link_page_id, $save_data );
+	$result    = ec_handle_link_page_save( $link_page_id, $save_data );
 
 	if ( is_wp_error( $result ) ) {
 		do_action( 'ec_artist_link_add_failed', $link_page_id, $clean_data, $result, $user_id );
@@ -130,12 +130,12 @@ function ec_action_artist_add_link( $link_page_id, $link_data, $user_id ) {
 	do_action( 'ec_artist_link_added', $link_page_id, $clean_data, $section_index, $position, $user_id );
 
 	return array(
-		'success' => true,
-		'link_id' => $clean_data['id'],
+		'success'       => true,
+		'link_id'       => $clean_data['id'],
 		'section_index' => $section_index,
-		'position' => $position,
-		'link_page_id' => $link_page_id,
-		'artist_id' => $artist_id
+		'position'      => $position,
+		'link_page_id'  => $link_page_id,
+		'artist_id'     => $artist_id,
 	);
 }
 

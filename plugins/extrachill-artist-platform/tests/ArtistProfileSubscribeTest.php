@@ -44,17 +44,17 @@ if ( ! function_exists( 'ec_get_link_page_defaults_for' ) ) {
 	function ec_get_link_page_defaults_for() {
 		return array(
 			'--link-page-card-bg-color'         => '#fff',
-			'--link-page-link-text-color'        => '#000',
-			'--link-page-title-font-family'      => 'sans-serif',
-			'--link-page-body-font-family'       => 'sans-serif',
-			'--link-page-background-type'        => 'color',
-			'--link-page-background-color'       => '#fff',
-			'--link-page-button-hover-bg-color'  => '#000',
-			'--link-page-button-border-color'    => '#000',
-			'--link-page-button-bg-color'        => '#fff',
-			'--link-page-muted-text-color'       => '#555',
-			'--link-page-input-bg'               => '#fff',
-			'--link-page-button-radius'          => '4px',
+			'--link-page-link-text-color'       => '#000',
+			'--link-page-title-font-family'     => 'sans-serif',
+			'--link-page-body-font-family'      => 'sans-serif',
+			'--link-page-background-type'       => 'color',
+			'--link-page-background-color'      => '#fff',
+			'--link-page-button-hover-bg-color' => '#000',
+			'--link-page-button-border-color'   => '#000',
+			'--link-page-button-bg-color'       => '#fff',
+			'--link-page-muted-text-color'      => '#555',
+			'--link-page-input-bg'              => '#fff',
+			'--link-page-button-radius'         => '4px',
 		);
 	}
 }
@@ -113,6 +113,7 @@ if ( ! function_exists( 'ec_render_template' ) ) {
 			return '';
 		}
 
+		// phpcs:ignore WordPress.PHP.DontExtract.extract_extract -- mirrors the WP template-vars contract of the included template; EXTR_SKIP guards collisions.
 		extract( $args, EXTR_SKIP );
 		ob_start();
 		include dirname( __DIR__ ) . '/inc/link-pages/live/templates/subscribe-inline-form.php';
@@ -122,6 +123,7 @@ if ( ! function_exists( 'ec_render_template' ) ) {
 
 require_once dirname( __DIR__ ) . '/inc/artist-profiles/frontend/subscribe-section.php';
 
+// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- test file keeps a template-loading helper plus the test class; intentional.
 final class ArtistProfileSubscribeTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_test'] = array(
@@ -153,7 +155,7 @@ final class ArtistProfileSubscribeTest extends TestCase {
 		$GLOBALS['ec_test']['meta'][84]['_link_page_subscribe_display_mode'] = array( 'disabled' );
 		$this->assertFalse( ec_is_artist_profile_subscribe_section_visible( 42 ) );
 
-		$GLOBALS['ec_test']['meta'][84] = array();
+		$GLOBALS['ec_test']['meta'][84]               = array();
 		$GLOBALS['ec_test']['posts'][42]->post_status = 'draft';
 		$this->assertFalse( ec_is_artist_profile_subscribe_section_visible( 42 ) );
 	}
@@ -176,9 +178,9 @@ final class ArtistProfileSubscribeTest extends TestCase {
 		libxml_use_internal_errors( true );
 		$document->loadHTML( '<!DOCTYPE html><html><body>' . $html . '</body></html>' );
 		libxml_clear_errors();
-		$xpath = new DOMXPath( $document );
-		$input = $xpath->query( '//input[@type="email"]' )->item( 0 );
-		$label = $xpath->query( '//label[@for="' . $input->getAttribute( 'id' ) . '"]' )->item( 0 );
+		$xpath  = new DOMXPath( $document );
+		$input  = $xpath->query( '//input[@type="email"]' )->item( 0 );
+		$label  = $xpath->query( '//label[@for="' . $input->getAttribute( 'id' ) . '"]' )->item( 0 );
 		$status = $xpath->query( '//*[@role="status" and @aria-live="polite"]' )->item( 0 );
 
 		$this->assertNotNull( $label );
@@ -210,6 +212,7 @@ final class ArtistProfileSubscribeTest extends TestCase {
 	}
 
 	public function test_profile_styles_include_mobile_single_column_layout(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local asset read, not a remote URL.
 		$styles = file_get_contents( dirname( __DIR__ ) . '/assets/css/artist-profile-subscribe.css' );
 
 		$this->assertStringContainsString( '@media (max-width: 600px)', $styles );

@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 function ec_acquire_artist_binding_lock() {
 	global $wpdb;
 	$lock_name = 'ec_artist_binding_v1';
-	if ( ! empty( $GLOBALS['ec_artist_binding_lock'] ) || ! empty( $GLOBALS['ec_artist_binding_lock_pending'] ) || preg_match( '/sqlite|pgsql|postgres/', strtolower( get_class( $wpdb ) ) ) ) {
+	if ( ! empty( $GLOBALS['ec_artist_binding_lock'] ) || ! empty( $GLOBALS['ec_artist_binding_lock_pending'] ) || preg_match( '/sqlite|pgsql|postgres/', strtolower( (string) get_class( $wpdb ) ) ) ) {
 		return new WP_Error( 'artist_binding_lock_unsupported', __( 'Canonical artist binding serialization is unavailable.', 'extrachill-artist-platform' ), array( 'retryable' => true ) );
 	}
 	$GLOBALS['ec_artist_binding_lock_pending'] = true;
@@ -98,7 +98,7 @@ function ec_release_artist_binding_lock( $lock_token ) {
  */
 function ec_artist_binding_prepare_mutation_boundary() {
 	global $wpdb;
-	if ( preg_match( '/sqlite|pgsql|postgres/', strtolower( get_class( $wpdb ) ) ) ) {
+	if ( preg_match( '/sqlite|pgsql|postgres/', strtolower( (string) get_class( $wpdb ) ) ) ) {
 		return new WP_Error( 'artist_binding_transaction_state_unsupported', __( 'Canonical artist binding transaction state is unavailable.', 'extrachill-artist-platform' ), array( 'retryable' => false ) );
 	}
 	$previous_suppression = $wpdb->suppress_errors( true );
@@ -438,7 +438,8 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 			restore_current_blog();
 		}
 		$current_profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
-		$wrote_profile   = ! empty( $current_profile ) && (int) $current_profile['term_id'] === (int) $term_id;
+		// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
+		$wrote_profile = ! empty( $current_profile ) && (int) $current_profile['term_id'] === (int) $term_id;
 	}
 	if ( 0 === $term['profile_id'] ) {
 		switch_to_blog( $main_blog_id );
@@ -448,10 +449,12 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 			restore_current_blog();
 		}
 		$current_term = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
-		$wrote_term   = ! empty( $current_term ) && (int) $current_term['profile_id'] === (int) $profile_id;
+		// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
+		$wrote_term = ! empty( $current_term ) && (int) $current_term['profile_id'] === (int) $profile_id;
 	}
 	$profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
 	$term    = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
+	// @phpstan-ignore phpstan.booleanAnd.alwaysTrue,phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 	if ( ! empty( $profile ) && ! empty( $term ) && (int) $profile['term_id'] === (int) $term_id && (int) $term['profile_id'] === (int) $profile_id ) {
 		switch_to_blog( $main_blog_id );
 		try {
@@ -468,6 +471,7 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 		for ( $attempt = 0; $attempt < 3; ++$attempt ) {
 			ec_artist_binding_delete_profile_meta( (int) $profile_id, (int) $term_id, $blog_ids['artist'] );
 			$current_profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
+			// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 			if ( empty( $current_profile ) || (int) $current_profile['term_id'] !== (int) $term_id ) {
 				break;
 			}
@@ -477,6 +481,7 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 		for ( $attempt = 0; $attempt < 3; ++$attempt ) {
 			ec_artist_binding_delete_term_meta( (int) $term_id, (int) $profile_id, $main_blog_id );
 			$current_term = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
+			// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 			if ( empty( $current_term ) || (int) $current_term['profile_id'] !== (int) $profile_id ) {
 				break;
 			}
@@ -484,6 +489,7 @@ function ec_reconcile_artist_profile_term_pair_locked( $profile_id, $term_id, $m
 	}
 	$current_profile = ec_artist_binding_read_profile( (int) $profile_id, $blog_ids['artist'] );
 	$current_term    = ec_artist_binding_read_term( (int) $term_id, $main_blog_id );
+	// @phpstan-ignore phpstan.empty.variable (defensive: read helpers may return empty arrays at runtime.)
 	if ( ( $wrote_profile && ! empty( $current_profile ) && (int) $current_profile['term_id'] === (int) $term_id ) || ( $wrote_term && ! empty( $current_term ) && (int) $current_term['profile_id'] === (int) $profile_id ) ) {
 		ec_set_artist_binding_failure(
 			new WP_Error(
@@ -560,17 +566,23 @@ function ec_remove_stale_artist_binding_reference( $side, $object_id, $expected_
 	}
 	$blog_ids = ec_artist_binding_blog_ids();
 	if ( 'profile' === $side ) {
+		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_profile( $object_id, $blog_ids['artist'] );
 		if ( ! empty( $current ) && (int) $current['term_id'] === (int) $expected_id ) {
+			// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 			ec_artist_binding_delete_profile_meta( $object_id, $expected_id, $blog_ids['artist'] );
 		}
+		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_profile( $object_id, $blog_ids['artist'] );
 		$clean   = empty( $current ) || (int) $current['term_id'] !== (int) $expected_id;
 	} else {
+		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_term( $object_id, $blog_ids['main'] );
 		if ( ! empty( $current ) && (int) $current['profile_id'] === (int) $expected_id ) {
+			// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 			ec_artist_binding_delete_term_meta( $object_id, $expected_id, $blog_ids['main'] );
 		}
+		// @phpstan-ignore phpstan.offsetAccess.notFound ($blog_ids is fully populated on this locked path.)
 		$current = ec_artist_binding_read_term( $object_id, $blog_ids['main'] );
 		$clean   = empty( $current ) || (int) $current['profile_id'] !== (int) $expected_id;
 	}
@@ -1037,6 +1049,7 @@ function ec_sync_artist_profile_term_binding_locked( $profile_id ) {
 	}
 	/* @var WP_Error|null $binding_failure A failed metadata write can require manual compensation. */
 	$binding_failure = ec_get_artist_binding_failure();
+	// @phpstan-ignore phpstan.instanceof.alwaysFalse (the failure getter returns WP_Error on failure at runtime; null-narrowing is an analysis artifact.)
 	if ( $binding_failure instanceof WP_Error ) {
 		return $binding_failure;
 	}
@@ -1055,9 +1068,11 @@ function ec_sync_artist_profile_term_binding_locked( $profile_id ) {
 				$delete_reported = ! is_wp_error( $delete_result ) && (bool) $delete_result;
 				/* @var mixed $deleted_term The term may disappear after deletion. */
 				ec_artist_binding_invalidate_term_cache( $new_term_id, $blog_ids['main'] );
-				$deleted_term          = get_term( $new_term_id, 'artist' );
-				$deleted               = $delete_reported && ( ! $deleted_term || is_wp_error( $deleted_term ) );
+				$deleted_term = get_term( $new_term_id, 'artist' );
+				$deleted      = $delete_reported && ( ! $deleted_term || is_wp_error( $deleted_term ) );
+				// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: $deleted tracks wp_delete_term() outcome and may legitimately stay false.)
 				$delete_state_mismatch = $delete_reported && ! $deleted;
+				// @phpstan-ignore phpstan.booleanAnd.leftAlwaysTrue (defensive: retained so compensation only runs when deletion truly failed.)
 				if ( ! $deleted && ! $delete_state_mismatch ) {
 					/* @var mixed $created_term Re-read because deletion may have changed term state. */
 					ec_artist_binding_invalidate_term_cache( $new_term_id, $blog_ids['main'] );
@@ -1111,6 +1126,7 @@ function ec_artist_binding_pre_delete_post( $check, $post, $force_delete ) {
 	// phpcs:enable Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 	ec_set_artist_binding_failure();
 	ec_set_artist_binding_release_failure();
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (defensive: hook callers may pass unexpected values.)
 	if ( null !== $check || ! is_object( $post ) || 'artist_profile' !== $post->post_type ) {
 		return $check;
 	}
@@ -1153,6 +1169,7 @@ function ec_artist_binding_pre_delete_post( $check, $post, $force_delete ) {
  * @return void
  */
 function ec_artist_binding_after_delete_post( $profile_id, $post ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (defensive: hook callers may pass unexpected values.)
 	if ( ! is_object( $post ) || 'artist_profile' !== $post->post_type ) {
 		return;
 	}

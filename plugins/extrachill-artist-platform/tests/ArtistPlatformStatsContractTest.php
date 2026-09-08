@@ -9,19 +9,20 @@ if ( ! class_exists( 'WP_Query' ) ) {
 
 		public function __construct( $args ) {
 			$GLOBALS['ec_test']['wp_queries'][] = $args;
-			$result = array_shift( $GLOBALS['ec_test']['wp_query_results'] );
-			$this->found_posts = $result['found_posts'] ?? 0;
-			$this->posts       = $result['posts'] ?? array();
+			$result                             = array_shift( $GLOBALS['ec_test']['wp_query_results'] );
+			$this->found_posts                  = $result['found_posts'] ?? 0;
+			$this->posts                        = $result['posts'] ?? array();
 		}
 	}
 }
 
 require_once dirname( __DIR__ ) . '/inc/abilities/handlers/get-artist-platform-stats.php';
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- second stub class in this test file is intentional; not restructuring tests.
 final class ArtistPlatformStatsContractTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_test'] = array(
-			'current_blog_id' => 4,
+			'current_blog_id'  => 4,
 			'wp_query_results' => array(),
 		);
 		extrachill_artist_platform_register_abilities();
@@ -76,8 +77,14 @@ final class ArtistPlatformStatsContractTest extends TestCase {
 		$this->assertNull( $result['link_page_analytics_error'] );
 		$this->assertSame(
 			array(
-				array( 'link_page_id' => 10, 'date_range' => 28 ),
-				array( 'link_page_id' => 20, 'date_range' => 28 ),
+				array(
+					'link_page_id' => 10,
+					'date_range'   => 28,
+				),
+				array(
+					'link_page_id' => 20,
+					'date_range'   => 28,
+				),
 			),
 			$GLOBALS['ec_test']['analytics_inputs']
 		);
@@ -148,8 +155,8 @@ final class ArtistPlatformStatsContractTest extends TestCase {
 	}
 
 	public function test_owner_ability_authorization_failure_is_preserved(): void {
-		$GLOBALS['ec_test']['current_blog_id']                 = 1;
-		$GLOBALS['ec_test']['current_user_id']                 = 7;
+		$GLOBALS['ec_test']['current_blog_id']                = 1;
+		$GLOBALS['ec_test']['current_user_id']                = 7;
 		$GLOBALS['ec_test']['capabilities']['manage_options'] = true;
 		$this->setQueryResults( array( 10 ) );
 		$this->registerAbility(

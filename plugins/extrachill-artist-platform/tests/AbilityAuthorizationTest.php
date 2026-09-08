@@ -10,25 +10,86 @@ final class AbilityAuthorizationTest extends TestCase {
 
 	private function artistAbilityMatrix(): array {
 		return array(
-			'extrachill/get-artist-data' => array( array( 'artist_id' => 42 ), 'extrachill_artist_platform_ability_get_artist_data' ),
-			'extrachill/get-link-page-data' => array( array( 'artist_id' => 42 ), 'extrachill_artist_platform_ability_get_link_page_data' ),
-			'extrachill/update-artist' => array( array( 'artist_id' => 42, 'name' => 'Band' ), 'extrachill_artist_platform_ability_update_artist' ),
-			'extrachill/save-link-page-links' => array( array( 'artist_id' => 42, 'links' => array() ), 'extrachill_artist_platform_ability_save_link_page_links' ),
-			'extrachill/save-link-page-styles' => array( array( 'artist_id' => 42, 'css_vars' => array() ), 'extrachill_artist_platform_ability_save_link_page_styles' ),
-			'extrachill/save-link-page-settings' => array( array( 'artist_id' => 42, 'bio' => 'Bio' ), 'extrachill_artist_platform_ability_save_link_page_settings' ),
-			'extrachill/save-social-links' => array( array( 'artist_id' => 42, 'social_links' => array() ), 'extrachill_artist_platform_ability_save_social_links' ),
-			'extrachill/artist-get-links' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_get_links' ),
+			'extrachill/get-artist-data'           => array( array( 'artist_id' => 42 ), 'extrachill_artist_platform_ability_get_artist_data' ),
+			'extrachill/get-link-page-data'        => array( array( 'artist_id' => 42 ), 'extrachill_artist_platform_ability_get_link_page_data' ),
+			'extrachill/update-artist'             => array(
+				array(
+					'artist_id' => 42,
+					'name'      => 'Band',
+				),
+				'extrachill_artist_platform_ability_update_artist',
+			),
+			'extrachill/save-link-page-links'      => array(
+				array(
+					'artist_id' => 42,
+					'links'     => array(),
+				),
+				'extrachill_artist_platform_ability_save_link_page_links',
+			),
+			'extrachill/save-link-page-styles'     => array(
+				array(
+					'artist_id' => 42,
+					'css_vars'  => array(),
+				),
+				'extrachill_artist_platform_ability_save_link_page_styles',
+			),
+			'extrachill/save-link-page-settings'   => array(
+				array(
+					'artist_id' => 42,
+					'bio'       => 'Bio',
+				),
+				'extrachill_artist_platform_ability_save_link_page_settings',
+			),
+			'extrachill/save-social-links'         => array(
+				array(
+					'artist_id'    => 42,
+					'social_links' => array(),
+				),
+				'extrachill_artist_platform_ability_save_social_links',
+			),
+			'extrachill/artist-get-links'          => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_get_links' ),
 			'extrachill/artist-get-local-support-availability' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_get_local_support_availability' ),
-			'extrachill/artist-update-local-support-availability' => array( array( 'id' => 42, 'available' => true ), 'extrachill_artist_platform_ability_update_local_support_availability' ),
-			'extrachill/artist-update-links' => array( array( 'id' => 42, 'links' => array() ), 'extrachill_artist_platform_ability_artist_update_links' ),
-			'extrachill/artist-get-roster' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_get_roster' ),
-			'extrachill/artist-list-socials' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_list_socials' ),
-			'extrachill/artist-create-social' => array( array( 'id' => 42, 'type' => 'website', 'url' => 'https://example.com' ), 'extrachill_artist_platform_ability_artist_create_social' ),
-			'extrachill/artist-update-social' => array( array( 'id' => 42, 'social_id' => '42-social-1' ), 'extrachill_artist_platform_ability_artist_update_social' ),
-			'extrachill/artist-delete-social' => array( array( 'id' => 42, 'social_id' => '42-social-1' ), 'extrachill_artist_platform_ability_artist_delete_social' ),
-			'extrachill/artist-list-subscribers' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_list_subscribers' ),
+			'extrachill/artist-update-local-support-availability' => array(
+				array(
+					'id'        => 42,
+					'available' => true,
+				),
+				'extrachill_artist_platform_ability_update_local_support_availability',
+			),
+			'extrachill/artist-update-links'       => array(
+				array(
+					'id'    => 42,
+					'links' => array(),
+				),
+				'extrachill_artist_platform_ability_artist_update_links',
+			),
+			'extrachill/artist-get-roster'         => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_get_roster' ),
+			'extrachill/artist-list-socials'       => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_list_socials' ),
+			'extrachill/artist-create-social'      => array(
+				array(
+					'id'   => 42,
+					'type' => 'website',
+					'url'  => 'https://example.com',
+				),
+				'extrachill_artist_platform_ability_artist_create_social',
+			),
+			'extrachill/artist-update-social'      => array(
+				array(
+					'id'        => 42,
+					'social_id' => '42-social-1',
+				),
+				'extrachill_artist_platform_ability_artist_update_social',
+			),
+			'extrachill/artist-delete-social'      => array(
+				array(
+					'id'        => 42,
+					'social_id' => '42-social-1',
+				),
+				'extrachill_artist_platform_ability_artist_delete_social',
+			),
+			'extrachill/artist-list-subscribers'   => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_list_subscribers' ),
 			'extrachill/artist-export-subscribers' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_export_subscribers' ),
-			'extrachill/artist-get-analytics' => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_get_analytics' ),
+			'extrachill/artist-get-analytics'      => array( array( 'id' => 42 ), 'extrachill_artist_platform_ability_artist_get_analytics' ),
 		);
 	}
 
@@ -44,7 +105,7 @@ final class AbilityAuthorizationTest extends TestCase {
 			$GLOBALS['ec_test']['managed_artists'][7] = array( 42 );
 			$this->assertTrue( $ability->check_permissions( $input ), $name . ' denied the artist owner.' );
 
-			$GLOBALS['ec_test']['current_user_id'] = 9;
+			$GLOBALS['ec_test']['current_user_id']                = 9;
 			$GLOBALS['ec_test']['capabilities']['manage_options'] = true;
 			$this->assertTrue( $ability->check_permissions( $input ), $name . ' denied an administrator.' );
 
@@ -55,7 +116,7 @@ final class AbilityAuthorizationTest extends TestCase {
 	}
 
 	public function test_every_sensitive_registration_uses_an_approved_permission_contract(): void {
-		$public = array(
+		$public  = array(
 			'extrachill/onboard-external-artist',
 			'extrachill/artist-invitation',
 			'extrachill/artists-list',
@@ -102,11 +163,14 @@ final class AbilityAuthorizationTest extends TestCase {
 	}
 
 	public function test_execution_principal_overrides_ambient_session_and_enforces_ceiling(): void {
-		$GLOBALS['ec_test']['current_user_id']      = 1;
+		$GLOBALS['ec_test']['current_user_id']                = 1;
 		$GLOBALS['ec_test']['capabilities']['manage_options'] = true;
-		$GLOBALS['ec_test']['managed_artists'][7]   = array( 42 );
+		$GLOBALS['ec_test']['managed_artists'][7]             = array( 42 );
 		$ability = wp_get_ability( 'extrachill/update-artist' );
-		$input   = array( 'artist_id' => 42, 'name' => 'Band' );
+		$input   = array(
+			'artist_id' => 42,
+			'name'      => 'Band',
+		);
 
 		$GLOBALS['ec_test']['execution_principal'] = new AgentsAPI\AI\WP_Agent_Execution_Principal( 8 );
 		$this->assertFalse( $ability->check_permissions( $input ), 'Ambient administrator leaked into an unrelated principal.' );
@@ -124,7 +188,10 @@ final class AbilityAuthorizationTest extends TestCase {
 
 	public function test_system_principal_preserves_trusted_cli_execution_only(): void {
 		$ability = wp_get_ability( 'extrachill/update-artist' );
-		$input   = array( 'artist_id' => 42, 'name' => 'Band' );
+		$input   = array(
+			'artist_id' => 42,
+			'name'      => 'Band',
+		);
 
 		$GLOBALS['ec_test']['execution_principal'] = new AgentsAPI\AI\WP_Agent_Execution_Principal( 0, 'system', 'cli' );
 		$this->assertTrue( $ability->check_permissions( $input ) );
@@ -137,7 +204,11 @@ final class AbilityAuthorizationTest extends TestCase {
 		$GLOBALS['ec_test']['current_user_id']       = 7;
 		$GLOBALS['ec_test']['managed_artists'][7]    = array( 42, 43 );
 		$GLOBALS['ec_test']['strict_artist_objects'] = true;
-		$GLOBALS['ec_test']['blogs'][4]['posts'][43] = (object) array( 'ID' => 43, 'post_type' => 'artist_profile', 'post_status' => 'draft' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][43] = (object) array(
+			'ID'          => 43,
+			'post_type'   => 'artist_profile',
+			'post_status' => 'draft',
+		);
 
 		$this->assertFalse( wp_get_ability( 'extrachill/update-artist' )->check_permissions( array( 'artist_id' => 42 ) ) );
 		$this->assertFalse( wp_get_ability( 'extrachill/update-artist' )->check_permissions( array( 'artist_id' => 43 ) ) );
@@ -146,15 +217,26 @@ final class AbilityAuthorizationTest extends TestCase {
 	public function test_explicit_link_page_must_map_to_the_authorized_artist(): void {
 		$GLOBALS['ec_test']['current_user_id']    = 7;
 		$GLOBALS['ec_test']['managed_artists'][7] = array( 42 );
-		$GLOBALS['ec_test']['blogs'][4] = array(
-			'posts' => array(
-				42 => (object) array( 'ID' => 42, 'post_type' => 'artist_profile', 'post_status' => 'publish' ),
-				99 => (object) array( 'ID' => 99, 'post_type' => 'artist_link_page', 'post_status' => 'publish' ),
+		$GLOBALS['ec_test']['blogs'][4]           = array(
+			'posts'     => array(
+				42 => (object) array(
+					'ID'          => 42,
+					'post_type'   => 'artist_profile',
+					'post_status' => 'publish',
+				),
+				99 => (object) array(
+					'ID'          => 99,
+					'post_type'   => 'artist_link_page',
+					'post_status' => 'publish',
+				),
 			),
 			'post_meta' => array( 99 => array( '_associated_artist_profile_id' => 84 ) ),
 		);
 
-		$result = extrachill_artist_platform_ability_get_link_page_data( array( 'artist_id' => 42, 'link_page_id' => 99 ) );
+		$result = extrachill_artist_platform_ability_get_link_page_data( array(
+			'artist_id'    => 42,
+			'link_page_id' => 99,
+		) );
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'invalid_link_page', $result->get_error_code() );
 	}
@@ -162,11 +244,23 @@ final class AbilityAuthorizationTest extends TestCase {
 	public function test_legacy_match_cannot_override_conflicting_canonical_owner(): void {
 		$GLOBALS['ec_test']['current_user_id']    = 7;
 		$GLOBALS['ec_test']['managed_artists'][7] = array( 42 );
-		$GLOBALS['ec_test']['blogs'][4] = array(
-			'posts' => array(
-				42 => (object) array( 'ID' => 42, 'post_type' => 'artist_profile', 'post_status' => 'publish' ),
-				84 => (object) array( 'ID' => 84, 'post_type' => 'artist_profile', 'post_status' => 'publish' ),
-				99 => (object) array( 'ID' => 99, 'post_type' => 'artist_link_page', 'post_status' => 'publish' ),
+		$GLOBALS['ec_test']['blogs'][4]           = array(
+			'posts'     => array(
+				42 => (object) array(
+					'ID'          => 42,
+					'post_type'   => 'artist_profile',
+					'post_status' => 'publish',
+				),
+				84 => (object) array(
+					'ID'          => 84,
+					'post_type'   => 'artist_profile',
+					'post_status' => 'publish',
+				),
+				99 => (object) array(
+					'ID'          => 99,
+					'post_type'   => 'artist_link_page',
+					'post_status' => 'publish',
+				),
 			),
 			'post_meta' => array(
 				99 => array(
@@ -177,7 +271,10 @@ final class AbilityAuthorizationTest extends TestCase {
 		);
 
 		$this->assertFalse( extrachill_artist_platform_ability_link_page_belongs_to_artist( 42, 99 ) );
-		$result = extrachill_artist_platform_ability_get_link_page_data( array( 'artist_id' => 42, 'link_page_id' => 99 ) );
+		$result = extrachill_artist_platform_ability_get_link_page_data( array(
+			'artist_id'    => 42,
+			'link_page_id' => 99,
+		) );
 		$this->assertSame( 'invalid_link_page', $result->get_error_code() );
 	}
 
@@ -198,32 +295,56 @@ final class AbilityAuthorizationTest extends TestCase {
 
 		$GLOBALS['ec_test']['current_user_id'] = 7;
 		$this->assertTrue( $ability->check_permissions( array( 'name' => 'Band' ) ) );
-		$this->assertTrue( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 7 ) ) );
-		$this->assertFalse( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 8 ) ) );
+		$this->assertTrue( $ability->check_permissions( array(
+			'name'    => 'Band',
+			'user_id' => 7,
+		) ) );
+		$this->assertFalse( $ability->check_permissions( array(
+			'name'    => 'Band',
+			'user_id' => 8,
+		) ) );
 
 		$GLOBALS['ec_test']['capabilities']['manage_options'] = true;
-		$this->assertTrue( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 8 ) ) );
+		$this->assertTrue( $ability->check_permissions( array(
+			'name'    => 'Band',
+			'user_id' => 8,
+		) ) );
 	}
 
 	public function test_create_artist_binds_user_claim_to_the_execution_principal(): void {
-		$GLOBALS['ec_test']['current_user_id'] = 1;
+		$GLOBALS['ec_test']['current_user_id']                = 1;
 		$GLOBALS['ec_test']['capabilities']['manage_options'] = true;
 		$ability = wp_get_ability( 'extrachill/create-artist' );
 
 		$GLOBALS['ec_test']['execution_principal'] = new AgentsAPI\AI\WP_Agent_Execution_Principal( 7, 'agent_token', 'rest', new WP_Agent_Capability_Ceiling( 7, array( 'create_artist_profile' ) ) );
-		$this->assertTrue( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 7 ) ) );
-		$this->assertFalse( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 8 ) ) );
-		$this->assertSame( 'artist_access_denied', extrachill_artist_platform_ability_create_artist( array( 'name' => 'Band', 'user_id' => 8 ) )->get_error_code() );
+		$this->assertTrue( $ability->check_permissions( array(
+			'name'    => 'Band',
+			'user_id' => 7,
+		) ) );
+		$this->assertFalse( $ability->check_permissions( array(
+			'name'    => 'Band',
+			'user_id' => 8,
+		) ) );
+		$this->assertSame( 'artist_access_denied', extrachill_artist_platform_ability_create_artist( array(
+			'name'    => 'Band',
+			'user_id' => 8,
+		) )->get_error_code() );
 
 		$GLOBALS['ec_test']['execution_principal'] = new AgentsAPI\AI\WP_Agent_Execution_Principal( 7, 'agent_token', 'rest', new WP_Agent_Capability_Ceiling( 7, array() ) );
-		$this->assertFalse( $ability->check_permissions( array( 'name' => 'Band', 'user_id' => 7 ) ) );
+		$this->assertFalse( $ability->check_permissions( array(
+			'name'    => 'Band',
+			'user_id' => 7,
+		) ) );
 	}
 
 	public function test_create_artist_rolls_back_profile_when_membership_fails(): void {
-		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$GLOBALS['ec_test']['current_blog_id'] = 1;
-		$GLOBALS['ec_test']['blog_stack']      = array();
-		$GLOBALS['ec_test']['blogs'][4]        = array( 'posts' => array(), 'post_meta' => array() );
+		$GLOBALS['ec_test']['current_user_id']    = 7;
+		$GLOBALS['ec_test']['current_blog_id']    = 1;
+		$GLOBALS['ec_test']['blog_stack']         = array();
+		$GLOBALS['ec_test']['blogs'][4]           = array(
+			'posts'     => array(),
+			'post_meta' => array(),
+		);
 		$GLOBALS['ec_test']['fail_post_meta_add'] = true;
 
 		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Rollback Band' ) );
@@ -235,10 +356,13 @@ final class AbilityAuthorizationTest extends TestCase {
 	}
 
 	public function test_create_artist_reports_failed_profile_rollback(): void {
-		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$GLOBALS['ec_test']['current_blog_id'] = 1;
-		$GLOBALS['ec_test']['blog_stack']      = array();
-		$GLOBALS['ec_test']['blogs'][4]        = array( 'posts' => array(), 'post_meta' => array() );
+		$GLOBALS['ec_test']['current_user_id']    = 7;
+		$GLOBALS['ec_test']['current_blog_id']    = 1;
+		$GLOBALS['ec_test']['blog_stack']         = array();
+		$GLOBALS['ec_test']['blogs'][4]           = array(
+			'posts'     => array(),
+			'post_meta' => array(),
+		);
 		$GLOBALS['ec_test']['fail_post_meta_add'] = true;
 		$GLOBALS['ec_test']['fail_post_delete']   = true;
 
@@ -252,11 +376,17 @@ final class AbilityAuthorizationTest extends TestCase {
 
 	public function test_public_artist_reads_remain_public(): void {
 		$abilities = array(
-			'extrachill/artists-list'          => array(),
-			'extrachill/artist-get'            => array( 'id' => 42 ),
-			'extrachill/artist-public-projections' => array( 'schema_version' => '1', 'slugs' => array( 'test-artist' ) ),
-			'extrachill/artist-get-permissions' => array( 'id' => 42 ),
-			'extrachill/artist-subscribe'      => array( 'id' => 42, 'email' => 'fan@example.com' ),
+			'extrachill/artists-list'              => array(),
+			'extrachill/artist-get'                => array( 'id' => 42 ),
+			'extrachill/artist-public-projections' => array(
+				'schema_version' => '1',
+				'slugs'          => array( 'test-artist' ),
+			),
+			'extrachill/artist-get-permissions'    => array( 'id' => 42 ),
+			'extrachill/artist-subscribe'          => array(
+				'id'    => 42,
+				'email' => 'fan@example.com',
+			),
 		);
 
 		foreach ( $abilities as $name => $input ) {

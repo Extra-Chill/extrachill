@@ -4,12 +4,13 @@ use PHPUnit\Framework\TestCase;
 
 final class LinkPageRuntimeHandoffTest extends TestCase {
 	private function runSmokeFixture( $fixture, $argument = '' ) {
-		$output = array();
-		$status = 0;
+		$output  = array();
+		$status  = 0;
 		$command = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/' . $fixture );
 		if ( '' !== $argument ) {
 			$command .= ' ' . escapeshellarg( $argument );
 		}
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- intentionally shells out to a helper binary for the runtime-handoff proof.
 		exec( $command, $output, $status );
 
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
@@ -21,8 +22,14 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 	public function test_artist_runtime_requires_exact_composed_mutation_signatures(): void {
 		$signatures = extrachill_artist_platform_link_pages_runtime_signatures();
 
-		$this->assertSame( array( 'total' => 3, 'required' => 3 ), $signatures['ec_save_link_page_persistence_composed'] );
-		$this->assertSame( array( 'total' => 6, 'required' => 4 ), $signatures['ec_provision_owned_link_page_composed'] );
+		$this->assertSame( array(
+			'total'    => 3,
+			'required' => 3,
+		), $signatures['ec_save_link_page_persistence_composed'] );
+		$this->assertSame( array(
+			'total'    => 6,
+			'required' => 4,
+		), $signatures['ec_provision_owned_link_page_composed'] );
 	}
 
 	public function test_fake_external_runtime_owns_generic_symbols_and_cpt_while_artist_adapter_registers_once(): void {
@@ -81,15 +88,15 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 
 	public function incompatibleRuntimeProvider(): array {
 		return array(
-			'post type contract' => array( 'post-type', 'extrachill_link_pages_runtime_incompatible' ),
-			'owner meta contract' => array( 'owner-meta', 'extrachill_link_pages_runtime_incompatible' ),
-			'no API marker'      => array( 'no-marker', 'extrachill_link_pages_runtime_incomplete' ),
-			'stale API version'  => array( 'stale-version', 'extrachill_link_pages_runtime_incompatible' ),
-			'wrong generic arity' => array( 'wrong-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'wrong required arity'=> array( 'wrong-required-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'no readiness marker'=> array( 'no-readiness', 'extrachill_link_pages_runtime_incomplete' ),
-			'readiness arity'    => array( 'readiness-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'not ready'          => array( 'readiness', 'extrachill_link_pages_runtime_incomplete' ),
+			'post type contract'   => array( 'post-type', 'extrachill_link_pages_runtime_incompatible' ),
+			'owner meta contract'  => array( 'owner-meta', 'extrachill_link_pages_runtime_incompatible' ),
+			'no API marker'        => array( 'no-marker', 'extrachill_link_pages_runtime_incomplete' ),
+			'stale API version'    => array( 'stale-version', 'extrachill_link_pages_runtime_incompatible' ),
+			'wrong generic arity'  => array( 'wrong-arity', 'extrachill_link_pages_runtime_incompatible' ),
+			'wrong required arity' => array( 'wrong-required-arity', 'extrachill_link_pages_runtime_incompatible' ),
+			'no readiness marker'  => array( 'no-readiness', 'extrachill_link_pages_runtime_incomplete' ),
+			'readiness arity'      => array( 'readiness-arity', 'extrachill_link_pages_runtime_incompatible' ),
+			'not ready'            => array( 'readiness', 'extrachill_link_pages_runtime_incomplete' ),
 		);
 	}
 
@@ -133,7 +140,12 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 		$this->assertTrue( $result['owner_writes_locked'] );
 		$this->assertSame( 'Updated bio', $result['saved_bio'] );
 		$this->assertSame( 'Ability bio', $result['persisted_bio'] );
-		$this->assertSame( array( 'links' => true, 'styles' => true, 'settings' => true, 'socials' => true ), $result['ability_results'] );
+		$this->assertSame( array(
+			'links'    => true,
+			'styles'   => true,
+			'settings' => true,
+			'socials'  => true,
+		), $result['ability_results'] );
 		$this->assertSame( 1, $result['social_count'] );
 		$this->assertSame( 55, $result['thumbnail'] );
 		$this->assertSame( 'Combined Artist', $result['projection_title'] );
@@ -226,7 +238,7 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 
 	/** @dataProvider crossBlogMutationProvider */
 	public function test_cross_blog_social_mutation_uses_blog_four_lock_and_cache( $mode, $caller_blog ): void {
-		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', $mode );
+		$result   = $this->runSmokeFixture( 'combined-runtime-smoke.php', $mode );
 		$mutation = $result['cross_blog_mutation'];
 
 		$this->assertTrue( $mutation['result'] );
@@ -252,7 +264,7 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 	}
 
 	public function test_cross_blog_social_failure_restores_context_without_purge(): void {
-		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'cross-blog-failure' );
+		$result   = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'cross-blog-failure' );
 		$mutation = $result['cross_blog_mutation'];
 
 		$this->assertSame( 'social_failure', $mutation['result'] );
@@ -287,6 +299,7 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 	}
 
 	public function test_fallback_mode_remains_configured_without_a_hard_plugin_dependency(): void {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
 		$source = file_get_contents( dirname( __DIR__ ) . '/extrachill-artist-platform.php' );
 
 		$this->assertStringNotContainsString( 'Requires Plugins: extrachill-link-pages', $source );
@@ -299,7 +312,7 @@ final class LinkPageRuntimeHandoffTest extends TestCase {
 		$GLOBALS['ec_test']['options']['active_plugins'] = array( 'extrachill-link-pages/extrachill-link-pages.php' );
 		$this->assertTrue( extrachill_artist_platform_uses_external_link_pages_runtime() );
 
-		$GLOBALS['ec_test']['options']['active_plugins'] = array();
+		$GLOBALS['ec_test']['options']['active_plugins']               = array();
 		$GLOBALS['ec_test']['site_options']['active_sitewide_plugins'] = array(
 			'extrachill-link-pages/extrachill-link-pages.php' => 123,
 		);

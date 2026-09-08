@@ -1,15 +1,15 @@
 <?php
 /**
  * Artist Roster Filter Handlers
- * 
+ *
  * Handles REST API filter requests for artist member invitation system.
  * Provides invitation creation, email sending, and roster operations.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-require_once dirname( __FILE__ ) . '/roster-data-functions.php';
-require_once dirname( __FILE__ ) . '/artist-invitation-emails.php';
+require_once __DIR__ . '/roster-data-functions.php';
+require_once __DIR__ . '/artist-invitation-emails.php';
 
 /**
  * Handle artist member invitation via REST API filter

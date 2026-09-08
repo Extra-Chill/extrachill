@@ -18,45 +18,47 @@ add_action( 'extrachill_artist_link_page_minimal_head', 'extrachill_artist_enque
  * @param int $artist_id    Artist profile post ID.
  * @return void
  */
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- shared enqueue hook signature; IDs reserved for parity with the full head path.
 function extrachill_artist_enqueue_link_page_minimal_assets( $link_page_id, $artist_id ) {
-    $plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
-    $plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
+	$plugin_dir = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR;
+	$plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
 
-    $styles = array(
-        'extrch-link-page'           => 'assets/css/extrch-links.css',
-        'extrch-share-modal'         => 'assets/css/extrch-share-modal.css',
-        'extrch-custom-social-icons' => 'assets/css/custom-social-icons.css',
-        'extrch-font-awesome'        => 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css',
-    );
+	$styles = array(
+		'extrch-link-page'           => 'assets/css/extrch-links.css',
+		'extrch-share-modal'         => 'assets/css/extrch-share-modal.css',
+		'extrch-custom-social-icons' => 'assets/css/custom-social-icons.css',
+		'extrch-font-awesome'        => 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css',
+	);
 
-    foreach ( $styles as $handle => $path ) {
-        if ( 0 === strpos( $path, 'http' ) ) {
-            wp_enqueue_style( $handle, $path, array(), null );
-            continue;
-        }
+	foreach ( $styles as $handle => $path ) {
+		if ( 0 === strpos( $path, 'http' ) ) {
+			// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- remote CDN asset; version param intentionally null.
+			wp_enqueue_style( $handle, $path, array(), null );
+			continue;
+		}
 
-        $abs_path = $plugin_dir . $path;
-        if ( ! file_exists( $abs_path ) ) {
-            continue;
-        }
+		$abs_path = $plugin_dir . $path;
+		if ( ! file_exists( $abs_path ) ) {
+			continue;
+		}
 
-        wp_enqueue_style( $handle, $plugin_url . $path, array(), filemtime( $abs_path ) );
-    }
+		wp_enqueue_style( $handle, $plugin_url . $path, array(), filemtime( $abs_path ) );
+	}
 
-    $scripts = array(
-        'extrch-share-modal'         => 'inc/link-pages/live/assets/js/extrch-share-modal.js',
-        'extrch-subscribe'           => 'inc/link-pages/live/assets/js/link-page-subscribe.js',
-        'extrch-edit-button'         => 'inc/link-pages/live/assets/js/link-page-edit-button.js',
-        'extrch-public-tracking'     => 'inc/link-pages/live/assets/js/link-page-public-tracking.js',
-        'extrch-link-page-youtube'   => 'inc/link-pages/live/assets/js/link-page-youtube-embed.js',
-    );
+	$scripts = array(
+		'extrch-share-modal'       => 'inc/link-pages/live/assets/js/extrch-share-modal.js',
+		'extrch-subscribe'         => 'inc/link-pages/live/assets/js/link-page-subscribe.js',
+		'extrch-edit-button'       => 'inc/link-pages/live/assets/js/link-page-edit-button.js',
+		'extrch-public-tracking'   => 'inc/link-pages/live/assets/js/link-page-public-tracking.js',
+		'extrch-link-page-youtube' => 'inc/link-pages/live/assets/js/link-page-youtube-embed.js',
+	);
 
-    foreach ( $scripts as $handle => $path ) {
-        $abs_path = $plugin_dir . $path;
-        if ( ! file_exists( $abs_path ) ) {
-            continue;
-        }
+	foreach ( $scripts as $handle => $path ) {
+		$abs_path = $plugin_dir . $path;
+		if ( ! file_exists( $abs_path ) ) {
+			continue;
+		}
 
-        wp_enqueue_script( $handle, $plugin_url . $path, array(), filemtime( $abs_path ), true );
-    }
+		wp_enqueue_script( $handle, $plugin_url . $path, array(), filemtime( $abs_path ), true );
+	}
 }

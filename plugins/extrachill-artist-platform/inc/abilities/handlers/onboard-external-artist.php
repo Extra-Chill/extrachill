@@ -299,24 +299,30 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 			$claim_delivery = 'busy';
 		} else {
 			try {
-				$claim_record = get_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', true );
-				$claim_state  = is_array( $claim_record ) ? ( $claim_record['state'] ?? '' ) : $claim_record;
-				$claim_started = is_array( $claim_record ) ? absint( $claim_record['started_at'] ?? 0 ) : 0;
-				$claim_sent_at = is_array( $claim_record ) ? absint( $claim_record['sent_at'] ?? 0 ) : 0;
+				$claim_record   = get_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', true );
+				$claim_state    = is_array( $claim_record ) ? ( $claim_record['state'] ?? '' ) : $claim_record;
+				$claim_started  = is_array( $claim_record ) ? absint( $claim_record['started_at'] ?? 0 ) : 0;
+				$claim_sent_at  = is_array( $claim_record ) ? absint( $claim_record['sent_at'] ?? 0 ) : 0;
 				$claim_lifetime = (int) apply_filters( 'password_reset_expiration', DAY_IN_SECONDS );
-				$active_sent = 'sent' === $claim_state && $claim_sent_at > time() - $claim_lifetime;
+				$active_sent    = 'sent' === $claim_state && $claim_sent_at > time() - $claim_lifetime;
 				if ( $active_sent ) {
 					$claim_delivery = 'previously_sent';
 				} elseif ( 'pending' === $claim_state && $claim_started > time() - ( 15 * MINUTE_IN_SECONDS ) ) {
 					$claim_delivery = 'pending';
-				} elseif ( ! update_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', array( 'state' => 'pending', 'started_at' => time() ) ) ) {
+				} elseif ( ! update_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', array(
+					'state'      => 'pending',
+					'started_at' => time(),
+				) ) ) {
 					$claim_delivery = 'failed';
 				} else {
 					$claim_result = retrieve_password( $user->user_login );
 					if ( is_wp_error( $claim_result ) ) {
 						update_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', '' );
 						$claim_delivery = 'failed';
-					} elseif ( update_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', array( 'state' => 'sent', 'sent_at' => time() ) ) ) {
+					} elseif ( update_user_meta( $user_id, '_ec_artist_onboarding_claim_delivery', array(
+						'state'   => 'sent',
+						'sent_at' => time(),
+					) ) ) {
 						$claim_delivery = 'sent';
 					} else {
 						$claim_delivery = 'sent_unconfirmed';
@@ -345,8 +351,8 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 		),
 		'artist'      => array(
 			'name'       => $name,
-			'profile_id' => $profile_id ?: null,
-			'term_id'    => $term_id ?: null,
+			'profile_id' => ( $profile_id ? $profile_id : null ),
+			'term_id'    => ( $term_id ? $term_id : null ),
 			'state'      => $profile_id ? 'existing_profile' : ( $term_id ? 'existing_canonical_identity' : 'new_eligible' ),
 		),
 		'membership'  => array( 'state' => $managed ? 'managed' : ( $profile_id || $term_id ? 'request_required' : 'not_applicable' ) ),
@@ -354,8 +360,14 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 			'required' => $unclaimed,
 			'delivery' => $unclaimed ? ( 'not_required' === $claim_delivery ? 'previously_provisioned' : $claim_delivery ) : 'not_required',
 		),
-		'link_page'   => array( 'state' => 'unavailable', 'id' => null ),
-		'source'      => array( 'type' => $source_type, 'id' => $source_id ),
+		'link_page'   => array(
+			'state' => 'unavailable',
+			'id'    => null,
+		),
+		'source'      => array(
+			'type' => $source_type,
+			'id'   => $source_id,
+		),
 		'return_url'  => $return_url,
 		'next_action' => 'none',
 	);
@@ -396,13 +408,13 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 		if ( is_wp_error( $locked_identity ) ) {
 			return $locked_identity;
 		}
-		$profile_id = (int) $locked_identity['profile_id'];
-		$term_id    = (int) $locked_identity['term_id'];
-		$managed    = $profile_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $user_id, $profile_id );
+		$profile_id        = (int) $locked_identity['profile_id'];
+		$term_id           = (int) $locked_identity['term_id'];
+		$managed           = $profile_id && function_exists( 'ec_can_manage_artist' ) && ec_can_manage_artist( $user_id, $profile_id );
 		$context['artist'] = array(
 			'name'       => $name,
-			'profile_id' => $profile_id ?: null,
-			'term_id'    => $term_id ?: null,
+			'profile_id' => ( $profile_id ? $profile_id : null ),
+			'term_id'    => ( $term_id ? $term_id : null ),
 			'state'      => $profile_id ? 'existing_profile' : ( $term_id ? 'existing_canonical_identity' : 'new_eligible' ),
 		);
 		if ( $disclosure ) {
@@ -427,7 +439,10 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 			if ( ! $create_artist ) {
 				return new WP_Error( 'artist_creation_unavailable', __( 'Artist profile creation is unavailable.', 'extrachill-artist-platform' ) );
 			}
-			$created_artist = $create_artist->execute( array( 'name' => $name, 'user_id' => $user_id ) );
+			$created_artist = $create_artist->execute( array(
+				'name'    => $name,
+				'user_id' => $user_id,
+			) );
 			if ( is_wp_error( $created_artist ) ) {
 				return $created_artist;
 			}
@@ -435,8 +450,8 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 			if ( ! $profile_id ) {
 				return new WP_Error( 'artist_creation_failed', __( 'Artist profile creation returned no profile ID.', 'extrachill-artist-platform' ) );
 			}
-			$artist_created = true;
-			$context['artist'] = array(
+			$artist_created                 = true;
+			$context['artist']              = array(
 				'name'       => $name,
 				'profile_id' => $profile_id,
 				'term_id'    => null,
@@ -451,18 +466,18 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 		}
 		switch_to_blog( $artist_blog_id );
 		try {
-			$source_key = hash( 'sha256', $source_type . ':' . $source_id );
-			$sources    = get_post_meta( $profile_id, '_ec_external_onboarding_sources', true );
-			$sources    = is_array( $sources ) ? $sources : array();
+			$source_key      = hash( 'sha256', $source_type . ':' . $source_id );
+			$sources         = get_post_meta( $profile_id, '_ec_external_onboarding_sources', true );
+			$sources         = is_array( $sources ) ? $sources : array();
 			$existing_source = isset( $sources[ $source_key ] ) && is_array( $sources[ $source_key ] ) ? $sources[ $source_key ] : array();
-			$disclosures    = isset( $existing_source['disclosure_versions'] ) && is_array( $existing_source['disclosure_versions'] ) ? $existing_source['disclosure_versions'] : array();
+			$disclosures     = isset( $existing_source['disclosure_versions'] ) && is_array( $existing_source['disclosure_versions'] ) ? $existing_source['disclosure_versions'] : array();
 			if ( ! empty( $existing_source['disclosure_version'] ) ) {
 				$disclosures[] = $existing_source['disclosure_version'];
 			}
 			if ( $disclosure ) {
 				$disclosures[] = $disclosure;
 			}
-			$disclosures = array_values( array_unique( array_filter( $disclosures ) ) );
+			$disclosures            = array_values( array_unique( array_filter( $disclosures ) ) );
 			$sources[ $source_key ] = array(
 				'type'                => $source_type,
 				'id'                  => $source_id,
@@ -471,7 +486,7 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 				'link_page'           => ! empty( $existing_source['link_page'] ) || $link_consent,
 				'disclosure_versions' => $disclosures,
 			);
-			$source_updated = update_post_meta( $profile_id, '_ec_external_onboarding_sources', $sources );
+			$source_updated         = update_post_meta( $profile_id, '_ec_external_onboarding_sources', $sources );
 			if ( ! $source_updated && maybe_serialize( get_post_meta( $profile_id, '_ec_external_onboarding_sources', true ) ) !== maybe_serialize( $sources ) ) {
 				if ( $artist_created ) {
 					$membership_removed = ec_remove_artist_membership( $user_id, $profile_id );
@@ -520,13 +535,16 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 							return new WP_Error(
 								'artist_onboarding_rollback_failed',
 								__( 'The profile was removed, but canonical artist references remain. Manual reconciliation is required.', 'extrachill-artist-platform' ),
-								array( 'profile_id' => $profile_id, 'retryable' => false )
+								array(
+									'profile_id' => $profile_id,
+									'retryable'  => false,
+								)
 							);
 						}
 					}
 					return $binding_result;
 				}
-				$term_id                     = (int) $binding_result;
+				$term_id                      = (int) $binding_result;
 				$context['artist']['term_id'] = $term_id;
 			}
 
@@ -535,13 +553,19 @@ function extrachill_artist_platform_ability_onboard_external_artist( $input ) {
 				return $existing_link_id;
 			}
 			if ( $existing_link_id ) {
-				$context['link_page'] = array( 'state' => 'existing', 'id' => $existing_link_id );
+				$context['link_page'] = array(
+					'state' => 'existing',
+					'id'    => $existing_link_id,
+				);
 			} elseif ( $link_consent ) {
 				$link_page_id = ec_create_link_page( $profile_id );
 				if ( is_wp_error( $link_page_id ) ) {
 					return $link_page_id;
 				}
-				$context['link_page'] = array( 'state' => 'created', 'id' => (int) $link_page_id );
+				$context['link_page'] = array(
+					'state' => 'created',
+					'id'    => (int) $link_page_id,
+				);
 			} else {
 				$context['link_page']['state'] = 'offered';
 			}

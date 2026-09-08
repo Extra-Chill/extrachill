@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artists-list
  *
@@ -8,6 +7,7 @@ declare(strict_types=1);
  * @package ExtraChillArtistPlatform
  * @since   1.9.0
  */
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,9 +19,9 @@ defined( 'ABSPATH' ) || exit;
  *     @type int    $per_page Results per page (default 24, max 100).
  *     @type string $search   Optional search term to filter by title.
  * }
- * @return array|WP_Error
+ * @return array
  */
-function extrachill_artist_platform_ability_artists_list( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artists_list( array $input ) {
 	$page     = isset( $input['page'] ) ? max( 1, (int) $input['page'] ) : 1;
 	$per_page = isset( $input['per_page'] ) ? max( 1, min( 100, (int) $input['per_page'] ) ) : 24;
 	$search   = isset( $input['search'] ) ? sanitize_text_field( $input['search'] ) : '';
@@ -43,7 +43,7 @@ function extrachill_artist_platform_ability_artists_list( array $input ): array|
 		'order'          => 'DESC',
 	);
 
-	if ( $search !== '' ) {
+	if ( '' !== $search ) {
 		$query_args['s'] = $search;
 	}
 
@@ -53,18 +53,19 @@ function extrachill_artist_platform_ability_artists_list( array $input ): array|
 	if ( $query->have_posts() ) {
 		while ( $query->have_posts() ) {
 			$query->the_post();
-			$artist_id = get_the_ID();
+			$artist_id = (int) get_the_ID();
 
 			$profile_image_id  = get_post_thumbnail_id( $artist_id );
 			$profile_image_url = $profile_image_id
 				? wp_get_attachment_image_url( (int) $profile_image_id, 'medium' )
 				: null;
+			$local_city        = get_post_meta( $artist_id, '_local_city', true );
 
 			$artists[] = array(
 				'id'                => (int) $artist_id,
 				'name'              => get_the_title(),
 				'slug'              => get_post_field( 'post_name', $artist_id ),
-				'local_city'        => get_post_meta( $artist_id, '_local_city', true ) ?: null,
+				'local_city'        => ( $local_city ? $local_city : null ),
 				'genres'            => ec_artist_get_genres( $artist_id ),
 				'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
 				'profile_image_url' => $profile_image_url,

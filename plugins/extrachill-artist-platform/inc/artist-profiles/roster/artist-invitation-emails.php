@@ -26,6 +26,7 @@ function ec_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 		$inviter_display = $inviter->display_name ? $inviter->display_name : $inviter->user_login;
 	}
 	if ( ! is_email( $recipient_email ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional invitation-failure diagnostics for the site error log.
 		error_log( 'Artist Invitation Email: Invalid recipient email: ' . $recipient_email );
 		return false;
 	}
@@ -85,6 +86,7 @@ function ec_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 	$body_html .= '<p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#555;">' . $ignore_line . '</p>';
 
 	if ( ! function_exists( 'ec_send_email' ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional missing-dependency diagnostics for the site error log.
 		error_log( 'Artist Invitation Email: ec_send_email() is not available — is extrachill-multisite active?' );
 		return false;
 	}
@@ -110,6 +112,7 @@ function ec_send_artist_invitation_email( $recipient_email, $artist_name, $membe
 		$error_message = is_array( $result ) && ! empty( $result['error'] )
 			? (string) $result['error']
 			: ( is_array( $result ) && ! empty( $result['message'] ) ? (string) $result['message'] : 'unknown error' );
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional send-failure diagnostics for the site error log.
 		error_log( 'Artist Invitation Email Error: ' . $error_message );
 	}
 
@@ -121,9 +124,10 @@ function ec_send_artist_invitation_email( $recipient_email, $artist_name, $membe
  * This would be hooked to 'init' or 'template_redirect' to check for the token.
  */
 function ec_handle_invitation_acceptance() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; the single-use invitation token authorizes the action, values are sanitized below.
 	if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
-		$token        = sanitize_text_field( $_GET['token'] );
-		$artist_id    = apply_filters('ec_get_artist_id', $_GET);
+		$token        = sanitize_text_field( $_GET['token'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; see above.
+		$artist_id    = apply_filters('ec_get_artist_id', $_GET); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; see above.
 		$redirect_url = get_permalink( $artist_id );
 
 		if ( ! $redirect_url ) {
@@ -134,9 +138,11 @@ function ec_handle_invitation_acceptance() {
 		// 1. User must be logged in
 		if ( ! is_user_logged_in() ) {
 			// Redirect to custom login page, then back to this acceptance URL
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; see above.
 			$current_url           = home_url( add_query_arg( $_GET, '' ) ); // This is the URL with token, artist_id etc.
 			$custom_login_page_url = home_url( '/login/' ); // IMPORTANT: Ensure '/login/' is your actual custom login page slug
 			// Pass the current URL (acceptance link) as 'redirect_to' parameter for the custom login page to handle after successful login.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode -- behaviour-preserving: keeps the existing redirect_to encoding exactly as shipped.
 			wp_safe_redirect( add_query_arg( 'redirect_to', urlencode( $current_url ), $custom_login_page_url ) );
 			exit;
 		}

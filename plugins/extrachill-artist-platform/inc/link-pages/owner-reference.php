@@ -32,6 +32,7 @@ function ec_link_page_owner_compatibility_registry() {
 			 * @return true|WP_Error
 			 */
 			public function register( $name, $callback, $priority ) {
+				// @phpstan-ignore phpstan.function.alreadyNarrowedType (contract validation: public entry point, values arrive unverified at runtime.)
 				if ( ! is_string( $name ) || 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/', $name ) || ! is_callable( $callback ) || ! is_int( $priority ) ) {
 					return new WP_Error( 'invalid_link_page_owner_provider', 'The Link Page owner compatibility provider registration is invalid.' );
 				}
@@ -77,6 +78,7 @@ function ec_link_page_owner_compatibility_registry() {
  * @return true|WP_Error
  */
 function ec_register_link_page_owner_compatibility_provider( $name, $callback, $priority = 10 ) {
+	// @phpstan-ignore phpstan.method.notFound (the registry helper returns a dynamically-shaped object; the method exists at runtime.)
 	return ec_link_page_owner_compatibility_registry()->register( $name, $callback, $priority );
 }
 
@@ -87,6 +89,7 @@ function ec_register_link_page_owner_compatibility_provider( $name, $callback, $
  * @return array{kind:string,blog_id:int,subtype:string,object_id:int,reference:string}|WP_Error
  */
 function ec_parse_link_page_owner_reference( $reference ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (contract validation: public entry point, $reference arrives unverified at runtime.)
 	if ( ! is_string( $reference ) || 1 !== preg_match( '/^(post|term):([1-9][0-9]*):([a-z0-9_-]+):([1-9][0-9]*)$/', $reference, $matches ) ) {
 		return new WP_Error( 'invalid_link_page_owner_reference', 'The Link Page owner reference is malformed.' );
 	}
@@ -107,6 +110,7 @@ function ec_parse_link_page_owner_reference( $reference ) {
  * @return string|WP_Error
  */
 function ec_format_link_page_owner_reference( $owner ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (contract validation: public entry point, $owner arrives unverified at runtime.)
 	if ( ! is_array( $owner ) ) {
 		return new WP_Error( 'invalid_link_page_owner', 'Link Page owner fields must be an array.' );
 	}
@@ -242,6 +246,7 @@ function ec_restore_link_page_owner_provider_context( $blog_id, $stack, $switche
 	$target_depth  = count( $stack );
 	while ( $current_depth > $target_depth && $attempts < 100 ) {
 		restore_current_blog();
+		// @phpstan-ignore phpstan.booleanAnd.rightAlwaysTrue (defensive: the global may hold a non-array at runtime; check retained.)
 		$current_stack = isset( $GLOBALS['_wp_switched_stack'] ) && is_array( $GLOBALS['_wp_switched_stack'] ) ? $GLOBALS['_wp_switched_stack'] : array();
 		$current_depth = count( $current_stack );
 		++$attempts;
@@ -291,6 +296,7 @@ function ec_invoke_link_page_owner_compatibility_provider( $provider, $operation
  * @return array|WP_Error
  */
 function ec_collect_raw_link_page_owner_compatibility_claims( $operation, $context ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (contract validation: public entry point, $context arrives unverified at runtime.)
 	if ( ! in_array( $operation, array( 'page_owner', 'owner_pages' ), true ) || ! is_array( $context ) ) {
 		return new WP_Error( 'invalid_link_page_owner_provider_context', 'The Link Page owner provider context is invalid.' );
 	}
@@ -304,6 +310,7 @@ function ec_collect_raw_link_page_owner_compatibility_claims( $operation, $conte
 	try {
 		$claims = array();
 		$errors = array();
+		// @phpstan-ignore phpstan.method.notFound (the registry helper returns a dynamically-shaped object; the method exists at runtime.)
 		foreach ( ec_link_page_owner_compatibility_registry()->snapshot() as $provider ) {
 			$result = ec_invoke_link_page_owner_compatibility_provider( $provider, $operation, $context );
 			if ( is_wp_error( $result ) ) {
@@ -655,11 +662,13 @@ function ec_backfill_link_page_owner_references( $limit = 100, $offset = 0 ) {
 		if ( ! empty( $stored ) ) {
 			$owner = ec_get_link_page_owner( $link_page_id );
 			if ( is_wp_error( $owner ) ) {
+				// @phpstan-ignore phpstan.return.type,phpstan.argument.type (halt helper contract spans array/WP_Error shapes; error codes are strings at runtime.)
 				return ec_halt_link_page_owner_backfill( $result, $link_page_id, $owner->get_error_code(), $offset );
 			}
 			$resolved_link_page_id = ec_get_link_page_id_for_owner( $owner );
 			if ( is_wp_error( $resolved_link_page_id ) || (int) $link_page_id !== (int) $resolved_link_page_id ) {
 				$error_code = is_wp_error( $resolved_link_page_id ) ? $resolved_link_page_id->get_error_code() : 'link_page_owner_resolution_failed';
+				// @phpstan-ignore phpstan.return.type,phpstan.argument.type (halt helper contract spans array/WP_Error shapes; error codes are strings at runtime.)
 				return ec_halt_link_page_owner_backfill( $result, $link_page_id, $error_code, $offset );
 			}
 			++$result['skipped'];
@@ -668,11 +677,13 @@ function ec_backfill_link_page_owner_references( $limit = 100, $offset = 0 ) {
 
 		$owner = ec_get_link_page_owner( $link_page_id );
 		if ( is_wp_error( $owner ) ) {
+			// @phpstan-ignore phpstan.return.type,phpstan.argument.type (halt helper contract spans array/WP_Error shapes; error codes are strings at runtime.)
 			return ec_halt_link_page_owner_backfill( $result, $link_page_id, $owner->get_error_code(), $offset );
 		}
 
 		$assigned = ec_assign_link_page_owner( $link_page_id, $owner );
 		if ( is_wp_error( $assigned ) ) {
+			// @phpstan-ignore phpstan.return.type,phpstan.argument.type (halt helper contract spans array/WP_Error shapes; error codes are strings at runtime.)
 			return ec_halt_link_page_owner_backfill( $result, $link_page_id, $assigned->get_error_code(), $offset );
 		}
 		++$result['updated'];

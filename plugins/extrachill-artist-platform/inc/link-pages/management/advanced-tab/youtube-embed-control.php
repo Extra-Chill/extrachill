@@ -17,13 +17,13 @@ defined( 'ABSPATH' ) || exit;
  * @return bool True if YouTube inline embed is enabled, false otherwise
  */
 function extrachill_artist_is_youtube_inline_embed_enabled( $link_page_id ) {
-    if ( empty( $link_page_id ) ) {
-        return true; // Default to enabled
-    }
+	if ( empty( $link_page_id ) ) {
+		return true; // Default to enabled
+	}
 
-    // Check if inline embed is explicitly disabled
-    $is_disabled = get_post_meta( $link_page_id, '_enable_youtube_inline_embed', true );
-    return $is_disabled !== '0';
+	// Check if inline embed is explicitly disabled
+	$is_disabled = get_post_meta( $link_page_id, '_enable_youtube_inline_embed', true );
+	return '0' !== $is_disabled;
 }
 
 /**
@@ -38,18 +38,17 @@ function extrachill_artist_is_youtube_inline_embed_enabled( $link_page_id ) {
  * @return array Array containing YouTube embed settings
  */
 function extrachill_artist_get_youtube_embed_settings( $link_page_id ) {
-    if ( empty( $link_page_id ) ) {
-        return array(
-            'inline_enabled' => true,
-            'disable_checkbox_checked' => false,
-        );
-    }
+	if ( empty( $link_page_id ) ) {
+		return array(
+			'inline_enabled'           => true,
+			'disable_checkbox_checked' => false,
+		);
+	}
 
-    $is_enabled = extrachill_artist_is_youtube_inline_embed_enabled( $link_page_id );
-    
-    return array(
-        'inline_enabled' => $is_enabled,
-        'disable_checkbox_checked' => ! $is_enabled, // Checkbox should be checked if feature is disabled
-    );
+	$is_enabled = extrachill_artist_is_youtube_inline_embed_enabled( $link_page_id );
+
+	return array(
+		'inline_enabled'           => $is_enabled,
+		'disable_checkbox_checked' => ! $is_enabled, // Checkbox should be checked if feature is disabled
+	);
 }
-

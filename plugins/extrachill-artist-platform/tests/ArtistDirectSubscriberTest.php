@@ -32,11 +32,11 @@ final class ArtistDirectSubscriberWpdb extends EcTestWpdb {
 	}
 
 	public function get_results( $prepared ) {
-		$args             = is_array( $prepared['args'][0] ) ? $prepared['args'][0] : $prepared['args'];
-		$artist_id        = (int) $args[0];
-		$excluded_source  = (string) $args[1];
-		$exported         = count( $args ) > 2 ? (int) $args[2] : null;
-		$rows             = array_values(
+		$args            = is_array( $prepared['args'][0] ) ? $prepared['args'][0] : $prepared['args'];
+		$artist_id       = (int) $args[0];
+		$excluded_source = (string) $args[1];
+		$exported        = count( $args ) > 2 ? (int) $args[2] : null;
+		$rows            = array_values(
 			array_filter(
 				$this->rows,
 				static function ( $row ) use ( $artist_id, $excluded_source, $exported ) {
@@ -67,13 +67,14 @@ final class ArtistDirectSubscriberWpdb extends EcTestWpdb {
 	}
 }
 
+// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- second stub class in this test file is intentional; not restructuring tests.
 final class ArtistDirectSubscriberTest extends TestCase {
 	private $original_wpdb;
 
 	protected function setUp(): void {
-		$this->original_wpdb = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb']      = new ArtistDirectSubscriberWpdb();
-		$GLOBALS['ec_test']   = array(
+		$this->original_wpdb                         = $GLOBALS['wpdb'];
+		$GLOBALS['wpdb']                             = new ArtistDirectSubscriberWpdb();
+		$GLOBALS['ec_test']                          = array(
 			'current_user_id' => 7,
 			'managed_artists' => array( 7 => array( 42 ) ),
 			'current_blog_id' => 4,
@@ -129,31 +130,31 @@ final class ArtistDirectSubscriberTest extends TestCase {
 	public function test_direct_reader_filters_orders_paginates_and_excludes_historical_follow_consent(): void {
 		$GLOBALS['wpdb']->rows = array(
 			(object) array(
-				'subscriber_id'    => 1,
+				'subscriber_id'     => 1,
 				'artist_profile_id' => 42,
-				'subscriber_email' => 'older@example.com',
-				'username'         => '',
-				'source'           => 'artist_subscribe_form',
-				'subscribed_at'    => '2026-08-01 12:00:00',
-				'exported'         => 0,
+				'subscriber_email'  => 'older@example.com',
+				'username'          => '',
+				'source'            => 'artist_subscribe_form',
+				'subscribed_at'     => '2026-08-01 12:00:00',
+				'exported'          => 0,
 			),
 			(object) array(
-				'subscriber_id'    => 2,
+				'subscriber_id'     => 2,
 				'artist_profile_id' => 42,
-				'subscriber_email' => 'historical@example.com',
-				'username'         => 'historical',
-				'source'           => 'platform_follow_consent',
-				'subscribed_at'    => '2026-08-03 12:00:00',
-				'exported'         => 0,
+				'subscriber_email'  => 'historical@example.com',
+				'username'          => 'historical',
+				'source'            => 'platform_follow_consent',
+				'subscribed_at'     => '2026-08-03 12:00:00',
+				'exported'          => 0,
 			),
 			(object) array(
-				'subscriber_id'    => 3,
+				'subscriber_id'     => 3,
 				'artist_profile_id' => 42,
-				'subscriber_email' => 'newer@example.com',
-				'username'         => '',
-				'source'           => 'artist_subscribe_form',
-				'subscribed_at'    => '2026-08-02 12:00:00',
-				'exported'         => 0,
+				'subscriber_email'  => 'newer@example.com',
+				'username'          => '',
+				'source'            => 'artist_subscribe_form',
+				'subscribed_at'     => '2026-08-02 12:00:00',
+				'exported'          => 0,
 			),
 		);
 

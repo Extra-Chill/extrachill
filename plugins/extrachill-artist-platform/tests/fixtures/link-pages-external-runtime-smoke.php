@@ -1,5 +1,7 @@
 <?php
 
+// phpcs:ignoreFile Universal.Files.SeparateFunctionsFromOO.Mixed,Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- standalone smoke harness mirroring the plugin bootstrap under test; runs outside WP with mirrored signatures.
+
 $root = dirname( __DIR__, 2 );
 
 define( 'ABSPATH', __DIR__ . '/' );
@@ -24,16 +26,22 @@ class WP_Error {
 }
 
 $GLOBALS['smoke'] = array(
-	'actions'                => array(),
-	'registered_post_types'  => array(),
-	'posts'                  => array(
-		20 => (object) array( 'ID' => 20, 'post_type' => 'artist_profile' ),
-		40 => (object) array( 'ID' => 40, 'post_type' => 'artist_link_page' ),
+	'actions'               => array(),
+	'registered_post_types' => array(),
+	'posts'                 => array(
+		20 => (object) array(
+			'ID'        => 20,
+			'post_type' => 'artist_profile',
+		),
+		40 => (object) array(
+			'ID'        => 40,
+			'post_type' => 'artist_link_page',
+		),
 	),
-	'post_meta'              => array(
+	'post_meta'             => array(
 		40 => array( '_associated_artist_profile_id' => 20 ),
 	),
-	'post_meta_write_calls'  => 0,
+	'post_meta_write_calls' => 0,
 );
 
 function get_option( $name, $default = false ) {
@@ -134,7 +142,7 @@ $owner = ec_get_link_page_owner( 40 );
 
 echo json_encode(
 	array(
-		'booted'                => true === $first && true === $second,
+		'booted'                 => true === $first && true === $second,
 		'post_type_constant'     => EC_LINK_PAGE_POST_TYPE,
 		'owner_meta_constant'    => EC_LINK_PAGE_OWNER_META_KEY,
 		'owner_providers'        => count( $GLOBALS['smoke']['owner_providers'] ),
@@ -142,7 +150,7 @@ echo json_encode(
 		'projection_providers'   => count( $GLOBALS['smoke']['projection_providers'] ),
 		'link_page_cpt_owner'    => $GLOBALS['smoke']['registered_post_types']['artist_link_page']['owner'] ?? '',
 		'artist_profile_exists'  => isset( $GLOBALS['smoke']['registered_post_types']['artist_profile'] ),
-		'legacy_owner_reference'=> is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],
+		'legacy_owner_reference' => is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],
 		'write_calls'            => $GLOBALS['smoke']['post_meta_write_calls'],
 	)
 );

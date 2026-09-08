@@ -1,7 +1,7 @@
 <?php
 /**
  * Artist Platform Rewrite Rules
- * 
+ *
  * Centralized management of all URL rewrite rules, query variables, and routing
  * for the artist platform functionality including artist profiles and link pages.
  *
@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
  * @see extrachill_artist_platform_maybe_flush_rewrite_rules()
  */
 if ( ! defined( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION' ) ) {
-    define( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION', '20260704' );
+	define( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION', '20260704' );
 }
 
 /**
@@ -33,33 +33,33 @@ if ( ! defined( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION' ) ) {
  * @return array Array of slugs to exclude from artist link page rewrite rules
  */
 function extrachill_get_excluded_slugs() {
-    // Get all published WordPress pages dynamically
-    $pages = get_posts(array(
-        'post_type' => 'page',
-        'post_status' => 'publish',
-        'numberposts' => -1,
-        'fields' => 'ids'
-    ));
+	// Get all published WordPress pages dynamically
+	$pages = get_posts(array(
+		'post_type'   => 'page',
+		'post_status' => 'publish',
+		'numberposts' => -1,
+		'fields'      => 'ids',
+	));
 
-    $page_slugs = array();
-    foreach ($pages as $page_id) {
-        $slug = get_post_field('post_name', $page_id);
-        if ($slug) {
-            $page_slugs[] = $slug;
-        }
-    }
+	$page_slugs = array();
+	foreach ( $pages as $page_id ) {
+		$slug = get_post_field('post_name', $page_id);
+		if ( $slug ) {
+			$page_slugs[] = $slug;
+		}
+	}
 
-    // Keep critical hardcoded exclusions for non-page URLs and plugin paths
-    $static_exclusions = array(
-        'manage-artist',           // Management interface
-        'manage-link-page',        // Link page management
-        'join',                    // Join flow redirect (handled separately)
-        'wp-login',
-        'wp-admin',
-        'admin'
-    );
+	// Keep critical hardcoded exclusions for non-page URLs and plugin paths
+	$static_exclusions = array(
+		'manage-artist',           // Management interface
+		'manage-link-page',        // Link page management
+		'join',                    // Join flow redirect (handled separately)
+		'wp-login',
+		'wp-admin',
+		'admin',
+	);
 
-    return array_merge($static_exclusions, $page_slugs);
+	return array_merge($static_exclusions, $page_slugs);
 }
 
 /**
@@ -69,40 +69,40 @@ function extrachill_get_excluded_slugs() {
  * Artist profiles use native WordPress rewrite via CPT registration.
  */
 function extrachill_add_rewrite_rules() {
-    // Only add rewrite rules for extrachill.link domain
-    // Template routing handles all other domains via REQUEST_URI parsing
-    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
-    $is_link_domain = ( stripos( $current_host, 'extrachill.link' ) !== false );
+	// Only add rewrite rules for extrachill.link domain
+	// Template routing handles all other domains via REQUEST_URI parsing
+	$current_host   = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+	$is_link_domain = ( stripos( $current_host, 'extrachill.link' ) !== false );
 
-    if ( ! $is_link_domain ) {
-        // Still register the query var for consistency, but no rewrite rules
-        add_rewrite_tag( '%artist_link_page%', '([^&]+)' );
-        return;
-    }
+	if ( ! $is_link_domain ) {
+		// Still register the query var for consistency, but no rewrite rules
+		add_rewrite_tag( '%artist_link_page%', '([^&]+)' );
+		return;
+	}
 
-    // Artist link page rewrite rules - only on extrachill.link domain
-    $excluded_slugs = extrachill_get_excluded_slugs();
-    $excluded_pattern = '(?!' . implode('|', $excluded_slugs) . ')';
-    add_rewrite_rule( '^' . $excluded_pattern . '([^/]+)/?$', 'index.php?artist_link_page=$matches[1]', 'top' );
-    add_rewrite_tag( '%artist_link_page%', '([^&]+)' );
+	// Artist link page rewrite rules - only on extrachill.link domain
+	$excluded_slugs   = extrachill_get_excluded_slugs();
+	$excluded_pattern = '(?!' . implode('|', $excluded_slugs) . ')';
+	add_rewrite_rule( '^' . $excluded_pattern . '([^/]+)/?$', 'index.php?artist_link_page=$matches[1]', 'top' );
+	add_rewrite_tag( '%artist_link_page%', '([^&]+)' );
 }
 
 /**
  * Add custom query variables for artist platform
- * 
+ *
  * @param array $vars Existing query variables
  * @return array Modified query variables
  */
 function extrachill_add_query_vars( $vars ) {
-    $vars[] = 'artist_link_page';
-    $vars[] = 'dev_view_link_page';
-    $vars[] = 'artist_id';
-    return $vars;
+	$vars[] = 'artist_link_page';
+	$vars[] = 'dev_view_link_page';
+	$vars[] = 'artist_id';
+	return $vars;
 }
 
 /**
  * Prevent canonical redirection for extrachill.link domain
- * 
+ *
  * This allows our custom template_include logic to handle routing for the link domain
  * without WordPress trying to redirect to "correct" URLs.
  *
@@ -110,12 +110,13 @@ function extrachill_add_query_vars( $vars ) {
  * @param string $requested_url The originally requested URL
  * @return string|false The redirect URL, or false to prevent redirection
  */
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP canonical_redirect filter signature; $requested_url unused by design.
 function extrachill_prevent_canonical_redirect_for_link_domain( $redirect_url, $requested_url ) {
-    $current_host = strtolower( $_SERVER['SERVER_NAME'] ?? '' );
-    if ( $current_host === 'extrachill.link' ) {
-        return false; 
-    }
-    return $redirect_url;
+	$current_host = strtolower( $_SERVER['SERVER_NAME'] ?? '' );
+	if ( 'extrachill.link' === $current_host ) {
+		return false;
+	}
+	return $redirect_url;
 }
 
 /**
@@ -132,82 +133,83 @@ function extrachill_prevent_canonical_redirect_for_link_domain( $redirect_url, $
  * @since 1.7.0
  */
 function extrachill_resolve_link_domain_query() {
-    // Skip if in development mode.
-    if ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV ) {
-        return;
-    }
+	// Skip if in development mode.
+	if ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV ) {
+		return;
+	}
 
-    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
-    if ( stripos( $current_host, 'extrachill.link' ) === false ) {
-        return;
-    }
+	$current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+	if ( stripos( $current_host, 'extrachill.link' ) === false ) {
+		return;
+	}
 
-    global $wp_query;
-    $request_uri  = $_SERVER['REQUEST_URI'] ?? '';
-    $request_path = trim( (string) parse_url( $request_uri, PHP_URL_PATH ), '/' );
+	global $wp_query;
+	$request_uri  = $_SERVER['REQUEST_URI'] ?? '';
+	$request_path = trim( (string) wp_parse_url( $request_uri, PHP_URL_PATH ), '/' );
 
-    // Handle join redirect.
-    if ( $request_path === 'join' ) {
-        $redirect_url = ec_get_site_url( 'artist' ) . '/login/?from_join=true';
-        if ( ! headers_sent() ) {
-            wp_redirect( esc_url_raw( $redirect_url ), 301 );
-            exit;
-        }
-        return;
-    }
+	// Handle join redirect.
+	if ( 'join' === $request_path ) {
+		$redirect_url = ec_get_site_url( 'artist' ) . '/login/?from_join=true';
+		if ( ! headers_sent() ) {
+			// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- deliberate redirect to a trusted Extra Chill property; wp_safe_redirect would reject the cross-network host.
+			wp_redirect( esc_url_raw( $redirect_url ), 301 );
+			exit;
+		}
+		return;
+	}
 
-    // Determine slug to look up.
-    $is_root_or_extra_chill = ( empty( $request_path ) || $request_path === 'extra-chill' );
+	// Determine slug to look up.
+	$is_root_or_extra_chill = ( empty( $request_path ) || 'extra-chill' === $request_path );
 
-    if ( $is_root_or_extra_chill ) {
-        // Redirect /extra-chill to root.
-        if ( $request_path === 'extra-chill' ) {
-            if ( ! headers_sent() ) {
-                wp_redirect( esc_url_raw( 'https://extrachill.link/' ), 301 );
-                exit;
-            }
-        }
-        $slug = 'extra-chill';
-    } else {
-        $slug = $request_path;
-    }
+	if ( $is_root_or_extra_chill ) {
+		// Redirect /extra-chill to root.
+		if ( 'extra-chill' === $request_path ) {
+			if ( ! headers_sent() ) {
+				// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- deliberate redirect to this exact trusted link domain root.
+				wp_redirect( esc_url_raw( 'https://extrachill.link/' ), 301 );
+				exit;
+			}
+		}
+		$slug = 'extra-chill';
+	} else {
+		$slug = $request_path;
+	}
 
-    // Look up the link page.
-    $link_pages = get_posts( array(
-        'name'        => $slug,
-        'post_type'   => 'artist_link_page',
-        'post_status' => 'publish',
-        'numberposts' => 1,
-        'fields'      => 'ids',
-    ) );
+	// Look up the link page.
+	$link_pages = get_posts( array(
+		'name'        => $slug,
+		'post_type'   => 'artist_link_page',
+		'post_status' => 'publish',
+		'numberposts' => 1,
+		'fields'      => 'ids',
+	) );
 
-    if ( ! empty( $link_pages ) ) {
-        $link_page_id = $link_pages[0];
-        $link_page    = get_post( $link_page_id );
+	if ( ! empty( $link_pages ) ) {
+		$link_page_id = $link_pages[0];
+		$link_page    = get_post( $link_page_id );
 
-        // Override the main query so WordPress treats this as a found singular post.
-        $wp_query->posts             = array( $link_page );
-        $wp_query->post_count        = 1;
-        $wp_query->found_posts       = 1;
-        $wp_query->max_num_pages     = 1;
-        $wp_query->is_single         = true;
-        $wp_query->is_singular       = true;
-        $wp_query->is_404            = false;
-        $wp_query->query_vars['name']      = $slug;
-        $wp_query->query_vars['post_type'] = 'artist_link_page';
-        $wp_query->queried_object_id = $link_page_id;
-        $wp_query->queried_object    = $link_page;
-        status_header( 200 );
-    } elseif ( $is_root_or_extra_chill ) {
-        // Root domain but no default link page — genuine 404.
-        status_header( 404 );
-    } else {
-        // No link page found — redirect to root.
-        if ( ! headers_sent() ) {
-            wp_redirect( esc_url_raw( 'https://extrachill.link/' ), 301 );
-            exit;
-        }
-    }
+		// Override the main query so WordPress treats this as a found singular post.
+		$wp_query->posts                   = array( $link_page );
+		$wp_query->post_count              = 1;
+		$wp_query->found_posts             = 1;
+		$wp_query->max_num_pages           = 1;
+		$wp_query->is_single               = true;
+		$wp_query->is_singular             = true;
+		$wp_query->is_404                  = false;
+		$wp_query->query_vars['name']      = $slug;
+		$wp_query->query_vars['post_type'] = 'artist_link_page';
+		$wp_query->queried_object_id       = $link_page_id;
+		$wp_query->queried_object          = $link_page;
+		status_header( 200 );
+	} elseif ( $is_root_or_extra_chill ) {
+		// Root domain but no default link page — genuine 404.
+		status_header( 404 );
+	} elseif ( ! headers_sent() ) {
+		// No link page found — redirect to root.
+		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- deliberate redirect to this exact trusted link domain root.
+		wp_redirect( esc_url_raw( 'https://extrachill.link/' ), 301 );
+		exit;
+	}
 }
 
 /**
@@ -222,33 +224,33 @@ function extrachill_resolve_link_domain_query() {
  * @return string The template to actually load.
  */
 function extrachill_handle_link_domain_routing( $template ) {
-    if ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV ) {
-        return $template;
-    }
+	if ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV ) {
+		return $template;
+	}
 
-    $current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
-    if ( stripos( $current_host, 'extrachill.link' ) === false ) {
-        return $template;
-    }
+	$current_host = strtolower( $_SERVER['HTTP_HOST'] ?? '' );
+	if ( stripos( $current_host, 'extrachill.link' ) === false ) {
+		return $template;
+	}
 
-    // If the query was resolved to a link page, load the template.
-    global $wp_query;
-    if ( ! empty( $wp_query->posts ) && isset( $wp_query->posts[0] ) && 'artist_link_page' === get_post_type( $wp_query->posts[0] ) ) {
-        $template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
-        if ( file_exists( $template_to_load ) ) {
-            return $template_to_load;
-        }
-    }
+	// If the query was resolved to a link page, load the template.
+	global $wp_query;
+	if ( ! empty( $wp_query->posts ) && isset( $wp_query->posts[0] ) && 'artist_link_page' === get_post_type( $wp_query->posts[0] ) ) {
+		$template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
+		if ( file_exists( $template_to_load ) ) {
+			return $template_to_load;
+		}
+	}
 
-    // Genuinely not found — let WordPress handle the 404 template.
-    return $template;
+	// Genuinely not found — let WordPress handle the 404 template.
+	return $template;
 }
 
 /**
  * Initialize all rewrite rules and routing
  */
 function extrachill_init_rewrite_rules() {
-    extrachill_add_rewrite_rules();
+	extrachill_add_rewrite_rules();
 }
 
 /**
@@ -272,68 +274,69 @@ function extrachill_init_rewrite_rules() {
  * add_rewrite_rule() calls.
  */
 function extrachill_artist_platform_maybe_flush_rewrite_rules() {
-    $stored_version = get_option( 'ec_artist_platform_rewrite_version' );
+	$stored_version = get_option( 'ec_artist_platform_rewrite_version' );
 
-    if ( $stored_version === EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION ) {
-        return;
-    }
+	if ( EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION === $stored_version ) {
+		return;
+	}
 
-    // Soft flush: rebuild the rewrite_rules option only. Passing false means we
-    // do NOT regenerate .htaccess / server config on every version bump — the
-    // rules we care about live in the WP option, not the static server config.
-    flush_rewrite_rules( false );
-    update_option( 'ec_artist_platform_rewrite_version', EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION );
+	// Soft flush: rebuild the rewrite_rules option only. Passing false means we
+	// do NOT regenerate .htaccess / server config on every version bump — the
+	// rules we care about live in the WP option, not the static server config.
+	flush_rewrite_rules( false );
+	update_option( 'ec_artist_platform_rewrite_version', EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION );
 }
 
 /**
  * Redirect direct CPT access to extrachill.link domain
- * 
+ *
  * Redirects direct access to 'artist_link_page' CPT posts (via their WordPress permalinks)
  * to their canonical URL on the extrachill.link domain.
  */
 function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
-    $is_dev_mode = ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV );
-    $is_extrachill_link_host = ( strpos( strtolower( $_SERVER['HTTP_HOST'] ?? '' ), 'extrachill.link' ) !== false );
+	$is_dev_mode             = ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV );
+	$is_extrachill_link_host = ( strpos( strtolower( $_SERVER['HTTP_HOST'] ?? '' ), 'extrachill.link' ) !== false );
 
-    if ( is_singular( 'artist_link_page' ) ) {
-        $current_link_page_post = get_queried_object();
-        if ( $current_link_page_post && $current_link_page_post->ID ) {
-            $link_page_id = $current_link_page_post->ID;
+	if ( is_singular( 'artist_link_page' ) ) {
+		$current_link_page_post = get_queried_object();
+		if ( $current_link_page_post && $current_link_page_post->ID ) {
+			$link_page_id = $current_link_page_post->ID;
 
-            // Use centralized data source for redirect settings (single source of truth)
-            $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-            $data = ec_get_link_page_data( $artist_id, $link_page_id );
-            $temp_redirect_enabled = $data['settings']['redirect_enabled'] ?? false;
-            $target_redirect_url = $data['settings']['redirect_target_url'] ?? '';
-            
-            if ( $temp_redirect_enabled ) {
-                if ( ! empty( $target_redirect_url ) && filter_var( $target_redirect_url, FILTER_VALIDATE_URL ) ) {
-                    if ( ! headers_sent() ) {
-                        wp_redirect( esc_url_raw( $target_redirect_url ), 302 );
-                        exit;
-                    }
-                }
-            }
-            if ( ! $is_dev_mode && ! $is_extrachill_link_host ) {
-                // Use already retrieved artist_id (avoid duplicate query)
-                if ( $artist_id ) {
-                    $artist_profile_post = get_post( $artist_id );
-                    if ( $artist_profile_post && ! empty( $artist_profile_post->post_name ) ) {
-                        $artist_slug = $artist_profile_post->post_name;
-                        $target_url_path = '/' . $artist_slug . '/';
-                        $target_url = 'https://extrachill.link' . $target_url_path;
-                        if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
-                            $target_url .= '?' . $_SERVER['QUERY_STRING'];
-                        }
-                        if ( ! headers_sent() ) {
-                            wp_safe_redirect( esc_url_raw( $target_url ), 301 );
-                            exit;
-                        }
-                    }
-                }
-            }
-        }
-    }
+			// Use centralized data source for redirect settings (single source of truth)
+			$artist_id             = apply_filters('ec_get_artist_id', $link_page_id);
+			$data                  = ec_get_link_page_data( $artist_id, $link_page_id );
+			$temp_redirect_enabled = $data['settings']['redirect_enabled'] ?? false;
+			$target_redirect_url   = $data['settings']['redirect_target_url'] ?? '';
+
+			if ( $temp_redirect_enabled ) {
+				if ( ! empty( $target_redirect_url ) && filter_var( $target_redirect_url, FILTER_VALIDATE_URL ) ) {
+					if ( ! headers_sent() ) {
+						// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- URL is creator-configured for this link page and validated above; wp_safe_redirect would reject off-site hosts.
+						wp_redirect( esc_url_raw( $target_redirect_url ), 302 );
+						exit;
+					}
+				}
+			}
+			if ( ! $is_dev_mode && ! $is_extrachill_link_host ) {
+				// Use already retrieved artist_id (avoid duplicate query)
+				if ( $artist_id ) {
+					$artist_profile_post = get_post( $artist_id );
+					if ( $artist_profile_post && ! empty( $artist_profile_post->post_name ) ) {
+						$artist_slug     = $artist_profile_post->post_name;
+						$target_url_path = '/' . $artist_slug . '/';
+						$target_url      = 'https://extrachill.link' . $target_url_path;
+						if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
+							$target_url .= '?' . $_SERVER['QUERY_STRING'];
+						}
+						if ( ! headers_sent() ) {
+							wp_safe_redirect( esc_url_raw( $target_url ), 301 );
+							exit;
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 // Hook into WordPress

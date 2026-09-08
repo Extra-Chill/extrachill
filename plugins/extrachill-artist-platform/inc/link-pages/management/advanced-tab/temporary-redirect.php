@@ -24,9 +24,9 @@ defined( 'ABSPATH' ) || exit;
  * @return array Array containing redirect settings
  */
 function extrachill_artist_get_temporary_redirect_settings( $artist_id, $link_page_id ) {
-    $data = ec_get_link_page_data( $artist_id, $link_page_id );
-    return array(
-        'enabled' => $data['settings']['redirect_enabled'] ?? false,
-        'target_url' => $data['settings']['redirect_target_url'] ?? '',
-    );
+	$data = ec_get_link_page_data( $artist_id, $link_page_id );
+	return array(
+		'enabled'    => $data['settings']['redirect_enabled'] ?? false,
+		'target_url' => $data['settings']['redirect_target_url'] ?? '',
+	);
 }

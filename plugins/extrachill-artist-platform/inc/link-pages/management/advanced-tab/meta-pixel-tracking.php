@@ -18,12 +18,12 @@ defined( 'ABSPATH' ) || exit;
  * @return bool True if valid, false otherwise
  */
 function extrachill_artist_validate_meta_pixel_id( $pixel_id ) {
-    if ( empty( $pixel_id ) ) {
-        return true; // Empty is valid (disabled)
-    }
+	if ( empty( $pixel_id ) ) {
+		return true; // Empty is valid (disabled)
+	}
 
-    // Meta Pixel IDs are typically 15-16 digit numbers
-    return ctype_digit( $pixel_id ) && strlen( $pixel_id ) >= 15 && strlen( $pixel_id ) <= 16;
+	// Meta Pixel IDs are typically 15-16 digit numbers
+	return ctype_digit( $pixel_id ) && strlen( $pixel_id ) >= 15 && strlen( $pixel_id ) <= 16;
 }
 
 /**
@@ -34,8 +34,8 @@ function extrachill_artist_validate_meta_pixel_id( $pixel_id ) {
  * @return string The Meta Pixel ID or empty string if not set
  */
 function extrachill_artist_get_meta_pixel_id( $artist_id, $link_page_id ) {
-    $data = ec_get_link_page_data( $artist_id, $link_page_id );
-    return $data['settings']['meta_pixel_id'] ?? '';
+	$data = ec_get_link_page_data( $artist_id, $link_page_id );
+	return $data['settings']['meta_pixel_id'] ?? '';
 }
 
 /**
@@ -50,8 +50,8 @@ function extrachill_artist_get_meta_pixel_id( $artist_id, $link_page_id ) {
  * @return bool True if Meta Pixel is enabled, false otherwise
  */
 function extrachill_artist_is_meta_pixel_enabled( $link_page_id ) {
-    $pixel_id = extrachill_artist_get_meta_pixel_id( $link_page_id );
-    return ! empty( $pixel_id ) && extrachill_artist_validate_meta_pixel_id( $pixel_id );
+	$pixel_id = extrachill_artist_get_meta_pixel_id( $link_page_id );
+	return ! empty( $pixel_id ) && extrachill_artist_validate_meta_pixel_id( $pixel_id );
 }
 
 
@@ -62,9 +62,9 @@ function extrachill_artist_is_meta_pixel_enabled( $link_page_id ) {
  * @return array Array containing Meta Pixel settings
  */
 function extrachill_artist_get_meta_pixel_settings( $link_page_id ) {
-    return array(
-        'pixel_id'    => extrachill_artist_get_meta_pixel_id( $link_page_id ),
-        'is_enabled'  => extrachill_artist_is_meta_pixel_enabled( $link_page_id ),
-        'is_valid'    => extrachill_artist_validate_meta_pixel_id( extrachill_artist_get_meta_pixel_id( $link_page_id ) ),
-    );
+	return array(
+		'pixel_id'   => extrachill_artist_get_meta_pixel_id( $link_page_id ),
+		'is_enabled' => extrachill_artist_is_meta_pixel_enabled( $link_page_id ),
+		'is_valid'   => extrachill_artist_validate_meta_pixel_id( extrachill_artist_get_meta_pixel_id( $link_page_id ) ),
+	);
 }

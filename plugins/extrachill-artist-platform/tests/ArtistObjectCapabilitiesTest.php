@@ -56,11 +56,11 @@ final class ArtistObjectCapabilitiesTest extends TestCase {
 					),
 				),
 			),
-			'user_meta' => array(
+			'user_meta'       => array(
 				7 => array( '_artist_profile_ids' => array( 20, 21, 22 ) ),
 				8 => array( '_artist_profile_ids' => array( 20 ) ),
 			),
-			'mapped_caps' => array(
+			'mapped_caps'     => array(
 				'delete_post' => array(
 					20 => array( 'delete_others_artist_profiles', 'delete_published_artist_profiles' ),
 					21 => array( 'delete_others_artist_profiles' ),
@@ -177,7 +177,10 @@ final class ArtistObjectCapabilitiesTest extends TestCase {
 	public function test_draft_and_pending_profiles_keep_crud_revision_and_autosave_access(): void {
 		$user = (object) array( 'ID' => 7 );
 
-		foreach ( array( 21 => 31, 22 => 32 ) as $artist_id => $revision_id ) {
+		foreach ( array(
+			21 => 31,
+			22 => 32,
+		) as $artist_id => $revision_id ) {
 			$this->assertTrue( ec_user_can_manage_artist_object( 7, $artist_id ) );
 			$this->assertSame( $artist_id, ec_get_artist_id_for_owned_object( $revision_id ) );
 

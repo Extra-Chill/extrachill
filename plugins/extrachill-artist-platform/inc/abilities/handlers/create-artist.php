@@ -38,6 +38,7 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 	// truth for a user's published profiles and handles its own blog switch,
 	// so call it before switching context here.
 	if ( $user_id && function_exists( 'ec_get_artists_for_user' ) ) {
+		// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 		$existing_artist_ids = ec_get_artists_for_user( $user_id );
 		if ( ! empty( $existing_artist_ids ) ) {
 			$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;

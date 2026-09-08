@@ -142,7 +142,7 @@ function extrachill_artist_platform_update_local_support_availability( $artist_i
 
 	try {
 		update_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META, $scene_slug );
-		if ( $scene_slug !== (string) get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META, true ) ) {
+		if ( (string) get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META, true ) !== $scene_slug ) {
 			return new WP_Error( 'local_support_save_failed', __( 'The matching scene could not be saved.', 'extrachill-artist-platform' ) );
 		}
 
@@ -251,7 +251,7 @@ function extrachill_artist_platform_resolve_local_support_candidates( $producer,
 		$candidates = array();
 		foreach ( $artist_ids as $artist_id ) {
 			$artist_id = absint( $artist_id );
-			if ( in_array( $artist_id, $exclude_artist_ids, true ) || (string) $scene['slug'] !== (string) get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META, true ) ) {
+			if ( in_array( $artist_id, $exclude_artist_ids, true ) || (string) get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META, true ) !== (string) $scene['slug'] ) {
 				continue;
 			}
 
@@ -276,7 +276,7 @@ function extrachill_artist_platform_resolve_local_support_candidates( $producer,
 				'permalink'         => get_permalink( $artist_id ),
 				'genres'            => $artist_genres,
 				'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
-				'local_city'        => get_post_meta( $artist_id, '_local_city', true ) ?: null,
+				'local_city'        => ( get_post_meta( $artist_id, '_local_city', true ) ? get_post_meta( $artist_id, '_local_city', true ) : null ),
 				'profile_image_url' => $profile_image_id ? wp_get_attachment_image_url( $profile_image_id, 'medium' ) : null,
 				'header_image_url'  => $header_image_id ? wp_get_attachment_image_url( $header_image_id, 'large' ) : null,
 				'manager_user_ids'  => $manager_ids,

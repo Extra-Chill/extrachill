@@ -14,131 +14,131 @@ require_once plugin_dir_path( __FILE__ ) . '../filters/upload.php';
  * Handle link page save operations (links, CSS, settings, files)
  */
 function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_data = array() ) {
-    
-    if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
-        return new WP_Error( 'invalid_link_page', 'Invalid link page ID' );
-    }
+
+	if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+		return new WP_Error( 'invalid_link_page', 'Invalid link page ID' );
+	}
 	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
 		return ec_handle_external_artist_link_page_save( $link_page_id, $save_data, $files_data );
 	}
 
-    // Core link page data
-    if ( isset( $save_data['links'] ) && is_array( $save_data['links'] ) ) {
-        update_post_meta( $link_page_id, '_link_page_links', $save_data['links'] );
-    }
+	// Core link page data
+	if ( isset( $save_data['links'] ) && is_array( $save_data['links'] ) ) {
+		update_post_meta( $link_page_id, '_link_page_links', $save_data['links'] );
+	}
 
-    if ( isset( $save_data['css_vars'] ) && is_array( $save_data['css_vars'] ) ) {
-        // Prevent card background color from being stored as configurable
-        unset( $save_data['css_vars']['--link-page-card-bg-color'] );
-        update_post_meta( $link_page_id, '_link_page_custom_css_vars', $save_data['css_vars'] );
-        
-    }
+	if ( isset( $save_data['css_vars'] ) && is_array( $save_data['css_vars'] ) ) {
+		// Prevent card background color from being stored as configurable
+		unset( $save_data['css_vars']['--link-page-card-bg-color'] );
+		update_post_meta( $link_page_id, '_link_page_custom_css_vars', $save_data['css_vars'] );
 
-    // Short bio displayed on the public link page.
-    if ( array_key_exists( 'bio', $save_data ) ) {
-        if ( $save_data['bio'] === '' || $save_data['bio'] === null ) {
-            delete_post_meta( $link_page_id, '_link_page_bio_text' );
-        } else {
-            update_post_meta( $link_page_id, '_link_page_bio_text', $save_data['bio'] );
-        }
-    }
+	}
 
-    // Advanced settings (Advanced tab fields only)
-    $advanced_fields = array(
-        'link_expiration_enabled' => '_link_expiration_enabled',
-        'redirect_enabled' => '_link_page_redirect_enabled',
-        'redirect_target_url' => '_link_page_redirect_target_url',
-        'youtube_embed_enabled' => '_enable_youtube_inline_embed',
-        'meta_pixel_id' => '_link_page_meta_pixel_id',
-        'google_tag_id' => '_link_page_google_tag_id',
-        'google_tag_manager_id' => '_link_page_google_tag_manager_id',
-        'subscribe_display_mode' => '_link_page_subscribe_display_mode',
-        'subscribe_description' => '_link_page_subscribe_description',
-        'social_icons_position' => '_link_page_social_icons_position',
-        'profile_image_shape' => '_link_page_profile_img_shape',
-    );
+	// Short bio displayed on the public link page.
+	if ( array_key_exists( 'bio', $save_data ) ) {
+		if ( '' === $save_data['bio'] || null === $save_data['bio'] ) {
+			delete_post_meta( $link_page_id, '_link_page_bio_text' );
+		} else {
+			update_post_meta( $link_page_id, '_link_page_bio_text', $save_data['bio'] );
+		}
+	}
 
-    foreach ( $advanced_fields as $key => $meta_key ) {
-        if ( array_key_exists( $key, $save_data ) ) {
-            if ( $save_data[$key] === '' || $save_data[$key] === null ) {
-                delete_post_meta( $link_page_id, $meta_key );
-            } else {
-                update_post_meta( $link_page_id, $meta_key, $save_data[$key] );
-            }
-        }
-    }
+	// Advanced settings (Advanced tab fields only)
+	$advanced_fields = array(
+		'link_expiration_enabled' => '_link_expiration_enabled',
+		'redirect_enabled'        => '_link_page_redirect_enabled',
+		'redirect_target_url'     => '_link_page_redirect_target_url',
+		'youtube_embed_enabled'   => '_enable_youtube_inline_embed',
+		'meta_pixel_id'           => '_link_page_meta_pixel_id',
+		'google_tag_id'           => '_link_page_google_tag_id',
+		'google_tag_manager_id'   => '_link_page_google_tag_manager_id',
+		'subscribe_display_mode'  => '_link_page_subscribe_display_mode',
+		'subscribe_description'   => '_link_page_subscribe_description',
+		'social_icons_position'   => '_link_page_social_icons_position',
+		'profile_image_shape'     => '_link_page_profile_img_shape',
+	);
 
-    // Handle file uploads and removal if present
-    if ( ! empty( $files_data ) || isset( $save_data['remove_profile_image'] ) ) {
-        $upload_error = ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data );
-        if ( $upload_error ) {
-            return new WP_Error( 'upload_error', 'File upload error', array( 'error_code' => $upload_error ) );
-        }
-    }
+	foreach ( $advanced_fields as $key => $meta_key ) {
+		if ( array_key_exists( $key, $save_data ) ) {
+			if ( '' === $save_data[ $key ] || null === $save_data[ $key ] ) {
+				delete_post_meta( $link_page_id, $meta_key );
+			} else {
+				update_post_meta( $link_page_id, $meta_key, $save_data[ $key ] );
+			}
+		}
+	}
 
-    // Handle social icons if present
-    if ( isset( $save_data['social_icons'] ) && is_array( $save_data['social_icons'] ) ) {
-        $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-        if ( $artist_id ) {
-            $social_manager = extrachill_artist_platform_social_links();
-            $social_result = $social_manager->save( $artist_id, $save_data['social_icons'] );
-            
-            if ( is_wp_error( $social_result ) ) {
-                // Don't fail entire save for social issues
-            }
-        }
-    }
+	// Handle file uploads and removal if present
+	if ( ! empty( $files_data ) || isset( $save_data['remove_profile_image'] ) ) {
+		$upload_error = ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data );
+		if ( $upload_error ) {
+			return new WP_Error( 'upload_error', 'File upload error', array( 'error_code' => $upload_error ) );
+		}
+	}
 
-    // Handle background image ID assignment (REST API - no file upload)
-    if ( isset( $save_data['background_image_id'] ) ) {
-        $bg_id = absint( $save_data['background_image_id'] );
-        if ( $bg_id > 0 ) {
-            update_post_meta( $link_page_id, '_link_page_background_image_id', $bg_id );
-        } else {
-            delete_post_meta( $link_page_id, '_link_page_background_image_id' );
-        }
-    }
+	// Handle social icons if present
+	if ( isset( $save_data['social_icons'] ) && is_array( $save_data['social_icons'] ) ) {
+		$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+		if ( $artist_id ) {
+			$social_manager = extrachill_artist_platform_social_links();
+			$social_result  = $social_manager->save( $artist_id, $save_data['social_icons'] );
 
-    // Handle profile image ID assignment (REST API - stored on artist as thumbnail)
-    if ( isset( $save_data['profile_image_id'] ) ) {
-        $artist_id = apply_filters( 'ec_get_artist_id', $link_page_id );
-        if ( $artist_id ) {
-            $profile_id = absint( $save_data['profile_image_id'] );
-            if ( $profile_id > 0 ) {
-                set_post_thumbnail( $artist_id, $profile_id );
-            } else {
-                delete_post_thumbnail( $artist_id );
-            }
-        }
-    }
+			if ( is_wp_error( $social_result ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf -- deliberate no-op: social save issues must not fail the whole save.
+				// Don't fail entire save for social issues
+			}
+		}
+	}
 
-    /**
-     * Fires when a link page needs post-save processing.
-     * 
-     * This action hook triggers essential post-save operations like data
-     * synchronization. Other plugins and theme functions can also hook in
-     * to perform additional operations after the link page data is saved.
-     * 
-     * Hooked functions should check for errors and may prevent save completion
-     * by returning WP_Error or throwing exceptions.
-     * 
-     * @since 1.0.0
-     * 
-     * @param int $link_page_id The ID of the link page that was saved.
-     */
-    do_action( 'ec_link_page_save', $link_page_id );
+	// Handle background image ID assignment (REST API - no file upload)
+	if ( isset( $save_data['background_image_id'] ) ) {
+		$bg_id = absint( $save_data['background_image_id'] );
+		if ( $bg_id > 0 ) {
+			update_post_meta( $link_page_id, '_link_page_background_image_id', $bg_id );
+		} else {
+			delete_post_meta( $link_page_id, '_link_page_background_image_id' );
+		}
+	}
 
-    return true;
+	// Handle profile image ID assignment (REST API - stored on artist as thumbnail)
+	if ( isset( $save_data['profile_image_id'] ) ) {
+		$artist_id = apply_filters( 'ec_get_artist_id', $link_page_id );
+		if ( $artist_id ) {
+			$profile_id = absint( $save_data['profile_image_id'] );
+			if ( $profile_id > 0 ) {
+				set_post_thumbnail( $artist_id, $profile_id );
+			} else {
+				delete_post_thumbnail( $artist_id );
+			}
+		}
+	}
+
+	/**
+	 * Fires when a link page needs post-save processing.
+	 *
+	 * This action hook triggers essential post-save operations like data
+	 * synchronization. Other plugins and theme functions can also hook in
+	 * to perform additional operations after the link page data is saved.
+	 *
+	 * Hooked functions should check for errors and may prevent save completion
+	 * by returning WP_Error or throwing exceptions.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $link_page_id The ID of the link page that was saved.
+	 */
+	do_action( 'ec_link_page_save', $link_page_id );
+
+	return true;
 }
 
 /** Save generic fields through standalone and retain artist-owned side effects. */
 function ec_handle_external_artist_link_page_save( $link_page_id, $save_data, $files_data = array() ) {
 	$owner = ec_get_link_page_owner( $link_page_id );
-	if ( is_wp_error( $owner ) || 'post' !== ( $owner['kind'] ?? '' ) || 'artist_profile' !== ( $owner['subtype'] ?? '' ) ) {
+	if ( is_wp_error( $owner ) || 'post' !== $owner['kind'] || 'artist_profile' !== $owner['subtype'] ) {
 		return new WP_Error( 'invalid_artist_link_page_owner', 'The Link Page is not canonically owned by an artist.' );
 	}
 	$artist_id = (int) $owner['object_id'];
-	if ( $artist_id !== (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) ) {
+	if ( (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== $artist_id ) {
 		return new WP_Error( 'artist_link_page_owner_mismatch', 'The canonical and legacy Link Page owners do not match.' );
 	}
 	$generic_keys            = array( 'links', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id' );
@@ -154,8 +154,8 @@ function ec_handle_external_artist_link_page_save( $link_page_id, $save_data, $f
 			require_once ABSPATH . 'wp-admin/includes/media.php';
 			$uploaded = media_handle_upload( 'link_page_background_image_upload', $link_page_id );
 			if ( is_numeric( $uploaded ) ) {
-				$new_background_image_id       = (int) $uploaded;
-				$old_background_image_id       = (int) get_post_meta( $link_page_id, '_link_page_background_image_id', true );
+				$new_background_image_id        = (int) $uploaded;
+				$old_background_image_id        = (int) get_post_meta( $link_page_id, '_link_page_background_image_id', true );
 				$generic['background_image_id'] = $new_background_image_id;
 			}
 		}
@@ -189,9 +189,13 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 	$old_socials   = get_post_meta( $artist_id, '_artist_profile_social_links', true );
 	$old_thumbnail = get_post_thumbnail_id( $artist_id );
 	$result        = true;
-	foreach ( array( 'subscribe_display_mode' => '_link_page_subscribe_display_mode', 'subscribe_description' => '_link_page_subscribe_description' ) as $key => $meta_key ) {
+	foreach ( array(
+		'subscribe_display_mode' => '_link_page_subscribe_display_mode',
+		'subscribe_description'  => '_link_page_subscribe_description',
+	) as $key => $meta_key ) {
 		if ( array_key_exists( $key, $save_data ) ) {
 			$value = null === $save_data[ $key ] ? '' : sanitize_text_field( wp_unslash( (string) $save_data[ $key ] ) );
+			// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime at runtime; outside this component's analysis scope.)
 			if ( ! ec_write_link_page_meta( $link_page_id, $meta_key, $value, '' === $value ) ) {
 				$result = new WP_Error( 'artist_link_page_save_failed', 'Artist subscription settings could not be persisted.' );
 				break;
@@ -235,18 +239,18 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 
 /**
  * Link page save completion handler
- * 
+ *
  * Triggered by ec_link_page_save action to complete the save process
  * by triggering the sync action for associated artist profile.
- * 
+ *
  * @param int $link_page_id The saved link page ID
  * @return void
  */
 function ec_handle_link_page_save_completion( $link_page_id ) {
-    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-    if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
-        do_action( 'ec_artist_platform_sync', $artist_id );
-    }
+	$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+	if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
+		do_action( 'ec_artist_platform_sync', $artist_id );
+	}
 }
 add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
 
@@ -257,75 +261,76 @@ add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
  * @return string[] Public link page URLs.
  */
 if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-function ec_get_link_page_public_urls( $link_page_id ) {
-    if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
-        return array();
-    }
+	function ec_get_link_page_public_urls( $link_page_id ) {
+		if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+			return array();
+		}
 
-    $slug = get_post_field( 'post_name', $link_page_id );
-    if ( ! $slug ) {
-        return array();
-    }
+		$slug = get_post_field( 'post_name', $link_page_id );
+		if ( ! $slug ) {
+			return array();
+		}
 
-    $urls = array( 'https://extrachill.link/' . rawurlencode( $slug ) . '/' );
+		// @phpstan-ignore phpstan.argument.type (get_post_field() returns a string for post_name at runtime; falsy values are guarded above.)
+		$urls = array( 'https://extrachill.link/' . rawurlencode( $slug ) . '/' );
 
-    if ( 'extra-chill' === $slug ) {
-        $urls[] = 'https://extrachill.link/';
-    }
+		if ( 'extra-chill' === $slug ) {
+			$urls[] = 'https://extrachill.link/';
+		}
 
-    return $urls;
-}
+		return $urls;
+	}
 
-/**
- * Return link page pages affected by a link page change.
- *
- * This integration keeps Link-Page-specific URL knowledge out of the generic
- * cache layer. Registered for post type `artist_link_page` so any core-driven
- * post lifecycle event (publish, trash, delete) that reaches
- * extrachill_cache_purge_on_post_change() purges only the affected public URLs
- * instead of the whole blog.
- *
- * @param null|array $urls      URLs supplied by another integration.
- * @param int        $post_id   Changed post ID.
- * @param string     $post_type Changed post type.
- * @return null|array Exact URLs to invalidate, or $urls untouched for other post types.
- */
-function ec_link_page_cache_invalidation_urls( $urls, $post_id, $post_type ) {
-    if ( 'artist_link_page' !== $post_type ) {
-        return $urls;
-    }
+	/**
+	 * Return link page pages affected by a link page change.
+	 *
+	 * This integration keeps Link-Page-specific URL knowledge out of the generic
+	 * cache layer. Registered for post type `artist_link_page` so any core-driven
+	 * post lifecycle event (publish, trash, delete) that reaches
+	 * extrachill_cache_purge_on_post_change() purges only the affected public URLs
+	 * instead of the whole blog.
+	 *
+	 * @param null|array $urls      URLs supplied by another integration.
+	 * @param int        $post_id   Changed post ID.
+	 * @param string     $post_type Changed post type.
+	 * @return null|array Exact URLs to invalidate, or $urls untouched for other post types.
+	 */
+	function ec_link_page_cache_invalidation_urls( $urls, $post_id, $post_type ) {
+		if ( 'artist_link_page' !== $post_type ) {
+			return $urls;
+		}
 
-    return ec_get_link_page_public_urls( $post_id );
-}
-add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_invalidation_urls', 10, 3 );
+		return ec_get_link_page_public_urls( $post_id );
+	}
+	add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_invalidation_urls', 10, 3 );
 
-/**
- * Purge public link page URLs after a link page save.
- *
- * Link page saves are meta-only (no wp_update_post call), so they never fire
- * WordPress's transition_post_status hook and never reach
- * extrachill_cache_purge_on_post_change() on their own. This mirrors that
- * function's targeted-URL behavior directly, the same way extrachill-events
- * purges its venue booking archive after a non-post-status config change.
- *
- * @param int $link_page_id The saved link page ID.
- */
-function ec_purge_link_page_cache( $link_page_id ) {
-    if ( ! function_exists( 'extrachill_cache_delete_url' ) ) {
-        return;
-    }
+	/**
+	 * Purge public link page URLs after a link page save.
+	 *
+	 * Link page saves are meta-only (no wp_update_post call), so they never fire
+	 * WordPress's transition_post_status hook and never reach
+	 * extrachill_cache_purge_on_post_change() on their own. This mirrors that
+	 * function's targeted-URL behavior directly, the same way extrachill-events
+	 * purges its venue booking archive after a non-post-status config change.
+	 *
+	 * @param int $link_page_id The saved link page ID.
+	 */
+	function ec_purge_link_page_cache( $link_page_id ) {
+		if ( ! function_exists( 'extrachill_cache_delete_url' ) ) {
+			return;
+		}
 
-    $urls = ec_get_link_page_public_urls( $link_page_id );
-    if ( empty( $urls ) ) {
-        return;
-    }
+		$urls = ec_get_link_page_public_urls( $link_page_id );
+		if ( empty( $urls ) ) {
+			return;
+		}
 
-    $blog_id = get_current_blog_id();
-    foreach ( $urls as $url ) {
-        extrachill_cache_delete_url( $url, $blog_id );
-    }
-}
-add_action( 'ec_link_page_save', 'ec_purge_link_page_cache', 20, 1 );
+		$blog_id = get_current_blog_id();
+		foreach ( $urls as $url ) {
+			extrachill_cache_delete_url( $url, $blog_id );
+		}
+	}
+	add_action( 'ec_link_page_save', 'ec_purge_link_page_cache', 20, 1 );
 }
 
 
@@ -333,31 +338,31 @@ add_action( 'ec_link_page_save', 'ec_purge_link_page_cache', 20, 1 );
  * Process social icon form fields (social_type[], social_url[]) into structured array
  */
 function ec_process_social_form_fields( $post_data ) {
-    $social_data = array();
+	$social_data = array();
 
-    $social_types = isset( $post_data['social_type'] ) ? $post_data['social_type'] : array();
-    $social_urls = isset( $post_data['social_url'] ) ? $post_data['social_url'] : array();
-    
-    // Process each social icon - use foreach to preserve DOM/submission order
-    foreach ( $social_types as $social_idx => $social_type ) {
-        $social_type = sanitize_text_field( $social_type );
-        $social_url = isset( $social_urls[$social_idx] ) ? esc_url_raw( wp_unslash( $social_urls[$social_idx] ) ) : '';
-        
-        // Skip empty social icons
-        if ( empty( $social_type ) && empty( $social_url ) ) {
-            continue;
-        }
-        
-        // Only add if we have both type and URL
-        if ( ! empty( $social_type ) && ! empty( $social_url ) ) {
-            $social_data[] = array(
-                'type' => $social_type,
-                'url' => $social_url
-            );
-        }
-    }
-    
-    return $social_data;
+	$social_types = isset( $post_data['social_type'] ) ? $post_data['social_type'] : array();
+	$social_urls  = isset( $post_data['social_url'] ) ? $post_data['social_url'] : array();
+
+	// Process each social icon - use foreach to preserve DOM/submission order
+	foreach ( $social_types as $social_idx => $social_type ) {
+		$social_type = sanitize_text_field( $social_type );
+		$social_url  = isset( $social_urls[ $social_idx ] ) ? esc_url_raw( wp_unslash( $social_urls[ $social_idx ] ) ) : '';
+
+		// Skip empty social icons
+		if ( empty( $social_type ) && empty( $social_url ) ) {
+			continue;
+		}
+
+		// Only add if we have both type and URL
+		if ( ! empty( $social_type ) && ! empty( $social_url ) ) {
+			$social_data[] = array(
+				'type' => $social_type,
+				'url'  => $social_url,
+			);
+		}
+	}
+
+	return $social_data;
 }
 
 /**
@@ -371,214 +376,213 @@ function ec_process_social_form_fields( $post_data ) {
  * @return array Structured links array with sections and links
  */
 function ec_process_link_form_fields( $post_data ) {
-    $links_data = array();
-    
-    // Check for section titles
-    $section_titles = isset( $post_data['link_section_title'] ) ? $post_data['link_section_title'] : array();
-    
-    // Check for link texts and URLs
-    $link_texts = isset( $post_data['link_text'] ) ? $post_data['link_text'] : array();
-    $link_urls = isset( $post_data['link_url'] ) ? $post_data['link_url'] : array();
-    $link_expires = isset( $post_data['link_expires_at'] ) ? $post_data['link_expires_at'] : array();
-    $link_ids = isset( $post_data['link_id'] ) ? $post_data['link_id'] : array();
-    
-    // Process each section - use foreach to preserve DOM/submission order
-    foreach ( $section_titles as $section_idx => $section_title_value ) {
-        $section_data = array(
-            'section_title' => sanitize_text_field( wp_unslash( $section_title_value ) ),
-            'links' => array()
-        );
-        
-        // Process links for this section
-        if ( isset( $link_texts[$section_idx] ) && is_array( $link_texts[$section_idx] ) ) {
-            foreach ( $link_texts[$section_idx] as $link_idx => $link_text ) {
-                $link_url = isset( $link_urls[$section_idx][$link_idx] ) ? esc_url_raw( wp_unslash( $link_urls[$section_idx][$link_idx] ) ) : '';
-                $link_text = sanitize_text_field( wp_unslash( $link_text ) );
-                
-                // Skip empty links
-                if ( empty( $link_text ) && empty( $link_url ) ) {
-                    continue;
-                }
-                
-                $link_data = array(
-                    'link_text' => $link_text,
-                    'link_url' => $link_url,
-                    'id' => isset( $link_ids[$section_idx][$link_idx] ) ? sanitize_text_field( $link_ids[$section_idx][$link_idx] ) : ( extrachill_artist_platform_uses_external_link_pages_runtime() ? '' : 'link_' . time() . '_' . wp_rand() )
-                );
-                
-                // Add expiration if available
-                if ( isset( $link_expires[$section_idx][$link_idx] ) ) {
-                    $expires_at = sanitize_text_field( wp_unslash( $link_expires[$section_idx][$link_idx] ) );
-                    if ( ! empty( $expires_at ) ) {
-                        $link_data['expires_at'] = $expires_at;
-                    }
-                }
-                
-                $section_data['links'][] = $link_data;
-            }
-        }
-        
-        // Only add section if it has content
-        if ( ! empty( $section_data['section_title'] ) || ! empty( $section_data['links'] ) ) {
-            $links_data[] = $section_data;
-        }
-    }
-    
-    return $links_data;
+	$links_data = array();
+
+	// Check for section titles
+	$section_titles = isset( $post_data['link_section_title'] ) ? $post_data['link_section_title'] : array();
+
+	// Check for link texts and URLs
+	$link_texts   = isset( $post_data['link_text'] ) ? $post_data['link_text'] : array();
+	$link_urls    = isset( $post_data['link_url'] ) ? $post_data['link_url'] : array();
+	$link_expires = isset( $post_data['link_expires_at'] ) ? $post_data['link_expires_at'] : array();
+	$link_ids     = isset( $post_data['link_id'] ) ? $post_data['link_id'] : array();
+
+	// Process each section - use foreach to preserve DOM/submission order
+	foreach ( $section_titles as $section_idx => $section_title_value ) {
+		$section_data = array(
+			'section_title' => sanitize_text_field( wp_unslash( $section_title_value ) ),
+			'links'         => array(),
+		);
+
+		// Process links for this section
+		if ( isset( $link_texts[ $section_idx ] ) && is_array( $link_texts[ $section_idx ] ) ) {
+			foreach ( $link_texts[ $section_idx ] as $link_idx => $link_text ) {
+				$link_url  = isset( $link_urls[ $section_idx ][ $link_idx ] ) ? esc_url_raw( wp_unslash( $link_urls[ $section_idx ][ $link_idx ] ) ) : '';
+				$link_text = sanitize_text_field( wp_unslash( $link_text ) );
+
+				// Skip empty links
+				if ( empty( $link_text ) && empty( $link_url ) ) {
+					continue;
+				}
+
+				$link_data = array(
+					'link_text' => $link_text,
+					'link_url'  => $link_url,
+					'id'        => isset( $link_ids[ $section_idx ][ $link_idx ] ) ? sanitize_text_field( $link_ids[ $section_idx ][ $link_idx ] ) : ( extrachill_artist_platform_uses_external_link_pages_runtime() ? '' : 'link_' . time() . '_' . wp_rand() ),
+				);
+
+				// Add expiration if available
+				if ( isset( $link_expires[ $section_idx ][ $link_idx ] ) ) {
+					$expires_at = sanitize_text_field( wp_unslash( $link_expires[ $section_idx ][ $link_idx ] ) );
+					if ( ! empty( $expires_at ) ) {
+						$link_data['expires_at'] = $expires_at;
+					}
+				}
+
+				$section_data['links'][] = $link_data;
+			}
+		}
+
+		// Only add section if it has content
+		if ( ! empty( $section_data['section_title'] ) || ! empty( $section_data['links'] ) ) {
+			$links_data[] = $section_data;
+		}
+	}
+
+	return $links_data;
 }
 
 /**
  * Prepare save data from POST array for link pages
- * 
+ *
  * Sanitizes and validates all form data for link page saves.
  * Processes links, social icons, CSS variables, advanced settings,
  * and converts form values to appropriate storage formats.
- * 
+ *
  * @param array $post_data $_POST array from form submission
  * @return array Prepared and sanitized save data
  */
 function ec_prepare_link_page_save_data( $post_data ) {
-    $save_data = array();
+	$save_data = array();
 
-    // Links data - Process individual form fields instead of JSON
-    $save_data['links'] = ec_process_link_form_fields( $post_data );
+	// Links data - Process individual form fields instead of JSON
+	$save_data['links'] = ec_process_link_form_fields( $post_data );
 
-    // Social icons data - Process individual form fields instead of JSON
-    $save_data['social_icons'] = ec_process_social_form_fields( $post_data );
+	// Social icons data - Process individual form fields instead of JSON
+	$save_data['social_icons'] = ec_process_social_form_fields( $post_data );
 
-    // CSS variables - Read directly from form inputs (no JSON intermediary)
-    $css_vars = array();
-    
-    // Colors
-    if ( isset( $post_data['link_page_button_color'] ) ) {
-        $css_vars['--link-page-button-bg-color'] = sanitize_hex_color( $post_data['link_page_button_color'] );
-    }
-    if ( isset( $post_data['link_page_text_color'] ) ) {
-        $css_vars['--link-page-text-color'] = sanitize_hex_color( $post_data['link_page_text_color'] );
-    }
-    if ( isset( $post_data['link_page_link_text_color'] ) ) {
-        $css_vars['--link-page-link-text-color'] = sanitize_hex_color( $post_data['link_page_link_text_color'] );
-    }
-    if ( isset( $post_data['link_page_hover_color'] ) ) {
-        $css_vars['--link-page-button-hover-bg-color'] = sanitize_hex_color( $post_data['link_page_hover_color'] );
-    }
-    if ( isset( $post_data['link_page_button_border_color'] ) ) {
-        $css_vars['--link-page-button-border-color'] = sanitize_hex_color( $post_data['link_page_button_border_color'] );
-    }
-    
-    // Background
-    if ( isset( $post_data['link_page_background_type'] ) ) {
-        $bg_type = sanitize_text_field( $post_data['link_page_background_type'] );
-        if ( in_array( $bg_type, array( 'color', 'gradient', 'image' ) ) ) {
-            $css_vars['--link-page-background-type'] = $bg_type;
-        }
-    }
-    if ( isset( $post_data['link_page_background_color'] ) ) {
-        $css_vars['--link-page-background-color'] = sanitize_hex_color( $post_data['link_page_background_color'] );
-    }
-    if ( isset( $post_data['link_page_background_gradient_start'] ) ) {
-        $css_vars['--link-page-background-gradient-start'] = sanitize_hex_color( $post_data['link_page_background_gradient_start'] );
-    }
-    if ( isset( $post_data['link_page_background_gradient_end'] ) ) {
-        $css_vars['--link-page-background-gradient-end'] = sanitize_hex_color( $post_data['link_page_background_gradient_end'] );
-    }
-    if ( isset( $post_data['link_page_background_gradient_direction'] ) ) {
-        $direction = sanitize_text_field( $post_data['link_page_background_gradient_direction'] );
-        if ( in_array( $direction, array( 'to right', 'to bottom', '135deg' ) ) ) {
-            $css_vars['--link-page-background-gradient-direction'] = $direction;
-        }
-    }
-    
-    
-    // Typography
-    if ( isset( $post_data['link_page_title_font_family'] ) ) {
-        $css_vars['--link-page-title-font-family'] = sanitize_text_field( $post_data['link_page_title_font_family'] );
-    }
-    if ( isset( $post_data['link_page_title_font_size'] ) ) {
-        // Convert slider value (0-100) to em using original formula
-        $slider_percentage = absint( $post_data['link_page_title_font_size'] );
-        $font_size_min_em = 0.8;
-        $font_size_max_em = 3.5;
-        $em_value = $font_size_min_em + ($font_size_max_em - $font_size_min_em) * ($slider_percentage / 100);
-        $css_vars['--link-page-title-font-size'] = round($em_value, 2) . 'em';
-    }
-    if ( isset( $post_data['link_page_body_font_family'] ) ) {
-        $css_vars['--link-page-body-font-family'] = sanitize_text_field( $post_data['link_page_body_font_family'] );
-    }
-    // Removed body font size processing - uses theme default font size
-    
-    // Button styling
-    if ( isset( $post_data['link_page_button_radius'] ) ) {
-        $button_radius = absint( $post_data['link_page_button_radius'] );
-        $css_vars['--link-page-button-radius'] = $button_radius . 'px';
-    }
-    
-    // Profile image settings
-    if ( isset( $post_data['link_page_profile_img_size'] ) ) {
-        $profile_size = absint( $post_data['link_page_profile_img_size'] );
-        $css_vars['--link-page-profile-img-size'] = $profile_size . '%';
-    }
-    if ( isset( $post_data['link_page_profile_img_shape'] ) ) {
-        $profile_shape = sanitize_text_field( $post_data['link_page_profile_img_shape'] );
-        if ( in_array( $profile_shape, array( 'circle', 'square', 'rectangle' ) ) ) {
-            $css_vars['--link-page-profile-img-shape'] = $profile_shape;
-        }
-    }
-    
-    // Overlay
-    if ( isset( $post_data['link_page_overlay_toggle_present'] ) ) {
-        $css_vars['overlay'] = isset( $post_data['link_page_overlay_toggle'] ) && $post_data['link_page_overlay_toggle'] === '1' ? '1' : '0';
-    }
-    
-    if ( ! empty( $css_vars ) ) {
-        $save_data['css_vars'] = $css_vars;
-    }
+	// CSS variables - Read directly from form inputs (no JSON intermediary)
+	$css_vars = array();
 
-    // Advanced settings
-    $save_data['link_expiration_enabled'] = isset( $post_data['link_expiration_enabled_advanced'] ) && $post_data['link_expiration_enabled_advanced'] == '1' ? '1' : '0';
-    $save_data['redirect_enabled'] = isset( $post_data['link_page_redirect_enabled'] ) && $post_data['link_page_redirect_enabled'] == '1' ? '1' : '0';
-    
-    if ( $save_data['redirect_enabled'] === '1' && isset( $post_data['link_page_redirect_target_url'] ) ) {
-        $save_data['redirect_target_url'] = esc_url_raw( wp_unslash( $post_data['link_page_redirect_target_url'] ) );
-    }
+	// Colors
+	if ( isset( $post_data['link_page_button_color'] ) ) {
+		$css_vars['--link-page-button-bg-color'] = sanitize_hex_color( $post_data['link_page_button_color'] );
+	}
+	if ( isset( $post_data['link_page_text_color'] ) ) {
+		$css_vars['--link-page-text-color'] = sanitize_hex_color( $post_data['link_page_text_color'] );
+	}
+	if ( isset( $post_data['link_page_link_text_color'] ) ) {
+		$css_vars['--link-page-link-text-color'] = sanitize_hex_color( $post_data['link_page_link_text_color'] );
+	}
+	if ( isset( $post_data['link_page_hover_color'] ) ) {
+		$css_vars['--link-page-button-hover-bg-color'] = sanitize_hex_color( $post_data['link_page_hover_color'] );
+	}
+	if ( isset( $post_data['link_page_button_border_color'] ) ) {
+		$css_vars['--link-page-button-border-color'] = sanitize_hex_color( $post_data['link_page_button_border_color'] );
+	}
 
-    // YouTube embed (inverted logic - checkbox disables feature)
-    $save_data['youtube_embed_enabled'] = isset( $post_data['disable_youtube_inline_embed'] ) && $post_data['disable_youtube_inline_embed'] == '1' ? '0' : '1';
+	// Background
+	if ( isset( $post_data['link_page_background_type'] ) ) {
+		$bg_type = sanitize_text_field( $post_data['link_page_background_type'] );
+		if ( in_array( $bg_type, array( 'color', 'gradient', 'image' ), true ) ) {
+			$css_vars['--link-page-background-type'] = $bg_type;
+		}
+	}
+	if ( isset( $post_data['link_page_background_color'] ) ) {
+		$css_vars['--link-page-background-color'] = sanitize_hex_color( $post_data['link_page_background_color'] );
+	}
+	if ( isset( $post_data['link_page_background_gradient_start'] ) ) {
+		$css_vars['--link-page-background-gradient-start'] = sanitize_hex_color( $post_data['link_page_background_gradient_start'] );
+	}
+	if ( isset( $post_data['link_page_background_gradient_end'] ) ) {
+		$css_vars['--link-page-background-gradient-end'] = sanitize_hex_color( $post_data['link_page_background_gradient_end'] );
+	}
+	if ( isset( $post_data['link_page_background_gradient_direction'] ) ) {
+		$direction = sanitize_text_field( $post_data['link_page_background_gradient_direction'] );
+		if ( in_array( $direction, array( 'to right', 'to bottom', '135deg' ), true ) ) {
+			$css_vars['--link-page-background-gradient-direction'] = $direction;
+		}
+	}
 
-    // Tracking IDs
-    if ( isset( $post_data['link_page_meta_pixel_id'] ) ) {
-        $meta_pixel = trim( wp_unslash( $post_data['link_page_meta_pixel_id'] ) );
-        $save_data['meta_pixel_id'] = empty( $meta_pixel ) ? '' : ( ctype_digit( $meta_pixel ) ? $meta_pixel : '' );
-    }
+	// Typography
+	if ( isset( $post_data['link_page_title_font_family'] ) ) {
+		$css_vars['--link-page-title-font-family'] = sanitize_text_field( $post_data['link_page_title_font_family'] );
+	}
+	if ( isset( $post_data['link_page_title_font_size'] ) ) {
+		// Convert slider value (0-100) to em using original formula
+		$slider_percentage                       = absint( $post_data['link_page_title_font_size'] );
+		$font_size_min_em                        = 0.8;
+		$font_size_max_em                        = 3.5;
+		$em_value                                = $font_size_min_em + ( $font_size_max_em - $font_size_min_em ) * ( $slider_percentage / 100 );
+		$css_vars['--link-page-title-font-size'] = round($em_value, 2) . 'em';
+	}
+	if ( isset( $post_data['link_page_body_font_family'] ) ) {
+		$css_vars['--link-page-body-font-family'] = sanitize_text_field( $post_data['link_page_body_font_family'] );
+	}
+	// Removed body font size processing - uses theme default font size
 
-    if ( isset( $post_data['link_page_google_tag_id'] ) ) {
-        $google_tag = trim( wp_unslash( $post_data['link_page_google_tag_id'] ) );
-        $save_data['google_tag_id'] = empty( $google_tag ) ? '' : ( preg_match( '/^(G|AW)-[a-zA-Z0-9]+$/', $google_tag ) ? $google_tag : '' );
-    }
+	// Button styling
+	if ( isset( $post_data['link_page_button_radius'] ) ) {
+		$button_radius                         = absint( $post_data['link_page_button_radius'] );
+		$css_vars['--link-page-button-radius'] = $button_radius . 'px';
+	}
 
-    // UI settings
-    if ( isset( $post_data['link_page_social_icons_position'] ) ) {
-        $position = sanitize_text_field( $post_data['link_page_social_icons_position'] );
-        $save_data['social_icons_position'] = in_array( $position, array( 'above', 'below' ), true ) ? $position : 'above';
-    }
+	// Profile image settings
+	if ( isset( $post_data['link_page_profile_img_size'] ) ) {
+		$profile_size                             = absint( $post_data['link_page_profile_img_size'] );
+		$css_vars['--link-page-profile-img-size'] = $profile_size . '%';
+	}
+	if ( isset( $post_data['link_page_profile_img_shape'] ) ) {
+		$profile_shape = sanitize_text_field( $post_data['link_page_profile_img_shape'] );
+		if ( in_array( $profile_shape, array( 'circle', 'square', 'rectangle' ), true ) ) {
+			$css_vars['--link-page-profile-img-shape'] = $profile_shape;
+		}
+	}
 
-    // Subscription settings
-    if ( isset( $post_data['link_page_subscribe_display_mode'] ) ) {
-        $mode = sanitize_text_field( $post_data['link_page_subscribe_display_mode'] );
-        $save_data['subscribe_display_mode'] = in_array( $mode, array( 'icon_modal', 'inline_form', 'disabled' ), true ) ? $mode : '';
-    }
+	// Overlay
+	if ( isset( $post_data['link_page_overlay_toggle_present'] ) ) {
+		$css_vars['overlay'] = isset( $post_data['link_page_overlay_toggle'] ) && '1' === $post_data['link_page_overlay_toggle'] ? '1' : '0';
+	}
 
-    if ( isset( $post_data['link_page_subscribe_description'] ) ) {
-        $description = trim( wp_unslash( $post_data['link_page_subscribe_description'] ) );
-        $save_data['subscribe_description'] = $description !== '' ? $description : '';
-    }
+	if ( ! empty( $css_vars ) ) {
+		$save_data['css_vars'] = $css_vars;
+	}
 
-    // Profile image removal
-    if ( isset( $post_data['remove_link_page_profile_image'] ) ) {
-        $save_data['remove_profile_image'] = $post_data['remove_link_page_profile_image'] === '1';
-    }
+	// Advanced settings
+	$save_data['link_expiration_enabled'] = isset( $post_data['link_expiration_enabled_advanced'] ) && '1' === $post_data['link_expiration_enabled_advanced'] ? '1' : '0';
+	$save_data['redirect_enabled']        = isset( $post_data['link_page_redirect_enabled'] ) && '1' === $post_data['link_page_redirect_enabled'] ? '1' : '0';
 
-    return $save_data;
+	if ( '1' === $save_data['redirect_enabled'] && isset( $post_data['link_page_redirect_target_url'] ) ) {
+		$save_data['redirect_target_url'] = esc_url_raw( wp_unslash( $post_data['link_page_redirect_target_url'] ) );
+	}
+
+	// YouTube embed (inverted logic - checkbox disables feature)
+	$save_data['youtube_embed_enabled'] = isset( $post_data['disable_youtube_inline_embed'] ) && '1' === $post_data['disable_youtube_inline_embed'] ? '0' : '1';
+
+	// Tracking IDs
+	if ( isset( $post_data['link_page_meta_pixel_id'] ) ) {
+		$meta_pixel                 = trim( wp_unslash( $post_data['link_page_meta_pixel_id'] ) );
+		$save_data['meta_pixel_id'] = empty( $meta_pixel ) ? '' : ( ctype_digit( $meta_pixel ) ? $meta_pixel : '' );
+	}
+
+	if ( isset( $post_data['link_page_google_tag_id'] ) ) {
+		$google_tag                 = trim( wp_unslash( $post_data['link_page_google_tag_id'] ) );
+		$save_data['google_tag_id'] = empty( $google_tag ) ? '' : ( preg_match( '/^(G|AW)-[a-zA-Z0-9]+$/', $google_tag ) ? $google_tag : '' );
+	}
+
+	// UI settings
+	if ( isset( $post_data['link_page_social_icons_position'] ) ) {
+		$position                           = sanitize_text_field( $post_data['link_page_social_icons_position'] );
+		$save_data['social_icons_position'] = in_array( $position, array( 'above', 'below' ), true ) ? $position : 'above';
+	}
+
+	// Subscription settings
+	if ( isset( $post_data['link_page_subscribe_display_mode'] ) ) {
+		$mode                                = sanitize_text_field( $post_data['link_page_subscribe_display_mode'] );
+		$save_data['subscribe_display_mode'] = in_array( $mode, array( 'icon_modal', 'inline_form', 'disabled' ), true ) ? $mode : '';
+	}
+
+	if ( isset( $post_data['link_page_subscribe_description'] ) ) {
+		$description                        = trim( wp_unslash( $post_data['link_page_subscribe_description'] ) );
+		$save_data['subscribe_description'] = '' !== $description ? $description : '';
+	}
+
+	// Profile image removal
+	if ( isset( $post_data['remove_link_page_profile_image'] ) ) {
+		$save_data['remove_profile_image'] = '1' === $post_data['remove_link_page_profile_image'];
+	}
+
+	return $save_data;
 }
 
 /**
@@ -594,237 +598,243 @@ function ec_prepare_link_page_save_data( $post_data ) {
  * @return bool|WP_Error True on success, WP_Error on failure
  */
 function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files_data = array() ) {
-    
-    if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
-        return new WP_Error( 'invalid_artist_profile', 'Invalid artist profile ID' );
-    }
 
-    // Prepare post update data
-    $post_data = array( 'ID' => $artist_id );
-    $perform_post_update = false;
+	if ( ! $artist_id || get_post_type( $artist_id ) !== 'artist_profile' ) {
+		return new WP_Error( 'invalid_artist_profile', 'Invalid artist profile ID' );
+	}
 
-    // Handle title update
-    if ( isset( $save_data['post_title'] ) && ! empty( $save_data['post_title'] ) ) {
-        $current_title = get_the_title( $artist_id );
-        if ( $current_title !== $save_data['post_title'] ) {
-            $post_data['post_title'] = $save_data['post_title'];
-            $perform_post_update = true;
-        }
-    }
+	// Prepare post update data
+	$post_data           = array( 'ID' => $artist_id );
+	$perform_post_update = false;
 
-    // Handle content (bio) update
-    if ( isset( $save_data['post_content'] ) ) {
-        $current_content = get_post_field( 'post_content', $artist_id );
-        if ( $current_content !== $save_data['post_content'] ) {
-            $post_data['post_content'] = $save_data['post_content'];
-            $perform_post_update = true;
-        }
-    }
+	// Handle title update
+	if ( isset( $save_data['post_title'] ) && ! empty( $save_data['post_title'] ) ) {
+		$current_title = get_the_title( $artist_id );
+		if ( $current_title !== $save_data['post_title'] ) {
+			$post_data['post_title'] = $save_data['post_title'];
+			$perform_post_update     = true;
+		}
+	}
 
-    // Perform post update if needed
-    if ( $perform_post_update ) {
-        $update_result = wp_update_post( $post_data, true );
-        if ( is_wp_error( $update_result ) ) {
-            return $update_result;
-        }
-    }
+	// Handle content (bio) update
+	if ( isset( $save_data['post_content'] ) ) {
+		$current_content = get_post_field( 'post_content', $artist_id );
+		if ( $current_content !== $save_data['post_content'] ) {
+			$post_data['post_content'] = $save_data['post_content'];
+			$perform_post_update       = true;
+		}
+	}
 
-    // Handle meta data updates
-    $meta_fields = array(
-        'local_city' => '_local_city'
-    );
+	// Perform post update if needed
+	if ( $perform_post_update ) {
+		$update_result = wp_update_post( $post_data, true );
+		if ( is_wp_error( $update_result ) ) {
+			return $update_result;
+		}
+	}
 
-    foreach ( $meta_fields as $key => $meta_key ) {
-        if ( array_key_exists( $key, $save_data ) ) {
-            if ( $save_data[$key] === '' || $save_data[$key] === null ) {
-                delete_post_meta( $artist_id, $meta_key );
-            } else {
-                update_post_meta( $artist_id, $meta_key, $save_data[$key] );
-            }
-        }
-    }
+	// Handle meta data updates
+	$meta_fields = array(
+		'local_city' => '_local_city',
+	);
 
-    // Genres resolve to closed-vocabulary taxonomy terms (never free text).
-    if ( array_key_exists( 'genres', $save_data ) ) {
-        $genre_result = ec_artist_set_genres( $artist_id, $save_data['genres'] );
-        if ( is_wp_error( $genre_result ) ) {
-            return $genre_result;
-        }
-    }
+	foreach ( $meta_fields as $key => $meta_key ) {
+		if ( array_key_exists( $key, $save_data ) ) {
+			if ( '' === $save_data[ $key ] || null === $save_data[ $key ] ) {
+				delete_post_meta( $artist_id, $meta_key );
+			} else {
+				update_post_meta( $artist_id, $meta_key, $save_data[ $key ] );
+			}
+		}
+	}
 
-    // Handle file uploads if present
-    if ( ! empty( $files_data ) ) {
-        ec_handle_artist_profile_file_uploads( $artist_id, $files_data );
-    }
+	// Genres resolve to closed-vocabulary taxonomy terms (never free text).
+	if ( array_key_exists( 'genres', $save_data ) ) {
+		$genre_result = ec_artist_set_genres( $artist_id, $save_data['genres'] );
+		if ( is_wp_error( $genre_result ) ) {
+			return $genre_result;
+		}
+	}
 
-    // Handle member management
-    if ( isset( $save_data['remove_member_ids'] ) && ! empty( $save_data['remove_member_ids'] ) ) {
-        $current_user_id = get_current_user_id();
-        $user_ids_to_remove = array_filter( array_map( 'absint', explode( ',', $save_data['remove_member_ids'] ) ) );
-        
-        foreach ( $user_ids_to_remove as $user_id_to_remove ) {
-            if ( $user_id_to_remove > 0 && $user_id_to_remove !== $current_user_id ) { 
-                if ( ! function_exists( 'ec_remove_artist_membership' ) ) {
-                    return new WP_Error( 'membership_dependency_missing', 'Artist membership management is unavailable.' );
-                }
-                if ( ! ec_remove_artist_membership( $user_id_to_remove, $artist_id ) ) {
-                    $membership_failure = ec_get_artist_membership_failure();
-                    return $membership_failure ? $membership_failure : new WP_Error( 'artist_member_removal_failed', 'An artist member could not be fully removed. Retry to reconcile the relationship.' );
-                }
-            }
-        }
-    }
+	// Handle file uploads if present
+	if ( ! empty( $files_data ) ) {
+		ec_handle_artist_profile_file_uploads( $artist_id, $files_data );
+	}
 
-    /**
-     * Fires when an artist profile needs post-save processing.
-     * 
-     * This action hook triggers essential post-save operations like data
-     * synchronization. Other plugins and theme functions can also hook in
-     * to perform additional operations after the artist profile data is saved.
-     * 
-     * Hooked functions should check for errors and may prevent save completion
-     * by returning WP_Error or throwing exceptions.
-     * 
-     * @since 1.0.0
-     * 
-     * @param int $artist_id The ID of the artist profile that was saved.
-     */
-    do_action( 'ec_artist_profile_save', $artist_id );
+	// Handle member management
+	if ( isset( $save_data['remove_member_ids'] ) && ! empty( $save_data['remove_member_ids'] ) ) {
+		$current_user_id    = get_current_user_id();
+		$user_ids_to_remove = array_filter( array_map( 'absint', explode( ',', $save_data['remove_member_ids'] ) ) );
 
-    return true;
+		foreach ( $user_ids_to_remove as $user_id_to_remove ) {
+			// @phpstan-ignore phpstan.greater.alwaysTrue (defensive: absint() yields 0 for empty fragments; guard retained.)
+			if ( $user_id_to_remove > 0 && $user_id_to_remove !== $current_user_id ) {
+				if ( ! function_exists( 'ec_remove_artist_membership' ) ) {
+					return new WP_Error( 'membership_dependency_missing', 'Artist membership management is unavailable.' );
+				}
+				if ( ! ec_remove_artist_membership( $user_id_to_remove, $artist_id ) ) {
+					$membership_failure = ec_get_artist_membership_failure();
+					return $membership_failure ? $membership_failure : new WP_Error( 'artist_member_removal_failed', 'An artist member could not be fully removed. Retry to reconcile the relationship.' );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Fires when an artist profile needs post-save processing.
+	 *
+	 * This action hook triggers essential post-save operations like data
+	 * synchronization. Other plugins and theme functions can also hook in
+	 * to perform additional operations after the artist profile data is saved.
+	 *
+	 * Hooked functions should check for errors and may prevent save completion
+	 * by returning WP_Error or throwing exceptions.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $artist_id The ID of the artist profile that was saved.
+	 */
+	do_action( 'ec_artist_profile_save', $artist_id );
+
+	return true;
 }
 
 /**
  * Artist profile save completion handler
- * 
+ *
  * Triggered by ec_artist_profile_save action to complete the save process
  * by triggering cross-system synchronization.
- * 
+ *
  * @param int $artist_id The saved artist profile ID
  * @return void
  */
 function ec_handle_artist_profile_save_completion( $artist_id ) {
-    // Trigger sync action directly
-    do_action( 'ec_artist_platform_sync', $artist_id );
+	// Trigger sync action directly
+	do_action( 'ec_artist_platform_sync', $artist_id );
 }
 add_action( 'ec_artist_profile_save', 'ec_handle_artist_profile_save_completion', 10, 1 );
 
 
 /**
  * Prepare save data from POST array for artist profiles
- * 
+ *
  * Sanitizes and validates all form data for artist profile saves.
  * Handles title, bio, genres, location, forum settings, and member
  * management data with proper sanitization.
- * 
+ *
  * @param array $post_data $_POST array from form submission
  * @return array Prepared and sanitized save data
  */
 function ec_prepare_artist_profile_save_data( $post_data ) {
-    $save_data = array();
+	$save_data = array();
 
-    // Title (required)
-    if ( isset( $post_data['artist_title'] ) ) {
-        $save_data['post_title'] = sanitize_text_field( $post_data['artist_title'] );
-    }
+	// Title (required)
+	if ( isset( $post_data['artist_title'] ) ) {
+		$save_data['post_title'] = sanitize_text_field( $post_data['artist_title'] );
+	}
 
-    // Bio (Content)
-    if ( isset( $post_data['artist_bio'] ) ) {
-        $save_data['post_content'] = wp_kses_post( wp_unslash( $post_data['artist_bio'] ) );
-    }
+	// Bio (Content)
+	if ( isset( $post_data['artist_bio'] ) ) {
+		$save_data['post_content'] = wp_kses_post( wp_unslash( $post_data['artist_bio'] ) );
+	}
 
-    // Genres (closed vocabulary; the save resolves names/slugs through the
-    // network genre resolver and assigns taxonomy terms)
-    if ( isset( $post_data['genres'] ) ) {
-        $save_data['genres'] = ec_artist_normalize_genre_input( $post_data['genres'] );
-    }
+	// Genres (closed vocabulary; the save resolves names/slugs through the
+	// network genre resolver and assigns taxonomy terms)
+	if ( isset( $post_data['genres'] ) ) {
+		$save_data['genres'] = ec_artist_normalize_genre_input( $post_data['genres'] );
+	}
 
-    // Local Scene (City)
-    if ( isset( $post_data['local_city'] ) ) {
-        $save_data['local_city'] = sanitize_text_field( $post_data['local_city'] );
-    }
+	// Local Scene (City)
+	if ( isset( $post_data['local_city'] ) ) {
+		$save_data['local_city'] = sanitize_text_field( $post_data['local_city'] );
+	}
 
-    // Member Management
-    if ( isset( $post_data['remove_member_ids'] ) ) {
-        $save_data['remove_member_ids'] = sanitize_text_field( $post_data['remove_member_ids'] );
-    }
+	// Member Management
+	if ( isset( $post_data['remove_member_ids'] ) ) {
+		$save_data['remove_member_ids'] = sanitize_text_field( $post_data['remove_member_ids'] );
+	}
 
-    return $save_data;
+	return $save_data;
 }
 
 /**
  * Admin post handler for link page form submissions
- * 
+ *
  * Handles secure form submission processing with nonce verification,
  * permission checks, data preparation, and save execution. Redirects
  * back to management interface with appropriate feedback.
- * 
+ *
  * @return void Dies on error, redirects on success
  */
 function ec_admin_post_save_link_page() {
-    // Verify nonce
+	// Verify nonce
 	if ( ! isset( $_POST['ec_save_link_page_nonce'] ) ||
-		 ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ec_save_link_page_nonce'] ) ), 'ec_save_link_page_action' ) ) {
-        wp_die( __( 'Security check failed.', 'extrachill-artist-platform' ) );
-    }
-    
-    // Check user is logged in
-    if ( ! is_user_logged_in() ) {
-        wp_die( __( 'Permission denied: You must be logged in to save changes.', 'extrachill-artist-platform' ) );
-    }
-    
-    // Get link page and artist IDs directly from form data
+		! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ec_save_link_page_nonce'] ) ), 'ec_save_link_page_action' ) ) {
+		wp_die( esc_html__( 'Security check failed.', 'extrachill-artist-platform' ) );
+	}
+
+	// Check user is logged in
+	if ( ! is_user_logged_in() ) {
+		wp_die( esc_html__( 'Permission denied: You must be logged in to save changes.', 'extrachill-artist-platform' ) );
+	}
+
+	// Get link page and artist IDs directly from form data
 	$link_page_id = isset( $_POST['link_page_id'] ) ? absint( $_POST['link_page_id'] ) : 0;
 	$artist_id    = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
-    
-    if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
-        wp_die( __( 'Invalid link page.', 'extrachill-artist-platform' ) );
-    }
-    
-    // Check user permissions
+
+	if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+		wp_die( esc_html__( 'Invalid link page.', 'extrachill-artist-platform' ) );
+	}
+
+	// Check user permissions
 	if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-        wp_die( __( 'Permission denied: You do not have access to manage this artist.', 'extrachill-artist-platform' ) );
+		wp_die( esc_html__( 'Permission denied: You do not have access to manage this artist.', 'extrachill-artist-platform' ) );
 	}
 	if ( ! function_exists( 'extrachill_artist_platform_ability_link_page_belongs_to_artist' ) || ! extrachill_artist_platform_ability_link_page_belongs_to_artist( $artist_id, $link_page_id ) ) {
-		wp_die( __( 'Permission denied: This Link Page does not belong to the submitted artist.', 'extrachill-artist-platform' ) );
+		wp_die( esc_html__( 'Permission denied: This Link Page does not belong to the submitted artist.', 'extrachill-artist-platform' ) );
 	}
-    
-    // Prepare and save data using centralized functions
-    $save_data = ec_prepare_link_page_save_data( $_POST );
-    $result = ec_handle_link_page_save( $link_page_id, $save_data, $_FILES );
-    
-    if ( is_wp_error( $result ) ) {
-        // Handle upload errors with centralized notice system
-        $error_data = $result->get_error_data();
-        $error_messages = array(
-            'background_image_size' => __( 'Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform' ),
-            'profile_image_size'    => __( 'Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform' ),
-            'upload_failed'         => __( 'Profile image upload failed. Please try again.', 'extrachill-artist-platform' ),
-            'general'               => __( 'An error occurred while saving. Please try again.', 'extrachill-artist-platform' ),
-        );
-        $error_code = isset( $error_data['error_code'] ) ? $error_data['error_code'] : 'general';
-        $message = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : $error_messages['general'];
-        extrachill_set_notice( $message, 'error' );
-        
-        $manage_page = get_page_by_path( 'manage-link-page' );
-        $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
-        wp_safe_redirect( $base_url );
-        exit;
-    }
-    
-    // Success - set notice and redirect
-    extrachill_set_notice( __( 'Link page updated successfully!', 'extrachill-artist-platform' ), 'success' );
-    $manage_page = get_page_by_path( 'manage-link-page' );
-    $base_url = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
-    wp_safe_redirect( $base_url );
-    exit;
+
+	// Prepare and save data using centralized functions
+	$save_data = ec_prepare_link_page_save_data( $_POST );
+	$result    = ec_handle_link_page_save( $link_page_id, $save_data, $_FILES );
+
+	if ( is_wp_error( $result ) ) {
+		// Handle upload errors with centralized notice system
+		$error_data     = $result->get_error_data();
+		$error_messages = array(
+			'background_image_size' => __( 'Background image file size exceeds the 5MB limit.', 'extrachill-artist-platform' ),
+			'profile_image_size'    => __( 'Profile image file size exceeds the 5MB limit.', 'extrachill-artist-platform' ),
+			'upload_failed'         => __( 'Profile image upload failed. Please try again.', 'extrachill-artist-platform' ),
+			'general'               => __( 'An error occurred while saving. Please try again.', 'extrachill-artist-platform' ),
+		);
+		$error_code     = isset( $error_data['error_code'] ) ? $error_data['error_code'] : 'general';
+		$message        = isset( $error_messages[ $error_code ] ) ? $error_messages[ $error_code ] : $error_messages['general'];
+		// @phpstan-ignore phpstan.function.notFound (provided by the extrachill core plugin at runtime; outside this component's analysis scope.)
+		extrachill_set_notice( $message, 'error' );
+
+		$manage_page = get_page_by_path( 'manage-link-page' );
+		$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
+		wp_safe_redirect( $base_url );
+		exit;
+	}
+
+	// Success - set notice and redirect
+	// @phpstan-ignore phpstan.function.notFound (provided by the extrachill core plugin at runtime; outside this component's analysis scope.)
+	extrachill_set_notice( __( 'Link page updated successfully!', 'extrachill-artist-platform' ), 'success' );
+	$manage_page = get_page_by_path( 'manage-link-page' );
+	$base_url    = $manage_page ? get_permalink( $manage_page ) : home_url( '/manage-link-page/' );
+	wp_safe_redirect( $base_url );
+	exit;
 }
 add_action( 'template_redirect', 'ec_handle_link_page_form_submission' );
 
 function ec_handle_link_page_form_submission() {
-    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && 
-         isset($_POST['action']) && 
-         $_POST['action'] === 'ec_save_link_page' ) {
-        ec_admin_post_save_link_page();
-    }
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- routing only; the nonce is verified inside ec_admin_post_save_link_page() before any data is processed.
+	if ( 'POST' === $_SERVER['REQUEST_METHOD'] &&
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- routing only; the nonce is verified inside ec_admin_post_save_link_page() before any data is processed.
+		isset( $_POST['action'] ) &&
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- routing only; the nonce is verified inside ec_admin_post_save_link_page() before any data is processed.
+		'ec_save_link_page' === $_POST['action'] ) {
+		ec_admin_post_save_link_page();
+	}
 }

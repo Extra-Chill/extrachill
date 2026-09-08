@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * Return an artist projection for a supported Link Page owner.
  *
  * @param array $context Public runtime context.
- * @return array|null
+ * @return array|WP_Error|null
  */
 function ec_artist_link_page_public_projection_provider( $context ) {
 	$owner          = $context['owner'];
@@ -151,6 +151,7 @@ function ec_artist_link_page_enqueue_asset_extensions( $context ) {
 	) as $handle => $path ) {
 		$file = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $path;
 		if ( file_exists( $file ) ) {
+			// @phpstan-ignore phpstan.argument.type (file_exists() above guarantees filemtime() never returns false here.)
 			wp_enqueue_script( $handle, EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . $path, array(), filemtime( $file ), true );
 		}
 	}

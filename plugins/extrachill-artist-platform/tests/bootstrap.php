@@ -1,5 +1,7 @@
 <?php
 
+// phpcs:ignoreFile Universal.Files.SeparateFunctionsFromOO.Mixed,Generic.Files.OneObjectStructurePerFile.MultipleFound,WordPress.WP.GlobalVariablesOverride.Prohibited -- standalone test harness: WP function shims plus stub classes are intentional, and wiring $GLOBALS["wpdb"] is the point of the harness.
+
 require_once __DIR__ . '/fixtures/ExecutionPrincipal.php';
 
 define( 'ABSPATH', __DIR__ . '/' );
@@ -115,6 +117,7 @@ class EcTestWpdb {
 			if ( maybe_serialize( $current ) !== $expected ) {
 				return 0;
 			}
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- harness option store mirrors WP's PHP-serialize format.
 			$GLOBALS['ec_test']['options'][ $option ] = unserialize( $replacement );
 			return 1;
 		}
@@ -159,6 +162,7 @@ function wp_parse_args( $args, $defaults = array() ) {
 	return array_merge( $defaults, $args );
 }
 
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP signature parity for the current_time shim.
 function current_time( $type, $gmt = 0 ) {
 	return 'Y-m-d' === $type ? '2026-08-04' : '2026-08-04 12:00:00';
 }
@@ -305,6 +309,7 @@ function remove_filter() {
 	return true;
 }
 
+// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore -- mirrors the real WP core __return_true() name that plugin code calls.
 function __return_true() {
 	return true;
 }
@@ -357,6 +362,7 @@ function absint( $value ) {
 }
 
 function wp_json_encode( $value ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- this function is the wp_json_encode shim itself.
 	return json_encode( $value );
 }
 
@@ -369,7 +375,7 @@ function current_user_can( $capability ) {
 }
 
 function user_can( $user_id, $capability ) {
-	if ( (int) $user_id === get_current_user_id() && ! empty( $GLOBALS['ec_test']['capabilities'][ $capability ] ) ) {
+	if ( get_current_user_id() === (int) $user_id && ! empty( $GLOBALS['ec_test']['capabilities'][ $capability ] ) ) {
 		return true;
 	}
 
@@ -462,7 +468,8 @@ function email_exists( $email ) {
 }
 
 function ec_generate_username_from_email( $email ) {
-	return sanitize_title( strstr( $email, '@', true ) ?: 'user' );
+	$before_at = strstr( $email, '@', true );
+	return sanitize_title( $before_at ? $before_at : 'user' );
 }
 
 function retrieve_password( $login ) {
@@ -701,6 +708,7 @@ function update_user_meta( $user_id, $key, $value, $previous = '' ) {
 	return true;
 }
 
+// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- mirrors WP core maybe_serialize(); option storage uses PHP serialize format.
 function maybe_serialize( $value ) {
 	return serialize( $value );
 }
@@ -997,10 +1005,11 @@ function wp_delete_term( $term_id, $taxonomy ) {
 	return true;
 }
 
-function get_option( $key, $default = false ) {
-	return $GLOBALS['ec_test']['options'][ $key ] ?? $default;
+function get_option( $key, $fallback = false ) {
+	return $GLOBALS['ec_test']['options'][ $key ] ?? $fallback;
 }
 
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP signature parity for the add_option shim.
 function add_option( $key, $value, $deprecated = '', $autoload = null ) {
 	global $wpdb;
 	if ( ! empty( $GLOBALS['ec_test']['fail_option_add'] ) ) {
@@ -1019,8 +1028,8 @@ function update_option( $key, $value ) {
 	return true;
 }
 
-function get_site_option( $key, $default = false ) {
-	return $GLOBALS['ec_test']['site_options'][ $key ] ?? $default;
+function get_site_option( $key, $fallback = false ) {
+	return $GLOBALS['ec_test']['site_options'][ $key ] ?? $fallback;
 }
 
 function update_site_option( $key, $value ) {
@@ -1032,6 +1041,7 @@ function get_site_transient( $key ) {
 	return $GLOBALS['ec_test']['site_transients'][ $key ] ?? false;
 }
 
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP signature parity for the set_site_transient shim.
 function set_site_transient( $key, $value, $expiration = 0 ) {
 	$GLOBALS['ec_test']['site_transients'][ $key ] = $value;
 	return true;
@@ -1101,10 +1111,12 @@ function wp_get_attachment_url( $attachment_id ) {
 	return 'https://artist.example/media/' . $attachment_id . '.jpg';
 }
 
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP signature parity for the wp_get_attachment_image_url shim.
 function wp_get_attachment_image_url( $attachment_id, $size = 'thumbnail' ) {
 	return wp_get_attachment_url( $attachment_id );
 }
 
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP signature parity for the get_the_post_thumbnail_url shim.
 function get_the_post_thumbnail_url( $post_id, $size ) {
 	$attachment_id = get_post_thumbnail_id( $post_id );
 	return $attachment_id ? wp_get_attachment_url( $attachment_id ) : false;

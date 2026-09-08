@@ -1,5 +1,7 @@
 <?php
 
+// phpcs:ignoreFile WordPress.WP.GlobalVariablesOverride.Prohibited,Universal.Operators.DisallowShortTernary.Found,Universal.Files.SeparateFunctionsFromOO.Mixed,Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- standalone smoke harness mirroring the plugin bootstrap under test; runs outside WP with mirrored signatures.
+
 $mode       = $argv[1] ?? '';
 $artist     = dirname( __DIR__, 2 );
 $standalone = getenv( 'LINK_PAGES_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-link-pages@feat-3-public-runtime';
@@ -47,7 +49,8 @@ function get_option( $name, $default = false ) {
 function get_site_option( $name, $default = false ) {
 	return $GLOBALS['smoke']['site_options'][ $name ] ?? $default;
 }
-function update_site_option( $name, $value ) { $GLOBALS['smoke']['site_options'][ $name ] = $value; return true; }
+function update_site_option( $name, $value ) { $GLOBALS['smoke']['site_options'][ $name ] = $value;
+	return true; }
 
 function plugin_dir_path( $file ) {
 	return dirname( $file ) . '/';
@@ -75,8 +78,10 @@ function has_filter( $hook ) { return ! empty( $GLOBALS['smoke']['filters'][ $ho
 function get_current_blog_id() { return $GLOBALS['smoke']['current_blog_id']; }
 function get_main_site_id() { return 4; }
 function get_site( $blog_id ) { return 4 === (int) $blog_id ? (object) array( 'blog_id' => 4 ) : null; }
-function switch_to_blog( $blog_id ) { $GLOBALS['smoke']['current_blog_id'] = (int) $blog_id; return true; }
-function restore_current_blog() { $GLOBALS['smoke']['current_blog_id'] = 4; return true; }
+function switch_to_blog( $blog_id ) { $GLOBALS['smoke']['current_blog_id'] = (int) $blog_id;
+	return true; }
+function restore_current_blog() { $GLOBALS['smoke']['current_blog_id'] = 4;
+	return true; }
 function is_multisite() { return true; }
 function ec_get_blog_id( $type ) { return 'artist' === $type ? 4 : 0; }
 
@@ -137,7 +142,7 @@ add_action( 'plugins_loaded', 'extrachill_artist_platform_boot_link_pages_runtim
 if ( in_array( $mode, array( 'activation', 'activation-site' ), true ) ) {
 	$before_boot = function_exists( 'ec_get_link_page_owner' );
 	do_action( 'plugins_loaded' );
-	$after_boot = function_exists( 'ec_get_link_page_owner' );
+	$after_boot                         = function_exists( 'ec_get_link_page_owner' );
 	$storage_provider_before_standalone = 4 === (int) apply_filters( 'ec_link_page_storage_blog_id', 0 );
 	require_once $standalone . '/extrachill-link-pages.php';
 	$activation_callbacks = array_values( $GLOBALS['smoke']['activation_callbacks'] );
@@ -145,16 +150,16 @@ if ( in_array( $mode, array( 'activation', 'activation-site' ), true ) ) {
 
 	echo json_encode(
 		array(
-			'before_boot'          => $before_boot,
-			'after_boot'           => $after_boot,
-			'ready'                => ec_link_pages_runtime_ready(),
-			'contract_matches'      => true === extrachill_artist_platform_validate_link_pages_runtime(),
-			'link_registrations'   => $GLOBALS['smoke']['registration_counts']['artist_link_page'] ?? 0,
-			'owner_providers'      => count( ec_link_page_owner_compatibility_registry()->snapshot() ),
-			'operation_providers'  => count( ec_link_page_operation_provider_registry()->snapshot() ),
-			'flushes'              => $GLOBALS['smoke']['flushes'],
+			'before_boot'                        => $before_boot,
+			'after_boot'                         => $after_boot,
+			'ready'                              => ec_link_pages_runtime_ready(),
+			'contract_matches'                   => true === extrachill_artist_platform_validate_link_pages_runtime(),
+			'link_registrations'                 => $GLOBALS['smoke']['registration_counts']['artist_link_page'] ?? 0,
+			'owner_providers'                    => count( ec_link_page_owner_compatibility_registry()->snapshot() ),
+			'operation_providers'                => count( ec_link_page_operation_provider_registry()->snapshot() ),
+			'flushes'                            => $GLOBALS['smoke']['flushes'],
 			'storage_provider_before_standalone' => $storage_provider_before_standalone,
-			'storage_blog_id'      => ec_get_link_page_storage_blog_id(),
+			'storage_blog_id'                    => ec_get_link_page_storage_blog_id(),
 		)
 	);
 	exit;
@@ -173,7 +178,7 @@ if ( 'external' === $mode ) {
 			'before_standalone'    => $before_standalone,
 			'after_standalone'     => $after_standalone,
 			'ready'                => ec_link_pages_runtime_ready(),
-			'contract_matches'      => true === extrachill_artist_platform_validate_link_pages_runtime(),
+			'contract_matches'     => true === extrachill_artist_platform_validate_link_pages_runtime(),
 			'second_boot'          => true === $second_boot,
 			'link_registrations'   => $GLOBALS['smoke']['registration_counts']['artist_link_page'] ?? 0,
 			'owner_providers'      => count( ec_link_page_owner_compatibility_registry()->snapshot() ),

@@ -101,6 +101,7 @@ function ec_artist_link_page_operation_save( $resolved, $data ) {
  * @return mixed|WP_Error
  */
 function ec_artist_with_link_page_lock( $artist_id, $callback, $require_link_page = false ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (defensive: the callback arrives through public wrappers and is verified at runtime.)
 	if ( ! is_callable( $callback ) ) {
 		return new WP_Error( 'invalid_artist_link_page_callback', 'The Artist Link Page mutation callback is invalid.' );
 	}
@@ -113,6 +114,7 @@ function ec_artist_with_link_page_lock( $artist_id, $callback, $require_link_pag
 	}
 	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
 	$did_switch     = $artist_blog_id && get_current_blog_id() !== $artist_blog_id;
+	// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: switch_to_blog() is stubbed @return true, but the guard is retained.)
 	if ( $did_switch && ( ! switch_to_blog( $artist_blog_id ) || get_current_blog_id() !== $artist_blog_id ) ) {
 		return new WP_Error( 'artist_blog_switch_failed', 'The Artist mutation could not enter the Artist site.' );
 	}
@@ -134,6 +136,7 @@ function ec_artist_with_link_page_lock( $artist_id, $callback, $require_link_pag
  * @return mixed|WP_Error
  */
 function ec_artist_with_link_page_lock_on_storage( $artist_id, $callback, $require_link_page = false ) {
+	// @phpstan-ignore phpstan.function.alreadyNarrowedType (defensive: the callback arrives through public wrappers and is verified at runtime.)
 	if ( ! is_callable( $callback ) ) {
 		return new WP_Error( 'invalid_artist_link_page_callback', 'The Artist Link Page mutation callback is invalid.' );
 	}

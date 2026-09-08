@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/artist-get
  *
@@ -8,6 +7,7 @@ declare(strict_types=1);
  * @package ExtraChillArtistPlatform
  * @since   1.9.0
  */
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $input { @type int $id Artist profile post ID. }
  * @return array|WP_Error
  */
-function extrachill_artist_platform_ability_artist_get( array $input ): array|WP_Error {
+function extrachill_artist_platform_ability_artist_get( array $input ) {
 	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
 
 	if ( ! $artist_id ) {
@@ -34,7 +34,7 @@ function extrachill_artist_platform_ability_artist_get( array $input ): array|WP
 
 	$artist = get_post( $artist_id );
 
-	if ( ! $artist || $artist->post_type !== 'artist_profile' || $artist->post_status !== 'publish' ) {
+	if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
 		if ( $did_switch ) {
 			restore_current_blog();
 		}
@@ -53,14 +53,14 @@ function extrachill_artist_platform_ability_artist_get( array $input ): array|WP
 		'slug'              => $data['slug'],
 		'permalink'         => $data['permalink'],
 		'bio'               => $data['bio'],
-		'local_city'        => $data['local_city'] !== '' ? $data['local_city'] : null,
+		'local_city'        => '' !== $data['local_city'] ? $data['local_city'] : null,
 		'genres'            => $data['genres'],
 		'genre_labels'      => $data['genre_labels'],
 		'profile_image_id'  => $data['profile_image_id'] ? (int) $data['profile_image_id'] : null,
-		'profile_image_url' => $data['profile_image_url'] ?: null,
+		'profile_image_url' => ( isset( $data['profile_image_url'] ) ? $data['profile_image_url'] : null ),
 		'header_image_id'   => $data['header_image_id'] ? (int) $data['header_image_id'] : null,
-		'header_image_url'  => $data['header_image_url'] ?: null,
+		'header_image_url'  => ( isset( $data['header_image_url'] ) ? $data['header_image_url'] : null ),
 		'official_links'    => $data['social_links'],
-		'link_page_id'      => $data['link_page_id'] ?: null,
+		'link_page_id'      => ( isset( $data['link_page_id'] ) ? $data['link_page_id'] : null ),
 	);
 }

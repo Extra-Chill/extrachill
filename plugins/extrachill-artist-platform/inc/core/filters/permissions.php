@@ -8,57 +8,60 @@
 
 /**
  * Extract artist ID from request data
- * 
+ *
  * @param array $data Request data (POST, GET, or other)
  * @return int Artist ID or 0 if not found
  */
 function ec_get_permission_artist_id( $data ) {
-    $artist_id = isset( $data['artist_id'] ) ? (int) $data['artist_id'] : 0;
-    if ( ! $artist_id ) {
-        return 0;
-    }
+	$artist_id = isset( $data['artist_id'] ) ? (int) $data['artist_id'] : 0;
+	if ( ! $artist_id ) {
+		return 0;
+	}
 
-    return ec_can_manage_artist( get_current_user_id(), $artist_id ) ? $artist_id : 0;
+	return ec_can_manage_artist( get_current_user_id(), $artist_id ) ? $artist_id : 0;
 }
 
 /**
  * Extract link page ID from request data and validate permissions
- * 
+ *
  * @param array $data Request data (POST, GET, or other)
  * @return int|false Artist ID if user can manage link page, false otherwise
  */
 function ec_get_permission_link_page_id( $data ) {
-    $link_page_id = isset( $data['link_page_id'] ) ? (int) $data['link_page_id'] : 0;
-    if ( ! $link_page_id ) {
-        return false;
-    }
+	$link_page_id = isset( $data['link_page_id'] ) ? (int) $data['link_page_id'] : 0;
+	if ( ! $link_page_id ) {
+		return false;
+	}
 
-    $artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-    if ( ! $artist_id ) {
-        return false;
-    }
+	$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
+	if ( ! $artist_id ) {
+		return false;
+	}
 
-    return ec_can_manage_artist( get_current_user_id(), $artist_id ) ? $artist_id : false;
+	return ec_can_manage_artist( get_current_user_id(), $artist_id ) ? $artist_id : false;
 }
 
 /**
  * Check if current user is admin from request data
- * 
+ *
  * @param array $data Request data (POST, GET, or other)
  * @return bool True if user can manage options
  */
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- permission-callback signature parity; request data unused for this check.
 function ec_get_permission_is_admin( $data ) {
-    return current_user_can( 'manage_options' );
+	return current_user_can( 'manage_options' );
 }
 
 /**
  * Check if user can create artists from request data
- * 
+ *
  * @param array $data Request data (POST, GET, or other)
  * @return bool True if user can create artist profiles
  */
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- permission-callback signature parity; request data unused for this check.
 function ec_get_permission_can_create_artists( $data ) {
-    return ec_can_create_artist_profiles( get_current_user_id() );
+	// @phpstan-ignore phpstan.function.notFound (provided by extrachill-users at runtime; outside this component's analysis scope.)
+	return ec_can_create_artist_profiles( get_current_user_id() );
 }
 
 /**
@@ -144,7 +147,7 @@ add_filter( 'map_meta_cap', 'ec_map_artist_object_capabilities', 10, 4 );
  * @return bool[] Filtered primitive capabilities.
  */
 function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
-	$admin_caps = array(
+	$admin_caps     = array(
 		'edit_artist_profiles',
 		'edit_others_artist_profiles',
 		'edit_private_artist_profiles',
@@ -156,7 +159,7 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
 		'publish_artist_profiles',
 		'read_private_artist_profiles',
 	);
-	$object_caps = array(
+	$object_caps    = array(
 		'edit_post',
 		'read_post',
 		'delete_post',
@@ -168,7 +171,7 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
 		'add_post_meta',
 		'delete_post_meta',
 	);
-	$meta_caps = array(
+	$meta_caps      = array(
 		'edit_post_meta',
 		'add_post_meta',
 		'delete_post_meta',

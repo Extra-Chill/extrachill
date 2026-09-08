@@ -12,7 +12,7 @@
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 /**
@@ -24,36 +24,36 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param int $artist_id The artist profile post ID
  */
 function ec_add_artist_card_management_buttons( $artist_id ) {
-    // Only show for logged-in users
-    if ( ! is_user_logged_in() ) {
-        return;
-    }
+	// Only show for logged-in users
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
 
-    // Check if user can manage this artist
-    if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
-        return;
-    }
+	// Check if user can manage this artist
+	if ( ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
+		return;
+	}
 
-    // Get management URLs
-    $manage_artist_page = get_page_by_path( 'manage-artist' );
-    $manage_link_page = get_page_by_path( 'manage-link-page' );
+	// Get management URLs
+	$manage_artist_page = get_page_by_path( 'manage-artist' );
+	$manage_link_page   = get_page_by_path( 'manage-link-page' );
 
-    $manage_artist_url = $manage_artist_page ? get_permalink( $manage_artist_page ) : '';
-    $manage_link_url = $manage_link_page ? get_permalink( $manage_link_page ) : '';
+	$manage_artist_url = $manage_artist_page ? get_permalink( $manage_artist_page ) : '';
+	$manage_link_url   = $manage_link_page ? get_permalink( $manage_link_page ) : '';
 
-    // Output management buttons
-    ?>
-    <?php if ( $manage_artist_url ) : ?>
-        <a href="<?php echo esc_url( $manage_artist_url ); ?>" class="button-2 button-medium" data-action-button>
-            <?php esc_html_e( 'Manage Artist', 'extrachill-artist-platform' ); ?>
-        </a>
-    <?php endif; ?>
+	// Output management buttons
+	?>
+	<?php if ( $manage_artist_url ) : ?>
+		<a href="<?php echo esc_url( $manage_artist_url ); ?>" class="button-2 button-medium" data-action-button>
+			<?php esc_html_e( 'Manage Artist', 'extrachill-artist-platform' ); ?>
+		</a>
+	<?php endif; ?>
 
-    <?php if ( $manage_link_url ) : ?>
-        <a href="<?php echo esc_url( $manage_link_url ); ?>" class="button-2 button-medium" data-action-button>
-            <?php esc_html_e( 'Manage Link Page', 'extrachill-artist-platform' ); ?>
-        </a>
-    <?php endif; ?>
-    <?php
+	<?php if ( $manage_link_url ) : ?>
+		<a href="<?php echo esc_url( $manage_link_url ); ?>" class="button-2 button-medium" data-action-button>
+			<?php esc_html_e( 'Manage Link Page', 'extrachill-artist-platform' ); ?>
+		</a>
+	<?php endif; ?>
+	<?php
 }
 add_action( 'ec_artist_card_actions', 'ec_add_artist_card_management_buttons', 10, 1 );

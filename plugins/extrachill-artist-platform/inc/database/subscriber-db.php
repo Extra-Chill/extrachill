@@ -9,13 +9,13 @@ defined( 'ABSPATH' ) || exit;
  * Creates artist_subscribers table with indexes and constraints.
  */
 function extrachill_artist_create_subscribers_table() {
-    global $wpdb;
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+	global $wpdb;
+	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-    $table_name = $wpdb->prefix . 'artist_subscribers';
-    $charset_collate = $wpdb->get_charset_collate();
+	$table_name      = $wpdb->prefix . 'artist_subscribers';
+	$charset_collate = $wpdb->get_charset_collate();
 
-    $sql = "CREATE TABLE $table_name (
+	$sql = "CREATE TABLE $table_name (
         subscriber_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         user_id BIGINT(20) UNSIGNED NULL,
         artist_profile_id BIGINT(20) UNSIGNED NOT NULL,
@@ -32,7 +32,5 @@ function extrachill_artist_create_subscribers_table() {
         KEY user_artist_source (user_id, artist_profile_id, source)
     ) $charset_collate;";
 
-    dbDelta( $sql );
-
+	dbDelta( $sql );
 }
-

@@ -8,8 +8,18 @@ final class ExternalArtistOnboardingTest extends TestCase {
 			'current_blog_id' => 4,
 			'blog_stack'      => array(),
 			'blogs'           => array(
-				1 => array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() ),
-				4 => array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() ),
+				1 => array(
+					'terms'     => array(),
+					'term_meta' => array(),
+					'posts'     => array(),
+					'post_meta' => array(),
+				),
+				4 => array(
+					'terms'     => array(),
+					'term_meta' => array(),
+					'posts'     => array(),
+					'post_meta' => array(),
+				),
 			),
 			'users'           => array(),
 			'user_meta'       => array(),
@@ -46,7 +56,10 @@ final class ExternalArtistOnboardingTest extends TestCase {
 			'extrachill/get-artist-data',
 			array(
 				'execute_callback'    => function ( $input ) {
-					return array( 'id' => (int) $input['artist_id'], 'name' => get_the_title( $input['artist_id'] ) );
+					return array(
+						'id'   => (int) $input['artist_id'],
+						'name' => get_the_title( $input['artist_id'] ),
+					);
 				},
 				'permission_callback' => '__return_true',
 				'meta'                => array(),
@@ -68,7 +81,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	}
 
 	private function addUser( $user_id, $email, $unclaimed = false ): void {
-		$GLOBALS['ec_test']['users'][ $user_id ] = (object) array(
+		$GLOBALS['ec_test']['users'][ $user_id ]                   = (object) array(
 			'ID'           => $user_id,
 			'user_login'   => 'user-' . $user_id,
 			'user_email'   => $email,
@@ -144,7 +157,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$this->assertSame( 'authentication_required', $anonymous['outcome'] );
 
 		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$authenticated = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
+		$authenticated                         = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
 		$this->assertSame( 'artist_consent_required', $authenticated['outcome'] );
 		$this->assertSame( array(), $GLOBALS['ec_test']['blogs'][4]['posts'] );
 	}
@@ -152,10 +165,10 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	public function test_authenticated_consent_creates_artist_membership_binding_and_link_page_once(): void {
 		$this->addUser( 7, 'artist@example.com' );
 		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$input = $this->input(
+		$input                                 = $this->input(
 			array(
 				'consent' => array(
-					'profile_creation'  => true,
+					'profile_creation'   => true,
 					'link_page'          => true,
 					'disclosure_version' => 'artist-offer-v1',
 				),
@@ -172,9 +185,9 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$this->assertSame( 'lead-123', reset( $sources )['id'] );
 		$this->assertSame( array( 'artist-offer-v1' ), reset( $sources )['disclosure_versions'] );
 
-		$profile_id = $first['artist']['profile_id'];
+		$profile_id                               = $first['artist']['profile_id'];
 		$GLOBALS['ec_test']['managed_artists'][7] = array( $profile_id );
-		$second = extrachill_artist_platform_ability_onboard_external_artist( $input );
+		$second                                   = extrachill_artist_platform_ability_onboard_external_artist( $input );
 		$this->assertSame( 'managed_artist', $second['outcome'] );
 		$this->assertSame( 'existing', $second['link_page']['state'] );
 		$this->assertSame( $first['link_page']['id'], $second['link_page']['id'] );
@@ -191,10 +204,14 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	public function test_existing_managed_artist_reuses_link_page(): void {
 		$this->addUser( 7, 'artist@example.com' );
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['current_user_id']     = 7;
-		$GLOBALS['ec_test']['managed_artists'][7] = array( 20 );
-		$GLOBALS['ec_test']['blogs'][4]['posts'][30] = (object) array(
-			'ID' => 30, 'post_type' => 'artist_link_page', 'post_status' => 'publish', 'post_title' => 'Test Artist', 'post_name' => 'test-artist',
+		$GLOBALS['ec_test']['current_user_id']                                   = 7;
+		$GLOBALS['ec_test']['managed_artists'][7]                                = array( 20 );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][30]                             = (object) array(
+			'ID'          => 30,
+			'post_type'   => 'artist_link_page',
+			'post_status' => 'publish',
+			'post_title'  => 'Test Artist',
+			'post_name'   => 'test-artist',
 		);
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id'] = 30;
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][30]['_associated_artist_profile_id'] = 20;
@@ -202,7 +219,10 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$result = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
 
 		$this->assertSame( 'managed_artist', $result['outcome'] );
-		$this->assertSame( array( 'state' => 'existing', 'id' => 30 ), $result['link_page'] );
+		$this->assertSame( array(
+			'state' => 'existing',
+			'id'    => 30,
+		), $result['link_page'] );
 	}
 
 	public function test_existing_unowned_artist_requires_membership_request_without_grant_or_invite(): void {
@@ -211,7 +231,13 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$GLOBALS['ec_test']['current_user_id'] = 7;
 
 		$result = extrachill_artist_platform_ability_onboard_external_artist(
-			$this->input( array( 'consent' => array( 'profile_creation' => true, 'link_page' => true, 'disclosure_version' => 'artist-offer-v1' ) ) )
+			$this->input( array(
+				'consent' => array(
+					'profile_creation'   => true,
+					'link_page'          => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
+			) )
 		);
 
 		$this->assertSame( 'membership_request_required', $result['outcome'] );
@@ -226,7 +252,13 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$GLOBALS['ec_test']['current_user_id'] = 7;
 
 		$result = extrachill_artist_platform_ability_onboard_external_artist(
-			$this->input( array( 'consent' => array( 'profile_creation' => true, 'link_page' => true, 'disclosure_version' => 'artist-offer-v1' ) ) )
+			$this->input( array(
+				'consent' => array(
+					'profile_creation'   => true,
+					'link_page'          => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
+			) )
 		);
 
 		$this->assertSame( 'account_claim_required', $result['outcome'] );
@@ -240,7 +272,12 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$GLOBALS['ec_test']['current_user_id'] = 7;
 
 		$result = extrachill_artist_platform_ability_onboard_external_artist(
-			$this->input( array( 'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ) ) )
+			$this->input( array(
+				'consent' => array(
+					'profile_creation'   => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
+			) )
 		);
 
 		$this->assertSame( 'membership_request_required', $result['outcome'] );
@@ -253,16 +290,22 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$this->addProfile( 20, 'One Artist' );
 		$this->addProfile( 21, 'Two Artist' );
 		$this->addTerm( 50, 'One Artist' );
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_artist_term_id'] = 50;
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_artist_term_id']    = 50;
 		$GLOBALS['ec_test']['blogs'][1]['term_meta'][50]['_artist_profile_id'] = 20;
 
 		$user_conflict = extrachill_artist_platform_ability_onboard_external_artist(
-			$this->input( array( 'submitter_user_id' => 7, 'submitter_email' => 'other@example.com' ) )
+			$this->input( array(
+				'submitter_user_id' => 7,
+				'submitter_email'   => 'other@example.com',
+			) )
 		);
 		$this->assertSame( 'conflicting_submitter_identity', $user_conflict->get_error_code() );
 
 		$artist_conflict = extrachill_artist_platform_ability_onboard_external_artist(
-			$this->input( array( 'artist_profile_id' => 21, 'artist_term_id' => 50 ) )
+			$this->input( array(
+				'artist_profile_id' => 21,
+				'artist_term_id'    => 50,
+			) )
 		);
 		$this->assertSame( 'conflicting_artist_identity', $artist_conflict->get_error_code() );
 	}
@@ -282,7 +325,10 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$result = extrachill_artist_platform_ability_onboard_external_artist(
 			$this->input(
 				array(
-					'consent' => array( 'link_page' => true, 'disclosure_version' => 'artist-offer-v1' ),
+					'consent' => array(
+						'link_page'          => true,
+						'disclosure_version' => 'artist-offer-v1',
+					),
 				)
 			)
 		);
@@ -304,12 +350,12 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_failed_claim_delivery_is_retried_until_sent(): void {
 		$GLOBALS['ec_test']['fail_claim_delivery'] = true;
-		$first = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
+		$first                                     = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
 		$this->assertSame( 'failed', $first['claim']['delivery'] );
 
 		$GLOBALS['ec_test']['fail_claim_delivery'] = false;
-		$second = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
-		$third  = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
+		$second                                    = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
+		$third                                     = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
 
 		$this->assertSame( 'sent', $second['claim']['delivery'] );
 		$this->assertSame( 'previously_sent', $third['claim']['delivery'] );
@@ -338,7 +384,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_post_lock_identity_resolution_prevents_concurrent_duplicate_profile(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_user_id']            = 7;
 		$GLOBALS['ec_test']['after_external_artist_lock'] = function () {
 			$this->addProfile( 20 );
 		};
@@ -346,7 +392,10 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$result = extrachill_artist_platform_ability_onboard_external_artist(
 			$this->input(
 				array(
-					'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ),
+					'consent' => array(
+						'profile_creation'   => true,
+						'disclosure_version' => 'artist-offer-v1',
+					),
 				)
 			)
 		);
@@ -358,14 +407,14 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_provenance_failure_rolls_back_new_profile_before_link_creation(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id']     = 7;
+		$GLOBALS['ec_test']['current_user_id']       = 7;
 		$GLOBALS['ec_test']['fail_post_meta_update'] = true;
 
 		$result = extrachill_artist_platform_ability_onboard_external_artist(
 			$this->input(
 				array(
 					'consent' => array(
-						'profile_creation'  => true,
+						'profile_creation'   => true,
 						'link_page'          => true,
 						'disclosure_version' => 'artist-offer-v1',
 					),
@@ -416,12 +465,15 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	public function test_link_page_association_failure_rolls_back_and_retry_creates_one_page(): void {
 		$this->addUser( 7, 'artist@example.com' );
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$GLOBALS['ec_test']['managed_artists'][7] = array( 20 );
+		$GLOBALS['ec_test']['current_user_id']                                    = 7;
+		$GLOBALS['ec_test']['managed_artists'][7]                                 = array( 20 );
 		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_extrch_link_page_id'] = 1;
 		$input = $this->input(
 			array(
-				'consent' => array( 'link_page' => true, 'disclosure_version' => 'artist-offer-v1' ),
+				'consent' => array(
+					'link_page'          => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
 			)
 		);
 
@@ -456,11 +508,14 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_binding_failure_removes_new_empty_term_and_retry_succeeds(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_user_id']                                  = 7;
 		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
 		$input = $this->input(
 			array(
-				'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ),
+				'consent' => array(
+					'profile_creation'   => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
 			)
 		);
 
@@ -498,7 +553,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$ability = wp_get_ability( 'extrachill/onboard-external-artist' );
 		$schema  = $ability->get_output_schema();
 		$GLOBALS['ec_test']['allow_external_artist_onboarding'] = true;
-		$result  = $ability->execute( $this->input() );
+		$result = $ability->execute( $this->input() );
 
 		$this->assertSame(
 			array( 'outcome', 'user', 'artist', 'membership', 'claim', 'link_page', 'source', 'return_url', 'next_action' ),
@@ -524,29 +579,39 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	public function test_inverse_only_link_page_association_is_repaired_and_reused(): void {
 		$this->addUser( 7, 'artist@example.com' );
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$GLOBALS['ec_test']['managed_artists'][7] = array( 20 );
+		$GLOBALS['ec_test']['current_user_id']       = 7;
+		$GLOBALS['ec_test']['managed_artists'][7]    = array( 20 );
 		$GLOBALS['ec_test']['blogs'][4]['posts'][30] = (object) array(
-			'ID' => 30, 'post_type' => 'artist_link_page', 'post_status' => 'publish', 'post_title' => 'Test Artist', 'post_name' => 'test-artist',
+			'ID'          => 30,
+			'post_type'   => 'artist_link_page',
+			'post_status' => 'publish',
+			'post_title'  => 'Test Artist',
+			'post_name'   => 'test-artist',
 		);
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][30]['_associated_artist_profile_id'] = 20;
 
 		$result = extrachill_artist_platform_ability_onboard_external_artist( $this->input() );
 
 		$this->assertSame( 'managed_artist', $result['outcome'] );
-		$this->assertSame( array( 'state' => 'existing', 'id' => 30 ), $result['link_page'] );
+		$this->assertSame( array(
+			'state' => 'existing',
+			'id'    => 30,
+		), $result['link_page'] );
 		$this->assertSame( 30, (int) get_post_meta( 20, '_extrch_link_page_id', true ) );
 		$this->assertCount( 2, $GLOBALS['ec_test']['blogs'][4]['posts'] );
 	}
 
 	public function test_failed_term_delete_leaves_recoverable_term_for_successful_retry(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_user_id']                                  = 7;
 		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
-		$GLOBALS['ec_test']['fail_term_delete'] = true;
+		$GLOBALS['ec_test']['fail_term_delete']                                 = true;
 		$input = $this->input(
 			array(
-				'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ),
+				'consent' => array(
+					'profile_creation'   => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
 			)
 		);
 
@@ -557,7 +622,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		$this->assertSame( array(), $GLOBALS['ec_test']['blogs'][4]['posts'] );
 
 		$GLOBALS['ec_test']['fail_term_delete'] = false;
-		$retried = extrachill_artist_platform_ability_onboard_external_artist( $input );
+		$retried                                = extrachill_artist_platform_ability_onboard_external_artist( $input );
 		$this->assertSame( 'artist_created', $retried['outcome'] );
 		$this->assertSame( 1, $retried['artist']['term_id'] );
 		$this->assertArrayNotHasKey( '_ec_artist_binding_recoverable', $GLOBALS['ec_test']['blogs'][1]['term_meta'][1] );
@@ -577,11 +642,15 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_inverse_only_repair_failure_does_not_create_duplicate_link_page(): void {
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['blogs'][4]['posts'][30] = (object) array(
-			'ID' => 30, 'post_type' => 'artist_link_page', 'post_status' => 'publish', 'post_title' => 'Test Artist', 'post_name' => 'test-artist',
+		$GLOBALS['ec_test']['blogs'][4]['posts'][30]                                      = (object) array(
+			'ID'          => 30,
+			'post_type'   => 'artist_link_page',
+			'post_status' => 'publish',
+			'post_title'  => 'Test Artist',
+			'post_name'   => 'test-artist',
 		);
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][30]['_associated_artist_profile_id'] = 20;
-		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_extrch_link_page_id'] = 1;
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_extrch_link_page_id']         = 1;
 
 		$result = ec_create_link_page( 20 );
 
@@ -592,12 +661,16 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_forced_link_replacement_failure_restores_previous_association(): void {
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['blogs'][4]['posts'][30] = (object) array(
-			'ID' => 30, 'post_type' => 'artist_link_page', 'post_status' => 'publish', 'post_title' => 'Test Artist', 'post_name' => 'test-artist',
+		$GLOBALS['ec_test']['blogs'][4]['posts'][30]                                      = (object) array(
+			'ID'          => 30,
+			'post_type'   => 'artist_link_page',
+			'post_status' => 'publish',
+			'post_title'  => 'Test Artist',
+			'post_name'   => 'test-artist',
 		);
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id'] = 30;
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id']          = 30;
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][30]['_associated_artist_profile_id'] = 20;
-		$GLOBALS['ec_test']['fail_meta_input_keys']['_associated_artist_profile_id'] = 1;
+		$GLOBALS['ec_test']['fail_meta_input_keys']['_associated_artist_profile_id']      = 1;
 
 		$result = ec_create_link_page( 20, true );
 
@@ -609,11 +682,15 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_forced_link_replacement_rolls_back_when_previous_page_cannot_detach(): void {
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['blogs'][4]['posts'][30] = (object) array(
-			'ID' => 30, 'post_type' => 'artist_link_page', 'post_status' => 'publish', 'post_title' => 'Test Artist', 'post_name' => 'test-artist',
+		$GLOBALS['ec_test']['blogs'][4]['posts'][30]                                       = (object) array(
+			'ID'          => 30,
+			'post_type'   => 'artist_link_page',
+			'post_status' => 'publish',
+			'post_title'  => 'Test Artist',
+			'post_name'   => 'test-artist',
 		);
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id'] = 30;
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][30]['_associated_artist_profile_id'] = 20;
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][20]['_extrch_link_page_id']           = 30;
+		$GLOBALS['ec_test']['blogs'][4]['post_meta'][30]['_associated_artist_profile_id']  = 20;
 		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_associated_artist_profile_id'] = 1;
 
 		$result = ec_create_link_page( 20, true );
@@ -627,7 +704,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	public function test_persistent_profile_pointer_rollback_failure_keeps_new_page_for_manual_repair(): void {
 		$this->addProfile( 20 );
 		$GLOBALS['ec_test']['fail_meta_input_keys']['_associated_artist_profile_id'] = 1;
-		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_extrch_link_page_id'] = 5;
+		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_extrch_link_page_id']    = 5;
 
 		$result = ec_create_link_page( 20 );
 
@@ -641,7 +718,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_persistent_page_inverse_rollback_failure_keeps_page_for_manual_repair(): void {
 		$this->addProfile( 20 );
-		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_extrch_link_page_id'] = 1;
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_extrch_link_page_id']          = 1;
 		$GLOBALS['ec_test']['fail_post_meta_delete_keys']['_associated_artist_profile_id'] = 5;
 
 		$result = ec_create_link_page( 20 );
@@ -656,7 +733,7 @@ final class ExternalArtistOnboardingTest extends TestCase {
 	public function test_page_delete_failure_after_safe_metadata_compensation_requires_manual_repair(): void {
 		$this->addProfile( 20 );
 		$GLOBALS['ec_test']['fail_meta_input_keys']['_associated_artist_profile_id'] = 1;
-		$GLOBALS['ec_test']['fail_post_delete'] = true;
+		$GLOBALS['ec_test']['fail_post_delete']                                      = true;
 
 		$result = ec_create_link_page( 20 );
 
@@ -681,12 +758,15 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_manual_binding_compensation_failure_preserves_profile_for_reconciliation(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
-		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id'] = 1;
+		$GLOBALS['ec_test']['current_user_id']                                  = 7;
+		$GLOBALS['ec_test']['fail_post_meta_update_keys']['_artist_term_id']    = 1;
 		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 5;
 		$input = $this->input(
 			array(
-				'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ),
+				'consent' => array(
+					'profile_creation'   => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
 			)
 		);
 
@@ -701,12 +781,15 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_term_delete_success_without_final_deletion_is_manual_failure(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_user_id']                                  = 7;
 		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
-		$GLOBALS['ec_test']['report_term_delete_success_without_delete'] = true;
+		$GLOBALS['ec_test']['report_term_delete_success_without_delete']        = true;
 		$input = $this->input(
 			array(
-				'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ),
+				'consent' => array(
+					'profile_creation'   => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
 			)
 		);
 
@@ -720,11 +803,11 @@ final class ExternalArtistOnboardingTest extends TestCase {
 
 	public function test_persistent_term_reference_after_profile_delete_is_manual_failure(): void {
 		$this->addUser( 7, 'artist@example.com' );
-		$GLOBALS['ec_test']['current_user_id'] = 7;
+		$GLOBALS['ec_test']['current_user_id']                                  = 7;
 		$GLOBALS['ec_test']['fail_term_meta_update_keys']['_artist_profile_id'] = 1;
 		$GLOBALS['ec_test']['fail_term_meta_delete_keys']['_artist_profile_id'] = 10;
-		$GLOBALS['ec_test']['before_post_delete'] = function ( $profile_id ) {
-			$GLOBALS['ec_test']['blogs'][1]['terms'][99] = (object) array(
+		$GLOBALS['ec_test']['before_post_delete']                               = function ( $profile_id ) {
+			$GLOBALS['ec_test']['blogs'][1]['terms'][99]                           = (object) array(
 				'term_id'  => 99,
 				'taxonomy' => 'artist',
 				'slug'     => 'stale-reference',
@@ -734,7 +817,10 @@ final class ExternalArtistOnboardingTest extends TestCase {
 		};
 		$input = $this->input(
 			array(
-				'consent' => array( 'profile_creation' => true, 'disclosure_version' => 'artist-offer-v1' ),
+				'consent' => array(
+					'profile_creation'   => true,
+					'disclosure_version' => 'artist-offer-v1',
+				),
 			)
 		);
 

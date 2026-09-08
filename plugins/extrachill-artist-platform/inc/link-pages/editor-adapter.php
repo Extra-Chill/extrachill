@@ -2,6 +2,7 @@
 /** Artist Platform embedding adapter for the portable Link Page editor. */
 defined( 'ABSPATH' ) || exit;
 
+// @phpstan-ignore phpstan.arguments.count (cross-plugin filter signature; argument count is correct for the wired callback.)
 add_filter( 'ec_link_page_editor_configuration', 'extrachill_artist_link_page_editor_configuration', 10, 3 );
 
 /**
@@ -15,6 +16,7 @@ function extrachill_artist_link_page_editor_configuration( $configuration ) {
 		return $configuration;
 	}
 	$identities = array();
+	// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 	foreach ( ec_get_artists_for_user( get_current_user_id(), true ) as $artist_id ) {
 		$post         = get_post( $artist_id );
 		$link_page_id = function_exists( 'ec_get_link_page_for_artist' ) ? ec_get_link_page_for_artist( $artist_id ) : 0;
@@ -42,15 +44,15 @@ function extrachill_artist_link_page_editor_configuration( $configuration ) {
 		$asset['version'],
 		true
 	);
-	$initial = $identities[0]['id'];
-	$fonts   = class_exists( 'ExtraChillArtistPlatform_Fonts' ) ? ExtraChillArtistPlatform_Fonts::instance()->get_supported_fonts() : array();
+	$initial         = $identities[0]['id'];
+	$fonts           = class_exists( 'ExtraChillArtistPlatform_Fonts' ) ? ExtraChillArtistPlatform_Fonts::instance()->get_supported_fonts() : array();
 	$local_fonts_css = class_exists( 'ExtraChillArtistPlatform_Fonts' ) ? ExtraChillArtistPlatform_Fonts::instance()->get_local_fonts_css(
 		array(
 			ExtraChillArtistPlatform_Fonts::DEFAULT_TITLE_FONT,
 			ExtraChillArtistPlatform_Fonts::DEFAULT_BODY_FONT,
 		)
 	) : '';
-	$social_types = array();
+	$social_types    = array();
 	if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
 		foreach ( extrachill_artist_platform_social_links()->get_supported_types() as $type => $details ) {
 			$social_types[] = array(
@@ -75,7 +77,7 @@ function extrachill_artist_link_page_editor_configuration( $configuration ) {
 		'localFontsCss'   => $local_fonts_css,
 		'socialTypes'     => $social_types,
 		'limits'          => array(
-			'sections'          => 10,
+			'sections'           => 10,
 			'linksPerSection'    => 25,
 			'sectionTitleLength' => 200,
 			'linkTextLength'     => 200,

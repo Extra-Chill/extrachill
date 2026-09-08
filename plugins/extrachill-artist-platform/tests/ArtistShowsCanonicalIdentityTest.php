@@ -32,7 +32,7 @@ final class ArtistShowsCanonicalIdentityTest extends TestCase {
 			'taxonomy' => 'artist',
 			'slug'     => 'renamed-main-band',
 		);
-		$GLOBALS['ec_test']['cross_site_result'] = array(
+		$GLOBALS['ec_test']['cross_site_result']      = array(
 			'taxonomy'  => 'artist',
 			'term_id'   => 901,
 			'term_slug' => 'renamed-events-band',

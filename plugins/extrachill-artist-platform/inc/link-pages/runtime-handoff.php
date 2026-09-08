@@ -50,7 +50,10 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 			'total'    => 3,
 			'required' => 2,
 		),
-		'ec_can_register_link_page_owner_compatibility_provider' => array( 'total' => 3, 'required' => 2 ),
+		'ec_can_register_link_page_owner_compatibility_provider' => array(
+			'total'    => 3,
+			'required' => 2,
+		),
 		'ec_parse_link_page_owner_reference'               => array(
 			'total'    => 1,
 			'required' => 1,
@@ -127,7 +130,10 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 			'total'    => 3,
 			'required' => 2,
 		),
-		'ec_can_register_link_page_operation_provider'     => array( 'total' => 3, 'required' => 2 ),
+		'ec_can_register_link_page_operation_provider'     => array(
+			'total'    => 3,
+			'required' => 2,
+		),
 		'ec_resolve_link_page_operation_target'            => array(
 			'total'    => 1,
 			'required' => 1,
@@ -184,15 +190,30 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 			'total'    => 2,
 			'required' => 2,
 		),
-		'ec_save_link_page_persistence_composed'           => array( 'total' => 3, 'required' => 3 ),
+		'ec_save_link_page_persistence_composed'           => array(
+			'total'    => 3,
+			'required' => 3,
+		),
 		'ec_create_owned_link_page'                        => array(
 			'total'    => 4,
 			'required' => 3,
 		),
-		'ec_provision_owned_link_page'                     => array( 'total' => 5, 'required' => 3 ),
-		'ec_provision_owned_link_page_composed'            => array( 'total' => 6, 'required' => 4 ),
-		'ec_invoke_link_page_provision_precondition'       => array( 'total' => 2, 'required' => 2 ),
-		'ec_create_owned_link_page_unlocked'               => array( 'total' => 4, 'required' => 3 ),
+		'ec_provision_owned_link_page'                     => array(
+			'total'    => 5,
+			'required' => 3,
+		),
+		'ec_provision_owned_link_page_composed'            => array(
+			'total'    => 6,
+			'required' => 4,
+		),
+		'ec_invoke_link_page_provision_precondition'       => array(
+			'total'    => 2,
+			'required' => 2,
+		),
+		'ec_create_owned_link_page_unlocked'               => array(
+			'total'    => 4,
+			'required' => 3,
+		),
 		'ec_with_link_page_lock_scope'                     => array(
 			'total'    => 3,
 			'required' => 2,
@@ -205,11 +226,26 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 			'total'    => 3,
 			'required' => 2,
 		),
-		'ec_can_register_link_page_public_projection_provider' => array( 'total' => 3, 'required' => 2 ),
-		'ec_sanitize_link_page_public_projection_snapshot' => array( 'total' => 1, 'required' => 1 ),
-		'ec_save_link_page_public_projection_snapshot'     => array( 'total' => 3, 'required' => 3 ),
-		'ec_read_link_page_public_projection_snapshot'     => array( 'total' => 2, 'required' => 1 ),
-		'ec_render_stored_link_page_social_links'          => array( 'total' => 1, 'required' => 1 ),
+		'ec_can_register_link_page_public_projection_provider' => array(
+			'total'    => 3,
+			'required' => 2,
+		),
+		'ec_sanitize_link_page_public_projection_snapshot' => array(
+			'total'    => 1,
+			'required' => 1,
+		),
+		'ec_save_link_page_public_projection_snapshot'     => array(
+			'total'    => 3,
+			'required' => 3,
+		),
+		'ec_read_link_page_public_projection_snapshot'     => array(
+			'total'    => 2,
+			'required' => 1,
+		),
+		'ec_render_stored_link_page_social_links'          => array(
+			'total'    => 1,
+			'required' => 1,
+		),
 		'ec_get_link_page_public_projection'               => array(
 			'total'    => 2,
 			'required' => 1,
@@ -239,6 +275,7 @@ function extrachill_artist_platform_validate_link_pages_runtime() {
 	if ( ! defined( 'EC_LINK_PAGE_POST_TYPE' ) || ! defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not load its complete generic API.' );
 	}
+	// @phpstan-ignore phpstan.booleanOr.alwaysFalse,phpstan.notIdentical.alwaysFalse (contract validation: the comparison must stay so an incompatible runtime is still rejected.)
 	if ( 'artist_link_page' !== EC_LINK_PAGE_POST_TYPE || '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime uses an incompatible storage contract.' );
 	}
@@ -281,6 +318,7 @@ function extrachill_artist_platform_validate_link_pages_runtime() {
 			return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime exposes an incompatible readiness marker.' );
 		}
 		try {
+			// @phpstan-ignore phpstan.arguments.count (arity is verified via ReflectionFunction immediately above; dependency signatures may vary by runtime version.)
 			$ready = ec_link_pages_runtime_ready();
 		} catch ( Throwable $throwable ) {
 			$ready = false;

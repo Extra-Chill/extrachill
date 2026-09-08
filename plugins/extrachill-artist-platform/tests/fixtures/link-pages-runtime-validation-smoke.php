@@ -1,5 +1,7 @@
 <?php
 
+// phpcs:ignoreFile WordPress.WP.GlobalVariablesOverride.Prohibited,Universal.Files.SeparateFunctionsFromOO.Mixed,Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- standalone smoke harness mirroring the plugin bootstrap under test; runs outside WP with mirrored signatures.
+
 $mode = $argv[1] ?? '';
 $root = dirname( __DIR__, 2 );
 

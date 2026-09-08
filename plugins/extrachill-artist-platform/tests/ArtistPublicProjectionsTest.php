@@ -8,8 +8,18 @@ final class ArtistPublicProjectionsTest extends TestCase {
 			'current_blog_id' => 4,
 			'blog_stack'      => array(),
 			'blogs'           => array(
-				1 => array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() ),
-				4 => array( 'terms' => array(), 'term_meta' => array(), 'posts' => array(), 'post_meta' => array() ),
+				1 => array(
+					'terms'     => array(),
+					'term_meta' => array(),
+					'posts'     => array(),
+					'post_meta' => array(),
+				),
+				4 => array(
+					'terms'     => array(),
+					'term_meta' => array(),
+					'posts'     => array(),
+					'post_meta' => array(),
+				),
 			),
 		);
 		extrachill_artist_platform_register_abilities();
@@ -27,7 +37,7 @@ final class ArtistPublicProjectionsTest extends TestCase {
 	}
 
 	private function addProfile( int $id, string $slug, string $name, int $term_id, string $status = 'publish' ): void {
-		$GLOBALS['ec_test']['blogs'][4]['posts'][ $id ] = (object) array(
+		$GLOBALS['ec_test']['blogs'][4]['posts'][ $id ]                        = (object) array(
 			'ID'          => $id,
 			'post_type'   => 'artist_profile',
 			'post_status' => $status,
@@ -43,9 +53,16 @@ final class ArtistPublicProjectionsTest extends TestCase {
 		$output  = $ability->get_output_schema();
 		$item    = $output['properties']['items']['items'];
 
-		$this->assertTrue( $ability->check_permissions( array( 'schema_version' => '1', 'slugs' => array( 'kid-lake' ) ) ) );
+		$this->assertTrue( $ability->check_permissions( array(
+			'schema_version' => '1',
+			'slugs'          => array( 'kid-lake' ),
+		) ) );
 		$this->assertTrue( $ability->get_meta()['show_in_rest'] );
-		$this->assertSame( array( 'readonly' => true, 'idempotent' => true, 'destructive' => false ), $ability->get_meta()['annotations'] );
+		$this->assertSame( array(
+			'readonly'    => true,
+			'idempotent'  => true,
+			'destructive' => false,
+		), $ability->get_meta()['annotations'] );
 		$this->assertSame( array( 'schema_version', 'slugs' ), $input['required'] );
 		$this->assertFalse( $input['additionalProperties'] );
 		$this->assertSame( array( '1' ), $input['properties']['schema_version']['enum'] );
@@ -89,15 +106,28 @@ final class ArtistPublicProjectionsTest extends TestCase {
 		$this->addProfile( 20, 'kid-lake', 'Kid Lake', 10 );
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
-			array( 'schema_version' => '1', 'slugs' => array( 'missing-artist', 'kid-lake' ) )
+			array(
+				'schema_version' => '1',
+				'slugs'          => array( 'missing-artist', 'kid-lake' ),
+			)
 		);
 
 		$this->assertSame(
 			array(
 				'schema_version' => '1',
 				'items'          => array(
-					array( 'slug' => 'missing-artist', 'status' => 'not_found', 'name' => '', 'url' => '' ),
-					array( 'slug' => 'kid-lake', 'status' => 'resolved', 'name' => 'Kid Lake', 'url' => 'https://artist.example/artists/kid-lake/' ),
+					array(
+						'slug'   => 'missing-artist',
+						'status' => 'not_found',
+						'name'   => '',
+						'url'    => '',
+					),
+					array(
+						'slug'   => 'kid-lake',
+						'status' => 'resolved',
+						'name'   => 'Kid Lake',
+						'url'    => 'https://artist.example/artists/kid-lake/',
+					),
 				),
 			),
 			$result
@@ -113,7 +143,10 @@ final class ArtistPublicProjectionsTest extends TestCase {
 		$this->addProfile( 21, 'stale-artist', 'Stale Artist', 99 );
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
-			array( 'schema_version' => '1', 'slugs' => array( 'unbound-artist', 'stale-artist' ) )
+			array(
+				'schema_version' => '1',
+				'slugs'          => array( 'unbound-artist', 'stale-artist' ),
+			)
 		);
 
 		$this->assertSame( array( 'not_found', 'not_found' ), array_column( $result['items'], 'status' ) );
@@ -127,7 +160,10 @@ final class ArtistPublicProjectionsTest extends TestCase {
 		$this->addProfile( 21, 'draft-artist', 'Draft Artist', 11, 'draft' );
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
-			array( 'schema_version' => '1', 'slugs' => array( 'deleted-artist', 'draft-artist' ) )
+			array(
+				'schema_version' => '1',
+				'slugs'          => array( 'deleted-artist', 'draft-artist' ),
+			)
 		);
 
 		$this->assertSame( array( 'not_found', 'not_found' ), array_column( $result['items'], 'status' ) );
@@ -138,7 +174,10 @@ final class ArtistPublicProjectionsTest extends TestCase {
 		$GLOBALS['ec_test']['artist_blog_unavailable'] = true;
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
-			array( 'schema_version' => '1', 'slugs' => array( 'kid-lake' ) )
+			array(
+				'schema_version' => '1',
+				'slugs'          => array( 'kid-lake' ),
+			)
 		);
 
 		$this->assertInstanceOf( WP_Error::class, $result );

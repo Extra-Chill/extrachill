@@ -16,11 +16,11 @@ defined( 'ABSPATH' ) || exit;
  * @return array Array of subscription options with values and labels
  */
 function extrachill_artist_get_subscription_display_options() {
-    return array(
-        'icon_modal'   => __( 'Show Subscribe Icon (opens modal)', 'extrachill-artist-platform' ),
-        'inline_form'  => __( 'Show Inline Subscribe Form (below links)', 'extrachill-artist-platform' ),
-        'disabled'     => __( 'Disable Subscription Feature', 'extrachill-artist-platform' ),
-    );
+	return array(
+		'icon_modal'  => __( 'Show Subscribe Icon (opens modal)', 'extrachill-artist-platform' ),
+		'inline_form' => __( 'Show Inline Subscribe Form (below links)', 'extrachill-artist-platform' ),
+		'disabled'    => __( 'Disable Subscription Feature', 'extrachill-artist-platform' ),
+	);
 }
 
 /**
@@ -31,8 +31,8 @@ function extrachill_artist_get_subscription_display_options() {
  * @return string The current subscription display mode
  */
 function extrachill_artist_get_subscription_display_mode( $artist_id, $link_page_id ) {
-    $data = ec_get_link_page_data( $artist_id, $link_page_id );
-    return $data['settings']['subscribe_display_mode'] ?? 'icon_modal';
+	$data = ec_get_link_page_data( $artist_id, $link_page_id );
+	return $data['settings']['subscribe_display_mode'] ?? 'icon_modal';
 }
 
 /**
@@ -43,8 +43,8 @@ function extrachill_artist_get_subscription_display_mode( $artist_id, $link_page
  * @return string The subscription form description
  */
 function extrachill_artist_get_subscription_description( $artist_id, $link_page_id ) {
-    $data = ec_get_link_page_data( $artist_id, $link_page_id );
-    return $data['settings']['subscribe_description'] ?? '';
+	$data = ec_get_link_page_data( $artist_id, $link_page_id );
+	return $data['settings']['subscribe_description'] ?? '';
 }
 
 /**
@@ -59,8 +59,8 @@ function extrachill_artist_get_subscription_description( $artist_id, $link_page_
  * @return bool True if subscription is enabled, false if disabled
  */
 function extrachill_artist_is_subscription_enabled( $link_page_id ) {
-    $display_mode = extrachill_artist_get_subscription_display_mode( $link_page_id );
-    return $display_mode !== 'disabled';
+	$display_mode = extrachill_artist_get_subscription_display_mode( $link_page_id );
+	return 'disabled' !== $display_mode;
 }
 
 /**
@@ -71,10 +71,10 @@ function extrachill_artist_is_subscription_enabled( $link_page_id ) {
  * @return array Array containing all subscription settings
  */
 function extrachill_artist_get_subscription_settings( $link_page_id, $artist_name = '' ) {
-    return array(
-        'display_mode'        => extrachill_artist_get_subscription_display_mode( $link_page_id ),
-        'description'         => extrachill_artist_get_subscription_description( $link_page_id, $artist_name ),
-        'available_modes'     => extrachill_artist_get_subscription_display_options(),
-        'is_enabled'          => extrachill_artist_is_subscription_enabled( $link_page_id ),
-    );
+	return array(
+		'display_mode'    => extrachill_artist_get_subscription_display_mode( $link_page_id ),
+		'description'     => extrachill_artist_get_subscription_description( $link_page_id, $artist_name ),
+		'available_modes' => extrachill_artist_get_subscription_display_options(),
+		'is_enabled'      => extrachill_artist_is_subscription_enabled( $link_page_id ),
+	);
 }

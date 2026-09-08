@@ -1,5 +1,7 @@
 <?php
 
+// phpcs:ignoreFile Universal.Files.SeparateFunctionsFromOO.Mixed,Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- standalone smoke harness mirroring the plugin bootstrap under test; runs outside WP with mirrored signatures.
+
 $root = dirname( __DIR__, 2 );
 
 define( 'ABSPATH', __DIR__ . '/' );
@@ -48,7 +50,7 @@ $result = extrachill_artist_platform_boot_link_pages_runtime();
 
 echo json_encode(
 	array(
-		'error_code'   => is_wp_error( $result ) ? $result->get_error_code() : '',
-		'notice_hooked'=> in_array( array( 'admin_notices', 'extrachill_artist_platform_link_pages_runtime_notice' ), $GLOBALS['smoke_actions'], true ),
+		'error_code'    => is_wp_error( $result ) ? $result->get_error_code() : '',
+		'notice_hooked' => in_array( array( 'admin_notices', 'extrachill_artist_platform_link_pages_runtime_notice' ), $GLOBALS['smoke_actions'], true ),
 	)
 );

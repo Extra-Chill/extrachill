@@ -165,9 +165,11 @@ final class ArtistBindingProductionMySQLProof extends TestCase {
 
 	private function startWorker( int $term_id ): array {
 		$marker = tempnam( sys_get_temp_dir(), 'ec-binding-' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- removing the tempnam marker before worker start; not a WP media file.
 		unlink( $marker );
 		$command = array( PHP_BINARY, __DIR__ . '/artist-binding-worker.php', 'bind', (string) $this->profile_id, (string) $term_id, $marker );
 		$pipes   = array();
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- intentionally spawns the binding worker as an independent process for the concurrency proof.
 		$process = proc_open(
 			$command,
 			array(
@@ -182,6 +184,7 @@ final class ArtistBindingProductionMySQLProof extends TestCase {
 			usleep( 10000 );
 		}
 		$this->assertFileExists( $marker );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- removing the tempnam marker after worker start; not a WP media file.
 		unlink( $marker );
 		return array( $process, $pipes );
 	}
@@ -191,7 +194,9 @@ final class ArtistBindingProductionMySQLProof extends TestCase {
 
 		$stdout = stream_get_contents( $pipes[1] );
 		$stderr = stream_get_contents( $pipes[2] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing proc_open pipes on the spawned worker process; no WP_Filesystem equivalent.
 		fclose( $pipes[1] );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing proc_open pipes on the spawned worker process; no WP_Filesystem equivalent.
 		fclose( $pipes[2] );
 		$status  = proc_close( $process );
 		$result  = json_decode( $stdout, true );

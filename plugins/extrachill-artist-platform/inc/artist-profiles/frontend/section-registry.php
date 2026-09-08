@@ -46,59 +46,59 @@ defined( 'ABSPATH' ) || exit;
  * @return array[] Ordered list of normalized section arrays.
  */
 function ec_get_artist_profile_sections( $artist_id, $artist_term_id = null ) {
-    $artist_id = (int) $artist_id;
-    if ( $artist_id <= 0 ) {
-        return array();
-    }
+	$artist_id = (int) $artist_id;
+	if ( $artist_id <= 0 ) {
+		return array();
+	}
 
-    if ( null === $artist_term_id ) {
-        $artist_term_id = function_exists( 'ec_get_artist_term_id' ) ? ec_get_artist_term_id( $artist_id ) : 0;
-    }
-    $artist_term_id = (int) $artist_term_id;
+	if ( null === $artist_term_id ) {
+		$artist_term_id = function_exists( 'ec_get_artist_term_id' ) ? ec_get_artist_term_id( $artist_id ) : 0;
+	}
+	$artist_term_id = (int) $artist_term_id;
 
-    /**
-     * Filter the artist profile sections.
-     *
-     * @param array[] $sections       Registered sections.
-     * @param int     $artist_id      Artist profile post ID.
-     * @param int     $artist_term_id Bound main-blog `artist` term_id (0 if unbound).
-     */
-    $sections = apply_filters( 'ec_artist_profile_sections', array(), $artist_id, $artist_term_id );
+	/**
+	 * Filter the artist profile sections.
+	 *
+	 * @param array[] $sections       Registered sections.
+	 * @param int     $artist_id      Artist profile post ID.
+	 * @param int     $artist_term_id Bound main-blog `artist` term_id (0 if unbound).
+	 */
+	$sections = apply_filters( 'ec_artist_profile_sections', array(), $artist_id, $artist_term_id );
 
-    if ( ! is_array( $sections ) ) {
-        return array();
-    }
+	if ( ! is_array( $sections ) ) {
+		return array();
+	}
 
-    // Normalize, drop invalid entries, apply visibility gating.
-    $normalized = array();
-    foreach ( $sections as $section ) {
-        if ( ! is_array( $section ) || empty( $section['id'] ) || empty( $section['render'] ) || ! is_callable( $section['render'] ) ) {
-            continue;
-        }
+	// Normalize, drop invalid entries, apply visibility gating.
+	$normalized = array();
+	foreach ( $sections as $section ) {
+		if ( ! is_array( $section ) || empty( $section['id'] ) || empty( $section['render'] ) || ! is_callable( $section['render'] ) ) {
+			continue;
+		}
 
-        $section['id']       = (string) $section['id'];
-        $section['label']    = isset( $section['label'] ) ? (string) $section['label'] : '';
-        $section['priority'] = isset( $section['priority'] ) ? (int) $section['priority'] : 10;
-        $section['as_tab']   = ! empty( $section['as_tab'] );
+		$section['id']       = (string) $section['id'];
+		$section['label']    = isset( $section['label'] ) ? (string) $section['label'] : '';
+		$section['priority'] = isset( $section['priority'] ) ? (int) $section['priority'] : 10;
+		$section['as_tab']   = ! empty( $section['as_tab'] );
 
-        if ( isset( $section['visible'] ) && is_callable( $section['visible'] ) ) {
-            if ( ! call_user_func( $section['visible'], $artist_id, $artist_term_id ) ) {
-                continue;
-            }
-        }
+		if ( isset( $section['visible'] ) && is_callable( $section['visible'] ) ) {
+			if ( ! call_user_func( $section['visible'], $artist_id, $artist_term_id ) ) {
+				continue;
+			}
+		}
 
-        $normalized[] = $section;
-    }
+		$normalized[] = $section;
+	}
 
-    // Stable sort by priority.
-    usort( $normalized, function ( $a, $b ) {
-        if ( $a['priority'] === $b['priority'] ) {
-            return 0;
-        }
-        return ( $a['priority'] < $b['priority'] ) ? -1 : 1;
-    } );
+	// Stable sort by priority.
+	usort( $normalized, function ( $a, $b ) {
+		if ( $a['priority'] === $b['priority'] ) {
+			return 0;
+		}
+		return ( $a['priority'] < $b['priority'] ) ? -1 : 1;
+	} );
 
-    return $normalized;
+	return $normalized;
 }
 
 /**
@@ -114,18 +114,18 @@ function ec_get_artist_profile_sections( $artist_id, $artist_term_id = null ) {
  * @return void
  */
 function ec_render_artist_profile_sections( $artist_id, $artist_term_id = null ) {
-    $artist_id = (int) $artist_id;
-    if ( $artist_id <= 0 ) {
-        return;
-    }
+	$artist_id = (int) $artist_id;
+	if ( $artist_id <= 0 ) {
+		return;
+	}
 
-    if ( null === $artist_term_id ) {
-        $artist_term_id = function_exists( 'ec_get_artist_term_id' ) ? ec_get_artist_term_id( $artist_id ) : 0;
-    }
-    $artist_term_id = (int) $artist_term_id;
+	if ( null === $artist_term_id ) {
+		$artist_term_id = function_exists( 'ec_get_artist_term_id' ) ? ec_get_artist_term_id( $artist_id ) : 0;
+	}
+	$artist_term_id = (int) $artist_term_id;
 
-    $sections = ec_get_artist_profile_sections( $artist_id, $artist_term_id );
-    foreach ( $sections as $section ) {
-        call_user_func( $section['render'], $artist_id, $artist_term_id );
-    }
+	$sections = ec_get_artist_profile_sections( $artist_id, $artist_term_id );
+	foreach ( $sections as $section ) {
+		call_user_func( $section['render'], $artist_id, $artist_term_id );
+	}
 }

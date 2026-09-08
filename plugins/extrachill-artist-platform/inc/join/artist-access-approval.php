@@ -21,7 +21,8 @@ function ec_artist_access_approval_page_redirect() {
 		return;
 	}
 
-	$access_approved = isset( $_GET['access_approved'] ) && $_GET['access_approved'] === 'true';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only approval flag set by the admin approval flow redirect; routing only.
+	$access_approved = isset( $_GET['access_approved'] ) && 'true' === $_GET['access_approved'];
 
 	if ( ! $access_approved ) {
 		return;
@@ -33,6 +34,7 @@ function ec_artist_access_approval_page_redirect() {
 			__( 'Your artist platform access has been approved! Create your first artist profile below.', 'extrachill-artist-platform' ),
 			'success'
 		);
+		// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- internal create-artist permalink from get_permalink(); same-site redirect.
 		wp_redirect( get_permalink( $create_artist_page ) );
 		exit;
 	}
@@ -57,13 +59,17 @@ function ec_artist_access_approval_login_redirect( $redirect_to, $requested_redi
 
 	$access_approved = false;
 
-	if ( isset( $_REQUEST['access_approved'] ) && $_REQUEST['access_approved'] === 'true' ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only approval flag across login redirects; no data mutation.
+	if ( isset( $_REQUEST['access_approved'] ) && 'true' === $_REQUEST['access_approved'] ) {
 		$access_approved = true;
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only approval flag across login redirects; no data mutation.
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only approval flag across login redirects; no data mutation.
 	} elseif ( isset( $_REQUEST['redirect_to'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only approval flag across login redirects; no data mutation.
 		$redirect_to_parts = wp_parse_url( $_REQUEST['redirect_to'] );
 		if ( isset( $redirect_to_parts['query'] ) ) {
 			parse_str( $redirect_to_parts['query'], $query_params );
-			if ( isset( $query_params['access_approved'] ) && $query_params['access_approved'] === 'true' ) {
+			if ( isset( $query_params['access_approved'] ) && 'true' === $query_params['access_approved'] ) {
 				$access_approved = true;
 			}
 		}

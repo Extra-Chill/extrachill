@@ -25,7 +25,8 @@ defined( 'ABSPATH' ) || exit;
  * unstyled modal HTML from appearing on regular login pages.
  */
 function ec_render_join_flow_modal() {
-	if ( ! isset( $_GET['from_join'] ) || $_GET['from_join'] !== 'true' ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only referral flag from the community login form; display-only asset decision.
+	if ( ! isset( $_GET['from_join'] ) || 'true' !== $_GET['from_join'] ) {
 		return;
 	}
 	require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/templates/join-flow-modal.php';
@@ -38,15 +39,18 @@ add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' 
  * @return bool True if from_join parameter is present, false otherwise
  */
 function ec_is_join_flow_request() {
-	if ( isset( $_REQUEST['from_join'] ) && $_REQUEST['from_join'] === 'true' ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only join-flow detection across login redirects; no data mutation.
+	if ( isset( $_REQUEST['from_join'] ) && 'true' === $_REQUEST['from_join'] ) {
 		return true;
 	}
 
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only join-flow detection across login redirects; no data mutation.
 	if ( isset( $_REQUEST['redirect_to'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only join-flow detection across login redirects; no data mutation.
 		$redirect_to_parts = wp_parse_url( $_REQUEST['redirect_to'] );
 		if ( isset( $redirect_to_parts['query'] ) ) {
 			parse_str( $redirect_to_parts['query'], $query_params );
-			if ( isset( $query_params['from_join'] ) && $query_params['from_join'] === 'true' ) {
+			if ( isset( $query_params['from_join'] ) && 'true' === $query_params['from_join'] ) {
 				return true;
 			}
 		}
@@ -90,12 +94,14 @@ function ec_join_flow_login_page_redirect() {
 		return;
 	}
 
-	if ( ! isset( $_GET['from_join'] ) || $_GET['from_join'] !== 'true' ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only referral flag from the community login form; routing only.
+	if ( ! isset( $_GET['from_join'] ) || 'true' !== $_GET['from_join'] ) {
 		return;
 	}
 
 	$dest = ec_get_join_flow_destination( get_current_user_id() );
 	extrachill_set_notice( $dest['message'], $dest['type'] );
+	// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- destination is an internal Extra Chill URL resolved from site options; wp_safe_redirect would reject cross-network hosts.
 	wp_redirect( $dest['url'] );
 	exit;
 }

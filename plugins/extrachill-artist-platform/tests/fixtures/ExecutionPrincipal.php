@@ -1,5 +1,7 @@
 <?php
 
+// phpcs:ignoreFile Universal.Namespaces.DisallowCurlyBraceSyntax.Forbidden,Universal.Namespaces.OneDeclarationPerFile.MultipleFound,Universal.Namespaces.DisallowDeclarationWithoutName.Forbidden,Generic.Files.OneObjectStructurePerFile.MultipleFound -- fixture intentionally bundles multiple namespaced and global stub classes for isolated analysis.
+
 namespace {
 	final class WP_Agent_Capability_Ceiling {
 		public int $user_id;
@@ -24,9 +26,9 @@ namespace AgentsAPI\AI {
 		public ?\WP_Agent_Capability_Ceiling $capability_ceiling;
 
 		public function __construct( int $acting_user_id, string $auth_source = 'user', string $request_context = 'rest', ?\WP_Agent_Capability_Ceiling $capability_ceiling = null ) {
-			$this->acting_user_id    = $acting_user_id;
-			$this->auth_source       = $auth_source;
-			$this->request_context   = $request_context;
+			$this->acting_user_id     = $acting_user_id;
+			$this->auth_source        = $auth_source;
+			$this->request_context    = $request_context;
 			$this->capability_ceiling = $capability_ceiling;
 		}
 

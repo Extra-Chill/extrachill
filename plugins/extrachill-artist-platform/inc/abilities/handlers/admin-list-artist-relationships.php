@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Handler: extrachill/admin-list-artist-relationships
  *
@@ -8,6 +7,7 @@ declare(strict_types=1);
  * @package ExtraChillArtistPlatform
  * @since   1.9.0
  */
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 

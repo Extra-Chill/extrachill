@@ -5,18 +5,24 @@ use PHPUnit\Framework\TestCase;
 final class ArtistAnalyticsContractTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['ec_test'] = array(
-			'current_blog_id' => 4,
-			'blog_stack'      => array(),
-			'current_user_id' => 7,
-			'managed_artists' => array( 7 => array( 42 ) ),
+			'current_blog_id'  => 4,
+			'blog_stack'       => array(),
+			'current_user_id'  => 7,
+			'managed_artists'  => array( 7 => array( 42 ) ),
 			'analytics_result' => array(
-				'summary'    => array( 'total_views' => 1, 'total_clicks' => 0 ),
-				'chart_data' => array( 'labels' => array(), 'datasets' => array() ),
+				'summary'    => array(
+					'total_views'  => 1,
+					'total_clicks' => 0,
+				),
+				'chart_data' => array(
+					'labels'   => array(),
+					'datasets' => array(),
+				),
 				'top_links'  => array(),
 			),
-			'blogs' => array(
+			'blogs'            => array(
 				4 => array(
-					'posts' => array(
+					'posts'     => array(
 						42  => (object) array(
 							'ID'          => 42,
 							'post_type'   => 'artist_profile',
@@ -49,7 +55,10 @@ final class ArtistAnalyticsContractTest extends TestCase {
 
 	public function test_legacy_date_range_is_clamped_and_forwarded(): void {
 		$result = extrachill_artist_platform_ability_artist_get_analytics(
-			array( 'id' => 42, 'date_range' => 120 )
+			array(
+				'id'         => 42,
+				'date_range' => 120,
+			)
 		);
 
 		$this->assertSame( $GLOBALS['ec_test']['analytics_result'], $result );
@@ -76,7 +85,9 @@ final class ArtistAnalyticsContractTest extends TestCase {
 	}
 
 	public function test_analytics_assets_use_shared_script_and_style_handles(): void {
-		$render  = file_get_contents( dirname( __DIR__ ) . '/src/blocks/artist-analytics/render.php' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
+		$render = file_get_contents( dirname( __DIR__ ) . '/src/blocks/artist-analytics/render.php' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
 		$webpack = file_get_contents( dirname( __DIR__ ) . '/webpack.config.js' );
 
 		$this->assertStringContainsString( "'extrachill-analytics-date-range'", $render );

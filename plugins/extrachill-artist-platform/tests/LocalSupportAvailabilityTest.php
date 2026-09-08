@@ -248,7 +248,7 @@ final class LocalSupportAvailabilityTest extends TestCase {
 		$this->assertArrayNotHasKey( 'email', $candidate );
 		$this->assertArrayNotHasKey( 'phone', $candidate );
 		$this->assertArrayNotHasKey( 'subscribers', $candidate );
-		$this->assertStringNotContainsString( 'manager@example.com', json_encode( $result ) );
+		$this->assertStringNotContainsString( 'manager@example.com', wp_json_encode( $result ) );
 	}
 
 	public function test_genre_filter_intersects_resolved_slugs_instead_of_exact_matching(): void {

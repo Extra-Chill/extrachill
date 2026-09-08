@@ -26,7 +26,10 @@ final class AdminArtistRelationshipsTest extends TestCase {
 		$GLOBALS['ec_test']['list_result'] = array( array( 'id' => 12 ) );
 
 		$result = extrachill_artist_platform_ability_admin_list_artist_relationships(
-			array( 'view' => 'artists', 'search' => '  Band  ' )
+			array(
+				'view'   => 'artists',
+				'search' => '  Band  ',
+			)
 		);
 
 		$this->assertSame( array( 'artists', 'Band' ), $GLOBALS['ec_test']['list'] );
@@ -37,7 +40,10 @@ final class AdminArtistRelationshipsTest extends TestCase {
 		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
 
 		$result = extrachill_artist_platform_ability_admin_link_artist_relationship(
-			array( 'user_id' => 7, 'artist_id' => 19 )
+			array(
+				'user_id'   => 7,
+				'artist_id' => 19,
+			)
 		);
 
 		$this->assertSame( array( 19 ), get_user_meta( 7, '_artist_profile_ids', true ) );
@@ -47,10 +53,13 @@ final class AdminArtistRelationshipsTest extends TestCase {
 
 	public function test_link_rejects_missing_user(): void {
 		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
-		$GLOBALS['ec_test']['missing_user']                            = true;
+		$GLOBALS['ec_test']['missing_user']                           = true;
 
 		$result = extrachill_artist_platform_ability_admin_link_artist_relationship(
-			array( 'user_id' => 7, 'artist_id' => 19 )
+			array(
+				'user_id'   => 7,
+				'artist_id' => 19,
+			)
 		);
 
 		$this->assertInstanceOf( WP_Error::class, $result );
@@ -62,10 +71,16 @@ final class AdminArtistRelationshipsTest extends TestCase {
 
 		$this->assertSame(
 			array( 'success' => true ),
-			extrachill_artist_platform_ability_admin_unlink_artist_relationship( array( 'user_id' => 4, 'artist_id' => 8 ) )
+			extrachill_artist_platform_ability_admin_unlink_artist_relationship( array(
+				'user_id'   => 4,
+				'artist_id' => 8,
+			) )
 		);
 		$GLOBALS['ec_test']['user_meta'][5]['_artist_profile_ids'] = array( 9 );
-		extrachill_artist_platform_ability_admin_cleanup_artist_relationships( array( 'user_id' => 5, 'artist_id' => 9 ) );
+		extrachill_artist_platform_ability_admin_cleanup_artist_relationships( array(
+			'user_id'   => 5,
+			'artist_id' => 9,
+		) );
 		$this->assertSame( array(), get_user_meta( 5, '_artist_profile_ids', true ) );
 	}
 
@@ -77,7 +92,10 @@ final class AdminArtistRelationshipsTest extends TestCase {
 		);
 
 		foreach ( $handlers as $handler ) {
-			$result = $handler( array( 'user_id' => 7, 'artist_id' => 19 ) );
+			$result = $handler( array(
+				'user_id'   => 7,
+				'artist_id' => 19,
+			) );
 
 			$this->assertInstanceOf( WP_Error::class, $result );
 			$this->assertSame( 'admin_access_denied', $result->get_error_code() );
