@@ -84,5 +84,8 @@ final class CliProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/BackfillAuthorshipCommand.php';
 		\WP_CLI::add_command( 'extrachill events backfill-authorship', \ExtraChillEvents\Cli\BackfillAuthorshipCommand::class );
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/BackfillEventTypeCommand.php';
+		\WP_CLI::add_command( 'extrachill-events backfill-event-type', \ExtraChillEvents\Cli\BackfillEventTypeCommand::class );
 	}
 }
