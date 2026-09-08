@@ -39,7 +39,6 @@ extrachill/
 │   │   ├── template-router.php  # WordPress native template routing
 │   │   ├── actions.php          # Action hook registration
 │   │   ├── assets.php           # Asset loading system
-│   │   ├── custom-taxonomies.php # Custom taxonomy registration
 │   │   ├── view-counts.php      # View-count display helpers (reads `ec_post_views` meta)
 │   │   ├── rewrite.php          # URL rewrite rules (category base removal)
 │   │   ├── notices.php          # Notice system
