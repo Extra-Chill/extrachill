@@ -86,10 +86,18 @@ function extrachill_events_add_badge_classes( $badge_classes, $taxonomy_slug, $t
 /**
  * Exclude taxonomies from badge and modal display
  *
- * Artist taxonomy excluded to prevent redundant display with artist-specific metadata.
- * Modal display exposes location and genre only: location is the calendar's
- * primary geographic filter and genre is the derived artist fact surfaced by
- * the genre projection (Extra-Chill/extrachill-events#828); the remaining
+ * Artist taxonomy excluded everywhere to prevent redundant display with
+ * artist-specific metadata.
+ *
+ * Badge (card) display additionally hides event_type: "Concert" is the type
+ * on the overwhelming majority of events, so the chip is clutter on a card
+ * and carries almost no information per event (#833). Users narrow by type
+ * through the filter modal instead.
+ *
+ * Modal display exposes location, genre, and event_type: location is the
+ * calendar's primary geographic filter, genre is the derived artist fact
+ * surfaced by the genre projection (Extra-Chill/extrachill-events#828), and
+ * event_type is a small closed vocabulary that fits the modal; the remaining
  * taxonomies are hidden as redundant or noisy in the filter modal.
  *
  * @param array  $excluded Array of taxonomy slugs to exclude.
@@ -100,6 +108,7 @@ function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 	$excluded[] = 'artist';
 
 	if ( 'modal' !== $context ) {
+		$excluded[] = 'event_type';
 		return array_values( array_unique( $excluded ) );
 	}
 
@@ -113,7 +122,7 @@ function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 	}
 
 	foreach ( $taxonomies as $taxonomy_slug ) {
-		if ( in_array( $taxonomy_slug, array( 'location', 'genre' ), true ) ) {
+		if ( in_array( $taxonomy_slug, array( 'location', 'genre', 'event_type' ), true ) ) {
 			continue;
 		}
 
