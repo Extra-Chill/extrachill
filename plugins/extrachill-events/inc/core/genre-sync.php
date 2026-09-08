@@ -326,7 +326,7 @@ function extrachill_events_sync_event_genres( int $post_id ): array {
 	}
 
 	sort( $assigned );
-	$current = array_values( (array) $current );
+	$current = (array) $current;
 	sort( $current );
 
 	if ( $assigned === $current ) {

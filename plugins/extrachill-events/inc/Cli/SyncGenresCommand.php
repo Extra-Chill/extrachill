@@ -89,7 +89,7 @@ class SyncGenresCommand {
 	public function __invoke( array $args, array $assoc_args ): void {
 		unset( $args );
 
-		if ( ! defined( 'WP_CLI' ) || ! \WP_CLI ) {
+		if ( ! defined( 'WP_CLI' ) ) {
 			return;
 		}
 
@@ -172,9 +172,7 @@ class SyncGenresCommand {
 				}
 
 				++$totals['scanned'];
-				if ( $progress ) {
-					$progress->tick();
-				}
+				$progress->tick(); // @phpstan-ignore method.notFound (make_progress_bar() returns cli\progress\Bar|WP_CLI\NoOp; NoOp forwards via __call() and Bar implements tick() at runtime.)
 
 				$plan = $this->plan_event( $post_id, $apply );
 				if ( null === $plan ) {
@@ -221,9 +219,7 @@ class SyncGenresCommand {
 			}
 		}
 
-		if ( $progress ) {
-			$progress->finish();
-		}
+		$progress->finish(); // @phpstan-ignore method.notFound (make_progress_bar() returns cli\progress\Bar|WP_CLI\NoOp; NoOp forwards via __call() and Bar implements finish() at runtime.)
 
 		if ( $apply ) {
 			// One flush after the run instead of per-row cache churn, plus the
@@ -268,7 +264,7 @@ class SyncGenresCommand {
 		if ( is_wp_error( $current ) ) {
 			return null;
 		}
-		$current = array_values( (array) $current );
+		$current = (array) $current;
 
 		sort( $assigned_slugs );
 		sort( $current );
@@ -318,7 +314,7 @@ class SyncGenresCommand {
 			return (array) $wpdb->get_col(
 				$wpdb->prepare(
 					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted core table properties; every variable value goes through %s/%d placeholders.
-					'SELECT p.ID FROM ' . $wpdb->posts . ' AS p'
+					'SELECT p.ID FROM ' . $wpdb->posts . ' AS p' // @phpstan-ignore argument.type (Table names are trusted $wpdb core properties; every variable value is placeholder-bound.)
 					. ' INNER JOIN ' . $wpdb->term_relationships . ' AS tr ON tr.object_id = p.ID'
 					. ' INNER JOIN ' . $wpdb->term_taxonomy . ' AS tt ON tr.term_taxonomy_id = tt.term_taxonomy_id'
 					. ' WHERE tt.term_id = %d AND tt.taxonomy = %s AND p.post_type = %s AND p.post_status = %s AND p.ID > %d'
@@ -337,7 +333,7 @@ class SyncGenresCommand {
 		return (array) $wpdb->get_col(
 			$wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $wpdb->posts is a trusted core table property; every variable value goes through %s/%d placeholders.
-				'SELECT ID FROM ' . $wpdb->posts . ' WHERE post_type = %s AND post_status = %s AND ID > %d ORDER BY ID ASC LIMIT %d',
+				'SELECT ID FROM ' . $wpdb->posts . ' WHERE post_type = %s AND post_status = %s AND ID > %d ORDER BY ID ASC LIMIT %d', // @phpstan-ignore argument.type ($wpdb->posts is a trusted core table property; every variable value is placeholder-bound.)
 				self::POST_TYPE,
 				$post_status,
 				$last_id,

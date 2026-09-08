@@ -67,7 +67,7 @@ final class BookingAttachmentReadiness {
 	private function probe_governance(): bool {
 		try {
 			return true === call_user_func( $this->governance_ready );
-		} catch ( \Throwable ) {
+		} catch ( \Throwable $throwable ) {
 			return false;
 		}
 	}

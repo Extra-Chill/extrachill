@@ -14,6 +14,8 @@
  * @package ExtraChillEvents\Tests
  */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO -- Test bootstrap stubs intentionally mix WP function shims with shadow classes.
+
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/fixtures/' );
 }
@@ -94,7 +96,7 @@ if ( ! function_exists( '__' ) ) {
 
 if ( ! function_exists( 'wp_parse_url' ) ) {
 	function wp_parse_url( $url, $component = -1 ) {
-		return -1 === $component ? parse_url( $url ) : parse_url( $url, $component );
+		return -1 === $component ? parse_url( $url ) : parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- This IS the wp_parse_url() stub; PHP's parse_url() is the deliberate fallback.
 	}
 }
 
@@ -200,7 +202,7 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 		}
 
 		$str = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $str );
-		return trim( strip_tags( $str ) );
+		return trim( strip_tags( $str ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- wp_strip_all_tags() is not stubbed in this bootstrap; strip_tags() is the intended stub behavior.
 	}
 }
 
@@ -221,12 +223,13 @@ if ( ! function_exists( 'sanitize_title' ) ) {
 
 if ( ! function_exists( 'wp_json_encode' ) ) {
 	function wp_json_encode( $data, $options = 0, $depth = 512 ) {
-		return json_encode( $data, $options, $depth );
+		return json_encode( $data, $options, $depth ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- This IS the wp_json_encode() stub; json_encode() is the underlying implementation.
 	}
 }
 
 if ( ! function_exists( 'current_time' ) ) {
 	function current_time( $type, $gmt = 0 ) {
+		unset( $gmt );
 		if ( 'mysql' === $type && isset( $GLOBALS['ec_artist_test']['current_time_calls'] ) ) {
 			++$GLOBALS['ec_artist_test']['current_time_calls'];
 			$times = $GLOBALS['ec_artist_test']['current_times'] ?? array();
@@ -238,8 +241,8 @@ if ( ! function_exists( 'current_time' ) ) {
 
 if ( ! function_exists( 'mb_substr' ) && function_exists( 'substr' ) ) {
 	// PHP 8.4 with mbstring should always have mb_substr, but guard anyway.
-	function mb_substr( $string, $start, $length = null ) {
-		return null === $length ? substr( $string, $start ) : substr( $string, $start, $length );
+	function mb_substr( $value, $start, $length = null ) {
+		return null === $length ? substr( $value, $start ) : substr( $value, $start, $length );
 	}
 }
 

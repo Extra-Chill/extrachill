@@ -83,9 +83,6 @@ class ClassifyGenreCommand {
 	/** Distinct venues (with tiers) shown per artist in the AI prompt. */
 	private const MAX_VENUES = 8;
 
-	/** Co-billed artists (by shared events) shown per artist in the AI prompt. */
-	private const MAX_COBILLED = 8;
-
 	/** Co-billed pairs below this many shared events are noise and ignored. */
 	private const MIN_SHARED_EVENTS = 2;
 
@@ -276,11 +273,21 @@ class ClassifyGenreCommand {
 				return;
 			}
 
+			$term_name = get_term_field( 'name', $term_id, self::TAXONOMY );
+			if ( is_wp_error( $term_name ) || null === $term_name ) {
+				$term_name = '';
+			}
+
+			$term_count = get_term_field( 'count', $term_id, self::TAXONOMY );
+			if ( is_wp_error( $term_count ) || null === $term_count ) {
+				$term_count = 0;
+			}
+
 			$candidates = array(
 				array(
 					'term_id' => $term_id,
-					'name'    => (string) get_term_field( 'name', $term_id, self::TAXONOMY ),
-					'count'   => (int) get_term_field( 'count', $term_id, self::TAXONOMY ),
+					'name'    => (string) $term_name,
+					'count'   => (int) $term_count,
 				),
 			);
 		} else {
@@ -580,7 +587,7 @@ class ClassifyGenreCommand {
 		$merged = $base;
 
 		foreach ( $extra as $slug ) {
-			if ( is_string( $slug ) && '' !== $slug && ! in_array( $slug, $merged, true ) ) {
+			if ( '' !== $slug && ! in_array( $slug, $merged, true ) ) {
 				$merged[] = $slug;
 			}
 			if ( count( $merged ) >= self::GENRE_CAP ) {
@@ -875,7 +882,7 @@ class ClassifyGenreCommand {
 
 			$links = array_filter( array_map( 'trim', explode( ' ', (string) $row['links'] ) ) );
 			foreach ( $links as $link ) {
-				if ( '' !== $link && ! in_array( $link, $signals[ $artist_id ]['external_links'], true ) ) {
+				if ( ! in_array( $link, $signals[ $artist_id ]['external_links'], true ) ) {
 					$signals[ $artist_id ]['external_links'][] = $link;
 				}
 			}
@@ -1072,9 +1079,8 @@ class ClassifyGenreCommand {
 				'model'    => '',
 			);
 
-		$model    = is_array( $model ) ? $model : array();
-		$provider = (string) ( $model['provider'] ?? '' );
-		$model_id = (string) ( $model['model'] ?? '' );
+		$provider = $model['provider'];
+		$model_id = $model['model'];
 
 		if ( '' === $provider || '' === $model_id ) {
 			\WP_CLI::warning( 'No default AI provider/model configured in Data Machine — the AI pass was skipped; affected artists go to the review list.' );
@@ -1086,7 +1092,7 @@ class ClassifyGenreCommand {
 		$total = count( $term_ids );
 		$done  = 0;
 
-		foreach ( array_chunk( $term_ids, $batch_size ) as $batch ) {
+		foreach ( array_chunk( $term_ids, max( 1, $batch_size ) ) as $batch ) {
 			$prompt = $this->build_ai_prompt( $batch, $signals, $names );
 
 			$message = \DataMachine\Engine\AI\ConversationManager::buildConversationMessage( 'user', $prompt );
@@ -1243,7 +1249,7 @@ class ClassifyGenreCommand {
 
 		try {
 			$usage = $result->getTokenUsage();
-		} catch ( \Throwable ) {
+		} catch ( \Throwable $throwable ) {
 			return;
 		}
 

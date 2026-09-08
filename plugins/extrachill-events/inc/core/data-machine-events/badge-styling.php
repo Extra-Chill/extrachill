@@ -117,7 +117,7 @@ function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 	}
 
 	$taxonomies = get_object_taxonomies( DATA_MACHINE_EVENTS_POST_TYPE, 'names' );
-	if ( empty( $taxonomies ) || is_wp_error( $taxonomies ) ) {
+	if ( empty( $taxonomies ) ) {
 		return array_values( array_unique( $excluded ) );
 	}
 

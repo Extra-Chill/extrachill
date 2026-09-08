@@ -275,9 +275,7 @@ class ClassifyVenueTierCommand {
 		// Upstream version guard. Dry-run only reads events/venues and works
 		// against any deployed data-machine-events; --apply writes through
 		// the human write path that shipped with #786, so it requires it.
-		$upstream_ready = method_exists( '\DataMachineEvents\Core\Venue_Taxonomy', 'get_venue_tier_vocabulary' );
-
-		if ( $apply && ! $upstream_ready ) {
+		if ( $apply && ! self::venue_tier_upstream_ready() ) {
 			\WP_CLI::error(
 				'The deployed data-machine-events does not expose '
 				. 'Venue_Taxonomy::get_venue_tier_vocabulary() (venue tier API from data-machine-events#786). '
@@ -1006,6 +1004,23 @@ class ClassifyVenueTierCommand {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Schema probe in a one-shot CLI command; $dates_table derives from $wpdb->prefix.
 		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $dates_table ) ) === $dates_table;
+	}
+
+	/**
+	 * Whether the deployed data-machine-events ships the venue tier API.
+	 *
+	 * Runtime guard, not a static fact: older data-machine-events deploys do
+	 * not expose Venue_Taxonomy::get_venue_tier_vocabulary() (venue tier API
+	 * from data-machine-events#786), so --apply must fail closed on them.
+	 * The indirection through is_callable() with a runtime class-name keeps
+	 * the check honest instead of hard-wiring the current dependency.
+	 *
+	 * @return bool
+	 */
+	private static function venue_tier_upstream_ready(): bool {
+		$venue_taxonomy_class = '\DataMachineEvents\Core\Venue_Taxonomy';
+
+		return is_callable( array( $venue_taxonomy_class, 'get_venue_tier_vocabulary' ) );
 	}
 
 	/**
