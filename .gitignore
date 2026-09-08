@@ -24,3 +24,6 @@ build.sh
 
 # WordPress documentation sync (contains application password)
 docs/.docs-sync.json
+
+# Editor config
+.vscode/
