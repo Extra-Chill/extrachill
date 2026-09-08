@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.65.0] - 2026-09-08
+
+### Added
+- supply EC event_type vocabulary and dry-run backfill CLI
+- create missing Country/City location terms from venue metadata
+- import bound venue calendar feeds on a schedule
+- bind venues to public calendar feeds
+- open the booking inquiry form in a modal
+- send venue operators a dedicated booking inquiry email
+- reduce booking intake to the questions that qualify a show
+- add promoter managed workspace
+- add promoter-owned Link Pages
+- add venue-owned Link Pages
+- add scoped promoter venue grants
+- add verified promoter organizations
+
+### Changed
+- run on PHP 8.4 and advance the homeboy-extensions pin
+- use the shared service account provider for venue discovery
+- retire venue booking intake presentation overrides
+- remove vendor requests from the booking platform
+- remove Local Support from the booking platform
+- share Link Page editor across Events
+- isolate concert stats registration URLs
+
+### Fixed
+- guard the remaining Data Machine ability stubs
+- preload the shared test bootstrap for every sandbox suite
+- restore the promoter Link Page anchor the management URL targets
+- classify membership and promoter-authority as host suites, guard DM stub
+- restore each folded suite's own bootstrap as a per-suite preload
+- guard the Agents API principal fixture against redeclaration
+- stop declaring validation dependencies in two places
+- advance homeboy-extensions ref to restore the test phase
+- stop link-page providers flooding debug.log on every request
+- never publish private or unconfirmed calendar entries
+- advance WP Codebox pin past the typed-recipe refactor
+- advance the coupled homeboy-extensions and WP Codebox runtime pins
+- unpin CI from stale homeboy 0.319.2 binary
+- align intake answer shapes with the editor contract
+- stop coloring needs_info bookings as terminal on the venue calendar
+- make booking operations legible to a nontechnical venue manager
+- default venue booking console to calendar view
+- discover promoter Events workspaces
+- scope organizer event queries before limiting
+- lock organizer authority during mutations
+
 ## [0.64.1] - 2026-08-22
 
 ### Fixed
