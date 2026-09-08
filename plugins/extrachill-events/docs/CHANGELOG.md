@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.66.0] - 2026-09-08
+
+### Added
+- classify-genre CLI for unclaimed events-site artist terms
+- bind genre to events, materialize from artist genres, lock out import, sync-genres CLI
+- heuristic venue tier classification CLI with priority reconciliation
+
+### Fixed
+- clear release preflight findings (php 7.4 catch, phpstan, bootstrap sniffs)
+- hide event_type badge on cards, expose event_type in filter modal
+
 ## [0.65.0] - 2026-09-08
 
 ### Added
