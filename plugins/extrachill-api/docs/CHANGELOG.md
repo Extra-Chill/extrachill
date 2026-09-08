@@ -2,6 +2,17 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.32.0] - 2026-09-08
+
+### Added
+- artist route takes and returns genres, drop the genre string field
+
+### Changed
+- retire duplicate taxonomy sync route
+
+### Fixed
+- mark unused request in artist create permission check
+
 ## [0.31.1] - 2026-08-22
 
 ### Fixed
