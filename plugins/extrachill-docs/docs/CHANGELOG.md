@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.7.0] - 2026-09-08
+
+### Changed
+- remove repo sync subsystem
+
 ## [0.6.1] - 2026-08-22
 
 ### Fixed
