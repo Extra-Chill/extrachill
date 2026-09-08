@@ -85,7 +85,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: Extra-Chill/homeboy-extensions
-          ref: 2e94ad7347125b83eee24d74f090dd56cdd635a6
+          ref: 29bc9ad6c2f2e0cca646d0f8b0d1e200a182349a
           path: .ci/homeboy-extensions
 
       - name: Record MySQL readiness and version
@@ -155,6 +155,7 @@ jobs:
         uses: Extra-Chill/homeboy-action@beedc218296bf2b66b04794f669611abf4e7cc7f
         with:
           binary-path: ${{ runner.temp }}/homeboy-0.367.6/homeboy
+          php-version: '8.4'
           commands: ${{ matrix.command }}
           args: ${{ github.event_name == 'workflow_dispatch' && '--changed-since=origin/main' || '' }}
           auto-issue: ${{ github.event_name == 'workflow_dispatch' && 'false' || '' }}

@@ -3,9 +3,10 @@
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
     "wordpress": {
-      "php": "8.3",
+      "php": "8.4",
       "database_type": "mysql",
       "settings": {
+        "wordpress_runtime_php_version": "8.4",
         "wp_codebox_database_service": {
           "provider": "external",
           "engine": "mysql",
