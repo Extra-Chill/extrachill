@@ -98,6 +98,8 @@ function extrachill_api_register_artist_routes() {
  * Permission check for artist creation
  */
 function extrachill_api_artist_create_permission_check( WP_REST_Request $request ) {
+	unset( $request ); // REST permission_callback contract; creation is gated on login only.
+
 	if ( ! is_user_logged_in() ) {
 		return new WP_Error(
 			'rest_forbidden',
