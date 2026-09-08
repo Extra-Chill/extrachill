@@ -17,7 +17,7 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - Image sizes: custom policy removes many defaults; avoid relying on `thumbnail` or WooCommerce sizes—check existing sizes before using.
 
 ## 3. Custom Data Structures & Content Types
-- All custom taxonomies (festival, artist, venue, location) registered in `inc/core/custom-taxonomies.php`.
+- Network taxonomies (location, festival, artist, venue, genre) are registered by the extrachill-network plugin, not the theme. The theme only renders and queries them.
 - Custom Post Types: Newsletter functionality completely handled by ExtraChill Newsletter Plugin (no theme templates). Festival Wire custom post type handled by ExtraChill News Wire plugin. Follow existing arg patterns (REST enabled, non-hierarchical unless needed, slug = lowercase snake/hyphen form).
 - Notice system: Centralized user feedback with cookie-based dismissal in `inc/core/notices.php`.
 - Share system: Social sharing with clipboard API in `inc/core/templates/share.php` and `assets/js/share.js`.

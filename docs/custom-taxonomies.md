@@ -15,8 +15,7 @@ The theme registers four music-focused custom taxonomies with REST API support f
 
 Hierarchical taxonomy for geographical organization.
 
-**Registration**: `inc/core/custom-taxonomies.php`
-**Function**: `extra_chill_register_custom_taxonomies()`
+**Registration**: extrachill-network (`inc/taxonomy/register.php`, `extrachill_network_register_taxonomies()`). The theme consumes these taxonomies; it does not register them.
 
 **Features**:
 - Parent/child hierarchy support
