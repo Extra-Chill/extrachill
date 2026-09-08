@@ -87,5 +87,8 @@ final class CliProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/BackfillEventTypeCommand.php';
 		\WP_CLI::add_command( 'extrachill-events backfill-event-type', \ExtraChillEvents\Cli\BackfillEventTypeCommand::class );
+
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/ClassifyVenueTierCommand.php';
+		\WP_CLI::add_command( 'extrachill venues classify-tier', \ExtraChillEvents\Cli\ClassifyVenueTierCommand::class );
 	}
 }
