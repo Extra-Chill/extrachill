@@ -2,7 +2,7 @@
 /**
  * Focused tests for legacy Community topic redirects.
  *
- * Run: php tests/test-legacy-topic-redirects.php
+ * Run: php tests/legacy-topic-redirects-smoke.php
  */
 
 define( 'ABSPATH', __DIR__ );
@@ -17,6 +17,9 @@ $GLOBALS['_test_current_posts']   = array();
 $GLOBALS['_test_old_slug_posts']  = array();
 $GLOBALS['_test_switched_blogs']  = array();
 $GLOBALS['_test_restored_blogs']  = 0;
+$GLOBALS['_test_query_vars']      = array();
+$GLOBALS['_test_local_posts']     = array();
+$GLOBALS['_test_main_posts']      = array();
 $_SERVER['REQUEST_METHOD']        = 'GET';
 $_SERVER['REQUEST_URI']           = '/';
 
@@ -72,6 +75,19 @@ function get_current_blog_id() {
 	return $GLOBALS['_test_blog_id'];
 }
 
+function get_query_var( $var, $default = '' ) {
+	return $GLOBALS['_test_query_vars'][ $var ] ?? $default;
+}
+
+function get_post( $post = null ) {
+	if ( is_object( $post ) ) {
+		return $post;
+	}
+
+	$posts = 1 === (int) $GLOBALS['_test_blog_id'] ? $GLOBALS['_test_main_posts'] : $GLOBALS['_test_local_posts'];
+	return $posts[ (int) $post ] ?? null;
+}
+
 function switch_to_blog( $blog_id ) {
 	$GLOBALS['_test_switched_blogs'][] = $blog_id;
 	$GLOBALS['_test_blog_id']          = $blog_id;
@@ -111,6 +127,11 @@ function reset_test_request( $uri = '/t/example-post/' ) {
 	$GLOBALS['_test_is_ajax']        = false;
 	$GLOBALS['_test_current_posts']  = array();
 	$GLOBALS['_test_old_slug_posts'] = array();
+	$GLOBALS['_test_query_vars']     = array();
+	$GLOBALS['_test_local_posts']    = array();
+	$GLOBALS['_test_main_posts']     = array();
+	$GLOBALS['_test_switched_blogs'] = array();
+	unset( $GLOBALS['_test_redirect'] );
 	$_SERVER['REQUEST_METHOD']       = 'GET';
 	$_SERVER['REQUEST_URI']          = $uri;
 }
@@ -182,6 +203,109 @@ check(
 reset_test_request();
 $_SERVER['REQUEST_METHOD'] = 'POST';
 check( 'non-idempotent requests are never redirected', '' === extrachill_community_get_legacy_topic_redirect_url() );
+
+$frederick_permalink = 'https://extrachill.com/frederick-the-younger-gold-light-and-fortune-teller/';
+
+reset_test_request( '/?p=8445' );
+$GLOBALS['_test_query_vars']['p']  = '8445';
+$GLOBALS['_test_main_posts'][8445] = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'frederick-the-younger-gold-light-and-fortune-teller',
+);
+check(
+	'sync-era shortlink to a published main post resolves to its canonical URL',
+	$frederick_permalink === extrachill_community_get_legacy_shortlink_redirect_url()
+);
+check( 'shortlink lookup restores the Community blog', 2 === $GLOBALS['_test_blog_id'] );
+check(
+	'sync-era shortlink switch targets the main blog',
+	array( 1 ) === $GLOBALS['_test_switched_blogs']
+);
+
+reset_test_request( '/?p=8454' );
+$GLOBALS['_test_query_vars']['p']    = '8454';
+$GLOBALS['_test_main_posts'][8454]   = (object) array(
+	'post_type'   => 'attachment',
+	'post_status' => 'inherit',
+	'post_parent' => 8445,
+);
+$GLOBALS['_test_main_posts'][8445]   = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'frederick-the-younger-gold-light-and-fortune-teller',
+);
+check(
+	'sync-era attachment shortlink resolves to its published parent permalink',
+	$frederick_permalink === extrachill_community_get_legacy_shortlink_redirect_url()
+);
+
+reset_test_request( '/?p=8454' );
+$GLOBALS['_test_query_vars']['p']  = '8454';
+$GLOBALS['_test_main_posts'][8454] = (object) array(
+	'post_type'   => 'attachment',
+	'post_status' => 'inherit',
+	'post_parent' => 7800,
+);
+$GLOBALS['_test_main_posts'][7800] = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'draft',
+	'post_name'   => 'unpublished-parent',
+);
+check( 'attachment with an unpublished parent is never exposed', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
+
+reset_test_request( '/?p=999999' );
+$GLOBALS['_test_query_vars']['p'] = '999999';
+check( 'shortlink with no matching main-site post falls through to the standing 404', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
+extrachill_community_maybe_redirect_legacy_topic();
+check( 'fall-through shortlink request never emits a redirect', ! isset( $GLOBALS['_test_redirect'] ) );
+
+reset_test_request( '/?p=555' );
+$GLOBALS['_test_query_vars']['p']  = '555';
+$GLOBALS['_test_local_posts'][555] = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'community-post',
+);
+$GLOBALS['_test_main_posts'][555]  = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'main-post',
+);
+check( 'local Community post ID collision is never redirected away', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
+
+reset_test_request( '/foo/?p=8445' );
+$GLOBALS['_test_query_vars']['p']  = '8445';
+$GLOBALS['_test_main_posts'][8445] = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'frederick-the-younger-gold-light-and-fortune-teller',
+);
+check( 'shortlink on a non-root path is never redirected', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
+
+reset_test_request( '/?p=8445' );
+$GLOBALS['_test_query_vars']['p']  = '8445';
+$GLOBALS['_test_main_posts'][8445] = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'frederick-the-younger-gold-light-and-fortune-teller',
+);
+$GLOBALS['_test_is_404']           = false;
+check( 'valid Community shortlink is never redirected', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
+
+reset_test_request( '/?p=8445' );
+$GLOBALS['_test_query_vars']['p']  = '8445';
+$GLOBALS['_test_main_posts'][8445] = (object) array(
+	'post_type'   => 'post',
+	'post_status' => 'publish',
+	'post_name'   => 'frederick-the-younger-gold-light-and-fortune-teller',
+);
+$_SERVER['REQUEST_METHOD']         = 'POST';
+check( 'non-idempotent shortlink requests are never redirected', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
+
+reset_test_request( '/?p=8445' );
+$GLOBALS['_test_query_vars']['p'] = 'not-a-number';
+check( 'non-numeric p query var is never redirected', '' === extrachill_community_get_legacy_shortlink_redirect_url() );
 
 echo "\n";
 if ( $failures > 0 ) {
