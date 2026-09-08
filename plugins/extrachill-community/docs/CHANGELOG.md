@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.2] - 2026-09-08
+
+### Fixed
+- guard the legacy shortlink resolver with get_post_status()
+- redirect legacy ?p= shortlinks to the canonical blog post
+- replace dead Breeze cache calls with extrachill-cache API
+
 ## [1.26.1] - 2026-08-23
 
 ### Fixed
