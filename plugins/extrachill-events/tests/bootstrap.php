@@ -204,6 +204,21 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 	}
 }
 
+if ( ! function_exists( 'sanitize_title' ) ) {
+	/**
+	 * Reduce a string to a URL slug (subset of core sanitize_title behavior).
+	 *
+	 * @param string $title Candidate title/slug.
+	 * @return string
+	 */
+	function sanitize_title( $title ) {
+		$title = strtolower( trim( (string) $title ) );
+		$title = preg_replace( '/[^a-z0-9 _\-]/', '', $title );
+		$title = preg_replace( '/[\s_]+/', '-', (string) $title );
+		return trim( (string) $title, '-' );
+	}
+}
+
 if ( ! function_exists( 'wp_json_encode' ) ) {
 	function wp_json_encode( $data, $options = 0, $depth = 512 ) {
 		return json_encode( $data, $options, $depth );

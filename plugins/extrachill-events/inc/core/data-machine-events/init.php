@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/taxonomy-registration.php';
 require_once __DIR__ . '/configuration.php';
 require_once __DIR__ . '/event-type-vocabulary.php';
+require_once __DIR__ . '/import-lockout.php';
 require_once __DIR__ . '/badge-styling.php';
 require_once __DIR__ . '/button-styling.php';
 require_once __DIR__ . '/archive-title.php';
@@ -29,6 +30,7 @@ require_once __DIR__ . '/venue-promos.php';
 function extrachill_events_init_data_machine_integration() {
 	extrachill_events_init_taxonomy_registration();
 	extrachill_events_init_event_type_vocabulary();
+	extrachill_events_init_import_lockout();
 	extrachill_events_init_badge_styling();
 	extrachill_events_init_button_styling();
 	extrachill_events_init_archive_title();

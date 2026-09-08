@@ -73,6 +73,11 @@ function extrachill_events_add_badge_classes( $badge_classes, $taxonomy_slug, $t
 			$badge_classes[] = 'venue-badge';
 			$badge_classes[] = 'venue-' . esc_attr( $term->slug );
 			break;
+
+		case 'genre':
+			$badge_classes[] = 'genre-badge';
+			$badge_classes[] = 'genre-' . esc_attr( $term->slug );
+			break;
 	}
 
 	return $badge_classes;
@@ -82,6 +87,10 @@ function extrachill_events_add_badge_classes( $badge_classes, $taxonomy_slug, $t
  * Exclude taxonomies from badge and modal display
  *
  * Artist taxonomy excluded to prevent redundant display with artist-specific metadata.
+ * Modal display exposes location and genre only: location is the calendar's
+ * primary geographic filter and genre is the derived artist fact surfaced by
+ * the genre projection (Extra-Chill/extrachill-events#828); the remaining
+ * taxonomies are hidden as redundant or noisy in the filter modal.
  *
  * @param array  $excluded Array of taxonomy slugs to exclude.
  * @param string $context  Context identifier: 'badge', 'modal'.
@@ -104,7 +113,7 @@ function extrachill_events_exclude_taxonomies( $excluded, $context = '' ) {
 	}
 
 	foreach ( $taxonomies as $taxonomy_slug ) {
-		if ( 'location' === $taxonomy_slug ) {
+		if ( in_array( $taxonomy_slug, array( 'location', 'genre' ), true ) ) {
 			continue;
 		}
 

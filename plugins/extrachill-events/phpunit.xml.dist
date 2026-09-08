@@ -32,6 +32,7 @@
 			<file>tests/Unit/Core/VenueExpansionPlanTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionRunnerTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionSystemTaskTest.php</file>
+			<file>tests/Unit/Core/GenreSyncTest.php</file>
 			<file>tests/Unit/Cli/BackfillEventTypeClassifyTest.php</file>
 			<file>tests/Unit/Cli/ClassifyVenueTierScoreTest.php</file>
 			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>

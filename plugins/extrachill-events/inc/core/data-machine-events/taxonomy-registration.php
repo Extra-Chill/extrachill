@@ -2,7 +2,7 @@
 /**
  * Taxonomy Registration
  *
- * Register extrachill taxonomies (location, artist, festival) for the data_machine_events post type.
+ * Register extrachill taxonomies (location, artist, festival, genre) for the data_machine_events post type.
  *
  * Uses data-machine-events' public integration API (DATA_MACHINE_EVENTS_POST_TYPE
  * constant) so this code survives internal class refactors in DM-events.
@@ -28,10 +28,14 @@ function extrachill_events_init_taxonomy_registration() {
 /**
  * Get taxonomies to register for events
  *
+ * Genre is derived, never imported: the import path is locked out of
+ * writing it (see import-lockout.php) and events receive it through
+ * extrachill_events_sync_event_genres() (see inc/core/genre-sync.php).
+ *
  * @return array Taxonomy slugs
  */
 function extrachill_events_get_event_taxonomies() {
-	return array( 'location', 'artist', 'festival' );
+	return array( 'location', 'artist', 'festival', 'genre' );
 }
 
 /**
