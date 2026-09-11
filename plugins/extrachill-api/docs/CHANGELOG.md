@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.33.0] - 2026-09-11
+
+### Added
+- Ticketmaster affiliate compliance — ticket redirect endpoint
+
 ## [0.32.0] - 2026-09-08
 
 ### Added
