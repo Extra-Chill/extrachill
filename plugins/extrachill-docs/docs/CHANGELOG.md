@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.7.1] - 2026-09-11
+
+### Fixed
+- register rewrite rules for top-level pages, not just children
+
 ## [0.7.0] - 2026-09-08
 
 ### Changed
