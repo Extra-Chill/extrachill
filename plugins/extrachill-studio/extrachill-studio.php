@@ -43,6 +43,7 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/sweatpants-token.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/email-template.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/callback.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/persist.php';
 
 /*
  * Defer loading of GiveawayTask until after Data Machine has registered its

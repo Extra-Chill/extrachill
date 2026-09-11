@@ -96,7 +96,7 @@ function ec_studio_transcription_render_completion_email( array $args ): string 
 		esc_html( $speakers_clause )
 	) . '</p>';
 	$body .= $preview_html;
-	$body .= '<p style="margin:24px 0 0 0;color:#666;font-size:14px;line-height:1.6;">' . esc_html__( 'The draft is on extrachill.com — open it in the editor to review, polish, and publish.', 'extrachill-studio' ) . '</p>';
+	$body .= '<p style="margin:24px 0 0 0;color:#666;font-size:14px;line-height:1.6;">' . esc_html__( 'The draft is waiting in Studio under the Blog tab — pick it from the draft list to review, polish, and submit it for review.', 'extrachill-studio' ) . '</p>';
 
 	return $body;
 }

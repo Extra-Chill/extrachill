@@ -41,6 +41,7 @@ import {
 	getJob,
 	getResults,
 	MAX_UPLOAD_BYTES,
+	persistTranscriptDraft,
 	uploadAudio,
 } from './client';
 import type {
@@ -61,14 +62,22 @@ const InlineStatusView = InlineStatus as unknown as (
 const POLL_INTERVAL_MS = 5000;
 
 /**
- * After this many ms of being on the page with an in-flight job, stop the
- * polling loop. The user is told up-front that they can close the tab and
- * we'll email them — at that point the polling adds no value (it just
- * burns network on a job that may take hours). Short jobs (`base` model
- * on ~30s audio) finish well before this threshold so polling still
- * delivers instant feedback for users who DO stay on the page.
+ * Interval at which an in-flight job reports elapsed time in the UI.
+ *
+ * NOTE: polling deliberately does NOT stop while the tab is open.
+ *
+ * This used to hand off after 90 seconds on the reasoning that the
+ * completion email made further polling pointless. That reasoning was
+ * wrong in practice (#193): the email depends on sweatpants delivering a
+ * callback, and when the callback does not arrive the transcript is never
+ * persisted at all. Stopping the poll therefore did not "hand off" — it
+ * guaranteed the transcript was lost for any job longer than 90 seconds.
+ *
+ * The poll is the client's opportunity to persist the transcript itself
+ * (see `persistTranscriptDraft` in finalizeJob), so it now runs for as
+ * long as the tab is open. It still pauses while the tab is hidden and
+ * resumes on `visibilitychange`, so a backgrounded tab costs nothing.
  */
-const POLLING_HANDOFF_MS = 90 * 1000;
 
 /** Time to flash "Copied" inline feedback after a successful clipboard write. */
 const COPY_FEEDBACK_MS = 2000;
@@ -341,6 +350,38 @@ const TranscribePane = (): ReactElement => {
 							transcript ||
 							__( '(empty transcript)', 'extrachill-studio' ),
 					};
+
+					// Persist immediately. Until this succeeds the transcript
+					// exists only in React state and is destroyed the moment
+					// the user navigates away — which is exactly the silent
+					// data loss in #193, made worse by the UI telling people
+					// they can close the tab. Saving here means durability no
+					// longer depends on sweatpants delivering a callback.
+					if ( transcript ) {
+						setStageMessage(
+							__( 'Saving draft…', 'extrachill-studio' )
+						);
+						const stats = first?.data?.stats;
+						try {
+							const saved = await persistTranscriptDraft( {
+								jobId: job.jobId,
+								filename: job.filename,
+								transcript,
+								segments: stats?.segments ?? 0,
+								durationSec: stats?.duration ?? 0,
+								hasSpeakers: job.options.diarize,
+							} );
+							finalized.savedPostId = saved.post_id;
+						} catch ( saveErr ) {
+							finalized.saveError =
+								( saveErr as Error )?.message ||
+								__(
+									'Could not save the draft.',
+									'extrachill-studio'
+								);
+						}
+					}
+
 					setActiveJob( null );
 					setHistory( ( prev ) => [ finalized, ...prev ] );
 					setExpandedJobId( finalized.jobId );
@@ -395,20 +436,6 @@ const TranscribePane = (): ReactElement => {
 			typeof document !== 'undefined' &&
 			document.visibilityState === 'hidden'
 		) {
-			return;
-		}
-
-		// After the handoff window, stop polling. The completion email is the
-		// canonical notification path; in-tab polling forever is wasted work.
-		const elapsedMs = Date.now() - current.startedAt;
-		if ( elapsedMs > POLLING_HANDOFF_MS ) {
-			stopPolling();
-			setStageMessage(
-				__(
-					"Job is still running on the worker. We'll email you when it's done — you can close this tab.",
-					'extrachill-studio'
-				)
-			);
 			return;
 		}
 
@@ -513,9 +540,15 @@ const TranscribePane = (): ReactElement => {
 				fileInputRef.current.value = '';
 			}
 
+			// Deliberately does NOT say "you can close this tab" (#193).
+			// The transcript becomes durable when this tab saves it as a
+			// draft on completion. The sweatpants completion callback is a
+			// redundant second path, not a guarantee, so promising that
+			// closing the tab is safe would be promising something this
+			// code cannot deliver.
 			setStageMessage(
 				__(
-					"Submitted. We'll email you when it's done — usually 5–60 minutes depending on length. You can close this tab.",
+					'Submitted — usually 5–60 minutes depending on length. Keep this tab open; the transcript is saved to a draft automatically when it finishes.',
 					'extrachill-studio'
 				)
 			);
@@ -756,6 +789,33 @@ const TranscribePane = (): ReactElement => {
 			)
 		);
 
+		// Whether the transcript actually reached durable storage. A failed
+		// save must be loud: the transcript is still on screen and can be
+		// copied, but it will be gone on navigation (#193).
+		const saveLine = job.savedPostId
+			? h(
+					InlineStatusView,
+					{ tone: 'success', className: 'ec-studio-message' },
+					__(
+						'Saved as a draft on extrachill.com — find it in the Blog tab.',
+						'extrachill-studio'
+					)
+			  )
+			: job.saveError
+				? h(
+						InlineStatusView,
+						{ tone: 'error', className: 'ec-studio-message' },
+						sprintf(
+							/* translators: %s: save error detail */
+							__(
+								'NOT saved — copy or download this transcript before leaving the page. (%s)',
+								'extrachill-studio'
+							),
+							job.saveError
+						)
+				  )
+				: null;
+
 		if ( job.status === 'failed' || job.status === 'stopped' ) {
 			return createElement(
 				'li',
@@ -799,6 +859,7 @@ const TranscribePane = (): ReactElement => {
 			'li',
 			{ key: job.jobId, className: 'ec-studio-transcribe__history-item' },
 			headerLine,
+			saveLine,
 			createElement(
 				'div',
 				{ className: 'ec-studio-transcribe__history-actions' },

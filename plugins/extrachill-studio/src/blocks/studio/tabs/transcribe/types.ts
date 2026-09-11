@@ -139,4 +139,23 @@ export interface ActiveJob {
 	completedAt?: number;
 	transcript?: string;
 	error?: string;
+	/**
+	 * Post id of the draft this transcript was saved to on
+	 * extrachill.com, once persistence succeeds. Undefined until saved.
+	 */
+	savedPostId?: number;
+	/**
+	 * Set when saving the transcript to a draft failed. The transcript is
+	 * still present in `transcript` so the user can copy it manually, but
+	 * it is NOT durable — surfacing this is what prevents the silent loss
+	 * described in #193.
+	 */
+	saveError?: string;
+}
+
+/** Response from POST /extrachill/v1/transcribe/draft. */
+export interface PersistDraftResponse {
+	post_id: number;
+	created: boolean;
+	edit_url: string;
 }

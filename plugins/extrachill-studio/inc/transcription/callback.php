@@ -60,6 +60,39 @@ function ec_studio_transcription_register_callback_route(): void {
 add_action( 'rest_api_init', 'ec_studio_transcription_register_callback_route' );
 
 /**
+ * Log an inbound callback attempt before any validation runs.
+ *
+ * Deliberately logs only non-secret shape information: whether an
+ * Authorization header was present, the reported job id and status, and
+ * whether a transcript body was included. The bearer token itself, the
+ * signing secret, and the transcript contents are never written.
+ *
+ * @since X.Y.Z
+ *
+ * @param \WP_REST_Request $request Inbound request.
+ * @return void
+ */
+function ec_studio_transcription_log_callback_attempt( \WP_REST_Request $request ): void {
+	$auth_header = $request->get_header( 'authorization' );
+	$body        = $request->get_json_params();
+	$body        = is_array( $body ) ? $body : array();
+
+	$job_id = isset( $body['job_id'] ) ? (string) $body['job_id'] : '';
+	$status = isset( $body['status'] ) ? (string) $body['status'] : '';
+	$has_tx = isset( $body['content']['transcription'] ) && '' !== trim( (string) $body['content']['transcription'] );
+
+	error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Deliberate operational log; see #193.
+		sprintf(
+			'[extrachill-studio] transcribe callback received: job_id=%1$s status=%2$s has_auth=%3$s has_transcript=%4$s',
+			'' !== $job_id ? $job_id : '(none)',
+			'' !== $status ? $status : '(none)',
+			is_string( $auth_header ) && '' !== $auth_header ? 'yes' : 'no',
+			$has_tx ? 'yes' : 'no'
+		)
+	);
+}
+
+/**
  * Handle a verified completion callback from sweatpants.
  *
  * @since 0.13.0
@@ -68,6 +101,17 @@ add_action( 'rest_api_init', 'ec_studio_transcription_register_callback_route' )
  * @return \WP_REST_Response|\WP_Error
  */
 function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
+	// Record that an inbound callback was received AT ALL, before any
+	// validation can reject it.
+	//
+	// Without this, a callback that never arrives and a callback that
+	// arrives and is rejected are indistinguishable from inside WordPress:
+	// both leave zero rows everywhere. That ambiguity is what made #193
+	// expensive to diagnose — the absence of any `_ec_studio_transcription_*`
+	// receipt option was the only evidence that delivery, rather than
+	// validation, was failing.
+	ec_studio_transcription_log_callback_attempt( $request );
+
 	// --- Auth ---------------------------------------------------------
 	if ( ! function_exists( 'wp_native_auth_verify_external_token' ) ) {
 		return new \WP_Error(
@@ -573,6 +617,36 @@ function ec_studio_transcription_callback_create_draft(
 }
 
 /**
+ * Resolve the URL a writer should open to review a transcription draft.
+ *
+ * Returns the Studio workspace home. Studio's Blog (Compose) tab is the
+ * default pane and its draft picker already lists the transcription draft,
+ * because that draft is a `draft` on main authored by the uploader — the
+ * exact query `ec_studio_compose_list_drafts()` runs.
+ *
+ * Deliberately NOT `get_edit_post_link()` on main: that sends team members
+ * into wp-admin on extrachill.com, which is the surface Studio replaces.
+ *
+ * @since X.Y.Z
+ *
+ * @return string Absolute URL to the Studio workspace.
+ */
+function ec_studio_transcription_draft_review_url(): string {
+	// The Studio subsite is where this plugin runs, so home_url() on the
+	// current blog is correct in the REST/callback context. Fall back to the
+	// resolved Studio blog id when available so the URL stays correct even
+	// if this ever runs under another site's context.
+	if ( function_exists( 'ec_get_blog_id' ) ) {
+		$studio_blog_id = (int) ec_get_blog_id( 'studio' );
+		if ( $studio_blog_id > 0 ) {
+			return get_home_url( $studio_blog_id, '/' );
+		}
+	}
+
+	return home_url( '/' );
+}
+
+/**
  * Send the "your transcription is ready" email to the uploader.
  *
  * Delegates mail dispatch to `ec_send_email()` (extrachill-multisite),
@@ -629,22 +703,22 @@ function ec_studio_transcription_callback_send_email(
 		$filename
 	);
 
-	// Resolve the draft's edit URL in the context of the site that owns
-	// the post (main extrachill.com). This switch is NOT for SMTP —
-	// SMTP routing is now handled inside ec_send_email() via the
-	// mail_site_id input. get_edit_post_link() needs main's blog
-	// context to read the post and build a correct admin URL because
-	// the draft was created on main via ec_cross_site_rest_request().
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
-	$edit_url     = '';
-	if ( $main_blog_id > 0 ) {
-		switch_to_blog( $main_blog_id );
-		try {
-			$edit_url = (string) get_edit_post_link( $post_id, 'raw' );
-		} finally {
-			restore_current_blog();
-		}
-	}
+	// Send the recipient to Studio, not to wp-admin on main.
+	//
+	// This CTA previously resolved get_edit_post_link() in main's context,
+	// producing https://extrachill.com/wp-admin/post.php?post=<id>&action=edit
+	// — routing a team member into the wp-admin surface Studio exists to
+	// replace, for a role that deliberately lacks `edit_others_posts`.
+	//
+	// The transcription draft already satisfies the Compose draft-picker
+	// query in ec_studio_compose_list_drafts() (status=draft, authored by
+	// the uploader, on main), so it is listed in Studio's Blog tab the
+	// moment it exists. Pointing there keeps the writer in one workspace.
+	//
+	// Studio has no per-draft deep link today, so this targets the Studio
+	// home (the Blog tab is the default pane) rather than inventing a
+	// fragile URL contract. See the follow-up issue referenced in #193.
+	$edit_url = ec_studio_transcription_draft_review_url();
 
 	$body_html = ec_studio_transcription_render_completion_email(
 		array(
@@ -666,7 +740,7 @@ function ec_studio_transcription_callback_send_email(
 				'preheader'      => __( 'Your transcription is ready', 'extrachill-studio' ),
 				'body_html'      => $body_html,
 				'cta_url'        => $edit_url,
-				'cta_label'      => __( 'Review draft', 'extrachill-studio' ),
+				'cta_label'      => __( 'Open in Studio', 'extrachill-studio' ),
 			),
 		)
 	);

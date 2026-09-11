@@ -12,8 +12,11 @@
  * @package
  */
 
+import apiFetch from '@wordpress/api-fetch';
+
 import { getToken, invalidateToken } from './tokenManager';
 import type {
+	PersistDraftResponse,
 	SweatpantsJob,
 	SweatpantsJobResults,
 	SweatpantsUpload,
@@ -204,4 +207,46 @@ export const getResults = async (
 	return request< SweatpantsJobResults >(
 		`/jobs/${ encodeURIComponent( jobId ) }/results`
 	);
+};
+
+/**
+ * Persist a completed transcript as a draft on extrachill.com.
+ *
+ * This is the durability guarantee for a finished transcription. It does
+ * NOT go through sweatpants — it is a first-party authenticated call from
+ * the logged-in user's own browser to WordPress.
+ *
+ * Previously the ONLY path to durable storage was sweatpants signing and
+ * POSTing a completion callback. When that callback did not arrive the
+ * transcript existed solely in React state and was destroyed on navigation
+ * — while the UI told the user they could close the tab. See #193.
+ *
+ * The server keys on `job_id` and reuses an existing draft when one is
+ * already present, so calling this after (or before) a callback for the
+ * same job cannot create a duplicate post.
+ *
+ * @param input Transcript persistence payload.
+ */
+export const persistTranscriptDraft = async ( input: {
+	jobId: string;
+	filename: string;
+	transcript: string;
+	segments?: number;
+	durationSec?: number;
+	hasSpeakers?: boolean;
+} ): Promise< PersistDraftResponse > => {
+	return apiFetch< PersistDraftResponse >( {
+		path: '/extrachill/v1/transcribe/draft',
+		method: 'POST',
+		data: {
+			job_id: input.jobId,
+			filename: input.filename,
+			transcript: input.transcript,
+			stats: {
+				segments: input.segments ?? 0,
+				duration: input.durationSec ?? 0,
+				speakers: input.hasSpeakers ? 1 : null,
+			},
+		},
+	} );
 };
