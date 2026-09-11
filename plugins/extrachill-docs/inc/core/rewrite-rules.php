@@ -16,23 +16,42 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Add custom rewrite rules for ec_doc posts and ec_doc_platform taxonomy
  */
 function extrachill_docs_add_rewrite_rules() {
-	// Register exact rules for child Pages before the legacy catch-all
-	// rules. Hierarchical page URLs (/{parent-slug}/{child-slug}/) would
-	// otherwise be swallowed by the ec_doc catch-all below.
-	$child_page_ids = get_posts(
+	// Register exact rules for every published Page before the legacy
+	// catch-all rules below, which would otherwise swallow them. The
+	// one-segment catch-all claims EVERY single-segment path for the
+	// ec_doc_platform taxonomy, shadowing top-level pages; the two-segment
+	// catch-all claims every two-segment path for ec_doc, shadowing
+	// hierarchical /{parent-slug}/{child-slug}/ page URLs.
+	//
+	// Both depths must be registered. An earlier version restricted this
+	// query to child pages (`post_parent__not_in => array( 0 )`), which
+	// left every top-level page resolving as an ec_doc_platform term
+	// archive instead of as the page. That only appeared to work while
+	// legacy terms happened to share slugs with the migrated section
+	// pages (artist-platform, community, events-calendar, chat); the
+	// first section page WITHOUT a matching legacy term — /studio — 404'd.
+	// See #42.
+	//
+	// Ordering note: WP_Rewrite::add_rule() appends to `extra_rules_top`
+	// via array_merge(), so insertion order is preserved and the rules
+	// registered first in this function outrank the catch-alls that
+	// follow. On a slug collision between a page and an ec_doc_platform
+	// term, the PAGE therefore wins — which is the correct direction of
+	// travel, since hierarchical pages are the destination model and the
+	// ec_doc CPT plus its taxonomy are slated for removal in #39.
+	$page_ids = get_posts(
 		array(
-			'post_type'           => 'page',
-			'post_status'         => 'publish',
-			'posts_per_page'      => -1,
-			'fields'              => 'ids',
-			'post_parent__not_in' => array( 0 ),
-			'orderby'             => 'ID',
-			'order'               => 'ASC',
-			'no_found_rows'       => true,
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+			'no_found_rows'  => true,
 		)
 	);
 
-	foreach ( $child_page_ids as $page_id ) {
+	foreach ( $page_ids as $page_id ) {
 		$page_uri = get_page_uri( $page_id );
 		if ( ! is_string( $page_uri ) || '' === $page_uri ) {
 			continue;
