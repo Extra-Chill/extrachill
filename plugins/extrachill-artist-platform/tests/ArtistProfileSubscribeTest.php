@@ -1,143 +1,41 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-if ( ! function_exists( 'add_filter' ) ) {
-	function add_filter() {
-		return true;
-	}
-}
+final class ArtistProfileSubscribeTest extends EC_Artist_Platform_TestCase {
+	private $profile_id;
+	private $link_page_id;
 
-if ( ! function_exists( 'add_action' ) ) {
-	function add_action() {
-		return true;
-	}
-}
-
-if ( ! function_exists( 'apply_filters' ) ) {
-	function apply_filters( $hook, $value ) {
-		if ( 'ec_get_artist_id' === $hook && is_array( $value ) ) {
-			return (int) ( $value['artist_id'] ?? 0 );
-		}
-
-		if ( 'ec_get_link_page_id' === $hook ) {
-			return (int) ( $GLOBALS['ec_test']['link_page_id'] ?? 0 );
-		}
-
-		return $value;
-	}
-}
-
-if ( ! function_exists( 'get_post_status' ) ) {
-	function get_post_status( $post_id ) {
-		return $GLOBALS['ec_test']['posts'][ $post_id ]->post_status ?? false;
-	}
-}
-
-if ( ! function_exists( 'ec_get_link_page_data' ) ) {
-	function ec_get_link_page_data() {
-		return $GLOBALS['ec_test']['subscribe_data'] ?? array();
-	}
-}
-
-if ( ! function_exists( 'ec_get_link_page_defaults_for' ) ) {
-	function ec_get_link_page_defaults_for() {
-		return array(
-			'--link-page-card-bg-color'         => '#fff',
-			'--link-page-link-text-color'       => '#000',
-			'--link-page-title-font-family'     => 'sans-serif',
-			'--link-page-body-font-family'      => 'sans-serif',
-			'--link-page-background-type'       => 'color',
-			'--link-page-background-color'      => '#fff',
-			'--link-page-button-hover-bg-color' => '#000',
-			'--link-page-button-border-color'   => '#000',
-			'--link-page-button-bg-color'       => '#fff',
-			'--link-page-muted-text-color'      => '#555',
-			'--link-page-input-bg'              => '#fff',
-			'--link-page-button-radius'         => '4px',
-		);
-	}
-}
-
-if ( ! function_exists( 'rest_url' ) ) {
-	function rest_url( $path = '' ) {
-		return 'https://artist.example/wp-json/' . ltrim( $path, '/' );
-	}
-}
-
-if ( ! function_exists( 'absint' ) ) {
-	function absint( $value ) {
-		return abs( (int) $value );
-	}
-}
-
-if ( ! function_exists( 'esc_attr' ) ) {
-	function esc_attr( $value ) {
-		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
-	}
-}
-
-if ( ! function_exists( 'esc_html' ) ) {
-	function esc_html( $value ) {
-		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
-	}
-}
-
-if ( ! function_exists( 'esc_url' ) ) {
-	function esc_url( $value ) {
-		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
-	}
-}
-
-if ( ! function_exists( 'esc_html_e' ) ) {
-	function esc_html_e( $value ) {
-		echo esc_html( $value );
-	}
-}
-
-if ( ! function_exists( 'esc_attr_e' ) ) {
-	function esc_attr_e( $value ) {
-		echo esc_attr( $value );
-	}
-}
-
-if ( ! function_exists( 'is_user_logged_in' ) ) {
-	function is_user_logged_in() {
-		return ! empty( $GLOBALS['ec_test']['logged_in'] );
-	}
-}
-
-if ( ! function_exists( 'ec_render_template' ) ) {
-	function ec_render_template( $template_name, $args = array() ) {
-		if ( 'subscribe-inline-form' !== $template_name ) {
-			return '';
-		}
-
-		// phpcs:ignore WordPress.PHP.DontExtract.extract_extract -- mirrors the WP template-vars contract of the included template; EXTR_SKIP guards collisions.
-		extract( $args, EXTR_SKIP );
-		ob_start();
-		include dirname( __DIR__ ) . '/inc/link-pages/live/templates/subscribe-inline-form.php';
-		return ob_get_clean();
-	}
-}
-
-require_once dirname( __DIR__ ) . '/inc/artist-profiles/frontend/subscribe-section.php';
-
-// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- test file keeps a template-loading helper plus the test class; intentional.
-final class ArtistProfileSubscribeTest extends TestCase {
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'posts'          => array(
-				42 => (object) array(
-					'ID'          => 42,
-					'post_title'  => 'Test Artist',
-					'post_status' => 'publish',
-				),
-			),
-			'link_page_id'   => 84,
-			'meta'           => array( 84 => array() ),
-			'subscribe_data' => array(),
+		parent::setUp();
+
+		$this->profile_id = $this->create_artist_profile(
+			'Test Artist',
+			array( 'post_name' => 'test-artist' )
 		);
+
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$this->link_page_id = (int) self::factory()->post->create(
+				array(
+					'post_type'   => 'artist_link_page',
+					'post_status' => 'publish',
+				)
+			);
+			update_post_meta( $this->link_page_id, '_associated_artist_profile_id', $this->profile_id );
+			update_post_meta( $this->profile_id, '_extrch_link_page_id', $this->link_page_id );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	private function subscribe_api_url(): string {
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			return rest_url( 'extrachill/v1/artists/' . $this->profile_id . '/subscribe' );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	public function test_registers_a_bounded_profile_section(): void {
@@ -150,28 +48,50 @@ final class ArtistProfileSubscribeTest extends TestCase {
 	}
 
 	public function test_visibility_rejects_unpublished_and_disabled_artists(): void {
-		$this->assertTrue( ec_is_artist_profile_subscribe_section_visible( 42 ) );
+		switch_to_blog( $this->artist_blog_id() );
+		$visible = ec_is_artist_profile_subscribe_section_visible( $this->profile_id );
+		restore_current_blog();
+		$this->assertTrue( $visible );
 
-		$GLOBALS['ec_test']['meta'][84]['_link_page_subscribe_display_mode'] = array( 'disabled' );
-		$this->assertFalse( ec_is_artist_profile_subscribe_section_visible( 42 ) );
+		switch_to_blog( $this->artist_blog_id() );
+		update_post_meta( $this->link_page_id, '_link_page_subscribe_display_mode', 'disabled' );
+		$disabled_visible = ec_is_artist_profile_subscribe_section_visible( $this->profile_id );
+		delete_post_meta( $this->link_page_id, '_link_page_subscribe_display_mode' );
+		wp_update_post(
+			array(
+				'ID'          => $this->profile_id,
+				'post_status' => 'draft',
+			)
+		);
+		clean_post_cache( $this->profile_id );
+		$draft_visible = ec_is_artist_profile_subscribe_section_visible( $this->profile_id );
+		restore_current_blog();
 
-		$GLOBALS['ec_test']['meta'][84]               = array();
-		$GLOBALS['ec_test']['posts'][42]->post_status = 'draft';
-		$this->assertFalse( ec_is_artist_profile_subscribe_section_visible( 42 ) );
+		$this->assertFalse( $disabled_visible );
+		$this->assertFalse( $draft_visible );
 	}
 
 	/**
 	 * @dataProvider authentication_states
 	 */
 	public function test_profile_form_is_public_and_accessible( bool $logged_in ): void {
-		$GLOBALS['ec_test']['logged_in'] = $logged_in;
+		if ( $logged_in ) {
+			wp_set_current_user( (int) self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
+		} else {
+			wp_set_current_user( 0 );
+		}
 
-		ob_start();
-		ec_render_artist_profile_subscribe_section( 42 );
-		$html = ob_get_clean();
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			ob_start();
+			ec_render_artist_profile_subscribe_section( $this->profile_id );
+			$html = ob_get_clean();
+		} finally {
+			restore_current_blog();
+		}
 
 		$this->assertStringContainsString( 'Subscribe to Test Artist', $html );
-		$this->assertStringContainsString( 'data-subscribe-api-url="https://artist.example/wp-json/extrachill/v1/artists/42/subscribe"', $html );
+		$this->assertStringContainsString( 'data-subscribe-api-url="' . $this->subscribe_api_url() . '"', $html );
 		$this->assertStringContainsString( 'autocomplete="email"', $html );
 
 		$document = new DOMDocument();
@@ -196,19 +116,26 @@ final class ArtistProfileSubscribeTest extends TestCase {
 	}
 
 	public function test_reused_form_preserves_custom_description_and_domain_endpoint(): void {
-		$html = ec_render_template(
-			'subscribe-inline-form',
-			array(
-				'artist_id'         => 42,
-				'artist_name'       => 'Test Artist',
-				'data'              => array( '_link_page_subscribe_description' => 'Artist-approved updates only.' ),
-				'subscribe_api_url' => 'https://artist.example/wp-json/extrachill/v1/artists/42/subscribe',
-			)
-		);
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			update_post_meta( $this->link_page_id, '_link_page_subscribe_description', 'Artist-approved updates only.' );
+
+			$html = ec_render_template(
+				'subscribe-inline-form',
+				array(
+					'artist_id'         => $this->profile_id,
+					'artist_name'       => 'Test Artist',
+					'data'              => array( '_link_page_subscribe_description' => 'Artist-approved updates only.' ),
+					'subscribe_api_url' => $this->subscribe_api_url(),
+				)
+			);
+		} finally {
+			restore_current_blog();
+		}
 
 		$this->assertStringContainsString( 'Artist-approved updates only.', $html );
 		$this->assertStringContainsString( 'extrch-link-page-subscribe-inline-form-container', $html );
-		$this->assertStringContainsString( 'https://artist.example/wp-json/extrachill/v1/artists/42/subscribe', $html );
+		$this->assertStringContainsString( $this->subscribe_api_url(), $html );
 	}
 
 	public function test_profile_styles_include_mobile_single_column_layout(): void {

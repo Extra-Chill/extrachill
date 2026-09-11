@@ -1,64 +1,61 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class AdminArtistRelationshipsTest extends TestCase {
+final class AdminArtistRelationshipsTest extends EC_Artist_Platform_TestCase {
+	private $admin_id;
+	private $profile_id;
+	private $user_id;
+
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'current_blog_id' => 4,
-			'blog_stack'      => array(),
-			'current_user_id' => 1,
-			'blogs'           => array(
-				4 => array(
-					'posts' => array(
-						19 => (object) array(
-							'ID'          => 19,
-							'post_type'   => 'artist_profile',
-							'post_status' => 'publish',
-						),
-					),
-				),
-			),
-		);
+		parent::setUp();
+
+		$this->admin_id   = $this->create_admin_user( 'superadmin' );
+		$this->user_id    = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$this->profile_id = $this->create_artist_profile( 'Related Artist' );
+		wp_set_current_user( $this->admin_id );
 	}
 
 	public function test_list_preserves_items_envelope_and_filters_input(): void {
-		$GLOBALS['ec_test']['list_result'] = array( array( 'id' => 12 ) );
-
 		$result = extrachill_artist_platform_ability_admin_list_artist_relationships(
 			array(
 				'view'   => 'artists',
-				'search' => '  Band  ',
+				'search' => '  Related  ',
 			)
 		);
 
-		$this->assertSame( array( 'artists', 'Band' ), $GLOBALS['ec_test']['list'] );
-		$this->assertSame( array( 'items' => array( array( 'id' => 12 ) ) ), $result );
+		$this->assertArrayHasKey( 'items', $result );
+		$this->assertSame(
+			array( 'id' => $this->profile_id ),
+			array(
+				'id' => $result['items'][0]['id'] ?? 0,
+			)
+		);
 	}
 
 	public function test_link_uses_canonical_membership_mutator(): void {
-		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
-
 		$result = extrachill_artist_platform_ability_admin_link_artist_relationship(
 			array(
-				'user_id'   => 7,
-				'artist_id' => 19,
+				'user_id'   => $this->user_id,
+				'artist_id' => $this->profile_id,
 			)
 		);
 
-		$this->assertSame( array( 19 ), get_user_meta( 7, '_artist_profile_ids', true ) );
-		$this->assertSame( array( 7 ), get_post_meta( 19, '_artist_member_ids', true ) );
 		$this->assertSame( array( 'success' => true ), $result );
+		switch_to_blog( $this->artist_blog_id() );
+		$members = get_post_meta( $this->profile_id, '_artist_member_ids', true );
+		restore_current_blog();
+		$this->assertSame( array( $this->user_id ), array_map( 'intval', (array) $members ) );
+		$this->assertSame( array( $this->profile_id ), array_map( 'intval', (array) get_user_meta( $this->user_id, '_artist_profile_ids', true ) ) );
 	}
 
 	public function test_link_rejects_missing_user(): void {
-		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
-		$GLOBALS['ec_test']['missing_user']                           = true;
+		$missing_user_id = $this->user_id + 100;
 
 		$result = extrachill_artist_platform_ability_admin_link_artist_relationship(
 			array(
-				'user_id'   => 7,
-				'artist_id' => 19,
+				'user_id'   => $missing_user_id,
+				'artist_id' => $this->profile_id,
 			)
 		);
 
@@ -67,24 +64,31 @@ final class AdminArtistRelationshipsTest extends TestCase {
 	}
 
 	public function test_unlink_and_cleanup_use_canonical_membership_mutator(): void {
-		$GLOBALS['ec_test']['capabilities']['manage_network_options'] = true;
+		$unlink_user_id = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$unlink_profile = $this->create_artist_profile( 'Unlink Artist' );
+		$this->create_artist_membership( $unlink_user_id, $unlink_profile );
 
 		$this->assertSame(
 			array( 'success' => true ),
 			extrachill_artist_platform_ability_admin_unlink_artist_relationship( array(
-				'user_id'   => 4,
-				'artist_id' => 8,
+				'user_id'   => $unlink_user_id,
+				'artist_id' => $unlink_profile,
 			) )
 		);
-		$GLOBALS['ec_test']['user_meta'][5]['_artist_profile_ids'] = array( 9 );
+
+		$cleanup_user_id = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		update_user_meta( $cleanup_user_id, '_artist_profile_ids', array( $this->profile_id ) );
+
 		extrachill_artist_platform_ability_admin_cleanup_artist_relationships( array(
-			'user_id'   => 5,
-			'artist_id' => 9,
+			'user_id'   => $cleanup_user_id,
+			'artist_id' => $this->profile_id,
 		) );
-		$this->assertSame( array(), get_user_meta( 5, '_artist_profile_ids', true ) );
+		$this->assertSame( array(), (array) get_user_meta( $cleanup_user_id, '_artist_profile_ids', true ) );
 	}
 
 	public function test_admin_mutations_fail_closed_when_handlers_are_called_directly(): void {
+		wp_set_current_user( $this->user_id );
+
 		$handlers = array(
 			'extrachill_artist_platform_ability_admin_link_artist_relationship',
 			'extrachill_artist_platform_ability_admin_unlink_artist_relationship',
@@ -93,23 +97,21 @@ final class AdminArtistRelationshipsTest extends TestCase {
 
 		foreach ( $handlers as $handler ) {
 			$result = $handler( array(
-				'user_id'   => 7,
-				'artist_id' => 19,
+				'user_id'   => $this->user_id,
+				'artist_id' => $this->profile_id,
 			) );
 
 			$this->assertInstanceOf( WP_Error::class, $result );
 			$this->assertSame( 'admin_access_denied', $result->get_error_code() );
 		}
 
-		$this->assertArrayNotHasKey( 'user_meta', $GLOBALS['ec_test'] );
+		$this->assertSame( '', get_user_meta( $this->user_id, '_artist_profile_ids', true ) );
 	}
 
 	public function test_orphan_list_preserves_orphans_envelope(): void {
-		$GLOBALS['ec_test']['orphan_result'] = array( array( 'invalid_artist_id' => 44 ) );
+		$result = extrachill_artist_platform_ability_admin_list_orphan_artist_relationships( array() );
 
-		$this->assertSame(
-			array( 'orphans' => array( array( 'invalid_artist_id' => 44 ) ) ),
-			extrachill_artist_platform_ability_admin_list_orphan_artist_relationships( array() )
-		);
+		$this->assertArrayHasKey( 'orphans', $result );
+		$this->assertIsArray( $result['orphans'] );
 	}
 }

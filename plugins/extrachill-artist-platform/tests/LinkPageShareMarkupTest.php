@@ -1,33 +1,8 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-if ( ! function_exists( 'wp_parse_args' ) ) {
-	function wp_parse_args( $args, $defaults ) {
-		return array_merge( $defaults, $args );
-	}
-}
-
-if ( ! function_exists( 'esc_attr' ) ) {
-	function esc_attr( $value ) {
-		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
-	}
-}
-
-if ( ! function_exists( 'esc_html' ) ) {
-	function esc_html( $value ) {
-		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
-	}
-}
-
-if ( ! function_exists( 'esc_url' ) ) {
-	function esc_url( $value ) {
-		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
-	}
-}
-
-// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- test file keeps a render helper plus the test class; intentional.
-final class LinkPageShareMarkupTest extends TestCase {
+final class LinkPageShareMarkupTest extends EC_Artist_Platform_TestCase {
 	private function render_single_link( array $args ): string {
 		ob_start();
 		require dirname( __DIR__ ) . '/inc/link-pages/live/templates/components/single-link.php';

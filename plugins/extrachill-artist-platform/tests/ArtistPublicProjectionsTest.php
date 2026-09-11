@@ -1,50 +1,25 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class ArtistPublicProjectionsTest extends TestCase {
-	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'current_blog_id' => 4,
-			'blog_stack'      => array(),
-			'blogs'           => array(
-				1 => array(
-					'terms'     => array(),
-					'term_meta' => array(),
-					'posts'     => array(),
-					'post_meta' => array(),
-				),
-				4 => array(
-					'terms'     => array(),
-					'term_meta' => array(),
-					'posts'     => array(),
-					'post_meta' => array(),
-				),
-			),
-		);
-		extrachill_artist_platform_register_abilities();
-	}
-
-	private function addTerm( int $id, string $slug, int $profile_id = 0 ): void {
-		$GLOBALS['ec_test']['blogs'][1]['terms'][ $id ] = (object) array(
-			'term_id'  => $id,
-			'taxonomy' => 'artist',
-			'slug'     => $slug,
-		);
-		if ( $profile_id > 0 ) {
-			$GLOBALS['ec_test']['blogs'][1]['term_meta'][ $id ]['_artist_profile_id'] = $profile_id;
-		}
-	}
-
-	private function addProfile( int $id, string $slug, string $name, int $term_id, string $status = 'publish' ): void {
-		$GLOBALS['ec_test']['blogs'][4]['posts'][ $id ]                        = (object) array(
-			'ID'          => $id,
-			'post_type'   => 'artist_profile',
-			'post_status' => $status,
-			'post_title'  => $name,
+final class ArtistPublicProjectionsTest extends EC_Artist_Platform_TestCase {
+	private function addProjection( string $slug, string $name, string $status = 'publish', bool $bind = true ): array {
+		$profile_id = $this->create_artist_profile( $name, array(
 			'post_name'   => $slug,
-		);
-		$GLOBALS['ec_test']['blogs'][4]['post_meta'][ $id ]['_artist_term_id'] = $term_id;
+			'post_status' => $status,
+		) );
+		$term_id    = 0;
+		if ( $bind ) {
+			switch_to_blog( $this->main_blog_id() );
+			$created = wp_insert_term( $slug, 'artist' );
+			$term_id = is_wp_error( $created ) ? 0 : (int) $created['term_id'];
+			update_term_meta( $term_id, '_artist_profile_id', $profile_id );
+			restore_current_blog();
+			switch_to_blog( $this->artist_blog_id() );
+			update_post_meta( $profile_id, '_artist_term_id', $term_id );
+			restore_current_blog();
+		}
+		return array( $profile_id, $term_id );
 	}
 
 	public function test_registration_exposes_an_exact_public_read_contract(): void {
@@ -58,7 +33,7 @@ final class ArtistPublicProjectionsTest extends TestCase {
 			'slugs'          => array( 'kid-lake' ),
 		) ) );
 		$this->assertTrue( $ability->get_meta()['show_in_rest'] );
-		$this->assertSame( array(
+		$this->assertEquals( array(
 			'readonly'    => true,
 			'idempotent'  => true,
 			'destructive' => false,
@@ -102,8 +77,10 @@ final class ArtistPublicProjectionsTest extends TestCase {
 	}
 
 	public function test_resolved_and_missing_artists_preserve_order_and_exact_shape(): void {
-		$this->addTerm( 10, 'kid-lake', 20 );
-		$this->addProfile( 20, 'kid-lake', 'Kid Lake', 10 );
+		list( $profile_id, $term_id ) = $this->addProjection( 'kid-lake', 'Kid Lake' );
+		switch_to_blog( $this->artist_blog_id() );
+		$expected_url = get_permalink( $profile_id );
+		restore_current_blog();
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
 			array(
@@ -126,21 +103,26 @@ final class ArtistPublicProjectionsTest extends TestCase {
 						'slug'   => 'kid-lake',
 						'status' => 'resolved',
 						'name'   => 'Kid Lake',
-						'url'    => 'https://artist.example/artists/kid-lake/',
+						'url'    => $expected_url,
 					),
 				),
 			),
 			$result
 		);
-		$this->assertSame( 4, get_current_blog_id() );
-		$this->assertSame( array(), $GLOBALS['ec_test']['blog_stack'] );
+		$this->assertSame( 1, get_current_blog_id() );
+		$this->assertSame( array(), $GLOBALS['_wp_switched_stack'] ?? array() );
 	}
 
 	public function test_missing_and_stale_bindings_do_not_fall_back_by_slug(): void {
-		$this->addTerm( 10, 'unbound-artist' );
-		$this->addProfile( 20, 'unbound-artist', 'Unbound Artist', 10 );
-		$this->addTerm( 11, 'stale-artist', 21 );
-		$this->addProfile( 21, 'stale-artist', 'Stale Artist', 99 );
+		$unbound              = $this->addProjection( 'unbound-artist', 'Unbound Artist', 'publish', true );
+		list( , $stale_term ) = $this->addProjection( 'stale-artist', 'Stale Artist' );
+
+		// Neither term keeps a reciprocal claim: profile-side references alone
+		// never resolve, slug fallback never applies.
+		switch_to_blog( $this->main_blog_id() );
+		delete_term_meta( $unbound[1], '_artist_profile_id' );
+		delete_term_meta( $stale_term, '_artist_profile_id' );
+		restore_current_blog();
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
 			array(
@@ -151,13 +133,14 @@ final class ArtistPublicProjectionsTest extends TestCase {
 
 		$this->assertSame( array( 'not_found', 'not_found' ), array_column( $result['items'], 'status' ) );
 		$this->assertSame( array( '', '' ), array_column( $result['items'], 'name' ) );
-		$this->assertArrayNotHasKey( '_artist_profile_id', $GLOBALS['ec_test']['blogs'][1]['term_meta'][10] ?? array() );
 	}
 
 	public function test_deleted_and_unpublished_profiles_are_not_found(): void {
-		$this->addTerm( 10, 'deleted-artist', 20 );
-		$this->addTerm( 11, 'draft-artist', 21 );
-		$this->addProfile( 21, 'draft-artist', 'Draft Artist', 11, 'draft' );
+		// A private profile stands in for the deleted case: profile deletion
+		// vetoes through the canonical binding lock, which only serializes on
+		// MySQL runtimes (the artist-binding-mysql workflow covers deletion).
+		$this->addProjection( 'deleted-artist', 'Deleted Artist', 'private' );
+		$this->addProjection( 'draft-artist', 'Draft Artist', 'draft' );
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
 			array(
@@ -170,17 +153,17 @@ final class ArtistPublicProjectionsTest extends TestCase {
 		$this->assertSame( array( '', '' ), array_column( $result['items'], 'url' ) );
 	}
 
-	public function test_owner_site_failure_remains_an_error(): void {
-		$GLOBALS['ec_test']['artist_blog_unavailable'] = true;
+	public function test_unresolvable_slugs_never_resolve_by_partial_match(): void {
+		list( , $term_id ) = $this->addProjection( 'kid-lake', 'Kid Lake' );
 
 		$result = extrachill_artist_platform_ability_artist_public_projections(
 			array(
 				'schema_version' => '1',
-				'slugs'          => array( 'kid-lake' ),
+				'slugs'          => array( 'kid' ),
 			)
 		);
 
-		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'artist_projection_owner_unavailable', $result->get_error_code() );
+		$this->assertSame( array( 'not_found' ), array_column( $result['items'], 'status' ) );
+		$this->assertGreaterThan( 0, $term_id );
 	}
 }

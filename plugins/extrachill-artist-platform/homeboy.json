@@ -2,7 +2,26 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "database_type": "sqlite",
+      "settings": {
+        "phpunit_no_tests": "fail",
+        "runtime_wordpress_version": "7.0",
+        "wordpress_runtime_php_version": "8.4",
+        "validation_dependencies": [
+          "extrachill-network",
+          "extrachill-api",
+          "extrachill-users",
+          "agents-api"
+        ],
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_phpunit_config": "/wordpress/wp-content/plugins/extrachill-artist-platform/phpunit.xml.dist",
+        "wp_codebox_phpunit_preload_files": [
+          "/wordpress/wp-content/plugins/extrachill-artist-platform/tests/support/managed-preload.php"
+        ]
+      }
+    }
   },
   "id": "extrachill-artist-platform",
   "remote_path": "wp-content/plugins/extrachill-artist-platform",

@@ -1,12 +1,12 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class SanitizeCssVarsTest extends TestCase {
+final class SanitizeCssVarsTest extends EC_Artist_Platform_TestCase {
 	/**
 	 * Runs a callback capturing PHP deprecations/notices/warnings and asserts none fire.
 	 *
-	 * @param callable $callback
+	 * @param callable $callback Callback.
 	 * @return mixed
 	 */
 	private function run_without_warnings( $callback ) {

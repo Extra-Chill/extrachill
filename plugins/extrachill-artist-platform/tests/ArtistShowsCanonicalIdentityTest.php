@@ -1,21 +1,104 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class ArtistShowsCanonicalIdentityTest extends TestCase {
+final class ArtistShowsCanonicalIdentityTest extends EC_Artist_Platform_TestCase {
+	private $http_requests;
+
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'current_blog_id'     => 4,
-			'blog_stack'          => array(),
-			'cross_site_requests' => array(),
-			'blogs'               => array(
-				1 => array(
-					'terms'     => array(),
-					'term_meta' => array(),
-				),
-				4 => array(),
-			),
+		parent::setUp();
+
+		$this->http_requests           = new stdClass();
+		$this->http_requests->requests = array();
+		$this->http_requests->response = null;
+		$state                         = $this->http_requests;
+		$this->ec_inject_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( $state ) {
+				$state->requests[] = array( $url, $args );
+				return $state->response ?? array(
+					'headers'  => array(),
+					'body'     => wp_json_encode(
+						array(
+							'taxonomy'  => 'artist',
+							'term_id'   => 0,
+							'term_slug' => '',
+							'found'     => false,
+							'upcoming'  => array(),
+							'past'      => array(),
+						)
+					),
+					'response' => array(
+						'code'    => 200,
+						'message' => 'OK',
+					),
+					'cookies'  => array(),
+				);
+			},
+			100
 		);
+	}
+
+	private function set_response( $response ): void {
+		$this->http_requests->response = array(
+			'headers'  => array(),
+			'body'     => wp_json_encode( $response ),
+			'response' => array(
+				'code'    => 200,
+				'message' => 'OK',
+			),
+			'cookies'  => array(),
+		);
+	}
+
+	private function events_url(): string {
+		return untrailingslashit( get_home_url( ec_get_blog_id( 'events' ) ) );
+	}
+
+	public function test_renamed_main_and_events_slugs_use_canonical_identity(): void {
+		$this->set_response(
+			array(
+				'taxonomy'  => 'artist',
+				'term_id'   => 901,
+				'term_slug' => 'renamed-events-band',
+				'found'     => true,
+				'upcoming'  => array( array( 'event_id' => 9 ) ),
+				'past'      => array( array( 'event_id' => 8 ) ),
+			)
+		);
+
+		$result  = ec_artist_shows_gather( 301 );
+		$request = $this->http_requests->requests[0] ?? null;
+
+		$this->assertNotNull( $request, 'The canonical lookup must call the events adapter.' );
+		$this->assertStringContainsString( '/wp-abilities/v1/abilities/', (string) $request[0] );
+		$this->assertSame( 901, $result['term_id'] );
+		$this->assertSame( 'renamed-events-band', $result['term_slug'] );
+		$this->assertSame( 9, $result['upcoming'][0]['event_id'] );
+		$this->assertSame( 8, $result['past'][0]['event_id'] );
+		$this->assertSame(
+			$this->events_url() . '/artist/renamed-events-band',
+			ec_artist_shows_archive_url( $result['term_slug'] )
+		);
+	}
+
+	public function test_successful_canonical_lookup_calls_events_adapter(): void {
+		$this->set_response(
+			array(
+				'taxonomy'  => 'artist',
+				'term_id'   => 902,
+				'term_slug' => 'canonical-band',
+				'found'     => true,
+				'upcoming'  => array( array( 'event_id' => 10 ) ),
+				'past'      => array(),
+			)
+		);
+
+		$result  = ec_artist_shows_gather( 303 );
+		$request = $this->http_requests->requests[0];
+
+		$this->assertStringContainsString( '/wp-abilities/v1/abilities/extrachill-events/events-by-artist/run', $request[0] );
+		$this->assertSame( 10, $result['upcoming'][0]['event_id'] );
 	}
 
 	private function assertPublicShowsAreEmpty( int $artist_term_id ): void {
@@ -26,88 +109,64 @@ final class ArtistShowsCanonicalIdentityTest extends TestCase {
 		$this->assertSame( '', ob_get_clean() );
 	}
 
-	public function test_renamed_main_and_events_slugs_use_canonical_identity(): void {
-		$GLOBALS['ec_test']['blogs'][1]['terms'][301] = (object) array(
-			'term_id'  => 301,
-			'taxonomy' => 'artist',
-			'slug'     => 'renamed-main-band',
-		);
-		$GLOBALS['ec_test']['cross_site_result']      = array(
-			'taxonomy'  => 'artist',
-			'term_id'   => 901,
-			'term_slug' => 'renamed-events-band',
-			'found'     => true,
-			'upcoming'  => array( array( 'event_id' => 9 ) ),
-			'past'      => array( array( 'event_id' => 8 ) ),
-		);
-
-		$result  = ec_artist_shows_gather( 301 );
-		$request = $GLOBALS['ec_test']['cross_site_requests'][0][3]['query']['input'];
-
-		$this->assertSame( 301, $request['artist_term_id'] );
-		$this->assertArrayNotHasKey( 'term_slug', $request );
-		$this->assertSame( 901, $result['term_id'] );
-		$this->assertSame( 'renamed-events-band', $result['term_slug'] );
-		$this->assertSame( 9, $result['upcoming'][0]['event_id'] );
-		$this->assertSame( 8, $result['past'][0]['event_id'] );
-		$this->assertSame( 'https://site-7.example/artist/renamed-events-band', ec_artist_shows_archive_url( $result['term_slug'] ) );
-	}
-
-	public function test_successful_canonical_lookup_calls_events_adapter(): void {
-		$GLOBALS['ec_test']['cross_site_result'] = array(
-			'taxonomy'  => 'artist',
-			'term_id'   => 902,
-			'term_slug' => 'canonical-band',
-			'found'     => true,
-			'upcoming'  => array( array( 'event_id' => 10 ) ),
-			'past'      => array(),
-		);
-
-		$result  = ec_artist_shows_gather( 303 );
-		$request = $GLOBALS['ec_test']['cross_site_requests'][0];
-
-		$this->assertSame( 'events', $request[0] );
-		$this->assertSame( '/wp-abilities/v1/abilities/extrachill-events/events-by-artist/run', $request[2] );
-		$this->assertSame(
-			array(
-				'artist_term_id' => 303,
-				'scope'          => 'all',
-				'limit'          => 12,
-			),
-			$request[3]['query']['input']
-		);
-		$this->assertSame( 10, $result['upcoming'][0]['event_id'] );
-	}
-
 	public function test_missing_mapping_error_preserves_empty_public_rendering(): void {
-		$GLOBALS['ec_test']['cross_site_result'] = new WP_Error( 'artist_mapping_missing', 'No mapping.' );
+		$this->set_response(
+			array(
+				'taxonomy'  => 'artist',
+				'term_id'   => 0,
+				'term_slug' => '',
+				'found'     => false,
+				'upcoming'  => array(),
+				'past'      => array(),
+			)
+		);
 
 		$this->assertPublicShowsAreEmpty( 304 );
-		$this->assertCount( 1, $GLOBALS['ec_test']['cross_site_requests'] );
+		$this->assertCount( 1, $this->http_requests->requests );
 	}
 
 	public function test_stale_mapping_error_preserves_empty_public_rendering(): void {
-		$GLOBALS['ec_test']['cross_site_result'] = new WP_Error( 'stale_artist_mapping', 'Stale mapping.' );
+		$this->set_response(
+			array(
+				'taxonomy'  => 'artist',
+				'term_id'   => 0,
+				'term_slug' => 'stale',
+				'found'     => false,
+				'upcoming'  => array(),
+				'past'      => array(),
+			)
+		);
 
 		$this->assertPublicShowsAreEmpty( 305 );
-		$this->assertCount( 1, $GLOBALS['ec_test']['cross_site_requests'] );
+		$this->assertCount( 1, $this->http_requests->requests );
 	}
 
 	public function test_adapter_unavailability_preserves_empty_public_rendering(): void {
-		$GLOBALS['ec_test']['cross_site_result'] = new WP_Error( 'ability_not_found', 'Adapter unavailable.' );
+		// A 404 REST response surfaces as an HTTP error result.
+		$this->http_requests->response = array(
+			'headers'  => array(),
+			'body'     => '{"code":"ability_not_found","message":"Adapter unavailable."}',
+			'response' => array(
+				'code'    => 404,
+				'message' => 'Not Found',
+			),
+			'cookies'  => array(),
+		);
 
 		$this->assertPublicShowsAreEmpty( 306 );
-		$this->assertCount( 1, $GLOBALS['ec_test']['cross_site_requests'] );
+		$this->assertCount( 1, $this->http_requests->requests );
 	}
 
 	public function test_malformed_adapter_response_preserves_empty_public_rendering(): void {
-		$GLOBALS['ec_test']['cross_site_result'] = array(
-			'taxonomy'  => 'artist',
-			'term_id'   => 0,
-			'term_slug' => 'invalid-identity',
-			'found'     => true,
-			'upcoming'  => array( array( 'event_id' => 11 ) ),
-			'past'      => array(),
+		$this->set_response(
+			array(
+				'taxonomy'  => 'artist',
+				'term_id'   => 0,
+				'term_slug' => 'invalid-identity',
+				'found'     => true,
+				'upcoming'  => array( array( 'event_id' => 11 ) ),
+				'past'      => array(),
+			)
 		);
 
 		$this->assertPublicShowsAreEmpty( 307 );
@@ -123,6 +182,6 @@ final class ArtistShowsCanonicalIdentityTest extends TestCase {
 			),
 			ec_artist_shows_gather( 0 )
 		);
-		$this->assertSame( array(), $GLOBALS['ec_test']['cross_site_requests'] );
+		$this->assertSame( array(), $this->http_requests->requests );
 	}
 }

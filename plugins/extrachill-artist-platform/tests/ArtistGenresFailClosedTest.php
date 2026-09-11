@@ -1,60 +1,62 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
 /**
- * Fail-closed coverage: without the extrachill-network genre resolver (#191)
- * in the process, genre writes must refuse instead of storing raw strings.
+ * Fail-closed coverage: when the genre vocabulary is unavailable, genre
+ * writes must refuse instead of storing raw strings.
  *
- * Runs in a separate process so the resolver fixture used by other tests is
- * not loaded here.
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * The managed harness runs with the real extrachill-network genre resolver
+ * and taxonomy active, so unavailability is produced the way production
+ * experiences it: the vocabulary taxonomy is not registered.
  */
-final class ArtistGenresFailClosedTest extends TestCase {
+final class ArtistGenresFailClosedTest extends EC_Artist_Platform_TestCase {
+	private $profile_id;
+
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'current_blog_id' => 4,
-			'blog_stack'      => array(),
-			'blogs'           => array(
-				4 => array(
-					'posts' => array(
-						12 => (object) array(
-							'ID'           => 12,
-							'post_type'    => 'artist_profile',
-							'post_status'  => 'publish',
-							'post_title'   => 'The Chill Band',
-							'post_name'    => 'the-chill-band',
-							'post_content' => 'A short bio.',
-						),
-					),
-					'terms' => array(
-						900 => (object) array(
-							'term_id'  => 900,
-							'taxonomy' => 'genre',
-							'slug'     => 'rock',
-							'name'     => 'Rock',
-							'count'    => 0,
-						),
-					),
-				),
-			),
-		);
+		parent::setUp();
+
+		$this->profile_id = $this->create_artist_profile( 'The Chill Band' );
 	}
 
-	public function test_set_genres_refuses_to_write_without_the_network_resolver(): void {
-		$this->assertFalse( function_exists( 'extrachill_network_resolve_genres' ) );
+	protected function tearDown(): void {
+		// Restore the real network taxonomy registration after unregistration.
+		if ( ! taxonomy_exists( 'genre' ) && function_exists( 'extrachill_network_register_taxonomies' ) ) {
+			extrachill_network_register_taxonomies();
+		}
+		ec_artist_genres_bind_taxonomy();
+		parent::tearDown();
+	}
 
-		$result = ec_artist_set_genres( 12, array( 'Rock', 'rap' ) );
+	public function test_set_genres_refuses_to_write_without_the_genre_vocabulary(): void {
+		if ( ! taxonomy_exists( 'genre' ) ) {
+			$this->markTestSkipped( 'The genre taxonomy is not registered by extrachill-network; the fail-closed path is the default.' );
+		}
+
+		unregister_taxonomy( 'genre' );
+
+		$this->assertFalse( taxonomy_exists( 'genre' ) );
+
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$result = ec_artist_set_genres( $this->profile_id, array( 'Rock', 'rap' ) );
+		} finally {
+			restore_current_blog();
+		}
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'genre_vocabulary_unavailable', $result->get_error_code() );
-		$this->assertSame( array(), ec_test_blog_store( 'object_terms' ) );
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$assigned = get_the_terms( $this->profile_id, 'genre' );
+		} finally {
+			restore_current_blog();
+		}
+		$this->assertInstanceOf( WP_Error::class, $assigned );
 	}
 
 	public function test_reads_return_empty_arrays_when_nothing_is_assigned(): void {
-		$this->assertSame( array(), ec_artist_get_genres( 12 ) );
-		$this->assertSame( array(), ec_artist_get_genre_labels( 12 ) );
+		$this->assertSame( array(), ec_artist_get_genres( $this->profile_id ) );
+		$this->assertSame( array(), ec_artist_get_genre_labels( $this->profile_id ) );
 	}
 }

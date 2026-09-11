@@ -1,47 +1,59 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class ArtistAnalyticsContractTest extends TestCase {
+final class ArtistAnalyticsContractTest extends EC_Artist_Platform_TestCase {
+	private $owner_id;
+	private $profile_id;
+	private $link_page_id;
+	private $captured_args;
+	private $analytics_result;
+
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'current_blog_id'  => 4,
-			'blog_stack'       => array(),
-			'current_user_id'  => 7,
-			'managed_artists'  => array( 7 => array( 42 ) ),
-			'analytics_result' => array(
-				'summary'    => array(
-					'total_views'  => 1,
-					'total_clicks' => 0,
-				),
-				'chart_data' => array(
-					'labels'   => array(),
-					'datasets' => array(),
-				),
-				'top_links'  => array(),
-			),
-			'blogs'            => array(
-				4 => array(
-					'posts'     => array(
-						42  => (object) array(
-							'ID'          => 42,
-							'post_type'   => 'artist_profile',
-							'post_status' => 'publish',
-						),
-						142 => (object) array(
-							'ID'          => 142,
-							'post_type'   => 'artist_link_page',
-							'post_status' => 'publish',
-						),
-					),
-					'post_meta' => array(
-						142 => array( '_associated_artist_profile_id' => 42 ),
-					),
-				),
-			),
-		);
+		parent::setUp();
 
-		extrachill_artist_platform_register_abilities();
+		$this->owner_id   = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$bound            = $this->create_bound_artist( 'Analytics Artist' );
+		$this->profile_id = $bound['profile_id'];
+
+		switch_to_blog( $this->artist_blog_id() );
+		$this->link_page_id = (int) self::factory()->post->create(
+			array(
+				'post_type'   => 'artist_link_page',
+				'post_status' => 'publish',
+			)
+		);
+		update_post_meta( $this->link_page_id, '_associated_artist_profile_id', $this->profile_id );
+		update_post_meta( $this->link_page_id, EC_LINK_PAGE_OWNER_META_KEY, 'post:' . $this->artist_blog_id() . ':artist_profile:' . $this->profile_id );
+		update_post_meta( $this->profile_id, '_extrch_link_page_id', $this->link_page_id );
+		restore_current_blog();
+
+		$this->create_artist_membership( $this->owner_id, $this->profile_id );
+		wp_set_current_user( $this->owner_id );
+
+		$this->analytics_result     = array(
+			'summary'    => array(
+				'total_views'  => 1,
+				'total_clicks' => 0,
+			),
+			'chart_data' => array(
+				'labels'   => array(),
+				'datasets' => array(),
+			),
+			'top_links'  => array(),
+		);
+		$this->captured_args        = new stdClass();
+		$this->captured_args->calls = array();
+		$state                      = $this->captured_args;
+		$result                     = $this->analytics_result;
+		$this->ec_inject_filter(
+			'extrachill_get_link_page_analytics',
+			static function ( $value, $link_page_id, $date_range, $start_date, $end_date ) use ( $state, $result ) {
+				$state->calls[] = array( $link_page_id, $date_range, $start_date, $end_date );
+				return $result;
+			},
+			100
+		);
 	}
 
 	public function test_ability_schema_preserves_legacy_range_and_adds_exact_dates(): void {
@@ -54,33 +66,43 @@ final class ArtistAnalyticsContractTest extends TestCase {
 	}
 
 	public function test_legacy_date_range_is_clamped_and_forwarded(): void {
-		$result = extrachill_artist_platform_ability_artist_get_analytics(
-			array(
-				'id'         => 42,
-				'date_range' => 120,
-			)
-		);
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$result = extrachill_artist_platform_ability_artist_get_analytics(
+				array(
+					'id'         => $this->profile_id,
+					'date_range' => 120,
+				)
+			);
+		} finally {
+			restore_current_blog();
+		}
 
-		$this->assertSame( $GLOBALS['ec_test']['analytics_result'], $result );
+		$this->assertSame( $this->analytics_result, $result );
 		$this->assertSame(
-			array( 142, 90, '', '' ),
-			$GLOBALS['ec_test']['analytics_filter_args'][0]
+			array( $this->link_page_id, 90, '', '' ),
+			$this->captured_args->calls[0]
 		);
 	}
 
 	public function test_exact_dates_are_forwarded_with_the_legacy_fallback(): void {
-		extrachill_artist_platform_ability_artist_get_analytics(
-			array(
-				'id'         => 42,
-				'date_range' => 7,
-				'start_date' => '2026-06-01',
-				'end_date'   => '2026-06-30',
-			)
-		);
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			extrachill_artist_platform_ability_artist_get_analytics(
+				array(
+					'id'         => $this->profile_id,
+					'date_range' => 7,
+					'start_date' => '2026-06-01',
+					'end_date'   => '2026-06-30',
+				)
+			);
+		} finally {
+			restore_current_blog();
+		}
 
 		$this->assertSame(
-			array( 142, 7, '2026-06-01', '2026-06-30' ),
-			$GLOBALS['ec_test']['analytics_filter_args'][0]
+			array( $this->link_page_id, 7, '2026-06-01', '2026-06-30' ),
+			$this->captured_args->calls[0]
 		);
 	}
 

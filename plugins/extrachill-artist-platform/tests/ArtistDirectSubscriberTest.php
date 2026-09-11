@@ -1,180 +1,111 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class ArtistDirectSubscriberWpdb extends EcTestWpdb {
-	public $prefix = 'wp_';
-	public $rows   = array();
-
-	public function get_var( $prepared ) {
-		if ( str_contains( $prepared['query'], 'artist_subscribers' ) ) {
-			$artist_id = (int) $prepared['args'][0];
-			$email     = (string) $prepared['args'][1];
-
-			return count(
-				array_filter(
-					$this->rows,
-					static fn( $row ) => $artist_id === (int) $row->artist_profile_id && $email === $row->subscriber_email
-				)
-			);
-		}
-
-		return parent::get_var( $prepared );
-	}
-
-	public function insert( $table, $data, $format ) {
-		$data['subscriber_id'] = count( $this->rows ) + 1;
-		$data['user_id']       = null;
-		$data['source']        = 'artist_subscribe_form';
-		$this->rows[]          = (object) $data;
-
-		return 1;
-	}
-
-	public function get_results( $prepared ) {
-		$args            = is_array( $prepared['args'][0] ) ? $prepared['args'][0] : $prepared['args'];
-		$artist_id       = (int) $args[0];
-		$excluded_source = (string) $args[1];
-		$exported        = count( $args ) > 2 ? (int) $args[2] : null;
-		$rows            = array_values(
-			array_filter(
-				$this->rows,
-				static function ( $row ) use ( $artist_id, $excluded_source, $exported ) {
-					return $artist_id === (int) $row->artist_profile_id
-						&& $excluded_source !== $row->source
-						&& ( null === $exported || $exported === (int) $row->exported );
-				}
-			)
-		);
-
-		usort( $rows, static fn( $left, $right ) => strcmp( $right->subscribed_at, $left->subscribed_at ) );
-		return $rows;
-	}
-
-	public function query( $query ) {
-		if ( preg_match( '/subscriber_id IN \(([^)]+)\)/', $query, $matches ) ) {
-			$ids = array_map( 'intval', explode( ',', $matches[1] ) );
-			foreach ( $this->rows as $row ) {
-				if ( in_array( (int) $row->subscriber_id, $ids, true ) ) {
-					$row->exported = 1;
-				}
-			}
-
-			return count( $ids );
-		}
-
-		return parent::query( $query );
-	}
-}
-
-// phpcs:ignore Generic.Files.OneObjectStructurePerFile.MultipleFound -- second stub class in this test file is intentional; not restructuring tests.
-final class ArtistDirectSubscriberTest extends TestCase {
-	private $original_wpdb;
+final class ArtistDirectSubscriberTest extends EC_Artist_Platform_TestCase {
+	private $owner_id;
+	private $profile_id;
 
 	protected function setUp(): void {
-		$this->original_wpdb                         = $GLOBALS['wpdb'];
-		$GLOBALS['wpdb']                             = new ArtistDirectSubscriberWpdb();
-		$GLOBALS['ec_test']                          = array(
-			'current_user_id' => 7,
-			'managed_artists' => array( 7 => array( 42 ) ),
-			'current_blog_id' => 4,
-			'blog_stack'      => array(),
-		);
-		$GLOBALS['ec_test']['blogs'][4]['posts'][42] = (object) array(
-			'ID'          => 42,
-			'post_type'   => 'artist_profile',
-			'post_status' => 'publish',
-			'post_title'  => 'Futurebirds',
-		);
+		parent::setUp();
+
+		$this->owner_id   = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$this->profile_id = $this->create_artist_profile( 'Futurebirds' );
+		$this->create_artist_membership( $this->owner_id, $this->profile_id );
+		wp_set_current_user( $this->owner_id );
 	}
 
-	protected function tearDown(): void {
-		$GLOBALS['wpdb'] = $this->original_wpdb;
+	/**
+	 * Ensure the subscriber table exists on the artist blog and enter its context.
+	 */
+	private function enter_artist_context(): void {
+		switch_to_blog( $this->artist_blog_id() );
+		extrachill_artist_create_subscribers_table();
+	}
+
+	private function subscribe( string $email ) {
+		$this->enter_artist_context();
+		try {
+			return extrachill_artist_platform_ability_artist_subscribe(
+				array(
+					'id'    => $this->profile_id,
+					'email' => $email,
+				)
+			);
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	public function test_anonymous_direct_submission_storage_list_and_export_work_without_recipient_resolver(): void {
-		$this->assertFalse( function_exists( 'extrachill_users_entity_subscription_recipients' ) );
+		$subscribed = $this->subscribe( 'listener@example.com' );
 
-		$subscribed = extrachill_artist_platform_ability_artist_subscribe(
-			array(
-				'id'    => 42,
-				'email' => 'listener@example.com',
-			)
-		);
-
+		$this->assertIsArray( $subscribed );
 		$this->assertSame( 'Thank you for subscribing!', $subscribed['message'] );
-		$this->assertCount( 1, $GLOBALS['wpdb']->rows );
-		$this->assertNull( $GLOBALS['wpdb']->rows[0]->user_id );
-		$this->assertSame( 'artist_subscribe_form', $GLOBALS['wpdb']->rows[0]->source );
 
-		$duplicate = extrachill_artist_platform_ability_artist_subscribe(
-			array(
-				'id'    => 42,
-				'email' => 'listener@example.com',
-			)
-		);
+		$duplicate = $this->subscribe( 'listener@example.com' );
 		$this->assertInstanceOf( WP_Error::class, $duplicate );
 		$this->assertSame( 'already_subscribed', $duplicate->get_error_code() );
 
-		$list = extrachill_artist_platform_ability_artist_list_subscribers( array( 'id' => 42 ) );
+		$this->enter_artist_context();
+		$list = extrachill_artist_platform_ability_artist_list_subscribers( array( 'id' => $this->profile_id ) );
+		restore_current_blog();
+
 		$this->assertSame( 1, $list['total'] );
 		$this->assertSame( 'listener@example.com', $list['subscribers'][0]->subscriber_email );
 
-		$export = extrachill_artist_platform_ability_artist_export_subscribers( array( 'id' => 42 ) );
+		$this->enter_artist_context();
+		$export = extrachill_artist_platform_ability_artist_export_subscribers( array( 'id' => $this->profile_id ) );
+		restore_current_blog();
+
 		$this->assertSame( 1, $export['total'] );
 		$this->assertSame( 1, $export['marked_count'] );
 		$this->assertSame( 'listener@example.com', $export['subscribers'][0]['email'] );
-		$this->assertSame( 1, $GLOBALS['wpdb']->rows[0]->exported );
 	}
 
 	public function test_direct_reader_filters_orders_paginates_and_excludes_historical_follow_consent(): void {
-		$GLOBALS['wpdb']->rows = array(
-			(object) array(
-				'subscriber_id'     => 1,
-				'artist_profile_id' => 42,
-				'subscriber_email'  => 'older@example.com',
-				'username'          => '',
-				'source'            => 'artist_subscribe_form',
-				'subscribed_at'     => '2026-08-01 12:00:00',
-				'exported'          => 0,
-			),
-			(object) array(
-				'subscriber_id'     => 2,
-				'artist_profile_id' => 42,
+		$this->subscribe( 'older@example.com' );
+		$this->subscribe( 'newer@example.com' );
+
+		// A historical follow-consent row must never surface in exports.
+		global $wpdb;
+		$this->enter_artist_context();
+		$wpdb->insert(
+			$wpdb->prefix . 'artist_subscribers',
+			array(
+				'artist_profile_id' => $this->profile_id,
 				'subscriber_email'  => 'historical@example.com',
 				'username'          => 'historical',
 				'source'            => 'platform_follow_consent',
-				'subscribed_at'     => '2026-08-03 12:00:00',
-				'exported'          => 0,
-			),
-			(object) array(
-				'subscriber_id'     => 3,
-				'artist_profile_id' => 42,
-				'subscriber_email'  => 'newer@example.com',
-				'username'          => '',
-				'source'            => 'artist_subscribe_form',
-				'subscribed_at'     => '2026-08-02 12:00:00',
-				'exported'          => 0,
-			),
+				'subscribed_at'     => gmdate( 'Y-m-d H:i:s', time() - 3600 ),
+			)
 		);
+		// Deterministic ordering: the "older" row predates the "newer" one.
+		$wpdb->update( $wpdb->prefix . 'artist_subscribers', array( 'subscribed_at' => gmdate( 'Y-m-d H:i:s', time() - 600 ) ), array( 'subscriber_email' => 'older@example.com' ) );
+		$wpdb->update( $wpdb->prefix . 'artist_subscribers', array( 'subscribed_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'subscriber_email' => 'newer@example.com' ) );
 
 		$subscribers = extrachill_artist_get_artist_subscribers(
-			42,
+			$this->profile_id,
 			array(
 				'exported' => 0,
 				'limit'    => 1,
 				'offset'   => 1,
 			)
 		);
+		restore_current_blog();
 
 		$this->assertCount( 1, $subscribers );
 		$this->assertSame( 'older@example.com', $subscribers[0]->subscriber_email );
 	}
 
 	public function test_list_handler_rejects_unauthorized_artist_before_reading(): void {
-		$GLOBALS['ec_test']['managed_artists'] = array();
+		wp_set_current_user( $this->owner_id );
+		// A profile the user does not own.
+		$other_profile_id = $this->create_artist_profile( 'Unowned Artist' );
 
-		$result = extrachill_artist_platform_ability_artist_list_subscribers( array( 'id' => 42 ) );
+		$this->enter_artist_context();
+		$result = extrachill_artist_platform_ability_artist_list_subscribers( array( 'id' => $other_profile_id ) );
+		restore_current_blog();
 
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'artist_access_denied', $result->get_error_code() );

@@ -1,102 +1,141 @@
 <?php
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/support/base-test-case.php';
 
-final class ArtistProfileDataTest extends TestCase {
+final class ArtistProfileDataTest extends EC_Artist_Platform_TestCase {
+	private $profile_id;
+	private $header_attachment_id;
+	private $profile_attachment_id;
+
 	protected function setUp(): void {
-		$GLOBALS['ec_test'] = array(
-			'posts'      => array(
-				12 => (object) array(
+		parent::setUp();
+
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$this->profile_id = (int) self::factory()->post->create(
+				array(
 					'post_type'    => 'artist_profile',
 					'post_status'  => 'publish',
 					'post_title'   => 'The Chill Band',
 					'post_name'    => 'the-chill-band',
 					'post_content' => 'A short bio.',
-				),
-			),
-			'meta'       => array(
-				12 => array(
-					'_local_city'                     => array( 'Charleston, SC' ),
-					'_artist_profile_header_image_id' => array( 34 ),
-					'_artist_profile_social_links'    => array(
-						array(
-							array(
-								'type' => 'spotify',
-								'url'  => 'https://spotify.com/artist/chill',
-							),
-						),
+				)
+			);
+
+			update_post_meta( $this->profile_id, '_local_city', 'Charleston, SC' );
+			update_post_meta(
+				$this->profile_id,
+				'_artist_profile_social_links',
+				array(
+					array(
+						'type' => 'spotify',
+						'url'  => 'https://spotify.com/artist/chill',
 					),
-				),
-			),
-			'blogs'      => array(
-				4 => array(
-					'terms'        => array(
-						900 => (object) array(
-							'term_id'  => 900,
-							'taxonomy' => 'genre',
-							'slug'     => 'psych-rock',
-							'name'     => 'Psych rock',
-							'count'    => 0,
-						),
-					),
-					'object_terms' => array(
-						'genre' => array( 12 => array( 900 ) ),
-					),
-				),
-			),
-			'thumbnails' => array( 12 => 56 ),
-		);
+				)
+			);
+
+			$this->header_attachment_id = (int) self::factory()->attachment->create_object(
+				'header.jpg',
+				$this->profile_id,
+				array(
+					'post_mime_type' => 'image/jpeg',
+					'post_type'      => 'attachment',
+				)
+			);
+			update_post_meta( $this->profile_id, '_artist_profile_header_image_id', $this->header_attachment_id );
+
+			$this->profile_attachment_id = (int) self::factory()->attachment->create_object(
+				'profile.jpg',
+				$this->profile_id,
+				array(
+					'post_mime_type' => 'image/jpeg',
+					'post_type'      => 'attachment',
+				)
+			);
+			set_post_thumbnail( $this->profile_id, $this->profile_attachment_id );
+
+			$genre_term = get_term_by( 'slug', 'psych-rock', 'genre' );
+			if ( $genre_term ) {
+				$genre_term_id = (int) $genre_term->term_id;
+			} else {
+				$created       = wp_insert_term( 'Psych rock', 'genre' );
+				$genre_term_id = is_wp_error( $created ) ? 0 : (int) $created['term_id'];
+			}
+			wp_set_object_terms( $this->profile_id, array( $genre_term_id ), 'genre', false );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	public function test_returns_the_complete_canonical_profile_fields(): void {
-		$this->assertSame(
-			array(
-				'artist_id'         => 12,
-				'title'             => 'The Chill Band',
-				'slug'              => 'the-chill-band',
-				'permalink'         => 'https://artist.example/artists/the-chill-band/',
-				'bio'               => 'A short bio.',
-				'genres'            => array( 'psych-rock' ),
-				'genre_labels'      => array( 'Psych rock' ),
-				'local_city'        => 'Charleston, SC',
-				'website_url'       => '',
-				'spotify_url'       => '',
-				'apple_music_url'   => '',
-				'bandcamp_url'      => '',
-				'social_links'      => array(
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$data = ec_get_artist_profile_data( $this->profile_id );
+
+			$this->assertSame( $this->profile_id, $data['artist_id'] );
+			$this->assertSame( 'The Chill Band', $data['title'] );
+			$this->assertSame( 'the-chill-band', $data['slug'] );
+			$this->assertSame( get_permalink( $this->profile_id ), $data['permalink'] );
+			$this->assertSame( 'A short bio.', $data['bio'] );
+			$this->assertSame( array( 'psych-rock' ), $data['genres'] );
+			$this->assertSame( array( 'Psych rock' ), $data['genre_labels'] );
+			$this->assertSame( 'Charleston, SC', $data['local_city'] );
+			$this->assertSame( '', $data['website_url'] );
+			$this->assertSame( '', $data['spotify_url'] );
+			$this->assertSame( '', $data['apple_music_url'] );
+			$this->assertSame( '', $data['bandcamp_url'] );
+			$this->assertSame(
+				array(
 					array(
 						'type' => 'spotify',
 						'url'  => 'https://spotify.com/artist/chill',
 					),
 				),
-				'header_image_id'   => 34,
-				'header_image_url'  => 'https://artist.example/media/34.jpg',
-				'profile_image_id'  => 56,
-				'profile_image_url' => 'https://artist.example/media/56.jpg',
-				'link_page_id'      => 0,
-			),
-			ec_get_artist_profile_data( 12 )
-		);
+				$data['social_links']
+			);
+			$this->assertSame( $this->header_attachment_id, (int) $data['header_image_id'] );
+			$this->assertSame( wp_get_attachment_url( $this->header_attachment_id ), $data['header_image_url'] );
+			$this->assertSame( $this->profile_attachment_id, (int) $data['profile_image_id'] );
+			$this->assertSame(
+				get_the_post_thumbnail_url( $this->profile_id, 'large' ),
+				$data['profile_image_url']
+			);
+			$this->assertSame( 0, $data['link_page_id'] );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	public function test_public_ability_returns_only_published_profiles_and_official_links(): void {
-		$result = extrachill_artist_platform_ability_artist_get( array( 'id' => 12 ) );
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$result = extrachill_artist_platform_ability_artist_get( array( 'id' => $this->profile_id ) );
 
-		$this->assertSame( 'https://artist.example/artists/the-chill-band/', $result['permalink'] );
-		$this->assertSame(
-			array(
+			$this->assertSame( get_permalink( $this->profile_id ), $result['permalink'] );
+			$this->assertSame(
 				array(
-					'type' => 'spotify',
-					'url'  => 'https://spotify.com/artist/chill',
+					array(
+						'type' => 'spotify',
+						'url'  => 'https://spotify.com/artist/chill',
+					),
 				),
-			),
-			$result['official_links']
-		);
+				$result['official_links']
+			);
 
-		$GLOBALS['ec_test']['posts'][12]->post_status = 'draft';
-		$result                                       = extrachill_artist_platform_ability_artist_get( array( 'id' => 12 ) );
+			wp_update_post(
+				array(
+					'ID'          => $this->profile_id,
+					'post_status' => 'draft',
+				)
+			);
+			clean_post_cache( $this->profile_id );
 
-		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'invalid_artist', $result->get_error_code() );
+			$result = extrachill_artist_platform_ability_artist_get( array( 'id' => $this->profile_id ) );
+
+			$this->assertInstanceOf( WP_Error::class, $result );
+			$this->assertSame( 'invalid_artist', $result->get_error_code() );
+		} finally {
+			restore_current_blog();
+		}
 	}
 }
