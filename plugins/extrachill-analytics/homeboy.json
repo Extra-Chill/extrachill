@@ -252,7 +252,17 @@
   },
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "database_type": "sqlite",
+      "php": "8.2",
+      "settings": {
+        "phpunit_no_tests": "fail",
+        "runtime_wordpress_version": "7.0",
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_phpunit_config": "/wordpress/wp-content/plugins/extrachill-analytics/phpunit.xml.dist"
+      }
+    }
   },
   "id": "extrachill-analytics",
   "remote_path": "wp-content/plugins/extrachill-analytics",

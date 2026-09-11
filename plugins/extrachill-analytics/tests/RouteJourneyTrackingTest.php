@@ -5,58 +5,28 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/route-classifier.php';
-require_once dirname( __DIR__ ) . '/inc/core/referrer-host-classifier.php';
-require_once dirname( __DIR__ ) . '/inc/core/assets.php';
-require_once dirname( __DIR__ ) . '/inc/core/write-integrity.php';
-require_once dirname( __DIR__ ) . '/inc/core/abilities/track-page-view.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Verify route identity stays bounded, query-free, and cache-safe.
  */
-final class RouteJourneyTrackingTest extends TestCase {
+final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Establish a first-party browser beacon fixture.
 	 */
-	protected function setUp(): void {
-		$_SERVER['HTTP_HOST']                                    = 'extrachill.com';
-		$_SERVER['HTTP_ORIGIN']                                  = 'https://extrachill.com';
-		$_SERVER['HTTP_USER_AGENT']                              = 'Mozilla/5.0';
-		$_SERVER['REMOTE_ADDR']                                  = '203.0.113.20';
-		$_SERVER['REQUEST_METHOD']                               = 'GET';
-		$_COOKIE['ec_vid']                                       = '123e4567-e89b-42d3-a456-426614174000';
-		$GLOBALS['extrachill_analytics_test_tracked_post_views'] = array();
-		$GLOBALS['extrachill_analytics_test_events']             = array();
-		$GLOBALS['extrachill_analytics_test_actions']            = array();
-		$GLOBALS['extrachill_analytics_test_cache']              = array();
-		$GLOBALS['extrachill_analytics_test_ext_object_cache']   = true;
+	public function set_up(): void {
+		parent::set_up();
+
+		$this->set_ext_object_cache( true );
+		$this->set_request( 'example.org', 'GET' );
+		$_SERVER['HTTP_ORIGIN']     = 'http://localhost';
+		$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0';
+		$_SERVER['REMOTE_ADDR']     = '203.0.113.20';
+		$_COOKIE['ec_vid']          = '123e4567-e89b-42d3-a456-426614174000';
 	}
 
 	/**
-	 * Restore conditional fixtures after each test.
-	 */
-	protected function tearDown(): void {
-		unset(
-			$GLOBALS['extrachill_analytics_test_is_singular'],
-			$GLOBALS['extrachill_analytics_test_is_search'],
-			$GLOBALS['extrachill_analytics_test_is_front_page'],
-			$GLOBALS['extrachill_analytics_test_is_home'],
-			$GLOBALS['extrachill_analytics_test_is_archive'],
-			$_SERVER['HTTP_HOST'],
-			$_SERVER['HTTP_ORIGIN'],
-			$_SERVER['HTTP_USER_AGENT'],
-			$_SERVER['REMOTE_ADDR'],
-			$_SERVER['HTTP_SEC_GPC'],
-			$_SERVER['HTTP_DNT'],
-			$_SERVER['REQUEST_METHOD'],
-			$_COOKIE['ec_vid']
-		);
-	}
-
-	/**
-	 * Query strings and fragments never enter the route identity.
+	 * Route strings and fragments never enter the route identity.
 	 */
 	public function test_route_path_normalization_removes_query_and_fragment(): void {
 		$this->assertSame( '/', extrachill_analytics_normalize_route_path( 'https://extrachill.com/?s=user@example.com' ) );
@@ -71,13 +41,11 @@ final class RouteJourneyTrackingTest extends TestCase {
 	 * @dataProvider route_family_provider
 	 *
 	 * @param string $path     Browser route path.
-	 * @param string $fixture  Conditional fixture global, or empty.
+	 * @param array  $flags    Conditional flags for the main query.
 	 * @param string $expected Expected bounded family.
 	 */
-	public function test_public_routes_have_bounded_families( $path, $fixture, $expected ): void {
-		if ( '' !== $fixture ) {
-			$GLOBALS[ $fixture ] = true;
-		}
+	public function test_public_routes_have_bounded_families( $path, $flags, $expected ): void {
+		$this->set_query_flags( $flags );
 
 		$this->assertSame( $expected, extrachill_analytics_classify_current_route( $path ) );
 		$this->assertContains( $expected, extrachill_analytics_route_families() );
@@ -86,19 +54,19 @@ final class RouteJourneyTrackingTest extends TestCase {
 	/**
 	 * Route classification fixtures.
 	 *
-	 * @return array<string,array{string,string,string}>
+	 * @return array<string,array{string,array<string,bool>,string}>
 	 */
 	public function route_family_provider() {
 		return array(
-			'homepage'       => array( '/', '', 'home' ),
-			'archive'        => array( '/2026/07/', 'extrachill_analytics_test_is_archive', 'archive' ),
-			'search results' => array( '/?s=dead', 'extrachill_analytics_test_is_search', 'search' ),
-			'login'          => array( '/login/', '', 'auth' ),
-			'register'       => array( '/register/', '', 'auth' ),
-			'directory'      => array( '/events/', '', 'directory' ),
-			'singular post'  => array( '/story/', 'extrachill_analytics_test_is_singular', 'singular' ),
-			'singular event' => array( '/events/show/', 'extrachill_analytics_test_is_singular', 'singular' ),
-			'other public'   => array( '/about/', '', 'other' ),
+			'homepage'       => array( '/', array(), 'home' ),
+			'archive'        => array( '/2026/07/', array( 'is_archive' => true ), 'archive' ),
+			'search results' => array( '/?s=dead', array( 'is_search' => true ), 'search' ),
+			'login'          => array( '/login/', array(), 'auth' ),
+			'register'       => array( '/register/', array(), 'auth' ),
+			'directory'      => array( '/events/', array(), 'directory' ),
+			'singular post'  => array( '/story/', array( 'is_singular' => true ), 'singular' ),
+			'singular event' => array( '/events/show/', array( 'is_singular' => true ), 'singular' ),
+			'other public'   => array( '/about/', array(), 'other' ),
 		);
 	}
 
@@ -150,14 +118,15 @@ final class RouteJourneyTrackingTest extends TestCase {
 		);
 
 		$this->assertSame( array( 'recorded' => true ), $result );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_tracked_post_views'] );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_actions'] );
-		$this->assertCount( 1, $GLOBALS['extrachill_analytics_test_events'] );
-		$this->assertSame( 'route', $GLOBALS['extrachill_analytics_test_events'][0][1]['view_kind'] );
-		$this->assertSame( 'directory', $GLOBALS['extrachill_analytics_test_events'][0][1]['route_family'] );
-		$this->assertArrayNotHasKey( 'post_id', $GLOBALS['extrachill_analytics_test_events'][0][1] );
-		$this->assertSame( 'community.extrachill.com', $GLOBALS['extrachill_analytics_test_events'][0][1]['referrer_host'] );
-		$this->assertSame( 'https://extrachill.com/events/', $GLOBALS['extrachill_analytics_test_events'][0][2] );
+		$this->assertSame( 0, did_action( 'extrachill_link_page_view_recorded' ) );
+		$this->assertSame( 1, $this->event_count() );
+		$row   = $this->event_rows()[0];
+		$data  = $this->event_data( $row );
+		$this->assertSame( 'route', $data['view_kind'] );
+		$this->assertSame( 'directory', $data['route_family'] );
+		$this->assertSame( 'community.extrachill.com', $data['referrer_host'] );
+		$this->assertArrayNotHasKey( 'post_id', $data );
+		$this->assertSame( home_url( '/events/' ), $row->source_url );
 	}
 
 	/**
@@ -176,8 +145,8 @@ final class RouteJourneyTrackingTest extends TestCase {
 		);
 
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'invalid_pageview_origin', $result->code );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_events'] );
+		$this->assertSame( 'invalid_pageview_origin', $result->get_error_code() );
+		$this->assertSame( 0, $this->event_count() );
 	}
 
 	/**
@@ -210,9 +179,10 @@ final class RouteJourneyTrackingTest extends TestCase {
 		);
 
 		$this->assertSame( array( 'recorded' => true ), $result );
-		$this->assertCount( 1, $GLOBALS['extrachill_analytics_test_events'] );
-		$this->assertSame( '', $GLOBALS['extrachill_analytics_test_events'][0][3] );
-		$this->assertSame( 'https://extrachill.com/locations/charleston/', $GLOBALS['extrachill_analytics_test_events'][0][2] );
+		$this->assertSame( 1, $this->event_count() );
+		$row = $this->event_rows()[0];
+		$this->assertNull( $row->visitor_id );
+		$this->assertSame( home_url( '/locations/charleston/' ), $row->source_url );
 	}
 
 	/**
@@ -243,25 +213,37 @@ final class RouteJourneyTrackingTest extends TestCase {
 		);
 
 		$this->assertSame( array( 'recorded' => false ), $result );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_tracked_post_views'] );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_events'] );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_cache'] );
+		$this->assertSame( 0, $this->event_count() );
+		$this->assertSame( 0, did_action( 'extrachill_link_page_view_recorded' ) );
 	}
 
 	/**
 	 * Singular posts retain legacy counters and artist link-page actions.
 	 */
 	public function test_post_backed_view_preserves_legacy_side_effects(): void {
-		$GLOBALS['extrachill_analytics_test_permalinks'][42] = 'https://artist.extrachill.com/example/';
-		$GLOBALS['extrachill_analytics_test_post_types'][42] = 'artist_link_page';
-		$post     = new WP_Post();
-		$post->ID = 42;
-		$GLOBALS['extrachill_analytics_classifier_posts'][42] = $post;
+		if ( ! post_type_exists( 'artist_link_page' ) ) {
+			register_post_type( 'artist_link_page', array( 'public' => true ) );
+		}
+		$post_id = self::factory()->post->create(
+			array(
+				'post_name'   => 'example',
+				'post_status' => 'publish',
+				'post_type'   => 'artist_link_page',
+			)
+		);
+
+		$actions = array();
+		add_action(
+			'extrachill_link_page_view_recorded',
+			static function ( $recorded_post_id ) use ( &$actions ) {
+				$actions[] = $recorded_post_id;
+			}
+		);
 
 		$result = extrachill_analytics_ability_track_page_view(
 			$this->with_proof(
 				array(
-					'post_id'      => 42,
+					'post_id'      => $post_id,
 					'source_path'  => '/example/',
 					'route_family' => 'singular',
 				)
@@ -269,10 +251,19 @@ final class RouteJourneyTrackingTest extends TestCase {
 		);
 
 		$this->assertSame( array( 'recorded' => true ), $result );
-		$this->assertSame( array( 42 ), $GLOBALS['extrachill_analytics_test_tracked_post_views'] );
-		$this->assertSame( 'extrachill_link_page_view_recorded', $GLOBALS['extrachill_analytics_test_actions'][0][0] );
-		$this->assertSame( 'post', $GLOBALS['extrachill_analytics_test_events'][0][1]['view_kind'] );
-		$this->assertSame( 42, $GLOBALS['extrachill_analytics_test_events'][0][1]['post_id'] );
+		global $wp_query;
+		$this->assertSame(
+			1,
+			(int) get_post_meta( $post_id, 'ec_post_views', true ),
+			sprintf( 'post meta view counter; raw=%s post=%d preview=%d ec_track_exists=%d', var_export( get_post_meta( $post_id, 'ec_post_views', true ), true ), $post_id, is_preview() ? 1 : 0, function_exists( 'ec_track_post_views' ) ? 1 : 0 )
+		);
+		unset( $wp_query );
+		$this->assertSame( array( $post_id ), $actions, 'link page action payloads' );
+		$this->assertSame( 1, $this->event_count(), 'event row count' );
+		$row  = $this->event_rows()[0];
+		$data = $this->event_data( $row );
+		$this->assertSame( 'post', $data['view_kind'] );
+		$this->assertSame( $post_id, $data['post_id'] );
 	}
 
 	/**

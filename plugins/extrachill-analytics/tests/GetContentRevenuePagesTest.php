@@ -9,8 +9,8 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
 require_once dirname( __DIR__ ) . '/inc/core/revenue-content-attribution.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue-pages.php';
@@ -19,7 +19,7 @@ require_once dirname( __DIR__ ) . '/inc/core/content-format-classifier.php';
 /**
  * Verify page-level analysis contracts.
  */
-final class GetContentRevenuePagesTest extends TestCase {
+final class GetContentRevenuePagesTest extends Extrachill_Analytics_TestCase {
 
 	/**
 	 * Helper: a minimal resolved-content record.
@@ -457,19 +457,19 @@ final class GetContentRevenuePagesTest extends TestCase {
 	 * run-in-blog wrapper restores the original site afterwards.
 	 */
 	public function test_relative_path_uses_target_blog_hostname_and_restores_context(): void {
-		$GLOBALS['extrachill_analytics_test_blog_id']       = 1;
-		$GLOBALS['extrachill_analytics_test_blog_stack']    = array();
-		$GLOBALS['extrachill_analytics_test_home_urls']     = array(
-			1 => 'https://extrachill.com',
-			7 => 'https://events.extrachill.com',
+		$target_blog = $this->create_blog( 'events.example.org' );
+		switch_to_blog( $target_blog );
+		$this->set_permalink_structure( '/%postname%/' );
+		$expected_post_id = (int) self::factory()->post->create(
+			array(
+				'post_name'   => 'target-show',
+				'post_status' => 'publish',
+			)
 		);
-		$GLOBALS['extrachill_analytics_test_resolved_urls'] = array();
-		$GLOBALS['extrachill_analytics_test_url_post_ids']  = array(
-			'https://events.extrachill.com/target-show/' => 77,
-		);
+		restore_current_blog();
 
 		$post_id = extrachill_analytics_revenue_run_in_blog(
-			7,
+			$target_blog,
 			static function () {
 				return extrachill_analytics_revenue_resolve_post_id(
 					'/target-show/',
@@ -478,10 +478,9 @@ final class GetContentRevenuePagesTest extends TestCase {
 			}
 		);
 
-		$this->assertSame( 77, $post_id );
-		$this->assertSame( array( 'https://events.extrachill.com/target-show/' ), $GLOBALS['extrachill_analytics_test_resolved_urls'] );
+		$this->assertSame( $expected_post_id, $post_id );
 		$this->assertSame( 1, get_current_blog_id() );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_blog_stack'] );
+		$this->assertSame( wp_parse_url( home_url( '/' ), PHP_URL_HOST ), extrachill_analytics_revenue_resolution_hostname( '' ) );
 		$this->assertSame( 'override.example.com', extrachill_analytics_revenue_resolution_hostname( 'override.example.com' ) );
 	}
 

@@ -5,16 +5,51 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
-require_once dirname( __DIR__ ) . '/inc/core/outcome-trust.php';
-require_once dirname( __DIR__ ) . '/inc/core/abilities/get-conversion-map.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Protect outcome deduplication, attribution boundaries, and coverage semantics.
+ *
+ * Most coverage drives the pure conversion helpers directly with fixture row
+ * arrays. The source-attribution tests run against real posts through
+ * url_to_postid(), and the bounded-reader test inserts real event rows.
  */
-final class ConversionMapOutcomesTest extends TestCase {
+final class ConversionMapOutcomesTest extends Extrachill_Analytics_TestCase {
+	/**
+	 * Serve extrachill.com permalinks and postname permalinks for attribution.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		add_filter(
+			'home_url',
+			static function ( $url, $path = '' ) {
+				return 'https://extrachill.com' . $path;
+			},
+			10,
+			2
+		);
+		$this->set_permalink_structure( '/%postname%/' );
+	}
+
+	/**
+	 * Create one published article for source attribution.
+	 *
+	 * @param string $post_name Post slug.
+	 * @param int    $author_id Post author.
+	 * @return int Post ID.
+	 */
+	private function article( string $post_name, int $author_id = 0 ): int {
+		$author = $author_id > 0 ? $author_id : self::factory()->user->create();
+		return self::factory()->post->create(
+			array(
+				'post_name'   => $post_name,
+				'post_status' => 'publish',
+				'post_type'   => 'post',
+				'post_author' => $author,
+			)
+		);
+	}
 	/**
 	 * The outcome lens preserves concrete canonical lifecycle event names.
 	 */
@@ -129,21 +164,12 @@ final class ConversionMapOutcomesTest extends TestCase {
 	 * Direct attribution accepts published main-site articles and rejects other hosts.
 	 */
 	public function test_direct_source_requires_published_entry_blog_article(): void {
-		$post              = new WP_Post();
-		$post->ID          = 173;
-		$post->post_type   = 'post';
-		$post->post_status = 'publish';
-		$post->post_author = 607;
+		$author_id = self::factory()->user->create();
+		$post_id   = $this->article( 'article', $author_id );
 
-		$GLOBALS['extrachill_analytics_classifier_posts']  = array( 173 => $post );
-		$GLOBALS['extrachill_analytics_test_url_post_ids'] = array(
-			'https://extrachill.com/article/' => 173,
-		);
-		$GLOBALS['extrachill_analytics_test_home_urls']    = array( 1 => 'https://extrachill.com' );
-
-		$this->assertSame( 173, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1 ) );
-		$this->assertSame( 173, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1, 607 ) );
-		$this->assertSame( 0, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1, 42 ) );
+		$this->assertSame( $post_id, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1 ) );
+		$this->assertSame( $post_id, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1, $author_id ) );
+		$this->assertSame( 0, extrachill_analytics_conversion_source_article_id( 'https://extrachill.com/article/', 1, $author_id + 1 ) );
 		$this->assertSame( 0, extrachill_analytics_conversion_source_article_id( 'https://events.extrachill.com/article/', 1 ) );
 	}
 
@@ -271,17 +297,29 @@ final class ConversionMapOutcomesTest extends TestCase {
 	 * The bounded reader advances equal-timestamp pages with the event ID cursor.
 	 */
 	public function test_outcome_reader_keyset_pages_equal_timestamps_by_id(): void {
-		$type = 'artist_profile_first_publish';
-		$rows = array();
-		for ( $id = 1; $id <= 501; ++$id ) {
-			$rows[]                      = $this->outcome_row( $id, $type, $id, 'visitor-' . $id, 1000 );
-			$rows[ $id - 1 ]->created_at = '2026-01-01 00:00:00';
+		$type    = 'artist_profile_first_publish';
+		$created = '2026-01-01 00:00:00';
+		$ids     = array();
+		for ( $i = 0; $i < 501; ++$i ) {
+			global $wpdb;
+			$wpdb->insert(
+				extrachill_analytics_events_table(),
+				array(
+					'event_type' => $type,
+					'event_data' => wp_json_encode( array( 'user_id' => $i + 1 ) ),
+					'source_url' => '',
+					'visitor_id' => 'visitor-' . ( $i + 1 ),
+					'created_at' => $created,
+				),
+				array( '%s', '%s', '%s', '%s', '%s' )
+			);
+			$ids[] = (int) $wpdb->insert_id;
 		}
-		$db       = $this->install_outcome_database( array( array_slice( $rows, 0, 500 ), array_slice( $rows, 500 ) ) );
 		$consumed = array();
 
+		$captured = $this->capture_queries();
 		extrachill_analytics_conversion_each_outcome_page(
-			'wp_extrachill_analytics_events',
+			extrachill_analytics_events_table(),
 			array( $type ),
 			'2025-12-01 00:00:00',
 			'2026-01-02 00:00:00',
@@ -291,12 +329,12 @@ final class ConversionMapOutcomesTest extends TestCase {
 		);
 
 		$this->assertCount( 501, $consumed );
-		$this->assertSame( 501, end( $consumed ) );
-		$this->assertCount( 2, $db->prepared_queries );
-		$this->assertStringContainsString( 'ORDER BY created_at ASC, id ASC', $db->prepared_queries[0]['query'] );
-		$this->assertStringContainsString( 'created_at < %s', $db->prepared_queries[0]['query'] );
-		$this->assertStringContainsString( 'id > %d', $db->prepared_queries[1]['query'] );
-		$this->assertSame( 500, end( $db->prepared_queries[1]['args'] ) );
+		$this->assertSame( max( $ids ), end( $consumed ) );
+		$this->assertSame( $ids, $consumed, 'Equal timestamps page in ascending ID order.' );
+		$this->assertCount( 2, $captured->queries );
+		$this->assertStringContainsString( 'ORDER BY created_at ASC, id ASC', $captured->queries[0] );
+		$this->assertStringContainsString( 'created_at <', $captured->queries[0] );
+		$this->assertStringContainsString( 'id >', $captured->queries[1] );
 	}
 
 	/**
@@ -356,46 +394,29 @@ final class ConversionMapOutcomesTest extends TestCase {
 	 * Author reports exclude unrelated outcomes while preserving scoped journeys.
 	 */
 	public function test_author_scope_filters_outcome_population_before_coverage(): void {
-		$type                  = 'newsletter_signup';
-		$matching_post         = new WP_Post();
-		$matching_post->ID     = 173;
-		$matching_post->post_type = 'post';
-		$matching_post->post_status = 'publish';
-		$matching_post->post_author = 607;
-		$other_post            = new WP_Post();
-		$other_post->ID        = 174;
-		$other_post->post_type = 'post';
-		$other_post->post_status = 'publish';
-		$other_post->post_author = 42;
+		$type            = 'newsletter_signup';
+		$author_id       = self::factory()->user->create();
+		$matching_post   = $this->article( 'mine', $author_id );
+		$other_post      = $this->article( 'other' );
 
-		$GLOBALS['extrachill_analytics_classifier_posts'] = array(
-			173 => $matching_post,
-			174 => $other_post,
-		);
-		$GLOBALS['extrachill_analytics_test_url_post_ids'] = array(
-			'https://extrachill.com/mine/'  => 173,
-			'https://extrachill.com/other/' => 174,
-		);
-		$GLOBALS['extrachill_analytics_test_home_urls'] = array( 1 => 'https://extrachill.com' );
-
-		$matching_source             = $this->outcome_row( 101, $type, 1, '', 1200 );
-		$matching_source->source_url = 'https://extrachill.com/mine/';
-		$unrelated_source            = $this->outcome_row( 102, $type, 2, '', 1200 );
+		$matching_source              = $this->outcome_row( 101, $type, 1, '', 1200 );
+		$matching_source->source_url  = 'https://extrachill.com/mine/';
+		$unrelated_source             = $this->outcome_row( 102, $type, 2, '', 1200 );
 		$unrelated_source->source_url = 'https://extrachill.com/other/';
-		$journey_source              = $this->outcome_row( 103, $type, 3, 'visitor-mine', 1400 );
-		$journey_source->source_url  = 'https://extrachill.com/other/';
+		$journey_source               = $this->outcome_row( 103, $type, 3, 'visitor-mine', 1400 );
+		$journey_source->source_url   = 'https://extrachill.com/other/';
 
 		$result = $this->run_outcome_pages(
 			array( array( $matching_source, $unrelated_source, $journey_source ) ),
 			array(
 				'visitor-mine' => array(
-					'post_id'              => 173,
+					'post_id'              => $matching_post,
 					'entry_ts'             => 1000,
 					'same_session_through' => 2000,
 				),
 			),
 			array( $type ),
-			607
+			$author_id
 		);
 
 		$this->assertSame( 2, $result['coverage'][ $type ]['stored_events'] );
@@ -464,76 +485,4 @@ final class ConversionMapOutcomesTest extends TestCase {
 		);
 	}
 
-	/**
-	 * Install a paged database fixture for the bounded outcome reader.
-	 *
-	 * @param array $pages Ordered result pages.
-	 * @return object Database fixture.
-	 */
-	private function install_outcome_database( array $pages ): object {
-		$db              = new class( $pages ) {
-			/**
-			 * Captured prepared queries.
-			 *
-			 * @var array
-			 */
-			public $prepared_queries = array();
-
-			/**
-			 * Ordered result pages.
-			 *
-			 * @var array
-			 */
-			private $pages;
-
-			/**
-			 * Current page index.
-			 *
-			 * @var int
-			 */
-			private $page_index = 0;
-
-			/**
-			 * Set fixture pages.
-			 *
-			 * @param array $fixture_pages Ordered result pages.
-			 */
-			public function __construct( $fixture_pages ) {
-				$this->pages = $fixture_pages;
-			}
-
-			/**
-			 * Capture a prepared query.
-			 *
-			 * @param string $query SQL query.
-			 * @param mixed  ...$args Prepared values.
-			 * @return string Unchanged query.
-			 */
-			public function prepare( $query, ...$args ) {
-				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
-					$args = $args[0];
-				}
-				$this->prepared_queries[] = array(
-					'query' => $query,
-					'args'  => $args,
-				);
-				return $query;
-			}
-
-			/**
-			 * Return the next result page.
-			 *
-			 * @param string $query SQL query.
-			 * @return array Next result page.
-			 */
-			public function get_results( $query ) {
-				unset( $query );
-				$page = $this->pages[ $this->page_index ] ?? array();
-				++$this->page_index;
-				return $page;
-			}
-		};
-		$GLOBALS['wpdb'] = $db;
-		return $db;
-	}
 }

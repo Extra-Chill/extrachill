@@ -5,14 +5,14 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
 require_once dirname( __DIR__ ) . '/inc/core/experiment-reporting.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-experiment-summary.php';
 
 /** Protect generic experiment attribution, statistics, and bounds. */
-final class ExperimentSummaryTest extends TestCase {
+final class ExperimentSummaryTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Multiple keys, versions, surfaces, variants, identities, and lossy rows stay honest.
 	 */
@@ -336,13 +336,14 @@ final class ExperimentSummaryTest extends TestCase {
 
 	/** Ability input is private, exact, bounded, and canonical-outcome-only. */
 	public function test_ability_contract_and_input_validation(): void {
-		extrachill_analytics_register_experiment_summary_ability();
-		$ability = $GLOBALS['extrachill_analytics_registered_abilities']['extrachill/get-experiment-summary'];
+		$ability = wp_get_ability( 'extrachill/get-experiment-summary' );
+		$this->assertInstanceOf( WP_Ability::class, $ability );
+		$schema = $ability->get_input_schema();
 
-		$this->assertFalse( $ability['meta']['show_in_rest'] );
-		$this->assertFalse( $ability['input_schema']['additionalProperties'] );
-		$this->assertSame( EC_ANALYTICS_EXPERIMENT_MAX_VARIANTS, $ability['input_schema']['properties']['variants']['maxItems'] );
-		$this->assertSame( EC_ANALYTICS_EXPERIMENT_MAX_OUTCOMES, $ability['input_schema']['properties']['outcome_event_types']['maxItems'] );
+		$this->assertFalse( $ability->get_meta_item( 'show_in_rest' ) );
+		$this->assertFalse( $schema['additionalProperties'] );
+		$this->assertSame( EC_ANALYTICS_EXPERIMENT_MAX_VARIANTS, $schema['properties']['variants']['maxItems'] );
+		$this->assertSame( EC_ANALYTICS_EXPERIMENT_MAX_OUTCOMES, $schema['properties']['outcome_event_types']['maxItems'] );
 
 		$invalid = extrachill_analytics_experiment_summary_options(
 			array(
@@ -353,7 +354,7 @@ final class ExperimentSummaryTest extends TestCase {
 			)
 		);
 		$this->assertInstanceOf( WP_Error::class, $invalid );
-		$this->assertSame( 'invalid_experiment_summary_outcome', $invalid->code );
+		$this->assertSame( 'invalid_experiment_summary_outcome', $invalid->get_error_code() );
 	}
 
 	/**

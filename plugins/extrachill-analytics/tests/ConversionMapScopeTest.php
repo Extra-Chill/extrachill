@@ -5,42 +5,62 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/abilities/get-conversion-map.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Protect the intentionally narrow, currently collected conversion-map scope.
  */
-final class ConversionMapScopeTest extends TestCase {
+final class ConversionMapScopeTest extends Extrachill_Analytics_TestCase {
+	/**
+	 * Serve extrachill.com permalinks for identity assertions.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		add_filter(
+			'home_url',
+			static function ( $url, $path = '' ) {
+				return 'https://extrachill.com' . $path;
+			},
+			10,
+			2
+		);
+		$this->set_permalink_structure( '/%postname%/' );
+	}
+
+	/**
+	 * Create one real post for scope checks.
+	 *
+	 * @param array $args Post args.
+	 * @return int Post ID.
+	 */
+	private function scope_post( array $args ): int {
+		$user_id = self::factory()->user->create();
+		return self::factory()->post->create(
+			array_merge(
+				array(
+					'post_status' => 'publish',
+					'post_type'   => 'post',
+					'post_author' => $user_id,
+				),
+				$args
+			)
+		);
+	}
+
 	/**
 	 * Non-post singular objects cannot inflate the editorial-entry denominator.
 	 */
 	public function test_only_published_posts_are_editorial_entries(): void {
-		$page                   = new WP_Post();
-		$page->ID               = 10;
-		$page->post_type        = 'page';
-		$page->post_status      = 'publish';
-		$draft                  = new WP_Post();
-		$draft->ID              = 11;
-		$draft->post_type       = 'post';
-		$draft->post_status     = 'draft';
-		$published              = new WP_Post();
-		$published->ID          = 12;
-		$published->post_type   = 'post';
-		$published->post_status = 'publish';
-
-		$GLOBALS['extrachill_analytics_classifier_posts'] = array(
-			10 => $page,
-			11 => $draft,
-			12 => $published,
-		);
+		$page      = $this->scope_post( array( 'post_type' => 'page' ) );
+		$draft     = $this->scope_post( array( 'post_status' => 'draft' ) );
+		$published = $this->scope_post( array() );
 
 		$this->assertFalse(
 			extrachill_analytics_conversion_is_editorial_entry(
 				array(
 					'blog_id' => 1,
-					'post_id' => 10,
+					'post_id' => $page,
 				),
 				1
 			)
@@ -49,7 +69,7 @@ final class ConversionMapScopeTest extends TestCase {
 			extrachill_analytics_conversion_is_editorial_entry(
 				array(
 					'blog_id' => 1,
-					'post_id' => 11,
+					'post_id' => $draft,
 				),
 				1
 			)
@@ -58,7 +78,7 @@ final class ConversionMapScopeTest extends TestCase {
 			extrachill_analytics_conversion_is_editorial_entry(
 				array(
 					'blog_id' => 1,
-					'post_id' => 12,
+					'post_id' => $published,
 				),
 				1
 			)
@@ -69,47 +89,36 @@ final class ConversionMapScopeTest extends TestCase {
 	 * An author-scoped report admits only posts whose primary author matches.
 	 */
 	public function test_editorial_entries_can_be_scoped_to_primary_author(): void {
-		$first_author              = new WP_Post();
-		$first_author->ID          = 21;
-		$first_author->post_type   = 'post';
-		$first_author->post_status = 'publish';
-		$first_author->post_author = 607;
-		$other_author              = new WP_Post();
-		$other_author->ID          = 22;
-		$other_author->post_type   = 'post';
-		$other_author->post_status = 'publish';
-		$other_author->post_author = 42;
-
-		$GLOBALS['extrachill_analytics_classifier_posts'] = array(
-			21 => $first_author,
-			22 => $other_author,
-		);
+		$first_author = self::factory()->user->create();
+		$other_author = self::factory()->user->create();
+		$mine         = $this->scope_post( array( 'post_author' => $first_author ) );
+		$theirs       = $this->scope_post( array( 'post_author' => $other_author ) );
 
 		$this->assertTrue(
 			extrachill_analytics_conversion_is_editorial_entry(
 				array(
 					'blog_id' => 1,
-					'post_id' => 21,
+					'post_id' => $mine,
 				),
 				1,
-				607
+				$first_author
 			)
 		);
 		$this->assertFalse(
 			extrachill_analytics_conversion_is_editorial_entry(
 				array(
 					'blog_id' => 1,
-					'post_id' => 22,
+					'post_id' => $theirs,
 				),
 				1,
-				607
+				$first_author
 			)
 		);
 		$this->assertTrue(
 			extrachill_analytics_conversion_is_editorial_entry(
 				array(
 					'blog_id' => 1,
-					'post_id' => 22,
+					'post_id' => $theirs,
 				),
 				1
 			)
@@ -168,11 +177,7 @@ final class ConversionMapScopeTest extends TestCase {
 	 * Pre-window sessions and late entries do not enter the mature denominator.
 	 */
 	public function test_entry_session_requires_full_return_observation_period(): void {
-		$published                                        = new WP_Post();
-		$published->ID                                    = 12;
-		$published->post_type                             = 'post';
-		$published->post_status                           = 'publish';
-		$GLOBALS['extrachill_analytics_classifier_posts'] = array( 12 => $published );
+		$published = $this->scope_post( array() );
 
 		$since  = '2026-07-01 00:00:00';
 		$cutoff = '2026-07-08 00:00:00';
@@ -180,7 +185,7 @@ final class ConversionMapScopeTest extends TestCase {
 			extrachill_analytics_conversion_is_mature_entry_session(
 				array(
 					'blog_id' => 1,
-					'post_id' => 12,
+					'post_id' => $published,
 					'ts'      => strtotime( '2026-06-30 23:59:59' ),
 				),
 				1,
@@ -192,7 +197,7 @@ final class ConversionMapScopeTest extends TestCase {
 			extrachill_analytics_conversion_is_mature_entry_session(
 				array(
 					'blog_id' => 1,
-					'post_id' => 12,
+					'post_id' => $published,
 					'ts'      => strtotime( '2026-07-05 12:00:00' ),
 				),
 				1,
@@ -204,7 +209,7 @@ final class ConversionMapScopeTest extends TestCase {
 			extrachill_analytics_conversion_is_mature_entry_session(
 				array(
 					'blog_id' => 1,
-					'post_id' => 12,
+					'post_id' => $published,
 					'ts'      => strtotime( '2026-07-08 00:00:01' ),
 				),
 				1,
@@ -218,12 +223,14 @@ final class ConversionMapScopeTest extends TestCase {
 	 * Machine consumers receive complete canonical article identity and typed metrics.
 	 */
 	public function test_article_identity_and_metrics_are_machine_readable(): void {
-		$post             = new WP_Post();
-		$post->ID         = 173;
-		$post->post_title = 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic Michael Jackson Lyric';
-		$post->post_name  = 'mama-say-mama-sa-mama-coosa';
-
-		$GLOBALS['extrachill_analytics_test_permalinks'][173] = 'https://extrachill.com/mama-say-mama-sa-mama-coosa/';
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'  => 'Mama Say Mama Sa Mama Coosa: The Story Behind an Iconic Michael Jackson Lyric',
+				'post_name'   => 'mama-say-mama-sa-mama-coosa',
+				'post_status' => 'publish',
+			)
+		);
+		$post    = get_post( $post_id );
 
 		$identity = extrachill_analytics_conversion_article_identity( 1, $post );
 		$metrics  = extrachill_analytics_conversion_rate_row(
@@ -237,13 +244,13 @@ final class ConversionMapScopeTest extends TestCase {
 					'returned'           => 3,
 				)
 			),
-			array( 'post_id' => 173 )
+			array( 'post_id' => $post_id )
 		);
 
 		$this->assertSame( $post->post_title, $identity['title'] );
 		$this->assertSame( 'https://extrachill.com/mama-say-mama-sa-mama-coosa/', $identity['url'] );
 		$this->assertSame( '/mama-say-mama-sa-mama-coosa/', $identity['path'] );
-		$this->assertSame( 173, $metrics['post_id'] );
+		$this->assertSame( $post_id, $metrics['post_id'] );
 		$this->assertIsInt( $metrics['entry_sessions'] );
 		$this->assertIsInt( $metrics['reached_any'] );
 		$this->assertIsFloat( $metrics['reached_any_rate'] );

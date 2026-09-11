@@ -5,94 +5,64 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once __DIR__ . '/schema-readiness-fixtures.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Verify activation, upgrades, and the public-write readiness guard.
  */
-final class SchemaReadinessTest extends TestCase {
-	/**
-	 * Install a minimal database fixture.
-	 */
-	protected function setUp(): void {
-		$GLOBALS['extrachill_analytics_test_site_options'] = array();
-		$GLOBALS['extrachill_analytics_test_dbdelta']      = array();
-		$GLOBALS['extrachill_analytics_test_migrations']   = array();
-		$GLOBALS['wpdb']                                   = new class() {
-			/**
-			 * Network table prefix.
-			 *
-			 * @var string
-			 */
-			public $base_prefix = 'wp_';
-
-			/**
-			 * Site table prefix.
-			 *
-			 * @var string
-			 */
-			public $prefix = 'wp_';
-
-			/**
-			 * Last database error.
-			 *
-			 * @var string
-			 */
-			public $last_error = '';
-
-			/**
-			 * Return a deterministic charset clause.
-			 *
-			 * @return string Charset clause.
-			 */
-			public function get_charset_collate() {
-				return 'DEFAULT CHARACTER SET utf8mb4';
-			}
-		};
-	}
-
+final class SchemaReadinessTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Fresh network activation creates every table without an admin request.
 	 */
 	public function test_fresh_activation_prepares_frontend_event_write_without_admin_init(): void {
+		delete_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION );
+
+		delete_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION );
+
 		extrachill_analytics_activate( true );
 
 		$this->assertTrue( extrachill_analytics_network_schema_is_ready() );
-		$this->assertSame( array( 'events', 'php-errors' ), $GLOBALS['extrachill_analytics_test_migrations'] );
-		$this->assertCount( 1, $GLOBALS['extrachill_analytics_test_dbdelta'] );
 		$this->assertSame(
 			EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION,
 			get_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION )
 		);
-		$this->assertArrayNotHasKey( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION, $GLOBALS['extrachill_analytics_test_site_options'] );
+		$this->assertSame( extrachill_analytics_events_table(), $GLOBALS['wpdb']->get_var( $GLOBALS['wpdb']->prepare( 'SHOW TABLES LIKE %s', extrachill_analytics_events_table() ) ) );
+		$this->assertFalse( get_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION ) );
 	}
 
 	/**
 	 * Current schemas avoid dbDelta during lifecycle and write readiness checks.
 	 */
 	public function test_current_schema_short_circuits_without_migration(): void {
-		$GLOBALS['extrachill_analytics_test_site_options'] = array(
-			EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION  => EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION,
-			EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION => EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION,
-			EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION => EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION,
-		);
+		$captured = $this->capture_queries();
+		$result   = extrachill_analytics_install_network_schema();
+		$queries  = $captured->queries;
 
-		$this->assertTrue( extrachill_analytics_install_network_schema() );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_migrations'] );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_dbdelta'] );
+		$this->assertTrue( $result );
+		$created_tables = preg_grep( '/CREATE TABLE/', $queries );
+		$this->assertEmpty( $created_tables );
 	}
 
 	/**
 	 * A concurrent migration blocks duplicate schema work and event writes.
 	 */
 	public function test_active_migration_lock_prevents_concurrent_dbdelta(): void {
-		$GLOBALS['extrachill_analytics_test_site_options'][ EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION ] = time();
+		delete_site_option( EXTRACHILL_ANALYTICS_EVENTS_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_PHP_ERROR_DB_VERSION_OPTION );
+		delete_site_option( EXTRACHILL_ANALYTICS_REVENUE_DB_VERSION_OPTION );
+		update_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION, time() );
 
 		$this->assertFalse( extrachill_analytics_install_network_schema() );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_migrations'] );
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_dbdelta'] );
+		$this->assertNotFalse( get_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION ), 'The failed claim must leave the lock intact.' );
+
+		delete_site_option( EXTRACHILL_ANALYTICS_SCHEMA_LOCK_OPTION );
+		$this->assertTrue( extrachill_analytics_install_network_schema() );
 	}
 
 	/**

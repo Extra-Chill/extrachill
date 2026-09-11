@@ -5,14 +5,14 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-activation-funnel.php';
 
 /**
  * Protect identity, ordering, response math, and read bounds.
  */
-final class ActivationFunnelTest extends TestCase {
+final class ActivationFunnelTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Anonymous activity stitches to the one observed authenticated user, and
 	 * the public response uses ordered populations for every rate and drop.

@@ -5,8 +5,8 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-conversion-map.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-geo-bridge-experiment.php';
@@ -14,7 +14,7 @@ require_once dirname( __DIR__ ) . '/inc/core/abilities/get-geo-bridge-experiment
 /**
  * Protect attribution, identity, coverage, and query bounds.
  */
-final class GeoBridgeExperimentTest extends TestCase {
+final class GeoBridgeExperimentTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * The full fixture keeps denominators, lossy events, identity, and time distinct.
 	 */
@@ -239,13 +239,15 @@ final class GeoBridgeExperimentTest extends TestCase {
 	 * Ability registration remains private, read-only, and fixed to one report.
 	 */
 	public function test_ability_contract_is_private_and_bounded(): void {
-		extrachill_analytics_register_geo_bridge_experiment_ability();
-		$ability = $GLOBALS['extrachill_analytics_registered_abilities']['extrachill/get-geo-bridge-experiment'];
+		$ability = wp_get_ability( 'extrachill/get-geo-bridge-experiment' );
+		$this->assertInstanceOf( WP_Ability::class, $ability );
+		$meta   = $ability->get_meta();
+		$schema = $ability->get_input_schema();
 
-		$this->assertFalse( $ability['meta']['show_in_rest'] );
-		$this->assertTrue( $ability['meta']['annotations']['readonly'] );
-		$this->assertArrayHasKey( 'max_events', $ability['input_schema']['properties'] );
-		$this->assertArrayNotHasKey( 'experiment_key', $ability['input_schema']['properties'] );
+		$this->assertFalse( $meta['show_in_rest'] );
+		$this->assertTrue( $meta['annotations']['readonly'] );
+		$this->assertArrayHasKey( 'max_events', $schema['properties'] );
+		$this->assertArrayNotHasKey( 'experiment_key', $schema['properties'] );
 	}
 
 	/**

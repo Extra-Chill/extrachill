@@ -5,24 +5,19 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Prevent visitor-specific UUIDs from returning to cacheable page markup.
  */
-final class VisitorIdentityCacheSafetyTest extends TestCase {
-	/**
-	 * Load the visitor identity helpers under the lightweight test bootstrap.
-	 */
-	public static function setUpBeforeClass(): void {
-		require_once dirname( __DIR__ ) . '/inc/core/assets.php';
-	}
-
+final class VisitorIdentityCacheSafetyTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Restore request globals after each origin fixture.
 	 */
-	protected function tearDown(): void {
+	public function tear_down(): void {
 		unset( $_SERVER['HTTP_ORIGIN'], $_SERVER['HTTP_REFERER'] );
+
+		parent::tear_down();
 	}
 
 	/**
@@ -67,7 +62,7 @@ final class VisitorIdentityCacheSafetyTest extends TestCase {
 	 * Identity is limited to the cookie's first-party site, not a custom domain.
 	 */
 	public function test_beacon_origin_must_match_the_first_party_cookie_domain(): void {
-		$_SERVER['HTTP_ORIGIN'] = 'https://events.extrachill.com';
+		$_SERVER['HTTP_ORIGIN'] = 'https://events.example.org';
 		$this->assertTrue( extrachill_analytics_beacon_is_first_party() );
 
 		$_SERVER['HTTP_ORIGIN'] = 'https://artist.example';

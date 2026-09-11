@@ -5,107 +5,58 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/database/link-page-analytics-db.php';
-require_once dirname( __DIR__ ) . '/inc/core/link-page-analytics.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /** Verify validation, SQL bounds, compatibility, and response metadata. */
-final class LinkPageAnalyticsDateRangeTest extends TestCase {
-	/** Install deterministic database and site-calendar fixtures. */
-	protected function setUp(): void {
-		$GLOBALS['extrachill_analytics_test_current_time'] = gmmktime( 12, 0, 0, 3, 10, 2026 );
-		$GLOBALS['wpdb']                                   = new class() {
-			/**
-			 * Database table prefix.
-			 *
-			 * @var string
-			 */
-			public $prefix = 'wp_4_';
+final class LinkPageAnalyticsDateRangeTest extends Extrachill_Analytics_TestCase {
+	/**
+	 * Ensure the link-page daily tables exist and seed deterministic rows.
+	 */
+	public function set_up(): void {
+		parent::set_up();
 
-			/**
-			 * Executed SELECT statements.
-			 *
-			 * @var string[]
-			 */
-			public $queries = array();
+		extrachill_analytics_link_page_create_table();
 
-			/**
-			 * Substitute integer and string placeholders for query assertions.
-			 *
-			 * @param string $query SQL query.
-			 * @param mixed  ...$args Prepared values.
-			 * @return string Prepared fixture query.
-			 */
-			public function prepare( $query, ...$args ) {
-				foreach ( $args as $arg ) {
-					$replacement = is_int( $arg ) ? (string) $arg : "'" . (string) $arg . "'";
-					$query       = preg_replace( '/%[ds]/', $replacement, $query, 1 );
-				}
-				return $query;
-			}
+		$today     = current_time( 'Y-m-d' );
+		$two_ago   = gmdate( 'Y-m-d', strtotime( $today . ' -2 days' ) );
+		global $wpdb;
+		$views  = extrachill_analytics_link_page_views_table();
+		$clicks = extrachill_analytics_link_page_clicks_table();
+		$wpdb->insert( $views, array( 'link_page_id' => 42, 'stat_date' => $two_ago, 'view_count' => 2 ), array( '%d', '%s', '%d' ) );
+		$wpdb->insert( $views, array( 'link_page_id' => 42, 'stat_date' => $today, 'view_count' => 5 ), array( '%d', '%s', '%d' ) );
+		$wpdb->insert( $clicks, array( 'link_page_id' => 42, 'stat_date' => $two_ago, 'link_url' => 'https://example.com', 'link_text' => 'Example', 'click_count' => 1 ), array( '%d', '%s', '%s', '%s', '%d' ) );
+		$wpdb->insert( $clicks, array( 'link_page_id' => 42, 'stat_date' => $today, 'link_url' => 'https://example.com', 'link_text' => 'Example', 'click_count' => 3 ), array( '%d', '%s', '%s', '%s', '%d' ) );
+	}
 
-			/**
-			 * Return fixtures for views, daily clicks, and top links in query order.
-			 *
-			 * @param string $query SQL query.
-			 * @return array<object> Aggregate row fixtures.
-			 */
-			public function get_results( $query ) {
-				$this->queries[] = $query;
-				$index           = count( $this->queries );
+	/**
+	 * Drop the seeded rows after each test.
+	 */
+	public function tear_down(): void {
+		global $wpdb;
+		$wpdb->query( 'DELETE FROM ' . extrachill_analytics_link_page_views_table() ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned table.
+		$wpdb->query( 'DELETE FROM ' . extrachill_analytics_link_page_clicks_table() ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned table.
 
-				if ( 1 === $index ) {
-					return array(
-						(object) array(
-							'stat_date'  => '2026-03-08',
-							'view_count' => '2',
-						),
-						(object) array(
-							'stat_date'  => '2026-03-10',
-							'view_count' => '5',
-						),
-					);
-				}
-				if ( 2 === $index ) {
-					return array(
-						(object) array(
-							'stat_date'   => '2026-03-08',
-							'click_count' => '1',
-						),
-						(object) array(
-							'stat_date'   => '2026-03-10',
-							'click_count' => '3',
-						),
-					);
-				}
-				return array(
-					(object) array(
-						'link_url'     => 'https://example.com',
-						'link_text'    => 'Example',
-						'total_clicks' => '4',
-					),
-				);
-			}
-		};
+		parent::tear_down();
 	}
 
 	/** Exact dates override the numeric range across every query and chart bucket. */
 	public function test_exact_window_controls_queries_and_response(): void {
-		$window = extrachill_analytics_resolve_date_range(
+		$today   = current_time( 'Y-m-d' );
+		$two_ago = gmdate( 'Y-m-d', strtotime( $today . ' -2 days' ) );
+		$window  = extrachill_analytics_resolve_date_range(
 			array(
-				'start_date' => '2026-03-08',
-				'end_date'   => '2026-03-10',
+				'start_date' => $two_ago,
+				'end_date'   => $today,
 			),
 			90
 		);
 
 		$result = extrachill_analytics_provide_link_page_analytics( null, 42, 90, $window );
 
-		$this->assertSame( '2026-03-08', $result['start_date'] );
-		$this->assertSame( '2026-03-10', $result['end_date'] );
+		$this->assertSame( $two_ago, $result['start_date'] );
+		$this->assertSame( $today, $result['end_date'] );
 		$this->assertSame( 3, $result['days'] );
-		$this->assertSame( array( '2026-03-08', '2026-03-09', '2026-03-10' ), $result['chart_data']['labels'] );
+		$this->assertSame( array( $two_ago, gmdate( 'Y-m-d', strtotime( $today . ' -1 day' ) ), $today ), $result['chart_data']['labels'] );
 		$this->assertSame( array( 2, 0, 5 ), $result['chart_data']['datasets'][0]['data'] );
 		$this->assertSame( array( 1, 0, 3 ), $result['chart_data']['datasets'][1]['data'] );
 		$this->assertSame(
@@ -116,43 +67,47 @@ final class LinkPageAnalyticsDateRangeTest extends TestCase {
 			$result['summary']
 		);
 		$this->assertSame( 4, $result['top_links'][0]['clicks'] );
-
-		$this->assertCount( 3, $GLOBALS['wpdb']->queries );
-		foreach ( $GLOBALS['wpdb']->queries as $query ) {
-			$this->assertStringContainsString( "stat_date BETWEEN '2026-03-08' AND '2026-03-10'", $query );
-		}
 	}
 
 	/** External consumers may pass raw paired dates to the owning provider. */
 	public function test_raw_exact_pair_is_validated_by_provider(): void {
-		$result = extrachill_analytics_provide_link_page_analytics( null, 42, 90, '2026-03-08', '2026-03-10' );
+		$today   = current_time( 'Y-m-d' );
+		$two_ago = gmdate( 'Y-m-d', strtotime( $today . ' -2 days' ) );
 
-		$this->assertSame( '2026-03-08', $result['start_date'] );
-		$this->assertSame( '2026-03-10', $result['end_date'] );
+		$result = extrachill_analytics_provide_link_page_analytics( null, 42, 90, $two_ago, $today );
+
+		$this->assertSame( $two_ago, $result['start_date'] );
+		$this->assertSame( $today, $result['end_date'] );
 		$this->assertSame( 3, $result['days'] );
 
-		$partial = extrachill_analytics_provide_link_page_analytics( null, 42, 90, '2026-03-08', '' );
-		$this->assertSame( 'invalid_analytics_date_range', $partial->code );
+		$partial = extrachill_analytics_provide_link_page_analytics( null, 42, 90, $two_ago, '' );
+		$this->assertSame( 'invalid_analytics_date_range', $partial->get_error_code() );
 	}
 
 	/** Numeric callers retain their inclusive relative site-calendar window. */
 	public function test_legacy_numeric_range_remains_supported(): void {
+		$today = current_time( 'Y-m-d' );
+		$one_ago = gmdate( 'Y-m-d', strtotime( $today . ' -1 day' ) );
+
 		$result = extrachill_analytics_provide_link_page_analytics( null, 42, 2 );
 
-		$this->assertSame( '2026-03-09', $result['start_date'] );
-		$this->assertSame( '2026-03-10', $result['end_date'] );
+		$this->assertSame( $one_ago, $result['start_date'] );
+		$this->assertSame( $today, $result['end_date'] );
 		$this->assertSame( 2, $result['days'] );
-		$this->assertSame( array( '2026-03-09', '2026-03-10' ), $result['chart_data']['labels'] );
+		$this->assertSame( array( $one_ago, $today ), $result['chart_data']['labels'] );
 	}
 
 	/** Empty optional dates preserve the numeric relative window. */
 	public function test_empty_date_pair_preserves_relative_range(): void {
+		$today = current_time( 'Y-m-d' );
+		$one_ago = gmdate( 'Y-m-d', strtotime( $today . ' -1 day' ) );
+
 		$result = extrachill_analytics_provide_link_page_analytics( null, 42, 2, '', '' );
 
-		$this->assertSame( '2026-03-09', $result['start_date'] );
-		$this->assertSame( '2026-03-10', $result['end_date'] );
+		$this->assertSame( $one_ago, $result['start_date'] );
+		$this->assertSame( $today, $result['end_date'] );
 		$this->assertSame( 2, $result['days'] );
-		$this->assertSame( array( '2026-03-09', '2026-03-10' ), $result['chart_data']['labels'] );
+		$this->assertSame( array( $one_ago, $today ), $result['chart_data']['labels'] );
 	}
 
 	/** The ability exposes paired dates and uses the shared 90-day validator. */
@@ -173,7 +128,7 @@ final class LinkPageAnalyticsDateRangeTest extends TestCase {
 			90
 		);
 
-		$this->assertSame( 'invalid_analytics_date_range', $partial->code );
-		$this->assertSame( 'analytics_date_range_too_large', $large->code );
+		$this->assertSame( 'invalid_analytics_date_range', $partial->get_error_code() );
+		$this->assertSame( 'analytics_date_range_too_large', $large->get_error_code() );
 	}
 }

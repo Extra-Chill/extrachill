@@ -5,33 +5,19 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/event-types.php';
-require_once dirname( __DIR__ ) . '/inc/core/assets.php';
-require_once dirname( __DIR__ ) . '/inc/core/experiment-reporting.php';
-require_once dirname( __DIR__ ) . '/inc/core/experiment-integration.php';
-require_once dirname( __DIR__ ) . '/inc/core/write-integrity.php';
-require_once dirname( __DIR__ ) . '/inc/core/abilities.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Keep active emitters and report readers on canonical names.
  */
-final class EventContractsTest extends TestCase {
+final class EventContractsTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Establish identified, privacy-eligible experiment fixtures.
 	 */
-	protected function setUp(): void {
-		$_COOKIE[ EXTRACHILL_ANALYTICS_VISITOR_COOKIE ] = '123e4567-e89b-42d3-a456-426614174000';
-		unset( $_SERVER['HTTP_SEC_GPC'], $_SERVER['HTTP_DNT'] );
-		$GLOBALS['extrachill_analytics_test_events'] = array();
-	}
+	public function set_up(): void {
+		parent::set_up();
 
-	/**
-	 * Restore privacy and identity fixtures.
-	 */
-	protected function tearDown(): void {
-		unset( $_COOKIE[ EXTRACHILL_ANALYTICS_VISITOR_COOKIE ], $_SERVER['HTTP_SEC_GPC'], $_SERVER['HTTP_DNT'] );
+		$_COOKIE[ EXTRACHILL_ANALYTICS_VISITOR_COOKIE ] = '123e4567-e89b-42d3-a456-426614174000';
 	}
 
 	/**
@@ -91,19 +77,18 @@ final class EventContractsTest extends TestCase {
 			)
 		);
 		$this->assertInstanceOf( WP_Error::class, $result );
-		$this->assertSame( 'protected_event_type', $result->code );
+		$this->assertSame( 'protected_event_type', $result->get_error_code() );
+		$this->assertSame( 0, $this->event_count() );
 	}
 
 	/**
 	 * The flexible event ability remains internal and absent from public REST.
 	 */
 	public function test_flexible_event_ability_remains_private(): void {
-		$GLOBALS['extrachill_analytics_registered_abilities'] = array();
-		extrachill_analytics_register_abilities();
-
-		$ability = $GLOBALS['extrachill_analytics_registered_abilities']['extrachill/track-analytics-event'];
-		$this->assertFalse( $ability['meta']['show_in_rest'] );
-		$this->assertSame( '__return_true', $ability['permission_callback'] );
+		$ability = wp_get_ability( 'extrachill/track-analytics-event' );
+		$this->assertInstanceOf( WP_Ability::class, $ability );
+		$this->assertFalse( $ability->get_meta_item( 'show_in_rest' ) );
+		$this->assertTrue( $ability->check_permissions( array() ) );
 	}
 
 	/**
@@ -166,9 +151,15 @@ final class EventContractsTest extends TestCase {
 			)
 		);
 
-		$this->assertCount( 2, $GLOBALS['extrachill_analytics_test_events'] );
-		$this->assertSame( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, $GLOBALS['extrachill_analytics_test_events'][0][0] );
-		$this->assertSame( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $GLOBALS['extrachill_analytics_test_events'][1][0] );
+		$this->assertSame( 2, $this->event_count() );
+		$rows            = $this->event_rows();
+		$assignment_data = $this->event_data( $rows[0] );
+		$exposure_data   = $this->event_data( $rows[1] );
+		// The real writer stamps is_bot at write time; the recorder contract
+		// under test is the payload the recorder itself built.
+		unset( $assignment_data['is_bot'], $exposure_data['is_bot'] );
+		$this->assertSame( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, $rows[0]->event_type );
+		$this->assertSame( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $rows[1]->event_type );
 		$this->assertSame(
 			array(
 				'experiment_key'     => 'geo-bridge-holdout',
@@ -177,34 +168,29 @@ final class EventContractsTest extends TestCase {
 				'variant'            => 'control',
 				'surface'            => 'single-post-bridge',
 			),
-			$GLOBALS['extrachill_analytics_test_events'][0][1]
+			$assignment_data
 		);
-		$this->assertSame( array( 'experiment_key', 'definition_version', 'assignment_policy', 'variant', 'surface' ), array_keys( $GLOBALS['extrachill_analytics_test_events'][1][1] ) );
+		$this->assertSame( array( 'experiment_key', 'definition_version', 'assignment_policy', 'variant', 'surface' ), array_keys( $exposure_data ) );
 	}
 
 	/**
 	 * Analytics stays aligned to Network's exact one-array action contract.
 	 */
 	public function test_network_hook_names_and_accepted_payload_shape_do_not_drift(): void {
-		$experiment_actions = array_values(
-			array_filter(
-				$GLOBALS['extrachill_analytics_test_registered_actions'],
-				static function ( $registration ) {
-					return isset( $registration[0] ) && 0 === strpos( $registration[0], 'extrachill_experiment_' );
-				}
-			)
+		$this->assertSame(
+			10,
+			has_action( 'extrachill_experiment_assignment', 'extrachill_analytics_record_experiment_assignment' )
 		);
-
-		$this->assertContains(
-			array( 'extrachill_experiment_assignment', 'extrachill_analytics_record_experiment_assignment', 10, 1 ),
-			$experiment_actions
+		$this->assertSame(
+			10,
+			has_action( 'extrachill_experiment_exposure', 'extrachill_analytics_record_experiment_exposure' )
 		);
-		$this->assertContains(
-			array( 'extrachill_experiment_exposure', 'extrachill_analytics_record_experiment_exposure', 10, 1 ),
-			$experiment_actions
+		$this->assertFalse(
+			has_action( 'extrachill_experiment_assignment_recorded', 'extrachill_analytics_record_experiment_assignment' )
 		);
-		$this->assertNotContains( 'extrachill_experiment_assignment_recorded', array_column( $experiment_actions, 0 ) );
-		$this->assertNotContains( 'extrachill_experiment_exposure_recorded', array_column( $experiment_actions, 0 ) );
+		$this->assertFalse(
+			has_action( 'extrachill_experiment_exposure_recorded', 'extrachill_analytics_record_experiment_exposure' )
+		);
 
 		$this->assertFalse(
 			extrachill_analytics_record_experiment_event(
@@ -219,6 +205,7 @@ final class EventContractsTest extends TestCase {
 				)
 			)
 		);
+		$this->assertSame( 0, $this->event_count() );
 	}
 
 	/**
@@ -275,6 +262,6 @@ final class EventContractsTest extends TestCase {
 				)
 			)
 		);
-		$this->assertSame( array(), $GLOBALS['extrachill_analytics_test_events'] );
+		$this->assertSame( 0, $this->event_count() );
 	}
 }

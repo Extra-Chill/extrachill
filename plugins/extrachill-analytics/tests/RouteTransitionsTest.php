@@ -5,14 +5,14 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-route-transitions.php';
 
 /**
  * Protect route journey semantics and the ability contract.
  */
-final class RouteTransitionsTest extends TestCase {
+final class RouteTransitionsTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Same/cross-surface transitions, route families, gap boundaries, loops,
 	 * direct terminals, anonymous rows, historical routes, and multisite nodes
@@ -160,18 +160,27 @@ final class RouteTransitionsTest extends TestCase {
 	 * explicit and no persistence substrate is introduced.
 	 */
 	public function test_ability_contract_and_query_bounds(): void {
-		$GLOBALS['extrachill_analytics_registered_abilities'] = array();
-		extrachill_analytics_register_route_transitions_ability();
-		$ability = $GLOBALS['extrachill_analytics_registered_abilities']['extrachill/get-route-transitions'];
+		$ability = wp_get_ability( 'extrachill/get-route-transitions' );
+		$this->assertInstanceOf( WP_Ability::class, $ability );
+		$meta   = $ability->get_meta();
+		$schema = $ability->get_input_schema();
 
-		$this->assertSame( 'extrachill_analytics_can_read_reports', $ability['permission_callback'] );
-		$this->assertFalse( $ability['meta']['show_in_rest'] );
-		$this->assertTrue( $ability['meta']['annotations']['readonly'] );
-		$this->assertArrayHasKey( 'sequence_length', $ability['input_schema']['properties'] );
-		$this->assertSame( array( 'all', 'first_time', 'returning' ), $ability['input_schema']['properties']['cohort']['enum'] );
+		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_id );
+		$this->assertTrue( $ability->check_permissions( array() ) );
+		$subscriber_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $subscriber_id );
+		$this->assertFalse( $ability->check_permissions( array() ) );
+		wp_set_current_user( 0 );
+
+		$this->assertFalse( $meta['show_in_rest'] );
+		$this->assertTrue( $meta['annotations']['readonly'] );
+		$this->assertArrayHasKey( 'sequence_length', $schema['properties'] );
+		$this->assertSame( array( 'all', 'first_time', 'returning' ), $schema['properties']['cohort']['enum'] );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local contract fixture.
 		$source = file_get_contents( dirname( __DIR__ ) . '/inc/core/abilities/get-route-transitions.php' );
+		$this->assertStringContainsString( 'extrachill_analytics_can_read_reports', $source );
 		$this->assertStringContainsString( 'event_type_created index', $source );
 		$this->assertStringContainsString( 'visitor_created', $source );
 		$this->assertStringContainsString( 'LIMIT %d', $source );

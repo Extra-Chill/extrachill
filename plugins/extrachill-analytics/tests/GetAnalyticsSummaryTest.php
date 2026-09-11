@@ -5,82 +5,48 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/abilities/get-analytics-summary.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Verify event detail is exposed only for explicitly filtered summaries.
  */
-final class GetAnalyticsSummaryTest extends TestCase {
+final class GetAnalyticsSummaryTest extends Extrachill_Analytics_TestCase {
 	/**
-	 * Install fresh database and detail fixtures for each test.
+	 * Insert one event row inside the summary window.
+	 *
+	 * @param string $event_type Event type.
+	 * @param string $source_url Source URL.
+	 * @param string $context    Context dimension.
+	 * @return int Row ID.
 	 */
-	protected function setUp(): void {
-		$GLOBALS['wpdb'] = new class() {
-			/**
-			 * Queries executed by the report.
-			 *
-			 * @var string[]
-			 */
-			public $queries = array();
-
-			/**
-			 * Return the query unchanged.
-			 *
-			 * @param string $query SQL query.
-			 * @param mixed  ...$args Prepared values.
-			 * @return string
-			 */
-			public function prepare( $query, ...$args ) {
-				unset( $args );
-				return $query;
-			}
-
-			/**
-			 * Return the summary row fixture.
-			 *
-			 * @param string $query SQL query.
-			 * @return array<object>
-			 */
-			public function get_results( $query ) {
-				$this->queries[] = $query;
-				return array(
-					(object) array(
-						'event_type' => 'newsletter_signup',
-						'count'      => '3',
-					),
-				);
-			}
-		};
-
-		$GLOBALS['extrachill_analytics_event_stats_fixture'] = array(
-			'total'      => 3,
-			'by_date'    => array(
-				(object) array(
-					'date'  => '2026-07-16',
-					'count' => '3',
-				),
+	private function summary_event( $event_type, $source_url, $context = '' ): int {
+		global $wpdb;
+		$wpdb->insert(
+			extrachill_analytics_events_table(),
+			array(
+				'event_type' => $event_type,
+				'event_data' => wp_json_encode( '' !== $context ? array( 'context' => $context ) : array() ),
+				'source_url' => $source_url,
+				'blog_id'    => 1,
+				'created_at' => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
 			),
-			'by_source'  => array(
-				(object) array(
-					'source_url' => 'https://extrachill.com/newsletter/',
-					'count'      => '2',
-				),
-			),
-			'by_context' => array(
-				(object) array(
-					'context' => 'footer',
-					'count'   => '2',
-				),
-			),
+			array( '%s', '%s', '%s', '%d', '%s' )
 		);
+		return (int) $wpdb->insert_id;
 	}
 
 	/**
 	 * An explicit event type exposes typed rows from the existing aggregation.
 	 */
 	public function test_explicit_event_type_exposes_typed_detail_rows(): void {
+		if ( ! $this->sqlite_has_json1() ) {
+			self::markTestSkipped( 'Harness database engine lacks JSON1; the by-context detail query requires MySQL JSON functions.' );
+		}
+		$day = gmdate( 'Y-m-d', time() - HOUR_IN_SECONDS );
+		for ( $i = 0; $i < 3; ++$i ) {
+			$this->summary_event( 'newsletter_signup', 'https://extrachill.com/newsletter/', 'footer' );
+		}
+
 		$summary = extrachill_analytics_ability_get_summary(
 			array(
 				'days'       => 28,
@@ -92,7 +58,7 @@ final class GetAnalyticsSummaryTest extends TestCase {
 		$this->assertSame(
 			array(
 				array(
-					'date'  => '2026-07-16',
+					'date'  => $day,
 					'count' => 3,
 				),
 			),
@@ -102,7 +68,7 @@ final class GetAnalyticsSummaryTest extends TestCase {
 			array(
 				array(
 					'source_url' => 'https://extrachill.com/newsletter/',
-					'count'      => 2,
+					'count'      => 3,
 				),
 			),
 			$summary['by_source']
@@ -111,7 +77,7 @@ final class GetAnalyticsSummaryTest extends TestCase {
 			array(
 				array(
 					'context' => 'footer',
-					'count'   => 2,
+					'count'   => 3,
 				),
 			),
 			$summary['by_context']
@@ -122,47 +88,31 @@ final class GetAnalyticsSummaryTest extends TestCase {
 	 * The all-event contract remains compact and does not run detail queries.
 	 */
 	public function test_all_event_summary_contract_is_unchanged(): void {
-		$summary = extrachill_analytics_ability_get_summary( array( 'days' => 28 ) );
+		$captured = $this->capture_queries();
+		$summary  = extrachill_analytics_ability_get_summary( array( 'days' => 28 ) );
 
 		$this->assertArrayNotHasKey( 'by_date', $summary );
 		$this->assertArrayNotHasKey( 'by_source', $summary );
 		$this->assertArrayNotHasKey( 'by_context', $summary );
-		$this->assertCount( 1, $GLOBALS['wpdb']->queries );
+		$detail_queries = array_filter(
+			$captured->queries,
+			static function ( $query ) {
+				return (bool) preg_match( '/GROUP BY\s+(DATE\(created_at\)|source_url|context)/i', $query );
+			}
+		);
+		$this->assertCount( 0, $detail_queries );
+		$this->assertNotEmpty( $captured->queries, 'The compact summary still reads available event types.' );
 	}
 
 	/**
 	 * Canonical onboarding grants require no parallel summary reader.
 	 */
 	public function test_onboarding_grant_is_readable_by_existing_summary(): void {
-		$GLOBALS['wpdb'] = new class() {
-			/**
-			 * Capture prepared values and return the fixture query.
-			 *
-			 * @param string $query Query string.
-			 * @param mixed  ...$args Prepared values.
-			 * @return string Query string.
-			 */
-			public function prepare( $query, ...$args ) {
-				$this->args = $args;
-				return $query;
-			}
+		$this->summary_event( EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED, 'https://example.org/', 'studio' );
+		$this->summary_event( EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED, 'https://example.org/', 'studio' );
 
-			/**
-			 * Return the canonical grant summary fixture.
-			 *
-			 * @return array<object> Summary rows.
-			 */
-			public function get_results() {
-				return array(
-					(object) array(
-						'event_type' => 'artist_access_granted',
-						'count'      => '2',
-					),
-				);
-			}
-		};
-
-		$summary = extrachill_analytics_ability_get_summary(
+		$captured = $this->capture_queries();
+		$summary  = extrachill_analytics_ability_get_summary(
 			array(
 				'days'       => 28,
 				'event_type' => EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED,
@@ -171,7 +121,8 @@ final class GetAnalyticsSummaryTest extends TestCase {
 
 		$this->assertSame( 'artist_access_granted', $summary['event_types'][0]['event_type'] );
 		$this->assertSame( 2, $summary['event_types'][0]['count'] );
-		$this->assertContains( 'artist_access_granted', $GLOBALS['wpdb']->args[0] );
+		$bound = implode( "\n", $captured->queries );
+		$this->assertStringContainsString( 'artist_access_granted', $bound );
 	}
 
 	/**

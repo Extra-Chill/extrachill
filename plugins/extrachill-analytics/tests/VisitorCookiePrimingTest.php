@@ -5,41 +5,19 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Verify anonymous identity is minted only on eligible frontend requests.
  */
-final class VisitorCookiePrimingTest extends TestCase {
-	/**
-	 * Load the request-boundary helpers.
-	 */
-	public static function setUpBeforeClass(): void {
-		require_once dirname( __DIR__ ) . '/inc/core/assets.php';
-	}
-
+final class VisitorCookiePrimingTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Set a normal first-party browser request before each test.
 	 */
-	protected function setUp(): void {
-		$_SERVER['REQUEST_METHOD'] = 'GET';
-		$_SERVER['HTTP_HOST']      = 'extrachill.com';
-	}
+	public function set_up(): void {
+		parent::set_up();
 
-	/**
-	 * Restore request fixtures after each test.
-	 */
-	protected function tearDown(): void {
-		unset(
-			$_SERVER['REQUEST_METHOD'],
-			$_SERVER['HTTP_HOST'],
-			$_SERVER['HTTP_SEC_GPC'],
-			$_SERVER['HTTP_DNT'],
-			$GLOBALS['extrachill_analytics_test_is_preview'],
-			$GLOBALS['extrachill_analytics_test_is_admin'],
-			$GLOBALS['extrachill_analytics_test_doing_ajax'],
-			$GLOBALS['extrachill_analytics_test_doing_cron']
-		);
+		$this->set_request( 'example.org', 'GET' );
 	}
 
 	/**
@@ -58,8 +36,7 @@ final class VisitorCookiePrimingTest extends TestCase {
 	 * @param string $method Safe browser request method.
 	 */
 	public function test_non_singular_and_login_frontend_requests_are_eligible( $host, $method ): void {
-		$_SERVER['HTTP_HOST']      = $host;
-		$_SERVER['REQUEST_METHOD'] = $method;
+		$this->set_request( $host, $method );
 
 		$this->assertTrue( extrachill_analytics_should_prime_visitor_cookie() );
 	}
@@ -71,10 +48,10 @@ final class VisitorCookiePrimingTest extends TestCase {
 	 */
 	public function eligible_frontend_route_provider() {
 		return array(
-			'network homepage' => array( 'extrachill.com', 'GET' ),
-			'archive'          => array( 'newsletter.extrachill.com', 'GET' ),
-			'login/register'   => array( 'community.extrachill.com', 'GET' ),
-			'head request'     => array( 'events.extrachill.com', 'HEAD' ),
+			'network homepage' => array( 'example.org', 'GET' ),
+			'archive'          => array( 'newsletter.example.org', 'GET' ),
+			'login/register'   => array( 'community.example.org', 'GET' ),
+			'head request'     => array( 'events.example.org', 'HEAD' ),
 		);
 	}
 
@@ -83,25 +60,33 @@ final class VisitorCookiePrimingTest extends TestCase {
 	 *
 	 * @dataProvider ineligible_runtime_provider
 	 *
-	 * @param string $fixture Runtime fixture global.
+	 * @param string $runtime Simulated runtime context.
 	 */
-	public function test_preview_admin_ajax_and_cron_requests_are_ineligible( $fixture ): void {
-		$GLOBALS[ $fixture ] = true;
+	public function test_preview_admin_ajax_and_cron_requests_are_ineligible( $runtime ): void {
+		if ( 'preview' === $runtime ) {
+			$this->set_query_flags( array( 'is_preview' => true ) );
+		} elseif ( 'admin' === $runtime ) {
+			$this->set_admin_context();
+		} elseif ( 'ajax' === $runtime ) {
+			$this->set_doing_context( true, false );
+		} elseif ( 'cron' === $runtime ) {
+			$this->set_doing_context( false, true );
+		}
 
 		$this->assertFalse( extrachill_analytics_should_prime_visitor_cookie() );
 	}
 
 	/**
-	 * Runtime fixture globals.
+	 * Runtime fixtures.
 	 *
 	 * @return array<string,array{string}>
 	 */
 	public function ineligible_runtime_provider() {
 		return array(
-			'preview' => array( 'extrachill_analytics_test_is_preview' ),
-			'admin'   => array( 'extrachill_analytics_test_is_admin' ),
-			'ajax'    => array( 'extrachill_analytics_test_doing_ajax' ),
-			'cron'    => array( 'extrachill_analytics_test_doing_cron' ),
+			'preview' => array( 'preview' ),
+			'admin'   => array( 'admin' ),
+			'ajax'    => array( 'ajax' ),
+			'cron'    => array( 'cron' ),
 		);
 	}
 
@@ -119,11 +104,10 @@ final class VisitorCookiePrimingTest extends TestCase {
 	 * Unsafe methods and custom-domain requests cannot mint the network cookie.
 	 */
 	public function test_post_and_third_party_requests_are_ineligible(): void {
-		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$this->set_request( 'example.org', 'POST' );
 		$this->assertFalse( extrachill_analytics_should_prime_visitor_cookie() );
 
-		$_SERVER['REQUEST_METHOD'] = 'GET';
-		$_SERVER['HTTP_HOST']      = 'artist.example';
+		$this->set_request( 'artist.example', 'GET' );
 		$this->assertFalse( extrachill_analytics_should_prime_visitor_cookie() );
 	}
 

@@ -13,14 +13,24 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/abilities.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Pins the live probe families from issue #133 plus the pre-existing catalog.
  */
-final class SearchPayloadClassifierTest extends TestCase {
+final class SearchPayloadClassifierTest extends Extrachill_Analytics_TestCase {
+
+	/**
+	 * Establish a first-party browser request for the write-path test.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		$this->set_ext_object_cache( true );
+		$this->set_request( 'localhost', 'GET' );
+		$_SERVER['HTTP_ORIGIN']     = 'http://localhost';
+		$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0';
+	}
 
 	/**
 	 * Live probe families from issue #133 must each classify as an attack with
@@ -173,9 +183,7 @@ final class SearchPayloadClassifierTest extends TestCase {
 	 * away from ordinary search demand.
 	 */
 	public function test_payload_search_is_routed_to_search_attack() {
-		$GLOBALS['extrachill_analytics_test_events'] = array();
-
-		extrachill_analytics_ability_track_event(
+		$result = extrachill_analytics_ability_track_event(
 			array(
 				'event_type' => 'search',
 				'event_data' => array(
@@ -185,12 +193,12 @@ final class SearchPayloadClassifierTest extends TestCase {
 			)
 		);
 
-		$this->assertCount( 1, $GLOBALS['extrachill_analytics_test_events'] );
-		$this->assertSame( 'search_attack', $GLOBALS['extrachill_analytics_test_events'][0][0] );
-		$this->assertSame( 'path_traversal', $GLOBALS['extrachill_analytics_test_events'][0][1]['classification'] );
-		$this->assertSame( 'lfi', $GLOBALS['extrachill_analytics_test_events'][0][1]['pattern_family'] );
-		$this->assertSame( 2, $GLOBALS['extrachill_analytics_test_events'][0][1]['result_count'] );
-
-		unset( $GLOBALS['extrachill_analytics_test_events'] );
+		$this->assertGreaterThan( 0, $result );
+		$this->assertSame( 0, $this->event_count( 'search' ) );
+		$this->assertSame( 1, $this->event_count( 'search_attack' ) );
+		$data = $this->event_data( $this->event_rows( 'search_attack' )[0] );
+		$this->assertSame( 'path_traversal', $data['classification'] );
+		$this->assertSame( 'lfi', $data['pattern_family'] );
+		$this->assertSame( 2, $data['result_count'] );
 	}
 }

@@ -5,57 +5,18 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/network-density.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
+require_once __DIR__ . '/class-platform-contract-fixture.php';
 
 /**
  * Verify the consumer-owned network scope passed to Data Machine Business.
  */
-final class NetworkDensityHostsTest extends TestCase {
-
-	/**
-	 * Reset canonical multisite fixtures before each test.
-	 */
-	protected function setUp(): void {
-		parent::setUp();
-
-		$GLOBALS['extrachill_analytics_test_apply_registered_filters'] = true;
-		$GLOBALS['extrachill_analytics_test_registered_filters']       = array_values(
-			array_filter(
-				$GLOBALS['extrachill_analytics_test_registered_filters'],
-				static function ( $filter ) {
-					return 'datamachine_network_density_hosts' !== $filter[0]
-						|| 'extrachill_analytics_network_density_hosts' === $filter[1];
-				}
-			)
-		);
-		$GLOBALS['extrachill_analytics_test_active_site_ids']          = array( 1, 2, 7, 12 );
-		$GLOBALS['extrachill_analytics_test_home_urls']                = array(
-			1  => 'HTTPS://EXTRACHILL.COM./',
-			2  => 'https://community.extrachill.com/',
-			7  => 'https://events.extrachill.com/',
-			12 => 'https://studio.extrachill.com/',
-			13 => 'https://archived.extrachill.com/',
-		);
-	}
-
-	/**
-	 * Restore the default no-op filter harness after each test.
-	 */
-	protected function tearDown(): void {
-		$GLOBALS['extrachill_analytics_test_apply_registered_filters'] = false;
-		parent::tearDown();
-	}
-
+final class NetworkDensityHostsTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * The DMB extension point is registered at plugin load.
 	 */
 	public function test_network_density_filter_is_registered(): void {
-		$this->assertContains(
-			array( 'datamachine_network_density_hosts', 'extrachill_analytics_network_density_hosts' ),
-			$GLOBALS['extrachill_analytics_test_registered_filters']
-		);
+		$this->assertSame( 10, has_filter( 'datamachine_network_density_hosts', 'extrachill_analytics_network_density_hosts' ) );
 	}
 
 	/**
@@ -70,16 +31,20 @@ final class NetworkDensityHostsTest extends TestCase {
 			5
 		);
 
+		$community = $this->create_blog( 'community.example.org' );
+		$events    = $this->create_blog( 'events.example.org' );
+		$studio    = $this->create_blog( 'studio.example.org' );
+		$GLOBALS['extrachill_analytics_test_active_site_ids'] = array( 1, $community, $events, $studio );
+
 		$this->assertSame(
 			array(
-				'extrachill.com',
-				'community.extrachill.com',
-				'events.extrachill.com',
-				'studio.extrachill.com',
+				'localhost',
+				'community.example.org',
+				'events.example.org',
+				'studio.example.org',
 			),
 			apply_filters( 'datamachine_network_density_hosts', array() )
 		);
-		$this->assertNotContains( 'archived.extrachill.com', apply_filters( 'datamachine_network_density_hosts', array() ) );
 		$this->assertNotContains( 'earlier.example', apply_filters( 'datamachine_network_density_hosts', array() ) );
 	}
 

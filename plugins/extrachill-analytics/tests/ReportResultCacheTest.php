@@ -5,22 +5,19 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
-
-require_once dirname( __DIR__ ) . '/inc/core/report-result-cache.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
 /**
  * Verify cache identity, freshness, warm reads, and stale behavior.
  */
-final class ReportResultCacheTest extends TestCase {
+final class ReportResultCacheTest extends Extrachill_Analytics_TestCase {
 	/**
 	 * Reset cache fixtures.
 	 */
-	protected function setUp(): void {
-		$GLOBALS['extrachill_analytics_test_site_transients']  = array();
-		$GLOBALS['extrachill_analytics_test_transient_ttls']   = array();
-		$GLOBALS['extrachill_analytics_test_cache']            = array();
-		$GLOBALS['extrachill_analytics_test_ext_object_cache'] = true;
+	public function set_up(): void {
+		parent::set_up();
+
+		$this->set_ext_object_cache( true );
 	}
 
 	/**
@@ -89,6 +86,9 @@ final class ReportResultCacheTest extends TestCase {
 	 * A warm read returns the original measurement without recomputation.
 	 */
 	public function test_warm_read_preserves_as_of_and_exposes_freshness(): void {
+		// Core's set_site_transient() only persists the timeout option when no
+		// external object cache is active, so this test runs uncached.
+		$this->set_ext_object_cache( false );
 		$calls   = 0;
 		$compute = static function () use ( &$calls ) {
 			++$calls;
@@ -108,8 +108,12 @@ final class ReportResultCacheTest extends TestCase {
 		$this->assertSame( $warm['as_of'], $warm['freshness']['as_of'] );
 		$this->assertSame( 300, $warm['freshness']['max_age_seconds'] );
 
-		$key = extrachill_analytics_report_cache_key( 'conversion_map', array( 'days' => 28 ) );
-		$this->assertSame( 600, $GLOBALS['extrachill_analytics_test_transient_ttls'][ $key ] );
+		$key      = extrachill_analytics_report_cache_key( 'conversion_map', array( 'days' => 28 ) );
+		$timeout  = (int) get_site_option( '_site_transient_timeout_' . $key );
+		$this->assertGreaterThanOrEqual( 599, $timeout - time() );
+		$this->assertLessThanOrEqual( 601, $timeout - time() );
+
+		delete_site_transient( $key );
 	}
 
 	/**
@@ -119,12 +123,16 @@ final class ReportResultCacheTest extends TestCase {
 		$key       = extrachill_analytics_report_cache_key( 'surface_growth', array( 'weeks' => 4 ) );
 		$lock_key  = $key . '_lock';
 		$generated = time() - 301;
-		$GLOBALS['extrachill_analytics_test_site_transients'][ $key ] = array(
-			'generated_at' => $generated,
-			'result'       => array(
-				'as_of' => '2026-08-02 21:00:00',
-				'value' => 7,
+		set_site_transient(
+			$key,
+			array(
+				'generated_at' => $generated,
+				'result'       => array(
+					'as_of' => '2026-08-02 21:00:00',
+					'value' => 7,
+				),
 			),
+			EXTRACHILL_ANALYTICS_REPORT_CACHE_STALE_TTL
 		);
 		wp_cache_add( $lock_key, 1, 'extrachill_analytics_reports', 30 );
 
@@ -139,6 +147,8 @@ final class ReportResultCacheTest extends TestCase {
 		$this->assertSame( 7, $result['value'] );
 		$this->assertSame( 'stale', $result['freshness']['cache_status'] );
 		$this->assertTrue( $result['freshness']['is_stale'] );
+
+		delete_site_transient( $key );
 	}
 
 	/**
@@ -146,9 +156,13 @@ final class ReportResultCacheTest extends TestCase {
 	 */
 	public function test_expired_stale_payload_is_recomputed(): void {
 		$key = extrachill_analytics_report_cache_key( 'retention_stats', array( 'days' => 28 ) );
-		$GLOBALS['extrachill_analytics_test_site_transients'][ $key ] = array(
-			'generated_at' => time() - 601,
-			'result'       => array( 'value' => 1 ),
+		set_site_transient(
+			$key,
+			array(
+				'generated_at' => time() - 601,
+				'result'       => array( 'value' => 1 ),
+			),
+			EXTRACHILL_ANALYTICS_REPORT_CACHE_STALE_TTL
 		);
 
 		$result = extrachill_analytics_report_cache_remember(
@@ -161,6 +175,8 @@ final class ReportResultCacheTest extends TestCase {
 
 		$this->assertSame( 2, $result['value'] );
 		$this->assertSame( 'miss', $result['freshness']['cache_status'] );
+
+		delete_site_transient( $key );
 	}
 
 	/**

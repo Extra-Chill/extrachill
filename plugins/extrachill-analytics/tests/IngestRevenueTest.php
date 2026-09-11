@@ -8,13 +8,14 @@
  * exercised against an in-memory fake store that mirrors the production store's
  * contract, because this repository has no WordPress-DB test scaffold. The
  * ability registration (annotations / schemas / permission) is locked down via
- * a source-string contract. WordPress function stubs live in bootstrap.php.
+ * a source-string contract.
  *
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-platform-contract-fixture.php';
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/content-format-classifier.php';
 require_once dirname( __DIR__ ) . '/inc/database/mediavine-revenue-db.php';
 require_once dirname( __DIR__ ) . '/inc/core/mediavine-csv-import.php';
@@ -27,7 +28,7 @@ require_once __DIR__ . '/class-fake-revenue-store.php';
  * Verify deterministic identity, replace/additive semantics, idempotency,
  * isolation, dry-run, validation, resolution, rollback, and the output contract.
  */
-final class IngestRevenueTest extends TestCase {
+final class IngestRevenueTest extends Extrachill_Analytics_TestCase {
 
 	/**
 	 * Fake store under test.
@@ -781,8 +782,13 @@ final class IngestRevenueTest extends TestCase {
 	 * Resolution counts one resolved post and one unresolved route.
 	 */
 	public function test_resolution_counts_resolved_and_unresolved(): void {
-		$GLOBALS['extrachill_ingest_url_map']  = array( '/some-post/' => 42 );
-		$GLOBALS['extrachill_ingest_post_map'] = array( 42 => 'some-post' );
+		$this->set_permalink_structure( '/%postname%/' );
+		self::factory()->post->create(
+			array(
+				'post_name'   => 'some-post',
+				'post_status' => 'publish',
+			)
+		);
 
 		$result = $this->ingest(
 			array(
@@ -1211,16 +1217,22 @@ final class IngestRevenueTest extends TestCase {
 	 * Replace checks the target site while additive always requires network auth.
 	 */
 	public function test_target_blog_and_network_authorization(): void {
-		$GLOBALS['extrachill_ingest_capabilities'] = array( 'manage_options' => true );
+		$admin    = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$blog_seven = $this->create_blog( 'events.example.org' );
+		wp_set_current_user( $admin );
+
+		// Replace on the current blog: site-level manage_options suffices.
 		$this->assertTrue( extrachill_analytics_revenue_ingest_authorize( 1, 'replace' ) );
-		$this->assertFalse( extrachill_analytics_revenue_ingest_authorize( 7, 'replace' ) );
+		// Replace on another blog requires target-blog caps the admin lacks.
+		$this->assertFalse( extrachill_analytics_revenue_ingest_authorize( $blog_seven, 'replace' ) );
+		// Additive is network-elevated; a site admin alone cannot.
 		$this->assertFalse( extrachill_analytics_revenue_ingest_authorize( 1, 'additive' ) );
 
-		$GLOBALS['extrachill_ingest_site_capabilities'][7]['manage_options'] = true;
-		$this->assertTrue( extrachill_analytics_revenue_ingest_authorize( 7, 'replace' ) );
-
-		$GLOBALS['extrachill_ingest_capabilities']['manage_network_options'] = true;
-		$this->assertTrue( extrachill_analytics_revenue_ingest_authorize( 7, 'additive' ) );
+		grant_super_admin( $admin );
+		$this->assertTrue( extrachill_analytics_revenue_ingest_authorize( $blog_seven, 'replace' ) );
+		$this->assertTrue( extrachill_analytics_revenue_ingest_authorize( 1, 'additive' ) );
+		$this->assertTrue( extrachill_analytics_revenue_ingest_authorize( $blog_seven, 'additive' ) );
+		wp_set_current_user( 0 );
 	}
 
 	/**
@@ -1287,8 +1299,10 @@ final class IngestRevenueTest extends TestCase {
 	private function ingest( array $rows, array $args ): array {
 		$args = array_merge(
 			array(
-				'blog_id' => 1,
-				'source'  => 'mediavine',
+				'blog_id'     => 1,
+				'source'      => 'mediavine',
+				'source_site' => 'extrachill.com',
+				'hostname'    => (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ),
 			),
 			$args
 		);

@@ -9,15 +9,15 @@
  * @package ExtraChill\Analytics
  */
 
-use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/revenue-ad-policy.php';
 require_once dirname( __DIR__ ) . '/inc/core/abilities/get-content-revenue-diagnostics.php';
 
 /**
  * Verify diagnostics contracts.
  */
-final class GetContentRevenueDiagnosticsTest extends TestCase {
+final class GetContentRevenueDiagnosticsTest extends Extrachill_Analytics_TestCase {
 
 	/**
 	 * Helper: a normalized row.
@@ -1118,7 +1118,12 @@ final class GetContentRevenueDiagnosticsTest extends TestCase {
 	 */
 	public function test_clean_store_overall_pass(): void {
 		$periods = array();
-		foreach ( array( '2026-04', '2026-05', '2026-06' ) as $label ) {
+		$labels  = array(
+			gmdate( 'Y-m', strtotime( '-2 months' ) ),
+			gmdate( 'Y-m', strtotime( '-1 month' ) ),
+			gmdate( 'Y-m' ),
+		);
+		foreach ( $labels as $label ) {
 			$periods[] = $this->period(
 				array(
 					'period_label' => $label,
