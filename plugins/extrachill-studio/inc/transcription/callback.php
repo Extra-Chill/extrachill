@@ -74,8 +74,10 @@ add_action( 'rest_api_init', 'ec_studio_transcription_register_callback_route' )
  */
 function ec_studio_transcription_log_callback_attempt( \WP_REST_Request $request ): void {
 	$auth_header = $request->get_header( 'authorization' );
-	$body        = $request->get_json_params();
-	$body        = is_array( $body ) ? $body : array();
+	// WP_REST_Request::get_json_params() is documented to return an array, so
+	// an is_array() narrowing check is redundant (phpstan.alreadyNarrowedType).
+	// The cast keeps the same defensive guarantee without the dead branch.
+	$body = (array) $request->get_json_params();
 
 	$job_id = isset( $body['job_id'] ) ? (string) $body['job_id'] : '';
 	$status = isset( $body['status'] ) ? (string) $body['status'] : '';
