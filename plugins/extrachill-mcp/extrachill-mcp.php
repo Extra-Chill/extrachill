@@ -55,12 +55,12 @@ add_filter( 'mcp_adapter_create_default_server', '__return_false' );
 
 // PSR-4 autoload for src/ (fallback if composer not installed during dev).
 spl_autoload_register(
-	static function ( string $class ): void {
+	static function ( string $class_name ): void {
 		$prefix = __NAMESPACE__ . '\\';
-		if ( strpos( $class, $prefix ) !== 0 ) {
+		if ( strpos( $class_name, $prefix ) !== 0 ) {
 			return;
 		}
-		$relative = substr( $class, strlen( $prefix ) );
+		$relative = substr( $class_name, strlen( $prefix ) );
 		$path     = EXTRACHILL_MCP_DIR . 'src/' . str_replace( '\\', '/', $relative ) . '.php';
 		if ( file_exists( $path ) ) {
 			require_once $path;

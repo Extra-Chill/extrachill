@@ -1,0 +1,28 @@
+name: extrachill-mcp
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: extrachill-mcp-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: Extra-Chill/homeboy-action@5b40b2b0c7167b668e8d4bd5d5ec33fcd124f1a9
+        with:
+          extension: wordpress
+          commands: review lint,review test
+          scope: full
+          pr-comment: 'false'
+          auto-issue: 'false'

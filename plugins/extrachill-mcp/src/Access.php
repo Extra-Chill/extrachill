@@ -67,8 +67,13 @@ final class Access {
 		 * @param string               $capability Required capability.
 		 * @param array<string, mixed> $input      Meta-ability input.
 		 */
+		/** @var mixed $capability */
 		$capability = apply_filters( 'extrachill_mcp_capability', self::DEFAULT_CAPABILITY, $input );
 
+		// The docblock above documents the contract a well-behaved filter should
+		// honor; it is not a guarantee. `current_user_can()` throws a TypeError
+		// on WP 7.1 for null/array input, so a filter returning anything other
+		// than a non-empty string must resolve to a clean denial, not a fatal.
 		return is_string( $capability ) && '' !== $capability && current_user_can( $capability );
 	}
 }

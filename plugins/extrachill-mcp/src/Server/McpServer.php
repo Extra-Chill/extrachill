@@ -53,6 +53,7 @@ final class McpServer {
 		 *
 		 * @param string[] $tools Ability names advertised as MCP tools.
 		 */
+		/** @var mixed $tools */
 		$tools = apply_filters( 'extrachill_mcp_tools', self::TOOLS );
 
 		$adapter->create_server(
@@ -65,6 +66,10 @@ final class McpServer {
 			array( \WP\MCP\Transport\HttpTransport::class ),
 			\WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler::class,
 			\WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler::class,
+			// The docblock above documents the contract a well-behaved filter
+			// should honor; it is not a guarantee. array_values() throws a
+			// TypeError on a non-array, so fall back to the canonical tool list
+			// rather than letting an arbitrary filter fatal a public endpoint.
 			is_array( $tools ) ? array_values( $tools ) : self::TOOLS,
 			array(), // resources
 			array()  // prompts
