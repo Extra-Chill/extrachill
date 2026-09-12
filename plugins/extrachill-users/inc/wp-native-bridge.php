@@ -12,6 +12,7 @@
  *  - wp_native_auth_after_login       (action) — fire EC after-login hooks
  *  - wp_native_auth_pre_register      (filter) — EC username override
  *  - wp_native_auth_after_register    (action) — community provisioning and metadata
+ *  - wp_native_auth_oauth_consent_template (filter) — branded OAuth consent screen
  *
  * @package ExtraChill\Users
  */
@@ -256,3 +257,23 @@ function extrachill_users_wp_native_after_register( int $user_id, string $device
 	do_action( 'extrachill_users_after_native_register', $user_id, $device_id, $token_pair );
 }
 add_action( 'wp_native_auth_after_register', 'extrachill_users_wp_native_after_register', 10, 3 );
+
+/**
+ * Consent screen: serve the branded Extra Chill consent template.
+ *
+ * Replaces wp-native-auth's generic, unbranded consent form. The template
+ * receives the same $args (client_name, client_uri, client_id, scope,
+ * resource, bundle, signature, authorize_action) and owns the form contract
+ * — field names, nonce action, and the verbatim signed bundle — which is
+ * enforced by wp-native-auth's decision handler.
+ *
+ * @param string              $template Absolute path to the consent template.
+ * @param array<string,mixed> $args     View args for the template.
+ * @return string Absolute path to the Extra Chill consent template.
+ */
+function extrachill_users_wp_native_oauth_consent_template( string $template, array $args ): string {
+	unset( $template, $args );
+
+	return EXTRACHILL_USERS_PLUGIN_DIR . 'templates/oauth-consent.php';
+}
+add_filter( 'wp_native_auth_oauth_consent_template', 'extrachill_users_wp_native_oauth_consent_template', 10, 2 );
