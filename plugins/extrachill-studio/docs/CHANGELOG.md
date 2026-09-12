@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.4] - 2026-09-12
+
+### Fixed
+- send transcription completion email from main, not Studio
+
 ## [0.27.3] - 2026-09-12
 
 ### Changed
