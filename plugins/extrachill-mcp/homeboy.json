@@ -1,0 +1,14 @@
+{
+	"auto_cleanup": false,
+	"extensions": {
+		"wordpress": {}
+	},
+	"id": "extrachill-mcp",
+	"remote_path": "wp-content/plugins/extrachill-mcp",
+	"version_targets": [
+		{
+			"file": "extrachill-mcp.php",
+			"pattern": "Version:\\s*([0-9.]+)"
+		}
+	]
+}
