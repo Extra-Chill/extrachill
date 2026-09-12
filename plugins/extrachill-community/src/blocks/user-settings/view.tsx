@@ -389,6 +389,196 @@ export function AccountTab( {
 	);
 }
 
+interface AuthSession {
+	device_id: string;
+	device_name: string | null;
+	created_at: string;
+	last_used_at: string | null;
+	expires_at: string;
+	current: boolean;
+	oauth_client_id: string | null;
+	oauth_client_name: string | null;
+}
+
+interface AuthSessionsResponse {
+	sessions: AuthSession[];
+}
+
+interface RevokeSessionResponse {
+	revoked: boolean;
+}
+
+function formatSessionTimestamp( iso: string | null ): string {
+	if ( ! iso ) {
+		return 'Never';
+	}
+	const date = new Date( iso );
+	if ( Number.isNaN( date.getTime() ) ) {
+		return iso;
+	}
+	return date.toLocaleString( undefined, {
+		dateStyle: 'medium',
+		timeStyle: 'short',
+	} );
+}
+
+function sessionLabel( session: AuthSession ): string {
+	if ( session.oauth_client_id ) {
+		return session.oauth_client_name || session.oauth_client_id;
+	}
+	return session.device_name || 'Unnamed device';
+}
+
+function revokeButtonLabel(
+	session: AuthSession,
+	revokingId: string | null
+): string {
+	if ( revokingId === session.device_id ) {
+		return 'Revoking...';
+	}
+	if ( session.current ) {
+		return 'Current session';
+	}
+	return 'Revoke';
+}
+
+function ConnectedAppsSection() {
+	const [ sessions, setSessions ] = useState< AuthSession[] >( [] );
+	const [ loading, setLoading ] = useState( true );
+	const [ revoking, setRevoking ] = useState< string | null >( null );
+	const [ notice, setNotice ] = useState< {
+		type: 'success' | 'error';
+		message: string;
+	} | null >( null );
+
+	useEffect( () => {
+		apiFetch< AuthSessionsResponse >( {
+			path: 'extrachill/v1/auth/sessions',
+			method: 'GET',
+		} )
+			.then( ( result ) => {
+				setSessions( result.sessions );
+			} )
+			.catch( ( err ) => {
+				setNotice( {
+					type: 'error',
+					message:
+						err instanceof Error
+							? err.message
+							: 'Connected apps could not be loaded.',
+				} );
+			} )
+			.finally( () => setLoading( false ) );
+	}, [] );
+
+	const revokeSession = useCallback( async ( session: AuthSession ) => {
+		const label = sessionLabel( session );
+		// eslint-disable-next-line no-alert
+		const confirmed = window.confirm(
+			`Revoke access for ${ label }? This cannot be undone.`
+		);
+		if ( ! confirmed ) {
+			return;
+		}
+		setRevoking( session.device_id );
+		setNotice( null );
+		try {
+			const result = await apiFetch< RevokeSessionResponse >( {
+				path: `extrachill/v1/auth/sessions/${ session.device_id }`,
+				method: 'DELETE',
+			} );
+			setSessions( ( current ) =>
+				current.filter(
+					( candidate ) => candidate.device_id !== session.device_id
+				)
+			);
+			setNotice( {
+				type: 'success',
+				message: result.revoked
+					? `${ label } can no longer renew its access. Any session already in progress ends within 15 minutes.`
+					: `${ label } was already revoked.`,
+			} );
+		} catch ( err ) {
+			setNotice( {
+				type: 'error',
+				message: err instanceof Error ? err.message : 'Revoke failed.',
+			} );
+		}
+		setRevoking( null );
+	}, [] );
+
+	if ( loading ) {
+		return (
+			<div className="notice notice-info">
+				<p>Loading connected apps...</p>
+			</div>
+		);
+	}
+
+	return (
+		<>
+			<h3>Connected Apps</h3>
+			<p style={ styles.mutedText }>
+				Third-party apps and devices with access to your account.
+				Revoking access is immediate for new activity, but a session
+				already in progress can continue for up to 15 minutes.
+			</p>
+			{ notice && (
+				<Notice type={ notice.type } message={ notice.message } />
+			) }
+			{ sessions.length === 0 ? (
+				<p style={ styles.mutedText }>
+					No apps or devices are currently connected.
+				</p>
+			) : (
+				<ul style={ styles.checkboxList }>
+					{ sessions.map( ( session ) => (
+						<li
+							key={ session.device_id }
+							style={ styles.checkboxItem }
+						>
+							<div style={ { flex: 1 } }>
+								<strong>
+									{ sessionLabel( session ) }
+									{ session.current && ' (this device)' }
+								</strong>
+								<div style={ styles.mutedText }>
+									{ session.oauth_client_id
+										? 'Connected app'
+										: 'Device session' }
+									{ ' — created ' }
+									{ formatSessionTimestamp(
+										session.created_at
+									) }
+									{ ', last used ' }
+									{ formatSessionTimestamp(
+										session.last_used_at
+									) }
+								</div>
+							</div>
+							<button
+								className="button-danger button-small"
+								disabled={
+									session.current ||
+									revoking === session.device_id
+								}
+								title={
+									session.current
+										? 'Sign out of this device to revoke your current session.'
+										: undefined
+								}
+								onClick={ () => revokeSession( session ) }
+							>
+								{ revokeButtonLabel( session, revoking ) }
+							</button>
+						</li>
+					) ) }
+				</ul>
+			) }
+		</>
+	);
+}
+
 function SecurityTab( {
 	settings,
 	onSettingsChange,
@@ -560,6 +750,14 @@ function SecurityTab( {
 					{ passwordSaving ? 'Changing...' : 'Change Password' }
 				</button>
 			</ActionRow>
+			<hr
+				style={ {
+					border: 'none',
+					borderTop: `1px solid ${ cssVar( colors.borderColor ) }`,
+					margin: `${ cssVar( spacing.spacingLg ) } 0`,
+				} }
+			/>
+			<ConnectedAppsSection />
 		</Panel>
 	);
 }
