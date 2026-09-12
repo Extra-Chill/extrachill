@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.5] - 2026-09-12
+
+### Fixed
+- run transcription mail through the pre-authenticated ability seam
+
 ## [0.27.4] - 2026-09-12
 
 ### Fixed
