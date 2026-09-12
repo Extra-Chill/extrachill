@@ -59,7 +59,8 @@ extrachill-api/
 │       │   ├── logout.php (Device token revocation)
 │       │   ├── me.php (Current user data)
 │       │   ├── refresh.php (Token refresh for continued sessions)
-│       │   └── register.php (User registration with token generation)
+│       │   ├── register.php (User registration with token generation)
+│       │   └── sessions.php (List/revoke device sessions — Connected Apps)
 │       ├── blog/
 │       │   ├── ai-adventure.php (AI adventure story generation)
 │       │   ├── band-name.php (Band name generator)
@@ -121,7 +122,7 @@ extrachill-api/
 
 All endpoints are under the `extrachill/v1` namespace.
 
-### Authentication Endpoints (7)
+### Authentication Endpoints (9)
 - `POST /auth/login` - User login returning access + refresh tokens
 - `POST /auth/refresh` - Token refresh for continued sessions
 - `GET /auth/me` - Current authenticated user
@@ -129,6 +130,8 @@ All endpoints are under the `extrachill/v1` namespace.
 - `POST /auth/register` - User registration
 - `POST /auth/google` - Google OAuth authentication
 - `POST /auth/browser-handoff` - Browser handoff for cross-device auth
+- `GET /auth/sessions` - List current user's active device sessions (Connected Apps)
+- `DELETE /auth/sessions/{device_id}` - Revoke one of the current user's device sessions
 
 **Documentation**: `docs/routes/` (see route category folders)
 
