@@ -770,7 +770,37 @@ function ec_studio_transcription_callback_send_email(
 
 	$result = ec_studio_transcription_send_mail( $email_args );
 
-	return is_array( $result ) && ! empty( $result['success'] );
+	$sent = is_array( $result ) && ! empty( $result['success'] );
+
+	if ( ! $sent ) {
+		// Log WHY the send failed.
+		//
+		// Without this, a failed completion email is invisible: the handler
+		// returns a generic `notification_failed` 503 and nothing records the
+		// underlying cause. #199 took three separate fixes partly because each
+		// distinct failure — wrong SMTP site, ability permission short-circuit,
+		// transport error — produced the exact same opaque 503 with no SMTP
+		// row and no PHP error to distinguish them.
+		if ( is_wp_error( $result ) ) {
+			$detail = sprintf( 'WP_Error %1$s: %2$s', $result->get_error_code(), $result->get_error_message() );
+		} elseif ( is_array( $result ) ) {
+			$detail = isset( $result['error'] ) ? (string) $result['error'] : 'envelope reported success=false with no error key';
+		} else {
+			$detail = 'unexpected return type ' . gettype( $result );
+		}
+
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Deliberate operational log; see #199.
+			sprintf(
+				'[extrachill-studio] transcription completion email FAILED for user %1$d (post %2$d, mail_site_id %3$d): %4$s',
+				(int) $user->ID,
+				(int) $post_id,
+				$mail_site_id,
+				$detail
+			)
+		);
+	}
+
+	return $sent;
 }
 
 /**
