@@ -732,20 +732,43 @@ function ec_studio_transcription_callback_send_email(
 		)
 	);
 
-	$result = ec_send_email(
-		array(
-			'to'       => $user->user_email,
-			'subject'  => $subject,
-			'template' => 'extrachill/branded',
-			'context'  => array(
-				'recipient_name' => $user->display_name ? $user->display_name : $user->user_login,
-				'preheader'      => __( 'Your transcription is ready', 'extrachill-studio' ),
-				'body_html'      => $body_html,
-				'cta_url'        => $edit_url,
-				'cta_label'      => __( 'Open in Studio', 'extrachill-studio' ),
-			),
-		)
+	// Route the send through MAIN, not through whichever site this callback
+	// happens to execute on.
+	//
+	// ec_send_email() defaults mail_site_id to extrachill_mail_site_id(),
+	// which resolves to the CURRENT site. This receiver runs on Studio
+	// (blog 12), so the default sent transcription mail through Studio's
+	// SMTP configuration — which fails authentication, making every
+	// completion email fail and driving the handler's `notification_failed`
+	// 503 branch even though the draft had been created successfully (#199).
+	//
+	// Main is the correct sender on the merits, not just as a workaround:
+	// the draft lives on main, the reader is being sent to main's content,
+	// and main owns the editorial sender identity. ec_send_email() documents
+	// mail_site_id as caller-overridable and the ability handles the
+	// switch_to_blog() plumbing internally, so this must NOT be wrapped in
+	// a manual switch.
+	$email_args = array(
+		'to'       => $user->user_email,
+		'subject'  => $subject,
+		'template' => 'extrachill/branded',
+		'context'  => array(
+			'recipient_name' => $user->display_name ? $user->display_name : $user->user_login,
+			'preheader'      => __( 'Your transcription is ready', 'extrachill-studio' ),
+			'body_html'      => $body_html,
+			'cta_url'        => $edit_url,
+			'cta_label'      => __( 'Open in Studio', 'extrachill-studio' ),
+		),
 	);
+
+	// Only set the key when main actually resolves. Passing an empty value
+	// would override ec_send_email()'s default rather than fall back to it.
+	$mail_site_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	if ( $mail_site_id > 0 ) {
+		$email_args['mail_site_id'] = $mail_site_id;
+	}
+
+	$result = ec_send_email( $email_args );
 
 	return ! empty( $result['success'] );
 }
