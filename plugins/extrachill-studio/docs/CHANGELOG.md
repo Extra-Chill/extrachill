@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.27.3] - 2026-09-12
+
+### Changed
+- repin Gardner released social runtime
+- align Gardner adaptive campaign budgets
+- isolate Gardner provider network oracle
+- resume Gardner social operator journey
+- add stateful Gardner social operator persona
+
+### Fixed
+- add WordPress dependency-group comments in the Transcribe pane
+- clear ESLint findings in the Transcribe pane
+- drop redundant is_array() narrowing on get_json_params()
+- make transcripts durable without the sweatpants callback
+
 ## [0.27.2] - 2026-08-23
 
 ### Fixed
