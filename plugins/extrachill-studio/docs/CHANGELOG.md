@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.6] - 2026-09-12
+
+### Fixed
+- log why a transcription completion email failed
+
 ## [0.27.5] - 2026-09-12
 
 ### Fixed
