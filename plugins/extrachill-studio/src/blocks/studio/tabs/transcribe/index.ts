@@ -15,6 +15,9 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	createElement,
@@ -23,6 +26,10 @@ import {
 	useRef,
 	useState,
 } from '@wordpress/element';
+
+/**
+ * External dependencies
+ */
 import type {
 	ChangeEvent,
 	DragEvent,
@@ -36,6 +43,9 @@ import {
 	PanelHeader,
 } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import {
 	createJob,
 	getJob,

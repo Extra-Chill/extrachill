@@ -12,8 +12,14 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
 
+/**
+ * Internal dependencies
+ */
 import { getToken, invalidateToken } from './tokenManager';
 import type {
 	PersistDraftResponse,
