@@ -768,7 +768,61 @@ function ec_studio_transcription_callback_send_email(
 		$email_args['mail_site_id'] = $mail_site_id;
 	}
 
-	$result = ec_send_email( $email_args );
+	$result = ec_studio_transcription_send_mail( $email_args );
 
-	return ! empty( $result['success'] );
+	return is_array( $result ) && ! empty( $result['success'] );
+}
+
+/**
+ * Dispatch a transcription email through the pre-authenticated ability seam.
+ *
+ * `ec_send_email()` resolves the `datamachine/send-email` ability, whose
+ * permission callback requires `use_tools` / manage capabilities. This
+ * receiver is an UNAUTHENTICATED endpoint — it validates an HMAC-signed
+ * bearer token itself and never establishes a WordPress user session — so
+ * `get_current_user_id()` is 0 and `WP_Ability::execute()` short-circuits
+ * with a `WP_Error` (`ability_invalid_permissions`) instead of returning the
+ * documented `[ 'success' => ... ]` envelope. The send then fails with no
+ * SMTP activity at all, which is what made #199 look like an SMTP problem.
+ *
+ * This is the same failure class extrachill-users hit in its registration
+ * and notification mail (see extrachill-users#110), and it uses the same
+ * remedy: the authorization decision is made HERE, at the layer that has
+ * already cryptographically verified the callback, and the ability is then
+ * run through `PermissionHelper::run_as_authenticated()` — the canonical
+ * seam for callers that authorized an operation at their own layer.
+ *
+ * No acting user id is passed. This is a system notification triggered by a
+ * verified machine callback, not an action performed on a member's own
+ * authority — team members do not hold `use_tools`, and the recipient,
+ * subject, and body are all fixed by the caller, so the elevated context
+ * cannot be steered into sending arbitrary mail.
+ *
+ * Falls back to a direct call when Data Machine is unavailable, so behaviour
+ * degrades gracefully rather than fataling; `ec_send_email()` still returns a
+ * well-formed error envelope in that case.
+ *
+ * @since X.Y.Z
+ *
+ * @param array $args Arguments forwarded to {@see ec_send_email()}.
+ * @return mixed Result envelope from ec_send_email(), or a WP_Error.
+ */
+function ec_studio_transcription_send_mail( array $args ) {
+	if ( ! function_exists( 'ec_send_email' ) ) {
+		return array(
+			'success' => false,
+			'error'   => 'ec_send_email() is unavailable — extrachill-network mail layer not loaded.',
+		);
+	}
+
+	$helper = '\DataMachine\Abilities\PermissionHelper';
+	if ( class_exists( $helper ) ) {
+		return $helper::run_as_authenticated(
+			static function () use ( $args ) {
+				return ec_send_email( $args );
+			}
+		);
+	}
+
+	return ec_send_email( $args );
 }
