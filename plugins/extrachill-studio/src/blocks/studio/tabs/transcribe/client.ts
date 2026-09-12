@@ -225,7 +225,13 @@ export const getResults = async (
  * already present, so calling this after (or before) a callback for the
  * same job cannot create a duplicate post.
  *
- * @param input Transcript persistence payload.
+ * @param input             Transcript persistence payload.
+ * @param input.jobId       Sweatpants job id; the server's idempotency key.
+ * @param input.filename    Original recording filename, used in the title.
+ * @param input.transcript  Plain-text transcript to store as the draft body.
+ * @param input.segments    Whisper segment count, recorded as draft meta.
+ * @param input.durationSec Audio duration in seconds, recorded as draft meta.
+ * @param input.hasSpeakers Whether diarization ran for this job.
  */
 export const persistTranscriptDraft = async ( input: {
 	jobId: string;

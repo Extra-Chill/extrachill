@@ -459,7 +459,10 @@ const TranscribePane = (): ReactElement => {
 					__( 'Polling failed.', 'extrachill-studio' )
 			);
 		}
-	}, [ finalizeJob, stopPolling ] );
+		// No stopPolling() here by design. The poll runs for as long as the
+		// tab is open so it can persist the transcript itself; only a
+		// terminal status (via finalizeJob) ends it.
+	}, [ finalizeJob ] );
 
 	const startPolling = useCallback( (): void => {
 		stopPolling();
@@ -773,6 +776,45 @@ const TranscribePane = (): ReactElement => {
 		);
 	};
 
+	/**
+	 * Render whether this transcript actually reached durable storage.
+	 *
+	 * A failed save must be LOUD. The transcript is still on screen and can
+	 * be copied or downloaded, but it will be gone on navigation — that
+	 * silent loss is the whole point of #193.
+	 *
+	 * @param job Completed job to report on.
+	 */
+	const renderSaveStatus = ( job: ActiveJob ): ReactElement | null => {
+		if ( job.savedPostId ) {
+			return h(
+				InlineStatusView,
+				{ tone: 'success', className: 'ec-studio-message' },
+				__(
+					'Saved as a draft on extrachill.com — find it in the Blog tab.',
+					'extrachill-studio'
+				)
+			);
+		}
+
+		if ( job.saveError ) {
+			return h(
+				InlineStatusView,
+				{ tone: 'error', className: 'ec-studio-message' },
+				sprintf(
+					/* translators: %s: save error detail */
+					__(
+						'NOT saved — copy or download this transcript before leaving the page. (%s)',
+						'extrachill-studio'
+					),
+					job.saveError
+				)
+			);
+		}
+
+		return null;
+	};
+
 	const renderHistoryItem = ( job: ActiveJob ): ReactElement => {
 		const isExpanded = expandedJobId === job.jobId;
 		const elapsed = formatElapsed( job.startedAt, job.completedAt );
@@ -788,33 +830,6 @@ const TranscribePane = (): ReactElement => {
 				` · ${ job.status } · ${ optionsLabel } · ${ elapsed }`
 			)
 		);
-
-		// Whether the transcript actually reached durable storage. A failed
-		// save must be loud: the transcript is still on screen and can be
-		// copied, but it will be gone on navigation (#193).
-		const saveLine = job.savedPostId
-			? h(
-					InlineStatusView,
-					{ tone: 'success', className: 'ec-studio-message' },
-					__(
-						'Saved as a draft on extrachill.com — find it in the Blog tab.',
-						'extrachill-studio'
-					)
-			  )
-			: job.saveError
-				? h(
-						InlineStatusView,
-						{ tone: 'error', className: 'ec-studio-message' },
-						sprintf(
-							/* translators: %s: save error detail */
-							__(
-								'NOT saved — copy or download this transcript before leaving the page. (%s)',
-								'extrachill-studio'
-							),
-							job.saveError
-						)
-				  )
-				: null;
 
 		if ( job.status === 'failed' || job.status === 'stopped' ) {
 			return createElement(
@@ -859,7 +874,7 @@ const TranscribePane = (): ReactElement => {
 			'li',
 			{ key: job.jobId, className: 'ec-studio-transcribe__history-item' },
 			headerLine,
-			saveLine,
+			renderSaveStatus( job ),
 			createElement(
 				'div',
 				{ className: 'ec-studio-transcribe__history-actions' },
