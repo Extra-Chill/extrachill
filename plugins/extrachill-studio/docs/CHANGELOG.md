@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.7] - 2026-09-13
+
+### Fixed
+- load giveaway task only when its dependency is available
+
 ## [0.27.6] - 2026-09-12
 
 ### Fixed
