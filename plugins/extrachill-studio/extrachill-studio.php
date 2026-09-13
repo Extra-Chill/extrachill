@@ -45,18 +45,6 @@ require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/email-template.ph
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/callback.php';
 require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/persist.php';
 
-/*
- * Defer loading of GiveawayTask until after Data Machine has registered its
- * PSR-4 autoloader. The class extends DataMachine\Engine\AI\System\Tasks\SystemTask,
- * and PHP resolves the parent class at class-declaration time. Loading at the
- * top of this file races DM's bootstrap and produces a fatal when DM's
- * autoloader has not yet been registered (see issue #36). plugins_loaded
- * priority 20 guarantees DM's main plugin file (priority 10) has run.
- */
-add_action( 'plugins_loaded', static function () {
-	require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
-}, 20 );
-
 /**
  * Register Studio's ability category before abilities are registered.
  *
@@ -91,6 +79,12 @@ add_action( 'wp_abilities_api_categories_init', 'extrachill_studio_register_abil
  * @return array
  */
 add_filter( 'datamachine_tasks', function ( array $tasks ): array {
+	// Studio can boot without Data Machine; load its adapter only on registry demand.
+	if ( ! class_exists( \DataMachine\Engine\AI\System\Tasks\SystemTask::class ) ) {
+		return $tasks;
+	}
+
+	require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
 	$tasks['giveaway'] = \ExtraChillStudio\Tasks\GiveawayTask::class;
 	return $tasks;
 } );
