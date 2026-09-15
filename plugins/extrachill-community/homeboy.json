@@ -5,11 +5,17 @@
     "wordpress": {
       "settings": {
         "validation_dependencies": [
-          "/var/www/extrachill.com/wp-content/plugins/bbpress",
+          {
+            "source_type": "wp.org",
+            "slug": "bbpress"
+          },
           "extrachill-users",
           "extrachill"
         ]
       }
+    },
+    "nodejs": {
+      "settings": {}
     }
   },
   "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",

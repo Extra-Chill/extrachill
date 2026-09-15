@@ -43,6 +43,9 @@
     "tests/public-voices-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/recent-public-activity-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/subscription-inventory-smoke.php": {
       "environment": "standalone-php"
     },
