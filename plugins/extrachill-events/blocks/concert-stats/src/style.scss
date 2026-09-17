@@ -298,38 +298,47 @@
 /* ─── Stats Bar (canonical StatGroup / StatTile primitives) ─────────────── */
 
 /*
- * The stat tiles now consume the canonical `StatGroup` / `StatTile`
+ * The stat tiles consume the canonical `StatGroup` / `StatTile`
  * primitives from @extrachill/components (which ship their own base
- * `.ec-stat-group` / `.ec-stat-tile` chrome). These local
+ * `.ec-stat-group` grid and `.ec-stat-tile` card chrome). These local
  * `.ec-concert-stats__stats-bar` / `__stat` selectors are passed in as
- * `className` overrides for the concert-stats summary row: a tight
- * flex row of equally-weighted tiles with a divider beneath, plus the
- * interactive (link) tile affordance so the row doubles as navigation.
+ * `className` overrides for the concert-stats summary row: four
+ * equal-width tiles spread edge-to-edge across the row with a divider
+ * beneath, plus the interactive (link) tile affordance so the row
+ * doubles as navigation.
  */
 .ec-concert-stats__stats-bar {
-	display: flex;
+	/* The primitive `.ec-stat-group` already provides `display: grid`
+	 * (auto-fill minmax columns, which can leave empty tracks on wide
+	 * rows). Pin the summary row to exactly four equal tracks so the
+	 * tiles fill the row evenly at every viewport; `minmax(0, 1fr)`
+	 * lets them shrink on narrow screens without overflowing the
+	 * container. */
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: var(--spacing-lg, 1.5rem);
 	padding: var(--spacing-md, 1rem) 0;
 	margin-bottom: var(--spacing-md, 1rem);
 	border-bottom: 1px solid var(--border-color, #e5e7eb);
-	flex-wrap: wrap;
 }
 
 /*
- * Override the primitive's tile chrome for the summary-row context:
- * centered column, compact min-width. When the tile is a link
- * (`.ec-stat-tile--link`, set by StatTile when an `href` is present)
- * give it a clear interactive affordance — pointer cursor, a subtle
- * hover lift, and a visible focus ring for keyboard users — so the
- * "stat → tab" navigation reads as clickable.
+ * Compact the primitive tile typography for the summary-row context
+ * and keep the centered column. The primitive's card chrome (border,
+ * background, padding, radius) is intentionally kept. When the tile
+ * is a link (`.ec-stat-tile--link`, set by StatTile when an `href` is
+ * present) add a clear interactive affordance on top of the
+ * primitive's border-color hover — pointer cursor, a subtle hover
+ * lift, and a visible focus ring for keyboard users — so the
+ * "stat → tab" navigation reads as clickable. Padding stays inside
+ * the tile box (no negative-margin offsets), so tiles align with the
+ * container edges instead of clipping past them.
  */
 .ec-concert-stats__stat {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	min-width: 60px;
+	min-width: 0;
 	text-decoration: none;
-	border-radius: var(--border-radius-sm, 4px);
 	transition: background-color 0.15s ease, transform 0.15s ease;
 
 	.ec-stat-tile__value {
@@ -349,8 +358,6 @@
 
 a.ec-concert-stats__stat {
 	cursor: pointer;
-	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
-	margin: calc(-1 * var(--spacing-xs, 0.25rem)) calc(-1 * var(--spacing-sm, 0.5rem));
 
 	&:hover {
 		background-color: var(--surface-hover, rgba(0, 0, 0, 0.04));
@@ -690,7 +697,7 @@ a.ec-concert-stats__stat {
 		gap: var(--spacing-md, 1rem);
 	}
 
-	.ec-concert-stats__stat-value {
+	.ec-concert-stats__stat .ec-stat-tile__value {
 		font-size: var(--font-size-lg, 1.25rem);
 	}
 
