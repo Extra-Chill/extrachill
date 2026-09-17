@@ -58,6 +58,10 @@ function extrachill_docs_migration_term_to_repo_map(): array {
 		'artist-platform' => 'Extra-Chill/extrachill-artist-platform',
 		'community'       => 'Extra-Chill/extrachill-community',
 		'events-calendar' => 'Extra-Chill/extrachill-events',
+		// Roadie is retired from the network and its repository archived, but
+		// one ec_doc still carries the `chat` platform term and archived
+		// repositories stay reachable — so this mapping is deliberately kept.
+		// Removing it would fail that doc's migration with "no repo mapping".
 		'chat'            => 'Extra-Chill/extrachill-roadie',
 	);
 }
