@@ -357,9 +357,8 @@ input[type="text"], input[type="email"], input[type="url"], input[type="password
 
 input[type="search"],
 .ec-search-box input {
-	border-color: var(--accent-3);
-	background-color: color-mix(in srgb, var(--accent-3) 10%, var(--background-color));
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-3) 18%, transparent);
+	border: 2px solid var(--interactive-active-border);
+	background-color: var(--interactive-active-bg);
 }
 
 select {
@@ -393,8 +392,8 @@ textarea:focus {
 
 input[type="search"]:focus,
 .ec-search-box input:focus {
-	border: 1px solid var(--accent-3);
-	box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-3) 35%, transparent);
+	border: 2px solid var(--interactive-active-border);
+	box-shadow: var(--focus-box-shadow);
 }
 
 /* Number Input Spinner Removal */
@@ -712,23 +711,16 @@ a.author.url.fn, .forum-meta a {
 	gap: 0;
 	max-width: var(--form-width);
 	margin: 0 auto;
-	border-radius: var(--border-radius-sm);
-	box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-3) 18%, transparent);
-}
-
-.error-404 .search-wrap:focus-within {
-	box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-3) 35%, transparent);
 }
 
 .error-404 .search-wrap input.s {
 	flex: 1;
 	height: 48px;
 	padding: 0 var(--spacing-md);
-	border: 1px solid var(--accent-3);
+	border: 2px solid var(--interactive-active-border);
 	border-right: none;
 	border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
-	background-color: color-mix(in srgb, var(--accent-3) 10%, var(--background-color));
-	box-shadow: none;
+	background-color: var(--interactive-active-bg);
 	color: var(--text-color);
 	font-size: var(--font-size-base);
 	margin: 0;
@@ -737,6 +729,8 @@ a.author.url.fn, .forum-meta a {
 
 .error-404 .search-wrap button {
 	height: 48px;
+	border: 2px solid var(--interactive-active-border);
+	box-sizing: border-box;
 	border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
 	display: inline-flex;
 	align-items: center;
@@ -1077,23 +1071,16 @@ body.sticky-header #masthead {
     align-items: center;
     gap: 0;
     width: 100%;
-    border-radius: var(--border-radius-sm);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-3) 18%, transparent);
-}
-
-.header-search-panel .search-wrap:focus-within {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-3) 35%, transparent);
 }
 
 .header-search-panel .search-wrap input.s {
     flex: 1;
     height: 48px;
     padding: 0 var(--spacing-md);
-    border: 1px solid var(--accent-3);
+    border: 2px solid var(--interactive-active-border);
     border-right: none;
     border-radius: var(--border-radius-sm) 0 0 var(--border-radius-sm);
-    background-color: color-mix(in srgb, var(--accent-3) 10%, var(--background-color));
-    box-shadow: none;
+    background-color: var(--interactive-active-bg);
     color: var(--text-color);
     font-size: var(--font-size-base);
     margin: 0;
@@ -1101,6 +1088,8 @@ body.sticky-header #masthead {
 
 .header-search-panel .search-wrap button {
     height: 48px;
+    border: 2px solid var(--interactive-active-border);
+    box-sizing: border-box;
     border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
     display: inline-flex;
     align-items: center;
