@@ -67,14 +67,14 @@ class McpServerTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
-	public function test_advertises_exactly_the_two_agents_api_meta_abilities_by_default(): void {
+	public function test_advertises_exactly_the_two_network_meta_abilities_by_default(): void {
 		$adapter = new ExtraChillMcp_Fake_Mcp_Adapter();
 
 		$this->server->on_mcp_adapter_init( $adapter );
 
 		$this->assertIsArray( $adapter->captured_args );
 		$this->assertSame(
-			array( 'agents/ability-search', 'agents/ability-call' ),
+			array( 'extrachill/ability-search', 'extrachill/ability-call' ),
 			$adapter->captured_args[ self::TOOLS_ARG_INDEX ]
 		);
 	}
@@ -113,7 +113,7 @@ class McpServerTest extends WP_UnitTestCase {
 		$this->server->on_mcp_adapter_init( $adapter );
 
 		$this->assertSame(
-			array( 'agents/ability-search', 'agents/ability-call' ),
+			array( 'extrachill/ability-search', 'extrachill/ability-call' ),
 			$adapter->captured_args[ self::TOOLS_ARG_INDEX ]
 		);
 	}

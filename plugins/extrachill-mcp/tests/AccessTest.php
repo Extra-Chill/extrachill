@@ -2,17 +2,26 @@
 /**
  * Tests for the Extra Chill MCP access gate.
  *
- * Access::can_use() is the authorization decision reached on every call to
- * `agents/ability-search` and `agents/ability-call`. The regression tests
- * below exist because a prior PHPStan pass deleted the `is_string()` guard
- * on the `extrachill_mcp_capability` filter's return value, on the theory
- * that the filter's own docblock (`@param string $capability`) makes the
+ * Access::permission_callback() (used directly as the `permission_callback`
+ * for `extrachill/ability-search` and `extrachill/ability-call`) and
+ * Access::filter_substrate_permission() (used to widen the Agents API
+ * substrate's own `agents_ability_search_permission` /
+ * `agents_ability_call_permission` filters for the local hop) both reach the
+ * same decision. This suite exercises that decision directly.
+ *
+ * This CI environment does not install extrachill-users, so
+ * `function_exists( 'ec_feature_available' )` is false here and every
+ * assertion below exercises the fallback path (`access_roadie`) — which is
+ * itself the real, production behavior for any Extra Chill site running
+ * this plugin without extrachill-users active, not merely a test double.
+ *
+ * The `register_feature_ceiling()` regression tests exist because a prior
+ * PHPStan pass deleted the `is_string()` guard on this plugin's previous
+ * capability filter, on the theory that a filter's own docblock makes the
  * type check redundant. A docblock documents the contract a well-behaved
- * filter should honor; it does not enforce it. Any third-party plugin can
- * hook `extrachill_mcp_capability` and return anything, and
- * `current_user_can()` throws a TypeError on null/array input on WP 7.1.
- * Without the guard, a misbehaving filter fatals a public REST endpoint
- * instead of cleanly denying access.
+ * filter should honor; it does not enforce it. `ec_feature_ceilings` is a
+ * third-party-hookable filter feeding this plugin's own registration, so the
+ * same discipline applies: guard the return value, never trust it.
  *
  * @package ExtraChillMcp\Tests
  */
@@ -36,71 +45,85 @@ class AccessTest extends WP_UnitTestCase {
 		$this->access = new \ExtraChillMcp\Access();
 	}
 
-	public function tear_down(): void {
-		remove_all_filters( 'extrachill_mcp_capability' );
-		parent::tear_down();
-	}
-
-	public function test_upstream_true_short_circuits_to_allowed(): void {
+	public function test_permission_callback_upstream_true_short_circuits_search_substrate_filter(): void {
 		wp_set_current_user( 0 );
 
-		$this->assertTrue( $this->access->can_use( true ) );
+		$this->assertTrue( $this->access->filter_substrate_permission( true ) );
 	}
 
-	public function test_user_holding_default_capability_is_allowed(): void {
+	public function test_team_member_reaches_wrapper_abilities(): void {
 		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$user    = get_user_by( 'id', $user_id );
 		$user->add_cap( 'access_roadie' );
 		wp_set_current_user( $user_id );
 
-		$this->assertTrue( $this->access->can_use( false ) );
+		$this->assertTrue( $this->access->permission_callback() );
 	}
 
-	public function test_user_without_default_capability_is_denied(): void {
+	public function test_team_member_widens_the_substrate_filters_the_local_hop_depends_on(): void {
+		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$user    = get_user_by( 'id', $user_id );
+		$user->add_cap( 'access_roadie' );
+		wp_set_current_user( $user_id );
+
+		// false is the substrate's own upstream decision (current_user_can('manage_options')),
+		// which a non-admin team member fails — this filter is what has to widen it.
+		$this->assertTrue( $this->access->filter_substrate_permission( false ) );
+	}
+
+	public function test_non_team_user_is_denied_the_wrapper_abilities(): void {
 		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		wp_set_current_user( $user_id );
 
-		$this->assertFalse( $this->access->can_use( false ) );
+		$this->assertFalse( $this->access->permission_callback() );
+	}
+
+	public function test_non_team_user_does_not_widen_the_substrate_filters(): void {
+		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $user_id );
+
+		$this->assertFalse( $this->access->filter_substrate_permission( false ) );
 	}
 
 	public function test_anonymous_caller_is_denied(): void {
 		wp_set_current_user( 0 );
 
-		$this->assertFalse( $this->access->can_use( false ) );
+		$this->assertFalse( $this->access->permission_callback() );
+	}
+
+	public function test_register_feature_ceiling_sets_team_tier(): void {
+		$ceilings = $this->access->register_feature_ceiling( array() );
+
+		$this->assertSame( 'team', $ceilings['extrachill_mcp'] );
+	}
+
+	public function test_register_feature_ceiling_preserves_other_registered_ceilings(): void {
+		$ceilings = $this->access->register_feature_ceiling( array( 'shop' => 'admin' ) );
+
+		$this->assertSame( 'admin', $ceilings['shop'] );
+		$this->assertSame( 'team', $ceilings['extrachill_mcp'] );
 	}
 
 	/**
-	 * @dataProvider malformed_capability_filter_provider
+	 * @dataProvider malformed_ceilings_filter_provider
 	 *
-	 * @param mixed $malformed_capability Value a misbehaving filter might return.
+	 * @param mixed $malformed_ceilings Value a misbehaving filter might return.
 	 */
-	public function test_malformed_capability_filter_denies_cleanly_without_throwing( $malformed_capability ): void {
-		// Use an administrator to prove the denial comes from the guard on
-		// the filter's return value, not from the user's own permissions.
-		$admin_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
+	public function test_register_feature_ceiling_recovers_from_a_malformed_upstream_value( $malformed_ceilings ): void {
+		$ceilings = $this->access->register_feature_ceiling( $malformed_ceilings );
 
-		add_filter(
-			'extrachill_mcp_capability',
-			static function () use ( $malformed_capability ) {
-				return $malformed_capability;
-			}
-		);
-
-		$result = $this->access->can_use( false );
-
-		$this->assertFalse( $result );
+		$this->assertIsArray( $ceilings );
+		$this->assertSame( 'team', $ceilings['extrachill_mcp'] );
 	}
 
 	/**
 	 * @return array<string, array{0: mixed}>
 	 */
-	public function malformed_capability_filter_provider(): array {
+	public function malformed_ceilings_filter_provider(): array {
 		return array(
 			'null'         => array( null ),
-			'empty array'  => array( array() ),
 			'false'        => array( false ),
-			'empty string' => array( '' ),
+			'string'       => array( 'not-an-array' ),
 		);
 	}
 }
