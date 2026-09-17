@@ -1,9 +1,16 @@
 /**
- * EventSearchResult — Single past-event row in the Past tab's add-a-show
- * search results (#159; formerly the standalone "Add Past Shows" tab).
+ * EventSearchResult — Single event row in the quick-add search results.
  *
- * Renders date / venue / primary artist / city and a "+ Mark Attended" button
- * (or a disabled "✓ Tracked" label for events already in the user's history).
+ * #159: originally the Past tab's "add a past show" row. #837 generalizes
+ * the same row to the Upcoming tab's quick-add search, so button labels
+ * derive from the event's canonical `timing` (matching the single-event
+ * attendance button in extrachill-users):
+ *   - upcoming → "I'm going" / "✓ Going"
+ *   - ongoing  → "Check In" / "✓ Checked In"
+ *   - past     → "+ Mark Attended" / "✓ Tracked"
+ *
+ * Renders date / venue / primary artist / city and a mark button (or a
+ * disabled check-marked label for events already tracked).
  *
  * Marking is optimistic: the row flips immediately and reverts on REST error.
  *
@@ -21,10 +28,29 @@ import { ActionRow, InlineStatus } from '@extrachill/components';
 import { formatLongDate } from '../utils/formatDate';
 import useMarkAttendance from '../hooks/useMarkAttendance';
 
+const LABEL_SETS = {
+	upcoming: {
+		action: "I'm going",
+		marked: '✓ Going',
+		markedAria: 'Already going',
+	},
+	ongoing: {
+		action: 'Check In',
+		marked: '✓ Checked In',
+		markedAria: 'Already checked in',
+	},
+	past: {
+		action: '+ Mark Attended',
+		marked: '✓ Tracked',
+		markedAria: 'Already tracked',
+	},
+};
+
 const EventSearchResult = ( { event, onMarkedChange } ) => {
 	const { mark, isMarking, error } = useMarkAttendance();
 
 	const isMarked = !! event.is_marked;
+	const labels = LABEL_SETS[ event.timing ] || LABEL_SETS.past;
 
 	const artistDisplay =
 		event.artists && event.artists.length
@@ -93,9 +119,9 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 						type="button"
 						className="button-2 button-medium"
 						disabled
-						aria-label="Already tracked"
+						aria-label={ labels.markedAria }
 					>
-						✓ Tracked
+						{ labels.marked }
 					</button>
 				) : (
 					<button
@@ -104,7 +130,7 @@ const EventSearchResult = ( { event, onMarkedChange } ) => {
 						onClick={ handleMark }
 						disabled={ isMarking }
 					>
-						+ Mark Attended
+						{ labels.action }
 					</button>
 				) }
 				{ error && <InlineStatus tone="error">{ error }</InlineStatus> }

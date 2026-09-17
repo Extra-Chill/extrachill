@@ -261,6 +261,69 @@ describe( 'ConcertStatsApp request boundaries', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it( 'offers the owner an upcoming quick-add search on the Upcoming tab', async () => {
+		const { container, root } = await renderApp( {
+			isOwn: true,
+			tab: 'upcoming',
+		} );
+
+		await act( async () => {
+			jest.runOnlyPendingTimers();
+			await Promise.resolve();
+		} );
+
+		const paths = apiFetch.mock.calls.map(
+			( [ request ] ) => request.path
+		);
+		expect(
+			paths.some(
+				( path ) =>
+					path.includes( '/concert-tracking/search' ) &&
+					path.includes( 'period=upcoming' )
+			)
+		).toBe( true );
+		expect( container.textContent ).toContain(
+			"Search for a show you're going to."
+		);
+		expect(
+			paths.some(
+				( path ) =>
+					path.includes( '/concert-tracking/search' ) &&
+					path.includes( 'period=past' )
+			)
+		).toBe( false );
+
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'never offers non-owners the upcoming quick-add search', async () => {
+		const { container, root } = await renderApp( {
+			isOwn: false,
+			tab: 'past',
+		} );
+
+		await act( async () => {
+			jest.runOnlyPendingTimers();
+			await Promise.resolve();
+		} );
+
+		const paths = apiFetch.mock.calls.map(
+			( [ request ] ) => request.path
+		);
+		expect(
+			paths.some(
+				( path ) =>
+					path.includes( '/concert-tracking/search' ) &&
+					path.includes( 'period=upcoming' )
+			)
+		).toBe( false );
+		expect( container.textContent ).not.toContain(
+			"Search for a show you're going to."
+		);
+
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'mounts the embedded map only when its tab is opened', async () => {
 		let loadedEvents = 0;
 		const onLoaded = () => loadedEvents++;

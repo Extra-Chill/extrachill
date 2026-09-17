@@ -28,8 +28,8 @@ import {
  * Internal dependencies
  */
 import StatsBar from './components/StatsBar';
-import ShowList from './components/ShowList';
 import PastTab from './components/PastTab';
+import UpcomingTab from './components/UpcomingTab';
 import Leaderboard from './components/Leaderboard';
 import YearFilter from './components/YearFilter';
 import ImportTab from './components/ImportTab';
@@ -439,12 +439,18 @@ export function ConcertStatsApp( {
 	const renderPanel = ( tabId ) => {
 		switch ( tabId ) {
 			case 'upcoming':
+				// #837: the Upcoming tab mirrors the Past tab (#159):
+				// for the owner it hosts the inline quick-add search
+				// (scoped to upcoming events) above the tracked list,
+				// refetched when a show is marked so additions appear
+				// without a reload.
 				return (
-					<ShowList
+					<UpcomingTab
 						userId={ userId }
-						period="upcoming"
 						year={ year }
 						eventsUrl={ eventsUrl }
+						isOwn={ isOwn }
+						enabled={ isOwn }
 					/>
 				);
 

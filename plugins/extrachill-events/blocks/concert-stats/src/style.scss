@@ -630,6 +630,22 @@ a.ec-concert-stats__stat {
 	border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
+/*
+ * #837: the Upcoming tab mirrors PastTab — EventQuickAdd (period=
+ * "upcoming") stacks above the tracked upcoming list with the same
+ * gap + divider treatment.
+ */
+.ec-concert-stats__upcoming-tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__upcoming-tab .ec-concert-stats__event-quick-add {
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
 /* ─── Search Result inner layout (inside ActionRow) ─────────────────────── */
 
 .ec-concert-stats__search-result-link {

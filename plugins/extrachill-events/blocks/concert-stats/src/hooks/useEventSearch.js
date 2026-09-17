@@ -1,15 +1,20 @@
 /**
- * useEventSearch — Debounced REST search of past events for marking.
+ * useEventSearch — Debounced REST search of events for marking.
  *
- * Drives the owner-only "add a past show" affordance folded into the
- * "Past" tab of the concert-stats block (#159).
+ * Drives the owner-only quick-add search affordances in the concert-stats
+ * block (#159 folded "Add Past Shows" into the Past tab; #837 generalizes
+ * the same surface to the Upcoming tab).
  *
  * Behavior:
  *   - Debounces query changes by 300ms before firing a request.
  *   - Cancels in-flight requests when the query changes (AbortController).
  *   - Accumulates results across pages on loadMore() (infinite-scroll style).
- *   - Resets accumulated results whenever the query changes.
- *   - Empty query is allowed — backend returns recent past events as suggestions.
+ *   - Resets accumulated results whenever the query or period changes.
+ *   - Empty query is allowed — backend returns no results and the UI shows
+ *     a prompt instead (see extrachill-events#130).
+ *   - `options.period` scopes the search: 'past' (default), 'upcoming', or
+ *     'all' (see extrachill-users#396). The existing `( query )` call
+ *     signature keeps working and defaults to 'past'.
  *
  * @package
  */
@@ -22,8 +27,12 @@ import apiFetch from '@wordpress/api-fetch';
 
 const PER_PAGE = 20;
 const DEBOUNCE_MS = 300;
+const VALID_PERIODS = [ 'past', 'upcoming', 'all' ];
 
-export default function useEventSearch( query ) {
+export default function useEventSearch( query, options = {} ) {
+	const { period: rawPeriod = 'past' } = options;
+	const period = VALID_PERIODS.includes( rawPeriod ) ? rawPeriod : 'past';
+
 	const [ events, setEvents ] = useState( [] );
 	const [ total, setTotal ] = useState( 0 );
 	const [ pages, setPages ] = useState( 0 );
@@ -34,7 +43,7 @@ export default function useEventSearch( query ) {
 	const abortRef = useRef( null );
 	const debounceRef = useRef( null );
 
-	const runFetch = useCallback( ( q, p ) => {
+	const runFetch = useCallback( ( q, p, searchPeriod ) => {
 		// Cancel any in-flight request.
 		if ( abortRef.current ) {
 			abortRef.current.abort();
@@ -47,6 +56,7 @@ export default function useEventSearch( query ) {
 
 		const params = new URLSearchParams( {
 			query: q || '',
+			period: searchPeriod,
 			page: String( p ),
 			per_page: String( PER_PAGE ),
 		} );
@@ -78,14 +88,14 @@ export default function useEventSearch( query ) {
 			} );
 	}, [] );
 
-	// Debounced query effect: resets to page 1 and refetches.
+	// Debounced query/period effect: resets to page 1 and refetches.
 	useEffect( () => {
 		if ( debounceRef.current ) {
 			clearTimeout( debounceRef.current );
 		}
 		debounceRef.current = setTimeout( () => {
 			setPage( 1 );
-			runFetch( query, 1 );
+			runFetch( query, 1, period );
 		}, DEBOUNCE_MS );
 
 		return () => {
@@ -93,7 +103,21 @@ export default function useEventSearch( query ) {
 				clearTimeout( debounceRef.current );
 			}
 		};
-	}, [ query, runFetch ] );
+	}, [ query, period, runFetch ] );
+
+	// Clear accumulated rows the moment the period changes so stale
+	// past rows never render under an upcoming search (or vice versa)
+	// during the debounce window.
+	const prevPeriodRef = useRef( period );
+	useEffect( () => {
+		if ( prevPeriodRef.current !== period ) {
+			prevPeriodRef.current = period;
+			setEvents( [] );
+			setTotal( 0 );
+			setPages( 0 );
+			setPage( 1 );
+		}
+	}, [ period ] );
 
 	const loadMore = useCallback( () => {
 		if ( loading ) {
@@ -104,8 +128,8 @@ export default function useEventSearch( query ) {
 		}
 		const next = page + 1;
 		setPage( next );
-		runFetch( query, next );
-	}, [ loading, page, pages, query, runFetch ] );
+		runFetch( query, next, period );
+	}, [ loading, page, pages, query, period, runFetch ] );
 
 	/**
 	 * Mark a single event as locally-tracked without a refetch.

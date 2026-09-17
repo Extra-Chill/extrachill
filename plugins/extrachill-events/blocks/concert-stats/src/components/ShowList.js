@@ -44,16 +44,19 @@ const ShowList = ( {
 
 	if ( ! loading && shows.length === 0 ) {
 		if ( period === 'upcoming' ) {
+			// #837: the owner view now has the quick-add search directly
+			// above this list, so the empty state points there first and
+			// keeps the events calendar as the browse fallback.
 			return (
 				<InlineStatus tone="info">
-					No upcoming shows you&rsquo;ve marked yet. Find a show on
-					the{ ' ' }
+					No upcoming shows you&rsquo;re going to yet. Search above to
+					find one, or browse the{ ' ' }
 					{ eventsUrl ? (
 						<a href={ eventsUrl }>events calendar</a>
 					) : (
 						'events calendar'
-					) }{ ' ' }
-					and mark it &lsquo;Going&rsquo;.
+					) }
+					.
 				</InlineStatus>
 			);
 		}
