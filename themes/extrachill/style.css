@@ -955,6 +955,7 @@ body {
 #masthead {
     z-index: 1000;
     background-color: var(--header-background);
+    color: var(--header-text-color);
     padding-left: max(var(--spacing-lg), env(safe-area-inset-left));
     padding-right: max(var(--spacing-lg), env(safe-area-inset-right));
 }
@@ -1226,7 +1227,6 @@ p.site-title {
 }
 
 .search-icon svg {
-    fill: var(--header-text-color);
     height: 1.25em;
     width: 1.25em;
     transition: transform 0.3s ease, fill 0.3s ease;
@@ -1239,6 +1239,17 @@ p.site-title {
 
 .search-icon.menu-open svg {
     transform: rotate(45deg);
+}
+
+/* Account icon toggle (rendered by the extrachill-users plugin with
+   color: inherit) — hover/focus parity with the search icon. */
+.user-avatar-toggle {
+    transition: color 0.3s ease;
+}
+
+.user-avatar-toggle:hover,
+.user-avatar-toggle:focus {
+    color: var(--accent);
 }
 
 /* ==========================================================================
