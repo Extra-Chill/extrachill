@@ -119,6 +119,11 @@ const EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED      = 'team_member_removed';
 const EC_ANALYTICS_EVENT_STUDIO_DRAFT_CREATED     = 'studio_draft_created';
 const EC_ANALYTICS_EVENT_STUDIO_SUBMITTED         = 'studio_submitted_for_review';
 const EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN = 'studio_transcription_run';
+// Roadie is retired from the network (Extra-Chill/extrachill-network#210)
+// and these are no longer emitted, but 63 historical rows carry these
+// event types. The constants and their registrations stay so existing
+// reports and queries keep resolving; pruning them is a separate
+// decision with a data-migration question attached.
 const EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED   = 'roadie_session_started';
 const EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED      = 'roadie_tool_invoked';
 
