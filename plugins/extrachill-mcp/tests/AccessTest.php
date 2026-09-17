@@ -11,7 +11,7 @@
  *
  * This CI environment does not install extrachill-users, so
  * `function_exists( 'ec_feature_available' )` is false here and every
- * assertion below exercises the fallback path (`access_roadie`) — which is
+ * assertion below exercises the fallback path (`access_studio`) — which is
  * itself the real, production behavior for any Extra Chill site running
  * this plugin without extrachill-users active, not merely a test double.
  *
@@ -54,7 +54,7 @@ class AccessTest extends WP_UnitTestCase {
 	public function test_team_member_reaches_wrapper_abilities(): void {
 		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$user    = get_user_by( 'id', $user_id );
-		$user->add_cap( 'access_roadie' );
+		$user->add_cap( 'access_studio' );
 		wp_set_current_user( $user_id );
 
 		$this->assertTrue( $this->access->permission_callback() );
@@ -63,7 +63,7 @@ class AccessTest extends WP_UnitTestCase {
 	public function test_team_member_widens_the_substrate_filters_the_local_hop_depends_on(): void {
 		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$user    = get_user_by( 'id', $user_id );
-		$user->add_cap( 'access_roadie' );
+		$user->add_cap( 'access_studio' );
 		wp_set_current_user( $user_id );
 
 		// false is the substrate's own upstream decision (current_user_can('manage_options')),

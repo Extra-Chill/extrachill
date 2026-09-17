@@ -53,13 +53,15 @@ final class Access {
 	private const FEATURE = 'extrachill_mcp';
 
 	/**
-	 * Capability used only when extrachill-users is not active. Matches the
-	 * tier this plugin used before `ec_feature_available()` existed for it,
-	 * so a site running extrachill-mcp without extrachill-users keeps the
-	 * same reachability it always had rather than silently opening or
-	 * closing the gate.
+	 * Capability used only when extrachill-users is not active, and so
+	 * `ec_feature_available()` is unavailable.
+	 *
+	 * `access_studio` is what `ec_is_team_member()` resolves against — the
+	 * platform's source of truth for the team tier. It previously pointed at
+	 * `access_roadie`, which was removed with Roadie
+	 * (Extra-Chill/extrachill-network#210) and which nothing read by then.
 	 */
-	private const FALLBACK_CAPABILITY = 'access_roadie';
+	private const FALLBACK_CAPABILITY = 'access_studio';
 
 	public function register(): void {
 		add_filter( 'agents_ability_search_permission', array( $this, 'filter_substrate_permission' ), 10, 2 );
@@ -73,7 +75,7 @@ final class Access {
 	 * The live tier (a network option extrachill-users reads) can never
 	 * exceed this code-owned ceiling — see extrachill-users'
 	 * `ec_feature_tier()`. `team` matches the tier this plugin enforced
-	 * before this feature-rollout migration (`access_roadie`), just sourced
+	 * before this feature-rollout migration (`access_studio`), just sourced
 	 * from `ec_is_team_member()` (the platform's single source of truth for
 	 * "team", resolved via the `access_studio` capability) instead of a
 	 * second, divergent capability.
