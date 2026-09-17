@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.42.0] - 2026-09-17
+
+### Added
+- add period param to search-events-for-marking
+- branded OAuth consent screen via wp_native_auth_oauth_consent_template
+
+### Changed
+- sync extrachill_set_notice stub signature and drop dead is_array guard
+- declare extrachill-analytics as a validation dependency
+
+### Fixed
+- purge cross-site content silently and recompute bbPress counters
+
 ## [0.41.6] - 2026-09-07
 
 ### Changed
