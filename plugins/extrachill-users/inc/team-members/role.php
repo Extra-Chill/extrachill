@@ -77,7 +77,6 @@ function ec_users_get_team_role_caps() {
 
 		// --- Custom EC team-only caps ---
 		'access_studio'        => true,
-		'access_roadie'        => true,
 		'access_transcribe'    => true,
 		'access_events_admin'  => true,
 		'access_admin_bar'     => true,

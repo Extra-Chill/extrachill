@@ -40,7 +40,6 @@ class Test_Team_Role extends WP_UnitTestCase {
 		foreach (
 			array(
 				'access_studio',
-				'access_roadie',
 				'access_transcribe',
 				'access_events_admin',
 				'access_admin_bar',
