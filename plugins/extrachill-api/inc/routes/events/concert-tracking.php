@@ -146,7 +146,7 @@ function extrachill_api_register_concert_tracking_routes() {
 		)
 	);
 
-	// GET /concert-tracking/search — search past events for marking (logged-in users).
+	// GET /concert-tracking/search — search events for marking (logged-in users).
 	register_rest_route(
 		'extrachill/v1',
 		'/concert-tracking/search',
@@ -160,7 +160,14 @@ function extrachill_api_register_concert_tracking_routes() {
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 					'default'           => '',
-					'description'       => 'Search query (matches event title, artist names, venue name). Empty returns recent past events.',
+					'description'       => 'Search query (matches event title, artist names, venue name). Empty returns no results.',
+				),
+				'period'   => array(
+					'required'    => false,
+					'type'        => 'string',
+					'default'     => 'past',
+					'enum'        => array( 'past', 'upcoming', 'all' ),
+					'description' => 'Event period to search. upcoming includes ongoing events (anything not yet ended).',
 				),
 				'page'     => array(
 					'required'          => false,
@@ -321,6 +328,7 @@ function extrachill_api_handle_concert_tracking_search( WP_REST_Request $request
 	$result = $ability->execute(
 		array(
 			'query'    => (string) $request->get_param( 'query' ),
+			'period'   => (string) $request->get_param( 'period' ),
 			'page'     => (int) $request->get_param( 'page' ),
 			'per_page' => (int) $request->get_param( 'per_page' ),
 		)

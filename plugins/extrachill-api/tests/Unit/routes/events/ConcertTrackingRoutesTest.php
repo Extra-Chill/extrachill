@@ -32,6 +32,13 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	private $stats_inputs = array();
 
 	/**
+	 * Search ability inputs.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private $search_inputs = array();
+
+	/**
 	 * Whether the test registered its ability category.
 	 *
 	 * @var bool
@@ -94,6 +101,16 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 				'date_to'   => array( 'type' => 'string' ),
 			),
 			array( $this, 'execute_stats' )
+		);
+		$this->register_test_ability(
+			'extrachill/search-events-for-marking',
+			array(
+				'query'    => array( 'type' => 'string' ),
+				'period'   => array( 'type' => 'string' ),
+				'page'     => array( 'type' => 'integer' ),
+				'per_page' => array( 'type' => 'integer' ),
+			),
+			array( $this, 'execute_search' )
 		);
 
 		do_action( 'rest_api_init' );
@@ -249,6 +266,45 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Search route forwards period defaults and explicit values unchanged.
+	 */
+	public function test_search_route_forwards_period_and_defaults() {
+		wp_set_current_user( self::factory()->user->create() );
+
+		foreach ( array( null, 'upcoming', 'all' ) as $period ) {
+			$params = array( 'query' => 'Dead' );
+			if ( null !== $period ) {
+				$params['period'] = $period;
+			}
+			$response = $this->dispatch( '/extrachill/v1/concert-tracking/search', $params );
+
+			$this->assertSame( 200, $response->get_status() );
+			$this->assertSame( $period ?? 'past', end( $this->search_inputs )['period'] );
+			$this->assertSame( 'Dead', end( $this->search_inputs )['query'] );
+		}
+	}
+
+	/**
+	 * Invalid period values never reach the search ability.
+	 */
+	public function test_search_route_rejects_invalid_period_before_ability() {
+		wp_set_current_user( self::factory()->user->create() );
+
+		$calls_before = count( $this->search_inputs );
+		$response     = $this->dispatch(
+			'/extrachill/v1/concert-tracking/search',
+			array(
+				'query'  => 'Dead',
+				'period' => 'bogus',
+			)
+		);
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertSame( 'rest_invalid_param', $response->get_data()['code'] );
+		$this->assertCount( $calls_before, $this->search_inputs );
+	}
+
+	/**
 	 * Filtered attendee identities do not alter aggregate counts or owner state.
 	 */
 	public function test_attendee_filtering_preserves_count_parity() {
@@ -350,6 +406,23 @@ class Concert_Tracking_RoutesTest extends WP_UnitTestCase {
 			'user_marked' => false,
 			'attendees'   => array(),
 			'limit'       => $input['limit'],
+		);
+	}
+
+	/**
+	 * Controlled search ability callback.
+	 *
+	 * @param array $input Ability input.
+	 * @return array
+	 */
+	public function execute_search( array $input ) {
+		$this->search_inputs[] = $input;
+
+		return array(
+			'events'   => array(),
+			'total'    => 0,
+			'pages'    => 0,
+			'page'     => $input['page'],
 		);
 	}
 
