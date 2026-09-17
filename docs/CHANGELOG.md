@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.13.0] - 2026-09-17
+
+### Added
+- persistent accent styling for search inputs
+
 ## [2.12.1] - 2026-09-08
 
 ### Changed
