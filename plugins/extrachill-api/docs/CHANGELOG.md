@@ -2,6 +2,15 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.34.0] - 2026-09-17
+
+### Added
+- forward period param on concert-tracking search route
+- add auth/sessions routes for Connected Apps
+
+### Changed
+- wire managed Homeboy CI gate
+
 ## [0.33.0] - 2026-09-11
 
 ### Added
