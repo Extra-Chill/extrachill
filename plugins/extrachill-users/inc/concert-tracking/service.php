@@ -1221,15 +1221,21 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
 	return $attendees;
 }
 
-// ─── Search Past Events for Marking ──────────────────────────────────────────
+// ─── Search Events for Marking ───────────────────────────────────────────────
 
 /**
- * Search past events for the "Add Past Shows" My Shows feature.
+ * Search events for the My Shows quick-add search feature.
  *
- * Returns canonically past events matching the query against:
+ * Returns published events matching the query against:
  *   - event post title
  *   - artist taxonomy term names
  *   - venue taxonomy term names
+ *
+ * scoped to a period: `past` (default), `upcoming`, or `all`. The `upcoming`
+ * condition reuses the canonical `active` fragment (anything not yet ended,
+ * including ongoing events) to stay consistent with the Upcoming history tab.
+ * `all` omits the timing clause. Results are ordered start ASC for
+ * `upcoming`/`all` (soonest first) and DESC for `past` (most recent first).
  *
  * Empty query returns no results. The frontend should render a prompt
  * encouraging the user to type a query. See extrachill-events#130 — the
@@ -1237,13 +1243,15 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
  * suggestions but was just the global event firehose with zero relation
  * to the user.
  *
- * Each returned event includes `is_marked` for the given user so the UI can
- * render a "+ Mark Attended" / "✓ Tracked" state immediately.
+ * Each returned event includes `is_marked` and `timing` for the given user so
+ * the UI can render a "+ Mark Attended" / "✓ Tracked" (or "I'm going" /
+ * "✓ Going") state immediately.
  *
  * @param int   $user_id User ID (for is_marked computation).
  * @param array $args {
  *     Search arguments.
  *     @type string $query     Search query. Empty returns no results.
+ *     @type string $period    `past`, `upcoming`, or `all`. Default `past`.
  *     @type int    $page      1-indexed page number. Default 1.
  *     @type int    $per_page  Results per page. Default 20.
  *     @type int    $blog_id   Blog ID. Defaults to events blog.
@@ -1255,6 +1263,7 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 
 	$defaults = array(
 		'query'    => '',
+		'period'   => 'past',
 		'page'     => 1,
 		'per_page' => 20,
 		'blog_id'  => 0,
@@ -1262,8 +1271,9 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 
 	$args = wp_parse_args( $args, $defaults );
 
-	$query = trim( (string) $args['query'] );
-	$page  = max( 1, (int) $args['page'] );
+	$query  = trim( (string) $args['query'] );
+	$period = in_array( $args['period'], array( 'past', 'upcoming', 'all' ), true ) ? $args['period'] : 'past';
+	$page   = max( 1, (int) $args['page'] );
 
 	// When the query is empty, return no results. The 'most recent past events'
 	// the old default returned had zero relation to the user — it pretended to be
@@ -1289,15 +1299,22 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 	$terms_table   = $events_prefix . 'terms';
 
 	$now_mysql   = ec_users_get_events_now( $blog_id );
-	$past        = ec_users_build_event_timing_condition( 'past', $now_mysql );
 	$timing_case = ec_users_build_event_timing_case( $now_mysql );
 
 	$where   = array(
 		"p.post_type = 'data_machine_events'",
 		"p.post_status = 'publish'",
-		$past['where'],
 	);
-	$prepare = $past['prepare'];
+	$prepare = array();
+
+	if ( 'all' !== $period ) {
+		// `upcoming` reuses the canonical `active` fragment so ongoing events
+		// remain findable, matching the Upcoming history tab in
+		// ec_users_get_user_events().
+		$timing_condition = ec_users_build_event_timing_condition( 'upcoming' === $period ? 'active' : 'past', $now_mysql );
+		$where[]          = $timing_condition['where'];
+		$prepare          = array_merge( $prepare, $timing_condition['prepare'] );
+	}
 
 	$like = '%' . $wpdb->esc_like( $query ) . '%';
 
@@ -1342,17 +1359,18 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 	}
 
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names from trusted prefix; placeholders inside $where_sql matched in $prepare.
-	$rows_sql = $wpdb->prepare(
+	$order_sql = 'past' === $period ? 'DESC' : 'ASC';
+	$rows_sql  = $wpdb->prepare(
 		"SELECT p.ID AS post_id, p.post_title, DATE(ed.start_datetime) AS event_date, {$timing_case['sql']} AS timing
 		FROM {$posts_table} p
 		INNER JOIN {$dates_table} ed ON p.ID = ed.post_id
 		WHERE {$where_sql}
 		GROUP BY p.ID
-		ORDER BY ed.start_datetime DESC
+		ORDER BY ed.start_datetime {$order_sql}
 		LIMIT %d OFFSET %d",
 		...array_merge( $timing_case['prepare'], $prepare, array( $per_page, $offset ) )
 	);
-	$rows     = $wpdb->get_results( $rows_sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
+	$rows      = $wpdb->get_results( $rows_sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- prepared above.
 	// phpcs:enable
 
 	if ( empty( $rows ) ) {

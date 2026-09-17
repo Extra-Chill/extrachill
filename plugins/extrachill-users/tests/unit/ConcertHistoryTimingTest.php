@@ -26,7 +26,7 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 		$this->events_blog_id = self::factory()->blog->create();
 		$this->user_id        = self::factory()->user->create();
 		update_user_meta( $this->user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY, 'public' );
-		$this->dates_table    = $wpdb->get_blog_prefix( $this->events_blog_id ) . 'datamachine_event_dates';
+		$this->dates_table = $wpdb->get_blog_prefix( $this->events_blog_id ) . 'datamachine_event_dates';
 
 		update_blog_option( $this->events_blog_id, 'timezone_string', 'America/New_York' );
 		add_filter( 'extrachill_users_events_blog_id', array( $this, 'filter_events_blog_id' ) );
@@ -53,13 +53,13 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 		restore_current_blog();
 
 		$this->events = array(
-			'later_today'  => $this->track_event( 'Later Today', '2026-07-19 18:00:00' ),
-			'ended_today'  => $this->track_event( 'Ended Today', '2026-07-19 08:00:00', '2026-07-19 10:00:00' ),
-			'overnight'    => $this->track_event( 'Overnight', '2026-07-18 23:00:00', '2026-07-19 13:00:00' ),
-			'multi_day'    => $this->track_event( 'Multi-day', '2026-07-17 18:00:00', '2026-07-20 01:00:00' ),
-			'missing_end'  => $this->track_event( 'Missing End', '2026-07-19 10:00:00' ),
-			'exact_start'  => $this->track_event( 'Exact Start', '2026-07-19 12:00:00' ),
-			'exact_end'    => $this->track_event( 'Exact End', '2026-07-19 11:00:00', '2026-07-19 12:00:00' ),
+			'later_today'   => $this->track_event( 'Later Today', '2026-07-19 18:00:00' ),
+			'ended_today'   => $this->track_event( 'Ended Today', '2026-07-19 08:00:00', '2026-07-19 10:00:00' ),
+			'overnight'     => $this->track_event( 'Overnight', '2026-07-18 23:00:00', '2026-07-19 13:00:00' ),
+			'multi_day'     => $this->track_event( 'Multi-day', '2026-07-17 18:00:00', '2026-07-20 01:00:00' ),
+			'missing_end'   => $this->track_event( 'Missing End', '2026-07-19 10:00:00' ),
+			'exact_start'   => $this->track_event( 'Exact Start', '2026-07-19 12:00:00' ),
+			'exact_end'     => $this->track_event( 'Exact End', '2026-07-19 11:00:00', '2026-07-19 12:00:00' ),
 			'previous_year' => $this->track_event( 'Previous Year', '2025-06-01 20:00:00', '2025-06-01 23:00:00' ),
 		);
 	}
@@ -86,7 +86,7 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 	}
 
 	public function test_tabs_use_canonical_timing_for_rows_totals_pages_and_years(): void {
-		$upcoming_page_one = ec_users_get_user_events(
+		$upcoming_page_one   = ec_users_get_user_events(
 			$this->user_id,
 			array(
 				'period'   => 'upcoming',
@@ -121,7 +121,10 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 
 		$stats = ec_users_get_user_concert_stats( $this->user_id );
 		$this->assertSame( 8, $stats['total_shows'] );
-		$this->assertSame( array( '2026' => 7, '2025' => 1 ), $stats['shows_by_year'] );
+		$this->assertSame( array(
+			'2026' => 7,
+			'2025' => 1,
+		), $stats['shows_by_year'] );
 		$this->assertSame( 7, ec_users_get_user_concert_stats( $this->user_id, array( 'year' => 2026 ) )['total_shows'] );
 	}
 
@@ -134,7 +137,10 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $stats['total_shows'] );
 		$this->assertSame( array( '2027' => 1 ), $stats['shows_by_year'] );
-		$this->assertSame( 1, wp_get_ability( 'extrachill/get-user-shows' )->execute( array( 'user_id' => $owner_id, 'period' => 'upcoming' ) )['total'] );
+		$this->assertSame( 1, wp_get_ability( 'extrachill/get-user-shows' )->execute( array(
+			'user_id' => $owner_id,
+			'period'  => 'upcoming',
+		) )['total'] );
 	}
 
 	public function test_ongoing_only_owner_stats_remain_nonzero(): void {
@@ -146,7 +152,10 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 
 		$this->assertSame( 1, $stats['total_shows'] );
 		$this->assertSame( array( '2026' => 1 ), $stats['shows_by_year'] );
-		$this->assertSame( 1, wp_get_ability( 'extrachill/get-user-shows' )->execute( array( 'user_id' => $owner_id, 'period' => 'upcoming' ) )['total'] );
+		$this->assertSame( 1, wp_get_ability( 'extrachill/get-user-shows' )->execute( array(
+			'user_id' => $owner_id,
+			'period'  => 'upcoming',
+		) )['total'] );
 	}
 
 	public function test_owner_stats_and_year_filter_include_mixed_past_and_future_years(): void {
@@ -164,7 +173,10 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 2, $stats['total_shows'] );
-		$this->assertSame( array( '2027' => 1, '2024' => 1 ), $stats['shows_by_year'] );
+		$this->assertSame( array(
+			'2027' => 1,
+			'2024' => 1,
+		), $stats['shows_by_year'] );
 		$this->assertSame( 1, $future_stats['total_shows'] );
 		$this->assertSame( array( '2027' => 1 ), $future_stats['shows_by_year'] );
 	}
@@ -250,6 +262,67 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 		$past_search = ec_users_search_events_for_marking( $this->user_id, array( 'query' => 'Ended Today' ) );
 		$this->assertSame( 1, $past_search['total'] );
 		$this->assertSame( 'past', $past_search['events'][0]['timing'] );
+	}
+
+	public function test_search_events_for_marking_respects_period_filter_and_order(): void {
+		// Upcoming reuses the canonical active condition: ongoing stays findable, soonest first.
+		$upcoming = ec_users_search_events_for_marking(
+			$this->user_id,
+			array(
+				'query'  => 'day',
+				'period' => 'upcoming',
+			)
+		);
+		$this->assertSame( 2, $upcoming['total'] );
+		$this->assertSame(
+			array( $this->events['multi_day'], $this->events['later_today'] ),
+			wp_list_pluck( $upcoming['events'], 'post_id' )
+		);
+		$this->assertContains( 'ongoing', wp_list_pluck( $upcoming['events'], 'timing' ) );
+
+		// All drops the timing clause and orders start ASC (soonest first).
+		$all = ec_users_search_events_for_marking(
+			$this->user_id,
+			array(
+				'query'  => 'day',
+				'period' => 'all',
+			)
+		);
+		$this->assertSame( 3, $all['total'] );
+		$this->assertSame(
+			array( $this->events['multi_day'], $this->events['ended_today'], $this->events['later_today'] ),
+			wp_list_pluck( $all['events'], 'post_id' )
+		);
+
+		// Unknown values fall back to past: ongoing is excluded again.
+		$invalid = ec_users_search_events_for_marking(
+			$this->user_id,
+			array(
+				'query'  => 'Overnight',
+				'period' => 'bogus',
+			)
+		);
+		$this->assertSame( 0, $invalid['total'] );
+	}
+
+	public function test_search_events_for_marking_ability_forwards_period(): void {
+		wp_set_current_user( $this->user_id );
+
+		$result = wp_get_ability( 'extrachill/search-events-for-marking' )->execute(
+			array(
+				'query'  => 'Overnight',
+				'period' => 'upcoming',
+			)
+		);
+
+		$this->assertSame( 1, $result['total'] );
+		$this->assertSame( 'ongoing', $result['events'][0]['timing'] );
+
+		// Default remains past-only.
+		$this->assertSame(
+			0,
+			wp_get_ability( 'extrachill/search-events-for-marking' )->execute( array( 'query' => 'Overnight' ) )['total']
+		);
 	}
 
 	public function test_dst_boundary_uses_events_site_local_time(): void {
