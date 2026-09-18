@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.1.3] - 2026-09-18
+
+### Fixed
+- declare WP_MCP_AUTOLOAD so the bundled adapter boots
+
 ## [0.1.2] - 2026-09-18
 
 ### Fixed
