@@ -114,5 +114,19 @@ add_action(
 
 		Plugin::boot();
 	},
-	20
+	/*
+	 * Priority 30, not 20.
+	 *
+	 * The AGENTS_API_LOADED guard above depends on Data Machine, which registers
+	 * its runtime on `plugins_loaded` at priority 20 (data-machine.php). Hooking
+	 * at the same priority makes boot order depend on plugin registration order:
+	 * on a site where this plugin is site-activated and Data Machine is only
+	 * network-activated, this callback runs first, sees the constant undefined,
+	 * and silently returns — the MCP routes are then never registered.
+	 *
+	 * Observed on auth.extrachill.com (blog 14), where extrachill-mcp is the
+	 * only site-active plugin. WP-CLI hides it, because everything is loaded by
+	 * the time `wp eval` runs.
+	 */
+	30
 );
