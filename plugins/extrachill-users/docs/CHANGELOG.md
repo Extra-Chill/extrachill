@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.2] - 2026-09-18
+
+### Fixed
+- honor the nonce action wp-native-auth passes to the consent screen
+
 ## [0.42.1] - 2026-09-18
 
 ### Fixed
