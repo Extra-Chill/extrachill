@@ -9,6 +9,8 @@ const { chromium } = require( 'playwright' );
 const root = path.resolve( __dirname, '../..' );
 const fallbackMessage =
 	"We couldn't determine your location. Choose a city or search an area.";
+const timeoutMessage =
+	"We found you, but couldn't load nearby shows. Pick a city below or try again.";
 
 const availablePort = () =>
 	new Promise( ( resolve, reject ) => {
@@ -100,6 +102,33 @@ const waitForServer = async ( url ) => {
 				);
 			}
 
+			// Stalled: geolocation succeeds but the recenter event is dropped
+			// (#832), so the calendar never fires content-updated. The bounded
+			// timer must degrade to the city grid with a retry link.
+			await page.goto(
+				`${ origin }/tests/browser/near-me-fixture.html?scenario=stalled`
+			);
+			await page.waitForFunction(
+				( message ) =>
+					document.querySelector( '.near-me-status' )?.textContent ===
+					message,
+				timeoutMessage
+			);
+			assert.equal(
+				await page.locator( '.near-me-cities' ).isVisible(),
+				true
+			);
+			assert.equal(
+				await page
+					.locator( '.data-machine-events-calendar' )
+					.isVisible(),
+				false
+			);
+			assert.match(
+				await page.getAttribute( '.near-me-retry', 'href' ),
+				/lat=32\.776500&lng=-79\.931100/
+			);
+
 			await page.goto(
 				`${ origin }/tests/browser/near-me-fixture.html?scenario=success`
 			);
@@ -134,6 +163,7 @@ const waitForServer = async ( url ) => {
 					'denied',
 					'timeout',
 					'lookup-failure',
+					'stalled',
 					'success',
 				],
 			} )

@@ -39,6 +39,13 @@
 	margin: 0;
 }
 
+/* Retry link shown when scoped results never arrive */
+.near-me-retry {
+	font-weight: 600;
+	color: var(--accent, #53940b);
+	text-decoration: underline;
+}
+
 /* Keep the map's area search usable without presenting global events as nearby. */
 .near-me-results.is-location-pending .data-machine-events-calendar {
 	display: none;

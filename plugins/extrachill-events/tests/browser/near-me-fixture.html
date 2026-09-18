@@ -37,14 +37,18 @@
 			pageUrl: window.location.origin + '/near-me/'
 		};
 		const scenario = new URLSearchParams( window.location.search ).get( 'scenario' ) || 'unresolved';
+		if ( scenario === 'stalled' ) {
+			window.ecNearMe.scopedResultsTimeoutMs = 800;
+		}
 		const errors = { denied: 1, 'lookup-failure': 2, timeout: 3 };
+		const successScenarios = [ 'success', 'stalled' ];
 		Object.defineProperty( navigator, 'geolocation', {
 			configurable: true,
 			value: scenario === 'unsupported' ? undefined : {
 				getCurrentPosition( success, error ) {
 					if ( scenario === 'unresolved' ) return;
 					setTimeout( () => {
-						if ( scenario === 'success' ) {
+						if ( successScenarios.includes( scenario ) ) {
 							success( { coords: { latitude: 32.7765, longitude: -79.9311 } } );
 							return;
 						}
@@ -58,16 +62,20 @@
 				}
 			}
 		} );
-		document.addEventListener( 'data-machine-map-recenter', ( event ) => {
-			document.dispatchEvent( new CustomEvent( 'data-machine-map-bounds-changed', {
-				detail: { authority: event.detail.authority }
-			} ) );
-			setTimeout( () => {
-				const calendar = document.querySelector( '.data-machine-events-calendar' );
-				calendar.textContent = 'Scoped nearby calendar: Charleston';
-				calendar.dispatchEvent( new CustomEvent( 'data-machine-calendar-content-updated' ) );
-			}, 30 );
-		} );
+		if ( scenario !== 'stalled' ) {
+			// Simulates the dropped-recenter substrate bug (#832): the map
+			// never re-centers and the calendar never fires content-updated.
+			document.addEventListener( 'data-machine-map-recenter', ( event ) => {
+				document.dispatchEvent( new CustomEvent( 'data-machine-map-bounds-changed', {
+					detail: { authority: event.detail.authority }
+				} ) );
+				setTimeout( () => {
+					const calendar = document.querySelector( '.data-machine-events-calendar' );
+					calendar.textContent = 'Scoped nearby calendar: Charleston';
+					calendar.dispatchEvent( new CustomEvent( 'data-machine-calendar-content-updated' ) );
+				}, 30 );
+			} );
+		}
 	</script>
 	<script src="/assets/js/near-me.js"></script>
 </body>

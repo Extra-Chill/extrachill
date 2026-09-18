@@ -11,6 +11,9 @@
  * No page reloads. The map viewport IS the radius.
  *
  * If geolocation is denied or unavailable, reveals the city grid fallback.
+ * If geolocation succeeds but the calendar never confirms scoped results
+ * within a bounded window, degrades to the city grid with a retry link
+ * instead of spinning forever.
  *
  * The location search input is part of the EventsMap block (data-machine layer),
  * enabled on this page via the data_machine_events_map_show_location_search filter.
@@ -43,7 +46,17 @@
 	const status = document.querySelector( '.near-me-status' );
 	const results = document.querySelector( '.near-me-results' );
 	const calendar = results?.querySelector( '.data-machine-events-calendar' );
+	const scopedResultsTimeoutMs =
+		typeof ecNearMe.scopedResultsTimeoutMs === 'number' &&
+		ecNearMe.scopedResultsTimeoutMs > 0
+			? ecNearMe.scopedResultsTimeoutMs
+			: 10000;
+	const timeoutMessage =
+		"We found you, but couldn't load nearby shows. Pick a city below or try again.";
 	let awaitingScopedResults = false;
+	let scopedResultsTimer = null;
+	let waitingForMapReady = false;
+	let pendingUserCenter = null;
 
 	document.addEventListener( 'data-machine-map-bounds-changed', ( event ) => {
 		if (
@@ -62,6 +75,25 @@
 	calendar?.addEventListener( 'data-machine-calendar-content-updated', () => {
 		if ( awaitingScopedResults ) {
 			revealScopedResults();
+		}
+	} );
+
+	// The map block fires data-machine-map-ready once its event listeners
+	// are attached. Recenter events dispatched before that are dropped, so
+	// wait for readiness instead of trusting the data-initialized flag.
+	document.addEventListener( 'data-machine-map-ready', ( event ) => {
+		if (
+			! waitingForMapReady ||
+			! event.target?.classList?.contains(
+				'data-machine-events-map-root'
+			)
+		) {
+			return;
+		}
+		waitingForMapReady = false;
+		if ( pendingUserCenter ) {
+			recenterMap( pendingUserCenter.lat, pendingUserCenter.lng );
+			pendingUserCenter = null;
 		}
 	} );
 
@@ -91,6 +123,11 @@
 		}
 		awaitingScopedResults = true;
 
+		// Bounded wait: if the calendar never confirms scoped results
+		// (dropped recenter event, failed fetch, ...), degrade to the city
+		// grid instead of spinning forever.
+		startScopedResultsTimer();
+
 		// Update URL via History API — no page reload.
 		const url = new URL( ecNearMe.pageUrl );
 		url.searchParams.set( 'lat', lat );
@@ -99,7 +136,9 @@
 
 		// Set the map center by updating data attributes on the map root.
 		// The map React component reads these on init. If the map has already
-		// initialized, we dispatch a custom event to recenter it.
+		// initialized, we dispatch a custom event to recenter it. Otherwise
+		// we wait for data-machine-map-ready so the recenter isn't dropped
+		// by a map that flags initialization before its listeners attach.
 		const mapRoot = document.querySelector(
 			'.data-machine-events-map-root'
 		);
@@ -111,30 +150,37 @@
 
 			// If map is already initialized, dispatch recenter + user location events.
 			if ( mapRoot.dataset.initialized === '1' ) {
-				document.dispatchEvent(
-					new CustomEvent( 'data-machine-map-recenter', {
-						detail: {
-							lat: parseFloat( lat ),
-							lng: parseFloat( lng ),
-							zoom: 12,
-							authority: 'user-location',
-						},
-					} )
-				);
-
-				// Add the blue dot marker for user location.
-				document.dispatchEvent(
-					new CustomEvent( 'data-machine-map-set-user-location', {
-						detail: {
-							lat: parseFloat( lat ),
-							lng: parseFloat( lng ),
-						},
-					} )
-				);
+				recenterMap( lat, lng );
+			} else {
+				waitingForMapReady = true;
+				pendingUserCenter = { lat, lng };
 			}
 		}
 
 		showLoading( 'Found you! Loading nearby events...' );
+	}
+
+	function recenterMap( lat, lng ) {
+		document.dispatchEvent(
+			new CustomEvent( 'data-machine-map-recenter', {
+				detail: {
+					lat: parseFloat( lat ),
+					lng: parseFloat( lng ),
+					zoom: 12,
+					authority: 'user-location',
+				},
+			} )
+		);
+
+		// Add the blue dot marker for user location.
+		document.dispatchEvent(
+			new CustomEvent( 'data-machine-map-set-user-location', {
+				detail: {
+					lat: parseFloat( lat ),
+					lng: parseFloat( lng ),
+				},
+			} )
+		);
 	}
 
 	function onError() {
@@ -170,6 +216,59 @@
 		}
 	}
 
+	function startScopedResultsTimer() {
+		clearScopedResultsTimer();
+		scopedResultsTimer = setTimeout(
+			showScopedResultsTimeout,
+			scopedResultsTimeoutMs
+		);
+	}
+
+	function clearScopedResultsTimer() {
+		if ( scopedResultsTimer ) {
+			clearTimeout( scopedResultsTimer );
+			scopedResultsTimer = null;
+		}
+	}
+
+	function showScopedResultsTimeout() {
+		scopedResultsTimer = null;
+
+		// Stop reacting to stray content-updated events — the scoped fetch
+		// did not complete, so do not reveal whatever loads next as "nearby".
+		awaitingScopedResults = false;
+
+		if ( spinner ) {
+			spinner.style.display = 'none';
+		}
+		if ( status ) {
+			status.textContent = timeoutMessage;
+		}
+		addRetryLink();
+		if ( cities ) {
+			cities.style.display = 'block';
+		}
+	}
+
+	function addRetryLink() {
+		if ( ! loading || loading.querySelector( '.near-me-retry' ) ) {
+			return;
+		}
+
+		const retry = document.createElement( 'a' );
+		retry.className = 'near-me-retry';
+		// The URL already carries ?lat=&lng=, so reloading it renders the
+		// scoped results server-side.
+		retry.href = window.location.href;
+		retry.textContent = 'Try again';
+
+		if ( status ) {
+			status.insertAdjacentElement( 'afterend', retry );
+		} else {
+			loading.appendChild( retry );
+		}
+	}
+
 	function showFallback() {
 		if ( loading ) {
 			loading.style.display = 'flex';
@@ -187,10 +286,12 @@
 	}
 
 	function revealScopedResults() {
+		clearScopedResultsTimer();
 		results?.classList.remove( 'is-location-pending' );
 		if ( cities ) {
 			cities.style.display = 'none';
 		}
+		loading?.querySelector( '.near-me-retry' )?.remove();
 		hideDetectUI();
 	}
 } )();
