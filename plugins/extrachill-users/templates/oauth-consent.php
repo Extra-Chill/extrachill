@@ -25,6 +25,13 @@
  *     @type string $bundle           Signed request bundle — render verbatim.
  *     @type string $signature        Bundle signature — render verbatim.
  *     @type string $authorize_action Consent nonce (rendered via wp_nonce_field()).
+ *     @type string $nonce_action     Nonce action to render. Differs per grant:
+ *                                    'wp_native_auth_oauth_consent' for the
+ *                                    authorization code flow,
+ *                                    'wp_native_auth_oauth_device' for the
+ *                                    RFC 8628 device flow. Optional; defaults
+ *                                    to the consent action.
+ *     @type bool   $is_device_flow   True when rendering for the device grant.
  * }
  */
 
@@ -36,6 +43,17 @@ $client_name = isset( $args['client_name'] ) ? (string) $args['client_name'] : '
 $client_uri  = isset( $args['client_uri'] ) ? (string) $args['client_uri'] : '';
 $client_id   = isset( $args['client_id'] ) ? (string) $args['client_id'] : '';
 $resource    = isset( $args['resource'] ) ? (string) $args['resource'] : '';
+
+/*
+ * One screen serves both grants, and they verify different nonce actions.
+ * The device grant passes 'wp_native_auth_oauth_device'; the authorization
+ * code grant passes 'wp_native_auth_oauth_consent' and is the fallback for
+ * any caller that predates the argument. Hardcoding the consent action here
+ * made every device approval fail its nonce check with a 403.
+ */
+$nonce_action = isset( $args['nonce_action'] ) && '' !== (string) $args['nonce_action']
+	? (string) $args['nonce_action']
+	: 'wp_native_auth_oauth_consent';
 
 get_header();
 ?>
@@ -92,7 +110,7 @@ get_header();
 	</div>
 
 	<form method="post" action="">
-		<?php wp_nonce_field( 'wp_native_auth_oauth_consent' ); ?>
+		<?php wp_nonce_field( $nonce_action ); ?>
 		<input type="hidden" name="oauth_request" value="<?php echo esc_attr( $args['bundle'] ); ?>">
 		<input type="hidden" name="oauth_signature" value="<?php echo esc_attr( $args['signature'] ); ?>">
 		<p>
