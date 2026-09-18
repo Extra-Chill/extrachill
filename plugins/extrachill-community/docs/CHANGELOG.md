@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.27.0] - 2026-09-18
+
+### Added
+- add Connected Apps section to user settings Security tab
+
+### Changed
+- wire managed Homeboy CI gate
+
 ## [1.26.2] - 2026-09-08
 
 ### Fixed
