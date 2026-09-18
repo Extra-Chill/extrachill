@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.1.4] - 2026-09-18
+
+### Fixed
+- send WWW-Authenticate on a 401 from the MCP endpoint
+
 ## [0.1.3] - 2026-09-18
 
 ### Fixed
