@@ -81,6 +81,23 @@ add_action(
 			return;
 		}
 
+		/*
+		 * The adapter's own Autoloader looks for WP_MCP_DIR/vendor/autoload_packages.php
+		 * — its own vendored Jetpack autoloader, which only exists when mcp-adapter is
+		 * installed as a standalone plugin. Installed as a Composer dependency, that
+		 * path is absent, Autoloader::autoload() returns false, and mcp-adapter.php
+		 * returns before calling Plugin::instance(). WP_MCP_VERSION is defined by then,
+		 * so every surface check reports healthy while McpAdapter::instance() is never
+		 * created, no rest_api_init hook is registered, and the MCP routes 404.
+		 *
+		 * WP_MCP_AUTOLOAD === false is the adapter's documented "already autoloaded,
+		 * skip it" switch. Our composer autoloader above has already registered the
+		 * WP\MCP namespace, so declaring it is both correct and required.
+		 */
+		if ( ! defined( 'WP_MCP_AUTOLOAD' ) ) {
+			define( 'WP_MCP_AUTOLOAD', false );
+		}
+
 		// Boot the composer-bundled mcp-adapter unless a standalone copy is active.
 		if ( ! defined( 'WP_MCP_VERSION' ) ) {
 			$adapter_main = EXTRACHILL_MCP_DIR . 'vendor/wordpress/mcp-adapter/mcp-adapter.php';
