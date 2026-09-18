@@ -100,6 +100,20 @@ function extrachill_users_init() {
 		return;
 	}
 	$initialized = true;
+	/*
+	 * activation.php is named for its activation entry points, but it also
+	 * registers runtime hooks: the new-site login page on wp_initialize_site,
+	 * the welcome-email fallback, and the admin_init self-heal guards that
+	 * create missing pages and apply dbDelta migrations.
+	 *
+	 * Those add_action() calls only take effect if the file is loaded on
+	 * ordinary requests. Loading it exclusively from the activation and
+	 * deactivation callbacks left all of them dead, so new network sites
+	 * came up without a login page and table migrations never applied on
+	 * upgrade. The file defines functions and registers hooks only — it has
+	 * no load-time side effects.
+	 */
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/password-policy.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/gating.php';
