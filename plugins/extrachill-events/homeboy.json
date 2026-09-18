@@ -94,6 +94,11 @@
             "runtime": "host"
           },
           {
+            "name": "near-me-unit",
+            "config": "phpunit-near-me-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "network-block",
             "config": "phpunit-network-block.xml.dist",
             "runtime": "host"

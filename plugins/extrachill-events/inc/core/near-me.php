@@ -262,39 +262,37 @@ function extrachill_events_near_me_content( string $content ): string {
 	$html = (string) ob_get_clean() . $html;
 
 	// City browsing remains available while browser location is unresolved.
-	$locations = get_terms(
-		array(
-			'taxonomy'   => 'location',
-			'hide_empty' => true,
-			'orderby'    => 'count',
-			'order'      => 'DESC',
-			'number'     => 20,
-			'meta_query' => array(
-				array(
-					'key'     => '_location_coordinates',
-					'compare' => 'EXISTS',
-				),
-			),
-		)
-	);
+	// Uses the same upcoming-count source and ordering as the events home
+	// "Active scenes" block (inc/home/location-badges.php): the
+	// extrachill/events-upcoming-counts ability and its inventory cache.
+	// The render path runs on the events site, so the owning ability is
+	// called directly instead of dispatching an internal REST request at
+	// itself; /extrachill/v1/events/upcoming-counts remains the HTTP surface
+	// for external consumers and mirrors this exact ability call.
+	$ability = wp_get_ability( 'extrachill/events-upcoming-counts' );
+	$results = $ability
+		? $ability->execute( array( 'taxonomy' => 'location' ) )
+		: new WP_Error(
+			'ability_unavailable',
+			__( 'extrachill/events-upcoming-counts ability is not available.', 'extrachill-events' )
+		);
 
-	if ( ! is_wp_error( $locations ) && ! empty( $locations ) ) {
+	$locations = is_wp_error( $results )
+		? array()
+		: extrachill_events_near_me_city_rows( (array) $results );
+
+	if ( ! empty( $locations ) ) {
 		$cities_display = $has_location ? 'none' : 'block';
 		$html          .= '<div class="near-me-cities" style="display:' . $cities_display . ';">';
 		$html          .= '<h2>' . esc_html__( 'Browse by City', 'extrachill-events' ) . '</h2>';
 		$html          .= '<div class="near-me-city-grid">';
 
 		foreach ( $locations as $location ) {
-			$url = get_term_link( $location );
-			if ( is_wp_error( $url ) ) {
-				continue;
-			}
-
 			$html .= sprintf(
 				'<a href="%s" class="near-me-city-card"><span class="near-me-city-name">%s</span><span class="near-me-city-count">%d events</span></a>',
-				esc_url( $url ),
-				esc_html( $location->name ),
-				$location->count
+				esc_url( $location['url'] ),
+				esc_html( $location['name'] ),
+				$location['count']
 			);
 		}
 
