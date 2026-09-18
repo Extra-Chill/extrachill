@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.13.1] - 2026-09-18
+
+### Fixed
+- inherit header text color for header icons so account icon is visible
+
 ## [2.13.0] - 2026-09-17
 
 ### Added
