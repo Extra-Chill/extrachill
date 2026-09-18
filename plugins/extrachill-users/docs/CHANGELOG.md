@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.1] - 2026-09-18
+
+### Fixed
+- load activation.php on normal requests so its runtime hooks register
+
 ## [0.42.0] - 2026-09-17
 
 ### Added
