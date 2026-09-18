@@ -133,6 +133,22 @@ extrachill_breadcrumbs();
 		echo do_blocks( '<!-- wp:data-machine-events/calendar {"showScopePresets":true} /-->' );
 		?>
 	</div>
+
+	<?php
+	/**
+	 * Fires after the calendar block on every archive type.
+	 *
+	 * Introduced in #847 so archive furniture that is secondary to the event
+	 * listings (map, sign-in prompts, operator tools) can render BENEATH the
+	 * events instead of pushing them down the page. Consumers moved here from
+	 * `extrachill_archive_below_description` must keep the listings first:
+	 * nothing hooked here renders above a single event card.
+	 *
+	 * `extrachill_archive_below_description` remains fired above the calendar
+	 * for archive headers and other consumers that belong before the listings.
+	 */
+	do_action( 'extrachill_archive_below_calendar' );
+	?>
 	<?php if ( is_tax( 'venue' ) ) : ?>
 		<div class="page-content">
 			<?php

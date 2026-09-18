@@ -24,7 +24,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * asset loading and rendering. The map block reads taxonomy/term_id from
  * data attributes and passes them to the REST endpoint for filtering.
  *
- * @hook extrachill_archive_below_description
+ * Renders BELOW the calendar (#847): the map is secondary to the event
+ * listings, and the shared archive-map helper collapses it by default.
+ *
+ * @hook extrachill_archive_below_calendar
  */
 function extrachill_events_render_location_map() {
 	if ( ! is_tax( 'location' ) ) {
@@ -43,12 +46,12 @@ function extrachill_events_render_location_map() {
 	}
 
 	// Render via the shared archive-map helper — filters below provide center
-	// and summary. The helper applies the block-native collapse toggle (#377,
-	// open by default) and the reduced height so the map no longer dominates
-	// the archive (data-machine-events#373).
+	// and summary. The helper applies the block-native collapse toggle
+	// collapsed by default (#847) and the taller expanded height, so the map
+	// is opt-in furniture beneath the listings.
 	echo extrachill_events_render_archive_map( array(), 'location' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks().
 }
-add_action( 'extrachill_archive_below_description', 'extrachill_events_render_location_map' );
+add_action( 'extrachill_archive_below_calendar', 'extrachill_events_render_location_map', 20 );
 
 /**
  * Set map center to the location's coordinates.

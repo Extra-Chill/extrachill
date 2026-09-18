@@ -264,7 +264,12 @@ function ec_events_get_venue_archive_workspace_action( int $venue_term_id, int $
 	return ec_events_get_venue_workspace_action_for_state( $venue_term_id, 'non_member' );
 }
 
-/** Render contextual venue management acquisition on canonical archives. */
+/**
+ * Render contextual venue management acquisition on canonical archives.
+ *
+ * Renders BELOW the calendar (#847): venue-operator acquisition is not
+ * audience content, and the disclosure should never push event listings down.
+ */
 function ec_events_render_venue_archive_workspace_action(): void {
 	$term = is_tax( 'venue' ) ? get_queried_object() : null;
 	if ( ! $term instanceof WP_Term ) {
@@ -285,4 +290,4 @@ function ec_events_render_venue_archive_workspace_action(): void {
 	</details>
 	<?php
 }
-add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 );
+add_action( 'extrachill_archive_below_calendar', 'ec_events_render_venue_archive_workspace_action', 30 );

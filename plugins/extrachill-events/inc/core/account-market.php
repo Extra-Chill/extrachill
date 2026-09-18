@@ -491,7 +491,35 @@ function extrachill_events_handle_archive_scene_update(): void {
 add_action( 'template_redirect', 'extrachill_events_handle_archive_scene_update', 5 );
 
 /**
- * Render an explicit Local Scene choice on selectable city archives.
+ * Render the single merged scene prompt on selectable city archives.
+ *
+ * Merges the two prompts that previously stacked above the calendar (#847) —
+ * the "save this scene" CTA and the Local Scene digest opt-in — into ONE
+ * compact panel rendered BELOW the event listings, so a first-time visitor is
+ * never asked to sign in before seeing a single show. Both underlying
+ * capabilities are preserved: saving the city to the account AND subscribing
+ * to its weekly digest email + in-app updates.
+ *
+ * Copy is plain-language on purpose: "Local Scene" is unexplained product
+ * jargon at this point in the journey, so the panel says "city" and leads
+ * with the concrete value ("Get {city} shows in your inbox").
+ *
+ * State machine (first match wins):
+ *   - signed save/subscribe continuation → explicit confirm (autofocus).
+ *   - failed update flash                → error + retry affordance.
+ *   - subscribed / scene_saved / saved   → outcome + live digest toggle.
+ *   - current scene                      → live digest toggle.
+ *   - otherwise (logged in)              → save form.
+ *   - logged out                         → one panel, two signed intents:
+ *                                          subscribe (primary) / save (secondary).
+ *
+ * The live digest toggle keeps the markup contract of
+ * assets/js/local-scene-digest.js: a `[data-local-scene-digest-control]`
+ * container holding the `[data-local-scene-digest-status]` span and the
+ * `[data-local-scene-digest]` button, rendered by
+ * extrachill_events_render_local_scene_digest_control().
+ *
+ * @hook extrachill_archive_below_calendar
  */
 function extrachill_events_render_archive_scene_cta(): void {
 	$term = extrachill_events_get_archive_scene_term();
@@ -516,38 +544,72 @@ function extrachill_events_render_archive_scene_cta(): void {
 		}
 		nocache_headers();
 	}
+
+	$has_digest_control = $is_logged_in && null === $intent && $is_current;
 	?>
-	<aside class="events-market-context<?php echo $is_logged_in ? '' : ' events-market-context--quiet'; ?>" aria-label="<?php esc_attr_e( 'Local Scene preference', 'extrachill-events' ); ?>" role="status">
+	<aside class="events-market-context<?php echo $is_logged_in ? '' : ' events-market-context--quiet'; ?>"<?php echo $has_digest_control ? ' data-local-scene-digest-control' : ''; ?> role="status" aria-live="polite" aria-label="<?php esc_attr_e( 'City preference and weekly email', 'extrachill-events' ); ?>">
 		<div class="events-market-context__copy">
-			<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Is %s your local scene?', 'extrachill-events' ), $term->name ) ); ?></strong>
-			<?php if ( 'failed' === $status ) : ?>
-				<span><?php esc_html_e( 'We could not update your Local Scene. Please try again.', 'extrachill-events' ); ?></span>
-			<?php elseif ( $is_current || 'saved' === $status ) : ?>
-				<span><?php esc_html_e( 'This is your Local Scene.', 'extrachill-events' ); ?></span>
+			<?php if ( ! $is_logged_in ) : ?>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Get %s shows in your inbox', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<span><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'A free account sends you a weekly email of upcoming shows — and saves %s so the calendar focuses on it every visit.', 'extrachill-events' ), $term->name ) ); ?></span>
+			<?php elseif ( 'subscribe_digest' === $intent ) : ?>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Turn on the weekly email for %s?', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<span><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'This saves %s to your account and subscribes you to its weekly email and in-app updates. Nothing changes until you confirm.', 'extrachill-events' ), $term->name ) ); ?></span>
 			<?php elseif ( 'save_scene' === $intent ) : ?>
-				<span><?php esc_html_e( 'Confirm this one-step action to save it to your account.', 'extrachill-events' ); ?></span>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Save %s to your account?', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<span><?php esc_html_e( 'You asked to save this city before signing in.', 'extrachill-events' ); ?></span>
+			<?php elseif ( 'subscribed' === $status ) : ?>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Weekly email + updates for %s', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<span><?php esc_html_e( 'Weekly email and in-app updates are on for this city.', 'extrachill-events' ); ?></span>
+			<?php elseif ( 'scene_saved' === $status ) : ?>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( '%s is saved to your account', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<span><?php esc_html_e( 'The weekly email could not be turned on. Please try subscribing again.', 'extrachill-events' ); ?></span>
+			<?php elseif ( $is_current ) : ?>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Weekly email + updates for %s', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<?php if ( 'failed' === $status ) : ?>
+					<span><?php esc_html_e( 'We could not complete that update. Nothing was changed. Please try again.', 'extrachill-events' ); ?></span>
+				<?php else : ?>
+					<span><?php esc_html_e( 'This city is saved to your account.', 'extrachill-events' ); ?></span>
+				<?php endif; ?>
+			<?php else : ?>
+				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Save %s to your account?', 'extrachill-events' ), $term->name ) ); ?></strong>
+				<?php if ( 'failed' === $status ) : ?>
+					<span><?php esc_html_e( 'We could not complete that update. Nothing was changed. Please try again.', 'extrachill-events' ); ?></span>
+				<?php else : ?>
+					<span><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Saving %s focuses the calendar on it and unlocks a weekly email of new shows.', 'extrachill-events' ), $term->name ) ); ?></span>
+				<?php endif; ?>
+			<?php endif; ?>
+			<?php if ( $has_digest_control ) : ?>
+				<span data-local-scene-digest-status><?php esc_html_e( 'Checking your subscription…', 'extrachill-events' ); ?></span>
 			<?php endif; ?>
 		</div>
 		<div class="events-market-context__actions">
 			<?php if ( ! $is_logged_in ) : ?>
-				<a class="button-1 button-small" href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'save_scene' ) ); ?>"><?php esc_html_e( 'Sign in to save', 'extrachill-events' ); ?></a>
-			<?php elseif ( ! $is_current && 'saved' !== $status && 'save_scene' !== $intent ) : ?>
-				<form method="post" action="<?php echo esc_url( $archive_url ); ?>">
-					<?php wp_nonce_field( 'extrachill_events_save_scene_' . $term->term_id, 'extrachill_events_scene_nonce' ); ?>
-					<input type="hidden" name="extrachill_events_scene_action" value="save">
-					<button class="button-1 button-small" type="submit"><?php esc_html_e( 'Make this my Local Scene', 'extrachill-events' ); ?></button>
+				<a class="button-1 button-small" href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'subscribe_digest' ) ); ?>"><?php esc_html_e( 'Sign in for the weekly email', 'extrachill-events' ); ?></a>
+				<a href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'save_scene' ) ); ?>"><?php esc_html_e( 'Save this city', 'extrachill-events' ); ?></a>
+			<?php elseif ( 'subscribe_digest' === $intent ) : ?>
+				<form method="post" action="<?php echo esc_url( extrachill_events_archive_intent_clean_url( $term ) ); ?>">
+					<input type="hidden" name="extrachill_events_scene_action" value="subscribe_digest">
+					<input type="hidden" name="extrachill_events_scene_nonce" value="<?php echo esc_attr( wp_create_nonce( 'extrachill_events_subscribe_scene_' . $term->term_id ) ); ?>">
+					<button class="button-1 button-small" type="submit" autofocus><?php esc_html_e( 'Confirm: save and subscribe', 'extrachill-events' ); ?></button>
 				</form>
-			<?php endif; ?>
-			<?php if ( $is_logged_in && 'save_scene' === $intent ) : ?>
-				<p><?php esc_html_e( 'You asked to save this Local Scene before signing in.', 'extrachill-events' ); ?></p>
+			<?php elseif ( 'save_scene' === $intent ) : ?>
 				<form method="post" action="<?php echo esc_url( extrachill_events_archive_intent_clean_url( $term ) ); ?>">
 					<?php wp_nonce_field( 'extrachill_events_save_scene_' . $term->term_id, 'extrachill_events_scene_nonce' ); ?>
 					<input type="hidden" name="extrachill_events_scene_action" value="save">
-					<button class="button-1 button-small" type="submit" autofocus><?php esc_html_e( 'Confirm: save this Local Scene', 'extrachill-events' ); ?></button>
+					<button class="button-1 button-small" type="submit" autofocus><?php esc_html_e( 'Confirm: save this city', 'extrachill-events' ); ?></button>
+				</form>
+			<?php elseif ( $has_digest_control ) : ?>
+				<?php extrachill_events_render_local_scene_digest_control(); ?>
+			<?php else : ?>
+				<form method="post" action="<?php echo esc_url( $archive_url ); ?>">
+					<?php wp_nonce_field( 'extrachill_events_save_scene_' . $term->term_id, 'extrachill_events_scene_nonce' ); ?>
+					<input type="hidden" name="extrachill_events_scene_action" value="save">
+					<button class="button-1 button-small" type="submit"><?php esc_html_e( 'Make this my city', 'extrachill-events' ); ?></button>
 				</form>
 			<?php endif; ?>
 		</div>
 	</aside>
 	<?php
 }
-add_action( 'extrachill_archive_below_description', 'extrachill_events_render_archive_scene_cta', 4 );
+add_action( 'extrachill_archive_below_calendar', 'extrachill_events_render_archive_scene_cta', 10 );

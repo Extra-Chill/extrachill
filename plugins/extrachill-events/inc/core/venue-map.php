@@ -70,7 +70,10 @@ function extrachill_events_get_upcoming_venue_event_count( int $term_id ): int {
 /**
  * Render the events-map block on venue archive pages.
  *
- * @hook extrachill_archive_below_description
+ * Renders BELOW the calendar (#847) via the shared archive-map helper, which
+ * collapses the map by default; the venue-specific zoom is passed through.
+ *
+ * @hook extrachill_archive_below_calendar
  */
 function extrachill_events_render_venue_map() {
 	if ( ! is_tax( 'venue' ) ) {
@@ -88,12 +91,12 @@ function extrachill_events_render_venue_map() {
 	}
 
 	// Render via the shared archive-map helper, passing the venue-specific zoom.
-	// The helper applies the block-native collapse toggle (#377, open by
-	// default) and the reduced height so the map stays secondary to the event
-	// list (data-machine-events#373). Mirrors the location archive treatment.
+	// The helper applies the block-native collapse toggle collapsed by default
+	// (#847) and the taller expanded height, so the map is opt-in furniture
+	// beneath the event list. Mirrors the location archive treatment.
 	echo extrachill_events_render_archive_map( array( 'zoom' => 14 ), 'venue' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks().
 }
-add_action( 'extrachill_archive_below_description', 'extrachill_events_render_venue_map' );
+add_action( 'extrachill_archive_below_calendar', 'extrachill_events_render_venue_map', 20 );
 
 /**
  * Set map center to the venue's coordinates.

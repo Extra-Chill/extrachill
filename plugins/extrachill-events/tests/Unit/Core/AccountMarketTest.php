@@ -311,6 +311,18 @@ if ( ! function_exists( 'wp_nonce_field' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_create_nonce' ) ) {
+	function wp_create_nonce( $action ) {
+		return 'nonce-' . $action;
+	}
+}
+
+if ( ! function_exists( 'rest_url' ) ) {
+	function rest_url( $path = '' ) {
+		return 'https://events.example/wp-json/' . ltrim( (string) $path, '/' );
+	}
+}
+
 if ( ! function_exists( 'nocache_headers' ) ) {
 	function nocache_headers() {
 		$GLOBALS['test_nocache_headers'] = true;
@@ -326,6 +338,7 @@ if ( ! function_exists( 'wp_verify_nonce' ) ) {
 require_once dirname( __DIR__, 3 ) . '/inc/core/router-pages.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/discovery-pages.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/account-market.php';
+require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/my-shows-map-filter.php';
 
 /**
@@ -1252,9 +1265,46 @@ final class AccountMarketTest extends TestCase {
 		ob_start();
 		extrachill_events_render_archive_scene_cta();
 		$output = (string) ob_get_clean();
-		$this->assertStringContainsString( 'Is Charleston your local scene?', $output );
-		$this->assertStringContainsString( 'Sign in to save', $output );
+		$this->assertStringContainsString( 'Get Charleston shows in your inbox', $output );
 		$this->assertStringContainsString( rawurlencode( 'https://events.example/location/charleston/' ), $output );
+	}
+
+	/**
+	 */
+	public function test_archive_cta_prompts_logged_out_once_with_both_affordances(): void {
+		$GLOBALS['test_is_tax']         = true;
+		$GLOBALS['test_queried_term']   = $this->term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors'] = array( 22, 1 );
+		$GLOBALS['test_term_link']      = 'https://events.example/location/charleston/';
+		$this->use_archive_query( $GLOBALS['test_queried_term'] );
+
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+
+		// One compact panel, one sign-in ask — never two stacked prompts.
+		$this->assertSame( 1, substr_count( $output, '<aside class="events-market-context' ) );
+		$this->assertSame( 1, substr_count( $output, 'Sign in' ) );
+		$this->assertStringContainsString( 'Sign in for the weekly email', $output );
+		$this->assertStringContainsString( 'Save this city', $output );
+
+		// Both underlying capabilities survive the merge as distinct intents.
+		$digest_url = $this->intent_redirect_from_output( $output, 'Sign in for the weekly email' );
+		$save_url   = $this->intent_redirect_from_output( $output, 'Save this city' );
+		$this->assertStringContainsString( 'ec_events_intent=subscribe_digest', $digest_url );
+		$this->assertStringContainsString( 'ec_events_intent=save_scene', $save_url );
+	}
+
+	/** Extract and decode the signed redirect carried by one prompt action. */
+	private function intent_redirect_from_output( string $output, string $anchor ): string {
+		$this->assertStringContainsString( $anchor, $output );
+		$this->assertSame(
+			1,
+			preg_match( '/href="([^"]+)">[^<]*' . preg_quote( $anchor, '/' ) . '/', $output, $matches ),
+			"No anchor link found for: $anchor"
+		);
+		parse_str( (string) parse_url( $matches[1], PHP_URL_QUERY ), $login_query );
+		return (string) ( $login_query['redirect_to'] ?? '' );
 	}
 
 	/**
@@ -1271,7 +1321,7 @@ final class AccountMarketTest extends TestCase {
 		ob_start();
 		extrachill_events_render_archive_scene_cta();
 		$output = (string) ob_get_clean();
-		$this->assertStringContainsString( 'Make this my Local Scene', $output );
+		$this->assertStringContainsString( 'Make this my city', $output );
 		$this->assertStringContainsString( 'extrachill_events_scene_nonce', $output );
 		$this->assertTrue( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE );
 	}
@@ -1280,8 +1330,8 @@ final class AccountMarketTest extends TestCase {
 	 */
 	public function test_archive_cta_confirms_current_scene_without_save_form(): void {
 		$this->use_logged_in_user();
-		$GLOBALS['test_is_tax']                 = true;
 		$GLOBALS['test_is_user_logged_in']      = true;
+		$GLOBALS['test_is_tax']                 = true;
 		$GLOBALS['test_queried_term']           = $this->term( 1618, 'Charleston', 'charleston' );
 		$GLOBALS['test_term_ancestors']         = array( 22, 1 );
 		$GLOBALS['test_term_link']              = 'https://events.example/location/charleston/';
@@ -1300,8 +1350,79 @@ final class AccountMarketTest extends TestCase {
 		ob_start();
 		extrachill_events_render_archive_scene_cta();
 		$output = (string) ob_get_clean();
-		$this->assertStringContainsString( 'This is your Local Scene.', $output );
-		$this->assertStringNotContainsString( 'Make this my Local Scene', $output );
+		$this->assertStringContainsString( 'This city is saved to your account.', $output );
+		$this->assertStringContainsString( 'data-local-scene-digest-control', $output );
+		$this->assertStringContainsString( 'data-local-scene-digest', $output );
+		$this->assertStringContainsString( 'Checking your subscription', $output );
+		$this->assertStringNotContainsString( 'Make this my city', $output );
+	}
+
+	/** Outcome flashes stay inside the single merged panel with the live toggle. */
+	public function test_archive_flash_statuses_render_outcome_inside_single_panel(): void {
+		$this->use_logged_in_user();
+		$GLOBALS['test_is_user_logged_in']      = true;
+		$GLOBALS['test_is_tax']                 = true;
+		$GLOBALS['test_queried_term']           = $this->term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']         = array( 22, 1 );
+		$GLOBALS['test_term_link']              = 'https://events.example/location/charleston/';
+		$this->use_archive_query( $GLOBALS['test_queried_term'] );
+		$GLOBALS['test_account_market_ability'] = new class() {
+			public function execute(): array {
+				return array(
+					'local_scene' => array(
+						'slug'    => 'charleston',
+						'term_id' => 1618,
+					),
+				);
+			}
+		};
+
+		$_GET['scene_status'] = 'subscribed';
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+		$this->assertSame( 1, substr_count( $output, '<aside class="events-market-context' ) );
+		$this->assertStringContainsString( 'Weekly email and in-app updates are on for this city.', $output );
+
+		$_GET['scene_status'] = 'scene_saved';
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'The weekly email could not be turned on. Please try subscribing again.', $output );
+
+		$_GET['scene_status'] = 'failed';
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'We could not complete that update. Nothing was changed. Please try again.', $output );
+		$this->assertStringContainsString( 'data-local-scene-digest-control', $output );
+		unset( $_GET['scene_status'] );
+	}
+
+	/** A valid post-auth subscribe continuation renders one explicit confirmation. */
+	public function test_archive_subscribe_intent_renders_accessible_confirmation(): void {
+		$this->use_logged_in_user();
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$GLOBALS['test_is_tax']            = true;
+		$GLOBALS['test_queried_term']      = $this->term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']    = array( 22, 1 );
+		$GLOBALS['test_term_link']         = 'https://events.example/location/charleston/';
+		$this->use_archive_query( $GLOBALS['test_queried_term'] );
+
+		$url = extrachill_events_archive_intent_login_url( $GLOBALS['test_queried_term'], 'subscribe_digest' );
+		parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $login_query );
+		parse_str( (string) parse_url( rawurldecode( $login_query['redirect_to'] ), PHP_URL_QUERY ), $_GET );
+
+		ob_start();
+		extrachill_events_render_archive_scene_cta();
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Turn on the weekly email for Charleston?', $output );
+		$this->assertStringContainsString( 'Nothing changes until you confirm.', $output );
+		$this->assertStringContainsString( 'Confirm: save and subscribe', $output );
+		$this->assertStringContainsString( 'autofocus', $output );
+		$this->assertStringContainsString( 'extrachill_events_subscribe_scene_', $output );
+		$this->assertSame( 1, substr_count( $output, '<aside class="events-market-context' ) );
 	}
 
 	/**
@@ -1374,10 +1495,10 @@ final class AccountMarketTest extends TestCase {
 		extrachill_events_render_archive_scene_cta();
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'You asked to save this Local Scene before signing in.', $output );
-		$this->assertStringContainsString( 'Confirm: save this Local Scene', $output );
+		$this->assertStringContainsString( 'You asked to save this city before signing in.', $output );
+		$this->assertStringContainsString( 'Confirm: save this city', $output );
 		$this->assertStringContainsString( 'autofocus', $output );
 		$this->assertStringContainsString( 'role="status"', $output );
-		$this->assertStringNotContainsString( 'Make this my Local Scene', $output );
+		$this->assertStringNotContainsString( 'Make this my city', $output );
 	}
 }

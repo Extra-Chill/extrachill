@@ -838,63 +838,29 @@ function extrachill_events_build_local_scene_digest_unsubscribe_page( string $ti
 	return $html;
 }
 
-/** Render the explicit archive opt-in directly after the Local Scene CTA. */
-function extrachill_events_render_local_scene_digest_opt_in(): void {
+/**
+ * Render the live digest subscription control fragment.
+ *
+ * Called by the merged archive scene prompt
+ * (extrachill_events_render_archive_scene_cta, #847) when the current user
+ * has the archived city saved — the old standalone opt-in panel stacked a
+ * second sign-in ask above the calendar and no longer renders on its own.
+ *
+ * Markup contract of assets/js/local-scene-digest.js: the caller owns the
+ * `[data-local-scene-digest-control]` container attribute; this fragment
+ * supplies the status span and the progressive-disclosure button inside it.
+ *
+ * @hook none (direct call from the merged scene prompt)
+ */
+function extrachill_events_render_local_scene_digest_control(): void {
 	$term = extrachill_events_get_archive_scene_term();
 	if ( null === $term ) {
 		return;
 	}
-	$archive_url = get_term_link( $term );
-	$intent      = is_user_logged_in() ? extrachill_events_get_archive_auth_intent( $term ) : null;
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only result from the nonce-protected confirmation redirect.
-	$status = isset( $_GET['scene_status'] ) && is_scalar( $_GET['scene_status'] ) ? sanitize_key( wp_unslash( $_GET['scene_status'] ) ) : '';
-	if ( ! is_user_logged_in() ) {
-		echo '<aside class="events-market-context events-market-context--quiet"><span>' . esc_html__( 'Want a weekly email and in-app update for this Local Scene?', 'extrachill-events' ) . '</span> <a href="' . esc_url( extrachill_events_archive_intent_login_url( $term, 'subscribe_digest' ) ) . '">' . esc_html__( 'Sign in to subscribe', 'extrachill-events' ) . '</a></aside>';
-		return;
-	}
-
-	if ( 'subscribe_digest' === $intent ) {
-		$nonce = wp_create_nonce( 'extrachill_events_subscribe_scene_' . $term->term_id );
-		?>
-		<aside class="events-market-context" role="status" aria-live="polite">
-			<div class="events-market-context__copy">
-				<strong><?php esc_html_e( 'Confirm Local Scene updates', 'extrachill-events' ); ?></strong>
-				<span><?php esc_html_e( 'This will set this Local Scene first, then subscribe you to its weekly email and in-app updates. Nothing changes until you confirm.', 'extrachill-events' ); ?></span>
-			</div>
-			<form method="post" action="<?php echo esc_url( extrachill_events_archive_intent_clean_url( $term ) ); ?>">
-				<input type="hidden" name="extrachill_events_scene_action" value="subscribe_digest">
-				<input type="hidden" name="extrachill_events_scene_nonce" value="<?php echo esc_attr( $nonce ); ?>">
-				<button class="button-1 button-small" type="submit" autofocus><?php esc_html_e( 'Confirm: save and subscribe', 'extrachill-events' ); ?></button>
-			</form>
-		</aside>
-		<?php
-		return;
-	}
-
-	if ( 'subscribed' === $status ) {
-		echo '<aside class="events-market-context" role="status" aria-live="polite"><span>' . esc_html__( 'Your Local Scene is saved and weekly email + in-app updates are on.', 'extrachill-events' ) . '</span></aside>';
-	} elseif ( 'scene_saved' === $status ) {
-		echo '<aside class="events-market-context" role="status" aria-live="polite"><span>' . esc_html__( 'Your Local Scene was saved, but the weekly updates could not be enabled. Please try subscribing again.', 'extrachill-events' ) . '</span></aside>';
-	} elseif ( 'failed' === $status ) {
-		echo '<aside class="events-market-context events-market-context--quiet" role="status" aria-live="polite"><span>' . esc_html__( 'We could not complete that Local Scene update. Nothing else was changed. Please try again.', 'extrachill-events' ) . '</span></aside>';
-	}
-
-	$current = extrachill_events_get_account_market();
-	if ( ! $current || (int) $current['term_id'] !== (int) $term->term_id ) {
-		echo '<aside class="events-market-context events-market-context--quiet"><span>' . esc_html__( 'Make this archive your Local Scene before subscribing to its weekly email and in-app update.', 'extrachill-events' ) . '</span></aside>';
-		return;
-	}
 	?>
-	<aside class="events-market-context" data-local-scene-digest-control>
-		<div class="events-market-context__copy">
-			<strong><?php esc_html_e( 'Weekly Local Scene email + update', 'extrachill-events' ); ?></strong>
-			<span data-local-scene-digest-status><?php esc_html_e( 'Checking your subscription…', 'extrachill-events' ); ?></span>
-		</div>
-		<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-local-scene-digest data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Subscribe to email + updates', 'extrachill-events' ); ?></button>
-	</aside>
+	<button class="button-1 button-small" type="button" disabled aria-pressed="false" data-local-scene-digest data-endpoint="<?php echo esc_url( rest_url( 'wp-abilities/v1/abilities/' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'wp_rest' ) ); ?>" data-slug="<?php echo esc_attr( $term->slug ); ?>"><?php esc_html_e( 'Subscribe to email + updates', 'extrachill-events' ); ?></button>
 	<?php
 }
-add_action( 'extrachill_archive_below_description', 'extrachill_events_render_local_scene_digest_opt_in', 5 );
 
 /** Enqueue the progressive toggle only when its current-scene control exists. */
 function extrachill_events_local_scene_digest_scripts(): void {

@@ -45,7 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     itself when that is not met, so venues missing geo never produce a
  *     broken single-point map.
  *
- * @hook extrachill_archive_below_description
+ * @hook extrachill_archive_below_calendar
  */
 function extrachill_events_render_artist_map() {
 	if ( ! is_tax( 'artist' ) ) {
@@ -71,13 +71,13 @@ function extrachill_events_render_artist_map() {
 	// Render the block in chronological-route mode via the shared archive-map
 	// helper. The block reads taxonomy/term_id from its own render context
 	// (is_tax + queried object) and auto-fits to the route's bounding box. The
-	// helper applies the block-native collapse toggle (#377, open by default)
-	// and the reduced height so the route map stays secondary to the tour-date
-	// list (data-machine-events#373), consistent with the location/venue
-	// archives.
+	// helper applies the block-native collapse toggle collapsed by default
+	// (#847) and the taller expanded height, so the route map is opt-in
+	// furniture beneath the tour-date list, consistent with the location and
+	// venue archives.
 	echo extrachill_events_render_archive_map( array( 'chronologicalRouteMode' => true ), 'artist' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted block markup from do_blocks().
 }
-add_action( 'extrachill_archive_below_description', 'extrachill_events_render_artist_map' );
+add_action( 'extrachill_archive_below_calendar', 'extrachill_events_render_artist_map', 20 );
 
 /**
  * Suppress the map summary on artist archives.
