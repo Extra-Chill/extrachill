@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.1.2] - 2026-09-18
+
+### Fixed
+- boot after Data Machine, not alongside it
+
 ## [0.1.1] - 2026-09-18
 
 ### Changed
