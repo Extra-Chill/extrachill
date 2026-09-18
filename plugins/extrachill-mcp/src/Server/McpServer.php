@@ -41,6 +41,40 @@ final class McpServer {
 		'extrachill/ability-call',
 	);
 
+
+	/**
+	 * Transport-level auth gate that advertises where to authenticate.
+	 *
+	 * Preserves the adapter's default behaviour (a logged-in user) but adds the
+	 * `WWW-Authenticate` challenge RFC 9728 requires on a 401, pointing at this
+	 * resource's protected-resource metadata.
+	 *
+	 * Without it the endpoint returns a bare 401 and a client has to guess the
+	 * discovery path. Claude happens to probe
+	 * `/.well-known/oauth-protected-resource` first, so it connects anyway — but
+	 * the MCP authorization spec states clients MUST be able to parse
+	 * `WWW-Authenticate` on 401, so a bare one is a conformance gap and a
+	 * stricter client would simply fail.
+	 *
+	 * @return bool Whether the caller may reach the transport.
+	 */
+	public function transport_permission(): bool {
+		if ( is_user_logged_in() ) {
+			return true;
+		}
+
+		if ( ! headers_sent() && function_exists( 'wp_native_auth_oauth_protected_resource_url' ) ) {
+			header(
+				sprintf(
+					'WWW-Authenticate: Bearer resource_metadata="%s"',
+					esc_url_raw( wp_native_auth_oauth_protected_resource_url() )
+				)
+			);
+		}
+
+		return false;
+	}
+
 	public function register(): void {
 		add_action( 'mcp_adapter_init', array( $this, 'on_mcp_adapter_init' ) );
 	}
@@ -78,7 +112,8 @@ final class McpServer {
 			// rather than letting an arbitrary filter fatal a public endpoint.
 			is_array( $tools ) ? array_values( $tools ) : self::TOOLS,
 			array(), // resources
-			array()  // prompts
+			array(), // prompts
+			array( $this, 'transport_permission' )
 		);
 	}
 }
