@@ -40,7 +40,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 	public function test_cli_boot_registers_commands_once(): void {
 		$result = $this->run_fixture( 'cli' );
 
-		$this->assertSame( 15, $result['cli_commands'] );
+		$this->assertSame( 19, $result['cli_commands'] );
 		$this->assertSame(
 			array(
 				'extrachill events ramp',
@@ -58,6 +58,10 @@ final class FeatureProviderBootstrapTest extends TestCase {
 				'extrachill events locations reconcile-roots',
 				'extrachill events venues backfill-meta',
 				'extrachill events backfill-authorship',
+				'extrachill events sync-genres',
+				'extrachill-events backfill-event-type',
+				'extrachill venues classify-tier',
+				'extrachill artists classify-genre',
 			),
 			$result['cli_command_names']
 		);

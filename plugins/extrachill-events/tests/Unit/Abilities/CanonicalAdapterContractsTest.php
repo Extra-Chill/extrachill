@@ -98,7 +98,7 @@ final class CanonicalAdapterContractsTest extends TestCase {
 
 	private const DME_CONTRACT_VERSION = 1;
 
-	private const DME_CONTRACT_HASH = 'fd1cbb79a52c405f747eaacf30b161f444c210c75c5189d9e446623d2badc84f';
+	private const DME_CONTRACT_HASH = '8205592a3ba787343143c8b083299340150bd20399ae91a67042739d1d3cf6e2';
 
 	protected function setUp(): void {
 		parent::setUp();
