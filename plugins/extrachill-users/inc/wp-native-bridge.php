@@ -277,3 +277,36 @@ function extrachill_users_wp_native_oauth_consent_template( string $template, ar
 	return EXTRACHILL_USERS_PLUGIN_DIR . 'templates/oauth-consent.php';
 }
 add_filter( 'wp_native_auth_oauth_consent_template', 'extrachill_users_wp_native_oauth_consent_template', 10, 2 );
+
+/**
+ * Brand the device-code entry screen (RFC 8628 verification page).
+ *
+ * This is the first thing a person sees when an agent running on a server
+ * asks them to approve it. wp-native-auth ships a bare grey admin-styled
+ * page; on Extra Chill it renders in the theme chrome like every other
+ * auth screen.
+ *
+ * @param string              $template Absolute path to the generic template.
+ * @param array<string,mixed> $args     View args for the template.
+ * @return string Absolute path to the Extra Chill template.
+ */
+function extrachill_users_wp_native_oauth_device_form_template( string $template, array $args ): string {
+	unset( $template, $args );
+
+	return EXTRACHILL_USERS_PLUGIN_DIR . 'templates/oauth-device-form.php';
+}
+add_filter( 'wp_native_auth_oauth_device_form_template', 'extrachill_users_wp_native_oauth_device_form_template', 10, 2 );
+
+/**
+ * Brand the device-flow terminal screen (approved / denied).
+ *
+ * @param string              $template Absolute path to the generic template.
+ * @param array<string,mixed> $args     View args for the template.
+ * @return string Absolute path to the Extra Chill template.
+ */
+function extrachill_users_wp_native_oauth_device_result_template( string $template, array $args ): string {
+	unset( $template, $args );
+
+	return EXTRACHILL_USERS_PLUGIN_DIR . 'templates/oauth-device-result.php';
+}
+add_filter( 'wp_native_auth_oauth_device_result_template', 'extrachill_users_wp_native_oauth_device_result_template', 10, 2 );

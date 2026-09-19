@@ -5,8 +5,17 @@
  * Serves in place of wp-native-auth's generic consent form via the
  * wp_native_auth_oauth_consent_template filter (registered in
  * inc/wp-native-bridge.php). Renders inside the theme chrome
- * (get_header()/get_footer()) and uses only design-system classes
- * (.card, .btn, .notice) — this plugin ships no CSS for this screen.
+ * (get_header()/get_footer()) and uses only classes the extrachill theme
+ * actually defines — this plugin ships no CSS for this screen.
+ *
+ * The theme's design system, from themes/extrachill/style.css:
+ *   buttons  .button-1 (primary) .button-2 .button-3 (quiet) .button-danger
+ *            sized with .button-small | .button-medium | .button-large
+ *   notices  .notice with .notice-info | .notice-success | .notice-error
+ *   card     .card
+ * There is no .btn, .btn--primary, .btn--danger, or .notice--info. Those
+ * were invented here and rendered unstyled; grep the theme before adding
+ * a class, do not infer one.
  *
  * The form contract below is owned by wp-native-auth's decision
  * handler. The nonce action, the hidden field names, and the decision
@@ -105,7 +114,7 @@ get_header();
 		<code><?php echo esc_html( $client_id ); ?></code>
 	</p>
 
-	<div class="notice notice--info">
+	<div class="notice notice-info">
 		<?php esc_html_e( 'You can revoke this access at any time.', 'extrachill-users' ); ?>
 	</div>
 
@@ -114,8 +123,8 @@ get_header();
 		<input type="hidden" name="oauth_request" value="<?php echo esc_attr( $args['bundle'] ); ?>">
 		<input type="hidden" name="oauth_signature" value="<?php echo esc_attr( $args['signature'] ); ?>">
 		<p>
-			<button type="submit" class="btn btn--primary" name="oauth_decision" value="approve"><?php esc_html_e( 'Approve', 'extrachill-users' ); ?></button>
-			<button type="submit" class="btn btn--danger" name="oauth_decision" value="deny"><?php esc_html_e( 'Deny', 'extrachill-users' ); ?></button>
+			<button type="submit" class="button-1 button-medium" name="oauth_decision" value="approve"><?php esc_html_e( 'Approve', 'extrachill-users' ); ?></button>
+			<button type="submit" class="button-danger button-medium" name="oauth_decision" value="deny"><?php esc_html_e( 'Deny', 'extrachill-users' ); ?></button>
 		</p>
 	</form>
 </div>
