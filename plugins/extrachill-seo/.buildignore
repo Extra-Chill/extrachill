@@ -6,8 +6,6 @@ tests/
 .claude/
 .buildignore
 build.sh
-AGENTS.md
-CLAUDE.md
 PLAN.md
 README.md
 composer.lock
