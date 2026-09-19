@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.4] - 2026-09-19
+
+### Changed
+- make the suite pass without depending on test order or process isolation
+
 ## [0.42.3] - 2026-09-19
 
 ### Fixed
