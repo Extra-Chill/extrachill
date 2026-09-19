@@ -13,43 +13,7 @@
 
 use PHPUnit\Framework\TestCase;
 
-if ( ! function_exists( 'add_action' ) ) {
-	function add_action() {
-		return true;
-	}
-}
-
-if ( ! function_exists( 'apply_filters' ) ) {
-	function apply_filters( $name, $value ) {
-		unset( $name );
-		return $value;
-	}
-}
-
-if ( ! function_exists( 'do_blocks' ) ) {
-	function do_blocks( $content ) {
-		return $content;
-	}
-}
-
-if ( ! function_exists( 'wp_json_encode' ) ) {
-	function wp_json_encode( $data ) {
-		return (string) json_encode( $data );
-	}
-}
-
-if ( ! function_exists( 'is_tax' ) ) {
-	function is_tax( $taxonomies = array() ) {
-		unset( $taxonomies );
-		return (bool) ( $GLOBALS['test_is_tax'] ?? false );
-	}
-}
-
-if ( ! function_exists( 'wp_enqueue_script' ) ) {
-	function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false ) {
-		$GLOBALS['test_enqueued_scripts'][ $handle ] = compact( 'src', 'deps', 'ver', 'in_footer' );
-	}
-}
+require_once __DIR__ . '/Stubs/archive-layout-stubs.php';
 
 if ( ! defined( 'EXTRACHILL_EVENTS_PLUGIN_URL' ) ) {
 	define( 'EXTRACHILL_EVENTS_PLUGIN_URL', 'https://events.example/wp-content/plugins/extrachill-events/' );

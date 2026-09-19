@@ -99,6 +99,11 @@
             "runtime": "host"
           },
           {
+            "name": "archive-layout-unit",
+            "config": "phpunit-archive-layout-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "network-block",
             "config": "phpunit-network-block.xml.dist",
             "runtime": "host"
