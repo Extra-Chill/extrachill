@@ -225,9 +225,11 @@ function ec_resolve_link_page_public_query() {
 	}
 	$post                              = $resolved;
 	$wp_query->posts                   = array( $post );
+	$wp_query->post                    = $post;
 	$wp_query->post_count              = 1;
 	$wp_query->found_posts             = 1;
 	$wp_query->max_num_pages           = 1;
+	$wp_query->current_post            = -1;
 	$wp_query->is_single               = true;
 	$wp_query->is_singular             = true;
 	$wp_query->is_404                  = false;
@@ -235,6 +237,9 @@ function ec_resolve_link_page_public_query() {
 	$wp_query->query_vars['post_type'] = EC_LINK_PAGE_POST_TYPE;
 	$wp_query->queried_object_id       = (int) $post->ID;
 	$wp_query->queried_object          = $post;
+	// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- deliberate: completes the faked singular main query; setup_postdata() alone does not set the $post global, and consumers such as the network view tracker read get_the_ID().
+	$GLOBALS['post'] = $post;
+	setup_postdata( $post );
 	status_header( 200 );
 	$data = ec_read_link_page_persistence( $post->ID );
 	if ( ! is_wp_error( $data ) && ! empty( $data['settings']['redirect_enabled'] ) ) {

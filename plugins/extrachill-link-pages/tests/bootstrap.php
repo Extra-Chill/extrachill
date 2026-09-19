@@ -735,6 +735,12 @@ function is_singular( $type ) {
 	return ! empty( $GLOBALS['ec_test']['singular'] ) && $type === $GLOBALS['ec_test']['singular']; }
 function get_queried_object() {
 	return $GLOBALS['wp_query']->queried_object ?? null; }
+function setup_postdata( $post ) {
+	$GLOBALS['ec_test']['postdata_setup'][] = is_object( $post ) && isset( $post->ID ) ? (int) $post->ID : 0;
+	return true; }
+function get_the_ID() {
+	$post = $GLOBALS['post'] ?? null;
+	return is_object( $post ) && isset( $post->ID ) ? (int) $post->ID : false; }
 function get_the_modified_date( $format, $post_id ) {
 	return '2026-08-23T00:00:00+00:00'; }
 function __return_true() {

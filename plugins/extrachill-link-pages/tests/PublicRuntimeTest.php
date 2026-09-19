@@ -461,6 +461,21 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( array( 'https://extrachill.link/', 301, false ), $GLOBALS['ec_test']['redirect'] );
 	}
 
+	public function test_resolved_public_query_sets_truthful_singular_post_contract(): void {
+		$this->assignPostOwner();
+		$GLOBALS['post'] = null;
+		$_SERVER['HTTP_HOST'] = 'extrachill.link';
+		$_SERVER['REQUEST_URI'] = '/legacy-page/';
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		ec_resolve_link_page_public_query();
+		$this->assertSame( 200, $GLOBALS['ec_test']['status'] );
+		$this->assertSame( 40, get_the_ID() );
+		$this->assertSame( 40, $GLOBALS['post']->ID );
+		$this->assertSame( 40, $GLOBALS['wp_query']->post->ID );
+		$this->assertSame( -1, $GLOBALS['wp_query']->current_post );
+		$this->assertSame( array( 40 ), $GLOBALS['ec_test']['postdata_setup'] ?? array() );
+	}
+
 	public function test_successful_redirect_invokes_production_termination_seam(): void {
 		$this->assertTrue( ec_link_page_public_redirect( 'https://example.com/target', 302, true ) );
 		$this->assertSame( array( 'https://example.com/target', 302 ), $GLOBALS['ec_test']['terminations'][0] );
