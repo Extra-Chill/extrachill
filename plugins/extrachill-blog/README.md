@@ -14,4 +14,3 @@ Shared content-creation blocks now live in the standalone `extrachill-content-bl
 
 ## Development
 
-See [CLAUDE.md](CLAUDE.md) for architectural details and development guidance. 
