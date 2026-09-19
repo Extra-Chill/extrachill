@@ -12,7 +12,7 @@ final class ArchitectureTest extends TestCase {
 		$source = $email . $submit;
 
 		self::assertStringContainsString( 'ec_send_email( $args )', $email );
-		self::assertStringContainsString( "extrachill_network_subscribe( \$email, 'contact' )", $email );
+		self::assertStringContainsString( "extrachill_network_subscribe( \$email, 'contact', \$source_url, \$name )", $email );
 		self::assertStringNotContainsString( 'wp_mail(', $source );
 		self::assertStringNotContainsString( 'register_rest_route', $source );
 		self::assertStringNotContainsString( 'as_enqueue_', $source );

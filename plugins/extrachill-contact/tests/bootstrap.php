@@ -59,6 +59,12 @@ function sanitize_email( string $value ): string {
 function sanitize_key( string $value ): string {
 	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $value ) ) ?? '';
 }
+function esc_url_raw( string $value ): string {
+	return $value;
+}
+function wp_get_referer(): string {
+	return $GLOBALS['ec_test_referer'] ?? '';
+}
 function is_email( string $value ) {
 	return filter_var( $value, FILTER_VALIDATE_EMAIL );
 }
@@ -99,8 +105,9 @@ function ec_send_email() {
 	++$GLOBALS['ec_test_email_calls'];
 	return array_shift( $GLOBALS['ec_test_email_results'] );
 }
-function extrachill_network_subscribe() {
+function extrachill_network_subscribe( ...$args ) {
 	++$GLOBALS['ec_test_newsletter_calls'];
+	$GLOBALS['ec_test_newsletter_args'][] = $args;
 	return $GLOBALS['ec_test_newsletter_result'];
 }
 

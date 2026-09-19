@@ -20,6 +20,8 @@ final class ContactSubmissionTest extends TestCase {
 			'status'  => 'subscribed',
 			'message' => 'Subscribed.',
 		);
+		$GLOBALS['ec_test_newsletter_args']   = array();
+		$GLOBALS['ec_test_referer']           = '';
 	}
 
 	/** @return array<string, string> */
@@ -138,6 +140,43 @@ final class ContactSubmissionTest extends TestCase {
 
 		self::assertTrue( $result['side_effects']['newsletter_sync']['success'] );
 		self::assertFalse( $result['side_effects']['newsletter_sync']['retryable'] );
+	}
+
+	public function test_source_url_and_name_reach_newsletter_sync(): void {
+		$GLOBALS['ec_test_email_results'] = array( $this->delivered(), $this->delivered() );
+
+		$input               = $this->input();
+		$input['source_url'] = 'https://extrachill.com/contact/';
+
+		extrachill_contact_ability_submit( $input );
+
+		self::assertSame( 1, $GLOBALS['ec_test_newsletter_calls'] );
+		self::assertSame(
+			array( 'listener@example.com', 'contact', 'https://extrachill.com/contact/', 'Listener' ),
+			$GLOBALS['ec_test_newsletter_args'][0]
+		);
+	}
+
+	public function test_missing_source_url_falls_back_to_referer(): void {
+		$GLOBALS['ec_test_email_results'] = array( $this->delivered(), $this->delivered() );
+		$GLOBALS['ec_test_referer']       = 'https://extrachill.com/about/';
+
+		extrachill_contact_ability_submit( $this->input() );
+
+		self::assertSame( 1, $GLOBALS['ec_test_newsletter_calls'] );
+		self::assertSame( 'https://extrachill.com/about/', $GLOBALS['ec_test_newsletter_args'][0][2] );
+	}
+
+	public function test_explicit_source_url_wins_over_referer(): void {
+		$GLOBALS['ec_test_email_results'] = array( $this->delivered(), $this->delivered() );
+		$GLOBALS['ec_test_referer']       = 'https://example.com/other/';
+
+		$input               = $this->input();
+		$input['source_url'] = 'https://extrachill.com/contact/';
+
+		extrachill_contact_ability_submit( $input );
+
+		self::assertSame( 'https://extrachill.com/contact/', $GLOBALS['ec_test_newsletter_args'][0][2] );
 	}
 
 	public function test_malformed_provider_responses_are_rejected(): void {

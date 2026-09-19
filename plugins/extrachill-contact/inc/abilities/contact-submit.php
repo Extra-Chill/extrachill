@@ -53,6 +53,11 @@ function extrachill_contact_register_submit_ability(): void {
 						'type'        => 'string',
 						'description' => __( 'Message body.', 'extrachill-contact' ),
 					),
+					'source_url'         => array(
+						'type'        => 'string',
+						'format'      => 'uri',
+						'description' => __( 'Page URL the form was submitted from. Falls back to the HTTP referer when omitted.', 'extrachill-contact' ),
+					),
 					'turnstile_response' => array(
 						'type'        => 'string',
 						'description' => __( 'Cloudflare Turnstile response token.', 'extrachill-contact' ),
@@ -131,6 +136,10 @@ function extrachill_contact_ability_submit( array $input ) {
 	$email      = sanitize_email( (string) ( $input['email'] ?? '' ) );
 	$subject    = sanitize_text_field( (string) ( $input['subject'] ?? '' ) );
 	$message    = sanitize_textarea_field( (string) ( $input['message'] ?? '' ) );
+	$source_url = isset( $input['source_url'] ) ? esc_url_raw( (string) $input['source_url'] ) : '';
+	if ( '' === $source_url ) {
+		$source_url = esc_url_raw( (string) wp_get_referer() );
+	}
 	$submission = compact( 'name', 'email', 'subject', 'message' );
 	$id         = extrachill_contact_submission_id( $submission );
 	$cache_key  = 'submission_' . $id;
@@ -202,7 +211,7 @@ function extrachill_contact_ability_submit( array $input ) {
 		'side_effects'  => array(
 			'administrator_delivery' => $administrator,
 			'confirmation_delivery'  => ec_contact_send_user_confirmation( $name, $email, $subject, $message ),
-			'newsletter_sync'        => ec_contact_sync_to_sendy( $email ),
+			'newsletter_sync'        => ec_contact_sync_to_sendy( $email, $name, $source_url ),
 		),
 	);
 

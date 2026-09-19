@@ -158,9 +158,12 @@ HTML;
  * Newsletter synchronization is optional for submission success, but its
  * provider outcome is always represented explicitly.
  *
+ * @param string $email      Submitter email address.
+ * @param string $name       Submitter name.
+ * @param string $source_url Page URL the submission came from.
  * @return array{success: bool, status: string, provider: string, optional: bool, retryable: bool, message: string}
  */
-function ec_contact_sync_to_sendy( $email ): array {
+function ec_contact_sync_to_sendy( $email, $name = '', $source_url = '' ): array {
 	if ( ! function_exists( 'extrachill_network_subscribe' ) ) {
 		return array(
 			'success'   => false,
@@ -172,7 +175,7 @@ function ec_contact_sync_to_sendy( $email ): array {
 		);
 	}
 
-	$result = extrachill_network_subscribe( $email, 'contact' );
+	$result = extrachill_network_subscribe( $email, 'contact', $source_url, $name );
 	if ( is_wp_error( $result ) ) {
 		return array(
 			'success'   => false,
