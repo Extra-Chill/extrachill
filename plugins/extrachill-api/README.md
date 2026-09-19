@@ -142,7 +142,7 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `GET /seo/config` - Get SEO audit configuration
 
 
-See [CLAUDE.md](CLAUDE.md) for architectural patterns and [docs/routes/](docs/routes/) for complete endpoint documentation.
+See [docs/routes/](docs/routes/) for complete endpoint documentation.
 
 ## Usage
 
@@ -224,7 +224,6 @@ extrachill-api/
 ├── build.sh                    # Production build script (symlink)
 ├── composer.json               # Dependencies and scripts
 ├── .buildignore               # Build exclusions
-├── CLAUDE.md                  # Technical documentation for AI agents
 ├── README.md                  # This file
 └── inc/
     ├── auth/
@@ -408,8 +407,6 @@ Use the hook to notify editors, trigger Slack alerts, or log analytics without r
 
 ## Documentation
 
-- **[CLAUDE.md](CLAUDE.md)** - Comprehensive technical documentation for AI agents
-- **[Root CLAUDE.md](../../CLAUDE.md)** - Platform-wide architectural patterns
 - **[WordPress REST API Handbook](https://developer.wordpress.org/rest-api/)** - Official REST API documentation
 
 ## Support
