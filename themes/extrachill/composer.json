@@ -14,23 +14,17 @@
         "php": ">=7.4",
         "composer/installers": "^2.0"
     },
-    "require-dev": {
-        "squizlabs/php_codesniffer": "^3.7",
-        "wp-coding-standards/wpcs": "^3.0",
-        "phpcompatibility/php-compatibility": "^9.3"
-    },
     "config": {
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true,
             "composer/installers": true
         },
         "optimize-autoloader": true,
         "sort-packages": true
     },
     "scripts": {
-        "lint:php": "vendor/bin/phpcs",
-        "lint:fix": "vendor/bin/phpcbf",
-        "test": "vendor/bin/phpcs && php tests/single-post-template.php"
+        "lint:php": "homeboy extension exec wordpress -- '$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs' --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "lint:fix": "homeboy extension exec wordpress -- '$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf' --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "test": "homeboy review test extrachill"
     },
     "extra": {
         "installer-name": "extrachill"
