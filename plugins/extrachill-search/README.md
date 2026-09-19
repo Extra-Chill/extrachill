@@ -178,7 +178,6 @@ extrachill-search/
 │   └── search.php                  # Search results template
 ├── build.sh                        # Production build script
 ├── .buildignore                    # Build exclusions
-├── CLAUDE.md                       # Developer documentation
 └── README.md                       # This file
 ```
 
@@ -204,7 +203,6 @@ wp eval 'print_r(extrachill_multisite_search("test"));'
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Extra-Chill/extrachill-search/issues)
-- **Documentation**: See CLAUDE.md for detailed developer documentation
 - **Website**: [Extra Chill Platform](https://extrachill.com)
 
 ## Author
