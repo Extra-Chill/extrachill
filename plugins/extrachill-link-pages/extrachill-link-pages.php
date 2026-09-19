@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Link Pages
  * Plugin URI: https://extrachill.com
  * Description: Owner-neutral Link Page storage and operation runtime for the Extra Chill network.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Author: Extra Chill
  * Author URI: https://extrachill.com
  * License: GPL v2 or later
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-defined( 'EXTRACHILL_LINK_PAGES_VERSION' ) || define( 'EXTRACHILL_LINK_PAGES_VERSION', '0.1.0' );
+defined( 'EXTRACHILL_LINK_PAGES_VERSION' ) || define( 'EXTRACHILL_LINK_PAGES_VERSION', '0.1.1' );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_FILE' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_FILE', __FILE__ );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_DIR' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
