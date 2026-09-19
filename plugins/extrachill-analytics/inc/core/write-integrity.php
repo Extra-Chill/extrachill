@@ -58,6 +58,49 @@ function extrachill_analytics_public_write_host_is_current_site( $host ) {
 }
 
 /**
+ * Determine whether a browser host may submit a pageview for a post.
+ *
+ * The current network site is always accepted. A custom public host owned by
+ * another runtime (for example a link-page runtime that renders network
+ * content under its own domain) is accepted only when that runtime answers
+ * the `extrachill_analytics_pageview_origin_host_allowed` filter below. This
+ * file never encodes a foreign domain name itself.
+ *
+ * Accepting a foreign host does not by itself admit the write: the signed
+ * pageview proof validated afterwards is bound to this host, path, route
+ * family, and post, so a forged or replayed proof still fails.
+ *
+ * @param string $host    Browser host from the write request.
+ * @param int    $post_id Post being recorded, or zero for a route view.
+ * @return bool
+ */
+function extrachill_analytics_pageview_origin_host_is_allowed( $host, $post_id ) {
+	if ( extrachill_analytics_public_write_host_is_current_site( $host ) ) {
+		return true;
+	}
+
+	$host = strtolower( rtrim( (string) $host, '.' ) );
+	if ( '' === $host ) {
+		return false;
+	}
+
+	/**
+	 * Filters whether a custom public host may record pageviews for a post.
+	 *
+	 * The runtime that owns a custom public domain answers this filter; it is
+	 * the only place a foreign host name may appear. Any future public-host
+	 * owner can answer the same filter without changes here. Route views
+	 * (post ID zero) are intentionally first-party only, so answerers should
+	 * require a positive post ID they actually serve.
+	 *
+	 * @param bool   $allowed Whether the host is accepted for this post.
+	 * @param string $host    Lowercase browser host without a trailing dot.
+	 * @param int    $post_id Post being recorded, or zero for a route view.
+	 */
+	return (bool) apply_filters( 'extrachill_analytics_pageview_origin_host_allowed', false, $host, (int) $post_id );
+}
+
+/**
  * Apply an atomic fixed-window cap to public analytics writes.
  *
  * The cache key contains only a salted hash of the client IP. The raw address
@@ -212,7 +255,7 @@ function extrachill_analytics_validate_pageview_write( $post_id, $source_path, $
 	}
 
 	$source_host = extrachill_analytics_public_write_source_host();
-	if ( ! extrachill_analytics_public_write_host_is_current_site( $source_host ) ) {
+	if ( ! extrachill_analytics_pageview_origin_host_is_allowed( $source_host, $post_id ) ) {
 		return new WP_Error(
 			'invalid_pageview_origin',
 			__( 'Pageviews must originate on the current public site.', 'extrachill-analytics' ),

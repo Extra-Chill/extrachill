@@ -13,6 +13,13 @@ require_once __DIR__ . '/class-platform-contract-fixture.php';
  */
 final class PublicWriteIntegrityTest extends Extrachill_Analytics_TestCase {
 	/**
+	 * Callback answering the pageview public-host filter, unwound in tear_down.
+	 *
+	 * @var callable|null
+	 */
+	private $custom_host_filter;
+
+	/**
 	 * Establish a normal browser request.
 	 */
 	public function set_up(): void {
@@ -29,6 +36,191 @@ final class PublicWriteIntegrityTest extends Extrachill_Analytics_TestCase {
 			4 => 'artist',
 			7 => 'events',
 		);
+
+		extrachill_analytics_link_page_create_table();
+	}
+
+	/**
+	 * Unwind the host-filter fixture and reset the daily views table.
+	 */
+	public function tear_down(): void {
+		if ( null !== $this->custom_host_filter ) {
+			remove_filter( 'extrachill_analytics_pageview_origin_host_allowed', $this->custom_host_filter );
+			$this->custom_host_filter = null;
+		}
+
+		global $wpdb;
+		$views = extrachill_analytics_link_page_views_table();
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $views ) ) === $views ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- table existence probe before plugin-owned cleanup.
+			$wpdb->query( "DELETE FROM {$views}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned table.
+		}
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Simulate a custom-public-host runtime answering the Analytics-owned filter.
+	 *
+	 * Mirrors what a link-page runtime does with its public-host check: answer
+	 * for the hosts it owns, post-backed views only.
+	 *
+	 * @param array<int,string> $hosts Public hosts the fixture runtime owns.
+	 */
+	private function answer_custom_public_host( array $hosts ): void {
+		$callback                 = static function ( $allowed, $host, $post_id ) use ( $hosts ) {
+			if ( $allowed || $post_id <= 0 ) {
+				return $allowed;
+			}
+			return in_array( $host, $hosts, true );
+		};
+		$this->custom_host_filter = $callback;
+		add_filter( 'extrachill_analytics_pageview_origin_host_allowed', $callback, 10, 3 );
+	}
+
+	/**
+	 * Create a published artist link page.
+	 *
+	 * @param string $slug Link page slug.
+	 * @return int Post ID.
+	 */
+	private function create_link_page( string $slug ): int {
+		return self::factory()->post->create(
+			array(
+				'post_type'   => 'artist_link_page',
+				'post_name'   => $slug,
+				'post_status' => 'publish',
+			)
+		);
+	}
+
+	/**
+	 * A custom-public-host link page view is accepted and recorded end to end.
+	 */
+	public function test_custom_domain_link_page_view_is_accepted(): void {
+		$this->answer_custom_public_host( array( 'extrachill.link' ) );
+		$_SERVER['HTTP_ORIGIN'] = 'https://extrachill.link';
+		$post_id                = $this->create_link_page( 'sarah-summer' );
+		$proof                  = extrachill_analytics_pageview_proof( $post_id, '/sarah-summer/', 'singular', 'extrachill.link' );
+
+		$result = extrachill_analytics_ability_track_page_view(
+			array(
+				'post_id'      => $post_id,
+				'source_path'  => '/sarah-summer/',
+				'route_family' => 'singular',
+				'proof'        => $proof,
+			)
+		);
+
+		$this->assertSame( array( 'recorded' => true ), $result );
+		$this->assertSame( 1, (int) get_post_meta( $post_id, 'ec_post_views', true ) );
+
+		global $wpdb;
+		$this->assertSame(
+			1,
+			(int) $wpdb->get_var( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- plugin-owned daily table assertion.
+				$wpdb->prepare(
+					'SELECT view_count FROM ' . extrachill_analytics_link_page_views_table() . ' WHERE link_page_id = %d', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name is code-defined; values bound via prepare().
+					$post_id
+				)
+			)
+		);
+	}
+
+	/**
+	 * A forged proof is still refused once the custom public host is accepted.
+	 */
+	public function test_custom_domain_view_rejects_forged_proof(): void {
+		$this->answer_custom_public_host( array( 'extrachill.link' ) );
+		$_SERVER['HTTP_ORIGIN'] = 'https://extrachill.link';
+		$post_id                = $this->create_link_page( 'sarah-summer' );
+
+		$result = extrachill_analytics_ability_track_page_view(
+			array(
+				'post_id'      => $post_id,
+				'source_path'  => '/sarah-summer/',
+				'route_family' => 'singular',
+				'proof'        => str_repeat( 'a', 64 ),
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_pageview_proof', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data( 'invalid_pageview_proof' )['status'] );
+		$this->assertSame( 0, (int) get_post_meta( $post_id, 'ec_post_views', true ) );
+		$this->assertSame( 0, $this->event_count() );
+	}
+
+	/**
+	 * A proof bound to a different host or path cannot ride a widened origin gate.
+	 */
+	public function test_custom_domain_view_rejects_mismatched_proof(): void {
+		$this->answer_custom_public_host( array( 'extrachill.link' ) );
+		$_SERVER['HTTP_ORIGIN'] = 'https://extrachill.link';
+		$post_id                = $this->create_link_page( 'sarah-summer' );
+		$proof                  = extrachill_analytics_pageview_proof( $post_id, '/sarah-summer/', 'singular', 'artist.extrachill.com' );
+
+		$result = extrachill_analytics_ability_track_page_view(
+			array(
+				'post_id'      => $post_id,
+				'source_path'  => '/sarah-summer/',
+				'route_family' => 'singular',
+				'proof'        => $proof,
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_pageview_proof', $result->get_error_code() );
+		$this->assertSame( 0, (int) get_post_meta( $post_id, 'ec_post_views', true ) );
+	}
+
+	/**
+	 * A genuinely unrelated host is refused even with a well-formed proof.
+	 */
+	public function test_unrelated_custom_host_is_rejected(): void {
+		$this->answer_custom_public_host( array( 'extrachill.link' ) );
+		$_SERVER['HTTP_ORIGIN'] = 'https://attacker.example';
+		$post_id                = $this->create_link_page( 'sarah-summer' );
+		$proof                  = extrachill_analytics_pageview_proof( $post_id, '/sarah-summer/', 'singular', 'attacker.example' );
+
+		$result = extrachill_analytics_ability_track_page_view(
+			array(
+				'post_id'      => $post_id,
+				'source_path'  => '/sarah-summer/',
+				'route_family' => 'singular',
+				'proof'        => $proof,
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'invalid_pageview_origin', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data( 'invalid_pageview_origin' )['status'] );
+		$this->assertSame( 0, (int) get_post_meta( $post_id, 'ec_post_views', true ) );
+		$this->assertSame( 0, $this->event_count() );
+	}
+
+	/**
+	 * Current-site post-backed views are unaffected by the widened gate.
+	 */
+	public function test_current_site_post_view_remains_accepted(): void {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_name'   => 'band',
+				'post_status' => 'publish',
+			)
+		);
+		$proof   = extrachill_analytics_pageview_proof( $post_id, '/band/', 'singular', 'localhost' );
+
+		$result = extrachill_analytics_ability_track_page_view(
+			array(
+				'post_id'      => $post_id,
+				'source_path'  => '/band/',
+				'route_family' => 'singular',
+				'proof'        => $proof,
+			)
+		);
+
+		$this->assertSame( array( 'recorded' => true ), $result );
+		$this->assertSame( 1, (int) get_post_meta( $post_id, 'ec_post_views', true ) );
 	}
 
 	/**
