@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-09-19
+
+### Added
+- validate artist Link Page migrations
+- store artist genres as genre taxonomy terms with main-site mirror and _genre migration
+
+### Changed
+- migrate suite to managed WordPress harness, delete fake bootstrap
+- consume shared Link Page editor
+- provide artist public runtime adapter
+- hand off Link Pages runtime ownership
+
+### Fixed
+- complete the link-domain faked singular query with $post globals so the Analytics view tracker enqueues
+- re-baseline against the shared homeboy-wordpress ruleset
+- replace dead Breeze cache purge with extrachill-cache integration
+- serialize canonical artist bindings
+- provision artist analytics page
+- prevent roster source from emitting output
+- guard artist capability arguments
+
 ## [1.20.0] - 2026-08-10
 
 ### Added
