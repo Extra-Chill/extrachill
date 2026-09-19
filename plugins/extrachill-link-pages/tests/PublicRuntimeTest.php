@@ -507,6 +507,31 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/single-link-page.php', $template );
 	}
 
+	public function test_css_variable_block_preserves_quoted_font_families(): void {
+		$block = ec_link_page_css_variables_style_block(
+			array(
+				'--link-page-title-font-family' => "'Loft Sans', Helvetica, Arial, sans-serif",
+				'--link-page-body-font-family'  => '"Open Sans", sans-serif',
+				'--link-page-background-color'  => '#121212',
+				'--link-page-unset'             => null,
+			),
+			'extrch-link-page-custom-vars'
+		);
+		$this->assertStringContainsString( "--link-page-title-font-family:'Loft Sans', Helvetica, Arial, sans-serif;", $block );
+		$this->assertStringContainsString( '--link-page-body-font-family:"Open Sans", sans-serif;', $block );
+		$this->assertStringContainsString( '--link-page-background-color:#121212;', $block );
+		$this->assertStringNotContainsString( '&#039;', $block, 'CSS values must not be HTML-entity escaped inside a style element.' );
+		$this->assertStringNotContainsString( '&quot;', $block );
+		$this->assertStringNotContainsString( '--link-page-unset', $block );
+	}
+
+	public function test_css_variable_block_neutralises_style_breakout_sequences(): void {
+		$block = ec_link_page_css_variables_style_block( array( '--x' => 'a</style><script>1</script>{b};c' ) );
+		$this->assertStringNotContainsString( '</style>', substr( $block, 0, -8 ), 'A value must not be able to close the style element early.' );
+		$this->assertStringNotContainsString( '{b}', $block );
+		$this->assertSame( 1, substr_count( $block, '</style>' ) );
+	}
+
 	public function test_successful_redirect_invokes_production_termination_seam(): void {
 		$this->assertTrue( ec_link_page_public_redirect( 'https://example.com/target', 302, true ) );
 		$this->assertSame( array( 'https://example.com/target', 302 ), $GLOBALS['ec_test']['terminations'][0] );

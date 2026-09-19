@@ -289,19 +289,43 @@ function ec_redirect_direct_link_page_request() {
 	}
 }
 
-/** Enqueue generic assets through the historical minimal-head hook. */
-function ec_enqueue_link_page_minimal_assets( $link_page_id, $owner = null ) {
-	unset( $link_page_id, $owner );
-	$styles = array(
+/** Generic public style handles owned by this runtime. */
+function ec_link_page_public_style_handles() {
+	return array(
 		'extrch-link-page'           => 'assets/css/extrch-links.css',
 		'extrch-share-modal'         => 'assets/css/extrch-share-modal.css',
 		'extrch-custom-social-icons' => 'assets/css/custom-social-icons.css',
 	);
-	foreach ( $styles as $handle => $path ) {
-		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
-		wp_enqueue_style( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION );
+}
+
+/**
+ * Register (not enqueue) the public style handles early.
+ *
+ * Owner adapters attach per-page CSS (e.g. local @font-face rules) with
+ * wp_add_inline_style( 'extrch-link-page', ... ) from their projection
+ * `assets` callback, which runs while the projection is resolved — before the
+ * minimal-head hook enqueues these styles. wp_add_inline_style() silently
+ * drops data for an unregistered handle, so the handles must exist first.
+ */
+function ec_register_link_page_public_styles() {
+	if ( ! function_exists( 'wp_register_style' ) ) {
+		return;
 	}
-	wp_enqueue_style( 'extrch-font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css', array(), '6.7.2' );
+	foreach ( ec_link_page_public_style_handles() as $handle => $path ) {
+		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
+		wp_register_style( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION );
+	}
+	wp_register_style( 'extrch-font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css', array(), '6.7.2' );
+}
+
+/** Enqueue generic assets through the historical minimal-head hook. */
+function ec_enqueue_link_page_minimal_assets( $link_page_id, $owner = null ) {
+	unset( $link_page_id, $owner );
+	ec_register_link_page_public_styles();
+	foreach ( array_keys( ec_link_page_public_style_handles() ) as $handle ) {
+		wp_enqueue_style( $handle );
+	}
+	wp_enqueue_style( 'extrch-font-awesome' );
 	foreach ( array(
 		'extrch-share-modal'       => 'assets/js/extrch-share-modal.js',
 		'extrch-public-tracking'   => 'assets/js/link-page-public-tracking.js',
@@ -312,6 +336,13 @@ function ec_enqueue_link_page_minimal_assets( $link_page_id, $owner = null ) {
 	}
 }
 
+/** Make a CSS custom-property name or value safe to print inside a <style> element. */
+function ec_link_page_css_declaration_text( $text ) {
+	$text = (string) $text;
+	$text = str_replace( array( '</', '<!--', '-->' ), array( '<\\/', '', '' ), $text );
+	return str_replace( array( '{', '}', ';' ), '', $text );
+}
+
 /** Generate the historical CSS variable block. */
 function ec_link_page_css_variables_style_block( $css_vars, $element_id = 'link-page-custom-vars' ) {
 	if ( ! is_array( $css_vars ) || empty( $css_vars ) ) {
@@ -320,7 +351,11 @@ function ec_link_page_css_variables_style_block( $css_vars, $element_id = 'link-
 	$output = '<style id="' . esc_attr( $element_id ) . '">:root {';
 	foreach ( $css_vars as $key => $value ) {
 		if ( null !== $value && false !== $value ) {
-			$output .= esc_html( $key ) . ':' . esc_html( $value ) . ';';
+			// This is a CSS context, not HTML: HTML entity escaping would turn
+			// quoted font families ("'Loft Sans'") into invalid declarations
+			// ("&#039;Loft Sans&#039;") that browsers drop. Neutralise the only
+			// sequences that can break out of the style element instead.
+			$output .= ec_link_page_css_declaration_text( $key ) . ':' . ec_link_page_css_declaration_text( $value ) . ';';
 		}
 	}
 	return $output . '}</style>';
@@ -442,6 +477,7 @@ function ec_link_page_sitemap_urls( $urls ) {
 	return $urls;
 }
 
+add_action( 'init', 'ec_register_link_page_public_styles', 20 );
 add_action( 'init', 'ec_register_link_page_public_rewrites', 25 );
 add_action( 'init', 'ec_maybe_flush_link_page_public_rewrites', 30 );
 add_action( 'template_redirect', 'ec_resolve_link_page_public_query', 5 );
