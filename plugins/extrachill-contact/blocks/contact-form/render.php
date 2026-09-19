@@ -37,7 +37,7 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 
 wp_enqueue_script( 'wp-element' );
 ?>
-<div <?php echo get_block_wrapper_attributes(); ?>>
+<div <?php echo wp_kses_data( get_block_wrapper_attributes() ); ?>>
 	<div id="ec-contact-form"></div>
 	<script>
 		window.ecContactConfig = <?php echo wp_json_encode( $config ); ?>;
