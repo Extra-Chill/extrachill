@@ -51,6 +51,20 @@ success hook. On failure, generic save metadata is restored or a newly created
 page is removed; an existing page remains unchanged. The finalizer owns
 compensation for state outside the generic Link Page storage snapshots.
 
+Destructive-write safety is a storage property. A links save that would take a
+populated page from one or more links to zero is refused with
+`link_page_refuses_silent_empty` unless the save data carries explicit intent as
+`'allow_empty' => true`. Before any overwrite of populated links, storage writes
+exactly one restore point — the prior value to `_link_page_links_previous` plus
+a UTC timestamp to `_link_page_links_previous_stored_at` — inside the per-page
+lock. It is a safety net, not a revision system: each overwrite replaces the
+previous generation. The restore point is retrievable through
+`ec_get_link_page_previous_links( int $link_page_id )` (returns
+`array( 'links' => ..., 'stored_at' => ... )` or null) and through the
+`previous_links` key of `ec_read_link_page_persistence()`. A refused save leaves
+storage untouched. Owner interfaces that legitimately empty a page must surface
+an explicit confirmation and pass `allow_empty`.
+
 Public display is registered with
 `ec_register_link_page_public_projection_provider( $name, $callback, $priority = 10 )`.
 The callback receives a local context containing `link_page_id`, parsed `owner`,

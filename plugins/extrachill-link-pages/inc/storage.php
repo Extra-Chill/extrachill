@@ -377,6 +377,80 @@ function ec_sanitize_link_page_settings( $settings ) {
 	return $sanitized;
 }
 
+/** Return the restore point companion meta keys. */
+function ec_link_page_previous_links_meta_keys() {
+	return array(
+		'links'     => '_link_page_links_previous',
+		'stored_at' => '_link_page_links_previous_stored_at',
+	);
+}
+
+/** Count links in either the sectioned or legacy flat storage shape. */
+function ec_link_page_links_count( $links ) {
+	if ( ! is_array( $links ) || empty( $links ) ) {
+		return 0;
+	}
+	if ( isset( $links[0]['link_text'] ) && ! isset( $links[0]['links'] ) ) {
+		return count( $links );
+	}
+	$count = 0;
+	foreach ( $links as $section ) {
+		if ( is_array( $section ) && isset( $section['links'] ) && is_array( $section['links'] ) ) {
+			$count += count( $section['links'] );
+		}
+	}
+	return $count;
+}
+
+/** Return the current UTC timestamp recorded with each restore point. */
+function ec_link_page_restore_point_timestamp() {
+	return current_datetime()->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+}
+
+/** Refuse a save that would take a populated page to zero links without explicit intent. */
+function ec_refuse_link_page_silent_empty( $stored_links, $incoming_links, $allow_empty ) {
+	if ( ! ec_link_page_links_count( $stored_links ) || ec_link_page_links_count( $incoming_links ) || true === $allow_empty ) {
+		return true;
+	}
+	return new WP_Error( 'link_page_refuses_silent_empty', 'Refusing to empty a populated Link Page without explicit intent.', array( 'allow_empty' => true ) );
+}
+
+/** Stash exactly one restore point before an overwrite of populated links. */
+function ec_write_link_page_restore_point( $link_page_id, $stored_links ) {
+	$keys = ec_link_page_previous_links_meta_keys();
+	if ( ! ec_write_link_page_meta( $link_page_id, $keys['links'], $stored_links ) || ! ec_write_link_page_meta( $link_page_id, $keys['stored_at'], ec_link_page_restore_point_timestamp() ) ) {
+		return new WP_Error( 'link_page_restore_point_failed', 'The Link Page restore point could not be written, so the overwrite was refused.' );
+	}
+	return true;
+}
+
+/** Return the stored restore point for a Link Page, or null when none exists. */
+function ec_get_link_page_previous_links( $link_page_id ) {
+	$storage_blog_id = ec_get_link_page_storage_blog_id();
+	if ( ! $storage_blog_id ) {
+		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
+	}
+	if ( get_current_blog_id() !== $storage_blog_id ) {
+		return ec_with_link_page_storage_blog(
+			static function () use ( $link_page_id ) {
+				return ec_get_link_page_previous_links( $link_page_id );
+			}
+		);
+	}
+	$link_page_id = absint( $link_page_id );
+	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+		return new WP_Error( 'invalid_link_page', 'Invalid Link Page ID.' );
+	}
+	if ( ! metadata_exists( 'post', $link_page_id, '_link_page_links_previous' ) ) {
+		return null;
+	}
+	$keys = ec_link_page_previous_links_meta_keys();
+	return array(
+		'links'     => get_post_meta( $link_page_id, $keys['links'], true ),
+		'stored_at' => (string) get_post_meta( $link_page_id, $keys['stored_at'], true ),
+	);
+}
+
 /** Read owner-neutral persisted data without writing defaults. */
 function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	$storage_blog_id = ec_get_link_page_storage_blog_id();
@@ -435,6 +509,7 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		),
 		'bio'                  => (string) get_post_meta( $link_page_id, '_link_page_bio_text', true ),
 		'settings'             => $settings,
+		'previous_links'       => ec_get_link_page_previous_links( $link_page_id ),
 		'background_image_id'  => absint( $settings['background_image_id'] ),
 		'background_image_url' => ! empty( $settings['background_image_id'] ) ? (string) wp_get_attachment_url( absint( $settings['background_image_id'] ) ) : '',
 	);
@@ -556,9 +631,20 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 	$writes = array();
 	if ( array_key_exists( 'links', $save_data ) ) {
 		$stored_links = get_post_meta( $link_page_id, '_link_page_links', true );
-		$links        = ec_sanitize_link_page_links_locked( $save_data['links'], $link_page_id, ec_collect_link_page_element_ids( is_array( $stored_links ) ? $stored_links : array() ) );
+		$allow_empty  = isset( $save_data['allow_empty'] ) && true === $save_data['allow_empty'];
+		$refused      = ec_refuse_link_page_silent_empty( $stored_links, $save_data['links'], $allow_empty );
+		if ( is_wp_error( $refused ) ) {
+			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $refused );
+		}
+		$links = ec_sanitize_link_page_links_locked( $save_data['links'], $link_page_id, ec_collect_link_page_element_ids( is_array( $stored_links ) ? $stored_links : array() ) );
 		if ( is_wp_error( $links ) ) {
 			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $links );
+		}
+		if ( $links !== $stored_links && ec_link_page_links_count( $stored_links ) ) {
+			$restorable = ec_write_link_page_restore_point( $link_page_id, $stored_links );
+			if ( is_wp_error( $restorable ) ) {
+				return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $restorable );
+			}
 		}
 		$writes['_link_page_links'] = array(
 			'value'  => $links,
@@ -981,7 +1067,13 @@ function ec_cleanup_expired_link_page_links() {
 			$data['links'] = array_values( array_filter( $data['links'], $filter ) );
 		}
 		if ( $changed ) {
-			$result = ec_save_link_page_persistence( $link_page_id, array( 'links' => $data['links'] ) );
+			$result = ec_save_link_page_persistence(
+				$link_page_id,
+				array(
+					'links'       => $data['links'],
+					'allow_empty' => true,
+				)
+			);
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
