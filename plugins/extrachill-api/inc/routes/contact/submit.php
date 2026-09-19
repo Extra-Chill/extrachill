@@ -61,6 +61,13 @@ function extrachill_api_register_contact_submit_route() {
 					'required' => true,
 					'type'     => 'string',
 				),
+				'source_url'         => array(
+					'required'          => false,
+					'type'              => 'string',
+					'format'            => 'uri',
+					'validate_callback' => 'rest_validate_request_arg',
+					'sanitize_callback' => 'esc_url_raw',
+				),
 			),
 		)
 	);
@@ -76,15 +83,23 @@ function extrachill_api_handle_contact_submit( WP_REST_Request $request ) {
 		);
 	}
 
-	$result = $ability->execute(
-		array(
-			'name'               => $request->get_param( 'name' ),
-			'email'              => $request->get_param( 'email' ),
-			'subject'            => $request->get_param( 'subject' ),
-			'message'            => $request->get_param( 'message' ),
-			'turnstile_response' => $request->get_param( 'turnstile_response' ),
-		)
+	$input = array(
+		'name'               => $request->get_param( 'name' ),
+		'email'              => $request->get_param( 'email' ),
+		'subject'            => $request->get_param( 'subject' ),
+		'message'            => $request->get_param( 'message' ),
+		'turnstile_response' => $request->get_param( 'turnstile_response' ),
 	);
+
+	// Only include source_url when the client sent it: forwarding a null
+	// would fail the ability's string type validation for the optional
+	// property, and the ability falls back to wp_get_referer() itself.
+	$source_url = $request->get_param( 'source_url' );
+	if ( null !== $source_url ) {
+		$input['source_url'] = $source_url;
+	}
+
+	$result = $ability->execute( $input );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
