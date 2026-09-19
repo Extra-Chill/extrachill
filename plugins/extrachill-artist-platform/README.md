@@ -80,5 +80,4 @@ npm run start
 
 ## Documentation
 
-- [AGENTS.md](AGENTS.md) — Technical reference for contributors
 - [docs/](docs/) — Feature documentation
