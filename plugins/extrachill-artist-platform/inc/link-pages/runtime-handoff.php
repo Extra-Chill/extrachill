@@ -401,8 +401,25 @@ function extrachill_artist_platform_register_link_page_adapters() {
  */
 function extrachill_artist_platform_boot_link_pages_runtime() {
 	if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/owner-reference.php';
-		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/operations.php';
+		/*
+		 * Sentinel guards, not redundancy.
+		 *
+		 * extrachill_artist_platform_uses_external_link_pages_runtime() answers from
+		 * `active_plugins` / `active_sitewide_plugins`. Under a persistent object cache
+		 * those reads can be served stale while the external runtime has already declared
+		 * these generic functions in the same request — the window is plugin activation.
+		 * Without the sentinels the fallback redeclares every generic Link Pages function
+		 * and takes the request down with a hard fatal instead of degrading.
+		 *
+		 * Each sentinel is the first function its file declares, and both are also
+		 * declared by extrachill-link-pages, so either provider satisfies the check.
+		 */
+		if ( ! function_exists( 'ec_link_page_owner_compatibility_registry' ) ) {
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/owner-reference.php';
+		}
+		if ( ! function_exists( 'ec_link_page_operation_provider_registry' ) ) {
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/operations.php';
+		}
 	}
 
 	$result = extrachill_artist_platform_register_link_page_adapters();
