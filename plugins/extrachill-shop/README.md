@@ -80,4 +80,3 @@ composer run lint:php
 
 ## Documentation
 
-- [AGENTS.md](AGENTS.md) — Technical reference for contributors
