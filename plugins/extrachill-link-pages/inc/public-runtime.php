@@ -16,6 +16,34 @@ function ec_is_link_page_public_host( $host = null ) {
 	return in_array( $host, array( 'extrachill.link', 'www.extrachill.link' ), true );
 }
 
+/**
+ * Answer whether a browser host may record a pageview for a Link Page.
+ *
+ * Analytics owns the gate and must not encode any domain name; this runtime
+ * owns the public hosts it serves, so it answers for its own posts only. The
+ * answer is deliberately narrow: the host must be one this runtime serves AND
+ * the post must be a Link Page. Route views (post ID zero) are never claimed —
+ * Analytics keeps those first-party.
+ *
+ * Accepting the host does not admit the write on its own: Analytics still
+ * validates a signed proof bound to host, path, route family and post.
+ *
+ * @param bool   $allowed Whether the host is already accepted.
+ * @param string $host    Lowercase browser host.
+ * @param int    $post_id Post being recorded, or zero for a route view.
+ * @return bool
+ */
+function ec_answer_link_page_pageview_origin_host( $allowed, $host, $post_id ) {
+	if ( $allowed ) {
+		return true;
+	}
+	$post_id = (int) $post_id;
+	if ( $post_id <= 0 || ! ec_is_link_page_public_host( $host ) ) {
+		return false;
+	}
+	return EC_LINK_PAGE_POST_TYPE === get_post_type( $post_id );
+}
+
 /** Return one canonical public URL. */
 function ec_get_link_page_public_url( $link_page_id ) {
 	$storage_blog_id = ec_get_link_page_storage_blog_id();
@@ -493,6 +521,7 @@ if ( function_exists( 'add_filter' ) ) {
 	// callback runs last. A resolved link page must win regardless of the
 	// active theme, or the site chrome renders around a link page.
 	add_filter( 'template_include', 'ec_link_page_public_template', PHP_INT_MAX );
+	add_filter( 'extrachill_analytics_pageview_origin_host_allowed', 'ec_answer_link_page_pageview_origin_host', 10, 3 );
 	add_filter( 'extrachill_seo_sitemap_urls', 'ec_link_page_sitemap_urls' );
 	add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_post_change_urls', 10, 3 );
 }
