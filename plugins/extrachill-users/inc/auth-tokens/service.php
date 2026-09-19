@@ -184,14 +184,32 @@ function extrachill_users_maybe_handle_two_factor( string $identifier, string $p
 		);
 	}
 
-	// Build the validate_2fa URL with the same parameters Two Factor expects.
+	/*
+	 * Build the validate_2fa URL with the same parameters Two Factor expects.
+	 *
+	 * Values must be encoded before add_query_arg() sees them: it does not
+	 * encode, so a redirect_to carrying its own query string is spliced in
+	 * raw and every '&' in it becomes a separator of *this* URL. The
+	 * destination then truncates at the first one.
+	 *
+	 * That silently broke OAuth sign-in. An authorization URL survived the
+	 * login page intact and came back from 2FA as bare
+	 * /authorize?response_type=code, with client_id, redirect_uri, state and
+	 * the PKCE challenge stripped, producing "The authorization request is
+	 * missing a client_id."
+	 *
+	 * urlencode_deep() mirrors what Two_Factor_Core::login_url() does with
+	 * its own params, so any parameter added here is safe by construction.
+	 */
 	$redirect_url = add_query_arg(
-		array(
-			'action'        => 'validate_2fa',
-			'wp-auth-id'    => $user->ID,
-			'wp-auth-nonce' => $login_nonce['key'],
-			'rememberme'    => $remember ? 1 : 0,
-			'redirect_to'   => $redirect_to ? $redirect_to : home_url(),
+		urlencode_deep(
+			array(
+				'action'        => 'validate_2fa',
+				'wp-auth-id'    => $user->ID,
+				'wp-auth-nonce' => $login_nonce['key'],
+				'rememberme'    => $remember ? 1 : 0,
+				'redirect_to'   => $redirect_to ? $redirect_to : home_url(),
+			)
 		),
 		site_url( 'wp-login.php' )
 	);
