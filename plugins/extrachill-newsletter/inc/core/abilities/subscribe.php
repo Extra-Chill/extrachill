@@ -155,13 +155,32 @@ function extrachill_newsletter_ability_subscribe( $input ) {
 		if ( 'registration' !== $source ) {
 			$analytics_ability = wp_get_ability( 'extrachill/track-analytics-event' );
 			if ( $analytics_ability ) {
+				$event_data = array(
+					'context' => $source,
+					'list_id' => $list_id,
+				);
+
+				// The analytics write-boundary classifier treats any anonymous
+				// REST-origin request as a bot, which stamps every organic form
+				// signup is_bot:true — public submissions reach this ability
+				// through the extrachill/v1/newsletter/subscribe REST route
+				// after passing Cloudflare Turnstile, and this row is only
+				// written once Sendy returned "subscribed". A real integration
+				// context in an HTTP request therefore means a verified human,
+				// so supply the verdict explicitly. CLI operators
+				// (--integration=...) and cron flows carry the same context
+				// values, so the verdict is left unset there and the generic
+				// classifier rules apply. Mirrors the pageview beacon override
+				// in extrachill-analytics track-page-view.php. See
+				// extrachill-analytics#275 for the classifier-side fix.
+				if ( 'direct' !== $source && ! ( defined( 'WP_CLI' ) && WP_CLI ) && ! wp_doing_cron() ) {
+					$event_data['is_bot'] = false;
+				}
+
 				$analytics_ability->execute(
 					array(
 						'event_type' => 'newsletter_signup',
-						'event_data' => array(
-							'context' => $source,
-							'list_id' => $list_id,
-						),
+						'event_data' => $event_data,
 						'source_url' => $source_url,
 					)
 				);
