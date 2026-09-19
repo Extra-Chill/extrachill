@@ -4,9 +4,9 @@ use PHPUnit\Framework\TestCase;
 
 final class BootstrapAndPurityTest extends TestCase {
 	private function artistWorktree(): string {
-		$path = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform@refactor-152-link-pages-runtime-handoff';
+		$path = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform';
 		if ( ! is_dir( $path . '/inc/link-pages' ) ) {
-			$this->markTestSkipped( 'The optional Artist Platform integration worktree is unavailable.' );
+			$this->markTestSkipped( 'Cross-runtime coverage skipped: the Extra Chill Artist Platform sibling checkout is unavailable. Set ARTIST_PLATFORM_WORKTREE to an extrachill-artist-platform checkout containing inc/link-pages (expected default: ' . $path . ').' );
 		}
 		return $path;
 	}
@@ -78,7 +78,7 @@ final class BootstrapAndPurityTest extends TestCase {
 		};
 		$local_contract = array_values( array_filter( $normalize_functions( $local_functions ), static function ( $function ) { return false === strpos( $function, 'ec_can_register_link_page_' ); } ) );
 		$this->assertSame( $normalize_functions( $coordinated_functions ), array_slice( $local_contract, 0, count( $coordinated_functions ) ) );
-		$all_local = file_get_contents( dirname( __DIR__ ) . '/inc/post-type.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/compatibility.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/owner-reference.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/operations.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/storage.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-projections.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-runtime.php' );
+		$all_local = file_get_contents( dirname( __DIR__ ) . '/inc/post-type.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/compatibility.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/owner-reference.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/operations.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/storage.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-projections.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-runtime.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/migration.php' );
 		preg_match_all( '/^function\s+(ec_[a-z0-9_]+)\s*\(([^)]*)\)/m', $all_local, $all_functions, PREG_SET_ORDER );
 		$this->assertSame( array(), array_diff( array_keys( ec_link_pages_runtime_function_contract() ), array_column( $all_functions, 1 ) ) );
 

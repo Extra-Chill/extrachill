@@ -18,7 +18,11 @@ function is_wp_error( $value ) { return $value instanceof WP_Error; }
 
 $root = dirname( __DIR__, 2 );
 require_once $root . '/extrachill-link-pages.php';
-$external = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform@refactor-152-link-pages-runtime-handoff';
+$external = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform';
+if ( ! is_dir( $external . '/inc/link-pages' ) ) {
+	fwrite( STDERR, 'The external adapter fixture requires the Extra Chill Artist Platform sibling checkout. Set ARTIST_PLATFORM_WORKTREE to an extrachill-artist-platform checkout containing inc/link-pages (expected default: ' . $external . ")\n" );
+	exit( 1 );
+}
 require_once $external . '/inc/link-pages/artist-owner-compatibility.php';
 require_once $external . '/inc/link-pages/artist-owner-operations.php';
 ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );

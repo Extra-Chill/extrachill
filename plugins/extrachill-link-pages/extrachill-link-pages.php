@@ -25,6 +25,8 @@ defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME' ) || define( 'EXTRACHILL_LINK_P
 defined( 'EC_LINK_PAGE_POST_TYPE' ) || define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) || define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
 
+require_once EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/migration.php';
+
 /**
  * Return the exact public function signatures in runtime API version 1.
  *
@@ -32,6 +34,14 @@ defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) || define( 'EC_LINK_PAGE_OWNER_META_KEY
  */
 function ec_link_pages_runtime_function_contract() {
 	$contract = array(
+		'ec_link_page_migration_participant_registry'      => array(
+			'required' => 0,
+			'total'    => 0,
+		),
+		'ec_register_link_page_migration_participant'      => array(
+			'required' => 3,
+			'total'    => 4,
+		),
 		'ec_link_page_owner_compatibility_registry'        => array(
 			'required' => 0,
 			'total'    => 0,

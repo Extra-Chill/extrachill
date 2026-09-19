@@ -48,6 +48,7 @@ final class PackageContractTest extends TestCase {
 				'build/editor/style-index.css',
 				'extrachill-link-pages.php',
 				'inc/compatibility.php',
+				'inc/migration.php',
 				'inc/operations.php',
 				'inc/owner-reference.php',
 				'inc/post-type.php',
