@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.34.1] - 2026-09-19
+
+### Fixed
+- forward optional source_url to contact-submit ability (extrachill-contact#13)
+
 ## [0.34.0] - 2026-09-17
 
 ### Added
