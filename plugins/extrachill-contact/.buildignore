@@ -19,7 +19,6 @@ tsconfig.json
 
 # Documentation and development files
 README.md
-CLAUDE.md
 docs/
 .github/
 .vscode/

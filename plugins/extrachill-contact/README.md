@@ -135,7 +135,6 @@ extrachill-contact/
 │   └── contact-form.iife.js        # Compiled React component
 ├── build.sh                        # Build script
 ├── .buildignore                    # Build exclusions
-├── CLAUDE.md                       # AI agent documentation
 └── README.md                       # This file
 ```
 
