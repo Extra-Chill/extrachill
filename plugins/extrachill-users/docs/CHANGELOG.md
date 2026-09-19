@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.42.5] - 2026-09-19
+
+### Fixed
+- render the OAuth screens with the extrachill design system
+- stop the abilities test polluting the global registry
+
 ## [0.42.4] - 2026-09-19
 
 ### Changed
