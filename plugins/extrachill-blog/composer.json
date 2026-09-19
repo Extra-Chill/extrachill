@@ -3,32 +3,9 @@
     "description": "Blog-specific functionality for extrachill.com",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
-    "require-dev": {
-        "squizlabs/php_codesniffer": "^3.7",
-        "wp-coding-standards/wpcs": "^3.0",
-        "phpcompatibility/phpcompatibility-wp": "^2.1",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0"
-    },
     "scripts": {
-        "lint:php": "vendor/bin/phpcs --standard=WordPress *.php inc/",
-        "lint:fix": "vendor/bin/phpcbf --standard=WordPress *.php inc/",
-        "test:integration": "bash tests/run-artist-dispatch-integration.sh",
-        "test": [
-            "php tests/homepage-event-markets.php",
-            "php tests/artist-activity.php",
-            "php tests/owner-activity-projections.php",
-            "php tests/public-entity-projections.php",
-            "php tests/newsletter-context.php",
-            "php tests/network-bridge.php",
-            "php tests/artist-dispatch.php",
-            "node tests/artist-dispatch-js.js",
-            "node tests/geographic-bridge-experiment.js",
-            "@lint:php"
-        ]
-    },
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
+        "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "test": "homeboy review test extrachill-blog"
     }
 }
