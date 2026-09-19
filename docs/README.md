@@ -2,7 +2,6 @@
 
 This directory contains technical deep-dive documentation for the ExtraChill theme.
 
-**For architectural patterns and development guidelines**, see ../AGENTS.md
 **For quick overview and installation**, see ../README.md
 
 ---
@@ -299,7 +298,6 @@ Each site uses the same theme with different plugin integrations and template ov
 
 ## Support
 
-See the platform-level [AGENTS.md](../AGENTS.md) for workflow and debugging expectations.
 
 ## Development Notes
 
