@@ -14,19 +14,11 @@
         "php": ">=8.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.0",
-        "squizlabs/php_codesniffer": "^3.7",
-        "wp-coding-standards/wpcs": "^3.0",
         "phpcompatibility/phpcompatibility-wp": "^2.1"
     },
-    "config": {
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
-    },
     "scripts": {
-        "lint:php": "vendor/bin/phpcs --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
-        "lint:fix": "vendor/bin/phpcbf --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
-        "test": "vendor/bin/phpunit"
+        "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
+        "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
+        "test": "homeboy review test extrachill-seo"
     }
 }
