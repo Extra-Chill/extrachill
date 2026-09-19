@@ -1,0 +1,76 @@
+name: Homeboy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: homeboy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  homeboy:
+    name: Homeboy (${{ matrix.command }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Differential scope: full lint fails on the pre-existing debt the
+          # homeboy.json baseline already tracks, so lint gates on changed
+          # files only, like every other component.
+          - command: review lint
+            scope: auto
+          # Full scope: the changed-scope test gate refuses a zero-test run
+          # when the harness itself changed, and the whole point of running
+          # tests is evidence. The suite is fast (434 tests) and green.
+          - command: review test
+            scope: full
+    services:
+      mysql:
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        env:
+          MYSQL_ROOT_PASSWORD: ''
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: homeboy_wptests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        continue-on-error: true
+        with:
+          client-id: ${{ secrets.HOMEBOY_APP_ID }}
+          private-key: ${{ secrets.HOMEBOY_APP_PRIVATE_KEY }}
+
+      - name: Run Homeboy ${{ matrix.command }}
+        env:
+          WP_CODEBOX_DB_HOST: 127.0.0.1
+          WP_CODEBOX_DB_PORT: '3306'
+          WP_CODEBOX_DB_USER: root
+          WP_CODEBOX_DB_PASSWORD: ''
+        uses: Extra-Chill/homeboy-action@v2
+        with:
+          commands: ${{ matrix.command }}
+          scope: ${{ matrix.scope }}
+          expected-commands: review lint,review test
+          app-token: ${{ steps.app-token.outputs.token || github.token }}
+          differential-gating: 'true'
