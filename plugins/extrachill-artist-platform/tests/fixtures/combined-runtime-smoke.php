@@ -3,7 +3,9 @@
 // phpcs:ignoreFile Universal.Files.SeparateFunctionsFromOO.Mixed,Generic.Files.OneObjectStructurePerFile.MultipleFound,WordPress.WP.GlobalVariablesOverride.Prohibited,Universal.Operators.DisallowShortTernary.Found -- standalone smoke harness; procedural helpers plus stub classes are intentional and globals/ternaries mirror the plugin bootstrap under test.
 
 $artist_root = dirname( __DIR__, 2 );
-$standalone  = getenv( 'LINK_PAGES_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-link-pages@feat-3-public-runtime';
+require_once __DIR__ . '/link-pages-runtime-fixture.php';
+$standalone = ec_test_link_pages_runtime_path( $artist_root );
+ec_test_load_link_pages_migration_override( $standalone );
 
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', $artist_root . '/' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', 'https://artist.example/plugins/artist/' );
@@ -21,7 +23,9 @@ function delete_post_thumbnail( $id ) { return delete_post_meta( $id, '_thumbnai
 function wp_get_attachment_image_url( $id ) { return wp_get_attachment_url( $id ); }
 function get_post_status( $id ) { $post = get_post( $id );
 	return $post ? $post->post_status : false; }
-function maybe_unserialize( $value ) { return $value; }
+if ( ! ec_test_link_pages_bootstrap_defines( $standalone, 'maybe_unserialize' ) ) {
+	function maybe_unserialize( $value ) { return $value; }
+}
 function get_current_user_id() { return 7; }
 function ec_user_can() { return true; }
 function ec_render_template( $template, $args = array() ) {
@@ -43,7 +47,9 @@ function wp_print_styles() {}
 function wp_print_footer_scripts() {}
 function untrailingslashit( $value ) { return rtrim( $value, '/' ); }
 function wp_parse_args( $args, $defaults ) { return array_merge( $defaults, is_array( $args ) ? $args : array() ); }
-function wp_get_ability() { return null; }
+if ( ! ec_test_link_pages_bootstrap_defines( $standalone, 'wp_get_ability' ) ) {
+	function wp_get_ability() { return null; }
+}
 function ec_combined_cache_purge_post( $post_id ) {
 	$urls                                       = apply_filters( 'extrachill_cache_post_change_urls', null, $post_id, get_post_type( $post_id ) );
 	$GLOBALS['ec_test']['cache_action_blogs'][] = get_current_blog_id();
@@ -96,6 +102,7 @@ add_filter( 'ec_get_artist_id', static function ( $value, $input = null ) {
 
 require_once $artist_root . '/inc/link-pages/runtime-handoff.php';
 require_once $artist_root . '/inc/core/filters/data.php';
+require_once $artist_root . '/inc/core/artist-genres.php';
 require_once $artist_root . '/inc/core/filters/create.php';
 require_once $artist_root . '/inc/core/actions/save.php';
 require_once $artist_root . '/inc/abilities/helpers.php';

@@ -262,6 +262,14 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 			'total'    => 1,
 			'required' => 1,
 		),
+		'ec_link_page_migration_participant_registry'      => array(
+			'total'    => 0,
+			'required' => 0,
+		),
+		'ec_register_link_page_migration_participant'      => array(
+			'total'    => 4,
+			'required' => 3,
+		),
 	);
 }
 
@@ -297,7 +305,7 @@ function extrachill_artist_platform_validate_link_pages_runtime() {
 
 	$signatures = extrachill_artist_platform_link_pages_runtime_signatures();
 	if ( ! $external ) {
-		$signatures = array_diff_key( $signatures, array_flip( array( 'ec_can_register_link_page_owner_compatibility_provider', 'ec_can_register_link_page_operation_provider', 'ec_save_link_page_persistence_composed', 'ec_provision_owned_link_page', 'ec_provision_owned_link_page_composed', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page_unlocked', 'ec_can_register_link_page_public_projection_provider', 'ec_sanitize_link_page_public_projection_snapshot', 'ec_save_link_page_public_projection_snapshot', 'ec_read_link_page_public_projection_snapshot', 'ec_render_stored_link_page_social_links' ) ) );
+		$signatures = array_diff_key( $signatures, array_flip( array( 'ec_link_page_migration_participant_registry', 'ec_register_link_page_migration_participant', 'ec_can_register_link_page_owner_compatibility_provider', 'ec_can_register_link_page_operation_provider', 'ec_save_link_page_persistence_composed', 'ec_provision_owned_link_page', 'ec_provision_owned_link_page_composed', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page_unlocked', 'ec_can_register_link_page_public_projection_provider', 'ec_sanitize_link_page_public_projection_snapshot', 'ec_save_link_page_public_projection_snapshot', 'ec_read_link_page_public_projection_snapshot', 'ec_render_stored_link_page_social_links' ) ) );
 		$signatures = array_slice( $signatures, 0, 27, true );
 	}
 	foreach ( $signatures as $function => $signature ) {
@@ -349,6 +357,7 @@ function extrachill_artist_platform_register_link_page_adapters() {
 
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-compatibility.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-operations.php';
+	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/storage-migration.php';
 	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
 	}
@@ -366,6 +375,10 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	$operation_result = ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
 	if ( is_wp_error( $operation_result ) ) {
 		return $operation_result;
+	}
+	$migration_result = ec_artist_register_link_page_migration_adapter();
+	if ( is_wp_error( $migration_result ) ) {
+		return $migration_result;
 	}
 	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
 		$projection_result = ec_register_link_page_public_projection_provider( 'artist-platform', 'ec_artist_link_page_public_projection_provider' );

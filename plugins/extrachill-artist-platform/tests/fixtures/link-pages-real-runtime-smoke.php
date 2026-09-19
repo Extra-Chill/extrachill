@@ -4,7 +4,9 @@
 
 $mode       = $argv[1] ?? '';
 $artist     = dirname( __DIR__, 2 );
-$standalone = getenv( 'LINK_PAGES_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-link-pages@feat-3-public-runtime';
+require_once __DIR__ . '/link-pages-runtime-fixture.php';
+$standalone = ec_test_link_pages_runtime_path( $artist );
+ec_test_load_link_pages_migration_override( $standalone );
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', $artist . '/' );

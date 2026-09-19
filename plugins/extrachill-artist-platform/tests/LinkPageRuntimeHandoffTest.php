@@ -15,14 +15,11 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	/**
-	 * The real-runtime fixtures hardcode a RETIRED branch worktree path
-	 * (extrachill-link-pages@feat-3-public-runtime); that pre-existing breakage
-	 * on main is tracked separately and skipped while the path stays gone.
+	 * The real-runtime fixtures resolve the deterministic sibling
+	 * extrachill-link-pages primary (or a LINK_PAGES_WORKTREE override), so
+	 * the same fixture-source availability check applies.
 	 */
-	private function require_retired_fixture_worktree(): void {
-		if ( ! is_dir( '/var/lib/datamachine/workspace/extrachill-link-pages@feat-3-public-runtime' ) ) {
-			$this->markTestSkipped( 'Fixture hardcodes the retired extrachill-link-pages@feat-3-public-runtime worktree path; pre-existing main breakage tracked separately.' );
-		}
+	private function require_real_runtime_fixture_source(): void {
 		$this->require_fixture_source();
 	}
 
@@ -125,7 +122,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_first_activation_and_next_request_use_the_real_standalone_runtime_contract(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$activation = $this->runSmokeFixture( 'link-pages-real-runtime-smoke.php', 'activation' );
 		$this->assertFalse( $activation['before_boot'] );
 		$this->assertTrue( $activation['after_boot'] );
@@ -155,7 +152,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_real_combined_runtime_executes_artist_lifecycle_against_standalone(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php' );
 
 		$this->assertIsInt( $result['created'] );
@@ -202,7 +199,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_real_combined_runtime_compensates_force_detach_failure(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'force-failure' );
 
 		$this->assertSame( 'link_page_previous_detach_failed', $result['forced'] );
@@ -215,7 +212,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_owner_save_failure_rolls_back_generic_fields_without_final_hook(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'owner-save-failure' );
 
 		$this->assertSame( 'social_failure', $result['saved'] );
@@ -230,7 +227,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_combined_authorized_saves_serialize_without_stale_compensation(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'contention' );
 
 		$this->assertTrue( $result['contention']['first'] );
@@ -241,7 +238,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_failed_save_compensates_before_next_authorized_save_wins(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'interleaving-failure' );
 
 		$this->assertSame( 'social_failure', $result['saved'] );
@@ -253,7 +250,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_separate_and_combined_mutations_reject_reverse_interleaving(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'separate-contention' );
 
 		$this->assertSame( 'link_page_lock_scope_conflict', $result['separate_contention']['during_combined_social'] );
@@ -269,7 +266,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 
 	/** @dataProvider crossBlogMutationProvider */
 	public function test_cross_blog_social_mutation_uses_blog_four_lock_and_cache( $mode, $caller_blog ): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result   = $this->runSmokeFixture( 'combined-runtime-smoke.php', $mode );
 		$mutation = $result['cross_blog_mutation'];
 
@@ -296,7 +293,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_cross_blog_social_failure_restores_context_without_purge(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result   = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'cross-blog-failure' );
 		$mutation = $result['cross_blog_mutation'];
 
@@ -310,7 +307,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_orphaned_or_unpublished_owner_renders_404(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'orphan-owner' );
 
 		$this->assertSame( 'link_page_public_owner_unavailable', $result['projection_title'] );
@@ -318,7 +315,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_deleted_canonical_owner_metadata_renders_404(): void {
-		$this->require_retired_fixture_worktree();
+		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'deleted-owner' );
 
 		$this->assertSame( 'invalid_link_page_owner_object', $result['projection_title'] );

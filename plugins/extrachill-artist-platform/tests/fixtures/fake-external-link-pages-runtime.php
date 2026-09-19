@@ -8,6 +8,9 @@ if ( empty( $GLOBALS['smoke']['omit_api_version'] ) ) {
 define( 'EC_LINK_PAGE_POST_TYPE', $GLOBALS['smoke']['post_type_constant'] ?? 'artist_link_page' );
 define( 'EC_LINK_PAGE_OWNER_META_KEY', $GLOBALS['smoke']['owner_meta_constant'] ?? '_ec_link_page_owner_reference' );
 
+function ec_link_page_migration_participant_registry() { return (object) array(); }
+function ec_register_link_page_migration_participant( $name, $version, $callbacks, $priority = 10 ) { $GLOBALS['smoke']['migration_participants'][ $name ] = compact( 'version', 'callbacks', 'priority' ); return true; }
+
 function ec_link_page_owner_compatibility_registry() {
 	return (object) array();
 }
