@@ -33,16 +33,6 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 			do_action( 'wp_abilities_api_categories_init' );
 		}
 
-		/*
-		 * test_registration_does_not_replace_existing_owner asserts that a
-		 * second registration pass leaves an already-owned ability untouched,
-		 * so the ability has to exist before it runs. Firing the init action
-		 * is how it exists in production; relying on a sibling test to have
-		 * registered it first is what made this order-dependent.
-		 */
-		if ( function_exists( 'wp_has_ability' ) && ! wp_has_ability( 'extrachill/manage-team-member' ) ) {
-			do_action( 'wp_abilities_api_init' );
-		}
 	}
 
 	/**
@@ -106,6 +96,16 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 	 * Detaching the other callbacks first fires a real action with only the
 	 * registrar under test attached. WP_UnitTestCase backs up and restores
 	 * hooks around each test, so the detachment does not leak.
+	 *
+	 * Scope matters here beyond correctness of this class. The abilities
+	 * registry is global state and is NOT restored between tests — only hooks
+	 * are. Firing the unfiltered action from setUp registered all 43 of this
+	 * plugin's abilities for the remainder of the process and broke unrelated
+	 * suites that assert specific abilities are absent
+	 * (Test_Account_Email_Sharing_Retirement) or that exercise permission
+	 * callbacks on their own registrations (Test_Artist_Access_Abilities).
+	 * Registering only what this class asserts on keeps the blast radius to
+	 * this class.
 	 */
 	private function run_registration(): void {
 		remove_all_actions( 'wp_abilities_api_init' );
@@ -127,8 +127,12 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 	 * Transition registration never replaces an ability owned by Admin Tools.
 	 */
 	public function test_registration_does_not_replace_existing_owner(): void {
+		// Establish the owner through the same path, rather than depending on
+		// setUp or on a sibling test having registered it.
+		$this->run_registration();
+
 		$existing = wp_get_ability( 'extrachill/manage-team-member' );
-		$this->assertNotNull( $existing, 'setUp must leave an owner in place for this to mean anything' );
+		$this->assertNotNull( $existing, 'the first pass must leave an owner for the second to not replace' );
 
 		$this->run_registration();
 
