@@ -459,7 +459,8 @@ function get_post( $post_id ) {
 	$posts = ec_test_store( 'posts' );
 	return $posts[ $post_id ] ?? null; }
 function get_post_type( $post_id ) {
-	$post = get_post( $post_id );
+	// Core accepts a post object or an ID.
+	$post = is_object( $post_id ) ? $post_id : get_post( $post_id );
 	return $post->post_type ?? false; }
 function get_post_field( $field, $post_id ) {
 	$post = get_post( $post_id );

@@ -476,6 +476,37 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( array( 40 ), $GLOBALS['ec_test']['postdata_setup'] ?? array() );
 	}
 
+	public function test_public_template_wins_over_theme_router_that_replaces_singular_template(): void {
+		$this->assignPostOwner();
+		$_SERVER['HTTP_HOST'] = 'extrachill.link';
+		$_SERVER['REQUEST_URI'] = '/legacy-page/';
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		ec_resolve_link_page_public_query();
+
+		// Mirror a theme router registered at the default priority that
+		// unconditionally swaps in its own singular template (the Extra Chill
+		// theme's extrachill_route_templates does exactly this for is_single()).
+		add_filter(
+			'template_include',
+			static function ( $template ) {
+				return '/theme/inc/single/single-post.php';
+			},
+			10
+		);
+
+		$registrations = array_filter(
+			$GLOBALS['ec_test']['filters']['template_include'] ?? array(),
+			static function ( $filter ) {
+				return 'ec_link_page_public_template' === $filter[0];
+			}
+		);
+		$this->assertCount( 1, $registrations, 'The public template filter must be registered exactly once.' );
+		$this->assertSame( PHP_INT_MAX, array_values( $registrations )[0][1], 'The public template filter must run after every theme router.' );
+
+		$template = apply_filters( 'template_include', '/theme/index.php' );
+		$this->assertSame( EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/single-link-page.php', $template );
+	}
+
 	public function test_successful_redirect_invokes_production_termination_seam(): void {
 		$this->assertTrue( ec_link_page_public_redirect( 'https://example.com/target', 302, true ) );
 		$this->assertSame( array( 'https://example.com/target', 302 ), $GLOBALS['ec_test']['terminations'][0] );

@@ -450,7 +450,13 @@ add_action( 'extrachill_artist_link_page_minimal_head', 'ec_enqueue_link_page_mi
 if ( function_exists( 'add_filter' ) ) {
 	add_filter( 'query_vars', 'ec_add_link_page_public_query_vars' );
 	add_filter( 'redirect_canonical', 'ec_prevent_link_page_public_canonical_redirect', 10, 2 );
-	add_filter( 'template_include', 'ec_link_page_public_template' );
+	// PHP_INT_MAX: the link page shell is a terminal template decision. Theme
+	// routers (e.g. the Extra Chill theme's extrachill_route_templates at
+	// priority 10) replace the template unconditionally for is_single(), and
+	// any plugin registered at the default priority loses to whichever
+	// callback runs last. A resolved link page must win regardless of the
+	// active theme, or the site chrome renders around a link page.
+	add_filter( 'template_include', 'ec_link_page_public_template', PHP_INT_MAX );
 	add_filter( 'extrachill_seo_sitemap_urls', 'ec_link_page_sitemap_urls' );
 	add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_post_change_urls', 10, 3 );
 }
