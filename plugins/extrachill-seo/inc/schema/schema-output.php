@@ -21,10 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return void
  */
 function ec_seo_output_schema_graph() {
-	$graph = array();
-
-	// Collect schema from all registered types via filter
-	$graph = apply_filters( 'extrachill_seo_schema_graph', $graph );
+	$graph = ec_seo_get_schema_graph();
 
 	if ( empty( $graph ) ) {
 		return;
@@ -39,6 +36,23 @@ function ec_seo_output_schema_graph() {
 	echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
 }
 add_action( 'wp_head', __NAMESPACE__ . '\\ec_seo_output_schema_graph', 10 );
+
+/**
+ * Collect the schema graph and normalize it for JSON-LD serialization.
+ *
+ * Single collection point for the `extrachill_seo_schema_graph` filter. After
+ * all emitters have appended their entities, every string value is decoded
+ * from HTML entities exactly once (see ec_seo_decode_schema_text()). Emitters
+ * must NOT decode their own values; the boundary owns that responsibility so
+ * the same source string is never emitted two different ways in one document.
+ *
+ * @return array Normalized schema graph.
+ */
+function ec_seo_get_schema_graph(): array {
+	$graph = apply_filters( 'extrachill_seo_schema_graph', array() );
+
+	return ec_seo_normalize_schema_graph( $graph );
+}
 
 /**
  * Remove structured identity for a resource that does not exist.
