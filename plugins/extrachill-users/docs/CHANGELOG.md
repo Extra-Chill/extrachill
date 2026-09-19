@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.42.3] - 2026-09-19
+
+### Fixed
+- preserve the destination query string across the 2FA hand-off
+- guard extrachill-root style dependency so badges/bell CSS loads on non-EC themes
+
 ## [0.42.2] - 2026-09-18
 
 ### Fixed
