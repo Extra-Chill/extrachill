@@ -207,7 +207,7 @@ final class BookingConsoleTest extends TestCase {
 	public function test_archive_action_is_registered_as_quiet_progressive_disclosure(): void {
 		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-console.php' );
 
-		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_calendar', 'ec_events_render_venue_archive_workspace_action', 30 )", $source );
+		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 )", $source );
 		$this->assertStringContainsString( '$term = is_tax( \'venue\' ) ? get_queried_object() : null;', $source );
 		$this->assertStringNotContainsString( 'extrachill_events_get_venue_archive_term', $source );
 		$this->assertStringContainsString( '<details class="venue-workspace-disclosure" data-venue-workspace-action>', $source );

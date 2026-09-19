@@ -69,9 +69,15 @@ final class ArchiveEventsFirstTest extends TestCase {
 		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_calendar', 'extrachill_events_render_archive_scene_cta', 10 )", $cta );
 		$this->assertStringNotContainsString( 'extrachill_archive_below_description', $cta );
 
+		// Deliberate exception: the venue operator disclosure stays ABOVE the
+		// calendar. It is the claim entry point on every venue archive and is a
+		// collapsed <details> (about a heading's height), unlike the ~400px map
+		// and the sign-in prompt this test pins below. See
+		// VenueBookingInquiryRenderTest, which asserts the rendered order
+		// heading -> booking CTA -> operator action -> calendar.
 		$workspace = file_get_contents( $base . 'booking-console.php' );
-		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_calendar', 'ec_events_render_venue_archive_workspace_action', 30 )", $workspace );
-		$this->assertStringNotContainsString( 'extrachill_archive_below_description', $workspace );
+		$this->assertStringContainsString( "add_action( 'extrachill_archive_below_description', 'ec_events_render_venue_archive_workspace_action', 8 )", $workspace );
+		$this->assertStringNotContainsString( 'extrachill_archive_below_calendar', $workspace );
 
 		// The standalone digest opt-in no longer renders as its own panel.
 		$digest = file_get_contents( $base . 'local-scene-digest.php' );
