@@ -532,6 +532,31 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 1, substr_count( $block, '</style>' ) );
 	}
 
+	public function test_pageview_origin_answer_claims_only_own_link_pages(): void {
+		$this->assignPostOwner();
+
+		$this->assertTrue(
+			ec_answer_link_page_pageview_origin_host( false, 'extrachill.link', 40 ),
+			'A Link Page served on this runtime\'s public host must be claimed.'
+		);
+		$this->assertTrue(
+			ec_answer_link_page_pageview_origin_host( false, 'www.extrachill.link', 40 ),
+			'The www host serves the same pages.'
+		);
+		$this->assertFalse(
+			ec_answer_link_page_pageview_origin_host( false, 'attacker.example', 40 ),
+			'A foreign host must never be claimed.'
+		);
+		$this->assertFalse(
+			ec_answer_link_page_pageview_origin_host( false, 'extrachill.link', 0 ),
+			'Route views stay first-party; this runtime never claims post ID zero.'
+		);
+		$this->assertTrue(
+			ec_answer_link_page_pageview_origin_host( true, 'attacker.example', 0 ),
+			'An already-allowed host is passed through untouched.'
+		);
+	}
+
 	public function test_successful_redirect_invokes_production_termination_seam(): void {
 		$this->assertTrue( ec_link_page_public_redirect( 'https://example.com/target', 302, true ) );
 		$this->assertSame( array( 'https://example.com/target', 302 ), $GLOBALS['ec_test']['terminations'][0] );
