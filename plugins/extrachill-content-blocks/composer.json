@@ -1,24 +1,14 @@
 {
-	"name": "extrachill/extrachill-content-blocks",
-	"description": "Reusable content creation Gutenberg blocks for the Extra Chill platform",
-	"type": "wordpress-plugin",
-	"license": "GPL-2.0-or-later",
-	"require": {
-		"php": ">=7.4"
-	},
-	"require-dev": {
-		"squizlabs/php_codesniffer": "^3.7",
-		"wp-coding-standards/wpcs": "^3.0",
-		"phpunit/phpunit": "^9.0"
-	},
-	"scripts": {
-		"lint:php": "vendor/bin/phpcs --standard=WordPress --extensions=php .",
-		"lint:fix": "vendor/bin/phpcbf --standard=WordPress --extensions=php .",
-		"test": "vendor/bin/phpunit --configuration phpunit.xml.dist"
-	},
-	"config": {
-		"allow-plugins": {
-			"dealerdirect/phpcodesniffer-composer-installer": true
-		}
-	}
+    "name": "extrachill/extrachill-content-blocks",
+    "description": "Reusable content creation Gutenberg blocks for the Extra Chill platform",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=7.4"
+    },
+    "scripts": {
+        "lint:php": "\"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard=WordPress --extensions=php .",
+        "lint:fix": "\"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard=WordPress --extensions=php .",
+        "test": "homeboy review test extrachill-content-blocks"
+    }
 }
