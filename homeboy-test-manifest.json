@@ -1,0 +1,8 @@
+{
+  "schema": "homeboy/test-manifest/v1",
+  "tests": {
+    "tests/single-post-template.php": {
+      "environment": "standalone-php"
+    }
+  }
+}
