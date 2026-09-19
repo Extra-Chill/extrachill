@@ -12,6 +12,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Style dependencies that cascade after the theme root stylesheet.
+ *
+ * `extrachill-root` is registered by the Extra Chill theme. Sites running other
+ * themes (e.g. extrachill.link on Twenty Twenty-Five) never register it, and a
+ * missing dependency causes WordPress to drop the stylesheet entirely. Only
+ * declare the dependency when the handle is registered.
+ *
+ * @return array Style dependencies.
+ */
+function extrachill_users_root_style_deps() {
+	return wp_style_is( 'extrachill-root', 'registered' ) ? array( 'extrachill-root' ) : array();
+}
+
+/**
  * Enqueue avatar menu and online users assets.
  */
 function extrachill_users_enqueue_avatar_menu_assets() {
@@ -56,7 +70,7 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 		wp_enqueue_style(
 			'extrachill-users-badges',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/user-badges.css',
-			array( 'extrachill-root' ),
+			extrachill_users_root_style_deps(),
 			(string) filemtime( $user_badges_css_path ),
 			'all'
 		);
@@ -70,7 +84,7 @@ function extrachill_users_enqueue_avatar_menu_assets() {
 		wp_enqueue_style(
 			'extrachill-users-notification-bell',
 			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/notification-bell.css',
-			array( 'extrachill-root' ),
+			extrachill_users_root_style_deps(),
 			(string) filemtime( $notification_bell_css_path ),
 			'all'
 		);
