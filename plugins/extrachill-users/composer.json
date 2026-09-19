@@ -1,31 +1,20 @@
 {
-	"name": "extrachill/extrachill-users",
-	"description": "Cross-site user management for the ExtraChill Platform multisite network",
-	"version": "0.5.7",
-	"type": "wordpress-plugin",
-	"license": "GPL-2.0-or-later",
-	"require": {
-		"php": ">=8.0"
-	},
-	"require-dev": {
-		"phpstan/phpstan": "^2.0",
-		"php-stubs/wp-cli-stubs": "^2.10",
-		"squizlabs/php_codesniffer": "^3.7",
-		"szepeviktor/phpstan-wordpress": "^2.0",
-		"wp-coding-standards/wpcs": "^3.0",
-		"phpunit/phpunit": "^9.0"
-	},
-	"scripts": {
-		"lint:php": "homeboy extension exec wordpress -- vendor/bin/phpcs --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
-		"lint:fix": "homeboy extension exec wordpress -- vendor/bin/phpcbf --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
-		"test": "vendor/bin/phpunit"
-	},
-	"config": {
-		"platform": {
-			"php": "8.0.0"
-		},
-		"allow-plugins": {
-			"dealerdirect/phpcodesniffer-composer-installer": true
-		}
-	}
+    "name": "extrachill/extrachill-users",
+    "description": "Cross-site user management for the ExtraChill Platform multisite network",
+    "version": "0.5.7",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.0"
+    },
+    "scripts": {
+        "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "test": "homeboy review test extrachill-users"
+    },
+    "config": {
+        "platform": {
+            "php": "8.0.0"
+        }
+    }
 }

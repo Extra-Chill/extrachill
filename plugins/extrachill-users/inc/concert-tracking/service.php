@@ -235,6 +235,13 @@ function ec_users_toggle_event( int $user_id, int $event_id, int $blog_id = 0 ) 
 /**
  * Check if a user has marked an event.
  *
+ * Reads the database, so two calls with identical arguments can legitimately
+ * differ. Annotated at the source rather than in a stub file: PHPStan
+ * otherwise treats it as pure, folds a repeated call into the first, and
+ * reports the guard around it as always-true.
+ *
+ * @phpstan-impure
+ *
  * @param int $user_id User ID.
  * @param int $event_id Event post ID.
  * @param int $blog_id Blog ID (default: current blog).

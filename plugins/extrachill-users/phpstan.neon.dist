@@ -1,5 +1,19 @@
-includes:
-	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+# The WordPress environment comes from the Homeboy wordpress extension:
+# phpstan-wordpress, the WordPress and WP-CLI stubs, dynamicConstantNames, the
+# shared ignoreErrors, and the core API overrides. This file carries only what
+# is specific to this component.
+#
+# It previously opened with
+#
+#   includes:
+#       - vendor/szepeviktor/phpstan-wordpress/extension.neon
+#
+# because declaring `level:` used to make the runner skip the extension config
+# entirely. `vendor/` is gitignored, so wherever it was not installed PHPStan
+# analysed with no WordPress signatures and reported correct core calls as
+# defects — 211 findings, none of them real. homeboy-extensions#2849 removed
+# that coupling, so the include (and the duplicated require-dev behind it) is
+# no longer needed.
 
 parameters:
 	level: 5
@@ -21,7 +35,5 @@ parameters:
 		- blocks
 	scanFiles:
 		- extrachill-users.php
+		# Constants owned by sibling Extra Chill plugins, not by WordPress.
 		- tests/phpstan-stubs.php
-		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
-	stubFiles:
-		- tests/phpstan-wordpress-overrides.php
