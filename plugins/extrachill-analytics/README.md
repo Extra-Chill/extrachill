@@ -45,7 +45,6 @@ The former public post-only `/extrachill/v1/analytics/view` path is not compatib
 
 ## Development
 
-See [AGENTS.md](AGENTS.md) for detailed development documentation, architectural patterns, and implementation details.
 
 ## Notes
 
