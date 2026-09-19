@@ -188,11 +188,18 @@ function extrachill_resolve_link_domain_query() {
 		$link_page_id = $link_pages[0];
 		$link_page    = get_post( $link_page_id );
 
-		// Override the main query so WordPress treats this as a found singular post.
+		// Override the main query so WordPress treats this as a found singular
+		// post. The emulation must be complete: consumers such as get_the_ID(),
+		// get_post(), and the Analytics view tracker read the global $post, not
+		// the queried object. The public link page template reads the queried
+		// object directly and never calls the_post(), so current_post stays at
+		// -1 and no loop double-advance is possible.
 		$wp_query->posts                   = array( $link_page );
+		$wp_query->post                    = $link_page;
 		$wp_query->post_count              = 1;
 		$wp_query->found_posts             = 1;
 		$wp_query->max_num_pages           = 1;
+		$wp_query->current_post            = -1;
 		$wp_query->is_single               = true;
 		$wp_query->is_singular             = true;
 		$wp_query->is_404                  = false;
@@ -200,6 +207,9 @@ function extrachill_resolve_link_domain_query() {
 		$wp_query->query_vars['post_type'] = 'artist_link_page';
 		$wp_query->queried_object_id       = $link_page_id;
 		$wp_query->queried_object          = $link_page;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- deliberate: completes the faked singular main query; setup_postdata() does not set the $post global (issue #221).
+		$GLOBALS['post'] = $link_page;
+		setup_postdata( $link_page );
 		status_header( 200 );
 	} elseif ( $is_root_or_extra_chill ) {
 		// Root domain but no default link page — genuine 404.
