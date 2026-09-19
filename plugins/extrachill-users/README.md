@@ -65,7 +65,6 @@ All auth endpoints live in `extrachill-api` under `extrachill/v1`:
 
 ## Development
 
-See [AGENTS.md](AGENTS.md) for technical implementation details.
 
 ```bash
 # Build blocks
@@ -77,7 +76,6 @@ homeboy review build extrachill-users
 
 ## Documentation
 
-- [AGENTS.md](AGENTS.md) — Technical reference for contributors
 - [docs/CHANGELOG.md](docs/CHANGELOG.md) — Version history
 - [docs/gardner-persona.md](docs/gardner-persona.md) — Canonical nontechnical power-user test contract
 - [docs/notifications.md](docs/notifications.md) — Notification producer and receipt contracts
