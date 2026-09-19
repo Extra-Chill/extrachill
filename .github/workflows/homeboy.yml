@@ -62,4 +62,11 @@ jobs:
           commands: ${{ matrix.command }}
           expected-commands: review lint,review test
           app-token: ${{ steps.app-token.outputs.token || github.token }}
-          differential-gating: 'true'
+          # Full suite, not changed-scope: this component ships no PHPUnit
+          # tests, so a changed-scope run always selects zero tests and proves
+          # nothing — and the differential gate correctly refuses to accept a
+          # zero-test run as evidence whenever the harness itself changes
+          # (changed_scope_zero_tests_for_harness_change). The full run boots
+          # the theme in real WordPress every time, which is the only
+          # meaningful test evidence a zero-PHPUnit component can produce.
+          differential-gating: 'false'
