@@ -79,7 +79,6 @@ The docs metadata endpoint is implemented in the `extrachill-api` plugin (Docs r
 extrachill-docs/
 ├── extrachill-docs.php              # Main plugin file
 ├── README.md                         # This file
-├── CLAUDE.md                         # Technical documentation
 ├── inc/
 │   ├── core/
 │   │   ├── post-types.php           # ec_doc registration
@@ -266,7 +265,6 @@ add_action('extrachill_homepage_content', function() {
 
 ### Getting Help
 
-- Check [CLAUDE.md](CLAUDE.md) for technical details
 - Review error logs in `wp-content/debug.log`
 - Inspect browser console for frontend errors
 
@@ -274,7 +272,6 @@ add_action('extrachill_homepage_content', function() {
 
 1. Follow WordPress coding standards
 2. Test changes on local dev environment
-3. Update CLAUDE.md with technical changes
 4. Create documentation for new features
 5. Submit for code review
 
