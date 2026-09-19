@@ -18,6 +18,31 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 		require_once dirname( __DIR__, 2 ) . '/inc/team-members/role.php';
 		require_once dirname( __DIR__, 2 ) . '/inc/lifetime-membership.php';
 		require_once dirname( __DIR__, 2 ) . '/inc/core/abilities/user-administration.php';
+
+		/*
+		 * Abilities in this plugin register into the 'extrachill-users'
+		 * category, and wp_register_ability() fails when the category is
+		 * absent. The category is registered on wp_abilities_api_categories_init,
+		 * which the test bootstrap does not fire.
+		 *
+		 * Without this the registration assertions passed or failed on test
+		 * order — green only when some earlier test happened to fire that
+		 * action first. Firing it here makes this class self-sufficient.
+		 */
+		if ( function_exists( 'wp_has_ability_category' ) && ! wp_has_ability_category( 'extrachill-users' ) ) {
+			do_action( 'wp_abilities_api_categories_init' );
+		}
+
+		/*
+		 * test_registration_does_not_replace_existing_owner asserts that a
+		 * second registration pass leaves an already-owned ability untouched,
+		 * so the ability has to exist before it runs. Firing the init action
+		 * is how it exists in production; relying on a sibling test to have
+		 * registered it first is what made this order-dependent.
+		 */
+		if ( function_exists( 'wp_has_ability' ) && ! wp_has_ability( 'extrachill/manage-team-member' ) ) {
+			do_action( 'wp_abilities_api_init' );
+		}
 	}
 
 	/**
@@ -70,12 +95,30 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 	/**
 	 * Transition registration supplies an ability when no prior owner exists.
 	 */
+	/**
+	 * Run this plugin's user-administration registration the way core demands.
+	 *
+	 * wp_register_ability() checks doing_action( 'wp_abilities_api_init' ) and
+	 * reports incorrect usage otherwise, so the callback cannot simply be
+	 * invoked. Firing the action as-is is no better: every other registrar on
+	 * it runs again and core reports "Ability ... is already registered".
+	 *
+	 * Detaching the other callbacks first fires a real action with only the
+	 * registrar under test attached. WP_UnitTestCase backs up and restores
+	 * hooks around each test, so the detachment does not leak.
+	 */
+	private function run_registration(): void {
+		remove_all_actions( 'wp_abilities_api_init' );
+		add_action( 'wp_abilities_api_init', 'extrachill_users_register_user_administration_abilities' );
+		do_action( 'wp_abilities_api_init' );
+	}
+
 	public function test_registration_registers_absent_ability(): void {
 		wp_unregister_ability( 'extrachill/grant-lifetime-membership' );
 
 		$this->assertFalse( wp_has_ability( 'extrachill/grant-lifetime-membership' ) );
 
-		extrachill_users_register_user_administration_abilities();
+		$this->run_registration();
 
 		$this->assertTrue( wp_has_ability( 'extrachill/grant-lifetime-membership' ) );
 	}
@@ -85,7 +128,10 @@ class Test_User_Administration_Abilities extends WP_UnitTestCase {
 	 */
 	public function test_registration_does_not_replace_existing_owner(): void {
 		$existing = wp_get_ability( 'extrachill/manage-team-member' );
-		extrachill_users_register_user_administration_abilities();
+		$this->assertNotNull( $existing, 'setUp must leave an owner in place for this to mean anything' );
+
+		$this->run_registration();
+
 		$this->assertSame( $existing, wp_get_ability( 'extrachill/manage-team-member' ) );
 	}
 }

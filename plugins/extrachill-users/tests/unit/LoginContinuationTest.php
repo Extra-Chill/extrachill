@@ -162,23 +162,41 @@ class Test_Login_Continuation extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tracks whether this class declared the Two_Factor_Core stub itself.
+	 *
+	 * @var bool
+	 */
+	private static $declared_two_factor_stub = false;
+
+	/**
 	 * The token login service must carry its validated destination into the
 	 * Two Factor plugin's challenge state.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * This previously ran in an isolated process purely so the stub below
+	 * could be declared when the real plugin is absent. The child process died
+	 * during bootstrap — "Test was run in child process and ended
+	 * unexpectedly" — which made this the only permanently failing test in the
+	 * suite and cost more than the isolation bought.
+	 *
+	 * No other test in this plugin references Two_Factor_Core, so declaring
+	 * the stub in-process pollutes nothing that anything else observes.
 	 */
 	public function test_two_factor_challenge_carries_the_validated_login_continuation(): void {
-		if ( class_exists( 'Two_Factor_Core' ) ) {
-			$this->markTestSkipped( 'Test requires the isolated Two_Factor_Core stub.' );
+		if ( ! class_exists( 'Two_Factor_Core' ) ) {
+			eval(
+				'class Two_Factor_Core {' .
+				'public static function is_user_using_two_factor( $user_id ) { return true; }' .
+				'public static function create_login_nonce( $user_id ) { return array( "key" => "test-2fa-nonce" ); }' .
+				'}'
+			);
+			self::$declared_two_factor_stub = true;
 		}
 
-		eval(
-			'class Two_Factor_Core {' .
-			'public static function is_user_using_two_factor( $user_id ) { return true; }' .
-			'public static function create_login_nonce( $user_id ) { return array( "key" => "test-2fa-nonce" ); }' .
-			'}'
-		);
+		if ( ! self::$declared_two_factor_stub ) {
+			$this->markTestSkipped(
+				'The real Two Factor plugin is loaded; this test needs the stub that always reports 2FA as enabled.'
+			);
+		}
 
 		$password     = 'valid-password';
 		$user_id      = self::factory()->user->create( array( 'user_pass' => $password ) );
