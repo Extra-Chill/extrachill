@@ -36,7 +36,7 @@ class AgentsMdSection {
 		$lines[] = 'Keep the composed WP-CLI prefix and its site target. Use `--url=<site-url>` when a command needs data or abilities owned by another network site; without a site target, WP-CLI uses the main site.';
 		$lines[] = '';
 		$lines[] = '**Discovery**';
-		$lines[] = "Use `{$wp} extrachill --help` and `{$wp} extrachill <namespace> --help` for the complete live command, subcommand, and options contract. Live `--help` is authoritative; this section intentionally does not enumerate every action.";
+		$lines[] = "Use `{$wp} extrachill --help` and `{$wp} extrachill <namespace> --help` for the complete live command, subcommand, and options contract. Live `--help` is authoritative.";
 
 		return implode( "\n", $lines );
 	}
