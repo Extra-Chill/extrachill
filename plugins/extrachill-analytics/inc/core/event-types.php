@@ -128,6 +128,37 @@ const EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED   = 'roadie_session_started';
 const EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED      = 'roadie_tool_invoked';
 
 /**
+ * MCP server usage.
+ *
+ * Roadie's successor surface is the network ability registry reached over
+ * MCP by the operator's own agent (extrachill-mcp). Roadie's six months of
+ * data showed the failure mode these two events exist to catch: every one of
+ * its 55 recorded tool calls was `present_question`, so the agent was
+ * interrogating people rather than acting, and nobody could see that until
+ * the numbers were read. MCP inherits the risk exactly — if a model cannot
+ * get from intent to the right ability, the same outcome recurs on someone
+ * else's inference.
+ *
+ * `mcp_tool_invoked` therefore carries the **resolved ability name** the
+ * caller reached through `extrachill/ability-call`, not the meta-tool name.
+ * The server advertises exactly two tools, so recording the tool name alone
+ * would read `ability-search, ability-call` forever and teach nothing about
+ * which capabilities are actually used.
+ */
+const EC_ANALYTICS_EVENT_MCP_SESSION_STARTED      = 'mcp_session_started';
+const EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED         = 'mcp_tool_invoked';
+
+/**
+ * The MCP usage event set.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_MCP_USAGE_EVENTS = array(
+	EC_ANALYTICS_EVENT_MCP_SESSION_STARTED,
+	EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED,
+);
+
+/**
  * General account-onboarding events.
  *
  * The ordered happy path is `onboarding_viewed` -> `onboarding_completed`.

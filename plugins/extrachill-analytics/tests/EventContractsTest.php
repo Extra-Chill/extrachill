@@ -48,6 +48,15 @@ final class EventContractsTest extends Extrachill_Analytics_TestCase {
 			EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS
 		);
 		$this->assertContains( EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED, EC_ANALYTICS_ARTIST_FUNNEL_EVENTS );
+		$this->assertSame( 'mcp_session_started', EC_ANALYTICS_EVENT_MCP_SESSION_STARTED );
+		$this->assertSame( 'mcp_tool_invoked', EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED );
+		$this->assertSame(
+			array(
+				EC_ANALYTICS_EVENT_MCP_SESSION_STARTED,
+				EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED,
+			),
+			EC_ANALYTICS_MCP_USAGE_EVENTS
+		);
 		$this->assertSame(
 			array(
 				EC_ANALYTICS_EVENT_ARTIST_ACCESS_REQUESTED,
