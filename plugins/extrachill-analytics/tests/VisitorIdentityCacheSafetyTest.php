@@ -36,25 +36,28 @@ final class VisitorIdentityCacheSafetyTest extends Extrachill_Analytics_TestCase
 	}
 
 	/**
-	 * Browser beacon abilities must resolve identity from the request cookie.
+	 * Browser beacon abilities must resolve identity from the request cookie
+	 * without any server-side mint: no `Set-Cookie` may ever be emitted, so
+	 * responses stay edge-cacheable.
 	 */
 	public function test_browser_beacons_resolve_request_identity(): void {
 		$pageview = $this->read_source( 'inc/core/abilities/track-page-view.php' );
 		$events   = $this->read_source( 'inc/core/abilities.php' );
+		$assets   = $this->read_source( 'inc/core/assets.php' );
 
+		$this->assertStringNotContainsString(
+			'extrachill_analytics_get_or_mint_visitor_id',
+			$pageview . $assets
+		);
 		$this->assertStringContainsString(
-			'extrachill_analytics_get_or_mint_visitor_id()',
+			'$is_first_party_beacon && function_exists( \'extrachill_analytics_read_visitor_id\' )',
 			$pageview
 		);
 		$this->assertStringNotContainsString( "\$input['visitor_id']", $pageview );
 		$this->assertStringNotContainsString( "'outbound_click' === \$event_type", $events );
 		$this->assertStringContainsString(
-			'$is_first_party_beacon && function_exists( \'extrachill_analytics_read_visitor_id\' )',
-			$pageview
-		);
-		$this->assertStringContainsString(
 			"wp_parse_url( home_url( '/' ), PHP_URL_HOST )",
-			$this->read_source( 'inc/core/assets.php' )
+			$assets
 		);
 	}
 

@@ -31,7 +31,8 @@ define( 'EXTRACHILL_ANALYTICS_VISITOR_COOKIE', 'ec_vid' );
  *      makes the cookie span subdomains.
  *
  * The whole thing is filterable so the value is never a bare hardcoded literal
- * buried in setcookie() and so single-site / non-standard installs can override.
+ * buried in the client mint config and so single-site / non-standard installs
+ * can override.
  *
  * @return string The cookie domain (e.g. `.extrachill.com`), or '' when no
  *                 network-root domain can be derived (host-scoped fallback).
@@ -103,13 +104,15 @@ function extrachill_analytics_is_valid_visitor_id( $value ) {
 /**
  * Read the existing first-party visitor id from the cookie WITHOUT minting.
  *
- * This is the read-only resolver used by server-side, non-pageview event
- * writes (search, 404, registration, email, etc.). Minting a cookie is the
- * pageview path's job — it owns the early `template_redirect` hook where
- * `headers_sent()` is still false. A search or 404 write happens deep in the
- * request (often after output has begun), so it must NOT try to mint; it just
- * stitches to the visitor's already-established `ec_vid` cookie when one
- * exists. Honors GPC/DNT opt-out by returning an empty string.
+ * This is the ONLY server-side identity resolver. Every consumer — pageview
+ * beacon, non-pageview event writes (search, 404, registration, email, etc.),
+ * experiment assignment — reads through it. Minting never happens server-side:
+ * a response carrying `Set-Cookie` is refused by the edge cache, so a
+ * server-side mint makes first-visit HTML responses uncacheable. The visitor's
+ * browser mints the UUID instead (see view-tracking.js and
+ * extrachill_analytics_visitor_cookie_client_config()); until that first
+ * client-side mint lands, this resolver returns '' and the event is attributed
+ * anonymously. Honors GPC/DNT opt-out by returning an empty string.
  *
  * @return string The existing visitor UUID, or empty string when none is set
  *                 or the visitor has opted out.
@@ -168,102 +171,45 @@ function extrachill_analytics_beacon_is_first_party() {
 }
 
 /**
- * Read the existing first-party visitor id, or mint a new one server-side.
+ * Client-side visitor-cookie mint configuration for eligible public requests.
  *
- * The cookie value is a random UUID v4 only — never an IP, email, or
- * fingerprint. It is strictly first-party and used solely for our own
- * aggregate retention analytics; it is never shared with Mediavine or any
- * third party and never used for ad targeting.
+ * Visitor identity is minted BY THE BROWSER, never by the server. Any response
+ * carrying `Set-Cookie` is refused by the edge cache, and first-time visitors
+ * are the overwhelming majority of traffic — a server-side mint therefore made
+ * almost every HTML response uncacheable. The analytics JS (view-tracking.js)
+ * generates the UUIDv4 and sets the cookie on the client; the server stays a
+ * READ-ONLY resolver (extrachill_analytics_read_visitor_id()) and attributes
+ * anonymously until the cookie exists.
  *
- * Respects Global Privacy Control / DNT: if the visitor has opted out we return
- * an empty string and set no cookie.
+ * The computed domain is the same leading-dot NETWORK ROOT the server cookie
+ * used, exposed to JS instead of hardcoded there — ONE visitor id still spans
+ * every subdomain on this multisite, so cross-site retention stays measurable.
+ * An empty `cookieDomain` (custom-domain host, opt-out, or a non-template
+ * runtime) tells the JS to never mint on that page.
  *
- * Must be called before output starts (headers not yet sent) so setcookie()
- * works. This is safe from both template_redirect and the pageview REST beacon,
- * whose response headers have not been sent yet. The result is memoized per
- * request so later callers read the already-resolved id without re-minting.
- *
- * @return string The visitor UUID, or empty string if opted out / cannot mint.
+ * @return array{cookieName:string,cookieDomain:string,cookieMaxAge:int} Mint
+ *               config for view-tracking.js. `HttpOnly` is necessarily
+ *               forfeited by the client-side mint — an accepted trade-off for
+ *               an anonymous first-party UUID that is never PII.
  */
-function extrachill_analytics_get_or_mint_visitor_id() {
-	static $resolved = null;
+function extrachill_analytics_visitor_cookie_client_config() {
+	$config = array(
+		'cookieName'   => EXTRACHILL_ANALYTICS_VISITOR_COOKIE,
+		'cookieDomain' => '',
+		'cookieMaxAge' => YEAR_IN_SECONDS,
+	);
 
-	// Memoized: a prior early-hook call already resolved (and, if needed,
-	// minted + set the cookie for) this request. Never re-mint.
-	if ( null !== $resolved ) {
-		return $resolved;
-	}
-
-	if ( extrachill_analytics_visitor_opted_out() ) {
-		$resolved = '';
-		return $resolved;
-	}
-
-	// Read-only resolve first; if the cookie already exists we reuse it.
-	$existing = extrachill_analytics_read_visitor_id();
-	if ( '' !== $existing ) {
-		$resolved = $existing;
-		return $resolved;
-	}
-
-	$cookie_name = EXTRACHILL_ANALYTICS_VISITOR_COOKIE;
-	$visitor_id  = wp_generate_uuid4();
-
-	// Set the cookie for ~1 year. Secure + HttpOnly + SameSite=Lax: first-party
-	// analytics only, not readable by JS, not sent on cross-site sub-requests.
-	// Scoped to the network root (leading-dot domain) so ONE visitor id spans
-	// every subdomain on this multisite — without it each subdomain mints its
-	// own id and cross-site retention is unmeasurable.
-	// Guarded against headers_sent() as defense-in-depth; the early
-	// template_redirect hook below is what actually makes this succeed.
-	if ( ! headers_sent() ) {
-		setcookie(
-			$cookie_name,
-			$visitor_id,
-			array(
-				'expires'  => time() + YEAR_IN_SECONDS,
-				'path'     => '/',
-				'domain'   => extrachill_analytics_visitor_cookie_domain(),
-				'secure'   => true,
-				'httponly' => true,
-				'samesite' => 'Lax',
-			)
-		);
-		// Make the freshly-minted id available within this same request.
-		$_COOKIE[ $cookie_name ] = $visitor_id;
-	}
-
-	$resolved = $visitor_id;
-	return $resolved;
-}
-
-/**
- * Mint/read the visitor cookie early, before any template output starts.
- *
- * `template_redirect` fires after the main query is resolved but before
- * `get_header()` (and therefore before the theme sends any body output), so
- * `headers_sent()` is still false here and `setcookie()` succeeds. The later
- * footer enqueue on `wp_enqueue_scripts` (which runs after output has begun)
- * then reads the memoized result instead of trying — and failing — to set the
- * cookie itself.
- *
- * Unlike the singular-only pageview beacon, the cookie is primed on every
- * first-party public template request. This lets outcomes from homepages,
- * archives, and custom login/register pages reuse the same anonymous identity
- * without minting from REST, admin, cron, CLI, preview, or custom-domain
- * requests.
- *
- * @return bool True when the current request may prime visitor identity.
- */
-function extrachill_analytics_should_prime_visitor_cookie() {
 	if (
 		extrachill_analytics_visitor_opted_out()
 		|| ! extrachill_analytics_is_eligible_public_template_request()
+		|| ! extrachill_analytics_request_host_is_first_party()
 	) {
-		return false;
+		return $config;
 	}
 
-	return extrachill_analytics_request_host_is_first_party();
+	$config['cookieDomain'] = extrachill_analytics_visitor_cookie_domain();
+
+	return $config;
 }
 
 /**
@@ -319,19 +265,6 @@ function extrachill_analytics_request_host_is_first_party() {
 	return $request_host === $cookie_domain
 		|| ( strlen( $request_host ) > strlen( $suffix ) && substr( $request_host, -strlen( $suffix ) ) === $suffix );
 }
-
-/**
- * Mint/read the visitor cookie early on eligible public template requests.
- */
-function extrachill_analytics_prime_visitor_cookie() {
-	if ( ! extrachill_analytics_should_prime_visitor_cookie() ) {
-		return;
-	}
-
-	// Resolves + (when applicable) sets the cookie, memoizing for this request.
-	extrachill_analytics_get_or_mint_visitor_id();
-}
-add_action( 'template_redirect', 'extrachill_analytics_prime_visitor_cookie' );
 
 /**
  * Script handle for the shared, network-activated Chart.js v4 asset.
@@ -483,12 +416,27 @@ function extrachill_analytics_enqueue_view_tracking() {
 		)
 	);
 
+	// Client-side visitor-cookie mint config. The domain is empty whenever this
+	// request must not mint (custom-domain host, GPC/DNT opt-out, non-template
+	// runtime), and view-tracking.js never mints without it. Cookie name,
+	// domain, and max-age are static per site, so pages that are otherwise
+	// cacheable stay cacheable — no per-visitor state ever reaches the markup.
+	$cookie_config = extrachill_analytics_visitor_cookie_client_config();
+
 	$config = array(
-		'postId'      => $post_id,
-		'sourcePath'  => $source_path,
-		'routeFamily' => $route_family,
-		'proof'       => extrachill_analytics_pageview_proof( $post_id, $source_path, $route_family, $request_host ),
-		'endpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
+		'postId'       => $post_id,
+		'sourcePath'   => $source_path,
+		'routeFamily'  => $route_family,
+		'proof'        => extrachill_analytics_pageview_proof(
+			$post_id,
+			$source_path,
+			$route_family,
+			$request_host
+		),
+		'endpoint'     => rest_url( 'wp-abilities/v1/abilities/extrachill/track-page-view/run' ),
+		'cookieName'   => $cookie_config['cookieName'],
+		'cookieDomain' => $cookie_config['cookieDomain'],
+		'cookieMaxAge' => $cookie_config['cookieMaxAge'],
 	);
 
 	wp_add_inline_script(

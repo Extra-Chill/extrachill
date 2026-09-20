@@ -156,7 +156,10 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 		$_SERVER['HTTP_SEC_GPC'] = '1';
 
 		$this->assertTrue( extrachill_analytics_is_eligible_public_template_request() );
-		$this->assertFalse( extrachill_analytics_should_prime_visitor_cookie() );
+		$this->assertSame(
+			'',
+			extrachill_analytics_visitor_cookie_client_config()['cookieDomain']
+		);
 	}
 
 	/**

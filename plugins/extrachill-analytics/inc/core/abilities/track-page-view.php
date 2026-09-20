@@ -128,11 +128,14 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	}
 
 	// Resolve identity from this request's first-party cookie, never from the
-	// request body. A render-time UUID would be persisted in anonymous full-page
-	// cache HTML and replayed by every visitor receiving that cache entry. The
-	// REST response can safely mint the HttpOnly cookie for a first cached visit
-	// because response headers have not been sent yet. GPC/DNT returns an empty
-	// value and keeps the pageview anonymous.
+	// request body, and never by minting: the server no longer sets `ec_vid`
+	// at all, so neither HTML nor REST responses ever carry `Set-Cookie` and
+	// every response stays edge-cacheable. The cookie is minted by the
+	// visitor's browser (view-tracking.js) — on the very first pageview the
+	// mint runs in that same script BEFORE this beacon fires, so the browser
+	// already attaches the fresh cookie here. Until then this resolves to ''
+	// and the pageview is recorded anonymously. GPC/DNT opt-out also returns
+	// an empty value via the resolver.
 	$visitor_id            = '';
 	$is_first_party_beacon = function_exists( 'extrachill_analytics_beacon_is_first_party' )
 		&& extrachill_analytics_beacon_is_first_party();
@@ -141,14 +144,6 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 	// identity guarantee and intentionally remain anonymous.
 	if ( $is_first_party_beacon && function_exists( 'extrachill_analytics_read_visitor_id' ) ) {
 		$visitor_id = extrachill_analytics_read_visitor_id();
-	}
-
-	if (
-		$is_first_party_beacon
-		&& '' === $visitor_id
-		&& function_exists( 'extrachill_analytics_get_or_mint_visitor_id' )
-	) {
-		$visitor_id = extrachill_analytics_get_or_mint_visitor_id();
 	}
 
 	// All-time view increment (post meta) is retained only for post-backed views.
