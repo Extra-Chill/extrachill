@@ -30,6 +30,13 @@ defined( 'ABSPATH' ) || exit;
  *
  * This plugin deliberately owns no tool implementations. Domain behavior lives
  * in the feature plugin that registers the ability; this is transport.
+ *
+ * Usage is recorded through ExtraChillMcp\Usage\AnalyticsObservabilityHandler
+ * rather than the adapter's null handler: Roadie shipped without
+ * instrumentation and the one correction that mattered came from two
+ * analytics events added late. Two advertised tools also means the adapter's
+ * own tags cannot say which capability anyone reached, so the handler pairs
+ * them with the resolved ability name recorded by the meta-ability.
  */
 final class McpServer {
 
@@ -105,7 +112,7 @@ final class McpServer {
 			EXTRACHILL_MCP_VERSION,
 			array( \WP\MCP\Transport\HttpTransport::class ),
 			\WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler::class,
-			\WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler::class,
+			\ExtraChillMcp\Usage\AnalyticsObservabilityHandler::class,
 			// The docblock above documents the contract a well-behaved filter
 			// should honor; it is not a guarantee. array_values() throws a
 			// TypeError on a non-array, so fall back to the canonical tool list

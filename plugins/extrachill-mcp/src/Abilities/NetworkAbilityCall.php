@@ -11,6 +11,7 @@ namespace ExtraChillMcp\Abilities;
 
 use ExtraChillMcp\Access;
 use ExtraChillMcp\Network\NetworkDispatch;
+use ExtraChillMcp\Usage\InvocationContext;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -88,6 +89,14 @@ final class NetworkAbilityCall {
 		}
 
 		$site_key = NetworkDispatch::resolve_owner( $name );
+
+		// The MCP server advertises two tools, so the transport's own
+		// observability sees every call in the network as
+		// `extrachill/ability-call`. Record the name the caller actually
+		// asked for so `mcp_tool_invoked` can carry it; see
+		// ExtraChillMcp\Usage\InvocationContext. Best-effort and never
+		// consulted by dispatch.
+		InvocationContext::record( $name, $site_key ?? NetworkDispatch::local_site_key() );
 
 		if ( null === $site_key ) {
 			return $this->call_local( $name, $parameters );
