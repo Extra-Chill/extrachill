@@ -2,7 +2,11 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "phpunit_no_tests": "fail"
+      }
+    }
   },
   "id": "extrachill",
   "remote_path": "wp-content/themes/extrachill",
