@@ -2,7 +2,7 @@
 
 MCP server for the Extra Chill platform. Exposes the WordPress ability surface to external AI clients — ChatGPT, Gemini, Claude — scoped to the permissions of the connected account.
 
-**Status:** transport complete, authentication pending. See "Authentication" below.
+**Status:** live. Transport and per-user OAuth 2.1 authentication are both shipped. See "Authentication" below.
 
 ## What this plugin is
 
@@ -43,16 +43,32 @@ Note what widening it does expose: a caller who can reach `agents/ability-search
 
 ## Authentication
 
-**Not yet implemented — the plugin is not usable by external clients until it is.**
+Per-user connection runs on OAuth 2.1, served by [`wp-native-auth`](https://github.com/chubes4/wp-native/tree/main/plugins/wp-native-auth). Per-user is the requirement, not a preference: ChatGPT rejects bearer tokens outright, and Claude's static-header mode is an organization-shared credential rather than a per-user one. Neither yields a "connected account" for authorization to scope to.
 
-Per-user connection requires OAuth 2.1: ChatGPT rejects bearer tokens outright, and Claude's static-header mode is an organization-shared credential rather than a per-user one. Without it there is no "connected account" for authorization to scope to.
+| | |
+| --- | --- |
+| Endpoint | `https://auth.extrachill.com/wp-json/extrachill-mcp/v1/mcp` |
+| Transport | streamable HTTP |
+| Grant | authorization code with PKCE (S256) |
+| Client registration | Client ID Metadata Documents, or Dynamic Client Registration (RFC 7591) |
+| Scope | `account` |
+| Client authentication | none — public clients only |
 
-Until that lands, the endpoint is reachable only by an already-authenticated WordPress session with the required capability.
+A spec-compliant client needs the endpoint and nothing else. The `401` carries the RFC 9728 `WWW-Authenticate` challenge, which points at `/.well-known/oauth-protected-resource`, which names the authorization server. Discovery walks itself from there.
+
+That challenge is emitted only when `wp-native-auth` is active — `src/Server/McpServer.php` guards on `wp_native_auth_oauth_protected_resource_url()`. Without it the endpoint still returns `401`, but bare, and a client has to guess where to authorize.
+
+### Headless clients
+
+Authorization ends in a redirect to the client's `redirect_uri`, which for a CLI client means a loopback listener. If the client runs somewhere without a browser — a VPS, a container, a CI runner, an agent sandbox — the browser resolves `127.0.0.1` to the operator's machine rather than the client's, and the authorization code never arrives.
+
+The flow is correct on both ends; the two halves are just on different hosts. Bridge it with an SSH tunnel to the client's callback port, or copy the failed redirect URL from the browser back to the client host. The durable fix is a device grant, tracked in [chubes4/wp-native#91](https://github.com/chubes4/wp-native/issues/91).
 
 ## Requirements
 
 - WordPress 6.9+ (Abilities API in core)
 - Agents API plugin — provides `agents/ability-search` and `agents/ability-call`
+- `wp-native-auth` — OAuth 2.1 authorization server and the RFC 9728 challenge
 - PHP 8.1+
 - `wordpress/mcp-adapter` ^0.6.1 (Composer)
 
