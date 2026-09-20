@@ -3,6 +3,9 @@
   "tests": {
     "tests/single-post-template.php": {
       "environment": "standalone-php"
+    },
+    "tests/related-posts-renderer.php": {
+      "environment": "standalone-php"
     }
   }
 }
