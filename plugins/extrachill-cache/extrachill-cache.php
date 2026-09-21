@@ -67,6 +67,11 @@ require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/cache-store.php';
 // requests and writes the payload to disk on shutdown. Runs inside WordPress.
 require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/page-cache.php';
 
+// Keep the generated drop-in in step with the plugin. Activation is the only
+// other writer, and it does not run on updates, so without this a deployed
+// update leaves advanced-cache.php frozen at whatever version last activated.
+add_action( 'plugins_loaded', 'extrachill_cache_maybe_refresh_dropin' );
+
 // Purge/invalidation: hooks content-change actions and clears the right blog's
 // cache. Modeled on Breeze's purge-cache.php hook set.
 require_once EXTRACHILL_CACHE_PLUGIN_DIR . 'inc/purge.php';
