@@ -106,6 +106,12 @@ if ( ! function_exists( 'get_the_terms' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_term_meta' ) ) {
+	function get_term_meta( $term_id, $key, $single = false ) {
+		return \ExtraChill\SEO\Tests\Support\TermMetaRegistry::get( (int) $term_id, (string) $key );
+	}
+}
+
 if ( ! function_exists( 'is_singular' ) ) {
 	function is_singular( $post_types = '' ) {
 		return ! empty( $GLOBALS['ec_seo_test_is_singular'] );
@@ -235,6 +241,7 @@ if ( ! class_exists( 'WP_Term' ) ) {
 
 require_once __DIR__ . '/Support/MiniBlockParser.php';
 require_once __DIR__ . '/Support/TermRegistry.php';
+require_once __DIR__ . '/Support/TermMetaRegistry.php';
 require_once __DIR__ . '/Support/VenueDataRegistry.php';
 require_once __DIR__ . '/Support/TicketUrlRegistry.php';
 

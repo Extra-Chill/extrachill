@@ -14,6 +14,7 @@ declare( strict_types=1 );
 namespace ExtraChill\SEO\Tests\Unit\Schema;
 
 use PHPUnit\Framework\TestCase;
+use ExtraChill\SEO\Tests\Support\TermMetaRegistry;
 use ExtraChill\SEO\Tests\Support\TermRegistry;
 use ExtraChill\SEO\Tests\Support\VenueDataRegistry;
 use WP_Post;
@@ -26,6 +27,7 @@ final class SchemaEventIntegrationTest extends TestCase {
 
 	protected function setUp(): void {
 		TermRegistry::reset();
+		TermMetaRegistry::reset();
 		VenueDataRegistry::reset();
 	}
 
@@ -63,6 +65,14 @@ final class SchemaEventIntegrationTest extends TestCase {
 			'taxonomy' => 'venue',
 		) );
 		TermRegistry::set( $post->ID, 'venue', array( $term ) );
+		$event_type = new WP_Term( array(
+			'term_id'  => 200,
+			'name'     => 'Concert',
+			'slug'     => 'concert',
+			'taxonomy' => 'event_type',
+		) );
+		TermRegistry::set( $post->ID, 'event_type', array( $event_type ) );
+		TermMetaRegistry::set( 200, '_schema_type', 'MusicEvent' );
 		VenueDataRegistry::set( 100, array(
 			'name'     => 'The Cabooze',
 			'address'  => '913 Cedar Ave',

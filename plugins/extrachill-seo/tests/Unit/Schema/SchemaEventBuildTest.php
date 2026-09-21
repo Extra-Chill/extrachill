@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace ExtraChill\SEO\Tests\Unit\Schema;
 
 use PHPUnit\Framework\TestCase;
+use ExtraChill\SEO\Tests\Support\TermMetaRegistry;
 use ExtraChill\SEO\Tests\Support\TermRegistry;
 use ExtraChill\SEO\Tests\Support\VenueDataRegistry;
 use WP_Post;
@@ -23,6 +24,7 @@ final class SchemaEventBuildTest extends TestCase {
 
 	protected function setUp(): void {
 		TermRegistry::reset();
+		TermMetaRegistry::reset();
 		VenueDataRegistry::reset();
 	}
 
@@ -38,14 +40,14 @@ final class SchemaEventBuildTest extends TestCase {
 		), $overrides ) );
 	}
 
-	public function test_builds_music_event_with_minimal_attrs(): void {
+	public function test_builds_event_with_minimal_attrs(): void {
 		$post   = $this->make_post();
 		$attrs  = array( 'startDate' => '2026-04-20' );
 
 		$schema = ec_seo_build_event_schema( $post, $attrs );
 
 		$this->assertNotNull( $schema );
-		$this->assertSame( 'MusicEvent', $schema['@type'] );
+		$this->assertSame( 'Event', $schema['@type'] );
 		$this->assertSame( 'https://events.example.com/events/2nd-annual-420-festival#event', $schema['@id'] );
 		$this->assertSame( '2nd Annual 420 Festival', $schema['name'] );
 		$this->assertSame( '2026-04-20', $schema['startDate'] );
