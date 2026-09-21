@@ -96,7 +96,7 @@ class BackfillEventTypeClassifyTest extends TestCase {
 		$this->assertSame( 'DJ Set', BackfillEventTypeCommand::classify( 'DJ Dave all night long' ) );
 		$this->assertSame( 'DJ Set', BackfillEventTypeCommand::classify( 'Warehouse Rave' ) );
 		$this->assertSame( 'DJ Set', BackfillEventTypeCommand::classify( 'Club Night: neon edition' ) );
-		$this->assertSame( 'Concert', BackfillEventTypeCommand::classify( 'Djembe drum circle' ) );
+		$this->assertSame( 'Other', BackfillEventTypeCommand::classify( 'Djembe drum circle' ) );
 	}
 
 	public function test_comedy_keywords(): void {
@@ -117,13 +117,19 @@ class BackfillEventTypeClassifyTest extends TestCase {
 	}
 
 	public function test_other_word_boundaries_do_not_overreach(): void {
-		$this->assertSame( 'Concert', BackfillEventTypeCommand::classify( 'Dragonfruit Fest with the band' ) );
-		$this->assertSame( 'Concert', BackfillEventTypeCommand::classify( 'Filmorassic themed night' ) );
+		// No heuristic matches these titles — they fall through to the default.
+		$this->assertSame( 'Other', BackfillEventTypeCommand::classify( 'Dragonfruit Fest with the band' ) );
+		$this->assertSame( 'Other', BackfillEventTypeCommand::classify( 'Filmorassic themed night' ) );
 	}
 
-	public function test_unmatched_title_defaults_to_concert(): void {
-		$this->assertSame( 'Concert', BackfillEventTypeCommand::classify( 'ECLIPSE: A Tribute To Pink Floyd' ) );
-		$this->assertSame( 'Concert', BackfillEventTypeCommand::classify( '' ) );
+	public function test_unmatched_title_defaults_to_other(): void {
+		$this->assertSame( 'Other', BackfillEventTypeCommand::classify( 'ECLIPSE: A Tribute To Pink Floyd' ) );
+		$this->assertSame( 'Other', BackfillEventTypeCommand::classify( '' ) );
+	}
+
+	public function test_declared_default_is_honored_when_passed(): void {
+		$this->assertSame( 'Concert', BackfillEventTypeCommand::classify( 'ECLIPSE: A Tribute To Pink Floyd', '', '', 'Concert' ) );
+		$this->assertSame( 'Karaoke', BackfillEventTypeCommand::classify( 'Any Title', '', '', 'Karaoke' ) );
 	}
 
 	public function test_priority_order(): void {

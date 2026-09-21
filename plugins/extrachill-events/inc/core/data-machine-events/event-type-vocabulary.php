@@ -40,8 +40,31 @@ function extrachill_events_init_event_type_vocabulary() {
  * Supply the Extra Chill editorial event-format vocabulary.
  *
  * Uses the accepted array-of-entries shape. The single entry carrying
- * `default` is the vocabulary fallback: it is assigned whenever an
- * AI-supplied or backfilled value cannot be resolved to another term.
+ * `default` is the vocabulary fallback: `Other` (#859).
+ *
+ * Fallback semantics, precisely:
+ *
+ * - The fallback means "unresolvable", never "confirmed". An event whose
+ *   type cannot be resolved lands in `Other` (bare schema.org `Event`) and
+ *   stays visible for audit — it is NOT asserted to be a concert. Asserting
+ *   `MusicEvent` in JSON-LD on non-evidence is a structured-data accuracy
+ *   problem independent of any archive filtering (#851).
+ * - On the ingest (upsert) path the default is never stamped by code: a
+ *   declared-but-unresolvable `eventType` value rejects the whole upsert
+ *   (data-machine-events EventUpsertValidator gate), and a missing value
+ *   leaves any existing term untouched (EventTaxonomyAssigner::processEventType).
+ *   The default reaches the model as prompt text instead — data-machine-events
+ *   tells the AI "if none of them clearly fit, choose <default>" — so moving
+ *   the declaration to `Other` retargets that coercion automatically.
+ * - The default IS stamped by code on the direct-update path
+ *   (data-machine-events EventUpdateAbilities resolves any declared-but-
+ *   unresolvable value to the default term) and by this plugin's
+ *   backfill-event-type CLI, which resolves its final fallback from the
+ *   declared default rather than a hardcoded name.
+ * - Matching is case-insensitive against term name, slug, AND schema_type,
+ *   in declaration order. Because of the schema_type arm, a bare "Event"
+ *   value resolves to the FIRST `Event`-mapped entry (Karaoke) — declaration
+ *   order is load-bearing; do not reorder casually.
  *
  * @param array $vocabulary Default Schema.org vocabulary from data-machine-events.
  * @return array Replacement vocabulary entries.
@@ -54,7 +77,7 @@ function extrachill_events_event_type_vocabulary( $vocabulary ) {
 			'name'        => 'Concert',
 			'slug'        => 'concert',
 			'schema_type' => 'MusicEvent',
-			'default'     => true,
+			'default'     => false,
 		),
 		array(
 			'name'        => 'DJ Set',
@@ -96,7 +119,7 @@ function extrachill_events_event_type_vocabulary( $vocabulary ) {
 			'name'        => 'Other',
 			'slug'        => 'other',
 			'schema_type' => 'Event',
-			'default'     => false,
+			'default'     => true,
 		),
 	);
 }

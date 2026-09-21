@@ -17,7 +17,10 @@
  *      DanceEvent -> Dance Party; TheaterEvent / SportsEvent /
  *      ExhibitionEvent / Event fall through to heuristics.
  *   3. Title keyword heuristics ({@see BackfillEventTypeCommand::classify_title()}).
- *   4. Default -> the vocabulary's declared default term (Concert).
+ *   4. Default -> the vocabulary's declared default term. The Extra Chill
+ *      vocabulary declares `Other` (#859): an unresolvable event is not
+ *      evidence of a concert, and it must stay visible for audit rather
+ *      than wearing a MusicEvent schema type.
  *
  * Writes are a direct `wp_set_object_terms()` term assignment — the AI and
  * upsert handler paths are deliberately bypassed. The vocabulary itself is
@@ -53,9 +56,6 @@ class BackfillEventTypeCommand {
 
 	/** Post type the taxonomy is registered for. */
 	public const POST_TYPE = 'data_machine_events';
-
-	/** Vocabulary term assigned when nothing else resolves. */
-	private const DEFAULT_TERM = 'Concert';
 
 	/**
 	 * Legacy Schema.org terms seeded before the Extra Chill vocabulary
@@ -326,7 +326,7 @@ class BackfillEventTypeCommand {
 				}
 				$legacy_attr = $this->extract_block_event_type( (string) $row['post_content'] );
 
-				$name = self::classify( (string) $row['post_title'], $legacy_slug, $legacy_attr );
+				$name = self::classify( (string) $row['post_title'], $legacy_slug, $legacy_attr, $default_term_name );
 
 				// Attribute the resolution source for the report.
 				if ( '' !== $legacy_slug && '' !== self::resolve_legacy( $legacy_slug ) ) {
@@ -405,14 +405,18 @@ class BackfillEventTypeCommand {
 	 *   1. $legacy_type (canonical: the assigned legacy term slug).
 	 *   2. $secondary_legacy_type (derived: the eventType block attribute).
 	 *   3. Title keyword heuristics.
-	 *   4. The default term.
+	 *   4. $default_term — the vocabulary's declared default. Production
+	 *      callers must pass the resolved default name; the parameter
+	 *      default only mirrors the Extra Chill vocabulary's current
+	 *      declaration (`Other`) so direct static calls stay total.
 	 *
 	 * @param string $title                 Event title.
 	 * @param string $legacy_type           Legacy Schema.org type or term slug ('', when none).
 	 * @param string $secondary_legacy_type Fallback legacy value used when $legacy_type falls through.
+	 * @param string $default_term          Vocabulary term assigned when nothing resolves.
 	 * @return string Vocabulary term name (e.g. 'Concert', 'Karaoke', 'Trivia & Games').
 	 */
-	public static function classify( string $title, string $legacy_type = '', string $secondary_legacy_type = '' ): string {
+	public static function classify( string $title, string $legacy_type = '', string $secondary_legacy_type = '', string $default_term = 'Other' ): string {
 		foreach ( array( $legacy_type, $secondary_legacy_type ) as $legacy ) {
 			$resolved = self::resolve_legacy( $legacy );
 			if ( '' !== $resolved ) {
@@ -422,7 +426,7 @@ class BackfillEventTypeCommand {
 
 		$matched = self::classify_title( $title );
 
-		return '' !== $matched ? $matched : self::DEFAULT_TERM;
+		return '' !== $matched ? $matched : $default_term;
 	}
 
 	/**
