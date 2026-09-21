@@ -6,6 +6,13 @@
   },
   "id": "extrachill-ai-adventure",
   "remote_path": "wp-content/plugins/extrachill-ai-adventure",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "webpack.config.js"
+      ]
+    }
+  },
   "version_targets": [
     {
       "file": "extrachill-ai-adventure.php",
