@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.13.2] - 2026-09-21
+
+### Changed
+- add continuous release pipeline
+- extract shared related-posts section renderer for network reuse
+
 ## [2.13.1] - 2026-09-18
 
 ### Fixed
