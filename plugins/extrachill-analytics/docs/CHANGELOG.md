@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.0] - 2026-09-21
+
+### Added
+- migrate Link Page analytics storage
+- add mcp_session_started and mcp_tool_invoked event types
+
+### Changed
+- add continuous release pipeline
+
+### Fixed
+- mint visitor id client-side to keep HTML edge-cacheable
+
 ## [0.36.4] - 2026-09-19
 
 ### Changed
