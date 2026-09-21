@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.4] - 2026-09-21
+
+### Fixed
+- regenerate the drop-in when the plugin version changes
+
 ## [0.3.3] - 2026-09-21
 
 ### Changed
