@@ -6,6 +6,11 @@
   },
   "id": "extrachill-contact",
   "remote_path": "wp-content/plugins/extrachill-contact",
+  "scopes": {
+    "release": {
+      "exclude": ["src/**"]
+    }
+  },
   "version_targets": [
     {
       "file": "extrachill-contact.php",
