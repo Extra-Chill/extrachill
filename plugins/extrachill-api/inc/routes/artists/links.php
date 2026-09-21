@@ -148,12 +148,22 @@ function extrachill_api_artist_links_put_handler( WP_REST_Request $request ) {
 			return new WP_Error( 'ability_not_found', 'extrachill-artist-platform plugin is required.', array( 'status' => 500 ) );
 		}
 
-		$result = $ability->execute(
-			array(
-				'artist_id' => $artist_id,
-				'links'     => $body['links'],
-			)
+		$save_input = array(
+			'artist_id' => $artist_id,
+			'links'     => $body['links'],
 		);
+
+		// Clearing every link from a populated Link Page is refused by storage
+		// unless the caller states the intent explicitly, so a bad client state
+		// can never silently wipe a page. Forward that intent, strictly: only a
+		// real boolean true counts, matching the runtime's own check, so a
+		// stray "true"/1 in a request body cannot authorise the destructive
+		// write. See extrachill-artist-platform#225.
+		if ( isset( $body['allow_empty'] ) && true === $body['allow_empty'] ) {
+			$save_input['allow_empty'] = true;
+		}
+
+		$result = $ability->execute( $save_input );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
