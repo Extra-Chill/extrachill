@@ -2,7 +2,6 @@
 
 # Additional build and development files
 composer.lock
-package-lock.json
 .claude/
 .buildignore
 build.sh
