@@ -363,7 +363,10 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 		return null;
 	}
 
-	$name = html_entity_decode( wp_strip_all_tags( $post->post_title ), ENT_QUOTES, 'UTF-8' );
+	// Tags stripped here; entity decoding happens once at the serialization
+	// boundary (ec_seo_get_schema_graph()) so this value is emitted the same
+	// way as every other text value in the document.
+	$name = wp_strip_all_tags( $post->post_title );
 
 	// Resolve venue term + venue data (city/state/zip/country/timezone)
 	// via the data-machine-events public integration API.

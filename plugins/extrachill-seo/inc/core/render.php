@@ -117,10 +117,9 @@ function ec_seo_render_head( $context = array() ) {
 	}
 
 	// --- Schema.org JSON-LD ---
-	$graph = array();
-
-	/** This filter is documented in inc/schema/schema-output.php. */
-	$graph = apply_filters( 'extrachill_seo_schema_graph', $graph );
+	// Same collection + normalization pipeline as ec_seo_output_schema_graph()
+	// so standalone templates emit identical, entity-decoded structured data.
+	$graph = \ExtraChill\SEO\Schema\ec_seo_get_schema_graph();
 
 	if ( ! empty( $graph ) ) {
 		$schema = array(
