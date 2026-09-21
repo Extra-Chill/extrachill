@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.3] - 2026-09-21
+
+### Changed
+- adopt the shared Homeboy release train
+- adopt agents-api default provider-turn adapter for the GM loop
+
+### Fixed
+- exclude webpack.config.js from release package completeness check
+- authorize and bound adventure gameplay context
+
 ## [1.3.2] - 2026-06-15
 
 ### Changed
