@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.27.1] - 2026-09-21
+
+### Changed
+- commit the npm lockfile so releases can run
+- add continuous release pipeline
+
 ## [1.27.0] - 2026-09-18
 
 ### Added
