@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.6] - 2026-09-21
+
+### Changed
+- add continuous release pipeline
+
 ## [0.42.5] - 2026-09-19
 
 ### Fixed
