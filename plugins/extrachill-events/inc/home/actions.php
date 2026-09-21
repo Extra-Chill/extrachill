@@ -37,6 +37,18 @@ function extrachill_events_home_calendar_stats() {
 add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_home_calendar_stats', 15 );
 
 /**
+ * Render the homepage promoted-event card, gated on the viewer's Local Scene.
+ *
+ * @hook extrachill_events_home_before_calendar
+ * @return void
+ * @since 0.68.0
+ */
+function extrachill_events_home_promoted_event_card() {
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/promoted-event-card.php';
+}
+add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_home_promoted_event_card', 18 );
+
+/**
  * Render the homepage feature cards (My Shows + Submit) below the badges.
  *
  * @hook extrachill_events_home_before_calendar
@@ -47,6 +59,25 @@ function extrachill_events_home_feature_cards() {
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/feature-cards.php';
 }
 add_action( 'extrachill_events_home_before_calendar', 'extrachill_events_home_feature_cards', 20 );
+
+/**
+ * Render promoted upcoming events on a location taxonomy archive
+ *
+ * Prepends 1-3 promoted events above the chronological calendar/description
+ * furniture. Runs before the venue badges (priority 5) so the promotion
+ * reads first.
+ *
+ * @hook extrachill_archive_below_description
+ * @return void
+ * @since 0.68.0
+ */
+function extrachill_events_location_archive_promoted_events() {
+	if ( ! is_tax( 'location' ) ) {
+		return;
+	}
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/templates/location-promoted-events.php';
+}
+add_action( 'extrachill_archive_below_description', 'extrachill_events_location_archive_promoted_events', 4 );
 
 /**
  * Render venue badges on a location taxonomy archive

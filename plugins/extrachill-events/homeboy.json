@@ -104,6 +104,11 @@
             "runtime": "host"
           },
           {
+            "name": "promoted-events-unit",
+            "config": "phpunit-promoted-events-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "network-block",
             "config": "phpunit-network-block.xml.dist",
             "runtime": "host"

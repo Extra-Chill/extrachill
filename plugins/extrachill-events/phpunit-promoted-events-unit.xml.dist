@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			promoted-events-unit: pure-PHP unit tests for the promoted-event
+			render surfaces (#866) — the location-archive callout, the Local
+			Scene-gated homepage card, and the shared resolver's caching and
+			invalidation contract. The suite relies on file-level WP doubles
+			(wp_cache_get/set, is_tax, get_queried_object) and fakes for the
+			data-machine-events soft dependency, so it must run on the host
+			runtime where no real WordPress is loaded; in the managed sandbox
+			real WordPress and the real data-machine-events classes win every
+			function_exists()/class_exists() guard and the doubles never
+			engage. The doubles live in Stubs/promoted-events-stubs.php and the
+			two Stubs/promoted-events-dm-*-double.php files (split one class
+			per file/namespace per phpcs), local to this suite, because
+			sibling pure suites define the same symbols; a shared file would
+			make whichever loads first win.
+		-->
+		<testsuite name="promoted-events-unit">
+			<file>tests/Unit/Core/PromotedEventsResolverTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

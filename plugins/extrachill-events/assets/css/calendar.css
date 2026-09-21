@@ -400,3 +400,76 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Promoted-event surfaces: location-archive callout + homepage card (#866). */
+.promoted-events {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.promoted-events__heading {
+    grid-column: 1 / -1;
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--font-size-lg);
+}
+
+/* Archive callout sits directly under the taxonomy description; homepage
+   card sits after the location badges and calendar stats — give each a
+   margin that matches its position in the surrounding layout. */
+.promoted-events--archive {
+    margin-top: var(--spacing-md);
+}
+
+.promoted-events--home {
+    margin-top: var(--spacing-xl);
+}
+
+.promoted-event-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-lg);
+    background: var(--card-background);
+    border: 1px solid var(--accent);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: var(--card-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.promoted-event-card:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+.promoted-event-card__label {
+    align-self: flex-start;
+    padding: 2px var(--spacing-xs);
+    background: var(--accent);
+    color: var(--background-color);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.promoted-event-card__title {
+    margin: 0;
+}
+
+.promoted-event-card__date,
+.promoted-event-card__venue {
+    margin: 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 600px) {
+    .promoted-events {
+        grid-template-columns: 1fr;
+    }
+}
