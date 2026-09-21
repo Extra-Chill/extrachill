@@ -90,7 +90,10 @@ class GenreSyncTest extends TestCase {
 
 	public function test_union_returns_empty_for_no_usable_input(): void {
 		$this->assertSame( array(), GenreSync::union_genres( array() ) );
-		$this->assertSame( array(), GenreSync::union_genres( array( 11 => array(), 22 => 'nope' ) ) );
+		$this->assertSame( array(), GenreSync::union_genres( array(
+			11 => array(),
+			22 => 'nope',
+		) ) );
 	}
 
 	// --- decode_genre_slugs() ---
@@ -158,6 +161,20 @@ class GenreSyncTest extends TestCase {
 		$this->assertFalse( GenreSync::is_import_locked_taxonomy( 'artist', 'data_machine_events' ) );
 		$this->assertFalse( GenreSync::is_import_locked_taxonomy( 'location', 'data_machine_events' ) );
 		$this->assertFalse( GenreSync::is_import_locked_taxonomy( '', 'data_machine_events' ) );
+	}
+
+	// --- is_classification_locked_post_type() ---
+
+	public function test_events_post_type_is_classification_locked(): void {
+		$this->assertTrue( GenreSync::is_classification_locked_post_type( 'data_machine_events' ) );
+	}
+
+	public function test_other_post_types_are_not_classification_locked(): void {
+		$this->assertFalse( GenreSync::is_classification_locked_post_type( 'post' ) );
+		$this->assertFalse( GenreSync::is_classification_locked_post_type( 'topic' ) );
+		$this->assertFalse( GenreSync::is_classification_locked_post_type( 'artist_profile' ) );
+		$this->assertFalse( GenreSync::is_classification_locked_post_type( 'festival_wire' ) );
+		$this->assertFalse( GenreSync::is_classification_locked_post_type( '' ) );
 	}
 
 	// --- strip_genre_tool_param() ---

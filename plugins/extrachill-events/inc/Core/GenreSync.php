@@ -131,6 +131,21 @@ final class GenreSync {
 	}
 
 	/**
+	 * Whether the network term classifier is vetoed for this post type.
+	 *
+	 * The classifier runs upstream of the import lockout and writes genre
+	 * directly, so the locked post type is refused at scheduling time: an
+	 * event's genres are the projection of its performers' genres, never a
+	 * per-event AI selection (Extra-Chill/extrachill-network#237).
+	 *
+	 * @param string $post_type Post type being considered for classification.
+	 * @return bool True when automatic classification must be refused.
+	 */
+	public static function is_classification_locked_post_type( string $post_type ): bool {
+		return self::LOCKED_POST_TYPE === $post_type;
+	}
+
+	/**
 	 * Strip the genre parameter from the upsert_event tool schema.
 	 *
 	 * Runs on the datamachine_tools registry: the generic taxonomy parameter

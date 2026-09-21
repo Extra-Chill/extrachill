@@ -35,6 +35,11 @@
  *  - Fan-out for an artist with more than GenreSync::FANOUT_INLINE_THRESHOLD
  *    events is queued through Action Scheduler (shipped by data-machine,
  *    which this plugin requires), never inline; wp_cron is the fallback.
+ *  - `extrachill_network_should_classify_post` — veto automatic network
+ *    term classification for event posts. The classifier assigns genre
+ *    through wp_set_object_terms, so the import lockout never sees it;
+ *    this projection is the only genre writer
+ *    (Extra-Chill/extrachill-network#237).
  *
  * @package ExtraChillEvents
  * @since 0.65.1
@@ -63,6 +68,7 @@ const EXTRACHILL_EVENTS_GENRE_FANOUT_BATCH_SIZE = 500;
  */
 function extrachill_events_init_genre_sync() {
 	add_action( 'datamachine_event_taxonomy_processed', 'extrachill_events_sync_event_genres' );
+	add_filter( 'extrachill_network_should_classify_post', 'extrachill_events_skip_network_genre_classification', 10, 3 );
 
 	foreach ( array( 'added_term_meta', 'updated_term_meta', 'deleted_term_meta' ) as $meta_hook ) {
 		add_action( $meta_hook, 'extrachill_events_on_artist_genres_meta', 10, 3 );
@@ -70,6 +76,45 @@ function extrachill_events_init_genre_sync() {
 
 	add_action( EXTRACHILL_EVENTS_GENRE_FANOUT_HOOK, 'extrachill_events_genre_fanout_worker', 10, 1 );
 	add_action( EXTRACHILL_EVENTS_GENRE_FANOUT_CRON_HOOK, 'extrachill_events_genre_fanout_worker', 10, 1 );
+}
+
+/**
+ * Veto automatic network term classification for event posts.
+ *
+ * The import lockout closes Data Machine's upsert path, but the network
+ * classifier runs on post transitions and writes through wp_set_object_terms,
+ * so the lock never sees it. Events are only eligible for genre, and genre
+ * on an event is a performer projection — never a per-event AI selection.
+ * This fires before the job is queued
+ * (Extra-Chill/extrachill-network#237).
+ *
+ * Blanket for the post type, matching the import lockout exactly. An
+ * event_type-aware refinement is deferred pending
+ * Extra-Chill/extrachill-events#859. Explicit classification requested
+ * through the network CLI or abilities still runs — the network filter
+ * guards only the automatic path.
+ *
+ * @param bool   $should_classify Whether the network will classify the post.
+ * @param mixed  $post            Post under consideration. Typed loosely
+ *                                because a filter argument is whatever the
+ *                                caller passed, and this plugin does not own
+ *                                the call site — the instanceof below is a
+ *                                real guard, not a formality.
+ * @param string $site_key        Network site key.
+ * @return bool False for the locked event post type, otherwise the input.
+ */
+function extrachill_events_skip_network_genre_classification( $should_classify, $post, $site_key ) {
+	unset( $site_key );
+
+	if ( ! $should_classify ) {
+		return $should_classify;
+	}
+
+	if ( $post instanceof WP_Post && \ExtraChillEvents\Core\GenreSync::is_classification_locked_post_type( $post->post_type ) ) {
+		return false;
+	}
+
+	return $should_classify;
 }
 
 /**
