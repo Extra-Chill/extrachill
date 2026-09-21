@@ -5,11 +5,19 @@
  * @package ExtraChillEvents\Tests\Unit\Core
  */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces.OneDeclarationPerFile -- Same convention as tests/bootstrap.php: this fixture intentionally mixes WP function shims across several real-code namespaces (ExtraChillEvents\Core, ExtraChillEvents\Abilities, ExtraChillEvents\Cli) in one file so each stub resolves via PHP's namespace-fallback rules for the production code that calls it.
+
 namespace ExtraChillEvents\Core;
 
-function wp_get_ability( string $name ) {
-	return $GLOBALS['ec_persisted_qualification_abilities'][ $name ] ?? null;
-}
+// wp_get_ability() is intentionally NOT stubbed here. QualifyFingerprinter
+// (this namespace) calls the bareword wp_get_ability(), which PHP resolves
+// against this namespace before falling back to the global function. This
+// suite runs under a sandbox runtime where core's real global
+// wp_get_ability() (wp-includes/abilities-api.php) is already loaded and
+// PersistedQualificationContextTest registers real test-double abilities
+// via wp_register_ability() — shadowing it here would silently defeat that
+// and resurrect the redeclaration risk fixed in
+// https://github.com/Extra-Chill/extrachill-events/issues/846.
 
 /**
  * @phpstan-assert-if-true \WP_Error $thing
@@ -37,15 +45,18 @@ function wp_remote_retrieve_header(): string {
 	return '';
 }
 
-class QualifyVerdictsTable {
-	public function meets_pause_confirmation(): bool {
-		return false;
-	}
-}
+// QualifyVerdictsTable is intentionally NOT stubbed here. The real class
+// (inc/Core/QualifyVerdictsTable.php, same namespace) is already loaded in
+// this sandbox runtime — UnqualifiableFlowsCommand instantiates it directly.
+// meets_pause_confirmation() only consults verdict history via a real,
+// already-activated table that has no rows for this test's made-up URLs, so
+// it returns false exactly like the old stub did, without needing any
+// seeded state. See https://github.com/Extra-Chill/extrachill-events/issues/846.
 
 namespace ExtraChillEvents\Abilities;
 
 function add_action( $hook_name, $callback, $priority = 10, $accepted_args = 1 ): bool {
+	unset( $hook_name, $callback, $priority, $accepted_args );
 	return true;
 }
 
@@ -68,50 +79,19 @@ function untrailingslashit( string $value ): string {
 	return rtrim( $value, '/\\' );
 }
 
-namespace DataMachine\Core;
-
-class ExecutionContext {
-	public static array $scope = array();
-	public static int $classify_calls = 0;
-	public static int $lifecycle_writes = 0;
-	public static array $classified_identifiers = array();
-
-	public static function fromFlow( int $pipeline_id, int $flow_id, string $flow_step_id, ?string $job_id, string $handler_type ): self {
-		self::$scope = compact( 'pipeline_id', 'flow_id', 'flow_step_id', 'job_id', 'handler_type' );
-		return new self();
-	}
-
-	public function classifySourceItems( array $identifiers, int $max_items = 0 ): array {
-		++self::$classify_calls;
-		self::$classified_identifiers = $identifiers;
-		return array(
-			'classifications' => array_map(
-				static fn( string $identifier ): array => array(
-					'item_identifier'    => $identifier,
-					'processed'          => true,
-					'reprocess_eligible' => false,
-					'actively_claimed'   => false,
-					'selected'           => false,
-				),
-				$identifiers
-			),
-			'diagnostics'     => array(
-				'actively_claimed'             => 0,
-				'processed_reprocess_eligible' => 0,
-				'selected'                     => 0,
-				'max_items'                    => $max_items,
-			),
-		);
-	}
-}
-
-namespace DataMachineEvents\Utilities;
-
-class EventIdentifierGenerator {
-	public static function generate( string $title, string $start_date, string $venue ): string {
-		return md5( strtolower( trim( $title ) ) . $start_date . strtolower( trim( $venue ) ) );
-	}
-}
+// DataMachine\Core\ExecutionContext and DataMachineEvents\Utilities\EventIdentifierGenerator
+// are intentionally NOT stubbed here. Both are real classes from mounted
+// dependency plugins (data-machine, data-machine-events) that are already
+// loaded in this sandbox runtime — QualifyFingerprinter guards its own calls
+// with class_exists() precisely because these are real, optional
+// dependencies, not managed-runtime primitives to duplicate. Declaring
+// same-named fixture classes here previously fataled with "Cannot redeclare
+// class" the moment this file was reachable from a sandbox suite. The test
+// now seeds real datamachine_processed_items rows (see
+// PersistedQualificationContextTest::seed_processed_items()) so the real
+// ExecutionContext::classifySourceItems() reports the same "already
+// processed" outcome the old fake unconditionally returned. See
+// https://github.com/Extra-Chill/extrachill-events/issues/846.
 
 namespace ExtraChillEvents\Cli;
 
@@ -122,11 +102,11 @@ function is_wp_error( $thing ): bool {
 	return $thing instanceof \WP_Error;
 }
 
-class FlowOps {
-	public static array $repairs = array();
-
-	public static function repair_flow_source_url( int $flow_id, string $current_url, string $proposed_url ): bool {
-		self::$repairs[] = compact( 'flow_id', 'current_url', 'proposed_url' );
-		return true;
-	}
-}
+// FlowOps is intentionally NOT stubbed here. The real class
+// (inc/Cli/FlowOps.php, same namespace) is already loaded in this sandbox
+// runtime — UnqualifiableFlowsCommand's apply-repair path calls
+// FlowOps::repair_flow_source_url() directly, which reads and writes a real
+// datamachine_flows row via $wpdb. The test seeds that row (see
+// PersistedQualificationContextTest::seed_flow_row()) so the real repair
+// genuinely succeeds instead of being recorded by a fake. See
+// https://github.com/Extra-Chill/extrachill-events/issues/846.
