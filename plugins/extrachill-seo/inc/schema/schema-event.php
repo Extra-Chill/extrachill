@@ -2,7 +2,7 @@
 /**
  * Event Schema for Single Event Posts
  *
- * Outputs schema.org MusicEvent JSON-LD on singular `data_machine_events`
+ * Outputs schema.org Event JSON-LD on singular `data_machine_events`
  * posts. Reads structured event data from the `data-machine-events/event-details`
  * block stored in post_content. Builds a fully-populated Event entity with
  * location (Place + PostalAddress), performer, organizer, and offers
@@ -11,12 +11,14 @@
  * Hooks the shared `extrachill_seo_schema_graph` filter so the entity is
  * appended to the consolidated @graph emitted by inc/schema/schema-output.php.
  *
- * Extension surface: this emitter defaults `@type` to `MusicEvent`. Future
- * work can detect ComedyEvent / TheaterEvent / Festival / DanceEvent /
- * SportsEvent via taxonomy or block-attribute signals once we have data on
- * the event-type histogram; this PR stays scoped to the MusicEvent default.
+ * `@type` is read from the post's `event_type` term `_schema_type` meta
+ * (owned by data-machine-events) and validated against a local allow-list
+ * of Schema.org Event subtypes. Missing term, missing meta, or an
+ * unrecognised value falls back to `Event`. The mapping is never
+ * re-derived from term names or the block's `eventType` attribute.
  *
  * @see https://github.com/Extra-Chill/extrachill-seo/issues/12
+ * @see https://github.com/Extra-Chill/extrachill-seo/issues/64
  * @package ExtraChill\SEO
  */
 
@@ -175,6 +177,25 @@ function ec_seo_parse_event_price( string $price ): array {
 }
 
 /**
+ * Schema.org Event subtypes this emitter will publish as @type.
+ *
+ * Local allow-list so this plugin does not depend on data-machine-events
+ * for validation. data-machine-events owns the term-to-type mapping via
+ * `_schema_type` term meta; this list only guards emission against an
+ * unrecognised future vocabulary value. Mirrors EventSchemaProvider::EVENT_TYPES.
+ */
+const EVENT_SCHEMA_TYPES = array(
+	'Event',
+	'MusicEvent',
+	'Festival',
+	'ComedyEvent',
+	'DanceEvent',
+	'TheaterEvent',
+	'SportsEvent',
+	'ExhibitionEvent',
+);
+
+/**
  * Resolution outcomes for Event offers.url resolution.
  *
  * These make degradation observable: the two permalink fallbacks are
@@ -185,6 +206,42 @@ const RESOLUTION_VENDOR_URL                   = 'vendor_url';
 const RESOLUTION_PASSTHROUGH                  = 'passthrough';
 const RESOLUTION_FALLBACK_HELPERS_UNAVAILABLE = 'fallback_helpers_unavailable';
 const RESOLUTION_FALLBACK_UNPARSEABLE         = 'fallback_unparseable';
+
+/**
+ * Resolve the JSON-LD `@type` for an event post from `event_type` term meta.
+ *
+ * Reads `_schema_type` on the post's assigned `event_type` terms. Does not
+ * map term names and does not consult the event-details block's `eventType`
+ * attribute — data-machine-events owns that mapping and already persists it.
+ *
+ * Fallback chain:
+ *   1. First assigned `event_type` term (get_the_terms order) whose
+ *      `_schema_type` is in EVENT_SCHEMA_TYPES.
+ *   2. `Event` when no term is assigned, meta is missing/empty, or every
+ *      assigned value is unrecognised.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Recognised Schema.org Event subtype.
+ */
+function ec_seo_resolve_event_schema_type( int $post_id ): string {
+	$terms = get_the_terms( $post_id, 'event_type' );
+	if ( ! is_array( $terms ) || empty( $terms ) ) {
+		return 'Event';
+	}
+
+	foreach ( $terms as $term ) {
+		if ( ! ( $term instanceof \WP_Term ) ) {
+			continue;
+		}
+
+		$schema_type = trim( (string) get_term_meta( (int) $term->term_id, '_schema_type', true ) );
+		if ( in_array( $schema_type, EVENT_SCHEMA_TYPES, true ) ) {
+			return $schema_type;
+		}
+	}
+
+	return 'Event';
+}
 
 /**
  * Compute the URL to emit as the Event offers.url.
@@ -326,7 +383,7 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 	}
 
 	$schema = array(
-		'@type'               => 'MusicEvent',
+		'@type'               => ec_seo_resolve_event_schema_type( (int) $post->ID ),
 		'@id'                 => $permalink . '#event',
 		'name'                => $name,
 		'url'                 => $permalink,
@@ -481,7 +538,7 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 }
 
 /**
- * Append MusicEvent schema to the graph on single event posts.
+ * Append Event schema to the graph on single event posts.
  *
  * @param array $graph Current schema graph.
  * @return array Graph with event entity appended when applicable.
