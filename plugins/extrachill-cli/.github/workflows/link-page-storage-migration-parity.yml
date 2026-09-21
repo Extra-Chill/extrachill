@@ -1,0 +1,158 @@
+name: Link Page storage migration parity
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/link-page-storage-migration-parity.yml'
+      - 'tests/integration/**'
+      - 'inc/Commands/LinkPages/**'
+  workflow_dispatch:
+
+jobs:
+  multisite-mariadb:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: wordpress
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: cli }
+      - uses: actions/checkout@v4
+        with: { repository: Extra-Chill/extrachill-link-pages, ref: main, path: link-pages }
+      - uses: actions/checkout@v4
+        with: { repository: Extra-Chill/extrachill-artist-platform, ref: main, path: artist }
+      - uses: actions/checkout@v4
+        with: { repository: Extra-Chill/extrachill-analytics, ref: feat-257-link-page-migration, path: analytics }
+      - uses: actions/checkout@v4
+        with: { repository: Extra-Chill/extrachill-network, ref: main, path: network }
+      - uses: actions/checkout@v4
+        with: { repository: Extra-Chill/extrachill-users, ref: main, path: users }
+      - uses: shivammathur/setup-php@v2
+        with: { php-version: '8.4', extensions: mysqli }
+      - name: Install disposable WordPress multisite
+        run: |
+          curl -sSLo wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x wp-cli.phar
+          mkdir wordpress artifacts
+          ./wp-cli.phar core download --path=wordpress
+          ./wp-cli.phar config create --path=wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306
+          ./wp-cli.phar core install --path=wordpress --url=fixture.test --title=Fixture --admin_user=admin --admin_password=password --admin_email=admin@example.test
+          ./wp-cli.phar core multisite-convert --path=wordpress --title='Migration Proof Network' --base=/
+          ln -s "$GITHUB_WORKSPACE/link-pages" wordpress/wp-content/plugins/extrachill-link-pages
+          ln -s "$GITHUB_WORKSPACE/artist" wordpress/wp-content/plugins/extrachill-artist-platform
+          ln -s "$GITHUB_WORKSPACE/analytics" wordpress/wp-content/plugins/extrachill-analytics
+          ln -s "$GITHUB_WORKSPACE/cli" wordpress/wp-content/plugins/extrachill-cli
+          ln -s "$GITHUB_WORKSPACE/network" wordpress/wp-content/plugins/extrachill-network
+          ln -s "$GITHUB_WORKSPACE/users" wordpress/wp-content/plugins/extrachill-users
+      - name: Activate real plugin composition
+        run: |
+          ./wp-cli.phar plugin activate extrachill-network --network --path=wordpress
+          ./wp-cli.phar eval-file "$GITHUB_WORKSPACE/cli/tests/integration/storage-migration-multisite.php" setup-sites --path=wordpress --url=fixture.test --user=admin
+          mkdir -p wordpress/wp-content/mu-plugins
+          ln -s "$GITHUB_WORKSPACE/cli/tests/integration/storage-source-bootstrap.php" wordpress/wp-content/mu-plugins/storage-source-bootstrap.php
+          ./wp-cli.phar plugin activate extrachill-link-pages extrachill-analytics extrachill-cli --network --path=wordpress
+          ./wp-cli.phar plugin activate extrachill-artist-platform --path=wordpress --url=artist.fixture.test
+          ./wp-cli.phar plugin status extrachill-users --path=wordpress > artifacts/users-checkout-status.txt || true
+      - name: Seed exact source fixture
+        run: ./wp-cli.phar eval-file "$GITHUB_WORKSPACE/cli/tests/integration/storage-migration-multisite.php" seed --path=wordpress --url=artist.fixture.test --user=admin | tee artifacts/seed.json
+      - name: Prove command registration and guards
+        run: |
+          ./wp-cli.phar help extrachill link-pages migrate-storage --path=wordpress --url=artist.fixture.test > artifacts/help.txt
+          set +e
+          ./wp-cli.phar extrachill link-pages migrate-storage --source=4 --destination=13 --format=json --path=wordpress --url=links.fixture.test --user=admin > artifacts/wrong-site.json
+          test $? -ne 0
+          set -e
+          jq -e '.code == "wrong_source_site"' artifacts/wrong-site.json
+          set +e
+          ./wp-cli.phar extrachill link-pages migrate-storage --source=4 --destination=13 --format=json --path=wordpress --url=artist.fixture.test --user=viewer > artifacts/permission.json
+          test $? -ne 0
+          set -e
+          jq -e '.code and has("data") and (.message | contains("global --user=<network-admin>"))' artifacts/permission.json
+          set +e
+          ./wp-cli.phar extrachill link-pages migrate-storage --source=4 --destination=13 --format=json --path=wordpress --url=artist.fixture.test --user=admin --skip-plugins=extrachill-link-pages > artifacts/missing-ability.json
+          test $? -ne 0
+          set -e
+          jq -e '.code == "migration_ability_unavailable"' artifacts/missing-ability.json
+          set +e
+          EC_ANALYTICS_PARTICIPANT_FAULT=missing ./wp-cli.phar extrachill link-pages migrate-storage --source=4 --destination=13 --format=json --path=wordpress --url=artist.fixture.test --user=admin --require="$GITHUB_WORKSPACE/cli/tests/integration/participant-contract-bootstrap.php" > artifacts/missing-participant.json
+          test $? -ne 0
+          set -e
+          jq -e '.code == "required_participant_unavailable" and .data.participant == "analytics"' artifacts/missing-participant.json
+          set +e
+          EC_ANALYTICS_PARTICIPANT_FAULT=outdated ./wp-cli.phar extrachill link-pages migrate-storage --source=4 --destination=13 --format=json --path=wordpress --url=artist.fixture.test --user=admin --require="$GITHUB_WORKSPACE/cli/tests/integration/participant-contract-bootstrap.php" > artifacts/outdated-participant.json
+          test $? -ne 0
+          set -e
+          jq -e '.code == "required_participant_unavailable" and .data.participant == "analytics" and .data.contract_version == "1"' artifacts/outdated-participant.json
+      - name: Prove plan apply validate rollback
+        run: |
+          CLI='./wp-cli.phar extrachill link-pages migrate-storage --path=wordpress --url=artist.fixture.test --user=admin'
+          $CLI --source=4 --destination=13 --format=json > artifacts/plan.json
+          jq -e '.mode == "plan" and .ready == true and .source_blog_id == 4 and .destination_blog_id == 13 and .counts.posts == 2 and .participants.analytics and .participants["artist-platform"] and .caller_required_participants[0].id == "analytics" and .caller_required_participants[0].contract_version == "1" and (.participants.analytics.historical_network_events | length) == 1' artifacts/plan.json
+          FINGERPRINT=$(jq -r '.fingerprint' artifacts/plan.json)
+          $CLI --source=4 --destination=13 --apply --expect="$FINGERPRINT" --format=json > artifacts/apply.json
+          JOURNAL=$(jq -r '.journal_id' artifacts/apply.json)
+          jq -e '.mode == "apply" and .status == "applied"' artifacts/apply.json
+          $CLI --validate="$JOURNAL" --format=json > artifacts/validate.json
+          jq -e '.mode == "validate" and .status == "valid"' artifacts/validate.json
+          ./wp-cli.phar eval-file "$GITHUB_WORKSPACE/cli/tests/integration/storage-migration-multisite.php" assert-applied --path=wordpress --url=artist.fixture.test --user=admin | tee artifacts/assert-applied.json
+          $CLI --rollback="$JOURNAL" --format=json > artifacts/rollback.json
+          jq -e '.mode == "rollback" and .status == "rolled_back"' artifacts/rollback.json
+          ./wp-cli.phar eval-file "$GITHUB_WORKSPACE/cli/tests/integration/storage-migration-multisite.php" assert-rolled-back --path=wordpress --url=artist.fixture.test --user=admin | tee artifacts/assert-rolled-back.json
+      - name: Prove negative CLI cases
+        run: |
+          CLI='./wp-cli.phar extrachill link-pages migrate-storage --path=wordpress --url=artist.fixture.test --user=admin'
+          FIXTURE='./wp-cli.phar eval-file '$GITHUB_WORKSPACE'/cli/tests/integration/storage-migration-multisite.php'
+          $FIXTURE add-id-collision --path=wordpress --url=artist.fixture.test --user=admin
+          $CLI --source=4 --destination=13 --format=json > artifacts/id-collision.json
+          jq -e '.ready == false and any(.collisions[]; .type == "post_id" and .id == 200)' artifacts/id-collision.json
+          $FIXTURE remove-id-collision --path=wordpress --url=artist.fixture.test --user=admin
+          $FIXTURE add-slug-collision --path=wordpress --url=artist.fixture.test --user=admin
+          $CLI --source=4 --destination=13 --format=json > artifacts/slug-collision.json
+          jq -e '.ready == false and any(.collisions[]; .type == "slug" and .slug == "proof-one")' artifacts/slug-collision.json
+          $FIXTURE remove-slug-collision --path=wordpress --url=artist.fixture.test --user=admin
+          $FIXTURE remove-file --path=wordpress --url=artist.fixture.test --user=admin
+          $CLI --source=4 --destination=13 --format=json > artifacts/missing-file.json
+          jq -e '.ready == false and (.missing | length) > 0' artifacts/missing-file.json
+          $FIXTURE restore-file --path=wordpress --url=artist.fixture.test --user=admin
+          $CLI --source=4 --destination=13 --format=json > artifacts/drift-plan.json
+          FINGERPRINT=$(jq -r '.fingerprint' artifacts/drift-plan.json)
+          $FIXTURE add-drift --path=wordpress --url=artist.fixture.test --user=admin
+          set +e
+          $CLI --source=4 --destination=13 --apply --expect="$FINGERPRINT" --format=json > artifacts/fingerprint-drift.json
+          test $? -ne 0
+          set -e
+          jq -e '.code == "link_page_migration_source_drift"' artifacts/fingerprint-drift.json
+          $FIXTURE remove-drift --path=wordpress --url=artist.fixture.test --user=admin
+      - name: Prove interrupted recovery and mutation refusal
+        run: |
+          CLI='./wp-cli.phar extrachill link-pages migrate-storage --path=wordpress --url=artist.fixture.test --user=admin'
+          FIXTURE='./wp-cli.phar eval-file '$GITHUB_WORKSPACE'/cli/tests/integration/storage-migration-multisite.php'
+          $CLI --source=4 --destination=13 --format=json > artifacts/recovery-plan.json
+          $CLI --source=4 --destination=13 --apply --expect="$(jq -r '.fingerprint' artifacts/recovery-plan.json)" --format=json > artifacts/recovery-apply.json
+          JOURNAL=$(jq -r '.journal_id' artifacts/recovery-apply.json)
+          $FIXTURE interrupt "$JOURNAL" --path=wordpress --url=artist.fixture.test --user=admin
+          $CLI --rollback="$JOURNAL" --format=json > artifacts/recovery-rollback.json
+          jq -e '.status == "rolled_back"' artifacts/recovery-rollback.json
+          $FIXTURE assert-rolled-back --path=wordpress --url=artist.fixture.test --user=admin
+          $CLI --source=4 --destination=13 --format=json > artifacts/mutation-plan.json
+          $CLI --source=4 --destination=13 --apply --expect="$(jq -r '.fingerprint' artifacts/mutation-plan.json)" --format=json > artifacts/mutation-apply.json
+          JOURNAL=$(jq -r '.journal_id' artifacts/mutation-apply.json)
+          $FIXTURE mutate-destination --path=wordpress --url=artist.fixture.test --user=admin
+          set +e
+          $CLI --rollback="$JOURNAL" --format=json > artifacts/mutation-refusal.json
+          test $? -ne 0
+          set -e
+          jq -e '.code == "link_page_migration_rollback_incomplete"' artifacts/mutation-refusal.json
+      - name: Upload parity evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-page-storage-migration-parity
+          path: artifacts/

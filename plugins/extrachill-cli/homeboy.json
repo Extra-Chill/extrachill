@@ -23,7 +23,8 @@
       "php tests/UserLocalSceneCommandTest.php",
       "php tests/ConcertTrackingCommandTest.php",
       "php tests/RevenueCommandTest.php",
-      "php tests/RevenueCommandRuntimeTest.php"
+      "php tests/RevenueCommandRuntimeTest.php",
+      "php tests/StorageMigrationCommandTest.php"
     ]
   },
   "version_targets": [

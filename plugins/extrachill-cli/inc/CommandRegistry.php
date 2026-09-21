@@ -33,6 +33,7 @@ class CommandRegistry {
 
 			// Network commands — thin wrappers over extrachill-multisite primitives.
 			'extrachill network'                     => Commands\Network\MigratePostCommand::class,
+			'extrachill link-pages migrate-storage'  => Commands\LinkPages\StorageMigrationCommand::class,
 
 			// Analytics commands.
 			'extrachill analytics summary'           => Commands\Analytics\SummaryCommand::class,
