@@ -3,6 +3,19 @@
 use PHPUnit\Framework\TestCase;
 
 final class BootstrapAndPurityTest extends TestCase {
+	/**
+	 * These tests spawn a fresh PHP process to verify cold-boot symbol purity, which genuinely
+	 * requires a real subprocess (an in-process rewrite would stop proving what it claims to prove).
+	 * Some managed sandboxes (e.g. WordPress Playground-backed harnesses) redefine PHP_BINARY to an
+	 * in-process eval shim such as `/internal/eval.php` that cannot be exec()'d as a real interpreter.
+	 * Skip loudly there instead of failing, since host and CI runs already cover this class.
+	 */
+	private function requireSpawnablePhp(): void {
+		if ( ! is_executable( PHP_BINARY ) || 'eval.php' === basename( PHP_BINARY ) ) {
+			$this->markTestSkipped( 'Process-spawn coverage skipped: this harness reports PHP_BINARY as ' . PHP_BINARY . ', which cannot be exec()\'d as a real PHP interpreter (e.g. a sandboxed eval shim). Cold-boot symbol purity is covered by the host and CI test runs, which spawn a real PHP binary.' );
+		}
+	}
+
 	private function artistWorktree(): string {
 		$path = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform';
 		if ( ! is_dir( $path . '/inc/link-pages' ) ) {
@@ -12,6 +25,7 @@ final class BootstrapAndPurityTest extends TestCase {
 	}
 
 	private function fixture( $name, array $environment = array() ): array {
+		$this->requireSpawnablePhp();
 		$command = '';
 		foreach ( $environment as $key => $value ) { $command .= $key . '=' . escapeshellarg( $value ) . ' '; }
 		$command .= escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/' . $name );
@@ -93,6 +107,7 @@ final class BootstrapAndPurityTest extends TestCase {
 	}
 
 	public function test_representative_behavior_suite_passes_against_bundled_fallback(): void {
+		$this->requireSpawnablePhp();
 		$root = dirname( __DIR__ );
 		$external = $this->artistWorktree();
 		$command = 'LINK_PAGES_USE_FALLBACK=1 ARTIST_PLATFORM_WORKTREE=' . escapeshellarg( $external ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $root . '/tools/vendor/bin/phpunit' ) . ' -c ' . escapeshellarg( $root . '/phpunit.xml.dist' ) . ' --filter ' . escapeshellarg( '/^RuntimeTest::/' );
