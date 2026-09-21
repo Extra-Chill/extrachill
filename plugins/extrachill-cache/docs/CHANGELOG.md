@@ -2,6 +2,17 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.3] - 2026-09-21
+
+### Changed
+- adopt the shared Homeboy release train
+
+### Fixed
+- partition sunrise domain aliases and detect stale host maps
+- add domain-authorized cache purges
+- preserve safe browser policy headers
+- purge programmatic post changes
+
 ## [0.3.2] - 2026-07-18
 
 ### Fixed
