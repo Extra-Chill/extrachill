@@ -3,7 +3,13 @@
  *
  * State management for SEO audit dashboard.
  */
+/**
+ * WordPress dependencies
+ */
 import { createContext, useContext, useState, useCallback, useRef } from '@wordpress/element';
+/**
+ * Internal dependencies
+ */
 import { runAudit, continueAudit, getAuditDetails, exportAuditDetails } from '../api/client';
 
 const AuditContext = createContext();
@@ -46,7 +52,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 	}, [] );
 
 	const pollForCompletion = useCallback( async () => {
-		if ( pollingRef.current ) return;
+		if ( pollingRef.current ) {return;}
 		pollingRef.current = true;
 
 		try {
@@ -61,7 +67,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 				setProgress( null );
 				pollingRef.current = false;
 			}
-		} catch ( err ) {
+		} catch {
 			setError( 'Audit failed. Please try again.' );
 			setIsLoading( false );
 			setProgress( null );
@@ -77,7 +83,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 		try {
 			const response = await runAudit( 'full' );
 			updateFromResponse( response );
-		} catch ( err ) {
+		} catch {
 			setError( 'Audit failed. Please try again.' );
 		} finally {
 			setIsLoading( false );
@@ -97,7 +103,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 			} else {
 				setIsLoading( false );
 			}
-		} catch ( err ) {
+		} catch {
 			setError( 'Audit failed. Please try again.' );
 			setIsLoading( false );
 		}
@@ -119,7 +125,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 			setDetailsItems( response.items || [] );
 			setDetailsTotal( response.total || 0 );
 			setDetailsTotalPages( response.total_pages || 0 );
-		} catch ( err ) {
+		} catch {
 			setDetailsItems( [] );
 			setError( 'Failed to load details.' );
 		} finally {
@@ -136,7 +142,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 	}, [] );
 
 	const handleExport = useCallback( async () => {
-		if ( ! detailsCategory ) return;
+		if ( ! detailsCategory ) {return;}
 
 		try {
 			const data = await exportAuditDetails( detailsCategory );
@@ -152,7 +158,7 @@ export const AuditProvider = ( { children, initialData } ) => {
 			a.click();
 			document.body.removeChild( a );
 			URL.revokeObjectURL( url );
-		} catch ( err ) {
+		} catch {
 			setError( 'Export failed. Please try again.' );
 		}
 	}, [ detailsCategory ] );

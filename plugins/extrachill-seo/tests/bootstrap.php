@@ -37,14 +37,14 @@ if ( ! function_exists( 'parse_blocks' ) ) {
 }
 
 if ( ! function_exists( 'wp_strip_all_tags' ) ) {
-	function wp_strip_all_tags( $string, $remove_breaks = false ) {
-		$string = (string) $string;
-		$string = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $string ) ?? $string;
-		$string = strip_tags( $string );
+	function wp_strip_all_tags( $string_value, $remove_breaks = false ) {
+		$string_value = (string) $string_value;
+		$string_value = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $string_value ) ?? $string_value;
+		$string_value = strip_tags( $string_value );
 		if ( $remove_breaks ) {
-			$string = preg_replace( '/[\r\n\t ]+/', ' ', $string ) ?? $string;
+			$string_value = preg_replace( '/[\r\n\t ]+/', ' ', $string_value ) ?? $string_value;
 		}
-		return trim( $string );
+		return trim( $string_value );
 	}
 }
 

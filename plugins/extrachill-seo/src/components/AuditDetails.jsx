@@ -3,7 +3,13 @@
  *
  * Displays detailed results for a specific audit category.
  */
+/**
+ * External dependencies
+ */
 import { DataTable, Pagination, Panel, PanelHeader } from '@extrachill/components';
+/**
+ * Internal dependencies
+ */
 import { useAudit } from '../context/AuditContext';
 
 const CHECK_NAMES = {
@@ -86,7 +92,7 @@ const AuditDetails = () => {
 		handleExport,
 	} = useAudit();
 
-	if ( ! detailsCategory ) return null;
+	if ( ! detailsCategory ) {return null;}
 
 	const columns = COLUMN_SETS[ detailsCategory ] || [];
 	const title = CHECK_NAMES[ detailsCategory ] || detailsCategory;

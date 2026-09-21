@@ -1,0 +1,421 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#2 \$timestamp of function gmdate expects int\|null, int\|false given\.$#'
+			identifier: argument.type
+			count: 2
+			path: inc/abilities/redirect-conversion-abilities.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with WP_Term will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: inc/abilities/redirect-opportunities.php
+
+		-
+			message: '#^Instanceof between WP_Term and WP_Term will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: inc/abilities/redirect-opportunities.php
+
+		-
+			message: '#^Parameter \#2 \$timestamp of function gmdate expects int\|null, int\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/abilities/redirect-opportunities.php
+
+		-
+			message: '#^Parameter \#4 \$ver of function wp_enqueue_style expects bool\|string\|null, int\<0, max\>\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/admin/network-settings.php
+
+		-
+			message: '#^Offset 1 on array\{list\<string\>, list\<non\-empty\-string\>\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: inc/audit/audit-helpers.php
+
+		-
+			message: '#^Binary operation "\." between non\-falsy\-string and non\-empty\-array\|non\-falsy\-string results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: inc/audit/checks/check-redirect-links.php
+
+		-
+			message: '#^Cannot access offset ''host'' on array\{scheme\?\: string, host\?\: string, port\?\: int\<0, 65535\>, user\?\: string, pass\?\: string, path\?\: string, query\?\: string, fragment\?\: string\}\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: inc/audit/checks/check-redirect-links.php
+
+		-
+			message: '#^Cannot access offset ''scheme'' on array\{scheme\?\: string, host\?\: string, port\?\: int\<0, 65535\>, user\?\: string, pass\?\: string, path\?\: string, query\?\: string, fragment\?\: string\}\|false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: inc/audit/checks/check-redirect-links.php
+
+		-
+			message: '#^Parameter \#1 \$haystack of function strpos expects string, array\|string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/audit/checks/check-redirect-links.php
+
+		-
+			message: '#^Property WP_Term\:\:\$taxonomy \(string\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 1
+			path: inc/core/canonical.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/meta-tags.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: inc/core/meta-tags.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$taxonomy\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Function ExtraChill\\SEO\\Core\\ec_seo_get_canonical_url\(\) should return string but returns string\|WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Function ExtraChill\\SEO\\Core\\ec_seo_get_canonical_url\(\) should return string but returns string\|false\.$#'
+			identifier: return.type
+			count: 2
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Parameter \#1 \$attachment_id of function wp_get_attachment_image_src expects int, int\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Parameter \#1 \$post_id of function get_post_meta expects int, int\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Parameter \#1 \$term of function get_term_link expects int\|string\|WP_Term, WP_Post\|WP_Post_Type\|WP_Term\|WP_User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Parameter \#1 \$value of function trailingslashit expects string, string\|WP_Error given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Parameter \#1 \$value of function trailingslashit expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Parameter \#2 \$user_id of function get_the_author_meta expects int\|false, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/open-graph.php
+
+		-
+			message: '#^Call to function is_object\(\) with object will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: inc/core/redirects-db.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/redirects-matcher.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status_code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: inc/core/redirects-matcher.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$to_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/redirects-matcher.php
+
+		-
+			message: '#^Parameter \#1 \$str of function strtok expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/redirects-matcher.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: inc/core/redirects-public-api.php
+
+		-
+			message: '#^Parameter \#1 \$str of function strtok expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/redirects-public-api.php
+
+		-
+			message: '#^Result of \|\| is always false\.$#'
+			identifier: booleanOr.alwaysFalse
+			count: 1
+			path: inc/core/redirects-public-api.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between '''' and non\-empty\-string will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: inc/core/redirects-public-api.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between false and non\-empty\-string will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: inc/core/redirects-public-api.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with WP_Term will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: inc/core/redirects-taxonomy-fallback.php
+
+		-
+			message: '#^Parameter \#1 \$str of function strtok expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/redirects-taxonomy-fallback.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/redirects.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$status_code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: inc/core/redirects.php
+
+		-
+			message: '#^Access to an undefined property object\:\:\$to_url\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/core/redirects.php
+
+		-
+			message: '#^Parameter \#1 \$str of function strtok expects string, string\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/core/redirects.php
+
+		-
+			message: '#^Property WP_Term\:\:\$count \(int\) in isset\(\) is not nullable\.$#'
+			identifier: isset.property
+			count: 1
+			path: inc/core/robots.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: inc/core/sitemap.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 5
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$post_content\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$post_type\.$#'
+			identifier: property.notFound
+			count: 3
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Access to property \$post_author on an unknown class ExtraChill\\SEO\\Schema\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Parameter \#1 \$attachment_id of function wp_get_attachment_image_src expects int, int\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Parameter \#1 \$post of function ExtraChill\\SEO\\Schema\\ec_seo_get_article_author expects ExtraChill\\SEO\\Schema\\WP_Post, WP_Post\|WP_Post_Type\|WP_Term\|WP_User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Parameter \#2 \$post of function get_the_date expects int\|WP_Post\|null, WP_Post\|WP_Post_Type\|WP_Term\|WP_User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Parameter \#2 \$post of function get_the_modified_date expects int\|WP_Post\|null, WP_Post\|WP_Post_Type\|WP_Term\|WP_User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Parameter \$post of function ExtraChill\\SEO\\Schema\\ec_seo_get_article_author\(\) has invalid type ExtraChill\\SEO\\Schema\\WP_Post\.$#'
+			identifier: class.notFound
+			count: 1
+			path: inc/schema/schema-article.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 2
+			path: inc/schema/schema-artist.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<mixed\>\) to function array_filter does not contain falsy values, the array will always stay the same\.$#'
+			identifier: arrayFilter.same
+			count: 1
+			path: inc/schema/schema-artist.php
+
+		-
+			message: '#^Access to an undefined property WP_Error\|WP_Term\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-breadcrumb.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 4
+			path: inc/schema/schema-breadcrumb.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$display_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-breadcrumb.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: inc/schema/schema-breadcrumb.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$term_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-breadcrumb.php
+
+		-
+			message: '#^Instanceof between WP_Term and WP_Term will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: inc/schema/schema-event.php
+
+		-
+			message: '#^Cannot access property \$object_type on WP_Taxonomy\|false\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: inc/schema/schema-festival.php
+
+		-
+			message: '#^Instanceof between WP_Term and WP_Term will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: inc/schema/schema-festival.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-link-page.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$post_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-link-page.php
+
+		-
+			message: '#^Parameter \#1 \$attachment_id of function wp_get_attachment_image_src expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-product.php
+
+		-
+			message: '#^Binary operation "\." between string\|WP_Error and ''\#promoter'' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: inc/schema/schema-promoter.php
+
+		-
+			message: '#^Binary operation "\." between string\|WP_Error and ''\#venue'' results in an error\.$#'
+			identifier: binaryOp.invalid
+			count: 1
+			path: inc/schema/schema-venue.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$ID\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-webpage.php
+
+		-
+			message: '#^Access to an undefined property WP_Post\|WP_Post_Type\|WP_Term\|WP_User\:\:\$taxonomy\.$#'
+			identifier: property.notFound
+			count: 1
+			path: inc/schema/schema-webpage.php
+
+		-
+			message: '#^Parameter \#1 \$attachment_id of function wp_get_attachment_image_src expects int, int\|false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-webpage.php
+
+		-
+			message: '#^Parameter \#2 \$post of function get_the_date expects int\|WP_Post\|null, WP_Post\|WP_Post_Type\|WP_Term\|WP_User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-webpage.php
+
+		-
+			message: '#^Parameter \#2 \$post of function get_the_modified_date expects int\|WP_Post\|null, WP_Post\|WP_Post_Type\|WP_Term\|WP_User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: inc/schema/schema-webpage.php

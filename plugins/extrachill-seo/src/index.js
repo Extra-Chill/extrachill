@@ -1,9 +1,18 @@
 /**
  * SEO Admin Entry Point
  */
+/**
+ * WordPress dependencies
+ */
 import { createRoot } from '@wordpress/element';
+/**
+ * Internal dependencies
+ */
 import App from './App';
 
+/**
+ * External dependencies
+ */
 import '@extrachill/components/styles/components.scss';
 import './styles/seo-admin.scss';
 

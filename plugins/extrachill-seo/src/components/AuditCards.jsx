@@ -3,7 +3,13 @@
  *
  * Displays metric cards for each audit category.
  */
+/**
+ * External dependencies
+ */
 import { Grid } from '@extrachill/components';
+/**
+ * Internal dependencies
+ */
 import { useAudit } from '../context/AuditContext';
 
 const METRICS = [

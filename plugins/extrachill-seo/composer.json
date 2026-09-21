@@ -13,9 +13,6 @@
     "require": {
         "php": ">=8.1"
     },
-    "require-dev": {
-        "phpcompatibility/phpcompatibility-wp": "^2.1"
-    },
     "scripts": {
         "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
         "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",

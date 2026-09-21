@@ -3,6 +3,9 @@
  *
  * Main component for the SEO audit tab.
  */
+/**
+ * Internal dependencies
+ */
 import { useAudit } from '../context/AuditContext';
 import AuditActions from './AuditActions';
 import AuditProgress from './AuditProgress';
@@ -10,7 +13,7 @@ import AuditCards from './AuditCards';
 import AuditDetails from './AuditDetails';
 
 const formatTimestamp = ( timestamp ) => {
-	if ( ! timestamp ) return null;
+	if ( ! timestamp ) {return null;}
 	const date = new Date( timestamp * 1000 );
 	return date.toLocaleString();
 };

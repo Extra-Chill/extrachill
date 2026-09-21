@@ -3,6 +3,9 @@
  *
  * Displays progress bar during batch audit.
  */
+/**
+ * Internal dependencies
+ */
 import { useAudit } from '../context/AuditContext';
 
 const CHECK_NAMES = {
@@ -17,17 +20,22 @@ const CHECK_NAMES = {
 const AuditProgress = () => {
 	const { progress } = useAudit();
 
-	if ( ! progress ) return null;
+	if ( ! progress ) {return null;}
 
-	const { urls_checked = 0, urls_total = 0, checks = [], current_check_index = 0 } = progress;
-	const percent = urls_total > 0 ? Math.round( ( urls_checked / urls_total ) * 100 ) : 0;
-	const currentCheck = checks[ current_check_index ] || '';
+	const {
+		urls_checked: urlsChecked = 0,
+		urls_total: urlsTotal = 0,
+		checks = [],
+		current_check_index: currentCheckIndex = 0,
+	} = progress;
+	const percent = urlsTotal > 0 ? Math.round( ( urlsChecked / urlsTotal ) * 100 ) : 0;
+	const currentCheck = checks[ currentCheckIndex ] || '';
 	const checkName = CHECK_NAMES[ currentCheck ] || currentCheck;
 
 	return (
 		<div className="extrachill-seo-progress">
 			<div className="extrachill-seo-progress-text">
-				{ checkName }: { urls_checked } / { urls_total } URLs checked
+				{ checkName }: { urlsChecked } / { urlsTotal } URLs checked
 			</div>
 			<div className="extrachill-seo-progress-bar">
 				<div

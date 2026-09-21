@@ -23,6 +23,9 @@ add_filter( 'datamachine_indexnow_skip_auto_submit', __NAMESPACE__ . '\\ec_seo_i
  * Extra Chill SEO owns automatic submission policy while this module is active.
  */
 function ec_seo_indexnow_skip_generic_auto_submit( $skip, $post_id = 0, $post = null ) {
+	unset( $skip );
+	unset( $post_id );
+	unset( $post );
 	return true;
 }
 

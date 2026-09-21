@@ -33,9 +33,9 @@ function ec_seo_get_indexnow_key() {
 }
 
 function ec_seo_set_indexnow_key( $key ) {
-	$settings                         = get_option( 'datamachine_settings', array() );
-	$settings['indexnow_api_key']     = (string) $key;
-	$settings['indexnow_enabled']     = '' !== (string) $key;
+	$settings                     = get_option( 'datamachine_settings', array() );
+	$settings['indexnow_api_key'] = (string) $key;
+	$settings['indexnow_enabled'] = '' !== (string) $key;
 
 	update_option( 'datamachine_settings', $settings );
 	ec_seo_clear_datamachine_settings_cache();
@@ -62,7 +62,10 @@ function ec_seo_migrate_indexnow_key() {
 		return;
 	}
 
-	$site_ids        = get_sites( array( 'fields' => 'ids', 'number' => 0 ) );
+	$site_ids        = get_sites( array(
+		'fields' => 'ids',
+		'number' => 0,
+	) );
 	$current_blog_id = get_current_blog_id();
 
 	foreach ( $site_ids as $site_id ) {

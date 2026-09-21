@@ -4,9 +4,18 @@
  * SEO configuration settings with media picker and text inputs.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState, useCallback } from '@wordpress/element';
 import { Button, TextControl, Notice } from '@wordpress/components';
+/**
+ * External dependencies
+ */
 import { MediaField } from '@extrachill/components';
+/**
+ * Internal dependencies
+ */
 import { getConfig, saveConfig } from '../api/client';
 
 export default function ConfigPanel() {

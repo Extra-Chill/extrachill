@@ -1,7 +1,13 @@
 /**
  * Webpack configuration for extrachill-seo
  */
+/**
+ * WordPress dependencies
+ */
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
+/**
+ * External dependencies
+ */
 const path = require( 'path' );
 
 module.exports = {

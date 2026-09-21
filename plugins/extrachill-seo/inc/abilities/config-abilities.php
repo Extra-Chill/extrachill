@@ -26,6 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Configuration data.
  */
 function extrachill_seo_ability_get_config( $input = array() ) {
+	unset( $input );
 	$og_image_id  = ec_seo_get_default_og_image_id();
 	$og_image_url = '';
 

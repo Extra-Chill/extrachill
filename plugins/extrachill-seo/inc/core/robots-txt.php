@@ -31,10 +31,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 add_filter(
 	'robots_txt',
-	function ( $output, $public ) {
+	function ( $output, $is_public ) {
 		// If the site is set to discourage indexing, WordPress core already
 		// outputs Disallow: / — don't add anything else.
-		if ( '0' === (string) $public ) {
+		if ( '0' === (string) $is_public ) {
 			return $output;
 		}
 

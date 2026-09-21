@@ -31,8 +31,8 @@ eval(
 	}'
 );
 
-function get_site_option( $name, $default = false ) {
-	return $GLOBALS['indexnow_test_site_options'][ $name ] ?? $default;
+function get_site_option( $name, $default_value = false ) {
+	return $GLOBALS['indexnow_test_site_options'][ $name ] ?? $default_value;
 }
 
 function delete_site_option( $name ) {
@@ -40,8 +40,8 @@ function delete_site_option( $name ) {
 	return true;
 }
 
-function get_option( $name, $default = false ) {
-	return $GLOBALS['indexnow_test_blog_options'][ $GLOBALS['indexnow_test_blog_id'] ][ $name ] ?? $default;
+function get_option( $name, $default_value = false ) {
+	return $GLOBALS['indexnow_test_blog_options'][ $GLOBALS['indexnow_test_blog_id'] ][ $name ] ?? $default_value;
 }
 
 function update_option( $name, $value ) {

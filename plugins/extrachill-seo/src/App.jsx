@@ -4,9 +4,18 @@
  * Root component with button-based tab navigation for Audit and Config panels.
  */
 
+/**
+ * WordPress dependencies
+ */
 import { useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import { BlockShell, BlockIntro, Panel, Tabs } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
+/**
+ * Internal dependencies
+ */
 import { AuditProvider } from './context/AuditContext';
 import AuditDashboard from './components/AuditDashboard';
 import ConfigPanel from './components/ConfigPanel';

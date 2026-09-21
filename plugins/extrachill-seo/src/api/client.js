@@ -8,7 +8,13 @@
  * Exports match the original function names so dashboard components need zero changes.
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+/**
+ * External dependencies
+ */
 import { WPNativeClient } from 'wp-native-client';
 import { WpApiFetchTransport } from 'wp-native-client/wordpress';
 
@@ -26,7 +32,7 @@ export const getAuditStatus = () =>
 export const continueAudit = () =>
 	client.executeUnchecked( 'extrachill/run-seo-audit', { mode: 'batch' } );
 
-export const getAuditDetails = ( category, page, perPage ) =>
+export const getAuditDetails = ( category ) =>
 	client.executeUnchecked( 'extrachill/get-seo-results', {
 		check: category,
 	} );
