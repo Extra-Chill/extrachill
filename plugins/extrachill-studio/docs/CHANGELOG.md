@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.8] - 2026-09-21
+
+### Changed
+- adopt the shared Homeboy release train
+
 ## [0.27.7] - 2026-09-13
 
 ### Fixed
