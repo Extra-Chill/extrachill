@@ -145,7 +145,7 @@ jobs:
         env:
           HOMEBOY_WP_CODEBOX_ARTIFACTS_DIR: ${{ github.workspace }}/wp-codebox-artifacts
           HOMEBOY_WP_CODEBOX_INSTALL_MODE: source
-          HOMEBOY_WP_CODEBOX_REF: 82e02165dba2510ca04f5ce7e5a429804952404a
+          HOMEBOY_WP_CODEBOX_REF: a7d8d7699f3d703b92fbd3e61bd124d13a7ad75d
           HOMEBOY_WP_CODEBOX_SOURCE: https://github.com/Automattic/wp-codebox.git
           HOMEBOY_WORDPRESS_MULTISITE: '1'
           WP_CODEBOX_DB_HOST: 127.0.0.1
