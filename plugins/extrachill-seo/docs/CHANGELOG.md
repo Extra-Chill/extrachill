@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0).
 
+## [0.14.5] - 2026-09-21
+
+### Changed
+- adopt the shared Homeboy release train
+- delegate IndexNow delivery
+
+### Fixed
+- resolve event JSON-LD @type from event_type taxonomy
+- decode HTML entities once at the JSON-LD serialization boundary
+- stop publishing affiliate ticket URL in Event JSON-LD offers.url
+
 ## [0.14.4] - 2026-07-26
 
 ### Fixed
