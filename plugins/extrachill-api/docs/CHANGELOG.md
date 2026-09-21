@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.34.2] - 2026-09-21
+
+### Changed
+- add continuous release pipeline
+
+### Fixed
+- forward explicit empty-page intent on the links PUT route
+
 ## [0.34.1] - 2026-09-19
 
 ### Fixed
