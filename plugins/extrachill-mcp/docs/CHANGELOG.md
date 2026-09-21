@@ -2,6 +2,15 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.0] - 2026-09-21
+
+### Added
+- record MCP usage, carrying the resolved ability name
+
+### Changed
+- adopt the shared Homeboy release train
+- fix NetworkStub namespace bug and wire it into real coverage
+
 ## [0.1.4] - 2026-09-18
 
 ### Fixed
