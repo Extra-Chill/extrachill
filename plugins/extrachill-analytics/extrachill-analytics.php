@@ -48,6 +48,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/isbot-backfill.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/source-url-backfill.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/link-page-analytics.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/link-page-storage-migration.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/assets.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-integration.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-reporting.php';
