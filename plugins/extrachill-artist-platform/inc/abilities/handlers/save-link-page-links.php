@@ -44,7 +44,10 @@ function extrachill_artist_platform_ability_save_link_page_links( $input ) {
 	}
 
 	$save_data = array( 'links' => $sanitized_links );
-	$result    = ec_save_link_page(
+	if ( isset( $input['allow_empty'] ) && true === $input['allow_empty'] ) {
+		$save_data['allow_empty'] = true;
+	}
+	$result = ec_save_link_page(
 		array(
 			'link_page_id'    => $link_page_id,
 			'owner_reference' => $owner_reference,

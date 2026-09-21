@@ -488,13 +488,17 @@ function extrachill_artist_platform_register_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'artist_id' => array(
+					'artist_id'   => array(
 						'type'        => 'integer',
 						'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ),
 					),
-					'links'     => array(
+					'links'       => array(
 						'type'        => 'array',
 						'description' => __( 'Array of link sections with nested links.', 'extrachill-artist-platform' ),
+					),
+					'allow_empty' => array(
+						'type'        => 'boolean',
+						'description' => __( 'Explicit intent to replace a populated Link Page with zero links. Must be strictly true; any other value is treated as absent and a destructive empty save is refused.', 'extrachill-artist-platform' ),
 					),
 				),
 				'required'   => array( 'artist_id', 'links' ),

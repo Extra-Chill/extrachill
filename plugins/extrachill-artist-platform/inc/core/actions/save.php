@@ -141,7 +141,7 @@ function ec_handle_external_artist_link_page_save( $link_page_id, $save_data, $f
 	if ( (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== $artist_id ) {
 		return new WP_Error( 'artist_link_page_owner_mismatch', 'The canonical and legacy Link Page owners do not match.' );
 	}
-	$generic_keys            = array( 'links', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id' );
+	$generic_keys            = array( 'links', 'allow_empty', 'css_vars', 'bio', 'link_expiration_enabled', 'redirect_enabled', 'redirect_target_url', 'youtube_embed_enabled', 'meta_pixel_id', 'google_tag_id', 'google_tag_manager_id', 'social_icons_position', 'profile_image_shape', 'background_image_id' );
 	$generic                 = array_intersect_key( $save_data, array_flip( $generic_keys ) );
 	$artist_files            = $files_data;
 	$new_background_image_id = 0;

@@ -211,6 +211,25 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 5, $result['final_hook_count'] );
 	}
 
+	/**
+	 * Guards extrachill-artist-platform#225 against the real runtime guard
+	 * added for extrachill-artist-platform#224: the ability must thread
+	 * `allow_empty` through to storage, and only a strict boolean `true`
+	 * may satisfy the refusal.
+	 */
+	public function test_ability_threads_strict_allow_empty_through_the_real_runtime_guard(): void {
+		$this->require_real_runtime_fixture_source();
+		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'allow-empty-links' );
+		$allow_empty = $result['allow_empty_result'];
+
+		$this->assertSame( 1, $allow_empty['before_count'] );
+		$this->assertSame( 'link_page_refuses_silent_empty', $allow_empty['refused_code'] );
+		$this->assertSame( 'link_page_refuses_silent_empty', $allow_empty['coerced_code'] );
+		$this->assertTrue( $allow_empty['unchanged_after_refusals'] );
+		$this->assertSame( array(), $allow_empty['cleared_result'] );
+		$this->assertSame( 0, $allow_empty['after_count'] );
+	}
+
 	public function test_owner_save_failure_rolls_back_generic_fields_without_final_hook(): void {
 		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'owner-save-failure' );

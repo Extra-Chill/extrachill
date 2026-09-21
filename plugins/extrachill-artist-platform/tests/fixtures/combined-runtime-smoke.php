@@ -283,6 +283,36 @@ if ( ! in_array( $mode, array( 'owner-save-failure', 'interleaving-failure', 'se
 		),
 	) );
 }
+// extrachill-artist-platform#225: the ability must thread `allow_empty` to
+// the runtime's destructive-write guard, and only a strict boolean `true`
+// may satisfy it. Runs against the just-populated single-link state above.
+$allow_empty_result = array();
+if ( 'allow-empty-links' === $mode ) {
+	$before_links         = get_post_meta( $created, '_link_page_links', true );
+	$refused              = extrachill_artist_platform_ability_save_link_page_links( array(
+		'artist_id' => 20,
+		'links'     => array(),
+	) );
+	$coerced              = extrachill_artist_platform_ability_save_link_page_links( array(
+		'artist_id'   => 20,
+		'links'       => array(),
+		'allow_empty' => 1,
+	) );
+	$after_refusals_links = get_post_meta( $created, '_link_page_links', true );
+	$cleared              = extrachill_artist_platform_ability_save_link_page_links( array(
+		'artist_id'   => 20,
+		'links'       => array(),
+		'allow_empty' => true,
+	) );
+	$allow_empty_result   = array(
+		'before_count'             => ec_link_page_links_count( $before_links ),
+		'refused_code'             => is_wp_error( $refused ) ? $refused->get_error_code() : null,
+		'coerced_code'             => is_wp_error( $coerced ) ? $coerced->get_error_code() : null,
+		'unchanged_after_refusals' => $before_links === $after_refusals_links,
+		'cleared_result'           => is_wp_error( $cleared ) ? $cleared->get_error_code() : $cleared['links'],
+		'after_count'              => ec_link_page_links_count( get_post_meta( $created, '_link_page_links', true ) ),
+	);
+}
 $separate_contention = array();
 if ( 'separate-contention' === $mode ) {
 	$separate_contention['during_combined'] = ec_with_link_page_lock_scope(
@@ -462,6 +492,7 @@ echo wp_json_encode(
 			'final_profile_title'     => get_the_title( 20 ),
 		),
 		'cross_blog_mutation'         => $cross_blog_mutation,
+		'allow_empty_result'          => $allow_empty_result,
 		'social_count'                => count( get_post_meta( 20, '_artist_profile_social_links', true ) ?: array() ),
 		'thumbnail'                   => get_post_thumbnail_id( 20 ),
 		'projection_title'            => is_wp_error( $projection ) ? $projection->get_error_code() : $projection['display_title'],

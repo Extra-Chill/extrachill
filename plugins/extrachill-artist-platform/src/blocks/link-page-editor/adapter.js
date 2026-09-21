@@ -32,8 +32,54 @@ const saveBio = ( artistId, bio ) =>
 		data: { input: { artist_id: artistId, bio } },
 	} );
 
+const countLinks = ( sections ) =>
+	( sections || [] ).reduce(
+		( total, section ) =>
+			total +
+			( Array.isArray( section.links ) ? section.links.length : 0 ),
+		0
+	);
+
+/**
+ * Guard against silently emptying a populated Link Page.
+ *
+ * Fetches the currently persisted links only when the draft is about to save
+ * zero links, so an already-empty page never prompts. When the transition is
+ * genuinely populated-to-empty, requires an explicit confirmation before the
+ * save proceeds; declining aborts the entire save (all dirty areas), so a
+ * confirmed removal is always a deliberate, standalone action.
+ *
+ * @param {number} artistId Artist profile ID.
+ * @param {Set}    dirty    Dirty area names for this save.
+ * @param {Object} draft    Full editor draft state.
+ * @return {Promise<{proceed: boolean, allowEmpty: boolean}>} `proceed` is
+ *                          false only when the user declined a genuine
+ *                          populated-to-empty confirmation. `allowEmpty` is
+ *                          true only in that same confirmed case.
+ */
+const confirmEmptyLinksIntent = async ( artistId, dirty, draft ) => {
+	if ( ! dirty.has( 'links' ) || 0 !== countLinks( draft.page.links ) ) {
+		return { proceed: true, allowEmpty: false };
+	}
+	const current = await getLinks( artistId );
+	if ( 0 === countLinks( current.links ) ) {
+		return { proceed: true, allowEmpty: false };
+	}
+	// eslint-disable-next-line no-alert -- deliberate, synchronous confirmation before a destructive Link Page save; matches the existing pattern in EditorContext.js.
+	const confirmed = window.confirm( 'Remove all links from your page?' );
+	return { proceed: confirmed, allowEmpty: confirmed };
+};
+
 const save = async ( artistId, draft, { dirtyAreas = [] } = {} ) => {
 	const dirty = new Set( dirtyAreas );
+	const { proceed, allowEmpty } = await confirmEmptyLinksIntent(
+		artistId,
+		dirty,
+		draft
+	);
+	if ( ! proceed ) {
+		return read( artistId );
+	}
 	const tasks = [];
 	if ( dirty.has( 'identity' ) ) {
 		tasks.push(
@@ -51,6 +97,9 @@ const save = async ( artistId, draft, { dirtyAreas = [] } = {} ) => {
 		const pageChanges = {};
 		if ( dirty.has( 'links' ) ) {
 			pageChanges.links = draft.page.links;
+			if ( allowEmpty ) {
+				pageChanges.allow_empty = true;
+			}
 		}
 		if ( dirty.has( 'styles' ) ) {
 			pageChanges.css_vars = draft.page.styles;
