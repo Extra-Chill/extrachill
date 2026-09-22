@@ -13,5 +13,12 @@
       "file": "extrachill-shop.php",
       "pattern": "EXTRACHILL_SHOP_VERSION',\\s*'([\\d.]+)"
     }
-  ]
+  ],
+  "scopes": {
+    "release": {
+      "exclude": [
+        ".vscode/**"
+      ]
+    }
+  }
 }
