@@ -204,6 +204,8 @@ function extrachill_analytics_provide_link_page_analytics( $data, $link_page_id,
 function extrachill_analytics_handle_link_page_view_db_write( $link_page_id ) {
 	global $wpdb;
 
+	extrachill_analytics_link_page_schema_ensure_ready();
+
 	$today      = current_time( 'Y-m-d' );
 	$table_name = extrachill_analytics_link_page_views_table();
 
@@ -232,6 +234,8 @@ function extrachill_analytics_handle_link_page_view_db_write( $link_page_id ) {
  */
 function extrachill_analytics_handle_link_click_db_write( $link_page_id, $link_url, $link_text = '' ) {
 	global $wpdb;
+
+	extrachill_analytics_link_page_schema_ensure_ready();
 
 	$today      = current_time( 'Y-m-d' );
 	$table_name = extrachill_analytics_link_page_clicks_table();
