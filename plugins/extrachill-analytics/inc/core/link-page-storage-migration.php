@@ -18,14 +18,56 @@ function extrachill_analytics_link_page_migration_database_error() {
 }
 
 /**
+ * Describe which side of a migration an owned table belongs to.
+ *
+ * @param string $role One of 'source', 'destination', or '' when unknown.
+ * @return string Sentence-leading subject phrase.
+ */
+function extrachill_analytics_link_page_migration_role_phrase( $role ) {
+	if ( 'source' === $role ) {
+		return 'The source';
+	}
+	if ( 'destination' === $role ) {
+		return 'The destination';
+	}
+	return 'An owned';
+}
+
+/**
+ * Find the first key whose value differs (added, removed, or changed)
+ * between an expected and actual map, so a mismatch message can name it.
+ *
+ * @param array $expected Expected map.
+ * @param array $actual   Actual map.
+ * @return string|null
+ */
+function extrachill_analytics_link_page_migration_first_difference( $expected, $actual ) {
+	foreach ( $expected as $key => $value ) {
+		if ( ! array_key_exists( $key, $actual ) || $actual[ $key ] !== $value ) {
+			return (string) $key;
+		}
+	}
+	foreach ( $actual as $key => $value ) {
+		if ( ! array_key_exists( $key, $expected ) ) {
+			return (string) $key;
+		}
+	}
+	return null;
+}
+
+/**
  * Verify one owned table has the required columns and indexes.
  *
- * @param string $table Table name.
+ * @param string $table   Table name.
  * @param array  $columns Required columns.
  * @param array  $indexes Required indexes.
+ * @param string $role    'source' or 'destination', when the caller knows
+ *                        which side of the migration this table is; '' when
+ *                        it does not.
  */
-function extrachill_analytics_link_page_migration_table_ready( $table, $columns, $indexes ) {
+function extrachill_analytics_link_page_migration_table_ready( $table, $columns, $indexes, $role = '' ) {
 	global $wpdb;
+	$subject        = extrachill_analytics_link_page_migration_role_phrase( $role );
 	$column_rows    = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact owned schema preflight.
 	$database_error = extrachill_analytics_link_page_migration_database_error();
 	if ( '' !== $database_error ) {
@@ -41,7 +83,15 @@ function extrachill_analytics_link_page_migration_table_ready( $table, $columns,
 		);
 	}
 	if ( $actual_columns !== $columns ) {
-		return new WP_Error( 'analytics_link_page_migration_schema_mismatch', 'An Analytics destination table does not match its owned column contract.', array( 'table' => $table ) );
+		$column = extrachill_analytics_link_page_migration_first_difference( $columns, $actual_columns );
+		return new WP_Error(
+			'analytics_link_page_migration_schema_mismatch',
+			sprintf( '%s Analytics table does not match its expected column contract (column: `%s`).', $subject, (string) $column ),
+			array(
+				'table'  => $table,
+				'column' => $column,
+			)
+		);
 	}
 	$index_rows     = $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact schema preflight.
 	$database_error = extrachill_analytics_link_page_migration_database_error();
@@ -62,13 +112,24 @@ function extrachill_analytics_link_page_migration_table_ready( $table, $columns,
 	sort( $actual_names, SORT_STRING );
 	sort( $expected_names, SORT_STRING );
 	if ( $actual_names !== $expected_names ) {
-		return new WP_Error( 'analytics_link_page_migration_schema_mismatch', 'An Analytics destination table has an unexpected index contract.', array( 'table' => $table ) );
+		$index_name = extrachill_analytics_link_page_migration_first_difference(
+			array_fill_keys( $expected_names, true ),
+			array_fill_keys( $actual_names, true )
+		);
+		return new WP_Error(
+			'analytics_link_page_migration_index_mismatch',
+			sprintf( '%s Analytics table has an unexpected index contract (index: `%s`).', $subject, (string) $index_name ),
+			array(
+				'table' => $table,
+				'index' => $index_name,
+			)
+		);
 	}
 	foreach ( $indexes as $name => $index_contract ) {
 		if ( ! isset( $actual[ $name ] ) || $actual[ $name ] !== $index_contract ) {
 			return new WP_Error(
-				'analytics_link_page_migration_schema_mismatch',
-				'An Analytics destination table does not match its owned index contract.',
+				'analytics_link_page_migration_index_mismatch',
+				sprintf( '%s Analytics table does not match its expected index contract (index: `%s`).', $subject, $name ),
 				array(
 					'table' => $table,
 					'index' => $name,
@@ -229,22 +290,31 @@ function extrachill_analytics_link_page_migration_click_indexes() {
 			'columns' => array( array( 'link_page_id', null ), array( 'stat_date', null ) ),
 		),
 	); }
-/** Validate both owned tables in the current site context. */
-function extrachill_analytics_link_page_migration_schema_ready() {
-	$ready = extrachill_analytics_link_page_migration_table_ready( extrachill_analytics_link_page_views_table(), extrachill_analytics_link_page_migration_view_columns(), extrachill_analytics_link_page_migration_view_indexes() );
-	return is_wp_error( $ready ) ? $ready : extrachill_analytics_link_page_migration_table_ready( extrachill_analytics_link_page_clicks_table(), extrachill_analytics_link_page_migration_click_columns(), extrachill_analytics_link_page_migration_click_indexes() );
+/**
+ * Validate both owned tables in the current site context.
+ *
+ * @param string $role 'source' or 'destination', when the caller knows
+ *                      which side of the migration the current site is;
+ *                      '' when it does not.
+ */
+function extrachill_analytics_link_page_migration_schema_ready( $role = '' ) {
+	$ready = extrachill_analytics_link_page_migration_table_ready( extrachill_analytics_link_page_views_table(), extrachill_analytics_link_page_migration_view_columns(), extrachill_analytics_link_page_migration_view_indexes(), $role );
+	return is_wp_error( $ready ) ? $ready : extrachill_analytics_link_page_migration_table_ready( extrachill_analytics_link_page_clicks_table(), extrachill_analytics_link_page_migration_click_columns(), extrachill_analytics_link_page_migration_click_indexes(), $role );
 }
 /**
  * Validate both owned tables in one blog context.
  *
- * @param int $blog_id Blog ID.
+ * @param int    $blog_id Blog ID.
+ * @param string $role    'source' or 'destination', when the caller knows
+ *                         which side of the migration this blog is; '' when
+ *                         it does not.
  */
-function extrachill_analytics_link_page_migration_schema_for_blog( $blog_id ) {
+function extrachill_analytics_link_page_migration_schema_for_blog( $blog_id, $role = '' ) {
 	$switched = get_current_blog_id() !== (int) $blog_id;
 	if ( $switched ) {
 		switch_to_blog( (int) $blog_id ); }
 	try {
-		return extrachill_analytics_link_page_migration_schema_ready(); } finally {
+		return extrachill_analytics_link_page_migration_schema_ready( $role ); } finally {
 		if ( $switched ) {
 			restore_current_blog(); }
 		}
@@ -260,7 +330,7 @@ function extrachill_analytics_link_page_migration_plan( $context ) {
 	if ( is_wp_error( $source ) ) {
 		return $source; }
 	$source_blog_id = get_current_blog_id();
-	$source_schema  = extrachill_analytics_link_page_migration_schema_ready();
+	$source_schema  = extrachill_analytics_link_page_migration_schema_ready( 'source' );
 	if ( is_wp_error( $source_schema ) ) {
 		return $source_schema; }
 	if ( 'readiness' !== ( $context['mode'] ?? '' ) ) {
@@ -282,7 +352,8 @@ function extrachill_analytics_link_page_migration_plan( $context ) {
 					'unique'  => true,
 					'columns' => array( array( 'link_page_id', null ), array( 'stat_date', null ) ),
 				),
-			)
+			),
+			'destination'
 		);
 		if ( is_wp_error( $ready ) ) {
 			return $ready; }
@@ -302,7 +373,8 @@ function extrachill_analytics_link_page_migration_plan( $context ) {
 					'unique'  => false,
 					'columns' => array( array( 'link_page_id', null ), array( 'stat_date', null ) ),
 				),
-			)
+			),
+			'destination'
 		);
 		if ( is_wp_error( $ready ) ) {
 			return $ready; }
@@ -440,7 +512,7 @@ function extrachill_analytics_link_page_migration_apply( $context ) {
  * @param array $context Migration context.
  */
 function extrachill_analytics_link_page_migration_validate( $context ) {
-	$source_schema = extrachill_analytics_link_page_migration_schema_for_blog( $context['source_blog_id'] );
+	$source_schema = extrachill_analytics_link_page_migration_schema_for_blog( $context['source_blog_id'], 'source' );
 	if ( is_wp_error( $source_schema ) ) {
 		return $source_schema; }
 	$source = extrachill_analytics_link_page_migration_rows_for_blog( $context['source_blog_id'], $context['link_page_ids'] );
@@ -448,7 +520,7 @@ function extrachill_analytics_link_page_migration_validate( $context ) {
 		return $source; }
 	switch_to_blog( (int) $context['destination_blog_id'] );
 	try {
-		$ready = extrachill_analytics_link_page_migration_schema_ready();
+		$ready = extrachill_analytics_link_page_migration_schema_ready( 'destination' );
 		if ( is_wp_error( $ready ) ) {
 			return $ready; }
 		$destination = extrachill_analytics_link_page_migration_rows( $context['link_page_ids'] );

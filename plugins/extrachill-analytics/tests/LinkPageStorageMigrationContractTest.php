@@ -83,6 +83,22 @@ final class Link_Page_Migration_Wpdb_Fixture {
 	public $schema_default_mismatch = array();
 
 	/**
+	 * Corrupt the last index row's Sub_part per table kind, producing an
+	 * index-content mismatch without changing which indexes exist.
+	 *
+	 * @var array<string,bool>
+	 */
+	public $index_content_mismatch = array();
+
+	/**
+	 * Drop the `unique_daily_link_click` index rows per table kind,
+	 * producing an index-existence mismatch.
+	 *
+	 * @var array<string,bool>
+	 */
+	public $index_missing = array();
+
+	/**
 	 * Shadow row store for intercepted rollback tables, keyed by table name.
 	 *
 	 * @var array<string,array<int,array<string,mixed>>>
@@ -433,6 +449,20 @@ final class Link_Page_Migration_Wpdb_Fixture {
 				);
 			}
 		}
+		$kind = $this->is_views_table( $table ) ? 'views' : 'clicks';
+		if ( ! empty( $this->index_missing[ $kind ] ) ) {
+			$rows = array_values(
+				array_filter(
+					$rows,
+					static function ( $row ) {
+						return 'unique_daily_link_click' !== $row['Key_name'] && 'unique_daily_view' !== $row['Key_name'];
+					}
+				)
+			);
+		}
+		if ( ! empty( $this->index_content_mismatch[ $kind ] ) ) {
+			$rows[ count( $rows ) - 1 ]['Sub_part'] = 999;
+		}
 		return $rows;
 	}
 
@@ -720,11 +750,92 @@ final class LinkPageStorageMigrationContractTest extends Extrachill_Analytics_Te
 		$this->db->schema_default_mismatch['clicks'] = true;
 		$result                                      = $this->plan_readiness();
 		$this->assertSame( 'analytics_link_page_migration_schema_mismatch', $result->get_error_code() );
+		// Regression for #286: readiness runs the source-side schema check
+		// first, so a mismatch found there must not be misreported as the
+		// destination's fault.
+		$this->assertStringContainsString( 'source', $result->get_error_message() );
+		$this->assertStringNotContainsString( 'destination', $result->get_error_message() );
 
 		$this->db->schema_default_mismatch = array();
 		$this->db->errors                  = array( 'schema_indexes' => 'destination schema failed' );
 		$result                            = $this->plan_readiness();
 		$this->assertSame( 'analytics_link_page_migration_schema_read_failed', $result->get_error_code() );
+	}
+
+	/**
+	 * Column and index mismatches carry distinguishable error codes, and
+	 * each message names the specific column or index that failed rather
+	 * than repeating a single generic contract phrase for both.
+	 */
+	public function test_column_and_index_mismatches_are_distinguishable_and_named(): void {
+		$this->blogs();
+
+		$this->db->schema_default_mismatch['clicks'] = true;
+		$result                                      = $this->plan_readiness();
+		$this->assertSame( 'analytics_link_page_migration_schema_mismatch', $result->get_error_code() );
+		$this->assertStringContainsString( 'column', $result->get_error_message() );
+		$this->assertNotEmpty( $result->get_error_data()['column'] ?? null );
+
+		$this->db->schema_default_mismatch          = array();
+		$this->db->index_content_mismatch['clicks'] = true;
+		$result                                      = $this->plan_readiness();
+		$this->assertSame( 'analytics_link_page_migration_index_mismatch', $result->get_error_code() );
+		$this->assertNotSame( 'analytics_link_page_migration_schema_mismatch', $result->get_error_code() );
+		$this->assertSame( 'link_page_date', $result->get_error_data()['index'] ?? null );
+		$this->assertStringContainsString( 'link_page_date', $result->get_error_message() );
+		$this->assertStringContainsString( 'index', $result->get_error_message() );
+
+		$this->db->index_content_mismatch = array();
+		$this->db->index_missing['clicks'] = true;
+		$result                             = $this->plan_readiness();
+		$this->assertSame( 'analytics_link_page_migration_index_mismatch', $result->get_error_code() );
+		$this->assertSame( 'unique_daily_link_click', $result->get_error_data()['index'] ?? null );
+		$this->assertStringContainsString( 'unique_daily_link_click', $result->get_error_message() );
+	}
+
+	/**
+	 * `extrachill_analytics_link_page_migration_table_ready()` names the
+	 * caller-supplied role in its message instead of always asserting
+	 * "destination", and stays neutral when no role is supplied.
+	 */
+	public function test_table_ready_names_the_supplied_role(): void {
+		list( $source ) = $this->blogs();
+		switch_to_blog( $source );
+		try {
+			$table   = extrachill_analytics_link_page_clicks_table();
+			$columns = extrachill_analytics_link_page_migration_click_columns();
+			// Force a column mismatch deterministically by requiring a
+			// column that cannot exist, independent of fixture wiring.
+			$columns['click_id']['type'] = 'not-a-real-type';
+
+			$as_source = extrachill_analytics_link_page_migration_table_ready(
+				$table,
+				$columns,
+				extrachill_analytics_link_page_migration_click_indexes(),
+				'source'
+			);
+			$this->assertStringContainsString( 'source', $as_source->get_error_message() );
+			$this->assertStringNotContainsString( 'destination', $as_source->get_error_message() );
+
+			$as_destination = extrachill_analytics_link_page_migration_table_ready(
+				$table,
+				$columns,
+				extrachill_analytics_link_page_migration_click_indexes(),
+				'destination'
+			);
+			$this->assertStringContainsString( 'destination', $as_destination->get_error_message() );
+			$this->assertStringNotContainsString( 'source', $as_destination->get_error_message() );
+
+			$unspecified = extrachill_analytics_link_page_migration_table_ready(
+				$table,
+				$columns,
+				extrachill_analytics_link_page_migration_click_indexes()
+			);
+			$this->assertStringNotContainsString( 'source', $unspecified->get_error_message() );
+			$this->assertStringNotContainsString( 'destination', $unspecified->get_error_message() );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	/**
