@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.37.1] - 2026-09-22
+
+### Fixed
+- reconcile drifted Link Page click/view schemas on every upgrade
+- distinguish source/destination and column/index schema preflight failures
+- grant id-token so the shared release workflow can start
+
 ## [0.37.0] - 2026-09-21
 
 ### Added
