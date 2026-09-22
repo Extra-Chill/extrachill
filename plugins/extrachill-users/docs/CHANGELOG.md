@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.8] - 2026-09-22
+
+### Fixed
+- attendance visibility resolves private by default; RSVP control discloses visibility
+
 ## [0.42.7] - 2026-09-22
 
 ### Fixed
