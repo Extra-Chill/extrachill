@@ -3,7 +3,7 @@
  * Plugin Name:       Extra Chill MCP
  * Plugin URI:        https://github.com/Extra-Chill/extrachill-mcp
  * Description:       MCP context server for the Extra Chill platform. Exposes the Extra Chill multisite network and GitHub org to MCP clients via the load-provider / execute-tool meta-tool pattern.
- * Version:           0.2.0
+ * Version:           0.2.1
  * Requires at least: 6.9
  * Requires PHP:      8.1
  * Author:            Extra Chill

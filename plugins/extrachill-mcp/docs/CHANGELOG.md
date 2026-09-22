@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.1] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
 ## [0.2.0] - 2026-09-21
 
 ### Added
