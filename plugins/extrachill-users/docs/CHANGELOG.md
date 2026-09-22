@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.7] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
 ## [0.42.6] - 2026-09-21
 
 ### Changed
