@@ -1,13 +1,13 @@
 {
-	"name": "extrachill/cache",
-	"description": "Lean full-page HTML cache for the Extra Chill platform. Replaces Breeze with only the page-cache + purge features the platform uses.",
-	"type": "wordpress-plugin",
-	"require": {
-		"php": ">=7.4"
-	},
-	"scripts": {
-		"lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
-		"lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
-		"test": "php tests/purge-standalone.php && php tests/headers-standalone.php && php tests/blog-map-standalone.php && php tests/dropin-version-standalone.php"
-	}
+    "name": "extrachill/cache",
+    "description": "Lean full-page HTML cache for the Extra Chill platform. Replaces Breeze with only the page-cache + purge features the platform uses.",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=8.3"
+    },
+    "scripts": {
+        "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "test": "php tests/purge-standalone.php && php tests/headers-standalone.php && php tests/blog-map-standalone.php && php tests/dropin-version-standalone.php"
+    }
 }
