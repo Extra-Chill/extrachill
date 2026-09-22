@@ -5,7 +5,7 @@
  * Description: Reusable content creation Gutenberg blocks for the Extra Chill platform. Provides editorial and interactive blocks for any site that activates the plugin.
  * Version: 1.3.4
  * Requires at least: 6.4
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  * Author: Chris Huber
  * Author URI: https://extrachill.com
  * License: GPL v2 or later

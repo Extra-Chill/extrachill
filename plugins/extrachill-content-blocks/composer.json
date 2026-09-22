@@ -4,7 +4,7 @@
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "require": {
-        "php": ">=7.4"
+        "php": ">=8.3"
     },
     "scripts": {
         "lint:php": "\"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard=WordPress --extensions=php .",
