@@ -10,7 +10,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: extrachill-link-pages
  * Requires at least: 6.5
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  *
  * @package ExtraChillLinkPages
  */
