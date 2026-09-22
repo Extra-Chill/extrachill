@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.34.3] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
 ## [0.34.2] - 2026-09-21
 
 ### Changed
