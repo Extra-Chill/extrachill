@@ -15,7 +15,18 @@ foreach ( $candidates as $candidate ) {
 	}
 }
 if ( '' === $wp_path ) {
-	throw new RuntimeException( 'RevenueCommand runtime tests require an installed WordPress path.' );
+	// These assertions shell out to a real `wp` binary against an installed
+	// WordPress. The WP Codebox managed harness has neither, and it collects
+	// every tests/*Test.php into one process during PHPUnit's load_tests
+	// stage — so throwing here aborts collection for the entire suite and the
+	// release test gate silently degrades to PHPUNIT_ZERO_TESTS (issue #147,
+	// the same failure shape as the redeclare fatal in #146).
+	//
+	// Skip loudly instead. A reader must never mistake this for a pass: the
+	// notice names the reason, and host/CI runs — where an installed
+	// WordPress path is reachable — still execute the assertions in full.
+	fwrite( STDERR, "SKIP: RevenueCommand runtime tests require an installed WordPress path; not reachable here. See issue #147.\n" );
+	return;
 }
 
 $bootstrap = __DIR__ . '/RevenueCommandRuntimeBootstrap.php';
