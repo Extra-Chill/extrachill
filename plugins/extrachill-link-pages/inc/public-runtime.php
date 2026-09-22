@@ -270,12 +270,30 @@ function ec_resolve_link_page_public_query() {
 	setup_postdata( $post );
 	status_header( 200 );
 	$data = ec_read_link_page_persistence( $post->ID );
-	if ( ! is_wp_error( $data ) && ! empty( $data['settings']['redirect_enabled'] ) ) {
+	if ( ! is_wp_error( $data ) && ec_link_page_has_configured_redirect( $data ) ) {
 		$redirected = ec_link_page_public_redirect( $data['settings']['redirect_target_url'], 302 );
 		if ( is_wp_error( $redirected ) ) {
 			status_header( 500 );
 		}
 	}
+}
+
+/**
+ * Whether an owner has actually configured a usable redirect target.
+ *
+ * Toggling the redirect setting on without saving a destination is a
+ * half-finished edit, not a server fault: the page must still render. Only a
+ * genuinely usable target may short-circuit rendering into a redirect.
+ *
+ * @param array $data Link Page persistence payload.
+ * @return bool
+ */
+function ec_link_page_has_configured_redirect( $data ) {
+	if ( ! is_array( $data ) || empty( $data['settings']['redirect_enabled'] ) ) {
+		return false;
+	}
+	$target = $data['settings']['redirect_target_url'] ?? '';
+	return is_string( $target ) && '' !== $target && false !== filter_var( $target, FILTER_VALIDATE_URL );
 }
 
 /** Use the standalone shell for host routes and direct CPT requests. */
@@ -298,7 +316,7 @@ function ec_redirect_direct_link_page_request() {
 		return;
 	}
 	$data = ec_read_link_page_persistence( $post->ID );
-	if ( ! is_wp_error( $data ) && ! empty( $data['settings']['redirect_enabled'] ) ) {
+	if ( ! is_wp_error( $data ) && ec_link_page_has_configured_redirect( $data ) ) {
 		$redirected = ec_link_page_public_redirect( $data['settings']['redirect_target_url'], 302 );
 		if ( is_wp_error( $redirected ) ) {
 			status_header( 500 );

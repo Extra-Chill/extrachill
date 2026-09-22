@@ -557,6 +557,38 @@ final class PublicRuntimeTest extends TestCase {
 		);
 	}
 
+	public function test_enabled_redirect_without_a_usable_target_does_not_error(): void {
+		$this->assertFalse(
+			ec_link_page_has_configured_redirect( array( 'settings' => array( 'redirect_enabled' => true, 'redirect_target_url' => '' ) ) ),
+			'Toggling redirect on without saving a destination is a half-finished edit, not a configured redirect.'
+		);
+		$this->assertFalse(
+			ec_link_page_has_configured_redirect( array( 'settings' => array( 'redirect_enabled' => true, 'redirect_target_url' => 'not a url' ) ) ),
+			'An unusable target must not be treated as configured.'
+		);
+		$this->assertFalse(
+			ec_link_page_has_configured_redirect( array( 'settings' => array( 'redirect_enabled' => false, 'redirect_target_url' => 'https://example.com/x' ) ) ),
+			'A target without the toggle is not a configured redirect.'
+		);
+		$this->assertTrue(
+			ec_link_page_has_configured_redirect( array( 'settings' => array( 'redirect_enabled' => true, 'redirect_target_url' => 'https://example.com/x' ) ) ),
+			'A genuinely usable target is a configured redirect.'
+		);
+	}
+
+	public function test_public_query_renders_normally_when_redirect_target_is_unset(): void {
+		$this->assignPostOwner();
+		$GLOBALS['ec_test']['posts_meta'] = $GLOBALS['ec_test']['posts_meta'] ?? array();
+		$_SERVER['HTTP_HOST'] = 'extrachill.link';
+		$_SERVER['REQUEST_URI'] = '/legacy-page/';
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		ec_resolve_link_page_public_query();
+
+		$this->assertSame( 200, $GLOBALS['ec_test']['status'], 'An unconfigured redirect must never downgrade a renderable page to an error status.' );
+		$this->assertSame( array(), $GLOBALS['ec_test']['terminations'] ?? array(), 'No redirect may be attempted without a usable target.' );
+	}
+
 	public function test_successful_redirect_invokes_production_termination_seam(): void {
 		$this->assertTrue( ec_link_page_public_redirect( 'https://example.com/target', 302, true ) );
 		$this->assertSame( array( 'https://example.com/target', 302 ), $GLOBALS['ec_test']['terminations'][0] );
