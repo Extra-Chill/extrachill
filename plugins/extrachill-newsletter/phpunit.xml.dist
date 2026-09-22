@@ -7,5 +7,8 @@
 		<testsuite name="delegated-campaign-integration">
 			<file>tests/Integration/DelegatedCampaignDataMachineTest.php</file>
 		</testsuite>
+		<testsuite name="subscribe-email-validation">
+			<file>tests/Integration/SubscribeEmailValidationTest.php</file>
+		</testsuite>
 	</testsuites>
 </phpunit>
