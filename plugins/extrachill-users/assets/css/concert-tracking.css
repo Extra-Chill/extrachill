@@ -29,6 +29,20 @@
 	white-space: nowrap;
 }
 
+/* ─── Attendance visibility disclosure (extrachill-users #414) ─────────── */
+
+.ec-attendance-visibility {
+	margin: 0.25rem 0 0;
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	line-height: 1.4;
+}
+
+.ec-attendance-visibility a {
+	color: inherit;
+	text-decoration: underline;
+}
+
 /* ─── Attendee strip ("who's going / who was there") ───────────────────── */
 
 .ec-attendance-list {

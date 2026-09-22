@@ -464,13 +464,18 @@ function extrachill_users_get_concert_history_visibility( int $user_id ): string
 }
 
 /**
- * Get event attendance identity visibility, defaulting missing legacy values to public.
+ * Get event attendance identity visibility.
+ *
+ * Absent meta resolves private for every user: attendance appears in public
+ * attendee lists only through an explicit opt-in. This keeps the effective
+ * default independent of signup date — the registration hook writes 'private'
+ * for new users, and pre-hook users (absent meta) resolve identically.
  *
  * @param int $user_id User ID.
  * @return string public|private.
  */
 function extrachill_users_get_event_attendance_visibility( int $user_id ): string {
-	return 'private' === get_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, true ) ? 'private' : 'public';
+	return 'public' === get_user_meta( $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, true ) ? 'public' : 'private';
 }
 
 /**
@@ -488,7 +493,18 @@ function extrachill_users_set_visibility( int $user_id, string $setting, string 
 		return new WP_Error( 'invalid_' . $setting, __( 'Visibility must be public or private.', 'extrachill-users' ), array( 'status' => 400 ) );
 	}
 
-	$old_visibility = 'private' === get_user_meta( $user_id, $meta_key, true ) ? 'private' : 'public';
+	// Resolve the previous effective value through the setting's getter so
+	// change detection follows the same default-resolution rule as reads
+	// (event attendance treats absent meta as private).
+	$visibility_getters = array(
+		'concert_history_visibility'  => 'extrachill_users_get_concert_history_visibility',
+		'event_attendance_visibility' => 'extrachill_users_get_event_attendance_visibility',
+	);
+	if ( isset( $visibility_getters[ $setting ] ) ) {
+		$old_visibility = $visibility_getters[ $setting ]( $user_id );
+	} else {
+		$old_visibility = 'private' === get_user_meta( $user_id, $meta_key, true ) ? 'private' : 'public';
+	}
 	if ( $old_visibility === $visibility && metadata_exists( 'user', $user_id, $meta_key ) ) {
 		return false;
 	}

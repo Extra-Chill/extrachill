@@ -207,6 +207,7 @@ function ec_users_render_attendance_button( int $event_id, array $args = array()
 			?>
 		</div>
 		<?php
+		ec_users_render_attendance_visibility_notice();
 		ec_users_render_event_attendees( $event_id, $blog_id );
 		return;
 	}
@@ -226,6 +227,7 @@ function ec_users_render_attendance_button( int $event_id, array $args = array()
 		$marked_class,
 		$args
 	);
+	ec_users_render_attendance_visibility_notice();
 	ec_users_render_event_attendees( $event_id, $blog_id );
 }
 
@@ -308,6 +310,48 @@ function ec_users_render_attendance_mount(
 			<span class="ec-attendance__count"><?php echo esc_html( $count_label ); ?></span>
 		<?php endif; ?>
 	</div>
+	<?php
+}
+
+/**
+ * Render the attendance visibility disclosure under the RSVP control.
+ *
+ * Server-rendered OUTSIDE the #ec-attendance-root mount so the React
+ * hydration in blocks/concert-attendance never wipes it. It reflects the
+ * current user's effective attendance visibility (extrachill #414):
+ *   - public:  disclosing that marking attendance lists their name.
+ *   - private: reassuring that only the count includes them.
+ * Both states link to the account settings screen that owns the toggle.
+ * Logged-out visitors cannot RSVP, so no disclosure renders for them.
+ *
+ * @return void
+ */
+function ec_users_render_attendance_visibility_notice(): void {
+	if ( ! is_user_logged_in() ) {
+		return;
+	}
+
+	$is_public = 'public' === extrachill_users_get_event_attendance_visibility( get_current_user_id() );
+
+	$settings_url = function_exists( 'ec_get_site_url' )
+		? (string) ec_get_site_url( 'community' ) . '/settings/'
+		: '';
+
+	$message = $is_public
+		? __( 'Your name appears in the public attendee list when you mark attendance.', 'extrachill-users' )
+		: __( 'Your attendance is private — only the going count includes you.', 'extrachill-users' );
+
+	$link_label = $is_public
+		? __( 'Manage visibility', 'extrachill-users' )
+		: __( 'Appear in attendee lists', 'extrachill-users' );
+
+	?>
+	<p class="ec-attendance-visibility">
+		<?php echo esc_html( $message ); ?>
+		<?php if ( '' !== $settings_url ) : ?>
+			<a href="<?php echo esc_url( $settings_url ); ?>"><?php echo esc_html( $link_label ); ?></a>
+		<?php endif; ?>
+	</p>
 	<?php
 }
 

@@ -1168,6 +1168,11 @@ function ec_users_events_term_archive_url( string $slug, string $taxonomy, int $
 /**
  * Get users who marked an event.
  *
+ * Only users with an explicit 'public' event-attendance visibility value are
+ * listed. Absent meta resolves private — the same rule as
+ * extrachill_users_get_event_attendance_visibility() — so legacy users who
+ * never chose are excluded from public attendee lists.
+ *
  * @param int   $event_id Event post ID.
  * @param int   $blog_id Blog ID (default: current blog).
  * @param mixed $limit Max users to return (1-100). Default 10.
@@ -1191,11 +1196,11 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
 		$wpdb->prepare(
 			"SELECT user_id FROM {$table} ct
 			WHERE event_id = %d AND blog_id = %d
-			AND NOT EXISTS (
+			AND EXISTS (
 				SELECT 1 FROM {$wpdb->usermeta} um
 				WHERE um.user_id = ct.user_id
 				AND um.meta_key = %s
-				AND um.meta_value = 'private'
+				AND um.meta_value = 'public'
 			)
 			ORDER BY created_at DESC, id DESC LIMIT %d",
 			$event_id,
