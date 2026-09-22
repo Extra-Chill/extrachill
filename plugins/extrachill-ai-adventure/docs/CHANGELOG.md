@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.4] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
 ## [1.3.3] - 2026-09-21
 
 ### Changed
