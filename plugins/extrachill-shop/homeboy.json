@@ -2,9 +2,7 @@
   "id": "extrachill-shop",
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {
-      "php": "8.4"
-    }
+    "wordpress": {}
   },
   "version_targets": [
     {
