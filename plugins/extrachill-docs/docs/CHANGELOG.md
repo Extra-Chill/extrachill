@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.7.3] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
 ## [0.7.2] - 2026-09-21
 
 ### Changed
