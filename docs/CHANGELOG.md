@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.13.3] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
 ## [2.13.2] - 2026-09-21
 
 ### Changed
