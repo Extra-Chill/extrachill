@@ -24,7 +24,8 @@
       "php tests/ConcertTrackingCommandTest.php",
       "php tests/RevenueCommandTest.php",
       "php tests/RevenueCommandRuntimeTest.php",
-      "php tests/StorageMigrationCommandTest.php"
+      "php tests/StorageMigrationCommandTest.php",
+      "php tests/RegenerateOgCardCommandTest.php"
     ]
   },
   "version_targets": [

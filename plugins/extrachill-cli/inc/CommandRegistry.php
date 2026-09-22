@@ -31,8 +31,9 @@ class CommandRegistry {
 			'extrachill platform'                    => Commands\Platform\HealthCommand::class,
 			'extrachill experiments'                 => Commands\Experiments\ExperimentsCommand::class,
 
-			// Network commands — thin wrappers over extrachill-multisite primitives.
+			// Network commands — thin wrappers over extrachill-multisite/extrachill-network primitives.
 			'extrachill network'                     => Commands\Network\MigratePostCommand::class,
+			'extrachill network regenerate-og-card'  => Commands\Network\RegenerateOgCardCommand::class,
 			'extrachill link-pages migrate-storage'  => Commands\LinkPages\StorageMigrationCommand::class,
 
 			// Analytics commands.
