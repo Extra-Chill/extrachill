@@ -41,6 +41,39 @@ function extrachill_api_register_link_page_analytics_route() {
 }
 
 /**
+ * Whether an ID is a Link Page, read from the Link Pages storage site.
+ *
+ * The runtime owns both the storage site and the post type for that site
+ * (extrachill-link-pages#34), so this adapter asks rather than assuming a
+ * blog or a literal. Falls back to the legacy current-blog check when the
+ * runtime is unavailable, which is exactly the pre-cutover behaviour.
+ *
+ * @param int $link_page_id Link Page ID.
+ * @return bool
+ */
+function extrachill_api_is_link_page( $link_page_id ) {
+	$link_page_id = absint( $link_page_id );
+	if ( ! $link_page_id ) {
+		return false;
+	}
+
+	if ( ! function_exists( 'ec_link_page_post_type' ) || ! function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		return 'artist_link_page' === get_post_type( $link_page_id );
+	}
+
+	// The callback receives the storage blog ID; resolve the type for exactly
+	// that site. A storage failure comes back as a WP_Error, which the strict
+	// comparison below treats as "not a Link Page" (fail closed).
+	$matches = ec_with_link_page_storage_blog(
+		static function ( $storage_blog_id ) use ( $link_page_id ) {
+			return ec_link_page_post_type( $storage_blog_id ) === get_post_type( $link_page_id );
+		}
+	);
+
+	return true === $matches;
+}
+
+/**
  * Handles link page analytics requests
  *
  * @param WP_REST_Request $request The request object.
@@ -50,8 +83,11 @@ function extrachill_api_link_page_analytics_handler( WP_REST_Request $request ) 
 	$link_page_id = $request->get_param( 'link_page_id' );
 	$date_range   = $request->get_param( 'date_range' );
 
-	// Validate link page exists and is correct post type
-	if ( get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	// Validate link page exists and is correct post type. Read the post from the
+	// Link Pages storage site: after the site cutover the record lives on the
+	// dedicated Link Pages blog, not the blog serving this REST request, and
+	// its type follows that site (extrachill-link-pages#34).
+	if ( ! extrachill_api_is_link_page( $link_page_id ) ) {
 		return new WP_Error(
 			'invalid_link_page',
 			__( 'Invalid link page specified.', 'extrachill-api' ),
