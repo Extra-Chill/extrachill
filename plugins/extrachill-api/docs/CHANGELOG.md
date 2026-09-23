@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.34.4] - 2026-09-23
+
+### Fixed
+- resolve the Link Page type from the storage site in the analytics route
+
 ## [0.34.3] - 2026-09-22
 
 ### Fixed
