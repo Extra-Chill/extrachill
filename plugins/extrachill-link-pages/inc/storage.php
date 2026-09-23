@@ -634,6 +634,28 @@ function ec_snapshot_link_page_meta( $link_page_id, $meta_key ) {
 	);
 }
 
+/**
+ * Compare a stored meta value with an intended one the way WordPress stores it.
+ *
+ * Post meta round-trips scalars as strings (an int 42 reads back as "42"),
+ * while arrays keep their inner types through serialization. A strict
+ * comparison against the PHP value would report every integer write as
+ * failed and roll it back.
+ *
+ * @param mixed $stored   Value read back from post meta.
+ * @param mixed $intended Value that was written.
+ * @return bool
+ */
+function ec_link_page_meta_value_matches( $stored, $intended ) {
+	if ( is_scalar( $intended ) && is_scalar( $stored ) ) {
+		if ( is_bool( $intended ) ) {
+			return ( $intended ? '1' : '' ) === (string) $stored;
+		}
+		return (string) $intended === (string) $stored;
+	}
+	return $stored === $intended;
+}
+
 /** Write or delete one metadata key and verify its final state. */
 function ec_write_link_page_meta( $link_page_id, $meta_key, $value, $delete = false ) {
 	if ( $delete ) {
@@ -645,11 +667,11 @@ function ec_write_link_page_meta( $link_page_id, $meta_key, $value, $delete = fa
 	}
 	$current_exists = metadata_exists( 'post', $link_page_id, $meta_key );
 	$current        = $current_exists ? get_post_meta( $link_page_id, $meta_key, true ) : null;
-	if ( $current_exists && $current === $value ) {
+	if ( $current_exists && ec_link_page_meta_value_matches( $current, $value ) ) {
 		return true;
 	}
 	$result = update_post_meta( $link_page_id, $meta_key, $value );
-	return false !== $result && metadata_exists( 'post', $link_page_id, $meta_key ) && get_post_meta( $link_page_id, $meta_key, true ) === $value;
+	return false !== $result && metadata_exists( 'post', $link_page_id, $meta_key ) && ec_link_page_meta_value_matches( get_post_meta( $link_page_id, $meta_key, true ), $value );
 }
 
 /** Restore and verify metadata snapshots after a failed mutation. */

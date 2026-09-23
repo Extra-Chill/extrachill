@@ -40,7 +40,8 @@ final class ContentOwnershipTest extends TestCase {
 		);
 		$this->assertIsArray( $saved );
 		$this->assertSame( 'Owned Title', get_post_meta( 40, '_link_page_display_title', true ) );
-		$this->assertSame( 55, get_post_meta( 40, '_link_page_profile_image_id', true ) );
+		// WordPress stores scalars as strings.
+		$this->assertSame( '55', get_post_meta( 40, '_link_page_profile_image_id', true ) );
 		$this->assertSame(
 			array( array( 'id' => 'instagram-1', 'type' => 'instagram', 'url' => 'https://instagram.com/x' ) ),
 			get_post_meta( 40, '_link_page_social_links', true )
@@ -214,5 +215,25 @@ final class ContentOwnershipTest extends TestCase {
 		$this->assertContains( 'extrch-link-page-fonts', $GLOBALS['ec_test']['enqueued_styles'] );
 		$this->assertStringContainsString( 'family=Roboto', $GLOBALS['ec_test']['registered_styles']['extrch-link-page-fonts']['src'] );
 		$this->assertStringContainsString( "@font-face{font-family:'Loft Sans'", $GLOBALS['ec_test']['inline_styles']['extrch-link-page'][0] );
+	}
+
+	public function test_integer_fields_round_trip_as_strings_without_rollback(): void {
+		// Regression: verification compared the stored "55" with int 55 and
+		// rolled every integer write back.
+		$saved = ec_save_link_page_persistence( 40, array( 'profile_image_id' => 55, 'background_image_id' => 77 ) );
+		$this->assertIsArray( $saved );
+		$this->assertSame( '55', get_post_meta( 40, '_link_page_profile_image_id', true ) );
+		$this->assertSame( 55, ec_read_link_page_persistence( 40 )['profile_image_id'] );
+		// Re-saving the same value is a no-op success, not a failure.
+		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'profile_image_id' => 55 ) ) );
+	}
+
+	public function test_meta_value_match_is_storage_aware(): void {
+		$this->assertTrue( ec_link_page_meta_value_matches( '55', 55 ) );
+		$this->assertTrue( ec_link_page_meta_value_matches( '1', true ) );
+		$this->assertTrue( ec_link_page_meta_value_matches( '', false ) );
+		$this->assertFalse( ec_link_page_meta_value_matches( '56', 55 ) );
+		$this->assertTrue( ec_link_page_meta_value_matches( array( 'a' => 1 ), array( 'a' => 1 ) ) );
+		$this->assertFalse( ec_link_page_meta_value_matches( array( 'a' => '1' ), array( 'a' => 1 ) ) );
 	}
 }

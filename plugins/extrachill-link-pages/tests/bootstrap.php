@@ -528,6 +528,13 @@ function update_post_meta( $post_id, $key, $value ) {
 		return false; }
 	if ( in_array( $GLOBALS['ec_test']['meta_write_calls'], $GLOBALS['ec_test']['fail_meta_write_calls'] ?? array(), true ) ) {
 		return false; }
+	// WordPress stores scalars as strings; mirror it so type-sensitive
+	// verification is exercised the way production runs it.
+	if ( is_bool( $value ) ) {
+		$value = $value ? '1' : '';
+	} elseif ( is_int( $value ) || is_float( $value ) ) {
+		$value = (string) $value;
+	}
 	$GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['post_meta'][ $post_id ][ $key ] = is_array( $value ) ? array( $value ) : $value;
 	return true;
 }
