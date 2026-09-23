@@ -103,8 +103,17 @@ function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 	// current-storage-blog default is correct here. The literal fallback keeps
 	// this ability deployable before extrachill-link-pages ships the runtime
 	// function. See Extra-Chill/extrachill-link-pages#34.
+	// Resolve the type on the storage blog: the dashboard can run on the
+	// owner's site while pages live on the Link Pages site.
 	$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
-	if ( get_post_type( $link_page_id ) !== $link_page_post_type ) {
+	$stored_post_type    = function_exists( 'ec_with_link_page_storage_blog' )
+		? ec_with_link_page_storage_blog(
+			static function () use ( $link_page_id ) {
+				return get_post_type( $link_page_id );
+			}
+		)
+		: get_post_type( $link_page_id );
+	if ( $stored_post_type !== $link_page_post_type ) {
 		return new \WP_Error(
 			'invalid_link_page',
 			__( 'Invalid link page specified.', 'extrachill-analytics' ),

@@ -145,6 +145,8 @@ final class LinkPageAnalyticsDateRangeTest extends Extrachill_Analytics_TestCase
 			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';",
 			$source
 		);
-		$this->assertStringContainsString( 'get_post_type( $link_page_id ) !== $link_page_post_type', $source );
+		// The stored type is resolved on the storage blog, not the request blog.
+		$this->assertStringContainsString( 'ec_with_link_page_storage_blog(', $source );
+		$this->assertStringContainsString( '$stored_post_type !== $link_page_post_type', $source );
 	}
 }

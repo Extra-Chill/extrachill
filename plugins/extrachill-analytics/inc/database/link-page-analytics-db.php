@@ -52,6 +52,40 @@ function extrachill_analytics_link_page_clicks_table() {
 }
 
 /**
+ * Table prefix of the blog that stores Link Pages.
+ *
+ * Runtime reads and writes follow the Link Page storage blog, not whatever
+ * blog served the request: the artist dashboard runs on the artist site
+ * while pages (and their view/click beacons) are served by the storage
+ * site. Falls back to the current blog when the Link Pages runtime is not
+ * loaded. Migration and schema code keep the per-blog functions above.
+ *
+ * @return string
+ */
+function extrachill_analytics_link_page_storage_prefix() {
+	global $wpdb;
+	$storage_blog_id = function_exists( 'ec_get_link_page_storage_blog_id' ) ? (int) ec_get_link_page_storage_blog_id() : 0;
+	/**
+	 * Blog whose tables hold Link Page analytics. Default: the Link Page
+	 * storage blog, or 0 (current blog) when the runtime is not loaded.
+	 *
+	 * @param int $storage_blog_id Blog ID.
+	 */
+	$storage_blog_id = (int) apply_filters( 'extrachill_analytics_link_page_storage_blog_id', $storage_blog_id );
+	return $storage_blog_id > 0 ? $wpdb->get_blog_prefix( $storage_blog_id ) : $wpdb->prefix;
+}
+
+/** Daily-views table on the Link Page storage blog. */
+function extrachill_analytics_link_page_storage_views_table() {
+	return extrachill_analytics_link_page_storage_prefix() . 'extrch_link_page_daily_views';
+}
+
+/** Daily-link-clicks table on the Link Page storage blog. */
+function extrachill_analytics_link_page_storage_clicks_table() {
+	return extrachill_analytics_link_page_storage_prefix() . 'extrch_link_page_daily_link_clicks';
+}
+
+/**
  * Create or update the link-page analytics tables when the DB version changes.
  *
  * Schema is a verbatim copy of AP's prior definition so dbDelta treats an
