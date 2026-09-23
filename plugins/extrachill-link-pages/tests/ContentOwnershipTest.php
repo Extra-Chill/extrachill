@@ -94,7 +94,7 @@ final class ContentOwnershipTest extends TestCase {
 		ob_start();
 		ec_render_link_page_public_head( 40, $data, $prepared );
 		$head = ob_get_clean();
-		$this->assertStringContainsString( 'Owned Title | extrachill.link', $head );
+		$this->assertStringContainsString( '<title>Owned Title</title>', $head );
 
 		$body = ec_render_link_page_section( $data['link_sections'][0], 40, false );
 		$this->assertStringContainsString( 'Song', $body );
@@ -235,5 +235,57 @@ final class ContentOwnershipTest extends TestCase {
 		$this->assertFalse( ec_link_page_meta_value_matches( '56', 55 ) );
 		$this->assertTrue( ec_link_page_meta_value_matches( array( 'a' => 1 ), array( 'a' => 1 ) ) );
 		$this->assertFalse( ec_link_page_meta_value_matches( array( 'a' => '1' ), array( 'a' => 1 ) ) );
+	}
+
+	public function test_title_suffix_comes_from_the_host_site(): void {
+		add_filter( 'ec_link_page_title_suffix', static function () { return ' | host.example'; } );
+		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'display_title' => 'Owned Title' ) ) );
+		$projection = ec_prepare_link_page_public_render( ec_get_link_page_public_projection( 40 ), ec_read_link_page_persistence( 40 ) );
+		ob_start();
+		ec_render_link_page_public_head( 40, ec_read_link_page_persistence( 40 ), $projection );
+		$this->assertStringContainsString( '<title>Owned Title | host.example</title>', ob_get_clean() );
+	}
+
+	public function test_schema_entity_fields_are_page_owned_and_validated(): void {
+		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'schema_entity_type' => 'MusicGroup', 'schema_entity_url' => 'https://artist.example/band' ) ) );
+		$data = ec_read_link_page_persistence( 40 );
+		$this->assertSame( array( 'type' => 'MusicGroup', 'url' => 'https://artist.example/band' ), $data['schema_entity'] );
+		$this->assertSame( 'invalid_link_page_schema_entity_type', ec_save_link_page_persistence( 40, array( 'schema_entity_type' => 'music group<script>' ) )->get_error_code() );
+		$this->assertSame( 'invalid_link_page_schema_entity_url', ec_save_link_page_persistence( 40, array( 'schema_entity_url' => 'javascript:alert(1)' ) )->get_error_code() );
+		$this->assertSame( 'MusicGroup', ec_read_link_page_persistence( 40 )['schema_entity']['type'] );
+	}
+
+	public function test_owned_schema_graph_is_built_without_an_owner_provider(): void {
+		$this->assertIsArray(
+			ec_save_link_page_persistence(
+				40,
+				array(
+					'display_title'      => 'The Band',
+					'bio'                => 'Loud.',
+					'social_links'       => array( array( 'type' => 'instagram', 'url' => 'https://instagram.com/band' ) ),
+					'schema_entity_type' => 'MusicGroup',
+					'schema_entity_url'  => 'https://artist.example/band',
+				)
+			)
+		);
+		$projection = ec_get_link_page_public_projection( 40 );
+		$graph      = $projection['seo']['schema'];
+		$this->assertSame( 'MusicGroup', $graph[0]['@type'] );
+		$this->assertSame( 'https://artist.example/band#musicgroup', $graph[0]['@id'] );
+		$this->assertSame( 'The Band', $graph[0]['name'] );
+		$this->assertSame( 'Loud.', $graph[0]['description'] );
+		$this->assertSame( array( 'https://instagram.com/band' ), $graph[0]['sameAs'] );
+		$this->assertSame( 'ProfilePage', $graph[1]['@type'] );
+		$this->assertSame( array( '@id' => 'https://artist.example/band#musicgroup' ), $graph[1]['mainEntity'] );
+	}
+
+	public function test_no_schema_is_guessed_without_an_entity_type(): void {
+		$this->assertSame( array(), ec_link_page_owned_schema_graph( ec_read_link_page_persistence( 40 ), 'https://host.example/page/' ) );
+	}
+
+	public function test_click_tracking_url_falls_back_to_the_site_integration(): void {
+		$this->assertSame( '', ec_get_link_page_public_projection( 40 )['tracking_url'] );
+		add_filter( 'ec_link_page_click_tracking_url', static function () { return 'https://api.example/click'; } );
+		$this->assertSame( 'https://api.example/click', ec_get_link_page_public_projection( 40 )['tracking_url'] );
 	}
 }

@@ -618,6 +618,10 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		'profile_image_id'       => $profile_image_id,
 		'profile_image_url'      => $profile_image_id ? (string) wp_get_attachment_url( $profile_image_id ) : '',
 		'social_links'           => is_array( $social_links_raw ) ? $social_links_raw : array(),
+		'schema_entity'          => array(
+			'type' => (string) get_post_meta( $link_page_id, '_link_page_schema_entity_type', true ),
+			'url'  => (string) get_post_meta( $link_page_id, '_link_page_schema_entity_url', true ),
+		),
 		'settings'               => $settings,
 		'previous_links'         => ec_get_link_page_previous_links( $link_page_id ),
 		'background_image_id'    => absint( $settings['background_image_id'] ),
@@ -754,6 +758,8 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 		'social_icons_position'   => '_link_page_social_icons_position',
 		'profile_image_shape'     => '_link_page_profile_img_shape',
 		'background_image_id'     => '_link_page_background_image_id',
+		'schema_entity_type'      => '_link_page_schema_entity_type',
+		'schema_entity_url'       => '_link_page_schema_entity_url',
 	);
 	$touched   = array_intersect_key( $meta_keys, $save_data );
 	if ( array_key_exists( 'links', $save_data ) ) {
@@ -817,6 +823,27 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 		$writes['_link_page_profile_image_id'] = array(
 			'value'  => $profile_image_id,
 			'delete' => ! $profile_image_id,
+		);
+	}
+	if ( array_key_exists( 'schema_entity_type', $save_data ) ) {
+		$entity_type = trim( (string) $save_data['schema_entity_type'] );
+		if ( '' !== $entity_type && 1 !== preg_match( '/^[A-Z][A-Za-z]{1,63}$/', $entity_type ) ) {
+			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, new WP_Error( 'invalid_link_page_schema_entity_type', 'The schema entity type must be a schema.org type name.' ) );
+		}
+		$writes['_link_page_schema_entity_type'] = array(
+			'value'  => $entity_type,
+			'delete' => '' === $entity_type,
+		);
+	}
+	if ( array_key_exists( 'schema_entity_url', $save_data ) ) {
+		$raw_entity_url = trim( (string) $save_data['schema_entity_url'] );
+		$entity_url     = '' === $raw_entity_url ? '' : esc_url_raw( $raw_entity_url, array( 'http', 'https' ) );
+		if ( '' !== $raw_entity_url && '' === $entity_url ) {
+			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, new WP_Error( 'invalid_link_page_schema_entity_url', 'The schema entity URL must use HTTP or HTTPS.' ) );
+		}
+		$writes['_link_page_schema_entity_url'] = array(
+			'value'  => $entity_url,
+			'delete' => '' === $entity_url,
 		);
 	}
 	if ( array_key_exists( 'social_links', $save_data ) ) {

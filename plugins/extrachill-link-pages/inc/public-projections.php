@@ -411,8 +411,78 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 			$projection['social_renderer'] = 'ec_render_link_page_social_links';
 		}
 	}
+	if ( '' === $projection['tracking_url'] ) {
+		/**
+		 * Supply the click-tracking endpoint for pages whose owner projection
+		 * does not provide one. No default: tracking stays off unless a
+		 * site integration answers.
+		 *
+		 * @param string $url          Endpoint URL.
+		 * @param int    $link_page_id Link Page ID.
+		 */
+		$projection['tracking_url'] = esc_url_raw( (string) apply_filters( 'ec_link_page_click_tracking_url', '', absint( $link_page_id ) ), array( 'http', 'https' ) );
+	}
+	if ( empty( $projection['seo']['schema'] ) && ! is_wp_error( $owned ) ) {
+		$schema = ec_link_page_owned_schema_graph( $owned, $context['public_url'] );
+		if ( $schema ) {
+			$projection['seo']['schema'] = $schema;
+		}
+	}
 	$projection['_context'] = $context;
 	return $projection;
+}
+
+/**
+ * Build a schema.org graph from page-owned data.
+ *
+ * Emits the page's entity (type and URL pushed by its owner) plus a
+ * ProfilePage pointing at it. Returns an empty array when the page has no
+ * entity type, so nothing is guessed.
+ *
+ * @param array  $data       Link Page persistence.
+ * @param string $public_url Canonical page URL.
+ * @return array
+ */
+function ec_link_page_owned_schema_graph( $data, $public_url ) {
+	$type = (string) ( $data['schema_entity']['type'] ?? '' );
+	if ( '' === $type || '' === (string) $public_url ) {
+		return array();
+	}
+	$entity_url = (string) ( $data['schema_entity']['url'] ?? '' );
+	$anchor     = ( '' !== $entity_url ? $entity_url : $public_url ) . '#' . strtolower( $type );
+	$entity     = array(
+		'@type' => $type,
+		'@id'   => $anchor,
+		'name'  => (string) $data['display_title'],
+	);
+	if ( '' !== $entity_url ) {
+		$entity['url'] = $entity_url;
+	}
+	if ( '' !== (string) $data['bio'] ) {
+		$entity['description'] = wp_strip_all_tags( (string) $data['bio'] );
+	}
+	if ( '' !== (string) $data['profile_image_url'] ) {
+		$entity['image'] = (string) $data['profile_image_url'];
+	}
+	$same_as = array();
+	foreach ( $data['social_links'] as $social ) {
+		if ( ! empty( $social['url'] ) ) {
+			$same_as[] = (string) $social['url'];
+		}
+	}
+	if ( $same_as ) {
+		$entity['sameAs'] = array_values( array_unique( $same_as ) );
+	}
+	return array(
+		$entity,
+		array(
+			'@type'      => 'ProfilePage',
+			'@id'        => $public_url . '#profilepage',
+			'url'        => $public_url,
+			'name'       => (string) $data['display_title'],
+			'mainEntity' => array( '@id' => $anchor ),
+		),
+	);
 }
 
 /**

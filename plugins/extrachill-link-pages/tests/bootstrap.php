@@ -190,6 +190,8 @@ function esc_url_raw( $value, $protocols = null ) {
 }
 function esc_js( $value ) {
 	return addslashes( (string) $value ); }
+function wp_kses_post( $value ) {
+	return (string) $value; }
 function wp_strip_all_tags( $value ) {
 	return strip_tags( (string) $value ); }
 function wp_parse_url( $url, $component = -1 ) {

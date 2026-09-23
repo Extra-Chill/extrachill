@@ -35,7 +35,21 @@ $wrapper_class = 'extrch-link-page-content-wrapper' . ( empty( $data['settings']
 		echo $projection['_rendered_components']['after_links']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output.
 		echo $projection['_rendered_social_below']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output.
 		?>
-		<div class="extrch-link-page-powered" style="margin-top:auto; padding-top:1em; padding-bottom:1em;"><a href="https://extrachill.com/power/?utm_source=linkpage&amp;utm_medium=footer&amp;utm_campaign=power" rel="noopener">Powered by Extra Chill</a></div>
+		<?php
+		/**
+		 * Footer credit HTML for the host site. Default empty.
+		 *
+		 * @param string $html         Footer HTML (passed through wp_kses_post()).
+		 * @param int    $link_page_id Link Page ID.
+		 */
+		$ec_link_page_footer = (string) apply_filters( 'ec_link_page_footer_html', '', $link_page_id );
+		if ( '' !== $ec_link_page_footer ) :
+			?>
+		<div class="extrch-link-page-powered" style="margin-top:auto; padding-top:1em; padding-bottom:1em;"><?php echo wp_kses_post( $ec_link_page_footer ); ?></div>
+			<?php
+		endif;
+		unset( $ec_link_page_footer );
+		?>
 		<?php echo $projection['_rendered_components']['footer']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output. ?>
 	</div>
 	<?php require EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/share-modal.php'; ?>

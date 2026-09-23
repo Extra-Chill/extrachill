@@ -437,10 +437,17 @@ function ec_render_link_page_section( $section, $link_page_id, $youtube_enabled 
 function ec_render_link_page_public_head( $link_page_id, $data, $projection ) {
 	echo '<meta charset="' . esc_attr( get_bloginfo( 'charset' ) ) . '">';
 	echo '<meta name="viewport" content="width=device-width,initial-scale=1">';
-	echo '<title>' . esc_html( $projection['display_title'] ) . ' | extrachill.link</title>';
+	/**
+	 * Suffix appended to every Link Page title (e.g. ' | example.link').
+	 *
+	 * @param string $suffix       Title suffix. Default empty.
+	 * @param int    $link_page_id Link Page ID.
+	 */
+	$title_suffix = (string) apply_filters( 'ec_link_page_title_suffix', '', $link_page_id );
+	echo '<title>' . esc_html( $projection['display_title'] . $title_suffix ) . '</title>';
 	$seo             = array_merge(
 		array(
-			'title'       => $projection['display_title'] . ' | extrachill.link',
+			'title'       => $projection['display_title'] . $title_suffix,
 			'description' => $projection['bio'],
 			'canonical'   => ec_get_link_page_public_url( $link_page_id ),
 			'image'       => $projection['profile_img_url'],
@@ -484,6 +491,12 @@ function ec_render_link_page_public_head( $link_page_id, $data, $projection ) {
 	echo $projection['_rendered_components']['head']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output.
 	$legacy_arguments = ! empty( $projection['legacy_head_arguments'] ) ? $projection['legacy_head_arguments'] : array( $projection['_context']['owner'] );
 	do_action( 'extrachill_artist_link_page_minimal_head', $link_page_id, ...$legacy_arguments ); // Historical hook name.
+	/**
+	 * Fires in the Link Page head for site-level integrations.
+	 *
+	 * @param int $link_page_id Link Page ID.
+	 */
+	do_action( 'ec_link_page_public_head', $link_page_id );
 	wp_print_styles();
 	$meta_id = $data['settings']['meta_pixel_id'];
 	if ( $meta_id && ctype_digit( (string) $meta_id ) ) {

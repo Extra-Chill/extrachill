@@ -68,6 +68,14 @@ foreach ( $body_attributes as $attribute => $value ) :
 	?>
 	<?php echo esc_attr( $attribute ); ?>="<?php echo esc_attr( (string) $value ); ?>"<?php endforeach; ?>>
 <?php echo $projection['_rendered_components']['body_start']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output. ?>
+<?php
+/**
+ * Fires right after the Link Page body opens, for site-level integrations.
+ *
+ * @param int $link_page_id Link Page ID.
+ */
+do_action( 'ec_link_page_public_body_open', $link_page_id );
+?>
 <?php require EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/link-page.php'; ?>
 <?php wp_print_footer_scripts(); ?>
 </body>
