@@ -28,7 +28,6 @@ function ec_artist_link_page_public_projection_provider( $context ) {
 	$link_page_id    = (int) $context['link_page_id'];
 	$data            = ec_get_link_page_data( $artist_id, $link_page_id );
 	$artist_site_url = ec_get_site_url( 'artist' );
-	$api_base        = $artist_site_url . '/wp-json/extrachill/v1';
 	$seo             = extrachill_artist_link_page_seo_context( $artist_id, $link_page_id );
 
 	return array(
@@ -45,7 +44,8 @@ function ec_artist_link_page_public_projection_provider( $context ) {
 			'data-extrch-artist-id' => (string) $artist_id,
 		),
 		'seo'                   => $seo,
-		'tracking_url'          => $api_base . '/analytics/click',
+		// Click tracking endpoint comes from the host integration
+		// (ec_link_page_click_tracking_url), which targets the serving site.
 		'css_vars'              => $data['css_vars'],
 		'assets'                => 'ec_artist_link_page_enqueue_asset_extensions',
 		'legacy_head_arguments' => array( $artist_id ),
