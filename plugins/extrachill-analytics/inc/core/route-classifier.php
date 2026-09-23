@@ -85,6 +85,46 @@ function extrachill_analytics_route_families() {
 }
 
 /**
+ * Reduce a CTA destination to a bounded host+path string, scheme dropped.
+ *
+ * `cta_click.dest` is deliberately more compact than the scheme-carrying
+ * `dest_url` used by outbound_click: it exists for stable hashing and for a
+ * human scanning a report, not for building a clickable link. The browser
+ * always sends an already-reduced `host/path` string (no scheme); a bare
+ * https:// prefix is assumed so the existing canonical-URL validator (host
+ * format, no embedded credentials, no whitespace) can be reused unchanged.
+ * Query strings and fragments are always stripped.
+ *
+ * @param string $dest Raw client-supplied destination (host+path, or a full URL).
+ * @return string Bounded `host/path` string, or '' when the value cannot be
+ *                resolved to a valid host.
+ */
+function extrachill_analytics_normalize_cta_dest( $dest ) {
+	$dest = trim( (string) $dest );
+	if ( '' === $dest ) {
+		return '';
+	}
+
+	if ( ! preg_match( '#^https?://#i', $dest ) ) {
+		$dest = 'https://' . ltrim( $dest, '/' );
+	}
+
+	$canonical = extrachill_analytics_canonicalize_tracked_url( $dest );
+	if ( '' === $canonical ) {
+		return '';
+	}
+
+	$parts = wp_parse_url( $canonical );
+	if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+		return '';
+	}
+
+	$path = isset( $parts['path'] ) ? (string) $parts['path'] : '/';
+
+	return substr( strtolower( rtrim( (string) $parts['host'], '.' ) ) . $path, 0, 512 );
+}
+
+/**
  * Classify the current frontend template into a bounded route family.
  *
  * @param string $path Normalized current path.

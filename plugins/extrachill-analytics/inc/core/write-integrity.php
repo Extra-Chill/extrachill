@@ -375,6 +375,22 @@ function extrachill_analytics_validate_public_event_data( $event_type, $event_da
 				'category'  => array( 'string', 32 ),
 			);
 			break;
+		case EC_ANALYTICS_EVENT_CTA_CLICK:
+			$fields = array(
+				'cta'       => array( 'string', 80 ),
+				'label'     => array( 'string', 80 ),
+				'dest'      => array( 'string', 512 ),
+				'placement' => array( 'string', 40 ),
+				'route'     => array( 'string', 20 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_FORM_SUBMIT:
+			$fields = array(
+				'form'      => array( 'string', 80 ),
+				'placement' => array( 'string', 40 ),
+				'route'     => array( 'string', 20 ),
+			);
+			break;
 		default:
 			return true;
 	}

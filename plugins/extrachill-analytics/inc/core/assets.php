@@ -452,22 +452,35 @@ add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_view_tracking' )
 add_action( 'extrachill_artist_link_page_minimal_head', 'extrachill_analytics_enqueue_view_tracking', 20 );
 
 /**
- * Enqueue outbound-click tracking on every front-end view.
+ * Enqueue outbound-click, CTA-click, and form-submit tracking on every
+ * front-end view.
  *
- * Unlike pageview tracking (singular only), an outbound exit can happen from
- * any front-end surface — archives, the homepage, taxonomy listings — so this
- * runs network-wide on all non-admin views. The handler is a single delegated
- * click listener (see assets/js/outbound-tracking.js) that fires a sendBeacon
- * `outbound_click` event when a reader clicks an anchor to an off-network host.
+ * Unlike pageview tracking (singular only), a click or form submit can happen
+ * from any front-end surface — archives, the homepage, taxonomy listings — so
+ * this runs network-wide on all non-admin views. The handler is a single
+ * delegated click listener plus a single delegated submit listener (see
+ * assets/js/outbound-tracking.js). The click listener fires a sendBeacon
+ * `outbound_click` event for an anchor to an off-network host (unchanged
+ * behaviour) AND, independently, a `cta_click` event for any element matching
+ * the design-system button classes, `[data-ec-track]`, or a submit control in
+ * a form — an off-network design-system button can fire both, which is
+ * intended. The submit listener fires `form_submit` for any form it can name.
+ * See Extra-Chill/extrachill-analytics#293.
  *
- * Because the beacon fires only from a real, JS-executing browser, the data is
- * bot-filtered by construction — the same guarantee the bridge_click /
+ * Because every beacon fires only from a real, JS-executing browser, the data
+ * is bot-filtered by construction — the same guarantee the bridge_click /
  * pageview beacons rely on. Visitor identity is omitted from cacheable HTML and
  * resolved by the browser-facing write adapter when a stable cookie exists.
  *
  * The network-host list is the canonical multisite map so an INTERNAL hop
  * (extrachill.com → community.extrachill.com, already covered by the conversion
  * map) is never miscounted as an outbound exit.
+ *
+ * `route` is classified server-side here (the same classifier pageview
+ * tracking uses) and handed to the browser, rather than reclassified in JS:
+ * the classifier reads live WP_Query conditionals (is_search(), is_archive(),
+ * is_singular()...) that only exist during THIS template render, not at the
+ * later async request the click/submit beacon makes.
  */
 function extrachill_analytics_enqueue_outbound_tracking() {
 	if ( is_admin() || is_preview() ) {
@@ -492,6 +505,12 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 	}
 	$network_hosts = array_values( array_unique( array_filter( $network_hosts ) ) );
 
+	$request_uri = isset( $_SERVER['REQUEST_URI'] )
+		? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) )
+		: '/';
+	$source_path = extrachill_analytics_normalize_route_path( $request_uri );
+	$route       = '' !== $source_path ? extrachill_analytics_classify_current_route( $source_path ) : 'other';
+
 	wp_enqueue_script(
 		'extrachill-outbound-tracking',
 		EXTRACHILL_ANALYTICS_PLUGIN_URL . 'assets/js/outbound-tracking.js',
@@ -509,6 +528,9 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		array(
 			'endpoint'     => rest_url( 'extrachill/v1/analytics/click' ),
 			'networkHosts' => $network_hosts,
+			'ctaEndpoint'  => rest_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
+			'formEndpoint' => rest_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
+			'route'        => $route,
 		)
 	);
 }
