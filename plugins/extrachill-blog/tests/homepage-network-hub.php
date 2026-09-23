@@ -69,6 +69,8 @@ $power = extrachill_blog_power_manifesto_html();
 check( 'Power opens with a concise network promise', false !== strpos( $power, 'One independent music scene with many doors.' ) );
 check( 'Power leads visitors to the network doors', false !== strpos( $power, 'Pick a door' ) );
 check( 'Power cards use existing bridge instrumentation class', false !== strpos( $power, 'power-network-card ec-cross-site-link' ) );
+check( 'Power cards carry stable analytics CTA ids', 6 === substr_count( $power, 'data-ec-track="power-' ) && false !== strpos( $power, 'data-ec-track="power-events"' ) && false !== strpos( $power, 'data-ec-track="power-open-source"' ) );
+check( 'Power cards share one tracked placement', 6 === substr_count( $power, 'data-ec-track-placement="power-network-map"' ) );
 check( 'Power destinations identify the Power placement', false !== strpos( $power, 'utm_source=power' ) );
 check( 'long manifesto pillars are removed', false === strpos( $power, 'What we stand for' ) );
 check( 'duplicated artist conversion section is removed', false === strpos( $power, 'Claim your free artist profile' ) );

@@ -138,6 +138,7 @@ function extrachill_blog_power_network_map() {
 			'desc'     => __( 'Concerts everywhere — big cities and small, big artists and small — free to browse, no login wall.', 'extrachill-blog' ),
 			'url'      => extrachill_blog_power_site_url( 'events', 'https://events.extrachill.com' ),
 			'site_key' => 'events',
+			'track'    => 'power-events',
 			'cta'      => __( 'Browse the calendar', 'extrachill-blog' ),
 			'proof'    => extrachill_blog_power_proof_line(
 				$stats,
@@ -160,6 +161,7 @@ function extrachill_blog_power_network_map() {
 			'desc'     => __( 'Forums for musicians, fans, and industry folks — the online music scene, in conversation.', 'extrachill-blog' ),
 			'url'      => extrachill_blog_power_site_url( 'community', 'https://community.extrachill.com' ),
 			'site_key' => 'community',
+			'track'    => 'power-community',
 			'cta'      => __( 'Join the conversation', 'extrachill-blog' ),
 			'proof'    => extrachill_blog_power_proof_line(
 				$stats,
@@ -182,6 +184,7 @@ function extrachill_blog_power_network_map() {
 			'desc'     => __( 'Timely, no-nonsense coverage of festival news and lineups as it breaks.', 'extrachill-blog' ),
 			'url'      => extrachill_blog_power_site_url( 'wire', 'https://wire.extrachill.com' ),
 			'site_key' => 'wire',
+			'track'    => 'power-wire',
 			'cta'      => __( 'Read the Wire', 'extrachill-blog' ),
 			'proof'    => extrachill_blog_power_proof_line(
 				$stats,
@@ -199,6 +202,7 @@ function extrachill_blog_power_network_map() {
 			'desc'     => __( 'Free link pages, subscribers, and analytics for independent artists to run their own corner.', 'extrachill-blog' ),
 			'url'      => extrachill_blog_power_site_url( 'artist', 'https://artist.extrachill.com' ),
 			'site_key' => 'artist',
+			'track'    => 'power-artist',
 			'cta'      => __( 'Explore the platform', 'extrachill-blog' ),
 			'proof'    => extrachill_blog_power_proof_line(
 				$stats,
@@ -216,6 +220,7 @@ function extrachill_blog_power_network_map() {
 			'desc'     => __( 'Where it all started in 2011 — independent music journalism, written by people who show up.', 'extrachill-blog' ),
 			'url'      => home_url( '/' ),
 			'site_key' => '',
+			'track'    => 'power-publication',
 			'cta'      => __( 'Read the blog', 'extrachill-blog' ),
 			'proof'    => extrachill_blog_power_proof_line(
 				$stats,
@@ -233,6 +238,7 @@ function extrachill_blog_power_network_map() {
 			'desc'     => __( 'The whole network is open source and built in public. Peek under the hood.', 'extrachill-blog' ),
 			'url'      => 'https://github.com/Extra-Chill',
 			'site_key' => '',
+			'track'    => 'power-open-source',
 			'cta'      => __( 'See the code on GitHub', 'extrachill-blog' ),
 			'proof'    => '',
 		),
@@ -246,7 +252,7 @@ function extrachill_blog_power_network_map() {
 			$card_url   = $card['site_key'] ? extrachill_blog_bridge_url( $card['url'], $card['site_key'], 'power' ) : $card['url'];
 			$card_class = $card['site_key'] ? 'power-network-card ec-cross-site-link' : 'power-network-card';
 			?>
-			<a class="<?php echo esc_attr( $card_class ); ?>" href="<?php echo esc_url( $card_url ); ?>">
+			<a class="<?php echo esc_attr( $card_class ); ?>" href="<?php echo esc_url( $card_url ); ?>" data-ec-track="<?php echo esc_attr( $card['track'] ); ?>" data-ec-track-placement="power-network-map">
 				<h3 class="power-network-card__title"><?php echo esc_html( $card['title'] ); ?></h3>
 				<?php if ( ! empty( $card['proof'] ) ) : ?>
 					<p class="power-network-card__proof"><?php echo esc_html( $card['proof'] ); ?></p>
