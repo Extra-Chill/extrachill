@@ -48,8 +48,8 @@ function ec_artist_link_page_public_projection_provider( $context ) {
 		'tracking_url'          => $api_base . '/analytics/click',
 		'css_vars'              => $data['css_vars'],
 		'components'            => array(
-			'head'           => array( 'ec_artist_link_page_render_tracking_head' ),
-			'body_start'     => array( 'ec_artist_link_page_render_tracking_body' ),
+			// Network tag manager moved to the host integration
+			// (extrachill-network, ec_link_page_public_head/body_open).
 			'header_actions' => 'icon_modal' === $data['_link_page_subscribe_display_mode'] ? array( 'ec_artist_link_page_render_subscribe_trigger' ) : array(),
 			'after_links'    => 'disabled' === $data['_link_page_subscribe_display_mode'] ? array() : array( 'ec_artist_link_page_render_subscription' ),
 		),
@@ -169,16 +169,6 @@ function ec_artist_link_page_enqueue_asset_extensions( $context ) {
 		}
 	}
 	return true;
-}
-
-/** Render the network-wide GTM head snippet retained by artist pages. */
-function ec_artist_link_page_render_tracking_head() {
-	return '<!-- Google Tag Manager --><script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\':new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src=\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f);})(window,document,\'script\',\'dataLayer\',\'GTM-NXKDLFD\');</script><!-- End Google Tag Manager -->';
-}
-
-/** Render the network-wide GTM body fallback retained by artist pages. */
-function ec_artist_link_page_render_tracking_body() {
-	return '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NXKDLFD" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>';
 }
 
 /**

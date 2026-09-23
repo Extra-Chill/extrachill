@@ -80,7 +80,7 @@ function ec_artist_save_link_page_fields( $link_page_id, $fields ) {
 }
 
 /**
- * Push an artist's identity (name, profile image) onto its Link Page.
+ * Push an artist's identity (name, profile image, schema entity) onto its Link Page.
  *
  * Must run in the artist site context. No-ops when the artist has no Link
  * Page or when the page already matches.
@@ -106,9 +106,12 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 	}
 
 	$artist   = get_post( $artist_id );
-	$identity = array(
-		'display_title'    => $artist ? $artist->post_title : '',
-		'profile_image_id' => (int) get_post_thumbnail_id( $artist_id ),
+	$permalink = get_permalink( $artist_id );
+	$identity  = array(
+		'display_title'      => $artist ? $artist->post_title : '',
+		'profile_image_id'   => (int) get_post_thumbnail_id( $artist_id ),
+		'schema_entity_type' => 'MusicGroup',
+		'schema_entity_url'  => $permalink ? (string) $permalink : '',
 	);
 
 	$current = ec_read_link_page_persistence( $link_page_id );
@@ -121,6 +124,16 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 	}
 	if ( (int) $current['profile_image_id'] !== $identity['profile_image_id'] ) {
 		$changes['profile_image_id'] = $identity['profile_image_id'];
+	}
+	// Schema entity fields exist from Link Pages 0.6; older runtimes omit
+	// them from persistence, so only push when the runtime reports them.
+	if ( isset( $current['schema_entity'] ) && is_array( $current['schema_entity'] ) ) {
+		if ( ( $current['schema_entity']['type'] ?? '' ) !== $identity['schema_entity_type'] ) {
+			$changes['schema_entity_type'] = $identity['schema_entity_type'];
+		}
+		if ( ( $current['schema_entity']['url'] ?? '' ) !== $identity['schema_entity_url'] ) {
+			$changes['schema_entity_url'] = $identity['schema_entity_url'];
+		}
 	}
 	if ( ! $changes ) {
 		return true;
