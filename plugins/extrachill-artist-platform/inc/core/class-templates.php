@@ -32,9 +32,10 @@ class ExtraChillArtistPlatform_PageTemplates {
 	 * Sets up filters for custom template loading for post types.
 	 */
 	private function init_hooks() {
-		if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-			add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
-		}
+		// Always registered: artist profiles need their template whether or
+		// not the external Link Pages runtime owns public Link Page routing.
+		// Only the Link Page branch inside is skipped when it does.
+		add_filter( 'template_include', array( $this, 'load_artist_link_page_template' ), 10 );
 		add_filter( 'extrachill_template_archive', array( $this, 'load_artist_profile_archive_template' ), 10 );
 	}
 
@@ -48,7 +49,7 @@ class ExtraChillArtistPlatform_PageTemplates {
 	 * @return string Modified template path
 	 */
 	public function load_artist_link_page_template( $template ) {
-		if ( is_singular( extrachill_artist_platform_link_page_post_type() ) ) {
+		if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() && is_singular( extrachill_artist_platform_link_page_post_type() ) ) {
 			$plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
 			if ( file_exists( $plugin_template ) ) {
 				return $plugin_template;
