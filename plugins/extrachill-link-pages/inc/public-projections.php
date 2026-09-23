@@ -515,11 +515,11 @@ function ec_render_link_page_subscribe_component( $context, $projection ) {
 	if ( is_wp_error( $data ) ) {
 		return '';
 	}
-	$name        = (string) $projection['display_title'];
-	$heading     = '' === $name ? 'Subscribe' : sprintf( 'Subscribe to %s', $name );
-	$description = '' !== $data['settings']['subscribe_description'] ? $data['settings']['subscribe_description'] : sprintf( 'Enter your email address to receive occasional news and updates from %s.', '' === $name ? 'us' : $name );
-	$url         = (string) ( $projection['body_attributes']['data-extrch-subscribe-api-url'] ?? '' );
-	$template    = 'inline_form' === $data['settings']['subscribe_display_mode'] ? 'subscribe-inline-form' : 'subscribe-modal';
+	$name         = (string) $projection['display_title'];
+	$heading      = '' === $name ? 'Subscribe' : sprintf( 'Subscribe to %s', $name );
+	$description  = '' !== $data['settings']['subscribe_description'] ? $data['settings']['subscribe_description'] : sprintf( 'Enter your email address to receive occasional news and updates from %s.', '' === $name ? 'us' : $name );
+	$url          = (string) ( $projection['body_attributes']['data-extrch-subscribe-api-url'] ?? '' );
+	$template     = 'inline_form' === $data['settings']['subscribe_display_mode'] ? 'subscribe-inline-form' : 'subscribe-modal';
 	$link_page_id = (int) $context['link_page_id'];
 	ob_start();
 	require EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/components/' . $template . '.php';
