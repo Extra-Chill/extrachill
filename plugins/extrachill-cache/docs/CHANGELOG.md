@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.7] - 2026-09-23
+
+### Fixed
+- document CLI options where WP-CLI reads them so --help shows the synopsis
+
 ## [0.3.6] - 2026-09-23
 
 ### Fixed
