@@ -14,29 +14,30 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 }
 
 /**
- * Run garbage collection for the page cache.
- *
- * ## OPTIONS
- *
- * [--dry-run]
- * : Count expired files and bytes without deleting anything.
- *
- * [--file-limit=<limit>]
- * : Maximum files to examine in this run. Default 2000.
- *
- * [--time-budget=<seconds>]
- * : Maximum seconds to spend walking. Default 30.
- *
- * ## EXAMPLES
- *
- *     wp extrachill-cache gc
- *     wp extrachill-cache gc --dry-run
- *     wp extrachill-cache gc --file-limit=5000 --time-budget=60
+ * WP-CLI command. Usage and options are documented on __invoke(), where
+ * WP-CLI reads them for invokable commands.
  */
 class Extrachill_Cache_GC_Command extends WP_CLI_Command {
 
 	/**
-	 * Run a single batched garbage-collection pass.
+	 * Run garbage collection for the page cache.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dry-run]
+	 * : Count expired files and bytes without deleting anything.
+	 *
+	 * [--file-limit=<limit>]
+	 * : Maximum files to examine in this run. Default 2000.
+	 *
+	 * [--time-budget=<seconds>]
+	 * : Maximum seconds to spend walking. Default 30.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill-cache gc
+	 *     wp extrachill-cache gc --dry-run
+	 *     wp extrachill-cache gc --file-limit=5000 --time-budget=60
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -75,35 +76,36 @@ class Extrachill_Cache_GC_Command extends WP_CLI_Command {
 WP_CLI::add_command( 'extrachill-cache gc', 'Extrachill_Cache_GC_Command' );
 
 /**
- * Purge the page cache.
- *
- * ## OPTIONS
- *
- * [--all]
- * : Purge the entire cache tree for every site in the network.
- *
- * [--site=<id>]
- * : Purge only this site's (blog ID) cache partition. Named --site because
- *   --blog is a reserved WP-CLI global flag.
- *
- * With neither flag, purges the site selected by the global --url (the
- * current blog).
- *
- * ## EXAMPLES
- *
- *     # After a deploy that changed enqueued assets or templates.
- *     wp extrachill-cache purge --all
- *
- *     # One site only.
- *     wp extrachill-cache purge --site=4
- *
- *     # The site selected by --url.
- *     wp --url=https://events.extrachill.com extrachill-cache purge
+ * WP-CLI command. Usage and options are documented on __invoke(), where
+ * WP-CLI reads them for invokable commands.
  */
 class Extrachill_Cache_Purge_Command extends WP_CLI_Command {
 
 	/**
 	 * Purge the page cache.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--all]
+	 * : Purge the entire cache tree for every site in the network.
+	 *
+	 * [--site=<id>]
+	 * : Purge only this site's (blog ID) cache partition. Named --site because
+	 *   --blog is a reserved WP-CLI global flag.
+	 *
+	 * With neither flag, purges the site selected by the global --url (the
+	 * current blog).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # After a deploy that changed enqueued assets or templates.
+	 *     wp extrachill-cache purge --all
+	 *
+	 *     # One site only.
+	 *     wp extrachill-cache purge --site=4
+	 *
+	 *     # The site selected by --url.
+	 *     wp --url=https://events.extrachill.com extrachill-cache purge
 	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Associative arguments.
