@@ -62,7 +62,7 @@ $heading_tag   = tag_escape( $args['heading_level'] );
 		<?php endif; ?>
 	<?php endif; ?>
 
-	<form data-newsletter-form data-newsletter-context="<?php echo esc_attr( $context ); ?>" class="newsletter-form <?php echo esc_attr( $layout_class ); ?>">
+	<form data-newsletter-form data-newsletter-context="<?php echo esc_attr( $context ); ?>" data-ec-track="<?php echo esc_attr( 'newsletter-' . sanitize_key( $context ) ); ?>" class="newsletter-form <?php echo esc_attr( $layout_class ); ?>">
 
 
 		<input
