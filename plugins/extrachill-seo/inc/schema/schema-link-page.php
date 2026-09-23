@@ -2,7 +2,8 @@
 /**
  * ProfilePage Schema for Artist Link Pages
  *
- * Outputs ProfilePage schema for singular artist_link_page posts.
+ * Outputs ProfilePage schema for singular Link Page posts, whichever post type
+ * the serving site uses (see extrachill-link-pages#34).
  * References the associated MusicGroup entity from the artist profile.
  *
  * @package ExtraChill\SEO
@@ -21,7 +22,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Graph with the ProfilePage entity appended when applicable.
  */
 function ec_seo_emit_link_page_schema( $graph ) {
-	if ( ! is_singular( 'artist_link_page' ) ) {
+	// The Link Page post type follows the site that serves it: legacy
+	// `artist_link_page` on the artist site, `ec_link_page` on the dedicated
+	// Link Pages site after cutover (extrachill-link-pages#34). Resolve it for
+	// the blog rendering this request, since that is where is_singular() looks.
+	$link_page_type = function_exists( 'ec_link_page_post_type' )
+		? ec_link_page_post_type( get_current_blog_id() )
+		: 'artist_link_page';
+
+	if ( ! is_singular( $link_page_type ) ) {
 		return $graph;
 	}
 
