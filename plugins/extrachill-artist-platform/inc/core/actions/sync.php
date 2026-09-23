@@ -1,9 +1,16 @@
 <?php
 /**
- * Centralized Artist Platform Sync Operations
+ * Artist identity push to the owned Link Page.
  *
- * Handles complete bidirectional synchronization between artist profiles and link pages.
- * One unified sync action handles ALL data - no granular sync types needed.
+ * The artist profile is the source of truth for identity (name and profile
+ * image): every editor, upload and admin path writes the profile. The Link
+ * Page owns a materialized copy so it renders from its own storage with no
+ * owner plugin loaded (extrachill-link-pages#36). This file keeps that copy
+ * current by pushing profile identity to the page whenever it changes.
+ *
+ * The push is one-way. The previous bidirectional sync also copied page
+ * values back onto the profile; nothing edits page identity independently
+ * any more, so that direction only created ways for the two to fight.
  *
  * @package ExtraChillArtistPlatform
  */
@@ -11,9 +18,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Manages a flag to prevent recursive synchronization.
+ * Re-entrancy guard for identity pushes.
  */
 class ArtistDataSyncManager {
+	/**
+	 * Whether a push is in progress.
+	 *
+	 * @var bool
+	 */
 	private static $is_syncing = false;
 
 	public static function is_syncing() {
@@ -30,187 +42,141 @@ class ArtistDataSyncManager {
 }
 
 /**
- * Central function to handle complete bidirectional sync between artist profile and link page
+ * Push an artist's identity (name, profile image) onto its Link Page.
  *
- * @param int $artist_id The artist profile ID to sync
- * @return bool|WP_Error True on success, WP_Error on failure
+ * Must run in the artist site context. No-ops when the artist has no Link
+ * Page or when the page already matches.
+ *
+ * @param int $artist_id Artist profile ID.
+ * @return bool|WP_Error True on success or no-op.
  */
-// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- WordPress plugin idiom: sync class plus procedural hook wiring in one module.
-function ec_handle_artist_platform_sync( $artist_id ) {
-
+// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- WordPress plugin idiom: guard class plus procedural hook wiring in one module.
+function ec_artist_push_link_page_identity( $artist_id ) {
+	$artist_id = absint( $artist_id );
 	if ( ! $artist_id || 'artist_profile' !== get_post_type( $artist_id ) ) {
-		return new WP_Error( 'invalid_artist_profile', 'Invalid artist profile ID for sync' );
+		return new WP_Error( 'invalid_artist_profile', 'Invalid artist profile ID for identity push.' );
 	}
-
-	// Check if sync is already in progress to prevent recursion
-	if ( class_exists( 'ArtistDataSyncManager' ) && ArtistDataSyncManager::is_syncing() ) {
-		return true; // Skip if already syncing
-	}
-
-	$artist_post = get_post( $artist_id );
-	if ( ! $artist_post ) {
-		return new WP_Error( 'artist_not_found', 'Artist profile post not found' );
-	}
-
-	// Get associated link page - sync skips if null
-	$link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
-	if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
-		return true; // Skip sync - no link page to sync with
-	}
-
-	// Start sync protection
-	if ( class_exists( 'ArtistDataSyncManager' ) ) {
-		ArtistDataSyncManager::start_sync();
-	}
-
-	try {
-		// Perform complete bidirectional sync
-		$sync_result = ec_perform_complete_sync( $artist_id, $link_page_id );
-
-		if ( is_wp_error( $sync_result ) ) {
-			return $sync_result;
-		}
-
-		/**
-		 * Fires after artist platform sync is completed successfully.
-		 *
-		 * This action hook allows other plugins and theme functions to perform
-		 * additional operations after the bidirectional sync between an artist
-		 * profile and link page is complete. Commonly used for cache clearing,
-		 * search index updates, or triggering external API synchronization.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @param int $artist_id The ID of the artist profile that was synced.
-		 */
-		do_action( 'ec_artist_platform_sync_complete', $artist_id );
-
+	if ( ArtistDataSyncManager::is_syncing() ) {
 		return true;
+	}
+	if ( ! function_exists( 'ec_save_link_page_persistence' ) || ! function_exists( 'ec_read_link_page_persistence' ) ) {
+		return new WP_Error( 'link_pages_runtime_unavailable', 'The Link Pages runtime is not loaded.' );
+	}
+	$link_page_id = (int) ec_get_link_page_for_artist( $artist_id );
+	if ( ! $link_page_id ) {
+		return true;
+	}
 
+	$artist   = get_post( $artist_id );
+	$identity = array(
+		'display_title'    => $artist ? $artist->post_title : '',
+		'profile_image_id' => (int) get_post_thumbnail_id( $artist_id ),
+	);
+
+	$current = ec_read_link_page_persistence( $link_page_id );
+	if ( is_wp_error( $current ) ) {
+		return $current;
+	}
+	$changes = array();
+	if ( ! $current['display_title_is_owned'] || $current['display_title'] !== $identity['display_title'] ) {
+		$changes['display_title'] = $identity['display_title'];
+	}
+	if ( (int) $current['profile_image_id'] !== $identity['profile_image_id'] ) {
+		$changes['profile_image_id'] = $identity['profile_image_id'];
+	}
+	if ( ! $changes ) {
+		return true;
+	}
+
+	ArtistDataSyncManager::start_sync();
+	try {
+		$saved = ec_save_link_page_persistence( $link_page_id, $changes );
 	} finally {
-		// Always stop sync protection
-		if ( class_exists( 'ArtistDataSyncManager' ) ) {
-			ArtistDataSyncManager::stop_sync();
-		}
+		ArtistDataSyncManager::stop_sync();
 	}
-}
-
-/**
- * Performs the complete bidirectional sync between artist profile and link page
- *
- * @param int $artist_id The artist profile ID
- * @param int $link_page_id The link page ID
- * @return bool|WP_Error True on success, WP_Error on failure
- */
-function ec_perform_complete_sync( $artist_id, $link_page_id ) {
-
-	$artist_post = get_post( $artist_id );
-	if ( ! $artist_post ) {
-		return new WP_Error( 'artist_not_found', 'Artist profile not found during sync' );
+	if ( is_wp_error( $saved ) ) {
+		return $saved;
 	}
 
-	// --- ARTIST PROFILE → LINK PAGE SYNC ---
-	// Use centralized data system (single source of truth)
-	$data = ec_get_link_page_data( $artist_id, $link_page_id );
-
-	// Sync Title
-	$artist_title       = $artist_post->post_title;
-	$current_link_title = $data['display_title'] ?? '';
-	if ( $current_link_title !== $artist_title ) {
-		update_post_meta( $link_page_id, '_link_page_display_title', $artist_title );
-	}
-
-	// Sync Profile Picture (Featured Image)
-	$artist_thumbnail_id       = get_post_thumbnail_id( $artist_id );
-	$current_link_thumbnail_id = $data['settings']['profile_image_id'] ?? '';
-
-	if ( $artist_thumbnail_id ) {
-		if ( (int) $current_link_thumbnail_id !== (int) $artist_thumbnail_id ) {
-			update_post_meta( $link_page_id, '_link_page_profile_image_id', $artist_thumbnail_id );
-		}
-	} elseif ( $current_link_thumbnail_id ) {
-		// Artist has no thumbnail, remove from link page
-		delete_post_meta( $link_page_id, '_link_page_profile_image_id' );
-	}
-
-	// --- LINK PAGE → ARTIST PROFILE SYNC ---
-
-	// Use centralized data that might have been updated independently (already retrieved above)
-	$link_page_title        = $data['display_title'] ?? '';
-	$link_page_thumbnail_id = $data['settings']['profile_image_id'] ?? '';
-
-	$artist_update_data  = array( 'ID' => $artist_id );
-	$needs_artist_update = false;
-
-	// Sync title back to artist profile if link page has different data
-	if ( ! empty( $link_page_title ) && $link_page_title !== $artist_post->post_title ) {
-		$artist_update_data['post_title'] = $link_page_title;
-		$needs_artist_update              = true;
-	}
-
-	// Update artist profile if needed
-	if ( $needs_artist_update ) {
-		$update_result = wp_update_post( $artist_update_data, true );
-		if ( is_wp_error( $update_result ) ) {
-			return $update_result;
-		}
-	}
-
-	// Sync profile picture back to artist if link page has different image
-	if ( ! empty( $link_page_thumbnail_id ) && absint( $link_page_thumbnail_id ) > 0 ) {
-		if ( absint( $artist_thumbnail_id ) !== absint( $link_page_thumbnail_id ) ) {
-			set_post_thumbnail( $artist_id, absint( $link_page_thumbnail_id ) );
-		}
-	}
-
+	/**
+	 * Fires after an artist's identity was pushed to its Link Page.
+	 *
+	 * @param int $artist_id Artist profile ID.
+	 */
+	do_action( 'ec_artist_platform_sync_complete', $artist_id );
 	return true;
 }
 
 /**
- * Hook meta updates to trigger unified sync
+ * Historical entry point: sync now means "push identity to the page".
  *
- * @param int $meta_id ID of the metadata entry
- * @param int $object_id ID of the object (post ID)
- * @param string $meta_key Meta key being updated
- * @param mixed $meta_value New meta value
+ * @param int $artist_id Artist profile ID.
+ * @return bool|WP_Error
  */
-function ec_sync_on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) {
-	// Suppress unused parameter warnings - we need all 4 parameters for the hook signature
-	unset( $meta_id, $meta_value );
-	// Only sync on relevant link page meta keys
-	$sync_keys = array(
-		'_link_page_display_title',
-		'_link_page_profile_image_id',
-	);
-
-	if ( get_post_type( $object_id ) === extrachill_artist_platform_link_page_post_type() &&
-		in_array( $meta_key, $sync_keys, true ) ) {
-
-		$artist_id = apply_filters('ec_get_artist_id', $object_id);
-		if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
-			ec_handle_artist_platform_sync( $artist_id );
-		}
-	}
+function ec_handle_artist_platform_sync( $artist_id ) {
+	return ec_artist_push_link_page_identity( $artist_id );
 }
-add_action( 'updated_post_meta', 'ec_sync_on_meta_update', 10, 4 );
-add_action( 'added_post_meta', 'ec_sync_on_meta_update', 10, 4 );
 
 /**
- * Sync action handler
+ * Public API alias.
  *
- * Triggered by ec_artist_platform_sync action to perform the actual sync.
+ * @param int $artist_id Artist profile ID.
+ * @return bool|WP_Error
+ */
+function ec_sync_artist_platform( $artist_id ) {
+	return ec_artist_push_link_page_identity( $artist_id );
+}
+
+/**
+ * Action handler for `ec_artist_platform_sync`.
+ *
+ * @param int $artist_id Artist profile ID.
  */
 function ec_handle_sync_action( $artist_id ) {
-	ec_handle_artist_platform_sync( $artist_id );
+	ec_artist_push_link_page_identity( $artist_id );
 }
 add_action( 'ec_artist_platform_sync', 'ec_handle_sync_action', 10, 1 );
 
 /**
- * Trigger sync for an artist profile (public API)
+ * Push identity when the artist profile is saved (name changes).
  *
- * @param int $artist_id The artist profile ID to sync
- * @return bool|WP_Error True on success, WP_Error on failure
+ * @param int     $post_id Post ID.
+ * @param WP_Post $post    Post object.
  */
-function ec_sync_artist_platform( $artist_id ) {
-	return ec_handle_artist_platform_sync( $artist_id );
+function ec_artist_push_identity_on_save( $post_id, $post ) {
+	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) || 'artist_profile' !== $post->post_type ) {
+		return;
+	}
+	ec_artist_push_link_page_identity( $post_id );
 }
+add_action( 'save_post_artist_profile', 'ec_artist_push_identity_on_save', 20, 2 );
+
+/**
+ * Push identity when the artist profile image changes.
+ *
+ * @param mixed  $meta_id   Meta ID(s).
+ * @param int    $object_id Post ID.
+ * @param string $meta_key  Meta key.
+ */
+function ec_artist_push_identity_on_thumbnail_change( $meta_id, $object_id, $meta_key ) {
+	unset( $meta_id );
+	if ( '_thumbnail_id' !== $meta_key || 'artist_profile' !== get_post_type( $object_id ) ) {
+		return;
+	}
+	ec_artist_push_link_page_identity( $object_id );
+}
+add_action( 'added_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
+add_action( 'updated_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
+add_action( 'deleted_post_meta', 'ec_artist_push_identity_on_thumbnail_change', 10, 3 );
+
+/**
+ * Seed identity onto a freshly created Link Page.
+ *
+ * @param int $link_page_id Link Page ID.
+ * @param int $artist_id    Artist profile ID.
+ */
+function ec_artist_push_identity_on_link_page_created( $link_page_id, $artist_id ) {
+	unset( $link_page_id );
+	ec_artist_push_link_page_identity( $artist_id );
+}
+add_action( 'ec_link_page_created', 'ec_artist_push_identity_on_link_page_created', 20, 2 );

@@ -149,7 +149,7 @@ function ec_get_link_page_data( $artist_id, $link_page_id = null, $overrides = a
 		}
 	}
 
-	$artist_social_links = get_post_meta( $artist_id, '_artist_profile_social_links', true );
+	$artist_social_links = extrachill_artist_platform_social_links()->get( $artist_id );
 	if ( is_array( $artist_social_links ) ) {
 		$data['socials'] = $artist_social_links;
 	}
@@ -241,8 +241,7 @@ function ec_get_external_artist_link_page_data( $artist_id, $link_page_id, $over
 	if ( is_wp_error( $persistence ) ) {
 		return array();
 	}
-	$socials   = get_post_meta( $artist_id, '_artist_profile_social_links', true );
-	$socials   = is_array( $socials ) ? $socials : array();
+	$socials   = extrachill_artist_platform_social_links()->get( $artist_id );
 	$css_vars  = $persistence['css_vars'];
 	$raw_fonts = array(
 		'title_font' => $css_vars['--link-page-title-font-family'] ?? '',
@@ -320,14 +319,8 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
 
 	$meta = get_post_meta( $artist_id );
 
-	$social_links = $meta['_artist_profile_social_links'][0] ?? array();
-	$social_links = maybe_unserialize( $social_links );
-	if ( function_exists( 'extrachill_artist_platform_social_links' ) ) {
-		$social_links = extrachill_artist_platform_social_links()->get( $artist_id );
-	}
-	if ( ! is_array( $social_links ) ) {
-		$social_links = array();
-	}
+	// Socials are owned by the artist's Link Page.
+	$social_links = extrachill_artist_platform_social_links()->get( $artist_id );
 
 	$header_image_id  = $meta['_artist_profile_header_image_id'][0] ?? '';
 	$profile_image_id = ( get_post_thumbnail_id( $artist_id ) ? get_post_thumbnail_id( $artist_id ) : '' );

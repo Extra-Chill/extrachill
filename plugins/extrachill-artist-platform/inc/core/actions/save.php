@@ -186,7 +186,7 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 	foreach ( array( '_link_page_subscribe_display_mode', '_link_page_subscribe_description', '_link_page_profile_image_id' ) as $meta_key ) {
 		$snapshots[ $meta_key ] = ec_artist_snapshot_owned_meta( $link_page_id, $meta_key );
 	}
-	$old_socials   = get_post_meta( $artist_id, '_artist_profile_social_links', true );
+	$old_socials   = isset( $save_data['social_icons'] ) ? extrachill_artist_platform_social_links()->get( $artist_id ) : array();
 	$old_thumbnail = get_post_thumbnail_id( $artist_id );
 	$result        = true;
 	foreach ( array(
