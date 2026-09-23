@@ -355,13 +355,25 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 	if ( ! $matches ) {
 		$stored = ec_read_link_page_public_projection_snapshot( $link_page_id, $context['owner_reference'] );
 		if ( is_wp_error( $stored ) ) {
-			return $stored;
+			if ( 'link_page_public_snapshot_missing' !== $stored->get_error_code() ) {
+				// A snapshot exists but is corrupt (owner binding mismatch,
+				// version drift, malformed data): fail closed exactly as
+				// before. Only a genuinely *absent* fallback falls through.
+				return $stored;
+			}
+			// No live provider and no deprecated snapshot fallback: render
+			// from whatever the page owns directly instead of failing
+			// outright (extrachill-link-pages#37). This only changes the
+			// outcome for pages that previously errored here.
+			$stored = array( 'display_title' => '' );
+		} else {
+			$stored['social_renderer'] = ! empty( $stored['social_links'] ) ? 'ec_render_stored_link_page_social_links' : null;
 		}
-		$stored['social_renderer'] = ! empty( $stored['social_links'] ) ? 'ec_render_stored_link_page_social_links' : null;
-		$matches[]                 = $stored;
+		$matches[] = $stored;
 	}
 	$projection = array_merge(
 		array(
+			'display_title'         => '',
 			'bio'                   => '',
 			'profile_img_url'       => '',
 			'social_links'          => array(),
@@ -384,8 +396,62 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 			return is_wp_error( $loaded ) ? $loaded : new WP_Error( 'link_page_public_projection_assets_failed', 'The Link Page owner assets could not be loaded.' );
 		}
 	}
+	// Page-owned content always wins over the deprecated projection
+	// fallback; the projection only fills fields the page does not yet own
+	// (extrachill-link-pages#37).
+	$owned = ec_read_link_page_persistence( $link_page_id );
+	if ( ! is_wp_error( $owned ) ) {
+		if ( ! empty( $owned['display_title_is_owned'] ) ) {
+			$projection['display_title'] = $owned['display_title'];
+		} elseif ( '' === $projection['display_title'] ) {
+			$projection['display_title'] = $owned['display_title'];
+		}
+		if ( ! empty( $owned['profile_image_id'] ) ) {
+			$projection['profile_img_url'] = $owned['profile_image_url'];
+		}
+		if ( ! empty( $owned['social_links'] ) ) {
+			$projection['social_links']    = $owned['social_links'];
+			$projection['social_renderer'] = 'ec_render_stored_link_page_social_links';
+		}
+	}
 	$projection['_context'] = $context;
 	return $projection;
+}
+
+/**
+ * Answer whether a Link Page renders correctly from storage alone.
+ *
+ * Simulates the full render pipeline (persistence, projection resolution,
+ * component rendering) and returns true only when it would succeed with
+ * zero projection providers registered. Steps 2-4 of the epic
+ * (extrachill-link-pages#36) use this as their migration gate.
+ *
+ * @param int $link_page_id Link Page ID.
+ * @return true|WP_Error
+ */
+function ec_link_page_render_readiness( $link_page_id ) {
+	$storage_blog_id = ec_get_link_page_storage_blog_id();
+	if ( ! $storage_blog_id ) {
+		return new WP_Error( 'link_page_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
+	}
+	if ( get_current_blog_id() !== $storage_blog_id ) {
+		return ec_with_link_page_storage_blog(
+			static function () use ( $link_page_id ) {
+				return ec_link_page_render_readiness( $link_page_id );
+			}
+		);
+	}
+	$link_page_id = absint( $link_page_id );
+	$data         = ec_read_link_page_persistence( $link_page_id );
+	if ( is_wp_error( $data ) ) {
+		return $data;
+	}
+	$projection = ec_get_link_page_public_projection( $link_page_id );
+	if ( is_wp_error( $projection ) ) {
+		return $projection;
+	}
+	$rendered = ec_prepare_link_page_public_render( $projection, $data );
+	return is_wp_error( $rendered ) ? $rendered : true;
 }
 
 /** Render one validated owner component slot. */

@@ -50,6 +50,58 @@ final class MigrationTest extends TestCase {
 		$this->assertNotSame( ec_link_page_migration_hash( array( 'a' => 1 ) ), ec_link_page_migration_hash( array( 'a' => 2 ) ) );
 	}
 
+	/** Seed one raw postmeta row so the migration's direct-SQL inventory sees it (mirrors MigrationPostTypeMappingTest::seedOwnedPage()). */
+	private function seedRawMeta( $blog_id, $post_id, $meta_key, $value ): void {
+		$meta_id                                     = ++$GLOBALS['ec_test']['next_meta_id'];
+		$GLOBALS['ec_test']['meta_rows'][ $meta_id ] = array(
+			'blog_id'    => $blog_id,
+			'post_id'    => $post_id,
+			'meta_key'   => $meta_key,
+			'meta_value' => is_scalar( $value ) ? $value : serialize( $value ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Raw postmeta row fixture, mirrors what $wpdb->insert() stores.
+		);
+		$GLOBALS['ec_test']['blogs'][ $blog_id ]['post_meta'][ $post_id ][ $meta_key ][] = $value;
+	}
+
+	public function test_migration_inventory_carries_page_owned_content_fields(): void {
+		// The migration inventory is a raw postmeta copy keyed only by post
+		// ID, so it needs no per-field awareness of the new page-owned
+		// fields (extrachill-link-pages#37 acceptance: "the migration
+		// inventory carries the new fields"). This proves that generic
+		// copy actually reaches display_title / profile_image_id /
+		// social_links once a page owns them.
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Owned Page', 'post_name' => 'owned-page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][20] = (object) array( 'ID' => 20, 'post_type' => 'profile', 'post_status' => 'publish' );
+		$this->assertTrue( ec_assign_link_page_owner( 40, 'post:4:profile:20' ) );
+		$this->seedRawMeta( 4, 40, '_link_page_display_title', 'Owned Title' );
+		$this->seedRawMeta( 4, 40, '_link_page_profile_image_id', 55 );
+		$this->seedRawMeta( 4, 40, '_link_page_social_links', array( array( 'id' => 'website-1', 'type' => 'website', 'url' => 'https://example.com' ) ) );
+
+		$plan = ec_plan_link_page_storage_migration( 4, 7 );
+		$this->assertFalse( is_wp_error( $plan ), is_wp_error( $plan ) ? $plan->get_error_message() : '' );
+
+		$carried = array();
+		foreach ( $plan['meta'] as $row ) {
+			if ( 40 === $row['post_id'] ) {
+				$carried[ $row['meta_key'] ] = maybe_unserialize( $row['meta_value'] );
+			}
+		}
+		$this->assertSame( 'Owned Title', $carried['_link_page_display_title'] );
+		$this->assertSame( '55', (string) $carried['_link_page_profile_image_id'] );
+		$this->assertSame( array( array( 'id' => 'website-1', 'type' => 'website', 'url' => 'https://example.com' ) ), $carried['_link_page_social_links'] );
+
+		// The stored profile image ID is also already recognized as an
+		// attachment reference the migration must carry, so it shows up as
+		// a missing dependency here (the fixture attachment does not
+		// exist) rather than silently being dropped from the plan.
+		$this->assertContains(
+			array(
+				'type' => 'attachment',
+				'id'   => 55,
+			),
+			$plan['missing']
+		);
+	}
+
 	public function test_post_descriptor_normalizes_core_integer_fields(): void {
 		$post              = (object) array_fill_keys( array( 'ID', 'post_parent', 'menu_order' ), '7' );
 		$descriptor        = ec_link_page_migration_post_fields( $post );

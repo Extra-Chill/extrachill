@@ -35,7 +35,13 @@ if ( is_wp_error( $projection ) ) {
 	status_header( 500 );
 	return;
 }
-$data['css_vars']     = array_merge( $data['css_vars'], $projection['css_vars'] );
+$data['css_vars'] = array_merge( $data['css_vars'], $projection['css_vars'] );
+foreach ( array( '--link-page-title-font-family', '--link-page-body-font-family' ) as $ec_link_page_font_var ) {
+	if ( ! empty( $data['css_vars'][ $ec_link_page_font_var ] ) ) {
+		$data['css_vars'][ $ec_link_page_font_var ] = ec_link_page_font_stack( $data['css_vars'][ $ec_link_page_font_var ] );
+	}
+}
+unset( $ec_link_page_font_var );
 $background_type      = $data['css_vars']['--link-page-background-type'] ?? 'color';
 $background_image_url = $data['background_image_url'];
 if ( 'image' === $background_type && $background_image_url ) {

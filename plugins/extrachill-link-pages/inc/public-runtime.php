@@ -367,7 +367,7 @@ function ec_register_link_page_public_styles() {
 
 /** Enqueue generic assets through the historical minimal-head hook. */
 function ec_enqueue_link_page_minimal_assets( $link_page_id, $owner = null ) {
-	unset( $link_page_id, $owner );
+	unset( $owner );
 	ec_register_link_page_public_styles();
 	foreach ( array_keys( ec_link_page_public_style_handles() ) as $handle ) {
 		wp_enqueue_style( $handle );
@@ -381,6 +381,10 @@ function ec_enqueue_link_page_minimal_assets( $link_page_id, $owner = null ) {
 		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $path;
 		wp_enqueue_script( $handle, plugins_url( $path, EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION, true );
 	}
+	// The runtime owns the font catalog and emits Google Fonts links / local
+	// @font-face rules itself, so typography renders with no owner plugin
+	// loaded (extrachill-link-pages#37).
+	ec_enqueue_link_page_fonts( $link_page_id );
 }
 
 /** Make a CSS custom-property name or value safe to print inside a <style> element. */

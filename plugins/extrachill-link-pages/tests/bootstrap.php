@@ -381,6 +381,10 @@ function ec_test_reset() {
 		$property->setAccessible( true );
 		$property->setValue( $registry, array() );
 	}
+	$section_source_registry = ec_link_page_section_source_registry();
+	$section_source_property = ( new ReflectionObject( $section_source_registry ) )->getProperty( 'sources' );
+	$section_source_property->setAccessible( true );
+	$section_source_property->setValue( $section_source_registry, array() );
 	$migration_registry = ec_link_page_migration_participant_registry();
 	$reflection         = new ReflectionObject( $migration_registry );
 	$property           = $reflection->getProperty( 'participants' );
@@ -755,6 +759,33 @@ function get_the_modified_date( $format, $post_id ) {
 	return '2026-08-23T00:00:00+00:00'; }
 function __return_true() {
 	return true; }
+function get_bloginfo( $key = '' ) {
+	return 'UTF-8'; }
+function get_site_icon_url( $size = 512 ) {
+	return ''; }
+function wp_print_styles() {
+	$GLOBALS['ec_test']['printed_styles'] = true; }
+function wp_print_footer_scripts() {}
+function language_attributes() {}
+function get_template_directory_uri() {
+	return 'https://example.test/themes/extrachill'; }
+function wp_register_style( $handle, $src, $deps = array(), $ver = false, $media = 'all' ) {
+	$GLOBALS['ec_test']['registered_styles'][ $handle ] = compact( 'src', 'deps', 'ver', 'media' ); }
+function wp_enqueue_style( $handle, $src = '', $deps = array(), $ver = false, $media = 'all' ) {
+	$GLOBALS['ec_test']['enqueued_styles'][] = $handle;
+	if ( '' !== $src ) {
+		$GLOBALS['ec_test']['registered_styles'][ $handle ] = compact( 'src', 'deps', 'ver', 'media' );
+	}
+}
+function wp_style_is( $handle, $status = 'enqueued' ) {
+	return in_array( $handle, $GLOBALS['ec_test']['enqueued_styles'] ?? array(), true ); }
+function wp_add_inline_style( $handle, $data ) {
+	$GLOBALS['ec_test']['inline_styles'][ $handle ][] = $data;
+	return true; }
+function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false ) {
+	$GLOBALS['ec_test']['enqueued_scripts'][] = $handle; }
+function wp_script_is( $handle, $status = 'registered' ) {
+	return in_array( $handle, $GLOBALS['ec_test']['registered_script_handles'] ?? array(), true ); }
 
 if ( ! function_exists( 'ec_get_blog_id' ) ) {
 	/**

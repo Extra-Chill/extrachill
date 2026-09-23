@@ -180,11 +180,21 @@ function ec_sanitize_link_page_links( $links, $link_page_id = 0 ) {
 			$link_page_id,
 			static function () use ( $links, $link_page_id ) {
 				$stored = get_post_meta( $link_page_id, '_link_page_links', true );
-				return ec_sanitize_link_page_links_locked( $links, $link_page_id, ec_collect_link_page_element_ids( is_array( $stored ) ? $stored : array() ) );
+				$stored = is_array( $stored ) ? $stored : array();
+				return ec_sanitize_link_page_links_locked( $links, $link_page_id, ec_collect_link_page_element_ids( $stored ), ec_link_page_existing_sections( $stored ) );
 			}
 		);
 	}
 	return ec_sanitize_link_page_links_locked( $links, 0 );
+}
+
+/** Normalize stored links into a sections list, or an empty list for legacy flat storage. */
+function ec_link_page_existing_sections( $stored ) {
+	if ( ! is_array( $stored ) || empty( $stored ) ) {
+		return array();
+	}
+	$flat = isset( $stored[0]['link_text'] ) && ! isset( $stored[0]['links'] );
+	return $flat ? array() : $stored;
 }
 
 /** Collect existing element IDs and their exact persisted types. */
@@ -216,7 +226,7 @@ function ec_collect_link_page_element_ids( $links ) {
 }
 
 /** Validate and allocate persistent IDs while the page lock is held. */
-function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_ids = array() ) {
+function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_ids = array(), $existing_sections = array() ) {
 	$legacy_flat = ! empty( $links ) && isset( $links[0]['link_text'] ) && ! isset( $links[0]['links'] );
 	if ( $legacy_flat ) {
 		$links = array(
@@ -226,6 +236,12 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 				'links'         => $links,
 			),
 		);
+	}
+	$existing_sections_by_id = array();
+	foreach ( is_array( $existing_sections ) ? $existing_sections : array() as $existing_section ) {
+		if ( is_array( $existing_section ) && ! empty( $existing_section['id'] ) && is_string( $existing_section['id'] ) ) {
+			$existing_sections_by_id[ $existing_section['id'] ] = $existing_section;
+		}
 	}
 	$sanitized = array();
 	$seen      = array();
@@ -251,42 +267,93 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 			return new WP_Error( 'duplicate_link_page_element_id', 'Link Page element IDs must be unique.' );
 		}
 		$seen[ $section_id ] = true;
-		$clean               = array(
+
+		// Absent type = manual (back-compat): every existing all-manual
+		// page keeps its exact historical section shape, since `type` /
+		// `source_config` / `refreshed_at` are only ever added below for a
+		// genuinely managed section (extrachill-link-pages#37).
+		$type = isset( $section['type'] ) && is_string( $section['type'] ) ? sanitize_key( $section['type'] ) : '';
+		if ( '' === $type ) {
+			$type = 'manual';
+		}
+		if ( 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/', $type ) ) {
+			return new WP_Error( 'invalid_link_page_section_type', 'A Link Page section type is invalid.' );
+		}
+
+		$existing_section = $existing_sections_by_id[ $section_id ] ?? null;
+		$incoming_links   = isset( $section['links'] ) && is_array( $section['links'] ) ? $section['links'] : array();
+
+		$clean = array(
 			'id'            => $section_id,
 			'section_title' => isset( $section['section_title'] ) ? sanitize_text_field( wp_unslash( (string) $section['section_title'] ) ) : '',
 			'links'         => array(),
 		);
-		foreach ( isset( $section['links'] ) && is_array( $section['links'] ) ? $section['links'] : array() as $link ) {
-			if ( ! is_array( $link ) ) {
-				return new WP_Error( 'invalid_link_page_links', 'A Link Page link is malformed.' );
-			}
-			$link_id = isset( $link['id'] ) ? sanitize_text_field( (string) $link['id'] ) : '';
-			if ( $link_page_id && ec_link_page_needs_id_assignment( $link_id ) ) {
-				$link_id = ec_link_page_next_element_id( $link_page_id, 'link' );
-				if ( is_wp_error( $link_id ) ) {
-					return $link_id;
+
+		if ( 'manual' !== $type ) {
+			$source_config = is_array( $existing_section['source_config'] ?? null ) ? $existing_section['source_config'] : array();
+			if ( array_key_exists( 'source_config', $section ) ) {
+				$source_config = ec_sanitize_link_page_section_source_config( $type, $section['source_config'] );
+				if ( is_wp_error( $source_config ) ) {
+					return $source_config;
 				}
-			} elseif ( $link_page_id && 1 === preg_match( '/^' . preg_quote( (string) $link_page_id, '/' ) . '-link-[1-9]\d*$/', $link_id ) ) {
-				$synced = ec_link_page_sync_element_counter( $link_page_id, 'link', $link_id );
-				if ( is_wp_error( $synced ) ) {
-					return $synced;
+			}
+			$clean['type']          = $type;
+			$clean['source_config'] = $source_config;
+			$clean['refreshed_at']  = $existing_section['refreshed_at'] ?? null;
+
+			if ( $link_page_id ) {
+				// Managed links only ever change through the section-source
+				// refresh write operation, never through a general save
+				// (#37 rule: "the save path rejects manual edits to the
+				// links of a managed section").
+				$stored_links_for_section = is_array( $existing_section['links'] ?? null ) ? $existing_section['links'] : array();
+				$existing_type            = $existing_section['type'] ?? 'manual';
+				$existing_type            = '' === $existing_type ? 'manual' : $existing_type;
+				if ( $existing_section && $existing_type === $type ) {
+					if ( $incoming_links !== $stored_links_for_section ) {
+						return new WP_Error( 'link_page_managed_section_links_readonly', 'Managed Link Page section links can only change through the section source refresh operation.' );
+					}
+					$clean['links'] = $stored_links_for_section;
+				} elseif ( ! empty( $incoming_links ) ) {
+					return new WP_Error( 'link_page_managed_section_links_readonly', 'A new managed Link Page section must start with no links; its source populates them on first refresh.' );
 				}
-			} elseif ( $link_page_id && ( ! isset( $existing_ids[ $link_id ] ) || 'link' !== $existing_ids[ $link_id ] ) ) {
-				return new WP_Error( 'invalid_link_page_element_id', 'A Link Page link ID does not belong to this page.' );
 			}
-			if ( '' !== $link_id && isset( $seen[ $link_id ] ) ) {
-				return new WP_Error( 'duplicate_link_page_element_id', 'Link Page element IDs must be unique.' );
+		} else {
+			if ( isset( $section['type'] ) ) {
+				$clean['type'] = 'manual';
 			}
-			$seen[ $link_id ] = true;
-			$item             = array(
-				'id'        => $link_id,
-				'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( (string) $link['link_text'] ) ) : '',
-				'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( (string) $link['link_url'] ) ) : '',
-			);
-			if ( ! empty( $link['expires_at'] ) ) {
-				$item['expires_at'] = sanitize_text_field( wp_unslash( (string) $link['expires_at'] ) );
+			foreach ( $incoming_links as $link ) {
+				if ( ! is_array( $link ) ) {
+					return new WP_Error( 'invalid_link_page_links', 'A Link Page link is malformed.' );
+				}
+				$link_id = isset( $link['id'] ) ? sanitize_text_field( (string) $link['id'] ) : '';
+				if ( $link_page_id && ec_link_page_needs_id_assignment( $link_id ) ) {
+					$link_id = ec_link_page_next_element_id( $link_page_id, 'link' );
+					if ( is_wp_error( $link_id ) ) {
+						return $link_id;
+					}
+				} elseif ( $link_page_id && 1 === preg_match( '/^' . preg_quote( (string) $link_page_id, '/' ) . '-link-[1-9]\d*$/', $link_id ) ) {
+					$synced = ec_link_page_sync_element_counter( $link_page_id, 'link', $link_id );
+					if ( is_wp_error( $synced ) ) {
+						return $synced;
+					}
+				} elseif ( $link_page_id && ( ! isset( $existing_ids[ $link_id ] ) || 'link' !== $existing_ids[ $link_id ] ) ) {
+					return new WP_Error( 'invalid_link_page_element_id', 'A Link Page link ID does not belong to this page.' );
+				}
+				if ( '' !== $link_id && isset( $seen[ $link_id ] ) ) {
+					return new WP_Error( 'duplicate_link_page_element_id', 'Link Page element IDs must be unique.' );
+				}
+				$seen[ $link_id ] = true;
+				$item             = array(
+					'id'        => $link_id,
+					'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( (string) $link['link_text'] ) ) : '',
+					'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( (string) $link['link_url'] ) ) : '',
+				);
+				if ( ! empty( $link['expires_at'] ) ) {
+					$item['expires_at'] = sanitize_text_field( wp_unslash( (string) $link['expires_at'] ) );
+				}
+				$clean['links'][] = $item;
 			}
-			$clean['links'][] = $item;
 		}
 		$sanitized[] = $clean;
 	}
@@ -402,6 +469,34 @@ function ec_link_page_links_count( $links ) {
 	return $count;
 }
 
+/**
+ * Count links only inside `manual` sections (absent type = manual).
+ *
+ * Managed (push-source) sections are excluded from the silent-empty guard —
+ * "no upcoming shows" legitimately empties an `upcoming_events` section. The
+ * guard keeps protecting hand-typed manual links (extrachill-link-pages#37).
+ */
+function ec_link_page_manual_links_count( $links ) {
+	if ( ! is_array( $links ) || empty( $links ) ) {
+		return 0;
+	}
+	if ( isset( $links[0]['link_text'] ) && ! isset( $links[0]['links'] ) ) {
+		return count( $links );
+	}
+	$count = 0;
+	foreach ( $links as $section ) {
+		if ( ! is_array( $section ) || ! isset( $section['links'] ) || ! is_array( $section['links'] ) ) {
+			continue;
+		}
+		$type = isset( $section['type'] ) && '' !== $section['type'] ? (string) $section['type'] : 'manual';
+		if ( 'manual' !== $type ) {
+			continue;
+		}
+		$count += count( $section['links'] );
+	}
+	return $count;
+}
+
 /** Return the current UTC timestamp recorded with each restore point. */
 function ec_link_page_restore_point_timestamp() {
 	return current_datetime()->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
@@ -409,7 +504,7 @@ function ec_link_page_restore_point_timestamp() {
 
 /** Refuse a save that would take a populated page to zero links without explicit intent. */
 function ec_refuse_link_page_silent_empty( $stored_links, $incoming_links, $allow_empty ) {
-	if ( ! ec_link_page_links_count( $stored_links ) || ec_link_page_links_count( $incoming_links ) || true === $allow_empty ) {
+	if ( ! ec_link_page_manual_links_count( $stored_links ) || ec_link_page_manual_links_count( $incoming_links ) || true === $allow_empty ) {
 		return true;
 	}
 	return new WP_Error( 'link_page_refuses_silent_empty', 'Refusing to empty a populated Link Page without explicit intent.', array( 'allow_empty' => true ) );
@@ -497,21 +592,36 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		}
 	}
 	$settings['overlay_enabled'] = '1' === (string) ( $styles['overlay'] ?? '1' );
-	$data                        = array(
-		'link_page_id'         => $link_page_id,
-		'css_vars'             => $styles,
-		'links'                => is_array( $links ) ? $links : array(),
-		'link_sections'        => isset( $links[0]['links'] ) || empty( $links ) ? ( is_array( $links ) ? $links : array() ) : array(
+
+	// Page-owned content (extrachill-link-pages#37): display_title falls
+	// back to post_title only when the page does not yet own it, so the
+	// projection layer can tell a genuinely-owned value apart from that
+	// fallback and never let a "deprecated fallback" regress an owned page.
+	$display_title_raw      = (string) get_post_meta( $link_page_id, '_link_page_display_title', true );
+	$display_title_is_owned = '' !== trim( $display_title_raw );
+	$profile_image_id       = absint( get_post_meta( $link_page_id, '_link_page_profile_image_id', true ) );
+	$social_links_raw       = get_post_meta( $link_page_id, '_link_page_social_links', true );
+
+	$data = array(
+		'link_page_id'           => $link_page_id,
+		'css_vars'               => $styles,
+		'links'                  => is_array( $links ) ? $links : array(),
+		'link_sections'          => isset( $links[0]['links'] ) || empty( $links ) ? ( is_array( $links ) ? $links : array() ) : array(
 			array(
 				'section_title' => '',
 				'links'         => $links,
 			),
 		),
-		'bio'                  => (string) get_post_meta( $link_page_id, '_link_page_bio_text', true ),
-		'settings'             => $settings,
-		'previous_links'       => ec_get_link_page_previous_links( $link_page_id ),
-		'background_image_id'  => absint( $settings['background_image_id'] ),
-		'background_image_url' => ! empty( $settings['background_image_id'] ) ? (string) wp_get_attachment_url( absint( $settings['background_image_id'] ) ) : '',
+		'bio'                    => (string) get_post_meta( $link_page_id, '_link_page_bio_text', true ),
+		'display_title'          => $display_title_is_owned ? $display_title_raw : (string) get_post_field( 'post_title', $link_page_id ),
+		'display_title_is_owned' => $display_title_is_owned,
+		'profile_image_id'       => $profile_image_id,
+		'profile_image_url'      => $profile_image_id ? (string) wp_get_attachment_url( $profile_image_id ) : '',
+		'social_links'           => is_array( $social_links_raw ) ? $social_links_raw : array(),
+		'settings'               => $settings,
+		'previous_links'         => ec_get_link_page_previous_links( $link_page_id ),
+		'background_image_id'    => absint( $settings['background_image_id'] ),
+		'background_image_url'   => ! empty( $settings['background_image_id'] ) ? (string) wp_get_attachment_url( absint( $settings['background_image_id'] ) ) : '',
 	);
 	return array_replace_recursive( $data, is_array( $overrides ) ? $overrides : array() );
 }
@@ -609,6 +719,9 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 		'links'                   => '_link_page_links',
 		'css_vars'                => '_link_page_custom_css_vars',
 		'bio'                     => '_link_page_bio_text',
+		'display_title'           => '_link_page_display_title',
+		'profile_image_id'        => '_link_page_profile_image_id',
+		'social_links'            => '_link_page_social_links',
 		'link_expiration_enabled' => '_link_expiration_enabled',
 		'redirect_enabled'        => '_link_page_redirect_enabled',
 		'redirect_target_url'     => '_link_page_redirect_target_url',
@@ -636,7 +749,7 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 		if ( is_wp_error( $refused ) ) {
 			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $refused );
 		}
-		$links = ec_sanitize_link_page_links_locked( $save_data['links'], $link_page_id, ec_collect_link_page_element_ids( is_array( $stored_links ) ? $stored_links : array() ) );
+		$links = ec_sanitize_link_page_links_locked( $save_data['links'], $link_page_id, ec_collect_link_page_element_ids( is_array( $stored_links ) ? $stored_links : array() ), ec_link_page_existing_sections( is_array( $stored_links ) ? $stored_links : array() ) );
 		if ( is_wp_error( $links ) ) {
 			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $links );
 		}
@@ -668,6 +781,30 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 		$writes['_link_page_bio_text'] = array(
 			'value'  => $bio,
 			'delete' => '' === $bio,
+		);
+	}
+	if ( array_key_exists( 'display_title', $save_data ) ) {
+		$display_title                      = sanitize_text_field( wp_unslash( (string) $save_data['display_title'] ) );
+		$writes['_link_page_display_title'] = array(
+			'value'  => $display_title,
+			'delete' => '' === $display_title,
+		);
+	}
+	if ( array_key_exists( 'profile_image_id', $save_data ) ) {
+		$profile_image_id                      = absint( $save_data['profile_image_id'] );
+		$writes['_link_page_profile_image_id'] = array(
+			'value'  => $profile_image_id,
+			'delete' => ! $profile_image_id,
+		);
+	}
+	if ( array_key_exists( 'social_links', $save_data ) ) {
+		$social_links = ec_sanitize_link_page_social_links( $save_data['social_links'] );
+		if ( is_wp_error( $social_links ) ) {
+			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $social_links );
+		}
+		$writes['_link_page_social_links'] = array(
+			'value'  => $social_links,
+			'delete' => empty( $social_links ),
 		);
 	}
 	$settings = ec_sanitize_link_page_settings( $save_data );
