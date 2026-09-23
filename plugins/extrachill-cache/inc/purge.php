@@ -43,6 +43,17 @@ add_action( 'delete_term', 'extrachill_cache_purge_current_blog', 10, 0 );
 
 // Theme / customizer — mirrors Breeze purge-cache.php:51-52.
 add_action( 'switch_theme', 'extrachill_cache_purge_current_blog', 10, 0 );
+
+// Code changes. A plugin or theme update can change enqueued scripts, their
+// localized config, inline markup and template output. Cached HTML would keep
+// serving the old versions for up to EXTRACHILL_CACHE_TTL (24h). Network-wide,
+// because a network-activated plugin changes every site's pages.
+// Note: homeboy deploy replaces the plugin directory directly and never fires
+// these, so the deploy pipeline also calls `wp extrachill-cache purge --all`
+// (see the wordpress extension's post:deploy hooks).
+add_action( 'upgrader_process_complete', 'extrachill_cache_purge_all', 10, 0 );
+add_action( 'activated_plugin', 'extrachill_cache_purge_all', 10, 0 );
+add_action( 'deactivated_plugin', 'extrachill_cache_purge_all', 10, 0 );
 add_action( 'customize_save_after', 'extrachill_cache_purge_current_blog', 10, 0 );
 
 // Programmatic hook — mirrors Breeze's `purge_post_cache` action so existing
@@ -182,10 +193,17 @@ function extrachill_cache_purge_current_blog() {
 /**
  * Flush the entire cache tree across all sites.
  *
- * Used on plugin deactivation. Not wired to any content hook.
+ * Wired to code-change events (plugin/theme upgrade, activation,
+ * deactivation) and exposed as `wp extrachill-cache purge --all` for deploy
+ * pipelines that replace files without firing WordPress upgrader hooks.
  *
  * @return void
  */
 function extrachill_cache_purge_all() {
 	extrachill_cache_rrmdir( extrachill_cache_base_dir() );
+
+	/**
+	 * Fires after the whole page cache tree has been purged.
+	 */
+	do_action( 'extrachill_cache_purged_all' );
 }

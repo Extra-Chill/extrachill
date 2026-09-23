@@ -303,6 +303,22 @@ extrachill_cache_test_post( 7, 'publish' );
 extrachill_cache_purge_post( 7 );
 extrachill_cache_test_assert_purges( false, 'native autosave does not purge' );
 
+// Code changes purge the whole tree (#30): a plugin/theme update or
+// (de)activation can change enqueued assets and localized config on every
+// site, and cached HTML would otherwise serve the old ones for up to 24h.
+foreach ( array( 'upgrader_process_complete', 'activated_plugin', 'deactivated_plugin' ) as $code_change_hook ) {
+	extrachill_cache_test_assert_same(
+		array( 'extrachill_cache_purge_all', 10, 0 ),
+		$GLOBALS['extrachill_cache_test_hooks'][ $code_change_hook ] ?? null,
+		$code_change_hook . ' purges the whole cache tree'
+	);
+}
+
+extrachill_cache_test_reset();
+extrachill_cache_purge_all();
+extrachill_cache_test_assert_same( array( '/cache' ), $GLOBALS['extrachill_cache_test_removed'], 'purge_all removes the whole cache tree' );
+extrachill_cache_test_assert_same( true, in_array( 'extrachill_cache_purged_all', array_column( $GLOBALS['extrachill_cache_test_actions'], 0 ), true ), 'purge_all announces completion' );
+
 $purge_source = file_get_contents( dirname( __DIR__ ) . '/inc/purge.php' );
 extrachill_cache_test_assert_same( false, strpos( $purge_source, 'current_user_can' ), 'purge source contains no capability gate' );
 extrachill_cache_test_assert_same(
