@@ -431,6 +431,18 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 
+	public function test_resolved_page_clears_home_flags(): void {
+		// Regression: on the dedicated site the bare slug parses as the blog
+		// home, so is_home() stayed true and analytics skipped view tracking.
+		$_SERVER['HTTP_HOST']   = 'extrachill.link';
+		$_SERVER['REQUEST_URI'] = '/legacy-page/';
+		$GLOBALS['wp_query']    = (object) array( 'posts' => array(), 'query_vars' => array(), 'is_404' => false, 'is_home' => true, 'is_archive' => true );
+		ec_resolve_link_page_public_query();
+		$this->assertTrue( $GLOBALS['wp_query']->is_singular );
+		$this->assertFalse( $GLOBALS['wp_query']->is_home );
+		$this->assertFalse( $GLOBALS['wp_query']->is_archive );
+	}
+
 	public function test_canonical_guard_uses_the_requested_host_not_server_name(): void {
 		// Regression: nginx sets SERVER_NAME to the vhost's first name
 		// (extrachill.com), so the guard never matched and core 301'd
