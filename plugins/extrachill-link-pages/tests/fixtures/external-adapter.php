@@ -15,6 +15,8 @@ function flush_rewrite_rules() {}
 function __( $text ) { return $text; }
 function _x( $text ) { return $text; }
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
+function is_multisite() { return false; }
+function get_current_blog_id() { return 1; }
 
 $root = dirname( __DIR__, 2 );
 require_once $root . '/extrachill-link-pages.php';

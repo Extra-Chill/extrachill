@@ -22,8 +22,10 @@ final class RuntimeApiContractTest extends TestCase {
 	 * Demanded signatures, transcribed from the consumer's runtime handoff
 	 * contract: extrachill-artist-platform inc/link-pages/runtime-handoff.php,
 	 * extrachill_artist_platform_link_pages_runtime_signatures(), artist-platform
-	 * main as of 2026-09-19 (runtime API version 3). Keys are function names;
-	 * values are array( 'total' => int, 'required' => int ) parameter counts.
+	 * main as of 2026-09-23 (runtime API version 4; the consumer accepts both
+	 * '3' and '4' during the parallel rollout — see extrachill-link-pages#34).
+	 * Keys are function names; values are array( 'total' => int, 'required' =>
+	 * int ) parameter counts.
 	 *
 	 * When the consumer publishes new demands, update this fixture in the same
 	 * commit that satisfies them. The live cross-check below fails if this
@@ -254,6 +256,10 @@ final class RuntimeApiContractTest extends TestCase {
 				'total'    => 1,
 				'required' => 1,
 			),
+			'ec_link_page_post_type'                           => array(
+				'total'    => 1,
+				'required' => 0,
+			),
 		);
 	}
 
@@ -305,7 +311,17 @@ final class RuntimeApiContractTest extends TestCase {
 	public function test_storage_constants_and_api_version_match_consumer_support(): void {
 		$this->assertSame( 'artist_link_page', EC_LINK_PAGE_POST_TYPE );
 		$this->assertSame( '_ec_link_page_owner_reference', EC_LINK_PAGE_OWNER_META_KEY );
-		$this->assertSame( '3', (string) EC_LINK_PAGES_RUNTIME_API_VERSION );
+		$this->assertSame( '4', (string) EC_LINK_PAGES_RUNTIME_API_VERSION );
+	}
+
+	/**
+	 * The post type follows the storage site, resolved at call time — never
+	 * pinned to a literal, and never read at file-load time.
+	 */
+	public function test_post_type_resolves_from_storage_site_not_a_pinned_literal(): void {
+		$this->assertTrue( function_exists( 'ec_link_page_post_type' ) );
+		$this->assertSame( 'artist_link_page', ec_link_page_post_type() );
+		$this->assertContains( ec_link_page_post_type(), array( 'artist_link_page', 'ec_link_page' ) );
 	}
 
 	/**

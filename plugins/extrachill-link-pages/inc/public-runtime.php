@@ -41,7 +41,7 @@ function ec_answer_link_page_pageview_origin_host( $allowed, $host, $post_id ) {
 	if ( $post_id <= 0 || ! ec_is_link_page_public_host( $host ) ) {
 		return false;
 	}
-	return EC_LINK_PAGE_POST_TYPE === get_post_type( $post_id );
+	return ec_link_page_post_type( get_current_blog_id() ) === get_post_type( $post_id );
 }
 
 /** Return one canonical public URL. */
@@ -57,7 +57,7 @@ function ec_get_link_page_public_url( $link_page_id ) {
 			}
 		);
 	}
-	if ( EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+	if ( ec_link_page_post_type( get_current_blog_id() ) !== get_post_type( $link_page_id ) ) {
 		return '';
 	}
 	$slug = get_post_field( 'post_name', $link_page_id );
@@ -109,7 +109,7 @@ function ec_link_page_public_urls( $link_page_id ) {
 
 /** Add host-owned URLs to Extra Chill Cache targeted invalidation. */
 function ec_link_page_cache_post_change_urls( $urls, $post_id, $post_type ) {
-	return EC_LINK_PAGE_POST_TYPE === $post_type ? ec_link_page_public_urls( $post_id ) : $urls;
+	return ec_link_page_post_type( get_current_blog_id() ) === $post_type ? ec_link_page_public_urls( $post_id ) : $urls;
 }
 
 /** Register the historical query variable and host-only catch-all. */
@@ -227,7 +227,7 @@ function ec_resolve_link_page_public_query() {
 			$ids = get_posts(
 				array(
 					'name'        => $slug,
-					'post_type'   => EC_LINK_PAGE_POST_TYPE,
+					'post_type'   => ec_link_page_post_type( get_current_blog_id() ),
 					'post_status' => 'publish',
 					'numberposts' => 1,
 					'fields'      => 'ids',
@@ -262,7 +262,7 @@ function ec_resolve_link_page_public_query() {
 	$wp_query->is_singular             = true;
 	$wp_query->is_404                  = false;
 	$wp_query->query_vars['name']      = $slug;
-	$wp_query->query_vars['post_type'] = EC_LINK_PAGE_POST_TYPE;
+	$wp_query->query_vars['post_type'] = ec_link_page_post_type( get_current_blog_id() );
 	$wp_query->queried_object_id       = (int) $post->ID;
 	$wp_query->queried_object          = $post;
 	// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- deliberate: completes the faked singular main query; setup_postdata() alone does not set the $post global, and consumers such as the network view tracker read get_the_ID().
@@ -299,8 +299,9 @@ function ec_link_page_has_configured_redirect( $data ) {
 /** Use the standalone shell for host routes and direct CPT requests. */
 function ec_link_page_public_template( $template ) {
 	global $wp_query;
-	$resolved = ! empty( $wp_query->posts[0] ) && EC_LINK_PAGE_POST_TYPE === get_post_type( $wp_query->posts[0] );
-	if ( $resolved && ( ec_is_link_page_public_host() || is_singular( EC_LINK_PAGE_POST_TYPE ) ) ) {
+	$link_page_post_type = ec_link_page_post_type( get_current_blog_id() );
+	$resolved            = ! empty( $wp_query->posts[0] ) && get_post_type( $wp_query->posts[0] ) === $link_page_post_type;
+	if ( $resolved && ( ec_is_link_page_public_host() || is_singular( $link_page_post_type ) ) ) {
 		return EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/single-link-page.php';
 	}
 	return $template;
@@ -308,7 +309,7 @@ function ec_link_page_public_template( $template ) {
 
 /** Redirect direct CPT requests to the public host or a configured temporary target. */
 function ec_redirect_direct_link_page_request() {
-	if ( ! is_singular( EC_LINK_PAGE_POST_TYPE ) ) {
+	if ( ! is_singular( ec_link_page_post_type( get_current_blog_id() ) ) ) {
 		return;
 	}
 	$post = get_queried_object();
@@ -509,7 +510,7 @@ function ec_link_page_sitemap_urls( $urls ) {
 	}
 	foreach ( get_posts(
 		array(
-			'post_type'      => EC_LINK_PAGE_POST_TYPE,
+			'post_type'      => ec_link_page_post_type( get_current_blog_id() ),
 			'post_status'    => 'publish',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',

@@ -54,6 +54,30 @@ function ec_get_link_page_storage_blog_id() {
 	return ec_validate_link_page_storage_blog_id( (int) get_site_option( EC_LINK_PAGE_STORAGE_BLOG_OPTION, 0 ) );
 }
 
+/**
+ * Resolve the storage-site-affine Link Page post type.
+ *
+ * The dedicated Link Pages site (looked up by network key, not hardcoded)
+ * stores `ec_link_page`; every other blog — including the legacy storage
+ * site — keeps the historical `artist_link_page` value. Resolution happens
+ * strictly at call time: never cache this, and never call it before plugins
+ * finish loading (the network's blog-ID lookup may not exist yet).
+ *
+ * @param int|null $blog_id Blog to resolve for, or null for the current
+ *                          canonical Link Page storage blog.
+ * @return string
+ */
+function ec_link_page_post_type( $blog_id = null ) {
+	$blog_id = null === $blog_id ? ec_get_link_page_storage_blog_id() : max( 0, (int) $blog_id );
+	if ( $blog_id && function_exists( 'ec_get_blog_id' ) ) {
+		$dedicated_blog_id = (int) ec_get_blog_id( 'link_pages' );
+		if ( $dedicated_blog_id && $blog_id === $dedicated_blog_id ) {
+			return 'ec_link_page';
+		}
+	}
+	return EC_LINK_PAGE_POST_TYPE;
+}
+
 /** Execute a storage callback on the canonical blog and restore the caller. */
 function ec_with_link_page_storage_blog( $callback ) {
 	if ( ! is_callable( $callback ) ) {
@@ -87,7 +111,8 @@ function ec_with_link_page_storage_blog( $callback ) {
  * @return void
  */
 function ec_register_link_page_post_type() {
-	if ( post_type_exists( EC_LINK_PAGE_POST_TYPE ) ) {
+	$post_type = ec_link_page_post_type( get_current_blog_id() );
+	if ( post_type_exists( $post_type ) ) {
 		return;
 	}
 
@@ -122,7 +147,7 @@ function ec_register_link_page_post_type() {
 	);
 
 	$registered = register_post_type(
-		EC_LINK_PAGE_POST_TYPE,
+		$post_type,
 		array(
 			'label'               => __( 'Link Page', 'extrachill-link-pages' ),
 			'description'         => __( 'Custom Post Type for Link Pages', 'extrachill-link-pages' ),
@@ -146,7 +171,7 @@ function ec_register_link_page_post_type() {
 			'show_in_rest'        => true,
 		)
 	);
-	if ( ! is_wp_error( $registered ) && post_type_exists( EC_LINK_PAGE_POST_TYPE ) ) {
+	if ( ! is_wp_error( $registered ) && post_type_exists( $post_type ) ) {
 		$GLOBALS['ec_link_pages_owns_post_type'] = true;
 	}
 }
@@ -269,7 +294,7 @@ function ec_flush_link_pages_site() {
 		return new WP_Error( 'ec_link_pages_rewrite_flush_too_early', 'The Link Pages rewrite flush was requested before WordPress finished loading.' );
 	}
 	ec_register_link_page_post_type();
-	if ( ! post_type_exists( EC_LINK_PAGE_POST_TYPE ) ) {
+	if ( ! post_type_exists( ec_link_page_post_type( get_current_blog_id() ) ) ) {
 		return new WP_Error( 'ec_link_pages_post_type_registration_failed', 'The Link Page storage type could not be registered.' );
 	}
 	$result = flush_rewrite_rules();
@@ -344,14 +369,15 @@ function ec_unregister_and_flush_link_pages_site() {
 	if ( function_exists( 'did_action' ) && ! did_action( 'wp_loaded' ) ) {
 		return new WP_Error( 'ec_link_pages_rewrite_flush_too_early', 'The Link Pages rewrite flush was requested before WordPress finished loading.' );
 	}
-	if ( ! empty( $GLOBALS['ec_link_pages_owns_post_type'] ) && post_type_exists( EC_LINK_PAGE_POST_TYPE ) ) {
-		$result = unregister_post_type( EC_LINK_PAGE_POST_TYPE );
+	$post_type = ec_link_page_post_type( get_current_blog_id() );
+	if ( ! empty( $GLOBALS['ec_link_pages_owns_post_type'] ) && post_type_exists( $post_type ) ) {
+		$result = unregister_post_type( $post_type );
 		if ( is_wp_error( $result ) ) {
 			return new WP_Error( 'ec_link_pages_post_type_unregistration_failed', 'The Link Page storage type could not be unregistered.' );
 		}
 		$GLOBALS['ec_link_pages_owns_post_type'] = false;
 	}
-	if ( post_type_exists( EC_LINK_PAGE_POST_TYPE ) && ! empty( $GLOBALS['ec_link_pages_owns_post_type'] ) ) {
+	if ( post_type_exists( $post_type ) && ! empty( $GLOBALS['ec_link_pages_owns_post_type'] ) ) {
 		return new WP_Error( 'ec_link_pages_post_type_unregistration_failed', 'The Link Page storage type remained registered after deactivation.' );
 	}
 	if ( function_exists( 'ec_unschedule_link_page_expiration_cleanup' ) ) {

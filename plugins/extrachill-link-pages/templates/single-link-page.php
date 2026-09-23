@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 
 global $wp_query;
 $link_page = $wp_query->get_queried_object();
-if ( ! $link_page || empty( $link_page->ID ) || EC_LINK_PAGE_POST_TYPE !== $link_page->post_type ) {
+if ( ! $link_page || empty( $link_page->ID ) || ec_link_page_post_type( get_current_blog_id() ) !== $link_page->post_type ) {
 	status_header( 404 );
 	return;
 }

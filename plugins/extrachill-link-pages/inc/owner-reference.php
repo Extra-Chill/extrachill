@@ -142,7 +142,7 @@ function ec_validate_link_page_owner_compatibility_claim( $claim, $operation, $c
 		return new WP_Error( 'invalid_link_page_owner_claim', 'A Link Page owner compatibility provider returned a malformed claim.' );
 	}
 	$link_page_id = $claim['link_page_id'];
-	if ( ! is_int( $link_page_id ) || $link_page_id <= 0 || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+	if ( ! is_int( $link_page_id ) || $link_page_id <= 0 || ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 		return new WP_Error( 'invalid_link_page_owner_candidate', 'A Link Page owner compatibility provider returned an invalid storage candidate.' );
 	}
 	$reference = ec_normalize_link_page_owner_reference( $claim['owner_reference'] );
@@ -301,7 +301,7 @@ function ec_get_link_page_owner( $link_page_id ) {
 		);
 	}
 	$link_page_id = absint( $link_page_id );
-	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+	if ( ! $link_page_id || ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 		return new WP_Error( 'invalid_link_page', 'The Link Page does not exist.' );
 	}
 	$stored = ec_get_stored_link_page_owner_references( $link_page_id );
@@ -354,7 +354,7 @@ function ec_get_link_page_id_for_owner( $owner, $allowed_link_pages = array() ) 
 	// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 	$link_page_ids = get_posts(
 		array(
-			'post_type'      => EC_LINK_PAGE_POST_TYPE,
+			'post_type'      => ec_link_page_post_type(),
 			'post_status'    => 'any',
 			'meta_key'       => EC_LINK_PAGE_OWNER_META_KEY,
 			'meta_value'     => $reference,
@@ -395,7 +395,7 @@ function ec_get_link_page_id_for_owner( $owner, $allowed_link_pages = array() ) 
 function ec_validate_link_page_owner_candidate_ids( $candidate_ids ) {
 	$validated = array();
 	foreach ( $candidate_ids as $candidate_id ) {
-		if ( ! is_int( $candidate_id ) || $candidate_id <= 0 || EC_LINK_PAGE_POST_TYPE !== get_post_type( $candidate_id ) ) {
+		if ( ! is_int( $candidate_id ) || $candidate_id <= 0 || ec_link_page_post_type() !== get_post_type( $candidate_id ) ) {
 			return new WP_Error( 'invalid_link_page_owner_candidate', 'A Link Page owner provider returned an invalid storage candidate.' );
 		}
 		$validated[] = $candidate_id;
@@ -417,7 +417,7 @@ function ec_assign_link_page_owner( $link_page_id, $owner, $replace_link_page_id
 		);
 	}
 	$link_page_id = absint( $link_page_id );
-	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+	if ( ! $link_page_id || ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 		return new WP_Error( 'invalid_link_page', 'The Link Page does not exist.' );
 	}
 	$reference = ec_normalize_link_page_owner_reference( $owner );
@@ -498,7 +498,7 @@ function ec_backfill_link_page_owner_references( $limit = 100, $offset = 0 ) {
 	$offset = absint( $offset );
 	$ids    = get_posts(
 		array(
-			'post_type'      => EC_LINK_PAGE_POST_TYPE,
+			'post_type'      => ec_link_page_post_type(),
 			'post_status'    => 'any',
 			'posts_per_page' => $limit,
 			'offset'         => $offset,

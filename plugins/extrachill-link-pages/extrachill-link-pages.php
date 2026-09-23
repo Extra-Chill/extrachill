@@ -21,7 +21,9 @@ defined( 'EXTRACHILL_LINK_PAGES_VERSION' ) || define( 'EXTRACHILL_LINK_PAGES_VER
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_FILE' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_FILE', __FILE__ );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_DIR' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 defined( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME' ) || define( 'EXTRACHILL_LINK_PAGES_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-// Legacy storage slug. Existing records remain on their current blog unchanged.
+// Deprecated: the legacy storage-site post type. No new code reads this constant;
+// call ec_link_page_post_type() instead, which resolves the storage-site-affine
+// value at call time. Kept defined only for back-compat with external readers.
 defined( 'EC_LINK_PAGE_POST_TYPE' ) || define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) || define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
 
@@ -267,6 +269,10 @@ function ec_link_pages_runtime_function_contract() {
 		'ec_get_link_page_storage_blog_id'               => array(
 			'required' => 0,
 			'total'    => 0,
+		),
+		'ec_link_page_post_type'                         => array(
+			'required' => 0,
+			'total'    => 1,
 		),
 		'ec_with_link_page_storage_blog'                 => array(
 			'required' => 1,
@@ -596,7 +602,7 @@ $ec_link_pages_subset                 = static function ( $names ) use ( $ec_lin
 	return array_intersect_key( $ec_link_pages_contract, array_flip( $names ) );
 };
 $ec_link_pages_owner_contract         = $ec_link_pages_subset( array( 'ec_link_page_owner_compatibility_registry', 'ec_register_link_page_owner_compatibility_provider', 'ec_parse_link_page_owner_reference', 'ec_format_link_page_owner_reference', 'ec_normalize_link_page_owner_reference', 'ec_get_stored_link_page_owner_references', 'ec_validate_link_page_owner_compatibility_claim', 'ec_restore_link_page_owner_provider_context', 'ec_invoke_link_page_owner_compatibility_provider', 'ec_collect_raw_link_page_owner_compatibility_claims', 'ec_reconcile_link_page_owner_candidate', 'ec_collect_link_page_owner_compatibility_claims', 'ec_get_link_page_owner', 'ec_get_link_page_id_for_owner', 'ec_validate_link_page_owner_candidate_ids', 'ec_assign_link_page_owner', 'ec_compensate_link_page_owner_assignment', 'ec_halt_link_page_owner_backfill', 'ec_backfill_link_page_owner_references' ) );
-$ec_link_pages_lifecycle_contract     = $ec_link_pages_subset( array( 'ec_get_link_page_storage_blog_id', 'ec_with_link_page_storage_blog', 'ec_register_link_page_post_type', 'ec_register_link_page_post_type_if_ready', 'ec_restore_link_pages_site_context', 'ec_invoke_link_pages_site_callback', 'ec_for_each_link_pages_site', 'ec_flush_link_pages_site', 'ec_prepare_link_pages_activation', 'ec_activate_link_pages', 'ec_deactivate_link_pages', 'ec_unregister_and_flush_link_pages_site', 'ec_link_pages_is_network_active', 'ec_initialize_link_pages_site', 'ec_flush_queued_link_pages_sites' ) );
+$ec_link_pages_lifecycle_contract     = $ec_link_pages_subset( array( 'ec_get_link_page_storage_blog_id', 'ec_link_page_post_type', 'ec_with_link_page_storage_blog', 'ec_register_link_page_post_type', 'ec_register_link_page_post_type_if_ready', 'ec_restore_link_pages_site_context', 'ec_invoke_link_pages_site_callback', 'ec_for_each_link_pages_site', 'ec_flush_link_pages_site', 'ec_prepare_link_pages_activation', 'ec_activate_link_pages', 'ec_deactivate_link_pages', 'ec_unregister_and_flush_link_pages_site', 'ec_link_pages_is_network_active', 'ec_initialize_link_pages_site', 'ec_flush_queued_link_pages_sites' ) );
 $ec_link_pages_compatibility_contract = $ec_link_pages_subset( array( 'ec_register_link_page_public_compatibility_aliases' ) );
 $ec_link_pages_operation_contract     = $ec_link_pages_subset( array( 'ec_link_page_operation_provider_registry', 'ec_register_link_page_operation_provider', 'ec_resolve_link_page_operation_target', 'ec_invoke_link_page_operation_callback', 'ec_get_link_page_operation_provider', 'ec_prepare_link_page_operation', 'ec_read_link_page', 'ec_save_link_page' ) );
 $ec_link_pages_storage_contract       = $ec_link_pages_subset( array( 'ec_link_page_defaults', 'ec_link_page_defaults_for', 'ec_link_page_default', 'ec_link_page_id_meta_keys', 'ec_link_page_needs_id_assignment', 'ec_with_link_page_lock_scope', 'ec_with_link_page_id_lock', 'ec_link_page_next_element_id', 'ec_link_page_sync_element_counter', 'ec_sanitize_link_page_links', 'ec_collect_link_page_element_ids', 'ec_sanitize_link_page_links_locked', 'ec_sanitize_link_page_css_vars', 'ec_sanitize_link_page_settings', 'ec_read_link_page_persistence', 'ec_snapshot_link_page_meta', 'ec_write_link_page_meta', 'ec_restore_link_page_meta_snapshots', 'ec_compensate_link_page_save_error', 'ec_link_page_previous_links_meta_keys', 'ec_link_page_links_count', 'ec_link_page_restore_point_timestamp', 'ec_refuse_link_page_silent_empty', 'ec_write_link_page_restore_point', 'ec_get_link_page_previous_links', 'ec_purge_link_page_after_mutation', 'ec_save_link_page_persistence', 'ec_save_link_page_persistence_composed', 'ec_save_link_page_persistence_locked', 'ec_save_link_page_persistence_composed_locked', 'ec_invoke_link_page_mutation_finalizer', 'ec_compensate_created_link_page', 'ec_restore_replaced_link_page', 'ec_compensate_link_page_creation_error', 'ec_provision_owned_link_page', 'ec_provision_owned_link_page_composed', 'ec_provision_owned_link_page_internal', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page', 'ec_create_owned_link_page_unlocked', 'ec_prepare_owned_link_page_creation', 'ec_cleanup_expired_link_page_links', 'ec_purge_link_page_before_delete', 'ec_schedule_link_page_expiration_cleanup', 'ec_unschedule_link_page_expiration_cleanup' ) );
@@ -652,7 +658,7 @@ if ( ! function_exists( 'ec_can_register_link_page_operation_provider' ) ) {
 }
 
 if ( ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
-	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '3' );
+	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '4' );
 }
 
 /**
@@ -665,10 +671,13 @@ function ec_validate_link_pages_runtime( $check_readiness = true ) {
 	if ( isset( $GLOBALS['ec_link_pages_runtime_error'] ) && is_wp_error( $GLOBALS['ec_link_pages_runtime_error'] ) ) {
 		return $GLOBALS['ec_link_pages_runtime_error'];
 	}
-	if ( 'artist_link_page' !== EC_LINK_PAGE_POST_TYPE || '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
+	if ( '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible storage contract.' );
 	}
-	if ( '3' !== EC_LINK_PAGES_RUNTIME_API_VERSION ) {
+	if ( ! function_exists( 'ec_link_page_post_type' ) || ! in_array( ec_link_page_post_type(), array( 'artist_link_page', 'ec_link_page' ), true ) ) {
+		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible storage contract.' );
+	}
+	if ( '4' !== EC_LINK_PAGES_RUNTIME_API_VERSION ) {
 		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime API version is not supported.' );
 	}
 	foreach ( ec_link_pages_runtime_function_contract() as $function => $signature ) {

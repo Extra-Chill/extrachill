@@ -41,12 +41,12 @@ class EcTestWpdb {
 		return 'wp_' . (int) $blog_id . '_'; }
 	public function get_results( $query, $output = null ) {
 		$blog_id = get_current_blog_id();
-		if ( false !== strpos( $query, 'SELECT * FROM wp_posts WHERE post_type' ) ) {
+		if ( preg_match( "/SELECT \* FROM wp_posts WHERE post_type = '([^']+)'/", $query, $type_match ) ) {
 			$posts = array_values(
 				array_filter(
 					$GLOBALS['ec_test']['blogs'][ $blog_id ]['posts'],
-					static function ( $post ) {
-						return EC_LINK_PAGE_POST_TYPE === $post->post_type;
+					static function ( $post ) use ( $type_match ) {
+						return $type_match[1] === $post->post_type;
 					}
 				)
 			);
@@ -344,19 +344,28 @@ function ec_test_reset() {
 		'filters'               => $base_filters,
 		'did_actions'           => array( 'wp_loaded' => 1 ),
 		'blogs'                 => array(
-			4 => array(
+			4  => array(
 				'posts'     => array(),
 				'post_meta' => array(),
 				'terms'     => array(),
 			),
-			7 => array(
+			7  => array(
+				'posts'     => array(),
+				'post_meta' => array(),
+				'terms'     => array(),
+			),
+			// The dedicated Link Pages site (EC_BLOG_ID_LINK_PAGES in
+			// extrachill-network). Only reachable by an explicit blog ID —
+			// the storage filter below always resolves 4, so ordinary tests
+			// never touch it and stay legacy-only.
+			13 => array(
 				'posts'     => array(),
 				'post_meta' => array(),
 				'terms'     => array(),
 			),
 		),
 	);
-	foreach ( array( 4, 7 ) as $blog_id ) {
+	foreach ( array( 4, 7, 13 ) as $blog_id ) {
 		$directory = sys_get_temp_dir() . '/ec-link-pages-blog-' . $blog_id;
 		if ( is_dir( $directory ) ) {
 			$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $directory, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::CHILD_FIRST );
@@ -747,6 +756,20 @@ function get_the_modified_date( $format, $post_id ) {
 function __return_true() {
 	return true; }
 
+if ( ! function_exists( 'ec_get_blog_id' ) ) {
+	/**
+	 * Minimal stand-in for extrachill-network's network blog-ID lookup.
+	 *
+	 * Mirrors the real contract (`ec_get_blog_id( 'link_pages' )` resolves the
+	 * dedicated Link Pages site) so ec_link_page_post_type() can be exercised
+	 * as it behaves with the network plugin active, without coupling this
+	 * standalone suite to that plugin's source.
+	 */
+	function ec_get_blog_id( $key ) {
+		return 'link_pages' === $key ? 13 : null;
+	}
+}
+
 if ( getenv( 'LINK_PAGES_USE_FALLBACK' ) ) {
 	define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 	define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
@@ -758,5 +781,9 @@ if ( getenv( 'LINK_PAGES_USE_FALLBACK' ) ) {
 	require_once $fallback . '/inc/link-pages/owner-reference.php';
 	require_once $fallback . '/inc/link-pages/operations.php';
 }
+// Cold-boot validation now resolves the storage-affine post type, which
+// reads the current blog. Seed a default before the plugin file's top-level
+// self-validation runs so that read isn't against an unset array key.
+$GLOBALS['ec_test']['current_blog_id'] = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
 require_once dirname( __DIR__ ) . '/extrachill-link-pages.php';
 ec_test_reset();

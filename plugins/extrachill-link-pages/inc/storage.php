@@ -438,7 +438,7 @@ function ec_get_link_page_previous_links( $link_page_id ) {
 		);
 	}
 	$link_page_id = absint( $link_page_id );
-	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+	if ( ! $link_page_id || ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid Link Page ID.' );
 	}
 	if ( ! metadata_exists( 'post', $link_page_id, '_link_page_links_previous' ) ) {
@@ -465,7 +465,7 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		);
 	}
 	$link_page_id = absint( $link_page_id );
-	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) ) {
+	if ( ! $link_page_id || ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid Link Page ID.' );
 	}
 	$styles                              = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
@@ -584,7 +584,7 @@ function ec_save_link_page_persistence_composed( $link_page_id, $save_data, $fin
 		);
 	}
 	$link_page_id = absint( $link_page_id );
-	if ( ! $link_page_id || EC_LINK_PAGE_POST_TYPE !== get_post_type( $link_page_id ) || ! is_array( $save_data ) ) {
+	if ( ! $link_page_id || ec_link_page_post_type() !== get_post_type( $link_page_id ) || ! is_array( $save_data ) ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid Link Page save request.' );
 	}
 	if ( ! is_callable( $finalizer ) ) {
@@ -963,10 +963,11 @@ function ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $
 			return $renamed;
 		}
 	}
-	$slug_matches = get_posts(
+	$link_page_post_type = ec_link_page_post_type();
+	$slug_matches        = get_posts(
 		array(
 			'name'           => $slug,
-			'post_type'      => EC_LINK_PAGE_POST_TYPE,
+			'post_type'      => $link_page_post_type,
 			'post_status'    => 'any',
 			'posts_per_page' => 2,
 			'fields'         => 'ids',
@@ -977,7 +978,7 @@ function ec_prepare_owned_link_page_creation( $owner_reference, $title, $slug, $
 	}
 	$link_page_id = wp_insert_post(
 		array(
-			'post_type'   => EC_LINK_PAGE_POST_TYPE,
+			'post_type'   => $link_page_post_type,
 			'post_title'  => $title,
 			'post_name'   => $slug,
 			'post_status' => 'publish',
@@ -1027,7 +1028,7 @@ function ec_cleanup_expired_link_page_links() {
 	}
 	$ids = get_posts(
 		array(
-			'post_type'      => EC_LINK_PAGE_POST_TYPE,
+			'post_type'      => ec_link_page_post_type(),
 			'post_status'    => 'any',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
@@ -1085,7 +1086,7 @@ function ec_cleanup_expired_link_page_links() {
 
 /** Purge the canonical public page before its post is deleted. */
 function ec_purge_link_page_before_delete( $post_id ) {
-	if ( EC_LINK_PAGE_POST_TYPE === get_post_type( $post_id ) ) {
+	if ( ec_link_page_post_type( get_current_blog_id() ) === get_post_type( $post_id ) ) {
 		ec_purge_link_page_after_mutation( $post_id );
 	}
 }

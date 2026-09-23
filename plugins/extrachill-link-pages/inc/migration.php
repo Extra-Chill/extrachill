@@ -277,26 +277,33 @@ function ec_plan_link_page_storage_migration( $source_blog_id, $destination_blog
 	if ( ! is_multisite() || ! $source_blog_id || ! $destination_blog_id || $source_blog_id === $destination_blog_id || ! $source_site || ! $destination_site || $network_id !== $source_network || $network_id !== $destination_network ) {
 		return new WP_Error( 'invalid_link_page_migration_sites', 'Distinct existing multisite source and destination blogs are required.' );
 	}
-	$plan   = array(
-		'schema_version'      => EC_LINK_PAGE_MIGRATION_SCHEMA_VERSION,
-		'network_id'          => $network_id,
-		'mode'                => 'plan',
-		'source_blog_id'      => $source_blog_id,
-		'destination_blog_id' => $destination_blog_id,
-		'posts'               => array(),
-		'meta'                => array(),
-		'attachments'         => array(),
-		'participants'        => array(),
-		'owner_claims'        => array(),
-		'collisions'          => array(),
-		'missing'             => array(),
-		'unsupported'         => array(),
+	// Resolved from each blog's own identity, independent of which blog is
+	// the current canonical storage blog — a reverse (rollback-style)
+	// migration must map exactly as correctly as a forward one.
+	$source_post_type      = ec_link_page_post_type( $source_blog_id );
+	$destination_post_type = ec_link_page_post_type( $destination_blog_id );
+	$plan                  = array(
+		'schema_version'        => EC_LINK_PAGE_MIGRATION_SCHEMA_VERSION,
+		'network_id'            => $network_id,
+		'mode'                  => 'plan',
+		'source_blog_id'        => $source_blog_id,
+		'destination_blog_id'   => $destination_blog_id,
+		'source_post_type'      => $source_post_type,
+		'destination_post_type' => $destination_post_type,
+		'posts'                 => array(),
+		'meta'                  => array(),
+		'attachments'           => array(),
+		'participants'          => array(),
+		'owner_claims'          => array(),
+		'collisions'            => array(),
+		'missing'               => array(),
+		'unsupported'           => array(),
 	);
-	$source = ec_link_page_migration_in_blog(
+	$source                = ec_link_page_migration_in_blog(
 		$source_blog_id,
-		static function () use ( &$plan, $include_readiness ) {
+		static function () use ( &$plan, $include_readiness, $source_post_type, $destination_post_type ) {
 			global $wpdb;
-			$posts = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->posts} WHERE post_type = %s ORDER BY ID ASC", EC_LINK_PAGE_POST_TYPE ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact all-status inventory.
+			$posts = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->posts} WHERE post_type = %s ORDER BY ID ASC", $source_post_type ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact all-status inventory.
 			if ( null === $posts || '' !== $wpdb->last_error ) {
 				return new WP_Error( 'link_page_migration_inventory_failed', 'The exact Link Page inventory query failed.' ); }
 			$ids = array_map(
@@ -306,7 +313,15 @@ function ec_plan_link_page_storage_migration( $source_blog_id, $destination_blog
 				$posts
 			);
 			foreach ( $posts as $post ) {
-				$plan['posts'][] = ec_link_page_migration_post_fields( $post );
+				// Every plan-level post descriptor already carries the
+				// destination-bound type, so every downstream consumer
+				// (readiness collisions, apply, validate, rollback) is
+				// automatically destination-correct without a second
+				// mapping pass. Only the raw source-side SQL above reads
+				// the true on-disk source type.
+				$fields              = ec_link_page_migration_post_fields( $post );
+				$fields['post_type'] = $destination_post_type;
+				$plan['posts'][]     = $fields;
 			}
 			if ( $ids ) {
 				$list   = implode( ',', $ids );
@@ -355,14 +370,16 @@ function ec_plan_link_page_storage_migration( $source_blog_id, $destination_blog
 					$slugs[ $post['post_name'] ] = $post['ID'];
 			}
 			$context = array(
-				'mode'                => $include_readiness ? 'readiness' : 'source_inventory',
-				'source_blog_id'      => $plan['source_blog_id'],
-				'destination_blog_id' => $plan['destination_blog_id'],
-				'link_page_ids'       => $ids,
-				'attachment_map'      => array(),
-				'fingerprint'         => '',
-				'journal_id'          => '',
-				'journal_record'      => null,
+				'mode'                  => $include_readiness ? 'readiness' : 'source_inventory',
+				'source_blog_id'        => $plan['source_blog_id'],
+				'destination_blog_id'   => $plan['destination_blog_id'],
+				'source_post_type'      => $source_post_type,
+				'destination_post_type' => $destination_post_type,
+				'link_page_ids'         => $ids,
+				'attachment_map'        => array(),
+				'fingerprint'           => '',
+				'journal_id'            => '',
+				'journal_record'        => null,
 			);
 			foreach ( $plan['owners'] ?? array() as $link_page_id => $owner ) {
 				$claims = array();
@@ -996,15 +1013,17 @@ function ec_link_page_migration_compensate( &$journal ) {
 /** Build the callback-bearing participant context from a journal. */
 function ec_link_page_migration_journal_context( &$journal ) {
 	return array(
-		'source_blog_id'      => $journal['source_blog_id'],
-		'destination_blog_id' => $journal['destination_blog_id'],
-		'link_page_ids'       => $journal['link_page_ids'],
-		'attachment_map'      => $journal['attachment_map'],
-		'fingerprint'         => $journal['fingerprint'],
-		'journal_id'          => $journal['id'],
-		'journal_entries'     => $journal['entries'],
-		'participant_plans'   => $journal['participant_plans'] ?? array(),
-		'journal_record'      => static function ( $entry, $callback ) use ( &$journal ) {
+		'source_blog_id'        => $journal['source_blog_id'],
+		'destination_blog_id'   => $journal['destination_blog_id'],
+		'source_post_type'      => $journal['source_post_type'] ?? '',
+		'destination_post_type' => $journal['destination_post_type'] ?? '',
+		'link_page_ids'         => $journal['link_page_ids'],
+		'attachment_map'        => $journal['attachment_map'],
+		'fingerprint'           => $journal['fingerprint'],
+		'journal_id'            => $journal['id'],
+		'journal_entries'       => $journal['entries'],
+		'participant_plans'     => $journal['participant_plans'] ?? array(),
+		'journal_record'        => static function ( $entry, $callback ) use ( &$journal ) {
 			$entry['type'] = 'participant';
 			return ec_link_page_migration_mutate( $journal, $entry, $callback );
 		},
@@ -1041,6 +1060,8 @@ function ec_apply_link_page_storage_migration_unlocked( $source_blog_id, $destin
 		'created_at'                      => gmdate( 'c' ),
 		'source_blog_id'                  => (int) $source_blog_id,
 		'destination_blog_id'             => (int) $destination_blog_id,
+		'source_post_type'                => $plan['source_post_type'],
+		'destination_post_type'           => $plan['destination_post_type'],
 		'fingerprint'                     => $plan['fingerprint'],
 		'link_page_ids'                   => array_column( $plan['posts'], 'ID' ),
 		'attachment_map'                  => array_combine( array_column( array_column( $plan['attachments'], 'post' ), 'ID' ), array_column( array_column( $plan['attachments'], 'post' ), 'ID' ) ),
