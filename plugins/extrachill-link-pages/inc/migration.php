@@ -139,6 +139,21 @@ function ec_link_page_migration_meta_rows( $post_ids ) {
 	) : array();
 }
 
+/**
+ * Order meta rows by post ID, keeping each post's rows in their given order.
+ *
+ * @param array $rows Meta rows (post_id, meta_key, meta_value).
+ * @return array
+ */
+function ec_link_page_migration_order_meta_rows( $rows ) {
+	$by_post = array();
+	foreach ( $rows as $row ) {
+		$by_post[ (int) $row['post_id'] ][] = $row;
+	}
+	ksort( $by_post );
+	return $by_post ? array_merge( ...array_values( $by_post ) ) : array();
+}
+
 /** Invalidate metadata caches and prove runtime reads expose every copied row. */
 function ec_link_page_migration_verify_runtime_meta( $rows ) {
 	$expected = array();
@@ -1347,8 +1362,12 @@ function ec_validate_link_page_storage_migration_unlocked( $journal_id ) {
 					return new WP_Error( 'link_page_migration_validation_failed', 'A destination post differs from its source descriptor.', array( 'post_id' => $expected['ID'] ) );
 				}
 			}
-			$expected_meta = array_merge( $plan['meta'], $plan['attachment_meta'] );
-			$actual_meta   = ec_link_page_migration_meta_rows( array_column( $expected_posts, 'ID' ) );
+			// Compare in one canonical order. The plan lists link-page rows
+			// before attachment rows, while a read returns every row in
+			// post_id order; within each post both keep meta_id order, which
+			// is what preserves duplicate-key value order.
+			$expected_meta = ec_link_page_migration_order_meta_rows( array_merge( $plan['meta'], $plan['attachment_meta'] ) );
+			$actual_meta   = ec_link_page_migration_order_meta_rows( ec_link_page_migration_meta_rows( array_column( $expected_posts, 'ID' ) ) );
 			if ( $expected_meta !== $actual_meta ) {
 				return new WP_Error( 'link_page_migration_validation_failed', 'Destination metadata rows differ from source metadata rows.' );
 			}

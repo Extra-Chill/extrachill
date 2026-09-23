@@ -186,4 +186,22 @@ final class MigrationTest extends TestCase {
 		unlink( $root . '/inside.txt' );
 		rmdir( $root );
 	}
+
+	public function test_meta_rows_compare_in_post_order_keeping_per_post_row_order(): void {
+		// Production shape: plan lists page rows before attachment rows, a
+		// read returns them by post_id. Duplicate-key order must survive.
+		$plan_order = array(
+			array( 'post_id' => 12115, 'meta_key' => 'a', 'meta_value' => '1' ),
+			array( 'post_id' => 12115, 'meta_key' => 'dup', 'meta_value' => 'first' ),
+			array( 'post_id' => 12115, 'meta_key' => 'dup', 'meta_value' => 'second' ),
+			array( 'post_id' => 2173, 'meta_key' => '_wp_attached_file', 'meta_value' => 'x.png' ),
+		);
+		$read_order = array( $plan_order[3], $plan_order[0], $plan_order[1], $plan_order[2] );
+		$this->assertNotSame( $plan_order, $read_order );
+		$this->assertSame( ec_link_page_migration_order_meta_rows( $plan_order ), ec_link_page_migration_order_meta_rows( $read_order ) );
+
+		$swapped = array( $plan_order[3], $plan_order[0], $plan_order[2], $plan_order[1] );
+		$this->assertNotSame( ec_link_page_migration_order_meta_rows( $plan_order ), ec_link_page_migration_order_meta_rows( $swapped ) );
+		$this->assertSame( array(), ec_link_page_migration_order_meta_rows( array() ) );
+	}
 }
