@@ -174,8 +174,13 @@ function ec_maybe_flush_link_page_public_rewrites() {
 
 /** Disable core canonical guessing on the public host. */
 function ec_prevent_link_page_public_canonical_redirect( $redirect_url, $requested_url ) {
-	unset( $requested_url );
-	$host = sanitize_text_field( wp_unslash( $_SERVER['SERVER_NAME'] ?? ( $_SERVER['HTTP_HOST'] ?? '' ) ) );
+	// Judge by the host that was requested. SERVER_NAME is the web server's
+	// configured name (with nginx, the vhost's first server_name), which does
+	// not identify the public Link Page host on a shared vhost.
+	$host = (string) wp_parse_url( (string) $requested_url, PHP_URL_HOST );
+	if ( '' === $host ) {
+		$host = sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) );
+	}
 	return ec_is_link_page_public_host( $host ) ? false : $redirect_url;
 }
 

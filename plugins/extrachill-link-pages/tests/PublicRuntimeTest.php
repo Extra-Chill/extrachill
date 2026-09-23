@@ -431,6 +431,18 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 
+	public function test_canonical_guard_uses_the_requested_host_not_server_name(): void {
+		// Regression: nginx sets SERVER_NAME to the vhost's first name
+		// (extrachill.com), so the guard never matched and core 301'd
+		// /slug to /slug/ on the Link Pages site.
+		$_SERVER['SERVER_NAME'] = 'extrachill.com';
+		$_SERVER['HTTP_HOST']   = 'extrachill.link';
+		$this->assertFalse( ec_prevent_link_page_public_canonical_redirect( 'https://extrachill.link/band/', 'https://extrachill.link/band' ) );
+		$this->assertFalse( ec_prevent_link_page_public_canonical_redirect( 'https://extrachill.link/band/', '' ) );
+		$_SERVER['HTTP_HOST'] = 'extrachill.com';
+		$this->assertSame( 'https://extrachill.com/x/', ec_prevent_link_page_public_canonical_redirect( 'https://extrachill.com/x/', 'https://extrachill.com/x' ) );
+	}
+
 	public function test_public_routing_root_valid_unknown_extra_chill_www_and_head_contracts(): void {
 		$_SERVER['HTTP_HOST'] = 'extrachill.link';
 		$_SERVER['SERVER_NAME'] = 'extrachill.link';
