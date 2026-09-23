@@ -42,6 +42,44 @@ class ArtistDataSyncManager {
 }
 
 /**
+ * Write owned fields to an artist's Link Page from any artist context.
+ *
+ * Artist abilities hold the page lock in `separate` mode, and the runtime
+ * refuses to mix a `generic` save (ec_save_link_page_persistence()) into
+ * it. This helper always writes under a `separate` scope: it nests inside
+ * an active artist mutation on the same page and acquires the lock itself
+ * otherwise, then persists through the locked save API.
+ *
+ * @param int   $link_page_id Link Page ID.
+ * @param array $fields       Fields accepted by the Link Page storage API.
+ * @return array|WP_Error Saved persistence or error.
+ */
+function ec_artist_save_link_page_fields( $link_page_id, $fields ) {
+	$link_page_id = absint( $link_page_id );
+	if ( ! $link_page_id || ! function_exists( 'ec_with_link_page_storage_blog' ) || ! function_exists( 'ec_with_link_page_lock_scope' ) || ! function_exists( 'ec_save_link_page_persistence_locked' ) ) {
+		return new WP_Error( 'link_pages_runtime_unavailable', 'The Link Pages runtime is not loaded.' );
+	}
+	// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
+	return ec_with_link_page_storage_blog(
+		static function () use ( $link_page_id, $fields ) {
+			// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
+			if ( ec_link_page_post_type() !== get_post_type( $link_page_id ) ) {
+				return new WP_Error( 'invalid_link_page', 'Invalid Link Page ID.' );
+			}
+			// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
+			return ec_with_link_page_lock_scope(
+				$link_page_id,
+				static function () use ( $link_page_id, $fields ) {
+					// @phpstan-ignore phpstan.function.notFound (provided by the extrachill-link-pages runtime; checked above.)
+					return ec_save_link_page_persistence_locked( $link_page_id, $fields );
+				},
+				'separate'
+			);
+		}
+	);
+}
+
+/**
  * Push an artist's identity (name, profile image) onto its Link Page.
  *
  * Must run in the artist site context. No-ops when the artist has no Link
@@ -59,7 +97,7 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 	if ( ArtistDataSyncManager::is_syncing() ) {
 		return true;
 	}
-	if ( ! function_exists( 'ec_save_link_page_persistence' ) || ! function_exists( 'ec_read_link_page_persistence' ) ) {
+	if ( ! function_exists( 'ec_read_link_page_persistence' ) ) {
 		return new WP_Error( 'link_pages_runtime_unavailable', 'The Link Pages runtime is not loaded.' );
 	}
 	$link_page_id = (int) ec_get_link_page_for_artist( $artist_id );
@@ -90,7 +128,7 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 
 	ArtistDataSyncManager::start_sync();
 	try {
-		$saved = ec_save_link_page_persistence( $link_page_id, $changes );
+		$saved = ec_artist_save_link_page_fields( $link_page_id, $changes );
 	} finally {
 		ArtistDataSyncManager::stop_sync();
 	}

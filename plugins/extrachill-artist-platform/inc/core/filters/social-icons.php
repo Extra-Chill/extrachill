@@ -297,10 +297,10 @@ class ExtraChillArtistPlatform_SocialLinks {
 	 */
 	public function write_page_socials( $artist_id, $sanitized_links ) {
 		$link_page_id = $this->link_page_id( $artist_id );
-		if ( ! $link_page_id || ! function_exists( 'ec_save_link_page_persistence' ) ) {
+		if ( ! $link_page_id || ! function_exists( 'ec_artist_save_link_page_fields' ) ) {
 			return new WP_Error( 'link_page_not_found', __( 'This artist has no link page to hold social links.', 'extrachill-artist-platform' ) );
 		}
-		$saved = ec_save_link_page_persistence( $link_page_id, array( 'social_links' => $sanitized_links ) );
+		$saved = ec_artist_save_link_page_fields( $link_page_id, array( 'social_links' => $sanitized_links ) );
 		if ( is_wp_error( $saved ) ) {
 			return $saved;
 		}
