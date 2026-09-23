@@ -295,11 +295,8 @@ function ec_read_link_page_public_projection_snapshot( $link_page_id, $owner_ref
 
 /** Render stored social links without requiring an owner plugin. */
 function ec_render_stored_link_page_social_links( $social_links ) {
-	$output = '<nav class="extrch-link-page-socials" aria-label="Public links">';
-	foreach ( is_array( $social_links ) ? $social_links : array() as $social ) {
-		$output .= '<a href="' . esc_url( $social['url'] ?? '' ) . '" rel="noopener noreferrer" aria-label="' . esc_attr( ucfirst( (string) ( $social['type'] ?? 'link' ) ) ) . '">' . esc_html( ucfirst( (string) ( $social['type'] ?? 'link' ) ) ) . '</a>';
-	}
-	return $output . '</nav>';
+	$position = func_num_args() > 1 ? (string) func_get_arg( 1 ) : 'above';
+	return ec_render_link_page_social_links( $social_links, $position );
 }
 
 /** Resolve exactly one owner projection. */
@@ -411,7 +408,7 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 		}
 		if ( ! empty( $owned['social_links'] ) ) {
 			$projection['social_links']    = $owned['social_links'];
-			$projection['social_renderer'] = 'ec_render_stored_link_page_social_links';
+			$projection['social_renderer'] = 'ec_render_link_page_social_links';
 		}
 	}
 	$projection['_context'] = $context;
