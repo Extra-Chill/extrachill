@@ -8,7 +8,7 @@
  * Author URI: https://chubes.net
  * Network: true
  * Requires at least: 5.0
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  * Text Domain: extrachill-cache
  *
  * @package ExtraChillCache
