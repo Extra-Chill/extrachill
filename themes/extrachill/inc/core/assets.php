@@ -448,6 +448,28 @@ function extrachill_register_theme_fonts( $theme_json ) {
 }
 add_filter( 'wp_theme_json_data_theme', 'extrachill_register_theme_fonts' );
 
+/**
+ * Tell the Link Pages runtime where this theme's locally hosted fonts live.
+ *
+ * Link Pages bundles no font files and assumes no theme, so it asks each site
+ * for the location of any local face in its catalog through
+ * `ec_link_page_local_font_face_url` (base URL, no extension; it appends
+ * `.woff2`). The Loft Sans files ship in this theme, so the theme answers.
+ * The same reasoning as extrachill_register_theme_fonts() above: whoever
+ * ships the asset supplies its src.
+ *
+ * @param string $url        Base URL resolved so far, or ''.
+ * @param string $font_value Normalized font name.
+ * @return string
+ */
+function extrachill_link_page_local_font_face_url( $url, $font_value ) {
+	if ( 'Loft Sans' !== $font_value ) {
+		return $url;
+	}
+	return get_template_directory_uri() . '/assets/fonts/WilcoLoftSans-Treble';
+}
+add_filter( 'ec_link_page_local_font_face_url', 'extrachill_link_page_local_font_face_url', 10, 2 );
+
 function extrachill_enqueue_single_post_styles() {
 	$single_post_types = apply_filters( 'extrachill_single_post_style_post_types', array( 'post' ) );
 	if ( is_singular( $single_post_types ) || is_page() ) {
