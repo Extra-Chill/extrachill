@@ -38,21 +38,15 @@ function ec_artist_link_page_public_projection_provider( $context ) {
 		'social_links'          => $data['social_links'],
 		'social_renderer'       => 'ec_artist_link_page_render_socials',
 		'management_url'        => $artist_site_url . '/manage-link-page/?artist_id=' . $artist_id,
+		// Subscribe and edit-button endpoints are supplied to the Link Pages
+		// runtime by the host integration (extrachill-network), which renders
+		// them from page-owned settings with no owner plugin loaded.
 		'body_attributes'       => array(
-			'data-extrch-artist-id'           => (string) $artist_id,
-			'data-extrch-permissions-api-url' => $api_base . '/artists/' . $artist_id . '/permissions',
-			'data-extrch-token-handoff-url'   => $artist_site_url . '/wp-admin/admin-post.php?action=ec_link_token_handoff',
-			'data-extrch-subscribe-api-url'   => $api_base . '/artists/' . $artist_id . '/subscribe',
+			'data-extrch-artist-id' => (string) $artist_id,
 		),
 		'seo'                   => $seo,
 		'tracking_url'          => $api_base . '/analytics/click',
 		'css_vars'              => $data['css_vars'],
-		'components'            => array(
-			// Network tag manager moved to the host integration
-			// (extrachill-network, ec_link_page_public_head/body_open).
-			'header_actions' => 'icon_modal' === $data['_link_page_subscribe_display_mode'] ? array( 'ec_artist_link_page_render_subscribe_trigger' ) : array(),
-			'after_links'    => 'disabled' === $data['_link_page_subscribe_display_mode'] ? array() : array( 'ec_artist_link_page_render_subscription' ),
-		),
 		'assets'                => 'ec_artist_link_page_enqueue_asset_extensions',
 		'legacy_head_arguments' => array( $artist_id ),
 	);
@@ -112,32 +106,6 @@ function ec_artist_link_page_render_socials( $social_links, $position ) {
 	return ec_render_social_icons_container( $social_links, $position );
 }
 
-/** Render the historical subscription bell in the header action slot. */
-function ec_artist_link_page_render_subscribe_trigger() {
-	return '<button class="extrch-share-trigger extrch-subscribe-icon-trigger extrch-bell-page-trigger" aria-label="Subscribe to this artist"><i class="fas fa-bell"></i></button>';
-}
-
-/**
- * Render the configured artist subscription component.
- *
- * @param array $context    Public runtime context.
- * @param array $projection Artist public projection.
- * @return string
- */
-function ec_artist_link_page_render_subscription( $context, $projection ) {
-	$artist_id = (int) $context['owner']['object_id'];
-	$data      = ec_get_link_page_data( $artist_id, (int) $context['link_page_id'] );
-	$template  = 'inline_form' === $data['_link_page_subscribe_display_mode'] ? 'subscribe-inline-form' : 'subscribe-modal';
-	return ec_render_template(
-		$template,
-		array(
-			'artist_id'         => $artist_id,
-			'data'              => $data,
-			'subscribe_api_url' => $projection['body_attributes']['data-extrch-subscribe-api-url'],
-		)
-	);
-}
-
 /**
  * Enqueue only artist-owned public asset extensions.
  *
@@ -145,16 +113,6 @@ function ec_artist_link_page_render_subscription( $context, $projection ) {
  * @return true
  */
 function ec_artist_link_page_enqueue_asset_extensions( $context ) {
-	foreach ( array(
-		'extrch-subscribe'   => 'inc/link-pages/live/assets/js/link-page-subscribe.js',
-		'extrch-edit-button' => 'inc/link-pages/live/assets/js/link-page-edit-button.js',
-	) as $handle => $path ) {
-		$file = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $path;
-		if ( file_exists( $file ) ) {
-			// @phpstan-ignore phpstan.argument.type (file_exists() above guarantees filemtime() never returns false here.)
-			wp_enqueue_script( $handle, EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . $path, array(), filemtime( $file ), true );
-		}
-	}
 	if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
 		$data    = ec_get_link_page_data( (int) $context['owner']['object_id'], (int) $context['link_page_id'] );
 		$values  = array_filter( array( $data['raw_font_values']['title_font'] ?? '', $data['raw_font_values']['body_font'] ?? '' ) );
