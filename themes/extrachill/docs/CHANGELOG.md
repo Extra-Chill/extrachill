@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.14.0] - 2026-09-23
+
+### Added
+- tell the Link Pages runtime where the theme's Loft Sans files live
+
 ## [2.13.3] - 2026-09-22
 
 ### Fixed
