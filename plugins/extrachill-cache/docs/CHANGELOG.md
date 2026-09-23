@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.6] - 2026-09-23
+
+### Fixed
+- purge the page cache on code changes and add a purge CLI
+
 ## [0.3.5] - 2026-09-22
 
 ### Fixed
