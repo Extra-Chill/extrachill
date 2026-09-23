@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.42.9] - 2026-09-23
+
+### Fixed
+- query Link Pages through the storage helper instead of the artist blog
+
 ## [0.42.8] - 2026-09-22
 
 ### Fixed
