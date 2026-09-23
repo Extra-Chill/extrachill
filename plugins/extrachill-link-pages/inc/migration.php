@@ -1146,15 +1146,19 @@ function ec_apply_link_page_storage_migration_unlocked( $source_blog_id, $destin
 							if ( is_wp_error( $updated ) || (int) $updated !== $id ) {
 								return is_wp_error( $updated ) ? $updated : new WP_Error( 'link_page_migration_post_finalize_failed', 'The imported object could not be finalized.' );
 							}
-							// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Exact bounded timestamp repair.
+							// phpcs:disable WordPress.DB.DirectDatabaseQuery -- Exact bounded field repair.
+							// Core rewrites post_modified on every save and fills an
+							// empty guid with a generated one on insert and update, so
+							// restore the exact source values after finalizing.
 							$wpdb->update(
 								$wpdb->posts,
 								array(
 									'post_modified'     => $post['post_modified'],
 									'post_modified_gmt' => $post['post_modified_gmt'],
+									'guid'              => $post['guid'],
 								),
 								array( 'ID' => $id ),
-								array( '%s', '%s' ),
+								array( '%s', '%s', '%s' ),
 								array( '%d' )
 							);
 							// phpcs:enable WordPress.DB.DirectDatabaseQuery

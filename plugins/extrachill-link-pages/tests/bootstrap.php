@@ -655,6 +655,11 @@ function wp_insert_post( $data, $wp_error = false ) {
 		$data,
 		array( 'post_name' => $slug )
 	);
+	// Core fills an empty guid after insert; mirror it so migrations must
+	// restore the exact source value.
+	if ( '' === (string) ( $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ]->guid ?? '' ) ) {
+		$GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ]->guid = 'https://generated.test/?p=' . $id;
+	}
 	if ( isset( $GLOBALS['ec_test']['after_insert_post'] ) ) {
 		$callback = $GLOBALS['ec_test']['after_insert_post'];
 		unset( $GLOBALS['ec_test']['after_insert_post'] );
@@ -678,6 +683,10 @@ function wp_update_post( $data, $wp_error = false ) {
 	foreach ( $data as $key => $value ) {
 		if ( 'ID' !== $key ) {
 			$post->{$key} = $value; }
+	}
+	// Core fills an empty guid on update too.
+	if ( '' === (string) ( $post->guid ?? '' ) ) {
+		$post->guid = 'https://generated.test/?p=' . $post->ID;
 	}
 	return (int) $post->ID;
 }

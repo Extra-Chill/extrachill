@@ -110,6 +110,19 @@ final class MigrationPostTypeMappingTest extends TestCase {
 		$this->assertSame( 'artist_link_page', $GLOBALS['ec_test']['blogs'][4]['posts'][40]->post_type );
 	}
 
+	public function test_apply_preserves_an_empty_source_guid(): void {
+		// Regression: production pages have guid '' and core generates one
+		// on insert, which failed exact-field verification and rolled back.
+		$this->seedOwnedPage( 4, 40, 'artist_link_page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40]->guid = '';
+		$this->registerParticipant();
+		$plan   = ec_plan_link_page_storage_migration( 4, 13 );
+		$result = ec_apply_link_page_storage_migration( 4, 13, $plan['fingerprint'] );
+		$this->assertFalse( is_wp_error( $result ), is_wp_error( $result ) ? wp_json_encode( $result->get_error_data() ) : '' );
+		$this->assertSame( '', $GLOBALS['ec_test']['blogs'][13]['posts'][40]->guid );
+		$this->assertSame( 'valid', ec_validate_link_page_storage_migration( $result['journal_id'] )['status'] );
+	}
+
 	public function test_reverse_migration_maps_back_to_the_legacy_type(): void {
 		// Simulate the gate already being on (storage resolves to the
 		// dedicated site) so the owner lookup performed during the source
