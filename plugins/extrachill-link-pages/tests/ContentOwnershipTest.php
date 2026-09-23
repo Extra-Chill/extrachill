@@ -288,4 +288,41 @@ final class ContentOwnershipTest extends TestCase {
 		add_filter( 'ec_link_page_click_tracking_url', static function () { return 'https://api.example/click'; } );
 		$this->assertSame( 'https://api.example/click', ec_get_link_page_public_projection( 40 )['tracking_url'] );
 	}
+
+	public function test_subscribe_is_off_without_a_host_endpoint(): void {
+		$projection = ec_get_link_page_public_projection( 40 );
+		$this->assertArrayNotHasKey( 'data-extrch-subscribe-api-url', $projection['body_attributes'] );
+		$this->assertSame( array(), $projection['components']['after_links'] ?? array() );
+	}
+
+	public function test_host_subscribe_endpoint_attaches_modal_and_bell(): void {
+		add_filter( 'ec_link_page_subscribe_url', static function ( $url, $id, $owner ) { return 'https://api.example/subscribe/' . $owner; }, 10, 3 );
+		$this->assertIsArray( ec_save_link_page_persistence( 40, array( 'display_title' => 'The Band' ) ) );
+		$projection = ec_get_link_page_public_projection( 40 );
+		$this->assertSame( 'https://api.example/subscribe/post:4:profile:20', $projection['body_attributes']['data-extrch-subscribe-api-url'] );
+		$prepared = ec_prepare_link_page_public_render( $projection, ec_read_link_page_persistence( 40 ) );
+		$this->assertStringContainsString( 'extrch-subscribe-icon-trigger', $prepared['_rendered_components']['header_actions'] );
+		$this->assertStringContainsString( 'id="extrch-subscribe-modal"', $prepared['_rendered_components']['after_links'] );
+		$this->assertStringContainsString( 'Subscribe to The Band', $prepared['_rendered_components']['after_links'] );
+	}
+
+	public function test_inline_and_disabled_modes_come_from_page_settings(): void {
+		add_filter( 'ec_link_page_subscribe_url', static function () { return 'https://api.example/subscribe'; } );
+		update_post_meta( 40, '_link_page_subscribe_display_mode', 'inline_form' );
+		update_post_meta( 40, '_link_page_subscribe_description', 'News only.' );
+		$prepared = ec_prepare_link_page_public_render( ec_get_link_page_public_projection( 40 ), ec_read_link_page_persistence( 40 ) );
+		$this->assertStringContainsString( 'extrch-subscribe-inline-form-container', $prepared['_rendered_components']['after_links'] );
+		$this->assertStringContainsString( 'News only.', $prepared['_rendered_components']['after_links'] );
+		$this->assertStringNotContainsString( 'extrch-subscribe-icon-trigger', $prepared['_rendered_components']['header_actions'] );
+		update_post_meta( 40, '_link_page_subscribe_display_mode', 'disabled' );
+		$this->assertSame( array(), ec_get_link_page_public_projection( 40 )['components']['after_links'] ?? array() );
+	}
+
+	public function test_host_management_endpoints_set_edit_button_attributes(): void {
+		$this->assertArrayNotHasKey( 'data-extrch-permissions-api-url', ec_get_link_page_public_projection( 40 )['body_attributes'] );
+		add_filter( 'ec_link_page_management_endpoints', static function () { return array( 'permissions_url' => 'https://api.example/perm', 'handoff_url' => 'https://auth.example/handoff' ); } );
+		$attributes = ec_get_link_page_public_projection( 40 )['body_attributes'];
+		$this->assertSame( 'https://api.example/perm', $attributes['data-extrch-permissions-api-url'] );
+		$this->assertSame( 'https://auth.example/handoff', $attributes['data-extrch-token-handoff-url'] );
+	}
 }

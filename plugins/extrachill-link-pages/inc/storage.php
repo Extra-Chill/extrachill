@@ -53,6 +53,8 @@ function ec_link_page_defaults() {
 			'profile_image_shape'     => 'circle',
 			'overlay_enabled'         => true,
 			'background_image_id'     => '',
+			'subscribe_display_mode'  => 'icon_modal',
+			'subscribe_description'   => '',
 		),
 	);
 
@@ -581,6 +583,8 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		'social_icons_position'   => '_link_page_social_icons_position',
 		'profile_image_shape'     => '_link_page_profile_img_shape',
 		'background_image_id'     => '_link_page_background_image_id',
+		'subscribe_display_mode'  => '_link_page_subscribe_display_mode',
+		'subscribe_description'   => '_link_page_subscribe_description',
 	);
 	foreach ( $map as $key => $meta_key ) {
 		if ( metadata_exists( 'post', $link_page_id, $meta_key ) ) {
@@ -592,6 +596,10 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		}
 	}
 	$settings['overlay_enabled'] = '1' === (string) ( $styles['overlay'] ?? '1' );
+	if ( ! in_array( $settings['subscribe_display_mode'], array( 'icon_modal', 'inline_form', 'disabled' ), true ) ) {
+		$settings['subscribe_display_mode'] = 'icon_modal';
+	}
+	$settings['subscribe_description'] = (string) $settings['subscribe_description'];
 
 	// Page-owned content (extrachill-link-pages#37): display_title falls
 	// back to post_title only when the page does not yet own it, so the

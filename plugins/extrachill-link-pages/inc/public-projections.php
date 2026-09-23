@@ -422,6 +422,7 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 		 */
 		$projection['tracking_url'] = esc_url_raw( (string) apply_filters( 'ec_link_page_click_tracking_url', '', absint( $link_page_id ) ), array( 'http', 'https' ) );
 	}
+	$projection = ec_link_page_apply_host_features( $projection, $owned, $context );
 	if ( empty( $projection['seo']['schema'] ) && ! is_wp_error( $owned ) ) {
 		$schema = ec_link_page_owned_schema_graph( $owned, $context['public_url'] );
 		if ( $schema ) {
@@ -430,6 +431,118 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 	}
 	$projection['_context'] = $context;
 	return $projection;
+}
+
+/**
+ * Attach host-supplied subscribe and edit features to a projection.
+ *
+ * Both are generic: subscribe posts `{email}` to an endpoint, the edit
+ * button asks a permissions endpoint whether the visitor may manage the
+ * page. The endpoints come from the host site; with no answer the feature
+ * stays off. A projection that already supplies its own subscribe
+ * component or permissions endpoint keeps it (no double rendering).
+ *
+ * @param array          $projection Merged projection.
+ * @param array|WP_Error $owned      Page persistence.
+ * @param array          $context    Projection context.
+ * @return array
+ */
+function ec_link_page_apply_host_features( $projection, $owned, $context ) {
+	$link_page_id = (int) $context['link_page_id'];
+	$owner        = (string) $context['owner_reference'];
+	$attributes   = $projection['body_attributes'];
+
+	$mode = is_wp_error( $owned ) ? 'disabled' : $owned['settings']['subscribe_display_mode'];
+	if ( 'disabled' !== $mode && empty( $projection['components']['after_links'] ) && empty( $attributes['data-extrch-subscribe-api-url'] ) ) {
+		/**
+		 * Endpoint that accepts `POST {email}` sign-ups for a Link Page.
+		 *
+		 * @param string $url             Endpoint URL. Default empty (feature off).
+		 * @param int    $link_page_id    Link Page ID.
+		 * @param string $owner_reference Normalized owner reference.
+		 */
+		$url = esc_url_raw( (string) apply_filters( 'ec_link_page_subscribe_url', '', $link_page_id, $owner ), array( 'http', 'https' ) );
+		if ( '' !== $url ) {
+			$attributes['data-extrch-subscribe-api-url'] = $url;
+			$projection['components']['after_links']     = array( 'ec_render_link_page_subscribe_component' );
+			if ( 'icon_modal' === $mode ) {
+				$projection['components']['header_actions'] = array_merge( $projection['components']['header_actions'] ?? array(), array( 'ec_render_link_page_subscribe_trigger' ) );
+			}
+			$projection['_features']['subscribe'] = true;
+		}
+	}
+
+	if ( empty( $attributes['data-extrch-permissions-api-url'] ) ) {
+		/**
+		 * Edit-button endpoints for a Link Page.
+		 *
+		 * @param array  $endpoints       `permissions_url` (GET, bearer token,
+		 *                                returns {can_edit, manage_url}) and
+		 *                                optional `handoff_url`. Default none.
+		 * @param int    $link_page_id    Link Page ID.
+		 * @param string $owner_reference Normalized owner reference.
+		 */
+		$endpoints   = apply_filters( 'ec_link_page_management_endpoints', array(), $link_page_id, $owner );
+		$permissions = is_array( $endpoints ) ? esc_url_raw( (string) ( $endpoints['permissions_url'] ?? '' ), array( 'http', 'https' ) ) : '';
+		if ( '' !== $permissions ) {
+			$attributes['data-extrch-permissions-api-url'] = $permissions;
+			$handoff                                       = esc_url_raw( (string) ( $endpoints['handoff_url'] ?? '' ), array( 'http', 'https' ) );
+			if ( '' !== $handoff ) {
+				$attributes['data-extrch-token-handoff-url'] = $handoff;
+			}
+			$projection['_features']['edit'] = true;
+		}
+	}
+
+	$projection['body_attributes'] = $attributes;
+	return $projection;
+}
+
+/** Render the header bell that opens the subscribe modal. */
+function ec_render_link_page_subscribe_trigger() {
+	return '<button class="extrch-share-trigger extrch-subscribe-icon-trigger extrch-bell-page-trigger" aria-label="Subscribe"><i class="fas fa-bell"></i></button>';
+}
+
+/**
+ * Render the subscribe modal or inline form from page-owned settings.
+ *
+ * @param array $context    Projection context.
+ * @param array $projection Projection.
+ * @return string
+ */
+function ec_render_link_page_subscribe_component( $context, $projection ) {
+	$data = ec_read_link_page_persistence( (int) $context['link_page_id'] );
+	if ( is_wp_error( $data ) ) {
+		return '';
+	}
+	$name        = (string) $projection['display_title'];
+	$heading     = '' === $name ? 'Subscribe' : sprintf( 'Subscribe to %s', $name );
+	$description = '' !== $data['settings']['subscribe_description'] ? $data['settings']['subscribe_description'] : sprintf( 'Enter your email address to receive occasional news and updates from %s.', '' === $name ? 'us' : $name );
+	$url         = (string) ( $projection['body_attributes']['data-extrch-subscribe-api-url'] ?? '' );
+	$template    = 'inline_form' === $data['settings']['subscribe_display_mode'] ? 'subscribe-inline-form' : 'subscribe-modal';
+	$link_page_id = (int) $context['link_page_id'];
+	ob_start();
+	require EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/components/' . $template . '.php';
+	return (string) ob_get_clean();
+}
+
+/**
+ * Enqueue scripts for host features attached to a projection.
+ *
+ * @param array $projection Prepared projection.
+ * @return void
+ */
+function ec_enqueue_link_page_feature_assets( $projection ) {
+	foreach ( array(
+		'subscribe' => array( 'extrch-subscribe', 'assets/js/link-page-subscribe.js' ),
+		'edit'      => array( 'extrch-edit-button', 'assets/js/link-page-edit-button.js' ),
+	) as $feature => $script ) {
+		if ( empty( $projection['_features'][ $feature ] ) ) {
+			continue;
+		}
+		$file = EXTRACHILL_LINK_PAGES_PLUGIN_DIR . $script[1];
+		wp_enqueue_script( $script[0], plugins_url( $script[1], EXTRACHILL_LINK_PAGES_PLUGIN_FILE ), array(), file_exists( $file ) ? (string) filemtime( $file ) : EXTRACHILL_LINK_PAGES_VERSION, true );
+	}
 }
 
 /**

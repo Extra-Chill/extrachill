@@ -35,6 +35,7 @@ if ( is_wp_error( $projection ) ) {
 	status_header( 500 );
 	return;
 }
+ec_enqueue_link_page_feature_assets( $projection );
 $data['css_vars'] = array_merge( $data['css_vars'], $projection['css_vars'] );
 foreach ( array( '--link-page-title-font-family', '--link-page-body-font-family' ) as $ec_link_page_font_var ) {
 	if ( ! empty( $data['css_vars'][ $ec_link_page_font_var ] ) ) {
