@@ -93,6 +93,8 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 		return $objects;
 	}
 
+	$owned_artist_ids = array();
+
 	switch_to_blog( $artist_blog_id );
 	try {
 		foreach ( $artist_profile_ids as $artist_id ) {
@@ -108,9 +110,25 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 				'post_type' => 'artist_profile',
 			);
 
+			$owned_artist_ids[] = $artist_id;
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( empty( $owned_artist_ids ) ) {
+		return $objects;
+	}
+
+	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+
+	$collect_link_pages = static function ( $storage_blog_id ) use ( $owned_artist_ids, $link_page_type ) {
+		$found = array();
+
+		foreach ( $owned_artist_ids as $artist_id ) {
 			$link_pages = get_posts(
 				array(
-					'post_type'      => 'artist_link_page',
+					'post_type'      => $link_page_type,
 					'post_status'    => 'any',
 					'posts_per_page' => -1,
 					'fields'         => 'ids',
@@ -120,19 +138,60 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 			);
 
 			foreach ( $link_pages as $link_page_id ) {
-				$objects[] = array(
+				$found[] = array(
 					'type'      => 'post',
-					'blog_id'   => $artist_blog_id,
+					'blog_id'   => $storage_blog_id,
 					'object_id' => (int) $link_page_id,
-					'post_type' => 'artist_link_page',
+					'post_type' => $link_page_type,
 				);
 			}
 		}
-	} finally {
-		restore_current_blog();
+
+		return $found;
+	};
+
+	// Link pages are queried through the canonical storage helper so
+	// moderation keeps finding them on either side of the storage cutover
+	// (blog 4 today, the dedicated Link Pages site once the gate flips)
+	// instead of silently assuming the artist blog.
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$link_page_objects = ec_with_link_page_storage_blog( $collect_link_pages );
+		if ( is_array( $link_page_objects ) ) {
+			$objects = array_merge( $objects, $link_page_objects );
+		}
+	} else {
+		switch_to_blog( $artist_blog_id );
+		try {
+			$objects = array_merge( $objects, $collect_link_pages( $artist_blog_id ) );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	return $objects;
+}
+
+/**
+ * Post types moderation treats as Artist Platform content, updated by a
+ * direct posts-table write instead of wp_update_post() because their
+ * registrations do not exist in the switch_to_blog() request context.
+ *
+ * Includes both known Link Page post-type values (legacy `artist_link_page`
+ * and the storage-cutover `ec_link_page`) plus whatever
+ * ec_link_page_post_type() currently resolves to, so moderation keeps
+ * working on either side of the cutover regardless of when an object was
+ * collected.
+ *
+ * @return string[]
+ */
+function extrachill_users_artist_platform_post_types(): array {
+	$post_types = array( 'artist_profile', 'artist_link_page', 'ec_link_page' );
+
+	if ( function_exists( 'ec_link_page_post_type' ) ) {
+		$post_types[] = ec_link_page_post_type();
+	}
+
+	return array_values( array_unique( $post_types ) );
 }
 
 function extrachill_users_apply_spam_visibility_to_user_content( int $user_id ) {
@@ -188,7 +247,7 @@ function extrachill_users_apply_spam_visibility_to_user_content( int $user_id ) 
 				continue;
 			}
 
-			if ( in_array( $post_type, array( 'artist_profile', 'artist_link_page' ), true ) ) {
+			if ( in_array( $post_type, extrachill_users_artist_platform_post_types(), true ) ) {
 				global $wpdb;
 				$wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Cross-site CPTs are not registered in the moderation request context.
 					$wpdb->posts,

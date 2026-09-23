@@ -222,20 +222,16 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	$latest_artist_id          = 0;
-	$latest_modified_timestamp = 0;
+	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return 0;
-	}
+	$find_latest_artist_id = static function () use ( $user_artists, $link_page_type ) {
+		$latest_artist_id          = 0;
+		$latest_modified_timestamp = 0;
 
-	switch_to_blog( $artist_blog_id );
-	try {
 		foreach ( $user_artists as $artist_id ) {
 			$link_pages = get_posts(
 				array(
-					'post_type'      => 'artist_link_page',
+					'post_type'      => $link_page_type,
 					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
 					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
 					'posts_per_page' => 1,
@@ -255,8 +251,28 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 				}
 			}
 		}
-	} finally {
-		restore_current_blog();
+
+		return $latest_artist_id;
+	};
+
+	// Link pages are queried through the canonical storage helper so the
+	// lookup follows the storage blog (blog 4 pre-cutover, the dedicated
+	// Link Pages site post-cutover) instead of assuming the artist blog.
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$result           = ec_with_link_page_storage_blog( $find_latest_artist_id );
+		$latest_artist_id = is_wp_error( $result ) ? 0 : (int) $result;
+	} else {
+		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		if ( ! $artist_blog_id ) {
+			return 0;
+		}
+
+		switch_to_blog( $artist_blog_id );
+		try {
+			$latest_artist_id = (int) $find_latest_artist_id();
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	// Fall back to first artist if no link pages are found.
@@ -326,19 +342,15 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	$link_page_count = 0;
+	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
-	if ( ! $artist_blog_id ) {
-		return 0;
-	}
+	$count_link_pages = static function () use ( $user_artists, $link_page_type ) {
+		$link_page_count = 0;
 
-	switch_to_blog( $artist_blog_id );
-	try {
 		foreach ( $user_artists as $artist_id ) {
 			$link_pages = get_posts(
 				array(
-					'post_type'      => 'artist_link_page',
+					'post_type'      => $link_page_type,
 					'post_status'    => 'publish',
 					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
 					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
@@ -351,9 +363,27 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 				++$link_page_count;
 			}
 		}
+
+		return $link_page_count;
+	};
+
+	// Link pages are queried through the canonical storage helper so the
+	// count follows the storage blog (blog 4 pre-cutover, the dedicated
+	// Link Pages site post-cutover) instead of assuming the artist blog.
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$result = ec_with_link_page_storage_blog( $count_link_pages );
+		return is_wp_error( $result ) ? 0 : (int) $result;
+	}
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return 0;
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		return (int) $count_link_pages();
 	} finally {
 		restore_current_blog();
 	}
-
-	return $link_page_count;
 }
