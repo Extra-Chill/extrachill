@@ -63,6 +63,24 @@ if ( ! function_exists( 'ec_get_blog_id' ) ) {
 	}
 }
 
+if ( ! function_exists( 'ec_link_page_post_type' ) ) {
+	/**
+	 * Test double for the Link Pages plugin's storage-aware post type
+	 * resolver (Extra-Chill/extrachill-link-pages#34). Defaults to the
+	 * legacy 'artist_link_page' value so tests that never set the fixture
+	 * global observe identical behavior to the literal fallback consumers
+	 * use when this function does not exist at all.
+	 *
+	 * @param int|null $blog_id Ignored in the fixture; consumers in this
+	 *                          plugin never pass one.
+	 * @return string
+	 */
+	function ec_link_page_post_type( $blog_id = null ) {
+		unset( $blog_id );
+		return isset( $GLOBALS['extrachill_analytics_test_link_page_post_type'] ) ? $GLOBALS['extrachill_analytics_test_link_page_post_type'] : 'artist_link_page';
+	}
+}
+
 if ( ! function_exists( 'ec_resolve_frontend_paths' ) ) {
 	/**
 	 * Test double for the Network batch path resolver contract.

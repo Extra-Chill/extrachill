@@ -131,4 +131,20 @@ final class LinkPageAnalyticsDateRangeTest extends Extrachill_Analytics_TestCase
 		$this->assertSame( 'invalid_analytics_date_range', $partial->get_error_code() );
 		$this->assertSame( 'analytics_date_range_too_large', $large->get_error_code() );
 	}
+
+	/**
+	 * The post-type guard resolves through the storage-aware Link Pages
+	 * runtime function rather than a hardcoded literal
+	 * (Extra-Chill/extrachill-link-pages#34), falling back to the legacy
+	 * literal only when that function does not exist yet.
+	 */
+	public function test_ability_validates_post_type_via_storage_aware_resolver(): void {
+		$source = file_get_contents( dirname( __DIR__ ) . '/inc/core/abilities/get-link-page-analytics.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local source fixture.
+
+		$this->assertStringContainsString(
+			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';",
+			$source
+		);
+		$this->assertStringContainsString( 'get_post_type( $link_page_id ) !== $link_page_post_type', $source );
+	}
 }

@@ -97,8 +97,14 @@ function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 		);
 	}
 
-	// Validate post type.
-	if ( get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	// Validate post type. This ability runs in whatever blog context served
+	// the REST request, and the storage-aware post type always matches that
+	// same context (there is no switch_to_blog() in this ability), so the
+	// current-storage-blog default is correct here. The literal fallback keeps
+	// this ability deployable before extrachill-link-pages ships the runtime
+	// function. See Extra-Chill/extrachill-link-pages#34.
+	$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+	if ( get_post_type( $link_page_id ) !== $link_page_post_type ) {
 		return new \WP_Error(
 			'invalid_link_page',
 			__( 'Invalid link page specified.', 'extrachill-analytics' ),

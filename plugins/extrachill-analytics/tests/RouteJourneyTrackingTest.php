@@ -6,6 +6,7 @@
  */
 
 require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
+require_once __DIR__ . '/class-platform-contract-fixture.php';
 
 /**
  * Verify route identity stays bounded, query-free, and cache-safe.
@@ -23,6 +24,16 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 		$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0';
 		$_SERVER['REMOTE_ADDR']     = '203.0.113.20';
 		$_COOKIE['ec_vid']          = '123e4567-e89b-42d3-a456-426614174000';
+		unset( $GLOBALS['extrachill_analytics_test_link_page_post_type'] );
+	}
+
+	/**
+	 * Unset the storage-aware post-type fixture so it never leaks between tests.
+	 */
+	public function tear_down(): void {
+		unset( $GLOBALS['extrachill_analytics_test_link_page_post_type'] );
+
+		parent::tear_down();
 	}
 
 	/**
@@ -98,7 +109,11 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 		$ability = $this->read_source( 'inc/core/abilities/track-page-view.php' );
 
 		$this->assertStringContainsString( 'if ( $post_id > 0 ) {', $ability );
-		$this->assertStringContainsString( "if ( \$post_id > 0 && get_post_type( \$post_id ) === 'artist_link_page' )", $ability );
+		$this->assertStringContainsString( "if ( \$post_id > 0 && get_post_type( \$post_id ) === \$link_page_post_type )", $ability );
+		$this->assertStringContainsString(
+			"\$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';",
+			$ability
+		);
 		$this->assertStringContainsString( "'view_kind'    => \$post_id > 0 ? 'post' : 'route'", $ability );
 		$this->assertStringContainsString( 'extrachill_analytics_validate_pageview_write', $ability );
 	}
@@ -221,17 +236,31 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
-	 * Singular posts retain legacy counters and artist link-page actions.
+	 * Singular posts retain legacy counters and link-page actions whether
+	 * the storage-aware post type resolves the legacy value (gate off, no
+	 * `ec_link_page_post_type()`) or the renamed value (gate on, storage
+	 * blog 13 — Extra-Chill/extrachill-link-pages#34).
+	 *
+	 * @dataProvider link_page_post_type_provider
+	 *
+	 * @param string      $post_type       Post type the fixture registers and creates.
+	 * @param string|null $resolved_type   Value `ec_link_page_post_type()` should
+	 *                                     resolve to, or null to leave the function
+	 *                                     undefined so the ability falls back to
+	 *                                     the legacy literal.
 	 */
-	public function test_post_backed_view_preserves_legacy_side_effects(): void {
-		if ( ! post_type_exists( 'artist_link_page' ) ) {
-			register_post_type( 'artist_link_page', array( 'public' => true ) );
+	public function test_post_backed_view_preserves_legacy_side_effects( string $post_type, ?string $resolved_type ): void {
+		if ( null !== $resolved_type ) {
+			$GLOBALS['extrachill_analytics_test_link_page_post_type'] = $resolved_type;
+		}
+		if ( ! post_type_exists( $post_type ) ) {
+			register_post_type( $post_type, array( 'public' => true ) );
 		}
 		$post_id = self::factory()->post->create(
 			array(
 				'post_name'   => 'example',
 				'post_status' => 'publish',
-				'post_type'   => 'artist_link_page',
+				'post_type'   => $post_type,
 			)
 		);
 
@@ -255,18 +284,73 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 
 		$this->assertSame( array( 'recorded' => true ), $result );
 		global $wp_query;
+		$view_meta_count = (int) get_post_meta( $post_id, 'ec_post_views', true );
 		$this->assertSame(
 			1,
-			(int) get_post_meta( $post_id, 'ec_post_views', true ),
+			$view_meta_count,
 			sprintf( 'post meta view counter; raw=%s post=%d preview=%d ec_track_exists=%d', var_export( get_post_meta( $post_id, 'ec_post_views', true ), true ), $post_id, is_preview() ? 1 : 0, function_exists( 'ec_track_post_views' ) ? 1 : 0 )
 		);
 		unset( $wp_query );
-		$this->assertSame( array( $post_id ), $actions, 'link page action payloads' );
+		$this->assertSame(
+			array( $post_id ),
+			$actions,
+			sprintf( 'link page view-recorded action fired %d time(s) for post_type=%s', count( $actions ), $post_type )
+		);
 		$this->assertSame( 1, $this->event_count(), 'event row count' );
 		$row  = $this->event_rows()[0];
 		$data = $this->event_data( $row );
 		$this->assertSame( 'post', $data['view_kind'] );
 		$this->assertSame( $post_id, $data['post_id'] );
+	}
+
+	/**
+	 * Link Page post types under both cutover phases.
+	 *
+	 * @return array<string,array{string,string|null}>
+	 */
+	public function link_page_post_type_provider() {
+		return array(
+			'gate off (legacy artist_link_page, no runtime function)' => array( 'artist_link_page', null ),
+			'gate on (ec_link_page, storage blog resolves renamed type)' => array( 'ec_link_page', 'ec_link_page' ),
+		);
+	}
+
+	/**
+	 * The view-recording branch does NOT fire when the post's actual type
+	 * disagrees with what `ec_link_page_post_type()` currently resolves —
+	 * e.g. an `artist_link_page` post read while the storage gate is on and
+	 * the runtime resolves `ec_link_page`. Guards against a comparison that
+	 * silently accepts any post type once the guarded call is present.
+	 */
+	public function test_post_backed_view_skips_action_when_type_mismatches_resolved_type(): void {
+		$GLOBALS['extrachill_analytics_test_link_page_post_type'] = 'ec_link_page';
+		if ( ! post_type_exists( 'artist_link_page' ) ) {
+			register_post_type( 'artist_link_page', array( 'public' => true ) );
+		}
+		$post_id = self::factory()->post->create(
+			array(
+				'post_name'   => 'example-mismatch',
+				'post_status' => 'publish',
+				'post_type'   => 'artist_link_page',
+			)
+		);
+
+		$result = extrachill_analytics_ability_track_page_view(
+			$this->with_proof(
+				array(
+					'post_id'      => $post_id,
+					'source_path'  => '/example-mismatch/',
+					'route_family' => 'singular',
+				)
+			)
+		);
+
+		$this->assertSame( array( 'recorded' => true ), $result );
+		$this->assertSame(
+			0,
+			did_action( 'extrachill_link_page_view_recorded' ),
+			'view-recorded action must not fire when the post type does not match the resolved storage-blog type'
+		);
 	}
 
 	/**

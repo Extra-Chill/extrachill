@@ -212,8 +212,15 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 		);
 	}
 
-	// Link pages also fire the 90-day daily-table action.
-	if ( $post_id > 0 && get_post_type( $post_id ) === 'artist_link_page' ) {
+	// Link pages also fire the 90-day daily-table action. This ability runs
+	// in whatever blog context served the request (there is no
+	// switch_to_blog() here), and the storage-aware post type always matches
+	// that same context, so the current-storage-blog default is correct. The
+	// literal fallback keeps this hot-path ability deployable before
+	// extrachill-link-pages ships the runtime function. See
+	// Extra-Chill/extrachill-link-pages#34.
+	$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+	if ( $post_id > 0 && get_post_type( $post_id ) === $link_page_post_type ) {
 		do_action( 'extrachill_link_page_view_recorded', $post_id );
 	}
 
