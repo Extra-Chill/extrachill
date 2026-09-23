@@ -15,7 +15,7 @@ require_once plugin_dir_path( __FILE__ ) . '../filters/upload.php';
  */
 function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_data = array() ) {
 
-	if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid link page ID' );
 	}
 	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
@@ -262,7 +262,7 @@ add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
  */
 if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
 	function ec_get_link_page_public_urls( $link_page_id ) {
-		if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+		if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
 			return array();
 		}
 
@@ -296,7 +296,7 @@ if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
 	 * @return null|array Exact URLs to invalidate, or $urls untouched for other post types.
 	 */
 	function ec_link_page_cache_invalidation_urls( $urls, $post_id, $post_type ) {
-		if ( 'artist_link_page' !== $post_type ) {
+		if ( extrachill_artist_platform_link_page_post_type() !== $post_type ) {
 			return $urls;
 		}
 
@@ -782,7 +782,7 @@ function ec_admin_post_save_link_page() {
 	$link_page_id = isset( $_POST['link_page_id'] ) ? absint( $_POST['link_page_id'] ) : 0;
 	$artist_id    = isset( $_POST['artist_id'] ) ? absint( $_POST['artist_id'] ) : 0;
 
-	if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
 		wp_die( esc_html__( 'Invalid link page.', 'extrachill-artist-platform' ) );
 	}
 

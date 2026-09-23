@@ -104,7 +104,7 @@ function extrachill_artist_link_page_sitemap_urls( $urls ) {
 
 	$link_pages = get_posts(
 		array(
-			'post_type'      => 'artist_link_page',
+			'post_type'      => extrachill_artist_platform_link_page_post_type(),
 			'post_status'    => 'publish',
 			'posts_per_page' => -1,
 			'fields'         => 'ids',

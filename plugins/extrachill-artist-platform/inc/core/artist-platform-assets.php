@@ -291,7 +291,7 @@ class ExtraChillArtistPlatform_Assets {
 
 	private function is_link_page_context() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen-locator param used for asset targeting; no data is processed.
-		return is_singular( 'artist_link_page' ) ||
+		return is_singular( extrachill_artist_platform_link_page_post_type() ) ||
 				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen-locator param used for asset targeting; no data is processed.
 				( isset( $_GET['artist_link_page'] ) && ! empty( $_GET['artist_link_page'] ) );
 	}
@@ -325,7 +325,7 @@ class ExtraChillArtistPlatform_Assets {
 	private function is_artist_platform_admin_page( $hook ) {
 		global $post_type;
 
-		return in_array( $post_type, array( 'artist_profile', 'artist_link_page' ), true ) ||
+		return in_array( $post_type, array( 'artist_profile', extrachill_artist_platform_link_page_post_type() ), true ) ||
 				in_array( $hook, array( 'edit.php', 'post.php', 'post-new.php' ), true );
 	}
 

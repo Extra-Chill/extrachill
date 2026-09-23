@@ -53,7 +53,7 @@ function extrachill_artist_create_link_page_for_artist_profile( $post_id, $post 
  * @param int $post_id The ID of the post being deleted.
  */
 function extrachill_artist_clear_artist_profile_link_page_id_on_delete( $post_id ) {
-	if ( get_post_type( $post_id ) === 'artist_link_page' ) {
+	if ( get_post_type( $post_id ) === extrachill_artist_platform_link_page_post_type() ) {
 		// Get the associated artist_profile_id from the link page's meta
 		$associated_artist_profile_id = apply_filters('ec_get_artist_id', $post_id);
 

@@ -15,7 +15,7 @@ global $wp_query; // Make sure $wp_query is available
 // Use the current post as the link page
 $link_page = $wp_query->get_queried_object(); // Get the post object from the main query
 
-if ( ! $link_page || ! isset($link_page->ID) || 'artist_link_page' !== $link_page->post_type ) {
+if ( ! $link_page || ! isset($link_page->ID) || extrachill_artist_platform_link_page_post_type() !== $link_page->post_type ) {
 
 	// If the queried object isn't what we expect, then it's a genuine issue.
 	http_response_code(404);

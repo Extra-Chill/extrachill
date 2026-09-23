@@ -178,7 +178,7 @@ function extrachill_resolve_link_domain_query() {
 	// Look up the link page.
 	$link_pages = get_posts( array(
 		'name'        => $slug,
-		'post_type'   => 'artist_link_page',
+		'post_type'   => extrachill_artist_platform_link_page_post_type(),
 		'post_status' => 'publish',
 		'numberposts' => 1,
 		'fields'      => 'ids',
@@ -204,7 +204,7 @@ function extrachill_resolve_link_domain_query() {
 		$wp_query->is_singular             = true;
 		$wp_query->is_404                  = false;
 		$wp_query->query_vars['name']      = $slug;
-		$wp_query->query_vars['post_type'] = 'artist_link_page';
+		$wp_query->query_vars['post_type'] = extrachill_artist_platform_link_page_post_type();
 		$wp_query->queried_object_id       = $link_page_id;
 		$wp_query->queried_object          = $link_page;
 		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- deliberate: completes the faked singular main query; setup_postdata() does not set the $post global (issue #221).
@@ -245,7 +245,7 @@ function extrachill_handle_link_domain_routing( $template ) {
 
 	// If the query was resolved to a link page, load the template.
 	global $wp_query;
-	if ( ! empty( $wp_query->posts ) && isset( $wp_query->posts[0] ) && 'artist_link_page' === get_post_type( $wp_query->posts[0] ) ) {
+	if ( ! empty( $wp_query->posts ) && isset( $wp_query->posts[0] ) && extrachill_artist_platform_link_page_post_type() === get_post_type( $wp_query->posts[0] ) ) {
 		$template_to_load = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
 		if ( file_exists( $template_to_load ) ) {
 			return $template_to_load;
@@ -307,7 +307,7 @@ function extrachill_redirect_artist_link_page_cpt_to_custom_domain() {
 	$is_dev_mode             = ( defined( 'EXTRCH_LINKPAGE_DEV' ) && EXTRCH_LINKPAGE_DEV );
 	$is_extrachill_link_host = ( strpos( strtolower( $_SERVER['HTTP_HOST'] ?? '' ), 'extrachill.link' ) !== false );
 
-	if ( is_singular( 'artist_link_page' ) ) {
+	if ( is_singular( extrachill_artist_platform_link_page_post_type() ) ) {
 		$current_link_page_post = get_queried_object();
 		if ( $current_link_page_post && $current_link_page_post->ID ) {
 			$link_page_id = $current_link_page_post->ID;

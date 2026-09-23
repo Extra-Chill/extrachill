@@ -4,7 +4,7 @@
  */
 add_action('extrachill_artist_cleanup_expired_links_event', function() {
 	$args       = array(
-		'post_type'      => 'artist_link_page',
+		'post_type'      => extrachill_artist_platform_link_page_post_type(),
 		'post_status'    => 'any',
 		'posts_per_page' => -1,
 		'fields'         => 'ids',

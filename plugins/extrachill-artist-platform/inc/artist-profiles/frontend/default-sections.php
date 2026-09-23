@@ -147,7 +147,7 @@ function ec_render_artist_profile_hero_section( $artist_profile_id, $artist_term
 								<?php
 								// --- Display Artist Link Page URL (New) ---
 								$link_page_id_for_url_display = apply_filters('ec_get_link_page_id', $artist_profile_id);
-								if ( $link_page_id_for_url_display && get_post_type( $link_page_id_for_url_display ) === 'artist_link_page' ) {
+								if ( $link_page_id_for_url_display && get_post_type( $link_page_id_for_url_display ) === extrachill_artist_platform_link_page_post_type() ) {
 									global $post; // Ensure $post is the artist_profile CPT object
 									if ( isset( $post ) && 'artist_profile' === $post->post_type ) {
 										$artist_slug_for_url     = $post->post_name;

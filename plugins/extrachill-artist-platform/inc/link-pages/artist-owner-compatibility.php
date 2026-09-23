@@ -49,19 +49,27 @@ function ec_artist_link_page_owner_compatibility_provider( $operation, $context 
 
 	// Compatibility lookup requires the legacy reciprocal metadata value.
 	// phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
-	$legacy_ids = get_posts(
-		array(
-			'post_type'      => 'artist_link_page',
-			'post_status'    => 'any',
-			'meta_key'       => '_associated_artist_profile_id',
-			'meta_value'     => (string) $owner['object_id'],
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'orderby'        => 'ID',
-			'order'          => 'ASC',
-		)
-	);
+	$legacy_ids_query = static function () use ( $owner ) {
+		return get_posts(
+			array(
+				'post_type'      => extrachill_artist_platform_link_page_post_type(),
+				'post_status'    => 'any',
+				'meta_key'       => '_associated_artist_profile_id',
+				'meta_value'     => (string) $owner['object_id'],
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+			)
+		);
+	};
 	// phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_key,WordPress.DB.SlowDBQuery.slow_db_query_meta_value
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$legacy_ids = ec_with_link_page_storage_blog( $legacy_ids_query );
+		$legacy_ids = is_wp_error( $legacy_ids ) ? array() : $legacy_ids;
+	} else {
+		$legacy_ids = $legacy_ids_query();
+	}
 
 	$claims = array();
 	foreach ( $legacy_ids as $legacy_id ) {

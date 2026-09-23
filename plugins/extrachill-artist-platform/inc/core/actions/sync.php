@@ -54,7 +54,7 @@ function ec_handle_artist_platform_sync( $artist_id ) {
 
 	// Get associated link page - sync skips if null
 	$link_page_id = apply_filters('ec_get_link_page_id', $artist_id);
-	if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
 		return true; // Skip sync - no link page to sync with
 	}
 
@@ -183,7 +183,7 @@ function ec_sync_on_meta_update( $meta_id, $object_id, $meta_key, $meta_value ) 
 		'_link_page_profile_image_id',
 	);
 
-	if ( get_post_type( $object_id ) === 'artist_link_page' &&
+	if ( get_post_type( $object_id ) === extrachill_artist_platform_link_page_post_type() &&
 		in_array( $meta_key, $sync_keys, true ) ) {
 
 		$artist_id = apply_filters('ec_get_artist_id', $object_id);

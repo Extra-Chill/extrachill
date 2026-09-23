@@ -48,14 +48,14 @@ function ec_get_reciprocal_link_page_id( $artist_id, $repair = true ) {
 	$profile_link_id = (int) get_post_meta( $artist_id, '_extrch_link_page_id', true );
 	if ( $profile_link_id ) {
 		$associated_artist_id = (int) get_post_meta( $profile_link_id, '_associated_artist_profile_id', true );
-		if ( 'artist_link_page' === get_post_type( $profile_link_id ) && $artist_id === $associated_artist_id ) {
+		if ( extrachill_artist_platform_link_page_post_type() === get_post_type( $profile_link_id ) && $artist_id === $associated_artist_id ) {
 			return $profile_link_id;
 		}
 		delete_post_meta( $artist_id, '_extrch_link_page_id', $profile_link_id );
 	}
 
 	$link_page_id = function_exists( 'ec_get_link_page_id' ) ? (int) ec_get_link_page_id( $artist_id ) : 0;
-	if ( ! $link_page_id || 'artist_link_page' !== get_post_type( $link_page_id ) || (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== $artist_id ) {
+	if ( ! $link_page_id || extrachill_artist_platform_link_page_post_type() !== get_post_type( $link_page_id ) || (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true ) !== $artist_id ) {
 		return 0;
 	}
 	if ( ! $repair ) {
@@ -148,7 +148,7 @@ function ec_create_link_page( $artist_id, $force = false ) {
 	$previous_link_page_id = (int) $existing_link_page_id;
 	if ( $existing_link_page_id && ! $force ) {
 		$associated_artist_id = (int) get_post_meta( $existing_link_page_id, '_associated_artist_profile_id', true );
-		if ( 'artist_link_page' === get_post_type( $existing_link_page_id ) && $artist_id === $associated_artist_id ) {
+		if ( extrachill_artist_platform_link_page_post_type() === get_post_type( $existing_link_page_id ) && $artist_id === $associated_artist_id ) {
 			return $existing_link_page_id;
 		}
 		delete_post_meta( $artist_id, '_extrch_link_page_id', $existing_link_page_id );
@@ -198,7 +198,7 @@ function ec_create_link_page( $artist_id, $force = false ) {
 
 	$new_link_page_id = wp_insert_post(
 		array(
-			'post_type'   => 'artist_link_page',
+			'post_type'   => extrachill_artist_platform_link_page_post_type(),
 			'post_title'  => $link_page_title,
 			'post_name'   => $artist_profile_slug,
 			'post_status' => 'publish',
@@ -421,7 +421,7 @@ function ec_should_create_link_page( $artist_id ) {
 
 	// Check if link page already exists
 	$existing_link_page_id = apply_filters( 'ec_get_link_page_id', 0, $artist_id );
-	if ( $existing_link_page_id && get_post_type( $existing_link_page_id ) === 'artist_link_page' ) {
+	if ( $existing_link_page_id && get_post_type( $existing_link_page_id ) === extrachill_artist_platform_link_page_post_type() ) {
 		return new WP_Error( 'already_exists', 'Link page already exists for this artist profile' );
 	}
 

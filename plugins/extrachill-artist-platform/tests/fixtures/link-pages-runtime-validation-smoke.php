@@ -28,6 +28,8 @@ class WP_Error {
 
 $GLOBALS['smoke'] = array( 'actions' => array() );
 if ( 'post-type' === $mode ) {
+	// The post-type constant value is no longer pinned (extrachill-link-pages#34):
+	// a runtime that differs here is now accepted, not rejected.
 	$GLOBALS['smoke']['post_type_constant'] = 'link_page';
 } elseif ( 'owner-meta' === $mode ) {
 	$GLOBALS['smoke']['owner_meta_constant'] = '_other_owner';
@@ -45,6 +47,14 @@ if ( 'post-type' === $mode ) {
 	$GLOBALS['smoke']['wrong_readiness_arity'] = true;
 } elseif ( 'readiness' === $mode ) {
 	$GLOBALS['smoke']['runtime_ready'] = false;
+} elseif ( 'v4' === $mode ) {
+	$GLOBALS['smoke']['api_version'] = '4';
+} elseif ( 'v4-no-resolver' === $mode ) {
+	$GLOBALS['smoke']['api_version']              = '4';
+	$GLOBALS['smoke']['omit_post_type_resolver']  = true;
+} elseif ( 'v4-mismatched-post-type-constant' === $mode ) {
+	$GLOBALS['smoke']['api_version']        = '4';
+	$GLOBALS['smoke']['post_type_constant'] = 'link_page';
 }
 
 function get_option( $name, $default = false ) {

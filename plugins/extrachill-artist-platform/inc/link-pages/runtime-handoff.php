@@ -36,6 +36,24 @@ if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
 }
 
 /**
+ * Resolve the Link Page post type at the point of use.
+ *
+ * Every consumer in this plugin calls this instead of the legacy
+ * 'artist_link_page' literal. It is deliberately never memoized: the
+ * generic runtime resolves the post type from the current storage blog,
+ * and the storage blog can change mid-request (migration dry runs,
+ * a gate flip). Bundled mode never declares the generic resolver, so it
+ * always falls through to the legacy literal it defines for itself above.
+ * This is the only place in this plugin the legacy literal may appear
+ * as a fallback.
+ *
+ * @return string
+ */
+function extrachill_artist_platform_link_page_post_type() {
+	return function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+}
+
+/**
  * Return the exact generic function signatures consumed by Artist Platform.
  *
  * @return array<string,array{total:int,required:int}>
@@ -283,15 +301,18 @@ function extrachill_artist_platform_validate_link_pages_runtime() {
 	if ( ! defined( 'EC_LINK_PAGE_POST_TYPE' ) || ! defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not load its complete generic API.' );
 	}
-	// @phpstan-ignore phpstan.booleanOr.alwaysFalse,phpstan.notIdentical.alwaysFalse (contract validation: the comparison must stay so an incompatible runtime is still rejected.)
-	if ( 'artist_link_page' !== EC_LINK_PAGE_POST_TYPE || '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
+	// @phpstan-ignore phpstan.notIdentical.alwaysFalse (contract validation: the comparison must stay so an incompatible runtime is still rejected.)
+	if ( '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime uses an incompatible storage contract.' );
 	}
 	if ( $external && ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not declare its API version.' );
 	}
-	if ( $external && '3' !== EC_LINK_PAGES_RUNTIME_API_VERSION ) {
+	if ( $external && ! in_array( EC_LINK_PAGES_RUNTIME_API_VERSION, array( '3', '4' ), true ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime API version is not supported.' );
+	}
+	if ( $external && '4' === EC_LINK_PAGES_RUNTIME_API_VERSION && ! function_exists( 'ec_link_page_post_type' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not expose its post type resolver.' );
 	}
 	if ( $external ) {
 		if ( ! function_exists( 'ec_validate_link_pages_runtime' ) ) {

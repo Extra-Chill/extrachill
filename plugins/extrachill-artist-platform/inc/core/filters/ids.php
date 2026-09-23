@@ -7,6 +7,37 @@
  */
 
 /**
+ * Look up the published Link Page owned by an artist profile.
+ *
+ * Runs through the storage blog helper when it is available: Link Pages
+ * live on the storage blog (blog 4 today, the dedicated Link Pages site
+ * after cutover), which is not always the current blog when these
+ * resolvers are called from arbitrary contexts.
+ *
+ * @param int $artist_id Artist profile post ID.
+ * @return int Link Page ID, or 0 when none exists.
+ */
+function ec_find_link_page_id_for_artist( $artist_id ) {
+	$query = static function () use ( $artist_id ) {
+		$link_pages = get_posts( array(
+			'post_type'      => extrachill_artist_platform_link_page_post_type(),
+			'meta_key'       => '_associated_artist_profile_id',
+			'meta_value'     => (string) $artist_id,
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+		) );
+		return ! empty( $link_pages ) ? (int) $link_pages[0] : 0;
+	};
+
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$result = ec_with_link_page_storage_blog( $query );
+		return is_wp_error( $result ) ? 0 : $result;
+	}
+
+	return $query();
+}
+
+/**
  * Universal artist ID resolver - handles all context types
  *
  * @param mixed $context Context for ID resolution (int, array, or null)
@@ -28,7 +59,7 @@ function ec_get_artist_id( $context = null ) {
 		// Check for link_page_id in array to resolve to artist
 		if ( isset( $context['link_page_id'] ) && $context['link_page_id'] ) {
 			$link_page_id = absint( $context['link_page_id'] );
-			if ( $link_page_id && get_post_type( $link_page_id ) === 'artist_link_page' ) {
+			if ( $link_page_id && get_post_type( $link_page_id ) === extrachill_artist_platform_link_page_post_type() ) {
 				$artist_id = get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
 				$artist_id = $artist_id ? (int) $artist_id : 0;
 				return $artist_id;
@@ -48,7 +79,7 @@ function ec_get_artist_id( $context = null ) {
 		}
 
 		// If it's a link page, resolve to artist
-		if ( 'artist_link_page' === $post_type ) {
+		if ( extrachill_artist_platform_link_page_post_type() === $post_type ) {
 			$artist_id = get_post_meta( $id, '_associated_artist_profile_id', true );
 			$artist_id = $artist_id ? (int) $artist_id : 0;
 			return $artist_id;
@@ -78,7 +109,7 @@ function ec_get_artist_id( $context = null ) {
 
 		// From global $post if it's a link page
 		global $post;
-		if ( $post && isset( $post->ID ) && 'artist_link_page' === get_post_type( $post->ID ) ) {
+		if ( $post && isset( $post->ID ) && extrachill_artist_platform_link_page_post_type() === get_post_type( $post->ID ) ) {
 			$artist_id = get_post_meta( $post->ID, '_associated_artist_profile_id', true );
 			$artist_id = $artist_id ? (int) $artist_id : 0;
 			if ( $artist_id ) {
@@ -111,7 +142,7 @@ function ec_get_link_page_id( $context = null ) {
 		foreach ( $link_page_id_keys as $key ) {
 			if ( isset( $context[ $key ] ) && $context[ $key ] ) {
 				$link_page_id = absint( $context[ $key ] );
-				if ( $link_page_id && get_post_type( $link_page_id ) === 'artist_link_page' ) {
+				if ( $link_page_id && get_post_type( $link_page_id ) === extrachill_artist_platform_link_page_post_type() ) {
 					return $link_page_id;
 				}
 			}
@@ -120,15 +151,7 @@ function ec_get_link_page_id( $context = null ) {
 		if ( isset( $context['artist_id'] ) && $context['artist_id'] ) {
 			$artist_id = absint( $context['artist_id'] );
 			if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
-				$link_pages   = get_posts( array(
-					'post_type'      => 'artist_link_page',
-					'meta_key'       => '_associated_artist_profile_id',
-					'meta_value'     => (string) $artist_id,
-					'posts_per_page' => 1,
-					'fields'         => 'ids',
-				) );
-				$link_page_id = ! empty( $link_pages ) ? (int) $link_pages[0] : 0;
-				return $link_page_id;
+				return ec_find_link_page_id_for_artist( $artist_id );
 			}
 		}
 		return 0;
@@ -140,36 +163,20 @@ function ec_get_link_page_id( $context = null ) {
 		$post_type = get_post_type( $id );
 
 		// If it's already a link page, return it
-		if ( 'artist_link_page' === $post_type ) {
+		if ( extrachill_artist_platform_link_page_post_type() === $post_type ) {
 			return $id;
 		}
 
 		// If it's an artist profile, resolve to link page
 		if ( 'artist_profile' === $post_type ) {
-			$link_pages   = get_posts( array(
-				'post_type'      => 'artist_link_page',
-				'meta_key'       => '_associated_artist_profile_id',
-				'meta_value'     => (string) $id,
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-			) );
-			$link_page_id = ! empty( $link_pages ) ? (int) $link_pages[0] : 0;
-			return $link_page_id;
+			return ec_find_link_page_id_for_artist( $id );
 		}
 
 		if ( false === $post_type ) { // Likely a user ID
 			$user_artist_ids = ec_get_artists_for_user( $id );
 			if ( ! empty( $user_artist_ids ) ) {
 				$first_artist_id = (int) $user_artist_ids[0];
-				$link_pages      = get_posts( array(
-					'post_type'      => 'artist_link_page',
-					'meta_key'       => '_associated_artist_profile_id',
-					'meta_value'     => (string) $first_artist_id,
-					'posts_per_page' => 1,
-					'fields'         => 'ids',
-				) );
-				$link_page_id    = ! empty( $link_pages ) ? (int) $link_pages[0] : 0;
-				return $link_page_id;
+				return ec_find_link_page_id_for_artist( $first_artist_id );
 			}
 		}
 
@@ -182,7 +189,7 @@ function ec_get_link_page_id( $context = null ) {
 		$qv = get_query_var( 'ec_get_link_page_id' );
 		if ( $qv ) {
 			$lpid = (int) $qv;
-			if ( $lpid > 0 && get_post_type( $lpid ) === 'artist_link_page' ) {
+			if ( $lpid > 0 && get_post_type( $lpid ) === extrachill_artist_platform_link_page_post_type() ) {
 				return $lpid;
 			}
 		}
@@ -192,19 +199,12 @@ function ec_get_link_page_id( $context = null ) {
 		if ( $post && isset( $post->ID ) ) {
 			$pt = get_post_type( $post->ID );
 			if ( 'artist_profile' === $pt ) {
-				$link_pages   = get_posts( array(
-					'post_type'      => 'artist_link_page',
-					'meta_key'       => '_associated_artist_profile_id',
-					'meta_value'     => (string) $post->ID,
-					'posts_per_page' => 1,
-					'fields'         => 'ids',
-				) );
-				$link_page_id = ! empty( $link_pages ) ? (int) $link_pages[0] : 0;
+				$link_page_id = ec_find_link_page_id_for_artist( $post->ID );
 				if ( $link_page_id ) {
 					return $link_page_id;
 				}
 			}
-			if ( 'artist_link_page' === $pt ) {
+			if ( extrachill_artist_platform_link_page_post_type() === $pt ) {
 				return (int) $post->ID;
 			}
 		}

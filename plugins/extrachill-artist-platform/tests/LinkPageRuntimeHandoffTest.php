@@ -109,16 +109,51 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 
 	public function incompatibleRuntimeProvider(): array {
 		return array(
-			'post type contract'   => array( 'post-type', 'extrachill_link_pages_runtime_incompatible' ),
-			'owner meta contract'  => array( 'owner-meta', 'extrachill_link_pages_runtime_incompatible' ),
-			'no API marker'        => array( 'no-marker', 'extrachill_link_pages_runtime_incomplete' ),
-			'stale API version'    => array( 'stale-version', 'extrachill_link_pages_runtime_incompatible' ),
-			'wrong generic arity'  => array( 'wrong-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'wrong required arity' => array( 'wrong-required-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'no readiness marker'  => array( 'no-readiness', 'extrachill_link_pages_runtime_incomplete' ),
-			'readiness arity'      => array( 'readiness-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'not ready'            => array( 'readiness', 'extrachill_link_pages_runtime_incomplete' ),
+			'owner meta contract'      => array( 'owner-meta', 'extrachill_link_pages_runtime_incompatible' ),
+			'no API marker'            => array( 'no-marker', 'extrachill_link_pages_runtime_incomplete' ),
+			'stale API version'        => array( 'stale-version', 'extrachill_link_pages_runtime_incompatible' ),
+			'wrong generic arity'      => array( 'wrong-arity', 'extrachill_link_pages_runtime_incompatible' ),
+			'wrong required arity'     => array( 'wrong-required-arity', 'extrachill_link_pages_runtime_incompatible' ),
+			'no readiness marker'      => array( 'no-readiness', 'extrachill_link_pages_runtime_incomplete' ),
+			'readiness arity'          => array( 'readiness-arity', 'extrachill_link_pages_runtime_incompatible' ),
+			'not ready'                => array( 'readiness', 'extrachill_link_pages_runtime_incomplete' ),
+			'v4 without post type fn'  => array( 'v4-no-resolver', 'extrachill_link_pages_runtime_incomplete' ),
 		);
+	}
+
+	/**
+	 * extrachill-link-pages#34: the handoff must stop pinning the
+	 * EC_LINK_PAGE_POST_TYPE constant's value. A runtime that declares a
+	 * different value (as the dedicated Link Pages site does post-cutover)
+	 * is compatible now, not rejected.
+	 */
+	public function test_handoff_no_longer_pins_the_post_type_constant_value(): void {
+		$result = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'post-type' );
+
+		$this->assertSame( '', $result['error_code'] );
+	}
+
+	/**
+	 * extrachill-link-pages#34: the handoff must accept both API version
+	 * '3' (current production) and '4' (the post-type-rename contract).
+	 */
+	public function test_handoff_accepts_api_version_3_and_4(): void {
+		$v3 = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php' );
+		$this->assertSame( '', $v3['error_code'] );
+
+		$v4 = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'v4' );
+		$this->assertSame( '', $v4['error_code'] );
+	}
+
+	/**
+	 * A v4 runtime declaring a different post-type constant value (e.g. the
+	 * dedicated Link Pages site returning 'ec_link_page') is compatible: only
+	 * the resolver function's callability is required, not the constant.
+	 */
+	public function test_v4_handoff_accepts_a_different_post_type_constant_value(): void {
+		$result = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'v4-mismatched-post-type-constant' );
+
+		$this->assertSame( '', $result['error_code'] );
 	}
 
 	public function test_first_activation_and_next_request_use_the_real_standalone_runtime_contract(): void {
@@ -357,6 +392,24 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( defined( 'EC_LINK_PAGE_POST_TYPE' ) );
 		$this->assertTrue( function_exists( 'ec_get_link_page_owner' ) );
 		$this->assertTrue( function_exists( 'ec_read_link_page' ) );
+	}
+
+	/**
+	 * extrachill-link-pages#34: the guarded post-type resolver defers to the
+	 * runtime function when it exists, and falls back to the legacy literal
+	 * otherwise. That fallback line is the only place the legacy literal may
+	 * appear in a consumer.
+	 */
+	public function test_guarded_post_type_resolver_falls_back_without_the_runtime_function(): void {
+		$result = $this->runSmokeFixture( 'link-pages-post-type-resolver-smoke.php', 'fallback' );
+
+		$this->assertSame( 'artist_link_page', $result['resolved'] );
+	}
+
+	public function test_guarded_post_type_resolver_defers_to_the_runtime_function_when_present(): void {
+		$result = $this->runSmokeFixture( 'link-pages-post-type-resolver-smoke.php', 'resolved' );
+
+		$this->assertSame( 'ec_link_page', $result['resolved'] );
 	}
 
 	public function test_site_and_network_active_configuration_select_the_external_runtime(): void {

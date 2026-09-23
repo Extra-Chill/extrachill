@@ -48,7 +48,7 @@ class ExtraChillArtistPlatform_PageTemplates {
 	 * @return string Modified template path
 	 */
 	public function load_artist_link_page_template( $template ) {
-		if ( is_singular( 'artist_link_page' ) ) {
+		if ( is_singular( extrachill_artist_platform_link_page_post_type() ) ) {
 			$plugin_template = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/templates/single-artist_link_page.php';
 			if ( file_exists( $plugin_template ) ) {
 				return $plugin_template;

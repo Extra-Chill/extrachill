@@ -80,7 +80,7 @@ function ec_action_artist_add_link( $link_page_id, $link_data, $user_id ) {
 	}
 
 	// Verify link page exists
-	if ( ! $link_page_id || get_post_type( $link_page_id ) !== 'artist_link_page' ) {
+	if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
 		$error = new WP_Error( 'invalid_link_page', 'Invalid link page ID' );
 		do_action( 'ec_artist_link_add_failed', $link_page_id, $clean_data, $error, $user_id );
 		return $error;

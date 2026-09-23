@@ -8,6 +8,15 @@ if ( empty( $GLOBALS['smoke']['omit_api_version'] ) ) {
 define( 'EC_LINK_PAGE_POST_TYPE', $GLOBALS['smoke']['post_type_constant'] ?? 'artist_link_page' );
 define( 'EC_LINK_PAGE_OWNER_META_KEY', $GLOBALS['smoke']['owner_meta_constant'] ?? '_ec_link_page_owner_reference' );
 
+// Contract v4 exposes the post type resolver instead of pinning the
+// EC_LINK_PAGE_POST_TYPE constant value. Omit it to prove the handoff
+// rejects a v4 runtime that does not expose the resolver.
+if ( '4' === ( $GLOBALS['smoke']['api_version'] ?? '3' ) && empty( $GLOBALS['smoke']['omit_post_type_resolver'] ) ) {
+	function ec_link_page_post_type( $blog_id = null ) {
+		return $GLOBALS['smoke']['post_type_constant'] ?? 'artist_link_page';
+	}
+}
+
 function ec_link_page_migration_participant_registry() { return (object) array(); }
 function ec_register_link_page_migration_participant( $name, $version, $callbacks, $priority = 10 ) { $GLOBALS['smoke']['migration_participants'][ $name ] = compact( 'version', 'callbacks', 'priority' ); return true; }
 

@@ -25,15 +25,27 @@ function ec_get_link_page_for_artist( $artist_id ) {
 		return false;
 	}
 
-	$link_pages = get_posts( array(
-		'post_type'      => 'artist_link_page',
-		'meta_key'       => '_associated_artist_profile_id',
-		'meta_value'     => (string) $artist_id,
-		'posts_per_page' => 1,
-		'fields'         => 'ids',
-	) );
+	$query = static function () use ( $artist_id ) {
+		$link_pages = get_posts( array(
+			'post_type'      => extrachill_artist_platform_link_page_post_type(),
+			'meta_key'       => '_associated_artist_profile_id',
+			'meta_value'     => (string) $artist_id,
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+		) );
 
-	return ! empty( $link_pages ) ? (int) $link_pages[0] : false;
+		return ! empty( $link_pages ) ? (int) $link_pages[0] : false;
+	};
+
+	// Link Pages live on the storage blog, not necessarily the current blog:
+	// this fallback resolver runs from ambient contexts (abilities, editor
+	// bootstrap) that don't always switch there themselves.
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$result = ec_with_link_page_storage_blog( $query );
+		return is_wp_error( $result ) ? false : $result;
+	}
+
+	return $query();
 }
 
 function ec_get_user_artist_profiles( $user_id = null ) {

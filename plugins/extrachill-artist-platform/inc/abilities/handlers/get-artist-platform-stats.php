@@ -70,23 +70,41 @@ function extrachill_artist_platform_ability_get_artist_platform_stats( array $in
 		$total_artist_profiles = (int) $profile_query->found_posts;
 	}
 
-	// Total published link pages.
-	$link_page_query  = new WP_Query(
-		array(
-			'post_type'      => 'artist_link_page',
-			'post_status'    => 'publish',
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'no_found_rows'  => false,
-		)
+	// Total published link pages. Queried through the storage blog helper
+	// when available: after cutover, Link Pages live on the dedicated Link
+	// Pages site, not the Artist blog this function has already switched to.
+	$link_page_query_args = array(
+		'post_type'      => extrachill_artist_platform_link_page_post_type(),
+		'post_status'    => 'publish',
+		'posts_per_page' => -1,
+		'fields'         => 'ids',
+		'no_found_rows'  => false,
 	);
-	$total_link_pages = (int) $link_page_query->found_posts;
-	$link_page_ids    = array_map(
-		static function ( $post ) {
-			return $post instanceof WP_Post ? (int) $post->ID : (int) $post;
-		},
-		$link_page_query->posts
-	);
+	$collect_link_page_stats = static function () use ( $link_page_query_args ) {
+		$link_page_query = new WP_Query( $link_page_query_args );
+		return array(
+			'total' => (int) $link_page_query->found_posts,
+			'ids'   => array_map(
+				static function ( $post ) {
+					return $post instanceof WP_Post ? (int) $post->ID : (int) $post;
+				},
+				$link_page_query->posts
+			),
+		);
+	};
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$link_page_stats = ec_with_link_page_storage_blog( $collect_link_page_stats );
+		if ( is_wp_error( $link_page_stats ) ) {
+			$link_page_stats = array(
+				'total' => 0,
+				'ids'   => array(),
+			);
+		}
+	} else {
+		$link_page_stats = $collect_link_page_stats();
+	}
+	$total_link_pages = $link_page_stats['total'];
+	$link_page_ids    = $link_page_stats['ids'];
 
 	// Artist profiles created in the last N days.
 	$profiles_created_recent = 0;
