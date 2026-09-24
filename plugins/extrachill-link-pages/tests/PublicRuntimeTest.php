@@ -431,6 +431,23 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 
+	public function test_core_sitemap_requests_are_left_to_core(): void {
+		$_SERVER['HTTP_HOST']   = 'extrachill.link';
+		$_SERVER['REQUEST_URI'] = '/wp-sitemap.xml';
+		$GLOBALS['ec_test']['query_vars']['sitemap'] = 'index';
+		$GLOBALS['wp_query'] = (object) array( 'posts' => array(), 'query_vars' => array(), 'is_404' => false );
+		$redirects = array();
+		$capture   = static function ( $terminate, $url ) use ( &$redirects ) {
+			$redirects[] = $url;
+			return false;
+		};
+		add_filter( 'ec_link_page_terminate_request', $capture, 10, 2 );
+		ec_resolve_link_page_public_query();
+		unset( $GLOBALS['ec_test']['query_vars']['sitemap'] );
+		$this->assertSame( array(), $redirects );
+		$this->assertObjectNotHasProperty( 'queried_object_id', $GLOBALS['wp_query'] );
+	}
+
 	public function test_resolved_page_clears_home_flags(): void {
 		// Regression: on the dedicated site the bare slug parses as the blog
 		// home, so is_home() stayed true and analytics skipped view tracking.

@@ -836,3 +836,9 @@ if ( getenv( 'LINK_PAGES_USE_FALLBACK' ) ) {
 $GLOBALS['ec_test']['current_blog_id'] = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
 require_once dirname( __DIR__ ) . '/extrachill-link-pages.php';
 ec_test_reset();
+if ( ! function_exists( 'get_query_var' ) ) {
+	function get_query_var( $key, $default = '' ) {
+		return $GLOBALS['ec_test']['query_vars'][ $key ] ?? $default;
+	}
+}
+

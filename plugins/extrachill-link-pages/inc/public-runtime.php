@@ -209,6 +209,13 @@ function ec_resolve_link_page_public_query() {
 		return;
 	}
 	global $wp_query;
+	// Leave core-owned routes (sitemaps, robots.txt, feeds, favicon) to core.
+	if ( ( function_exists( 'get_query_var' ) && '' !== (string) get_query_var( 'sitemap' ) )
+		|| ( function_exists( 'is_robots' ) && is_robots() )
+		|| ( function_exists( 'is_feed' ) && is_feed() )
+		|| ( function_exists( 'is_favicon' ) && is_favicon() ) ) {
+		return;
+	}
 	$path    = trim( (string) wp_parse_url( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), PHP_URL_PATH ), '/' );
 	$special = apply_filters( 'ec_link_page_public_special_route', null, $path );
 	if ( is_array( $special ) && ! empty( $special['url'] ) ) {
