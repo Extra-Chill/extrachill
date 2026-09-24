@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.43.0] - 2026-09-24
+
+### Added
+- expose a full (private-inclusive) event attendee list for authorized hosts
+
 ## [0.42.9] - 2026-09-23
 
 ### Fixed
