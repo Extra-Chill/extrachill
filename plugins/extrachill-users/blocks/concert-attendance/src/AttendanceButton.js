@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import useMarkAttendance from './useMarkAttendance';
+import dispatchAttendanceChanged from './dispatchAttendanceChanged';
 
 /**
  * @param {Object}  props               Component properties.
@@ -63,19 +64,28 @@ const AttendanceButton = ( {
 	const attemptedIntent = useRef( false );
 	const [ status, setStatus ] = useState( '' );
 
-	const completeIntent = useCallback( ( response = null ) => {
-		setMarked( response ? !! response.marked : true );
-		if ( response ) {
-			setCountLabel(
-				response.count > 0 ? response.count_label || '' : ''
-			);
-		}
-		setStatus( 'Attendance saved.' );
-		const url = new URL( window.location.href );
-		url.searchParams.delete( 'ec_attendance_intent' );
-		window.history.replaceState( {}, '', url.toString() );
-		buttonRef.current?.focus();
-	}, [] );
+	const completeIntent = useCallback(
+		( response = null ) => {
+			const resolvedMarked = response ? !! response.marked : true;
+			setMarked( resolvedMarked );
+			if ( response ) {
+				setCountLabel(
+					response.count > 0 ? response.count_label || '' : ''
+				);
+			}
+			setStatus( 'Attendance saved.' );
+			const url = new URL( window.location.href );
+			url.searchParams.delete( 'ec_attendance_intent' );
+			window.history.replaceState( {}, '', url.toString() );
+			buttonRef.current?.focus();
+			dispatchAttendanceChanged( {
+				eventId,
+				blogId,
+				marked: resolvedMarked,
+			} );
+		},
+		[ blogId, eventId ]
+	);
 
 	useEffect( () => {
 		if (
@@ -151,6 +161,14 @@ const AttendanceButton = ( {
 				setCountLabel(
 					response.count > 0 ? response.count_label || '' : ''
 				);
+				// The request has resolved — the server-side mark/unmark
+				// write (and anything hooked to it, e.g. an RSVP perk pass)
+				// has already happened. Announce the public contract.
+				dispatchAttendanceChanged( {
+					eventId,
+					blogId,
+					marked: !! response.marked,
+				} );
 			} )
 			.catch( () => {
 				// Revert; the hook exposes the error message.
