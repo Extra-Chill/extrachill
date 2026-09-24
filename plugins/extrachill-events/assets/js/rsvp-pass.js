@@ -4,14 +4,21 @@
  * Vanilla script, no build step, matching this plugin's other single-page
  * enhancements (assets/js/near-me.js, assets/js/discovery.js).
  *
- * Attendee side: the "Going" button is a React component owned by
- * extrachill-users (blocks/concert-attendance) that this plugin does not
- * control. Rather than couple to its internals, this listens for clicks on
- * its stable, accessibility-required `.ec-attendance__button` class and
- * re-fetches this plugin's own pass-state ability afterward — a standard,
- * low-coupling integration between two independently-versioned plugins'
- * UI, not a workaround for something that should be fixed upstream: the
- * attendance button has no reason to know that a perk pass exists.
+ * Attendee side: listens for `ec:attendance-changed`, a generic DOM
+ * CustomEvent extrachill-users' concert-attendance block dispatches on
+ * `document` after a mark/unmark request RESOLVES (never optimistically,
+ * never on a timer) — the block's public JS contract
+ * (blocks/concert-attendance/src/dispatchAttendanceChanged.js there). This
+ * replaces an earlier version that bound directly to that component's
+ * `.ec-attendance__button` CSS class and guessed completion with fixed
+ * setTimeout delays: cross-plugin markup coupling, and a real race on a
+ * slow connection — a phone at a bar, the exact use case (extrachill-events#879).
+ * The server-rendered pass remains the correct no-JS/initial state; this
+ * listener is a pure enhancement on top of it.
+ *
+ * Harmless if the event never fires (an older extrachill-users without the
+ * dispatch deployed): no listener attaches, the server-rendered pass still
+ * shows on load, nothing throws.
  *
  * Host side: the door list's Redeem button calls this plugin's own
  * redeem-event-pass ability directly.
@@ -73,11 +80,8 @@
 	 * Fetch and render the current pass state for an event.
 	 *
 	 * @param {number} eventId
-	 * @param {number} attempt Retry counter (max 1 extra attempt).
 	 */
-	function refreshPass( eventId, attempt ) {
-		attempt = attempt || 0;
-
+	function refreshPass( eventId ) {
 		apiFetch(
 			'/wp-abilities/v1/abilities/extrachill/get-my-event-pass/run',
 			'POST',
@@ -88,25 +92,21 @@
 					'ec-rsvp-pass-' + eventId
 				);
 				renderPass( container, response );
-
-				// A newly-marked "Going" issues the pass server-side inside
-				// the same request that the attendance button is awaiting;
-				// by the time our first poll lands it is normally already
-				// committed. One short retry covers the rare slow case
-				// without polling indefinitely.
-				if ( ( ! response || ! response.issued ) && attempt < 1 ) {
-					window.setTimeout( function () {
-						refreshPass( eventId, attempt + 1 );
-					}, 1500 );
-				}
 			} )
 			.catch( function () {
 				// Network hiccups are non-fatal: the pass stays as it was
-				// server-rendered on load, or from the previous poll.
+				// server-rendered on load, or from the previous refresh.
 			} );
 	}
 
-	/** Watch the attendance button for state changes and refresh the pass. */
+	/**
+	 * Watch for attendance changes on this page's event and refresh the
+	 * pass accordingly. No timers, no coupling to another plugin's markup:
+	 * `ec:attendance-changed` fires only after the mark/unmark request has
+	 * actually resolved, so by the time this listener runs the server-side
+	 * pass issue/revoke (which happens synchronously inside that same
+	 * request, see rsvp-pass-service.php) has already happened.
+	 */
 	function initPassWatcher() {
 		if ( ! window.ecRsvpPass || ! window.ecRsvpPass.eventId ) {
 			return;
@@ -114,23 +114,12 @@
 
 		const eventId = window.ecRsvpPass.eventId;
 
-		// Bound directly to the button (there is at most one per event
-		// page) rather than delegated on document: the attendance button
-		// is a React component owned by extrachill-users, server-rendered
-		// fresh on every page load, so there is a concrete element to bind
-		// to and no reason to delegate from a shared ancestor.
-		const button = document.querySelector( '.ec-attendance__button' );
-		if ( ! button ) {
-			return;
-		}
-
-		button.addEventListener( 'click', function () {
-			// Give the mark/unmark REST call time to land (it issues or
-			// revokes the pass synchronously server-side) before asking for
-			// the resulting truth.
-			window.setTimeout( function () {
-				refreshPass( eventId, 0 );
-			}, 900 );
+		document.addEventListener( 'ec:attendance-changed', function ( event ) {
+			const detail = event.detail || {};
+			if ( parseInt( detail.eventId, 10 ) !== eventId ) {
+				return;
+			}
+			refreshPass( eventId );
 		} );
 	}
 

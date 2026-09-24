@@ -19,6 +19,23 @@ function loadRsvpPass( { eventId } = {} ) {
 	jest.isolateModules( () => require( './rsvp-pass' ) );
 }
 
+/**
+ * Dispatch the real cross-plugin contract, matching extrachill-users'
+ * dispatchAttendanceChanged() (blocks/concert-attendance/src/dispatchAttendanceChanged.js).
+ *
+ * @param {Object}  detail
+ * @param {number}  detail.eventId  Event post ID.
+ * @param {number}  [detail.blogId] Blog ID the event lives on.
+ * @param {boolean} detail.marked   Attendance state after the request resolved.
+ */
+function fireAttendanceChanged( { eventId, blogId = 7, marked } ) {
+	document.dispatchEvent(
+		new CustomEvent( 'ec:attendance-changed', {
+			detail: { eventId, blogId, marked },
+		} )
+	);
+}
+
 describe( 'RSVP pass watcher', () => {
 	beforeEach( () => {
 		document.body.innerHTML = `
@@ -30,14 +47,6 @@ describe( 'RSVP pass watcher', () => {
 				<p class="ec-rsvp-pass__label">Show this pass at the door:</p>
 				<p class="ec-rsvp-pass__code"></p>
 			</div>`;
-		// Real setTimeout delays are collapsed to immediate execution so
-		// tests stay deterministic without fighting fake-timer/Promise
-		// interleaving; the 900ms/1500ms values themselves aren't the
-		// behavior under test.
-		jest.spyOn( global, 'setTimeout' ).mockImplementation( ( fn ) => {
-			fn();
-			return 0;
-		} );
 	} );
 
 	afterEach( () => {
@@ -46,7 +55,7 @@ describe( 'RSVP pass watcher', () => {
 		delete global.ecRsvpPass;
 	} );
 
-	it( 'reveals the pass after marking Going', async () => {
+	it( 'reveals the pass after an ec:attendance-changed(marked: true) event', async () => {
 		mockApiFetch( () =>
 			Promise.resolve( {
 				issued: true,
@@ -56,9 +65,7 @@ describe( 'RSVP pass watcher', () => {
 		);
 		loadRsvpPass( { eventId: 42 } );
 
-		document
-			.querySelector( '.ec-attendance__button' )
-			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		fireAttendanceChanged( { eventId: 42, marked: true } );
 		await flushPromises();
 
 		const container = document.getElementById( 'ec-rsvp-pass-42' );
@@ -71,14 +78,12 @@ describe( 'RSVP pass watcher', () => {
 		).toBe( 'First beer on Extra Chill' );
 	} );
 
-	it( 'hides the pass after unmarking Going', async () => {
+	it( 'hides the pass after an ec:attendance-changed(marked: false) event', async () => {
 		document.getElementById( 'ec-rsvp-pass-42' ).hidden = false;
 		mockApiFetch( () => Promise.resolve( { issued: false } ) );
 		loadRsvpPass( { eventId: 42 } );
 
-		document
-			.querySelector( '.ec-attendance__button' )
-			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		fireAttendanceChanged( { eventId: 42, marked: false } );
 		await flushPromises();
 
 		expect( document.getElementById( 'ec-rsvp-pass-42' ).hidden ).toBe(
@@ -86,33 +91,73 @@ describe( 'RSVP pass watcher', () => {
 		);
 	} );
 
-	it( 'retries once when the pass has not committed yet', async () => {
-		const responses = [ { issued: false }, { issued: true, code: 'X' } ];
-		mockApiFetch( () => Promise.resolve( responses.shift() ) );
+	it( 'ignores ec:attendance-changed for a different event on the same page load', async () => {
+		mockApiFetch( () => Promise.resolve( { issued: true, code: 'X' } ) );
 		loadRsvpPass( { eventId: 42 } );
 
-		document
-			.querySelector( '.ec-attendance__button' )
-			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
-		await flushPromises();
+		fireAttendanceChanged( { eventId: 999, marked: true } );
 		await flushPromises();
 
-		expect( global.wp.apiFetch ).toHaveBeenCalledTimes( 2 );
+		expect( global.wp.apiFetch ).not.toHaveBeenCalled();
+		expect( document.getElementById( 'ec-rsvp-pass-42' ).hidden ).toBe(
+			true
+		);
+	} );
+
+	it( 'renders correctly once a deliberately slow pass-state fetch resolves — no premature render, no timer guess', async () => {
+		let resolveFetch;
+		const pending = new Promise( ( resolve ) => {
+			resolveFetch = resolve;
+		} );
+		mockApiFetch( () => pending );
+		loadRsvpPass( { eventId: 42 } );
+
+		fireAttendanceChanged( { eventId: 42, marked: true } );
+		await flushPromises();
+
+		// The fetch this listener made has not resolved yet — the pass
+		// must still be hidden. This is the guarantee that replaces the
+		// old fixed 900ms/1500ms timing guess: correctness does not depend
+		// on how long anything takes, only on real resolution.
+		expect( document.getElementById( 'ec-rsvp-pass-42' ).hidden ).toBe(
+			true
+		);
+
+		resolveFetch( { issued: true, code: 'SLOW-BAR-WIFI' } );
+		await pending;
+		await flushPromises();
+
+		const container = document.getElementById( 'ec-rsvp-pass-42' );
+		expect( container.hidden ).toBe( false );
+		expect(
+			container.querySelector( '.ec-rsvp-pass__code' ).textContent
+		).toBe( 'SLOW-BAR-WIFI' );
+	} );
+
+	it( 'does nothing when the attendance-changed event never fires (older extrachill-users deployed) — server-rendered pass stands', async () => {
+		document.getElementById( 'ec-rsvp-pass-42' ).hidden = false;
+		mockApiFetch( () => Promise.resolve( { issued: true, code: 'X' } ) );
+		loadRsvpPass( { eventId: 42 } );
+
+		// No event ever fires. Nothing should throw, and the
+		// server-rendered initial state (visible, from PHP) must stand.
+		await flushPromises();
+
+		expect( global.wp.apiFetch ).not.toHaveBeenCalled();
 		expect( document.getElementById( 'ec-rsvp-pass-42' ).hidden ).toBe(
 			false
 		);
 	} );
 
-	it( 'does nothing when no pass mount is present on the page', async () => {
+	it( 'does not throw when no pass mount is present on the page', async () => {
 		mockApiFetch( () => Promise.resolve( { issued: true, code: 'X' } ) );
 		loadRsvpPass( { eventId: 999 } );
 
-		document
-			.querySelector( '.ec-attendance__button' )
-			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		expect( () =>
+			fireAttendanceChanged( { eventId: 999, marked: true } )
+		).not.toThrow();
 		await flushPromises();
 
-		// No mount for event 999 exists; nothing to assert beyond "no throw".
 		expect( global.wp.apiFetch ).toHaveBeenCalledWith(
 			expect.objectContaining( {
 				path: '/wp-abilities/v1/abilities/extrachill/get-my-event-pass/run',

@@ -58,7 +58,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/single-event/share-button.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/home/actions.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/concert-tracking-integration.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-door-list-authority.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/event-management-authority.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-pass-service.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-pass-integration.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows.php';

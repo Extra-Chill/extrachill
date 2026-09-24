@@ -12,7 +12,7 @@
 		<testsuite name="rsvp-perks-unit">
 			<file>tests/Unit/Core/RsvpPassesTableTest.php</file>
 			<file>tests/Unit/Core/EventPerkTest.php</file>
-			<file>tests/RsvpDoorListAuthorityTest.php</file>
+			<file>tests/EventManagementAuthorityTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

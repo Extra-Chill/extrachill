@@ -1,14 +1,33 @@
 <?php
 /**
- * RSVP Door List Authority
+ * Event Management Authority
  *
- * Answers "is this user authorized to see this event's full attendee list
- * (including private attendees) and redeem its RSVP passes?" — the resolution
- * to the extrachill-users#414/#415 privacy tension: attendance stays private
- * to the public, but the host of an event they run may see who is coming.
+ * Answers "is this user authorized to manage this event?" — the one shared
+ * definition of "host" reused across every event-management surface in this
+ * plugin: the RSVP perk configuration (EventPerkAbilities), the host door
+ * list, and pass redemption (RsvpPassAbilities). One decision function, so
+ * these surfaces cannot quietly drift into disagreeing about who a host is.
  *
- * "Host" reuses the existing promoter/venue authority services (PromoterAuthorityRepository,
- * VenueMembershipRepository) — no new role system. Network admins always pass.
+ * "Manage" is:
+ *  - a network admin, always; or
+ *  - the standard WordPress edit_post capability on the event post — anyone
+ *    who could already edit this event in wp-admin manages it, matching
+ *    the perk meta box's own save-path check (inc/admin/event-perks.php);
+ *    or
+ *  - an active member of the event's promoter organization or venue team
+ *    (PromoterAuthorityRepository, VenueMembershipRepository) — the
+ *    organizing team, whether or not they hold edit_post on this specific
+ *    post.
+ *
+ * No new role system.
+ *
+ * Originally named and scoped for the door list alone
+ * (extrachill-events#877/#878, "RSVP Door List Authority"); generalized
+ * here (#879) once RSVP perk configuration needed the identical check
+ * (previously a separate, narrower `edit_post`-only check duplicated in
+ * EventPerkAbilities) and slice 2's scan-to-redeem will need it too.
+ * `extrachill_events_user_can_manage_event_door_list()` is kept as a thin
+ * back-compat alias for any external caller pinned to the old name.
  *
  * This function is also wired into extrachill-users' own
  * `extrachill_users_can_manage_event_attendance` filter (see bottom of this
@@ -17,7 +36,7 @@
  * this plugin's own door-list ability — extrachill-users owns attendance
  * privacy and enforces its own permission check at its own boundary; it
  * does not trust callers to have already authorized. This file is the one
- * place that knows what "host" means for an event, so both boundaries call
+ * place that knows what "manage this event" means, so both boundaries call
  * the same decision function rather than duplicating the logic.
  *
  * @package ExtraChillEvents
@@ -29,14 +48,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Whether a user may manage the door list (full attendee list + redemption)
- * for an event.
+ * Whether a user may manage an event: perk configuration, the door list
+ * (full attendee list including private attendees), and pass redemption.
  *
  * @param int $user_id  Candidate user ID.
  * @param int $event_id Event post ID.
  * @return bool
  */
-function extrachill_events_user_can_manage_event_door_list( int $user_id, int $event_id ): bool {
+function extrachill_events_user_can_manage_event( int $user_id, int $event_id ): bool {
 	if ( $user_id < 1 ) {
 		return false;
 	}
@@ -48,6 +67,10 @@ function extrachill_events_user_can_manage_event_door_list( int $user_id, int $e
 	$post = get_post( $event_id );
 	if ( ! $post || 'data_machine_events' !== $post->post_type ) {
 		return false;
+	}
+
+	if ( user_can( $user_id, 'edit_post', $event_id ) ) {
+		return true;
 	}
 
 	if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
@@ -80,8 +103,23 @@ function extrachill_events_user_can_manage_event_door_list( int $user_id, int $e
 }
 
 /**
+ * Back-compat alias for the door-list-specific name this function used to
+ * have. New call sites should use extrachill_events_user_can_manage_event()
+ * directly.
+ *
+ * @deprecated 0.70.0 Use extrachill_events_user_can_manage_event().
+ *
+ * @param int $user_id  Candidate user ID.
+ * @param int $event_id Event post ID.
+ * @return bool
+ */
+function extrachill_events_user_can_manage_event_door_list( int $user_id, int $event_id ): bool {
+	return extrachill_events_user_can_manage_event( $user_id, $event_id );
+}
+
+/**
  * Answer extrachill-users' generic attendance-management authorization
- * extension point using this plugin's event-host authority.
+ * extension point using this plugin's event-management authority.
  *
  * Default is false (extrachill-users denies by default); this filter only
  * ever grants, never revokes an existing grant. Skips events on a different
@@ -102,6 +140,6 @@ function extrachill_events_authorize_full_event_attendance( $allowed, $user_id, 
 		return $allowed;
 	}
 
-	return extrachill_events_user_can_manage_event_door_list( (int) $user_id, (int) $event_id );
+	return extrachill_events_user_can_manage_event( (int) $user_id, (int) $event_id );
 }
 add_filter( 'extrachill_users_can_manage_event_attendance', 'extrachill_events_authorize_full_event_attendance', 10, 4 );

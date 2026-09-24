@@ -4,10 +4,11 @@
  *
  * Attendee-facing pass lookup and host-facing door list / redemption.
  * Authorization for the door list and redemption both reuse
- * extrachill_events_user_can_manage_event_door_list() (see
- * inc/core/rsvp-door-list-authority.php) — the single place that knows what
- * "host" means for an event, shared with the extrachill-users-owned
- * `extrachill_users_can_manage_event_attendance` filter.
+ * extrachill_events_user_can_manage_event() (see
+ * inc/core/event-management-authority.php) — the single place that knows
+ * what "manage this event" means, shared with EventPerkAbilities and with
+ * the extrachill-users-owned `extrachill_users_can_manage_event_attendance`
+ * filter.
  *
  * @package ExtraChillEvents\Abilities
  */
@@ -76,7 +77,7 @@ class RsvpPassAbilities {
 			'extrachill/list-event-door-attendees',
 			array(
 				'label'               => __( 'List Event Door Attendees', 'extrachill-events' ),
-				'description'         => __( 'List every attendee of an event, including private ones, with RSVP pass redemption state. Host/organizer only.', 'extrachill-events' ),
+				'description'         => __( 'List every attendee of any event the caller manages, including private ones. Host/organizer only. Includes RSVP pass redemption state when the event has a perk enabled.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -181,7 +182,7 @@ class RsvpPassAbilities {
 		// Non-enumerating denial: an unauthorized caller learns nothing
 		// beyond "forbidden," never whether the event has an attendee list,
 		// a perk, or any attendees at all.
-		return extrachill_events_user_can_manage_event_door_list( get_current_user_id(), $event_id )
+		return extrachill_events_user_can_manage_event( get_current_user_id(), $event_id )
 			? true
 			: new \WP_Error( 'event_door_list_forbidden', __( 'You are not authorized to manage this event\'s door list.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
@@ -232,7 +233,9 @@ class RsvpPassAbilities {
 			$rows[]  = array(
 				'user_id'      => $user_id,
 				'display_name' => (string) $attendee['display_name'],
-				'marked_at'    => (string) ( $attendee['marked_at'] ?? '' ),
+				// ec_users_get_event_attendees_full() always returns marked_at
+				// (non-nullable) — no ?? fallback needed here.
+				'marked_at'    => (string) $attendee['marked_at'],
 				'pass_status'  => $pass ? (string) $pass['status'] : '',
 				'redeemed_at'  => $pass && ! empty( $pass['redeemed_at'] ) ? (string) $pass['redeemed_at'] : '',
 			);

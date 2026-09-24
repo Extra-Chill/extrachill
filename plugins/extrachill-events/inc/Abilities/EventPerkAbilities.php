@@ -136,7 +136,13 @@ class EventPerkAbilities {
 	}
 
 	/**
-	 * Authorize perk configuration: anyone who can edit the event post.
+	 * Authorize perk configuration: the same "can manage this event" check
+	 * shared with the door list and redemption
+	 * (extrachill_events_user_can_manage_event(), inc/core/event-management-authority.php).
+	 * Previously this checked only edit_post directly — a narrower,
+	 * duplicated definition of "host" that a promoter/venue team member
+	 * without edit_post on this specific post would have failed even
+	 * though they can already manage this event everywhere else.
 	 *
 	 * @param array $input Ability input.
 	 * @return bool|\WP_Error
@@ -147,7 +153,11 @@ class EventPerkAbilities {
 			return new \WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
-		return current_user_can( 'edit_post', $post->ID )
+		if ( ! function_exists( 'extrachill_events_user_can_manage_event' ) ) {
+			return new \WP_Error( 'event_perk_authority_unavailable', __( 'Event management authority is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+
+		return extrachill_events_user_can_manage_event( get_current_user_id(), $post->ID )
 			? true
 			: new \WP_Error( 'event_perk_forbidden', __( 'You are not authorized to manage this event.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}

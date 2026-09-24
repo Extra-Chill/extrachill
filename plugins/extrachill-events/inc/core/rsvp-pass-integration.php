@@ -4,10 +4,12 @@
  *
  * Event-page composition for the RSVP perk pass feature: the attendee-facing
  * pass card (right after the attendance button) and the host-facing door
- * list (appended to the content, authorized viewers only). Mirrors
+ * list (appended to the content, authorized viewers only — available on
+ * any event the caller manages, not just perk-enabled ones; see
+ * extrachill_events_append_door_list()). Mirrors
  * inc/core/concert-tracking-integration.php's role: this is composition,
  * not domain logic — the domain logic lives in RsvpPassesTable,
- * rsvp-pass-service.php, and rsvp-door-list-authority.php.
+ * rsvp-pass-service.php, and event-management-authority.php.
  *
  * @package ExtraChillEvents
  * @since 0.69.0
@@ -68,11 +70,14 @@ add_action( 'data_machine_events_action_buttons', 'extrachill_events_render_rsvp
 /**
  * Append the host-facing door list to the event content.
  *
- * Authorized hosts only (extrachill_events_user_can_manage_event_door_list());
- * every other viewer — including a logged-in attendee — sees nothing added.
- * Scoped to perk-enabled events for this slice: an attendee list with no
- * redemption action is a reasonable follow-up, not required for the Oct 21
- * meetup's minimum usable slice.
+ * Authorized hosts only (extrachill_events_user_can_manage_event()); every
+ * other viewer — including a logged-in attendee — sees nothing added.
+ *
+ * Available on ANY event the caller manages, perk or not: a guest list is
+ * useful to a host for planning/capacity/outreach regardless of whether
+ * that event happens to offer an RSVP perk (extrachill-events#879). The
+ * pass/redeem column is perk-specific and only renders when the event has
+ * a perk enabled — see templates/door-list.php's own `$perk_enabled` gate.
  *
  * @param string $content Post content.
  * @return string
@@ -87,12 +92,12 @@ function extrachill_events_append_door_list( $content ) {
 	}
 
 	$post_id = get_the_ID();
-	if ( ! $post_id || ! extrachill_events_perk_enabled( $post_id ) ) {
+	if ( ! $post_id ) {
 		return $content;
 	}
 
 	$user_id = get_current_user_id();
-	if ( ! $user_id || ! function_exists( 'extrachill_events_user_can_manage_event_door_list' ) || ! extrachill_events_user_can_manage_event_door_list( $user_id, $post_id ) ) {
+	if ( ! $user_id || ! function_exists( 'extrachill_events_user_can_manage_event' ) || ! extrachill_events_user_can_manage_event( $user_id, $post_id ) ) {
 		return $content;
 	}
 
@@ -100,8 +105,10 @@ function extrachill_events_append_door_list( $content ) {
 		return $content;
 	}
 
+	$perk_enabled = extrachill_events_perk_enabled( $post_id );
+
 	$attendees = ec_users_get_event_attendees_full( $post_id );
-	$passes    = \ExtraChillEvents\Core\RsvpPassesTable::list_for_event( $post_id );
+	$passes    = $perk_enabled ? \ExtraChillEvents\Core\RsvpPassesTable::list_for_event( $post_id ) : array();
 
 	$rows = array();
 	foreach ( $attendees as $attendee ) {
@@ -110,6 +117,9 @@ function extrachill_events_append_door_list( $content ) {
 		$rows[]           = array(
 			'user_id'      => $attendee_user_id,
 			'display_name' => (string) $attendee['display_name'],
+			'marked_at'    => ! empty( $attendee['marked_at'] )
+				? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (string) $attendee['marked_at'] )
+				: '',
 			'pass_status'  => $pass ? (string) $pass['status'] : '',
 			'redeemed_at'  => ( $pass && ! empty( $pass['redeemed_at'] ) )
 				? mysql2date( get_option( 'time_format' ) . ' ' . get_option( 'date_format' ), (string) $pass['redeemed_at'] )
