@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			rsvp-perks-unit: pure-PHP unit tests for RSVP perk pass issuance,
+			revocation, and atomic redemption (RsvpPassesTable), plus the
+			perk admin meta save handler (event-perks.php). Each file owns
+			its own $wpdb / post-meta / nonce doubles (see PromoterAuthorityTest.php
+			for the established shape) rather than sharing symbols with
+			sibling pure suites, which would make load order matter.
+		-->
+		<testsuite name="rsvp-perks-unit">
+			<file>tests/Unit/Core/RsvpPassesTableTest.php</file>
+			<file>tests/Unit/Core/EventPerkTest.php</file>
+			<file>tests/RsvpDoorListAuthorityTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

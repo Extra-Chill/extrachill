@@ -15,6 +15,13 @@
 			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
 			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
+			<!-- RSVP perk tests are pure-PHP with their own $wpdb/wp_verify_nonce
+			     doubles (see phpunit-rsvp-perks-unit.xml.dist); against real
+			     WordPress in this sandbox, wp_verify_nonce() would reject the
+			     test's fixed nonce string and $GLOBALS['wpdb'] would be
+			     swapped out from under the shared test transaction. -->
+			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>
+			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>

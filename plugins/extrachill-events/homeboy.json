@@ -99,6 +99,11 @@
             "runtime": "host"
           },
           {
+            "name": "rsvp-perks-unit",
+            "config": "phpunit-rsvp-perks-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "archive-layout-unit",
             "config": "phpunit-archive-layout-unit.xml.dist",
             "runtime": "host"

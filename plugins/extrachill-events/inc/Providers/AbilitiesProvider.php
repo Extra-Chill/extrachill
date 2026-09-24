@@ -90,6 +90,8 @@ final class AbilitiesProvider {
 			array(
 				'PriorityVenueAbilities',
 				'PriorityEventAbilities',
+				'EventPerkAbilities',
+				'RsvpPassAbilities',
 				'CityAbilities',
 				'VenueDiscoveryAbilities',
 				'VenueQualificationAbilities',

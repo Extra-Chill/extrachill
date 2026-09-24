@@ -61,6 +61,9 @@ final class LifecycleProvider {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
 		}
 		\ExtraChillEvents\Core\BookingSchema::install();
+		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+			\ExtraChillEvents\Core\RsvpPassesTable::create_table();
+		}
 		flush_rewrite_rules();
 	}
 
@@ -82,6 +85,9 @@ final class LifecycleProvider {
 		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();
+		}
+		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+			\ExtraChillEvents\Core\RsvpPassesTable::maybe_install();
 		}
 	}
 }
