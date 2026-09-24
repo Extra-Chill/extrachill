@@ -16,12 +16,15 @@ defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/db.php';
 
-const EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN     = 1;
-const EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT = 20;
-const EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX     = 100;
-const EC_USERS_EVENT_ATTENDEE_LIMIT_MIN         = 1;
-const EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT     = 10;
-const EC_USERS_EVENT_ATTENDEE_LIMIT_MAX         = 100;
+const EC_USERS_CONCERT_HISTORY_PER_PAGE_MIN      = 1;
+const EC_USERS_CONCERT_HISTORY_PER_PAGE_DEFAULT  = 20;
+const EC_USERS_CONCERT_HISTORY_PER_PAGE_MAX      = 100;
+const EC_USERS_EVENT_ATTENDEE_LIMIT_MIN          = 1;
+const EC_USERS_EVENT_ATTENDEE_LIMIT_DEFAULT      = 10;
+const EC_USERS_EVENT_ATTENDEE_LIMIT_MAX          = 100;
+const EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MIN     = 1;
+const EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_DEFAULT = 200;
+const EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX     = 1000;
 
 // ─── Core CRUD ───────────────────────────────────────────────────────────────
 
@@ -1227,6 +1230,77 @@ function ec_users_get_event_attendees( int $event_id, int $blog_id = 0, $limit =
 			'display_name' => (string) $user->display_name,
 			'avatar_url'   => (string) get_avatar_url( $user->ID, array( 'size' => 48 ) ),
 			'profile_url'  => $profile_url,
+		);
+	}
+
+	return $attendees;
+}
+
+/**
+ * Get EVERY user who marked an event, ignoring public/private visibility.
+ *
+ * Unlike ec_users_get_event_attendees(), this is not the public attendee
+ * strip — it is the primitive behind the extrachill-events RSVP-perk door
+ * list (extrachill-events#877), the resolution to the
+ * extrachill-users#414/#415 privacy tension: attendance stays private to
+ * the public, but the host of an event they run may see who is coming.
+ *
+ * This function itself performs NO authorization check; it is a plain data
+ * accessor, same as ec_users_get_event_attendees(). Authorization lives at
+ * the call boundary — see extrachill_users_can_manage_event_attendance_full()
+ * below, which is the permission_callback for the
+ * extrachill/get-event-attendees-full ability this function backs. Direct
+ * PHP callers (e.g. an in-process call from extrachill-events after it has
+ * already authorized the caller via its own promoter/venue authority) are
+ * responsible for authorizing before calling, exactly as with the existing
+ * public-strip function.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $blog_id  Blog ID (default: current blog).
+ * @param int $limit    Max users to return (1-1000). Default 200.
+ * @return array<int, array{user_id: int, display_name: string, avatar_url: string, profile_url: string, marked_at: string}> Attendee data, newest mark first.
+ */
+function ec_users_get_event_attendees_full( int $event_id, int $blog_id = 0, int $limit = EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_DEFAULT ): array {
+	global $wpdb;
+	$limit = max(
+		EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MIN,
+		min( EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX, $limit )
+	);
+
+	if ( ! $blog_id ) {
+		$blog_id = get_current_blog_id();
+	}
+
+	$table = extrachill_users_concert_tracking_table_name();
+
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT user_id, created_at FROM {$table} " // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from trusted helper.
+			. 'WHERE event_id = %d AND blog_id = %d ORDER BY created_at DESC, id DESC LIMIT %d',
+			$event_id,
+			$blog_id,
+			$limit
+		),
+		ARRAY_A
+	);
+
+	$attendees = array();
+	foreach ( (array) $rows as $row ) {
+		$user = get_user_by( 'id', (int) $row['user_id'] );
+		if ( ! $user ) {
+			continue;
+		}
+
+		$profile_url = function_exists( 'extrachill_get_user_community_profile_url' )
+			? (string) extrachill_get_user_community_profile_url( (int) $user->ID )
+			: '';
+
+		$attendees[] = array(
+			'user_id'      => (int) $user->ID,
+			'display_name' => (string) $user->display_name,
+			'avatar_url'   => (string) get_avatar_url( $user->ID, array( 'size' => 48 ) ),
+			'profile_url'  => $profile_url,
+			'marked_at'    => (string) $row['created_at'],
 		);
 	}
 

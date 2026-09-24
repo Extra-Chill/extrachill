@@ -76,6 +76,53 @@ function extrachill_users_concert_history_private_error(): WP_Error {
 }
 
 /**
+ * Authorize reading an event's FULL attendee list (private attendees
+ * included) — the extrachill-events#877 RSVP-perk door list primitive.
+ *
+ * Denies by default. extrachill-users owns attendance privacy and does not
+ * itself know what "host of this event" means (promoter/venue authority is
+ * an Events-domain concept it must not reference — layer purity). Instead
+ * it exposes this generic, event-scoped extension point; extrachill-events
+ * answers it via the extrachill_users_can_manage_event_attendance filter
+ * (see inc/core/rsvp-door-list-authority.php there), reusing the SAME
+ * decision function that authorizes its own door-list ability, so both
+ * boundaries agree on what "host" means without duplicating the logic.
+ *
+ * @param array $input Ability input.
+ * @return bool
+ */
+function extrachill_users_can_manage_event_attendance_full( array $input ): bool {
+	if ( current_user_can( 'manage_network_options' ) ) {
+		return true;
+	}
+
+	$user_id = get_current_user_id();
+	if ( ! $user_id ) {
+		return false;
+	}
+
+	$event_id = (int) ( $input['event_id'] ?? 0 );
+	if ( $event_id < 1 ) {
+		return false;
+	}
+
+	$blog_id = ! empty( $input['blog_id'] )
+		? (int) $input['blog_id']
+		: ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+
+	/**
+	 * Filters whether a user may read/manage an event's full (including
+	 * private) attendance list. Default false.
+	 *
+	 * @param bool $allowed  Whether access is granted. Default false.
+	 * @param int  $user_id  Candidate user ID.
+	 * @param int  $event_id Event post ID.
+	 * @param int  $blog_id  Blog ID the event lives on.
+	 */
+	return (bool) apply_filters( 'extrachill_users_can_manage_event_attendance', false, $user_id, $event_id, $blog_id );
+}
+
+/**
  * Register concert tracking abilities.
  */
 function extrachill_users_register_concert_tracking_abilities() {
@@ -445,6 +492,70 @@ function extrachill_users_register_concert_tracking_abilities() {
 			),
 		)
 	);
+
+	// ─── Get Event Attendees (Full) ──────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/get-event-attendees-full',
+		array(
+			'label'               => __( 'Get Event Attendees (Full)', 'extrachill-users' ),
+			'description'         => __( 'Get EVERY attendee of an event, including private ones, for an authorized host. Denies by default — see extrachill_users_can_manage_event_attendance_full().', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'event_id' => array(
+						'type'        => 'integer',
+						'description' => 'Event post ID.',
+					),
+					'blog_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Blog ID. Defaults to the canonical Events site.',
+						'default'     => 0,
+					),
+					'limit'    => array(
+						'type'        => 'integer',
+						'description' => 'Max attendees to return (1-1000).',
+						'default'     => EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_DEFAULT,
+						'minimum'     => EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MIN,
+						'maximum'     => EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX,
+					),
+				),
+				'required'   => array( 'event_id' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'attendees' => array(
+						'type'  => 'array',
+						'items' => array(
+							'type'       => 'object',
+							'properties' => array(
+								'user_id'      => array( 'type' => 'integer' ),
+								'display_name' => array( 'type' => 'string' ),
+								'avatar_url'   => array( 'type' => 'string' ),
+								'profile_url'  => array( 'type' => 'string' ),
+								'marked_at'    => array( 'type' => 'string' ),
+							),
+							'required'   => array( 'user_id', 'display_name', 'avatar_url', 'profile_url', 'marked_at' ),
+						),
+					),
+				),
+				'required'   => array( 'attendees' ),
+			),
+			'execute_callback'    => 'extrachill_users_ability_get_event_attendees_full',
+			'permission_callback' => 'extrachill_users_can_manage_event_attendance_full',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'     => true,
+					'idempotent'   => true,
+					'destructive'  => false,
+					'instructions' => __( 'Host/organizer only. Not the public attendee strip — see extrachill-users#414/#415 and extrachill-events#877.', 'extrachill-users' ),
+				),
+			),
+		)
+	);
 }
 
 // ─── Execute Callbacks ───────────────────────────────────────────────────────
@@ -670,4 +781,20 @@ function extrachill_users_ability_get_event_attendance( array $input ) {
 	}
 
 	return $result;
+}
+
+/**
+ * Get event attendees (full, including private) ability callback.
+ *
+ * @param array $input Ability input.
+ * @return array
+ */
+function extrachill_users_ability_get_event_attendees_full( array $input ): array {
+	$event_id = (int) $input['event_id'];
+	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+	$limit    = $input['limit'] ?? EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_DEFAULT;
+
+	return array(
+		'attendees' => ec_users_get_event_attendees_full( $event_id, $blog_id, (int) $limit ),
+	);
 }
