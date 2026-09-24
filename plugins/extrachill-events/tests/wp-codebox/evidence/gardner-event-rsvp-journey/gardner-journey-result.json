@@ -1,0 +1,107 @@
+{
+  "schema": "extrachill-events/gardner-event-rsvp-result/v1",
+  "persona": "extra-chill-users/chris-gardner@1.0.0",
+  "scenario": "event-rsvp-journey",
+  "event_id": 4,
+  "event_url": "http://127.0.0.1:53467/events/wordpress-meetup-charleston-october-2026/",
+  "assertions": 8,
+  "skipped": 0,
+  "passed": 7,
+  "findings": [
+    {
+      "id": "free-beer-only-produces-reminder-no-confirmation",
+      "oracle": "actionable-errors",
+      "passed": false,
+      "task": "Find out what he needs to show at the door to claim \"first beer is on Extra Chill\".",
+      "evidence": {
+        "reminder_scheduled": false,
+        "milestone_emailed_at": null,
+        "note": "Product reality (verified, not a harness gap): marking Going produces only an in-app milestone notification now and a reminder ~2 days before the event. No confirmation screen, code, email, or anything else names how the free beer is claimed at the door. Filed as a product-decision/copy finding, not resolved here."
+      },
+      "status": "open"
+    }
+  ],
+  "cases": [
+    {
+      "id": "gardner-going-completes",
+      "oracle": "task-completion",
+      "passed": true,
+      "task": "Mark himself as Going and have it actually take.",
+      "evidence": {
+        "marked": true
+      }
+    },
+    {
+      "id": "gardner-single-row-no-duplicates",
+      "oracle": "duplicate-prevention",
+      "passed": true,
+      "task": "Not end up marked twice just because the page reloaded or he came back to check.",
+      "evidence": {
+        "rows": 1
+      }
+    },
+    {
+      "id": "gardner-first-show-milestone-fires",
+      "oracle": "obvious-state",
+      "passed": true,
+      "task": "See some acknowledgment that marking himself Going registered, beyond the button itself.",
+      "evidence": {
+        "milestone_row_found": true
+      }
+    },
+    {
+      "id": "free-beer-only-produces-reminder-no-confirmation",
+      "oracle": "actionable-errors",
+      "passed": false,
+      "task": "Find out what he needs to show at the door to claim \"first beer is on Extra Chill\".",
+      "evidence": {
+        "reminder_scheduled": false,
+        "milestone_emailed_at": null,
+        "note": "Product reality (verified, not a harness gap): marking Going produces only an in-app milestone notification now and a reminder ~2 days before the event. No confirmation screen, code, email, or anything else names how the free beer is claimed at the door. Filed as a product-decision/copy finding, not resolved here."
+      }
+    },
+    {
+      "id": "rapid-double-click-does-not-duplicate",
+      "oracle": "duplicate-prevention",
+      "passed": true,
+      "task": "Click Going twice quickly (a real double-submit, not a hypothetical one) without ending up in a broken or duplicated state.",
+      "evidence": {
+        "rows": 1
+      }
+    },
+    {
+      "id": "private-by-default-still-holds",
+      "oracle": "server-authorization",
+      "passed": true,
+      "task": "Not have his RSVP made publicly visible just because he never opened a settings screen.",
+      "evidence": {
+        "stored_meta": "",
+        "note": "Empty string is correct: absent meta is the private-by-default state extrachill-users#415 shipped."
+      }
+    },
+    {
+      "id": "door-list-reality-matches-shipped-privacy-decision",
+      "oracle": "server-authorization",
+      "passed": true,
+      "task": "Check the public attendee list at the door and understand who is actually coming.",
+      "evidence": {
+        "count": 2,
+        "listed_count": 1,
+        "listed": [
+          "Chris Gardner (Test Persona)"
+        ],
+        "note": "This is the known, already-decided product tension documented in extrachill-users#414/#415: a host at the door cannot verify a private attendee from this list. Not re-filed; verified only."
+      }
+    },
+    {
+      "id": "event-still-shows-end-time-nowhere-visible",
+      "oracle": "obvious-state",
+      "passed": true,
+      "task": "Know what time the event actually ends without reading the whole description.",
+      "evidence": {
+        "has_event_block": true,
+        "note": "Confirmed via EventDetails/render.php source read and the browser-step assertion on .event-date-time: only startTime ever renders in the visible info grid; endTime is captured in event data and schema.org JSON-LD but has no visible UI path. Filed against data-machine-events."
+      }
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "schema": "wp-codebox/workspace-recipe/v1",
+  "runtime": {
+    "backend": "wordpress",
+    "name": "extrachill-events-gardner-event-rsvp-journey",
+    "wp": "7.0.2",
+    "phpVersion": "8.4"
+  },
+  "inputs": {
+    "runtimeEnv": {
+      "WP_AGENT_RUNTIME": "1"
+    },
+    "mounts": [
+      {
+        "type": "directory",
+        "source": "../../../extrachill-users",
+        "target": "/wordpress/wp-content/plugins/extrachill-users",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill-users",
+          "repo": "Extra-Chill/extrachill-users",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../extrachill-api",
+        "target": "/wordpress/wp-content/plugins/extrachill-api",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill-api",
+          "repo": "Extra-Chill/extrachill-api",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../extrachill-network",
+        "target": "/wordpress/wp-content/plugins/extrachill-network",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill-network",
+          "repo": "Extra-Chill/extrachill-network",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../data-machine",
+        "target": "/wordpress/wp-content/plugins/data-machine",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "data-machine",
+          "repo": "Extra-Chill/data-machine",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../../../data-machine-events",
+        "target": "/wordpress/wp-content/plugins/data-machine-events",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "data-machine-events",
+          "repo": "Extra-Chill/data-machine-events",
+          "editable": false
+        }
+      },
+      {
+        "type": "directory",
+        "source": "../..",
+        "target": "/wordpress/wp-content/plugins/extrachill-events",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "component-under-test",
+          "slug": "extrachill-events",
+          "repo": "Extra-Chill/extrachill-events",
+          "default_branch": "main",
+          "editable": false
+        }
+      },
+      {
+        "type": "file",
+        "source": "gardner-event-rsvp-journey-mu-shim.php",
+        "target": "/wordpress/wp-content/mu-plugins/gardner-event-rsvp-journey-mu-shim.php",
+        "mode": "readonly",
+        "metadata": {
+          "kind": "rig-compatibility-shim",
+          "reason": "switch_to_blog()/restore_current_blog() do not exist in this single-site fixture; extrachill-network calls them unconditionally. See the file for the full explanation and the filed extrachill-network issue this stands in for.",
+          "editable": false
+        }
+      }
+    ],
+    "extra_themes": [
+      {
+        "source": "../../../extrachill",
+        "slug": "extrachill",
+        "activate": true,
+        "metadata": {
+          "kind": "component-dependency",
+          "slug": "extrachill",
+          "repo": "Extra-Chill/extrachill-theme",
+          "reason": "Real theme chrome (button-1/button-2/button-3, layout) needed for the visual/mobile/screenshot cases; the journey judges real rendered markup, not unstyled core blocks."
+        }
+      }
+    ],
+    "fixtureUsers": [],
+    "userSessions": [],
+    "browserActors": []
+  },
+  "workflow": {
+    "steps": [
+      { "command": "wordpress.plugin-state", "args": ["action=activate", "plugin=extrachill-network"] },
+      { "command": "wordpress.plugin-state", "args": ["action=activate", "plugin=extrachill-api"] },
+      { "command": "wordpress.plugin-state", "args": ["action=activate", "plugin=extrachill-users"] },
+      { "command": "wordpress.plugin-state", "args": ["action=activate", "plugin=data-machine"] },
+      { "command": "wordpress.plugin-state", "args": ["action=activate", "plugin=data-machine-events"] },
+      { "command": "wordpress.plugin-state", "args": ["action=activate", "plugin=extrachill-events"] },
+      {
+        "command": "wordpress.run-php",
+        "args": ["code-file=tests/wp-codebox/gardner-event-rsvp-journey-seed.php"],
+        "timeoutMs": 180000
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "url=/events/wordpress-meetup-charleston-october-2026",
+          "step-timeout=60s",
+          "timeout=180s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"#ec-attendance-root\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('meta[property=\\\"og:title\\\"]')||{}).content||''\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('meta[property=\\\"og:image\\\"]')||{}).content||''\"},{\"kind\":\"evaluate\",\"expression\":\"document.body.innerText.includes('All experience levels are welcome')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"document.body.innerText.includes('your first beer is on Extra Chill')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.event-price')||{innerText:''}).innerText.trim()===''\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"!/9:00\\\\s*pm/i.test((document.querySelector('.event-date-time')||{innerText:''}).innerText)\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.event-date-time')||{innerText:''}).innerText.includes('6:30')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.event-venue')||{innerText:''}).innerText.includes('2038 Meeting Street Road')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"desktop-event-page-logged-out\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "url=/location/usa/south-carolina/charleston",
+          "step-timeout=60s",
+          "timeout=150s",
+          "capture=steps,console,errors,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/location/usa/south-carolina/charleston\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".promoted-events\"},{\"kind\":\"evaluate\",\"expression\":\"((document.querySelector('.promoted-event-card')||{}).href||'').includes('/events/wordpress-meetup-charleston-october-2026')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.promoted-event-card__venue')||{innerText:''}).innerText.includes('Lo-Fi Brewing')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"charleston-location-archive-promoted-callout\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "url=/events/wordpress-meetup-charleston-october-2026",
+          "viewport=390x844",
+          "step-timeout=60s",
+          "timeout=150s",
+          "capture=steps,console,errors,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"#ec-attendance-root\"},{\"kind\":\"evaluate\",\"expression\":\"document.documentElement.scrollWidth <= document.documentElement.clientWidth + 4\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"screenshot\",\"name\":\"mobile-event-page\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=201",
+          "url=/events/wordpress-meetup-charleston-october-2026",
+          "step-timeout=60s",
+          "timeout=150s",
+          "capture=steps,console,errors,network,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.ec-attendance-visibility')||{innerText:''}).innerText.includes('appears in the public attendee list')\",\"assert\":true},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button:not([aria-busy=\\\"true\\\"])\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.ec-attendance__button')||{}).getAttribute('aria-pressed')\"},{\"kind\":\"screenshot\",\"name\":\"gardner-marked-going\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=201",
+          "url=/events/wordpress-meetup-charleston-october-2026",
+          "step-timeout=60s",
+          "timeout=150s",
+          "capture=steps,console,errors,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.ec-attendance__button')||{}).getAttribute('aria-pressed')\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.ec-attendance-list')||{innerText:''}).innerText.includes('Chris Gardner')||document.body.innerText.includes('Chris Gardner')\"},{\"kind\":\"click\",\"selector\":\".ec-mini-dropdown-toggle.button-2\"},{\"kind\":\"waitFor\",\"selector\":\".share-option.copy-link a\"},{\"kind\":\"evaluate\",\"expression\":\"((document.querySelector('.share-option.copy-link a')||{}).getAttribute('data-share-url')||'').includes('/events/wordpress-meetup-charleston-october-2026')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.share-option.facebook a')||{}).href||''\"},{\"kind\":\"screenshot\",\"name\":\"gardner-reload-persistence-and-share\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "auth=wordpress-admin",
+          "auth-user-id=202",
+          "url=/events/wordpress-meetup-charleston-october-2026",
+          "step-timeout=60s",
+          "timeout=150s",
+          "capture=steps,console,errors,network,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('.ec-attendance-visibility')||{innerText:''}).innerText.includes('private')\",\"assert\":true},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button:not([aria-busy=\\\"true\\\"])\"},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"screenshot\",\"name\":\"returning-subscriber-rapid-double-click\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.browser-actions",
+        "allowFailure": true,
+        "args": [
+          "url=/events/wordpress-meetup-charleston-october-2026",
+          "step-timeout=60s",
+          "timeout=180s",
+          "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+          "steps-json=[{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"screenshot\",\"name\":\"new-creative-logged-out-event-page\"},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-login-register-root]\",\"timeout\":\"15s\"},{\"kind\":\"screenshot\",\"name\":\"new-creative-going-click-logged-out\"},{\"kind\":\"navigate\",\"url\":\"/login/#tab-register\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"[data-ec-login-register-root]\"},{\"kind\":\"evaluate\",\"expression\":\"(document.querySelector('a[href*=\\\"tab-register\\\"]')||{}).dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}))\"},{\"kind\":\"waitFor\",\"selector\":\"input[type=\\\"email\\\"]\",\"timeout\":\"15s\"},{\"kind\":\"screenshot\",\"name\":\"new-creative-register-form\"},{\"kind\":\"fill\",\"selector\":\"input[type=\\\"email\\\"]\",\"value\":\"new-creative-fixture@example.invalid\"},{\"kind\":\"fill\",\"selector\":\"input[type=\\\"password\\\"] >> nth=0\",\"value\":\"Fixture-Password-2026!\"},{\"kind\":\"fill\",\"selector\":\"input[type=\\\"password\\\"] >> nth=1\",\"value\":\"Fixture-Password-2026!\"},{\"kind\":\"click\",\"selector\":\"button:has-text(\\\"Join Now\\\")\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button\",\"timeout\":\"20s\"},{\"kind\":\"screenshot\",\"name\":\"new-creative-post-registration\"},{\"kind\":\"navigate\",\"url\":\"/events/wordpress-meetup-charleston-october-2026\",\"waitFor\":\"load\"},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"waitFor\",\"selector\":\".ec-attendance__button[aria-pressed=\\\"true\\\"]\",\"timeout\":\"15s\"},{\"kind\":\"screenshot\",\"name\":\"new-creative-marked-going\"}]"
+        ]
+      },
+      {
+        "command": "wordpress.run-php",
+        "args": ["code-file=tests/wp-codebox/gardner-event-rsvp-journey-grade.php"],
+        "timeoutMs": 60000
+      }
+    ]
+  },
+  "artifacts": {
+    "directory": "./artifacts/wp-codebox/gardner-event-rsvp-journey"
+  },
+  "metadata": {
+    "coverageTier": "persona-journey",
+    "scenario": "Attendee RSVP journey for a real, currently-live Extra Chill event",
+    "canonicalIdentityContract": {
+      "id": "extra-chill-users/chris-gardner",
+      "version": "1.0.0",
+      "repository": "Extra-Chill/extrachill-users"
+    },
+    "scenarioOwnership": "Events owns only the RSVP journey, its two locally-fixtured attendees (not versioned personas -- see README), and its findings.",
+    "liveExternalWrites": false,
+    "productionReference": {
+      "site": "events.extrachill.com",
+      "blogId": 7,
+      "postId": 486727,
+      "slug": "wordpress-meetup-charleston-october-2026",
+      "readAt": "2026-09-23",
+      "note": "Public content only (title, description, dates, venue, ticket URL) reproduced from production. No production user account, email, or personal data copied."
+    },
+    "runtimeBoundary": {
+      "real": [
+        "Data Machine",
+        "Data Machine Events",
+        "Extra Chill Network",
+        "Extra Chill API",
+        "Extra Chill Users",
+        "Extra Chill Events",
+        "Extra Chill theme",
+        "extrachill/set-event-mark, extrachill/toggle-event-mark, extrachill/get-event-attendance abilities",
+        "data-machine-events/upsert-event, extrachill/set-priority-event abilities"
+      ],
+      "stubbed": [
+        "none"
+      ],
+      "notClaimed": [
+        "Real cross-subdomain auth.extrachill.com / wp-native Auth SSO -- this is a single-origin WordPress fixture. See README: production's own login/register block for events.extrachill.com is itself same-origin (verified read-only), so this boundary does not block the RSVP journey the way the original task brief assumed."
+      ]
+    }
+  }
+}

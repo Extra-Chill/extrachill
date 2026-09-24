@@ -1,0 +1,36 @@
+{
+  "schema": "extrachill-events/gardner-event-rsvp-fixture/v1",
+  "persona": "network-nontechnical-power-user",
+  "steps": {
+    "switch_to_blog_shim_active": true,
+    "event_post": {
+      "ok": true
+    },
+    "priority_event": {
+      "ok": true
+    },
+    "taxonomy": {
+      "location": [
+        "Charleston"
+      ],
+      "venue": [
+        "Lo-Fi Brewing"
+      ],
+      "promoter": [
+        "Extra Chill"
+      ],
+      "event_type": [
+        "Other"
+      ]
+    },
+    "event_dates": {
+      "ok": true,
+      "start": "2026-10-21 18:30:00",
+      "end": "2026-10-21 21:00:00"
+    }
+  },
+  "gardner_id": 201,
+  "returning_subscriber_id": 202,
+  "event_id": 4,
+  "event_url": "http://127.0.0.1:53467/events/wordpress-meetup-charleston-october-2026/"
+}
