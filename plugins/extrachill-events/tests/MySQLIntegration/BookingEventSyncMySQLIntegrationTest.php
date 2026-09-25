@@ -83,6 +83,16 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		parent::tear_down();
 	}
 
+	/**
+	 * @group host-dme-abilities-registry-gap
+	 *
+	 * Needs the real `data-machine-events/upsert-event` ability. The managed
+	 * sandbox activates the full data-machine-events plugin and registers it
+	 * naturally; the booking-mysql host proof job's bootstrap does not yet
+	 * (see booking-mysql-host-bootstrap.php and extrachill-events#888), so
+	 * this one test is excluded there via --exclude-group. Runs normally
+	 * everywhere else.
+	 */
 	public function test_public_service_keeps_combined_update_invisible_and_multisite_scoped(): void {
 		global $wpdb;
 		$upsert = wp_get_ability( 'data-machine-events/upsert-event' );
@@ -124,28 +134,66 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 			)
 		);
 		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() . ': ' . wp_json_encode( $booking->get_error_data() ) : '' );
-		$wpdb->update( BookingSchema::bookings_table(), array( 'public_id' => $source_id, 'status' => 'confirmed', 'event_id' => $event_id ), array( 'id' => $booking['id'] ) );
+		$wpdb->update( BookingSchema::bookings_table(), array(
+			'public_id' => $source_id,
+			'status'    => 'confirmed',
+			'event_id'  => $event_id,
+		), array( 'id' => $booking['id'] ) );
 		$booking = ( new BookingRepository() )->get( $booking['id'] );
 		$wpdb->insert(
 			BookingSchema::holds_table(),
 			array(
-				'booking_id' => $booking['id'], 'venue_term_id' => $this->old_venue_id, 'space_key' => 'main-room',
-				'start_at' => $booking['performance_start_at'], 'end_at' => $booking['performance_end_at'], 'expires_at' => gmdate( 'Y-m-d H:i:s' ),
-				'status' => 'converted', 'version' => 1, 'created_by_user_id' => $this->actor_id, 'created_at' => gmdate( 'Y-m-d H:i:s' ), 'updated_at' => gmdate( 'Y-m-d H:i:s' ),
+				'booking_id'         => $booking['id'],
+				'venue_term_id'      => $this->old_venue_id,
+				'space_key'          => 'main-room',
+				'start_at'           => $booking['performance_start_at'],
+				'end_at'             => $booking['performance_end_at'],
+				'expires_at'         => gmdate( 'Y-m-d H:i:s' ),
+				'status'             => 'converted',
+				'version'            => 1,
+				'created_by_user_id' => $this->actor_id,
+				'created_at'         => gmdate( 'Y-m-d H:i:s' ),
+				'updated_at'         => gmdate( 'Y-m-d H:i:s' ),
 			)
 		);
 		$authority = BookingEventSyncService::authority_from_event( $this->event_payload( $this->old_venue_id, '2030-03-09', '19:00' ), $this->old_venue_id );
 		$activity  = new BookingActivityRepository();
-		$activity->append( array( 'booking_id' => $booking['id'], 'kind' => 'event_conversion_started', 'idempotency_key' => 'mysql-conversion-start', 'payload' => array( 'attempt' => 1, 'source' => BookingEventConversionService::SOURCE, 'source_id' => $source_id, 'source_identity' => $upstream['source']['identity'], 'expected_version' => 1 ) ) );
-		$activity->append( array( 'booking_id' => $booking['id'], 'kind' => 'event_converted', 'idempotency_key' => 'mysql-conversion-complete', 'external_id' => (string) $event_id, 'payload' => array( 'attempt' => 1, 'event_id' => $event_id, 'source' => BookingEventConversionService::SOURCE, 'source_id' => $source_id, 'source_identity' => $upstream['source']['identity'], 'authority' => $authority, 'fingerprint' => $upstream['fingerprint'], 'version' => 1 ) ) );
+		$activity->append( array(
+			'booking_id'      => $booking['id'],
+			'kind'            => 'event_conversion_started',
+			'idempotency_key' => 'mysql-conversion-start',
+			'payload'         => array(
+				'attempt'          => 1,
+				'source'           => BookingEventConversionService::SOURCE,
+				'source_id'        => $source_id,
+				'source_identity'  => $upstream['source']['identity'],
+				'expected_version' => 1,
+			),
+		) );
+		$activity->append( array(
+			'booking_id'      => $booking['id'],
+			'kind'            => 'event_converted',
+			'idempotency_key' => 'mysql-conversion-complete',
+			'external_id'     => (string) $event_id,
+			'payload'         => array(
+				'attempt'         => 1,
+				'event_id'        => $event_id,
+				'source'          => BookingEventConversionService::SOURCE,
+				'source_id'       => $source_id,
+				'source_identity' => $upstream['source']['identity'],
+				'authority'       => $authority,
+				'fingerprint'     => $upstream['fingerprint'],
+				'version'         => 1,
+			),
+		) );
 
 		$observed = null;
 		add_action(
 			'datamachine_events_after_event_venue_mutation',
 			function () use ( &$observed, $event_id ): void {
 				global $wpdb;
-				$content = $this->contender->query( "SELECT post_content FROM {$wpdb->posts} WHERE ID = {$event_id}" )->fetch_row()[0];
-				$terms   = $this->contender->query( "SELECT tt.term_id FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tr.object_id = {$event_id} AND tt.taxonomy = 'venue'" )->fetch_all( MYSQLI_NUM );
+				$content  = $this->contender->query( "SELECT post_content FROM {$wpdb->posts} WHERE ID = {$event_id}" )->fetch_row()[0];
+				$terms    = $this->contender->query( "SELECT tt.term_id FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tr.object_id = {$event_id} AND tt.taxonomy = 'venue'" )->fetch_all( MYSQLI_NUM );
 				$old_lock = BookingHoldRepository::venue_lock_name( $this->old_venue_id );
 				$new_lock = BookingHoldRepository::venue_lock_name( $this->new_venue_id );
 				$observed = array( $content, array_map( 'intval', array_column( $terms, 0 ) ), $this->get_lock( $old_lock ), $this->get_lock( $new_lock ) );
@@ -155,7 +203,15 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		);
 		$ability = wp_get_ability( 'extrachill/reconcile-booking-event' );
 		$this->assertNotNull( $ability );
-		$result = $ability->execute( array( 'booking_id' => $booking['id'], 'expected_version' => 1, 'changes' => array( 'venue_term_id' => $this->new_venue_id, 'performance_start_at' => '2030-03-11 00:00:00', 'performance_end_at' => '2030-03-11 03:00:00' ) ) );
+		$result = $ability->execute( array(
+			'booking_id'       => $booking['id'],
+			'expected_version' => 1,
+			'changes'          => array(
+				'venue_term_id'        => $this->new_venue_id,
+				'performance_start_at' => '2030-03-11 00:00:00',
+				'performance_end_at'   => '2030-03-11 03:00:00',
+			),
+		) );
 		$this->assertIsArray( $result, is_wp_error( $result ) ? $result->get_error_code() : '' );
 		$this->assertStringContainsString( '"startTime":"19:00"', $observed[0] );
 		$this->assertSame( array( $this->old_venue_id ), $observed[1] );
@@ -166,7 +222,11 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 			$other_blog = self::factory()->blog->create();
 			switch_to_blog( $other_blog );
 			$this->setExpectedIncorrectUsage( 'WP_Ability::execute' );
-			$wrong_site = $ability->execute( array( 'booking_id' => $booking['id'], 'expected_version' => 1, 'changes' => array() ) );
+			$wrong_site = $ability->execute( array(
+				'booking_id'       => $booking['id'],
+				'expected_version' => 1,
+				'changes'          => array(),
+			) );
 			restore_current_blog();
 			$this->assertWPError( $wrong_site );
 		}
@@ -191,9 +251,18 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 	}
 
 	private function create_venue( string $name ): int {
-		$term = self::factory()->term->create_and_get( array( 'taxonomy' => 'venue', 'name' => $name . ' ' . wp_generate_uuid4() ) );
+		$term = self::factory()->term->create_and_get( array(
+			'taxonomy' => 'venue',
+			'name'     => $name . ' ' . wp_generate_uuid4(),
+		) );
 		$this->assertNotWPError( $term );
-		foreach ( array( '_venue_address' => '123 Test St', '_venue_city' => 'Charleston', '_venue_state' => 'SC', '_venue_country' => 'US', '_venue_timezone' => 'America/New_York' ) as $key => $value ) {
+		foreach ( array(
+			'_venue_address'  => '123 Test St',
+			'_venue_city'     => 'Charleston',
+			'_venue_state'    => 'SC',
+			'_venue_country'  => 'US',
+			'_venue_timezone' => 'America/New_York',
+		) as $key => $value ) {
 			update_term_meta( $term->term_id, $key, $value );
 		}
 		return (int) $term->term_id;
@@ -201,7 +270,24 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 
 	private function event_payload( int $venue_id, string $date, string $time ): array {
 		$term = get_term( $venue_id, 'venue' );
-		return array( 'title' => 'MySQL Sync Band at ' . $term->name, 'startDate' => $date, 'startTime' => $time, 'endDate' => $date, 'endTime' => '22:00', 'performer' => 'MySQL Sync Band', 'performerType' => 'PerformingGroup', 'venue' => $term->name, 'venueAddress' => '123 Test St', 'venueCity' => 'Charleston', 'venueState' => 'SC', 'venueCountry' => 'US', 'venueTimezone' => 'America/New_York', 'ticketUrl' => 'https://tickets.example/mysql', 'eventStatus' => 'EventScheduled', 'eventType' => 'MusicEvent' );
+		return array(
+			'title'         => 'MySQL Sync Band at ' . $term->name,
+			'startDate'     => $date,
+			'startTime'     => $time,
+			'endDate'       => $date,
+			'endTime'       => '22:00',
+			'performer'     => 'MySQL Sync Band',
+			'performerType' => 'PerformingGroup',
+			'venue'         => $term->name,
+			'venueAddress'  => '123 Test St',
+			'venueCity'     => 'Charleston',
+			'venueState'    => 'SC',
+			'venueCountry'  => 'US',
+			'venueTimezone' => 'America/New_York',
+			'ticketUrl'     => 'https://tickets.example/mysql',
+			'eventStatus'   => 'EventScheduled',
+			'eventType'     => 'MusicEvent',
+		);
 	}
 
 	private function connect_second_session(): mysqli {

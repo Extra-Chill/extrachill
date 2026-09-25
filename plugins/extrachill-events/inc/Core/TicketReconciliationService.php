@@ -312,7 +312,7 @@ class TicketReconciliationService {
 			'version'                  => $current_version + 1,
 			'decision'                 => $decision,
 			'ticket_source_id'         => $source_id,
-			'supersedes_resolution_id' => is_array( $latest ) ? $latest['id'] : null,
+			'supersedes_resolution_id' => is_array( $latest ) ? $latest['id'] : null, // @phpstan-ignore function.alreadyNarrowedType (latest_resolution() can still return null when no prior resolution exists; kept defensive rather than trusting phpstan's narrowing across this method's full control flow.)
 			'reason'                   => $reason,
 			'created_by_user_id'       => $actor_id,
 			'created_at'               => gmdate( 'Y-m-d H:i:s' ),
@@ -597,7 +597,7 @@ class TicketReconciliationService {
 		);
 		foreach ( $items as &$item ) {
 			$item['issues'] = array_values( array_unique( $item['issues'] ) );
-			if ( 'exclude' === $item['decision'] ) {
+			if ( 'exclude' === $item['decision'] ) { // @phpstan-ignore offsetAccess.notFound ('decision' is always set by the earlier construction loop above; the inferred array shape only marks it optional because it's populated conditionally across iterations.)
 				$item['state'] = 'excluded';
 			} elseif ( 'admit' === $item['decision'] || empty( $item['issues'] ) ) {
 				$item['state'] = 'admitted';
@@ -731,7 +731,7 @@ class TicketReconciliationService {
 			return $this->csv_record_error( 'sales_csv_line_too_long', __( 'A CSV record exceeds the bounded line length.', 'extrachill-events' ), $row );
 		}
 		$line   = rtrim( $line, "\r\n" );
-		$values = str_getcsv( $line );
+		$values = str_getcsv( $line, ',', '"', '\\' );
 		if ( false !== strpos( $line, '"' ) && 1 === substr_count( $line, '"' ) % 2 ) {
 			return $this->csv_record_error( 'sales_csv_multiline_forbidden', __( 'Multiline or unterminated CSV fields are not supported.', 'extrachill-events' ), $row );
 		}
@@ -772,7 +772,7 @@ class TicketReconciliationService {
 			'venue_term_id' => $source['venue_term_id'],
 			'provider'      => $source['provider'],
 			'source_key'    => $source['source_key'],
-			'display_url'   => strtolower( (string) $parts['scheme'] ) . '://' . strtolower( (string) $parts['host'] ) . $port,
+			'display_url'   => strtolower( (string) ( $parts['scheme'] ?? '' ) ) . '://' . strtolower( (string) ( $parts['host'] ?? '' ) ) . $port,
 			'created_at'    => $source['created_at'],
 		);
 	}
@@ -930,7 +930,7 @@ class TicketReconciliationService {
 		foreach ( $fields as $field ) {
 			$payload[ $field ] = $row[ $field ] ?? null;
 		}
-		return hash( 'sha256', wp_json_encode( $payload ) );
+		return hash( 'sha256', (string) wp_json_encode( $payload ) );
 	}
 
 	private function positive_integer( $value, string $field ) {
