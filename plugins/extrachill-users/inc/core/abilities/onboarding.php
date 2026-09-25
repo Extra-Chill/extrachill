@@ -722,8 +722,26 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 		$redirect_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
 	}
 
-	if ( $from_join && function_exists( 'ec_get_site_url' ) ) {
-		$redirect_url = ec_get_site_url( 'artist' ) . '/create-artist/';
+	if ( $from_join ) {
+		$roles = array_keys(
+			array_filter(
+				array(
+					'artist'       => $user_is_artist,
+					'professional' => $user_is_professional,
+				)
+			)
+		);
+		/**
+		 * Where a user lands after finishing onboarding from the join flow.
+		 *
+		 * Owner plugins answer for the roles they own (e.g. an artist goes to
+		 * create or edit their Link Page). Onboarding names no owner type.
+		 *
+		 * @param string   $redirect_url Default: the stored onboarding redirect or community home.
+		 * @param int      $user_id      User ID.
+		 * @param string[] $roles        Roles chosen during onboarding.
+		 */
+		$redirect_url = (string) apply_filters( 'ec_onboarding_join_destination', $redirect_url, $user_id, $roles );
 	}
 
 	return array(
