@@ -909,35 +909,53 @@ function ec_studio_notify_editor_for_post( int $post_id, int $user_id ): bool {
 		esc_html( $author_name ),
 		esc_html( $post_title )
 	) . '</p><p>' . esc_html__( 'The draft is ready to review on Extra Chill.', 'extrachill-studio' ) . '</p>';
+	$queue_args = array(
+		'to'       => $recipient->user_email,
+		'subject'  => $subject,
+		'template' => 'extrachill/branded',
+		'context'  => array(
+			'subject_html'   => esc_html( $subject ),
+			'recipient_name' => $recipient->display_name,
+			'body_html'      => $body_html,
+			'cta_url'        => $link,
+			'cta_label'      => __( 'Review submission', 'extrachill-studio' ),
+			'preheader'      => __( 'A new post is ready for editorial review.', 'extrachill-studio' ),
+		),
+	);
+
+	// This runs in an Action Scheduler worker with no current user, so the
+	// queued-mail ability rejects it unless the send goes through Data
+	// Machine's pre-authenticated seam — the same seam the users digest and
+	// publish-notify use. The worker has already authorized this
+	// editorial-domain send by resolving the recipient above.
+	$queue  = static function () use ( $queue_args ) {
+		return ec_send_email_queued( $queue_args );
+	};
+	$helper = '\\DataMachine\\Abilities\\PermissionHelper';
 	try {
-		$queue = ec_send_email_queued(
-			array(
-				'to'       => $recipient->user_email,
-				'subject'  => $subject,
-				'template' => 'extrachill/branded',
-				'context'  => array(
-					'subject_html'   => esc_html( $subject ),
-					'recipient_name' => $recipient->display_name,
-					'body_html'      => $body_html,
-					'cta_url'        => $link,
-					'cta_label'      => __( 'Review submission', 'extrachill-studio' ),
-					'preheader'      => __( 'A new post is ready for editorial review.', 'extrachill-studio' ),
-				),
-			)
-		);
+		$envelope = class_exists( $helper ) ? $helper::run_as_authenticated( $queue ) : $queue();
 	} catch ( \Throwable $exception ) {
-		$queue = array(
-			'success' => false,
-			'error'   => $exception->getMessage(),
-		);
+		$envelope = new \WP_Error( 'queue_exception', $exception->getMessage() );
 	}
-	$queued = ! empty( $queue['success'] );
+
+	// The ability returns WP_Error on permission/validation failure. Treat it
+	// as a failed send (never index into it), so the receipt is released and
+	// the hourly recovery scan can retry instead of the claim sticking forever.
+	$queued = is_array( $envelope ) && ! empty( $envelope['success'] );
 	if ( ! $queued ) {
+		if ( is_wp_error( $envelope ) ) {
+			$detail = $envelope->get_error_code() . ': ' . $envelope->get_error_message();
+		} elseif ( is_array( $envelope ) ) {
+			$detail = isset( $envelope['error'] ) && is_scalar( $envelope['error'] ) ? (string) $envelope['error'] : 'success=false';
+		} else {
+			$detail = 'unexpected ' . gettype( $envelope );
+		}
 		$released = ec_users_release_notification_receipt( $notification_id, $recipient_id, $producer, $idempotency_key );
 		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
 			sprintf(
-				'[extrachill-studio] Failed to queue the editor email for pending post %1$d; receipt released: %2$s.',
+				'[extrachill-studio] Failed to queue the editor email for pending post %1$d (%2$s); receipt released: %3$s.',
 				$post_id,
+				$detail,
 				$released ? 'yes' : 'no'
 			)
 		);
