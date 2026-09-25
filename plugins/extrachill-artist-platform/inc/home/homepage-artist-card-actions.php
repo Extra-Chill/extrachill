@@ -36,10 +36,9 @@ function ec_add_artist_card_management_buttons( $artist_id ) {
 
 	// Get management URLs
 	$manage_artist_page = get_page_by_path( 'manage-artist' );
-	$manage_link_page   = get_page_by_path( 'manage-link-page' );
 
 	$manage_artist_url = $manage_artist_page ? get_permalink( $manage_artist_page ) : '';
-	$manage_link_url   = $manage_link_page ? get_permalink( $manage_link_page ) : '';
+	$manage_link_url   = ec_get_artist_link_page_edit_url( $artist_id );
 
 	// Output management buttons
 	?>
