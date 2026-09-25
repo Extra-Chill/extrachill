@@ -36,6 +36,13 @@ function extrachill_artist_platform_ability_artist_get_permissions( array $input
 	) ) {
 		$can_edit   = true;
 		$manage_url = home_url( '/manage-link-page/' );
+		// Prefer the owner-neutral editor on the public Link Page host
+		// (extrachill-link-pages#27) when the runtime serves one.
+		$link_page_id = function_exists( 'ec_get_link_page_for_artist' ) ? (int) ec_get_link_page_for_artist( $artist_id ) : 0;
+		$base         = function_exists( 'ec_link_page_public_base_url' ) && function_exists( 'ec_get_link_page_edit_endpoints' ) ? ec_link_page_public_base_url() : '';
+		if ( $link_page_id && '' !== $base && '' !== ( ec_get_link_page_edit_endpoints()['configuration_url'] ?? '' ) ) {
+			$manage_url = add_query_arg( 'link_page', $link_page_id, $base . 'edit' );
+		}
 	}
 
 	return array(
