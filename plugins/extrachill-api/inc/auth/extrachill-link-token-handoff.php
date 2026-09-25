@@ -90,11 +90,36 @@ function ec_link_token_handoff_handle() {
 	// per-handoff synthetic UUID so the token resolves like any other.
 	$device_id = wp_generate_uuid4();
 
-	$token = $token_generator( (int) $user_id, $device_id );
+	// The /edit editor holds a token for a whole editing session; an expired
+	// token mid-edit would force a redirect and lose unsaved changes. Edit
+	// sessions get a longer lifetime (filterable); the edit button keeps the
+	// default short-lived token.
+	$return_path = (string) wp_parse_url( $return_url, PHP_URL_PATH );
+	$edit_ttl    = null;
+	if ( 1 === preg_match( '#^/edit/?$#', $return_path ) ) {
+		/**
+		 * Lifetime in seconds of tokens minted for the extrachill.link editor.
+		 *
+		 * @param int $ttl Default two hours.
+		 */
+		$edit_ttl = (int) apply_filters( 'ec_link_token_handoff_edit_ttl', 2 * HOUR_IN_SECONDS );
+	}
+	$ttl_filter = static function ( $ttl ) use ( $edit_ttl ) {
+		return $edit_ttl > 0 ? $edit_ttl : $ttl;
+	};
+	if ( null !== $edit_ttl ) {
+		add_filter( 'wp_native_auth_access_token_ttl', $ttl_filter, 99 );
+	}
+	try {
+		$token = $token_generator( (int) $user_id, $device_id );
+	} finally {
+		remove_filter( 'wp_native_auth_access_token_ttl', $ttl_filter, 99 );
+	}
 
 	$access_token = isset( $token['token'] ) ? (string) $token['token'] : '';
+	$expires_at   = null !== $edit_ttl && isset( $token['expires_at'] ) ? (int) $token['expires_at'] : 0;
 
-	ec_link_token_handoff_redirect( $return_url, $access_token );
+	ec_link_token_handoff_redirect( $return_url, $access_token, $expires_at );
 }
 
 /**
@@ -111,14 +136,18 @@ function ec_link_token_handoff_handle() {
  *
  * @param string $return_url   Validated extrachill.link return URL.
  * @param string $access_token Plaintext access token, or '' when none was minted.
+ * @param int    $expires_at   Token expiry (unix time) to pass along, or 0 to omit.
  * @return void
  */
-function ec_link_token_handoff_redirect( $return_url, $access_token ) {
+function ec_link_token_handoff_redirect( $return_url, $access_token, $expires_at = 0 ) {
 	// Strip any pre-existing fragment from the return URL before appending ours.
 	$base = strtok( $return_url, '#' );
 
 	if ( '' !== $access_token ) {
 		$destination = $base . '#ec_link_token=' . rawurlencode( $access_token );
+		if ( $expires_at > 0 ) {
+			$destination .= '&ec_link_token_expires=' . (int) $expires_at;
+		}
 	} else {
 		// Marker-only: tells the JS the handoff ran and produced no token.
 		$destination = $base . '#ec_link_token_none=1';
