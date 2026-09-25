@@ -834,6 +834,19 @@ if ( getenv( 'LINK_PAGES_USE_FALLBACK' ) ) {
 // reads the current blog. Seed a default before the plugin file's top-level
 // self-validation runs so that read isn't against an unset array key.
 $GLOBALS['ec_test']['current_blog_id'] = $GLOBALS['ec_test']['current_blog_id'] ?? 4;
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( $path = '' ) {
+		return 'https://storage.test/' . ltrim( (string) $path, '/' );
+	}
+}
+if ( ! function_exists( 'get_home_url' ) ) {
+	function get_home_url( $blog_id = null, $path = '' ) {
+		return home_url( $path );
+	}
+}
+// Fixture host answers, as the Extra Chill host integration does in production.
+add_filter( 'ec_link_page_public_host', static function () { return 'extrachill.link'; } );
+add_filter( 'ec_link_page_root_slug', static function () { return 'extra-chill'; } );
 require_once dirname( __DIR__ ) . '/extrachill-link-pages.php';
 ec_test_reset();
 if ( ! function_exists( 'get_query_var' ) ) {

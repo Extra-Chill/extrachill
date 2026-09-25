@@ -9,11 +9,53 @@ defined( 'ABSPATH' ) || exit;
 
 defined( 'EC_LINK_PAGES_REWRITE_VERSION' ) || define( 'EC_LINK_PAGES_REWRITE_VERSION', '20260823' );
 
+/**
+ * Return the public Link Page host (bare domain, no scheme).
+ *
+ * Defaults to the storage site's own domain, so the runtime works on any
+ * install. A host site can serve pages on a dedicated domain instead.
+ *
+ * @return string
+ */
+function ec_link_page_public_host() {
+	$default = '';
+	$blog_id = function_exists( 'ec_get_link_page_storage_blog_id' ) ? (int) ec_get_link_page_storage_blog_id() : 0;
+	$home    = $blog_id && function_exists( 'get_home_url' ) ? get_home_url( $blog_id ) : home_url();
+	if ( is_string( $home ) ) {
+		$default = (string) wp_parse_url( $home, PHP_URL_HOST );
+	}
+	/**
+	 * Filter the public Link Page host.
+	 *
+	 * @param string $host Bare host name.
+	 */
+	$host = (string) apply_filters( 'ec_link_page_public_host', $default );
+	return strtolower( preg_replace( '/^www\./', '', trim( $host ) ) );
+}
+
+/** Return the public Link Page base URL with a trailing slash. */
+function ec_link_page_public_base_url() {
+	$host = ec_link_page_public_host();
+	return '' === $host ? '' : 'https://' . $host . '/';
+}
+
+/**
+ * Slug of the Link Page served at the public root, or '' for none.
+ *
+ * That page's own slug 301s to the root.
+ *
+ * @return string
+ */
+function ec_link_page_root_slug() {
+	return sanitize_title( (string) apply_filters( 'ec_link_page_root_slug', '' ) );
+}
+
 /** Whether the current request uses the public Link Page host. */
 function ec_is_link_page_public_host( $host = null ) {
-	$host = null === $host ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) ) : $host;
-	$host = strtolower( preg_replace( '/:\d+$/', '', (string) $host ) );
-	return in_array( $host, array( 'extrachill.link', 'www.extrachill.link' ), true );
+	$host   = null === $host ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ?? '' ) ) : $host;
+	$host   = strtolower( preg_replace( '/:\d+$/', '', (string) $host ) );
+	$public = ec_link_page_public_host();
+	return '' !== $public && in_array( $host, array( $public, 'www.' . $public ), true );
 }
 
 /**
@@ -61,7 +103,8 @@ function ec_get_link_page_public_url( $link_page_id ) {
 		return '';
 	}
 	$slug = get_post_field( 'post_name', $link_page_id );
-	return $slug ? 'https://extrachill.link/' . rawurlencode( $slug ) . '/' : '';
+	$base = ec_link_page_public_base_url();
+	return $slug && $base ? $base . rawurlencode( $slug ) . '/' : '';
 }
 
 /** Return the owner-configured public query variable. */
@@ -116,9 +159,10 @@ function ec_link_page_public_urls( $link_page_id ) {
 	if ( ! $url ) {
 		return array();
 	}
-	$urls = array( $url );
-	if ( 'extra-chill' === get_post_field( 'post_name', $link_page_id ) ) {
-		$urls[] = 'https://extrachill.link/';
+	$urls      = array( $url );
+	$root_slug = ec_link_page_root_slug();
+	if ( '' !== $root_slug && get_post_field( 'post_name', $link_page_id ) === $root_slug ) {
+		$urls[] = ec_link_page_public_base_url();
 	}
 	return $urls;
 }
@@ -241,15 +285,16 @@ function ec_resolve_link_page_public_query() {
 		}
 		return;
 	}
-	$root = '' === $path || 'extra-chill' === $path;
-	if ( 'extra-chill' === $path ) {
-		$redirected = ec_link_page_public_redirect( 'https://extrachill.link/', 301 );
+	$root_slug = ec_link_page_root_slug();
+	$root      = '' === $path || ( '' !== $root_slug && $root_slug === $path );
+	if ( '' !== $root_slug && $root_slug === $path ) {
+		$redirected = ec_link_page_public_redirect( ec_link_page_public_base_url(), 301 );
 		if ( is_wp_error( $redirected ) ) {
 			status_header( 500 );
 		}
 		return;
 	}
-	$slug     = $root ? 'extra-chill' : $path;
+	$slug     = $root ? $root_slug : $path;
 	$resolved = ec_with_link_page_storage_blog(
 		static function () use ( $slug ) {
 			$ids = get_posts(
@@ -272,7 +317,7 @@ function ec_resolve_link_page_public_query() {
 		if ( $root ) {
 			status_header( 404 );
 		} else {
-			$redirected = ec_link_page_public_redirect( 'https://extrachill.link/', 301 );
+			$redirected = ec_link_page_public_redirect( ec_link_page_public_base_url(), 301 );
 			if ( is_wp_error( $redirected ) ) {
 				status_header( 500 );
 			}
