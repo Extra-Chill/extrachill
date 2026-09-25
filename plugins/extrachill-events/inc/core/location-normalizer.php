@@ -443,9 +443,11 @@ function extrachill_events_create_location_term_from_venue( string $venue_city, 
 /**
  * Filter same-named location terms using canonical state/country ancestry.
  *
- * Location terms are hierarchical (Country > State > City). Compares the
- * venue's state (abbreviation or full name) against each candidate's parent
- * (state-level) term name.
+ * Location terms are hierarchical: Country > State > City where a state tier
+ * exists (US, Canada), and Continent > Country > City where it does not.
+ * Compares the venue's state (abbreviation or full name) against each
+ * candidate's parent term name, and the venue's country against the parent
+ * (no state supplied) or grandparent.
  *
  * @param array<int, \WP_Term> $matches     Location terms sharing a city name.
  * @param string               $venue_state Venue state ("SC" or "South Carolina").
@@ -478,8 +480,33 @@ function extrachill_events_filter_locations_by_hierarchy( array $matches, string
 		}
 
 		if ( '' !== $country ) {
-			$country_term = $parent->parent > 0 ? get_term( $parent->parent, 'location' ) : null;
-			if ( ! $country_term instanceof \WP_Term || extrachill_events_normalize_country_name( $country_term->name ) !== $country_name ) {
+			// The country sits at a different depth depending on whether the
+			// branch has a state tier: City > State > Country (US, Canada)
+			// versus City > Country (Continent) as created by
+			// extrachill_events_create_location_term_from_venue() for
+			// international venues. Checking only the grandparent made every
+			// stateless city fail its own country check, so a second resolve
+			// found no match and created a duplicate city term (#890).
+			// When a state was supplied, the parent was just confirmed to be
+			// that state, so the country must be the grandparent.
+			$country_candidates = array();
+			if ( '' === $venue_state ) {
+				$country_candidates[] = $parent;
+			}
+			if ( $parent->parent > 0 ) {
+				$grandparent = get_term( $parent->parent, 'location' );
+				if ( $grandparent instanceof \WP_Term ) {
+					$country_candidates[] = $grandparent;
+				}
+			}
+			$country_matches = false;
+			foreach ( $country_candidates as $country_term ) {
+				if ( extrachill_events_normalize_country_name( $country_term->name ) === $country_name ) {
+					$country_matches = true;
+					break;
+				}
+			}
+			if ( ! $country_matches ) {
 				continue;
 			}
 		}

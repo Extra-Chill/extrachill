@@ -66,6 +66,45 @@ final class LocationTermCreationTest extends WP_UnitTestCase {
 		$this->assertSame( 'United States', $country->name );
 	}
 
+	/**
+	 * Regression for #890: a stateless international city lives at
+	 * Continent > Country > City, so its country is its PARENT. The hierarchy
+	 * filter only checked the grandparent (the continent), rejected the city
+	 * that was just created, and created a duplicate on every re-resolve.
+	 * Self-contained: creates its own continent root, so it does not depend
+	 * on test order or on which terms other tests left behind.
+	 */
+	public function test_reresolving_a_stateless_international_city_never_duplicates_it(): void {
+		$europe = get_term_by( 'name', 'Europe', 'location' );
+		$europe_id = $europe instanceof \WP_Term ? (int) $europe->term_id : (int) wp_insert_term( 'Europe', 'location' )['term_id'];
+
+		$first = extrachill_events_resolve_location_term_for_venue_city( 'Aarhus', '', '', 'Denmark', true );
+		$this->assertInstanceOf( \WP_Term::class, $first );
+		$country = get_term( $first->parent, 'location' );
+		$this->assertSame( 'Denmark', $country->name );
+		$this->assertSame( $europe_id, (int) $country->parent, 'Country sits under its continent, so the city has no state tier.' );
+
+		$terms_after_first = wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) );
+
+		foreach ( array( 'Denmark', 'DK', 'DNK' ) as $country_input ) {
+			$again = extrachill_events_resolve_location_term_for_venue_city( 'Aarhus', '', '', $country_input, true );
+			$this->assertInstanceOf( \WP_Term::class, $again );
+			$this->assertSame( (int) $first->term_id, (int) $again->term_id, "Re-resolving with country '{$country_input}' must reuse the city." );
+		}
+
+		$this->assertSame( $terms_after_first, wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) ), 'No duplicate terms may be created.' );
+	}
+
+	public function test_reresolving_a_us_city_with_state_still_reuses_it(): void {
+		$first = extrachill_events_resolve_location_term_for_venue_city( 'Walterboro', 'SC', '', 'United States', true );
+		$this->assertInstanceOf( \WP_Term::class, $first );
+		$terms_after_first = wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) );
+
+		$again = extrachill_events_resolve_location_term_for_venue_city( 'Walterboro', 'South Carolina', '', 'US', true );
+		$this->assertSame( (int) $first->term_id, (int) $again->term_id );
+		$this->assertSame( $terms_after_first, wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) ) );
+	}
+
 	public function test_unknown_country_and_venue_like_city_are_refused(): void {
 		$before = wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) );
 
