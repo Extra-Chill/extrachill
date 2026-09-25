@@ -105,6 +105,31 @@ final class LocationTermCreationTest extends WP_UnitTestCase {
 		$this->assertSame( $terms_after_first, wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) ) );
 	}
 
+	/**
+	 * Regression for #890 (second cause): the hierarchy filter compared the
+	 * venue country with normalize() alone, which only knows US/CA/MX/GB codes,
+	 * while create mode names country terms via the full display-name map.
+	 * "DK" stayed "dk", never matched the "Denmark" term, and every re-resolve
+	 * by code inserted a duplicate. Exercises the filter directly on a known
+	 * tree, so it is independent of the name cache and test order.
+	 */
+	public function test_hierarchy_filter_matches_country_codes_against_country_terms(): void {
+		$europe  = wp_insert_term( 'Hierarchy Test Continent', 'location' );
+		$denmark = wp_insert_term( 'Denmark', 'location', array( 'parent' => (int) $europe['term_id'] ) );
+		$this->assertNotWPError( $denmark );
+		$city    = wp_insert_term( 'Hierarchy Test City', 'location', array( 'parent' => (int) $denmark['term_id'] ) );
+		$term    = get_term( (int) $city['term_id'], 'location' );
+
+		foreach ( array( 'Denmark', 'DK', 'DNK', 'dk' ) as $country_input ) {
+			$this->assertCount(
+				1,
+				extrachill_events_filter_locations_by_hierarchy( array( $term ), '', $country_input ),
+				"Country input '{$country_input}' must match the Denmark term."
+			);
+		}
+		$this->assertCount( 0, extrachill_events_filter_locations_by_hierarchy( array( $term ), '', 'Germany' ) );
+	}
+
 	public function test_unknown_country_and_venue_like_city_are_refused(): void {
 		$before = wp_count_terms( array( 'taxonomy' => 'location', 'hide_empty' => false ) );
 

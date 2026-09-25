@@ -441,6 +441,27 @@ function extrachill_events_create_location_term_from_venue( string $venue_city, 
 }
 
 /**
+ * Canonical key for comparing a venue's country input with a country term.
+ *
+ * Create mode names country terms with
+ * extrachill_events_get_country_display_name( normalize( $input ) ), which
+ * knows ISO-2/ISO-3 codes ("DK", "DNK", "SE", "JP", ...). The hierarchy filter
+ * compared with normalize() alone, whose alias list only covers US/CA/MX/GB,
+ * so "DK" stayed "dk" and never matched the "Denmark" term it had created:
+ * every re-resolve by country code inserted a duplicate city (#890).
+ * Resolve both sides through the same canonical name. Unknown countries fall
+ * back to the normalized string, preserving previous behaviour for them.
+ *
+ * @param string $country Country name, alias, or ISO code.
+ * @return string Comparison key.
+ */
+function extrachill_events_location_country_match_key( string $country ): string {
+	$normalized = extrachill_events_normalize_country_name( $country );
+	$display    = extrachill_events_get_country_display_name( $normalized );
+	return '' !== $display ? extrachill_events_location_identity_key( $display ) : $normalized;
+}
+
+/**
  * Filter same-named location terms using canonical state/country ancestry.
  *
  * Location terms are hierarchical: Country > State > City where a state tier
@@ -462,8 +483,8 @@ function extrachill_events_filter_locations_by_hierarchy( array $matches, string
 	if ( $full_name ) {
 		$state_names[] = extrachill_events_location_identity_key( $full_name );
 	}
-	$country_name = extrachill_events_normalize_country_name( $country );
-	$filtered     = array();
+	$country_key = extrachill_events_location_country_match_key( $country );
+	$filtered    = array();
 
 	foreach ( $matches as $match ) {
 		if ( $match->parent <= 0 ) {
@@ -501,7 +522,7 @@ function extrachill_events_filter_locations_by_hierarchy( array $matches, string
 			}
 			$country_matches = false;
 			foreach ( $country_candidates as $country_term ) {
-				if ( extrachill_events_normalize_country_name( $country_term->name ) === $country_name ) {
+				if ( extrachill_events_location_country_match_key( $country_term->name ) === $country_key ) {
 					$country_matches = true;
 					break;
 				}
