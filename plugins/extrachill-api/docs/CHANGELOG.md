@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.35.0] - 2026-09-25
+
+### Added
+- link page editor configuration route and editing-session tokens for extrachill.link/edit
+
 ## [0.34.4] - 2026-09-23
 
 ### Fixed
