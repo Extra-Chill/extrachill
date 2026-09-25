@@ -141,6 +141,51 @@ function extrachill_users_get_link_types() {
 }
 
 /**
+ * Map a community link type to the shared social link catalog.
+ *
+ * @param string $type_key Community type key.
+ * @return string Shared catalog type.
+ */
+function extrachill_users_link_type_to_social_type( $type_key ) {
+	$map = array(
+		'twitter' => 'twitter_x',
+		'other'   => 'custom',
+	);
+	return $map[ $type_key ] ?? $type_key;
+}
+
+/**
+ * Normalize one profile link URL through the shared social links rules.
+ *
+ * Uses ec_sanitize_social_links() (extrachill-link-pages) when available:
+ * https for schemeless input, http/https only. Falls back to esc_url_raw()
+ * when the shared primitive is not loaded.
+ *
+ * @param string $type_key Community type key.
+ * @param mixed  $url      Raw URL.
+ * @return string Normalized URL, or '' when invalid.
+ */
+function extrachill_users_normalize_link_url( $type_key, $url ) {
+	$url = trim( wp_unslash( (string) $url ) );
+	if ( '' === $url ) {
+		return '';
+	}
+	if ( ! function_exists( 'ec_sanitize_social_links' ) ) {
+		return esc_url_raw( $url );
+	}
+	$clean = ec_sanitize_social_links(
+		array(
+			array(
+				'type' => extrachill_users_link_type_to_social_type( $type_key ),
+				'url'  => $url,
+			),
+		),
+		array( 'error_prefix' => 'user_profile' )
+	);
+	return is_wp_error( $clean ) || empty( $clean[0]['url'] ) ? '' : (string) $clean[0]['url'];
+}
+
+/**
  * Get user profile data.
  *
  * @param array $input Input with 'user_id'.
@@ -318,7 +363,7 @@ function extrachill_users_ability_update_links( $input ) {
 		}
 
 		$type_key = isset( $link['type_key'] ) ? sanitize_text_field( $link['type_key'] ) : '';
-		$url      = isset( $link['url'] ) ? esc_url_raw( $link['url'] ) : '';
+		$url      = isset( $link['url'] ) ? extrachill_users_normalize_link_url( $type_key, $link['url'] ) : '';
 
 		// Skip empty URLs.
 		if ( empty( $url ) ) {
