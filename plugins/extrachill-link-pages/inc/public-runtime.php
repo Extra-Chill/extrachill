@@ -82,6 +82,22 @@ function ec_get_link_page_public_exclusions() {
 	return array_values( array_unique( array_filter( array_map( 'sanitize_title', is_array( $excluded ) ? $excluded : array() ) ) ) );
 }
 
+/**
+ * Keep the Link Page post type out of core's posts sitemap.
+ *
+ * Its permalinks are internal (/link-page/slug/); the public URLs are
+ * listed by ec_link_page_sitemap_urls() in the custom provider instead.
+ *
+ * @param array $post_types Post types in the core sitemap.
+ * @return array
+ */
+function ec_exclude_link_page_from_core_sitemap( $post_types ) {
+	if ( is_array( $post_types ) ) {
+		unset( $post_types[ ec_link_page_post_type( get_current_blog_id() ) ] );
+	}
+	return $post_types;
+}
+
 /** Return every public cache key for one page. */
 function ec_link_page_public_urls( $link_page_id ) {
 	$storage_blog_id = ec_get_link_page_storage_blog_id();
@@ -142,7 +158,7 @@ function ec_register_link_page_public_rewrites() {
 				},
 				array_unique( $excluded )
 			)
-		) . ')([^/]+)/?$',
+		) . ')([^/.]+)/?$', // Slugs never contain a dot, so robots.txt, favicon.ico etc. stay with core.
 		'index.php?' . $query_var . '=$matches[1]',
 		'top'
 	);
@@ -584,5 +600,6 @@ if ( function_exists( 'add_filter' ) ) {
 	add_filter( 'template_include', 'ec_link_page_public_template', PHP_INT_MAX );
 	add_filter( 'extrachill_analytics_pageview_origin_host_allowed', 'ec_answer_link_page_pageview_origin_host', 10, 3 );
 	add_filter( 'extrachill_seo_sitemap_urls', 'ec_link_page_sitemap_urls' );
+	add_filter( 'wp_sitemaps_post_types', 'ec_exclude_link_page_from_core_sitemap' );
 	add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_post_change_urls', 10, 3 );
 }

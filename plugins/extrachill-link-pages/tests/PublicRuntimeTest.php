@@ -682,6 +682,11 @@ final class PublicRuntimeTest extends TestCase {
 
 		ec_register_link_page_public_rewrites();
 		$this->assertStringContainsString( 'owner\-management', $GLOBALS['ec_test']['rewrite_rules'][0]['regex'] );
+		$regex = '#' . $GLOBALS['ec_test']['rewrite_rules'][0]['regex'] . '#';
+		$this->assertSame( 1, preg_match( $regex, 'band-name/' ) );
+		$this->assertSame( 0, preg_match( $regex, 'robots.txt' ) );
+		$this->assertSame( 0, preg_match( $regex, 'favicon.ico' ) );
+		$this->assertSame( array( 'page' => 1 ), ec_exclude_link_page_from_core_sitemap( array( 'page' => 1, EC_LINK_PAGE_POST_TYPE => 1 ) ) );
 		$this->assertSame( array( 'https://extrachill.link/legacy-page/' ), ec_link_page_public_urls( 40 ) );
 		$this->assertSame( ec_link_page_public_urls( 40 ), ec_link_page_cache_post_change_urls( null, 40, EC_LINK_PAGE_POST_TYPE ) );
 		$this->assertSame( 'https://extrachill.link/legacy-page/', ec_link_page_sitemap_urls( array() )[0]['loc'] );
