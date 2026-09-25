@@ -490,6 +490,34 @@ function ec_link_pages_runtime_function_contract() {
 			'required' => 0,
 			'total'    => 0,
 		),
+		'ec_get_link_page_edit_endpoints'                => array(
+			'required' => 0,
+			'total'    => 0,
+		),
+		'ec_is_link_page_edit_request'                   => array(
+			'required' => 0,
+			'total'    => 0,
+		),
+		'ec_get_link_page_editor_configuration_for_user' => array(
+			'required' => 1,
+			'total'    => 1,
+		),
+		'ec_register_link_page_editor_configuration_ability' => array(
+			'required' => 0,
+			'total'    => 0,
+		),
+		'ec_enqueue_link_page_edit_shell'                => array(
+			'required' => 0,
+			'total'    => 0,
+		),
+		'ec_link_page_edit_document_title'               => array(
+			'required' => 1,
+			'total'    => 1,
+		),
+		'ec_link_page_edit_robots'                       => array(
+			'required' => 1,
+			'total'    => 1,
+		),
 		'ec_is_link_page_public_host'                    => array(
 			'required' => 0,
 			'total'    => 1,
@@ -760,6 +788,7 @@ $ec_link_pages_operation_contract       = $ec_link_pages_subset( array( 'ec_link
 $ec_link_pages_storage_contract         = $ec_link_pages_subset( array( 'ec_link_page_defaults', 'ec_link_page_defaults_for', 'ec_link_page_default', 'ec_link_page_id_meta_keys', 'ec_link_page_needs_id_assignment', 'ec_with_link_page_lock_scope', 'ec_with_link_page_id_lock', 'ec_link_page_next_element_id', 'ec_link_page_sync_element_counter', 'ec_sanitize_link_page_links', 'ec_link_page_existing_sections', 'ec_collect_link_page_element_ids', 'ec_sanitize_link_page_links_locked', 'ec_sanitize_link_page_css_vars', 'ec_sanitize_link_page_settings', 'ec_read_link_page_persistence', 'ec_snapshot_link_page_meta', 'ec_link_page_meta_value_matches', 'ec_write_link_page_meta', 'ec_restore_link_page_meta_snapshots', 'ec_compensate_link_page_save_error', 'ec_link_page_previous_links_meta_keys', 'ec_link_page_links_count', 'ec_link_page_manual_links_count', 'ec_link_page_restore_point_timestamp', 'ec_refuse_link_page_silent_empty', 'ec_write_link_page_restore_point', 'ec_get_link_page_previous_links', 'ec_purge_link_page_after_mutation', 'ec_save_link_page_persistence', 'ec_save_link_page_persistence_composed', 'ec_save_link_page_persistence_locked', 'ec_save_link_page_persistence_composed_locked', 'ec_invoke_link_page_mutation_finalizer', 'ec_compensate_created_link_page', 'ec_restore_replaced_link_page', 'ec_compensate_link_page_creation_error', 'ec_provision_owned_link_page', 'ec_provision_owned_link_page_composed', 'ec_provision_owned_link_page_internal', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page', 'ec_create_owned_link_page_unlocked', 'ec_prepare_owned_link_page_creation', 'ec_cleanup_expired_link_page_links', 'ec_purge_link_page_before_delete', 'ec_schedule_link_page_expiration_cleanup', 'ec_unschedule_link_page_expiration_cleanup' ) );
 $ec_link_pages_projection_contract      = $ec_link_pages_subset( array( 'ec_link_page_public_projection_registry', 'ec_register_link_page_public_projection_provider', 'ec_can_register_link_page_public_projection_provider', 'ec_invoke_link_page_public_projection_callback', 'ec_validate_link_page_public_projection', 'ec_sanitize_link_page_public_projection_snapshot', 'ec_save_link_page_public_projection_snapshot', 'ec_read_link_page_public_projection_snapshot', 'ec_render_stored_link_page_social_links', 'ec_get_link_page_public_projection', 'ec_render_link_page_public_components', 'ec_prepare_link_page_public_render', 'ec_link_page_apply_host_features', 'ec_render_link_page_subscribe_trigger', 'ec_render_link_page_subscribe_component', 'ec_enqueue_link_page_feature_assets', 'ec_link_page_owned_schema_graph', 'ec_link_page_render_readiness' ) );
 $ec_link_pages_public_contract          = $ec_link_pages_subset( array( 'ec_link_page_public_host', 'ec_link_page_public_base_url', 'ec_link_page_root_slug', 'ec_is_link_page_public_host', 'ec_get_link_page_public_url', 'ec_get_link_page_public_query_var', 'ec_get_link_page_public_query_vars', 'ec_get_link_page_public_exclusions', 'ec_link_page_public_urls', 'ec_link_page_cache_post_change_urls', 'ec_register_link_page_public_rewrites', 'ec_add_link_page_public_query_vars', 'ec_terminate_link_page_request', 'ec_maybe_flush_link_page_public_rewrites', 'ec_prevent_link_page_public_canonical_redirect', 'ec_link_page_public_redirect', 'ec_resolve_link_page_public_query', 'ec_link_page_public_template', 'ec_redirect_direct_link_page_request', 'ec_enqueue_link_page_minimal_assets', 'ec_link_page_css_variables_style_block', 'ec_render_link_page_section', 'ec_render_link_page_public_head', 'ec_exclude_link_page_from_core_sitemap', 'ec_link_page_sitemap_urls' ) );
+$ec_link_pages_edit_entry_contract      = $ec_link_pages_subset( array( 'ec_get_link_page_edit_endpoints', 'ec_is_link_page_edit_request', 'ec_get_link_page_editor_configuration_for_user', 'ec_register_link_page_editor_configuration_ability', 'ec_enqueue_link_page_edit_shell', 'ec_link_page_edit_document_title', 'ec_link_page_edit_robots' ) );
 $ec_link_pages_social_types_contract    = $ec_link_pages_subset( array( 'ec_social_link_types', 'ec_link_page_social_types', 'ec_sanitize_social_links', 'ec_sanitize_link_page_social_links', 'ec_social_link_icon_class', 'ec_social_link_label', 'ec_render_social_links', 'ec_render_link_page_social_links' ) );
 $ec_link_pages_fonts_contract           = $ec_link_pages_subset( array( 'ec_link_page_font_catalog', 'ec_link_page_normalize_font_value', 'ec_link_page_font_stack', 'ec_link_page_google_font_param', 'ec_link_page_google_fonts_url', 'ec_link_page_local_font_face_url', 'ec_link_page_local_fonts_css', 'ec_enqueue_link_page_fonts' ) );
 $ec_link_pages_section_sources_contract = $ec_link_pages_subset( array( 'ec_link_page_section_source_registry', 'ec_register_link_page_section_source', 'ec_can_register_link_page_section_source', 'ec_sanitize_link_page_section_source_config', 'ec_invoke_link_page_section_source_callback', 'ec_sanitize_link_page_section_source_links', 'ec_refresh_link_page_section', 'ec_refresh_link_page_section_locked', 'ec_refresh_link_page_sections_for_source' ) );
@@ -787,6 +816,10 @@ if ( is_wp_error( $ec_link_pages_storage_result ) ) {
 $ec_link_pages_public_result = ec_load_link_pages_runtime_component( $ec_link_pages_public_contract, EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/public-runtime.php' );
 if ( is_wp_error( $ec_link_pages_public_result ) ) {
 	ec_record_link_pages_runtime_error( $ec_link_pages_public_result );
+}
+$ec_link_pages_edit_entry_result = ec_load_link_pages_runtime_component( $ec_link_pages_edit_entry_contract, EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/edit-entry.php' );
+if ( is_wp_error( $ec_link_pages_edit_entry_result ) ) {
+	ec_record_link_pages_runtime_error( $ec_link_pages_edit_entry_result );
 }
 $ec_link_pages_projection_result = ec_load_link_pages_runtime_component( $ec_link_pages_projection_contract, EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/public-projections.php' );
 if ( is_wp_error( $ec_link_pages_projection_result ) ) {

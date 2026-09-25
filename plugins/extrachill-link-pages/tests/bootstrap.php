@@ -859,4 +859,14 @@ if ( ! function_exists( 'get_blog_option' ) ) {
 		return $GLOBALS['ec_test']['blog_options'][ (int) $blog_id ][ $option ] ?? $default;
 	}
 }
+if ( ! function_exists( '__return_false' ) ) {
+	function __return_false() {
+		return false;
+	}
+}
+if ( ! function_exists( 'rest_url' ) ) {
+	function rest_url( $path = '' ) {
+		return 'https://storage.test/wp-json/' . ltrim( (string) $path, '/' );
+	}
+}
 

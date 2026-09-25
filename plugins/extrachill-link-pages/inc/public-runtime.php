@@ -285,6 +285,13 @@ function ec_resolve_link_page_public_query() {
 		}
 		return;
 	}
+	if ( 'edit' === $path ) {
+		// Owner-neutral editing entry (see inc/edit-entry.php).
+		$GLOBALS['ec_link_page_edit_request'] = true;
+		$wp_query->is_404                     = false;
+		status_header( 200 );
+		return;
+	}
 	$root_slug = ec_link_page_root_slug();
 	$root      = '' === $path || ( '' !== $root_slug && $root_slug === $path );
 	if ( '' !== $root_slug && $root_slug === $path ) {
@@ -378,6 +385,9 @@ function ec_link_page_has_configured_redirect( $data ) {
 /** Use the standalone shell for host routes and direct CPT requests. */
 function ec_link_page_public_template( $template ) {
 	global $wp_query;
+	if ( function_exists( 'ec_is_link_page_edit_request' ) && ec_is_link_page_edit_request() ) {
+		return EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/edit-shell.php';
+	}
 	$link_page_post_type = ec_link_page_post_type( get_current_blog_id() );
 	$resolved            = ! empty( $wp_query->posts[0] ) && get_post_type( $wp_query->posts[0] ) === $link_page_post_type;
 	if ( $resolved && ( ec_is_link_page_public_host() || is_singular( $link_page_post_type ) ) ) {
