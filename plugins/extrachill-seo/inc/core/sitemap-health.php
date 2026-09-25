@@ -216,6 +216,12 @@ function ec_seo_collect_sitemap_sample_urls() {
 		return $urls;
 	}
 
+	// A site whose sitemaps are disabled (e.g. blog_public = 0) serves no
+	// wp-sitemap-* URLs by design; sampling it would report false failures.
+	if ( function_exists( 'wp_sitemaps_get_server' ) && ! wp_sitemaps_get_server()->sitemaps_enabled() ) {
+		return $urls;
+	}
+
 	$providers = wp_get_sitemap_providers();
 
 	foreach ( $providers as $provider ) {
