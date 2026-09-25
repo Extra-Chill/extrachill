@@ -487,17 +487,25 @@ function extrachill_artist_platform_sanitize_socials( $socials, $link_page_id = 
 		}
 
 		$type = isset( $social['type'] ) ? sanitize_text_field( wp_unslash( $social['type'] ) ) : '';
-		$url  = isset( $social['url'] ) ? esc_url_raw( wp_unslash( $social['url'] ) ) : '';
+		// Keep the raw URL: the shared social links primitive owns URL
+		// normalization (https for schemeless input, http/https only) when
+		// the manager saves. esc_url_raw() here would default to http://.
+		$url = isset( $social['url'] ) ? trim( wp_unslash( (string) $social['url'] ) ) : '';
 
 		if ( empty( $type ) || empty( $url ) ) {
 			continue;
 		}
 
-		$sanitized[] = array(
+		$entry = array(
 			'id'   => $social_id,
 			'type' => $type,
 			'url'  => $url,
 		);
+		// The shared primitive keeps custom_label only for types that allow it.
+		if ( ! empty( $social['custom_label'] ) ) {
+			$entry['custom_label'] = sanitize_text_field( wp_unslash( (string) $social['custom_label'] ) );
+		}
+		$sanitized[] = $entry;
 	}
 
 	return $sanitized;
