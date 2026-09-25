@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.44.0] - 2026-09-25
+
+### Added
+- validate community profile link URLs through the shared social links rules
+
 ## [0.43.0] - 2026-09-24
 
 ### Added
