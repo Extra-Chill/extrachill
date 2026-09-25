@@ -535,7 +535,14 @@ function ec_link_page_sitemap_urls( $urls ) {
 	if ( ! $storage_blog_id ) {
 		return $urls;
 	}
+	// List Link Pages only in the sitemap of the site that stores and
+	// serves them, unless that site has sitemaps disabled (then fall back to
+	// the requesting site so the pages stay discoverable).
 	if ( get_current_blog_id() !== $storage_blog_id ) {
+		$storage_public = function_exists( 'get_blog_option' ) ? (int) get_blog_option( $storage_blog_id, 'blog_public', 1 ) : 1;
+		if ( $storage_public > 0 ) {
+			return $urls;
+		}
 		$result = ec_with_link_page_storage_blog(
 			static function () use ( $urls ) {
 				return ec_link_page_sitemap_urls( $urls );

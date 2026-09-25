@@ -841,4 +841,9 @@ if ( ! function_exists( 'get_query_var' ) ) {
 		return $GLOBALS['ec_test']['query_vars'][ $key ] ?? $default;
 	}
 }
+if ( ! function_exists( 'get_blog_option' ) ) {
+	function get_blog_option( $blog_id, $option, $default = false ) {
+		return $GLOBALS['ec_test']['blog_options'][ (int) $blog_id ][ $option ] ?? $default;
+	}
+}
 

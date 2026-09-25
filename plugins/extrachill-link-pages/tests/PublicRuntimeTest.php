@@ -727,7 +727,12 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 'Cross blog', get_post_meta( 40, '_link_page_bio_text', true ) );
 
 		switch_to_blog( 7 );
+		// Public storage site: only its own sitemap lists Link Pages.
+		$this->assertSame( array(), ec_link_page_sitemap_urls( array() ) );
+		// Storage site with sitemaps off: fall back to listing them here.
+		$GLOBALS['ec_test']['blog_options'][4]['blog_public'] = 0;
 		$urls = ec_link_page_sitemap_urls( array() );
+		unset( $GLOBALS['ec_test']['blog_options'][4]['blog_public'] );
 		$this->assertSame( 'https://extrachill.link/legacy-page/', $urls[0]['loc'] );
 		$this->assertSame( 7, get_current_blog_id() );
 		restore_current_blog();
