@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.45.0] - 2026-09-25
+
+### Added
+- onboarding join destination is answered by owner integrations, not hardcoded
+
 ## [0.44.0] - 2026-09-25
 
 ### Added
