@@ -11,17 +11,22 @@ add_filter( 'ec_link_page_editor_configuration', 'extrachill_artist_link_page_ed
  * @param mixed $configuration Existing configuration.
  * @return mixed
  */
-function extrachill_artist_link_page_editor_configuration( $configuration ) {
+function extrachill_artist_link_page_editor_configuration( $configuration, $attributes = array() ) {
 	if ( ! is_user_logged_in() || ! function_exists( 'ec_get_artists_for_user' ) ) {
 		return $configuration;
 	}
-	$identities = array();
+	$identities        = array();
+	$requested_page_id = is_array( $attributes ) ? absint( $attributes['link_page_id'] ?? 0 ) : 0;
+	$requested_artist  = 0;
 	// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 	foreach ( ec_get_artists_for_user( get_current_user_id(), true ) as $artist_id ) {
 		$post         = get_post( $artist_id );
 		$link_page_id = function_exists( 'ec_get_link_page_for_artist' ) ? ec_get_link_page_for_artist( $artist_id ) : 0;
 		if ( ! $post || 'publish' !== $post->post_status || ! $link_page_id || 'publish' !== get_post_status( $link_page_id ) ) {
 			continue;
+		}
+		if ( $requested_page_id && (int) $link_page_id === $requested_page_id ) {
+			$requested_artist = (int) $artist_id;
 		}
 		$identities[] = array(
 			'id'        => (int) $artist_id,
@@ -62,7 +67,9 @@ function extrachill_artist_link_page_editor_configuration( $configuration ) {
 			);
 		}
 	}
-	if ( function_exists( 'ec_get_latest_artist_for_user' ) ) {
+	if ( $requested_artist ) {
+		$initial = $requested_artist;
+	} elseif ( function_exists( 'ec_get_latest_artist_for_user' ) ) {
 		$latest = (int) ec_get_latest_artist_for_user( get_current_user_id() );
 		if ( in_array( $latest, array_column( $identities, 'id' ), true ) ) {
 			$initial = $latest;
@@ -70,6 +77,11 @@ function extrachill_artist_link_page_editor_configuration( $configuration ) {
 	}
 	return array(
 		'adapter'         => 'extrachill-artist-platform',
+		// For hosts that are not this site (the extrachill.link /edit shell):
+		// the adapter bundle to load before mounting the editor.
+		'scripts'         => array(
+			array( 'src' => add_query_arg( 'ver', $asset['version'], EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL . 'build/blocks/link-page-editor/adapter.js' ) ),
+		),
 		'identities'      => $identities,
 		'initialIdentity' => $initial,
 		'managementUrl'   => site_url( '/manage-link-page/' ),
