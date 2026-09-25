@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.10] - 2026-09-25
+
+### Fixed
+- queue editor review alerts through the authenticated mail seam
+
 ## [0.27.9] - 2026-09-22
 
 ### Fixed
