@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.16] - 2026-09-26
+
+### Changed
+- correct the release.yml comment about which commits release
+
 ## [0.27.15] - 2026-09-26
 
 ### Changed
