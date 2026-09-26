@@ -192,6 +192,9 @@ function extrachill_users_init() {
 	// live. Network-active so it observes the publish on whatever site the post
 	// lives on; driven by a data-only descriptor registry (feature-agnostic).
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/publish-notify.php';
+	// Review-notify: alert the editor when a main-site post enters core's
+	// pending status, however it was submitted.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/review-notify.php';
 	// Click-to-read redirect: marks a single notification read on click.
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/read-redirect.php';
 	// Header notification bell — renders network-wide via the theme header hook.
