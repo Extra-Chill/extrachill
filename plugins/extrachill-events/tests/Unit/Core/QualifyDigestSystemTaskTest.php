@@ -43,4 +43,21 @@ class QualifyDigestSystemTaskTest extends TestCase {
 		$this->assertTrue( $meta['default_enabled'] );
 		$this->assertTrue( $meta['supports_run'] );
 	}
+
+	/**
+	 * The weekly schedule is site-scoped, so Data Machine fires it with an
+	 * empty context; without this opt-out TaskScheduler rejects every tick
+	 * with task_scheduler_agent_context_required (#904).
+	 */
+	public function test_site_scoped_schedule_does_not_require_agent_context(): void {
+		$task = new \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask();
+		$this->assertFalse( $task->requiresAgentContext() );
+	}
+
+	/** The principal-less digest must send through the queued (system-issuer) path (#904). */
+	public function test_digest_sends_through_queued_email_ability(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/Abilities/QualifyDigestAbilities.php' );
+		$this->assertStringContainsString( "wp_get_ability( 'datamachine/send-email-queued' )", $source );
+		$this->assertStringNotContainsString( "wp_get_ability( 'datamachine/send-email' )", $source );
+	}
 }

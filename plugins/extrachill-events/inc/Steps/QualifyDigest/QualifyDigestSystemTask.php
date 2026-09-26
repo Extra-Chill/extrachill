@@ -30,6 +30,17 @@ class QualifyDigestSystemTask extends SystemTask {
 		return self::TASK_TYPE;
 	}
 
+	/**
+	 * The digest is a site-scoped recurring schedule (not `per_agent`), so
+	 * Data Machine fires it with an empty context. It only reads events data
+	 * and mails an operator report, so it opts out of agent ownership exactly
+	 * like its sibling LocalSceneDigestSystemTask. Without this override
+	 * TaskScheduler rejects every tick with task_scheduler_agent_context_required.
+	 */
+	public function requiresAgentContext(): bool {
+		return false;
+	}
+
 	public static function getTaskMeta(): array {
 		return array(
 			'label'           => 'Qualify Digest (weekly)',

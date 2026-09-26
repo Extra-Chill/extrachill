@@ -127,7 +127,11 @@ class QualifyDigestAbilities {
 
 		$sent = false;
 		if ( ! $dry_run && '' !== $recipient && function_exists( 'wp_get_ability' ) ) {
-			$send_ability = wp_get_ability( 'datamachine/send-email' );
+			// Queued variant: the digest runs principal-less (system task, no
+			// acting user), and only the queued path stamps such sends as
+			// `issuer_type: system`. The direct ability refuses them with
+			// email_auth_ref_required (data-machine#3534).
+			$send_ability = wp_get_ability( 'datamachine/send-email-queued' );
 			if ( $send_ability ) {
 				$subject = sprintf(
 					'Event Calendar Qualify Digest — Week of %s–%s',
