@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.15] - 2026-09-26
+
+### Changed
+- adopt Homeboy review CI, port standalone tests to WP_UnitTestCase
+
 ## [0.27.14] - 2026-09-26
 
 ### Changed
