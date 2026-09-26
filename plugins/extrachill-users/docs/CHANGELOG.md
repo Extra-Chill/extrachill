@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.46.0] - 2026-09-26
+
+### Added
+- alert the editor when a main-site post enters core's pending status
+
 ## [0.45.2] - 2026-09-26
 
 ### Fixed
