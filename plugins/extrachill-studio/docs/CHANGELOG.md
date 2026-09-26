@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.14] - 2026-09-26
+
+### Changed
+- stub get_home_url/home_url in the transcription callback harness
+
 ## [0.27.13] - 2026-09-26
 
 ### Changed
