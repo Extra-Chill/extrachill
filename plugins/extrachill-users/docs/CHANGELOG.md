@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.45.2] - 2026-09-26
+
+### Fixed
+- stop redirecting off-main New Post to Studio (reverts #426)
+
 ## [0.45.1] - 2026-09-26
 
 ### Fixed
