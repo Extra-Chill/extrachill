@@ -50,8 +50,11 @@ const EC_STUDIO_REVIEW_QUEUE_CAP = 'edit_others_posts';
  */
 const EC_STUDIO_REVIEW_QUEUE_SLUG = 'ec-studio-review-queue';
 
-/** Hourly recovery hook for pending submissions that missed their live alert. */
-const EC_STUDIO_REVIEW_NOTIFICATION_CRON = 'ec_studio_recover_review_notifications';
+/**
+ * Retired hourly recovery hook. Editor alerts now come from extrachill-users'
+ * review-notify observer on core's pending transition; the event is cleared.
+ */
+const EC_STUDIO_LEGACY_REVIEW_NOTIFICATION_CRON = 'ec_studio_recover_review_notifications';
 
 /**
  * Register the review-queue admin page under the Posts menu.
@@ -200,34 +203,13 @@ function ec_studio_review_queue_fetch_submissions( int $main_blog_id ): array {
 	return $rows;
 }
 
-/** Ensure missed or bypassed submission alerts are retried hourly. */
-function ec_studio_review_queue_schedule_notification_recovery(): void {
-	if ( ! wp_next_scheduled( EC_STUDIO_REVIEW_NOTIFICATION_CRON ) ) {
-		wp_schedule_event( time() + ( 5 * MINUTE_IN_SECONDS ), 'hourly', EC_STUDIO_REVIEW_NOTIFICATION_CRON );
+/** Clear the retired hourly recovery event left scheduled by earlier versions. */
+function ec_studio_review_queue_clear_legacy_notification_cron(): void {
+	if ( wp_next_scheduled( EC_STUDIO_LEGACY_REVIEW_NOTIFICATION_CRON ) ) {
+		wp_clear_scheduled_hook( EC_STUDIO_LEGACY_REVIEW_NOTIFICATION_CRON );
 	}
 }
-add_action( 'init', 'ec_studio_review_queue_schedule_notification_recovery' );
-
-/** Retry notifications for every pending post; queued actions and receipts deduplicate. */
-function ec_studio_review_queue_recover_notifications(): void {
-	$main_blog_id = ec_studio_review_queue_main_blog_id();
-	if ( $main_blog_id <= 0 || ! function_exists( 'ec_studio_schedule_editor_notification' ) ) {
-		return;
-	}
-
-	foreach ( ec_studio_review_queue_fetch_submissions( $main_blog_id ) as $submission ) {
-		$post_id   = (int) $submission['id'];
-		$author_id = (int) $submission['author_id'];
-		ec_studio_schedule_editor_notification( $post_id, $author_id );
-	}
-}
-add_action( EC_STUDIO_REVIEW_NOTIFICATION_CRON, 'ec_studio_review_queue_recover_notifications' );
-
-/** Remove the recovery event when Studio is deactivated. */
-function ec_studio_review_queue_unschedule_notification_recovery(): void {
-	wp_clear_scheduled_hook( EC_STUDIO_REVIEW_NOTIFICATION_CRON );
-}
-register_deactivation_hook( EXTRACHILL_STUDIO_PLUGIN_FILE, 'ec_studio_review_queue_unschedule_notification_recovery' );
+add_action( 'init', 'ec_studio_review_queue_clear_legacy_notification_cron' );
 
 /**
  * Format an ISO-8601 / MySQL datetime for display in the site's timezone.
