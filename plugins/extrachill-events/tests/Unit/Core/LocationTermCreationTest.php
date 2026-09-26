@@ -17,9 +17,19 @@ final class LocationTermCreationTest extends WP_UnitTestCase {
 
 	public function setUp(): void {
 		parent::setUp();
-		if ( ! taxonomy_exists( 'location' ) ) {
-			register_taxonomy( 'location', 'data_machine_events', array( 'hierarchical' => true ) );
-		}
+		// Always (re-)register hierarchically rather than only registering
+		// `if ( ! taxonomy_exists( 'location' ) )`. Taxonomy registrations
+		// live in $GLOBALS['wp_taxonomies'], a plain PHP array that survives
+		// WP_UnitTestCase's per-test database transaction rollback — an
+		// earlier test in the same managed PHPUnit process that registers
+		// 'location' without `hierarchical => true` (production's real
+		// shape) silently poisons every test that runs after it in that
+		// process, this one included, because taxonomy_exists() alone can't
+		// tell a wrongly-shaped registration from a correct one (#890).
+		// Registering unconditionally means this test always exercises the
+		// real product configuration regardless of what ran before it.
+		register_taxonomy( 'location', 'data_machine_events', array( 'hierarchical' => true ) );
+		$this->assertTrue( is_taxonomy_hierarchical( 'location' ), 'This suite requires the real, hierarchical location taxonomy shape; a wrongly-shaped registration would silently produce false results below.' );
 		extrachill_events_get_location_terms_by_name( true );
 	}
 

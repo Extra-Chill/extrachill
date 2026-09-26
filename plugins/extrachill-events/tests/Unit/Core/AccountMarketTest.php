@@ -61,7 +61,7 @@ final class AccountMarketTest extends TestCase {
 		) {
 			unset( $GLOBALS[ $key ] );
 		}
-		$_GET                       = array();
+		$_GET                        = array();
 		$this->original_current_user = $GLOBALS['current_user'] ?? null;
 		$this->original_wp_query     = $GLOBALS['wp_query'] ?? null;
 		$this->original_blog_id      = $GLOBALS['blog_id'] ?? null;
@@ -70,7 +70,7 @@ final class AccountMarketTest extends TestCase {
 			if ( ! taxonomy_exists( 'location' ) ) {
 				register_taxonomy( 'location', 'post', array( 'hierarchical' => true ) );
 			}
-			$this->ancestor_filter = static function ( $ancestors, $object_id, $object_type ) {
+			$this->ancestor_filter  = static function ( $ancestors, $object_id, $object_type ) {
 				unset( $object_id );
 				return 'location' === $object_type && isset( $GLOBALS['test_term_ancestors'] ) ? $GLOBALS['test_term_ancestors'] : $ancestors;
 			};
@@ -160,8 +160,8 @@ final class AccountMarketTest extends TestCase {
 	private function use_logged_in_user(): void {
 		$GLOBALS['test_current_user_id'] = ++self::$managed_user_id;
 		if ( class_exists( 'WP_User' ) ) {
-			$user     = new WP_User();
-			$user->ID = $GLOBALS['test_current_user_id'];
+			$user                    = new WP_User();
+			$user->ID                = $GLOBALS['test_current_user_id'];
 			$GLOBALS['current_user'] = $user;
 		}
 	}
@@ -273,13 +273,18 @@ final class AccountMarketTest extends TestCase {
 			return null;
 		}
 		if ( ! taxonomy_exists( 'location' ) ) {
-			register_taxonomy( 'location', 'post' );
+			// hierarchical => true matches the real production registration
+			// and this class's own setUp() registration (#890) — leaving it
+			// off here would silently poison any test that runs later in
+			// the same managed PHPUnit process and relies on 'location'
+			// behaving hierarchically.
+			register_taxonomy( 'location', 'post', array( 'hierarchical' => true ) );
 		}
 
-		$original                         = $GLOBALS['wp_query'];
-		$GLOBALS['wp_query']              = clone $original;
-		$GLOBALS['wp_query']->is_tax      = true;
-		$GLOBALS['wp_query']->query_vars  = array(
+		$original                               = $GLOBALS['wp_query'];
+		$GLOBALS['wp_query']                    = clone $original;
+		$GLOBALS['wp_query']->is_tax            = true;
+		$GLOBALS['wp_query']->query_vars        = array(
 			'event_scope' => $scope,
 			'paged'       => $paged,
 		);
@@ -493,8 +498,8 @@ final class AccountMarketTest extends TestCase {
 	public function test_supported_surfaces_are_limited_to_primary_discovery_pages(): void {
 		if ( isset( $GLOBALS['wp_query'] ) && $GLOBALS['wp_query'] instanceof WP_Query ) {
 			$this->use_events_blog();
-			$original_query              = $GLOBALS['wp_query'];
-			$GLOBALS['wp_query']         = clone $original_query;
+			$original_query               = $GLOBALS['wp_query'];
+			$GLOBALS['wp_query']          = clone $original_query;
 			$GLOBALS['wp_query']->is_home = true;
 			$GLOBALS['wp_query']->is_page = false;
 			$this->assertTrue( extrachill_events_supports_account_market() );
@@ -503,8 +508,8 @@ final class AccountMarketTest extends TestCase {
 			$GLOBALS['wp_query']->query_vars = array( 'ec_events_router' => 'all' );
 			$this->assertTrue( extrachill_events_supports_account_market() );
 
-			$GLOBALS['wp_query']->query_vars    = array();
-			$GLOBALS['wp_query']->is_page       = true;
+			$GLOBALS['wp_query']->query_vars     = array();
+			$GLOBALS['wp_query']->is_page        = true;
 			$GLOBALS['wp_query']->queried_object = new WP_Post(
 				(object) array(
 					'ID'        => 77,
@@ -1005,11 +1010,11 @@ final class AccountMarketTest extends TestCase {
 	 */
 	public function test_archive_cta_confirms_current_scene_without_save_form(): void {
 		$this->use_logged_in_user();
-		$GLOBALS['test_is_user_logged_in']      = true;
-		$GLOBALS['test_is_tax']                 = true;
-		$GLOBALS['test_queried_term']           = $this->term( 1618, 'Charleston', 'charleston' );
-		$GLOBALS['test_term_ancestors']         = array( 22, 1 );
-		$GLOBALS['test_term_link']              = 'https://events.example/location/charleston/';
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$GLOBALS['test_is_tax']            = true;
+		$GLOBALS['test_queried_term']      = $this->term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']    = array( 22, 1 );
+		$GLOBALS['test_term_link']         = 'https://events.example/location/charleston/';
 		$this->use_archive_query( $GLOBALS['test_queried_term'] );
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {
@@ -1035,11 +1040,11 @@ final class AccountMarketTest extends TestCase {
 	/** Outcome flashes stay inside the single merged panel with the live toggle. */
 	public function test_archive_flash_statuses_render_outcome_inside_single_panel(): void {
 		$this->use_logged_in_user();
-		$GLOBALS['test_is_user_logged_in']      = true;
-		$GLOBALS['test_is_tax']                 = true;
-		$GLOBALS['test_queried_term']           = $this->term( 1618, 'Charleston', 'charleston' );
-		$GLOBALS['test_term_ancestors']         = array( 22, 1 );
-		$GLOBALS['test_term_link']              = 'https://events.example/location/charleston/';
+		$GLOBALS['test_is_user_logged_in'] = true;
+		$GLOBALS['test_is_tax']            = true;
+		$GLOBALS['test_queried_term']      = $this->term( 1618, 'Charleston', 'charleston' );
+		$GLOBALS['test_term_ancestors']    = array( 22, 1 );
+		$GLOBALS['test_term_link']         = 'https://events.example/location/charleston/';
 		$this->use_archive_query( $GLOBALS['test_queried_term'] );
 		$GLOBALS['test_account_market_ability'] = new class() {
 			public function execute(): array {

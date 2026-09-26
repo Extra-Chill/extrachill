@@ -70,8 +70,15 @@ final class EventsByTermTaxonomyContextTest extends WP_UnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		register_post_type( 'data_machine_events' );
+		// 'location' is registered hierarchical in production (#890);
+		// 'venue' and 'festival' are flat. Registering 'location' without
+		// that flag here would silently poison any test that runs later in
+		// the same managed PHPUnit process and relies on 'location'
+		// behaving hierarchically — taxonomy registrations live in
+		// $GLOBALS['wp_taxonomies'] and are not reset by WP_UnitTestCase's
+		// per-test DB transaction rollback.
 		foreach ( array( 'venue', 'location', 'festival' ) as $taxonomy ) {
-			register_taxonomy( $taxonomy, 'data_machine_events' );
+			register_taxonomy( $taxonomy, 'data_machine_events', array( 'hierarchical' => 'location' === $taxonomy ) );
 		}
 		$GLOBALS['ec_events_by_term_relationships'] = array();
 	}

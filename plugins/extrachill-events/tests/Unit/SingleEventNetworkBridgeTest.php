@@ -43,7 +43,13 @@ final class SingleEventNetworkBridgeTest extends WP_UnitTestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		register_post_type( 'data_machine_events' );
-		register_taxonomy( 'location', 'data_machine_events' );
+		// hierarchical => true matches the real production registration
+		// (#890) — registering it non-hierarchical here would silently
+		// poison any test that runs later in the same managed PHPUnit
+		// process and relies on 'location' behaving hierarchically
+		// (taxonomy registrations live in $GLOBALS['wp_taxonomies'] and are
+		// not reset by WP_UnitTestCase's per-test DB transaction rollback).
+		register_taxonomy( 'location', 'data_machine_events', array( 'hierarchical' => true ) );
 		$GLOBALS['ec_events_bridge_terms']          = array();
 		$GLOBALS['ec_events_by_term_relationships'] = array();
 	}
