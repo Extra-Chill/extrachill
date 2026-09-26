@@ -11,7 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/team-members/role.php';
-require_once __DIR__ . '/team-members/admin-new-post.php';
 require_once __DIR__ . '/team-experience/events.php';
 
 /**
