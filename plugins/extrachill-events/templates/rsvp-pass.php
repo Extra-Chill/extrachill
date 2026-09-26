@@ -13,6 +13,7 @@
  * @var bool   $has_pass  Whether the current viewer already holds an active pass.
  * @var string $code      Pass code, when $has_pass is true.
  * @var string $perk_text Attendee-facing perk description.
+ * @var string $qr_url    QR image URL for $code, when $has_pass is true. Empty otherwise.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,4 +29,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p class="ec-rsvp-pass__perk"><?php echo esc_html( $perk_text ); ?></p>
 	<p class="ec-rsvp-pass__label"><?php esc_html_e( 'Show this pass at the door:', 'extrachill-events' ); ?></p>
 	<p class="ec-rsvp-pass__code"><?php echo esc_html( $code ); ?></p>
+	<img
+		class="ec-rsvp-pass__qr"
+		src="<?php echo $has_pass ? esc_url( $qr_url ) : ''; ?>"
+		alt="<?php esc_attr_e( 'QR code for this pass', 'extrachill-events' ); ?>"
+		width="200"
+		height="200"
+		<?php echo $has_pass ? '' : 'hidden'; ?>
+	>
 </div>

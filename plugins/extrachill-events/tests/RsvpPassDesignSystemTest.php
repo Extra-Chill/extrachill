@@ -30,6 +30,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	private const TEMPLATES = array(
 		'templates/rsvp-pass.php',
 		'templates/door-list.php',
+		'inc/templates/rsvp-verify.php',
 	);
 
 	/**
@@ -41,6 +42,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	private const THEME_CLASSES = array(
 		'ec-surface-card',
 		'ec-card-vertical-padding',
+		'extrachill-content',
 		'notice',
 		'notice-info',
 		'notice-success',
@@ -62,19 +64,29 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 */
 	private const CSS_FREE_CLASSES = array(
 		// Container hook; visual treatment comes entirely from ec-surface-card.
-		'ec-rsvp-pass'          => 'JS/test hook; surface styling from ec-surface-card',
-		'ec-rsvp-pass__perk'    => 'plain text; inherits theme typography',
-		'ec-rsvp-pass__label'   => 'plain text; inherits theme typography',
-		'ec-rsvp-pass__code'    => 'JS write target; plain text',
-		'ec-door-list'          => 'JS/test hook; surface styling from ec-surface-card',
-		'ec-door-list__heading' => 'plain heading; inherits theme typography',
-		'ec-door-list__note'    => 'plain text; inherits theme typography',
-		'ec-door-list__perk'    => 'plain text; inherits theme typography',
-		'ec-door-list__rows'    => 'plain list; no visual treatment needed',
-		'ec-door-list__row'     => 'JS/test hook; layout is a plain list item',
-		'ec-door-list__name'    => 'plain text; inherits theme typography',
-		'ec-door-list__status'  => 'JS write target; plain text',
-		'ec-door-list__redeem'  => 'styled via button-2 button-small; hook for JS only',
+		'ec-rsvp-pass'            => 'JS/test hook; surface styling from ec-surface-card',
+		'ec-rsvp-pass__perk'      => 'plain text; inherits theme typography',
+		'ec-rsvp-pass__label'     => 'plain text; inherits theme typography',
+		'ec-rsvp-pass__code'      => 'JS write target; plain text',
+		'ec-door-list'            => 'JS/test hook; surface styling from ec-surface-card',
+		'ec-door-list__heading'   => 'plain heading; inherits theme typography',
+		'ec-door-list__note'      => 'plain text; inherits theme typography',
+		'ec-door-list__perk'      => 'plain text; inherits theme typography',
+		'ec-door-list__rows'      => 'plain list; no visual treatment needed',
+		'ec-door-list__row'       => 'JS/test hook; layout is a plain list item',
+		'ec-door-list__name'      => 'plain text; inherits theme typography',
+		'ec-door-list__status'    => 'JS write target; plain text',
+		'ec-door-list__redeem'    => 'styled via button-2 button-small; hook for JS only',
+		'ec-rsvp-pass__qr'        => 'JS write target (src set on refresh); bare <img>, no CSS rule needed',
+		'ec-rsvp-verify-page'     => 'page-level hook only; layout comes from extrachill-content',
+		'ec-rsvp-verify'          => 'JS/test hook; surface styling from ec-surface-card',
+		'ec-rsvp-verify__heading' => 'plain heading; inherits theme typography',
+		'ec-rsvp-verify__result'  => 'JS/test hook; data-* attribute carrier for the redeem script',
+		'ec-rsvp-verify__event'   => 'plain text; inherits theme typography',
+		'ec-rsvp-verify__name'    => 'plain text; inherits theme typography',
+		'ec-rsvp-verify__perk'    => 'plain text; inherits theme typography',
+		'ec-rsvp-verify__status'  => 'JS write target; plain text',
+		'ec-rsvp-verify__redeem'  => 'styled via button-2 button-large; hook for JS only',
 	);
 
 	/**

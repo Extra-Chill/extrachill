@@ -11,8 +11,11 @@ function mockApiFetch( implementation ) {
 	global.wp = { apiFetch: jest.fn( implementation ) };
 }
 
-function loadRsvpPass( { eventId } = {} ) {
-	global.ecRsvpPass = { eventId };
+function loadRsvpPass( {
+	eventId,
+	qrBaseUrl = 'https://events.extrachill.com/wp-admin/admin-post.php?action=ec_rsvp_pass_qr&code=',
+} = {} ) {
+	global.ecRsvpPass = { eventId, qrBaseUrl };
 	// The script runs its init immediately (footer-loaded, see source
 	// docblock), so requiring it is sufficient — no DOMContentLoaded to
 	// simulate.
@@ -46,6 +49,7 @@ describe( 'RSVP pass watcher', () => {
 				<p class="ec-rsvp-pass__perk"></p>
 				<p class="ec-rsvp-pass__label">Show this pass at the door:</p>
 				<p class="ec-rsvp-pass__code"></p>
+				<img class="ec-rsvp-pass__qr" src="" alt="QR code for this pass" hidden>
 			</div>`;
 	} );
 
@@ -76,6 +80,25 @@ describe( 'RSVP pass watcher', () => {
 		expect(
 			container.querySelector( '.ec-rsvp-pass__perk' ).textContent
 		).toBe( 'First beer on Extra Chill' );
+	} );
+
+	it( 'sets the QR image src from qrBaseUrl + the pass code (slice 2)', async () => {
+		mockApiFetch( () =>
+			Promise.resolve( { issued: true, code: 'AB CD/EF' } )
+		);
+		loadRsvpPass( { eventId: 42 } );
+
+		fireAttendanceChanged( { eventId: 42, marked: true } );
+		await flushPromises();
+
+		const qr = document
+			.getElementById( 'ec-rsvp-pass-42' )
+			.querySelector( '.ec-rsvp-pass__qr' );
+		expect( qr.hidden ).toBe( false );
+		expect( qr.src ).toBe(
+			'https://events.extrachill.com/wp-admin/admin-post.php?action=ec_rsvp_pass_qr&code=' +
+				encodeURIComponent( 'AB CD/EF' )
+		);
 	} );
 
 	it( 'hides the pass after an ec:attendance-changed(marked: false) event', async () => {
@@ -222,5 +245,88 @@ describe( 'RSVP door list redeem', () => {
 		await flushPromises();
 
 		expect( button.disabled ).toBe( false );
+	} );
+} );
+
+describe( 'RSVP verify page redeem (slice 2, QR scan-to-redeem)', () => {
+	beforeEach( () => {
+		document.body.innerHTML = `
+			<div class="ec-rsvp-verify__result" data-event-id="42" data-user-id="7">
+				<p class="ec-rsvp-verify__name">Chris Gardner</p>
+				<button type="button" class="button-2 button-large ec-rsvp-verify__redeem">Redeem</button>
+				<p class="ec-rsvp-verify__status" hidden></p>
+			</div>`;
+	} );
+
+	afterEach( () => {
+		jest.restoreAllMocks();
+		delete global.wp;
+		delete global.ecRsvpPass;
+	} );
+
+	it( 'reveals the redeemed status and removes the button on success', async () => {
+		mockApiFetch( () =>
+			Promise.resolve( {
+				already_redeemed: false,
+				redeemed_at: '2026-10-21 19:05:00',
+				redeemed_by_user_id: 3,
+			} )
+		);
+		loadRsvpPass( {} );
+
+		document
+			.querySelector( '.ec-rsvp-verify__redeem' )
+			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		await flushPromises();
+
+		expect( global.wp.apiFetch ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				path: '/wp-abilities/v1/abilities/extrachill/redeem-event-pass/run',
+				data: { input: { event_id: 42, user_id: 7 } },
+			} )
+		);
+		expect(
+			document.querySelector( '.ec-rsvp-verify__redeem' )
+		).toBeNull();
+		const status = document.querySelector( '.ec-rsvp-verify__status' );
+		expect( status.hidden ).toBe( false );
+		expect( status.textContent ).toBe( 'Redeemed 2026-10-21 19:05:00' );
+	} );
+
+	it( 'shows "already redeemed" on a second scan without erroring — the exact acceptance scenario', async () => {
+		mockApiFetch( () =>
+			Promise.resolve( {
+				already_redeemed: true,
+				redeemed_at: '2026-10-21 19:05:00',
+				redeemed_by_user_id: 3,
+			} )
+		);
+		loadRsvpPass( {} );
+
+		document
+			.querySelector( '.ec-rsvp-verify__redeem' )
+			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		await flushPromises();
+
+		expect(
+			document.querySelector( '.ec-rsvp-verify__status' ).textContent
+		).toBe( 'Redeemed 2026-10-21 19:05:00' );
+	} );
+
+	it( 're-enables the Redeem button when the request fails', async () => {
+		mockApiFetch( () => Promise.reject( new Error( 'network error' ) ) );
+		loadRsvpPass( {} );
+
+		const button = document.querySelector( '.ec-rsvp-verify__redeem' );
+		button.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		await flushPromises();
+
+		expect( button.disabled ).toBe( false );
+	} );
+
+	it( 'does nothing when there is no verify-page result element on the page', () => {
+		document.body.innerHTML = '<p>not the verify page</p>';
+
+		expect( () => loadRsvpPass( {} ) ).not.toThrow();
 	} );
 } );

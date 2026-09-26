@@ -72,7 +72,7 @@ const ShowList = ( {
 	return (
 		<div className="ec-concert-stats__show-list">
 			{ shows.map( ( show ) => (
-				<ShowCard key={ show.event_id } show={ show } />
+				<ShowCard key={ show.event_id } show={ show } isOwn={ isOwn } />
 			) ) }
 
 			{ loading && <InlineStatus tone="info">Loading...</InlineStatus> }

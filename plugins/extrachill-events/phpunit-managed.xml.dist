@@ -22,6 +22,25 @@
 			     swapped out from under the shared test transaction. -->
 			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
+			<!-- Same reason as the two exclusions above (pure-PHP, own
+			     $wpdb-free URL-function doubles) PLUS a second, sharper
+			     failure mode: this file's own require_once of
+			     inc/core/rsvp-pass-qr.php collides with the real plugin
+			     bootstrap's own require of the same file when the managed
+			     sandbox resolves them to two different physical paths
+			     (e.g. a copied, not symlinked, plugin checkout) — PHP
+			     fatals on "Cannot redeclare function", which aborts the
+			     ENTIRE managed-wordpress suite process before any test
+			     result is even collected (reported upstream as this
+			     suite's "Total: 0"). RsvpPassesTableTest.php/EventPerkTest.php
+			     were already excluded and so never hit this; this file
+			     wasn't, and did. -->
+			<exclude>tests/Unit/Core/RsvpPassQrUrlsTest.php</exclude>
+			<!-- Same reason as RsvpPassQrUrlsTest.php immediately above: this
+			     file's own require_once of inc/core/rsvp-verify-page.php
+			     collides with the real plugin bootstrap's own require of the
+			     same file in this sandbox. -->
+			<exclude>tests/Unit/Core/RsvpVerifyPageCacheTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>

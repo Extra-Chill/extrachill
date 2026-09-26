@@ -127,6 +127,14 @@ function extrachill_events_send_rsvp_pass_email( int $event_id, int $user_id, ar
 /**
  * Build the pass email body HTML.
  *
+ * The QR (slice 2) is a normal remote `<img>` pointing at this plugin's own
+ * QR endpoint (inc/core/rsvp-pass-qr.php), not a base64 data URI — Gmail's
+ * webmail strips `data:` image sources, so a normal hosted URL is the
+ * reliable choice for a transactional email. Rendering degrades cleanly if
+ * the endpoint is unavailable (see extrachill_events_rsvp_pass_qr_url()'s
+ * own guards): the image simply fails to load and the plaintext code below
+ * it remains fully usable on its own.
+ *
  * @param WP_Post $post      Event post.
  * @param string  $perk_text Attendee-facing perk description.
  * @param string  $code      Pass code, as issued.
@@ -142,6 +150,11 @@ function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text
 
 	$html .= '<p>' . esc_html__( 'Show this pass at the door:', 'extrachill-events' ) . '</p>';
 	$html .= '<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">' . esc_html( $code ) . '</p>';
+
+	if ( function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ) {
+		$qr_url = extrachill_events_rsvp_pass_qr_url( $code );
+		$html  .= '<p><img src="' . esc_url( $qr_url ) . '" width="200" height="200" alt="' . esc_attr__( 'QR code for this pass', 'extrachill-events' ) . '"></p>';
+	}
 
 	return $html;
 }

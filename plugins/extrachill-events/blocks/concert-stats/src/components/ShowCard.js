@@ -32,6 +32,7 @@
  * Internal dependencies
  */
 import { formatShortDate } from '../utils/formatDate';
+import RsvpPassBadge from './RsvpPassBadge';
 
 /**
  * Build the taxonomy-badge class list for a venue / city term.
@@ -87,7 +88,14 @@ const TermLink = ( { term, className, taxonomy = null } ) => {
 	return <span className={ finalClass }>{ term.name }</span>;
 };
 
-const ShowCard = ( { show } ) => {
+/**
+ * @param {Object}  props         Component props.
+ * @param {Object}  props.show    Show data.
+ * @param {boolean} [props.isOwn] Whether the viewer owns this My Shows page.
+ *                                An RSVP pass is private to its holder —
+ *                                only rendered for the owner's own view.
+ */
+const ShowCard = ( { show, isOwn = false } ) => {
 	const artists = show.artists && show.artists.length ? show.artists : null;
 	const hasVenue = show.venue && show.venue.name;
 	const hasCity = show.city && show.city.name;
@@ -149,6 +157,9 @@ const ShowCard = ( { show } ) => {
 					</span>
 				) }
 			</span>
+			{ isOwn && 'past' !== show.timing && (
+				<RsvpPassBadge eventId={ show.event_id } />
+			) }
 		</div>
 	);
 };

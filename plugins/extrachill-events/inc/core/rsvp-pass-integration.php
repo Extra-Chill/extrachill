@@ -51,12 +51,14 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 
 	$has_pass = false;
 	$code     = '';
+	$qr_url   = '';
 
 	if ( is_user_logged_in() && class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
 		$pass = \ExtraChillEvents\Core\RsvpPassesTable::find_for_user_event( $post_id, get_current_user_id() );
 		if ( $pass && \ExtraChillEvents\Core\RsvpPassesTable::STATUS_ACTIVE === $pass['status'] ) {
 			$has_pass = true;
 			$code     = (string) $pass['code'];
+			$qr_url   = function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ? extrachill_events_rsvp_pass_qr_url( $code ) : '';
 		}
 	}
 
@@ -139,21 +141,27 @@ function extrachill_events_append_door_list( $content ) {
 add_filter( 'the_content', 'extrachill_events_append_door_list', 20 );
 
 /**
- * Enqueue the pass-watcher / door-list script on perk-enabled event pages.
+ * Enqueue the pass-watcher / door-list / verify-redeem script.
  *
- * Depends on 'wp-api-fetch': WordPress core auto-wires the REST root URL
- * and nonce middleware for that handle on every enqueue (front end
- * included, see wp_default_packages_inline_scripts()), so no custom nonce
- * plumbing is needed here.
+ * Fires on perk-enabled event pages (pass card + door-list redeem) and on
+ * the RSVP verify page (QR-scan redeem, slice 2). Depends on
+ * 'wp-api-fetch': WordPress core auto-wires the REST root URL and nonce
+ * middleware for that handle on every enqueue (front end included, see
+ * wp_default_packages_inline_scripts()), so no custom nonce plumbing is
+ * needed here.
  */
 function extrachill_events_enqueue_rsvp_pass_assets() {
-	if ( ! is_singular( 'data_machine_events' ) ) {
-		return;
-	}
+	$is_verify_page = function_exists( 'extrachill_events_is_rsvp_verify_page' ) && extrachill_events_is_rsvp_verify_page();
+	$post_id        = 0;
 
-	$post_id = get_queried_object_id();
-	if ( ! $post_id || ! extrachill_events_perk_enabled( $post_id ) ) {
-		return;
+	if ( ! $is_verify_page ) {
+		if ( ! is_singular( 'data_machine_events' ) ) {
+			return;
+		}
+		$post_id = get_queried_object_id();
+		if ( ! $post_id || ! extrachill_events_perk_enabled( $post_id ) ) {
+			return;
+		}
 	}
 
 	wp_enqueue_script(
@@ -168,7 +176,8 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 		'extrachill-events-rsvp-pass',
 		'ecRsvpPass',
 		array(
-			'eventId' => $post_id,
+			'eventId'   => $post_id,
+			'qrBaseUrl' => function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ? extrachill_events_rsvp_pass_qr_url( '' ) : '',
 		)
 	);
 }

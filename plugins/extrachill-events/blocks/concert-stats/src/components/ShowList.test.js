@@ -31,7 +31,12 @@ jest.mock( '@extrachill/components', () => {
 	return { ActionRow: Wrapper, InlineStatus: Wrapper };
 } );
 
-jest.mock( './ShowCard', () => ( { show } ) => <div>{ show.title }</div> );
+jest.mock( './ShowCard', () => ( { show, isOwn } ) => (
+	<div>
+		{ show.title }
+		{ isOwn ? ' (owner view)' : '' }
+	</div>
+) );
 
 describe( 'ShowList', () => {
 	beforeAll( () => {
@@ -83,5 +88,44 @@ describe( 'ShowList', () => {
 		expect( container.textContent ).toContain( 'Upcoming 2' );
 		expect( container.textContent ).not.toContain( 'Load More' );
 		await act( async () => root.unmount() );
+	} );
+
+	it( 'threads isOwn through to ShowCard (#877 slice 2 RSVP pass badge gate)', async () => {
+		apiFetch.mockResolvedValue( {
+			shows: [ { event_id: 1, title: 'Owner Show' } ],
+			total: 1,
+			pages: 1,
+			page: 1,
+		} );
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		await act( async () => {
+			root.render(
+				<ShowList userId={ 7 } period="upcoming" year={ 0 } isOwn />
+			);
+			await Promise.resolve();
+		} );
+		expect( container.textContent ).toContain( 'Owner Show (owner view)' );
+		await act( async () => root.unmount() );
+
+		const publicContainer = document.createElement( 'div' );
+		document.body.appendChild( publicContainer );
+		const publicRoot = createRoot( publicContainer );
+
+		await act( async () => {
+			publicRoot.render(
+				<ShowList
+					userId={ 7 }
+					period="upcoming"
+					year={ 0 }
+					isOwn={ false }
+				/>
+			);
+			await Promise.resolve();
+		} );
+		expect( publicContainer.textContent ).toBe( 'Owner Show' );
+		await act( async () => publicRoot.unmount() );
 	} );
 } );
