@@ -345,9 +345,15 @@ function extrachill_events_find_or_create_location_child( string $name, int $par
 			'parent'     => $parent_id,
 			'name'       => $name,
 			'number'     => 1,
+			// Deterministic in case duplicate same-name/same-parent terms
+			// already exist (e.g. from before #890's continent-lookup fix,
+			// or any other insertion race) — always reuse the oldest one
+			// rather than an arbitrary match.
+			'orderby'    => 'term_id',
+			'order'      => 'ASC',
 		)
 	);
-	if ( ! is_wp_error( $existing ) && ! empty( $existing ) && $existing[0] instanceof \WP_Term ) {
+	if ( ! is_wp_error( $existing ) && ! empty( $existing ) && $existing[0] instanceof \WP_Term ) { // @phpstan-ignore instanceof.alwaysTrue (get_terms()'s static return type is narrowed to WP_Term[] here, but a 'terms_clauses'/'get_terms' filter could still inject something else at runtime; kept as a genuine runtime guard.)
 		return $existing[0];
 	}
 
@@ -391,9 +397,31 @@ function extrachill_events_create_location_term_from_venue( string $venue_city, 
 	$parent_id = 0;
 	$continent = extrachill_events_get_country_continent_map()[ $country_name ] ?? '';
 	if ( '' !== $continent ) {
-		$continent_term = get_term_by( 'name', $continent, 'location' );
-		if ( $continent_term instanceof \WP_Term && 0 === (int) $continent_term->parent ) {
-			$parent_id = (int) $continent_term->term_id;
+		// get_term_by( 'name', ... ) queries with orderby=none, number=1 — if
+		// more than one term shares this name (term names are not unique;
+		// only slugs are, via auto-suffixing), which of them it returns is
+		// undefined. A non-root duplicate picked over the real root
+		// continent fails the parent===0 check below, silently leaving
+		// $parent_id at 0 and creating the country (and everything under it)
+		// as a duplicate root instead of reusing the existing continent
+		// branch (#890). Query directly for a root-level match by name so
+		// the result is deterministic regardless of how many same-named
+		// terms exist elsewhere in the tree, and consistently pick the
+		// oldest (lowest term_id) if more than one genuine root duplicate
+		// exists.
+		$continent_terms = get_terms(
+			array(
+				'taxonomy'   => 'location',
+				'name'       => $continent,
+				'parent'     => 0,
+				'hide_empty' => false,
+				'orderby'    => 'term_id',
+				'order'      => 'ASC',
+				'number'     => 1,
+			)
+		);
+		if ( ! is_wp_error( $continent_terms ) && ! empty( $continent_terms ) && $continent_terms[0] instanceof \WP_Term ) { // @phpstan-ignore instanceof.alwaysTrue (same runtime guard as extrachill_events_find_or_create_location_child() above — a 'get_terms' filter could still inject something else at runtime.)
+			$parent_id = (int) $continent_terms[0]->term_id;
 		}
 	}
 
