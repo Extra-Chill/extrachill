@@ -1,4 +1,10 @@
+/**
+ * WordPress dependencies
+ */
 import { createElement, useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ComponentType, ReactElement } from 'react';
 import {
 	BlockShell,
@@ -8,6 +14,9 @@ import {
 } from '@extrachill/components';
 import '@extrachill/components/styles/components.scss';
 
+/**
+ * Internal dependencies
+ */
 import { mountComponent } from './app/mount';
 import { getStudioTabs } from './app/tabs';
 import type { StudioContext, StudioPaneProps } from './types/studio';

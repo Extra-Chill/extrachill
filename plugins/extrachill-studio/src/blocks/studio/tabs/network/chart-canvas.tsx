@@ -6,11 +6,20 @@
  * component never knows about specific datasets — it just renders whatever
  * config it is handed and recreates the chart when that config changes.
  */
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 import type { Chart as ChartType } from 'chart.js';
 
+/**
+ * Internal dependencies
+ */
 import { loadChart, type ChartConfiguration } from './chart-loader';
 
 interface ChartCanvasProps {

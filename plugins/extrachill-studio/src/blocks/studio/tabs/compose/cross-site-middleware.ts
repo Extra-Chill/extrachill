@@ -73,6 +73,9 @@
  * the editor still boots against the local Studio site.
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
 import type { APIFetchMiddleware, APIFetchOptions } from '@wordpress/api-fetch';
 

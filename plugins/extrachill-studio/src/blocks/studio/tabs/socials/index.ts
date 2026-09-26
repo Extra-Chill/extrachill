@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	createElement,
@@ -5,9 +8,15 @@ import {
 	useMemo,
 	useState,
 } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ComponentType, ReactElement } from 'react';
 import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { studioClient } from '../../app/client';
 import type { StudioPaneProps } from '../../types/studio';
 import SocialsSidebar from './sidebar';

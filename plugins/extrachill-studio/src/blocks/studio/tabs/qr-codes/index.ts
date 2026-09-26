@@ -1,5 +1,11 @@
+/**
+ * WordPress dependencies
+ */
 import { __ } from '@wordpress/i18n';
 import { createElement, useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ReactElement, ChangeEvent } from 'react';
 import {
 	ActionRow,
@@ -9,6 +15,9 @@ import {
 	PanelHeader,
 } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { studioClient } from '../../app/client';
 
 const h = createElement as typeof import('react').createElement;

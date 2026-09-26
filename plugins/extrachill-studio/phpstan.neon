@@ -1,3 +1,0 @@
-parameters:
-	stubFiles:
-		- tests/phpstan-external-stubs.php

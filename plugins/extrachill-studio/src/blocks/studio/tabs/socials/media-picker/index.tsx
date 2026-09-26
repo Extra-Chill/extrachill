@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	createElement,
@@ -6,6 +9,9 @@ import {
 	useState,
 	useCallback,
 } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ReactElement, ChangeEvent } from 'react';
 import {
 	ActionRow,
@@ -15,6 +21,9 @@ import {
 } from '@extrachill/components';
 import type { NetworkMediaItem } from '@extrachill/api-client';
 
+/**
+ * Internal dependencies
+ */
 import { studioClient } from '../../../app/client';
 
 const h = createElement as typeof import('react').createElement;

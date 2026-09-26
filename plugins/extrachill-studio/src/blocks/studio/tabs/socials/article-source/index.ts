@@ -1,5 +1,11 @@
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useEffect, useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ChangeEvent, ReactElement } from 'react';
 import {
 	ActionRow,
@@ -8,6 +14,9 @@ import {
 	Panel,
 } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { articlePostsUrl, normalizeArticlePost } from './contract';
 import type { ArticleSource, CoreArticlePost } from './contract';
 

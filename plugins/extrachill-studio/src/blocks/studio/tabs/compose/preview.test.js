@@ -1,5 +1,12 @@
+/* global describe, it, expect, jest */
+/**
+ * External dependencies
+ */
 import fs from 'node:fs';
 import path from 'node:path';
+/**
+ * Internal dependencies
+ */
 import { openComposePreview } from './preview';
 
 const previewLink =

@@ -10,6 +10,9 @@
  *
  * The single in-flight promise is memoized so concurrent charts share one load.
  */
+/**
+ * External dependencies
+ */
 import type { Chart as ChartType, ChartConfiguration } from 'chart.js';
 
 type ChartCtor = typeof ChartType;

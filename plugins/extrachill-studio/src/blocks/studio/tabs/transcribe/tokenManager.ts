@@ -12,7 +12,13 @@
  * @package
  */
 
+/**
+ * WordPress dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
+/**
+ * Internal dependencies
+ */
 import type { SweatpantsToken } from './types';
 
 // The Abilities API exposes its REST surface under /wp-abilities/v1, NOT

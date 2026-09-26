@@ -1,3 +1,6 @@
+/**
+ * External dependencies
+ */
 import type { ReactElement, ReactNode } from 'react';
 
 /**

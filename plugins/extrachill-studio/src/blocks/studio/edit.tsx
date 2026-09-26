@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import { __ } from '@wordpress/i18n';
 import {
 	InspectorControls,
@@ -5,8 +8,14 @@ import {
 	useBlockProps,
 } from '@wordpress/block-editor';
 import { PanelBody, TextareaControl } from '@wordpress/components';
+/**
+ * External dependencies
+ */
 import { Tabs } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { getStudioTabs } from './app/tabs';
 
 interface StudioAttributes {

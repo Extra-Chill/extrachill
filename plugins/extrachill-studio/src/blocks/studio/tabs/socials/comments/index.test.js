@@ -1,3 +1,4 @@
+/* global describe, it, expect, jest, beforeEach, afterEach */
 /* eslint-disable no-undef -- Homeboy's file-scoped ESLint runner does not load the Jest environment. */
 
 /**

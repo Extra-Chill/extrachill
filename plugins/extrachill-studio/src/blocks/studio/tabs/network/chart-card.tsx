@@ -13,7 +13,13 @@
  * Keeping the convention in one component means each chart only decides WHICH
  * state it is in; the presentation stays consistent across all four charts.
  */
+/**
+ * WordPress dependencies
+ */
 import { __ } from '@wordpress/i18n';
+/**
+ * External dependencies
+ */
 import type { ReactElement, ReactNode } from 'react';
 import { InlineStatus, Panel, PanelHeader } from '@extrachill/components';
 

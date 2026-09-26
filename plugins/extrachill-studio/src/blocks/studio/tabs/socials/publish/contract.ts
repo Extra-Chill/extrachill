@@ -1,3 +1,6 @@
+/**
+ * External dependencies
+ */
 import type { SocialPlatformConfig } from '@extrachill/api-client';
 
 export interface ComposerSchemaProperty {

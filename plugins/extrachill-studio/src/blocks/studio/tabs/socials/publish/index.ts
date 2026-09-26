@@ -1,6 +1,12 @@
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement, useRef, useState } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+/**
+ * External dependencies
+ */
 import type { ChangeEvent, ReactElement } from 'react';
 import {
 	ActionRow,
@@ -14,6 +20,9 @@ import type {
 	SocialJobPlatformResult,
 } from '@extrachill/api-client';
 
+/**
+ * Internal dependencies
+ */
 import { studioClient } from '../../../app/client';
 import MediaPicker from '../media-picker';
 import { markLocalRequest } from '../../compose/cross-site-middleware';

@@ -1,3 +1,7 @@
+/* global describe, it, expect */
+/**
+ * External dependencies
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 

@@ -1,3 +1,6 @@
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	createElement,
@@ -5,6 +8,9 @@ import {
 	useEffect,
 	useState,
 } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ReactElement, ChangeEvent } from 'react';
 import {
 	ActionRow,
@@ -14,6 +20,9 @@ import {
 	PanelHeader,
 } from '@extrachill/components';
 
+/**
+ * Internal dependencies
+ */
 import { studioSocialsApi } from '../../../app/client';
 import type { SocialComment } from '../../../app/client';
 

@@ -1,5 +1,11 @@
+/**
+ * WordPress dependencies
+ */
 import { __, sprintf } from '@wordpress/i18n';
 import { createElement } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import type { ReactElement } from 'react';
 import { Badge } from '@extrachill/components';
 

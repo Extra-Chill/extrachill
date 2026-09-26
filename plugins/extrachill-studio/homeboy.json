@@ -2,7 +2,33 @@
   "id": "extrachill-studio",
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "database_type": "mysql",
+      "settings": {
+        "validation_dependencies": [
+          "extrachill-network",
+          "extrachill-users",
+          "extrachill-analytics",
+          "../wp-native-auth"
+        ],
+        "wp_codebox_database_service": {
+          "provider": "external",
+          "engine": "mysql",
+          "allowed_hosts": [
+            "127.0.0.1:3306"
+          ],
+          "secret_env": {
+            "host": "WP_CODEBOX_DB_HOST",
+            "port": "WP_CODEBOX_DB_PORT",
+            "username": "WP_CODEBOX_DB_USER",
+            "password": "WP_CODEBOX_DB_PASSWORD"
+          }
+        },
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wordpress_runtime_php_version": "8.4"
+      }
+    }
   },
   "scopes": {
     "release": {
@@ -19,10 +45,10 @@
     {
       "file": "extrachill-studio.php",
       "pattern": "EXTRACHILL_STUDIO_VERSION',\\s*'([\\d.]+)"
-	},
-	{
-	  "file": "src/blocks/studio/block.json",
-	  "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/studio/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
   ]
 }

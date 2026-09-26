@@ -1,3 +1,7 @@
+/* global describe, it, expect */
+/**
+ * Internal dependencies
+ */
 import {
 	browserComposerSchema,
 	buildComposerRequest,
