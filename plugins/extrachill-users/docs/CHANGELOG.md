@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.45.1] - 2026-09-26
+
+### Fixed
+- steer team members off non-main wp-admin New Post into Studio
+
 ## [0.45.0] - 2026-09-25
 
 ### Added
