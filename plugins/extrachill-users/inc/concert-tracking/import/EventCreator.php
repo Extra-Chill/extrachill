@@ -133,9 +133,9 @@ final class EventCreator {
 	 *     available so address-based dedupe matches the existing creation paths
 	 *     (Ticketmaster, Dice.fm, scraper) — and falls back to `wp_insert_term`
 	 *     when the helper is not loaded.
-	 *   - Find-or-creates the artist term and assigns it. The artist taxonomy
-	 *     has no public find-or-create helper, so we use `wp_insert_term`
-	 *     directly with smart-lookup variations.
+	 *   - Find-or-creates the artist term and assigns it through Data
+	 *     Machine's `datamachine/resolve-term` ability with fuzzy matching
+	 *     (see ensure_artist_term()).
 	 *   - Stamps `_dm_import_source` + `_dm_import_external_id` for audit and
 	 *     idempotency on re-import.
 	 *
