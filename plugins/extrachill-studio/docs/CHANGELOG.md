@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.11] - 2026-09-26
+
+### Fixed
+- network-wide stranded-post detection and editor alerts
+
 ## [0.27.10] - 2026-09-25
 
 ### Fixed
