@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.12] - 2026-09-26
+
+### Fixed
+- remove the network-wide stranded-post scan and alerts (reverts #212)
+
 ## [0.27.11] - 2026-09-26
 
 ### Fixed
