@@ -1,10 +1,13 @@
 # Continuous release pipeline.
 #
-# Triggers on every push to main. Homeboy derives the version from the
-# conventional commits since the last tag (fix: -> patch, feat: -> minor,
-# BREAKING CHANGE -> major; chore:/ci:/docs:/test: -> no release), runs the
-# repository quality gates, then tags, generates the changelog, creates the
-# GitHub Release and attaches the built artifact.
+# Triggers on every push to main. Homeboy's release check decides whether the
+# commits since the last tag are releasable and picks the bump (feat: ->
+# minor, BREAKING CHANGE -> major, otherwise patch), runs the repository
+# quality gates, then tags, generates the changelog, creates the GitHub
+# Release and attaches the built artifact. Do not assume a commit prefix
+# skips the release: ci: and test: merges have cut patch releases here
+# (v0.27.15, v0.27.14). Every release is then deployed to production by
+# extrachill-network's deploy workflow.
 #
 # The whole pipeline lives in the reusable workflow — releasable-commit
 # detection, dry-run version prediction, failed-SHA retry protection, and
