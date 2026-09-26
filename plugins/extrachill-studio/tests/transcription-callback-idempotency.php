@@ -124,6 +124,8 @@ function update_post_meta( $post_id, $key, $value ) {
 function ec_studio_emit_team_experience_event() { return ++$GLOBALS['callback_analytics']; }
 function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
 function get_edit_post_link( $post_id ) { return 'https://example.com/edit/' . $post_id; }
+function get_home_url( $blog_id = null, $path = '' ) { unset( $blog_id ); return 'https://studio.example.com' . $path; }
+function home_url( $path = '' ) { return 'https://studio.example.com' . $path; }
 function ec_studio_transcription_render_completion_email() { return '<p>Ready</p>'; }
 function ec_send_email() {
 	++$GLOBALS['callback_email_attempts'];
