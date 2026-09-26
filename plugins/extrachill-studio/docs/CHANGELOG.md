@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.27.13] - 2026-09-26
+
+### Changed
+- drop Studio's own editor alert and hourly sweep in favor of core's pending transition
+
 ## [0.27.12] - 2026-09-26
 
 ### Fixed
