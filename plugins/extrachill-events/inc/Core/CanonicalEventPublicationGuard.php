@@ -232,7 +232,12 @@ class CanonicalEventPublicationGuard {
 			return true;
 		}
 
-		$publication = $this->publication_from_post( (object) $postarr, $postarr, $post_id );
+		// wp_insert_post_empty_content receives the still-slashed input
+		// (wp_insert_post unslashes after this filter). Parse the unslashed
+		// values, or block JSON containing an escaped quote reads as invalid
+		// and a correctly saved event is refused (data-machine-events#870).
+		$unslashed   = wp_unslash( $postarr );
+		$publication = $this->publication_from_post( (object) $unslashed, $unslashed, $post_id );
 		$result      = null === $publication || is_wp_error( $publication )
 			? $publication
 			: $this->acquire_for_publication( $publication['venue_id'], $publication['start_at'], $publication['end_at'], $post_id, 0, $publication['_candidate_intervals'] );

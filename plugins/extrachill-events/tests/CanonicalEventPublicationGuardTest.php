@@ -174,6 +174,29 @@ final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 		$this->assertSame( 1, $this->release_count() );
 	}
 
+	public function test_direct_insert_parses_unslashed_content(): void {
+		// wp_insert_post_empty_content receives slashed input. Block JSON with an
+		// escaped quote must be read after unslashing, or a valid event is
+		// refused as an invalid datetime (data-machine-events#870).
+		$content = '<!-- wp:data-machine-events/event-details {"startDate":"2030-08-01","startTime":"16:00","endTime":"19:00","performer":"Christone \\"Kingfish\\" Ingram"} /-->';
+		$GLOBALS['ec_artist_test']['parsed_blocks'][ $content ] = array(
+			array(
+				'blockName' => 'data-machine-events/event-details',
+				'attrs'     => array( 'startDate' => '2030-08-01', 'startTime' => '16:00', 'endTime' => '19:00', 'performer' => 'Christone "Kingfish" Ingram' ),
+			),
+		);
+		$guard   = new CanonicalEventPublicationGuard();
+		$postarr = array(
+			'post_type'    => 'data_machine_events',
+			'post_status'  => 'publish',
+			'post_content' => addslashes( $content ),
+			'tax_input'    => array( 'venue' => array( 55 ) ),
+		);
+
+		$this->assertFalse( $guard->preflight_direct_post_insert( false, $postarr ) );
+		$guard->release();
+	}
+
 	public function test_dme_fence_and_completion_require_bound_post_identity(): void {
 		$guard = new CanonicalEventPublicationGuard();
 		$context = $this->dme_context( $this->dme_input() );
