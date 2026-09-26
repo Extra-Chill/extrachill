@@ -2,38 +2,29 @@
 /**
  * Stranded-submission detector — the observability half of born-on-main (#110).
  *
- * Editorial blog posts are meant to be BORN ON MAIN (blog 1) via the compose
- * proxy. #106/#107 hardened *prevention* (per-request markers + a server 409
- * guard). This file adds *detection*: a scan for `post` entries that look like
+ * Studio lives on the Studio subsite (blog 12); editorial blog posts are meant
+ * to be BORN ON MAIN (blog 1) via the compose proxy. #106/#107 hardened
+ * *prevention* (per-request markers + a server 409 guard). This file adds
+ * *detection*: a scan of the Studio subsite for `post` entries that look like
  * stranded editorial content — a real article that should have landed on main
  * but didn't — so a stranding is caught in hours by a report, not by chance
  * weeks later (as the Steve Hughes submission, post 88, was).
  *
- * Originally the scan covered only the Studio subsite (blog 12). #210 widened
- * it to EVERY non-main live site on the network: team-authored posts created
- * through wp-admin on community/events/wire/etc. strand just as surely as a
- * mis-routed compose write on Studio (a pending community recap sat unseen
- * for ~27h before this existed).
- *
  * Two observability surfaces live in the compose layer:
- *   - This scan (WP-CLI `wp extrachill-studio detect-strandings`, plus the
- *     review-queue page and its hourly recovery cron), which inspects every
- *     non-main live site for candidate strandings.
+ *   - This scan (WP-CLI `wp extrachill-studio detect-strandings`), which
+ *     inspects blog 12 for candidate strandings.
  *   - The #107 guard's rejection counter (see rest.php), which records when a
  *     compose-marked local write is blocked so a recurring routing miss is
  *     visible. This command also prints that counter.
  *
  * WHAT COUNTS AS A CANDIDATE STRANDING
  * ------------------------------------
- * A `post` (post_type=post, in draft/pending/publish/future/private — never
- * auto-draft or trash) on any NON-MAIN live site that:
- *   - is NOT a social draft (social drafts legitimately live on the Studio
- *     subsite and carry `_studio_social_*` meta — see inc/social-drafts.php);
- *     AND
+ * A blog-12 `post` (post_type=post) that:
+ *   - is NOT a social draft (social drafts legitimately live on blog 12 and
+ *     carry `_studio_social_*` meta — see inc/social-drafts.php); AND
  *   - looks like real editorial content: substantial body text OR an attached
  *     image / featured image; AND
- *   - is authored by an Extra Chill team member (the people who use compose
- *     and wp-admin).
+ *   - is authored by an Extra Chill team member (the people who use compose).
  *
  * These are heuristics, deliberately tuned to flag rather than to be certain —
  * the output is a candidate list for a human/agent to eyeball, not an
@@ -49,30 +40,18 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Minimum rendered-text length (characters) for a post body to be considered
- * "substantial" editorial content. Short posts with no media are far more
- * likely to be scratch/social scaffolding than a stranded article.
+ * "substantial" editorial content. Short blog-12 posts with no media are far
+ * more likely to be scratch/social scaffolding than a stranded article.
  */
 const EC_STUDIO_STRAND_MIN_CONTENT_LEN = 200;
 
 /**
- * Post statuses that can hold a stranded editorial post.
+ * Scan the Studio subsite for candidate stranded editorial submissions.
  *
- * Deliberately exhaustive over the editorial lifecycle — including `publish`,
- * because a post published on the wrong site is stranded too. `auto-draft` and
- * `trash` are excluded by construction: an unsaved shell and a deleted post
- * are not strandings and must never alert an editor.
- */
-const EC_STUDIO_STRAND_STATUSES = array( 'draft', 'pending', 'publish', 'future', 'private' );
-
-/**
- * Scan the CURRENT site for candidate stranded editorial submissions.
- *
- * Returns a list of posts (on whichever blog is current) that look like
- * editorial content authored by a team member and are NOT social drafts.
- * Runs in the CURRENT blog context — the network scan
- * ({@see ec_studio_detect_network_strandings()}) switches blogs around this,
- * so the caller is responsible for being on the site it wants scanned. This
- * keeps the per-site heuristics reusable outside WP-CLI too.
+ * Returns a list of blog-12 posts that look like editorial content authored by
+ * a team member and are NOT social drafts. Runs in the CURRENT blog context
+ * (the caller is responsible for being on / switching to the Studio subsite),
+ * so it is reusable outside WP-CLI too.
  *
  * @since 0.20.1
  *
@@ -81,7 +60,7 @@ const EC_STUDIO_STRAND_STATUSES = array( 'draft', 'pending', 'publish', 'future'
  *
  *     @type int $min_content_len Minimum content length to treat as substantial.
  *                                Default EC_STUDIO_STRAND_MIN_CONTENT_LEN.
- *     @type int $limit           Max posts to inspect PER SITE. Default 500.
+ *     @type int $limit           Max posts to inspect. Default 500.
  * }
  * @return array<int, array<string, mixed>> Candidate strandings; each entry has
  *                                           id, title, author, author_id, date,
@@ -94,9 +73,9 @@ function ec_studio_detect_strandings( array $args = array() ): array {
 	$query = new \WP_Query(
 		array(
 			'post_type'              => 'post',
-			// Any editorial lifecycle state — a stranding can be draft, pending,
-			// or even published-on-the-wrong-site. Never auto-draft or trash.
-			'post_status'            => EC_STUDIO_STRAND_STATUSES,
+			// Any lifecycle state — a stranding can be draft, pending, or even
+			// published-on-the-wrong-site.
+			'post_status'            => array( 'draft', 'pending', 'publish', 'future', 'private' ),
 			'posts_per_page'         => $limit,
 			'orderby'                => 'date',
 			'order'                  => 'DESC',
@@ -154,118 +133,6 @@ function ec_studio_detect_strandings( array $args = array() ): array {
 	}
 
 	return $candidates;
-}
-
-/**
- * Scan EVERY non-main live site on the network for candidate strandings.
- *
- * #210: the per-site scan only sees one blog, so a team-authored editorial
- * `post` stranded on community/events/wire/artist/etc. (created through
- * wp-admin's + New, not the compose proxy) was invisible to every editorial
- * safety net — a pending community recap sat unseen for ~27h. This wrapper
- * iterates the network, switches per site, and tags each candidate with its
- * `blog_id` + `site_name` so every surface (CLI, review queue, hourly alert)
- * can name where the post is stuck.
- *
- * Scope:
- *   - Sites: `get_sites()` excluding archived/deleted (and spam), mirroring
- *     the canonical `ec_get_all_site_ids()` maintenance pattern. MAIN is
- *     always skipped — posts on main are where editorial content belongs.
- *     Studio IS scanned: its social-draft exclusion is what keeps legitimate
- *     social drafts out.
- *   - Bounded: the per-site `limit` (default 500) bounds each site's query;
- *     the scan never runs unbounded queries.
- *   - Each site is visited under `switch_to_blog()` with
- *     `restore_current_blog()` in a `finally`, so a throwing site can never
- *     leave the request stuck on the wrong blog.
- *
- * @since 0.28.0
- *
- * @param array $args {
- *     Optional. Scan tuning, forwarded to
- *     {@see ec_studio_detect_strandings()} per site.
- *
- *     @type int $min_content_len Minimum content length to treat as substantial.
- *                                Default EC_STUDIO_STRAND_MIN_CONTENT_LEN.
- *     @type int $limit           Max posts to inspect PER SITE. Default 500.
- * }
- * @return array<int, array<string, mixed>> Candidate strandings; each entry has
- *                                           id, title, author, author_id, date,
- *                                           status, reason, blog_id, site_name.
- */
-function ec_studio_detect_network_strandings( array $args = array() ): array {
-	if ( ! function_exists( 'get_sites' ) ) {
-		return array();
-	}
-
-	$main_blog_id = ec_studio_strand_main_blog_id();
-
-	$sites = get_sites(
-		array(
-			'fields'   => 'all',
-			'number'   => 0,
-			'archived' => 0,
-			'deleted'  => 0,
-			'spam'     => 0,
-		)
-	);
-
-	$candidates = array();
-
-	foreach ( $sites as $site ) {
-		// fields=all guarantees WP_Site objects.
-		$blog_id = (int) $site->blog_id;
-
-		// Main is the correct home for editorial posts — never a stranding.
-		if ( $blog_id <= 0 || $blog_id === $main_blog_id ) {
-			continue;
-		}
-
-		switch_to_blog( $blog_id );
-		try {
-			$site_name = (string) get_option( 'blogname' );
-
-			foreach ( ec_studio_detect_strandings( $args ) as $candidate ) {
-				$candidate['blog_id']   = $blog_id;
-				$candidate['site_name'] = $site_name;
-				$candidates[]           = $candidate;
-			}
-		} finally {
-			restore_current_blog();
-		}
-	}
-
-	return $candidates;
-}
-
-/**
- * Resolve the main site's blog id for the strand scan.
- *
- * Prefers the canonical `ec_get_blog_id( 'main' )` (extrachill-network), then
- * the network's primary site id, and finally treats the current blog as main
- * (single-site/dev installs: the one site IS main, so nothing is excluded
- * wrongly and the scan finds no non-main sites to walk).
- *
- * @since 0.28.0
- *
- * @return int Main blog id, or the current blog id when main is unresolvable.
- */
-function ec_studio_strand_main_blog_id(): int {
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		$main = (int) ec_get_blog_id( 'main' );
-		if ( $main > 0 ) {
-			return $main;
-		}
-	}
-
-	if ( function_exists( 'get_network' ) ) {
-		$network = get_network();
-		if ( $network && (int) $network->site_id > 0 ) {
-			return (int) $network->site_id;
-		}
-	}
-
-	return (int) get_current_blog_id();
 }
 
 /**

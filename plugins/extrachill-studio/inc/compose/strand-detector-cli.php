@@ -1,11 +1,10 @@
 <?php
 /**
- * WP-CLI command for the stranded-submission detector (#110, #210).
+ * WP-CLI command for the stranded-submission detector (#110).
  *
- * Registers `wp extrachill-studio detect-strandings`, which scans EVERY
- * non-main live site on the network for `post` entries that look like
- * stranded editorial content and prints them, plus the #107 guard-rejection
- * counter.
+ * Registers `wp extrachill-studio detect-strandings`, which scans the Studio
+ * subsite (blog 12) for `post` entries that look like stranded editorial
+ * content and prints them, plus the #107 guard-rejection counter.
  *
  * @package    ExtraChillStudio
  * @subpackage Compose
@@ -19,21 +18,20 @@ if ( ! class_exists( 'WP_CLI' ) ) {
 }
 
 /**
- * Detect editorial submissions stranded on any non-main network site.
+ * Detect editorial submissions stranded on the Studio subsite.
  *
  * @since 0.20.1
  */
 class EC_Studio_Strand_Detector_CLI {
 
 	/**
-	 * Scan every non-main live site for candidate stranded editorial submissions.
+	 * Scan the Studio subsite for candidate stranded editorial submissions.
 	 *
 	 * Editorial blog posts are meant to be born on main (blog 1); a `post` on
-	 * ANY other site with substantial content/images by a team member — and no
-	 * social-draft meta — is a candidate stranding. Originally this command
-	 * only inspected the Studio subsite (#110); since #210 it walks the whole
-	 * network, because wp-admin-created posts on community/events/wire/etc.
-	 * strand just as surely as a mis-routed compose write on Studio.
+	 * the Studio subsite (blog 12) with substantial content/images by a team
+	 * member — and no social-draft meta — is a candidate stranding. Running
+	 * this against blog 12 would have surfaced the Steve Hughes submission
+	 * (post 88) instead of it being found by accident.
 	 *
 	 * ## OPTIONS
 	 *
@@ -44,7 +42,7 @@ class EC_Studio_Strand_Detector_CLI {
 	 * ---
 	 *
 	 * [--limit=<count>]
-	 * : Maximum number of posts to inspect PER SITE.
+	 * : Maximum number of Studio-subsite posts to inspect.
 	 * ---
 	 * default: 500
 	 * ---
@@ -63,7 +61,7 @@ class EC_Studio_Strand_Detector_CLI {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     # Report candidate strandings across the network.
+	 *     # Report candidate strandings on the Studio subsite.
 	 *     $ wp extrachill-studio detect-strandings --url=studio.extrachill.com
 	 *
 	 *     # Machine-readable output for a scheduled check.
@@ -76,11 +74,13 @@ class EC_Studio_Strand_Detector_CLI {
 	 * @return void
 	 */
 	public function __invoke( $args, $assoc_args ) {
+		$this->assert_on_studio_subsite();
+
 		$min_len = isset( $assoc_args['min-content-len'] ) ? (int) $assoc_args['min-content-len'] : EC_STUDIO_STRAND_MIN_CONTENT_LEN;
 		$limit   = isset( $assoc_args['limit'] ) ? (int) $assoc_args['limit'] : 500;
 		$format  = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
 
-		$candidates = ec_studio_detect_network_strandings(
+		$candidates = ec_studio_detect_strandings(
 			array(
 				'min_content_len' => $min_len,
 				'limit'           => $limit,
@@ -93,15 +93,11 @@ class EC_Studio_Strand_Detector_CLI {
 
 		if ( empty( $candidates ) ) {
 			if ( in_array( $format, array( 'json', 'csv', 'yaml' ), true ) ) {
-				\WP_CLI\Utils\format_items(
-					$format,
-					array(),
-					array( 'blog_id', 'site_name', 'id', 'title', 'author', 'author_id', 'date', 'status', 'reason' )
-				);
+				\WP_CLI\Utils\format_items( $format, array(), array( 'id', 'title', 'author', 'author_id', 'date', 'status', 'reason' ) );
 			} elseif ( 'count' === $format ) {
 				\WP_CLI::line( '0' );
 			} else {
-				\WP_CLI::success( 'No candidate strandings found on any network site.' );
+				\WP_CLI::success( 'No candidate strandings found on the Studio subsite.' );
 			}
 			return;
 		}
@@ -109,14 +105,45 @@ class EC_Studio_Strand_Detector_CLI {
 		\WP_CLI\Utils\format_items(
 			$format,
 			$candidates,
-			array( 'blog_id', 'site_name', 'id', 'title', 'author', 'author_id', 'date', 'status', 'reason' )
+			array( 'id', 'title', 'author', 'author_id', 'date', 'status', 'reason' )
 		);
 
 		if ( ! in_array( $format, array( 'json', 'csv', 'yaml', 'count' ), true ) ) {
 			\WP_CLI::warning(
 				sprintf(
-					'%d candidate stranding(s) found across the network. Each is a `post` that looks like editorial content but is not on main — review and, if confirmed, recover via the extrachill-multisite migration primitive.',
+					'%d candidate stranding(s) found on the Studio subsite. Each is a `post` that looks like editorial content but is not on main — review and, if confirmed, recover via the extrachill-multisite migration primitive.',
 					count( $candidates )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Fail fast unless we're running against the Studio subsite.
+	 *
+	 * The detector only makes sense on blog 12; running it on main would scan
+	 * legitimate editorial posts and flag everything. When the multisite helper
+	 * is available we assert the current blog IS the Studio subsite.
+	 *
+	 * @return void
+	 */
+	private function assert_on_studio_subsite() {
+		if ( ! function_exists( 'ec_get_blog_id' ) ) {
+			// Can't resolve — warn but proceed, so the command still works on a
+			// single-site/dev install.
+			\WP_CLI::warning( 'extrachill-multisite not available; cannot confirm this is the Studio subsite. Proceeding against the current site.' );
+			return;
+		}
+
+		$studio_blog_id  = (int) ec_get_blog_id( 'studio' );
+		$current_blog_id = (int) get_current_blog_id();
+
+		if ( $studio_blog_id > 0 && $current_blog_id !== $studio_blog_id ) {
+			\WP_CLI::error(
+				sprintf(
+					'This scan must run against the Studio subsite (blog %d), but the current site is blog %d. Re-run with --url=studio.extrachill.com',
+					$studio_blog_id,
+					$current_blog_id
 				)
 			);
 		}
