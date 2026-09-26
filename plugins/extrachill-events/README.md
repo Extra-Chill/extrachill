@@ -149,6 +149,32 @@ npm run build  # Production build of blocks
 # Output: Only /build/extrachill-events.zip file
 ```
 
+## Network E2E journeys
+
+This repository keeps no network-boot / browser E2E harnesses of its own —
+[Extra-Chill/extrachill-network](https://github.com/Extra-Chill/extrachill-network)'s
+Homeboy rig is the only home for those (extrachill-network#291). The
+`gardner-venue-booking`, `booking-invariants`, `venue-booking-console`,
+`venue-claim-and-discovery`, and `near-me-and-my-shows` journeys under that
+rig's `rigs/extrachill-network/journeys/` exercise this plugin's booking,
+venue-claim, and discovery surfaces on a real 11-site network boot.
+
+To test an unreleased branch of this plugin against those journeys, run the
+network rig with `extrachill_component_source_overrides.extrachill-events`
+pointed at your checkout and `extrachill_journeys` selecting the journeys
+that exercise your change:
+
+```bash
+HOMEBOY_SETTINGS_JSON='{
+  "extrachill_theme_source": "/path/to/extrachill-theme-checkout",
+  "extrachill_journeys": ["gardner-venue-booking", "booking-invariants", "venue-booking-console", "venue-claim-and-discovery", "near-me-and-my-shows"],
+  "extrachill_component_source_overrides": { "extrachill-events": "/abs/path/to/this/checkout" }
+}' homeboy rig up extrachill-network
+```
+
+See that rig's own README for the full journey contract, settings, and the
+reusable `homeboy-action` rig workflow integration point for CI.
+
 ## Architecture
 
 ### Plugin Loading Pattern

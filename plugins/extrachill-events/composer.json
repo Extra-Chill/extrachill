@@ -16,9 +16,7 @@
     "scripts": {
         "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
         "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
-        "test": "vendor/bin/phpunit",
-        "test:booking-network-e2e": "node tests/NetworkE2E/booking/run.mjs",
-        "test:gardner-venue-booking": "wp-codebox recipe-run --recipe tests/wp-codebox/gardner-venue-booking.json --timeout 20m --json"
+        "test": "vendor/bin/phpunit"
     },
     "config": {
         "platform": {
