@@ -203,6 +203,7 @@ if ( ! $promoter_mode ) {
 		array(
 			'venues'             => $managed_venues,
 			'claim_venues'       => $claim_venues,
+			'missing_venue_url'  => ( function_exists( 'ec_get_site_url' ) && ec_get_site_url( 'main' ) ? ec_get_site_url( 'main' ) : home_url() ) . '/contact-us/?subject=venue-link-page',
 			'selected_venue'     => $selected,
 			'can_access'         => $can_access,
 			'can_manage'         => $can_manage,

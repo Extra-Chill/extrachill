@@ -98,10 +98,15 @@ export function ClaimsTab( { claims, venues, onRefresh } ) {
 	);
 }
 
-export function ClaimPanel( { venues, membership, initialVenueId = 0 } ) {
-	const [ venueId, setVenueId ] = useState(
-		initialVenueId || venues[ 0 ]?.id || 0
-	);
+export function ClaimPanel( {
+	venues,
+	membership,
+	initialVenueId = 0,
+	missingVenueUrl = '',
+} ) {
+	// No default pick: preselecting the first venue alphabetically made it easy
+	// for a new owner to claim someone else's venue without noticing.
+	const [ venueId, setVenueId ] = useState( initialVenueId || 0 );
 	const [ status, setStatus ] = useState( null );
 	const submit = async ( event ) => {
 		event.preventDefault();
@@ -112,7 +117,10 @@ export function ClaimPanel( { venues, membership, initialVenueId = 0 } ) {
 			} );
 			setStatus( {
 				tone: 'success',
-				message: `Claim ${ claim.status }. An administrator will review it.`,
+				message:
+					'pending' === claim.status
+						? "Thanks! We'll review your claim and let you know once your venue is ready to manage."
+						: `Claim ${ claim.status }.`,
 			} );
 		} catch ( error ) {
 			setStatus( {
@@ -124,8 +132,8 @@ export function ClaimPanel( { venues, membership, initialVenueId = 0 } ) {
 	return (
 		<Panel>
 			<PanelHeader
-				title="Request venue access"
-				description="Claim an existing canonical venue profile. Approval creates the first owner membership."
+				title="Claim your venue"
+				description="Pick your venue to manage its page, calendar, and Link Page. We review every claim before handing over the keys."
 			/>
 			{ membership && (
 				<InlineStatus tone="warning">
@@ -142,6 +150,7 @@ export function ClaimPanel( { venues, membership, initialVenueId = 0 } ) {
 							setVenueId( Number( event.target.value ) )
 						}
 					>
+						<option value={ 0 }>Choose your venue…</option>
 						{ venues.map( ( venue ) => (
 							<option key={ venue.id } value={ venue.id }>
 								{ venue.name }
@@ -159,6 +168,13 @@ export function ClaimPanel( { venues, membership, initialVenueId = 0 } ) {
 					</button>
 				</ActionRow>
 			</form>
+			{ missingVenueUrl && (
+				<p className="ec-venue-claim__missing">
+					Don&apos;t see your venue?{ ' ' }
+					<a href={ missingVenueUrl }>Tell us about it</a> and
+					we&apos;ll add it.
+				</p>
+			) }
 			<Status state={ status } />
 		</Panel>
 	);

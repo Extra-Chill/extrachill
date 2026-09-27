@@ -563,6 +563,7 @@ export function VenueSettingsApp( { context } ) {
 					venues={ context.claim_venues }
 					membership={ selected }
 					initialVenueId={ context.requested_venue_id }
+					missingVenueUrl={ context.missing_venue_url }
 				/>
 			);
 		}
@@ -574,6 +575,7 @@ export function VenueSettingsApp( { context } ) {
 					venues={ context.claim_venues }
 					membership={ selected }
 					initialVenueId={ context.requested_venue_id }
+					missingVenueUrl={ context.missing_venue_url }
 				/>
 			);
 		}
