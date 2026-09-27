@@ -9,13 +9,13 @@ namespace ExtraChillEvents\Providers;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Registers the promoter adapter only after complete standalone API-v3 readiness. */
+/** Registers the promoter adapter only after complete standalone runtime (API v3 or v4) readiness. */
 final class PromoterLinkPagesProvider {
 
 	/** @var bool */
 	private static $registered = false;
 
-	/** Defer until the venue adapter's complete API-v3 preflight can run. */
+	/** Defer until the venue adapter's complete runtime preflight can run. */
 	public static function register(): void {
 		if ( self::$registered ) {
 			return;

@@ -135,6 +135,8 @@ jobs:
         if: ${{ matrix.command == 'review test' }}
         run: |
           vendor/bin/phpunit --configuration phpunit.xml.dist tests/VenueLinkPagesCoordinatedRuntimeTest.php
+          vendor/bin/phpunit --configuration phpunit.xml.dist tests/VenueLinkPagesRuntimeVersionContractTest.php
+          vendor/bin/phpunit --configuration phpunit.xml.dist tests/VenueSettingsRenderLinkPagesDegradationTest.php
           vendor/bin/phpunit --configuration phpunit.xml.dist tests/PromoterLinkPagesCoordinatedRuntimeTest.php
 
       - name: Select managed WordPress suite

@@ -10,7 +10,7 @@ namespace ExtraChillEvents\Providers;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Defers Events adapters until the standalone API-v3 runtime is complete.
+ * Defers Events adapters until the standalone runtime (API v3 or v4) is complete.
  *
  * TODO: Add the native plugin dependency after Link Pages PR #4 is merged,
  * released, and installed across the deployment stack.
@@ -72,7 +72,13 @@ final class VenueLinkPagesProvider {
 	}
 
 	/**
-	 * Validate configured activation and the complete standalone API-v3 marker.
+	 * Validate configured activation and the complete standalone runtime marker.
+	 *
+	 * Accepts runtime API version '3' or '4' (extrachill-link-pages.php:861).
+	 * Version '4' additionally requires `ec_link_page_post_type()`, the
+	 * post-type resolver that replaced the pinned `artist_link_page` literal
+	 * (extrachill-link-pages PR #34/#35) — every other function this class
+	 * depends on kept its v3 signature across the v3→v4 bump.
 	 *
 	 * Runs on `plugins_loaded` (before `init`), so every branch here must return
 	 * an UNTRANSLATED error message. Translating on `plugins_loaded` trips core's
@@ -87,8 +93,12 @@ final class VenueLinkPagesProvider {
 			return new \WP_Error( 'venue_link_pages_runtime_not_configured', 'Extra Chill Link Pages must be active before venue Link Pages can load.' );
 		}
 		$runtime_version = defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ? constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) : null;
-		if ( '3' !== $runtime_version ) {
-			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.' );
+		if ( ! in_array( $runtime_version, array( '3', '4' ), true ) ) {
+			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
+		}
+		// @phpstan-ignore identical.alwaysTrue (contract validation: the currently pinned dependency happens to define the constant as '4', but this branch must keep comparing explicitly so a future runtime regression is still caught.)
+		if ( '4' === $runtime_version && ! function_exists( 'ec_link_page_post_type' ) ) {
+			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
 		}
 		$signatures        = array(
 			'ec_validate_link_pages_runtime'               => array( 1, 0 ),
@@ -129,11 +139,11 @@ final class VenueLinkPagesProvider {
 		$user_functions    = array_map( 'strtolower', $defined_functions['user'] );
 		foreach ( $signatures as $function => $arity ) {
 			if ( ! in_array( strtolower( $function ), $user_functions, true ) ) {
-				return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.' );
+				return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
 			}
 			$reflection = new \ReflectionFunction( $function );
 			if ( $arity[0] !== $reflection->getNumberOfParameters() || $arity[1] !== $reflection->getNumberOfRequiredParameters() ) {
-				return new \WP_Error( 'venue_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages API-v3 runtime has an incompatible signature.', array( 'function' => $function ) );
+				return new \WP_Error( 'venue_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime has an incompatible signature.', array( 'function' => $function ) );
 			}
 		}
 		$storage_callback = 'ec_get_link_page_storage_blog_id';
@@ -214,8 +224,8 @@ final class VenueLinkPagesProvider {
 	public static function translate_error_message( \WP_Error $error ): string {
 		$translations = array(
 			'venue_link_pages_runtime_not_configured' => __( 'Extra Chill Link Pages must be active before venue Link Pages can load.', 'extrachill-events' ),
-			'venue_link_pages_runtime_incomplete'     => __( 'The configured Extra Chill Link Pages API-v3 runtime is incomplete.', 'extrachill-events' ),
-			'venue_link_pages_runtime_incompatible'   => __( 'The configured Extra Chill Link Pages API-v3 runtime has an incompatible signature.', 'extrachill-events' ),
+			'venue_link_pages_runtime_incomplete'     => __( 'The configured Extra Chill Link Pages runtime is incomplete.', 'extrachill-events' ),
+			'venue_link_pages_runtime_incompatible'   => __( 'The configured Extra Chill Link Pages runtime has an incompatible signature.', 'extrachill-events' ),
 			'venue_link_pages_storage_unavailable'    => __( 'The canonical Link Page storage blog is unavailable.', 'extrachill-events' ),
 		);
 		return $translations[ $error->get_error_code() ] ?? $error->get_error_message();
