@@ -27,5 +27,4 @@ Thumbs.db
 composer.lock
 .claude/
 .buildignore
-build.sh
 docs/.docs-sync.json

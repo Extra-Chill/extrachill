@@ -18,7 +18,7 @@ A WordPress plugin that provides contact form functionality with Sendy newslette
 
 ## Build + deployment
 
-Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
@@ -34,12 +34,9 @@ The plugin uses WordPress `wp_mail` exclusively and does not create or use any d
 
 ### Local development
 
-Local development runs in a WordPress environment with the plugin present (e.g., via a checkout or symlink). This repo’s build system is `./build.sh` and produces a ZIP under `/build/`.
+Local development runs in a WordPress environment with the plugin present (e.g., via a checkout or symlink).
 
-```bash
-# Create production ZIP package
-./build.sh
-```
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 ## Usage
 
@@ -110,12 +107,7 @@ CSS is conditionally loaded only on pages containing the contact form.
 ## Development
 
 ### Build System
-```bash
-# Create production ZIP package
-./build.sh
-
-# Output: Only /build/extrachill-contact.zip file
-```
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 ### File Structure
 ```
@@ -133,7 +125,6 @@ extrachill-contact/
 ├── assets/                         # Built output (from Vite)
 │   ├── contact-form.css            # Compiled styles
 │   └── contact-form.iife.js        # Compiled React component
-├── build.sh                        # Build script
 ├── .buildignore                    # Build exclusions
 └── README.md                       # This file
 ```

@@ -7,7 +7,6 @@ vendor/
 .env
 
 # Build system files
-build.sh
 .buildignore
 package.json
 package-lock.json
