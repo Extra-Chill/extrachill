@@ -66,7 +66,6 @@ cache/
 .env.staging
 
 # Development build tools
-build.sh
 package.json
 webpack.config.js
 .buildignore
