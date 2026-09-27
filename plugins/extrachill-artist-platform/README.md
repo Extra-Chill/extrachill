@@ -73,9 +73,6 @@ npm run build
 
 # Development watch
 npm run start
-
-# Package for distribution
-./build.sh  # Creates /build/extrachill-artist-platform.zip
 ```
 
 ## Documentation
