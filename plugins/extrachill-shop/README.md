@@ -73,9 +73,6 @@ composer install
 
 # Check code standards
 composer run lint:php
-
-# Package for distribution
-./build.sh  # Creates /build/extrachill-shop.zip
 ```
 
 ## Documentation
