@@ -98,11 +98,27 @@ ec_users_emit_onboarding_viewed_once( $user_id );
 				</fieldset>
 			</div>
 
-			<div class="onboarding-field onboarding-checkboxes">
+			<?php
+			/*
+			 * On /join the role choice is required, so it leads with the instruction
+			 * and omits the pre-checked, disabled "I love music" box. That box read as
+			 * "a choice is already made", and join members submitted once, hit the
+			 * role_required error, then picked a role.
+			 */
+			?>
+			<?php if ( $from_join ) : ?>
+				<p class="onboarding-join-notice" id="onboarding-role-prompt">
+					<?php esc_html_e( 'To create your artist profile, select "I am a musician" or "I work in the music industry".', 'extrachill-users' ); ?>
+				</p>
+			<?php endif; ?>
+
+			<div class="onboarding-field onboarding-checkboxes"<?php echo $from_join ? ' role="group" aria-labelledby="onboarding-role-prompt"' : ''; ?>>
+				<?php if ( ! $from_join ) : ?>
 				<label class="onboarding-checkbox-label">
 					<input type="checkbox" id="user_is_fan" checked disabled>
 					<span><?php esc_html_e( 'I love music', 'extrachill-users' ); ?></span>
 				</label>
+				<?php endif; ?>
 				<label class="onboarding-checkbox-label">
 					<input type="checkbox" id="user_is_artist" name="user_is_artist" value="1">
 					<span><?php esc_html_e( 'I am a musician', 'extrachill-users' ); ?></span>
@@ -112,12 +128,6 @@ ec_users_emit_onboarding_viewed_once( $user_id );
 					<span><?php esc_html_e( 'I work in the music industry', 'extrachill-users' ); ?></span>
 				</label>
 			</div>
-
-			<?php if ( $from_join ) : ?>
-				<p class="onboarding-join-notice">
-					<?php esc_html_e( 'To create your artist profile, please select "I am a musician" or "I work in the music industry".', 'extrachill-users' ); ?>
-				</p>
-			<?php endif; ?>
 
 			<div class="onboarding-error" id="onboarding-error" style="display: none;"></div>
 
