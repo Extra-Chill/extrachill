@@ -139,8 +139,12 @@ final class EventManagementAuthorityTest extends TestCase {
 	private const PROMOTER_ID = 501;
 	private const VENUE_ID    = 601;
 
+	/** @var mixed The runtime $wpdb, restored after each test. */
+	private $original_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
+		$this->original_wpdb              = $GLOBALS['wpdb'] ?? null;
 		$GLOBALS['wpdb']                  = new EventManagementTestWpdb();
 		$GLOBALS['event_management_test'] = array(
 			'options'        => array(
@@ -165,7 +169,9 @@ final class EventManagementAuthorityTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['wpdb'], $GLOBALS['event_management_test'] );
+		// Restore rather than unset: later tests need the runtime $wpdb.
+		$GLOBALS['wpdb'] = $this->original_wpdb;
+		unset( $GLOBALS['event_management_test'] );
 		parent::tearDown();
 	}
 

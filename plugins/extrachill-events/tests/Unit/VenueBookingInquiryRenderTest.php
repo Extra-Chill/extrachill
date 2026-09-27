@@ -183,8 +183,14 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			$this->go_to( $archive_url );
 			$this->setExpectedDeprecated( 'Theme without header.php' );
 			$this->setExpectedDeprecated( 'Theme without footer.php' );
-			$this->setExpectedIncorrectUsage( 'WP_Styles::add' );
-			$output            = $this->render_archive();
+			$output = $this->render_archive();
+			// The archive template can trip a WP_Styles::add notice depending on
+			// which styles earlier suites left registered in this shared runtime.
+			// It is harness noise, not this test's contract: tolerate it when it
+			// fires, but don't demand it (that made the test order-dependent).
+			if ( isset( $this->caught_doing_it_wrong['WP_Styles::add'] ) ) {
+				$this->setExpectedIncorrectUsage( 'WP_Styles::add' );
+			}
 			$heading_position  = strpos( $output, 'class="page-title"' );
 			$cta_position      = strpos( $output, 'Submit a booking inquiry' );
 			$operator_position = strpos( $output, 'data-venue-workspace-action' );

@@ -15,6 +15,11 @@
 			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
 			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
+			<!-- Pure-PHP resolver test with file-level WP doubles (wp_cache_*,
+			     is_tax, get_queried_object…); it runs in its own suite,
+			     phpunit-promoted-events-unit.xml.dist. Under real WordPress the
+			     core functions win over its doubles, so it can only fail here. -->
+			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>
 			<!-- RSVP perk tests are pure-PHP with their own $wpdb/wp_verify_nonce
 			     doubles (see phpunit-rsvp-perks-unit.xml.dist); against real
 			     WordPress in this sandbox, wp_verify_nonce() would reject the

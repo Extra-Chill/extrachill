@@ -30,11 +30,14 @@ require_once dirname( __DIR__, 3 ) . '/inc/admin/priority-events.php';
  */
 final class PromotedEventsResolverTest extends TestCase {
 
+	/** @var mixed The runtime $wpdb, restored after each test. */
+	private $original_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['promoted_events_test_cache'] = array();
-		global $wpdb;
-		$wpdb = new \PromotedEventsFakeWpdb();
+		$this->original_wpdb                   = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']                       = new \PromotedEventsFakeWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated test double.
 	}
 
 	protected function tearDown(): void {
@@ -49,8 +52,9 @@ final class PromotedEventsResolverTest extends TestCase {
 			$GLOBALS['test_event_dates'],
 			$GLOBALS['test_local_scene']
 		);
-		global $wpdb;
-		$wpdb = null;
+		// Restore rather than null: in the managed WordPress runtime every
+		// later test (and shutdown hooks) needs the real $wpdb.
+		$GLOBALS['wpdb'] = $this->original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring the runtime database.
 		parent::tearDown();
 	}
 

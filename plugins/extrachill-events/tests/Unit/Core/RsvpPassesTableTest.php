@@ -150,13 +150,19 @@ final class RsvpPassesTableFakeWpdb {
 
 final class RsvpPassesTableTest extends PHPUnit\Framework\TestCase {
 
+	/** @var mixed The runtime $wpdb, restored after each test. */
+	private $original_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
-		$GLOBALS['wpdb'] = new RsvpPassesTableFakeWpdb();
+		$this->original_wpdb = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']     = new RsvpPassesTableFakeWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated test double.
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['wpdb'] );
+		// Restore rather than unset: in the managed WordPress runtime every
+		// later test (and shutdown hooks) needs the real $wpdb.
+		$GLOBALS['wpdb'] = $this->original_wpdb; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restoring the runtime database.
 		parent::tearDown();
 	}
 
