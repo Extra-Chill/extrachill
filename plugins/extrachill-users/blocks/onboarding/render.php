@@ -103,12 +103,13 @@ ec_users_emit_onboarding_viewed_once( $user_id );
 			 * On /join the role choice is required, so it leads with the instruction
 			 * and omits the pre-checked, disabled "I love music" box. That box read as
 			 * "a choice is already made", and join members submitted once, hit the
-			 * role_required error, then picked a role.
+			 * role_required error, then picked a role. /join is the artist door, so
+			 * "I am a musician" is pre-checked there (still editable).
 			 */
 			?>
 			<?php if ( $from_join ) : ?>
 				<p class="onboarding-join-notice" id="onboarding-role-prompt">
-					<?php esc_html_e( 'To create your artist profile, select "I am a musician" or "I work in the music industry".', 'extrachill-users' ); ?>
+					<?php esc_html_e( 'We\'ve checked "I am a musician" so you can create your artist profile next. Work in the industry instead? Switch it below.', 'extrachill-users' ); ?>
 				</p>
 			<?php endif; ?>
 
@@ -120,7 +121,7 @@ ec_users_emit_onboarding_viewed_once( $user_id );
 				</label>
 				<?php endif; ?>
 				<label class="onboarding-checkbox-label">
-					<input type="checkbox" id="user_is_artist" name="user_is_artist" value="1">
+					<input type="checkbox" id="user_is_artist" name="user_is_artist" value="1"<?php checked( $from_join ); ?>>
 					<span><?php esc_html_e( 'I am a musician', 'extrachill-users' ); ?></span>
 				</label>
 				<label class="onboarding-checkbox-label">
