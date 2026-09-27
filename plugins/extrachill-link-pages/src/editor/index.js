@@ -752,7 +752,7 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 	);
 }
 
-function AdvancedPanel( { draft, change, subscriptions } ) {
+function AdvancedPanel( { draft, change } ) {
 	const settings = draft.page.settings;
 	const set = ( key, value ) =>
 		change(
@@ -820,39 +820,55 @@ function AdvancedPanel( { draft, change, subscriptions } ) {
 					}
 				/>
 			</Field>
-			{ subscriptions && (
-				<>
-					<Field label="Subscription Display">
-						<select
-							value={
-								settings.subscribe_display_mode || 'icon_modal'
-							}
-							onChange={ ( event ) =>
-								set(
-									'subscribe_display_mode',
-									event.target.value
-								)
-							}
-						>
-							<option value="icon_modal">Subscribe Icon</option>
-							<option value="inline_form">Inline Form</option>
-							<option value="disabled">Disabled</option>
-						</select>
-					</Field>
-					<Field label="Subscribe Form Description">
-						<textarea
-							rows="3"
-							value={ settings.subscribe_description || '' }
-							onChange={ ( event ) =>
-								set(
-									'subscribe_description',
-									event.target.value
-								)
-							}
-						/>
-					</Field>
-				</>
-			) }
+		</div>
+	);
+}
+
+function NewsletterPanel( { draft, change } ) {
+	const settings = draft.page.settings;
+	const set = ( key, value ) =>
+		change(
+			{
+				page: {
+					...draft.page,
+					settings: { ...settings, [ key ]: value },
+				},
+			},
+			'settings'
+		);
+	return (
+		<div className="ec-tab ec-tab--newsletter">
+			<Field
+				label="How fans sign up"
+				help="Show a sign-up form on your page, a bell icon that opens one, or turn sign-ups off."
+			>
+				<select
+					value={ settings.subscribe_display_mode || 'icon_modal' }
+					onChange={ ( event ) =>
+						set( 'subscribe_display_mode', event.target.value )
+					}
+				>
+					<option value="inline_form">
+						Sign-up form on the page
+					</option>
+					<option value="icon_modal">
+						Bell icon (opens a sign-up form)
+					</option>
+					<option value="disabled">Off</option>
+				</select>
+			</Field>
+			<Field
+				label="Message to fans"
+				help="Shown above the email box. Tell fans what they'll get."
+			>
+				<textarea
+					rows="3"
+					value={ settings.subscribe_description || '' }
+					onChange={ ( event ) =>
+						set( 'subscribe_description', event.target.value )
+					}
+				/>
+			</Field>
 		</div>
 	);
 }
@@ -1235,6 +1251,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 		'links',
 		...( capabilities.socials ? [ 'socials' ] : [] ),
 		'customize',
+		...( capabilities.subscriptions ? [ 'newsletter' ] : [] ),
 		'advanced',
 		...panels.map( ( panel ) => panel.id ),
 	];
@@ -1830,11 +1847,16 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 									fonts={ configuration.fonts || [] }
 								/>
 							) }
+							{ active === 'newsletter' && (
+								<NewsletterPanel
+									draft={ draft }
+									change={ change }
+								/>
+							) }
 							{ active === 'advanced' && (
 								<AdvancedPanel
 									draft={ draft }
 									change={ change }
-									subscriptions={ capabilities.subscriptions }
 								/>
 							) }
 							{ activePanel?.render( {

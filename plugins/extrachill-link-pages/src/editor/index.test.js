@@ -502,10 +502,17 @@ describe( 'portable editor behavior', () => {
 		const { container, root } = await renderEditor();
 		await act( async () =>
 			[ ...container.querySelectorAll( '[role="tab"]' ) ]
+				.find( ( tab ) => 'Newsletter' === tab.textContent )
+				.click()
+		);
+		expect( container.textContent ).toContain( 'How fans sign up' );
+		expect( container.textContent ).toContain( 'Message to fans' );
+		await act( async () =>
+			[ ...container.querySelectorAll( '[role="tab"]' ) ]
 				.find( ( tab ) => 'Advanced' === tab.textContent )
 				.click()
 		);
-		expect( container.textContent ).toContain( 'Subscription Display' );
+		expect( container.textContent ).not.toContain( 'How fans sign up' );
 		await act( async () =>
 			[ ...container.querySelectorAll( '[role="tab"]' ) ]
 				.find( ( tab ) => 'Customize' === tab.textContent )
@@ -536,7 +543,12 @@ describe( 'portable editor behavior', () => {
 				.find( ( tab ) => 'Advanced' === tab.textContent )
 				.click()
 		);
-		expect( container.textContent ).not.toContain( 'Subscription Display' );
+		expect(
+			[ ...container.querySelectorAll( '[role="tab"]' ) ].map(
+				( tab ) => tab.textContent
+			)
+		).not.toContain( 'Newsletter' );
+		expect( container.textContent ).not.toContain( 'How fans sign up' );
 		expect(
 			container.querySelector( '#extrch-subscribe-modal' )
 		).toBeNull();
