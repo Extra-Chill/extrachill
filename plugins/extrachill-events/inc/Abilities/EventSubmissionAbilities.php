@@ -257,9 +257,10 @@ class EventSubmissionAbilities {
 			);
 		}
 
-		$username = function_exists( 'ec_generate_username_from_email' )
+		$local_part = strstr( $email, '@', true );
+		$username   = function_exists( 'ec_generate_username_from_email' )
 			? ec_generate_username_from_email( $email )
-			: sanitize_title( substr( strstr( $email, '@', true ) ? strstr( $email, '@', true ) : 'user', 0, 50 ) );
+			: sanitize_title( substr( false !== $local_part && '' !== $local_part ? $local_part : 'user', 0, 50 ) );
 
 		$result = $create->execute(
 			array(
@@ -360,13 +361,7 @@ class EventSubmissionAbilities {
 			return $stored_flyer;
 		}
 
-		if ( ! class_exists( '\\DataMachine\\Core\\PluginSettings' ) ) {
-			return new \WP_Error( 'dm_settings_unavailable', __( 'Data Machine settings unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
-		}
-
-		$provider = \DataMachine\Core\PluginSettings::get( 'default_provider', 'anthropic' );
-		$model    = \DataMachine\Core\PluginSettings::get( 'default_model', 'claude-sonnet-4-20250514' );
-		$workflow = $this->buildWorkflow( $submission, $stored_flyer, $provider, $model );
+		$workflow = $this->buildWorkflow( $submission, $stored_flyer );
 
 		$initial_data = array( 'submission' => $submission );
 		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
@@ -425,6 +420,11 @@ class EventSubmissionAbilities {
 			return null;
 		}
 
+		$flyer_name = (string) ( $flyer['name'] ?? '' );
+		if ( '' === $flyer_name ) {
+			return new \WP_Error( 'upload_failed', __( 'The flyer upload is missing a file name.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		$upload = wp_handle_upload( $flyer, array( 'test_form' => false ) );
 		if ( isset( $upload['error'] ) ) {
@@ -434,7 +434,7 @@ class EventSubmissionAbilities {
 		$storage = new \DataMachine\Core\FilesRepository\FileStorage();
 		$stored  = $storage->store_file(
 			$upload['file'],
-			$flyer['name'],
+			$flyer_name,
 			array(
 				'pipeline_id' => $pipeline_id,
 				'flow_id'     => $flow_id,
@@ -449,10 +449,10 @@ class EventSubmissionAbilities {
 			return new \WP_Error( 'storage_failed', __( 'Could not save the flyer.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
-		$file_info = wp_check_filetype( $flyer['name'] );
+		$file_info = wp_check_filetype( $flyer_name );
 
 		return array(
-			'filename'    => sanitize_file_name( $flyer['name'] ),
+			'filename'    => sanitize_file_name( $flyer_name ),
 			'stored_path' => $stored,
 			'mime_type'   => $file_info['type'] ? $file_info['type'] : 'application/octet-stream',
 		);
@@ -461,13 +461,18 @@ class EventSubmissionAbilities {
 	/**
 	 * Build an ephemeral workflow for event submission.
 	 *
+	 * Step shape follows Data Machine's `WorkflowSpecValidator` contract:
+	 * `step_type` (not `type`), plural `handler_slugs`/`handler_configs`
+	 * keyed by handler slug (not the singular `handler_slug`/`handler_config`
+	 * legacy fields, which the validator rejects), and the `upsert` step
+	 * type (renamed from `update` — see issue #211, which made the same fix
+	 * for tour imports). See issue #912.
+	 *
 	 * @param array      $submission    Submission data.
 	 * @param array|null $stored_flyer  Stored flyer data.
-	 * @param string     $provider      AI provider slug.
-	 * @param string     $model         AI model identifier.
 	 * @return array Workflow config for DM execute endpoint.
 	 */
-	private function buildWorkflow( array $submission, ?array $stored_flyer, string $provider, string $model ): array {
+	private function buildWorkflow( array $submission, ?array $stored_flyer ): array {
 		$steps = array();
 
 		$handler_config = array(
@@ -482,9 +487,9 @@ class EventSubmissionAbilities {
 
 		if ( $stored_flyer ) {
 			$steps[] = array(
-				'type'           => 'event_import',
-				'handler_slug'   => 'event_flyer',
-				'handler_config' => $handler_config,
+				'step_type'       => 'event_import',
+				'handler_slugs'   => array( 'event_flyer' ),
+				'handler_configs' => array( 'event_flyer' => $handler_config ),
 			);
 		}
 
@@ -516,20 +521,20 @@ class EventSubmissionAbilities {
 		}
 
 		$steps[] = array(
-			'type'          => 'ai',
-			'provider'      => $provider,
-			'model'         => $model,
+			'step_type'     => 'ai',
 			'system_prompt' => $default_prompt,
 			'user_message'  => $user_message,
 			'enabled_tools' => array( 'upsert_event' ),
 		);
 
 		$steps[] = array(
-			'type'           => 'update',
-			'handler_slug'   => 'upsert_event',
-			'handler_config' => array(
-				'post_status'    => 'pending',
-				'include_images' => ! empty( $stored_flyer ),
+			'step_type'       => 'upsert',
+			'handler_slugs'   => array( 'upsert_event' ),
+			'handler_configs' => array(
+				'upsert_event' => array(
+					'post_status'    => 'pending',
+					'include_images' => ! empty( $stored_flyer ),
+				),
 			),
 		);
 
