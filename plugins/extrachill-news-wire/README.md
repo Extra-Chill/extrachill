@@ -28,7 +28,7 @@ ExtraChill News Wire provides festival news coverage for wire.extrachill.com. It
 
 ## Build + deployment
 
-Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
@@ -82,7 +82,6 @@ extrachill-news-wire/
 │   ├── single-festival_wire.php        # Single post template
 │   ├── home-wire.php                   # Wire hub homepage
 │   └── content-card.php                # Content card component
-├── build.sh                     # Production build script
 └── extrachill-news-wire.php     # Main plugin file
 ```
 
@@ -119,13 +118,7 @@ After reviewing the proposed detach and merge actions, pass `--apply` to perform
 ## Development
 
 ### Build Process
-```bash
-# Navigate to plugin directory and create production build
-cd extrachill-plugins/extrachill-news-wire
-./build.sh
-
-# Output: Only /build/extrachill-news-wire.zip file
-```
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 ### WordPress Standards
 - Follows WordPress coding standards
