@@ -213,7 +213,17 @@
                 trackSceneGap(sceneInput.value.trim());
             }
 
-            if (fromJoin && !isArtist && !isProfessional) {
+            // A /join intent choice ("What's your Link Page for?") sets the
+            // roles server-side, so there are no role checkboxes to validate.
+            const intentInput = form.querySelector('input[name="join_intent"]:checked');
+            const joinIntent = intentInput ? intentInput.value : '';
+            const hasIntentChoice = !!form.querySelector('input[name="join_intent"]');
+            if (hasIntentChoice && !joinIntent) {
+				fail('role_required', 'Please choose what your Link Page is for.');
+                return;
+            }
+
+            if (fromJoin && !hasIntentChoice && !isArtist && !isProfessional) {
 				fail('role_required', 'Please select "I am a musician" or "I work in the music industry" to continue.');
                 return;
             }
@@ -234,7 +244,7 @@
                     user_is_artist: isArtist,
                     user_is_professional: isProfessional,
                     local_scene_visibility: localSceneVisibility
-                }, localScene ? { local_scene: localScene } : {}))
+                }, localScene ? { local_scene: localScene } : {}, joinIntent ? { join_intent: joinIntent } : {}))
             })
                 .then(function (response) {
 					return response.json().catch(function () {

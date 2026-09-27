@@ -48,6 +48,10 @@ function extrachill_users_register_onboarding_abilities() {
 						'type'        => 'boolean',
 						'description' => __( 'Whether user works in the music industry.', 'extrachill-users' ),
 					),
+					'join_intent'            => array(
+						'type'        => 'string',
+						'description' => __( 'Join-flow intent ID (one of the ec_onboarding_join_intents IDs). Sets the roles that intent declares.', 'extrachill-users' ),
+					),
 					'local_scene'            => array(
 						'type'        => 'string',
 						'description' => __( 'Optional canonical Local Scene slug.', 'extrachill-users' ),
@@ -455,6 +459,7 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 	$user_is_professional = ! empty( $input['user_is_professional'] );
 	$local_scene          = isset( $input['local_scene'] ) ? sanitize_title( (string) $input['local_scene'] ) : '';
 	$visibility           = isset( $input['local_scene_visibility'] ) ? sanitize_key( (string) $input['local_scene_visibility'] ) : 'public';
+	$join_intent          = isset( $input['join_intent'] ) ? sanitize_key( (string) $input['join_intent'] ) : '';
 
 	$user = get_userdata( $user_id );
 	if ( ! $user ) {
@@ -478,6 +483,18 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 
 	// Join flow requires artist or professional flag.
 	$from_join = function_exists( 'ec_is_onboarding_from_join' ) && ec_is_onboarding_from_join( $user_id );
+
+	// A registered join intent (e.g. "what is your Link Page for?") decides the
+	// roles itself, so the member answers one question instead of two.
+	if ( $from_join && '' !== $join_intent ) {
+		$intent = ec_users_get_onboarding_join_intent( $join_intent );
+		if ( null === $intent ) {
+			return ec_users_onboarding_error( 'invalid_join_intent', __( 'Please choose what your Link Page is for.', 'extrachill-users' ), $user_id );
+		}
+		$user_is_artist       = in_array( 'artist', $intent['roles'], true );
+		$user_is_professional = in_array( 'professional', $intent['roles'], true );
+		update_user_meta( $user_id, 'onboarding_join_intent', $intent['id'] );
+	}
 	if ( $from_join && ! $user_is_artist && ! $user_is_professional ) {
 		return ec_users_onboarding_error(
 			'artist_or_professional_required',
@@ -740,8 +757,9 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 		 * @param string   $redirect_url Default: the stored onboarding redirect or community home.
 		 * @param int      $user_id      User ID.
 		 * @param string[] $roles        Roles chosen during onboarding.
+		 * @param string   $join_intent  Chosen join intent ID, or '' when none was offered.
 		 */
-		$redirect_url = (string) apply_filters( 'ec_onboarding_join_destination', $redirect_url, $user_id, $roles );
+		$redirect_url = (string) apply_filters( 'ec_onboarding_join_destination', $redirect_url, $user_id, $roles, $join_intent );
 	}
 
 	return array(
@@ -859,4 +877,55 @@ function extrachill_users_ability_validate_username( $input ) {
 	}
 
 	return true;
+}
+
+/**
+ * Join-flow intents: what the member is joining for.
+ *
+ * Owner-neutral: onboarding names no owner type. Integrations register the
+ * choices a /join visitor picks from (e.g. "an artist or band", "a venue"),
+ * each declaring the onboarding roles it implies. The first intent is
+ * pre-selected. With no intents registered, onboarding shows its role
+ * checkboxes.
+ *
+ * @return array<int,array{id:string,label:string,roles:string[]}>
+ */
+function ec_users_get_onboarding_join_intents() {
+	/**
+	 * Filters the join-flow intents offered during /join onboarding.
+	 *
+	 * @param array $intents List of { id, label, roles } where roles is a
+	 *                       subset of array( 'artist', 'professional' ).
+	 */
+	$intents = apply_filters( 'ec_onboarding_join_intents', array() );
+	$valid   = array();
+	foreach ( (array) $intents as $intent ) {
+		$id    = is_array( $intent ) ? sanitize_key( (string) ( $intent['id'] ?? '' ) ) : '';
+		$label = is_array( $intent ) ? trim( (string) ( $intent['label'] ?? '' ) ) : '';
+		$roles = is_array( $intent ) ? array_values( array_intersect( (array) ( $intent['roles'] ?? array() ), array( 'artist', 'professional' ) ) ) : array();
+		if ( '' === $id || '' === $label || ! $roles || isset( $valid[ $id ] ) ) {
+			continue;
+		}
+		$valid[ $id ] = array(
+			'id'    => $id,
+			'label' => $label,
+			'roles' => $roles,
+		);
+	}
+	return array_values( $valid );
+}
+
+/**
+ * Look up one registered join intent.
+ *
+ * @param string $id Intent ID.
+ * @return array{id:string,label:string,roles:string[]}|null
+ */
+function ec_users_get_onboarding_join_intent( $id ) {
+	foreach ( ec_users_get_onboarding_join_intents() as $intent ) {
+		if ( $intent['id'] === $id ) {
+			return $intent;
+		}
+	}
+	return null;
 }

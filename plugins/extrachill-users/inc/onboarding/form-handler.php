@@ -26,6 +26,7 @@ function extrachill_users_handle_onboarding_form() {
 		'user_is_professional'   => ! empty( $_POST['user_is_professional'] ),
 		'local_scene'            => isset( $_POST['local_scene'] ) ? sanitize_title( wp_unslash( $_POST['local_scene'] ) ) : '',
 		'local_scene_visibility' => isset( $_POST['local_scene_visibility'] ) ? sanitize_key( wp_unslash( $_POST['local_scene_visibility'] ) ) : 'public',
+		'join_intent'            => isset( $_POST['join_intent'] ) ? sanitize_key( wp_unslash( $_POST['join_intent'] ) ) : '',
 	);
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 

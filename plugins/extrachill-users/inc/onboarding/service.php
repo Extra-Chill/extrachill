@@ -186,6 +186,7 @@ function ec_complete_onboarding( $user_id, $data ) {
 			'user_is_professional'   => ! empty( $data['user_is_professional'] ),
 			'local_scene_visibility' => isset( $data['local_scene_visibility'] ) ? $data['local_scene_visibility'] : 'public',
 			'local_scene'            => isset( $data['local_scene'] ) ? $data['local_scene'] : '',
+			'join_intent'            => isset( $data['join_intent'] ) ? $data['join_intent'] : '',
 		)
 	);
 }
