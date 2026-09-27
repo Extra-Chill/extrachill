@@ -22,7 +22,7 @@ A comprehensive WordPress plugin for newsletter management and Sendy integration
 
 ## Build + deployment
 
-Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
@@ -122,12 +122,7 @@ The plugin provides subscription and campaign functionality via REST API (endpoi
 
 ### Building the Plugin
 
-```bash
-# Create production ZIP
-./build.sh
-
-# Output: Only /build/extrachill-newsletter.zip file
-```
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 ### File Structure
 
@@ -160,7 +155,6 @@ extrachill-newsletter/
 │   │   └── admin.css                  # Admin interface styles
 │   └── js/
 │       └── newsletter.js              # JavaScript functionality
-├── build.sh                           # Production build script (symlink)
 ├── .buildignore                       # Build exclusion patterns
 └── README.md                          # This file
 ```

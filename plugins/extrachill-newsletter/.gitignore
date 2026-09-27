@@ -36,5 +36,4 @@ composer.lock
 package-lock.json
 .claude/
 .buildignore
-build.sh
 docs/.docs-sync.json

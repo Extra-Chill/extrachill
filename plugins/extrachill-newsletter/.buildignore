@@ -14,7 +14,6 @@ CHANGELOG.md
 docs/
 
 # Build tools and scripts
-build.sh
 package.json
 package-lock.json
 composer.lock
