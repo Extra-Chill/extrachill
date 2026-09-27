@@ -127,7 +127,13 @@ function extrachill_users_onboarding_local_scene_gap() {
 		wp_send_json_error( null, 400 );
 	}
 
-	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/track-analytics-event' ) : null;
+	// extrachill-analytics is an optional dependency; wp_get_ability() on an
+	// unregistered ability triggers a WP 6.9+ _doing_it_wrong() notice, so
+	// gate on wp_has_ability() first rather than probing wp_get_ability()
+	// directly.
+	$ability = ( function_exists( 'wp_has_ability' ) && wp_has_ability( 'extrachill/track-analytics-event' ) )
+		? wp_get_ability( 'extrachill/track-analytics-event' )
+		: null;
 	if ( ! $ability ) {
 		wp_send_json_error( null, 500 );
 	}

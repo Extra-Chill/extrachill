@@ -295,8 +295,13 @@ function extrachill_users_ability_create_user( $input ) {
 		 */
 		do_action( 'extrachill_new_user_registered', $user_id, $registration_page, $registration_source, $registration_method );
 
-		// Track analytics via ability if available.
-		$analytics_ability = wp_get_ability( 'extrachill/track-analytics-event' );
+		// Track analytics via ability if available. extrachill-analytics is an
+		// optional dependency; wp_get_ability() on an unregistered ability
+		// triggers a WP 6.9+ _doing_it_wrong() notice, so gate on
+		// wp_has_ability() first rather than probing wp_get_ability() directly.
+		$analytics_ability = ( function_exists( 'wp_has_ability' ) && wp_has_ability( 'extrachill/track-analytics-event' ) )
+			? wp_get_ability( 'extrachill/track-analytics-event' )
+			: null;
 		if ( $analytics_ability ) {
 			$event_data = array(
 				'user_id' => $user_id,

@@ -78,7 +78,11 @@ function ec_users_emit_team_experience_event( $event_type, $user_id, $extra = ar
 		return 0;
 	}
 
-	if ( ! function_exists( 'wp_get_ability' ) ) {
+	// extrachill-analytics is an optional dependency; wp_get_ability() on an
+	// unregistered ability triggers a WP 6.9+ _doing_it_wrong() notice, so
+	// gate on wp_has_ability() first rather than probing wp_get_ability()
+	// directly.
+	if ( ! function_exists( 'wp_has_ability' ) || ! wp_has_ability( 'extrachill/track-analytics-event' ) ) {
 		return 0;
 	}
 

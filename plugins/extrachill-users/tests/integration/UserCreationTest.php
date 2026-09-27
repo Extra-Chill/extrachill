@@ -381,6 +381,80 @@ class Test_User_Creation extends WP_UnitTestCase {
 		$this->assertSame( array(), extrachill_users_sanitize_utm( null ) );
 	}
 
+	/**
+	 * Capture a live ability's constructor args via reflection so a test can
+	 * temporarily unregister it and restore the exact original registration
+	 * afterward, leaving no cross-test pollution.
+	 *
+	 * @param WP_Ability $ability Ability to capture.
+	 * @return array Args suitable for wp_register_ability().
+	 */
+	private function capture_ability_args( WP_Ability $ability ): array {
+		$reflection       = new ReflectionClass( $ability );
+		$execute_prop     = $reflection->getProperty( 'execute_callback' );
+		$permission_prop  = $reflection->getProperty( 'permission_callback' );
+		$execute_prop->setAccessible( true );
+		$permission_prop->setAccessible( true );
+
+		return array(
+			'label'               => $ability->get_label(),
+			'description'         => $ability->get_description(),
+			'category'            => $ability->get_category(),
+			'input_schema'        => $ability->get_input_schema(),
+			'output_schema'       => $ability->get_output_schema(),
+			'meta'                => $ability->get_meta(),
+			'execute_callback'    => $execute_prop->getValue( $ability ),
+			'permission_callback' => $permission_prop->getValue( $ability ),
+		);
+	}
+
+	/**
+	 * extrachill/track-analytics-event is owned by the optional
+	 * extrachill-analytics plugin. WP 6.9+ wp_get_ability() triggers a
+	 * _doing_it_wrong() notice for any unregistered ability name, so calling
+	 * it directly without first checking wp_has_ability() would fail this
+	 * test suite ("Unexpected incorrect usage notice") even though user
+	 * creation itself has nothing to do with analytics availability.
+	 */
+	public function test_create_user_succeeds_without_analytics_ability_registered(): void {
+		$existing_analytics_ability = ( function_exists( 'wp_has_ability' ) && wp_has_ability( 'extrachill/track-analytics-event' ) )
+			? wp_get_ability( 'extrachill/track-analytics-event' )
+			: null;
+		$restore_args               = $existing_analytics_ability ? $this->capture_ability_args( $existing_analytics_ability ) : null;
+
+		if ( $existing_analytics_ability ) {
+			wp_unregister_ability( 'extrachill/track-analytics-event' );
+		}
+
+		try {
+			$this->assertFalse( wp_has_ability( 'extrachill/track-analytics-event' ) );
+
+			$ability = wp_get_ability( 'extrachill/create-user' );
+			$this->assertNotNull( $ability );
+
+			$user_id = $ability->execute(
+				array(
+					'username'            => 'analyticsguarduser',
+					'password'            => 'securepassword',
+					'email'               => 'analyticsguard@example.com',
+					'registration_source' => 'web',
+					'registration_method' => 'standard',
+				)
+			);
+
+			$this->assertIsInt( $user_id );
+			$this->assertGreaterThan( 0, $user_id );
+
+			$user = get_userdata( $user_id );
+			$this->assertInstanceOf( WP_User::class, $user );
+			$this->assertSame( 'analyticsguarduser', $user->user_login );
+		} finally {
+			if ( null !== $restore_args ) {
+				wp_register_ability( 'extrachill/track-analytics-event', $restore_args );
+			}
+		}
+	}
+
 	public function test_create_user_via_filter(): void {
 		$user_id = apply_filters(
 			'extrachill_create_community_user',
