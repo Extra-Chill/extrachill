@@ -553,7 +553,32 @@ class CanonicalEventPublicationGuard {
 
 		$end_candidates = array();
 		if ( ! empty( $event['endDate'] ) ) {
-			$end_candidates = $this->strict_local_datetime_candidates( (string) $event['endDate'], (string) ( $event['endTime'] ?? '23:59:59' ), $timezone );
+			$end_date_input = (string) $event['endDate'];
+			$end_time_input = (string) ( $event['endTime'] ?? '23:59:59' );
+
+			if ( $end_date_input === $start_date
+				&& $this->normalized_time( $end_time_input ) === $this->normalized_time( $start_time )
+			) {
+				// Identical start/end wall time is not a real end (same-date rows
+				// produced by scrapers that only ever populate a start time). Fall
+				// back to the same conservative default duration used when no end
+				// is supplied at all (#901).
+				foreach ( $start_candidates as $candidate ) {
+					$end_candidates[] = $candidate->modify( '+' . self::DEFAULT_DURATION_SECONDS . ' seconds' );
+				}
+			} elseif ( $end_date_input === $start_date
+				&& $this->normalized_time( $end_time_input ) <= $this->normalized_time( $start_time )
+			) {
+				// Same-date past-midnight end is an implicit overnight event, same
+				// rollover the no-endDate branch below already applies. Data Machine
+				// Events accepts this same shape (event-dates-sync.php's overnight
+				// rollover), so the guard must not be stricter than the plugin that
+				// owns the date model (#901).
+				$end_date       = ( new \DateTimeImmutable( $start_date, $timezone ) )->modify( '+1 day' )->format( 'Y-m-d' );
+				$end_candidates = $this->strict_local_datetime_candidates( $end_date, $end_time_input, $timezone );
+			} else {
+				$end_candidates = $this->strict_local_datetime_candidates( $end_date_input, $end_time_input, $timezone );
+			}
 		} elseif ( ! empty( $event['endTime'] ) ) {
 			$end_date = $start_date;
 			$end_time = (string) $event['endTime'];

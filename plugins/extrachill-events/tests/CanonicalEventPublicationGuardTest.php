@@ -237,6 +237,98 @@ final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 		$this->assertSame( 'canonical_event_booking_conflict', $GLOBALS['ec_artist_test']['fired_actions']['extrachill_events_canonical_event_publication_denied'][0][1]->get_error_code() );
 	}
 
+	public function test_same_date_end_time_before_start_rolls_forward_one_day(): void {
+		// #901: endDate equal to startDate with an endTime at or before startTime
+		// is an implicit overnight event (scrapers never bump endDate past
+		// midnight). The guard must roll it forward exactly like the no-endDate
+		// branch, matching data-machine-events' own overnight rollover.
+		$window = $this->publication_window_for(
+			array(
+				'startDate' => '2030-08-01',
+				'startTime' => '22:00',
+				'endDate'   => '2030-08-01',
+				'endTime'   => '02:00',
+			)
+		);
+
+		$this->assertIsArray( $window );
+		$this->assertSame( '2030-08-02 02:00:00', $window['start_at'] );
+		$this->assertSame( '2030-08-02 06:00:00', $window['end_at'] );
+	}
+
+	public function test_identical_start_and_end_wall_time_falls_back_to_default_duration(): void {
+		// #901: endDate === startDate and endTime === startTime carries no real
+		// end at all (a start-time-only scrape that duplicated the start into the
+		// end field). Treat it exactly like the missing-end case.
+		$window = $this->publication_window_for(
+			array(
+				'startDate' => '2030-08-01',
+				'startTime' => '22:00',
+				'endDate'   => '2030-08-01',
+				'endTime'   => '22:00',
+			)
+		);
+
+		$this->assertIsArray( $window );
+		$this->assertSame( '2030-08-02 02:00:00', $window['start_at'] );
+		$this->assertSame( '2030-08-02 05:00:00', $window['end_at'] );
+	}
+
+	public function test_same_date_normal_range_is_unaffected(): void {
+		// A genuine same-day range (end strictly after start on the same date)
+		// must keep working exactly as before the #901 fix.
+		$window = $this->publication_window_for(
+			array(
+				'startDate' => '2030-08-01',
+				'startTime' => '16:00',
+				'endDate'   => '2030-08-01',
+				'endTime'   => '19:00',
+			)
+		);
+
+		$this->assertIsArray( $window );
+		$this->assertSame( '2030-08-01 20:00:00', $window['start_at'] );
+		$this->assertSame( '2030-08-01 23:00:00', $window['end_at'] );
+	}
+
+	public function test_genuinely_inverted_multi_day_range_is_still_denied(): void {
+		// An endDate strictly before startDate is not an overnight event, it is
+		// bad data. The #901 rollover only applies when endDate === startDate;
+		// this must keep being denied.
+		$result = $this->publication_window_for(
+			array(
+				'startDate' => '2030-08-02',
+				'startTime' => '22:00',
+				'endDate'   => '2030-08-01',
+				'endTime'   => '02:00',
+			)
+		);
+
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'canonical_event_datetime_invalid', $result->get_error_code() );
+	}
+
+	public function test_same_date_overnight_rollover_across_dst_fallback_expands_all_candidates(): void {
+		// DST sanity check: America/New_York falls back at 2030-11-03 02:00 local,
+		// so 01:30 is a repeated wall time with two valid UTC instants. The #901
+		// rollover must still land on a positive-duration window and must still
+		// enumerate both repeated-time candidates, exactly like the existing
+		// DST fallback coverage for the no-endDate branch.
+		$window = $this->publication_window_for(
+			array(
+				'startDate' => '2030-11-02',
+				'startTime' => '23:00',
+				'endDate'   => '2030-11-02',
+				'endTime'   => '01:30',
+			)
+		);
+
+		$this->assertIsArray( $window );
+		$this->assertSame( '2030-11-03 03:00:00', $window['start_at'] );
+		$this->assertSame( '2030-11-03 06:30:00', $window['end_at'] );
+		$this->assertCount( 2, $window['_candidate_intervals'] );
+	}
+
 	public function test_dst_fallback_window_covers_both_repeated_wall_time_occurrences(): void {
 		$this->seed_hold( 'main-room', '2030-11-03 06:10:00', '2030-11-03 06:20:00' );
 		$input                       = $this->dme_input();
@@ -551,6 +643,14 @@ final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 		$result = ( new CanonicalEventPublicationGuard() )->preflight_event_update_persistence( true, $context );
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'canonical_event_booking_conflict', $result->get_error_code() );
+	}
+
+	/** Invoke the private publication_window() directly for datetime-only assertions. */
+	private function publication_window_for( array $event, int $venue_id = 55 ) {
+		$guard  = new CanonicalEventPublicationGuard();
+		$method = new ReflectionMethod( $guard, 'publication_window' );
+		$method->setAccessible( true );
+		return $method->invoke( $guard, $venue_id, $event );
 	}
 
 	private function dme_input(): array {
