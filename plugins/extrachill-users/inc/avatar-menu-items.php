@@ -80,6 +80,16 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 			'priority' => 30,
 			'danger'   => false,
 		);
+		// The artist site's /manage-link-page/ routes owners to their Link Page
+		// editor (extrachill.link/edit after the cutover) and offers creation
+		// otherwise, so one stable URL works from every site.
+		$items[] = array(
+			'id'       => 'link_page',
+			'label'    => __( 'My Link Page', 'extrachill-users' ),
+			'url'      => ec_get_site_url( 'artist' ) . '/manage-link-page/',
+			'priority' => 35,
+			'danger'   => false,
+		);
 	} elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $user_id ) ) {
 		$items[] = array(
 			'id'       => 'create_artist',

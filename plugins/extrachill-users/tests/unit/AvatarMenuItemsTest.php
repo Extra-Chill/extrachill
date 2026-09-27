@@ -102,6 +102,7 @@ class Test_Avatar_Menu_Items extends WP_UnitTestCase {
 			$this->assertSame( ec_get_site_url( 'artist' ) . '/create-artist/', $items['create_artist']['url'] );
 		}
 		$this->assertArrayNotHasKey( 'manage_link_pages', $items );
+		$this->assertArrayNotHasKey( 'link_page', $items, 'Users without an artist get no Link Page item.' );
 	}
 
 	/** Verify domain contributions cannot replace universal account actions. */
