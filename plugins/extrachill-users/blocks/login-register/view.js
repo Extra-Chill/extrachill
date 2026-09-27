@@ -107,10 +107,70 @@ function renderTurnstile( container ) {
 		return;
 	}
 
+	// Prefer the network boot renderer: it maps the widget's data-* options
+	// (appearance, theme, callbacks) and isolates failures per widget.
+	if ( typeof window.ecTurnstileBoot === 'function' ) {
+		window.ecTurnstileBoot();
+		return;
+	}
+
 	if ( typeof window.turnstile.render === 'function' ) {
 		window.turnstile.render( widget );
 		widget.dataset.ecTurnstileRendered = '1';
 	}
+}
+
+export const TURNSTILE_TOKEN_TIMEOUT_MS = 15000;
+const TURNSTILE_TOKEN_POLL_MS = 150;
+
+export const TURNSTILE_TIMEOUT_MESSAGE =
+	'The security check did not finish. If a challenge appears below, complete it; otherwise refresh the page and try again.';
+
+function readTurnstileToken( form ) {
+	const field = form.querySelector( '[name="cf-turnstile-response"]' );
+	return field ? String( field.value || '' ) : '';
+}
+
+/**
+ * Resolve the form's Turnstile token, waiting for it if needed.
+ *
+ * The widget renders with appearance "interaction-only", so it is invisible
+ * and mints its token in the background a few seconds after page load.
+ * Autofilled credentials let people submit before that token exists. Rather
+ * than rejecting the submit with a "complete the challenge" error for a
+ * challenge they cannot see, wait for the token to arrive.
+ *
+ * @param {HTMLFormElement} form      Form containing the .cf-turnstile widget.
+ * @param {number}          timeoutMs Maximum wait before giving up.
+ * @return {Promise<string>} Token, or empty string when no widget / timeout.
+ */
+export function waitForTurnstileToken( form, timeoutMs = TURNSTILE_TOKEN_TIMEOUT_MS ) {
+	return new Promise( ( resolve ) => {
+		if ( ! form.querySelector( '.cf-turnstile' ) ) {
+			resolve( '' );
+			return;
+		}
+
+		const initial = readTurnstileToken( form );
+		if ( initial ) {
+			resolve( initial );
+			return;
+		}
+
+		let elapsed = 0;
+		const interval = window.setInterval( () => {
+			// api.js may have finished loading after mount; make sure the
+			// widget has actually been rendered so it can mint a token.
+			renderTurnstile( form );
+
+			const token = readTurnstileToken( form );
+			elapsed += TURNSTILE_TOKEN_POLL_MS;
+			if ( token || elapsed >= timeoutMs ) {
+				window.clearInterval( interval );
+				resolve( token );
+			}
+		}, TURNSTILE_TOKEN_POLL_MS );
+	} );
 }
 
 function LoggedInCard( { config } ) {
@@ -153,13 +213,6 @@ export function LoginPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
-		const turnstileResponse = String( formData.get( 'cf-turnstile-response' ) || '' );
-		const turnstileWidget = form.querySelector( '.cf-turnstile' );
-		if ( turnstileWidget && ! turnstileResponse ) {
-			setNotice( { type: 'error', message: 'Captcha verification required. Please complete the challenge and try again.' } );
-			return;
-		}
-
 		const utils = window.ECAuthUtils;
 		const deviceId = utils?.getDeviceId ? utils.getDeviceId() : '';
 		if ( ! deviceId ) {
@@ -167,10 +220,19 @@ export function LoginPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
-		const remember = formData.get( 'rememberme' ) === 'forever';
-		const redirectTo = String( formData.get( 'redirect_to' ) || window.location.href );
 		const submitButton = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 		const restore = utils?.setSubmitting ? utils.setSubmitting( submitButton, 'Logging in…' ) : () => {};
+
+		const turnstileResponse = await waitForTurnstileToken( form );
+		const turnstileWidget = form.querySelector( '.cf-turnstile' );
+		if ( turnstileWidget && ! turnstileResponse ) {
+			setNotice( { type: 'error', message: TURNSTILE_TIMEOUT_MESSAGE } );
+			restore();
+			return;
+		}
+
+		const remember = formData.get( 'rememberme' ) === 'forever';
+		const redirectTo = String( formData.get( 'redirect_to' ) || window.location.href );
 
 		try {
 			const url = new URL( 'extrachill/v1/auth/login', utils.getRestRoot() );
@@ -278,13 +340,6 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
-		const turnstileResponse = String( formData.get( 'cf-turnstile-response' ) || '' );
-		const turnstileWidget = form.querySelector( '.cf-turnstile' );
-		if ( turnstileWidget && ! turnstileResponse ) {
-			setNotice( { type: 'error', message: 'Captcha verification required. Please complete the challenge and try again.' } );
-			return;
-		}
-
 		const utils = window.ECAuthUtils;
 		const deviceId = utils?.getDeviceId ? utils.getDeviceId() : '';
 		if ( ! deviceId ) {
@@ -292,10 +347,19 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
-		const inviteToken = String( formData.get( 'invite_token' ) || '' );
-		const inviteArtistId = Number( formData.get( 'invite_artist_id' ) || 0 );
 		const submitButton = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 		const restore = utils?.setSubmitting ? utils.setSubmitting( submitButton, 'Creating account…' ) : () => {};
+
+		const turnstileResponse = await waitForTurnstileToken( form );
+		const turnstileWidget = form.querySelector( '.cf-turnstile' );
+		if ( turnstileWidget && ! turnstileResponse ) {
+			setNotice( { type: 'error', message: TURNSTILE_TIMEOUT_MESSAGE } );
+			restore();
+			return;
+		}
+
+		const inviteToken = String( formData.get( 'invite_token' ) || '' );
+		const inviteArtistId = Number( formData.get( 'invite_artist_id' ) || 0 );
 		const fromJoin = Boolean( config.fromJoin );
 		const { referrer, utm } = captureAttribution();
 
