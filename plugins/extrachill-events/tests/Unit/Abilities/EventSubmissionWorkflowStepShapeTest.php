@@ -98,6 +98,16 @@ namespace {
 	// its existing early-return branch, so this suite doesn't need to also
 	// stub get_bloginfo()/admin_url()/esc_html() to reach the workflow
 	// shape under test.
+	// Data Machine's system agent resolver (issue #914).
+	if ( ! function_exists( 'datamachine_resolve_system_agent_context' ) ) {
+		function datamachine_resolve_system_agent_context() {
+			return $GLOBALS['ec_test_system_agent'] ?? array(
+				'agent_id' => 0,
+				'user_id'  => 0,
+			);
+		}
+	}
+
 	if ( ! function_exists( 'get_option' ) ) {
 		function get_option( $option, $default = false ) {
 			unset( $option, $default );
@@ -159,10 +169,15 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			};
 			$GLOBALS['ec_test_filters']                    = array();
 			$GLOBALS['ec_test_wp_handle_upload_error']     = null;
+			$GLOBALS['ec_test_system_agent']               = array(
+				'agent_id' => 6,
+				'user_id'  => 1,
+			);
 		}
 
 		protected function tearDown(): void {
 			unset(
+				$GLOBALS['ec_test_system_agent'],
 				$GLOBALS['ec_test_ability_resolver'],
 				$GLOBALS['ec_test_filters'],
 				$GLOBALS['ec_test_wp_handle_upload_error']

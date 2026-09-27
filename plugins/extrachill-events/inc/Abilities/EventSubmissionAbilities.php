@@ -336,10 +336,15 @@ class EventSubmissionAbilities {
 	 * `PermissionHelper::run_as_authenticated()`, Data Machine's canonical
 	 * seam for callers that authorized the action at their own layer (see
 	 * `dispatchEmail()` below, which relies on the same seam via
-	 * `extrachill_send_registration_email()`). The acting user id is left at
-	 * its default (0 / system authority) rather than the submitter's own
-	 * account, because an anonymous submitter's resolved account is a bare
-	 * subscriber and would not carry `manage_flows` either.
+	 * `extrachill_send_registration_email()`).
+	 *
+	 * Data Machine also requires every direct job to have an owner (an
+	 * acting user or an agent; issue #914). The job is owned by the
+	 * install's system agent, resolved through the same substrate helper
+	 * ArtistUrlImportAbilities uses, and runs as that agent's owner. The
+	 * submitter's own account is a bare subscriber and can own neither the
+	 * permission nor the job; the event itself is still attributed to the
+	 * submitter through the submission payload.
 	 *
 	 * @param array      $submission    Sanitized submission data.
 	 * @param array|null $flyer         File data from $_FILES, or null.
@@ -363,7 +368,18 @@ class EventSubmissionAbilities {
 
 		$workflow = $this->buildWorkflow( $submission, $stored_flyer );
 
-		$initial_data = array( 'submission' => $submission );
+		$owner = $this->resolveWorkflowOwner();
+		if ( $owner['agent_id'] <= 0 || $owner['user_id'] <= 0 ) {
+			do_action( 'datamachine_log', 'error', 'EventSubmission: no system agent available to own the submission workflow', array( 'owner' => $owner ) );
+			return new \WP_Error( 'workflow_owner_unavailable', __( 'Event submissions are temporarily unavailable. Please try again later.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		$initial_data = array(
+			'submission' => $submission,
+			'agent_id'   => $owner['agent_id'],
+			'job_source' => 'event_submission',
+			'job_label'  => 'Event Submission',
+		);
 		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
 			$initial_data['image_file_path'] = $stored_flyer['stored_path'];
 		}
@@ -379,8 +395,22 @@ class EventSubmissionAbilities {
 						'initial_data' => $initial_data,
 					)
 				);
-			}
+			},
+			$owner['user_id']
 		);
+
+		if ( is_wp_error( $result ) ) {
+			do_action(
+				'datamachine_log',
+				'error',
+				'EventSubmission: workflow execution failed',
+				array(
+					'code'    => $result->get_error_code(),
+					'message' => $result->get_error_message(),
+					'title'   => $submission['event_title'] ?? '',
+				)
+			);
+		}
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -405,6 +435,38 @@ class EventSubmissionAbilities {
 			'message' => __( 'Thanks! We queued your submission for review.', 'extrachill-events' ),
 			'job_id'  => $job_id,
 		);
+	}
+
+	/**
+	 * Resolve the system agent that owns submission workflows.
+	 *
+	 * Uses Data Machine's `datamachine_resolve_system_agent_context()`, falling
+	 * back to the default agent user, the same resolution
+	 * ArtistUrlImportAbilities::resolveSystemAgentContext() performs.
+	 *
+	 * @return array{agent_id:int,user_id:int}
+	 */
+	private function resolveWorkflowOwner(): array {
+		$owner = array(
+			'agent_id' => 0,
+			'user_id'  => 0,
+		);
+
+		if ( function_exists( 'datamachine_resolve_system_agent_context' ) ) {
+			$resolved          = datamachine_resolve_system_agent_context();
+			$owner['agent_id'] = (int) $resolved['agent_id'];
+			$owner['user_id']  = (int) $resolved['user_id'];
+		}
+
+		if ( ( $owner['agent_id'] <= 0 || $owner['user_id'] <= 0 ) && class_exists( '\\DataMachine\\Core\\FilesRepository\\DirectoryManager' ) ) {
+			$default_user_id = (int) \DataMachine\Core\FilesRepository\DirectoryManager::get_default_agent_user_id();
+			if ( $default_user_id > 0 && function_exists( 'datamachine_resolve_or_create_agent_id' ) ) {
+				$owner['user_id']  = $default_user_id;
+				$owner['agent_id'] = (int) datamachine_resolve_or_create_agent_id( $default_user_id );
+			}
+		}
+
+		return $owner;
 	}
 
 	/**

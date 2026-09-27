@@ -95,6 +95,17 @@ namespace {
 	// its existing early-return branch (no admin_email configured), so this
 	// test doesn't need to also stub get_bloginfo()/admin_url()/esc_html()
 	// to exercise the permission-elevation path under test.
+	// Data Machine's system agent resolver (issue #914). Tests control the
+	// resolved owner through $GLOBALS['ec_test_system_agent'].
+	if ( ! function_exists( 'datamachine_resolve_system_agent_context' ) ) {
+		function datamachine_resolve_system_agent_context() {
+			return $GLOBALS['ec_test_system_agent'] ?? array(
+				'agent_id' => 0,
+				'user_id'  => 0,
+			);
+		}
+	}
+
 	if ( ! function_exists( 'get_option' ) ) {
 		function get_option( $option, $default = false ) {
 			return '' === $default ? '' : '';
@@ -132,6 +143,19 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 				);
 			}
 
+			// Mirror ExecuteWorkflowAbility::resolveOwnership(): a direct job
+			// needs an acting user or an agent, or it is rejected (#914).
+			$acting_ids  = PermissionHelper::$acting_user_ids;
+			$acting_user = empty( $acting_ids ) ? 0 : (int) end( $acting_ids );
+			$agent_id    = (int) ( $args['initial_data']['agent_id'] ?? 0 );
+			if ( $acting_user <= 0 && $agent_id <= 0 ) {
+				return new WP_Error(
+					'workflow_ownership_denied',
+					'An authenticated acting caller is required for user-scoped workflow execution.',
+					array( 'status' => 403 )
+				);
+			}
+
 			return array(
 				'job_id' => 4242,
 			);
@@ -153,10 +177,14 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 				return 'datamachine/execute-workflow' === $name ? $this->stub_ability : null;
 			};
 			$GLOBALS['ec_test_filters']          = array();
+			$GLOBALS['ec_test_system_agent']     = array(
+				'agent_id' => 6,
+				'user_id'  => 1,
+			);
 		}
 
 		protected function tearDown(): void {
-			unset( $GLOBALS['ec_test_ability_resolver'], $GLOBALS['ec_test_filters'] );
+			unset( $GLOBALS['ec_test_ability_resolver'], $GLOBALS['ec_test_filters'], $GLOBALS['ec_test_system_agent'] );
 			PermissionHelper::reset_for_tests();
 			parent::tearDown();
 		}
@@ -215,11 +243,12 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			$this->assertArrayHasKey( 'initial_data', $this->stub_ability->calls[0] );
 
 			$this->assertSame(
-				array( 0 ),
+				array( 1 ),
 				PermissionHelper::$acting_user_ids,
-				'Acting user id must stay 0 (system authority) — an anonymous submitter\'s ' .
-				'own resolved account is a bare subscriber and would not carry manage_flows either.'
+				'The workflow runs as the system agent\'s owner, never as the anonymous visitor.'
 			);
+			$this->assertSame( 6, $this->stub_ability->calls[0]['initial_data']['agent_id'], 'The job is owned by the system agent (#914).' );
+			$this->assertSame( 'event_submission', $this->stub_ability->calls[0]['initial_data']['job_source'] );
 
 			$this->assertFalse(
 				PermissionHelper::is_authenticated_context(),
@@ -245,6 +274,20 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 		}
 
 		/** Existing guard clause: still returns dm_unavailable if the ability itself can't be resolved. */
+		/** Without a resolvable system agent the submission fails clearly, not with an ownership error. */
+		public function test_missing_system_agent_returns_owner_unavailable(): void {
+			$GLOBALS['ec_test_system_agent'] = array(
+				'agent_id' => 0,
+				'user_id'  => 0,
+			);
+
+			$result = $this->execute_direct( $this->anonymous_submission() );
+
+			$this->assertInstanceOf( WP_Error::class, $result );
+			$this->assertSame( 'workflow_owner_unavailable', $result->get_error_code() );
+			$this->assertCount( 0, $this->stub_ability->calls );
+		}
+
 		public function test_missing_execute_workflow_ability_returns_dm_unavailable(): void {
 			$GLOBALS['ec_test_ability_resolver'] = function () {
 				return null;
