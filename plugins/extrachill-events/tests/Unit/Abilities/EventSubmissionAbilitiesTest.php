@@ -31,7 +31,6 @@ use WP_UnitTestCase;
 class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 
 	private EventSubmissionAbilities $abilities;
-	private int $admin_user_id;
 
 	/**
 	 * Minimal valid input for an anonymous submission.
@@ -52,9 +51,13 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		// datamachine/execute-workflow requires manage_options.
-		$this->admin_user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $this->admin_user_id );
+		// The public submission form is served to logged-out visitors, so the
+		// suite defaults to that vantage point. executeDirect() elevates the
+		// datamachine/execute-workflow call itself via
+		// PermissionHelper::run_as_authenticated() (see EventSubmissionAbilities
+		// docblock), so no caller-side privilege is required here. Individual
+		// tests that need a logged-in submitter log one in explicitly.
+		wp_set_current_user( 0 );
 
 		$this->abilities = new EventSubmissionAbilities();
 	}
@@ -80,7 +83,11 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 
 		$request = new \WP_REST_Request( 'POST', '/wp-abilities/v1/abilities/extrachill/submit-event/run' );
 		$request->set_header( 'content-type', 'application/json' );
-		$request->set_body( wp_json_encode( array( 'input' => $this->valid_input ) ) );
+		// wp_json_encode() only returns false if encoding fails; this fixed,
+		// scalar-only payload always encodes, so assert that rather than cast.
+		$payload = wp_json_encode( array( 'input' => $this->valid_input ) );
+		$this->assertIsString( $payload );
+		$request->set_body( $payload );
 
 		$response = rest_get_server()->dispatch( $request );
 
@@ -133,9 +140,7 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	// ─── Contact Resolution ────────────────────────────────────────────
 
 	public function test_anonymous_submission_missing_name_returns_error(): void {
-		// Log out to trigger anonymous path.
-		wp_set_current_user( 0 );
-
+		// set_up() already leaves us logged out; this is the anonymous path.
 		$input = $this->valid_input;
 		unset( $input['contact_name'] );
 
@@ -146,8 +151,6 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_anonymous_submission_missing_email_returns_error(): void {
-		wp_set_current_user( 0 );
-
 		$input = $this->valid_input;
 		unset( $input['contact_email'] );
 
@@ -158,8 +161,6 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_anonymous_submission_invalid_email_returns_error(): void {
-		wp_set_current_user( 0 );
-
 		$input = $this->valid_input;
 		// sanitize_email('not-an-email') returns empty string,
 		// so this hits missing_contact before invalid_email.
@@ -172,6 +173,13 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_logged_in_user_resolves_from_session(): void {
+		// A plain subscriber — not an admin — proves resolveContact() only
+		// needs a session, and that executeDirect()'s own elevation of the
+		// datamachine/execute-workflow call (not the caller's role) is what
+		// lets a non-privileged logged-in submitter succeed (issue #910).
+		$user_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		wp_set_current_user( $user_id );
+
 		$input = $this->valid_input;
 		// Logged-in users don't need contact_name/contact_email.
 		unset( $input['contact_name'] );
@@ -227,7 +235,8 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_submission_hook_receives_sanitized_data(): void {
-		// We're logged in as admin, so contact info comes from the session.
+		// Anonymous submitter (the default per set_up()): contact info comes
+		// straight from the form fields, not a session.
 		$captured = array();
 
 		add_action(
@@ -248,10 +257,13 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		$this->assertSame( 'Oakland', $captured['event_city'] );
 		$this->assertSame( 'Kwame Copeland, Deborah Crooks', $captured['event_lineup'] );
 		$this->assertSame( 'https://www.rhythmix.org/events/flight-lessons-2026/', $captured['event_link'] );
-		// Logged-in user: contact info comes from session, not form fields.
-		$this->assertGreaterThan( 0, $captured['user_id'] );
-		$this->assertNotEmpty( $captured['contact_name'] );
-		$this->assertNotEmpty( $captured['contact_email'] );
+		// Anonymous submission: contact info is exactly what was typed into
+		// the form. user_id is resolved to a real (or newly created) account
+		// keyed by email (issue #207) when that ability is available, and
+		// falls back to 0 otherwise — either way it must not be negative.
+		$this->assertSame( 'Deborah', $captured['contact_name'] );
+		$this->assertSame( 'deborahrcrooks@gmail.com', $captured['contact_email'] );
+		$this->assertGreaterThanOrEqual( 0, $captured['user_id'] );
 	}
 
 	// ─── Optional Fields ───────────────────────────────────────────────
@@ -375,9 +387,8 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 	}
 
 	public function test_submitter_email_goes_to_correct_address(): void {
-		// We're logged in as admin, so email goes to the admin user.
-		$admin_user = get_user_by( 'id', $this->admin_user_id );
-
+		// Anonymous submitter (the default per set_up()): the confirmation
+		// goes to whatever email address they typed into the form.
 		$sent_emails = array();
 		add_filter(
 			'wp_mail',
@@ -390,7 +401,7 @@ class EventSubmissionAbilitiesTest extends WP_UnitTestCase {
 		$this->abilities->executeSubmitEvent( $this->valid_input );
 
 		$recipients = wp_list_pluck( $sent_emails, 'to' );
-		$this->assertContains( $admin_user->user_email, $recipients );
+		$this->assertContains( $this->valid_input['contact_email'], $recipients );
 	}
 
 	public function test_logged_in_user_receives_confirmation_email(): void {
