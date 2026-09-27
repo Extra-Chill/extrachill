@@ -3,6 +3,8 @@ export interface ContactFormProps {
   restNonce: string;
   turnstileSiteKey?: string;
   subjects: string[];
+  /** Subject preselected when the form loads (must be one of `subjects`). */
+  initialSubject?: string;
   newsletterNotice?: string;
   successMessage?: string;
   successAction?: {

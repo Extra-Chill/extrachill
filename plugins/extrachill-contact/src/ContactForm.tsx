@@ -17,6 +17,7 @@ export function ContactForm({
   restNonce,
   turnstileSiteKey,
   subjects,
+  initialSubject,
   newsletterNotice,
   successMessage = "Thanks for reaching out! We'll be in touch soon.",
   successAction,
@@ -29,7 +30,7 @@ export function ContactForm({
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
     email: '',
-    subject: '',
+    subject: initialSubject && subjects.includes(initialSubject) ? initialSubject : '',
     message: '',
   });
 
