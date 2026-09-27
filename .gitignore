@@ -20,7 +20,6 @@ vendor/
 .claude/
 CLAUDE.md
 .buildignore
-build.sh
 
 # WordPress documentation sync (contains application password)
 docs/.docs-sync.json

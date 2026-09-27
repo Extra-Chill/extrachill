@@ -44,7 +44,7 @@ Purpose: Enable an AI agent to make high‑quality, production‑safe contributi
 - Memory debugging markers exist (string expressions) but aren’t logged; if expanding diagnostics, implement a lightweight guarded logger instead of unconditional heavy computations.
 
 ## 9. Build & Tooling
-- Packaging: run build task (`./build.sh` or VS Code task “Build Theme”) → creates `dist/extrachill.zip` excluding patterns in `.buildignore`; validates required files; reinstalls dev Composer deps afterward.
+- Packaging: Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 - Composer: Prod requires only `composer/installers`; dev adds PHPCS + WPCS. Run `composer test` / `composer run lint:php` before committing PHP changes.
 - No JS bundler—submit plain ES5/ESNext compatible with target browsers (WordPress standards). Avoid adding a bundler unless explicitly approved.
 
