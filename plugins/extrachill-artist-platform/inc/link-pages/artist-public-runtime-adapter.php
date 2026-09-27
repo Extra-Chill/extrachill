@@ -20,15 +20,28 @@ function ec_artist_link_page_public_projection_provider( $context ) {
 		return null;
 	}
 
-	$artist_id = (int) $owner['object_id'];
-	$artist    = get_post( $artist_id );
-	if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
-		return new WP_Error( 'link_page_public_owner_unavailable', 'The Link Page public owner is unavailable.', array( 'status' => 404 ) );
+	// The runtime invokes providers on the Link Page storage blog
+	// (extrachill.link after the cutover); the artist lives on the artist
+	// blog, so read it there and restore before returning.
+	$switched = get_current_blog_id() !== $artist_blog_id;
+	if ( $switched ) {
+		switch_to_blog( $artist_blog_id );
 	}
-	$link_page_id    = (int) $context['link_page_id'];
-	$data            = ec_get_link_page_data( $artist_id, $link_page_id );
-	$artist_site_url = ec_get_site_url( 'artist' );
-	$seo             = extrachill_artist_link_page_seo_context( $artist_id, $link_page_id );
+	try {
+		$artist_id = (int) $owner['object_id'];
+		$artist    = get_post( $artist_id );
+		if ( ! $artist || 'artist_profile' !== $artist->post_type || 'publish' !== $artist->post_status ) {
+			return new WP_Error( 'link_page_public_owner_unavailable', 'The Link Page public owner is unavailable.', array( 'status' => 404 ) );
+		}
+		$link_page_id    = (int) $context['link_page_id'];
+		$data            = ec_get_link_page_data( $artist_id, $link_page_id );
+		$artist_site_url = ec_get_site_url( 'artist' );
+		$seo             = extrachill_artist_link_page_seo_context( $artist_id, $link_page_id );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
 
 	return array(
 		'display_title'         => (string) $data['display_title'],
