@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.49.0] - 2026-09-27
+
+### Added
+- /join onboarding asks what the Link Page is for via owner-registered intents
+
 ## [0.48.0] - 2026-09-27
 
 ### Added
