@@ -221,7 +221,6 @@ Extra Chill API does not synchronize or persist shared taxonomy terms. On-demand
 ```
 extrachill-api/
 ├── extrachill-api.php          # Main plugin file
-├── build.sh                    # Production build script (symlink)
 ├── composer.json               # Dependencies and scripts
 ├── .buildignore               # Build exclusions
 ├── README.md                  # This file
@@ -328,9 +327,7 @@ extrachill-api/
 ## Development
 
 ### Production Build
-```bash
-./build.sh
-```
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 ### Testing Endpoints
 ```bash
