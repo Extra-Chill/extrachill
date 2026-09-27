@@ -26,7 +26,7 @@
   "id": "extrachill-users",
   "remote_path": "wp-content/plugins/extrachill-users",
   "scopes": {
-    "release": {
+    "package": {
       "exclude": [
         "blocks/**"
       ]
