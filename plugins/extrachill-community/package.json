@@ -10,7 +10,6 @@
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
     "format": "wp-scripts format",
-    "zip": "./build.sh",
     "version": "grep -i 'Version:' style.css | head -1 | sed 's/.*Version:\\s*\\([0-9\\.]*\\).*/\\1/'"
   },
   "repository": {

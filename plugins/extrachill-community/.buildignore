@@ -69,7 +69,6 @@ cache/
 .env.staging
 
 # Development build tools
-build.sh
 webpack.config.js
 gulpfile.js
 Gruntfile.js
