@@ -91,7 +91,7 @@ Direct file editing with no build step required.
 
 ### Build + Deployment
 
-Production builds use `./build.sh` (symlinked to `/.github/build.sh`).
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 Build artifact: `build/extrachill.zip`
 

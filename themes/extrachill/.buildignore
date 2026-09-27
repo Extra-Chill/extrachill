@@ -10,7 +10,6 @@ vendor/
 docs/
 
 # Build system files
-build.sh
 .buildignore
 composer.lock
 package-lock.json
