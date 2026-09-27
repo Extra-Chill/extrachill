@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.47.0] - 2026-09-27
+
+### Added
+- add 'My Link Page' to the avatar menu for artist members
+
+### Fixed
+- wait for the invisible Turnstile token instead of failing early login/register submits
+
 ## [0.46.0] - 2026-09-26
 
 ### Added
