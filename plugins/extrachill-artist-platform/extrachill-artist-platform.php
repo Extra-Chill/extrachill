@@ -106,6 +106,7 @@ class ExtraChillArtistPlatform {
 
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/editor-adapter.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/manage-link-page-routing.php';
 		// Link-page analytics (write path, read provider, prune, and tables) is
 		// owned by extrachill-analytics (ECA) as of extrachill-artist-platform#89
 		// / extrachill-analytics#94. AP consumes it via the

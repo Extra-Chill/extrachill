@@ -22,7 +22,7 @@ function extrachill_artist_link_page_editor_configuration( $configuration, $attr
 	foreach ( ec_get_artists_for_user( get_current_user_id(), true ) as $artist_id ) {
 		$post         = get_post( $artist_id );
 		$link_page_id = function_exists( 'ec_get_link_page_for_artist' ) ? ec_get_link_page_for_artist( $artist_id ) : 0;
-		if ( ! $post || 'publish' !== $post->post_status || ! $link_page_id || 'publish' !== get_post_status( $link_page_id ) ) {
+		if ( ! $post || 'publish' !== $post->post_status || ! $link_page_id || ! ec_artist_link_page_is_published( $link_page_id ) ) {
 			continue;
 		}
 		if ( $requested_page_id && (int) $link_page_id === $requested_page_id ) {

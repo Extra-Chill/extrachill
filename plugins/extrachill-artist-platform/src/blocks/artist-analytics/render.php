@@ -61,7 +61,7 @@ foreach ( $user_artists as $ua_id ) {
 		? ec_get_link_page_for_artist( $ua_id )
 		: 0;
 
-	if ( $link_page_id && get_post_status( $link_page_id ) === 'publish' ) {
+	if ( $link_page_id && ec_artist_link_page_is_published( $link_page_id ) ) {
 		$user_artists_data[]               = array(
 			'id'   => (int) $ua_id,
 			'name' => $artist_post->post_title,
@@ -103,7 +103,7 @@ if ( ! $artist_id ) {
 // Localize configuration data.
 $link_page_id = ec_get_link_page_for_artist( $artist_id );
 
-if ( ! $link_page_id || get_post_status( $link_page_id ) !== 'publish' ) {
+if ( ! $link_page_id || ! ec_artist_link_page_is_published( $link_page_id ) ) {
 	echo '<div class="notice notice-info">';
 	echo '<p>' . esc_html__( 'Create a link page to start tracking analytics.', 'extrachill-artist-platform' ) . '</p>';
 	echo '<a href="' . esc_url( site_url( '/manage-link-page/' ) ) . '" class="button-1 button-medium">' . esc_html__( 'Create Link Page', 'extrachill-artist-platform' ) . '</a>';

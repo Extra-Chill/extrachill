@@ -153,14 +153,36 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		);
 	}
 
-	restore_current_blog();
-
-	if ( function_exists( 'extrachill_artist_platform_read_artist_data' ) ) {
-		return extrachill_artist_platform_read_artist_data( $artist_id );
+	// Every artist gets a Link Page: it is the platform's core promise, and
+	// no other self-serve path creates one since editor renders became
+	// read-only (#200, #243). Failure keeps the profile — the musician can
+	// retry from /manage-link-page/ ("Create my Link Page") — but is surfaced.
+	$link_page_id    = 0;
+	$link_page_error = null;
+	if ( function_exists( 'ec_create_link_page' ) ) {
+		$created_page = ec_create_link_page( $artist_id );
+		if ( is_wp_error( $created_page ) ) {
+			$link_page_error = $created_page->get_error_code();
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- actionable provisioning failure.
+			error_log( sprintf( 'Artist %d created without a Link Page: %s', (int) $artist_id, $created_page->get_error_message() ) );
+		} else {
+			$link_page_id = (int) $created_page;
+		}
 	}
 
-	return array(
-		'id'   => (int) $artist_id,
-		'name' => $name,
-	);
+	restore_current_blog();
+
+	$result = function_exists( 'extrachill_artist_platform_read_artist_data' )
+		? extrachill_artist_platform_read_artist_data( $artist_id )
+		: array(
+			'id'   => (int) $artist_id,
+			'name' => $name,
+		);
+	if ( is_array( $result ) ) {
+		$result['link_page_id'] = $link_page_id;
+		if ( $link_page_error ) {
+			$result['link_page_error'] = $link_page_error;
+		}
+	}
+	return $result;
 }

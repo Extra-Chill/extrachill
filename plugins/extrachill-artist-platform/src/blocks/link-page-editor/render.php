@@ -62,7 +62,7 @@ foreach ( $user_artists as $ua_id ) {
 		? ec_get_link_page_for_artist( $ua_id )
 		: 0;
 
-	if ( $link_page_id && get_post_status( $link_page_id ) === 'publish' ) {
+	if ( $link_page_id && ec_artist_link_page_is_published( $link_page_id ) ) {
 		$user_artists_data[]               = array(
 			'id'   => (int) $ua_id,
 			'name' => $artist_post->post_title,

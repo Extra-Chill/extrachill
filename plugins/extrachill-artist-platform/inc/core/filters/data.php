@@ -22,6 +22,80 @@ function ec_get_artist_link_page_edit_url( $artist_id ) {
 }
 
 /**
+ * Post status of a Link Page, read on the canonical Link Page storage blog.
+ *
+ * After the extrachill.link cutover, Link Pages live on the storage blog,
+ * so get_post_status() on the artist blog misses every page created after
+ * the cutover (Extra-Chill/extrachill-artist-platform#245).
+ *
+ * @param int $link_page_id Link Page ID.
+ * @return string|false Post status, or false when the page does not exist.
+ */
+function ec_artist_link_page_status( $link_page_id ) {
+	$link_page_id = (int) $link_page_id;
+	if ( $link_page_id <= 0 ) {
+		return false;
+	}
+	$read = static function () use ( $link_page_id ) {
+		return get_post_type( $link_page_id ) === extrachill_artist_platform_link_page_post_type() ? get_post_status( $link_page_id ) : false;
+	};
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$status = ec_with_link_page_storage_blog( $read );
+		return is_wp_error( $status ) ? false : $status;
+	}
+	return $read();
+}
+
+/**
+ * Whether a Link Page exists and is published on the storage blog.
+ *
+ * @param int $link_page_id Link Page ID.
+ * @return bool
+ */
+function ec_artist_link_page_is_published( $link_page_id ) {
+	return 'publish' === ec_artist_link_page_status( $link_page_id );
+}
+
+/**
+ * Where "Manage / Create Link Page" should send the current user.
+ *
+ * The editor for their most recent artist with a published Link Page, else
+ * the /manage-link-page/ screen (which offers to create one).
+ *
+ * @param int $user_id User ID (defaults to current user).
+ * @return string
+ */
+function ec_get_user_link_page_manage_url( $user_id = 0 ) {
+	$user_id        = $user_id ? (int) $user_id : get_current_user_id();
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+	if ( $artist_blog_id && get_current_blog_id() !== $artist_blog_id ) {
+		switch_to_blog( $artist_blog_id );
+		try {
+			return ec_get_user_link_page_manage_url( $user_id );
+		} finally {
+			restore_current_blog();
+		}
+	}
+	if ( $user_id && function_exists( 'ec_get_artists_for_user' ) ) {
+		$artist_ids = array_map( 'intval', (array) ec_get_artists_for_user( $user_id ) );
+		$latest     = function_exists( 'ec_get_latest_artist_for_user' ) ? (int) ec_get_latest_artist_for_user( $user_id ) : 0;
+		if ( $latest && in_array( $latest, $artist_ids, true ) ) {
+			array_unshift( $artist_ids, $latest );
+		}
+		foreach ( array_unique( $artist_ids ) as $artist_id ) {
+			if ( ec_artist_link_page_is_published( (int) ec_get_link_page_for_artist( $artist_id ) ) ) {
+				$url = ec_get_artist_link_page_edit_url( $artist_id );
+				if ( '' !== $url ) {
+					return $url;
+				}
+			}
+		}
+	}
+	$site = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : '';
+	return ( $site ? untrailingslashit( $site ) : untrailingslashit( home_url() ) ) . '/manage-link-page/';
+}
+
+/**
  * Centralized Data Functions
  *
  * Single source of truth for artist profile and link page data.

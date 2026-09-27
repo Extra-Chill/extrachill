@@ -73,6 +73,10 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 				),
 				'extrachill_artist_platform_ability_save_link_page_settings',
 			),
+			'extrachill/create-artist-link-page'   => array(
+				array( 'artist_id' => $id ),
+				'extrachill_artist_platform_ability_create_artist_link_page',
+			),
 			'extrachill/save-social-links'         => array(
 				array(
 					'artist_id'    => $id,

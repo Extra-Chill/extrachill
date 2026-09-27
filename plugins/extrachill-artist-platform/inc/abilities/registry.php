@@ -607,6 +607,39 @@ function extrachill_artist_platform_register_abilities() {
 	);
 
 	wp_register_ability(
+		'extrachill/create-artist-link-page',
+		array(
+			'label'               => __( 'Create Artist Link Page', 'extrachill-artist-platform' ),
+			'description'         => __( 'Create the Link Page for an artist that does not have one yet. Returns the existing page when one already exists.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artist-platform',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'artist_id' => array(
+						'type'        => 'integer',
+						'description' => __( 'Artist profile post ID.', 'extrachill-artist-platform' ),
+					),
+				),
+				'required'   => array( 'artist_id' ),
+			),
+			'output_schema'       => array(
+				'type'        => 'object',
+				'description' => __( 'Artist ID, Link Page ID, and editor URL.', 'extrachill-artist-platform' ),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_create_artist_link_page',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
 		'extrachill/save-social-links',
 		array(
 			'label'               => __( 'Save Social Links', 'extrachill-artist-platform' ),

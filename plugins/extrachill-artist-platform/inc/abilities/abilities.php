@@ -22,6 +22,7 @@ require_once __DIR__ . '/handlers/update-artist.php';
 require_once __DIR__ . '/handlers/save-link-page-links.php';
 require_once __DIR__ . '/handlers/save-link-page-styles.php';
 require_once __DIR__ . '/handlers/save-link-page-settings.php';
+require_once __DIR__ . '/handlers/create-artist-link-page.php';
 require_once __DIR__ . '/handlers/save-social-links.php';
 
 // Artist-domain ability handlers (issue #27).

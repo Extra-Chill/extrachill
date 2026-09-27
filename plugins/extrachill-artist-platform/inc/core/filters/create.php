@@ -147,8 +147,17 @@ function ec_create_link_page( $artist_id, $force = false ) {
 	}
 	$previous_link_page_id = (int) $existing_link_page_id;
 	if ( $existing_link_page_id && ! $force ) {
-		$associated_artist_id = (int) get_post_meta( $existing_link_page_id, '_associated_artist_profile_id', true );
-		if ( extrachill_artist_platform_link_page_post_type() === get_post_type( $existing_link_page_id ) && $artist_id === $associated_artist_id ) {
+		// Read the existing page where it is stored (the Link Pages storage
+		// blog after cutover), not on the artist blog (#245).
+		$read_existing = static function () use ( $existing_link_page_id ) {
+			return array(
+				'type'   => get_post_type( $existing_link_page_id ),
+				'artist' => (int) get_post_meta( $existing_link_page_id, '_associated_artist_profile_id', true ),
+			);
+		};
+		$existing = function_exists( 'ec_with_link_page_storage_blog' ) ? ec_with_link_page_storage_blog( $read_existing ) : $read_existing();
+		$existing = is_wp_error( $existing ) ? array( 'type' => false, 'artist' => 0 ) : $existing;
+		if ( extrachill_artist_platform_link_page_post_type() === $existing['type'] && (int) $artist_id === $existing['artist'] ) {
 			return $existing_link_page_id;
 		}
 		delete_post_meta( $artist_id, '_extrch_link_page_id', $existing_link_page_id );
