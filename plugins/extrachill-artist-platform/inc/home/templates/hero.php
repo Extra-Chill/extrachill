@@ -33,7 +33,7 @@ $user_artist_ids    = isset( $user_artist_ids ) ? $user_artist_ids : array();
 			<a href="<?php echo esc_url( home_url( '/login/' ) ); ?>" class="button-1 button-medium">
 				<?php esc_html_e( 'Log In', 'extrachill-artist-platform' ); ?>
 			</a>
-			<a href="<?php echo esc_url( home_url( '/login/#tab-register' ) ); ?>" class="button-2 button-medium">
+			<a href="<?php echo esc_url( home_url( '/login/?from_join=true#tab-register' ) ); ?>" class="button-2 button-medium">
 				<?php esc_html_e( 'Sign Up', 'extrachill-artist-platform' ); ?>
 			</a>
 			<a href="<?php echo esc_url( ec_get_site_url( 'docs' ) . '/artist-platform/' ); ?>" class="button-3 button-medium">

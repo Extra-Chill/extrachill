@@ -3,7 +3,7 @@
  * Join Flow - Simplified Join Flow System
  *
  * Handles join flow operations:
- * - Modal rendering via template action hook
+ * - Register-tab landing for /join visitors (inc/join/assets/js/join-flow-ui.js)
  * - Redirect logic for login/registration via from_join parameter
  * - Returning-user nudge: existing email at registration → login tab
  *
@@ -17,21 +17,6 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-
-/**
- * Render join flow modal via community plugin action hook
- *
- * Only renders when from_join parameter is present to prevent
- * unstyled modal HTML from appearing on regular login pages.
- */
-function ec_render_join_flow_modal() {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only referral flag from the community login form; display-only asset decision.
-	if ( ! isset( $_GET['from_join'] ) || 'true' !== $_GET['from_join'] ) {
-		return;
-	}
-	require EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/templates/join-flow-modal.php';
-}
-add_action( 'extrachill_below_login_register_form', 'ec_render_join_flow_modal' );
 
 /**
  * Detects if the current request came from the join flow

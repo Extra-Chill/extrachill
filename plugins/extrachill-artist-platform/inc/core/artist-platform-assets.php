@@ -332,8 +332,7 @@ class ExtraChillArtistPlatform_Assets {
 	/**
 	 * Enqueues join flow assets on login/register page
 	 *
-	 * Loads modal styling and JavaScript for the join flow system
-	 * with dependencies on community plugin's login/register interface.
+	 * Loads the script that opens the Register tab for /join visitors.
 	 */
 	public function enqueue_join_flow_assets() {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only referral flag from the community login form; display-only asset decision.
@@ -341,18 +340,8 @@ class ExtraChillArtistPlatform_Assets {
 			return;
 		}
 
-		$css_path   = 'inc/join/assets/css/join-flow.css';
 		$js_path    = 'inc/join/assets/js/join-flow-ui.js';
 		$plugin_url = EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL;
-
-		if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $css_path ) ) {
-			wp_enqueue_style(
-				'ec-join-flow',
-				$plugin_url . $css_path,
-				array(),
-				$this->get_asset_version( $css_path )
-			);
-		}
 
 		if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . $js_path ) ) {
 			wp_enqueue_script(
