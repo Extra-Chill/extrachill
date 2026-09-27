@@ -24,7 +24,7 @@ Network-activated WordPress plugin providing universal multisite search function
 
 ## Build + deployment
 
-Build the production ZIP with `./build.sh` (symlinked to `/.github/build.sh`).
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 Deployments and remote operations run through **Homeboy** (`homeboy/` in this repo).
 
@@ -176,7 +176,6 @@ extrachill-search/
 │       └── site-badge.php          # Site badge display component
 ├── templates/
 │   └── search.php                  # Search results template
-├── build.sh                        # Production build script
 ├── .buildignore                    # Build exclusions
 └── README.md                       # This file
 ```
@@ -184,12 +183,7 @@ extrachill-search/
 ## Development
 
 ### Build Production Package
-```bash
-# Create production ZIP file
-./build.sh
-
-# Output: Only /build/extrachill-search.zip file
-```
+Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
 ### Development Commands
 ```bash
