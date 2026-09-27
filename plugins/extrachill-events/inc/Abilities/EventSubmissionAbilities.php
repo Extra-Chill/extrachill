@@ -10,6 +10,13 @@
  * not exposed by the generic Abilities REST endpoint so that route remains
  * the canonical public write boundary.
  *
+ * Because authorization for a submission happens upstream (Turnstile at the
+ * REST boundary, `show_in_rest => false` on this ability), executeDirect()
+ * runs the `datamachine/execute-workflow` call through
+ * `\DataMachine\Abilities\PermissionHelper::run_as_authenticated()` so
+ * anonymous and non-admin submitters aren't blocked by that ability's
+ * `manage_options`-class permission_callback. See executeDirect() for detail.
+ *
  * @package ExtraChillEvents\Abilities
  */
 
@@ -309,6 +316,30 @@ class EventSubmissionAbilities {
 	/**
 	 * Execute submission via an ephemeral Data Machine workflow.
 	 *
+	 * `datamachine/execute-workflow`'s permission_callback is
+	 * `PermissionHelper::can_manage()` (requires a `datamachine_manage_*`
+	 * capability or `manage_options`), because that ability is normally
+	 * invoked by logged-in operators through the generic Abilities REST
+	 * endpoint. The public event-submission form is deliberately reachable
+	 * by anonymous visitors, so calling `$execute->execute()` directly here
+	 * always failed permission checks for anyone but an admin (issue #910).
+	 *
+	 * Authorization for this specific call has already happened one layer
+	 * up: extrachill-api's `/extrachill/v1/event-submissions` REST route
+	 * verifies Cloudflare Turnstile before it ever reaches this method, this
+	 * ability (`extrachill/submit-event`) is registered with
+	 * `show_in_rest => false` so it is not independently reachable, and the
+	 * workflow executed below is fully server-built (fixed steps, hardcoded
+	 * `post_status => pending`) — none of it is attacker-controlled. Given
+	 * that, we run the workflow execution inside
+	 * `PermissionHelper::run_as_authenticated()`, Data Machine's canonical
+	 * seam for callers that authorized the action at their own layer (see
+	 * `dispatchEmail()` below, which relies on the same seam via
+	 * `extrachill_send_registration_email()`). The acting user id is left at
+	 * its default (0 / system authority) rather than the submitter's own
+	 * account, because an anonymous submitter's resolved account is a bare
+	 * subscriber and would not carry `manage_flows` either.
+	 *
 	 * @param array      $submission    Sanitized submission data.
 	 * @param array|null $flyer         File data from $_FILES, or null.
 	 * @param string     $account_claim One-time account claim URL, if applicable.
@@ -317,6 +348,10 @@ class EventSubmissionAbilities {
 	private function executeDirect( array $submission, ?array $flyer, string $account_claim = '' ): array|\WP_Error {
 		$execute = wp_get_ability( 'datamachine/execute-workflow' );
 		if ( ! $execute ) {
+			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		if ( ! class_exists( '\\DataMachine\\Abilities\\PermissionHelper' ) ) {
 			return new \WP_Error( 'dm_unavailable', __( 'Data Machine is unavailable.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
@@ -338,11 +373,18 @@ class EventSubmissionAbilities {
 			$initial_data['image_file_path'] = $stored_flyer['stored_path'];
 		}
 
-		$result = $execute->execute(
-			array(
-				'workflow'     => $workflow,
-				'initial_data' => $initial_data,
-			)
+		// Elevate for this single call only — see method docblock for why
+		// this is safe. run_as_authenticated() resets context in a finally
+		// block, so the elevation never leaks past this closure.
+		$result = \DataMachine\Abilities\PermissionHelper::run_as_authenticated(
+			function () use ( $execute, $workflow, $initial_data ) {
+				return $execute->execute(
+					array(
+						'workflow'     => $workflow,
+						'initial_data' => $initial_data,
+					)
+				);
+			}
 		);
 
 		if ( is_wp_error( $result ) ) {
