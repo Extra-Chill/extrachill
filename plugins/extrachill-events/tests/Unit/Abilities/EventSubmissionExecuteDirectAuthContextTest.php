@@ -106,6 +106,17 @@ namespace {
 		}
 	}
 
+	// A mail layer that fatals the way ec_send_email() did when its queued
+	// fallback returned a WP_Error (extrachill-network#316).
+	if ( ! function_exists( 'extrachill_send_registration_email' ) ) {
+		function extrachill_send_registration_email( array $args ) {
+			if ( ! empty( $GLOBALS['ec_test_mail_throws'] ) ) {
+				throw new \Error( 'Cannot use object of type WP_Error as array' );
+			}
+			return array( 'success' => true );
+		}
+	}
+
 	if ( ! function_exists( 'get_option' ) ) {
 		function get_option( $option, $default = false ) {
 			return '' === $default ? '' : '';
@@ -274,6 +285,23 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 		}
 
 		/** Existing guard clause: still returns dm_unavailable if the ability itself can't be resolved. */
+		/** A throwing mail layer is logged, never propagated to the submission. */
+		public function test_notification_failure_never_throws(): void {
+			$GLOBALS['ec_test_mail_throws'] = true;
+
+			$reflection = new ReflectionClass( EventSubmissionAbilities::class );
+			$instance   = $reflection->newInstanceWithoutConstructor();
+			$method     = $reflection->getMethod( 'dispatchEmail' );
+			$method->setAccessible( true );
+
+			try {
+				$method->invoke( $instance, array( 'to' => 'fan@example.com', 'subject' => 'Hi' ), 'submitter' );
+				$this->addToAssertionCount( 1 );
+			} finally {
+				unset( $GLOBALS['ec_test_mail_throws'] );
+			}
+		}
+
 		/** Without a resolvable system agent the submission fails clearly, not with an ownership error. */
 		public function test_missing_system_agent_returns_owner_unavailable(): void {
 			$GLOBALS['ec_test_system_agent'] = array(

@@ -811,15 +811,25 @@ class EventSubmissionAbilities {
 	private function dispatchEmail( array $args, string $audience ): void {
 		$result = null;
 
-		if ( function_exists( 'extrachill_send_registration_email' ) ) {
-			$result = extrachill_send_registration_email( $args );
-		} elseif ( function_exists( 'ec_send_email' ) ) {
-			$result = ec_send_email( $args );
-		} elseif ( function_exists( 'wp_get_ability' ) ) {
-			$send_ability = wp_get_ability( 'datamachine/send-email' );
-			if ( $send_ability ) {
-				$result = $send_ability->execute( $args );
+		// The workflow job already exists when this runs. A notification
+		// failure in any lower layer must never turn an accepted submission
+		// into an error for the visitor (extrachill-network#316).
+		try {
+			if ( function_exists( 'extrachill_send_registration_email' ) ) {
+				$result = extrachill_send_registration_email( $args );
+			} elseif ( function_exists( 'ec_send_email' ) ) {
+				$result = ec_send_email( $args );
+			} elseif ( function_exists( 'wp_get_ability' ) ) {
+				$send_ability = wp_get_ability( 'datamachine/send-email' );
+				if ( $send_ability ) {
+					$result = $send_ability->execute( $args );
+				}
 			}
+		} catch ( \Throwable $e ) {
+			$result = array(
+				'success' => false,
+				'error'   => get_class( $e ) . ': ' . $e->getMessage(),
+			);
 		}
 
 		$sent = is_array( $result ) ? (bool) ( $result['success'] ?? false ) : false;
