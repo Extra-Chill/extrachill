@@ -19,6 +19,13 @@
 	padding: 16px;
 	border-bottom: 1px solid var(--border-color, #444);
 }
+.ec-editor__header > div:first-child,
+.ec-editor__exit-links {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
 .ec-editor__actions {
 	display: flex;
 	align-items: center;

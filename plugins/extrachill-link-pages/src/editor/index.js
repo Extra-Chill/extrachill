@@ -141,6 +141,22 @@ export const normalizeDocument = ( value = {} ) => {
 	};
 };
 
+/**
+ * Owner-supplied links out of the editor (configuration.links).
+ *
+ * @param {Array} links Candidate `{ label, url }` entries.
+ * @return {Array} Valid entries with an http(s) URL.
+ */
+export const exitLinksFor = ( links ) =>
+	( Array.isArray( links ) ? links : [] ).filter(
+		( link ) =>
+			link &&
+			typeof link.label === 'string' &&
+			'' !== link.label.trim() &&
+			typeof link.url === 'string' &&
+			/^https?:\/\//i.test( link.url )
+	);
+
 const Field = ( { label, children, help } ) => {
 	const generatedId = useId();
 	const childElements = Children.toArray( children );
@@ -1192,6 +1208,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 	const qrButtonRef = useRef( null );
 	const instanceRef = useRef( `ec-lpe-${ ++editorInstance }` );
 	const limits = limitsFor( configuration.limits );
+	const exitLinks = exitLinksFor( configuration.links );
 	const capabilities = {
 		identity: true,
 		bio: true,
@@ -1566,6 +1583,14 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 							>
 								{ draft.page.publicUrl }
 							</a>
+							<a
+								className="button-2 button-small"
+								href={ draft.page.publicUrl }
+								target="_blank"
+								rel="noreferrer"
+							>
+								View page
+							</a>
 							{ adapter.qrCode && (
 								<button
 									type="button"
@@ -1578,6 +1603,22 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 								</button>
 							) }
 						</>
+					) }
+					{ exitLinks.length > 0 && (
+						<nav
+							className="ec-editor__exit-links"
+							aria-label="Related pages"
+						>
+							{ exitLinks.map( ( link ) => (
+								<a
+									key={ link.url }
+									className="button-3 button-small"
+									href={ link.url }
+								>
+									{ link.label }
+								</a>
+							) ) }
+						</nav>
 					) }
 				</div>
 				<div className="ec-editor__actions">

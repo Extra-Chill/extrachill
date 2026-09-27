@@ -107,6 +107,14 @@ The standalone plugin intentionally owns label translation through the
 `extrachill-link-pages` text domain; this is a translation-ownership change,
 not a storage, capability, rewrite, or public-routing change.
 
+### Editor configuration: exit links
+
+The configuration an owner returns from `ec_link_page_editor_configuration`
+may include `links`, an array of `{ "label": string, "url": string }` entries.
+The editor renders them in its header next to **View page** so an owner can
+get back to their own management surfaces. Entries without a label or with a
+non-http(s) URL are dropped. The editor itself names no owner pages.
+
 ## Deployment order
 
 1. Deploy the Artist Platform compatibility handoff while its bundled fallback remains available.

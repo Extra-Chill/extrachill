@@ -1,7 +1,13 @@
 /* global afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest */
 import { createRoot } from '@wordpress/element';
 import { act } from 'react';
-import { AdapterBoundary, Editor, Preview, registerAdapter } from './index';
+import {
+	AdapterBoundary,
+	Editor,
+	exitLinksFor,
+	Preview,
+	registerAdapter,
+} from './index';
 
 const deferred = () => {
 	let resolve;
@@ -535,5 +541,21 @@ describe( 'portable editor behavior', () => {
 			container.querySelector( '#extrch-subscribe-modal' )
 		).toBeNull();
 		await act( async () => root.unmount() );
+	} );
+} );
+
+describe( 'editor exit links', () => {
+	it( 'keeps only labelled http(s) links from the configuration', () => {
+		expect(
+			exitLinksFor( [
+				{ label: 'Manage artist', url: 'https://example.test/manage/' },
+				{ label: '', url: 'https://example.test/empty-label/' },
+				{ label: 'Script', url: 'javascript:alert(1)' },
+				null,
+			] )
+		).toEqual( [
+			{ label: 'Manage artist', url: 'https://example.test/manage/' },
+		] );
+		expect( exitLinksFor( undefined ) ).toEqual( [] );
 	} );
 } );
