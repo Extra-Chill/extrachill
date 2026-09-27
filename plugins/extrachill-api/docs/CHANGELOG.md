@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.36.0] - 2026-09-27
+
+### Added
+- pass the /join onboarding intent through POST users/onboarding
+
 ## [0.35.0] - 2026-09-25
 
 ### Added
