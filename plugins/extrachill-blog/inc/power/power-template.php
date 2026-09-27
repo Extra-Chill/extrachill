@@ -40,6 +40,29 @@ function extrachill_blog_power_site_url( $key, $fallback ) {
 }
 
 /**
+ * Where a musician starts their own Link Page: the Link Pages /join route.
+ *
+ * /join routes to artist signup with the join context, so the visitor gets
+ * the artist-first onboarding (Extra-Chill/extrachill-blog#114).
+ *
+ * @return string
+ */
+function extrachill_blog_power_join_url() {
+	return trailingslashit( extrachill_blog_power_site_url( 'link_pages', 'https://extrachill.link' ) ) . 'join';
+}
+
+/**
+ * Whether this visit came from a Link Page's "Powered by Extra Chill" footer.
+ *
+ * @return bool
+ */
+function extrachill_blog_power_from_link_page() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only campaign flag; presentation only.
+	$source = isset( $_GET['utm_source'] ) ? sanitize_key( wp_unslash( $_GET['utm_source'] ) ) : '';
+	return 'linkpage' === $source;
+}
+
+/**
  * Resolve the live network statistics the page consumes.
  *
  * Single guarded call. Returns an empty array when the NetworkStats primitive
@@ -199,11 +222,11 @@ function extrachill_blog_power_network_map() {
 		),
 		array(
 			'title'    => __( 'Artist Platform', 'extrachill-blog' ),
-			'desc'     => __( 'Free link pages, subscribers, and analytics for independent artists to run their own corner.', 'extrachill-blog' ),
-			'url'      => extrachill_blog_power_site_url( 'artist', 'https://artist.extrachill.com' ),
+			'desc'     => __( 'A free link page for your music, shows, and merch, with a mailing list and analytics built in.', 'extrachill-blog' ),
+			'url'      => extrachill_blog_power_join_url(),
 			'site_key' => 'artist',
 			'track'    => 'power-artist',
-			'cta'      => __( 'Explore the platform', 'extrachill-blog' ),
+			'cta'      => __( 'Get your free link page', 'extrachill-blog' ),
 			'proof'    => extrachill_blog_power_proof_line(
 				$stats,
 				array(
@@ -280,6 +303,14 @@ function extrachill_blog_power_manifesto_html() {
 			<h1 class="power-hero__title"><?php esc_html_e( 'Extra Chill is not a blog. It\'s a whole network.', 'extrachill-blog' ); ?></h1>
 			<p class="power-hero__lede"><?php esc_html_e( 'One independent music scene with many doors. Pick the part that feels like home.', 'extrachill-blog' ); ?></p>
 		</header>
+
+		<?php if ( extrachill_blog_power_from_link_page() ) : ?>
+			<section class="power-link-page-callout">
+				<h2 class="power-link-page-callout__title"><?php esc_html_e( 'Liked that link page? Get your own — free.', 'extrachill-blog' ); ?></h2>
+				<p><?php esc_html_e( 'One link for your music, shows, socials, and merch, plus a mailing list your fans can join. Set it up in a couple of minutes.', 'extrachill-blog' ); ?></p>
+				<a class="button-1 button-large ec-cross-site-link" href="<?php echo esc_url( extrachill_blog_bridge_url( extrachill_blog_power_join_url(), 'artist', 'power' ) ); ?>" data-ec-track="power-link-page-callout" data-ec-track-placement="power-hero"><?php esc_html_e( 'Get your free link page', 'extrachill-blog' ); ?></a>
+			</section>
+		<?php endif; ?>
 
 		<section class="power-section">
 			<h2 class="power-section__heading"><?php esc_html_e( 'Pick a door', 'extrachill-blog' ); ?></h2>

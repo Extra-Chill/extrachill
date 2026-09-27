@@ -161,3 +161,18 @@
 	font-size: var(--font-size-body);
 	color: var(--text-color);
 }
+
+/* Link Page footer visitors: lead with getting their own (extrachill-blog#114). */
+.power-link-page-callout {
+	margin: 0 auto var(--spacing-xl);
+	max-width: 720px;
+	padding: var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	text-align: center;
+}
+
+.power-link-page-callout__title {
+	margin-top: 0;
+}
