@@ -410,6 +410,18 @@ $unsafe_retry_context = array_replace(
 $assert( is_wp_error( $action['retry']( $canonical( 'failed: newsletter_campaign_reconciliation_required' ), $unsafe_retry_context ) ), 'retry rejects an indeterminate external effect' );
 $assert( is_wp_error( $action['retry']( array( 'schema_version' => 'legacy', 'status' => 'failed' ), $safe_retry_context ) ), 'retry rejects noncanonical failure envelopes' );
 
+// Canonical Agents API envelope (agents-api/run-result/v1): raw domain status rides in status_detail.
+$agents_env = static fn( $status, $detail = '', $outputs = array() ) => array( 'schema' => 'agents-api/run-result/v1', 'version' => 1, 'status' => $status, 'status_detail' => $detail, 'outputs' => $outputs );
+$agents_projected = $action['project']( $agents_env( 'completed' ), $first_context );
+$assert( 'executed' === $agents_projected['classification'] && 1 === $agents_projected['effect_count'], 'canonical envelope projects the authoritative campaign record' );
+$agents_noop = $action['project']( $agents_env( 'skipped', 'agent_skipped' ), array_replace( $first_context, array( 'operation_ref' => 'dop_' . str_repeat( 'g', 64 ) ) ) );
+$assert( 'no-op' === $agents_noop['classification'], 'canonical envelope classifies no-op from status_detail' );
+$agents_cancel = $action['project']( $agents_env( 'cancelled' ), $lifecycle_context );
+$assert( 'cancelled' === $agents_cancel['classification'], 'canonical envelope preserves cancellation' );
+$assert( true === $action['retry']( $agents_env( 'failed', 'failed: newsletter_campaign_busy' ), $safe_retry_context ), 'canonical envelope retry permits a pre-effect failure' );
+$assert( is_wp_error( $action['retry']( $agents_env( 'failed', 'failed: newsletter_campaign_reconciliation_required' ), $unsafe_retry_context ) ), 'canonical envelope retry rejects an indeterminate external effect' );
+$assert( is_wp_error( $action['retry']( $agents_env( 'completed' ), $safe_retry_context ) ), 'canonical envelope retry rejects a non-failed run' );
+
 $redacted_ref = 'dop_' . str_repeat( 'f', 64 );
 $assert( extrachill_newsletter_record_delegated_campaign_outcome( $redacted_ref, array( 'schema' => 'extrachill-newsletter.delegated-campaign-result.v1', 'status' => 'failed', 'record' => null, 'error_code' => 'provider_secret_token' ) ), 'owner stores a malformed provider code only after redaction' );
 $redacted = extrachill_newsletter_get_delegated_campaign_outcome( $redacted_ref );

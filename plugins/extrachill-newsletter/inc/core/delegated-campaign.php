@@ -296,6 +296,28 @@ function extrachill_newsletter_verify_delegated_campaign_task( array $params ) {
 }
 
 /**
+ * Read the raw domain status from a delegated run result.
+ *
+ * Accepts both the legacy Data Machine envelope (`datamachine.run_result.v1`,
+ * raw status in `status`) and the canonical Agents API envelope
+ * (`agents-api/run-result/v1`, raw domain status in `status_detail`, falling
+ * back to the canonical `status`). Returns null for anything else.
+ *
+ * @param array $run_result Delegated run result.
+ * @return string|null Lower-cased raw status, or null when the shape is invalid.
+ */
+function extrachill_newsletter_delegated_run_status( array $run_result ): ?string {
+	if ( 'datamachine.run_result.v1' === ( $run_result['schema_version'] ?? null ) ) {
+		return strtolower( (string) ( $run_result['status'] ?? '' ) );
+	}
+	if ( 'agents-api/run-result/v1' === ( $run_result['schema'] ?? null ) ) {
+		$detail = (string) ( $run_result['status_detail'] ?? '' );
+		return strtolower( '' !== $detail ? $detail : (string) ( $run_result['status'] ?? '' ) );
+	}
+	return null;
+}
+
+/**
  * Project canonical run truth through Newsletter's authoritative records.
  *
  * @param array $run_result Canonical Data Machine run result.
@@ -303,12 +325,12 @@ function extrachill_newsletter_verify_delegated_campaign_task( array $params ) {
  * @return array|WP_Error Redacted public projection.
  */
 function extrachill_newsletter_project_delegated_campaign( array $run_result, array $context ) {
-	if ( 'datamachine.run_result.v1' !== ( $run_result['schema_version'] ?? null ) ) {
+	$status = extrachill_newsletter_delegated_run_status( $run_result );
+	if ( null === $status ) {
 		return new WP_Error( 'newsletter_campaign_run_result_invalid', 'The delegated campaign run result is invalid.' );
 	}
 	$operation_ref  = isset( $context['operation_ref'] ) && is_string( $context['operation_ref'] ) ? $context['operation_ref'] : '';
 	$outcome        = extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref );
-	$status         = strtolower( (string) ( $run_result['status'] ?? '' ) );
 	$input          = isset( $context['input'] ) && is_array( $context['input'] ) ? $context['input'] : array();
 	$source         = isset( $input['source'] ) && is_array( $input['source'] ) ? $input['source'] : array();
 	$durable_record = extrachill_newsletter_get_operation_campaign_record( $operation_ref, $input );
@@ -366,7 +388,8 @@ function extrachill_newsletter_project_delegated_campaign( array $run_result, ar
 
 /** Prove explicit retry safe from Newsletter's durable effect receipt. */
 function extrachill_newsletter_retry_delegated_campaign( array $run_result, array $context ) {
-	if ( 'datamachine.run_result.v1' !== ( $run_result['schema_version'] ?? null ) || ! str_starts_with( strtolower( (string) ( $run_result['status'] ?? '' ) ), 'failed' ) ) {
+	$status = extrachill_newsletter_delegated_run_status( $run_result );
+	if ( null === $status || ! str_starts_with( $status, 'failed' ) ) {
 		return new WP_Error( 'newsletter_campaign_retry_unsafe', 'The delegated campaign cannot be retried safely.' );
 	}
 
