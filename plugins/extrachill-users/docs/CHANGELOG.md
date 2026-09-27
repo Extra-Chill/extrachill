@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.48.0] - 2026-09-27
+
+### Added
+- pre-check 'I am a musician' for /join onboarding
+
+### Fixed
+- scope the compiled-blocks exclude to package completeness only so block template fixes release (homeboy#15088)
+- lead the /join onboarding role step with its instruction and drop the pre-checked fan box
+
 ## [0.47.0] - 2026-09-27
 
 ### Added
