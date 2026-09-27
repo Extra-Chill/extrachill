@@ -33,7 +33,6 @@ package-lock.json
 CLAUDE.md
 AGENTS.md
 .buildignore
-build.sh
 docs/.docs-sync.json
 
 # Composer
