@@ -85,6 +85,21 @@ function extrachill_artist_link_page_editor_configuration( $configuration, $attr
 		'identities'      => $identities,
 		'initialIdentity' => $initial,
 		'managementUrl'   => site_url( '/manage-link-page/' ),
+		// Rendered by the editor header next to "View page" (extrachill-link-pages#55).
+		'links'           => array(
+			array(
+				'label' => __( 'Manage Artist', 'extrachill-artist-platform' ),
+				'url'   => site_url( '/manage-artist/' ),
+			),
+			array(
+				'label' => __( 'Analytics', 'extrachill-artist-platform' ),
+				'url'   => site_url( '/analytics/' ),
+			),
+			array(
+				'label' => __( 'Artist Platform', 'extrachill-artist-platform' ),
+				'url'   => site_url( '/' ),
+			),
+		),
 		'fonts'           => $fonts,
 		'localFontsCss'   => $local_fonts_css,
 		'socialTypes'     => $social_types,
