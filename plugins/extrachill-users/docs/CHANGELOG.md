@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.49.1] - 2026-09-27
+
+### Fixed
+- cook extrachill-users
+
 ## [0.49.0] - 2026-09-27
 
 ### Added
