@@ -46,6 +46,11 @@ function extrachill_api_register_onboarding_routes() {
 						'type'     => 'boolean',
 						'default'  => false,
 					),
+					'join_intent'            => array(
+						'type'              => 'string',
+						'required'          => false,
+						'sanitize_callback' => 'sanitize_key',
+					),
 					'local_scene'            => array(
 						'required'          => false,
 						'type'              => 'string',
@@ -114,6 +119,10 @@ function extrachill_api_onboarding_post_handler( WP_REST_Request $request ) {
 		'user_is_professional'   => $request->get_param( 'user_is_professional' ),
 		'local_scene_visibility' => $request->get_param( 'local_scene_visibility' ),
 	);
+	$join_intent = $request->get_param( 'join_intent' );
+	if ( is_string( $join_intent ) && '' !== $join_intent ) {
+		$input['join_intent'] = $join_intent;
+	}
 	$local_scene = $request->get_param( 'local_scene' );
 	if ( is_string( $local_scene ) && '' !== $local_scene ) {
 		$input['local_scene'] = $local_scene;
