@@ -298,18 +298,15 @@ function extrachill_newsletter_verify_delegated_campaign_task( array $params ) {
 /**
  * Read the raw domain status from a delegated run result.
  *
- * Accepts both the legacy Data Machine envelope (`datamachine.run_result.v1`,
- * raw status in `status`) and the canonical Agents API envelope
- * (`agents-api/run-result/v1`, raw domain status in `status_detail`, falling
- * back to the canonical `status`). Returns null for anything else.
+ * Delegated runs return the canonical Agents API envelope
+ * (`agents-api/run-result/v1`). The raw Data Machine status rides in
+ * `status_detail`, falling back to the canonical `status`. Anything else is
+ * rejected.
  *
  * @param array $run_result Delegated run result.
  * @return string|null Lower-cased raw status, or null when the shape is invalid.
  */
 function extrachill_newsletter_delegated_run_status( array $run_result ): ?string {
-	if ( 'datamachine.run_result.v1' === ( $run_result['schema_version'] ?? null ) ) {
-		return strtolower( (string) ( $run_result['status'] ?? '' ) );
-	}
 	if ( 'agents-api/run-result/v1' === ( $run_result['schema'] ?? null ) ) {
 		$detail = (string) ( $run_result['status_detail'] ?? '' );
 		return strtolower( '' !== $detail ? $detail : (string) ( $run_result['status'] ?? '' ) );

@@ -377,7 +377,7 @@ $assert( 9 === $GLOBALS['newsletter_test']['content_filter_blog'] && 'owner-cont
 $assert( extrachill_newsletter_record_delegated_campaign_outcome( $operation_ref, $result ), 'owner persists the exact operation outcome' );
 $assert( extrachill_newsletter_record_delegated_campaign_outcome( $operation_ref, extrachill_newsletter_delegated_campaign_result( 'failed', null, null, 'newsletter_campaign_forbidden' ) ), 'duplicate delivery acknowledges without replacing terminal truth' );
 $assert( 'executed' === extrachill_newsletter_get_delegated_campaign_outcome( $operation_ref )['status'], 'terminal owner outcomes are monotonic' );
-$canonical = static fn( $status, $outputs = array() ) => array( 'schema_version' => 'datamachine.run_result.v1', 'status' => $status, 'outputs' => $outputs );
+$canonical = static fn( $status, $outputs = array() ) => array( 'schema' => 'agents-api/run-result/v1', 'version' => 1, 'status' => $status, 'status_detail' => $status, 'outputs' => $outputs );
 $projected = $action['project']( $canonical( 'completed' ), $first_context );
 $assert( 1 === $projected['effect_count'] && 'executed' === $projected['classification'], 'reconciliation projects the authoritative campaign record' );
 $assert( array( 'classification', 'record', 'error_code', 'effect_count' ) === array_keys( $projected ), 'delegated projection exposes only bounded fields' );
@@ -409,6 +409,7 @@ $unsafe_retry_context = array_replace(
 );
 $assert( is_wp_error( $action['retry']( $canonical( 'failed: newsletter_campaign_reconciliation_required' ), $unsafe_retry_context ) ), 'retry rejects an indeterminate external effect' );
 $assert( is_wp_error( $action['retry']( array( 'schema_version' => 'legacy', 'status' => 'failed' ), $safe_retry_context ) ), 'retry rejects noncanonical failure envelopes' );
+$assert( is_wp_error( $action['project']( array( 'schema_version' => 'datamachine.run_result.v1', 'status' => 'completed' ), $first_context ) ), 'projection rejects the retired datamachine.run_result.v1 envelope' );
 
 // Canonical Agents API envelope (agents-api/run-result/v1): raw domain status rides in status_detail.
 $agents_env = static fn( $status, $detail = '', $outputs = array() ) => array( 'schema' => 'agents-api/run-result/v1', 'version' => 1, 'status' => $status, 'status_detail' => $detail, 'outputs' => $outputs );
