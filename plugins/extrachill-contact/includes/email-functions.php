@@ -10,8 +10,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Run an email authorized by the contact submission flow.
  *
- * Data Machine's mail ability is management-gated. The public contact ability
- * authorizes these specific sends after Turnstile and input validation.
+ * The public contact ability authorizes these specific sends after Turnstile
+ * and input validation; ec_send_email() then sends as the system.
  *
  * @param array<string, mixed> $args Email arguments.
  * @return mixed Provider result.
@@ -19,15 +19,6 @@ defined( 'ABSPATH' ) || exit;
 function ec_contact_send_email( array $args ) {
 	if ( ! function_exists( 'ec_send_email' ) ) {
 		return new WP_Error( 'email_provider_unavailable', 'The email provider is unavailable.' );
-	}
-
-	$helper = '\\DataMachine\\Abilities\\PermissionHelper';
-	if ( class_exists( $helper ) ) {
-		return $helper::run_as_authenticated(
-			static function () use ( $args ) {
-				return ec_send_email( $args );
-			}
-		);
 	}
 
 	return ec_send_email( $args );
