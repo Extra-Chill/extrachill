@@ -770,7 +770,7 @@ function ec_studio_transcription_callback_send_email(
 
 	$result = ec_studio_transcription_send_mail( $email_args );
 
-	$sent = is_array( $result ) && ! empty( $result['success'] );
+	$sent = ! empty( $result['success'] );
 
 	if ( ! $sent ) {
 		// Log WHY the send failed.
@@ -781,12 +781,9 @@ function ec_studio_transcription_callback_send_email(
 		// distinct failure — wrong SMTP site, ability permission short-circuit,
 		// transport error — produced the exact same opaque 503 with no SMTP
 		// row and no PHP error to distinguish them.
-		if ( is_wp_error( $result ) ) {
-			$detail = sprintf( 'WP_Error %1$s: %2$s', $result->get_error_code(), $result->get_error_message() );
-		} elseif ( is_array( $result ) ) {
-			$detail = isset( $result['error'] ) ? (string) $result['error'] : 'envelope reported success=false with no error key';
-		} else {
-			$detail = 'unexpected return type ' . gettype( $result );
+		$detail = isset( $result['error'] ) ? (string) $result['error'] : 'envelope reported success=false with no error key';
+		if ( isset( $result['error_code'] ) ) {
+			$detail = $result['error_code'] . ': ' . $detail;
 		}
 
 		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Deliberate operational log; see #199.
@@ -804,53 +801,20 @@ function ec_studio_transcription_callback_send_email(
 }
 
 /**
- * Dispatch a transcription email through the pre-authenticated ability seam.
+ * Send the transcription completion email through the platform mail layer.
  *
- * `ec_send_email()` resolves the `datamachine/send-email` ability, whose
- * permission callback requires `use_tools` / manage capabilities. This
- * receiver is an UNAUTHENTICATED endpoint — it validates an HMAC-signed
- * bearer token itself and never establishes a WordPress user session — so
- * `get_current_user_id()` is 0 and `WP_Ability::execute()` short-circuits
- * with a `WP_Error` (`ability_invalid_permissions`) instead of returning the
- * documented `[ 'success' => ... ]` envelope. The send then fails with no
- * SMTP activity at all, which is what made #199 look like an SMTP problem.
- *
- * This is the same failure class extrachill-users hit in its registration
- * and notification mail (see extrachill-users#110), and it uses the same
- * remedy: the authorization decision is made HERE, at the layer that has
- * already cryptographically verified the callback, and the ability is then
- * run through `PermissionHelper::run_as_authenticated()` — the canonical
- * seam for callers that authorized an operation at their own layer.
- *
- * No acting user id is passed. This is a system notification triggered by a
- * verified machine callback, not an action performed on a member's own
- * authority — team members do not hold `use_tools`, and the recipient,
- * subject, and body are all fixed by the caller, so the elevated context
- * cannot be steered into sending arbitrary mail.
- *
- * Falls back to a direct call when Data Machine is unavailable, so behaviour
- * degrades gracefully rather than fataling; `ec_send_email()` still returns a
- * well-formed error envelope in that case.
- *
- * @since X.Y.Z
+ * The callback has already verified the sweatpants token, and ec_send_email()
+ * sends as the system (extrachill-network#318), so no authorization wrapper
+ * is needed here.
  *
  * @param array $args Arguments forwarded to {@see ec_send_email()}.
- * @return mixed Result envelope from ec_send_email(), or a WP_Error.
+ * @return array Result envelope from ec_send_email().
  */
 function ec_studio_transcription_send_mail( array $args ) {
 	if ( ! function_exists( 'ec_send_email' ) ) {
 		return array(
 			'success' => false,
 			'error'   => 'ec_send_email() is unavailable — extrachill-network mail layer not loaded.',
-		);
-	}
-
-	$helper = '\DataMachine\Abilities\PermissionHelper';
-	if ( class_exists( $helper ) ) {
-		return $helper::run_as_authenticated(
-			static function () use ( $args ) {
-				return ec_send_email( $args );
-			}
 		);
 	}
 
