@@ -107,11 +107,13 @@ function extrachill_events_send_rsvp_pass_email( int $event_id, int $user_id, ar
 	$perk_text = function_exists( 'extrachill_events_get_perk_text' ) ? extrachill_events_get_perk_text( $event_id ) : '';
 	$body      = extrachill_events_render_rsvp_pass_email_body( $post, $perk_text, (string) $pass['code'] );
 
-	ec_send_email_queued(
+	// ec_send_email_queued() already sends as the system (extrachill-network#318);
+	// callers must not wrap it in their own PermissionHelper context.
+	$result = ec_send_email_queued(
 		array(
 			'to'        => $user->user_email,
 			/* translators: %s: Event title. */
-			'subject'   => sprintf( __( 'Your RSVP pass for %s', 'extrachill-events' ), $post->post_title ),
+			'subject'   => sprintf( __( 'Your RSVP pass for %s', 'extrachill-events' ), extrachill_events_rsvp_pass_event_title( $post ) ),
 			'from_name' => 'Extra Chill Events',
 			'template'  => 'extrachill/branded',
 			'context'   => array(
@@ -122,6 +124,51 @@ function extrachill_events_send_rsvp_pass_email( int $event_id, int $user_id, ar
 			),
 		)
 	);
+
+	if ( ! extrachill_events_rsvp_pass_email_queued( $result ) ) {
+		// A refused send used to vanish silently (#897). The pass itself is
+		// still issued and shown on screen and at the door, so this stays
+		// non-fatal, but it must be visible. No recipient address in the log.
+		do_action(
+			'datamachine_log',
+			'error',
+			'RSVP pass email was not queued',
+			array(
+				'event_id'   => $event_id,
+				'user_id'    => $user_id,
+				'error_code' => (string) ( $result['error_code'] ?? '' ),
+				'error'      => (string) ( $result['error'] ?? '' ),
+			)
+		);
+	}
+}
+
+/**
+ * Whether a queued-send result reports success.
+ *
+ * `ec_send_email_queued()` normalizes to `[ 'success' => bool, ... ]`; anything
+ * else (a WP_Error from an older wrapper, null, a non-array) is a failure.
+ *
+ * @param mixed $result Result from ec_send_email_queued().
+ * @return bool
+ */
+function extrachill_events_rsvp_pass_email_queued( $result ): bool {
+	return is_array( $result ) && true === ( $result['success'] ?? false );
+}
+
+/**
+ * Event title as plain text for the pass email.
+ *
+ * `post_title` is stored with HTML entities (e.g. `Extra Chill &amp; WordPress`).
+ * Used raw, the subject line showed a literal `&amp;` and the body, which
+ * escapes again, showed `&amp;amp;`. Decode once here; callers escape for
+ * their own output context.
+ *
+ * @param WP_Post $post Event post.
+ * @return string
+ */
+function extrachill_events_rsvp_pass_event_title( $post ): string {
+	return html_entity_decode( (string) $post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 }
 
 /**
@@ -142,7 +189,7 @@ function extrachill_events_send_rsvp_pass_email( int $event_id, int $user_id, ar
  */
 function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text, string $code ): string {
 	/* translators: %s: Event title. */
-	$html = '<p>' . sprintf( esc_html__( "You're going to %s.", 'extrachill-events' ), esc_html( $post->post_title ) ) . '</p>';
+	$html = '<p>' . sprintf( esc_html__( "You're going to %s.", 'extrachill-events' ), esc_html( extrachill_events_rsvp_pass_event_title( $post ) ) ) . '</p>';
 
 	if ( '' !== $perk_text ) {
 		$html .= '<p><strong>' . esc_html( $perk_text ) . '</strong></p>';

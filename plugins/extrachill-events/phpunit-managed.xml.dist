@@ -48,6 +48,8 @@
 			     collides with the real plugin bootstrap's own require of the
 			     same file in this sandbox. -->
 			<exclude>tests/Unit/Core/RsvpVerifyPageCacheTest.php</exclude>
+			<!-- Same reason: requires inc/core/rsvp-pass-service.php and inc/admin/event-perks.php. -->
+			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
