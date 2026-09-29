@@ -3,6 +3,7 @@
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
     "wordpress": {
+      "database_type": "mysql",
       "settings": {
         "wp_codebox_database_service": {
           "provider": "external",
@@ -22,7 +23,8 @@
         "wordpress_runtime_php_version": "8.4",
         "validation_dependencies": [
           "extrachill-network",
-          "data-machine"
+          "data-machine",
+          "extrachill-newsletter"
         ]
       }
     }
