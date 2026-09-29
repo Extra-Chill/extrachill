@@ -12,6 +12,7 @@
 		<testsuite name="rsvp-perks-unit">
 			<file>tests/Unit/Core/RsvpPassesTableTest.php</file>
 			<file>tests/Unit/Core/EventPerkTest.php</file>
+			<file>tests/Unit/Core/RsvpPerkBackfillTest.php</file>
 			<file>tests/EventManagementAuthorityTest.php</file>
 			<file>tests/Unit/Core/RsvpPassQrUrlsTest.php</file>
 			<file>tests/Unit/Core/RsvpPassQrGrantTest.php</file>

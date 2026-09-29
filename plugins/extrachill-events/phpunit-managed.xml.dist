@@ -27,6 +27,8 @@
 			     swapped out from under the shared test transaction. -->
 			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
+			<!-- Pure-PHP with its own $wpdb double; requires inc/core/rsvp-pass-service.php (see RsvpPassQrUrlsTest.php below). -->
+			<exclude>tests/Unit/Core/RsvpPerkBackfillTest.php</exclude>
 			<!-- Same reason as the two exclusions above (pure-PHP, own
 			     $wpdb-free URL-function doubles) PLUS a second, sharper
 			     failure mode: this file's own require_once of

@@ -56,6 +56,85 @@ function extrachill_events_rsvp_pass_on_marked( int $user_id, int $event_id, int
 add_action( 'ec_users_event_marked', 'extrachill_events_rsvp_pass_on_marked', 10, 3 );
 
 /**
+ * Issue passes to everyone already marked Going when a perk is turned on.
+ *
+ * Passes were only issued on the unmarked -> marked transition, so turning
+ * a perk on after people had RSVP'd left every existing attendee without a
+ * pass, email, or door-list entry (#920). This fills that gap using the same
+ * issue + email path as a fresh mark.
+ *
+ * Idempotent: attendees who already hold an active or redeemed pass are
+ * skipped, so they get no second email and their code is never touched.
+ * A revoked pass for someone who is Going again is reactivated with a fresh
+ * code, the same as re-marking.
+ *
+ * @param int $event_id Event post ID on the current blog.
+ * @return int Number of passes issued or reactivated.
+ */
+function extrachill_events_backfill_rsvp_passes( int $event_id ): int {
+	if ( ! function_exists( 'extrachill_events_perk_enabled' ) || ! extrachill_events_perk_enabled( $event_id ) ) {
+		return 0;
+	}
+
+	if ( ! function_exists( 'ec_users_get_event_attendees_full' ) || ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+		return 0;
+	}
+
+	$limit     = defined( 'EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX' ) ? (int) EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX : 1000;
+	$attendees = ec_users_get_event_attendees_full( $event_id, (int) get_current_blog_id(), $limit );
+
+	$issued = 0;
+	foreach ( (array) $attendees as $attendee ) {
+		$user_id = (int) $attendee['user_id'];
+		if ( $user_id <= 0 ) {
+			continue;
+		}
+
+		$existing = \ExtraChillEvents\Core\RsvpPassesTable::find_for_user_event( $event_id, $user_id );
+		if ( $existing && \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REVOKED !== $existing['status'] ) {
+			continue;
+		}
+
+		$pass = \ExtraChillEvents\Core\RsvpPassesTable::issue_or_reactivate( $event_id, $user_id );
+		if ( ! $pass ) {
+			continue;
+		}
+
+		extrachill_events_send_rsvp_pass_email( $event_id, $user_id, $pass );
+		++$issued;
+	}
+
+	return $issued;
+}
+
+/**
+ * Backfill passes when the perk-enabled meta is written with a truthy value.
+ *
+ * Both write paths (the extrachill/set-event-perk ability and the admin meta
+ * box) go through update_post_meta(), so this one meta hook covers both. A
+ * disabled perk has no meta row, so enabling it fires `added_post_meta`.
+ * Re-saving an enabled perk writes the same value, which core treats as a
+ * no-op that fires no hook. `updated_post_meta` is handled too for any other
+ * truthy write, and the backfill is idempotent either way.
+ *
+ * @param int    $meta_id    Meta ID.
+ * @param int    $object_id  Post ID.
+ * @param string $meta_key   Meta key.
+ * @param mixed  $meta_value Meta value.
+ */
+function extrachill_events_rsvp_perk_meta_written( $meta_id, $object_id, $meta_key, $meta_value ): void {
+	unset( $meta_id );
+
+	if ( ! defined( 'EXTRACHILL_EVENTS_PERK_ENABLED_META' ) || EXTRACHILL_EVENTS_PERK_ENABLED_META !== $meta_key || ! $meta_value ) {
+		return;
+	}
+
+	extrachill_events_backfill_rsvp_passes( (int) $object_id );
+}
+add_action( 'added_post_meta', 'extrachill_events_rsvp_perk_meta_written', 10, 4 );
+add_action( 'updated_post_meta', 'extrachill_events_rsvp_perk_meta_written', 10, 4 );
+
+/**
  * Revoke a pass when a user unmarks Going.
  *
  * @param int $user_id  User ID.
