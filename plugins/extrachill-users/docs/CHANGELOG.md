@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.49.2] - 2026-09-29
+
+### Changed
+- drop redundant mail authorization wrappers
+
 ## [0.49.1] - 2026-09-27
 
 ### Fixed
