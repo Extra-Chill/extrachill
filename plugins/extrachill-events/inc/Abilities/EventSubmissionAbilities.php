@@ -334,9 +334,7 @@ class EventSubmissionAbilities {
 	 * `post_status => pending`) — none of it is attacker-controlled. Given
 	 * that, we run the workflow execution inside
 	 * `PermissionHelper::run_as_authenticated()`, Data Machine's canonical
-	 * seam for callers that authorized the action at their own layer (see
-	 * `dispatchEmail()` below, which relies on the same seam via
-	 * `extrachill_send_registration_email()`).
+	 * seam for callers that authorized the action at their own layer.
 	 *
 	 * Data Machine also requires every direct job to have an owner (an
 	 * acting user or an agent; issue #914). The job is owned by the
@@ -796,13 +794,9 @@ class EventSubmissionAbilities {
 	/**
 	 * Dispatch an outgoing notification through the EC mail layer.
 	 *
-	 * Event submissions run in an unprivileged context (an anonymous visitor),
-	 * so a bare `ec_send_email()` call hits the `datamachine/send-email`
-	 * ability's capability gate and silently fails with a permissions error.
-	 * `extrachill_send_registration_email()` (extrachill-users) wraps the call in
-	 * PermissionHelper::run_as_authenticated() — the canonical seam for callers
-	 * that have authorized a send at their own layer. We prefer it when present;
-	 * otherwise we fall back to `ec_send_email()` / the raw ability. Failures are
+	 * Uses `ec_send_email()`, which sends as the system (extrachill-network#318),
+	 * so the anonymous submitter's request context does not matter. Falls back
+	 * to the raw ability when the network mail layer is absent. Failures are
 	 * logged (never thrown) so a transient send error does not break submission.
 	 *
 	 * @param array  $args  Arguments forwarded to the ability.
@@ -815,9 +809,7 @@ class EventSubmissionAbilities {
 		// failure in any lower layer must never turn an accepted submission
 		// into an error for the visitor (extrachill-network#316).
 		try {
-			if ( function_exists( 'extrachill_send_registration_email' ) ) {
-				$result = extrachill_send_registration_email( $args );
-			} elseif ( function_exists( 'ec_send_email' ) ) {
+			if ( function_exists( 'ec_send_email' ) ) {
 				$result = ec_send_email( $args );
 			} elseif ( function_exists( 'wp_get_ability' ) ) {
 				$send_ability = wp_get_ability( 'datamachine/send-email' );

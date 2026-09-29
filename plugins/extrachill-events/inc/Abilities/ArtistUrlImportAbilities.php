@@ -2368,10 +2368,9 @@ class ArtistUrlImportAbilities {
 	/**
 	 * Dispatch an outgoing notification through the EC mail layer.
 	 *
-	 * Mirrors EventSubmissionAbilities::dispatchEmail() — prefers
-	 * `extrachill_send_registration_email()` (extrachill-users) which wraps
-	 * the send in PermissionHelper::run_as_authenticated(), then falls back
-	 * to `ec_send_email()` and the raw `datamachine/send-email` ability.
+	 * Mirrors EventSubmissionAbilities::dispatchEmail(): sends through
+	 * `ec_send_email()` (which sends as the system), falling back to the raw
+	 * `datamachine/send-email` ability when the network mail layer is absent.
 	 * Failures are logged (never thrown) so a transient send error does not
 	 * break submission.
 	 *
@@ -2381,9 +2380,7 @@ class ArtistUrlImportAbilities {
 	private function dispatchEmail( array $args, string $audience ): void {
 		$result = null;
 
-		if ( function_exists( 'extrachill_send_registration_email' ) ) {
-			$result = extrachill_send_registration_email( $args );
-		} elseif ( function_exists( 'ec_send_email' ) ) {
+		if ( function_exists( 'ec_send_email' ) ) {
 			$result = ec_send_email( $args );
 		} elseif ( function_exists( 'wp_get_ability' ) ) {
 			$send_ability = wp_get_ability( 'datamachine/send-email' );
