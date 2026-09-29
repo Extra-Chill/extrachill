@@ -41,6 +41,8 @@
 			     were already excluded and so never hit this; this file
 			     wasn't, and did. -->
 			<exclude>tests/Unit/Core/RsvpPassQrUrlsTest.php</exclude>
+			<!-- Same reason: requires inc/core/rsvp-pass-qr.php and stubs wp_has_ability(). -->
+			<exclude>tests/Unit/Core/RsvpPassQrGrantTest.php</exclude>
 			<!-- Same reason as RsvpPassQrUrlsTest.php immediately above: this
 			     file's own require_once of inc/core/rsvp-verify-page.php
 			     collides with the real plugin bootstrap's own require of the

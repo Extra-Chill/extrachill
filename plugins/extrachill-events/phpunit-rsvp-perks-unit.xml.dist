@@ -14,6 +14,7 @@
 			<file>tests/Unit/Core/EventPerkTest.php</file>
 			<file>tests/EventManagementAuthorityTest.php</file>
 			<file>tests/Unit/Core/RsvpPassQrUrlsTest.php</file>
+			<file>tests/Unit/Core/RsvpPassQrGrantTest.php</file>
 			<file>tests/Unit/Core/RsvpVerifyPageCacheTest.php</file>
 		</testsuite>
 	</testsuites>
