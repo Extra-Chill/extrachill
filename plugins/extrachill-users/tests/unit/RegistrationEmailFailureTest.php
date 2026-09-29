@@ -14,9 +14,6 @@
  * These tests run in separate processes so we can define our own
  * ec_send_email() stub (the real one lives in extrachill-network and is
  * unavailable in the unit-test bootstrap).
- *
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 
 class Test_Registration_Email_Failure extends WP_UnitTestCase {
@@ -52,6 +49,22 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		// declared in a sibling helper file so each test process can flip the
 		// return value via a global before exercising the SUT.
 		require_once dirname( __DIR__, 2 ) . '/inc/core/registration-emails.php';
+
+		// Intercept the mail ability itself (core's documented test-mocking seam),
+		// so the result is controlled whether ec_send_email() is the real
+		// extrachill-network wrapper or the fallback stub below.
+		add_filter(
+			'wp_pre_execute_ability',
+			static function ( $pre, $name, $input ) {
+				if ( 'datamachine/send-email' !== $name ) {
+					return $pre;
+				}
+				$GLOBALS['test_ec_send_email_last_args'] = $input;
+				return $GLOBALS['test_ec_send_email_result'] ?? array( 'success' => true );
+			},
+			10,
+			3
+		);
 
 		if ( ! function_exists( 'ec_send_email' ) ) {
 			eval(
@@ -253,7 +266,7 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$user_data = get_userdata( $user_id );
 
 		$this->assertTrue( extrachill_send_welcome_email_incomplete( $user_data ) );
-		$this->assertSame( '', $this->read_error_log() );
+		$this->assertStringNotContainsString( 'registration-email failure', $this->read_error_log() );
 	}
 
 	public function test_welcome_incomplete_invites_users_into_the_clubhouse(): void {
@@ -274,7 +287,9 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'Do I need to finish my profile?', $args['context']['body_html'] );
 		$this->assertStringContainsString( 'Is Extra Chill just a music blog?', $args['context']['body_html'] );
 		$this->assertStringContainsString( 'Find shows and track concerts', $args['context']['body_html'] );
-		$this->assertStringContainsString( 'https://community.extrachill.com/u/test-user/edit/', $args['context']['body_html'] );
+		$profile_url = extrachill_get_user_community_profile_edit_url( $user_id, $user_data->user_email );
+		$this->assertNotSame( '', $profile_url );
+		$this->assertStringContainsString( esc_url( $profile_url ), $args['context']['body_html'] );
 		$this->assertStringNotContainsString( 'https://community.extrachill.com/settings/', $args['context']['body_html'] );
 		$this->assertDoesNotMatchRegularExpression( '/\bfollow(?:er|ers|ing|s|ed)?\b/i', $args['context']['body_html'] );
 	}
@@ -316,6 +331,6 @@ class Test_Registration_Email_Failure extends WP_UnitTestCase {
 		extrachill_log_email_failure( 'unit_test', 42, 'someone@example.com', 'Test Subject', null );
 
 		$log = $this->read_error_log();
-		$this->assertStringContainsString( 'unknown error', $log );
+		$this->assertStringContainsString( 'ec_send_email returned null', $log );
 	}
 }

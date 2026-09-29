@@ -201,23 +201,23 @@ function ec_users_review_notify_deliver( int $blog_id, int $post_id, int $attemp
 		),
 	);
 
-	$queue  = static function () use ( $queue_args ) {
+	$queue = static function () use ( $queue_args ) {
 		return ec_send_email_queued( $queue_args );
 	};
-	$helper = '\\DataMachine\\Abilities\\PermissionHelper';
 	try {
-		$result = class_exists( $helper ) ? $helper::run_as_authenticated( $queue ) : $queue();
+		$result = $queue();
 	} catch ( \Throwable $exception ) {
-		$result = new \WP_Error( 'queue_exception', $exception->getMessage() );
+		$result = array(
+			'success' => false,
+			'error'   => $exception->getMessage(),
+		);
 	}
 
-	if ( is_array( $result ) && ! empty( $result['success'] ) ) {
+	if ( ! empty( $result['success'] ) ) {
 		return true;
 	}
 
-	$detail   = is_wp_error( $result )
-		? $result->get_error_code() . ': ' . $result->get_error_message()
-		: ( is_array( $result ) && isset( $result['error'] ) && is_scalar( $result['error'] ) ? (string) $result['error'] : 'success=false' );
+	$detail   = isset( $result['error'] ) && is_scalar( $result['error'] ) ? (string) $result['error'] : 'success=false';
 	$released = ec_users_release_notification_receipt( $notification_id, $recipient_id, EC_USERS_REVIEW_NOTIFY_PRODUCER, $key );
 	error_log( sprintf( 'ec_users_review_notify: email enqueue failed for post %1$d (%2$s); receipt released: %3$s.', $post_id, $detail, $released ? 'yes' : 'no' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
 	if ( $released ) {

@@ -341,16 +341,13 @@ function ec_users_publish_notify_queue_email( \WP_User $user, string $subject, s
 		$queue      = static function () use ( $queue_args ) {
 			return ec_send_email_queued( $queue_args );
 		};
-		$helper     = '\\DataMachine\\Abilities\\PermissionHelper';
-		$result     = class_exists( $helper )
-			? $helper::run_as_authenticated( $queue )
-			: $queue();
+		$result     = $queue();
 	} catch ( \Throwable $exception ) {
 		error_log( sprintf( 'ec_users_publish_notify: email queue exception for user %1$d: %2$s', $user->ID, $exception->getMessage() ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Canonical operational logging surface.
 		return false;
 	}
 
-	return is_array( $result ) && ! empty( $result['success'] );
+	return ! empty( $result['success'] );
 }
 
 /**

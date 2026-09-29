@@ -604,10 +604,7 @@ function ec_notifications_email_send_digest( $user_id, $queue_callback = null ) 
 			? call_user_func( $queue_callback, $queue_args )
 			: ec_send_email_queued( $queue_args );
 	};
-	$helper     = '\\DataMachine\\Abilities\\PermissionHelper';
-	$envelope   = class_exists( $helper )
-		? $helper::run_as_authenticated( $queue )
-		: $queue();
+	$envelope   = $queue();
 	$queued     = is_array( $envelope ) && ! empty( $envelope['success'] );
 
 	if ( ! $queued ) {

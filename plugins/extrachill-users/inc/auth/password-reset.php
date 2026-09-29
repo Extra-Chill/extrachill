@@ -461,14 +461,9 @@ add_action( 'admin_post_ec_reset_password', 'ec_handle_reset_password' );
  * Send password reset email.
  *
  * Password reset requests run in an unprivileged context (anonymous
- * `admin_post_nopriv` POST), so this routes through
- * {@see extrachill_send_registration_email()} which executes the underlying
- * `datamachine/send-email` ability inside
- * `PermissionHelper::run_as_authenticated()`. Calling `ec_send_email()`
- * directly from this context makes `WP_Ability::execute()` short-circuit on
- * its permission callback and return a `WP_Error` instead of the documented
- * array envelope — array-indexing that WP_Error was a hard fatal on the
- * user-facing reset flow (and the email never sent). Same root cause as #110.
+ * `admin_post_nopriv` POST). The send goes through
+ * {@see extrachill_send_registration_email()}, i.e. ec_send_email(), which
+ * sends as the system, so that context does not block delivery.
  *
  * The authorization decision is made at THIS layer: the request is
  * nonce-verified and rate-limited before we get here.
@@ -569,10 +564,9 @@ function ec_send_password_reset_email( $user, $reset_key ) {
  * for delivery — so the CTA lands on the canonical
  * community.extrachill.com/reset-password/ page, not raw wp-login.php.
  *
- * Like the reset email, this runs the send through
- * `extrachill_send_registration_email()` so the underlying
- * `datamachine/send-email` ability executes inside an authenticated
- * context (the grant itself is the authorization decision; see #110).
+ * Like the reset email, this sends through
+ * `extrachill_send_registration_email()` (the grant itself is the
+ * authorization decision; see #110).
  *
  * @param WP_User $user      User object being welcomed to the team.
  * @param string  $reset_key Password reset key minted via get_password_reset_key().
