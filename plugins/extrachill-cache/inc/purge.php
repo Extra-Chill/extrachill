@@ -49,8 +49,9 @@ add_action( 'switch_theme', 'extrachill_cache_purge_current_blog', 10, 0 );
 // serving the old versions for up to EXTRACHILL_CACHE_TTL (24h). Network-wide,
 // because a network-activated plugin changes every site's pages.
 // Note: homeboy deploy replaces the plugin directory directly and never fires
-// these, so the deploy pipeline also calls `wp extrachill-cache purge --all`
-// (see the wordpress extension's post:deploy hooks).
+// these. The deploy target runs `wp extrachill-cache purge --all` once per
+// deploy through its project-scoped `post:deploy:project` hook
+// (extrachill-network deploy/homeboy/projects/extrachill-site).
 add_action( 'upgrader_process_complete', 'extrachill_cache_purge_all', 10, 0 );
 add_action( 'activated_plugin', 'extrachill_cache_purge_all', 10, 0 );
 add_action( 'deactivated_plugin', 'extrachill_cache_purge_all', 10, 0 );
