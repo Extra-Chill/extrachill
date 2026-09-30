@@ -6,6 +6,9 @@
     },
     "tests/related-posts-renderer.php": {
       "environment": "standalone-php"
+    },
+    "tests/share-urls.php": {
+      "environment": "standalone-php"
     }
   }
 }
