@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.14.1] - 2026-09-30
+
+### Fixed
+- URL-encode share titles instead of HTML-escaping them
+
 ## [2.14.0] - 2026-09-23
 
 ### Added
