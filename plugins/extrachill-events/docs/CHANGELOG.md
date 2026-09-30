@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.71.9] - 2026-09-30
+
+### Fixed
+- lay out the event action row's attendance and RSVP perk pieces
+
 ## [0.71.8] - 2026-09-29
 
 ### Changed
