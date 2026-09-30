@@ -377,6 +377,21 @@ function ec_users_render_event_attendees( int $event_id, int $blog_id ) {
 		return;
 	}
 
+	// The going count includes private attendees and anyone beyond the
+	// avatar limit; the strip only shows public ones. Account for the rest
+	// with an anonymous "+N" so "4 going" beside two faces reads as
+	// intended instead of broken (#446). No names or links for hidden ones.
+	$shown = count(
+		array_filter(
+			$attendees,
+			static function ( $attendee ) {
+				return '' !== (string) $attendee['avatar_url'];
+			}
+		)
+	);
+	$total = function_exists( 'ec_users_get_event_mark_count' ) ? ec_users_get_event_mark_count( $event_id, $blog_id ) : $shown;
+	$more  = max( 0, $total - $shown );
+
 	?>
 	<div class="ec-attendance-list">
 		<span class="ec-attendance-list__label">
@@ -407,6 +422,15 @@ function ec_users_render_event_attendees( int $event_id, int $blog_id ) {
 					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
+			<?php if ( $more > 0 ) : ?>
+				<?php
+				/* translators: %s: number of attendees not shown in the avatar list. */
+				$more_label = sprintf( _n( 'and %s more', 'and %s more', $more, 'extrachill-users' ), number_format_i18n( $more ) );
+				?>
+				<li class="ec-attendance-list__item ec-attendance-list__more" role="img" aria-label="<?php echo esc_attr( $more_label ); ?>" title="<?php echo esc_attr( $more_label ); ?>">
+					+<?php echo esc_html( number_format_i18n( $more ) ); ?>
+				</li>
+			<?php endif; ?>
 		</ul>
 	</div>
 	<?php

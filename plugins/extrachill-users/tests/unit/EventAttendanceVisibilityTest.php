@@ -102,6 +102,41 @@ class Test_Event_Attendance_Visibility extends WP_UnitTestCase {
 		$this->assertSame( array( $public_user_id ), wp_list_pluck( $result['attendees'], 'user_id' ) );
 	}
 
+	public function test_attendee_strip_accounts_for_private_attendees_anonymously(): void {
+		$public_user_id = self::factory()->user->create( array( 'display_name' => 'Public Person' ) );
+		update_user_meta( $public_user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, 'public' );
+		$private_one = self::factory()->user->create( array( 'display_name' => 'Hidden One' ) );
+		$private_two = self::factory()->user->create( array( 'display_name' => 'Hidden Two' ) );
+
+		$this->mark_event( $public_user_id );
+		$this->mark_event( $private_one );
+		$this->mark_event( $private_two );
+
+		ob_start();
+		ec_users_render_event_attendees( $this->event_id, $this->blog_id );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Public Person', $html );
+		$this->assertStringContainsString( 'ec-attendance-list__more', $html );
+		$this->assertMatchesRegularExpression( '/>\s*\+2\s*</', $html );
+		$this->assertStringContainsString( 'and 2 more', $html );
+		$this->assertStringNotContainsString( 'Hidden One', $html );
+		$this->assertStringNotContainsString( 'Hidden Two', $html );
+	}
+
+	public function test_attendee_strip_has_no_more_chip_when_everyone_is_shown(): void {
+		$public_user_id = self::factory()->user->create();
+		update_user_meta( $public_user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY, 'public' );
+		$this->mark_event( $public_user_id );
+
+		ob_start();
+		ec_users_render_event_attendees( $this->event_id, $this->blog_id );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ec-attendance-list__avatars', $html );
+		$this->assertStringNotContainsString( 'ec-attendance-list__more', $html );
+	}
+
 	public function test_visibility_toggle_changes_listing_and_reports_effective_changes(): void {
 		$user_id = self::factory()->user->create();
 		$this->mark_event( $user_id );

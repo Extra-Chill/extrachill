@@ -98,6 +98,23 @@
 	object-fit: cover;
 }
 
+/* Anonymous "+N" chip for attendees not shown as avatars (private or over the limit). */
+.ec-attendance-list .ec-attendance-list__more {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	box-sizing: border-box;
+	border-radius: 50%;
+	border: 2px solid var(--card-background, #fff);
+	background: var(--border-color, #e5e7eb);
+	color: var(--text-color, #111827);
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 600;
+	line-height: 1;
+}
+
 /* ─── Attendance "hero" variant (past-event archive framing) ───────────── */
 
 .ec-attendance-hero {
