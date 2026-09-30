@@ -274,7 +274,7 @@ function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text
 		$html .= '<p><strong>' . esc_html( $perk_text ) . '</strong></p>';
 	}
 
-	$html .= '<p>' . esc_html__( 'Show this pass at the door:', 'extrachill-events' ) . '</p>';
+	$html .= '<p>' . esc_html__( 'Show this pass at check-in:', 'extrachill-events' ) . '</p>';
 	$html .= '<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">' . esc_html( $code ) . '</p>';
 
 	if ( function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ) {

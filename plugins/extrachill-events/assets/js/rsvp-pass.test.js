@@ -45,9 +45,10 @@ describe( 'RSVP pass watcher', () => {
 			<button type="button" class="ec-attendance__button button-3 button-medium" aria-pressed="false">
 				<span class="ec-attendance__label">Going</span>
 			</button>
+			<p id="ec-rsvp-perk-teaser-42" class="ec-rsvp-perk-teaser">Mark yourself Going to get your pass.</p>
 			<div id="ec-rsvp-pass-42" class="ec-rsvp-pass ec-surface-card" data-event-id="42" hidden>
 				<p class="ec-rsvp-pass__perk"></p>
-				<p class="ec-rsvp-pass__label">Show this pass at the door:</p>
+				<p class="ec-rsvp-pass__label">Show this pass at check-in:</p>
 				<p class="ec-rsvp-pass__code"></p>
 				<img class="ec-rsvp-pass__qr" src="" alt="QR code for this pass" hidden>
 			</div>`;
@@ -112,6 +113,30 @@ describe( 'RSVP pass watcher', () => {
 		expect( document.getElementById( 'ec-rsvp-pass-42' ).hidden ).toBe(
 			true
 		);
+	} );
+
+	it( 'swaps the perk teaser for the pass on mark, and back on unmark', async () => {
+		const teaser = document.getElementById( 'ec-rsvp-perk-teaser-42' );
+		const container = document.getElementById( 'ec-rsvp-pass-42' );
+
+		mockApiFetch( () =>
+			Promise.resolve( { issued: true, code: 'ABCDE-FGH2J-K3LMN' } )
+		);
+		loadRsvpPass( { eventId: 42 } );
+		fireAttendanceChanged( { eventId: 42, marked: true } );
+		await flushPromises();
+
+		expect( teaser.hidden ).toBe( true );
+		expect( container.hidden ).toBe( false );
+
+		global.wp.apiFetch.mockImplementation( () =>
+			Promise.resolve( { issued: false } )
+		);
+		fireAttendanceChanged( { eventId: 42, marked: false } );
+		await flushPromises();
+
+		expect( teaser.hidden ).toBe( false );
+		expect( container.hidden ).toBe( true );
 	} );
 
 	it( 'ignores ec:attendance-changed for a different event on the same page load', async () => {

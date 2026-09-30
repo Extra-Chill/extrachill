@@ -122,3 +122,30 @@ function extrachill_events_save_event_perk( $post_id ) {
 	}
 }
 add_action( 'save_post_data_machine_events', 'extrachill_events_save_event_perk' );
+
+/**
+ * Purge the event's cached page when its perk settings change.
+ *
+ * The page cache only purges on post status transitions, but the perk is post
+ * meta written by the set-event-perk ability or the meta box. Without this,
+ * logged-out visitors keep seeing the old perk (or none) until the cache
+ * expires.
+ *
+ * @param int|int[] $meta_ids  Meta ID(s).
+ * @param int       $object_id Post ID.
+ * @param string    $meta_key  Meta key.
+ */
+function extrachill_events_purge_on_perk_meta_change( $meta_ids, $object_id, $meta_key ): void {
+	unset( $meta_ids );
+
+	if ( EXTRACHILL_EVENTS_PERK_ENABLED_META !== $meta_key && EXTRACHILL_EVENTS_PERK_TEXT_META !== $meta_key ) {
+		return;
+	}
+
+	if ( function_exists( 'extrachill_cache_purge_post' ) ) {
+		extrachill_cache_purge_post( (int) $object_id );
+	}
+}
+add_action( 'added_post_meta', 'extrachill_events_purge_on_perk_meta_change', 20, 3 );
+add_action( 'updated_post_meta', 'extrachill_events_purge_on_perk_meta_change', 20, 3 );
+add_action( 'deleted_post_meta', 'extrachill_events_purge_on_perk_meta_change', 20, 3 );

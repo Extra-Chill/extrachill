@@ -58,7 +58,17 @@
 			return;
 		}
 
-		if ( ! pass || ! pass.issued ) {
+		const teaser = document.getElementById(
+			'ec-rsvp-perk-teaser-' + container.dataset.eventId
+		);
+		const issued = !! ( pass && pass.issued );
+		if ( teaser ) {
+			// The teaser invites people without a pass; it and the pass
+			// card are never shown together.
+			teaser.hidden = issued;
+		}
+
+		if ( ! issued ) {
 			container.hidden = true;
 			return;
 		}

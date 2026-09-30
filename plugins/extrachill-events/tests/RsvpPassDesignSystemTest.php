@@ -57,6 +57,26 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	);
 
 	/**
+	 * Classes styled by this plugin's single-event composition stylesheet
+	 * (assets/css/single-event.css), which owns the layout of the event action
+	 * row and the door list. Each must have a real rule there.
+	 */
+	private const COMPOSITION_CLASSES = array(
+		'ec-rsvp-pass'          => 'pass card: full-width centered line in the action row',
+		'ec-rsvp-pass__perk'    => 'emphasized perk line',
+		'ec-rsvp-pass__label'   => 'muted small label',
+		'ec-rsvp-pass__code'    => 'monospace pass code',
+		'ec-rsvp-pass__qr'      => 'centered QR block',
+		'ec-rsvp-perk-teaser'   => 'teaser line for people without a pass',
+		'ec-door-list'          => 'door list card spacing',
+		'ec-door-list__heading' => 'heading margin reset',
+		'ec-door-list__note'    => 'muted small note',
+		'ec-door-list__rows'    => 'bullet-free list',
+		'ec-door-list__row'     => 'name/action row',
+		'ec-door-list__status'  => 'muted status',
+	);
+
+	/**
 	 * Classes these templates render with no CSS rule anywhere, on purpose.
 	 * Each entry is a deliberate, reviewed decision.
 	 *
@@ -64,20 +84,9 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 */
 	private const CSS_FREE_CLASSES = array(
 		// Container hook; visual treatment comes entirely from ec-surface-card.
-		'ec-rsvp-pass'            => 'JS/test hook; surface styling from ec-surface-card',
-		'ec-rsvp-pass__perk'      => 'plain text; inherits theme typography',
-		'ec-rsvp-pass__label'     => 'plain text; inherits theme typography',
-		'ec-rsvp-pass__code'      => 'JS write target; plain text',
-		'ec-door-list'            => 'JS/test hook; surface styling from ec-surface-card',
-		'ec-door-list__heading'   => 'plain heading; inherits theme typography',
-		'ec-door-list__note'      => 'plain text; inherits theme typography',
 		'ec-door-list__perk'      => 'plain text; inherits theme typography',
-		'ec-door-list__rows'      => 'plain list; no visual treatment needed',
-		'ec-door-list__row'       => 'JS/test hook; layout is a plain list item',
 		'ec-door-list__name'      => 'plain text; inherits theme typography',
-		'ec-door-list__status'    => 'JS write target; plain text',
 		'ec-door-list__redeem'    => 'styled via button-2 button-small; hook for JS only',
-		'ec-rsvp-pass__qr'        => 'JS write target (src set on refresh); bare <img>, no CSS rule needed',
 		'ec-rsvp-verify-page'     => 'page-level hook only; layout comes from extrachill-content',
 		'ec-rsvp-verify'          => 'JS/test hook; surface styling from ec-surface-card',
 		'ec-rsvp-verify__heading' => 'plain heading; inherits theme typography',
@@ -120,7 +129,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 * @dataProvider templates
 	 */
 	public function test_template_uses_only_classes_that_actually_render( string $template ): void {
-		$allowed  = array_merge( self::THEME_CLASSES, array_keys( self::CSS_FREE_CLASSES ) );
+		$allowed  = array_merge( self::THEME_CLASSES, array_keys( self::CSS_FREE_CLASSES ), array_keys( self::COMPOSITION_CLASSES ) );
 		$unstyled = array_diff( $this->classes_in( $template ), $allowed );
 
 		$this->assertSame(
@@ -163,6 +172,22 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 				'/class="[^"]*\bbutton-(1|2|3|danger)\b/',
 				$button,
 				"{$template}: a button has no theme button class: {$button}"
+			);
+		}
+	}
+
+	/**
+	 * Every composition-styled class has a rule in single-event.css, so moving
+	 * a class into that list without writing its CSS fails here.
+	 */
+	public function test_composition_classes_have_rules(): void {
+		$css = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . 'assets/css/single-event.css' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level stylesheet read; local plugin file.
+
+		foreach ( array_keys( self::COMPOSITION_CLASSES ) as $class ) {
+			$this->assertMatchesRegularExpression(
+				'/\\.' . preg_quote( $class, '/' ) . '(?![a-z0-9_-])[^{]*\\{/',
+				$css,
+				"single-event.css has no rule for .{$class}"
 			);
 		}
 	}

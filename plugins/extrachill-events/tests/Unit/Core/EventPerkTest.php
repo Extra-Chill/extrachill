@@ -58,6 +58,12 @@ if ( ! function_exists( 'sanitize_textarea_field' ) ) {
 	}
 }
 
+if ( ! function_exists( 'extrachill_cache_purge_post' ) ) {
+	function extrachill_cache_purge_post( $post_id ) {
+		$GLOBALS['event_perk_test']['purged'][] = (int) $post_id;
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/admin/event-perks.php';
 
 final class EventPerkTest extends PHPUnit\Framework\TestCase {
@@ -161,5 +167,15 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 			EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN,
 			strlen( extrachill_events_get_perk_text( 42 ) )
 		);
+	}
+
+	public function test_perk_meta_changes_purge_the_event_page(): void {
+		$GLOBALS['event_perk_test']['purged'] = array();
+
+		extrachill_events_purge_on_perk_meta_change( 1, 42, EXTRACHILL_EVENTS_PERK_ENABLED_META );
+		extrachill_events_purge_on_perk_meta_change( array( 2 ), 43, EXTRACHILL_EVENTS_PERK_TEXT_META );
+		extrachill_events_purge_on_perk_meta_change( 3, 44, '_some_other_meta' );
+
+		$this->assertSame( array( 42, 43 ), $GLOBALS['event_perk_test']['purged'] );
 	}
 }

@@ -122,6 +122,132 @@
     width: auto;
 }
 
+/*
+ * Attendance context and RSVP perk
+ *
+ * Four more children share this row but are not buttons:
+ *   5. Attendee strip          <div.ec-attendance-list>     (extrachill-users)
+ *   6. Visibility disclosure   <p.ec-attendance-visibility> (extrachill-users)
+ *   7. Perk teaser             <p.ec-rsvp-perk-teaser>      (this plugin)
+ *   8. Pass card               <div.ec-rsvp-pass>           (this plugin)
+ *
+ * Left alone they became flex items beside the buttons: the pass card sat
+ * next to Add to Calendar and pushed Share onto its own line. Buttons keep
+ * their DOM order on the first line; each context element becomes its own
+ * centered full-width line below them, in reading order: who's going, the
+ * privacy note, then the perk (teaser or pass).
+ */
+.data-machine-event-details .event-action-buttons > .ec-attendance-list,
+.data-machine-event-details .event-action-buttons > .ec-attendance-visibility,
+.data-machine-event-details .event-action-buttons > .ec-rsvp-perk-teaser,
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass {
+    flex: 1 0 100%;
+    margin: 0;
+    text-align: center;
+}
+
+.data-machine-event-details .event-action-buttons > .ec-attendance-list {
+    order: 1;
+    justify-content: center;
+}
+
+.data-machine-event-details .event-action-buttons > .ec-attendance-visibility {
+    order: 2;
+    margin-top: calc(-1 * var(--spacing-sm, 0.5rem));
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-perk-teaser {
+    order: 3;
+    font-size: var(--font-size-base, 1rem);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass {
+    order: 3;
+    max-width: 22rem;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: var(--spacing-md, 1rem);
+}
+
+.data-machine-event-details .event-action-buttons > .network-bridge-section {
+    order: 4;
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass > p {
+    margin: 0 0 var(--spacing-xs, 0.25rem);
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass .ec-rsvp-pass__perk {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass .ec-rsvp-pass__label {
+    font-size: var(--font-size-sm, 0.8125rem);
+    color: var(--muted-text, #6b7280);
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass .ec-rsvp-pass__code {
+    font-family: var(--font-family-mono, monospace);
+    font-size: var(--font-size-xl, 1.25rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass .ec-rsvp-pass__qr {
+    display: block;
+    width: 180px;
+    height: 180px;
+    margin: var(--spacing-sm, 0.5rem) auto 0;
+    border-radius: var(--border-radius-sm, 4px);
+}
+
+/* The QR sets display, so it must restate [hidden] for the JS toggle. */
+.data-machine-event-details .event-action-buttons > .ec-rsvp-pass .ec-rsvp-pass__qr[hidden] {
+    display: none;
+}
+
+/*
+ * Host door list: appended to the event content, outside the action row.
+ * Scoped under .ec-door-list to outrank the theme's .entry-content ul/li.
+ */
+.ec-door-list {
+    margin-top: var(--spacing-lg, 1.5rem);
+    padding: var(--spacing-md, 1rem);
+}
+
+.ec-door-list .ec-door-list__heading {
+    margin-top: 0;
+}
+
+.ec-door-list .ec-door-list__note {
+    font-size: var(--font-size-sm, 0.8125rem);
+    color: var(--muted-text, #6b7280);
+}
+
+.ec-door-list .ec-door-list__rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ec-door-list .ec-door-list__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm, 0.5rem);
+    margin: 0;
+    padding: var(--spacing-sm, 0.5rem) 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.ec-door-list .ec-door-list__status {
+    font-size: var(--font-size-sm, 0.8125rem);
+    color: var(--muted-text, #6b7280);
+}
+
 /* Farm Friends Promo Badge */
 .data-machine-event-details .event-info-grid .farm-friends-promo .promo-badge {
     background-color: var(--accent);
@@ -181,5 +307,18 @@
 
     .data-machine-event-details .event-action-buttons > .ec-attendance .ec-attendance__count {
         text-align: center;
+    }
+
+    /* In the stacked column, basis 100% would mean height; size by content. */
+    .data-machine-event-details .event-action-buttons > .ec-attendance-list,
+    .data-machine-event-details .event-action-buttons > .ec-attendance-visibility,
+    .data-machine-event-details .event-action-buttons > .ec-rsvp-perk-teaser,
+    .data-machine-event-details .event-action-buttons > .ec-rsvp-pass {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    .data-machine-event-details .event-action-buttons > .ec-attendance-visibility {
+        margin-top: 0;
     }
 }
