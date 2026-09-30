@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.49.3] - 2026-09-30
+
+### Fixed
+- account for private attendees in the attendee strip
+
 ## [0.49.2] - 2026-09-29
 
 ### Changed
