@@ -249,8 +249,31 @@ final class SchemaEventBuildTest extends TestCase {
 
 	public function test_price_parser_handles_free_or_tba(): void {
 		$this->assertSame( 'none', ec_seo_parse_event_price( '' )['type'] );
-		$this->assertSame( 'none', ec_seo_parse_event_price( 'Free' )['type'] );
 		$this->assertSame( 'none', ec_seo_parse_event_price( 'TBA' )['type'] );
+		$this->assertSame( 'none', ec_seo_parse_event_price( 'TBD' )['type'] );
+	}
+
+	public function test_price_parser_treats_free_as_zero(): void {
+		foreach ( array( 'Free', 'free', 'FREE!', 'Free entry', 'Free admission', 'No cover' ) as $free ) {
+			$this->assertSame(
+				array( 'type' => 'single', 'price' => '0.00' ),
+				ec_seo_parse_event_price( $free ),
+				"price {$free}"
+			);
+		}
+		// Free mentioned alongside a real price is not a free event.
+		$this->assertSame( '10.00', ec_seo_parse_event_price( '$10, free for members' )['price'] );
+	}
+
+	public function test_free_event_offer_publishes_price_zero(): void {
+		$schema = ec_seo_build_event_schema(
+			$this->make_post(),
+			array( 'startDate' => '2026-10-21', 'price' => 'Free', 'ticketUrl' => 'https://www.example.com/rsvp' )
+		);
+
+		$this->assertSame( 'Offer', $schema['offers']['@type'] );
+		$this->assertSame( '0.00', $schema['offers']['price'] );
+		$this->assertSame( 'USD', $schema['offers']['priceCurrency'] );
 	}
 
 	public function test_price_parser_handles_em_dash_range(): void {

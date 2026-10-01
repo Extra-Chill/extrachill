@@ -132,8 +132,11 @@ function ec_seo_format_event_datetime( string $date, string $time, string $timez
  *   "$15"          => [ 'type' => 'single', 'price' => '15.00' ]
  *   "$25-$30"      => [ 'type' => 'range',  'low' => '25.00', 'high' => '30.00' ]
  *   "$25 – $30"    => [ 'type' => 'range',  'low' => '25.00', 'high' => '30.00' ]
- *   "Free", "TBA"  => [ 'type' => 'none' ]
+ *   "Free", "No cover" => [ 'type' => 'single', 'price' => '0.00' ]
+ *   "TBA"          => [ 'type' => 'none' ]
  *   "" / null      => [ 'type' => 'none' ]
+ *
+ * A free event publishes price 0 so search engines can label it Free (#75).
  *
  * @param string $price Raw price attribute.
  * @return array Normalized price structure.
@@ -142,6 +145,13 @@ function ec_seo_parse_event_price( string $price ): array {
 	$price = trim( $price );
 	if ( '' === $price ) {
 		return array( 'type' => 'none' );
+	}
+
+	if ( preg_match( '/^(free(\s+(entry|admission|event|show))?|no\s+cover)!?$/i', $price ) ) {
+		return array(
+			'type'  => 'single',
+			'price' => '0.00',
+		);
 	}
 
 	// Pull all numbers (including decimals) out of the string.
