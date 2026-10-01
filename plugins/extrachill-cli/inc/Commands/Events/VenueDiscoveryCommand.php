@@ -339,4 +339,185 @@ class VenueDiscoveryCommand {
 		WP_CLI::log( sprintf( '  Events URL: %s', $result['events_url'] ?? '' ) );
 		WP_CLI::log( sprintf( '  Interval: %s', $result['interval'] ?? '' ) );
 	}
+
+	/**
+	 * Show, add, or remove a venue's source aliases.
+	 *
+	 * A source alias pins a source's venue to a corrected venue term, so
+	 * imports stop recreating a venue an editor fixed. Wraps the
+	 * data-machine-events/update-venue-source-aliases and get-venue abilities.
+	 *
+	 * Aliases look like `ticketmaster:<venue id>` or
+	 * `fingerprint:<source venue name>|<source street address>`.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <venue>
+	 * : Venue term ID, name, or slug.
+	 *
+	 * [--add=<aliases>]
+	 * : Comma-separated aliases to add. Fails if one already belongs to another venue.
+	 *
+	 * [--remove=<aliases>]
+	 * : Comma-separated aliases to remove.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill venues source-aliases 23143 --url=events.extrachill.com
+	 *     wp extrachill venues source-aliases round-rock-amp --add=ticketmaster:Z7r9jZa7-j --url=events.extrachill.com
+	 *     wp extrachill venues source-aliases 23143 --add="fingerprint:Round Rock Amphitheater|301 W Bagdad Ave" --url=events.extrachill.com
+	 *     wp extrachill venues source-aliases 23143 --remove=ticketmaster:Z7r9jZa7-j --url=events.extrachill.com
+	 *
+	 * @subcommand source-aliases
+	 * @when after_wp_load
+	 */
+	public function source_aliases( $args, $assoc_args ) {
+		$venue = trim( (string) ( $args[0] ?? '' ) );
+		if ( '' === $venue ) {
+			WP_CLI::error( 'Venue is required. Example: wp extrachill venues source-aliases 23143 --url=events.extrachill.com' );
+		}
+
+		$add    = self::split_aliases( $assoc_args['add'] ?? '' );
+		$remove = self::split_aliases( $assoc_args['remove'] ?? '' );
+		$format = $assoc_args['format'] ?? 'table';
+
+		if ( empty( $add ) && empty( $remove ) ) {
+			$result = self::execute_venue_ability( 'data-machine-events/get-venue', array( 'id' => self::resolve_venue_id( $venue ) ) );
+			self::render_aliases( (int) ( $result['term_id'] ?? 0 ), (string) ( $result['name'] ?? '' ), (array) ( $result['source_aliases'] ?? array() ), $format );
+			return;
+		}
+
+		$input = array( 'venue' => $venue );
+		if ( ! empty( $add ) ) {
+			$input['add'] = $add;
+		}
+		if ( ! empty( $remove ) ) {
+			$input['remove'] = $remove;
+		}
+
+		$result = self::execute_venue_ability( 'data-machine-events/update-venue-source-aliases', $input );
+
+		foreach ( (array) ( $result['added'] ?? array() ) as $alias ) {
+			WP_CLI::log( sprintf( 'Added: %s', $alias ) );
+		}
+		foreach ( (array) ( $result['removed'] ?? array() ) as $alias ) {
+			WP_CLI::log( sprintf( 'Removed: %s', $alias ) );
+		}
+		self::render_aliases( (int) ( $result['term_id'] ?? 0 ), (string) ( $result['name'] ?? '' ), (array) ( $result['source_aliases'] ?? array() ), $format );
+	}
+
+	/**
+	 * Split a comma-separated alias list. Fingerprints may contain commas in
+	 * the street address, so only split before a recognised alias prefix.
+	 *
+	 * @param string $value Raw flag value.
+	 * @return string[]
+	 */
+	private static function split_aliases( $value ) {
+		$value = trim( (string) $value );
+		if ( '' === $value ) {
+			return array();
+		}
+
+		$parts = preg_split( '/,\s*(?=[a-z0-9_-]+:)/', $value );
+		if ( false === $parts ) {
+			return array( $value );
+		}
+
+		return array_values( array_filter( array_map( static fn( $alias ) => trim( (string) $alias ), $parts ), static fn( $alias ) => '' !== $alias ) );
+	}
+
+	/**
+	 * Resolve a venue identifier to a term ID for get-venue, which takes an ID.
+	 *
+	 * @param string $venue Term ID, name, or slug.
+	 * @return int
+	 */
+	private static function resolve_venue_id( $venue ) {
+		if ( ctype_digit( $venue ) ) {
+			return (int) $venue;
+		}
+
+		$term = get_term_by( 'slug', $venue, 'venue' );
+		if ( ! $term ) {
+			$term = get_term_by( 'name', $venue, 'venue' );
+		}
+		if ( ! $term instanceof \WP_Term ) {
+			WP_CLI::error( sprintf( 'Venue "%s" not found. Run with --url=events.extrachill.com.', $venue ) );
+			return 0;
+		}
+
+		return (int) $term->term_id;
+	}
+
+	/**
+	 * Execute a data-machine-events venue ability and fail loudly on errors.
+	 *
+	 * @param string $slug  Ability slug.
+	 * @param array  $input Ability input.
+	 * @return array
+	 */
+	private static function execute_venue_ability( $slug, array $input ) {
+		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( $slug ) : null;
+		if ( ! $ability ) {
+			WP_CLI::error( sprintf( '%s ability not available. Run with --url=events.extrachill.com and data-machine-events active.', $slug ) );
+		}
+
+		/** @var mixed $result */
+		$result = $ability->execute( $input );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+			return array();
+		}
+		if ( ! is_array( $result ) ) {
+			WP_CLI::error( 'Unexpected ability response.' );
+			return array();
+		}
+		if ( ! empty( $result['error'] ) ) {
+			WP_CLI::error( (string) $result['error'] );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Print a venue's aliases.
+	 *
+	 * @param int      $term_id Venue term ID.
+	 * @param string   $name    Venue name.
+	 * @param string[] $aliases Aliases.
+	 * @param string   $format  table|json.
+	 */
+	private static function render_aliases( $term_id, $name, array $aliases, $format ) {
+		if ( 'json' === $format ) {
+			WP_CLI::line(
+				(string) wp_json_encode(
+					array(
+						'term_id'        => $term_id,
+						'name'           => $name,
+						'source_aliases' => array_values( $aliases ),
+					)
+				)
+			);
+			return;
+		}
+
+		WP_CLI::log( sprintf( '%s (venue %d)', $name, $term_id ) );
+		if ( empty( $aliases ) ) {
+			WP_CLI::log( '  No source aliases.' );
+			return;
+		}
+		foreach ( $aliases as $alias ) {
+			WP_CLI::log( '  ' . $alias );
+		}
+	}
 }
