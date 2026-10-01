@@ -424,13 +424,15 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 		$schema['description'] = $description;
 	}
 
-	// image: featured image first, then OG fallback via the same resolver
-	// inc/core/open-graph.php uses (the site icon ultimately).
+	// image: featured image first, then the same singular fallback that
+	// inc/core/open-graph.php uses for og:image (e.g. a generated OG card),
+	// so the Event entity and the share preview agree. See #71.
 	$image = get_the_post_thumbnail_url( $post, 'full' );
-	if ( ! $image && function_exists( '\\ExtraChill\\SEO\\OpenGraph\\ec_seo_get_og_image' ) ) {
-		$image = \ExtraChill\SEO\OpenGraph\ec_seo_get_og_image( $post );
+	if ( ! $image ) {
+		/** This filter is documented in inc/core/open-graph.php */
+		$image = apply_filters( 'extrachill_seo_singular_og_image_url', '', $post );
 	}
-	if ( $image ) {
+	if ( is_string( $image ) && '' !== $image ) {
 		$schema['image'] = $image;
 	}
 
