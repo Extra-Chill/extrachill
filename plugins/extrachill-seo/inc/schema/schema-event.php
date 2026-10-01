@@ -470,6 +470,18 @@ function ec_seo_build_event_schema( \WP_Post $post, array $attrs ): ?array {
 			$place['address'] = $address;
 		}
 
+		if ( is_array( $venue_data ) ) {
+			$website = isset( $venue_data['website'] ) ? trim( (string) $venue_data['website'] ) : '';
+			if ( '' !== $website ) {
+				$place['url'] = esc_url_raw( $website );
+			}
+
+			$geo = ec_seo_parse_geo_coordinates( (string) ( $venue_data['coordinates'] ?? '' ) );
+			if ( null !== $geo ) {
+				$place['geo'] = $geo;
+			}
+		}
+
 		$schema['location'] = $place;
 	}
 
@@ -572,3 +584,28 @@ function ec_seo_emit_event_schema( $graph ) {
 	return $graph;
 }
 add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_event_schema', 10 );
+
+// This plugin owns the single Event entity on event pages, so the Event
+// Details block's standalone JSON-LD is suppressed (data-machine-events#880).
+// Harmless on data-machine-events versions that predate the filter.
+add_filter( 'data_machine_events_output_event_schema', '__return_false' );
+
+/**
+ * Parse a venue's "lat,lng" coordinates into a schema.org GeoCoordinates.
+ *
+ * @param string $coordinates Comma-separated latitude and longitude.
+ * @return array|null GeoCoordinates, or null when the value is not exactly
+ *                    two numeric parts.
+ */
+function ec_seo_parse_geo_coordinates( string $coordinates ): ?array {
+	$parts = array_map( 'trim', explode( ',', $coordinates ) );
+	if ( 2 !== count( $parts ) || ! is_numeric( $parts[0] ) || ! is_numeric( $parts[1] ) ) {
+		return null;
+	}
+
+	return array(
+		'@type'     => 'GeoCoordinates',
+		'latitude'  => $parts[0],
+		'longitude' => $parts[1],
+	);
+}
