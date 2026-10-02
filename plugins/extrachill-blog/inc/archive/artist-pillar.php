@@ -483,7 +483,7 @@ function extrachill_blog_render_artist_activity() {
 					<time datetime="<?php echo esc_attr( $item['date'] ); ?>"><?php echo esc_html( $item['date_display'] ); ?></time>
 					<div>
 						<p><?php echo esc_html( $item['source'] ); ?><?php echo ! empty( $item['timing'] ) ? esc_html( ' - ' . ucfirst( $item['timing'] ) ) : ''; ?></p>
-						<a href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
+						<a class="entity-pillar-activity-title" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
 						<?php if ( ! empty( $item['context'] ) ) : ?>
 							<span class="entity-pillar-activity-context"><?php echo esc_html( $item['context'] ); ?></span>
 						<?php endif; ?>

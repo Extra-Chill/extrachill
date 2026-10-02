@@ -83,6 +83,10 @@ assert_same( array(), extrachill_blog_build_artist_activity_item( 'Coverage', 'h
 
 $artist_pillar_source = file_get_contents( dirname( __DIR__ ) . '/inc/archive/artist-pillar.php' );
 assert_true( false !== strpos( $artist_pillar_source, 'extrachill/community-recent-public-activity' ), 'Community activity must use the owner projection.' );
+assert_true( false !== strpos( $artist_pillar_source, 'class="entity-pillar-activity-title"' ), 'Activity titles must emit the dedicated title class.' );
+$entity_pillar_css = file_get_contents( dirname( __DIR__ ) . '/assets/css/entity-pillar.css' );
+assert_true( false === strpos( $entity_pillar_css, '.entity-pillar-activity-item a' ), 'Activity styles must not target every item link, including taxonomy badges.' );
+assert_true( false !== strpos( $entity_pillar_css, '.entity-pillar-activity-title {' ), 'Activity title typography must target only the dedicated title class.' );
 
 $sorted = extrachill_blog_sort_artist_activity(
 	array(

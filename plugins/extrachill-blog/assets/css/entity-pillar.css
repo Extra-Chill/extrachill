@@ -101,7 +101,7 @@
 	text-transform: uppercase;
 }
 
-.entity-pillar-activity-item a {
+.entity-pillar-activity-title {
 	font-family: var(--font-family-heading);
 	font-size: var(--font-size-lg);
 	font-weight: 700;
