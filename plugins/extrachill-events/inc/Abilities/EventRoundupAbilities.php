@@ -28,7 +28,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class EventRoundupAbilities {
 
+	/**
+	 * Capability shared by every roundup ability.
+	 *
+	 * Build composes query + render, so the three abilities must agree;
+	 * otherwise the composable query -> render path is stricter than the
+	 * one-shot build that calls the same query internally (#932). The query
+	 * reads public event data and render writes an image, so the image-upload
+	 * capability is the gate for all three.
+	 */
+	public const ROUNDUP_CAPABILITY = 'upload_files';
+
 	private static bool $registered = false;
+
+	/**
+	 * Shared permission callback for the query, render, and build abilities.
+	 */
+	public static function canRunRoundup(): bool {
+		return current_user_can( self::ROUNDUP_CAPABILITY );
+	}
 
 	public function __construct() {
 		if ( ! self::$registered ) {
@@ -103,9 +121,7 @@ class EventRoundupAbilities {
 					),
 				),
 				'execute_callback'    => array( $this, 'executeQuery' ),
-				'permission_callback' => function () {
-					return current_user_can( 'manage_options' );
-				},
+				'permission_callback' => array( self::class, 'canRunRoundup' ),
 				'meta'                => array( 'show_in_rest' => true ),
 			)
 		);
@@ -154,9 +170,7 @@ class EventRoundupAbilities {
 					),
 				),
 				'execute_callback'    => array( $this, 'executeRender' ),
-				'permission_callback' => function () {
-					return current_user_can( 'upload_files' );
-				},
+				'permission_callback' => array( self::class, 'canRunRoundup' ),
 				'meta'                => array( 'show_in_rest' => true ),
 			)
 		);
@@ -217,9 +231,7 @@ class EventRoundupAbilities {
 					),
 				),
 				'execute_callback'    => array( $this, 'executeBuild' ),
-				'permission_callback' => function () {
-					return current_user_can( 'upload_files' );
-				},
+				'permission_callback' => array( self::class, 'canRunRoundup' ),
 				'meta'                => array( 'show_in_rest' => true ),
 			)
 		);
@@ -426,15 +438,19 @@ class EventRoundupAbilities {
 		if ( '' !== $scope && class_exists( ScopeResolver::class ) ) {
 			$scope_range = ScopeResolver::resolve( $scope );
 			if ( $scope_range ) {
-				return array_filter(
-					array(
-						'date_start' => $scope_range['date_start'],
-						'date_end'   => $scope_range['date_end'],
-						'time_start' => $scope_range['time_start'] ?? '',
-						'time_end'   => $scope_range['time_end'] ?? '',
-					),
-					static fn( $value ) => '' !== $value
+				$range      = array(
+					'date_start' => (string) $scope_range['date_start'],
+					'date_end'   => (string) $scope_range['date_end'],
 				);
+				$time_start = (string) ( $scope_range['time_start'] ?? '' );
+				$time_end   = (string) ( $scope_range['time_end'] ?? '' );
+				if ( '' !== $time_start ) {
+					$range['time_start'] = $time_start;
+				}
+				if ( '' !== $time_end ) {
+					$range['time_end'] = $time_end;
+				}
+				return $range;
 			}
 		}
 
@@ -445,6 +461,11 @@ class EventRoundupAbilities {
 		);
 	}
 
+	/**
+	 * Resolve weekday-name shortcuts to the next matching date range.
+	 *
+	 * @return array{date_start: string, date_end: string}
+	 */
 	private function resolveNextWeekdayRange( string $week_start_day, string $week_end_day ): array {
 		$now       = new \DateTime( 'now', \wp_timezone() );
 		$start_obj = ( clone $now )->modify( 'next ' . $week_start_day )->setTime( 0, 0, 0 );
@@ -479,12 +500,12 @@ class EventRoundupAbilities {
 			}
 
 			$term = \get_term_by( 'slug', (string) $location, 'location' );
-			if ( $term && ! \is_wp_error( $term ) ) {
+			if ( $term instanceof \WP_Term ) {
 				return (int) $term->term_id;
 			}
 
 			$term = \get_term_by( 'name', (string) $location, 'location' );
-			if ( $term && ! \is_wp_error( $term ) ) {
+			if ( $term instanceof \WP_Term ) {
 				return (int) $term->term_id;
 			}
 

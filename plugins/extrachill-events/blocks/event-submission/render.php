@@ -16,7 +16,7 @@ $defaults   = array(
 	'buttonLabel'    => '',
 	'systemPrompt'   => '',
 );
-$attributes = wp_parse_args( $attributes, $defaults );
+$attributes = wp_parse_args( isset( $attributes ) && is_array( $attributes ) ? $attributes : array(), $defaults );
 
 $headline         = $attributes['headline'] ?? '';
 $description      = $attributes['description'] ?? '';
@@ -95,6 +95,7 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 		<?php if ( ! is_user_logged_in() ) : ?>
 			<?php
 			$submit_url       = get_permalink();
+			$submit_url       = false !== $submit_url ? $submit_url : home_url( '/' );
 			$registration_url = function_exists( 'extrachill_users_get_registration_url' )
 				? extrachill_users_get_registration_url()
 				: wp_registration_url();
