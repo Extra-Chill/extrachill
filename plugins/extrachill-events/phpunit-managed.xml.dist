@@ -52,6 +52,11 @@
 			<exclude>tests/Unit/Core/RsvpVerifyPageCacheTest.php</exclude>
 			<!-- Same reason: requires inc/core/rsvp-pass-service.php and inc/admin/event-perks.php. -->
 			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
+			<!-- Resolves the scraper through the bootstrap's wp_get_ability()
+			     double ($GLOBALS['ec_test_ability_resolver']). Under real
+			     WordPress the core registry wins, so the double never applies
+			     and the test can only fail here. Runs in phpunit-artist-unit. -->
+			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
 			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
 			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>

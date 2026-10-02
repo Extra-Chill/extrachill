@@ -63,6 +63,10 @@ class EventRoundupTemplate implements TemplateInterface {
 	private const CTA_LINE_WIDTH         = 180;
 	private const CTA_LINE_GAP           = 18;
 	private const LINE_HEIGHT_MULTIPLIER = 1.4;
+	private const EVENT_GAP              = 15;
+	private const DAY_HEADER_GAP         = 20;
+	private const DAY_TRAILING_GAP       = 30;
+	private const CTA_CLEARANCE          = 24;
 
 	/**
 	 * Neutral fallback palette for days of the week.
@@ -153,13 +157,14 @@ class EventRoundupTemplate implements TemplateInterface {
 		$slides_distribution = $this->distribute_days_to_slides(
 			$day_groups,
 			$title,
+			$cta_text,
 			$heading_path,
 			$body_path
 		);
 
 		$image_paths = array();
 
-		foreach ( $slides_distribution as $index => $slide_days ) {
+		foreach ( array_values( $slides_distribution ) as $index => $slide_days ) {
 			$slide_title = ( 0 === $index ) ? $title : '';
 
 			$path = $this->render_slide(
@@ -207,58 +212,171 @@ class EventRoundupTemplate implements TemplateInterface {
 	 *
 	 * Operates on a temporary throwaway renderer so we can measure text
 	 * heights with the actual fonts before allocating the real per-slide
-	 * canvases.
+	 * canvases. The packing itself lives in plan_slides() so it can be
+	 * verified without GD.
 	 *
 	 * @param array  $day_groups   Day-grouped events.
 	 * @param string $title        Optional title (affects first slide height).
+	 * @param string $cta_text     Footer CTA (reserves space at the bottom).
 	 * @param string $heading_path Heading font path.
 	 * @param string $body_path    Body font path.
-	 * @return array Array of slides, each containing day groups that fit.
+	 * @return array Array of slides, each a list of day groups that fit.
 	 */
-	private function distribute_days_to_slides( array $day_groups, string $title, string $heading_path, string $body_path ): array {
+	private function distribute_days_to_slides( array $day_groups, string $title, string $cta_text, string $heading_path, string $body_path ): array {
 		$preset_dims = \DataMachine\Abilities\Media\PlatformPresets::dimensions( $this->get_default_preset() );
 		$width       = $preset_dims['width'] ?? 1080;
 		$height      = $preset_dims['height'] ?? 1350;
+		$max_width   = $width - ( self::PADDING * 2 );
 
 		$measure = new GDRenderer();
 		$measure->create_canvas( $width, $height );
 		$measure->register_font( 'header', $heading_path ? $heading_path : 'Heading.ttf' );
 		$measure->register_font( 'body', $body_path ? $body_path : 'Body.ttf' );
 
-		$slides           = array();
-		$current_slide    = array();
-		$available_height = $height - ( self::PADDING * 2 );
-		$is_first_slide   = true;
-
 		$title_height = '' !== $title
 			? $this->calculate_title_height( $measure, $title, $width )
 			: 0;
 
-		$current_height = self::PADDING + ( $is_first_slide ? $title_height : 0 );
+		$event_height = function ( array $event_item ) use ( $measure, $max_width ): int {
+			$post  = $event_item['post'] ?? null;
+			$title = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
 
-		foreach ( $day_groups as $date_key => $day_group ) {
-			$day_height = $this->calculate_day_height( $measure, $day_group, $width );
+			return $measure->measure_text_height( $title, self::EVENT_TITLE_SIZE, 'body', $max_width, self::LINE_HEIGHT_MULTIPLIER )
+				+ (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER )
+				+ self::EVENT_GAP;
+		};
 
-			if ( $current_height + $day_height <= $available_height ) {
-				$current_slide[ $date_key ] = $day_group;
-				$current_height            += $day_height;
-			} else {
-				if ( ! empty( $current_slide ) ) {
-					$slides[]       = $current_slide;
-					$is_first_slide = false;
-				}
-				$current_slide  = array( $date_key => $day_group );
-				$current_height = self::PADDING + $day_height;
-			}
-		}
-
-		if ( ! empty( $current_slide ) ) {
-			$slides[] = $current_slide;
-		}
+		$slides = self::plan_slides(
+			$day_groups,
+			self::PADDING,
+			self::content_bottom( $height, $cta_text ),
+			$title_height,
+			self::day_header_height(),
+			$event_height
+		);
 
 		$measure->destroy();
 
 		return $slides;
+	}
+
+	/**
+	 * Pack day groups onto slides, splitting a day across slides when it
+	 * does not fit (#931).
+	 *
+	 * Events are sorted by start time before packing so a continued day
+	 * picks up where the previous slide left off. A day that continues
+	 * onto a new slide repeats its header there. The first item placed on
+	 * an empty slide is always accepted, so an oversized event can never
+	 * cause an infinite loop.
+	 *
+	 * @param array    $day_groups        date_key => { date_obj, events[] }.
+	 * @param int      $content_top       Y where content starts on every slide.
+	 * @param int      $content_bottom    Y content must not cross (CTA reserved).
+	 * @param int      $title_height      Title block height on the first slide.
+	 * @param int      $day_header_height Height of a day header incl. gap.
+	 * @param callable $event_height      fn( array $event_item ): int.
+	 * @return array<int, array<int, array>> Slides of day groups.
+	 */
+	public static function plan_slides(
+		array $day_groups,
+		int $content_top,
+		int $content_bottom,
+		int $title_height,
+		int $day_header_height,
+		callable $event_height
+	): array {
+		$slides  = array();
+		$current = array();
+		$cursor  = $content_top + $title_height;
+		// The title belongs to the first slide even before any event lands.
+		$slide_has_content = $title_height > 0;
+
+		foreach ( $day_groups as $day_group ) {
+			$events = self::sort_events_by_time( (array) ( $day_group['events'] ?? array() ) );
+			if ( empty( $events ) ) {
+				continue;
+			}
+
+			$chunk = array();
+			foreach ( $events as $event_item ) {
+				$item_height = (int) $event_height( $event_item );
+				$needed      = $item_height + ( empty( $chunk ) ? $day_header_height : 0 );
+
+				if ( $cursor + $needed > $content_bottom && ( $slide_has_content || ! empty( $chunk ) ) ) {
+					if ( ! empty( $chunk ) ) {
+						$current[] = array_merge( $day_group, array( 'events' => $chunk ) );
+					}
+					if ( ! empty( $current ) ) {
+						$slides[] = $current;
+					}
+					$current           = array();
+					$chunk             = array();
+					$cursor            = $content_top;
+					$slide_has_content = false;
+					$needed            = $item_height + $day_header_height;
+				}
+
+				$chunk[]           = $event_item;
+				$cursor           += $needed;
+				$slide_has_content = true;
+			}
+
+			$current[] = array_merge( $day_group, array( 'events' => $chunk ) );
+			$cursor   += self::DAY_TRAILING_GAP;
+		}
+
+		if ( ! empty( $current ) ) {
+			$slides[] = $current;
+		}
+
+		return $slides;
+	}
+
+	/**
+	 * Lowest Y content may reach before colliding with the footer CTA.
+	 */
+	public static function content_bottom( int $height, string $cta_text ): int {
+		$bottom = $height - self::PADDING;
+		if ( '' !== $cta_text ) {
+			// render_cta() draws its rule CTA_SIZE + CTA_LINE_GAP above the
+			// bottom padding; keep clearance above that rule.
+			$bottom -= self::CTA_SIZE + self::CTA_LINE_GAP + self::CTA_CLEARANCE;
+		}
+		return $bottom;
+	}
+
+	/**
+	 * Height consumed by a day header, matching render_day_group().
+	 */
+	private static function day_header_height(): int {
+		return (int) ( self::DAY_HEADER_SIZE * self::LINE_HEIGHT_MULTIPLIER ) + self::DAY_HEADER_GAP;
+	}
+
+	/**
+	 * Sort event items by start time (missing times last).
+	 *
+	 * @param array $events Event items.
+	 * @return array Sorted event items.
+	 */
+	private static function sort_events_by_time( array $events ): array {
+		usort(
+			$events,
+			static function ( $a, $b ) {
+				$time_a = $a['event_data']['startTime'] ?? '23:59:59';
+				$time_b = $b['event_data']['startTime'] ?? '23:59:59';
+				return strcmp( (string) $time_a, (string) $time_b );
+			}
+		);
+		return $events;
+	}
+
+	/**
+	 * Decode HTML entities stored in post titles and venue names so slides
+	 * show "&" rather than "&amp;".
+	 */
+	public static function decode_text( string $text ): string {
+		return html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	}
 
 	/**
@@ -271,29 +389,6 @@ class EventRoundupTemplate implements TemplateInterface {
 		$text_height = count( $lines ) * $line_height;
 
 		return $text_height + self::TITLE_UNDERLINE_GAP + self::TITLE_UNDERLINE_HEIGHT + 30;
-	}
-
-	/**
-	 * Pixel height needed for a single day group (header + events).
-	 */
-	private function calculate_day_height( GDRenderer $renderer, array $day_group, int $width ): int {
-		$events = $day_group['events'] ?? array();
-
-		$day_header_height = (int) ( self::DAY_HEADER_SIZE * self::LINE_HEIGHT_MULTIPLIER ) + 20;
-		$max_width         = $width - ( self::PADDING * 2 );
-
-		$events_height = 0;
-		foreach ( $events as $event_item ) {
-			$post  = $event_item['post'] ?? null;
-			$title = $post ? $post->post_title : 'Untitled Event';
-
-			$title_height = $renderer->measure_text_height( $title, self::EVENT_TITLE_SIZE, 'body', $max_width, self::LINE_HEIGHT_MULTIPLIER );
-			$meta_height  = (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER );
-
-			$events_height += $title_height + $meta_height + 15;
-		}
-
-		return $day_header_height + $events_height + 30;
 	}
 
 	/**
@@ -427,22 +522,15 @@ class EventRoundupTemplate implements TemplateInterface {
 
 		$day_label = $date_obj ? strtoupper( $date_obj->format( 'l, M j' ) ) : 'UNKNOWN DATE';
 		$renderer->draw_text( $day_label, self::DAY_HEADER_SIZE, self::PADDING, $y + self::DAY_HEADER_SIZE, $day_color, 'header' );
-		$y += (int) ( self::DAY_HEADER_SIZE * self::LINE_HEIGHT_MULTIPLIER ) + 20;
+		$y += self::day_header_height();
 
-		usort(
-			$events,
-			static function ( $a, $b ) {
-				$time_a = $a['event_data']['startTime'] ?? '23:59:59';
-				$time_b = $b['event_data']['startTime'] ?? '23:59:59';
-				return strcmp( $time_a, $time_b );
-			}
-		);
+		$events = self::sort_events_by_time( $events );
 
 		foreach ( $events as $event_item ) {
 			$y = $this->render_event( $renderer, $event_item, $y, $text_color, $muted_color );
 		}
 
-		$y += 30;
+		$y += self::DAY_TRAILING_GAP;
 
 		return $y;
 	}
@@ -454,8 +542,8 @@ class EventRoundupTemplate implements TemplateInterface {
 		$post       = $event_item['post'] ?? null;
 		$event_data = $event_item['event_data'] ?? array();
 
-		$title      = $post ? (string) $post->post_title : 'Untitled Event';
-		$venue      = (string) ( $event_data['venue'] ?? '' );
+		$title      = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+		$venue      = self::decode_text( (string) ( $event_data['venue'] ?? '' ) );
 		$start_time = (string) ( $event_data['startTime'] ?? '' );
 
 		$formatted_time = '';
@@ -488,7 +576,7 @@ class EventRoundupTemplate implements TemplateInterface {
 			$y += (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER );
 		}
 
-		$y += 15;
+		$y += self::EVENT_GAP;
 
 		return $y;
 	}

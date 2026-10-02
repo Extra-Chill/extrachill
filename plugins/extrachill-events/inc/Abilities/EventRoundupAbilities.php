@@ -609,8 +609,8 @@ class EventRoundupAbilities {
 				$post       = $event_item['post'] ?? null;
 				$event_data = $event_item['event_data'] ?? array();
 
-				$title      = $post ? $post->post_title : 'Untitled';
-				$venue      = $event_data['venue'] ?? '';
+				$title      = html_entity_decode( $post ? (string) $post->post_title : 'Untitled', ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				$venue      = html_entity_decode( (string) ( $event_data['venue'] ?? '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 				$start_time = $event_data['startTime'] ?? '';
 
 				$formatted_time = '';
