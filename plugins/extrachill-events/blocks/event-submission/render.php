@@ -92,6 +92,31 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 			</div>
 		</div>
 		<?php endif; ?>
+		<?php if ( ! is_user_logged_in() ) : ?>
+			<?php
+			$submit_url       = get_permalink();
+			$registration_url = function_exists( 'extrachill_users_get_registration_url' )
+				? extrachill_users_get_registration_url()
+				: wp_registration_url();
+			$join_url         = function_exists( 'ec_users_login_url_with_redirect' )
+				? ec_users_login_url_with_redirect( $registration_url, $submit_url )
+				: add_query_arg( 'redirect_to', rawurlencode( $submit_url ), $registration_url );
+			$login_url        = function_exists( 'ec_get_site_url' )
+				? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( $submit_url )
+				: wp_login_url( $submit_url );
+			?>
+			<div class="ec-event-submission__url-import">
+				<strong><?php esc_html_e( 'Have a reliable event source?', 'extrachill-events' ); ?></strong>
+				<p class="ec-event-submission__url-import-hint">
+					<?php esc_html_e( "Import a whole artist tour, venue calendar, or festival schedule at once — free with an Extra Chill account. We'll let you know when it's approved and live.", 'extrachill-events' ); ?>
+					<?php esc_html_e( 'Use the manual form below for one event.', 'extrachill-events' ); ?>
+				</p>
+				<div class="ec-event-submission__url-import-actions">
+					<a class="button-1" href="<?php echo esc_url( $join_url ); ?>"><?php esc_html_e( 'Join', 'extrachill-events' ); ?></a>
+					<a class="button-2" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Log in', 'extrachill-events' ); ?></a>
+				</div>
+			</div>
+		<?php endif; ?>
 
 		<form
 			id="<?php echo esc_attr( $form_id ); ?>"
