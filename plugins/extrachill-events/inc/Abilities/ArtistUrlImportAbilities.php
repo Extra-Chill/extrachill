@@ -68,6 +68,9 @@ class ArtistUrlImportAbilities {
 	 */
 	private const ARTIST_FUZZY_MATCH_THRESHOLD = 85;
 
+	/** Page labels that never identify an artist on their own. */
+	private const GENERIC_SOURCE_LABELS = array( 'tour', 'tours', 'tour dates', 'dates', 'events', 'upcoming events', 'shows', 'upcoming shows', 'concerts', 'live', 'calendar', 'gigs', 'home', 'schedule' );
+
 	/** Host-owned platform/aggregator pages are not bounded recurring entities. */
 	private const UNSUPPORTED_SOURCE_HOSTS = array(
 		'axs.com'         => 'platform',
@@ -663,6 +666,21 @@ class ArtistUrlImportAbilities {
 				'term_id'  => $performer_id,
 				'name'     => $performer_name,
 			);
+		} elseif ( 0 === count( $performers ) && count( $venues ) > 1 && $this->isCredibleSiteArtist( $artist ) ) {
+			// Tour widgets (Seated, Bandsintown embeds) list dates without a
+			// per-event performer; the artist is implied by the site itself.
+			$kind           = 'artist';
+			$confidence     = null !== $artist['term_id'] ? 'high' : 'medium';
+			$scope_evidence = array(
+				'bounded' => true,
+				'type'    => 'site_artist_multiple_venues',
+				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
+			);
+			$binding        = array(
+				'taxonomy' => 'artist',
+				'term_id'  => $artist['term_id'],
+				'name'     => $artist['name'],
+			);
 		} elseif ( $force_artist && count( $venues ) > 1 && null !== $artist['term_id'] ) {
 			$kind           = 'artist';
 			$confidence     = 'high';
@@ -688,6 +706,18 @@ class ArtistUrlImportAbilities {
 			'binding'        => $binding,
 			'scope_evidence' => $scope_evidence,
 		);
+	}
+
+	/**
+	 * A site-derived artist is credible when it matches an existing artist
+	 * term, or comes from page metadata rather than a bare domain guess.
+	 */
+	private function isCredibleSiteArtist( array $artist ): bool {
+		$name = trim( (string) ( $artist['name'] ?? '' ) );
+		if ( '' === $name || $this->isGenericSourceLabel( $name ) ) {
+			return false;
+		}
+		return null !== ( $artist['term_id'] ?? null ) || 'domain' !== ( $artist['source'] ?? '' );
 	}
 
 	/** Return the unsupported scope for a known platform/aggregator host. */
@@ -1727,7 +1757,7 @@ class ArtistUrlImportAbilities {
 				$performer = $performer['name'] ?? '';
 			}
 			if ( is_string( $performer ) && '' !== trim( $performer ) ) {
-				$candidates[] = trim( $performer );
+				$candidates[] = array( trim( $performer ), 'structured' );
 			}
 		}
 
@@ -1735,15 +1765,15 @@ class ArtistUrlImportAbilities {
 		if ( '' !== $html ) {
 			// 2a. og:title
 			if ( preg_match( '/<meta[^>]+property=[\"\']og:title[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']/i', $html, $m ) ) {
-				$candidates[] = $this->stripSiteTokens( html_entity_decode( $m[1] ) );
+				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
 			}
 			// 2b. <title>
 			if ( preg_match( '/<title>([^<]+)<\/title>/i', $html, $m ) ) {
-				$candidates[] = $this->stripSiteTokens( html_entity_decode( $m[1] ) );
+				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
 			}
 			// 2c. first <h1>
 			if ( preg_match( '/<h1[^>]*>(.*?)<\/h1>/is', $html, $m ) ) {
-				$candidates[] = $this->stripSiteTokens( wp_strip_all_tags( $m[1] ) );
+				$candidates[] = array( $this->stripSiteTokens( wp_strip_all_tags( $m[1] ) ), 'page' );
 			}
 		}
 
@@ -1753,15 +1783,17 @@ class ArtistUrlImportAbilities {
 			$host = preg_replace( '/^www\./i', '', $host );
 			$root = explode( '.', $host )[0];
 			if ( '' !== $root ) {
-				$candidates[] = $this->titleCaseFromSlug( $root );
+				$candidates[] = array( $this->titleCaseFromSlug( $root ), 'domain' );
 			}
 		}
 
-		$name = '';
+		$name   = '';
+		$source = '';
 		foreach ( $candidates as $candidate ) {
-			$candidate = trim( (string) $candidate );
-			if ( '' !== $candidate ) {
-				$name = $candidate;
+			$value = trim( (string) $candidate[0] );
+			if ( '' !== $value && ! $this->isGenericSourceLabel( $value ) ) {
+				$name   = $value;
+				$source = $candidate[1];
 				break;
 			}
 		}
@@ -1771,6 +1803,7 @@ class ArtistUrlImportAbilities {
 		return array(
 			'name'    => $name,
 			'term_id' => $term_id,
+			'source'  => $source,
 		);
 	}
 
@@ -1784,23 +1817,22 @@ class ArtistUrlImportAbilities {
 	private function stripSiteTokens( string $title ): string {
 		$title = trim( $title );
 		// Split on common separators and drop any segment that's a generic token.
-		$generic = array( 'tour', 'tours', 'events', 'shows', 'concerts', 'live', 'calendar', 'gigs', 'tour dates' );
-		$parts   = preg_split( '/\s*[|\-–—:]\s*/u', $title );
+		$parts = preg_split( '/\s*[|\-–—:]\s*/u', $title );
 		if ( ! is_array( $parts ) || empty( $parts ) ) {
 			return $title;
 		}
 
 		$kept = array();
 		foreach ( $parts as $part ) {
-			$normalized = strtolower( trim( $part ) );
-			if ( in_array( $normalized, $generic, true ) ) {
+			if ( '' === trim( $part ) || $this->isGenericSourceLabel( $part ) ) {
 				continue;
 			}
 			$kept[] = trim( $part );
 		}
 
 		if ( empty( $kept ) ) {
-			return $title;
+			// Only generic labels ("Tour Dates") — not an artist identity.
+			return '';
 		}
 
 		// The longest remaining segment is usually the artist name.
@@ -1812,6 +1844,12 @@ class ArtistUrlImportAbilities {
 		);
 
 		return $kept[0];
+	}
+
+	/** Whether a title segment is a generic page label rather than an identity. */
+	private function isGenericSourceLabel( string $label ): bool {
+		$normalized = strtolower( trim( preg_replace( '/\s+/u', ' ', $label ) ) );
+		return in_array( $normalized, self::GENERIC_SOURCE_LABELS, true );
 	}
 
 	/**

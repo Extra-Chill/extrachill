@@ -262,11 +262,12 @@ class QualifyFingerprinter {
 			$ability_input['handler_config'] = $ability_config;
 		}
 
-		$result = $ability->execute( $ability_input );
+		$result = self::execute_scraper_ability( $ability, $ability_input );
 
 		if ( is_wp_error( $result ) ) {
-			$attempt['ran']  = true;
-			$attempt['name'] = 'TestEventScraper';
+			$attempt['ran']   = true;
+			$attempt['name']  = 'TestEventScraper';
+			$attempt['error'] = $result->get_error_code();
 			return $attempt;
 		}
 
@@ -299,6 +300,34 @@ class QualifyFingerprinter {
 		}
 
 		return $attempt;
+	}
+
+	/**
+	 * Run the scraper ability as a trusted internal caller.
+	 *
+	 * The test-event-scraper ability is an admin diagnostic (manage_options),
+	 * but qualification runs it server-side on behalf of already-authorized
+	 * entry points (e.g. logged-in event-source preview). Without elevation,
+	 * every non-admin submitter received a permission error that was counted
+	 * as zero events, so every source resolved to unsupported_source (#927).
+	 * Elevation is scoped to this ability and this single call.
+	 *
+	 * @param \WP_Ability $ability Scraper ability.
+	 * @param array       $input   Ability input.
+	 * @return mixed Ability result or WP_Error.
+	 */
+	private static function execute_scraper_ability( $ability, array $input ) {
+		$ability_name = $ability->get_name();
+		$grant        = static function ( $permission, $name ) use ( $ability_name ) {
+			return $name === $ability_name ? true : $permission;
+		};
+
+		add_filter( 'wp_ability_permission_result', $grant, 10, 2 );
+		try {
+			return $ability->execute( $input );
+		} finally {
+			remove_filter( 'wp_ability_permission_result', $grant, 10 );
+		}
 	}
 
 	/**

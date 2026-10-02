@@ -468,6 +468,87 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertTrue( $result['scope_evidence']['bounded'] );
 	}
 
+	/** Tour widgets (e.g. Seated) list dates without per-event performers (#927). */
+	private function performerless_tour(): array {
+		return array(
+			array( 'venue' => 'Room A' ),
+			array( 'venue' => 'Room B' ),
+			array( 'venue' => 'Room C' ),
+		);
+	}
+
+	public function test_performerless_tour_page_with_matched_artist_term_is_artist(): void {
+		$result = $this->classification(
+			$this->performerless_tour(),
+			'https://www.the-band.test/tour',
+			false,
+			'<html><head><title>Tour &mdash; The Band</title></head></html>'
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 'high', $result['confidence'] );
+		$this->assertSame( 72, $result['binding']['term_id'] );
+		$this->assertSame( 'The Band', $result['binding']['name'] );
+		$this->assertTrue( $result['scope_evidence']['bounded'] );
+		$this->assertSame( 'site_artist_multiple_venues', $result['scope_evidence']['type'] );
+		$this->assertSame( array(), $result['warnings'] );
+	}
+
+	public function test_performerless_tour_page_with_unmatched_page_title_is_medium_artist(): void {
+		$result = $this->classification(
+			$this->performerless_tour(),
+			'https://nightmoves.test/tour',
+			false,
+			'<html><head><title>Night Moves | Tour</title></head></html>'
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 'medium', $result['confidence'] );
+		$this->assertNull( $result['binding']['term_id'] );
+		$this->assertSame( 'Night Moves', $result['binding']['name'] );
+	}
+
+	public function test_generic_tour_title_falls_through_to_matched_domain_name(): void {
+		$result = $this->classification(
+			$this->performerless_tour(),
+			'https://www.the-band.test/tour',
+			false,
+			'<html><head><title>Tour Dates</title></head><body><h1>Upcoming Shows</h1></body></html>'
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 72, $result['binding']['term_id'] );
+		$this->assertNotSame( 'Tour Dates', $result['binding']['name'] );
+	}
+
+	public function test_generic_tour_title_with_unmatched_domain_stays_unknown(): void {
+		$result = $this->classification(
+			$this->performerless_tour(),
+			'https://www.somesite.test/tour',
+			false,
+			'<html><head><title>Tour Dates</title></head></html>'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
+		$this->assertFalse( $result['scope_evidence']['bounded'] );
+	}
+
+	public function test_performerless_single_event_page_stays_unknown(): void {
+		$result = $this->classification(
+			array( array( 'venue' => 'Room A' ) ),
+			'https://www.the-band.test/tour',
+			false,
+			'<html><head><title>The Band</title></head></html>'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
+	}
+
+	public function test_performerless_page_on_aggregator_host_stays_unknown(): void {
+		$result = $this->classification(
+			$this->performerless_tour(),
+			'https://www.eventbrite.com/o/the-band/events',
+			false,
+			'<html><head><title>The Band</title></head></html>'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
+	}
+
 	public function test_submission_rejects_ineligible_source_without_queueing(): void {
 		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
 		$intake->qualifications[] = $this->qualification( 'artist', false );
