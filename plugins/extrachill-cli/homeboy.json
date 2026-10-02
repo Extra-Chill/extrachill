@@ -2,7 +2,31 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "standalone_php_test_paths": [
+          "tests/AgentsMdSectionTest.php",
+          "tests/QRCodeCommandTest.php",
+          "tests/ExperimentsCommandTest.php",
+          "tests/ExperimentsOwnerContractTest.php",
+          "tests/OwnerSiteAbilityTest.php",
+          "tests/CrosslinkTargetsCommandTest.php",
+          "tests/OutboundCommandTest.php",
+          "tests/ConversionCommandTest.php",
+          "tests/RouteTransitionsCommandTest.php",
+          "tests/HealthCommandTest.php",
+          "tests/SummaryCommandTest.php",
+          "tests/RetentionCommandTest.php",
+          "tests/UserLocalSceneCommandTest.php",
+          "tests/ConcertTrackingCommandTest.php",
+          "tests/RevenueCommandTest.php",
+          "tests/RevenueCommandRuntimeTest.php",
+          "tests/StorageMigrationCommandTest.php",
+          "tests/RegenerateOgCardCommandTest.php",
+          "tests/VenueSourceAliasesCommandTest.php"
+        ]
+      }
+    }
   },
   "id": "extrachill-cli",
   "remote_path": "wp-content/plugins/extrachill-cli",

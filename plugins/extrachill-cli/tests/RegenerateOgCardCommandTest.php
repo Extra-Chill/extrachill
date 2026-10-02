@@ -10,7 +10,14 @@ namespace WP_CLI\Utils {
 }
 
 namespace {
+	use ExtraChill\CLI\Commands\Network\RegenerateOgCardCommand;
 
+	// Real WordPress (the managed PHPUnit harness loads every *Test.php) already
+	// declares WP_CLI, WP_Error, wp_get_ability and is_wp_error, so the doubles
+	// below would fatal. Run standalone: php tests/RegenerateOgCardCommandTest.php.
+	$ogr_cli_wp_bootstrapped = function_exists( 'wp_get_ability' ) || class_exists( 'WP_Error', false );
+
+	if ( ! $ogr_cli_wp_bootstrapped ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 
 	class OgrCliError extends \RuntimeException {}
@@ -112,7 +119,6 @@ namespace {
 
 	require_once dirname( __DIR__ ) . '/inc/Commands/Network/RegenerateOgCardCommand.php';
 
-	use ExtraChill\CLI\Commands\Network\RegenerateOgCardCommand;
 
 	$command = new RegenerateOgCardCommand();
 
@@ -306,4 +312,5 @@ namespace {
 	ogr_cli_assert_same( 'json', $GLOBALS['ogr_cli_formats'][0]['format'], '--format=json is forwarded to format_items unchanged.' );
 
 	fwrite( STDOUT, "RegenerateOgCardCommand tests passed.\n" );
+}
 }
