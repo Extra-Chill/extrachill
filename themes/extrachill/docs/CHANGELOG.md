@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.14.2] - 2026-10-02
+
+### Fixed
+- protect mini dropdown menus from content list styles
+
 ## [2.14.1] - 2026-09-30
 
 ### Fixed
