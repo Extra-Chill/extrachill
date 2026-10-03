@@ -158,7 +158,7 @@ if ( ! function_exists( 'is_page' ) ) {
 
 if ( ! function_exists( 'is_tax' ) ) {
 	function is_tax() {
-		return false;
+		return ! empty( $GLOBALS['ec_seo_test_is_tax'] );
 	}
 }
 
@@ -182,13 +182,13 @@ if ( ! function_exists( 'is_archive' ) ) {
 
 if ( ! function_exists( 'is_category' ) ) {
 	function is_category() {
-		return false;
+		return ! empty( $GLOBALS['ec_seo_test_is_category'] );
 	}
 }
 
 if ( ! function_exists( 'is_tag' ) ) {
 	function is_tag() {
-		return false;
+		return ! empty( $GLOBALS['ec_seo_test_is_tag'] );
 	}
 }
 
@@ -465,9 +465,12 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 
 if ( ! function_exists( 'is_wp_error' ) ) {
 	function is_wp_error( $thing ) {
-		unset( $thing );
-		return false;
+		return $thing instanceof WP_Error;
 	}
+}
+
+if ( ! class_exists( 'WP_Error' ) ) {
+	class WP_Error {}
 }
 
 if ( ! function_exists( 'wp_get_post_terms' ) ) {
@@ -530,6 +533,9 @@ if ( ! function_exists( 'get_the_title' ) ) {
 
 if ( ! function_exists( 'get_term_link' ) ) {
 	function get_term_link( $term ) {
+		if ( ! empty( $GLOBALS['ec_seo_test_term_link_error'] ) ) {
+			return new WP_Error();
+		}
 		return home_url( '/' . ( $term->taxonomy ?? 'term' ) . '/' . ( $term->slug ?? '' ) );
 	}
 }

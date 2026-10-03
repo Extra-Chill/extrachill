@@ -244,6 +244,9 @@ function ec_seo_get_canonical_url() {
 		}
 
 		$url = get_term_link( $term );
+		if ( is_wp_error( $url ) || ! is_string( $url ) || '' === $url ) {
+			return '';
+		}
 
 		// Add pagination
 		$paged = get_query_var( 'paged' );
@@ -257,6 +260,9 @@ function ec_seo_get_canonical_url() {
 	if ( is_author() ) {
 		$author = get_queried_object();
 		$url    = get_author_posts_url( $author->ID );
+		if ( is_wp_error( $url ) || ! is_string( $url ) || '' === $url ) {
+			return '';
+		}
 
 		// Add pagination
 		$paged = get_query_var( 'paged' );

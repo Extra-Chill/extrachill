@@ -79,7 +79,7 @@ function ec_seo_get_final_canonical_url() {
 	 */
 	$canonical = apply_filters( 'extrachill_seo_canonical_url', $canonical );
 
-	return $canonical;
+	return is_string( $canonical ) ? $canonical : '';
 }
 
 /**
