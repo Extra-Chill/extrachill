@@ -291,6 +291,21 @@
     }
 
     /*
+     * Dropdown menus owned by the stretched wrappers (Add to Calendar from
+     * data-machine-events, Share from the theme) are absolutely positioned at
+     * left: 0 with a content-sized width. Once the toggle spans the card, a
+     * content-sized menu reads as a narrow strip pinned to the left edge, so
+     * size each menu to its full-width toggle.
+     */
+    .data-machine-event-details .event-action-buttons > .dm-events-add-to-calendar .dm-events-add-to-calendar-menu,
+    .data-machine-event-details .event-action-buttons > .share-dropdown .ec-mini-dropdown-menu {
+        left: 0;
+        right: 0;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    /*
      * Attendance goes full-width too, with the count label dropping BELOW the
      * button (centered) instead of sitting beside it — so the button matches
      * the width of every other stacked CTA.
