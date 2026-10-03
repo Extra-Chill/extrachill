@@ -36,13 +36,21 @@ function extrachill_events_rsvp_verify_url( string $code ): string {
  * @return string
  */
 function extrachill_events_rsvp_pass_qr_url( string $code ): string {
-	return add_query_arg(
-		array(
-			'action' => 'ec_rsvp_pass_qr',
-			'code'   => rawurlencode( $code ),
-		),
-		admin_url( 'admin-post.php' )
-	);
+	return extrachill_events_rsvp_pass_qr_base_url() . rawurlencode( $code );
+}
+
+/**
+ * QR image URL prefix that a pass code is appended to.
+ *
+ * The browser builds the QR URL for a pass revealed without a reload, so it
+ * needs a prefix ending in `code=`. Building it with add_query_arg() and an
+ * empty code drops the `=` (WordPress omits empty values), which produced
+ * `&codeABCDE-...` and a broken QR image.
+ *
+ * @return string
+ */
+function extrachill_events_rsvp_pass_qr_base_url(): string {
+	return add_query_arg( 'action', 'ec_rsvp_pass_qr', admin_url( 'admin-post.php' ) ) . '&code=';
 }
 
 /**

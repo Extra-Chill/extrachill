@@ -177,7 +177,7 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 		'ecRsvpPass',
 		array(
 			'eventId'   => $post_id,
-			'qrBaseUrl' => function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ? extrachill_events_rsvp_pass_qr_url( '' ) : '',
+			'qrBaseUrl' => function_exists( 'extrachill_events_rsvp_pass_qr_base_url' ) ? extrachill_events_rsvp_pass_qr_base_url() : '',
 		)
 	);
 }

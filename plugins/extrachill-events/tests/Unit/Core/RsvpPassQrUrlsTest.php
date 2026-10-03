@@ -84,4 +84,16 @@ final class RsvpPassQrUrlsTest extends PHPUnit\Framework\TestCase {
 
 		$this->assertStringEndsWith( 'code=', $url );
 	}
+
+	/**
+	 * The browser appends a pass code to qrBaseUrl, so the prefix must end in
+	 * `code=` and produce exactly the server-side QR URL. Built from an empty
+	 * code via add_query_arg(), it lost the `=` in production.
+	 */
+	public function test_qr_base_url_ends_in_code_param_and_matches_full_url(): void {
+		$base = extrachill_events_rsvp_pass_qr_base_url();
+
+		$this->assertStringEndsWith( '&code=', $base );
+		$this->assertSame( extrachill_events_rsvp_pass_qr_url( 'V6BUF-8YBNB-VCTJJ' ), $base . 'V6BUF-8YBNB-VCTJJ' );
+	}
 }
