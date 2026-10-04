@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.28.0] - 2026-10-04
+
+### Added
+- support video reel publishing
+
 ## [0.27.17] - 2026-09-29
 
 ### Changed
