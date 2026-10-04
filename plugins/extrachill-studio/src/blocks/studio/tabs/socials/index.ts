@@ -32,7 +32,7 @@ import { applyArticleSource } from './article-source/contract';
 import type { ArticleSource } from './article-source/contract';
 
 const h = createElement as typeof import('react').createElement;
-const PanelView = Panel as unknown as ( props: any ) => ReactElement;
+const PanelView = Panel as unknown as (props: any) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as (
 	props: any
 ) => ReactElement;
@@ -46,57 +46,51 @@ const InlineStatusView = InlineStatus as unknown as (
  *
  * To support a new capability, add a component here and import it.
  */
-const VIEW_REGISTRY: Record< string, ComponentType< any > > = {
+const VIEW_REGISTRY: Record<string, ComponentType<any>> = {
 	publish: PlatformPublishPane,
 	comments: CommentsView,
 	giveaway: GiveawayView,
 };
 
-const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
+const SocialsPane = ({ context }: StudioPaneProps): ReactElement | null => {
 	const allowedSlugs = context.socialPlatforms;
-	const [ platforms, setPlatforms ] = useState< ComposerPlatformConfig[] >(
-		[]
-	);
-	const [ error, setError ] = useState( '' );
-	const [ isLoading, setIsLoading ] = useState( true );
-	const [ activePlatform, setActivePlatform ] = useState< string | null >(
+	const [platforms, setPlatforms] = useState<ComposerPlatformConfig[]>([]);
+	const [error, setError] = useState('');
+	const [isLoading, setIsLoading] = useState(true);
+	const [activePlatform, setActivePlatform] = useState<string | null>(null);
+	const [activeCapability, setActiveCapability] = useState('publish');
+	const [publishDrafts, setPublishDrafts] = useState<
+		Record<string, PlatformPublishDraft>
+	>({});
+	const [selectedSource, setSelectedSource] = useState<ArticleSource | null>(
 		null
 	);
-	const [ activeCapability, setActiveCapability ] = useState( 'publish' );
-	const [ publishDrafts, setPublishDrafts ] = useState<
-		Record< string, PlatformPublishDraft >
-	>( {} );
-	const [ selectedSource, setSelectedSource ] =
-		useState< ArticleSource | null >( null );
 
-	useEffect( () => {
-		const loadPlatforms = async (): Promise< void > => {
-			setIsLoading( true );
-			setError( '' );
+	useEffect(() => {
+		const loadPlatforms = async (): Promise<void> => {
+			setIsLoading(true);
+			setError('');
 
 			try {
 				const response = await studioClient.socials.getPlatforms();
 				setPlatforms(
-					Array.isArray( response?.platforms )
-						? ( response.platforms as ComposerPlatformConfig[] )
+					Array.isArray(response?.platforms)
+						? (response.platforms as ComposerPlatformConfig[])
 						: []
 				);
-			} catch ( fetchError ) {
-				setPlatforms( [] );
+			} catch (fetchError) {
+				setPlatforms([]);
 				setError(
-					( fetchError as Error )?.message ||
-						__(
-							'Unable to load social platforms.',
-							'extrachill-studio'
-						)
+					(fetchError as Error)?.message ||
+						__('Unable to load social platforms.', 'extrachill-studio')
 				);
 			} finally {
-				setIsLoading( false );
+				setIsLoading(false);
 			}
 		};
 
 		loadPlatforms();
-	}, [] );
+	}, []);
 
 	/**
 	 * Filter to authenticated platforms within the optional allowlist.
@@ -105,84 +99,81 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	 * pre-filters fetch handlers, so the client just renders in array order.
 	 */
 	const availablePlatforms = useMemo(
-		() => filterAvailablePlatforms( platforms, allowedSlugs ),
-		[ platforms, allowedSlugs ]
+		() => filterAvailablePlatforms(platforms, allowedSlugs),
+		[platforms, allowedSlugs]
 	);
 
 	/** Shape platforms for the sidebar component. */
 	const sidebarPlatforms: SidebarPlatform[] = useMemo(
 		() =>
-			availablePlatforms.map( ( p ) => ( {
+			availablePlatforms.map(p => ({
 				slug: p.slug,
 				label: p.label,
 				username: p.username,
 				capabilities: p.capabilities,
-			} ) ),
-		[ availablePlatforms ]
+			})),
+		[availablePlatforms]
 	);
 
 	// Auto-select first platform on load.
-	useEffect( () => {
-		if ( ! activePlatform && availablePlatforms.length > 0 ) {
-			setActivePlatform( availablePlatforms[ 0 ].slug );
+	useEffect(() => {
+		if (!activePlatform && availablePlatforms.length > 0) {
+			setActivePlatform(availablePlatforms[0].slug);
 		}
-	}, [ activePlatform, availablePlatforms ] );
+	}, [activePlatform, availablePlatforms]);
 
 	// Reset capability if the newly selected platform doesn't support the current one.
-	useEffect( () => {
-		if ( ! activePlatform ) {
+	useEffect(() => {
+		if (!activePlatform) {
 			return;
 		}
 
-		const platform = availablePlatforms.find(
-			( p ) => p.slug === activePlatform
-		);
+		const platform = availablePlatforms.find(p => p.slug === activePlatform);
 		if (
 			platform &&
-			! platform.capabilities.some( ( c ) => c.slug === activeCapability )
+			!platform.capabilities.some(c => c.slug === activeCapability)
 		) {
-			setActiveCapability(
-				platform.capabilities[ 0 ]?.slug || 'publish'
-			);
+			setActiveCapability(platform.capabilities[0]?.slug || 'publish');
 		}
-	}, [ activeCapability, activePlatform, availablePlatforms ] );
+	}, [activeCapability, activePlatform, availablePlatforms]);
 
 	const handleSidebarSelect = (
 		platformSlug: string,
 		capability: string
 	): void => {
-		setActivePlatform( platformSlug );
-		setActiveCapability( capability );
+		setActivePlatform(platformSlug);
+		setActiveCapability(capability);
 	};
 
-	const emptyDraft = (): PlatformPublishDraft => ( {
+	const emptyDraft = (): PlatformPublishDraft => ({
 		caption: '',
 		images: [],
+		videos: [],
 		mediaKind: '',
 		fields: {},
 		sourcePostId: null,
 		sourceUrl: '',
-	} );
+	});
 
-	const handleSourceSelect = ( source: ArticleSource | null ): void => {
-		setSelectedSource( source );
-		setPublishDrafts( ( current ) =>
+	const handleSourceSelect = (source: ArticleSource | null): void => {
+		setSelectedSource(source);
+		setPublishDrafts(current =>
 			Object.fromEntries(
-				availablePlatforms.map( ( platform ) => [
+				availablePlatforms.map(platform => [
 					platform.slug,
 					applyArticleSource(
-						current[ platform.slug ] || emptyDraft(),
+						current[platform.slug] || emptyDraft(),
 						source,
 						platform
 					),
-				] )
+				])
 			)
 		);
 	};
 
 	// ── Loading / Error / Empty states ──
 
-	if ( isLoading ) {
+	if (isLoading) {
 		return h(
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
@@ -192,13 +183,13 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 				h(
 					InlineStatusView,
 					{ tone: 'info', className: 'ec-studio-message' },
-					__( 'Loading social platforms…', 'extrachill-studio' )
+					__('Loading social platforms…', 'extrachill-studio')
 				)
 			)
 		);
 	}
 
-	if ( error ) {
+	if (error) {
 		return h(
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
@@ -214,19 +205,19 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		);
 	}
 
-	if ( availablePlatforms.length === 0 ) {
+	if (availablePlatforms.length === 0) {
 		return h(
 			'div',
 			{ className: 'ec-studio-pane ec-studio-pane--socials' },
 			h(
 				PanelView,
 				{ className: 'ec-studio-panel', compact: true },
-				h( PanelHeader, {
+				h(PanelHeader, {
 					description: __(
 						'No social platforms are connected yet.',
 						'extrachill-studio'
 					),
-				} ),
+				}),
 				h(
 					InlineStatusView,
 					{ tone: 'warning', className: 'ec-studio-message' },
@@ -242,13 +233,13 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 	// ── Active platform and view rendering ──
 
 	const selectedPlatform =
-		availablePlatforms.find( ( p ) => p.slug === activePlatform ) ||
-		availablePlatforms[ 0 ];
+		availablePlatforms.find(p => p.slug === activePlatform) ||
+		availablePlatforms[0];
 
 	const renderContent = (): ReactElement => {
-		const ViewComponent = VIEW_REGISTRY[ activeCapability ];
+		const ViewComponent = VIEW_REGISTRY[activeCapability];
 
-		if ( ! ViewComponent ) {
+		if (!ViewComponent) {
 			// Handler declared a capability the client doesn't have a view for yet.
 			return h(
 				PanelView,
@@ -269,33 +260,32 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 		}
 
 		// Props vary by view — publish/comments get platform props, giveaway gets context.
-		if ( activeCapability === 'giveaway' ) {
-			return h( ViewComponent, {
-				key: `giveaway-${ selectedPlatform.slug }`,
+		if (activeCapability === 'giveaway') {
+			return h(ViewComponent, {
+				key: `giveaway-${selectedPlatform.slug}`,
 				context,
-			} );
+			});
 		}
 
-		const viewProps: Record< string, unknown > = {
-			key: `${ activeCapability }-${ selectedPlatform.slug }`,
+		const viewProps: Record<string, unknown> = {
+			key: `${activeCapability}-${selectedPlatform.slug}`,
 			slug: selectedPlatform.slug,
 			label: selectedPlatform.label,
 			username: selectedPlatform.username,
 			config: selectedPlatform,
 		};
 
-		if ( activeCapability === 'publish' ) {
-			viewProps.draft =
-				publishDrafts[ selectedPlatform.slug ] || emptyDraft();
-			viewProps.onDraftChange = ( draft: PlatformPublishDraft ) => {
-				setPublishDrafts( ( current ) => ( {
+		if (activeCapability === 'publish') {
+			viewProps.draft = publishDrafts[selectedPlatform.slug] || emptyDraft();
+			viewProps.onDraftChange = (draft: PlatformPublishDraft) => {
+				setPublishDrafts(current => ({
 					...current,
-					[ selectedPlatform.slug ]: draft,
-				} ) );
+					[selectedPlatform.slug]: draft,
+				}));
 			};
 		}
 
-		return h( ViewComponent, viewProps );
+		return h(ViewComponent, viewProps);
 	};
 
 	return h(
@@ -304,25 +294,24 @@ const SocialsPane = ( { context }: StudioPaneProps ): ReactElement | null => {
 			className:
 				'ec-studio-pane ec-studio-pane--socials ec-studio-socials-layout',
 		},
-		h( SocialsSidebar, {
+		h(SocialsSidebar, {
 			platforms: sidebarPlatforms,
 			activePlatform,
 			activeCapability,
 			onSelect: handleSidebarSelect,
-		} ),
+		}),
 		h(
 			'div',
 			{ className: 'ec-studio-socials-content' },
 			activeCapability === 'publish'
-				? h( ArticleSourcePicker, {
+				? h(ArticleSourcePicker, {
 						mainSiteUrl:
-							context.networkSites.find(
-								( site ) => site.id === 1
-							)?.url || 'https://extrachill.com/',
+							context.networkSites.find(site => site.id === 1)?.url ||
+							'https://extrachill.com/',
 						mainBlogId: 1,
 						selected: selectedSource,
 						onSelect: handleSourceSelect,
-				  } )
+				  })
 				: null,
 			renderContent()
 		)

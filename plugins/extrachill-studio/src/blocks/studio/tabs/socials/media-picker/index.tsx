@@ -25,11 +25,12 @@ import type { NetworkMediaItem } from '@extrachill/api-client';
  * Internal dependencies
  */
 import { studioClient } from '../../../app/client';
+import { buildMediaQuery, mediaAccept } from '../publish/contract';
 
 const h = createElement as typeof import('react').createElement;
-const PanelView = Panel as unknown as ( props: any ) => ReactElement;
-const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
-const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
+const PanelView = Panel as unknown as (props: any) => ReactElement;
+const ActionRowView = ActionRow as unknown as (props: any) => ReactElement;
+const FieldGroupView = FieldGroup as unknown as (props: any) => ReactElement;
 const InlineStatusView = InlineStatus as unknown as (
 	props: any
 ) => ReactElement;
@@ -39,9 +40,12 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 export interface MediaPickerProps {
 	/** Called when a media item is selected. Receives the canonical URL. */
-	onSelect: ( url: string, item: NetworkMediaItem ) => void;
+	onSelect: (url: string, item: NetworkMediaItem) => void;
 	/** Optional className for the outer wrapper. */
 	className?: string;
+	mediaType?: 'image' | 'video';
+	multiple?: boolean;
+	selectedUrls?: string[];
 }
 
 /**
@@ -60,184 +64,175 @@ export interface MediaPickerProps {
  * @param root0
  * @param root0.onSelect
  * @param root0.className
+ * @param root0.mediaType
+ * @param root0.multiple
+ * @param root0.selectedUrls
  */
-const MediaPicker = ( {
+const MediaPicker = ({
 	onSelect,
 	className,
-}: MediaPickerProps ): ReactElement => {
-	const [ items, setItems ] = useState< NetworkMediaItem[] >( [] );
-	const [ page, setPage ] = useState( 1 );
-	const [ totalPages, setTotalPages ] = useState( 1 );
-	const [ totalItems, setTotalItems ] = useState( 0 );
-	const [ searchInput, setSearchInput ] = useState( '' );
-	const [ activeSearch, setActiveSearch ] = useState( '' );
-	const [ isLoading, setIsLoading ] = useState( false );
-	const [ isUploading, setIsUploading ] = useState( false );
-	const [ error, setError ] = useState( '' );
+	mediaType = 'image',
+	multiple = false,
+	selectedUrls = [],
+}: MediaPickerProps): ReactElement => {
+	const [items, setItems] = useState<NetworkMediaItem[]>([]);
+	const [page, setPage] = useState(1);
+	const [totalPages, setTotalPages] = useState(1);
+	const [totalItems, setTotalItems] = useState(0);
+	const [searchInput, setSearchInput] = useState('');
+	const [activeSearch, setActiveSearch] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
+	const [isUploading, setIsUploading] = useState(false);
+	const [error, setError] = useState('');
 
-	const fileInputRef = useRef< HTMLInputElement | null >( null );
-	const searchDebounceRef = useRef< ReturnType< typeof setTimeout > | null >(
-		null
-	);
+	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const fetchPage = useCallback(
 		async (
 			targetPage: number,
 			search: string,
 			mode: 'replace' | 'append'
-		): Promise< void > => {
-			setIsLoading( true );
-			setError( '' );
+		): Promise<void> => {
+			setIsLoading(true);
+			setError('');
 
 			try {
-				const response = await studioClient.networkMedia.list( {
-					media_type: 'image',
+				const response = await studioClient.networkMedia.list({
+					...buildMediaQuery(mediaType),
 					search: search || undefined,
 					per_page: PER_PAGE,
 					page: targetPage,
-				} );
+				});
 
-				const fetched = Array.isArray( response?.items )
-					? response.items
-					: [];
-				setItems( ( current ) =>
-					mode === 'append' ? [ ...current, ...fetched ] : fetched
+				const fetched = Array.isArray(response?.items) ? response.items : [];
+				setItems(current =>
+					mode === 'append' ? [...current, ...fetched] : fetched
 				);
-				setPage( response?.page || targetPage );
-				setTotalPages( response?.total_pages || 1 );
-				setTotalItems( response?.total || fetched.length );
-			} catch ( fetchError ) {
+				setPage(response?.page || targetPage);
+				setTotalPages(response?.total_pages || 1);
+				setTotalItems(response?.total || fetched.length);
+			} catch (fetchError) {
 				setError(
-					( fetchError as Error )?.message ||
-						__(
-							'Unable to load media library.',
-							'extrachill-studio'
-						)
+					(fetchError as Error)?.message ||
+						__('Unable to load media library.', 'extrachill-studio')
 				);
-				if ( mode === 'replace' ) {
-					setItems( [] );
-					setTotalPages( 1 );
-					setTotalItems( 0 );
+				if (mode === 'replace') {
+					setItems([]);
+					setTotalPages(1);
+					setTotalItems(0);
 				}
 			} finally {
-				setIsLoading( false );
+				setIsLoading(false);
 			}
 		},
-		[]
+		[mediaType]
 	);
 
 	// Initial load.
-	useEffect( () => {
-		fetchPage( 1, '', 'replace' );
-	}, [ fetchPage ] );
+	useEffect(() => {
+		fetchPage(1, '', 'replace');
+	}, [fetchPage]);
 
 	// Debounced search.
-	useEffect( () => {
-		if ( searchDebounceRef.current ) {
-			clearTimeout( searchDebounceRef.current );
+	useEffect(() => {
+		if (searchDebounceRef.current) {
+			clearTimeout(searchDebounceRef.current);
 		}
 
-		searchDebounceRef.current = setTimeout( () => {
+		searchDebounceRef.current = setTimeout(() => {
 			searchDebounceRef.current = null;
-			if ( searchInput !== activeSearch ) {
-				setActiveSearch( searchInput );
-				fetchPage( 1, searchInput, 'replace' );
+			if (searchInput !== activeSearch) {
+				setActiveSearch(searchInput);
+				fetchPage(1, searchInput, 'replace');
 			}
-		}, SEARCH_DEBOUNCE_MS );
+		}, SEARCH_DEBOUNCE_MS);
 
 		return () => {
-			if ( searchDebounceRef.current ) {
-				clearTimeout( searchDebounceRef.current );
+			if (searchDebounceRef.current) {
+				clearTimeout(searchDebounceRef.current);
 				searchDebounceRef.current = null;
 			}
 		};
-	}, [ searchInput, activeSearch, fetchPage ] );
+	}, [searchInput, activeSearch, fetchPage]);
 
-	const loadMore = useCallback( (): void => {
-		if ( page < totalPages && ! isLoading ) {
-			fetchPage( page + 1, activeSearch, 'append' );
+	const loadMore = useCallback((): void => {
+		if (page < totalPages && !isLoading) {
+			fetchPage(page + 1, activeSearch, 'append');
 		}
-	}, [ page, totalPages, isLoading, activeSearch, fetchPage ] );
+	}, [page, totalPages, isLoading, activeSearch, fetchPage]);
 
-	const triggerUpload = useCallback( (): void => {
+	const triggerUpload = useCallback((): void => {
 		fileInputRef.current?.click();
-	}, [] );
+	}, []);
 
 	const handleFileChange = useCallback(
-		async ( event: ChangeEvent< HTMLInputElement > ): Promise< void > => {
-			const file = event.target.files?.[ 0 ];
-			if ( ! file ) {
+		async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+			const file = event.target.files?.[0];
+			if (!file) {
 				return;
 			}
 
-			setIsUploading( true );
-			setError( '' );
+			setIsUploading(true);
+			setError('');
 
 			try {
-				const formData =
-					studioClient.networkMedia.buildUploadForm( file );
-				const uploaded =
-					await studioClient.networkMedia.upload( formData );
+				const formData = studioClient.networkMedia.buildUploadForm(file);
+				const uploaded = await studioClient.networkMedia.upload(formData);
 
 				// Prepend the new upload so it's immediately visible at the top.
-				setItems( ( current ) => [ uploaded, ...current ] );
-				setTotalItems( ( current ) => current + 1 );
+				setItems(current => [uploaded, ...current]);
+				setTotalItems(current => current + 1);
 
 				// Auto-select the freshly uploaded image.
-				onSelect( uploaded.url, uploaded );
-			} catch ( uploadError ) {
+				onSelect(uploaded.url, uploaded);
+			} catch (uploadError) {
 				setError(
-					( uploadError as Error )?.message ||
-						__( 'Upload failed.', 'extrachill-studio' )
+					(uploadError as Error)?.message ||
+						__('Upload failed.', 'extrachill-studio')
 				);
 			} finally {
-				setIsUploading( false );
+				setIsUploading(false);
 				// Reset the input so the same file can be re-selected if needed.
-				if ( fileInputRef.current ) {
+				if (fileInputRef.current) {
 					fileInputRef.current.value = '';
 				}
 			}
 		},
-		[ onSelect ]
+		[onSelect]
 	);
 
-	const wrapperClass = [ 'ec-studio-media-picker', className || '' ]
-		.filter( Boolean )
-		.join( ' ' );
+	const wrapperClass = ['ec-studio-media-picker', className || '']
+		.filter(Boolean)
+		.join(' ');
 
 	return h(
 		PanelView,
-		{ className: `ec-studio-panel ${ wrapperClass }`, compact: true },
+		{ className: `ec-studio-panel ${wrapperClass}`, compact: true },
 		// Search bar
 		h(
 			FieldGroupView,
 			{
-				label: __( 'Search media library', 'extrachill-studio' ),
+				label: __('Search media library', 'extrachill-studio'),
 				htmlFor: 'ec-studio-media-picker-search',
 				help:
 					totalItems > 0
 						? sprintf(
 								/* translators: %d: total number of media items */
-								__(
-									'%d images in library',
-									'extrachill-studio'
-								),
+								__('%d images in library', 'extrachill-studio'),
 								totalItems
 						  )
 						: null,
 			},
-			createElement( 'input', {
+			createElement('input', {
 				id: 'ec-studio-media-picker-search',
 				type: 'search',
 				value: searchInput,
-				onChange: ( event: ChangeEvent< HTMLInputElement > ) =>
-					setSearchInput( event.target.value ),
-				placeholder: __(
-					'Search by filename or title…',
-					'extrachill-studio'
-				),
+				onChange: (event: ChangeEvent<HTMLInputElement>) =>
+					setSearchInput(event.target.value),
+				placeholder: __('Search by filename or title…', 'extrachill-studio'),
 				autoComplete: 'off',
-			} )
+			})
 		),
 
 		error
@@ -249,13 +244,14 @@ const MediaPicker = ( {
 			: null,
 
 		// Hidden native file input wired to the upload tile.
-		createElement( 'input', {
+		createElement('input', {
 			ref: fileInputRef,
 			type: 'file',
-			accept: 'image/*',
+			accept: mediaAccept(mediaType),
+			multiple,
 			onChange: handleFileChange,
 			style: { display: 'none' },
-		} ),
+		}),
 
 		// Grid: upload tile + library tiles
 		createElement(
@@ -276,10 +272,10 @@ const MediaPicker = ( {
 						className: 'ec-studio-media-picker__upload-btn',
 						onClick: triggerUpload,
 						disabled: isUploading,
-						'aria-label': __(
-							'Upload new image',
-							'extrachill-studio'
-						),
+						'aria-label':
+							mediaType === 'video'
+								? __('Upload video clip', 'extrachill-studio')
+								: __('Upload new image', 'extrachill-studio'),
 					},
 					createElement(
 						'span',
@@ -293,13 +289,13 @@ const MediaPicker = ( {
 						'span',
 						{ className: 'ec-studio-media-picker__upload-label' },
 						isUploading
-							? __( 'Uploading…', 'extrachill-studio' )
-							: __( 'Upload', 'extrachill-studio' )
+							? __('Uploading…', 'extrachill-studio')
+							: __('Upload', 'extrachill-studio')
 					)
 				)
 			),
 			// Library tiles
-			...items.map( ( item ) =>
+			...items.map(item =>
 				createElement(
 					'li',
 					{
@@ -311,19 +307,33 @@ const MediaPicker = ( {
 						{
 							type: 'button',
 							className: 'ec-studio-media-picker__select-btn',
-							onClick: () => onSelect( item.url, item ),
+							onClick: () => onSelect(item.url, item),
+							'aria-pressed': selectedUrls.includes(item.url),
 							'aria-label': sprintf(
 								/* translators: %s: media item title */
-								__( 'Select %s', 'extrachill-studio' ),
+								__('Select %s', 'extrachill-studio'),
 								item.title || item.sourceId
 							),
 							title: item.title || item.sourceId,
 						},
-						createElement( 'img', {
-							src: item.previewUrl || item.url,
-							alt: item.alt || item.title || '',
-							loading: 'lazy',
-						} )
+						mediaType === 'video'
+							? createElement(
+									'span',
+									{ className: 'ec-studio-media-picker__video-preview' },
+									item.previewUrl
+										? createElement('img', {
+												src: item.previewUrl,
+												alt: item.alt || item.title || '',
+												loading: 'lazy',
+										  })
+										: '▶',
+									''
+							  )
+							: createElement('img', {
+									src: item.previewUrl || item.url,
+									alt: item.alt || item.title || '',
+									loading: 'lazy',
+							  })
 					)
 				)
 			)
@@ -337,19 +347,16 @@ const MediaPicker = ( {
 				? createElement(
 						'span',
 						{ className: 'ec-studio-composer__hint' },
-						__( 'Loading…', 'extrachill-studio' )
+						__('Loading…', 'extrachill-studio')
 				  )
 				: null,
-			! isLoading && items.length === 0
+			!isLoading && items.length === 0
 				? createElement(
 						'span',
 						{ className: 'ec-studio-composer__hint' },
 						activeSearch
-							? __( 'No matches.', 'extrachill-studio' )
-							: __(
-									'No media yet — upload to get started.',
-									'extrachill-studio'
-							  )
+							? __('No matches.', 'extrachill-studio')
+							: __('No media yet — upload to get started.', 'extrachill-studio')
 				  )
 				: null,
 			page < totalPages
@@ -362,15 +369,15 @@ const MediaPicker = ( {
 							disabled: isLoading,
 						},
 						isLoading
-							? __( 'Loading…', 'extrachill-studio' )
-							: __( 'Load more', 'extrachill-studio' )
+							? __('Loading…', 'extrachill-studio')
+							: __('Load more', 'extrachill-studio')
 				  )
 				: null,
 			page >= totalPages && items.length > 0
 				? createElement(
 						'span',
 						{ className: 'ec-studio-composer__hint' },
-						__( 'End of library.', 'extrachill-studio' )
+						__('End of library.', 'extrachill-studio')
 				  )
 				: null
 		)

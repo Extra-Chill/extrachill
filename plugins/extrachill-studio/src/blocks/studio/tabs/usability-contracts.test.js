@@ -27,8 +27,8 @@ describe( 'Studio usability regression contracts', () => {
 
 	it( 'owns publish drafts by platform above capability views', () => {
 		const source = readTab( 'socials/index.ts' );
-		expect( source ).toContain( 'publishDrafts[ selectedPlatform.slug ]' );
-		expect( source ).toContain( '[ selectedPlatform.slug ]: draft' );
+		expect( source ).toMatch( /publishDrafts\s*\[\s*selectedPlatform\.slug\s*\]/ );
+		expect( source ).toMatch( /\[\s*selectedPlatform\.slug\s*\]: draft/ );
 	} );
 
 	it( 'invalidates all giveaway result state when its target changes', () => {
