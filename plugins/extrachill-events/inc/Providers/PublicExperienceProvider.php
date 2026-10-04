@@ -39,6 +39,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-map.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/artist-map.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-seo.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/artist-seo.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/account-market.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/local-scene-digest.php';
 		extrachill_events_init_local_scene_digest();
