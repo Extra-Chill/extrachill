@@ -114,6 +114,11 @@
             "runtime": "host"
           },
           {
+            "name": "priority-promoter-unit",
+            "config": "phpunit-priority-promoter-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "network-block",
             "config": "phpunit-network-block.xml.dist",
             "runtime": "host"

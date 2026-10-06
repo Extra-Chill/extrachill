@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			priority-promoter-unit: pure-PHP unit tests for the priority
+			promoter primitive (#942) — the set_object_terms auto-flag hook,
+			the upcoming-event backfill, and the list/set abilities. Like
+			promoted-events-unit, the suite relies on file-level WP doubles
+			(Stubs/priority-promoter-stubs.php) and the data-machine-events
+			fakes, so it must run on the host runtime where no real WordPress
+			is loaded.
+		-->
+		<testsuite name="priority-promoter-unit">
+			<file>tests/Unit/Core/PriorityPromoterTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

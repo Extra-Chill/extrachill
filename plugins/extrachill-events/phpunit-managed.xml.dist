@@ -20,6 +20,9 @@
 			     phpunit-promoted-events-unit.xml.dist. Under real WordPress the
 			     core functions win over its doubles, so it can only fail here. -->
 			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>
+			<!-- Same shape: pure-PHP priority promoter test with file-level WP
+			     doubles; runs in phpunit-priority-promoter-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
 			<!-- RSVP perk tests are pure-PHP with their own $wpdb/wp_verify_nonce
 			     doubles (see phpunit-rsvp-perks-unit.xml.dist); against real
 			     WordPress in this sandbox, wp_verify_nonce() would reject the
