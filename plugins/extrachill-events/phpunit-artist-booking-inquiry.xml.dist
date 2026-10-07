@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			artist-booking-inquiry: pure-PHP artist booking inquiry tests on the
+			BookingTestHarness doubles. Isolated from the membership and
+			qualify suites, whose harness state collides with it in one process.
+		-->
+		<testsuite name="artist-booking-inquiry">
+			<file>tests/ArtistBookingInquiryTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

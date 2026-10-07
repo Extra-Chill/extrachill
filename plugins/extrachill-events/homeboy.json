@@ -119,6 +119,26 @@
             "runtime": "host"
           },
           {
+            "name": "qualify-v2-unit",
+            "config": "phpunit-qualify-v2-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "artist-booking-inquiry",
+            "config": "phpunit-artist-booking-inquiry.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "event-source-intake-unit",
+            "config": "phpunit-event-source-intake-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
+            "name": "events-upcoming-counts-unit",
+            "config": "phpunit-events-upcoming-counts-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "network-block",
             "config": "phpunit-network-block.xml.dist",
             "runtime": "host"

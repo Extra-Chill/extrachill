@@ -353,8 +353,9 @@ final class ArtistBookingInquiryTest extends BookingTestCase {
 		$result    = $abilities->get_booking_activity( array( 'booking_id' => $booking['id'] ) );
 		$rows      = array_column( $result['activity'], null, 'kind' );
 		$this->assertSame( 'Please correct the load-in time.', $rows['artist_correction_requested']['artist_request_detail'] );
-		$this->assertSame( array( 'id', 'kind', 'occurred_at' ), array_keys( $rows['artist_cancellation_requested'] ) );
-		$this->assertSame( array( 'id', 'kind', 'occurred_at' ), array_keys( $rows['artist_withdrawn'] ) );
+		$this->assertSame( array( 'id', 'kind', 'occurred_at', 'actor' ), array_keys( $rows['artist_cancellation_requested'] ) );
+		$this->assertSame( array( 'id', 'kind', 'occurred_at', 'actor' ), array_keys( $rows['artist_withdrawn'] ) );
+		$this->assertSame( array( 'type', 'name' ), array_keys( $rows['artist_withdrawn']['actor'] ) );
 		$json = wp_json_encode( $result['activity'] );
 		$this->assertStringNotContainsString( 'operation_hash', $json );
 		$this->assertStringNotContainsString( 'must-not-leak', $json );

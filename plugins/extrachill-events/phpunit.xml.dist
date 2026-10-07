@@ -15,22 +15,45 @@
 			The legacy default suite (EventSubmissionAbilitiesTest) extends
 			WP_UnitTestCase and is intentionally left out of this dist config
 			until the upstream DM-core bootstrap issue is resolved.
+
+			This is the local default for `composer test`. CI overwrites this
+			file with phpunit-managed.xml.dist before running Homeboy, so the
+			gated copy of this suite is phpunit-qualify-v2-unit.xml.dist —
+			keep the two in sync. Tests with colliding file-level doubles run
+			in their own host suites (see homeboy.json) and are excluded here.
 		-->
 		<testsuite name="qualify-v2-unit">
 			<directory>tests/Unit/Core</directory>
+			<!-- WP_UnitTestCase tests need real WordPress; they run in
+			     phpunit-managed.xml.dist. -->
+			<exclude>tests/Unit/Core/LocationTermCreationTest.php</exclude>
+			<exclude>tests/Unit/Core/VenueLinkPagesProviderManagedTest.php</exclude>
+			<!-- Pure-PHP tests with file-level WP doubles that collide when
+			     loaded in one process; each runs in its own host suite
+			     declared in homeboy.json. -->
+			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
+			<exclude>tests/Unit/Core/DataMachineSettingsTest.php</exclude>
+			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
+			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
+			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
+			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
+			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
+			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
+			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>
+			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPassQrGrantTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPassQrUrlsTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpPerkBackfillTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpVerifyPageCacheTest.php</exclude>
+			<exclude>tests/Unit/Core/VenueCalendarFeedSyncTest.php</exclude>
+			<exclude>tests/Unit/Core/VenueCalendarFeedTest.php</exclude>
 			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
-			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
-			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
-			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
-			<file>tests/Unit/Abilities/EventsByArtistAbilityTest.php</file>
-			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
 			<file>tests/Unit/Abilities/ArtistUrlImportNotificationTest.php</file>
-			<file>tests/Unit/Abilities/ArtistUrlImportConfigurationContractTest.php</file>
-			<file>tests/Unit/Abilities/EventSourceIntakeTest.php</file>
 			<file>tests/Unit/Abilities/EventSubmissionExecuteDirectAuthContextTest.php</file>
-		<file>tests/Unit/Abilities/EventSubmissionWorkflowStepShapeTest.php</file>
+			<file>tests/Unit/Abilities/EventSubmissionWorkflowStepShapeTest.php</file>
 			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
-			<file>tests/Unit/Abilities/EventsUpcomingCountsTest.php</file>
 			<file>tests/Unit/Abilities/EventRoundupPermissionTest.php</file>
 			<file>tests/Unit/Templates/EventRoundupSlidePlanTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionPlanTest.php</file>
@@ -40,18 +63,11 @@
 			<file>tests/Unit/Cli/BackfillEventTypeClassifyTest.php</file>
 			<file>tests/Unit/Cli/ClassifyVenueTierScoreTest.php</file>
 			<file>tests/Unit/Cli/ClassifyGenreDeterministicTest.php</file>
-			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
-			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
-			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
 			<file>tests/AbilityRegistrationLifecycleTest.php</file>
 			<file>tests/VenueLinkPagesCoordinatedRuntimeTest.php</file>
 			<file>tests/VenueLinkPagesRuntimeVersionContractTest.php</file>
 			<file>tests/VenueSettingsRenderLinkPagesDegradationTest.php</file>
 			<file>tests/PromoterLinkPagesCoordinatedRuntimeTest.php</file>
-		</testsuite>
-		<testsuite name="venue-membership-authorization">
-			<file>tests/VenueMembershipAuthorizationTest.php</file>
-			<file>tests/ArtistBookingInquiryTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>
