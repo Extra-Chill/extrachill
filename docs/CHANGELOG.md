@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.30.1] - 2026-10-11
+
+### Changed
+- drop removed homeboy-action inputs
+
 ## [2.30.0] - 2026-10-11
 
 ### Added
