@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 # The reusable ci.yml workflow requests contents:write, pull-requests:write,
-# and issues:write for PR comments and auto-issue reconciliation. GitHub
+# and issues:write for PR comments. GitHub
 # rejects the whole run at startup if the caller does not grant a scope the
 # callee asks for, so these must match ci.yml's own `permissions:` block.
 permissions:
@@ -25,12 +25,8 @@ jobs:
     with:
       extension: wordpress
       # Scoped to what homeboy.json's self_checks actually declares (lint,
-      # test). No review audit/refactor here: this repo has no audit_rules
-      # baseline configured, and issue #197 asked for lint+test on every PR,
-      # not a new audit initiative. Add review audit as its own follow-up
-      # once a baseline is established.
+      # test), per issue #197.
       commands: review lint,review test
-      expected-commands: review lint,review test
       # Full scope, not auto. Changed-scope selects zero tests when a PR
       # only touches CI/harness config, and the runner correctly refuses to
       # certify a harness change that never exercised the harness
