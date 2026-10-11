@@ -124,6 +124,23 @@ final class IngestionProvider {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventRoundupTemplate.php';
 			add_filter( 'datamachine/image_generation/templates', array( self::class, 'register_image_template' ) );
 		}
+
+		if ( file_exists( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventPosterTemplate.php' ) ) {
+			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Templates/EventPosterTemplate.php';
+			add_filter( 'datamachine/image_generation/templates', array( self::class, 'register_poster_template' ) );
+			add_filter( 'datamachine/image_generation/platform_presets', array( \ExtraChillEvents\Templates\EventPosterTemplate::class, 'register_print_preset' ) );
+		}
+	}
+
+	/**
+	 * Add the single-event poster image template.
+	 *
+	 * @param array $templates Registered image templates.
+	 * @return array
+	 */
+	public static function register_poster_template( array $templates ): array {
+		$templates['event_poster'] = \ExtraChillEvents\Templates\EventPosterTemplate::class;
+		return $templates;
 	}
 
 	/**
