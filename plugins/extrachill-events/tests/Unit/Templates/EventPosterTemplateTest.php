@@ -127,6 +127,34 @@ final class EventPosterTemplateTest extends BookingTestCase {
 		$this->assertSame( 2550, $presets[ EventPosterTemplate::PRINT_PRESET ]['height'] );
 	}
 
+	public function test_landscape_preset_is_registered_at_16_9(): void {
+		$presets = EventPosterTemplate::register_print_preset( array() );
+
+		$this->assertSame( 1920, $presets[ EventPosterTemplate::LANDSCAPE_PRESET ]['width'] );
+		$this->assertSame( 1080, $presets[ EventPosterTemplate::LANDSCAPE_PRESET ]['height'] );
+	}
+
+	/**
+	 * Landscape: the left text column never reaches the right column, and
+	 * content measured from the real 2026-10-21 meetup clears the banner.
+	 */
+	public function test_landscape_columns_do_not_overlap_and_content_clears_banner(): void {
+		$width   = 1920;
+		$margin  = 100;
+		$right_w = max( (int) round( 1088 * 200 / 923 ), 260 );
+		$left_w  = EventPosterTemplate::landscape_left_width( $width, $margin, $right_w, 80 );
+
+		$this->assertLessThanOrEqual( $width - $margin - $right_w - 80, $margin + $left_w );
+
+		$plan = EventPosterTemplate::plan_layout( 1080, $margin, 597, 110, 60, 40 );
+		$this->assertTrue( $plan['fits'] );
+		$this->assertLessThanOrEqual( $plan['banner_top'] - 40, $plan['content_bottom'] );
+	}
+
+	public function test_landscape_left_column_uses_full_width_without_a_right_column(): void {
+		$this->assertSame( 1720, EventPosterTemplate::landscape_left_width( 1920, 100, 0, 80 ) );
+	}
+
 	public function test_default_rsvp_text_uses_event_host(): void {
 		$this->assertSame( 'RSVP at events.extrachill.com', EventPosterTemplate::default_rsvp_text( self::PERMALINK ) );
 	}
