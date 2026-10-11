@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.14.3] - 2026-10-11
+
+### Changed
+- drop removed homeboy-action expected-commands input
+
 ## [2.14.2] - 2026-10-02
 
 ### Fixed
