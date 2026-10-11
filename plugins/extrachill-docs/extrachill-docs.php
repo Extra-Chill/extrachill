@@ -67,6 +67,7 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
 // registered before any ability assigns itself to it, so load it first.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/category.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/upsert-doc-page.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/publish-plugin-docs.php';
 
 // One-shot cleanup of the removed repo→docs sync subsystem (leftover cron
 // event + per-page sync meta). Runs once after upgrade; see

@@ -195,8 +195,11 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 		);
 	}
 
-	// Look up existing synced page.
+	// Look up the existing synced page, else adopt an unkeyed same-slug child.
 	$existing = extrachill_docs_find_synced_page( $repo, $path );
+	if ( ! $existing ) {
+		$existing = extrachill_docs_find_child_page_by_slug( extrachill_docs_derive_slug_from_path( $path ), (int) $parent_id );
+	}
 
 	// Short-circuit on unchanged content (sha match).
 	if ( $existing && '' !== $sha ) {
@@ -392,6 +395,46 @@ function extrachill_docs_find_synced_page( string $repo, string $path ): ?\WP_Po
 	$post = $query->posts[0];
 
 	return $post instanceof \WP_Post ? $post : null;
+}
+
+/**
+ * Find an unkeyed child page to adopt for a source file.
+ *
+ * Pages synced before the repo sync was removed lost their _source_repo /
+ * _source_path keys in the one-shot cleanup. Without adoption, the first
+ * publish would create a second page beside each of them. A page is only
+ * adopted when it carries no source key at all, so a page owned by another
+ * source file is never taken over.
+ *
+ * @param string $slug      Page slug derived from the source filename.
+ * @param int    $parent_id Resolved parent page ID.
+ * @return \WP_Post|null
+ */
+function extrachill_docs_find_child_page_by_slug( string $slug, int $parent_id ): ?\WP_Post {
+	if ( $parent_id <= 0 || '' === $slug ) {
+		return null;
+	}
+
+	$query = new \WP_Query(
+		array(
+			'post_type'      => 'page',
+			'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
+			'posts_per_page' => 1,
+			'no_found_rows'  => true,
+			'name'           => $slug,
+			'post_parent'    => $parent_id,
+		)
+	);
+
+	$post = $query->posts[0] ?? null;
+	if ( ! $post instanceof \WP_Post ) {
+		return null;
+	}
+	if ( '' !== (string) get_post_meta( $post->ID, '_source_repo', true ) || '' !== (string) get_post_meta( $post->ID, '_source_path', true ) ) {
+		return null;
+	}
+
+	return $post;
 }
 
 /**
