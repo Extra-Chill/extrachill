@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the OG card logo brand token (issue #856).
+ * Tests for the OG card logo brand tokens (issues #856, #348).
  *
  * Covers `inc/og-cards/brand-tokens.php`: `provide_tokens()` setting a
  * `logo_path` token from the main site's media library, and
@@ -14,6 +14,7 @@
 
 declare( strict_types=1 );
 
+use function ExtraChillNetwork\OgCards\inverse_logo_path;
 use function ExtraChillNetwork\OgCards\main_site_upload_path;
 use function ExtraChillNetwork\OgCards\provide_tokens;
 
@@ -139,14 +140,54 @@ class BrandTokensLogoTest extends WP_UnitTestCase {
 		return $absolute;
 	}
 
-	public function test_provide_tokens_does_not_set_logo_path_inverse(): void {
-		// No verified light-ink asset exists yet — asserting its absence
-		// here is intentional: it documents that dark-background cards
-		// correctly fall through to the next resolution level (site icon,
-		// then text) rather than pointing at a path that doesn't exist.
+	public function test_provide_tokens_sets_logo_path_inverse_to_the_shipped_light_ink_asset(): void {
 		$tokens = provide_tokens( array() );
 
-		$this->assertArrayNotHasKey( 'logo_path_inverse', $tokens );
+		$this->assertArrayHasKey( 'logo_path_inverse', $tokens );
+		$this->assertFileExists( $tokens['logo_path_inverse'] );
+		$this->assertSame( inverse_logo_path(), $tokens['logo_path_inverse'] );
+	}
+
+	public function test_inverse_logo_is_a_light_ink_transparent_png_at_least_1024_wide(): void {
+		$path  = inverse_logo_path();
+		$this->assertNotNull( $path );
+
+		$image = imagecreatefrompng( $path );
+		$this->assertNotFalse( $image );
+		imagepalettetotruecolor( $image );
+		$this->assertGreaterThanOrEqual( 1024, imagesx( $image ) );
+
+		$transparent = 0;
+		$light       = 0;
+		$opaque      = 0;
+		for ( $x = 0; $x < imagesx( $image ); $x += 8 ) {
+			for ( $y = 0; $y < imagesy( $image ); $y += 8 ) {
+				$rgba  = imagecolorat( $image, $x, $y );
+				$alpha = ( $rgba >> 24 ) & 0x7f;
+				if ( $alpha > 100 ) {
+					++$transparent;
+					continue;
+				}
+				++$opaque;
+				$luma = ( ( ( $rgba >> 16 ) & 0xff ) + ( ( $rgba >> 8 ) & 0xff ) + ( $rgba & 0xff ) ) / 3;
+				if ( $luma > 200 ) {
+					++$light;
+				}
+			}
+		}
+		imagedestroy( $image );
+
+		$this->assertGreaterThan( 0, $transparent, 'Background must be transparent' );
+		$this->assertGreaterThan( 0.5, $light / max( 1, $opaque ), 'Most visible ink must be light so it reads on dark backgrounds' );
+	}
+
+	public function test_provide_tokens_includes_the_theme_dark_mode_palette(): void {
+		$colors = provide_tokens( array() )['colors'];
+
+		$this->assertSame( '#1a1a1a', $colors['dark_background'] );
+		$this->assertSame( '#e5e5e5', $colors['dark_text'] );
+		$this->assertSame( '#b0b0b0', $colors['dark_muted'] );
+		$this->assertSame( '#6ab312', $colors['dark_accent'] );
 	}
 
 	public function test_provide_tokens_preserves_existing_brand_text_and_site_label(): void {
