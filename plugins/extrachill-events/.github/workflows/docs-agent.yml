@@ -30,6 +30,7 @@ jobs:
         [{"command": "curl --fail --silent --show-error https://raw.githubusercontent.com/Extra-Chill/extrachill-docs/b6de069da1d2aff7dd3ebf00d86a85bdd6f3e9f0/scripts/check-user-docs-voice.php --output /tmp/ec-user-docs-voice.php && php /tmp/ec-user-docs-voice.php docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (extrachill-docs runner-configs/writing-rules.md)"}]
       prompt: >-
         Follow runner-configs/writing-rules.md in Extra-Chill/extrachill-docs verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. Write for music fans browsing shows and festivals, and organizers submitting events. Extra Chill has no follow feature or follower graph; never describe following users. The 11 existing docs/user articles already back the published Events Calendar pages; update them where the product has changed rather than rewriting them, and keep their filenames so their pages update in place. Ground every article in current product behavior from this repository's source.
+      model: gpt-6-luna
       dry_run: ${{ inputs.dry_run || false }}
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
