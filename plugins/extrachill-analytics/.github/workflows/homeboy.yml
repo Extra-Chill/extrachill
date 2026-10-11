@@ -71,6 +71,5 @@ jobs:
         with:
           commands: ${{ matrix.command }}
           scope: ${{ matrix.scope }}
-          expected-commands: review lint,review test
           app-token: ${{ steps.app-token.outputs.token || github.token }}
           differential-gating: 'true'
