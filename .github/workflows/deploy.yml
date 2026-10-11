@@ -219,7 +219,6 @@ jobs:
           commands: ${{ steps.plan.outputs.resolve_command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
-          auto-issue: 'false'
 
       # Only build the rig's extrachill_release_set / extrachill_theme_source
       # settings, and report how many components would gate, when there is
@@ -512,7 +511,6 @@ jobs:
           commands: ${{ steps.plan.outputs.command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
-          auto-issue: 'false'
 
       - name: Verify
         if: steps.plan.outputs.dry_run != 'true'
@@ -524,7 +522,6 @@ jobs:
           commands: deploy extrachill-site --check
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
-          auto-issue: 'false'
 
       # homeboy#14813: a project-wide run that resolves nothing reports
       # "No outdated components found", which is indistinguishable from a
