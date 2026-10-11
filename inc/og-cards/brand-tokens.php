@@ -147,6 +147,14 @@ function provide_tokens( array $tokens, string $template_id = '', $context = nul
 		'text_inverse'    => '#ffffff',
 		'header_bg'       => '#000000',
 		'border'          => '#dddddd',
+		// Dark-mode palette, from the theme's root.css
+		// `@media (prefers-color-scheme: dark)` block. Dark-background
+		// renders (event posters) use these so they match the site in
+		// dark mode instead of reusing light-mode accents.
+		'dark_background' => '#1a1a1a',
+		'dark_text'       => '#e5e5e5',
+		'dark_muted'      => '#b0b0b0',
+		'dark_accent'     => '#6ab312',
 	);
 
 	$fonts = array(

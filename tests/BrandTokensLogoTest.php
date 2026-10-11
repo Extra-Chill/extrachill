@@ -181,6 +181,15 @@ class BrandTokensLogoTest extends WP_UnitTestCase {
 		$this->assertGreaterThan( 0.5, $light / max( 1, $opaque ), 'Most visible ink must be light so it reads on dark backgrounds' );
 	}
 
+	public function test_provide_tokens_includes_the_theme_dark_mode_palette(): void {
+		$colors = provide_tokens( array() )['colors'];
+
+		$this->assertSame( '#1a1a1a', $colors['dark_background'] );
+		$this->assertSame( '#e5e5e5', $colors['dark_text'] );
+		$this->assertSame( '#b0b0b0', $colors['dark_muted'] );
+		$this->assertSame( '#6ab312', $colors['dark_accent'] );
+	}
+
 	public function test_provide_tokens_preserves_existing_brand_text_and_site_label(): void {
 		$tokens = provide_tokens( array() );
 
