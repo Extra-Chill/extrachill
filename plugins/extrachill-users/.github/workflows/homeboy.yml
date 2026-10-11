@@ -60,6 +60,5 @@ jobs:
         uses: Extra-Chill/homeboy-action@v2
         with:
           commands: ${{ matrix.command }}
-          expected-commands: review lint,review test
           app-token: ${{ steps.app-token.outputs.token || github.token }}
           differential-gating: 'true'
