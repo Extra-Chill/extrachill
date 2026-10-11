@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.49.4] - 2026-10-11
+
+### Changed
+- drop removed homeboy-action expected-commands input
+
 ## [0.49.3] - 2026-09-30
 
 ### Fixed
