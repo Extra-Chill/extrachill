@@ -80,6 +80,16 @@ function main_site_upload_path( string $relative_path ): ?string {
 }
 
 /**
+ * Absolute path to the plugin-shipped light-ink logo, or null if missing.
+ *
+ * @return string|null
+ */
+function inverse_logo_path(): ?string {
+	$path = dirname( __DIR__, 2 ) . '/assets/images/extra-chill-logo-inverse.png';
+	return file_exists( $path ) ? $path : null;
+}
+
+/**
  * Map the current blog ID to the short label shown on OG cards.
  *
  * Returns an empty string for the main site so cards there read just
@@ -153,22 +163,21 @@ function provide_tokens( array $tokens, string $template_id = '', $context = nul
 	$tokens['brand_text'] = 'Extra Chill';
 	$tokens['site_label'] = site_label();
 
-	// Logo token — dark ink, for use on light card backgrounds (the only
-	// kind this network currently renders). Verified transparent PNG,
-	// ink averaging rgb(0,0,30), works on white.
-	//
-	// `logo_path_inverse` (a light/white-ink variant for a dark
-	// background) is intentionally left unset: no verified light-ink
-	// asset exists in the media library today. EventOgCardTemplate's
-	// resolution chain treats a missing variant as "no token for this
-	// background" and falls through to the site icon, then text — so
-	// this omission cannot produce an invisible logo. It also cannot
-	// silently look wrong: whoever adds a dark-background card next
-	// either supplies `logo_path_inverse` here or gets the site-icon/text
-	// fallback, never a dark-on-dark wordmark.
+	// Logo token — dark ink, for use on light card backgrounds. Verified
+	// transparent PNG, ink averaging rgb(0,0,30), works on white.
 	$logo_path = main_site_upload_path( '2023/04/extra-chill-logo-no-bg.png' );
 	if ( null !== $logo_path ) {
 		$tokens['logo_path'] = $logo_path;
+	}
+
+	// Inverse logo token — light ink for dark backgrounds (dark OG cards,
+	// event posters). Unlike the dark wordmark this ships with the plugin,
+	// so it is versioned with the code that relies on it and never depends
+	// on a particular site's media library. It is the media-library
+	// wordmark with its colors negated (alpha preserved).
+	$logo_path_inverse = inverse_logo_path();
+	if ( null !== $logo_path_inverse ) {
+		$tokens['logo_path_inverse'] = $logo_path_inverse;
 	}
 
 	return $tokens;
