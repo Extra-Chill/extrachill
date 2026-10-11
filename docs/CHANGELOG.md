@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.30.0] - 2026-10-11
+
+### Added
+- light-ink logo and dark-mode palette for dark renders
+
 ## [2.29.6] - 2026-10-07
 
 ### Fixed
