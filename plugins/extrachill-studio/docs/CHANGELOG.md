@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.28.1] - 2026-10-11
+
+### Changed
+- drop expected-commands from Homeboy workflow
+
 ## [0.28.0] - 2026-10-04
 
 ### Added
