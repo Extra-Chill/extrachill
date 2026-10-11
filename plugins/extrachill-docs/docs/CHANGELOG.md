@@ -1,5 +1,13 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.8.0] - 2026-10-11
+
+### Added
+- publish installed plugins' user docs as pages
+
+### Fixed
+- report same-slug conflicts instead of duplicating pages
+
 ## [0.7.3] - 2026-09-22
 
 ### Fixed
