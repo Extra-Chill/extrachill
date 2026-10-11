@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.9.0] - 2026-10-11
+
+### Added
+- deterministic voice check for end-user help articles
+
 ## [0.8.0] - 2026-10-11
 
 ### Added
