@@ -18,6 +18,7 @@ namespace DataMachine\Core\Content {
 
 namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
+	define( 'OBJECT', 'OBJECT' );
 	define( 'EXTRACHILL_DOCS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 
 	class WP_Error {
@@ -36,6 +37,39 @@ namespace {
 		public function get_error_message(): string {
 			return $this->message;
 		}
+	}
+
+	class WP_Post {
+		public $ID;
+		public $post_title;
+		public $post_name;
+
+		public function __construct( int $id, string $title = '', string $slug = '' ) {
+			$this->ID         = $id;
+			$this->post_title = $title;
+			$this->post_name  = $slug;
+		}
+	}
+
+	class WP_Query {
+		public $posts = array();
+
+		public function __construct( array $args ) {
+			if ( isset( $args['meta_query'] ) ) {
+				return;
+			}
+			if ( 'using-calendar-filters' === ( $args['name'] ?? '' ) ) {
+				$this->posts = array( new WP_Post( 64 ) );
+			}
+		}
+	}
+
+	function get_page_by_path( $path, $output, $post_type ) {
+		return 'events-calendar' === $path && 'page' === $post_type ? new WP_Post( 58 ) : null;
+	}
+
+	function wp_get_post_terms( $post_id, $taxonomy ) {
+		return array( (object) array( 'slug' => $GLOBALS['extrachill_docs_test_term'] ?? 'events-calendar' ) );
 	}
 
 	$GLOBALS['extrachill_docs_test_actions'] = array();
@@ -83,6 +117,7 @@ namespace {
 	require dirname( __DIR__ ) . '/inc/access/team-private-docs.php';
 	require dirname( __DIR__ ) . '/inc/core/platform-map.php';
 	require dirname( __DIR__ ) . '/inc/core/rewrite-rules.php';
+	require dirname( __DIR__ ) . '/inc/migration/ec-doc-to-page-migration.php';
 
 	$failures = array();
 	$assert   = static function ( bool $condition, string $message ) use ( &$failures ): void {
@@ -122,6 +157,16 @@ namespace {
 	$platform_map = extrachill_docs_load_platform_map();
 	$studio_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'Extra-Chill/extrachill-studio' === $item['repo'] ) );
 	$assert( 'private' === ( $studio_entry[0]['post_status'] ?? '' ), 'Studio platform map entry is private' );
+	$mcp_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'Extra-Chill/extrachill-docs' === $item['repo'] ) );
+	$assert( 'mcp' === ( $mcp_entry[0]['parent_slug'] ?? '' ), 'network-level MCP guide has a docs destination' );
+	$assert( ! array_key_exists( 'chat', extrachill_docs_migration_term_to_repo_map() ), 'retired chat platform has no migration repo mapping' );
+	$conflict = extrachill_docs_migration_migrate_one( new WP_Post( 20, 'Using Calendar Filters', 'using-calendar-filters' ), true );
+	$assert( 'conflict' === $conflict['action'] && 64 === $conflict['page_id'], 'migration reports an existing same-slug child page as a conflict' );
+	$GLOBALS['extrachill_docs_test_term'] = 'mcp';
+	$mcp_plan = extrachill_docs_migration_migrate_one( new WP_Post( 100, 'Connecting Your AI Client', 'connect' ), true );
+	$assert( 'would_migrate' === $mcp_plan['action'], 'MCP guide is migratable' );
+	$assert( str_contains( $mcp_plan['error'], '_source_repo=Extra-Chill/extrachill-docs' ) && str_contains( $mcp_plan['error'], '_source_path=ec_docs/mcp/connect.md' ), 'MCP guide migrates to the same source key the publisher uses for ec_docs/mcp/connect.md' );
+	unset( $GLOBALS['extrachill_docs_test_term'] );
 
 	extrachill_docs_add_rewrite_rules();
 	$legacy_rule_index = array_search( array( '^([^/]+)/([^/]+)/?$', 'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );

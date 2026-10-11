@@ -42,7 +42,7 @@ defined( 'ABSPATH' ) || exit;
  * Hand-curated mapping: ec_doc_platform term slug → destination plugin repo.
  *
  * The taxonomy slug naming aligns with platform-map.yml parent_slugs by
- * design (artist-platform, community, events-calendar, chat). This map
+ * design (artist-platform, community, events-calendar, mcp). This map
  * just resolves each term to its owning plugin repo.
  *
  * Kept inline rather than read from platform-map.yml because the
@@ -58,11 +58,9 @@ function extrachill_docs_migration_term_to_repo_map(): array {
 		'artist-platform' => 'Extra-Chill/extrachill-artist-platform',
 		'community'       => 'Extra-Chill/extrachill-community',
 		'events-calendar' => 'Extra-Chill/extrachill-events',
-		// Roadie is retired from the network and its repository archived, but
-		// one ec_doc still carries the `chat` platform term and archived
-		// repositories stay reachable — so this mapping is deliberately kept.
-		// Removing it would fail that doc's migration with "no repo mapping".
-		'chat'            => 'Extra-Chill/extrachill-roadie',
+		// The guide for connecting your own AI is network-level and ships with
+		// this plugin (ec_docs/mcp/connect.md), not with a feature plugin.
+		'mcp'             => 'Extra-Chill/extrachill-docs',
 	);
 }
 
@@ -185,7 +183,33 @@ function extrachill_docs_migration_migrate_one( \WP_Post $ec_doc, bool $dry_run 
 	// Strip the legacy collision suffix (e.g. getting-started-2 → getting-started) since
 	// each parent has its own namespace and collisions are no longer possible.
 	$synthetic_slug = preg_replace( '/-\d+$/', '', (string) $ec_doc->post_name );
-	$synthetic_path = 'docs/user/' . $synthetic_slug . '.md';
+	// Use the platform's own docs location so the page shares the idempotency
+	// key that the installed-plugin docs publisher will use for the same file.
+	$docs_subpath   = trim( (string) ( $platform['docs_subpath'] ?? '' ), '/' );
+	$synthetic_path = ( '' !== $docs_subpath ? $docs_subpath : 'docs/user' ) . '/' . $synthetic_slug . '.md';
+
+	// Do not create a duplicate when a page already occupies this slug under
+	// the destination parent (for example, a newer docs-agent page).
+	$parent_page = get_page_by_path( $parent_slug, OBJECT, 'page' );
+	if ( $parent_page instanceof \WP_Post ) {
+		$slug_conflict = new \WP_Query(
+			array(
+				'post_type'      => 'page',
+				'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
+				'post_parent'    => (int) $parent_page->ID,
+				'name'           => $synthetic_slug,
+				'posts_per_page' => 1,
+				'no_found_rows'  => true,
+			)
+		);
+		if ( ! empty( $slug_conflict->posts ) ) {
+			$conflict       = $slug_conflict->posts[0];
+			$row['action']  = 'conflict';
+			$row['page_id'] = (int) $conflict->ID;
+			$row['error']   = sprintf( 'page with slug "%s" already exists under "%s"', $synthetic_slug, $parent_title );
+			return $row;
+		}
+	}
 
 	if ( $dry_run ) {
 		$row['action']  = 'would_migrate';

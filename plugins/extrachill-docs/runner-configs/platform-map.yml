@@ -34,6 +34,12 @@
 
 repos:
 
+  Extra-Chill/extrachill-docs:
+    platform_name: "Connect Your AI"
+    parent_slug: "mcp"
+    audience: "Extra Chill members connecting their own AI clients to network-wide capabilities"
+    docs_subpath: "ec_docs/mcp"
+
   Extra-Chill/extrachill-artist-platform:
     platform_name: "Artist Platform"
     parent_slug: "artist-platform"
