@@ -33,6 +33,7 @@ function extrachill_network_boot_foundation() {
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/oauth-helpers.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/object-cache-config.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/upload-url-host.php';
+	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/mcp-transport-redirect.php';
 
 	if ( function_exists( 'wp_register_ability' ) ) {
 		require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/Abilities/CategoryRegistration.php';
