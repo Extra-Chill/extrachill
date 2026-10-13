@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $defaults   = array(
+	'landing'        => true,
 	'headline'       => '',
 	'description'    => '',
 	'successMessage' => '',
@@ -40,7 +41,16 @@ $prefill = function_exists( 'extrachill_events_submit_prefill' )
 		'city'  => '',
 	);
 
+$show_landing  = ! empty( $attributes['landing'] ) && function_exists( 'extrachill_events_render_submit_landing' );
+$import_anchor = defined( 'EXTRACHILL_EVENTS_SUBMIT_IMPORT_ANCHOR' ) ? EXTRACHILL_EVENTS_SUBMIT_IMPORT_ANCHOR : 'ec-event-source-import';
+
 $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( 'Thanks! We received your submission.', 'extrachill-events' );
+?>
+
+<?php
+if ( $show_landing ) {
+	echo extrachill_events_render_submit_landing( $form_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside the renderer.
+}
 ?>
 
 <div
@@ -62,7 +72,7 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 		<?php endif; ?>
 
 		<?php if ( is_user_logged_in() ) : ?>
-		<div class="ec-event-submission__url-import" data-state="idle">
+		<div class="ec-event-submission__url-import" id="<?php echo esc_attr( $import_anchor ); ?>" data-state="idle">
 			<div class="ec-event-submission__url-import-intro">
 				<label for="<?php echo esc_attr( $form_id ); ?>-event-source-url">
 					<strong><?php esc_html_e( 'Have a reliable event source?', 'extrachill-events' ); ?></strong>
@@ -113,7 +123,7 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 				? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( $submit_url )
 				: wp_login_url( $submit_url );
 			?>
-			<div class="ec-event-submission__url-import">
+			<div class="ec-event-submission__url-import" id="<?php echo esc_attr( $import_anchor ); ?>">
 				<strong><?php esc_html_e( 'Have a reliable event source?', 'extrachill-events' ); ?></strong>
 				<p class="ec-event-submission__url-import-hint">
 					<?php esc_html_e( "Import a whole artist tour, venue calendar, or festival schedule at once — free with an Extra Chill account. We'll let you know when it's approved and live.", 'extrachill-events' ); ?>
@@ -161,7 +171,8 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 							<?php esc_html_e( 'Contact Email', 'extrachill-events' ); ?>
 							<span aria-hidden="true">*</span>
 						</label>
-						<input type="email" name="contact_email" id="<?php echo esc_attr( $form_id ); ?>-contact-email" required />
+						<input type="email" name="contact_email" id="<?php echo esc_attr( $form_id ); ?>-contact-email" aria-describedby="<?php echo esc_attr( $form_id ); ?>-contact-email-hint" required />
+						<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-contact-email-hint"><?php esc_html_e( 'We’ll connect your show to a free Extra Chill account for this email and send you a link to set a password.', 'extrachill-events' ); ?></p>
 					</div>
 				<?php endif; ?>
 
@@ -228,7 +239,8 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 				<label for="<?php echo esc_attr( $form_id ); ?>-flyer">
 					<?php esc_html_e( 'Flyer Upload (JPG, PNG, WebP, PDF)', 'extrachill-events' ); ?>
 				</label>
-				<input type="file" name="flyer" id="<?php echo esc_attr( $form_id ); ?>-flyer" accept="image/*,.pdf" />
+				<input type="file" name="flyer" id="<?php echo esc_attr( $form_id ); ?>-flyer" accept="image/*,.pdf" aria-describedby="<?php echo esc_attr( $form_id ); ?>-flyer-hint" />
+				<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-flyer-hint"><?php esc_html_e( 'Optional. We read the flyer and fill in the details it shows.', 'extrachill-events' ); ?></p>
 			</div>
 
 			<div class="ec-event-submission__turnstile">
@@ -250,3 +262,8 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 		</form>
 	</div>
 </div>
+
+<?php
+if ( $show_landing && function_exists( 'extrachill_events_render_submit_how_it_works' ) ) {
+	echo extrachill_events_render_submit_how_it_works(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped inside the renderer.
+}

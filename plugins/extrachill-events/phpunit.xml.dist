@@ -35,6 +35,7 @@
 			<exclude>tests/Unit/Core/DataMachineSettingsTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>
 			<exclude>tests/Unit/Core/SubmitCtasTest.php</exclude>
+			<exclude>tests/Unit/Core/SubmitLandingTest.php</exclude>
 			<exclude>tests/Unit/Abilities/SubmissionTrustPolicyTest.php</exclude>
 			<exclude>tests/Unit/Abilities/PendingEventSubmissionsAbilityTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>

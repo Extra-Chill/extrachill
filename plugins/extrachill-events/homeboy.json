@@ -129,6 +129,11 @@
             "runtime": "host"
           },
           {
+            "name": "submit-landing-unit",
+            "config": "phpunit-submit-landing-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "submission-trust-unit",
             "config": "phpunit-submission-trust-unit.xml.dist",
             "runtime": "host"
