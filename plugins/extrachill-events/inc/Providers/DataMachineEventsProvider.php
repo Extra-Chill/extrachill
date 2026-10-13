@@ -26,6 +26,8 @@ final class DataMachineEventsProvider {
 		}
 
 		self::$registered = true;
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Providers/EventPublicationEmailProvider.php';
+		\ExtraChillEvents\Providers\EventPublicationEmailProvider::register();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events/init.php';
 		if ( defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ) {
 			extrachill_events_init_data_machine_integration();

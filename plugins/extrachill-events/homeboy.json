@@ -119,6 +119,11 @@
             "runtime": "host"
           },
           {
+            "name": "event-publication-email-unit",
+            "config": "phpunit-event-publication-email-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "qualify-v2-unit",
             "config": "phpunit-qualify-v2-unit.xml.dist",
             "runtime": "host"

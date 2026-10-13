@@ -33,6 +33,7 @@
 			     declared in homeboy.json. -->
 			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
 			<exclude>tests/Unit/Core/DataMachineSettingsTest.php</exclude>
+			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
