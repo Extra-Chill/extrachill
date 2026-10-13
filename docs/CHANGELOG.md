@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.31.0] - 2026-10-13
+
+### Added
+- route MCP transport requests on extrachill.com/mcp to the auth MCP endpoint
+
 ## [2.30.1] - 2026-10-11
 
 ### Changed
