@@ -50,6 +50,25 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Whether the current request is a same-origin fetch issued by a browser page.
+ *
+ * Browsers attach Sec-Fetch-Site to every request and page scripts cannot set
+ * it (it is a forbidden header name), so `same-origin` / `same-site` means a
+ * page on this site issued the request. Clients outside a browser send no
+ * Sec-Fetch-* headers. Like the UA and cookie signals this can be spoofed by a
+ * determined client, so it only ever widens the verdict alongside them.
+ *
+ * @return bool
+ */
+function extrachill_analytics_is_browser_fetch() {
+	$site = isset( $_SERVER['HTTP_SEC_FETCH_SITE'] )
+		? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_SEC_FETCH_SITE'] ) ) )
+		: '';
+
+	return in_array( $site, array( 'same-origin', 'same-site' ), true );
+}
+
+/**
  * Classify the current request (or an explicit context) as human or bot, and
  * return the evidence signals the verdict was derived from.
  *
@@ -57,7 +76,8 @@ defined( 'ABSPATH' ) || exit;
  *   is_human = TRUE when EITHER —
  *     - is_authenticated === true           (a logged-in WP user; see #103), OR
  *     - ALL of these hold (the anonymous-traffic policy):
- *         - request_origin === 'web'        (not cli/cron/rest-internal)
+ *         - request_origin === 'web', OR request_origin === 'rest' AND
+ *           the request is a same-origin browser fetch (#275, #302)
  *         - ua_class === 'browser'          (not 'bot' and not 'empty')
  *         - has_visitor_cookie === true     (a real browser minted ec_vid)
  *   Otherwise is_human = FALSE (is_bot = TRUE).
@@ -82,6 +102,10 @@ defined( 'ABSPATH' ) || exit;
  *     @type bool|null $is_authenticated    Whether the request is from a
  *                                          logged-in WP user. Defaults to
  *                                          reading is_user_logged_in().
+ *     @type bool|null $is_browser_fetch    Whether the request is a
+ *                                          same-origin fetch issued by a
+ *                                          browser page. Defaults to reading
+ *                                          the Sec-Fetch-Site header.
  * }
  * @return array{
  *     is_human: bool,
@@ -90,7 +114,8 @@ defined( 'ABSPATH' ) || exit;
  *         has_visitor_cookie: bool,
  *         ua_class: string,
  *         request_origin: string,
- *         is_authenticated: bool
+ *         is_authenticated: bool,
+ *         is_browser_fetch: bool
  *     }
  * }
  */
@@ -118,6 +143,12 @@ function extrachill_analytics_classify_request( $context = array() ) {
 		$is_authenticated = function_exists( 'is_user_logged_in' ) && is_user_logged_in();
 	}
 
+	if ( array_key_exists( 'is_browser_fetch', $context ) && null !== $context['is_browser_fetch'] ) {
+		$is_browser_fetch = (bool) $context['is_browser_fetch'];
+	} else {
+		$is_browser_fetch = extrachill_analytics_is_browser_fetch();
+	}
+
 	$ua_class = extrachill_analytics_classify_user_agent( $user_agent );
 
 	$signals = array(
@@ -125,6 +156,7 @@ function extrachill_analytics_classify_request( $context = array() ) {
 		'ua_class'           => $ua_class,
 		'request_origin'     => $request_origin,
 		'is_authenticated'   => $is_authenticated,
+		'is_browser_fetch'   => $is_browser_fetch,
 	);
 
 	// --- Apply the single canonical verdict policy. ---
@@ -133,8 +165,19 @@ function extrachill_analytics_classify_request( $context = array() ) {
 	// inside a REST request, cookieless) must not inherit the anonymous-traffic
 	// bot verdict. For everyone else, the anonymous-traffic policy applies: web
 	// origin + browser UA + minted ec_vid cookie is the only human combination.
+	//
+	// A REST request counts as interactive when it is a same-origin fetch
+	// issued by a page the visitor loaded (#275, #302): front-end forms such
+	// as signup, newsletter and registration submit through REST, so treating
+	// every REST call as programmatic stamped 100% of real registrations as
+	// bot. The same browser-UA + minted-cookie bar still applies, so this is
+	// no weaker than the plain web-origin rule. Server-to-server REST calls
+	// carry no Sec-Fetch-Site header and stay non-human.
+	$interactive_origin = 'web' === $request_origin
+		|| ( 'rest' === $request_origin && $is_browser_fetch );
+
 	$is_human = $is_authenticated || (
-		'web' === $request_origin
+		$interactive_origin
 		&& 'browser' === $ua_class
 		&& $has_visitor_cookie
 	);
@@ -213,7 +256,7 @@ function extrachill_analytics_detect_request_origin() {
 		return 'cli';
 	}
 
-	if ( function_exists( 'wp_doing_cron' ) ? wp_doing_cron() : ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+	if ( wp_doing_cron() ) {
 		return 'cron';
 	}
 
