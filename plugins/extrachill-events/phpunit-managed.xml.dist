@@ -26,6 +26,7 @@
 			<!-- Pure-PHP publish-email test with file-level WP doubles; runs in
 			     phpunit-event-publication-email-unit.xml.dist. -->
 			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>
+			<exclude>tests/Unit/Core/SubmitCtasTest.php</exclude>
 			<exclude>tests/Unit/Abilities/SubmissionTrustPolicyTest.php</exclude>
 			<exclude>tests/Unit/Abilities/PendingEventSubmissionsAbilityTest.php</exclude>
 			<!-- RSVP perk tests are pure-PHP with their own $wpdb/wp_verify_nonce

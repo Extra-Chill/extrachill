@@ -124,6 +124,11 @@
             "runtime": "host"
           },
           {
+            "name": "submit-ctas-unit",
+            "config": "phpunit-submit-ctas-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "submission-trust-unit",
             "config": "phpunit-submission-trust-unit.xml.dist",
             "runtime": "host"

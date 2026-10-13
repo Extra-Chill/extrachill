@@ -61,6 +61,16 @@
 }
 
 /*
+ * "Add a show at {venue}" (#958): a quiet text link on its own row, so it
+ * never competes with the ticket and share buttons above it.
+ */
+.data-machine-event-details .event-action-buttons > .events-submit-cta-link {
+    flex: 1 0 100%;
+    text-align: center;
+    font-size: var(--font-size-sm, 0.875rem);
+}
+
+/*
  * Contextual exploration follows the conversion actions as its own full row.
  * The shared network bridge still owns link markup and instrumentation; this
  * consumer only composes it into the Event Details surface.

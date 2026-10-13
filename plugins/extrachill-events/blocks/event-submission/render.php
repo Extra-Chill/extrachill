@@ -33,6 +33,13 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 	ec_enqueue_turnstile_script();
 }
 
+$prefill = function_exists( 'extrachill_events_submit_prefill' )
+	? extrachill_events_submit_prefill()
+	: array(
+		'venue' => '',
+		'city'  => '',
+	);
+
 $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( 'Thanks! We received your submission.', 'extrachill-events' );
 ?>
 
@@ -122,6 +129,7 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 		<form
 			id="<?php echo esc_attr( $form_id ); ?>"
 			class="ec-event-submission__form"
+			data-ec-track="events_submission_form"
 			method="post"
 			enctype="multipart/form-data"
 			autocomplete="off"
@@ -184,14 +192,14 @@ $success_attr = $success_message ? wp_strip_all_tags( $success_message ) : __( '
 					<label for="<?php echo esc_attr( $form_id ); ?>-venue">
 						<?php esc_html_e( 'Venue', 'extrachill-events' ); ?>
 					</label>
-					<input type="text" name="venue_name" id="<?php echo esc_attr( $form_id ); ?>-venue" />
+					<input type="text" name="venue_name" id="<?php echo esc_attr( $form_id ); ?>-venue" value="<?php echo esc_attr( $prefill['venue'] ); ?>" />
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-city">
 						<?php esc_html_e( 'City / Region', 'extrachill-events' ); ?>
 					</label>
-					<input type="text" name="event_city" id="<?php echo esc_attr( $form_id ); ?>-city" />
+					<input type="text" name="event_city" id="<?php echo esc_attr( $form_id ); ?>-city" value="<?php echo esc_attr( $prefill['city'] ); ?>" />
 				</div>
 
 				<div class="ec-event-submission__field">

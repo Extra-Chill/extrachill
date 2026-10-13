@@ -31,6 +31,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/cache-groups.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/page-cache.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/nav.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/submit-ctas.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-venue-ordering.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-event-ordering.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-meta.php';
