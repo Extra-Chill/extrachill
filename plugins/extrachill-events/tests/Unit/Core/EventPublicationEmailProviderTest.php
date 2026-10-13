@@ -7,6 +7,7 @@ use PHPUnit\Framework\TestCase;
 if ( ! class_exists( 'WP_Post' ) ) {
 	class WP_Post {
 		public int $ID;
+		public string $post_type = 'post';
 		public function __construct( int $id ) { $this->ID = $id; }
 	}
 }
@@ -47,6 +48,7 @@ if ( ! function_exists( 'trailingslashit' ) ) {
 	function trailingslashit( $value ) { return rtrim( (string) $value, '/\\' ) . '/'; }
 }
 
+require_once __DIR__ . '/Stubs/submission-notification-spy.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Providers/EventPublicationEmailProvider.php';
 
 /** @covers \ExtraChillEvents\Providers\EventPublicationEmailProvider */
@@ -56,6 +58,35 @@ final class EventPublicationEmailProviderTest extends TestCase {
 		$GLOBALS['event_mail_user_meta'] = array();
 		$GLOBALS['event_mail_users'] = array();
 		$GLOBALS['event_mail_titles'] = array();
+		\DataMachineEvents\Core\SubmissionNotification::$calls = array();
+	}
+
+	private function event_post( int $id ): WP_Post {
+		$post            = new WP_Post( $id );
+		$post->post_type = 'data_machine_events';
+		return $post;
+	}
+
+	public function test_direct_publish_of_submitted_event_sends_publish_email(): void {
+		$GLOBALS['event_mail_post_meta'][501] = array( '_datamachine_submitted_by' => 7 );
+		EventPublicationEmailProvider::on_direct_publish( 'publish', 'new', $this->event_post( 501 ) );
+		$this->assertSame( array( array( 'publish', 'pending', 501 ) ), \DataMachineEvents\Core\SubmissionNotification::$calls );
+	}
+
+	public function test_pending_to_publish_is_left_to_data_machine_events(): void {
+		$GLOBALS['event_mail_post_meta'][502] = array( '_datamachine_submitted_by' => 7 );
+		EventPublicationEmailProvider::on_direct_publish( 'publish', 'pending', $this->event_post( 502 ) );
+		EventPublicationEmailProvider::on_direct_publish( 'publish', 'publish', $this->event_post( 502 ) );
+		$this->assertSame( array(), \DataMachineEvents\Core\SubmissionNotification::$calls );
+	}
+
+	public function test_direct_publish_without_submitter_or_wrong_type_sends_nothing(): void {
+		EventPublicationEmailProvider::on_direct_publish( 'publish', 'new', $this->event_post( 503 ) );
+		$GLOBALS['event_mail_post_meta'][504] = array( '_datamachine_submitted_by' => 7 );
+		$page            = new WP_Post( 504 );
+		$page->post_type = 'page';
+		EventPublicationEmailProvider::on_direct_publish( 'publish', 'new', $page );
+		$this->assertSame( array(), \DataMachineEvents\Core\SubmissionNotification::$calls );
 	}
 
 	public function test_submitted_event_uses_branded_template_and_actionable_context(): void {

@@ -26,6 +26,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/SubmissionTrustPolicy.php';
+
 class EventSubmissionAbilities {
 
 	private static bool $registered = false;
@@ -152,6 +154,7 @@ class EventSubmissionAbilities {
 
 		$submission = array(
 			'user_id'       => $contact['user_id'],
+			'authenticated' => get_current_user_id() > 0,
 			'contact_name'  => $contact['contact_name'],
 			'contact_email' => $contact['contact_email'],
 			'event_title'   => $event_title,
@@ -330,8 +333,9 @@ class EventSubmissionAbilities {
 	 * verifies Cloudflare Turnstile before it ever reaches this method, this
 	 * ability (`extrachill/submit-event`) is registered with
 	 * `show_in_rest => false` so it is not independently reachable, and the
-	 * workflow executed below is fully server-built (fixed steps, hardcoded
-	 * `post_status => pending`) — none of it is attacker-controlled. Given
+	 * workflow executed below is fully server-built (fixed steps; post_status
+	 * chosen server-side by SubmissionTrustPolicy) — none of it is
+	 * attacker-controlled. Given
 	 * that, we run the workflow execution inside
 	 * `PermissionHelper::run_as_authenticated()`, Data Machine's canonical
 	 * seam for callers that authorized the action at their own layer.
@@ -592,13 +596,18 @@ class EventSubmissionAbilities {
 			'handler_slugs'   => array( 'upsert_event' ),
 			'handler_configs' => array(
 				'upsert_event' => array(
-					'post_status'    => 'pending',
+					'post_status'    => $this->submissionPostStatus( (int) $submission['user_id'], ! empty( $submission['authenticated'] ) ),
 					'include_images' => ! empty( $stored_flyer ),
 				),
 			),
 		);
 
 		return array( 'steps' => $steps );
+	}
+
+	/** Choose publication status using authenticated account trust signals. */
+	private function submissionPostStatus( int $user_id, bool $authenticated ): string {
+		return SubmissionTrustPolicy::trusts( $user_id, $authenticated ) ? 'publish' : 'pending';
 	}
 
 	/**

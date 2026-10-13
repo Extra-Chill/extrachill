@@ -16,6 +16,29 @@ final class EventPublicationEmailProvider {
 	public static function register(): void {
 		add_filter( 'data_machine_events_submission_notification_template', array( self::class, 'template' ), 10, 2 );
 		add_filter( 'data_machine_events_submission_notification_context', array( self::class, 'context' ), 10, 4 );
+		add_action( 'transition_post_status', array( self::class, 'on_direct_publish' ), 10, 3 );
+	}
+
+	/**
+	 * Send the publish email when a trusted submission is created already published.
+	 *
+	 * Data Machine Events only emails on pending -> publish. Trusted submitters
+	 * (#953) skip the queue, so their event goes straight to publish and that hook
+	 * never fires. Pending -> publish is left to Data Machine Events so the email
+	 * is never sent twice; publish -> publish updates are ignored.
+	 */
+	public static function on_direct_publish( string $new_status, string $old_status, \WP_Post $post ): void {
+		if ( 'publish' !== $new_status || in_array( $old_status, array( 'publish', 'pending' ), true ) ) {
+			return;
+		}
+		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
+		if ( $post_type !== $post->post_type || ! self::has_submitter( $post ) ) {
+			return;
+		}
+		if ( ! class_exists( '\\DataMachineEvents\\Core\\SubmissionNotification' ) ) {
+			return;
+		}
+		\DataMachineEvents\Core\SubmissionNotification::on_status_transition( 'publish', 'pending', $post );
 	}
 
 	/** Select the network-branded mail template for events with submitter data. */
