@@ -129,6 +129,11 @@
             "runtime": "host"
           },
           {
+            "name": "pending-event-submissions-unit",
+            "config": "phpunit-pending-event-submissions-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "qualify-v2-unit",
             "config": "phpunit-qualify-v2-unit.xml.dist",
             "runtime": "host"

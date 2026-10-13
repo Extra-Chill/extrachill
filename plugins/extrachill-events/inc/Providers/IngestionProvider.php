@@ -52,11 +52,13 @@ final class IngestionProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/PendingEventSubmissions/PendingEventSubmissionsSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueExpansionRunner.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/VenueExpansion/VenueExpansionSystemTask.php';
-		$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]       = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
-		$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
-		$tasks[ \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::TASK_TYPE ]     = \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE ]                     = \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE ]               = \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::TASK_TYPE ] = \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::class;
+		$tasks[ \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::TASK_TYPE ]                   = \ExtraChillEvents\Steps\VenueExpansion\VenueExpansionSystemTask::class;
 		return $tasks;
 	}
 
@@ -69,7 +71,8 @@ final class IngestionProvider {
 	public static function register_recurring_schedules( array $schedules ): array {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
-		$schedules['extrachill_local_scene_digest'] = apply_filters(
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/PendingEventSubmissions/PendingEventSubmissionsSystemTask.php';
+		$schedules['extrachill_local_scene_digest']        = apply_filters(
 			'extrachill_local_scene_digest_schedule',
 			array(
 				'task_type'          => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
@@ -86,7 +89,7 @@ final class IngestionProvider {
 				),
 			)
 		);
-		$schedules['extrachill_qualify_digest']     = apply_filters(
+		$schedules['extrachill_qualify_digest']            = apply_filters(
 			'dme_qualify_digest_schedule',
 			array(
 				'task_type'          => \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE,
@@ -101,6 +104,18 @@ final class IngestionProvider {
 					'format'  => 'html',
 					'dry_run' => false,
 				),
+			)
+		);
+		$schedules['extrachill_pending_event_submissions'] = apply_filters(
+			'extrachill_pending_event_submissions_schedule',
+			array(
+				'task_type'          => \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::TASK_TYPE,
+				'interval'           => 'daily',
+				'enabled_setting'    => 'extrachill_pending_event_submissions_enabled',
+				'default_enabled'    => true,
+				'label'              => 'Daily Pending Event Submission Review Digest',
+				'first_run_callback' => 'strtotime',
+				'first_run_arg'      => 'tomorrow 09:00 UTC',
 			)
 		);
 		return $schedules;

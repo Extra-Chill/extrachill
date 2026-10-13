@@ -27,6 +27,7 @@
 			     phpunit-event-publication-email-unit.xml.dist. -->
 			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>
 			<exclude>tests/Unit/Abilities/SubmissionTrustPolicyTest.php</exclude>
+			<exclude>tests/Unit/Abilities/PendingEventSubmissionsAbilityTest.php</exclude>
 			<!-- RSVP perk tests are pure-PHP with their own $wpdb/wp_verify_nonce
 			     doubles (see phpunit-rsvp-perks-unit.xml.dist); against real
 			     WordPress in this sandbox, wp_verify_nonce() would reject the

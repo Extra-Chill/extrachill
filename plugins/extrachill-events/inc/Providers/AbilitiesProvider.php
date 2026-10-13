@@ -99,6 +99,7 @@ final class AbilitiesProvider {
 				'VenueAddAbilities',
 				'VenueExpansionAbilities',
 				'EventSubmissionAbilities',
+				'PendingEventSubmissionsAbility',
 				'MarketReportAbilities',
 				'EventSourceRampAbilities',
 				'EventTimeAuditAbilities',

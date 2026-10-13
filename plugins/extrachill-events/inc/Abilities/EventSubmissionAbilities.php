@@ -811,7 +811,7 @@ class EventSubmissionAbilities {
 	 * @param array  $args  Arguments forwarded to the ability.
 	 * @param string $audience Tag used in log context ("submitter" | "admin").
 	 */
-	private function dispatchEmail( array $args, string $audience ): void {
+	public static function dispatchEmail( array $args, string $audience ): void {
 		$result = null;
 
 		// The workflow job already exists when this runs. A notification
