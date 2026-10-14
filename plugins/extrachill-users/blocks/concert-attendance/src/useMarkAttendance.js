@@ -16,8 +16,10 @@
  *
  * Contract:
  *   const { mark, isMarking, error } = useMarkAttendance();
- *   const result = await mark( { eventId, blogId } );
- *   // result === { marked: bool, count: number, count_label: string }
+ *   const result = await mark( { eventId, blogId, source } );
+ *   // result === { marked: bool, changed: bool, first_mark: bool, count: number, count_label: string }
+ *   // source: 'button' (default) or 'intent' when resuming a pre-login
+ *   // continuation. Analytics only; the write is identical.
  *
  * The hook owns ONLY the network write + its in-flight / error state. The
  * caller owns its own optimistic UI.
@@ -38,40 +40,46 @@ const useMarkAttendance = () => {
 
 	const inFlight = useRef( false );
 
-	const mark = useCallback( ( { eventId, blogId, marked = true } = {} ) => {
-		if ( inFlight.current ) {
-			return Promise.resolve( null );
-		}
+	const mark = useCallback(
+		( { eventId, blogId, marked = true, source = 'button' } = {} ) => {
+			if ( inFlight.current ) {
+				return Promise.resolve( null );
+			}
 
-		inFlight.current = true;
-		setIsMarking( true );
-		setError( null );
+			inFlight.current = true;
+			setIsMarking( true );
+			setError( null );
 
-		const data = { event_id: eventId, marked };
-		if ( blogId ) {
-			data.blog_id = blogId;
-		}
+			const data = { event_id: eventId, marked, source };
+			if ( blogId ) {
+				data.blog_id = blogId;
+			}
 
-		return apiFetch( {
-			path: '/wp-abilities/v1/abilities/extrachill/set-event-mark/run',
-			method: 'POST',
-			data: { input: data },
-		} )
-			.then( ( response ) => {
-				inFlight.current = false;
-				setIsMarking( false );
-				return response;
+			return apiFetch( {
+				path: '/wp-abilities/v1/abilities/extrachill/set-event-mark/run',
+				method: 'POST',
+				data: { input: data },
 			} )
-			.catch( ( err ) => {
-				inFlight.current = false;
-				setIsMarking( false );
-				const message =
-					( err && err.message ) ||
-					__( 'Failed to update attendance.', 'extrachill-users' );
-				setError( message );
-				throw err;
-			} );
-	}, [] );
+				.then( ( response ) => {
+					inFlight.current = false;
+					setIsMarking( false );
+					return response;
+				} )
+				.catch( ( err ) => {
+					inFlight.current = false;
+					setIsMarking( false );
+					const message =
+						( err && err.message ) ||
+						__(
+							'Failed to update attendance.',
+							'extrachill-users'
+						);
+					setError( message );
+					throw err;
+				} );
+		},
+		[]
+	);
 
 	return { mark, isMarking, error };
 };

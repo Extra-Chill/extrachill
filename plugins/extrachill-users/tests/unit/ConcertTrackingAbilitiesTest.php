@@ -90,7 +90,7 @@ class Test_Concert_Tracking_Abilities extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( WP_Ability::class, $ability );
 		$this->assertSame(
-			array( 'user_id', 'marked', 'changed', 'count', 'count_label', 'timing' ),
+			array( 'user_id', 'marked', 'changed', 'count', 'count_label', 'timing', 'first_mark' ),
 			$ability->get_output_schema()['required']
 		);
 		$this->assertSame( 0, $ability->get_input_schema()['properties']['user_id']['default'] );

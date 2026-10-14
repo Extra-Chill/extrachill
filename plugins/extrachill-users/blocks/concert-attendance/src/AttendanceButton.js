@@ -82,6 +82,7 @@ const AttendanceButton = ( {
 				eventId,
 				blogId,
 				marked: resolvedMarked,
+				firstMark: !! ( response && response.first_mark ),
 			} );
 		},
 		[ blogId, eventId ]
@@ -101,7 +102,7 @@ const AttendanceButton = ( {
 			completeIntent();
 			return;
 		}
-		mark( { eventId, blogId, marked: true } )
+		mark( { eventId, blogId, marked: true, source: 'intent' } )
 			.then( ( response ) => response && completeIntent( response ) )
 			.catch( () => {
 				attemptedIntent.current = false;
@@ -168,6 +169,7 @@ const AttendanceButton = ( {
 					eventId,
 					blogId,
 					marked: !! response.marked,
+					firstMark: !! response.first_mark,
 				} );
 			} )
 			.catch( () => {
@@ -186,6 +188,9 @@ const AttendanceButton = ( {
 				ref={ buttonRef }
 				type="button"
 				className={ `ec-attendance__button ${ buttonClass } button-medium` }
+				data-ec-track={
+					isLoggedIn ? 'attendance-member' : 'attendance-anonymous'
+				}
 				onClick={ handleClick }
 				disabled={ isMarking }
 				aria-pressed={ marked }

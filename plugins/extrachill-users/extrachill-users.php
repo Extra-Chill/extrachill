@@ -177,6 +177,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/analytics.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/rank-points.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/contribution-events.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';

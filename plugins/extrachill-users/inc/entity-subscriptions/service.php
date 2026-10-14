@@ -116,6 +116,21 @@ function extrachill_users_subscribe_to_entity( $user_id, $entity_type, $taxonomy
 		return new WP_Error( 'entity_subscription_insert_failed', __( 'The subscription could not be saved.', 'extrachill-users' ), array( 'status' => 500 ) );
 	}
 
+	if ( 1 === (int) $inserted ) {
+		/**
+		 * Fires when a subscription row is newly created.
+		 *
+		 * Does not fire for an already-existing subscription (INSERT IGNORE
+		 * affected zero rows), so listeners can count real opt-ins without
+		 * double counting replays. The entity's owning plugin decides what,
+		 * if anything, to record.
+		 *
+		 * @param int   $user_id Subscriber.
+		 * @param array $entity  Normalized entity: entity_type, taxonomy, slug.
+		 */
+		do_action( 'extrachill_users_entity_subscription_created', $user_id, $entity );
+	}
+
 	return array_merge( $entity, array( 'subscribed' => true ) );
 }
 

@@ -86,6 +86,7 @@ describe( 'AttendanceButton continuation', () => {
 			eventId: 123,
 			blogId: 7,
 			marked: true,
+			source: 'intent',
 		} );
 		expect(
 			container.querySelector( 'button' ).getAttribute( 'aria-pressed' )
@@ -129,6 +130,7 @@ describe( 'AttendanceButton continuation', () => {
 			eventId: 123,
 			blogId: 7,
 			marked: true,
+			firstMark: false,
 		} );
 	} );
 } );
@@ -184,6 +186,7 @@ describe( 'AttendanceButton click', () => {
 			eventId: 123,
 			blogId: 7,
 			marked: true,
+			firstMark: false,
 		} );
 	} );
 
@@ -277,5 +280,62 @@ describe( 'AttendanceButton click', () => {
 		document.removeEventListener( 'ec:attendance-changed', listener );
 
 		expect( listener ).not.toHaveBeenCalled();
+	} );
+
+	test( 'carries firstMark from the server and tags the button for cta_click', async () => {
+		const mark = jest.fn().mockResolvedValue( {
+			marked: true,
+			first_mark: true,
+			count: 1,
+			count_label: '1 going',
+		} );
+		useMarkAttendance.mockReturnValue( {
+			mark,
+			isMarking: false,
+			error: null,
+		} );
+
+		const listener = jest.fn();
+		document.addEventListener( 'ec:attendance-changed', listener );
+
+		await act( async () => {
+			root.render( <AttendanceButton { ...clickProps } /> );
+		} );
+
+		expect(
+			container.querySelector( 'button' ).getAttribute( 'data-ec-track' )
+		).toBe( 'attendance-member' );
+
+		await act( async () => {
+			container.querySelector( 'button' ).click();
+			await Promise.resolve();
+		} );
+
+		document.removeEventListener( 'ec:attendance-changed', listener );
+
+		expect( mark ).toHaveBeenCalledWith( {
+			eventId: 123,
+			blogId: 7,
+			marked: true,
+		} );
+		expect( listener.mock.calls[ 0 ][ 0 ].detail.firstMark ).toBe( true );
+	} );
+
+	test( 'tags the anonymous button separately', async () => {
+		useMarkAttendance.mockReturnValue( {
+			mark: jest.fn(),
+			isMarking: false,
+			error: null,
+		} );
+
+		await act( async () => {
+			root.render(
+				<AttendanceButton { ...clickProps } isLoggedIn={ false } />
+			);
+		} );
+
+		expect(
+			container.querySelector( 'button' ).getAttribute( 'data-ec-track' )
+		).toBe( 'attendance-anonymous' );
 	} );
 } );

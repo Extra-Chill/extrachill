@@ -156,6 +156,12 @@ function extrachill_users_register_concert_tracking_abilities() {
 						'type'        => 'boolean',
 						'description' => 'Desired attendance state.',
 					),
+					'source'   => array(
+						'type'        => 'string',
+						'enum'        => array( 'button', 'intent' ),
+						'description' => 'Interaction that produced the write: a direct button press, or a signed pre-login continuation resuming after authentication. Analytics only.',
+						'default'     => 'button',
+					),
 				),
 				'required'   => array( 'event_id', 'marked' ),
 			),
@@ -168,8 +174,9 @@ function extrachill_users_register_concert_tracking_abilities() {
 					'count'       => array( 'type' => 'integer' ),
 					'count_label' => array( 'type' => 'string' ),
 					'timing'      => array( 'type' => 'string' ),
+					'first_mark'  => array( 'type' => 'boolean' ),
 				),
-				'required'   => array( 'user_id', 'marked', 'changed', 'count', 'count_label', 'timing' ),
+				'required'   => array( 'user_id', 'marked', 'changed', 'count', 'count_label', 'timing', 'first_mark' ),
 			),
 			'execute_callback'    => 'extrachill_users_ability_set_event_mark',
 			'permission_callback' => 'extrachill_users_can_set_event_mark',
@@ -603,16 +610,22 @@ function extrachill_users_ability_set_event_mark( array $input ) {
 		return $write_result;
 	}
 
-	$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
-	$timing = ec_users_get_event_timing( $event_id );
+	$count      = ec_users_get_event_mark_count( $event_id, $blog_id );
+	$timing     = ec_users_get_event_timing( $event_id );
+	$changed    = (bool) $write_result;
+	$first_mark = $marked && $changed && 1 === ec_users_get_user_event_count( $user_id );
+	$source     = 'intent' === ( $input['source'] ?? 'button' ) ? 'intent' : 'button';
+
+	ec_users_record_attendance_transition( $user_id, $event_id, $blog_id, $marked, $changed, $first_mark, $timing, $source );
 
 	return array(
 		'user_id'     => $user_id,
 		'marked'      => $marked,
-		'changed'     => (bool) $write_result,
+		'changed'     => $changed,
 		'count'       => $count,
 		'count_label' => ec_users_format_count_label( $count, $timing ),
 		'timing'      => $timing,
+		'first_mark'  => $first_mark,
 	);
 }
 

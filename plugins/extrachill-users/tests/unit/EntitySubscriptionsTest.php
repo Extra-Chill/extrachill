@@ -46,6 +46,24 @@ class Test_Entity_Subscriptions extends WP_UnitTestCase {
 		$this->assertSame( array( $user_id ), extrachill_users_entity_subscription_recipients( 'test-producer', 'topic', 'topic', 'release-notes' ) );
 	}
 
+	public function test_created_action_fires_only_for_a_new_row(): void {
+		$user_id = self::factory()->user->create();
+		$fired   = array();
+		$capture = static function ( $subscriber, $entity ) use ( &$fired ) {
+			$fired[] = array( $subscriber, $entity );
+		};
+		add_action( 'extrachill_users_entity_subscription_created', $capture, 10, 2 );
+
+		extrachill_users_subscribe_to_entity( $user_id, 'Topic', 'topic', 'Release Notes' );
+		extrachill_users_subscribe_to_entity( $user_id, 'topic', 'topic', 'release-notes' );
+		remove_action( 'extrachill_users_entity_subscription_created', $capture, 10 );
+
+		$this->assertCount( 1, $fired, 'A replayed subscribe must not fire the creation action again.' );
+		$this->assertSame( $user_id, $fired[0][0] );
+		$this->assertSame( 'topic', $fired[0][1]['entity_type'] );
+		$this->assertSame( 'release-notes', $fired[0][1]['slug'] );
+	}
+
 	public function test_abilities_include_private_recipient_resolution(): void {
 		$subscribe   = wp_get_ability( 'extrachill/entity-subscribe' );
 		$unsubscribe = wp_get_ability( 'extrachill/entity-unsubscribe' );

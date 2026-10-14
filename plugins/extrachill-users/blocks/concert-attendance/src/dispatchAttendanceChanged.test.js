@@ -23,7 +23,24 @@ describe( 'dispatchAttendanceChanged', () => {
 			eventId: 42,
 			blogId: 7,
 			marked: true,
+			firstMark: false,
 		} );
+
+		document.removeEventListener( 'ec:attendance-changed', listener );
+	} );
+
+	test( 'carries firstMark only when explicitly true', () => {
+		const listener = jest.fn();
+		document.addEventListener( 'ec:attendance-changed', listener );
+
+		dispatchAttendanceChanged( {
+			eventId: 42,
+			blogId: 7,
+			marked: true,
+			firstMark: true,
+		} );
+
+		expect( listener.mock.calls[ 0 ][ 0 ].detail.firstMark ).toBe( true );
 
 		document.removeEventListener( 'ec:attendance-changed', listener );
 	} );
@@ -50,6 +67,7 @@ describe( 'dispatchAttendanceChanged', () => {
 		expect( Object.keys( event.detail ).sort() ).toEqual( [
 			'blogId',
 			'eventId',
+			'firstMark',
 			'marked',
 		] );
 

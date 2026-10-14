@@ -15,17 +15,27 @@
  * server-side `ec_users_event_marked` / `ec_users_event_unmarked` hooks do.
  *
  * Consumers: `document.addEventListener( 'ec:attendance-changed', ( e ) => {
- * const { eventId, blogId, marked } = e.detail; ... } )`.
+ * const { eventId, blogId, marked, firstMark } = e.detail; ... } )`.
+ *
+ * `firstMark` is true only when this resolved request was the user's
+ * first-ever attendance mark, so a listener can tailor a one-time follow-up
+ * (e.g. extrachill-events' Local Scene digest offer) without asking again.
  *
  * @param {Object}  detail
- * @param {number}  detail.eventId Event post ID.
- * @param {number}  detail.blogId  Blog ID the event lives on.
- * @param {boolean} detail.marked  Attendance state after the request resolved.
+ * @param {number}  detail.eventId   Event post ID.
+ * @param {number}  detail.blogId    Blog ID the event lives on.
+ * @param {boolean} detail.marked    Attendance state after the request resolved.
+ * @param {boolean} detail.firstMark Whether this was the user's first-ever mark.
  */
-const dispatchAttendanceChanged = ( { eventId, blogId, marked } ) => {
+const dispatchAttendanceChanged = ( {
+	eventId,
+	blogId,
+	marked,
+	firstMark = false,
+} ) => {
 	document.dispatchEvent(
 		new CustomEvent( 'ec:attendance-changed', {
-			detail: { eventId, blogId, marked },
+			detail: { eventId, blogId, marked, firstMark: !! firstMark },
 		} )
 	);
 };
