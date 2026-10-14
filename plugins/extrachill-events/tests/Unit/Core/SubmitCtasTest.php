@@ -78,8 +78,8 @@ final class SubmitCtasTest extends TestCase {
 
 	public function test_submit_url_carries_encoded_context(): void {
 		$this->assertSame( 'https://events.example/submit/', extrachill_events_submit_url() );
-		$this->assertSame( 'https://events.example/submit/?venue=The%20Pour%20House&city=Charleston', extrachill_events_submit_url( 'The Pour House', 'Charleston' ) );
-		$this->assertSame( 'https://events.example/submit/?city=Austin', extrachill_events_submit_url( '', 'Austin' ) );
+		$this->assertSame( 'https://events.example/submit/?submit_venue=The%20Pour%20House&submit_city=Charleston', extrachill_events_submit_url( 'The Pour House', 'Charleston' ) );
+		$this->assertSame( 'https://events.example/submit/?submit_city=Austin', extrachill_events_submit_url( '', 'Austin' ) );
 	}
 
 	public function test_venue_archive_cta_names_venue_and_prefills_city(): void {
@@ -90,7 +90,7 @@ final class SubmitCtasTest extends TestCase {
 		$html = $this->render( 'extrachill_events_render_submit_cta_archive' );
 
 		$this->assertStringContainsString( 'Missing a show at The Pour House?', $html );
-		$this->assertStringContainsString( 'venue=The%20Pour%20House&amp;city=Charleston', $html );
+		$this->assertStringContainsString( 'submit_venue=The%20Pour%20House&amp;submit_city=Charleston', $html );
 		$this->assertStringContainsString( 'data-ec-track="events_submit_cta"', $html );
 		$this->assertStringContainsString( 'data-ec-track-placement="venue_archive"', $html );
 	}
@@ -102,7 +102,7 @@ final class SubmitCtasTest extends TestCase {
 		$html = $this->render( 'extrachill_events_render_submit_cta_archive' );
 
 		$this->assertStringContainsString( 'Playing in Atlanta?', $html );
-		$this->assertStringContainsString( '/submit/?city=Atlanta', $html );
+		$this->assertStringContainsString( '/submit/?submit_city=Atlanta', $html );
 		$this->assertStringContainsString( 'data-ec-track-placement="location_archive"', $html );
 	}
 
@@ -120,7 +120,7 @@ final class SubmitCtasTest extends TestCase {
 		$html = $this->render( 'extrachill_events_render_submit_cta_single', 501, '' );
 
 		$this->assertStringContainsString( 'Add a show at Ours Studios', $html );
-		$this->assertStringContainsString( 'venue=Ours%20Studios&amp;city=Decatur', $html );
+		$this->assertStringContainsString( 'submit_venue=Ours%20Studios&amp;submit_city=Decatur', $html );
 		$this->assertStringContainsString( 'data-ec-track-placement="single_event"', $html );
 	}
 
@@ -130,13 +130,13 @@ final class SubmitCtasTest extends TestCase {
 		$html = $this->render( 'extrachill_events_render_submit_cta_single', 502, '' );
 
 		$this->assertStringContainsString( '>Add a show<', $html );
-		$this->assertStringContainsString( '/submit/?city=Oakland', $html );
+		$this->assertStringContainsString( '/submit/?submit_city=Oakland', $html );
 	}
 
 	public function test_prefill_is_sanitized_and_capped(): void {
 		$_GET = array(
-			'venue' => '<b>The Pour House</b>',
-			'city'  => str_repeat( 'x', 500 ),
+			'submit_venue' => '<b>The Pour House</b>',
+			'submit_city'  => str_repeat( 'x', 500 ),
 		);
 
 		$prefill = extrachill_events_submit_prefill();
@@ -146,9 +146,39 @@ final class SubmitCtasTest extends TestCase {
 	}
 
 	public function test_prefill_ignores_non_scalar_input(): void {
-		$_GET = array( 'venue' => array( 'x' ) );
+		$_GET = array( 'submit_venue' => array( 'x' ) );
 
 		$this->assertSame( '', extrachill_events_submit_prefill()['venue'] );
+	}
+
+	/**
+	 * #963: a bare `?venue=` is the venue taxonomy's query var, so WordPress
+	 * resolved the CTA target as a venue archive instead of /submit/.
+	 */
+	public function test_submit_url_carries_no_taxonomy_query_var(): void {
+		$reserved = array( 'venue', 'location', 'artist', 'festival', 'genre', 'promoter', 'event_type', 'tag', 'category_name', 'taxonomy', 'term' );
+
+		$query = (string) parse_url( extrachill_events_submit_url( 'The Pour House', 'Charleston' ), PHP_URL_QUERY );
+		parse_str( $query, $args );
+
+		$this->assertSame( array( 'submit_venue', 'submit_city' ), array_keys( $args ) );
+		$this->assertSame( array(), array_intersect( array_keys( $args ), $reserved ) );
+		$this->assertSame( array(), array_intersect( array_values( EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS ), $reserved ) );
+	}
+
+	public function test_prefill_ignores_bare_taxonomy_args(): void {
+		$_GET = array(
+			'venue' => 'The Pour House',
+			'city'  => 'Charleston',
+		);
+
+		$this->assertSame(
+			array(
+				'venue' => '',
+				'city'  => '',
+			),
+			extrachill_events_submit_prefill()
+		);
 	}
 
 	public function test_hooks_are_registered_at_expected_priorities(): void {

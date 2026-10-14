@@ -18,6 +18,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Analytics id shared by every submit CTA; placement tells them apart. */
 const EXTRACHILL_EVENTS_SUBMIT_CTA_TRACK = 'events_submit_cta';
 
+/**
+ * Query-string arg names that carry submit prefill, keyed by prefill field.
+ *
+ * Namespaced on purpose: `venue` (and `location`, `artist`, `festival`, …) are
+ * public taxonomy query vars, so a bare `?venue=` makes WordPress resolve
+ * /submit/ as a venue archive instead of the submission page (#963).
+ */
+const EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS = array(
+	'venue' => 'submit_venue',
+	'city'  => 'submit_city',
+);
+
 /** Longest prefill value accepted from the query string. */
 const EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX = 120;
 
@@ -31,10 +43,10 @@ const EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX = 120;
 function extrachill_events_submit_url( string $venue = '', string $city = '' ): string {
 	$args = array();
 	if ( '' !== $venue ) {
-		$args['venue'] = $venue;
+		$args[ EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS['venue'] ] = $venue;
 	}
 	if ( '' !== $city ) {
-		$args['city'] = $city;
+		$args[ EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS['city'] ] = $city;
 	}
 
 	$url = home_url( '/submit/' );
@@ -43,6 +55,9 @@ function extrachill_events_submit_url( string $venue = '', string $city = '' ): 
 
 /**
  * Read venue/city prefill values from the current request.
+ *
+ * Reads the namespaced args from EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS and
+ * returns them under the plain `venue` / `city` field keys.
  *
  * Values only ever populate visible form fields the submitter can edit, so
  * they are sanitized as plain text and length-capped, never trusted.
@@ -54,13 +69,13 @@ function extrachill_events_submit_prefill(): array {
 		'venue' => '',
 		'city'  => '',
 	);
-	foreach ( array_keys( $out ) as $key ) {
+	foreach ( EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS as $key => $arg ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only form prefill.
-		if ( ! isset( $_GET[ $key ] ) || ! is_scalar( $_GET[ $key ] ) ) {
+		if ( ! isset( $_GET[ $arg ] ) || ! is_scalar( $_GET[ $arg ] ) ) {
 			continue;
 		}
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only form prefill.
-		$value       = sanitize_text_field( (string) wp_unslash( $_GET[ $key ] ) );
+		$value       = sanitize_text_field( (string) wp_unslash( $_GET[ $arg ] ) );
 		$out[ $key ] = function_exists( 'mb_substr' )
 			? mb_substr( $value, 0, EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX )
 			: substr( $value, 0, EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX );
