@@ -203,6 +203,31 @@ const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_DISMISSED = 'local_scene_prompt_dism
 const EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_COMPLETED = 'local_scene_prompt_completed';
 
 /**
+ * Concert attendance funnel events (Extra-Chill/extrachill-users#450).
+ *
+ * Emitted server-side from the interactive `extrachill/set-event-mark` path
+ * only, and only on a real state transition. Bulk concert-history imports
+ * never emit them. `event_data` is limited to `user_id`, `event_id`,
+ * `blog_id`, `timing` (upcoming|ongoing|past), boolean `first_mark`, and
+ * `source` (button|intent). Clicks are already recorded by the generic
+ * `cta_click` adapter through the button's `data-ec-track` id.
+ */
+const EC_ANALYTICS_EVENT_ATTENDANCE_MARKED         = 'attendance_marked';
+const EC_ANALYTICS_EVENT_ATTENDANCE_UNMARKED       = 'attendance_unmarked';
+const EC_ANALYTICS_EVENT_ATTENDANCE_INTENT_RESUMED = 'attendance_intent_resumed';
+
+/**
+ * Local Scene digest subscription events (Extra-Chill/extrachill-events#962).
+ *
+ * Emitted server-side when a subscription to the weekly Local Scene digest
+ * is newly created. `event_data` is limited to `user_id`, `surface`
+ * (event_page|post_mark|location_archive), `event_id` when the surface is an
+ * event, and boolean `via_continuation`. Never record the Local Scene slug
+ * or name, consistent with the Local Scene prompt privacy rule above.
+ */
+const EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED = 'local_scene_digest_subscribed';
+
+/**
  * Artist-funnel events.
  *
  * The activation funnel a new member walks while trying to build/claim an
@@ -349,6 +374,26 @@ const EC_ANALYTICS_LOCAL_SCENE_PROMPT_EVENTS = array(
 	EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_VIEWED,
 	EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_DISMISSED,
 	EC_ANALYTICS_EVENT_LOCAL_SCENE_PROMPT_COMPLETED,
+);
+
+/**
+ * Concert attendance funnel events in lifecycle order.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_ATTENDANCE_FUNNEL_EVENTS = array(
+	EC_ANALYTICS_EVENT_ATTENDANCE_INTENT_RESUMED,
+	EC_ANALYTICS_EVENT_ATTENDANCE_MARKED,
+	EC_ANALYTICS_EVENT_ATTENDANCE_UNMARKED,
+);
+
+/**
+ * Local Scene digest subscription events.
+ *
+ * @var string[]
+ */
+const EC_ANALYTICS_LOCAL_SCENE_DIGEST_EVENTS = array(
+	EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED,
 );
 
 /**

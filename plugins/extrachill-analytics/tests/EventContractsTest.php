@@ -48,6 +48,24 @@ final class EventContractsTest extends Extrachill_Analytics_TestCase {
 			EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS
 		);
 		$this->assertContains( EC_ANALYTICS_EVENT_ARTIST_ACCESS_GRANTED, EC_ANALYTICS_ARTIST_FUNNEL_EVENTS );
+		$this->assertSame( 'attendance_marked', EC_ANALYTICS_EVENT_ATTENDANCE_MARKED );
+		$this->assertSame( 'attendance_unmarked', EC_ANALYTICS_EVENT_ATTENDANCE_UNMARKED );
+		$this->assertSame( 'attendance_intent_resumed', EC_ANALYTICS_EVENT_ATTENDANCE_INTENT_RESUMED );
+		$this->assertSame(
+			array(
+				EC_ANALYTICS_EVENT_ATTENDANCE_INTENT_RESUMED,
+				EC_ANALYTICS_EVENT_ATTENDANCE_MARKED,
+				EC_ANALYTICS_EVENT_ATTENDANCE_UNMARKED,
+			),
+			EC_ANALYTICS_ATTENDANCE_FUNNEL_EVENTS
+		);
+		$this->assertSame( 'local_scene_digest_subscribed', EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED );
+		$this->assertSame( array( EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED ), EC_ANALYTICS_LOCAL_SCENE_DIGEST_EVENTS );
+		$this->assertContains( EC_ANALYTICS_EVENT_ATTENDANCE_MARKED, extrachill_analytics_experiment_outcome_types() );
+		$this->assertContains( EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED, extrachill_analytics_experiment_outcome_types() );
+		foreach ( array_merge( EC_ANALYTICS_ATTENDANCE_FUNNEL_EVENTS, EC_ANALYTICS_LOCAL_SCENE_DIGEST_EVENTS ) as $server_only ) {
+			$this->assertNotContains( $server_only, EC_ANALYTICS_PUBLIC_BROWSER_EVENTS );
+		}
 		$this->assertSame( 'mcp_session_started', EC_ANALYTICS_EVENT_MCP_SESSION_STARTED );
 		$this->assertSame( 'mcp_tool_invoked', EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED );
 		$this->assertSame(
