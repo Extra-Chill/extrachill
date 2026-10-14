@@ -71,6 +71,26 @@
 }
 
 /*
+ * Local Scene digest offer (#962): its own full row after the conversion
+ * actions. Colours and spacing come from the theme's .notice styles.
+ */
+.data-machine-event-details .event-action-buttons > .event-digest-offer {
+    flex: 1 0 100%;
+    margin: 0;
+}
+
+.event-digest-offer p {
+    margin: 0 0 0.5em;
+}
+
+.event-digest-offer .event-digest-offer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin: 0;
+}
+
+/*
  * Contextual exploration follows the conversion actions as its own full row.
  * The shared network bridge still owns link markup and instrumentation; this
  * consumer only composes it into the Event Details surface.

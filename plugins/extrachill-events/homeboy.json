@@ -129,6 +129,11 @@
             "runtime": "host"
           },
           {
+            "name": "event-digest-offer-unit",
+            "config": "phpunit-event-digest-offer-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "submit-landing-unit",
             "config": "phpunit-submit-landing-unit.xml.dist",
             "runtime": "host"
