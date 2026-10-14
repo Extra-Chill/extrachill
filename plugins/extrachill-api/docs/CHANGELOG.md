@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.37.0] - 2026-10-14
+
+### Added
+- forward venue_term_id from the event submission route
+
 ## [0.36.0] - 2026-09-27
 
 ### Added
