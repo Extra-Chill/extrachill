@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.51.0] - 2026-10-14
+
+### Added
+- attendance funnel analytics + subscription creation hook
+
 ## [0.50.1] - 2026-10-14
 
 ### Fixed
