@@ -260,10 +260,106 @@
 		} );
 	}
 
+	/**
+	 * Wire the logged-out guest RSVP form: email + Turnstile token to the
+	 * extrachill-api guest-rsvp route. The response is deliberately opaque
+	 * ({ status: 'rsvped' }); the pass and any set-password link arrive by
+	 * email only, so success just tells the guest to check their inbox.
+	 */
+	function initGuestForm() {
+		const config = window.ecRsvpPass || {};
+		if ( ! config.guestRsvpPath ) {
+			return;
+		}
+
+		const form = document.querySelector( '.ec-rsvp-guest' );
+		if ( ! form ) {
+			return;
+		}
+
+		const text = config.guestRsvpText || {};
+		const status = form.querySelector( '.ec-rsvp-guest__status' );
+		const button = form.querySelector( 'button[type="submit"]' );
+		const emailInput = form.querySelector( 'input[name="email"]' );
+
+		function showStatus( kind, message ) {
+			if ( ! status ) {
+				return;
+			}
+			status.classList.remove( 'notice-success', 'notice-error' );
+			if ( kind ) {
+				status.classList.add( 'notice-' + kind );
+			}
+			status.textContent = message || '';
+			status.hidden = ! message;
+		}
+
+		form.addEventListener( 'submit', function ( event ) {
+			event.preventDefault();
+
+			const email = emailInput ? emailInput.value.trim() : '';
+			if ( ! email || ( emailInput && ! emailInput.checkValidity() ) ) {
+				showStatus( 'error', text.error );
+				return;
+			}
+
+			const tokenField = form.querySelector(
+				'input[name="cf-turnstile-response"]'
+			);
+			const data = {
+				email,
+				turnstile_response: tokenField ? tokenField.value : '',
+			};
+			if ( document.referrer ) {
+				data.referrer = document.referrer;
+			}
+			const utm = {};
+			new URLSearchParams( window.location.search ).forEach(
+				function ( value, key ) {
+					if ( 0 === key.indexOf( 'utm_' ) ) {
+						utm[ key ] = value;
+					}
+				}
+			);
+			if ( Object.keys( utm ).length ) {
+				data.utm = utm;
+			}
+
+			if ( button ) {
+				button.disabled = true;
+			}
+			showStatus( '', text.sending );
+
+			apiFetch( config.guestRsvpPath, 'POST', data )
+				.then( function () {
+					if ( emailInput ) {
+						emailInput.disabled = true;
+					}
+					if ( button ) {
+						button.hidden = true;
+					}
+					showStatus( 'success', text.success );
+				} )
+				.catch( function ( error ) {
+					if ( button ) {
+						button.disabled = false;
+					}
+					if ( window.turnstile && window.turnstile.reset ) {
+						window.turnstile.reset();
+					}
+					showStatus(
+						'error',
+						( error && error.message ) || text.error
+					);
+				} );
+		} );
+	}
+
 	// Enqueued with in_footer=true (see inc/core/rsvp-pass-integration.php),
 	// so the DOM is already parsed by the time this executes — no
 	// DOMContentLoaded listener needed.
 	initPassWatcher();
 	initDoorList();
 	initVerifyPage();
+	initGuestForm();
 } )();

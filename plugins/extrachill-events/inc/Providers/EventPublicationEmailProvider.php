@@ -115,14 +115,8 @@ final class EventPublicationEmailProvider {
 		return '<li><a href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a></li>';
 	}
 
-	/** Build the same reset-password handoff used by the submission receipt. */
+	/** Account claim link, owned by extrachill-users (extrachill-users#451). */
 	private static function build_claim_url( \WP_User $user ): string {
-		$key = get_password_reset_key( $user );
-		if ( is_wp_error( $key ) ) {
-			return '';
-		}
-
-		$base = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : network_site_url();
-		return trailingslashit( $base ) . 'wp-login.php?action=rp&key=' . rawurlencode( $key ) . '&login=' . rawurlencode( $user->user_login );
+		return function_exists( 'ec_users_build_account_claim_url' ) ? (string) ec_users_build_account_claim_url( $user ) : '';
 	}
 }

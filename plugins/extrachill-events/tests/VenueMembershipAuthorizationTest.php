@@ -186,6 +186,16 @@ if ( ! function_exists( 'get_password_reset_key' ) ) {
 		}
 		return 'reset-' . $user->ID; }
 }
+if ( ! function_exists( 'ec_users_build_account_claim_url' ) ) {
+	// Double of the extrachill-users claim-link helper (extrachill-users#451).
+	function ec_users_build_account_claim_url( $user ) {
+		$key = get_password_reset_key( $user );
+		if ( is_wp_error( $key ) ) {
+			return '';
+		}
+		return 'https://community.extrachill.test/reset-password/?action=reset&key=' . rawurlencode( $key ) . '&login=' . rawurlencode( $user->user_login );
+	}
+}
 if ( ! function_exists( 'ec_get_site_url' ) ) {
 	function ec_get_site_url( $site ) {
 		return 'https://' . $site . '.extrachill.test'; }
@@ -1621,7 +1631,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$delivery_id = $GLOBALS['venue_membership_test']['scheduled_actions'][1]['args'][0];
 		( new VenueInvitationDeliveryWorker() )->deliver( $delivery_id );
 		$this->assertSame( 1, $GLOBALS['venue_membership_test']['reset_key_calls'] );
-		$this->assertStringContainsString( 'action=rp', $GLOBALS['venue_membership_test']['sent_emails'][1]['context']['cta_url'] );
+		$this->assertStringContainsString( 'reset-password/?action=reset', $GLOBALS['venue_membership_test']['sent_emails'][1]['context']['cta_url'] );
 	}
 
 	public function test_account_creation_requires_fresh_membership_authority_but_not_booking_access(): void {

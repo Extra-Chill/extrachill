@@ -29,6 +29,11 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 	function get_password_reset_key( $user ) { return 'one-time-key'; }
 }
 
+if ( ! function_exists( 'ec_users_build_account_claim_url' ) ) {
+	// Double of the extrachill-users claim-link helper (extrachill-users#451).
+	function ec_users_build_account_claim_url( $user ) { return 'https://community.example/reset-password/?action=reset&key=one-time-key&login=' . rawurlencode( $user->user_login ); }
+}
+
 if ( ! function_exists( 'esc_html__' ) ) {
 	function esc_html__( $text, $domain = 'default' ) { return htmlspecialchars( (string) $text, ENT_QUOTES ); }
 }

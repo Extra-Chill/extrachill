@@ -62,13 +62,11 @@ class VenueInvitationDeliveryWorker {
 
 		$claim_url = '';
 		if ( '1' === (string) get_user_meta( $user->ID, 'ec_unclaimed', true ) ) {
-			$key = get_password_reset_key( $user );
-			if ( is_wp_error( $key ) ) {
+			$claim_url = function_exists( 'ec_users_build_account_claim_url' ) ? (string) ec_users_build_account_claim_url( $user ) : '';
+			if ( '' === $claim_url ) {
 				$this->repository->finish_delivery( $delivery_id, false );
 				return new \WP_Error( 'venue_invitation_reset_key_failed', __( 'The invited account handoff could not be created.', 'extrachill-events' ), array( 'status' => 500 ) );
 			}
-			$base      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : network_site_url();
-			$claim_url = trailingslashit( $base ) . 'wp-login.php?action=rp&key=' . rawurlencode( $key ) . '&login=' . rawurlencode( $user->user_login );
 		}
 
 		$accept_url = add_query_arg(
@@ -111,7 +109,7 @@ class VenueInvitationDeliveryWorker {
 				),
 			)
 		);
-		$sent   = is_array( $result ) && ! empty( $result['success'] );
+		$sent   = ! empty( $result['success'] );
 		$saved  = $this->repository->finish_delivery( $delivery_id, $sent );
 		if ( is_wp_error( $saved ) ) {
 			return $saved;

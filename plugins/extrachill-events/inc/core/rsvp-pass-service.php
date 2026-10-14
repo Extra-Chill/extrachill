@@ -184,7 +184,8 @@ function extrachill_events_send_rsvp_pass_email( int $event_id, int $user_id, ar
 	}
 
 	$perk_text = function_exists( 'extrachill_events_get_perk_text' ) ? extrachill_events_get_perk_text( $event_id ) : '';
-	$body      = extrachill_events_render_rsvp_pass_email_body( $post, $perk_text, (string) $pass['code'] );
+	$claim_url = function_exists( 'extrachill_events_rsvp_claim_url_handoff' ) ? extrachill_events_rsvp_claim_url_handoff( $user_id ) : '';
+	$body      = extrachill_events_render_rsvp_pass_email_body( $post, $perk_text, (string) $pass['code'], $claim_url );
 
 	// ec_send_email_queued() already sends as the system (extrachill-network#318);
 	// callers must not wrap it in their own PermissionHelper context.
@@ -264,9 +265,11 @@ function extrachill_events_rsvp_pass_event_title( $post ): string {
  * @param WP_Post $post      Event post.
  * @param string  $perk_text Attendee-facing perk description.
  * @param string  $code      Pass code, as issued.
+ * @param string  $claim_url Optional set-password link for an unclaimed
+ *                           account created by a guest RSVP.
  * @return string
  */
-function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text, string $code ): string {
+function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text, string $code, string $claim_url = '' ): string {
 	/* translators: %s: Event title. */
 	$html = '<p>' . sprintf( esc_html__( "You're going to %s.", 'extrachill-events' ), esc_html( extrachill_events_rsvp_pass_event_title( $post ) ) ) . '</p>';
 
@@ -280,6 +283,16 @@ function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text
 	if ( function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ) {
 		$qr_url = extrachill_events_rsvp_pass_qr_url( $code );
 		$html  .= '<p><img src="' . esc_url( $qr_url ) . '" width="200" height="200" alt="' . esc_attr__( 'QR code for this pass', 'extrachill-events' ) . '"></p>';
+	}
+
+	if ( '' !== $claim_url ) {
+		$html .= '<hr><p>' . esc_html__( 'We made you an Extra Chill account with this email so your RSVP is saved.', 'extrachill-events' ) . '</p>';
+		$html .= '<p>' . sprintf(
+			/* translators: %s: set-password link. */
+			esc_html__( 'Set your password to manage your RSVP and join the community: %s', 'extrachill-events' ),
+			'<a href="' . esc_url( $claim_url ) . '">' . esc_html__( 'Set my password', 'extrachill-events' ) . '</a>'
+		) . '</p>';
+		$html .= '<p>' . esc_html__( "Didn't RSVP? You can ignore this email.", 'extrachill-events' ) . '</p>';
 	}
 
 	return $html;

@@ -164,6 +164,74 @@ class RsvpPassAbilities {
 				),
 			)
 		);
+
+		wp_register_ability(
+			'extrachill/guest-rsvp-event',
+			array(
+				'label'               => __( 'Guest RSVP To Event', 'extrachill-events' ),
+				'description'         => __( 'RSVP a logged-out guest to a perk-enabled event by email. Resolves or creates a claimable account, marks Going, and emails the pass with a set-password link when the account is unclaimed.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'email'    => array(
+							'type'        => 'string',
+							'description' => __( 'Guest email address.', 'extrachill-events' ),
+						),
+						'referrer' => array(
+							'type'        => 'string',
+							'description' => __( 'Optional external referrer URL for attribution.', 'extrachill-events' ),
+						),
+						'utm'      => array(
+							'type'        => 'object',
+							'description' => __( 'Optional UTM parameters for attribution.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'email' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'status' => array( 'type' => 'string' ),
+					),
+					'required'   => array( 'status' ),
+				),
+				'execute_callback'    => array( $this, 'guest_rsvp_event' ),
+				// Public write boundary (Turnstile) is the dedicated extrachill-api
+				// route; this ability is hidden from the generic REST runner.
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => true,
+						'destructive'  => false,
+						'instructions' => __( 'Never returns the pass code, user ID, or whether the email already had an account. The pass and any set-password link are delivered only by email.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * RSVP a guest by email. Response is deliberately opaque.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function guest_rsvp_event( array $input ) {
+		return extrachill_events_guest_rsvp(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['email'] ?? '' ),
+			array(
+				'referrer' => (string) ( $input['referrer'] ?? '' ),
+				'utm'      => is_array( $input['utm'] ?? null ) ? $input['utm'] : array(),
+			)
+		);
 	}
 
 	/**

@@ -62,8 +62,9 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 		}
 	}
 
-	$event_id  = $post_id;
-	$perk_text = extrachill_events_get_perk_text( $post_id );
+	$event_id   = $post_id;
+	$perk_text  = extrachill_events_get_perk_text( $post_id );
+	$guest_form = ! is_user_logged_in();
 
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/rsvp-pass.php';
 }
@@ -172,12 +173,25 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 		true
 	);
 
+	// Logged-out visitors get the email-only guest RSVP form, gated by
+	// Turnstile at the extrachill-api route.
+	$guest_form = ! $is_verify_page && ! is_user_logged_in();
+	if ( $guest_form && function_exists( 'ec_enqueue_turnstile_script' ) ) {
+		ec_enqueue_turnstile_script();
+	}
+
 	wp_localize_script(
 		'extrachill-events-rsvp-pass',
 		'ecRsvpPass',
 		array(
-			'eventId'   => $post_id,
-			'qrBaseUrl' => function_exists( 'extrachill_events_rsvp_pass_qr_base_url' ) ? extrachill_events_rsvp_pass_qr_base_url() : '',
+			'eventId'       => $post_id,
+			'qrBaseUrl'     => function_exists( 'extrachill_events_rsvp_pass_qr_base_url' ) ? extrachill_events_rsvp_pass_qr_base_url() : '',
+			'guestRsvpPath' => $guest_form ? '/extrachill/v1/events/' . $post_id . '/guest-rsvp' : '',
+			'guestRsvpText' => array(
+				'sending' => __( 'Sending your pass...', 'extrachill-events' ),
+				'success' => __( 'Check your inbox. Your pass is on its way.', 'extrachill-events' ),
+				'error'   => __( 'Something went wrong. Check your email address and try again.', 'extrachill-events' ),
+			),
 		)
 	);
 }

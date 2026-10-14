@@ -370,17 +370,9 @@ class EventSubmissionAbilities {
 	 * @return string Claim URL, or empty string on key-generation failure.
 	 */
 	private function buildClaimUrl( \WP_User $user ): string {
-		$key = get_password_reset_key( $user );
-		if ( is_wp_error( $key ) ) {
-			return '';
-		}
-
-		$base = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' )
-			: network_site_url();
-
-		// Canonical WordPress reset-password endpoint on the community site.
-		return trailingslashit( $base ) . 'wp-login.php?action=rp&key=' . rawurlencode( $key ) . '&login=' . rawurlencode( $user->user_login );
+		// Claim-link format and key minting are owned by extrachill-users
+		// (extrachill-users#451), shared with every guest/unclaimed flow.
+		return function_exists( 'ec_users_build_account_claim_url' ) ? (string) ec_users_build_account_claim_url( $user ) : '';
 	}
 
 	/**

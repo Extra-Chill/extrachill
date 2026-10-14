@@ -68,6 +68,8 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-rsvp-pass__code'    => 'monospace pass code',
 		'ec-rsvp-pass__qr'      => 'centered QR block',
 		'ec-rsvp-perk-teaser'   => 'teaser line for people without a pass',
+		'ec-rsvp-guest'         => 'guest email form: full-width centered line under the teaser',
+		'ec-rsvp-guest__note'   => 'muted small note under the guest form',
 		'ec-door-list'          => 'door list card spacing',
 		'ec-door-list__heading' => 'heading margin reset',
 		'ec-door-list__note'    => 'muted small note',
@@ -96,6 +98,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-rsvp-verify__perk'    => 'plain text; inherits theme typography',
 		'ec-rsvp-verify__status'  => 'JS write target; plain text',
 		'ec-rsvp-verify__redeem'  => 'styled via button-2 button-large; hook for JS only',
+		'ec-rsvp-guest__status'   => 'JS write target; styled via notice + notice-success|notice-error set by JS',
 	);
 
 	/**

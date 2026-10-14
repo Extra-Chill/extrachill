@@ -47,6 +47,7 @@
 			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>
 			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpGuestRsvpTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpPassQrGrantTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpPassQrUrlsTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>

@@ -18,6 +18,7 @@
 			<file>tests/Unit/Core/RsvpPassQrGrantTest.php</file>
 			<file>tests/Unit/Core/RsvpVerifyPageCacheTest.php</file>
 			<file>tests/Unit/Core/RsvpPassEmailTest.php</file>
+			<file>tests/Unit/Core/RsvpGuestRsvpTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

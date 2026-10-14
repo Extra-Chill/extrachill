@@ -75,6 +75,30 @@
  * The shared network bridge still owns link markup and instrumentation; this
  * consumer only composes it into the Event Details surface.
  */
+/*
+ * Guest RSVP form (logged-out viewers on perk events): email + Turnstile +
+ * submit, as its own centered line right under the teaser. Inputs and the
+ * button keep theme styling; only the layout is composed here.
+ */
+.data-machine-event-details .event-action-buttons > .ec-rsvp-guest {
+    order: 3;
+    flex: 1 0 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm, 0.5rem);
+    max-width: 22rem;
+    box-sizing: border-box;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.data-machine-event-details .event-action-buttons > .ec-rsvp-guest .ec-rsvp-guest__note {
+    margin: 0;
+    font-size: var(--font-size-sm, 0.8125rem);
+    color: var(--muted-text, #6b7280);
+}
+
 .data-machine-event-details .event-action-buttons > .network-bridge-section {
     flex: 1 0 100%;
     width: 100%;
