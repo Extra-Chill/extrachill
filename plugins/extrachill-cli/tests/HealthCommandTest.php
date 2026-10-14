@@ -12,6 +12,7 @@ namespace {
 		// would collide with core, so skip the whole file. Run it standalone
 		// instead: `php tests/HealthCommandTest.php` (see homeboy.json self_checks).
 		define( 'ABSPATH', __DIR__ . '/' );
+		define( 'DAY_IN_SECONDS', 86400 );
 
 		class WP_CLI {
 			public static $messages = array();
@@ -42,9 +43,13 @@ namespace {
 		$health_command_blog_stack    = array();
 		$health_command_jobs_ability  = new HealthCommandTestAbility();
 		$health_command_error_ability = new HealthCommandTestAbility();
+		$health_command_ga_ability    = null;
 
 		function wp_get_ability( $name ) {
-			global $health_command_error_ability, $health_command_jobs_ability;
+			global $health_command_error_ability, $health_command_jobs_ability, $health_command_ga_ability;
+			if ( 'datamachine/google-analytics' === $name ) {
+				return $health_command_ga_ability;
+			}
 			if ( 'datamachine/get-jobs-summary' === $name ) {
 				return $health_command_jobs_ability;
 			}
@@ -212,6 +217,125 @@ namespace {
 		health_command_assert_contains( 'Network-wide', $table, 'Table output must retain its network scope label.' );
 		health_command_assert_contains( 'Errors/day:  42.5', $table, 'Table output must retain the network error rate.' );
 		health_command_assert_same( 1, substr_count( $table, 'Errors/day:' ), 'Table output must print the network error rate once.' );
+
+		// Without GA, every traffic field is an explicit coverage gap.
+		foreach ( HealthCommand::TRAFFIC_FIELDS as $field ) {
+			health_command_assert_same( HealthCommand::GAP, $main_rows[0][ $field ], "Absent GA must leave {$field} uninstrumented." );
+		}
+
+		// Fixture rows mirror the live aggregate_report normalized shape
+		// (events.extrachill.com, 2026-09-16..10-14): string metric values
+		// keyed by name under one sessionDefaultChannelGroup dimension.
+		$channel_row = static function ( $channel, $sessions, $engaged, $duration ) {
+			return array(
+				'dimensions' => array( 'sessionDefaultChannelGroup' => $channel ),
+				'metrics'    => array(
+					'sessions'               => (string) $sessions,
+					'engagedSessions'        => (string) $engaged,
+					'averageSessionDuration' => (string) $duration,
+				),
+			);
+		};
+		$events_rows = array(
+			$channel_row( 'Direct', 86648, 11414, '6.79216612281876' ),
+			$channel_row( 'Organic Search', 30445, 18520, '73.310301704582031' ),
+			$channel_row( 'Unassigned', 3982, 32, '3.4244342604218985' ),
+			$channel_row( 'AI Assistant', 689, 357, '82.128227625544255' ),
+		);
+
+		$events = HealthCommand::summarize_channel_rows( $events_rows );
+		health_command_assert_same( 121764, $events['sessions'], 'Raw sessions sum every channel.' );
+		health_command_assert_same( 30323, $events['engaged_sessions'], 'Engaged sessions sum every channel.' );
+		health_command_assert_same( 71.2, $events['direct_pct'], 'Raw direct share keeps its original meaning.' );
+		health_command_assert_same( 25.0, $events['organic_pct'], 'Raw organic share keeps its original meaning.' );
+		health_command_assert_same( 61.1, $events['engaged_organic_pct'], 'Engaged organic share is organic engaged / all engaged.' );
+		health_command_assert_same( 37.6, $events['engaged_direct_pct'], 'Engaged direct share is direct engaged / all engaged.' );
+		health_command_assert_same( 0.132, $events['direct_engagement_rate'], 'Direct engagement rate is engaged / sessions.' );
+		health_command_assert_same( 6.8, $events['direct_avg_duration'], 'Direct average duration comes from the direct row.' );
+		health_command_assert_same( true, $events['direct_likely_non_human'], 'Low-engagement, sub-10s direct traffic is flagged.' );
+
+		// Threshold edges: failing only one of the two thresholds is not flagged.
+		$short_but_engaged = HealthCommand::summarize_channel_rows( array( $channel_row( 'Direct', 1000, 400, '5.0' ) ) );
+		health_command_assert_same( false, $short_but_engaged['direct_likely_non_human'], 'Engaged direct traffic is human even when sessions are short.' );
+		$long_but_unengaged = HealthCommand::summarize_channel_rows( array( $channel_row( 'Direct', 1000, 100, '45.0' ) ) );
+		health_command_assert_same( false, $long_but_unengaged['direct_likely_non_human'], 'Long direct sessions are not flagged on engagement alone.' );
+		$at_threshold = HealthCommand::summarize_channel_rows( array( $channel_row( 'Direct', 1000, 200, '10.0' ) ) );
+		health_command_assert_same( false, $at_threshold['direct_likely_non_human'], 'Exactly at both thresholds is not flagged.' );
+		$just_under = HealthCommand::summarize_channel_rows( array( $channel_row( 'Direct', 1000, 199, '9.9' ) ) );
+		health_command_assert_same( true, $just_under['direct_likely_non_human'], 'Just under both thresholds is flagged.' );
+
+		$tiny = HealthCommand::summarize_channel_rows( array( $channel_row( 'Direct', 99, 5, '3.0' ) ) );
+		health_command_assert_same( false, $tiny['direct_likely_non_human'], 'Surfaces under the minimum direct sample are too small to flag.' );
+		$minimum = HealthCommand::summarize_channel_rows( array( $channel_row( 'Direct', 100, 5, '3.0' ) ) );
+		health_command_assert_same( true, $minimum['direct_likely_non_human'], 'The minimum direct sample is enough to flag.' );
+
+		$no_direct = HealthCommand::summarize_channel_rows( array( $channel_row( 'Organic Search', 10, 5, '60' ) ) );
+		health_command_assert_same( false, $no_direct['direct_likely_non_human'], 'No direct traffic is never flagged.' );
+		health_command_assert_same( 0.0, $no_direct['engaged_direct_pct'], 'No direct traffic yields a zero direct share.' );
+		$empty = HealthCommand::summarize_channel_rows( array() );
+		health_command_assert_same( 0, $empty['sessions'], 'Empty reports yield zero sessions without dividing by zero.' );
+		health_command_assert_same( 0.0, $empty['engaged_organic_pct'], 'Empty reports yield zero shares.' );
+
+		// The command requests explicit metrics through aggregate_report, per host.
+		$health_command_ga_ability         = new HealthCommandTestAbility();
+		$health_command_ga_ability->result = array(
+			'success' => true,
+			'action'  => 'aggregate_report',
+			'reports' => array( array( 'rows' => $events_rows ) ),
+		);
+		WP_CLI::$printed = array();
+		$command->health( array(), array( 'format' => 'json', 'days' => 28 ) );
+		$ga_input = $health_command_ga_ability->inputs[1];
+		health_command_assert_same( 'aggregate_report', $ga_input['action'], 'Traffic must come from aggregate_report.' );
+		health_command_assert_same( array( 'sessions', 'engagedSessions', 'averageSessionDuration' ), $ga_input['metrics'], 'Engagement metrics must be requested explicitly.' );
+		health_command_assert_same( array( 'sessionDefaultChannelGroup' ), $ga_input['dimensions'], 'Traffic must be split by default channel group.' );
+		health_command_assert_same(
+			array(
+				array(
+					'field_name' => 'hostName',
+					'match_type' => 'EXACT',
+					'value'      => 'events.extrachill.com',
+				),
+			),
+			$ga_input['filters'],
+			'Each surface must be scoped to its own host.'
+		);
+		health_command_assert_same( 1, preg_match( '/^\d{4}-\d{2}-\d{2}$/', $ga_input['date_range']['start_date'] ), 'aggregate_report requires exact dates.' );
+		health_command_assert_same( 28 * DAY_IN_SECONDS, strtotime( $ga_input['date_range']['end_date'] ) - strtotime( $ga_input['date_range']['start_date'] ), 'The window must match --days.' );
+		$ga_site = WP_CLI::$printed[0]['value']['sites'][1];
+		health_command_assert_same( 30323, $ga_site['engaged_sessions'], 'JSON must expose engaged sessions.' );
+		health_command_assert_same( true, $ga_site['direct_likely_non_human'], 'JSON must expose the non-human flag.' );
+		health_command_assert_same( 121764, $ga_site['sessions'], 'JSON must keep raw sessions.' );
+
+		// A failed GA call reports zeroes, not a misleading flag.
+		$health_command_ga_ability->result = array(
+			'success' => false,
+			'error'   => 'quota',
+		);
+		$command->health( array(), array( 'format' => 'json' ) );
+		$failed_site = WP_CLI::$printed[1]['value']['sites'][1];
+		health_command_assert_same( 0, $failed_site['engaged_sessions'], 'A failed report yields zero engaged sessions.' );
+		health_command_assert_same( false, $failed_site['direct_likely_non_human'], 'A failed report never flags direct traffic.' );
+
+		// The table leads with engaged traffic and warns on non-human direct.
+		$health_command_ga_ability->result = array(
+			'success' => true,
+			'reports' => array( array( 'rows' => $events_rows ) ),
+		);
+		WP_CLI::$messages = array();
+		$command->health( array(), array( 'format' => 'table' ) );
+		$table = implode( "\n", WP_CLI::$messages );
+		health_command_assert_contains( 'Traffic:     30,323 engaged sessions   organic 61.1%   direct 37.6%', $table, 'Table must lead with engaged traffic.' );
+		health_command_assert_contains( 'Raw:         121,764 sessions   organic 25.0%   direct 71.2%', $table, 'Table must keep raw sessions visible.' );
+		health_command_assert_contains( 'Direct looks non-human: 13.2% engaged, 6.8s avg', $table, 'Table must flag non-human direct traffic.' );
+
+		// CSV carries every traffic field as a named column.
+		$health_command_formats = array();
+		$command->health( array(), array( 'format' => 'csv' ) );
+		foreach ( HealthCommand::TRAFFIC_FIELDS as $field ) {
+			health_command_assert_same( true, in_array( $field, $health_command_formats[0]['fields'], true ), "CSV must include {$field}." );
+			health_command_assert_same( '', $health_command_formats[0]['items'][0][ $field ], "The CSV network row must leave {$field} empty." );
+		}
 
 		echo "HealthCommandTest passed\n";
 	}

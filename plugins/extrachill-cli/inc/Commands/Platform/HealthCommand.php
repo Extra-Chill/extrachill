@@ -8,7 +8,7 @@
  * logic and runs no direct database queries. Every signal in the scorecard is
  * produced by an ability that already owns that logic:
  *
- *   - Traffic (bot-aware)   datamachine/google-analytics  (traffic_sources)
+ *   - Traffic (bot-aware)   datamachine/google-analytics  (aggregate_report)
  *   - Return rate           extrachill/get-retention-stats
  *   - Search-gap count      extrachill/get-search-gaps    (may be absent)
  *   - Error rate            extrachill/get-php-error-summary
@@ -42,6 +42,29 @@ class HealthCommand {
 	 * @var string
 	 */
 	const GAP = 'not instrumented';
+
+	/**
+	 * Traffic fields composed per site, in output order.
+	 *
+	 * Raw-session fields keep their original meaning; the engaged_* fields are
+	 * the human-weighted view the table leads with.
+	 *
+	 * @var string[]
+	 */
+	const TRAFFIC_FIELDS = array( 'sessions', 'organic_pct', 'direct_pct', 'engaged_sessions', 'engaged_organic_pct', 'engaged_direct_pct', 'direct_engagement_rate', 'direct_avg_duration', 'direct_likely_non_human' );
+
+	/**
+	 * A direct channel below BOTH thresholds is flagged as likely non-human.
+	 *
+	 * Real direct visitors (bookmarks, typed URLs, app links) engage like other
+	 * humans. Direct traffic where fewer than one in five sessions engages and
+	 * the average session lasts under ten seconds is crawler/bot shaped (e.g.
+	 * events.extrachill.com, 2026-09: 13% engaged, 6.8s average). Surfaces
+	 * with fewer direct sessions than the minimum are too small to judge.
+	 */
+	const NON_HUMAN_MAX_ENGAGEMENT_RATE = 0.20;
+	const NON_HUMAN_MAX_AVG_DURATION    = 10.0;
+	const NON_HUMAN_MIN_DIRECT_SESSIONS = 100;
 
 	/**
 	 * Compose a per-surface, bot-aware platform-health scorecard.
@@ -141,7 +164,7 @@ class HealthCommand {
 			Utils\format_items(
 				$format,
 				$this->csv_rows( $records, $network ),
-				array( 'scope', 'site', 'blog_id', 'sessions', 'organic_pct', 'direct_pct', 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'queue_failed', 'queue_stuck' )
+				array_merge( array( 'scope', 'site', 'blog_id' ), self::TRAFFIC_FIELDS, array( 'return_rate', 'search_gaps', 'content', 'network_errors_per_day', 'queue_failed', 'queue_stuck' ) )
 			);
 			return;
 		}
@@ -157,17 +180,19 @@ class HealthCommand {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function csv_rows( array $records, array $network ) {
-		$empty_site = array(
-			'site'         => '',
-			'blog_id'      => '',
-			'sessions'     => '',
-			'organic_pct'  => '',
-			'direct_pct'   => '',
-			'return_rate'  => '',
-			'search_gaps'  => '',
-			'content'      => '',
-			'queue_failed' => '',
-			'queue_stuck'  => '',
+		$empty_site = array_merge(
+			array(
+				'site'    => '',
+				'blog_id' => '',
+			),
+			array_fill_keys( self::TRAFFIC_FIELDS, '' ),
+			array(
+				'return_rate'  => '',
+				'search_gaps'  => '',
+				'content'      => '',
+				'queue_failed' => '',
+				'queue_stuck'  => '',
+			)
 		);
 		$rows       = array(
 			array_merge(
@@ -200,73 +225,121 @@ class HealthCommand {
 	private function compose_site( $blog_id, $hostname, $days, array $abilities ) {
 		$traffic = $this->compose_traffic( $abilities['ga'], $hostname, $days );
 
-		return array(
-			'site'        => $hostname,
-			'blog_id'     => $blog_id,
-			'sessions'    => $traffic['sessions'],
-			'organic_pct' => $traffic['organic_pct'],
-			'direct_pct'  => $traffic['direct_pct'],
-			'return_rate' => $this->compose_return_rate( $abilities['retention'], $blog_id, $days ),
-			'search_gaps' => $this->compose_search_gaps( $abilities['search_gap'], $blog_id, $days ),
-			'content'     => $this->compose_content( $blog_id ),
+		return array_merge(
+			array(
+				'site'    => $hostname,
+				'blog_id' => $blog_id,
+			),
+			$traffic,
+			array(
+				'return_rate' => $this->compose_return_rate( $abilities['retention'], $blog_id, $days ),
+				'search_gaps' => $this->compose_search_gaps( $abilities['search_gap'], $blog_id, $days ),
+				'content'     => $this->compose_content( $blog_id ),
+			)
 		);
 	}
 
 	/**
-	 * Compose bot-aware traffic totals from the GA traffic_sources action.
+	 * Compose bot-aware traffic for one host from GA aggregate_report.
+	 *
+	 * Requests sessions, engagedSessions, and averageSessionDuration per
+	 * sessionDefaultChannelGroup for the host. Raw shares (organic_pct,
+	 * direct_pct) keep their original meaning; engaged shares weight each
+	 * channel by sessions where a human actually engaged, so bot-inflated
+	 * direct traffic stops dominating the picture. The direct channel is
+	 * flagged when it falls under both non-human thresholds.
 	 *
 	 * @param \WP_Ability|null $ability  GA ability (or null if absent).
-	 * @param string      $hostname Site hostname for the hostName filter.
-	 * @param int         $days     Look-back window in days.
-	 * @return array{sessions:mixed, organic_pct:mixed, direct_pct:mixed}
+	 * @param string           $hostname Site hostname for the hostName filter.
+	 * @param int              $days     Look-back window in days.
+	 * @return array<string, mixed> Keyed by self::TRAFFIC_FIELDS.
 	 */
 	private function compose_traffic( $ability, $hostname, $days ) {
 		if ( ! $ability ) {
-			return array(
-				'sessions'    => self::GAP,
-				'organic_pct' => self::GAP,
-				'direct_pct'  => self::GAP,
-			);
+			return array_fill_keys( self::TRAFFIC_FIELDS, self::GAP );
 		}
 
+		$now    = time();
 		$result = $ability->execute(
 			array(
-				'action'     => 'traffic_sources',
-				'hostname'   => $hostname,
-				'start_date' => $days . 'daysAgo',
-				'end_date'   => 'today',
+				'action'     => 'aggregate_report',
+				'date_range' => array(
+					'start_date' => gmdate( 'Y-m-d', $now - $days * DAY_IN_SECONDS ),
+					'end_date'   => gmdate( 'Y-m-d', $now ),
+				),
+				'dimensions' => array( 'sessionDefaultChannelGroup' ),
+				'metrics'    => array( 'sessions', 'engagedSessions', 'averageSessionDuration' ),
+				'filters'    => array(
+					array(
+						'field_name' => 'hostName',
+						'match_type' => 'EXACT',
+						'value'      => $hostname,
+					),
+				),
+				'limit'      => 50,
 			)
 		);
 
-		if ( is_wp_error( $result ) || empty( $result['results'] ) ) {
-			return array(
-				'sessions'    => 0,
-				'organic_pct' => 0.0,
-				'direct_pct'  => 0.0,
-			);
-		}
+		$rows = ( ! is_wp_error( $result ) && ! empty( $result['success'] ) ) ? ( $result['reports'][0]['rows'] ?? array() ) : array();
 
-		$total   = 0;
-		$organic = 0;
-		$direct  = 0;
-		foreach ( $result['results'] as $row ) {
-			$sessions = (int) ( $row['sessions'] ?? 0 );
-			$total   += $sessions;
+		return self::summarize_channel_rows( is_array( $rows ) ? $rows : array() );
+	}
 
-			$medium = strtolower( (string) ( $row['sessionMedium'] ?? '' ) );
-			$source = strtolower( (string) ( $row['sessionSource'] ?? '' ) );
+	/**
+	 * Reduce aggregate_report channel rows to the traffic scorecard fields.
+	 *
+	 * Pure function over the ability's normalized row shape:
+	 * `{ dimensions: { sessionDefaultChannelGroup }, metrics: { sessions,
+	 * engagedSessions, averageSessionDuration } }`, metric values as strings.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Normalized report rows.
+	 * @return array<string, mixed> Keyed by self::TRAFFIC_FIELDS.
+	 */
+	public static function summarize_channel_rows( array $rows ) {
+		$sessions        = array(
+			'total'   => 0,
+			'organic' => 0,
+			'direct'  => 0,
+		);
+		$engaged         = $sessions;
+		$direct_weighted = 0.0;
 
-			if ( 'organic' === $medium ) {
-				$organic += $sessions;
-			} elseif ( '(direct)' === $source || '(none)' === $medium ) {
-				$direct += $sessions;
+		foreach ( $rows as $row ) {
+			$channel = (string) ( $row['dimensions']['sessionDefaultChannelGroup'] ?? '' );
+			$count   = (int) ( $row['metrics']['sessions'] ?? 0 );
+			$engage  = (int) ( $row['metrics']['engagedSessions'] ?? 0 );
+			$bucket  = 'Organic Search' === $channel ? 'organic' : ( 'Direct' === $channel ? 'direct' : null );
+
+			$sessions['total'] += $count;
+			$engaged['total']  += $engage;
+			if ( $bucket ) {
+				$sessions[ $bucket ] += $count;
+				$engaged[ $bucket ]  += $engage;
+			}
+			if ( 'direct' === $bucket ) {
+				$direct_weighted += (float) ( $row['metrics']['averageSessionDuration'] ?? 0 ) * $count;
 			}
 		}
 
+		$share = static function ( $part, $whole ) {
+			return $whole > 0 ? round( $part / $whole * 100, 1 ) : 0.0;
+		};
+
+		$direct_rate     = $sessions['direct'] > 0 ? round( $engaged['direct'] / $sessions['direct'], 3 ) : 0.0;
+		$direct_duration = $sessions['direct'] > 0 ? round( $direct_weighted / $sessions['direct'], 1 ) : 0.0;
+
 		return array(
-			'sessions'    => $total,
-			'organic_pct' => $total > 0 ? round( $organic / $total * 100, 1 ) : 0.0,
-			'direct_pct'  => $total > 0 ? round( $direct / $total * 100, 1 ) : 0.0,
+			'sessions'                => $sessions['total'],
+			'organic_pct'             => $share( $sessions['organic'], $sessions['total'] ),
+			'direct_pct'              => $share( $sessions['direct'], $sessions['total'] ),
+			'engaged_sessions'        => $engaged['total'],
+			'engaged_organic_pct'     => $share( $engaged['organic'], $engaged['total'] ),
+			'engaged_direct_pct'      => $share( $engaged['direct'], $engaged['total'] ),
+			'direct_engagement_rate'  => $direct_rate,
+			'direct_avg_duration'     => $direct_duration,
+			'direct_likely_non_human' => $sessions['direct'] >= self::NON_HUMAN_MIN_DIRECT_SESSIONS
+				&& $direct_rate < self::NON_HUMAN_MAX_ENGAGEMENT_RATE
+				&& $direct_duration < self::NON_HUMAN_MAX_AVG_DURATION,
 		);
 	}
 
@@ -518,7 +591,11 @@ class HealthCommand {
 
 		foreach ( $records as $r ) {
 			WP_CLI::log( sprintf( '● %s  (blog %d)', $r['site'], $r['blog_id'] ) );
-			WP_CLI::log( sprintf( '    Traffic:     %s sessions   organic %s   direct %s', $this->fmt( $r['sessions'] ), $this->pct( $r['organic_pct'] ), $this->pct( $r['direct_pct'] ) ) );
+			WP_CLI::log( sprintf( '    Traffic:     %s engaged sessions   organic %s   direct %s   (of engaged)', $this->fmt( $r['engaged_sessions'] ), $this->pct( $r['engaged_organic_pct'] ), $this->pct( $r['engaged_direct_pct'] ) ) );
+			WP_CLI::log( sprintf( '    Raw:         %s sessions   organic %s   direct %s', $this->fmt( $r['sessions'] ), $this->pct( $r['organic_pct'] ), $this->pct( $r['direct_pct'] ) ) );
+			if ( true === $r['direct_likely_non_human'] ) {
+				WP_CLI::log( sprintf( '    ⚠ Direct looks non-human: %s engaged, %ss avg. Read the engaged line, not raw sessions.', $this->pct( $r['direct_engagement_rate'] * 100 ), number_format( (float) $r['direct_avg_duration'], 1 ) ) );
+			}
 			WP_CLI::log( sprintf( '    Return rate: %s', $this->pct( $r['return_rate'] ) ) );
 			WP_CLI::log( sprintf( '    Search gaps: %s', $this->fmt( $r['search_gaps'] ) ) );
 			WP_CLI::log( sprintf( '    Content:     %s', $r['content'] ) );
