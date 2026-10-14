@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.38.0] - 2026-10-14
+
+### Added
+- add Turnstile-gated guest RSVP route
+
 ## [0.37.0] - 2026-10-14
 
 ### Added
