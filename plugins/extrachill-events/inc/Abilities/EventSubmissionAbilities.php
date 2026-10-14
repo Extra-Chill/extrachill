@@ -32,6 +32,27 @@ class EventSubmissionAbilities {
 
 	private static bool $registered = false;
 
+	/**
+	 * Source type stamped on every public-form submission (#964).
+	 *
+	 * Data Machine Events' upsert hashes `source_type` + `item_identifier`
+	 * from engine data into a stable source identity and resolves an
+	 * existing event that claims it before falling back to fuzzy
+	 * title/venue/date duplicate detection. Giving submissions a source
+	 * identity lets a resubmission update the submitter's own pending event
+	 * even when the AI step rewrote the title or the venue string changed.
+	 */
+	public const SUBMISSION_SOURCE_TYPE = 'event_submission';
+
+	/** Upsert's source-identity meta key (DataMachineEvents EventUpsert). */
+	private const SOURCE_IDENTITY_META_KEY = '_datamachine_event_source_identity';
+
+	/**
+	 * Statuses of events that have left the review queue. A resubmission
+	 * never updates these; pending and draft events are updated in place.
+	 */
+	private const REVIEWED_STATUSES = array( 'publish', 'future', 'private', 'trash' );
+
 	public function __construct() {
 		if ( ! self::$registered ) {
 			$this->registerAbilities();
@@ -431,6 +452,12 @@ class EventSubmissionAbilities {
 			// Data Machine Events' upsert assigns this term as-is (#965).
 			$initial_data['venue_term_id'] = (int) $submission['venue_term_id'];
 		}
+
+		$item_identifier = $this->resolveSubmissionItemIdentifier( $submission );
+		if ( '' !== $item_identifier ) {
+			$initial_data['source_type']     = self::SUBMISSION_SOURCE_TYPE;
+			$initial_data['item_identifier'] = $item_identifier;
+		}
 		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
 			$initial_data['image_file_path'] = $stored_flyer['stored_path'];
 		}
@@ -486,6 +513,97 @@ class EventSubmissionAbilities {
 			'message' => __( 'Thanks! We queued your submission for review.', 'extrachill-events' ),
 			'job_id'  => $job_id,
 		);
+	}
+
+	/**
+	 * Build the stable item identifier for a submission (#964).
+	 *
+	 * The identifier is keyed on what the submitter controls and repeats when
+	 * they resubmit the same show: who they are (account, or email for a
+	 * contact with no account), the event date, and the title they typed into
+	 * the form (normalized, before any AI rewrite). Upsert turns it into a
+	 * source identity, so a resubmission resolves to the event the first
+	 * submission created and updates it instead of creating a second pending
+	 * post. Venue and lineup are deliberately excluded: a corrected venue or
+	 * a completed lineup is exactly what a resubmission changes.
+	 *
+	 * Only a pending or draft claimant is updated in place. When the identity
+	 * is already held by an event that has left the review queue (published,
+	 * scheduled, private, or trashed), no identity is returned and the
+	 * submission takes the ordinary new-submission path, so a resubmission
+	 * can never claim a reviewed event through its source identity. A
+	 * submission with no submitter identity also gets none, so one anonymous
+	 * submitter can never update another's pending event.
+	 *
+	 * @param array $submission Sanitized submission.
+	 * @return string Item identifier, or '' when the submission gets no source identity.
+	 */
+	private function resolveSubmissionItemIdentifier( array $submission ): string {
+		$user_id = (int) ( $submission['user_id'] ?? 0 );
+		$email   = strtolower( trim( (string) ( $submission['contact_email'] ?? '' ) ) );
+
+		if ( $user_id > 0 ) {
+			$submitter = 'user:' . $user_id;
+		} elseif ( '' !== $email ) {
+			$submitter = 'email:' . substr( hash( 'sha256', $email ), 0, 16 );
+		} else {
+			return '';
+		}
+
+		$identifier = sprintf(
+			'submission:%s:%s:%s',
+			$submitter,
+			(string) ( $submission['event_date'] ?? '' ),
+			substr( hash( 'sha256', self::normalizeSubmissionTitle( (string) ( $submission['event_title'] ?? '' ) ) ), 0, 16 )
+		);
+
+		return $this->isSubmissionIdentityReviewed( $identifier ) ? '' : $identifier;
+	}
+
+	/**
+	 * Normalize a submitted title for identity matching.
+	 *
+	 * Case, punctuation, and whitespace differences ("Nightmare On King St"
+	 * vs "nightmare on king st.") are the same submission.
+	 *
+	 * @param string $title Raw sanitized title.
+	 * @return string Normalized key.
+	 */
+	public static function normalizeSubmissionTitle( string $title ): string {
+		$title = strtolower( html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		$title = (string) preg_replace( '/[^\p{L}\p{N}]+/u', ' ', $title );
+
+		return trim( (string) preg_replace( '/\s+/', ' ', $title ) );
+	}
+
+	/**
+	 * Whether an event that has left the review queue claims this identifier.
+	 *
+	 * Mirrors the source identity Data Machine Events' upsert derives from
+	 * `source_type` + `item_identifier`. Pending and draft claimants are not
+	 * counted: those are the events a resubmission should update.
+	 *
+	 * @param string $item_identifier Submission item identifier.
+	 * @return bool True when a reviewed (non-pending, non-draft) event holds it.
+	 */
+	private function isSubmissionIdentityReviewed( string $item_identifier ): bool {
+		$query = new \WP_Query(
+			array(
+				'post_type'      => defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events',
+				'post_status'    => self::REVIEWED_STATUSES,
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Same source-identity lookup EventUpsert performs.
+					array(
+						'key'   => self::SOURCE_IDENTITY_META_KEY,
+						'value' => hash( 'sha256', self::SUBMISSION_SOURCE_TYPE . "\0" . $item_identifier ),
+					),
+				),
+			)
+		);
+
+		return ! empty( $query->posts );
 	}
 
 	/**
