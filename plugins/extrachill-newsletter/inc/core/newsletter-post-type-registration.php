@@ -34,7 +34,7 @@ function create_newsletter_post_type() {
 				'slug'       => '',
 				'with_front' => false,
 			),
-			'supports'            => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments' ),
+			'supports'            => array( 'title', 'editor', 'author', 'thumbnail', 'excerpt', 'comments', 'revisions' ),
 			'show_in_rest'        => true,
 			'menu_position'       => 6,
 			'menu_icon'           => 'dashicons-email-alt',
