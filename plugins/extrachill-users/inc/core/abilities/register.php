@@ -65,6 +65,7 @@ function extrachill_users_register_category() {
 
 // Load ability files — each self-registers on wp_abilities_api_init.
 require_once __DIR__ . '/create-user.php';
+require_once __DIR__ . '/resolve-account-by-email.php';
 require_once __DIR__ . '/onboarding.php';
 require_once __DIR__ . '/moderation.php';
 require_once __DIR__ . '/welcome-email.php';
