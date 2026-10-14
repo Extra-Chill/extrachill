@@ -10,17 +10,20 @@
  * NOTHING alerted — it was caught only because a human read debug.log hours
  * later. This module closes that gap: it reads the LIVE debug.log tail on a
  * tight (~5 min) cadence, computes per-signature fatal rates, and beacons a
- * terse Discord alert the moment a new or spiking fatal appears.
+ * terse alert the moment a new or spiking fatal appears.
  *
  * Architecture / layer rules:
  *   - ALL error detection lives here (this plugin owns the error-capture
  *     surface). It reuses the existing parser/normalizer and the existing
  *     persisted table — no second parser, no second table.
- *   - Discord delivery is delegated to the data-machine-business ability
- *     `datamachine/post-message-discord`. We never reimplement Discord HTTP.
- *     If DMB is absent the alarm degrades gracefully (logs, no beacon).
- *   - No hardcoded vendor channel id in source as a magic literal: the target
- *     channel comes from a site option / filter with a documented default.
+ *   - Delivery has exactly one contract: the canonical `agents/dispatch-message`
+ *     ability. The primary dispatch channel spawns an investigating agent; an
+ *     optional notify-only dispatch channel is the fallback. Both channel names
+ *     and the recipient are configuration (site option -> filter), default
+ *     empty. No transport name or chat channel id is hardcoded (issue #304).
+ *   - An alarm is only recorded as alerted once it was actually delivered.
+ *     Undelivered alarms are retried on the next tick and fail the run, so a
+ *     silent delivery outage is impossible (issue #304).
  *
  * Scope: severity=fatal (and parse) ONLY for v1 — highest signal, lowest noise.
  *
@@ -41,7 +44,7 @@ const EXTRACHILL_ANALYTICS_FATAL_ALARM_HOOK = 'extrachill_analytics_fatal_alarm_
 const EXTRACHILL_ANALYTICS_FATAL_ALARM_STATE_OPTION = 'extrachill_analytics_fatal_alarm_state';
 
 /**
- * Site-option key for the configured Discord channel id (overridable by filter).
+ * Site-option key for the configured alarm recipient (overridable by filter).
  */
 const EXTRACHILL_ANALYTICS_FATAL_ALARM_CHANNEL_OPTION = 'extrachill_analytics_fatal_alarm_channel';
 
@@ -177,26 +180,22 @@ function extrachill_analytics_fatal_alarm_threshold() {
 }
 
 /**
- * Resolve the Discord channel id the alarm beacons to.
+ * Resolve the recipient the alarm is delivered to.
  *
- * Resolution order: site option -> filter -> documented default. The default
- * is the platform's `#extra-chill` coordination channel; it is intentionally a
- * config-resolved value, not a magic literal scattered through detection logic.
+ * The recipient is opaque to this plugin: it is handed to the dispatch channel
+ * as `recipient` (for a chat bridge, the chat channel that hosts the alarm
+ * thread). Resolution: site option -> filter. There is no default; an
+ * unconfigured install reports `unconfigured` instead of guessing (issue #304).
  *
- * @return string Discord channel id, or '' when unconfigured.
+ * @return string Recipient identifier, or '' when unconfigured.
  */
 function extrachill_analytics_fatal_alarm_channel() {
 	$channel = (string) get_site_option( EXTRACHILL_ANALYTICS_FATAL_ALARM_CHANNEL_OPTION, '' );
 
-	if ( '' === $channel ) {
-		// Documented default: the platform `#extra-chill` channel.
-		$channel = '1476075959806590989';
-	}
-
 	/**
-	 * Filter the Discord channel id the fatal-rate alarm beacons to.
+	 * Filter the recipient the fatal-rate alarm is delivered to.
 	 *
-	 * @param string $channel Discord channel id.
+	 * @param string $channel Recipient identifier, or '' when unconfigured.
 	 */
 	return (string) apply_filters( 'extrachill_analytics_fatal_alarm_channel', $channel );
 }
@@ -233,16 +232,48 @@ function extrachill_analytics_fatal_alarm_mention() {
  * @return string Dispatch channel id, or '' to disable agent dispatch.
  */
 function extrachill_analytics_fatal_alarm_dispatch_channel() {
-	$channel = (string) get_site_option( 'extrachill_analytics_fatal_alarm_dispatch_channel', 'kimaki' );
+	$channel = (string) get_site_option( 'extrachill_analytics_fatal_alarm_dispatch_channel', '' );
 
 	/**
 	 * Filter the agents/dispatch-message channel the alarm spawns a session on.
 	 *
-	 * Set to '' to disable agent dispatch and fall back to a plain Discord post.
+	 * Set to '' to disable agent dispatch; the notify-only channel (if any)
+	 * then carries the alarm.
 	 *
 	 * @param string $channel Dispatch transport channel id.
 	 */
 	return (string) apply_filters( 'extrachill_analytics_fatal_alarm_dispatch_channel', $channel );
+}
+
+/**
+ * Resolve the notify-only dispatch channel used as the delivery fallback.
+ *
+ * Also an `agents/dispatch-message` channel name, but one whose transport only
+ * posts the message (no agent session). It carries the alarm when the primary
+ * agent dispatch is unconfigured or fails, so a human is still paged.
+ * Resolution: site option -> filter -> '' (no fallback).
+ *
+ * @return string Notify-only dispatch channel id, or '' when unconfigured.
+ */
+function extrachill_analytics_fatal_alarm_notify_channel() {
+	$channel = (string) get_site_option( 'extrachill_analytics_fatal_alarm_notify_channel', '' );
+
+	/**
+	 * Filter the notify-only agents/dispatch-message channel for the alarm.
+	 *
+	 * @param string $channel Notify-only dispatch channel id, or ''.
+	 */
+	return (string) apply_filters( 'extrachill_analytics_fatal_alarm_notify_channel', $channel );
+}
+
+/**
+ * Whether the alarm has a recipient and at least one delivery channel.
+ *
+ * @return bool True when an alarm could be delivered.
+ */
+function extrachill_analytics_fatal_alarm_delivery_configured() {
+	return '' !== extrachill_analytics_fatal_alarm_channel()
+		&& ( '' !== extrachill_analytics_fatal_alarm_dispatch_channel() || '' !== extrachill_analytics_fatal_alarm_notify_channel() );
 }
 
 /**
@@ -308,8 +339,25 @@ function extrachill_analytics_fatal_alarm_severities() {
  * the window are treated as RESOLVED and never alarm (this is the #48 fix: a
  * stopped fatal must not re-alarm off persisted residue).
  *
- * @param bool $dry_run When true, compute and return what WOULD alarm without
- *                      sending Discord or mutating dedupe state.
+ * Delivery outcome (`beacon.outcome`, issue #304):
+ *   - `none`            no alarms to deliver.
+ *   - `delivered`       every alarm was delivered by some channel.
+ *   - `partial`         some alarms delivered, others not.
+ *   - `delivery_failed` alarms existed, delivery is configured, none delivered.
+ *   - `unconfigured`    alarms existed but no recipient/channel is configured.
+ * Only delivered alarms are written to dedupe state; the rest re-alarm on the
+ * next tick.
+ *
+ * @param bool        $dry_run       When true, compute and return what WOULD
+ *                                   alarm without delivering or mutating
+ *                                   dedupe state.
+ * @param bool        $test_delivery When true, skip evaluation and deliver one
+ *                                   clearly labelled synthetic alarm through
+ *                                   the configured channels. Overrides dry_run;
+ *                                   never writes dedupe state.
+ * @param object|null $dispatcher    Object with `execute( array $input )`
+ *                                   compatible with `agents/dispatch-message`.
+ *                                   Defaults to the registered ability.
  * @return array{
  *     evaluated_at:int,
  *     window_seconds:int,
@@ -317,10 +365,15 @@ function extrachill_analytics_fatal_alarm_severities() {
  *     candidates:array<int, array<string, mixed>>,
  *     alarms:array<int, array<string, mixed>>,
  *     dry_run:bool,
- *     beacon:array{attempted:bool, sent:int, channel:string, can_dispatch:bool, can_notify:bool}
+ *     test_delivery:bool,
+ *     beacon:array<string, mixed>
  * }
  */
-function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false ) {
+function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false, $test_delivery = false, $dispatcher = null ) {
+	if ( null === $dispatcher && function_exists( 'wp_get_ability' ) ) {
+		$dispatcher = wp_get_ability( 'agents/dispatch-message' );
+	}
+
 	$now            = time();
 	$window         = extrachill_analytics_fatal_alarm_window_seconds();
 	$since_ts       = $now - $window;
@@ -336,15 +389,25 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false ) {
 		'threshold'      => $threshold,
 		'candidates'     => array(),
 		'alarms'         => array(),
-		'dry_run'        => (bool) $dry_run,
+		'dry_run'        => (bool) $dry_run && ! $test_delivery,
+		'test_delivery'  => (bool) $test_delivery,
 		'beacon'         => array(
 			'attempted'    => false,
 			'sent'         => 0,
-			'channel'      => '',
-			'can_dispatch' => function_exists( 'wp_get_ability' ) && null !== wp_get_ability( 'agents/dispatch-message' ),
-			'can_notify'   => function_exists( 'wp_get_ability' ) && null !== wp_get_ability( 'datamachine/post-message-discord' ),
+			'failed'       => 0,
+			'channel'      => extrachill_analytics_fatal_alarm_channel(),
+			'configured'   => extrachill_analytics_fatal_alarm_delivery_configured(),
+			'can_dispatch' => null !== $dispatcher,
+			'outcome'      => 'none',
+			'deliveries'   => array(),
 		),
 	);
+
+	if ( $test_delivery ) {
+		$result['alarms'] = array( extrachill_analytics_fatal_alarm_synthetic_test_alarm( $now ) );
+		$result['beacon'] = extrachill_analytics_deliver_fatal_alarms( $result['alarms'], $result['beacon'], $dispatcher );
+		return $result;
+	}
 
 	// Read the live tail only — the alarm is about what is firing NOW, not the
 	// persisted blend (which retains resolved history and would re-alarm #48).
@@ -478,22 +541,23 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false ) {
 		return $result;
 	}
 
-	// Beacon + persist dedupe state for the signatures we actually alarmed on.
-	$channel                     = extrachill_analytics_fatal_alarm_channel();
-	$result['beacon']['channel'] = $channel;
+	$result['beacon'] = extrachill_analytics_deliver_fatal_alarms( $alarms, $result['beacon'], $dispatcher );
 
-	foreach ( $alarms as $alarm ) {
-		$result['beacon']['attempted'] = true;
-		$sent                          = extrachill_analytics_send_fatal_alarm_beacon( $alarm, $channel );
-		if ( $sent ) {
-			++$result['beacon']['sent'];
+	// Persist dedupe state ONLY for alarms that were actually delivered. An
+	// undelivered alarm keeps no state, so the next tick alarms on it again
+	// (issue #304: state used to be written regardless, silencing failures).
+	$state_changed = false;
+	foreach ( $result['beacon']['deliveries'] as $index => $delivery ) {
+		if ( empty( $delivery['delivered'] ) ) {
+			continue;
 		}
-
+		$alarm                        = $alarms[ $index ];
 		$state[ $alarm['signature'] ] = array(
 			'last_alerted_at'   => $now,
 			'last_alerted_rate' => $alarm['rate_per_hr'],
 			'last_seen'         => $alarm['last_seen'],
 		);
+		$state_changed                = true;
 	}
 
 	// Prune state entries that are stale (not seen in 7 days) to keep the option
@@ -503,98 +567,149 @@ function extrachill_analytics_evaluate_fatal_alarm( $dry_run = false ) {
 		$ts = isset( $entry['last_alerted_at'] ) ? (int) $entry['last_alerted_at'] : 0;
 		if ( $ts > 0 && $ts < $cutoff ) {
 			unset( $state[ $sig ] );
+			$state_changed = true;
 		}
 	}
 
-	update_site_option( EXTRACHILL_ANALYTICS_FATAL_ALARM_STATE_OPTION, $state );
+	if ( $state_changed ) {
+		update_site_option( EXTRACHILL_ANALYTICS_FATAL_ALARM_STATE_OPTION, $state );
+	}
 
 	return $result;
 }
 
 /**
- * Deliver a single fatal-rate alarm.
+ * Map a delivery outcome to a run failure reason.
  *
- * Primary path: spawn a coding-agent session via the canonical
- * `agents/dispatch-message` ability so the bot is actually paged to INVESTIGATE
- * AND FIX the fatal (open a PR), with the configured human @mentioned in the
- * prompt. This is the real prior art the platform already uses to ping the bot;
- * the alarm never names the transport runtime — the channel id is config.
+ * A tick fails when alarms existed but were not all delivered, so a delivery
+ * outage surfaces in job history instead of completing silently (issue #304).
  *
- * Fallback path: if dispatch is unavailable or fails, post a plain notification
- * via `datamachine/post-message-discord` so a human is still alerted.
- *
- * Degrades gracefully (returns false) when neither path is available.
- *
- * @param array  $alarm   One alarm row from the evaluator.
- * @param string $channel Discord channel id (notification target / agent thread home).
- * @return bool True when the alarm was delivered by either path.
+ * @param string $outcome Beacon outcome from the evaluator.
+ * @return string|null Failure reason, or null when the tick succeeded.
  */
-function extrachill_analytics_send_fatal_alarm_beacon( $alarm, $channel ) {
-	if ( ! function_exists( 'wp_get_ability' ) ) {
-		return false;
+function extrachill_analytics_fatal_alarm_failure_reason( $outcome ) {
+	if ( in_array( $outcome, array( 'unconfigured', 'delivery_failed', 'partial' ), true ) ) {
+		return $outcome;
 	}
-
-	// Primary: dispatch a coding-agent session that fixes the fatal.
-	if ( extrachill_analytics_dispatch_fatal_alarm_agent( $alarm, $channel ) ) {
-		return true;
-	}
-
-	// Fallback: plain Discord notification (still @mentions the human).
-	if ( '' === $channel ) {
-		return false;
-	}
-
-	$ability = wp_get_ability( 'datamachine/post-message-discord' );
-	if ( null === $ability ) {
-		return false;
-	}
-
-	$content = extrachill_analytics_format_fatal_alarm_message( $alarm, true );
-
-	$response = $ability->execute(
-		array(
-			'channel_id' => $channel,
-			'content'    => $content,
-		)
-	);
-
-	if ( is_wp_error( $response ) ) {
-		return false;
-	}
-
-	return is_array( $response ) && ! empty( $response['success'] );
+	return null;
 }
 
 /**
- * Spawn a coding-agent session to investigate and fix the fatal.
+ * Deliver a list of alarms and fold per-alarm outcomes into the beacon result.
  *
- * Uses the canonical `agents/dispatch-message` ability (agents-api). The
- * dispatch channel (a registered CLI runtime that opens an agent thread) and
- * the recipient (the Discord channel the thread is homed in) are config; the
- * prompt instructs the bot to fix the fatal and @mentions the configured human.
+ * Each entry in `beacon.deliveries` is keyed by the alarm's index and records
+ * which channel delivered it. `beacon.outcome` summarizes the batch (see
+ * extrachill_analytics_evaluate_fatal_alarm()).
  *
- * @param array  $alarm   One alarm row from the evaluator.
- * @param string $channel Discord channel id the agent thread should live in.
- * @return bool True when the dispatch reported the session was sent.
+ * @param array       $alarms     Alarm rows to deliver.
+ * @param array       $beacon     Beacon result to update.
+ * @param object|null $dispatcher `agents/dispatch-message` compatible object.
+ * @return array Updated beacon result.
  */
-function extrachill_analytics_dispatch_fatal_alarm_agent( $alarm, $channel ) {
-	$dispatch_channel = extrachill_analytics_fatal_alarm_dispatch_channel();
-	if ( '' === $dispatch_channel || '' === $channel ) {
+function extrachill_analytics_deliver_fatal_alarms( $alarms, $beacon, $dispatcher ) {
+	if ( empty( $alarms ) ) {
+		return $beacon;
+	}
+
+	$beacon['attempted'] = true;
+
+	if ( ! $beacon['configured'] || null === $dispatcher ) {
+		$beacon['failed']  = count( $alarms );
+		$beacon['outcome'] = $beacon['configured'] ? 'delivery_failed' : 'unconfigured';
+		foreach ( $alarms as $index => $alarm ) {
+			$beacon['deliveries'][ $index ] = array(
+				'signature' => $alarm['signature'],
+				'dispatch'  => false,
+				'notify'    => false,
+				'delivered' => false,
+			);
+		}
+		return $beacon;
+	}
+
+	foreach ( $alarms as $index => $alarm ) {
+		$delivery                       = extrachill_analytics_send_fatal_alarm_beacon( $alarm, $beacon['channel'], $dispatcher );
+		$beacon['deliveries'][ $index ] = $delivery;
+		if ( $delivery['delivered'] ) {
+			++$beacon['sent'];
+		} else {
+			++$beacon['failed'];
+		}
+	}
+
+	if ( 0 === $beacon['failed'] ) {
+		$beacon['outcome'] = 'delivered';
+	} elseif ( 0 === $beacon['sent'] ) {
+		$beacon['outcome'] = 'delivery_failed';
+	} else {
+		$beacon['outcome'] = 'partial';
+	}
+
+	return $beacon;
+}
+
+/**
+ * Deliver a single fatal-rate alarm.
+ *
+ * Primary path: the configured agent dispatch channel spawns a coding-agent
+ * session that investigates and fixes the fatal, with the configured human
+ * @mentioned. Fallback path: the configured notify-only dispatch channel posts
+ * a plain alarm message so a human is still paged. Both go through the single
+ * `agents/dispatch-message` contract; channel names are configuration.
+ *
+ * @param array  $alarm      One alarm row from the evaluator.
+ * @param string $recipient  Recipient handed to the dispatch channel.
+ * @param object $dispatcher `agents/dispatch-message` compatible object.
+ * @return array{signature:string, dispatch:bool, notify:bool, delivered:bool} Per-path outcome.
+ */
+function extrachill_analytics_send_fatal_alarm_beacon( $alarm, $recipient, $dispatcher ) {
+	$dispatched = extrachill_analytics_dispatch_fatal_alarm_message(
+		$dispatcher,
+		extrachill_analytics_fatal_alarm_dispatch_channel(),
+		$recipient,
+		extrachill_analytics_fatal_alarm_prompt( $alarm, false ),
+		$alarm
+	);
+
+	$notified = false;
+	if ( ! $dispatched ) {
+		$notified = extrachill_analytics_dispatch_fatal_alarm_message(
+			$dispatcher,
+			extrachill_analytics_fatal_alarm_notify_channel(),
+			$recipient,
+			extrachill_analytics_fatal_alarm_prompt( $alarm, true ),
+			$alarm
+		);
+	}
+
+	return array(
+		'signature' => $alarm['signature'],
+		'dispatch'  => $dispatched,
+		'notify'    => $notified,
+		'delivered' => $dispatched || $notified,
+	);
+}
+
+/**
+ * Send one alarm message through an `agents/dispatch-message` channel.
+ *
+ * @param object $dispatcher       `agents/dispatch-message` compatible object.
+ * @param string $dispatch_channel Dispatch channel name ('' = skip).
+ * @param string $recipient        Recipient handed to the channel.
+ * @param string $message          Message body.
+ * @param array  $alarm            Alarm row (for metadata).
+ * @return bool True when the channel reported the message as sent.
+ */
+function extrachill_analytics_dispatch_fatal_alarm_message( $dispatcher, $dispatch_channel, $recipient, $message, $alarm ) {
+	if ( '' === $dispatch_channel || '' === $recipient || ! method_exists( $dispatcher, 'execute' ) ) {
 		return false;
 	}
 
-	$ability = wp_get_ability( 'agents/dispatch-message' );
-	if ( null === $ability ) {
-		return false;
-	}
-
-	$prompt = extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm );
-
-	$response = $ability->execute(
+	$response = $dispatcher->execute(
 		array(
 			'channel'   => $dispatch_channel,
-			'recipient' => $channel,
-			'message'   => $prompt,
+			'recipient' => $recipient,
+			'message'   => $message,
 			'metadata'  => array(
 				'source'    => EXTRACHILL_ANALYTICS_FATAL_ALARM_DISPATCH_SOURCE,
 				'signature' => $alarm['signature'],
@@ -607,6 +722,61 @@ function extrachill_analytics_dispatch_fatal_alarm_agent( $alarm, $channel ) {
 	}
 
 	return is_array( $response ) && ! empty( $response['sent'] );
+}
+
+/**
+ * Choose the message body for an alarm and delivery path.
+ *
+ * @param array $alarm       Alarm row.
+ * @param bool  $notify_only True for the notify-only fallback (plain alert),
+ *                           false for the agent dispatch (fix prompt).
+ * @return string Message body.
+ */
+function extrachill_analytics_fatal_alarm_prompt( $alarm, $notify_only ) {
+	if ( ! empty( $alarm['test_delivery'] ) ) {
+		return extrachill_analytics_format_fatal_alarm_test_message();
+	}
+
+	return $notify_only
+		? extrachill_analytics_format_fatal_alarm_message( $alarm, true )
+		: extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm );
+}
+
+/**
+ * Build the synthetic alarm row used by `test_delivery`.
+ *
+ * @param int $now Current timestamp.
+ * @return array Alarm row flagged with `test_delivery`.
+ */
+function extrachill_analytics_fatal_alarm_synthetic_test_alarm( $now ) {
+	$stamp = gmdate( 'Y-m-d H:i:s', $now );
+
+	return array(
+		'signature'     => 'test-delivery',
+		'severity'      => 'fatal',
+		'file'          => 'test_delivery',
+		'sample'        => 'Synthetic test alarm. No PHP fatal occurred.',
+		'count'         => 0,
+		'rate_per_hr'   => 0,
+		'first_seen'    => $stamp,
+		'last_seen'     => $stamp,
+		'is_new'        => false,
+		'is_live'       => false,
+		'reasons'       => array( 'test_delivery' ),
+		'would_alarm'   => false,
+		'test_delivery' => true,
+	);
+}
+
+/**
+ * Message body for a test delivery. Tells a spawned agent not to act.
+ *
+ * @return string Message body.
+ */
+function extrachill_analytics_format_fatal_alarm_test_message() {
+	return extrachill_analytics_fatal_alarm_mention_prefix()
+		. '🧪 **PHP fatal alarm delivery test.** No real fatal occurred; this verifies the alarm reaches this channel. '
+		. 'If you are an agent, reply with one line confirming receipt and stop. Do not run tools.';
 }
 
 /**

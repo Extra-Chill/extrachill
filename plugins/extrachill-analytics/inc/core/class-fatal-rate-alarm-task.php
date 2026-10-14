@@ -62,8 +62,8 @@ class FatalRateAlarmTask extends SystemTask {
 	 * Pure operational sensor — runs without agent ownership context.
 	 *
 	 * The task reads debug.log and may dispatch an alert via the
-	 * `agents/dispatch-message` / `datamachine/post-message-discord`
-	 * abilities, but it never acts AS an agent or invokes an agent-scoped
+	 * `agents/dispatch-message` ability, but it never acts AS an agent or
+	 * invokes an agent-scoped
 	 * mutation. It is registered as an agent-less recurring schedule, so it
 	 * must opt out of the SystemTask agent-context gate or
 	 * TaskScheduler::schedule() rejects it before it runs.
@@ -107,9 +107,16 @@ class FatalRateAlarmTask extends SystemTask {
 	 * record — which is exactly what was missing when a worktree-origin
 	 * false-positive paged the bot with no run history (issue #98).
 	 *
+	 * A tick with alarms that were not all delivered FAILS the job (reason
+	 * `unconfigured`, `delivery_failed` or `partial`) so a delivery outage is
+	 * visible in `wp datamachine jobs` and the undelivered alarms retry next
+	 * tick (issue #304). Quiet ticks complete normally.
+	 *
 	 * Params (optional):
-	 *   - `dry_run` (bool) — compute candidates without beaconing or mutating
-	 *                        dedupe state. Default: false.
+	 *   - `dry_run` (bool)       — compute candidates without delivering or
+	 *                              mutating dedupe state. Default: false.
+	 *   - `test_delivery` (bool) — deliver one labelled synthetic alarm through
+	 *                              the configured channels; no dedupe write.
 	 *
 	 * @param int   $jobId  Job ID from DM Jobs table.
 	 * @param array $params Task parameters from engine_data.
@@ -139,24 +146,40 @@ class FatalRateAlarmTask extends SystemTask {
 			return;
 		}
 
-		$dry_run = ! empty( $params['dry_run'] );
+		$dry_run       = ! empty( $params['dry_run'] );
+		$test_delivery = ! empty( $params['test_delivery'] );
 
 		// The evaluator always returns a fully-populated result array
 		// (window_seconds, threshold, candidates, alarms, beacon), so the
 		// fields below are read directly without defensive ?? / isset.
-		$result = extrachill_analytics_evaluate_fatal_alarm( $dry_run );
+		$result = extrachill_analytics_evaluate_fatal_alarm( $dry_run, $test_delivery );
 
-		$this->completeJob(
-			$jobId,
-			array(
-				'dry_run'         => $dry_run,
-				'window_seconds'  => $result['window_seconds'],
-				'threshold'       => $result['threshold'],
-				'candidate_count' => count( $result['candidates'] ),
-				'alarm_count'     => count( $result['alarms'] ),
-				'alarms'          => $result['alarms'],
-				'beacon'          => $result['beacon'],
-			)
+		$summary = array(
+			'dry_run'         => $result['dry_run'],
+			'test_delivery'   => $result['test_delivery'],
+			'window_seconds'  => $result['window_seconds'],
+			'threshold'       => $result['threshold'],
+			'candidate_count' => count( $result['candidates'] ),
+			'alarm_count'     => count( $result['alarms'] ),
+			'alarms'          => $result['alarms'],
+			'beacon'          => $result['beacon'],
 		);
+
+		$failure = extrachill_analytics_fatal_alarm_failure_reason( $result['beacon']['outcome'] );
+		if ( null !== $failure ) {
+			$this->failJob(
+				$jobId,
+				sprintf(
+					'Fatal alarm %s: %d of %d alarm(s) delivered. Evaluation: %s',
+					$failure,
+					(int) $result['beacon']['sent'],
+					count( $result['alarms'] ),
+					wp_json_encode( $summary )
+				)
+			);
+			return;
+		}
+
+		$this->completeJob( $jobId, $summary );
 	}
 }
