@@ -18,7 +18,16 @@
 defined( 'ABSPATH' ) || exit;
 
 const EC_USERS_ATTENDANCE_INTENT_PARAM = 'ec_attendance_intent';
-const EC_USERS_ATTENDANCE_INTENT_TTL   = 10 * MINUTE_IN_SECONDS;
+
+/*
+ * The intent is minted when the event page renders, not when "Going" is
+ * tapped, so its lifetime has to cover page dwell plus the whole signup
+ * flow (slow OAuth in in-app browsers included). It only authorizes
+ * "mark me going to this one event" for whoever completes login, and any
+ * visitor can mint a fresh one by loading the page, so a longer window
+ * adds no meaningful exposure. See Extra-Chill/extrachill-users#453.
+ */
+const EC_USERS_ATTENDANCE_INTENT_TTL = 2 * HOUR_IN_SECONDS;
 
 /**
  * Create a signed continuation for one explicit attendance action.
