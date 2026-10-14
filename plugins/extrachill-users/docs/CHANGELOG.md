@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.50.1] - 2026-10-14
+
+### Fixed
+- keep the welcome-email fallback scheduled and limit it to recent signups
+- keep the Going RSVP continuation valid through a slow signup
+
 ## [0.50.0] - 2026-10-14
 
 ### Added
