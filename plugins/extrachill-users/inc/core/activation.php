@@ -9,6 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * How far back (in days) the welcome-email fallback looks for signups that
+ * never finished onboarding.
+ */
+const EXTRACHILL_WELCOME_EMAIL_FALLBACK_WINDOW_DAYS = 7;
+
+/**
  * Main activation handler.
  * Called via register_activation_hook.
  */
@@ -68,9 +74,7 @@ function extrachill_users_run_activation() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-dispatch-role.php';
 	ec_users_register_artist_dispatch_role_on_main();
 
-	if ( ! wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
-		wp_schedule_event( time(), 'hourly', 'extrachill_welcome_email_fallback' );
-	}
+	extrachill_welcome_email_fallback_maybe_schedule();
 }
 
 /**
@@ -92,14 +96,19 @@ function extrachill_users_run_deactivation() {
 }
 
 /**
- * Cron callback for sending welcome emails to users who never completed onboarding.
+ * Users the welcome-email fallback should target right now.
  *
- * Finds users registered over 1 hour ago who haven't completed onboarding
- * and haven't received a welcome email yet.
+ * Network-wide signups registered between EXTRACHILL_WELCOME_EMAIL_FALLBACK_WINDOW_DAYS
+ * and one hour ago that have not completed onboarding and have not been sent
+ * a welcome email.
+ *
+ * @return WP_User[]
  */
-function extrachill_welcome_email_fallback_callback() {
+function extrachill_welcome_email_fallback_candidates() {
 	$users = get_users(
 		array(
+			// Users are network-wide; do not limit to members of the current blog.
+			'blog_id'    => 0,
 			'meta_query' => array(
 				'relation' => 'AND',
 				array(
@@ -118,13 +127,31 @@ function extrachill_welcome_email_fallback_callback() {
 					),
 				),
 			),
+			// Only recent signups: the lower bound keeps a re-enabled schedule from
+			// mass-emailing long-dormant accounts (see #454).
 			'date_query' => array(
 				array(
-					'before' => '1 hour ago',
+					// user_registered is UTC; relative strings would be resolved in
+					// site-local time, so pass explicit UTC bounds.
+					'after'     => gmdate( 'Y-m-d H:i:s', time() - EXTRACHILL_WELCOME_EMAIL_FALLBACK_WINDOW_DAYS * DAY_IN_SECONDS ),
+					'before'    => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
+					'inclusive' => true,
 				),
 			),
 		)
 	);
+
+	return $users;
+}
+
+/**
+ * Cron callback for sending welcome emails to users who never completed onboarding.
+ *
+ * Sends the onboarding-incomplete welcome email to each candidate from
+ * extrachill_welcome_email_fallback_candidates().
+ */
+function extrachill_welcome_email_fallback_callback() {
+	$users = extrachill_welcome_email_fallback_candidates();
 
 	$ability = wp_get_ability( 'extrachill/send-welcome-email' );
 	if ( ! $ability ) {
@@ -142,6 +169,29 @@ function extrachill_welcome_email_fallback_callback() {
 }
 
 add_action( 'extrachill_welcome_email_fallback', 'extrachill_welcome_email_fallback_callback' );
+add_action( 'init', 'extrachill_welcome_email_fallback_maybe_schedule' );
+
+/**
+ * Ensure the hourly welcome-email fallback is scheduled on the main site.
+ *
+ * Runs on every `init`, not only on plugin activation, so the event comes
+ * back if it ever drops off the cron array (#454). Users are network-wide
+ * and the callback queries them network-wide, so exactly one site (the main
+ * site) owns the schedule; any stray copy on another site is cleared so the
+ * fallback cannot double-send.
+ */
+function extrachill_welcome_email_fallback_maybe_schedule() {
+	if ( ! is_main_site() ) {
+		if ( wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
+			wp_clear_scheduled_hook( 'extrachill_welcome_email_fallback' );
+		}
+		return;
+	}
+
+	if ( ! wp_next_scheduled( 'extrachill_welcome_email_fallback' ) ) {
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'extrachill_welcome_email_fallback' );
+	}
+}
 
 /**
  * Create login page on all network sites.
