@@ -293,6 +293,13 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 			'ability_only'   => array( 'flyer' => 'Multipart flyer data is read from get_file_params(), not the scalar REST argument map.' ),
 			'transport_only' => array( 'turnstile_response' => 'Turnstile is consumed by public-write admission before ability execution.' ),
 		),
+		'/extrachill/v1/events/(?P<id>\d+)/guest-rsvp|extrachill/guest-rsvp-event' => array(
+			'ability_only'   => array( 'event_id' => 'The public path ID is translated to the canonical ability field.' ),
+			'transport_only' => array(
+				'id'                 => 'Public path alias translated to event_id.',
+				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
+			),
+		),
 		'/extrachill/v1/network-media|extrachill/network-media-upload' => array(
 			'ability_only' => array(
 				'tmp_name' => 'Derived from the admitted multipart file payload.',

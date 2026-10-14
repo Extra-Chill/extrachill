@@ -105,6 +105,9 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 ### Event Submissions (1)
 - `POST /event-submissions` - Submit event with optional flyer
 
+### Guest RSVP (1)
+- `POST /events/{id}/guest-rsvp` - Turnstile-protected email-only RSVP to a perk-enabled event
+
 ### Venue Booking Transport (2)
 - `POST /venues/{venue}/booking-inquiries` - Submit a Turnstile-protected anonymous or authenticated booking inquiry
 - `GET /events/bookings/{booking_id}/attachments/{attachment_id}/download` - Stream an authorized private booking attachment
@@ -291,7 +294,8 @@ extrachill-api/
         │   └── docs-info.php
         ├── docs-sync-routes.php
         ├── events/
-        │   └── event-submissions.php
+        │   ├── event-submissions.php
+        │   └── guest-rsvp.php
         ├── media/
         │   └── upload.php
         ├── newsletter/
