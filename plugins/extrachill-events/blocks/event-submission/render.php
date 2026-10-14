@@ -28,6 +28,7 @@ $endpoint         = esc_url( rest_url( 'extrachill/v1/event-submissions' ) );
 $preview_endpoint = esc_url( rest_url( 'extrachill/v1/event-source/preview' ) );
 $submit_endpoint  = esc_url( rest_url( 'extrachill/v1/event-source/submit' ) );
 $rest_nonce       = wp_create_nonce( 'wp_rest' );
+$venue_search     = esc_url( rest_url( 'wp/v2/venue' ) );
 $form_id          = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'ec-event-form-' ) : 'ec-event-form-' . uniqid();
 
 if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
@@ -58,6 +59,7 @@ if ( $show_landing ) {
 	data-endpoint="<?php echo esc_url( $endpoint ); ?>"
 	data-event-source-preview="<?php echo esc_url( $preview_endpoint ); ?>"
 	data-event-source-submit="<?php echo esc_url( $submit_endpoint ); ?>"
+	data-venue-search="<?php echo esc_url( $venue_search ); ?>"
 	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
 	data-success-message="<?php echo esc_attr( $success_attr ); ?>"
 	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
@@ -194,16 +196,32 @@ if ( $show_landing ) {
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-time">
-						<?php esc_html_e( 'Event Time', 'extrachill-events' ); ?>
+						<?php esc_html_e( 'Show Time', 'extrachill-events' ); ?>
 					</label>
-					<input type="time" name="event_time" id="<?php echo esc_attr( $form_id ); ?>-event-time" />
+					<input type="time" name="event_time" id="<?php echo esc_attr( $form_id ); ?>-event-time" aria-describedby="<?php echo esc_attr( $form_id ); ?>-event-time-hint" />
+					<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-event-time-hint"><?php esc_html_e( 'When the music starts, not when doors open.', 'extrachill-events' ); ?></p>
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-venue">
 						<?php esc_html_e( 'Venue', 'extrachill-events' ); ?>
 					</label>
-					<input type="text" name="venue_name" id="<?php echo esc_attr( $form_id ); ?>-venue" value="<?php echo esc_attr( $prefill['venue'] ); ?>" />
+					<div class="ec-event-submission__venue">
+						<input
+							type="text"
+							name="venue_name"
+							id="<?php echo esc_attr( $form_id ); ?>-venue"
+							value="<?php echo esc_attr( $prefill['venue'] ); ?>"
+							role="combobox"
+							aria-autocomplete="list"
+							aria-expanded="false"
+							aria-controls="<?php echo esc_attr( $form_id ); ?>-venue-suggestions"
+							aria-describedby="<?php echo esc_attr( $form_id ); ?>-venue-hint"
+						/>
+						<input type="hidden" name="venue_term_id" value="" />
+						<ul class="ec-event-submission__venue-suggestions" id="<?php echo esc_attr( $form_id ); ?>-venue-suggestions" role="listbox" hidden></ul>
+					</div>
+					<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-venue-hint"><?php esc_html_e( 'Pick a venue from the list if it shows up. New venue? Just type its name.', 'extrachill-events' ); ?></p>
 				</div>
 
 				<div class="ec-event-submission__field">

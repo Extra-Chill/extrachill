@@ -61,11 +61,15 @@ class EventSubmissionAbilities {
 							),
 							'event_time'    => array(
 								'type'        => 'string',
-								'description' => 'Event start time (HH:MM). Optional.',
+								'description' => 'Show start time (HH:MM), when the music starts, not doors. Optional.',
 							),
 							'venue_name'    => array(
 								'type'        => 'string',
 								'description' => 'Venue name. Optional.',
+							),
+							'venue_term_id' => array(
+								'type'        => 'integer',
+								'description' => 'ID of an existing venue term the submitter picked. Optional; when valid it wins over venue_name.',
 							),
 							'event_city'    => array(
 								'type'        => 'string',
@@ -167,11 +171,52 @@ class EventSubmissionAbilities {
 			'notes'         => sanitize_textarea_field( $input['notes'] ?? '' ),
 		);
 
+		// 3b. A venue picked from suggestions is authoritative (#965). Its
+		// canonical name replaces whatever text came along with it, so the
+		// AI step and the flyer handler see the real venue, and its ID is
+		// handed to the upsert, which assigns that term directly.
+		$submission = $this->applyChosenVenue( $submission, absint( $input['venue_term_id'] ?? 0 ) );
+
 		// 4. Store flyer if provided.
 		$flyer = $input['flyer'] ?? null;
 
 		// 5. Execute ephemeral workflow.
 		return $this->executeDirect( $submission, $flyer, $account_claim );
+	}
+
+	/**
+	 * Apply the venue the submitter picked from suggestions (#965).
+	 *
+	 * The form's venue typeahead submits the chosen venue's term ID. A valid
+	 * ID replaces the typed venue name with the term's canonical name, fills
+	 * an empty city from the venue, and is recorded on the submission so
+	 * executeDirect() can hand it to the upsert. An ID that is not an
+	 * existing venue term is dropped and the typed name is used as before,
+	 * so free text for a venue we don't know yet still works.
+	 *
+	 * @param array $submission    Sanitized submission.
+	 * @param int   $venue_term_id Submitted venue term ID (0 when none).
+	 * @return array Submission, with venue fields resolved.
+	 */
+	private function applyChosenVenue( array $submission, int $venue_term_id ): array {
+		$submission['venue_term_id'] = 0;
+		if ( $venue_term_id <= 0 ) {
+			return $submission;
+		}
+
+		$term = get_term( $venue_term_id, 'venue' );
+		if ( ! $term instanceof \WP_Term || 'venue' !== $term->taxonomy ) {
+			return $submission;
+		}
+
+		$submission['venue_term_id'] = (int) $term->term_id;
+		$submission['venue_name']    = html_entity_decode( (string) $term->name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
+		if ( '' === $submission['event_city'] ) {
+			$submission['event_city'] = sanitize_text_field( (string) get_term_meta( $term->term_id, '_venue_city', true ) );
+		}
+
+		return $submission;
 	}
 
 	/**
@@ -382,6 +427,10 @@ class EventSubmissionAbilities {
 			'job_source' => 'event_submission',
 			'job_label'  => 'Event Submission',
 		);
+		if ( ! empty( $submission['venue_term_id'] ) ) {
+			// Data Machine Events' upsert assigns this term as-is (#965).
+			$initial_data['venue_term_id'] = (int) $submission['venue_term_id'];
+		}
 		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) ) {
 			$initial_data['image_file_path'] = $stored_flyer['stored_path'];
 		}
@@ -566,7 +615,7 @@ class EventSubmissionAbilities {
 			. "Date: {$submission['event_date']}\n";
 
 		if ( ! empty( $submission['event_time'] ) ) {
-			$user_message .= "Time: {$submission['event_time']}\n";
+			$user_message .= "Show time (start): {$submission['event_time']}\n";
 		}
 		if ( ! empty( $submission['venue_name'] ) ) {
 			$user_message .= "Venue: {$submission['venue_name']}\n";

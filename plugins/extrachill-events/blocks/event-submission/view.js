@@ -418,6 +418,220 @@
 		cancelBtn.addEventListener( 'click', cancelImport );
 	};
 
+	// ────────────────────────────────────────────────────────────────────
+	// Venue typeahead (extrachill-events#965)
+	//
+	// Suggests existing venues from the core `wp/v2/venue` term search as
+	// the submitter types. Picking one records its term ID in the hidden
+	// `venue_term_id` input, which the submission ability validates and the
+	// upsert assigns directly, so a typo can't create a new venue term.
+	// Editing the text after a pick clears the ID: free text still works
+	// for venues we don't know yet.
+	// ────────────────────────────────────────────────────────────────────
+	const VENUE_MIN_CHARS = 2;
+	const VENUE_DEBOUNCE_MS = 250;
+	const VENUE_MAX_RESULTS = 8;
+
+	const decodeEntities = ( value ) => {
+		const el = document.createElement( 'textarea' );
+		el.innerHTML = value || '';
+		return el.value;
+	};
+
+	const venuePlace = ( venue ) =>
+		[ venue?.meta?._venue_city, venue?.meta?._venue_state ]
+			.filter( Boolean )
+			.join( ', ' );
+
+	// Venues in the city the submitter typed come first.
+	const rankVenues = ( venues, city ) => {
+		const wanted = ( city || '' ).trim().toLowerCase();
+		if ( ! wanted ) {
+			return venues;
+		}
+		const inCity = ( venue ) =>
+			( venue?.meta?._venue_city || '' ).toLowerCase() === wanted;
+		return [
+			...venues.filter( inCity ),
+			...venues.filter( ( venue ) => ! inCity( venue ) ),
+		];
+	};
+
+	const initVenueTypeahead = ( container ) => {
+		const searchUrl = container.dataset.venueSearch;
+		const input = container.querySelector( 'input[name="venue_name"]' );
+		const idInput = container.querySelector(
+			'input[name="venue_term_id"]'
+		);
+		const list = container.querySelector(
+			'.ec-event-submission__venue-suggestions'
+		);
+		if ( ! searchUrl || ! input || ! idInput || ! list ) {
+			return;
+		}
+		const cityInput = container.querySelector( 'input[name="event_city"]' );
+
+		let venues = [];
+		let activeIndex = -1;
+		let timer = null;
+		let requestSeq = 0;
+
+		const close = () => {
+			list.hidden = true;
+			list.innerHTML = '';
+			venues = [];
+			activeIndex = -1;
+			input.setAttribute( 'aria-expanded', 'false' );
+			input.removeAttribute( 'aria-activedescendant' );
+		};
+
+		const setActive = ( index ) => {
+			const items = list.querySelectorAll( 'li' );
+			items.forEach( ( item, i ) => {
+				const active = i === index;
+				item.classList.toggle( 'is-active', active );
+				item.setAttribute( 'aria-selected', active ? 'true' : 'false' );
+			} );
+			activeIndex = index;
+			if ( index >= 0 && items[ index ] ) {
+				input.setAttribute(
+					'aria-activedescendant',
+					items[ index ].id
+				);
+			} else {
+				input.removeAttribute( 'aria-activedescendant' );
+			}
+		};
+
+		const choose = ( venue ) => {
+			input.value = decodeEntities( venue.name );
+			idInput.value = String( venue.id );
+			const city = venue?.meta?._venue_city;
+			if ( cityInput && city && ! cityInput.value.trim() ) {
+				cityInput.value = city;
+			}
+			close();
+		};
+
+		const render = () => {
+			list.innerHTML = '';
+			if ( ! venues.length ) {
+				close();
+				return;
+			}
+			venues.forEach( ( venue, index ) => {
+				const item = document.createElement( 'li' );
+				item.id = `${ list.id }-${ index }`;
+				item.className = 'ec-event-submission__venue-suggestion';
+				item.setAttribute( 'role', 'option' );
+				item.setAttribute( 'aria-selected', 'false' );
+				item.dataset.venueId = String( venue.id );
+
+				const name = document.createElement( 'span' );
+				name.textContent = decodeEntities( venue.name );
+				item.appendChild( name );
+
+				const place = venuePlace( venue );
+				if ( place ) {
+					const placeEl = document.createElement( 'span' );
+					placeEl.className =
+						'ec-event-submission__venue-suggestion-place';
+					placeEl.textContent = place;
+					item.appendChild( placeEl );
+				}
+
+				// mousedown fires before the input's blur closes the list.
+				item.addEventListener( 'mousedown', ( e ) => {
+					e.preventDefault();
+					choose( venue );
+				} );
+				list.appendChild( item );
+			} );
+			list.hidden = false;
+			input.setAttribute( 'aria-expanded', 'true' );
+			activeIndex = -1;
+		};
+
+		const search = async ( term ) => {
+			const seq = ++requestSeq;
+			const url = new URL( searchUrl, window.location.href );
+			url.searchParams.set( 'search', term );
+			url.searchParams.set( 'per_page', String( VENUE_MAX_RESULTS ) );
+			url.searchParams.set( '_fields', 'id,name,meta' );
+			try {
+				const response = await fetch( url.toString(), {
+					credentials: 'same-origin',
+				} );
+				const payload = response.ok ? await response.json() : [];
+				if ( seq !== requestSeq ) {
+					return;
+				}
+				venues = rankVenues(
+					Array.isArray( payload ) ? payload : [],
+					cityInput ? cityInput.value : ''
+				);
+				render();
+			} catch {
+				// Suggestions are a convenience; free text still submits.
+				if ( seq === requestSeq ) {
+					close();
+				}
+			}
+		};
+
+		input.addEventListener( 'input', () => {
+			// Any edit after a pick means this is no longer that venue.
+			idInput.value = '';
+			window.clearTimeout( timer );
+			const term = input.value.trim();
+			if ( term.length < VENUE_MIN_CHARS ) {
+				requestSeq++;
+				close();
+				return;
+			}
+			timer = window.setTimeout(
+				() => search( term ),
+				VENUE_DEBOUNCE_MS
+			);
+		} );
+
+		input.addEventListener( 'keydown', ( e ) => {
+			if ( list.hidden || ! venues.length ) {
+				return;
+			}
+			if ( e.key === 'ArrowDown' ) {
+				e.preventDefault();
+				setActive( ( activeIndex + 1 ) % venues.length );
+			} else if ( e.key === 'ArrowUp' ) {
+				e.preventDefault();
+				setActive(
+					activeIndex <= 0 ? venues.length - 1 : activeIndex - 1
+				);
+			} else if ( e.key === 'Enter' && activeIndex >= 0 ) {
+				e.preventDefault();
+				choose( venues[ activeIndex ] );
+			} else if ( e.key === 'Escape' ) {
+				close();
+			}
+		} );
+
+		input.addEventListener( 'blur', () => {
+			window.clearTimeout( timer );
+			requestSeq++;
+			close();
+		} );
+
+		const form = input.closest( 'form' );
+		if ( form ) {
+			// A hidden input's value *is* its default, so form.reset() after
+			// a successful submit would keep the last pick. Clear it here.
+			form.addEventListener( 'reset', () => {
+				idInput.value = '';
+				close();
+			} );
+		}
+	};
+
 	const initForm = ( container ) => {
 		const form = container.querySelector( 'form' );
 		if ( ! form || form.dataset.ecSubmissionBound === 'true' ) {
@@ -432,6 +646,7 @@
 		document.querySelectorAll( SELECTOR ).forEach( ( container ) => {
 			initForm( container );
 			initUrlImport( container );
+			initVenueTypeahead( container );
 		} );
 	};
 

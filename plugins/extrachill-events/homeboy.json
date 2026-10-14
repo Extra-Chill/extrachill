@@ -139,6 +139,11 @@
             "runtime": "host"
           },
           {
+            "name": "submission-venue-unit",
+            "config": "phpunit-submission-venue-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "pending-event-submissions-unit",
             "config": "phpunit-pending-event-submissions-unit.xml.dist",
             "runtime": "host"

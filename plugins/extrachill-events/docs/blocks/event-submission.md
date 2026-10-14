@@ -45,7 +45,7 @@ Frontend block for collecting event submissions that route into Data Machine flo
 ### Event Details
 - **Event Title**: Required text field
 - **Event Date**: Required date picker
-- **Event Time**: Optional time picker
+- **Show Time**: Optional time picker for when the music starts (not doors). Becomes the event start time.
 - **Venue**: Optional text field
 - **City / Region**: Optional text field
 - **Lineup / Headliners**: Optional text field

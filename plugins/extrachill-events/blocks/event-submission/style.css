@@ -63,6 +63,49 @@
 
 /* Input styling now uses theme form tokens */
 
+/* Venue typeahead (#965): suggestions from existing venue terms. */
+.ec-event-submission__venue {
+	position: relative;
+}
+
+.ec-event-submission__venue-suggestions {
+	position: absolute;
+	top: calc(100% + 2px);
+	left: 0;
+	right: 0;
+	z-index: 10;
+	margin: 0;
+	padding: 4px 0;
+	list-style: none;
+	max-height: 260px;
+	overflow-y: auto;
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	box-shadow: var(--card-shadow);
+}
+
+.ec-event-submission__venue-suggestions[hidden] {
+	display: none;
+}
+
+.ec-event-submission__venue-suggestion {
+	padding: 8px 12px;
+	cursor: pointer;
+	color: var(--text-color);
+}
+
+.ec-event-submission__venue-suggestion.is-active,
+.ec-event-submission__venue-suggestion:hover {
+	background: var(--background-color);
+}
+
+.ec-event-submission__venue-suggestion-place {
+	display: block;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
 .ec-event-submission__field--full,
 .ec-event-submission__field--file {
 	margin-bottom: 20px;
