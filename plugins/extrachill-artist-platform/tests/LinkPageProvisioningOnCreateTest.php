@@ -24,26 +24,50 @@ final class LinkPageProvisioningOnCreateTest extends EC_Artist_Platform_TestCase
 		$this->assertFalse( ec_artist_link_page_is_published( 987654321 ) );
 	}
 
-	public function test_create_artist_ability_provisions_a_published_link_page(): void {
-		// Provisioning serializes through the canonical owner lock.
-		$this->ec_require_mysql_advisory_locks();
-
+	public function test_create_artist_does_not_provision_a_link_page(): void {
+		// Link Page creation is deliberate (#256).
 		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Porch Lights Provisioning' ) );
 
 		$this->assertIsArray( $result );
-		$this->assertArrayNotHasKey( 'link_page_error', $result );
-		$this->assertGreaterThan( 0, (int) $result['link_page_id'] );
-		$this->assertTrue( ec_artist_link_page_is_published( (int) $result['link_page_id'] ) );
+		$this->assertSame( 0, (int) $result['link_page_id'] );
+		$this->assertFalse( ec_get_link_page_for_artist( (int) $result['id'] ) );
+	}
+
+	public function test_create_link_page_ability_creates_a_published_page(): void {
+		$this->ec_require_mysql_advisory_locks();
+		$artist  = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Deliberate Band' ) );
+		$created = extrachill_artist_platform_ability_create_artist_link_page( array( 'artist_id' => (int) $artist['id'] ) );
+
+		$this->assertIsArray( $created );
+		$this->assertGreaterThan( 0, (int) $created['link_page_id'] );
+		$this->assertTrue( ec_artist_link_page_is_published( (int) $created['link_page_id'] ) );
+		$this->assertNotSame( '', $created['edit_url'] );
 	}
 
 	public function test_create_link_page_ability_is_idempotent(): void {
 		$this->ec_require_mysql_advisory_locks();
-
 		$artist = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Idempotent Band' ) );
+		$first  = extrachill_artist_platform_ability_create_artist_link_page( array( 'artist_id' => (int) $artist['id'] ) );
 		$again  = extrachill_artist_platform_ability_create_artist_link_page( array( 'artist_id' => (int) $artist['id'] ) );
 
-		$this->assertIsArray( $again );
-		$this->assertSame( (int) $artist['link_page_id'], (int) $again['link_page_id'] );
-		$this->assertNotSame( '', $again['edit_url'] );
+		$this->assertSame( (int) $first['link_page_id'], (int) $again['link_page_id'] );
+	}
+
+	public function test_create_link_page_ability_publishes_an_owned_draft(): void {
+		$this->ec_require_mysql_advisory_locks();
+		$artist  = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Draft Band' ) );
+		$created = extrachill_artist_platform_ability_create_artist_link_page( array( 'artist_id' => (int) $artist['id'] ) );
+		$page_id = (int) $created['link_page_id'];
+
+		$draft = static function () use ( $page_id ) {
+			wp_update_post( array( 'ID' => $page_id, 'post_status' => 'draft' ) );
+		};
+		function_exists( 'ec_with_link_page_storage_blog' ) ? ec_with_link_page_storage_blog( $draft ) : $draft();
+		$this->assertFalse( ec_artist_link_page_is_published( $page_id ) );
+
+		$again = extrachill_artist_platform_ability_create_artist_link_page( array( 'artist_id' => (int) $artist['id'] ) );
+
+		$this->assertSame( $page_id, (int) $again['link_page_id'] );
+		$this->assertTrue( ec_artist_link_page_is_published( $page_id ) );
 	}
 }

@@ -48,7 +48,10 @@ defined( 'ABSPATH' ) || exit;
  * @return void
  */
 function ec_artist_platform_emit_funnel_event( $event_type, array $event_data ) {
-	if ( ! function_exists( 'wp_get_ability' ) ) {
+	// Gate on wp_has_ability() first: probing wp_get_ability() for an
+	// unregistered ability raises a WP 6.9+ _doing_it_wrong() notice, and
+	// analytics is an optional dependency.
+	if ( ! function_exists( 'wp_has_ability' ) || ! wp_has_ability( 'extrachill/track-analytics-event' ) ) {
 		return;
 	}
 

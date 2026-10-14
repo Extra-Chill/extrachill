@@ -65,7 +65,7 @@ function ec_manage_link_page_create_prompt( $content, $block ) {
 	if ( ! $has_artists ) {
 		$can_create = function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( get_current_user_id() );
 		return '<div class="notice notice-info"><p>'
-			. esc_html__( 'Create an artist profile to get your free Link Page.', 'extrachill-artist-platform' )
+			. esc_html__( 'Create an artist profile to get your free link-in-bio.', 'extrachill-artist-platform' )
 			. '</p>'
 			. ( $can_create ? '<a class="button-1 button-medium" href="' . esc_url( home_url( '/create-artist/' ) ) . '">' . esc_html__( 'Create Artist Profile', 'extrachill-artist-platform' ) . '</a>' : '' )
 			. '</div>';
@@ -77,7 +77,7 @@ function ec_manage_link_page_create_prompt( $content, $block ) {
 	ob_start();
 	?>
 	<div class="notice notice-info" data-link-page-setup-state="create">
-		<p><?php esc_html_e( 'Your artist doesn\'t have a Link Page yet. Create it now — you can customize everything after.', 'extrachill-artist-platform' ); ?></p>
+		<p><strong><?php esc_html_e( 'Get your free link-in-bio.', 'extrachill-artist-platform' ); ?></strong> <?php esc_html_e( 'One link for your music, shows and socials.', 'extrachill-artist-platform' ); ?></p>
 		<?php foreach ( $missing as $artist ) : ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="ec_create_artist_link_page">

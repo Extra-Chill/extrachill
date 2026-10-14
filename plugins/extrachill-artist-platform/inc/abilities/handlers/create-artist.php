@@ -153,22 +153,13 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		);
 	}
 
-	// Every artist gets a Link Page: it is the platform's core promise, and
-	// no other self-serve path creates one since editor renders became
-	// read-only (#200, #243). Failure keeps the profile — the musician can
-	// retry from /manage-link-page/ ("Create my Link Page") — but is surfaced.
-	$link_page_id    = 0;
-	$link_page_error = null;
-	if ( function_exists( 'ec_create_link_page' ) ) {
-		$created_page = ec_create_link_page( $artist_id );
-		if ( is_wp_error( $created_page ) ) {
-			$link_page_error = $created_page->get_error_code();
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- actionable provisioning failure.
-			error_log( sprintf( 'Artist %d created without a Link Page: %s', (int) $artist_id, $created_page->get_error_message() ) );
-		} else {
-			$link_page_id = (int) $created_page;
-		}
-	}
+	// Link Page creation is deliberate (#256): an artist profile no longer
+	// provisions a published Link Page. Auto-provisioning published 37 empty
+	// public pages that the musician never chose. The artist-creator block
+	// lands on /manage-link-page/, which offers "Get your free link-in-bio";
+	// that path (extrachill/create-artist-link-page) creates and publishes it.
+	// link_page_id stays in the result for existing consumers.
+	$link_page_id = 0;
 
 	restore_current_blog();
 
@@ -180,9 +171,6 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		);
 	if ( is_array( $result ) ) {
 		$result['link_page_id'] = $link_page_id;
-		if ( $link_page_error ) {
-			$result['link_page_error'] = $link_page_error;
-		}
 	}
 	return $result;
 }
