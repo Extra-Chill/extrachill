@@ -22,6 +22,51 @@ class QRCodeAbility {
 	public function __construct() {
 		// Admin Tools registers at the default priority during the rollout overlap.
 		add_action( 'wp_abilities_api_init', array( $this, 'register' ), 20 );
+		// phpcs:ignore WordPress.NamingConventions.ValidHookName -- Data Machine's slash-separated hook namespace.
+		add_filter( 'datamachine/image_generation/qr_image_path', array( $this, 'provide_poster_qr_image' ), 10, 3 );
+	}
+
+	/**
+	 * Supply QR images to Data Machine's generic poster template.
+	 *
+	 * Data Machine resolves `qr_url` through this filter and omits the QR
+	 * block when nothing answers. The returned temp PNG is owned and
+	 * deleted by the template. Calls this class's own generator directly:
+	 * drawing a QR into an image is not a privileged operation, so it
+	 * does not go through the REST permission gate.
+	 *
+	 * @param string|null $path Path from an earlier provider, if any.
+	 * @param string      $url  URL to encode.
+	 * @param int         $size Drawn size in pixels.
+	 * @return string|null Temp PNG path, or the incoming value when unable.
+	 */
+	public function provide_poster_qr_image( $path, $url, $size = 0 ) {
+		if ( is_string( $path ) && '' !== $path ) {
+			return $path;
+		}
+		if ( ! is_string( $url ) || '' === $url ) {
+			return $path;
+		}
+
+		$result = $this->execute(
+			array(
+				'url'  => $url,
+				'size' => max( 600, (int) $size ),
+			)
+		);
+		if ( ! is_array( $result ) || empty( $result['image'] ) ) {
+			return $path;
+		}
+
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- this class's own base64 PNG response contract.
+		$png  = base64_decode( (string) $result['image'], true );
+		$file = wp_tempnam( 'poster-qr' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- temp file handed to the GD renderer.
+		if ( false === $png || ! $file || false === file_put_contents( $file, $png ) ) {
+			return $path;
+		}
+
+		return $file;
 	}
 
 	/**
