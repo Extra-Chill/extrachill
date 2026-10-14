@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.50.0] - 2026-10-14
+
+### Added
+- add extrachill/resolve-account-by-email account primitive
+
 ## [0.49.4] - 2026-10-11
 
 ### Changed
