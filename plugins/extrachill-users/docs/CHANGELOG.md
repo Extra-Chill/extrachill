@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.51.1] - 2026-10-15
+
+### Changed
+- make the full PHPUnit suite pass
+
 ## [0.51.0] - 2026-10-14
 
 ### Added
