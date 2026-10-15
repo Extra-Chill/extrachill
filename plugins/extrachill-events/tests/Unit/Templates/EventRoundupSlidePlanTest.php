@@ -175,4 +175,94 @@ final class EventRoundupSlidePlanTest extends BookingTestCase {
 		$this->assertSame( 'Tom Crowley & The Speakers', EventRoundupTemplate::decode_text( 'Tom Crowley &amp; The Speakers' ) );
 		$this->assertSame( 'Burgundy: "Karaoke Nite"', EventRoundupTemplate::decode_text( 'Burgundy: &quot;Karaoke Nite&quot;' ) );
 	}
+
+	public function test_split_day_never_strands_a_single_event(): void {
+		// One slide fits 13 events after a header (60 + 60 + 13*70 = 1030 > 1000,
+		// so 12). A 2-event day followed by a 12-event day would leave the
+		// second day's header with 1 event at the bottom of slide one.
+		$slides = $this->plan(
+			array(
+				'2026-10-02' => $this->day( '2026-10-02', 2 ),
+				'2026-10-03' => $this->day( '2026-10-03', 12 ),
+			)
+		);
+
+		foreach ( $slides as $index => $slide ) {
+			foreach ( $slide as $day ) {
+				$this->assertGreaterThanOrEqual( 2, count( $day['events'] ), "Slide {$index} has a stranded day fragment." );
+			}
+		}
+		foreach ( $this->content_extents( $slides, 0 ) as $extent ) {
+			$this->assertLessThanOrEqual( self::BOTTOM, $extent );
+		}
+	}
+
+	public function test_split_day_never_carries_a_single_event(): void {
+		// 13 events: 12 fit on slide one, so a naive split carries 1.
+		$slides = $this->plan( array( '2026-10-02' => $this->day( '2026-10-02', 13 ) ) );
+
+		$this->assertCount( 2, $slides );
+		$this->assertGreaterThanOrEqual( 2, count( $slides[1][0]['events'] ) );
+		$this->assertSame( 13, count( $slides[0][0]['events'] ) + count( $slides[1][0]['events'] ) );
+	}
+
+	public function test_cover_stats_count_shows_venues_and_date_range(): void {
+		$friday   = $this->day( '2026-10-16', 3 );
+		$saturday = $this->day( '2026-10-17', 2 );
+		$venues   = array( 'The Royal American', 'Pour House', 'the royal american ' );
+		foreach ( $friday['events'] as $i => &$event ) {
+			$event['event_data']['venue'] = $venues[ $i ];
+		}
+		unset( $event );
+		foreach ( $saturday['events'] as &$event ) {
+			$event['event_data']['venue'] = 'Pour House';
+		}
+		unset( $event );
+
+		$stats = EventRoundupTemplate::cover_stats(
+			array(
+				'2026-10-17' => $saturday,
+				'2026-10-16' => $friday,
+				'2026-10-18' => array(
+					'date_obj' => new DateTime( '2026-10-25' ),
+					'events'   => array(),
+				),
+			)
+		);
+
+		$this->assertSame( 5, $stats['shows'] );
+		$this->assertSame( 2, $stats['venues'] );
+		$this->assertSame( 'FRI OCT 16 – SAT 17', $stats['date_label'] );
+	}
+
+	public function test_resolve_picks_keeps_chosen_order_and_skips_unknown(): void {
+		$day = $this->day( '2026-10-16', 7 );
+		foreach ( $day['events'] as $i => &$event ) {
+			$event['post']->ID = 100 + $i;
+		}
+		unset( $event );
+		$groups = array( '2026-10-16' => $day );
+
+		$picks = EventRoundupTemplate::resolve_picks(
+			$groups,
+			array(
+				103,
+				array(
+					'post_id' => 101,
+					'note'    => ' Bring earplugs. ',
+				),
+				999,
+				103,
+				100,
+				102,
+				104,
+				105,
+			)
+		);
+
+		$this->assertSame( array( 103, 101, 100, 102, 104 ), array_map( static fn( $pick ) => $pick['post']->ID, $picks ) );
+		$this->assertSame( 'Bring earplugs.', $picks[1]['note'] );
+		$this->assertSame( '', $picks[0]['note'] );
+		$this->assertSame( '2026-10-16', $picks[0]['date_obj']->format( 'Y-m-d' ) );
+	}
 }

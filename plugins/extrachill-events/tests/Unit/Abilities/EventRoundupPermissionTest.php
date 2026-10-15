@@ -47,4 +47,37 @@ final class EventRoundupPermissionTest extends BookingTestCase {
 		$this->assertSame( 'upload_files', EventRoundupAbilities::ROUNDUP_CAPABILITY );
 		$this->assertTrue( is_callable( array( EventRoundupAbilities::class, 'canRunRoundup' ) ) );
 	}
+
+	/** Picks must name events in the roundup, so a stale ID fails loudly. */
+	public function test_validate_picks_rejects_events_outside_the_roundup(): void {
+		$groups = array(
+			'2026-10-16' => array(
+				'events' => array(
+					array( 'post' => (object) array( 'ID' => 11 ) ),
+					array( 'post' => (object) array( 'ID' => 12 ) ),
+				),
+			),
+		);
+
+		$this->assertNull( EventRoundupAbilities::validatePicks( $groups, array() ) );
+		$this->assertNull(
+			EventRoundupAbilities::validatePicks(
+				$groups,
+				array(
+					12,
+					array(
+						'post_id' => 11,
+						'note'    => 'x',
+					),
+				)
+			)
+		);
+
+		$missing = EventRoundupAbilities::validatePicks( $groups, array( 11, 99 ) );
+		$this->assertInstanceOf( WP_Error::class, $missing );
+		$this->assertSame( 'pick_not_in_roundup', $missing->get_error_code() );
+
+		$too_many = EventRoundupAbilities::validatePicks( $groups, array( 11, 12, 11, 12, 11, 12 ) );
+		$this->assertSame( 'too_many_picks', $too_many->get_error_code() );
+	}
 }

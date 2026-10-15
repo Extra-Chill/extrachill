@@ -26,8 +26,19 @@
  *     event item is { post: WP_Post, event_data: array }
  *
  * Optional data fields:
- *   - title (string) — appears only on first slide
- *   - cta_text (string) — footer CTA; defaults to current site host
+ *   - title (string) — appears on the cover, or on the first list slide
+ *     when there is no cover
+ *   - cta_text (string) — CTA; defaults to current site host. A footer on
+ *     every list slide, or the closing slide when `closing` is set
+ *   - cover (bool) — prepend a cover slide: title, date range, and show
+ *     and venue counts
+ *   - picks (array) — human-chosen highlights rendered on a text-only
+ *     picks slide after the cover. Items are event post IDs or
+ *     { post_id, note }; IDs not in day_groups are skipped; max 5
+ *   - picks_title (string) — picks slide heading; defaults to "Our Picks"
+ *   - closing (bool) — append a closing CTA slide and drop the per-slide
+ *     footer from the list slides
+ *   - closing_text (string) — optional supporting line on the closing slide
  *
  * Optional brand token extensions consumed by this template:
  *   - colors['event_roundup_bg']    — slide background (falls back to background_dark)
@@ -67,6 +78,21 @@ class EventRoundupTemplate implements TemplateInterface {
 	private const DAY_HEADER_GAP         = 20;
 	private const DAY_TRAILING_GAP       = 30;
 	private const CTA_CLEARANCE          = 24;
+	private const MIN_SPLIT_EVENTS       = 2;
+	private const MAX_PICKS              = 5;
+	private const COVER_TITLE_SIZE       = 92;
+	private const COVER_DATE_SIZE        = 40;
+	private const COVER_STATS_SIZE       = 28;
+	private const STRIPE_HEIGHT          = 14;
+	private const PICKS_HEADING_SIZE     = 52;
+	private const PICK_DAY_SIZE          = 22;
+	private const PICK_TITLE_SIZE        = 40;
+	private const PICK_META_SIZE         = 22;
+	private const PICK_NOTE_SIZE         = 24;
+	private const PICK_GAP               = 42;
+	private const CLOSING_HEADLINE_SIZE  = 80;
+	private const CLOSING_URL_SIZE       = 40;
+	private const CLOSING_TEXT_SIZE      = 28;
 
 	/**
 	 * Neutral fallback palette for days of the week.
@@ -99,18 +125,43 @@ class EventRoundupTemplate implements TemplateInterface {
 
 	public function get_fields(): array {
 		return array(
-			'day_groups' => array(
+			'day_groups'   => array(
 				'label'    => 'Day Groups',
 				'type'     => 'array',
 				'required' => true,
 			),
-			'title'      => array(
+			'title'        => array(
 				'label'    => 'Title',
 				'type'     => 'string',
 				'required' => false,
 			),
-			'cta_text'   => array(
+			'cta_text'     => array(
 				'label'    => 'CTA Text',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'cover'        => array(
+				'label'    => 'Cover Slide',
+				'type'     => 'boolean',
+				'required' => false,
+			),
+			'picks'        => array(
+				'label'    => 'Picks',
+				'type'     => 'array',
+				'required' => false,
+			),
+			'picks_title'  => array(
+				'label'    => 'Picks Title',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'closing'      => array(
+				'label'    => 'Closing Slide',
+				'type'     => 'boolean',
+				'required' => false,
+			),
+			'closing_text' => array(
+				'label'    => 'Closing Text',
 				'type'     => 'string',
 				'required' => false,
 			),
@@ -154,22 +205,53 @@ class EventRoundupTemplate implements TemplateInterface {
 			? array_merge( self::FALLBACK_DAY_PALETTE, $tokens['day_palette'] )
 			: self::FALLBACK_DAY_PALETTE;
 
+		$cover   = ! empty( $data['cover'] );
+		$closing = ! empty( $data['closing'] ) && '' !== $cta_text;
+		$picks   = self::resolve_picks( $day_groups, (array) ( $data['picks'] ?? array() ) );
+
+		// The cover owns the title; the closing slide owns the CTA.
+		$list_title = $cover ? '' : $title;
+		$footer_cta = $closing ? '' : $cta_text;
+
 		$slides_distribution = $this->distribute_days_to_slides(
 			$day_groups,
-			$title,
-			$cta_text,
+			$list_title,
+			$footer_cta,
 			$heading_path,
 			$body_path
 		);
 
-		$image_paths = array();
+		$image_paths  = array();
+		$slide_number = 0;
+		$colors       = array(
+			'bg'     => $bg_hex,
+			'text'   => $text_hex,
+			'muted'  => $muted_hex,
+			'accent' => $accent_hex,
+			'cta'    => $cta_hex,
+		);
+
+		if ( $cover ) {
+			$path = $this->render_cover_slide( ++$slide_number, $title, self::cover_stats( $day_groups ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
+			if ( $path ) {
+				$image_paths[] = $path;
+			}
+		}
+
+		if ( ! empty( $picks ) ) {
+			$picks_title = trim( (string) ( $data['picks_title'] ?? '' ) );
+			$path        = $this->render_picks_slide( ++$slide_number, '' !== $picks_title ? $picks_title : 'Our Picks', $picks, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
+			if ( $path ) {
+				$image_paths[] = $path;
+			}
+		}
 
 		foreach ( array_values( $slides_distribution ) as $index => $slide_days ) {
-			$slide_title = ( 0 === $index ) ? $title : '';
+			$slide_title = ( 0 === $index ) ? $list_title : '';
 
 			$path = $this->render_slide(
 				$slide_days,
-				$index + 1,
+				++$slide_number,
 				$slide_title,
 				$preset,
 				$format,
@@ -181,7 +263,7 @@ class EventRoundupTemplate implements TemplateInterface {
 				$muted_hex,
 				$accent_hex,
 				$cta_hex,
-				$cta_text,
+				$footer_cta,
 				$day_palette
 			);
 
@@ -190,7 +272,311 @@ class EventRoundupTemplate implements TemplateInterface {
 			}
 		}
 
+		if ( $closing ) {
+			$path = $this->render_closing_slide( ++$slide_number, $cta_text, trim( (string) ( $data['closing_text'] ?? '' ) ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
+			if ( $path ) {
+				$image_paths[] = $path;
+			}
+		}
+
 		return $image_paths;
+	}
+
+	/**
+	 * Show count, distinct venue count, and a date-range label for the cover.
+	 *
+	 * @param array $day_groups date_key => { date_obj, events[] }.
+	 * @return array{shows: int, venues: int, date_label: string}
+	 */
+	public static function cover_stats( array $day_groups ): array {
+		$shows  = 0;
+		$venues = array();
+		$dates  = array();
+
+		foreach ( $day_groups as $day_group ) {
+			$events = (array) ( $day_group['events'] ?? array() );
+			if ( empty( $events ) ) {
+				continue;
+			}
+			if ( ( $day_group['date_obj'] ?? null ) instanceof \DateTimeInterface ) {
+				$dates[] = $day_group['date_obj'];
+			}
+			foreach ( $events as $event_item ) {
+				++$shows;
+				$venue = strtolower( trim( self::decode_text( (string) ( $event_item['event_data']['venue'] ?? '' ) ) ) );
+				if ( '' !== $venue ) {
+					$venues[ $venue ] = true;
+				}
+			}
+		}
+
+		$date_label = '';
+		if ( ! empty( $dates ) ) {
+			usort( $dates, static fn( $a, $b ) => $a <=> $b );
+			$first = reset( $dates );
+			$last  = end( $dates );
+			if ( $first->format( 'Y-m-d' ) === $last->format( 'Y-m-d' ) ) {
+				$date_label = $first->format( 'l, M j' );
+			} elseif ( $first->format( 'Y-m' ) === $last->format( 'Y-m' ) ) {
+				$date_label = $first->format( 'D M j' ) . ' – ' . $last->format( 'D j' );
+			} else {
+				$date_label = $first->format( 'D M j' ) . ' – ' . $last->format( 'D M j' );
+			}
+		}
+
+		return array(
+			'shows'      => $shows,
+			'venues'     => count( $venues ),
+			'date_label' => strtoupper( $date_label ),
+		);
+	}
+
+	/**
+	 * Resolve requested picks against the roundup's own events.
+	 *
+	 * Picks are chosen by a person, not ranked by the system, so order is
+	 * preserved exactly as given. Unknown or duplicate IDs are skipped and
+	 * the list is capped at MAX_PICKS.
+	 *
+	 * @param array $day_groups date_key => { date_obj, events[] }.
+	 * @param array $picks      Post IDs or { post_id, note } items.
+	 * @return array<int, array{post: object, event_data: array, date_obj: mixed, note: string}>
+	 */
+	public static function resolve_picks( array $day_groups, array $picks ): array {
+		$index = array();
+		foreach ( $day_groups as $day_group ) {
+			foreach ( (array) ( $day_group['events'] ?? array() ) as $event_item ) {
+				$post_id = (int) ( $event_item['post']->ID ?? 0 );
+				if ( $post_id > 0 ) {
+					$index[ $post_id ] = array(
+						'post'       => $event_item['post'],
+						'event_data' => (array) ( $event_item['event_data'] ?? array() ),
+						'date_obj'   => $day_group['date_obj'] ?? null,
+					);
+				}
+			}
+		}
+
+		$resolved = array();
+		foreach ( $picks as $pick ) {
+			$post_id = is_array( $pick ) ? (int) ( $pick['post_id'] ?? 0 ) : (int) $pick;
+			if ( ! isset( $index[ $post_id ] ) || isset( $resolved[ $post_id ] ) ) {
+				continue;
+			}
+			$resolved[ $post_id ] = $index[ $post_id ] + array(
+				'note' => is_array( $pick ) ? trim( (string) ( $pick['note'] ?? '' ) ) : '',
+			);
+			if ( count( $resolved ) >= self::MAX_PICKS ) {
+				break;
+			}
+		}
+
+		return array_values( $resolved );
+	}
+
+	/**
+	 * Format an H:i:s start time as "7:30 PM".
+	 */
+	private static function format_time( string $start_time ): string {
+		if ( '' === $start_time ) {
+			return '';
+		}
+		$time_obj = \DateTime::createFromFormat( 'H:i:s', $start_time );
+		return $time_obj ? $time_obj->format( 'g:i A' ) : '';
+	}
+
+	/**
+	 * Create a slide canvas with fonts and the background fill.
+	 */
+	private function start_canvas( string $preset, string $heading_path, string $body_path, string $bg_hex ): ?GDRenderer {
+		$renderer = new GDRenderer();
+		$renderer->create_canvas( $preset );
+		if ( ! $renderer->get_image() ) {
+			$renderer->destroy();
+			return null;
+		}
+		$renderer->register_font( 'header', $heading_path ? $heading_path : 'Heading.ttf' );
+		$renderer->register_font( 'body', $body_path ? $body_path : 'Body.ttf' );
+		$renderer->fill( $renderer->color_hex( 'bg', $bg_hex ) );
+		return $renderer;
+	}
+
+	/**
+	 * Persist a finished slide and free the canvas.
+	 */
+	private function finish_canvas( GDRenderer $renderer, int $slide_number, string $format, array $context ): ?string {
+		$filename = sprintf( 'roundup-slide-%d.%s', $slide_number, 'jpeg' === $format ? 'jpg' : 'png' );
+		$path     = ( ! empty( $context['pipeline_id'] ) && ! empty( $context['flow_id'] ) )
+			? $renderer->save_to_repository( $filename, $context, $format )
+			: $renderer->save_temp( $format );
+		$renderer->destroy();
+		return $path;
+	}
+
+	/**
+	 * Draw one full-width band per roundup day, in that day's palette color.
+	 */
+	private function draw_day_stripes( GDRenderer $renderer, array $day_groups, int $y, array $day_palette ): void {
+		$days = array();
+		foreach ( $day_groups as $day_group ) {
+			if ( ! empty( $day_group['events'] ) && ( $day_group['date_obj'] ?? null ) instanceof \DateTimeInterface ) {
+				$days[] = strtolower( $day_group['date_obj']->format( 'l' ) );
+			}
+		}
+		if ( empty( $days ) ) {
+			return;
+		}
+
+		$width   = $renderer->get_width();
+		$segment = (int) ceil( $width / count( $days ) );
+		foreach ( $days as $i => $day_name ) {
+			$color = $renderer->color_hex( 'stripe_' . $day_name, (string) ( $day_palette[ $day_name ] ?? '#4ecdc4' ) );
+			$renderer->filled_rect( $i * $segment, $y, min( $width, ( $i + 1 ) * $segment ), $y + self::STRIPE_HEIGHT, $color );
+		}
+	}
+
+	/**
+	 * Cover: day stripes, big title, date range, show and venue counts.
+	 */
+	private function render_cover_slide( int $slide_number, string $title, array $stats, array $day_groups, string $preset, string $format, array $context, string $heading_path, string $body_path, array $colors, array $day_palette ): ?string {
+		$renderer = $this->start_canvas( $preset, $heading_path, $body_path, $colors['bg'] );
+		if ( ! $renderer ) {
+			return null;
+		}
+
+		$text   = $renderer->color_hex( 'text', $colors['text'] );
+		$muted  = $renderer->color_hex( 'muted', $colors['muted'] );
+		$accent = $renderer->color_hex( 'accent', $colors['accent'] );
+		$cta    = $renderer->color_hex( 'cta', $colors['cta'] );
+		$width  = $renderer->get_width();
+		$height = $renderer->get_height();
+		$max_w  = $width - ( self::PADDING * 2 );
+
+		$this->draw_day_stripes( $renderer, $day_groups, 0, $day_palette );
+
+		$title             = strtoupper( '' !== $title ? $title : 'Shows' );
+		$lines             = $renderer->wrap_text( $title, self::COVER_TITLE_SIZE, 'header', $max_w );
+		$title_line_height = (int) ( self::COVER_TITLE_SIZE * 1.15 );
+		$block_height      = count( $lines ) * $title_line_height + 40 + (int) ( self::COVER_DATE_SIZE * 1.4 ) + (int) ( self::COVER_STATS_SIZE * 1.4 );
+		$y                 = max( self::PADDING * 3, (int) ( ( $height - $block_height ) / 2 ) - 40 );
+
+		foreach ( $lines as $line ) {
+			$renderer->draw_text( $line, self::COVER_TITLE_SIZE, self::PADDING, $y + self::COVER_TITLE_SIZE, $text, 'header' );
+			$y += $title_line_height;
+		}
+
+		$y += 14;
+		$renderer->filled_rect( self::PADDING, $y, self::PADDING + 160, $y + 6, $accent );
+		$y += 26;
+
+		if ( '' !== $stats['date_label'] ) {
+			$renderer->draw_text( $stats['date_label'], self::COVER_DATE_SIZE, self::PADDING, $y + self::COVER_DATE_SIZE, $accent, 'header' );
+			$y += (int) ( self::COVER_DATE_SIZE * 1.4 );
+		}
+
+		$stats_line = sprintf(
+			'%d %s · %d %s',
+			$stats['shows'],
+			1 === $stats['shows'] ? 'SHOW' : 'SHOWS',
+			$stats['venues'],
+			1 === $stats['venues'] ? 'VENUE' : 'VENUES'
+		);
+		$renderer->draw_text( $stats_line, self::COVER_STATS_SIZE, self::PADDING, $y + self::COVER_STATS_SIZE, $muted, 'body' );
+
+		$renderer->draw_text( 'SWIPE FOR THE FULL LINEUP →', self::CTA_SIZE + 4, self::PADDING, $height - self::PADDING, $cta, 'body' );
+
+		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
+	}
+
+	/**
+	 * Picks: text-only highlights chosen by a person, each with an optional note.
+	 */
+	private function render_picks_slide( int $slide_number, string $heading, array $picks, string $preset, string $format, array $context, string $heading_path, string $body_path, array $colors, array $day_palette ): ?string {
+		$renderer = $this->start_canvas( $preset, $heading_path, $body_path, $colors['bg'] );
+		if ( ! $renderer ) {
+			return null;
+		}
+
+		$text   = $renderer->color_hex( 'text', $colors['text'] );
+		$muted  = $renderer->color_hex( 'muted', $colors['muted'] );
+		$accent = $renderer->color_hex( 'accent', $colors['accent'] );
+		$max_w  = $renderer->get_width() - ( self::PADDING * 2 );
+
+		$y = self::PADDING;
+		$renderer->draw_text( strtoupper( $heading ), self::PICKS_HEADING_SIZE, self::PADDING, $y + self::PICKS_HEADING_SIZE, $accent, 'header' );
+		$y += (int) ( self::PICKS_HEADING_SIZE * 1.3 );
+		$renderer->filled_rect( self::PADDING, $y, self::PADDING + 160, $y + 6, $accent );
+		$y += 50;
+
+		foreach ( $picks as $pick ) {
+			$date_obj  = $pick['date_obj'] ?? null;
+			$day_name  = $date_obj instanceof \DateTimeInterface ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
+			$day_color = $renderer->color_hex( 'pick_' . $day_name, (string) ( $day_palette[ $day_name ] ?? '#4ecdc4' ) );
+			$day_label = $date_obj instanceof \DateTimeInterface ? strtoupper( $date_obj->format( 'l' ) ) : '';
+
+			$time = self::format_time( (string) ( $pick['event_data']['startTime'] ?? '' ) );
+			if ( '' !== $day_label ) {
+				$renderer->draw_text( trim( $day_label . ( '' !== $time ? ' · ' . $time : '' ) ), self::PICK_DAY_SIZE, self::PADDING, $y + self::PICK_DAY_SIZE, $day_color, 'header' );
+				$y += (int) ( self::PICK_DAY_SIZE * 1.5 );
+			}
+
+			$y = $renderer->draw_text_wrapped( strtoupper( self::decode_text( (string) ( $pick['post']->post_title ?? '' ) ) ), self::PICK_TITLE_SIZE, self::PADDING, $y, $text, 'header', $max_w, 1.15 );
+
+			$venue = self::decode_text( (string) ( $pick['event_data']['venue'] ?? '' ) );
+			if ( '' !== $venue ) {
+				$renderer->draw_text( $venue, self::PICK_META_SIZE, self::PADDING, $y + self::PICK_META_SIZE + 4, $muted, 'body' );
+				$y += (int) ( self::PICK_META_SIZE * 1.5 ) + 4;
+			}
+
+			if ( '' !== $pick['note'] ) {
+				$y = $renderer->draw_text_wrapped( self::decode_text( $pick['note'] ), self::PICK_NOTE_SIZE, self::PADDING, $y + 6, $text, 'body', $max_w, 1.35 );
+			}
+
+			$y += self::PICK_GAP;
+		}
+
+		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
+	}
+
+	/**
+	 * Closing: one clear call to action, replacing the per-slide footer.
+	 */
+	private function render_closing_slide( int $slide_number, string $cta_text, string $closing_text, array $day_groups, string $preset, string $format, array $context, string $heading_path, string $body_path, array $colors, array $day_palette ): ?string {
+		$renderer = $this->start_canvas( $preset, $heading_path, $body_path, $colors['bg'] );
+		if ( ! $renderer ) {
+			return null;
+		}
+
+		$text   = $renderer->color_hex( 'text', $colors['text'] );
+		$muted  = $renderer->color_hex( 'muted', $colors['muted'] );
+		$cta    = $renderer->color_hex( 'cta', $colors['cta'] );
+		$height = $renderer->get_height();
+		$max_w  = $renderer->get_width() - ( self::PADDING * 2 );
+
+		// "MORE SHOWS AT EVENTS.EXTRACHILL.COM" → headline + URL when the
+		// CTA follows the default "<lead> AT <url>" shape.
+		$headline = $cta_text;
+		$url      = '';
+		if ( preg_match( '/^(.+?)\s+AT\s+(\S+\.\S+)$/', $cta_text, $m ) ) {
+			$headline = $m[1];
+			$url      = $m[2];
+		}
+
+		$y  = (int) ( $height * 0.36 );
+		$y  = $renderer->draw_text_wrapped( $headline, self::CLOSING_HEADLINE_SIZE, self::PADDING, $y, $text, 'header', $max_w, 1.15, 'center' );
+		$y += 24;
+
+		if ( '' !== $url ) {
+			$y = $renderer->draw_text_wrapped( $url, self::CLOSING_URL_SIZE, self::PADDING, $y, $cta, 'header', $max_w, 1.3, 'center' );
+		}
+
+		if ( '' !== $closing_text ) {
+			$renderer->draw_text_wrapped( $closing_text, self::CLOSING_TEXT_SIZE, self::PADDING, $y + 40, $muted, 'body', $max_w, 1.4, 'center' );
+		}
+
+		$this->draw_day_stripes( $renderer, $day_groups, $height - self::STRIPE_HEIGHT, $day_palette );
+
+		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
 	}
 
 	/**
@@ -299,11 +685,25 @@ class EventRoundupTemplate implements TemplateInterface {
 			}
 
 			$chunk = array();
-			foreach ( $events as $event_item ) {
+			$total = count( $events );
+			foreach ( array_values( $events ) as $i => $event_item ) {
 				$item_height = (int) $event_height( $event_item );
 				$needed      = $item_height + ( empty( $chunk ) ? $day_header_height : 0 );
 
 				if ( $cursor + $needed > $content_bottom && ( $slide_has_content || ! empty( $chunk ) ) ) {
+					// Keep a split day readable: never strand a day header
+					// with fewer than MIN_SPLIT_EVENTS at the bottom of a
+					// slide that already holds other days, and never carry
+					// fewer than MIN_SPLIT_EVENTS onto the next slide.
+					$carry     = array();
+					$remaining = $total - $i;
+					if ( ! empty( $chunk ) && count( $chunk ) < self::MIN_SPLIT_EVENTS && ! empty( $current ) ) {
+						$carry = $chunk;
+						$chunk = array();
+					} elseif ( $remaining < self::MIN_SPLIT_EVENTS && count( $chunk ) > self::MIN_SPLIT_EVENTS ) {
+						$carry = array_splice( $chunk, -( self::MIN_SPLIT_EVENTS - $remaining ) );
+					}
+
 					if ( ! empty( $chunk ) ) {
 						$current[] = array_merge( $day_group, array( 'events' => $chunk ) );
 					}
@@ -311,10 +711,16 @@ class EventRoundupTemplate implements TemplateInterface {
 						$slides[] = $current;
 					}
 					$current           = array();
-					$chunk             = array();
+					$chunk             = $carry;
 					$cursor            = $content_top;
-					$slide_has_content = false;
-					$needed            = $item_height + $day_header_height;
+					$slide_has_content = ! empty( $carry );
+					if ( ! empty( $carry ) ) {
+						$cursor += $day_header_height;
+						foreach ( $carry as $carried ) {
+							$cursor += (int) $event_height( $carried );
+						}
+					}
+					$needed = $item_height + ( empty( $chunk ) ? $day_header_height : 0 );
 				}
 
 				$chunk[]           = $event_item;

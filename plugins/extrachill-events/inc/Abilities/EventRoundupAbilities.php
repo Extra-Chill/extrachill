@@ -150,6 +150,33 @@ class EventRoundupAbilities {
 							'type'        => 'string',
 							'description' => __( 'Optional footer CTA. Defaults to the current site host.', 'extrachill-events' ),
 						),
+						'cover'           => array(
+							'type'        => 'boolean',
+							'description' => __( 'Prepend a cover slide with the title, date range, and show/venue counts.', 'extrachill-events' ),
+						),
+						'picks'           => array(
+							'type'        => 'array',
+							'description' => __( 'Human-chosen highlights for a text-only picks slide, in display order (max 5). Items are event post IDs or { post_id, note }. Every pick must be in the roundup.', 'extrachill-events' ),
+							'items'       => array(
+								'type'       => array( 'integer', 'object' ),
+								'properties' => array(
+									'post_id' => array( 'type' => 'integer' ),
+									'note'    => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'picks_title'     => array(
+							'type'        => 'string',
+							'description' => __( 'Picks slide heading. Defaults to "Our Picks".', 'extrachill-events' ),
+						),
+						'closing'         => array(
+							'type'        => 'boolean',
+							'description' => __( 'Append a closing CTA slide and drop the per-slide footer.', 'extrachill-events' ),
+						),
+						'closing_text'    => array(
+							'type'        => 'string',
+							'description' => __( 'Optional supporting line on the closing slide.', 'extrachill-events' ),
+						),
 						'storage_context' => array(
 							'type'        => 'object',
 							'description' => __( 'Optional storage context with pipeline_id and flow_id. When omitted, renders to temp files.', 'extrachill-events' ),
@@ -186,30 +213,57 @@ class EventRoundupAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'date_start' => array(
+						'date_start'   => array(
 							'type'        => 'string',
 							'description' => __( 'Start date (Y-m-d). Defaults to today.', 'extrachill-events' ),
 						),
-						'date_end'   => array(
+						'date_end'     => array(
 							'type'        => 'string',
 							'description' => __( 'End date (Y-m-d). Defaults to date_start (single-day roundup).', 'extrachill-events' ),
 						),
-						'scope'      => array(
+						'scope'        => array(
 							'type'        => 'string',
 							'enum'        => array( 'today', 'tonight', 'this-weekend', 'this-week' ),
 							'description' => __( 'Named date scope shared with the calendar API. Ignored when date_start is provided.', 'extrachill-events' ),
 						),
-						'location'   => array(
+						'location'     => array(
 							'type'        => 'string',
 							'description' => __( 'Location taxonomy term slug or numeric term ID. Optional.', 'extrachill-events' ),
 						),
-						'title'      => array(
+						'title'        => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for the first slide.', 'extrachill-events' ),
 						),
-						'cta_text'   => array(
+						'cta_text'     => array(
 							'type'        => 'string',
 							'description' => __( 'Optional footer CTA. Defaults to the current site host.', 'extrachill-events' ),
+						),
+						'cover'        => array(
+							'type'        => 'boolean',
+							'description' => __( 'Prepend a cover slide with the title, date range, and show/venue counts.', 'extrachill-events' ),
+						),
+						'picks'        => array(
+							'type'        => 'array',
+							'description' => __( 'Human-chosen highlights for a text-only picks slide, in display order (max 5). Items are event post IDs or { post_id, note }. Every pick must be in the roundup.', 'extrachill-events' ),
+							'items'       => array(
+								'type'       => array( 'integer', 'object' ),
+								'properties' => array(
+									'post_id' => array( 'type' => 'integer' ),
+									'note'    => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'picks_title'  => array(
+							'type'        => 'string',
+							'description' => __( 'Picks slide heading. Defaults to "Our Picks".', 'extrachill-events' ),
+						),
+						'closing'      => array(
+							'type'        => 'boolean',
+							'description' => __( 'Append a closing CTA slide and drop the per-slide footer.', 'extrachill-events' ),
+						),
+						'closing_text' => array(
+							'type'        => 'string',
+							'description' => __( 'Optional supporting line on the closing slide.', 'extrachill-events' ),
 						),
 					),
 				),
@@ -296,10 +350,13 @@ class EventRoundupAbilities {
 		$result = $ability->execute(
 			array(
 				'template_id' => 'event_roundup',
-				'data'        => array(
-					'day_groups' => $day_groups,
-					'title'      => $title,
-					'cta_text'   => $cta_text,
+				'data'        => array_merge(
+					array(
+						'day_groups' => $day_groups,
+						'title'      => $title,
+						'cta_text'   => $cta_text,
+					),
+					self::slideOptions( $input )
 				),
 				'preset'      => 'instagram_feed_portrait',
 				'format'      => 'png',
@@ -354,11 +411,19 @@ class EventRoundupAbilities {
 			);
 		}
 
+		$picks_error = self::validatePicks( $query_result['day_groups'], (array) ( $input['picks'] ?? array() ) );
+		if ( null !== $picks_error ) {
+			return $picks_error;
+		}
+
 		$render_result = $this->executeRender(
-			array(
-				'day_groups' => $query_result['day_groups'],
-				'title'      => (string) ( $input['title'] ?? '' ),
-				'cta_text'   => (string) ( $input['cta_text'] ?? '' ),
+			array_merge(
+				array(
+					'day_groups' => $query_result['day_groups'],
+					'title'      => (string) ( $input['title'] ?? '' ),
+					'cta_text'   => (string) ( $input['cta_text'] ?? '' ),
+				),
+				self::slideOptions( $input )
 			)
 		);
 		if ( \is_wp_error( $render_result ) ) {
@@ -572,6 +637,68 @@ class EventRoundupAbilities {
 			$date_start,
 			$date_end
 		);
+	}
+
+	/**
+	 * Optional slide-structure inputs passed through to the template.
+	 *
+	 * @param array $input Ability input.
+	 * @return array
+	 */
+	private static function slideOptions( array $input ): array {
+		return array(
+			'cover'        => ! empty( $input['cover'] ),
+			'picks'        => array_values( (array) ( $input['picks'] ?? array() ) ),
+			'picks_title'  => (string) ( $input['picks_title'] ?? '' ),
+			'closing'      => ! empty( $input['closing'] ),
+			'closing_text' => (string) ( $input['closing_text'] ?? '' ),
+		);
+	}
+
+	/**
+	 * Reject picks that are not events in this roundup, so a stale or
+	 * mistyped ID fails loudly instead of silently dropping a pick.
+	 *
+	 * @param array $day_groups Queried day groups.
+	 * @param array $picks      Post IDs or { post_id, note } items.
+	 * @return \WP_Error|null Error, or null when every pick is valid.
+	 */
+	public static function validatePicks( array $day_groups, array $picks ): ?\WP_Error {
+		if ( empty( $picks ) ) {
+			return null;
+		}
+		if ( count( $picks ) > 5 ) {
+			return new \WP_Error( 'too_many_picks', __( 'A roundup takes at most 5 picks.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$in_roundup = array();
+		foreach ( $day_groups as $day_group ) {
+			foreach ( (array) ( $day_group['events'] ?? array() ) as $event_item ) {
+				$in_roundup[ (int) ( $event_item['post']->ID ?? 0 ) ] = true;
+			}
+		}
+
+		$missing = array();
+		foreach ( $picks as $pick ) {
+			$post_id = is_array( $pick ) ? (int) ( $pick['post_id'] ?? 0 ) : (int) $pick;
+			if ( ! isset( $in_roundup[ $post_id ] ) ) {
+				$missing[] = $post_id;
+			}
+		}
+
+		if ( ! empty( $missing ) ) {
+			return new \WP_Error(
+				'pick_not_in_roundup',
+				sprintf(
+					/* translators: %s: comma-separated event post IDs */
+					__( 'Picks must be events in this roundup. Not found: %s', 'extrachill-events' ),
+					implode( ', ', $missing )
+				),
+				array( 'status' => 400 )
+			);
+		}
+
+		return null;
 	}
 
 	private function countEvents( array $day_groups ): int {
