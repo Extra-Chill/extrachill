@@ -89,22 +89,75 @@ function extrachill_analytics_register_fatal_alarm_task() {
 	// cadence is DM's built-in `every_5_minutes` (300s) interval. The network's
 	// 5-minute system-cron heartbeat drains Action Scheduler reliably even on
 	// low-traffic sites.
+	//
+	// The filter stays registered on EVERY site — including subsites — on
+	// purpose (issue #308). DM's RecurringScheduleRegistry must be able to SEE
+	// the `network_only` definition on a subsite to classify it as not owned
+	// there: FlowRoutines::boot() then unschedules any existing per-site chain
+	// (the idempotent cleanup for pre-0.38.5 installs where all 11 sites had
+	// their own tick) and dispatch rejects stale subsite ticks. Removing the
+	// filter on subsites instead would orphan those chains, because boot()
+	// only unschedules schedules it can still see.
 	add_filter(
 		'datamachine_recurring_schedules',
 		function ( array $schedules ): array {
-			$schedules['fatal_rate_alarm'] = array(
-				'task_type'       => \ExtraChill\Analytics\FatalRateAlarmTask::TASK_TYPE,
-				'interval'        => 'every_5_minutes',
-				'enabled_setting' => \ExtraChill\Analytics\FatalRateAlarmTask::SETTING_KEY,
-				'default_enabled' => true,
-				'label'           => 'Every 5 minutes — near-real-time PHP fatal-rate detection',
-				'task_params'     => array( 'source' => 'recurring_schedule' ),
-			);
+			$schedules['fatal_rate_alarm'] = extrachill_analytics_fatal_alarm_schedule_definition();
 			return $schedules;
 		}
 	);
 }
 add_action( 'plugins_loaded', 'extrachill_analytics_register_fatal_alarm_task', 25 );
+
+/**
+ * The recurring-schedule definition for the fatal-rate alarm.
+ *
+ * `network_only => true` is the issue #308 fix: the alarm's signal is
+ * network-wide (one shared debug.log, one network-wide dedupe site option),
+ * so exactly one site — the network main site — may own the 5-minute tick.
+ * DM's RecurringScheduleRegistry::isOwnedByCurrentSite() enforces this: the
+ * main site schedules and runs the tick, every other site unschedules any
+ * existing chain on boot and rejects stale ticks. Before this flag, all 11
+ * network sites evaluated the same signature each tick and the 10 sites
+ * without a dispatch transport failed delivery every time a real alarm fired.
+ *
+ * The `task_type` / `enabled_setting` literals mirror
+ * FatalRateAlarmTask::TASK_TYPE / ::SETTING_KEY; literals are used here so the
+ * definition is readable (and testable) without Data Machine's SystemTask base
+ * class being loadable.
+ *
+ * @return array<string, mixed> Schedule definition for `datamachine_recurring_schedules`.
+ */
+function extrachill_analytics_fatal_alarm_schedule_definition() {
+	return array(
+		'task_type'       => 'fatal_rate_alarm',
+		'interval'        => 'every_5_minutes',
+		'enabled_setting' => 'fatal_rate_alarm_enabled',
+		'default_enabled' => true,
+		'label'           => 'Every 5 minutes — near-real-time PHP fatal-rate detection',
+		'task_params'     => array( 'source' => 'recurring_schedule' ),
+		'network_only'    => true,
+	);
+}
+
+/**
+ * Whether the current site owns the fatal-rate alarm (issue #308).
+ *
+ * Mirrors DM's RecurringScheduleRegistry::isOwnedByCurrentSite() for a
+ * `network_only` schedule: on multisite only the network main site owns the
+ * alarm; on single-site installs the (only) site always does. Used by
+ * FatalRateAlarmTask as a belt-and-braces execution guard so a stale subsite
+ * tick (scheduled before 0.38.5, firing before DM's boot cleanup runs) records
+ * a skip instead of evaluating the network-wide signal and failing delivery.
+ *
+ * @return bool True when this site may evaluate and deliver the alarm.
+ */
+function extrachill_analytics_fatal_alarm_owned_by_current_site() {
+	if ( ! is_multisite() ) {
+		return true;
+	}
+
+	return is_main_site();
+}
 
 /**
  * Retire the legacy hand-rolled WP-cron event from pre-0.24.0 installs.
@@ -616,12 +669,23 @@ function extrachill_analytics_deliver_fatal_alarms( $alarms, $beacon, $dispatche
 	if ( ! $beacon['configured'] || null === $dispatcher ) {
 		$beacon['failed']  = count( $alarms );
 		$beacon['outcome'] = $beacon['configured'] ? 'delivery_failed' : 'unconfigured';
+		$error             = $beacon['configured']
+			? array(
+				'code'    => 'dispatcher_unavailable',
+				'message' => 'The agents/dispatch-message ability is not available on this site.',
+			)
+			: array(
+				'code'    => 'delivery_unconfigured',
+				'message' => 'No alarm recipient or delivery channel is configured.',
+			);
 		foreach ( $alarms as $index => $alarm ) {
 			$beacon['deliveries'][ $index ] = array(
-				'signature' => $alarm['signature'],
-				'dispatch'  => false,
-				'notify'    => false,
-				'delivered' => false,
+				'signature'      => $alarm['signature'],
+				'dispatch'       => false,
+				'notify'         => false,
+				'delivered'      => false,
+				'dispatch_error' => $error,
+				'notify_error'   => $error,
 			);
 		}
 		return $beacon;
@@ -657,13 +721,19 @@ function extrachill_analytics_deliver_fatal_alarms( $alarms, $beacon, $dispatche
  * a plain alarm message so a human is still paged. Both go through the single
  * `agents/dispatch-message` contract; channel names are configuration.
  *
+ * When a path fails, the per-delivery record carries the failure detail
+ * (`dispatch_error` / `notify_error`, each `{code, message}`), so a
+ * `delivery_failed` job explains itself instead of recording only
+ * `dispatch:false, notify:false` (issue #308).
+ *
  * @param array  $alarm      One alarm row from the evaluator.
  * @param string $recipient  Recipient handed to the dispatch channel.
  * @param object $dispatcher `agents/dispatch-message` compatible object.
- * @return array{signature:string, dispatch:bool, notify:bool, delivered:bool} Per-path outcome.
+ * @return array Per-path outcome: signature, dispatch, notify, delivered,
+ *               plus dispatch_error / notify_error on the failed paths.
  */
 function extrachill_analytics_send_fatal_alarm_beacon( $alarm, $recipient, $dispatcher ) {
-	$dispatched = extrachill_analytics_dispatch_fatal_alarm_message(
+	$dispatch = extrachill_analytics_dispatch_fatal_alarm_message(
 		$dispatcher,
 		extrachill_analytics_fatal_alarm_dispatch_channel(),
 		$recipient,
@@ -671,38 +741,80 @@ function extrachill_analytics_send_fatal_alarm_beacon( $alarm, $recipient, $disp
 		$alarm
 	);
 
-	$notified = false;
-	if ( ! $dispatched ) {
-		$notified = extrachill_analytics_dispatch_fatal_alarm_message(
-			$dispatcher,
-			extrachill_analytics_fatal_alarm_notify_channel(),
-			$recipient,
-			extrachill_analytics_fatal_alarm_prompt( $alarm, true ),
-			$alarm
-		);
+	$delivery = array(
+		'signature' => $alarm['signature'],
+		'dispatch'  => $dispatch['sent'],
+		'notify'    => false,
+		'delivered' => $dispatch['sent'],
+	);
+
+	if ( $dispatch['sent'] ) {
+		return $delivery;
 	}
 
-	return array(
-		'signature' => $alarm['signature'],
-		'dispatch'  => $dispatched,
-		'notify'    => $notified,
-		'delivered' => $dispatched || $notified,
+	$delivery['dispatch_error'] = $dispatch['error'];
+
+	$notify = extrachill_analytics_dispatch_fatal_alarm_message(
+		$dispatcher,
+		extrachill_analytics_fatal_alarm_notify_channel(),
+		$recipient,
+		extrachill_analytics_fatal_alarm_prompt( $alarm, true ),
+		$alarm
 	);
+
+	$delivery['notify']    = $notify['sent'];
+	$delivery['delivered'] = $notify['sent'];
+	if ( ! $notify['sent'] ) {
+		$delivery['notify_error'] = $notify['error'];
+	}
+
+	return $delivery;
 }
 
 /**
  * Send one alarm message through an `agents/dispatch-message` channel.
+ *
+ * Never swallows the failure cause (issue #308): every unsent outcome carries
+ * a `{code, message}` error — the WP_Error from the dispatch ability, a
+ * `not_sent` reason when the response lacked `sent`, or why the path was
+ * never attempted (unconfigured channel/recipient, unusable dispatcher).
  *
  * @param object $dispatcher       `agents/dispatch-message` compatible object.
  * @param string $dispatch_channel Dispatch channel name ('' = skip).
  * @param string $recipient        Recipient handed to the channel.
  * @param string $message          Message body.
  * @param array  $alarm            Alarm row (for metadata).
- * @return bool True when the channel reported the message as sent.
+ * @return array{sent:bool, error:?array{code:string, message:string}} Path outcome.
  */
 function extrachill_analytics_dispatch_fatal_alarm_message( $dispatcher, $dispatch_channel, $recipient, $message, $alarm ) {
-	if ( '' === $dispatch_channel || '' === $recipient || ! method_exists( $dispatcher, 'execute' ) ) {
-		return false;
+	if ( '' === $dispatch_channel ) {
+		return array(
+			'sent'  => false,
+			'error' => array(
+				'code'    => 'channel_unconfigured',
+				'message' => 'No dispatch channel is configured for this path.',
+			),
+		);
+	}
+
+	if ( '' === $recipient ) {
+		return array(
+			'sent'  => false,
+			'error' => array(
+				'code'    => 'recipient_unconfigured',
+				'message' => 'No alarm recipient is configured.',
+			),
+		);
+	}
+
+	if ( ! method_exists( $dispatcher, 'execute' ) ) {
+		return array(
+			'sent'  => false,
+			'error' => array(
+				'code'    => 'dispatcher_unavailable',
+				'message' => 'The dispatcher does not expose an execute() method.',
+			),
+		);
 	}
 
 	$response = $dispatcher->execute(
@@ -718,10 +830,34 @@ function extrachill_analytics_dispatch_fatal_alarm_message( $dispatcher, $dispat
 	);
 
 	if ( is_wp_error( $response ) ) {
-		return false;
+		return array(
+			'sent'  => false,
+			'error' => array(
+				'code'    => (string) $response->get_error_code(),
+				'message' => $response->get_error_message(),
+			),
+		);
 	}
 
-	return is_array( $response ) && ! empty( $response['sent'] );
+	if ( is_array( $response ) && ! empty( $response['sent'] ) ) {
+		return array(
+			'sent'  => true,
+			'error' => null,
+		);
+	}
+
+	$detail = '';
+	if ( is_array( $response ) && isset( $response['error'] ) && is_scalar( $response['error'] ) ) {
+		$detail = ' Channel error: ' . (string) $response['error'];
+	}
+
+	return array(
+		'sent'  => false,
+		'error' => array(
+			'code'    => 'not_sent',
+			'message' => 'The dispatch channel response did not report the message as sent.' . $detail,
+		),
+	);
 }
 
 /**

@@ -122,6 +122,26 @@ class FatalRateAlarmTask extends SystemTask {
 	 * @param array $params Task parameters from engine_data.
 	 */
 	public function executeTask( int $jobId, array $params ): void {
+		// The alarm's signal is network-wide (one shared debug.log, one
+		// network-wide dedupe option), so only the network main site owns it
+		// (issue #308). The recurring schedule is `network_only`, which makes
+		// DM unschedule subsite chains and reject stale subsite ticks — this
+		// guard is belt-and-braces for a pre-cleanup stale tick or a manual
+		// `wp datamachine system run fatal_rate_alarm --url=<subsite>`: it
+		// records a skip instead of evaluating and failing delivery on a site
+		// with no dispatch transport.
+		if ( function_exists( 'extrachill_analytics_fatal_alarm_owned_by_current_site' )
+			&& ! extrachill_analytics_fatal_alarm_owned_by_current_site() ) {
+			$this->completeJob(
+				$jobId,
+				array(
+					'skipped' => true,
+					'reason'  => 'Fatal-rate alarm runs on the network main site only (network-wide signal, issue #308).',
+				)
+			);
+			return;
+		}
+
 		// Gate on the same PluginSetting the React UI toggles and the
 		// recurring schedule reads. Scheduled runs already wouldn't fire when
 		// the setting is off, but manual runs via `wp datamachine system run

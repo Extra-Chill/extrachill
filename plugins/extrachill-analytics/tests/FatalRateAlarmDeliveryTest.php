@@ -162,6 +162,73 @@ final class FatalRateAlarmDeliveryTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
+	 * A WP_Error from the dispatch ability is recorded on the failed path
+	 * (issue #308: the error used to be swallowed, leaving only dispatch:false).
+	 */
+	public function test_dispatch_wp_error_is_recorded_in_delivery(): void {
+		$this->configure( 'agent', 'notify' );
+		$this->dispatcher->error_channels = array( 'agent' );
+		$this->write_live_fatals( array( 'Erroring dispatch fatal' ) );
+
+		$result = extrachill_analytics_evaluate_fatal_alarm( false, false, $this->dispatcher );
+
+		$delivery = $result['beacon']['deliveries'][0];
+		$this->assertFalse( $delivery['dispatch'] );
+		$this->assertSame( 'dispatch_failed', $delivery['dispatch_error']['code'] );
+		$this->assertSame( 'Channel unavailable.', $delivery['dispatch_error']['message'] );
+		// Notify was attempted and reported not sent, so its path explains itself too.
+		$this->assertFalse( $delivery['notify'] );
+		$this->assertSame( 'not_sent', $delivery['notify_error']['code'] );
+		$this->assertSame( 'delivery_failed', $result['beacon']['outcome'] );
+	}
+
+	/**
+	 * A response without `sent` records a `not_sent` reason on the path.
+	 */
+	public function test_not_sent_response_is_recorded_in_delivery(): void {
+		$this->configure( 'agent', '' );
+		$this->write_live_fatals( array( 'Silently unsent fatal' ) );
+
+		$result = extrachill_analytics_evaluate_fatal_alarm( false, false, $this->dispatcher );
+
+		$delivery = $result['beacon']['deliveries'][0];
+		$this->assertFalse( $delivery['dispatch'] );
+		$this->assertSame( 'not_sent', $delivery['dispatch_error']['code'] );
+		// The notify path was never configured, and the record says so.
+		$this->assertSame( 'channel_unconfigured', $delivery['notify_error']['code'] );
+		$this->assertSame( 'delivery_failed', $result['beacon']['outcome'] );
+	}
+
+	/**
+	 * A successful dispatch records no error keys — they only appear on failure.
+	 */
+	public function test_successful_dispatch_records_no_error_detail(): void {
+		$this->configure( 'agent', 'notify' );
+		$this->dispatcher->sent_channels = array( 'agent' );
+		$this->write_live_fatals( array( 'Clean dispatch fatal' ) );
+
+		$result = extrachill_analytics_evaluate_fatal_alarm( false, false, $this->dispatcher );
+
+		$delivery = $result['beacon']['deliveries'][0];
+		$this->assertTrue( $delivery['delivered'] );
+		$this->assertArrayNotHasKey( 'dispatch_error', $delivery );
+		$this->assertArrayNotHasKey( 'notify_error', $delivery );
+	}
+
+	/**
+	 * Unconfigured delivery still explains both paths in each delivery record.
+	 */
+	public function test_unconfigured_delivery_records_reason_per_path(): void {
+		$this->write_live_fatals( array( 'Unconfigured but explained fatal' ) );
+
+		$result = extrachill_analytics_evaluate_fatal_alarm( false, false, $this->dispatcher );
+
+		$delivery = $result['beacon']['deliveries'][0];
+		$this->assertSame( 'delivery_unconfigured', $delivery['dispatch_error']['code'] );
+		$this->assertSame( 'delivery_unconfigured', $delivery['notify_error']['code'] );
+	}
+
+	/**
 	 * Every path fails: no dedupe write, reported as delivery_failed, retried next tick.
 	 */
 	public function test_all_paths_failing_is_not_deduped_and_retries(): void {
