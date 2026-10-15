@@ -645,6 +645,68 @@ class LocalSceneDigestTest extends TestCase {
 		$this->assertSame( 1, $recipient_failure['failures']['recipient_resolution_failed'] );
 	}
 
+	public function test_end_of_day_placeholder_end_time_is_dropped_but_real_late_ends_are_kept(): void {
+		$tomorrow = new DateTimeImmutable( 'tomorrow', new DateTimeZone( 'America/Chicago' ) );
+		$day      = $tomorrow->format( 'Y-m-d' );
+		$rows     = array(
+			1 => array( 'endTime' => '23:59' ),
+			2 => array( 'endTime' => '23:59:00', 'endDate' => $day ),
+			3 => array( 'endTime' => '23:59:59' ),
+			4 => array( 'endTime' => '23:30:00' ),
+			5 => array( 'endTime' => '02:00:00', 'endDate' => $tomorrow->modify( '+1 day' )->format( 'Y-m-d' ) ),
+			6 => array( 'endTime' => '23:59:00', 'endDate' => $tomorrow->modify( '+1 day' )->format( 'Y-m-d' ) ),
+		);
+		foreach ( $rows as $id => $end ) {
+			$GLOBALS['local_scene_posts'][]           = new WP_Post( array( 'ID' => $id, 'post_status' => 'publish', 'post_title' => 'Show ' . $id ) );
+			$GLOBALS['local_scene_terms'][ $id ]      = array( 'location' => array( 44 ), 'venue' => array( $this->term( 10 + $id, 'club-' . $id, 'Club ' . $id ) ), 'artist' => array( $id ) );
+			$GLOBALS['local_scene_event_data'][ $id ] = array_merge( array( 'startDate' => $day, 'startTime' => '20:00:00', 'venueTimezone' => 'America/Chicago', 'performer' => 'Band ' . $id ), $end );
+		}
+
+		$ends = array();
+		foreach ( extrachill_events_local_scene_digest_candidates( $this->location, 7 ) as $row ) {
+			$ends[ $row['post_id'] ] = $row['end_datetime'] instanceof DateTimeImmutable ? $row['end_datetime']->format( 'Y-m-d H:i' ) : null;
+		}
+		ksort( $ends );
+
+		$this->assertSame( array( 1, 2, 3, 4, 5, 6 ), array_keys( $ends ), 'Placeholder ends must not drop the event.' );
+		$this->assertNull( $ends[1] );
+		$this->assertNull( $ends[2] );
+		$this->assertNull( $ends[3] );
+		$this->assertSame( $day . ' 23:30', $ends[4] );
+		$this->assertSame( $tomorrow->modify( '+1 day' )->format( 'Y-m-d' ) . ' 02:00', $ends[5] );
+		$this->assertSame( $tomorrow->modify( '+1 day' )->format( 'Y-m-d' ) . ' 23:59', $ends[6], 'A multi-day 23:59 end is a real end.' );
+
+		$html = extrachill_events_render_local_scene_digest_section( 'Picks', extrachill_events_local_scene_digest_candidates( $this->location, 7 ) );
+		$this->assertSame( 1, substr_count( $html, '11:59 PM' ), 'Only the real multi-day end prints 11:59 PM.' );
+	}
+
+	public function test_selection_reads_chronologically_after_priority_and_diversity_caps(): void {
+		$base   = new DateTimeImmutable( 'tomorrow 18:00', wp_timezone() );
+		$events = array();
+		foreach ( range( 1, 10 ) as $id ) {
+			$event                   = $this->event( $id, $base->modify( '+' . ( 11 - $id ) . ' hours' ), false, false, 11 - $id );
+			$event['venue_id']       = $id <= 4 ? 1 : $id;
+			$event['performer_keys'] = array( 'term:' . $id );
+			$events[]                = $event;
+		}
+		usort( $events, 'extrachill_events_compare_local_scene_digest_events' );
+		$GLOBALS['local_scene_marks'][7][9] = true;
+
+		$selected = extrachill_events_select_local_scene_digest_events( $events, 7, 6 );
+		$ids      = array_column( $selected, 'post_id' );
+
+		$this->assertCount( 6, $selected );
+		$this->assertSame( 9, $ids[0], 'Going events lead the selection.' );
+		$this->assertCount( 2, array_filter( $selected, static fn( $event ) => 1 === $event['venue_id'] ), 'Caps still decide membership.' );
+		$times = array_map( static fn( $event ) => $event['datetime']->getTimestamp(), array_slice( $selected, 1 ) );
+		$sorted = $times;
+		sort( $sorted );
+		$this->assertSame( $sorted, $times, 'More This Week reads in start-time order.' );
+
+		$all = extrachill_events_select_local_scene_digest_events( array_slice( $events, 0, 3 ), 7, 8 );
+		$this->assertSame( array( 3, 2, 1 ), array_column( $all, 'post_id' ), 'Sparse scenes also read in start-time order, not priority order.' );
+	}
+
 	public function test_austin_times_render_in_venue_timezone_with_explicit_end(): void {
 		$start = new DateTimeImmutable( '2030-07-15 20:00:00', new DateTimeZone( 'America/Chicago' ) );
 		$event = $this->event( 1, $start );

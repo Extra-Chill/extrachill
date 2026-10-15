@@ -271,6 +271,12 @@ function extrachill_events_local_scene_digest_candidates( WP_Term $location, int
 			if ( preg_match( '/^\d{2}:\d{2}$/', $end_time ) ) {
 				$end_time .= ':00';
 			}
+			if ( extrachill_events_local_scene_digest_is_placeholder_end( $end_date, $end_time, (string) ( $data['startDate'] ?? '' ) ) ) {
+				$end_date = '';
+				$end_time = '';
+			}
+		}
+		if ( '' !== $end_time ) {
 			$end_source   = ( '' !== $end_date ? $end_date : (string) ( $data['startDate'] ?? '' ) ) . ' ' . $end_time;
 			$end_datetime = DateTimeImmutable::createFromFormat( '!Y-m-d H:i:s', $end_source, $timezone );
 			$errors       = DateTimeImmutable::getLastErrors();
@@ -358,12 +364,13 @@ function extrachill_events_select_local_scene_digest_events( array $candidates, 
 		}
 	}
 
-	$ordered = array_merge( $going, $more );
+	$going_ids = array_fill_keys( array_column( $going, 'post_id' ), true );
+	$ordered   = array_merge( $going, $more );
 	if ( count( $ordered ) <= $limit ) {
-		return $ordered;
+		return extrachill_events_local_scene_digest_chronological( $ordered, $going_ids );
 	}
 	if ( count( $going ) >= $limit ) {
-		return array_slice( $going, 0, $limit );
+		return extrachill_events_local_scene_digest_chronological( array_slice( $going, 0, $limit ), $going_ids );
 	}
 
 	$selected = $going;
@@ -395,11 +402,51 @@ function extrachill_events_select_local_scene_digest_events( array $candidates, 
 			$artists[ $performer_key ] = ( $artists[ $performer_key ] ?? 0 ) + 1;
 		}
 		if ( count( $selected ) >= $limit ) {
-			return $selected;
+			return extrachill_events_local_scene_digest_chronological( $selected, $going_ids );
 		}
 	}
 
-	return array_slice( array_merge( $selected, $deferred ), 0, $limit );
+	return extrachill_events_local_scene_digest_chronological( array_slice( array_merge( $selected, $deferred ), 0, $limit ), $going_ids );
+}
+
+/**
+ * Present a selection in reading order: Going events first, each group by start time.
+ *
+ * Priority and diversity caps decide which events make the cut; they must not
+ * decide the order a reader sees them in.
+ *
+ * @param array $events    Selected event rows.
+ * @param array $going_ids Post IDs the recipient marked as attending, as keys.
+ * @return array Chronologically ordered rows.
+ */
+function extrachill_events_local_scene_digest_chronological( array $events, array $going_ids ): array {
+	usort(
+		$events,
+		static function ( array $a, array $b ) use ( $going_ids ): int {
+			$group = (int) isset( $going_ids[ $b['post_id'] ] ) <=> (int) isset( $going_ids[ $a['post_id'] ] );
+			if ( 0 !== $group ) {
+				return $group;
+			}
+			$time = $a['datetime']->getTimestamp() <=> $b['datetime']->getTimestamp();
+			return 0 !== $time ? $time : ( $a['post_id'] <=> $b['post_id'] );
+		}
+	);
+	return $events;
+}
+
+/**
+ * Whether an end time is the importer's end-of-day placeholder rather than a real end.
+ *
+ * Scrapers that lack an end time fill 23:59 on the start date; printing it would
+ * tell readers every show runs until midnight.
+ *
+ * @param string $end_date   Raw end date, possibly empty.
+ * @param string $end_time   Normalized H:i:s end time.
+ * @param string $start_date Raw start date.
+ * @return bool
+ */
+function extrachill_events_local_scene_digest_is_placeholder_end( string $end_date, string $end_time, string $start_date ): bool {
+	return in_array( $end_time, array( '23:59:00', '23:59:59' ), true ) && ( '' === $end_date || $end_date === $start_date );
 }
 
 /**
