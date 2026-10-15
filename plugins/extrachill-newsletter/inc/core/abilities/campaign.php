@@ -110,19 +110,19 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
 		)
 	);
 
+	// Surface the provider's real error (config, validation, Sendy rejection,
+	// timeout) instead of a generic message, so the admin button and REST
+	// callers can tell what actually went wrong.
 	if ( is_wp_error( $result ) ) {
-		return array(
-			'success'     => false,
-			'campaign_id' => $campaign_id,
-			'message'     => __( 'Failed to send campaign to Sendy', 'extrachill-newsletter' ),
-		);
+		return extrachill_newsletter_push_campaign_error( $result );
 	}
 
 	if ( empty( $result['success'] ) ) {
-		return array(
-			'success'     => false,
-			'campaign_id' => isset( $result['campaign_id'] ) ? $result['campaign_id'] : $campaign_id,
-			'message'     => ! empty( $result['message'] ) ? $result['message'] : __( 'Failed to send campaign to Sendy', 'extrachill-newsletter' ),
+		return extrachill_newsletter_push_campaign_error(
+			new WP_Error(
+				'sendy_push_failed',
+				! empty( $result['message'] ) ? (string) $result['message'] : __( 'Sendy did not accept the campaign.', 'extrachill-newsletter' )
+			)
 		);
 	}
 
@@ -156,4 +156,25 @@ function extrachill_newsletter_ability_push_campaign( $input ) {
  */
 function extrachill_newsletter_sendy_push_campaign( $campaign ) {
 	return extrachill_newsletter_execute_sendy_campaign_ability( 'datamachine/sendy-push-campaign', $campaign );
+}
+
+/**
+ * Prefix a push failure so the cause is readable, and give REST a 502.
+ *
+ * @param WP_Error $error Provider error.
+ * @return WP_Error
+ */
+function extrachill_newsletter_push_campaign_error( WP_Error $error ) {
+	$data = $error->get_error_data();
+	$data = is_array( $data ) ? $data : array();
+	if ( ! isset( $data['status'] ) ) {
+		$data['status'] = 502;
+	}
+
+	return new WP_Error(
+		$error->get_error_code(),
+		/* translators: %s: underlying Sendy error message. */
+		sprintf( __( 'Push to Sendy failed: %s', 'extrachill-newsletter' ), $error->get_error_message() ),
+		$data
+	);
 }

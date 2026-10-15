@@ -33,10 +33,6 @@ function ec_newsletter_handle_settings_save() {
 
 	$settings = array();
 
-	// API Configuration
-	$settings['sendy_api_key'] = isset( $_POST['sendy_api_key'] ) ? sanitize_text_field( wp_unslash( $_POST['sendy_api_key'] ) ) : '';
-	$settings['sendy_url']     = isset( $_POST['sendy_url'] ) ? esc_url_raw( wp_unslash( $_POST['sendy_url'] ) ) : EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT;
-
 	// Email Configuration
 	$settings['from_name']  = isset( $_POST['from_name'] ) ? sanitize_text_field( wp_unslash( $_POST['from_name'] ) ) : 'Extra Chill';
 	$settings['from_email'] = isset( $_POST['from_email'] ) ? sanitize_email( wp_unslash( $_POST['from_email'] ) ) : 'newsletter@extrachill.com';
@@ -69,6 +65,7 @@ function ec_newsletter_render_settings_page() {
 	$settings     = get_newsletter_settings();
 	$integrations = get_newsletter_integrations();
 	$updated      = filter_input( INPUT_GET, 'updated', FILTER_VALIDATE_BOOLEAN );
+	$connection   = extrachill_newsletter_get_sendy_connection();
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Newsletter Settings', 'extrachill-newsletter' ); ?></h1>
@@ -83,31 +80,25 @@ function ec_newsletter_render_settings_page() {
 			<input type="hidden" name="action" value="ec_newsletter_settings" />
 			<?php wp_nonce_field( 'ec_newsletter_settings', 'ec_newsletter_nonce' ); ?>
 
-			<!-- API Configuration -->
-			<h2><?php esc_html_e( 'API Configuration', 'extrachill-newsletter' ); ?></h2>
-			<p class="description"><?php esc_html_e( 'Configure your Sendy API connection settings.', 'extrachill-newsletter' ); ?></p>
-			<table class="form-table">
-				<tbody>
-					<tr>
-						<th scope="row">
-							<label for="sendy_api_key"><?php esc_html_e( 'Sendy API Key', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="password" id="sendy_api_key" name="sendy_api_key" value="<?php echo esc_attr( $settings['sendy_api_key'] ); ?>" class="regular-text" />
-							<p class="description"><?php esc_html_e( 'Your Sendy API key from Sendy settings.', 'extrachill-newsletter' ); ?></p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="sendy_url"><?php esc_html_e( 'Sendy URL', 'extrachill-newsletter' ); ?></label>
-						</th>
-						<td>
-							<input type="url" id="sendy_url" name="sendy_url" value="<?php echo esc_attr( $settings['sendy_url'] ); ?>" class="regular-text" />
-							<p class="description"><?php esc_html_e( 'Your Sendy installation URL (without trailing slash).', 'extrachill-newsletter' ); ?></p>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+			<!-- Sendy Connection (owned by Data Machine Business) -->
+			<h2><?php esc_html_e( 'Sendy Connection', 'extrachill-newsletter' ); ?></h2>
+			<?php if ( $connection['configured'] ) : ?>
+				<div class="notice notice-success inline">
+					<p>
+						<?php
+						/* translators: %s: Sendy installation URL. */
+						echo esc_html( sprintf( __( 'Connected to %s.', 'extrachill-newsletter' ), $connection['sendy_url'] ) );
+						?>
+					</p>
+				</div>
+			<?php else : ?>
+				<div class="notice notice-error inline">
+					<p><?php esc_html_e( 'Not configured. Campaign push and subscriptions will fail.', 'extrachill-newsletter' ); ?></p>
+				</div>
+			<?php endif; ?>
+			<p class="description">
+				<?php esc_html_e( 'The Sendy API key and URL are managed by Data Machine Business in the datamachine_sendy_config network option, shared by every Sendy feature on the network.', 'extrachill-newsletter' ); ?>
+			</p>
 
 			<!-- Email Configuration -->
 			<h2><?php esc_html_e( 'Email Configuration', 'extrachill-newsletter' ); ?></h2>

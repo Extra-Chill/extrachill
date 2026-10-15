@@ -99,7 +99,6 @@ function extrachill_newsletter_ability_funnel_metrics( $input = array() ) {
 
 	$result = $dmb->execute(
 		array(
-			'config'         => extrachill_newsletter_sendy_dmb_config(),
 			'metric'         => 'funnel',
 			'campaign_limit' => $campaign_limit,
 		)

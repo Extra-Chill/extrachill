@@ -17,10 +17,6 @@ defined( 'ABSPATH' ) || exit;
  * Single source of truth — every place that needs the default Sendy URL
  * must read it from here rather than re-hardcoding the literal.
  */
-if ( ! defined( 'EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT' ) ) {
-	define( 'EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT', 'https://mail.extrachill.com/sendy' );
-}
-
 /**
  * Default newsletter settings.
  *
@@ -32,28 +28,27 @@ if ( ! defined( 'EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT' ) ) {
  */
 function extrachill_newsletter_default_settings() {
 	return array(
-		'sendy_api_key' => '',
-		'sendy_url'     => EXTRACHILL_NEWSLETTER_SENDY_URL_DEFAULT,
-		'from_name'     => 'Extra Chill',
-		'from_email'    => 'newsletter@extrachill.com',
-		'reply_to'      => 'chubes@extrachill.com',
-		'brand_id'      => '1',
+		'from_name'  => 'Extra Chill',
+		'from_email' => 'newsletter@extrachill.com',
+		'reply_to'   => 'chubes@extrachill.com',
+		'brand_id'   => '1',
 	);
 }
 
 /**
- * Get the Sendy API configuration from the newsletter settings.
+ * Get the newsletter's sender identity.
  *
- * @return array {api_key, sendy_url, from_name, from_email, reply_to, brand_id}.
+ * Sendy credentials (API key, URL, database) are owned by Data Machine
+ * Business in its canonical configuration; this plugin only owns who the
+ * newsletter is from.
+ *
+ * @return array {from_name, from_email, reply_to, brand_id}.
  */
 function get_sendy_config() {
 	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
-
-	$settings = wp_parse_args( $settings, extrachill_newsletter_default_settings() );
+	$settings = wp_parse_args( is_array( $settings ) ? $settings : array(), extrachill_newsletter_default_settings() );
 
 	return array(
-		'api_key'    => $settings['sendy_api_key'],
-		'sendy_url'  => $settings['sendy_url'],
 		'from_name'  => $settings['from_name'],
 		'from_email' => $settings['from_email'],
 		'reply_to'   => $settings['reply_to'],
@@ -62,22 +57,51 @@ function get_sendy_config() {
 }
 
 /**
- * Build the legacy Sendy connection config required by the Data Machine
- * Business subscription and metrics abilities.
- *
- * Campaign abilities own their provider configuration and never receive this
- * payload. The older subscribe and metrics contracts still accept Newsletter's
- * API configuration until those provider contracts are migrated separately.
- *
- * @return array {api_key, sendy_url}.
+ * Fully-qualified name of the Data Machine Business Sendy abilities class.
  */
-function extrachill_newsletter_sendy_dmb_config() {
-	$config = get_sendy_config();
+const EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS = 'DataMachineBusiness\\Abilities\\Sendy\\SendyAbilities';
+
+/**
+ * Report whether Data Machine Business has a usable Sendy API connection.
+ *
+ * Read-only status for settings screens. Credentials are owned and managed by
+ * Data Machine Business (`datamachine_sendy_config`); this plugin never stores
+ * or edits them.
+ *
+ * @return array {configured: bool, sendy_url: string}.
+ */
+function extrachill_newsletter_get_sendy_connection() {
+	$class  = EXTRACHILL_NEWSLETTER_DMB_SENDY_CLASS;
+	$config = class_exists( $class ) && method_exists( $class, 'get_campaign_config' ) ? $class::get_campaign_config() : array();
 
 	return array(
-		'api_key'   => $config['api_key'],
-		'sendy_url' => $config['sendy_url'],
+		'configured' => ! empty( $config['api_key'] ) && ! empty( $config['sendy_url'] ),
+		'sendy_url'  => isset( $config['sendy_url'] ) ? (string) $config['sendy_url'] : '',
 	);
+}
+
+add_action( 'init', 'extrachill_newsletter_remove_legacy_sendy_credentials' );
+
+/**
+ * Remove the legacy duplicate of the Sendy credentials.
+ *
+ * Older versions stored sendy_api_key and sendy_url in this plugin's
+ * settings. Once Data Machine Business has a working connection, the copy is
+ * dead weight and a second place for the key to drift, so delete it. It is
+ * left alone while DMB is unconfigured so nothing is lost.
+ */
+function extrachill_newsletter_remove_legacy_sendy_credentials() {
+	$settings = get_site_option( 'extrachill_newsletter_settings', array() );
+	if ( ! is_array( $settings ) || ( ! array_key_exists( 'sendy_api_key', $settings ) && ! array_key_exists( 'sendy_url', $settings ) ) ) {
+		return;
+	}
+
+	if ( ! extrachill_newsletter_get_sendy_connection()['configured'] ) {
+		return;
+	}
+
+	unset( $settings['sendy_api_key'], $settings['sendy_url'] );
+	update_site_option( 'extrachill_newsletter_settings', $settings );
 }
 
 /**

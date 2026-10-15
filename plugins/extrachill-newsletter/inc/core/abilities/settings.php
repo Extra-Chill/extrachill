@@ -51,19 +51,11 @@ function extrachill_newsletter_register_settings_abilities() {
 		'extrachill/update-newsletter-settings',
 		array(
 			'label'               => __( 'Update Newsletter Settings', 'extrachill-newsletter' ),
-			'description'         => __( 'Update newsletter settings including Sendy API configuration and integration list IDs.', 'extrachill-newsletter' ),
+			'description'         => __( 'Update newsletter sender identity and integration list IDs. Sendy credentials are managed by Data Machine Business.', 'extrachill-newsletter' ),
 			'category'            => 'extrachill-newsletter',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'sendy_api_key' => array(
-						'type'        => 'string',
-						'description' => __( 'Sendy API key.', 'extrachill-newsletter' ),
-					),
-					'sendy_url'     => array(
-						'type'        => 'string',
-						'description' => __( 'Sendy installation URL.', 'extrachill-newsletter' ),
-					),
 					'from_name'     => array(
 						'type'        => 'string',
 						'description' => __( 'From name for campaigns.', 'extrachill-newsletter' ),
@@ -162,19 +154,24 @@ function extrachill_newsletter_ability_get_settings( $input ) {
 		}
 	}
 
+	// Sendy credentials are owned by Data Machine Business; report status only.
+	$connection = extrachill_newsletter_get_sendy_connection();
+	if ( ! $connection['configured'] ) {
+		$warnings[] = __( 'The Sendy API connection is not configured in Data Machine Business (datamachine_sendy_config). Campaign push and subscriptions will fail.', 'extrachill-newsletter' );
+	}
+
 	// Return settings with integration list IDs, computed integrations, and warnings.
 	// Strip per-integration keys from the flat settings (they're now in computed).
 	$core_settings = array(
-		'sendy_api_key' => $settings['sendy_api_key'],
-		'sendy_url'     => $settings['sendy_url'],
-		'from_name'     => $settings['from_name'],
-		'from_email'    => $settings['from_email'],
-		'reply_to'      => $settings['reply_to'],
-		'brand_id'      => $settings['brand_id'],
+		'from_name'  => $settings['from_name'],
+		'from_email' => $settings['from_email'],
+		'reply_to'   => $settings['reply_to'],
+		'brand_id'   => $settings['brand_id'],
 	);
 
 	return array(
 		'settings'     => $core_settings,
+		'sendy'        => $connection,
 		'integrations' => $computed,
 		'warnings'     => $warnings,
 	);
@@ -187,23 +184,27 @@ function extrachill_newsletter_ability_get_settings( $input ) {
  * Handles list IDs via the list_ids map (context → list_id).
  *
  * @param array $input Partial settings object.
- * @return array Updated settings (same shape as GET).
+ * @return array|WP_Error Updated settings (same shape as GET).
  */
 function extrachill_newsletter_ability_update_settings( $input ) {
 	$existing = get_site_option( 'extrachill_newsletter_settings', array() );
 
-	// Core settings.
-	$core_keys = array( 'sendy_api_key', 'sendy_url', 'from_name', 'from_email', 'reply_to', 'brand_id' );
+	$existing = is_array( $existing ) ? $existing : array();
 
-	foreach ( $core_keys as $key ) {
+	if ( isset( $input['sendy_api_key'] ) || isset( $input['sendy_url'] ) ) {
+		return new WP_Error(
+			'sendy_connection_not_owned',
+			__( 'Sendy credentials are managed by Data Machine Business in the datamachine_sendy_config network option, not in newsletter settings.', 'extrachill-newsletter' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	// Sender identity.
+	foreach ( array( 'from_name', 'from_email', 'reply_to', 'brand_id' ) as $key ) {
 		if ( isset( $input[ $key ] ) ) {
-			if ( in_array( $key, array( 'from_email', 'reply_to' ), true ) ) {
-				$existing[ $key ] = sanitize_email( $input[ $key ] );
-			} elseif ( 'sendy_url' === $key ) {
-				$existing[ $key ] = esc_url_raw( $input[ $key ] );
-			} else {
-				$existing[ $key ] = sanitize_text_field( $input[ $key ] );
-			}
+			$existing[ $key ] = in_array( $key, array( 'from_email', 'reply_to' ), true )
+				? sanitize_email( $input[ $key ] )
+				: sanitize_text_field( $input[ $key ] );
 		}
 	}
 

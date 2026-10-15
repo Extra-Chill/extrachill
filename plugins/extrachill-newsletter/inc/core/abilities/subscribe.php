@@ -325,7 +325,6 @@ function extrachill_newsletter_sendy_subscribe( $list_id, $email, $name = '' ) {
 
 	return $ability->execute(
 		array(
-			'config'  => extrachill_newsletter_sendy_dmb_config(),
 			'list_id' => $list_id,
 			'email'   => $email,
 			'name'    => $name,
