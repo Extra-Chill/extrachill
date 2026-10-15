@@ -38,6 +38,7 @@ function is_newsletter_site() {
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/assets.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/sendy-api.php';
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/templates/email-template.php';
+require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/templates/link-tagging.php';
 
 // Abilities API (network-wide).
 require_once EXTRACHILL_NEWSLETTER_INC_DIR . 'core/abilities/register.php';
