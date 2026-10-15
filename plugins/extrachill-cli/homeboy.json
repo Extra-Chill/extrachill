@@ -24,7 +24,8 @@
           "tests/StorageMigrationCommandTest.php",
           "tests/RegenerateOgCardCommandTest.php",
           "tests/VenueSourceAliasesCommandTest.php",
-          "tests/PhotoContestCommandTest.php"
+          "tests/PhotoContestCommandTest.php",
+          "tests/NewsletterSendCampaignCommandTest.php"
         ]
       }
     }
@@ -53,7 +54,8 @@
       "php tests/StorageMigrationCommandTest.php",
       "php tests/RegenerateOgCardCommandTest.php",
       "php tests/VenueSourceAliasesCommandTest.php",
-      "php tests/PhotoContestCommandTest.php"
+      "php tests/PhotoContestCommandTest.php",
+      "php tests/NewsletterSendCampaignCommandTest.php"
     ]
   },
   "version_targets": [

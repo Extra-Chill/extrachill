@@ -215,6 +215,179 @@ class NewsletterCommand {
 	}
 
 	/**
+	 * Send or schedule a newsletter post to Sendy lists.
+	 *
+	 * Always prints a preview first (subject, sender, lists, audience size).
+	 * Nothing is sent unless --yes is passed. A post that was already sent or
+	 * scheduled is refused unless --force is also passed.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <post_id>
+	 * : Newsletter post ID.
+	 *
+	 * [--lists=<ids>]
+	 * : Comma-separated Sendy list IDs (encrypted hashes). Use this or --all-lists.
+	 *
+	 * [--all-lists]
+	 * : Send to every Sendy list.
+	 *
+	 * [--exclude=<ids>]
+	 * : Comma-separated Sendy list IDs to drop from the target set.
+	 *
+	 * [--schedule=<datetime>]
+	 * : Send later instead of now, as "Y-m-d H:i" (minutes in multiples of 5).
+	 *
+	 * [--timezone=<timezone>]
+	 * : IANA timezone for --schedule. Defaults to America/New_York.
+	 *
+	 * [--yes]
+	 * : Actually send or schedule. Without it, this is a preview.
+	 *
+	 * [--force]
+	 * : Allow sending a post that was already sent or scheduled.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Preview sending to all lists except one.
+	 *     wp extrachill newsletter send_campaign 69 --all-lists --exclude=abc123 --url=newsletter.extrachill.com --user=1
+	 *
+	 *     # Schedule for Sunday 9am Eastern.
+	 *     wp extrachill newsletter send_campaign 69 --all-lists --schedule="2026-10-18 09:00" --yes --url=newsletter.extrachill.com --user=1
+	 *
+	 * @when after_wp_load
+	 */
+	public function send_campaign( $args, $assoc_args ) {
+		$post_id = absint( $args[0] ?? 0 );
+		if ( ! $post_id ) {
+			WP_CLI::error( 'Post ID is required.' );
+		}
+
+		$all_lists = ! empty( $assoc_args['all-lists'] );
+		$lists     = $this->parse_id_list( $assoc_args['lists'] ?? '' );
+		if ( $all_lists === ! empty( $lists ) ) {
+			WP_CLI::error( 'Pass either --lists or --all-lists.' );
+		}
+
+		$ability = wp_get_ability( 'extrachill/send-campaign' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/send-campaign ability not available. Ensure extrachill-newsletter plugin is activated.' );
+		}
+
+		$input = array(
+			'post_id' => $post_id,
+			'dry_run' => true,
+		);
+		if ( $all_lists ) {
+			$input['all_lists'] = true;
+		} else {
+			$input['list_ids'] = $lists;
+		}
+		$exclude = $this->parse_id_list( $assoc_args['exclude'] ?? '' );
+		if ( $exclude ) {
+			$input['exclude_list_ids'] = $exclude;
+		}
+		if ( ! empty( $assoc_args['schedule'] ) ) {
+			$input['schedule_date_time'] = (string) $assoc_args['schedule'];
+		}
+		if ( ! empty( $assoc_args['timezone'] ) ) {
+			$input['schedule_timezone'] = (string) $assoc_args['timezone'];
+		}
+		if ( ! empty( $assoc_args['force'] ) ) {
+			$input['force'] = true;
+		}
+
+		$format  = $assoc_args['format'] ?? 'table';
+		$preview = $ability->execute( $input );
+		if ( is_wp_error( $preview ) ) {
+			WP_CLI::error( $preview->get_error_message() );
+		}
+
+		if ( empty( $assoc_args['yes'] ) ) {
+			$this->render_send_result( $preview, $format );
+			if ( 'json' !== $format ) {
+				WP_CLI::log( 'Preview only. Nothing was sent. Re-run with --yes to send.' );
+			}
+			return;
+		}
+
+		$input['dry_run'] = false;
+		$result           = $ability->execute( $input );
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+
+		$this->render_send_result( $result, $format );
+		if ( 'json' !== $format ) {
+			WP_CLI::success( $result['message'] ?? 'Sent.' );
+		}
+	}
+
+	/**
+	 * Split a comma-separated ID option into a clean list.
+	 *
+	 * @param string $value Raw option value.
+	 * @return string[]
+	 */
+	private function parse_id_list( $value ) {
+		$ids = array_map( 'trim', explode( ',', (string) $value ) );
+		return array_values( array_unique( array_filter( $ids, 'strlen' ) ) );
+	}
+
+	/**
+	 * Print a send-campaign preview or result.
+	 *
+	 * @param array  $result Ability result.
+	 * @param string $format table|json.
+	 */
+	private function render_send_result( array $result, $format ) {
+		if ( 'json' === $format ) {
+			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		$schedule = $result['schedule'] ?? null;
+		WP_CLI::log( sprintf( 'Post:     %d', $result['post_id'] ?? 0 ) );
+		WP_CLI::log( sprintf( 'Subject:  %s', $result['subject'] ?? '' ) );
+		WP_CLI::log( sprintf( 'From:     %s <%s>', $result['from_name'] ?? '', $result['from_email'] ?? '' ) );
+		WP_CLI::log( sprintf( 'When:     %s', $schedule ? $schedule['date_time'] . ' ' . $schedule['timezone'] : 'now' ) );
+
+		$rows = array();
+		foreach ( $result['lists'] ?? array() as $list ) {
+			$rows[] = array(
+				'ID'     => $list['id'],
+				'Name'   => $list['name'],
+				'Active' => $list['active'],
+			);
+		}
+		\WP_CLI\Utils\format_items( 'table', $rows, array( 'ID', 'Name', 'Active' ) );
+
+		foreach ( $result['excluded'] ?? array() as $list ) {
+			WP_CLI::log( sprintf( 'Excluded: %s (%d)', $list['name'], $list['active'] ) );
+		}
+		WP_CLI::log( sprintf( 'Audience: %d active (summed per list; Sendy dedupes addresses on several lists)', $result['total_active'] ?? 0 ) );
+
+		$previous = $result['previous'] ?? null;
+		if ( $previous && ! empty( $result['dry_run'] ) ) {
+			WP_CLI::warning(
+				sprintf(
+					'Already %s. A real send needs --force.',
+					! empty( $previous['sent_at'] ) ? 'sent at ' . $previous['sent_at'] : 'scheduled for ' . $previous['scheduled_for']
+				)
+			);
+		}
+	}
+
+	/**
 	 * Get newsletter settings with integration validation.
 	 *
 	 * ## OPTIONS
