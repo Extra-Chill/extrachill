@@ -6,6 +6,7 @@
 			<file>tests/Unit/Core/DataMachineSettingsTest.php</file>
 			<file>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</file>
 			<file>tests/Unit/Core/LocalSceneDigestTest.php</file>
+			<file>tests/Unit/Core/RecurringSchedulesTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

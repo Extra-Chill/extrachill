@@ -72,17 +72,18 @@ final class IngestionProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/QualifyDigest/QualifyDigestSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/LocalSceneDigest/LocalSceneDigestSystemTask.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Steps/PendingEventSubmissions/PendingEventSubmissionsSystemTask.php';
+		// Fixed wall-clock slots are cron expressions (evaluated in UTC by Action
+		// Scheduler). A named interval would anchor to whenever the schedule was
+		// enabled; see Extra-Chill/data-machine#3618.
 		$schedules['extrachill_local_scene_digest']        = apply_filters(
 			'extrachill_local_scene_digest_schedule',
 			array(
-				'task_type'          => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
-				'interval'           => 'weekly',
-				'enabled_setting'    => 'extrachill_local_scene_digest_enabled',
-				'default_enabled'    => false,
-				'label'              => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
-				'first_run_callback' => 'strtotime',
-				'first_run_arg'      => 'next thursday 15:00 UTC',
-				'task_params'        => array(
+				'task_type'       => \ExtraChillEvents\Steps\LocalSceneDigest\LocalSceneDigestSystemTask::TASK_TYPE,
+				'interval'        => '0 15 * * 4',
+				'enabled_setting' => 'extrachill_local_scene_digest_enabled',
+				'default_enabled' => false,
+				'label'           => 'Weekly Local Scene Digest — Thursdays 15:00 UTC',
+				'task_params'     => array(
 					'days'    => 7,
 					'limit'   => 8,
 					'dry_run' => false,
@@ -92,14 +93,12 @@ final class IngestionProvider {
 		$schedules['extrachill_qualify_digest']            = apply_filters(
 			'dme_qualify_digest_schedule',
 			array(
-				'task_type'          => \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE,
-				'interval'           => 'weekly',
-				'enabled_setting'    => 'dme_qualify_digest_enabled',
-				'default_enabled'    => true,
-				'label'              => 'Weekly — Mondays 09:00 UTC',
-				'first_run_callback' => 'strtotime',
-				'first_run_arg'      => 'next monday 09:00 UTC',
-				'task_params'        => array(
+				'task_type'       => \ExtraChillEvents\Steps\QualifyDigest\QualifyDigestSystemTask::TASK_TYPE,
+				'interval'        => '0 9 * * 1',
+				'enabled_setting' => 'dme_qualify_digest_enabled',
+				'default_enabled' => true,
+				'label'           => 'Weekly — Mondays 09:00 UTC',
+				'task_params'     => array(
 					'since'   => '1 week ago',
 					'format'  => 'html',
 					'dry_run' => false,
@@ -109,13 +108,11 @@ final class IngestionProvider {
 		$schedules['extrachill_pending_event_submissions'] = apply_filters(
 			'extrachill_pending_event_submissions_schedule',
 			array(
-				'task_type'          => \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::TASK_TYPE,
-				'interval'           => 'daily',
-				'enabled_setting'    => 'extrachill_pending_event_submissions_enabled',
-				'default_enabled'    => true,
-				'label'              => 'Daily Pending Event Submission Review Digest',
-				'first_run_callback' => 'strtotime',
-				'first_run_arg'      => 'tomorrow 09:00 UTC',
+				'task_type'       => \ExtraChillEvents\Steps\PendingEventSubmissions\PendingEventSubmissionsSystemTask::TASK_TYPE,
+				'interval'        => '0 9 * * *',
+				'enabled_setting' => 'extrachill_pending_event_submissions_enabled',
+				'default_enabled' => true,
+				'label'           => 'Daily Pending Event Submission Review Digest — 09:00 UTC',
 			)
 		);
 		return $schedules;
