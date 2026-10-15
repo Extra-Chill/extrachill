@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.38.1] - 2026-10-15
+
+### Fixed
+- drop Sendy credential fields from settings route
+
 ## [0.38.0] - 2026-10-14
 
 ### Added
