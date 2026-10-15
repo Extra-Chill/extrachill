@@ -111,14 +111,6 @@ function extrachill_api_register_newsletter_campaign_management_routes() {
 				return current_user_can( 'manage_options' );
 			},
 			'args'                => array(
-				'sendy_api_key' => array(
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'sendy_url'     => array(
-					'type'              => 'string',
-					'sanitize_callback' => 'esc_url_raw',
-				),
 				'from_name'     => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
@@ -276,7 +268,7 @@ function extrachill_api_newsletter_update_settings_handler( $request ) {
 
 	$input = array();
 
-	$core_keys = array( 'sendy_api_key', 'sendy_url', 'from_name', 'from_email', 'reply_to', 'brand_id' );
+	$core_keys = array( 'from_name', 'from_email', 'reply_to', 'brand_id' );
 	foreach ( $core_keys as $key ) {
 		$value = $request->get_param( $key );
 		if ( null !== $value ) {
