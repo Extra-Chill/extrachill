@@ -6,10 +6,20 @@
  * @package ExtraChill\Users
  */
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 /**
  * Verify owner-registered join intents.
  */
 class Test_Onboarding_Join_Intent extends WP_UnitTestCase {
+
+	/**
+	 * Owner analytics registration moved aside for the fixture.
+	 *
+	 * @var WP_Ability|null
+	 */
+	private $displaced_analytics = null;
 
 	/**
 	 * Intents fixture.
@@ -53,12 +63,31 @@ class Test_Onboarding_Join_Intent extends WP_UnitTestCase {
 			define( 'EC_ANALYTICS_ARTIST_ACCESS_GRANTED_METHODS', array( 'artist', 'professional', 'artist_and_professional' ) );
 		}
 		add_filter( 'ec_onboarding_join_intents', array( __CLASS__, 'intents' ) );
+
+		// A role-granting completion must record its artist-access event
+		// before it succeeds; give it a deterministic recorder instead of
+		// depending on whether extrachill-analytics is registered.
+		$this->displaced_analytics = ec_users_tests_swap_ability(
+			'extrachill/track-analytics-event',
+			array(
+				'label'               => 'Test analytics',
+				'description'         => 'Accepts onboarding events.',
+				'category'            => 'extrachill-users',
+				'input_schema'        => array( 'type' => 'object' ),
+				'output_schema'       => array( 'type' => 'integer' ),
+				'permission_callback' => '__return_true',
+				'execute_callback'    => static function () {
+					return 1;
+				},
+			)
+		);
 	}
 
 	/** Remove fixtures. */
 	protected function tearDown(): void {
 		remove_filter( 'ec_onboarding_join_intents', array( __CLASS__, 'intents' ) );
 		remove_all_filters( 'ec_onboarding_join_destination' );
+		ec_users_tests_restore_ability( 'extrachill/track-analytics-event', $this->displaced_analytics );
 		parent::tearDown();
 	}
 

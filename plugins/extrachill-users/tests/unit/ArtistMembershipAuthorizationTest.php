@@ -5,6 +5,9 @@
  * @package ExtraChill\Users
  */
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 /**
  * Verify artist authorization uses the reciprocal membership contract.
  */
@@ -13,12 +16,16 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 
 	private int $artist_blog_id;
 
+	public static function wpSetUpBeforeClass(): void {
+		// Looping the factory until the ID appears never terminates once
+		// AUTO_INCREMENT has passed it; insert the exact mapped ID instead.
+		ec_users_tests_ensure_site( (int) ec_get_blog_id( 'artist' ) );
+	}
+
 	protected function setUp(): void {
 		parent::setUp();
 		$this->artist_blog_id = (int) ec_get_blog_id( 'artist' );
-		while ( ! get_blog_details( $this->artist_blog_id ) ) {
-			self::factory()->blog->create();
-		}
+		$this->assertNotFalse( get_blog_details( $this->artist_blog_id ), 'The mapped artist site must exist.' );
 
 		switch_to_blog( $this->artist_blog_id );
 		register_post_type( 'artist_profile', array( 'public' => true ) );

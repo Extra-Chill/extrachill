@@ -3,6 +3,9 @@
  * Integration tests for user creation.
  */
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 class Test_User_Creation extends WP_UnitTestCase {
 
 	protected function setUp(): void {
@@ -382,33 +385,6 @@ class Test_User_Creation extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Capture a live ability's constructor args via reflection so a test can
-	 * temporarily unregister it and restore the exact original registration
-	 * afterward, leaving no cross-test pollution.
-	 *
-	 * @param WP_Ability $ability Ability to capture.
-	 * @return array Args suitable for wp_register_ability().
-	 */
-	private function capture_ability_args( WP_Ability $ability ): array {
-		$reflection       = new ReflectionClass( $ability );
-		$execute_prop     = $reflection->getProperty( 'execute_callback' );
-		$permission_prop  = $reflection->getProperty( 'permission_callback' );
-		$execute_prop->setAccessible( true );
-		$permission_prop->setAccessible( true );
-
-		return array(
-			'label'               => $ability->get_label(),
-			'description'         => $ability->get_description(),
-			'category'            => $ability->get_category(),
-			'input_schema'        => $ability->get_input_schema(),
-			'output_schema'       => $ability->get_output_schema(),
-			'meta'                => $ability->get_meta(),
-			'execute_callback'    => $execute_prop->getValue( $ability ),
-			'permission_callback' => $permission_prop->getValue( $ability ),
-		);
-	}
-
-	/**
 	 * extrachill/track-analytics-event is owned by the optional
 	 * extrachill-analytics plugin. WP 6.9+ wp_get_ability() triggers a
 	 * _doing_it_wrong() notice for any unregistered ability name, so calling
@@ -417,14 +393,13 @@ class Test_User_Creation extends WP_UnitTestCase {
 	 * creation itself has nothing to do with analytics availability.
 	 */
 	public function test_create_user_succeeds_without_analytics_ability_registered(): void {
-		$existing_analytics_ability = ( function_exists( 'wp_has_ability' ) && wp_has_ability( 'extrachill/track-analytics-event' ) )
-			? wp_get_ability( 'extrachill/track-analytics-event' )
+		// Unregistering returns the owner's WP_Ability so it can be put back
+		// exactly; re-registering it here would happen outside
+		// wp_abilities_api_init and silently drop the ability for every later
+		// suite.
+		$displaced = wp_has_ability( 'extrachill/track-analytics-event' )
+			? wp_unregister_ability( 'extrachill/track-analytics-event' )
 			: null;
-		$restore_args               = $existing_analytics_ability ? $this->capture_ability_args( $existing_analytics_ability ) : null;
-
-		if ( $existing_analytics_ability ) {
-			wp_unregister_ability( 'extrachill/track-analytics-event' );
-		}
 
 		try {
 			$this->assertFalse( wp_has_ability( 'extrachill/track-analytics-event' ) );
@@ -449,9 +424,7 @@ class Test_User_Creation extends WP_UnitTestCase {
 			$this->assertInstanceOf( WP_User::class, $user );
 			$this->assertSame( 'analyticsguarduser', $user->user_login );
 		} finally {
-			if ( null !== $restore_args ) {
-				wp_register_ability( 'extrachill/track-analytics-event', $restore_args );
-			}
+			ec_users_tests_restore_ability( 'extrachill/track-analytics-event', $displaced );
 		}
 	}
 

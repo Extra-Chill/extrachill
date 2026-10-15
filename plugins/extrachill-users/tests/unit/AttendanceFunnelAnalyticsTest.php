@@ -7,6 +7,9 @@
 
 use DataMachineEvents\Core\EventDatesTable;
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 // Canonical names live in extrachill-analytics (#309). Mirror them so this
 // suite also runs against an analytics checkout that predates them.
 foreach ( array(
@@ -32,6 +35,13 @@ class Test_Attendance_Funnel_Analytics extends WP_UnitTestCase {
 	private int $user_id;
 
 	private bool $registered_fake_analytics = false;
+
+	/**
+	 * Owner analytics registration moved aside for the fixture.
+	 *
+	 * @var WP_Ability|null
+	 */
+	private ?WP_Ability $displaced_analytics = null;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -65,35 +75,23 @@ class Test_Attendance_Funnel_Analytics extends WP_UnitTestCase {
 		wp_set_current_user( $this->user_id );
 
 		$GLOBALS['ec_attendance_funnel_events'] = array();
-		if ( wp_has_ability( 'extrachill/track-analytics-event' ) ) {
-			$this->markTestSkipped( 'The real analytics ability is registered; this test captures emits through a fixture ability.' );
-		}
-		// wp_register_ability() only accepts registrations during a real
-		// wp_abilities_api_init. Detach the other registrars first so they do
-		// not re-register (see UserAdministrationAbilitiesTest::run_registration);
-		// WP_UnitTestCase restores hooks after each test.
-		remove_all_actions( 'wp_abilities_api_init' );
-		add_action(
-			'wp_abilities_api_init',
-			static function () {
-				wp_register_ability(
-					'extrachill/track-analytics-event',
-					array(
-						'label'               => 'Test analytics',
-						'description'         => 'Captures attendance funnel events.',
-						'category'            => 'extrachill-users',
-						'input_schema'        => array( 'type' => 'object' ),
-						'output_schema'       => array( 'type' => 'integer' ),
-						'permission_callback' => '__return_true',
-						'execute_callback'    => static function ( $input ) {
-							$GLOBALS['ec_attendance_funnel_events'][] = $input;
-							return count( $GLOBALS['ec_attendance_funnel_events'] );
-						},
-					)
-				);
-			}
+		// Move any owner registration aside so emits are captured regardless of
+		// which plugins are active or which suite ran first.
+		$this->displaced_analytics       = ec_users_tests_swap_ability(
+			'extrachill/track-analytics-event',
+			array(
+				'label'               => 'Test analytics',
+				'description'         => 'Captures attendance funnel events.',
+				'category'            => 'extrachill-users',
+				'input_schema'        => array( 'type' => 'object' ),
+				'output_schema'       => array( 'type' => 'integer' ),
+				'permission_callback' => '__return_true',
+				'execute_callback'    => static function ( $input ) {
+					$GLOBALS['ec_attendance_funnel_events'][] = $input;
+					return count( $GLOBALS['ec_attendance_funnel_events'] );
+				},
+			)
 		);
-		do_action( 'wp_abilities_api_init' );
 		$this->registered_fake_analytics = true;
 	}
 
@@ -101,7 +99,7 @@ class Test_Attendance_Funnel_Analytics extends WP_UnitTestCase {
 		$this->clear_tracking_table();
 		remove_filter( 'extrachill_users_events_blog_id', array( $this, 'filter_events_blog_id' ) );
 		if ( $this->registered_fake_analytics ) {
-			wp_unregister_ability( 'extrachill/track-analytics-event' );
+			ec_users_tests_restore_ability( 'extrachill/track-analytics-event', $this->displaced_analytics );
 		}
 		unset( $GLOBALS['ec_attendance_funnel_events'] );
 		wp_set_current_user( 0 );

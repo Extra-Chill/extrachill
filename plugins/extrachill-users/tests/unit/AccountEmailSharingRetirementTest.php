@@ -35,8 +35,9 @@ class Test_Account_Email_Sharing_Retirement extends WP_UnitTestCase {
 	public function test_retired_descriptors_and_legacy_abilities_are_removed(): void {
 		$this->assertWPError( extrachill_users_normalize_entity_subscription( 'artist-email-sharing', 'artist', 'phish' ) );
 		$this->assertWPError( extrachill_users_normalize_entity_subscription( 'venue-email-sharing', 'venue', 'the-royal-american' ) );
-		$this->assertNull( wp_get_ability( 'extrachill/get-subscriptions' ) );
-		$this->assertNull( wp_get_ability( 'extrachill/update-subscriptions' ) );
+		// wp_get_ability() reports incorrect usage for unknown names on WP 6.9+.
+		$this->assertFalse( wp_has_ability( 'extrachill/get-subscriptions' ) );
+		$this->assertFalse( wp_has_ability( 'extrachill/update-subscriptions' ) );
 		$this->assertFalse( function_exists( 'extrachill_users_artist_email_sharing_presentation' ) );
 		$this->assertFalse( function_exists( 'extrachill_users_migrate_artist_email_sharing_consent' ) );
 	}

@@ -365,7 +365,10 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Concert privacy settings are canonical ability fields with legacy-public defaults.
+	 * Concert privacy settings are canonical ability fields.
+	 *
+	 * Absent concert-history meta keeps its legacy public default; absent
+	 * event-attendance meta resolves private for every user (#414/#415).
 	 */
 	public function test_concert_visibility_settings_round_trip_and_validate(): void {
 		$user_id = self::factory()->user->create();
@@ -379,7 +382,7 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 
 		$legacy = extrachill_users_ability_get_settings();
 		$this->assertSame( 'public', $legacy['concert_history_visibility'] );
-		$this->assertSame( 'public', $legacy['event_attendance_visibility'] );
+		$this->assertSame( 'private', $legacy['event_attendance_visibility'] );
 		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_CONCERT_HISTORY_VISIBILITY_META_KEY ) );
 		$this->assertFalse( metadata_exists( 'user', $user_id, EXTRACHILL_USERS_EVENT_ATTENDANCE_VISIBILITY_META_KEY ) );
 
@@ -413,7 +416,9 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 		try {
 			extrachill_users_set_concert_history_visibility( $user_id, 'private' );
 			extrachill_users_set_concert_history_visibility( $user_id, 'private' );
+			// Absent attendance meta already resolves private, so this is no change.
 			extrachill_users_set_event_attendance_visibility( $user_id, 'private' );
+			extrachill_users_set_event_attendance_visibility( $user_id, 'public' );
 		} finally {
 			remove_action( 'extrachill_users_visibility_changed', $listener, 10 );
 		}
@@ -421,7 +426,7 @@ class Test_User_Settings_Default_Event_Location extends WP_UnitTestCase {
 		$this->assertSame(
 			array(
 				array( $user_id, 'concert_history_visibility', 'public', 'private' ),
-				array( $user_id, 'event_attendance_visibility', 'public', 'private' ),
+				array( $user_id, 'event_attendance_visibility', 'private', 'public' ),
 			),
 			$transitions
 		);

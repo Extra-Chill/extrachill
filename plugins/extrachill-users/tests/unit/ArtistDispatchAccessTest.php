@@ -5,6 +5,9 @@
  * @package ExtraChill\Users
  */
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 /**
  * Verify the Artist Dispatch contract against WordPress multisite primitives.
  */
@@ -13,7 +16,23 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 
 	private int $main_blog_id;
 	private int $artist_blog_id;
-	private bool $registered_fake_analytics = false;
+	private bool $registered_fake_analytics  = false;
+	private ?WP_Ability $displaced_analytics = null;
+
+	/**
+	 * Create the canonical mapped sites once, outside the per-test transaction.
+	 *
+	 * Creating them per test through the factory only worked for the first
+	 * test: rollback removes the rows but not the AUTO_INCREMENT advance, so
+	 * every later test overshot the mapped ID.
+	 */
+	public static function wpSetUpBeforeClass(): void {
+		require_once dirname( __DIR__, 2 ) . '/inc/artist-dispatch-role.php';
+		ec_users_tests_ensure_site( ec_users_get_artist_dispatch_blog_id() );
+		if ( function_exists( 'ec_get_blog_id' ) ) {
+			ec_users_tests_ensure_site( (int) ec_get_blog_id( 'artist' ) );
+		}
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -26,8 +45,8 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 		$this->assertTrue( is_multisite(), 'Artist Dispatch tests require multisite.' );
 		$this->assertGreaterThan( 0, $this->artist_blog_id, 'The canonical artist-site map must be loaded.' );
 
-		$this->ensure_blog_exists( $this->main_blog_id );
-		$this->ensure_blog_exists( $this->artist_blog_id );
+		$this->assertNotFalse( get_blog_details( $this->main_blog_id ), 'The mapped main site must exist.' );
+		$this->assertNotFalse( get_blog_details( $this->artist_blog_id ), 'The mapped artist site must exist.' );
 		delete_site_option( EC_USERS_ARTIST_DISPATCH_POLICY_OPTION );
 		wp_set_current_user( 0 );
 		$GLOBALS['ec_artist_dispatch_test_analytics'] = array();
@@ -42,20 +61,11 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 	protected function tearDown(): void {
 		delete_site_option( EC_USERS_ARTIST_DISPATCH_POLICY_OPTION );
 		if ( $this->registered_fake_analytics ) {
-			wp_unregister_ability( 'extrachill/track-analytics-event' );
+			ec_users_tests_restore_ability( 'extrachill/track-analytics-event', $this->displaced_analytics );
 		}
 		unset( $GLOBALS['ec_artist_dispatch_test_analytics'] );
 		wp_set_current_user( 0 );
 		parent::tearDown();
-	}
-
-	private function ensure_blog_exists( int $blog_id ): void {
-		while ( ! get_blog_details( $blog_id ) ) {
-			$created = self::factory()->blog->create();
-			if ( $created > $blog_id ) {
-				$this->fail( 'Could not create expected mapped blog ID.' );
-			}
-		}
 	}
 
 	private function configure_policy( float $minimum_points = 10 ): void {
@@ -81,10 +91,7 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 				define( $constant, $value );
 			}
 		}
-		if ( wp_has_ability( 'extrachill/track-analytics-event' ) ) {
-			return;
-		}
-		wp_register_ability(
+		$this->displaced_analytics       = ec_users_tests_swap_ability(
 			'extrachill/track-analytics-event',
 			array(
 				'label'               => 'Test analytics',
@@ -99,7 +106,7 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 				},
 			)
 		);
-		$this->registered_fake_analytics = true;
+		$this->registered_fake_analytics = wp_has_ability( 'extrachill/track-analytics-event' );
 	}
 
 	private function create_eligible_user(): array {
@@ -379,7 +386,14 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 		}
 		$this->assertSame( array(), ec_users_get_artist_dispatch_event_payload( 0, $request_id ) );
 		$this->assertSame( array( 'user_id' => 12 ), ec_users_get_artist_dispatch_event_payload( 12, 'not-a-uuid' ) );
-		$this->assertSame( array( 'user_id' => 12 ), ec_users_get_artist_dispatch_event_payload( 12, $request_id, 'free-text' ) );
+		// An unknown cohort is dropped; the valid request ID is still carried.
+		$this->assertSame(
+			array(
+				'user_id'    => 12,
+				'request_id' => $request_id,
+			),
+			ec_users_get_artist_dispatch_event_payload( 12, $request_id, 'free-text' )
+		);
 
 		$user_id = self::factory()->user->create();
 		$state   = array(

@@ -91,7 +91,8 @@ class Test_Concert_Tracking_Validation extends WP_UnitTestCase {
 		if ( 'insert' === $this->failed_operation && str_starts_with( ltrim( $query ), "INSERT IGNORE INTO {$table}" ) ) {
 			return 'INSERT INTO ec_missing_attendance_table (id) VALUES (1)';
 		}
-		if ( 'delete' === $this->failed_operation && str_starts_with( ltrim( $query ), "DELETE FROM {$table}" ) ) {
+		// wpdb::delete() quotes the table name: DELETE FROM `table` WHERE ...
+		if ( 'delete' === $this->failed_operation && preg_match( '/^DELETE FROM `?' . preg_quote( $table, '/' ) . '`? /', ltrim( $query ) ) ) {
 			return 'DELETE FROM ec_missing_attendance_table WHERE id = 1';
 		}
 		return $query;
@@ -417,14 +418,20 @@ class Test_Concert_Tracking_Validation extends WP_UnitTestCase {
 	 * @param string $post_status Post status.
 	 */
 	private function create_post_on_blog( int $blog_id, string $post_type, string $post_status ): int {
+		$args = array(
+			'post_type'   => $post_type,
+			'post_status' => $post_status,
+		);
+		// wp_insert_post() publishes a 'future' post whose date is not in the
+		// future, so a scheduled fixture needs a real future date.
+		if ( 'future' === $post_status ) {
+			$args['post_date']     = gmdate( 'Y-m-d H:i:s', time() + WEEK_IN_SECONDS );
+			$args['post_date_gmt'] = $args['post_date'];
+		}
+
 		switch_to_blog( $blog_id );
 		try {
-			return self::factory()->post->create(
-				array(
-					'post_type'   => $post_type,
-					'post_status' => $post_status,
-				)
-			);
+			return self::factory()->post->create( $args );
 		} finally {
 			restore_current_blog();
 		}

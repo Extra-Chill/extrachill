@@ -5,6 +5,9 @@
  * @package ExtraChill\Users
  */
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 /**
  * Verify the team receives the foreign Intelligence read cap only on Studio.
  */
@@ -14,6 +17,11 @@ class Test_Intelligence_Permissions extends WP_UnitTestCase {
 	private int $studio_blog_id;
 	private int $other_blog_id;
 
+	public static function wpSetUpBeforeClass(): void {
+		ec_users_tests_ensure_site( (int) ec_get_blog_id( 'studio' ) );
+		ec_users_tests_ensure_site( (int) ec_get_blog_id( 'main' ) );
+	}
+
 	protected function setUp(): void {
 		parent::setUp();
 		require_once dirname( __DIR__, 2 ) . '/inc/team-members/role.php';
@@ -22,8 +30,8 @@ class Test_Intelligence_Permissions extends WP_UnitTestCase {
 		$this->studio_blog_id = (int) ec_get_blog_id( 'studio' );
 		$this->other_blog_id  = (int) ec_get_blog_id( 'main' );
 		$this->assertGreaterThan( 0, $this->studio_blog_id );
-		$this->ensure_blog_exists( $this->studio_blog_id );
-		$this->ensure_blog_exists( $this->other_blog_id );
+		$this->assertNotFalse( get_blog_details( $this->studio_blog_id ), 'The mapped Studio site must exist.' );
+		$this->assertNotFalse( get_blog_details( $this->other_blog_id ), 'The mapped main site must exist.' );
 		wp_set_current_user( 0 );
 	}
 
@@ -35,15 +43,6 @@ class Test_Intelligence_Permissions extends WP_UnitTestCase {
 		}
 		wp_set_current_user( 0 );
 		parent::tearDown();
-	}
-
-	private function ensure_blog_exists( int $blog_id ): void {
-		while ( ! get_blog_details( $blog_id ) ) {
-			$created = self::factory()->blog->create();
-			if ( $created > $blog_id ) {
-				$this->fail( 'Could not create expected mapped blog ID.' );
-			}
-		}
 	}
 
 	private function add_user_role_on_blog( int $user_id, int $blog_id, string $role ): void {

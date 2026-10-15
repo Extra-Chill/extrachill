@@ -4,6 +4,7 @@
  */
 
 class Browser_Handoff_Test_Cache {
+	// phpcs:disable Squiz.Commenting.FunctionComment.Missing -- Mirrors the WP_Object_Cache drop-in contract.
 
 	/** @var array */
 	private $data = array();
@@ -11,9 +12,56 @@ class Browser_Handoff_Test_Cache {
 	/** @var bool */
 	public $fail_delete = false;
 
+	/**
+	 * Groups shared across sites, seeded with core's wp_start_object_cache() list.
+	 *
+	 * @var array<string, true>
+	 */
+	private $global_groups = array();
+
+	/**
+	 * Site whose non-global entries are currently addressed.
+	 *
+	 * @var int
+	 */
+	private $blog_id;
+
+	public function __construct() {
+		$this->blog_id = get_current_blog_id();
+		$this->add_global_groups(
+			array( 'blog-details', 'blog-id-cache', 'blog-lookup', 'blog_meta', 'global-posts', 'image_editor', 'networks', 'network-queries', 'sites', 'site-details', 'site-options', 'site-queries', 'site-transient', 'theme_files', 'translation_files', 'rss', 'users', 'user-queries', 'user_meta', 'useremail', 'userlogins', 'userslugs' )
+		);
+	}
+
+	/**
+	 * Key entries per site like WP_Object_Cache, so switch_to_blog() isolates them.
+	 *
+	 * @param int|string $key   Cache key.
+	 * @param string     $group Cache group.
+	 * @return string
+	 */
+	private function id( $key, $group ): string {
+		$group = '' === (string) $group ? 'default' : (string) $group;
+		$scope = isset( $this->global_groups[ $group ] ) ? 'global' : (string) $this->blog_id;
+		return $scope . ':' . $group . ':' . $key;
+	}
+
+	public function switch_to_blog( $blog_id ): void {
+		$this->blog_id = (int) $blog_id;
+	}
+
+	public function add_global_groups( $groups ): void {
+		foreach ( (array) $groups as $group ) {
+			$this->global_groups[ $group ] = true;
+		}
+	}
+
+	public function add_non_persistent_groups( $groups ): void {
+	}
+
 	public function set( $key, $value, $group = 'default', $expiration = 0 ): bool {
-		$this->data[ $group . ':' . $key ] = array(
-			'value'      => $value,
+		$this->data[ $this->id( $key, $group ) ] = array(
+			'value'      => is_object( $value ) ? clone $value : $value,
 			'expires_at' => $expiration ? time() + (int) $expiration : 0,
 		);
 		return true;
@@ -29,12 +77,18 @@ class Browser_Handoff_Test_Cache {
 		return $this->set( $key, $value, $group, $expiration );
 	}
 
+	public function replace( $key, $value, $group = 'default', $expiration = 0 ): bool {
+		$found = false;
+		$this->get( $key, $group, false, $found );
+		return $found ? $this->set( $key, $value, $group, $expiration ) : false;
+	}
+
 	public function get( $key, $group = 'default', $force = false, &$found = null ) {
-		$id    = $group . ':' . $key;
+		$id    = $this->id( $key, $group );
 		$entry = $this->data[ $id ] ?? null;
 		if ( is_array( $entry ) && ( empty( $entry['expires_at'] ) || $entry['expires_at'] > time() ) ) {
 			$found = true;
-			return $entry['value'];
+			return is_object( $entry['value'] ) ? clone $entry['value'] : $entry['value'];
 		}
 
 		unset( $this->data[ $id ] );
@@ -43,7 +97,7 @@ class Browser_Handoff_Test_Cache {
 	}
 
 	public function delete( $key, $group = 'default' ): bool {
-		$id = $group . ':' . $key;
+		$id = $this->id( $key, $group );
 		if ( $this->fail_delete || ! isset( $this->data[ $id ] ) ) {
 			return false;
 		}
@@ -51,6 +105,78 @@ class Browser_Handoff_Test_Cache {
 		unset( $this->data[ $id ] );
 		return true;
 	}
+
+	public function get_multiple( $keys, $group = 'default', $force = false ): array {
+		$values = array();
+		foreach ( $keys as $key ) {
+			$values[ $key ] = $this->get( $key, $group, $force );
+		}
+		return $values;
+	}
+
+	public function set_multiple( array $data, $group = '', $expire = 0 ): array {
+		$results = array();
+		foreach ( $data as $key => $value ) {
+			$results[ $key ] = $this->set( $key, $value, $group, $expire );
+		}
+		return $results;
+	}
+
+	public function add_multiple( array $data, $group = '', $expire = 0 ): array {
+		$results = array();
+		foreach ( $data as $key => $value ) {
+			$results[ $key ] = $this->add( $key, $value, $group, $expire );
+		}
+		return $results;
+	}
+
+	public function delete_multiple( array $keys, $group = '' ): array {
+		$results = array();
+		foreach ( $keys as $key ) {
+			$results[ $key ] = $this->delete( $key, $group );
+		}
+		return $results;
+	}
+
+	public function incr( $key, $offset = 1, $group = 'default' ) {
+		$found = false;
+		$value = $this->get( $key, $group, false, $found );
+		if ( ! $found ) {
+			return false;
+		}
+		$value = max( 0, (int) $value + (int) $offset );
+		$this->set( $key, $value, $group );
+		return $value;
+	}
+
+	public function decr( $key, $offset = 1, $group = 'default' ) {
+		return $this->incr( $key, -1 * (int) $offset, $group );
+	}
+
+	public function flush(): bool {
+		$this->data = array();
+		return true;
+	}
+
+	public function flush_group( $group ): bool {
+		$group = '' === (string) $group ? 'default' : (string) $group;
+		foreach ( array_keys( $this->data ) as $id ) {
+			list( , $entry_group ) = explode( ':', $id, 3 );
+			if ( $entry_group === $group ) {
+				unset( $this->data[ $id ] );
+			}
+		}
+		return true;
+	}
+
+	public function reset(): void {
+		foreach ( array_keys( $this->data ) as $id ) {
+			if ( ! str_starts_with( $id, 'global:' ) ) {
+				unset( $this->data[ $id ] );
+			}
+		}
+	}
+	// phpcs:enable Squiz.Commenting.FunctionComment.Missing
 }
 
 class Test_Browser_Handoff_Token extends WP_UnitTestCase {

@@ -5,6 +5,9 @@
  * @package ExtraChill\Users
  */
 
+// Shared fixture helpers (abilities registered on wp_abilities_api_init, mapped sites).
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 /**
  * Verify administrative abilities fail closed while requests remain self-only.
  */
@@ -18,9 +21,11 @@ class Test_Artist_Access_Abilities extends WP_UnitTestCase {
 		require_once dirname( __DIR__, 2 ) . '/inc/core/abilities/artist-access.php';
 
 		foreach ( $this->ability_names() as $ability_name ) {
-			wp_unregister_ability( $ability_name );
+			if ( wp_has_ability( $ability_name ) ) {
+				wp_unregister_ability( $ability_name );
+			}
 		}
-		extrachill_users_register_artist_access_abilities();
+		ec_users_tests_register_abilities( 'extrachill_users_register_artist_access_abilities' );
 		wp_set_current_user( 0 );
 	}
 
@@ -50,10 +55,21 @@ class Test_Artist_Access_Abilities extends WP_UnitTestCase {
 	 * Subscribers cannot execute any administrative ability.
 	 */
 	public function test_registered_administrative_abilities_deny_subscribers(): void {
+		$target_id = self::factory()->user->create();
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
 
-		foreach ( array( 'list-artist-access-requests', 'approve-artist-access', 'reject-artist-access' ) as $name ) {
-			$result = wp_get_ability( 'extrachill/' . $name )->execute( array() );
+		// WP_Ability::execute() validates input before checking permissions,
+		// so each call carries schema-valid input to reach the permission gate.
+		$inputs = array(
+			'list-artist-access-requests' => array(),
+			'approve-artist-access'       => array(
+				'user_id' => $target_id,
+				'type'    => 'artist',
+			),
+			'reject-artist-access'        => array( 'user_id' => $target_id ),
+		);
+		foreach ( $inputs as $name => $input ) {
+			$result = wp_get_ability( 'extrachill/' . $name )->execute( $input );
 			$this->assertWPError( $result );
 			$this->assertSame( 'ability_invalid_permissions', $result->get_error_code() );
 		}
@@ -142,11 +158,15 @@ class Test_Artist_Access_Abilities extends WP_UnitTestCase {
 	/**
 	 * Explicit WP-CLI execution retains administrative access.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Defining WP_CLI in-process would grant every later test in the run
+	 * administrative access, and the WP Codebox runtime cannot spawn PHPUnit
+	 * child processes (separate-process isolation ends unexpectedly there). Assert
+	 * the CLI branch only where the runtime already is WP-CLI.
 	 */
 	public function test_explicit_wp_cli_context_is_authorized(): void {
-		define( 'WP_CLI', true );
+		if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+			$this->markTestSkipped( 'Requires a WP-CLI runtime; WP_CLI cannot be defined without leaking into later tests.' );
+		}
 		wp_set_current_user( 0 );
 
 		$this->assertTrue( extrachill_users_artist_access_admin_permission() );
