@@ -42,4 +42,6 @@ jobs:
     uses: Extra-Chill/homeboy-action/.github/workflows/release.yml@v2
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      # Fast path to the network deploy (extrachill-network#243); the poll stays the backstop.
+      dispatch-repo: Extra-Chill/extrachill-network
     secrets: inherit
