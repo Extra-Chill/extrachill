@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.39.1] - 2026-10-16
+
+### Fixed
+- adopt public-write admission, stop forwarding client IP to abilities
+
 ## [0.39.0] - 2026-10-16
 
 ### Added
