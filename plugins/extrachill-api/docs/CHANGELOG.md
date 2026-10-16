@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.39.0] - 2026-10-16
+
+### Added
+- photo contest submit/entries/vote REST adapters
+
 ## [0.38.1] - 2026-10-15
 
 ### Fixed
