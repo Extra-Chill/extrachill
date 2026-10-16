@@ -638,6 +638,17 @@ class LocationCommand {
 	 * : Directory to copy generated slides into. When omitted, prints the
 	 * temp file paths produced by the ability (caller must handle cleanup).
 	 *
+	 * [--event-type=<event-type>]
+	 * : Only these event types (comma-separated slugs, e.g. concert,dj-set).
+	 *
+	 * [--venue-tier=<venue-tier>]
+	 * : Only venues with these tiers (comma-separated, e.g.
+	 * listening_room,club,concert_hall,amphitheater).
+	 *
+	 * [--tax=<taxonomy:terms>]
+	 * : Any other event taxonomy filter, as taxonomy:slug,slug. Repeat by
+	 * separating taxonomies with ";" (e.g. "artist:big-stoner-creek;festival:x").
+	 *
 	 * [--cover]
 	 * : Prepend a cover slide with the title, date range, and show/venue counts.
 	 *
@@ -665,6 +676,10 @@ class LocationCommand {
 	 * ---
 	 *
 	 * ## EXAMPLES
+	 *
+	 *     # Concerts only, music-first rooms
+	 *     wp extrachill events roundup --scope=this-weekend --location=charleston \
+	 *       --event-type=concert --venue-tier=listening_room,club,concert_hall,amphitheater
 	 *
 	 *     # Weekend carousel with cover, picks, and closing slide
 	 *     wp extrachill events roundup --week-start-day=friday --week-end-day=sunday \
@@ -741,6 +756,30 @@ class LocationCommand {
 			if ( \WP_CLI\Utils\get_flag_value( $assoc_args, $flag, false ) ) {
 				$input[ $flag ] = true;
 			}
+		}
+
+		$tax_filters = array();
+		if ( isset( $assoc_args['tax'] ) && '' !== trim( (string) $assoc_args['tax'] ) ) {
+			foreach ( explode( ';', (string) $assoc_args['tax'] ) as $clause ) {
+				$clause = trim( $clause );
+				if ( '' === $clause ) {
+					continue;
+				}
+				if ( ! str_contains( $clause, ':' ) ) {
+					WP_CLI::error( sprintf( '--tax expects taxonomy:terms, got: %s', $clause ) );
+				}
+				list( $taxonomy, $terms ) = array_map( 'trim', explode( ':', $clause, 2 ) );
+				$tax_filters[ $taxonomy ] = $this->split_csv( $terms );
+			}
+		}
+		if ( isset( $assoc_args['event-type'] ) && '' !== trim( (string) $assoc_args['event-type'] ) ) {
+			$tax_filters['event_type'] = $this->split_csv( (string) $assoc_args['event-type'] );
+		}
+		if ( ! empty( $tax_filters ) ) {
+			$input['tax_filters'] = $tax_filters;
+		}
+		if ( isset( $assoc_args['venue-tier'] ) && '' !== trim( (string) $assoc_args['venue-tier'] ) ) {
+			$input['venue_tier'] = $this->split_csv( (string) $assoc_args['venue-tier'] );
 		}
 
 		if ( isset( $assoc_args['picks'] ) && '' !== trim( (string) $assoc_args['picks'] ) ) {
@@ -824,6 +863,16 @@ class LocationCommand {
 		foreach ( $saved_paths as $i => $p ) {
 			WP_CLI::log( sprintf( '  %d. %s', $i + 1, $p ) );
 		}
+	}
+
+	/**
+	 * Split a comma-separated flag value into trimmed, non-empty parts.
+	 *
+	 * @param string $value Raw flag value.
+	 * @return string[]
+	 */
+	private function split_csv( string $value ): array {
+		return array_values( array_filter( array_map( 'trim', explode( ',', $value ) ), static fn( string $part ): bool => '' !== $part ) );
 	}
 
 	/**
