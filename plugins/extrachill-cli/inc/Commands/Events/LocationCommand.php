@@ -645,7 +645,7 @@ class LocationCommand {
 	 * : Only venues with these tiers (comma-separated, e.g.
 	 * listening_room,club,concert_hall,amphitheater).
 	 *
-	 * [--tax=<taxonomy:terms>]
+	 * [--tax=<tax>]
 	 * : Any other event taxonomy filter, as taxonomy:slug,slug. Repeat by
 	 * separating taxonomies with ";" (e.g. "artist:big-stoner-creek;festival:x").
 	 *
@@ -657,6 +657,16 @@ class LocationCommand {
 	 *
 	 * [--closing-text=<closing-text>]
 	 * : Optional supporting line on the closing slide.
+	 *
+	 * [--layout=<layout>]
+	 * : List layout. "calendar" puts one compact row per show with the date
+	 * in a left column, for long ranges such as a venue's month.
+	 * ---
+	 * default: daily
+	 * options:
+	 *   - daily
+	 *   - calendar
+	 * ---
 	 *
 	 * [--format=<format>]
 	 * : Output format for the result summary.
@@ -677,6 +687,11 @@ class LocationCommand {
 	 *     wp extrachill events roundup --week-start-day=friday --week-end-day=sunday \
 	 *       --location=charleston --title="This Weekend in Charleston" \
 	 *       --cover --closing
+	 *
+	 *     # One venue's month as a compact calendar
+	 *     wp extrachill events roundup --date-start=2026-11-01 --date-end=2026-11-30 \
+	 *       --location=charleston --tax="venue:charleston-pour-house" \
+	 *       --title="Pour House · November" --layout=calendar --cover --closing
 	 *
 	 *     # Tonight in Charleston
 	 *     wp extrachill events roundup --location=charleston --title="Tonight in Charleston"
@@ -736,6 +751,7 @@ class LocationCommand {
 				'location'       => 'location',
 				'title'          => 'title',
 				'closing-text'   => 'closing_text',
+				'layout'         => 'layout',
 			) as $cli_key => $ability_key
 		) {
 			if ( isset( $assoc_args[ $cli_key ] ) && '' !== $assoc_args[ $cli_key ] ) {
