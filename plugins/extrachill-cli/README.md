@@ -91,6 +91,28 @@ wp extrachill tools qr generate https://example.com
 wp extrachill tools qr generate https://example.com --output=/tmp/example-qr.png
 ```
 
+### Content — Photo Contest
+
+Thin adapters over the `extrachill/photo-contest-top`, `extrachill/photo-contest-hide`,
+and `extrachill/photo-contest-list` abilities owned by
+[extrachill-content-blocks](https://github.com/Extra-Chill/extrachill-content-blocks).
+The top and hide abilities require a user with `edit_others_posts`, so pass the
+global `--user` flag.
+
+```bash
+# Ranked top-N finalists by vote count (contest-night staff tooling)
+wp extrachill content photo-contest top --post=12345 --contest=contest-1729 --user=admin
+wp extrachill content photo-contest top --post=12345 --contest=contest-1729 --limit=25 --include-hidden --format=csv --user=admin
+
+# Hide an inappropriate entry (or restore it)
+wp extrachill content photo-contest hide 98765 --user=admin
+wp extrachill content photo-contest hide 98765 --unhide --user=admin
+
+# List entries with live vote counts
+wp extrachill content photo-contest list --post=12345 --contest=contest-1729
+wp extrachill content photo-contest list --post=12345 --contest=contest-1729 --include-hidden --format=json --user=admin
+```
+
 ### Analytics — 404 Errors
 
 Analyze, categorize, and manage 404 errors tracked by extrachill-analytics.

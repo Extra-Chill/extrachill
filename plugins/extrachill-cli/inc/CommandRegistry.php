@@ -66,6 +66,7 @@ class CommandRegistry {
 
 			// Content commands.
 			'extrachill content'                     => Commands\Content\TriviaCommand::class,
+			'extrachill content photo-contest'       => Commands\Content\PhotoContestCommand::class,
 
 			// Tools commands.
 			'extrachill tools qr'                    => Commands\Tools\QRCodeCommand::class,
