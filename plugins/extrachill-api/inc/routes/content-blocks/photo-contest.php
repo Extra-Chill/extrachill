@@ -12,6 +12,13 @@
  * pass multipart $_FILES data through, and map ability error codes to HTTP
  * statuses. All business logic lives in the owning abilities.
  *
+ * The submit and vote routes are the public write boundary: each consumes
+ * the shared per-client public-write budget before the handler runs. The
+ * write abilities are hidden from the core REST runner (show_in_rest:false)
+ * so this admission layer cannot be bypassed; a REST-visible ability is
+ * refused with 503. The entries route stays open like the other cacheable
+ * anonymous reads (calendar, taxonomy counts).
+ *
  * @package ExtraChillAPI
  */
 
@@ -29,7 +36,7 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_api_content_blocks_photo_contest_submit_handler',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_api_content_blocks_photo_contest_submit_permission',
 			'args'                => array(
 				'post_id'      => array(
 					'required'          => true,
@@ -105,7 +112,7 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_api_content_blocks_photo_contest_vote_handler',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_api_content_blocks_photo_contest_vote_permission',
 			'args'                => array(
 				'post_id'       => array(
 					'required'          => true,
@@ -139,6 +146,66 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 			),
 		)
 	);
+}
+
+/**
+ * Apply the shared public-write budget to contest submissions.
+ *
+ * No Turnstile: the contest is deliberately zero-friction. Admission is the
+ * atomic per-client fixed-window limiter shared by all public writes.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return true|WP_Error
+ */
+function extrachill_api_content_blocks_photo_contest_submit_permission( WP_REST_Request $request ) {
+	/**
+	 * Filters the photo contest submissions allowed per client per minute.
+	 *
+	 * @param int $limit Default 5.
+	 */
+	$limit = (int) apply_filters( 'extrachill_api_photo_contest_submit_rate_limit', 5 );
+	return extrachill_api_check_public_write_rate_limit( $request, 'photo-contest-submit', $limit );
+}
+
+/**
+ * Apply the shared public-write budget to contest votes.
+ *
+ * The cap is deliberately looser than submit: voters cluster behind shared
+ * venue wifi, and email dedup inside the ability is the primary control.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return true|WP_Error
+ */
+function extrachill_api_content_blocks_photo_contest_vote_permission( WP_REST_Request $request ) {
+	/**
+	 * Filters the photo contest votes allowed per client per minute.
+	 *
+	 * @param int $limit Default 30.
+	 */
+	$limit = (int) apply_filters( 'extrachill_api_photo_contest_vote_rate_limit', 30 );
+	return extrachill_api_check_public_write_rate_limit( $request, 'photo-contest-vote', $limit );
+}
+
+/**
+ * Refuse write abilities that the core REST runner could execute directly.
+ *
+ * Mirrors the booking inquiry handler: the public-write admission on these
+ * routes is only meaningful while the backing ability stays hidden from the
+ * core abilities REST controller, so a REST-visible ability is refused.
+ *
+ * @param WP_Ability $ability Resolved photo contest write ability.
+ * @return WP_Error|null 503 refusal when REST-visible, null when hidden.
+ */
+function extrachill_api_content_blocks_photo_contest_require_hidden( $ability ) {
+	if ( $ability->get_meta_item( 'show_in_rest' ) ) {
+		return new WP_Error(
+			'photo_contest_unavailable',
+			__( 'Photo contest is unavailable.', 'extrachill-api' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	return null;
 }
 
 /**
@@ -183,6 +250,11 @@ function extrachill_api_content_blocks_photo_contest_submit_handler( WP_REST_Req
 		);
 	}
 
+	$refused = extrachill_api_content_blocks_photo_contest_require_hidden( $ability );
+	if ( $refused ) {
+		return $refused;
+	}
+
 	$input = array(
 		'post_id'      => $request->get_param( 'post_id' ),
 		'contest_id'   => $request->get_param( 'contest_id' ),
@@ -190,7 +262,6 @@ function extrachill_api_content_blocks_photo_contest_submit_handler( WP_REST_Req
 		'display_name' => $request->get_param( 'display_name' ),
 		'instagram'    => (string) $request->get_param( 'instagram' ),
 		'website'      => (string) $request->get_param( 'website' ),
-		'ip'           => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
 	);
 
 	// Pass the multipart photo upload through untouched.
@@ -285,13 +356,17 @@ function extrachill_api_content_blocks_photo_contest_vote_handler( WP_REST_Reque
 		);
 	}
 
+	$refused = extrachill_api_content_blocks_photo_contest_require_hidden( $ability );
+	if ( $refused ) {
+		return $refused;
+	}
+
 	$result = $ability->execute(
 		array(
 			'post_id'       => $request->get_param( 'post_id' ),
 			'contest_id'    => $request->get_param( 'contest_id' ),
 			'entry_id'      => $request->get_param( 'entry_id' ),
 			'email_address' => $request->get_param( 'email_address' ),
-			'ip'            => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
 		)
 	);
 

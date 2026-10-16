@@ -296,7 +296,6 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 		'/extrachill/v1/content-blocks/photo-contest/submit|extrachill/photo-contest-submit' => array(
 			'ability_only' => array(
 				'photo' => 'Multipart photo data is read from get_file_params(), not the scalar REST argument map.',
-				'ip'    => 'Derived from REMOTE_ADDR at the transport boundary.',
 			),
 		),
 		'/extrachill/v1/events/(?P<id>\d+)/guest-rsvp|extrachill/guest-rsvp-event' => array(

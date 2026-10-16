@@ -1,9 +1,15 @@
 <?php
 /**
- * Tests for the photo contest REST adapters (extrachill-api#197).
+ * Tests for the photo contest REST adapters (extrachill-api#197, #199).
  *
  * The owning abilities live in extrachill-content-blocks, which is not
  * loaded here, so controlled stub abilities are registered per test run.
+ * Stubs mirror the content-blocks#34 contract: hidden from the core REST
+ * runner unless a test flips the flag to exercise the refusal path.
+ *
+ * Error-mapping and envelope tests call the handlers directly; dispatch is
+ * reserved for transport-boundary behavior (arg validation, admission) to
+ * keep the suite's memory footprint bounded.
  *
  * @package ExtraChill\API\Tests
  */
@@ -27,10 +33,14 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	/** @var string|null */
 	private $original_remote_addr;
 
+	/** @var array<string, int> Deterministic per-key admission counters. */
+	private $rate_counts = array();
+
 	/** Register controlled photo contest abilities. */
 	public function set_up() {
 		parent::set_up();
 
+		$this->rate_counts          = array();
 		$this->ability_inputs       = array();
 		$this->ability_results      = array(
 			'extrachill/photo-contest-submit' => array(
@@ -44,6 +54,8 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			),
 		);
 		$this->original_remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : null;
+		$_SERVER['REMOTE_ADDR']     = '198.51.100.' . random_int( 1, 250 );
+		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 
 		if ( ! wp_has_ability_category( 'extrachill-api-tests' ) ) {
 			WP_Ability_Categories_Registry::get_instance()->register(
@@ -58,8 +70,6 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		foreach ( $this->ability_names as $ability_name ) {
 			$this->register_stub_ability( $ability_name );
 		}
-
-		do_action( 'rest_api_init' );
 	}
 
 	/** Remove the controlled abilities. */
@@ -76,16 +86,23 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			$_SERVER['REMOTE_ADDR'] = $this->original_remote_addr;
 		}
 
+		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_all_filters( 'extrachill_api_photo_contest_submit_rate_limit' );
+		remove_all_filters( 'extrachill_api_photo_contest_vote_rate_limit' );
+
 		parent::tear_down();
 	}
 
-	/** All three public routes are registered. */
+	/** All three public routes are registered with the write admission wired in. */
 	public function test_routes_are_registered() {
 		$routes = rest_get_server()->get_routes();
 
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/submit', $routes );
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/entries', $routes );
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/vote', $routes );
+		$this->assertSame( 'extrachill_api_content_blocks_photo_contest_submit_permission', $routes['/extrachill/v1/content-blocks/photo-contest/submit'][0]['permission_callback'] );
+		$this->assertSame( '__return_true', $routes['/extrachill/v1/content-blocks/photo-contest/entries'][0]['permission_callback'] );
+		$this->assertSame( 'extrachill_api_content_blocks_photo_contest_vote_permission', $routes['/extrachill/v1/content-blocks/photo-contest/vote'][0]['permission_callback'] );
 	}
 
 	/** Missing required submit fields are rejected before the ability runs. */
@@ -102,17 +119,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 
 	/** A malformed submit email fails REST arg validation. */
 	public function test_submit_rejects_invalid_email() {
-		$request = new WP_REST_Request( 'POST', '/extrachill/v1/content-blocks/photo-contest/submit' );
-		$request->set_body_params(
-			array(
-				'post_id'      => 5,
-				'contest_id'   => 'skinful-2025',
-				'email'        => 'not-an-email',
-				'display_name' => 'Ghoul',
-			)
-		);
-
-		$response = rest_get_server()->dispatch( $request );
+		$response = rest_get_server()->dispatch( $this->submit_request( array( 'email' => 'not-an-email' ) ) );
 
 		$this->assertSame( 400, $response->get_status() );
 		$this->assertSame( 'rest_invalid_param', $response->get_data()['code'] );
@@ -148,8 +155,8 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->assertSame( 'rest_missing_callback_param', $response->get_data()['code'] );
 	}
 
-	/** The multipart photo and client IP pass through to the ability. */
-	public function test_submit_passes_photo_and_ip_through() {
+	/** The multipart photo passes through; the client IP never does. */
+	public function test_submit_passes_photo_through_without_ip() {
 		$_SERVER['REMOTE_ADDR'] = '203.0.113.9';
 		$photo                  = array(
 			'name'     => 'costume.jpg',
@@ -159,15 +166,10 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			'size'     => 123456,
 		);
 
-		$request = new WP_REST_Request( 'POST', '/extrachill/v1/content-blocks/photo-contest/submit' );
-		$request->set_body_params(
+		$request = $this->submit_request(
 			array(
-				'post_id'      => 5,
-				'contest_id'   => 'skinful-2025',
-				'email'        => 'entrant@example.com',
-				'display_name' => 'Ghoul',
-				'instagram'    => '@ghoul',
-				'website'      => '',
+				'instagram' => '@ghoul',
+				'website'   => '',
 			)
 		);
 		$request->set_file_params( array( 'photo' => $photo ) );
@@ -185,7 +187,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 
 		$input = $this->ability_inputs['extrachill/photo-contest-submit'][0];
 		$this->assertSame( $photo, $input['photo'] );
-		$this->assertSame( '203.0.113.9', $input['ip'] );
+		$this->assertArrayNotHasKey( 'ip', $input );
 		$this->assertSame( 5, $input['post_id'] );
 		$this->assertSame( 'skinful-2025', $input['contest_id'] );
 		$this->assertSame( 'entrant@example.com', $input['email'] );
@@ -196,9 +198,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 
 	/** A non-empty honeypot value is forwarded untouched for the ability to judge. */
 	public function test_submit_forwards_honeypot_value() {
-		$request = $this->submit_request( array( 'website' => 'https://spam.example' ) );
-
-		rest_get_server()->dispatch( $request );
+		extrachill_api_content_blocks_photo_contest_submit_handler( $this->submit_request( array( 'website' => 'https://spam.example' ) ) );
 
 		$this->assertSame( 'https://spam.example', $this->ability_inputs['extrachill/photo-contest-submit'][0]['website'] );
 	}
@@ -211,10 +211,11 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	public function test_submit_error_code_status_mapping( $code, $status ) {
 		$this->ability_results['extrachill/photo-contest-submit'] = new WP_Error( $code, 'Nope.' );
 
-		$response = rest_get_server()->dispatch( $this->submit_request() );
+		$result = extrachill_api_content_blocks_photo_contest_submit_handler( $this->submit_request() );
 
-		$this->assertSame( $status, $response->get_status() );
-		$this->assertSame( $code, $response->get_data()['code'] );
+		$this->assertWPError( $result );
+		$this->assertSame( $code, $result->get_error_code() );
+		$this->assertSame( $status, $result->get_error_data()['status'] );
 	}
 
 	/** @return array<string, array{string, int}> */
@@ -246,11 +247,12 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			array( 'entry' => $entry )
 		);
 
-		$response = rest_get_server()->dispatch( $this->submit_request() );
+		$result = extrachill_api_content_blocks_photo_contest_submit_handler( $this->submit_request() );
 
-		$this->assertSame( 409, $response->get_status() );
-		$this->assertSame( 'already_entered', $response->get_data()['code'] );
-		$this->assertSame( $entry, $response->get_data()['data']['entry'] );
+		$this->assertWPError( $result );
+		$this->assertSame( 'already_entered', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( $entry, $result->get_error_data()['entry'] );
 	}
 
 	/**
@@ -261,10 +263,11 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	public function test_vote_error_code_status_mapping( $code, $status ) {
 		$this->ability_results['extrachill/photo-contest-vote'] = new WP_Error( $code, 'Nope.' );
 
-		$response = rest_get_server()->dispatch( $this->vote_request() );
+		$result = extrachill_api_content_blocks_photo_contest_vote_handler( $this->vote_request() );
 
-		$this->assertSame( $status, $response->get_status() );
-		$this->assertSame( $code, $response->get_data()['code'] );
+		$this->assertWPError( $result );
+		$this->assertSame( $code, $result->get_error_code() );
+		$this->assertSame( $status, $result->get_error_data()['status'] );
 	}
 
 	/** @return array<string, array{string, int}> */
@@ -287,42 +290,104 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			array( 'status' => 503 )
 		);
 
-		$response = rest_get_server()->dispatch( $this->vote_request() );
+		$result = extrachill_api_content_blocks_photo_contest_vote_handler( $this->vote_request() );
 
-		$this->assertSame( 503, $response->get_status() );
-		$this->assertSame( 'vote_storage_unavailable', $response->get_data()['code'] );
+		$this->assertWPError( $result );
+		$this->assertSame( 'vote_storage_unavailable', $result->get_error_code() );
+		$this->assertSame( 503, $result->get_error_data()['status'] );
 	}
 
 	/** Unmapped error codes without a status fall back to 500. */
 	public function test_unmapped_error_without_status_becomes_500() {
 		$this->ability_results['extrachill/photo-contest-vote'] = new WP_Error( 'mystery_failure', 'Unknown.' );
 
-		$response = rest_get_server()->dispatch( $this->vote_request() );
+		$result = extrachill_api_content_blocks_photo_contest_vote_handler( $this->vote_request() );
 
-		$this->assertSame( 500, $response->get_status() );
-		$this->assertSame( 'mystery_failure', $response->get_data()['code'] );
+		$this->assertWPError( $result );
+		$this->assertSame( 'mystery_failure', $result->get_error_code() );
+		$this->assertSame( 500, $result->get_error_data()['status'] );
 	}
 
-	/** The client IP passes through to the vote ability for per-IP rate limiting. */
-	public function test_vote_passes_ip_through() {
+	/** Admission owns the client IP; it is never forwarded as an ability input. */
+	public function test_vote_does_not_forward_ip() {
 		$_SERVER['REMOTE_ADDR'] = '198.51.100.4';
 
 		$response = rest_get_server()->dispatch( $this->vote_request() );
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( '198.51.100.4', $this->ability_inputs['extrachill/photo-contest-vote'][0]['ip'] );
+		$this->assertArrayNotHasKey( 'ip', $this->ability_inputs['extrachill/photo-contest-vote'][0] );
+	}
+
+	/** Submit and vote meter independent public-write budgets: 429 with Retry-After once over the cap. */
+	public function test_write_routes_rate_limited_once_over_cap() {
+		$defaults = array();
+		add_filter(
+			'extrachill_api_photo_contest_submit_rate_limit',
+			function ( $limit ) use ( &$defaults ) {
+				$defaults['submit'] = $limit;
+				return 1;
+			}
+		);
+		add_filter(
+			'extrachill_api_photo_contest_vote_rate_limit',
+			function ( $limit ) use ( &$defaults ) {
+				$defaults['vote'] = $limit;
+				return 1;
+			}
+		);
+
+		$first = rest_get_server()->dispatch( $this->submit_request() );
+		$this->assertSame( 200, $first->get_status() );
+
+		$blocked = rest_get_server()->dispatch( $this->submit_request() );
+		$this->assertSame( 429, $blocked->get_status() );
+		$this->assertSame( 'public_write_rate_limited', $blocked->get_data()['code'] );
+		$this->assertArrayHasKey( 'Retry-After', $blocked->get_data()['data']['headers'] );
+		$this->assertCount( 1, $this->ability_inputs['extrachill/photo-contest-submit'] );
+
+		// The vote scope is unaffected by the exhausted submit budget.
+		$this->assertTrue( extrachill_api_content_blocks_photo_contest_vote_permission( $this->vote_request() ) );
+		$vote_blocked = extrachill_api_content_blocks_photo_contest_vote_permission( $this->vote_request() );
+		$this->assertWPError( $vote_blocked );
+		$this->assertSame( 'public_write_rate_limited', $vote_blocked->get_error_code() );
+		$this->assertSame( 429, $vote_blocked->get_error_data()['status'] );
+		$this->assertArrayHasKey( 'Retry-After', $vote_blocked->get_error_data()['headers'] );
+
+		// The filters receive the documented default caps.
+		$this->assertSame(
+			array(
+				'submit' => 5,
+				'vote'   => 30,
+			),
+			$defaults
+		);
+	}
+
+	/** REST-visible write abilities are refused with 503 before execution. */
+	public function test_rest_visible_write_abilities_are_refused() {
+		$this->register_stub_ability( 'extrachill/photo-contest-vote', true );
+		$this->register_stub_ability( 'extrachill/photo-contest-submit', true );
+
+		$vote_refused   = extrachill_api_content_blocks_photo_contest_vote_handler( $this->vote_request() );
+		$submit_refused = extrachill_api_content_blocks_photo_contest_submit_handler( $this->submit_request() );
+
+		foreach ( array( $vote_refused, $submit_refused ) as $refused ) {
+			$this->assertWPError( $refused );
+			$this->assertSame( 'photo_contest_unavailable', $refused->get_error_code() );
+			$this->assertSame( 503, $refused->get_error_data()['status'] );
+		}
+		$this->assertSame( array(), $this->ability_inputs );
 	}
 
 	/** Vote success returns the public {message, vote_count} envelope. */
 	public function test_vote_success_envelope() {
-		$_SERVER['REMOTE_ADDR'] = '203.0.113.9';
 		$this->ability_results['extrachill/photo-contest-vote'] = array(
 			'message'    => 'Vote counted.',
 			'vote_count' => 12,
 			'internal'   => 'not exposed',
 		);
 
-		$response = rest_get_server()->dispatch( $this->vote_request() );
+		$response = extrachill_api_content_blocks_photo_contest_vote_handler( $this->vote_request() );
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame(
@@ -338,7 +403,6 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 				'contest_id'    => 'skinful-2025',
 				'entry_id'      => 7,
 				'email_address' => 'voter@example.com',
-				'ip'            => '203.0.113.9',
 			),
 			$this->ability_inputs['extrachill/photo-contest-vote'][0]
 		);
@@ -359,15 +423,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		);
 		$this->ability_results['extrachill/photo-contest-list'] = array( 'entries' => $entries );
 
-		$request = new WP_REST_Request( 'GET', '/extrachill/v1/content-blocks/photo-contest/entries' );
-		$request->set_query_params(
-			array(
-				'post_id'    => 5,
-				'contest_id' => 'skinful-2025',
-			)
-		);
-
-		$response = rest_get_server()->dispatch( $request );
+		$response = extrachill_api_content_blocks_photo_contest_entries_handler( $this->entries_request() );
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( array( 'entries' => $entries ), $response->get_data() );
@@ -385,18 +441,11 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	public function test_entries_contest_not_found_maps_to_404() {
 		$this->ability_results['extrachill/photo-contest-list'] = new WP_Error( 'contest_not_found', 'No contest.' );
 
-		$request = new WP_REST_Request( 'GET', '/extrachill/v1/content-blocks/photo-contest/entries' );
-		$request->set_query_params(
-			array(
-				'post_id'    => 5,
-				'contest_id' => 'missing',
-			)
-		);
+		$result = extrachill_api_content_blocks_photo_contest_entries_handler( $this->entries_request( 'missing' ) );
 
-		$response = rest_get_server()->dispatch( $request );
-
-		$this->assertSame( 404, $response->get_status() );
-		$this->assertSame( 'contest_not_found', $response->get_data()['code'] );
+		$this->assertWPError( $result );
+		$this->assertSame( 'contest_not_found', $result->get_error_code() );
+		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 
 	/**
@@ -458,8 +507,26 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		return $request;
 	}
 
-	/** Register a controlled ability that records inputs and returns the stubbed result. */
-	private function register_stub_ability( $ability_name ) {
+	/** Build a valid entries request. */
+	private function entries_request( $contest_id = 'skinful-2025' ) {
+		$request = new WP_REST_Request( 'GET', '/extrachill/v1/content-blocks/photo-contest/entries' );
+		$request->set_query_params(
+			array(
+				'post_id'    => 5,
+				'contest_id' => $contest_id,
+			)
+		);
+
+		return $request;
+	}
+
+	/**
+	 * Register a controlled ability that records inputs and returns the stubbed result.
+	 *
+	 * @param string $ability_name Ability name.
+	 * @param bool   $show_in_rest Whether the stub is REST-visible (content-blocks#34 ships false).
+	 */
+	private function register_stub_ability( $ability_name, $show_in_rest = false ) {
 		if ( wp_has_ability( $ability_name ) ) {
 			wp_unregister_ability( $ability_name );
 		}
@@ -482,7 +549,19 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 
 					return $test->ability_results[ $ability_name ];
 				},
+				'meta'                => array( 'show_in_rest' => (bool) $show_in_rest ),
 			)
 		);
+	}
+
+	/** Return the deterministic test counter. */
+	public function use_test_rate_limit_store() {
+		return array( $this, 'increment_test_rate_limit' );
+	}
+
+	/** Increment one deterministic counter. */
+	public function increment_test_rate_limit( $key ) {
+		$this->rate_counts[ $key ] = ( $this->rate_counts[ $key ] ?? 0 ) + 1;
+		return $this->rate_counts[ $key ];
 	}
 }
