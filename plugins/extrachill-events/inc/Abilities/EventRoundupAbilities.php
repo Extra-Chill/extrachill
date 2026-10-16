@@ -104,6 +104,19 @@ class EventRoundupAbilities {
 							'type'        => 'integer',
 							'description' => __( 'Deprecated alias for location (numeric term ID). Use location instead.', 'extrachill-events' ),
 						),
+						'tax_filters'      => array(
+							'type'                 => 'object',
+							'description'          => __( 'Extra taxonomy filters as { taxonomy: [slugs or term IDs] }, e.g. { "event_type": ["concert"] }. Terms within a taxonomy match any; taxonomies combine. Unknown taxonomies or terms are rejected.', 'extrachill-events' ),
+							'additionalProperties' => array(
+								'type'  => 'array',
+								'items' => array( 'type' => array( 'string', 'integer' ) ),
+							),
+						),
+						'venue_tier'       => array(
+							'type'        => array( 'string', 'array' ),
+							'items'       => array( 'type' => 'string' ),
+							'description' => __( 'Venue tier slug(s), passed to the events query. Several tiers (array or comma-separated) match any of them.', 'extrachill-events' ),
+						),
 					),
 				),
 				'output_schema'       => array(
@@ -230,6 +243,19 @@ class EventRoundupAbilities {
 							'type'        => 'string',
 							'description' => __( 'Location taxonomy term slug or numeric term ID. Optional.', 'extrachill-events' ),
 						),
+						'tax_filters'  => array(
+							'type'                 => 'object',
+							'description'          => __( 'Extra taxonomy filters as { taxonomy: [slugs or term IDs] }, e.g. { "event_type": ["concert"] }. Terms within a taxonomy match any; taxonomies combine. Unknown taxonomies or terms are rejected.', 'extrachill-events' ),
+							'additionalProperties' => array(
+								'type'  => 'array',
+								'items' => array( 'type' => array( 'string', 'integer' ) ),
+							),
+						),
+						'venue_tier'   => array(
+							'type'        => array( 'string', 'array' ),
+							'items'       => array( 'type' => 'string' ),
+							'description' => __( 'Venue tier slug(s), passed to the events query. Several tiers (array or comma-separated) match any of them.', 'extrachill-events' ),
+						),
 						'title'        => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for the first slide.', 'extrachill-events' ),
@@ -299,12 +325,19 @@ class EventRoundupAbilities {
 
 		$location_term_id = $this->resolveLocationTermId( $input );
 
+		$tax_filters = self::resolveTaxFilters( (array) ( $input['tax_filters'] ?? array() ) );
+		if ( \is_wp_error( $tax_filters ) ) {
+			return $tax_filters;
+		}
+
 		$day_groups = $this->queryEvents(
 			$date_range['date_start'],
 			$date_range['date_end'],
 			$location_term_id,
 			(string) ( $date_range['time_start'] ?? '' ),
-			(string) ( $date_range['time_end'] ?? '' )
+			(string) ( $date_range['time_end'] ?? '' ),
+			$tax_filters,
+			$input['venue_tier'] ?? ''
 		);
 
 		if ( empty( $day_groups ) ) {
@@ -580,7 +613,73 @@ class EventRoundupAbilities {
 		return (int) ( $input['location_term_id'] ?? 0 );
 	}
 
-	private function queryEvents( string $date_start, string $date_end, int $location_term_id, string $time_start = '', string $time_end = '' ): array {
+	/**
+	 * Resolve caller tax filters ({ taxonomy: [slug|id] }) to term IDs.
+	 *
+	 * Only taxonomies registered for the event post type are accepted, and
+	 * every term must exist, so a typo fails loudly instead of silently
+	 * widening or emptying the roundup.
+	 *
+	 * @param array $raw Raw tax_filters input.
+	 * @return array<string, int[]>|\WP_Error
+	 */
+	public static function resolveTaxFilters( array $raw ) {
+		$post_type = class_exists( '\\DataMachineEvents\\Core\\Event_Post_Type' ) ? \DataMachineEvents\Core\Event_Post_Type::POST_TYPE : 'data_machine_events';
+		$allowed   = \get_object_taxonomies( $post_type );
+		$resolved  = array();
+
+		foreach ( $raw as $taxonomy => $terms ) {
+			$taxonomy = \sanitize_key( (string) $taxonomy );
+			$terms    = is_array( $terms ) ? $terms : explode( ',', (string) $terms );
+			if ( ! in_array( $taxonomy, $allowed, true ) ) {
+				return new \WP_Error(
+					'unknown_taxonomy',
+					/* translators: %s: taxonomy slug */
+					sprintf( __( 'Unknown event taxonomy: %s', 'extrachill-events' ), $taxonomy ),
+					array( 'status' => 400 )
+				);
+			}
+
+			foreach ( $terms as $term_ref ) {
+				$term_ref = trim( (string) $term_ref );
+				if ( '' === $term_ref ) {
+					continue;
+				}
+				$term = ctype_digit( $term_ref )
+					? \get_term( (int) $term_ref, $taxonomy )
+					: \get_term_by( 'slug', \sanitize_title( $term_ref ), $taxonomy );
+				if ( ! $term instanceof \WP_Term ) {
+					return new \WP_Error(
+						'unknown_term',
+						/* translators: 1: term slug or ID, 2: taxonomy slug */
+						sprintf( __( 'Unknown %2$s term: %1$s', 'extrachill-events' ), $term_ref, $taxonomy ),
+						array( 'status' => 400 )
+					);
+				}
+				$resolved[ $taxonomy ][] = (int) $term->term_id;
+			}
+
+			if ( isset( $resolved[ $taxonomy ] ) ) {
+				$resolved[ $taxonomy ] = array_values( array_unique( $resolved[ $taxonomy ] ) );
+			}
+		}
+
+		return $resolved;
+	}
+
+	/**
+	 * Query and group roundup events.
+	 *
+	 * @param string       $date_start       Range start (Y-m-d).
+	 * @param string       $date_end         Range end (Y-m-d).
+	 * @param int          $location_term_id Location term ID, or 0.
+	 * @param string       $time_start       Optional time window start.
+	 * @param string       $time_end         Optional time window end.
+	 * @param array        $tax_filters      Resolved { taxonomy: [term IDs] }.
+	 * @param string|array $venue_tier       Venue tier slug(s) for the events query.
+	 * @return array
+	 */
+	private function queryEvents( string $date_start, string $date_end, int $location_term_id, string $time_start = '', string $time_end = '', array $tax_filters = array(), $venue_tier = '' ): array {
 		$query_input = array(
 			'date_start' => $date_start,
 			'date_end'   => $date_end,
@@ -596,9 +695,13 @@ class EventRoundupAbilities {
 		}
 
 		if ( $location_term_id > 0 ) {
-			$query_input['tax_filters'] = array(
-				'location' => array( $location_term_id ),
-			);
+			$tax_filters['location'] = array( $location_term_id );
+		}
+		if ( ! empty( $tax_filters ) ) {
+			$query_input['tax_filters'] = $tax_filters;
+		}
+		if ( ! empty( $venue_tier ) ) {
+			$query_input['venue_tier'] = $venue_tier;
 		}
 
 		// Uses data-machine-events public integration API. See data-machine-events
