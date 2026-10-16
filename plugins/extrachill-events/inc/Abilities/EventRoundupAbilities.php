@@ -175,6 +175,11 @@ class EventRoundupAbilities {
 							'type'        => 'string',
 							'description' => __( 'Optional supporting line on the closing slide.', 'extrachill-events' ),
 						),
+						'layout'          => array(
+							'type'        => 'string',
+							'enum'        => array( 'daily', 'calendar' ),
+							'description' => __( 'List layout. "daily" (default) gives each day a header; "calendar" puts one compact row per show with the date in a left column, for long ranges such as a venue\'s month.', 'extrachill-events' ),
+						),
 						'storage_context' => array(
 							'type'        => 'object',
 							'description' => __( 'Optional storage context with pipeline_id and flow_id. When omitted, renders to temp files.', 'extrachill-events' ),
@@ -260,6 +265,11 @@ class EventRoundupAbilities {
 						'closing_text' => array(
 							'type'        => 'string',
 							'description' => __( 'Optional supporting line on the closing slide.', 'extrachill-events' ),
+						),
+						'layout'       => array(
+							'type'        => 'string',
+							'enum'        => array( 'daily', 'calendar' ),
+							'description' => __( 'List layout. "daily" (default) gives each day a header; "calendar" puts one compact row per show with the date in a left column, for long ranges such as a venue\'s month.', 'extrachill-events' ),
 						),
 					),
 				),
@@ -718,6 +728,7 @@ class EventRoundupAbilities {
 			'cover'        => ! empty( $input['cover'] ),
 			'closing'      => ! empty( $input['closing'] ),
 			'closing_text' => (string) ( $input['closing_text'] ?? '' ),
+			'layout'       => 'calendar' === ( $input['layout'] ?? '' ) ? 'calendar' : 'daily',
 		);
 	}
 

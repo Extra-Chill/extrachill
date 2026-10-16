@@ -35,6 +35,14 @@
  *   - closing (bool) — append a closing CTA slide and drop the per-slide
  *     footer from the list slides
  *   - closing_text (string) — optional supporting line on the closing slide
+ *   - layout (string) — 'daily' (default): a header per day, then event
+ *     rows. 'calendar': one compact row per show with the date in a left
+ *     column and the time right-aligned, for long ranges such as a venue's
+ *     month.
+ *
+ * In both layouts the same show twice on one day at one venue (early and
+ * late sets) is one row with both times, and when every show shares one
+ * venue the venue is omitted from the rows and the cover.
  *
  * Optional brand token extensions consumed by this template:
  *   - colors['event_roundup_bg']    — slide background (falls back to background_dark)
@@ -93,6 +101,14 @@ class EventRoundupTemplate implements TemplateInterface {
 	private const CLOSING_MARK_HEIGHT    = 200;
 	private const MARK_CLEARANCE         = 24;
 	private const MARK_TEXT_SIZE         = 22;
+	private const CAL_DATE_SIZE          = 26;
+	private const CAL_DATE_COL           = 150;
+	private const CAL_TITLE_SIZE         = 24;
+	private const CAL_TIME_SIZE          = 20;
+	private const CAL_VENUE_SIZE         = 18;
+	private const CAL_TIME_GAP           = 24;
+	private const CAL_ROW_GAP            = 14;
+	private const CAL_DAY_GAP            = 12;
 
 	/**
 	 * Inverse logo path for the current render, or '' when unavailable.
@@ -107,6 +123,20 @@ class EventRoundupTemplate implements TemplateInterface {
 	 * @var string
 	 */
 	private $brand_text = '';
+
+	/**
+	 * Active list layout: 'daily' or 'calendar'.
+	 *
+	 * @var string
+	 */
+	private $layout = 'daily';
+
+	/**
+	 * Whether every show shares one venue, so rows omit it.
+	 *
+	 * @var bool
+	 */
+	private $single_venue = false;
 
 	/**
 	 * Neutral fallback palette for days of the week.
@@ -169,6 +199,11 @@ class EventRoundupTemplate implements TemplateInterface {
 				'type'     => 'string',
 				'required' => false,
 			),
+			'layout'       => array(
+				'label'    => 'Layout',
+				'type'     => 'string',
+				'required' => false,
+			),
 		);
 	}
 
@@ -188,6 +223,10 @@ class EventRoundupTemplate implements TemplateInterface {
 		if ( empty( $day_groups ) ) {
 			return array();
 		}
+
+		$this->layout       = 'calendar' === ( $data['layout'] ?? '' ) ? 'calendar' : 'daily';
+		$day_groups         = self::merge_repeat_sets( $day_groups );
+		$this->single_venue = 1 === self::cover_stats( $day_groups )['venues'];
 
 		$tokens = BrandTokens::get( $this->get_id(), $data );
 
@@ -419,13 +458,10 @@ class EventRoundupTemplate implements TemplateInterface {
 			$y += (int) ( self::COVER_DATE_SIZE * 1.4 );
 		}
 
-		$stats_line = sprintf(
-			'%d %s · %d %s',
-			$stats['shows'],
-			1 === $stats['shows'] ? 'SHOW' : 'SHOWS',
-			$stats['venues'],
-			1 === $stats['venues'] ? 'VENUE' : 'VENUES'
-		);
+		$stats_line = sprintf( '%d %s', $stats['shows'], 1 === $stats['shows'] ? 'SHOW' : 'SHOWS' );
+		if ( $stats['venues'] > 1 ) {
+			$stats_line .= sprintf( ' · %d VENUES', $stats['venues'] );
+		}
 		$renderer->draw_text( $stats_line, self::COVER_STATS_SIZE, self::PADDING, $y + self::COVER_STATS_SIZE, $muted, 'body' );
 
 		$renderer->draw_text( 'SWIPE FOR THE FULL LINEUP →', self::CTA_SIZE + 4, self::PADDING, $height - self::PADDING, $cta, 'body' );
@@ -522,23 +558,35 @@ class EventRoundupTemplate implements TemplateInterface {
 			? $this->calculate_title_height( $measure, $title, $width )
 			: 0;
 
-		$event_height = function ( array $event_item ) use ( $measure, $max_width ): int {
-			$post  = $event_item['post'] ?? null;
-			$title = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+		if ( 'calendar' === $this->layout ) {
+			$event_height  = function ( array $event_item ) use ( $measure ): int {
+				return $this->calendar_row_height( $measure, $event_item );
+			};
+			$header_height = 0;
+			$trailing_gap  = self::CAL_DAY_GAP;
+		} else {
+			$event_height  = function ( array $event_item ) use ( $measure, $max_width ): int {
+				$post  = $event_item['post'] ?? null;
+				$title = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
 
-			return $measure->measure_text_height( $title, self::EVENT_TITLE_SIZE, 'body', $max_width, self::LINE_HEIGHT_MULTIPLIER )
-				+ (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER )
-				+ self::EVENT_GAP;
+				return $measure->measure_text_height( $title, self::EVENT_TITLE_SIZE, 'body', $max_width, self::LINE_HEIGHT_MULTIPLIER )
+					+ (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER )
+					+ self::EVENT_GAP;
+			};
+			$header_height = self::day_header_height();
+			$trailing_gap  = self::DAY_TRAILING_GAP;
+		}
+
+		$plan = static function ( int $bottom ) use ( $day_groups, $title_height, $header_height, $event_height, $trailing_gap ): array {
+			return self::plan_slides( $day_groups, self::PADDING, $bottom, $title_height, $header_height, $event_height, $trailing_gap );
 		};
 
-		$slides = self::plan_slides(
-			$day_groups,
-			self::PADDING,
-			self::content_bottom( $height, $cta_text, $this->has_brand_mark() ? self::MARK_HEIGHT : 0 ),
-			$title_height,
-			self::day_header_height(),
-			$event_height
-		);
+		$bottom = self::content_bottom( $height, $cta_text, $this->has_brand_mark() ? self::MARK_HEIGHT : 0 );
+		$slides = $plan( $bottom );
+
+		if ( 'calendar' === $this->layout ) {
+			$slides = self::balance_slides( $plan, $bottom, self::PADDING + $title_height );
+		}
 
 		$measure->destroy();
 
@@ -561,6 +609,7 @@ class EventRoundupTemplate implements TemplateInterface {
 	 * @param int      $title_height      Title block height on the first slide.
 	 * @param int      $day_header_height Height of a day header incl. gap.
 	 * @param callable $event_height      fn( array $event_item ): int.
+	 * @param int      $trailing_gap      Space after each day group.
 	 * @return array<int, array<int, array>> Slides of day groups.
 	 */
 	public static function plan_slides(
@@ -569,7 +618,8 @@ class EventRoundupTemplate implements TemplateInterface {
 		int $content_bottom,
 		int $title_height,
 		int $day_header_height,
-		callable $event_height
+		callable $event_height,
+		int $trailing_gap = self::DAY_TRAILING_GAP
 	): array {
 		$slides  = array();
 		$current = array();
@@ -628,7 +678,7 @@ class EventRoundupTemplate implements TemplateInterface {
 			}
 
 			$current[] = array_merge( $day_group, array( 'events' => $chunk ) );
-			$cursor   += self::DAY_TRAILING_GAP;
+			$cursor   += $trailing_gap;
 		}
 
 		if ( ! empty( $current ) ) {
@@ -793,7 +843,9 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		foreach ( $slide_days as $day_group ) {
-			$y = $this->render_day_group( $renderer, $day_group, $y, $text_color, $muted_color, $day_palette );
+			$y = 'calendar' === $this->layout
+				? $this->render_calendar_day( $renderer, $day_group, $y, $text_color, $muted_color, $day_palette )
+				: $this->render_day_group( $renderer, $day_group, $y, $text_color, $muted_color, $day_palette );
 		}
 
 		$this->render_cta( $renderer, $cta_text, $cta_color );
@@ -897,17 +949,9 @@ class EventRoundupTemplate implements TemplateInterface {
 		$post       = $event_item['post'] ?? null;
 		$event_data = $event_item['event_data'] ?? array();
 
-		$title      = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
-		$venue      = self::decode_text( (string) ( $event_data['venue'] ?? '' ) );
-		$start_time = (string) ( $event_data['startTime'] ?? '' );
-
-		$formatted_time = '';
-		if ( '' !== $start_time ) {
-			$time_obj = \DateTime::createFromFormat( 'H:i:s', $start_time );
-			if ( $time_obj ) {
-				$formatted_time = $time_obj->format( 'g:i A' );
-			}
-		}
+		$title          = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+		$venue          = $this->single_venue ? '' : self::decode_text( (string) ( $event_data['venue'] ?? '' ) );
+		$formatted_time = self::format_times( $event_item );
 
 		$meta_parts = array_filter( array( $venue, $formatted_time ) );
 		$meta_line  = implode( ' · ', $meta_parts );
@@ -934,5 +978,164 @@ class EventRoundupTemplate implements TemplateInterface {
 		$y += self::EVENT_GAP;
 
 		return $y;
+	}
+
+	/**
+	 * Spread rows evenly: find the lowest content bottom that still needs
+	 * no more slides than the full-height plan, so the last slide is not a
+	 * stranded handful of rows.
+	 *
+	 * @param callable $plan   fn( int $bottom ): array, a slide plan.
+	 * @param int      $bottom Full content bottom.
+	 * @param int      $floor  Lowest bottom worth trying.
+	 * @return array Balanced slide plan.
+	 */
+	public static function balance_slides( callable $plan, int $bottom, int $floor ): array {
+		$best   = $plan( $bottom );
+		$target = count( $best );
+		if ( $target < 2 ) {
+			return $best;
+		}
+
+		$low  = $floor;
+		$high = $bottom;
+		while ( $high - $low > 4 ) {
+			$mid       = intdiv( $low + $high, 2 );
+			$candidate = $plan( $mid );
+			if ( count( $candidate ) <= $target ) {
+				$best = $candidate;
+				$high = $mid;
+			} else {
+				$low = $mid;
+			}
+		}
+
+		return $best;
+	}
+
+	/**
+	 * Collapse repeat sets: the same show at the same venue more than once
+	 * on one day becomes a single row carrying every start time.
+	 *
+	 * @param array $day_groups date_key => { date_obj, events[] }.
+	 * @return array Day groups whose event items carry `times` (H:i:s list).
+	 */
+	public static function merge_repeat_sets( array $day_groups ): array {
+		foreach ( $day_groups as $key => $day_group ) {
+			$merged = array();
+			foreach ( self::sort_events_by_time( (array) ( $day_group['events'] ?? array() ) ) as $index => $event_item ) {
+				$post  = $event_item['post'] ?? null;
+				$title = strtolower( trim( self::decode_text( $post ? (string) $post->post_title : '' ) ) );
+				$venue = strtolower( trim( self::decode_text( (string) ( $event_item['event_data']['venue'] ?? '' ) ) ) );
+				$time  = (string) ( $event_item['event_data']['startTime'] ?? '' );
+				$id    = '' !== $title ? $title . '|' . $venue : 'untitled:' . $index;
+
+				if ( isset( $merged[ $id ] ) ) {
+					if ( '' !== $time && ! in_array( $time, $merged[ $id ]['times'], true ) ) {
+						$merged[ $id ]['times'][] = $time;
+					}
+					continue;
+				}
+				$event_item['times'] = '' !== $time ? array( $time ) : array();
+				$merged[ $id ]       = $event_item;
+			}
+			$day_groups[ $key ]['events'] = array_values( $merged );
+		}
+		return $day_groups;
+	}
+
+	/**
+	 * "7:00 PM", or "7:00 & 9:30 PM" for repeat sets ("11:00 AM & 2:00 PM"
+	 * when the sets straddle noon).
+	 *
+	 * @param array $event_item Event item, optionally with `times`.
+	 * @return string
+	 */
+	public static function format_times( array $event_item ): string {
+		$raw = isset( $event_item['times'] ) ? (array) $event_item['times'] : array( (string) ( $event_item['event_data']['startTime'] ?? '' ) );
+
+		$times = array();
+		foreach ( $raw as $value ) {
+			$time_obj = '' !== (string) $value ? \DateTime::createFromFormat( 'H:i:s', (string) $value ) : false;
+			if ( $time_obj ) {
+				$times[] = $time_obj;
+			}
+		}
+		if ( empty( $times ) ) {
+			return '';
+		}
+
+		$same_half = 1 === count( array_unique( array_map( static fn( $t ) => $t->format( 'A' ), $times ) ) );
+		$parts     = array();
+		$last      = count( $times ) - 1;
+		foreach ( $times as $i => $time_obj ) {
+			$parts[] = ( $same_half && $i < $last ) ? $time_obj->format( 'g:i' ) : $time_obj->format( 'g:i A' );
+		}
+		return implode( ' & ', $parts );
+	}
+
+	/**
+	 * Width available to a calendar row title once the time is placed.
+	 */
+	private function calendar_title_width( GDRenderer $renderer, string $time_label ): int {
+		$width = $renderer->get_width() - ( self::PADDING * 2 ) - self::CAL_DATE_COL;
+		if ( '' !== $time_label ) {
+			$width -= $renderer->measure_text_width( $time_label, self::CAL_TIME_SIZE, 'body' ) + self::CAL_TIME_GAP;
+		}
+		return max( 200, $width );
+	}
+
+	/**
+	 * Height of one calendar row, matching render_calendar_day().
+	 */
+	private function calendar_row_height( GDRenderer $renderer, array $event_item ): int {
+		$post   = $event_item['post'] ?? null;
+		$title  = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+		$height = $renderer->measure_text_height( $title, self::CAL_TITLE_SIZE, 'body', $this->calendar_title_width( $renderer, self::format_times( $event_item ) ), self::LINE_HEIGHT_MULTIPLIER );
+
+		if ( ! $this->single_venue && '' !== trim( (string) ( $event_item['event_data']['venue'] ?? '' ) ) ) {
+			$height += (int) ( self::CAL_VENUE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+		}
+		return $height + self::CAL_ROW_GAP;
+	}
+
+	/**
+	 * Calendar layout: date in a left column on the day's first row, title
+	 * beside it, time right-aligned, venue beneath when venues vary.
+	 */
+	private function render_calendar_day( GDRenderer $renderer, array $day_group, int $y, int $text_color, int $muted_color, array $day_palette ): int {
+		$date_obj = $day_group['date_obj'] ?? null;
+
+		$day_name  = $date_obj ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
+		$day_color = $renderer->color_hex( 'day_' . $day_name, (string) ( $day_palette[ $day_name ] ?? $day_palette['monday'] ?? '#4ecdc4' ) );
+		$label     = $date_obj ? strtoupper( $date_obj->format( 'D j' ) ) : '';
+		$title_x   = self::PADDING + self::CAL_DATE_COL;
+		$right_x   = $renderer->get_width() - self::PADDING;
+
+		foreach ( self::sort_events_by_time( (array) ( $day_group['events'] ?? array() ) ) as $i => $event_item ) {
+			$post       = $event_item['post'] ?? null;
+			$title      = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+			$time_label = self::format_times( $event_item );
+			$baseline   = $y + self::CAL_TITLE_SIZE;
+
+			if ( 0 === $i && '' !== $label ) {
+				$renderer->draw_text( $label, self::CAL_DATE_SIZE, self::PADDING, $baseline, $day_color, 'header' );
+			}
+			if ( '' !== $time_label ) {
+				$time_x = $right_x - $renderer->measure_text_width( $time_label, self::CAL_TIME_SIZE, 'body' );
+				$renderer->draw_text( $time_label, self::CAL_TIME_SIZE, $time_x, $baseline, $muted_color, 'body' );
+			}
+
+			$y = $renderer->draw_text_wrapped( $title, self::CAL_TITLE_SIZE, $title_x, $y, $text_color, 'body', $this->calendar_title_width( $renderer, $time_label ), self::LINE_HEIGHT_MULTIPLIER, 'left' );
+
+			$venue = $this->single_venue ? '' : self::decode_text( (string) ( $event_item['event_data']['venue'] ?? '' ) );
+			if ( '' !== $venue ) {
+				$renderer->draw_text( $venue, self::CAL_VENUE_SIZE, $title_x, $y + self::CAL_VENUE_SIZE, $muted_color, 'body' );
+				$y += (int) ( self::CAL_VENUE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+			}
+			$y += self::CAL_ROW_GAP;
+		}
+
+		return $y + self::CAL_DAY_GAP;
 	}
 }

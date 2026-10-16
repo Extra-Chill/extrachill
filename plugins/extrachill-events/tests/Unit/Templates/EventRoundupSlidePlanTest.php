@@ -244,4 +244,82 @@ final class EventRoundupSlidePlanTest extends BookingTestCase {
 		$this->assertSame( 1350 - 60 - 72 - 24, $with_mark );
 		$this->assertSame( $with_mark, $both, 'The taller of the CTA and the mark sets the limit.' );
 	}
+
+	/**
+	 * Build an event item.
+	 *
+	 * @param string $title Title.
+	 * @param string $venue Venue.
+	 * @param string $time  H:i:s.
+	 * @return array
+	 */
+	private function show( string $title, string $venue, string $time ): array {
+		return array(
+			'post'       => (object) array( 'post_title' => $title ),
+			'event_data' => array(
+				'venue'     => $venue,
+				'startTime' => $time,
+			),
+		);
+	}
+
+	public function test_repeat_sets_collapse_into_one_row_with_both_times(): void {
+		$groups = EventRoundupTemplate::merge_repeat_sets(
+			array(
+				'2026-11-06' => array(
+					'date_obj' => new DateTime( '2026-11-06' ),
+					'events'   => array(
+						$this->show( 'The Garcia Project', 'Pour House', '20:30:00' ),
+						$this->show( 'Opener', 'Pour House', '19:00:00' ),
+						$this->show( 'The Garcia Project', 'Pour House', '18:00:00' ),
+						$this->show( 'The Garcia Project', 'Royal American', '21:00:00' ),
+					),
+				),
+			)
+		);
+
+		$events = $groups['2026-11-06']['events'];
+		$this->assertCount( 3, $events, 'Same show, same venue, same day merges; another venue stays separate.' );
+		$this->assertSame( array( '18:00:00', '20:30:00' ), $events[0]['times'] );
+		$this->assertSame( '6:00 & 8:30 PM', EventRoundupTemplate::format_times( $events[0] ) );
+		$this->assertSame( '7:00 PM', EventRoundupTemplate::format_times( $events[1] ) );
+	}
+
+	public function test_format_times_spells_out_both_halves_across_noon(): void {
+		$this->assertSame( '11:00 AM & 2:00 PM', EventRoundupTemplate::format_times( array( 'times' => array( '11:00:00', '14:00:00' ) ) ) );
+		$this->assertSame( '', EventRoundupTemplate::format_times( array( 'event_data' => array() ) ) );
+	}
+
+	public function test_planner_honors_a_custom_trailing_gap(): void {
+		$days = array();
+		for ( $d = 1; $d <= 10; $d++ ) {
+			$date          = sprintf( '2026-11-%02d', $d );
+			$days[ $date ] = $this->day( $date, 1 );
+		}
+
+		$daily    = EventRoundupTemplate::plan_slides( $days, self::TOP, self::BOTTOM, 0, self::HEADER, static fn(): int => self::EVENT );
+		$calendar = EventRoundupTemplate::plan_slides( $days, self::TOP, self::BOTTOM, 0, 0, static fn(): int => self::EVENT, 10 );
+
+		$this->assertGreaterThan( count( $calendar ), count( $daily ) );
+		$this->assertCount( 1, $calendar, '10 headerless rows of 80px fit in 940px.' );
+	}
+
+	public function test_balance_slides_avoids_a_stranded_last_slide(): void {
+		$days = array();
+		for ( $d = 1; $d <= 13; $d++ ) {
+			$date          = sprintf( '2026-11-%02d', $d );
+			$days[ $date ] = $this->day( $date, 1 );
+		}
+		$plan = fn( int $bottom ): array => EventRoundupTemplate::plan_slides( $days, self::TOP, $bottom, 0, 0, static fn(): int => self::EVENT, 10 );
+
+		// 13 rows of 80px: a full-height plan is 11 + 2.
+		$greedy = $plan( self::BOTTOM );
+		$this->assertCount( 2, $greedy );
+		$this->assertCount( 2, $greedy[1] );
+
+		$balanced = EventRoundupTemplate::balance_slides( $plan, self::BOTTOM, self::TOP );
+		$this->assertCount( 2, $balanced );
+		$this->assertGreaterThanOrEqual( 6, count( $balanced[1] ) );
+		$this->assertSame( 13, count( $balanced[0] ) + count( $balanced[1] ) );
+	}
 }
