@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-10-16
+
+### Added
+- photo contest block with user-submitted entries
+- add trivia-create and trivia-list abilities
+
+### Changed
+- adopt the shared Homeboy release train
+
+### Fixed
+- exclude build-only webpack.config.js from package completeness
+- grant id-token so the shared release workflow can start
+- declare image voting editor contract
+
 ## [1.3.4] - 2026-07-12
 
 ### Changed
