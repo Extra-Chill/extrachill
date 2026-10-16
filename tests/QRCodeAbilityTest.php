@@ -125,4 +125,29 @@ class QRCodeAbilityTest extends WP_UnitTestCase {
 
 		unset( $GLOBALS['super_admins'] );
 	}
+
+	/**
+	 * Data Machine's poster template resolves QR images through this class.
+	 */
+	public function test_poster_qr_filter_returns_a_readable_png(): void {
+		$this->assertNotFalse( has_filter( 'datamachine/image_generation/qr_image_path' ) );
+
+		$path = apply_filters( 'datamachine/image_generation/qr_image_path', null, 'https://events.extrachill.com/near-me/', 190 );
+
+		$this->assertIsString( $path );
+		$this->assertFileIsReadable( $path );
+		$info = getimagesize( $path );
+		$this->assertSame( 'image/png', $info['mime'] );
+		$this->assertGreaterThanOrEqual( 600, $info[0] );
+
+		wp_delete_file( $path );
+	}
+
+	/**
+	 * An earlier provider's image wins, and an empty URL yields nothing.
+	 */
+	public function test_poster_qr_filter_respects_existing_value_and_empty_url(): void {
+		$this->assertSame( '/tmp/existing.png', $this->ability->provide_poster_qr_image( '/tmp/existing.png', 'https://extrachill.com', 190 ) );
+		$this->assertNull( $this->ability->provide_poster_qr_image( null, '', 190 ) );
+	}
 }
