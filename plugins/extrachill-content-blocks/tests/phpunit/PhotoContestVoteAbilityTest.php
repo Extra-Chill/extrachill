@@ -5,8 +5,10 @@
  * Exercises extrachill/photo-contest-vote through the Abilities API surface
  * (wp_get_ability()->execute()), the way the extrachill-api route adapter
  * invokes it. Contest voters are anonymous — QR code / shared link, email
- * only — so the permission check must pass logged out, and abuse protection
- * is the per-IP vote rate limit on the optional route-supplied `ip` input.
+ * only — so the permission check must pass logged out. The ability does no
+ * IP handling or rate limiting: per-client admission is owned by the
+ * extrachill-api public-write admission middleware, and the ability is
+ * hidden from the core Abilities REST runner (show_in_rest false).
  *
  * @package ExtraChillContentBlocks
  */
@@ -14,7 +16,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * Vote ability: anonymous permission + per-IP rate limit.
+ * Vote ability: anonymous permission + status-coded error passthrough.
  */
 class PhotoContestVoteAbilityTest extends TestCase {
 
@@ -70,7 +72,6 @@ class PhotoContestVoteAbilityTest extends TestCase {
 					'size'     => 1024 * 1024,
 					'error'    => 0,
 				),
-				'ip'           => '',
 			)
 		);
 
@@ -113,7 +114,7 @@ class PhotoContestVoteAbilityTest extends TestCase {
 		$this->assertSame( 1, $result['vote_count'] );
 	}
 
-	public function test_anonymous_execution_still_enforces_email_dedup() {
+	public function test_anonymous_execution_still_enforces_email_dedup_with_409() {
 		$post_id  = $this->createContestPost();
 		$entry_id = $this->createEntry( $post_id );
 
@@ -128,89 +129,80 @@ class PhotoContestVoteAbilityTest extends TestCase {
 
 		$repeat = $this->executeVote( $input );
 		$this->assertTrue( is_wp_error( $repeat ), 'Email dedup remains the authority.' );
-		$this->assertSame( 'already_voted', $repeat->code );
+		$this->assertSame( 'already_voted', $repeat->get_error_code() );
+		$this->assertSame( 409, $repeat->get_error_data()['status'], 'Conflicts surface as 409, not 500.' );
 	}
 
-	// ─── Per-IP rate limit ───────────────────────────────────────────────────
+	// ─── Status-coded error passthrough ──────────────────────────────────────
 
-	public function test_vote_rate_limit_trips_past_the_ceiling() {
-		$post_id  = $this->createContestPost();
-		$entry_id = $this->createEntry( $post_id );
-
-		for ( $i = 0; $i < EXTRACHILL_PHOTO_CONTEST_VOTE_RATE_LIMIT; $i++ ) {
-			$result = $this->executeVote(
-				array(
-					'post_id'       => $post_id,
-					'contest_id'    => self::CONTEST_ID,
-					'entry_id'      => $entry_id,
-					'email_address' => "guest{$i}@example.com",
-					'ip'            => '203.0.113.9',
-				)
-			);
-			$this->assertFalse( is_wp_error( $result ), "Vote {$i} inside the ceiling should pass (shared venue wifi)." );
-		}
-
-		$blocked = $this->executeVote(
-			array(
-				'post_id'       => $post_id,
-				'contest_id'    => self::CONTEST_ID,
-				'entry_id'      => $entry_id,
-				'email_address' => 'onemore@example.com',
-				'ip'            => '203.0.113.9',
-			)
-		);
-		$this->assertTrue( is_wp_error( $blocked ) );
-		$this->assertSame( 'rate_limited', $blocked->code );
-
-		$other_ip = $this->executeVote(
-			array(
-				'post_id'       => $post_id,
-				'contest_id'    => self::CONTEST_ID,
-				'entry_id'      => $entry_id,
-				'email_address' => 'other@example.com',
-				'ip'            => '198.51.100.7',
-			)
-		);
-		$this->assertFalse( is_wp_error( $other_ip ), 'The limit is per IP.' );
-	}
-
-	public function test_missing_ip_skips_the_rate_limit() {
-		$post_id  = $this->createContestPost();
-		$entry_id = $this->createEntry( $post_id );
-
-		for ( $i = 0; $i <= EXTRACHILL_PHOTO_CONTEST_VOTE_RATE_LIMIT; $i++ ) {
-			$result = $this->executeVote(
-				array(
-					'post_id'       => $post_id,
-					'contest_id'    => self::CONTEST_ID,
-					'entry_id'      => $entry_id,
-					'email_address' => "noip{$i}@example.com",
-				)
-			);
-			$this->assertFalse( is_wp_error( $result ), 'Without a route-supplied ip the limiter is skipped (e.g. CLI).' );
-		}
-	}
-
-	public function test_vote_and_submit_rate_limits_use_separate_buckets() {
-		$post_id  = $this->createContestPost();
-		$entry_id = $this->createEntry( $post_id );
-		$ip       = '203.0.113.9';
-
-		// Exhaust the (much smaller) submission limiter for this IP.
-		for ( $i = 0; $i < EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT; $i++ ) {
-			extrachill_content_blocks_photo_contest_rate_limit_ok( $ip );
-		}
-		$this->assertFalse( extrachill_content_blocks_photo_contest_rate_limit_ok( $ip ) );
+	public function test_entry_not_found_passes_through_with_404() {
+		$post_id = $this->createContestPost();
 
 		$result = $this->executeVote(
 			array(
 				'post_id'       => $post_id,
 				'contest_id'    => self::CONTEST_ID,
-				'entry_id'      => $entry_id,
+				'entry_id'      => 424242,
 				'email_address' => 'voter@example.com',
-				'ip'            => $ip,
 			)
 		);
-		$this->assertFalse( is_wp_error( $result ), 'A submit-limited IP can still vote.' );
+
+		$this->assertTrue( is_wp_error( $result ) );
+		$this->assertSame( 'entry_not_found', $result->get_error_code() );
+		$this->assertSame( 404, $result->get_error_data()['status'] );
+	}
+
+	public function test_contest_not_found_passes_through_with_404() {
+		$result = $this->executeVote(
+			array(
+				'post_id'       => 999999,
+				'contest_id'    => self::CONTEST_ID,
+				'entry_id'      => 1,
+				'email_address' => 'voter@example.com',
+			)
+		);
+
+		$this->assertTrue( is_wp_error( $result ) );
+		$this->assertSame( 'contest_not_found', $result->get_error_code() );
+		$this->assertSame( 404, $result->get_error_data()['status'] );
+	}
+
+	public function test_input_validation_errors_carry_400() {
+		$post_id  = $this->createContestPost();
+		$entry_id = $this->createEntry( $post_id );
+
+		$cases = array(
+			'invalid_post_id'    => array(
+				'post_id'       => 0,
+				'contest_id'    => self::CONTEST_ID,
+				'entry_id'      => $entry_id,
+				'email_address' => 'voter@example.com',
+			),
+			'invalid_contest_id' => array(
+				'post_id'       => $post_id,
+				'contest_id'    => '',
+				'entry_id'      => $entry_id,
+				'email_address' => 'voter@example.com',
+			),
+			'invalid_entry_id'   => array(
+				'post_id'       => $post_id,
+				'contest_id'    => self::CONTEST_ID,
+				'entry_id'      => 0,
+				'email_address' => 'voter@example.com',
+			),
+			'invalid_email'      => array(
+				'post_id'       => $post_id,
+				'contest_id'    => self::CONTEST_ID,
+				'entry_id'      => $entry_id,
+				'email_address' => 'not-an-email',
+			),
+		);
+
+		foreach ( $cases as $expected_code => $input ) {
+			$result = $this->executeVote( $input );
+			$this->assertTrue( is_wp_error( $result ), "{$expected_code} must fail." );
+			$this->assertSame( $expected_code, $result->get_error_code() );
+			$this->assertSame( 400, $result->get_error_data()['status'], "{$expected_code} must carry HTTP 400." );
+		}
 	}
 }

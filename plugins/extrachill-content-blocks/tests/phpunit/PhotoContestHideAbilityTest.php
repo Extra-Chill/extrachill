@@ -53,7 +53,6 @@ class PhotoContestHideAbilityTest extends TestCase {
 					'size'     => 1024,
 					'error'    => 0,
 				),
-				'ip'           => '',
 			)
 		);
 
@@ -66,10 +65,8 @@ class PhotoContestHideAbilityTest extends TestCase {
 	 * it must stay non-destructive (hiding is reversible).
 	 */
 	public function test_hide_ability_annotations_route_to_post() {
-		$ability = wp_get_ability( 'extrachill/photo-contest-hide' );
-		$props   = ( new ReflectionProperty( $ability, 'props' ) );
-		$props->setAccessible( true );
-		$annotations = $props->getValue( $ability )['meta']['annotations'];
+		$ability     = wp_get_ability( 'extrachill/photo-contest-hide' );
+		$annotations = $ability->get_meta()['annotations'];
 
 		$this->assertFalse( $annotations['readonly'] );
 		$this->assertFalse( $annotations['destructive'], 'Hide is reversible; destructive would force DELETE in the core runner.' );
@@ -86,7 +83,7 @@ class PhotoContestHideAbilityTest extends TestCase {
 		);
 
 		$this->assertTrue( is_wp_error( $result ) );
-		$this->assertSame( 'ability_invalid_permissions', $result->code );
+		$this->assertSame( 'ability_invalid_permissions', $result->get_error_code() );
 	}
 
 	public function test_moderators_can_hide_and_unhide_through_the_ability() {

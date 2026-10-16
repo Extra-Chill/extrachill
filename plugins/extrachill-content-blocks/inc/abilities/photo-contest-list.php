@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Ability: extrachill/photo-contest-list
  *
  * Lists the visible entries of a photo contest with live vote counts.
- * Canonical logic lives in src/blocks/photo-contest/index.php via
+ * Canonical logic lives in inc/photo-contest/entries.php via
  * extrachill_content_blocks_photo_contest_get_entries(). Entries are returned
  * in insertion order; the frontend shuffles client-side on every page load.
  *
@@ -36,11 +36,11 @@ function extrachill_content_blocks_register_photo_contest_list_ability(): void {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'post_id'    => array(
+					'post_id'        => array(
 						'type'        => 'integer',
 						'description' => __( 'Contest post ID.', 'extrachill-content-blocks' ),
 					),
-					'contest_id' => array(
+					'contest_id'     => array(
 						'type'        => 'string',
 						'description' => __( 'Contest block instance ID (contestId attribute).', 'extrachill-content-blocks' ),
 					),
@@ -85,37 +85,32 @@ function extrachill_content_blocks_photo_contest_list_ability_execute( array $in
 	$contest_id = isset( $input['contest_id'] ) ? sanitize_text_field( (string) $input['contest_id'] ) : '';
 
 	if ( 0 === $post_id ) {
-		return new \WP_Error(
+		return extrachill_content_blocks_photo_contest_error(
 			'invalid_post_id',
-			__( 'A valid post ID is required.', 'extrachill-content-blocks' )
+			__( 'A valid post ID is required.', 'extrachill-content-blocks' ),
+			400
 		);
 	}
 
 	if ( '' === $contest_id ) {
-		return new \WP_Error(
+		return extrachill_content_blocks_photo_contest_error(
 			'invalid_contest_id',
-			__( 'A contest ID is required.', 'extrachill-content-blocks' )
-		);
-	}
-
-	if ( ! function_exists( 'extrachill_content_blocks_photo_contest_get_entries' ) ) {
-		return new \WP_Error(
-			'function_missing',
-			__( 'Photo contest function not available.', 'extrachill-content-blocks' )
+			__( 'A contest ID is required.', 'extrachill-content-blocks' ),
+			400
 		);
 	}
 
 	if ( null === extrachill_content_blocks_photo_contest_get_settings( $post_id, $contest_id ) ) {
-		return new \WP_Error(
+		return extrachill_content_blocks_photo_contest_error(
 			'contest_not_found',
-			__( 'Contest not found.', 'extrachill-content-blocks' )
+			__( 'Contest not found.', 'extrachill-content-blocks' ),
+			404
 		);
 	}
 
 	// include_hidden is honoured only for moderators; anonymous and
 	// non-moderator callers silently get the public list.
 	$include_hidden = ! empty( $input['include_hidden'] )
-		&& function_exists( 'extrachill_content_blocks_photo_contest_can_moderate' )
 		&& extrachill_content_blocks_photo_contest_can_moderate();
 
 	$entries = extrachill_content_blocks_photo_contest_get_entries( $post_id, $contest_id, $include_hidden );

@@ -3,7 +3,7 @@
  * Minimal in-memory WordPress stubs for photo-contest business-logic tests.
  *
  * Implements only the surface the photo-contest + image-voting business logic
- * touches (posts, post meta, comments + comment meta, transients, a handful
+ * touches (posts, post meta, comments + comment meta, filters, a handful
  * of formatting helpers). Each test resets state via wp_stubs_reset().
  *
  * @package ExtraChillContentBlocks
@@ -20,15 +20,50 @@ if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 }
 
 function wp_stubs_reset(): void {
-	$GLOBALS['wp_test_posts']        = array();
-	$GLOBALS['wp_test_meta']         = array();
-	$GLOBALS['wp_test_blocks']       = array();
-	$GLOBALS['wp_test_comments']     = array();
-	$GLOBALS['wp_test_comment_meta'] = array();
-	$GLOBALS['wp_test_transients']   = array();
-	$GLOBALS['wp_test_abilities']    = array();
-	$GLOBALS['wp_test_user_caps']    = array();
-	$GLOBALS['wp_test_next_id']      = 1000;
+	$GLOBALS['wp_test_posts']         = array();
+	$GLOBALS['wp_test_meta']          = array();
+	$GLOBALS['wp_test_blocks']        = array();
+	$GLOBALS['wp_test_comments']      = array();
+	$GLOBALS['wp_test_comment_meta']  = array();
+	$GLOBALS['wp_test_abilities']     = array();
+	$GLOBALS['wp_test_user_caps']     = array();
+	$GLOBALS['wp_test_filters']       = array();
+	$GLOBALS['wp_test_subscriptions'] = array();
+	$GLOBALS['wp_test_next_id']       = 1000;
+
+	// Default in-memory entry photo store through the short-circuit filter
+	// seam; individual tests may layer earlier (lower-priority) filters.
+	add_filter( 'extrachill_content_blocks_photo_contest_store_photo', 'wp_stubs_store_photo_filter', 10, 4 );
+}
+
+/**
+ * Default test double for the entry photo storage filter seam. Skips the
+ * filesystem and registers an in-memory attachment parented to the contest
+ * post. Respects an earlier short-circuit.
+ *
+ * @param mixed  $stored       Prior filter result (non-null short-circuits).
+ * @param int    $post_id      Contest post ID.
+ * @param array  $file         $_FILES-shaped upload.
+ * @param string $display_name Entrant display name.
+ * @return int|WP_Error Attachment ID, or WP_Error on simulated failure.
+ */
+function wp_stubs_store_photo_filter( $stored, $post_id, array $file, $display_name ) {
+	if ( null !== $stored ) {
+		return $stored;
+	}
+
+	if ( ! empty( $file['force_store_failure'] ) ) {
+		return new WP_Error( 'upload_failed', 'Simulated storage failure.', array( 'status' => 400 ) );
+	}
+
+	return wp_stubs_insert_post(
+		array(
+			'post_type'   => 'attachment',
+			'post_status' => 'inherit',
+			'post_parent' => (int) $post_id,
+			'post_title'  => $display_name . ' — contest entry',
+		)
+	);
 }
 
 /**
@@ -85,6 +120,14 @@ if ( ! class_exists( 'WP_Ability' ) ) {
 			return $this->name;
 		}
 
+		public function get_input_schema(): array {
+			return (array) ( $this->props['input_schema'] ?? array() );
+		}
+
+		public function get_meta(): array {
+			return (array) ( $this->props['meta'] ?? array() );
+		}
+
 		public function has_permission( $input = array() ): bool {
 			return (bool) call_user_func( $this->props['permission_callback'], $input );
 		}
@@ -120,8 +163,55 @@ function add_action( ...$args ) {
 	return true;
 }
 
-function add_filter( ...$args ) {
+/**
+ * Functional filter registry — the photo-contest storage seam is a
+ * short-circuit filter, so apply_filters() must actually run callbacks.
+ */
+function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	$GLOBALS['wp_test_filters'][ (string) $hook ][] = array(
+		'callback'      => $callback,
+		'priority'      => (int) $priority,
+		'accepted_args' => (int) $accepted_args,
+	);
+
 	return true;
+}
+
+function apply_filters( $hook, $value, ...$args ) {
+	$callbacks = $GLOBALS['wp_test_filters'][ (string) $hook ] ?? array();
+
+	usort( $callbacks, static fn( $a, $b ) => $a['priority'] <=> $b['priority'] );
+
+	foreach ( $callbacks as $entry ) {
+		$call_args = array_merge( array( $value ), $args );
+		$value     = call_user_func_array(
+			$entry['callback'],
+			array_slice( $call_args, 0, max( 1, $entry['accepted_args'] ) )
+		);
+	}
+
+	return $value;
+}
+
+function remove_all_filters( $hook ) {
+	unset( $GLOBALS['wp_test_filters'][ (string) $hook ] );
+	return true;
+}
+
+/**
+ * Records subscribe calls so tests can assert the integration context
+ * (photo_contest for contest entry + vote, image_voting for the plain block).
+ */
+function extrachill_network_subscribe( $email, $context ) {
+	$GLOBALS['wp_test_subscriptions'][] = array(
+		'email'   => (string) $email,
+		'context' => (string) $context,
+	);
+
+	return array(
+		'success' => true,
+		'message' => 'Subscribed.',
+	);
 }
 
 // ─── Posts ───────────────────────────────────────────────────────────────────
@@ -272,17 +362,6 @@ function get_comments( array $args ) {
 	return $results;
 }
 
-// ─── Transients ──────────────────────────────────────────────────────────────
-
-function get_transient( $key ) {
-	return $GLOBALS['wp_test_transients'][ $key ] ?? false;
-}
-
-function set_transient( $key, $value, $expiration = 0 ) {
-	$GLOBALS['wp_test_transients'][ $key ] = $value;
-	return true;
-}
-
 // ─── Attachments / URLs ──────────────────────────────────────────────────────
 
 function wp_get_attachment_url( $attachment_id ) {
@@ -387,12 +466,23 @@ if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
 		public $code;
 		public $message;
-		public function __construct( $code = '', $message = '' ) {
+		public $data;
+		public function __construct( $code = '', $message = '', $data = null ) {
 			$this->code    = $code;
 			$this->message = $message;
+			$this->data    = $data;
+		}
+		public function get_error_code() {
+			return $this->code;
 		}
 		public function get_error_message() {
 			return $this->message;
+		}
+		public function get_error_data() {
+			return $this->data;
+		}
+		public function add_data( $data ) {
+			$this->data = $data;
 		}
 	}
 }

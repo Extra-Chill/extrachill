@@ -91,9 +91,10 @@ function extrachill_content_blocks_image_vote_has_voted( $post_id, $instance_id,
  * @param int    $post_id Post ID containing the block
  * @param string $instance_id Unique block instance ID
  * @param string $email_address Voter's email address
+ * @param string $newsletter_context Newsletter integration context for the subscribe bridge.
  * @return array Response array with success status, message, and vote_count
  */
-function extrachill_content_blocks_process_image_vote( $post_id, $instance_id, $email_address ) {
+function extrachill_content_blocks_process_image_vote( $post_id, $instance_id, $email_address, $newsletter_context = 'image_voting' ) {
 	$post = get_post( $post_id );
 	if ( ! $post ) {
 		return array(
@@ -135,7 +136,7 @@ function extrachill_content_blocks_process_image_vote( $post_id, $instance_id, $
 	// Newsletter integration (non-blocking). Behavior unchanged — still
 	// delegates to the extrachill/subscribe ability via the network bridge.
 	if ( function_exists( 'extrachill_network_subscribe' ) ) {
-		$subscription_result = extrachill_network_subscribe( $email_address, 'image_voting' );
+		$subscription_result = extrachill_network_subscribe( $email_address, (string) $newsletter_context );
 		if ( ! $subscription_result['success'] ) {
 			error_log(
 				sprintf(

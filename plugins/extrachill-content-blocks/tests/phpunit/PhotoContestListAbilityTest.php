@@ -70,7 +70,6 @@ class PhotoContestListAbilityTest extends TestCase {
 					'size'     => 1024 * 1024,
 					'error'    => 0,
 				),
-				'ip'           => '',
 			)
 		);
 

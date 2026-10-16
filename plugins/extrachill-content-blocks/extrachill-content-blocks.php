@@ -57,6 +57,26 @@ function extrachill_content_blocks_register_ability_category() {
 add_action( 'wp_abilities_api_categories_init', 'extrachill_content_blocks_register_ability_category' );
 
 /**
+ * Load the photo-contest domain module.
+ *
+ * Entries (query, entry data, ranking), submission, voting, moderation,
+ * photo storage, and the dedicated photo_contest newsletter integration.
+ * Abilities call these functions directly; src/blocks/photo-contest/index.php
+ * keeps only block render config and the OG deep-link overrides.
+ */
+function extrachill_content_blocks_load_photo_contest_domain() {
+	$domain_dir = __DIR__ . '/inc/photo-contest';
+
+	require_once $domain_dir . '/entries.php';
+	require_once $domain_dir . '/storage.php';
+	require_once $domain_dir . '/submission.php';
+	require_once $domain_dir . '/voting.php';
+	require_once $domain_dir . '/moderation.php';
+	require_once $domain_dir . '/newsletter.php';
+}
+extrachill_content_blocks_load_photo_contest_domain();
+
+/**
  * Load ability registrations.
  *
  * Each file hooks into wp_abilities_api_init and calls wp_register_ability().
@@ -115,10 +135,10 @@ extrachill_content_blocks_load_business_logic();
  * Register WP-CLI commands.
  *
  * Provides the one-time image-votes backfill migration
- * (inc/cli/class-image-votes-backfill-command.php) and the photo-contest
- * staff commands for top-N finalists and entry moderation
- * (inc/cli/class-photo-contest-command.php). Loaded only when WP-CLI is
- * running.
+ * (inc/cli/class-image-votes-backfill-command.php). Loaded only when WP-CLI
+ * is running. The photo-contest operator CLI lives in extrachill-cli
+ * (wp extrachill content photo-contest) as a thin adapter over the
+ * photo-contest-top and photo-contest-hide abilities.
  */
 function extrachill_content_blocks_register_cli_commands() {
 	if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
@@ -126,16 +146,10 @@ function extrachill_content_blocks_register_cli_commands() {
 	}
 
 	require_once __DIR__ . '/inc/cli/class-image-votes-backfill-command.php';
-	require_once __DIR__ . '/inc/cli/class-photo-contest-command.php';
 
 	WP_CLI::add_command(
 		'extrachill-content-blocks backfill-image-votes',
 		'Extrachill_Content_Blocks_Image_Votes_Backfill_Command'
-	);
-
-	WP_CLI::add_command(
-		'extrachill-content-blocks photo-contest',
-		'Extrachill_Content_Blocks_Photo_Contest_Command'
 	);
 }
 extrachill_content_blocks_register_cli_commands();

@@ -2,11 +2,12 @@
 /**
  * Photo Contest business-logic tests.
  *
- * Exercises the canonical logic in src/blocks/photo-contest/index.php against
- * the in-memory WordPress stubs: email-gated submission with dedup/honeypot/
- * rate-limit/window enforcement, vote keying on the shared image_vote comment
- * backend, moderation (hide/restore), top-N ranking, and OG deep-link
- * overrides.
+ * Exercises the canonical domain logic in inc/photo-contest/ against the
+ * in-memory WordPress stubs: email-gated submission with dedup/honeypot/
+ * window enforcement, status-coded WP_Error failures, the photo storage
+ * short-circuit filter seam, the dedicated photo_contest newsletter context,
+ * vote keying on the shared image_vote comment backend, moderation
+ * (hide/restore), top-N ranking, and OG deep-link overrides.
  *
  * @package ExtraChillContentBlocks
  */
@@ -38,6 +39,20 @@ class PhotoContestLogicTest extends TestCase {
 			}
 		}
 		$this->tempFiles = array();
+	}
+
+	/**
+	 * Assert a status-coded domain WP_Error.
+	 *
+	 * @param mixed  $result Result under test.
+	 * @param string $code   Expected error code.
+	 * @param int    $status Expected HTTP status in data['status'].
+	 */
+	private function assertDomainError( $result, string $code, int $status ): void {
+		$this->assertTrue( is_wp_error( $result ), "Expected WP_Error({$code})." );
+		$this->assertSame( $code, $result->get_error_code() );
+		$data = (array) $result->get_error_data();
+		$this->assertSame( $status, $data['status'] ?? null, "Error {$code} must carry HTTP status {$status} in data." );
 	}
 
 	/**
@@ -86,9 +101,9 @@ class PhotoContestLogicTest extends TestCase {
 	 *
 	 * @param int   $post_id   Contest post ID.
 	 * @param array $overrides Arg overrides.
-	 * @return array Submission result.
+	 * @return array|WP_Error Submission result.
 	 */
-	private function submitEntry( int $post_id, array $overrides = array() ): array {
+	private function submitEntry( int $post_id, array $overrides = array() ) {
 		return extrachill_content_blocks_photo_contest_submit_entry(
 			array_merge(
 				array(
@@ -104,7 +119,6 @@ class PhotoContestLogicTest extends TestCase {
 						'size'     => 1024 * 1024,
 						'error'    => 0,
 					),
-					'ip'           => '',
 				),
 				$overrides
 			)
@@ -187,7 +201,7 @@ class PhotoContestLogicTest extends TestCase {
 
 		$result = $this->submitEntry( $post_id );
 
-		$this->assertTrue( $result['success'] );
+		$this->assertFalse( is_wp_error( $result ) );
 		$entry = $result['entry'];
 		$this->assertSame( 'Ghoul Friend', $entry['display_name'] );
 		$this->assertSame( 'ghoulfriend', $entry['instagram'], 'Leading @ is stripped.' );
@@ -210,30 +224,35 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertSame( $post_id, (int) $attachment->post_parent, 'Entries are attachments parented to the contest post.' );
 	}
 
-	public function test_submit_entry_rejects_honeypot() {
+	public function test_submit_entry_rejects_honeypot_with_403() {
 		$post_id = $this->createContestPost();
 
 		$result = $this->submitEntry( $post_id, array( 'honeypot' => 'http://spam.example' ) );
 
-		$this->assertFalse( $result['success'] );
-		$this->assertSame( 'invalid_submission', $result['code'] );
+		$this->assertDomainError( $result, 'invalid_submission', 403 );
 		$this->assertSame( array(), extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID ) );
 	}
 
-	public function test_submit_entry_rejects_invalid_email_and_missing_name() {
+	public function test_submit_entry_rejects_unknown_contest_with_404() {
+		$result = $this->submitEntry( 999999 );
+
+		$this->assertDomainError( $result, 'contest_not_found', 404 );
+	}
+
+	public function test_submit_entry_rejects_invalid_email_and_missing_name_with_400() {
 		$post_id = $this->createContestPost();
 
 		$bad_email = $this->submitEntry( $post_id, array( 'email' => 'not-an-email' ) );
-		$this->assertSame( 'invalid_email', $bad_email['code'] );
+		$this->assertDomainError( $bad_email, 'invalid_email', 400 );
 
 		$no_name = $this->submitEntry( $post_id, array( 'display_name' => '   ' ) );
-		$this->assertSame( 'missing_name', $no_name['code'] );
+		$this->assertDomainError( $no_name, 'missing_name', 400 );
 	}
 
 	/**
 	 * The stored handle is rendered verbatim into instagram.com profile links
-	 * on the frontend and into CLI output, so normalization must reduce any
-	 * input shape to Instagram's valid charset.
+	 * on the frontend, so normalization must reduce any input shape to
+	 * Instagram's valid charset.
 	 *
 	 * @dataProvider instagramHandleProvider
 	 *
@@ -270,7 +289,7 @@ class PhotoContestLogicTest extends TestCase {
 			array( 'instagram' => 'https://www.instagram.com/ghoul.friend_13/?utm_source=qr' )
 		);
 
-		$this->assertTrue( $result['success'] );
+		$this->assertFalse( is_wp_error( $result ) );
 		$this->assertSame(
 			'ghoul.friend_13',
 			$result['entry']['instagram'],
@@ -282,30 +301,29 @@ class PhotoContestLogicTest extends TestCase {
 		);
 	}
 
-	public function test_submit_entry_enforces_one_entry_per_email_case_insensitively() {
+	public function test_submit_entry_enforces_one_entry_per_email_with_409_and_existing_entry() {
 		$post_id = $this->createContestPost();
 
 		$first = $this->submitEntry( $post_id );
-		$this->assertTrue( $first['success'] );
+		$this->assertFalse( is_wp_error( $first ) );
 
 		$second = $this->submitEntry( $post_id, array( 'email' => 'GHOUL@example.com' ) );
 
-		$this->assertFalse( $second['success'] );
-		$this->assertSame( 'already_entered', $second['code'] );
+		$this->assertDomainError( $second, 'already_entered', 409 );
 		$this->assertSame(
 			$first['entry']['id'],
-			$second['entry']['id'],
+			$second->get_error_data()['entry']['id'],
 			'Duplicate submission returns the existing entry so the entrant can recover their share link.'
 		);
 		$this->assertCount( 1, extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID ) );
 	}
 
-	public function test_submit_entry_rejects_after_entries_close() {
+	public function test_submit_entry_rejects_after_entries_close_with_403() {
 		$close   = '2026-10-24 20:00';
 		$post_id = $this->createContestPost( array( 'entriesCloseAt' => $close ) );
 
 		$open = $this->submitEntry( $post_id, array( 'now' => strtotime( $close ) - 3600 ) );
-		$this->assertTrue( $open['success'] );
+		$this->assertFalse( is_wp_error( $open ) );
 
 		$closed = $this->submitEntry(
 			$post_id,
@@ -314,14 +332,14 @@ class PhotoContestLogicTest extends TestCase {
 				'now'   => strtotime( $close ) + 3600,
 			)
 		);
-		$this->assertSame( 'entries_closed', $closed['code'] );
+		$this->assertDomainError( $closed, 'entries_closed', 403 );
 	}
 
-	public function test_submit_entry_validates_the_photo() {
+	public function test_submit_entry_validates_the_photo_with_400s() {
 		$post_id = $this->createContestPost();
 
 		$missing = $this->submitEntry( $post_id, array( 'file' => null ) );
-		$this->assertSame( 'missing_photo', $missing['code'] );
+		$this->assertDomainError( $missing, 'missing_photo', 400 );
 
 		$oversized = $this->submitEntry(
 			$post_id,
@@ -334,7 +352,7 @@ class PhotoContestLogicTest extends TestCase {
 				),
 			)
 		);
-		$this->assertSame( 'photo_too_large', $oversized['code'] );
+		$this->assertDomainError( $oversized, 'photo_too_large', 400 );
 
 		$bad_type = $this->submitEntry(
 			$post_id,
@@ -347,7 +365,7 @@ class PhotoContestLogicTest extends TestCase {
 				),
 			)
 		);
-		$this->assertSame( 'invalid_photo_type', $bad_type['code'] );
+		$this->assertDomainError( $bad_type, 'invalid_photo_type', 400 );
 
 		$upload_error = $this->submitEntry(
 			$post_id,
@@ -360,53 +378,140 @@ class PhotoContestLogicTest extends TestCase {
 				),
 			)
 		);
-		$this->assertSame( 'upload_failed', $upload_error['code'] );
+		$this->assertDomainError( $upload_error, 'upload_failed', 400 );
 	}
 
-	public function test_rate_limit_ceiling_is_venue_wifi_safe() {
-		// A whole venue shares one IP behind its wifi or carrier NAT; email
-		// dedup is the real control. 5 was too low for contest night.
-		$this->assertSame( 20, EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT );
+	// ─── IP handling is gone ─────────────────────────────────────────────────
+
+	public function test_domain_has_no_ip_rate_limiting() {
+		$this->assertFalse(
+			function_exists( 'extrachill_content_blocks_photo_contest_rate_limit_ok' ),
+			'The transient submission limiter is removed; extrachill-api admission owns rate limiting.'
+		);
+		$this->assertFalse(
+			function_exists( 'extrachill_content_blocks_photo_contest_vote_rate_limit_ok' ),
+			'The transient vote limiter is removed; extrachill-api admission owns rate limiting.'
+		);
+		$this->assertFalse( defined( 'EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT' ) );
+		$this->assertFalse( defined( 'EXTRACHILL_PHOTO_CONTEST_RATE_WINDOW' ) );
+		$this->assertFalse( defined( 'EXTRACHILL_PHOTO_CONTEST_VOTE_RATE_LIMIT' ) );
 	}
 
-	public function test_submit_entry_rate_limits_per_ip() {
+	// ─── Storage filter seam ─────────────────────────────────────────────────
+
+	public function test_store_photo_filter_short_circuits_storage() {
 		$post_id = $this->createContestPost();
 
-		for ( $i = 0; $i < EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT; $i++ ) {
-			$result = $this->submitEntry(
-				$post_id,
-				array(
-					'email' => "guest{$i}@example.com",
-					'ip'    => '203.0.113.9',
-				)
-			);
-			$this->assertTrue( $result['success'], "Submission {$i} inside the window should pass." );
-		}
-
-		$blocked = $this->submitEntry(
-			$post_id,
+		// An earlier (lower-priority) filter wins over the default test store.
+		$fixture_id = wp_stubs_insert_post(
 			array(
-				'email' => 'onemore@example.com',
-				'ip'    => '203.0.113.9',
+				'post_type'   => 'attachment',
+				'post_status' => 'inherit',
+				'post_parent' => $post_id,
 			)
 		);
-		$this->assertSame( 'rate_limited', $blocked['code'] );
-
-		$other_ip = $this->submitEntry(
-			$post_id,
-			array(
-				'email' => 'other@example.com',
-				'ip'    => '198.51.100.7',
-			)
+		add_filter(
+			'extrachill_content_blocks_photo_contest_store_photo',
+			static fn( $stored ) => $stored ?? $fixture_id,
+			5
 		);
-		$this->assertTrue( $other_ip['success'], 'The limit is per IP.' );
+
+		$result = $this->submitEntry( $post_id );
+
+		$this->assertFalse( is_wp_error( $result ) );
+		$this->assertSame( $fixture_id, $result['entry']['id'], 'A non-null filter return short-circuits photo storage.' );
 	}
 
-	// ─── Voting ──────────────────────────────────────────────────────────────
+	public function test_store_photo_filter_can_short_circuit_with_a_wp_error() {
+		$post_id = $this->createContestPost();
 
-	// ─── Duplicate photos ───────────────────────────────────────────────────────────
+		$result = $this->submitEntry(
+			$post_id,
+			array(
+				'file' => array(
+					'name'                => 'costume.jpg',
+					'tmp_name'            => '/tmp/phpXXXXXX',
+					'size'                => 1024,
+					'error'               => 0,
+					'force_store_failure' => true,
+				),
+			)
+		);
 
-	public function test_submit_entry_rejects_exact_duplicate_photos() {
+		$this->assertDomainError( $result, 'upload_failed', 400 );
+		$this->assertSame(
+			array(),
+			extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID, true ),
+			'A storage failure stores no entry.'
+		);
+	}
+
+	public function test_store_photo_is_not_pluggable() {
+		// The old test seam was a function_exists-guarded pluggable function;
+		// the filter replaced it. The real function must exist unguarded.
+		$this->assertTrue( function_exists( 'extrachill_content_blocks_photo_contest_store_photo' ) );
+	}
+
+	// ─── Newsletter context ──────────────────────────────────────────────────
+
+	public function test_submit_entry_subscribes_with_the_photo_contest_context() {
+		$post_id = $this->createContestPost();
+
+		$result = $this->submitEntry( $post_id );
+
+		$this->assertFalse( is_wp_error( $result ) );
+		$this->assertSame(
+			array(
+				'email'   => 'ghoul@example.com',
+				'context' => 'photo_contest',
+			),
+			end( $GLOBALS['wp_test_subscriptions'] ),
+			'Entry subscribe uses the dedicated photo_contest integration, not image_voting.'
+		);
+	}
+
+	public function test_vote_subscribes_with_the_photo_contest_context() {
+		$post_id  = $this->createContestPost();
+		$entry_id = $this->submitEntry( $post_id )['entry']['id'];
+
+		$result = extrachill_content_blocks_photo_contest_process_vote(
+			$post_id,
+			self::CONTEST_ID,
+			$entry_id,
+			'voter@example.com'
+		);
+
+		$this->assertFalse( is_wp_error( $result ) );
+		$this->assertSame(
+			array(
+				'email'   => 'voter@example.com',
+				'context' => 'photo_contest',
+			),
+			end( $GLOBALS['wp_test_subscriptions'] ),
+			'Vote subscribe uses the dedicated photo_contest integration.'
+		);
+	}
+
+	public function test_plain_image_voting_block_keeps_the_image_voting_context() {
+		$post_id = $this->createContestPost();
+
+		$result = extrachill_content_blocks_process_image_vote( $post_id, 'block-123-456', 'voter@example.com' );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 'image_voting', end( $GLOBALS['wp_test_subscriptions'] )['context'] );
+	}
+
+	public function test_photo_contest_newsletter_integration_is_registered() {
+		$integrations = extrachill_content_blocks_photo_contest_register_newsletter_integration( array() );
+
+		$this->assertArrayHasKey( 'photo_contest', $integrations );
+		$this->assertSame( 'photo_contest_list_id', $integrations['photo_contest']['list_id_key'] );
+		$this->assertSame( 'extrachill-content-blocks', $integrations['photo_contest']['plugin'] );
+	}
+
+	// ─── Duplicate photos ────────────────────────────────────────────────────
+
+	public function test_submit_entry_rejects_exact_duplicate_photos_with_409() {
 		$post_id = $this->createContestPost();
 		$photo   = $this->createTempPhoto( 'identical-costume-bytes' );
 
@@ -421,7 +526,7 @@ class PhotoContestLogicTest extends TestCase {
 				),
 			)
 		);
-		$this->assertTrue( $first['success'] );
+		$this->assertFalse( is_wp_error( $first ) );
 		$this->assertSame(
 			md5_file( $photo ),
 			get_post_meta( $first['entry']['id'], EXTRACHILL_PHOTO_CONTEST_META_HASH, true ),
@@ -443,8 +548,7 @@ class PhotoContestLogicTest extends TestCase {
 			)
 		);
 
-		$this->assertFalse( $duplicate['success'] );
-		$this->assertSame( 'duplicate_photo', $duplicate['code'] );
+		$this->assertDomainError( $duplicate, 'duplicate_photo', 409 );
 		$this->assertCount(
 			1,
 			extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID, true ),
@@ -465,7 +569,7 @@ class PhotoContestLogicTest extends TestCase {
 				),
 			)
 		);
-		$this->assertTrue( $result['success'], 'A different photo from a new email is accepted.' );
+		$this->assertFalse( is_wp_error( $result ), 'A different photo from a new email is accepted.' );
 	}
 
 	public function test_duplicate_photo_check_includes_hidden_entries() {
@@ -500,7 +604,7 @@ class PhotoContestLogicTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( 'duplicate_photo', $retry['code'], 'Hiding a photo must not let the identical file back in.' );
+		$this->assertDomainError( $retry, 'duplicate_photo', 409 );
 	}
 
 	public function test_unreadable_upload_skips_duplicate_check_instead_of_blocking() {
@@ -508,7 +612,7 @@ class PhotoContestLogicTest extends TestCase {
 
 		// The default fixture tmp_name does not exist; both entries submit.
 		$first = $this->submitEntry( $post_id );
-		$this->assertTrue( $first['success'] );
+		$this->assertFalse( is_wp_error( $first ) );
 		$this->assertSame(
 			'',
 			get_post_meta( $first['entry']['id'], EXTRACHILL_PHOTO_CONTEST_META_HASH, true ),
@@ -516,8 +620,10 @@ class PhotoContestLogicTest extends TestCase {
 		);
 
 		$second = $this->submitEntry( $post_id, array( 'email' => 'second@example.com' ) );
-		$this->assertTrue( $second['success'], 'Unhashable uploads never trip the duplicate rejection.' );
+		$this->assertFalse( is_wp_error( $second ), 'Unhashable uploads never trip the duplicate rejection.' );
 	}
+
+	// ─── Voting ──────────────────────────────────────────────────────────────
 
 	public function test_vote_uses_entry_keyed_image_vote_backend_with_dedup() {
 		$post_id  = $this->createContestPost();
@@ -530,7 +636,7 @@ class PhotoContestLogicTest extends TestCase {
 			'voter@example.com'
 		);
 
-		$this->assertTrue( $first['success'] );
+		$this->assertFalse( is_wp_error( $first ) );
 		$this->assertSame( 1, $first['vote_count'] );
 
 		// The vote landed in the shared image_vote comment backend, keyed by
@@ -544,20 +650,19 @@ class PhotoContestLogicTest extends TestCase {
 			$entry_id,
 			'voter@example.com'
 		);
-		$this->assertFalse( $repeat['success'] );
-		$this->assertSame( 'already_voted', $repeat['code'] );
+		$this->assertDomainError( $repeat, 'already_voted', 409 );
 	}
 
 	public function test_same_email_can_vote_on_different_entries_but_not_twice_on_one() {
-		$post_id  = $this->createContestPost();
-		$entry_a  = $this->submitEntry( $post_id, array( 'email' => 'a@example.com' ) )['entry']['id'];
-		$entry_b  = $this->submitEntry( $post_id, array( 'email' => 'b@example.com' ) )['entry']['id'];
+		$post_id = $this->createContestPost();
+		$entry_a = $this->submitEntry( $post_id, array( 'email' => 'a@example.com' ) )['entry']['id'];
+		$entry_b = $this->submitEntry( $post_id, array( 'email' => 'b@example.com' ) )['entry']['id'];
 
-		$this->assertTrue(
-			extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_a, 'voter@example.com' )['success']
+		$this->assertFalse(
+			is_wp_error( extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_a, 'voter@example.com' ) )
 		);
-		$this->assertTrue(
-			extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_b, 'voter@example.com' )['success'],
+		$this->assertFalse(
+			is_wp_error( extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_b, 'voter@example.com' ) ),
 			'A voter may vote once per entry, across every entry.'
 		);
 	}
@@ -571,12 +676,12 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertTrue( $plain['success'] );
 
 		$contest = extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_id, 'voter@example.com' );
-		$this->assertTrue( $contest['success'], 'Same email, same post, different instance namespaces.' );
+		$this->assertFalse( is_wp_error( $contest ), 'Same email, same post, different instance namespaces.' );
 
 		$this->assertSame( 1, extrachill_content_blocks_image_vote_count( $post_id, 'block-123-456' ) );
 	}
 
-	public function test_vote_rejected_when_voting_closed() {
+	public function test_vote_rejected_when_voting_closed_with_403() {
 		$close    = '2026-10-24 22:00';
 		$post_id  = $this->createContestPost( array( 'votingClosesAt' => $close ) );
 		$entry_id = $this->submitEntry( $post_id )['entry']['id'];
@@ -589,21 +694,26 @@ class PhotoContestLogicTest extends TestCase {
 			strtotime( $close ) + 60
 		);
 
-		$this->assertFalse( $result['success'] );
-		$this->assertSame( 'voting_closed', $result['code'] );
+		$this->assertDomainError( $result, 'voting_closed', 403 );
 	}
 
-	public function test_vote_rejected_for_hidden_or_foreign_entries() {
+	public function test_vote_rejected_for_unknown_contest_with_404() {
+		$result = extrachill_content_blocks_photo_contest_process_vote( 999999, self::CONTEST_ID, 1, 'voter@example.com' );
+
+		$this->assertDomainError( $result, 'contest_not_found', 404 );
+	}
+
+	public function test_vote_rejected_for_hidden_or_foreign_entries_with_404() {
 		$post_id  = $this->createContestPost();
 		$entry_id = $this->submitEntry( $post_id )['entry']['id'];
 
 		extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, true );
 
 		$hidden = extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_id, 'voter@example.com' );
-		$this->assertSame( 'entry_not_found', $hidden['code'] );
+		$this->assertDomainError( $hidden, 'entry_not_found', 404 );
 
 		$unknown = extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, 424242, 'voter@example.com' );
-		$this->assertSame( 'entry_not_found', $unknown['code'] );
+		$this->assertDomainError( $unknown, 'entry_not_found', 404 );
 	}
 
 	// ─── Moderation ──────────────────────────────────────────────────────────
@@ -615,7 +725,7 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertCount( 1, extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID ) );
 
 		$hide = extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, true );
-		$this->assertTrue( $hide['success'] );
+		$this->assertFalse( is_wp_error( $hide ) );
 		$this->assertCount( 0, extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID ) );
 		$this->assertCount(
 			1,
@@ -624,11 +734,11 @@ class PhotoContestLogicTest extends TestCase {
 		);
 
 		$restore = extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, false );
-		$this->assertTrue( $restore['success'] );
+		$this->assertFalse( is_wp_error( $restore ) );
 		$this->assertCount( 1, extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID ) );
 	}
 
-	public function test_hide_rejects_non_entry_attachments() {
+	public function test_hide_rejects_non_entry_attachments_with_404() {
 		$attachment_id = wp_stubs_insert_post(
 			array(
 				'post_type'   => 'attachment',
@@ -637,7 +747,7 @@ class PhotoContestLogicTest extends TestCase {
 		);
 
 		$result = extrachill_content_blocks_photo_contest_set_entry_hidden( $attachment_id, true );
-		$this->assertSame( 'entry_not_found', $result['code'] );
+		$this->assertDomainError( $result, 'entry_not_found', 404 );
 	}
 
 	public function test_hidden_entrant_cannot_resubmit_with_same_email() {
@@ -647,7 +757,7 @@ class PhotoContestLogicTest extends TestCase {
 		extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, true );
 
 		$retry = $this->submitEntry( $post_id );
-		$this->assertSame( 'already_entered', $retry['code'] );
+		$this->assertDomainError( $retry, 'already_entered', 409 );
 	}
 
 	// ─── Entries list / top-N ────────────────────────────────────────────────
@@ -703,9 +813,7 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertSame( array( $entry_a, $entry_b ), array_column( $with_hidden, 'id' ) );
 	}
 
-	// ─── OG deep links ───────────────────────────────────────────────────────
-
-	// ─── Render config ───────────────────────────────────────────────────────────────
+	// ─── Render config ───────────────────────────────────────────────────────
 
 	public function test_render_config_for_anonymous_visitors_has_no_moderator_data() {
 		$post_id = $this->createContestPost();
@@ -748,6 +856,8 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertArrayNotHasKey( 'canModerate', $subscriber );
 		$this->assertArrayNotHasKey( 'restNonce', $subscriber );
 	}
+
+	// ─── OG deep links ───────────────────────────────────────────────────────
 
 	public function test_og_overrides_swap_image_title_and_url_for_entry_deep_links() {
 		$post_id  = $this->createContestPost();

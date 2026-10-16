@@ -5,11 +5,11 @@ declare(strict_types=1);
  *
  * Hides (or restores) a photo-contest entry in one action — admin moderation
  * for inappropriate submissions on contest night. Canonical logic lives in
- * src/blocks/photo-contest/index.php via
+ * inc/photo-contest/moderation.php via
  * extrachill_content_blocks_photo_contest_set_entry_hidden().
  *
  * Reachable by editors/admins via core /wp-abilities/v1 (show_in_rest) and by
- * staff via WP-CLI (wp extrachill-content-blocks photo-contest hide).
+ * staff via extrachill-cli (wp extrachill content photo-contest hide).
  *
  * @package ExtraChillContentBlocks
  * @since   1.4.0
@@ -75,15 +75,6 @@ function extrachill_content_blocks_register_photo_contest_hide_ability(): void {
 }
 
 /**
- * Moderation permission: staff who can edit others' posts.
- *
- * @return bool
- */
-function extrachill_content_blocks_photo_contest_can_moderate(): bool {
-	return current_user_can( 'edit_others_posts' );
-}
-
-/**
  * Execute callback for extrachill/photo-contest-hide.
  *
  * @param array $input Ability input matching input_schema.
@@ -94,29 +85,13 @@ function extrachill_content_blocks_photo_contest_hide_ability_execute( array $in
 	$hidden   = ! isset( $input['hidden'] ) || (bool) $input['hidden'];
 
 	if ( 0 === $entry_id ) {
-		return new \WP_Error(
+		return extrachill_content_blocks_photo_contest_error(
 			'invalid_entry_id',
-			__( 'A valid entry ID is required.', 'extrachill-content-blocks' )
+			__( 'A valid entry ID is required.', 'extrachill-content-blocks' ),
+			400
 		);
 	}
 
-	if ( ! function_exists( 'extrachill_content_blocks_photo_contest_set_entry_hidden' ) ) {
-		return new \WP_Error(
-			'function_missing',
-			__( 'Photo contest function not available.', 'extrachill-content-blocks' )
-		);
-	}
-
-	$result = extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, $hidden );
-
-	if ( ! empty( $result['success'] ) ) {
-		return array(
-			'message' => (string) $result['message'],
-		);
-	}
-
-	return new \WP_Error(
-		$result['code'] ?? 'hide_failed',
-		(string) $result['message']
-	);
+	// Domain errors are status-coded WP_Errors and pass through unchanged.
+	return extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, $hidden );
 }

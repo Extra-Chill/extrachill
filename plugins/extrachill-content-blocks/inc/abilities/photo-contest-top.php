@@ -5,11 +5,11 @@ declare(strict_types=1);
  *
  * Admin-facing ranked top-N entries by vote count so staff can pull finalists
  * (e.g. the top 10 who go on stage). Canonical logic lives in
- * src/blocks/photo-contest/index.php via
+ * inc/photo-contest/entries.php via
  * extrachill_content_blocks_photo_contest_top_entries().
  *
  * Reachable by editors/admins via core /wp-abilities/v1 (show_in_rest) and by
- * staff via WP-CLI (wp extrachill-content-blocks photo-contest top). The
+ * staff via extrachill-cli (wp extrachill content photo-contest top). The
  * public "Finalists" view does not use this ability — the frontend ranks the
  * public entries list client-side once voting closes.
  *
@@ -92,23 +92,18 @@ function extrachill_content_blocks_photo_contest_top_ability_execute( array $inp
 	$include_hidden = ! empty( $input['include_hidden'] );
 
 	if ( 0 === $post_id ) {
-		return new \WP_Error(
+		return extrachill_content_blocks_photo_contest_error(
 			'invalid_post_id',
-			__( 'A valid post ID is required.', 'extrachill-content-blocks' )
+			__( 'A valid post ID is required.', 'extrachill-content-blocks' ),
+			400
 		);
 	}
 
 	if ( '' === $contest_id ) {
-		return new \WP_Error(
+		return extrachill_content_blocks_photo_contest_error(
 			'invalid_contest_id',
-			__( 'A contest ID is required.', 'extrachill-content-blocks' )
-		);
-	}
-
-	if ( ! function_exists( 'extrachill_content_blocks_photo_contest_top_entries' ) ) {
-		return new \WP_Error(
-			'function_missing',
-			__( 'Photo contest function not available.', 'extrachill-content-blocks' )
+			__( 'A contest ID is required.', 'extrachill-content-blocks' ),
+			400
 		);
 	}
 

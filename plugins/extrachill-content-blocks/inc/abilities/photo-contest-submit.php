@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Ability: extrachill/photo-contest-submit
  *
  * Processes a public photo-contest entry submission. Canonical logic lives in
- * src/blocks/photo-contest/index.php via
+ * inc/photo-contest/submission.php via
  * extrachill_content_blocks_photo_contest_submit_entry().
  *
  * Deliberately NOT exposed via the generic Abilities REST endpoint
@@ -12,8 +12,9 @@ declare(strict_types=1);
  * thin public route in extrachill-api
  * (POST /extrachill/v1/content-blocks/photo-contest/submit) is the canonical
  * transport. That route passes its $_FILES['photo'] entry straight through as
- * the `photo` input. This mirrors the extrachill/submit-event anonymous-upload
- * precedent in extrachill-events.
+ * the `photo` input and owns per-client admission (public-write rate
+ * limiting); the domain does no IP handling. This mirrors the
+ * extrachill/submit-event anonymous-upload precedent in extrachill-events.
  *
  * @package ExtraChillContentBlocks
  * @since   1.4.0
@@ -69,10 +70,6 @@ function extrachill_content_blocks_register_photo_contest_submit_ability(): void
 						'type'        => 'object',
 						'description' => __( 'Uploaded photo file data from $_FILES (passed through by the REST route).', 'extrachill-content-blocks' ),
 					),
-					'ip'           => array(
-						'type'        => 'string',
-						'description' => __( 'Client IP for rate limiting (route-supplied).', 'extrachill-content-blocks' ),
-					),
 				),
 				'required'   => array( 'post_id', 'contest_id', 'email', 'display_name', 'photo' ),
 			),
@@ -111,14 +108,11 @@ function extrachill_content_blocks_register_photo_contest_submit_ability(): void
  * @return array|WP_Error Submission result or error.
  */
 function extrachill_content_blocks_photo_contest_submit_ability_execute( array $input ): array|\WP_Error {
-	if ( ! function_exists( 'extrachill_content_blocks_photo_contest_submit_entry' ) ) {
-		return new \WP_Error(
-			'function_missing',
-			__( 'Photo contest function not available.', 'extrachill-content-blocks' )
-		);
-	}
-
-	$result = extrachill_content_blocks_photo_contest_submit_entry(
+	// Domain errors are status-coded WP_Errors (400/403/404/409 in
+	// data['status']) and pass through unchanged; already_entered carries the
+	// existing entry in its data so the route can hand the entrant their
+	// share link back.
+	return extrachill_content_blocks_photo_contest_submit_entry(
 		array(
 			'post_id'      => absint( $input['post_id'] ?? 0 ),
 			'contest_id'   => sanitize_text_field( (string) ( $input['contest_id'] ?? '' ) ),
@@ -127,27 +121,6 @@ function extrachill_content_blocks_photo_contest_submit_ability_execute( array $
 			'instagram'    => sanitize_text_field( (string) ( $input['instagram'] ?? '' ) ),
 			'honeypot'     => (string) ( $input['website'] ?? '' ),
 			'file'         => is_array( $input['photo'] ?? null ) ? $input['photo'] : null,
-			'ip'           => sanitize_text_field( (string) ( $input['ip'] ?? '' ) ),
 		)
 	);
-
-	if ( ! empty( $result['success'] ) ) {
-		return array(
-			'message' => (string) $result['message'],
-			'entry'   => $result['entry'],
-		);
-	}
-
-	$error = new \WP_Error(
-		$result['code'] ?? 'submission_failed',
-		(string) $result['message']
-	);
-
-	// already_entered carries the existing entry so the route can hand the
-	// entrant their share link back.
-	if ( isset( $result['entry'] ) ) {
-		$error->add_data( array( 'entry' => $result['entry'] ) );
-	}
-
-	return $error;
 }
