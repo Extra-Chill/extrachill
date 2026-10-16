@@ -2,9 +2,10 @@
 /**
  * Event poster template tests (#945).
  *
- * Covers the pure layout and copy logic of EventPosterTemplate: content
- * never overlaps the banner on any supported preset, the QR payload is
- * the event URL, and event data is normalized into poster copy.
+ * Covers the copy logic of EventPosterTemplate: the QR payload is the
+ * event URL, event data is normalized into poster copy, and that copy is
+ * mapped onto Data Machine's core `poster` fields for each orientation.
+ * Layout and rendering are tested in Data Machine (#3614).
  *
  * @package ExtraChillEvents\Tests
  */
@@ -20,63 +21,6 @@ require_once dirname( __DIR__, 3 ) . '/inc/Templates/EventPosterTemplate.php';
 final class EventPosterTemplateTest extends BookingTestCase {
 
 	private const PERMALINK = 'https://events.extrachill.com/events/wordpress-meetup-charleston-october-2026';
-
-	/**
-	 * Supported presets as width => height, scaled the way the template
-	 * scales (all metrics are design pixels at 1080 wide).
-	 *
-	 * Content heights are measured from the real 2026-10-21 meetup event
-	 * (four-line title, tagline + subline, date, venue, address) at 1080
-	 * wide: 1076px at the 84pt title, 792px after the template shrinks the
-	 * title to 60pt, which it does on the shorter feed canvas.
-	 *
-	 * @return array<string, array{int, int, int}>
-	 */
-	public static function presets(): array {
-		return array(
-			'instagram_feed_portrait' => array( 1080, 1350, 792 ),
-			'instagram_story'         => array( 1080, 1920, 1076 ),
-			'print_tabloid'           => array( 1650, 2550, 1076 ),
-		);
-	}
-
-	/**
-	 * Content stays above the banner and the footer inside the margin.
-	 *
-	 * @dataProvider presets
-	 */
-	public function test_content_clears_the_banner_on_every_preset( int $width, int $height, int $content ): void {
-		$u      = $width / 1080;
-		$margin = (int) round( 80 * $u );
-		$plan   = EventPosterTemplate::plan_layout(
-			$height,
-			$margin,
-			(int) round( $content * $u ),
-			(int) round( 120 * $u ),
-			(int) round( 210 * $u ),
-			(int) round( 40 * $u )
-		);
-
-		$this->assertTrue( $plan['fits'] );
-		$this->assertLessThanOrEqual( $plan['banner_top'] - (int) round( 40 * $u ), $plan['content_bottom'] );
-		$this->assertGreaterThanOrEqual( $margin, $plan['content_top'] );
-		$this->assertSame( $height - $margin, $plan['footer_bottom'] );
-	}
-
-	public function test_spare_space_is_distributed_on_tall_canvases(): void {
-		$feed  = EventPosterTemplate::plan_layout( 1350, 80, 792, 120, 210, 40 );
-		$story = EventPosterTemplate::plan_layout( 1920, 80, 792, 120, 210, 40 );
-
-		$this->assertGreaterThan( $feed['content_top'], $story['content_top'], 'Tall canvases push content down instead of stranding it at the top' );
-		$this->assertGreaterThan( $story['content_bottom'], $story['banner_top'] - 40, 'Some slack still remains below the content' );
-	}
-
-	public function test_full_size_title_does_not_fit_the_feed_so_the_template_must_shrink_it(): void {
-		$plan = EventPosterTemplate::plan_layout( 1350, 80, 1076, 120, 210, 40 );
-
-		$this->assertFalse( $plan['fits'] );
-		$this->assertSame( 80, $plan['content_top'] );
-	}
 
 	public function test_qr_payload_is_the_event_url(): void {
 		$fields = EventPosterTemplate::event_fields( array(), 'Show', self::PERMALINK, '' );
@@ -120,42 +64,85 @@ final class EventPosterTemplateTest extends BookingTestCase {
 		$this->assertSame( '', EventPosterTemplate::date_line( array() ) );
 	}
 
-	public function test_print_preset_is_registered_at_tabloid_size(): void {
-		$presets = EventPosterTemplate::register_print_preset( array() );
-
-		$this->assertSame( 1650, $presets[ EventPosterTemplate::PRINT_PRESET ]['width'] );
-		$this->assertSame( 2550, $presets[ EventPosterTemplate::PRINT_PRESET ]['height'] );
-	}
-
-	public function test_landscape_preset_is_registered_at_16_9(): void {
-		$presets = EventPosterTemplate::register_print_preset( array() );
-
-		$this->assertSame( 1920, $presets[ EventPosterTemplate::LANDSCAPE_PRESET ]['width'] );
-		$this->assertSame( 1080, $presets[ EventPosterTemplate::LANDSCAPE_PRESET ]['height'] );
+	public function test_default_rsvp_text_uses_event_host(): void {
+		$this->assertSame( 'RSVP at events.extrachill.com', EventPosterTemplate::default_rsvp_text( self::PERMALINK ) );
 	}
 
 	/**
-	 * Landscape: the left text column never reaches the right column, and
-	 * content measured from the real 2026-10-21 meetup clears the banner.
+	 * Normalized meetup copy, as event_fields() plus address returns it.
+	 *
+	 * @return array<string, string>
 	 */
-	public function test_landscape_columns_do_not_overlap_and_content_clears_banner(): void {
-		$width   = 1920;
-		$margin  = 100;
-		$right_w = max( (int) round( 1088 * 200 / 923 ), 260 );
-		$left_w  = EventPosterTemplate::landscape_left_width( $width, $margin, $right_w, 80 );
-
-		$this->assertLessThanOrEqual( $width - $margin - $right_w - 80, $margin + $left_w );
-
-		$plan = EventPosterTemplate::plan_layout( 1080, $margin, 597, 110, 60, 40 );
-		$this->assertTrue( $plan['fits'] );
-		$this->assertLessThanOrEqual( $plan['banner_top'] - 40, $plan['content_bottom'] );
+	private static function meetup_fields(): array {
+		return array(
+			'title'     => 'BUILDING YOUR ONLINE PRESENCE IN THE AI ERA',
+			'date_line' => "WED, OCT 21 / 6:30\u{2013}9PM",
+			'venue'     => 'LO-FI BREWING',
+			'banner'    => 'FREE. YOUR FIRST BEER IS ON EXTRA CHILL.',
+			'qr_url'    => self::PERMALINK,
+			'address'   => '2038 Meeting Street Rd, Charleston',
+		);
 	}
 
-	public function test_landscape_left_column_uses_full_width_without_a_right_column(): void {
-		$this->assertSame( 1720, EventPosterTemplate::landscape_left_width( 1920, 100, 0, 80 ) );
+	public function test_portrait_poster_fields_carry_the_full_event_block(): void {
+		$poster = EventPosterTemplate::poster_fields(
+			self::meetup_fields(),
+			array(
+				'tagline'     => 'A free night for creatives.',
+				'subline'     => 'No tech experience needed.',
+				'footer_note' => 'An official WordPress meetup.',
+			),
+			false
+		);
+
+		$this->assertSame( 'BUILDING YOUR ONLINE PRESENCE IN THE AI ERA', $poster['title'] );
+		$this->assertSame( array( "WED, OCT 21 / 6:30\u{2013}9PM" ), $poster['detail_lines'] );
+		$this->assertSame( 'LO-FI BREWING', $poster['accent_line'] );
+		$this->assertSame( '2038 Meeting Street Rd, Charleston', $poster['detail_note'] );
+		$this->assertSame( 'No tech experience needed.', $poster['subline'] );
+		$this->assertSame( 'FREE. YOUR FIRST BEER IS ON EXTRA CHILL.', $poster['banner_text'] );
+		$this->assertSame( self::PERMALINK, $poster['qr_url'] );
+		$this->assertSame( '', $poster['qr_label'] );
+		$this->assertSame( 'RSVP at events.extrachill.com', $poster['cta_text'] );
+		$this->assertSame( 'An official WordPress meetup.', $poster['footer_note'] );
 	}
 
-	public function test_default_rsvp_text_uses_event_host(): void {
-		$this->assertSame( 'RSVP at events.extrachill.com', EventPosterTemplate::default_rsvp_text( self::PERMALINK ) );
+	public function test_landscape_poster_fields_label_the_qr_and_trim_the_left_column(): void {
+		$poster = EventPosterTemplate::poster_fields(
+			self::meetup_fields(),
+			array(
+				'tagline'   => 'A free night for creatives.',
+				'subline'   => 'No tech experience needed.',
+				'rsvp_text' => 'RSVP online',
+			),
+			true
+		);
+
+		$this->assertSame( 'A free night for creatives.', $poster['tagline'] );
+		$this->assertSame( '', $poster['subline'] );
+		$this->assertSame( '', $poster['detail_note'] );
+		$this->assertSame( '', $poster['cta_text'] );
+		$this->assertSame( EventPosterTemplate::LANDSCAPE_QR_LABEL, $poster['qr_label'] );
+		$this->assertSame( 'LO-FI BREWING', $poster['accent_line'] );
+	}
+
+	public function test_poster_fields_honor_overrides_and_missing_dates(): void {
+		$fields              = self::meetup_fields();
+		$fields['date_line'] = '';
+
+		$poster = EventPosterTemplate::poster_fields(
+			$fields,
+			array(
+				'kicker'        => 'EXTRA CHILL x LO-FI',
+				'rsvp_text'     => 'RSVP online',
+				'cobrand_logos' => array( '/tmp/logo.png' ),
+			),
+			false
+		);
+
+		$this->assertSame( array(), $poster['detail_lines'] );
+		$this->assertSame( 'EXTRA CHILL x LO-FI', $poster['kicker'] );
+		$this->assertSame( 'RSVP online', $poster['cta_text'] );
+		$this->assertSame( array( '/tmp/logo.png' ), $poster['cobrand_logos'] );
 	}
 }
