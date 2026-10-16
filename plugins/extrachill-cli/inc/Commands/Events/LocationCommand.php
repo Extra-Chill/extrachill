@@ -652,14 +652,6 @@ class LocationCommand {
 	 * [--cover]
 	 * : Prepend a cover slide with the title, date range, and show/venue counts.
 	 *
-	 * [--picks=<picks>]
-	 * : Human-chosen highlights for a text-only picks slide, in display order
-	 * (max 5). Comma-separated event post IDs, or a JSON array of
-	 * {"post_id":123,"note":"..."} objects. Every pick must be in the roundup.
-	 *
-	 * [--picks-title=<picks-title>]
-	 * : Picks slide heading. Defaults to "Our Picks".
-	 *
 	 * [--closing]
 	 * : Append a closing CTA slide instead of repeating the footer on every slide.
 	 *
@@ -681,10 +673,10 @@ class LocationCommand {
 	 *     wp extrachill events roundup --scope=this-weekend --location=charleston \
 	 *       --event-type=concert --venue-tier=listening_room,club,concert_hall,amphitheater
 	 *
-	 *     # Weekend carousel with cover, picks, and closing slide
+	 *     # Weekend carousel with cover and closing slide
 	 *     wp extrachill events roundup --week-start-day=friday --week-end-day=sunday \
 	 *       --location=charleston --title="This Weekend in Charleston" \
-	 *       --cover --closing --picks='[{"post_id":123,"note":"Worth the trip."},456]'
+	 *       --cover --closing
 	 *
 	 *     # Tonight in Charleston
 	 *     wp extrachill events roundup --location=charleston --title="Tonight in Charleston"
@@ -743,7 +735,6 @@ class LocationCommand {
 				'scope'          => 'scope',
 				'location'       => 'location',
 				'title'          => 'title',
-				'picks-title'    => 'picks_title',
 				'closing-text'   => 'closing_text',
 			) as $cli_key => $ability_key
 		) {
@@ -780,10 +771,6 @@ class LocationCommand {
 		}
 		if ( isset( $assoc_args['venue-tier'] ) && '' !== trim( (string) $assoc_args['venue-tier'] ) ) {
 			$input['venue_tier'] = $this->split_csv( (string) $assoc_args['venue-tier'] );
-		}
-
-		if ( isset( $assoc_args['picks'] ) && '' !== trim( (string) $assoc_args['picks'] ) ) {
-			$input['picks'] = $this->parse_roundup_picks( (string) $assoc_args['picks'] );
 		}
 
 		WP_CLI::log( 'Building event roundup...' );
@@ -873,48 +860,6 @@ class LocationCommand {
 	 */
 	private function split_csv( string $value ): array {
 		return array_values( array_filter( array_map( 'trim', explode( ',', $value ) ), static fn( string $part ): bool => '' !== $part ) );
-	}
-
-	/**
-	 * Parse --picks: comma-separated post IDs or a JSON array of IDs and
-	 * {post_id, note} objects.
-	 *
-	 * @param string $raw Raw flag value.
-	 * @return array
-	 */
-	private function parse_roundup_picks( string $raw ): array {
-		$raw = trim( $raw );
-
-		if ( str_starts_with( $raw, '[' ) ) {
-			$decoded = json_decode( $raw, true );
-			if ( ! is_array( $decoded ) ) {
-				WP_CLI::error( '--picks is not valid JSON.' );
-			}
-			$picks = array();
-			foreach ( $decoded as $item ) {
-				if ( is_array( $item ) && absint( $item['post_id'] ?? 0 ) > 0 ) {
-					$picks[] = array(
-						'post_id' => absint( $item['post_id'] ),
-						'note'    => (string) ( $item['note'] ?? '' ),
-					);
-				} elseif ( is_numeric( $item ) && absint( $item ) > 0 ) {
-					$picks[] = absint( $item );
-				} else {
-					WP_CLI::error( '--picks items must be post IDs or {"post_id":N,"note":"..."} objects.' );
-				}
-			}
-			return $picks;
-		}
-
-		$picks = array();
-		foreach ( explode( ',', $raw ) as $part ) {
-			$part = trim( $part );
-			if ( ! ctype_digit( $part ) || 0 === absint( $part ) ) {
-				WP_CLI::error( sprintf( '--picks has an invalid post ID: %s', $part ) );
-			}
-			$picks[] = absint( $part );
-		}
-		return $picks;
 	}
 
 	/**
