@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.32.0] - 2026-10-16
+
+### Added
+- supply QR images to the Data Machine poster template
+
 ## [2.31.0] - 2026-10-13
 
 ### Added
