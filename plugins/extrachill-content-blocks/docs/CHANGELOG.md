@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-10-16
+
+### Added
+- day-of moderator controls, duplicate-photo guard, venue-safe entry limit
+
 ## [1.4.0] - 2026-10-16
 
 ### Added
