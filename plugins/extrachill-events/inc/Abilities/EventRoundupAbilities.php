@@ -167,21 +167,6 @@ class EventRoundupAbilities {
 							'type'        => 'boolean',
 							'description' => __( 'Prepend a cover slide with the title, date range, and show/venue counts.', 'extrachill-events' ),
 						),
-						'picks'           => array(
-							'type'        => 'array',
-							'description' => __( 'Human-chosen highlights for a text-only picks slide, in display order (max 5). Items are event post IDs or { post_id, note }. Every pick must be in the roundup.', 'extrachill-events' ),
-							'items'       => array(
-								'type'       => array( 'integer', 'object' ),
-								'properties' => array(
-									'post_id' => array( 'type' => 'integer' ),
-									'note'    => array( 'type' => 'string' ),
-								),
-							),
-						),
-						'picks_title'     => array(
-							'type'        => 'string',
-							'description' => __( 'Picks slide heading. Defaults to "Our Picks".', 'extrachill-events' ),
-						),
 						'closing'         => array(
 							'type'        => 'boolean',
 							'description' => __( 'Append a closing CTA slide and drop the per-slide footer.', 'extrachill-events' ),
@@ -267,21 +252,6 @@ class EventRoundupAbilities {
 						'cover'        => array(
 							'type'        => 'boolean',
 							'description' => __( 'Prepend a cover slide with the title, date range, and show/venue counts.', 'extrachill-events' ),
-						),
-						'picks'        => array(
-							'type'        => 'array',
-							'description' => __( 'Human-chosen highlights for a text-only picks slide, in display order (max 5). Items are event post IDs or { post_id, note }. Every pick must be in the roundup.', 'extrachill-events' ),
-							'items'       => array(
-								'type'       => array( 'integer', 'object' ),
-								'properties' => array(
-									'post_id' => array( 'type' => 'integer' ),
-									'note'    => array( 'type' => 'string' ),
-								),
-							),
-						),
-						'picks_title'  => array(
-							'type'        => 'string',
-							'description' => __( 'Picks slide heading. Defaults to "Our Picks".', 'extrachill-events' ),
 						),
 						'closing'      => array(
 							'type'        => 'boolean',
@@ -442,11 +412,6 @@ class EventRoundupAbilities {
 				'event_summary' => '',
 				'message'       => __( 'No events found for the requested date range and location.', 'extrachill-events' ),
 			);
-		}
-
-		$picks_error = self::validatePicks( $query_result['day_groups'], (array) ( $input['picks'] ?? array() ) );
-		if ( null !== $picks_error ) {
-			return $picks_error;
 		}
 
 		$render_result = $this->executeRender(
@@ -751,57 +716,9 @@ class EventRoundupAbilities {
 	private static function slideOptions( array $input ): array {
 		return array(
 			'cover'        => ! empty( $input['cover'] ),
-			'picks'        => array_values( (array) ( $input['picks'] ?? array() ) ),
-			'picks_title'  => (string) ( $input['picks_title'] ?? '' ),
 			'closing'      => ! empty( $input['closing'] ),
 			'closing_text' => (string) ( $input['closing_text'] ?? '' ),
 		);
-	}
-
-	/**
-	 * Reject picks that are not events in this roundup, so a stale or
-	 * mistyped ID fails loudly instead of silently dropping a pick.
-	 *
-	 * @param array $day_groups Queried day groups.
-	 * @param array $picks      Post IDs or { post_id, note } items.
-	 * @return \WP_Error|null Error, or null when every pick is valid.
-	 */
-	public static function validatePicks( array $day_groups, array $picks ): ?\WP_Error {
-		if ( empty( $picks ) ) {
-			return null;
-		}
-		if ( count( $picks ) > 5 ) {
-			return new \WP_Error( 'too_many_picks', __( 'A roundup takes at most 5 picks.', 'extrachill-events' ), array( 'status' => 400 ) );
-		}
-
-		$in_roundup = array();
-		foreach ( $day_groups as $day_group ) {
-			foreach ( (array) ( $day_group['events'] ?? array() ) as $event_item ) {
-				$in_roundup[ (int) ( $event_item['post']->ID ?? 0 ) ] = true;
-			}
-		}
-
-		$missing = array();
-		foreach ( $picks as $pick ) {
-			$post_id = is_array( $pick ) ? (int) ( $pick['post_id'] ?? 0 ) : (int) $pick;
-			if ( ! isset( $in_roundup[ $post_id ] ) ) {
-				$missing[] = $post_id;
-			}
-		}
-
-		if ( ! empty( $missing ) ) {
-			return new \WP_Error(
-				'pick_not_in_roundup',
-				sprintf(
-					/* translators: %s: comma-separated event post IDs */
-					__( 'Picks must be events in this roundup. Not found: %s', 'extrachill-events' ),
-					implode( ', ', $missing )
-				),
-				array( 'status' => 400 )
-			);
-		}
-
-		return null;
 	}
 
 	private function countEvents( array $day_groups ): int {

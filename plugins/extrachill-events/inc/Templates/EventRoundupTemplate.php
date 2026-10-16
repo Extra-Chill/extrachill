@@ -32,10 +32,6 @@
  *     every list slide, or the closing slide when `closing` is set
  *   - cover (bool) — prepend a cover slide: title, date range, and show
  *     and venue counts
- *   - picks (array) — human-chosen highlights rendered on a text-only
- *     picks slide after the cover. Items are event post IDs or
- *     { post_id, note }; IDs not in day_groups are skipped; max 5
- *   - picks_title (string) — picks slide heading; defaults to "Our Picks"
  *   - closing (bool) — append a closing CTA slide and drop the per-slide
  *     footer from the list slides
  *   - closing_text (string) — optional supporting line on the closing slide
@@ -46,6 +42,12 @@
  *   - colors['event_roundup_muted'] — venue/time meta (falls back to text_muted)
  *   - colors['event_roundup_cta']   — footer CTA (falls back to accent)
  *   - day_palette['sunday'..'saturday'] — hex per weekday (falls back to neutral palette)
+ *
+ * Brand mark: every slide carries the brand so any single shared slide is
+ * attributable. Uses the standard `logo_path_inverse` token (light ink on
+ * the dark slide), falling back to `brand_text` when no readable logo is
+ * set. Small in the bottom-right corner of list slides, larger
+ * on the cover, and centered above the CTA on the closing slide.
  *
  * @package ExtraChillEvents\Templates
  * @since 4.5.0
@@ -79,20 +81,32 @@ class EventRoundupTemplate implements TemplateInterface {
 	private const DAY_TRAILING_GAP       = 30;
 	private const CTA_CLEARANCE          = 24;
 	private const MIN_SPLIT_EVENTS       = 2;
-	private const MAX_PICKS              = 5;
 	private const COVER_TITLE_SIZE       = 92;
 	private const COVER_DATE_SIZE        = 40;
 	private const COVER_STATS_SIZE       = 28;
 	private const STRIPE_HEIGHT          = 14;
-	private const PICKS_HEADING_SIZE     = 52;
-	private const PICK_DAY_SIZE          = 22;
-	private const PICK_TITLE_SIZE        = 40;
-	private const PICK_META_SIZE         = 22;
-	private const PICK_NOTE_SIZE         = 24;
-	private const PICK_GAP               = 42;
 	private const CLOSING_HEADLINE_SIZE  = 80;
 	private const CLOSING_URL_SIZE       = 40;
 	private const CLOSING_TEXT_SIZE      = 28;
+	private const MARK_HEIGHT            = 72;
+	private const COVER_MARK_HEIGHT      = 120;
+	private const CLOSING_MARK_HEIGHT    = 200;
+	private const MARK_CLEARANCE         = 24;
+	private const MARK_TEXT_SIZE         = 22;
+
+	/**
+	 * Inverse logo path for the current render, or '' when unavailable.
+	 *
+	 * @var string
+	 */
+	private $logo_path = '';
+
+	/**
+	 * Brand name drawn when no logo is available.
+	 *
+	 * @var string
+	 */
+	private $brand_text = '';
 
 	/**
 	 * Neutral fallback palette for days of the week.
@@ -145,16 +159,6 @@ class EventRoundupTemplate implements TemplateInterface {
 				'type'     => 'boolean',
 				'required' => false,
 			),
-			'picks'        => array(
-				'label'    => 'Picks',
-				'type'     => 'array',
-				'required' => false,
-			),
-			'picks_title'  => array(
-				'label'    => 'Picks Title',
-				'type'     => 'string',
-				'required' => false,
-			),
 			'closing'      => array(
 				'label'    => 'Closing Slide',
 				'type'     => 'boolean',
@@ -187,6 +191,10 @@ class EventRoundupTemplate implements TemplateInterface {
 
 		$tokens = BrandTokens::get( $this->get_id(), $data );
 
+		$logo             = (string) ( $tokens['logo_path_inverse'] ?? '' );
+		$this->logo_path  = ( '' !== $logo && is_readable( $logo ) && false !== @getimagesize( $logo ) ) ? $logo : ''; // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable images fall back to brand text.
+		$this->brand_text = trim( (string) ( $tokens['brand_text'] ?? '' ) );
+
 		// Build a per-render font lookup. GDRenderer is created fresh for
 		// every slide so register_font() needs to run inside render_slide.
 		$heading_path = isset( $tokens['fonts']['heading'] ) && is_string( $tokens['fonts']['heading'] ) ? $tokens['fonts']['heading'] : '';
@@ -207,7 +215,6 @@ class EventRoundupTemplate implements TemplateInterface {
 
 		$cover   = ! empty( $data['cover'] );
 		$closing = ! empty( $data['closing'] ) && '' !== $cta_text;
-		$picks   = self::resolve_picks( $day_groups, (array) ( $data['picks'] ?? array() ) );
 
 		// The cover owns the title; the closing slide owns the CTA.
 		$list_title = $cover ? '' : $title;
@@ -233,14 +240,6 @@ class EventRoundupTemplate implements TemplateInterface {
 
 		if ( $cover ) {
 			$path = $this->render_cover_slide( ++$slide_number, $title, self::cover_stats( $day_groups ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
-			if ( $path ) {
-				$image_paths[] = $path;
-			}
-		}
-
-		if ( ! empty( $picks ) ) {
-			$picks_title = trim( (string) ( $data['picks_title'] ?? '' ) );
-			$path        = $this->render_picks_slide( ++$slide_number, '' !== $picks_title ? $picks_title : 'Our Picks', $picks, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
 			if ( $path ) {
 				$image_paths[] = $path;
 			}
@@ -329,60 +328,6 @@ class EventRoundupTemplate implements TemplateInterface {
 			'venues'     => count( $venues ),
 			'date_label' => strtoupper( $date_label ),
 		);
-	}
-
-	/**
-	 * Resolve requested picks against the roundup's own events.
-	 *
-	 * Picks are chosen by a person, not ranked by the system, so order is
-	 * preserved exactly as given. Unknown or duplicate IDs are skipped and
-	 * the list is capped at MAX_PICKS.
-	 *
-	 * @param array $day_groups date_key => { date_obj, events[] }.
-	 * @param array $picks      Post IDs or { post_id, note } items.
-	 * @return array<int, array{post: object, event_data: array, date_obj: mixed, note: string}>
-	 */
-	public static function resolve_picks( array $day_groups, array $picks ): array {
-		$index = array();
-		foreach ( $day_groups as $day_group ) {
-			foreach ( (array) ( $day_group['events'] ?? array() ) as $event_item ) {
-				$post_id = (int) ( $event_item['post']->ID ?? 0 );
-				if ( $post_id > 0 ) {
-					$index[ $post_id ] = array(
-						'post'       => $event_item['post'],
-						'event_data' => (array) ( $event_item['event_data'] ?? array() ),
-						'date_obj'   => $day_group['date_obj'] ?? null,
-					);
-				}
-			}
-		}
-
-		$resolved = array();
-		foreach ( $picks as $pick ) {
-			$post_id = is_array( $pick ) ? (int) ( $pick['post_id'] ?? 0 ) : (int) $pick;
-			if ( ! isset( $index[ $post_id ] ) || isset( $resolved[ $post_id ] ) ) {
-				continue;
-			}
-			$resolved[ $post_id ] = $index[ $post_id ] + array(
-				'note' => is_array( $pick ) ? trim( (string) ( $pick['note'] ?? '' ) ) : '',
-			);
-			if ( count( $resolved ) >= self::MAX_PICKS ) {
-				break;
-			}
-		}
-
-		return array_values( $resolved );
-	}
-
-	/**
-	 * Format an H:i:s start time as "7:30 PM".
-	 */
-	private static function format_time( string $start_time ): string {
-		if ( '' === $start_time ) {
-			return '';
-		}
-		$time_obj = \DateTime::createFromFormat( 'H:i:s', $start_time );
-		return $time_obj ? $time_obj->format( 'g:i A' ) : '';
 	}
 
 	/**
@@ -484,56 +429,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$renderer->draw_text( $stats_line, self::COVER_STATS_SIZE, self::PADDING, $y + self::COVER_STATS_SIZE, $muted, 'body' );
 
 		$renderer->draw_text( 'SWIPE FOR THE FULL LINEUP →', self::CTA_SIZE + 4, self::PADDING, $height - self::PADDING, $cta, 'body' );
-
-		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
-	}
-
-	/**
-	 * Picks: text-only highlights chosen by a person, each with an optional note.
-	 */
-	private function render_picks_slide( int $slide_number, string $heading, array $picks, string $preset, string $format, array $context, string $heading_path, string $body_path, array $colors, array $day_palette ): ?string {
-		$renderer = $this->start_canvas( $preset, $heading_path, $body_path, $colors['bg'] );
-		if ( ! $renderer ) {
-			return null;
-		}
-
-		$text   = $renderer->color_hex( 'text', $colors['text'] );
-		$muted  = $renderer->color_hex( 'muted', $colors['muted'] );
-		$accent = $renderer->color_hex( 'accent', $colors['accent'] );
-		$max_w  = $renderer->get_width() - ( self::PADDING * 2 );
-
-		$y = self::PADDING;
-		$renderer->draw_text( strtoupper( $heading ), self::PICKS_HEADING_SIZE, self::PADDING, $y + self::PICKS_HEADING_SIZE, $accent, 'header' );
-		$y += (int) ( self::PICKS_HEADING_SIZE * 1.3 );
-		$renderer->filled_rect( self::PADDING, $y, self::PADDING + 160, $y + 6, $accent );
-		$y += 50;
-
-		foreach ( $picks as $pick ) {
-			$date_obj  = $pick['date_obj'] ?? null;
-			$day_name  = $date_obj instanceof \DateTimeInterface ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
-			$day_color = $renderer->color_hex( 'pick_' . $day_name, (string) ( $day_palette[ $day_name ] ?? '#4ecdc4' ) );
-			$day_label = $date_obj instanceof \DateTimeInterface ? strtoupper( $date_obj->format( 'l' ) ) : '';
-
-			$time = self::format_time( (string) ( $pick['event_data']['startTime'] ?? '' ) );
-			if ( '' !== $day_label ) {
-				$renderer->draw_text( trim( $day_label . ( '' !== $time ? ' · ' . $time : '' ) ), self::PICK_DAY_SIZE, self::PADDING, $y + self::PICK_DAY_SIZE, $day_color, 'header' );
-				$y += (int) ( self::PICK_DAY_SIZE * 1.5 );
-			}
-
-			$y = $renderer->draw_text_wrapped( strtoupper( self::decode_text( (string) ( $pick['post']->post_title ?? '' ) ) ), self::PICK_TITLE_SIZE, self::PADDING, $y, $text, 'header', $max_w, 1.15 );
-
-			$venue = self::decode_text( (string) ( $pick['event_data']['venue'] ?? '' ) );
-			if ( '' !== $venue ) {
-				$renderer->draw_text( $venue, self::PICK_META_SIZE, self::PADDING, $y + self::PICK_META_SIZE + 4, $muted, 'body' );
-				$y += (int) ( self::PICK_META_SIZE * 1.5 ) + 4;
-			}
-
-			if ( '' !== $pick['note'] ) {
-				$y = $renderer->draw_text_wrapped( self::decode_text( $pick['note'] ), self::PICK_NOTE_SIZE, self::PADDING, $y + 6, $text, 'body', $max_w, 1.35 );
-			}
-
-			$y += self::PICK_GAP;
-		}
+		$this->draw_brand_mark( $renderer, self::COVER_MARK_HEIGHT, 'corner', 0, $text );
 
 		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
 	}
@@ -562,7 +458,10 @@ class EventRoundupTemplate implements TemplateInterface {
 			$url      = $m[2];
 		}
 
-		$y  = (int) ( $height * 0.36 );
+		$y = (int) ( $height * 0.36 );
+		if ( $this->has_brand_mark() ) {
+			$y = $this->draw_brand_mark( $renderer, self::CLOSING_MARK_HEIGHT, 'center', (int) ( $height * 0.3 ), $text ) + 60;
+		}
 		$y  = $renderer->draw_text_wrapped( $headline, self::CLOSING_HEADLINE_SIZE, self::PADDING, $y, $text, 'header', $max_w, 1.15, 'center' );
 		$y += 24;
 
@@ -635,7 +534,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$slides = self::plan_slides(
 			$day_groups,
 			self::PADDING,
-			self::content_bottom( $height, $cta_text ),
+			self::content_bottom( $height, $cta_text, $this->has_brand_mark() ? self::MARK_HEIGHT : 0 ),
 			$title_height,
 			self::day_header_height(),
 			$event_height
@@ -742,14 +641,63 @@ class EventRoundupTemplate implements TemplateInterface {
 	/**
 	 * Lowest Y content may reach before colliding with the footer CTA.
 	 */
-	public static function content_bottom( int $height, string $cta_text ): int {
+	public static function content_bottom( int $height, string $cta_text, int $mark_height = 0 ): int {
 		$bottom = $height - self::PADDING;
 		if ( '' !== $cta_text ) {
 			// render_cta() draws its rule CTA_SIZE + CTA_LINE_GAP above the
 			// bottom padding; keep clearance above that rule.
 			$bottom -= self::CTA_SIZE + self::CTA_LINE_GAP + self::CTA_CLEARANCE;
 		}
+		if ( $mark_height > 0 ) {
+			// The corner brand mark sits on the bottom padding line.
+			$bottom = min( $bottom, $height - self::PADDING - $mark_height - self::MARK_CLEARANCE );
+		}
 		return $bottom;
+	}
+
+	/**
+	 * Whether this render has a logo or brand text to draw.
+	 */
+	private function has_brand_mark(): bool {
+		return '' !== $this->logo_path || '' !== $this->brand_text;
+	}
+
+	/**
+	 * Draw the brand mark.
+	 *
+	 * @param GDRenderer $renderer Canvas.
+	 * @param int        $height   Logo height in px.
+	 * @param string     $place    'corner' (bottom-right on the padding line) or 'center'.
+	 * @param int        $top      Top Y for 'center' placement.
+	 * @param int        $color    Text color for the brand-text fallback.
+	 * @return int Y just below the mark (for 'center' layouts).
+	 */
+	private function draw_brand_mark( GDRenderer $renderer, int $height, string $place, int $top, int $color ): int {
+		$width  = $renderer->get_width();
+		$bottom = $renderer->get_height() - self::PADDING;
+
+		if ( '' !== $this->logo_path ) {
+			$dims   = getimagesize( $this->logo_path );
+			$mark_w = $dims ? (int) round( $dims[0] * $height / max( 1, $dims[1] ) ) : $height;
+			$x      = 'center' === $place ? (int) ( ( $width - $mark_w ) / 2 ) : $width - self::PADDING - $mark_w;
+			$y      = 'center' === $place ? $top : $bottom - $height;
+			$renderer->overlay_image( $this->logo_path, $x, $y, $mark_w, $height );
+			return $y + $height;
+		}
+
+		if ( '' === $this->brand_text ) {
+			return $top;
+		}
+
+		$size = 'center' === $place ? (int) ( self::MARK_TEXT_SIZE * 2 ) : self::MARK_TEXT_SIZE;
+		$text = strtoupper( $this->brand_text );
+		if ( 'center' === $place ) {
+			$renderer->draw_text_centered( $text, $size, $top + $size, $color, 'header' );
+			return $top + (int) ( $size * 1.4 );
+		}
+		$x = $width - self::PADDING - $renderer->measure_text_width( $text, $size, 'header' );
+		$renderer->draw_text( $text, $size, $x, $bottom, $color, 'header' );
+		return $top;
 	}
 
 	/**
@@ -849,6 +797,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		$this->render_cta( $renderer, $cta_text, $cta_color );
+		$this->draw_brand_mark( $renderer, self::MARK_HEIGHT, 'corner', 0, $text_color );
 
 		$filename = sprintf( 'roundup-slide-%d.%s', $slide_number, 'jpeg' === $format ? 'jpg' : 'png' );
 
