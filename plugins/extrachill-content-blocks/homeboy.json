@@ -28,6 +28,10 @@
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
     },
     {
+      "file": "src/blocks/photo-contest/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
       "file": "src/blocks/rapper-name-generator/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
     },

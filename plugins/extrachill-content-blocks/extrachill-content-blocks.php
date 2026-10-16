@@ -68,6 +68,11 @@ function extrachill_content_blocks_load_abilities() {
 		'/generate-rapper-name.php',
 		'/image-voting-list.php',
 		'/image-voting-vote.php',
+		'/photo-contest-submit.php',
+		'/photo-contest-list.php',
+		'/photo-contest-vote.php',
+		'/photo-contest-hide.php',
+		'/photo-contest-top.php',
 		'/trivia-create.php',
 		'/trivia-list.php',
 	);
@@ -95,6 +100,7 @@ function extrachill_content_blocks_load_business_logic() {
 		'/band-name-generator/index.php',
 		'/rapper-name-generator/index.php',
 		'/image-voting/index.php',
+		'/photo-contest/index.php',
 	);
 
 	foreach ( $logic_files as $file ) {
@@ -108,9 +114,11 @@ extrachill_content_blocks_load_business_logic();
 /**
  * Register WP-CLI commands.
  *
- * Currently provides the one-time image-votes backfill migration
- * (see inc/cli/class-image-votes-backfill-command.php). Loaded only when
- * WP-CLI is running.
+ * Provides the one-time image-votes backfill migration
+ * (inc/cli/class-image-votes-backfill-command.php) and the photo-contest
+ * staff commands for top-N finalists and entry moderation
+ * (inc/cli/class-photo-contest-command.php). Loaded only when WP-CLI is
+ * running.
  */
 function extrachill_content_blocks_register_cli_commands() {
 	if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
@@ -118,10 +126,16 @@ function extrachill_content_blocks_register_cli_commands() {
 	}
 
 	require_once __DIR__ . '/inc/cli/class-image-votes-backfill-command.php';
+	require_once __DIR__ . '/inc/cli/class-photo-contest-command.php';
 
 	WP_CLI::add_command(
 		'extrachill-content-blocks backfill-image-votes',
 		'Extrachill_Content_Blocks_Image_Votes_Backfill_Command'
+	);
+
+	WP_CLI::add_command(
+		'extrachill-content-blocks photo-contest',
+		'Extrachill_Content_Blocks_Photo_Contest_Command'
 	);
 }
 extrachill_content_blocks_register_cli_commands();
@@ -137,6 +151,7 @@ function extrachill_content_blocks_register_blocks() {
 
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/trivia' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/image-voting' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/photo-contest' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/band-name-generator' );
 	register_block_type( __DIR__ . '/' . $blocks_dir . '/rapper-name-generator' );
 }
@@ -172,6 +187,7 @@ function extrachill_content_blocks_get_block_names() {
 	return array(
 		'extrachill/trivia',
 		'extrachill/image-voting',
+		'extrachill/photo-contest',
 		'extrachill/band-name-generator',
 		'extrachill/rapper-name-generator',
 	);

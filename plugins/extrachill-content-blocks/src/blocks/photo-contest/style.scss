@@ -1,0 +1,264 @@
+/* Photo Contest Block Frontend Styles.
+   Mobile-first: nearly every visitor arrives from a QR scan on a phone. */
+
+.extrachill-blocks-photo-contest-container {
+	margin: 24px 0;
+}
+
+/* Event / tickets CTA banner (server-rendered, cache-safe) */
+.extrachill-blocks-photo-contest-cta {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px;
+	margin-bottom: 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--card-background);
+	box-shadow: var(--card-shadow);
+}
+
+.extrachill-blocks-photo-contest-cta-title {
+	margin: 0;
+	font-size: 18px;
+	line-height: 1.3;
+}
+
+.extrachill-blocks-photo-contest-cta-meta {
+	margin: 4px 0 0;
+	font-size: 14px;
+	color: var(--text-color);
+	opacity: 0.85;
+}
+
+.extrachill-blocks-photo-contest-cta-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* Submission form */
+.extrachill-blocks-photo-contest-form {
+	padding: 16px;
+	margin-bottom: 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+}
+
+.extrachill-blocks-photo-contest-form h3 {
+	margin: 0 0 12px;
+}
+
+.extrachill-blocks-photo-contest-form-step {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.extrachill-blocks-photo-contest-input {
+	width: 100%;
+	padding: 12px 16px;
+	font-size: 16px;
+	border: 2px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font-family: inherit;
+	transition: border-color 0.2s ease;
+}
+
+.extrachill-blocks-photo-contest-input:focus {
+	outline: none;
+	border-color: var(--focus-border-color);
+	box-shadow: var(--focus-box-shadow);
+}
+
+/* Honeypot: visually removed, still in the DOM for bots. */
+.extrachill-blocks-photo-contest-hp {
+	position: absolute !important;
+	left: -9999px !important;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.extrachill-blocks-photo-contest-file-label {
+	display: block;
+	padding: 12px 16px;
+	border: 2px dashed var(--border-color);
+	border-radius: 6px;
+	text-align: center;
+	cursor: pointer;
+	font-size: 15px;
+	background: var(--card-background);
+}
+
+.extrachill-blocks-photo-contest-file {
+	display: none;
+}
+
+/* Share panel */
+.extrachill-blocks-photo-contest-share {
+	margin-top: 10px;
+}
+
+.extrachill-blocks-photo-contest-share-prompt {
+	margin: 0 0 8px;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.extrachill-blocks-photo-contest-share-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.extrachill-blocks-photo-contest-share-link {
+	margin: 8px 0 0;
+	font-size: 12px;
+	word-break: break-all;
+	opacity: 0.8;
+	user-select: all;
+}
+
+.extrachill-blocks-photo-contest-submitted {
+	margin-bottom: 20px;
+}
+
+/* Entries grid — single column on phones, two+ columns up. */
+.extrachill-blocks-photo-contest-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 16px;
+}
+
+@media (min-width: 600px) {
+
+	.extrachill-blocks-photo-contest-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 960px) {
+
+	.extrachill-blocks-photo-contest-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.extrachill-blocks-photo-contest-entry {
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+	box-shadow: var(--card-shadow);
+	overflow: hidden;
+	transition: box-shadow 0.3s ease;
+}
+
+.extrachill-blocks-photo-contest-entry:hover {
+	box-shadow: var(--card-hover-shadow);
+}
+
+.extrachill-blocks-photo-contest-entry-highlight {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent);
+}
+
+.extrachill-blocks-photo-contest-entry-image-wrap {
+	position: relative;
+	width: 100%;
+	padding-bottom: 125%; /* 4:5, same as image-voting */
+	overflow: hidden;
+	background: var(--card-background);
+}
+
+.extrachill-blocks-photo-contest-entry-image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.extrachill-blocks-photo-contest-vote-badge {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	background: rgba(0, 0, 0, 0.75);
+	color: #fff;
+	padding: 5px 10px;
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 500;
+	backdrop-filter: blur(4px);
+}
+
+.extrachill-blocks-photo-contest-vote-badge .vote-number {
+	font-weight: 600;
+}
+
+.extrachill-blocks-photo-contest-entry-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px;
+}
+
+.extrachill-blocks-photo-contest-entry-name {
+	margin: 0;
+	font-size: 16px;
+	line-height: 1.3;
+}
+
+.extrachill-blocks-photo-contest-entry-ig {
+	font-size: 14px;
+	text-decoration: none;
+}
+
+.extrachill-blocks-photo-contest-vote-button {
+	width: 100%;
+}
+
+.extrachill-blocks-photo-contest-vote-form {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.extrachill-blocks-photo-contest-notice {
+	margin: 8px 0 0;
+	font-size: 14px;
+}
+
+.extrachill-blocks-photo-contest-loading,
+.extrachill-blocks-photo-contest-empty {
+	text-align: center;
+	padding: 24px 0;
+	opacity: 0.8;
+}
+
+/* Finalists */
+.extrachill-blocks-photo-contest-finalists-heading {
+	margin: 0 0 12px;
+}
+
+.extrachill-blocks-photo-contest-finalist {
+	position: relative;
+}
+
+.extrachill-blocks-photo-contest-rank {
+	position: absolute;
+	top: -10px;
+	left: -6px;
+	z-index: 5;
+	background: var(--accent);
+	color: #fff;
+	font-weight: 700;
+	padding: 4px 10px;
+	border-radius: 999px;
+	font-size: 14px;
+}

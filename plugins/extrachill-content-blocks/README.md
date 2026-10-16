@@ -18,6 +18,7 @@ It is the content-block layer for:
 |-------|-------------|
 | **Trivia** | Interactive multiple-choice trivia questions with scoring |
 | **Image Voting** | Image-based polls with email capture and newsletter integration |
+| **Photo Contest** | User-submitted photo contests: email-gated entries, public voting, per-entry share links, event ticket CTA |
 | **Rapper Name Generator** | Generates rapper stage names based on user input |
 | **Band Name Generator** | Generates band names by genre with customizable options |
 

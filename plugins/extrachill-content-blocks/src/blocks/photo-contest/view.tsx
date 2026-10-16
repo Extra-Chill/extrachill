@@ -1,0 +1,811 @@
+/**
+ * Photo Contest Block - Frontend View (headless React + TypeScript).
+ *
+ * Mounts into the empty root emitted by render.php. Because contest pages are
+ * full-page cached, the server renders nothing dynamic: this view fetches the
+ * live entries (with vote counts) from the photo-contest entries route on
+ * every load, shuffles them client-side (never sorted by votes or entry
+ * order), and renders the grid, the email-gated submission flow, per-entry
+ * voting, and per-entry share links.
+ *
+ * Voting reuses the image-voting conventions: the voter email is remembered
+ * in the shared `extrachill_voter_email` localStorage key, votes are deduped
+ * authoritatively server-side (`already_voted` rejection), and newsletter
+ * subscribe happens on the backend.
+ *
+ * Deep links (?entry=<id>) surface that entry first and scroll to it; the
+ * backend swaps the OG image for the entry photo so shares unfurl with the
+ * entrant's costume.
+ */
+
+import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
+import apiFetch from '@wordpress/api-fetch';
+
+const EMAIL_STORAGE_KEY = 'extrachill_voter_email';
+
+interface ContestConfig {
+	postId: number;
+	contestId: string;
+	heading: string;
+	eventTitle: string;
+	entriesCloseAt: string;
+	votingClosesAt: string;
+	showFinalists: boolean;
+	finalistCount: number;
+	isAdmin: boolean;
+}
+
+interface Entry {
+	id: number;
+	display_name: string;
+	instagram: string;
+	image_url: string;
+	thumbnail_url: string;
+	vote_count: number;
+	share_url: string;
+}
+
+interface EntriesResponse {
+	entries: Entry[];
+}
+
+interface VoteResponse {
+	vote_count: number;
+}
+
+interface SubmitResponse {
+	message: string;
+	entry: Entry;
+}
+
+function getSavedEmail(): string {
+	try {
+		return localStorage.getItem( EMAIL_STORAGE_KEY ) || '';
+	} catch {
+		return '';
+	}
+}
+
+function saveEmail( email: string ): void {
+	try {
+		localStorage.setItem( EMAIL_STORAGE_KEY, email );
+	} catch {
+		// localStorage unavailable; ignore.
+	}
+}
+
+function votedStorageKey( contestId: string ): string {
+	return `extrachill_pc_voted_${ contestId }`;
+}
+
+function getVotedEntries( contestId: string ): number[] {
+	try {
+		const raw = localStorage.getItem( votedStorageKey( contestId ) );
+		return raw ? ( JSON.parse( raw ) as number[] ) : [];
+	} catch {
+		return [];
+	}
+}
+
+function rememberVote( contestId: string, entryId: number ): void {
+	try {
+		const voted = getVotedEntries( contestId );
+		if ( ! voted.includes( entryId ) ) {
+			voted.push( entryId );
+			localStorage.setItem(
+				votedStorageKey( contestId ),
+				JSON.stringify( voted )
+			);
+		}
+	} catch {
+		// ignore.
+	}
+}
+
+function isValidEmail( email: string ): boolean {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( email );
+}
+
+/**
+ * Fisher–Yates shuffle (new array). Fresh order on every page load.
+ * @param items
+ */
+function shuffle< T >( items: T[] ): T[] {
+	const copy = [ ...items ];
+	for ( let i = copy.length - 1; i > 0; i-- ) {
+		const j = Math.floor( Math.random() * ( i + 1 ) );
+		[ copy[ i ], copy[ j ] ] = [ copy[ j ], copy[ i ] ];
+	}
+	return copy;
+}
+
+/**
+ * Close dates are site-local datetime strings; the client compares against
+ * device time as a UX hint only — the server enforces windows authoritatively.
+ * @param closeAt Datetime-local string from block attributes.
+ */
+function isClosed( closeAt: string ): boolean {
+	if ( ! closeAt ) {
+		return false;
+	}
+	const ts = Date.parse( closeAt );
+	return ! Number.isNaN( ts ) && Date.now() >= ts;
+}
+
+function deepLinkEntryId(): number {
+	try {
+		const params = new URLSearchParams( window.location.search );
+		const id = Number( params.get( 'entry' ) || 0 );
+		return Number.isFinite( id ) && id > 0 ? id : 0;
+	} catch {
+		return 0;
+	}
+}
+
+function SharePanel( { entry, prompt }: { entry: Entry; prompt: string } ) {
+	const [ copied, setCopied ] = useState( false );
+	const shareText = `Vote for ${ entry.display_name }!`;
+	const canWebShare = typeof navigator !== 'undefined' && !! navigator.share;
+
+	const webShare = async () => {
+		try {
+			await navigator.share( {
+				title: shareText,
+				text: shareText,
+				url: entry.share_url,
+			} );
+		} catch {
+			// User cancelled; ignore.
+		}
+	};
+
+	const copyLink = async () => {
+		try {
+			await navigator.clipboard.writeText( entry.share_url );
+			setCopied( true );
+			setTimeout( () => setCopied( false ), 2000 );
+		} catch {
+			// Clipboard unavailable; the visible link below remains selectable.
+		}
+	};
+
+	const encodedUrl = encodeURIComponent( entry.share_url );
+	const encodedText = encodeURIComponent( shareText );
+
+	return (
+		<div className="extrachill-blocks-photo-contest-share">
+			<p className="extrachill-blocks-photo-contest-share-prompt">
+				{ prompt }
+			</p>
+			<div className="extrachill-blocks-photo-contest-share-buttons">
+				{ canWebShare && (
+					<button
+						className="button-1 button-medium"
+						onClick={ webShare }
+					>
+						Share
+					</button>
+				) }
+				<button className="button-2 button-medium" onClick={ copyLink }>
+					{ copied ? 'Copied!' : 'Copy Link' }
+				</button>
+				<a
+					className="button-3 button-medium"
+					href={ `https://www.facebook.com/sharer/sharer.php?u=${ encodedUrl }` }
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Facebook
+				</a>
+				<a
+					className="button-3 button-medium"
+					href={ `https://twitter.com/intent/tweet?url=${ encodedUrl }&text=${ encodedText }` }
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					X
+				</a>
+			</div>
+			<p className="extrachill-blocks-photo-contest-share-link">
+				{ entry.share_url }
+			</p>
+		</div>
+	);
+}
+
+function EntryCard( {
+	entry,
+	config,
+	votingClosed,
+	highlighted,
+	onVoted,
+}: {
+	entry: Entry;
+	config: ContestConfig;
+	votingClosed: boolean;
+	highlighted: boolean;
+	onVoted: ( entryId: number, voteCount: number ) => void;
+} ) {
+	const [ hasVoted, setHasVoted ] = useState( () =>
+		getVotedEntries( config.contestId ).includes( entry.id )
+	);
+	const [ showForm, setShowForm ] = useState( false );
+	const [ showShare, setShowShare ] = useState( false );
+	const [ email, setEmail ] = useState( getSavedEmail() );
+	const [ isVoting, setIsVoting ] = useState( false );
+	const [ error, setError ] = useState( '' );
+	const isVotingRef = useRef( false );
+	const cardRef = useRef< HTMLDivElement | null >( null );
+	const emailInputRef = useRef< HTMLInputElement | null >( null );
+
+	useEffect( () => {
+		if ( highlighted && cardRef.current ) {
+			cardRef.current.scrollIntoView( {
+				behavior: 'smooth',
+				block: 'center',
+			} );
+		}
+	}, [ highlighted ] );
+
+	useEffect( () => {
+		if ( showForm && emailInputRef.current ) {
+			emailInputRef.current.focus();
+		}
+	}, [ showForm ] );
+
+	const submitVote = async ( voterEmail: string ) => {
+		if ( isVotingRef.current ) {
+			return;
+		}
+		isVotingRef.current = true;
+		setIsVoting( true );
+		setError( '' );
+
+		try {
+			const response = ( await apiFetch( {
+				path: '/extrachill/v1/content-blocks/photo-contest/vote',
+				method: 'POST',
+				data: {
+					post_id: config.postId,
+					contest_id: config.contestId,
+					entry_id: entry.id,
+					email_address: voterEmail,
+				},
+			} ) ) as VoteResponse;
+
+			saveEmail( voterEmail );
+			rememberVote( config.contestId, entry.id );
+			setHasVoted( true );
+			setShowForm( false );
+			onVoted( entry.id, response.vote_count );
+		} catch ( err ) {
+			const code = ( err as { code?: string } )?.code;
+			if ( code === 'already_voted' ) {
+				rememberVote( config.contestId, entry.id );
+				setHasVoted( true );
+				setShowForm( false );
+			} else {
+				const messageText =
+					err instanceof Error
+						? err.message
+						: ( err as { message?: string } )?.message ||
+						  'An error occurred';
+				setError( messageText );
+			}
+		} finally {
+			isVotingRef.current = false;
+			setIsVoting( false );
+		}
+	};
+
+	const handleVoteClick = () => {
+		if ( hasVoted || votingClosed ) {
+			return;
+		}
+		const stored = getSavedEmail();
+		if ( stored ) {
+			submitVote( stored );
+		} else {
+			setShowForm( true );
+		}
+	};
+
+	const handleSubmitVote = () => {
+		const trimmed = email.trim();
+		if ( ! trimmed || ! isValidEmail( trimmed ) ) {
+			setError( 'Please enter a valid email address' );
+			return;
+		}
+		submitVote( trimmed );
+	};
+
+	let voteLabel = 'Vote';
+	if ( hasVoted ) {
+		voteLabel = 'Voted ✓';
+	} else if ( isVoting ) {
+		voteLabel = 'Voting...';
+	} else if ( votingClosed ) {
+		voteLabel = 'Voting Closed';
+	}
+
+	return (
+		<div
+			ref={ cardRef }
+			className={ `extrachill-blocks-photo-contest-entry${
+				highlighted
+					? ' extrachill-blocks-photo-contest-entry-highlight'
+					: ''
+			}` }
+			id={ `photo-contest-entry-${ entry.id }` }
+		>
+			<div className="extrachill-blocks-photo-contest-entry-image-wrap">
+				<img
+					className="extrachill-blocks-photo-contest-entry-image"
+					src={ entry.thumbnail_url || entry.image_url }
+					alt={ `${ entry.display_name }'s entry` }
+					loading="lazy"
+				/>
+				<span className="extrachill-blocks-photo-contest-vote-badge">
+					Votes:{ ' ' }
+					<span className="vote-number">{ entry.vote_count }</span>
+				</span>
+			</div>
+			<div className="extrachill-blocks-photo-contest-entry-body">
+				<h4 className="extrachill-blocks-photo-contest-entry-name">
+					{ entry.display_name }
+				</h4>
+				{ entry.instagram && (
+					<a
+						className="extrachill-blocks-photo-contest-entry-ig"
+						href={ `https://instagram.com/${ entry.instagram }` }
+						target="_blank"
+						rel="noopener noreferrer"
+					>
+						@{ entry.instagram }
+					</a>
+				) }
+				<button
+					className={ `extrachill-blocks-photo-contest-vote-button ${
+						hasVoted ? 'button-2' : 'button-1'
+					} button-medium` }
+					disabled={ hasVoted || isVoting || votingClosed }
+					onClick={ handleVoteClick }
+				>
+					{ voteLabel }
+				</button>
+				{ showForm && ! hasVoted && (
+					<div className="extrachill-blocks-photo-contest-vote-form">
+						<input
+							ref={ emailInputRef }
+							type="email"
+							className="extrachill-blocks-photo-contest-input"
+							placeholder="Enter your email to vote"
+							value={ email }
+							onChange={ ( e ) => setEmail( e.target.value ) }
+							onKeyDown={ ( e ) => {
+								if ( e.key === 'Enter' ) {
+									e.preventDefault();
+									handleSubmitVote();
+								}
+							} }
+							required
+						/>
+						<button
+							className="button-1 button-medium"
+							disabled={ isVoting }
+							onClick={ handleSubmitVote }
+						>
+							Submit Vote
+						</button>
+					</div>
+				) }
+				{ error && (
+					<div className="notice notice-error extrachill-blocks-photo-contest-notice">
+						{ error }
+					</div>
+				) }
+				<button
+					className="extrachill-blocks-photo-contest-share-toggle button-3 button-small"
+					onClick={ () => setShowShare( ! showShare ) }
+				>
+					{ showShare ? 'Hide Share' : 'Share' }
+				</button>
+				{ showShare && (
+					<SharePanel entry={ entry } prompt="Share this entry:" />
+				) }
+			</div>
+		</div>
+	);
+}
+
+function SubmissionForm( {
+	config,
+	onSubmitted,
+}: {
+	config: ContestConfig;
+	onSubmitted: ( entry: Entry ) => void;
+} ) {
+	const [ step, setStep ] = useState< 'email' | 'details' >( 'email' );
+	const [ email, setEmail ] = useState( getSavedEmail() );
+	const [ displayName, setDisplayName ] = useState( '' );
+	const [ instagram, setInstagram ] = useState( '' );
+	const [ honeypot, setHoneypot ] = useState( '' );
+	const [ file, setFile ] = useState< File | null >( null );
+	const [ isSubmitting, setIsSubmitting ] = useState( false );
+	const [ error, setError ] = useState( '' );
+	const [ myEntry, setMyEntry ] = useState< Entry | null >( null );
+
+	const handleEmailNext = () => {
+		const trimmed = email.trim();
+		if ( ! trimmed || ! isValidEmail( trimmed ) ) {
+			setError( 'Please enter a valid email address' );
+			return;
+		}
+		saveEmail( trimmed );
+		setError( '' );
+		setStep( 'details' );
+	};
+
+	const handleSubmit = async () => {
+		if ( isSubmitting ) {
+			return;
+		}
+		if ( ! displayName.trim() ) {
+			setError( 'Please enter a display name' );
+			return;
+		}
+		if ( ! file ) {
+			setError( 'Please choose a photo' );
+			return;
+		}
+		setError( '' );
+		setIsSubmitting( true );
+
+		const formData = new FormData();
+		formData.append( 'post_id', String( config.postId ) );
+		formData.append( 'contest_id', config.contestId );
+		formData.append( 'email', email.trim() );
+		formData.append( 'display_name', displayName.trim() );
+		formData.append( 'instagram', instagram.trim() );
+		formData.append( 'website', honeypot );
+		formData.append( 'photo', file );
+
+		try {
+			const response = ( await apiFetch( {
+				path: '/extrachill/v1/content-blocks/photo-contest/submit',
+				method: 'POST',
+				body: formData,
+			} ) ) as SubmitResponse;
+
+			setMyEntry( response.entry );
+			onSubmitted( response.entry );
+		} catch ( err ) {
+			const errorData = err as {
+				code?: string;
+				message?: string;
+				data?: { entry?: Entry };
+			};
+			if (
+				errorData.code === 'already_entered' &&
+				errorData.data?.entry
+			) {
+				setMyEntry( errorData.data.entry );
+			} else {
+				setError( errorData.message || 'Submission failed' );
+			}
+		} finally {
+			setIsSubmitting( false );
+		}
+	};
+
+	if ( myEntry ) {
+		return (
+			<div className="extrachill-blocks-photo-contest-submitted notice notice-success">
+				<h4>You&apos;re in, { myEntry.display_name }! 🎉</h4>
+				<SharePanel
+					entry={ myEntry }
+					prompt="Get your friends to vote for you — share your entry:"
+				/>
+			</div>
+		);
+	}
+
+	return (
+		<div className="extrachill-blocks-photo-contest-form">
+			<h3>{ config.heading }</h3>
+			{ step === 'email' && (
+				<div className="extrachill-blocks-photo-contest-form-step">
+					<input
+						type="email"
+						className="extrachill-blocks-photo-contest-input"
+						placeholder="Your email to enter"
+						value={ email }
+						onChange={ ( e ) => setEmail( e.target.value ) }
+						onKeyDown={ ( e ) => {
+							if ( e.key === 'Enter' ) {
+								e.preventDefault();
+								handleEmailNext();
+							}
+						} }
+						required
+					/>
+					<button
+						className="button-1 button-large"
+						onClick={ handleEmailNext }
+					>
+						Enter the Contest
+					</button>
+				</div>
+			) }
+			{ step === 'details' && (
+				<div className="extrachill-blocks-photo-contest-form-step">
+					<input
+						type="text"
+						className="extrachill-blocks-photo-contest-input"
+						placeholder="Display name"
+						value={ displayName }
+						onChange={ ( e ) => setDisplayName( e.target.value ) }
+						required
+					/>
+					<input
+						type="text"
+						className="extrachill-blocks-photo-contest-input"
+						placeholder="Instagram handle (optional)"
+						value={ instagram }
+						onChange={ ( e ) => setInstagram( e.target.value ) }
+					/>
+					{ /* Honeypot: hidden from humans, bots fill it. */ }
+					<input
+						type="text"
+						className="extrachill-blocks-photo-contest-hp"
+						tabIndex={ -1 }
+						autoComplete="off"
+						aria-hidden="true"
+						value={ honeypot }
+						onChange={ ( e ) => setHoneypot( e.target.value ) }
+					/>
+					<label
+						className="extrachill-blocks-photo-contest-file-label"
+						htmlFor={ `photo-contest-file-${ config.contestId }` }
+					>
+						{ file ? file.name : 'Choose your photo' }
+						<input
+							id={ `photo-contest-file-${ config.contestId }` }
+							type="file"
+							accept="image/*"
+							className="extrachill-blocks-photo-contest-file"
+							onChange={ ( e ) =>
+								setFile( e.target.files?.[ 0 ] ?? null )
+							}
+						/>
+					</label>
+					<button
+						className="button-1 button-large"
+						disabled={ isSubmitting }
+						onClick={ handleSubmit }
+					>
+						{ isSubmitting ? 'Submitting...' : 'Submit Entry' }
+					</button>
+				</div>
+			) }
+			{ error && (
+				<div className="notice notice-error extrachill-blocks-photo-contest-notice">
+					{ error }
+				</div>
+			) }
+		</div>
+	);
+}
+
+function PhotoContest( config: ContestConfig ) {
+	const [ entries, setEntries ] = useState< Entry[] | null >( null );
+	const [ loadError, setLoadError ] = useState( '' );
+	const highlightId = deepLinkEntryId();
+
+	const entriesClosed = isClosed( config.entriesCloseAt );
+	const votingClosed = isClosed( config.votingClosesAt );
+	const showFinalists = config.showFinalists && votingClosed;
+
+	useEffect( () => {
+		let cancelled = false;
+		apiFetch( {
+			path: `/extrachill/v1/content-blocks/photo-contest/entries?post_id=${
+				config.postId
+			}&contest_id=${ encodeURIComponent( config.contestId ) }`,
+		} )
+			.then( ( response ) => {
+				if ( cancelled ) {
+					return;
+				}
+				const list = ( response as EntriesResponse ).entries || [];
+				// Shuffle on every load; deep-linked entry surfaces first.
+				let ordered = shuffle( list );
+				if ( highlightId ) {
+					const idx = ordered.findIndex(
+						( e ) => e.id === highlightId
+					);
+					if ( idx > 0 ) {
+						const [ linked ] = ordered.splice( idx, 1 );
+						ordered = [ linked, ...ordered ];
+					}
+				}
+				setEntries( ordered );
+			} )
+			.catch( () => {
+				if ( ! cancelled ) {
+					setLoadError( 'Could not load entries — please refresh.' );
+				}
+			} );
+		return () => {
+			cancelled = true;
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ config.postId, config.contestId ] );
+
+	const handleVoted = ( entryId: number, voteCount: number ) => {
+		setEntries( ( prev ) =>
+			prev
+				? prev.map( ( e ) =>
+						e.id === entryId ? { ...e, vote_count: voteCount } : e
+				  )
+				: prev
+		);
+	};
+
+	const handleSubmitted = ( entry: Entry ) => {
+		setEntries( ( prev ) => {
+			if ( ! prev || prev.some( ( e ) => e.id === entry.id ) ) {
+				return prev;
+			}
+			return [ entry, ...prev ];
+		} );
+	};
+
+	const finalists = showFinalists
+		? [ ...( entries || [] ) ]
+				.sort( ( a, b ) =>
+					b.vote_count !== a.vote_count
+						? b.vote_count - a.vote_count
+						: a.id - b.id
+				)
+				.slice( 0, config.finalistCount )
+		: [];
+
+	return (
+		<>
+			{ ! entriesClosed && ! showFinalists && (
+				<SubmissionForm
+					config={ config }
+					onSubmitted={ handleSubmitted }
+				/>
+			) }
+			{ entriesClosed && ! showFinalists && (
+				<div className="notice notice-info extrachill-blocks-photo-contest-notice">
+					Entries are closed — voting{ ' ' }
+					{ votingClosed ? 'has ended' : 'is still open' }!
+				</div>
+			) }
+			{ loadError && (
+				<div className="notice notice-error extrachill-blocks-photo-contest-notice">
+					{ loadError }
+				</div>
+			) }
+			{ entries === null && ! loadError && (
+				<p className="extrachill-blocks-photo-contest-loading">
+					Loading entries…
+				</p>
+			) }
+			{ showFinalists && entries !== null && (
+				<>
+					<h3 className="extrachill-blocks-photo-contest-finalists-heading">
+						🏆 Finalists
+					</h3>
+					<div className="extrachill-blocks-photo-contest-grid extrachill-blocks-photo-contest-finalists">
+						{ finalists.map( ( entry, index ) => (
+							<div
+								key={ entry.id }
+								className="extrachill-blocks-photo-contest-finalist"
+							>
+								<span className="extrachill-blocks-photo-contest-rank">
+									#{ index + 1 }
+								</span>
+								<EntryCard
+									entry={ entry }
+									config={ config }
+									votingClosed={ true }
+									highlighted={ entry.id === highlightId }
+									onVoted={ handleVoted }
+								/>
+							</div>
+						) ) }
+					</div>
+				</>
+			) }
+			{ ! showFinalists && entries !== null && (
+				<div className="extrachill-blocks-photo-contest-grid">
+					{ entries.length === 0 && (
+						<p className="extrachill-blocks-photo-contest-empty">
+							No entries yet — be the first!
+						</p>
+					) }
+					{ entries.map( ( entry ) => (
+						<EntryCard
+							key={ entry.id }
+							entry={ entry }
+							config={ config }
+							votingClosed={ votingClosed }
+							highlighted={ entry.id === highlightId }
+							onVoted={ handleVoted }
+						/>
+					) ) }
+				</div>
+			) }
+		</>
+	);
+}
+
+function parseConfig( container: HTMLElement ): ContestConfig | null {
+	const configEl = container.querySelector(
+		'.extrachill-blocks-photo-contest-config'
+	);
+	if ( ! configEl?.textContent ) {
+		return null;
+	}
+	try {
+		const parsed = JSON.parse( configEl.textContent );
+		return {
+			postId: Number( parsed.postId ?? 0 ),
+			contestId: parsed.contestId ?? '',
+			heading: parsed.heading ?? 'Enter the Contest',
+			eventTitle: parsed.eventTitle ?? '',
+			entriesCloseAt: parsed.entriesCloseAt ?? '',
+			votingClosesAt: parsed.votingClosesAt ?? '',
+			showFinalists: Boolean( parsed.showFinalists ),
+			finalistCount: Number( parsed.finalistCount ?? 10 ),
+			isAdmin: Boolean( parsed.isAdmin ),
+		};
+	} catch {
+		return null;
+	}
+}
+
+function init(): void {
+	const containers = Array.from(
+		document.querySelectorAll< HTMLElement >(
+			'.extrachill-blocks-photo-contest-container'
+		)
+	);
+
+	containers.forEach( ( container ) => {
+		if ( container.dataset.initialized === '1' ) {
+			return;
+		}
+
+		const config = parseConfig( container );
+		if ( ! config || ! config.postId || ! config.contestId ) {
+			return;
+		}
+
+		if ( config.isAdmin ) {
+			return;
+		}
+
+		const mount = container.querySelector< HTMLElement >(
+			'.extrachill-blocks-photo-contest-app'
+		);
+		if ( ! mount ) {
+			return;
+		}
+
+		container.dataset.initialized = '1';
+
+		const root = createRoot( mount );
+		root.render( <PhotoContest { ...config } /> );
+	} );
+}
+
+if ( document.readyState === 'loading' ) {
+	document.addEventListener( 'DOMContentLoaded', init );
+} else {
+	init();
+}

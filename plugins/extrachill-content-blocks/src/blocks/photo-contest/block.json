@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "version": "1.3.4",
+  "name": "extrachill/photo-contest",
+  "title": "Photo Contest",
+  "icon": "camera",
+  "category": "widgets",
+  "description": "User-submitted photo contest: email-gated entries, public voting, per-entry share links, and an event ticket CTA.",
+  "keywords": [
+    "contest",
+    "photo",
+    "costume",
+    "voting",
+    "halloween"
+  ],
+  "textdomain": "extrachill-content-blocks",
+  "attributes": {
+    "contestId": {
+      "type": "string",
+      "default": ""
+    },
+    "heading": {
+      "type": "string",
+      "default": "Enter the Contest"
+    },
+    "eventTitle": {
+      "type": "string",
+      "default": ""
+    },
+    "eventDate": {
+      "type": "string",
+      "default": ""
+    },
+    "eventVenue": {
+      "type": "string",
+      "default": ""
+    },
+    "ticketUrl": {
+      "type": "string",
+      "default": ""
+    },
+    "eventUrl": {
+      "type": "string",
+      "default": ""
+    },
+    "entriesCloseAt": {
+      "type": "string",
+      "default": ""
+    },
+    "votingClosesAt": {
+      "type": "string",
+      "default": ""
+    },
+    "showFinalists": {
+      "type": "boolean",
+      "default": false
+    },
+    "finalistCount": {
+      "type": "number",
+      "default": 10
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": true
+  },
+  "viewScript": "file:./view.js",
+  "style": "file:./style-index.css",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "render": "file:./render.php"
+}
