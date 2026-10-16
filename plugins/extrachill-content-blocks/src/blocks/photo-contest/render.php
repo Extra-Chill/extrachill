@@ -30,17 +30,9 @@ if ( ! $contest_post_id && is_admin() ) {
 	$contest_post_id = isset( $post->ID ) ? $post->ID : 0;
 }
 
-$config = array(
-	'postId'         => (int) $contest_post_id,
-	'contestId'      => $contest_id,
-	'heading'        => $heading,
-	'eventTitle'     => $event_title,
-	'entriesCloseAt' => isset( $attributes['entriesCloseAt'] ) ? (string) $attributes['entriesCloseAt'] : '',
-	'votingClosesAt' => isset( $attributes['votingClosesAt'] ) ? (string) $attributes['votingClosesAt'] : '',
-	'showFinalists'  => ! empty( $attributes['showFinalists'] ),
-	'finalistCount'  => isset( $attributes['finalistCount'] ) ? max( 1, (int) $attributes['finalistCount'] ) : 10,
-	'isAdmin'        => is_admin(),
-);
+// Anonymous config stays byte-identical (full-page cached); moderators get
+// canModerate + a REST nonce on their cache-bypassing logged-in requests.
+$config = extrachill_content_blocks_photo_contest_render_config( (array) $attributes, (int) $contest_post_id );
 
 $wrapper_attributes = get_block_wrapper_attributes(
 	array(

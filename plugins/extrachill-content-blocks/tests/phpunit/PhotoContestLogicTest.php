@@ -20,8 +20,38 @@ class PhotoContestLogicTest extends TestCase {
 
 	private const CONTEST_ID = 'contest-1729000000000-123456';
 
+	/**
+	 * Temp files created for duplicate-photo hashing, cleaned up per test.
+	 *
+	 * @var string[]
+	 */
+	private array $tempFiles = array();
+
 	protected function setUp(): void {
 		wp_stubs_reset();
+	}
+
+	protected function tearDown(): void {
+		foreach ( $this->tempFiles as $path ) {
+			if ( is_file( $path ) ) {
+				unlink( $path );
+			}
+		}
+		$this->tempFiles = array();
+	}
+
+	/**
+	 * Create a real temp file with the given content (for md5_file hashing).
+	 *
+	 * @param string $content File content.
+	 * @return string Absolute path.
+	 */
+	private function createTempPhoto( string $content ): string {
+		$path = tempnam( sys_get_temp_dir(), 'ecpc' );
+		file_put_contents( $path, $content );
+		$this->tempFiles[] = $path;
+
+		return $path;
 	}
 
 	/**
@@ -333,6 +363,12 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertSame( 'upload_failed', $upload_error['code'] );
 	}
 
+	public function test_rate_limit_ceiling_is_venue_wifi_safe() {
+		// A whole venue shares one IP behind its wifi or carrier NAT; email
+		// dedup is the real control. 5 was too low for contest night.
+		$this->assertSame( 20, EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT );
+	}
+
 	public function test_submit_entry_rate_limits_per_ip() {
 		$post_id = $this->createContestPost();
 
@@ -367,6 +403,121 @@ class PhotoContestLogicTest extends TestCase {
 	}
 
 	// ─── Voting ──────────────────────────────────────────────────────────────
+
+	// ─── Duplicate photos ───────────────────────────────────────────────────────────
+
+	public function test_submit_entry_rejects_exact_duplicate_photos() {
+		$post_id = $this->createContestPost();
+		$photo   = $this->createTempPhoto( 'identical-costume-bytes' );
+
+		$first = $this->submitEntry(
+			$post_id,
+			array(
+				'file' => array(
+					'name'     => 'costume.jpg',
+					'tmp_name' => $photo,
+					'size'     => 1024,
+					'error'    => 0,
+				),
+			)
+		);
+		$this->assertTrue( $first['success'] );
+		$this->assertSame(
+			md5_file( $photo ),
+			get_post_meta( $first['entry']['id'], EXTRACHILL_PHOTO_CONTEST_META_HASH, true ),
+			'The content hash is stored as entry meta.'
+		);
+
+		// Same bytes in a different file, from a different entrant.
+		$copy      = $this->createTempPhoto( 'identical-costume-bytes' );
+		$duplicate = $this->submitEntry(
+			$post_id,
+			array(
+				'email' => 'copycat@example.com',
+				'file'  => array(
+					'name'     => 'copy.jpg',
+					'tmp_name' => $copy,
+					'size'     => 1024,
+					'error'    => 0,
+				),
+			)
+		);
+
+		$this->assertFalse( $duplicate['success'] );
+		$this->assertSame( 'duplicate_photo', $duplicate['code'] );
+		$this->assertCount(
+			1,
+			extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID, true ),
+			'The duplicate is rejected before any entry is stored.'
+		);
+
+		// Different bytes pass.
+		$fresh  = $this->createTempPhoto( 'different-costume-bytes' );
+		$result = $this->submitEntry(
+			$post_id,
+			array(
+				'email' => 'original@example.com',
+				'file'  => array(
+					'name'     => 'fresh.jpg',
+					'tmp_name' => $fresh,
+					'size'     => 1024,
+					'error'    => 0,
+				),
+			)
+		);
+		$this->assertTrue( $result['success'], 'A different photo from a new email is accepted.' );
+	}
+
+	public function test_duplicate_photo_check_includes_hidden_entries() {
+		$post_id = $this->createContestPost();
+		$photo   = $this->createTempPhoto( 'hidden-costume-bytes' );
+
+		$entry_id = $this->submitEntry(
+			$post_id,
+			array(
+				'file' => array(
+					'name'     => 'costume.jpg',
+					'tmp_name' => $photo,
+					'size'     => 1024,
+					'error'    => 0,
+				),
+			)
+		)['entry']['id'];
+
+		extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, true );
+
+		$copy  = $this->createTempPhoto( 'hidden-costume-bytes' );
+		$retry = $this->submitEntry(
+			$post_id,
+			array(
+				'email' => 'copycat@example.com',
+				'file'  => array(
+					'name'     => 'copy.jpg',
+					'tmp_name' => $copy,
+					'size'     => 1024,
+					'error'    => 0,
+				),
+			)
+		);
+
+		$this->assertSame( 'duplicate_photo', $retry['code'], 'Hiding a photo must not let the identical file back in.' );
+	}
+
+	public function test_unreadable_upload_skips_duplicate_check_instead_of_blocking() {
+		$post_id = $this->createContestPost();
+
+		// The default fixture tmp_name does not exist; both entries submit.
+		$first = $this->submitEntry( $post_id );
+		$this->assertTrue( $first['success'] );
+		$this->assertSame(
+			'',
+			get_post_meta( $first['entry']['id'], EXTRACHILL_PHOTO_CONTEST_META_HASH, true ),
+			'No hash meta is stored when the upload cannot be hashed.'
+		);
+
+		$second = $this->submitEntry( $post_id, array( 'email' => 'second@example.com' ) );
+		$this->assertTrue( $second['success'], 'Unhashable uploads never trip the duplicate rejection.' );
+	}
 
 	public function test_vote_uses_entry_keyed_image_vote_backend_with_dedup() {
 		$post_id  = $this->createContestPost();
@@ -553,6 +704,50 @@ class PhotoContestLogicTest extends TestCase {
 	}
 
 	// ─── OG deep links ───────────────────────────────────────────────────────
+
+	// ─── Render config ───────────────────────────────────────────────────────────────
+
+	public function test_render_config_for_anonymous_visitors_has_no_moderator_data() {
+		$post_id = $this->createContestPost();
+
+		$config = extrachill_content_blocks_photo_contest_render_config(
+			array( 'contestId' => self::CONTEST_ID ),
+			$post_id
+		);
+
+		// Anonymous pages are full-page cached: the config must never vary
+		// per visitor, so moderator keys are absent entirely (not false).
+		$this->assertArrayNotHasKey( 'canModerate', $config );
+		$this->assertArrayNotHasKey( 'restNonce', $config );
+		$this->assertStringNotContainsString( 'canModerate', (string) json_encode( $config ) );
+		$this->assertStringNotContainsString( 'restNonce', (string) json_encode( $config ) );
+
+		$this->assertSame( $post_id, $config['postId'] );
+		$this->assertSame( self::CONTEST_ID, $config['contestId'] );
+		$this->assertFalse( $config['isAdmin'] );
+	}
+
+	public function test_render_config_adds_flag_and_nonce_for_moderators_only() {
+		$post_id = $this->createContestPost();
+
+		wp_stubs_set_user_caps( array( 'edit_others_posts' ) );
+		$moderator = extrachill_content_blocks_photo_contest_render_config(
+			array( 'contestId' => self::CONTEST_ID ),
+			$post_id
+		);
+
+		$this->assertTrue( $moderator['canModerate'] );
+		$this->assertNotSame( '', $moderator['restNonce'] );
+
+		// A logged-in non-moderator gets the anonymous config too.
+		wp_stubs_set_user_caps( array( 'read' ) );
+		$subscriber = extrachill_content_blocks_photo_contest_render_config(
+			array( 'contestId' => self::CONTEST_ID ),
+			$post_id
+		);
+		$this->assertArrayNotHasKey( 'canModerate', $subscriber );
+		$this->assertArrayNotHasKey( 'restNonce', $subscriber );
+	}
 
 	public function test_og_overrides_swap_image_title_and_url_for_entry_deep_links() {
 		$post_id  = $this->createContestPost();

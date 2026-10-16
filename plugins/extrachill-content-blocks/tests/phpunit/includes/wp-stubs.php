@@ -27,7 +27,15 @@ function wp_stubs_reset(): void {
 	$GLOBALS['wp_test_comment_meta'] = array();
 	$GLOBALS['wp_test_transients']   = array();
 	$GLOBALS['wp_test_abilities']    = array();
+	$GLOBALS['wp_test_user_caps']    = array();
 	$GLOBALS['wp_test_next_id']      = 1000;
+}
+
+/**
+ * Grant the fake current user a set of capabilities (e.g. a moderator).
+ */
+function wp_stubs_set_user_caps( array $caps ): void {
+	$GLOBALS['wp_test_user_caps'] = $caps;
 }
 
 function wp_stubs_next_id(): int {
@@ -327,6 +335,25 @@ function __return_true() {
  * Tests model the anonymous contest voter: nobody is ever logged in.
  */
 function is_user_logged_in() {
+	return false;
+}
+
+/**
+ * Capability checks read the caps granted via wp_stubs_set_user_caps();
+ * the default (empty) models an anonymous visitor.
+ */
+function current_user_can( $capability ) {
+	return in_array( (string) $capability, $GLOBALS['wp_test_user_caps'] ?? array(), true );
+}
+
+function wp_create_nonce( $action = -1 ) {
+	return 'stub-nonce-' . md5( (string) $action );
+}
+
+/**
+ * Frontend render context: never the admin screen.
+ */
+function is_admin() {
 	return false;
 }
 

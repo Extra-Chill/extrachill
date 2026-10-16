@@ -45,3 +45,5 @@ function extrachill_content_blocks_photo_contest_store_photo( $post_id, array $f
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/src/blocks/image-voting/index.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/src/blocks/photo-contest/index.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-vote.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-hide.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-list.php';

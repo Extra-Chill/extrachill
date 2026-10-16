@@ -60,10 +60,14 @@ function extrachill_content_blocks_register_photo_contest_hide_ability(): void {
 			'execute_callback'    => 'extrachill_content_blocks_photo_contest_hide_ability_execute',
 			'meta'                => array(
 				'show_in_rest' => true,
+				// Hiding is reversible (unhide restores the entry), so it is
+				// not destructive. Core's Abilities REST runner maps
+				// destructive+idempotent to DELETE; this keeps it on POST,
+				// which the front-end moderator controls use.
 				'annotations'  => array(
 					'readonly'    => false,
 					'idempotent'  => true,
-					'destructive' => true,
+					'destructive' => false,
 				),
 			),
 		)

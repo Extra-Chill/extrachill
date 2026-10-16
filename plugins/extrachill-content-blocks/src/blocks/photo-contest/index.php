@@ -44,6 +44,9 @@ if ( ! defined( 'EXTRACHILL_PHOTO_CONTEST_META_INSTAGRAM' ) ) {
 if ( ! defined( 'EXTRACHILL_PHOTO_CONTEST_META_HIDDEN' ) ) {
 	define( 'EXTRACHILL_PHOTO_CONTEST_META_HIDDEN', '_photo_contest_hidden' );
 }
+if ( ! defined( 'EXTRACHILL_PHOTO_CONTEST_META_HASH' ) ) {
+	define( 'EXTRACHILL_PHOTO_CONTEST_META_HASH', '_photo_contest_photo_hash' );
+}
 
 /**
  * Maximum accepted photo upload size in bytes (10 MB).
@@ -53,10 +56,12 @@ if ( ! defined( 'EXTRACHILL_PHOTO_CONTEST_MAX_UPLOAD_BYTES' ) ) {
 }
 
 /**
- * Submissions allowed per IP inside the rate-limit window.
+ * Submissions allowed per IP inside the rate-limit window. Deliberately
+ * generous: a whole venue shares one IP behind its wifi or carrier NAT, and
+ * email dedup (one entry per email) is the real control.
  */
 if ( ! defined( 'EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT' ) ) {
-	define( 'EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT', 5 );
+	define( 'EXTRACHILL_PHOTO_CONTEST_RATE_LIMIT', 20 );
 }
 
 /**
@@ -276,6 +281,67 @@ function extrachill_content_blocks_photo_contest_find_entry_by_email( $post_id, 
 				array(
 					'key'   => EXTRACHILL_PHOTO_CONTEST_META_EMAIL,
 					'value' => $email,
+				),
+			),
+		)
+	);
+
+	return empty( $ids ) ? 0 : (int) $ids[0];
+}
+
+/**
+ * Content hash of an uploaded photo, for exact-duplicate rejection.
+ *
+ * Hashes the uploaded temp file before it is stored. Returns '' when the
+ * file cannot be read (dedup is then skipped rather than blocking a
+ * legitimate entry).
+ *
+ * @param mixed $file One $_FILES-shaped entry.
+ * @return string md5 content hash, or '' when unavailable.
+ */
+function extrachill_content_blocks_photo_contest_photo_hash( $file ) {
+	$tmp_name = is_array( $file ) ? (string) ( $file['tmp_name'] ?? '' ) : '';
+	if ( '' === $tmp_name || ! is_readable( $tmp_name ) || ! is_file( $tmp_name ) ) {
+		return '';
+	}
+
+	$hash = md5_file( $tmp_name );
+
+	return false === $hash ? '' : (string) $hash;
+}
+
+/**
+ * Find an existing entry with the same photo content hash within a contest.
+ *
+ * Includes hidden entries so a hidden photo cannot simply be resubmitted.
+ *
+ * @param int    $post_id    Contest post ID.
+ * @param string $contest_id Contest block instance id.
+ * @param string $hash       Photo content hash.
+ * @return int Entry attachment ID, or 0 when none.
+ */
+function extrachill_content_blocks_photo_contest_find_entry_by_hash( $post_id, $contest_id, $hash ) {
+	$hash = (string) $hash;
+	if ( '' === $hash ) {
+		return 0;
+	}
+
+	$ids = get_posts(
+		array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'post_parent'    => (int) $post_id,
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+			'meta_query'     => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				array(
+					'key'   => EXTRACHILL_PHOTO_CONTEST_META_CONTEST,
+					'value' => (string) $contest_id,
+				),
+				array(
+					'key'   => EXTRACHILL_PHOTO_CONTEST_META_HASH,
+					'value' => $hash,
 				),
 			),
 		)
@@ -580,8 +646,9 @@ function extrachill_content_blocks_photo_contest_vote_rate_limit_ok( $ip ) {
  * Process a photo-contest entry submission (business logic).
  *
  * Validation order: honeypot → rate limit → contest exists → entries window →
- * email → name → duplicate entry → photo validity → store. Entries go live
- * immediately; admins hide bad ones via the hide ability / CLI.
+ * email → name → duplicate entry → photo validity → duplicate photo → store.
+ * Entries go live immediately; admins hide bad ones via the hide ability /
+ * CLI / the front-end moderator controls.
  *
  * @param array $args {
  *     Submission arguments.
@@ -676,6 +743,18 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 		return $valid;
 	}
 
+	// Exact-duplicate photo (same content hash within this contest), checked
+	// before the file is stored. Hidden entries count: hiding a photo must
+	// not allow the identical file back in.
+	$photo_hash = extrachill_content_blocks_photo_contest_photo_hash( $file );
+	if ( '' !== $photo_hash && extrachill_content_blocks_photo_contest_find_entry_by_hash( $post_id, $contest_id, $photo_hash ) > 0 ) {
+		return array(
+			'success' => false,
+			'message' => 'That photo has already been entered in this contest — try a different shot!',
+			'code'    => 'duplicate_photo',
+		);
+	}
+
 	$stored = extrachill_content_blocks_photo_contest_store_photo( $post_id, $file, $display_name );
 	if ( is_array( $stored ) ) {
 		return $stored;
@@ -686,6 +765,9 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 	update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_CONTEST, $contest_id );
 	update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_EMAIL, $email );
 	update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_NAME, $display_name );
+	if ( '' !== $photo_hash ) {
+		update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_HASH, $photo_hash );
+	}
 	if ( '' !== $instagram ) {
 		update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_INSTAGRAM, $instagram );
 	}
@@ -816,6 +898,44 @@ function extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, $h
 		'success' => true,
 		'message' => $hidden ? 'Entry hidden.' : 'Entry restored.',
 	);
+}
+
+/**
+ * Frontend config JSON for the photo-contest block (render.php JSON island).
+ *
+ * Contest pages sit behind full-page cache for anonymous visitors, so the
+ * anonymous config must stay byte-identical and never vary per visitor.
+ * Moderators (logged-in requests bypass the cache) additionally receive a
+ * `canModerate` flag and a REST nonce so view.tsx can show Hide/Unhide
+ * controls and call the hide ability through core's Abilities REST runner.
+ * The hide ability's permission check remains the authority.
+ *
+ * @param array $attributes Block attributes.
+ * @param int   $post_id    Contest post ID.
+ * @return array Config array for wp_json_encode().
+ */
+function extrachill_content_blocks_photo_contest_render_config( array $attributes, $post_id ) {
+	$config = array(
+		'postId'         => (int) $post_id,
+		'contestId'      => isset( $attributes['contestId'] ) ? (string) $attributes['contestId'] : '',
+		'heading'        => isset( $attributes['heading'] ) ? (string) $attributes['heading'] : 'Enter the Contest',
+		'eventTitle'     => isset( $attributes['eventTitle'] ) ? (string) $attributes['eventTitle'] : '',
+		'entriesCloseAt' => isset( $attributes['entriesCloseAt'] ) ? (string) $attributes['entriesCloseAt'] : '',
+		'votingClosesAt' => isset( $attributes['votingClosesAt'] ) ? (string) $attributes['votingClosesAt'] : '',
+		'showFinalists'  => ! empty( $attributes['showFinalists'] ),
+		'finalistCount'  => isset( $attributes['finalistCount'] ) ? max( 1, (int) $attributes['finalistCount'] ) : 10,
+		'isAdmin'        => is_admin(),
+	);
+
+	if ( function_exists( 'extrachill_content_blocks_photo_contest_can_moderate' )
+		&& extrachill_content_blocks_photo_contest_can_moderate()
+		&& function_exists( 'wp_create_nonce' )
+	) {
+		$config['canModerate'] = true;
+		$config['restNonce']   = (string) wp_create_nonce( 'wp_rest' );
+	}
+
+	return $config;
 }
 
 /**

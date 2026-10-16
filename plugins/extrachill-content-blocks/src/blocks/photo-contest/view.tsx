@@ -16,6 +16,11 @@
  * Deep links (?entry=<id>) surface that entry first and scroll to it; the
  * backend swaps the OG image for the entry photo so shares unfurl with the
  * entrant's costume.
+ *
+ * Moderators (config.canModerate, emitted only on cache-bypassing logged-in
+ * requests) additionally see hidden entries (dimmed, labelled "Hidden") and a
+ * one-tap Hide/Unhide button per card, wired to the extrachill/photo-contest-hide
+ * ability through core's Abilities REST runner with the config's REST nonce.
  */
 
 import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
@@ -33,6 +38,8 @@ interface ContestConfig {
 	showFinalists: boolean;
 	finalistCount: number;
 	isAdmin: boolean;
+	canModerate: boolean;
+	restNonce: string;
 }
 
 interface Entry {
@@ -43,6 +50,7 @@ interface Entry {
 	thumbnail_url: string;
 	vote_count: number;
 	share_url: string;
+	hidden?: boolean;
 }
 
 interface EntriesResponse {
@@ -56,6 +64,52 @@ interface VoteResponse {
 interface SubmitResponse {
 	message: string;
 	entry: Entry;
+}
+
+/**
+ * Run a write ability through core's Abilities REST runner (POST), sending
+ * the moderator's REST nonce from the render config.
+ * @param ability Namespaced ability name, e.g. "extrachill/photo-contest-hide".
+ * @param input   Ability input matching its input schema.
+ * @param nonce   REST nonce from the moderator config.
+ */
+async function runAbility< T >(
+	ability: string,
+	input: Record< string, unknown >,
+	nonce: string
+): Promise< T > {
+	return ( await apiFetch( {
+		path: `/wp-abilities/v1/abilities/${ ability }/run`,
+		method: 'POST',
+		headers: { 'X-WP-Nonce': nonce },
+		data: { input },
+	} ) ) as T;
+}
+
+/**
+ * Run a read-only ability through core's Abilities REST runner. Readonly
+ * abilities execute over GET with the input as `input[...]` query params.
+ * @param ability Namespaced ability name, e.g. "extrachill/photo-contest-list".
+ * @param input   Ability input matching its input schema.
+ * @param nonce   REST nonce from the moderator config.
+ */
+async function runReadonlyAbility< T >(
+	ability: string,
+	input: Record< string, string | number | boolean >,
+	nonce: string
+): Promise< T > {
+	const query = Object.entries( input )
+		.map(
+			( [ key, value ] ) =>
+				`input%5B${ encodeURIComponent(
+					key
+				) }%5D=${ encodeURIComponent( String( value ) ) }`
+		)
+		.join( '&' );
+	return ( await apiFetch( {
+		path: `/wp-abilities/v1/abilities/${ ability }/run?${ query }`,
+		headers: { 'X-WP-Nonce': nonce },
+	} ) ) as T;
 }
 
 function getSavedEmail(): string {
@@ -219,12 +273,14 @@ function EntryCard( {
 	votingClosed,
 	highlighted,
 	onVoted,
+	onHiddenChange,
 }: {
 	entry: Entry;
 	config: ContestConfig;
 	votingClosed: boolean;
 	highlighted: boolean;
 	onVoted: ( entryId: number, voteCount: number ) => void;
+	onHiddenChange: ( entryId: number, hidden: boolean ) => void;
 } ) {
 	const [ hasVoted, setHasVoted ] = useState( () =>
 		getVotedEntries( config.contestId ).includes( entry.id )
@@ -234,6 +290,7 @@ function EntryCard( {
 	const [ email, setEmail ] = useState( getSavedEmail() );
 	const [ isVoting, setIsVoting ] = useState( false );
 	const [ error, setError ] = useState( '' );
+	const [ isModerating, setIsModerating ] = useState( false );
 	const isVotingRef = useRef( false );
 	const cardRef = useRef< HTMLDivElement | null >( null );
 	const emailInputRef = useRef< HTMLInputElement | null >( null );
@@ -298,6 +355,33 @@ function EntryCard( {
 		}
 	};
 
+	const isHidden = Boolean( entry.hidden );
+
+	const toggleHidden = async () => {
+		if ( isModerating || ! config.restNonce ) {
+			return;
+		}
+		setIsModerating( true );
+		setError( '' );
+		try {
+			await runAbility(
+				'extrachill/photo-contest-hide',
+				{ entry_id: entry.id, hidden: ! isHidden },
+				config.restNonce
+			);
+			onHiddenChange( entry.id, ! isHidden );
+		} catch ( err ) {
+			const messageText =
+				err instanceof Error
+					? err.message
+					: ( err as { message?: string } )?.message ||
+					  'Moderation failed — please try again.';
+			setError( messageText );
+		} finally {
+			setIsModerating( false );
+		}
+	};
+
 	const handleVoteClick = () => {
 		if ( hasVoted || votingClosed ) {
 			return;
@@ -335,10 +419,17 @@ function EntryCard( {
 				highlighted
 					? ' extrachill-blocks-photo-contest-entry-highlight'
 					: ''
+			}${
+				isHidden ? ' extrachill-blocks-photo-contest-entry-hidden' : ''
 			}` }
 			id={ `photo-contest-entry-${ entry.id }` }
 		>
 			<div className="extrachill-blocks-photo-contest-entry-image-wrap">
+				{ isHidden && (
+					<span className="extrachill-blocks-photo-contest-hidden-badge">
+						Hidden
+					</span>
+				) }
 				<img
 					className="extrachill-blocks-photo-contest-entry-image"
 					src={ entry.thumbnail_url || entry.image_url }
@@ -368,11 +459,29 @@ function EntryCard( {
 					className={ `extrachill-blocks-photo-contest-vote-button ${
 						hasVoted ? 'button-2' : 'button-1'
 					} button-medium` }
-					disabled={ hasVoted || isVoting || votingClosed }
+					disabled={
+						hasVoted || isVoting || votingClosed || isHidden
+					}
 					onClick={ handleVoteClick }
 				>
 					{ voteLabel }
 				</button>
+				{ config.canModerate && (
+					<button
+						className={ `extrachill-blocks-photo-contest-mod-button ${
+							isHidden ? 'button-2' : 'button-3'
+						} button-small` }
+						disabled={ isModerating }
+						onClick={ toggleHidden }
+					>
+						{ ( () => {
+							if ( isModerating ) {
+								return isHidden ? 'Unhiding…' : 'Hiding…';
+							}
+							return isHidden ? 'Unhide' : 'Hide';
+						} )() }
+					</button>
+				) }
 				{ showForm && ! hasVoted && (
 					<div className="extrachill-blocks-photo-contest-vote-form">
 						<input
@@ -608,16 +717,38 @@ function PhotoContest( config: ContestConfig ) {
 
 	useEffect( () => {
 		let cancelled = false;
-		apiFetch( {
-			path: `/extrachill/v1/content-blocks/photo-contest/entries?post_id=${
-				config.postId
-			}&contest_id=${ encodeURIComponent( config.contestId ) }`,
-		} )
-			.then( ( response ) => {
+		const fetchEntries = async (): Promise< Entry[] > => {
+			// Moderators list through the abilities runner so hidden entries
+			// stay visible to them; any failure falls back to the public list.
+			if ( config.canModerate && config.restNonce ) {
+				try {
+					const moderated =
+						await runReadonlyAbility< EntriesResponse >(
+							'extrachill/photo-contest-list',
+							{
+								post_id: config.postId,
+								contest_id: config.contestId,
+								include_hidden: true,
+							},
+							config.restNonce
+						);
+					return moderated.entries || [];
+				} catch {
+					// Fall through to the public route.
+				}
+			}
+			const response = ( await apiFetch( {
+				path: `/extrachill/v1/content-blocks/photo-contest/entries?post_id=${
+					config.postId
+				}&contest_id=${ encodeURIComponent( config.contestId ) }`,
+			} ) ) as EntriesResponse;
+			return response.entries || [];
+		};
+		fetchEntries()
+			.then( ( list ) => {
 				if ( cancelled ) {
 					return;
 				}
-				const list = ( response as EntriesResponse ).entries || [];
 				// Shuffle on every load; deep-linked entry surfaces first.
 				let ordered = shuffle( list );
 				if ( highlightId ) {
@@ -652,6 +783,16 @@ function PhotoContest( config: ContestConfig ) {
 		);
 	};
 
+	const handleHiddenChange = ( entryId: number, hidden: boolean ) => {
+		setEntries( ( prev ) =>
+			prev
+				? prev.map( ( e ) =>
+						e.id === entryId ? { ...e, hidden } : e
+				  )
+				: prev
+		);
+	};
+
 	const handleSubmitted = ( entry: Entry ) => {
 		setEntries( ( prev ) => {
 			if ( ! prev || prev.some( ( e ) => e.id === entry.id ) ) {
@@ -662,7 +803,8 @@ function PhotoContest( config: ContestConfig ) {
 	};
 
 	const finalists = showFinalists
-		? [ ...( entries || [] ) ]
+		? ( entries || [] )
+				.filter( ( e ) => ! e.hidden )
 				.sort( ( a, b ) =>
 					b.vote_count !== a.vote_count
 						? b.vote_count - a.vote_count
@@ -715,6 +857,7 @@ function PhotoContest( config: ContestConfig ) {
 									votingClosed={ true }
 									highlighted={ entry.id === highlightId }
 									onVoted={ handleVoted }
+									onHiddenChange={ handleHiddenChange }
 								/>
 							</div>
 						) ) }
@@ -736,6 +879,7 @@ function PhotoContest( config: ContestConfig ) {
 							votingClosed={ votingClosed }
 							highlighted={ entry.id === highlightId }
 							onVoted={ handleVoted }
+							onHiddenChange={ handleHiddenChange }
 						/>
 					) ) }
 				</div>
@@ -763,6 +907,8 @@ function parseConfig( container: HTMLElement ): ContestConfig | null {
 			showFinalists: Boolean( parsed.showFinalists ),
 			finalistCount: Number( parsed.finalistCount ?? 10 ),
 			isAdmin: Boolean( parsed.isAdmin ),
+			canModerate: Boolean( parsed.canModerate ),
+			restNonce: parsed.restNonce ?? '',
 		};
 	} catch {
 		return null;
