@@ -174,6 +174,7 @@ function extrachill_users_init() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/intelligence-permissions.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-login-cta.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
