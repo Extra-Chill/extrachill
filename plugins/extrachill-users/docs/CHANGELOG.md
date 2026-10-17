@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.51.3] - 2026-10-17
+
+### Fixed
+- render login-register CTA for logged-out readers network-wide
+- initialize GSI before rendering the button
+
 ## [0.51.2] - 2026-10-17
 
 ### Fixed
