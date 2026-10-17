@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.51.2] - 2026-10-17
+
+### Fixed
+- assign team role to existing members on new sites and backfill missing sites
+
 ## [0.51.1] - 2026-10-15
 
 ### Changed
