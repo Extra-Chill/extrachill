@@ -520,10 +520,13 @@ export function LoginRegisterApp( { config } ) {
 			if ( ! ready ) {
 				return;
 			}
-			setGoogleReady( true );
+			// Initialize before flipping googleReady: renderAllButtons() must
+			// never run before google.accounts.id.initialize(), or GSI refuses
+			// to render the button (issue #463).
 			if ( window.ECGoogleSignIn && window.ecGoogleConfig ) {
 				window.ECGoogleSignIn.init( window.ecGoogleConfig );
 			}
+			setGoogleReady( true );
 		};
 
 		initWhenReady();

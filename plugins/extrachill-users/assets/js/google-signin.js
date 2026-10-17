@@ -58,9 +58,17 @@
     /**
      * Render Google Sign-In button in a container.
      *
+     * No-op until init() has called google.accounts.id.initialize(). GSI
+     * refuses to render buttons before initialize(), and marking the
+     * container rendered in that state would permanently block re-render.
+     *
      * @param {HTMLElement} container Button container element.
      */
     function renderButton(container) {
+        if (!initialized) {
+            return;
+        }
+
         if (!container) {
             return;
         }
@@ -85,6 +93,10 @@
     }
 
     function renderAllButtons() {
+        if (!initialized) {
+            return;
+        }
+
         if (typeof google === 'undefined' || !google.accounts) {
             return;
         }
