@@ -63,8 +63,11 @@
 			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
 			<file>tests/Unit/Abilities/EventRoundupPermissionTest.php</file>
 			<file>tests/Unit/Abilities/EventRoundupTaxFiltersTest.php</file>
+			<file>tests/Unit/Abilities/VenueGraphicsAbilityTest.php</file>
+			<file>tests/Unit/Abilities/EventRoundupPartnerLogoPathTest.php</file>
 			<file>tests/Unit/Core/VenueTierVocabularyTest.php</file>
 			<file>tests/Unit/Templates/EventRoundupSlidePlanTest.php</file>
+			<file>tests/Unit/Templates/EventRoundupCoBrandTest.php</file>
 			<file>tests/Unit/Templates/EventPosterTemplateTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionPlanTest.php</file>
 			<file>tests/Unit/Core/VenueExpansionRunnerTest.php</file>

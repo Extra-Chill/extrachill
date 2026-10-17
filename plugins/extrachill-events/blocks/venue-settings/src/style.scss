@@ -375,6 +375,42 @@
 	margin-inline-start: 0.75rem;
 }
 
+.ec-venue-graphics__ranges,
+.ec-venue-graphics__layouts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs);
+	margin-block-end: var(--spacing-md);
+}
+
+.ec-venue-graphics__custom {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-md);
+}
+
+.ec-venue-graphics__slides {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+	gap: var(--spacing-md);
+	list-style: none;
+	margin: var(--spacing-md) 0 0;
+	padding: 0;
+}
+
+.ec-venue-graphics__slide {
+	display: grid;
+	gap: var(--spacing-xs);
+	justify-items: stretch;
+}
+
+.ec-venue-graphics__slide img {
+	width: 100%;
+	height: auto;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+}
+
 .ec-booking-console {
 	display: grid;
 	gap: 1rem;

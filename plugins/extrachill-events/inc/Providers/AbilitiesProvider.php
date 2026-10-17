@@ -60,6 +60,7 @@ final class AbilitiesProvider {
 					'VenueBookingConfigAbilities',
 					'VenueCalendarFeedAbilities',
 					'VenueProfileAbilities',
+					'VenueGraphicsAbilities',
 					'ManagedVenueVoicesAbilities',
 					'VenueBookingAbilities',
 					'ArtistBookingInquiryAbilities',

@@ -150,37 +150,41 @@ class EventRoundupAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'day_groups'      => array(
+						'day_groups'        => array(
 							'type'                 => 'object',
 							'description'          => __( 'Date-keyed day groups from event-roundup-query.', 'extrachill-events' ),
 							'additionalProperties' => array( 'type' => 'object' ),
 						),
-						'title'           => array(
+						'title'             => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for first slide.', 'extrachill-events' ),
 						),
-						'cta_text'        => array(
+						'cta_text'          => array(
 							'type'        => 'string',
 							'description' => __( 'Optional footer CTA. Defaults to the current site host.', 'extrachill-events' ),
 						),
-						'cover'           => array(
+						'cover'             => array(
 							'type'        => 'boolean',
 							'description' => __( 'Prepend a cover slide with the title, date range, and show/venue counts.', 'extrachill-events' ),
 						),
-						'closing'         => array(
+						'closing'           => array(
 							'type'        => 'boolean',
 							'description' => __( 'Append a closing CTA slide and drop the per-slide footer.', 'extrachill-events' ),
 						),
-						'closing_text'    => array(
+						'closing_text'      => array(
 							'type'        => 'string',
 							'description' => __( 'Optional supporting line on the closing slide.', 'extrachill-events' ),
 						),
-						'layout'          => array(
+						'layout'            => array(
 							'type'        => 'string',
 							'enum'        => array( 'daily', 'calendar' ),
 							'description' => __( 'List layout. "daily" (default) gives each day a header; "calendar" puts one compact row per show with the date in a left column, for long ranges such as a venue\'s month.', 'extrachill-events' ),
 						),
-						'storage_context' => array(
+						'partner_logo_path' => array(
+							'type'        => 'string',
+							'description' => __( 'Optional co-brand image path (e.g. a venue logo) drawn on the cover and closing slides. The Extra Chill mark stays on every slide.', 'extrachill-events' ),
+						),
+						'storage_context'   => array(
 							'type'        => 'object',
 							'description' => __( 'Optional storage context with pipeline_id and flow_id. When omitted, renders to temp files.', 'extrachill-events' ),
 						),
@@ -216,24 +220,24 @@ class EventRoundupAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'date_start'   => array(
+						'date_start'        => array(
 							'type'        => 'string',
 							'description' => __( 'Start date (Y-m-d). Defaults to today.', 'extrachill-events' ),
 						),
-						'date_end'     => array(
+						'date_end'          => array(
 							'type'        => 'string',
 							'description' => __( 'End date (Y-m-d). Defaults to date_start (single-day roundup).', 'extrachill-events' ),
 						),
-						'scope'        => array(
+						'scope'             => array(
 							'type'        => 'string',
 							'enum'        => array( 'today', 'tonight', 'this-weekend', 'this-week' ),
 							'description' => __( 'Named date scope shared with the calendar API. Ignored when date_start is provided.', 'extrachill-events' ),
 						),
-						'location'     => array(
+						'location'          => array(
 							'type'        => 'string',
 							'description' => __( 'Location taxonomy term slug or numeric term ID. Optional.', 'extrachill-events' ),
 						),
-						'tax_filters'  => array(
+						'tax_filters'       => array(
 							'type'                 => 'object',
 							'description'          => __( 'Extra taxonomy filters as { taxonomy: [slugs or term IDs] }, e.g. { "event_type": ["concert"] }. Terms within a taxonomy match any; taxonomies combine. Unknown taxonomies or terms are rejected.', 'extrachill-events' ),
 							'additionalProperties' => array(
@@ -241,35 +245,39 @@ class EventRoundupAbilities {
 								'items' => array( 'type' => array( 'string', 'integer' ) ),
 							),
 						),
-						'venue_tier'   => array(
+						'venue_tier'        => array(
 							'type'        => array( 'string', 'array' ),
 							'items'       => array( 'type' => 'string' ),
 							'description' => __( 'Venue tier slug(s), passed to the events query. Several tiers (array or comma-separated) match any of them.', 'extrachill-events' ),
 						),
-						'title'        => array(
+						'title'             => array(
 							'type'        => 'string',
 							'description' => __( 'Optional title for the first slide.', 'extrachill-events' ),
 						),
-						'cta_text'     => array(
+						'cta_text'          => array(
 							'type'        => 'string',
 							'description' => __( 'Optional footer CTA. Defaults to the current site host.', 'extrachill-events' ),
 						),
-						'cover'        => array(
+						'cover'             => array(
 							'type'        => 'boolean',
 							'description' => __( 'Prepend a cover slide with the title, date range, and show/venue counts.', 'extrachill-events' ),
 						),
-						'closing'      => array(
+						'closing'           => array(
 							'type'        => 'boolean',
 							'description' => __( 'Append a closing CTA slide and drop the per-slide footer.', 'extrachill-events' ),
 						),
-						'closing_text' => array(
+						'closing_text'      => array(
 							'type'        => 'string',
 							'description' => __( 'Optional supporting line on the closing slide.', 'extrachill-events' ),
 						),
-						'layout'       => array(
+						'layout'            => array(
 							'type'        => 'string',
 							'enum'        => array( 'daily', 'calendar' ),
 							'description' => __( 'List layout. "daily" (default) gives each day a header; "calendar" puts one compact row per show with the date in a left column, for long ranges such as a venue\'s month.', 'extrachill-events' ),
+						),
+						'partner_logo_path' => array(
+							'type'        => 'string',
+							'description' => __( 'Optional co-brand image path (e.g. a venue logo) drawn on the cover and closing slides. The Extra Chill mark stays on every slide.', 'extrachill-events' ),
 						),
 					),
 				),
@@ -725,11 +733,33 @@ class EventRoundupAbilities {
 	 */
 	private static function slideOptions( array $input ): array {
 		return array(
-			'cover'        => ! empty( $input['cover'] ),
-			'closing'      => ! empty( $input['closing'] ),
-			'closing_text' => (string) ( $input['closing_text'] ?? '' ),
-			'layout'       => 'calendar' === ( $input['layout'] ?? '' ) ? 'calendar' : 'daily',
+			'cover'             => ! empty( $input['cover'] ),
+			'closing'           => ! empty( $input['closing'] ),
+			'closing_text'      => (string) ( $input['closing_text'] ?? '' ),
+			'layout'            => 'calendar' === ( $input['layout'] ?? '' ) ? 'calendar' : 'daily',
+			'partner_logo_path' => self::uploadsPath( (string) ( $input['partner_logo_path'] ?? '' ) ),
 		);
+	}
+
+	/**
+	 * Accept a co-brand image path only when it lives in this site's uploads.
+	 *
+	 * The path is caller input on staff-facing abilities, so it is confined
+	 * to uploaded media rather than any readable file on the server.
+	 *
+	 * @param string $path Requested path.
+	 * @return string The resolved path, or '' when outside uploads.
+	 */
+	public static function uploadsPath( string $path ): string {
+		if ( '' === $path || ! function_exists( 'wp_get_upload_dir' ) ) {
+			return '';
+		}
+		$real = realpath( $path );
+		$base = realpath( (string) ( wp_get_upload_dir()['basedir'] ?? '' ) );
+		if ( false === $real || false === $base ) {
+			return '';
+		}
+		return 0 === strpos( $real, rtrim( $base, '/' ) . '/' ) ? $real : '';
 	}
 
 	private function countEvents( array $day_groups ): int {

@@ -39,6 +39,13 @@
  *     rows. 'calendar': one compact row per show with the date in a left
  *     column and the time right-aligned, for long ranges such as a venue's
  *     month.
+ *   - partner_logo_path (string) — optional co-brand image (e.g. a venue
+ *     logo for venue-scoped graphics). Drawn prominently on the cover and
+ *     closing slides only; the Extra Chill brand mark still appears on
+ *     every slide. An unreadable or missing path is ignored, so output
+ *     without a partner logo is identical to a render that never set one.
+ *     List-slide packing never reads it, so the slide plan and canvas
+ *     dimensions are unchanged either way.
  *
  * In both layouts the same show twice on one day at one venue (early and
  * late sets) is one row with both times, and when every show shares one
@@ -109,6 +116,8 @@ class EventRoundupTemplate implements TemplateInterface {
 	private const CAL_TIME_GAP           = 24;
 	private const CAL_ROW_GAP            = 14;
 	private const CAL_DAY_GAP            = 12;
+	private const PARTNER_MARK_HEIGHT    = 170;
+	private const PARTNER_MARK_GAP       = 40;
 
 	/**
 	 * Inverse logo path for the current render, or '' when unavailable.
@@ -123,6 +132,13 @@ class EventRoundupTemplate implements TemplateInterface {
 	 * @var string
 	 */
 	private $brand_text = '';
+
+	/**
+	 * Co-brand (partner/venue) logo path for the current render, or ''.
+	 *
+	 * @var string
+	 */
+	private $partner_logo_path = '';
 
 	/**
 	 * Active list layout: 'daily' or 'calendar'.
@@ -169,38 +185,43 @@ class EventRoundupTemplate implements TemplateInterface {
 
 	public function get_fields(): array {
 		return array(
-			'day_groups'   => array(
+			'day_groups'        => array(
 				'label'    => 'Day Groups',
 				'type'     => 'array',
 				'required' => true,
 			),
-			'title'        => array(
+			'title'             => array(
 				'label'    => 'Title',
 				'type'     => 'string',
 				'required' => false,
 			),
-			'cta_text'     => array(
+			'cta_text'          => array(
 				'label'    => 'CTA Text',
 				'type'     => 'string',
 				'required' => false,
 			),
-			'cover'        => array(
+			'cover'             => array(
 				'label'    => 'Cover Slide',
 				'type'     => 'boolean',
 				'required' => false,
 			),
-			'closing'      => array(
+			'closing'           => array(
 				'label'    => 'Closing Slide',
 				'type'     => 'boolean',
 				'required' => false,
 			),
-			'closing_text' => array(
+			'closing_text'      => array(
 				'label'    => 'Closing Text',
 				'type'     => 'string',
 				'required' => false,
 			),
-			'layout'       => array(
+			'layout'            => array(
 				'label'    => 'Layout',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'partner_logo_path' => array(
+				'label'    => 'Partner Logo Path',
 				'type'     => 'string',
 				'required' => false,
 			),
@@ -233,6 +254,11 @@ class EventRoundupTemplate implements TemplateInterface {
 		$logo             = (string) ( $tokens['logo_path_inverse'] ?? '' );
 		$this->logo_path  = ( '' !== $logo && is_readable( $logo ) && false !== @getimagesize( $logo ) ) ? $logo : ''; // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable images fall back to brand text.
 		$this->brand_text = trim( (string) ( $tokens['brand_text'] ?? '' ) );
+
+		// Optional co-brand mark (e.g. a venue logo). Unreadable paths are
+		// ignored so a broken attachment degrades to today's output.
+		$partner                 = (string) ( $data['partner_logo_path'] ?? '' );
+		$this->partner_logo_path = ( '' !== $partner && is_readable( $partner ) && false !== @getimagesize( $partner ) ) ? $partner : ''; // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable images drop the co-brand mark.
 
 		// Build a per-render font lookup. GDRenderer is created fresh for
 		// every slide so register_font() needs to run inside render_slide.
@@ -438,11 +464,18 @@ class EventRoundupTemplate implements TemplateInterface {
 
 		$this->draw_day_stripes( $renderer, $day_groups, 0, $day_palette );
 
+		// Co-brand: the partner (venue) logo sits top-right, under the
+		// stripes. Without a partner logo the cover is unchanged.
+		$partner_bottom = $this->draw_partner_mark( $renderer, self::PARTNER_MARK_HEIGHT, 'corner', self::STRIPE_HEIGHT + self::PADDING );
+
 		$title             = strtoupper( '' !== $title ? $title : 'Shows' );
 		$lines             = $renderer->wrap_text( $title, self::COVER_TITLE_SIZE, 'header', $max_w );
 		$title_line_height = (int) ( self::COVER_TITLE_SIZE * 1.15 );
 		$block_height      = count( $lines ) * $title_line_height + 40 + (int) ( self::COVER_DATE_SIZE * 1.4 ) + (int) ( self::COVER_STATS_SIZE * 1.4 );
 		$y                 = max( self::PADDING * 3, (int) ( ( $height - $block_height ) / 2 ) - 40 );
+		if ( $partner_bottom > 0 ) {
+			$y = max( $y, $partner_bottom + self::PARTNER_MARK_GAP );
+		}
 
 		foreach ( $lines as $line ) {
 			$renderer->draw_text( $line, self::COVER_TITLE_SIZE, self::PADDING, $y + self::COVER_TITLE_SIZE, $text, 'header' );
@@ -508,6 +541,10 @@ class EventRoundupTemplate implements TemplateInterface {
 		if ( '' !== $closing_text ) {
 			$renderer->draw_text_wrapped( $closing_text, self::CLOSING_TEXT_SIZE, self::PADDING, $y + 40, $muted, 'body', $max_w, 1.4, 'center' );
 		}
+
+		// Co-brand: the partner (venue) logo is centered above the bottom
+		// stripes. Without a partner logo the closing slide is unchanged.
+		$this->draw_partner_mark( $renderer, self::PARTNER_MARK_HEIGHT, 'center', $height - self::STRIPE_HEIGHT - self::PADDING - self::PARTNER_MARK_HEIGHT );
 
 		$this->draw_day_stripes( $renderer, $day_groups, $height - self::STRIPE_HEIGHT, $day_palette );
 
@@ -748,6 +785,41 @@ class EventRoundupTemplate implements TemplateInterface {
 		$x = $width - self::PADDING - $renderer->measure_text_width( $text, $size, 'header' );
 		$renderer->draw_text( $text, $size, $x, $bottom, $color, 'header' );
 		return $top;
+	}
+
+	/**
+	 * Draw the optional co-brand (partner) mark on a cover or closing slide.
+	 *
+	 * Only these two slide types carry the partner mark; list slides keep
+	 * today's layout, so slide packing never has to account for it.
+	 *
+	 * @param GDRenderer $renderer Canvas.
+	 * @param int        $height   Logo height in px (shrinks for very wide logos).
+	 * @param string     $place    'corner' (top-right) or 'center'.
+	 * @param int        $top      Top Y of the mark.
+	 * @return int Y just below the mark, or 0 when no partner logo is set.
+	 */
+	private function draw_partner_mark( GDRenderer $renderer, int $height, string $place, int $top ): int {
+		if ( '' === $this->partner_logo_path ) {
+			return 0;
+		}
+
+		$width  = $renderer->get_width();
+		$dims   = getimagesize( $this->partner_logo_path );
+		$mark_w = $dims ? (int) round( $dims[0] * $height / max( 1, $dims[1] ) ) : $height;
+
+		// Wide wordmark logos cap at half the canvas so they never collide
+		// with left-aligned cover content.
+		$max_w = (int) ( $width / 2 );
+		if ( $mark_w > $max_w ) {
+			$height = (int) round( $height * $max_w / max( 1, $mark_w ) );
+			$mark_w = $max_w;
+		}
+
+		$x = 'center' === $place ? (int) ( ( $width - $mark_w ) / 2 ) : $width - self::PADDING - $mark_w;
+		$renderer->overlay_image( $this->partner_logo_path, $x, $top, $mark_w, $height );
+
+		return $top + $height;
 	}
 
 	/**
