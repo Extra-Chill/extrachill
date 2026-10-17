@@ -41,7 +41,6 @@ require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/festival-pillar.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/archive/artist-pillar.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/share-card.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/network-bridge.php';
-require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/login-register-cta.php';
 require_once EXTRACHILL_BLOG_PLUGIN_DIR . 'inc/single/newsletter-context.php';
 
 /**
