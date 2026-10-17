@@ -367,18 +367,126 @@ function ec_users_migrate_team_meta_to_role() {
 }
 
 /**
- * Register the role on a newly-initialized subsite.
+ * Resolve the current team member user IDs.
+ *
+ * Source of truth: holders of the extra_chill_team role on the main
+ * site. The role is granted network-wide, so the main-site assignment
+ * is always present for every member and is the canonical list to
+ * replicate onto other sites (#462).
+ *
+ * @return int[] User IDs holding the team role on the main site.
+ */
+function ec_users_get_team_member_ids() {
+	$main_site_id = function_exists( 'get_main_site_id' ) ? (int) get_main_site_id() : 0;
+	if ( $main_site_id <= 0 ) {
+		$main_site_id = 1;
+	}
+
+	try {
+		switch_to_blog( $main_site_id );
+		$user_ids = get_users(
+			array(
+				'role'   => EC_USERS_TEAM_ROLE,
+				'fields' => 'ID',
+			)
+		);
+	} finally {
+		restore_current_blog();
+	}
+
+	return array_map( 'intval', (array) $user_ids );
+}
+
+/**
+ * Assign the team role to every existing team member on one site.
+ *
+ * Mirrors the per-site body of ec_users_grant_team_role(): the role is
+ * registered first (no ghost-role assignments), super-admins are
+ * skipped, and the add is a no-op when the member already holds the
+ * role on the site. No welcome email is ever sent from this path —
+ * these are existing members being replicated, not new onboardings
+ * ($notify = false semantics, #462).
+ *
+ * @param int $blog_id Target blog ID.
+ * @return int[] User IDs the role was newly added to on the site.
+ */
+function ec_users_assign_team_role_on_site( $blog_id ) {
+	$blog_id = (int) $blog_id;
+	if ( $blog_id <= 0 ) {
+		return array();
+	}
+
+	$member_ids = ec_users_get_team_member_ids();
+	$added      = array();
+
+	try {
+		switch_to_blog( $blog_id );
+
+		ec_users_register_team_role();
+
+		foreach ( $member_ids as $user_id ) {
+			if ( function_exists( 'is_super_admin' ) && is_super_admin( $user_id ) ) {
+				continue;
+			}
+
+			$user = new WP_User( $user_id );
+			if ( ! $user->exists() ) {
+				continue;
+			}
+
+			if ( ! in_array( EC_USERS_TEAM_ROLE, (array) $user->roles, true ) ) {
+				$user->add_role( EC_USERS_TEAM_ROLE );
+				$added[] = $user_id;
+			}
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	return $added;
+}
+
+/**
+ * One-time, idempotent backfill: grant the role to every existing
+ * team member on any network site where it is missing.
+ *
+ * Repairs sites created before this fix shipped (blogs 13 and 14 in
+ * the live network, see #462): ec_users_grant_team_role() only looped
+ * the sites that existed at grant time, so later-created sites never
+ * received the assignment. Uses $notify = false so no welcome email is
+ * sent — these are existing members, not new onboardings. Idempotent
+ * on re-run: the second pass finds the role already present everywhere
+ * and adds nothing.
+ *
+ * @return array<int,int[]> Map of user ID => blog IDs the role was newly added to.
+ */
+function ec_users_backfill_team_role() {
+	$granted = array();
+
+	foreach ( ec_users_get_team_member_ids() as $user_id ) {
+		$added = ec_users_grant_team_role( $user_id, false );
+		if ( ! empty( $added ) ) {
+			$granted[ $user_id ] = $added;
+		}
+	}
+
+	return $granted;
+}
+
+/**
+ * Register the role on a newly-initialized subsite and assign it to
+ * every existing team member.
+ *
+ * Before #462 this only registered the role definition, so sites
+ * created after a member was granted never received the assignment
+ * and the member had zero caps there (e.g. no access_studio on the
+ * auth site, locking the whole team out of the MCP endpoint).
  *
  * @param WP_Site $new_site The newly created site object.
  * @return void
  */
 function ec_users_on_new_site_register_role( $new_site ) {
-	try {
-		switch_to_blog( (int) $new_site->blog_id );
-		ec_users_register_team_role();
-	} finally {
-		restore_current_blog();
-	}
+	ec_users_assign_team_role_on_site( (int) $new_site->blog_id );
 }
 add_action( 'wp_initialize_site', 'ec_users_on_new_site_register_role', 200 );
 
@@ -424,6 +532,36 @@ function ec_users_maybe_run_team_migration() {
 	update_site_option( $option_key, $current_version );
 }
 add_action( 'admin_init', 'ec_users_maybe_run_team_migration' );
+
+/**
+ * Run the one-time team-role backfill after a version bump.
+ *
+ * Same option-guarded pattern as ec_users_maybe_run_team_migration():
+ * gated on a site_option so steady-state requests pay a single
+ * get_site_option call, re-armed by version bumps so any drift
+ * (a site created while the plugin was inactive, a restored backup)
+ * is repaired on the next deploy. The backfill itself is idempotent,
+ * so re-running it is always safe.
+ *
+ * Priority 11 so it runs after the legacy-meta migration on the same
+ * request — migrated members are then included in the backfill source.
+ *
+ * @return void
+ */
+function ec_users_maybe_run_team_role_backfill() {
+	$option_key         = 'extrachill_users_team_role_backfill_version';
+	$current_version    = defined( 'EXTRACHILL_USERS_VERSION' ) ? EXTRACHILL_USERS_VERSION : '0';
+	$backfilled_version = get_site_option( $option_key, '0' );
+
+	if ( version_compare( $backfilled_version, $current_version, '>=' ) ) {
+		return;
+	}
+
+	ec_users_backfill_team_role();
+
+	update_site_option( $option_key, $current_version );
+}
+add_action( 'admin_init', 'ec_users_maybe_run_team_role_backfill', 11 );
 
 /**
  * Hide the team role from the wp-admin user-edit single-role dropdown.
