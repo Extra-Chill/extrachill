@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.52.0] - 2026-10-18
+
+### Added
+- grant datamachine_render_images to the extra_chill_team role
+
 ## [0.51.3] - 2026-10-17
 
 ### Fixed
