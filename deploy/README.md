@@ -43,7 +43,7 @@ A Homeboy config root, selected with `HOMEBOY_CONFIG_ROOT` (homeboy#14783):
 
 | Path | Contents |
 |---|---|
-| `projects/extrachill-site/extrachill-site.json` | server id, base path, path roots, remote logs, and the 34 deployable attachments (`id` + `remote_path`, `local_path` empty) |
+| `projects/extrachill-site/extrachill-site.json` | server id, base path, path roots, remote logs, and the 33 deployable attachments (`id` + `remote_path`, `local_path` empty) |
 | `servers/hetzner.json` | host, user, port; `identity_file` is `null` |
 | `components/<id>.json` | standalone registry: `remote_url` (GitHub) + `remote_path`. The GitHub `remote_url` is what makes checkout-less resolution apply. |
 
@@ -54,7 +54,14 @@ Adding a deployable = one attachment line in the project + one registry file. `t
 **A component is only deployable here if Homeboy can resolve a GitHub Release for it.** Two site components are deliberately absent:
 
 - `chubes-gallery-lightbox` (`chubes4/chubes-gallery-lightbox`) has one tag and no GitHub Release. It joins once its repo gets a `release.yml`.
-- `wp-native-auth` lives in the `chubes4/wp-native` monorepo. It *does* release (`wp-native-auth-v0.4.1`), but its `homeboy.json` is at `plugins/wp-native-auth/`, not the repository root, so checkout-less resolution 404s and the zipball fallback returns HTTP 415. Both gaps are tracked in homeboy#14813; the prefixed tag also needs `tag_prefix`.
+
+`wp-native-auth` is attached, but it is a monorepo component and needs homeboy#15952 to resolve. It lives in `plugins/wp-native-auth/` of the `chubes4/wp-native` monorepo, which also releases `wp-native-client` and `wp-native-shell`. Its releases use the prefixed tag `wp-native-auth-vX.Y.Z` with a `wp-native-auth.zip` asset. To deploy it without a checkout, Homeboy must:
+
+1. read `homeboy.json` from that subdirectory
+2. choose the latest `wp-native-auth-v*` release, not the repository's overall latest
+3. use the prefixed tag namespace
+
+homeboy#15952 tracks all three. If the fix adds a registry field for the source path, add it to `components/wp-native-auth.json`.
 
 - `intelligence` (`Automattic/intelligence`) is a **private** repository. Checkout-less resolution reads each component's release metadata with the job's `github.token`, which cannot read a private repository in another organisation, so every poll skipped it and failed the run. It is used rarely on this network and is shipped manually instead (#244).
 

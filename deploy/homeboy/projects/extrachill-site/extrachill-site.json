@@ -225,6 +225,11 @@
       "id": "wp-codebox",
       "remote_path": "wp-content/plugins/wp-codebox",
       "local_path": ""
+    },
+    {
+      "id": "wp-native-auth",
+      "remote_path": "wp-content/plugins/wp-native-auth",
+      "local_path": ""
     }
   ],
   "hooks": {
