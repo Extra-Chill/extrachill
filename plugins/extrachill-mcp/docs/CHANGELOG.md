@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.2] - 2026-10-18
+
+### Fixed
+- route network ability search and ambiguous calls to the owning site's real registry
+
 ## [0.2.1] - 2026-09-22
 
 ### Fixed
