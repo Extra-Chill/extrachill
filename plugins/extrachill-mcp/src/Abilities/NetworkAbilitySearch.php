@@ -27,6 +27,14 @@ defined( 'ABSPATH' ) || exit;
  * underneath — no second dispatcher). Results are merged and each entry is
  * tagged with the site key that owns it.
  *
+ * The remote hops force the HTTP-loopback transport. `agents/ability-search`
+ * is registered on every site, so the default in-process transport would
+ * dispatch it against THIS process's registry after `switch_to_blog()` —
+ * every "remote" result would really describe the local site, and plugins
+ * active only on the target site would never show up
+ * (Extra-Chill/extrachill-mcp#22). Registry introspection is only honest
+ * when the target site's own plugin bootstrap answers.
+ *
  * Presence in a result is discovery, not authorization: the abilities
  * returned by a remote site's `agents/ability-search` reflect whatever that
  * site's own `agents_ability_search_permission` filter allows for the
@@ -101,17 +109,17 @@ final class NetworkAbilitySearch {
 		$local_result    = NetworkDispatch::run_local_ability( 'agents/ability-search', $search_input );
 
 		if ( is_wp_error( $local_result ) ) {
-			$errors[ $local_site_key ?? 'local' ] = $local_result->get_error_message();
+			$errors[ $local_site_key ?? 'local' ] = NetworkDispatch::describe_error( $local_result );
 		} else {
 			$sites_queried[] = $local_site_key ?? 'local';
 			$this->merge_results( $abilities, $local_result, $local_site_key );
 		}
 
 		foreach ( NetworkDispatch::remote_sites() as $site_key ) {
-			$response = NetworkDispatch::run_ability( $site_key, 'agents/ability-search', $search_input );
+			$response = NetworkDispatch::run_ability( $site_key, 'agents/ability-search', $search_input, true );
 
 			if ( is_wp_error( $response ) ) {
-				$errors[ $site_key ] = $response->get_error_message();
+				$errors[ $site_key ] = NetworkDispatch::describe_error( $response );
 				continue;
 			}
 

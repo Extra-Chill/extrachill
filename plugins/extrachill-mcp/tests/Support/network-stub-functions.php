@@ -54,6 +54,15 @@ if ( ! function_exists( 'ec_get_ability_site_affinity' ) ) {
 	}
 }
 
+if ( ! function_exists( 'ec_get_network_ability_owner_index' ) ) {
+	/**
+	 * @return array<string,array<string,bool>>
+	 */
+	function ec_get_network_ability_owner_index(): array { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Deliberate test-only stand-in for the extrachill-network global.
+		return NetworkStub::$owner_index;
+	}
+}
+
 if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 	/**
 	 * @param array<string,mixed> $args

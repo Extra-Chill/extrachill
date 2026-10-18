@@ -108,6 +108,99 @@ class NetworkDispatchTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'POST', 'GET' ), $attempts );
 	}
 
+	public function test_run_ability_sends_empty_input_as_the_empty_list_query_marker_on_the_get_retry(): void {
+		$captured = array();
+
+		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) use ( &$captured ) {
+			$captured[] = array( $method, $args );
+
+			if ( 'POST' === $method ) {
+				return new WP_Error( 'rest_ability_invalid_method', 'Read-only abilities require GET method.' );
+			}
+
+			return array( 'ok' => true );
+		};
+
+		$result = NetworkDispatch::run_ability( 'events', 'extrachill/community-list-forums', array() );
+
+		$this->assertSame( array( 'ok' => true ), $result );
+		$this->assertSame( 'GET', $captured[1][0] );
+
+		// `,` is the one query-encodable value core resolves to array() on the
+		// receiving side; an empty array would be dropped by http_build_query()
+		// entirely and the target would reject the absent input — see
+		// NetworkDispatch::EMPTY_INPUT_QUERY_VALUE.
+		$this->assertSame( array( 'query' => array( 'input' => ',' ) ), $captured[1][1] );
+	}
+
+	public function test_run_ability_still_sends_non_empty_input_as_an_array_on_the_get_retry(): void {
+		$captured = array();
+
+		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) use ( &$captured ) {
+			$captured[] = array( $method, $args );
+
+			if ( 'POST' === $method ) {
+				return new WP_Error( 'rest_ability_invalid_method', 'Read-only abilities require GET method.' );
+			}
+
+			return array( 'ok' => true );
+		};
+
+		NetworkDispatch::run_ability( 'events', 'extrachill/community-list-forums', array( 'archive_only' => false ) );
+
+		$this->assertSame( array( 'query' => array( 'input' => array( 'archive_only' => false ) ) ), $captured[1][1] );
+	}
+
+	public function test_run_ability_forces_the_http_loopback_filter_only_for_the_duration_of_the_call(): void {
+		$forced = null;
+
+		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) use ( &$forced ) {
+			// Mirror the real transport's own decision point.
+			$forced = apply_filters( 'ec_cross_site_use_http_loopback', false, $site_key, $method, $path, $args );
+
+			return array( 'ok' => true );
+		};
+
+		NetworkDispatch::run_ability( 'events', 'agents/ability-search', array( 'query' => 'venue' ), true );
+
+		$this->assertTrue( $forced, 'The forced hop must see the loopback filter answer true.' );
+		$this->assertFalse(
+			apply_filters( 'ec_cross_site_use_http_loopback', false ),
+			'The filter must be removed again after the call.'
+		);
+
+		NetworkDispatch::run_ability( 'events', 'agents/ability-search', array( 'query' => 'venue' ) );
+
+		$this->assertFalse( $forced, 'An unforced hop must leave the loopback decision to the transport.' );
+	}
+
+	public function test_owner_candidates_reads_the_network_ownership_index(): void {
+		NetworkStub::$owner_index = array(
+			'datamachine/instagram-read' => array(
+				'main' => true,
+				'wire' => true,
+			),
+		);
+
+		$this->assertSame( array( 'main', 'wire' ), NetworkDispatch::owner_candidates( 'datamachine/instagram-read' ) );
+		$this->assertSame( array(), NetworkDispatch::owner_candidates( 'extrachill/unknown' ) );
+	}
+
+	public function test_describe_error_appends_the_code_when_the_message_hides_it(): void {
+		$this->assertSame(
+			'Cross-site request failed (ability_invalid_input)',
+			NetworkDispatch::describe_error( new WP_Error( 'ability_invalid_input', 'Cross-site request failed' ) )
+		);
+		$this->assertSame(
+			'ability_invalid_input is not allowed',
+			NetworkDispatch::describe_error( new WP_Error( 'ability_invalid_input', 'ability_invalid_input is not allowed' ) )
+		);
+		$this->assertSame(
+			'ability_invalid_input',
+			NetworkDispatch::describe_error( new WP_Error( 'ability_invalid_input', '' ) )
+		);
+	}
+
 	public function test_run_ability_does_not_retry_on_a_different_error(): void {
 		$attempts = array();
 

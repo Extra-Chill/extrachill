@@ -8,7 +8,7 @@
  * `NetworkDispatchTest.php`, none of which may call
  * `ExtraChillMcp\Tests\Support\NetworkStub::install()` before this file's
  * tests execute — see that class's docblock for why. Once any of those
- * install the stub, the four global functions persist for the rest of the
+ * install the stub, the five global functions persist for the rest of the
  * PHP process and this "genuinely absent" assertion would silently start
  * passing against the stub instead of reality.
  *
@@ -29,10 +29,11 @@ if ( ! class_exists( 'WP_UnitTestCase' ) ) {
  */
 class NetworkAbilityAbsenceTest extends WP_UnitTestCase {
 
-	public function test_the_four_network_globals_are_genuinely_absent(): void {
+	public function test_the_five_network_globals_are_genuinely_absent(): void {
 		$this->assertFalse( function_exists( 'ec_get_blog_ids' ) );
 		$this->assertFalse( function_exists( 'ec_get_blog_slug_by_id' ) );
 		$this->assertFalse( function_exists( 'ec_get_ability_site_affinity' ) );
+		$this->assertFalse( function_exists( 'ec_get_network_ability_owner_index' ) );
 		$this->assertFalse( function_exists( 'ec_cross_site_rest_request' ) );
 	}
 
@@ -50,6 +51,10 @@ class NetworkAbilityAbsenceTest extends WP_UnitTestCase {
 
 	public function test_resolve_owner_degrades_to_local(): void {
 		$this->assertNull( NetworkDispatch::resolve_owner( 'extrachill/get-venue' ) );
+	}
+
+	public function test_owner_candidates_is_empty(): void {
+		$this->assertSame( array(), NetworkDispatch::owner_candidates( 'extrachill/get-venue' ) );
 	}
 
 	public function test_run_ability_reports_network_unavailable(): void {

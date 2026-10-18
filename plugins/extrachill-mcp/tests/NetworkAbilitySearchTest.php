@@ -49,7 +49,15 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 	}
 
 	public function test_fan_out_merges_a_remote_sites_results_and_tags_them_by_site(): void {
-		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) {
+		$forced = null;
+
+		// Simulates an ability registered ONLY on the remote site: the forced
+		// HTTP loopback is what lets the target site's own registry answer,
+		// instead of the in-process transport re-listing this site's registry
+		// (Extra-Chill/extrachill-mcp#22).
+		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) use ( &$forced ) {
+			$forced = apply_filters( 'ec_cross_site_use_http_loopback', false, $site_key, $method, $path, $args );
+
 			return array(
 				'abilities' => array(
 					array(
@@ -68,6 +76,7 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		$this->assertSame( 'extrachill/get-venue', $result['abilities'][0]['name'] );
 		$this->assertSame( 'events', $result['abilities'][0]['site'] );
 		$this->assertSame( 1, $result['count'] );
+		$this->assertTrue( $forced, 'The remote search hop must force the target site\'s own bootstrap over HTTP loopback.' );
 
 		// The local hop degrades in this isolated environment because
 		// agents/ability-search is not registered — proving it was actually
@@ -86,7 +95,7 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		$this->assertSame( array(), $result['abilities'] );
 		$this->assertSame( 0, $result['count'] );
 		$this->assertArrayHasKey( 'events', $result['errors'] );
-		$this->assertSame( 'timeout', $result['errors']['events'] );
+		$this->assertSame( 'timeout (http_request_failed)', $result['errors']['events'] );
 		$this->assertArrayHasKey( 'main', $result['errors'] );
 	}
 

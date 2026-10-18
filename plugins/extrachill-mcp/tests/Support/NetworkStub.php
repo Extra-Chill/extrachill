@@ -2,13 +2,14 @@
 /**
  * Test-only stand-in for the extrachill-network functions NetworkDispatch
  * consumes: `ec_get_blog_ids()`, `ec_get_blog_slug_by_id()`,
- * `ec_get_ability_site_affinity()`, `ec_cross_site_rest_request()`.
+ * `ec_get_ability_site_affinity()`, `ec_get_network_ability_owner_index()`,
+ * `ec_cross_site_rest_request()`.
  *
  * extrachill-network is not installed in this plugin's isolated CI
  * environment, so `NetworkDispatch`'s `function_exists()` guards genuinely
  * take the degraded path by default — which `NetworkAbilityAbsenceTest`
  * relies on, and which MUST finish running before `install()` is ever
- * called anywhere in the suite. The four global functions live in a
+ * called anywhere in the suite. The five global functions live in a
  * separate, namespace-free file (`network-stub-functions.php`), required
  * lazily by `install()`, following `AnalyticsStub` /
  * `analytics-stub-functions.php`: a `function` declared inside this
@@ -52,6 +53,15 @@ final class NetworkStub {
 	public static $affinity_handler = null;
 
 	/**
+	 * Raw ownership index served by the stubbed
+	 * `ec_get_network_ability_owner_index()`: ability name => {site_key => true},
+	 * the exact shape extrachill-network caches.
+	 *
+	 * @var array<string,array<string,bool>>
+	 */
+	public static array $owner_index = array();
+
+	/**
 	 * @var callable|null Signature: (string $site_key, string $method, string $path, array $args): mixed
 	 */
 	public static $cross_site_handler = null;
@@ -62,9 +72,9 @@ final class NetworkStub {
 	public static bool $installed = false;
 
 	/**
-	 * Load the four global stub functions, once, on first call.
+	 * Load the five global stub functions, once, on first call.
 	 *
-	 * @return bool Whether the stub is in control of the four globals.
+	 * @return bool Whether the stub is in control of the five globals.
 	 */
 	public static function install(): bool {
 		if ( self::$installed ) {
@@ -96,6 +106,7 @@ final class NetworkStub {
 			'main'   => 1,
 			'events' => 7,
 		);
+		self::$owner_index        = array();
 		self::$affinity_handler   = null;
 		self::$cross_site_handler = null;
 	}

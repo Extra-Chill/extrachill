@@ -26,6 +26,32 @@ defined( 'ABSPATH' ) || exit;
 final class NetworkDispatch {
 
 	/**
+	 * Query-string encoding of an empty ability input object.
+	 *
+	 * `http_build_query()` drops empty arrays entirely, so an empty `input`
+	 * sent as `array()` never reaches the target over extrachill-network's
+	 * HTTP-loopback transport; core then validates the absent (null) input
+	 * against the target ability's object schema and rejects it with
+	 * `ability_invalid_input` (Extra-Chill/extrachill-mcp#22).
+	 *
+	 * A bare comma is the one query-encodable value WordPress core resolves
+	 * to a genuinely empty array on the receiving side: the run route
+	 * registers `input` as a multi-type arg, `rest_get_best_type_for_value()`
+	 * types a `','` string as `array` (`rest_is_array()` ->
+	 * `wp_parse_list( ',' )` -> `array()`), and
+	 * `WP_REST_Request::sanitize_params()` writes that sanitized empty array
+	 * back into the query params the run controller reads
+	 * (`WP_REST_Abilities_V1_Run_Controller::get_input_from_request()`). The
+	 * target ability therefore receives a real `array()` — identical to a
+	 * POST hop with empty JSON input — on both the in-process and
+	 * HTTP-loopback transports. An empty string does NOT work: core
+	 * deliberately keeps `''` typed as `string` when `string` is among the
+	 * arg's types (see `rest_get_best_type_for_value()`), and that raw
+	 * string would reach strict-typed ability callbacks and throw.
+	 */
+	private const EMPTY_INPUT_QUERY_VALUE = ',';
+
+	/**
 	 * Whether extrachill-network's site-key registry and dispatcher are
 	 * available in this process.
 	 */
@@ -107,6 +133,51 @@ final class NetworkDispatch {
 	}
 
 	/**
+	 * Every site key the network ownership index records for an ability.
+	 *
+	 * `resolve_owner()` deliberately answers null for an ability registered
+	 * on more than one site with no override — this method exposes the
+	 * underlying candidate list so callers can validate an explicit `site`
+	 * choice, or surface the candidates in an error instead of a misleading
+	 * "not registered" (Extra-Chill/extrachill-mcp#22).
+	 *
+	 * @return string[] Owning site keys; empty when the index is unavailable
+	 *                  or the ability is unknown to it.
+	 */
+	public static function owner_candidates( string $ability_name ): array {
+		if ( ! function_exists( 'ec_get_network_ability_owner_index' ) ) {
+			return array();
+		}
+
+		$index  = ec_get_network_ability_owner_index();
+		$owners = $index[ $ability_name ] ?? array();
+
+		return array_map( 'strval', array_keys( $owners ) );
+	}
+
+	/**
+	 * Human-readable description of a WP_Error that keeps the error code
+	 * visible.
+	 *
+	 * extrachill-network's HTTP-loopback transport preserves the upstream
+	 * error CODE but replaces the upstream message with a generic
+	 * "Cross-site request failed" — surfacing only the message therefore
+	 * hides the one piece of real diagnostic information that survived the
+	 * hop (Extra-Chill/extrachill-mcp#22). Appends the code unless the
+	 * message already contains it.
+	 */
+	public static function describe_error( \WP_Error $error ): string {
+		$message = $error->get_error_message();
+		$code    = (string) $error->get_error_code();
+
+		if ( '' === $code || false !== stripos( $message, $code ) ) {
+			return $message;
+		}
+
+		return '' === $message ? $code : sprintf( '%s (%s)', $message, $code );
+	}
+
+	/**
 	 * Run an ability on another site via its own
 	 * `/wp-abilities/v1/abilities/{name}/run` route, entirely through
 	 * `ec_cross_site_rest_request()` — identity, in-process vs. HTTP-loopback
@@ -123,10 +194,21 @@ final class NetworkDispatch {
 	 * `rest_ability_invalid_method` error — the route itself is the source
 	 * of truth for which method it wanted.
 	 *
+	 * When `$force_http` is true the whole attempt runs under
+	 * extrachill-network's own `ec_cross_site_use_http_loopback` filter
+	 * (the same pattern its `ec_fetch_remote_ability_names()` uses), so the
+	 * target site answers from its OWN plugin bootstrap and registry. The
+	 * default in-process transport switches blogs but keeps THIS process's
+	 * registry loaded, which silently answers registry-introspection hops
+	 * (`agents/ability-search`) with the source site's abilities instead of
+	 * the target's (Extra-Chill/extrachill-mcp#22).
+	 *
 	 * @param array<string,mixed> $parameters Ability input.
+	 * @param bool                $force_http Force the HTTP-loopback transport so the
+	 *                                        target site's real plugin bootstrap answers.
 	 * @return array<string,mixed>|\WP_Error
 	 */
-	public static function run_ability( string $site_key, string $ability_name, array $parameters ) {
+	public static function run_ability( string $site_key, string $ability_name, array $parameters, bool $force_http = false ) {
 		if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 			return new \WP_Error(
 				'extrachill_mcp_network_unavailable',
@@ -137,15 +219,29 @@ final class NetworkDispatch {
 		$route    = '/wp-abilities/v1/abilities/' . $ability_name . '/run';
 		$response = null;
 
-		foreach ( array( 'POST', 'GET', 'DELETE' ) as $method ) {
-			$args = 'POST' === $method
-				? array( 'body' => array( 'input' => $parameters ) )
-				: array( 'query' => array( 'input' => $parameters ) );
+		$force = static function (): bool {
+			return true;
+		};
 
-			$response = ec_cross_site_rest_request( $site_key, $method, $route, $args );
+		if ( $force_http ) {
+			add_filter( 'ec_cross_site_use_http_loopback', $force, 10, 0 );
+		}
 
-			if ( ! is_wp_error( $response ) || 'rest_ability_invalid_method' !== $response->get_error_code() ) {
-				return $response;
+		try {
+			foreach ( array( 'POST', 'GET', 'DELETE' ) as $method ) {
+				$args = 'POST' === $method
+					? array( 'body' => array( 'input' => $parameters ) )
+					: array( 'query' => array( 'input' => array() === $parameters ? self::EMPTY_INPUT_QUERY_VALUE : $parameters ) );
+
+				$response = ec_cross_site_rest_request( $site_key, $method, $route, $args );
+
+				if ( ! is_wp_error( $response ) || 'rest_ability_invalid_method' !== $response->get_error_code() ) {
+					return $response;
+				}
+			}
+		} finally {
+			if ( $force_http ) {
+				remove_filter( 'ec_cross_site_use_http_loopback', $force, 10 );
 			}
 		}
 
