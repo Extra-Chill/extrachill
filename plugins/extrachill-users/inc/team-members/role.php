@@ -69,18 +69,24 @@ function ec_users_get_team_role_caps() {
 		// edit_published_posts (own published work). edit_others_posts is
 		// deliberately NOT granted so team members cannot edit other
 		// authors' content.
-		'read'                 => true,
-		'upload_files'         => true,
-		'edit_posts'           => true,
-		'edit_published_posts' => true,
-		'delete_posts'         => true,
+		'read'                      => true,
+		'upload_files'              => true,
+		'edit_posts'                => true,
+		'edit_published_posts'      => true,
+		'delete_posts'              => true,
 
 		// --- Custom EC team-only caps ---
-		'access_studio'        => true,
-		'access_transcribe'    => true,
-		'access_events_admin'  => true,
-		'access_admin_bar'     => true,
-		'submit_for_review'    => true,
+		'access_studio'             => true,
+		'access_transcribe'         => true,
+		'access_events_admin'       => true,
+		'access_admin_bar'          => true,
+		'submit_for_review'         => true,
+
+		// Image-template rendering for content work (posters, quote
+		// cards) via Data Machine's render_images permission action.
+		// Data Machine owns the capability; flow/agent/settings admin
+		// caps (datamachine_manage_*) are deliberately NOT granted.
+		'datamachine_render_images' => true,
 	);
 }
 

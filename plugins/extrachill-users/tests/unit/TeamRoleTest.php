@@ -51,6 +51,58 @@ class Test_Team_Role extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_role_caps_grant_datamachine_render_images(): void {
+		$caps = ec_users_get_team_role_caps();
+		$this->assertArrayHasKey(
+			'datamachine_render_images',
+			$caps,
+			'Team role must grant datamachine_render_images for image-template rendering (#466).'
+		);
+		$this->assertTrue( $caps['datamachine_render_images'] );
+	}
+
+	public function test_role_caps_do_not_grant_datamachine_admin_caps(): void {
+		$caps = ec_users_get_team_role_caps();
+		foreach (
+			array(
+				'datamachine_manage_flows',
+				'datamachine_manage_settings',
+				'datamachine_manage_agents',
+			) as $cap
+		) {
+			$this->assertArrayNotHasKey(
+				$cap,
+				$caps,
+				sprintf( 'Team role must not grant Data Machine admin cap %s.', $cap )
+			);
+		}
+	}
+
+	public function test_team_role_holder_can_render_images_but_not_manage_datamachine(): void {
+		ec_users_register_team_role();
+
+		$user_id = self::factory()->user->create();
+		$user    = new WP_User( $user_id );
+		$user->add_role( EC_USERS_TEAM_ROLE );
+
+		$this->assertTrue(
+			user_can( $user_id, 'datamachine_render_images' ),
+			'Team role holders must be able to render image templates.'
+		);
+		$this->assertFalse(
+			user_can( $user_id, 'datamachine_manage_flows' ),
+			'Team role holders must not gain flow admin.'
+		);
+		$this->assertFalse(
+			user_can( $user_id, 'datamachine_manage_settings' ),
+			'Team role holders must not gain settings admin.'
+		);
+		$this->assertFalse(
+			user_can( $user_id, 'datamachine_manage_agents' ),
+			'Team role holders must not gain agent admin.'
+		);
+	}
+
 	public function test_role_caps_do_not_grant_admin_caps(): void {
 		$caps = ec_users_get_team_role_caps();
 		foreach ( array( 'manage_options', 'delete_others_posts', 'edit_users', 'manage_network' ) as $cap ) {
@@ -94,6 +146,10 @@ class Test_Team_Role extends WP_UnitTestCase {
 		$fresh = get_role( EC_USERS_TEAM_ROLE );
 		$this->assertTrue( $fresh->has_cap( 'upload_files' ) );
 		$this->assertTrue( $fresh->has_cap( 'access_studio' ) );
+		$this->assertTrue(
+			$fresh->has_cap( 'datamachine_render_images' ),
+			'Drift detection must refresh the role with datamachine_render_images (#466).'
+		);
 	}
 
 	// -----------------------------------------------------------------
