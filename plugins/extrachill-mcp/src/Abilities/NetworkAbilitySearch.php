@@ -112,7 +112,7 @@ final class NetworkAbilitySearch {
 			$errors[ $local_site_key ?? 'local' ] = NetworkDispatch::describe_error( $local_result );
 		} else {
 			$sites_queried[] = $local_site_key ?? 'local';
-			$this->merge_results( $abilities, $local_result, $local_site_key );
+			$this->merge_results( $abilities, self::exposed_only( $local_result ), $local_site_key );
 		}
 
 		foreach ( NetworkDispatch::remote_sites() as $site_key ) {
@@ -134,6 +134,30 @@ final class NetworkAbilitySearch {
 			'sites_queried' => $sites_queried,
 			'errors'        => $errors,
 		);
+	}
+
+	/**
+	 * Drop local entries the MCP may not invoke (see Exposure), so search
+	 * never advertises an ability that ability-call would refuse.
+	 *
+	 * @param mixed $result Raw local search result.
+	 * @return mixed
+	 */
+	private static function exposed_only( $result ) {
+		if ( ! is_array( $result ) || ! isset( $result['abilities'] ) || ! is_array( $result['abilities'] ) ) {
+			return $result;
+		}
+
+		$result['abilities'] = array_values(
+			array_filter(
+				$result['abilities'],
+				static function ( $entry ): bool {
+					return ! is_array( $entry ) || ! is_string( $entry['name'] ?? null ) || Exposure::is_locally_exposed( $entry['name'] );
+				}
+			)
+		);
+
+		return $result;
 	}
 
 	/**

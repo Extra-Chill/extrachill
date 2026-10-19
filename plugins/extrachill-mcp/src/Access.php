@@ -65,7 +65,7 @@ final class Access {
 
 	public function register(): void {
 		add_filter( 'agents_ability_search_permission', array( $this, 'filter_substrate_permission' ), 10, 2 );
-		add_filter( 'agents_ability_call_permission', array( $this, 'filter_substrate_permission' ), 10, 2 );
+		add_filter( 'agents_ability_call_permission', array( $this, 'filter_substrate_call_permission' ), 10, 2 );
 		add_filter( 'ec_feature_ceilings', array( $this, 'register_feature_ceiling' ) );
 	}
 
@@ -105,6 +105,31 @@ final class Access {
 	 *                                   ability's `permission_callback`).
 	 */
 	public function permission_callback( array $input = array() ): bool {
+		return $this->is_authorized();
+	}
+
+	/**
+	 * Filter callback for `agents_ability_call_permission`.
+	 *
+	 * `agents/ability-call` is itself REST-visible, so widening it for team
+	 * members also opens it through core `/wp-abilities/v1`, bypassing
+	 * `extrachill/ability-call`. Only widen it for abilities whose owner
+	 * opted into an external surface (see Abilities\Exposure), so the
+	 * substrate never becomes a route to internal primitives.
+	 *
+	 * @param mixed                $allowed Upstream decision (manage_options).
+	 * @param array<string, mixed> $input   Meta-ability input.
+	 */
+	public function filter_substrate_call_permission( $allowed, $input = array() ): bool {
+		if ( true === $allowed ) {
+			return true;
+		}
+
+		$name = isset( $input['name'] ) && is_string( $input['name'] ) ? $input['name'] : '';
+		if ( '' === $name || ! Abilities\Exposure::is_locally_exposed( $name ) ) {
+			return false;
+		}
+
 		return $this->is_authorized();
 	}
 

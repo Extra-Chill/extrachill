@@ -224,6 +224,18 @@ final class NetworkAbilityCall {
 	 * @return array<string,mixed>|\WP_Error
 	 */
 	private function call_local( string $name, array $parameters ) {
+		if ( ! Exposure::is_locally_exposed( $name ) ) {
+			return new \WP_Error(
+				'extrachill_mcp_ability_not_exposed',
+				sprintf(
+					/* translators: %s: ability name. */
+					__( 'Ability "%s" is not exposed to external callers.', 'extrachill-mcp' ),
+					$name
+				),
+				array( 'status' => 403 )
+			);
+		}
+
 		$result = NetworkDispatch::run_local_ability(
 			'agents/ability-call',
 			array(
