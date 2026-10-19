@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.4] - 2026-10-19
+
+### Fixed
+- network search for non-admin team members and WP 7.1 empty input
+
 ## [0.2.3] - 2026-10-19
 
 ### Fixed
