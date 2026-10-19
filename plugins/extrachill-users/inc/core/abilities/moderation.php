@@ -9,6 +9,27 @@ defined( 'ABSPATH' ) || exit;
 
 add_action( 'wp_abilities_api_init', 'extrachill_users_register_moderation_abilities' );
 
+/**
+ * Permission gate for the moderation abilities.
+ *
+ * Moderation can ban any account and permanently purge its content network
+ * wide, so the abilities carry their own boundary instead of relying on
+ * `show_in_rest: false` to keep users from reaching them. Allowed: WP-CLI
+ * (the operator `wp extrachill users ban` surface) and network user managers.
+ *
+ * @return bool
+ */
+function extrachill_users_can_moderate_users() {
+	$allowed = ( defined( 'WP_CLI' ) && constant( 'WP_CLI' ) ) || current_user_can( 'manage_network_users' );
+
+	/**
+	 * Filter whether the current context may read or apply user moderation.
+	 *
+	 * @param bool $allowed Whether the default gate passed.
+	 */
+	return (bool) apply_filters( 'extrachill_users_can_moderate_users', $allowed );
+}
+
 function extrachill_users_register_moderation_abilities() {
 	wp_register_ability(
 		'extrachill/get-user-moderation-status',
@@ -25,7 +46,7 @@ function extrachill_users_register_moderation_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_get_user_moderation_status',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_can_moderate_users',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -62,7 +83,7 @@ function extrachill_users_register_moderation_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_moderate_user',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_can_moderate_users',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
@@ -89,7 +110,7 @@ function extrachill_users_register_moderation_abilities() {
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_clear_user_moderation',
-			'permission_callback' => '__return_true',
+			'permission_callback' => 'extrachill_users_can_moderate_users',
 			'meta'                => array(
 				'show_in_rest' => false,
 				'annotations'  => array(
