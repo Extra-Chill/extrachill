@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.52.1] - 2026-10-19
+
+### Fixed
+- give moderation abilities a real permission boundary
+
 ## [0.52.0] - 2026-10-18
 
 ### Added
