@@ -20,25 +20,24 @@ defined( 'ABSPATH' ) || exit;
  * Wraps the Agents API substrate's `agents/ability-search` — which is
  * local-only by design, the substrate must not learn about Extra Chill's
  * multisite (Extra-Chill/extrachill-mcp#7) — with a fan-out across every
- * known network site. Each site is queried with the same search input; the
- * local hop reuses `agents/ability-search` directly via
- * `NetworkDispatch::run_local_ability()`, every other known site is queried
- * through `NetworkDispatch::run_ability()` (which is `ec_cross_site_rest_request()`
- * underneath — no second dispatcher). Results are merged and each entry is
+ * known network site. The local hop reuses `agents/ability-search` directly
+ * via `NetworkDispatch::run_local_ability()` and drops entries the MCP may
+ * not invoke (see Exposure). Every other known site is listed through core's
+ * `GET /wp-abilities/v1/abilities` collection via
+ * `NetworkDispatch::list_abilities()` (`ec_cross_site_rest_request()`
+ * underneath, forced onto the HTTP-loopback transport so the target's own
+ * registry answers — Extra-Chill/extrachill-mcp#22) and matched locally
+ * with the substrate's query syntax. Results are merged and each entry is
  * tagged with the site key that owns it.
  *
- * The remote hops force the HTTP-loopback transport. `agents/ability-search`
- * is registered on every site, so the default in-process transport would
- * dispatch it against THIS process's registry after `switch_to_blog()` —
- * every "remote" result would really describe the local site, and plugins
- * active only on the target site would never show up
- * (Extra-Chill/extrachill-mcp#22). Registry introspection is only honest
- * when the target site's own plugin bootstrap answers.
+ * Core's collection returns exactly the target's `show_in_rest` abilities
+ * and needs only the `read` capability, which is the same set a cross-site
+ * ability-call can reach through the run route. Remote search therefore
+ * works for every MCP user without a host permission filter being active on
+ * the target site (Extra-Chill/extrachill-mcp#25).
  *
  * Presence in a result is discovery, not authorization: the abilities
- * returned by a remote site's `agents/ability-search` reflect whatever that
- * site's own `agents_ability_search_permission` filter allows for the
- * forwarded caller, exactly as the local hop does. This class does not
+ * listed for a remote site are the ones it exposes over REST. This class does not
  * additionally probe `check_permissions()` per result — venue-scoped booking
  * abilities deny everyone, including administrators, when probed with empty
  * input (no `booking_id` to resolve a venue from), so pre-filtering that way
@@ -116,15 +115,15 @@ final class NetworkAbilitySearch {
 		}
 
 		foreach ( NetworkDispatch::remote_sites() as $site_key ) {
-			$response = NetworkDispatch::run_ability( $site_key, 'agents/ability-search', $search_input, true );
+			$records = NetworkDispatch::list_abilities( $site_key, $category );
 
-			if ( is_wp_error( $response ) ) {
-				$errors[ $site_key ] = NetworkDispatch::describe_error( $response );
+			if ( is_wp_error( $records ) ) {
+				$errors[ $site_key ] = NetworkDispatch::describe_error( $records );
 				continue;
 			}
 
 			$sites_queried[] = $site_key;
-			$this->merge_results( $abilities, $response, $site_key );
+			$this->merge_results( $abilities, array( 'abilities' => self::match_records( $records, $query, $limit ) ), $site_key );
 		}
 
 		return array(
@@ -134,6 +133,98 @@ final class NetworkAbilitySearch {
 			'sites_queried' => $sites_queried,
 			'errors'        => $errors,
 		);
+	}
+
+	/**
+	 * Match a remote site's REST ability records against a search query and
+	 * shape them like agents/ability-search compact entries.
+	 *
+	 * Mirrors the substrate's matching (agents_ability_matches_query()):
+	 * `select:` picks exact names, otherwise every term and +required term
+	 * must appear in the name, label, description or category. Parsing is
+	 * delegated to the substrate when it is loaded, so query syntax stays
+	 * owned there.
+	 *
+	 * @param array<int,array<string,mixed>> $records REST ability records.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function match_records( array $records, string $query, int $limit ): array {
+		$parsed   = function_exists( 'agents_parse_ability_search_query' )
+			? agents_parse_ability_search_query( $query )
+			: self::parse_query( $query );
+		$selected = array_map( 'strval', (array) ( $parsed['selected'] ?? array() ) );
+		$terms    = array_map( 'strval', array_merge( (array) ( $parsed['terms'] ?? array() ), (array) ( $parsed['required'] ?? array() ) ) );
+
+		$entries = array();
+		foreach ( $records as $record ) {
+			$name = is_string( $record['name'] ?? null ) ? $record['name'] : '';
+			if ( '' === $name ) {
+				continue;
+			}
+
+			if ( array() !== $selected ) {
+				if ( ! in_array( $name, $selected, true ) ) {
+					continue;
+				}
+			} else {
+				$haystack = strtolower( implode( ' ', array( $name, (string) ( $record['label'] ?? '' ), (string) ( $record['description'] ?? '' ), (string) ( $record['category'] ?? '' ) ) ) );
+				foreach ( $terms as $term ) {
+					if ( '' !== $term && ! str_contains( $haystack, strtolower( $term ) ) ) {
+						continue 2;
+					}
+				}
+			}
+
+			$summary = trim( (string) ( $record['description'] ?? '' ) );
+			if ( '' === $summary ) {
+				$summary = trim( (string) ( $record['label'] ?? '' ) );
+			}
+			$schema   = is_array( $record['input_schema'] ?? null ) ? $record['input_schema'] : array();
+			$required = is_array( $schema['required'] ?? null ) ? array_values( array_filter( $schema['required'], 'is_string' ) ) : array();
+
+			$entries[] = array(
+				'name'            => $name,
+				'summary'         => (string) preg_replace( '/\s+/', ' ', $summary ),
+				'required_fields' => $required,
+			);
+
+			if ( count( $entries ) >= $limit ) {
+				break;
+			}
+		}
+
+		return $entries;
+	}
+
+	/**
+	 * Fallback query parser matching agents_parse_ability_search_query(),
+	 * used only when the substrate function is not loaded.
+	 *
+	 * @return array{terms: array<int,string>, required: array<int,string>, selected: array<int,string>}
+	 */
+	private static function parse_query( string $query ): array {
+		$parsed = array(
+			'terms'    => array(),
+			'required' => array(),
+			'selected' => array(),
+		);
+
+		$tokens = preg_split( '/\s+/', trim( $query ) );
+
+		foreach ( false === $tokens ? array() : $tokens as $token ) {
+			if ( '' === $token ) {
+				continue;
+			}
+			if ( str_starts_with( $token, 'select:' ) ) {
+				$parsed['selected'] = array_merge( $parsed['selected'], array_values( array_filter( array_map( 'trim', explode( ',', substr( $token, 7 ) ) ) ) ) );
+			} elseif ( str_starts_with( $token, '+' ) ) {
+				$parsed['required'][] = strtolower( substr( $token, 1 ) );
+			} else {
+				$parsed['terms'][] = strtolower( $token );
+			}
+		}
+
+		return $parsed;
 	}
 
 	/**

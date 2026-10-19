@@ -172,7 +172,7 @@ class NetworkAbilityCallTest extends WP_UnitTestCase {
 		// http_build_query() — an empty array would vanish from the query
 		// string and the target would reject the absent input.
 		$this->assertSame( 'GET', $captured[1][0] );
-		$this->assertSame( array( 'query' => array( 'input' => ',' ) ), $captured[1][1] );
+		$this->assertSame( array( 'query' => array( 'input' => '' ) ), $captured[1][1] );
 	}
 
 	public function test_execute_without_a_site_returns_the_candidate_list_for_an_ambiguous_owner(): void {

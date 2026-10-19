@@ -58,13 +58,23 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) use ( &$forced ) {
 			$forced = apply_filters( 'ec_cross_site_use_http_loopback', false, $site_key, $method, $path, $args );
 
+			// Core's GET /wp-abilities/v1/abilities collection on the target.
 			return array(
-				'abilities' => array(
-					array(
-						'name'            => 'extrachill/get-venue',
-						'summary'         => 'Get a venue.',
-						'required_fields' => array( 'venue_id' ),
+				array(
+					'name'         => 'extrachill/get-venue',
+					'label'        => 'Get Venue',
+					'description'  => 'Get a venue.',
+					'category'     => 'extrachill-events',
+					'input_schema' => array(
+						'type'     => 'object',
+						'required' => array( 'venue_id' ),
 					),
+				),
+				array(
+					'name'        => 'extrachill/list-forums',
+					'label'       => 'List Forums',
+					'description' => 'List community forums.',
+					'category'    => 'extrachill-community',
 				),
 			);
 		};
@@ -75,6 +85,8 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		$this->assertCount( 1, $result['abilities'] );
 		$this->assertSame( 'extrachill/get-venue', $result['abilities'][0]['name'] );
 		$this->assertSame( 'events', $result['abilities'][0]['site'] );
+		$this->assertSame( 'Get a venue.', $result['abilities'][0]['summary'] );
+		$this->assertSame( array( 'venue_id' ), $result['abilities'][0]['required_fields'] );
 		$this->assertSame( 1, $result['count'] );
 		$this->assertTrue( $forced, 'The remote search hop must force the target site\'s own bootstrap over HTTP loopback.' );
 
@@ -111,12 +123,28 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		NetworkStub::$cross_site_handler = static function ( string $site_key, string $method, string $path, array $args ) use ( &$queried_sites ) {
 			$queried_sites[] = $site_key;
 
-			return array( 'abilities' => array() );
+			return array();
 		};
 
 		$this->search->execute( array( 'query' => 'venue', 'limit' => 5 ) );
 
 		sort( $queried_sites );
 		$this->assertSame( array( 'artists', 'events' ), $queried_sites );
+	}
+
+	public function test_match_records_follows_the_substrate_query_syntax(): void {
+		$records = array(
+			array( 'name' => 'datamachine/instagram-account', 'label' => 'Instagram Account', 'description' => 'Check the Instagram connection.', 'category' => 'datamachine-socials' ),
+			array( 'name' => 'datamachine/instagram-read', 'label' => 'Instagram Read', 'description' => 'Read recent posts.', 'category' => 'datamachine-socials' ),
+			array( 'name' => 'extrachill/community-list-forums', 'label' => 'List Forums', 'description' => '', 'category' => 'extrachill-community' ),
+		);
+
+		$names = static fn( array $entries ): array => array_column( $entries, 'name' );
+
+		$this->assertSame( array( 'datamachine/instagram-account', 'datamachine/instagram-read' ), $names( NetworkAbilitySearch::match_records( $records, 'instagram', 20 ) ) );
+		$this->assertSame( array( 'datamachine/instagram-read' ), $names( NetworkAbilitySearch::match_records( $records, 'instagram +recent', 20 ) ) );
+		$this->assertSame( array( 'extrachill/community-list-forums' ), $names( NetworkAbilitySearch::match_records( $records, 'select:extrachill/community-list-forums', 20 ) ) );
+		$this->assertCount( 1, NetworkAbilitySearch::match_records( $records, '', 1 ) );
+		$this->assertSame( 'List Forums', NetworkAbilitySearch::match_records( $records, 'forums', 20 )[0]['summary'] );
 	}
 }

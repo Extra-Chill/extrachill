@@ -26,30 +26,30 @@ defined( 'ABSPATH' ) || exit;
 final class NetworkDispatch {
 
 	/**
-	 * Query-string encoding of an empty ability input object.
+	 * Query value used for an empty `input` on GET/DELETE run-route hops.
 	 *
-	 * `http_build_query()` drops empty arrays entirely, so an empty `input`
-	 * sent as `array()` never reaches the target over extrachill-network's
-	 * HTTP-loopback transport; core then validates the absent (null) input
-	 * against the target ability's object schema and rejects it with
-	 * `ability_invalid_input` (Extra-Chill/extrachill-mcp#22).
+	 * `http_build_query()` drops empty arrays, so `array()` never reaches the
+	 * target over the HTTP-loopback transport, and an absent (null) input is
+	 * rejected by any ability with an object input schema and no `default`.
 	 *
-	 * A bare comma is the one query-encodable value WordPress core resolves
-	 * to a genuinely empty array on the receiving side: the run route
-	 * registers `input` as a multi-type arg, `rest_get_best_type_for_value()`
-	 * types a `','` string as `array` (`rest_is_array()` ->
-	 * `wp_parse_list( ',' )` -> `array()`), and
-	 * `WP_REST_Request::sanitize_params()` writes that sanitized empty array
-	 * back into the query params the run controller reads
-	 * (`WP_REST_Abilities_V1_Run_Controller::get_input_from_request()`). The
-	 * target ability therefore receives a real `array()` — identical to a
-	 * POST hop with empty JSON input — on both the in-process and
-	 * HTTP-loopback transports. An empty string does NOT work: core
-	 * deliberately keeps `''` typed as `string` when `string` is among the
-	 * arg's types (see `rest_get_best_type_for_value()`), and that raw
-	 * string would reach strict-typed ability callbacks and throw.
+	 * Since WordPress 7.1 the run route's `input` arg carries a
+	 * `sanitize_callback` that coerces the raw value to the target ability's
+	 * own input schema (`WP_REST_Abilities_V1_Run_Controller::
+	 * coerce_input_to_schema()`). An empty string coerces to `array()` for an
+	 * object schema (`rest_is_object( '' )`), so the target receives the same
+	 * empty input a POST hop with `{}` would deliver. The earlier `','`
+	 * encoding relied on the multi-type arg resolving it to an array and no
+	 * longer survives that coercion (Extra-Chill/extrachill-mcp#26).
+	 *
+	 * Abilities that declare no input schema reject a non-null input, so
+	 * run_ability() retries such a hop once without `input` at all.
 	 */
-	private const EMPTY_INPUT_QUERY_VALUE = ',';
+	private const EMPTY_INPUT_QUERY_VALUE = '';
+
+	/**
+	 * Seconds a remote site's REST ability list stays cached (list_abilities()).
+	 */
+	private const LIST_CACHE_TTL = 600;
 
 	/**
 	 * Whether extrachill-network's site-key registry and dispatcher are
@@ -235,6 +235,12 @@ final class NetworkDispatch {
 
 				$response = ec_cross_site_rest_request( $site_key, $method, $route, $args );
 
+				// An ability with no input schema refuses the empty-input
+				// encoding; retry once with no input at all.
+				if ( 'POST' !== $method && array() === $parameters && is_wp_error( $response ) && 'ability_invalid_input' === $response->get_error_code() ) {
+					$response = ec_cross_site_rest_request( $site_key, $method, $route, array() );
+				}
+
 				if ( ! is_wp_error( $response ) || 'rest_ability_invalid_method' !== $response->get_error_code() ) {
 					return $response;
 				}
@@ -246,6 +252,96 @@ final class NetworkDispatch {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * List the abilities another site exposes over REST.
+	 *
+	 * Uses core's `GET /wp-abilities/v1/abilities` collection on the target
+	 * site, which returns exactly the abilities registered with
+	 * `show_in_rest: true` (the forced meta filter cannot be overridden by a
+	 * caller) and only requires the `read` capability. That is the same set
+	 * a cross-site ability-call can reach through the run route, so remote
+	 * search never depends on a host-specific permission filter being
+	 * registered on the target (Extra-Chill/extrachill-mcp#25).
+	 *
+	 * Forces the HTTP-loopback transport so the target answers from its own
+	 * plugin bootstrap and registry (see run_ability()).
+	 *
+	 * The collection does not vary by caller (it needs only `read`), so each
+	 * site's slimmed list is cached in a network transient for
+	 * LIST_CACHE_TTL seconds (filterable via `extrachill_mcp_ability_list_ttl`,
+	 * 0 disables). A full network listing is ~50 loopback requests; without
+	 * the cache every search would pay for all of them. Errors are not cached.
+	 *
+	 * @param string $category Optional category filter.
+	 * @param int    $max_pages Safety cap on collection pages fetched.
+	 * @return array<int,array<string,mixed>>|\WP_Error
+	 */
+	public static function list_abilities( string $site_key, string $category = '', int $max_pages = 10 ) {
+		if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+			return new \WP_Error(
+				'extrachill_mcp_network_unavailable',
+				__( 'Cross-site dispatch is unavailable on this site.', 'extrachill-mcp' )
+			);
+		}
+
+		$ttl       = (int) apply_filters( 'extrachill_mcp_ability_list_ttl', self::LIST_CACHE_TTL, $site_key );
+		$cache_key = 'extrachill_mcp_abilities_' . md5( $site_key . '|' . $category );
+		if ( $ttl > 0 ) {
+			$cached = get_site_transient( $cache_key );
+			if ( is_array( $cached ) ) {
+				return $cached;
+			}
+		}
+
+		$force = static function (): bool {
+			return true;
+		};
+		add_filter( 'ec_cross_site_use_http_loopback', $force, 10, 0 );
+
+		$abilities = array();
+
+		try {
+			for ( $page = 1; $page <= $max_pages; $page++ ) {
+				$query = array(
+					'per_page' => 100,
+					'page'     => $page,
+					'_fields'  => 'name,label,description,category,input_schema.required',
+				);
+				if ( '' !== $category ) {
+					$query['category'] = $category;
+				}
+
+				$response = ec_cross_site_rest_request( $site_key, 'GET', '/wp-abilities/v1/abilities', array( 'query' => $query ) );
+
+				if ( is_wp_error( $response ) ) {
+					return $response;
+				}
+
+				if ( ! is_array( $response ) ) {
+					break;
+				}
+
+				foreach ( $response as $record ) {
+					if ( is_array( $record ) && is_string( $record['name'] ?? null ) ) {
+						$abilities[] = $record;
+					}
+				}
+
+				if ( count( $response ) < 100 ) {
+					break;
+				}
+			}
+		} finally {
+			remove_filter( 'ec_cross_site_use_http_loopback', $force, 10 );
+		}
+
+		if ( $ttl > 0 ) {
+			set_site_transient( $cache_key, $abilities, $ttl );
+		}
+
+		return $abilities;
 	}
 
 	/**
