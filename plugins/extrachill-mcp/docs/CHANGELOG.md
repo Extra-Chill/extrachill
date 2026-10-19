@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.3] - 2026-10-19
+
+### Fixed
+- only dispatch abilities exposed via show_in_rest or mcp.public
+
 ## [0.2.2] - 2026-10-18
 
 ### Fixed
