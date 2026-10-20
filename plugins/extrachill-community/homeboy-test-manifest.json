@@ -40,6 +40,9 @@
     "tests/public-profile-artist-memberships-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/profile-seo-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/public-voices-smoke.php": {
       "environment": "standalone-php"
     },

@@ -213,7 +213,7 @@ defined( 'ABSPATH' ) || exit;
 			<a href="<?php echo esc_url($url); ?>"
 				class="social-link <?php echo esc_attr($type_key); ?>"
 				target="_blank"
-				rel="noopener"
+				rel="<?php echo esc_attr( extrachill_community_profile_link_rel() ); ?>"
 				title="<?php echo esc_attr($title_attr); ?>">
 				<?php echo ec_icon($icon_id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- ec_icon() returns trusted, self-contained SVG markup for a fixed internal icon id ?>
 			</a>
