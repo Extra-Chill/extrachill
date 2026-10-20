@@ -32,7 +32,7 @@
   },
   "homepage": "https://community.extrachill.com",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=22.0.0"
   },
   "devDependencies": {
     "@wordpress/scripts": "^30.15.0",
