@@ -64,6 +64,16 @@ function extrachill_get_leaderboard_users($items_per_page = 25, $offset = 0) {
 		'offset'   => $offset,
 	);
 
+	// Banned/suspended accounts are removed from the public leaderboard —
+	// their profiles 404 (see inc/user-profiles/blocked-profile.php), so
+	// listing them here would only surface dead spam links.
+	if ( function_exists( 'extrachill_community_get_blocked_user_ids' ) ) {
+		$blocked = extrachill_community_get_blocked_user_ids();
+		if ( ! empty( $blocked ) ) {
+			$args['exclude'] = $blocked;
+		}
+	}
+
 	$user_query = new WP_User_Query($args);
 	$results    = $user_query->get_results();
 
@@ -96,11 +106,22 @@ function extrachill_get_leaderboard_total_users() {
 		return (int) $total;
 	}
 
-	$user_query = new WP_User_Query(array(
+	$count_args = array(
 		'orderby'  => 'meta_value_num',
 		'meta_key' => 'extrachill_total_points',
 		'fields'   => 'ID',
-	));
+	);
+
+	// Keep the total in sync with the blocked-user exclusion applied to the
+	// leaderboard listing above.
+	if ( function_exists( 'extrachill_community_get_blocked_user_ids' ) ) {
+		$blocked = extrachill_community_get_blocked_user_ids();
+		if ( ! empty( $blocked ) ) {
+			$count_args['exclude'] = $blocked;
+		}
+	}
+
+	$user_query = new WP_User_Query($count_args);
 
 	$total = $user_query->get_total();
 	set_transient($cache_key, $total, MINUTE_IN_SECONDS * 5);

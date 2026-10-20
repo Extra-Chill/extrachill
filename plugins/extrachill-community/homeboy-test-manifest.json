@@ -4,6 +4,12 @@
     "tests/artist-platform-cta-dependency-absent-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/blocked-profile-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/blocked-profile-dependency-absent-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/artist-platform-cta-smoke.php": {
       "environment": "standalone-php"
     },
