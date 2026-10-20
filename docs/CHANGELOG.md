@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.33.1] - 2026-10-20
+
+### Fixed
+- fire generic action on Turnstile rejection
+
 ## [2.33.0] - 2026-10-20
 
 ### Added

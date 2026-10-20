@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill Network
  * Plugin URI: https://extrachill.com
  * Description: Network administration foundation for the ExtraChill Platform. Provides network-wide Cloudflare Turnstile integration and consolidated network admin menu.
- * Version: 2.33.0
+ * Version: 2.33.1
  * Author: Chris Huber
  * Author URI: https://chubes.net
  * Network: true
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'EXTRACHILL_NETWORK_VERSION', '2.33.0' );
+define( 'EXTRACHILL_NETWORK_VERSION', '2.33.1' );
 define( 'EXTRACHILL_NETWORK_PLUGIN_FILE', __FILE__ );
 define( 'EXTRACHILL_NETWORK_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_NETWORK_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
