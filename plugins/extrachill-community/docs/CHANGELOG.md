@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.27.4] - 2026-10-20
+
+### Changed
+- opt out of npm publish — this is a WordPress plugin, not an npm package
+
 ## [1.27.3] - 2026-10-20
 
 ### Changed
