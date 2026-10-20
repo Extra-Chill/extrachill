@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.33.0] - 2026-10-20
+
+### Added
+- declare wp-coding-agents host opt-ins (WordPress chat agent)
+
 ## [2.32.0] - 2026-10-16
 
 ### Added
