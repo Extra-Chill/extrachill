@@ -20,6 +20,9 @@
   },
   "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",
   "id": "extrachill-community",
+  "release": {
+    "publish": false
+  },
   "remote_path": "wp-content/plugins/extrachill-community",
   "scopes": {
     "release": {
