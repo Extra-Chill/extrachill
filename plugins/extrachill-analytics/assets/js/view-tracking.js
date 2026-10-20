@@ -142,6 +142,20 @@
 		// Malformed query strings carry no attribution.
 	}
 
+	if ( typeof window.matchMedia === 'function' ) {
+		const matches = ( query ) => window.matchMedia( query ).matches;
+		input.color_scheme = matches( '(prefers-color-scheme: dark)' )
+			? 'dark'
+			: 'light';
+		input.reduced_motion = matches( '(prefers-reduced-motion: reduce)' );
+		input.contrast = 'no-preference';
+		if ( matches( '(prefers-contrast: more)' ) ) {
+			input.contrast = 'more';
+		} else if ( matches( '(prefers-contrast: less)' ) ) {
+			input.contrast = 'less';
+		}
+	}
+
 	const data = JSON.stringify( { input } );
 
 	if ( window.navigator.sendBeacon ) {

@@ -14,54 +14,110 @@ declare( strict_types=1 );
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Keep REST schema coercion from turning invalid preferences into valid values.
+ *
+ * @param  mixed           $result  Pre-dispatch result.
+ * @param  WP_REST_Server  $server  REST server.
+ * @param  WP_REST_Request $request Request.
+ * @return mixed
+ */
+function extrachill_analytics_normalize_pageview_rest_input( $result, $server, $request ) {
+	if ( '/wp-abilities/v1/abilities/extrachill/track-page-view/run' === $request->get_route() ) {
+		$input = $request->get_param( 'input' );
+		if ( is_array( $input ) ) {
+			$valid = extrachill_analytics_valid_display_preferences( $input );
+			unset( $input['color_scheme'], $input['reduced_motion'], $input['contrast'] );
+			$request->set_param( 'input', array_merge( $input, $valid ) );
+		}
+	}
+	return $result;
+}
+add_filter( 'rest_pre_dispatch', 'extrachill_analytics_normalize_pageview_rest_input', 10, 3 );
+
+/**
+ * Extract only strictly typed, bounded display preferences.
+ *
+ * @param  array $input Beacon input.
+ * @return array
+ */
+function extrachill_analytics_valid_display_preferences( array $input ): array {
+	$valid = array();
+	foreach ( array(
+		'color_scheme' => array( 'dark', 'light' ),
+		'contrast'     => array( 'more', 'less', 'no-preference' ),
+	) as $key => $allowed ) {
+		if ( isset( $input[ $key ] ) && in_array( $input[ $key ], $allowed, true ) ) {
+			$valid[ $key ] = $input[ $key ];
+		}
+	}
+	if ( isset( $input['reduced_motion'] ) && is_bool( $input['reduced_motion'] ) ) {
+		$valid['reduced_motion'] = $input['reduced_motion'];
+	}
+	return $valid;
+}
+
+/**
  * Register the track-page-view ability.
  */
 function extrachill_analytics_register_track_page_view_ability(): void {
+	// Load after Core's Abilities API: strict schemas must not reject a
+	// pageview just because an optional display preference is malformed.
+	require_once __DIR__ . '/class-page-view-ability.php';
 	wp_register_ability(
 		'extrachill/track-page-view',
 		array(
+			'ability_class'       => 'ExtraChill_Analytics_Page_View_Ability',
 			'label'               => __( 'Track Page View', 'extrachill-analytics' ),
 			'description'         => __( 'Record a pageview for an eligible public route and increment legacy counters for valid post-backed views.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'post_id'      => array(
+					'post_id'        => array(
 						'type'        => 'integer',
 						'description' => __( 'Optional post ID for a singular post-backed view. Zero is accepted as the legacy route-view sentinel.', 'extrachill-analytics' ),
 						'minimum'     => 0,
 					),
-					'source_path'  => array(
+					'source_path'    => array(
 						'type'        => 'string',
 						'description' => __( 'Normalized query-free browser route path.', 'extrachill-analytics' ),
 						'maxLength'   => 512,
 					),
-					'route_family' => array(
+					'route_family'   => array(
 						'type'        => 'string',
 						'description' => __( 'Bounded browser route family.', 'extrachill-analytics' ),
 						'enum'        => extrachill_analytics_route_families(),
 					),
-					'referrer'     => array(
+					'referrer'       => array(
 						'type'        => 'string',
 						'description' => __( 'Optional raw client-side referrer (document.referrer). Normalized server-side to a host-only `referrer_host` (no query strings, no PII) on the pageview event. Empty for direct traffic.', 'extrachill-analytics' ),
 						'default'     => '',
 					),
-					'utm_source'   => array(
+					'utm_source'     => array(
 						'type'        => 'string',
 						'description' => __( 'Optional utm_source from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
 						'maxLength'   => 128,
 					),
-					'utm_medium'   => array(
+					'utm_medium'     => array(
 						'type'        => 'string',
 						'description' => __( 'Optional utm_medium from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
 						'maxLength'   => 128,
 					),
-					'utm_campaign' => array(
+					'utm_campaign'   => array(
 						'type'        => 'string',
 						'description' => __( 'Optional utm_campaign from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
 						'maxLength'   => 128,
 					),
-					'proof'        => array(
+					'color_scheme'   => array(
+						'type' => 'string',
+						'enum' => array( 'dark', 'light' ),
+					),
+					'reduced_motion' => array( 'type' => 'boolean' ),
+					'contrast'       => array(
+						'type' => 'string',
+						'enum' => array( 'more', 'less', 'no-preference' ),
+					),
+					'proof'          => array(
 						'type'        => 'string',
 						'description' => __( 'Cache-safe proof binding the rendered host, path, route family, and post.', 'extrachill-analytics' ),
 						'maxLength'   => 64,
@@ -188,6 +244,8 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 		if ( $post_id > 0 ) {
 			$event_data['post_id'] = $post_id;
 		}
+		$preferences = extrachill_analytics_valid_display_preferences( $input );
+		$event_data  = array_merge( $event_data, $preferences );
 
 		// Stamp a NORMALIZED, host-only referrer provenance on the pageview so
 		// AI-citation (chatgpt.com / perplexity.ai / gemini.google.com), social,

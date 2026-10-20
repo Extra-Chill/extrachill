@@ -29,6 +29,7 @@ add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_get_link_pag
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_bridge_ctr_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_outbound_clicks_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_retention_stats_ability' );
+add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_display_preferences_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_surface_growth_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_demand_drill_ability' );
 add_action( 'wp_abilities_api_init', 'extrachill_analytics_register_conversion_map_ability' );
@@ -173,7 +174,7 @@ function extrachill_analytics_ability_track_event( $input ) {
 	// reclassify it as 'search_attack' so real search metrics stay clean while
 	// the attack stays visible. This catches any caller (current or future)
 	// that forgets to pre-classify, including community/forum/artist search.
-	if ( EC_ANALYTICS_EVENT_SEARCH === $event_type && is_array( $event_data ) && ! empty( $event_data['search_term'] ) ) {
+	if ( EC_ANALYTICS_EVENT_SEARCH === $event_type && ! empty( $event_data['search_term'] ) ) {
 		$classification = extrachill_analytics_classify_search_payload( (string) $event_data['search_term'] );
 		if ( null !== $classification ) {
 			$event_type = EC_ANALYTICS_EVENT_SEARCH_ATTACK;

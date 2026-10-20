@@ -36,6 +36,10 @@ const routeConfig = {
 };
 
 describe( 'anonymous pageview payload', () => {
+	beforeEach( () => {
+		delete window.matchMedia;
+	} );
+
 	afterEach( () => {
 		delete global.ecViewTracking;
 		jest.restoreAllMocks();
@@ -98,6 +102,44 @@ describe( 'campaign attribution', () => {
 
 		expect( payload.input ).not.toHaveProperty( 'utm_source' );
 		expect( payload.input ).not.toHaveProperty( 'utm_campaign' );
+	} );
+} );
+
+describe( 'display preferences', () => {
+	afterEach( () => {
+		delete window.matchMedia;
+		delete global.ecViewTracking;
+		jest.restoreAllMocks();
+	} );
+
+	it.each( [
+		[ true, true, 'more' ],
+		[ false, false, 'less' ],
+		[ false, true, 'no-preference' ],
+	] )(
+		'detects dark=%s, reduced motion=%s, contrast=%s',
+		( dark, reduce, contrast ) => {
+			const preferences = {
+				'(prefers-color-scheme: dark)': dark,
+				'(prefers-reduced-motion: reduce)': reduce,
+				[ `(prefers-contrast: ${ contrast })` ]: true,
+			};
+			window.matchMedia = jest.fn( ( query ) => ( {
+				matches: preferences[ query ] === true,
+			} ) );
+			const { input } = runTracker( routeConfig );
+			expect( input.color_scheme ).toBe( dark ? 'dark' : 'light' );
+			expect( input.reduced_motion ).toBe( reduce );
+			expect( input.contrast ).toBe( contrast );
+		}
+	);
+
+	it( 'omits preferences without matchMedia', () => {
+		delete window.matchMedia;
+		const { input } = runTracker( routeConfig );
+		expect( input ).not.toHaveProperty( 'color_scheme' );
+		expect( input ).not.toHaveProperty( 'reduced_motion' );
+		expect( input ).not.toHaveProperty( 'contrast' );
 	} );
 } );
 
