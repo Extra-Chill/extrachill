@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.27.3] - 2026-10-20
+
+### Changed
+- add end-user docs gate (count, titles, pinned voice check)
+- run on gpt-6-luna
+- maintain end-user docs with Automattic/docs-agent
+
+### Fixed
+- require Node >=22 so the release runner stops installing Node 14
+- 404 banned users' public profiles; drop them from sitemap + leaderboard
+- nofollow ugc on user profile links and noindex non-participant profiles
+
 ## [1.27.2] - 2026-09-22
 
 ### Fixed
