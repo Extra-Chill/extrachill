@@ -169,6 +169,7 @@ context**:
 wp extrachill analytics summary
 wp extrachill analytics search-gaps
 wp extrachill analytics retention
+wp extrachill analytics display-preferences --site=all
 wp extrachill analytics errors
 ```
 
@@ -177,6 +178,23 @@ installs where a `user_login` collides with a numeric user ID (e.g. a login of
 `"1"` alongside user ID `1`), passing `--user=1` makes WP-CLI print a harmless
 but noisy `Ambiguous user match detected` warning before the output, which
 clutters scripted captures. Omit `--user` entirely.
+
+### Analytics — Display Preferences
+
+`wp extrachill analytics display-preferences` reads dark/light/unknown splits from
+`extrachill/get-display-preferences` (requires an up-to-date extrachill-analytics).
+Use `--days=28` and `--end-days-ago=0`, or paired inclusive UTC dates:
+
+```bash
+wp extrachill analytics display-preferences --start-date=2026-05-01 --end-date=2026-05-31 --site=all
+wp extrachill analytics display-preferences --site=2 --format=csv
+```
+
+The table shows overall then per-blog counts and percentage shares for pageviews
+and unique visitors. JSON preserves the raw ability response; CSV flattens each
+scope into a row with UTC window bounds and fractional shares. The returned
+`until` bound is exclusive. Site filtering follows the other analytics commands:
+current site by default, network-wide on the main site or with `--site=all`.
 
 ### Analytics — Revenue
 

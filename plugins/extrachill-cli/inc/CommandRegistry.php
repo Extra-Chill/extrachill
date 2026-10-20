@@ -28,70 +28,71 @@ class CommandRegistry {
 	public static function map() {
 		return array(
 			// Platform commands.
-			'extrachill platform'                    => Commands\Platform\HealthCommand::class,
-			'extrachill experiments'                 => Commands\Experiments\ExperimentsCommand::class,
+			'extrachill platform'                      => Commands\Platform\HealthCommand::class,
+			'extrachill experiments'                   => Commands\Experiments\ExperimentsCommand::class,
 
 			// Network commands — thin wrappers over extrachill-multisite/extrachill-network primitives.
-			'extrachill network'                     => Commands\Network\MigratePostCommand::class,
-			'extrachill network regenerate-og-card'  => Commands\Network\RegenerateOgCardCommand::class,
-			'extrachill link-pages migrate-storage'  => Commands\LinkPages\StorageMigrationCommand::class,
+			'extrachill network'                       => Commands\Network\MigratePostCommand::class,
+			'extrachill network regenerate-og-card'    => Commands\Network\RegenerateOgCardCommand::class,
+			'extrachill link-pages migrate-storage'    => Commands\LinkPages\StorageMigrationCommand::class,
 
 			// Analytics commands.
-			'extrachill analytics summary'           => Commands\Analytics\SummaryCommand::class,
-			'extrachill analytics 404'               => Commands\Analytics\FourOhFourCommand::class,
-			'extrachill analytics attacks'           => Commands\Analytics\AttacksCommand::class,
-			'extrachill analytics search-gaps'       => Commands\Analytics\SearchGapsCommand::class,
-			'extrachill analytics bot-filter-impact' => Commands\Analytics\BotFilterImpactCommand::class,
-			'extrachill analytics errors'            => Commands\Analytics\ErrorsCommand::class,
-			'extrachill analytics retention'         => Commands\Analytics\RetentionCommand::class,
-			'extrachill analytics growth'            => Commands\Analytics\GrowthCommand::class,
-			'extrachill analytics demand-drill'      => Commands\Analytics\DemandDrillCommand::class,
-			'extrachill analytics conversion'        => Commands\Analytics\ConversionCommand::class,
-			'extrachill analytics route-transitions' => Commands\Analytics\RouteTransitionsCommand::class,
-			'extrachill analytics crosslink-targets' => Commands\Analytics\CrosslinkTargetsCommand::class,
-			'extrachill analytics outbound'          => Commands\Analytics\OutboundCommand::class,
-			'extrachill analytics stickiness'        => Commands\Analytics\StickinessCommand::class,
-			'extrachill analytics content-audit'     => Commands\Analytics\ContentAuditCommand::class,
-			'extrachill analytics content-flags'     => Commands\Analytics\ContentFlagsCommand::class,
-			'extrachill analytics gsc-opportunities' => Commands\Analytics\GscOpportunitiesCommand::class,
-			'extrachill analytics revenue'           => Commands\Analytics\RevenueCommand::class,
+			'extrachill analytics summary'             => Commands\Analytics\SummaryCommand::class,
+			'extrachill analytics 404'                 => Commands\Analytics\FourOhFourCommand::class,
+			'extrachill analytics attacks'             => Commands\Analytics\AttacksCommand::class,
+			'extrachill analytics search-gaps'         => Commands\Analytics\SearchGapsCommand::class,
+			'extrachill analytics bot-filter-impact'   => Commands\Analytics\BotFilterImpactCommand::class,
+			'extrachill analytics errors'              => Commands\Analytics\ErrorsCommand::class,
+			'extrachill analytics retention'           => Commands\Analytics\RetentionCommand::class,
+			'extrachill analytics display-preferences' => Commands\Analytics\DisplayPreferencesCommand::class,
+			'extrachill analytics growth'              => Commands\Analytics\GrowthCommand::class,
+			'extrachill analytics demand-drill'        => Commands\Analytics\DemandDrillCommand::class,
+			'extrachill analytics conversion'          => Commands\Analytics\ConversionCommand::class,
+			'extrachill analytics route-transitions'   => Commands\Analytics\RouteTransitionsCommand::class,
+			'extrachill analytics crosslink-targets'   => Commands\Analytics\CrosslinkTargetsCommand::class,
+			'extrachill analytics outbound'            => Commands\Analytics\OutboundCommand::class,
+			'extrachill analytics stickiness'          => Commands\Analytics\StickinessCommand::class,
+			'extrachill analytics content-audit'       => Commands\Analytics\ContentAuditCommand::class,
+			'extrachill analytics content-flags'       => Commands\Analytics\ContentFlagsCommand::class,
+			'extrachill analytics gsc-opportunities'   => Commands\Analytics\GscOpportunitiesCommand::class,
+			'extrachill analytics revenue'             => Commands\Analytics\RevenueCommand::class,
 
 			// Events commands.
-			'extrachill events'                      => Commands\Events\LocationCommand::class,
-			'extrachill venues'                      => Commands\Events\VenueDiscoveryCommand::class,
-			'extrachill shows'                       => Commands\Events\ConcertTrackingCommand::class,
+			'extrachill events'                        => Commands\Events\LocationCommand::class,
+			'extrachill venues'                        => Commands\Events\VenueDiscoveryCommand::class,
+			'extrachill shows'                         => Commands\Events\ConcertTrackingCommand::class,
 
 			// SEO commands.
-			'extrachill seo redirects'               => Commands\SEO\RedirectsCommand::class,
+			'extrachill seo redirects'                 => Commands\SEO\RedirectsCommand::class,
 
 			// Content commands.
-			'extrachill content'                     => Commands\Content\TriviaCommand::class,
-			'extrachill content photo-contest'       => Commands\Content\PhotoContestCommand::class,
+			'extrachill content'                       => Commands\Content\TriviaCommand::class,
+			'extrachill content photo-contest'         => Commands\Content\PhotoContestCommand::class,
 
 			// Tools commands.
-			'extrachill tools qr'                    => Commands\Tools\QRCodeCommand::class,
+			'extrachill tools qr'                      => Commands\Tools\QRCodeCommand::class,
 
 			// Artists commands.
-			'extrachill artists'                     => Commands\Artists\ArtistCommand::class,
+			'extrachill artists'                       => Commands\Artists\ArtistCommand::class,
 
 			// Users commands.
-			'extrachill users'                       => Commands\Users\BanCommand::class,
-			'extrachill users access'                => Commands\Users\ArtistAccessCommand::class,
-			'extrachill users team'                  => Commands\Users\TeamCommand::class,
-			'extrachill users settings'              => Commands\Users\SettingsCommand::class,
-			'extrachill users profile'               => Commands\Users\ProfileCommand::class,
+			'extrachill users'                         => Commands\Users\BanCommand::class,
+			'extrachill users access'                  => Commands\Users\ArtistAccessCommand::class,
+			'extrachill users team'                    => Commands\Users\TeamCommand::class,
+			'extrachill users settings'                => Commands\Users\SettingsCommand::class,
+			'extrachill users profile'                 => Commands\Users\ProfileCommand::class,
 
 			// Community commands.
-			'extrachill community'                   => Commands\Community\CommunityCommand::class,
+			'extrachill community'                     => Commands\Community\CommunityCommand::class,
 
 			// Cache commands.
-			'extrachill cache'                       => Commands\Cache\WarmCommand::class,
+			'extrachill cache'                         => Commands\Cache\WarmCommand::class,
 
 			// Giveaway commands.
-			'extrachill giveaway'                    => Commands\Giveaway\GiveawayCommand::class,
+			'extrachill giveaway'                      => Commands\Giveaway\GiveawayCommand::class,
 
 			// Newsletter commands.
-			'extrachill newsletter'                  => Commands\Newsletter\NewsletterCommand::class,
+			'extrachill newsletter'                    => Commands\Newsletter\NewsletterCommand::class,
 
 			// Roadie commands — talk to the Extra Chill platform chat agent.
 		);
