@@ -204,6 +204,11 @@ function ec_enqueue_turnstile_script( $handle = 'cloudflare-turnstile' ) {
  * Honors the same bypass conditions as ec_verify_turnstile_response()
  * (local environment + 'extrachill_bypass_turnstile_verification' filter).
  *
+ * Fires the stable 'extrachill_turnstile_rejected' action once before returning
+ * a turnstile_missing_token or turnstile_failed error. Receives the error code
+ * (string) and the original WP_REST_Request|string $request_or_token unchanged.
+ * Does not fire on bypass, success, or the turnstile_missing configuration error.
+ *
  * @param WP_REST_Request|string $request_or_token Request object or raw token.
  * @return true|WP_Error True on success, WP_Error on missing/invalid token.
  */
@@ -229,6 +234,7 @@ function ec_turnstile_check_request( $request_or_token ) {
 	}
 
 	if ( '' === $token ) {
+		do_action( 'extrachill_turnstile_rejected', 'turnstile_missing_token', $request_or_token );
 		return new WP_Error(
 			'turnstile_missing_token',
 			__( 'Security verification required.', 'extrachill-network' ),
@@ -237,6 +243,7 @@ function ec_turnstile_check_request( $request_or_token ) {
 	}
 
 	if ( ! ec_verify_turnstile_response( $token ) ) {
+		do_action( 'extrachill_turnstile_rejected', 'turnstile_failed', $request_or_token );
 		return new WP_Error(
 			'turnstile_failed',
 			__( 'Security verification failed. Please try again.', 'extrachill-network' ),

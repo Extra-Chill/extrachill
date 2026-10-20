@@ -25,7 +25,28 @@ class TurnstileTest extends WP_UnitTestCase {
 	 */
 	private $captured_request_body = null;
 
+	/**
+	 * Rejection action arguments, in firing order.
+	 *
+	 * @var array
+	 */
+	private $rejections = array();
+
+	public function set_up() {
+		parent::set_up();
+		add_action(
+			'extrachill_turnstile_rejected',
+			function ( $error_code, $request_or_token ) {
+				$this->rejections[] = array( $error_code, $request_or_token );
+			},
+			10,
+			2
+		);
+	}
+
 	public function tear_down() {
+		remove_all_actions( 'extrachill_turnstile_rejected' );
+		$this->rejections = array();
 		remove_all_filters( 'pre_http_request' );
 		remove_all_filters( 'extrachill_bypass_turnstile_verification' );
 		delete_site_option( 'ec_turnstile_site_key' );
@@ -193,6 +214,7 @@ class TurnstileTest extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'turnstile_missing_token', $result->get_error_code() );
+		$this->assertSame( array( array( 'turnstile_missing_token', $request ) ), $this->rejections );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -207,6 +229,7 @@ class TurnstileTest extends WP_UnitTestCase {
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'turnstile_failed', $result->get_error_code() );
+		$this->assertSame( array( array( 'turnstile_failed', $request ) ), $this->rejections );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 	}
 
@@ -218,6 +241,22 @@ class TurnstileTest extends WP_UnitTestCase {
 		$request->set_param( 'turnstile_response', 'good-token' );
 
 		$this->assertTrue( ec_turnstile_check_request( $request ) );
+		$this->assertSame( array(), $this->rejections );
+	}
+
+	public function test_check_request_rejection_preserves_raw_token() {
+		update_site_option( 'ec_turnstile_secret_key', 'secret-123' );
+		$this->stub_siteverify( 200, wp_json_encode( array( 'success' => false ) ) );
+
+		$this->assertWPError( ec_turnstile_check_request( '' ) );
+		$this->assertWPError( ec_turnstile_check_request( 'bad-token' ) );
+		$this->assertSame(
+			array(
+				array( 'turnstile_missing_token', '' ),
+				array( 'turnstile_failed', 'bad-token' ),
+			),
+			$this->rejections
+		);
 	}
 
 	public function test_check_request_accepts_raw_token_string() {
@@ -233,6 +272,7 @@ class TurnstileTest extends WP_UnitTestCase {
 		$request = new WP_REST_Request( 'POST', '/test' );
 		// Even with no token, bypass short-circuits to true.
 		$this->assertTrue( ec_turnstile_check_request( $request ) );
+		$this->assertSame( array(), $this->rejections );
 	}
 
 	// ---------------------------------------------------------------------
