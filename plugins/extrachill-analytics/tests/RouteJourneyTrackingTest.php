@@ -145,6 +145,43 @@ final class RouteJourneyTrackingTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
+	 * Campaign parameters are stamped as bounded slugs; unsafe values drop.
+	 */
+	public function test_route_view_records_campaign_attribution(): void {
+		$result = extrachill_analytics_ability_track_page_view(
+			$this->with_proof(
+				array(
+					'source_path'  => '/events/',
+					'route_family' => 'directory',
+					'utm_source'   => 'Newsletter',
+					'utm_medium'   => 'user@example.com',
+					'utm_campaign' => 'learn how to use AI well',
+				)
+			)
+		);
+
+		$this->assertSame( array( 'recorded' => true ), $result );
+		$data = $this->event_data( $this->event_rows()[0] );
+		$this->assertSame( 'newsletter', $data['utm_source'] );
+		$this->assertSame( 'learn-how-to-use-ai-well', $data['utm_campaign'] );
+		$this->assertArrayNotHasKey( 'utm_medium', $data );
+	}
+
+	/**
+	 * Campaign values normalize to safe slugs or are rejected outright.
+	 */
+	public function test_campaign_value_normalization(): void {
+		$this->assertSame( 'newsletter', extrachill_analytics_normalize_campaign_value( ' Newsletter ' ) );
+		$this->assertSame( 'sunday-chill', extrachill_analytics_normalize_campaign_value( 'sunday+chill' ) );
+		$this->assertSame( 'ig_ad.oct', extrachill_analytics_normalize_campaign_value( 'ig_ad.oct' ) );
+		$this->assertSame( '', extrachill_analytics_normalize_campaign_value( 'user@example.com' ) );
+		$this->assertSame( '', extrachill_analytics_normalize_campaign_value( '<script>' ) );
+		$this->assertSame( '', extrachill_analytics_normalize_campaign_value( str_repeat( 'a', 65 ) ) );
+		$this->assertSame( '', extrachill_analytics_normalize_campaign_value( array( 'x' ) ) );
+		$this->assertSame( array(), extrachill_analytics_campaign_from_input( array( 'source_path' => '/' ) ) );
+	}
+
+	/**
 	 * Third-party route views are rejected rather than stitched or stored.
 	 */
 	public function test_custom_domain_route_view_is_rejected(): void {

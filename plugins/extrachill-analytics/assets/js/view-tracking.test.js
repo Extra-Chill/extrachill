@@ -68,6 +68,39 @@ describe( 'anonymous pageview payload', () => {
 	} );
 } );
 
+describe( 'campaign attribution', () => {
+	afterEach( () => {
+		delete global.ecViewTracking;
+		window.history.replaceState( {}, '', '/' );
+		jest.restoreAllMocks();
+	} );
+
+	it( 'forwards utm_source, utm_medium and utm_campaign from the landing URL', () => {
+		window.history.replaceState(
+			{},
+			'',
+			'/events/?utm_source=newsletter&utm_medium=email&utm_campaign=learn-ai&utm_content=footer&email=user@example.com'
+		);
+
+		const payload = runTracker( routeConfig );
+
+		expect( payload.input.utm_source ).toBe( 'newsletter' );
+		expect( payload.input.utm_medium ).toBe( 'email' );
+		expect( payload.input.utm_campaign ).toBe( 'learn-ai' );
+		expect( payload.input ).not.toHaveProperty( 'utm_content' );
+		expect( payload.input ).not.toHaveProperty( 'email' );
+	} );
+
+	it( 'sends no campaign fields for untagged landings', () => {
+		window.history.replaceState( {}, '', '/events/' );
+
+		const payload = runTracker( routeConfig );
+
+		expect( payload.input ).not.toHaveProperty( 'utm_source' );
+		expect( payload.input ).not.toHaveProperty( 'utm_campaign' );
+	} );
+} );
+
 describe( 'client-side visitor cookie mint', () => {
 	let cookieJar;
 	let cookieSetter;

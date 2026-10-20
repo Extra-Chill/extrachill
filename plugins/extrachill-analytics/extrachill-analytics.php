@@ -39,6 +39,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/security-classifier.php
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/visitor-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/search-source-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/referrer-host-classifier.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/campaign-attribution.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/route-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/content-format-classifier.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/outbound-classifier.php';

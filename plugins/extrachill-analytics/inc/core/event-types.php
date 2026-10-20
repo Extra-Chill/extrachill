@@ -35,7 +35,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Pageview event — one row per real (non-bot) front-end view, carrying the
  * anonymous first-party visitor_id when present. Payload fields are post_id,
- * route_family, view_kind, referrer_host, and the server-owned is_bot verdict.
+ * route_family, view_kind, referrer_host, utm_source/utm_medium/utm_campaign, and
+ * the server-owned is_bot verdict.
  * This is the deterministic per-visitor history the retention rollups read.
  */
 const EC_ANALYTICS_EVENT_PAGEVIEW = 'pageview';

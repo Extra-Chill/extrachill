@@ -46,6 +46,21 @@ function extrachill_analytics_register_track_page_view_ability(): void {
 						'description' => __( 'Optional raw client-side referrer (document.referrer). Normalized server-side to a host-only `referrer_host` (no query strings, no PII) on the pageview event. Empty for direct traffic.', 'extrachill-analytics' ),
 						'default'     => '',
 					),
+					'utm_source'   => array(
+						'type'        => 'string',
+						'description' => __( 'Optional utm_source from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
+						'maxLength'   => 128,
+					),
+					'utm_medium'   => array(
+						'type'        => 'string',
+						'description' => __( 'Optional utm_medium from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
+						'maxLength'   => 128,
+					),
+					'utm_campaign' => array(
+						'type'        => 'string',
+						'description' => __( 'Optional utm_campaign from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
+						'maxLength'   => 128,
+					),
 					'proof'        => array(
 						'type'        => 'string',
 						'description' => __( 'Cache-safe proof binding the rendered host, path, route family, and post.', 'extrachill-analytics' ),
@@ -190,6 +205,14 @@ function extrachill_analytics_ability_track_page_view( array $input ) {
 			if ( '' !== $referrer_host ) {
 				$event_data['referrer_host'] = $referrer_host;
 			}
+		}
+
+		// Campaign attribution: email and app clicks carry no referrer, so the
+		// landing URL's utm_* parameters are their only provenance. Each is
+		// reduced to a bounded slug (see campaign-attribution.php) and only
+		// present, valid values are stamped. Additive like referrer_host.
+		if ( function_exists( 'extrachill_analytics_campaign_from_input' ) ) {
+			$event_data = array_merge( $event_data, extrachill_analytics_campaign_from_input( $input ) );
 		}
 
 		// The write-time classifier in events.php treats request_origin as a

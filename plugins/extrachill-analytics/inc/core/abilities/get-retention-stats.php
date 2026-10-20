@@ -355,6 +355,52 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 		);
 	}
 
+	// ---------------------------------------------------------------------
+	// (f) Campaign breakdown: pageviews whose landing URL carried utm_source
+	// (newsletters, ads, social posts). Email clicks arrive with no referrer,
+	// so this is the only place they show up as anything but direct traffic.
+	// Counts ALL pageviews carrying utm_source; rows predating the field and
+	// untagged traffic do not appear.
+	// ---------------------------------------------------------------------
+	$utm_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.utm_source')) IS NOT NULL" );
+	$utm_values = array( $event_type, $since );
+	if ( $date_range || $end_days_ago > 0 ) {
+		$utm_where[]  = 'created_at < %s';
+		$utm_values[] = $window_end;
+	}
+	if ( $blog_id > 0 ) {
+		$utm_where[]  = 'blog_id = %d';
+		$utm_values[] = $blog_id;
+	}
+	$utm_where_clause = implode( ' AND ', $utm_where );
+
+	$utm_sql = "SELECT
+			JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.utm_source')) AS utm_source,
+			JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.utm_medium')) AS utm_medium,
+			JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.utm_campaign')) AS utm_campaign,
+			COUNT(*) AS landings,
+			COUNT(DISTINCT visitor_id) AS visitors
+		FROM {$table}
+		WHERE {$utm_where_clause}
+		GROUP BY utm_source, utm_medium, utm_campaign
+		ORDER BY landings DESC
+		LIMIT 25";
+
+	// phpcs:disable WordPress.DB.PreparedSQL -- $utm_sql interpolates only a code-defined table name and a placeholder where_clause bound via prepare().
+	$utm_rows = $wpdb->get_results( $wpdb->prepare( $utm_sql, $utm_values ) );
+	// phpcs:enable WordPress.DB.PreparedSQL
+
+	$by_campaign = array();
+	foreach ( (array) $utm_rows as $row ) {
+		$by_campaign[] = array(
+			'utm_source'   => (string) $row->utm_source,
+			'utm_medium'   => null === $row->utm_medium || 'null' === $row->utm_medium ? '' : (string) $row->utm_medium,
+			'utm_campaign' => null === $row->utm_campaign || 'null' === $row->utm_campaign ? '' : (string) $row->utm_campaign,
+			'landings'     => (int) $row->landings,
+			'visitors'     => (int) $row->visitors,
+		);
+	}
+
 	// Collection coverage is explicit because route-level rows begin only after
 	// issue #182 ships. Historical rows remain valid post-backed observations;
 	// they must not be silently presented as whole-platform route coverage.
@@ -408,6 +454,10 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 		'by_referrer_host'    => array(
 			'hosts'      => $by_referrer_host,
 			'definition' => 'Top cross-surface referrer hosts (host-only, no query strings/PII) that sent readers to a pageview in the window — AI-citation (chatgpt.com / perplexity.ai), social, search engines, and cross-subdomain landings. Counts ALL pageviews carrying a referrer_host (not just identified visitors); direct + same-host traffic omit the field, and rows predating issue #90 do not appear.',
+		),
+		'by_campaign'         => array(
+			'campaigns'  => $by_campaign,
+			'definition' => 'Top utm_source/utm_medium/utm_campaign combinations on pageviews in the window (newsletters, ads, tagged social links). Counts ALL pageviews carrying utm_source; visitors counts distinct identified visitors only (anonymous/opted-out pageviews count as landings). Untagged traffic and rows predating campaign capture do not appear.',
 		),
 		'collection_coverage' => array(
 			'total_pageviews'                   => $coverage_row ? (int) $coverage_row->total_pageviews : 0,

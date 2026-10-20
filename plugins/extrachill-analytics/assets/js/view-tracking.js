@@ -14,7 +14,10 @@
 		}
 		if ( window.crypto && typeof window.crypto.getRandomValues === 'function' ) {
 			const bytes = window.crypto.getRandomValues( new Uint8Array( 16 ) );
+			// RFC 4122 v4 version/variant bits.
+			// eslint-disable-next-line no-bitwise
 			bytes[ 6 ] = ( bytes[ 6 ] & 0x0f ) | 0x40;
+			// eslint-disable-next-line no-bitwise
 			bytes[ 8 ] = ( bytes[ 8 ] & 0x3f ) | 0x80;
 			const hex = Array.from( bytes, ( byte ) =>
 				byte.toString( 16 ).padStart( 2, '0' )
@@ -121,6 +124,22 @@
 	// direct traffic.
 	if ( document.referrer ) {
 		input.referrer = document.referrer;
+	}
+
+	// Campaign parameters are the only provenance email and app clicks carry:
+	// those clients send no referrer, so a newsletter click otherwise lands as
+	// direct traffic. Only the three utm_* values are forwarded; the server
+	// normalizes each to a bounded slug and drops anything else.
+	try {
+		const params = new URLSearchParams( window.location.search );
+		[ 'utm_source', 'utm_medium', 'utm_campaign' ].forEach( ( name ) => {
+			const value = params.get( name );
+			if ( value ) {
+				input[ name ] = value.slice( 0, 128 );
+			}
+		} );
+	} catch {
+		// Malformed query strings carry no attribution.
 	}
 
 	const data = JSON.stringify( { input } );
