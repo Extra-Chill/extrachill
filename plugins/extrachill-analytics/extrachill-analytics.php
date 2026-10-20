@@ -46,6 +46,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/outbound-classifier.php
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/mediavine-csv-import.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/revenue-content-attribution.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/isbot-backfill.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/turnstile-rejection.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/source-url-backfill.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/link-page-analytics.php';

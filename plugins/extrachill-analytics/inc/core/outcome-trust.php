@@ -19,11 +19,17 @@ defined( 'ABSPATH' ) || exit;
  * @return string Trust class.
  */
 function extrachill_analytics_conversion_outcome_trust_class( $outcome ) {
+	$data = isset( $outcome['event_data'] ) && is_array( $outcome['event_data'] ) ? $outcome['event_data'] : array();
+	// Explicit captcha evidence is stronger than authentication; heuristic bot
+	// flags alone still preserve the authenticated-outcome exception below.
+	if ( in_array( $data['bot_reason'] ?? '', array( 'turnstile_rejected', 'solver_signature' ), true ) ) {
+		return 'confirmed_bot';
+	}
+
 	if ( extrachill_analytics_conversion_outcome_user_id( $outcome ) > 0 ) {
 		return 'authenticated_server';
 	}
 
-	$data = isset( $outcome['event_data'] ) && is_array( $outcome['event_data'] ) ? $outcome['event_data'] : array();
 	if ( true === ( $data['is_bot'] ?? null ) ) {
 		return 'confirmed_bot';
 	}

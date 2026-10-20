@@ -78,6 +78,14 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		$event_data['is_bot'] = (bool) $verdict['is_bot'];
 	}
 
+	// Server-side rejection evidence wins even over an explicit caller verdict.
+	if ( function_exists( 'extrachill_analytics_request_turnstile_rejected' )
+		&& extrachill_analytics_request_turnstile_rejected()
+	) {
+		$event_data['is_bot']     = true;
+		$event_data['bot_reason'] = 'turnstile_rejected';
+	}
+
 	// Stamp the originating search SURFACE on every `search` event at write
 	// time so downstream readers can tell a nav/header search from an
 	// archive/results-page refinement from the bbPress in-forum search (issue

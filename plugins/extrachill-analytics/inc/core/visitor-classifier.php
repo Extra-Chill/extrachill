@@ -182,6 +182,13 @@ function extrachill_analytics_classify_request( $context = array() ) {
 		&& $has_visitor_cookie
 	);
 
+	if ( function_exists( 'extrachill_analytics_request_turnstile_rejected' )
+		&& extrachill_analytics_request_turnstile_rejected()
+	) {
+		$is_human                      = false;
+		$signals['turnstile_rejected'] = true;
+	}
+
 	return array(
 		'is_human' => $is_human,
 		'is_bot'   => ! $is_human,
