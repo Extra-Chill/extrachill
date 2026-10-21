@@ -16,6 +16,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_event_submission_route' );
 
 /** Register the public event submission adapter. */
+/**
+ * Validate an optional term ID: empty, or a non-negative integer.
+ *
+ * @param mixed $value Raw request value.
+ * @return bool
+ */
+function extrachill_api_validate_optional_term_id( $value ): bool {
+	if ( null === $value || '' === $value ) {
+		return true;
+	}
+	return is_numeric( $value ) && (int) $value == $value && (int) $value >= 0; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- "104506" must equal 104506.
+}
+
 function extrachill_api_register_event_submission_route() {
 	// Captcha (Cloudflare Turnstile) is enforced here, at the human-facing
 	// boundary. The underlying extrachill/submit-event ability is captcha-
@@ -43,7 +56,13 @@ function extrachill_api_register_event_submission_route() {
 				),
 				'event_time'         => array( 'type' => 'string' ),
 				'venue_name'         => array( 'type' => 'string' ),
-				'venue_term_id'      => array( 'type' => 'integer' ),
+				// The form's hidden venue picker posts "" when the submitter types a
+				// venue instead of choosing a suggestion; treat that as "no pick" (0).
+				'venue_term_id'      => array(
+					'description'       => 'Venue term ID chosen from suggestions, or empty for a free-text venue.',
+					'validate_callback' => 'extrachill_api_validate_optional_term_id',
+					'sanitize_callback' => 'absint',
+				),
 				'event_city'         => array( 'type' => 'string' ),
 				'event_lineup'       => array( 'type' => 'string' ),
 				'event_link'         => array( 'type' => 'string' ),
