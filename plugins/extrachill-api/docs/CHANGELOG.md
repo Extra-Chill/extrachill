@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.39.2] - 2026-10-21
+
+### Fixed
+- accept empty venue_term_id from the submit form
+
 ## [0.39.1] - 2026-10-16
 
 ### Fixed
