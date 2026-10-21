@@ -42,6 +42,8 @@ final class HomeSearchTest extends TestCase {
 			'royal'       => array( 'name' => 'The Royal American', 'taxonomy' => 'venue', 'count' => 29, 'url' => 'https://events.example/venue/the-royal-american' ),
 			'cph venue'   => array( 'name' => 'Charleston Pour House', 'taxonomy' => 'venue', 'count' => 96, 'url' => 'https://events.example/venue/charleston-pour-house' ),
 			'ph venue'    => array( 'name' => 'The Pour House Music Hall', 'taxonomy' => 'venue', 'count' => 12, 'url' => 'https://events.example/venue/the-pour-house' ),
+			'tiger pub'   => array( 'name' => 'Blind Tiger Pub 36-38 Broad St', 'taxonomy' => 'venue', 'count' => 35, 'url' => 'https://events.example/venue/blind-tiger-pub' ),
+			'tiger band'  => array( 'name' => 'Blind Tiger', 'taxonomy' => 'artist', 'count' => 4, 'url' => 'https://events.example/artist/blind-tiger' ),
 			'location'    => array( 'name' => 'Austin', 'taxonomy' => 'location', 'count' => 900, 'url' => 'https://events.example/location/usa/texas/austin' ),
 		);
 	}
@@ -83,7 +85,12 @@ final class HomeSearchTest extends TestCase {
 		$this->assertSame( 'events', $result['type'] );
 		$this->assertStringStartsWith( 'https://events.example/all?event_search=', $result['url'] );
 
-		$this->assertSame( 'events', $this->resolve( 'lofi', array( 'lofi venue', 'lofidels' ) )['type'] );
+		$this->assertSame( 'events', $this->resolve( 'pour house', array( 'cph venue', 'ph venue', 'stranger' ) )['type'] );
+	}
+
+	public function test_only_matching_venue_beats_an_exactly_named_act(): void {
+		$this->assertSame( 'https://events.example/venue/blind-tiger-pub', $this->resolve( 'blind tiger', array( 'tiger band', 'tiger pub' ) )['url'] );
+		$this->assertSame( 'https://events.example/venue/lo-fi-brewing', $this->resolve( 'lofi', array( 'lofi venue', 'lofidels' ) )['url'] );
 	}
 
 	public function test_partial_city_goes_to_the_directory(): void {

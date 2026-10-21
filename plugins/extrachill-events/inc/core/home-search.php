@@ -8,8 +8,8 @@
  * 1. A city that matches exactly goes to that city's calendar. Several cities
  *    with the same name go to the filtered city directory.
  * 2. The start of a city name ("nash") goes to the filtered city directory.
- * 3. A venue or artist that matches exactly, or the only venue/artist that
- *    matches, goes to that venue or artist page.
+ * 3. Venues before artists: an exact name, or the only distinct name that
+ *    matches, goes to that page. Several matching venues fall through.
  * 4. Anything else goes to the full calendar with the search applied.
  *
  * Term matching and normalization come from data-machine-events'
@@ -103,21 +103,37 @@ function extrachill_events_home_search_resolve( string $query, array $cities, ar
 		static fn( array $a, array $b ): int => array( $order[ $a['taxonomy'] ], -1 * (int) ( $a['count'] ?? 0 ) ) <=> array( $order[ $b['taxonomy'] ], -1 * (int) ( $b['count'] ?? 0 ) )
 	);
 
-	foreach ( $terms as $term ) {
-		if ( $needle === $normalize( (string) $term['name'] ) ) {
+	// Venues first (a venue's full name is often longer than a same-named
+	// act: "Blind Tiger Pub" vs the band "Blind Tiger"), then artists. Within
+	// each: an exact name, else the only distinct name that matches.
+	foreach ( array_keys( $order ) as $taxonomy ) {
+		$group = array_values( array_filter( $terms, static fn( array $term ): bool => $taxonomy === $term['taxonomy'] ) );
+		if ( empty( $group ) ) {
+			continue;
+		}
+
+		foreach ( $group as $term ) {
+			if ( $needle === $normalize( (string) $term['name'] ) ) {
+				return array(
+					'type' => $taxonomy,
+					'url'  => (string) $term['url'],
+				);
+			}
+		}
+
+		$distinct_names = array_unique( array_map( static fn( array $term ): string => (string) $normalize( (string) $term['name'] ), $group ) );
+		if ( 1 === count( $distinct_names ) ) {
 			return array(
-				'type' => (string) $term['taxonomy'],
-				'url'  => (string) $term['url'],
+				'type' => $taxonomy,
+				'url'  => (string) $group[0]['url'],
 			);
 		}
-	}
 
-	$distinct_names = array_unique( array_map( static fn( array $term ): string => (string) $normalize( (string) $term['name'] ), $terms ) );
-	if ( 1 === count( $distinct_names ) && ! empty( $terms ) ) {
-		return array(
-			'type' => (string) $terms[0]['taxonomy'],
-			'url'  => (string) $terms[0]['url'],
-		);
+		// Several venues match: let the calendar search show them all
+		// rather than guessing an artist.
+		if ( 'venue' === $taxonomy ) {
+			break;
+		}
 	}
 
 	// 4. Everything else searches the calendar.
