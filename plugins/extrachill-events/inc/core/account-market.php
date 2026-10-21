@@ -294,15 +294,15 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 			<h2 id="events-market-heading"><?php esc_html_e( 'Choose your Local Scene', 'extrachill-events' ); ?></h2>
 			<p><?php esc_html_e( 'Find a city now, or set your Local Scene to put it first on every visit.', 'extrachill-events' ); ?> <a href="<?php echo esc_url( $settings_url ); ?>"><?php esc_html_e( 'Set Local Scene', 'extrachill-events' ); ?></a></p>
 		<?php else : ?>
-			<h2 id="events-market-heading"><?php esc_html_e( 'Find your city', 'extrachill-events' ); ?></h2>
+			<h2 id="events-market-heading"><?php esc_html_e( 'Find shows', 'extrachill-events' ); ?></h2>
 			<p><?php esc_html_e( 'Search without an account.', 'extrachill-events' ); ?> <a href="<?php echo esc_url( wp_login_url( home_url( '/' ) ) ); ?>"><?php esc_html_e( 'Sign in to save your Local Scene', 'extrachill-events' ); ?></a></p>
 		<?php endif; ?>
 		</div>
 
-		<form class="events-location-search" role="search" method="get" action="<?php echo esc_url( home_url( '/location/' ) ); ?>">
-			<label for="events-location-search"><?php esc_html_e( 'Search cities', 'extrachill-events' ); ?></label>
+		<form class="events-location-search" role="search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
+			<label for="events-location-search"><?php esc_html_e( 'Search shows', 'extrachill-events' ); ?></label>
 			<div class="events-location-search__controls">
-				<input id="events-location-search" name="search" type="search" autocomplete="off" required placeholder="<?php esc_attr_e( 'City or state', 'extrachill-events' ); ?>">
+				<input id="events-location-search" name="<?php echo esc_attr( EXTRACHILL_EVENTS_HOME_SEARCH_PARAM ); ?>" type="search" autocomplete="off" required placeholder="<?php esc_attr_e( 'City, venue, artist, or show', 'extrachill-events' ); ?>">
 				<button class="button-1 button-small" type="submit"><?php esc_html_e( 'Search', 'extrachill-events' ); ?></button>
 			</div>
 		</form>
