@@ -70,7 +70,8 @@ class EventSubmissionAbilities {
 					'category'            => 'extrachill-events',
 					'input_schema'        => array(
 						'type'       => 'object',
-						'required'   => array( 'event_title', 'event_date' ),
+						// Title and date, or a flyer to read them from (#986). Enforced in executeSubmitEvent().
+						'required'   => array(),
 						'properties' => array(
 							'event_title'   => array(
 								'type'        => 'string',
@@ -164,12 +165,16 @@ class EventSubmissionAbilities {
 			return $contact;
 		}
 
-		// 2. Validate required event fields.
+		// 2. Validate required event fields. A flyer alone is enough (#986):
+		// the flyer step reads the title and date from it, so they are only
+		// required when there is no flyer.
 		$event_title = sanitize_text_field( $input['event_title'] ?? '' );
 		$event_date  = sanitize_text_field( $input['event_date'] ?? '' );
+		$flyer       = $input['flyer'] ?? null;
 
-		if ( empty( $event_title ) || empty( $event_date ) ) {
-			return new \WP_Error( 'missing_fields', __( 'Event title and date are required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		$missing = self::validateEventFields( $event_title, $event_date, $flyer );
+		if ( $missing ) {
+			return $missing;
 		}
 
 		// 3. Build sanitized submission. The claim URL is kept OUT of the
@@ -198,10 +203,7 @@ class EventSubmissionAbilities {
 		// handed to the upsert, which assigns that term directly.
 		$submission = $this->applyChosenVenue( $submission, absint( $input['venue_term_id'] ?? 0 ) );
 
-		// 4. Store flyer if provided.
-		$flyer = $input['flyer'] ?? null;
-
-		// 5. Execute ephemeral workflow.
+		// 4. Execute ephemeral workflow.
 		return $this->executeDirect( $submission, $flyer, $account_claim );
 	}
 
@@ -426,6 +428,10 @@ class EventSubmissionAbilities {
 			return $stored_flyer;
 		}
 
+		if ( $stored_flyer && ! empty( $stored_flyer['stored_path'] ) && is_readable( $stored_flyer['stored_path'] ) ) {
+			$submission['flyer_hash'] = (string) hash_file( 'sha256', $stored_flyer['stored_path'] );
+		}
+
 		$workflow = $this->buildWorkflow( $submission, $stored_flyer );
 
 		$owner = $this->resolveWorkflowOwner();
@@ -542,14 +548,60 @@ class EventSubmissionAbilities {
 			return '';
 		}
 
-		$identifier = sprintf(
-			'submission:%s:%s:%s',
-			$submitter,
-			(string) ( $submission['event_date'] ?? '' ),
-			substr( hash( 'sha256', self::normalizeSubmissionTitle( (string) ( $submission['event_title'] ?? '' ) ) ), 0, 16 )
-		);
+		$title = (string) ( $submission['event_title'] ?? '' );
+		$date  = (string) ( $submission['event_date'] ?? '' );
+
+		if ( ( '' === $title || '' === $date ) && '' !== (string) ( $submission['flyer_hash'] ?? '' ) ) {
+			// Flyer-only submission (#986): the same flyer from the same
+			// submitter is the same show until the flyer step reads it.
+			$identifier = sprintf( 'submission:%s:flyer:%s', $submitter, substr( (string) $submission['flyer_hash'], 0, 16 ) );
+		} else {
+			$identifier = sprintf(
+				'submission:%s:%s:%s',
+				$submitter,
+				$date,
+				substr( hash( 'sha256', self::normalizeSubmissionTitle( $title ) ), 0, 16 )
+			);
+		}
 
 		return $this->isSubmissionIdentityReviewed( $identifier ) ? '' : $identifier;
+	}
+
+	/** Title for emails; flyer-only submissions are named by their flyer (#986). */
+	private static function displayTitle( array $submission ): string {
+		$title = (string) ( $submission['event_title'] ?? '' );
+		return '' !== $title ? $title : __( 'Your flyer submission', 'extrachill-events' );
+	}
+
+	/** Date for emails; flyer-only submissions get it from the flyer (#986). */
+	private static function displayDate( array $submission ): string {
+		$date = (string) ( $submission['event_date'] ?? '' );
+		return '' !== $date ? $date : __( 'Reading it from the flyer', 'extrachill-events' );
+	}
+
+	/**
+	 * Title and date are required unless a flyer is attached (#986).
+	 *
+	 * @param string $event_title Sanitized title.
+	 * @param string $event_date  Sanitized date.
+	 * @param mixed  $flyer       File data from $_FILES, or null.
+	 * @return \WP_Error|null missing_fields error, or null when valid.
+	 */
+	public static function validateEventFields( string $event_title, string $event_date, $flyer ): ?\WP_Error {
+		if ( ( '' !== $event_title && '' !== $event_date ) || self::hasFlyer( $flyer ) ) {
+			return null;
+		}
+
+		return new \WP_Error( 'missing_fields', __( 'Add a flyer, or an event title and date.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	/**
+	 * Whether the input carries an uploaded flyer file.
+	 *
+	 * @param mixed $flyer File data from $_FILES, or null.
+	 */
+	public static function hasFlyer( $flyer ): bool {
+		return is_array( $flyer ) && ! empty( $flyer['tmp_name'] );
 	}
 
 	/**
@@ -720,9 +772,17 @@ class EventSubmissionAbilities {
 			. 'Use the upsert_event tool to create the event with the details provided. '
 			. 'Do NOT ask for more information — use exactly what is given.';
 
-		$user_message = "Create this event using the upsert_event tool:\n\n"
-			. "Title: {$submission['event_title']}\n"
-			. "Date: {$submission['event_date']}\n";
+		$user_message = "Create this event using the upsert_event tool:\n\n";
+		if ( '' === (string) $submission['event_title'] || '' === (string) $submission['event_date'] ) {
+			// Flyer-only (#986): the flyer packet carries what's missing.
+			$user_message .= "The submitter attached a flyer. Read any detail not listed below (title, date, venue, lineup, times) from the flyer.\n\n";
+		}
+		if ( '' !== (string) $submission['event_title'] ) {
+			$user_message .= "Title: {$submission['event_title']}\n";
+		}
+		if ( '' !== (string) $submission['event_date'] ) {
+			$user_message .= "Date: {$submission['event_date']}\n";
+		}
 
 		if ( ! empty( $submission['event_time'] ) ) {
 			$user_message .= "Show time (start): {$submission['event_time']}\n";
@@ -790,8 +850,8 @@ class EventSubmissionAbilities {
 		}
 
 		$site_name     = get_bloginfo( 'name' );
-		$event_title   = (string) $submission['event_title'];
-		$event_date    = (string) $submission['event_date'];
+		$event_title   = self::displayTitle( $submission );
+		$event_date    = self::displayDate( $submission );
 		$venue_display = '' !== ( $submission['venue_name'] ?? '' )
 			? (string) $submission['venue_name']
 			: __( 'Not specified', 'extrachill-events' );
@@ -883,8 +943,8 @@ class EventSubmissionAbilities {
 		}
 
 		$site_name     = get_bloginfo( 'name' );
-		$event_title   = (string) $submission['event_title'];
-		$event_date    = (string) $submission['event_date'];
+		$event_title   = self::displayTitle( $submission );
+		$event_date    = self::displayDate( $submission );
 		$venue_display = '' !== ( $submission['venue_name'] ?? '' )
 			? (string) $submission['venue_name']
 			: __( 'Not specified', 'extrachill-events' );

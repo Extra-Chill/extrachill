@@ -640,6 +640,35 @@
 
 		form.dataset.ecSubmissionBound = 'true';
 		form.addEventListener( 'submit', handleSubmit );
+		initFlyerOptional( form );
+	};
+
+	/**
+	 * A flyer alone is a valid submission (#986): while a file is selected,
+	 * title and date stop being required; clearing it restores them.
+	 *
+	 * @param {HTMLFormElement} form Submission form.
+	 */
+	const initFlyerOptional = ( form ) => {
+		const flyer = form.querySelector( 'input[type="file"][name="flyer"]' );
+		if ( ! flyer ) {
+			return;
+		}
+		const sync = () => {
+			const hasFlyer = !! ( flyer.files && flyer.files.length );
+			form.querySelectorAll( '[data-ec-flyer-optional]' ).forEach(
+				( field ) => {
+					field.required = ! hasFlyer;
+				}
+			);
+			form.querySelectorAll( '[data-ec-flyer-optional-marker]' ).forEach(
+				( marker ) => {
+					marker.hidden = hasFlyer;
+				}
+			);
+		};
+		flyer.addEventListener( 'change', sync );
+		sync();
 	};
 
 	/**

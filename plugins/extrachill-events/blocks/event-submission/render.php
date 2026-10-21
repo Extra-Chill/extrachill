@@ -159,8 +159,8 @@ if ( $show_landing ) {
 				</div>
 			<?php endif; ?>
 
+			<?php if ( ! is_user_logged_in() ) : ?>
 			<div class="ec-event-submission__grid">
-				<?php if ( ! is_user_logged_in() ) : ?>
 					<div class="ec-event-submission__field">
 						<label for="<?php echo esc_attr( $form_id ); ?>-contact-name">
 							<?php esc_html_e( 'Your Name', 'extrachill-events' ); ?>
@@ -177,22 +177,32 @@ if ( $show_landing ) {
 						<input type="email" name="contact_email" id="<?php echo esc_attr( $form_id ); ?>-contact-email" aria-describedby="<?php echo esc_attr( $form_id ); ?>-contact-email-hint" required />
 						<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-contact-email-hint"><?php esc_html_e( 'We’ll connect your show to a free Extra Chill account for this email and send you a link to set a password.', 'extrachill-events' ); ?></p>
 					</div>
-				<?php endif; ?>
+			</div>
+			<?php endif; ?>
 
+			<div class="ec-event-submission__field ec-event-submission__field--file">
+				<label for="<?php echo esc_attr( $form_id ); ?>-flyer">
+					<?php esc_html_e( 'Have a flyer? Upload it and we’ll fill in the rest.', 'extrachill-events' ); ?>
+				</label>
+				<input type="file" name="flyer" id="<?php echo esc_attr( $form_id ); ?>-flyer" accept="image/*,.pdf" aria-describedby="<?php echo esc_attr( $form_id ); ?>-flyer-hint" />
+				<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-flyer-hint"><?php esc_html_e( 'JPG, PNG, WebP or PDF. With a flyer, everything below is optional: we read the title, date and venue from it.', 'extrachill-events' ); ?></p>
+			</div>
+
+			<div class="ec-event-submission__grid">
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-title">
 						<?php esc_html_e( 'Event Title', 'extrachill-events' ); ?>
-						<span aria-hidden="true">*</span>
+						<span aria-hidden="true" data-ec-flyer-optional-marker>*</span>
 					</label>
-					<input type="text" name="event_title" id="<?php echo esc_attr( $form_id ); ?>-event-title" required />
+					<input type="text" name="event_title" id="<?php echo esc_attr( $form_id ); ?>-event-title" required data-ec-flyer-optional />
 				</div>
 
 				<div class="ec-event-submission__field">
 					<label for="<?php echo esc_attr( $form_id ); ?>-event-date">
 						<?php esc_html_e( 'Event Date', 'extrachill-events' ); ?>
-						<span aria-hidden="true">*</span>
+						<span aria-hidden="true" data-ec-flyer-optional-marker>*</span>
 					</label>
-					<input type="date" name="event_date" id="<?php echo esc_attr( $form_id ); ?>-event-date" required />
+					<input type="date" name="event_date" id="<?php echo esc_attr( $form_id ); ?>-event-date" required data-ec-flyer-optional />
 				</div>
 
 				<div class="ec-event-submission__field">
@@ -252,14 +262,6 @@ if ( $show_landing ) {
 					<?php esc_html_e( 'Additional Details', 'extrachill-events' ); ?>
 				</label>
 				<textarea name="notes" id="<?php echo esc_attr( $form_id ); ?>-details" rows="4"></textarea>
-			</div>
-
-			<div class="ec-event-submission__field ec-event-submission__field--file">
-				<label for="<?php echo esc_attr( $form_id ); ?>-flyer">
-					<?php esc_html_e( 'Flyer Upload (JPG, PNG, WebP, PDF)', 'extrachill-events' ); ?>
-				</label>
-				<input type="file" name="flyer" id="<?php echo esc_attr( $form_id ); ?>-flyer" accept="image/*,.pdf" aria-describedby="<?php echo esc_attr( $form_id ); ?>-flyer-hint" />
-				<p class="ec-event-submission__field-hint" id="<?php echo esc_attr( $form_id ); ?>-flyer-hint"><?php esc_html_e( 'Optional. We read the flyer and fill in the details it shows.', 'extrachill-events' ); ?></p>
 			</div>
 
 			<div class="ec-event-submission__turnstile">
