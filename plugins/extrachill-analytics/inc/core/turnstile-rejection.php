@@ -8,33 +8,88 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Whether the current visitor was rejected on this blog during this request.
+ * How long server-side bot evidence follows a visitor, in seconds.
+ *
+ * Analytics beacons are separate requests from the rejected form request
+ * (and usually arrive after it), so evidence must outlive the request that
+ * produced it. The same window bounds the retroactive UPDATE.
+ */
+const EXTRACHILL_ANALYTICS_BOT_EVIDENCE_TTL = 30 * MINUTE_IN_SECONDS;
+
+/**
+ * Literal status text a captcha-solver browser extension injects into the
+ * form's submit button when it has no API key. Our code never emits it, so a
+ * CTA label containing it is first-party evidence of an automated visitor.
+ */
+const EXTRACHILL_ANALYTICS_SOLVER_SIGNATURE = 'ERROR_EMPTY_KEY';
+
+/**
+ * Transient key for a visitor's bot evidence on a blog.
+ *
+ * @param int    $blog_id    Blog ID.
+ * @param string $visitor_id Visitor UUID.
+ * @return string
+ */
+function extrachill_analytics_bot_evidence_key( $blog_id, $visitor_id ) {
+	return 'ec_an_bot_' . md5( (int) $blog_id . '|' . (string) $visitor_id );
+}
+
+/**
+ * Bot reason recorded for a visitor on the current blog, or '' when none.
+ *
+ * @param string|null $visitor_id Visitor UUID; null reads the request cookie.
+ * @return string
+ */
+function extrachill_analytics_visitor_bot_reason( $visitor_id = null ) {
+	$visitor_id = null === $visitor_id ? extrachill_analytics_read_visitor_id() : (string) $visitor_id;
+	if ( '' === $visitor_id ) {
+		return '';
+	}
+
+	$blog_id = get_current_blog_id();
+	if ( ! empty( $GLOBALS['extrachill_analytics_bot_evidence'][ $blog_id ][ $visitor_id ] ) ) {
+		return (string) $GLOBALS['extrachill_analytics_bot_evidence'][ $blog_id ][ $visitor_id ];
+	}
+
+	$reason = get_site_transient( extrachill_analytics_bot_evidence_key( $blog_id, $visitor_id ) );
+	return is_string( $reason ) ? $reason : '';
+}
+
+/**
+ * Whether the current request's visitor carries server-side bot evidence.
  *
  * @return bool
  */
 function extrachill_analytics_request_turnstile_rejected() {
-	$visitor_id = extrachill_analytics_read_visitor_id();
-	return '' !== $visitor_id && ! empty( $GLOBALS['extrachill_analytics_turnstile_rejected'][ get_current_blog_id() ][ $visitor_id ] );
+	return '' !== extrachill_analytics_visitor_bot_reason();
 }
 
 /**
- * Reclassify the current visitor's last 30 minutes without storing captcha data.
+ * Record bot evidence for a visitor and reclassify their recent events.
  *
- * @param string $error_code Rejection code (not persisted).
- * @param mixed  $request_or_token Rejected request or token (not persisted).
+ * Evidence persists for EXTRACHILL_ANALYTICS_BOT_EVIDENCE_TTL so later beacons
+ * are stamped at write time. Rows that already carry a bot_reason keep it.
+ *
+ * @param string $visitor_id Visitor UUID.
+ * @param string $reason     Bot reason (turnstile_rejected|solver_signature).
  * @return void
  */
-// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed,Generic.CodeAnalysis.UnusedFunctionParameter.Found -- extrachill_turnstile_rejected action signature; captcha data is deliberately not persisted.
-function extrachill_analytics_on_turnstile_rejected( $error_code, $request_or_token ) {
+function extrachill_analytics_flag_visitor_bot( $visitor_id, $reason ) {
 	global $wpdb;
 
-	$visitor_id = extrachill_analytics_read_visitor_id();
-	if ( '' === $visitor_id ) {
+	$visitor_id = (string) $visitor_id;
+	if ( ! extrachill_analytics_is_valid_visitor_id( $visitor_id ) ) {
 		return;
 	}
 
 	$blog_id = get_current_blog_id();
-	$GLOBALS['extrachill_analytics_turnstile_rejected'][ $blog_id ][ $visitor_id ] = true;
+	if ( '' !== extrachill_analytics_visitor_bot_reason( $visitor_id ) ) {
+		return;
+	}
+
+	$GLOBALS['extrachill_analytics_bot_evidence'][ $blog_id ][ $visitor_id ] = $reason;
+	set_site_transient( extrachill_analytics_bot_evidence_key( $blog_id, $visitor_id ), $reason, EXTRACHILL_ANALYTICS_BOT_EVIDENCE_TTL );
+
 	if ( ! extrachill_analytics_events_ensure_ready() ) {
 		return;
 	}
@@ -43,14 +98,46 @@ function extrachill_analytics_on_turnstile_rejected( $error_code, $request_or_to
 	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	$wpdb->query(
 		$wpdb->prepare(
-			"UPDATE {$table} SET event_data = JSON_SET(event_data, '$.is_bot', JSON_EXTRACT('true', '$'), '$.bot_reason', 'turnstile_rejected')
-			WHERE blog_id = %d AND visitor_id = %s AND created_at >= %s AND JSON_VALID(event_data)",
+			"UPDATE {$table} SET event_data = JSON_SET(event_data, '$.is_bot', JSON_EXTRACT('true', '$'), '$.bot_reason', %s)
+			WHERE blog_id = %d AND visitor_id = %s AND created_at >= %s AND JSON_VALID(event_data)
+			AND JSON_EXTRACT(event_data, '$.bot_reason') IS NULL",
+			$reason,
 			$blog_id,
 			$visitor_id,
-			gmdate( 'Y-m-d H:i:s', time() - 30 * MINUTE_IN_SECONDS )
+			gmdate( 'Y-m-d H:i:s', time() - EXTRACHILL_ANALYTICS_BOT_EVIDENCE_TTL )
 		)
 	);
 	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+}
+
+/**
+ * Whether an event payload carries the captcha-solver signature.
+ *
+ * @param string $event_type Event type.
+ * @param array  $event_data Event payload.
+ * @return bool
+ */
+function extrachill_analytics_event_has_solver_signature( $event_type, $event_data ) {
+	return 'cta_click' === $event_type
+		&& isset( $event_data['label'] )
+		&& is_string( $event_data['label'] )
+		&& false !== strpos( $event_data['label'], EXTRACHILL_ANALYTICS_SOLVER_SIGNATURE );
+}
+
+/**
+ * Reclassify the current visitor when Turnstile rejects their request.
+ *
+ * @param string $error_code Rejection code (not persisted).
+ * @param mixed  $request_or_token Rejected request or token (not persisted).
+ * @return void
+ */
+// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed,Generic.CodeAnalysis.UnusedFunctionParameter.Found -- extrachill_turnstile_rejected action signature; captcha data is deliberately not persisted.
+function extrachill_analytics_on_turnstile_rejected( $error_code, $request_or_token ) {
+	$visitor_id = extrachill_analytics_read_visitor_id();
+	if ( '' === $visitor_id ) {
+		return;
+	}
+	extrachill_analytics_flag_visitor_bot( $visitor_id, 'turnstile_rejected' );
 }
 add_action( 'extrachill_turnstile_rejected', 'extrachill_analytics_on_turnstile_rejected', 10, 2 );
 
@@ -91,7 +178,7 @@ function extrachill_analytics_backfill_solver_bots( $args = array() ) {
 				"SELECT e.id FROM {$table} e
 				WHERE e.id > %d AND (%d = 0 OR e.blog_id = %d)
 				AND JSON_VALID(e.event_data)
-				AND COALESCE(JSON_EXTRACT(e.event_data, '$.is_bot'), false) != true
+				AND JSON_EXTRACT(e.event_data, '$.bot_reason') IS NULL
 				AND EXISTS (SELECT 1 FROM {$table} s
 					WHERE s.blog_id = e.blog_id AND s.visitor_id = e.visitor_id
 					AND s.visitor_id IS NOT NULL AND s.visitor_id != ''

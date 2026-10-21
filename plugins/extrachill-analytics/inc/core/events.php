@@ -78,12 +78,18 @@ function extrachill_track_analytics_event( $event_type, $event_data = array(), $
 		$event_data['is_bot'] = (bool) $verdict['is_bot'];
 	}
 
-	// Server-side rejection evidence wins even over an explicit caller verdict.
-	if ( function_exists( 'extrachill_analytics_request_turnstile_rejected' )
-		&& extrachill_analytics_request_turnstile_rejected()
-	) {
-		$event_data['is_bot']     = true;
-		$event_data['bot_reason'] = 'turnstile_rejected';
+	// Server-side bot evidence (Turnstile rejection, captcha-solver signature)
+	// wins even over an explicit caller verdict, and follows the visitor for a
+	// short window because beacons arrive in separate requests.
+	if ( null !== $stored_visitor_id && function_exists( 'extrachill_analytics_visitor_bot_reason' ) ) {
+		if ( extrachill_analytics_event_has_solver_signature( $event_type, $event_data ) ) {
+			extrachill_analytics_flag_visitor_bot( $stored_visitor_id, 'solver_signature' );
+		}
+		$bot_reason = extrachill_analytics_visitor_bot_reason( $stored_visitor_id );
+		if ( '' !== $bot_reason ) {
+			$event_data['is_bot']     = true;
+			$event_data['bot_reason'] = $bot_reason;
+		}
 	}
 
 	// Stamp the originating search SURFACE on every `search` event at write
