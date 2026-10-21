@@ -12,6 +12,9 @@ if ( ! function_exists( 'esc_attr' ) ) {
 if ( ! function_exists( 'esc_url' ) ) {
 	function esc_url( $url ) { return htmlspecialchars( (string) $url, ENT_QUOTES ); }
 }
+if ( ! function_exists( 'esc_attr_e' ) ) {
+	function esc_attr_e( $text, $domain = 'default' ) { echo htmlspecialchars( (string) $text, ENT_QUOTES ); }
+}
 if ( ! function_exists( 'esc_html_e' ) ) {
 	function esc_html_e( $text, $domain = 'default' ) { echo htmlspecialchars( (string) $text, ENT_QUOTES ); }
 }
@@ -37,8 +40,9 @@ final class SubmitLandingTest extends TestCase {
 	public function test_intro_is_short_and_points_to_paths(): void {
 		$html = extrachill_events_render_submit_landing( 'ec-event-form-1' );
 
-		$this->assertStringContainsString( 'Get your show on the calendar', $html );
-		$this->assertStringContainsString( 'Adding a show is free.', $html );
+		// The page title is the only heading; the landing adds none (#987).
+		$this->assertDoesNotMatchRegularExpression( '/<h[1-6]\b/', $html );
+		$this->assertStringNotContainsString( 'Get your show on the calendar', $html );
 		$this->assertStringContainsString( 'href="#' . EXTRACHILL_EVENTS_SUBMIT_HOW_ANCHOR . '"', $html );
 		$this->assertStringContainsString( 'Have a whole calendar or tour?', $html );
 		$this->assertStringContainsString( 'Just one show?', $html );
@@ -51,10 +55,17 @@ final class SubmitLandingTest extends TestCase {
 		$html = extrachill_events_render_submit_how_it_works();
 
 		$this->assertStringContainsString( 'id="' . EXTRACHILL_EVENTS_SUBMIT_HOW_ANCHOR . '"', $html );
-		$this->assertSame( 6, substr_count( $html, '<dt>' ) );
-		foreach ( array( 'Most of the calendar fills itself.', 'What we need.', 'A person checks it.', 'You get the link.', 'Your account.', 'Whole calendars and tours.' ) as $heading ) {
+		$this->assertSame( 7, substr_count( $html, '<dt>' ) );
+		foreach ( array( 'Most of the calendar fills itself.', 'What we need.', 'A person checks it.', 'You get the link.', 'Your account.', 'Whole calendars and tours.', 'The weekly email.' ) as $heading ) {
 			$this->assertStringContainsString( $heading, $html );
 		}
+
+		// Only the three essentials are visible; the rest is behind <details> (#987).
+		$details = strpos( $html, '<details' );
+		$this->assertNotFalse( $details );
+		$this->assertSame( 3, substr_count( substr( $html, 0, $details ), '<dt>' ) );
+		$this->assertLessThan( $details, strpos( $html, 'What we need.' ) );
+		$this->assertGreaterThan( $details, strpos( $html, 'Your account.' ) );
 		$this->assertStringContainsString( 'skip review', $html );
 		$this->assertStringContainsString( 'weekly email', $html );
 	}
@@ -101,5 +112,8 @@ final class SubmitLandingTest extends TestCase {
 		$this->assertStringContainsString( '-contact-email-hint', $render );
 		$this->assertStringContainsString( '-flyer-hint', $render );
 		$this->assertSame( 2, substr_count( $render, 'id="<?php echo esc_attr( $import_anchor ); ?>"' ), 'Both import panels (signed in and signed out) need the anchor id.' );
+		// The block's own headline/description are suppressed under the landing (#987).
+		$this->assertStringContainsString( '$headline && ! $show_landing', $render );
+		$this->assertStringContainsString( '$description && ! $show_landing', $render );
 	}
 }

@@ -287,15 +287,9 @@
 	color: var(--text-color);
 }
 
-.ec-submit-landing__title {
-	margin-top: 0;
-	margin-bottom: 8px;
-	font-size: var(--font-size-3xl, 2rem);
-}
-
 .ec-submit-landing__lede {
-	margin-bottom: 20px;
-	font-size: var(--font-size-lg, 1.125rem);
+	margin: 12px 0 0;
+	font-size: 0.95rem;
 	color: var(--muted-text);
 }
 
@@ -362,6 +356,12 @@
 .ec-submit-how__list dd {
 	margin: 2px 0 16px;
 	color: var(--muted-text);
+}
+
+.ec-submit-how__more summary {
+	cursor: pointer;
+	margin-bottom: 12px;
+	color: var(--link-color, currentColor);
 }
 
 .ec-event-submission__url-import,

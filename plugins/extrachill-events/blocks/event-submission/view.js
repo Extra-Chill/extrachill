@@ -642,7 +642,37 @@
 		form.addEventListener( 'submit', handleSubmit );
 	};
 
+	/**
+	 * Landing path cards (#987): after the in-page jump, put the cursor in
+	 * the chosen form so the visitor can start typing straight away.
+	 */
+	const initLandingPaths = () => {
+		document
+			.querySelectorAll( '.ec-submit-landing__path[href^="#"]' )
+			.forEach( ( link ) => {
+				if ( link.dataset.ecLandingBound === 'true' ) {
+					return;
+				}
+				link.dataset.ecLandingBound = 'true';
+				link.addEventListener( 'click', () => {
+					const target = document.getElementById(
+						link.getAttribute( 'href' ).slice( 1 )
+					);
+					if ( ! target ) {
+						return;
+					}
+					const field = target.querySelector(
+						'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), a.button-1'
+					);
+					if ( field ) {
+						field.focus( { preventScroll: true } );
+					}
+				} );
+			} );
+	};
+
 	const init = () => {
+		initLandingPaths();
 		document.querySelectorAll( SELECTOR ).forEach( ( container ) => {
 			initForm( container );
 			initUrlImport( container );

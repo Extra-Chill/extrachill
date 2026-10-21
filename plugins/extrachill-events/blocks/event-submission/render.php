@@ -65,11 +65,12 @@ if ( $show_landing ) {
 	data-system-prompt="<?php echo esc_attr( $system_prompt ); ?>"
 >
 	<div class="ec-event-submission__inner">
-		<?php if ( $headline ) : ?>
+		<?php // The landing already frames the page; don't repeat a headline under it (#987). ?>
+		<?php if ( $headline && ! $show_landing ) : ?>
 			<h3 class="ec-event-submission__headline"><?php echo wp_kses_post( $headline ); ?></h3>
 		<?php endif; ?>
 
-		<?php if ( $description ) : ?>
+		<?php if ( $description && ! $show_landing ) : ?>
 			<div class="ec-event-submission__description"><?php echo wp_kses_post( wpautop( $description ) ); ?></div>
 		<?php endif; ?>
 
