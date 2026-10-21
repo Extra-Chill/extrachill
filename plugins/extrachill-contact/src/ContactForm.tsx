@@ -98,14 +98,18 @@ export function ContactForm({
     setStatus('submitting');
     setErrorMessage('');
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (typeof restNonce === 'string' && restNonce.length > 0) {
+      headers['X-WP-Nonce'] = restNonce;
+    }
+
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-WP-Nonce': restNonce,
-        },
+        headers,
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,

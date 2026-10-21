@@ -41,7 +41,8 @@ $intro = $intros[ $subject_key ] ?? '';
 
 $config = array(
 	'endpoint'         => rest_url( 'extrachill/v1/contact/submit' ),
-	'restNonce'        => wp_create_nonce( 'wp_rest' ),
+	// Avoid stale anonymous nonces in cached HTML; logged-in pages are not page-cached.
+	'restNonce'        => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
 	'turnstileSiteKey' => $turnstile_site_key,
 	'subjects'         => array_values( $subjects ),
 	'initialSubject'   => $initial_subject,
