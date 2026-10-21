@@ -305,6 +305,11 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
 			),
 		),
+		'/extrachill/v1/events/local-scene-digest/guest-subscribe|extrachill/guest-subscribe-local-scene-digest' => array(
+			'transport_only' => array(
+				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
+			),
+		),
 		'/extrachill/v1/network-media|extrachill/network-media-upload' => array(
 			'ability_only' => array(
 				'tmp_name' => 'Derived from the admitted multipart file payload.',
