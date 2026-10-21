@@ -1111,17 +1111,17 @@ class ArtistUrlImportAbilities {
 
 		// 2. Create the flow with universal_web_scraper handler and the
 		// SelectionMode-driven taxonomy bindings on the shared pipeline.
+		// Only fields upsert_event declares: Data Machine rejects unknown
+		// handler_config keys, and the venue is resolved from each event.
 		$upsert_handler_config = array(
 			'post_status'                 => 'publish',
 			'include_images'              => false,
 			'post_author'                 => self::DEFAULT_POST_AUTHOR,
 			'taxonomy_artist_selection'   => (string) $artist_term_id,
-			'taxonomy_venue_selection'    => SelectionMode::AI_DECIDES,
 			'taxonomy_location_selection' => SelectionMode::AI_DECIDES,
 			'taxonomy_festival_selection' => SelectionMode::AI_DECIDES,
+			'taxonomy_genre_selection'    => SelectionMode::SKIP,
 			'taxonomy_promoter_selection' => SelectionMode::SKIP,
-			'taxonomy_category_selection' => SelectionMode::SKIP,
-			'taxonomy_post_tag_selection' => SelectionMode::SKIP,
 		);
 
 		$import_handler_config = array(
@@ -1161,6 +1161,9 @@ class ArtistUrlImportAbilities {
 		}
 
 		$flow_result = $flow_ability->execute( $flow_input );
+		if ( is_wp_error( $flow_result ) ) {
+			return new \WP_Error( 'flow_creation_failed', 'Failed to create flow: ' . $flow_result->get_error_message(), array( 'status' => 500 ) );
+		}
 
 		if ( empty( $flow_result['success'] ) || empty( $flow_result['flow_id'] ) ) {
 			$err = $flow_result['error'] ?? 'Unknown error';
@@ -1237,7 +1240,7 @@ class ArtistUrlImportAbilities {
 		$run_ability                 = wp_get_ability( 'datamachine/run-flow' );
 		if ( $run_ability ) {
 			$run_result = $run_ability->execute( array( 'flow_id' => $flow_id ) );
-			if ( isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
+			if ( is_array( $run_result ) && isset( $run_result['events_imported'] ) && is_numeric( $run_result['events_imported'] ) ) {
 				$events_imported_immediately = (int) $run_result['events_imported'];
 			}
 		}
