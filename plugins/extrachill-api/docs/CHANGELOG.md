@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.40.0] - 2026-10-21
+
+### Added
+- guest Local Scene digest signup route
+
+### Fixed
+- let the ability decide whether title and date are required
+
 ## [0.39.2] - 2026-10-21
 
 ### Fixed

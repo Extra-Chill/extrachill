@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.39.2
+ * Version: 0.40.0
  * Requires PHP: 8.4
  * Requires Plugins: extrachill-network
  * Author: Extra Chill
