@@ -56,6 +56,18 @@ final class ArchiveEventsFirstTest extends TestCase {
 	}
 
 	/** Map, merged scene prompt, and workspace action all register below the calendar. */
+	/** The theme only pads buttons that carry a size variant. */
+	public function test_archive_buttons_carry_a_theme_size_variant(): void {
+		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/templates/archive.php' );
+
+		$this->assertIsString( $source );
+		preg_match_all( '/class="(button-(?:1|2|3|danger)\b[^"]*)"/', $source, $matches );
+		$this->assertNotEmpty( $matches[1] );
+		foreach ( $matches[1] as $classes ) {
+			$this->assertMatchesRegularExpression( '/\bbutton-(small|medium|large)\b/', $classes, "Button classes \"{$classes}\" need a size variant." );
+		}
+	}
+
 	public function test_archive_furniture_registers_below_calendar(): void {
 		$base = dirname( __DIR__, 3 ) . '/inc/core/';
 
