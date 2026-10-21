@@ -60,6 +60,7 @@
 			<file>tests/Unit/Abilities/EventSubmissionExecuteDirectAuthContextTest.php</file>
 			<file>tests/Unit/Abilities/EventSubmissionWorkflowStepShapeTest.php</file>
 			<file>tests/Unit/Abilities/EventSubmissionResubmitIdentityTest.php</file>
+			<file>tests/Unit/Abilities/OneClickApproveTest.php</file>
 			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
 			<file>tests/Unit/Abilities/EventRoundupPermissionTest.php</file>
 			<file>tests/Unit/Abilities/EventRoundupTaxFiltersTest.php</file>

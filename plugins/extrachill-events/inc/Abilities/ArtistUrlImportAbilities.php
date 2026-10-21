@@ -1052,6 +1052,14 @@ class ArtistUrlImportAbilities {
 			if ( $fresh_venue_id <= 0 || $selected_id !== $fresh_venue_id ) {
 				return new \WP_Error( 'venue_identity_changed', __( 'Venue approval must use the canonical venue proven by fresh qualification.', 'extrachill-events' ), array( 'status' => 409 ) );
 			}
+			if ( (int) ( $input['pipeline_id'] ?? 0 ) <= 0 ) {
+				// One-click approve (#988): resolve the venue's city pipeline.
+				$found = ( new VenueAddAbilities() )->findCityPipelineForVenue( $fresh_venue_id );
+				if ( is_wp_error( $found ) ) {
+					return $found;
+				}
+				$input['pipeline_id'] = (int) $found['pipeline_id'];
+			}
 			$pipeline_check = ( new VenueAddAbilities() )->validateCityPipeline( (int) ( $input['pipeline_id'] ?? 0 ) );
 			if ( is_wp_error( $pipeline_check ) ) {
 				return $pipeline_check;
@@ -1117,7 +1125,7 @@ class ArtistUrlImportAbilities {
 		);
 
 		$import_handler_config = array(
-			'source_url'       => (string) ( $submission['canonical_url'] ?? $submission['url'] ),
+			'source_url'       => (string) $submission['canonical_url'],
 			'search'           => '',
 			'exclude_keywords' => '',
 		);

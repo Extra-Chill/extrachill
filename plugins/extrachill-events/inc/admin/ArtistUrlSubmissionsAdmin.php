@@ -234,6 +234,30 @@ class ArtistUrlSubmissionsAdmin {
 			<?php wp_nonce_field( self::NONCE_APPROVE . '_' . $submission_id ); ?>
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::NONCE_APPROVE ); ?>" />
 			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $submission_id ); ?>" />
+			<?php
+			// One-click approve (#988): the row already knows its kind and
+			// entity; venue rows resolve their city pipeline automatically.
+			$one_click = in_array( $source_kind, array( 'artist', 'venue' ), true ) && ( $entity_term_id > 0 || '' !== $entity_name );
+			$pipeline  = 'venue' === $source_kind ? ( new \ExtraChillEvents\Abilities\VenueAddAbilities() )->findCityPipelineForVenue( $entity_term_id ) : null;
+			if ( is_wp_error( $pipeline ) ) {
+				$one_click = false;
+			}
+			?>
+			<p style="margin: 2px 0 6px;">
+				<?php if ( 'venue' === $source_kind && is_array( $pipeline ) ) : ?>
+					<?php
+					/* translators: %s: pipeline name. */
+					echo esc_html( sprintf( __( 'Imports into %s.', 'extrachill-events' ), $pipeline['pipeline_name'] ) );
+					?>
+				<?php elseif ( is_wp_error( $pipeline ) ) : ?>
+					<strong><?php echo esc_html( $pipeline->get_error_message() ); ?></strong>
+				<?php elseif ( ! $one_click ) : ?>
+					<strong><?php esc_html_e( 'Pick the source kind and entity under Change details.', 'extrachill-events' ); ?></strong>
+				<?php endif; ?>
+			</p>
+			<button type="submit" class="button button-primary"><?php esc_html_e( 'Approve', 'extrachill-events' ); ?></button>
+			<details<?php echo $one_click ? '' : ' open'; ?> style="margin-top: 6px;">
+				<summary><?php esc_html_e( 'Change details', 'extrachill-events' ); ?></summary>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Source kind:', 'extrachill-events' ); ?>
 				<select name="source_kind">
@@ -245,7 +269,7 @@ class ArtistUrlSubmissionsAdmin {
 
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Entity term ID:', 'extrachill-events' ); ?>
-				<input type="number" name="entity_term_id" min="0" value="<?php echo esc_attr( $entity_term_id ? $entity_term_id : '' ); ?>" style="width: 100px;" />
+				<input type="number" name="entity_term_id" min="0" value="<?php echo esc_attr( $entity_term_id ? (string) $entity_term_id : '' ); ?>" style="width: 100px;" />
 			</label>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Entity name:', 'extrachill-events' ); ?>
@@ -253,7 +277,8 @@ class ArtistUrlSubmissionsAdmin {
 			</label>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'City pipeline ID (venue only):', 'extrachill-events' ); ?>
-				<input type="number" name="pipeline_id" min="0" style="width: 100px;" />
+				<input type="number" name="pipeline_id" min="0" placeholder="<?php echo esc_attr( is_array( $pipeline ) ? (string) $pipeline['pipeline_id'] : '' ); ?>" style="width: 100px;" />
+				<span class="description"><?php esc_html_e( 'Leave empty to use the venue’s city pipeline.', 'extrachill-events' ); ?></span>
 			</label>
 			<label style="display: block; margin: 2px 0;">
 				<?php esc_html_e( 'Schedule:', 'extrachill-events' ); ?>
@@ -263,7 +288,7 @@ class ArtistUrlSubmissionsAdmin {
 					<option value="monthly"><?php esc_html_e( 'Monthly', 'extrachill-events' ); ?></option>
 				</select>
 			</label>
-			<button type="submit" class="button button-primary"><?php esc_html_e( 'Approve', 'extrachill-events' ); ?></button>
+			</details>
 		</form>
 		<?php
 	}

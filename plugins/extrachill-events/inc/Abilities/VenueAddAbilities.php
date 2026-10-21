@@ -25,16 +25,6 @@ class VenueAddAbilities {
 	private const DEFAULT_INTERVAL = 'daily';
 
 	/**
-	 * Default AI model.
-	 */
-	private const DEFAULT_AI_MODEL = 'gpt-5-mini';
-
-	/**
-	 * Default AI provider.
-	 */
-	private const DEFAULT_AI_PROVIDER = 'openai';
-
-	/**
 	 * Default post author.
 	 */
 	private const DEFAULT_POST_AUTHOR = 32;
@@ -131,9 +121,9 @@ class VenueAddAbilities {
 	 * Execute add-venue.
 	 *
 	 * @param array $input Venue parameters.
-	 * @return array Result.
+	 * @return array|\WP_Error Result.
 	 */
-	public function executeAddVenue( array $input ): array|\WP_Error {
+	public function executeAddVenue( array $input ) {
 		$pipeline_id   = (int) ( $input['pipeline_id'] ?? 0 );
 		$name          = sanitize_text_field( $input['name'] ?? '' );
 		$url           = esc_url_raw( $input['url'] ?? '' );
@@ -273,6 +263,99 @@ class VenueAddAbilities {
 	}
 
 	/**
+	 * Find the city pipeline a venue's events belong to (#988).
+	 *
+	 * The venue's city is the location term most of its events carry. The
+	 * pipeline is the one validateCityPipeline() binds to exactly that
+	 * location; pipelines named "{City} Events" are checked first.
+	 *
+	 * @param int $venue_term_id Venue term ID.
+	 * @return array{pipeline_id:int,pipeline_name:string,location_term_id:int}|\WP_Error
+	 */
+	public function findCityPipelineForVenue( int $venue_term_id ) {
+		$location_id = $this->venueLocationTermId( $venue_term_id );
+		if ( $location_id <= 0 ) {
+			return new \WP_Error( 'venue_city_unknown', __( 'This venue has no events with a city yet, so its city pipeline cannot be found. Pick one under Change details.', 'extrachill-events' ), array( 'status' => 409 ) );
+		}
+
+		$location = get_term( $location_id, 'location' );
+		$name     = $location instanceof \WP_Term ? (string) $location->name : '';
+
+		global $wpdb;
+		$table = $wpdb->prefix . 'datamachine_pipelines';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = (array) $wpdb->get_results( "SELECT pipeline_id, pipeline_name FROM {$table} WHERE pipeline_name LIKE '%Events'", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+
+		foreach ( self::rankCityPipelineCandidates( $rows, $name ) as $row ) {
+			$check = $this->validateCityPipeline( (int) $row['pipeline_id'] );
+			if ( ! is_wp_error( $check ) && (int) $check['location_term_id'] === $location_id ) {
+				return array(
+					'pipeline_id'      => (int) $row['pipeline_id'],
+					'pipeline_name'    => (string) $row['pipeline_name'],
+					'location_term_id' => $location_id,
+				);
+			}
+		}
+
+		return new \WP_Error(
+			'no_city_pipeline',
+			/* translators: %s: city name. */
+			sprintf( __( 'No city pipeline imports events for %s yet. Create one, or pick a pipeline under Change details.', 'extrachill-events' ), '' !== $name ? $name : '#' . $location_id ),
+			array( 'status' => 409 )
+		);
+	}
+
+	/**
+	 * Order pipeline rows so "{City} Events" (and "{City} XX Events") come first.
+	 *
+	 * @param array  $rows Rows with pipeline_id and pipeline_name.
+	 * @param string $city City (location term) name.
+	 * @return array Rows, best candidates first.
+	 */
+	public static function rankCityPipelineCandidates( array $rows, string $city ): array {
+		$city  = strtolower( trim( $city ) );
+		$score = static function ( array $row ) use ( $city ): int {
+			$base = strtolower( trim( (string) preg_replace( '/\s+Events\s*$/i', '', (string) ( $row['pipeline_name'] ?? '' ) ) ) );
+			if ( '' === $city ) {
+				return 2;
+			}
+			if ( $base === $city ) {
+				return 0;
+			}
+			return 0 === strpos( $base, $city . ' ' ) ? 1 : 2;
+		};
+
+		usort(
+			$rows,
+			static function ( $a, $b ) use ( $score ): int {
+				return array( $score( $a ), (int) $a['pipeline_id'] ) <=> array( $score( $b ), (int) $b['pipeline_id'] );
+			}
+		);
+
+		return $rows;
+	}
+
+	/** Most common location term across a venue's events, or 0. */
+	private function venueLocationTermId( int $venue_term_id ): int {
+		if ( $venue_term_id <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT tl.term_id FROM {$wpdb->term_relationships} rv
+				INNER JOIN {$wpdb->term_taxonomy} tv ON tv.term_taxonomy_id = rv.term_taxonomy_id AND tv.taxonomy = 'venue' AND tv.term_id = %d
+				INNER JOIN {$wpdb->term_relationships} rl ON rl.object_id = rv.object_id
+				INNER JOIN {$wpdb->term_taxonomy} tl ON tl.term_taxonomy_id = rl.term_taxonomy_id AND tl.taxonomy = 'location'
+				GROUP BY tl.term_id ORDER BY COUNT(*) DESC, tl.term_id ASC LIMIT 1",
+				$venue_term_id
+			)
+		);
+	}
+
+	/**
 	 * Validate that a pipeline is an event-import city pipeline with one
 	 * concrete canonical location binding.
 	 */
@@ -381,7 +464,7 @@ class VenueAddAbilities {
 			return null;
 		}
 
-		return $terms[0] instanceof \WP_Term ? $terms[0] : null;
+		return $terms[0];
 	}
 
 	/**
