@@ -79,7 +79,8 @@ function newsletter_enqueue_frontend_assets() {
 			'extrachill-newsletter',
 			'newsletterParams',
 			array(
-				'restNonce' => wp_create_nonce( 'wp_rest' ),
+				// Avoid stale anonymous nonces in cached pages; logged-in pages are not page-cached.
+				'restNonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
 				'restUrl'   => rest_url(),
 			)
 		);

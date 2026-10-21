@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 const scriptPath = new URL('../assets/js/newsletter.js', `file://${__filename}`);
 
-async function submitWith(response) {
+async function submitWith(response, restNonce = 'nonce') {
     const feedback = {
         className: 'notice',
         style: { display: 'none' },
@@ -45,17 +45,21 @@ async function submitWith(response) {
         location: { href: 'https://extrachill.com/' },
         localStorage,
         newsletterParams: {
-            restNonce: 'nonce',
+            restNonce,
             restUrl: 'https://extrachill.com/wp-json/'
         }
     };
+    let request;
     const context = vm.createContext({
         console,
         document: {
             querySelectorAll: () => [form],
             readyState: 'complete'
         },
-        fetch: async () => response,
+        fetch: async (url, options) => {
+            request = { url, ...options };
+            return response;
+        },
         localStorage,
         Promise,
         URL,
@@ -67,8 +71,32 @@ async function submitWith(response) {
     await new Promise(resolve => setImmediate(resolve));
     await new Promise(resolve => setImmediate(resolve));
 
-    return { emailInput, feedback, stored, submitButton };
+    return { emailInput, feedback, stored, submitButton, request };
 }
+
+test('anonymous submissions omit the REST nonce header', async () => {
+    for (const nonce of ['', null, false, 123]) {
+        const state = await submitWith({
+            ok: true,
+            json: async () => ({ success: true })
+        }, nonce);
+
+        assert.ok(state.request, 'The form must submit without a nonce');
+        assert.equal(state.request.headers['Content-Type'], 'application/json');
+        assert.equal(Object.hasOwn(state.request.headers, 'X-WP-Nonce'), false);
+        assert.equal(state.feedback.className, 'notice notice-success');
+    }
+});
+
+test('logged-in submissions retain the REST nonce header', async () => {
+    const state = await submitWith({
+        ok: true,
+        json: async () => ({ success: true })
+    }, 'fresh-user-nonce');
+
+    assert.equal(state.request.headers['X-WP-Nonce'], 'fresh-user-nonce');
+    assert.equal(state.request.credentials, 'same-origin');
+});
 
 test('renders success and records a genuine subscription', async () => {
     const state = await submitWith({

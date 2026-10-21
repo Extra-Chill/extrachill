@@ -13,7 +13,7 @@
 
     const { newsletterParams } = window;
 
-    if (!newsletterParams || !newsletterParams.restNonce || !newsletterParams.restUrl) {
+    if (!newsletterParams || !newsletterParams.restUrl) {
         return;
     }
 
@@ -92,13 +92,15 @@
             body.turnstile_response = turnstileToken;
         }
 
+        const headers = { 'Content-Type': 'application/json' };
+        if (typeof newsletterParams.restNonce === 'string' && newsletterParams.restNonce !== '') {
+            headers['X-WP-Nonce'] = newsletterParams.restNonce;
+        }
+
         return fetch(endpoint.toString(), {
             method: 'POST',
             credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-WP-Nonce': newsletterParams.restNonce
-            },
+            headers,
             body: JSON.stringify(body)
         })
         .then(async response => {
