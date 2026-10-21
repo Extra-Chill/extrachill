@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			local-scene-digest-guest-unit: pure-PHP unit tests for the
+			email-only weekly digest signup (#989). File-level WP doubles,
+			host runtime, no WordPress loaded.
+		-->
+		<testsuite name="local-scene-digest-guest-unit">
+			<file>tests/Unit/Core/LocalSceneDigestGuestTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

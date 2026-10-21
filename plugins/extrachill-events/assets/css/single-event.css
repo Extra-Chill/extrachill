@@ -391,3 +391,22 @@
         margin-top: 0;
     }
 }
+
+/* Logged-out weekly digest signup (#989); shared with the city archive. */
+.ec-digest-guest {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    margin: 0 0 0.5em;
+}
+
+.ec-digest-guest input[type="email"] {
+    flex: 1 1 14em;
+    min-width: 0;
+}
+
+.ec-digest-guest .ec-digest-guest__status {
+    flex: 1 0 100%;
+    margin: 0;
+}

@@ -134,6 +134,11 @@
             "runtime": "host"
           },
           {
+            "name": "local-scene-digest-guest-unit",
+            "config": "phpunit-local-scene-digest-guest-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "submit-landing-unit",
             "config": "phpunit-submit-landing-unit.xml.dist",
             "runtime": "host"

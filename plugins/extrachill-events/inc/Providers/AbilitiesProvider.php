@@ -94,6 +94,7 @@ final class AbilitiesProvider {
 				'PriorityPromoterAbilities',
 				'EventPerkAbilities',
 				'RsvpPassAbilities',
+				'LocalSceneDigestGuestAbilities',
 				'CityAbilities',
 				'VenueDiscoveryAbilities',
 				'VenueQualificationAbilities',

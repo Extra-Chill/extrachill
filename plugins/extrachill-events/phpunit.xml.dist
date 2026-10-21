@@ -42,6 +42,7 @@
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
+			<exclude>tests/Unit/Core/LocalSceneDigestGuestTest.php</exclude>
 			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
 			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
 			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>

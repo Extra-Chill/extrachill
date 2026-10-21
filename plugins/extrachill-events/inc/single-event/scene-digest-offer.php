@@ -79,7 +79,7 @@ function extrachill_events_get_event_scene_term( int $post_id ): ?WP_Term {
  * which subscribes through the Abilities REST runner.
  *
  * @param array|null $context New context to set, or null to read.
- * @return array{surface:string,event_id:int,via_continuation:bool}
+ * @return array{surface:string,event_id:int,via_continuation:bool,via:string}
  */
 function extrachill_events_digest_subscription_context( ?array $context = null ): array {
 	static $current = null;
@@ -89,6 +89,7 @@ function extrachill_events_digest_subscription_context( ?array $context = null )
 			'surface'          => sanitize_key( (string) ( $context['surface'] ?? 'inline_toggle' ) ),
 			'event_id'         => absint( $context['event_id'] ?? 0 ),
 			'via_continuation' => ! empty( $context['via_continuation'] ),
+			'via'              => sanitize_key( (string) ( $context['via'] ?? '' ) ),
 		);
 	}
 
@@ -96,6 +97,7 @@ function extrachill_events_digest_subscription_context( ?array $context = null )
 		'surface'          => 'inline_toggle',
 		'event_id'         => 0,
 		'via_continuation' => false,
+		'via'              => '',
 	);
 }
 
@@ -129,6 +131,10 @@ function extrachill_events_record_digest_subscription( $user_id, $entity ): bool
 	);
 	if ( $context['event_id'] > 0 ) {
 		$event_data['event_id'] = $context['event_id'];
+	}
+	if ( '' !== $context['via'] ) {
+		// `guest`: confirmed from an email-only signup (#989).
+		$event_data['via'] = $context['via'];
 	}
 
 	$ability->execute(
@@ -269,9 +275,10 @@ function extrachill_events_render_event_digest_offer( $post_id, $ticket_url = ''
 	<aside class="notice <?php echo esc_attr( $notice_class ); ?> event-digest-offer" id="ec-event-digest" data-event-digest-offer data-event-digest-mode="<?php echo esc_attr( $mode ); ?>" data-event-digest-city="<?php echo esc_attr( $term->slug ); ?>" data-post-mark-heading="<?php echo esc_attr( $post_mark_heading ); ?>" data-ec-track-placement="event_digest_offer" aria-labelledby="ec-event-digest-heading">
 		<p class="event-digest-offer__heading" id="ec-event-digest-heading" data-event-digest-heading><strong><?php echo esc_html( 'subscribed' === $mode ? sprintf( /* translators: %s: City name. */ __( "You're getting this week's shows in %s", 'extrachill-events' ), $term->name ) : $heading ); ?></strong></p>
 		<?php if ( 'anonymous' === $mode ) : ?>
-			<p><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'One email a week with upcoming shows in %s. Free account, unsubscribe any time.', 'extrachill-events' ), $term->name ) ); ?></p>
+			<p><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'One email a week with upcoming shows in %s. Just your email, unsubscribe any time.', 'extrachill-events' ), $term->name ) ); ?></p>
+			<?php do_action( 'extrachill_events_render_guest_digest_form', $term, 'event_digest_offer' ); ?>
 			<p class="event-digest-offer__actions">
-				<a class="button-1 button-small" data-ec-track="event-digest-signin" href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'subscribe_digest', $event_url ) ); ?>"><?php esc_html_e( 'Sign in to get the email', 'extrachill-events' ); ?></a>
+				<a data-ec-track="event-digest-signin" href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'subscribe_digest', $event_url ) ); ?>"><?php esc_html_e( 'Have an account? Sign in', 'extrachill-events' ); ?></a>
 			</p>
 		<?php elseif ( 'subscribed' === $mode ) : ?>
 			<p><?php esc_html_e( 'Your first weekly email is on its way. You can turn it off from any email.', 'extrachill-events' ); ?></p>

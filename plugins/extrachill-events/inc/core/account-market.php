@@ -562,7 +562,7 @@ function extrachill_events_render_archive_scene_cta(): void {
 		<div class="events-market-context__copy">
 			<?php if ( ! $is_logged_in ) : ?>
 				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Get %s shows in your inbox', 'extrachill-events' ), $term->name ) ); ?></strong>
-				<span><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'A free account sends you a weekly email of upcoming shows — and saves %s so the calendar focuses on it every visit.', 'extrachill-events' ), $term->name ) ); ?></span>
+				<span><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'One email a week with upcoming shows in %s. Just your email, unsubscribe any time.', 'extrachill-events' ), $term->name ) ); ?></span>
 			<?php elseif ( 'subscribe_digest' === $intent ) : ?>
 				<strong><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'Turn on the weekly email for %s?', 'extrachill-events' ), $term->name ) ); ?></strong>
 				<span><?php echo esc_html( sprintf( /* translators: %s: City name. */ __( 'This saves %s to your account and subscribes you to its weekly email and in-app updates. Nothing changes until you confirm.', 'extrachill-events' ), $term->name ) ); ?></span>
@@ -596,7 +596,8 @@ function extrachill_events_render_archive_scene_cta(): void {
 		</div>
 		<div class="events-market-context__actions">
 			<?php if ( ! $is_logged_in ) : ?>
-				<a class="button-1 button-small" href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'subscribe_digest' ) ); ?>"><?php esc_html_e( 'Sign in for the weekly email', 'extrachill-events' ); ?></a>
+				<?php do_action( 'extrachill_events_render_guest_digest_form', $term, 'archive_scene' ); ?>
+				<a href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'subscribe_digest' ) ); ?>"><?php esc_html_e( 'Sign in for the weekly email', 'extrachill-events' ); ?></a>
 				<a href="<?php echo esc_url( extrachill_events_archive_intent_login_url( $term, 'save_scene' ) ); ?>"><?php esc_html_e( 'Save this city', 'extrachill-events' ); ?></a>
 			<?php elseif ( 'subscribe_digest' === $intent ) : ?>
 				<form method="post" action="<?php echo esc_url( extrachill_events_archive_intent_clean_url( $term ) ); ?>">
