@@ -95,6 +95,73 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 		$this->assertSame( 'Brand New Room', $this->ability_inputs[0]['venue_name'] );
 	}
 
+	/**
+	 * Run a request through the route's own argument validation and sanitization.
+	 *
+	 * @param array $params Request params.
+	 * @return WP_REST_Request|WP_Error Request on success, error on invalid params.
+	 */
+	private function validated_request( array $params ) {
+		$routes  = rest_get_server()->get_routes();
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/event-submissions' );
+		$request->set_attributes( array( 'args' => $routes['/extrachill/v1/event-submissions'][0]['args'] ) );
+		foreach ( $params as $key => $value ) {
+			$request->set_param( $key, $value );
+		}
+		$valid = $request->has_valid_params();
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
+		}
+		$sanitized = $request->sanitize_params();
+		return is_wp_error( $sanitized ) ? $sanitized : $request;
+	}
+
+	/** The form posts venue_term_id="" for a typed venue; it must not 400 (#201). */
+	public function test_route_accepts_empty_venue_term_id() {
+		$request = $this->validated_request(
+			array(
+				'event_title'   => 'Basement Show',
+				'event_date'    => '2026-10-18',
+				'venue_name'    => 'Brand New Room',
+				'venue_term_id' => '',
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Request::class, $request );
+		extrachill_api_handle_event_submission( $request );
+		$this->assertSame( 0, $this->ability_inputs[0]['venue_term_id'] );
+	}
+
+	/** A picked venue still validates and forwards as an integer. */
+	public function test_route_accepts_numeric_venue_term_id() {
+		$request = $this->validated_request(
+			array(
+				'event_title'   => 'A Nightmare on King Street',
+				'event_date'    => '2026-10-18',
+				'venue_name'    => 'Recovery Room Tavern',
+				'venue_term_id' => '104506',
+			)
+		);
+
+		$this->assertInstanceOf( WP_REST_Request::class, $request );
+		extrachill_api_handle_event_submission( $request );
+		$this->assertSame( 104506, $this->ability_inputs[0]['venue_term_id'] );
+	}
+
+	/** Garbage term IDs are still rejected. */
+	public function test_route_rejects_non_numeric_venue_term_id() {
+		$result = $this->validated_request(
+			array(
+				'event_title'   => 'Basement Show',
+				'event_date'    => '2026-10-18',
+				'venue_name'    => 'Brand New Room',
+				'venue_term_id' => 'abc',
+			)
+		);
+
+		$this->assertWPError( $result );
+	}
+
 	/** Controlled ability callback. */
 	public function execute_submission( array $input ) {
 		$this->ability_inputs[] = $input;
