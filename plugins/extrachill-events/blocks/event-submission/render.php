@@ -90,7 +90,7 @@ if ( $show_landing ) {
 						placeholder="https://"
 						autocomplete="off"
 					/>
-					<button type="button" class="button button-secondary ec-event-submission__url-import-try">
+					<button type="button" class="button-2 button-medium ec-event-submission__url-import-try">
 						<?php esc_html_e( 'Try URL', 'extrachill-events' ); ?>
 					</button>
 				</div>
@@ -101,10 +101,10 @@ if ( $show_landing ) {
 				<p class="ec-event-submission__url-import-summary"></p>
 				<ul class="ec-event-submission__url-import-events"></ul>
 				<div class="ec-event-submission__url-import-actions">
-					<button type="button" class="button-1 ec-event-submission__url-import-submit">
+					<button type="button" class="button-1 button-medium ec-event-submission__url-import-submit">
 						<?php esc_html_e( 'Submit for review', 'extrachill-events' ); ?>
 					</button>
-					<button type="button" class="button button-link ec-event-submission__url-import-cancel">
+					<button type="button" class="button-3 button-medium ec-event-submission__url-import-cancel">
 						<?php esc_html_e( 'Cancel and use manual form', 'extrachill-events' ); ?>
 					</button>
 				</div>
@@ -132,8 +132,8 @@ if ( $show_landing ) {
 					<?php esc_html_e( 'Use the manual form below for one event.', 'extrachill-events' ); ?>
 				</p>
 				<div class="ec-event-submission__url-import-actions">
-					<a class="button-1" href="<?php echo esc_url( $join_url ); ?>"><?php esc_html_e( 'Join', 'extrachill-events' ); ?></a>
-					<a class="button-2" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Log in', 'extrachill-events' ); ?></a>
+					<a class="button-1 button-medium" href="<?php echo esc_url( $join_url ); ?>"><?php esc_html_e( 'Join', 'extrachill-events' ); ?></a>
+					<a class="button-2 button-medium" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Log in', 'extrachill-events' ); ?></a>
 				</div>
 			</div>
 		<?php endif; ?>
