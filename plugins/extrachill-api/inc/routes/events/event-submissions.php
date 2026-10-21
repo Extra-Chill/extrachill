@@ -46,14 +46,11 @@ function extrachill_api_register_event_submission_route() {
 			'callback'            => 'extrachill_api_handle_event_submission',
 			'permission_callback' => $turnstile_callback,
 			'args'                => array(
-				'event_title'        => array(
-					'required' => true,
-					'type'     => 'string',
-				),
-				'event_date'         => array(
-					'required' => true,
-					'type'     => 'string',
-				),
+				// Not required here: a flyer alone is a valid submission. The
+				// extrachill/submit-event ability owns the "title+date or flyer"
+				// rule and returns missing_fields (400) when neither is present.
+				'event_title'        => array( 'type' => 'string' ),
+				'event_date'         => array( 'type' => 'string' ),
 				'event_time'         => array( 'type' => 'string' ),
 				'venue_name'         => array( 'type' => 'string' ),
 				// The form's hidden venue picker posts "" when the submitter types a

@@ -11,6 +11,9 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 	/** @var array */
 	private $ability_inputs = array();
 
+	/** @var WP_Error|null Error the controlled ability returns, if set. */
+	private $ability_error = null;
+
 	/** Register a controlled submit-event ability. */
 	public function set_up() {
 		parent::set_up();
@@ -162,9 +165,33 @@ class Event_SubmissionsTest extends WP_UnitTestCase {
 		$this->assertWPError( $result );
 	}
 
+	/** A flyer-only request (no title, no date) passes route validation (#203). */
+	public function test_route_does_not_require_title_or_date() {
+		$routes  = rest_get_server()->get_routes();
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/event-submissions' );
+		$request->set_attributes( array( 'args' => $routes['/extrachill/v1/event-submissions'][0]['args'] ) );
+		$request->set_param( 'venue_name', 'Lo-Fi Brewing' );
+
+		$this->assertTrue( $request->has_valid_params() );
+	}
+
+	/** The ability's own missing_fields error passes through unchanged. */
+	public function test_handler_passes_through_ability_error() {
+		$this->ability_error = new WP_Error( 'missing_fields', 'Event title and date are required.', array( 'status' => 400 ) );
+		$request             = new WP_REST_Request( 'POST', '/extrachill/v1/event-submissions' );
+
+		$response = extrachill_api_handle_event_submission( $request );
+
+		$this->assertWPError( $response );
+		$this->assertSame( 'missing_fields', $response->get_error_code() );
+	}
+
 	/** Controlled ability callback. */
 	public function execute_submission( array $input ) {
 		$this->ability_inputs[] = $input;
+		if ( $this->ability_error ) {
+			return $this->ability_error;
+		}
 		return array( 'accepted' => true );
 	}
 }
