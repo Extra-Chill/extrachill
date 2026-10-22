@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { assembleDemoArgs, buildRecipe, demoEncodeArgs, demoClickLeadMs, demoLoadCuts, demoTrimmedTime, journeyMarkers, paceDemoSteps, domainIdsMuPluginSource, DOMAIN_IDS_MU_PLUGIN_FILENAME, SANDBOX_COMPAT_MU_PLUGIN_FILENAME, journeySeedSetting, journeySelection, validateJourneyDocument } from '../run.mjs';
+import { assembleDemoArgs, buildRecipe, demoEncodeArgs, demoClickLeadMs, demoLoadCuts, demoTrimmedTime, journeyMarkers, paceDemoSteps, domainIdsMuPluginSource, DOMAIN_IDS_MU_PLUGIN_FILENAME, SANDBOX_COMPAT_MU_PLUGIN_FILENAME, journeySeedSetting, journeySelection, recipeRunArgs, recipeRunTimeout, validateJourneyDocument } from '../run.mjs';
 
 const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const topology = JSON.parse(await readFile(path.join(packageRoot, 'network-topology.json'), 'utf8'));
@@ -352,6 +352,26 @@ try {
     ),
     /outside the journey's declared sites/,
   );
+
+  // recipe-run --timeout: WP Codebox's 25m default kills the network rig
+  // mid-journey, so the rig always passes its own (default 50m).
+  const timeoutOf = (args) => args[args.indexOf('--timeout') + 1];
+  const defaultArgs = recipeRunArgs('/tmp/recipe.json', '/tmp/artifacts', {}, { env: {} });
+  assert.ok(defaultArgs.includes('--timeout'), 'recipe-run args must include --timeout');
+  assert.equal(timeoutOf(defaultArgs), '50m');
+  assert.deepEqual(defaultArgs.slice(0, 5), ['recipe-run', '--recipe', '/tmp/recipe.json', '--artifacts', '/tmp/artifacts']);
+  assert.ok(!defaultArgs.includes('--dry-run'));
+  const dryArgs = recipeRunArgs('/tmp/recipe.json', '/tmp/artifacts', {}, { dryRun: true, env: {} });
+  assert.equal(dryArgs.at(-1), '--dry-run');
+  assert.equal(timeoutOf(dryArgs), '50m');
+  assert.equal(timeoutOf(recipeRunArgs('/r', '/a', { extrachill_recipe_timeout: '40m' }, { env: {} })), '40m');
+  assert.equal(timeoutOf(recipeRunArgs('/r', '/a', { extrachill_recipe_timeout: 2400000 }, { env: {} })), '2400000');
+  assert.equal(timeoutOf(recipeRunArgs('/r', '/a', { extrachill_recipe_timeout: '40m' }, { env: { HOMEBOY_WP_CODEBOX_RECIPE_TIMEOUT: '45m' } })), '45m', 'env override wins over the setting');
+  assert.equal(recipeRunTimeout({}, { HOMEBOY_WP_CODEBOX_RECIPE_TIMEOUT: '' }), '50m', 'empty env override falls back');
+  for (const bad of ['50 minutes', '0m', '-5m', '1h', true, '']) {
+    assert.throws(() => recipeRunTimeout({ extrachill_recipe_timeout: bad }, {}), /extrachill_recipe_timeout must be a positive duration/);
+  }
+  assert.throws(() => recipeRunTimeout({}, { HOMEBOY_WP_CODEBOX_RECIPE_TIMEOUT: '1h' }), /HOMEBOY_WP_CODEBOX_RECIPE_TIMEOUT must be a positive duration/);
 
   console.log('extrachill-network rig contract ok');
 } finally {
