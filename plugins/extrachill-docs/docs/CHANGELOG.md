@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.10.0] - 2026-10-22
+
+### Added
+- ask "Did this help?" at the end of docs articles
+
 ## [0.9.0] - 2026-10-11
 
 ### Added
