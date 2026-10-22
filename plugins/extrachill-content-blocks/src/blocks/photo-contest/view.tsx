@@ -13,7 +13,7 @@
  * authoritatively server-side (`already_voted` rejection), and newsletter
  * subscribe happens on the backend.
  *
- * Deep links (?entry=<id>) surface that entry first and scroll to it; the
+ * Deep links (?entry=<id>) focus on that visible entry alone; the
  * backend swaps the OG image for the entry photo so shares unfurl with the
  * entrant's photo.
  *
@@ -25,6 +25,7 @@
 
 import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { selectFocusedEntry } from './focused-entry';
 
 declare global {
 	interface Window {
@@ -202,18 +203,53 @@ function hasOpened( openAt: string ): boolean {
 	return ! openAt || Number.isNaN( ts ) || Date.now() >= ts;
 }
 
-function deepLinkEntryId(): number {
-	try {
-		const params = new URLSearchParams( window.location.search );
-		const id = Number( params.get( 'entry' ) || 0 );
-		return Number.isFinite( id ) && id > 0 ? id : 0;
-	} catch {
-		return 0;
-	}
-}
-
-function SharePanel( { entry, prompt }: { entry: Entry; prompt: string } ) {
+function SharePanel( {
+	entry,
+	prompt,
+	initialShowQr = false,
+}: {
+	entry: Entry;
+	prompt: string;
+	initialShowQr?: boolean;
+} ) {
 	const [ copied, setCopied ] = useState( false );
+	const [ showQr, setShowQr ] = useState( initialShowQr );
+	const [ qrImage, setQrImage ] = useState( '' );
+	const [ qrError, setQrError ] = useState( '' );
+	const [ qrAttempt, setQrAttempt ] = useState( 0 );
+
+	useEffect( () => {
+		if ( ! showQr ) {
+			return;
+		}
+		let cancelled = false;
+		setQrImage( '' );
+		setQrError( '' );
+		apiFetch( {
+			path: '/extrachill/v1/tools/qr-code',
+			method: 'POST',
+			data: { url: entry.share_url, size: 1000 },
+		} )
+			.then( ( result ) => {
+				const image = ( result as { image_url?: string } ).image_url;
+				if ( ! image ) {
+					throw new Error( 'Missing QR image' );
+				}
+				if ( ! cancelled ) {
+					setQrImage( image );
+				}
+			} )
+			.catch( () => {
+				if ( ! cancelled ) {
+					setQrError(
+						'Could not load QR code. Copy the link or try again.'
+					);
+				}
+			} );
+		return () => {
+			cancelled = true;
+		};
+	}, [ showQr, entry.share_url, qrAttempt ] );
 	const shareText = `Vote for ${ entry.display_name }!`;
 	const canWebShare = typeof navigator !== 'undefined' && !! navigator.share;
 
@@ -275,7 +311,39 @@ function SharePanel( { entry, prompt }: { entry: Entry; prompt: string } ) {
 				>
 					X
 				</a>
+				<button
+					className="button-2 button-medium"
+					aria-expanded={ showQr }
+					onClick={ () => setShowQr( ! showQr ) }
+				>
+					{ showQr ? 'Hide QR' : 'Show QR' }
+				</button>
 			</div>
+			{ showQr && (
+				<div
+					className="extrachill-blocks-photo-contest-qr"
+					aria-live="polite"
+				>
+					{ qrImage ? (
+						<img
+							src={ qrImage }
+							alt={ `Scan to vote for ${ entry.display_name }` }
+						/>
+					) : qrError ? (
+						<>
+							<p className="notice notice-error">{ qrError }</p>
+							<button
+								className="button-2 button-small"
+								onClick={ () => setQrAttempt( qrAttempt + 1 ) }
+							>
+								Try again
+							</button>
+						</>
+					) : (
+						<p>Loading QR code…</p>
+					) }
+				</div>
+			) }
 			<p className="extrachill-blocks-photo-contest-share-link">
 				{ entry.share_url }
 			</p>
@@ -448,7 +516,11 @@ function EntryCard( {
 				) }
 				<img
 					className="extrachill-blocks-photo-contest-entry-image"
-					src={ entry.thumbnail_url || entry.image_url }
+					src={
+						highlighted
+							? entry.image_url
+							: entry.thumbnail_url || entry.image_url
+					}
 					alt={ `${ entry.display_name }'s entry` }
 					loading="lazy"
 				/>
@@ -475,7 +547,7 @@ function EntryCard( {
 					<button
 						className={ `extrachill-blocks-photo-contest-vote-button ${
 							hasVoted ? 'button-2' : 'button-1'
-						} button-medium` }
+						} ${ highlighted ? 'button-large' : 'button-medium' }` }
 						disabled={
 							hasVoted || isVoting || votingClosed || isHidden
 						}
@@ -672,7 +744,8 @@ function SubmissionForm( {
 				<h4>You&apos;re in, { myEntry.display_name }! 🎉</h4>
 				<SharePanel
 					entry={ myEntry }
-					prompt="Get your friends to vote for you — share your entry:"
+					prompt="Share this to get votes."
+					initialShowQr
 				/>
 			</div>
 		);
@@ -771,7 +844,10 @@ function SubmissionForm( {
 function PhotoContest( config: ContestConfig ) {
 	const [ entries, setEntries ] = useState< Entry[] | null >( null );
 	const [ loadError, setLoadError ] = useState( '' );
-	const highlightId = deepLinkEntryId();
+	const focusedEntry = selectFocusedEntry(
+		entries || [],
+		window.location.search
+	);
 
 	// Recheck windows while a visitor leaves the cached contest page open.
 	const [ , setClock ] = useState( 0 );
@@ -832,18 +908,7 @@ function PhotoContest( config: ContestConfig ) {
 				if ( cancelled ) {
 					return;
 				}
-				// Shuffle on every load; deep-linked entry surfaces first.
-				let ordered = shuffle( list );
-				if ( highlightId ) {
-					const idx = ordered.findIndex(
-						( e ) => e.id === highlightId
-					);
-					if ( idx > 0 ) {
-						const [ linked ] = ordered.splice( idx, 1 );
-						ordered = [ linked, ...ordered ];
-					}
-				}
-				setEntries( ordered );
+				setEntries( shuffle( list ) );
 			} )
 			.catch( () => {
 				if ( ! cancelled ) {
@@ -884,6 +949,27 @@ function PhotoContest( config: ContestConfig ) {
 			return [ entry, ...prev ];
 		} );
 	};
+
+	if ( focusedEntry ) {
+		const galleryUrl = new URL( window.location.href );
+		galleryUrl.searchParams.delete( 'entry' );
+		return (
+			<div className="extrachill-blocks-photo-contest-focused">
+				<EntryCard
+					key={ focusedEntry.id }
+					entry={ focusedEntry }
+					config={ config }
+					votingClosed={ votingClosed }
+					highlighted={ true }
+					onVoted={ handleVoted }
+					onHiddenChange={ handleHiddenChange }
+				/>
+				<p className="extrachill-blocks-photo-contest-see-all">
+					<a href={ galleryUrl.href }>See all entries</a>
+				</p>
+			</div>
+		);
+	}
 
 	const finalists = showFinalists
 		? ( entries || [] )
@@ -942,7 +1028,7 @@ function PhotoContest( config: ContestConfig ) {
 									entry={ entry }
 									config={ config }
 									votingClosed={ true }
-									highlighted={ entry.id === highlightId }
+									highlighted={ false }
 									onVoted={ handleVoted }
 									onHiddenChange={ handleHiddenChange }
 								/>
@@ -966,7 +1052,7 @@ function PhotoContest( config: ContestConfig ) {
 							entry={ entry }
 							config={ config }
 							votingClosed={ votingClosed }
-							highlighted={ entry.id === highlightId }
+							highlighted={ false }
 							onVoted={ handleVoted }
 							onHiddenChange={ handleHiddenChange }
 						/>

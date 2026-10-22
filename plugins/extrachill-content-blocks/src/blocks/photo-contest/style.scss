@@ -287,3 +287,40 @@
 	border-radius: 999px;
 	font-size: 14px;
 }
+
+/* Focused voting and phone-to-phone sharing. */
+.extrachill-blocks-photo-contest-focused {
+	max-width: 720px;
+	margin: 0 auto;
+}
+
+.extrachill-blocks-photo-contest-focused .extrachill-blocks-photo-contest-entry-image-wrap {
+	padding-bottom: 0;
+}
+
+.extrachill-blocks-photo-contest-focused .extrachill-blocks-photo-contest-entry-image {
+	position: static;
+	height: auto;
+	max-height: 70vh;
+	object-fit: contain;
+}
+
+.extrachill-blocks-photo-contest-see-all {
+	text-align: center;
+	font-size: 14px;
+	margin: 16px 0;
+}
+
+.extrachill-blocks-photo-contest-qr {
+	margin-top: 16px;
+	text-align: center;
+}
+
+.extrachill-blocks-photo-contest-qr img {
+	display: block;
+	width: 360px;
+	max-width: 100%;
+	height: auto;
+	margin: 0 auto;
+	background: #fff;
+}

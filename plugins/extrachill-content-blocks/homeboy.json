@@ -2,7 +2,14 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "wp_codebox_prepare_steps": [
+        {
+          "command": "npm",
+          "args": ["run", "build"]
+        }
+      ]
+    }
   },
   "id": "extrachill-content-blocks",
   "remote_path": "wp-content/plugins/extrachill-content-blocks",

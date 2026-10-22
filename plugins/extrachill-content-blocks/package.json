@@ -12,7 +12,7 @@
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
     "format": "wp-scripts format",
-    "test:js": "npm run build && node --test tests/image-voting-contract.test.js",
+    "test:js": "npm run build && node --test tests/*.test.js",
     "test:php": "npm run build && composer run-script test",
     "typecheck": "tsc --noEmit",
     "verify:assets": "npm run build && node --test tests/image-voting-contract.test.js"
