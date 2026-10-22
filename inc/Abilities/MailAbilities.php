@@ -46,6 +46,7 @@ class MailAbilities {
 				'category'            => 'extrachill-network',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => new \stdClass(),
 				),
 				'output_schema'       => array(

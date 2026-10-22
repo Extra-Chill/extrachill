@@ -56,6 +56,7 @@ class NetworkMediaAbilities {
 				'category'            => 'extrachill-network',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'media_type' => array(
 							'type'        => 'string',

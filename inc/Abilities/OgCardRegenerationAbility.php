@@ -70,6 +70,7 @@ class OgCardRegenerationAbility {
 				'category'            => 'extrachill-network',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'post_id'   => array(
 							'type'        => 'integer',
