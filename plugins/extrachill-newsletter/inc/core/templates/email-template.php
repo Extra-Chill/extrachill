@@ -142,10 +142,13 @@ function prepare_newsletter_email_content( $post ) {
 
 	$html_template = generate_email_html_template( $subject, $content, $unsubscribe_link, $read_on_web_url, $navbar_links );
 
+	$plain_text = html_entity_decode( wp_strip_all_tags( $content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	$plain_text = trim( preg_replace( '/\n{3,}/', "\n\n", $plain_text ) );
+
 	return array(
 		'subject'       => $subject,
 		'html_template' => $html_template,
-		'plain_text'    => wp_strip_all_tags( $content ),
+		'plain_text'    => $plain_text,
 	);
 }
 
