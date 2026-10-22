@@ -148,12 +148,13 @@ $link_pages          = get_posts(
 	array(
 		'post_type'      => $link_post_type,
 		'post_status'    => 'any',
-		'posts_per_page' => 20,
+		'posts_per_page' => -1,
 		'orderby'        => 'ID',
 		'order'          => 'DESC',
 	)
 );
 $link_page_inventory = array();
+$owned_pages         = array();
 foreach ( $link_pages as $link_page_post ) {
 	$link_page_inventory[] = array(
 		'id'     => (int) $link_page_post->ID,
@@ -162,6 +163,10 @@ foreach ( $link_pages as $link_page_post ) {
 		'status' => $link_page_post->post_status,
 		'owner'  => get_post_meta( $link_page_post->ID, '_link_page_owner', true ),
 	);
+	$owner = ec_get_link_page_owner( $link_page_post->ID );
+	if ( is_array( $owner ) && 'post' === $owner['kind'] && (int) $owner['blog_id'] === $artist_blog_id && (int) $owner['object_id'] === $artist_id ) {
+		$owned_pages[ $link_page_post->ID ] = $link_page_post->post_status;
+	}
 	if ( ! $link_page_id && $artist_post && ( $link_page_post->post_name === $artist_post->post_name || $link_page_post->post_title === $artist_post->post_title ) ) {
 		$link_page_id = (int) $link_page_post->ID;
 	}
@@ -176,14 +181,21 @@ if ( $link_page_id ) {
 }
 restore_current_blog();
 
+$before_create = get_site_option( 'musician_journey_before_create_link_page', array() );
 musician_journey_record(
 	$results,
-	'create-artist-provisions-link-page',
-	'Creating an artist profile through the self-serve form leaves the musician with a Link Page (no hidden step).',
-	! $artist_id ? 'skip' : ( $link_page_id ? 'pass' : 'finding' ),
+	'link-page-created-only-after-cta',
+	'Creating an artist leaves no Link Page; clicking Create Link Page creates exactly one published page.',
+	! $artist_id ? 'skip' : musician_journey_outcome(
+		(int) ( $before_create['artist_id'] ?? 0 ) === $artist_id
+		&& array() === ( $before_create['page_ids'] ?? null )
+		&& 1 === count( $owned_pages )
+		&& 'publish' === reset( $owned_pages )
+	),
 	array(
-		'artist_id'    => $artist_id,
-		'link_page_id' => $link_page_id,
+		'artist_id'     => $artist_id,
+		'before_cta'    => $before_create,
+		'after_cta'     => $owned_pages,
 	)
 );
 musician_journey_record(

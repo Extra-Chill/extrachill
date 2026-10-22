@@ -303,6 +303,28 @@ try {
     for (const key of Object.keys(step)) assert.ok(allowedRecipeStepKeys.has(key), `recipe step key '${key}' would fail the WP Codebox recipe schema`);
   }
 
+  // Link Page setup must use the deliberate, nonce-checked UI action, not
+  // assume create-artist provisioned a page (artist-platform#257).
+  for (const [journeyId, setupIds] of [
+    ['musician-link-page-onboarding', ['join-link-live-signup', 'musician-creates-artist-profile']],
+    ['returning-artist-link-page', ['setup-first-session']],
+  ]) {
+    const journey = JSON.parse(await readFile(path.join(packageRoot, 'journeys', journeyId, 'journey.json'), 'utf8'));
+    await validateJourneyDocument(journey, journeyId, topology);
+    for (const setupId of setupIds) {
+      const setup = journey.steps.find((step) => step.metadata.step === setupId);
+      const actions = JSON.parse(setup.args.find((arg) => arg.startsWith('steps-json=')).slice('steps-json='.length));
+      const artist = actions.findIndex((action) => action.kind === 'click' && action.selector.includes('Create Artist Profile'));
+      const prompt = actions.findIndex((action) => action.kind === 'waitFor' && action.selector === '[data-link-page-setup-state="create"]');
+      const cta = actions.findIndex((action) => action.kind === 'click' && action.selector === '[data-link-page-setup-state="create"] button[type="submit"]');
+      const editor = actions.findIndex((action) => action.kind === 'waitFor' && action.selector === '.ec-editor');
+      assert.ok(artist >= 0 && artist < prompt && prompt < cta && cta < editor, `${journeyId}/${setupId}: create artist -> prompt -> CTA -> editor`);
+    }
+  }
+  const musicianGrade = await readFile(path.join(packageRoot, 'journeys/musician-link-page-onboarding/grade.php'), 'utf8');
+  assert.ok(!musicianGrade.includes("'create-artist-provisions-link-page'"));
+  assert.ok(musicianGrade.includes("'link-page-created-only-after-cta'"));
+
   // 8d. fixtureMuPlugins: journey-owned files mount into mu-plugins/ under a
   // journey-namespaced target, generically -- the rig never inspects their
   // content -- and a missing file fails validation loudly.

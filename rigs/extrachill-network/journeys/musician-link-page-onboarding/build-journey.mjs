@@ -45,6 +45,12 @@ const step = (id, { url, hosts, auth, viewport = '1280x900', timeout = '240s', s
 });
 
 const ALL = ['extrachill.link', 'extrachill.com', 'artist.extrachill.com', 'community.extrachill.com', 'auth.extrachill.com'];
+// create-artist redirects to /manage-link-page/ without provisioning a page.
+const createLinkPage = [
+  { kind: 'waitFor', selector: '[data-link-page-setup-state="create"]', timeout: '90s' },
+  { kind: 'click', selector: '[data-link-page-setup-state="create"] button[type="submit"]' },
+  { kind: 'waitFor', selector: '.ec-editor', timeout: '90s' },
+];
 
 const steps = [
   // 1. A musician sees a friend's Link Page, taps "Powered by Extra Chill", lands on /power.
@@ -116,9 +122,9 @@ const steps = [
       text(1000),
       { kind: 'fill', selector: '#ec-artist-name', value: 'The Porch Lights Live' },
       { kind: 'click', selector: "button[type='submit']:has-text('Create Artist Profile')" },
-      { kind: 'waitFor', selector: '.ec-editor', timeout: '90s' },
+      ...createLinkPage,
       here,
-      shot('10-live-after-create-artist'),
+      shot('10-live-after-create-link-page'),
       text(1000),
       noErrors,
     ],
@@ -177,9 +183,9 @@ const steps = [
       shot('13-create-artist-form'),
       { kind: 'fill', selector: '#ec-artist-name', value: 'The Porch Lights' },
       { kind: 'click', selector: "button[type='submit']:has-text('Create Artist Profile')" },
-      { kind: 'waitFor', selector: '.ec-editor', timeout: '90s' },
+      ...createLinkPage,
       here,
-      shot('14-after-create-artist'),
+      shot('14-after-create-link-page'),
       text(1200),
       anchors('main'),
       nav('http://artist.extrachill.com/manage-link-page/'),
