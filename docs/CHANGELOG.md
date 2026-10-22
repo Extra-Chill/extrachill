@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.33.3] - 2026-10-22
+
+### Fixed
+- pass a 50m recipe-run --timeout to WP Codebox for network journeys
+
 ## [2.33.2] - 2026-10-22
 
 ### Fixed
