@@ -8,32 +8,32 @@
 			"palette": [
 				{
 					"slug": "background-color",
-					"color": "#fff",
+					"color": "#fafaf9",
 					"name": "Page background"
 				},
 				{
 					"slug": "text-color",
-					"color": "#000",
+					"color": "#1a1a1a",
 					"name": "Primary text"
 				},
 				{
 					"slug": "link-color",
-					"color": "#0b5394",
+					"color": "#437a09",
 					"name": "Link color"
 				},
 				{
 					"slug": "link-color-hover",
-					"color": "#083b6c",
+					"color": "#2f5506",
 					"name": "Link hover color"
 				},
 				{
 					"slug": "link-hover-color",
-					"color": "#000",
+					"color": "#1a1a1a",
 					"name": "Link hover color (alias for text color)"
 				},
 				{
 					"slug": "border-color",
-					"color": "#ddd",
+					"color": "#e4e4e0",
 					"name": "Borders and dividers"
 				},
 				{
@@ -83,22 +83,22 @@
 				},
 				{
 					"slug": "notice-bg",
-					"color": "#f8f9fa",
+					"color": "#f3f3f0",
 					"name": "Notice background"
 				},
 				{
 					"slug": "notice-border",
-					"color": "#0b5394",
+					"color": "#437a09",
 					"name": "Notice border"
 				},
 				{
 					"slug": "card-background",
-					"color": "#f1f5f9",
+					"color": "#f1f1ee",
 					"name": "Card / surface background"
 				},
 				{
 					"slug": "muted-text",
-					"color": "#6b7280",
+					"color": "#66645f",
 					"name": "Secondary / muted text"
 				},
 				{
@@ -108,12 +108,12 @@
 				},
 				{
 					"slug": "post-title-link-color",
-					"color": "#000",
+					"color": "#1a1a1a",
 					"name": "Post title link color"
 				},
 				{
 					"slug": "post-title-link-hover-color",
-					"color": "#000",
+					"color": "#437a09",
 					"name": "Post title link hover color"
 				},
 				{
@@ -128,27 +128,27 @@
 				},
 				{
 					"slug": "info-color",
-					"color": "#0b5394",
+					"color": "#437a09",
 					"name": "Informational state"
 				},
 				{
 					"slug": "info-bg",
-					"color": "rgba(11, 83, 148, 0.08)",
+					"color": "rgba(67, 122, 9, 0.08)",
 					"name": "Informational state background"
 				},
 				{
 					"slug": "interactive-hover-bg",
-					"color": "rgba(11, 83, 148, 0.06)",
+					"color": "rgba(67, 122, 9, 0.06)",
 					"name": "Hover background for clickable surfaces"
 				},
 				{
 					"slug": "interactive-active-bg",
-					"color": "rgba(11, 83, 148, 0.12)",
+					"color": "rgba(67, 122, 9, 0.12)",
 					"name": "Selected/active background for clickable surfaces"
 				},
 				{
 					"slug": "interactive-active-border",
-					"color": "#0b5394",
+					"color": "#437a09",
 					"name": "Selected/active border for clickable surfaces"
 				}
 			]
