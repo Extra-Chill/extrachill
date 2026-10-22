@@ -24,6 +24,9 @@
 			<!-- Same shape: pure-PHP priority promoter test with file-level WP
 			     doubles; runs in phpunit-priority-promoter-unit.xml.dist. -->
 			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
+			<!-- Pure-PHP attendee-only rating policy test with attendance and
+			     blog doubles; runs in phpunit-qualify-v2-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/AttendeeOnlyRatingsTest.php</exclude>
 			<!-- Pure-PHP publish-email test with file-level WP doubles; runs in
 			     phpunit-event-publication-email-unit.xml.dist. -->
 			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>

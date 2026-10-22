@@ -85,3 +85,80 @@ function ec_events_render_attendance_button( $post_id, $ticket_url, $timing = ''
 	ec_users_render_attendance_button( $event_id );
 }
 add_action( 'data_machine_events_action_buttons', 'ec_events_render_attendance_button', 5, 3 );
+
+/**
+ * Only people who were there can rate a show.
+ *
+ * data-machine-events owns the generic rating primitive (any logged-in user,
+ * past events). Extra Chill narrows it to verified attendance: the user must
+ * have an "I Was There" mark for the event, made by hand or by a concert
+ * history import (setlist.fm, phish.net).
+ *
+ * @hook data_machine_events_can_rate_event
+ * @param bool $can_rate Whether the primitive allows rating.
+ * @param int  $user_id  User ID.
+ * @param int  $post_id  Event post ID.
+ * @return bool
+ */
+function ec_events_require_attendance_to_rate( $can_rate, $user_id, $post_id ) {
+	if ( ! $can_rate || ! ec_is_events_site() ) {
+		return $can_rate;
+	}
+
+	if ( ! function_exists( 'ec_users_is_event_marked' ) ) {
+		return false;
+	}
+
+	return ec_users_is_event_marked( (int) $user_id, (int) $post_id, get_current_blog_id() );
+}
+add_filter( 'data_machine_events_can_rate_event', 'ec_events_require_attendance_to_rate', 10, 3 );
+
+/**
+ * Tell people how to unlock rating a show.
+ *
+ * @hook data_machine_events_rating_gate_message
+ * @param string $message Default message.
+ * @return string
+ */
+function ec_events_rating_gate_message( $message ) {
+	if ( ! ec_is_events_site() ) {
+		return $message;
+	}
+
+	return __( 'Only people who were there can rate this show. Tap “I Was There” above, then reload to leave your rating.', 'extrachill-events' );
+}
+add_filter( 'data_machine_events_rating_gate_message', 'ec_events_rating_gate_message' );
+
+/**
+ * Publish reviews from verified attendees without a moderation wait.
+ *
+ * Core holds a user's first comment on a blog when "previously approved"
+ * moderation is on, and the events blog starts with no comments, so every
+ * first review would sit in the queue. An attendee's review is already
+ * logged-in and gated on attendance, so treat it as trusted. Spam and trash
+ * verdicts and WP_Error results are left alone; staff can still unapprove
+ * a review afterwards.
+ *
+ * @hook pre_comment_approved
+ * @param int|string|\WP_Error $approved    Approval status from core.
+ * @param array                $commentdata Comment data.
+ * @return int|string|\WP_Error
+ */
+function ec_events_approve_attendee_reviews( $approved, $commentdata ) {
+	if ( 0 !== $approved && '0' !== $approved ) {
+		return $approved;
+	}
+
+	if ( 'event_review' !== ( $commentdata['comment_type'] ?? '' ) || ! ec_is_events_site() ) {
+		return $approved;
+	}
+
+	$user_id  = (int) ( $commentdata['user_id'] ?? 0 );
+	$event_id = (int) ( $commentdata['comment_post_ID'] ?? 0 );
+	if ( $user_id <= 0 || $event_id <= 0 || ! function_exists( 'ec_users_is_event_marked' ) ) {
+		return $approved;
+	}
+
+	return ec_users_is_event_marked( $user_id, $event_id, get_current_blog_id() ) ? 1 : $approved;
+}
+add_filter( 'pre_comment_approved', 'ec_events_approve_attendee_reviews', 10, 2 );
