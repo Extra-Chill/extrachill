@@ -45,6 +45,8 @@ const steps = [
     member: true,
     steps: [
       nav(`${BASE}/settings/#tab-notifications`),
+      wait(5000),
+      shot('settings-after-load'),
       waitFor('#ec-notif-emails'),
       noInvalidInput,
       check("document.querySelector('#ec-notif-emails').checked"),
@@ -63,6 +65,8 @@ const steps = [
     member: true,
     steps: [
       nav(`${BASE}/u/scenemember/edit/`),
+      wait(5000),
+      shot('edit-profile-after-load'),
       waitFor('#ec-custom-title'),
       noInvalidInput,
       { kind: 'fill', selector: '#ec-custom-title', value: 'Scene Regular' },
@@ -95,6 +99,8 @@ const steps = [
     url: `${BASE}/u/scenemember/`,
     steps: [
       nav(`${BASE}/u/scenemember/`),
+      wait(3000),
+      shot('profile-after-load'),
       waitFor('.ec-heatmap-years'),
       shot('heatmap-trailing-year'),
       { kind: 'click', selector: ".ec-heatmap-year:has-text('2025')" },

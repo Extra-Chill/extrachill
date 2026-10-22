@@ -79,6 +79,16 @@ if ( $cmb_missing ) {
 	// rig's activation step regressed, not this journey.
 	throw new RuntimeException( 'Community activation pages missing: ' . implode( ', ', $cmb_missing ) );
 }
+// Production's bbPress profile URLs (/u/<nicename>/, /u/<nicename>/edit/).
+// A fresh install defaults to /forums/users/<nicename>/. Dropping the cached
+// rules makes the community site regenerate them on its next request with
+// bbPress loaded.
+update_option( '_bbp_root_slug', 'forums' );
+update_option( '_bbp_include_root', 0 );
+update_option( '_bbp_user_slug', 'u' );
+update_option( '_bbp_edit_slug', 'edit' );
+delete_option( 'rewrite_rules' );
+
 $cmb_leaderboard = get_page_by_path( 'leaderboard' );
 wp_update_post(
 	array(
