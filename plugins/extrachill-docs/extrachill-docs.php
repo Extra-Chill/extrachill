@@ -42,6 +42,7 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/homepage.php';
 
 // Theme integration filters.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/filters.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/feedback.php';
 
 // Team-only pages use WordPress core private-page visibility.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/access/team-private-docs.php';

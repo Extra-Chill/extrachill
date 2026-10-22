@@ -158,3 +158,29 @@
 	}
 }
 
+
+/* "Did this help?" on docs articles */
+.docs-feedback {
+	margin-top: 2rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
+}
+
+.docs-feedback__question {
+	margin: 0 0 0.5rem;
+	font-weight: 600;
+}
+
+.docs-feedback__actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.docs-feedback__actions[hidden],
+.docs-feedback__reply[hidden] {
+	display: none;
+}
+
+.docs-feedback__reply {
+	margin: 0;
+}
