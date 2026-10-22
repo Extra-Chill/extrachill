@@ -9,7 +9,7 @@
  *
  * Usage:
  *   import { colors, spacing, fontSize } from '@extrachill/tokens';
- *   const bg = colors.backgroundColor.light; // '#fff'
+ *   const bg = colors.backgroundColor.light; // '#fafaf9'
  *   const pad = spacing.spacingMd.value;      // '1rem'
  */
 
@@ -38,37 +38,37 @@ import tokensJson from '../tokens.json';
 export const colors: Record< ColorTokenKey, ColorToken > = {
 	backgroundColor: {
 		cssVar: '--background-color',
-		light: '#fff',
+		light: '#fafaf9',
 		dark: '#1a1a1a',
 		description: 'Page background',
 	},
 	textColor: {
 		cssVar: '--text-color',
-		light: '#000',
+		light: '#1a1a1a',
 		dark: '#e5e5e5',
 		description: 'Primary text',
 	},
 	linkColor: {
 		cssVar: '--link-color',
-		light: '#0b5394',
+		light: '#437a09',
 		dark: '#53940b',
 		description: 'Link color',
 	},
 	linkColorHover: {
 		cssVar: '--link-color-hover',
-		light: '#083b6c',
+		light: '#2f5506',
 		dark: '#1a6bb8',
 		description: 'Link hover color',
 	},
 	linkHoverColor: {
 		cssVar: '--link-hover-color',
-		light: '#000',
+		light: '#1a1a1a',
 		dark: '#e5e5e5',
 		description: 'Link hover color (alias for text color)',
 	},
 	borderColor: {
 		cssVar: '--border-color',
-		light: '#ddd',
+		light: '#e4e4e0',
 		dark: '#555',
 		description: 'Borders and dividers',
 	},
@@ -134,25 +134,25 @@ export const colors: Record< ColorTokenKey, ColorToken > = {
 	},
 	noticeBg: {
 		cssVar: '--notice-bg',
-		light: '#f8f9fa',
+		light: '#f3f3f0',
 		dark: '#1e1e1e',
 		description: 'Notice background',
 	},
 	noticeBorder: {
 		cssVar: '--notice-border',
-		light: '#0b5394',
+		light: '#437a09',
 		dark: '#444',
 		description: 'Notice border',
 	},
 	cardBackground: {
 		cssVar: '--card-background',
-		light: '#f1f5f9',
+		light: '#f1f1ee',
 		dark: '#2a2a2a',
 		description: 'Card / surface background',
 	},
 	mutedText: {
 		cssVar: '--muted-text',
-		light: '#6b7280',
+		light: '#66645f',
 		dark: '#b0b0b0',
 		description: 'Secondary / muted text',
 	},
@@ -182,13 +182,13 @@ export const colors: Record< ColorTokenKey, ColorToken > = {
 	},
 	postTitleLinkColor: {
 		cssVar: '--post-title-link-color',
-		light: '#000',
+		light: '#1a1a1a',
 		dark: '#e5e5e5',
 		description: 'Post title link color',
 	},
 	postTitleLinkHoverColor: {
 		cssVar: '--post-title-link-hover-color',
-		light: '#000',
+		light: '#437a09',
 		dark: '#e5e5e5',
 		description: 'Post title link hover color',
 	},

@@ -59,7 +59,10 @@ for ( const { key, label, type } of categoryConfig ) {
 		} else if ( type === 'color' ) {
 			const varName = `--${ name }`;
 			// Color tokens have light/dark variants
-			const lightValue = token.cssRef || token.light;
+			// Keep aliases only while their light value matches the referenced token.
+			const refName = token.cssRef?.match( /^var\(--([\w-]+)\)$/ )?.[ 1 ];
+			const lightValue = refName && tokens[ refName ]?.light === token.light
+				? token.cssRef : token.light;
 			lightLines.push( `    ${ varName }: ${ lightValue };` );
 
 			// Dark mode: only emit if the dark value differs from light
