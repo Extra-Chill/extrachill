@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.40.2] - 2026-10-22
+
+### Changed
+- use generic photo contest fixtures
+
 ## [0.40.1] - 2026-10-22
 
 ### Changed
