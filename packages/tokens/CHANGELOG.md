@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.0] - 2026-10-22
+
+### Added
+- tune light-mode tokens with brand-green links and neutral surfaces
+
 ## [0.8.2] - 2026-08-13
 
 ### Fixed
