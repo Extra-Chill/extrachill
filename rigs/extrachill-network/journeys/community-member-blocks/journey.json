@@ -1,0 +1,105 @@
+{
+  "schema": "extrachill-network/journey/v1",
+  "id": "community-member-blocks",
+  "title": "Community member blocks: settings, edit profile, leaderboard and profile heatmap",
+  "description": "A member saves notification preferences and a profile title through the community Settings and Edit Profile blocks, and a logged-out visitor pages the leaderboard and switches heatmap years on a member profile. Covers extrachill-community#325/#326 (blocks moved onto core @wordpress/abilities; public blocks no longer need the logged-in ability catalog) and the Settings \"has invalid input\" report fixed by extrachill-users#473.",
+  "sites": [
+    "community.extrachill.com"
+  ],
+  "runtimeEnv": {
+    "WP_AGENT_RUNTIME": "1"
+  },
+  "fixtureMuPlugins": [
+    "reached-fixture.php"
+  ],
+  "seed": {
+    "codeFile": "seed.php",
+    "timeoutMs": 120000
+  },
+  "grade": {
+    "codeFile": "grade.php",
+    "timeoutMs": 120000
+  },
+  "steps": [
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "settings-notifications-save"
+      },
+      "args": [
+        "url=http://community.extrachill.com/settings/",
+        "route-host=community.extrachill.com",
+        "network-policy=block",
+        "allow-host=community.extrachill.com",
+        "viewport=1280x900",
+        "auth=wordpress-admin",
+        "auth-user-id=801",
+        "step-timeout=60s",
+        "timeout=240s",
+        "capture=steps,console,errors,network,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://community.extrachill.com/settings/#tab-notifications\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"#ec-notif-emails\",\"timeout\":\"30s\"},{\"kind\":\"evaluate\",\"expression\":\"!document.body.innerText.includes('has invalid input')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector('#ec-notif-emails').checked\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"settings-notifications-loaded\"},{\"kind\":\"click\",\"selector\":\"#ec-notif-emails\"},{\"kind\":\"click\",\"selector\":\"button:has-text('Save Preferences')\"},{\"kind\":\"waitFor\",\"selector\":\".wp-block-extrachill-user-settings :text('Notification preferences updated.')\",\"timeout\":\"30s\"},{\"kind\":\"screenshot\",\"name\":\"settings-notifications-saved\"},{\"kind\":\"evaluate\",\"expression\":\"!document.body.innerText.includes('has invalid input')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"evaluate\",\"expression\":\"fetch('/?community_member_blocks_reached=settings_notifications_save', { method: 'POST', credentials: 'same-origin' }).then((r) => r.status === 204)\",\"assert\":true}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "edit-profile-save"
+      },
+      "args": [
+        "url=http://community.extrachill.com/u/scenemember/edit/",
+        "route-host=community.extrachill.com",
+        "network-policy=block",
+        "allow-host=community.extrachill.com",
+        "viewport=1280x900",
+        "auth=wordpress-admin",
+        "auth-user-id=801",
+        "step-timeout=60s",
+        "timeout=240s",
+        "capture=steps,console,errors,network,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://community.extrachill.com/u/scenemember/edit/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"#ec-custom-title\",\"timeout\":\"30s\"},{\"kind\":\"evaluate\",\"expression\":\"!document.body.innerText.includes('has invalid input')\",\"assert\":true},{\"kind\":\"fill\",\"selector\":\"#ec-custom-title\",\"value\":\"Scene Regular\"},{\"kind\":\"click\",\"selector\":\"button:has-text('Save Profile Changes')\"},{\"kind\":\"waitFor\",\"selector\":\":text('Profile details and links updated successfully.')\",\"timeout\":\"30s\"},{\"kind\":\"screenshot\",\"name\":\"edit-profile-saved\"},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"evaluate\",\"expression\":\"fetch('/?community_member_blocks_reached=edit_profile_save', { method: 'POST', credentials: 'same-origin' }).then((r) => r.status === 204)\",\"assert\":true}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "leaderboard-logged-out"
+      },
+      "args": [
+        "url=http://community.extrachill.com/leaderboard/",
+        "route-host=community.extrachill.com",
+        "network-policy=block",
+        "allow-host=community.extrachill.com",
+        "viewport=1280x900",
+        "step-timeout=60s",
+        "timeout=240s",
+        "capture=steps,console,errors,network,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://community.extrachill.com/leaderboard/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".leaderboard-table\",\"timeout\":\"30s\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector('.leaderboard-table').innerText.includes('Scene Member (Fixture)')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"leaderboard-page-1\"},{\"kind\":\"click\",\"selector\":\"button:has-text('Next')\"},{\"kind\":\"waitFor\",\"selector\":\".leaderboard-table:has-text('Neighbour Two (Fixture)')\",\"timeout\":\"30s\"},{\"kind\":\"evaluate\",\"expression\":\"!document.querySelector('.leaderboard-table').innerText.includes('Scene Member (Fixture)')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"!document.querySelector('.notice-error')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"leaderboard-page-2\"},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"evaluate\",\"expression\":\"fetch('/?community_member_blocks_reached=leaderboard_logged_out', { method: 'POST', credentials: 'same-origin' }).then((r) => r.status === 204)\",\"assert\":true}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "heatmap-logged-out-year"
+      },
+      "args": [
+        "url=http://community.extrachill.com/u/scenemember/",
+        "route-host=community.extrachill.com",
+        "network-policy=block",
+        "allow-host=community.extrachill.com",
+        "viewport=1280x900",
+        "step-timeout=60s",
+        "timeout=240s",
+        "capture=steps,console,errors,network,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://community.extrachill.com/u/scenemember/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-heatmap-years\",\"timeout\":\"30s\"},{\"kind\":\"screenshot\",\"name\":\"heatmap-trailing-year\"},{\"kind\":\"click\",\"selector\":\".ec-heatmap-year:has-text('2025')\"},{\"kind\":\"waitFor\",\"selector\":\".ec-heatmap-year.is-active:has-text('2025')\",\"timeout\":\"30s\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"4000ms\"},{\"kind\":\"evaluate\",\"expression\":\"!document.querySelector('.ec-heatmap-error')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"!!document.querySelector('.ec-heatmap-total')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"heatmap-2025\"},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"evaluate\",\"expression\":\"fetch('/?community_member_blocks_reached=heatmap_logged_out_year', { method: 'POST', credentials: 'same-origin' }).then((r) => r.status === 204)\",\"assert\":true}]"
+      ]
+    }
+  ]
+}
