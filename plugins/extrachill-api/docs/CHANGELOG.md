@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.40.1] - 2026-10-22
+
+### Changed
+- Require Turnstile for photo contest submissions
+
 ## [0.40.0] - 2026-10-21
 
 ### Added
