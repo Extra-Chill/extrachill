@@ -163,7 +163,7 @@ foreach ( $link_pages as $link_page_post ) {
 		'status' => $link_page_post->post_status,
 		'owner'  => get_post_meta( $link_page_post->ID, '_link_page_owner', true ),
 	);
-	$owner = ec_get_link_page_owner( $link_page_post->ID );
+	$owner                 = ec_get_link_page_owner( $link_page_post->ID );
 	if ( is_array( $owner ) && 'post' === $owner['kind'] && (int) $owner['blog_id'] === $artist_blog_id && (int) $owner['object_id'] === $artist_id ) {
 		$owned_pages[ $link_page_post->ID ] = $link_page_post->post_status;
 	}
@@ -193,9 +193,9 @@ musician_journey_record(
 		&& 'publish' === reset( $owned_pages )
 	),
 	array(
-		'artist_id'     => $artist_id,
-		'before_cta'    => $before_create,
-		'after_cta'     => $owned_pages,
+		'artist_id'  => $artist_id,
+		'before_cta' => $before_create,
+		'after_cta'  => $owned_pages,
 	)
 );
 musician_journey_record(
