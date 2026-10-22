@@ -83,6 +83,9 @@ if ( $show_landing ) {
 				</label>
 				<p class="ec-event-submission__url-import-hint">
 					<?php esc_html_e( 'Try an artist tour page, venue calendar, or festival schedule. We will test it and review reliable recurring sources; use the manual form below for one event.', 'extrachill-events' ); ?>
+					<?php if ( function_exists( 'extrachill_events_docs_url' ) ) : ?>
+						<a href="<?php echo esc_url( extrachill_events_docs_url( 'add-your-tour' ) ); ?>"><?php esc_html_e( 'How tour imports work', 'extrachill-events' ); ?> &rarr;</a>
+					<?php endif; ?>
 				</p>
 				<div class="ec-event-submission__url-import-row">
 					<input
@@ -132,6 +135,9 @@ if ( $show_landing ) {
 				<p class="ec-event-submission__url-import-hint">
 					<?php esc_html_e( "Import a whole artist tour, venue calendar, or festival schedule at once — free with an Extra Chill account. We'll let you know when it's approved and live.", 'extrachill-events' ); ?>
 					<?php esc_html_e( 'Use the manual form below for one event.', 'extrachill-events' ); ?>
+					<?php if ( function_exists( 'extrachill_events_docs_url' ) ) : ?>
+						<a href="<?php echo esc_url( extrachill_events_docs_url( 'add-your-tour' ) ); ?>"><?php esc_html_e( 'How tour imports work', 'extrachill-events' ); ?> &rarr;</a>
+					<?php endif; ?>
 				</p>
 				<div class="ec-event-submission__url-import-actions">
 					<a class="button-1 button-medium" href="<?php echo esc_url( $join_url ); ?>"><?php esc_html_e( 'Join', 'extrachill-events' ); ?></a>

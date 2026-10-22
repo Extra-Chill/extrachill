@@ -306,6 +306,9 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 				<button class="button-1 button-small" type="submit"><?php esc_html_e( 'Search', 'extrachill-events' ); ?></button>
 			</div>
 		</form>
+		<?php if ( function_exists( 'extrachill_events_docs_url' ) ) : ?>
+			<p><a href="<?php echo esc_url( extrachill_events_docs_url( 'finding-live-music' ) ); ?>"><?php esc_html_e( 'Search tips', 'extrachill-events' ); ?></a></p>
+		<?php endif; ?>
 
 		<?php if ( $market ) : ?>
 			<article class="events-primary-market">
