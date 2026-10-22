@@ -75,7 +75,8 @@ if ( $show_landing ) {
 		<?php endif; ?>
 
 		<?php if ( is_user_logged_in() ) : ?>
-		<div class="ec-event-submission__url-import" id="<?php echo esc_attr( $import_anchor ); ?>" data-state="idle">
+			<?php $import_skips_review = class_exists( \ExtraChillEvents\Abilities\SubmissionTrustPolicy::class ) && \ExtraChillEvents\Abilities\SubmissionTrustPolicy::isStaff( get_current_user_id() ); ?>
+		<div class="ec-event-submission__url-import" id="<?php echo esc_attr( $import_anchor ); ?>" data-state="idle" data-skips-review="<?php echo $import_skips_review ? '1' : '0'; ?>">
 			<div class="ec-event-submission__url-import-intro">
 				<label for="<?php echo esc_attr( $form_id ); ?>-event-source-url">
 					<strong><?php esc_html_e( 'Have a reliable event source?', 'extrachill-events' ); ?></strong>
@@ -103,7 +104,7 @@ if ( $show_landing ) {
 				<ul class="ec-event-submission__url-import-events"></ul>
 				<div class="ec-event-submission__url-import-actions">
 					<button type="button" class="button-1 button-medium ec-event-submission__url-import-submit">
-						<?php esc_html_e( 'Submit for review', 'extrachill-events' ); ?>
+						<?php echo $import_skips_review ? esc_html__( 'Add to calendar', 'extrachill-events' ) : esc_html__( 'Submit for review', 'extrachill-events' ); ?>
 					</button>
 					<button type="button" class="button-3 button-medium ec-event-submission__url-import-cancel">
 						<?php esc_html_e( 'Cancel and use manual form', 'extrachill-events' ); ?>

@@ -34,6 +34,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/SubmissionTrustPolicy.php';
+
 class ArtistUrlImportAbilities {
 	/** Feature-owned producer for submitter moderation notifications. */
 	private const NOTIFICATION_PRODUCER = 'extrachill-events-artist-url-import';
@@ -205,7 +207,7 @@ class ArtistUrlImportAbilities {
 			'extrachill-events/submit-event-source',
 			array(
 				'label'               => __( 'Submit Event Source', 'extrachill-events' ),
-				'description'         => __( 'Server-side requalify and persist an event source for moderation.', 'extrachill-events' ),
+				'description'         => __( 'Server-side requalify and persist an event source. Events staff submissions are approved immediately; others go to moderation.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -232,6 +234,8 @@ class ArtistUrlImportAbilities {
 							'type' => 'string',
 							'enum' => array( 'artist', 'venue' ),
 						),
+						'auto_approved' => array( 'type' => 'boolean' ),
+						'flow_id'       => array( 'type' => 'integer' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'executeSubmit' ),
@@ -938,6 +942,33 @@ class ArtistUrlImportAbilities {
 			return new \WP_Error( 'insert_failed', __( 'Failed to record submission.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
 
+		// Events staff skip the review queue: approve their own submission
+		// through the same admission path admins use. If approval fails, the
+		// row stays pending and goes to review as usual.
+		$auto_approve_error = null;
+		if ( SubmissionTrustPolicy::isStaff( $user_id ) ) {
+			$approved = $this->autoApproveStaffSubmission( (int) $submission_id, $source_kind, $binding );
+			if ( ! is_wp_error( $approved ) ) {
+				return array_merge(
+					$approved,
+					array(
+						'success'       => true,
+						'submission_id' => (int) $submission_id,
+						'status'        => ArtistUrlSubmissionsTable::STATUS_APPROVED,
+						'auto_approved' => true,
+						'message'       => sprintf(
+							/* translators: %d: number of shows found */
+							_n( 'Added. %d show is importing now, and new dates will be checked automatically.', 'Added. %d shows are importing now, and new dates will be checked automatically.', (int) $qualification['events_found'], 'extrachill-events' ),
+							(int) $qualification['events_found']
+						),
+						'events_found'  => (int) $qualification['events_found'],
+						'source_kind'   => $source_kind,
+					)
+				);
+			}
+			$auto_approve_error = $approved->get_error_code();
+		}
+
 		$this->notifyAdminSubmission(
 			array(
 				'url'                   => $normalized,
@@ -965,7 +996,31 @@ class ArtistUrlImportAbilities {
 			'message'       => __( "Submitted for review. We'll set up automatic imports if approved.", 'extrachill-events' ),
 			'events_found'  => (int) $qualification['events_found'],
 			'source_kind'   => $source_kind,
+		) + ( null !== $auto_approve_error ? array( 'auto_approve_error' => $auto_approve_error ) : array() );
+	}
+
+	/**
+	 * Approve a staff member's own submission using the qualification binding.
+	 *
+	 * @param int                  $submission_id Pending submission row.
+	 * @param string               $source_kind   Qualified source kind.
+	 * @param array<string, mixed> $binding       Recommended binding from qualification.
+	 * @return array<string, mixed>|\WP_Error
+	 */
+	private function autoApproveStaffSubmission( int $submission_id, string $source_kind, array $binding ) {
+		$input = array(
+			'submission_id' => $submission_id,
+			'source_kind'   => $source_kind,
 		);
+		$name  = trim( (string) ( $binding['name'] ?? '' ) );
+		if ( '' !== $name ) {
+			$input['entity_name'] = $name;
+		}
+		$term_id = (int) ( $binding['term_id'] ?? 0 );
+		if ( $term_id > 0 ) {
+			$input['entity_term_id'] = $term_id;
+		}
+		return $this->executeApprove( $input );
 	}
 
 	// ────────────────────────────────────────────────────────────────────

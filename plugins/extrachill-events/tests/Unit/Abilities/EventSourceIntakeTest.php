@@ -154,6 +154,18 @@ if ( ! function_exists( 'get_current_user_id' ) ) {
 	}
 }
 
+if ( ! function_exists( '_n' ) ) {
+	function _n( $single, $plural, $number ) {
+		return 1 === (int) $number ? $single : $plural;
+	}
+}
+
+if ( ! function_exists( 'user_can' ) ) {
+	function user_can( $user_id, $capability ) {
+		return ! empty( $GLOBALS['ec_artist_test']['user_caps'][ (int) $user_id ][ $capability ] );
+	}
+}
+
 if ( ! function_exists( 'wp_get_current_user' ) ) {
 	function wp_get_current_user() {
 		return $GLOBALS['event_source_current_user'] ?? (object) array( 'user_email' => 'person@example.test', 'display_name' => 'Person', 'user_login' => 'person' );
@@ -318,6 +330,7 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$GLOBALS['event_source_registered_routes']    = array();
 		$GLOBALS['event_source_current_user']         = (object) array( 'user_email' => 'person@example.test', 'display_name' => 'Person', 'user_login' => 'person' );
 		$GLOBALS['ec_artist_test']['registered']      = array();
+		$GLOBALS['ec_artist_test']['user_caps'][7]    = array( 'manage_options' => false, 'access_events_admin' => false );
 		$this->wpdb = new EventSourceWpdb();
 		$GLOBALS['wpdb'] = $this->wpdb;
 		$this->intake = ( new ReflectionClass( ArtistUrlImportAbilities::class ) )->newInstanceWithoutConstructor();
@@ -579,6 +592,69 @@ final class EventSourceIntakeTest extends BookingTestCase {
 			ArtistUrlSubmissionsTable::url_hash( 'https://source.test/events?view=calendar' ),
 			$this->wpdb->submissions[1]['url_hash']
 		);
+	}
+
+	public function test_staff_submission_is_approved_without_review(): void {
+		$GLOBALS['ec_artist_test']['user_caps'][7]['access_events_admin'] = true;
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$create_flow = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
+		$abilities   = $this->artist_flow_abilities( $create_flow );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeSubmit( array( 'url' => 'https://source.test/events' ) );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertTrue( $result['auto_approved'] );
+		$this->assertSame( ArtistUrlSubmissionsTable::STATUS_APPROVED, $result['status'] );
+		$this->assertSame( 77, $result['flow_id'] );
+		$this->assertCount( 1, $create_flow->calls );
+		$this->assertSame( '72', $create_flow->calls[0]['step_configs']['upsert']['handler_config']['taxonomy_artist_selection'] );
+	}
+
+	public function test_administrator_submission_is_approved_without_review(): void {
+		$GLOBALS['ec_artist_test']['user_caps'][7]['manage_options'] = true;
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$create_flow = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
+		$abilities   = $this->artist_flow_abilities( $create_flow );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeSubmit( array( 'url' => 'https://source.test/events' ) );
+
+		$this->assertTrue( $result['auto_approved'] );
+		$this->assertCount( 1, $create_flow->calls );
+	}
+
+	public function test_non_staff_submission_waits_for_review(): void {
+		$GLOBALS['event_source_current_user']->user_email = '';
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$create_flow = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
+		$abilities   = $this->artist_flow_abilities( $create_flow );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+
+		$result = $intake->executeSubmit( array( 'url' => 'https://source.test/events' ) );
+
+		$this->assertSame( ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW, $result['status'] );
+		$this->assertArrayNotHasKey( 'auto_approved', $result );
+		$this->assertSame( array(), $create_flow->calls );
+	}
+
+	public function test_staff_submission_falls_back_to_review_when_approval_fails(): void {
+		$GLOBALS['event_source_current_user']->user_email = '';
+		$GLOBALS['ec_artist_test']['user_caps'][7]['access_events_admin'] = true;
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$intake->qualifications[] = $this->qualification( 'artist' );
+		$intake->qualifications[] = $this->qualification( 'artist', false );
+
+		$result = $intake->executeSubmit( array( 'url' => 'https://source.test/events' ) );
+
+		$this->assertSame( ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW, $result['status'] );
+		$this->assertSame( 'source_no_longer_admissible', $result['auto_approve_error'] );
+		$this->assertSame( ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW, $this->wpdb->submissions[1]['status'] );
 	}
 
 	public function test_approval_requalifies_and_blocks_stale_admission(): void {

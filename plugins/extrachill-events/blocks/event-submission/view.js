@@ -193,6 +193,7 @@
 		if ( ! wrap ) {
 			return; // anonymous user, no URL import block rendered
 		}
+		const skipsReview = wrap.dataset.skipsReview === '1';
 
 		const input = wrap.querySelector(
 			'.ec-event-submission__url-import-input'
@@ -312,7 +313,9 @@
 						: `this ${ payload?.source_kind || 'source' }` );
 				summaryEl.textContent = `Found ${ count } event${
 					count === 1 ? '' : 's'
-				} from ${ sourceLabel }. Submit for review?`;
+				} from ${ sourceLabel }. ${
+					skipsReview ? 'Add to the calendar?' : 'Submit for review?'
+				}`;
 				renderConfirmationEvents(
 					eventsListEl,
 					payload?.events_preview || []

@@ -15,6 +15,9 @@ if ( ! function_exists( 'get_user_meta' ) ) {
 	function get_userdata( $user_id ) {
 		return $GLOBALS['submission_trust_users'][ $user_id ] ?? false;
 	}
+	function user_can( $user_id, $capability ) {
+		return in_array( $capability, $GLOBALS['submission_trust_caps'][ $user_id ] ?? array(), true );
+	}
 	function get_posts( $args ) {
 		return ! empty( $GLOBALS['submission_trust_prior_published'][ $args['meta_value'] ] );
 	}
@@ -27,6 +30,7 @@ final class SubmissionTrustPolicyTest extends TestCase {
 		$GLOBALS['submission_trust_user_meta'] = array();
 		$GLOBALS['submission_trust_users'] = array();
 		$GLOBALS['submission_trust_prior_published'] = array();
+		$GLOBALS['submission_trust_caps'] = array();
 	}
 
 	public function test_prior_published_claimed_submitter_is_trusted(): void {
@@ -35,9 +39,27 @@ final class SubmissionTrustPolicyTest extends TestCase {
 		$this->assertTrue( SubmissionTrustPolicy::trusts( 11, true ) );
 	}
 
-	public function test_team_member_is_trusted(): void {
-		$GLOBALS['submission_trust_users'][12] = (object) array( 'roles' => array( 'extra_chill_team' ) );
+	public function test_events_staff_capability_is_trusted(): void {
+		$GLOBALS['submission_trust_caps'][12] = array( 'access_events_admin' );
 		$this->assertTrue( SubmissionTrustPolicy::trusts( 12, true ) );
+		$this->assertTrue( SubmissionTrustPolicy::isStaff( 12 ) );
+	}
+
+	public function test_administrator_capability_is_staff(): void {
+		$GLOBALS['submission_trust_caps'][16] = array( 'manage_options' );
+		$this->assertTrue( SubmissionTrustPolicy::isStaff( 16 ) );
+		$this->assertTrue( SubmissionTrustPolicy::trusts( 16, true ) );
+	}
+
+	public function test_role_name_alone_grants_nothing(): void {
+		$GLOBALS['submission_trust_users'][17] = (object) array( 'roles' => array( 'extra_chill_team' ) );
+		$this->assertFalse( SubmissionTrustPolicy::isStaff( 17 ) );
+		$this->assertFalse( SubmissionTrustPolicy::trusts( 17, true ) );
+	}
+
+	public function test_prior_publication_does_not_make_staff(): void {
+		$GLOBALS['submission_trust_prior_published'][11] = true;
+		$this->assertFalse( SubmissionTrustPolicy::isStaff( 11 ) );
 	}
 
 	public function test_unknown_submitter_is_not_trusted(): void {
