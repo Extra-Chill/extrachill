@@ -125,6 +125,7 @@ function register_redirect_abilities() {
 			'category'            => 'extrachill-seo',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'search'      => array(
 						'type'    => 'string',

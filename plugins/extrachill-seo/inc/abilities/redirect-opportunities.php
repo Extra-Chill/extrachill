@@ -75,6 +75,7 @@ function register_redirect_opportunity_ability() {
 			'category'            => 'extrachill-seo',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'days'            => array(
 						'type'        => 'integer',

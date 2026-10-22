@@ -74,6 +74,7 @@ class SEO_Abilities {
 				'category'            => 'extrachill-seo',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'blog_id' => array(
 							'type'        => 'integer',
@@ -149,6 +150,7 @@ class SEO_Abilities {
 				'category'            => 'extrachill-seo',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'blog_id' => array(
 							'type'        => 'integer',
@@ -259,6 +261,7 @@ class SEO_Abilities {
 				'category'            => 'extrachill-seo',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(),
 				),
 				'output_schema'       => array(
@@ -294,6 +297,7 @@ class SEO_Abilities {
 				'category'            => 'extrachill-seo',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'default_og_image_id' => array(
 							'type'        => 'integer',
@@ -338,6 +342,7 @@ class SEO_Abilities {
 				'category'            => 'extrachill-seo',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'urls'     => array(
 							'type'        => 'array',
@@ -390,6 +395,7 @@ class SEO_Abilities {
 				'category'            => 'extrachill-seo',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'blog_id' => array(
 							'type'        => 'integer',

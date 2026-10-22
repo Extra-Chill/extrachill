@@ -19,6 +19,18 @@ use function ExtraChill\SEO\Core\ec_seo_get_final_canonical_url;
 final class CanonicalErrorTest extends TestCase {
 
 	protected function setUp(): void {
+		$this->reset_query_state();
+	}
+
+	protected function tearDown(): void {
+		$this->reset_query_state();
+	}
+
+	/**
+	 * Keep simulated query flags and canonical overrides local to each test.
+	 */
+	private function reset_query_state(): void {
+		$GLOBALS['ec_seo_test_is_singular']           = false;
 		$GLOBALS['ec_seo_test_is_404']                = false;
 		$GLOBALS['ec_seo_test_is_tax']                = false;
 		$GLOBALS['ec_seo_test_is_category']           = false;

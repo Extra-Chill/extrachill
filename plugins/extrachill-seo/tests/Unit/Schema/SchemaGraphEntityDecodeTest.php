@@ -18,6 +18,7 @@ namespace ExtraChill\SEO\Tests\Unit\Schema;
 
 use PHPUnit\Framework\TestCase;
 use ExtraChill\SEO\Tests\Support\TermRegistry;
+use ExtraChill\SEO\Tests\Support\TermMetaRegistry;
 use ExtraChill\SEO\Tests\Support\VenueDataRegistry;
 use WP_Post;
 use WP_Term;
@@ -40,6 +41,7 @@ final class SchemaGraphEntityDecodeTest extends TestCase {
 
 	protected function setUp(): void {
 		TermRegistry::reset();
+		TermMetaRegistry::reset();
 		VenueDataRegistry::reset();
 		$GLOBALS['ec_seo_test_is_404'] = false;
 	}
@@ -85,6 +87,17 @@ final class SchemaGraphEntityDecodeTest extends TestCase {
 				'taxonomy' => 'location',
 			)
 		);
+		// The emitter resolves MusicEvent from taxonomy metadata, not block attributes.
+		$concert = new WP_Term(
+			array(
+				'term_id'  => 77,
+				'name'     => 'Concert',
+				'slug'     => 'concert',
+				'taxonomy' => 'event_type',
+			)
+		);
+		TermRegistry::set( $post->ID, 'event_type', array( $concert ) );
+		TermMetaRegistry::set( 77, '_schema_type', 'MusicEvent' );
 		TermRegistry::set( $post->ID, 'venue', array( $venue ) );
 		TermRegistry::set( $post->ID, 'location', array( $location ) );
 		VenueDataRegistry::set(
