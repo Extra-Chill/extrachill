@@ -33,6 +33,7 @@ class AdPolicyAbility {
 				'category'            => 'extrachill-network',
 				'input_schema'        => array(
 					'type'       => 'object',
+					'default'    => array(),
 					'properties' => array(
 						'blog_id'              => array( 'type' => 'integer' ),
 						'post_type'            => array( 'type' => 'string' ),

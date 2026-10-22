@@ -91,6 +91,7 @@ function register_network_stats_ability(): void {
 			'category'            => 'extrachill-network',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'keys' => array(
 						'type'        => 'array',

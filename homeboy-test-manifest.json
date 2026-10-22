@@ -1,6 +1,9 @@
 {
   "schema": "homeboy/test-manifest/v1",
   "tests": {
+    "tests/optional-ability-input-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/ability-site-affinity-smoke.php": {
       "environment": "standalone-php"
     },
