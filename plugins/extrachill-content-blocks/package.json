@@ -7,6 +7,7 @@
   "main": "extrachill-content-blocks.php",
   "scripts": {
     "build": "wp-scripts build --webpack-copy-php",
+    "prepare": "npm run build",
     "start": "wp-scripts start",
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",

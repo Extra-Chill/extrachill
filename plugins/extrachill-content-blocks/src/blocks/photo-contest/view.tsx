@@ -26,6 +26,13 @@
 import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
+declare global {
+	interface Window {
+		turnstile?: { reset: () => void };
+		ecTurnstileBoot?: () => void;
+	}
+}
+
 const EMAIL_STORAGE_KEY = 'extrachill_voter_email';
 
 interface ContestConfig {
@@ -40,6 +47,7 @@ interface ContestConfig {
 	isAdmin: boolean;
 	canModerate: boolean;
 	restNonce: string;
+	turnstileHtml: string;
 }
 
 interface Entry {
@@ -543,6 +551,31 @@ function SubmissionForm( {
 	const [ isSubmitting, setIsSubmitting ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const [ myEntry, setMyEntry ] = useState< Entry | null >( null );
+	const formRef = useRef< HTMLDivElement | null >( null );
+
+	useEffect( () => {
+		if ( step !== 'details' || myEntry || ! config.turnstileHtml ) {
+			return;
+		}
+		// The form mounts after the network runtime's initial page scan.
+		// Wait for its bootstrap, then let it render the shared widget markup.
+		const boot = () => {
+			if ( ! window.turnstile || ! window.ecTurnstileBoot ) {
+				return false;
+			}
+			window.ecTurnstileBoot();
+			return true;
+		};
+		if ( boot() ) {
+			return;
+		}
+		const timer = window.setInterval( () => {
+			if ( boot() ) {
+				window.clearInterval( timer );
+			}
+		}, 100 );
+		return () => window.clearInterval( timer );
+	}, [ step, myEntry, config.turnstileHtml ] );
 
 	const handleEmailNext = () => {
 		const trimmed = email.trim();
@@ -578,6 +611,10 @@ function SubmissionForm( {
 		formData.append( 'instagram', instagram.trim() );
 		formData.append( 'website', honeypot );
 		formData.append( 'photo', file );
+		const turnstileInput = formRef.current?.querySelector< HTMLInputElement >(
+			'input[name="cf-turnstile-response"]'
+		);
+		formData.append( 'turnstile_response', turnstileInput?.value.trim() || '' );
 
 		try {
 			const response = ( await apiFetch( {
@@ -604,6 +641,16 @@ function SubmissionForm( {
 			}
 		} finally {
 			setIsSubmitting( false );
+			if ( typeof window.turnstile?.reset === 'function' ) {
+				try {
+					window.turnstile.reset();
+				} catch {
+					// The widget may already be gone after a successful submission.
+				}
+			}
+			if ( turnstileInput ) {
+				turnstileInput.value = '';
+			}
 		}
 	};
 
@@ -620,7 +667,7 @@ function SubmissionForm( {
 	}
 
 	return (
-		<div className="extrachill-blocks-photo-contest-form">
+		<div ref={ formRef } className="extrachill-blocks-photo-contest-form">
 			<h3>{ config.heading }</h3>
 			{ step === 'email' && (
 				<div className="extrachill-blocks-photo-contest-form-step">
@@ -688,6 +735,9 @@ function SubmissionForm( {
 							}
 						/>
 					</label>
+					<div
+						dangerouslySetInnerHTML={ { __html: config.turnstileHtml } }
+					/>
 					<button
 						className="button-1 button-large"
 						disabled={ isSubmitting }
@@ -909,6 +959,10 @@ function parseConfig( container: HTMLElement ): ContestConfig | null {
 			isAdmin: Boolean( parsed.isAdmin ),
 			canModerate: Boolean( parsed.canModerate ),
 			restNonce: parsed.restNonce ?? '',
+			turnstileHtml:
+				container.querySelector< HTMLTemplateElement >(
+					'.extrachill-blocks-photo-contest-turnstile'
+				)?.innerHTML.trim() || '',
 		};
 	} catch {
 		return null;

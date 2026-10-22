@@ -16,6 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
+	ec_enqueue_turnstile_script();
+}
+
 $contest_id  = isset( $attributes['contestId'] ) ? (string) $attributes['contestId'] : '';
 $heading     = isset( $attributes['heading'] ) ? (string) $attributes['heading'] : 'Enter the Contest';
 $event_title = isset( $attributes['eventTitle'] ) ? (string) $attributes['eventTitle'] : '';
@@ -61,6 +65,13 @@ $wrapper_attributes = get_block_wrapper_attributes(
 			</div>
 		</div>
 	<?php endif; ?>
+	<template class="extrachill-blocks-photo-contest-turnstile">
+		<?php
+		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
+			echo wp_kses_post( ec_render_turnstile_widget( array( 'data-appearance' => 'always' ) ) );
+		}
+		?>
+	</template>
 	<div class="extrachill-blocks-photo-contest-app">
 		<noscript>
 			<div class="notice notice-info">JavaScript is required to view entries and vote in this contest.</div>
