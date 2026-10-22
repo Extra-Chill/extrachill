@@ -18,9 +18,9 @@ first-time musician. The musician here is a single-scenario fixture user
 | --- | --- | --- |
 | `discover-power-from-link-page-footer` | `extrachill.link/` → `extrachill.com/power/` → Artist Platform card | Every Link Page footer says "Powered by Extra Chill" and links to `/power/`. |
 | `power-page-mobile` | `/power/` at 390px | Most Link Page traffic is mobile. |
-| `join-link-live-signup` | `extrachill.link/join` → join modal → register → onboarding → create artist | The explicit signup door. |
+| `join-link-live-signup` | `extrachill.link/join` → join modal → register → onboarding → create artist → Create Link Page CTA → editor | The explicit signup door. |
 | `join-link-mobile` | `/join` at 390px | |
-| `musician-creates-artist-profile` | `/create-artist/` as the fixture musician | Creating the artist must provision its Link Page and land in the editor. |
+| `musician-creates-artist-profile` | `/create-artist/` as the fixture musician | Creating the artist leaves no Link Page; the musician clicks Create Link Page on `/manage-link-page/`, then lands in the editor. |
 | `musician-navigation-map` | artist home, `/manage-artist/`, `/manage-link-page/`, `/analytics/`, community home, main home | Every link that should lead to the editor, and where it actually goes. |
 | `musician-edits-link-page` | `extrachill.link/edit` | Add a Bandcamp link, set colors (Customize), set the inline subscribe form and a custom description (Advanced), save, view the public page, reload the editor. |
 | `fan-subscribes-inline` | public Link Page at 390px | A fan uses the inline form the musician enabled. |
@@ -28,8 +28,8 @@ first-time musician. The musician here is a single-scenario fixture user
 | `logged-out-editor-entry` | `extrachill.link/edit` with no session | A bookmark or an old link. |
 
 `grade.php` checks what actually persisted: the join account and its
-onboarding flags, the artist profile, whether a Link Page existed before the
-journey provisioned one, the saved colors, subscribe settings, and links, and
+onboarding flags, the artist profile, no owned Link Page immediately before the CTA POST and exactly one published
+page afterward (case `link-page-created-only-after-cta`), the saved colors, subscribe settings, and links, and
 the fan's subscriber row.
 
 ## Regression contract

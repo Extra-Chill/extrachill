@@ -63,6 +63,8 @@ const steps = [
       { kind: 'waitFor', selector: '#ec-artist-name', timeout: '60s' },
       { kind: 'fill', selector: '#ec-artist-name', value: 'Night Shift Radio' },
       { kind: 'click', selector: "button[type='submit']:has-text('Create Artist Profile')" },
+      { kind: 'waitFor', selector: '[data-link-page-setup-state="create"]', timeout: '90s' },
+      { kind: 'click', selector: '[data-link-page-setup-state="create"] button[type="submit"]' },
       { kind: 'waitFor', selector: '.ec-editor', timeout: '90s' },
       { kind: 'click', selector: ".ec-lpe-tabs [role=tab]:has-text('Links')" },
       { kind: 'click', selector: "button:has-text('Add Section')" },
