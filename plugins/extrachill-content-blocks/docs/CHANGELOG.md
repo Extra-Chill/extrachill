@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.2] - 2026-10-22
+
+### Changed
+- Support photo contest opening windows and reliable clean test builds
+- Ensure contest Turnstile changes pass build-dependent tests
+
 ## [1.5.1] - 2026-10-16
 
 ### Changed
