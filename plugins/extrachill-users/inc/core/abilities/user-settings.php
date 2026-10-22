@@ -37,6 +37,7 @@ function extrachill_users_register_settings_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
@@ -62,6 +63,7 @@ function extrachill_users_register_settings_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'first_name'                   => array( 'type' => 'string' ),
 					'last_name'                    => array( 'type' => 'string' ),

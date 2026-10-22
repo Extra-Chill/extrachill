@@ -57,6 +57,7 @@ function extrachill_users_register_profile_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'custom_title' => array( 'type' => 'string' ),
 					'bio'          => array( 'type' => 'string' ),

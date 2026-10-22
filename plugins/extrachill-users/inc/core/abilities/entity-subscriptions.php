@@ -62,6 +62,7 @@ function extrachill_users_register_entity_subscription_abilities(): void {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'page'     => array( 'type' => 'integer' ),
 					'per_page' => array( 'type' => 'integer' ),

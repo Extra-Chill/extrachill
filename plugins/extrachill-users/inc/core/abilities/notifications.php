@@ -35,6 +35,7 @@ function extrachill_users_register_notification_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'user_id'  => array(
 						'type'        => 'integer',
@@ -92,6 +93,7 @@ function extrachill_users_register_notification_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'user_id' => array(
 						'type'        => 'integer',
@@ -130,6 +132,7 @@ function extrachill_users_register_notification_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'user_id'         => array(
 						'type'        => 'integer',
@@ -173,6 +176,7 @@ function extrachill_users_register_notification_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'user_id' => array(
 						'type'        => 'integer',
@@ -216,6 +220,7 @@ function extrachill_users_register_notification_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(),
 			),
 			'output_schema'       => array(
@@ -255,6 +260,7 @@ function extrachill_users_register_notification_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'emails_enabled'         => array(
 						'type'        => 'boolean',

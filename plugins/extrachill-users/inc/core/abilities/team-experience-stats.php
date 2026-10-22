@@ -34,6 +34,7 @@ function extrachill_users_register_team_experience_stats_ability() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'days' => array(
 						'type'        => 'integer',

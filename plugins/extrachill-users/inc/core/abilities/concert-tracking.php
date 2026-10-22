@@ -246,6 +246,7 @@ function extrachill_users_register_concert_tracking_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'user_id'   => array(
 						'type'        => 'integer',
@@ -319,6 +320,7 @@ function extrachill_users_register_concert_tracking_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'user_id'   => array(
 						'type'        => 'integer',
@@ -378,6 +380,7 @@ function extrachill_users_register_concert_tracking_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'query'    => array(
 						'type'        => 'string',

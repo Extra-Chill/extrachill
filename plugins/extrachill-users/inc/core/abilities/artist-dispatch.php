@@ -31,6 +31,7 @@ function extrachill_users_register_artist_dispatch_abilities() {
 			'description' => __( 'Get the current user\'s safe Artist Dispatch eligibility and access state.', 'extrachill-users' ),
 			'input'       => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(),
 			),
 			'callback'    => 'extrachill_users_ability_get_artist_dispatch_access',
@@ -75,6 +76,7 @@ function extrachill_users_register_artist_dispatch_abilities() {
 			'description' => __( 'List Artist Dispatch applications and grants for network administration.', 'extrachill-users' ),
 			'input'       => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'status' => array(
 						'type' => 'string',

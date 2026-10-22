@@ -70,6 +70,7 @@ function extrachill_users_register_user_administration_abilities() {
 			'description'      => __( 'Sync team member status for all network users based on current role assignments.', 'extrachill-users' ),
 			'input_schema'     => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(),
 			),
 			'output_schema'    => array(

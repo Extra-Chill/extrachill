@@ -45,6 +45,7 @@ function extrachill_users_register_artist_access_abilities() {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(),
 			),
 			'output_schema'       => array( 'type' => 'object' ),

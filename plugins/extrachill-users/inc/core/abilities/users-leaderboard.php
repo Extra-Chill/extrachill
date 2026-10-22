@@ -27,6 +27,7 @@ function extrachill_users_register_leaderboard_ability(): void {
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'                 => 'object',
+				'default'              => array(),
 				'properties'           => array(
 					'page'     => array(
 						'type'    => 'integer',
