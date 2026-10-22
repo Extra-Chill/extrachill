@@ -82,7 +82,7 @@
 .ec-lpe-field small {
 	color: var(--muted-text, #aaa);
 }
-.ec-lpe-field input:not([type="color"]):not([type="range"]),
+.ec-lpe-field input:not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
 .ec-lpe-field textarea,
 .ec-lpe-field select,
 .ec-lpe-section input {

@@ -254,6 +254,22 @@ describe( 'portable editor behavior', () => {
 				.find( ( tab ) => 'Links' === tab.textContent )
 				.click()
 		);
+		const controlButtons = [
+			...container.querySelectorAll(
+				'.ec-lpe-section__header button, .ec-link-item button'
+			),
+		];
+		expect( controlButtons ).toHaveLength( 6 );
+		controlButtons.forEach( ( button ) => {
+			expect( button.classList.contains( 'button-small' ) ).toBe( true );
+			expect(
+				button.classList.contains(
+					button.textContent.trim() === 'Remove'
+						? 'button-danger'
+						: 'button-3'
+				)
+			).toBe( true );
+		} );
 		await input(
 			container.querySelector( '[aria-label="Link URL"]' ),
 			'not-a-url'
@@ -291,9 +307,54 @@ describe( 'portable editor behavior', () => {
 				backgroundImageUrl: '',
 				publicUrl: '',
 			},
-			socials: [],
+			socials: [
+				{
+					type: 'instagram',
+					url: 'https://instagram.com/example',
+					icon_class: 'fab fa-instagram',
+				},
+			],
 		};
 		await act( async () => root.render( <Preview draft={ draft } /> ) );
+		for ( const [ selector, icon ] of [
+			[ '.extrch-share-page-trigger', 'fa-ellipsis-h' ],
+			[ '.extrch-share-item-trigger', 'fa-ellipsis-v' ],
+			[ '.extrch-bell-page-trigger', 'fa-bell' ],
+		] ) {
+			const trigger = container.querySelector( selector );
+			expect( trigger.textContent.trim() ).toBe( '' );
+			expect( trigger.querySelector( `i.fas.${ icon }` ) ).not.toBeNull();
+			expect( trigger.getAttribute( 'aria-label' ) ).toBeTruthy();
+		}
+		expect(
+			container.querySelector( '.extrch-social-icon i.fa-instagram' )
+		).not.toBeNull();
+		await act( async () =>
+			root.render(
+				<Preview
+					draft={ {
+						...draft,
+						page: {
+							...draft.page,
+							settings: { subscribe_display_mode: 'inline_form' },
+						},
+					} }
+				/>
+			)
+		);
+		const subscribe = container.querySelector(
+			'.extrch-subscribe-form button'
+		);
+		expect( subscribe.className ).toBe( 'extrch-subscribe-btn' );
+		expect( subscribe.type ).toBe( 'button' );
+		expect(
+			container.querySelector(
+				'.extrch-subscribe-form .form-group input[type="email"]'
+			)
+		).not.toBeNull();
+		expect(
+			container.querySelector( '.extrch-subscribe-form form' )
+		).toBeNull();
 		expect(
 			container.querySelector( '.extrch-link-page-preview-container' )
 				.dataset.backgroundImage
@@ -354,6 +415,9 @@ describe( 'portable editor behavior', () => {
 		await flush();
 		const dialog = container.querySelector(
 			'.ec-qr-modal [role="dialog"]'
+		);
+		expect( dialog.querySelector( 'button' ).className ).toBe(
+			'button-3 button-small'
 		);
 		expect( dialog.querySelector( 'button' ) ).toBe(
 			document.activeElement

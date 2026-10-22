@@ -230,6 +230,7 @@ function LinksPanel( { draft, change, limits } ) {
 						/>
 						<button
 							type="button"
+							className="button-3 button-small"
 							aria-label="Move section up"
 							onClick={ () => move( sectionIndex, -1 ) }
 						>
@@ -237,6 +238,7 @@ function LinksPanel( { draft, change, limits } ) {
 						</button>
 						<button
 							type="button"
+							className="button-3 button-small"
 							aria-label="Move section down"
 							onClick={ () => move( sectionIndex, 1 ) }
 						>
@@ -244,6 +246,7 @@ function LinksPanel( { draft, change, limits } ) {
 						</button>
 						<button
 							type="button"
+							className="button-danger button-small"
 							aria-label="Remove section"
 							onClick={ () =>
 								change( {
@@ -326,6 +329,7 @@ function LinksPanel( { draft, change, limits } ) {
 								</div>
 								<button
 									type="button"
+									className="button-3 button-small"
 									disabled={ 0 === linkIndex }
 									onClick={ () =>
 										moveLink( sectionIndex, linkIndex, -1 )
@@ -335,6 +339,7 @@ function LinksPanel( { draft, change, limits } ) {
 								</button>
 								<button
 									type="button"
+									className="button-3 button-small"
 									disabled={
 										linkIndex === section.links.length - 1
 									}
@@ -346,6 +351,7 @@ function LinksPanel( { draft, change, limits } ) {
 								</button>
 								<button
 									type="button"
+									className="button-danger button-small"
 									aria-label="Remove link"
 									onClick={ () =>
 										updateSection( sectionIndex, {
@@ -997,7 +1003,10 @@ export function Preview( {
 									className="extrch-share-trigger extrch-subscribe-icon-trigger extrch-bell-page-trigger"
 									aria-label="Subscribe to this page"
 								>
-									Subscribe
+									<i
+										className="fas fa-bell"
+										aria-hidden="true"
+									/>
 								</button>
 							) }
 						<button
@@ -1005,7 +1014,10 @@ export function Preview( {
 							className="extrch-share-trigger extrch-share-page-trigger"
 							aria-label="Share this page"
 						>
-							Share
+							<i
+								className="fas fa-ellipsis-h"
+								aria-hidden="true"
+							/>
 						</button>
 					</div>
 					{ 'below' !== draft.page.settings.social_icons_position &&
@@ -1039,7 +1051,10 @@ export function Preview( {
 												className="extrch-share-trigger extrch-share-item-trigger"
 												aria-label="Share this link"
 											>
-												Share
+												<i
+													className="fas fa-ellipsis-v"
+													aria-hidden="true"
+												/>
 											</button>
 										</div>
 									)
@@ -1061,18 +1076,24 @@ export function Preview( {
 										.subscribe_description ||
 										'Enter your email address to receive updates.' }
 								</p>
+								{ /* Avoid nesting a form inside the editor's save form.
+								   The public CSS supports extrch-subscribe-btn directly. */ }
 								<div
 									className="extrch-subscribe-form"
 									role="presentation"
 								>
-									<input
-										type="email"
-										aria-label="Email Address"
-										placeholder="Your email address"
-									/>
+									<div className="form-group">
+										<input
+											type="email"
+											name="subscriber_email"
+											autoComplete="email"
+											aria-label="Email Address"
+											placeholder="Your email address"
+										/>
+									</div>
 									<button
 										type="button"
-										className="button-1 button-small"
+										className="extrch-subscribe-btn"
 									>
 										Subscribe
 									</button>
@@ -1174,7 +1195,11 @@ export function QrModal( { url, error, onClose, restoreFocus, titleId } ) {
 				aria-labelledby={ titleId }
 			>
 				<h2 id={ titleId }>Link Page QR Code</h2>
-				<button type="button" onClick={ onClose }>
+				<button
+					type="button"
+					className="button-3 button-small"
+					onClick={ onClose }
+				>
 					Close
 				</button>
 				{ 'loading' === url && (

@@ -952,6 +952,10 @@ function ec_enqueue_link_page_editor() {
 	if ( ! ec_link_page_editor_is_available() ) {
 		return false;
 	}
+	if ( function_exists( 'ec_register_link_page_public_styles' ) ) {
+		ec_register_link_page_public_styles();
+		wp_enqueue_style( 'extrch-font-awesome' );
+	}
 	wp_enqueue_script( 'extrachill-link-page-editor-view-script' );
 	wp_enqueue_style( 'extrachill-link-page-editor-style' );
 	foreach ( array(
