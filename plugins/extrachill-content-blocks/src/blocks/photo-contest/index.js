@@ -86,12 +86,28 @@ function Edit( { attributes, setAttributes } ) {
 			{},
 			createElement( 'h4', {}, 'Windows' ),
 			createElement( TextControl, {
+				label: 'Entries open (site timezone)',
+				type: 'datetime-local',
+				value: attributes.entriesOpenAt,
+				help: 'Leave empty to open entries immediately.',
+				onChange: ( entriesOpenAt ) =>
+					setAttributes( { entriesOpenAt } ),
+			} ),
+			createElement( TextControl, {
 				label: 'Entries close (site timezone)',
 				type: 'datetime-local',
 				value: attributes.entriesCloseAt,
 				help: 'Leave empty to keep entries open.',
 				onChange: ( entriesCloseAt ) =>
 					setAttributes( { entriesCloseAt } ),
+			} ),
+			createElement( TextControl, {
+				label: 'Voting opens (site timezone)',
+				type: 'datetime-local',
+				value: attributes.votingOpensAt,
+				help: 'Leave empty to open voting immediately.',
+				onChange: ( votingOpensAt ) =>
+					setAttributes( { votingOpensAt } ),
 			} ),
 			createElement( TextControl, {
 				label: 'Voting closes (site timezone)',

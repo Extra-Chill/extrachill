@@ -133,6 +133,14 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 		);
 	}
 
+	if ( ! extrachill_content_blocks_photo_contest_has_opened( $settings['entries_open_at'], $now ) ) {
+		return extrachill_content_blocks_photo_contest_error(
+			'entries_not_open',
+			'Entries open ' . extrachill_content_blocks_photo_contest_format_time( $settings['entries_open_at'] ) . '.',
+			403
+		);
+	}
+
 	if ( extrachill_content_blocks_photo_contest_is_closed( $settings['entries_close_at'], $now ) ) {
 		return extrachill_content_blocks_photo_contest_error(
 			'entries_closed',

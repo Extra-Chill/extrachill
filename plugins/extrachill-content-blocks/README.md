@@ -43,7 +43,31 @@ npm run build
 npm run start
 ```
 
-Build output goes to `/build/blocks/`.
+Build output goes to `/build/blocks/`. The npm `prepare` lifecycle builds these
+assets during `npm install` / `npm ci`, including dependency hydration in clean
+Homeboy test workspaces. Generated assets remain untracked.
+
+### Tests
+
+```bash
+npm ci
+npm run test:php
+npm run test:js
+npm run typecheck
+```
+
+The PHP suite checks generated block metadata and dependency manifests, so assets
+must be built before invoking `homeboy review test extrachill-content-blocks`
+directly. After changing block sources, run `npm run build` again.
+
+### Photo contest scheduling
+
+The Photo Contest inspector supports optional entry and voting open times beside
+the close times. Dates use the site's timezone. Empty open times preserve immediate
+entry submission and voting for existing contests. Before entries open, visitors
+see “Contest opens” with the scheduled date, event details, and ticket link; voting
+controls stay hidden until voting opens. The server enforces both windows even
+when a cached page or direct request is used.
 
 ## Activation model
 

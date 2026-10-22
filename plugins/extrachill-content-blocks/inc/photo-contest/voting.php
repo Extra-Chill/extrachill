@@ -38,6 +38,14 @@ function extrachill_content_blocks_photo_contest_process_vote( $post_id, $contes
 		);
 	}
 
+	if ( ! extrachill_content_blocks_photo_contest_has_opened( $settings['voting_opens_at'], $now ) ) {
+		return extrachill_content_blocks_photo_contest_error(
+			'voting_not_open',
+			'Voting opens ' . extrachill_content_blocks_photo_contest_format_time( $settings['voting_opens_at'] ) . '.',
+			403
+		);
+	}
+
 	if ( extrachill_content_blocks_photo_contest_is_closed( $settings['voting_closes_at'], $now ) ) {
 		return extrachill_content_blocks_photo_contest_error(
 			'voting_closed',

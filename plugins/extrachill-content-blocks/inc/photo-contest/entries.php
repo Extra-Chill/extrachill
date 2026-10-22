@@ -129,7 +129,7 @@ function extrachill_content_blocks_photo_contest_find_block_attrs( array $blocks
 /**
  * Read a photo-contest block's settings out of the contest post's content.
  *
- * The close dates / finalists options are block attributes. Server-side
+ * The opening/closing dates and finalists options are block attributes. Server-side
  * enforcement (submission + vote windows) reads them back out of post_content
  * with parse_blocks — a read, never a write. Nested blocks (e.g. inside a
  * Group) are found recursively.
@@ -154,6 +154,8 @@ function extrachill_content_blocks_photo_contest_get_settings( $post_id, $contes
 	}
 
 	return array(
+		'entries_open_at'  => (string) ( $attrs['entriesOpenAt'] ?? '' ),
+		'voting_opens_at'  => (string) ( $attrs['votingOpensAt'] ?? '' ),
 		'entries_close_at' => (string) ( $attrs['entriesCloseAt'] ?? '' ),
 		'voting_closes_at' => (string) ( $attrs['votingClosesAt'] ?? '' ),
 		'show_finalists'   => (bool) ( $attrs['showFinalists'] ?? false ),
@@ -171,9 +173,32 @@ function extrachill_content_blocks_photo_contest_get_settings( $post_id, $contes
  * @return bool True when closed.
  */
 function extrachill_content_blocks_photo_contest_is_closed( $close_at, $now = null ) {
+	$timestamp = extrachill_content_blocks_photo_contest_time( $close_at );
+	return null !== $timestamp && ( null === $now ? time() : (int) $now ) >= $timestamp;
+}
+
+/**
+ * Whether the opening time has arrived. Unset/invalid dates open immediately.
+ *
+ * @param string   $open_at Site-local datetime attribute.
+ * @param int|null $now     Unix timestamp override for tests.
+ * @return bool
+ */
+function extrachill_content_blocks_photo_contest_has_opened( $open_at, $now = null ) {
+	$timestamp = extrachill_content_blocks_photo_contest_time( $open_at );
+	return null === $timestamp || ( null === $now ? time() : (int) $now ) >= $timestamp;
+}
+
+/**
+ * Parse a window date in the site timezone; null means unset or invalid.
+ *
+ * @param string $close_at Site-local datetime attribute.
+ * @return int|null
+ */
+function extrachill_content_blocks_photo_contest_time( $close_at ) {
 	$close_at = trim( (string) $close_at );
 	if ( '' === $close_at ) {
-		return false;
+		return null;
 	}
 
 	if ( function_exists( 'wp_timezone' ) ) {
@@ -181,18 +206,32 @@ function extrachill_content_blocks_photo_contest_is_closed( $close_at, $now = nu
 			$dt        = new DateTimeImmutable( $close_at, wp_timezone() );
 			$timestamp = $dt->getTimestamp();
 		} catch ( Exception $e ) {
-			return false;
+			return null;
 		}
 	} else {
 		$timestamp = strtotime( $close_at );
 		if ( false === $timestamp ) {
-			return false;
+			return null;
 		}
 	}
 
-	$now = null === $now ? time() : (int) $now;
+	return $timestamp;
+}
 
-	return $now >= $timestamp;
+/**
+ * Format a window date for visitors in the site timezone.
+ *
+ * @param string $date Site-local datetime attribute.
+ * @return string
+ */
+function extrachill_content_blocks_photo_contest_format_time( $date ) {
+	$timestamp = extrachill_content_blocks_photo_contest_time( $date );
+	if ( null === $timestamp ) {
+		return '';
+	}
+	return function_exists( 'wp_date' )
+		? wp_date( 'F j, Y g:i a T', $timestamp )
+		: date( 'F j, Y g:i a T', $timestamp );
 }
 
 /**

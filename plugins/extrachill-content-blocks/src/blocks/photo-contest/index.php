@@ -42,6 +42,14 @@ function extrachill_content_blocks_photo_contest_render_config( array $attribute
 		'isAdmin'        => is_admin(),
 	);
 
+	// Resolve opening dates once, not against the visitor's device timezone.
+	foreach ( array( 'entriesOpenAt', 'votingOpensAt' ) as $key ) {
+		$date      = (string) ( $attributes[ $key ] ?? '' );
+		$timestamp = extrachill_content_blocks_photo_contest_time( $date );
+		$config[ $key ] = null === $timestamp ? '' : gmdate( 'c', $timestamp );
+		$config[ $key . 'Label' ] = extrachill_content_blocks_photo_contest_format_time( $date );
+	}
+
 	if ( extrachill_content_blocks_photo_contest_can_moderate() ) {
 		$config['canModerate'] = true;
 		$config['restNonce']   = (string) wp_create_nonce( 'wp_rest' );

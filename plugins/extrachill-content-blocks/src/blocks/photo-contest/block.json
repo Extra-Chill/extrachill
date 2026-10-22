@@ -44,6 +44,14 @@
       "type": "string",
       "default": ""
     },
+    "entriesOpenAt": {
+      "type": "string",
+      "default": ""
+    },
+    "votingOpensAt": {
+      "type": "string",
+      "default": ""
+    },
     "entriesCloseAt": {
       "type": "string",
       "default": ""

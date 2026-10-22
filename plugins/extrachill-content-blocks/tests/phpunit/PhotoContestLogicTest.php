@@ -187,6 +187,63 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertNull( extrachill_content_blocks_photo_contest_get_settings( 999999, self::CONTEST_ID ) );
 	}
 
+	public function test_open_window_logic_uses_site_timezone_and_inclusive_boundary() {
+		$GLOBALS['wp_test_timezone'] = 'America/New_York';
+		$open = '2026-10-24T19:00';
+		$timestamp = strtotime( '2026-10-24T23:00:00Z' );
+		$this->assertTrue( extrachill_content_blocks_photo_contest_has_opened( '' ) );
+		$this->assertTrue( extrachill_content_blocks_photo_contest_has_opened( 'invalid-date' ) );
+		$this->assertFalse( extrachill_content_blocks_photo_contest_has_opened( $open, $timestamp - 1 ) );
+		$this->assertTrue( extrachill_content_blocks_photo_contest_has_opened( $open, $timestamp ) );
+		$this->assertTrue( extrachill_content_blocks_photo_contest_has_opened( $open, $timestamp + 1 ) );
+		$this->assertSame( 'October 24, 2026 7:00 pm EDT', extrachill_content_blocks_photo_contest_format_time( $open ) );
+
+		$config = extrachill_content_blocks_photo_contest_render_config( array( 'entriesOpenAt' => $open, 'votingOpensAt' => $open ), 1 );
+		$this->assertSame( $timestamp, strtotime( $config['entriesOpenAt'] ) );
+		$this->assertSame( $config['entriesOpenAt'], $config['votingOpensAt'] );
+		$this->assertSame( 'October 24, 2026 7:00 pm EDT', $config['entriesOpenAtLabel'] );
+	}
+
+	public function test_unset_open_settings_preserve_immediate_opening() {
+		$post_id = $this->createContestPost();
+		$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID );
+		$this->assertSame( '', $settings['entries_open_at'] );
+		$this->assertSame( '', $settings['voting_opens_at'] );
+		$config = extrachill_content_blocks_photo_contest_render_config( array(), $post_id );
+		$this->assertSame( '', $config['entriesOpenAt'] );
+		$this->assertSame( '', $config['votingOpensAt'] );
+	}
+
+	public function test_submission_open_and_close_window() {
+		$open = '2026-10-24T19:00';
+		$close = '2026-10-24T20:00';
+		$post_id = $this->createContestPost( array( 'entriesOpenAt' => $open, 'entriesCloseAt' => $close ) );
+		$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID );
+		$this->assertSame( $open, $settings['entries_open_at'] );
+		$early = $this->submitEntry( $post_id, array( 'now' => strtotime( $open ) - 1 ) );
+		$this->assertDomainError( $early, 'entries_not_open', 403 );
+		$this->assertStringContainsString( 'Entries open October 24, 2026', $early->get_error_message() );
+		$this->assertSame( array(), extrachill_content_blocks_photo_contest_get_entries( $post_id, self::CONTEST_ID ) );
+		$this->assertFalse( is_wp_error( $this->submitEntry( $post_id, array( 'now' => strtotime( $open ) ) ) ) );
+		$this->assertFalse( is_wp_error( $this->submitEntry( $post_id, array( 'now' => strtotime( $open ) + 1, 'email' => 'after@example.com' ) ) ) );
+		$this->assertDomainError( $this->submitEntry( $post_id, array( 'now' => strtotime( $close ) ) ), 'entries_closed', 403 );
+	}
+
+	public function test_voting_open_and_close_window() {
+		$open = '2026-10-24T19:00';
+		$close = '2026-10-24T22:00';
+		$post_id = $this->createContestPost( array( 'votingOpensAt' => $open, 'votingClosesAt' => $close ) );
+		$entry_id = $this->submitEntry( $post_id )['entry']['id'];
+		$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID );
+		$this->assertSame( $open, $settings['voting_opens_at'] );
+		$vote = fn( $now ) => extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_id, 'voter@example.com', $now );
+		$this->assertDomainError( $vote( strtotime( $open ) - 1 ), 'voting_not_open', 403 );
+		$this->assertSame( 0, extrachill_content_blocks_photo_contest_entry_data( $entry_id )['vote_count'] );
+		$this->assertFalse( is_wp_error( $vote( strtotime( $open ) ) ) );
+		$this->assertFalse( is_wp_error( extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_id, 'after@example.com', strtotime( $open ) + 1 ) ) );
+		$this->assertDomainError( $vote( strtotime( $close ) ), 'voting_closed', 403 );
+	}
+
 	public function test_close_window_logic() {
 		$close = '2026-10-24 20:00';
 		$this->assertFalse( extrachill_content_blocks_photo_contest_is_closed( '', time() ) );

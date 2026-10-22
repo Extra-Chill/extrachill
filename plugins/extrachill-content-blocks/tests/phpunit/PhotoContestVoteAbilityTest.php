@@ -135,6 +135,25 @@ class PhotoContestVoteAbilityTest extends TestCase {
 
 	// ─── Status-coded error passthrough ──────────────────────────────────────
 
+	public function test_voting_not_open_passes_through_with_403() {
+		$post_id = $this->createContestPost();
+		$entry_id = $this->createEntry( $post_id );
+		$GLOBALS['wp_test_blocks'][ $post_id ][0]['attrs']['votingOpensAt'] = '2999-10-24T19:00';
+
+		$result = $this->executeVote(
+			array(
+				'post_id'       => $post_id,
+				'contest_id'    => self::CONTEST_ID,
+				'entry_id'      => $entry_id,
+				'email_address' => 'voter@example.com',
+			)
+		);
+
+		$this->assertTrue( is_wp_error( $result ) );
+		$this->assertSame( 'voting_not_open', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+	}
+
 	public function test_entry_not_found_passes_through_with_404() {
 		$post_id = $this->createContestPost();
 

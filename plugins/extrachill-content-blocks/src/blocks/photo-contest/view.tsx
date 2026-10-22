@@ -40,6 +40,9 @@ interface ContestConfig {
 	contestId: string;
 	heading: string;
 	eventTitle: string;
+	entriesOpenAt: string;
+	entriesOpenAtLabel: string;
+	votingOpensAt: string;
 	entriesCloseAt: string;
 	votingClosesAt: string;
 	showFinalists: boolean;
@@ -192,6 +195,11 @@ function isClosed( closeAt: string ): boolean {
 	}
 	const ts = Date.parse( closeAt );
 	return ! Number.isNaN( ts ) && Date.now() >= ts;
+}
+
+function hasOpened( openAt: string ): boolean {
+	const ts = Date.parse( openAt );
+	return ! openAt || Number.isNaN( ts ) || Date.now() >= ts;
 }
 
 function deepLinkEntryId(): number {
@@ -391,7 +399,7 @@ function EntryCard( {
 	};
 
 	const handleVoteClick = () => {
-		if ( hasVoted || votingClosed ) {
+		if ( hasVoted || votingClosed || ! hasOpened( config.votingOpensAt ) ) {
 			return;
 		}
 		const stored = getSavedEmail();
@@ -463,17 +471,19 @@ function EntryCard( {
 						@{ entry.instagram }
 					</a>
 				) }
-				<button
-					className={ `extrachill-blocks-photo-contest-vote-button ${
-						hasVoted ? 'button-2' : 'button-1'
-					} button-medium` }
-					disabled={
-						hasVoted || isVoting || votingClosed || isHidden
-					}
-					onClick={ handleVoteClick }
-				>
-					{ voteLabel }
-				</button>
+				{ hasOpened( config.votingOpensAt ) && (
+					<button
+						className={ `extrachill-blocks-photo-contest-vote-button ${
+							hasVoted ? 'button-2' : 'button-1'
+						} button-medium` }
+						disabled={
+							hasVoted || isVoting || votingClosed || isHidden
+						}
+						onClick={ handleVoteClick }
+					>
+						{ voteLabel }
+					</button>
+				) }
 				{ config.canModerate && (
 					<button
 						className={ `extrachill-blocks-photo-contest-mod-button ${
@@ -490,32 +500,34 @@ function EntryCard( {
 						} )() }
 					</button>
 				) }
-				{ showForm && ! hasVoted && (
-					<div className="extrachill-blocks-photo-contest-vote-form">
-						<input
-							ref={ emailInputRef }
-							type="email"
-							className="extrachill-blocks-photo-contest-input"
-							placeholder="Enter your email to vote"
-							value={ email }
-							onChange={ ( e ) => setEmail( e.target.value ) }
-							onKeyDown={ ( e ) => {
-								if ( e.key === 'Enter' ) {
-									e.preventDefault();
-									handleSubmitVote();
-								}
-							} }
-							required
-						/>
-						<button
-							className="button-1 button-medium"
-							disabled={ isVoting }
-							onClick={ handleSubmitVote }
-						>
-							Submit Vote
-						</button>
-					</div>
-				) }
+				{ showForm &&
+					! hasVoted &&
+					hasOpened( config.votingOpensAt ) && (
+						<div className="extrachill-blocks-photo-contest-vote-form">
+							<input
+								ref={ emailInputRef }
+								type="email"
+								className="extrachill-blocks-photo-contest-input"
+								placeholder="Enter your email to vote"
+								value={ email }
+								onChange={ ( e ) => setEmail( e.target.value ) }
+								onKeyDown={ ( e ) => {
+									if ( e.key === 'Enter' ) {
+										e.preventDefault();
+										handleSubmitVote();
+									}
+								} }
+								required
+							/>
+							<button
+								className="button-1 button-medium"
+								disabled={ isVoting }
+								onClick={ handleSubmitVote }
+							>
+								Submit Vote
+							</button>
+						</div>
+					) }
 				{ error && (
 					<div className="notice notice-error extrachill-blocks-photo-contest-notice">
 						{ error }
@@ -761,9 +773,30 @@ function PhotoContest( config: ContestConfig ) {
 	const [ loadError, setLoadError ] = useState( '' );
 	const highlightId = deepLinkEntryId();
 
+	// Recheck windows while a visitor leaves the cached contest page open.
+	const [ , setClock ] = useState( 0 );
+	useEffect( () => {
+		if ( ! config.entriesOpenAt && ! config.votingOpensAt ) {
+			return;
+		}
+		const timer = window.setInterval(
+			() => setClock( ( n ) => n + 1 ),
+			1000
+		);
+		return () => window.clearInterval( timer );
+	}, [ config.entriesOpenAt, config.votingOpensAt ] );
+
+	const entriesOpened = hasOpened( config.entriesOpenAt );
+	const votingOpened = hasOpened( config.votingOpensAt );
 	const entriesClosed = isClosed( config.entriesCloseAt );
 	const votingClosed = isClosed( config.votingClosesAt );
 	const showFinalists = config.showFinalists && votingClosed;
+	let votingStatus = 'has not opened yet';
+	if ( votingClosed ) {
+		votingStatus = 'has ended';
+	} else if ( votingOpened ) {
+		votingStatus = 'is still open';
+	}
 
 	useEffect( () => {
 		let cancelled = false;
@@ -865,16 +898,20 @@ function PhotoContest( config: ContestConfig ) {
 
 	return (
 		<>
-			{ ! entriesClosed && ! showFinalists && (
+			{ ! entriesOpened && (
+				<div className="notice notice-info extrachill-blocks-photo-contest-notice">
+					Contest opens { config.entriesOpenAtLabel }
+				</div>
+			) }
+			{ entriesOpened && ! entriesClosed && ! showFinalists && (
 				<SubmissionForm
 					config={ config }
 					onSubmitted={ handleSubmitted }
 				/>
 			) }
-			{ entriesClosed && ! showFinalists && (
+			{ entriesOpened && entriesClosed && ! showFinalists && (
 				<div className="notice notice-info extrachill-blocks-photo-contest-notice">
-					Entries are closed — voting{ ' ' }
-					{ votingClosed ? 'has ended' : 'is still open' }!
+					Entries are closed — voting { votingStatus }!
 				</div>
 			) }
 			{ loadError && (
@@ -918,7 +955,9 @@ function PhotoContest( config: ContestConfig ) {
 				<div className="extrachill-blocks-photo-contest-grid">
 					{ entries.length === 0 && (
 						<p className="extrachill-blocks-photo-contest-empty">
-							No entries yet — be the first!
+							{ entriesOpened
+								? 'No entries yet — be the first!'
+								: 'No entries yet.' }
 						</p>
 					) }
 					{ entries.map( ( entry ) => (
@@ -952,6 +991,9 @@ function parseConfig( container: HTMLElement ): ContestConfig | null {
 			contestId: parsed.contestId ?? '',
 			heading: parsed.heading ?? 'Enter the Contest',
 			eventTitle: parsed.eventTitle ?? '',
+			entriesOpenAt: parsed.entriesOpenAt ?? '',
+			entriesOpenAtLabel: parsed.entriesOpenAtLabel ?? '',
+			votingOpensAt: parsed.votingOpensAt ?? '',
 			entriesCloseAt: parsed.entriesCloseAt ?? '',
 			votingClosesAt: parsed.votingClosesAt ?? '',
 			showFinalists: Boolean( parsed.showFinalists ),

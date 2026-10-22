@@ -30,6 +30,7 @@ function wp_stubs_reset(): void {
 	$GLOBALS['wp_test_filters']       = array();
 	$GLOBALS['wp_test_subscriptions'] = array();
 	$GLOBALS['wp_test_next_id']       = 1000;
+	$GLOBALS['wp_test_timezone']      = 'UTC';
 
 	// Default in-memory entry photo store through the short-circuit filter
 	// seam; individual tests may layer earlier (lower-priority) filters.
@@ -71,6 +72,14 @@ function wp_stubs_store_photo_filter( $stored, $post_id, array $file, $display_n
  */
 function wp_stubs_set_user_caps( array $caps ): void {
 	$GLOBALS['wp_test_user_caps'] = $caps;
+}
+
+function wp_timezone(): DateTimeZone {
+	return new DateTimeZone( $GLOBALS['wp_test_timezone'] ?? 'UTC' );
+}
+
+function wp_date( $format, $timestamp ): string {
+	return ( new DateTimeImmutable( '@' . $timestamp ) )->setTimezone( wp_timezone() )->format( $format );
 }
 
 function wp_stubs_next_id(): int {
