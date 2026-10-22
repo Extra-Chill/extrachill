@@ -48,7 +48,7 @@ class PhotoContestHideAbilityTest extends TestCase {
 				'display_name' => 'Ghoul Friend',
 				'honeypot'     => '',
 				'file'         => array(
-					'name'     => 'costume.jpg',
+					'name'     => 'entry.jpg',
 					'tmp_name' => '/tmp/phpXXXXXX',
 					'size'     => 1024,
 					'error'    => 0,

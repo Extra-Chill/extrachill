@@ -64,7 +64,7 @@ class PhotoContestAbilityContractTest extends TestCase {
 				'email'        => 'ghoul@example.com',
 				'display_name' => 'Ghoul Friend',
 				'photo'        => array(
-					'name'     => 'costume.jpg',
+					'name'     => 'entry.jpg',
 					'tmp_name' => '/tmp/phpXXXXXX',
 					'size'     => 1024,
 					'error'    => 0,

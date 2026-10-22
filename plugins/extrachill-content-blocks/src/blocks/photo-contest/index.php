@@ -63,7 +63,7 @@ function extrachill_content_blocks_photo_contest_render_config( array $attribute
  *
  * Pure given an OG array and IDs; the wp_head-time wrappers below feed it the
  * request context. The entry photo becomes og:image so a shared deep link
- * unfurls with the entrant's costume, not the page's featured image.
+ * unfurls with the entrant's photo, not the page's featured image.
  *
  * @param array $og_data  OG property => value map from extrachill-seo.
  * @param int   $post_id  Queried contest post ID.

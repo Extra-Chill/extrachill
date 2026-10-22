@@ -79,7 +79,7 @@ class PhotoContestLogicTest extends TestCase {
 		$post_id = wp_stubs_insert_post(
 			array(
 				'post_type'  => 'post',
-				'post_title' => 'Skinful Halloween Costume Contest',
+				'post_title' => 'Test Photo Contest',
 			)
 		);
 
@@ -114,7 +114,7 @@ class PhotoContestLogicTest extends TestCase {
 					'instagram'    => '@ghoulfriend',
 					'honeypot'     => '',
 					'file'         => array(
-						'name'     => 'costume.jpg',
+						'name'     => 'entry.jpg',
 						'tmp_name' => '/tmp/phpXXXXXX',
 						'size'     => 1024 * 1024,
 						'error'    => 0,
@@ -428,7 +428,7 @@ class PhotoContestLogicTest extends TestCase {
 			$post_id,
 			array(
 				'file' => array(
-					'name'     => 'costume.jpg',
+					'name'     => 'entry.jpg',
 					'tmp_name' => '/tmp/phpXXXXXX',
 					'size'     => 1024,
 					'error'    => 4, // UPLOAD_ERR_NO_FILE.
@@ -486,7 +486,7 @@ class PhotoContestLogicTest extends TestCase {
 			$post_id,
 			array(
 				'file' => array(
-					'name'                => 'costume.jpg',
+					'name'                => 'entry.jpg',
 					'tmp_name'            => '/tmp/phpXXXXXX',
 					'size'                => 1024,
 					'error'               => 0,
@@ -570,13 +570,13 @@ class PhotoContestLogicTest extends TestCase {
 
 	public function test_submit_entry_rejects_exact_duplicate_photos_with_409() {
 		$post_id = $this->createContestPost();
-		$photo   = $this->createTempPhoto( 'identical-costume-bytes' );
+		$photo   = $this->createTempPhoto( 'identical-photo-bytes' );
 
 		$first = $this->submitEntry(
 			$post_id,
 			array(
 				'file' => array(
-					'name'     => 'costume.jpg',
+					'name'     => 'entry.jpg',
 					'tmp_name' => $photo,
 					'size'     => 1024,
 					'error'    => 0,
@@ -591,7 +591,7 @@ class PhotoContestLogicTest extends TestCase {
 		);
 
 		// Same bytes in a different file, from a different entrant.
-		$copy      = $this->createTempPhoto( 'identical-costume-bytes' );
+		$copy      = $this->createTempPhoto( 'identical-photo-bytes' );
 		$duplicate = $this->submitEntry(
 			$post_id,
 			array(
@@ -613,7 +613,7 @@ class PhotoContestLogicTest extends TestCase {
 		);
 
 		// Different bytes pass.
-		$fresh  = $this->createTempPhoto( 'different-costume-bytes' );
+		$fresh  = $this->createTempPhoto( 'different-photo-bytes' );
 		$result = $this->submitEntry(
 			$post_id,
 			array(
@@ -631,13 +631,13 @@ class PhotoContestLogicTest extends TestCase {
 
 	public function test_duplicate_photo_check_includes_hidden_entries() {
 		$post_id = $this->createContestPost();
-		$photo   = $this->createTempPhoto( 'hidden-costume-bytes' );
+		$photo   = $this->createTempPhoto( 'hidden-photo-bytes' );
 
 		$entry_id = $this->submitEntry(
 			$post_id,
 			array(
 				'file' => array(
-					'name'     => 'costume.jpg',
+					'name'     => 'entry.jpg',
 					'tmp_name' => $photo,
 					'size'     => 1024,
 					'error'    => 0,
@@ -647,7 +647,7 @@ class PhotoContestLogicTest extends TestCase {
 
 		extrachill_content_blocks_photo_contest_set_entry_hidden( $entry_id, true );
 
-		$copy  = $this->createTempPhoto( 'hidden-costume-bytes' );
+		$copy  = $this->createTempPhoto( 'hidden-photo-bytes' );
 		$retry = $this->submitEntry(
 			$post_id,
 			array(
@@ -921,7 +921,7 @@ class PhotoContestLogicTest extends TestCase {
 		$entry_id = $this->submitEntry( $post_id )['entry']['id'];
 
 		$og = array(
-			'og:title'        => 'Skinful Halloween Costume Contest',
+			'og:title'        => 'Test Photo Contest',
 			'og:image'        => 'https://example.com/featured.jpg',
 			'og:image:width'  => 1200,
 			'og:image:height' => 630,

@@ -34,7 +34,7 @@ class PhotoContestListAbilityTest extends TestCase {
 		$post_id = wp_stubs_insert_post(
 			array(
 				'post_type'  => 'post',
-				'post_title' => 'Skinful Halloween Costume Contest',
+				'post_title' => 'Test Photo Contest',
 			)
 		);
 
@@ -65,7 +65,7 @@ class PhotoContestListAbilityTest extends TestCase {
 				'display_name' => 'Ghoul Friend',
 				'honeypot'     => '',
 				'file'         => array(
-					'name'     => 'costume.jpg',
+					'name'     => 'entry.jpg',
 					'tmp_name' => '/tmp/phpXXXXXX',
 					'size'     => 1024 * 1024,
 					'error'    => 0,

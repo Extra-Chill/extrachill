@@ -15,7 +15,7 @@
  *
  * Deep links (?entry=<id>) surface that entry first and scroll to it; the
  * backend swaps the OG image for the entry photo so shares unfurl with the
- * entrant's costume.
+ * entrant's photo.
  *
  * Moderators (config.canModerate, emitted only on cache-bypassing logged-in
  * requests) additionally see hidden entries (dimmed, labelled "Hidden") and a
