@@ -1327,10 +1327,7 @@ async function main() {
 
   try {
     runCodebox(['recipe', 'validate', '--recipe', recipePath, '--json'], true);
-    const args = ['recipe-run', '--recipe', recipePath, '--artifacts', recipe.artifacts.directory, '--json'];
-    if (dryRun) {
-      args.push('--dry-run');
-    }
+    const args = recipeRunArgs(recipePath, recipe.artifacts.directory, settings, { dryRun });
     const result = runCodebox(args, true);
     await mkdir(path.dirname(resultPath), { recursive: true });
     await writeFile(resultPath, result.stdout);
@@ -1347,6 +1344,43 @@ async function main() {
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
+}
+
+// WP Codebox's own recipe-run default is 25m, too short for a full network
+// boot plus several browser journeys. 50m keeps the recipe under the
+// workflow job timeout with headroom for the summary and evidence upload.
+export const DEFAULT_RECIPE_RUN_TIMEOUT = '50m';
+
+// Resolves the recipe-run --timeout: env override, then the
+// extrachill_recipe_timeout setting, then the default. Values use WP Codebox's
+// duration format (`<int>ms|s|m`, unitless = ms); a bare integer setting is
+// passed through as milliseconds.
+export function recipeRunTimeout(settings = {}, env = process.env) {
+  const envValue = env.HOMEBOY_WP_CODEBOX_RECIPE_TIMEOUT;
+  if (envValue !== undefined && envValue !== '') {
+    return normalizeRecipeTimeout(envValue, 'HOMEBOY_WP_CODEBOX_RECIPE_TIMEOUT');
+  }
+  if (settings.extrachill_recipe_timeout !== undefined) {
+    return normalizeRecipeTimeout(settings.extrachill_recipe_timeout, 'extrachill_recipe_timeout');
+  }
+  return DEFAULT_RECIPE_RUN_TIMEOUT;
+}
+
+function normalizeRecipeTimeout(value, label) {
+  const raw = typeof value === 'number' ? String(value) : typeof value === 'string' ? value.trim() : '';
+  const match = raw.match(/^(\d+)(ms|s|m)?$/);
+  if (!match || Number.parseInt(match[1], 10) <= 0) {
+    throw new Error(`${label} must be a positive duration such as 3000000ms, 3000s, or 50m.`);
+  }
+  return raw;
+}
+
+export function recipeRunArgs(recipePath, artifactsDirectory, settings = {}, { dryRun = false, env = process.env } = {}) {
+  const args = ['recipe-run', '--recipe', recipePath, '--artifacts', artifactsDirectory, '--timeout', recipeRunTimeout(settings, env), '--json'];
+  if (dryRun) {
+    args.push('--dry-run');
+  }
+  return args;
 }
 
 function assertDemoCodeboxVersion() {

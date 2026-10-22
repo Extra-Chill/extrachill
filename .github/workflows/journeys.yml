@@ -48,7 +48,9 @@ jobs:
   journey:
     name: Journeys on the network rig
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Setup (theme build, WP Codebox build, Chromium) + the rig's 50m
+    # recipe-run --timeout + summary/upload headroom.
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v6
 
