@@ -43,6 +43,9 @@
     "tests/notification-receipts-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/optional-ability-input-defaults-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/public-profile-artist-memberships-smoke.php": {
       "environment": "standalone-php"
     },

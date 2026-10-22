@@ -63,6 +63,7 @@ function extrachill_community_register_rank_abilities() {
 			'description'         => __( 'Recalculate points for a specific user or all users with cached points.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
+				'default'    => array(),
 				'type'       => 'object',
 				'properties' => array(
 					'user_id' => array(

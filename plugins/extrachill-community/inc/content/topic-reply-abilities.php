@@ -133,6 +133,7 @@ function extrachill_community_register_topic_reply_abilities() {
 			'description'         => __( 'List topics for a forum or across all forums, with pagination.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
+				'default'              => array(),
 				'type'                 => 'object',
 				'properties'           => array(
 					'forum_id' => array(

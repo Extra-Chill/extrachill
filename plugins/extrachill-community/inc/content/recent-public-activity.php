@@ -88,6 +88,7 @@ function extrachill_community_register_recent_public_activity_ability() {
 			'description'         => __( 'Get a bounded, portable projection of recent public discussions and replies.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
+				'default'              => array(),
 				'type'                 => 'object',
 				'properties'           => array(
 					'limit'       => array(

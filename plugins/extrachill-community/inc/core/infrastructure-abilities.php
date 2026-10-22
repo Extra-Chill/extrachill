@@ -54,6 +54,7 @@ function extrachill_community_register_infrastructure_abilities() {
 			'description'         => __( 'Get overall community statistics: forums, topics, replies, users, upvotes.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
+				'default'    => array(),
 				'type'       => 'object',
 				'properties' => array(),
 			),
@@ -92,6 +93,7 @@ function extrachill_community_register_infrastructure_abilities() {
 			'description'         => __( 'List all forums with topic/reply counts and forum-archive visibility status.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
+				'default'              => array(),
 				'type'                 => 'object',
 				'properties'           => array(
 					'archive_only' => array(
@@ -169,6 +171,7 @@ function extrachill_community_register_infrastructure_abilities() {
 			'description'         => __( 'Flush all community transients, leaderboard cache, and edge caches.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
+				'default'    => array(),
 				'type'       => 'object',
 				'properties' => array(),
 			),
