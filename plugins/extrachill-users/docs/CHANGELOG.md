@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.52.2] - 2026-10-22
+
+### Fixed
+- default optional ability object inputs to empty arrays
+
 ## [0.52.1] - 2026-10-19
 
 ### Fixed
