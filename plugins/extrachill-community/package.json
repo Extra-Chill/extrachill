@@ -4,8 +4,8 @@
   "description": "Extra Chill community platform - WordPress theme for forums and community features",
   "main": "style.css",
   "scripts": {
-    "build": "wp-scripts build --webpack-copy-php",
-    "start": "wp-scripts start",
+    "build": "wp-scripts build --webpack-copy-php --experimental-modules",
+    "start": "wp-scripts start --experimental-modules",
     "test:js": "wp-scripts test-unit-js --runInBand",
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
@@ -50,7 +50,7 @@
     "@wordpress/element": "^6.0.0",
     "@wordpress/i18n": "^5.0.0",
     "@wordpress/icons": "^10.0.0",
-    "wp-native-client": "^0.0.2"
+    "@wordpress/url": "^4.57.0"
   },
   "private": true
 }

@@ -2,16 +2,13 @@ import { createRoot } from '@wordpress/element';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { act } from 'react';
 
-jest.mock( 'wp-native-client', () => {
+jest.mock( '../../src/abilities', () => {
 	const execute = jest.fn();
 	return {
-		WPNativeClient: jest.fn().mockImplementation( () => ( { execute } ) ),
+		executeAbility: execute,
 		mockExecute: execute,
 	};
 } );
-jest.mock( 'wp-native-client/wordpress', () => ( {
-	WpApiFetchTransport: jest.fn(),
-} ) );
 jest.mock( '@extrachill/components', () => ( {
 	BlockShell: ( { children }: { children: React.ReactNode } ) => (
 		<div>{ children }</div>
@@ -45,7 +42,7 @@ jest.mock( '@extrachill/components/styles/components.scss', () => ( {} ) );
 
 import { UserSettingsApp } from '../../src/blocks/user-settings/view';
 
-const { mockExecute } = jest.requireMock( 'wp-native-client' ) as {
+const { mockExecute } = jest.requireMock( '../../src/abilities' ) as {
 	mockExecute: jest.Mock;
 };
 

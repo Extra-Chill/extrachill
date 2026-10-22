@@ -16,6 +16,11 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
+// Script modules cannot declare classic script dependencies.
+foreach ( array( 'react', 'react-jsx-runtime', 'wp-api-fetch', 'wp-components', 'wp-element' ) as $handle ) {
+	wp_enqueue_script( $handle );
+}
+
 $class = 'wp-block-extrachill-user-settings';
 
 $artist_site_url = ec_get_site_url( 'artist' );

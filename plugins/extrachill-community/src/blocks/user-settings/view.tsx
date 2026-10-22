@@ -14,8 +14,7 @@ import { ComboboxControl } from '@wordpress/components';
 /**
  * External dependencies
  */
-import { WPNativeClient } from 'wp-native-client';
-import { WpApiFetchTransport } from 'wp-native-client/wordpress';
+import { executeAbility } from '../../abilities';
 import {
 	BlockShell,
 	BlockShellInner,
@@ -45,9 +44,7 @@ import type {
 	ResolvedSubscriptionEntity,
 } from '../../types/users';
 
-const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
-	validateAbilityNames: false,
-} );
+const client = { execute: executeAbility };
 const LOCATION_SEARCH_DEBOUNCE_MS = 250;
 const RETIRED_EMAIL_SHARING_TYPES = new Set( [
 	'artist-email-sharing',

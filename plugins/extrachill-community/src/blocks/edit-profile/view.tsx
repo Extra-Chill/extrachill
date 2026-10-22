@@ -13,8 +13,7 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * External dependencies
  */
-import { WPNativeClient } from 'wp-native-client';
-import { WpApiFetchTransport } from 'wp-native-client/wordpress';
+import { executeAbility } from '../../abilities';
 import {
 	ActionRow,
 	BlockShell,
@@ -33,9 +32,7 @@ import { cssVar, spacing, colors } from '@extrachill/tokens';
  */
 import type { UserProfile, UserLink } from '../../types/users';
 
-const client = new WPNativeClient( new WpApiFetchTransport( apiFetch ), {
-	validateAbilityNames: false,
-} );
+const client = { execute: executeAbility };
 
 const styles = {
 	avatarContainer: {

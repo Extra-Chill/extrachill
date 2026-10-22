@@ -20,10 +20,13 @@ const path = require( 'path' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 // wp-scripts exposes `entry` as a function that discovers block entries.
-const defaultEntry = defaultConfig.entry;
+const [ scriptConfig, moduleConfig ] = defaultConfig;
+const DependencyExtractionWebpackPlugin = require( '@wordpress/dependency-extraction-webpack-plugin' );
+const { defaultRequestToExternal } = require( '@wordpress/dependency-extraction-webpack-plugin/lib/util' );
+const defaultEntry = scriptConfig.entry;
 
-module.exports = {
-	...defaultConfig,
+const classicConfig = {
+	...scriptConfig,
 	entry: ( ...args ) => {
 		const blockEntries =
 			typeof defaultEntry === 'function'
@@ -39,9 +42,9 @@ module.exports = {
 		};
 	},
 	module: {
-		...defaultConfig.module,
+		...scriptConfig.module,
 		rules: [
-			...( defaultConfig.module?.rules || [] ),
+			...( scriptConfig.module?.rules || [] ),
 			{
 				test: /\.m?js$/,
 				resolve: {
@@ -51,3 +54,30 @@ module.exports = {
 		],
 	},
 };
+
+// Only abilities are core script modules. React/UI remain classic core scripts,
+// explicitly enqueued by the authenticated blocks' render callbacks.
+module.exports = [ classicConfig, {
+	...moduleConfig,
+	module: classicConfig.module,
+	externals: [ ( { request }, callback ) => {
+		if ( [ '@wordpress/abilities', '@wordpress/core-abilities' ].includes( request ) ) {
+			return callback();
+		}
+		const external = defaultRequestToExternal( request );
+		return external ? callback( null, external, 'window' ) : callback();
+	} ],
+	plugins: moduleConfig.plugins.map( ( plugin ) =>
+		plugin instanceof DependencyExtractionWebpackPlugin
+			? new DependencyExtractionWebpackPlugin( {
+				useDefaults: false,
+				requestToExternalModule( request ) {
+					if ( [ '@wordpress/abilities', '@wordpress/core-abilities' ].includes( request ) ) {
+						return `module ${ request }`;
+					}
+					return false;
+				},
+			} )
+			: plugin
+	),
+} ];

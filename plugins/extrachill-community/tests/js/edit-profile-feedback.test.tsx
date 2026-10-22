@@ -8,16 +8,13 @@ jest.mock( '@wordpress/api-fetch', () => ( {
 	__esModule: true,
 	default: jest.fn(),
 } ) );
-jest.mock( 'wp-native-client', () => {
+jest.mock( '../../src/abilities', () => {
 	const execute = jest.fn();
 	return {
-		WPNativeClient: jest.fn().mockImplementation( () => ( { execute } ) ),
+		executeAbility: execute,
 		mockExecute: execute,
 	};
 } );
-jest.mock( 'wp-native-client/wordpress', () => ( {
-	WpApiFetchTransport: jest.fn(),
-} ) );
 jest.mock( '@extrachill/components', () => ( {
 	ActionRow: ( { children }: { children: React.ReactNode } ) => (
 		<div>{ children }</div>
@@ -49,7 +46,7 @@ jest.mock( '@extrachill/components/styles/components.scss', () => ( {} ) );
 import { EditProfileApp } from '../../src/blocks/edit-profile/view';
 
 const mockedApiFetch = apiFetch as jest.MockedFunction< typeof apiFetch >;
-const { mockExecute } = jest.requireMock( 'wp-native-client' ) as {
+const { mockExecute } = jest.requireMock( '../../src/abilities' ) as {
 	mockExecute: jest.Mock;
 };
 

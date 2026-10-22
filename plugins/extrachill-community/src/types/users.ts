@@ -1,9 +1,8 @@
 /**
  * User-related types for community blocks.
  *
- * Re-homed locally from the former @extrachill/api-client package as part of
- * the migration to wp-native-client (which is type-light: execute() returns
- * the ability's raw result, typed at the call site). These interfaces mirror
+ * Kept locally because core abilities return the raw result, typed at the
+ * call site. These interfaces mirror
  * the output shapes of the extrachill-users abilities consumed by the
  * edit-profile, leaderboard, and user-settings blocks.
  *
