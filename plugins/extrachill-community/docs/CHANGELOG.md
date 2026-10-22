@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.27.6] - 2026-10-22
+
+### Changed
+- Replace block clients with core abilities and fix anonymous public reads
+
 ## [1.27.5] - 2026-10-22
 
 ### Fixed
