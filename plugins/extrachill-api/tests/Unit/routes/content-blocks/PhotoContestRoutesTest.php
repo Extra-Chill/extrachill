@@ -162,7 +162,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$request->set_body_params(
 			array(
 				'post_id'       => 0,
-				'contest_id'    => 'skinful-2025',
+				'contest_id'    => 'contest-1',
 				'entry_id'      => 7,
 				'email_address' => 'voter@example.com',
 			)
@@ -189,7 +189,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	public function test_submit_passes_photo_through_without_ip() {
 		$_SERVER['REMOTE_ADDR'] = '203.0.113.9';
 		$photo                  = array(
-			'name'     => 'costume.jpg',
+			'name'     => 'entry.jpg',
 			'type'     => 'image/jpeg',
 			'tmp_name' => '/tmp/phpABC123',
 			'error'    => 0,
@@ -220,7 +220,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'ip', $input );
 		$this->assertArrayNotHasKey( 'turnstile_response', $input );
 		$this->assertSame( 5, $input['post_id'] );
-		$this->assertSame( 'skinful-2025', $input['contest_id'] );
+		$this->assertSame( 'contest-1', $input['contest_id'] );
 		$this->assertSame( 'entrant@example.com', $input['email'] );
 		$this->assertSame( 'Ghoul', $input['display_name'] );
 		$this->assertSame( '@ghoul', $input['instagram'] );
@@ -431,7 +431,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->assertSame(
 			array(
 				'post_id'       => 5,
-				'contest_id'    => 'skinful-2025',
+				'contest_id'    => 'contest-1',
 				'entry_id'      => 7,
 				'email_address' => 'voter@example.com',
 			),
@@ -462,7 +462,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->assertSame(
 			array(
 				'post_id'    => 5,
-				'contest_id' => 'skinful-2025',
+				'contest_id' => 'contest-1',
 			),
 			$this->ability_inputs['extrachill/photo-contest-list'][0]
 		);
@@ -512,7 +512,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			array_merge(
 				array(
 					'post_id'      => 5,
-					'contest_id'   => 'skinful-2025',
+					'contest_id'   => 'contest-1',
 					'email'        => 'entrant@example.com',
 					'display_name' => 'Ghoul',
 					'turnstile_response' => 'test-token',
@@ -530,7 +530,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$request->set_body_params(
 			array(
 				'post_id'       => 5,
-				'contest_id'    => 'skinful-2025',
+				'contest_id'    => 'contest-1',
 				'entry_id'      => 7,
 				'email_address' => 'voter@example.com',
 			)
@@ -540,7 +540,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	}
 
 	/** Build a valid entries request. */
-	private function entries_request( $contest_id = 'skinful-2025' ) {
+	private function entries_request( $contest_id = 'contest-1' ) {
 		$request = new WP_REST_Request( 'GET', '/extrachill/v1/content-blocks/photo-contest/entries' );
 		$request->set_query_params(
 			array(
