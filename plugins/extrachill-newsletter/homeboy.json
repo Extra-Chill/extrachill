@@ -22,7 +22,8 @@
       "php tests/delegated-campaign-task-smoke.php",
       "php tests/newsletter-form-tracking-smoke.php",
       "php tests/sendy-campaign-consumer-smoke.php",
-      "php tests/sendy-single-config-smoke.php"
+      "php tests/sendy-single-config-smoke.php",
+      "php tests/optional-ability-input-smoke.php"
     ]
   }
 }

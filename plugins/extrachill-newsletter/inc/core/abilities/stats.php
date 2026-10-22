@@ -30,6 +30,7 @@ function extrachill_newsletter_register_stats_ability() {
 			'category'            => 'extrachill-newsletter',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'force_refresh' => array(
 						'type'        => 'boolean',

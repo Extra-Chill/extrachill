@@ -27,6 +27,7 @@ function extrachill_newsletter_register_settings_abilities() {
 			'category'            => 'extrachill-newsletter',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(),
 			),
 			'output_schema'       => array(
@@ -55,6 +56,7 @@ function extrachill_newsletter_register_settings_abilities() {
 			'category'            => 'extrachill-newsletter',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'from_name'     => array(
 						'type'        => 'string',

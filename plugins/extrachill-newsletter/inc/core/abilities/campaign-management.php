@@ -27,6 +27,7 @@ function extrachill_newsletter_register_campaign_management_abilities() {
 			'category'            => 'extrachill-newsletter',
 			'input_schema'        => array(
 				'type'       => 'object',
+				'default'    => array(),
 				'properties' => array(
 					'per_page' => array(
 						'type'        => 'integer',
