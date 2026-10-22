@@ -27,13 +27,19 @@ add_action(
 		if ( 601 !== get_current_user_id() ) {
 			return;
 		}
-		$fixture = get_site_option( 'ec_rig_journey_fixture_musician_link_page_onboarding', array() );
+		$fixture    = get_site_option( 'ec_rig_journey_fixture_musician_link_page_onboarding', array() );
 		$artist_ids = (array) get_user_meta( 601, '_artist_profile_ids', true );
-		$artist_id = (int) end( $artist_ids );
-		$pages = ec_with_link_page_storage_blog(
+		$artist_id  = (int) end( $artist_ids );
+		$pages      = ec_with_link_page_storage_blog(
 			static function () use ( $fixture, $artist_id ) {
 				$found = array();
-				foreach ( get_posts( array( 'post_type' => ec_link_page_post_type(), 'post_status' => 'any', 'posts_per_page' => -1 ) ) as $page ) {
+				foreach ( get_posts(
+					array(
+						'post_type'      => ec_link_page_post_type(),
+						'post_status'    => 'any',
+						'posts_per_page' => -1,
+					)
+				) as $page ) {
 					$owner = ec_get_link_page_owner( $page->ID );
 					if ( is_array( $owner ) && 'post' === $owner['kind'] && (int) $owner['blog_id'] === (int) $fixture['artist_blog_id'] && (int) $owner['object_id'] === $artist_id ) {
 						$found[] = (int) $page->ID;
@@ -44,7 +50,13 @@ add_action(
 		);
 		// Preserve the first attempt so a retry cannot hide auto-provisioning.
 		if ( false === get_site_option( 'musician_journey_before_create_link_page', false ) ) {
-			update_site_option( 'musician_journey_before_create_link_page', array( 'artist_id' => $artist_id, 'page_ids' => $pages ) );
+			update_site_option(
+				'musician_journey_before_create_link_page',
+				array(
+					'artist_id' => $artist_id,
+					'page_ids'  => $pages,
+				)
+			);
 		}
 	},
 	1
