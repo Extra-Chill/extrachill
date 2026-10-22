@@ -30,13 +30,17 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_b
 
 /** Register the photo contest submit, entries, and vote adapters. */
 function extrachill_api_register_content_blocks_photo_contest_routes() {
+	$submit_permission = function_exists( 'ec_turnstile_permission_callback' )
+		? ec_turnstile_permission_callback( 'extrachill_api_content_blocks_photo_contest_submit_permission' )
+		: 'extrachill_api_content_blocks_photo_contest_submit_permission';
+
 	register_rest_route(
 		'extrachill/v1',
 		'/content-blocks/photo-contest/submit',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => 'extrachill_api_content_blocks_photo_contest_submit_handler',
-			'permission_callback' => 'extrachill_api_content_blocks_photo_contest_submit_permission',
+			'permission_callback' => $submit_permission,
 			'args'                => array(
 				'post_id'      => array(
 					'required'          => true,
@@ -76,6 +80,10 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'turnstile_response' => array(
+					'required' => false,
+					'type'     => 'string',
 				),
 			),
 		)
@@ -151,8 +159,8 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 /**
  * Apply the shared public-write budget to contest submissions.
  *
- * No Turnstile: the contest is deliberately zero-friction. Admission is the
- * atomic per-client fixed-window limiter shared by all public writes.
+ * The route's Turnstile wrapper verifies the token before this atomic
+ * per-client fixed-window limiter shared by all public writes runs.
  *
  * @param WP_REST_Request $request REST request.
  * @return true|WP_Error

@@ -56,6 +56,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->original_remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : null;
 		$_SERVER['REMOTE_ADDR']     = '198.51.100.' . random_int( 1, 250 );
 		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 
 		if ( ! wp_has_ability_category( 'extrachill-api-tests' ) ) {
 			WP_Ability_Categories_Registry::get_instance()->register(
@@ -87,6 +88,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		}
 
 		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 		remove_all_filters( 'extrachill_api_photo_contest_submit_rate_limit' );
 		remove_all_filters( 'extrachill_api_photo_contest_vote_rate_limit' );
 
@@ -100,9 +102,37 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/submit', $routes );
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/entries', $routes );
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/vote', $routes );
-		$this->assertSame( 'extrachill_api_content_blocks_photo_contest_submit_permission', $routes['/extrachill/v1/content-blocks/photo-contest/submit'][0]['permission_callback'] );
+		$this->assertTrue( is_callable( $routes['/extrachill/v1/content-blocks/photo-contest/submit'][0]['permission_callback'] ) );
+		$this->assertSame( 'string', $routes['/extrachill/v1/content-blocks/photo-contest/submit'][0]['args']['turnstile_response']['type'] );
+		$this->assertArrayNotHasKey( 'turnstile_response', $routes['/extrachill/v1/content-blocks/photo-contest/vote'][0]['args'] );
 		$this->assertSame( '__return_true', $routes['/extrachill/v1/content-blocks/photo-contest/entries'][0]['permission_callback'] );
 		$this->assertSame( 'extrachill_api_content_blocks_photo_contest_vote_permission', $routes['/extrachill/v1/content-blocks/photo-contest/vote'][0]['permission_callback'] );
+	}
+
+	/** Missing tokens are rejected before metering; token-free votes still work. */
+	public function test_submit_requires_turnstile_but_votes_do_not() {
+		if ( ! function_exists( 'ec_turnstile_permission_callback' ) ) {
+			$this->markTestSkipped( 'The network Turnstile primitive is not loaded.' );
+		}
+
+		wp_set_current_user( 0 );
+		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
+		$request = $this->submit_request();
+		$params  = $request->get_body_params();
+		unset( $params['turnstile_response'] );
+		$request->set_body_params( $params );
+
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( 'turnstile_missing_token', $response->get_data()['code'] );
+		$this->assertSame( array(), $this->ability_inputs );
+		$this->assertSame( array(), $this->rate_counts );
+
+		$vote = rest_get_server()->dispatch( $this->vote_request() );
+		$this->assertSame( 200, $vote->get_status() );
+		$this->assertCount( 1, $this->ability_inputs['extrachill/photo-contest-vote'] );
+		$this->assertCount( 1, $this->rate_counts );
 	}
 
 	/** Missing required submit fields are rejected before the ability runs. */
@@ -188,6 +218,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$input = $this->ability_inputs['extrachill/photo-contest-submit'][0];
 		$this->assertSame( $photo, $input['photo'] );
 		$this->assertArrayNotHasKey( 'ip', $input );
+		$this->assertArrayNotHasKey( 'turnstile_response', $input );
 		$this->assertSame( 5, $input['post_id'] );
 		$this->assertSame( 'skinful-2025', $input['contest_id'] );
 		$this->assertSame( 'entrant@example.com', $input['email'] );
@@ -484,6 +515,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 					'contest_id'   => 'skinful-2025',
 					'email'        => 'entrant@example.com',
 					'display_name' => 'Ghoul',
+					'turnstile_response' => 'test-token',
 				),
 				$overrides
 			)
