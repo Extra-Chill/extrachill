@@ -199,6 +199,7 @@ const SocialsPanel = ( { draft, change, configuration } ) =>
 					'button',
 					{
 						type: 'button',
+						className: 'button-3 button-small',
 						disabled: 0 === index,
 						onClick: () => {
 							const items = [ ...draft.socials ];
@@ -215,6 +216,7 @@ const SocialsPanel = ( { draft, change, configuration } ) =>
 					'button',
 					{
 						type: 'button',
+						className: 'button-3 button-small',
 						disabled: index === draft.socials.length - 1,
 						onClick: () => {
 							const items = [ ...draft.socials ];
@@ -231,6 +233,7 @@ const SocialsPanel = ( { draft, change, configuration } ) =>
 					'button',
 					{
 						type: 'button',
+						className: 'button-danger button-small',
 						'aria-label': 'Remove social link',
 						onClick: () =>
 							change( {
@@ -247,6 +250,7 @@ const SocialsPanel = ( { draft, change, configuration } ) =>
 			'select',
 			{
 				'aria-label': 'Add social link',
+				className: 'ec-field__select',
 				value: '',
 				onChange: ( event ) => {
 					const type = configuration.socialTypes?.find(

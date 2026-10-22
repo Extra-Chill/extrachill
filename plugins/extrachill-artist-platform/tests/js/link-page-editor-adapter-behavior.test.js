@@ -7,6 +7,7 @@ import {
 	updateSocials,
 	deleteMedia,
 } from '../../src/blocks/shared/api/client';
+import { renderToString } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import { adapter } from '../../src/blocks/link-page-editor/adapter';
 
@@ -45,6 +46,48 @@ const draft = {
 describe( 'shared editor Artist adapter', () => {
 	beforeEach( () => {
 		jest.clearAllMocks();
+	} );
+
+	it( 'renders social controls with theme buttons and editor field styling', () => {
+		const container = document.createElement( 'div' );
+		container.innerHTML = renderToString(
+			adapter.socialsPanel( {
+				draft: {
+					...draft,
+					socials: [
+						{ id: 'one', type: 'instagram', url: '' },
+						{ id: 'two', type: 'instagram', url: '' },
+					],
+				},
+				change: jest.fn(),
+				configuration: {
+					socialTypes: [ { id: 'instagram', label: 'Instagram' } ],
+				},
+			} )
+		);
+
+		const buttons = [ ...container.querySelectorAll( 'button' ) ];
+		expect( buttons ).toHaveLength( 6 );
+		buttons.forEach( ( button ) => {
+			expect( button.type ).toBe( 'button' );
+			expect( button.className ).toBe(
+				button.textContent === 'Remove'
+					? 'button-danger button-small'
+					: 'button-3 button-small'
+			);
+		} );
+		expect( buttons.map( ( button ) => button.disabled ) ).toEqual( [
+			true,
+			false,
+			false,
+			false,
+			true,
+			false,
+		] );
+		expect(
+			container.querySelector( 'select[aria-label="Add social link"]' )
+				.className
+		).toBe( 'ec-field__select' );
 	} );
 
 	it( 'saves only identity resources when only identity is dirty', async () => {
