@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.15.0] - 2026-10-22
+
+### Added
+- adopt @extrachill/tokens v0.9.0 light-mode tuning
+
 ## [2.14.3] - 2026-10-11
 
 ### Changed
