@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-10-22
+
+### Added
+- focused single-entry share view with in-person QR
+
 ## [1.5.2] - 2026-10-22
 
 ### Changed
