@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-10-23
+
+### Fixed
+- Fix photo contest share QR generation with scoped permission grant
+
 ## [1.6.0] - 2026-10-22
 
 ### Added

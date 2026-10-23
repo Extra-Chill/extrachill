@@ -1,6 +1,6 @@
 {
    "apiVersion": 3,
-   "version": "1.6.0",
+   "version": "1.6.1",
    "name": "extrachill/image-voting",
   "title": "Image Voting Block",
   "icon": "thumbs-up",
