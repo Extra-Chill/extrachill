@@ -130,6 +130,81 @@ function ec_events_rating_gate_message( $message ) {
 add_filter( 'data_machine_events_rating_gate_message', 'ec_events_rating_gate_message' );
 
 /**
+ * Whether a post is a past show that can take ratings.
+ *
+ * @param int $post_id Post ID.
+ * @return bool
+ */
+function ec_events_is_rateable_show( $post_id ) {
+	return ec_is_events_site()
+		&& class_exists( '\\DataMachineEvents\\Core\\EventRatings' )
+		&& \DataMachineEvents\Core\EventRatings::is_rateable_event( (int) $post_id );
+}
+
+/**
+ * Tell logged-out visitors on a past show that logging in lets them rate it.
+ *
+ * @hook extrachill_comments_login_note
+ * @param string $note    Default note.
+ * @param int    $post_id Post ID.
+ * @return string
+ */
+function ec_events_rating_login_note( $note, $post_id ) {
+	return ec_events_is_rateable_show( $post_id )
+		? __( 'Log in to rate this show.', 'extrachill-events' )
+		: $note;
+}
+add_filter( 'extrachill_comments_login_note', 'ec_events_rating_login_note', 10, 2 );
+
+/**
+ * Retitle the logged-out login/register prompt on a past show.
+ *
+ * @hook extrachill_users_comment_login_cta_heading
+ * @param string $heading Default heading.
+ * @param int    $post_id Post ID.
+ * @return string
+ */
+function ec_events_rating_login_cta_heading( $heading, $post_id ) {
+	return ec_events_is_rateable_show( $post_id )
+		? __( 'Log in or register to rate this show', 'extrachill-events' )
+		: $heading;
+}
+add_filter( 'extrachill_users_comment_login_cta_heading', 'ec_events_rating_login_cta_heading', 10, 2 );
+
+/**
+ * Call a show's comments what they mostly are: reviews.
+ *
+ * "2 reviews", or "2 reviews · 1 comment" when follow-up comments exist.
+ *
+ * @hook extrachill_comments_title
+ * @param string $title  Default heading HTML.
+ * @param int    $number Approved comment count.
+ * @param int    $post_id Post ID.
+ * @return string
+ */
+function ec_events_reviews_title( $title, $number, $post_id ) {
+	if ( ! ec_events_is_rateable_show( $post_id ) ) {
+		return $title;
+	}
+
+	$reviews = (int) \DataMachineEvents\Core\EventRatings::get_summary( (int) $post_id )['count'];
+	if ( $reviews <= 0 ) {
+		return $title;
+	}
+
+	/* translators: %s: number of reviews. */
+	$label    = sprintf( _n( '%s review', '%s reviews', $reviews, 'extrachill-events' ), number_format_i18n( $reviews ) );
+	$comments = max( 0, (int) $number - $reviews );
+	if ( $comments > 0 ) {
+		/* translators: %s: number of comments. */
+		$label .= ' · ' . sprintf( _n( '%s comment', '%s comments', $comments, 'extrachill-events' ), number_format_i18n( $comments ) );
+	}
+
+	return esc_html( $label );
+}
+add_filter( 'extrachill_comments_title', 'ec_events_reviews_title', 10, 3 );
+
+/**
  * Unlock the rating form in place when a user marks "I Was There".
  *
  * Bridges extrachill-users' `ec:attendance-changed` DOM event to

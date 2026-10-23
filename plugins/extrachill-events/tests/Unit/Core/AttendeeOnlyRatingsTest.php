@@ -37,6 +37,32 @@ if ( ! function_exists( 'ec_users_is_event_marked' ) ) {
 	}
 }
 
+if ( ! function_exists( '_n' ) ) {
+	/** Plural double. */
+	function _n( $single, $plural, $number ) {
+		return 1 === (int) $number ? $single : $plural;
+	}
+}
+
+if ( ! function_exists( 'number_format_i18n' ) ) {
+	/** Number double. */
+	function number_format_i18n( $number ) {
+		return (string) $number;
+	}
+}
+
+if ( ! function_exists( 'esc_html' ) ) {
+	/** Escape double. */
+	function esc_html( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+
+if ( ! class_exists( '\\DataMachineEvents\\Core\\EventRatings' ) ) {
+	// Rating primitive double: post 100 is a past show with $GLOBALS['ec_test_review_count'] reviews.
+	eval( 'namespace DataMachineEvents\\Core; class EventRatings { public static function is_rateable_event( int $id ): bool { return 100 === $id; } public static function get_summary( int $id ): array { return array( "average" => null, "count" => (int) ( $GLOBALS["ec_test_review_count"] ?? 0 ) ); } }' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Namespaced test double.
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/core/concert-tracking-integration.php';
 
 class AttendeeOnlyRatingsTest extends TestCase {
@@ -76,6 +102,25 @@ class AttendeeOnlyRatingsTest extends TestCase {
 		$this->assertSame( 0, ec_events_approve_attendee_reviews( 0, array_merge( $review, array( 'comment_type' => 'comment' ) ) ) );
 	}
 
+	public function test_logged_out_copy_asks_to_rate_past_shows_only(): void {
+		$this->assertSame( 'Log in to rate this show.', ec_events_rating_login_note( 'default', 100 ) );
+		$this->assertSame( 'default', ec_events_rating_login_note( 'default', 101 ) );
+		$this->assertSame( 'Log in or register to rate this show', ec_events_rating_login_cta_heading( 'default', 100 ) );
+		$this->assertSame( 'default', ec_events_rating_login_cta_heading( 'default', 101 ) );
+	}
+
+	public function test_comments_heading_counts_reviews(): void {
+		$GLOBALS['ec_test_review_count'] = 0;
+		$this->assertSame( 'default', ec_events_reviews_title( 'default', 1, 100 ) );
+
+		$GLOBALS['ec_test_review_count'] = 1;
+		$this->assertSame( '1 review', ec_events_reviews_title( 'default', 1, 100 ) );
+
+		$GLOBALS['ec_test_review_count'] = 2;
+		$this->assertSame( '2 reviews · 1 comment', ec_events_reviews_title( 'default', 3, 100 ) );
+		$this->assertSame( 'default', ec_events_reviews_title( 'default', 3, 101 ) );
+	}
+
 	public function test_hooks_are_registered(): void {
 		$registered = static function ( string $hook, string $callback ): bool {
 			foreach ( $GLOBALS['ec_test_filters'][ $hook ] ?? array() as $callbacks ) {
@@ -91,5 +136,8 @@ class AttendeeOnlyRatingsTest extends TestCase {
 		$this->assertTrue( $registered( 'data_machine_events_can_rate_event', 'ec_events_require_attendance_to_rate' ) );
 		$this->assertTrue( $registered( 'data_machine_events_rating_gate_message', 'ec_events_rating_gate_message' ) );
 		$this->assertTrue( $registered( 'pre_comment_approved', 'ec_events_approve_attendee_reviews' ) );
+		$this->assertTrue( $registered( 'extrachill_comments_login_note', 'ec_events_rating_login_note' ) );
+		$this->assertTrue( $registered( 'extrachill_users_comment_login_cta_heading', 'ec_events_rating_login_cta_heading' ) );
+		$this->assertTrue( $registered( 'extrachill_comments_title', 'ec_events_reviews_title' ) );
 	}
 }
