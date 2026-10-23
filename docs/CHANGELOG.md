@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.15.1] - 2026-10-23
+
+### Fixed
+- supply comment form heading as a default so plugins can retitle it
+
 ## [2.15.0] - 2026-10-22
 
 ### Added
