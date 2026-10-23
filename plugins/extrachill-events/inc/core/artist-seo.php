@@ -153,8 +153,17 @@ function extrachill_events_get_artist_upcoming_events( int $term_id ): array {
 		}
 	}
 
+	// The paged query's `total` is its page size, so count separately.
+	$count = data_machine_events_query_events(
+		array(
+			'scope'       => 'upcoming',
+			'tax_filters' => array( 'artist' => array( $term_id ) ),
+			'fields'      => 'count',
+		)
+	);
+
 	return array(
-		'total'  => (int) ( $result['total'] ?? 0 ),
+		'total'  => (int) ( $count['total'] ?? 0 ),
 		'cities' => array_values( array_unique( $cities ) ),
 	);
 }

@@ -27,6 +27,7 @@
 			<!-- WP_UnitTestCase tests need real WordPress; they run in
 			     phpunit-managed.xml.dist. -->
 			<exclude>tests/Unit/Core/LocationTermCreationTest.php</exclude>
+			<exclude>tests/Unit/Core/VenueSeoTest.php</exclude>
 			<exclude>tests/Unit/Core/VenueLinkPagesProviderManagedTest.php</exclude>
 			<!-- Pure-PHP tests with file-level WP doubles that collide when
 			     loaded in one process; each runs in its own host suite
