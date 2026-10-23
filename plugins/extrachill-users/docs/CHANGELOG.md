@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.52.3] - 2026-10-23
+
+### Fixed
+- drop empty properties maps so core's JS client can compile input schemas
+
 ## [0.52.2] - 2026-10-22
 
 ### Fixed
