@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.15.2] - 2026-10-23
+
+### Fixed
+- render comments through comments_template() so published comments show
+
 ## [2.15.1] - 2026-10-23
 
 ### Fixed
