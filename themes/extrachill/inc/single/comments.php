@@ -133,9 +133,10 @@ endif;
 	<?php endif; ?>
 	<?php
 	if ( is_user_logged_in() ) {
+		// The heading is a default (see extrachill_comment_form_defaults) so
+		// plugins can retitle the form for their post types.
 		comment_form(
 			array(
-				'title_reply'          => __( 'Leave a Comment', 'extrachill' ),
 				'comment_notes_before' => '',
 				'comment_notes_after'  => '',
 				'class_submit'         => 'button-1 button-medium',

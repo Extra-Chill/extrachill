@@ -25,6 +25,20 @@ function extrachill_hook_comments_section() {
 }
 add_action( 'extrachill_comments_section', 'extrachill_hook_comments_section' );
 
+/**
+ * Theme default for the comment form heading. Supplied as a
+ * comment_form_defaults value rather than a comment_form() argument so
+ * plugins can retitle the form on a later priority.
+ *
+ * @param array $defaults Comment form defaults.
+ * @return array
+ */
+function extrachill_comment_form_defaults( $defaults ) {
+	$defaults['title_reply'] = __( 'Leave a Comment', 'extrachill' );
+	return $defaults;
+}
+add_filter( 'comment_form_defaults', 'extrachill_comment_form_defaults' );
+
 function extrachill_default_archive_header() {
 	include get_template_directory() . '/inc/archives/archive-header.php';
 }
