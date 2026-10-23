@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2] - 2026-10-23
+
+### Changed
+- Add moderator controls to close and reopen photo contest phases
+
 ## [1.6.1] - 2026-10-23
 
 ### Fixed
