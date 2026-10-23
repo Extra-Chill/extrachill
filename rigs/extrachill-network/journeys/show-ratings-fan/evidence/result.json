@@ -1,0 +1,715 @@
+{
+ "schema": "extrachill-network/journey-result/show-ratings-fan/v1",
+ "fixture": {
+  "schema": "extrachill-network/journey-fixture/show-ratings-fan/v1",
+  "events_blog_id": 5,
+  "fan_id": 711,
+  "recent_id": 4,
+  "older_id": 5,
+  "recent_url": "http://events.extrachill.com/events/goose-charleston-pour-house-fall/",
+  "older_url": "http://events.extrachill.com/events/goose-charleston-pour-house-summer/",
+  "artist_url": "http://events.extrachill.com/blog/artist/goose/",
+  "venue_url": "http://events.extrachill.com/blog/venue/charleston-pour-house/",
+  "options": {
+   "comment_moderation": "0",
+   "comment_previously_approved": "1",
+   "comment_registration": "0"
+  }
+ },
+ "results": [
+  {
+   "id": "visitor-told-how-to-rate",
+   "task": "A logged-out visitor on a past show sees how to rate it.",
+   "outcome": "pass",
+   "evidence": {
+    "loggedIn": false,
+    "attendanceButton": "I Was There",
+    "attendancePressed": "false",
+    "attendanceStatus": "",
+    "summary": null,
+    "heading": null,
+    "gate": "missing",
+    "gateText": null,
+    "stars": "missing",
+    "textarea": "missing",
+    "submit": "missing",
+    "submitLabel": null,
+    "yourRating": null,
+    "loginNote": "Log in to rate this show.",
+    "reviews": [],
+    "moderationNote": false,
+    "rateItLink": "missing",
+    "ctaHeading": "Log in or register to rate this show",
+    "commentsTitle": null,
+    "commentsText": "Log in to rate this show."
+   }
+  },
+  {
+   "id": "gate-explains-itself",
+   "task": "Before \"I Was There\", the fan sees one plain sentence explaining why they cannot rate yet, and no dead form.",
+   "outcome": "pass",
+   "evidence": {
+    "loggedIn": true,
+    "attendanceButton": "I Was There",
+    "attendancePressed": "false",
+    "attendanceStatus": "",
+    "summary": null,
+    "heading": "Rate this show",
+    "gate": "visible",
+    "gateText": "Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating.",
+    "stars": "hidden",
+    "textarea": "hidden",
+    "submit": "hidden",
+    "submitLabel": "Post Rating",
+    "yourRating": null,
+    "loginNote": null,
+    "reviews": [],
+    "moderationNote": false,
+    "rateItLink": "missing",
+    "ctaHeading": null,
+    "commentsTitle": null,
+    "commentsText": "Rate this show Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating."
+   }
+  },
+  {
+   "id": "form-unlocks-in-place",
+   "task": "After tapping \"I Was There\", the star form appears without a reload.",
+   "outcome": "finding",
+   "evidence": {
+    "loggedIn": true,
+    "attendanceButton": "\u2713I Was There",
+    "attendancePressed": "true",
+    "attendanceStatus": "",
+    "summary": null,
+    "heading": "Rate this show",
+    "gate": "visible",
+    "gateText": "Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating.",
+    "stars": "hidden",
+    "textarea": "hidden",
+    "submit": "hidden",
+    "submitLabel": "Post Rating",
+    "yourRating": null,
+    "loginNote": null,
+    "reviews": [],
+    "moderationNote": false,
+    "rateItLink": "missing",
+    "ctaHeading": null,
+    "commentsTitle": null,
+    "commentsText": "Rate this show Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating."
+   }
+  },
+  {
+   "id": "review-posts-immediately",
+   "task": "Posting 5 stars + review publishes immediately (no moderation) and the page confirms it.",
+   "outcome": "pass",
+   "evidence": {
+    "server": [
+     {
+      "id": 2,
+      "type": "event_review",
+      "approved": "1",
+      "rating": "5",
+      "text": "Best Goose show I have been to. The Pour House deck was packed and they played Arcadia."
+     }
+    ],
+    "browser": {
+     "loggedIn": true,
+     "attendanceButton": "\u2713I Was There",
+     "attendancePressed": "true",
+     "attendanceStatus": "",
+     "summary": "\u2605 5.0 \u00b7 1 rating",
+     "heading": "Add a comment",
+     "gate": "missing",
+     "gateText": null,
+     "stars": "missing",
+     "textarea": "visible",
+     "submit": "visible",
+     "submitLabel": "Post Comment",
+     "yourRating": "Your rating: \u2605\u2605\u2605\u2605\u2605",
+     "loginNote": null,
+     "reviews": [
+      "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+      "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+      "\u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply"
+     ],
+     "moderationNote": false,
+     "rateItLink": "missing",
+     "ctaHeading": null,
+     "commentsTitle": "1 review",
+     "commentsText": "1 review Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply Add a comment Logged in as Dana Fan. Edit profile | Log out Your rating: \u2605\u2605\u2605\u2605\u2605 Comment *"
+    }
+   }
+  },
+  {
+   "id": "reload-persistence",
+   "task": "After reload the fan sees their own rating and the show summary, and is not offered the form again.",
+   "outcome": "pass",
+   "evidence": {
+    "loggedIn": true,
+    "attendanceButton": "\u2713I Was There",
+    "attendancePressed": "true",
+    "attendanceStatus": "",
+    "summary": "\u2605 5.0 \u00b7 1 rating",
+    "heading": "Add a comment",
+    "gate": "missing",
+    "gateText": null,
+    "stars": "missing",
+    "textarea": "visible",
+    "submit": "visible",
+    "submitLabel": "Post Comment",
+    "yourRating": "Your rating: \u2605\u2605\u2605\u2605\u2605",
+    "loginNote": null,
+    "reviews": [
+     "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+     "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+     "\u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply"
+    ],
+    "moderationNote": false,
+    "rateItLink": "missing",
+    "ctaHeading": null,
+    "commentsTitle": "1 review",
+    "commentsText": "1 review Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply Add a comment Logged in as Dana Fan. Edit profile | Log out Your rating: \u2605\u2605\u2605\u2605\u2605 Comment *"
+   }
+  },
+  {
+   "id": "duplicate-prevention",
+   "task": "Exactly one review exists for the fan on the show.",
+   "outcome": "pass",
+   "evidence": [
+    {
+     "id": 2,
+     "type": "event_review",
+     "approved": "1",
+     "rating": "5",
+     "text": "Best Goose show I have been to. The Pour House deck was packed and they played Arcadia."
+    }
+   ]
+  },
+  {
+   "id": "my-shows-offers-rating",
+   "task": "My Shows -> Past shows stars on the attended past show.",
+   "outcome": "pass",
+   "evidence": {
+    "tab": "?tab=past",
+    "status": [
+     "1 show below still needs your rating."
+    ],
+    "cards": [
+     {
+      "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+      "on": 5,
+      "hasStars": true,
+      "err": null
+     },
+     {
+      "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Rate it",
+      "on": 0,
+      "hasStars": true,
+      "err": null
+     }
+    ],
+    "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. 1 show below still needs your rating. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Rate it Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Net"
+   }
+  },
+  {
+   "id": "my-shows-change-mind",
+   "task": "Rating 4 then changing to 3 from My Shows leaves one 3-star rating on the server.",
+   "outcome": "pass",
+   "evidence": {
+    "server": [
+     {
+      "id": 3,
+      "type": "event_review",
+      "approved": "1",
+      "rating": "3",
+      "text": ""
+     }
+    ],
+    "after_rate": {
+     "tab": "?tab=past",
+     "status": [],
+     "cards": [
+      {
+       "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+       "on": 5,
+       "hasStars": true,
+       "err": null
+      },
+      {
+       "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+       "on": 4,
+       "hasStars": true,
+       "err": null
+      }
+     ],
+     "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Pla"
+    },
+    "after_change": {
+     "tab": "?tab=past",
+     "status": [],
+     "cards": [
+      {
+       "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+       "on": 5,
+       "hasStars": true,
+       "err": null
+      },
+      {
+       "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+       "on": 3,
+       "hasStars": true,
+       "err": null
+      }
+     ],
+     "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Pla"
+    },
+    "after_reload": {
+     "tab": "?tab=past",
+     "status": [],
+     "cards": [
+      {
+       "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+       "on": 5,
+       "hasStars": true,
+       "err": null
+      },
+      {
+       "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+       "on": 3,
+       "hasStars": true,
+       "err": null
+      }
+     ],
+     "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Pla"
+    }
+   }
+  },
+  {
+   "id": "listing-shows-rating",
+   "task": "The Goose artist page (past shows) shows a star badge on the rated show.",
+   "outcome": "pass",
+   "evidence": {
+    "upcoming": {
+     "title": "Goose Tour Dates \u2013 Extra Chill Events",
+     "badges": [],
+     "items": [],
+     "pastToggle": []
+    },
+    "past": {
+     "badges": [
+      "\u2605 5.0 (1)",
+      "\u2605 3.0 (1)"
+     ],
+     "items": [
+      "Charleston Pour House Goose at Charleston Pour House 8:00 - 11:30 PM \u2605 5.0 (1) More Info",
+      "Charleston Pour House Goose at Charleston Pour House (Summer) 8:00 - 11:30 PM \u2605 3.0 (1) More Info"
+     ]
+    }
+   }
+  },
+  {
+   "id": "visitor-sees-review",
+   "task": "A logged-out visitor sees the summary and the fan's review on the show page.",
+   "outcome": "pass",
+   "evidence": {
+    "loggedIn": false,
+    "attendanceButton": "I Was There",
+    "attendancePressed": "false",
+    "attendanceStatus": "",
+    "summary": "\u2605 5.0 \u00b7 1 rating",
+    "heading": null,
+    "gate": "missing",
+    "gateText": null,
+    "stars": "missing",
+    "textarea": "missing",
+    "submit": "missing",
+    "submitLabel": null,
+    "yourRating": null,
+    "loginNote": "Log in to rate this show.",
+    "reviews": [
+     "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+     "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+     "\u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply"
+    ],
+    "moderationNote": false,
+    "rateItLink": "missing",
+    "ctaHeading": "Log in or register to rate this show",
+    "commentsTitle": "1 review",
+    "commentsText": "1 review Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply Log in to rate this show."
+   }
+  },
+  {
+   "id": "rate-it-link-finds-form",
+   "task": "After \"I Was There\", a \"Rate this show\" link appears by the button and jumps to the star picker.",
+   "outcome": "finding",
+   "evidence": {
+    "after_mark": {
+     "loggedIn": true,
+     "attendanceButton": "\u2713I Was There",
+     "attendancePressed": "true",
+     "attendanceStatus": "",
+     "summary": null,
+     "heading": "Rate this show",
+     "gate": "visible",
+     "gateText": "Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating.",
+     "stars": "hidden",
+     "textarea": "hidden",
+     "submit": "hidden",
+     "submitLabel": "Post Rating",
+     "yourRating": null,
+     "loginNote": null,
+     "reviews": [],
+     "moderationNote": false,
+     "rateItLink": "missing",
+     "ctaHeading": null,
+     "commentsTitle": null,
+     "commentsText": "Rate this show Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating."
+    },
+    "after_click": {
+     "respondTop": 0,
+     "vh": 844,
+     "focused": "dme_rating"
+    }
+   }
+  },
+  {
+   "id": "logged-out-copy-says-rate",
+   "task": "Logged-out visitors on a past show are asked to log in to rate it.",
+   "outcome": "pass",
+   "evidence": {
+    "loggedIn": false,
+    "attendanceButton": "I Was There",
+    "attendancePressed": "false",
+    "attendanceStatus": "",
+    "summary": null,
+    "heading": null,
+    "gate": "missing",
+    "gateText": null,
+    "stars": "missing",
+    "textarea": "missing",
+    "submit": "missing",
+    "submitLabel": null,
+    "yourRating": null,
+    "loginNote": "Log in to rate this show.",
+    "reviews": [],
+    "moderationNote": false,
+    "rateItLink": "missing",
+    "ctaHeading": "Log in or register to rate this show",
+    "commentsTitle": null,
+    "commentsText": "Log in to rate this show."
+   }
+  },
+  {
+   "id": "reviews-heading",
+   "task": "The list heading calls the review a review.",
+   "outcome": "pass",
+   "evidence": "1 review"
+  },
+  {
+   "id": "post-rating-form-is-for-comments",
+   "task": "After rating, the form heading reads \"Add a comment\".",
+   "outcome": "pass",
+   "evidence": "Add a comment"
+  }
+ ],
+ "passed": 12,
+ "findings": 2,
+ "skipped": 0,
+ "server": {
+  "recent_meta": {
+   "_dme_rating_count": [
+    "1"
+   ],
+   "_dme_rating_avg": [
+    "5"
+   ]
+  },
+  "older_meta": {
+   "_dme_rating_count": [
+    "1"
+   ],
+   "_dme_rating_avg": [
+    "3"
+   ]
+  }
+ },
+ "observations": {
+  "visitor-recent": {
+   "loggedIn": false,
+   "attendanceButton": "I Was There",
+   "attendancePressed": "false",
+   "attendanceStatus": "",
+   "summary": null,
+   "heading": null,
+   "gate": "missing",
+   "gateText": null,
+   "stars": "missing",
+   "textarea": "missing",
+   "submit": "missing",
+   "submitLabel": null,
+   "yourRating": null,
+   "loginNote": "Log in to rate this show.",
+   "reviews": [],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": "Log in or register to rate this show",
+   "commentsTitle": null,
+   "commentsText": "Log in to rate this show."
+  },
+  "fan-before-mark": {
+   "loggedIn": true,
+   "attendanceButton": "I Was There",
+   "attendancePressed": "false",
+   "attendanceStatus": "",
+   "summary": null,
+   "heading": "Rate this show",
+   "gate": "visible",
+   "gateText": "Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating.",
+   "stars": "hidden",
+   "textarea": "hidden",
+   "submit": "hidden",
+   "submitLabel": "Post Rating",
+   "yourRating": null,
+   "loginNote": null,
+   "reviews": [],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": null,
+   "commentsTitle": null,
+   "commentsText": "Rate this show Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating."
+  },
+  "fan-after-mark": {
+   "loggedIn": true,
+   "attendanceButton": "\u2713I Was There",
+   "attendancePressed": "true",
+   "attendanceStatus": "",
+   "summary": null,
+   "heading": "Rate this show",
+   "gate": "visible",
+   "gateText": "Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating.",
+   "stars": "hidden",
+   "textarea": "hidden",
+   "submit": "hidden",
+   "submitLabel": "Post Rating",
+   "yourRating": null,
+   "loginNote": null,
+   "reviews": [],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": null,
+   "commentsTitle": null,
+   "commentsText": "Rate this show Only people who were there can rate this show. Tap \u201cI Was There\u201d above to leave your rating."
+  },
+  "fan-after-rate-it-click": {
+   "respondTop": 0,
+   "vh": 844,
+   "focused": "dme_rating"
+  },
+  "fan-after-post": {
+   "loggedIn": true,
+   "attendanceButton": "\u2713I Was There",
+   "attendancePressed": "true",
+   "attendanceStatus": "",
+   "summary": "\u2605 5.0 \u00b7 1 rating",
+   "heading": "Add a comment",
+   "gate": "missing",
+   "gateText": null,
+   "stars": "missing",
+   "textarea": "visible",
+   "submit": "visible",
+   "submitLabel": "Post Comment",
+   "yourRating": "Your rating: \u2605\u2605\u2605\u2605\u2605",
+   "loginNote": null,
+   "reviews": [
+    "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+    "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+    "\u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply"
+   ],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": null,
+   "commentsTitle": "1 review",
+   "commentsText": "1 review Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply Add a comment Logged in as Dana Fan. Edit profile | Log out Your rating: \u2605\u2605\u2605\u2605\u2605 Comment *"
+  },
+  "fan-after-reload": {
+   "loggedIn": true,
+   "attendanceButton": "\u2713I Was There",
+   "attendancePressed": "true",
+   "attendanceStatus": "",
+   "summary": "\u2605 5.0 \u00b7 1 rating",
+   "heading": "Add a comment",
+   "gate": "missing",
+   "gateText": null,
+   "stars": "missing",
+   "textarea": "visible",
+   "submit": "visible",
+   "submitLabel": "Post Comment",
+   "yourRating": "Your rating: \u2605\u2605\u2605\u2605\u2605",
+   "loginNote": null,
+   "reviews": [
+    "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+    "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+    "\u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply"
+   ],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": null,
+   "commentsTitle": "1 review",
+   "commentsText": "1 review Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply Add a comment Logged in as Dana Fan. Edit profile | Log out Your rating: \u2605\u2605\u2605\u2605\u2605 Comment *"
+  },
+  "myshows-landing": {
+   "tab": "",
+   "status": [
+    "Loading..."
+   ],
+   "cards": [],
+   "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Upcoming \u25b2 Search Search for a show you're going to. Searching\u2026 Loading... Past \u25bc Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Platform Newsletter Shop Explore Interviews Live Reviews Festival Wire Song Meanings Music News About The Power of Extra Chill Documentation Tech Support Contact"
+  },
+  "myshows-past": {
+   "tab": "?tab=past",
+   "status": [
+    "1 show below still needs your rating."
+   ],
+   "cards": [
+    {
+     "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 5,
+     "hasStars": true,
+     "err": null
+    },
+    {
+     "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Rate it",
+     "on": 0,
+     "hasStars": true,
+     "err": null
+    }
+   ],
+   "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. 1 show below still needs your rating. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Rate it Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Net"
+  },
+  "myshows-after-rate": {
+   "tab": "?tab=past",
+   "status": [],
+   "cards": [
+    {
+     "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 5,
+     "hasStars": true,
+     "err": null
+    },
+    {
+     "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 4,
+     "hasStars": true,
+     "err": null
+    }
+   ],
+   "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Pla"
+  },
+  "myshows-changed-mind": {
+   "tab": "?tab=past",
+   "status": [],
+   "cards": [
+    {
+     "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 5,
+     "hasStars": true,
+     "err": null
+    },
+    {
+     "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 3,
+     "hasStars": true,
+     "err": null
+    }
+   ],
+   "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Pla"
+  },
+  "myshows-after-reload": {
+   "tab": "?tab=past",
+   "status": [],
+   "cards": [
+    {
+     "text": "Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 5,
+     "hasStars": true,
+     "err": null
+    },
+    {
+     "text": "Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605",
+     "on": 3,
+     "hasStars": true,
+     "err": null
+    }
+   ],
+   "bodyStart": "Extra Chill Open site search 1 Toggle account menu Near Me My Shows Submit Event Extra Chill \u203a Events Calendar \u203a My Shows My Shows Year All Time 2026 (2) 2 SHOWS 1 VENUE 1 ARTIST 0 CITIES Upcoming \u25bc Past \u25b2 Search Start typing the name of an artist, venue, or show you've attended. Sep 23 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Jul 25 Goose Charleston Pour House \u2605 \u2605 \u2605 \u2605 \u2605 Calendar \u25bc Map \u25bc Stats \u25bc 0 ONLINE NOW 0 TOTAL MEMBERS \u2190 Back to Events Calendar Network Blog Community Events Calendar Artist Pla"
+  },
+  "fan-older": {
+   "loggedIn": true,
+   "attendanceButton": "\u2713I Was There",
+   "attendancePressed": "true",
+   "attendanceStatus": "",
+   "summary": "\u2605 3.0 \u00b7 1 rating",
+   "heading": "Add a comment",
+   "gate": "missing",
+   "gateText": null,
+   "stars": "missing",
+   "textarea": "visible",
+   "submit": "visible",
+   "submitLabel": "Post Comment",
+   "yourRating": "Your rating: \u2605\u2605\u2605\u2606\u2606",
+   "loginNote": null,
+   "reviews": [
+    "Dana Fan October 23, 2026 at 8:13 pm \u2605\u2605\u2605\u2606\u2606 Reply",
+    "Dana Fan October 23, 2026 at 8:13 pm \u2605\u2605\u2605\u2606\u2606 Reply",
+    "\u2605\u2605\u2605\u2606\u2606 Reply"
+   ],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": null,
+   "commentsTitle": "1 review",
+   "commentsText": "1 review Dana Fan October 23, 2026 at 8:13 pm \u2605\u2605\u2605\u2606\u2606 Reply Add a comment Logged in as Dana Fan. Edit profile | Log out Your rating: \u2605\u2605\u2605\u2606\u2606 Comment *"
+  },
+  "artist-page": {
+   "title": "Goose Tour Dates \u2013 Extra Chill Events",
+   "badges": [],
+   "items": [],
+   "pastToggle": []
+  },
+  "artist-page-past": {
+   "badges": [
+    "\u2605 5.0 (1)",
+    "\u2605 3.0 (1)"
+   ],
+   "items": [
+    "Charleston Pour House Goose at Charleston Pour House 8:00 - 11:30 PM \u2605 5.0 (1) More Info",
+    "Charleston Pour House Goose at Charleston Pour House (Summer) 8:00 - 11:30 PM \u2605 3.0 (1) More Info"
+   ]
+  },
+  "visitor-recent-after": {
+   "loggedIn": false,
+   "attendanceButton": "I Was There",
+   "attendancePressed": "false",
+   "attendanceStatus": "",
+   "summary": "\u2605 5.0 \u00b7 1 rating",
+   "heading": null,
+   "gate": "missing",
+   "gateText": null,
+   "stars": "missing",
+   "textarea": "missing",
+   "submit": "missing",
+   "submitLabel": null,
+   "yourRating": null,
+   "loginNote": "Log in to rate this show.",
+   "reviews": [
+    "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+    "Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply",
+    "\u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply"
+   ],
+   "moderationNote": false,
+   "rateItLink": "missing",
+   "ctaHeading": "Log in or register to rate this show",
+   "commentsTitle": "1 review",
+   "commentsText": "1 review Dana Fan October 23, 2026 at 8:11 pm \u2605\u2605\u2605\u2605\u2605 Best Goose show I have been to. The Pour House deck was packed and they played Arcadia. Reply Log in to rate this show."
+  }
+ }
+}
