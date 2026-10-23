@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-10-23
+
+### Added
+- remember the entrant on this device with a live 'Your entry' card
+
 ## [1.6.2] - 2026-10-23
 
 ### Changed
