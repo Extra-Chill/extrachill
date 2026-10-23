@@ -298,6 +298,14 @@ function get_post_meta( $post_id, $key, $single = false ) {
 	return $single ? $value : ( '' === $value ? array() : array( $value ) );
 }
 
+function add_post_meta( $post_id, $key, $value, $unique = false ) {
+	if ( $unique && isset( $GLOBALS['wp_test_meta'][ (int) $post_id ][ (string) $key ] ) ) {
+		return false;
+	}
+	update_post_meta( $post_id, $key, $value );
+	return true;
+}
+
 function update_post_meta( $post_id, $key, $value ) {
 	$GLOBALS['wp_test_meta'][ (int) $post_id ][ $key ] = $value;
 	return true;

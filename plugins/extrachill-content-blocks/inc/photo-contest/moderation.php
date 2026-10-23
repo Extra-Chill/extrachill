@@ -18,6 +18,24 @@ function extrachill_content_blocks_photo_contest_can_moderate(): bool {
 	return current_user_can( 'edit_others_posts' );
 }
 
+/** Close a phase now or clear its override; scheduled closes always remain. */
+function extrachill_content_blocks_photo_contest_set_phase( $post_id, $contest_id, $phase, $closed ) {
+	if ( ! in_array( $phase, array( 'entries', 'voting' ), true ) ) {
+		return extrachill_content_blocks_photo_contest_error( 'invalid_phase', 'Invalid contest phase.', 400 );
+	}
+	if ( null === extrachill_content_blocks_photo_contest_get_settings( $post_id, $contest_id ) ) {
+		return extrachill_content_blocks_photo_contest_error( 'contest_not_found', 'Contest not found.', 404 );
+	}
+	$key = extrachill_content_blocks_photo_contest_phase_meta_key( $contest_id, $phase );
+	if ( $closed ) {
+		// Preserve the first close timestamp on repeated/idempotent requests.
+		add_post_meta( $post_id, $key, (string) time(), true );
+	} else {
+		delete_post_meta( $post_id, $key );
+	}
+	return array( 'message' => $closed ? 'Phase closed.' : 'Scheduled window restored.' );
+}
+
 /**
  * Hide or unhide an entry (admin moderation, one action).
  *

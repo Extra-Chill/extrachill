@@ -55,6 +55,12 @@ function extrachill_content_blocks_register_photo_contest_list_ability(): void {
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
+					'phase' => array( 'type' => 'object', 'properties' => array(
+						'entries_closed' => array( 'type' => 'boolean' ),
+						'voting_closed' => array( 'type' => 'boolean' ),
+						'entries_manually_closed' => array( 'type' => 'boolean' ),
+						'voting_manually_closed' => array( 'type' => 'boolean' ),
+					) ),
 					'entries' => array(
 						'type'        => 'array',
 						'description' => __( 'Entry objects: id, display_name, instagram, image_url, thumbnail_url, vote_count, share_url (plus hidden for honoured include_hidden requests). Entrant emails are never included.', 'extrachill-content-blocks' ),
@@ -100,7 +106,8 @@ function extrachill_content_blocks_photo_contest_list_ability_execute( array $in
 		);
 	}
 
-	if ( null === extrachill_content_blocks_photo_contest_get_settings( $post_id, $contest_id ) ) {
+	$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, $contest_id );
+	if ( null === $settings ) {
 		return extrachill_content_blocks_photo_contest_error(
 			'contest_not_found',
 			__( 'Contest not found.', 'extrachill-content-blocks' ),
@@ -128,5 +135,6 @@ function extrachill_content_blocks_photo_contest_list_ability_execute( array $in
 
 	return array(
 		'entries' => $entries,
+		'phase' => extrachill_content_blocks_photo_contest_phase_state( $settings ),
 	);
 }

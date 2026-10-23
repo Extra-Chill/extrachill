@@ -251,6 +251,81 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertTrue( extrachill_content_blocks_photo_contest_is_closed( $close, strtotime( $close ) + 60 ) );
 	}
 
+	public function test_manual_close_and_reopen_enforce_both_phases() {
+		$post_id = $this->createContestPost( array( 'showFinalists' => true ) );
+		$entry_id = $this->submitEntry( $post_id )['entry']['id'];
+		extrachill_content_blocks_register_photo_contest_set_phase_ability();
+		wp_stubs_set_user_caps( array( 'edit_others_posts' ) );
+		$ability = wp_get_ability( 'extrachill/photo-contest-set-phase' );
+		foreach ( array( 'entries', 'voting' ) as $phase ) {
+			$input = array( 'post_id' => $post_id, 'contest_id' => self::CONTEST_ID, 'phase' => $phase, 'closed' => true );
+			$this->assertFalse( is_wp_error( $ability->execute( $input ) ) );
+			// Repeated closes preserve the first timestamp.
+			$key = extrachill_content_blocks_photo_contest_phase_meta_key( self::CONTEST_ID, $phase );
+			update_post_meta( $post_id, $key, (string) ( time() - 60 ) );
+			$first = get_post_meta( $post_id, $key, true );
+			$ability->execute( $input );
+			$this->assertSame( $first, get_post_meta( $post_id, $key, true ) );
+		}
+		$this->assertDomainError( $this->submitEntry( $post_id, array( 'email' => 'new@example.com' ) ), 'entries_closed', 403 );
+		$this->assertDomainError( extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_id, 'voter@example.com' ), 'voting_closed', 403 );
+		$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID );
+		$this->assertTrue( $settings['show_finalists'] );
+		$state = extrachill_content_blocks_photo_contest_list_ability_execute( array( 'post_id' => $post_id, 'contest_id' => self::CONTEST_ID ) )['phase'];
+		$this->assertTrue( $state['entries_closed'] );
+		$this->assertTrue( $state['voting_closed'] );
+
+		foreach ( array( 'entries', 'voting' ) as $phase ) {
+			$this->assertFalse( is_wp_error( $ability->execute( array( 'post_id' => $post_id, 'contest_id' => self::CONTEST_ID, 'phase' => $phase, 'closed' => false ) ) ) );
+		}
+		$this->assertFalse( is_wp_error( $this->submitEntry( $post_id, array( 'email' => 'new@example.com' ) ) ) );
+		$this->assertFalse( is_wp_error( extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $entry_id, 'voter@example.com' ) ) );
+		$state = extrachill_content_blocks_photo_contest_phase_state( extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID ) );
+		$this->assertNotContains( true, $state );
+	}
+
+	public function test_manual_close_uses_earlier_cutoff_and_reopen_keeps_schedule() {
+		$GLOBALS['wp_test_timezone'] = 'America/New_York';
+		$scheduled = '2026-10-24T20:00';
+		$cutoff = extrachill_content_blocks_photo_contest_time( $scheduled );
+		$post_id = $this->createContestPost( array( 'entriesCloseAt' => $scheduled, 'votingClosesAt' => $scheduled ) );
+		foreach ( array( 'entries' => 'entries_close_at', 'voting' => 'voting_closes_at' ) as $phase => $setting ) {
+			$key = extrachill_content_blocks_photo_contest_phase_meta_key( self::CONTEST_ID, $phase );
+			foreach ( array( $cutoff - 60, $cutoff + 60 ) as $manual ) {
+				update_post_meta( $post_id, $key, (string) $manual );
+				$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID );
+				$effective = min( $cutoff, $manual );
+				$this->assertFalse( extrachill_content_blocks_photo_contest_is_closed( $settings[ $setting ], $effective - 1 ) );
+				$this->assertTrue( extrachill_content_blocks_photo_contest_is_closed( $settings[ $setting ], $effective ) );
+			}
+			extrachill_content_blocks_photo_contest_set_phase( $post_id, self::CONTEST_ID, $phase, false );
+			$settings = extrachill_content_blocks_photo_contest_get_settings( $post_id, self::CONTEST_ID );
+			$this->assertSame( $scheduled, $settings[ $setting ] );
+			$this->assertTrue( extrachill_content_blocks_photo_contest_is_closed( $settings[ $setting ], $cutoff ) );
+		}
+	}
+
+	public function test_phase_ability_permissions_validation_and_contest_isolation() {
+		$post_id = $this->createContestPost();
+		$other_post = $this->createContestPost();
+		$GLOBALS['wp_test_blocks'][ $post_id ][] = array( 'blockName' => 'extrachill/photo-contest', 'attrs' => array( 'contestId' => 'other' ) );
+		extrachill_content_blocks_register_photo_contest_set_phase_ability();
+		$ability = wp_get_ability( 'extrachill/photo-contest-set-phase' );
+		$input = array( 'post_id' => $post_id, 'contest_id' => self::CONTEST_ID, 'phase' => 'entries', 'closed' => true );
+		foreach ( array( array(), array( 'edit_posts' ) ) as $caps ) {
+			wp_stubs_set_user_caps( $caps );
+			$this->assertSame( 'ability_invalid_permissions', $ability->execute( $input )->get_error_code() );
+		}
+		wp_stubs_set_user_caps( array( 'edit_others_posts' ) );
+		$this->assertFalse( is_wp_error( $ability->execute( $input ) ) );
+		$this->assertFalse( $ability->get_meta()['annotations']['destructive'] );
+		$this->assertFalse( $ability->get_meta()['annotations']['readonly'] );
+		$this->assertFalse( extrachill_content_blocks_photo_contest_get_settings( $post_id, 'other' )['entries_manually_closed'] );
+		$this->assertFalse( extrachill_content_blocks_photo_contest_get_settings( $other_post, self::CONTEST_ID )['entries_manually_closed'] );
+		$this->assertDomainError( $ability->execute( array_merge( $input, array( 'contest_id' => 'missing' ) ) ), 'contest_not_found', 404 );
+		$this->assertDomainError( $ability->execute( array_merge( $input, array( 'phase' => 'invalid' ) ) ), 'invalid_phase', 400 );
+	}
+
 	// ─── Submission ──────────────────────────────────────────────────────────
 
 	public function test_submit_entry_success_stores_entry_with_meta_and_share_url() {

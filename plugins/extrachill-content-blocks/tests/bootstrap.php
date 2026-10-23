@@ -31,6 +31,7 @@ require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/src/blocks/photo-contest/in
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-submit.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-vote.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-hide.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-set-phase.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-list.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-entry-qr.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-top.php';

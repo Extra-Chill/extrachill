@@ -153,13 +153,40 @@ function extrachill_content_blocks_photo_contest_get_settings( $post_id, $contes
 		return null;
 	}
 
-	return array(
+	$settings = array(
 		'entries_open_at'  => (string) ( $attrs['entriesOpenAt'] ?? '' ),
 		'voting_opens_at'  => (string) ( $attrs['votingOpensAt'] ?? '' ),
 		'entries_close_at' => (string) ( $attrs['entriesCloseAt'] ?? '' ),
 		'voting_closes_at' => (string) ( $attrs['votingClosesAt'] ?? '' ),
 		'show_finalists'   => (bool) ( $attrs['showFinalists'] ?? false ),
 		'finalist_count'   => max( 1, (int) ( $attrs['finalistCount'] ?? 10 ) ),
+	);
+
+	// Separate keys avoid read-modify-write races between phases/contests.
+	foreach ( array( 'entries' => 'entries_close_at', 'voting' => 'voting_closes_at' ) as $phase => $key ) {
+		$manual = get_post_meta( $post_id, extrachill_content_blocks_photo_contest_phase_meta_key( $contest_id, $phase ), true );
+		$settings[ $phase . '_manually_closed' ] = '' !== (string) $manual;
+		$scheduled = extrachill_content_blocks_photo_contest_time( $settings[ $key ] );
+		if ( '' !== (string) $manual && ( null === $scheduled || (int) $manual < $scheduled ) ) {
+			$settings[ $key ] = gmdate( 'c', (int) $manual );
+		}
+	}
+
+	return $settings;
+}
+
+/** Contest-scoped manual close key on the contest post. */
+function extrachill_content_blocks_photo_contest_phase_meta_key( $contest_id, $phase ) {
+	return '_photo_contest_close_' . $phase . '_' . hash( 'sha256', (string) $contest_id );
+}
+
+/** Cache-safe public live phase data (never embedded in the page config). */
+function extrachill_content_blocks_photo_contest_phase_state( array $settings ) {
+	return array(
+		'entries_closed' => extrachill_content_blocks_photo_contest_is_closed( $settings['entries_close_at'] ),
+		'voting_closed' => extrachill_content_blocks_photo_contest_is_closed( $settings['voting_closes_at'] ),
+		'entries_manually_closed' => $settings['entries_manually_closed'],
+		'voting_manually_closed' => $settings['voting_manually_closed'],
 	);
 }
 

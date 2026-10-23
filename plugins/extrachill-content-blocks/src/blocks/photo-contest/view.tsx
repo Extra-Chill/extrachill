@@ -65,8 +65,16 @@ interface Entry {
 	hidden?: boolean;
 }
 
+interface PhaseState {
+	entries_closed: boolean;
+	voting_closed: boolean;
+	entries_manually_closed: boolean;
+	voting_manually_closed: boolean;
+}
+
 interface EntriesResponse {
 	entries: Entry[];
+	phase?: PhaseState;
 }
 
 interface VoteResponse {
@@ -581,6 +589,7 @@ function EntryCard( {
 					</button>
 				) }
 				{ showForm &&
+					! votingClosed &&
 					! hasVoted &&
 					hasOpened( config.votingOpensAt ) && (
 						<div className="extrachill-blocks-photo-contest-vote-form">
@@ -707,10 +716,14 @@ function SubmissionForm( {
 		formData.append( 'instagram', instagram.trim() );
 		formData.append( 'website', honeypot );
 		formData.append( 'photo', file );
-		const turnstileInput = formRef.current?.querySelector< HTMLInputElement >(
-			'input[name="cf-turnstile-response"]'
+		const turnstileInput =
+			formRef.current?.querySelector< HTMLInputElement >(
+				'input[name="cf-turnstile-response"]'
+			);
+		formData.append(
+			'turnstile_response',
+			turnstileInput?.value.trim() || ''
 		);
-		formData.append( 'turnstile_response', turnstileInput?.value.trim() || '' );
 
 		try {
 			const response = ( await apiFetch( {
@@ -834,7 +847,9 @@ function SubmissionForm( {
 						/>
 					</label>
 					<div
-						dangerouslySetInnerHTML={ { __html: config.turnstileHtml } }
+						dangerouslySetInnerHTML={ {
+							__html: config.turnstileHtml,
+						} }
 					/>
 					<button
 						className="button-1 button-large"
@@ -857,6 +872,10 @@ function SubmissionForm( {
 function PhotoContest( config: ContestConfig ) {
 	const [ entries, setEntries ] = useState< Entry[] | null >( null );
 	const [ loadError, setLoadError ] = useState( '' );
+	const [ phase, setPhase ] = useState< PhaseState | null >( null );
+	const [ refresh, setRefresh ] = useState( 0 );
+	const [ moderating, setModerating ] = useState( false );
+	const [ moderationError, setModerationError ] = useState( '' );
 	const focusedEntry = selectFocusedEntry(
 		entries || [],
 		window.location.search
@@ -865,20 +884,19 @@ function PhotoContest( config: ContestConfig ) {
 	// Recheck windows while a visitor leaves the cached contest page open.
 	const [ , setClock ] = useState( 0 );
 	useEffect( () => {
-		if ( ! config.entriesOpenAt && ! config.votingOpensAt ) {
-			return;
-		}
 		const timer = window.setInterval(
 			() => setClock( ( n ) => n + 1 ),
 			1000
 		);
 		return () => window.clearInterval( timer );
-	}, [ config.entriesOpenAt, config.votingOpensAt ] );
+	}, [] );
 
 	const entriesOpened = hasOpened( config.entriesOpenAt );
 	const votingOpened = hasOpened( config.votingOpensAt );
-	const entriesClosed = isClosed( config.entriesCloseAt );
-	const votingClosed = isClosed( config.votingClosesAt );
+	const entriesClosed =
+		Boolean( phase?.entries_closed ) || isClosed( config.entriesCloseAt );
+	const votingClosed =
+		Boolean( phase?.voting_closed ) || isClosed( config.votingClosesAt );
 	const showFinalists = config.showFinalists && votingClosed;
 	let votingStatus = 'has not opened yet';
 	if ( votingClosed ) {
@@ -889,10 +907,10 @@ function PhotoContest( config: ContestConfig ) {
 
 	useEffect( () => {
 		let cancelled = false;
-		const fetchEntries = async (): Promise< Entry[] > => {
+		const fetchEntries = async (): Promise< EntriesResponse > => {
 			// Moderators list through the abilities runner so hidden entries
 			// stay visible to them; any failure falls back to the public list.
-			if ( config.canModerate && config.restNonce ) {
+			{
 				try {
 					const moderated =
 						await runReadonlyAbility< EntriesResponse >(
@@ -900,11 +918,11 @@ function PhotoContest( config: ContestConfig ) {
 							{
 								post_id: config.postId,
 								contest_id: config.contestId,
-								include_hidden: true,
+								include_hidden: config.canModerate,
 							},
 							config.restNonce
 						);
-					return moderated.entries || [];
+					return moderated;
 				} catch {
 					// Fall through to the public route.
 				}
@@ -914,25 +932,49 @@ function PhotoContest( config: ContestConfig ) {
 					config.postId
 				}&contest_id=${ encodeURIComponent( config.contestId ) }`,
 			} ) ) as EntriesResponse;
-			return response.entries || [];
+			return response;
 		};
-		fetchEntries()
-			.then( ( list ) => {
-				if ( cancelled ) {
-					return;
-				}
-				setEntries( shuffle( list ) );
-			} )
-			.catch( () => {
-				if ( ! cancelled ) {
-					setLoadError( 'Could not load entries — please refresh.' );
-				}
-			} );
+		const load = () =>
+			fetchEntries()
+				.then( ( response ) => {
+					if ( cancelled ) {
+						return;
+					}
+					setEntries( ( previous ) => {
+						const list = response.entries || [];
+						if ( ! previous ) {
+							return shuffle( list );
+						}
+						const order = new Map(
+							previous.map( ( entry, index ) => [
+								entry.id,
+								index,
+							] )
+						);
+						return list.sort(
+							( a, b ) =>
+								( order.get( a.id ) ?? -1 ) -
+								( order.get( b.id ) ?? -1 )
+						);
+					} );
+					setPhase( response.phase || null );
+					setLoadError( '' );
+				} )
+				.catch( () => {
+					if ( ! cancelled ) {
+						setLoadError(
+							'Could not load entries — please refresh.'
+						);
+					}
+				} );
+		load();
+		const timer = window.setInterval( load, 15000 );
 		return () => {
 			cancelled = true;
+			window.clearInterval( timer );
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ config.postId, config.contestId ] );
+	}, [ config.postId, config.contestId, refresh ] );
 
 	const handleVoted = ( entryId: number, voteCount: number ) => {
 		setEntries( ( prev ) =>
@@ -963,11 +1005,79 @@ function PhotoContest( config: ContestConfig ) {
 		} );
 	};
 
+	const togglePhase = async (
+		name: 'entries' | 'voting',
+		closed: boolean
+	) => {
+		if (
+			moderating ||
+			// Native confirmation makes this moderator action explicit.
+			// eslint-disable-next-line no-alert
+			! window.confirm(
+				closed
+					? `Close ${ name } now?`
+					: `Reopen ${ name }? Scheduled windows still apply.`
+			)
+		) {
+			return;
+		}
+		setModerating( true );
+		setModerationError( '' );
+		try {
+			await runAbility(
+				'extrachill/photo-contest-set-phase',
+				{
+					post_id: config.postId,
+					contest_id: config.contestId,
+					phase: name,
+					closed,
+				},
+				config.restNonce
+			);
+			setRefresh( ( value ) => value + 1 );
+		} catch ( err ) {
+			setModerationError(
+				( err as { message?: string } )?.message ||
+					'Moderation failed — please try again.'
+			);
+		} finally {
+			setModerating( false );
+		}
+	};
+
+	const phaseControls = config.canModerate && (
+		<div aria-label="Contest moderation">
+			{ ( [ 'entries', 'voting' ] as const ).map( ( name ) => {
+				const manual = Boolean(
+					phase?.[ `${ name }_manually_closed` ]
+				);
+				return (
+					<button
+						key={ name }
+						className={ `${
+							manual ? 'button-2' : 'button-danger'
+						} button-small` }
+						disabled={ moderating || ! phase }
+						onClick={ () => togglePhase( name, ! manual ) }
+					>
+						{ manual ? `Reopen ${ name }` : `Close ${ name } now` }
+					</button>
+				);
+			} ) }
+			{ moderationError && (
+				<p className="notice notice-error" role="alert">
+					{ moderationError }
+				</p>
+			) }
+		</div>
+	);
+
 	if ( focusedEntry ) {
 		const galleryUrl = new URL( window.location.href );
 		galleryUrl.searchParams.delete( 'entry' );
 		return (
 			<div className="extrachill-blocks-photo-contest-focused">
+				{ phaseControls }
 				<EntryCard
 					key={ focusedEntry.id }
 					entry={ focusedEntry }
@@ -997,6 +1107,7 @@ function PhotoContest( config: ContestConfig ) {
 
 	return (
 		<>
+			{ phaseControls }
 			{ ! entriesOpened && (
 				<div className="notice notice-info extrachill-blocks-photo-contest-notice">
 					Contest opens { config.entriesOpenAtLabel }
@@ -1101,9 +1212,11 @@ function parseConfig( container: HTMLElement ): ContestConfig | null {
 			canModerate: Boolean( parsed.canModerate ),
 			restNonce: parsed.restNonce ?? '',
 			turnstileHtml:
-				container.querySelector< HTMLTemplateElement >(
-					'.extrachill-blocks-photo-contest-turnstile'
-				)?.innerHTML.trim() || '',
+				container
+					.querySelector< HTMLTemplateElement >(
+						'.extrachill-blocks-photo-contest-turnstile'
+					)
+					?.innerHTML.trim() || '',
 		};
 	} catch {
 		return null;
