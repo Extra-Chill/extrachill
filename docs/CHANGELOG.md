@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.16.0] - 2026-10-23
+
+### Added
+- filters for the comments heading and logged-out note
+
 ## [2.15.2] - 2026-10-23
 
 ### Fixed
