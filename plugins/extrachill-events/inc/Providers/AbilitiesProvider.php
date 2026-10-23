@@ -107,6 +107,7 @@ final class AbilitiesProvider {
 				'EventTimeAuditAbilities',
 				'QualifyDigestAbilities',
 				'ArtistUrlImportAbilities',
+				'ArtistCoverageAbilities',
 			)
 		);
 

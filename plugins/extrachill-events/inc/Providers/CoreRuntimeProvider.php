@@ -39,5 +39,7 @@ final class CoreRuntimeProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueExpansionRunner.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/EventSourceRampEvaluator.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/RsvpPassesTable.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistCoverageSync.php';
+		\ExtraChillEvents\Core\ArtistCoverageSync::register();
 	}
 }
