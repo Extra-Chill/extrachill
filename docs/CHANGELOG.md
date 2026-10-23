@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.33.5] - 2026-10-23
+
+### Changed
+- show-ratings-fan — a non-technical fan rates the shows they went to
+
 ## [2.33.4] - 2026-10-23
 
 ### Fixed
