@@ -60,6 +60,7 @@ require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-db.php';
 require_once EXTRACHILL_SEO_PATH . 'inc/core/redirects-public-api.php';
 
 // Sitemap provider loaded early so the class is defined before wp_loaded registration.
+require_once EXTRACHILL_SEO_PATH . 'inc/core/sparse-terms.php';
 require_once EXTRACHILL_SEO_PATH . 'inc/core/sitemap.php';
 
 // Sitemap health guardrail: schedules the daily check and registers its cron handler.

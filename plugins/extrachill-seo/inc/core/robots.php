@@ -43,15 +43,13 @@ add_filter(
 		// Noindex sparse taxonomy terms (fewer than 2 posts).
 		// Applies to category, tag, and custom taxonomy term archives.
 		if ( is_category() || is_tag() || is_tax() ) {
+			// Festival hubs stay indexable; see sparse-terms.php for the shared rule.
 			$term = get_queried_object();
-			if ( $term instanceof \WP_Term && isset( $term->count ) && (int) $term->count < 2 ) {
-				// Festival taxonomy pages are handled as hub pages and must remain indexable.
-				if ( 'festival' !== (string) $term->taxonomy ) {
-					$robots['noindex'] = true;
-					$robots['follow']  = true;
-					unset( $robots['max-image-preview'] );
-					return $robots;
-				}
+			if ( $term instanceof \WP_Term && ec_seo_is_sparse_term( $term ) ) {
+				$robots['noindex'] = true;
+				$robots['follow']  = true;
+				unset( $robots['max-image-preview'] );
+				return $robots;
 			}
 		}
 

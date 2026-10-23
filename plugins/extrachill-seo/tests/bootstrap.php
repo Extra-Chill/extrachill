@@ -604,6 +604,7 @@ require_once __DIR__ . '/../inc/schema/schema-event.php';
 require_once __DIR__ . '/../inc/schema/schema-breadcrumb.php';
 require_once __DIR__ . '/../inc/core/meta-tags.php';
 require_once __DIR__ . '/../inc/core/canonical.php';
+require_once __DIR__ . '/../inc/core/sparse-terms.php';
 require_once __DIR__ . '/../inc/core/open-graph.php';
 require_once __DIR__ . '/../inc/schema/schema-output.php';
 require_once __DIR__ . '/../inc/schema/schema-webpage.php';
