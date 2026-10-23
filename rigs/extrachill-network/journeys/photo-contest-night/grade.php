@@ -64,6 +64,38 @@ $record(
 	array( 'layout' => $landing )
 );
 
+$share = $observed['entrant-share-actions'] ?? null;
+$link  = is_array( $share ) ? (string) ( $share['link'] ?? '' ) : '';
+$record(
+	'entrant-shares-from-phone',
+	"The entrant's phone share sheet gets a 'vote for me' message with their link, and Copy Link copies that link.",
+	is_array( $share ) ? ( ( ! empty( $share['nativeShareButton'] ) && $link && str_contains( (string) ( $share['shared']['url'] ?? '' ), '?entry=' ) && $link === ( $share['copied'] ?? null ) ) ? 'pass' : 'finding' ) : 'skip',
+	array( 'saw' => $share )
+);
+$og = $observed['entrant-share-preview'] ?? null;
+$og_file = is_array( $og ) && ! empty( $og['entryImage'] ) ? wp_basename( (string) wp_parse_url( (string) $og['entryImage'], PHP_URL_PATH ) ) : '';
+$og_stem = $og_file ? preg_replace( '/(-\d+x\d+)?\.[a-z]+$/i', '', $og_file ) : '';
+$record(
+	'share-link-unfurls-with-photo',
+	"When the entrant's link is pasted in a text or post, the preview shows their costume photo.",
+	is_array( $og ) ? ( ( 200 === (int) $og['status'] && $og_stem && str_contains( (string) $og['ogImage'], $og_stem ) ) ? 'pass' : 'finding' ) : 'skip',
+	array( 'saw' => $og )
+);
+$same = $observed['entrant-returns-same-phone'] ?? null;
+$record(
+	'entrant-returns-same-phone',
+	'Coming back later on the same phone, the entrant sees their own entry, live votes and share tools instead of an empty entry form.',
+	is_array( $same ) ? ( ( ! empty( $same['myPanel'] ) && empty( $same['entryForm'] ) ) ? 'pass' : 'finding' ) : 'skip',
+	array( 'saw' => $same, 'issue' => 'Extra-Chill/extrachill-content-blocks#48' )
+);
+$other = $observed['entrant-other-phone'] ?? null;
+$record(
+	'entrant-returns-other-phone',
+	'On another phone, typing only their email brings the entrant back to their entry without re-uploading a photo.',
+	is_array( $other ) ? ( ( ! empty( $other['myPanel'] ) && empty( $other['detailsStep'] ) ) ? 'pass' : 'finding' ) : 'skip',
+	array( 'saw' => $other, 'issue' => 'Extra-Chill/extrachill-content-blocks#48' )
+);
+
 $focused = $observed['voter-focused-state'] ?? null;
 $record(
 	'friend-link-focuses-one-entry',
