@@ -65,6 +65,11 @@ dws_assert( empty( $clone_steps ), 'workflow never clones a component (checkout-
 dws_assert( str_contains( $yaml, 'deploy extrachill-site --outdated' ), 'scheduled --outdated poll is enabled' );
 // homeboy#14813: an all-skipped poll reports "No outdated components found",
 // which reads like success. A silent no-op loop is worse than a loud failure.
+// #369: a pinned gate binary on GITHUB_PATH leaked into the Deploy/Verify
+// homeboy-action steps, so they ran a Homeboy that predates
+// post:deploy:project and the page-cache purge never fired.
+dws_assert( ! preg_match( '/>>\s*"?\$\{?GITHUB_PATH/', $yaml ), 'no step adds a Homeboy binary to GITHUB_PATH for later steps (#369)' );
+dws_assert( 2 === substr_count( $yaml, 'export PATH="${HOMEBOY_GATE_BIN_DIR}:${PATH}"' ), 'the pinned gate binary is scoped to the rig install and rig gate steps (#369)' );
 dws_assert( str_contains( $yaml, 'Reject a poll that resolved nothing' ), 'an all-skipped poll is rejected rather than reported as up to date' );
 dws_assert( str_contains( $yaml, 'homeboy#14813' ), 'the guard cites the upstream issue it compensates for' );
 // Unattended runs must be gated behind an explicit repository variable so the
