@@ -331,7 +331,13 @@ jobs:
           tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.383.15.tar.xz" \
             --directory "${RUNNER_TEMP}/homeboy-0.383.15" --strip-components=1
           chmod +x "${RUNNER_TEMP}/homeboy-0.383.15/homeboy"
-          echo "${RUNNER_TEMP}/homeboy-0.383.15" >> "${GITHUB_PATH}"
+          # Scope the pinned gate binary to the gate steps. Appending it to
+          # GITHUB_PATH leaked it into every later step: the Deploy and Verify
+          # homeboy-action steps then ran 0.383.15 instead of their own
+          # resolved release. 0.383.15 predates `post:deploy:project`
+          # (homeboy v0.385.0), so the page-cache purge hook from #319 was
+          # silently skipped on every gated deploy (#369).
+          echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-0.383.15" >> "${GITHUB_ENV}"
 
       - name: Set up Node.js for the network rig gate
         if: steps.release_set.outputs.component_count != '0' && steps.plan.outputs.gate_bypassed != 'true'
@@ -389,7 +395,10 @@ jobs:
       - name: Install extrachill-network rig
         if: steps.release_set.outputs.component_count != '0' && steps.plan.outputs.gate_bypassed != 'true'
         shell: bash
-        run: homeboy rig install "${{ github.workspace }}"
+        run: |
+          set -euo pipefail
+          export PATH="${HOMEBOY_GATE_BIN_DIR}:${PATH}"
+          homeboy rig install "${{ github.workspace }}"
 
       - name: Network rig gate
         id: gate
@@ -400,6 +409,7 @@ jobs:
           HOMEBOY_SETTINGS_JSON: ${{ steps.release_set.outputs.gate_settings_json }}
         run: |
           set -euo pipefail
+          export PATH="${HOMEBOY_GATE_BIN_DIR}:${PATH}"
           homeboy rig up extrachill-network --output "${{ runner.temp }}/extrachill-network-gate/rig-up-result.json"
 
       # Fail closed, loudly (extrachill-network#264 point 5): name the
