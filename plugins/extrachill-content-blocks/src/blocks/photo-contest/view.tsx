@@ -204,6 +204,7 @@ function hasOpened( openAt: string ): boolean {
 }
 
 function SharePanel( {
+	config,
 	entry,
 	prompt,
 	initialShowQr = false,
@@ -211,6 +212,7 @@ function SharePanel( {
 	entry: Entry;
 	prompt: string;
 	initialShowQr?: boolean;
+	config: ContestConfig;
 } ) {
 	const [ copied, setCopied ] = useState( false );
 	const [ showQr, setShowQr ] = useState( initialShowQr );
@@ -226,17 +228,23 @@ function SharePanel( {
 		setQrImage( '' );
 		setQrError( '' );
 		apiFetch( {
-			path: '/extrachill/v1/tools/qr-code',
-			method: 'POST',
-			data: { url: entry.share_url, size: 1000 },
+			path: `/extrachill/v1/content-blocks/photo-contest/entry-qr?post_id=${
+				config.postId
+			}&contest_id=${ encodeURIComponent( config.contestId ) }&entry_id=${
+				entry.id
+			}`,
+			method: 'GET',
 		} )
 			.then( ( result ) => {
-				const image = ( result as { image_url?: string } ).image_url;
-				if ( ! image ) {
+				const { image, mime_type: mimeType } = result as {
+					image?: string;
+					mime_type?: string;
+				};
+				if ( ! image || ! mimeType ) {
 					throw new Error( 'Missing QR image' );
 				}
 				if ( ! cancelled ) {
-					setQrImage( image );
+					setQrImage( `data:${ mimeType };base64,${ image }` );
 				}
 			} )
 			.catch( () => {
@@ -249,7 +257,7 @@ function SharePanel( {
 		return () => {
 			cancelled = true;
 		};
-	}, [ showQr, entry.share_url, qrAttempt ] );
+	}, [ showQr, config.postId, config.contestId, entry.id, qrAttempt ] );
 	const shareText = `Vote for ${ entry.display_name }!`;
 	const canWebShare = typeof navigator !== 'undefined' && !! navigator.share;
 
@@ -612,7 +620,11 @@ function EntryCard( {
 					{ showShare ? 'Hide Share' : 'Share' }
 				</button>
 				{ showShare && (
-					<SharePanel entry={ entry } prompt="Share this entry:" />
+					<SharePanel
+						config={ config }
+						entry={ entry }
+						prompt="Share this entry:"
+					/>
 				) }
 			</div>
 		</div>
@@ -743,6 +755,7 @@ function SubmissionForm( {
 			<div className="extrachill-blocks-photo-contest-submitted notice notice-success">
 				<h4>You&apos;re in, { myEntry.display_name }! 🎉</h4>
 				<SharePanel
+					config={ config }
 					entry={ myEntry }
 					prompt="Share this to get votes."
 					initialShowQr

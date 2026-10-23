@@ -138,7 +138,7 @@ if ( ! class_exists( 'WP_Ability' ) ) {
 		}
 
 		public function has_permission( $input = array() ): bool {
-			return (bool) call_user_func( $this->props['permission_callback'], $input );
+			return (bool) apply_filters( 'wp_ability_permission_result', call_user_func( $this->props['permission_callback'], $input ), $this->name, $input );
 		}
 
 		public function execute( $input = array() ) {
@@ -200,6 +200,15 @@ function apply_filters( $hook, $value, ...$args ) {
 	}
 
 	return $value;
+}
+
+function remove_filter( $hook, $callback, $priority = 10 ) {
+	foreach ( $GLOBALS['wp_test_filters'][ $hook ] ?? array() as $key => $entry ) {
+		if ( $entry['callback'] === $callback && $entry['priority'] === $priority ) {
+			unset( $GLOBALS['wp_test_filters'][ $hook ][ $key ] );
+		}
+	}
+	return true;
 }
 
 function remove_all_filters( $hook ) {

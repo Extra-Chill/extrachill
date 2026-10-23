@@ -68,6 +68,7 @@ function extrachill_content_blocks_load_photo_contest_domain() {
 	$domain_dir = __DIR__ . '/inc/photo-contest';
 
 	require_once $domain_dir . '/entries.php';
+	require_once $domain_dir . '/entry-qr.php';
 	require_once $domain_dir . '/storage.php';
 	require_once $domain_dir . '/submission.php';
 	require_once $domain_dir . '/voting.php';
@@ -90,6 +91,7 @@ function extrachill_content_blocks_load_abilities() {
 		'/image-voting-vote.php',
 		'/photo-contest-submit.php',
 		'/photo-contest-list.php',
+		'/photo-contest-entry-qr.php',
 		'/photo-contest-vote.php',
 		'/photo-contest-hide.php',
 		'/photo-contest-top.php',

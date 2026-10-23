@@ -18,6 +18,7 @@ wp_stubs_reset();
 
 // Photo-contest domain module (mirrors the plugin bootstrap load order).
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/entries.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/entry-qr.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/storage.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/submission.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/voting.php';
@@ -31,4 +32,5 @@ require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-vote.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-hide.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-list.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-entry-qr.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/abilities/photo-contest-top.php';
