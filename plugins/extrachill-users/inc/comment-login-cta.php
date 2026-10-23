@@ -66,7 +66,15 @@ function extrachill_users_render_comment_login_cta(): void {
 	}
 
 	echo '<div class="comment-login-cta">';
-	echo '<h3>' . esc_html__( 'Login or Register to Comment', 'extrachill-users' ) . '</h3>';
+	/**
+	 * Filter the CTA heading, e.g. so a post type can ask visitors to log in
+	 * for something other than commenting.
+	 *
+	 * @param string $heading Plain-text heading.
+	 * @param int    $post_id Post ID.
+	 */
+	$heading = (string) apply_filters( 'extrachill_users_comment_login_cta_heading', __( 'Login or Register to Comment', 'extrachill-users' ), (int) get_the_ID() );
+	echo '<h3>' . esc_html( $heading ) . '</h3>';
 	// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() returns block-rendered markup escaped at the source.
 	echo do_blocks( '<!-- wp:extrachill/login-register /-->' );
 	echo '</div>';

@@ -184,6 +184,21 @@ class Test_Comment_Login_Cta extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Post types can retitle the CTA heading.
+	 */
+	public function test_heading_is_filterable(): void {
+		$this->go_to( get_permalink( self::$open_post_id ) );
+		$filter = static fn() => 'Log in or register to rate this show';
+		add_filter( 'extrachill_users_comment_login_cta_heading', $filter );
+
+		$output = $this->render_cta();
+		remove_filter( 'extrachill_users_comment_login_cta_heading', $filter );
+
+		$this->assertStringContainsString( 'Log in or register to rate this show', $output );
+		$this->assertStringNotContainsString( 'Login or Register to Comment', $output );
+	}
+
+	/**
 	 * Render the CTA through the real action, capturing output.
 	 *
 	 * @return string Rendered markup.
