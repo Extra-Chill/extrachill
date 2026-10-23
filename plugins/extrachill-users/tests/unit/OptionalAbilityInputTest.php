@@ -47,6 +47,32 @@ class Test_Optional_Ability_Input extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * Gutenberg's ability client compiles the published input schema with
+	 * ajv before running it. An empty PHP `properties` array is published as
+	 * JSON `[]`, which ajv rejects as an invalid schema, so the ability can
+	 * never run from the browser.
+	 */
+	public function test_published_input_schemas_have_object_property_maps(): void {
+		$checked = array();
+
+		foreach ( wp_get_abilities() as $ability ) {
+			if ( 'extrachill-users' !== $ability->get_category() ) {
+				continue;
+			}
+
+			$name   = $ability->get_name();
+			$schema = wp_json_encode( wp_prepare_json_schema_for_client( (array) $ability->get_input_schema() ) );
+			foreach ( array( 'properties', 'patternProperties', 'definitions' ) as $keyword ) {
+				$this->assertStringNotContainsString( '"' . $keyword . '":[]', $schema, $name );
+			}
+			$checked[] = $name;
+		}
+
+		$this->assertContains( 'extrachill/get-user-settings', $checked );
+		$this->assertContains( 'extrachill/get-notification-preferences', $checked );
+	}
+
 	public function test_required_object_inputs_still_reject_null(): void {
 		$ability = wp_get_ability( 'extrachill/change-user-email' );
 		$this->assertWPError( $ability->validate_input( $ability->normalize_input( null ) ) );

@@ -28,7 +28,6 @@ function extrachill_users_register_get_user_artist_access_ability(): void {
 			'input_schema'        => array(
 				'type'                 => 'object',
 				'default'              => array(),
-				'properties'           => array(),
 				'additionalProperties' => false,
 			),
 			'output_schema'       => array(

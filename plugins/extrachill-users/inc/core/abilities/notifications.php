@@ -219,9 +219,8 @@ function extrachill_users_register_notification_abilities() {
 			'description'         => __( 'Return a user\'s notification delivery preferences (e.g. whether unread-notification digest emails are enabled). Self-only.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'default'    => array(),
-				'properties' => array(),
+				'type'    => 'object',
+				'default' => array(),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

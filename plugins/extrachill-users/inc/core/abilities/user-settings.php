@@ -36,9 +36,8 @@ function extrachill_users_register_settings_abilities() {
 			'description'         => __( 'Retrieve private account settings for the authenticated user.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'default'    => array(),
-				'properties' => array(),
+				'type'    => 'object',
+				'default' => array(),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_get_settings',

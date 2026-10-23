@@ -44,9 +44,8 @@ function extrachill_users_register_artist_access_abilities() {
 			'description'         => __( 'Get all pending artist platform access requests.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
-				'type'       => 'object',
-				'default'    => array(),
-				'properties' => array(),
+				'type'    => 'object',
+				'default' => array(),
 			),
 			'output_schema'       => array( 'type' => 'object' ),
 			'execute_callback'    => 'extrachill_users_ability_list_artist_access_requests',
