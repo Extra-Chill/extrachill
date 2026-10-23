@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.53.0] - 2026-10-23
+
+### Added
+- filter the comment login CTA heading
+
 ## [0.52.3] - 2026-10-23
 
 ### Fixed
