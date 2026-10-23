@@ -89,11 +89,20 @@ endif;
 				$comments_number = (int) get_comments_number();
 				/* translators: 1: number of comments, 2: post title. */
 				$comments_title = _nx( 'One comment on &ldquo;%2$s&rdquo;', '%1$s comments on <strong>%2$s</strong>', $comments_number, 'comments title', 'extrachill' ); // phpcs:ignore WordPress.WP.I18n.MissingSingularPlaceholder -- Singular form intentionally spells out "One" rather than using a numeric placeholder.
-				printf(
+				$comments_title = sprintf(
 					wp_kses_post( $comments_title ),
 					esc_html( number_format_i18n( $comments_number ) ),
 					'<span>' . esc_html( get_the_title() ) . '</span>'
 				);
+				/**
+				 * Filter the comments list heading, e.g. so a post type can call
+				 * its comments "reviews".
+				 *
+				 * @param string $comments_title Heading HTML.
+				 * @param int    $comments_number Approved comment count.
+				 * @param int    $post_id         Post ID.
+				 */
+				echo wp_kses_post( (string) apply_filters( 'extrachill_comments_title', $comments_title, $comments_number, (int) get_the_ID() ) );
 			?>
 		</h2>
 
@@ -143,7 +152,15 @@ endif;
 			)
 		);
 	} else {
-		echo '<p class="comments-login-note">' . esc_html__( 'Log in to leave a comment.', 'extrachill' ) . '</p>';
+		/**
+		 * Filter the note shown to logged-out visitors in place of the
+		 * comment form.
+		 *
+		 * @param string $note    Plain-text note.
+		 * @param int    $post_id Post ID.
+		 */
+		$login_note = (string) apply_filters( 'extrachill_comments_login_note', __( 'Log in to leave a comment.', 'extrachill' ), (int) get_the_ID() );
+		echo '<p class="comments-login-note">' . esc_html( $login_note ) . '</p>';
 	}
 	?>
 </div><!-- #comments -->
