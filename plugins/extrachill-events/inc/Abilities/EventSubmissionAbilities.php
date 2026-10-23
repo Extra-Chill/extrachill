@@ -495,7 +495,7 @@ class EventSubmissionAbilities {
 		$job_id = $result['job_id'] ?? $result['data']['job_id'] ?? 0;
 
 		$this->notifySubmitter( $submission, $account_claim );
-		$this->notifyAdmin( $submission, $job_id );
+		// Admin review mail is sent after EventUpsert persists the pending event.
 
 		do_action(
 			'extrachill_event_submission',
@@ -924,98 +924,6 @@ class EventSubmissionAbilities {
 				'context'  => $context,
 			),
 			'submitter'
-		);
-	}
-
-	/**
-	 * Send notification email to site admin about new event submission.
-	 *
-	 * Uses the `extrachill/minimal` template — internal ops alert, no
-	 * marketing chrome.
-	 *
-	 * @param array $submission Submission data.
-	 * @param int   $job_id     Data Machine job ID.
-	 */
-	private function notifyAdmin( array $submission, int $job_id ): void {
-		$to = get_option( 'admin_email' );
-		if ( empty( $to ) || ! is_email( $to ) ) {
-			return;
-		}
-
-		$site_name     = get_bloginfo( 'name' );
-		$event_title   = self::displayTitle( $submission );
-		$event_date    = self::displayDate( $submission );
-		$venue_display = '' !== ( $submission['venue_name'] ?? '' )
-			? (string) $submission['venue_name']
-			: __( 'Not specified', 'extrachill-events' );
-
-		$subject = sprintf(
-			/* translators: 1: site name, 2: event title. */
-			__( '[%1$s] New Event Submission: %2$s', 'extrachill-events' ),
-			$site_name,
-			$event_title
-		);
-
-		$preheader = sprintf(
-			/* translators: 1: event title, 2: submitter name. */
-			__( 'New pending submission: %1$s (by %2$s).', 'extrachill-events' ),
-			$event_title,
-			(string) $submission['contact_name']
-		);
-
-		$body_html  = '<p>' . esc_html__( 'A new event submission has been received:', 'extrachill-events' ) . '</p>';
-		$body_html .= '<ul>';
-		$body_html .= '<li>' . sprintf(
-			/* translators: %s: event title. */
-			esc_html__( 'Event: %s', 'extrachill-events' ),
-			'<strong>' . esc_html( $event_title ) . '</strong>'
-		) . '</li>';
-		$body_html .= '<li>' . sprintf(
-			/* translators: %s: event date. */
-			esc_html__( 'Date: %s', 'extrachill-events' ),
-			esc_html( $event_date )
-		) . '</li>';
-		$body_html .= '<li>' . sprintf(
-			/* translators: %s: venue name or "Not specified". */
-			esc_html__( 'Venue: %s', 'extrachill-events' ),
-			esc_html( $venue_display )
-		) . '</li>';
-		$body_html .= '<li>' . sprintf(
-			/* translators: 1: submitter name, 2: submitter email. */
-			esc_html__( 'Submitted by: %1$s (%2$s)', 'extrachill-events' ),
-			esc_html( (string) $submission['contact_name'] ),
-			esc_html( (string) $submission['contact_email'] )
-		) . '</li>';
-		$body_html .= '<li>' . sprintf(
-			/* translators: %d: Data Machine job ID. */
-			esc_html__( 'Data Machine Job ID: %d', 'extrachill-events' ),
-			(int) $job_id
-		) . '</li>';
-		$body_html .= '</ul>';
-		$body_html .= '<p>' . esc_html__( 'The submission is being processed now. Check pending posts in a few minutes.', 'extrachill-events' ) . '</p>';
-
-		$context = array(
-			'subject_html' => esc_html( $subject ),
-			'preheader'    => $preheader,
-			'body_html'    => $body_html,
-		);
-
-		$pending_url = admin_url( 'edit.php?post_status=pending&post_type=post' );
-
-		$this->dispatchEmail(
-			array(
-				'to'       => $to,
-				'subject'  => $subject,
-				'template' => 'extrachill/minimal',
-				'context'  => array_merge(
-					$context,
-					array(
-						'cta_url'   => $pending_url,
-						'cta_label' => __( 'Review pending submissions', 'extrachill-events' ),
-					)
-				),
-			),
-			'admin'
 		);
 	}
 

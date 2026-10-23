@@ -159,6 +159,11 @@
             "runtime": "host"
           },
           {
+            "name": "event-submission-approval-unit",
+            "config": "phpunit-event-submission-approval-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "qualify-v2-unit",
             "config": "phpunit-qualify-v2-unit.xml.dist",
             "runtime": "host"

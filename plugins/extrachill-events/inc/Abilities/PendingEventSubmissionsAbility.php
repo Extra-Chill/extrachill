@@ -6,9 +6,11 @@ namespace ExtraChillEvents\Abilities;
 defined( 'ABSPATH' ) || exit;
 
 require_once __DIR__ . '/EventSubmissionAbilities.php';
+require_once __DIR__ . '/EventSubmissionApproval.php';
 
 class PendingEventSubmissionsAbility {
 	public function __construct() {
+		EventSubmissionApproval::register();
 		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 	}
 

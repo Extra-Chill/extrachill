@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit colors="true" beStrictAboutOutputDuringTests="true" failOnWarning="true" failOnRisky="true">
+	<testsuites>
+		<testsuite name="event-submission-approval-unit">
+			<file>tests/Unit/Abilities/EventSubmissionApprovalTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>
