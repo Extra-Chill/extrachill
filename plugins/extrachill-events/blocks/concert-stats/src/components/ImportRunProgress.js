@@ -108,6 +108,14 @@ const ImportRunProgress = ( { run } ) => {
 						}
 						return parts.join( '' ) + '.';
 					} )() }
+					{ ( run.total_events_matched || 0 ) +
+						( run.total_events_created || 0 ) >
+						0 && (
+						<>
+							{ ' ' }
+							<a href="?tab=past">Rate the shows you were at →</a>
+						</>
+					) }
 				</InlineStatus>
 			) }
 

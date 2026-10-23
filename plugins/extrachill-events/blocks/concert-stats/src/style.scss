@@ -450,6 +450,41 @@ a.ec-concert-stats__stat {
 	}
 }
 
+.ec-concert-stats__show-rating {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs, 0.25rem);
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__show-rating-stars {
+	display: inline-flex;
+}
+
+.ec-concert-stats__show-rating-star {
+	background: none;
+	border: 0;
+	padding: 0 1px;
+	font-size: 1.25rem;
+	line-height: 1;
+	cursor: pointer;
+	color: var(--border-color, #c4c4c4);
+
+	&.is-on {
+		color: #f5b301;
+	}
+
+	&:focus-visible {
+		outline: 2px solid currentcolor;
+		outline-offset: 1px;
+	}
+}
+
+.ec-concert-stats__show-rating-error {
+	color: var(--error-color, #b91c1c);
+}
+
 .ec-concert-stats__show-sep {
 	color: var(--muted-text, #6b7280);
 }

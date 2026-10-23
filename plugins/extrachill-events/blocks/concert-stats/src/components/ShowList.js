@@ -14,6 +14,7 @@ import { ActionRow, InlineStatus } from '@extrachill/components';
  */
 import ShowCard from './ShowCard';
 import useShows from '../hooks/useShows';
+import useMyRatings from '../hooks/useMyRatings';
 
 const ShowList = ( {
 	userId,
@@ -33,6 +34,18 @@ const ShowList = ( {
 			queryScope: isOwn ? 'owner' : 'public',
 		}
 	);
+
+	// Owners rate their past shows inline (data-machine-events ratings).
+	const canRate = isOwn && 'past' === period;
+	const pastIds = canRate
+		? shows
+				.filter( ( show ) => 'past' === show.timing )
+				.map( ( show ) => show.event_id )
+		: [];
+	const { ratings, errors, rate } = useMyRatings( pastIds, canRate );
+	const unrated = pastIds.filter(
+		( id ) => ! ratings[ String( id ) ]
+	).length;
 
 	if ( error ) {
 		return (
@@ -71,8 +84,32 @@ const ShowList = ( {
 
 	return (
 		<div className="ec-concert-stats__show-list">
+			{ canRate && unrated > 0 && (
+				<InlineStatus tone="info">
+					{ unrated === pastIds.length
+						? 'How were they? Tap the stars to rate the shows you were at.'
+						: `${ unrated } show${
+								unrated === 1 ? '' : 's'
+						  } below still need${
+								unrated === 1 ? 's' : ''
+						  } your rating.` }
+				</InlineStatus>
+			) }
 			{ shows.map( ( show ) => (
-				<ShowCard key={ show.event_id } show={ show } isOwn={ isOwn } />
+				<ShowCard
+					key={ show.event_id }
+					show={ show }
+					isOwn={ isOwn }
+					rating={
+						canRate && pastIds.includes( show.event_id )
+							? {
+									value: ratings[ String( show.event_id ) ],
+									error: errors[ String( show.event_id ) ],
+									onRate: rate,
+							  }
+							: null
+					}
+				/>
 			) ) }
 
 			{ loading && <InlineStatus tone="info">Loading...</InlineStatus> }

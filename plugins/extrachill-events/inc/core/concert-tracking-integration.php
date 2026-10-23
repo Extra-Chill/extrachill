@@ -125,9 +125,31 @@ function ec_events_rating_gate_message( $message ) {
 		return $message;
 	}
 
-	return __( 'Only people who were there can rate this show. Tap “I Was There” above, then reload to leave your rating.', 'extrachill-events' );
+	return __( 'Only people who were there can rate this show. Tap “I Was There” above to leave your rating.', 'extrachill-events' );
 }
 add_filter( 'data_machine_events_rating_gate_message', 'ec_events_rating_gate_message' );
+
+/**
+ * Unlock the rating form in place when a user marks "I Was There".
+ *
+ * Bridges extrachill-users' `ec:attendance-changed` DOM event to
+ * data-machine-events' `dme:rating-eligibility`, so the form appears
+ * without a reload.
+ */
+function ec_events_enqueue_rating_unlock() {
+	if ( ! is_user_logged_in() || ! is_singular( 'data_machine_events' ) ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'extrachill-events-rating-unlock',
+		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/rating-unlock.js',
+		array(),
+		EXTRACHILL_EVENTS_VERSION,
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'ec_events_enqueue_rating_unlock' );
 
 /**
  * Publish reviews from verified attendees without a moderation wait.

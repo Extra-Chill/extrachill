@@ -33,6 +33,7 @@
  */
 import { formatShortDate } from '../utils/formatDate';
 import RsvpPassBadge from './RsvpPassBadge';
+import ShowRating from './ShowRating';
 
 /**
  * Build the taxonomy-badge class list for a venue / city term.
@@ -89,13 +90,15 @@ const TermLink = ( { term, className, taxonomy = null } ) => {
 };
 
 /**
- * @param {Object}  props         Component props.
- * @param {Object}  props.show    Show data.
- * @param {boolean} [props.isOwn] Whether the viewer owns this My Shows page.
- *                                An RSVP pass is private to its holder —
- *                                only rendered for the owner's own view.
+ * @param {Object}  props          Component props.
+ * @param {Object}  props.show     Show data.
+ * @param {boolean} [props.isOwn]  Whether the viewer owns this My Shows page.
+ *                                 An RSVP pass is private to its holder —
+ *                                 only rendered for the owner's own view.
+ * @param {?Object} [props.rating] Owner-only rating controls for a past show:
+ *                                 { value, error, onRate }.
  */
-const ShowCard = ( { show, isOwn = false } ) => {
+const ShowCard = ( { show, isOwn = false, rating = null } ) => {
 	const artists = show.artists && show.artists.length ? show.artists : null;
 	const hasVenue = show.venue && show.venue.name;
 	const hasCity = show.city && show.city.name;
@@ -155,6 +158,15 @@ const ShowCard = ( { show, isOwn = false } ) => {
 							/>
 						) }
 					</span>
+				) }
+				{ rating && (
+					<ShowRating
+						eventId={ show.event_id }
+						rating={ rating.value || 0 }
+						error={ rating.error }
+						onRate={ rating.onRate }
+						title={ show.title }
+					/>
 				) }
 			</span>
 			{ isOwn && 'past' !== show.timing && (

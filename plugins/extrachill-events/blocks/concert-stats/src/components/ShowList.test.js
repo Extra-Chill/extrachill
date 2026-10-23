@@ -31,10 +31,11 @@ jest.mock( '@extrachill/components', () => {
 	return { ActionRow: Wrapper, InlineStatus: Wrapper };
 } );
 
-jest.mock( './ShowCard', () => ( { show, isOwn } ) => (
+jest.mock( './ShowCard', () => ( { show, isOwn, rating } ) => (
 	<div>
 		{ show.title }
 		{ isOwn ? ' (owner view)' : '' }
+		{ rating ? ` [rating:${ rating.value || 0 }]` : '' }
 	</div>
 ) );
 
@@ -127,5 +128,74 @@ describe( 'ShowList', () => {
 		} );
 		expect( publicContainer.textContent ).toBe( 'Owner Show' );
 		await act( async () => publicRoot.unmount() );
+	} );
+
+	it( 'offers inline ratings on the owner Past list and prompts for unrated shows', async () => {
+		apiFetch.mockImplementation( ( { path } ) => {
+			if ( path.includes( 'get-my-event-ratings' ) ) {
+				return Promise.resolve( { ratings: { 1: 4 } } );
+			}
+			return Promise.resolve( {
+				shows: [
+					{ event_id: 1, title: 'Rated Show', timing: 'past' },
+					{ event_id: 2, title: 'Unrated Show', timing: 'past' },
+				],
+				total: 2,
+				pages: 1,
+				page: 1,
+			} );
+		} );
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		await act( async () => {
+			root.render(
+				<ShowList userId={ 7 } period="past" year={ 0 } isOwn />
+			);
+			await Promise.resolve();
+		} );
+		await act( async () => {
+			await Promise.resolve();
+		} );
+
+		expect( container.textContent ).toContain(
+			'Rated Show (owner view) [rating:4]'
+		);
+		expect( container.textContent ).toContain(
+			'Unrated Show (owner view) [rating:0]'
+		);
+		expect( container.textContent ).toContain(
+			'1 show below still needs your rating.'
+		);
+		await act( async () => root.unmount() );
+	} );
+
+	it( "never offers ratings on someone else's list", async () => {
+		apiFetch.mockResolvedValue( {
+			shows: [ { event_id: 1, title: 'Their Show', timing: 'past' } ],
+			total: 1,
+			pages: 1,
+			page: 1,
+		} );
+		const container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		const root = createRoot( container );
+
+		await act( async () => {
+			root.render(
+				<ShowList
+					userId={ 7 }
+					period="past"
+					year={ 0 }
+					isOwn={ false }
+				/>
+			);
+			await Promise.resolve();
+		} );
+
+		expect( container.textContent ).toBe( 'Their Show' );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		await act( async () => root.unmount() );
 	} );
 } );
