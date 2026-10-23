@@ -148,6 +148,38 @@ function saveEmail( email: string ): void {
 	}
 }
 
+function entryStorageKey( contestId: string ): string {
+	return `extrachill_pc_entry_${ contestId }`;
+}
+
+function getSavedEntryId( contestId: string ): number | null {
+	try {
+		const saved = JSON.parse(
+			localStorage.getItem( entryStorageKey( contestId ) ) || 'null'
+		);
+		return Number.isSafeInteger( saved?.entryId ) && saved.entryId > 0
+			? saved.entryId
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function saveEntryId( contestId: string, entryId: number | null ): void {
+	try {
+		if ( entryId === null ) {
+			localStorage.removeItem( entryStorageKey( contestId ) );
+		} else {
+			localStorage.setItem(
+				entryStorageKey( contestId ),
+				JSON.stringify( { entryId } )
+			);
+		}
+	} catch {
+		// Storage is optional; the current session still remembers the entry.
+	}
+}
+
 function votedStorageKey( contestId: string ): string {
 	return `extrachill_pc_voted_${ contestId }`;
 }
@@ -655,11 +687,10 @@ function SubmissionForm( {
 	const [ file, setFile ] = useState< File | null >( null );
 	const [ isSubmitting, setIsSubmitting ] = useState( false );
 	const [ error, setError ] = useState( '' );
-	const [ myEntry, setMyEntry ] = useState< Entry | null >( null );
 	const formRef = useRef< HTMLDivElement | null >( null );
 
 	useEffect( () => {
-		if ( step !== 'details' || myEntry || ! config.turnstileHtml ) {
+		if ( step !== 'details' || ! config.turnstileHtml ) {
 			return;
 		}
 		// The form mounts after the network runtime's initial page scan.
@@ -680,7 +711,7 @@ function SubmissionForm( {
 			}
 		}, 100 );
 		return () => window.clearInterval( timer );
-	}, [ step, myEntry, config.turnstileHtml ] );
+	}, [ step, config.turnstileHtml ] );
 
 	const handleEmailNext = () => {
 		const trimmed = email.trim();
@@ -732,7 +763,6 @@ function SubmissionForm( {
 				body: formData,
 			} ) ) as SubmitResponse;
 
-			setMyEntry( response.entry );
 			onSubmitted( response.entry );
 		} catch ( err ) {
 			const errorData = err as {
@@ -744,7 +774,7 @@ function SubmissionForm( {
 				errorData.code === 'already_entered' &&
 				errorData.data?.entry
 			) {
-				setMyEntry( errorData.data.entry );
+				onSubmitted( errorData.data.entry );
 			} else {
 				setError( errorData.message || 'Submission failed' );
 			}
@@ -762,20 +792,6 @@ function SubmissionForm( {
 			}
 		}
 	};
-
-	if ( myEntry ) {
-		return (
-			<div className="extrachill-blocks-photo-contest-submitted notice notice-success">
-				<h4>You&apos;re in, { myEntry.display_name }! 🎉</h4>
-				<SharePanel
-					config={ config }
-					entry={ myEntry }
-					prompt="Share this to get votes."
-					initialShowQr
-				/>
-			</div>
-		);
-	}
 
 	return (
 		<div ref={ formRef } className="extrachill-blocks-photo-contest-form">
@@ -871,6 +887,21 @@ function SubmissionForm( {
 
 function PhotoContest( config: ContestConfig ) {
 	const [ entries, setEntries ] = useState< Entry[] | null >( null );
+	const [ myEntryId, setMyEntryId ] = useState( () =>
+		getSavedEntryId( config.contestId )
+	);
+	// True only right after entering in this visit: celebrate and open the QR.
+	const [ justEntered, setJustEntered ] = useState( false );
+	const myEntry = entries?.find(
+		( entry ) => entry.id === myEntryId && ! entry.hidden
+	);
+	useEffect( () => {
+		// Only a successful list fetch can establish that a saved entry is stale.
+		if ( entries !== null && myEntryId !== null && ! myEntry ) {
+			saveEntryId( config.contestId, null );
+			setMyEntryId( null );
+		}
+	}, [ entries, myEntryId, myEntry, config.contestId ] );
 	const [ loadError, setLoadError ] = useState( '' );
 	const [ phase, setPhase ] = useState< PhaseState | null >( null );
 	const [ refresh, setRefresh ] = useState( 0 );
@@ -997,11 +1028,14 @@ function PhotoContest( config: ContestConfig ) {
 	};
 
 	const handleSubmitted = ( entry: Entry ) => {
+		saveEntryId( config.contestId, entry.id );
+		setMyEntryId( entry.id );
+		setJustEntered( true );
 		setEntries( ( prev ) => {
-			if ( ! prev || prev.some( ( e ) => e.id === entry.id ) ) {
-				return prev;
+			if ( prev?.some( ( e ) => e.id === entry.id ) ) {
+				return prev.map( ( e ) => ( e.id === entry.id ? entry : e ) );
 			}
-			return [ entry, ...prev ];
+			return [ entry, ...( prev || [] ) ];
 		} );
 	};
 
@@ -1113,12 +1147,44 @@ function PhotoContest( config: ContestConfig ) {
 					Contest opens { config.entriesOpenAtLabel }
 				</div>
 			) }
-			{ entriesOpened && ! entriesClosed && ! showFinalists && (
-				<SubmissionForm
-					config={ config }
-					onSubmitted={ handleSubmitted }
-				/>
+			{ myEntry && (
+				<div className="card extrachill-blocks-photo-contest-submitted">
+					<h4>
+						{ justEntered
+							? `You're in, ${ myEntry.display_name }! 🎉`
+							: `Your entry: ${ myEntry.display_name }` }
+					</h4>
+					<div className="extrachill-blocks-photo-contest-entry-image-wrap">
+						<img
+							className="extrachill-blocks-photo-contest-entry-image"
+							src={ myEntry.image_url }
+							alt={ `${ myEntry.display_name }'s entry` }
+						/>
+					</div>
+					<p>
+						Votes:{ ' ' }
+						<span className="vote-number">
+							{ myEntry.vote_count }
+						</span>
+					</p>
+					<SharePanel
+						config={ config }
+						entry={ myEntry }
+						prompt="Share this to get votes."
+						initialShowQr={ justEntered }
+					/>
+				</div>
 			) }
+			{ ! myEntry &&
+				( myEntryId === null || entries !== null ) &&
+				entriesOpened &&
+				! entriesClosed &&
+				! showFinalists && (
+					<SubmissionForm
+						config={ config }
+						onSubmitted={ handleSubmitted }
+					/>
+				) }
 			{ entriesOpened && entriesClosed && ! showFinalists && (
 				<div className="notice notice-info extrachill-blocks-photo-contest-notice">
 					Entries are closed — voting { votingStatus }!
