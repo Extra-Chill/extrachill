@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.40.3] - 2026-10-23
+
+### Fixed
+- pass live contest phase through the public entries route
+
 ## [0.40.2] - 2026-10-22
 
 ### Changed
