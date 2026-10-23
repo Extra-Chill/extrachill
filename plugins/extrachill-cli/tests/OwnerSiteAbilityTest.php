@@ -111,7 +111,8 @@ namespace {
 
 		$events_source = file_get_contents( dirname( __DIR__ ) . '/inc/Commands/Events/LocationCommand.php' );
 		$artist_source = file_get_contents( dirname( __DIR__ ) . '/inc/Commands/Artists/ArtistCommand.php' );
-		$source        = $events_source . $artist_source;
+		$coverage_src  = file_get_contents( dirname( __DIR__ ) . '/inc/Commands/Events/ArtistCoverageCommand.php' );
+		$source        = $events_source . $artist_source . $coverage_src;
 		owner_site_assert_same( false, strpos( $source, 'WP_PLUGIN_DIR' ), 'Commands must not define sibling plugin paths.' );
 		owner_site_assert_same( false, strpos( $source, 'require_once' ), 'Commands must not require sibling plugin files.' );
 		owner_site_assert_same( false, strpos( $source, 'ExtraChillEvents\\Abilities' ), 'Commands must not name sibling ability classes.' );
