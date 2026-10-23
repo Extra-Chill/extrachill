@@ -20,8 +20,14 @@ function extrachill_hook_taxonomy_badges_above_title() {
 }
 add_action( 'extrachill_above_post_title', 'extrachill_hook_taxonomy_badges_above_title' );
 
+/**
+ * Render the comments section through core's comments_template() so the
+ * comment query runs and have_comments()/wp_list_comments() see the post's
+ * approved comments. Requiring the template directly skips that query and
+ * leaves the list empty.
+ */
 function extrachill_hook_comments_section() {
-	require_once get_template_directory() . '/inc/single/comments.php';
+	comments_template( '/inc/single/comments.php' );
 }
 add_action( 'extrachill_comments_section', 'extrachill_hook_comments_section' );
 
