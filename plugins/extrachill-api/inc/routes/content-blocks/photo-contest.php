@@ -4,10 +4,12 @@
  *
  * POST /wp-json/extrachill/v1/content-blocks/photo-contest/submit
  * GET  /wp-json/extrachill/v1/content-blocks/photo-contest/entries
+ * GET  /wp-json/extrachill/v1/content-blocks/photo-contest/entry-qr
  * POST /wp-json/extrachill/v1/content-blocks/photo-contest/vote
  *
  * Thin transport adapters for the extrachill/photo-contest-submit,
- * extrachill/photo-contest-list, and extrachill/photo-contest-vote abilities
+ * extrachill/photo-contest-list, extrachill/photo-contest-entry-qr, and
+ * extrachill/photo-contest-vote abilities
  * (extrachill-content-blocks plugin). The routes only normalize requests,
  * pass multipart $_FILES data through, and map ability error codes to HTTP
  * statuses. All business logic lives in the owning abilities.
@@ -17,7 +19,8 @@
  * write abilities are hidden from the core REST runner (show_in_rest:false)
  * so this admission layer cannot be bypassed; a REST-visible ability is
  * refused with 503. The entries route stays open like the other cacheable
- * anonymous reads (calendar, taxonomy counts).
+ * anonymous reads (calendar, taxonomy counts). QR reads use the shared
+ * public-read limiter to bound image generation.
  *
  * @package ExtraChillAPI
  */
@@ -28,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_blocks_photo_contest_routes' );
 
-/** Register the photo contest submit, entries, and vote adapters. */
+/** Register the photo contest submit, entries, entry QR, and vote adapters. */
 function extrachill_api_register_content_blocks_photo_contest_routes() {
 	$submit_permission = function_exists( 'ec_turnstile_permission_callback' )
 		? ec_turnstile_permission_callback( 'extrachill_api_content_blocks_photo_contest_submit_permission' )
@@ -116,6 +119,39 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 
 	register_rest_route(
 		'extrachill/v1',
+		'/content-blocks/photo-contest/entry-qr',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'extrachill_api_content_blocks_photo_contest_entry_qr_handler',
+			'permission_callback' => 'extrachill_api_content_blocks_photo_contest_entry_qr_permission',
+			'args'                => array(
+				'post_id'    => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'validate_callback' => function ( $param ) {
+						return is_numeric( $param ) && $param > 0;
+					},
+					'sanitize_callback' => 'absint',
+				),
+				'contest_id' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'entry_id'   => array(
+					'required'          => true,
+					'type'              => 'integer',
+					'validate_callback' => function ( $param ) {
+						return is_numeric( $param ) && $param > 0;
+					},
+					'sanitize_callback' => 'absint',
+				),
+			),
+		)
+	);
+
+	register_rest_route(
+		'extrachill/v1',
 		'/content-blocks/photo-contest/vote',
 		array(
 			'methods'             => WP_REST_Server::CREATABLE,
@@ -192,6 +228,22 @@ function extrachill_api_content_blocks_photo_contest_vote_permission( WP_REST_Re
 	 */
 	$limit = (int) apply_filters( 'extrachill_api_photo_contest_vote_rate_limit', 30 );
 	return extrachill_api_check_public_write_rate_limit( $request, 'photo-contest-vote', $limit );
+}
+
+/**
+ * Apply the shared public-read budget to entry QR generation.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return true|WP_Error
+ */
+function extrachill_api_content_blocks_photo_contest_entry_qr_permission( WP_REST_Request $request ) {
+	/**
+	 * Filters the entry QR reads allowed per client per minute.
+	 *
+	 * @param int $limit Default 30.
+	 */
+	$limit = (int) apply_filters( 'extrachill_api_photo_contest_entry_qr_rate_limit', 30 );
+	return extrachill_api_check_public_read_rate_limit( $request, 'photo-contest-entry-qr', $limit );
 }
 
 /**
@@ -350,6 +402,52 @@ function extrachill_api_content_blocks_photo_contest_entries_handler( WP_REST_Re
 	$response = rest_ensure_response( $data );
 	// Cacheable, but vote counts must stay fresh: keep the window short.
 	$response->header( 'Cache-Control', 'public, max-age=15' );
+
+	return $response;
+}
+
+/**
+ * Handle the public entry QR image read.
+ *
+ * @param WP_REST_Request $request Admitted REST request.
+ * @return WP_REST_Response|WP_Error QR image response.
+ */
+function extrachill_api_content_blocks_photo_contest_entry_qr_handler( WP_REST_Request $request ) {
+	$ability = wp_get_ability( 'extrachill/photo-contest-entry-qr' );
+	if ( ! $ability ) {
+		return new WP_Error(
+			'ability_missing',
+			'Photo contest unavailable. Please ensure extrachill-content-blocks plugin is activated.',
+			array( 'status' => 500 )
+		);
+	}
+
+	$result = $ability->execute(
+		array(
+			'post_id'    => $request->get_param( 'post_id' ),
+			'contest_id' => $request->get_param( 'contest_id' ),
+			'entry_id'   => $request->get_param( 'entry_id' ),
+		)
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return extrachill_api_content_blocks_photo_contest_error(
+			$result,
+			array(
+				'contest_not_found' => 404,
+				'entry_not_found'   => 404,
+			)
+		);
+	}
+
+	$response = rest_ensure_response(
+		array(
+			'image'     => $result['image'],
+			'mime_type' => $result['mime_type'],
+		)
+	);
+	// The image is deterministic per entry; cache successful reads briefly.
+	$response->header( 'Cache-Control', 'public, max-age=60' );
 
 	return $response;
 }

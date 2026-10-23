@@ -14,13 +14,14 @@
  * @package ExtraChill\API\Tests
  */
 
-/** Exercises the photo contest submit/entries/vote transport adapters. */
+/** Exercises the photo contest submit/entries/entry-qr/vote transport adapters. */
 class PhotoContestRoutesTest extends WP_UnitTestCase {
 
 	/** @var string[] */
 	private $ability_names = array(
 		'extrachill/photo-contest-submit',
 		'extrachill/photo-contest-list',
+		'extrachill/photo-contest-entry-qr',
 		'extrachill/photo-contest-vote',
 	);
 
@@ -48,6 +49,11 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 				'entry'   => array( 'id' => 7 ),
 			),
 			'extrachill/photo-contest-list'   => array( 'entries' => array() ),
+			'extrachill/photo-contest-entry-qr' => array(
+				'image'     => 'base64-image',
+				'mime_type' => 'image/png',
+				'internal'  => 'not exposed',
+			),
 			'extrachill/photo-contest-vote'   => array(
 				'message'    => 'Vote counted.',
 				'vote_count' => 3,
@@ -91,17 +97,21 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 		remove_all_filters( 'extrachill_api_photo_contest_submit_rate_limit' );
 		remove_all_filters( 'extrachill_api_photo_contest_vote_rate_limit' );
+		remove_all_filters( 'extrachill_api_photo_contest_entry_qr_rate_limit' );
 
 		parent::tear_down();
 	}
 
-	/** All three public routes are registered with the write admission wired in. */
+	/** All public routes are registered with their admission callbacks wired in. */
 	public function test_routes_are_registered() {
 		$routes = rest_get_server()->get_routes();
 
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/submit', $routes );
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/entries', $routes );
 		$this->assertArrayHasKey( '/extrachill/v1/content-blocks/photo-contest/vote', $routes );
+		$qr = $routes['/extrachill/v1/content-blocks/photo-contest/entry-qr'][0];
+		$this->assertTrue( $qr['methods']['GET'] );
+		$this->assertSame( 'extrachill_api_content_blocks_photo_contest_entry_qr_permission', $qr['permission_callback'] );
 		$this->assertTrue( is_callable( $routes['/extrachill/v1/content-blocks/photo-contest/submit'][0]['permission_callback'] ) );
 		$this->assertSame( 'string', $routes['/extrachill/v1/content-blocks/photo-contest/submit'][0]['args']['turnstile_response']['type'] );
 		$this->assertArrayNotHasKey( 'turnstile_response', $routes['/extrachill/v1/content-blocks/photo-contest/vote'][0]['args'] );
@@ -518,8 +528,102 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		return array(
 			'submit'  => array( 'extrachill/photo-contest-submit', 'extrachill_api_content_blocks_photo_contest_submit_handler' ),
 			'entries' => array( 'extrachill/photo-contest-list', 'extrachill_api_content_blocks_photo_contest_entries_handler' ),
+			'entry-qr' => array( 'extrachill/photo-contest-entry-qr', 'extrachill_api_content_blocks_photo_contest_entry_qr_handler' ),
 			'vote'    => array( 'extrachill/photo-contest-vote', 'extrachill_api_content_blocks_photo_contest_vote_handler' ),
 		);
+	}
+
+	/** QR reads return only the image envelope, with normalized input and a public cache. */
+	public function test_entry_qr_success() {
+		wp_set_current_user( 0 );
+		$request = $this->entry_qr_request();
+		$request->set_query_params( array( 'post_id' => '5', 'contest_id' => '<b>contest-1</b>', 'entry_id' => '7', 'url' => 'https://ignored.example' ) );
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array( 'image' => 'base64-image', 'mime_type' => 'image/png' ), $response->get_data() );
+		$this->assertSame( 'public, max-age=60', $response->get_headers()['Cache-Control'] );
+		$this->assertSame( array( 'post_id' => 5, 'contest_id' => 'contest-1', 'entry_id' => 7 ), $this->ability_inputs['extrachill/photo-contest-entry-qr'][0] );
+	}
+
+	/** Each QR argument is required, and numeric IDs must be positive. */
+	public function test_entry_qr_validates_args() {
+		foreach ( array( 'post_id', 'contest_id', 'entry_id' ) as $field ) {
+			$request = $this->entry_qr_request();
+			$params = $request->get_query_params();
+			unset( $params[ $field ] );
+			$request->set_query_params( $params );
+			$response = rest_get_server()->dispatch( $request );
+			$this->assertSame( 400, $response->get_status() );
+			$this->assertSame( 'rest_missing_callback_param', $response->get_data()['code'] );
+		}
+		foreach ( array( 'post_id', 'entry_id' ) as $field ) {
+			$request = $this->entry_qr_request();
+			$request->set_param( $field, 0 );
+			$response = rest_get_server()->dispatch( $request );
+			$this->assertSame( 400, $response->get_status() );
+			$this->assertSame( 'rest_invalid_param', $response->get_data()['code'] );
+		}
+		$this->assertSame( array(), $this->ability_inputs );
+	}
+
+	/** QR errors use the sibling status mapper, preserving other error data. */
+	public function test_entry_qr_error_statuses() {
+		foreach ( array( 'contest_not_found' => 404, 'entry_not_found' => 404, 'unknown' => 500, 'unavailable' => 503 ) as $code => $status ) {
+			$data = array( 'detail' => 'preserved' );
+			if ( 'unavailable' === $code ) {
+				$data['status'] = 503;
+			} elseif ( 404 === $status ) {
+				$data['status'] = 400;
+			}
+			$this->ability_results['extrachill/photo-contest-entry-qr'] = new WP_Error( $code, 'No QR.', $data );
+			$result = extrachill_api_content_blocks_photo_contest_entry_qr_handler( $this->entry_qr_request() );
+			$this->assertWPError( $result );
+			$this->assertSame( $code, $result->get_error_code() );
+			$this->assertSame( 'No QR.', $result->get_error_message() );
+			$this->assertSame( $status, $result->get_error_data()['status'] );
+			$this->assertSame( 'preserved', $result->get_error_data()['detail'] );
+		}
+	}
+
+	/** The filterable read budget blocks execution and supplies Retry-After. */
+	public function test_entry_qr_read_rate_limit() {
+		$default = null;
+		add_filter( 'extrachill_api_photo_contest_entry_qr_rate_limit', function ( $limit ) use ( &$default ) {
+			$default = $limit;
+			return 1;
+		} );
+		$this->assertSame( 200, rest_get_server()->dispatch( $this->entry_qr_request() )->get_status() );
+		$response = rest_get_server()->dispatch( $this->entry_qr_request() );
+		$this->assertSame( 30, $default );
+		$this->assertSame( 429, $response->get_status() );
+		$this->assertSame( 'public_read_rate_limited', $response->get_data()['code'] );
+		$this->assertArrayHasKey( 'Retry-After', $response->get_data()['data']['headers'] );
+		$this->assertArrayNotHasKey( 'Cache-Control', $response->get_headers() );
+		$this->assertCount( 1, $this->ability_inputs['extrachill/photo-contest-entry-qr'] );
+		$this->assertTrue( extrachill_api_content_blocks_photo_contest_vote_permission( $this->vote_request() ) );
+	}
+
+	/** The parity manifest discovers the literal backing ability automatically. */
+	public function test_entry_qr_is_discovered_for_schema_parity() {
+		$matches = array_filter( extrachill_api_rest_ability_adapter_manifest(), function ( $adapter ) {
+			return '/extrachill/v1/content-blocks/photo-contest/entry-qr' === $adapter['contract']['route'];
+		} );
+		// Route registration can run more than once per process, so assert on the distinct abilities discovered.
+		$this->assertNotEmpty( $matches );
+		$this->assertSame(
+			array( 'extrachill/photo-contest-entry-qr' ),
+			array_values( array_unique( array_map( function ( $adapter ) {
+				return $adapter['contract']['ability'];
+			}, $matches ) ) )
+		);
+	}
+
+	/** Build a valid QR read request. */
+	private function entry_qr_request() {
+		$request = new WP_REST_Request( 'GET', '/extrachill/v1/content-blocks/photo-contest/entry-qr' );
+		$request->set_query_params( array( 'post_id' => 5, 'contest_id' => 'contest-1', 'entry_id' => 7 ) );
+		return $request;
 	}
 
 	/** Build a valid submit request. */

@@ -5,6 +5,11 @@
  * Generates high-resolution print-ready QR codes for any URL.
  * Uses Endroid QR Code library for PNG generation.
  *
+ * Admin-tool route: the backing extrachill/generate-qr-code ability requires
+ * network-admin permission. Despite the open transport callback, non-admin
+ * callers receive 403 ability_invalid_permissions from ability execution.
+ * Public contest entry QR reads use the dedicated photo-contest/entry-qr route.
+ *
  * @endpoint POST /wp-json/extrachill/v1/tools/qr-code
  */
 
