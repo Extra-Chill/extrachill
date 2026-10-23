@@ -469,6 +469,23 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	}
 
 	/** Entries contest_not_found maps to 404. */
+	public function test_entries_passes_live_phase_through() {
+		$phase = array(
+			'entries_closed'          => true,
+			'voting_closed'           => true,
+			'entries_manually_closed' => true,
+			'voting_manually_closed'  => true,
+		);
+		$this->ability_results['extrachill/photo-contest-list'] = array(
+			'entries' => array(),
+			'phase'   => $phase,
+		);
+
+		$response = extrachill_api_content_blocks_photo_contest_entries_handler( $this->entries_request() );
+
+		$this->assertSame( array( 'entries' => array(), 'phase' => $phase ), $response->get_data() );
+	}
+
 	public function test_entries_contest_not_found_maps_to_404() {
 		$this->ability_results['extrachill/photo-contest-list'] = new WP_Error( 'contest_not_found', 'No contest.' );
 

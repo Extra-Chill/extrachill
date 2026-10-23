@@ -341,7 +341,13 @@ function extrachill_api_content_blocks_photo_contest_entries_handler( WP_REST_Re
 	}
 
 	$entries  = is_array( $result ) && array_key_exists( 'entries', $result ) ? $result['entries'] : $result;
-	$response = rest_ensure_response( array( 'entries' => is_array( $entries ) ? array_values( $entries ) : array() ) );
+	$data     = array( 'entries' => is_array( $entries ) ? array_values( $entries ) : array() );
+	// Live contest phase (e.g. a moderator's manual close) rides along so the
+	// public page can switch state without waiting for its cached HTML.
+	if ( is_array( $result ) && isset( $result['phase'] ) && is_array( $result['phase'] ) ) {
+		$data['phase'] = $result['phase'];
+	}
+	$response = rest_ensure_response( $data );
 	// Cacheable, but vote counts must stay fresh: keep the window short.
 	$response->header( 'Cache-Control', 'public, max-age=15' );
 
