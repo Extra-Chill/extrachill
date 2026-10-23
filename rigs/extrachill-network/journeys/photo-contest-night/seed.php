@@ -53,7 +53,7 @@ $postarr  = array(
 	'post_name'    => 'photo-contest-night',
 	'post_status'  => 'publish',
 	'post_type'    => 'page',
-	'post_content' => $content,
+	'post_content' => wp_slash( $content ),
 );
 if ( $existing ) {
 	$postarr['ID'] = $existing->ID;

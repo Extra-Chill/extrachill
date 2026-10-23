@@ -38,7 +38,7 @@ GO = "(()=>{const u=sessionStorage.getItem('rigShare');if(u)location.assign(u.re
 VOTE_STATE = """(()=>{const cards=[...document.querySelectorAll('.extrachill-blocks-photo-contest-entry')];return {focused:!!document.querySelector('.extrachill-blocks-photo-contest-focused'),cards:cards.map(c=>({name:(c.querySelector('.extrachill-blocks-photo-contest-entry-name')||{}).textContent,votes:(c.querySelector('.vote-number')||{}).textContent,button:(c.querySelector('.extrachill-blocks-photo-contest-vote-button')||{}).textContent,disabled:(c.querySelector('.extrachill-blocks-photo-contest-vote-button')||{}).disabled,emailPrompt:!!c.querySelector('.extrachill-blocks-photo-contest-vote-form')})),notices:[...document.querySelectorAll('.extrachill-blocks-photo-contest-container .notice')].map(n=>n.textContent.trim()),entryForm:!!document.querySelector('.extrachill-blocks-photo-contest-form')}})()"""
 voter = [
     {"kind": "navigate", "url": PAGE, "waitFor": "load"},
-    {"kind": "waitFor", "selector": ".extrachill-blocks-photo-contest-config", "state": "attached"},
+    {"kind": "waitFor", "selector": ".extrachill-blocks-photo-contest-form"},
     observe("voter-pick-share", PICK),
     {"kind": "evaluate", "expression": GO},
     wait(5000),
