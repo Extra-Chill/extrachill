@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.33.4] - 2026-10-23
+
+### Fixed
+- scope the pinned gate Homeboy binary so the cache-purge hook runs
+
 ## [2.33.3] - 2026-10-22
 
 ### Fixed
