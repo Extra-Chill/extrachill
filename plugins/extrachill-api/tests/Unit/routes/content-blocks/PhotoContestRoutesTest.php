@@ -429,8 +429,8 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		// The filters receive the documented default caps.
 		$this->assertSame(
 			array(
-				'submit' => 5,
-				'vote'   => 30,
+				'submit' => 20,
+				'vote'   => 120,
 			),
 			$defaults
 		);

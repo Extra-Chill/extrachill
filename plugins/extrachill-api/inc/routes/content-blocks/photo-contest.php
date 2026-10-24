@@ -218,9 +218,12 @@ function extrachill_api_content_blocks_photo_contest_submit_permission( WP_REST_
 	/**
 	 * Filters the photo contest submissions allowed per client per minute.
 	 *
-	 * @param int $limit Default 5.
+	 * Sized for a venue: a crowd behind one shared wifi IP enters at once.
+	 * Turnstile is the primary control.
+	 *
+	 * @param int $limit Default 20.
 	 */
-	$limit = (int) apply_filters( 'extrachill_api_photo_contest_submit_rate_limit', 5 );
+	$limit = (int) apply_filters( 'extrachill_api_photo_contest_submit_rate_limit', 20 );
 	return extrachill_api_check_public_write_rate_limit( $request, 'photo-contest-submit', $limit );
 }
 
@@ -237,9 +240,9 @@ function extrachill_api_content_blocks_photo_contest_vote_permission( WP_REST_Re
 	/**
 	 * Filters the photo contest votes allowed per client per minute.
 	 *
-	 * @param int $limit Default 30.
+	 * @param int $limit Default 120.
 	 */
-	$limit = (int) apply_filters( 'extrachill_api_photo_contest_vote_rate_limit', 30 );
+	$limit = (int) apply_filters( 'extrachill_api_photo_contest_vote_rate_limit', 120 );
 	return extrachill_api_check_public_write_rate_limit( $request, 'photo-contest-vote', $limit );
 }
 
