@@ -1154,4 +1154,15 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertSame( 'photo_contest', $calls[0]['registration_source'] );
 		unset( $GLOBALS['wp_test_abilities']['extrachill/resolve-account-by-email'] );
 	}
+
+	public function test_entrant_who_votes_gets_no_second_participant_event() {
+		$post_id = $this->createContestPost();
+		$a       = $this->submitEntry( $post_id );
+		$b       = $this->submitEntry( $post_id, array( 'email' => 'other@example.com', 'file' => array( 'name' => 'b.jpg', 'tmp_name' => '/tmp/phpB', 'size' => 2048, 'error' => 0 ) ) );
+
+		// ghoul@example.com entered, then votes (case differs): no voter event.
+		$vote = extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, (int) $b['entry']['id'], 'Ghoul@Example.com' );
+		$this->assertFalse( is_wp_error( $vote ) );
+		$this->assertSame( array( 'entrant', 'entrant' ), array_column( $this->participantEvents(), 'role' ) );
+	}
 }

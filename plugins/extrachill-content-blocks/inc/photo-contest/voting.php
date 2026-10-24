@@ -79,7 +79,9 @@ function extrachill_content_blocks_photo_contest_process_vote( $post_id, $contes
 		);
 	}
 
-	if ( extrachill_content_blocks_photo_contest_is_first_vote( $post_id, $contest_id, (string) $email ) ) {
+	// One welcome per person: an entrant already got theirs on entry.
+	if ( extrachill_content_blocks_photo_contest_is_first_vote( $post_id, $contest_id, (string) $email )
+		&& 0 === extrachill_content_blocks_photo_contest_find_entry_by_email( $post_id, $contest_id, (string) $email ) ) {
 		extrachill_content_blocks_photo_contest_fire_participant( 'voter', $post_id, $contest_id, $entry_id, (string) $email );
 	}
 
