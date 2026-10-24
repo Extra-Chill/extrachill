@@ -36,6 +36,13 @@ function extrachill_content_blocks_photo_contest_entry_qr( $post_id, $contest_id
 	}
 
 	$share_url = add_query_arg( 'entry', (int) $entry_id, (string) get_permalink( $post_id ) );
+
+	// The QR for a URL never changes: generate once, serve from cache.
+	$cache_key = 'ec_pc_qr_' . md5( $share_url );
+	$cached    = get_transient( $cache_key );
+	if ( is_array( $cached ) && ! empty( $cached['image'] ) && ! empty( $cached['mime_type'] ) ) {
+		return $cached;
+	}
 	$grant     = static function ( $permission, $ability_name, $input = null ) use ( $share_url ) {
 		if ( 'extrachill/generate-qr-code' === $ability_name && is_array( $input ) && ( $input['url'] ?? null ) === $share_url ) {
 			return true;
@@ -56,5 +63,7 @@ function extrachill_content_blocks_photo_contest_entry_qr( $post_id, $contest_id
 		return extrachill_content_blocks_photo_contest_error( 'qr_generation_failed', __( 'Could not generate QR code.', 'extrachill-content-blocks' ), 503 );
 	}
 
-	return array( 'image' => $result['image'], 'mime_type' => $result['mime_type'] );
+	$qr = array( 'image' => $result['image'], 'mime_type' => $result['mime_type'] );
+	set_transient( $cache_key, $qr, WEEK_IN_SECONDS );
+	return $qr;
 }

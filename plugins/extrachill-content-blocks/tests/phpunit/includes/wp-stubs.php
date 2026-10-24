@@ -19,6 +19,19 @@ if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
 }
 
+if ( ! defined( 'WEEK_IN_SECONDS' ) ) {
+	define( 'WEEK_IN_SECONDS', 604800 );
+}
+
+function get_transient( $key ) {
+	return $GLOBALS['wp_test_transients'][ (string) $key ] ?? false;
+}
+
+function set_transient( $key, $value, $expiration = 0 ) {
+	$GLOBALS['wp_test_transients'][ (string) $key ] = $value;
+	return true;
+}
+
 function wp_stubs_reset(): void {
 	$GLOBALS['wp_test_posts']         = array();
 	$GLOBALS['wp_test_meta']          = array();
@@ -31,6 +44,7 @@ function wp_stubs_reset(): void {
 	$GLOBALS['wp_test_filters']       = array();
 	$GLOBALS['wp_test_subscriptions'] = array();
 	$GLOBALS['wp_test_next_id']       = 1000;
+	$GLOBALS['wp_test_transients']    = array();
 	$GLOBALS['wp_test_timezone']      = 'UTC';
 
 	// Default in-memory entry photo store through the short-circuit filter

@@ -83,4 +83,16 @@ class PhotoContestEntryQrTest extends TestCase {
 	public function test_missing_generator_is_status_coded(): void {
 		$this->assertSame( 503, $this->execute()->get_error_data()['status'] );
 	}
+
+	public function test_qr_is_generated_once_then_served_from_cache(): void {
+		$calls = 0;
+		$this->registerQr( static function () use ( &$calls ) {
+			++$calls;
+			return array( 'image' => base64_encode( 'png' ), 'mime_type' => 'image/png' );
+		} );
+		$first  = $this->execute();
+		$second = $this->execute();
+		$this->assertSame( $first, $second );
+		$this->assertSame( 1, $calls );
+	}
 }
