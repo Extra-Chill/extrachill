@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.1] - 2026-10-24
+
+### Fixed
+- one welcome per person, entrants who vote get no voter email
+
 ## [1.13.0] - 2026-10-24
 
 ### Added
