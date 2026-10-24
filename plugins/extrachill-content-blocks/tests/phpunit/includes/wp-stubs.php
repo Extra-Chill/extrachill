@@ -425,8 +425,12 @@ function esc_html( $text ) {
 	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
 }
 
+function esc_url( $url ) {
+	return htmlspecialchars( (string) $url, ENT_QUOTES, 'UTF-8' );
+}
+
 function make_clickable( $text ) {
-	return preg_replace( '#(https?://[^\s<]+)#', '<a href="$1">$1</a>', (string) $text );
+	return preg_replace( '#(?<![">])(https?://[^\s<"]+)#', '<a href="$1">$1</a>', (string) $text );
 }
 
 function sanitize_text_field( $value ) {

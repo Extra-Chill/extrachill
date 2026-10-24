@@ -1123,13 +1123,13 @@ class PhotoContestLogicTest extends TestCase {
 		$event    = array( 'role' => 'voter', 'email' => 'v@example.com' );
 
 		$m = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/', 'https://community.example.com/claim?key=abc' );
-		$this->assertStringContainsString( 'Set a password to keep it', $m['context']['body_html'] );
+		$this->assertStringContainsString( 'Set your password</a>', $m['context']['body_html'] );
 		$this->assertStringContainsString( 'href="https://community.example.com/claim?key=abc"', $m['context']['body_html'] );
 
 		// Copy placing {claim_link} itself gets no extra paragraph.
 		$settings['welcome_voter_body'] = 'Claim: {claim_link}';
 		$m = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/', 'https://community.example.com/claim?key=abc' );
-		$this->assertStringNotContainsString( 'Set a password', $m['context']['body_html'] );
+		$this->assertStringNotContainsString( 'Set your password', $m['context']['body_html'] );
 
 		// Claimed accounts (no claim link) get nothing extra.
 		$m = extrachill_content_blocks_photo_contest_welcome_message( array( 'welcome_voter_body' => 'Hi.' ), $event, $entry, 'https://example.com/c/' );
@@ -1164,5 +1164,27 @@ class PhotoContestLogicTest extends TestCase {
 		$vote = extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, (int) $b['entry']['id'], 'Ghoul@Example.com' );
 		$this->assertFalse( is_wp_error( $vote ) );
 		$this->assertSame( array( 'entrant', 'entrant' ), array_column( $this->participantEvents(), 'role' ) );
+	}
+
+	public function test_welcome_markdown_links_claim_placement_and_dropped_claim_copy() {
+		$settings = array(
+			'welcome_entrant_body' => "Your costume is in! Share [your entry]({entry_link}).\n\nCalendar: [Charleston shows](https://events.example.com/charleston)\n\nBye.",
+		);
+		$entry = array( 'display_name' => 'Mothman', 'share_url' => 'https://example.com/c/?entry=5' );
+		$event = array( 'role' => 'entrant', 'email' => 'a@example.com' );
+
+		$m    = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/', 'https://community.example.com/reset?key=k&login=a' );
+		$html = $m['context']['body_html'];
+		$this->assertStringContainsString( '<a href="https://example.com/c/?entry=5">your entry</a>', $html );
+		$this->assertStringContainsString( '<a href="https://events.example.com/charleston">Charleston shows</a>', $html );
+		$this->assertStringNotContainsString( '>https://', $html, 'no raw URL text' );
+		$paras = explode( '</p>', $html );
+		$this->assertStringContainsString( 'Set your password</a>', $paras[1], 'claim line is the second paragraph' );
+		$this->assertStringContainsString( 'key=k&amp;login=a', $html );
+
+		// Copy that places {claim_link} is dropped when there is no claim link.
+		$settings['welcome_entrant_body'] = "Hi.\n\n[Set a password]({claim_link}) to keep it.\n\nBye.";
+		$m = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/', '' );
+		$this->assertSame( '<p>Hi.</p><p>Bye.</p>', $m['context']['body_html'] );
 	}
 }

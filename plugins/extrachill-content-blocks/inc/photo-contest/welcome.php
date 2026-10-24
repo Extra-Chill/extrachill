@@ -9,7 +9,9 @@
  * failed send never blocks an entry or vote.
  *
  * Copy placeholders: {name} (entrant), {costume} (entry voted for / entered),
- * {entry_link}, {contest_link}, {claim_link}.
+ * {entry_link}, {contest_link}, {claim_link}. Links: [text](url-or-placeholder);
+ * bare URLs are linkified. Copy containing {claim_link} is dropped when the
+ * participant has no claim link (existing or claimed account).
  *
  * Every participant email also resolves to an Extra Chill account through the
  * platform primitive `extrachill/resolve-account-by-email` (existing account
@@ -103,8 +105,13 @@ function extrachill_content_blocks_photo_contest_welcome_message( array $setting
 		'{contest_link}' => (string) $contest_url,
 		'{claim_link}'   => (string) $claim_url,
 	);
-	if ( '' !== (string) $claim_url && false === strpos( $body, '{claim_link}' ) ) {
-		$body .= "\n\nYour Extra Chill login is ready. Set a password to keep it: {claim_link}";
+	$paragraphs = preg_split( "/\n\s*\n/", str_replace( "\r", '', $body ) );
+	if ( '' === (string) $claim_url ) {
+		// Claimed or existing account: drop copy that points at a claim link.
+		$paragraphs = array_filter( $paragraphs, static fn( $p ) => false === strpos( $p, '{claim_link}' ) );
+	} elseif ( false === strpos( $body, '{claim_link}' ) ) {
+		// New account: claim line right after the opening paragraph.
+		array_splice( $paragraphs, 1, 0, array( "We made you an Extra Chill account with this email, so it's easy to come back. [Set your password]({claim_link}) to log in." ) );
 	}
 
 	$subject = trim( strtr( (string) ( $settings['welcome_subject'] ?? '' ), $vars ) );
@@ -112,18 +119,24 @@ function extrachill_content_blocks_photo_contest_welcome_message( array $setting
 		$subject = 'entrant' === $role ? 'Your entry is in!' : 'Thanks for voting!';
 	}
 
-	// Escape the copy, then substitute (escaped) values and linkify URLs.
-	$html = esc_html( $body );
-	foreach ( $vars as $token => $value ) {
-		$html = str_replace( $token, esc_html( $value ), $html );
-	}
-	$html       = make_clickable( $html );
-	$paragraphs = preg_split( "/\n\s*\n/", str_replace( "\r", '', $html ) );
-	$body_html  = '';
+	// Escape the copy, substitute (escaped) values, then links:
+	// [text](url-or-placeholder) becomes an anchor, bare URLs are linkified.
+	$body_html = '';
 	foreach ( $paragraphs as $paragraph ) {
-		if ( '' !== trim( $paragraph ) ) {
-			$body_html .= '<p>' . nl2br( trim( $paragraph ) ) . '</p>';
+		$html = esc_html( trim( $paragraph ) );
+		if ( '' === $html ) {
+			continue;
 		}
+		foreach ( $vars as $token => $value ) {
+			$html = str_replace( $token, esc_html( $value ), $html );
+		}
+		$html       = preg_replace_callback(
+			'#\[([^\]]+)\]\((https?://[^)\s]+)\)#',
+			static fn( $m ) => '<a href="' . esc_url( html_entity_decode( $m[2] ) ) . '">' . $m[1] . '</a>',
+			$html
+		);
+		$html       = make_clickable( $html );
+		$body_html .= '<p>' . nl2br( $html ) . '</p>';
 	}
 
 	return array(
