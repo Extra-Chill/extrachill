@@ -89,3 +89,11 @@ test( 'unavailable storage is optional for all reads and writes', () => {
 		assert.doesNotThrow( () => api.rememberVote( 'one', 7 ) );
 	}
 } );
+
+test( 'selectHotEntries returns top 3 visible entries with votes, ties by oldest', () => {
+	const { selectHotEntries } = createLoader()( source( 'utils.ts' ) );
+	const e = ( id, vote_count, hidden = false ) => ( { id, vote_count, hidden } );
+	const hot = selectHotEntries( [ e( 1, 2 ), e( 2, 9, true ), e( 3, 5 ), e( 4, 0 ), e( 5, 5 ), e( 6, 1 ) ] );
+	assert.deepEqual( hot.map( ( x ) => x.id ), [ 3, 5, 1 ] );
+	assert.deepEqual( selectHotEntries( [ e( 1, 0 ), e( 2, 3, true ) ] ), [] );
+} );

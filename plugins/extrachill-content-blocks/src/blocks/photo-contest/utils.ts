@@ -1,3 +1,5 @@
+import type { Entry } from './types';
+
 export function isValidEmail( email: string ): boolean {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test( email );
 }
@@ -15,3 +17,20 @@ export function shuffle< T >( items: T[] ): T[] {
 	return copy;
 }
 
+/**
+ * Pick the top N visible entries that have at least one vote.
+ * @param entries Entries.
+ * @param limit   Max entries.
+ */
+export function selectHotEntries<
+	T extends Pick< Entry, 'id' | 'hidden' | 'vote_count' >,
+>( entries: T[], limit = 3 ): T[] {
+	return entries
+		.filter( ( e ) => ! e.hidden && e.vote_count > 0 )
+		.sort( ( a, b ) =>
+			b.vote_count !== a.vote_count
+				? b.vote_count - a.vote_count
+				: a.id - b.id
+		)
+		.slice( 0, limit );
+}

@@ -9,15 +9,19 @@ import type {
 import { runAbility, runReadonlyAbility } from '../api';
 import { getSavedEntryId, saveEntryId } from '../storage';
 import { isClosed, hasOpened } from '../schedule';
-import { shuffle } from '../utils';
+import { shuffle, selectHotEntries } from '../utils';
 import { selectFocusedEntry } from '../focused-entry';
 import { SharePanel } from './SharePanel';
 import { TeamEntryForm } from './TeamEntryForm';
+import { HotStrip } from './HotStrip';
 import { EntryCard } from './EntryCard';
 import { SubmissionForm } from './SubmissionForm';
 
 export function PhotoContest( config: ContestConfig ) {
 	const [ entries, setEntries ] = useState< Entry[] | null >( null );
+	// Leaders snapshotted on the first load so the row doesn't reshuffle
+	// while someone is looking at it; vote counts still update live.
+	const [ hotIds, setHotIds ] = useState< number[] | null >( null );
 	const [ myEntryId, setMyEntryId ] = useState( () =>
 		getSavedEntryId( config.contestId )
 	);
@@ -102,6 +106,13 @@ export function PhotoContest( config: ContestConfig ) {
 					if ( cancelled ) {
 						return;
 					}
+					setHotIds(
+						( previous ) =>
+							previous ??
+							selectHotEntries( response.entries || [] ).map(
+								( e ) => e.id
+							)
+					);
 					setEntries( ( previous ) => {
 						const list = response.entries || [];
 						if ( ! previous ) {
@@ -369,6 +380,15 @@ export function PhotoContest( config: ContestConfig ) {
 						) ) }
 					</div>
 				</>
+			) }
+			{ ! showFinalists && hotIds && hotIds.length > 0 && entries && (
+				<HotStrip
+					entries={ hotIds
+						.map( ( id ) => entries.find( ( e ) => e.id === id ) )
+						.filter( ( e ): e is Entry =>
+							Boolean( e && ! e.hidden )
+						) }
+				/>
 			) }
 			{ ! showFinalists && entries !== null && (
 				<div className="extrachill-blocks-photo-contest-grid">

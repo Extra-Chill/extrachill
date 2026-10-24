@@ -396,3 +396,78 @@
 	margin: 0 auto;
 	background: #fff;
 }
+
+/* HOT: leading entries, snapshotted at page load. Mirrors the events
+   calendar day-group layout (rounded group, pill label, cards inside). */
+.extrachill-blocks-photo-contest-hot {
+	margin: 0 0 20px;
+	padding: 12px;
+	border: 3px solid #fbbf24;
+	border-radius: var(--border-radius-lg, 10px);
+	background: var(--error-color, #dc3232);
+	color: #fff;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.extrachill-blocks-photo-contest-hot-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.extrachill-blocks-photo-contest-hot-badge {
+	padding: 4px 12px;
+	border-radius: var(--border-radius-pill, 50px);
+	background: #fbbf24;
+	color: #000;
+	font-weight: 700;
+	font-size: 0.875em;
+}
+
+.extrachill-blocks-photo-contest-hot-sub {
+	font-size: 0.875em;
+	opacity: 0.9;
+}
+
+.extrachill-blocks-photo-contest-hot-row {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.extrachill-blocks-photo-contest-hot-item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: #fff;
+	text-decoration: none;
+	min-width: 0;
+
+	img {
+		display: block;
+		width: 100%;
+		aspect-ratio: 3 / 4;
+		object-fit: cover;
+		border: 2px solid #fbbf24;
+		border-radius: var(--border-radius-md, 8px);
+	}
+
+	&:hover,
+	&:focus {
+		color: #fff;
+	}
+}
+
+.extrachill-blocks-photo-contest-hot-name {
+	font-weight: 700;
+	font-size: 0.8125em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.extrachill-blocks-photo-contest-hot-votes {
+	font-size: 0.75em;
+	opacity: 0.9;
+}
