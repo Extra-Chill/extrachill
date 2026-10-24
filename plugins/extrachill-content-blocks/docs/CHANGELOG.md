@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.3] - 2026-10-24
+
+### Fixed
+- resolve close times in the site timezone
+
 ## [1.10.2] - 2026-10-24
 
 ### Fixed
