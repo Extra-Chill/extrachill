@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-10-24
+
+### Fixed
+- use real buttons for photo upload so theme button styles apply
+
 ## [1.8.0] - 2026-10-24
 
 ### Added
