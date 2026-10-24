@@ -4,6 +4,7 @@ import './editor.scss';
 import { registerBlockType } from '@wordpress/blocks';
 import {
 	TextControl,
+	TextareaControl,
 	ToggleControl,
 	RangeControl,
 	Notice,
@@ -137,6 +138,34 @@ function Edit( { attributes, setAttributes } ) {
 					onChange: ( finalistCount ) =>
 						setAttributes( { finalistCount } ),
 				} )
+		),
+		createElement(
+			Fragment,
+			{},
+			createElement( 'h4', {}, 'Welcome email' ),
+			createElement(
+				'p',
+				{},
+				'Sent once to each entrant and on a voter\'s first vote. Leave a body empty to skip it. Placeholders: {name}, {costume}, {entry_link}, {contest_link}.'
+			),
+			createElement( TextControl, {
+				label: 'Subject',
+				value: attributes.welcomeSubject,
+				onChange: ( welcomeSubject ) =>
+					setAttributes( { welcomeSubject } ),
+			} ),
+			createElement( TextareaControl, {
+				label: 'Entrant email',
+				value: attributes.welcomeEntrantBody,
+				onChange: ( welcomeEntrantBody ) =>
+					setAttributes( { welcomeEntrantBody } ),
+			} ),
+			createElement( TextareaControl, {
+				label: 'Voter email',
+				value: attributes.welcomeVoterBody,
+				onChange: ( welcomeVoterBody ) =>
+					setAttributes( { welcomeVoterBody } ),
+			} )
 		)
 	);
 }

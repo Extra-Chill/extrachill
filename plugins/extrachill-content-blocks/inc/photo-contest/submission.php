@@ -236,6 +236,8 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 		}
 	}
 
+	extrachill_content_blocks_photo_contest_fire_participant( 'entrant', $post_id, $contest_id, $entry_id, $email );
+
 	return array(
 		'message' => 'Entry submitted! Share your link to get votes.',
 		'entry'   => extrachill_content_blocks_photo_contest_entry_data( $entry_id ),

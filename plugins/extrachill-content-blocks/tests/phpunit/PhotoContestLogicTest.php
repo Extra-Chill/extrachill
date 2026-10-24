@@ -1055,4 +1055,65 @@ class PhotoContestLogicTest extends TestCase {
 
 		$this->assertSame( $og, extrachill_content_blocks_photo_contest_og_overrides( $og, $post_id, 999999 ) );
 	}
+
+	private function participantEvents(): array {
+		return array_values(
+			array_map(
+				static fn( $call ) => $call['args'][0],
+				array_filter( $GLOBALS['wp_test_actions'] ?? array(), static fn( $call ) => 'extrachill_content_blocks_photo_contest_participant' === $call['hook'] )
+			)
+		);
+	}
+
+	public function test_entry_and_first_vote_fire_participant_event_once_per_email() {
+		$post_id = $this->createContestPost();
+		$a       = $this->submitEntry( $post_id );
+		$b       = $this->submitEntry( $post_id, array( 'email' => 'other@example.com', 'file' => array( 'name' => 'b.jpg', 'tmp_name' => '/tmp/phpB', 'size' => 2048, 'error' => 0 ) ) );
+		$a_id    = (int) $a['entry']['id'];
+		$b_id    = (int) $b['entry']['id'];
+
+		extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $a_id, 'fan@example.com' );
+		extrachill_content_blocks_photo_contest_process_vote( $post_id, self::CONTEST_ID, $b_id, 'fan@example.com' );
+
+		$events = $this->participantEvents();
+		$this->assertSame( array( 'entrant', 'entrant', 'voter' ), array_column( $events, 'role' ) );
+		$this->assertSame( 'fan@example.com', $events[2]['email'] );
+		$this->assertSame( $a_id, $events[2]['entry_id'] );
+		$this->assertSame( self::CONTEST_ID, $events[2]['contest_id'] );
+	}
+
+	public function test_team_entry_without_email_fires_no_event() {
+		wp_stubs_set_user_caps( array( 'edit_others_posts' => true ) );
+		$post_id = $this->createContestPost();
+		$this->submitEntry( $post_id, array( 'email' => '' ) );
+		$this->assertSame( array(), $this->participantEvents() );
+	}
+
+	public function test_welcome_message_per_role_and_off_when_empty() {
+		$settings = array(
+			'welcome_subject'      => 'Thanks for joining 🎃',
+			'welcome_entrant_body' => "Hi {name}! Your entry: {entry_link}\n\nCalendar: https://events.extrachill.com",
+			'welcome_voter_body'   => 'You voted for {costume} <b>. More: {contest_link}',
+		);
+		$entry    = array( 'display_name' => 'Vampire <Elvis>', 'share_url' => 'https://example.com/c/?entry=5' );
+		$event    = array( 'role' => 'entrant', 'email' => 'a@example.com' );
+
+		$m = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/' );
+		$this->assertSame( 'a@example.com', $m['to'] );
+		$this->assertSame( 'Thanks for joining 🎃', $m['subject'] );
+		$this->assertSame( 'extrachill/branded', $m['template'] );
+		$this->assertSame( 'https://example.com/c/?entry=5', $m['context']['cta_url'] );
+		$this->assertSame( 'Vampire <Elvis>', $m['context']['recipient_name'] );
+		$this->assertStringContainsString( 'Hi Vampire &lt;Elvis&gt;!', $m['context']['body_html'] );
+		$this->assertStringContainsString( '<a href="https://example.com/c/?entry=5">', $m['context']['body_html'] );
+		$this->assertSame( 2, substr_count( $m['context']['body_html'], '<p>' ) );
+
+		$v = extrachill_content_blocks_photo_contest_welcome_message( $settings, array( 'role' => 'voter', 'email' => 'v@example.com' ), $entry, 'https://example.com/c/' );
+		$this->assertSame( 'https://example.com/c/', $v['context']['cta_url'] );
+		$this->assertSame( '', $v['context']['recipient_name'] );
+		$this->assertStringContainsString( '&lt;b&gt;', $v['context']['body_html'] );
+
+		$settings['welcome_voter_body'] = '  ';
+		$this->assertNull( extrachill_content_blocks_photo_contest_welcome_message( $settings, array( 'role' => 'voter', 'email' => 'v@example.com' ), $entry, 'https://example.com/c/' ) );
+	}
 }

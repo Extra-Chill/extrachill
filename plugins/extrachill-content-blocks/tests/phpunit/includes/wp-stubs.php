@@ -24,6 +24,7 @@ function wp_stubs_reset(): void {
 	$GLOBALS['wp_test_meta']          = array();
 	$GLOBALS['wp_test_blocks']        = array();
 	$GLOBALS['wp_test_comments']      = array();
+	$GLOBALS['wp_test_actions']       = array();
 	$GLOBALS['wp_test_comment_meta']  = array();
 	$GLOBALS['wp_test_abilities']     = array();
 	$GLOBALS['wp_test_user_caps']     = array();
@@ -170,6 +171,11 @@ function wp_get_ability( $name ) {
 
 function add_action( ...$args ) {
 	return true;
+}
+
+/** Records fired actions for assertions. */
+function do_action( $hook, ...$args ) {
+	$GLOBALS['wp_test_actions'][] = array( 'hook' => (string) $hook, 'args' => $args );
 }
 
 /**
@@ -374,7 +380,11 @@ function get_comments( array $args ) {
 		}
 		if ( isset( $args['meta_key'], $args['meta_value'] ) ) {
 			$meta = $GLOBALS['wp_test_comment_meta'][ (int) $comment->comment_ID ] ?? array();
-			if ( ! isset( $meta[ $args['meta_key'] ] ) || (string) $meta[ $args['meta_key'] ] !== (string) $args['meta_value'] ) {
+			if ( ! isset( $meta[ $args['meta_key'] ] ) ) {
+				continue;
+			}
+			$like = 'LIKE' === ( $args['meta_compare'] ?? '=' );
+			if ( $like ? ! str_contains( (string) $meta[ $args['meta_key'] ], (string) $args['meta_value'] ) : (string) $meta[ $args['meta_key'] ] !== (string) $args['meta_value'] ) {
 				continue;
 			}
 		}
@@ -410,6 +420,14 @@ function add_query_arg( $key, $value, $url ) {
 }
 
 // ─── Formatting / validation helpers ─────────────────────────────────────────
+
+function esc_html( $text ) {
+	return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+}
+
+function make_clickable( $text ) {
+	return preg_replace( '#(https?://[^\s<]+)#', '<a href="$1">$1</a>', (string) $text );
+}
 
 function sanitize_text_field( $value ) {
 	return trim( preg_replace( '/[\r\n\t]+/', ' ', strip_tags( (string) $value ) ) );

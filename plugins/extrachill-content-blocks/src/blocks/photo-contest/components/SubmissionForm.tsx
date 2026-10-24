@@ -296,8 +296,9 @@ export function SubmissionForm( {
 								/>
 							</label>
 							<p>
-								So we can reach you if you win. One entry per
-								email.
+								{ config.welcomeEntrant
+									? "So we can reach you if you win. We'll email you your entry link. One entry per email."
+									: 'So we can reach you if you win. One entry per email.' }
 							</p>
 							<label>
 								Instagram (optional)

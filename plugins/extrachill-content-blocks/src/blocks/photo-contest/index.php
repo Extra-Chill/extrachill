@@ -38,6 +38,8 @@ function extrachill_content_blocks_photo_contest_render_config( array $attribute
 		'showFinalists'  => ! empty( $attributes['showFinalists'] ),
 		'finalistCount'  => isset( $attributes['finalistCount'] ) ? max( 1, (int) $attributes['finalistCount'] ) : 10,
 		'isAdmin'        => is_admin(),
+		'welcomeEntrant' => '' !== trim( (string) ( $attributes['welcomeEntrantBody'] ?? '' ) ),
+		'welcomeVoter'   => '' !== trim( (string) ( $attributes['welcomeVoterBody'] ?? '' ) ),
 	);
 
 	// Resolve every window date once in the site timezone, not against the

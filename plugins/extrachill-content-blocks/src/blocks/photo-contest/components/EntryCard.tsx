@@ -274,6 +274,8 @@ export function EntryCard( {
 								<p>
 									We'll remember it, so every other vote is
 									one tap.
+									{ config.welcomeVoter &&
+										" We'll send you a quick thank-you email." }
 								</p>
 								<button
 									className="button-1 button-large"

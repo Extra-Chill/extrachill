@@ -24,6 +24,7 @@ require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/submissio
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/voting.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/moderation.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/newsletter.php';
+require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/inc/photo-contest/welcome.php';
 
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/src/blocks/image-voting/index.php';
 require_once EXTRACHILL_CONTENT_BLOCKS_TEST_ROOT . '/src/blocks/photo-contest/index.php';

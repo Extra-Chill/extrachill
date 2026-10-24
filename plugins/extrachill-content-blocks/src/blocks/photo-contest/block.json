@@ -65,6 +65,18 @@
     "finalistCount": {
       "type": "number",
       "default": 10
+    },
+    "welcomeSubject": {
+      "type": "string",
+      "default": ""
+    },
+    "welcomeEntrantBody": {
+      "type": "string",
+      "default": ""
+    },
+    "welcomeVoterBody": {
+      "type": "string",
+      "default": ""
     }
   },
   "supports": {

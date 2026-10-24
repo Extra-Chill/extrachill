@@ -74,6 +74,7 @@ function extrachill_content_blocks_load_photo_contest_domain() {
 	require_once $domain_dir . '/voting.php';
 	require_once $domain_dir . '/moderation.php';
 	require_once $domain_dir . '/newsletter.php';
+	require_once $domain_dir . '/welcome.php';
 }
 extrachill_content_blocks_load_photo_contest_domain();
 

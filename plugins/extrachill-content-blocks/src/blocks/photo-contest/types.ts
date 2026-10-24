@@ -11,6 +11,8 @@ export interface ContestConfig {
 	showFinalists: boolean;
 	finalistCount: number;
 	isAdmin: boolean;
+	welcomeEntrant?: boolean;
+	welcomeVoter?: boolean;
 	canModerate: boolean;
 	restNonce: string;
 	turnstileHtml: string;

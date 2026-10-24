@@ -154,12 +154,15 @@ function extrachill_content_blocks_photo_contest_get_settings( $post_id, $contes
 	}
 
 	$settings = array(
-		'entries_open_at'  => (string) ( $attrs['entriesOpenAt'] ?? '' ),
-		'voting_opens_at'  => (string) ( $attrs['votingOpensAt'] ?? '' ),
-		'entries_close_at' => (string) ( $attrs['entriesCloseAt'] ?? '' ),
-		'voting_closes_at' => (string) ( $attrs['votingClosesAt'] ?? '' ),
-		'show_finalists'   => (bool) ( $attrs['showFinalists'] ?? false ),
-		'finalist_count'   => max( 1, (int) ( $attrs['finalistCount'] ?? 10 ) ),
+		'entries_open_at'      => (string) ( $attrs['entriesOpenAt'] ?? '' ),
+		'voting_opens_at'      => (string) ( $attrs['votingOpensAt'] ?? '' ),
+		'entries_close_at'     => (string) ( $attrs['entriesCloseAt'] ?? '' ),
+		'voting_closes_at'     => (string) ( $attrs['votingClosesAt'] ?? '' ),
+		'show_finalists'       => (bool) ( $attrs['showFinalists'] ?? false ),
+		'finalist_count'       => max( 1, (int) ( $attrs['finalistCount'] ?? 10 ) ),
+		'welcome_subject'      => (string) ( $attrs['welcomeSubject'] ?? '' ),
+		'welcome_entrant_body' => (string) ( $attrs['welcomeEntrantBody'] ?? '' ),
+		'welcome_voter_body'   => (string) ( $attrs['welcomeVoterBody'] ?? '' ),
 	);
 
 	// Separate keys avoid read-modify-write races between phases/contests.

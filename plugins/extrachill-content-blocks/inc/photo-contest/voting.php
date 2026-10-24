@@ -79,6 +79,10 @@ function extrachill_content_blocks_photo_contest_process_vote( $post_id, $contes
 		);
 	}
 
+	if ( extrachill_content_blocks_photo_contest_is_first_vote( $post_id, $contest_id, (string) $email ) ) {
+		extrachill_content_blocks_photo_contest_fire_participant( 'voter', $post_id, $contest_id, $entry_id, (string) $email );
+	}
+
 	return array(
 		'message'    => (string) $result['message'],
 		'vote_count' => (int) $result['vote_count'],
