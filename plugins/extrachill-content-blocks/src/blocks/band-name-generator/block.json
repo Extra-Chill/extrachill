@@ -1,6 +1,6 @@
 {
    "apiVersion": 3,
-   "version": "1.9.0",
+   "version": "1.10.0",
    "name": "extrachill/band-name-generator",
   "title": "Band Name Generator",
   "icon": "admin-users",

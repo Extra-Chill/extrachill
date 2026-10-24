@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2026-10-24
+
+### Added
+- HOT row showing the top 3 entries by votes
+
 ## [1.9.0] - 2026-10-24
 
 ### Added
