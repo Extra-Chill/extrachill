@@ -52,7 +52,7 @@ function extrachill_content_blocks_register_photo_contest_submit_ability(): void
 					'email'        => array(
 						'type'        => 'string',
 						'format'      => 'email',
-						'description' => __( 'Entrant email (dedup key and newsletter opt-in).', 'extrachill-content-blocks' ),
+						'description' => __( 'Entrant email (dedup key and newsletter opt-in). Required unless the caller can moderate.', 'extrachill-content-blocks' ),
 					),
 					'display_name' => array(
 						'type'        => 'string',
@@ -71,7 +71,7 @@ function extrachill_content_blocks_register_photo_contest_submit_ability(): void
 						'description' => __( 'Uploaded photo file data from $_FILES (passed through by the REST route).', 'extrachill-content-blocks' ),
 					),
 				),
-				'required'   => array( 'post_id', 'contest_id', 'email', 'display_name', 'photo' ),
+				'required'   => array( 'post_id', 'contest_id', 'display_name', 'photo' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',

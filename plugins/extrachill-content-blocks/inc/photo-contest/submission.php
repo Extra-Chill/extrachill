@@ -149,7 +149,11 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 		);
 	}
 
-	if ( ! is_email( $email ) ) {
+	// Team-added entries: a logged-in moderator can enter someone without an
+	// email (backup path when the entrant can't or won't submit themselves).
+	$team_added = extrachill_content_blocks_photo_contest_can_moderate();
+
+	if ( ! ( $team_added && '' === $email ) && ! is_email( $email ) ) {
 		return extrachill_content_blocks_photo_contest_error(
 			'invalid_email',
 			'A valid email address is required.',
@@ -167,7 +171,7 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 
 	// One entry per email per contest. Return the existing entry so the
 	// entrant gets their share link back instead of a dead end.
-	$existing_id = extrachill_content_blocks_photo_contest_find_entry_by_email( $post_id, $contest_id, $email );
+	$existing_id = '' === $email ? 0 : extrachill_content_blocks_photo_contest_find_entry_by_email( $post_id, $contest_id, $email );
 	if ( $existing_id > 0 ) {
 		return extrachill_content_blocks_photo_contest_error(
 			'already_entered',
@@ -202,7 +206,12 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 	$entry_id = (int) $stored;
 
 	update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_CONTEST, $contest_id );
-	update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_EMAIL, $email );
+	if ( '' !== $email ) {
+		update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_EMAIL, $email );
+	}
+	if ( $team_added ) {
+		update_post_meta( $entry_id, '_photo_contest_added_by', get_current_user_id() );
+	}
 	update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_NAME, $display_name );
 	if ( '' !== $photo_hash ) {
 		update_post_meta( $entry_id, EXTRACHILL_PHOTO_CONTEST_META_HASH, $photo_hash );
@@ -214,7 +223,7 @@ function extrachill_content_blocks_photo_contest_submit_entry( array $args ) {
 	// Newsletter sync (non-blocking), dedicated photo_contest integration.
 	// extrachill_network_subscribe is a cross-plugin bridge (extrachill-newsletter),
 	// so the function_exists guard stays.
-	if ( function_exists( 'extrachill_network_subscribe' ) ) {
+	if ( '' !== $email && function_exists( 'extrachill_network_subscribe' ) ) {
 		$subscription_result = extrachill_network_subscribe( $email, 'photo_contest' );
 		if ( empty( $subscription_result['success'] ) ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log

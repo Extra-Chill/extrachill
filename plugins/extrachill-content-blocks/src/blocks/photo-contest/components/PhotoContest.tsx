@@ -12,6 +12,7 @@ import { isClosed, hasOpened } from '../schedule';
 import { shuffle } from '../utils';
 import { selectFocusedEntry } from '../focused-entry';
 import { SharePanel } from './SharePanel';
+import { TeamEntryForm } from './TeamEntryForm';
 import { EntryCard } from './EntryCard';
 import { SubmissionForm } from './SubmissionForm';
 
@@ -235,6 +236,10 @@ export function PhotoContest( config: ContestConfig ) {
 						</button>
 					);
 				} ) }
+				<TeamEntryForm
+					config={ config }
+					onAdded={ () => setRefresh( ( value ) => value + 1 ) }
+				/>
 			</div>
 			{ moderationError && (
 				<p className="notice notice-error" role="alert">

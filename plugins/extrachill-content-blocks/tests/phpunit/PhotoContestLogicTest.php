@@ -381,6 +381,31 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertDomainError( $no_name, 'missing_name', 400 );
 	}
 
+	public function test_guest_needs_email_but_moderator_can_add_entry_without_one() {
+		$post_id = $this->createContestPost();
+
+		$guest = $this->submitEntry( $post_id, array( 'email' => '' ) );
+		$this->assertDomainError( $guest, 'invalid_email', 400 );
+
+		wp_stubs_set_user_caps( array( 'edit_others_posts' ) );
+		$GLOBALS['wp_test_user_id'] = 38;
+
+		$first  = $this->submitEntry( $post_id, array( 'email' => '' ) );
+		$second = $this->submitEntry(
+			$post_id,
+			array(
+				'email'        => '',
+				'display_name' => 'Second Ghoul',
+			)
+		);
+		unset( $GLOBALS['wp_test_user_id'] );
+
+		$this->assertFalse( is_wp_error( $first ) );
+		$this->assertFalse( is_wp_error( $second ), 'Email-less team entries do not dedupe against each other.' );
+		$this->assertSame( '', get_post_meta( $first['entry']['id'], EXTRACHILL_PHOTO_CONTEST_META_EMAIL, true ) );
+		$this->assertSame( 38, (int) get_post_meta( $first['entry']['id'], '_photo_contest_added_by', true ) );
+	}
+
 	/**
 	 * The stored handle is rendered verbatim into instagram.com profile links
 	 * on the frontend, so normalization must reduce any input shape to

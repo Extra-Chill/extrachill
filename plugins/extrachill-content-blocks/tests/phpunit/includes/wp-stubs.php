@@ -447,6 +447,10 @@ function is_user_logged_in() {
  * Capability checks read the caps granted via wp_stubs_set_user_caps();
  * the default (empty) models an anonymous visitor.
  */
+function get_current_user_id() {
+	return (int) ( $GLOBALS['wp_test_user_id'] ?? 0 );
+}
+
 function current_user_can( $capability ) {
 	return in_array( (string) $capability, $GLOBALS['wp_test_user_caps'] ?? array(), true );
 }
