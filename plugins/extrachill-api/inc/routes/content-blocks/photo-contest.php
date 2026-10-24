@@ -33,9 +33,20 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_b
 
 /** Register the photo contest submit, entries, entry QR, and vote adapters. */
 function extrachill_api_register_content_blocks_photo_contest_routes() {
-	$submit_permission = function_exists( 'ec_turnstile_permission_callback' )
+	$public_submit_permission = function_exists( 'ec_turnstile_permission_callback' )
 		? ec_turnstile_permission_callback( 'extrachill_api_content_blocks_photo_contest_submit_permission' )
 		: 'extrachill_api_content_blocks_photo_contest_submit_permission';
+
+	// Contest moderators (logged in, nonce-authenticated) add entries on
+	// someone's behalf: no Turnstile or public-write budget. The ability
+	// owns what a moderator may do differently (e.g. omit the email).
+	$submit_permission = static function ( WP_REST_Request $request ) use ( $public_submit_permission ) {
+		if ( function_exists( 'extrachill_content_blocks_photo_contest_can_moderate' )
+			&& extrachill_content_blocks_photo_contest_can_moderate() ) {
+			return true;
+		}
+		return call_user_func( $public_submit_permission, $request );
+	};
 
 	register_rest_route(
 		'extrachill/v1',
@@ -58,8 +69,10 @@ function extrachill_api_register_content_blocks_photo_contest_routes() {
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
+				// Required for the public; contest moderators may omit it
+				// (enforced by the ability).
 				'email'        => array(
-					'required'          => true,
+					'required'          => false,
 					'type'              => 'string',
 					'format'            => 'email',
 					'maxLength'         => 254,
@@ -318,11 +331,17 @@ function extrachill_api_content_blocks_photo_contest_submit_handler( WP_REST_Req
 	$input = array(
 		'post_id'      => $request->get_param( 'post_id' ),
 		'contest_id'   => $request->get_param( 'contest_id' ),
-		'email'        => $request->get_param( 'email' ),
 		'display_name' => $request->get_param( 'display_name' ),
 		'instagram'    => (string) $request->get_param( 'instagram' ),
 		'website'      => (string) $request->get_param( 'website' ),
 	);
+
+	// Omitted for moderator-added entries; the ability's email format check
+	// would reject an empty string.
+	$email = (string) $request->get_param( 'email' );
+	if ( '' !== $email ) {
+		$input['email'] = $email;
+	}
 
 	// Pass the multipart photo upload through untouched.
 	$files = $request->get_file_params();

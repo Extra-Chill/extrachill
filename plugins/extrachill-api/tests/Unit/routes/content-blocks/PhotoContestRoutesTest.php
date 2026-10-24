@@ -145,6 +145,38 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		$this->assertCount( 1, $this->rate_counts );
 	}
 
+	/** An omitted email is not forwarded, so the ability decides (moderators may omit it). */
+	public function test_submit_without_email_omits_it_from_ability_input() {
+		$request = $this->submit_request();
+		$params  = $request->get_body_params();
+		unset( $params['email'] );
+		$request->set_body_params( $params );
+
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertArrayNotHasKey( 'email', $this->ability_inputs['extrachill/photo-contest-submit'][0] );
+	}
+
+	/** Contest moderators skip Turnstile and the public-write budget. */
+	public function test_moderator_submit_skips_turnstile_and_rate_limit() {
+		if ( ! function_exists( 'ec_turnstile_permission_callback' ) || ! function_exists( 'extrachill_content_blocks_photo_contest_can_moderate' ) ) {
+			$this->markTestSkipped( 'Turnstile primitive or content-blocks moderation check not loaded.' );
+		}
+
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
+		$request = $this->submit_request();
+		$params  = $request->get_body_params();
+		unset( $params['turnstile_response'] );
+		$request->set_body_params( $params );
+
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( array(), $this->rate_counts );
+	}
+
 	/** Missing required submit fields are rejected before the ability runs. */
 	public function test_submit_requires_args() {
 		$request = new WP_REST_Request( 'POST', '/extrachill/v1/content-blocks/photo-contest/submit' );
