@@ -275,6 +275,12 @@ export function PhotoContest( config: ContestConfig ) {
 					onVoted={ handleVoted }
 					onHiddenChange={ handleHiddenChange }
 				/>
+				<SharePanel
+					config={ config }
+					entry={ focusedEntry }
+					prompt="Share this costume or show the QR to get votes."
+					initialShowQr={ false }
+				/>
 				<p className="extrachill-blocks-photo-contest-see-all">
 					<a href={ galleryUrl.href }>See all entries</a>
 				</p>
