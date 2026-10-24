@@ -12,6 +12,13 @@
  * WP_Term_Query args (`wp_sitemaps_taxonomies_query_args`), so one flag plus
  * a `terms_clauses` condition keeps the URL list and pagination consistent.
  *
+ * The `terms_clauses` callback is registered only once a sitemap term query
+ * is being built. `terms_clauses` runs for every term query on the network,
+ * and consumers such as data-machine-events treat any registered callback
+ * there as a term-query customization that disables their grouped SQL fast
+ * path. A request-wide registration pushed event filter counts onto an
+ * unbounded fallback and exhausted memory on past-event archives.
+ *
  * @package ExtraChill\SEO
  */
 
@@ -69,6 +76,8 @@ function ec_seo_sitemap_exclude_sparse_terms( $args, $taxonomy ) {
 
 	$args[ EC_SEO_SITEMAP_MIN_COUNT_ARG ] = EC_SEO_MIN_INDEXABLE_TERM_COUNT;
 
+	ec_seo_register_sitemap_min_count_clause();
+
 	return $args;
 }
 add_filter( 'wp_sitemaps_taxonomies_query_args', __NAMESPACE__ . '\\ec_seo_sitemap_exclude_sparse_terms', 10, 2 );
@@ -91,4 +100,24 @@ function ec_seo_sitemap_min_count_clause( $clauses, $taxonomies, $args ) {
 
 	return $clauses;
 }
-add_filter( 'terms_clauses', __NAMESPACE__ . '\\ec_seo_sitemap_min_count_clause', 10, 3 );
+
+/**
+ * Register the sitemap minimum-count clause for the current request.
+ *
+ * Called only from the sitemap query-args filter so non-sitemap requests
+ * never carry a `terms_clauses` callback.
+ *
+ * @return bool True when the clause was registered by this call.
+ */
+function ec_seo_register_sitemap_min_count_clause(): bool {
+	static $registered = false;
+
+	if ( $registered ) {
+		return false;
+	}
+
+	$registered = true;
+	add_filter( 'terms_clauses', __NAMESPACE__ . '\\ec_seo_sitemap_min_count_clause', 10, 3 );
+
+	return true;
+}
