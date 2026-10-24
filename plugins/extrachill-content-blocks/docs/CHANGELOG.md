@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0] - 2026-10-24
+
+### Added
+- moderators can add an entry for someone
+
 ## [1.8.2] - 2026-10-24
 
 ### Fixed
