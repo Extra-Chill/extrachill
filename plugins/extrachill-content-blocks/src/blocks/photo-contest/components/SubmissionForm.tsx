@@ -25,7 +25,9 @@ export function SubmissionForm( {
 	const [ submitted, setSubmitted ] = useState< Entry | null >( null );
 	const [ alreadyEntered, setAlreadyEntered ] = useState( false );
 	const [ preview, setPreview ] = useState( '' );
-	const [ email, setEmail ] = useState( getSavedEmail() );
+	const [ email, setEmail ] = useState(
+		getSavedEmail() || config.voterEmail || ''
+	);
 	const [ displayName, setDisplayName ] = useState( '' );
 	const [ instagram, setInstagram ] = useState( '' );
 	const [ honeypot, setHoneypot ] = useState( '' );
