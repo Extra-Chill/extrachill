@@ -1,22 +1,12 @@
 const assert = require( 'node:assert/strict' );
-const fs = require( 'node:fs' );
 const path = require( 'node:path' );
 const test = require( 'node:test' );
-const vm = require( 'node:vm' );
-const ts = require( 'typescript' );
+const createLoader = require( './helpers/load-typescript' );
 
-const source = fs.readFileSync(
-	path.join( __dirname, '../src/blocks/photo-contest/focused-entry.ts' ),
-	'utf8'
+const load = createLoader( { URLSearchParams } );
+const { selectFocusedEntry } = load(
+	path.join( __dirname, '../src/blocks/photo-contest/focused-entry.ts' )
 );
-const context = vm.createContext( { exports: {}, URLSearchParams } );
-vm.runInContext(
-	ts.transpileModule( source, {
-		compilerOptions: { module: ts.ModuleKind.CommonJS },
-	} ).outputText,
-	context
-);
-const { selectFocusedEntry } = context.exports;
 const entries = [ { id: 1 }, { id: 2 }, { id: 3, hidden: true } ];
 
 test( 'valid deep link selects only the requested visible entry', () => {

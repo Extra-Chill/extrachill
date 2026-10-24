@@ -1,9 +1,7 @@
 const assert = require( 'node:assert/strict' );
-const fs = require( 'node:fs' );
 const path = require( 'node:path' );
 const test = require( 'node:test' );
-const vm = require( 'node:vm' );
-const ts = require( 'typescript' );
+const createLoader = require( './helpers/load-typescript' );
 
 function harness() {
 	const storage = new Map();
@@ -45,20 +43,8 @@ function harness() {
 			state[ index ] = deps;
 		},
 	};
-	const context = vm.createContext( {
-		exports: {},
+	const load = createLoader( {
 		React: { Fragment: 'fragment' },
-		require: ( name ) =>
-			name === '@wordpress/element'
-				? element
-				: name === './focused-entry'
-				? { selectFocusedEntry: () => null }
-				: {
-						default: async () => {
-							if ( response instanceof Error ) throw response;
-							return response;
-						},
-				  },
 		document: { readyState: 'loading', addEventListener() {} },
 		window: {
 			location: { search: '' },
@@ -75,33 +61,24 @@ function harness() {
 		FormData: class {
 			append() {}
 		},
+	}, {
+		'@wordpress/element': element,
+		'../focused-entry': { selectFocusedEntry: () => null },
+		'@wordpress/api-fetch': {
+			default: async () => {
+				if ( response instanceof Error ) throw response;
+				return response;
+			},
+		},
 	} );
-	const source = fs.readFileSync(
-		path.join( __dirname, '../src/blocks/photo-contest/view.tsx' ),
-		'utf8'
-	);
-	vm.runInContext(
-		ts
-			.transpileModule(
-				source + '\nexport { PhotoContest, SubmissionForm };',
-				{
-					compilerOptions: {
-						module: ts.ModuleKind.CommonJS,
-						jsx: ts.JsxEmit.React,
-						jsxFactory: 'createElement',
-					},
-				}
-			)
-			.outputText.replace(
-				/createElement\(/g,
-				'require("@wordpress/element").createElement('
-			),
-		context
-	);
+	const components = {
+		...load( path.join( __dirname, '../src/blocks/photo-contest/components/PhotoContest.tsx' ) ),
+		...load( path.join( __dirname, '../src/blocks/photo-contest/components/SubmissionForm.tsx' ) ),
+	};
 	return {
 		storage,
 		poll: () => poll(),
-		components: context.exports,
+		components,
 		response: ( value ) => {
 			response = value;
 		},
