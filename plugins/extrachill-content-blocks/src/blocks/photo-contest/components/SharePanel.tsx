@@ -1,5 +1,5 @@
-import { useState, useEffect } from '@wordpress/element';
-import apiFetch from '@wordpress/api-fetch';
+import { useState } from '@wordpress/element';
+import { useEntryQr } from '../use-entry-qr';
 import type { ContestConfig, Entry } from '../types';
 
 export function SharePanel( {
@@ -7,56 +7,27 @@ export function SharePanel( {
 	entry,
 	prompt,
 	initialShowQr = false,
+	qrToggle = true,
 }: {
 	entry: Entry;
 	prompt: string;
 	initialShowQr?: boolean;
+	/** False when the QR is already on the photo. */
+	qrToggle?: boolean;
 	config: ContestConfig;
 } ) {
 	const [ copied, setCopied ] = useState( false );
 	const [ showQr, setShowQr ] = useState( initialShowQr );
-	const [ qrImage, setQrImage ] = useState( '' );
-	const [ qrError, setQrError ] = useState( '' );
 	const [ qrAttempt, setQrAttempt ] = useState( 0 );
-
-	useEffect( () => {
-		if ( ! showQr ) {
-			return;
-		}
-		let cancelled = false;
-		setQrImage( '' );
-		setQrError( '' );
-		apiFetch( {
-			path: `/extrachill/v1/content-blocks/photo-contest/entry-qr?post_id=${
-				config.postId
-			}&contest_id=${ encodeURIComponent( config.contestId ) }&entry_id=${
-				entry.id
-			}`,
-			method: 'GET',
-		} )
-			.then( ( result ) => {
-				const { image, mime_type: mimeType } = result as {
-					image?: string;
-					mime_type?: string;
-				};
-				if ( ! image || ! mimeType ) {
-					throw new Error( 'Missing QR image' );
-				}
-				if ( ! cancelled ) {
-					setQrImage( `data:${ mimeType };base64,${ image }` );
-				}
-			} )
-			.catch( () => {
-				if ( ! cancelled ) {
-					setQrError(
-						'Could not load QR code. Copy the link or try again.'
-					);
-				}
-			} );
-		return () => {
-			cancelled = true;
-		};
-	}, [ showQr, config.postId, config.contestId, entry.id, qrAttempt ] );
+	const { image: qrImage, error: qrFailed } = useEntryQr(
+		config,
+		entry.id,
+		showQr,
+		qrAttempt
+	);
+	const qrError = qrFailed
+		? 'Could not load QR code. Copy the link or try again.'
+		: '';
 	const shareText = `Vote for ${ entry.display_name }!`;
 	const canWebShare = typeof navigator !== 'undefined' && !! navigator.share;
 
@@ -92,15 +63,21 @@ export function SharePanel( {
 					className="button-1 button-medium"
 					onClick={ canWebShare ? webShare : copyLink }
 				>
-					{ canWebShare ? 'Share my link' : copied ? 'Copied!' : 'Copy my link' }
+					{ canWebShare
+						? 'Share my link'
+						: copied
+						? 'Copied!'
+						: 'Copy my link' }
 				</button>
-				<button
-					className="button-2 button-medium"
-					aria-expanded={ showQr }
-					onClick={ () => setShowQr( ! showQr ) }
-				>
-					{ showQr ? 'Hide QR' : 'Show QR' }
-				</button>
+				{ qrToggle && (
+					<button
+						className="button-2 button-medium"
+						aria-expanded={ showQr }
+						onClick={ () => setShowQr( ! showQr ) }
+					>
+						{ showQr ? 'Hide QR' : 'Show QR' }
+					</button>
+				) }
 			</div>
 			{ showQr && (
 				<div
@@ -133,4 +110,3 @@ export function SharePanel( {
 		</div>
 	);
 }
-

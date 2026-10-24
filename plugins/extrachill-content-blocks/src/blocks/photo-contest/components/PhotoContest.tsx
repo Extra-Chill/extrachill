@@ -14,6 +14,7 @@ import { selectFocusedEntry } from '../focused-entry';
 import { SharePanel } from './SharePanel';
 import { TeamEntryForm } from './TeamEntryForm';
 import { HotStrip } from './HotStrip';
+import { PhotoQr } from './PhotoQr';
 import { EntryCard } from './EntryCard';
 import { SubmissionForm } from './SubmissionForm';
 
@@ -280,6 +281,7 @@ export function PhotoContest( config: ContestConfig ) {
 					entry={ focusedEntry }
 					prompt="Share this costume or show the QR to get votes."
 					initialShowQr={ false }
+					qrToggle={ false }
 				/>
 				<p className="extrachill-blocks-photo-contest-see-all">
 					<a href={ galleryUrl.href }>See all entries</a>
@@ -320,6 +322,11 @@ export function PhotoContest( config: ContestConfig ) {
 							src={ myEntry.image_url }
 							alt={ `${ myEntry.display_name }'s entry` }
 						/>
+						<PhotoQr
+							config={ config }
+							entryId={ myEntry.id }
+							name={ myEntry.display_name }
+						/>
 					</div>
 					<p>
 						Votes:{ ' ' }
@@ -332,6 +339,7 @@ export function PhotoContest( config: ContestConfig ) {
 						entry={ myEntry }
 						prompt="Share this to get votes."
 						initialShowQr={ false }
+						qrToggle={ false }
 					/>
 				</div>
 			) }

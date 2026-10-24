@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import type { ContestConfig, Entry, VoteResponse } from '../types';
+import { PhotoQr } from './PhotoQr';
 import { runAbility } from '../api';
 import {
 	getSavedEmail,
@@ -188,6 +189,13 @@ export function EntryCard( {
 					Votes:{ ' ' }
 					<span className="vote-number">{ entry.vote_count }</span>
 				</span>
+				{ highlighted && ! isHidden && (
+					<PhotoQr
+						config={ config }
+						entryId={ entry.id }
+						name={ entry.display_name }
+					/>
+				) }
 			</div>
 			<div className="extrachill-blocks-photo-contest-entry-body">
 				<h4 className="extrachill-blocks-photo-contest-entry-name">

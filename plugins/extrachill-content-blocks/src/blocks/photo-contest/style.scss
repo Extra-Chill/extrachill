@@ -471,3 +471,27 @@
 	font-size: 0.75em;
 	opacity: 0.9;
 }
+
+/* Vote QR pinned to the photo (own entry + single-entry view). */
+.extrachill-blocks-photo-contest-photo-qr {
+	position: absolute;
+	right: 10px;
+	bottom: 10px;
+	width: 34%;
+	max-width: 160px;
+	min-width: 96px;
+	padding: 6px;
+	border: 0;
+	border-radius: var(--border-radius-md, 8px);
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+	cursor: zoom-in;
+	line-height: 0;
+
+	img {
+		display: block;
+		width: 100%;
+		height: auto;
+		image-rendering: pixelated;
+	}
+}
