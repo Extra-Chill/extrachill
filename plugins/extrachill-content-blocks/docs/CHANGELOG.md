@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.2] - 2026-10-24
+
+### Changed
+- cache each entry's vote QR
+
+### Fixed
+- readable welcome links and claim line placement
+
 ## [1.13.1] - 2026-10-24
 
 ### Fixed
