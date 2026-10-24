@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.3] - 2026-10-24
+
+### Fixed
+- prefill the entry email for logged-in visitors
+
 ## [1.13.2] - 2026-10-24
 
 ### Changed
