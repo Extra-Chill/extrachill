@@ -202,6 +202,13 @@ class PhotoContestLogicTest extends TestCase {
 		$this->assertSame( $timestamp, strtotime( $config['entriesOpenAt'] ) );
 		$this->assertSame( $config['entriesOpenAt'], $config['votingOpensAt'] );
 		$this->assertSame( 'October 24, 2026 7:00 pm EDT', $config['entriesOpenAtLabel'] );
+
+		// Close dates resolve in the site timezone too (devices in other
+		// timezones must not see a different close time).
+		$close  = extrachill_content_blocks_photo_contest_render_config( array( 'entriesCloseAt' => '2026-10-24T22:00', 'votingClosesAt' => '2026-10-24T22:00' ), 1 );
+		$this->assertSame( strtotime( '2026-10-25T02:00:00Z' ), strtotime( $close['entriesCloseAt'] ) );
+		$this->assertSame( $close['entriesCloseAt'], $close['votingClosesAt'] );
+		$this->assertStringEndsWith( '+00:00', $close['votingClosesAt'] );
 	}
 
 	public function test_unset_open_settings_preserve_immediate_opening() {

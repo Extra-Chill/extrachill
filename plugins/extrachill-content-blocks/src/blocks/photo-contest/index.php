@@ -35,19 +35,20 @@ function extrachill_content_blocks_photo_contest_render_config( array $attribute
 		'contestId'      => isset( $attributes['contestId'] ) ? (string) $attributes['contestId'] : '',
 		'heading'        => isset( $attributes['heading'] ) ? (string) $attributes['heading'] : 'Enter the Contest',
 		'eventTitle'     => isset( $attributes['eventTitle'] ) ? (string) $attributes['eventTitle'] : '',
-		'entriesCloseAt' => isset( $attributes['entriesCloseAt'] ) ? (string) $attributes['entriesCloseAt'] : '',
-		'votingClosesAt' => isset( $attributes['votingClosesAt'] ) ? (string) $attributes['votingClosesAt'] : '',
 		'showFinalists'  => ! empty( $attributes['showFinalists'] ),
 		'finalistCount'  => isset( $attributes['finalistCount'] ) ? max( 1, (int) $attributes['finalistCount'] ) : 10,
 		'isAdmin'        => is_admin(),
 	);
 
-	// Resolve opening dates once, not against the visitor's device timezone.
-	foreach ( array( 'entriesOpenAt', 'votingOpensAt' ) as $key ) {
+	// Resolve every window date once in the site timezone, not against the
+	// visitor's device timezone.
+	foreach ( array( 'entriesOpenAt', 'votingOpensAt', 'entriesCloseAt', 'votingClosesAt' ) as $key ) {
 		$date      = (string) ( $attributes[ $key ] ?? '' );
 		$timestamp = extrachill_content_blocks_photo_contest_time( $date );
 		$config[ $key ] = null === $timestamp ? '' : gmdate( 'c', $timestamp );
-		$config[ $key . 'Label' ] = extrachill_content_blocks_photo_contest_format_time( $date );
+		if ( in_array( $key, array( 'entriesOpenAt', 'votingOpensAt' ), true ) ) {
+			$config[ $key . 'Label' ] = extrachill_content_blocks_photo_contest_format_time( $date );
+		}
 	}
 
 	if ( extrachill_content_blocks_photo_contest_can_moderate() ) {
