@@ -2,6 +2,14 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.42.2] - 2026-10-24
+
+### Changed
+- entry QR default read limit is 120
+
+### Fixed
+- entry QR read limit 30 -> 120 per client per minute
+
 ## [0.42.1] - 2026-10-24
 
 ### Fixed
