@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0] - 2026-10-24
+
+### Added
+- participants get an Extra Chill account; ticket link on the event title
+
 ## [1.12.0] - 2026-10-24
 
 ### Added
