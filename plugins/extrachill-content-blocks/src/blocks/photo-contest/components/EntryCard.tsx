@@ -32,7 +32,9 @@ export function EntryCard( {
 		getVotedEntries( config.contestId ).includes( entry.id )
 	);
 	const [ showForm, setShowForm ] = useState( false );
-	const [ email, setEmail ] = useState( getSavedEmail() );
+	const [ email, setEmail ] = useState(
+		getSavedEmail() || config.voterEmail || ''
+	);
 	const [ isVoting, setIsVoting ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const [ isModerating, setIsModerating ] = useState( false );
@@ -131,7 +133,7 @@ export function EntryCard( {
 		if ( hasVoted || votingClosed || ! hasOpened( config.votingOpensAt ) ) {
 			return;
 		}
-		const stored = getSavedEmail();
+		const stored = getSavedEmail() || config.voterEmail || '';
 		if ( stored ) {
 			submitVote( stored );
 		} else {

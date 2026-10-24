@@ -14,6 +14,7 @@ export interface ContestConfig {
 	welcomeEntrant?: boolean;
 	welcomeVoter?: boolean;
 	canModerate: boolean;
+	voterEmail?: string;
 	restNonce: string;
 	turnstileHtml: string;
 }
@@ -49,4 +50,3 @@ export interface SubmitResponse {
 	message: string;
 	entry: Entry;
 }
-

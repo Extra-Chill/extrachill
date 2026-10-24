@@ -53,6 +53,15 @@ function extrachill_content_blocks_photo_contest_render_config( array $attribute
 		}
 	}
 
+	// Logged-in voters vote with their own email (logged-in requests bypass
+	// the page cache, so this never reaches the anonymous cached copy).
+	if ( is_user_logged_in() ) {
+		$voter_email = (string) wp_get_current_user()->user_email;
+		if ( '' !== $voter_email ) {
+			$config['voterEmail'] = $voter_email;
+		}
+	}
+
 	if ( extrachill_content_blocks_photo_contest_can_moderate() ) {
 		$config['canModerate'] = true;
 		$config['restNonce']   = (string) wp_create_nonce( 'wp_rest' );

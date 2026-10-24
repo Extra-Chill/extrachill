@@ -28,6 +28,7 @@ function parseConfig( container: HTMLElement ): ContestConfig | null {
 			isAdmin: Boolean( parsed.isAdmin ),
 			canModerate: Boolean( parsed.canModerate ),
 			restNonce: parsed.restNonce ?? '',
+			voterEmail: parsed.voterEmail ?? '',
 			turnstileHtml:
 				container
 					.querySelector< HTMLTemplateElement >(

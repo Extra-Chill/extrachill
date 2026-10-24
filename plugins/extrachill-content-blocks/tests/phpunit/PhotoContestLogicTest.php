@@ -1116,4 +1116,42 @@ class PhotoContestLogicTest extends TestCase {
 		$settings['welcome_voter_body'] = '  ';
 		$this->assertNull( extrachill_content_blocks_photo_contest_welcome_message( $settings, array( 'role' => 'voter', 'email' => 'v@example.com' ), $entry, 'https://example.com/c/' ) );
 	}
+
+	public function test_welcome_message_includes_claim_link_for_unclaimed_accounts() {
+		$settings = array( 'welcome_voter_body' => 'Thanks for voting for {costume}.' );
+		$entry    = array( 'display_name' => 'Mothman', 'share_url' => 'https://example.com/c/?entry=5' );
+		$event    = array( 'role' => 'voter', 'email' => 'v@example.com' );
+
+		$m = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/', 'https://community.example.com/claim?key=abc' );
+		$this->assertStringContainsString( 'Set a password to keep it', $m['context']['body_html'] );
+		$this->assertStringContainsString( 'href="https://community.example.com/claim?key=abc"', $m['context']['body_html'] );
+
+		// Copy placing {claim_link} itself gets no extra paragraph.
+		$settings['welcome_voter_body'] = 'Claim: {claim_link}';
+		$m = extrachill_content_blocks_photo_contest_welcome_message( $settings, $event, $entry, 'https://example.com/c/', 'https://community.example.com/claim?key=abc' );
+		$this->assertStringNotContainsString( 'Set a password', $m['context']['body_html'] );
+
+		// Claimed accounts (no claim link) get nothing extra.
+		$m = extrachill_content_blocks_photo_contest_welcome_message( array( 'welcome_voter_body' => 'Hi.' ), $event, $entry, 'https://example.com/c/' );
+		$this->assertStringNotContainsString( 'password', $m['context']['body_html'] );
+	}
+
+	public function test_participants_resolve_to_an_account_through_the_platform_primitive() {
+		$calls = array();
+		wp_register_ability(
+			'extrachill/resolve-account-by-email',
+			array(
+				'execute_callback'    => static function ( $input ) use ( &$calls ) {
+					$calls[] = $input;
+					return array( 'user_id' => 9, 'claim_url' => 'https://community.example.com/claim?key=k' );
+				},
+				'permission_callback' => '__return_true',
+			)
+		);
+		$this->assertSame( 'https://community.example.com/claim?key=k', extrachill_content_blocks_photo_contest_resolve_account( 'new@example.com' ) );
+		extrachill_content_blocks_photo_contest_ensure_account( array( 'email' => 'new@example.com' ) );
+		$this->assertCount( 1, $calls, 'cached per request' );
+		$this->assertSame( 'photo_contest', $calls[0]['registration_source'] );
+		unset( $GLOBALS['wp_test_abilities']['extrachill/resolve-account-by-email'] );
+	}
 }

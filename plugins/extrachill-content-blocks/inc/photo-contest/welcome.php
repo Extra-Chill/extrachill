@@ -9,7 +9,12 @@
  * failed send never blocks an entry or vote.
  *
  * Copy placeholders: {name} (entrant), {costume} (entry voted for / entered),
- * {entry_link}, {contest_link}.
+ * {entry_link}, {contest_link}, {claim_link}.
+ *
+ * Every participant email also resolves to an Extra Chill account through the
+ * platform primitive `extrachill/resolve-account-by-email` (existing account
+ * reused, otherwise an unclaimed one). New, unclaimed accounts get their claim
+ * (set-password) link in the welcome email.
  *
  * @package ExtraChillContentBlocks
  */
@@ -79,9 +84,10 @@ function extrachill_content_blocks_photo_contest_is_first_vote( $post_id, $conte
  * @param array  $event    Participant event payload.
  * @param array  $entry    Entry data (display_name, share_url).
  * @param string $contest_url Contest page URL.
+ * @param string $claim_url   Account claim link for unclaimed accounts, or ''.
  * @return array|null ec_send_email args, or null when this role has no copy.
  */
-function extrachill_content_blocks_photo_contest_welcome_message( array $settings, array $event, array $entry, $contest_url ) {
+function extrachill_content_blocks_photo_contest_welcome_message( array $settings, array $event, array $entry, $contest_url, $claim_url = '' ) {
 	$role = 'entrant' === ( $event['role'] ?? '' ) ? 'entrant' : 'voter';
 	$body = trim( (string) ( $settings[ 'welcome_' . $role . '_body' ] ?? '' ) );
 	if ( '' === $body || '' === (string) ( $event['email'] ?? '' ) ) {
@@ -95,7 +101,11 @@ function extrachill_content_blocks_photo_contest_welcome_message( array $setting
 		'{costume}'      => $costume,
 		'{entry_link}'   => $entry_link,
 		'{contest_link}' => (string) $contest_url,
+		'{claim_link}'   => (string) $claim_url,
 	);
+	if ( '' !== (string) $claim_url && false === strpos( $body, '{claim_link}' ) ) {
+		$body .= "\n\nYour Extra Chill login is ready. Set a password to keep it: {claim_link}";
+	}
 
 	$subject = trim( strtr( (string) ( $settings['welcome_subject'] ?? '' ), $vars ) );
 	if ( '' === $subject ) {
@@ -131,6 +141,56 @@ function extrachill_content_blocks_photo_contest_welcome_message( array $setting
 }
 
 /**
+ * Resolve the participant's Extra Chill account (cached per request).
+ *
+ * @param string $email Participant email.
+ * @return string Claim URL for a new/unclaimed account, or ''.
+ */
+function extrachill_content_blocks_photo_contest_resolve_account( $email ) {
+	static $claim_urls = array();
+	$email = (string) $email;
+	if ( '' === $email ) {
+		return '';
+	}
+	if ( isset( $claim_urls[ $email ] ) ) {
+		return $claim_urls[ $email ];
+	}
+	$claim_urls[ $email ] = '';
+
+	// extrachill/resolve-account-by-email is owned by extrachill-users.
+	$resolve = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/resolve-account-by-email' ) : null;
+	if ( ! $resolve ) {
+		return '';
+	}
+	$account = $resolve->execute(
+		array(
+			'email'               => $email,
+			'registration_source' => 'photo_contest',
+		)
+	);
+	if ( is_wp_error( $account ) ) {
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			sprintf( 'Photo contest account resolve failed for %s: %s', $email, $account->get_error_message() )
+		);
+		return '';
+	}
+	$claim_urls[ $email ] = (string) ( $account['claim_url'] ?? '' );
+	return $claim_urls[ $email ];
+}
+
+/**
+ * Participant listener: make sure every participant has an account.
+ *
+ * @param array $event Participant event payload.
+ */
+function extrachill_content_blocks_photo_contest_ensure_account( $event ) {
+	if ( is_array( $event ) ) {
+		extrachill_content_blocks_photo_contest_resolve_account( (string) ( $event['email'] ?? '' ) );
+	}
+}
+add_action( 'extrachill_content_blocks_photo_contest_participant', 'extrachill_content_blocks_photo_contest_ensure_account', 5 );
+
+/**
  * Participant listener: queue the contest's welcome email.
  *
  * @param array $event Participant event payload.
@@ -149,7 +209,8 @@ function extrachill_content_blocks_photo_contest_send_welcome( $event ) {
 		$settings,
 		$event,
 		extrachill_content_blocks_photo_contest_entry_data( (int) $event['entry_id'] ),
-		(string) get_permalink( (int) $event['post_id'] )
+		(string) get_permalink( (int) $event['post_id'] ),
+		extrachill_content_blocks_photo_contest_resolve_account( (string) $event['email'] )
 	);
 	if ( null === $message ) {
 		return;

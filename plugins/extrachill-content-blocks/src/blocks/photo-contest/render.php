@@ -48,7 +48,13 @@ $wrapper_attributes = get_block_wrapper_attributes(
 	<?php if ( '' !== $event_title ) : ?>
 		<div class="extrachill-blocks-photo-contest-cta">
 			<div class="extrachill-blocks-photo-contest-cta-details">
-				<h3 class="extrachill-blocks-photo-contest-cta-title"><?php echo esc_html( $event_title ); ?></h3>
+				<h3 class="extrachill-blocks-photo-contest-cta-title">
+					<?php if ( '' !== $ticket_url ) : ?>
+						<a href="<?php echo esc_url( $ticket_url ); ?>"><?php echo esc_html( $event_title ); ?></a>
+					<?php else : ?>
+						<?php echo esc_html( $event_title ); ?>
+					<?php endif; ?>
+				</h3>
 				<?php if ( '' !== $event_date || '' !== $event_venue ) : ?>
 					<p class="extrachill-blocks-photo-contest-cta-meta">
 						<?php echo esc_html( trim( $event_date . ( '' !== $event_date && '' !== $event_venue ? ' · ' : '' ) . $event_venue ) ); ?>
