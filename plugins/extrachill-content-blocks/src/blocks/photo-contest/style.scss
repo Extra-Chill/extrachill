@@ -96,7 +96,83 @@
 }
 
 .extrachill-blocks-photo-contest-file {
-	display: none;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	clip-path: inset(50%);
+	overflow: hidden;
+}
+
+.extrachill-blocks-photo-contest-upload {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	text-align: center;
+	cursor: pointer;
+}
+
+.extrachill-blocks-photo-contest-upload:focus-within {
+	outline: 2px solid var(--focus-border-color);
+}
+
+.extrachill-blocks-photo-contest-dialog {
+	box-sizing: border-box;
+	width: min(92vw, 480px);
+	max-height: 90vh;
+	overflow-y: auto;
+	padding: 48px 20px 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	background: var(--background-color);
+	color: var(--text-color);
+
+	&::backdrop {
+		background: rgba(0, 0, 0, 0.7);
+	}
+
+	.extrachill-blocks-photo-contest-input {
+		box-sizing: border-box;
+	}
+	.button-large {
+		width: 100%;
+	}
+}
+
+.extrachill-blocks-photo-contest-dialog-close {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	min-width: 40px;
+	min-height: 40px;
+	font-size: 24px;
+	line-height: 1;
+}
+
+.extrachill-blocks-photo-contest-dialog p {
+	margin: 0;
+	font-size: 0.875em;
+	line-height: 1.4;
+	opacity: 0.8;
+}
+
+.extrachill-blocks-photo-contest-preview {
+	display: block;
+	width: 100%;
+	max-height: 28vh;
+	object-fit: contain;
+	border-radius: 8px;
+}
+
+.extrachill-blocks-photo-contest-moderator {
+	margin-bottom: 20px;
+	padding: 16px;
+}
+
+.extrachill-blocks-photo-contest-moderator-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 8px;
 }
 
 /* Share panel */
@@ -136,14 +212,12 @@
 }
 
 @media (min-width: 600px) {
-
 	.extrachill-blocks-photo-contest-grid {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
 
 @media (min-width: 960px) {
-
 	.extrachill-blocks-photo-contest-grid {
 		grid-template-columns: repeat(3, 1fr);
 	}
@@ -294,11 +368,13 @@
 	margin: 0 auto;
 }
 
-.extrachill-blocks-photo-contest-focused .extrachill-blocks-photo-contest-entry-image-wrap {
+.extrachill-blocks-photo-contest-focused
+	.extrachill-blocks-photo-contest-entry-image-wrap {
 	padding-bottom: 0;
 }
 
-.extrachill-blocks-photo-contest-focused .extrachill-blocks-photo-contest-entry-image {
+.extrachill-blocks-photo-contest-focused
+	.extrachill-blocks-photo-contest-entry-image {
 	position: static;
 	height: auto;
 	max-height: 70vh;

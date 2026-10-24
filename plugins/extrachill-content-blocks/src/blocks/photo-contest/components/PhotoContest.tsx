@@ -1,6 +1,11 @@
 import { useState, useEffect } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
-import type { ContestConfig, Entry, PhaseState, EntriesResponse } from '../types';
+import type {
+	ContestConfig,
+	Entry,
+	PhaseState,
+	EntriesResponse,
+} from '../types';
 import { runAbility, runReadonlyAbility } from '../api';
 import { getSavedEntryId, saveEntryId } from '../storage';
 import { isClosed, hasOpened } from '../schedule';
@@ -205,24 +210,32 @@ export function PhotoContest( config: ContestConfig ) {
 	};
 
 	const phaseControls = config.canModerate && (
-		<div aria-label="Contest moderation">
-			{ ( [ 'entries', 'voting' ] as const ).map( ( name ) => {
-				const manual = Boolean(
-					phase?.[ `${ name }_manually_closed` ]
-				);
-				return (
-					<button
-						key={ name }
-						className={ `${
-							manual ? 'button-2' : 'button-danger'
-						} button-small` }
-						disabled={ moderating || ! phase }
-						onClick={ () => togglePhase( name, ! manual ) }
-					>
-						{ manual ? `Reopen ${ name }` : `Close ${ name } now` }
-					</button>
-				);
-			} ) }
+		<div
+			className="card extrachill-blocks-photo-contest-moderator"
+			aria-label="Contest moderation"
+		>
+			<small>Moderator</small>
+			<div className="extrachill-blocks-photo-contest-moderator-buttons">
+				{ ( [ 'entries', 'voting' ] as const ).map( ( name ) => {
+					const manual = Boolean(
+						phase?.[ `${ name }_manually_closed` ]
+					);
+					return (
+						<button
+							key={ name }
+							className={ `${
+								manual ? 'button-2' : 'button-danger'
+							} button-small` }
+							disabled={ moderating || ! phase }
+							onClick={ () => togglePhase( name, ! manual ) }
+						>
+							{ manual
+								? `Reopen ${ name }`
+								: `Close ${ name } now` }
+						</button>
+					);
+				} ) }
+			</div>
 			{ moderationError && (
 				<p className="notice notice-error" role="alert">
 					{ moderationError }
@@ -296,11 +309,11 @@ export function PhotoContest( config: ContestConfig ) {
 						config={ config }
 						entry={ myEntry }
 						prompt="Share this to get votes."
-						initialShowQr={ justEntered }
+						initialShowQr={ false }
 					/>
 				</div>
 			) }
-			{ ! myEntry &&
+			{ ( ! myEntry || justEntered ) &&
 				( myEntryId === null || entries !== null ) &&
 				entriesOpened &&
 				! entriesClosed &&
@@ -377,4 +390,3 @@ export function PhotoContest( config: ContestConfig ) {
 		</>
 	);
 }
-

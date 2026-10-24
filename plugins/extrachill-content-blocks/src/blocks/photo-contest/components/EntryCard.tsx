@@ -2,10 +2,16 @@ import { useState, useEffect, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 import type { ContestConfig, Entry, VoteResponse } from '../types';
 import { runAbility } from '../api';
-import { getSavedEmail, saveEmail, getVotedEntries, rememberVote } from '../storage';
+import {
+	getSavedEmail,
+	saveEmail,
+	getVotedEntries,
+	rememberVote,
+} from '../storage';
 import { isValidEmail } from '../utils';
 import { hasOpened } from '../schedule';
 import { SharePanel } from './SharePanel';
+import { ContestDialog } from './ContestDialog';
 
 export function EntryCard( {
 	entry,
@@ -232,32 +238,53 @@ export function EntryCard( {
 					! votingClosed &&
 					! hasVoted &&
 					hasOpened( config.votingOpensAt ) && (
-						<div className="extrachill-blocks-photo-contest-vote-form">
-							<input
-								ref={ emailInputRef }
-								type="email"
-								className="extrachill-blocks-photo-contest-input"
-								placeholder="Enter your email to vote"
-								value={ email }
-								onChange={ ( e ) => setEmail( e.target.value ) }
-								onKeyDown={ ( e ) => {
-									if ( e.key === 'Enter' ) {
-										e.preventDefault();
-										handleSubmitVote();
-									}
+						<ContestDialog
+							open={ showForm }
+							onClose={ () => setShowForm( false ) }
+						>
+							<form
+								className="extrachill-blocks-photo-contest-form-step"
+								onSubmit={ ( e ) => {
+									e.preventDefault();
+									handleSubmitVote();
 								} }
-								required
-							/>
-							<button
-								className="button-1 button-medium"
-								disabled={ isVoting }
-								onClick={ handleSubmitVote }
 							>
-								Submit Vote
-							</button>
-						</div>
+								<h3>Vote for { entry.display_name }</h3>
+								<label>
+									Email
+									<input
+										ref={ emailInputRef }
+										type="email"
+										autoComplete="email"
+										className="extrachill-blocks-photo-contest-input"
+										placeholder="Enter your email to vote"
+										value={ email }
+										onChange={ ( e ) =>
+											setEmail( e.target.value )
+										}
+										required
+									/>
+								</label>
+								<p>
+									We'll remember it, so every other vote is
+									one tap.
+								</p>
+								<button
+									className="button-1 button-large"
+									disabled={ isVoting }
+									type="submit"
+								>
+									{ isVoting ? 'Voting...' : 'Vote' }
+								</button>
+								{ error && (
+									<div className="notice notice-error extrachill-blocks-photo-contest-notice">
+										{ error }
+									</div>
+								) }
+							</form>
+						</ContestDialog>
 					) }
-				{ error && (
+				{ error && ! showForm && (
 					<div className="notice notice-error extrachill-blocks-photo-contest-notice">
 						{ error }
 					</div>
@@ -279,4 +306,3 @@ export function EntryCard( {
 		</div>
 	);
 }
-

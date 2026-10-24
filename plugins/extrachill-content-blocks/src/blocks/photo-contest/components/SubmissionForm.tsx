@@ -3,6 +3,8 @@ import apiFetch from '@wordpress/api-fetch';
 import type { ContestConfig, Entry, SubmitResponse } from '../types';
 import { getSavedEmail, saveEmail } from '../storage';
 import { isValidEmail } from '../utils';
+import { ContestDialog } from './ContestDialog';
+import { SharePanel } from './SharePanel';
 
 declare global {
 	interface Window {
@@ -11,7 +13,6 @@ declare global {
 	}
 }
 
-
 export function SubmissionForm( {
 	config,
 	onSubmitted,
@@ -19,7 +20,10 @@ export function SubmissionForm( {
 	config: ContestConfig;
 	onSubmitted: ( entry: Entry ) => void;
 } ) {
-	const [ step, setStep ] = useState< 'email' | 'details' >( 'email' );
+	const [ open, setOpen ] = useState( false );
+	const [ submitted, setSubmitted ] = useState< Entry | null >( null );
+	const [ alreadyEntered, setAlreadyEntered ] = useState( false );
+	const [ preview, setPreview ] = useState( '' );
 	const [ email, setEmail ] = useState( getSavedEmail() );
 	const [ displayName, setDisplayName ] = useState( '' );
 	const [ instagram, setInstagram ] = useState( '' );
@@ -30,7 +34,17 @@ export function SubmissionForm( {
 	const formRef = useRef< HTMLDivElement | null >( null );
 
 	useEffect( () => {
-		if ( step !== 'details' || ! config.turnstileHtml ) {
+		if ( ! open || ! file || submitted ) {
+			setPreview( '' );
+			return;
+		}
+		const url = URL.createObjectURL( file );
+		setPreview( url );
+		return () => URL.revokeObjectURL( url );
+	}, [ open, file, submitted ] );
+
+	useEffect( () => {
+		if ( ! open || ! config.turnstileHtml ) {
 			return;
 		}
 		// The form mounts after the network runtime's initial page scan.
@@ -51,18 +65,7 @@ export function SubmissionForm( {
 			}
 		}, 100 );
 		return () => window.clearInterval( timer );
-	}, [ step, config.turnstileHtml ] );
-
-	const handleEmailNext = () => {
-		const trimmed = email.trim();
-		if ( ! trimmed || ! isValidEmail( trimmed ) ) {
-			setError( 'Please enter a valid email address' );
-			return;
-		}
-		saveEmail( trimmed );
-		setError( '' );
-		setStep( 'details' );
-	};
+	}, [ open, config.turnstileHtml ] );
 
 	const handleSubmit = async () => {
 		if ( isSubmitting ) {
@@ -72,10 +75,15 @@ export function SubmissionForm( {
 			setError( 'Please enter a display name' );
 			return;
 		}
-		if ( ! file ) {
-			setError( 'Please choose a photo' );
+		if ( ! isValidEmail( email.trim() ) ) {
+			setError( 'Please enter a valid email address' );
 			return;
 		}
+		if ( ! file || ! file.type.startsWith( 'image/' ) ) {
+			setError( 'Please choose an image file' );
+			return;
+		}
+		saveEmail( email.trim() );
 		setError( '' );
 		setIsSubmitting( true );
 
@@ -103,6 +111,7 @@ export function SubmissionForm( {
 				body: formData,
 			} ) ) as SubmitResponse;
 
+			setSubmitted( response.entry );
 			onSubmitted( response.entry );
 		} catch ( err ) {
 			const errorData = err as {
@@ -114,6 +123,8 @@ export function SubmissionForm( {
 				errorData.code === 'already_entered' &&
 				errorData.data?.entry
 			) {
+				setAlreadyEntered( true );
+				setSubmitted( errorData.data.entry );
 				onSubmitted( errorData.data.entry );
 			} else {
 				setError( errorData.message || 'Submission failed' );
@@ -133,95 +144,174 @@ export function SubmissionForm( {
 		}
 	};
 
+	const choosePhoto = ( selected?: File ) => {
+		if ( ! selected ) return;
+		setFile( selected );
+		setError(
+			selected.type.startsWith( 'image/' )
+				? ''
+				: 'Please choose an image file'
+		);
+		setOpen( true );
+	};
+
 	return (
-		<div ref={ formRef } className="extrachill-blocks-photo-contest-form">
-			<h3>{ config.heading }</h3>
-			{ step === 'email' && (
-				<div className="extrachill-blocks-photo-contest-form-step">
-					<input
-						type="email"
-						className="extrachill-blocks-photo-contest-input"
-						placeholder="Your email to enter"
-						value={ email }
-						onChange={ ( e ) => setEmail( e.target.value ) }
-						onKeyDown={ ( e ) => {
-							if ( e.key === 'Enter' ) {
-								e.preventDefault();
-								handleEmailNext();
-							}
-						} }
-						required
-					/>
-					<button
-						className="button-1 button-large"
-						onClick={ handleEmailNext }
-					>
-						Enter the Contest
-					</button>
-				</div>
-			) }
-			{ step === 'details' && (
-				<div className="extrachill-blocks-photo-contest-form-step">
-					<input
-						type="text"
-						className="extrachill-blocks-photo-contest-input"
-						placeholder="Display name"
-						value={ displayName }
-						onChange={ ( e ) => setDisplayName( e.target.value ) }
-						required
-					/>
-					<input
-						type="text"
-						className="extrachill-blocks-photo-contest-input"
-						placeholder="Instagram handle (optional)"
-						value={ instagram }
-						onChange={ ( e ) => setInstagram( e.target.value ) }
-					/>
-					{ /* Honeypot: hidden from humans, bots fill it. */ }
-					<input
-						type="text"
-						className="extrachill-blocks-photo-contest-hp"
-						tabIndex={ -1 }
-						autoComplete="off"
-						aria-hidden="true"
-						value={ honeypot }
-						onChange={ ( e ) => setHoneypot( e.target.value ) }
-					/>
-					<label
-						className="extrachill-blocks-photo-contest-file-label"
-						htmlFor={ `photo-contest-file-${ config.contestId }` }
-					>
-						{ file ? file.name : 'Choose your photo' }
+		<div
+			ref={ formRef }
+			className={
+				submitted ? '' : 'extrachill-blocks-photo-contest-form'
+			}
+		>
+			{ ! submitted && (
+				<>
+					<h3>{ config.heading }</h3>
+					<label className="button-1 button-large extrachill-blocks-photo-contest-upload">
+						📸 Upload your costume photo
 						<input
-							id={ `photo-contest-file-${ config.contestId }` }
 							type="file"
 							accept="image/*"
 							className="extrachill-blocks-photo-contest-file"
-							onChange={ ( e ) =>
-								setFile( e.target.files?.[ 0 ] ?? null )
-							}
+							onChange={ ( e ) => {
+								choosePhoto( e.target.files?.[ 0 ] );
+								e.target.value = '';
+							} }
 						/>
 					</label>
-					<div
-						dangerouslySetInnerHTML={ {
-							__html: config.turnstileHtml,
-						} }
-					/>
-					<button
-						className="button-1 button-large"
-						disabled={ isSubmitting }
-						onClick={ handleSubmit }
-					>
-						{ isSubmitting ? 'Submitting...' : 'Submit Entry' }
-					</button>
-				</div>
+					<p>Then add your name and email. Takes 30 seconds.</p>
+				</>
 			) }
-			{ error && (
-				<div className="notice notice-error extrachill-blocks-photo-contest-notice">
-					{ error }
-				</div>
-			) }
+			<ContestDialog open={ open } onClose={ () => setOpen( false ) }>
+				{ submitted ? (
+					<div className="extrachill-blocks-photo-contest-form-step">
+						<h3>
+							{ alreadyEntered
+								? "You already entered, here's your entry"
+								: `You're in, ${ submitted.display_name }! 🎉` }
+						</h3>
+						<img
+							className="extrachill-blocks-photo-contest-preview"
+							src={ submitted.image_url }
+							alt={ `${ submitted.display_name }'s entry` }
+						/>
+						<SharePanel
+							config={ config }
+							entry={ submitted }
+							prompt="Share this to get votes."
+							initialShowQr
+						/>
+						<button
+							className="button-2 button-large"
+							onClick={ () => setOpen( false ) }
+						>
+							Done
+						</button>
+					</div>
+				) : (
+					open && (
+						<form
+							className="extrachill-blocks-photo-contest-form-step"
+							onSubmit={ ( e ) => {
+								e.preventDefault();
+								handleSubmit();
+							} }
+						>
+							{ preview && (
+								<img
+									className="extrachill-blocks-photo-contest-preview"
+									src={ preview }
+									alt="Your costume preview"
+								/>
+							) }
+							<label className="button-3 button-small extrachill-blocks-photo-contest-upload">
+								Change photo
+								<input
+									type="file"
+									accept="image/*"
+									className="extrachill-blocks-photo-contest-file"
+									onChange={ ( e ) => {
+										choosePhoto( e.target.files?.[ 0 ] );
+										e.target.value = '';
+									} }
+								/>
+							</label>
+							<label>
+								Name
+								<input
+									type="text"
+									className="extrachill-blocks-photo-contest-input"
+									placeholder="Name"
+									autoComplete="name"
+									value={ displayName }
+									onChange={ ( e ) =>
+										setDisplayName( e.target.value )
+									}
+									required
+								/>
+							</label>
+							<label>
+								Email
+								<input
+									type="email"
+									autoComplete="email"
+									required
+									className="extrachill-blocks-photo-contest-input"
+									value={ email }
+									onChange={ ( e ) =>
+										setEmail( e.target.value )
+									}
+								/>
+							</label>
+							<p>
+								So we can reach you if you win. One entry per
+								email.
+							</p>
+							<label>
+								Instagram (optional)
+								<input
+									type="text"
+									className="extrachill-blocks-photo-contest-input"
+									placeholder="Instagram handle (optional)"
+									value={ instagram }
+									onChange={ ( e ) =>
+										setInstagram( e.target.value )
+									}
+								/>
+							</label>
+							{ /* Honeypot: hidden from humans, bots fill it. */ }
+							<input
+								type="text"
+								className="extrachill-blocks-photo-contest-hp"
+								tabIndex={ -1 }
+								autoComplete="off"
+								aria-hidden="true"
+								value={ honeypot }
+								onChange={ ( e ) =>
+									setHoneypot( e.target.value )
+								}
+							/>
+							<div
+								dangerouslySetInnerHTML={ {
+									__html: config.turnstileHtml,
+								} }
+							/>
+							<button
+								className="button-1 button-large"
+								disabled={ isSubmitting }
+								type="submit"
+							>
+								{ isSubmitting
+									? 'Uploading your photo...'
+									: 'Enter my costume' }
+							</button>
+						</form>
+					)
+				) }
+				{ error && (
+					<div className="notice notice-error extrachill-blocks-photo-contest-notice">
+						{ error }
+					</div>
+				) }
+			</ContestDialog>
 		</div>
 	);
 }
-
