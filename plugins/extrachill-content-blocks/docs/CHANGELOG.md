@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.1] - 2026-10-24
+
+### Fixed
+- share + QR on the single-entry view
+
 ## [1.10.0] - 2026-10-24
 
 ### Added

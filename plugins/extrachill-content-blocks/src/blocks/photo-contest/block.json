@@ -1,7 +1,7 @@
 {
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
-  "version": "1.10.0",
+  "version": "1.10.1",
   "name": "extrachill/photo-contest",
   "title": "Photo Contest",
   "icon": "camera",
