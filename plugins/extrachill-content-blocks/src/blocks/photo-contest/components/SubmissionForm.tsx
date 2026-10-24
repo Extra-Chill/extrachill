@@ -32,6 +32,10 @@ export function SubmissionForm( {
 	const [ isSubmitting, setIsSubmitting ] = useState( false );
 	const [ error, setError ] = useState( '' );
 	const formRef = useRef< HTMLDivElement | null >( null );
+	// Two inputs: the page one, and one inside the modal dialog (elements
+	// outside an open modal dialog are inert, so the page input can't be used).
+	const pageFileRef = useRef< HTMLInputElement | null >( null );
+	const dialogFileRef = useRef< HTMLInputElement | null >( null );
 
 	useEffect( () => {
 		if ( ! open || ! file || submitted ) {
@@ -165,18 +169,23 @@ export function SubmissionForm( {
 			{ ! submitted && (
 				<>
 					<h3>{ config.heading }</h3>
-					<label className="button-1 button-large extrachill-blocks-photo-contest-upload">
+					<button
+						type="button"
+						className="button-1 button-large extrachill-blocks-photo-contest-upload"
+						onClick={ () => pageFileRef.current?.click() }
+					>
 						📸 Upload your costume photo
-						<input
-							type="file"
-							accept="image/*"
-							className="extrachill-blocks-photo-contest-file"
-							onChange={ ( e ) => {
-								choosePhoto( e.target.files?.[ 0 ] );
-								e.target.value = '';
-							} }
-						/>
-					</label>
+					</button>
+					<input
+						ref={ pageFileRef }
+						type="file"
+						accept="image/*"
+						className="extrachill-blocks-photo-contest-file"
+						onChange={ ( e ) => {
+							choosePhoto( e.target.files?.[ 0 ] );
+							e.target.value = '';
+						} }
+					/>
 					<p>Then add your name and email. Takes 30 seconds.</p>
 				</>
 			) }
@@ -222,18 +231,23 @@ export function SubmissionForm( {
 									alt="Your costume preview"
 								/>
 							) }
-							<label className="button-3 button-small extrachill-blocks-photo-contest-upload">
+							<button
+								type="button"
+								className="button-3 button-small extrachill-blocks-photo-contest-upload"
+								onClick={ () => dialogFileRef.current?.click() }
+							>
 								Change photo
-								<input
-									type="file"
-									accept="image/*"
-									className="extrachill-blocks-photo-contest-file"
-									onChange={ ( e ) => {
-										choosePhoto( e.target.files?.[ 0 ] );
-										e.target.value = '';
-									} }
-								/>
-							</label>
+							</button>
+							<input
+								ref={ dialogFileRef }
+								type="file"
+								accept="image/*"
+								className="extrachill-blocks-photo-contest-file"
+								onChange={ ( e ) => {
+									choosePhoto( e.target.files?.[ 0 ] );
+									e.target.value = '';
+								} }
+							/>
 							<label>
 								Name
 								<input
