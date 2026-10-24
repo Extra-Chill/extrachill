@@ -659,6 +659,39 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 	}
 
 	/** Build a valid submit request. */
+	/** Entry and vote attempts map to analytics events, refusals included, without PII. */
+	public function test_attempt_event_records_outcome_and_reason() {
+		$vote  = $this->vote_request();
+		$ok    = extrachill_api_content_blocks_photo_contest_attempt_event( $vote->get_route(), new WP_REST_Response( array(), 200 ), $vote );
+		$this->assertSame( 'photo_contest_vote', $ok['type'] );
+		$this->assertSame( 'ok', $ok['data']['outcome'] );
+		$this->assertSame( 5, $ok['data']['post_id'] );
+		$this->assertSame( 'contest-1', $ok['data']['contest_id'] );
+		$this->assertStringNotContainsString( 'voter@example.com', wp_json_encode( $ok ) );
+
+		$submit  = $this->submit_request();
+		$refused = extrachill_api_content_blocks_photo_contest_attempt_event(
+			$submit->get_route(),
+			new WP_Error( 'turnstile_missing_token', 'No token', array( 'status' => 403 ) ),
+			$submit
+		);
+		$this->assertSame( 'photo_contest_entry', $refused['type'] );
+		$this->assertSame( 'rejected', $refused['data']['outcome'] );
+		$this->assertSame( 'turnstile_missing_token', $refused['data']['reason'] );
+		$this->assertSame( 403, $refused['data']['status'] );
+		$this->assertStringNotContainsString( 'entrant@example.com', wp_json_encode( $refused ) );
+
+		$other = new WP_REST_Request( 'GET', '/extrachill/v1/content-blocks/photo-contest/entries' );
+		$this->assertNull( extrachill_api_content_blocks_photo_contest_attempt_event( $other->get_route(), new WP_REST_Response(), $other ) );
+	}
+
+	/** The tracking filter never changes the response. */
+	public function test_track_attempt_returns_response_unchanged() {
+		$error = new WP_Error( 'rate_limited', 'Slow down', array( 'status' => 429 ) );
+		$this->assertSame( $error, extrachill_api_content_blocks_photo_contest_track_attempt( $error, array(), $this->submit_request() ) );
+		$this->assertSame( 'x', extrachill_api_content_blocks_photo_contest_track_attempt( 'x', array(), null ) );
+	}
+
 	private function submit_request( array $overrides = array() ) {
 		$request = new WP_REST_Request( 'POST', '/extrachill/v1/content-blocks/photo-contest/submit' );
 		$request->set_body_params(

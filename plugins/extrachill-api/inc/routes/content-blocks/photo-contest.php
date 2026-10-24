@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_action( 'extrachill_api_register_routes', 'extrachill_api_register_content_blocks_photo_contest_routes' );
+add_filter( 'rest_request_after_callbacks', 'extrachill_api_content_blocks_photo_contest_track_attempt', 10, 3 );
 
 /** Register the photo contest submit, entries, entry QR, and vote adapters. */
 function extrachill_api_register_content_blocks_photo_contest_routes() {
@@ -524,4 +525,73 @@ function extrachill_api_content_blocks_photo_contest_vote_handler( WP_REST_Reque
 			'vote_count' => $result['vote_count'] ?? 0,
 		)
 	);
+}
+
+/**
+ * Describe a contest entry or vote attempt as an analytics event.
+ *
+ * Covers every outcome, including Turnstile and rate-limit refusals from the
+ * permission callbacks, so rejected attempts are visible and not only stored
+ * entries and votes. The payload carries no email or other personal data.
+ *
+ * @param string                    $route    Matched REST route.
+ * @param mixed           $response Route result (response, error, or other).
+ * @param WP_REST_Request $request  Request.
+ * @return array|null { type, data } or null when the route is not tracked.
+ */
+function extrachill_api_content_blocks_photo_contest_attempt_event( $route, $response, $request ) {
+	$types = array(
+		'/extrachill/v1/content-blocks/photo-contest/submit' => 'photo_contest_entry',
+		'/extrachill/v1/content-blocks/photo-contest/vote' => 'photo_contest_vote',
+	);
+	if ( ! isset( $types[ $route ] ) ) {
+		return null;
+	}
+
+	if ( is_wp_error( $response ) ) {
+		$data   = $response->get_error_data();
+		$status = is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 500;
+		$reason = (string) $response->get_error_code();
+	} else {
+		$status = $response instanceof WP_REST_Response ? (int) $response->get_status() : 200;
+		$reason = '';
+	}
+
+	return array(
+		'type' => $types[ $route ],
+		'data' => array(
+			'outcome'    => $status < 400 ? 'ok' : 'rejected',
+			'reason'     => $reason,
+			'status'     => $status,
+			'post_id'    => (int) $request->get_param( 'post_id' ),
+			'contest_id' => (string) $request->get_param( 'contest_id' ),
+			'moderator'  => current_user_can( 'edit_post', (int) $request->get_param( 'post_id' ) ),
+		),
+	);
+}
+
+/**
+ * Record contest entry and vote attempts. Never alters the response.
+ *
+ * @param mixed $response Route result.
+ * @param array $handler  Route handler.
+ * @param mixed $request  Request (WP_REST_Request from core).
+ * @return mixed Unchanged response.
+ */
+function extrachill_api_content_blocks_photo_contest_track_attempt( $response, $handler, $request ) {
+	if ( ! function_exists( 'extrachill_track_analytics_event' ) || ! $request instanceof WP_REST_Request ) {
+		return $response;
+	}
+
+	try {
+		$event = extrachill_api_content_blocks_photo_contest_attempt_event( $request->get_route(), $response, $request );
+		if ( $event ) {
+			$referer = $request->get_header( 'referer' );
+			extrachill_track_analytics_event( $event['type'], $event['data'], $referer ? esc_url_raw( $referer ) : '' );
+		}
+	} catch ( Throwable $e ) {
+		unset( $e ); // Telemetry must never break an entry or a vote.
+	}
+
+	return $response;
 }
