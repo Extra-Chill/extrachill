@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.11.0] - 2026-10-24
+
+### Added
+- vote QR pinned to the entry photo
+
 ## [1.10.3] - 2026-10-24
 
 ### Fixed
