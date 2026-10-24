@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.42.1] - 2026-10-24
+
+### Fixed
+- size submit/vote rate limits for a venue crowd
+
 ## [0.42.0] - 2026-10-24
 
 ### Added
