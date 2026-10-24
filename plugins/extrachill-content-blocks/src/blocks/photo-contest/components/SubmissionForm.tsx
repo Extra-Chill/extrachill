@@ -4,6 +4,7 @@ import type { ContestConfig, Entry, SubmitResponse } from '../types';
 import { getSavedEmail, saveEmail } from '../storage';
 import { isValidEmail } from '../utils';
 import { ContestDialog } from './ContestDialog';
+import { shrinkPhoto } from '../image';
 import { SharePanel } from './SharePanel';
 
 declare global {
@@ -31,6 +32,12 @@ export function SubmissionForm( {
 	const [ file, setFile ] = useState< File | null >( null );
 	const [ isSubmitting, setIsSubmitting ] = useState( false );
 	const [ error, setError ] = useState( '' );
+	const statusRef = useRef< HTMLDivElement | null >( null );
+	useEffect( () => {
+		if ( isSubmitting || error ) {
+			statusRef.current?.scrollIntoView( { block: 'start' } );
+		}
+	}, [ isSubmitting, error ] );
 	const formRef = useRef< HTMLDivElement | null >( null );
 	// Two inputs: the page one, and one inside the modal dialog (elements
 	// outside an open modal dialog are inert, so the page input can't be used).
@@ -98,7 +105,7 @@ export function SubmissionForm( {
 		formData.append( 'display_name', displayName.trim() );
 		formData.append( 'instagram', instagram.trim() );
 		formData.append( 'website', honeypot );
-		formData.append( 'photo', file );
+		formData.append( 'photo', await shrinkPhoto( file ) );
 		const turnstileInput =
 			formRef.current?.querySelector< HTMLInputElement >(
 				'input[name="cf-turnstile-response"]'
@@ -223,6 +230,20 @@ export function SubmissionForm( {
 								handleSubmit();
 							} }
 						>
+							<div ref={ statusRef } aria-live="polite">
+								{ isSubmitting && (
+									<div className="notice notice-info extrachill-blocks-photo-contest-notice">
+										⏳ Uploading the photo… keep this screen
+										open. On cell data this can take up to
+										30 seconds.
+									</div>
+								) }
+								{ error && ! isSubmitting && (
+									<div className="notice notice-error extrachill-blocks-photo-contest-notice">
+										{ error }
+									</div>
+								) }
+							</div>
 							{ preview && (
 								<img
 									className="extrachill-blocks-photo-contest-preview"
@@ -318,11 +339,6 @@ export function SubmissionForm( {
 							</button>
 						</form>
 					)
-				) }
-				{ error && (
-					<div className="notice notice-error extrachill-blocks-photo-contest-notice">
-						{ error }
-					</div>
 				) }
 			</ContestDialog>
 		</div>
