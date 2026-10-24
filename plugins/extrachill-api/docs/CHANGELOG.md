@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.43.0] - 2026-10-24
+
+### Added
+- record entry and vote attempts, refusals included
+
 ## [0.42.2] - 2026-10-24
 
 ### Changed
