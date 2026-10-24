@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.42.0] - 2026-10-24
+
+### Added
+- let contest moderators submit entries without Turnstile or email
+
 ## [0.41.0] - 2026-10-23
 
 ### Added
