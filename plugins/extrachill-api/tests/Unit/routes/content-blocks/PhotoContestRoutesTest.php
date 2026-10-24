@@ -627,7 +627,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		} );
 		$this->assertSame( 200, rest_get_server()->dispatch( $this->entry_qr_request() )->get_status() );
 		$response = rest_get_server()->dispatch( $this->entry_qr_request() );
-		$this->assertSame( 30, $default );
+		$this->assertSame( 120, $default );
 		$this->assertSame( 429, $response->get_status() );
 		$this->assertSame( 'public_read_rate_limited', $response->get_data()['code'] );
 		$this->assertArrayHasKey( 'Retry-After', $response->get_data()['data']['headers'] );
