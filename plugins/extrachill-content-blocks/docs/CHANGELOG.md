@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.2] - 2026-10-24
+
+### Fixed
+- shrink photos before upload and show upload status
+
 ## [1.10.1] - 2026-10-24
 
 ### Fixed
