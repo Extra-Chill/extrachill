@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.2] - 2026-10-24
+
+### Fixed
+- KISS pass on buttons
+
 ## [1.8.1] - 2026-10-24
 
 ### Fixed
