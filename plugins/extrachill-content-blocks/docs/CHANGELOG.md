@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-10-24
+
+### Changed
+- split view.tsx into focused modules
+
 ## [1.7.0] - 2026-10-23
 
 ### Added
