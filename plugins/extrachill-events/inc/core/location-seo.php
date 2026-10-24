@@ -158,12 +158,34 @@ function extrachill_events_build_location_description( string $city_name, int $t
 /**
  * Count upcoming events for a location term.
  *
+ * Memoized per site/term for the request and cached for one hour. Event changes
+ * invalidate the transient through the public calendar generation API when present.
+ *
  * @param int $term_id Location term ID.
  * @return int Number of upcoming events.
  */
 function extrachill_events_get_upcoming_event_count( int $term_id ): int {
+	static $counts = array();
+
+	// Term IDs are site-local; keep the request memo isolated across blog switches.
+	$memo_key = get_current_blog_id() . ':' . $term_id;
+	if ( isset( $counts[ $memo_key ] ) ) {
+		return $counts[ $memo_key ];
+	}
+
 	if ( ! function_exists( 'data_machine_events_query_events' ) ) {
 		return 0;
+	}
+
+	// Use the public generation API, not calendar cache storage internals.
+	$generation = is_callable( array( \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::class, 'get_generation' ) )
+		? \DataMachineEvents\Blocks\Calendar\Cache\CalendarCache::get_generation()
+		: '';
+	$cache_key  = 'ec_location_upcoming_count_' . $term_id . '_' . md5( $generation );
+	$cached     = get_transient( $cache_key );
+	if ( false !== $cached ) {
+		$counts[ $memo_key ] = (int) $cached;
+		return $counts[ $memo_key ];
 	}
 
 	$result = data_machine_events_query_events(
@@ -174,5 +196,8 @@ function extrachill_events_get_upcoming_event_count( int $term_id ): int {
 		)
 	);
 
-	return (int) ( $result['total'] ?? 0 );
+	$counts[ $memo_key ] = (int) ( $result['total'] ?? 0 );
+	set_transient( $cache_key, $counts[ $memo_key ], HOUR_IN_SECONDS );
+
+	return $counts[ $memo_key ];
 }
