@@ -186,7 +186,6 @@ export function SubmissionForm( {
 							e.target.value = '';
 						} }
 					/>
-					<p>Then add your name and email. Takes 30 seconds.</p>
 				</>
 			) }
 			<ContestDialog open={ open } onClose={ () => setOpen( false ) }>

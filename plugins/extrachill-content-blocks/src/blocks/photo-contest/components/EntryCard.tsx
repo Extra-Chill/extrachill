@@ -10,7 +10,6 @@ import {
 } from '../storage';
 import { isValidEmail } from '../utils';
 import { hasOpened } from '../schedule';
-import { SharePanel } from './SharePanel';
 import { ContestDialog } from './ContestDialog';
 
 export function EntryCard( {
@@ -32,7 +31,6 @@ export function EntryCard( {
 		getVotedEntries( config.contestId ).includes( entry.id )
 	);
 	const [ showForm, setShowForm ] = useState( false );
-	const [ showShare, setShowShare ] = useState( false );
 	const [ email, setEmail ] = useState( getSavedEmail() );
 	const [ isVoting, setIsVoting ] = useState( false );
 	const [ error, setError ] = useState( '' );
@@ -288,19 +286,6 @@ export function EntryCard( {
 					<div className="notice notice-error extrachill-blocks-photo-contest-notice">
 						{ error }
 					</div>
-				) }
-				<button
-					className="extrachill-blocks-photo-contest-share-toggle button-3 button-small"
-					onClick={ () => setShowShare( ! showShare ) }
-				>
-					{ showShare ? 'Hide Share' : 'Share' }
-				</button>
-				{ showShare && (
-					<SharePanel
-						config={ config }
-						entry={ entry }
-						prompt="Share this entry:"
-					/>
 				) }
 			</div>
 		</div>

@@ -82,42 +82,18 @@ export function SharePanel( {
 		}
 	};
 
-	const encodedUrl = encodeURIComponent( entry.share_url );
-	const encodedText = encodeURIComponent( shareText );
-
 	return (
 		<div className="extrachill-blocks-photo-contest-share">
 			<p className="extrachill-blocks-photo-contest-share-prompt">
 				{ prompt }
 			</p>
 			<div className="extrachill-blocks-photo-contest-share-buttons">
-				{ canWebShare && (
-					<button
-						className="button-1 button-medium"
-						onClick={ webShare }
-					>
-						Share
-					</button>
-				) }
-				<button className="button-2 button-medium" onClick={ copyLink }>
-					{ copied ? 'Copied!' : 'Copy Link' }
+				<button
+					className="button-1 button-medium"
+					onClick={ canWebShare ? webShare : copyLink }
+				>
+					{ canWebShare ? 'Share my link' : copied ? 'Copied!' : 'Copy my link' }
 				</button>
-				<a
-					className="button-3 button-medium"
-					href={ `https://www.facebook.com/sharer/sharer.php?u=${ encodedUrl }` }
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					Facebook
-				</a>
-				<a
-					className="button-3 button-medium"
-					href={ `https://twitter.com/intent/tweet?url=${ encodedUrl }&text=${ encodedText }` }
-					target="_blank"
-					rel="noopener noreferrer"
-				>
-					X
-				</a>
 				<button
 					className="button-2 button-medium"
 					aria-expanded={ showQr }
