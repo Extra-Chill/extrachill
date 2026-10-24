@@ -256,9 +256,9 @@ function extrachill_api_content_blocks_photo_contest_entry_qr_permission( WP_RES
 	/**
 	 * Filters the entry QR reads allowed per client per minute.
 	 *
-	 * @param int $limit Default 30.
+	 * @param int $limit Default 120 (QRs are cached; scans cluster on venue wifi).
 	 */
-	$limit = (int) apply_filters( 'extrachill_api_photo_contest_entry_qr_rate_limit', 30 );
+	$limit = (int) apply_filters( 'extrachill_api_photo_contest_entry_qr_rate_limit', 120 );
 	return extrachill_api_check_public_read_rate_limit( $request, 'photo-contest-entry-qr', $limit );
 }
 
