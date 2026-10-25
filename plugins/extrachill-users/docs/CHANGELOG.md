@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.54.0] - 2026-10-25
+
+### Added
+- welcome framing and landing for unclaimed account claims
+
 ## [0.53.0] - 2026-10-23
 
 ### Added
