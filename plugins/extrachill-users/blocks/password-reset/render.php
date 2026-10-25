@@ -34,10 +34,24 @@ if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) 
 		exit;
 	}
 
+	$is_claim = function_exists( 'ec_users_is_account_unclaimed' ) && ec_users_is_account_unclaimed( $user->ID );
 	?>
 	<div class="password-reset-form">
-		<h2><?php esc_html_e( 'Set New Password', 'extrachill-users' ); ?></h2>
-		<p><?php esc_html_e( 'Enter your new password below.', 'extrachill-users' ); ?></p>
+		<?php if ( $is_claim ) : ?>
+			<h2><?php esc_html_e( 'Set a password', 'extrachill-users' ); ?></h2>
+			<p>
+				<?php
+				printf(
+					/* translators: %s: account email address. */
+					esc_html__( 'Your account is ready. Pick a password to finish it, then log in any time with %s.', 'extrachill-users' ),
+					'<strong>' . esc_html( $user->user_email ) . '</strong>'
+				);
+				?>
+			</p>
+		<?php else : ?>
+			<h2><?php esc_html_e( 'Set New Password', 'extrachill-users' ); ?></h2>
+			<p><?php esc_html_e( 'Enter your new password below.', 'extrachill-users' ); ?></p>
+		<?php endif; ?>
 
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="ec_reset_password">
@@ -52,7 +66,7 @@ if ( 'reset' === $password_reset_action && ! empty( $key ) && ! empty( $login ) 
 			<label for="pass2"><?php esc_html_e( 'Confirm Password', 'extrachill-users' ); ?></label>
 			<input type="password" name="pass2" id="pass2" required minlength="8">
 
-			<input type="submit" class="button-1 button-medium" value="<?php esc_attr_e( 'Reset Password', 'extrachill-users' ); ?>">
+			<input type="submit" class="button-1 button-medium" value="<?php echo esc_attr( $is_claim ? __( 'Set password', 'extrachill-users' ) : __( 'Reset Password', 'extrachill-users' ) ); ?>">
 		</form>
 	</div>
 	<?php

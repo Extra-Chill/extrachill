@@ -146,6 +146,95 @@ add_action(
 );
 
 /**
+ * The user behind the current set-password link when it claims an account.
+ *
+ * Accounts created on someone's behalf (event RSVP, contest entry, ...) are
+ * claimed through the reset-password page. They never had a password, so the
+ * page reads as a welcome for them instead of a reset.
+ *
+ * @return WP_User|null Unclaimed user for a valid ?action=reset link, or null.
+ */
+function ec_users_current_claim_user() {
+	static $resolved = false;
+	static $claim    = null;
+
+	if ( $resolved ) {
+		return $claim;
+	}
+	$resolved = true;
+
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Reset link params; the key itself is the credential.
+	$action = isset( $_GET['action'] ) ? sanitize_text_field( wp_unslash( $_GET['action'] ) ) : '';
+	$key    = isset( $_GET['key'] ) ? sanitize_text_field( wp_unslash( $_GET['key'] ) ) : '';
+	$login  = isset( $_GET['login'] ) ? sanitize_text_field( wp_unslash( $_GET['login'] ) ) : '';
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+	if ( 'reset' !== $action || '' === $key || '' === $login || is_user_logged_in() ) {
+		return null;
+	}
+
+	$user = check_password_reset_key( $key, $login );
+	if ( $user instanceof WP_User && ec_users_is_account_unclaimed( $user->ID ) ) {
+		$claim = $user;
+	}
+
+	return $claim;
+}
+
+/**
+ * Where a just-claimed account lands after setting its password.
+ *
+ * Defaults to the events calendar, the network's front door for new members.
+ *
+ * @param WP_User $user Claimed user.
+ * @return string URL.
+ */
+function ec_users_claim_landing_url( WP_User $user ) {
+	$url = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'events' ) : '';
+
+	/**
+	 * Filters the landing URL after an unclaimed account sets its password.
+	 *
+	 * @param string  $url  Landing URL (events calendar by default).
+	 * @param WP_User $user Claimed user.
+	 */
+	$url = (string) apply_filters( 'extrachill_users_claim_landing_url', $url, $user );
+
+	return '' !== $url ? $url : home_url();
+}
+
+/**
+ * Title the reset-password page as a welcome for account claims.
+ *
+ * @param string $title   Post title.
+ * @param int    $post_id Post ID.
+ * @return string
+ */
+function ec_users_claim_page_title( $title, $post_id = 0 ) {
+	if ( ! is_page( 'reset-password' ) || (int) get_queried_object_id() !== (int) $post_id || ! ec_users_current_claim_user() ) {
+		return $title;
+	}
+
+	return __( 'Welcome to Extra Chill', 'extrachill-users' );
+}
+add_filter( 'the_title', 'ec_users_claim_page_title', 10, 2 );
+
+/**
+ * Document title for account claims.
+ *
+ * @param array $parts Title parts.
+ * @return array
+ */
+function ec_users_claim_document_title( $parts ) {
+	if ( is_page( 'reset-password' ) && ec_users_current_claim_user() ) {
+		$parts['title'] = __( 'Welcome to Extra Chill', 'extrachill-users' );
+	}
+
+	return $parts;
+}
+add_filter( 'document_title_parts', 'ec_users_claim_document_title' );
+
+/**
  * Get the transient key for password reset attempts.
  *
  * Keyed on requester IP only (not on submitted user_login) so attackers
@@ -435,6 +524,9 @@ function ec_handle_reset_password() {
 	$pass2 = isset( $_POST['pass2'] ) ? wp_unslash( $_POST['pass2'] ) : '';
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
+	$claim_user = check_password_reset_key( $key, $login );
+	$is_claim   = $claim_user instanceof WP_User && ec_users_is_account_unclaimed( $claim_user->ID );
+
 	$user = ec_process_reset_password_submission( $key, $login, $pass1, $pass2 );
 
 	if ( is_wp_error( $user ) ) {
@@ -450,6 +542,14 @@ function ec_handle_reset_password() {
 	}
 
 	wp_set_auth_cookie( $user->ID, true );
+
+	if ( $is_claim ) {
+		if ( function_exists( 'extrachill_set_notice' ) ) {
+			extrachill_set_notice( __( "You're in! Your Extra Chill account is ready. Find a show, or say hi in the community.", 'extrachill-users' ), 'success' );
+		}
+		wp_safe_redirect( ec_users_claim_landing_url( $user ) );
+		exit;
+	}
 
 	wp_safe_redirect( home_url() );
 	exit;

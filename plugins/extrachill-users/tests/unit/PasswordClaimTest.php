@@ -161,4 +161,25 @@ class Test_Password_Claim extends WP_UnitTestCase {
 		$this->assertSame( '', get_user_meta( $user->ID, 'ec_unclaimed', true ) );
 		$this->assertTrue( wp_check_password( 'new-secure-password', get_userdata( $user->ID )->user_pass, $user->ID ) );
 	}
+
+	public function test_claim_landing_defaults_to_events_and_is_filterable(): void {
+		$user = $this->create_user();
+		$url  = ec_users_claim_landing_url( $user );
+		$this->assertNotSame( '', $url );
+
+		$filter = static function () {
+			return 'https://example.com/landing/';
+		};
+		add_filter( 'extrachill_users_claim_landing_url', $filter );
+		try {
+			$this->assertSame( 'https://example.com/landing/', ec_users_claim_landing_url( $user ) );
+		} finally {
+			remove_filter( 'extrachill_users_claim_landing_url', $filter );
+		}
+	}
+
+	public function test_claim_page_title_leaves_other_titles_alone(): void {
+		$this->assertSame( 'Some Post', ec_users_claim_page_title( 'Some Post', 123 ) );
+		$this->assertSame( array( 'title' => 'Reset Password' ), ec_users_claim_document_title( array( 'title' => 'Reset Password' ) ) );
+	}
 }
