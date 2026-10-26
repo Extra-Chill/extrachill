@@ -999,8 +999,8 @@ function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention 
  *
  * This is the spawned coding-agent session's entire context, so it must be
  * self-contained: it @mentions the configured human, states the incident, and
- * tells the bot to investigate and open a PR (not release/deploy). The prompt
- * deliberately mirrors the platform's minion-prompt conventions.
+ * guides root-cause investigation, issue filing, and Homeboy cooking through
+ * a fix PR. Merging, releasing, and deploying remain operator-owned.
  *
  * @param array $alarm One alarm row from the evaluator.
  * @return string Prompt body.
@@ -1011,9 +1011,9 @@ function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 	$lines = array(
 		$mention . '🚨 **PHP fatal alarm — investigate and fix.**',
 		'',
-		'A PHP fatal is firing on the live network RIGHT NOW (' . extrachill_analytics_fatal_alarm_reason_text( $alarm ) . '). Investigate the root cause and open a PR with the fix.',
+		'A PHP fatal is firing on the live network RIGHT NOW (' . extrachill_analytics_fatal_alarm_reason_text( $alarm ) . ').',
 		'',
-		'**Hard constraints:** PR only. Do NOT release, do NOT deploy, do NOT edit CHANGELOG.md, do NOT hand-bump versions. Work in a worktree, conventional commits, print the PR URL when done.',
+		'**Goal:** Investigate the root cause and get a fix up as a PR.',
 		'',
 		'**Fatal details (from the live debug.log tail):**',
 		'- Severity: ' . strtoupper( (string) $alarm['severity'] ),
@@ -1023,7 +1023,8 @@ function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 		'- First seen: ' . $alarm['first_seen'] . ' UTC · Last seen: ' . $alarm['last_seen'] . ' UTC',
 		'- Sample: `' . substr( (string) $alarm['sample'], 0, 240 ) . '`',
 		'',
-		'**Start here:** `wp extrachill analytics errors --since=1h --severity=fatal` to confirm it is still firing, then `grep` the location above in the read-only plugin/theme tree to find the owning repo, reproduce the cause, and fix it in a worktree. If it has already stopped firing by the time you look, say so and stop — do not invent a fix.',
+		'**Workflow:** Confirm with `wp extrachill analytics errors --since=1h --severity=fatal`; `grep` the location in the read-only plugin/theme tree to find the owning repo. File a GitHub issue there with the fatal evidence pasted in, then cook it with `homeboy agent-task cook` (one cook per issue). Report the issue URL and PR URL back. The run ends at the PR; merging, releasing, and deploying are operator-owned.',
+		'If it has stopped firing but evidence shows a real defect, still file the issue and cook it, then report back. Stop without an issue only when nothing points at a real defect. Base any fix on evidence.',
 	);
 
 	$prompt = implode( "\n", $lines );
