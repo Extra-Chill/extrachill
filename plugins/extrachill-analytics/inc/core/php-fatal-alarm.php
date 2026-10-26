@@ -984,14 +984,9 @@ function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention 
 		'Triage: `wp extrachill analytics errors --since=1h --severity=fatal`',
 	);
 
-	$message = implode( "\n", $lines );
-
-	// Discord hard-caps a message at 2000 chars.
-	if ( strlen( $message ) > 1900 ) {
-		$message = substr( $message, 0, 1897 ) . '...';
-	}
-
-	return $message;
+	// Message length is the dispatch channel's concern: the transport splits or
+	// attaches long bodies itself, so the alarm never truncates its evidence.
+	return implode( "\n", $lines );
 }
 
 /**
@@ -999,8 +994,9 @@ function extrachill_analytics_format_fatal_alarm_message( $alarm, $with_mention 
  *
  * This is the spawned coding-agent session's entire context, so it must be
  * self-contained: it @mentions the configured human, states the incident, and
- * guides root-cause investigation, issue filing, and Homeboy cooking through
- * a fix PR. Merging, releasing, and deploying remain operator-owned.
+ * guides evidence-based issue filing and Homeboy cooking through a fix PR.
+ * Site-breaking fatals may proceed through squash-merge and emergency deploy;
+ * all other fixes remain PR-only for operator merging.
  *
  * @param array $alarm One alarm row from the evaluator.
  * @return string Prompt body.
@@ -1011,9 +1007,9 @@ function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 	$lines = array(
 		$mention . '🚨 **PHP fatal alarm — investigate and fix.**',
 		'',
-		'A PHP fatal is firing on the live network RIGHT NOW (' . extrachill_analytics_fatal_alarm_reason_text( $alarm ) . ').',
+		'A PHP fatal is firing on the live network (' . extrachill_analytics_fatal_alarm_reason_text( $alarm ) . ').',
 		'',
-		'**Goal:** Investigate the root cause and get a fix up as a PR.',
+		'**Goal:** find the root cause and get a fix up as a PR.',
 		'',
 		'**Fatal details (from the live debug.log tail):**',
 		'- Severity: ' . strtoupper( (string) $alarm['severity'] ),
@@ -1023,16 +1019,25 @@ function extrachill_analytics_format_fatal_alarm_fix_prompt( $alarm ) {
 		'- First seen: ' . $alarm['first_seen'] . ' UTC · Last seen: ' . $alarm['last_seen'] . ' UTC',
 		'- Sample: `' . substr( (string) $alarm['sample'], 0, 240 ) . '`',
 		'',
-		'**Workflow:** Confirm with `wp extrachill analytics errors --since=1h --severity=fatal`; `grep` the location in the read-only plugin/theme tree to find the owning repo. File a GitHub issue there with the fatal evidence pasted in, then cook it with `homeboy agent-task cook` (one cook per issue). Report the issue URL and PR URL back. The run ends at the PR; merging, releasing, and deploying are operator-owned.',
-		'If it has stopped firing but evidence shows a real defect, still file the issue and cook it, then report back. Stop without an issue only when nothing points at a real defect. Base any fix on evidence.',
+		'**Workflow:**',
+		'1. Confirm it is still firing: `wp extrachill analytics errors --since=1h --severity=fatal`.',
+		'2. `grep` the location above in the read-only plugin/theme tree to find the owning repo.',
+		'3. File a GitHub issue in that repo with the fatal evidence pasted in.',
+		'4. Cook that issue with `homeboy agent-task cook` (one cook per issue).',
+		'',
+		'If it has stopped firing but the evidence shows a real defect, still file the issue and cook it. Skip the issue only when nothing points at a real defect, and never invent a fix.',
+		'',
+		'**Site-breaking fatals: merge and emergency deploy.** When the fatal is still firing on a request path and breaking the site for real users (front-door or page 500s you can reproduce with `curl`, or a sustained high rate on a core path), and the fix is minimal, revertable, and PR CI is green:',
+		'1. Squash-merge: `gh api -X PUT repos/<owner>/<repo>/pulls/<n>/merge -f merge_method=squash`.',
+		'2. Wait for the release, then dispatch extrachill-network `deploy.yml` for that one component and say it is an emergency.',
+		'3. Confirm the signature stopped (`wp extrachill analytics errors --since=15m --severity=fatal`) and the affected site returns 200.',
+		'',
+		'**Everything else is PR-only:** cron/CLI-only or contained fatals, multi-repo or migration fixes, red CI, or an uncertain root cause. The run ends at the PR and the operator merges.',
+		'',
+		'Report back with the issue URL, the PR URL, and any merge or deploy you performed.',
 	);
 
-	$prompt = implode( "\n", $lines );
-
-	// Keep the spawned prompt well under transport limits.
-	if ( strlen( $prompt ) > 1800 ) {
-		$prompt = substr( $prompt, 0, 1797 ) . '...';
-	}
-
-	return $prompt;
+	// Prompt length is the dispatch channel's concern: the transport attaches
+	// long prompts as a file, so the alarm never truncates its own context.
+	return implode( "\n", $lines );
 }
