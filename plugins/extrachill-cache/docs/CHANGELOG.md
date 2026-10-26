@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.8] - 2026-10-26
+
+### Fixed
+- invalidate only term URLs on term create/edit/delete instead of purging the whole blog
+
 ## [0.3.7] - 2026-09-23
 
 ### Fixed
