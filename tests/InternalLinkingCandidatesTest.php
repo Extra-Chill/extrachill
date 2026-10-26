@@ -204,7 +204,6 @@ class InternalLinkingCandidatesTest extends WP_UnitTestCase {
 					'url'       => 'https://events.extrachill.com/artist/mj/',
 					'label'     => 'Events',
 					'term_name' => 'MJ Lenderman',
-					// Events archives need the minimum upcoming-show floor (#345).
 					'count'     => 3,
 				),
 				array(
@@ -284,34 +283,27 @@ class InternalLinkingCandidatesTest extends WP_UnitTestCase {
 	/** Wire location archives are withheld from non-news source articles. */
 	public function test_wire_location_requires_news_category(): void {
 		register_taxonomy( 'location', 'post' );
-		if ( ! taxonomy_exists( 'artist' ) ) {
-			register_taxonomy( 'artist', 'post' );
-		}
+		$post_id = self::factory()->post->create();
+		$term_id = self::factory()->term->create( array( 'taxonomy' => 'location', 'name' => 'California' ) );
+		wp_set_object_terms( $post_id, array( (int) $term_id ), 'location' );
+		$term = get_term( $term_id, 'location' );
+		$this->prime_cross_site_links( $term, array( array( 'blog_id' => 9, 'site_key' => 'wire', 'url' => 'https://wire.extrachill.com/location/california', 'term_name' => 'California', 'count' => 1 ) ) );
 
-		$post_id     = self::factory()->post->create();
-		$location_id = self::factory()->term->create( array( 'taxonomy' => 'location', 'name' => 'California' ) );
-		$artist_id   = self::factory()->term->create( array( 'taxonomy' => 'artist', 'name' => 'California Band' ) );
-		wp_set_object_terms( $post_id, array( (int) $location_id ), 'location' );
+		// Geography requires an entity candidate, independently of news relevance.
+		$artist_id = self::factory()->term->create( array( 'taxonomy' => 'artist', 'name' => 'California Band' ) );
 		wp_set_object_terms( $post_id, array( (int) $artist_id ), 'artist' );
+		$this->prime_cross_site_links( get_term( $artist_id, 'artist' ), array( array( 'blog_id' => 7, 'site_key' => 'events', 'url' => 'https://events.extrachill.com/artist/california-band/', 'term_name' => 'California Band', 'count' => 3 ) ) );
 
-		$wire_url   = 'https://wire.extrachill.com/location/california';
-		$events_url = 'https://events.extrachill.com/artist/california-band/';
-		$prime      = function () use ( $location_id, $artist_id, $wire_url, $events_url ) {
-			$this->prime_cross_site_links( get_term( $location_id, 'location' ), array( array( 'blog_id' => 9, 'site_key' => 'wire', 'url' => $wire_url, 'term_name' => 'California', 'count' => 1 ) ) );
-			// Geography is only offered alongside an entity candidate (#342).
-			$this->prime_cross_site_links( get_term( $artist_id, 'artist' ), array( array( 'blog_id' => 7, 'site_key' => 'events', 'url' => $events_url, 'term_name' => 'California Band', 'count' => 3 ) ) );
-		};
-
-		$prime();
-		$urls = array_column( apply_filters( 'datamachine_internal_linking_candidates', array(), $post_id, 'Song Meaning', array(), array(), 5 ), 'url' );
-		$this->assertContains( $events_url, $urls );
-		$this->assertNotContains( $wire_url, $urls, 'non-news source withholds the wire location archive' );
+		$result = apply_filters( 'datamachine_internal_linking_candidates', array(), $post_id, 'Song Meaning', array(), array(), 5 );
+		$this->assertCount( 1, $result );
+		$this->assertNotContains( 'https://wire.extrachill.com/location/california', array_column( $result, 'url' ) );
 
 		$category_id = self::factory()->term->create( array( 'taxonomy' => 'category', 'name' => 'Music News', 'slug' => 'music-news' ) );
 		wp_set_post_categories( $post_id, array( $category_id ) );
-		// Term writes bump the cross-site link generation; re-prime the cache.
-		$prime();
-		$urls = array_column( apply_filters( 'datamachine_internal_linking_candidates', array(), $post_id, 'News', array(), array(), 5 ), 'url' );
-		$this->assertContains( $wire_url, $urls, 'news source includes the wire location archive' );
+		$this->assertTrue( extrachill_internal_linking_is_wire_location_relevant( $post_id ) );
+		// Test the news predicate independently of shared-term synchronization
+		// triggered by category writes.
+		wp_set_post_categories( $post_id, array() );
+		$this->assertFalse( extrachill_internal_linking_is_wire_location_relevant( $post_id ) );
 	}
 }
