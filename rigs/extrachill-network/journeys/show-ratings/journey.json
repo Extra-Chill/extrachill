@@ -1,0 +1,184 @@
+{
+  "schema": "extrachill-network/journey/v1",
+  "id": "show-ratings",
+  "title": "Show-goer ratings on the full network",
+  "description": "Issue #375: attendance gate, in-place unlock, persistent event and inline ratings, public views and card link evidence. Synthetic regular show-goer; no canonical persona claims.",
+  "sites": [
+    "events.extrachill.com"
+  ],
+  "runtimeEnv": {
+    "WP_AGENT_RUNTIME": "1"
+  },
+  "seed": {
+    "codeFile": "seed.php",
+    "timeoutMs": 300000
+  },
+  "grade": {
+    "codeFile": "grade.php",
+    "timeoutMs": 120000
+  },
+  "steps": [
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "anonymous-phone"
+      },
+      "args": [
+        "url=http://events.extrachill.com/events/ratings-past/",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=390x844",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/events/ratings-past/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"#comments\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"({copy:document.querySelector('#comments').innerText,links:[...document.querySelectorAll('#comments a')].map(a=>({text:a.innerText,href:a.href}))})\"},{\"kind\":\"screenshot\",\"name\":\"anonymous-phone\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "anonymous-desktop"
+      },
+      "args": [
+        "url=http://events.extrachill.com/events/ratings-past/",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=1440x1000",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/events/ratings-past/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\"#comments\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"({copy:document.querySelector('#comments').innerText,links:[...document.querySelectorAll('#comments a')].map(a=>({text:a.innerText,href:a.href}))})\"},{\"kind\":\"screenshot\",\"name\":\"anonymous-desktop\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "attendee-unlock-and-event-rating"
+      },
+      "args": [
+        "url=http://events.extrachill.com/events/ratings-past/",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=390x844",
+        "auth=wordpress-admin",
+        "auth-user-id=751",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/events/ratings-past/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".dme-rating-gate\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector('.dme-rating-gate').innerText.includes('I Was There')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"window.__ratingsNavigationSentinel=(Date.now().toString(36)+Math.random().toString(36).slice(2))\"},{\"kind\":\"evaluate\",\"expression\":\"sessionStorage.setItem('ratingsSentinel',window.__ratingsNavigationSentinel)\"},{\"kind\":\"screenshot\",\"name\":\"locked-phone\"},{\"kind\":\"click\",\"selector\":\".ec-attendance__button\"},{\"kind\":\"waitFor\",\"selector\":\".dme-rating-field input >> nth=0\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"window.__ratingsNavigationSentinel===sessionStorage.getItem('ratingsSentinel')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"!!document.querySelector('.dme-rating-field').offsetParent\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"unlocked-phone\"},{\"kind\":\"click\",\"selector\":\"label[for=\\\"dme-rating-4\\\"]\"},{\"kind\":\"click\",\"selector\":\"#submit\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"2000ms\"},{\"kind\":\"screenshot\",\"name\":\"event-rated-phone\"},{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/events/ratings-past/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".dme-rating-yours\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector('.dme-rating-yours').innerText.includes('\\u2605\\u2605\\u2605\\u2605')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"event-reloaded-phone\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "card-targets-phone"
+      },
+      "args": [
+        "url=http://events.extrachill.com/my-shows/?tab=past",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=390x844",
+        "auth=wordpress-admin",
+        "auth-user-id=751",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-rating-star >> nth=0\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"(()=>{const card=[...document.querySelectorAll('.ec-concert-stats__show-card')].find(c=>c.querySelector('a')?.href.includes('ratings-inline')); if(!card)throw Error('Seeded inline card missing'); return {cardText:card.innerText,cardTag:card.tagName,targets:[...card.querySelectorAll('a,button,[role=\\\"button\\\"],.ec-concert-stats__show-rating-hint')].map(el=>{const r=el.getBoundingClientRect();return {tag:el.tagName,text:el.innerText,label:el.getAttribute('aria-label'),href:el.getAttribute('href'),resolvedHref:el.href||null,width:r.width,height:r.height,x:r.x,y:r.y}})};})()\"},{\"kind\":\"screenshot\",\"name\":\"card-targets-phone\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "card-targets-desktop"
+      },
+      "args": [
+        "url=http://events.extrachill.com/my-shows/?tab=past",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=1440x1000",
+        "auth=wordpress-admin",
+        "auth-user-id=751",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-rating-star >> nth=0\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"(()=>{const card=[...document.querySelectorAll('.ec-concert-stats__show-card')].find(c=>c.querySelector('a')?.href.includes('ratings-inline')); if(!card)throw Error('Seeded inline card missing'); return {cardText:card.innerText,cardTag:card.tagName,targets:[...card.querySelectorAll('a,button,[role=\\\"button\\\"],.ec-concert-stats__show-rating-hint')].map(el=>{const r=el.getBoundingClientRect();return {tag:el.tagName,text:el.innerText,label:el.getAttribute('aria-label'),href:el.getAttribute('href'),resolvedHref:el.href||null,width:r.width,height:r.height,x:r.x,y:r.y}})};})()\"},{\"kind\":\"screenshot\",\"name\":\"card-targets-desktop\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "inline-rating-count-and-persistence"
+      },
+      "args": [
+        "url=http://events.extrachill.com/my-shows/?tab=past",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=1440x1000",
+        "auth=wordpress-admin",
+        "auth-user-id=751",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-card:has(a[href*=\\\"ratings-inline\\\"]) .ec-concert-stats__show-rating-star >> nth=0\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector(\\\".ec-concert-stats__show-card:has(a[href*=\\\\\\\"ratings-inline\\\\\\\"])\\\").innerText.includes('Rate it')\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"/still needs? your rating|Tap the stars to rate/.test(document.body.innerText)\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"inline-unrated-desktop\"},{\"kind\":\"click\",\"selector\":\".ec-concert-stats__show-card:has(a[href*=\\\"ratings-inline\\\"]) .ec-concert-stats__show-rating-star:nth-child(3)\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"12000ms\"},{\"kind\":\"screenshot\",\"name\":\"inline-after-click-desktop\"},{\"kind\":\"evaluate\",\"expression\":\"JSON.stringify({error:(document.querySelector('.ec-concert-stats__show-rating-error')||{}).innerText||null,pressed:[...document.querySelectorAll('.ec-concert-stats__show-rating-star')].map(b=>b.getAttribute('aria-pressed'))})\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector(\\\".ec-concert-stats__show-card:has(a[href*=\\\\\\\"ratings-inline\\\\\\\"]) .ec-concert-stats__show-rating-star:nth-child(3)\\\").getAttribute('aria-pressed')==='true'\",\"assert\":true},{\"kind\":\"evaluate\",\"expression\":\"!/still needs? your rating|Tap the stars to rate/.test(document.body.innerText)\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"inline-rated-desktop\"},{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-card:has(a[href*=\\\"ratings-inline\\\"]) .ec-concert-stats__show-rating-star[aria-pressed=\\\"true\\\"] >> nth=0\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelector(\\\".ec-concert-stats__show-card:has(a[href*=\\\\\\\"ratings-inline\\\\\\\"]) .ec-concert-stats__show-rating-star:nth-child(3)\\\").getAttribute('aria-pressed')==='true'\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"inline-reloaded-desktop\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "other-users-my-shows"
+      },
+      "args": [
+        "url=http://events.extrachill.com/my-shows/?user_id=751&tab=past",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=390x844",
+        "auth=wordpress-admin",
+        "auth-user-id=752",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?user_id=751&tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-card >> nth=0\",\"timeout\":\"20s\"},{\"kind\":\"evaluate\",\"expression\":\"document.querySelectorAll('.ec-concert-stats__show-rating-star').length===0\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"other-user-phone\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
+        "step": "logged-out-rest-rejected"
+      },
+      "args": [
+        "url=http://events.extrachill.com/events/ratings-past/",
+        "route-host=events.extrachill.com",
+        "allow-host=events.extrachill.com",
+        "network-policy=block",
+        "viewport=390x844",
+        "timeout=180s",
+        "step-timeout=30s",
+        "capture=steps,console,errors,network,html,screenshot,dom-snapshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/events/ratings-past/\",\"waitFor\":\"load\"},{\"kind\":\"evaluate\",\"expression\":\"(async()=>{const res=await fetch('/wp-json/wp-abilities/v1/abilities/data-machine-events/rate-event/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:{event_id:1,rating:5}})});return {status:res.status,body:await res.json()}})()\"},{\"kind\":\"evaluate\",\"expression\":\"(async()=>{const res=await fetch('/wp-json/wp-abilities/v1/abilities/data-machine-events/rate-event/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:{event_id:1,rating:5}})});return [401,403].includes(res.status)})()\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"logged-out-rest-phone\"}]"
+      ]
+    }
+  ]
+}
