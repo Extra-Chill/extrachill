@@ -26,6 +26,7 @@ Run on 2026-10-26 on the full 11-site rig: `homeboy rig up extrachill-network` w
    - Both inline paths go through core `/wp-abilities/v1` (`get-my-event-ratings` GET, `rate-event` POST) from `extrachill-events/blocks/concert-stats/src/hooks/useMyRatings.js`. The event-page path, which works, uses the comment form instead.
    - Server-side, both abilities behave correctly on production: `rest_do_request` as a logged-in user gives a 200 read and a write that reaches the business rules.
    - So the failure is in the client call or auth (nonce, root URL, or request timing in the sandbox, where requests take 4–8s). The read error is swallowed silently by design (`.catch(() => {})`), which hides it.
+   - Tracked in Extra-Chill/extrachill-events#1017.
    - **Next:** a real-browser check on production (rate one show inline on My Shows, then reload). Separately, log the read error instead of swallowing it.
 2. **My Shows card, links measured on a phone** (supports the founder feedback "everything is a hyperlink"):
 
