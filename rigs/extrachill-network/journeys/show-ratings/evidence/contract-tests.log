@@ -1,0 +1,16 @@
+extrachill-network rig contract ok
+gardner persona matches its versioned schema
+gardner persona keeps its stable identity and Users-owned access contract
+gardner persona publishes each stable cross-product oracle exactly once
+gardner persona contains no live identity material or permitted external side effects
+gardner persona contract ok
+show-ratings contract ok
+✔ rigs/extrachill-network/tests (41.271442ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45.845698
