@@ -454,15 +454,52 @@ function extrachill_get_events_upcoming_count_via_api( $term_slug, $taxonomy ) {
 		return null;
 	}
 
-	$data = $response->get_data();
-	if ( empty( $data ) || ! isset( $data['count'] ) ) {
+	return extrachill_normalize_events_upcoming_count_response( $response->get_data(), $term_slug );
+}
+
+/**
+ * Normalize an upcoming-counts ability response for a single term.
+ *
+ * The ability returns a list, even for single-slug lookups. Also tolerate
+ * legacy bare rows and a sole row without a slug, but never use a row that
+ * explicitly names a different slug. Zero counts remain the caller's concern.
+ *
+ * @param mixed  $data      Decoded response data.
+ * @param string $term_slug Requested term slug.
+ * @return array|null Normalized term ID, count and URL, or null if not found.
+ */
+function extrachill_normalize_events_upcoming_count_response( $data, $term_slug ) {
+	if ( ! is_array( $data ) || empty( $data ) ) {
+		return null;
+	}
+
+	if ( ! isset( $data['count'] ) ) {
+		$match = null;
+		foreach ( $data as $entry ) {
+			if ( is_array( $entry ) && isset( $entry['slug'] ) && $entry['slug'] === $term_slug ) {
+				$match = $entry;
+				break;
+			}
+		}
+
+		if ( null === $match && 1 === count( $data ) ) {
+			$entry = reset( $data );
+			if ( is_array( $entry ) && ! isset( $entry['slug'] ) ) {
+				$match = $entry;
+			}
+		}
+
+		$data = $match;
+	}
+
+	if ( ! is_array( $data ) || ! isset( $data['count'] ) ) {
 		return null;
 	}
 
 	return array(
-		'term_id' => null,
+		'term_id' => isset( $data['term_id'] ) ? (int) $data['term_id'] : null,
 		'count'   => (int) $data['count'],
-		'url'     => isset( $data['url'] ) ? $data['url'] : null,
+		'url'     => isset( $data['url'] ) ? (string) $data['url'] : null,
 	);
 }
 

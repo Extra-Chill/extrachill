@@ -1,13 +1,14 @@
 <?php
 /**
- * Standalone tests for cross-site-links generation-key cache invalidation.
+ * Standalone tests for cross-site-links cache invalidation and event counts.
  *
  * Covers inc/cross-site-links/taxonomy-links.php:
  *   - the cross-site links group registers as a network-global group,
  *   - every cache key is generation-prefixed via one helper,
  *   - invalidation bumps an O(1) generation counter (no wp_cache_flush_group),
  *   - bumps fire on publish-state transitions and deletes only,
- *   - bumps coalesce across a request batch and re-arm on external bumps.
+ *   - bumps coalesce across a request batch and re-arm on external bumps,
+ *   - cold-cache events responses normalize list and legacy bare-row shapes.
  *
  * @package ExtraChill\Network
  */
@@ -250,4 +251,41 @@ foreach ( $files as $file ) {
 	}
 }
 
-fwrite( STDOUT, "Cross-site links generation invalidation tests passed.\n" );
+// Cold-cache REST response normalization is pure: no REST dispatch required.
+$event_row = array(
+	'term_id' => '353',
+	'name'    => 'Easy Honey',
+	'slug'    => 'easy-honey',
+	'count'   => '8',
+	'url'     => 'https://events.extrachill.com/artist/easy-honey',
+);
+$expected_event = array(
+	'term_id' => 353,
+	'count'   => 8,
+	'url'     => $event_row['url'],
+);
+$other_row         = $event_row;
+$other_row['slug'] = 'other-artist';
+
+csl_assert_same( $expected_event, extrachill_normalize_events_upcoming_count_response( array( $event_row ), 'easy-honey' ), 'Single-slug ability list preserves count, URL and term ID.' );
+csl_assert_same( $expected_event, extrachill_normalize_events_upcoming_count_response( array( $other_row, $event_row ), 'easy-honey' ), 'Selects the matching slug rather than the first list entry.' );
+csl_assert_same( null, extrachill_normalize_events_upcoming_count_response( array( $other_row ), 'easy-honey' ), 'A sole explicitly non-matching slug is not used.' );
+csl_assert_same( null, extrachill_normalize_events_upcoming_count_response( array(), 'easy-honey' ), 'Empty list has no upcoming count.' );
+csl_assert_same( $expected_event, extrachill_normalize_events_upcoming_count_response( $event_row, 'easy-honey' ), 'Legacy bare object remains supported.' );
+
+unset( $event_row['slug'], $event_row['term_id'] );
+$expected_event['term_id'] = null;
+csl_assert_same( $expected_event, extrachill_normalize_events_upcoming_count_response( array( $event_row ), 'easy-honey' ), 'A sole slugless entry is accepted with a nullable term ID.' );
+csl_assert_same( null, extrachill_normalize_events_upcoming_count_response( array( $event_row, $event_row ), 'easy-honey' ), 'Multiple slugless entries cannot identify a term.' );
+
+$event_row['count']      = 0;
+$expected_event['count'] = 0;
+csl_assert_same( $expected_event, extrachill_normalize_events_upcoming_count_response( array( $event_row ), 'easy-honey' ), 'Zero counts remain available for the caller to reject.' );
+unset( $event_row['url'] );
+$expected_event['url'] = null;
+csl_assert_same( $expected_event, extrachill_normalize_events_upcoming_count_response( $event_row, 'easy-honey' ), 'Missing URL normalizes to null.' );
+foreach ( array( null, false, 'invalid', array( array( 'slug' => 'easy-honey' ) ) ) as $invalid_response ) {
+	csl_assert_same( null, extrachill_normalize_events_upcoming_count_response( $invalid_response, 'easy-honey' ), 'Invalid or count-less responses return null.' );
+}
+
+fwrite( STDOUT, "Cross-site links generation invalidation and events response tests passed.\n" );
