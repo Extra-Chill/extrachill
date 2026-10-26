@@ -1,6 +1,6 @@
 <?php
 /**
- * Standalone tests for post lifecycle cache invalidation.
+ * Standalone tests for post and term lifecycle cache invalidation.
  *
  * @package ExtraChillCache
  */
@@ -72,7 +72,32 @@ function wp_is_post_revision( $post_id ) {
 	return in_array( $post_id, $GLOBALS['extrachill_cache_test_revisions'], true ) ? $post_id : false;
 }
 
+function get_taxonomy( $taxonomy ) {
+	return 'unknown' === $taxonomy ? false : (object) array( 'publicly_queryable' => 'private_taxonomy' !== $taxonomy );
+}
+
+function get_term_link( $term, $taxonomy = '' ) {
+	$GLOBALS['extrachill_cache_test_term_link_calls'][] = array( $term, $taxonomy );
+	if ( is_object( $term ) ) {
+		return 'https://example.com/' . $taxonomy . '/' . $term->slug . '/';
+	}
+	return 404 === $term ? new stdClass() : 'https://example.com/' . $taxonomy . '/' . $term . '/';
+}
+
+function is_wp_error( $value ) {
+	return $value instanceof stdClass;
+}
+
+function home_url( $path = '' ) {
+	return 'https://example.com' . $path;
+}
+
 function apply_filters( $hook, $value, ...$args ) {
+	if ( 'extrachill_cache_term_change_urls' === $hook ) {
+		$GLOBALS['extrachill_cache_test_term_filter_args'] = array( $value, ...$args );
+		$filter = $GLOBALS['extrachill_cache_test_term_filter'] ?? null;
+		return $filter ? $filter( $value, ...$args ) : $value;
+	}
 	if ( 'extrachill_cache_post_change_urls' === $hook ) {
 		return $GLOBALS['extrachill_cache_test_filter_urls'];
 	}
@@ -122,6 +147,9 @@ function extrachill_cache_test_reset( $blog_id = 1 ) {
 	$GLOBALS['extrachill_cache_test_autosaves']    = array();
 	$GLOBALS['extrachill_cache_test_revisions']    = array();
 	$GLOBALS['extrachill_cache_test_filter_urls']  = null;
+	$GLOBALS['extrachill_cache_test_term_filter'] = null;
+	$GLOBALS['extrachill_cache_test_term_filter_args'] = array();
+	$GLOBALS['extrachill_cache_test_term_link_calls'] = array();
 }
 
 function extrachill_cache_test_assert_same( $expected, $actual, $message ) {
@@ -326,5 +354,66 @@ extrachill_cache_test_assert_same(
 	preg_match( '/artist|venue|promoter|membership|link[ _-]?page/i', $purge_source ),
 	'generic purge source contains no lower-domain names'
 );
+
+// Exercise actual hook argument forwarding, including the deleted object.
+foreach ( array( 'created_term' => 'created', 'edited_term' => 'edited', 'delete_term' => 'deleted' ) as $hook => $action ) {
+	extrachill_cache_test_reset( 7 );
+	$deleted_term = (object) array( 'term_id' => 42, 'slug' => 'deleted-slug' );
+	do_action( $hook, 42, 99, 'category', $deleted_term, array( 12 ) );
+	$archive = 'https://example.com/category/' . ( 'deleted' === $action ? 'deleted-slug' : '42' ) . '/';
+	$urls = array( $archive );
+	if ( 'created' !== $action ) {
+		$urls[] = 'https://example.com/';
+	}
+	extrachill_cache_test_assert_same( array_map( function ( $url ) { return array( $url, 7 ); }, $urls ), $GLOBALS['extrachill_cache_test_deleted_urls'], $hook . ' deletes only expected URLs on current blog' );
+	extrachill_cache_test_assert_same( array( $urls, 42, 'category', $action ), $GLOBALS['extrachill_cache_test_term_filter_args'], $hook . ' supplies filter contract' );
+	extrachill_cache_test_assert_same( array( array( 'deleted' === $action ? $deleted_term : 42, 'category' ) ), $GLOBALS['extrachill_cache_test_term_link_calls'], $hook . ' resolves correct term link input' );
+	extrachill_cache_test_assert_purges( false, $hook . ' never purges blog' );
+}
+
+foreach ( array( 'add', 'replace', 'empty', 'invalid' ) as $mode ) {
+	extrachill_cache_test_reset();
+	$GLOBALS['extrachill_cache_test_term_filter'] = function ( $urls ) use ( $mode ) {
+		if ( 'invalid' === $mode ) {
+			return false;
+		}
+		if ( 'empty' === $mode ) {
+			return array();
+		}
+		$extra = array( 'https://example.com/extra/', 'https://example.com/extra/', false );
+		return 'add' === $mode ? array_merge( $urls, $extra ) : $extra;
+	};
+	do_action( 'edited_term', 42, 99, 'category' );
+	$expected = array();
+	if ( 'add' === $mode || 'invalid' === $mode ) {
+		$expected = array( array( 'https://example.com/category/42/', 1 ), array( 'https://example.com/', 1 ) );
+	}
+	if ( 'add' === $mode || 'replace' === $mode ) {
+		$expected[] = array( 'https://example.com/extra/', 1 );
+	}
+	extrachill_cache_test_assert_same( $expected, $GLOBALS['extrachill_cache_test_deleted_urls'], $mode . ' term URL filter handles defaults and deduplication' );
+	extrachill_cache_test_assert_purges( false, $mode . ' term URL filter never flushes blog' );
+}
+
+foreach ( array( 'private_taxonomy', 'unknown', 'nav_menu', 'post_format', 'wp_theme', 'wp_template_part', 'wp_pattern_category', 'link_category' ) as $taxonomy ) {
+	extrachill_cache_test_reset();
+	do_action( 'edited_term', 42, 99, $taxonomy );
+	extrachill_cache_test_assert_same( array(), $GLOBALS['extrachill_cache_test_deleted_urls'], $taxonomy . ' has no default public URLs' );
+	extrachill_cache_test_assert_same( array(), $GLOBALS['extrachill_cache_test_term_link_calls'], $taxonomy . ' does not resolve an archive' );
+	extrachill_cache_test_assert_purges( false, $taxonomy . ' never flushes blog' );
+}
+
+extrachill_cache_test_reset();
+$GLOBALS['extrachill_cache_test_term_filter'] = function ( $urls ) { return array( 'https://example.com/menu/' ); };
+do_action( 'edited_term', 42, 99, 'nav_menu' );
+extrachill_cache_test_assert_same( array( array( 'https://example.com/menu/', 1 ) ), $GLOBALS['extrachill_cache_test_deleted_urls'], 'integration can opt internal taxonomy into exact URLs' );
+
+foreach ( array( 'created_term', 'edited_term' ) as $hook ) {
+	extrachill_cache_test_reset();
+	do_action( $hook, 404, 99, 'category' );
+	$expected = 'created_term' === $hook ? array() : array( array( 'https://example.com/', 1 ) );
+	extrachill_cache_test_assert_same( $expected, $GLOBALS['extrachill_cache_test_deleted_urls'], 'term link errors are skipped without losing home invalidation' );
+	extrachill_cache_test_assert_purges( false, 'term link errors never flush blog' );
+}
 
 fwrite( STDOUT, "All purge tests passed.\n" );

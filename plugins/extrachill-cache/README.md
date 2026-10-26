@@ -24,7 +24,7 @@ feature, drops the rest, and is a fraction of the size.
 | Feature | Adopted | Rationale |
 |---|---|---|
 | **Full-page HTML cache** (desktop + mobile, TTL) | ✅ | The one real feature. Serves cached anonymous HTML fast, regenerates on miss, 24h TTL (Breeze used 1440 min). Modeled on `breeze_serve_cache()` / `breeze_cache()` in `inc/cache/execute-cache.php`. |
-| **Cache purge / invalidation** | ✅ | Purge on content changes (save/trash post, comment, term, theme, customizer). Multisite-aware — clears only the current blog's partition. Modeled on `inc/cache/purge-cache.php` hooks. |
+| **Cache purge / invalidation** | ✅ | Purge on content changes (save/trash post, comment, term, theme, customizer). Multisite-aware — targeted term URLs; post URLs via integration or current-blog fallback. Modeled on `inc/cache/purge-cache.php` hooks. |
 
 ## Features deliberately dropped (out of scope)
 
@@ -80,8 +80,9 @@ Two entry points share one cache store:
 3. **`inc/cache-store.php` — the shared store.** Path resolution, sha512 keying
    (device-bucketed), TTL-checked read, atomic write, recursive delete. Free of
    plugin-API dependencies so both entry points can use it.
-4. **`inc/purge.php` — invalidation.** Hooks content-change actions and flushes
-   the current blog's partition.
+4. **`inc/purge.php` — invalidation.** Hooks content-change actions, deleting
+   targeted URLs for terms and integrated post types; other content changes
+   flush the current blog's partition.
 5. **`inc/dropin-installer.php` — drop-in management.** Composes the
    `advanced-cache.php` file (injected constants + host→blog_id map + template)
    and toggles `WP_CACHE`. Only runs on activation/deactivation. The host→blog_id
@@ -92,6 +93,39 @@ Two entry points share one cache store:
    what the generator would produce right now, so a network change that
    silently drops a host to the shared blog-0 partition is surfaced instead of
    discovered by symptom.
+
+## Term cache invalidation
+
+Term changes never flush a whole blog's cache. For publicly queryable taxonomies:
+
+- `created_term` deletes only the new term's archive URL (not the home page).
+- `edited_term` and `delete_term` delete the archive URL and `home_url( '/' )`.
+  Deletion resolves the archive from WordPress's supplied deleted term object,
+  since the term no longer exists in the database.
+
+Non-queryable/unknown taxonomies and core internal taxonomies (`nav_menu`,
+`post_format`, `link_category`, `wp_theme`, `wp_template_part`,
+`wp_pattern_category`) have no default URLs. These generally have no standalone
+public archive; integrations can opt in where they affect public output.
+
+Use `extrachill_cache_term_change_urls( $urls, $term_id, $taxonomy, $action )`
+to extend or replace the computed URL array. `$action` is `created`, `edited`, or
+`deleted`. The filter runs even when the defaults are empty. For example:
+
+```php
+add_filter( 'extrachill_cache_term_change_urls', function ( $urls, $term_id, $taxonomy, $action ) {
+    if ( 'category' === $taxonomy && 'created' !== $action ) {
+        $urls[] = home_url( '/directory/' );
+    }
+    return $urls;
+}, 10, 4 );
+```
+
+Returning an empty array skips deletion; returning a non-array retains the
+computed defaults, **never** a full-blog purge. Duplicate URLs and non-string
+entries are ignored. All URL deletions use the current blog's cache partition.
+This mirrors the post URL filter's integration pattern, but unlike
+`extrachill_cache_post_change_urls`, there is no whole-blog fallback.
 
 ## Domain aliases (sunrise.php mappings)
 

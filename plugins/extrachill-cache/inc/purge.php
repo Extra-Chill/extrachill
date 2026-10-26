@@ -4,11 +4,9 @@
  *
  * Modeled on Breeze's purge hook set (inc/cache/purge-cache.php:37-53). Breeze,
  * for a file-based page cache, effectively flushed the whole site's page cache
- * on any content change (breeze_cache_flush). We do the same, deliberately: a
- * blog-wide flush on content change is simple, correct, and cheap for this
- * platform's traffic — it avoids the fragile per-URL invalidation matrix
- * (permalinks + REST + author + term archives + feeds) that Breeze's
- * collect_urls_for_cache_purge() tried to enumerate and frequently missed.
+ * on any content change (breeze_cache_flush). Posts retain that fallback unless
+ * an integration supplies exact URLs. Terms always use targeted invalidation:
+ * frequent term imports must never flush the whole site's page cache.
  *
  * All purges are multisite-aware: they clear the CURRENT blog's cache
  * partition only (extrachill_cache_blog_dir), never another site's.
@@ -36,10 +34,10 @@ add_action( 'wp_set_comment_status', 'extrachill_cache_purge_current_blog', 10, 
 add_action( 'trashed_comment', 'extrachill_cache_purge_current_blog', 10, 0 );
 add_action( 'spammed_comment', 'extrachill_cache_purge_current_blog', 10, 0 );
 
-// Terms — mirrors Breeze purge-cache.php:41.
-add_action( 'edited_term', 'extrachill_cache_purge_current_blog', 10, 0 );
-add_action( 'created_term', 'extrachill_cache_purge_current_blog', 10, 0 );
-add_action( 'delete_term', 'extrachill_cache_purge_current_blog', 10, 0 );
+// Terms never flush the whole blog, including when created by importers.
+add_action( 'edited_term', 'extrachill_cache_purge_on_term_edit', 10, 3 );
+add_action( 'created_term', 'extrachill_cache_purge_on_term_create', 10, 3 );
+add_action( 'delete_term', 'extrachill_cache_purge_on_term_delete', 10, 5 );
 
 // Theme / customizer — mirrors Breeze purge-cache.php:51-52.
 add_action( 'switch_theme', 'extrachill_cache_purge_current_blog', 10, 0 );
@@ -171,6 +169,91 @@ function extrachill_cache_purge_post( $post_id ) {
 	}
 
 	extrachill_cache_purge_current_blog();
+}
+
+/**
+ * Invalidate a newly created term's archive only.
+ *
+ * @param int    $term_id  Term ID.
+ * @param int    $tt_id    Term taxonomy ID.
+ * @param string $taxonomy Taxonomy name.
+ */
+function extrachill_cache_purge_on_term_create( $term_id, $tt_id, $taxonomy ) {
+	extrachill_cache_purge_term( $term_id, $taxonomy, 'created' );
+}
+
+/**
+ * Invalidate an edited term's archive and home page.
+ *
+ * @param int    $term_id  Term ID.
+ * @param int    $tt_id    Term taxonomy ID.
+ * @param string $taxonomy Taxonomy name.
+ */
+function extrachill_cache_purge_on_term_edit( $term_id, $tt_id, $taxonomy ) {
+	extrachill_cache_purge_term( $term_id, $taxonomy, 'edited' );
+}
+
+/**
+ * Use the deleted object: the term can no longer be looked up by ID.
+ *
+ * @param int     $term_id      Term ID.
+ * @param int     $tt_id        Term taxonomy ID.
+ * @param string  $taxonomy     Taxonomy name.
+ * @param WP_Term $deleted_term Deleted term object.
+ * @param array   $object_ids   Formerly associated object IDs.
+ */
+function extrachill_cache_purge_on_term_delete( $term_id, $tt_id, $taxonomy, $deleted_term, $object_ids ) {
+	extrachill_cache_purge_term( $term_id, $taxonomy, 'deleted', $deleted_term );
+}
+
+/**
+ * Delete only exact URLs affected by a term mutation, never the blog partition.
+ *
+ * Non-queryable taxonomies and core internal taxonomies have no default URLs.
+ * Integrations can still opt them in through the filter when they affect public
+ * output. Post formats are excluded explicitly even if publicly queryable.
+ *
+ * @param int          $term_id      Changed term ID.
+ * @param string       $taxonomy     Taxonomy name.
+ * @param string       $action       created, edited, or deleted.
+ * @param WP_Term|null $deleted_term Deleted object, if applicable.
+ * @return void
+ */
+function extrachill_cache_purge_term( $term_id, $taxonomy, $action, $deleted_term = null ) {
+	$urls            = array();
+	$taxonomy_object = get_taxonomy( $taxonomy );
+	$internal        = array( 'nav_menu', 'post_format', 'link_category', 'wp_theme', 'wp_template_part', 'wp_pattern_category' );
+
+	if ( $taxonomy_object && $taxonomy_object->publicly_queryable && ! in_array( $taxonomy, $internal, true ) ) {
+		$url = get_term_link( 'deleted' === $action ? $deleted_term : (int) $term_id, $taxonomy );
+		if ( ! is_wp_error( $url ) && is_string( $url ) ) {
+			$urls[] = $url;
+		}
+		if ( 'created' !== $action ) {
+			$urls[] = home_url( '/' );
+		}
+	}
+
+	/**
+	 * Filter exact public URLs to invalidate for a term change.
+	 *
+	 * An array replaces the defaults (including an empty array to skip deletion).
+	 * Non-array results retain the computed defaults, never a full-blog purge.
+	 *
+	 * @param array  $urls     Computed archive/home URLs, or an empty array.
+	 * @param int    $term_id  Changed term ID.
+	 * @param string $taxonomy Taxonomy name.
+	 * @param string $action   created, edited, or deleted.
+	 */
+	$filtered_urls = apply_filters( 'extrachill_cache_term_change_urls', $urls, (int) $term_id, $taxonomy, $action );
+	if ( is_array( $filtered_urls ) ) {
+		$urls = $filtered_urls;
+	}
+
+	$blog_id = get_current_blog_id();
+	foreach ( array_unique( array_filter( $urls, 'is_string' ) ) as $url ) {
+		extrachill_cache_delete_url( $url, $blog_id );
+	}
 }
 
 /**
