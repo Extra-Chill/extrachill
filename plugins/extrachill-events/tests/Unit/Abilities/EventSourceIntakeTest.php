@@ -264,6 +264,9 @@ final class EventSourceWpdb {
 			return array_values( $this->submissions );
 		}
 		if ( str_contains( $query, 'datamachine_flows' ) ) {
+			if ( str_contains( $query, 'universal_web_scraper' ) ) {
+				return $this->flows;
+			}
 			$pipeline_id = (int) ( $args[0] ?? 0 );
 			return array_values( array_filter( $this->flows, static fn( $row ) => (int) $row['pipeline_id'] === $pipeline_id ) );
 		}
@@ -918,6 +921,53 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$method->setAccessible( true );
 		$candidates = $method->invoke( $qualifier, 'https://venue.test', 'https://venue.test', '<nav><a href="/calendar">Upcoming shows</a></nav>' );
 		$this->assertContains( 'https://venue.test/calendar', array_column( $candidates, 'url' ) );
+	}
+
+	private function scraper_flow( string $url ): void {
+		$this->wpdb->flows = array(
+			array(
+				'flow_id' => 798,
+				'flow_name' => 'Easy Honey — Tour URL',
+				'flow_config' => wp_json_encode(
+					array(
+						array(
+							'handler_config' => array( 'source_url' => $url ),
+							'handler' => 'universal_web_scraper',
+						),
+					)
+				),
+			),
+		);
+	}
+
+	public function test_artist_host_coverage_ignores_scheme_www_and_path_and_submit_rejects(): void {
+		$this->scraper_flow( 'https://www.easyhoneymusic.com/tour/' );
+		$runner = new VenueExpansionRunner();
+		$url = 'http://easyhoneymusic.com';
+		$this->assertNull( $runner->lookupExistingFlow( $url ) );
+		$flow = $runner->lookupExistingFlow( $url, true );
+		$this->assertSame( 798, $flow['flow_id'] );
+		$this->assertSame( 'Easy Honey — Tour URL', $flow['flow_name'] );
+		$this->assertNull( $runner->lookupExistingFlow( 'https://other.easyhoneymusic.com', true ) );
+
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$fresh = $this->qualification( 'artist', false, $url );
+		$fresh['existing_coverage'] = array_merge( array( 'covered' => true, 'type' => 'universal_scraper_flow' ), $flow );
+		$intake->qualifications = array( $fresh );
+		$result = $intake->executeSubmit( array( 'url' => $url ) );
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'source_already_covered', $result->get_error_code() );
+		$this->assertSame( array(), $this->wpdb->submissions );
+	}
+
+	public function test_shared_hosts_keep_exact_url_matching_even_for_artists(): void {
+		foreach ( array( 'artist.bandcamp.com', 'linktr.ee', 'www.ticketmaster.com', 'eventbrite.com', 'dice.fm', 'axs.com' ) as $host ) {
+			$url = 'https://' . $host . '/artist-one';
+			$this->scraper_flow( $url );
+			$runner = new VenueExpansionRunner();
+			$this->assertNull( $runner->lookupExistingFlow( 'https://' . $host . '/artist-two', true ), $host );
+			$this->assertSame( 798, $runner->lookupExistingFlow( $url, true )['flow_id'], $host );
+		}
 	}
 
 	public function test_existing_coverage_uses_venue_expansion_flow_lookup(): void {

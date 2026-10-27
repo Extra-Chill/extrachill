@@ -490,11 +490,12 @@ class ArtistUrlImportAbilities {
 			return $probe;
 		}
 
-		$coverage = array(
+		$classification = $this->classifySource( $events_url, $probe, $qualification, ! empty( $input['legacy_artist'] ) );
+		$coverage       = array(
 			'covered' => false,
 			'type'    => 'none',
 		);
-		$flow     = ( new VenueExpansionRunner() )->lookupExistingFlow( $events_url );
+		$flow           = ( new VenueExpansionRunner() )->lookupExistingFlow( $events_url, 'artist' === $classification['source_kind'] );
 		if ( $flow ) {
 			$coverage = array(
 				'covered'   => true,
@@ -520,8 +521,7 @@ class ArtistUrlImportAbilities {
 				'type'    => 'unsupported_' . $host_scope,
 			);
 		}
-		$classification = $this->classifySource( $events_url, $probe, $qualification, ! empty( $input['legacy_artist'] ) );
-		$warnings       = array_values( array_unique( array_merge( (array) ( $qualification['warnings'] ?? array() ), $classification['warnings'] ) ) );
+		$warnings = array_values( array_unique( array_merge( (array) ( $qualification['warnings'] ?? array() ), $classification['warnings'] ) ) );
 		if ( ! empty( $coverage['covered'] ) ) {
 			$warnings[] = __( 'This source is already covered and should not create another recurring flow.', 'extrachill-events' );
 		}
@@ -873,17 +873,6 @@ class ArtistUrlImportAbilities {
 		if ( is_wp_error( $qualification ) ) {
 			return $qualification;
 		}
-		if ( empty( $qualification['recurring_eligible'] ) ) {
-			return new \WP_Error(
-				'source_not_admissible',
-				__( 'This page is not eligible for a recurring event import. Submit individual events with the manual form.', 'extrachill-events' ),
-				array(
-					'status'        => 422,
-					'qualification' => $qualification,
-				)
-			);
-		}
-
 		if ( ! empty( $qualification['existing_coverage']['covered'] ) ) {
 			return new \WP_Error(
 				'source_already_covered',
@@ -891,6 +880,16 @@ class ArtistUrlImportAbilities {
 				array(
 					'status'            => 409,
 					'existing_coverage' => $qualification['existing_coverage'],
+				)
+			);
+		}
+		if ( empty( $qualification['recurring_eligible'] ) ) {
+			return new \WP_Error(
+				'source_not_admissible',
+				__( 'This page is not eligible for a recurring event import. Submit individual events with the manual form.', 'extrachill-events' ),
+				array(
+					'status'        => 422,
+					'qualification' => $qualification,
 				)
 			);
 		}

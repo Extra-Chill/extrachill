@@ -337,9 +337,65 @@ class VenueExpansionRunner {
 		return ( $this->flow_for_url )( $url );
 	}
 
-	/** Return an existing universal-scraper flow for a canonical source URL. */
-	public function lookupExistingFlow( string $url ): ?array {
-		return $this->findExistingFlow( $url );
+	/**
+	 * Return an existing scraper flow, optionally matching an artist's own host.
+	 *
+	 * Shared publishing and ticketing hosts must retain exact URL identity.
+	 *
+	 * @param string $url         Source URL.
+	 * @param bool   $artist_host Whether to allow dedicated artist host matching.
+	 * @return array|null Existing flow identity, if found.
+	 */
+	public function lookupExistingFlow( string $url, bool $artist_host = false ): ?array {
+		$flow = $this->findExistingFlow( $url );
+		if ( $flow || ! $artist_host ) {
+			return $flow;
+		}
+
+		$host = $this->artist_host( $url );
+		if ( '' === $host ) {
+			return null;
+		}
+		foreach ( array_merge( $this->flows_by_url ?? array(), $this->new_flows_by_url ) as $source_url => $candidate ) {
+			if ( $host === $this->artist_host( $source_url ) ) {
+				return $candidate;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Normalize dedicated artist hosts; never merge sources on shared platforms.
+	 *
+	 * @param string $url Source URL.
+	 * @return string Dedicated host, or an empty string for shared hosts.
+	 */
+	private function artist_host( string $url ): string {
+		$host         = preg_replace( '/^www\./', '', strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) );
+		$shared_hosts = array(
+			'bandcamp.com',
+			'linktr.ee',
+			'axs.com',
+			'bandsintown.com',
+			'dice.fm',
+			'eventbrite.com',
+			'ticketmaster.com',
+			'ticketweb.com',
+			'etix.com',
+			'seetickets.com',
+			'tixr.com',
+			'spotify.com',
+			'facebook.com',
+			'jambase.com',
+			'songkick.com',
+			'allevents.in',
+		);
+		foreach ( $shared_hosts as $domain ) {
+			if ( $host === $domain || str_ends_with( $host, '.' . $domain ) ) {
+				return '';
+			}
+		}
+		return $host;
 	}
 
 	/** Remember a newly created flow before the next candidate is processed. */
