@@ -597,7 +597,10 @@ class ArtistUrlImportAbilities {
 			}
 		}
 
-		$artist     = $this->suggestArtist( $url, $probe );
+		$artist = $this->suggestArtist( $url, $probe );
+		if ( empty( $performers ) && count( $venues ) > 1 ) {
+			$artist = $this->sharedTitleArtist( $probe, $artist );
+		}
 		$venue_name = 1 === count( $venues ) ? (string) reset( $venues ) : '';
 		$candidates = array();
 		if ( '' !== $artist['name'] ) {
@@ -677,7 +680,7 @@ class ArtistUrlImportAbilities {
 			$confidence     = null !== $artist['term_id'] ? 'high' : 'medium';
 			$scope_evidence = array(
 				'bounded' => true,
-				'type'    => 'site_artist_multiple_venues',
+				'type'    => 'shared_title' === $artist['source'] ? 'shared_title_multiple_venues' : 'site_artist_multiple_venues',
 				'host'    => strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ),
 			);
 			$binding        = array(
@@ -709,6 +712,50 @@ class ArtistUrlImportAbilities {
 			'warnings'       => $warnings,
 			'binding'        => $binding,
 			'scope_evidence' => $scope_evidence,
+		);
+	}
+
+	/**
+	 * Recognize performerless tours whose titles corroborate an artist identity.
+	 * Require at least two titles and 80% of all extracted events, including
+	 * untitled events, so a small matching subset cannot establish scope.
+	 *
+	 * @param array $probe  Extracted event probe.
+	 * @param array $artist Site-derived artist candidate.
+	 * @return array Corroborated artist or the original candidate.
+	 */
+	private function sharedTitleArtist( array $probe, array $artist ): array {
+		$events = (array) ( $probe['raw_events'] ?? array() );
+		$titles = array();
+		$names  = array();
+		foreach ( $events as $event ) {
+			$title = $event['title'] ?? '';
+			if ( ! is_string( $title ) || '' === trim( $title ) ) {
+				continue;
+			}
+			$title          = trim( preg_replace( '/\s+/u', ' ', $title ) );
+			$key            = strtolower( $title );
+			$titles[ $key ] = ( $titles[ $key ] ?? 0 ) + 1;
+			$names[ $key ]  = $title;
+		}
+		arsort( $titles );
+		$key = key( $titles );
+		if ( null === $key || $titles[ $key ] < 2 || $titles[ $key ] < 0.8 * count( $events ) ) {
+			return $artist;
+		}
+		$name = $names[ $key ];
+		if ( $this->isGenericSourceLabel( $name ) ) {
+			return $artist;
+		}
+		$term_id      = $this->matchTerm( $name, 'artist' );
+		$matches_site = sanitize_title( $name ) === sanitize_title( (string) $artist['name'] );
+		if ( null === $term_id && ! $matches_site ) {
+			return $artist;
+		}
+		return array(
+			'name'    => $name,
+			'term_id' => $term_id,
+			'source'  => 'shared_title',
 		);
 	}
 
@@ -868,7 +915,7 @@ class ArtistUrlImportAbilities {
 		}
 
 		// Re-qualify server-side regardless of what the preview saw.
-		$qualification = $this->qualifyForAdmission( $normalized );
+		$qualification = $this->qualifyForAdmission( $normalized, ! empty( $input['legacy_artist'] ) );
 
 		if ( is_wp_error( $qualification ) ) {
 			return $qualification;

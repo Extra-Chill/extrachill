@@ -565,6 +565,79 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertSame( 'unknown', $result['source_kind'] );
 	}
 
+	public function test_shared_title_binds_existing_artist_without_site_metadata(): void {
+		$GLOBALS['event_source_terms']['artist:will overman'] = new WP_Term( 4424, 'Will Overman' );
+		$events = array();
+		foreach ( array( 'Kings', '118 North', 'The Music Hall', 'The Cardinal Music Hall', 'The Listening Room', 'Another Room' ) as $venue ) {
+			$events[] = array( 'title' => 'Will Overman', 'venue' => $venue );
+		}
+		$result = $this->classification( $events, 'https://willovermanmusic.com' );
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( array( 'taxonomy' => 'artist', 'term_id' => 4424, 'name' => 'Will Overman' ), $result['binding'] );
+		$this->assertSame( 'shared_title_multiple_venues', $result['scope_evidence']['type'] );
+		$this->assertSame( $result['binding']['term_id'], $result['candidates'][0]['term_id'] );
+		$this->assertSame( array(), $result['warnings'] );
+
+		// One outlier is allowed, but a minority title cannot establish scope.
+		$events[5]['title'] = 'Special Show';
+		$this->assertSame( 'artist', $this->classification( $events, 'https://willovermanmusic.com' )['source_kind'] );
+		$events[4]['title'] = 'Another Show';
+		$this->assertSame( 'unknown', $this->classification( $events, 'https://willovermanmusic.com' )['source_kind'] );
+	}
+
+	public function test_shared_title_can_corroborate_site_candidate_without_term(): void {
+		$result = $this->classification(
+			array(
+				array( 'title' => 'Night Moves', 'venue' => 'Room A' ),
+				array( 'title' => 'Night Moves', 'venue' => 'Room B' ),
+			),
+			'https://night-moves.test'
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 'Night Moves', $result['binding']['name'] );
+		$this->assertNull( $result['binding']['term_id'] );
+	}
+
+	public function test_performerless_venue_calendar_does_not_classify_as_artist(): void {
+		$result = $this->classification(
+			array(
+				array( 'title' => 'The Band', 'venue' => 'The Room' ),
+				array( 'title' => 'Other Artist', 'venue' => 'The Room' ),
+				array( 'title' => 'Third Artist', 'venue' => 'The Room' ),
+			),
+			'https://venue.test/calendar'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
+	}
+
+	public function test_unmatched_shared_title_does_not_establish_artist_identity(): void {
+		$result = $this->classification(
+			array(
+				array( 'title' => 'Special Show', 'venue' => 'Room A' ),
+				array( 'title' => 'Special Show', 'venue' => 'Room B' ),
+			),
+			'https://unrelated.test'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
+	}
+
+	public function test_submit_passes_legacy_artist_flag_to_qualification(): void {
+		foreach ( array( true, false ) as $legacy_artist ) {
+			$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+			$intake->qualifications[] = function ( $url, $actual_flag ) use ( $legacy_artist ) {
+				$this->assertSame( 'https://source.test/events', $url );
+				$this->assertSame( $legacy_artist, $actual_flag );
+				return $this->qualification( 'unknown', false );
+			};
+			$input = array( 'url' => 'https://source.test/events' );
+			if ( $legacy_artist ) {
+				$input['legacy_artist'] = true;
+			}
+			$result = $intake->executeSubmit( $input );
+			$this->assertSame( 'source_not_admissible', $result->get_error_code() );
+		}
+	}
+
 	public function test_submission_rejects_ineligible_source_without_queueing(): void {
 		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
 		$intake->qualifications[] = $this->qualification( 'artist', false );
