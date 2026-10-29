@@ -132,6 +132,13 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 	}
 
 	if ( $link_page_id ) {
+		$sync_result = ec_artist_push_link_page_identity( $artist_id );
+		if ( is_wp_error( $sync_result ) ) {
+			if ( $did_switch ) {
+				restore_current_blog();
+			}
+			return $sync_result;
+		}
 		do_action( 'ec_link_page_save', $link_page_id );
 	}
 

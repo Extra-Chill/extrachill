@@ -17,6 +17,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/profile-image.php';
+
 /**
  * Re-entrancy guard for identity pushes.
  */
@@ -97,7 +99,7 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 	if ( ArtistDataSyncManager::is_syncing() ) {
 		return true;
 	}
-	if ( ! function_exists( 'ec_read_link_page_persistence' ) ) {
+	if ( ! function_exists( 'ec_read_link_page_persistence' ) || ! function_exists( 'ec_with_link_page_storage_blog' ) || ! function_exists( 'ec_with_link_page_lock_scope' ) ) {
 		return new WP_Error( 'link_pages_runtime_unavailable', 'The Link Pages runtime is not loaded.' );
 	}
 	$link_page_id = (int) ec_get_link_page_for_artist( $artist_id );
@@ -105,6 +107,18 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 		return true;
 	}
 
+	$artist_blog = get_current_blog_id();
+	return ec_with_link_page_storage_blog( static function () use ( $artist_id, $link_page_id, $artist_blog ) {
+		return ec_with_link_page_lock_scope( $link_page_id, static function () use ( $artist_id, $link_page_id, $artist_blog ) {
+			return ec_artist_with_image_blog( $artist_blog, static function () use ( $artist_id, $link_page_id ) {
+				return ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id );
+			} );
+		}, 'separate' );
+	} );
+}
+
+/** Materialize and persist identity while holding the page lock, on the artist blog. */
+function ec_artist_push_link_page_identity_locked( $artist_id, $link_page_id ) {
 	$artist   = get_post( $artist_id );
 	$permalink = get_permalink( $artist_id );
 	$identity  = array(
@@ -118,6 +132,17 @@ function ec_artist_push_link_page_identity( $artist_id ) {
 	if ( is_wp_error( $current ) ) {
 		return $current;
 	}
+	$source_blog = get_current_blog_id();
+	$source_id   = $identity['profile_image_id'];
+	$local_image = ec_with_link_page_storage_blog(
+		static function () use ( $source_blog, $source_id, $current ) {
+			return ec_artist_materialize_profile_image( $source_blog, $source_id, $current['profile_image_id'] );
+		}
+	);
+	if ( is_wp_error( $local_image ) ) {
+		return $local_image;
+	}
+	$identity['profile_image_id'] = $local_image;
 	$changes = array();
 	if ( ! $current['display_title_is_owned'] || $current['display_title'] !== $identity['display_title'] ) {
 		$changes['display_title'] = $identity['display_title'];

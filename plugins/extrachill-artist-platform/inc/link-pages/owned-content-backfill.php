@@ -67,9 +67,17 @@ function ec_artist_backfill_link_page_owned_content( $apply = false ) {
 		$artist    = get_post( $artist_id );
 		$title     = $artist ? $artist->post_title : '';
 		$image_id  = (int) get_post_thumbnail_id( $artist_id );
+		$source_blog = get_current_blog_id();
+		$image_id = ec_with_link_page_storage_blog( static function () use ( $source_blog, $image_id, $current ) {
+			return ec_artist_materialize_profile_image( $source_blog, $image_id, $current['profile_image_id'], false );
+		} );
+		if ( is_wp_error( $image_id ) ) {
+			$report['identity_errors'][ $artist_id ] = $image_id->get_error_code();
+			continue;
+		}
 		$permalink = get_permalink( $artist_id );
 		$entity    = $current['schema_entity'] ?? null;
-		$needs_run = ! $current['display_title_is_owned'] || $current['display_title'] !== $title || (int) $current['profile_image_id'] !== $image_id
+		$needs_run = ! $current['display_title_is_owned'] || $current['display_title'] !== $title || (int) $current['profile_image_id'] !== $image_id || ( ! $image_id && get_post_thumbnail_id( $artist_id ) )
 			|| ( is_array( $entity ) && ( 'MusicGroup' !== ( $entity['type'] ?? '' ) || (string) $permalink !== ( $entity['url'] ?? '' ) ) );
 		if ( $needs_run ) {
 			$pushed = $apply ? ec_artist_push_link_page_identity( $artist_id ) : true;

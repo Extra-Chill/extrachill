@@ -8,6 +8,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/profile-image.php';
 require_once plugin_dir_path( __FILE__ ) . '../filters/upload.php';
 
 /**
@@ -187,7 +188,7 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 		$snapshots[ $meta_key ] = ec_artist_snapshot_owned_meta( $link_page_id, $meta_key );
 	}
 	$old_socials   = isset( $save_data['social_icons'] ) ? extrachill_artist_platform_social_links()->get( $artist_id ) : array();
-	$old_thumbnail = get_post_thumbnail_id( $artist_id );
+	$old_thumbnail = ec_artist_profile_thumbnail( $artist_id );
 	$result        = true;
 	foreach ( array(
 		'subscribe_display_mode' => '_link_page_subscribe_display_mode',
@@ -210,9 +211,11 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 	}
 	if ( ! is_wp_error( $result ) && array_key_exists( 'profile_image_id', $save_data ) ) {
 		$image_id = absint( $save_data['profile_image_id'] );
-		$updated  = $image_id ? set_post_thumbnail( $artist_id, $image_id ) : delete_post_thumbnail( $artist_id );
-		if ( false === $updated && (int) get_post_thumbnail_id( $artist_id ) !== $image_id ) {
-			$result = new WP_Error( 'artist_profile_image_save_failed', 'The artist profile image could not be synchronized.' );
+		$result = ec_artist_set_profile_image_from_page( $artist_id, $image_id );
+		if ( ! is_wp_error( $result ) ) {
+			if ( ! ec_write_link_page_meta( $link_page_id, '_link_page_profile_image_id', $image_id, ! $image_id ) ) {
+				$result = new WP_Error( 'artist_profile_image_save_failed', 'The Link Page profile image could not be persisted.' );
+			}
 		}
 	}
 	if ( ! is_wp_error( $result ) && ( ! empty( $files_data ) || isset( $save_data['remove_profile_image'] ) ) ) {
@@ -228,8 +231,8 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 			$restored       = ! is_wp_error( $social_restore ) && false !== $social_restore && $restored;
 		}
 		if ( array_key_exists( 'profile_image_id', $save_data ) || ! empty( $files_data ) || isset( $save_data['remove_profile_image'] ) ) {
-			$thumbnail_restored = $old_thumbnail ? set_post_thumbnail( $artist_id, $old_thumbnail ) : delete_post_thumbnail( $artist_id );
-			$restored           = ( false !== $thumbnail_restored || (int) get_post_thumbnail_id( $artist_id ) === (int) $old_thumbnail ) && $restored;
+			$thumbnail_restored = ec_artist_profile_thumbnail( $artist_id, $old_thumbnail );
+			$restored           = ! is_wp_error( $thumbnail_restored ) && $restored;
 		}
 		return $restored ? $result : new WP_Error( 'artist_link_page_save_compensation_failed', 'The failed artist Link Page save could not be compensated.', array( 'cause' => $result->get_error_code() ) );
 	}
@@ -248,8 +251,13 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
  */
 function ec_handle_link_page_save_completion( $link_page_id ) {
 	$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-	if ( $artist_id && get_post_type( $artist_id ) === 'artist_profile' ) {
-		do_action( 'ec_artist_platform_sync', $artist_id );
+	if ( $artist_id ) {
+		$blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+		ec_artist_with_image_blog( $blog, static function () use ( $artist_id ) {
+			if ( 'artist_profile' === get_post_type( $artist_id ) ) {
+				do_action( 'ec_artist_platform_sync', $artist_id );
+			}
+		} );
 	}
 }
 add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );

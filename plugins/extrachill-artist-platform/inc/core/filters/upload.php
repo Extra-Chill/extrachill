@@ -33,16 +33,11 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_dat
 	if ( isset( $save_data['remove_profile_image'] ) && true === $save_data['remove_profile_image'] ) {
 		$associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
 		if ( $associated_artist_id ) {
-			// Get current profile image ID before removing
-			$current_profile_image_id = get_post_thumbnail_id( $associated_artist_id );
-			if ( $current_profile_image_id ) {
-				// Remove from both storage locations
-				delete_post_thumbnail( $associated_artist_id );
-				delete_post_meta( $link_page_id, '_link_page_profile_image_id' );
-
-				// Delete the actual attachment file
-				wp_delete_attachment( $current_profile_image_id, true );
+			$result = ec_artist_set_profile_image_from_page( $associated_artist_id, 0 );
+			if ( is_wp_error( $result ) ) {
+				return 'upload_failed';
 			}
+			delete_post_meta( $link_page_id, '_link_page_profile_image_id' );
 		}
 	}
 
@@ -79,10 +74,8 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_dat
 		if ( $files_data['link_page_profile_image_upload']['size'] <= $max_file_size && UPLOAD_ERR_OK === $files_data['link_page_profile_image_upload']['error'] ) {
 			$associated_artist_id = apply_filters('ec_get_artist_id', $link_page_id);
 			if ( $associated_artist_id ) {
-				// Get old image from filter BEFORE updating (single source of truth)
-				$data                 = ec_get_link_page_data( $associated_artist_id, $link_page_id );
-				$old_profile_image_id = $data['settings']['profile_image_id'] ?? '';
-				$attach_id            = media_handle_upload( 'link_page_profile_image_upload', $associated_artist_id );
+				// Uploads belong to the current Link Page storage site, not its owner.
+				$attach_id = media_handle_upload( 'link_page_profile_image_upload', $link_page_id );
 				if ( is_wp_error( $attach_id ) ) {
 					// Upload failed - log error and return error code
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional upload-failure diagnostics written to the site error log.
@@ -90,21 +83,12 @@ function ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_dat
 					return 'upload_failed';
 				}
 				if ( is_numeric( $attach_id ) ) {
-					set_post_thumbnail( $associated_artist_id, $attach_id );
-					update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
-					if ( $old_profile_image_id && (int) $old_profile_image_id !== (int) $attach_id ) {
-						/**
-						 * Fires when an old profile image should be deleted.
-						 *
-						 * This action hook allows cleanup of old profile images when
-						 * a new one is uploaded, helping maintain storage efficiency.
-						 *
-						 * @since 1.0.0
-						 *
-						 * @param int $old_profile_image_id The attachment ID of the old profile image to delete.
-						 */
-						do_action( 'ec_delete_old_profile_image', $old_profile_image_id );
+					$result = ec_artist_set_profile_image_from_page( $associated_artist_id, (int) $attach_id );
+					if ( is_wp_error( $result ) ) {
+						wp_delete_attachment( $attach_id, true );
+						return 'upload_failed';
 					}
+					update_post_meta( $link_page_id, '_link_page_profile_image_id', $attach_id );
 				}
 			}
 		} elseif ( $files_data['link_page_profile_image_upload']['size'] > $max_file_size ) {

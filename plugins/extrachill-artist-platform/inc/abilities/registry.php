@@ -453,7 +453,7 @@ function extrachill_artist_platform_register_abilities() {
 					),
 					'profile_image_id' => array(
 						'type'        => 'integer',
-						'description' => __( 'Profile image attachment ID. 0 to remove.', 'extrachill-artist-platform' ),
+						'description' => __( 'Profile image attachment ID in the artist site media library. 0 to remove.', 'extrachill-artist-platform' ),
 					),
 					'header_image_id'  => array(
 						'type'        => 'integer',
@@ -584,7 +584,7 @@ function extrachill_artist_platform_register_abilities() {
 					),
 					'profile_image_id'    => array(
 						'type'        => 'integer',
-						'description' => __( 'Profile image attachment ID. 0 to remove.', 'extrachill-artist-platform' ),
+						'description' => __( 'Profile image attachment ID in the Link Page storage site media library. Copied to the artist site. 0 to remove.', 'extrachill-artist-platform' ),
 					),
 				),
 				'required'   => array( 'artist_id' ),
@@ -1072,7 +1072,7 @@ function extrachill_artist_platform_register_abilities() {
 					),
 					'profile_image_id'    => array(
 						'type'        => 'integer',
-						'description' => __( 'Profile image attachment ID.', 'extrachill-artist-platform' ),
+						'description' => __( 'Profile image attachment ID in the Link Page storage site media library. Copied to the artist site. 0 to remove.', 'extrachill-artist-platform' ),
 					),
 					'bio'                 => array(
 						'type'        => 'string',
