@@ -379,6 +379,7 @@ a.ec-concert-stats__stat {
 }
 
 .ec-concert-stats__show-card {
+	position: relative;
 	display: flex;
 	align-items: flex-start;
 	gap: var(--spacing-md, 1rem);
@@ -387,8 +388,25 @@ a.ec-concert-stats__stat {
 	transition: background-color 0.1s ease;
 }
 
-.ec-concert-stats__show-card:hover {
+.ec-concert-stats__show-card:hover,
+.ec-concert-stats__show-card:focus-within {
 	background-color: var(--card-background, #f9fafb);
+}
+
+/*
+ * The whole row opens the show: the show-name link's overlay covers the
+ * card. Every other control in the row (venue / city badges, rating stars,
+ * the RSVP pass) is lifted above the overlay so it stays its own target.
+ */
+.ec-concert-stats__show-card.has-link {
+	cursor: pointer;
+
+	a:not(.ec-concert-stats__show-link),
+	button,
+	.ec-concert-stats__rsvp-pass {
+		position: relative;
+		z-index: 1;
+	}
 }
 
 .ec-concert-stats__show-date {
@@ -398,12 +416,6 @@ a.ec-concert-stats__stat {
 	font-weight: 600;
 	color: var(--muted-text, #6b7280);
 	white-space: nowrap;
-	text-decoration: none;
-
-	&:hover,
-	&:focus {
-		color: var(--link-hover-color, var(--accent-color, #53940b));
-	}
 }
 
 .ec-concert-stats__show-details {
@@ -422,15 +434,29 @@ a.ec-concert-stats__stat {
 	white-space: nowrap;
 }
 
-.ec-concert-stats__show-artist-link {
+.ec-concert-stats__show-link {
 	color: var(--text-color, #1f2937);
 	text-decoration: none;
 
-	&:hover,
-	&:focus {
-		text-decoration: underline;
-		color: var(--link-hover-color, var(--accent-color, #53940b));
+	&::after {
+		content: "";
+		position: absolute;
+		inset: 0;
 	}
+
+	&:focus-visible {
+		outline: none;
+	}
+
+	&:focus-visible::after {
+		outline: 2px solid var(--focus-border-color, var(--accent-color, #53940b));
+		outline-offset: -2px;
+	}
+}
+
+.ec-concert-stats__show-card:hover .ec-concert-stats__show-link {
+	text-decoration: underline;
+	color: var(--link-hover-color, var(--accent-color, #53940b));
 }
 
 .ec-concert-stats__show-venue {
