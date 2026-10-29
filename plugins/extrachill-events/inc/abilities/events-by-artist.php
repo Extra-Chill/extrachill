@@ -68,7 +68,7 @@ function extrachill_events_register_events_by_artist_ability(): void {
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
-					'readonly'   => true,
+					'readonly'   => false,
 					'idempotent' => true,
 				),
 			),
@@ -147,7 +147,10 @@ function extrachill_events_resolve_artist_term( int $artist_term_id ) {
 
 		$mapped_term_id = absint( get_term_meta( $artist_term_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, true ) );
 		if ( $mapped_term_id < 1 ) {
-			return new WP_Error( 'artist_mapping_missing', __( 'No Events artist mapping exists.', 'extrachill-events' ), array( 'status' => 404 ) );
+			$mapped_term_id = extrachill_events_maybe_map_artist_term( $canonical, $events_blog_id );
+			if ( is_wp_error( $mapped_term_id ) ) {
+				return $mapped_term_id;
+			}
 		}
 
 		$claims = extrachill_events_read_artist_mapping_claims( $mapped_term_id );
@@ -178,6 +181,133 @@ function extrachill_events_resolve_artist_term( int $artist_term_id ) {
 	} finally {
 		restore_current_blog();
 	}
+}
+
+/**
+ * Lazily map a bound canonical artist by an unambiguous, unclaimed exact slug.
+ *
+ * Must be called in main-site context. Existing mappings are never replaced.
+ *
+ * @param WP_Term $canonical Canonical artist term.
+ * @param int     $events_blog_id Events site ID.
+ * @return int|WP_Error Events term ID or a closed failure.
+ */
+function extrachill_events_maybe_map_artist_term( $canonical, int $events_blog_id ) {
+	$missing      = new WP_Error( 'artist_mapping_missing', __( 'No Events artist mapping exists.', 'extrachill-events' ), array( 'status' => 404 ) );
+	$canonical_id = (int) $canonical->term_id;
+	if ( absint( get_term_meta( $canonical_id, '_artist_profile_id', true ) ) < 1 ) {
+		return $missing;
+	}
+
+	$canonical_matches = extrachill_events_read_artist_slug_matches( (string) $canonical->slug );
+	if ( is_wp_error( $canonical_matches ) ) {
+		return $canonical_matches;
+	}
+	if ( count( $canonical_matches ) !== 1 ) {
+		return $missing;
+	}
+
+	switch_to_blog( $events_blog_id );
+	try {
+		$local_matches = extrachill_events_read_artist_slug_matches( (string) $canonical->slug );
+	} finally {
+		restore_current_blog();
+	}
+	if ( is_wp_error( $local_matches ) ) {
+		return $local_matches;
+	}
+	if ( count( $local_matches ) !== 1 ) {
+		return $missing;
+	}
+
+	$local_id = (int) $local_matches[0]->term_id;
+	$lock     = \ExtraChillEvents\Core\ArtistMappingLock::acquire( $local_id );
+	if ( is_wp_error( $lock ) ) {
+		return $lock;
+	}
+	try {
+		$result = ( static function () use ( $canonical_id, $canonical, $events_blog_id, $local_id, $missing ) {
+			// A concurrent request may have mapped or rebound this artist while we waited.
+			if ( function_exists( 'wp_cache_delete' ) ) {
+				wp_cache_delete( $canonical_id, 'term_meta' );
+			}
+			$existing = absint( get_term_meta( $canonical_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, true ) );
+			if ( $existing > 0 ) {
+				return $existing;
+			}
+			$matches = extrachill_events_read_artist_slug_matches( (string) $canonical->slug );
+			if ( is_wp_error( $matches ) ) {
+				return $matches;
+			}
+			// Re-read the binding after the cache flush: it may have been removed while we waited.
+			$bound_profile = absint( get_term_meta( $canonical_id, '_artist_profile_id', true ) );
+			// @phpstan-ignore smaller.alwaysFalse (PHPStan narrows the pre-lock read; this is a deliberate post-lock re-check.)
+			if ( count( $matches ) !== 1 || (int) $matches[0]->term_id !== $canonical_id || $bound_profile < 1 ) {
+				return $missing;
+			}
+			switch_to_blog( $events_blog_id );
+			try {
+				$matches = extrachill_events_read_artist_slug_matches( (string) $canonical->slug );
+			} finally {
+				restore_current_blog();
+			}
+			if ( is_wp_error( $matches ) ) {
+				return $matches;
+			}
+			if ( count( $matches ) !== 1 || (int) $matches[0]->term_id !== $local_id ) {
+				return $missing;
+			}
+			$claims = extrachill_events_read_artist_mapping_claims( $local_id );
+			if ( is_wp_error( $claims ) ) {
+				return $claims;
+			}
+			if ( array_diff( $claims, array( $canonical_id ) ) ) {
+				return $missing;
+			}
+			$updated = update_term_meta( $canonical_id, EXTRACHILL_EVENTS_ARTIST_TERM_META, $local_id );
+			if ( is_wp_error( $updated ) ) {
+				return $updated;
+			}
+			return false === $updated
+				? new WP_Error( 'artist_mapping_write_failed', __( 'The Events artist mapping could not be saved.', 'extrachill-events' ), array( 'status' => 503 ) )
+				: $local_id;
+		} )();
+	} finally {
+		$released = \ExtraChillEvents\Core\ArtistMappingLock::release( $lock );
+	}
+	return is_wp_error( $released ) ? $released : $result;
+}
+
+/**
+ * Read at most two exact-slug artists, preserving database failures.
+ *
+ * @param string $slug Exact artist slug on the current site.
+ * @return WP_Term[]|WP_Error Matching terms or a read error.
+ */
+function extrachill_events_read_artist_slug_matches( string $slug ) {
+	global $wpdb;
+
+	$wpdb->flush();
+	$query = new WP_Term_Query();
+	$terms = $query->query(
+		array(
+			'taxonomy'      => 'artist',
+			'hide_empty'    => false,
+			'slug'          => $slug,
+			'number'        => 2,
+			'cache_results' => false,
+		)
+	);
+	if ( '' !== (string) $wpdb->last_error || ! is_array( $terms ) ) {
+		return new WP_Error( 'artist_term_query_failed', __( 'Artist taxonomy data could not be read.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
+	$matches = array();
+	foreach ( $terms as $term ) {
+		if ( $term instanceof WP_Term && $slug === (string) $term->slug ) {
+			$matches[] = $term;
+		}
+	}
+	return $matches;
 }
 
 /**

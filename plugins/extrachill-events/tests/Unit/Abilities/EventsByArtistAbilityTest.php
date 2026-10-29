@@ -126,6 +126,9 @@ if ( ! function_exists( 'get_terms' ) ) {
 			$include = array_map( 'intval', (array) $args['include'] );
 			$terms   = array_values( array_filter( $terms, static fn( $term ) => in_array( (int) $term->term_id, $include, true ) ) );
 		}
+		if ( isset( $args['slug'] ) ) {
+			$terms = array_values( array_filter( $terms, static fn( $term ) => $term->slug === $args['slug'] ) );
+		}
 		if ( isset( $args['meta_key'] ) ) {
 			$terms = array_values(
 				array_filter(
@@ -446,10 +449,104 @@ final class EventsByArtistAbilityTest extends TestCase {
 		$this->addTerm( 1, 102, 'other-name' );
 		$this->addTerm( 7, 501, 'shared-band' );
 		$this->setMeta( 102, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
+		$this->bindProfile( 101 );
 
 		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
 
 		$this->assertSame( 'artist_mapping_missing', $result->get_error_code() );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_newly_bound_artist_maps_lazily_after_completed_backfill(): void {
+		$this->addTerm( 1, 101, 'new-band' );
+		$this->addTerm( 7, 501, 'new-band' );
+		$GLOBALS['ec_artist_test']['options'][7][ EXTRACHILL_EVENTS_ARTIST_BACKFILL_OPTION ] = array( 'complete' => true );
+		$this->bindProfile( 101 );
+
+		$result = extrachill_events_ability_events_by_artist( array( 'artist_term_id' => 101 ) );
+
+		$this->assertSame( 501, $result['term_id'] );
+		$this->assertSame( 501, (int) $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
+		$this->assertSame( array( 'acquire', 'release' ), $GLOBALS['wpdb']->locks );
+		$this->assertSame( 501, extrachill_events_resolve_artist_term( 101 )['term_id'] );
+		$this->assertSame( array( 'acquire', 'release' ), $GLOBALS['wpdb']->locks );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_lazy_mapping_requires_a_bound_artist_and_unambiguous_slug(): void {
+		$this->addTerm( 1, 101, 'band' );
+		$this->addTerm( 7, 501, 'band' );
+		$this->assertSame( 'artist_mapping_missing', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		$this->bindProfile( 101 );
+		$this->addTerm( 7, 502, 'band' );
+		$this->assertSame( 'artist_mapping_missing', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		$this->assertNull( $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_lazy_mapping_rejects_ambiguous_canonical_slug(): void {
+		$this->addTerm( 1, 101, 'band' );
+		$this->addTerm( 1, 102, 'band' );
+		$this->addTerm( 7, 501, 'band' );
+		$this->bindProfile( 101 );
+
+		$this->assertSame( 'artist_mapping_missing', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		$this->assertNull( $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_lazy_mapping_preserves_read_errors_without_writing(): void {
+		$this->addTerm( 1, 101, 'band' );
+		$this->addTerm( 7, 501, 'band' );
+		$this->bindProfile( 101 );
+		$GLOBALS['ec_artist_test']['term_query_db_error_blogs'][7] = true;
+		$this->assertSame( 'artist_term_query_failed', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		unset( $GLOBALS['ec_artist_test']['term_query_db_error_blogs'][7] );
+		$GLOBALS['ec_artist_test']['mapping_claims_db_error'] = true;
+		$this->assertSame( 'artist_mapping_claims_query_failed', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		$this->assertNull( $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
+		$this->assertSame( array( 'acquire', 'release' ), $GLOBALS['wpdb']->locks );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_lazy_mapping_does_not_overwrite_a_concurrent_mapping(): void {
+		$this->addTerm( 1, 101, 'band' );
+		$this->addTerm( 7, 501, 'band' );
+		$this->addTerm( 7, 502, 'explicit-mapping' );
+		$this->bindProfile( 101 );
+		$GLOBALS['wpdb']->after_mapping_lock = function (): void {
+			$this->setMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META, 502 );
+		};
+
+		$this->assertSame( 502, extrachill_events_resolve_artist_term( 101 )['term_id'] );
+		$this->assertSame( 502, (int) $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_lazy_mapping_rechecks_claims_under_lock(): void {
+		$this->addTerm( 1, 101, 'band' );
+		$this->addTerm( 1, 102, 'racer' );
+		$this->addTerm( 7, 501, 'band' );
+		$this->bindProfile( 101 );
+		$GLOBALS['wpdb']->after_mapping_lock = function (): void {
+			$this->setMeta( 102, EXTRACHILL_EVENTS_ARTIST_TERM_META, 501 );
+		};
+
+		$this->assertSame( 'artist_mapping_missing', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		$this->assertNull( $this->getMeta( 101, EXTRACHILL_EVENTS_ARTIST_TERM_META ) );
+		$this->assertSame( array( 'acquire', 'release' ), $GLOBALS['wpdb']->locks );
+		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
+	}
+
+	public function test_lazy_mapping_write_failure_is_retryable(): void {
+		$this->addTerm( 1, 101, 'band' );
+		$this->addTerm( 7, 501, 'band' );
+		$this->bindProfile( 101 );
+		$GLOBALS['ec_artist_test']['fail_updates'][101] = true;
+
+		$this->assertSame( 'artist_mapping_write_failed', extrachill_events_resolve_artist_term( 101 )->get_error_code() );
+		unset( $GLOBALS['ec_artist_test']['fail_updates'][101] );
+		$this->assertSame( 501, extrachill_events_resolve_artist_term( 101 )['term_id'] );
 		$this->assertSame( $this->starting_blog_id, get_current_blog_id() );
 	}
 
