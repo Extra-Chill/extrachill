@@ -23,8 +23,9 @@ const EC_ARTIST_GENRE_MAX = 3;
 /**
  * Bind the network `genre` taxonomy to `artist_profile`.
  *
- * extrachill-network registers the taxonomy at init:0; binding here at init:5
- * is a no-op until that plugin is active. No other site or plugin needs to
+ * extrachill-network registers the taxonomy at init:0 and artist_profile is
+ * registered at init:5. Bind at init:10, after both exist. This remains a
+ * no-op until the network plugin is active. No other site or plugin needs to
  * re-register the relationship.
  *
  * @return void
@@ -34,7 +35,7 @@ function ec_artist_genres_bind_taxonomy() {
 		register_taxonomy_for_object_type( 'genre', 'artist_profile' );
 	}
 }
-add_action( 'init', 'ec_artist_genres_bind_taxonomy', 5 );
+add_action( 'init', 'ec_artist_genres_bind_taxonomy', 10 );
 
 /**
  * Normalize user/ability genre input into a flat list of non-empty strings.
@@ -115,8 +116,11 @@ function ec_artist_get_genre_labels( $profile_id ) {
  * The single canonical write path. Input may be a single string (including a
  * comma-separated multi-genre value) or a list of slugs/names. Every value is
  * resolved through the network resolver; anything unresolvable is dropped and
- * no term is ever created. Assigning replaces the existing set, and the
- * bound main-site artist term mirror is refreshed.
+ * no ad-hoc term is ever created. Missing local terms are materialized via
+ * the network term projection (canonical names); if that is unavailable the
+ * write fails without changing assignments or the mirror. Assigning
+ * replaces the existing set, and the bound main-site artist term mirror is
+ * refreshed.
  *
  * @param int   $profile_id Artist profile post ID.
  * @param mixed $input      Genre string, comma-separated string, or string[].
@@ -147,7 +151,29 @@ function ec_artist_set_genres( $profile_id, $input ) {
 		$slugs    = array_slice( array_values( array_unique( array_filter( (array) $resolved ) ) ), 0, EC_ARTIST_GENRE_MAX );
 	}
 
-	$assigned = wp_set_object_terms( $profile_id, $slugs, 'genre', false );
+	// Strings cause WordPress to insert missing terms with slug-shaped names.
+	// Resolve every slug to a local integer ID. Missing terms are materialized
+	// only through the network's approved projection, which creates them with
+	// the canonical vocabulary name (the same path extrachill-events uses).
+	$term_ids = array();
+	foreach ( $slugs as $slug ) {
+		$term = get_term_by( 'slug', $slug, 'genre' );
+		if ( ! $term && function_exists( 'extrachill_network_project_term' ) ) {
+			$projected = extrachill_network_project_term( 'artist', 'artist_profile', 'genre', $slug );
+			if ( ! is_wp_error( $projected ) && ! empty( $projected['term_id'] ) ) {
+				$term = get_term( (int) $projected['term_id'], 'genre' );
+			}
+		}
+		if ( ! $term || is_wp_error( $term ) ) {
+			return new WP_Error(
+				'genre_vocabulary_unavailable',
+				__( 'The local genre vocabulary is incomplete, so genres cannot be written.', 'extrachill-artist-platform' )
+			);
+		}
+		$term_ids[] = (int) $term->term_id;
+	}
+
+	$assigned = wp_set_object_terms( $profile_id, $term_ids, 'genre', false );
 	if ( is_wp_error( $assigned ) ) {
 		return $assigned;
 	}
