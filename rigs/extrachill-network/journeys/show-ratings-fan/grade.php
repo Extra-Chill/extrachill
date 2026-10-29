@@ -72,6 +72,16 @@ $record( 'my-shows-offers-rating', 'My Shows -> Past shows stars on the attended
 $changed = array_values( $older_reviews );
 $record( 'my-shows-change-mind', 'Rating 4 then changing to 3 from My Shows leaves one 3-star rating on the server.', 1 === count( $changed ) && '3' === (string) $changed[0]['rating'] ? 'pass' : ( $card_ok ? 'finding' : 'skip' ), array( 'server' => $older_reviews, 'after_rate' => $obs['myshows-after-rate'] ?? null, 'after_change' => $obs['myshows-changed-mind'] ?? null, 'after_reload' => $obs['myshows-after-reload'] ?? null ) );
 
+switch_to_blog( (int) $fixture['events_blog_id'] );
+$recent_path = '/events/' . get_post_field( 'post_name', (int) $fixture['recent_id'] );
+restore_current_blog();
+$opened      = static fn( $o ) => is_array( $o ) && untrailingslashit( (string) ( $o['path'] ?? '' ) ) === untrailingslashit( $recent_path );
+$anatomy     = $obs['myshows-card-anatomy'] ?? null;
+$record( 'my-shows-row-opens-show', 'Tapping the empty part of a show row on My Shows -> Past opens that show.', $opened( $obs['myshows-open-from-row'] ?? null ) ? 'pass' : 'finding', array( 'expected' => $recent_path, 'landed' => $obs['myshows-open-from-row'] ?? null, 'anatomy' => $anatomy ) );
+$record( 'my-shows-name-opens-show', 'Tapping the show name on My Shows -> Past opens that show, not the artist page.', $opened( $obs['myshows-open-from-name'] ?? null ) ? 'pass' : 'finding', array( 'expected' => $recent_path, 'landed' => $obs['myshows-open-from-name'] ?? null ) );
+$star_stays = $obs['myshows-star-stays'] ?? null;
+$record( 'my-shows-star-stays-put', 'Tapping a star on a My Shows row rates in place without leaving the page.', is_array( $star_stays ) && str_starts_with( (string) ( $star_stays['path'] ?? '' ), '/my-shows' ) ? 'pass' : 'finding', $star_stays );
+
 $ap = $obs['artist-page-past'] ?? null;
 $record( 'listing-shows-rating', 'The Goose artist page (past shows) shows a star badge on the rated show.', is_array( $ap ) && ! empty( $ap['badges'] ) ? 'pass' : 'finding', array( 'upcoming' => $obs['artist-page'] ?? null, 'past' => $ap ) );
 

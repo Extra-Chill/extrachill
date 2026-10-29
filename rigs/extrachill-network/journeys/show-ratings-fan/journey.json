@@ -87,6 +87,27 @@
       "allowFailure": true,
       "metadata": {
         "kind": "journey-browser-step",
+        "step": "fan-opens-show-from-my-shows"
+      },
+      "args": [
+        "url=http://events.extrachill.com/my-shows/?tab=past",
+        "route-host=events.extrachill.com",
+        "network-policy=block",
+        "allow-host=events.extrachill.com",
+        "auth=wordpress-admin",
+        "auth-user-id=711",
+        "viewport=390x844",
+        "step-timeout=60s",
+        "timeout=300s",
+        "capture=steps,console,errors,network,screenshot",
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-card >> nth=0\",\"timeout\":\"45s\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"1500ms\"},{\"kind\":\"evaluate\",\"expression\":\"(async()=>{let v;try{v=await (async()=>(({cards:[...document.querySelectorAll('.ec-concert-stats__show-card')].map(c=>{const r=c.getBoundingClientRect();const hit=(x,y)=>{const e=document.elementFromPoint(x,y);const a=e&&e.closest('a,button');return a?(a.tagName==='A'?a.getAttribute('href'):'button'):null};return {text:c.innerText.replace(/\\\\s+/g,' ').trim().slice(0,160),headline:(c.querySelector('.ec-concert-stats__show-artist')||{innerText:''}).innerText.trim(),links:[...c.querySelectorAll('a')].map(a=>({text:a.innerText.trim(),href:a.getAttribute('href')})),tapRowRight:hit(r.right-24,r.top+r.height/2),tapRowMiddle:hit(r.left+r.width/2,r.top+r.height/2),cursor:getComputedStyle(c).cursor}})})))()}catch(e){v='ERR:'+e.message}try{await fetch('/?ec_show_ratings_observe=1',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',keepalive:true,body:JSON.stringify({label:\\\"myshows-card-anatomy\\\",url:location.href,value:v})})}catch(e){}return true})()\"},{\"kind\":\"evaluate\",\"expression\":\"(()=>{const c=document.querySelector('.ec-concert-stats__show-card');const r=c.getBoundingClientRect();const el=document.elementFromPoint(r.right-24,r.top+r.height/2);if(!el)return 'nothing';const t=el.closest('a,button')||el;setTimeout(()=>t.click(),50);return el.tagName})()\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"4000ms\"},{\"kind\":\"evaluate\",\"expression\":\"(async()=>{let v;try{v=await (async()=>(({path:location.pathname,title:document.title,h1:(document.querySelector('h1')||{textContent:''}).textContent.trim()})))()}catch(e){v='ERR:'+e.message}try{await fetch('/?ec_show_ratings_observe=1',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',keepalive:true,body:JSON.stringify({label:\\\"myshows-open-from-row\\\",url:location.href,value:v})})}catch(e){}return true})()\"},{\"kind\":\"screenshot\",\"name\":\"10a-open-from-row\"},{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-card >> nth=0\",\"timeout\":\"45s\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"1500ms\"},{\"kind\":\"click\",\"selector\":\".ec-concert-stats__show-card >> nth=0 >> .ec-concert-stats__show-artist\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"4000ms\"},{\"kind\":\"evaluate\",\"expression\":\"(async()=>{let v;try{v=await (async()=>(({path:location.pathname,title:document.title,h1:(document.querySelector('h1')||{textContent:''}).textContent.trim()})))()}catch(e){v='ERR:'+e.message}try{await fetch('/?ec_show_ratings_observe=1',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',keepalive:true,body:JSON.stringify({label:\\\"myshows-open-from-name\\\",url:location.href,value:v})})}catch(e){}return true})()\"},{\"kind\":\"screenshot\",\"name\":\"10b-open-from-name\"},{\"kind\":\"navigate\",\"url\":\"http://events.extrachill.com/my-shows/?tab=past\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"selector\":\".ec-concert-stats__show-card >> nth=0\",\"timeout\":\"45s\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"1500ms\"},{\"kind\":\"click\",\"selector\":\".ec-concert-stats__show-card >> nth=1 >> .ec-concert-stats__show-rating-star >> nth=2\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"3000ms\"},{\"kind\":\"evaluate\",\"expression\":\"(async()=>{let v;try{v=await (async()=>(({path:location.pathname,title:document.title,h1:(document.querySelector('h1')||{textContent:''}).textContent.trim()})))()}catch(e){v='ERR:'+e.message}try{await fetch('/?ec_show_ratings_observe=1',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',keepalive:true,body:JSON.stringify({label:\\\"myshows-star-stays\\\",url:location.href,value:v})})}catch(e){}return true})()\"},{\"kind\":\"screenshot\",\"name\":\"10c-star-stays\"}]"
+      ]
+    },
+    {
+      "command": "wordpress.browser-actions",
+      "allowFailure": true,
+      "metadata": {
+        "kind": "journey-browser-step",
         "step": "fan-revisits-older-show"
       },
       "args": [
