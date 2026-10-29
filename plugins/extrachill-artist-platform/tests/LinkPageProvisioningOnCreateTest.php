@@ -25,12 +25,39 @@ final class LinkPageProvisioningOnCreateTest extends EC_Artist_Platform_TestCase
 	}
 
 	public function test_create_artist_does_not_provision_a_link_page(): void {
+		$this->ec_require_mysql_advisory_locks();
 		// Link Page creation is deliberate (#256).
 		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Porch Lights Provisioning' ) );
 
 		$this->assertIsArray( $result );
+		$artist_id = (int) $result['id'];
+		$term_id   = (int) $this->profile_meta_value( $artist_id, '_artist_term_id' );
+		$this->assertGreaterThan( 0, $term_id );
+		$this->assertSame( $artist_id, (int) $this->term_meta_value( $term_id, '_artist_profile_id' ) );
 		$this->assertSame( 0, (int) $result['link_page_id'] );
 		$this->assertFalse( ec_get_link_page_for_artist( (int) $result['id'] ) );
+	}
+
+	public function test_binding_failure_rolls_back_artist_and_membership(): void {
+		$this->ec_require_mysql_advisory_locks();
+		$fail = static function () {
+			return new WP_Error( 'forced_term_failure', 'Term creation failed.' );
+		};
+		add_filter( 'pre_insert_term', $fail );
+		try {
+			$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Binding Rollback Band' ) );
+		} finally {
+			remove_filter( 'pre_insert_term', $fail );
+		}
+		$this->assertWPError( $result );
+		$this->assertSame( 'artist_term_creation_failed', $result->get_error_code() );
+		$this->assertEmpty( get_user_meta( $this->owner_id, '_artist_profile_ids', true ) );
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			$this->assertNull( get_page_by_path( 'binding-rollback-band', OBJECT, 'artist_profile' ) );
+		} finally {
+			restore_current_blog();
+		}
 	}
 
 	public function test_create_link_page_ability_creates_a_published_page(): void {

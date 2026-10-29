@@ -56,7 +56,7 @@ function ec_provision_platform_artist() {
 				if ( ! ec_ensure_super_admin_linked( $existing_id ) ) {
 					return false;
 				}
-				return $existing_id;
+				return is_wp_error( ec_sync_artist_profile_term_binding( $existing_id ) ) ? false : $existing_id;
 			}
 			// Invalid - clear and re-provision.
 			delete_site_option( 'ec_platform_artist_id' );
@@ -67,6 +67,9 @@ function ec_provision_platform_artist() {
 		if ( $existing_by_slug && 'publish' === $existing_by_slug->post_status ) {
 			$artist_id = $existing_by_slug->ID;
 			if ( ! ec_ensure_super_admin_linked( $artist_id ) ) {
+				return false;
+			}
+			if ( is_wp_error( ec_sync_artist_profile_term_binding( $artist_id ) ) ) {
 				return false;
 			}
 			update_site_option( 'ec_platform_artist_id', $artist_id );
@@ -95,6 +98,16 @@ function ec_provision_platform_artist() {
 			if ( ! wp_delete_post( $artist_id, true ) ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Actionable provisioning rollback failure.
 				error_log( sprintf( 'Artist platform provisioning rollback failed for artist %d.', $artist_id ) );
+			}
+			return false;
+		}
+
+		if ( is_wp_error( ec_sync_artist_profile_term_binding( $artist_id ) ) ) {
+			$removed = function_exists( 'ec_remove_artist_membership' ) && ec_remove_artist_membership( $super_admin_id, $artist_id );
+			$deleted = wp_delete_post( $artist_id, true );
+			if ( ! $removed || ! $deleted ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Actionable provisioning rollback failure.
+				error_log( sprintf( 'Artist platform binding rollback incomplete for artist %d.', $artist_id ) );
 			}
 			return false;
 		}

@@ -866,6 +866,40 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( $pair['profile_id'], (int) ec_get_artist_profile_id( $pair['term_id'] ) );
 	}
 
+	public function test_backfill_creates_missing_terms_after_previous_migration(): void {
+		$this->ec_require_mysql_advisory_locks();
+		$profile_id = $this->create_artist_profile( 'Previously Unbound Band' );
+		update_option( 'extrachill_artist_platform_term_binding_integrity_backfill', '2.0.0' );
+
+		ec_backfill_artist_term_bindings();
+
+		$term_id = (int) $this->profile_meta_value( $profile_id, '_artist_term_id' );
+		$this->assertGreaterThan( 0, $term_id );
+		$this->assertSame( $profile_id, (int) $this->term_meta_value( $term_id, '_artist_profile_id' ) );
+		$this->assertSame( '3.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
+		ec_backfill_artist_term_bindings();
+		$this->assertSame( $term_id, (int) $this->profile_meta_value( $profile_id, '_artist_term_id' ) );
+	}
+
+	public function test_backfill_failure_does_not_mark_migration_complete(): void {
+		$this->ec_require_mysql_advisory_locks();
+		$profile_id = $this->create_artist_profile( 'Retry Binding Band' );
+		update_option( 'extrachill_artist_platform_term_binding_integrity_backfill', '2.0.0' );
+		$fail = static function () {
+			return new WP_Error( 'forced_term_failure', 'Term creation failed.' );
+		};
+		add_filter( 'pre_insert_term', $fail );
+		try {
+			ec_backfill_artist_term_bindings();
+			$this->assertSame( '2.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
+		} finally {
+			remove_filter( 'pre_insert_term', $fail );
+		}
+		ec_backfill_artist_term_bindings();
+		$this->assertGreaterThan( 0, (int) $this->profile_meta_value( $profile_id, '_artist_term_id' ) );
+		$this->assertSame( '3.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
+	}
+
 	public function test_integrity_backfill_uses_a_new_migration_key_on_upgraded_sites(): void {
 		$this->ec_require_mysql_advisory_locks();
 		$pair = $this->seed_pair( 'the-band' );
@@ -875,6 +909,6 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 
 		$this->assertSame( $pair['term_id'], (int) $this->profile_meta_value( $pair['profile_id'], '_artist_term_id' ) );
 		$this->assertSame( $pair['profile_id'], (int) $this->term_meta_value( $pair['term_id'], '_artist_profile_id' ) );
-		$this->assertSame( '2.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
+		$this->assertSame( '3.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
 	}
 }

@@ -22,6 +22,7 @@ final class CreateArtistOptionalAnalyticsTest extends EC_Artist_Platform_TestCas
 	}
 
 	public function test_creation_succeeds_without_analytics(): void {
+		$this->ec_require_mysql_advisory_locks();
 		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'No Analytics Band' ) );
 
 		$this->assertIsArray( $result );
@@ -31,6 +32,7 @@ final class CreateArtistOptionalAnalyticsTest extends EC_Artist_Platform_TestCas
 	}
 
 	public function test_creation_emits_event_when_analytics_is_available(): void {
+		$this->ec_require_mysql_advisory_locks();
 		$state         = new stdClass();
 		$state->events = array();
 		$this->ec_register_test_ability(

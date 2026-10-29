@@ -1452,7 +1452,7 @@ add_action( 'after_delete_post', 'ec_artist_binding_after_delete_post', PHP_INT_
  * @return void
  */
 function ec_backfill_artist_term_bindings() {
-	$backfill_version = '2.0.0';
+	$backfill_version = '3.0.0';
 	$option_key       = 'extrachill_artist_platform_term_binding_integrity_backfill';
 	$stored           = get_option( $option_key, '0' );
 	if ( version_compare( $stored, $backfill_version, '>=' ) ) {
@@ -1479,10 +1479,18 @@ function ec_backfill_artist_term_bindings() {
 		restore_current_blog();
 	}
 
+	$complete = true;
 	foreach ( (array) $profile_ids as $profile_id ) {
-		ec_get_artist_term_id( (int) $profile_id );
+		// Use the creation sync, not the read-side lookup: missing terms must
+		// be created, and failures must leave this migration retryable.
+		$result = ec_sync_artist_profile_term_binding( (int) $profile_id );
+		if ( is_wp_error( $result ) ) {
+			$complete = false;
+		}
 	}
 
-	update_option( $option_key, $backfill_version );
+	if ( $complete ) {
+		update_option( $option_key, $backfill_version );
+	}
 }
 add_action( 'admin_init', 'ec_backfill_artist_term_bindings' );

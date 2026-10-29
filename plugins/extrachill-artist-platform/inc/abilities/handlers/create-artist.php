@@ -135,6 +135,26 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		}
 	}
 
+	// Bind only after genre resolution; binding also mirrors the saved genres.
+	$binding_result = ec_sync_artist_profile_term_binding( $artist_id );
+	if ( is_wp_error( $binding_result ) ) {
+		$membership_removed = function_exists( 'ec_remove_artist_membership' ) && ec_remove_artist_membership( $user_id, $artist_id );
+		$deleted            = wp_delete_post( $artist_id, true );
+		restore_current_blog();
+		if ( ! $membership_removed || ! $deleted ) {
+			return new WP_Error(
+				'artist_creation_rollback_failed',
+				'Artist binding failed and creation rollback was incomplete. Manual reconciliation is required.',
+				array(
+					'artist_id'          => (int) $artist_id,
+					'binding_error_code' => $binding_result->get_error_code(),
+					'retryable'          => false,
+				)
+			);
+		}
+		return $binding_result;
+	}
+
 	// Emit the funnel event while still in the artist blog context so the
 	// event row is stamped with the artist site's blog_id. The existing
 	// extrachill/get-analytics-summary reader aggregates this with no new
