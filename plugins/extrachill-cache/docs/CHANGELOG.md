@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.9] - 2026-10-29
+
+### Fixed
+- normalize trailing slash in page-cache URL identity
+
 ## [0.3.8] - 2026-10-26
 
 ### Fixed
