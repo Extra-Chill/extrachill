@@ -214,7 +214,8 @@ if ( ! function_exists( 'extrachill_cache_url_identity' ) ) {
 	/**
 	 * Normalize a URL into the identity used by the cache key.
 	 *
-	 * Tracking-only query strings collapse to the canonical path. Functional
+	 * Directory-like paths use a trailing slash; file-like final segments keep
+	 * their exact path. Tracking-only query strings collapse to the canonical path. Functional
 	 * query strings are retained, although request gates keep them out of the
 	 * page cache.
 	 *
@@ -232,7 +233,12 @@ if ( ! function_exists( 'extrachill_cache_url_identity' ) ) {
 		if ( ! empty( $parts['port'] ) ) {
 			$identity .= ':' . (int) $parts['port'];
 		}
-		$identity .= isset( $parts['path'] ) && '' !== $parts['path'] ? $parts['path'] : '/';
+		$path = isset( $parts['path'] ) && '' !== $parts['path'] ? $parts['path'] : '/';
+		// Inspect the final non-empty segment so file-like paths retain their slash form.
+		if ( false === strpos( basename( rtrim( $path, '/' ) ), '.' ) ) {
+			$path = rtrim( $path, '/' ) . '/';
+		}
+		$identity .= $path;
 
 		if ( ! empty( $parts['query'] ) && ! extrachill_cache_query_is_tracking_only( $parts['query'] ) ) {
 			$identity .= '?' . $parts['query'];
