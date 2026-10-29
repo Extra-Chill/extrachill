@@ -881,6 +881,27 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( $term_id, (int) $this->profile_meta_value( $profile_id, '_artist_term_id' ) );
 	}
 
+	public function test_backfill_reports_empty_title_without_blocking_completion(): void {
+		$this->ec_require_mysql_advisory_locks();
+		$profile_id = $this->create_artist_profile( 'Invalid Band' );
+		$GLOBALS['wpdb']->update( $GLOBALS['wpdb']->posts, array( 'post_title' => '' ), array( 'ID' => $profile_id ) );
+		clean_post_cache( $profile_id );
+		$valid_id = $this->create_artist_profile( 'Valid Band' );
+		update_option( 'extrachill_artist_platform_term_binding_integrity_backfill', '2.0.0' );
+
+		ec_backfill_artist_term_bindings();
+
+		$this->assertSame( '3.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
+		$this->assertSame(
+			array( $profile_id => 'invalid_artist_identity' ),
+			get_option( 'extrachill_artist_platform_term_binding_integrity_backfill_failures' )
+		);
+		$this->assertGreaterThan( 0, (int) $this->profile_meta_value( $valid_id, '_artist_term_id' ) );
+		$this->assertFalse( get_option( 'extrachill_artist_platform_term_binding_integrity_backfill_retry_after' ) );
+		ec_backfill_artist_term_bindings();
+		$this->assertSame( array( $profile_id => 'invalid_artist_identity' ), get_option( 'extrachill_artist_platform_term_binding_integrity_backfill_failures' ) );
+	}
+
 	public function test_backfill_failure_does_not_mark_migration_complete(): void {
 		$this->ec_require_mysql_advisory_locks();
 		$profile_id = $this->create_artist_profile( 'Retry Binding Band' );
@@ -895,7 +916,14 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 		} finally {
 			remove_filter( 'pre_insert_term', $fail );
 		}
+		$retry_key = 'extrachill_artist_platform_term_binding_integrity_backfill_retry_after';
+		$this->assertGreaterThan( time(), (int) get_option( $retry_key ) );
 		ec_backfill_artist_term_bindings();
+		$this->assertSame( '', $this->profile_meta_value( $profile_id, '_artist_term_id' ) );
+		$this->assertSame( '2.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
+		update_option( $retry_key, time() - 1 );
+		ec_backfill_artist_term_bindings();
+		$this->assertFalse( get_option( $retry_key ) );
 		$this->assertGreaterThan( 0, (int) $this->profile_meta_value( $profile_id, '_artist_term_id' ) );
 		$this->assertSame( '3.0.0', get_option( 'extrachill_artist_platform_term_binding_integrity_backfill' ) );
 	}

@@ -1447,7 +1447,7 @@ add_action( 'after_delete_post', 'ec_artist_binding_after_delete_post', PHP_INT_
 // Extra-Chill/extrachill-network#143. Resolvers remain fail-closed meanwhile.
 
 /**
- * Idempotent, run-once backfill of profile <-> term bindings.
+ * Backfill profile <-> term bindings, reporting permanent failures and pacing retries.
  *
  * @return void
  */
@@ -1459,10 +1459,21 @@ function ec_backfill_artist_term_bindings() {
 		return;
 	}
 
+	$retry_key    = $option_key . '_retry_after';
+	$failures_key = $option_key . '_failures';
+	if ( (int) get_option( $retry_key, 0 ) > time() ) {
+		return;
+	}
+
 	$blog_ids = ec_artist_binding_blog_ids();
 	if ( empty( $blog_ids ) ) {
 		return;
 	}
+
+	// Pace even interrupted runs; do not make every admin request retry a
+	// persistent database/lock failure across the entire profile collection.
+	update_option( $retry_key, time() + HOUR_IN_SECONDS, false );
+	$failures = (array) get_option( $failures_key, array() );
 
 	switch_to_blog( $blog_ids['artist'] );
 	try {
@@ -1481,16 +1492,29 @@ function ec_backfill_artist_term_bindings() {
 
 	$complete = true;
 	foreach ( (array) $profile_ids as $profile_id ) {
-		// Use the creation sync, not the read-side lookup: missing terms must
-		// be created, and failures must leave this migration retryable.
-		$result = ec_sync_artist_profile_term_binding( (int) $profile_id );
+		$profile_id = (int) $profile_id;
+		if ( isset( $failures[ $profile_id ] ) ) {
+			continue;
+		}
+		// Use the creation sync: missing terms must be created. Unknown
+		// failures stay retryable unless explicitly declared permanent.
+		$result = ec_sync_artist_profile_term_binding( $profile_id );
 		if ( is_wp_error( $result ) ) {
-			$complete = false;
+			$data      = $result->get_error_data();
+			$permanent = in_array( $result->get_error_code(), array( 'invalid_artist_identity', 'invalid_artist_profile' ), true )
+				|| ( is_array( $data ) && isset( $data['retryable'] ) && false === $data['retryable'] );
+			if ( $permanent ) {
+				$failures[ $profile_id ] = $result->get_error_code();
+				update_option( $failures_key, $failures, false );
+			} else {
+				$complete = false;
+			}
 		}
 	}
 
 	if ( $complete ) {
 		update_option( $option_key, $backfill_version );
+		delete_option( $retry_key );
 	}
 }
 add_action( 'admin_init', 'ec_backfill_artist_term_bindings' );
