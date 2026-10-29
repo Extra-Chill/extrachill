@@ -117,7 +117,7 @@
     position: relative; /* For overlay and button positioning */
     background-size: cover;
     background-position: center center;
-    color: var(--header-text); /* Use header text color (often white/light) */
+    color: var(--header-text); /* Theme text for heroes without a photo */
     border-radius: 5px; /* Optional: subtle rounding */
     overflow: hidden; /* Ensure overlay respects border-radius */
     border: 1px solid var(--border-color); /* Professional border using theme variable */
@@ -180,13 +180,13 @@
 }
 
 .artist-hero-title {
-    color: var(--header-text) !important; /* Ensure contrast with overlay/image */
+    color: var(--header-text) !important; /* Theme text for heroes without a photo */
     margin-bottom: 15px;
     font-size: 2.5em; /* Larger title */
 }
 
 .artist-meta-info {
-    color: var(--header-text); /* Light color for meta, adjust if needed */
+    color: var(--header-text); /* Theme text for heroes without a photo */
     opacity: 0.9; /* Slightly less prominent than title */
     margin-bottom: 15px;
 }
@@ -227,6 +227,18 @@
 }
 
 
+
+/* Photo heroes need light foregrounds in both color schemes, independent of theme text. */
+.artist-hero[style*='background-image'],
+.artist-hero[style*='background-image'] .artist-hero-title,
+.artist-hero[style*='background-image'] .artist-meta-info,
+.artist-hero[style*='background-image'] .artist-meta-info strong,
+.artist-hero[style*='background-image'] .artist-meta-separator,
+.artist-hero[style*='background-image'] .artist-social-links a,
+.artist-hero[style*='background-image'] .artist-social-links a:hover {
+    color: #fff !important; /* Override explicit theme colors, including title/social rules. */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
 
 /* --- End Artist Hero Section Styles --- */ 
 
