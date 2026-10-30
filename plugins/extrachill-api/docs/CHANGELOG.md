@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.44.0] - 2026-10-30
+
+### Added
+- forward entry_mode to run-giveaway
+
 ## [0.43.0] - 2026-10-24
 
 ### Added
