@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.34.0] - 2026-10-30
+
+### Added
+- attach canonical venue/artist/location to the Studio wiki
+
 ## [2.33.6] - 2026-10-30
 
 ### Fixed

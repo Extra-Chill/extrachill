@@ -41,6 +41,7 @@ function extrachill_network_get_term_policy() {
 				'wire'      => array( 'festival_wire' => array( 'festival', 'location' ) ),
 				'events'    => array( 'data_machine_events' => array( 'genre' ) ),
 				'artist'    => array( 'artist_profile' => array( 'genre' ) ),
+				'studio'    => array( 'wiki' => array( 'venue', 'artist', 'location' ) ),
 			),
 			'sources' => array(
 				'artist'   => array( 'main' ),
@@ -81,6 +82,26 @@ function extrachill_network_get_eligible_term_taxonomies( $site_key, $post_type,
 			}
 		)
 	);
+}
+
+/**
+ * Resolve classifier taxonomies separately from approved-term projection.
+ *
+ * Studio wiki collaboration records must be explicitly tagged by a human or
+ * agent, never inferred by AI. Keep them in the projection policy, but exclude
+ * them from lifecycle scheduling, explicit classification, and queued tasks.
+ *
+ * @param string $site_key  Logical site key.
+ * @param string $post_type Post type.
+ * @param array  $requested Optional taxonomy allowlist.
+ * @return string[]
+ */
+function extrachill_network_get_classification_taxonomies( $site_key, $post_type, $requested = array() ) {
+	if ( 'studio' === $site_key && 'wiki' === $post_type ) {
+		return array();
+	}
+
+	return extrachill_network_get_eligible_term_taxonomies( $site_key, $post_type, $requested );
 }
 
 /**
@@ -474,7 +495,7 @@ function extrachill_network_classify_post_terms( $args, $selector ) {
 			return new WP_Error( 'classification_post_not_found', __( 'The classification target was not found.', 'extrachill-network' ) );
 		}
 
-		$taxonomies = extrachill_network_get_eligible_term_taxonomies( $site_key, $post->post_type, $args['taxonomies'] ?? array() );
+		$taxonomies = extrachill_network_get_classification_taxonomies( $site_key, $post->post_type, $args['taxonomies'] ?? array() );
 		$statuses   = extrachill_network_get_eligible_term_statuses( $site_key, $post->post_type );
 		if ( empty( $taxonomies ) || ! in_array( $post->post_status, $statuses, true ) ) {
 			return new WP_Error( 'unsupported_classification_target', __( 'The post status or target policy is not eligible for classification.', 'extrachill-network' ) );

@@ -154,3 +154,28 @@ function extrachill_network_register_taxonomies() {
 	}
 }
 add_action( 'init', 'extrachill_network_register_taxonomies', 0 );
+
+/** Keep Studio's collaboration identities editable but without public archives. */
+function extrachill_network_studio_taxonomy_args( $args, $taxonomy ) {
+	if ( get_current_blog_id() === ec_get_blog_id( 'studio' ) && in_array( $taxonomy, array( 'venue', 'artist', 'location' ), true ) ) {
+		$args['public']             = false;
+		$args['publicly_queryable'] = false;
+		$args['query_var']          = false;
+		$args['rewrite']            = false;
+	}
+
+	return $args;
+}
+add_filter( 'register_taxonomy_args', 'extrachill_network_studio_taxonomy_args', 10, 2 );
+
+/** Attach after Intelligence registers wiki at the default init priority. */
+function extrachill_network_attach_studio_wiki_taxonomies() {
+	if ( get_current_blog_id() !== ec_get_blog_id( 'studio' ) || ! post_type_exists( 'wiki' ) ) {
+		return;
+	}
+
+	foreach ( array( 'venue', 'artist', 'location' ) as $taxonomy ) {
+		register_taxonomy_for_object_type( $taxonomy, 'wiki' );
+	}
+}
+add_action( 'init', 'extrachill_network_attach_studio_wiki_taxonomies', 20 );
