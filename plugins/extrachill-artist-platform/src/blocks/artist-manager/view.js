@@ -29,6 +29,7 @@ import {
 } from '../shared/api/client';
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import LocalSupportTab from './components/LocalSupportTab';
+import ShowsTab from './components/ShowsTab';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -59,6 +60,7 @@ const useConfig = () => {
 			userArtists: Array.isArray(config.userArtists) ? config.userArtists : [],
 			selectedId: config.selectedId || 0,
 			artistSiteUrl: config.artistSiteUrl || '',
+			eventsSubmitUrl: config.eventsSubmitUrl || '',
 			assets: config.assets || {},
 		}),
 		[ config ]
@@ -526,6 +528,7 @@ const App = () => {
 
 	const tabs = [
 		{ id: 'info', label: 'Info' },
+		{ id: 'shows', label: 'Shows' },
 		{ id: 'managers', label: 'Profile Managers' },
 		{ id: 'subscribers', label: 'Subscribers' },
 		{ id: 'local-support', label: 'Local Support' },
@@ -620,6 +623,13 @@ const App = () => {
 						selectedId={ selectedId }
 					/>
 				);
+			case 'shows':
+				return selectedId ? (
+					<ShowsTab
+						artistName={ config.userArtists.find( ( item ) => Number( item.id ) === selectedId )?.name || '' }
+						submitUrl={ config.eventsSubmitUrl }
+					/>
+				) : null;
 			case 'managers':
 				return selectedId ? <ManagersTab artistId={ selectedId } /> : null;
 			case 'subscribers':

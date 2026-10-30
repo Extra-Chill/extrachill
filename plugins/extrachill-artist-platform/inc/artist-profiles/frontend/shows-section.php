@@ -52,6 +52,42 @@ function ec_register_artist_profile_shows_section( $sections, $artist_id, $artis
 add_filter( 'ec_artist_profile_sections', 'ec_register_artist_profile_shows_section', 10, 3 );
 
 /**
+ * Link to Events' existing extrachill/submit-event intake, not a local form.
+ *
+ * Events currently supports only submit_venue and submit_city prefill, not
+ * lineup. An artist's home city is not necessarily the show's city, so neither
+ * is supplied here. switch_to_blog alone does not load the Events plugin.
+ *
+ * @return string Absolute submission URL.
+ */
+function ec_artist_shows_submit_url() {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+
+	if ( function_exists( 'extrachill_events_submit_url' ) && $events_blog_id ) {
+		switch_to_blog( $events_blog_id );
+		try {
+			return extrachill_events_submit_url( '', '' );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	$base = $events_blog_id ? get_home_url( $events_blog_id ) : 'https://events.extrachill.com';
+	return trailingslashit( $base ) . 'submit/';
+}
+
+/**
+ * Whether the current viewer can manage this specific artist.
+ *
+ * @param int $artist_id Artist profile post ID.
+ * @return bool
+ */
+function ec_artist_shows_can_manage( $artist_id ) {
+	return $artist_id > 0 && function_exists( 'ec_can_manage_artist' )
+		&& ec_can_manage_artist( get_current_user_id(), $artist_id );
+}
+
+/**
  * Build the canonical artist events-archive URL on the events site.
  *
  * Points at the events-blog `artist` taxonomy archive (events.extrachill.com/
@@ -110,8 +146,10 @@ function ec_artist_shows_gather( $artist_term_id ) {
 	);
 	$memo[ $artist_term_id ] = $empty;
 
-	// The adapter is registered only on the events blog. Force the existing
-	// cross-site seam's HTTP-loopback strategy so that site's plugins are loaded.
+	/*
+	 * The adapter is registered only on the events blog. Force the existing
+	 * cross-site seam's HTTP-loopback strategy so that site's plugins are loaded.
+	 */
 	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
 		return $empty;
 	}
@@ -129,9 +167,11 @@ function ec_artist_shows_gather( $artist_term_id ) {
 		),
 	);
 
-	// Scope the loopback opt-in to this one call so the seam's global default
-	// (in-process) is unchanged for every other cross-site caller. Add/remove
-	// around the single dispatch.
+	/*
+	 * Scope the loopback opt-in to this one call so the seam's global default
+	 * (in-process) is unchanged for every other cross-site caller. Add/remove
+	 * around the single dispatch.
+	 */
 	$force_loopback = static function ( $enabled ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- force-loopback contract always reports enabled regardless of input.
 		return true;
 	};
@@ -173,14 +213,18 @@ function ec_artist_shows_gather( $artist_term_id ) {
 /**
  * Visibility gate for the Shows section.
  *
- * Hides the whole section when the artist has no bound term or zero events, so
- * new artists never see an empty block (mirrors the Coverage section's gate).
+ * Public visitors see only populated sections. Managers also see the empty
+ * state, including artists that do not yet have a bound term.
  *
  * @param int $artist_id      Artist profile post ID.
  * @param int $artist_term_id Bound main-blog `artist` term_id.
  * @return bool
  */
 function ec_artist_profile_has_shows( $artist_id, $artist_term_id = 0 ) {
+	if ( ec_artist_shows_can_manage( $artist_id ) ) {
+		return true;
+	}
+
 	$artist_term_id = (int) $artist_term_id;
 	if ( $artist_term_id <= 0 ) {
 		return false;
@@ -206,18 +250,25 @@ function ec_artist_profile_has_shows( $artist_id, $artist_term_id = 0 ) {
  * @return void
  */
 function ec_render_artist_profile_shows_section( $artist_id, $artist_term_id = 0 ) {
-	$artist_term_id = (int) $artist_term_id;
-	if ( $artist_term_id <= 0 ) {
-		return;
-	}
-
-	$shows = ec_artist_shows_gather( $artist_term_id );
-	if ( empty( $shows['upcoming'] ) && empty( $shows['past'] ) ) {
+	$shows   = ec_artist_shows_gather( (int) $artist_term_id );
+	$can_add = empty( $shows['upcoming'] ) && ec_artist_shows_can_manage( $artist_id );
+	if ( empty( $shows['upcoming'] ) && empty( $shows['past'] ) && ! $can_add ) {
 		return;
 	}
 
 	echo '<div class="artist-shows-section">';
 	echo '<h2 class="section-title">' . esc_html__( 'Shows', 'extrachill-artist-platform' ) . '</h2>';
+
+	if ( $can_add ) {
+		echo '<div class="notice">';
+		echo '<p>' . esc_html__( 'No upcoming shows listed. Submit a flyer or enter your show details on Extra Chill Events.', 'extrachill-artist-platform' ) . '</p>';
+		printf(
+			'<a class="button-1" href="%s">%s</a>',
+			esc_url( ec_artist_shows_submit_url() ),
+			esc_html__( 'Add a show', 'extrachill-artist-platform' )
+		);
+		echo '</div>';
+	}
 
 	if ( ! empty( $shows['upcoming'] ) ) {
 		ec_render_artist_shows_group(
@@ -306,9 +357,11 @@ function ec_render_artist_shows_group( $heading, $shows ) {
 					</div>
 
 					<?php
-					// Past-row "I Was There" affordance. Owned by extrachill-users
-					// (active network-wide); guard with function_exists so this
-					// no-ops cleanly if that plugin is ever inactive on a blog.
+					/*
+					 * Past-row "I Was There" affordance. Owned by extrachill-users
+					 * (active network-wide); guard with function_exists so this
+					 * no-ops cleanly if that plugin is ever inactive on a blog.
+					 */
 					if ( $is_past && $event_id > 0 && function_exists( 'ec_users_render_attendance_button' ) ) :
 						?>
 						<div class="artist-show-attendance">
