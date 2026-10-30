@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!-- Keep term and network doubles isolated from other suites and real WordPress. -->
+		<testsuite name="single-event-network-bridge-unit">
+			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

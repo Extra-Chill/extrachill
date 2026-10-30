@@ -79,7 +79,7 @@
 			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
 			<file>tests/Unit/Abilities/ManagedVenueVoicesRestTest.php</file>
 			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
-			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
+			<!-- Isolated bridge doubles run in phpunit-single-event-network-bridge-unit.xml.dist. -->
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
 			<file>tests/MySQLIntegration/BookingSchemaMultisiteTest.php</file>

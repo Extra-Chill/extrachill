@@ -17,7 +17,7 @@
  * cross-site URL resolution, caching, and analytics tags.
  *
  * Full same-site event cards remain in inc/single-event/related-events.php;
- * this compact module adds only one canonical location-archive path.
+ * this compact module adds canonical venue- and location-archive paths.
  *
  * @package ExtraChillEvents
  * @since 0.28.0
@@ -31,7 +31,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Build shared bridge arguments for an event.
  *
  * Upcoming and ongoing events lead with the artist profile. Past events lead
- * with coverage. Both paths remain bounded to three real destinations.
+ * with venue and location discovery. Both paths remain bounded to three real
+ * destinations.
  *
  * @param int    $post_id Event post ID.
  * @param string $timing  Event timing state.
@@ -45,7 +46,7 @@ function ec_events_network_bridge_args( $post_id, $timing ) {
 		'taxonomies'        => array( 'artist', 'festival' ),
 		'allowed_site_keys' => array( 'artist', 'main', 'community' ),
 		'slot_order'        => $is_past
-			? array( 'main', 'artist', 'community', 'events' )
+			? array( 'venue', 'events', 'main', 'artist', 'community' )
 			: array( 'artist', 'events', 'community', 'main' ),
 		'utm_source'        => 'extrachill_events',
 		'cache_prefix'      => 'ec_events_network_bridge_v2_' . ( $is_past ? 'past_' : 'current_' ),
@@ -59,8 +60,8 @@ function ec_events_network_bridge_args( $post_id, $timing ) {
  *
  * Cross-site resolution and caching stay in the shared network primitive. This
  * consumer changes labels only on the returned copies, avoiding pollution of
- * the shared term-link cache. Upcoming events also add the canonical location
- * archive as a same-site discovery path.
+ * the shared term-link cache. Both paths add the canonical location archive;
+ * past events also add the venue archive as a same-site discovery path.
  *
  * @param array $args Bridge arguments from ec_events_network_bridge_args().
  * @return array
@@ -104,22 +105,37 @@ function ec_events_network_bridge_order_cards( $args, $cards ) {
 		$by_site[ $site_key ] = $card;
 	}
 
-	if ( 'events' === $args['slot_order'][1] ) {
-		$locations = get_the_terms( $args['post_id'], 'location' );
-		if ( $locations && ! is_wp_error( $locations ) ) {
-			$location     = reset( $locations );
-			$location_url = get_term_link( $location );
-
-			if ( ! is_wp_error( $location_url ) ) {
-				$by_site['events'] = array(
-					'site_key'     => 'events',
-					'url'          => $location_url,
-					'label'        => __( 'More Shows', 'extrachill-events' ),
-					'term_name'    => $location->name,
-					'is_same_site' => true,
-				);
-			}
+	// Same-site discovery is explicit in the slot keys, independent of position.
+	$same_site_slots = array(
+		'venue'  => array( 'venue', __( 'Upcoming Shows', 'extrachill-events' ) ),
+		'events' => array( 'location', __( 'More Shows', 'extrachill-events' ) ),
+	);
+	foreach ( $same_site_slots as $site_key => $slot ) {
+		if ( ! in_array( $site_key, $args['slot_order'], true ) ) {
+			continue;
 		}
+
+		$terms = get_the_terms( $args['post_id'], $slot[0] );
+		if ( ! $terms || is_wp_error( $terms ) ) {
+			continue;
+		}
+
+		$term = reset( $terms );
+		if ( ! $term || is_wp_error( $term ) || empty( $term->name ) ) {
+			continue;
+		}
+		$url = get_term_link( $term );
+		if ( ! $url || is_wp_error( $url ) ) {
+			continue;
+		}
+
+		$by_site[ $site_key ] = array(
+			'site_key'     => $site_key,
+			'url'          => $url,
+			'label'        => $slot[1],
+			'term_name'    => $term->name,
+			'is_same_site' => true,
+		);
 	}
 
 	$ordered = array();

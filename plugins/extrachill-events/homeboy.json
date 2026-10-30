@@ -79,6 +79,11 @@
             ]
           },
           {
+            "name": "single-event-network-bridge-unit",
+            "config": "phpunit-single-event-network-bridge-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "artist-unit",
             "config": "phpunit-artist-unit.xml.dist",
             "runtime": "host"
