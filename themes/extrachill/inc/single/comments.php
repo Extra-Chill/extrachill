@@ -1,0 +1,166 @@
+<?php
+/**
+ * Comment System
+ *
+ * Technical Implementation:
+ * - Multisite author links: Uses ec_should_use_multisite_comment_links() and ec_get_comment_author_link_multisite()
+ * - Native WordPress multisite authentication: Checks is_user_logged_in() for cross-site auth state
+ * - Logged-out commenters: Shows a minimal "log in to comment" note. The login/register CTA block
+ *   is rendered by the extrachill-blog plugin via the extrachill_before_comments_template action.
+ *
+ * @package ExtraChill
+ * @since 1.0
+ */
+
+if ( post_password_required() ) {
+	return;
+}
+
+if ( ! function_exists( 'extrachill_comment' ) ) :
+
+	function extrachill_comment( $comment, $args, $depth ) {
+		switch ( $comment->comment_type ) :
+			case 'trackback':
+				?>
+			<li <?php comment_class(); ?> id="comment-<?php comment_ID(); ?>">
+				<?php
+				break;
+			default:
+				global $post;
+				?>
+			<li <?php comment_class(); ?> id="li-comment-<?php comment_ID(); ?>">
+				<article id="comment-<?php comment_ID(); ?>" class="comment">
+					<header class="comment-meta comment-author vcard">
+						<?php
+						echo get_avatar( $comment, 74 );
+
+						if ( function_exists( 'ec_should_use_multisite_comment_links' ) && ec_should_use_multisite_comment_links( $comment ) ) {
+							$author_link = function_exists( 'ec_get_comment_author_link_multisite' ) ? ec_get_comment_author_link_multisite( $comment ) : get_comment_author_link();
+						} else {
+							$author_link = get_comment_author_link();
+						}
+
+						printf( '<div class="comment-author-link">%s</div>', wp_kses_post( $author_link ) );
+
+						if ( $comment->user_id === $post->post_author ) {
+							echo '<span>' . esc_html__( 'Post author', 'extrachill' ) . '</span>';
+						}
+
+						printf( '<div class="comment-date-time">%1$s</div>', sprintf( /* translators: 1: comment date, 2: comment time. */ esc_html__( '%1$s at %2$s', 'extrachill' ), esc_html( get_comment_date() ), esc_html( get_comment_time() ) ) );
+						edit_comment_link();
+						?>
+					</header>
+
+					<?php if ( '0' === $comment->comment_approved ) : ?>
+						<p class="comment-awaiting-moderation"><?php esc_html_e( 'Your comment is awaiting moderation.', 'extrachill' ); ?></p>
+					<?php endif; ?>
+
+					<section class="comment-content comment">
+						<?php comment_text(); ?>
+						<?php
+						comment_reply_link(
+							array_merge(
+								$args,
+								array(
+									'reply_text' => __( 'Reply', 'extrachill' ),
+									'after'      => '',
+									'depth'      => $depth,
+									'max_depth'  => $args['max_depth'],
+								)
+							)
+						);
+						?>
+					</section>
+
+				</article>
+				<?php
+				break;
+		endswitch;
+	}
+
+endif;
+?>
+
+<div id="comments" class="comments-area">
+
+	<?php if ( have_comments() ) : ?>
+		<h2 class="comments-title">
+			<?php
+				$comments_number = (int) get_comments_number();
+				/* translators: 1: number of comments, 2: post title. */
+				$comments_title = _nx( 'One comment on &ldquo;%2$s&rdquo;', '%1$s comments on <strong>%2$s</strong>', $comments_number, 'comments title', 'extrachill' ); // phpcs:ignore WordPress.WP.I18n.MissingSingularPlaceholder -- Singular form intentionally spells out "One" rather than using a numeric placeholder.
+				$comments_title = sprintf(
+					wp_kses_post( $comments_title ),
+					esc_html( number_format_i18n( $comments_number ) ),
+					'<span>' . esc_html( get_the_title() ) . '</span>'
+				);
+				/**
+				 * Filter the comments list heading, e.g. so a post type can call
+				 * its comments "reviews".
+				 *
+				 * @param string $comments_title Heading HTML.
+				 * @param int    $comments_number Approved comment count.
+				 * @param int    $post_id         Post ID.
+				 */
+				echo wp_kses_post( (string) apply_filters( 'extrachill_comments_title', $comments_title, $comments_number, (int) get_the_ID() ) );
+			?>
+		</h2>
+
+		<?php if ( get_comment_pages_count() > 1 && get_option( 'page_comments' ) ) : ?>
+		<nav id="comment-nav-above" class="comment-navigation" role="navigation">
+			<h4 class="screen-reader-text"><?php esc_html_e( 'Comment navigation', 'extrachill' ); ?></h4>
+			<div class="nav-previous"><?php previous_comments_link( __( '&larr; Older Comments', 'extrachill' ) ); ?></div>
+			<div class="nav-next"><?php next_comments_link( __( 'Newer Comments &rarr;', 'extrachill' ) ); ?></div>
+		</nav><!-- #comment-nav-above -->
+		<?php endif; ?>
+
+		<ul class="comment-list">
+			<?php
+				wp_list_comments(
+					array(
+						'callback'   => 'extrachill_comment',
+						'short_ping' => true,
+					)
+				);
+			?>
+		</ul><!-- .comment-list -->
+
+		<?php if ( get_comment_pages_count() > 1 && get_option( 'page_comments' ) ) : ?>
+		<nav id="comment-nav-below" class="comment-navigation" role="navigation">
+			<h4 class="screen-reader-text"><?php esc_html_e( 'Comment navigation', 'extrachill' ); ?></h4>
+			<div class="nav-previous"><?php previous_comments_link( __( '&larr; Older Comments', 'extrachill' ) ); ?></div>
+			<div class="nav-next"><?php next_comments_link( __( 'Newer Comments &rarr;', 'extrachill' ) ); ?></div>
+		</nav><!-- #comment-nav-below -->
+		<?php endif; ?>
+
+	<?php endif; ?>
+
+	<?php
+	if ( ! comments_open() && (int) get_comments_number() !== 0 && post_type_supports( (string) get_post_type(), 'comments' ) ) :
+		?>
+		<p class="no-comments"><?php esc_html_e( 'Comments are closed.', 'extrachill' ); ?></p>
+	<?php endif; ?>
+	<?php
+	if ( is_user_logged_in() ) {
+		// The heading is a default (see extrachill_comment_form_defaults) so
+		// plugins can retitle the form for their post types.
+		comment_form(
+			array(
+				'comment_notes_before' => '',
+				'comment_notes_after'  => '',
+				'class_submit'         => 'button-1 button-medium',
+			)
+		);
+	} else {
+		/**
+		 * Filter the note shown to logged-out visitors in place of the
+		 * comment form.
+		 *
+		 * @param string $note    Plain-text note.
+		 * @param int    $post_id Post ID.
+		 */
+		$login_note = (string) apply_filters( 'extrachill_comments_login_note', __( 'Log in to leave a comment.', 'extrachill' ), (int) get_the_ID() );
+		echo '<p class="comments-login-note">' . esc_html( $login_note ) . '</p>';
+	}
+	?>
+</div><!-- #comments -->

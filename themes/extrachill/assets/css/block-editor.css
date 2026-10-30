@@ -1,0 +1,299 @@
+/**
+ * Extra Chill Block Editor Branding
+ *
+ * EC-specific overrides for the Blocks Everywhere frontend editor.
+ * Blocks Everywhere handles generic Gutenberg theming (variable mappings,
+ * container styling, toolbar, popovers). This file adds EC brand touches
+ * on top — accent colors on inserter buttons, branded border radii, etc.
+ *
+ * Requires:
+ *   - EC design tokens loaded (root.css / tokens-all.css)
+ *   - Blocks Everywhere active (provides .gutenberg-support scope)
+ *
+ * Package: @extrachill/tokens
+ *
+ * Usage:
+ *   - WordPress: enqueue on host page via wp_enqueue_scripts AND
+ *     inject into iframe via blocks_everywhere_enqueue_iframe_assets
+ *   - Mobile: import alongside tokens-all.css for native editor branding
+ *
+ * Dark mode chain:
+ *   - CSS variables are defined at :root in root.css
+ *   - @media (prefers-color-scheme: dark) in root.css flips those variables
+ *   - Selectors in this file reference variables, so dark mode applies
+ *     automatically without any dark-mode rules here.
+ */
+
+
+/* ==========================================================================
+   1. Editor Shell — Structural Outline
+   BE's <EmbeddedBlockEditor> renders a flat sequence of divs (toolbar, body,
+   footer) inside a single .blocks-everywhere-editor wrapper. Without a
+   container border the editor has no visible bounds against the host page
+   chrome (Studio's "Submit for Review" buttons sit immediately below).
+   Restore the structural border on the .blocks-everywhere-editor wrapper.
+   ========================================================================== */
+
+.gutenberg-support .blocks-everywhere-editor {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md, 8px);
+}
+
+/* ==========================================================================
+   2. Block Toolbar — Host React Tree
+   The block toolbar lives in BE's .blocks-everywhere-editor__toolbar wrapper
+   and renders Gutenberg's <BlockToolbar /> as .block-editor-block-toolbar
+   containing .components-toolbar(-group) segments. Default Gutenberg paints
+   these surfaces white via --wp-components-color-background. Override with
+   EC theme tokens so the toolbar respects dark mode.
+   ========================================================================== */
+
+/* Toolbar wrapper carries the separator between toolbar and writing canvas. */
+.gutenberg-support .blocks-everywhere-editor__toolbar {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-group {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* Toolbar buttons — base color */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button {
+    color: var(--text-color);
+}
+
+/* Toolbar buttons — hover / focus */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button:focus-visible:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button:focus-visible:not(:disabled, [aria-disabled="true"]) {
+    color: var(--accent);
+    background-color: transparent;
+}
+
+/* Toolbar buttons — pressed / active */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button.is-pressed,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-button[aria-pressed="true"],
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button.is-pressed,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar .components-toolbar-button[aria-pressed="true"] {
+    color: var(--button-text-color);
+    background-color: var(--accent);
+}
+
+/* Toolbar SVG icons inherit button color */
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar svg,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar svg * {
+    fill: currentColor;
+}
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-block-toolbar svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   3. Toolbar Inserter (+) — Host React Tree
+   BE renders <Inserter /> inside .blocks-everywhere-editor__toolbar, which
+   produces .block-editor-inserter > .block-editor-inserter__toggle.components-button.
+   The button is colored with the EC accent (matches the earlier
+   .editor-document-tools__inserter-toggle.is-primary intent), but sized
+   like the rest of the toolbar icon buttons (undo / redo / list-view /
+   format buttons) so it doesn't dominate the row visually. Gutenberg's
+   default toolbar button is ~24x24 icon-sized; we override the colors,
+   not the dimensions.
+   ========================================================================== */
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button {
+    background-color: var(--accent);
+    color: var(--button-text-color);
+    transition: background-color 0.3s ease;
+    /* Constrain to icon-button dimensions so the EC accent fill doesn't
+       make the inserter dwarf the adjacent undo/redo/list-view buttons
+       (which render at Gutenberg's default ~32x32 toolbar icon size).
+       Match the dimensions used by Gutenberg's own contextual toolbar
+       buttons (`.components-toolbar .components-button.has-icon` at
+       min-width:48px / height:48px would be the upstream 48px contract,
+       but BE's toolbar children are bare <Button> sized at ~32x32 by
+       default — match THAT so the inserter doesn't dominate.) */
+    min-width: 32px;
+    height: 32px;
+    padding: 4px;
+}
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button:focus-visible:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:hover:not(:disabled, [aria-disabled="true"]),
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button:focus-visible:not(:disabled, [aria-disabled="true"]) {
+    background-color: var(--accent-hover);
+    color: var(--button-text-color);
+}
+
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button svg,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button svg,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter > button.components-button svg *,
+.gutenberg-support .blocks-everywhere-editor__toolbar .block-editor-inserter__toggle.components-button svg * {
+    fill: currentColor;
+}
+
+
+/* ==========================================================================
+   4. Empty Block Inserter — Host Page
+   When a block is selected and the empty-block inserter renders at the host
+   level (outside the iframe), style it with EC's accent-3 (cyan).
+   ========================================================================== */
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon {
+    background-color: var(--accent-3);
+    border: none;
+    color: var(--button-text-color);
+    transition: background-color 0.3s ease;
+}
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible {
+    background-color: var(--link-color-hover);
+    border: none;
+    color: var(--button-text-color);
+}
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg * {
+    fill: currentColor;
+}
+
+.gutenberg-support .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   5. Inserter Buttons — Editor Iframe
+   Same accent-3 branding for inserter buttons inside the editor canvas.
+   ========================================================================== */
+
+/* Empty block inserter, default appender, list appender, insertion point */
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon,
+.editor-styles-wrapper .block-list-appender__toggle,
+.editor-styles-wrapper .block-editor-button-block-appender,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter {
+    background-color: var(--accent-3);
+    border: none;
+    color: var(--button-text-color);
+    border-radius: var(--border-radius-sm, 5px);
+    transition: background-color 0.3s ease;
+}
+
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:hover,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon:focus-visible,
+.editor-styles-wrapper .block-list-appender__toggle:hover,
+.editor-styles-wrapper .block-list-appender__toggle:focus,
+.editor-styles-wrapper .block-editor-button-block-appender:hover,
+.editor-styles-wrapper .block-editor-button-block-appender:focus,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:hover,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter:focus {
+    background-color: var(--link-color-hover);
+    border: none;
+    color: var(--button-text-color);
+}
+
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.editor-styles-wrapper .block-editor-block-list__empty-block-inserter .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg,
+.editor-styles-wrapper .block-editor-default-block-appender .block-editor-inserter > button.components-button.block-editor-inserter__toggle.has-icon svg *,
+.editor-styles-wrapper .block-list-appender__toggle svg,
+.editor-styles-wrapper .block-editor-button-block-appender svg,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg,
+.editor-styles-wrapper .block-list-appender__toggle svg *,
+.editor-styles-wrapper .block-editor-button-block-appender svg *,
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg * {
+    fill: currentColor;
+}
+
+.editor-styles-wrapper .block-list-appender__toggle svg [stroke]:not([stroke="none"]),
+.editor-styles-wrapper .block-editor-button-block-appender svg [stroke]:not([stroke="none"]),
+.editor-styles-wrapper .block-editor-block-list__insertion-point-inserter svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}
+
+
+/* ==========================================================================
+   6. Placeholder Branding — Editor Iframe
+   Embed/image/gallery placeholder blocks use EC card styling.
+   ========================================================================== */
+
+.editor-styles-wrapper .components-placeholder {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md, 8px);
+    color: var(--text-color);
+    box-shadow: var(--card-shadow);
+    padding: var(--spacing-md);
+}
+
+.editor-styles-wrapper .components-placeholder__label {
+    color: var(--text-color);
+}
+
+.editor-styles-wrapper .components-placeholder__instructions {
+    color: var(--muted-text);
+}
+
+.editor-styles-wrapper .components-placeholder__input,
+.editor-styles-wrapper .components-placeholder__textarea,
+.editor-styles-wrapper .components-placeholder input {
+    background-color: var(--background-color);
+    border-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.editor-styles-wrapper .components-placeholder .components-button {
+    border-radius: var(--border-radius-sm, 5px);
+}
+
+.editor-styles-wrapper .components-placeholder .components-button.is-primary {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--button-text-color);
+    box-shadow: none;
+}
+
+.editor-styles-wrapper .components-placeholder .components-button.is-primary:hover,
+.editor-styles-wrapper .components-placeholder .components-button.is-primary:focus {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: var(--button-text-color);
+}
+
+.editor-styles-wrapper .components-placeholder .components-button:not(.is-primary) {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    box-shadow: none;
+}
+
+.editor-styles-wrapper .components-placeholder .components-button:not(.is-primary):hover,
+.editor-styles-wrapper .components-placeholder .components-button:not(.is-primary):focus {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.editor-styles-wrapper .components-placeholder svg,
+.editor-styles-wrapper .components-placeholder svg * {
+    fill: currentColor;
+}
+
+.editor-styles-wrapper .components-placeholder svg [stroke]:not([stroke="none"]) {
+    stroke: currentColor;
+}

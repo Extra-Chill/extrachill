@@ -1,0 +1,266 @@
+/*
+ * Archive Header Layout
+ *
+ * Shared layout for archive titles and right-aligned actions.
+ * Used by theme archives and WooCommerce taxonomy archives.
+ */
+body.archive .archive-header-row,
+body.search .archive-header-row,
+body.woocommerce.archive .archive-header-row,
+body.woocommerce.tax-product_cat .archive-header-row,
+body.woocommerce.tax-artist .archive-header-row,
+body.tax .archive-header-row,
+body.post-type-archive .archive-header-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--spacing-sm);
+}
+
+body.archive .archive-header-actions,
+body.search .archive-header-actions,
+body.woocommerce.archive .archive-header-actions,
+body.woocommerce.tax-product_cat .archive-header-actions,
+body.woocommerce.tax-artist .archive-header-actions,
+body.tax .archive-header-actions,
+body.post-type-archive .archive-header-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	align-items: center;
+}
+
+body.archive .archive-header-actions:empty,
+body.search .archive-header-actions:empty,
+body.woocommerce.archive .archive-header-actions:empty,
+body.woocommerce.tax-product_cat .archive-header-actions:empty,
+body.woocommerce.tax-artist .archive-header-actions:empty,
+body.tax .archive-header-actions:empty,
+body.post-type-archive .archive-header-actions:empty {
+	display: none;
+}
+
+body.archive .archive-header-actions .artist-profile-link-container,
+body.search .archive-header-actions .artist-profile-link-container,
+body.woocommerce.archive .archive-header-actions .artist-profile-link-container,
+body.woocommerce.tax-product_cat .archive-header-actions .artist-profile-link-container,
+body.woocommerce.tax-artist .archive-header-actions .artist-profile-link-container,
+body.tax .archive-header-actions .artist-profile-link-container,
+body.post-type-archive .archive-header-actions .artist-profile-link-container {
+	float: none;
+	margin-left: 0;
+}
+
+body.archive .page-header .page-title,
+body.search .page-header .page-title,
+body.woocommerce.archive .page-header .page-title,
+body.woocommerce.tax-product_cat .page-header .page-title,
+body.woocommerce.tax-artist .page-header .page-title,
+body.tax .page-header .page-title,
+body.post-type-archive .page-header .page-title {
+	margin: 0;
+}
+
+/*
+ * Archive Card Layout
+ * Unified with single post card, but slightly smaller for grid/list display.
+ * Subtle or no box-shadow, open spacing, and responsive.
+ */
+
+.archive-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 1.5px 6px rgba(0,0,0,0.03);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  width: 100%;
+  box-sizing: border-box;
+  transition: box-shadow 0.18s, transform 0.18s;
+  cursor: pointer;
+  position: relative;
+}
+
+@media (max-width: 480px) {
+  .archive-card {
+    padding: var(--spacing-md);
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    box-shadow: none;
+    transition: none;
+  }
+
+  .archive-card:hover {
+    box-shadow: none;
+    transform: none;
+  }
+}
+
+.archive-card .archive-post,
+.archive-card h2,
+.archive-card .featured-image {
+  position: relative;
+  z-index: 1;
+}
+
+.archive-card h2 {
+  margin: 0;
+}
+
+.archive-card .taxonomy-badges {
+  position: relative;
+  z-index: 2;
+}
+
+.artist-profile-link-container {
+  float: right;
+  margin-left: var(--spacing-md);
+}
+
+.archive-card:hover {
+  box-shadow: 0 8px 24px rgba(83,148,11,0.10);
+  transform: translateY(-4px) scale(1.01);
+}
+
+.archive-card h2 a {
+  color: var(--post-title-link-color);
+  text-decoration: none;
+  transition: color 0.18s, text-decoration 0.18s;
+  position: relative;
+  font-size: var(--font-size-xl);
+  z-index: 1;
+}
+
+a.card-link-target:hover,
+.archive-card h2 a:focus {
+  color: var(--post-title-link-hover-color);
+  text-decoration: underline;
+  text-decoration-color: var(--link-color);
+}
+
+@media (max-width: 768px) {
+  .archive-card h2 a {
+    font-size: var(--font-size-body);
+  }
+}
+
+@media (max-width: 900px) {
+  .archive-card {
+    margin-bottom: var(--spacing-md);
+  }
+
+
+} 
+
+/*
+ * Archive & Search Page Styles
+ */
+
+/* Grid layout for full-width archives and search results */
+.ec-mobile-full-width-panel .article-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 325px), 1fr));
+    gap: var(--spacing-lg);
+    width: 100%;
+    max-width: var(--container-wide);
+    margin: 0 auto;
+}
+
+/* Ensure individual articles fill the grid cell */
+.ec-mobile-full-width-panel .article-container .post {
+    width: 100%;
+    margin-bottom: 0; /* Remove bottom margin as gap is now handled by grid */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Adjust card styles for grid */
+.ec-mobile-full-width-panel .post .article-content {
+    flex-grow: 1; /* Allows content to fill available space, aligning footers */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.ec-mobile-full-width-panel .article-container {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+        gap: var(--spacing-lg);
+    }
+}
+
+@media (max-width: 480px) {
+	.ec-mobile-full-width-panel .article-container {
+        grid-template-columns: 1fr; /* Single column on mobile */
+        gap: var(--spacing-md);
+    }
+}
+
+/* Archive-specific button styling */
+.archive-card .read-more-button {
+    font-weight: 500;
+}
+
+/* Archive and Search Styles (moved from style.css) */
+
+/* Post-card featured thumbnails on archive + search loops. Scoped to the
+   .featured-image wrapper (rendered by inc/archives/post-card.php, which
+   extrachill-search also reuses) so the fixed card-image height never bleeds
+   onto other images that happen to sit on an archive/search page — e.g. the
+   events-map block's Leaflet emoji markers, which were being stretched to
+   260px by the previous `.archive img, .search img` selector. */
+.archive .featured-image img,
+.search .featured-image img {
+	height: 260px;
+	object-fit: cover;
+}
+
+.archive .below-entry-meta-left .meta-top-row, .search .below-entry-meta-left .meta-top-row {
+    display: block;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+.archive .below-entry-meta, .search .below-entry-meta, .single-related-posts .below-entry-meta {
+	border: none;
+}
+
+.archive-post .add-to-cart-button{
+	margin-top: var(--spacing-sm);
+}
+
+.archive-post .product-category-link{
+    font-weight: 500;
+	background-color: var(--header-background);
+	font-size: var(--font-size-sm);
+}
+
+.archive article, .search article {
+	margin-bottom: var(--spacing-lg);
+	padding-top: var(--spacing-sm);
+}
+
+.archive .post .img {
+	margin-top: var(--spacing-lg);
+}
+
+.archive .post h2,
+.archive-card h2 {
+	padding-bottom: var(--spacing-sm);
+	line-height: 1.3;
+}
+
+
+/* Taxonomy badge base styles moved to style.css for global availability */
+
+.tag-badge {
+  background-color: rgba(var(--link-color-rgb), 0.1);
+  color: var(--link-color);
+  border: 1px solid var(--border-color);
+}
+
+@media (max-width: 600px) {
+  .taxonomy-badges {
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+  }
+}
