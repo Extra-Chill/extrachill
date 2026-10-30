@@ -45,6 +45,14 @@ class GiveawayCommand {
 	 * default: 1
 	 * ---
 	 *
+	 * [--entry-mode=<mode>]
+	 * : How entries are counted. per_comment: every qualifying comment is an entry, so more tagging comments mean more chances. per_user: one entry per person. Omit to use the ability default (per_comment).
+	 * ---
+	 * options:
+	 *   - per_comment
+	 *   - per_user
+	 * ---
+	 *
 	 * [--announce]
 	 * : Reply to each winner's comment to announce them.
 	 *
@@ -72,6 +80,9 @@ class GiveawayCommand {
 	 *     # Pick 3 winners and announce them
 	 *     wp extrachill giveaway run https://www.instagram.com/p/CxYz1234abc/ --winners=3 --announce
 	 *
+	 *     # One entry per person instead of one per tagging comment
+	 *     wp extrachill giveaway run https://www.instagram.com/p/CxYz1234abc/ --entry-mode=per_user
+	 *
 	 *     # Include all commenters (no tag requirement)
 	 *     wp extrachill giveaway run https://www.instagram.com/p/CxYz1234abc/ --no-require-tag
 	 *
@@ -88,14 +99,7 @@ class GiveawayCommand {
 
 		WP_CLI::log( 'Fetching comments and running giveaway…' );
 
-		$result = $ability->execute( array(
-			'media_input'  => $args[0],
-			'require_tag'  => $require_tag,
-			'min_tags'     => absint( $assoc_args['min-tags'] ?? 1 ),
-			'winner_count' => absint( $assoc_args['winners'] ?? 1 ),
-			'announce'     => ! empty( $assoc_args['announce'] ),
-			'message'      => $assoc_args['message'] ?? 'Congratulations @{username}, you won the giveaway! Check your DMs for details.',
-		) );
+		$result = $ability->execute( self::ability_input( $args[0], $require_tag, $assoc_args ) );
 
 		if ( is_wp_error( $result ) ) {
 			WP_CLI::error( $result->get_error_message() );
@@ -109,7 +113,9 @@ class GiveawayCommand {
 		WP_CLI::log( '' );
 		WP_CLI::log( sprintf( 'Media ID: %s', $result['media_id'] ?? 'unknown' ) );
 		WP_CLI::log( sprintf( 'Total comments: %d', $stats['total_comments'] ?? 0 ) );
+		WP_CLI::log( sprintf( 'Entry mode: %s', $stats['entry_mode'] ?? ( $result['entry_mode'] ?? 'per_user (legacy ability)' ) ) );
 		WP_CLI::log( sprintf( 'Valid entries: %d', $stats['valid_entries'] ?? 0 ) );
+		WP_CLI::log( sprintf( 'People in the pool: %d', $stats['unique_users'] ?? 0 ) );
 		WP_CLI::log( sprintf( 'Filtered out: %d', $stats['filtered_out'] ?? 0 ) );
 
 		if ( ! empty( $result['partial'] ) ) {
@@ -172,6 +178,14 @@ class GiveawayCommand {
 	 * [--no-require-tag]
 	 * : Include all commenters regardless of tags.
 	 *
+	 * [--entry-mode=<mode>]
+	 * : How entries are counted. per_comment: every qualifying comment is an entry, so more tagging comments mean more chances. per_user: one entry per person. Omit to use the ability default (per_comment).
+	 * ---
+	 * options:
+	 *   - per_comment
+	 *   - per_user
+	 * ---
+	 *
 	 * [--announce]
 	 * : Reply to each winner's comment to announce them.
 	 *
@@ -209,14 +223,7 @@ class GiveawayCommand {
 
 		$require_tag = Utils\get_flag_value( $assoc_args, 'require-tag', true );
 
-		$params = array(
-			'media_input'  => $args[0],
-			'require_tag'  => $require_tag,
-			'min_tags'     => absint( $assoc_args['min-tags'] ?? 1 ),
-			'winner_count' => absint( $assoc_args['winners'] ?? 1 ),
-			'announce'     => ! empty( $assoc_args['announce'] ),
-			'message'      => $assoc_args['message'] ?? 'Congratulations @{username}, you won the giveaway! Check your DMs for details.',
-		);
+		$params = self::ability_input( $args[0], $require_tag, $assoc_args );
 
 		$job_id = $schedule(
 			'giveaway',
@@ -234,6 +241,34 @@ class GiveawayCommand {
 
 		WP_CLI::success( sprintf( 'Giveaway scheduled as job #%d, will run at %s UTC.', $job_id, $run_at ) );
 		WP_CLI::log( sprintf( 'Track it: wp datamachine jobs show %d --allow-root', $job_id ) );
+	}
+
+	/**
+	 * Build extrachill/run-giveaway input from CLI arguments.
+	 *
+	 * entry_mode is only passed when --entry-mode is set, so the ability owns
+	 * the default.
+	 *
+	 * @param string $media_input Post URL, shortcode, or media ID.
+	 * @param bool   $require_tag Whether commenters must tag someone.
+	 * @param array  $assoc_args  CLI associative args.
+	 * @return array
+	 */
+	private static function ability_input( $media_input, $require_tag, $assoc_args ) {
+		$input = array(
+			'media_input'  => $media_input,
+			'require_tag'  => $require_tag,
+			'min_tags'     => absint( $assoc_args['min-tags'] ?? 1 ),
+			'winner_count' => absint( $assoc_args['winners'] ?? 1 ),
+			'announce'     => ! empty( $assoc_args['announce'] ),
+			'message'      => $assoc_args['message'] ?? 'Congratulations @{username}, you won the giveaway! Check your DMs for details.',
+		);
+
+		if ( isset( $assoc_args['entry-mode'] ) ) {
+			$input['entry_mode'] = $assoc_args['entry-mode'];
+		}
+
+		return $input;
 	}
 
 	/**
