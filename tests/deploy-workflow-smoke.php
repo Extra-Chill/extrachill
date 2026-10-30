@@ -30,7 +30,7 @@ dws_assert( (bool) preg_match( '/^\s+repository_dispatch:\s*$/m', $yaml ), 'repo
 dws_assert( (bool) preg_match( '/^\s+types:\s*\[component-released\]/m', $yaml ), 'repository_dispatch listens for component-released' );
 dws_assert( (bool) preg_match( '/^\s+workflow_dispatch:\s*$/m', $yaml ), 'workflow_dispatch trigger present' );
 dws_assert( (bool) preg_match( '/^\s+schedule:\s*$/m', $yaml ), 'schedule trigger present' );
-dws_assert( (bool) preg_match( '/^concurrency:\s*\n\s+group:\s*deploy-extrachill-site\s*\n\s+cancel-in-progress:\s*false/m', $yaml ), 'deploys queue under one concurrency group' );
+dws_assert( (bool) preg_match( '/^concurrency:\s*\n\s+group:\s*deploy-main\s*\n\s+cancel-in-progress:\s*false/m', $yaml ), 'deploys queue under one concurrency group' );
 
 // permissions block contains only contents: read.
 preg_match( '/^permissions:\s*\n((?:\s{2,}\S.*\n)+)/m', $yaml, $perm );
