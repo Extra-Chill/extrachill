@@ -1,0 +1,282 @@
+/**
+ * ExtraChill Newsletter Forms CSS Module
+ *
+ * Universal CSS module for all newsletter subscription forms across the ExtraChill platform.
+ * Provides consistent styling aligned with the extrachill theme's root CSS variables.
+ *
+ * @package ExtraChillNewsletter
+ * @since 0.1.0
+ */
+
+/* ==========================================================================
+   Base Form Styles - Universal Elements
+   ========================================================================== */
+
+/* Base newsletter form container */
+.newsletter-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: center;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+
+
+
+
+
+
+
+
+/* ==========================================================================
+   Layout Variants - Context-Specific Patterns
+   ========================================================================== */
+
+/* Generic form wrapper */
+.newsletter-form-wrapper {
+    /* Base wrapper styles - context classes provide specifics */
+}
+
+/* Generic form header */
+.newsletter-form-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.newsletter-form-heading {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+
+
+
+
+/* Generic archive link */
+.newsletter-archive-link {
+    margin-top: var(--spacing-md);
+    text-align: center;
+}
+
+.newsletter-archive-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.newsletter-archive-link a:hover {
+    text-decoration: underline;
+}
+
+/* Inline form layout (navigation, compact forms) */
+.newsletter-form.newsletter-inline-form {
+    flex-direction: column;
+    max-width: 55%;
+    margin: 25px auto;
+    gap: calc(var(--spacing-md) * 0.75);
+}
+
+/* Section form layout (homepage, content, footer) */
+.newsletter-form.newsletter-section-form {
+    flex-direction: column;
+    max-width: 400px;
+    margin: 0 auto;
+    gap: var(--spacing-md);
+}
+
+/* Horizontal form layout (homepage subscription) */
+.newsletter-form.newsletter-horizontal-form {
+    flex-direction: row;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+}
+
+.newsletter-form.newsletter-horizontal-form input[type="email"] {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Complex form layout for multi-field forms */
+.newsletter-form.newsletter-complex-form {
+    flex-direction: column;
+    max-width: var(--form-width);
+    margin: 0 auto;
+    gap: calc(var(--spacing-md) * 1.25);
+}
+
+.newsletter-form.newsletter-complex-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+/* ==========================================================================
+   Navigation Menu Form
+   ========================================================================== */
+
+.menu-newsletter {
+    /* Inherits from theme's navigation styling */
+}
+
+.menu-newsletter .newsletter-form {
+    max-width: 55%;
+    margin: 25px auto;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing-md) * 0.75);
+}
+
+
+
+.menu-newsletter .newsletter-form p {
+    margin: 0;
+}
+
+#primary-menu .newsletter-form p a {
+    line-height: var(--spacing-md);
+    text-transform: none;
+    color: var(--muted-text);
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+    Content Area Newsletter Form
+    ========================================================================== */
+
+.newsletter-content-section {
+    margin: calc(var(--spacing-xl) * 1.5) 0;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-xl);
+    padding: var(--spacing-xl);
+}
+
+.newsletter-content-wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.newsletter-content-header h3 {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.newsletter-content-description {
+    color: var(--muted-text);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.5;
+}
+
+.newsletter-content-links {
+    margin-top: var(--spacing-md);
+}
+
+.newsletter-content-description {
+    color: var(--muted-text);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.5;
+}
+
+.newsletter-content-links {
+    margin-top: var(--spacing-md);
+}
+
+/* ==========================================================================
+   Footer Newsletter Form
+   ========================================================================== */
+
+.newsletter-footer-section {
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-xl);
+    padding: calc(var(--spacing-xl) * 1.25) var(--spacing-xl);
+    margin: calc(var(--spacing-xl) * 1.5) 0;
+}
+
+.newsletter-footer-wrapper {
+    max-width: var(--content-width);
+    margin: 0 auto;
+}
+
+.newsletter-footer-content {
+    text-align: center;
+}
+
+.newsletter-footer-header h3 {
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.newsletter-footer-description {
+    color: var(--muted-text);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.5;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.newsletter-footer-links {
+    margin-top: var(--spacing-md);
+}
+
+.newsletter-footer-description {
+    color: var(--muted-text);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.5;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.newsletter-footer-links {
+    margin-top: var(--spacing-md);
+}
+
+
+
+
+
+.newsletter-footer-links {
+    margin-top: var(--spacing-md);
+}
+
+
+
+
+
+
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+
+
+@media (max-width: 600px) {
+    .menu-newsletter .newsletter-form {
+        max-width: 80%;
+    }
+}
+
+@media (min-width: 601px) {
+    .newsletter-form.newsletter-inline-form {
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 600px) {
+    .newsletter-content-section,
+    .newsletter-footer-section,
+    .newsletter-subscription-form {
+        padding: var(--spacing-lg) var(--spacing-md);
+        margin: var(--spacing-lg) 0;
+    }
+
+
+
+}

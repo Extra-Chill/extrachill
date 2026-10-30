@@ -1,0 +1,115 @@
+<?php
+/**
+ * Newsletter Custom Post Type
+ *
+ * Post type registration, Sendy meta box, and admin functionality.
+ *
+ * @package ExtraChillNewsletter
+ * @since 0.1.0
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+function check_newsletter_conditions( $post_id, $post ) {
+	unset( $post );
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return false;
+	}
+	if ( wp_is_post_revision( $post_id ) || 'newsletter' !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) ) {
+		return false;
+	}
+	return true;
+}
+function add_newsletter_sendy_meta_box() {
+	add_meta_box(
+		'newsletter_sendy_meta_box',
+		__( 'Sendy Integration', 'extrachill-newsletter' ),
+		'newsletter_sendy_meta_box_html',
+		'newsletter',
+		'side',
+		'high'
+	);
+}
+add_action( 'add_meta_boxes', 'add_newsletter_sendy_meta_box' );
+function newsletter_sendy_meta_box_html( $post ) {
+	wp_nonce_field( 'newsletter_sendy_nonce_action', 'newsletter_sendy_nonce_field' );
+
+	echo '<p>' . esc_html__( 'Push this newsletter to Sendy as an email campaign.', 'extrachill-newsletter' ) . '</p>';
+	echo '<button type="button" class="button button-primary" id="push_newsletter_to_sendy">' . esc_html__( 'Push to Sendy', 'extrachill-newsletter' ) . '</button>';
+
+	// Get campaign status if available.
+	$campaign_id = get_post_meta( $post->ID, '_sendy_campaign_id', true );
+	if ( $campaign_id ) {
+		/* translators: %s: Sendy campaign identifier. */
+		echo '<p><small>' . esc_html( sprintf( __( 'Campaign ID: %s', 'extrachill-newsletter' ), $campaign_id ) ) . '</small></p>';
+	}
+
+	?>
+	<script type="text/javascript">
+	document.getElementById('push_newsletter_to_sendy').addEventListener('click', function() {
+		var button = this;
+		var originalText = button.textContent;
+
+		button.disabled = true;
+		button.textContent = '<?php echo esc_js( __( 'Pushing...', 'extrachill-newsletter' ) ); ?>';
+
+		var postId = <?php echo wp_json_encode( $post->ID ); ?>;
+		var apiUrl = <?php echo wp_json_encode( rest_url( 'extrachill/v1/newsletter/campaign/push' ) ); ?>;
+
+		fetch(apiUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-WP-Nonce': <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>
+			},
+			body: JSON.stringify({ post_id: postId })
+		})
+		.then(response => {
+			if (!response.ok) {
+				return response.json().then(err => Promise.reject(err));
+			}
+			return response.json();
+		})
+		.then(data => {
+			button.disabled = false;
+			button.textContent = originalText;
+			alert(data.message);
+			window.location.reload();
+		})
+		.catch(error => {
+			button.disabled = false;
+			button.textContent = originalText;
+			console.error('Push to Sendy failed:', error);
+			alert('<?php echo esc_js( __( 'Error:', 'extrachill-newsletter' ) ); ?> ' + (error.message || '<?php echo esc_js( __( 'An error occurred', 'extrachill-newsletter' ) ); ?>'));
+		});
+	});
+	</script>
+	<?php
+}
+function save_newsletter_meta_box_data( $post_id ) {
+	// Verify nonce.
+	$nonce = isset( $_POST['newsletter_sendy_nonce_field'] ) ? sanitize_text_field( wp_unslash( $_POST['newsletter_sendy_nonce_field'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'newsletter_sendy_nonce_action' ) ) {
+		return;
+	}
+
+	// Check user permissions.
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	// Prevent auto-save.
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	// Only process newsletter posts.
+	if ( 'newsletter' !== get_post_type( $post_id ) ) {
+		return;
+	}
+
+	// Additional meta data processing can be added here if needed.
+}
+add_action( 'save_post', 'save_newsletter_meta_box_data' );
