@@ -1,0 +1,497 @@
+/* Photo Contest Block Frontend Styles.
+   Mobile-first: nearly every visitor arrives from a QR scan on a phone. */
+
+.extrachill-blocks-photo-contest-container {
+	margin: 24px 0;
+}
+
+/* Event / tickets CTA banner (server-rendered, cache-safe) */
+.extrachill-blocks-photo-contest-cta {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px;
+	margin-bottom: 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--card-background);
+	box-shadow: var(--card-shadow);
+}
+
+.extrachill-blocks-photo-contest-cta-title {
+	margin: 0;
+	font-size: 18px;
+	line-height: 1.3;
+}
+
+.extrachill-blocks-photo-contest-cta-meta {
+	margin: 4px 0 0;
+	font-size: 14px;
+	color: var(--text-color);
+	opacity: 0.85;
+}
+
+.extrachill-blocks-photo-contest-cta-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* Submission form */
+.extrachill-blocks-photo-contest-form {
+	padding: 16px;
+	margin-bottom: 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+}
+
+.extrachill-blocks-photo-contest-form h3 {
+	margin: 0 0 12px;
+}
+
+.extrachill-blocks-photo-contest-form-step {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.extrachill-blocks-photo-contest-input {
+	width: 100%;
+	padding: 12px 16px;
+	font-size: 16px;
+	border: 2px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font-family: inherit;
+	transition: border-color 0.2s ease;
+}
+
+.extrachill-blocks-photo-contest-input:focus {
+	outline: none;
+	border-color: var(--focus-border-color);
+	box-shadow: var(--focus-box-shadow);
+}
+
+/* Honeypot: visually removed, still in the DOM for bots. */
+.extrachill-blocks-photo-contest-hp {
+	position: absolute !important;
+	left: -9999px !important;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.extrachill-blocks-photo-contest-file-label {
+	display: block;
+	padding: 12px 16px;
+	border: 2px dashed var(--border-color);
+	border-radius: 6px;
+	text-align: center;
+	cursor: pointer;
+	font-size: 15px;
+	background: var(--card-background);
+}
+
+.extrachill-blocks-photo-contest-file {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	clip-path: inset(50%);
+	overflow: hidden;
+}
+
+.extrachill-blocks-photo-contest-upload {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	text-align: center;
+	cursor: pointer;
+}
+
+.extrachill-blocks-photo-contest-dialog {
+	box-sizing: border-box;
+	width: min(92vw, 480px);
+	max-height: 90vh;
+	overflow-y: auto;
+	padding: 48px 20px 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	background: var(--background-color);
+	color: var(--text-color);
+
+	&::backdrop {
+		background: rgba(0, 0, 0, 0.7);
+	}
+
+	.extrachill-blocks-photo-contest-input {
+		box-sizing: border-box;
+	}
+	.button-large {
+		width: 100%;
+	}
+}
+
+.extrachill-blocks-photo-contest-dialog-close {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	min-width: 40px;
+	min-height: 40px;
+	font-size: 24px;
+	line-height: 1;
+}
+
+.extrachill-blocks-photo-contest-dialog p {
+	margin: 0;
+	font-size: 0.875em;
+	line-height: 1.4;
+	opacity: 0.8;
+}
+
+.extrachill-blocks-photo-contest-preview {
+	display: block;
+	width: 100%;
+	max-height: 28vh;
+	object-fit: contain;
+	border-radius: 8px;
+}
+
+.extrachill-blocks-photo-contest-moderator {
+	margin-bottom: 20px;
+	padding: 16px;
+}
+
+.extrachill-blocks-photo-contest-moderator-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+/* Share panel */
+.extrachill-blocks-photo-contest-share {
+	margin-top: 10px;
+}
+
+.extrachill-blocks-photo-contest-share-prompt {
+	margin: 0 0 8px;
+	font-weight: 600;
+	font-size: 14px;
+}
+
+.extrachill-blocks-photo-contest-share-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.extrachill-blocks-photo-contest-share-link {
+	margin: 8px 0 0;
+	font-size: 12px;
+	word-break: break-all;
+	opacity: 0.8;
+	user-select: all;
+}
+
+.extrachill-blocks-photo-contest-submitted {
+	margin-bottom: 20px;
+}
+
+/* Entries grid — single column on phones, two+ columns up. */
+.extrachill-blocks-photo-contest-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 16px;
+}
+
+@media (min-width: 600px) {
+	.extrachill-blocks-photo-contest-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 960px) {
+	.extrachill-blocks-photo-contest-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.extrachill-blocks-photo-contest-entry {
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+	box-shadow: var(--card-shadow);
+	overflow: hidden;
+	transition: box-shadow 0.3s ease;
+}
+
+.extrachill-blocks-photo-contest-entry:hover {
+	box-shadow: var(--card-hover-shadow);
+}
+
+.extrachill-blocks-photo-contest-entry-highlight {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px var(--accent);
+}
+
+.extrachill-blocks-photo-contest-entry-image-wrap {
+	position: relative;
+	width: 100%;
+	padding-bottom: 125%; /* 4:5, same as image-voting */
+	overflow: hidden;
+	background: var(--card-background);
+}
+
+.extrachill-blocks-photo-contest-entry-image {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.extrachill-blocks-photo-contest-vote-badge {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	background: rgba(0, 0, 0, 0.75);
+	color: #fff;
+	padding: 5px 10px;
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 500;
+	backdrop-filter: blur(4px);
+}
+
+.extrachill-blocks-photo-contest-vote-badge .vote-number {
+	font-weight: 600;
+}
+
+.extrachill-blocks-photo-contest-entry-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px;
+}
+
+.extrachill-blocks-photo-contest-entry-name {
+	margin: 0;
+	font-size: 16px;
+	line-height: 1.3;
+}
+
+.extrachill-blocks-photo-contest-entry-ig {
+	font-size: 14px;
+	text-decoration: none;
+}
+
+.extrachill-blocks-photo-contest-vote-button {
+	width: 100%;
+}
+
+/* Moderator controls (rendered only for logged-in moderators) */
+.extrachill-blocks-photo-contest-entry-hidden {
+	opacity: 0.55;
+}
+
+.extrachill-blocks-photo-contest-hidden-badge {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	z-index: 5;
+	background: rgba(0, 0, 0, 0.75);
+	color: #fff;
+	padding: 5px 10px;
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	backdrop-filter: blur(4px);
+}
+
+.extrachill-blocks-photo-contest-mod-button {
+	width: 100%;
+}
+
+.extrachill-blocks-photo-contest-vote-form {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.extrachill-blocks-photo-contest-notice {
+	margin: 8px 0 0;
+	font-size: 14px;
+}
+
+.extrachill-blocks-photo-contest-loading,
+.extrachill-blocks-photo-contest-empty {
+	text-align: center;
+	padding: 24px 0;
+	opacity: 0.8;
+}
+
+/* Finalists */
+.extrachill-blocks-photo-contest-finalists-heading {
+	margin: 0 0 12px;
+}
+
+.extrachill-blocks-photo-contest-finalist {
+	position: relative;
+}
+
+.extrachill-blocks-photo-contest-rank {
+	position: absolute;
+	top: -10px;
+	left: -6px;
+	z-index: 5;
+	background: var(--accent);
+	color: #fff;
+	font-weight: 700;
+	padding: 4px 10px;
+	border-radius: 999px;
+	font-size: 14px;
+}
+
+/* Focused voting and phone-to-phone sharing. */
+.extrachill-blocks-photo-contest-focused {
+	max-width: 720px;
+	margin: 0 auto;
+}
+
+.extrachill-blocks-photo-contest-focused
+	.extrachill-blocks-photo-contest-entry-image-wrap {
+	padding-bottom: 0;
+}
+
+.extrachill-blocks-photo-contest-focused
+	.extrachill-blocks-photo-contest-entry-image {
+	position: static;
+	height: auto;
+	max-height: 70vh;
+	object-fit: contain;
+}
+
+.extrachill-blocks-photo-contest-see-all {
+	text-align: center;
+	font-size: 14px;
+	margin: 16px 0;
+}
+
+.extrachill-blocks-photo-contest-qr {
+	margin-top: 16px;
+	text-align: center;
+}
+
+.extrachill-blocks-photo-contest-qr img {
+	display: block;
+	width: 360px;
+	max-width: 100%;
+	height: auto;
+	margin: 0 auto;
+	background: #fff;
+}
+
+/* HOT: leading entries, snapshotted at page load. Mirrors the events
+   calendar day-group layout (rounded group, pill label, cards inside). */
+.extrachill-blocks-photo-contest-hot {
+	margin: 0 0 20px;
+	padding: 12px;
+	border: 3px solid #fbbf24;
+	border-radius: var(--border-radius-lg, 10px);
+	background: var(--error-color, #dc3232);
+	color: #fff;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.extrachill-blocks-photo-contest-hot-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+.extrachill-blocks-photo-contest-hot-badge {
+	padding: 4px 12px;
+	border-radius: var(--border-radius-pill, 50px);
+	background: #fbbf24;
+	color: #000;
+	font-weight: 700;
+	font-size: 0.875em;
+}
+
+.extrachill-blocks-photo-contest-hot-sub {
+	font-size: 0.875em;
+	opacity: 0.9;
+}
+
+.extrachill-blocks-photo-contest-hot-row {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.extrachill-blocks-photo-contest-hot-item {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	color: #fff;
+	text-decoration: none;
+	min-width: 0;
+
+	img {
+		display: block;
+		width: 100%;
+		aspect-ratio: 3 / 4;
+		object-fit: cover;
+		border: 2px solid #fbbf24;
+		border-radius: var(--border-radius-md, 8px);
+	}
+
+	&:hover,
+	&:focus {
+		color: #fff;
+	}
+}
+
+.extrachill-blocks-photo-contest-hot-name {
+	font-weight: 700;
+	font-size: 0.8125em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.extrachill-blocks-photo-contest-hot-votes {
+	font-size: 0.75em;
+	opacity: 0.9;
+}
+
+/* Vote QR pinned to the photo (own entry + single-entry view). */
+.extrachill-blocks-photo-contest-photo-qr {
+	position: absolute;
+	right: 10px;
+	bottom: 10px;
+	width: 34%;
+	max-width: 160px;
+	min-width: 96px;
+	padding: 6px;
+	border: 0;
+	border-radius: var(--border-radius-md, 8px);
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+	cursor: zoom-in;
+	line-height: 0;
+
+	img {
+		display: block;
+		width: 100%;
+		height: auto;
+		image-rendering: pixelated;
+	}
+}

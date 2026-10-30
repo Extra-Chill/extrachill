@@ -1,0 +1,14 @@
+{
+    "name": "extrachill/extrachill-content-blocks",
+    "description": "Reusable content creation Gutenberg blocks for the Extra Chill platform",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.3"
+    },
+    "scripts": {
+        "lint:php": "\"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard=WordPress --extensions=php .",
+        "lint:fix": "\"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard=WordPress --extensions=php .",
+        "test": "homeboy review test extrachill-content-blocks"
+    }
+}

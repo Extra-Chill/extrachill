@@ -1,0 +1,238 @@
+<?php
+/**
+ * Plugin Name: Extra Chill Content Blocks
+ * Plugin URI: https://extrachill.com
+ * Description: Reusable content creation Gutenberg blocks for the Extra Chill platform. Provides editorial and interactive blocks for any site that activates the plugin.
+ * Version: 1.13.3
+ * Requires at least: 6.4
+ * Requires PHP: 8.3
+ * Author: Chris Huber
+ * Author URI: https://extrachill.com
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: extrachill-content-blocks
+ * Domain Path: /languages
+ * Network: false
+ *
+ * @package ExtraChillContentBlocks
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'EXTRACHILL_CONTENT_BLOCKS_VERSION', '1.13.3' );
+define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_CONTENT_BLOCKS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+/**
+ * Register the extrachill-content ability category.
+ *
+ * Must run during wp_abilities_api_categories_init — WordPress core enforces
+ * this via doing_action() check inside wp_register_ability_category().
+ * Without this, abilities tagged with the category trigger _doingItWrong
+ * notices in WP 6.9+.
+ *
+ * @since 1.3.1
+ */
+function extrachill_content_blocks_register_ability_category() {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	// wp_abilities_api_categories_init can fire more than once per request on
+	// multisite; guard against re-registration to avoid a _doing_it_wrong notice.
+	if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'extrachill-content' ) ) {
+		return;
+	}
+
+	wp_register_ability_category(
+		'extrachill-content',
+		array(
+			'label'       => __( 'Extra Chill Content', 'extrachill-content-blocks' ),
+			'description' => __( 'Interactive content blocks: name generators, image voting, and related primitives.', 'extrachill-content-blocks' ),
+		)
+	);
+}
+add_action( 'wp_abilities_api_categories_init', 'extrachill_content_blocks_register_ability_category' );
+
+/**
+ * Load the photo-contest domain module.
+ *
+ * Entries (query, entry data, ranking), submission, voting, moderation,
+ * photo storage, and the dedicated photo_contest newsletter integration.
+ * Abilities call these functions directly; src/blocks/photo-contest/index.php
+ * keeps only block render config and the OG deep-link overrides.
+ */
+function extrachill_content_blocks_load_photo_contest_domain() {
+	$domain_dir = __DIR__ . '/inc/photo-contest';
+
+	require_once $domain_dir . '/entries.php';
+	require_once $domain_dir . '/entry-qr.php';
+	require_once $domain_dir . '/storage.php';
+	require_once $domain_dir . '/submission.php';
+	require_once $domain_dir . '/voting.php';
+	require_once $domain_dir . '/moderation.php';
+	require_once $domain_dir . '/newsletter.php';
+	require_once $domain_dir . '/welcome.php';
+}
+extrachill_content_blocks_load_photo_contest_domain();
+
+/**
+ * Load ability registrations.
+ *
+ * Each file hooks into wp_abilities_api_init and calls wp_register_ability().
+ */
+function extrachill_content_blocks_load_abilities() {
+	$abilities_dir = __DIR__ . '/inc/abilities';
+	$ability_files = array(
+		'/generate-band-name.php',
+		'/generate-rapper-name.php',
+		'/image-voting-list.php',
+		'/image-voting-vote.php',
+		'/photo-contest-submit.php',
+		'/photo-contest-list.php',
+		'/photo-contest-entry-qr.php',
+		'/photo-contest-vote.php',
+		'/photo-contest-hide.php',
+		'/photo-contest-set-phase.php',
+		'/photo-contest-top.php',
+		'/trivia-create.php',
+		'/trivia-list.php',
+	);
+
+	foreach ( $ability_files as $file ) {
+		if ( file_exists( $abilities_dir . $file ) ) {
+			require_once $abilities_dir . $file;
+		}
+	}
+}
+extrachill_content_blocks_load_abilities();
+
+/**
+ * Load block business logic (PHP functions called by REST API routes).
+ *
+ * These index.php files contain the server-side logic for interactive blocks
+ * (name generators, image voting). They are not auto-loaded by register_block_type()
+ * since block.json only references render.php, JS, and CSS.
+ */
+function extrachill_content_blocks_load_business_logic() {
+	$blocks_dir = file_exists( __DIR__ . '/build/blocks' ) ? 'build/blocks' : 'src/blocks';
+	$base       = __DIR__ . '/' . $blocks_dir;
+
+	$logic_files = array(
+		'/band-name-generator/index.php',
+		'/rapper-name-generator/index.php',
+		'/image-voting/index.php',
+		'/photo-contest/index.php',
+	);
+
+	foreach ( $logic_files as $file ) {
+		if ( file_exists( $base . $file ) ) {
+			require_once $base . $file;
+		}
+	}
+}
+extrachill_content_blocks_load_business_logic();
+
+/**
+ * Register WP-CLI commands.
+ *
+ * Provides the one-time image-votes backfill migration
+ * (inc/cli/class-image-votes-backfill-command.php). Loaded only when WP-CLI
+ * is running. The photo-contest operator CLI lives in extrachill-cli
+ * (wp extrachill content photo-contest) as a thin adapter over the
+ * photo-contest-top and photo-contest-hide abilities.
+ */
+function extrachill_content_blocks_register_cli_commands() {
+	if ( ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+		return;
+	}
+
+	require_once __DIR__ . '/inc/cli/class-image-votes-backfill-command.php';
+
+	WP_CLI::add_command(
+		'extrachill-content-blocks backfill-image-votes',
+		'Extrachill_Content_Blocks_Image_Votes_Backfill_Command'
+	);
+}
+extrachill_content_blocks_register_cli_commands();
+
+/**
+ * Register the shared content blocks.
+ *
+ * In development: registers from src/blocks/
+ * In production: registers from build/blocks/ (created by build process)
+ */
+function extrachill_content_blocks_register_blocks() {
+	$blocks_dir = file_exists( __DIR__ . '/build/blocks' ) ? 'build/blocks' : 'src/blocks';
+
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/trivia' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/image-voting' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/photo-contest' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/band-name-generator' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/rapper-name-generator' );
+}
+add_action( 'init', 'extrachill_content_blocks_register_blocks' );
+
+/**
+ * Register newsletter integration for image voting blocks.
+ *
+ * Admin configures Sendy list ID via Extra Chill Newsletter settings.
+ *
+ * @param array<string, array<string, string>> $integrations Registered integrations.
+ * @return array<string, array<string, string>>
+ */
+function extrachill_content_blocks_register_newsletter_integration( $integrations ) {
+	$integrations['image_voting'] = array(
+		'label'       => __( 'Image Voting Block', 'extrachill-content-blocks' ),
+		'description' => __( 'Newsletter subscription when users vote on images', 'extrachill-content-blocks' ),
+		'list_id_key' => 'image_voting_list_id',
+		'enable_key'  => 'enable_image_voting',
+		'plugin'      => 'extrachill-content-blocks',
+	);
+
+	return $integrations;
+}
+add_filter( 'newsletter_form_integrations', 'extrachill_content_blocks_register_newsletter_integration' );
+
+/**
+ * All content block names registered by this plugin.
+ *
+ * @return string[] Block names.
+ */
+function extrachill_content_blocks_get_block_names() {
+	return array(
+		'extrachill/trivia',
+		'extrachill/image-voting',
+		'extrachill/photo-contest',
+		'extrachill/band-name-generator',
+		'extrachill/rapper-name-generator',
+	);
+}
+
+/**
+ * Self-register content blocks into Blocks Everywhere allowlist.
+ *
+ * Uses lightweight set for bbPress (community forums) to keep posts focused.
+ * Uses full set for other editor types (studio, etc.).
+ *
+ * @param string[] $allowed_blocks Current allowed blocks.
+ * @param string   $editor_type    Editor context (e.g., 'bbpress').
+ * @return string[]
+ */
+function extrachill_content_blocks_be_allowlist( $allowed_blocks, $editor_type = '' ) {
+	return array_values( array_unique( array_merge( $allowed_blocks, extrachill_content_blocks_get_block_names() ) ) );
+}
+add_filter( 'blocks_everywhere_allowed_blocks', 'extrachill_content_blocks_be_allowlist', 20, 2 );
+
+/**
+ * Self-register content blocks into Studio Compose IBE allowlist.
+ *
+ * @param string[] $allowed_blocks Current allowed blocks.
+ * @return string[]
+ */
+function extrachill_content_blocks_studio_allowlist( $allowed_blocks ) {
+	return array_values( array_unique( array_merge( $allowed_blocks, extrachill_content_blocks_get_block_names() ) ) );
+}
+add_filter( 'extrachill_studio_allowed_blocks', 'extrachill_content_blocks_studio_allowlist' );

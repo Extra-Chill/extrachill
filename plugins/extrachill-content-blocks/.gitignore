@@ -1,0 +1,40 @@
+# WordPress
+.DS_Store
+*.log
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build
+/build/
+/blocks/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Misc
+.cache/
+
+# Additional build and development files
+composer.lock
+package-lock.json
+.claude/
+CLAUDE.md
+AGENTS.md
+.buildignore
+docs/.docs-sync.json
+
+# Composer
+vendor/
+.phpunit.result.cache
