@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/studio",
+	"version": "0.28.2",
+	"title": "Extra Chill Studio",
+	"category": "widgets",
+	"icon": "format-audio",
+	"description": "Publishing tools, social workflows, and AI chat for the Extra Chill team.",
+	"keywords": [ "studio", "team", "publishing" ],
+	"textdomain": "extrachill-studio",
+	"attributes": {
+		"headline": {
+			"type": "string",
+			"default": "Extra Chill Studio"
+		},
+		"description": {
+			"type": "string",
+			"default": "Publishing tools, social workflows, and AI chat for the Extra Chill team."
+		},
+		"deniedMessage": {
+			"type": "string",
+			"default": "Studio is available to Extra Chill team members. Contact Chris if you need access."
+		}
+	},
+	"supports": {
+		"html": false,
+		"multiple": true,
+		"align": false,
+		"spacing": {
+			"margin": [ "top", "bottom" ]
+		}
+	},
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js",
+	"viewStyle": [ "file:./view.css", "extrachill-analytics-date-range" ]
+}
