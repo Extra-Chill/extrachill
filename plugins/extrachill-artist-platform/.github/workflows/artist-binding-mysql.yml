@@ -1,0 +1,59 @@
+name: Artist binding MySQL proof
+
+on:
+  pull_request:
+    paths:
+      - 'inc/core/artist-term-binding.php'
+      - 'tests/MySQLIntegration/**'
+      - 'phpunit-binding-mysql.xml.dist'
+      - '.github/workflows/artist-binding-mysql.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mysql-84:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: artist_binding_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: artist_binding_test
+      WP_INTEGRATION_PATH: /tmp/artist-binding-wordpress
+      ARTIST_BINDING_SOURCE: ${{ github.workspace }}/inc/core/artist-term-binding.php
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - name: Install real WordPress multisite
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp
+          chmod +x /tmp/wp
+          mkdir -p "$WP_INTEGRATION_PATH"
+          /tmp/wp core download --path="$WP_INTEGRATION_PATH" --quiet
+          /tmp/wp config create --path="$WP_INTEGRATION_PATH" --dbname="$MYSQL_DATABASE" --dbuser="$MYSQL_USER" --dbpass="$MYSQL_PASSWORD" --dbhost="$MYSQL_HOST:$MYSQL_PORT" --skip-check --quiet
+          /tmp/wp core multisite-install --path="$WP_INTEGRATION_PATH" --url=artist-binding.test --title="Artist Binding Test" --admin_user=admin --admin_password=password --admin_email=test@example.com --skip-email --quiet
+          /tmp/wp site create --path="$WP_INTEGRATION_PATH" --slug=site-two --title="Site Two" --email=test@example.com --quiet
+          /tmp/wp site create --path="$WP_INTEGRATION_PATH" --slug=site-three --title="Site Three" --email=test@example.com --quiet
+          /tmp/wp site create --path="$WP_INTEGRATION_PATH" --slug=artist --title="Artist" --email=test@example.com --quiet
+          test "$(/tmp/wp site list --path="$WP_INTEGRATION_PATH" --field=blog_id | tr '\n' ' ')" = "1 2 3 4 "
+      - run: vendor/bin/phpunit -c phpunit-binding-mysql.xml.dist

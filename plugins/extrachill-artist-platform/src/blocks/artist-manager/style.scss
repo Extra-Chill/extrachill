@@ -1,0 +1,220 @@
+// Artist Manager Block Styles
+// Uses theme design system from extrachill/assets/css/root.css
+
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
+
+.ec-am {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.ec-am__title {
+  margin: 0;
+  font-family: var(--font-family-heading);
+}
+
+.ec-am__toolbar {
+  justify-content: flex-end;
+}
+
+.ec-am .ec-field-group {
+  margin-bottom: 0;
+
+  input:not([type="file"]),
+  textarea {
+    width: 100%;
+  }
+}
+
+.ec-am__image-preview {
+  --ec-image-preview-max-width: 220px;
+}
+
+.ec-am__image-preview--header {
+  --ec-image-preview-max-width: 320px;
+}
+
+.ec-am__inline {
+  align-items: flex-start;
+}
+
+.ec-am__search-container {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+
+  input[type="text"] {
+    width: 100%;
+  }
+}
+
+.ec-am__search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+  box-shadow: var(--card-shadow);
+  z-index: 100;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.ec-am__search-result {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--card-background);
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+.ec-am__search-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-circle);
+  flex-shrink: 0;
+}
+
+.ec-am__search-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.ec-am__search-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: var(--font-size-base);
+}
+
+.ec-am__search-email {
+  color: var(--muted-text);
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ec-am__search-loading {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--muted-text);
+}
+
+.ec-am__list {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.ec-am__list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: var(--background-color);
+  gap: var(--spacing-sm);
+}
+
+.ec-am .ec-badge {
+  margin-left: var(--spacing-sm);
+}
+
+.ec-am__footer {
+  width: 100%;
+}
+
+.ec-am__pagination {
+  display: inline-flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--muted-text);
+}
+
+.ec-am__check-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	font-weight: 600;
+}
+
+.ec-am__location-picker {
+	position: relative;
+
+	.ec-am__location-input {
+		width: 100%;
+	}
+}
+
+.ec-am__location-results {
+	position: absolute;
+	z-index: 10;
+	display: grid;
+	width: 100%;
+	max-height: 240px;
+	overflow-y: auto;
+	border: 1px solid var(--border-color);
+	background: var(--background-color);
+	box-shadow: var(--card-shadow);
+
+	button {
+		padding: var(--spacing-sm) var(--spacing-md);
+		border: 0;
+		border-bottom: 1px solid var(--border-color);
+		background: transparent;
+		color: var(--text-color);
+		text-align: left;
+		cursor: pointer;
+	}
+}
+
+.ec-am__help,
+.ec-am__privacy-note {
+	color: var(--muted-text);
+	font-size: var(--font-size-sm);
+}
+
+@media (max-width: 480px) {
+
+	.ec-am__inline {
+		flex-direction: column;
+	}
+
+	.ec-am__search-container {
+		min-width: 100%;
+	}
+
+	.ec-am__list-item {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.ec-am__footer,
+	.ec-am__pagination {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}

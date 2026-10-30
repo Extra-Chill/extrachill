@@ -1,0 +1,47 @@
+/**
+ * Artist Creator - Frontend Styles
+ */
+
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
+
+.ec-artist-creator {
+	max-width: var(--form-width);
+	margin: 0 auto;
+}
+
+.ec-artist-creator-form {
+	padding: var(--spacing-xl);
+}
+
+.ec-artist-creator-form .ec-field-group {
+	margin-bottom: 0;
+
+	input[type="text"],
+	textarea {
+		width: 100%;
+	}
+
+	input[type="file"] {
+		margin-top: 0.5rem;
+	}
+}
+
+.ec-artist-creator-image-preview {
+	--ec-image-preview-max-width: 80px;
+	border-radius: 50%;
+}
+
+.ec-artist-creator-actions {
+	margin-top: 2rem;
+
+	button {
+		min-width: 200px;
+	}
+}
+
+.ec-artist-creator__actions {
+	display: flex;
+	gap: 1rem;
+	margin-top: 1rem;
+	flex-wrap: wrap;
+}

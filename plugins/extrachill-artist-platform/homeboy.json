@@ -1,0 +1,71 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "database_type": "sqlite",
+      "settings": {
+        "phpunit_no_tests": "fail",
+        "runtime_wordpress_version": "7.0",
+        "wordpress_runtime_php_version": "8.4",
+        "validation_dependencies": [
+          "extrachill-network",
+          "extrachill-api",
+          "extrachill-users",
+          "agents-api"
+        ],
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_phpunit_config": "/wordpress/wp-content/plugins/extrachill-artist-platform/phpunit.xml.dist",
+        "wp_codebox_phpunit_preload_files": [
+          "/wordpress/wp-content/plugins/extrachill-artist-platform/tests/support/managed-preload.php"
+        ]
+      }
+    }
+  },
+  "id": "extrachill-artist-platform",
+  "remote_path": "wp-content/plugins/extrachill-artist-platform",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "src/**",
+        "webpack.config.js"
+      ]
+    }
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-artist-platform.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-artist-platform.php",
+      "pattern": "EXTRACHILL_ARTIST_PLATFORM_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "src/blocks/artist-manager/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-manager/block.json"
+    },
+    {
+      "file": "src/blocks/artist-shop-manager/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-shop-manager/block.json"
+    },
+    {
+      "file": "src/blocks/artist-creator/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-creator/block.json"
+    },
+    {
+      "file": "src/blocks/artist-analytics/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/artist-analytics/block.json"
+    },
+    {
+      "file": "src/blocks/link-page-editor/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/link-page-editor/block.json"
+    }
+  ]
+}

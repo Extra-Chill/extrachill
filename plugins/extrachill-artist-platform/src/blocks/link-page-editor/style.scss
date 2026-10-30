@@ -1,0 +1,810 @@
+/**
+ * Link Page Editor - Frontend Styles
+ *
+ * Styles for the editor UI only. Preview uses production CSS (extrch-links.css).
+ * Uses CSS variables from root.css for brand consistency.
+ */
+
+@use '../../../node_modules/@extrachill/components/styles/components' as *;
+
+/* Loading State */
+.ec-editor-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 400px;
+	gap: 16px;
+
+	.spinner {
+		width: 40px;
+		height: 40px;
+	}
+
+	p {
+		color: var(--muted-text);
+		margin: 0;
+	}
+}
+
+/* Main Editor Layout */
+.ec-editor {
+	min-height: 600px;
+
+	/* Tunable preview panel width. 500px reads best for editing (375 felt
+	   cramped, 430 was still a touch narrow). Centralized here so the grid
+	   track and any downstream consumer read one value. Future: replace this
+	   fixed track with a draggable resize handle (needs a resizable-pane
+	   primitive in @extrachill/components — see PR discussion). */
+	--ec-editor-preview-width: 500px;
+}
+
+.ec-editor__header-left {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.ec-editor__header-right {
+	gap: 16px;
+}
+
+/* SVG Icon Styles */
+.ec-icon {
+	width: 1em;
+	height: 1em;
+	fill: currentColor;
+	vertical-align: middle;
+}
+
+.ec-icon--spin {
+	animation: ec-spin 1s linear infinite;
+}
+
+@keyframes ec-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Link Page URL Section */
+.ec-editor__link-url {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px;
+	margin: 0;
+	border-radius: 6px;
+}
+
+.ec-editor__link-url-text {
+	color: var(--text-color);
+	text-decoration: none;
+	font-size: 14px;
+
+	&:hover {
+		text-decoration: underline;
+	}
+}
+
+.ec-editor__link-url-qr {
+	padding: 4px 8px;
+	font-size: 14px;
+}
+
+/* QR Code Modal */
+.ec-qr-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100000;
+}
+
+.ec-qr-modal__content {
+	background: var(--card-background);
+	border-radius: 8px;
+	padding: 24px;
+	max-width: 400px;
+	width: 90%;
+	position: relative;
+	text-align: center;
+
+	h2 {
+		margin: 0 0 16px;
+		font-size: 18px;
+	}
+}
+
+.ec-qr-modal__close {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	background: none;
+	border: none;
+	font-size: 24px;
+	cursor: pointer;
+	color: var(--muted-text);
+	padding: 0;
+	line-height: 1;
+
+	&:hover {
+		color: var(--text-color);
+	}
+}
+
+.ec-qr-modal__image-container {
+	margin-bottom: 16px;
+
+	img {
+		max-width: 100%;
+		height: auto;
+		border-radius: 4px;
+	}
+}
+
+.ec-qr-modal__loading {
+	color: var(--muted-text);
+	padding: 40px 0;
+}
+
+.ec-qr-modal__actions {
+	display: flex;
+	justify-content: center;
+}
+
+/* Editor Body — config fills, preview is a fixed mobile-width panel.
+   The config/tabs column (LEFT) takes all remaining space; the preview
+   (RIGHT) is a fixed phone-width track via --ec-editor-preview-width.
+   minmax(0, 1fr) lets the config track shrink instead of overflowing, and
+   a gap replaces the old border-right seam so each column reads as its own
+   region without fighting the Panel primitive's own border. */
+.ec-editor__body {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) var(--ec-editor-preview-width);
+	gap: var(--spacing-lg);
+	min-height: 550px;
+}
+
+.ec-editor__sidebar {
+
+	/* Grid item: allow it to shrink within its 1fr track. No background or
+	   border here — the Panel primitive (.ec-panel) inside owns the card
+	   border/radius/background, so the column itself stays structural. */
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+
+
+.ec-editor__sidebar-tabs {
+	display: grid;
+	gap: 0;
+	height: 100%;
+}
+
+/* Tab-to-content spacing is provided entirely by the @extrachill/components
+   primitive: .ec-responsive-tabs sets the gap between the tab strip and the
+   panel, .ec-tabs__tabs provides the tab-row padding-bottom, and .ec-panel
+   provides the content padding — all at the platform-standard --spacing-md.
+   Do not re-add ad-hoc overrides here; this block composes ResponsiveTabs +
+   Panel the same way the other tab-blocks (artist-manager, artist-shop-manager,
+   studio, community user-settings, community edit-profile) do. */
+
+/* Preview Container */
+.ec-editor__preview-region {
+
+	/* Grid item of .ec-editor__body: must opt out of the default min-width: auto
+	   so wide preview content cannot inflate the 1fr track. */
+	min-width: 0;
+	display: grid;
+	gap: var(--spacing-md);
+	padding: var(--spacing-lg);
+	position: sticky;
+	top: var(--spacing-lg);
+	align-self: start;
+	height: fit-content;
+}
+
+.ec-editor__preview-header {
+	display: grid;
+	gap: 4px;
+}
+
+.ec-editor__preview-title {
+	margin: 0;
+	font-size: var(--font-size-lg);
+	color: var(--text-color);
+}
+
+.ec-editor__preview-description {
+	margin: 0;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-editor__preview-container {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	min-width: 0;
+}
+
+/* Tab Shared Styles */
+.ec-tab {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+/* Customize Tab Card Sections */
+.ec-customize-card {
+	padding: 16px;
+}
+
+/* Form Fields */
+.ec-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.ec-field__label {
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--muted-text);
+}
+
+.ec-field__input,
+.ec-field__textarea,
+.ec-field__select {
+	padding: 10px 12px;
+	border-radius: 6px;
+	border: 1px solid var(--border-color);
+	background: var(--card-background);
+	color: var(--text-color);
+	font-size: 14px;
+	transition: border-color 0.2s;
+
+	&:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+
+	&::placeholder {
+		color: var(--muted-text);
+	}
+}
+
+.ec-field__textarea {
+	resize: vertical;
+	min-height: 80px;
+}
+
+.ec-field__help {
+	font-size: 12px;
+	color: var(--muted-text);
+	margin: 0;
+}
+
+.ec-field--radio-group {
+	gap: 8px;
+}
+
+.ec-field__range-container {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.ec-field__range-value {
+	font-size: 13px;
+	color: var(--muted-text);
+	min-width: 40px;
+}
+
+/* Checkbox & Radio */
+.ec-checkbox,
+.ec-radio {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 14px;
+	color: var(--text-color);
+
+	input {
+		width: 16px;
+		height: 16px;
+		accent-color: var(--accent);
+	}
+}
+
+.ec-radio-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+/* Gradient Colors Container */
+.ec-gradient-colors {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+}
+
+/* Sections & Links */
+.ec-draggable-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.ec-draggable {
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+	&.is-dragging {
+		transform: scale(1.01);
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+	}
+}
+
+.ec-lpe-section {
+	background: var(--card-background);
+	border-radius: 8px;
+	border: 1px solid var(--border-color);
+	overflow: hidden;
+}
+
+.ec-lpe-section__header {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	background: var(--background-color);
+	border-bottom: 1px solid var(--border-color);
+}
+
+.ec-lpe-section__drag-handle,
+.ec-link-item__drag-handle,
+.ec-social-item__drag-handle {
+	cursor: grab;
+	color: var(--muted-text);
+
+	&:active {
+		cursor: grabbing;
+	}
+
+	.dashicons {
+		font-size: 16px;
+	}
+}
+
+.ec-lpe-section__title-input {
+	flex: 1;
+	padding: 6px 10px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--text-color);
+	font-size: 14px;
+
+	&:focus {
+		border-color: var(--border-color);
+		background: var(--card-background);
+		outline: none;
+	}
+}
+
+.ec-lpe-section__toggle,
+.ec-lpe-section__remove,
+.ec-link-item__remove,
+.ec-link-item__expiration,
+.ec-social-item__remove {
+	padding: 4px;
+	border: none;
+	background: transparent;
+	color: var(--muted-text);
+	cursor: pointer;
+	border-radius: 4px;
+
+	&:hover {
+		color: var(--text-color);
+		background: var(--card-background);
+	}
+
+	.dashicons {
+		font-size: 16px;
+	}
+}
+
+.ec-lpe-section__remove:hover,
+.ec-link-item__remove:hover,
+.ec-social-item__remove:hover {
+	color: var(--error-color);
+}
+
+.ec-link-item__expiration--active {
+	color: var(--accent);
+}
+
+.ec-lpe-section__content {
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.ec-lpe-section__add-link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px;
+	border: 1px dashed var(--border-color);
+	border-radius: 6px;
+	background: transparent;
+	color: var(--muted-text);
+	cursor: pointer;
+	font-size: 13px;
+	transition: all 0.2s;
+
+	&:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+}
+
+/* Link Items */
+.ec-link-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 12px;
+	background: var(--background-color);
+	border-radius: 6px;
+}
+
+.ec-link-item__fields {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.ec-link-item__title,
+.ec-link-item__url {
+	padding: 8px 10px;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font-size: 13px;
+
+	&:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+}
+
+/* Social Items */
+.ec-socials-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.ec-social-item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	background: var(--card-background);
+	border-radius: 6px;
+	border: 1px solid var(--border-color);
+}
+
+.ec-social-item__icon {
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+}
+
+.ec-social-item__url {
+	flex: 1;
+	padding: 8px 10px;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	background: var(--background-color);
+	color: var(--text-color);
+	font-size: 13px;
+
+	&:focus {
+		outline: none;
+		border-color: var(--accent);
+	}
+}
+
+/* Add Buttons */
+.ec-add-section,
+.ec-add-social {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 12px;
+	border: 2px dashed var(--border-color);
+	border-radius: 8px;
+	background: transparent;
+	color: var(--muted-text);
+	cursor: pointer;
+	font-size: 14px;
+	transition: all 0.2s;
+
+	&:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+}
+
+/* Modal */
+.ec-lpe-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.7);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.ec-lpe-modal {
+	background: var(--background-color);
+	border-radius: 12px;
+	width: 90%;
+	max-width: 500px;
+	max-height: 80vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--border-color);
+}
+
+.ec-lpe-modal__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border-color);
+
+	h3 {
+		margin: 0;
+		font-size: 16px;
+		color: var(--text-color);
+	}
+}
+
+.ec-lpe-modal__close {
+	padding: 4px;
+	border: none;
+	background: transparent;
+	color: var(--muted-text);
+	cursor: pointer;
+
+	&:hover {
+		color: var(--text-color);
+	}
+}
+
+.ec-lpe-modal__body {
+	padding: 20px;
+	overflow-y: auto;
+}
+
+.ec-social-type-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+}
+
+.ec-social-type-button {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 16px;
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	background: var(--card-background);
+	color: var(--text-color);
+	cursor: pointer;
+	font-size: 12px;
+	transition: all 0.2s;
+
+	&:hover {
+		border-color: var(--accent);
+		background: var(--background-color);
+	}
+}
+
+/* Expiration Modal */
+.ec-expiration-modal {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.7);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1001;
+}
+
+.ec-expiration-modal__inner {
+	background: var(--background-color);
+	border-radius: 8px;
+	padding: 24px;
+	max-width: 350px;
+	width: 90%;
+	border: 1px solid var(--border-color);
+}
+
+.ec-expiration-modal__title {
+	margin: 0 0 16px 0;
+	font-size: 18px;
+	color: var(--text-color);
+}
+
+.ec-expiration-modal__label {
+	display: block;
+	margin-bottom: 16px;
+	color: var(--text-color);
+	font-size: 14px;
+}
+
+.ec-expiration-modal__input {
+	width: 100%;
+	padding: 10px;
+	margin-top: 8px;
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font-size: 14px;
+}
+
+.ec-expiration-modal__actions {
+	display: flex;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+
+
+/* Color Picker */
+.ec-color-picker {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.ec-color-picker__input {
+	width: 48px;
+	height: 36px;
+	padding: 0;
+	border: 2px solid var(--border-color);
+	border-radius: 6px;
+	cursor: pointer;
+
+	&::-webkit-color-swatch-wrapper {
+		padding: 2px;
+	}
+
+	&::-webkit-color-swatch {
+		border-radius: 4px;
+		border: none;
+	}
+}
+
+.ec-color-picker__value {
+	font-family: monospace;
+	font-size: 13px;
+	color: var(--muted-text);
+}
+
+/* Image Uploader */
+.ec-image-uploader {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.ec-image-uploader__input {
+	display: none;
+}
+
+.ec-image-uploader__preview {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.ec-image-uploader__image {
+	max-width: 200px;
+	max-height: 200px;
+	border-radius: 8px;
+	object-fit: cover;
+}
+
+.ec-image-uploader__actions {
+	display: flex;
+	gap: 8px;
+}
+
+.ec-image-uploader__empty {
+	display: flex;
+}
+
+/* Preview Panel - Container only, actual preview uses production CSS.
+   Fills the fixed phone-width grid track (--ec-editor-preview-width); the
+   inner .extrch-link-page-container / content-wrapper sizing from
+   extrch-links.css keeps the rendered page at a phone aspect. */
+.ec-preview-wrapper {
+	width: 100%;
+	max-width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+/* Responsive - Tablet.
+   Stack to a single column; the gap on .ec-editor__body carries the vertical
+   separation (no hand-drawn border seam needed). */
+@media (max-width: 900px) {
+	.ec-editor__body {
+		grid-template-columns: 1fr;
+	}
+
+	.ec-editor__preview-region {
+		padding: var(--spacing-lg) var(--spacing-md);
+		position: static;
+		top: auto;
+		align-self: auto;
+		height: auto;
+	}
+}
+
+/* Responsive - Mobile */
+@media (max-width: 600px) {
+	.ec-editor__header-left,
+	.ec-editor__header-right {
+		width: 100%;
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+
+
+	.ec-editor__preview-region {
+		gap: 12px;
+		padding: 16px;
+	}
+
+	.ec-editor__preview-title {
+		font-size: var(--font-size-base);
+	}
+
+	.ec-customize-card,
+	.ec-lpe-section,
+	.ec-lpe-section__content,
+	.ec-editor__link-url {
+		background: var(--card-background);
+	}
+}

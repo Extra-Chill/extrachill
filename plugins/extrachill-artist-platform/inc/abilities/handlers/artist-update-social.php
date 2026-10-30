@@ -1,0 +1,94 @@
+<?php
+/**
+ * Handler: extrachill/artist-update-social
+ *
+ * Updates a single social link on an artist profile.
+ *
+ * @package ExtraChillArtistPlatform
+ * @since   1.9.0
+ */
+
+declare(strict_types=1);
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Update a single social link by social_id.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error Updated social links.
+ */
+function extrachill_artist_platform_ability_artist_update_social( array $input ) {
+	$artist_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
+	$social_id = isset( $input['social_id'] ) ? sanitize_text_field( $input['social_id'] ) : '';
+
+	if ( ! $artist_id ) {
+		return new WP_Error( 'missing_id', 'id is required.' );
+	}
+
+	if ( ! extrachill_artist_platform_ability_artist_permission( $input ) ) {
+		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
+	}
+
+	if ( get_post_type( $artist_id ) !== 'artist_profile' ) {
+		return new WP_Error( 'invalid_artist', 'Artist not found.' );
+	}
+
+	if ( empty( $social_id ) ) {
+		return new WP_Error( 'missing_social_id', 'social_id is required.' );
+	}
+
+	if ( ! function_exists( 'extrachill_artist_platform_social_links' ) ) {
+		return new WP_Error( 'dependency_missing', 'Social links manager not available.' );
+	}
+
+	return ec_artist_with_link_page_lock(
+		$artist_id,
+		static function ( $link_page_id ) use ( $artist_id, $social_id, $input ) {
+			$social_manager = extrachill_artist_platform_social_links();
+			$existing       = $social_manager->get( $artist_id );
+			if ( ! is_array( $existing ) ) {
+				return new WP_Error( 'not_found', 'Social link not found.' );
+			}
+			$previous = $existing;
+			$found    = false;
+			foreach ( $existing as &$social_link ) {
+				if ( is_array( $social_link ) && isset( $social_link['id'] ) && $social_link['id'] === $social_id ) {
+					if ( isset( $input['type'] ) ) {
+						$social_link['type'] = sanitize_text_field( $input['type'] );
+					}
+					if ( isset( $input['url'] ) ) {
+						$social_link['url'] = esc_url_raw( $input['url'] );
+					}
+					$found = true;
+					break;
+				}
+			}
+			unset( $social_link );
+			if ( ! $found ) {
+				return new WP_Error( 'not_found', 'Social link not found.' );
+			}
+			$sanitized = extrachill_artist_platform_sanitize_socials( $existing, $link_page_id );
+			$result    = $social_manager->save( $artist_id, $sanitized );
+			if ( is_wp_error( $result ) || false === $result ) {
+				$social_manager->save( $artist_id, $previous );
+				return is_wp_error( $result ) ? $result : new WP_Error( 'social_save_failed', 'Social links could not be persisted.' );
+			}
+			$saved_socials = $social_manager->get( $artist_id );
+			$enriched      = array();
+			if ( is_array( $saved_socials ) ) {
+				foreach ( $saved_socials as $social ) {
+					if ( ! is_array( $social ) || empty( $social['type'] ) || empty( $social['id'] ) ) {
+						continue;
+					}
+					$social['icon_class'] = $social_manager->get_icon_class( $social['type'], $social );
+					$enriched[]           = $social;
+				}
+			}
+			if ( $link_page_id ) {
+				do_action( 'ec_link_page_save', $link_page_id );
+			}
+			return array( 'social_links' => $enriched );
+		}
+	);
+}

@@ -1,0 +1,9 @@
+/* ExtraChill Artist Platform Global Styles */
+
+.artist-grid-pagination {
+  margin-top: 2em;
+}
+
+.artist-grid-pagination .extrachill-pagination {
+  margin-top: 0;
+}

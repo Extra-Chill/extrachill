@@ -1,0 +1,201 @@
+<?php
+/**
+ * Artist Invitation Email Functions
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+require_once __DIR__ . '/../admin/user-linking.php'; // For ec_add_artist_membership
+require_once __DIR__ . '/roster-data-functions.php'; // For ec_get_pending_invitations, ec_remove_pending_invitation
+
+/**
+ * Sends an invitation email to a potential artist member.
+ *
+ * @param string $recipient_email The email address of the invitee.
+ * @param string $artist_name The name of the artist.
+ * @param string $member_display_name The display name for the member (as initially entered).
+ * @param string $invitation_token The unique token for the invitation.
+ * @param int    $artist_id The ID of the artist.
+ * @param string $invitation_status Status of the invitation; one of EC_INVITE_STATUS_NEW_USER or EC_INVITE_STATUS_EXISTING_ARTIST.
+ * @return bool True if the email was sent successfully, false otherwise.
+ */
+function ec_send_artist_invitation_email( $recipient_email, $artist_name, $member_display_name, $invitation_token, $artist_id, $invitation_status ) {
+	$inviter_display = 'An artist member';
+	if ( is_user_logged_in() ) {
+		$inviter         = wp_get_current_user();
+		$inviter_display = $inviter->display_name ? $inviter->display_name : $inviter->user_login;
+	}
+	if ( ! is_email( $recipient_email ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional invitation-failure diagnostics for the site error log.
+		error_log( 'Artist Invitation Email: Invalid recipient email: ' . $recipient_email );
+		return false;
+	}
+
+	// Construct the invitation link
+	$invitation_base_url = home_url( '/' );
+	if ( EC_INVITE_STATUS_NEW_USER === $invitation_status ) {
+		$invitation_link = add_query_arg( array(
+			'action'    => 'ec_accept_invite',
+			'token'     => $invitation_token,
+			'artist_id' => $artist_id,
+		), trailingslashit( $invitation_base_url ) . 'register/' );
+	} else {
+		$invitation_link = add_query_arg( array(
+			'action'    => 'ec_accept_invite',
+			'token'     => $invitation_token,
+			'artist_id' => $artist_id,
+		), get_permalink( $artist_id ) );
+	}
+
+	/* translators: 1: artist name, 2: site name */
+	$subject_template = __( 'You\'re invited to join %1$s on %2$s!', 'extrachill-artist-platform' );
+	$subject          = sprintf( $subject_template, esc_html( $artist_name ), get_bloginfo( 'name' ) );
+
+	// Resolve the recipient's display name for the branded template greeting.
+	// The template renders its own "Hey {recipient_name}," so we don't include
+	// a greeting line in the body.
+	$recipient_user = get_user_by( 'email', $recipient_email );
+	if ( $recipient_user ) {
+		$recipient_name = $recipient_user->display_name ? $recipient_user->display_name : $recipient_user->user_login;
+	} elseif ( ! empty( $member_display_name ) ) {
+		$recipient_name = $member_display_name;
+	} else {
+		$recipient_name = '';
+	}
+
+	// CTA copy varies based on whether the invitee already has an account.
+	if ( EC_INVITE_STATUS_NEW_USER === $invitation_status ) {
+		$cta_label = __( 'Accept invitation & create account', 'extrachill-artist-platform' );
+	} else {
+		$cta_label = __( 'Accept invitation', 'extrachill-artist-platform' );
+	}
+
+	// Build the invitation body as HTML. The branded template handles the
+	// greeting, sign-off, header, footer, and CTA button, so the body_html
+	// is just the invitation-specific middle content.
+	$intro_line = sprintf(
+		/* translators: 1: Inviter display name. 2: Artist name. 3: Site name. */
+		__( '%1$s has invited you to join the artist &lsquo;%2$s&rsquo; on %3$s.', 'extrachill-artist-platform' ),
+		esc_html( $inviter_display ),
+		esc_html( $artist_name ),
+		esc_html( get_bloginfo( 'name' ) )
+	);
+	$ignore_line = esc_html__( 'If you were not expecting this invitation, you can safely ignore this email.', 'extrachill-artist-platform' );
+
+	$body_html  = '<p style="margin:0 0 16px 0;font-size:16px;line-height:1.6;">' . $intro_line . '</p>';
+	$body_html .= '<p style="margin:0 0 16px 0;font-size:14px;line-height:1.6;color:#555;">' . $ignore_line . '</p>';
+
+	if ( ! function_exists( 'ec_send_email' ) ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional missing-dependency diagnostics for the site error log.
+		error_log( 'Artist Invitation Email: ec_send_email() is not available — is extrachill-multisite active?' );
+		return false;
+	}
+
+	$result = ec_send_email( array(
+		'to'         => $recipient_email,
+		'subject'    => $subject,
+		'from_name'  => 'Extra Chill Community',
+		'from_email' => 'admin@extrachill.com',
+		'template'   => 'extrachill/branded',
+		'context'    => array(
+			'recipient_name' => $recipient_name,
+			'subject_html'   => esc_html( $subject ),
+			'body_html'      => $body_html,
+			'cta_url'        => $invitation_link,
+			'cta_label'      => $cta_label,
+		),
+	) );
+
+	$sent = is_array( $result ) && ! empty( $result['success'] );
+
+	if ( ! $sent ) {
+		$error_message = is_array( $result ) && ! empty( $result['error'] )
+			? (string) $result['error']
+			: ( is_array( $result ) && ! empty( $result['message'] ) ? (string) $result['message'] : 'unknown error' );
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional send-failure diagnostics for the site error log.
+		error_log( 'Artist Invitation Email Error: ' . $error_message );
+	}
+
+	return $sent;
+}
+
+/**
+ * Placeholder function for handling the acceptance of an invitation.
+ * This would be hooked to 'init' or 'template_redirect' to check for the token.
+ */
+function ec_handle_invitation_acceptance() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; the single-use invitation token authorizes the action, values are sanitized below.
+	if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
+		$token        = sanitize_text_field( $_GET['token'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; see above.
+		$artist_id    = apply_filters('ec_get_artist_id', $_GET); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; see above.
+		$redirect_url = get_permalink( $artist_id );
+
+		if ( ! $redirect_url ) {
+			// Fallback if artist profile doesn't exist for some reason
+			$redirect_url = home_url('/');
+		}
+
+		// 1. User must be logged in
+		if ( ! is_user_logged_in() ) {
+			// Redirect to custom login page, then back to this acceptance URL
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token-based email acceptance link; see above.
+			$current_url           = home_url( add_query_arg( $_GET, '' ) ); // This is the URL with token, artist_id etc.
+			$custom_login_page_url = home_url( '/login/' ); // IMPORTANT: Ensure '/login/' is your actual custom login page slug
+			// Pass the current URL (acceptance link) as 'redirect_to' parameter for the custom login page to handle after successful login.
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.urlencode_urlencode -- behaviour-preserving: keeps the existing redirect_to encoding exactly as shipped.
+			wp_safe_redirect( add_query_arg( 'redirect_to', urlencode( $current_url ), $custom_login_page_url ) );
+			exit;
+		}
+
+		$current_user = wp_get_current_user();
+		$user_id      = $current_user->ID;
+
+		// 2. Verify token and artist_id:
+		$pending_invitations  = ec_get_pending_invitations( $artist_id );
+		$valid_invite         = null;
+		$invite_key_to_remove = null;
+
+		if ( ! empty( $pending_invitations ) ) {
+			foreach ( $pending_invitations as $key => $invite ) {
+				if ( isset( $invite['token'] ) && $invite['token'] === $token ) {
+					if ( isset( $invite['status'] ) && in_array( $invite['status'], array( EC_INVITE_STATUS_EXISTING_ARTIST, EC_INVITE_STATUS_NEW_USER ), true ) ) {
+						// Check email match
+						if ( isset( $invite['email'] ) && strtolower( $invite['email'] ) === strtolower( $current_user->user_email ) ) {
+							$valid_invite         = $invite;
+							$invite_key_to_remove = $key; // Store the original key/ID of the invite for removal
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if ( ! $valid_invite ) {
+			extrachill_set_notice(
+				__( 'The invitation link is invalid or has expired. Please request a new invitation.', 'extrachill-artist-platform' ),
+				'error'
+			);
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		// 4. Link User to Artist & Remove Pending Invite.
+		$acceptance = ec_accept_artist_membership_invitation( $user_id, $artist_id, $valid_invite['id'] );
+		if ( true === $acceptance ) {
+			extrachill_set_notice(
+				__( 'Invitation accepted! You are now a manager of this artist.', 'extrachill-artist-platform' ),
+				'success'
+			);
+			wp_safe_redirect( $redirect_url );
+			exit;
+		} else {
+			extrachill_set_notice(
+				$acceptance->get_error_message(),
+				'error'
+			);
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+	}
+}
+add_action( 'init', 'ec_handle_invitation_acceptance' );

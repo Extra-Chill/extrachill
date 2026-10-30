@@ -1,0 +1,306 @@
+/**
+ * Analytics Component
+ *
+ * Main analytics dashboard with Chart.js visualization.
+ */
+
+/**
+ * WordPress dependencies
+ */
+import { useEffect, useRef } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
+
+/**
+ * External dependencies
+ */
+import {
+	ActionRow,
+	BlockShell,
+	BlockShellHeader,
+	BlockShellInner,
+	Panel,
+	PanelHeader,
+	Section,
+} from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
+import { useAnalyticsContext } from '../context/AnalyticsContext';
+import useAnalytics from '../hooks/useAnalytics';
+import ArtistSwitcher from '../../shared/components/ArtistSwitcher';
+import DateRangeControl from './DateRangeControl';
+
+export default function Analytics() {
+	const { artistId, userArtists, switchArtist, linkPageBaseUrl } =
+		useAnalyticsContext();
+	const {
+		analytics,
+		selection,
+		selectPreset,
+		selectCustom,
+		selectExact,
+		reset,
+		isLoading,
+		error,
+	} = useAnalytics( artistId );
+	const currentArtist = userArtists.find( ( a ) => a.id === artistId );
+	const artistSlug = currentArtist?.slug || '';
+	const chartRef = useRef( null );
+	const chartInstance = useRef( null );
+
+	useEffect( () => {
+		if ( ! analytics?.chart_data || ! chartRef.current ) {
+			return;
+		}
+
+		const initChart = async () => {
+			// `chart.js/auto` is a webpack external mapped to ECA's shared
+			// global (window.ExtraChillChart) — not a bundled dependency. That
+			// global is the Chart.js v4 module namespace whose `.default` /
+			// `.Chart` is the auto-registered Chart constructor (controllers,
+			// scales, and elements already registered). Resolve defensively
+			// across those shapes. The external mapping is why the
+			// extraneous-dependency lint rule is suppressed here.
+			// eslint-disable-next-line import/no-unresolved
+			const ChartModule = await import( 'chart.js/auto' );
+			const Chart =
+				ChartModule?.default || ChartModule?.Chart || ChartModule;
+
+			if ( chartInstance.current ) {
+				chartInstance.current.destroy();
+			}
+
+			chartInstance.current = new Chart( chartRef.current, {
+				type: 'line',
+				data: {
+					labels: analytics.chart_data?.labels || [],
+					datasets: [
+						{
+							label: __(
+								'Page Views',
+								'extrachill-artist-platform'
+							),
+							data:
+								analytics.chart_data?.datasets?.[ 0 ]?.data ||
+								[],
+							borderColor: '#e94560',
+							backgroundColor: 'rgba(233, 69, 96, 0.1)',
+							tension: 0.4,
+							fill: true,
+						},
+						{
+							label: __(
+								'Link Clicks',
+								'extrachill-artist-platform'
+							),
+							data:
+								analytics.chart_data?.datasets?.[ 1 ]?.data ||
+								[],
+							borderColor: '#4ecdc4',
+							backgroundColor: 'rgba(78, 205, 196, 0.1)',
+							tension: 0.4,
+							fill: true,
+						},
+					],
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: {
+						legend: {
+							position: 'top',
+						},
+					},
+					scales: {
+						y: {
+							beginAtZero: true,
+						},
+					},
+				},
+			} );
+		};
+
+		initChart();
+
+		return () => {
+			if ( chartInstance.current ) {
+				chartInstance.current.destroy();
+			}
+		};
+	}, [ analytics ] );
+
+	return (
+		<BlockShell className="ec-aa">
+			<BlockShellInner maxWidth="wide">
+				<BlockShellHeader
+					title={ __(
+						'Artist Analytics',
+						'extrachill-artist-platform'
+					) }
+					actions={
+						<ActionRow align="end" className="ec-aa__toolbar">
+							<ArtistSwitcher
+								artists={ userArtists }
+								selectedId={ artistId }
+								onChange={ switchArtist }
+							/>
+							{ artistSlug && linkPageBaseUrl && (
+								<a
+									href={ `${ linkPageBaseUrl }/${ artistSlug }` }
+									className="button-3 button-small"
+								>
+									{ __(
+										'View Link Page',
+										'extrachill-artist-platform'
+									) }
+								</a>
+							) }
+							<DateRangeControl
+								selection={ selection }
+								onSelectPreset={ selectPreset }
+								onSelectCustom={ selectCustom }
+								onSelectExact={ selectExact }
+								onReset={ reset }
+							/>
+						</ActionRow>
+					}
+				/>
+
+				{ /* eslint-disable-next-line no-nested-ternary */ }
+				{ isLoading ? (
+					<div className="ec-aa ec-aa--loading">
+						<span className="spinner is-active"></span>
+						<p>
+							{ __(
+								'Loading analytics…',
+								'extrachill-artist-platform'
+							) }
+						</p>
+					</div>
+				) : error ? (
+					<div className="notice notice-error">
+						<p>{ error }</p>
+					</div>
+				) : (
+					<>
+						<Section className="ec-aa__stats" depth={ 1 }>
+							<div className="ec-aa__stat">
+								<span className="ec-aa__stat-value">
+									{ analytics?.summary?.total_views || 0 }
+								</span>
+								<span className="ec-aa__stat-label">
+									{ __(
+										'Total Views',
+										'extrachill-artist-platform'
+									) }
+								</span>
+							</div>
+							<div className="ec-aa__stat">
+								<span className="ec-aa__stat-value">
+									{ analytics?.summary?.total_clicks || 0 }
+								</span>
+								<span className="ec-aa__stat-label">
+									{ __(
+										'Total Clicks',
+										'extrachill-artist-platform'
+									) }
+								</span>
+							</div>
+							<div className="ec-aa__stat">
+								<span className="ec-aa__stat-value">
+									{ analytics?.summary?.total_views
+										? `${ (
+												( analytics.summary
+													.total_clicks /
+													analytics.summary
+														.total_views ) *
+												100
+										  ).toFixed( 1 ) }%`
+										: '0%' }
+								</span>
+								<span className="ec-aa__stat-label">
+									{ __(
+										'Click Rate',
+										'extrachill-artist-platform'
+									) }
+								</span>
+							</div>
+						</Section>
+
+						<Panel className="ec-aa__chart" compact depth={ 1 }>
+							<canvas ref={ chartRef } height="300"></canvas>
+						</Panel>
+
+						<Panel className="ec-aa__top-links" compact depth={ 1 }>
+							<PanelHeader
+								title={ __(
+									'Top Links',
+									'extrachill-artist-platform'
+								) }
+							/>
+							<table className="ec-aa__table">
+								<thead>
+									<tr>
+										<th>
+											{ __(
+												'Link Text / URL',
+												'extrachill-artist-platform'
+											) }
+										</th>
+										<th>
+											{ __(
+												'Clicks',
+												'extrachill-artist-platform'
+											) }
+										</th>
+									</tr>
+								</thead>
+								<tbody>
+									{ analytics?.top_links?.length > 0 ? (
+										analytics.top_links.map(
+											( link, index ) => (
+												<tr key={ index }>
+													<td>
+														<span className="ec-aa__link-title">
+															{ link.text ||
+																link.identifier }
+														</span>
+														{ link.identifier && (
+															<span className="ec-aa__link-url">
+																{
+																	link.identifier
+																}
+															</span>
+														) }
+													</td>
+													<td>{ link.clicks }</td>
+												</tr>
+											)
+										)
+									) : (
+										<tr>
+											<td colSpan="2">
+												{ __(
+													'No link click data available.',
+													'extrachill-artist-platform'
+												) }
+											</td>
+										</tr>
+									) }
+								</tbody>
+							</table>
+						</Panel>
+
+						<p className="ec-aa__note">
+							{ __(
+								'Analytics data is updated daily. Data older than 90 days is automatically pruned.',
+								'extrachill-artist-platform'
+							) }
+						</p>
+					</>
+				) }
+			</BlockShellInner>
+		</BlockShell>
+	);
+}

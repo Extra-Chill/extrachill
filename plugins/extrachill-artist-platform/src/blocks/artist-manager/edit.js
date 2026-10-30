@@ -1,0 +1,33 @@
+/**
+ * Artist Manager - Edit
+ * Placeholder view in the block editor. Actual UI renders on the frontend
+ * for logged-in users with artist permissions.
+ */
+
+import { __ } from '@wordpress/i18n';
+import { useBlockProps } from '@wordpress/block-editor';
+import { Placeholder, Notice } from '@wordpress/components';
+
+export default function Edit() {
+	const blockProps = useBlockProps();
+
+	return (
+		<div { ...blockProps }>
+			<Placeholder
+				icon="id-alt"
+				label={ __( 'Manage Artist', 'extrachill-artist-platform' ) }
+				instructions={ __(
+					'This block renders the artist manager on the frontend for authorized users.',
+					'extrachill-artist-platform'
+				) }
+			>
+				<Notice status="info" isDismissible={ false }>
+					{ __(
+						'Add this block to the Manage Artist page. The full interface appears on the frontend.',
+						'extrachill-artist-platform'
+					) }
+				</Notice>
+			</Placeholder>
+		</div>
+	);
+}
