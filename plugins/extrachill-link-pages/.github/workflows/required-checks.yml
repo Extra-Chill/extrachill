@@ -1,0 +1,72 @@
+name: Required checks
+
+on:
+  pull_request:
+    paths:
+      - '*.php'
+      - 'inc/**/*.php'
+      - 'templates/**/*.php'
+      - 'assets/**/*.css'
+      - 'assets/**/*.js'
+      - 'tests/**/*.php'
+      - 'tests/**/*.js'
+      - 'src/**/*.js'
+      - 'src/**/*.scss'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tools/composer.json'
+      - 'tools/composer.lock'
+      - 'phpunit.xml.dist'
+      - 'phpcs.xml.dist'
+      - 'homeboy.json'
+      - '.buildignore'
+      - '.github/workflows/required-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  required-checks:
+    name: PHP, tests, and package contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Install development dependencies
+        run: composer install --working-dir=tools --no-interaction --no-progress --prefer-dist
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Validate development Composer project
+        run: composer validate --working-dir=tools --strict
+
+      - name: Check runtime PHP syntax
+        run: |
+          php -l extrachill-link-pages.php
+          for file in inc/*.php templates/*.php templates/components/*.php; do
+            php -l "$file"
+          done
+
+      - name: Run WordPress coding standards
+        run: composer --working-dir=tools lint:php
+
+      - name: Run standalone tests and package contract
+        run: composer --working-dir=tools test
+
+      - name: Run public asset contract tests
+        run: npm test
