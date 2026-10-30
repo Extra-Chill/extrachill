@@ -82,6 +82,21 @@ final class SubmitCtasTest extends TestCase {
 		$this->assertSame( 'https://events.example/submit/?submit_city=Austin', extrachill_events_submit_url( '', 'Austin' ) );
 	}
 
+	public function test_submit_url_carries_encoded_lineup(): void {
+		$lineup = 'Björk & Friends, The "Band"';
+		$this->assertSame(
+			'https://events.example/submit/?submit_lineup=' . rawurlencode( $lineup ),
+			extrachill_events_submit_url( '', '', $lineup )
+		);
+		$this->assertSame(
+			'https://events.example/submit/?submit_venue=The%20Pour%20House&submit_city=Charleston&submit_lineup=' . rawurlencode( $lineup ),
+			extrachill_events_submit_url( 'The Pour House', 'Charleston', $lineup )
+		);
+
+		parse_str( (string) parse_url( extrachill_events_submit_url( '', '', $lineup ), PHP_URL_QUERY ), $_GET );
+		$this->assertSame( $lineup, extrachill_events_submit_prefill()['lineup'] );
+	}
+
 	public function test_venue_archive_cta_names_venue_and_prefills_city(): void {
 		$GLOBALS['submit_cta_tax']                     = 'venue';
 		$GLOBALS['submit_cta_term']                    = $this->term( 11, 'The Pour House' );
@@ -145,6 +160,21 @@ final class SubmitCtasTest extends TestCase {
 		$this->assertSame( EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX, strlen( $prefill['city'] ) );
 	}
 
+	public function test_lineup_prefill_is_sanitized_and_capped(): void {
+		$_GET = array( 'submit_lineup' => '  <b>The Band</b>  ' );
+		$this->assertSame( 'The Band', extrachill_events_submit_prefill()['lineup'] );
+
+		$_GET['submit_lineup'] = str_repeat( 'x', 500 );
+		$this->assertSame( str_repeat( 'x', EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX ), extrachill_events_submit_prefill()['lineup'] );
+	}
+
+	public function test_lineup_prefill_defaults_to_empty_and_rejects_arrays(): void {
+		$this->assertSame( '', extrachill_events_submit_prefill()['lineup'] );
+
+		$_GET = array( 'submit_lineup' => array( 'The Band' ) );
+		$this->assertSame( '', extrachill_events_submit_prefill()['lineup'] );
+	}
+
 	public function test_prefill_ignores_non_scalar_input(): void {
 		$_GET = array( 'submit_venue' => array( 'x' ) );
 
@@ -168,14 +198,16 @@ final class SubmitCtasTest extends TestCase {
 
 	public function test_prefill_ignores_bare_taxonomy_args(): void {
 		$_GET = array(
-			'venue' => 'The Pour House',
-			'city'  => 'Charleston',
+			'venue'  => 'The Pour House',
+			'city'   => 'Charleston',
+			'lineup' => 'The Band',
 		);
 
 		$this->assertSame(
 			array(
-				'venue' => '',
-				'city'  => '',
+				'venue'  => '',
+				'city'   => '',
+				'lineup' => '',
 			),
 			extrachill_events_submit_prefill()
 		);

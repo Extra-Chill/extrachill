@@ -26,21 +26,23 @@ const EXTRACHILL_EVENTS_SUBMIT_CTA_TRACK = 'events_submit_cta';
  * /submit/ as a venue archive instead of the submission page (#963).
  */
 const EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS = array(
-	'venue' => 'submit_venue',
-	'city'  => 'submit_city',
+	'venue'  => 'submit_venue',
+	'city'   => 'submit_city',
+	'lineup' => 'submit_lineup',
 );
 
 /** Longest prefill value accepted from the query string. */
 const EXTRACHILL_EVENTS_SUBMIT_PREFILL_MAX = 120;
 
 /**
- * Build the /submit/ URL carrying optional venue and city context.
+ * Build the /submit/ URL carrying optional venue, city and lineup context.
  *
- * @param string $venue Venue name, or ''.
- * @param string $city  City name, or ''.
+ * @param string $venue  Venue name, or ''.
+ * @param string $city   City name, or ''.
+ * @param string $lineup Lineup / headliners, or ''.
  * @return string
  */
-function extrachill_events_submit_url( string $venue = '', string $city = '' ): string {
+function extrachill_events_submit_url( string $venue = '', string $city = '', string $lineup = '' ): string {
 	$args = array();
 	if ( '' !== $venue ) {
 		$args[ EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS['venue'] ] = $venue;
@@ -49,25 +51,30 @@ function extrachill_events_submit_url( string $venue = '', string $city = '' ): 
 		$args[ EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS['city'] ] = $city;
 	}
 
+	if ( '' !== $lineup ) {
+		$args[ EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS['lineup'] ] = $lineup;
+	}
+
 	$url = home_url( '/submit/' );
 	return $args ? add_query_arg( array_map( 'rawurlencode', $args ), $url ) : $url;
 }
 
 /**
- * Read venue/city prefill values from the current request.
+ * Read venue/city/lineup prefill values from the current request.
  *
  * Reads the namespaced args from EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS and
- * returns them under the plain `venue` / `city` field keys.
+ * returns them under the plain `venue` / `city` / `lineup` field keys.
  *
  * Values only ever populate visible form fields the submitter can edit, so
  * they are sanitized as plain text and length-capped, never trusted.
  *
- * @return array{venue:string,city:string}
+ * @return array{venue:string,city:string,lineup:string}
  */
 function extrachill_events_submit_prefill(): array {
 	$out = array(
-		'venue' => '',
-		'city'  => '',
+		'venue'  => '',
+		'city'   => '',
+		'lineup' => '',
 	);
 	foreach ( EXTRACHILL_EVENTS_SUBMIT_PREFILL_ARGS as $key => $arg ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only form prefill.

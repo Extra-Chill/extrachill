@@ -38,8 +38,9 @@ if ( function_exists( 'ec_enqueue_turnstile_script' ) ) {
 $prefill = function_exists( 'extrachill_events_submit_prefill' )
 	? extrachill_events_submit_prefill()
 	: array(
-		'venue' => '',
-		'city'  => '',
+		'venue'  => '',
+		'city'   => '',
+		'lineup' => '',
 	);
 
 $show_landing  = ! empty( $attributes['landing'] ) && function_exists( 'extrachill_events_render_submit_landing' );
@@ -253,7 +254,7 @@ if ( $show_landing ) {
 					<label for="<?php echo esc_attr( $form_id ); ?>-lineup">
 						<?php esc_html_e( 'Lineup / Headliners', 'extrachill-events' ); ?>
 					</label>
-					<input type="text" name="event_lineup" id="<?php echo esc_attr( $form_id ); ?>-lineup" />
+					<input type="text" name="event_lineup" id="<?php echo esc_attr( $form_id ); ?>-lineup" value="<?php echo esc_attr( $prefill['lineup'] ); ?>" />
 				</div>
 
 				<div class="ec-event-submission__field">
