@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.55.0] - 2026-10-30
+
+### Added
+- grant datamachine_daily_memory to extra_chill_team
+
 ## [0.54.0] - 2026-10-25
 
 ### Added
