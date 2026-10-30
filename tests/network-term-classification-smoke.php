@@ -244,6 +244,35 @@ namespace {
 		unset( $GLOBALS['ntc_meta'][ get_current_blog_id() ][50][EXTRACHILL_NETWORK_TERM_CLASSIFICATION_JOBS_META] );
 	}
 
+	// Studio wiki accepts explicit identities, never AI inference (even forced jobs).
+	$GLOBALS['ntc_post_types'][] = 'wiki';
+	$GLOBALS['ntc_taxonomies']['wiki'] = array( 'artist', 'location' );
+	$GLOBALS['ntc_posts'][12][386] = new WP_Post( 386, 'wiki', 'publish', 'Partner collaboration', str_repeat( 'Explicit collaboration log. ', 5 ) );
+	switch_to_blog( 12 );
+	ntc_assert_same( array( 'artist', 'location' ), extrachill_network_get_eligible_term_taxonomies( 'studio', 'wiki' ), 'Wiki remains eligible for approved projection.' );
+	$GLOBALS['ntc_terms'][1]['artist']['wiki-partner'] = new WP_Term( 386, 'wiki-partner', 'Wiki Partner' );
+	$projection = extrachill_network_project_term( 'studio', 'wiki', 'artist', 'wiki-partner' );
+	ntc_assert( ! is_wp_error( $projection ) && $projection['created'], 'Approved artist identity projects onto Studio wiki.' );
+	ntc_assert_same( 12, get_current_blog_id(), 'Wiki projection restores Studio context.' );
+	unset( $GLOBALS['ntc_terms'][1]['artist']['wiki-partner'] );
+	ntc_assert_same( array(), extrachill_network_get_classification_taxonomies( 'studio', 'wiki' ), 'Wiki is excluded from classification.' );
+	ntc_assert_same( array( 'artist', 'festival', 'location' ), extrachill_network_get_classification_taxonomies( 'main', 'post' ), 'Existing classification targets remain eligible.' );
+	$jobs_before = count( \DataMachine\Engine\Tasks\TaskScheduler::$jobs );
+	foreach ( array( 'pending', 'publish' ) as $status ) {
+		extrachill_network_maybe_schedule_term_classification( $status, 'draft', $GLOBALS['ntc_posts'][12][386] );
+	}
+	ntc_assert_same( $jobs_before, count( \DataMachine\Engine\Tasks\TaskScheduler::$jobs ), 'Wiki lifecycle does not schedule classification.' );
+	$args = array( 'site' => 'studio', 'post_id' => 386, 'force' => true );
+	$result = extrachill_network_schedule_term_classification( $args );
+	ntc_assert( is_wp_error( $result ) && 'unsupported_classification_target' === $result->code, 'Forced wiki classification cannot be scheduled.' );
+	$selected = false;
+	$result = extrachill_network_classify_post_terms( $args, static function () use ( &$selected ) { $selected = true; return array(); } );
+	ntc_assert( is_wp_error( $result ) && 'unsupported_classification_target' === $result->code && ! $selected, 'Wiki classification primitive rejects before invoking AI.' );
+	$task = new \ExtraChillNetwork\Taxonomy\TermClassificationTask();
+	$task->executeTask( 386, $args );
+	ntc_assert( isset( \DataMachine\Engine\AI\System\Tasks\SystemTask::$failed[386] ), 'Queued wiki task also fails closed.' );
+	restore_current_blog();
+
 	// Approved source policy excludes Events' broad scraper union.
 	$policy = extrachill_network_get_term_policy();
 	ntc_assert_same( array( 'main' ), $policy['sources']['artist'], 'Artist identity comes only from the curated Main taxonomy.' );

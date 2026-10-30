@@ -54,7 +54,7 @@ function extrachill_network_schedule_term_classification( $args ) {
 		if ( ! $post instanceof WP_Post ) {
 			return new WP_Error( 'classification_post_not_found', __( 'The classification target was not found.', 'extrachill-network' ) );
 		}
-		$taxonomies = extrachill_network_get_eligible_term_taxonomies( $site_key, $post->post_type, $args['taxonomies'] ?? array() );
+		$taxonomies = extrachill_network_get_classification_taxonomies( $site_key, $post->post_type, $args['taxonomies'] ?? array() );
 		if ( empty( $taxonomies ) ) {
 			return new WP_Error( 'unsupported_classification_target', __( 'No approved taxonomy is registered for this post type.', 'extrachill-network' ) );
 		}
@@ -184,7 +184,7 @@ function extrachill_network_maybe_schedule_term_classification( $new_status, $ol
 	if ( ! $site_key ) {
 		return;
 	}
-	$taxonomies = extrachill_network_get_eligible_term_taxonomies( $site_key, $post->post_type );
+	$taxonomies = extrachill_network_get_classification_taxonomies( $site_key, $post->post_type );
 	if ( empty( $taxonomies ) ) {
 		return;
 	}

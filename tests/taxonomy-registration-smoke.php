@@ -52,6 +52,7 @@ function taxonomy_exists( $taxonomy ) {
 }
 
 function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
+	$args = extrachill_network_studio_taxonomy_args( $args, $taxonomy );
 	$GLOBALS['taxonomy_registration_test']['registered'][ $taxonomy ] = array(
 		'object_type' => $object_type,
 		'args'        => taxonomy_registration_normalize_args( $args ),
@@ -66,6 +67,17 @@ function add_action( $hook_name, $callback, $priority = 10, $accepted_args = 1 )
 	);
 }
 
+function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	$GLOBALS['taxonomy_registration_test']['filters'][ $hook ] = $callback;
+}
+
+function get_current_blog_id() { return $GLOBALS['taxonomy_registration_test']['blog_id'] ?? 1; }
+function ec_get_blog_id( $key ) { return 'studio' === $key ? 12 : 1; }
+function post_type_exists( $type ) { return $GLOBALS['taxonomy_registration_test']['wiki_exists'] ?? false; }
+function register_taxonomy_for_object_type( $taxonomy, $type ) {
+	$GLOBALS['taxonomy_registration_test']['attachments'][ $taxonomy ] = $type;
+}
+
 function apply_filters( $hook_name, $value, ...$args ) {
 	return $value;
 }
@@ -75,7 +87,7 @@ require_once dirname( __DIR__ ) . '/inc/taxonomy/register.php';
 // Hook contract matches the theme registration it replaces.
 $actions = $GLOBALS['taxonomy_registration_test']['actions'];
 taxonomy_registration_assert(
-	1 === count( $actions ) && 'init' === $actions[0]['hook'] && 'extrachill_network_register_taxonomies' === $actions[0]['callback'] && 0 === $actions[0]['priority'],
+	2 === count( $actions ) && 'init' === $actions[0]['hook'] && 'extrachill_network_register_taxonomies' === $actions[0]['callback'] && 0 === $actions[0]['priority'],
 	'registration is hooked on init priority 0'
 );
 
@@ -231,9 +243,43 @@ taxonomy_registration_assert(
 	'taxonomy_exists guards skip registration when taxonomies already exist'
 );
 
+taxonomy_registration_assert(
+	'init' === $actions[1]['hook'] && 'extrachill_network_attach_studio_wiki_taxonomies' === $actions[1]['callback'] && 20 === $actions[1]['priority'],
+	'wiki attachment runs after Intelligence default-priority registration'
+);
+taxonomy_registration_assert(
+	'extrachill_network_studio_taxonomy_args' === $GLOBALS['taxonomy_registration_test']['filters']['register_taxonomy_args'],
+	'Studio privacy args filter is registered'
+);
+foreach ( array( 1, 2, 7, 11, 12 ) as $blog_id ) {
+	foreach ( array( false, true ) as $wiki_exists ) {
+		$GLOBALS['taxonomy_registration_test']['blog_id'] = $blog_id;
+		$GLOBALS['taxonomy_registration_test']['wiki_exists'] = $wiki_exists;
+		$GLOBALS['taxonomy_registration_test']['attachments'] = array();
+		extrachill_network_attach_studio_wiki_taxonomies();
+		taxonomy_registration_assert(
+			( 12 === $blog_id && $wiki_exists ? array( 'venue' => 'wiki', 'artist' => 'wiki', 'location' => 'wiki' ) : array() ) === $GLOBALS['taxonomy_registration_test']['attachments'],
+			"wiki attachment respects site {$blog_id} and existence guard " . (int) $wiki_exists
+		);
+	}
+}
+$GLOBALS['taxonomy_registration_test']['existing'] = array();
+extrachill_network_register_taxonomies();
+foreach ( array( 'venue', 'artist', 'location' ) as $taxonomy ) {
+	$args = $GLOBALS['taxonomy_registration_test']['registered'][ $taxonomy ]['args'];
+	foreach ( array( 'public', 'publicly_queryable', 'query_var', 'rewrite' ) as $flag ) {
+		taxonomy_registration_assert( false === $args[ $flag ], "Studio {$taxonomy} disables {$flag}" );
+	}
+	taxonomy_registration_assert( $args['show_ui'] && $args['show_in_rest'], "Studio {$taxonomy} remains editable" );
+}
+
 // Policy: venue joins the network term policy without changing existing rows.
 require_once dirname( __DIR__ ) . '/inc/taxonomy/network-terms.php';
 $policy = extrachill_network_get_term_policy();
+taxonomy_registration_assert(
+	array( 'wiki' => array( 'venue', 'artist', 'location' ) ) === $policy['targets']['studio'],
+	'Studio wiki is an approved-term projection target'
+);
 taxonomy_registration_assert(
 	array( 'artist', 'festival', 'genre', 'location', 'venue' ) === $policy['targets']['main']['post'],
 	'main post target policy includes venue and genre'
