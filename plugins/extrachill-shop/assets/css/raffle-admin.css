@@ -1,0 +1,33 @@
+/**
+ * Raffle Admin Field
+ *
+ * Conditional visibility styling for "Max Raffle Tickets" field.
+ *
+ * @package ExtraChillShop
+ */
+.raffle-max-tickets-field {
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 300ms ease, max-height 300ms ease, visibility 300ms ease;
+}
+
+.raffle-max-tickets-field.visible {
+    max-height: 500px;
+    opacity: 1;
+    visibility: visible;
+}
+
+.raffle-max-tickets-field label {
+    font-weight: 600;
+}
+
+.raffle-max-tickets-field::before {
+    content: "🎟️";
+    display: inline-block;
+    margin-right: 4px;
+    font-size: var(--font-size-sm);
+    vertical-align: middle;
+}

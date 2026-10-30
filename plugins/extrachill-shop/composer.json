@@ -1,0 +1,22 @@
+{
+    "name": "extrachill/shop",
+    "description": "WooCommerce integration and e-commerce functionality for the Extra Chill platform",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Chris Huber",
+            "email": "chubes@chubes.net",
+            "homepage": "https://chubes.net"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "stripe/stripe-php": "^13.0"
+    },
+    "scripts": {
+        "lint": "phpcs --standard=WordPress --extensions=php .",
+        "lint:fix": "phpcbf --standard=WordPress --extensions=php .",
+        "test": "phpunit"
+    }
+}

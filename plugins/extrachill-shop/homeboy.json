@@ -1,0 +1,24 @@
+{
+  "id": "extrachill-shop",
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {}
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-shop.php",
+      "pattern": "Version:\\s*([\\d.]+)"
+    },
+    {
+      "file": "extrachill-shop.php",
+      "pattern": "EXTRACHILL_SHOP_VERSION',\\s*'([\\d.]+)"
+    }
+  ],
+  "scopes": {
+    "release": {
+      "exclude": [
+        ".vscode/**"
+      ]
+    }
+  }
+}
