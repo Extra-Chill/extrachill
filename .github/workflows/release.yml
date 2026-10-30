@@ -1,40 +1,24 @@
-# Continuous release pipeline.
-#
-# Triggers on every push to main. Homeboy derives the version from the
-# conventional commits since the last tag (fix: -> patch, feat: -> minor,
-# BREAKING CHANGE -> major; chore:/ci:/docs:/test: -> no release), runs the
-# repository quality gates, then tags, generates the changelog, creates the
-# GitHub Release and attaches the built artifact.
-#
-# The whole pipeline lives in the reusable workflow — releasable-commit
-# detection, dry-run version prediction, failed-SHA retry protection, and
-# GitHub App token handling are inherited, not re-implemented here.
-
 name: Release
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
-  # A reusable workflow cannot request more than its caller grants. The shared
-  # release workflow declares id-token: write from homeboy-action v2.20.0 so
-  # release.publish can use npm trusted publishing (OIDC) instead of a token.
-  # Without this line the run is rejected before any job starts, with a bare
-  # startup_failure and no log to explain it.
   id-token: write
 
-# Monorepo: merging to main deploys that commit (deploy-monorepo.yml), so a
-# merge no longer cuts a release. Releases are an explicit, per-component
-# operator action.
+# Monorepo releases (homeboy-action#555): every merge releases each component
+# with unreleased commits since its own `<id>-vX.Y.Z` tag, serially in one job,
+# each with its own version bump, changelog and GitHub Release. Components with
+# nothing to release are skipped, and a component missed by one run is picked
+# up by the next. Deploys are separate: deploy-monorepo.yml ships the merged
+# commit for the changed components.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
-      component:
-        description: 'Component ID to release (e.g. extrachill-api)'
-        required: true
-        type: string
       dry-run:
-        description: 'Preview the release without making changes'
+        description: 'Preview the releases without making changes'
         type: boolean
         default: false
 
@@ -46,6 +30,6 @@ jobs:
   release:
     uses: Extra-Chill/homeboy-action/.github/workflows/release.yml@v2
     with:
+      components: all
       dry-run: ${{ inputs.dry-run || false }}
-      component: ${{ inputs.component }}
     secrets: inherit

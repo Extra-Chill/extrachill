@@ -22,7 +22,13 @@ Every component, including `extrachill-network`, lives in its own directory with
 
 ## Deploy model (after cutover)
 
-This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). A merge does not cut a release, and rolling back means deploying an older commit. `release.yml` is a manual, per-component dispatch. Changed-component detection: [homeboy#16640](https://github.com/Extra-Chill/homeboy/issues/16640).
+This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). Rolling back means deploying an older commit.
+
+## Releases and changelogs
+
+Every component keeps its own version, `CHANGELOG.md` and GitHub Releases. On every merge, `release.yml` releases each component that has unreleased commits since its own `<component-id>-vX.Y.Z` tag. Releases run one after another in a single job (homeboy-action `components: all`), and only commits under that component's directory count toward its release. Releases record history and publish artifacts; deploys don't depend on them.
+
+Cutover prerequisite: `extrachill-network` used plain `vX.Y.Z` tags as the root component, so it needs an alias tag `extrachill-network-v<current>` at its current release. Changed-component detection: [homeboy#16640](https://github.com/Extra-Chill/homeboy/issues/16640).
 
 ## Layout and where each component runs
 
