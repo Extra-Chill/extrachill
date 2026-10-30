@@ -13,21 +13,6 @@
   },
   "id": "extrachill-network",
   "remote_path": "wp-content/plugins/extrachill-network",
-  "scopes": {
-    "defaults": {
-      "exclude": [
-        "plugins/",
-        "themes/",
-        "packages/"
-      ]
-    },
-    "release": {
-      "exclude": [
-        "rigs/",
-        "MONOREPO.md"
-      ]
-    }
-  },
   "self_checks": {
     "lint": [
       "composer lint:php",
@@ -40,10 +25,7 @@
       "php tests/experiment-assignment-smoke.php",
       "php tests/service-assertion-smoke.php",
       "node tests/ExperimentAssignmentJsTest.js",
-      "php tests/deploy-workflow-smoke.php",
-      "php tests/media-webp-smoke.php",
-      "node rigs/extrachill-network/tests/contract.test.mjs",
-      "node rigs/extrachill-network/tests/gardner-persona-contract.test.mjs"
+      "php tests/media-webp-smoke.php"
     ]
   },
   "version_targets": [

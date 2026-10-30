@@ -28,23 +28,19 @@ try {
   // Monorepo sources beat release pins and legacy theme settings, while
   // components absent from the checkout retain their exact default URLs.
   const checkout = path.join(temporary, 'checkout');
-  for (const dir of ['plugins/extrachill-users', 'themes/extrachill', 'packages', 'rigs', 'deploy', '.github']) {
+  for (const dir of ['plugins/extrachill-users', 'plugins/extrachill-network', 'themes/extrachill']) {
     await mkdir(path.join(checkout, dir), { recursive: true });
-    await writeFile(path.join(checkout, dir, 'sentinel'), 'excluded from root');
   }
-  await writeFile(path.join(checkout, 'extrachill-network.php'), '<?php');
+  await writeFile(path.join(checkout, 'plugins/extrachill-network/extrachill-network.php'), '<?php');
   await writeFile(path.join(checkout, 'plugins/extrachill-users/extrachill-users.php'), '<?php');
   await writeFile(path.join(checkout, 'themes/extrachill/style.css'), '/* Theme Name: Extra Chill */');
   const monorepo = await buildRecipe({ extrachill_monorepo_source: checkout, extrachill_theme_source: '/old/theme', extrachill_release_set: { 'extrachill-users': { ref: 'old' } } }, packageRoot);
   const localUsers = monorepo.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-users');
   assert.equal(localUsers.source, path.join(checkout, 'plugins/extrachill-users'));
   assert.equal(monorepo.inputs.mounts.find((mount) => mount.metadata?.kind === 'wordpress-theme').source, path.join(checkout, 'themes/extrachill'));
-  const rootPlugin = monorepo.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-network');
-  assert.notEqual(rootPlugin.source, checkout);
-  assert.equal(await readFile(path.join(rootPlugin.source, 'extrachill-network.php'), 'utf8'), '<?php');
-  for (const excluded of ['plugins', 'themes', 'packages', 'rigs', 'deploy', '.github']) {
-    await assert.rejects(readFile(path.join(rootPlugin.source, excluded, 'sentinel')), { code: 'ENOENT' });
-  }
+  // The network plugin is an ordinary member under plugins/ (no root special case).
+  const networkPlugin = monorepo.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-network');
+  assert.equal(networkPlugin.source, path.join(checkout, 'plugins/extrachill-network'));
   const monoOverride = await buildRecipe({ extrachill_monorepo_source: checkout, extrachill_component_source_overrides: { 'extrachill-users': '/override/users', 'extrachill-network': '/override/root', extrachill: '/override/theme' } }, packageRoot);
   assert.equal(monoOverride.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-users').source, '/override/users');
   assert.equal(monoOverride.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-network').source, '/override/root');

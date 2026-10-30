@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Targeted tests: python3 tests/deploy-monorepo-test.py (requires PyYAML)."""
+"""Targeted tests: python3 deploy/tests/deploy-monorepo-test.py (requires PyYAML)."""
 import importlib.util
 import json
 from pathlib import Path
@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("prepare", ROOT / "deploy/prepare-monorepo.py")
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
@@ -22,11 +22,11 @@ class MonorepoDeployTest(unittest.TestCase):
         return result, destination
 
     def test_checkout_registry_and_commands(self):
-        original = (ROOT / "deploy/homeboy/components/extrachill-api.json").read_bytes()
+        original = (ROOT / "deploy/homeboy/projects/extrachill-monorepo/extrachill-monorepo.json").read_bytes()
         result, destination = self.prepare([
             {"component": "extrachill-api", "path": "plugins/extrachill-api"},
             {"component": "extrachill-components", "path": "packages/components"},
-            {"component": "extrachill-network", "path": "."},
+            {"component": "extrachill-network", "path": "plugins/extrachill-network"},
         ])
         self.assertEqual(result["ignored"], ["extrachill-components"])
         self.assertEqual(len(result["commands"]), 2)
@@ -35,13 +35,25 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertNotIn("remote_url", config)
         self.assertEqual(config["local_path"], str(ROOT / "plugins/extrachill-api"))
         self.assertEqual(config["remote_path"], "wp-content/plugins/extrachill-api")
-        project = json.loads((destination / "projects/extrachill-site/extrachill-site.json").read_text())
+        project = json.loads((destination / "projects/extrachill-monorepo/extrachill-monorepo.json").read_text())
         self.assertEqual([c["id"] for c in project["components"]], result["components"])
-        self.assertEqual(original, (ROOT / "deploy/homeboy/components/extrachill-api.json").read_bytes())
+        self.assertTrue(all("--project extrachill-monorepo" in c for c in result["commands"]))
+        self.assertEqual(original, (ROOT / "deploy/homeboy/projects/extrachill-monorepo/extrachill-monorepo.json").read_bytes())
+
+    def test_projects_partition_members_from_the_release_poller(self):
+        load = lambda p: {c["id"] for c in json.loads((ROOT / p).read_text())["components"]}
+        poller = load("deploy/homeboy/projects/extrachill-site/extrachill-site.json")
+        monorepo = load("deploy/homeboy/projects/extrachill-monorepo/extrachill-monorepo.json")
+        members = {json.loads(m.read_text())["id"] for m in (ROOT / "plugins").glob("*/homeboy.json")}
+        members |= {json.loads(m.read_text())["id"] for m in (ROOT / "themes").glob("*/homeboy.json")}
+        self.assertEqual(monorepo, members)
+        self.assertFalse(poller & members, "the release poller must never deploy a monorepo member")
+        registry = {p.stem for p in (ROOT / "deploy/homeboy/components").glob("*.json")}
+        self.assertEqual(registry, poller)
 
     def test_empty_and_live(self):
         self.assertEqual(self.prepare([])[0]["commands"], [])
-        commands = self.prepare([{"component": "extrachill-network", "path": "."}], False)[0]["commands"]
+        commands = self.prepare([{"component": "extrachill-network", "path": "plugins/extrachill-network"}], False)[0]["commands"]
         self.assertNotIn("--dry-run", commands[0])
 
     def test_bad_matrix_fails_closed(self):
