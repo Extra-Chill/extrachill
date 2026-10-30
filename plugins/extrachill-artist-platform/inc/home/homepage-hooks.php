@@ -13,6 +13,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Resolve the public homepage example from an artist profile ID.
+ *
+ * @return array|null Public example data, or null when unavailable.
+ */
+function ec_artist_home_example() {
+	$example = apply_filters( 'extrachill_artist_home_example', array( 'artist_id' => 13731 ) );
+	$artist  = get_post( absint( $example['artist_id'] ?? 0 ) );
+	if ( ! $artist || 'publish' !== $artist->post_status ) {
+		return null;
+	}
+
+	$link_page_id = apply_filters( 'ec_get_link_page_id', $artist->ID );
+	$link_url     = $link_page_id && function_exists( 'ec_get_link_page_public_url' ) ? ec_get_link_page_public_url( $link_page_id ) : '';
+	$profile_url  = get_permalink( $artist->ID );
+	if ( ! $profile_url || ! $link_url ) {
+		return null;
+	}
+
+	return array(
+		'name'        => get_the_title( $artist->ID ),
+		'profile_url' => $profile_url,
+		'link_url'    => $link_url,
+	);
+}
+
+/**
  * Render homepage content for artist.extrachill.com
  *
  * Hooked via extrachill_homepage_content action.
