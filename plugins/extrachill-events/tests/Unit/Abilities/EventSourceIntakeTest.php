@@ -86,6 +86,12 @@ if ( ! function_exists( 'taxonomy_exists' ) ) {
 	}
 }
 
+if ( ! function_exists( 'remove_accents' ) ) {
+	function remove_accents( $text ) {
+		return $text;
+	}
+}
+
 if ( ! function_exists( 'sanitize_title' ) ) {
 	function sanitize_title( $title ) {
 		return strtolower( trim( preg_replace( '/[^a-z0-9]+/i', '-', $title ), '-' ) );
@@ -126,7 +132,13 @@ if ( ! function_exists( 'get_terms' ) ) {
 			}
 			return isset( $args['number'] ) && (int) $args['number'] > 0 ? array_slice( $terms, 0, (int) $args['number'] ) : $terms;
 		}
-		return array( 72 => 'The Band' );
+		$terms = array();
+		foreach ( $GLOBALS['event_source_term_ids'] as $key => $term ) {
+			if ( str_starts_with( $key, 'artist:' ) ) {
+				$terms[ $term->term_id ] = $term->name;
+			}
+		}
+		return $terms;
 	}
 }
 
@@ -482,6 +494,78 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		);
 		$this->assertSame( 'artist', $result['source_kind'] );
 		$this->assertTrue( $result['scope_evidence']['bounded'] );
+	}
+
+	public function test_tounds_lineup_overrides_branding_and_reuses_existing_term(): void {
+		$term = new WP_Term( 1672, 'Tounds' );
+		$GLOBALS['event_source_terms']['artist:tounds'] = $term;
+		$GLOBALS['event_source_term_ids']['artist:1672'] = $term;
+		$result = $this->classification(
+			array(
+				array( 'venue' => 'Room A', 'artists' => array( array( 'title' => 'Tounds' ), array( 'title' => 'Support' ) ) ),
+				array( 'venue' => 'Room B', 'artists' => array( array( 'title' => 'Tounds' ) ) ),
+			),
+			'https://tounds.com/',
+			false,
+			'<title>TOUNDS, a band</title>'
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( array( 'taxonomy' => 'artist', 'term_id' => 1672, 'name' => 'Tounds' ), $result['binding'] );
+		$resolve = new ReflectionMethod( ArtistUrlImportAbilities::class, 'resolveArtistTerm' );
+		$resolve->setAccessible( true );
+		// No wp_insert_term double exists: attempting creation fails this test.
+		$this->assertSame( 1672, $resolve->invoke( $this->intake, 0, $result['binding']['name'], 0 ) );
+
+		$GLOBALS['ec_artist_test']['user_caps'][7]['access_events_admin'] = true;
+		$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
+		$qualification = $this->qualification( 'artist', true, 'https://tounds.com/' );
+		$qualification['recommended_binding'] = $result['binding'];
+		$qualification['suggested_artist_name'] = 'Tounds';
+		$qualification['suggested_artist_term_id'] = 1672;
+		$intake->qualifications = array( $qualification, $qualification );
+		$create_flow = new EventSourceAbilityDouble( array( 'success' => true, 'flow_id' => 77 ) );
+		$abilities = $this->artist_flow_abilities( $create_flow );
+		$GLOBALS['ec_test_ability_resolver'] = static fn( $name ) => $abilities[ $name ] ?? null;
+		$submission = $intake->executeSubmit( array( 'url' => 'https://tounds.com/' ) );
+		$this->assertTrue( $submission['auto_approved'] );
+		$this->assertSame( '1672', $create_flow->calls[0]['step_configs']['upsert']['handler_config']['taxonomy_artist_selection'] );
+	}
+
+	public function test_artist_normalized_identity_is_reused_before_creation(): void {
+		$term = new WP_Term( 1672, 'The Tounds!' );
+		$GLOBALS['event_source_term_ids']['artist:1672'] = $term;
+		$resolve = new ReflectionMethod( ArtistUrlImportAbilities::class, 'resolveArtistTerm' );
+		$resolve->setAccessible( true );
+		$this->assertSame( 1672, $resolve->invoke( $this->intake, 0, 'TOUNDS', 0 ) );
+		$result = $this->classification(
+			array(
+				array( 'venue' => 'Room A', 'performer' => array( array( 'name' => 'Tounds' ) ) ),
+				array( 'venue' => 'Room B', 'lineup' => array( 'TOUNDS' ) ),
+			),
+			'https://tounds.com/'
+		);
+		$this->assertSame( 1672, $result['binding']['term_id'] );
+	}
+
+	public function test_site_title_decorations_are_removed_without_performers(): void {
+		foreach ( array( 'TOUNDS, a band', 'TOUNDS, band', 'TOUNDS | Official Site', 'TOUNDS - Home', 'TOUNDS — Official Website', 'TOUNDS, a band | Official Site' ) as $title ) {
+			$result = $this->classification( $this->performerless_tour(), 'https://tounds.com/', false, '<title>' . $title . '</title>' );
+			$this->assertSame( 'artist', $result['source_kind'], $title );
+			$this->assertSame( 'TOUNDS', $result['binding']['name'], $title );
+		}
+	}
+
+	public function test_conflicting_headliners_do_not_establish_artist_scope(): void {
+		$result = $this->classification(
+			array(
+				array( 'venue' => 'Room A', 'artists' => array( array( 'title' => 'Tounds' ) ) ),
+				array( 'venue' => 'Room B', 'artists' => array( array( 'title' => 'Other Artist' ) ) ),
+			),
+			'https://tounds.com/',
+			false,
+			'<title>TOUNDS, a band</title>'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
 	}
 
 	/** Tour widgets (e.g. Seated) list dates without per-event performers (#927). */

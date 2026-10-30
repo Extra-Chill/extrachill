@@ -578,22 +578,23 @@ class ArtistUrlImportAbilities {
 
 	/** Classify bounded artist/venue identity from repeated extracted events. */
 	protected function classifySource( string $url, array $probe, array $qualification = array(), bool $force_artist = false ): array {
-		$venues     = array();
-		$performers = array();
+		$venues             = array();
+		$performers         = array();
+		$missing_headliners = false;
 		foreach ( (array) ( $probe['raw_events'] ?? array() ) as $event ) {
 			$venue = $event['venue'] ?? '';
 			if ( is_array( $venue ) ) {
 				$venue = $venue['name'] ?? '';
 			}
-			$performer = $event['performer'] ?? $event['artist'] ?? '';
-			if ( is_array( $performer ) ) {
-				$performer = $performer['name'] ?? '';
+			$performer = $this->eventHeadliner( $event );
+			if ( '' === $performer ) {
+				$missing_headliners = true;
 			}
 			if ( is_string( $venue ) && '' !== trim( $venue ) ) {
 				$venues[ strtolower( trim( $venue ) ) ] = trim( $venue );
 			}
-			if ( is_string( $performer ) && '' !== trim( $performer ) ) {
-				$performers[ strtolower( trim( $performer ) ) ] = trim( $performer );
+			if ( '' !== $performer ) {
+				$performers[ $this->normalizeArtistName( $performer ) ] = trim( $performer );
 			}
 		}
 
@@ -658,7 +659,7 @@ class ArtistUrlImportAbilities {
 			} else {
 				$warnings[] = __( 'Repeated venue data does not prove that this host is the venue’s official source.', 'extrachill-events' );
 			}
-		} elseif ( 1 === count( $performers ) && count( $venues ) > 1 ) {
+		} elseif ( 1 === count( $performers ) && ! $missing_headliners && count( $venues ) > 1 ) {
 			$performer_name = (string) reset( $performers );
 			$performer_id   = $this->matchTerm( $performer_name, 'artist' );
 			$kind           = 'artist';
@@ -804,6 +805,26 @@ class ArtistUrlImportAbilities {
 		);
 	}
 
+	/** Read the first billed artist from supported extracted event packets. */
+	private function eventHeadliner( array $event ): string {
+		$performer = $event['artists'] ?? $event['lineup'] ?? $event['performer'] ?? $event['artist'] ?? '';
+		if ( is_array( $performer ) && array_is_list( $performer ) ) {
+			$performer = $performer[0] ?? '';
+		}
+		if ( is_array( $performer ) ) {
+			$performer = $performer['title'] ?? $performer['name'] ?? '';
+		}
+		return is_string( $performer ) ? trim( $performer ) : '';
+	}
+
+	/** Compare identity, not typography or a leading definite article. */
+	private function normalizeArtistName( string $name ): string {
+		$name = strtolower( remove_accents( $name ) );
+		$name = preg_replace( '/[^\p{L}\p{N}\s]/u', '', $name );
+		$name = trim( preg_replace( '/\s+/u', ' ', $name ) );
+		return preg_replace( '/^the\s+/u', '', $name );
+	}
+
 	/** Exact taxonomy candidate lookup without creating terms during preview. */
 	private function matchTerm( string $name, string $taxonomy ): ?int {
 		if ( '' === $name || ! taxonomy_exists( $taxonomy ) ) {
@@ -813,7 +834,32 @@ class ArtistUrlImportAbilities {
 		if ( ! $term instanceof \WP_Term ) {
 			$term = get_term_by( 'slug', sanitize_title( $name ), $taxonomy );
 		}
-		return $term instanceof \WP_Term ? (int) $term->term_id : null;
+		if ( $term instanceof \WP_Term ) {
+			return (int) $term->term_id;
+		}
+		if ( 'artist' === $taxonomy ) {
+			// Prefilter on the most selective word; the artist taxonomy is large.
+			$normalized = $this->normalizeArtistName( $name );
+			$words      = explode( ' ', $normalized );
+			usort( $words, static fn( $a, $b ) => strlen( $b ) <=> strlen( $a ) );
+			$terms = '' === $normalized ? array() : get_terms(
+				array(
+					'taxonomy'   => 'artist',
+					'hide_empty' => false,
+					'fields'     => 'id=>name',
+					'name__like' => $words[0],
+					'number'     => 200,
+				)
+			);
+			if ( '' !== $normalized && ! is_wp_error( $terms ) ) {
+				foreach ( $terms as $term_id => $term_name ) {
+					if ( $normalized === $this->normalizeArtistName( (string) $term_name ) ) {
+						return (int) $term_id;
+					}
+				}
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -1468,7 +1514,7 @@ class ArtistUrlImportAbilities {
 
 	/** Compare artist labels without allowing unrelated term substitution. */
 	private function artistNamesMatch( string $left, string $right ): bool {
-		return '' !== trim( $left ) && sanitize_title( $left ) === sanitize_title( $right );
+		return '' !== $this->normalizeArtistName( $left ) && $this->normalizeArtistName( $left ) === $this->normalizeArtistName( $right );
 	}
 
 	/** Persist fresh qualification evidence only with a successful approval. */
@@ -1846,7 +1892,7 @@ class ArtistUrlImportAbilities {
 	 * Suggest an artist binding for a probed URL.
 	 *
 	 * Tries (in order):
-	 *   1. JSON-LD `Performer` / `MusicGroup` on the first extracted event.
+	 *   1. Consistent first-billed artist across extracted events.
 	 *   2. og:title / <title> / first <h1> on the fetched HTML.
 	 *   3. URL domain → Title Case.
 	 *
@@ -1861,22 +1907,25 @@ class ArtistUrlImportAbilities {
 	private function suggestArtist( string $url, array $probe ): array {
 		$candidates = array();
 
-		// 1. JSON-LD / structured data on the first event.
-		$first = $probe['raw_first_event'] ?? array();
-		if ( is_array( $first ) ) {
-			$performer = $first['performer'] ?? $first['artist'] ?? '';
-			if ( is_array( $performer ) ) {
-				$performer = $performer['name'] ?? '';
-			}
-			if ( is_string( $performer ) && '' !== trim( $performer ) ) {
-				$candidates[] = array( trim( $performer ), 'structured' );
-			}
+		// Prefer a headliner only when every extracted event agrees.
+		$events = (array) ( $probe['raw_events'] ?? array( $probe['raw_first_event'] ?? array() ) );
+		$names  = array();
+		foreach ( $events as $event ) {
+			$name = $this->eventHeadliner( $event );
+			$names[ $this->normalizeArtistName( $name ) ] = $name;
+		}
+		if ( 1 === count( $names ) && ! isset( $names[''] ) ) {
+			$candidates[] = array( (string) reset( $names ), 'structured' );
 		}
 
 		$html = $probe['page_html'] ?? '';
 		if ( '' !== $html ) {
 			// 2a. og:title
 			if ( preg_match( '/<meta[^>]+property=[\"\']og:title[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']/i', $html, $m ) ) {
+				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
+			}
+			// Site branding is another fallback when event identity is absent.
+			if ( preg_match( '/<meta[^>]+property=[\"\']og:site_name[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']/i', $html, $m ) ) {
 				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
 			}
 			// 2b. <title>
@@ -1928,6 +1977,7 @@ class ArtistUrlImportAbilities {
 	 */
 	private function stripSiteTokens( string $title ): string {
 		$title = trim( $title );
+		$title = preg_replace( '/,\s*(?:(?:a|the)\s+)?band\s*(?=$|[|–—:]|\s-\s)/iu', '', $title );
 		// Split on common separators and drop any segment that's a generic token.
 		$parts = preg_split( '/\s*[|\-–—:]\s*/u', $title );
 		if ( ! is_array( $parts ) || empty( $parts ) ) {
@@ -1936,7 +1986,7 @@ class ArtistUrlImportAbilities {
 
 		$kept = array();
 		foreach ( $parts as $part ) {
-			if ( '' === trim( $part ) || $this->isGenericSourceLabel( $part ) ) {
+			if ( '' === trim( $part ) || $this->isGenericSourceLabel( $part ) || preg_match( '/^(?:the\s+)?official(?:\s+(?:site|website|home(?:page)?))?$/i', trim( $part ) ) ) {
 				continue;
 			}
 			$kept[] = trim( $part );
@@ -1992,10 +2042,10 @@ class ArtistUrlImportAbilities {
 			return null;
 		}
 
-		// Try an exact match first (cheap path, common case).
-		$exact = get_term_by( 'name', $name, 'artist' );
-		if ( $exact instanceof \WP_Term ) {
-			return (int) $exact->term_id;
+		// Prefer normalized identity matches over approximate similarity.
+		$exact = $this->matchTerm( $name, 'artist' );
+		if ( null !== $exact ) {
+			return $exact;
 		}
 
 		// Fall back to slug match — handles minor casing/punctuation drift.
@@ -2064,9 +2114,9 @@ class ArtistUrlImportAbilities {
 
 		$explicit_name = trim( $explicit_name );
 		if ( '' !== $explicit_name ) {
-			$existing = get_term_by( 'name', $explicit_name, 'artist' );
-			if ( $existing instanceof \WP_Term ) {
-				return (int) $existing->term_id;
+			$existing = $this->matchTerm( $explicit_name, 'artist' );
+			if ( null !== $existing ) {
+				return $existing;
 			}
 
 			$inserted = wp_insert_term( $explicit_name, 'artist' );
