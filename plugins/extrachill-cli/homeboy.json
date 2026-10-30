@@ -1,0 +1,69 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "settings": {
+        "standalone_php_test_paths": [
+          "tests/AgentsMdSectionTest.php",
+          "tests/QRCodeCommandTest.php",
+          "tests/ExperimentsCommandTest.php",
+          "tests/ExperimentsOwnerContractTest.php",
+          "tests/OwnerSiteAbilityTest.php",
+          "tests/CrosslinkTargetsCommandTest.php",
+          "tests/OutboundCommandTest.php",
+          "tests/ConversionCommandTest.php",
+          "tests/RouteTransitionsCommandTest.php",
+          "tests/HealthCommandTest.php",
+          "tests/SummaryCommandTest.php",
+          "tests/RetentionCommandTest.php",
+          "tests/UserLocalSceneCommandTest.php",
+          "tests/ConcertTrackingCommandTest.php",
+          "tests/RevenueCommandTest.php",
+          "tests/RevenueCommandRuntimeTest.php",
+          "tests/StorageMigrationCommandTest.php",
+          "tests/RegenerateOgCardCommandTest.php",
+          "tests/VenueSourceAliasesCommandTest.php",
+          "tests/PhotoContestCommandTest.php"
+        ]
+      }
+    }
+  },
+  "id": "extrachill-cli",
+  "remote_path": "wp-content/plugins/extrachill-cli",
+  "self_checks": {
+    "test": [
+      "php tests/AgentsMdSectionTest.php",
+      "php tests/QRCodeCommandTest.php",
+      "php tests/ExperimentsCommandTest.php",
+      "php tests/ExperimentsOwnerContractTest.php",
+      "php tests/OwnerSiteAbilityTest.php",
+      "php tests/CrosslinkTargetsCommandTest.php",
+      "php tests/OutboundCommandTest.php",
+      "php tests/ConversionCommandTest.php",
+      "php tests/RouteTransitionsCommandTest.php",
+      "php tests/HealthCommandTest.php",
+      "php tests/GiveawayEntryModeContractTest.php",
+      "php tests/SummaryCommandTest.php",
+      "php tests/RetentionCommandTest.php",
+      "php tests/UserLocalSceneCommandTest.php",
+      "php tests/ConcertTrackingCommandTest.php",
+      "php tests/RevenueCommandTest.php",
+      "php tests/RevenueCommandRuntimeTest.php",
+      "php tests/StorageMigrationCommandTest.php",
+      "php tests/RegenerateOgCardCommandTest.php",
+      "php tests/VenueSourceAliasesCommandTest.php",
+      "php tests/PhotoContestCommandTest.php"
+    ]
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-cli.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-cli.php",
+      "pattern": "EXTRACHILL_CLI_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}
