@@ -2,7 +2,10 @@
 /**
  * Grade for show-ratings-fan against the Gardner persona's nontechnical
  * oracles. Browser evidence comes from the observation sink; server truth
- * comes from the event_review comments and their aggregates.
+ * comes from the fan's private ratings on their attendance records.
+ *
+ * Ratings are personal: only the fan sees them, on My Shows. Nothing about
+ * ratings is public.
  *
  * @package ExtraChillNetwork
  */
@@ -24,84 +27,73 @@ $record  = static function ( string $id, string $task, string $outcome, $evidenc
 	$results[] = compact( 'id', 'task', 'outcome', 'evidence' );
 };
 
-switch_to_blog( (int) $fixture['events_blog_id'] );
-$reviews = static function ( int $post_id ): array {
-	$rows = get_comments( array( 'post_id' => $post_id, 'status' => 'all', 'user_id' => (int) $GLOBALS['ec_rf_fan'] ) );
-	return array_map(
-		static fn( $c ) => array(
-			'id'       => (int) $c->comment_ID,
-			'type'     => $c->comment_type,
-			'approved' => $c->comment_approved,
-			'rating'   => get_comment_meta( $c->comment_ID, '_dme_rating', true ),
-			'text'     => $c->comment_content,
-		),
-		$rows
-	);
-};
-$GLOBALS['ec_rf_fan'] = (int) $fixture['fan_id'];
-$recent_reviews = $reviews( (int) $fixture['recent_id'] );
-$older_reviews  = $reviews( (int) $fixture['older_id'] );
-$meta           = static fn( int $id ) => array_filter( get_post_meta( $id ), static fn( $k ) => str_contains( $k, 'rating' ), ARRAY_FILTER_USE_KEY );
-$recent_meta    = $meta( (int) $fixture['recent_id'] );
-$older_meta     = $meta( (int) $fixture['older_id'] );
+$events_blog_id = (int) $fixture['events_blog_id'];
+$fan_id         = (int) $fixture['fan_id'];
+$recent_id      = (int) $fixture['recent_id'];
+$older_id       = (int) $fixture['older_id'];
+
+$ratings = function_exists( 'ec_users_get_show_ratings' )
+	? ec_users_get_show_ratings( $fan_id, array( $recent_id, $older_id ), $events_blog_id )
+	: null;
+
+switch_to_blog( $events_blog_id );
+$review_comments = count(
+	get_comments(
+		array(
+			'post__in' => array( $recent_id, $older_id ),
+			'status'   => 'all',
+			'count'    => false,
+		)
+	)
+);
+$recent_path = '/events/' . get_post_field( 'post_name', $recent_id );
 restore_current_blog();
 
-$v  = $obs['visitor-recent'] ?? null;
-$record( 'visitor-told-how-to-rate', 'A logged-out visitor on a past show sees how to rate it.', is_array( $v ) && ( $v['loginNote'] || 'visible' === $v['gate'] ) ? 'pass' : 'finding', $v );
+$no_public_ratings = static fn( $o ) => is_array( $o ) && 0 === (int) ( $o['ratingUi'] ?? -1 ) && 0 === (int) ( $o['stars'] ?? -1 ) && empty( $o['rateText'] );
 
-$b = $obs['fan-before-mark'] ?? null;
-$record( 'gate-explains-itself', 'Before "I Was There", the fan sees one plain sentence explaining why they cannot rate yet, and no dead form.', is_array( $b ) && 'visible' === $b['gate'] && 'visible' !== $b['stars'] ? 'pass' : 'finding', $b );
+$v = $obs['visitor-recent'] ?? null;
+$record( 'visitor-sees-no-ratings', 'A logged-out visitor on a past show sees no ratings, stars, or "rate this show" prompts.', $no_public_ratings( $v ) ? 'pass' : 'finding', $v );
 
 $a = $obs['fan-after-mark'] ?? null;
-$record( 'form-unlocks-in-place', 'After tapping "I Was There", the star form appears without a reload.', is_array( $a ) && 'visible' === $a['stars'] && 'visible' === $a['submit'] ? 'pass' : 'finding', $a );
+$record( 'show-page-has-no-rating-form', 'After tapping "I Was There", the show page offers no public rating or review form.', $no_public_ratings( $a ) && 'true' === ( $a['pressed'] ?? null ) ? 'pass' : 'finding', $a );
 
-$p = $obs['fan-after-post'] ?? null;
-$approved = array_filter( $recent_reviews, static fn( $r ) => '1' === (string) $r['approved'] && '5' === (string) $r['rating'] );
-$record( 'review-posts-immediately', 'Posting 5 stars + review publishes immediately (no moderation) and the page confirms it.', ! empty( $approved ) && is_array( $p ) && ! $p['moderationNote'] ? 'pass' : 'finding', array( 'server' => $recent_reviews, 'browser' => $p ) );
+$ms        = $obs['myshows-past'] ?? null;
+$cards     = (array) ( $ms['cards'] ?? array() );
+$calm_rows = ! empty( $cards ) && array_reduce( $cards, static fn( $ok, $c ) => $ok && 0 === (int) ( $c['stars'] ?? -1 ) && 'Rate' === trim( (string) ( $c['toggle'] ?? '' ) ), true );
+$record( 'my-shows-no-empty-stars', 'Unrated shows on My Shows -> Past show a quiet "Rate" button, not rows of empty stars.', $calm_rows ? 'pass' : 'finding', $ms );
 
-$r = $obs['fan-after-reload'] ?? null;
-$record( 'reload-persistence', 'After reload the fan sees their own rating and the show summary, and is not offered the form again.', is_array( $r ) && $r['yourRating'] && $r['summary'] && 'visible' !== $r['stars'] ? 'pass' : 'finding', $r );
-$record( 'duplicate-prevention', 'Exactly one review exists for the fan on the show.', 1 === count( $recent_reviews ) ? 'pass' : 'finding', $recent_reviews );
+$list_text = strtolower( implode( ' ', (array) ( $ms['listText'] ?? array() ) ) );
+$record( 'my-shows-no-nag', 'My Shows says once that ratings are private and never nags about unrated shows.', is_array( $ms ) && str_contains( (string) ( $ms['note'] ?? '' ), 'Only you see your ratings' ) && ! str_contains( $list_text, 'need' ) ? 'pass' : 'finding', $ms );
 
-$ms = $obs['myshows-past'] ?? null;
-$card_ok = false;
-foreach ( (array) ( $ms['cards'] ?? array() ) as $card ) {
-	$card_ok = $card_ok || ! empty( $card['hasStars'] );
-}
-$record( 'my-shows-offers-rating', 'My Shows -> Past shows stars on the attended past show.', $card_ok ? 'pass' : 'finding', $ms );
-$changed = array_values( $older_reviews );
-$record( 'my-shows-change-mind', 'Rating 4 then changing to 3 from My Shows leaves one 3-star rating on the server.', 1 === count( $changed ) && '3' === (string) $changed[0]['rating'] ? 'pass' : ( $card_ok ? 'finding' : 'skip' ), array( 'server' => $older_reviews, 'after_rate' => $obs['myshows-after-rate'] ?? null, 'after_change' => $obs['myshows-changed-mind'] ?? null, 'after_reload' => $obs['myshows-after-reload'] ?? null ) );
+$record( 'my-shows-rates-privately', 'Rating 5 on the recent show, then 4 -> 3 on the older one, leaves 5 and 3 on the fan\'s own records.', is_array( $ratings ) && 5 === ( $ratings[ $recent_id ] ?? null ) && 3 === ( $ratings[ $older_id ] ?? null ) ? 'pass' : 'finding', array( 'server' => $ratings, 'after_rate' => $obs['myshows-after-rate'] ?? null ) );
 
-switch_to_blog( (int) $fixture['events_blog_id'] );
-$recent_path = '/events/' . get_post_field( 'post_name', (int) $fixture['recent_id'] );
-restore_current_blog();
-$opened      = static fn( $o ) => is_array( $o ) && untrailingslashit( (string) ( $o['path'] ?? '' ) ) === untrailingslashit( $recent_path );
-$anatomy     = $obs['myshows-card-anatomy'] ?? null;
+$after_rate = $obs['myshows-after-rate'] ?? null;
+$record( 'my-shows-star-stays-put', 'Tapping stars on a My Shows row rates in place without leaving the page.', is_array( $after_rate ) && str_starts_with( (string) ( $after_rate['path'] ?? '' ), '/my-shows' ) ? 'pass' : 'finding', $after_rate );
+
+$reload = $obs['myshows-after-reload'] ?? null;
+$on     = array_map( static fn( $c ) => (int) ( $c['on'] ?? 0 ), (array) ( $reload['cards'] ?? array() ) );
+$record( 'reload-persistence', 'After a reload, My Shows shows the fan their own filled stars (5 and 3).', array( 5, 3 ) === $on ? 'pass' : 'finding', $reload );
+
+$opened  = static fn( $o ) => is_array( $o ) && untrailingslashit( (string) ( $o['path'] ?? '' ) ) === untrailingslashit( $recent_path );
+$anatomy = $obs['myshows-card-anatomy'] ?? null;
 $record( 'my-shows-row-opens-show', 'Tapping the empty part of a show row on My Shows -> Past opens that show.', $opened( $obs['myshows-open-from-row'] ?? null ) ? 'pass' : 'finding', array( 'expected' => $recent_path, 'landed' => $obs['myshows-open-from-row'] ?? null, 'anatomy' => $anatomy ) );
 $record( 'my-shows-name-opens-show', 'Tapping the show name on My Shows -> Past opens that show, not the artist page.', $opened( $obs['myshows-open-from-name'] ?? null ) ? 'pass' : 'finding', array( 'expected' => $recent_path, 'landed' => $obs['myshows-open-from-name'] ?? null ) );
-$star_stays = $obs['myshows-star-stays'] ?? null;
-$record( 'my-shows-star-stays-put', 'Tapping a star on a My Shows row rates in place without leaving the page.', is_array( $star_stays ) && str_starts_with( (string) ( $star_stays['path'] ?? '' ), '/my-shows' ) ? 'pass' : 'finding', $star_stays );
 
 $ap = $obs['artist-page-past'] ?? null;
-$record( 'listing-shows-rating', 'The Goose artist page (past shows) shows a star badge on the rated show.', is_array( $ap ) && ! empty( $ap['badges'] ) ? 'pass' : 'finding', array( 'upcoming' => $obs['artist-page'] ?? null, 'past' => $ap ) );
+$record( 'listings-show-no-ratings', 'The Goose artist page (past shows) shows no rating badges or stars after the fan rated.', $no_public_ratings( $ap ) ? 'pass' : 'finding', $ap );
 
 $va = $obs['visitor-recent-after'] ?? null;
-$record( 'visitor-sees-review', 'A logged-out visitor sees the summary and the fan\'s review on the show page.', is_array( $va ) && $va['summary'] && str_contains( (string) $va['commentsText'], 'Arcadia' ) ? 'pass' : 'finding', $va );
-
-$c = $obs['fan-after-rate-it-click'] ?? null;
-$record( 'rate-it-link-finds-form', 'After "I Was There", a "Rate this show" link appears by the button and jumps to the star picker.', is_array( $a ) && 'visible' === ( $a['rateItLink'] ?? '' ) && is_array( $c ) && abs( (int) $c['respondTop'] ) < (int) $c['vh'] ? 'pass' : 'finding', array( 'after_mark' => $a, 'after_click' => $c ) );
-$record( 'logged-out-copy-says-rate', 'Logged-out visitors on a past show are asked to log in to rate it.', is_array( $v ) && 'Log in to rate this show.' === ( $v['loginNote'] ?? '' ) && str_contains( (string) ( $v['ctaHeading'] ?? '' ), 'rate this show' ) ? 'pass' : 'finding', $v );
-$record( 'reviews-heading', 'The list heading calls the review a review.', is_array( $va ) && str_starts_with( (string) ( $va['commentsTitle'] ?? '' ), '1 review' ) ? 'pass' : 'finding', $va['commentsTitle'] ?? null );
-$record( 'post-rating-form-is-for-comments', 'After rating, the form heading reads "Add a comment".', is_array( $r ) && 'Add a comment' === ( $r['heading'] ?? '' ) ? 'pass' : 'finding', $r['heading'] ?? null );
+$record( 'rated-show-stays-private', 'A logged-out visitor on the show the fan rated 5 stars sees no rating.', $no_public_ratings( $va ) ? 'pass' : 'finding', $va );
+$record( 'no-review-comments', 'Rating writes no comments on the event.', 0 === $review_comments ? 'pass' : 'finding', $review_comments );
 
 $summary = array(
-	'schema'       => 'extrachill-network/journey-result/show-ratings-fan/v1',
+	'schema'       => 'extrachill-network/journey-result/show-ratings-fan/v2',
 	'fixture'      => $fixture,
 	'results'      => $results,
 	'passed'       => count( array_filter( $results, static fn( $x ) => 'pass' === $x['outcome'] ) ),
 	'findings'     => count( array_filter( $results, static fn( $x ) => 'finding' === $x['outcome'] ) ),
 	'skipped'      => count( array_filter( $results, static fn( $x ) => 'skip' === $x['outcome'] ) ),
-	'server'       => array( 'recent_meta' => $recent_meta, 'older_meta' => $older_meta ),
+	'server'       => array( 'ratings' => $ratings, 'comments' => $review_comments ),
 	'observations' => $obs,
 );
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode

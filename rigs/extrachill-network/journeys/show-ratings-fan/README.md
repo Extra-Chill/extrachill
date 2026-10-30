@@ -1,14 +1,14 @@
 # show-ratings-fan
 
-A non-technical fan rates the shows they went to, on a phone (390px).
+A non-technical fan rates the shows they went to, on a phone (390px). Ratings are personal: only the fan sees them, on My Shows, and nothing about ratings is public.
 
 ## What it walks
 
-1. **Logged-out visitor** opens a past Goose show at the Charleston Pour House and is asked to log in to rate it.
-2. **Fan (user 711)** opens the same show. The rating form is locked behind "Only people who were there…" (Extra Chill's attendee-only policy). They tap **I Was There**, wait for the "Rate this show ↓" link, follow it, pick 5 stars, write a short review and post. Then they reload.
-3. **My Shows → Past**: the older show (already in their history, as an import leaves it) offers stars. The fan rates it 4, changes their mind to 3, and reloads.
-4. The fan revisits the older show page.
-5. **Logged-out visitor** browses the Goose artist page (upcoming, then `?past=1`) and the show page to read the review.
+1. **Logged-out visitor** opens a past Goose show at the Charleston Pour House and sees no ratings, stars, or "rate this show" prompts.
+2. **Fan (user 711)** opens the same show and taps **I Was There**. The show page still offers no rating or review form.
+3. **My Shows → Past**: both shows offer a quiet **Rate** button instead of empty stars, plus one line saying ratings are private. The fan rates the recent show 5, then rates the older show (already in their history, as an import leaves it) 4 and changes it to 3. Then they reload.
+4. The fan opens a show from My Shows: once by tapping the empty part of the row, once by tapping the show name.
+5. **Logged-out visitor** browses the Goose artist page (`?past=1`) and the rated show page and still sees no ratings.
 
 ## Seed
 
@@ -16,23 +16,21 @@ A non-technical fan rates the shows they went to, on a phone (390px).
 
 ## Grade
 
-`grade.php` combines browser observations with server truth (the fan's `event_review` comments, `_dme_rating`, and the aggregate meta). It grades against the nontechnical oracles of the Gardner persona: obvious state, reload persistence, duplicate prevention, and jargon avoidance. There is no persona file. The fan is a single-scenario fixture user.
+`grade.php` combines browser observations with server truth: the fan's private ratings from `ec_users_get_show_ratings()` and the event's comment count. It grades against the nontechnical oracles of the Gardner persona: obvious state, reload persistence, and a calm UI. There is no persona file. The fan is a single-scenario fixture user.
 
 | id | checks |
 | --- | --- |
-| visitor-told-how-to-rate | logged-out note on a past show |
-| gate-explains-itself | locked form shows one plain sentence, no dead stars |
-| form-unlocks-in-place | stars appear after I Was There without a reload |
-| review-posts-immediately | approved, 5 stars, no moderation notice |
-| reload-persistence | "Your rating" + summary after reload |
-| duplicate-prevention | one review per fan per show |
-| my-shows-offers-rating | stars on My Shows → Past |
-| my-shows-change-mind | 4 → 3 leaves one 3-star review |
-| listing-shows-rating | ★ badge on the artist page past list |
-| visitor-sees-review | review text visible logged out |
-| rate-it-link-finds-form | link under I Was There scrolls to the stars |
-| logged-out-copy-says-rate | "Log in to rate this show." + CTA heading |
-| reviews-heading | list heading reads "1 review" |
-| post-rating-form-is-for-comments | form heading "Add a comment" after rating |
+| visitor-sees-no-ratings | no rating UI, stars, or prompts logged out |
+| show-page-has-no-rating-form | none after I Was There either |
+| my-shows-no-empty-stars | unrated rows show "Rate", not empty stars |
+| my-shows-no-nag | one privacy note, no "need your rating" line |
+| my-shows-rates-privately | server holds 5 and 3 on the fan's records |
+| my-shows-star-stays-put | rating does not navigate away |
+| reload-persistence | filled stars 5 and 3 after reload |
+| my-shows-row-opens-show | row tap opens the show |
+| my-shows-name-opens-show | name tap opens the show, not the artist |
+| listings-show-no-ratings | artist page past list has no badges |
+| rated-show-stays-private | the rated show page shows nothing logged out |
+| no-review-comments | rating writes no comments |
 
 Select it with `"extrachill_journeys": ["show-ratings-fan"]`. It is in the nightly default set.
