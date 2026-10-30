@@ -1,0 +1,186 @@
+/**
+ * Extra Chill Docs Styles
+ *
+ * Uses theme design tokens from root.css for consistent styling.
+ *
+ * @package ExtraChillDocs
+ * @since 0.2.4
+ */
+
+/* Homepage Layout */
+.docs-homepage {
+	max-width: var(--container-width);
+	margin: 0 auto;
+	padding: var(--spacing-lg);
+}
+
+.docs-intro {
+	text-align: center;
+	margin-bottom: var(--spacing-xl);
+}
+
+.docs-intro h1 {
+	margin-bottom: var(--spacing-sm);
+}
+
+.docs-intro p {
+	color: var(--muted-text);
+	font-size: var(--font-size-lg);
+}
+
+/* Category Grid */
+.docs-category-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+	gap: var(--spacing-lg);
+}
+
+/* Category Cards */
+.docs-category-card {
+	display: flex;
+	flex-direction: column;
+	background: var(--card-background);
+	border-radius: var(--border-radius-xl);
+	border: 1px solid var(--border-color);
+	padding: var(--spacing-lg);
+	box-shadow: var(--card-shadow);
+}
+
+.docs-category-card h2 {
+	margin: 0 0 var(--spacing-sm) 0;
+	font-size: var(--font-size-lg);
+}
+
+.docs-category-description {
+	margin: 0 0 var(--spacing-md) 0;
+	color: var(--text-color);
+	line-height: 1.6;
+}
+
+/* Recent Docs List */
+.docs-recent-list {
+	flex-grow: 1;
+	margin: 0 0 var(--spacing-md) 0;
+	padding-left: var(--spacing-md);
+	list-style: disc;
+}
+
+.docs-recent-list li {
+	margin-bottom: var(--spacing-xs);
+}
+
+.docs-recent-list a {
+	color: var(--link-color);
+	text-decoration: none;
+	transition: color 0.18s;
+}
+
+.docs-recent-list a:hover {
+	color: var(--accent);
+}
+
+/* View All Link */
+.docs-view-all {
+	margin-top: auto;
+	font-size: var(--font-size-sm);
+	color: var(--accent);
+	text-decoration: none;
+	transition: color 0.18s;
+}
+
+.docs-view-all:hover {
+	color: var(--link-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.docs-homepage {
+		padding: var(--spacing-md);
+	}
+
+	.docs-category-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Table of Contents Sidebar */
+.docs-toc {
+	position: sticky;
+	top: calc(var(--header-height, 60px) + var(--spacing-md));
+}
+
+.docs-toc-title {
+	margin: var(--spacing-md) 0 var(--spacing-sm) 0;
+	padding-bottom: var(--spacing-sm);
+	border-bottom: 2px solid var(--accent);
+	font-size: var(--font-size-sm);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--text-secondary);
+}
+
+.docs-toc-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.docs-toc-list li {
+	margin: 0;
+	padding: 0;
+}
+
+.docs-toc-link {
+	display: block;
+	padding: var(--spacing-xs) 0;
+	padding-left: var(--spacing-sm);
+	border-left: 2px solid transparent;
+	color: var(--text-secondary);
+	font-size: var(--font-size-sm);
+	text-decoration: none;
+	transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.docs-toc-link:hover {
+	color: var(--text-primary);
+}
+
+.docs-toc-link.active {
+	color: var(--accent);
+	border-left-color: var(--accent);
+}
+
+/* Hide TOC on mobile */
+@media (max-width: 768px) {
+	.docs-toc {
+		display: none;
+	}
+}
+
+
+/* "Did this help?" on docs articles */
+.docs-feedback {
+	margin-top: 2rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
+}
+
+.docs-feedback__question {
+	margin: 0 0 0.5rem;
+	font-weight: 600;
+}
+
+.docs-feedback__actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.docs-feedback__actions[hidden],
+.docs-feedback__reply[hidden] {
+	display: none;
+}
+
+.docs-feedback__reply {
+	margin: 0;
+}
