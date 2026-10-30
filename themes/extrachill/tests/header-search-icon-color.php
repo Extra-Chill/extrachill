@@ -44,8 +44,10 @@ require_search_icon_declaration( $css, '.search-icon:hover svg', 'fill', 'var(--
 require_search_icon_declaration( $css, '.search-icon:focus svg', 'fill', 'var(--accent)' );
 require_search_icon_declaration( $css, '.search-icon.menu-open svg', 'transform', 'rotate(45deg)' );
 
-// The submit button has no .search-icon class: its SVG keeps the shared icon
-// fill and button text color rather than receiving the header-specific color.
+/*
+ * The submit button has no .search-icon class: its SVG keeps the shared icon
+ * fill and button text color rather than receiving the header-specific color.
+ */
 require_search_icon_declaration( $css, '.ec-icon', 'fill', 'currentColor' );
 require_search_icon_declaration( $css, 'button.button-1', 'color', 'var(--button-text-color)' );
 
