@@ -1,0 +1,446 @@
+# Plan-only until MONOREPO_DEPLOY_AUTOMATION=enabled at cutover.
+name: Deploy monorepo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit/ref to plan or deploy. Empty = workflow commit. Compared to its first parent.'
+        type: string
+        default: ''
+      dry_run:
+        description: 'Plan only (no production contact). Live dispatch also requires the cutover variable.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Workflow-level lock covers the gate AND every serial component deploy.
+# deploy.yml uses the same group, so release polling cannot race this workflow.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Prepare evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/homeboy-output" "${RUNNER_TEMP}/extrachill-network-gate"
+          echo "HOMEBOY_OUTPUT_DIR=${RUNNER_TEMP}/homeboy-output" >> "${GITHUB_ENV}"
+          echo "HOMEBOY_CONFIG_ROOT=${RUNNER_TEMP}/monorepo-homeboy" >> "${GITHUB_ENV}"
+
+      - name: Prepare pinned Homeboy binary for the gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/homeboy-0.436.4"
+          curl --fail --silent --show-error --location \
+            'https://github.com/Extra-Chill/homeboy/releases/download/v0.436.4/homeboy-x86_64-unknown-linux-gnu.tar.xz' \
+            --output "${RUNNER_TEMP}/homeboy-0.436.4.tar.xz"
+          printf '%s  %s\n' \
+            '6613d6f2de42cb9383d038b8e147d3769709f182987b92300db8fc8e5eac11bc' \
+            "${RUNNER_TEMP}/homeboy-0.436.4.tar.xz" | sha256sum --check --strict
+          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.436.4.tar.xz" \
+            --directory "${RUNNER_TEMP}/homeboy-0.436.4" --strip-components=1
+          chmod +x "${RUNNER_TEMP}/homeboy-0.436.4/homeboy"
+          # Detection and the rig use this explicit pin. Do not add it to
+          # GITHUB_PATH: Deploy/Verify use the action's separately pinned CLI.
+          echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-0.436.4" >> "${GITHUB_ENV}"
+
+      - name: Plan
+        id: plan
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          REQUEST_DRY_RUN: ${{ inputs.dry_run }}
+          AUTOMATION: ${{ vars.MONOREPO_DEPLOY_AUTOMATION }}
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          base="${BEFORE:-}"
+          if [ "${EVENT}" = workflow_dispatch ]; then
+            base="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          fi
+          if [ -z "${base}" ] || [[ "${base}" =~ ^0+$ ]]; then
+            tree="$(git hash-object -t tree /dev/null)"
+            base="$(echo initial | git -c user.name=CI -c user.email=ci@example.com commit-tree "${tree}")"
+          fi
+          dry_run=true
+          if [ "${AUTOMATION:-}" = enabled ]; then
+            if [ "${EVENT}" = push ] || [ "${REQUEST_DRY_RUN}" = false ]; then
+              dry_run=false
+            fi
+          fi
+          "${HOMEBOY_GATE_BIN_DIR}/homeboy" component changed --base "${base}" --head "${sha}" \
+            --path . --shared-path '.github/**' --format matrix > "${HOMEBOY_OUTPUT_DIR}/matrix.json"
+          python3 deploy/prepare-monorepo.py --checkout "${GITHUB_WORKSPACE}" \
+            --destination "${HOMEBOY_CONFIG_ROOT}" --matrix "${HOMEBOY_OUTPUT_DIR}/matrix.json" \
+            --sha "${sha}" --dry-run "${dry_run}" > "${HOMEBOY_OUTPUT_DIR}/plan.json"
+          count="$(jq '.include | length' "${HOMEBOY_OUTPUT_DIR}/matrix.json")"
+          deploy_count="$(jq '.components | length' "${HOMEBOY_OUTPUT_DIR}/plan.json")"
+          settings="$(jq -cn --arg source "${GITHUB_WORKSPACE}" '{extrachill_monorepo_source:$source}')"
+          {
+            echo "sha=${sha}"
+            echo "changed_count=${count}"
+            echo "deploy_count=${deploy_count}"
+            echo "dry_run=${dry_run}"
+            echo "scope=monorepo ${sha}"
+            echo "gate_bypassed=false"
+            echo "gate_settings_json=${settings}"
+            echo 'command<<MONOREPO_COMMANDS_EOF'
+            jq -r '.commands | join(",")' "${HOMEBOY_OUTPUT_DIR}/plan.json"
+            echo MONOREPO_COMMANDS_EOF
+          } >> "${GITHUB_OUTPUT}"
+          {
+            echo "## Monorepo plan: ${sha}"
+            echo "Base: ${base}; dry run: ${dry_run}; changed: ${count}; deployable: ${deploy_count}"
+            echo '```json'
+            jq . "${HOMEBOY_OUTPUT_DIR}/matrix.json" "${HOMEBOY_OUTPUT_DIR}/plan.json"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Set up Node.js for the network rig gate
+        if: steps.plan.outputs.changed_count != '0'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # WP Codebox comes from homeboy-action, which provisions a pinned,
+      # already-built CLI and exports HOMEBOY_WP_CODEBOX_BIN to every later
+      # step. A second from-source checkout here was redundant and broke:
+      # it inherited the action's WP_CODEBOX_SOURCE_SHA, and wp-codebox's
+      # build provenance check refused to build a different commit under
+      # that SHA ("does not match source checkout HEAD"). The action's copy
+      # must be v0.28.2+: remote theme zips (#2519), redirects between mapped
+      # domains (#2533), and the fence that keeps server-side HTTP to the
+      # mapped production hostnames inside the sandbox (#2534). Without the
+      # fence the gate's own requests reach live extrachill.com.
+      # Fail closed if it is missing or too old.
+      - name: Provision Homeboy and WP Codebox for the gate
+        if: steps.plan.outputs.changed_count != '0'
+        uses: Extra-Chill/homeboy-action@v2
+        with:
+          version: '0.436.4'
+          commands: component show extrachill-network
+          auto-setup: 'false'
+
+      - name: Verify WP Codebox from homeboy-action
+        if: steps.plan.outputs.changed_count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${HOMEBOY_WP_CODEBOX_BIN:-}" ] || [ ! -f "${HOMEBOY_WP_CODEBOX_BIN}" ]; then
+            echo "::error::HOMEBOY_WP_CODEBOX_BIN is not set or missing; homeboy-action did not provision WP Codebox. Refusing to deploy ungated."
+            exit 1
+          fi
+          version="$(node "${HOMEBOY_WP_CODEBOX_BIN}" --version | tr -d '[:space:]')"
+          echo "WP Codebox ${version} at ${HOMEBOY_WP_CODEBOX_BIN}"
+          if [ "$(printf '%s\n%s\n' 0.28.2 "${version}" | sort -V | head -1)" != "0.28.2" ]; then
+            echo "::error::WP Codebox ${version} is older than 0.28.2, which the rig needs (theme zips, mapped-domain redirects, production egress fence). Refusing to deploy ungated."
+            exit 1
+          fi
+
+      # The rig's per-site browser probes need the exact Chromium build that
+      # this WP Codebox package's own Playwright dependency pins. homeboy-action
+      # provisions the CLI but not the browser, so the first real gate run
+      # failed with "Required Playwright Chromium ... is unavailable". Install
+      # it from inside the package that owns the pin (the command WP Codebox
+      # itself prints), with OS deps, so the version always matches.
+      - name: Install Chromium for the network rig gate
+        if: steps.plan.outputs.changed_count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # HOMEBOY_WP_CODEBOX_BIN = <source>/packages/cli/dist/index.js
+          source_root="$(cd "$(dirname "${HOMEBOY_WP_CODEBOX_BIN}")/../../.." && pwd)"
+          playwright_cli="${source_root}/node_modules/playwright/cli.js"
+          if [ ! -f "${playwright_cli}" ]; then
+            echo "::error::Playwright not found at ${playwright_cli}; cannot install the browser the rig gate needs. Refusing to deploy ungated."
+            exit 1
+          fi
+          (cd "${source_root}" && node ./node_modules/playwright/cli.js install --with-deps chromium)
+
+      - name: Install extrachill-network rig
+        if: steps.plan.outputs.changed_count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="${HOMEBOY_GATE_BIN_DIR}:${PATH}"
+          homeboy rig install "${{ github.workspace }}"
+
+      - name: Network rig gate
+        id: gate
+        if: steps.plan.outputs.changed_count != '0'
+        shell: bash
+        env:
+          HOMEBOY_ARTIFACT_ROOT: ${{ runner.temp }}/extrachill-network-gate/artifacts
+          HOMEBOY_SETTINGS_JSON: ${{ steps.plan.outputs.gate_settings_json }}
+        run: |
+          set -euo pipefail
+          export PATH="${HOMEBOY_GATE_BIN_DIR}:${PATH}"
+          homeboy rig up extrachill-network --output "${{ runner.temp }}/extrachill-network-gate/rig-up-result.json"
+
+      # Fail closed, loudly (extrachill-network#264 point 5): name the
+      # failing site(s) and error rather than leaving a bare red X. Grep for
+      # "extrachill-network: " because that is the literal prefix every
+      # site-naming RuntimeException in run.mjs's activation and assertion
+      # steps throws (e.g. "extrachill-network: docs.extrachill.com missing
+      # expected plugins: ..."); it is the most direct path to the failing
+      # site without re-deriving step-to-site identity from wp-codebox's own
+      # opaque per-step runtime directories. Never lets a parsing hiccup here
+      # mask the real pass/fail signal, which is already the gate step's own
+      # exit code.
+      - name: Summarize network gate result
+        id: gate_summary
+        env:
+          GATE_SETTINGS: ${{ steps.plan.outputs.gate_settings_json }}
+        if: always() && (steps.gate.outcome == 'success' || steps.gate.outcome == 'failure')
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="${{ runner.temp }}/extrachill-network-gate/rig-up-result.json"
+          artifacts_dir="${{ runner.temp }}/extrachill-network-gate/artifacts"
+
+          if [ "${{ steps.gate.outcome }}" = "success" ]; then
+            {
+              echo "## :white_check_mark: Network rig gate: PASSED"
+              echo
+              echo "All 11 sites in \`rigs/extrachill-network/network-topology.json\` activated the expected plugins and served an anonymous page load with no fatal marker and no console/page errors. Monorepo checkout gated:"
+              echo '```json'
+              echo "${GATE_SETTINGS}"
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+
+          echo "::error::extrachill-network gate FAILED — deploy is blocked. See the run summary and uploaded evidence artifact."
+          {
+            echo "## :no_entry: Network rig gate: FAILED — deploy blocked"
+            echo
+            echo "Monorepo checkout gated:"
+            echo '```json'
+            echo "${GATE_SETTINGS}"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          if [ -s "${result}" ]; then
+            run_id="$(jq -r '.data.payload.run_id // empty' "${result}" 2>/dev/null || true)"
+            failed_steps="$(jq -r '.data.payload.pipeline.steps[]? | select(.status != "pass") | "- " + .label + " (" + .status + ")"' "${result}" 2>/dev/null || true)"
+            {
+              echo
+              echo "Failed pipeline step(s):"
+              echo "${failed_steps:-"(pipeline summary unavailable)"}"
+              [ -n "${run_id}" ] && echo "Evidence: \`homeboy runs evidence ${run_id}\`"
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "(homeboy rig up produced no structured output to summarize; see the 'Network rig gate' step log directly.)" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+          # The recipe JSON itself embeds run.mjs's PHP source (activation
+          # retry + assertion code), so a naive grep for "extrachill-network:
+          # " always matches that source's own RuntimeException templates
+          # (e.g. "... ' . $site->domain . ' missing expected plugins: ...")
+          # even on a passing run. Every one of those templates contains a
+          # literal PHP `$variable` reference; a real, thrown, interpolated
+          # message never does. Filtering out `$` keeps the signal.
+          site_errors="$(grep -rho 'extrachill-network: [^"\\]\{1,300\}' "${artifacts_dir}" 2>/dev/null | grep -v '\$' | sort -u | head -20 || true)"
+          if [ -n "${site_errors}" ]; then
+            {
+              echo
+              echo "Site-level failure detail:"
+              echo '```'
+              echo "${site_errors}"
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+            {
+              echo "gate_site_errors<<GATE_SITE_ERRORS_EOF"
+              echo "${site_errors}"
+              echo "GATE_SITE_ERRORS_EOF"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            echo "No site-naming assertion error found in the gate's own artifacts (browser console/page-load assertions fail without one — see the uploaded evidence artifact for per-site console.jsonl / errors.jsonl / screenshot.png)." >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload network rig gate evidence
+        if: always() && (steps.gate.outcome == 'success' || steps.gate.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: network-gate-evidence-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/extrachill-network-gate/rig-up-result.json
+            ${{ runner.temp }}/extrachill-network-gate/artifacts
+          if-no-files-found: warn
+          retention-days: 30
+
+      # homeboy-action executes these comma-separated commands serially.
+      # In plan-only mode no Deploy/Verify action receives SSH credentials.
+      - name: Deploy
+        id: deploy
+        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        uses: Extra-Chill/homeboy-action@v2
+        with:
+          version: '0.436.4'
+          commands: ${{ steps.plan.outputs.command }}
+          ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
+          ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
+
+      - name: Verify
+        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        uses: Extra-Chill/homeboy-action@v2
+        with:
+          version: '0.436.4'
+          commands: deploy extrachill-site --check
+          ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
+          ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
+
+      - name: Report to Discord
+        if: always()
+        shell: bash
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_DEPLOY_WEBHOOK }}
+          JOB_STATUS: ${{ job.status }}
+          SCOPE: ${{ steps.plan.outputs.scope }}
+          DRY_RUN: ${{ steps.plan.outputs.dry_run }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+          GATE_BYPASSED: ${{ steps.plan.outputs.gate_bypassed }}
+          GATE_SITE_ERRORS: ${{ steps.gate_summary.outputs.gate_site_errors }}
+        run: |
+          set -euo pipefail
+          [ -n "${WEBHOOK:-}" ] || { echo "No webhook configured; skipping."; exit 0; }
+
+          deployed=0
+          skipped=0
+          lines=""
+          skip_lines=""
+          commands_ok=true
+          for out in "${HOMEBOY_OUTPUT_DIR}"/operations-*.json; do
+            [ -e "${out}" ] || continue
+            n="$(jq '[.data.results[]? | select(.status == "deployed")] | length' "${out}")"
+            deployed=$(( deployed + n ))
+            l="$(jq -r '.data.results[]? | select(.status == "deployed") | "- " + .id + " -> " + (.local_version // "?")' "${out}")"
+            [ -n "${l}" ] && lines="${lines}${lines:+$'\n'}${l}"
+
+            # A skipped component did not get what it was supposed to get. That
+            # is far closer to a failure than to a no-op, but it was previously
+            # invisible in every signal: not counted as failed, not named here,
+            # and not caught by the all-skipped guard, which only fires when
+            # NOTHING resolved. extrachill-community sat on 1.27.0 for hours
+            # after releasing 1.27.1 because every poll skipped it silently and
+            # still reported success (#244).
+            sn="$(jq '[.data.results[]? | select(.status == "skipped" or .status == "unavailable")] | length' "${out}")"
+            skipped=$(( skipped + sn ))
+            sl="$(jq -r '.data.results[]? | select(.status == "skipped" or .status == "unavailable") | "- " + .id + ": " + ((.warnings // []) | join("; ") | if . == "" then "no reason given" else . end)' "${out}")"
+            [ -n "${sl}" ] && skip_lines="${skip_lines}${skip_lines:+$'\n'}${sl}"
+
+            jq -e '.success == true' "${out}" >/dev/null 2>&1 || commands_ok=false
+          done
+
+          # Deduplicate: the deploy and verify invocations both report on the
+          # same component set, so an unfixed skip appears in both files.
+          if [ -n "${skip_lines}" ]; then
+            skip_lines="$(printf '%s\n' "${skip_lines}" | sort -u)"
+            skipped="$(printf '%s\n' "${skip_lines}" | grep -c '^- ' || true)"
+          fi
+
+          if [ "${JOB_STATUS}" = "success" ] && [ "${deployed}" -eq 0 ] && [ "${skipped}" -eq 0 ]; then
+            echo "Healthy no-op; staying quiet."
+            exit 0
+          fi
+
+          # extrachill-network#264: a gate failure is its own distinct red,
+          # not "Deploy failed" (no Homeboy deploy command even ran) and not
+          # the pre-existing "N component(s) misconfigured" skip red from
+          # #244/#262 ("intelligence skipped") — those are unrelated failure
+          # classes and must stay visually and textually distinguishable so
+          # neither trains the channel to ignore the other.
+          if [ "${JOB_STATUS}" != "success" ] && [ "${GATE_OUTCOME:-}" = "failure" ]; then
+            title="Network gate failed - extrachill.com (deploy blocked)"
+            colour=15158332
+            body="Scope: ${SCOPE}. The extrachill-network pre-deploy rig gate (extrachill-network#264) failed, so Deploy did not run — nothing changed on the server. See the run summary and the network-gate-evidence-* artifact for the failing site(s)."
+            if [ -n "${GATE_SITE_ERRORS:-}" ]; then
+              body="${body}"$'\n\n'"${GATE_SITE_ERRORS}"
+            fi
+          # A red job does not always mean a failed deploy. Homeboy reports its
+          # own success per command; when every command succeeded and the job
+          # still failed, the fault is in the CI plumbing around it, not in the
+          # deployment. Announcing that as "deploy failed" sends people to look
+          # at the server when they should be looking at the workflow — which is
+          # exactly what happened while homeboy-action#483 was unfixed.
+          elif [ "${JOB_STATUS}" != "success" ] && [ "${commands_ok}" = "false" ]; then
+            title="Deploy failed - extrachill.com"
+            colour=15158332
+            body="Scope: ${SCOPE}. Homeboy reported a failure; nothing changed unless listed below."
+          elif [ "${JOB_STATUS}" != "success" ] && [ "${skipped}" -gt 0 ]; then
+            # The run is red because components could not deploy at all. Saying
+            # "investigate the run, not the deploy" here would be actively
+            # wrong: the deploy IS the problem, just not for the components
+            # that shipped. Name that directly rather than sending someone to
+            # read workflow logs looking for CI plumbing.
+            title="${skipped} component(s) misconfigured for deploy - extrachill.com"
+            colour=15105570
+            body="Scope: ${SCOPE}. Anything listed as updated did deploy and is live. The components below were not attempted because their deploy configuration is incomplete - they stay behind until it is corrected."
+          elif [ "${JOB_STATUS}" != "success" ]; then
+            title="Deploy OK, workflow failed - extrachill.com"
+            colour=16098851
+            body="Scope: ${SCOPE}. Every Homeboy command succeeded and no component was skipped; a later workflow step failed. The server is in the state listed below - investigate the run, not the deploy."
+          elif [ "${DRY_RUN}" = "true" ]; then
+            title="Deploy planned (dry run) - extrachill.com"
+            colour=10181046
+            body="${deployed} component(s) would deploy."
+          elif [ "${deployed}" -eq 0 ] && [ "${skipped}" -gt 0 ]; then
+            title="Nothing deployed - ${skipped} component(s) misconfigured"
+            colour=16098851
+            body="Scope: ${SCOPE}. Homeboy did not attempt these because their deploy configuration is incomplete, so they stay behind until it is corrected."
+          else
+            title="Deployed to extrachill.com"
+            colour=3066993
+            body="${deployed} component(s) updated."
+          fi
+
+          if [ -n "${lines}" ]; then
+            body="${body}"$'\n'"${lines}"
+          fi
+
+          if [ -n "${skip_lines}" ]; then
+            body="${body}"$'\n\n'"Not attempted (${skipped}) - deploy config needs fixing:"$'\n'"${skip_lines}"
+          fi
+
+          # extrachill-network#264 point 6: an explicit bypass must stay
+          # visible everywhere a human might look, not just the run summary.
+          if [ "${GATE_BYPASSED:-false}" = "true" ]; then
+            body="${body}"$'\n\n'":warning: Network gate bypassed (skip_network_gate) — deployed without verifying the combination of released components boots cleanly."
+          fi
+
+          jq -n --arg t "${title}" --arg d "${body}" --arg u "${RUN_URL}" --argjson c "${colour}" '{embeds:[{title:$t,description:$d,color:$c,url:$u}]}' > "${RUNNER_TEMP}/discord.json"
+          curl -fsS -X POST -H 'Content-Type: application/json' -d @"${RUNNER_TEMP}/discord.json" "${WEBHOOK}" >/dev/null
+          echo "Reported: ${title}"
+
+      - name: Upload deploy evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monorepo-deploy-evidence-${{ github.run_id }}
+          path: ${{ env.HOMEBOY_OUTPUT_DIR }}
+          if-no-files-found: warn
+          retention-days: 30

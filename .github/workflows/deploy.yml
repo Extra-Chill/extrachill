@@ -68,7 +68,7 @@ permissions:
 
 # Deploys queue; they never race each other on the same server.
 concurrency:
-  group: deploy-extrachill-site
+  group: deploy-main
   cancel-in-progress: false
 
 jobs:
