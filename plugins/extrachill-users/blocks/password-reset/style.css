@@ -1,0 +1,72 @@
+/* --- Password Reset Form Styles - Using Theme Variables --- */
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none;
+}
+
+/* --- Password Reset Form Container --- */
+.password-reset-form {
+    background-color: var(--card-background);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    max-width: 600px;
+    margin: 10px auto;
+    font-family: 'Arial', sans-serif;
+    border: 1px solid var(--border-color);
+}
+
+.password-reset-form h2 {
+    color: var(--link-color);
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.password-reset-form p {
+    font-size: 16px;
+    color: var(--muted-text);
+    margin: 1rem 0;
+}
+
+.password-reset-form label {
+    font-weight: 600;
+    color: var(--text-color);
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Input Styles - Using theme form tokens with auth-specific spacing */
+.password-reset-form input[type="text"],
+.password-reset-form input[type="email"],
+.password-reset-form input[type="password"] {
+    margin-bottom: 15px; /* Auth-specific spacing */
+}
+
+/* Links */
+.password-reset-form a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.password-reset-form a:hover {
+    text-decoration: underline;
+}
+
+
+
+/* --- Dark Mode Overrides --- */
+@media (prefers-color-scheme: dark) {
+    .password-reset-form {
+        background-color: var(--card-background);
+        box-shadow: var(--card-shadow);
+    }
+
+    .password-reset-form h2,
+    .password-reset-form p,
+    .password-reset-form label {
+        color: var(--text-color);
+    }
+
+
+}

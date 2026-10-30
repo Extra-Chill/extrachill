@@ -1,0 +1,227 @@
+<?php
+/**
+ * Plugin Name: Extra Chill Users
+ * Plugin URI: https://extrachill.com
+ * Description: Single source of truth for user management across the ExtraChill Platform network. Handles authentication, user creation, team members, profile URL resolution, custom avatars, avatar menu, online user tracking, and lifetime memberships.
+ * Version: 0.54.0
+ * Author: Chris Huber
+ * Author URI: https://chubes.net
+ * Network: true
+ * Requires Plugins: extrachill-network, extrachill-api
+ * Requires at least: 5.0
+ * Tested up to: 6.4
+ * Requires PHP: 8.0
+ * Text Domain: extrachill-users
+ * Domain Path: /languages
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'EXTRACHILL_USERS_VERSION', '0.54.0' );
+define( 'EXTRACHILL_USERS_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_USERS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_USERS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'EXTRACHILL_USERS_URL', plugin_dir_url( __FILE__ ) );
+
+register_activation_hook( __FILE__, 'extrachill_users_activate' );
+register_deactivation_hook( __FILE__, 'extrachill_users_deactivate' );
+
+function extrachill_users_activate() {
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
+	extrachill_users_run_activation();
+}
+
+function extrachill_users_deactivate() {
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
+	extrachill_users_run_deactivation();
+}
+
+function extrachill_users_enqueue_block_styles() {
+	global $wp_filesystem;
+	if ( is_admin() ) {
+		return;
+	}
+
+	$blocks_to_check = array(
+		'login-register' => 'extrachill/login-register',
+		'password-reset' => 'extrachill/password-reset',
+	);
+
+	foreach ( $blocks_to_check as $block_slug => $block_name ) {
+		if ( has_block( $block_name ) ) {
+			$style_path = EXTRACHILL_USERS_PLUGIN_DIR . "build/{$block_slug}/style-index.css";
+
+			if ( file_exists( $style_path ) ) {
+				// Get WordPress core block handle (backwards compatible)
+				$handle = (
+					function_exists( 'wp_should_load_separate_core_block_assets' ) &&
+					wp_should_load_separate_core_block_assets()
+				) ? 'wp-block-library' : 'wp-block-library';
+
+				// Read the stylesheet
+				$styles = $wp_filesystem->get_contents( $style_path );
+
+				// Inline to WordPress core handle
+				wp_add_inline_style( $handle, $styles );
+			}
+		}
+	}
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_users_enqueue_block_styles' );
+
+/**
+ * Register Gutenberg blocks.
+ */
+function extrachill_users_register_blocks() {
+	$blocks_dir = file_exists( EXTRACHILL_USERS_PLUGIN_DIR . 'build/login-register' )
+		? 'build'
+		: 'blocks';
+
+	register_block_type( EXTRACHILL_USERS_PLUGIN_DIR . $blocks_dir . '/login-register' );
+	register_block_type( EXTRACHILL_USERS_PLUGIN_DIR . $blocks_dir . '/password-reset' );
+	register_block_type( EXTRACHILL_USERS_PLUGIN_DIR . $blocks_dir . '/onboarding' );
+}
+add_action( 'init', 'extrachill_users_register_blocks' );
+
+add_action( 'plugins_loaded', 'extrachill_users_init' );
+
+// In test context, init immediately since the plugin file is loaded during
+// plugins_loaded by the test bootstrap — any add_action on the same hook
+// at the same priority would be silently skipped.
+if ( defined( 'WP_TESTS_DOMAIN' ) ) {
+	extrachill_users_init();
+}
+
+function extrachill_users_init() {
+	static $initialized = false;
+	if ( $initialized ) {
+		return;
+	}
+	$initialized = true;
+	/*
+	 * activation.php is named for its activation entry points, but it also
+	 * registers runtime hooks: the new-site login page on wp_initialize_site,
+	 * the welcome-email fallback, and the admin_init self-heal guards that
+	 * create missing pages and apply dbDelta migrations.
+	 *
+	 * Those add_action() calls only take effect if the file is loaded on
+	 * ordinary requests. Loading it exclusively from the activation and
+	 * deactivation callbacks left all of them dead, so new network sites
+	 * came up without a login page and table migrations never applied on
+	 * upgrade. The file defines functions and registers hooks only — it has
+	 * no load-time side effects.
+	 */
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/assets.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/password-policy.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/gating.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/feature-rollout-admin.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/artist-access-admin.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/admin-access-control.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/moderation/bootstrap.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/abilities/register.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/online-users.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/last-login.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/user-creation.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/network-bot-user.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-emails.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/registration-newsletter-consent.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/local-scene-migration.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/orphan-meta-cleanup.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/registration-redirect.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/login.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/core-signup.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/register.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/logout.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/password-reset.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/browser-handoff-handler.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth/class-redirect-handler.php';
+
+	// Token PRIMITIVES (access/refresh generation, hashing, bearer filter, table)
+	// are owned solely by wp-native-auth as of the eu#76 consolidation. This
+	// plugin keeps only the EC service + policy layer (service.php), the UUID
+	// helper (tokens.php), and the EC-specific browser-handoff semantics.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/tokens.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/auth-tokens/browser-handoff-token.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/google-canonical-origin.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/google-service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/jwt-rs256.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-display.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-menu-items.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-profiles.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/team-members.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-dispatch-role.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/artist-dispatch.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/badges/user-badges.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/rank-tiers.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/points-engine.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/rank-system/contribution-events.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/analytics.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/onboarding/form-handler.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/lifetime-membership.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/shop-permissions.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/brand-socials-permissions.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/datamachine-permissions.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/intelligence-permissions.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-auto-approval.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/comment-login-cta.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/footer/online-users-stats.php';
+
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/analytics.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/rank-points.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/contribution-events.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/buttons.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import-db.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/import/bootstrap.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/notifications.php';
+
+	// Network notification substrate: idempotent entry point + read/CRUD.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/email.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/unsubscribe.php';
+	// Publish-notify producer: notify a submitter when their submission goes
+	// live. Network-active so it observes the publish on whatever site the post
+	// lives on; driven by a data-only descriptor registry (feature-agnostic).
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/publish-notify.php';
+	// Review-notify: alert the editor when a main-site post enters core's
+	// pending status, however it was submitted.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/review-notify.php';
+	// Click-to-read redirect: marks a single notification read on click.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/read-redirect.php';
+	// Header notification bell — renders network-wide via the theme header hook.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/notifications/bell.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/artist-dispatch-admin.php';
+
+	// Private, network-wide entity update subscriptions.
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/entity-subscriptions/service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/account-email-sharing-retirement.php';
+
+	// wp-native-auth bridge: layer EC policy (membership, blocking, Turnstile)
+	// onto the generic wp-native-auth filter surface when both plugins are active.
+	if ( defined( 'WP_NATIVE_AUTH_VERSION' ) ) {
+		require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/wp-native-bridge.php';
+	}
+}
+
+add_filter( 'newsletter_form_integrations', 'extrachill_users_newsletter_integration' );
+function extrachill_users_newsletter_integration( $integrations ) {
+	$integrations['registration'] = array(
+		'label'       => __( 'User Registration', 'extrachill-users' ),
+		'description' => __( 'Newsletter subscription during account registration', 'extrachill-users' ),
+		'list_id_key' => 'registration_list_id',
+		'enable_key'  => 'enable_registration',
+		'plugin'      => 'extrachill-users',
+	);
+	return $integrations;
+}

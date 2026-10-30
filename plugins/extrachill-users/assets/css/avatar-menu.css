@@ -1,0 +1,119 @@
+/**
+ * Avatar Menu Dropdown Styles
+ *
+ * Network-wide styling for user avatar dropdown menu in header.
+ * Loaded on all sites across the multisite network.
+ *
+ * @package ExtraChill\Users
+ */
+
+.user-avatar-container {
+    position: relative;
+}
+
+.user-avatar-toggle {
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: inherit;
+}
+
+.user-avatar-toggle:focus-visible {
+    outline: 2px solid var(--focus-border-color);
+    outline-offset: 2px;
+}
+
+.user-avatar-toggle img.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--accent-2);
+    display: block;
+    transition: opacity 0.2s ease;
+}
+
+.user-avatar-toggle:hover img.avatar {
+    opacity: 0.8;
+}
+
+.user-avatar-toggle .ec-icon {
+    width: 1em;
+    height: 1em;
+}
+
+.user-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 220px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 1000;
+}
+
+.user-dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0;
+}
+
+.user-dropdown-menu li {
+    margin: 0;
+    padding: 0;
+}
+
+.user-dropdown-menu a {
+    display: block;
+    padding: 0.75rem 1.25rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+    font-size: var(--font-size-base);
+}
+
+.user-dropdown-menu a:hover {
+    background-color: var(--card-background);
+}
+
+.user-dropdown-menu .log-out-link {
+    color: var(--error-color);
+}
+
+.user-dropdown-menu .log-out-link:hover {
+    background-color: var(--card-background);
+    color: var(--error-color);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .user-dropdown-menu {
+        right: -1rem;
+        min-width: 180px;
+    }
+}
+
+.user-avatar-container .screen-reader-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}

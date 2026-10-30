@@ -1,0 +1,170 @@
+<?php
+/**
+ * Avatar Menu Items
+ *
+ * Canonical menu-item builder for the web avatar menu.
+ *
+ * @package ExtraChill\Users
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Returns the canonical avatar menu items for a user.
+ *
+ * @param int $user_id User ID.
+ * @return array
+ */
+function extrachill_users_get_avatar_menu_items( $user_id ) {
+	$user_id = (int) $user_id;
+
+	if ( $user_id <= 0 ) {
+		return array();
+	}
+
+	$user = get_user_by( 'id', $user_id );
+	if ( ! $user ) {
+		return array();
+	}
+
+	$profile_url      = extrachill_get_user_community_profile_url( $user_id, $user->user_email );
+	$profile_edit_url = ! empty( $profile_url ) ? trailingslashit( $profile_url ) . 'edit/' : '';
+	$items            = array();
+
+	if ( ! empty( $profile_url ) && ! empty( $profile_edit_url ) ) {
+		$items[] = array(
+			'id'       => 'view_profile',
+			'label'    => __( 'View Profile', 'extrachill-users' ),
+			'url'      => $profile_url,
+			'priority' => 10,
+			'danger'   => false,
+		);
+		$items[] = array(
+			'id'       => 'edit_profile',
+			'label'    => __( 'Edit Profile', 'extrachill-users' ),
+			'url'      => $profile_edit_url,
+			'priority' => 20,
+			'danger'   => false,
+		);
+	}
+
+	$user_artist_ids = ec_get_artists_for_user( $user_id );
+	$artist_count    = count( $user_artist_ids );
+
+	$can_manage_shop = function_exists( 'ec_can_manage_shop' ) ? ec_can_manage_shop( $user_id ) : false;
+	if ( $can_manage_shop ) {
+		$product_count = function_exists( 'ec_get_shop_product_count_for_user' )
+			? ec_get_shop_product_count_for_user( $user_id )
+			: 0;
+
+		$items[] = array(
+			'id'       => 'manage_shop',
+			'label'    => $product_count > 0
+				? __( 'Manage Shop', 'extrachill-users' )
+				: __( 'Create Shop', 'extrachill-users' ),
+			'url'      => ec_get_site_url( 'artist' ) . '/manage-shop/',
+			'priority' => 50,
+			'danger'   => false,
+		);
+	}
+
+	if ( $artist_count > 0 ) {
+		$items[] = array(
+			'id'       => 'manage_artists',
+			'label'    => 1 === $artist_count
+				? __( 'Manage Artist', 'extrachill-users' )
+				: __( 'Manage Artists', 'extrachill-users' ),
+			'url'      => ec_get_site_url( 'artist' ) . '/manage-artist/',
+			'priority' => 30,
+			'danger'   => false,
+		);
+		// The artist site's /manage-link-page/ routes owners to their Link Page
+		// editor (extrachill.link/edit after the cutover) and offers creation
+		// otherwise, so one stable URL works from every site.
+		$items[] = array(
+			'id'       => 'link_page',
+			'label'    => __( 'My Link Page', 'extrachill-users' ),
+			'url'      => ec_get_site_url( 'artist' ) . '/manage-link-page/',
+			'priority' => 35,
+			'danger'   => false,
+		);
+	} elseif ( function_exists( 'ec_can_create_artist_profiles' ) && ec_can_create_artist_profiles( $user_id ) ) {
+		$items[] = array(
+			'id'       => 'create_artist',
+			'label'    => __( 'Create Artist Profile', 'extrachill-users' ),
+			'url'      => ec_get_site_url( 'artist' ) . '/create-artist/',
+			'priority' => 30,
+			'danger'   => false,
+		);
+	}
+
+	$custom_items = apply_filters( 'ec_avatar_menu_items', array(), $user_id );
+	if ( ! empty( $custom_items ) && is_array( $custom_items ) ) {
+		$reserved_ids = array( 'view_profile', 'edit_profile', 'settings', 'logout' );
+		foreach ( $custom_items as $custom_item ) {
+			$custom_id = isset( $custom_item['id'] ) ? (string) $custom_item['id'] : '';
+			if ( empty( $custom_item['label'] ) || empty( $custom_item['url'] ) || in_array( $custom_id, $reserved_ids, true ) ) {
+				continue;
+			}
+
+			$items[] = array(
+				'id'       => '' !== $custom_id ? $custom_id : 'custom_' . md5( (string) $custom_item['url'] ),
+				'label'    => (string) $custom_item['label'],
+				'url'      => (string) $custom_item['url'],
+				'priority' => isset( $custom_item['priority'] ) ? (int) $custom_item['priority'] : 10,
+				'danger'   => false,
+			);
+		}
+	}
+
+	$items[] = array(
+		'id'       => 'settings',
+		'label'    => __( 'Settings', 'extrachill-users' ),
+		'url'      => ec_get_site_url( 'community' ) . '/settings/',
+		'priority' => 90,
+		'danger'   => false,
+	);
+
+	$items[] = array(
+		'id'       => 'logout',
+		'label'    => __( 'Log Out', 'extrachill-users' ),
+		'url'      => wp_logout_url( home_url() ),
+		'priority' => 100,
+		'danger'   => true,
+	);
+
+	$seen_ids = array();
+	$items    = array_values(
+		array_filter(
+			$items,
+			static function ( $item ) use ( &$seen_ids ) {
+				if ( isset( $seen_ids[ $item['id'] ] ) ) {
+					return false;
+				}
+				$seen_ids[ $item['id'] ] = true;
+				return true;
+			}
+		)
+	);
+
+	foreach ( $items as $order => &$item ) {
+		$item['_order'] = $order;
+	}
+	unset( $item );
+
+	usort(
+		$items,
+		static function ( $a, $b ) {
+			$priority_order = $a['priority'] <=> $b['priority'];
+			return 0 !== $priority_order ? $priority_order : ( $a['_order'] <=> $b['_order'] );
+		}
+	);
+	foreach ( $items as &$item ) {
+		unset( $item['_order'] );
+	}
+	unset( $item );
+
+	return $items;
+}

@@ -1,0 +1,277 @@
+/* --- Login/Register Form Styles - Using Centralized Variables --- */
+
+
+
+/* --- Utility Classes --- */
+.hidden {
+    display: none;
+}
+
+.login-register-form {
+}
+
+.login-register-form p {
+    font-size: 16px;
+    color: var(--muted-text);
+}
+
+.ec-auth-notice {
+	margin-bottom: var(--spacing-md);
+	font-size: var(--font-size-sm);
+	font-weight: 500;
+}
+
+.ec-auth-notice p {
+	margin: 0;
+	font-size: inherit;
+	color: inherit;
+}
+
+.ec-auth-notice--error {
+	color: var(--error-color);
+}
+
+.ec-auth-notice--warning {
+	color: #856404;
+}
+
+.ec-auth-notice--info {
+	color: #004085;
+}
+
+.ec-auth-notice--success {
+	color: var(--success-color);
+}
+
+.login-register-form label {
+    font-weight: 600;
+    color: var(--text-color);
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Input Styles - Using theme form tokens with auth-specific spacing */
+.login-register-form input[type="text"],
+.login-register-form input[type="email"],
+.login-register-form input[type="password"] {
+    margin-bottom: 15px; /* Auth-specific spacing */
+}
+
+.registration-newsletter-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.registration-newsletter-consent input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 3px 0 0;
+}
+
+.registration-newsletter-consent label {
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Remember Me */
+.login-remember-me {
+    margin-bottom: 15px;
+}
+
+.login-remember-me label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    font-weight: 400;
+}
+
+.login-remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+/* Submit Button - Styling handled by button-2 class from theme */
+
+
+
+/* --- Dark Mode Overrides --- */
+/* --- Additional Notice and Form Element Styles --- */
+
+.registration-submit-section {
+    margin-top: 15px;
+}
+
+/* Turnstile Widget */
+.cf-turnstile {
+    margin-top: 20px;
+}
+
+/* --- Already Logged In Card --- */
+.login-already-logged-in-card {
+	width: 100%;
+}
+
+.login-already-logged-in-card__panel {
+	max-width: 400px;
+	margin: 10px auto;
+	text-align: center;
+}
+
+.login-already-logged-in-card .logged-in-avatar {
+    margin-bottom: 1em;
+}
+
+.login-already-logged-in-card .logged-in-avatar img {
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+}
+
+.login-already-logged-in-card h3 {
+    color: var(--text-color);
+    margin: 0 0 0.25em 0;
+    font-size: 1.5em;
+}
+
+.login-already-logged-in-card .logged-in-status {
+    color: var(--muted-text);
+    margin: 0 0 1.5em 0;
+    font-size: 0.95em;
+}
+
+.login-already-logged-in-card .logged-in-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+}
+
+.login-already-logged-in-card .logged-in-actions a {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* --- Social Login --- */
+.social-login-divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: var(--muted-text);
+}
+
+.social-login-divider::before,
+.social-login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.social-login-divider span {
+    padding: 0 15px;
+    font-size: 14px;
+    text-transform: lowercase;
+}
+
+.social-login-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.google-signin-button {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 320px;
+    max-width: 100%;
+}
+
+/*
+ * Redirect-variant Google button — used on non-canonical subsites
+ * where GIS is not loaded. Sends the user to the canonical login
+ * page via a same-tab redirect. Styled to match Google's "outline"
+ * button theme so the visual transition feels seamless.
+ */
+.google-signin-button--redirect {
+    align-items: center;
+    box-sizing: border-box;
+    gap: 12px;
+    padding: 10px 24px;
+    background: #fff;
+    color: #1f1f1f;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.25;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.google-signin-button--redirect:hover {
+    background: #f8f9fa;
+    border-color: #d2e3fc;
+    box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+}
+
+.google-signin-button--redirect:focus {
+    outline: 2px solid #1a73e8;
+    outline-offset: 2px;
+}
+
+.google-signin-button--redirect:visited {
+    color: #1f1f1f;
+}
+
+.google-signin-button__icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.google-signin-button__label {
+    white-space: nowrap;
+}
+
+@media (max-width: 360px) {
+    .google-signin-button {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+/* --- Forgot Password Link --- */
+.login-forgot-password {
+    margin-top: var(--spacing-md);
+    text-align: right;
+}
+
+.login-forgot-password a {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.login-forgot-password a:hover {
+    color: var(--text-color);
+}
+
+/* --- Register Prompt --- */
+.login-register-prompt {
+    margin-top: var(--spacing-xl);
+    text-align: center;
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.login-register-prompt a {
+    color: var(--link-color);
+}

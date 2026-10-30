@@ -1,0 +1,60 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "database_type": "mysql",
+      "settings": {
+        "validation_dependencies": ["data-machine-events", "extrachill-analytics"],
+        "wp_codebox_database_service": {
+          "provider": "external",
+          "engine": "mysql",
+          "allowed_hosts": ["127.0.0.1:3306"],
+          "secret_env": {
+            "host": "WP_CODEBOX_DB_HOST",
+            "port": "WP_CODEBOX_DB_PORT",
+            "username": "WP_CODEBOX_DB_USER",
+            "password": "WP_CODEBOX_DB_PASSWORD"
+          }
+        },
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wordpress_runtime_php_version": "8.4"
+      }
+    }
+  },
+  "id": "extrachill-users",
+  "remote_path": "wp-content/plugins/extrachill-users",
+  "scopes": {
+    "package": {
+      "exclude": [
+        "blocks/**"
+      ]
+    }
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-users.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-users.php",
+      "pattern": "EXTRACHILL_USERS_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "blocks/login-register/block.json",
+      "artifact_path": "build/login-register/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "blocks/onboarding/block.json",
+      "artifact_path": "build/onboarding/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "blocks/password-reset/block.json",
+      "artifact_path": "build/password-reset/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    }
+  ]
+}

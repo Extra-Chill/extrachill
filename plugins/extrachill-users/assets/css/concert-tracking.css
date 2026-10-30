@@ -1,0 +1,181 @@
+/**
+ * Concert Tracking — Attendance Button Styles
+ *
+ * Supplements the theme's button class system (button-2, button-3, button-large).
+ * Only defines layout for the attendance container and count label.
+ * Button styling comes from the theme's button-* classes in style.css.
+ *
+ * @package ExtraChill\Users
+ * @since 0.8.0
+ */
+
+/* Container: inline-flex for button + count side by side */
+.ec-attendance {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+/* Check mark inside button — inherits button text color */
+.ec-attendance__check {
+	font-size: 0.85em;
+	line-height: 1;
+}
+
+/* Attendance count label */
+.ec-attendance__count {
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	white-space: nowrap;
+}
+
+/* ─── Attendance visibility disclosure (extrachill-users #414) ─────────── */
+
+.ec-attendance-visibility {
+	margin: 0.25rem 0 0;
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	line-height: 1.4;
+}
+
+.ec-attendance-visibility a {
+	color: inherit;
+	text-decoration: underline;
+}
+
+/* ─── Attendee strip ("who's going / who was there") ───────────────────── */
+
+.ec-attendance-list {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.ec-attendance-list__label {
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+}
+
+/* Selectors below are intentionally scoped under `.ec-attendance-list` to
+ * raise specificity above the theme's content-context rules. This strip
+ * renders inside `.entry-content` (it's part of the EventDetails block
+ * content), so bare `.ec-attendance-list__item` (0,1,0) loses to
+ * `.entry-content li` (0,1,1) and the avatar overlap / row layout break.
+ * The descendant-scoped form (0,2,0) wins without resorting to !important. */
+.ec-attendance-list .ec-attendance-list__avatars {
+	display: flex;
+	align-items: center;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.ec-attendance-list .ec-attendance-list__item {
+	margin: 0 0 0 -0.5rem;
+}
+
+.ec-attendance-list .ec-attendance-list__item:first-child {
+	margin-left: 0;
+}
+
+/* Neutralize inherited `.entry-content a` link styling on the avatar anchor. */
+.ec-attendance-list .ec-attendance-list__item a {
+	display: block;
+	line-height: 0;
+	text-decoration: none;
+	color: inherit;
+	border: 0;
+}
+
+.ec-attendance-list .ec-attendance-list__avatar {
+	display: block;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	border: 2px solid var(--card-background, #fff);
+	object-fit: cover;
+}
+
+/* Anonymous "+N" chip for attendees not shown as avatars (private or over the limit). */
+.ec-attendance-list .ec-attendance-list__more {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	box-sizing: border-box;
+	border-radius: 50%;
+	border: 2px solid var(--card-background, #fff);
+	background: var(--border-color, #e5e7eb);
+	color: var(--text-color, #111827);
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 600;
+	line-height: 1;
+}
+
+/* ─── Attendance "hero" variant (past-event archive framing) ───────────── */
+
+.ec-attendance-hero {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--spacing-sm, 0.5rem);
+	padding: var(--spacing-md, 1rem);
+	border: 1px solid var(--card-border, #e5e7eb);
+	border-radius: var(--border-radius, 0.5rem);
+	background: var(--card-background, #fff);
+}
+
+.ec-attendance-hero__heading {
+	margin: 0;
+	font-size: var(--font-size-lg, 1.125rem);
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.ec-attendance-hero__subheading {
+	margin: 0;
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	line-height: 1.4;
+}
+
+/* ─── Import nudge ("import your concert history") ─────────────────────── */
+
+.ec-import-nudge {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-sm, 0.5rem);
+	margin-top: var(--spacing-sm, 0.5rem);
+	padding: var(--spacing-md, 1rem);
+	border: 1px solid var(--card-border, #e5e7eb);
+	border-radius: var(--border-radius, 0.5rem);
+	background: var(--card-background, #fff);
+}
+
+.ec-import-nudge__body {
+	flex: 1 1 12rem;
+	min-width: 0;
+}
+
+.ec-import-nudge__heading {
+	margin: 0;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.ec-import-nudge__text {
+	margin: 0.25rem 0 0;
+	font-size: var(--font-size-sm, 0.8125rem);
+	color: var(--muted-text, #6b7280);
+	line-height: 1.4;
+}
+
+.ec-import-nudge__cta {
+	flex: 0 0 auto;
+	text-decoration: none;
+}
