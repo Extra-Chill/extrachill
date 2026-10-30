@@ -1,0 +1,4 @@
+parameters:
+    scanFiles:
+        - stubs/phpstan/datamachine-system-task.php
+        - stubs/phpstan/datamachine-plugin-settings.php

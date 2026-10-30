@@ -1,0 +1,512 @@
+<?php
+/**
+ * Admission checks for public analytics writes.
+ *
+ * @package ExtraChill\Analytics
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Return the browser host that initiated the current write.
+ *
+ * @return string Lowercase host, or an empty string.
+ */
+function extrachill_analytics_public_write_source_host() {
+	$source = '';
+	if ( isset( $_SERVER['HTTP_ORIGIN'] ) ) {
+		$source = sanitize_text_field( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) );
+	} elseif ( isset( $_SERVER['HTTP_REFERER'] ) ) {
+		$source = sanitize_text_field( wp_unslash( $_SERVER['HTTP_REFERER'] ) );
+	}
+
+	$host = wp_parse_url( $source, PHP_URL_HOST );
+
+	return is_string( $host ) ? strtolower( rtrim( $host, '.' ) ) : '';
+}
+
+/**
+ * Determine whether a host belongs to the current network site.
+ *
+ * Includes mapped domains such as the public link-page domain when the network
+ * domain map is available.
+ *
+ * @param string $host Candidate host.
+ * @return bool
+ */
+function extrachill_analytics_public_write_host_is_current_site( $host ) {
+	$host            = strtolower( rtrim( (string) $host, '.' ) );
+	$current_blog_id = (int) get_current_blog_id();
+	$allowed_hosts   = array();
+
+	foreach ( array( home_url( '/' ), function_exists( 'site_url' ) ? site_url( '/' ) : '' ) as $site_url ) {
+		$site_host = wp_parse_url( $site_url, PHP_URL_HOST );
+		if ( is_string( $site_host ) && '' !== $site_host ) {
+			$allowed_hosts[] = strtolower( rtrim( $site_host, '.' ) );
+		}
+	}
+
+	if ( function_exists( 'ec_get_domain_map' ) ) {
+		foreach ( ec_get_domain_map() as $domain => $blog_id ) {
+			if ( $current_blog_id === (int) $blog_id ) {
+				$allowed_hosts[] = strtolower( rtrim( (string) $domain, '.' ) );
+			}
+		}
+	}
+
+	return '' !== $host && in_array( $host, array_unique( $allowed_hosts ), true );
+}
+
+/**
+ * Determine whether a browser host may submit a pageview for a post.
+ *
+ * The current network site is always accepted. A custom public host owned by
+ * another runtime (for example a link-page runtime that renders network
+ * content under its own domain) is accepted only when that runtime answers
+ * the `extrachill_analytics_pageview_origin_host_allowed` filter below. This
+ * file never encodes a foreign domain name itself.
+ *
+ * Accepting a foreign host does not by itself admit the write: the signed
+ * pageview proof validated afterwards is bound to this host, path, route
+ * family, and post, so a forged or replayed proof still fails.
+ *
+ * @param string $host    Browser host from the write request.
+ * @param int    $post_id Post being recorded, or zero for a route view.
+ * @return bool
+ */
+function extrachill_analytics_pageview_origin_host_is_allowed( $host, $post_id ) {
+	if ( extrachill_analytics_public_write_host_is_current_site( $host ) ) {
+		return true;
+	}
+
+	$host = strtolower( rtrim( (string) $host, '.' ) );
+	if ( '' === $host ) {
+		return false;
+	}
+
+	/**
+	 * Filters whether a custom public host may record pageviews for a post.
+	 *
+	 * The runtime that owns a custom public domain answers this filter; it is
+	 * the only place a foreign host name may appear. Any future public-host
+	 * owner can answer the same filter without changes here. Route views
+	 * (post ID zero) are intentionally first-party only, so answerers should
+	 * require a positive post ID they actually serve.
+	 *
+	 * @param bool   $allowed Whether the host is accepted for this post.
+	 * @param string $host    Lowercase browser host without a trailing dot.
+	 * @param int    $post_id Post being recorded, or zero for a route view.
+	 */
+	return (bool) apply_filters( 'extrachill_analytics_pageview_origin_host_allowed', false, $host, (int) $post_id );
+}
+
+/**
+ * Apply an atomic fixed-window cap to public analytics writes.
+ *
+ * The cache key contains only a salted hash of the client IP. The raw address
+ * is never persisted by this limiter.
+ *
+ * @return true|WP_Error
+ */
+function extrachill_analytics_check_public_write_rate_limit() {
+	$limit = (int) apply_filters( 'extrachill_analytics_public_write_rate_limit', 240 );
+	if ( $limit < 1 ) {
+		return true;
+	}
+
+	$ip = function_exists( 'extrachill_analytics_get_client_ip' ) ? extrachill_analytics_get_client_ip() : '';
+	if (
+		'' === $ip
+		|| ! function_exists( 'wp_using_ext_object_cache' )
+		|| ! wp_using_ext_object_cache()
+		|| ! function_exists( 'wp_cache_add' )
+		|| ! function_exists( 'wp_cache_incr' )
+	) {
+		return new WP_Error(
+			'analytics_write_limiter_unavailable',
+			__( 'Analytics write admission is temporarily unavailable.', 'extrachill-analytics' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	$key   = 'write_' . substr( hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) ), 0, 32 );
+	$group = 'extrachill-analytics-admission';
+	if ( wp_cache_add( $key, 1, $group, MINUTE_IN_SECONDS ) ) {
+		$count = 1;
+	} else {
+		$count = wp_cache_incr( $key, 1, $group );
+	}
+
+	if ( false === $count || ! is_numeric( $count ) ) {
+		return new WP_Error(
+			'analytics_write_limiter_unavailable',
+			__( 'Analytics write admission is temporarily unavailable.', 'extrachill-analytics' ),
+			array( 'status' => 503 )
+		);
+	}
+
+	if ( (int) $count > $limit ) {
+		return new WP_Error(
+			'analytics_write_rate_limited',
+			__( 'Too many analytics writes.', 'extrachill-analytics' ),
+			array( 'status' => 429 )
+		);
+	}
+
+	return true;
+}
+
+/**
+ * Create a cache-safe proof for one rendered pageview tuple.
+ *
+ * @param int    $post_id      Post ID, or zero for a route view.
+ * @param string $source_path  Normalized route path.
+ * @param string $route_family Route family.
+ * @param string $source_host  Browser host.
+ * @return string
+ */
+function extrachill_analytics_pageview_proof( $post_id, $source_path, $route_family, $source_host ) {
+	$payload = implode(
+		'|',
+		array(
+			(int) get_current_blog_id(),
+			(int) $post_id,
+			strtolower( rtrim( (string) $source_host, '.' ) ),
+			(string) $source_path,
+			(string) $route_family,
+		)
+	);
+
+	return hash_hmac( 'sha256', $payload, wp_salt( 'nonce' ) );
+}
+
+/**
+ * Determine whether a post exists in the published state.
+ *
+ * Custom-domain post types can be publicly routed while their registration is
+ * not `public`, so `is_post_publicly_viewable()` is not sufficient here.
+ *
+ * @param WP_Post $post Post object.
+ * @return bool
+ */
+function extrachill_analytics_write_post_is_published( $post ) {
+	$status = isset( $post->post_status ) ? (string) $post->post_status : get_post_status( $post );
+
+	return 'publish' === $status;
+}
+
+/**
+ * Determine whether a public post is legitimately served at a browser source.
+ *
+ * Canonical permalinks match exactly. Mapped custom domains may expose the
+ * same post at its slug path; a mapped domain root may expose the one post
+ * whose slug is the normalized domain label.
+ *
+ * @param int    $post_id     Post ID.
+ * @param string $source_path Normalized browser path.
+ * @param string $source_host Browser host.
+ * @return bool
+ */
+function extrachill_analytics_public_post_matches_source( $post_id, $source_path, $source_host ) {
+	$post = get_post( $post_id );
+	if ( ! $post || ! extrachill_analytics_write_post_is_published( $post ) ) {
+		return false;
+	}
+
+	$permalink      = get_permalink( $post );
+	$canonical_host = is_string( $permalink ) ? wp_parse_url( $permalink, PHP_URL_HOST ) : '';
+	$canonical_path = is_string( $permalink ) ? extrachill_analytics_normalize_route_path( $permalink ) : '';
+	$canonical_host = is_string( $canonical_host ) ? strtolower( rtrim( $canonical_host, '.' ) ) : '';
+	$source_host    = strtolower( rtrim( (string) $source_host, '.' ) );
+	if ( $canonical_host === $source_host && $canonical_path === $source_path ) {
+		return true;
+	}
+
+	if ( ! extrachill_analytics_public_write_host_is_current_site( $source_host ) || $canonical_host === $source_host ) {
+		return false;
+	}
+
+	$post_slug = isset( $post->post_name ) ? sanitize_title( $post->post_name ) : '';
+	$path_slug = sanitize_title( basename( untrailingslashit( $source_path ) ) );
+	if ( '' !== $post_slug && $post_slug === $path_slug ) {
+		return true;
+	}
+
+	$host_label = sanitize_title( strtok( $source_host, '.' ) );
+
+	return '/' === $source_path
+		&& '' !== $post_slug
+		&& str_replace( '-', '', $post_slug ) === str_replace( '-', '', $host_label );
+}
+
+/**
+ * Validate a browser pageview against its server-rendered tuple.
+ *
+ * @param int    $post_id      Post ID, or zero for a route view.
+ * @param string $source_path  Normalized route path.
+ * @param string $route_family Route family.
+ * @param string $proof        Server-rendered proof.
+ * @return true|WP_Error
+ */
+function extrachill_analytics_validate_pageview_write( $post_id, $source_path, $route_family, $proof ) {
+	$rate_limit = extrachill_analytics_check_public_write_rate_limit();
+	if ( is_wp_error( $rate_limit ) ) {
+		return $rate_limit;
+	}
+
+	$source_host = extrachill_analytics_public_write_source_host();
+	if ( ! extrachill_analytics_pageview_origin_host_is_allowed( $source_host, $post_id ) ) {
+		return new WP_Error(
+			'invalid_pageview_origin',
+			__( 'Pageviews must originate on the current public site.', 'extrachill-analytics' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	$expected = extrachill_analytics_pageview_proof( $post_id, $source_path, $route_family, $source_host );
+	if ( '' === $proof || ! hash_equals( $expected, $proof ) ) {
+		return new WP_Error(
+			'invalid_pageview_proof',
+			__( 'Pageview source details do not match the rendered page.', 'extrachill-analytics' ),
+			array( 'status' => 403 )
+		);
+	}
+
+	if ( $post_id > 0 ) {
+		$post = get_post( $post_id );
+		if ( ! $post || ! extrachill_analytics_write_post_is_published( $post ) ) {
+			return new WP_Error(
+				'invalid_pageview_post',
+				__( 'Pageview post is not publicly viewable.', 'extrachill-analytics' ),
+				array( 'status' => 400 )
+			);
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Event types accepted from public browser adapters.
+ *
+ * @return string[]
+ */
+function extrachill_analytics_public_browser_event_types() {
+	return EC_ANALYTICS_PUBLIC_BROWSER_EVENTS;
+}
+
+/**
+ * Reject a public payload field that is not a bounded scalar of the expected type.
+ *
+ * @param array  $event_data Event dimensions.
+ * @param string $field      Field name.
+ * @param string $type       Expected scalar type.
+ * @param int    $max_length Maximum string length.
+ * @return true|WP_Error
+ */
+function extrachill_analytics_validate_public_event_field( $event_data, $field, $type, $max_length = 0 ) {
+	if ( ! array_key_exists( $field, $event_data ) ) {
+		return true;
+	}
+
+	$value = $event_data[ $field ];
+	if ( null === $value ) {
+		return true;
+	}
+	if ( 'integer' === $type ) {
+		if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^\d+$/', $value ) ) ) {
+			return new WP_Error(
+				'invalid_event_field',
+				__( 'Event data contains an invalid field value.', 'extrachill-analytics' ),
+				array(
+					'status' => 400,
+					'field'  => $field,
+				)
+			);
+		}
+		return true;
+	}
+
+	if ( ! is_string( $value ) || ( $max_length > 0 && strlen( $value ) > $max_length ) ) {
+		return new WP_Error(
+			'invalid_event_field',
+			__( 'Event data contains an invalid or unbounded field value.', 'extrachill-analytics' ),
+			array(
+				'status' => 400,
+				'field'  => $field,
+			)
+		);
+	}
+
+	return true;
+}
+
+/**
+ * Validate the event-specific dimensions accepted from public adapters.
+ *
+ * This intentionally remains a narrow switch over the six browser events. It
+ * is not a schema registry and does not constrain trusted server-owned events.
+ *
+ * @param string $event_type Event type.
+ * @param array  $event_data Event dimensions.
+ * @return true|WP_Error
+ */
+function extrachill_analytics_validate_public_event_data( $event_type, $event_data ) {
+	switch ( $event_type ) {
+		case EC_ANALYTICS_EVENT_SHARE_CLICK:
+			$fields = array(
+				'destination' => array( 'string', 64 ),
+				'share_url'   => array( 'string', 2048 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_BRIDGE_CLICK:
+		case EC_ANALYTICS_EVENT_BRIDGE_IMPRESSION:
+			$fields = array(
+				'dest_site'   => array( 'string', 64 ),
+				'source_post' => array( 'integer', 0 ),
+				'source_site' => array( 'string', 64 ),
+				'term'        => array( 'string', 200 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_OUTBOUND_CLICK:
+			$fields = array(
+				'dest_host' => array( 'string', 253 ),
+				'dest_url'  => array( 'string', 2048 ),
+				'category'  => array( 'string', 32 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_CTA_CLICK:
+			$fields = array(
+				'cta'       => array( 'string', 80 ),
+				'label'     => array( 'string', 80 ),
+				'dest'      => array( 'string', 512 ),
+				'placement' => array( 'string', 40 ),
+				'route'     => array( 'string', 20 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_FORM_SUBMIT:
+			$fields = array(
+				'form'      => array( 'string', 80 ),
+				'placement' => array( 'string', 40 ),
+				'route'     => array( 'string', 20 ),
+			);
+			break;
+		default:
+			return true;
+	}
+
+	$unknown_fields = array_diff( array_keys( $event_data ), array_keys( $fields ), array( 'is_bot' ) );
+	if ( ! empty( $unknown_fields ) ) {
+		return new WP_Error(
+			'invalid_event_field',
+			__( 'Event data contains an unsupported field.', 'extrachill-analytics' ),
+			array(
+				'status' => 400,
+				'field'  => reset( $unknown_fields ),
+			)
+		);
+	}
+
+	foreach ( $fields as $field => $contract ) {
+		$valid = extrachill_analytics_validate_public_event_field( $event_data, $field, $contract[0], $contract[1] );
+		if ( is_wp_error( $valid ) ) {
+			return $valid;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Validate and normalize an Analytics-owned public browser event contract.
+ *
+ * @param string $event_type Event type.
+ * @param array  $event_data Event dimensions.
+ * @param string $source_url Claimed browser source.
+ * @return array{event_data: array, source_url: string}|WP_Error
+ */
+function extrachill_analytics_validate_public_event_write( $event_type, $event_data, $source_url ) {
+	if ( ! in_array( $event_type, extrachill_analytics_public_browser_event_types(), true ) ) {
+		return array(
+			'event_data' => $event_data,
+			'source_url' => $source_url,
+		);
+	}
+
+	$rate_limit = extrachill_analytics_check_public_write_rate_limit();
+	if ( is_wp_error( $rate_limit ) ) {
+		return $rate_limit;
+	}
+
+	$source_host = extrachill_analytics_public_write_source_host();
+	if ( ! extrachill_analytics_public_write_host_is_current_site( $source_host ) ) {
+		return new WP_Error( 'invalid_event_origin', __( 'Analytics events must originate on the current public site.', 'extrachill-analytics' ), array( 'status' => 403 ) );
+	}
+
+	$canonical_source = extrachill_analytics_canonicalize_tracked_url( (string) $source_url );
+	$parts            = wp_parse_url( $canonical_source );
+	$claimed_host     = is_array( $parts ) && isset( $parts['host'] ) ? strtolower( rtrim( (string) $parts['host'], '.' ) ) : '';
+	if ( '' !== $claimed_host && $source_host !== $claimed_host ) {
+		return new WP_Error( 'invalid_event_source', __( 'Event source host does not match the browser origin.', 'extrachill-analytics' ), array( 'status' => 403 ) );
+	}
+
+	$source_path = extrachill_analytics_normalize_route_path( $canonical_source );
+	if ( '' === $source_path ) {
+		return new WP_Error( 'invalid_event_source', __( 'A valid event source path is required.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+	}
+
+	if ( ! is_array( $event_data ) ) {
+		return new WP_Error( 'invalid_event_data', __( 'Event data must be an object.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+	}
+
+	$valid_event_data = extrachill_analytics_validate_public_event_data( $event_type, $event_data );
+	if ( is_wp_error( $valid_event_data ) ) {
+		return $valid_event_data;
+	}
+
+	$url_field = EC_ANALYTICS_EVENT_OUTBOUND_CLICK === $event_type ? 'dest_url' : 'share_url';
+	if ( isset( $event_data[ $url_field ] ) && '' !== $event_data[ $url_field ] ) {
+		$canonical_url = extrachill_analytics_canonicalize_tracked_url( $event_data[ $url_field ] );
+		if ( '' === $canonical_url ) {
+			return new WP_Error(
+				'invalid_event_field',
+				__( 'Event data contains an invalid URL.', 'extrachill-analytics' ),
+				array(
+					'status' => 400,
+					'field'  => $url_field,
+				)
+			);
+		}
+		$event_data[ $url_field ] = $canonical_url;
+	}
+
+	$source_post = isset( $event_data['source_post'] ) ? (int) $event_data['source_post'] : 0;
+	if ( $source_post > 0 ) {
+		if ( '/' === $source_path ) {
+			$event_data['source_post'] = 0;
+		} elseif ( ! extrachill_analytics_public_post_matches_source( $source_post, $source_path, $source_host ) ) {
+			return new WP_Error( 'invalid_event_post', __( 'Event source post does not match the source path.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+		}
+	}
+
+	if ( isset( $event_data['source_site'] ) && '' !== $event_data['source_site'] && function_exists( 'ec_get_blog_slug_by_id' ) ) {
+		$current_site = (string) ec_get_blog_slug_by_id( get_current_blog_id() );
+		if ( '' !== $current_site && $current_site !== (string) $event_data['source_site'] ) {
+			return new WP_Error( 'invalid_event_source_site', __( 'Event source site does not match the current site.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+		}
+	}
+
+	if ( isset( $event_data['dest_site'] ) && '' !== $event_data['dest_site'] && function_exists( 'ec_get_blog_id' ) ) {
+		$dest_blog_id = ec_get_blog_id( (string) $event_data['dest_site'] );
+		if ( null === $dest_blog_id || (int) get_current_blog_id() === (int) $dest_blog_id ) {
+			return new WP_Error( 'invalid_event_destination_site', __( 'Event destination must be another network site.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+		}
+	}
+
+	unset( $event_data['is_bot'] );
+
+	return array(
+		'event_data' => $event_data,
+		'source_url' => $source_path,
+	);
+}
