@@ -37,6 +37,11 @@ function extrachill_api_register_giveaway_routes() {
 					'sanitize_callback' => 'sanitize_text_field',
 					'description'       => 'Instagram post URL, shortcode, or numeric media ID.',
 				),
+				'entry_mode'   => array(
+					'type'        => 'string',
+					'enum'        => array( 'per_comment', 'per_user' ),
+					'description' => 'How entries are counted: per_comment (every qualifying comment is an entry) or per_user (one entry per person). Omit to use the ability default.',
+				),
 				'require_tag'  => array(
 					'type'    => 'boolean',
 					'default' => true,
@@ -79,6 +84,11 @@ function extrachill_api_register_giveaway_routes() {
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'entry_mode'   => array(
+					'type'        => 'string',
+					'enum'        => array( 'per_comment', 'per_user' ),
+					'description' => 'How entries are counted: per_comment (every qualifying comment is an entry) or per_user (one entry per person). Omit to use the ability default.',
 				),
 				'require_tag'  => array(
 					'type'    => 'boolean',
@@ -136,6 +146,33 @@ function extrachill_api_register_giveaway_routes() {
 }
 
 /**
+ * Map a giveaway request onto extrachill/run-giveaway input.
+ *
+ * entry_mode is only passed when the client sent it, so the ability owns
+ * the default.
+ *
+ * @param WP_REST_Request $request The request.
+ * @return array
+ */
+function extrachill_api_giveaway_ability_input( WP_REST_Request $request ): array {
+	$input = array(
+		'media_input'  => $request->get_param( 'media_input' ),
+		'require_tag'  => $request->get_param( 'require_tag' ),
+		'min_tags'     => $request->get_param( 'min_tags' ),
+		'winner_count' => $request->get_param( 'winner_count' ),
+		'announce'     => $request->get_param( 'announce' ),
+		'message'      => $request->get_param( 'message' ),
+	);
+
+	$entry_mode = $request->get_param( 'entry_mode' );
+	if ( null !== $entry_mode ) {
+		$input['entry_mode'] = $entry_mode;
+	}
+
+	return $input;
+}
+
+/**
  * Run giveaway handler — instant execution.
  *
  * @param WP_REST_Request $request The request.
@@ -147,16 +184,7 @@ function extrachill_api_giveaway_run_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'ability_missing', 'Giveaway ability not available.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute(
-		array(
-			'media_input'  => $request->get_param( 'media_input' ),
-			'require_tag'  => $request->get_param( 'require_tag' ),
-			'min_tags'     => $request->get_param( 'min_tags' ),
-			'winner_count' => $request->get_param( 'winner_count' ),
-			'announce'     => $request->get_param( 'announce' ),
-			'message'      => $request->get_param( 'message' ),
-		)
-	);
+	$result = $ability->execute( extrachill_api_giveaway_ability_input( $request ) );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -186,14 +214,7 @@ function extrachill_api_giveaway_schedule_handler( WP_REST_Request $request ) {
 		return new WP_Error( 'invalid_run_at', 'run_at must be a valid future UTC datetime.', array( 'status' => 400 ) );
 	}
 
-	$params = array(
-		'media_input'  => $request->get_param( 'media_input' ),
-		'require_tag'  => $request->get_param( 'require_tag' ),
-		'min_tags'     => $request->get_param( 'min_tags' ),
-		'winner_count' => $request->get_param( 'winner_count' ),
-		'announce'     => $request->get_param( 'announce' ),
-		'message'      => $request->get_param( 'message' ),
-	);
+	$params = extrachill_api_giveaway_ability_input( $request );
 
 	$job_id = call_user_func(
 		$scheduler,
