@@ -121,7 +121,7 @@ function ec_events_network_bridge_order_cards( $args, $cards ) {
 		}
 
 		$term = reset( $terms );
-		if ( ! $term || is_wp_error( $term ) || empty( $term->name ) ) {
+		if ( empty( $term->name ) ) {
 			continue;
 		}
 		$url = get_term_link( $term );
