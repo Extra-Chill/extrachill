@@ -1,0 +1,30 @@
+{
+    "name": "extrachill/extrachill-events",
+    "description": "Calendar and event plugin integrations for the ExtraChill ecosystem",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Chris Huber",
+            "email": "chubes@extrachill.com",
+            "homepage": "https://chubes.net"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "scripts": {
+        "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+        "test": "vendor/bin/phpunit"
+    },
+    "config": {
+        "platform": {
+            "php": "8.3.6"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0",
+        "yoast/phpunit-polyfills": "^3.0"
+    }
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/MySQLIntegration/booking-mysql-host-bootstrap.php"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true">
+	<testsuites>
+		<testsuite name="booking-attachment-mysql">
+			<file>tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php</file>
+			<file>tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php</file>
+			<file>tests/MySQLIntegration/BookingSchemaMultisiteTest.php</file>
+			<file>tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

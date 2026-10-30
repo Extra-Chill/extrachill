@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			event-digest-offer-unit: pure-PHP tests for the single-event Local
+			Scene digest offer (#962). File-level WP doubles, host runtime.
+		-->
+		<testsuite name="event-digest-offer-unit">
+			<file>tests/Unit/SingleEvent/EventDigestOfferTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

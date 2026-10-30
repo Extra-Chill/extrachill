@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			archive-layout-unit: pure-PHP unit tests for the events-first
+			archive layout contract. The suite relies on file-level WP doubles
+			(wp_enqueue_script, do_blocks, is_tax), so it must run on the host
+			runtime where no real WordPress is loaded; in the managed sandbox
+			real WordPress wins every function_exists() guard and the doubles
+			never engage. The doubles live in Stubs/archive-layout-stubs.php,
+			local to this suite, because sibling pure suites define the same
+			symbols; a shared file would make whichever loads first win.
+		-->
+		<testsuite name="archive-layout-unit">
+			<file>tests/Unit/Core/ArchiveEventsFirstTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

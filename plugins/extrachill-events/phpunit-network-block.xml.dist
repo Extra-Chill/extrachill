@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/fixtures/network-booking-block-cold-bootstrap.inc"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true">
+	<testsuites>
+		<testsuite name="network-booking-block-cold-load">
+			<file>tests/NetworkBookingBlockColdTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

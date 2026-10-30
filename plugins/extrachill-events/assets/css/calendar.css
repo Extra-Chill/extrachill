@@ -1,0 +1,493 @@
+/**
+ * Calendar Page Styles
+ *
+ * Styles for data-machine-events calendar block on events.extrachill.com
+ * homepage and taxonomy archive pages (venue, promoter).
+ *
+ * @package ExtraChillEvents
+ * @since 0.1.0
+ */
+
+/* Taxonomy Archive Headers (Venue, Promoter) */
+.taxonomy-archive-header {
+    margin-bottom: var(--spacing-xl);
+}
+
+.taxonomy-archive-header .page-title {
+    margin-bottom: var(--spacing-sm);
+}
+
+.taxonomy-description {
+    color: var(--muted-text);
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--spacing-md);
+}
+
+.taxonomy-description p:last-child {
+    margin-bottom: 0;
+}
+
+.taxonomy-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.taxonomy-meta .venue-address {
+    display: block;
+}
+
+.taxonomy-meta .taxonomy-website {
+    color: var(--link-color);
+}
+
+.taxonomy-meta .taxonomy-website:hover {
+    color: var(--link-hover-color);
+}
+
+/* Calendar Stats Counter */
+.page-title + .calendar-stats,
+.taxonomy-description + .calendar-stats {
+    margin-top: calc(-1 * var(--spacing-sm));
+}
+
+.calendar-stats {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    margin-bottom: 0;
+}
+
+.events-homepage > .entry-content > .calendar-stats {
+    margin-top: var(--spacing-sm);
+    text-align: center;
+}
+
+/* Account-backed market context on primary discovery surfaces. */
+.events-market-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    margin: 0 0 var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--border-radius, 8px);
+}
+
+.events-market-context--quiet {
+    border-left-color: var(--border-color);
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+.events-market-context__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.events-market-context__copy span {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+.events-market-context__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    flex-shrink: 0;
+}
+
+/* Keep venue-operator acquisition available without competing with booking. */
+.venue-workspace-disclosure {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--spacing-lg);
+}
+
+.venue-workspace-disclosure summary {
+    color: var(--link-color);
+    cursor: pointer;
+    width: fit-content;
+}
+
+.venue-workspace-disclosure summary:hover {
+    color: var(--link-hover-color);
+}
+
+.venue-workspace-disclosure__content {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: space-between;
+    padding-top: var(--spacing-sm);
+}
+
+.venue-workspace-disclosure__content p {
+    margin: 0;
+}
+
+.venue-workspace-disclosure__content .button-3 {
+    flex-shrink: 0;
+}
+
+/* Progressive homepage router: search, preferred market, sample, directories. */
+.events-home-router {
+    display: grid;
+    gap: var(--spacing-lg);
+}
+
+.events-home-router__heading {
+    text-align: center;
+}
+
+.events-home-router__heading h2,
+.events-home-router__heading p,
+.events-primary-market h3,
+.events-primary-market p,
+.events-market-sample h3 {
+    margin: 0;
+}
+
+.events-home-router__heading p {
+    margin-top: var(--spacing-xs);
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+.events-location-search {
+    width: min(100%, 38rem);
+    margin: 0 auto;
+}
+
+.events-location-search label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 600;
+}
+
+.events-location-search__controls {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.events-location-search input[type="search"] {
+    min-width: 0;
+    flex: 1;
+}
+
+.events-primary-market {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: var(--card-shadow);
+}
+
+.events-primary-market__eyebrow {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+.events-primary-market__links,
+.events-home-router__paths {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-md);
+}
+
+.events-market-sample h3 {
+    margin-bottom: var(--spacing-sm);
+    text-align: center;
+}
+
+.events-home-router__paths {
+    justify-content: center;
+    font-weight: 600;
+}
+
+@media (max-width: 600px) {
+    .venue-workspace-disclosure__content {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .events-market-context {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .events-market-context__actions {
+        gap: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .events-primary-market {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: var(--spacing-md);
+    }
+
+    .events-location-search__controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+.taxonomy-archive-header .calendar-stats {
+    margin-bottom: var(--spacing-md);
+}
+
+/* Keep venue navigation available without placing the directory ahead of the calendar. */
+.location-archive-venue-directory {
+    margin-bottom: var(--spacing-lg);
+}
+
+.location-archive-venue-directory__summary {
+    color: var(--link-color);
+    cursor: pointer;
+    font-weight: 600;
+    width: fit-content;
+}
+
+.location-archive-venue-directory__summary:hover {
+    color: var(--link-hover-color);
+}
+
+.location-archive-venue-directory[open] .location-archive-venue-badges {
+    margin-top: var(--spacing-md);
+}
+
+/* Priority event indicator */
+.extrachill-priority-event {
+    position: relative;
+}
+
+.extrachill-priority-event::before {
+    content: "\2605";
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    color: var(--accent);
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+/* Archive pages get mobile padding since .extrachill-content is zero-padded
+   at 480px for body.archive (no .page/.home override). */
+@media (max-width: 480px) {
+    .events-calendar-container .page-content {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
+
+/* Homepage router: "Browse all cities" link below the top-N badges. */
+.events-browse-all-cities {
+    margin: var(--spacing-md) 0 0;
+    text-align: center;
+    font-size: var(--font-size-body);
+}
+
+/* Cities directory (/cities): region-grouped badge sections. */
+.cities-directory-intro {
+    color: var(--muted-text);
+    margin-bottom: 0;
+}
+
+.cities-directory .cities-region {
+    margin-bottom: var(--spacing-xl);
+}
+
+.cities-region-title {
+    margin-bottom: var(--spacing-md);
+}
+
+.cities-state {
+    margin-bottom: var(--spacing-lg);
+}
+
+.cities-state-title {
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-body);
+}
+
+.cities-state-title span,
+.cities-directory-results,
+.cities-directory-empty {
+    color: var(--muted-text);
+}
+
+.cities-region-count {
+    color: var(--muted-text);
+    font-weight: normal;
+    font-size: 0.8em;
+}
+
+/* Homepage intro line under the H1. */
+.events-home-intro {
+    color: var(--muted-text);
+    font-size: var(--font-size-body);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* "See every event" link below the city badges. */
+.events-browse-all-cities {
+    margin: var(--spacing-md) 0 0;
+    text-align: center;
+    font-size: var(--font-size-body);
+}
+
+/* Homepage feature cards. */
+.events-feature-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) 0;
+}
+
+.events-feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-lg);
+    background: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: var(--card-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.events-feature-card:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+    transform: translateY(-2px);
+}
+
+.events-feature-card__title {
+    margin: 0;
+}
+
+.events-feature-card__body {
+    margin: 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+}
+
+.events-feature-card__cta {
+    margin-top: auto;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 600px) {
+    .events-feature-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Promoted-event surfaces: location-archive callout + homepage card (#866). */
+.promoted-events {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--spacing-md);
+    margin: var(--spacing-lg) 0;
+}
+
+.promoted-events__heading {
+    grid-column: 1 / -1;
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--font-size-lg);
+}
+
+/* Archive callout sits directly under the taxonomy description; homepage
+   card sits after the location badges and calendar stats — give each a
+   margin that matches its position in the surrounding layout. */
+.promoted-events--archive {
+    margin-top: var(--spacing-md);
+}
+
+.promoted-events--home {
+    margin-top: var(--spacing-xl);
+}
+
+.promoted-event-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-lg);
+    background: var(--card-background);
+    border: 1px solid var(--accent);
+    border-radius: var(--border-radius, 8px);
+    box-shadow: var(--card-shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.promoted-event-card:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+.promoted-event-card__label {
+    align-self: flex-start;
+    padding: 2px var(--spacing-xs);
+    background: var(--accent);
+    color: var(--background-color);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.promoted-event-card__title {
+    margin: 0;
+}
+
+.promoted-event-card__date,
+.promoted-event-card__venue {
+    margin: 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 600px) {
+    .promoted-events {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Logged-out weekly digest signup (#989); same rules as single-event.css. */
+.ec-digest-guest {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.ec-digest-guest input[type="email"] {
+    flex: 1 1 14em;
+    min-width: 0;
+}
+
+.ec-digest-guest .ec-digest-guest__status {
+    flex: 1 0 100%;
+    margin: 0;
+}

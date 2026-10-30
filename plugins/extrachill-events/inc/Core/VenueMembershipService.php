@@ -1,0 +1,83 @@
+<?php
+/**
+ * Venue membership management policy.
+ *
+ * @package ExtraChillEvents\Core
+ */
+
+namespace ExtraChillEvents\Core;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** Reauthorizes and executes venue membership operations. */
+class VenueMembershipService {
+
+	/** @var VenueMembershipRepository */
+	private $memberships;
+
+	/** @var VenueAuthorization */
+	private $authorization;
+
+	public function __construct( ?VenueMembershipRepository $memberships = null, ?VenueAuthorization $authorization = null ) {
+		$this->memberships   = $memberships ? $memberships : new VenueMembershipRepository();
+		$this->authorization = $authorization ? $authorization : new VenueAuthorization( $this->memberships );
+	}
+
+	/** Add an active membership for an existing network user. */
+	public function create( int $actor_user_id, int $venue_term_id, int $target_user_id, bool $is_owner ) {
+		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		return $this->memberships->create(
+			array(
+				'venue_term_id'      => $venue_term_id,
+				'user_id'            => $target_user_id,
+				'is_owner'           => $is_owner,
+				'status'             => VenueAuthorization::STATUS_ACTIVE,
+				'created_by_user_id' => $actor_user_id,
+			)
+		);
+	}
+
+	/** Change structural membership ownership. */
+	public function update_owner( int $actor_user_id, int $venue_term_id, int $target_user_id, bool $is_owner, int $expected_version ) {
+		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		return $this->memberships->update_owner( $venue_term_id, $target_user_id, $is_owner, $expected_version, $actor_user_id );
+	}
+
+	/** Revoke one membership without deleting its audit identity. */
+	public function revoke( int $actor_user_id, int $venue_term_id, int $target_user_id, int $expected_version ) {
+		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		return $this->memberships->revoke( $venue_term_id, $target_user_id, $expected_version, $actor_user_id );
+	}
+
+	/** List memberships for one authorized venue. */
+	public function list( int $actor_user_id, int $venue_term_id, array $filters = array() ) {
+		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		$memberships = $this->memberships->list_for_venue( $venue_term_id, $filters, $actor_user_id );
+		if ( ! is_array( $memberships ) ) {
+			return $memberships;
+		}
+		return array_map(
+			static function ( array $membership ): array {
+				$user                       = get_userdata( $membership['user_id'] );
+				$membership['display_name'] = $user instanceof \WP_User ? (string) $user->display_name : '';
+				$membership['email']        = $user instanceof \WP_User ? (string) $user->user_email : '';
+				return $membership;
+			},
+			$memberships
+		);
+	}
+}

@@ -1,0 +1,40 @@
+/* Related Events - Event-specific styling only */
+
+/* Ensure event titles use the standard post title link color */
+.related-tax-title a {
+  color: var(--post-title-link-color);
+  text-decoration: none;
+}
+
+.related-tax-title a:hover {
+  color: var(--post-title-link-hover-color);
+  text-decoration: underline;
+  text-decoration-color: var(--link-color);
+}
+
+/* Event meta items with icons */
+.ec-related-meta-item {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.3em;
+  color: var(--muted-text);
+}
+
+/* Ensure the meta container takes up available space to push button down */
+.related-tax-card .related-tax-meta {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  margin-top: 0.5em;
+}
+
+/* Button positioning in event cards */
+.related-tax-meta .data-machine-more-info-button {
+  align-self: flex-start;
+  width: fit-content;
+  margin-top: auto; /* Pushes button to bottom of meta container */
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
+}

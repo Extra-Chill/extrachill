@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnRisky="true"
+	failOnWarning="true">
+	<testsuites>
+		<testsuite name="managed-wordpress">
+			<directory>tests/Unit/Core</directory>
+			<file>tests/Unit/Core/class-datamachineintegrationloadertest.php</file>
+			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
+			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>
+			<exclude>tests/Unit/Core/LocalSceneDigestGuestTest.php</exclude>
+			<exclude>tests/Unit/Core/ArchiveEventsFirstTest.php</exclude>
+			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
+			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
+			<!-- Pure-PHP resolver test with file-level WP doubles (wp_cache_*,
+			     is_tax, get_queried_object…); it runs in its own suite,
+			     phpunit-promoted-events-unit.xml.dist. Under real WordPress the
+			     core functions win over its doubles, so it can only fail here. -->
+			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>
+			<!-- Same shape: pure-PHP priority promoter test with file-level WP
+			     doubles; runs in phpunit-priority-promoter-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
+			<!-- Pure-PHP attendee-only rating policy test with attendance and
+			     blog doubles; runs in phpunit-qualify-v2-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/AttendeeOnlyRatingsTest.php</exclude>
+			<!-- Pure-PHP publish-email test with file-level WP doubles; runs in
+			     phpunit-event-publication-email-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/EventPublicationEmailProviderTest.php</exclude>
+			<exclude>tests/Unit/Core/SubmitCtasTest.php</exclude>
+			<exclude>tests/Unit/Core/SubmitLandingTest.php</exclude>
+			<exclude>tests/Unit/Abilities/SubmissionTrustPolicyTest.php</exclude>
+			<exclude>tests/Unit/Abilities/PendingEventSubmissionsAbilityTest.php</exclude>
+			<!-- RSVP perk tests are pure-PHP with their own $wpdb/wp_verify_nonce
+			     doubles (see phpunit-rsvp-perks-unit.xml.dist); against real
+			     WordPress in this sandbox, wp_verify_nonce() would reject the
+			     test's fixed nonce string and $GLOBALS['wpdb'] would be
+			     swapped out from under the shared test transaction. -->
+			<exclude>tests/Unit/Core/RsvpPassesTableTest.php</exclude>
+			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
+			<!-- Pure-PHP with its own $wpdb double; requires inc/core/rsvp-pass-service.php (see RsvpPassQrUrlsTest.php below). -->
+			<exclude>tests/Unit/Core/RsvpPerkBackfillTest.php</exclude>
+			<!-- Same reason as the two exclusions above (pure-PHP, own
+			     $wpdb-free URL-function doubles) PLUS a second, sharper
+			     failure mode: this file's own require_once of
+			     inc/core/rsvp-pass-qr.php collides with the real plugin
+			     bootstrap's own require of the same file when the managed
+			     sandbox resolves them to two different physical paths
+			     (e.g. a copied, not symlinked, plugin checkout) — PHP
+			     fatals on "Cannot redeclare function", which aborts the
+			     ENTIRE managed-wordpress suite process before any test
+			     result is even collected (reported upstream as this
+			     suite's "Total: 0"). RsvpPassesTableTest.php/EventPerkTest.php
+			     were already excluded and so never hit this; this file
+			     wasn't, and did. -->
+			<exclude>tests/Unit/Core/RsvpPassQrUrlsTest.php</exclude>
+			<!-- Same reason: requires inc/core/rsvp-pass-qr.php and stubs wp_has_ability(). -->
+			<exclude>tests/Unit/Core/RsvpPassQrGrantTest.php</exclude>
+			<!-- Same reason as RsvpPassQrUrlsTest.php immediately above: this
+			     file's own require_once of inc/core/rsvp-verify-page.php
+			     collides with the real plugin bootstrap's own require of the
+			     same file in this sandbox. -->
+			<exclude>tests/Unit/Core/RsvpVerifyPageCacheTest.php</exclude>
+			<!-- Same reason: requires inc/core/rsvp-pass-service.php and inc/admin/event-perks.php. -->
+			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>
+			<exclude>tests/Unit/Core/RsvpGuestRsvpTest.php</exclude>
+			<!-- Resolves the scraper through the bootstrap's wp_get_ability()
+			     double ($GLOBALS['ec_test_ability_resolver']). Under real
+			     WordPress the core registry wins, so the double never applies
+			     and the test can only fail here. Runs in phpunit-artist-unit. -->
+			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
+			<file>tests/Unit/Abilities/VenueQualificationTicketmasterPrecheckTest.php</file>
+			<file>tests/Unit/Abilities/CanonicalLocationsAbilityTest.php</file>
+			<file>tests/Unit/Abilities/PublicEntityProjectionsAbilityTest.php</file>
+			<file>tests/Unit/Abilities/EventsByTermTaxonomyContextTest.php</file>
+			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
+			<file>tests/Unit/Abilities/ManagedVenueVoicesRestTest.php</file>
+			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
+			<file>tests/Unit/SingleEventNetworkBridgeTest.php</file>
+			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
+			<file>tests/Unit/VenueBookingInquiryRenderTest.php</file>
+			<file>tests/MySQLIntegration/BookingSchemaMultisiteTest.php</file>
+			<file>tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

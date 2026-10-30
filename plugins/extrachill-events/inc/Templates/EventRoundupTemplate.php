@@ -1,0 +1,1339 @@
+<?php
+/**
+ * Event Roundup Template
+ *
+ * Renders a multi-slide Instagram carousel (1080x1350) listing events
+ * grouped by day. Brand identity (colors, fonts, day-of-week palette)
+ * comes from BrandTokens — the template is intentionally brand-agnostic.
+ *
+ * Works for any date range: tonight, this weekend, a custom 5-day stretch,
+ * a full week. The template only sees `day_groups`; date semantics live
+ * in callers (EventRoundupAbilities, EventRoundupHandler, the CLI).
+ *
+ * Returns string[] of slide paths because the carousel format is
+ * inherently multi-image: events are distributed across slides based on
+ * available vertical space, with the title only on the first slide.
+ *
+ * Layout per slide:
+ *   - Background fill (colors['event_roundup_bg'] or background_dark)
+ *   - Title block (first slide only) with accent underline
+ *   - Day group sections: day header in day-palette color + event rows
+ *   - Each event row: title + venue/time meta line
+ *   - Footer CTA pointing viewers to the full events site
+ *
+ * Required data fields:
+ *   - day_groups (array) — date_key => { date_obj, events[] }, where each
+ *     event item is { post: WP_Post, event_data: array }
+ *
+ * Optional data fields:
+ *   - title (string) — appears on the cover, or on the first list slide
+ *     when there is no cover
+ *   - cta_text (string) — CTA; defaults to current site host. A footer on
+ *     every list slide, or the closing slide when `closing` is set
+ *   - cover (bool) — prepend a cover slide: title, date range, and show
+ *     and venue counts
+ *   - closing (bool) — append a closing CTA slide and drop the per-slide
+ *     footer from the list slides
+ *   - closing_text (string) — optional supporting line on the closing slide
+ *   - layout (string) — 'daily' (default): a header per day, then event
+ *     rows. 'calendar': one compact row per show with the date in a left
+ *     column and the time right-aligned, for long ranges such as a venue's
+ *     month.
+ *   - partner_logo_path (string) — optional co-brand image (e.g. a venue
+ *     logo for venue-scoped graphics). Drawn prominently on the cover and
+ *     closing slides only; the Extra Chill brand mark still appears on
+ *     every slide. An unreadable or missing path is ignored, so output
+ *     without a partner logo is identical to a render that never set one.
+ *     List-slide packing never reads it, so the slide plan and canvas
+ *     dimensions are unchanged either way.
+ *
+ * In both layouts the same show twice on one day at one venue (early and
+ * late sets) is one row with both times, and when every show shares one
+ * venue the venue is omitted from the rows and the cover.
+ *
+ * Optional brand token extensions consumed by this template:
+ *   - colors['event_roundup_bg']    — slide background (falls back to background_dark)
+ *   - colors['event_roundup_text']  — primary text (falls back to text_inverse)
+ *   - colors['event_roundup_muted'] — venue/time meta (falls back to text_muted)
+ *   - colors['event_roundup_cta']   — footer CTA (falls back to accent)
+ *   - day_palette['sunday'..'saturday'] — hex per weekday (falls back to neutral palette)
+ *
+ * Brand mark: every slide carries the brand so any single shared slide is
+ * attributable. Uses the standard `logo_path_inverse` token (light ink on
+ * the dark slide), falling back to `brand_text` when no readable logo is
+ * set. Small in the bottom-right corner of list slides, larger
+ * on the cover, and centered above the CTA on the closing slide.
+ *
+ * @package ExtraChillEvents\Templates
+ * @since 4.5.0
+ */
+
+namespace ExtraChillEvents\Templates;
+
+use DataMachine\Abilities\Media\TemplateInterface;
+use DataMachine\Abilities\Media\GDRenderer;
+use DataMachine\Abilities\Media\BrandTokens;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+require_once __DIR__ . '/RoundupPhotos.php';
+
+class EventRoundupTemplate implements TemplateInterface {
+
+	/** Metadata captured by the actual drawing pass, consumed by the build ability. */
+	public static array $last_slides = array();
+	private array $photo_options     = array();
+	private array $used_photos       = array();
+	private array $slide_meta        = array();
+	private string $slide_kind       = 'day';
+
+	private const PADDING                = 60;
+	private const TITLE_SIZE             = 36;
+	private const TITLE_UNDERLINE_HEIGHT = 2;
+	private const TITLE_UNDERLINE_GAP    = 8;
+	private const DAY_HEADER_SIZE        = 28;
+	private const EVENT_TITLE_SIZE       = 22;
+	private const EVENT_META_SIZE        = 18;
+	private const CTA_SIZE               = 18;
+	private const CTA_LINE_WIDTH         = 180;
+	private const CTA_LINE_GAP           = 18;
+	private const LINE_HEIGHT_MULTIPLIER = 1.4;
+	private const EVENT_GAP              = 15;
+	private const DAY_HEADER_GAP         = 20;
+	private const DAY_TRAILING_GAP       = 30;
+	private const CTA_CLEARANCE          = 24;
+	private const MIN_SPLIT_EVENTS       = 2;
+	private const COVER_TITLE_SIZE       = 92;
+	private const COVER_DATE_SIZE        = 40;
+	private const COVER_STATS_SIZE       = 28;
+	private const STRIPE_HEIGHT          = 14;
+	private const CLOSING_HEADLINE_SIZE  = 80;
+	private const CLOSING_URL_SIZE       = 40;
+	private const CLOSING_TEXT_SIZE      = 28;
+	private const MARK_HEIGHT            = 72;
+	private const COVER_MARK_HEIGHT      = 120;
+	private const CLOSING_MARK_HEIGHT    = 200;
+	private const MARK_CLEARANCE         = 24;
+	private const MARK_TEXT_SIZE         = 22;
+	private const CAL_DATE_SIZE          = 26;
+	private const CAL_DATE_COL           = 150;
+	private const CAL_TITLE_SIZE         = 24;
+	private const CAL_TIME_SIZE          = 20;
+	private const CAL_VENUE_SIZE         = 18;
+	private const CAL_TIME_GAP           = 24;
+	private const CAL_ROW_GAP            = 14;
+	private const CAL_DAY_GAP            = 12;
+	private const PARTNER_MARK_HEIGHT    = 170;
+	private const PARTNER_MARK_GAP       = 40;
+
+	/**
+	 * Inverse logo path for the current render, or '' when unavailable.
+	 *
+	 * @var string
+	 */
+	private $logo_path = '';
+
+	/**
+	 * Brand name drawn when no logo is available.
+	 *
+	 * @var string
+	 */
+	private $brand_text = '';
+
+	/**
+	 * Co-brand (partner/venue) logo path for the current render, or ''.
+	 *
+	 * @var string
+	 */
+	private $partner_logo_path = '';
+
+	/**
+	 * Active list layout: 'daily' or 'calendar'.
+	 *
+	 * @var string
+	 */
+	private $layout = 'daily';
+
+	/**
+	 * Whether every show shares one venue, so rows omit it.
+	 *
+	 * @var bool
+	 */
+	private $single_venue = false;
+
+	/**
+	 * Neutral fallback palette for days of the week.
+	 *
+	 * Themes override via tokens['day_palette'] in the brand tokens filter.
+	 *
+	 * @var array<string, string>
+	 */
+	private const FALLBACK_DAY_PALETTE = array(
+		'sunday'    => '#ff6b6b',
+		'monday'    => '#4ecdc4',
+		'tuesday'   => '#45b7d1',
+		'wednesday' => '#96ceb4',
+		'thursday'  => '#feca57',
+		'friday'    => '#d63384',
+		'saturday'  => '#54a0ff',
+	);
+
+	private function begin_slide( string $kind ): void {
+		$this->slide_kind = $kind;
+		$this->slide_meta = array(
+			'kind'      => $kind,
+			'events'    => array(),
+			'user_tags' => array(),
+		);
+	}
+
+	private function record_slide( $path ): void {
+		if ( $path ) {
+			// Primary venue/headliner tags across all rows outrank support artists.
+			$rows = $this->slide_meta['events'];
+			foreach ( $rows as $row ) {
+				foreach ( array_filter( array( $row['venue_term_id'], $row['artist_term_ids'][0] ?? 0 ) ) as $term_id ) {
+					$this->add_tag( (string) get_term_meta( $term_id, 'instagram', true ), $row['x'], $row['y'] );
+				}
+			}
+			foreach ( $rows as $row ) {
+				foreach ( array_slice( $row['artist_term_ids'], 1 ) as $term_id ) {
+					$this->add_tag( (string) get_term_meta( $term_id, 'instagram', true ), $row['x'], $row['y'] );
+				}
+			}
+			$this->slide_meta['image_path'] = $path;
+			self::$last_slides[]            = $this->slide_meta;
+		}
+	}
+
+	private function draw_photo( GDRenderer $renderer ): void {
+		$photo = RoundupPhotos::select( $this->photo_options['background'] ?? '', count( self::$last_slides ), (string) ( $this->photo_options['location'] ?? '' ), $this->used_photos );
+		if ( ! $photo ) {
+			return;
+		}
+		$data = is_readable( $photo['path'] ) ? file_get_contents( $photo['path'] ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local attachment file.
+		if ( false === $data || '' === $data ) {
+			return;
+		}
+		$source = imagecreatefromstring( $data );
+		if ( ! $source ) {
+			return;
+		}
+		$w      = $renderer->get_width();
+		$h      = $renderer->get_height();
+		$scale  = max( $w / imagesx( $source ), $h / imagesy( $source ) );
+		$sw     = (int) round( $w / $scale );
+		$sh     = (int) round( $h / $scale );
+		$canvas = $renderer->get_image();
+		imagecopyresampled( $canvas, $source, 0, 0, (int) ( ( imagesx( $source ) - $sw ) / 2 ), (int) ( ( imagesy( $source ) - $sh ) / 2 ), $w, $h, $sw, $sh );
+		imagedestroy( $source );
+		if ( 'day' === $this->slide_kind ) {
+			for ( $i = 0; $i < 8; ++$i ) {
+				imagefilter( $canvas, IMG_FILTER_GAUSSIAN_BLUR );
+			}
+		}
+		imagealphablending( $canvas, true );
+		for ( $y = 0; $y < $h; ++$y ) {
+			$brightness = 'day' === $this->slide_kind ? 0.30 - 0.18 * $y / max( 1, $h - 1 ) : 0.45;
+			$alpha      = max( 0, min( 127, (int) round( 127 * $brightness ) ) );
+			$shade      = imagecolorallocatealpha( $canvas, 0, 0, 0, $alpha );
+			if ( false !== $shade ) {
+				imageline( $canvas, 0, $y, $w - 1, $y, $shade );
+			}
+		}
+		$this->used_photos[] = $photo['attachment_id'];
+		unset( $photo['path'], $photo['score'] );
+		$this->slide_meta = array_merge( $this->slide_meta, $photo );
+		$this->add_tag( $photo['photographer_instagram'], 0.9, 0.95 );
+	}
+
+	public static function username( string $value ): string {
+		$value = trim( $value );
+		$value = preg_replace( '~^https?://(?:www\\.)?instagram\\.com/~i', '', $value );
+		$value = trim( $value, "@/ \t\n\r" );
+		return preg_match( '/^[a-zA-Z0-9_.]{1,30}$/D', $value ) ? strtolower( $value ) : '';
+	}
+
+	private function add_tag( string $handle, float $x, float $y ): void {
+		$username = self::username( $handle );
+		if ( '' !== $username && count( $this->slide_meta['user_tags'] ) < 20 && ! in_array( $username, array_column( $this->slide_meta['user_tags'], 'username' ), true ) ) {
+			$this->slide_meta['user_tags'][] = compact( 'username', 'x', 'y' );
+		}
+	}
+
+	private function map_event( GDRenderer $renderer, array $item, int $left, int $top ): void {
+		$id                           = (int) ( $item['post']->ID ?? 0 );
+		$x                            = min( 1.0, max( 0.0, $left / $renderer->get_width() ) );
+		$y                            = min( 1.0, max( 0.0, $top / $renderer->get_height() ) );
+		$venues                       = wp_get_post_terms( $id, 'venue', array( 'fields' => 'ids' ) );
+		$artists                      = wp_get_post_terms( $id, 'artist', array( 'fields' => 'ids' ) );
+		$venues                       = is_wp_error( $venues ) ? array() : $venues;
+		$artists                      = is_wp_error( $artists ) ? array() : $artists;
+		$this->slide_meta['events'][] = array(
+			'event_id'        => $id,
+			'x'               => $x,
+			'y'               => $y,
+			'venue_term_id'   => (int) ( $venues[0] ?? 0 ),
+			'artist_term_ids' => $artists,
+		);
+	}
+
+	public function get_id(): string {
+		return 'event_roundup';
+	}
+
+	public function get_name(): string {
+		return 'Event Roundup';
+	}
+
+	public function get_description(): string {
+		return 'Instagram carousel slides (1080x1350) listing events grouped by day. Returns multiple images when events span more vertical space than a single slide. Works for any date range — tonight, this weekend, a custom stretch.';
+	}
+
+	public function get_fields(): array {
+		return array(
+			'day_groups'        => array(
+				'label'    => 'Day Groups',
+				'type'     => 'array',
+				'required' => true,
+			),
+			'title'             => array(
+				'label'    => 'Title',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'cta_text'          => array(
+				'label'    => 'CTA Text',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'cover'             => array(
+				'label'    => 'Cover Slide',
+				'type'     => 'boolean',
+				'required' => false,
+			),
+			'closing'           => array(
+				'label'    => 'Closing Slide',
+				'type'     => 'boolean',
+				'required' => false,
+			),
+			'closing_text'      => array(
+				'label'    => 'Closing Text',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'layout'            => array(
+				'label'    => 'Layout',
+				'type'     => 'string',
+				'required' => false,
+			),
+			'partner_logo_path' => array(
+				'label'    => 'Partner Logo Path',
+				'type'     => 'string',
+				'required' => false,
+			),
+		);
+	}
+
+	public function get_default_preset(): string {
+		return 'instagram_feed_portrait';
+	}
+
+	public function render( array $data, GDRenderer $renderer, array $options = array() ): array {
+		self::$last_slides   = array();
+		$this->photo_options = $data;
+		$this->used_photos   = array();
+		$preset              = $options['preset'] ?? $this->get_default_preset();
+		$format              = $options['format'] ?? 'png';
+		$context             = $options['context'] ?? array();
+
+		$day_groups = (array) ( $data['day_groups'] ?? array() );
+		$title      = (string) ( $data['title'] ?? '' );
+		$cta_text   = $this->resolve_cta_text( $data );
+
+		if ( empty( $day_groups ) ) {
+			return array();
+		}
+
+		$this->layout       = 'calendar' === ( $data['layout'] ?? '' ) ? 'calendar' : 'daily';
+		$day_groups         = self::merge_repeat_sets( $day_groups );
+		$this->single_venue = 1 === self::cover_stats( $day_groups )['venues'];
+
+		$tokens = BrandTokens::get( $this->get_id(), $data );
+
+		$logo             = (string) ( $tokens['logo_path_inverse'] ?? '' );
+		$this->logo_path  = ( '' !== $logo && is_readable( $logo ) && false !== @getimagesize( $logo ) ) ? $logo : ''; // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable images fall back to brand text.
+		$this->brand_text = trim( (string) ( $tokens['brand_text'] ?? '' ) );
+
+		// Optional co-brand mark (e.g. a venue logo). Unreadable paths are
+		// ignored so a broken attachment degrades to today's output.
+		$partner                 = (string) ( $data['partner_logo_path'] ?? '' );
+		$this->partner_logo_path = ( '' !== $partner && is_readable( $partner ) && false !== @getimagesize( $partner ) ) ? $partner : ''; // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- unreadable images drop the co-brand mark.
+
+		// Build a per-render font lookup. GDRenderer is created fresh for
+		// every slide so register_font() needs to run inside render_slide.
+		$heading_path = isset( $tokens['fonts']['heading'] ) && is_string( $tokens['fonts']['heading'] ) ? $tokens['fonts']['heading'] : '';
+		$body_path    = isset( $tokens['fonts']['body'] ) && is_string( $tokens['fonts']['body'] ) ? $tokens['fonts']['body'] : '';
+
+		// Color and palette resolution. Roundup slides are dark-themed by
+		// default, so we map onto background_dark + text_inverse rather
+		// than the OG card's light-mode background/text_primary defaults.
+		$bg_hex     = (string) ( $tokens['colors']['event_roundup_bg'] ?? $tokens['colors']['background_dark'] ?? '#1a1a1a' );
+		$text_hex   = (string) ( $tokens['colors']['event_roundup_text'] ?? $tokens['colors']['text_inverse'] ?? '#e5e5e5' );
+		$muted_hex  = (string) ( $tokens['colors']['event_roundup_muted'] ?? $tokens['colors']['text_muted'] ?? '#b0b0b0' );
+		$accent_hex = (string) ( $tokens['colors']['accent'] ?? '#53940b' );
+		$cta_hex    = (string) ( $tokens['colors']['event_roundup_cta'] ?? $accent_hex );
+
+		$day_palette = isset( $tokens['day_palette'] ) && is_array( $tokens['day_palette'] )
+			? array_merge( self::FALLBACK_DAY_PALETTE, $tokens['day_palette'] )
+			: self::FALLBACK_DAY_PALETTE;
+
+		$cover   = ! empty( $data['cover'] );
+		$closing = ! empty( $data['closing'] ) && '' !== $cta_text;
+
+		// The cover owns the title; the closing slide owns the CTA.
+		$list_title = $cover ? '' : $title;
+		$footer_cta = $closing ? '' : $cta_text;
+
+		$slides_distribution = $this->distribute_days_to_slides(
+			$day_groups,
+			$list_title,
+			$footer_cta,
+			$heading_path,
+			$body_path
+		);
+
+		$image_paths  = array();
+		$slide_number = 0;
+		$colors       = array(
+			'bg'     => $bg_hex,
+			'text'   => $text_hex,
+			'muted'  => $muted_hex,
+			'accent' => $accent_hex,
+			'cta'    => $cta_hex,
+		);
+
+		if ( $cover ) {
+			$this->begin_slide( 'cover' );
+			$path = $this->render_cover_slide( ++$slide_number, $title, self::cover_stats( $day_groups ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
+			if ( $path ) {
+				$image_paths[] = $path;
+			}
+		}
+
+		foreach ( array_values( $slides_distribution ) as $index => $slide_days ) {
+			$this->begin_slide( 'day' );
+			$slide_title = ( 0 === $index ) ? $list_title : '';
+
+			$path = $this->render_slide(
+				$slide_days,
+				++$slide_number,
+				$slide_title,
+				$preset,
+				$format,
+				$context,
+				$heading_path,
+				$body_path,
+				$bg_hex,
+				$text_hex,
+				$muted_hex,
+				$accent_hex,
+				$cta_hex,
+				$footer_cta,
+				$day_palette
+			);
+
+			if ( $path ) {
+				$image_paths[] = $path;
+			}
+		}
+
+		if ( $closing ) {
+			$this->begin_slide( 'closing' );
+			$path = $this->render_closing_slide( ++$slide_number, $cta_text, trim( (string) ( $data['closing_text'] ?? '' ) ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
+			if ( $path ) {
+				$image_paths[] = $path;
+			}
+		}
+
+		return $image_paths;
+	}
+
+	/**
+	 * Show count, distinct venue count, and a date-range label for the cover.
+	 *
+	 * @param array $day_groups date_key => { date_obj, events[] }.
+	 * @return array{shows: int, venues: int, date_label: string}
+	 */
+	public static function cover_stats( array $day_groups ): array {
+		$shows  = 0;
+		$venues = array();
+		$dates  = array();
+
+		foreach ( $day_groups as $day_group ) {
+			$events = (array) ( $day_group['events'] ?? array() );
+			if ( empty( $events ) ) {
+				continue;
+			}
+			if ( ( $day_group['date_obj'] ?? null ) instanceof \DateTimeInterface ) {
+				$dates[] = $day_group['date_obj'];
+			}
+			foreach ( $events as $event_item ) {
+				++$shows;
+				$venue = strtolower( trim( self::decode_text( (string) ( $event_item['event_data']['venue'] ?? '' ) ) ) );
+				if ( '' !== $venue ) {
+					$venues[ $venue ] = true;
+				}
+			}
+		}
+
+		$date_label = '';
+		if ( ! empty( $dates ) ) {
+			usort( $dates, static fn( $a, $b ) => $a <=> $b );
+			$first = reset( $dates );
+			$last  = end( $dates );
+			if ( $first->format( 'Y-m-d' ) === $last->format( 'Y-m-d' ) ) {
+				$date_label = $first->format( 'l, M j' );
+			} elseif ( $first->format( 'Y-m' ) === $last->format( 'Y-m' ) ) {
+				$date_label = $first->format( 'D M j' ) . ' – ' . $last->format( 'D j' );
+			} else {
+				$date_label = $first->format( 'D M j' ) . ' – ' . $last->format( 'D M j' );
+			}
+		}
+
+		return array(
+			'shows'      => $shows,
+			'venues'     => count( $venues ),
+			'date_label' => strtoupper( $date_label ),
+		);
+	}
+
+	/**
+	 * Create a slide canvas with fonts and the background fill.
+	 */
+	private function start_canvas( string $preset, string $heading_path, string $body_path, string $bg_hex ): ?GDRenderer {
+		$renderer = new GDRenderer();
+		$renderer->create_canvas( $preset );
+		if ( ! $renderer->get_image() ) {
+			$renderer->destroy();
+			return null;
+		}
+		$renderer->register_font( 'header', $heading_path ? $heading_path : 'Heading.ttf' );
+		$renderer->register_font( 'body', $body_path ? $body_path : 'Body.ttf' );
+		$renderer->fill( $renderer->color_hex( 'bg', $bg_hex ) );
+		$this->draw_photo( $renderer );
+		return $renderer;
+	}
+
+	/**
+	 * Persist a finished slide and free the canvas.
+	 */
+	private function finish_canvas( GDRenderer $renderer, int $slide_number, string $format, array $context ): ?string {
+		$filename = sprintf( 'roundup-slide-%d.%s', $slide_number, 'jpeg' === $format ? 'jpg' : 'png' );
+		$path     = ( ! empty( $context['pipeline_id'] ) && ! empty( $context['flow_id'] ) )
+			? $renderer->save_to_repository( $filename, $context, $format )
+			: $renderer->save_temp( $format );
+		$renderer->destroy();
+		$this->record_slide( $path );
+		return $path;
+	}
+
+	/**
+	 * Draw one full-width band per roundup day, in that day's palette color.
+	 */
+	private function draw_day_stripes( GDRenderer $renderer, array $day_groups, int $y, array $day_palette ): void {
+		$days = array();
+		foreach ( $day_groups as $day_group ) {
+			if ( ! empty( $day_group['events'] ) && ( $day_group['date_obj'] ?? null ) instanceof \DateTimeInterface ) {
+				$days[] = strtolower( $day_group['date_obj']->format( 'l' ) );
+			}
+		}
+		if ( empty( $days ) ) {
+			return;
+		}
+
+		$width   = $renderer->get_width();
+		$segment = (int) ceil( $width / count( $days ) );
+		foreach ( $days as $i => $day_name ) {
+			$color = $renderer->color_hex( 'stripe_' . $day_name, (string) ( $day_palette[ $day_name ] ?? '#4ecdc4' ) );
+			$renderer->filled_rect( $i * $segment, $y, min( $width, ( $i + 1 ) * $segment ), $y + self::STRIPE_HEIGHT, $color );
+		}
+	}
+
+	/**
+	 * Cover: day stripes, big title, date range, show and venue counts.
+	 */
+	private function render_cover_slide( int $slide_number, string $title, array $stats, array $day_groups, string $preset, string $format, array $context, string $heading_path, string $body_path, array $colors, array $day_palette ): ?string {
+		$renderer = $this->start_canvas( $preset, $heading_path, $body_path, $colors['bg'] );
+		if ( ! $renderer ) {
+			return null;
+		}
+
+		$text   = $renderer->color_hex( 'text', $colors['text'] );
+		$muted  = $renderer->color_hex( 'muted', $colors['muted'] );
+		$accent = $renderer->color_hex( 'accent', $colors['accent'] );
+		$cta    = $renderer->color_hex( 'cta', $colors['cta'] );
+		$width  = $renderer->get_width();
+		$height = $renderer->get_height();
+		$max_w  = $width - ( self::PADDING * 2 );
+
+		$this->draw_day_stripes( $renderer, $day_groups, 0, $day_palette );
+
+		// Co-brand: the partner (venue) logo sits top-right, under the
+		// stripes. Without a partner logo the cover is unchanged.
+		$partner_bottom = $this->draw_partner_mark( $renderer, self::PARTNER_MARK_HEIGHT, 'corner', self::STRIPE_HEIGHT + self::PADDING );
+
+		$title             = strtoupper( '' !== $title ? $title : 'Shows' );
+		$lines             = $renderer->wrap_text( $title, self::COVER_TITLE_SIZE, 'header', $max_w );
+		$title_line_height = (int) ( self::COVER_TITLE_SIZE * 1.15 );
+		$block_height      = count( $lines ) * $title_line_height + 40 + (int) ( self::COVER_DATE_SIZE * 1.4 ) + (int) ( self::COVER_STATS_SIZE * 1.4 );
+		$y                 = max( self::PADDING * 3, (int) ( ( $height - $block_height ) / 2 ) - 40 );
+		if ( $partner_bottom > 0 ) {
+			$y = max( $y, $partner_bottom + self::PARTNER_MARK_GAP );
+		}
+
+		foreach ( $lines as $line ) {
+			$renderer->draw_text( $line, self::COVER_TITLE_SIZE, self::PADDING, $y + self::COVER_TITLE_SIZE, $text, 'header' );
+			$y += $title_line_height;
+		}
+
+		$y += 14;
+		$renderer->filled_rect( self::PADDING, $y, self::PADDING + 160, $y + 6, $accent );
+		$y += 26;
+
+		if ( '' !== $stats['date_label'] ) {
+			$renderer->draw_text( $stats['date_label'], self::COVER_DATE_SIZE, self::PADDING, $y + self::COVER_DATE_SIZE, $accent, 'header' );
+			$y += (int) ( self::COVER_DATE_SIZE * 1.4 );
+		}
+
+		$stats_line = sprintf( '%d %s', $stats['shows'], 1 === $stats['shows'] ? 'SHOW' : 'SHOWS' );
+		if ( $stats['venues'] > 1 ) {
+			$stats_line .= sprintf( ' · %d VENUES', $stats['venues'] );
+		}
+		$renderer->draw_text( $stats_line, self::COVER_STATS_SIZE, self::PADDING, $y + self::COVER_STATS_SIZE, $muted, 'body' );
+
+		$renderer->draw_text( 'SWIPE FOR THE FULL LINEUP →', self::CTA_SIZE + 4, self::PADDING, $height - self::PADDING, $cta, 'body' );
+		$this->draw_brand_mark( $renderer, self::COVER_MARK_HEIGHT, 'corner', 0, $text );
+
+		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
+	}
+
+	/**
+	 * Closing: one clear call to action, replacing the per-slide footer.
+	 */
+	private function render_closing_slide( int $slide_number, string $cta_text, string $closing_text, array $day_groups, string $preset, string $format, array $context, string $heading_path, string $body_path, array $colors, array $day_palette ): ?string {
+		$renderer = $this->start_canvas( $preset, $heading_path, $body_path, $colors['bg'] );
+		if ( ! $renderer ) {
+			return null;
+		}
+
+		$text   = $renderer->color_hex( 'text', $colors['text'] );
+		$muted  = $renderer->color_hex( 'muted', $colors['muted'] );
+		$cta    = $renderer->color_hex( 'cta', $colors['cta'] );
+		$height = $renderer->get_height();
+		$max_w  = $renderer->get_width() - ( self::PADDING * 2 );
+
+		// "MORE SHOWS AT EVENTS.EXTRACHILL.COM" → headline + URL when the
+		// CTA follows the default "<lead> AT <url>" shape.
+		$headline = $cta_text;
+		$url      = '';
+		if ( preg_match( '/^(.+?)\s+AT\s+(\S+\.\S+)$/', $cta_text, $m ) ) {
+			$headline = $m[1];
+			$url      = $m[2];
+		}
+
+		$headline = 'Find your next night out →';
+		$url      = 'extrachill.com/events';
+		$y        = (int) ( $height * 0.36 );
+		if ( $this->has_brand_mark() ) {
+			$y = $this->draw_brand_mark( $renderer, self::CLOSING_MARK_HEIGHT, 'center', (int) ( $height * 0.3 ), $text ) + 60;
+		}
+		$y  = $renderer->draw_text_wrapped( $headline, self::CLOSING_HEADLINE_SIZE, self::PADDING, $y, $text, 'header', $max_w, 1.15, 'center' );
+		$y += 24;
+
+		$y = $renderer->draw_text_wrapped( $url, self::CLOSING_URL_SIZE, self::PADDING, $y, $cta, 'header', $max_w, 1.3, 'center' );
+
+		if ( '' !== $closing_text ) {
+			$renderer->draw_text_wrapped( $closing_text, self::CLOSING_TEXT_SIZE, self::PADDING, $y + 40, $muted, 'body', $max_w, 1.4, 'center' );
+		}
+
+		// Co-brand: the partner (venue) logo is centered above the bottom
+		// stripes. Without a partner logo the closing slide is unchanged.
+		$this->draw_partner_mark( $renderer, self::PARTNER_MARK_HEIGHT, 'center', $height - self::STRIPE_HEIGHT - self::PADDING - self::PARTNER_MARK_HEIGHT );
+
+		$this->draw_day_stripes( $renderer, $day_groups, $height - self::STRIPE_HEIGHT, $day_palette );
+
+		return $this->finish_canvas( $renderer, $slide_number, $format, $context );
+	}
+
+	/**
+	 * Resolve footer CTA text shown on every slide.
+	 */
+	private function resolve_cta_text( array $data ): string {
+		$cta_text = isset( $data['cta_text'] ) ? trim( (string) $data['cta_text'] ) : '';
+
+		if ( '' === $cta_text ) {
+			$host     = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+			$cta_text = $host ? sprintf( 'More shows at %s', $host ) : '';
+		}
+
+		return strtoupper( $cta_text );
+	}
+
+	/**
+	 * Distribute day groups across slides based on available height.
+	 *
+	 * Operates on a temporary throwaway renderer so we can measure text
+	 * heights with the actual fonts before allocating the real per-slide
+	 * canvases. The packing itself lives in plan_slides() so it can be
+	 * verified without GD.
+	 *
+	 * @param array  $day_groups   Day-grouped events.
+	 * @param string $title        Optional title (affects first slide height).
+	 * @param string $cta_text     Footer CTA (reserves space at the bottom).
+	 * @param string $heading_path Heading font path.
+	 * @param string $body_path    Body font path.
+	 * @return array Array of slides, each a list of day groups that fit.
+	 */
+	private function distribute_days_to_slides( array $day_groups, string $title, string $cta_text, string $heading_path, string $body_path ): array {
+		$preset_dims = \DataMachine\Abilities\Media\PlatformPresets::dimensions( $this->get_default_preset() );
+		$width       = $preset_dims['width'] ?? 1080;
+		$height      = $preset_dims['height'] ?? 1350;
+		$max_width   = $width - ( self::PADDING * 2 );
+
+		$measure = new GDRenderer();
+		$measure->create_canvas( $width, $height );
+		$measure->register_font( 'header', $heading_path ? $heading_path : 'Heading.ttf' );
+		$measure->register_font( 'body', $body_path ? $body_path : 'Body.ttf' );
+
+		$title_height = '' !== $title
+			? $this->calculate_title_height( $measure, $title, $width )
+			: 0;
+
+		if ( 'calendar' === $this->layout ) {
+			$event_height  = function ( array $event_item ) use ( $measure ): int {
+				return $this->calendar_row_height( $measure, $event_item );
+			};
+			$header_height = 0;
+			$trailing_gap  = self::CAL_DAY_GAP;
+		} else {
+			$event_height  = function ( array $event_item ) use ( $measure, $max_width ): int {
+				$post  = $event_item['post'] ?? null;
+				$title = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+
+				return $measure->measure_text_height( $title, self::EVENT_TITLE_SIZE, 'body', $max_width, self::LINE_HEIGHT_MULTIPLIER )
+					+ (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER )
+					+ self::EVENT_GAP;
+			};
+			$header_height = self::day_header_height();
+			$trailing_gap  = self::DAY_TRAILING_GAP;
+		}
+
+		$plan = static function ( int $bottom ) use ( $day_groups, $title_height, $header_height, $event_height, $trailing_gap ): array {
+			return self::plan_slides( $day_groups, self::PADDING, $bottom, $title_height, $header_height, $event_height, $trailing_gap, 9 );
+		};
+
+		$bottom = self::content_bottom( $height, $cta_text, $this->has_brand_mark() ? self::MARK_HEIGHT : 0 );
+		$slides = $plan( $bottom );
+
+		if ( 'calendar' === $this->layout ) {
+			$slides = self::balance_slides( $plan, $bottom, self::PADDING + $title_height );
+		}
+
+		$measure->destroy();
+
+		return $slides;
+	}
+
+	/**
+	 * Pack day groups onto slides, splitting a day across slides when it
+	 * does not fit (#931).
+	 *
+	 * Events are sorted by start time before packing so a continued day
+	 * picks up where the previous slide left off. A day that continues
+	 * onto a new slide repeats its header there. The first item placed on
+	 * an empty slide is always accepted, so an oversized event can never
+	 * cause an infinite loop.
+	 *
+	 * @param array    $day_groups        date_key => { date_obj, events[] }.
+	 * @param int      $content_top       Y where content starts on every slide.
+	 * @param int      $content_bottom    Y content must not cross (CTA reserved).
+	 * @param int      $title_height      Title block height on the first slide.
+	 * @param int      $day_header_height Height of a day header incl. gap.
+	 * @param callable $event_height      fn( array $event_item ): int.
+	 * @param int      $trailing_gap      Space after each day group.
+	 * @return array<int, array<int, array>> Slides of day groups.
+	 */
+	public static function plan_slides(
+		array $day_groups,
+		int $content_top,
+		int $content_bottom,
+		int $title_height,
+		int $day_header_height,
+		callable $event_height,
+		int $trailing_gap = self::DAY_TRAILING_GAP,
+		int $max_events = PHP_INT_MAX
+	): array {
+		$slides  = array();
+		$current = array();
+		$cursor  = $content_top + $title_height;
+		// The title belongs to the first slide even before any event lands.
+		$slide_has_content = $title_height > 0;
+
+		foreach ( $day_groups as $day_group ) {
+			$events = self::sort_events_by_time( (array) ( $day_group['events'] ?? array() ) );
+			if ( empty( $events ) ) {
+				continue;
+			}
+
+			$chunk = array();
+			$total = count( $events );
+			foreach ( array_values( $events ) as $i => $event_item ) {
+				$item_height = (int) $event_height( $event_item );
+				$needed      = $item_height + ( empty( $chunk ) ? $day_header_height : 0 );
+
+				$count = count( $chunk );
+				foreach ( $current as $group ) {
+					$count += count( $group['events'] );
+				}
+				if ( ( $count >= $max_events || $cursor + $needed > $content_bottom ) && ( $slide_has_content || ! empty( $chunk ) ) ) {
+					// Keep a split day readable: never strand a day header
+					// with fewer than MIN_SPLIT_EVENTS at the bottom of a
+					// slide that already holds other days, and never carry
+					// fewer than MIN_SPLIT_EVENTS onto the next slide.
+					$carry     = array();
+					$remaining = $total - $i;
+					if ( ! empty( $chunk ) && count( $chunk ) < self::MIN_SPLIT_EVENTS && ! empty( $current ) ) {
+						$carry = $chunk;
+						$chunk = array();
+					} elseif ( $remaining < self::MIN_SPLIT_EVENTS && count( $chunk ) > self::MIN_SPLIT_EVENTS ) {
+						$carry = array_splice( $chunk, -( self::MIN_SPLIT_EVENTS - $remaining ) );
+					}
+
+					if ( ! empty( $chunk ) ) {
+						$current[] = array_merge( $day_group, array( 'events' => $chunk ) );
+					}
+					if ( ! empty( $current ) ) {
+						$slides[] = $current;
+					}
+					$current           = array();
+					$chunk             = $carry;
+					$cursor            = $content_top;
+					$slide_has_content = ! empty( $carry );
+					if ( ! empty( $carry ) ) {
+						$cursor += $day_header_height;
+						foreach ( $carry as $carried ) {
+							$cursor += (int) $event_height( $carried );
+						}
+					}
+					$needed = $item_height + ( empty( $chunk ) ? $day_header_height : 0 );
+				}
+
+				$chunk[]           = $event_item;
+				$cursor           += $needed;
+				$slide_has_content = true;
+			}
+
+			$current[] = array_merge( $day_group, array( 'events' => $chunk ) );
+			$cursor   += $trailing_gap;
+		}
+
+		if ( ! empty( $current ) ) {
+			$slides[] = $current;
+		}
+
+		return $slides;
+	}
+
+	/**
+	 * Lowest Y content may reach before colliding with the footer CTA.
+	 */
+	public static function content_bottom( int $height, string $cta_text, int $mark_height = 0 ): int {
+		$bottom = $height - self::PADDING;
+		if ( '' !== $cta_text ) {
+			// render_cta() draws its rule CTA_SIZE + CTA_LINE_GAP above the
+			// bottom padding; keep clearance above that rule.
+			$bottom -= self::CTA_SIZE + self::CTA_LINE_GAP + self::CTA_CLEARANCE;
+		}
+		if ( $mark_height > 0 ) {
+			// The corner brand mark sits on the bottom padding line.
+			$bottom = min( $bottom, $height - self::PADDING - $mark_height - self::MARK_CLEARANCE );
+		}
+		return $bottom;
+	}
+
+	/**
+	 * Whether this render has a logo or brand text to draw.
+	 */
+	private function has_brand_mark(): bool {
+		return '' !== $this->logo_path || '' !== $this->brand_text;
+	}
+
+	/**
+	 * Draw the brand mark.
+	 *
+	 * @param GDRenderer $renderer Canvas.
+	 * @param int        $height   Logo height in px.
+	 * @param string     $place    'corner' (bottom-right on the padding line) or 'center'.
+	 * @param int        $top      Top Y for 'center' placement.
+	 * @param int        $color    Text color for the brand-text fallback.
+	 * @return int Y just below the mark (for 'center' layouts).
+	 */
+	private function draw_brand_mark( GDRenderer $renderer, int $height, string $place, int $top, int $color ): int {
+		$width  = $renderer->get_width();
+		$bottom = $renderer->get_height() - self::PADDING;
+
+		if ( '' !== $this->logo_path ) {
+			$dims   = getimagesize( $this->logo_path );
+			$mark_w = $dims ? (int) round( $dims[0] * $height / max( 1, $dims[1] ) ) : $height;
+			$x      = 'center' === $place ? (int) ( ( $width - $mark_w ) / 2 ) : $width - self::PADDING - $mark_w;
+			$y      = 'center' === $place ? $top : $bottom - $height;
+			$renderer->overlay_image( $this->logo_path, $x, $y, $mark_w, $height );
+			return $y + $height;
+		}
+
+		if ( '' === $this->brand_text ) {
+			return $top;
+		}
+
+		$size = 'center' === $place ? (int) ( self::MARK_TEXT_SIZE * 2 ) : self::MARK_TEXT_SIZE;
+		$text = strtoupper( $this->brand_text );
+		if ( 'center' === $place ) {
+			$renderer->draw_text_centered( $text, $size, $top + $size, $color, 'header' );
+			return $top + (int) ( $size * 1.4 );
+		}
+		$x = $width - self::PADDING - $renderer->measure_text_width( $text, $size, 'header' );
+		$renderer->draw_text( $text, $size, $x, $bottom, $color, 'header' );
+		return $top;
+	}
+
+	/**
+	 * Draw the optional co-brand (partner) mark on a cover or closing slide.
+	 *
+	 * Only these two slide types carry the partner mark; list slides keep
+	 * today's layout, so slide packing never has to account for it.
+	 *
+	 * @param GDRenderer $renderer Canvas.
+	 * @param int        $height   Logo height in px (shrinks for very wide logos).
+	 * @param string     $place    'corner' (top-right) or 'center'.
+	 * @param int        $top      Top Y of the mark.
+	 * @return int Y just below the mark, or 0 when no partner logo is set.
+	 */
+	private function draw_partner_mark( GDRenderer $renderer, int $height, string $place, int $top ): int {
+		if ( '' === $this->partner_logo_path ) {
+			return 0;
+		}
+
+		$width  = $renderer->get_width();
+		$dims   = getimagesize( $this->partner_logo_path );
+		$mark_w = $dims ? (int) round( $dims[0] * $height / max( 1, $dims[1] ) ) : $height;
+
+		// Wide wordmark logos cap at half the canvas so they never collide
+		// with left-aligned cover content.
+		$max_w = (int) ( $width / 2 );
+		if ( $mark_w > $max_w ) {
+			$height = (int) round( $height * $max_w / max( 1, $mark_w ) );
+			$mark_w = $max_w;
+		}
+
+		$x = 'center' === $place ? (int) ( ( $width - $mark_w ) / 2 ) : $width - self::PADDING - $mark_w;
+		$renderer->overlay_image( $this->partner_logo_path, $x, $top, $mark_w, $height );
+
+		return $top + $height;
+	}
+
+	/**
+	 * Height consumed by a day header, matching render_day_group().
+	 */
+	private static function day_header_height(): int {
+		return (int) ( self::DAY_HEADER_SIZE * self::LINE_HEIGHT_MULTIPLIER ) + self::DAY_HEADER_GAP;
+	}
+
+	/**
+	 * Sort event items by start time (missing times last).
+	 *
+	 * @param array $events Event items.
+	 * @return array Sorted event items.
+	 */
+	private static function sort_events_by_time( array $events ): array {
+		usort(
+			$events,
+			static function ( $a, $b ) {
+				$time_a = $a['event_data']['startTime'] ?? '23:59:59';
+				$time_b = $b['event_data']['startTime'] ?? '23:59:59';
+				return strcmp( (string) $time_a, (string) $time_b );
+			}
+		);
+		return $events;
+	}
+
+	/**
+	 * Decode HTML entities stored in post titles and venue names so slides
+	 * show "&" rather than "&amp;".
+	 */
+	public static function decode_text( string $text ): string {
+		return html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	}
+
+	/**
+	 * Pixel height needed for the title block (with underline).
+	 */
+	private function calculate_title_height( GDRenderer $renderer, string $title, int $width ): int {
+		$max_width   = $width - ( self::PADDING * 2 );
+		$lines       = $renderer->wrap_text( $title, self::TITLE_SIZE, 'header', $max_width );
+		$line_height = (int) ( self::TITLE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+		$text_height = count( $lines ) * $line_height;
+
+		return $text_height + self::TITLE_UNDERLINE_GAP + self::TITLE_UNDERLINE_HEIGHT + 30;
+	}
+
+	/**
+	 * Render a single slide and persist it via GDRenderer's repository helper.
+	 *
+	 * @return string|null Saved file path on success.
+	 */
+	private function render_slide(
+		array $slide_days,
+		int $slide_number,
+		string $title,
+		string $preset,
+		string $format,
+		array $context,
+		string $heading_path,
+		string $body_path,
+		string $bg_hex,
+		string $text_hex,
+		string $muted_hex,
+		string $accent_hex,
+		string $cta_hex,
+		string $cta_text,
+		array $day_palette
+	): ?string {
+		$renderer = new GDRenderer();
+		$renderer->create_canvas( $preset );
+
+		if ( ! $renderer->get_image() ) {
+			$renderer->destroy();
+			return null;
+		}
+
+		$renderer->register_font( 'header', $heading_path ? $heading_path : 'Heading.ttf' );
+		$renderer->register_font( 'body', $body_path ? $body_path : 'Body.ttf' );
+
+		$bg_color    = $renderer->color_hex( 'bg', $bg_hex );
+		$text_color  = $renderer->color_hex( 'text', $text_hex );
+		$muted_color = $renderer->color_hex( 'muted', $muted_hex );
+		$accent      = $renderer->color_hex( 'accent', $accent_hex );
+		$cta_color   = $renderer->color_hex( 'cta', $cta_hex );
+
+		$renderer->fill( $bg_color );
+		$this->draw_photo( $renderer );
+
+		$y = self::PADDING;
+
+		if ( '' !== $title ) {
+			$y = $this->render_title( $renderer, $title, $y, $text_color, $accent );
+		}
+
+		foreach ( $slide_days as $day_group ) {
+			$y = 'calendar' === $this->layout
+				? $this->render_calendar_day( $renderer, $day_group, $y, $text_color, $muted_color, $day_palette )
+				: $this->render_day_group( $renderer, $day_group, $y, $text_color, $muted_color, $day_palette );
+		}
+
+		$this->render_cta( $renderer, $cta_text, $cta_color );
+		$this->draw_brand_mark( $renderer, self::MARK_HEIGHT, 'corner', 0, $text_color );
+
+		$filename = sprintf( 'roundup-slide-%d.%s', $slide_number, 'jpeg' === $format ? 'jpg' : 'png' );
+
+		if ( ! empty( $context['pipeline_id'] ) && ! empty( $context['flow_id'] ) ) {
+			$path = $renderer->save_to_repository( $filename, $context, $format );
+		} else {
+			$path = $renderer->save_temp( $format );
+		}
+
+		$renderer->destroy();
+		$this->record_slide( $path );
+
+		return $path;
+	}
+
+	/**
+	 * Render the slide title with an accent underline.
+	 */
+	private function render_title( GDRenderer $renderer, string $title, int $y, int $text_color, int $underline_color ): int {
+		$max_width   = $renderer->get_width() - ( self::PADDING * 2 );
+		$lines       = $renderer->wrap_text( $title, self::TITLE_SIZE, 'header', $max_width );
+		$line_height = (int) ( self::TITLE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+
+		$max_line_width = 0;
+		foreach ( $lines as $line ) {
+			$renderer->draw_text( $line, self::TITLE_SIZE, self::PADDING, $y + self::TITLE_SIZE, $text_color, 'header' );
+			$line_width     = $renderer->measure_text_width( $line, self::TITLE_SIZE, 'header' );
+			$max_line_width = max( $max_line_width, $line_width );
+			$y             += $line_height;
+		}
+
+		$y += self::TITLE_UNDERLINE_GAP;
+		$renderer->filled_rect(
+			self::PADDING,
+			$y,
+			self::PADDING + $max_line_width,
+			$y + self::TITLE_UNDERLINE_HEIGHT,
+			$underline_color
+		);
+		$y += self::TITLE_UNDERLINE_HEIGHT + 30;
+
+		return $y;
+	}
+
+	/**
+	 * Render a small footer CTA to send viewers back to the full calendar.
+	 */
+	private function render_cta( GDRenderer $renderer, string $cta_text, int $cta_color ): void {
+		if ( '' === $cta_text ) {
+			return;
+		}
+
+		$baseline = $renderer->get_height() - self::PADDING;
+		$line_y   = $baseline - self::CTA_SIZE - self::CTA_LINE_GAP;
+		$line_x   = (int) ( ( $renderer->get_width() - self::CTA_LINE_WIDTH ) / 2 );
+
+		$renderer->filled_rect(
+			$line_x,
+			$line_y,
+			$line_x + self::CTA_LINE_WIDTH,
+			$line_y + self::TITLE_UNDERLINE_HEIGHT,
+			$cta_color
+		);
+
+		$renderer->draw_text_centered( $cta_text, self::CTA_SIZE, $baseline, $cta_color, 'body' );
+	}
+
+	/**
+	 * Render a day header followed by its event rows.
+	 */
+	private function render_day_group( GDRenderer $renderer, array $day_group, int $y, int $text_color, int $muted_color, array $day_palette ): int {
+		$date_obj = $day_group['date_obj'] ?? null;
+		$events   = $day_group['events'] ?? array();
+
+		$day_name      = $date_obj ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
+		$day_color_hex = (string) ( $day_palette[ $day_name ] ?? $day_palette['monday'] ?? '#4ecdc4' );
+		$day_color     = $renderer->color_hex( 'day_' . $day_name, $day_color_hex );
+
+		$day_label = $date_obj ? strtoupper( $date_obj->format( 'l, M j' ) ) : 'UNKNOWN DATE';
+		$renderer->draw_text( $day_label, self::DAY_HEADER_SIZE, self::PADDING, $y + self::DAY_HEADER_SIZE, $day_color, 'header' );
+		$y += self::day_header_height();
+
+		$events = self::sort_events_by_time( $events );
+
+		foreach ( $events as $event_item ) {
+			$y = $this->render_event( $renderer, $event_item, $y, $text_color, $muted_color );
+		}
+
+		$y += self::DAY_TRAILING_GAP;
+
+		return $y;
+	}
+
+	/**
+	 * Render a single event row: title (wrapped) + venue/time meta.
+	 */
+	private function render_event( GDRenderer $renderer, array $event_item, int $y, int $text_color, int $muted_color ): int {
+		$this->map_event( $renderer, $event_item, self::PADDING, $y );
+		$post       = $event_item['post'] ?? null;
+		$event_data = $event_item['event_data'] ?? array();
+
+		$title          = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+		$venue          = $this->single_venue ? '' : self::decode_text( (string) ( $event_data['venue'] ?? '' ) );
+		$formatted_time = self::format_times( $event_item );
+
+		$meta_parts = array_filter( array( $venue, $formatted_time ) );
+		$meta_line  = implode( ' · ', $meta_parts );
+
+		$max_width = $renderer->get_width() - ( self::PADDING * 2 );
+
+		$y = $renderer->draw_text_wrapped(
+			$title,
+			self::EVENT_TITLE_SIZE,
+			self::PADDING,
+			$y,
+			$text_color,
+			'body',
+			$max_width,
+			self::LINE_HEIGHT_MULTIPLIER,
+			'left'
+		);
+
+		if ( '' !== $meta_line ) {
+			$renderer->draw_text( $meta_line, self::EVENT_META_SIZE, self::PADDING, $y + self::EVENT_META_SIZE, $muted_color, 'body' );
+			$y += (int) ( self::EVENT_META_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+		}
+
+		$y += self::EVENT_GAP;
+
+		return $y;
+	}
+
+	/**
+	 * Spread rows evenly: find the lowest content bottom that still needs
+	 * no more slides than the full-height plan, so the last slide is not a
+	 * stranded handful of rows.
+	 *
+	 * @param callable $plan   fn( int $bottom ): array, a slide plan.
+	 * @param int      $bottom Full content bottom.
+	 * @param int      $floor  Lowest bottom worth trying.
+	 * @return array Balanced slide plan.
+	 */
+	public static function balance_slides( callable $plan, int $bottom, int $floor ): array {
+		$best   = $plan( $bottom );
+		$target = count( $best );
+		if ( $target < 2 ) {
+			return $best;
+		}
+
+		$low  = $floor;
+		$high = $bottom;
+		while ( $high - $low > 4 ) {
+			$mid       = intdiv( $low + $high, 2 );
+			$candidate = $plan( $mid );
+			if ( count( $candidate ) <= $target ) {
+				$best = $candidate;
+				$high = $mid;
+			} else {
+				$low = $mid;
+			}
+		}
+
+		return $best;
+	}
+
+	/**
+	 * Collapse repeat sets: the same show at the same venue more than once
+	 * on one day becomes a single row carrying every start time.
+	 *
+	 * @param array $day_groups date_key => { date_obj, events[] }.
+	 * @return array Day groups whose event items carry `times` (H:i:s list).
+	 */
+	public static function merge_repeat_sets( array $day_groups ): array {
+		foreach ( $day_groups as $key => $day_group ) {
+			$merged = array();
+			foreach ( self::sort_events_by_time( (array) ( $day_group['events'] ?? array() ) ) as $index => $event_item ) {
+				$post  = $event_item['post'] ?? null;
+				$title = strtolower( trim( self::decode_text( $post ? (string) $post->post_title : '' ) ) );
+				$venue = strtolower( trim( self::decode_text( (string) ( $event_item['event_data']['venue'] ?? '' ) ) ) );
+				$time  = (string) ( $event_item['event_data']['startTime'] ?? '' );
+				$id    = '' !== $title ? $title . '|' . $venue : 'untitled:' . $index;
+
+				if ( isset( $merged[ $id ] ) ) {
+					if ( '' !== $time && ! in_array( $time, $merged[ $id ]['times'], true ) ) {
+						$merged[ $id ]['times'][] = $time;
+					}
+					continue;
+				}
+				$event_item['times'] = '' !== $time ? array( $time ) : array();
+				$merged[ $id ]       = $event_item;
+			}
+			$day_groups[ $key ]['events'] = array_values( $merged );
+		}
+		return $day_groups;
+	}
+
+	/**
+	 * "7:00 PM", or "7:00 & 9:30 PM" for repeat sets ("11:00 AM & 2:00 PM"
+	 * when the sets straddle noon).
+	 *
+	 * @param array $event_item Event item, optionally with `times`.
+	 * @return string
+	 */
+	public static function format_times( array $event_item ): string {
+		$raw = isset( $event_item['times'] ) ? (array) $event_item['times'] : array( (string) ( $event_item['event_data']['startTime'] ?? '' ) );
+
+		$times = array();
+		foreach ( $raw as $value ) {
+			$time_obj = '' !== (string) $value ? \DateTime::createFromFormat( 'H:i:s', (string) $value ) : false;
+			if ( $time_obj ) {
+				$times[] = $time_obj;
+			}
+		}
+		if ( empty( $times ) ) {
+			return '';
+		}
+
+		$same_half = 1 === count( array_unique( array_map( static fn( $t ) => $t->format( 'A' ), $times ) ) );
+		$parts     = array();
+		$last      = count( $times ) - 1;
+		foreach ( $times as $i => $time_obj ) {
+			$parts[] = ( $same_half && $i < $last ) ? $time_obj->format( 'g:i' ) : $time_obj->format( 'g:i A' );
+		}
+		return implode( ' & ', $parts );
+	}
+
+	/**
+	 * Width available to a calendar row title once the time is placed.
+	 */
+	private function calendar_title_width( GDRenderer $renderer, string $time_label ): int {
+		$width = $renderer->get_width() - ( self::PADDING * 2 ) - self::CAL_DATE_COL;
+		if ( '' !== $time_label ) {
+			$width -= $renderer->measure_text_width( $time_label, self::CAL_TIME_SIZE, 'body' ) + self::CAL_TIME_GAP;
+		}
+		return max( 200, $width );
+	}
+
+	/**
+	 * Height of one calendar row, matching render_calendar_day().
+	 */
+	private function calendar_row_height( GDRenderer $renderer, array $event_item ): int {
+		$post   = $event_item['post'] ?? null;
+		$title  = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+		$height = $renderer->measure_text_height( $title, self::CAL_TITLE_SIZE, 'body', $this->calendar_title_width( $renderer, self::format_times( $event_item ) ), self::LINE_HEIGHT_MULTIPLIER );
+
+		if ( ! $this->single_venue && '' !== trim( (string) ( $event_item['event_data']['venue'] ?? '' ) ) ) {
+			$height += (int) ( self::CAL_VENUE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+		}
+		return $height + self::CAL_ROW_GAP;
+	}
+
+	/**
+	 * Calendar layout: date in a left column on the day's first row, title
+	 * beside it, time right-aligned, venue beneath when venues vary.
+	 */
+	private function render_calendar_day( GDRenderer $renderer, array $day_group, int $y, int $text_color, int $muted_color, array $day_palette ): int {
+		$date_obj = $day_group['date_obj'] ?? null;
+
+		$day_name  = $date_obj ? strtolower( $date_obj->format( 'l' ) ) : 'monday';
+		$day_color = $renderer->color_hex( 'day_' . $day_name, (string) ( $day_palette[ $day_name ] ?? $day_palette['monday'] ?? '#4ecdc4' ) );
+		$label     = $date_obj ? strtoupper( $date_obj->format( 'D j' ) ) : '';
+		$title_x   = self::PADDING + self::CAL_DATE_COL;
+		$right_x   = $renderer->get_width() - self::PADDING;
+
+		foreach ( self::sort_events_by_time( (array) ( $day_group['events'] ?? array() ) ) as $i => $event_item ) {
+			$post       = $event_item['post'] ?? null;
+			$title      = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
+			$time_label = self::format_times( $event_item );
+			$this->map_event( $renderer, $event_item, $title_x, $y );
+			$baseline = $y + self::CAL_TITLE_SIZE;
+
+			if ( 0 === $i && '' !== $label ) {
+				$renderer->draw_text( $label, self::CAL_DATE_SIZE, self::PADDING, $baseline, $day_color, 'header' );
+			}
+			if ( '' !== $time_label ) {
+				$time_x = $right_x - $renderer->measure_text_width( $time_label, self::CAL_TIME_SIZE, 'body' );
+				$renderer->draw_text( $time_label, self::CAL_TIME_SIZE, $time_x, $baseline, $muted_color, 'body' );
+			}
+
+			$y = $renderer->draw_text_wrapped( $title, self::CAL_TITLE_SIZE, $title_x, $y, $text_color, 'body', $this->calendar_title_width( $renderer, $time_label ), self::LINE_HEIGHT_MULTIPLIER, 'left' );
+
+			$venue = $this->single_venue ? '' : self::decode_text( (string) ( $event_item['event_data']['venue'] ?? '' ) );
+			if ( '' !== $venue ) {
+				$renderer->draw_text( $venue, self::CAL_VENUE_SIZE, $title_x, $y + self::CAL_VENUE_SIZE, $muted_color, 'body' );
+				$y += (int) ( self::CAL_VENUE_SIZE * self::LINE_HEIGHT_MULTIPLIER );
+			}
+			$y += self::CAL_ROW_GAP;
+		}
+
+		return $y + self::CAL_DAY_GAP;
+	}
+}

@@ -1,0 +1,31 @@
+# Build output
+build/
+artifacts/
+
+# Dependencies
+node_modules/
+vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Additional build and development files
+.claude/
+.buildignore
+docs/.docs-sync.json
+/.phpunit.result.cache

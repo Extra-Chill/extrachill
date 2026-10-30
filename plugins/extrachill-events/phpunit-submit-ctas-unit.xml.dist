@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			submit-ctas-unit: pure-PHP unit tests for the "add your show"
+			CTAs on venue, city and event pages (#958). Uses file-level WP
+			doubles, so it runs on the host runtime with no WordPress loaded.
+		-->
+		<testsuite name="submit-ctas-unit">
+			<file>tests/Unit/Core/SubmitCtasTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

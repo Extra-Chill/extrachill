@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Venue calendar feed tests.
+
+	Runs under the plain bootstrap rather than the managed WordPress one. The
+	sync scope tests use recording stubs for get_posts, wp_update_post, and
+	term meta to assert the query arguments the runner builds; those stubs sit
+	behind function_exists guards, so with real WordPress loaded they never
+	bind. Same reason phpunit-local-scene-unit.xml.dist exists.
+-->
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<testsuite name="venue-calendar-feed">
+			<file>tests/Unit/Core/VenueCalendarFeedTest.php</file>
+			<file>tests/Unit/Core/VenueCalendarFeedSyncTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

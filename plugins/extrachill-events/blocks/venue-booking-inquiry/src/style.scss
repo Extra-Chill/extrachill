@@ -1,0 +1,88 @@
+@use "@extrachill/components/styles/components.scss";
+
+.ec-booking-inquiry__powered {
+	margin-block: 1rem 0;
+	opacity: 0.58;
+	font-size: 0.78rem;
+	text-align: center;
+}
+
+.ec-booking-inquiry__logo {
+	display: block;
+	max-width: min(12rem, 60%);
+	max-height: 7rem;
+	margin: 0 auto 1rem;
+	object-fit: contain;
+}
+
+.ec-booking-inquiry__heading {
+	margin: 0;
+	color: inherit;
+	font: inherit;
+}
+
+.ec-booking-inquiry__recover {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: inherit;
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.ec-booking-inquiry__draft-status:not(:empty) {
+	margin-block-start: 0.5rem;
+	opacity: 0.58;
+	font-size: 0.78rem;
+	text-align: center;
+}
+
+.ec-booking-inquiry__optional-fields {
+	margin-block: 1rem;
+	padding-block: 0.75rem;
+	border-block: 1px solid var(--border-color, #d6d6d6);
+}
+
+.ec-booking-inquiry__optional-fields summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.ec-booking-inquiry__reference {
+	display: block;
+	overflow-wrap: anywhere;
+}
+
+.ec-booking-inquiry__status-card {
+	display: grid;
+	gap: 0.25rem;
+	margin-block: 1rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--border-color, #d6d6d6);
+	border-radius: 0.5rem;
+	background: var(--background-color, #f7f7f7);
+}
+
+.ec-booking-inquiry__recovery {
+	display: grid;
+	gap: 1rem;
+}
+
+.ec-booking-inquiry__recovery > * {
+	min-width: 0;
+	margin-block: 0;
+}
+
+.ec-booking-inquiry__access-code {
+	display: grid;
+	gap: 0.75rem;
+	padding-block: 1rem;
+	border-block: 1px solid var(--border-color, #d6d6d6);
+}
+
+.ec-booking-inquiry__access-code > *,
+.ec-booking-inquiry__action-help {
+	min-width: 0;
+	margin-block: 0;
+}
