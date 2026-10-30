@@ -566,6 +566,104 @@ function extrachill_users_register_concert_tracking_abilities() {
 			),
 		)
 	);
+
+	// ─── Private Show Ratings ────────────────────────────────────────────────
+
+	wp_register_ability(
+		'extrachill/rate-show',
+		array(
+			'label'               => __( 'Rate Show', 'extrachill-users' ),
+			'description'         => __( 'Set or clear the current user\'s private 1–5 rating of a past show they attended. Ratings are personal and never shown publicly.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'event_id' => array(
+						'type'        => 'integer',
+						'description' => 'Event post ID.',
+						'minimum'     => 1,
+					),
+					'rating'   => array(
+						'type'        => 'integer',
+						'description' => 'Rating from 1 to 5 stars; 0 clears it.',
+						'minimum'     => 0,
+						'maximum'     => 5,
+					),
+					'blog_id'  => array(
+						'type'        => 'integer',
+						'description' => 'Blog ID. Defaults to events blog.',
+						'default'     => 0,
+					),
+				),
+				'required'   => array( 'event_id', 'rating' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'event_id' => array( 'type' => 'integer' ),
+					'rating'   => array( 'type' => 'integer' ),
+				),
+				'required'   => array( 'event_id', 'rating' ),
+			),
+			'execute_callback'    => 'extrachill_users_ability_rate_show',
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/get-my-show-ratings',
+		array(
+			'label'               => __( 'Get My Show Ratings', 'extrachill-users' ),
+			'description'         => __( 'The current user\'s own private show ratings for a set of events. Only rated shows are returned.', 'extrachill-users' ),
+			'category'            => 'extrachill-users',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'event_ids' => array(
+						'type'        => 'array',
+						'items'       => array( 'type' => 'integer' ),
+						'maxItems'    => 100,
+						'description' => 'Event post IDs (max 100).',
+					),
+					'blog_id'   => array(
+						'type'        => 'integer',
+						'description' => 'Blog ID. Defaults to events blog.',
+						'default'     => 0,
+					),
+				),
+				'required'   => array( 'event_ids' ),
+			),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'properties' => array(
+					'ratings' => array(
+						'type'                 => 'object',
+						'description'          => 'Event ID => rating (1–5).',
+						'additionalProperties' => array( 'type' => 'integer' ),
+					),
+				),
+				'required'   => array( 'ratings' ),
+			),
+			'execute_callback'    => 'extrachill_users_ability_get_my_show_ratings',
+			'permission_callback' => 'is_user_logged_in',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => true,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
+			),
+		)
+	);
 }
 
 // ─── Execute Callbacks ───────────────────────────────────────────────────────
@@ -813,4 +911,43 @@ function extrachill_users_ability_get_event_attendees_full( array $input ): arra
 	return array(
 		'attendees' => ec_users_get_event_attendees_full( $event_id, $blog_id, (int) $limit ),
 	);
+}
+
+/**
+ * Rate show ability callback. Always acts on the current user.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_users_ability_rate_show( array $input ) {
+	$user_id  = get_current_user_id();
+	$event_id = (int) $input['event_id'];
+	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : 0;
+
+	$rating = ec_users_set_show_rating( $user_id, $event_id, $blog_id, (int) $input['rating'] );
+	if ( is_wp_error( $rating ) ) {
+		return $rating;
+	}
+
+	return array(
+		'event_id' => $event_id,
+		'rating'   => $rating,
+	);
+}
+
+/**
+ * Get my show ratings ability callback. Always reads the current user's own.
+ *
+ * @param array $input Ability input.
+ * @return array
+ */
+function extrachill_users_ability_get_my_show_ratings( array $input ): array {
+	$ratings = ec_users_get_show_ratings(
+		get_current_user_id(),
+		array_slice( (array) ( $input['event_ids'] ?? array() ), 0, 100 ),
+		! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : 0
+	);
+
+	// Object keyed by event ID, even when empty.
+	return array( 'ratings' => (object) $ratings );
 }

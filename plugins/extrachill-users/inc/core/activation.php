@@ -278,19 +278,25 @@ function extrachill_users_maybe_create_login_page() {
 add_action( 'admin_init', 'extrachill_users_maybe_create_login_page' );
 
 /**
- * Ensure concert tracking table exists.
- * Fallback for existing installations where table was added after activation.
+ * Ensure concert tracking table exists and is on the current schema version.
+ *
+ * Re-runs dbDelta whenever EXTRACHILL_USERS_CONCERT_TRACKING_SCHEMA_VERSION
+ * (defined in db.php) is bumped, so added columns reach existing installs.
  */
 function extrachill_users_maybe_create_concert_tracking_table() {
-	if ( get_site_option( 'extrachill_users_concert_tracking_table_created' ) ) {
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/db.php';
+
+	$current_version   = (string) EXTRACHILL_USERS_CONCERT_TRACKING_SCHEMA_VERSION;
+	$installed_version = (string) get_site_option( 'extrachill_users_concert_tracking_schema_version', '' );
+
+	if ( $installed_version === $current_version ) {
 		return;
 	}
 
-	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/concert-tracking/db.php';
-	if ( function_exists( 'extrachill_users_install_concert_tracking_table' ) ) {
-		extrachill_users_install_concert_tracking_table();
-	}
+	extrachill_users_install_concert_tracking_table();
 
+	update_site_option( 'extrachill_users_concert_tracking_schema_version', $current_version );
+	// Maintain the legacy flag so any external code that checks it keeps working.
 	update_site_option( 'extrachill_users_concert_tracking_table_created', 1 );
 }
 add_action( 'admin_init', 'extrachill_users_maybe_create_concert_tracking_table' );
