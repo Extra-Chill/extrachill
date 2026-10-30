@@ -78,7 +78,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/RoundupPhotos.php';
+
 class EventRoundupTemplate implements TemplateInterface {
+
+	/** Metadata captured by the actual drawing pass, consumed by the build ability. */
+	public static array $last_slides = array();
+	private array $photo_options     = array();
+	private array $used_photos       = array();
+	private array $slide_meta        = array();
+	private string $slide_kind       = 'day';
 
 	private const PADDING                = 60;
 	private const TITLE_SIZE             = 36;
@@ -171,6 +180,106 @@ class EventRoundupTemplate implements TemplateInterface {
 		'saturday'  => '#54a0ff',
 	);
 
+	private function begin_slide( string $kind ): void {
+		$this->slide_kind = $kind;
+		$this->slide_meta = array(
+			'kind'      => $kind,
+			'events'    => array(),
+			'user_tags' => array(),
+		);
+	}
+
+	private function record_slide( $path ): void {
+		if ( $path ) {
+			// Primary venue/headliner tags across all rows outrank support artists.
+			$rows = $this->slide_meta['events'];
+			foreach ( $rows as $row ) {
+				foreach ( array_filter( array( $row['venue_term_id'], $row['artist_term_ids'][0] ?? 0 ) ) as $term_id ) {
+					$this->add_tag( (string) get_term_meta( $term_id, 'instagram', true ), $row['x'], $row['y'] );
+				}
+			}
+			foreach ( $rows as $row ) {
+				foreach ( array_slice( $row['artist_term_ids'], 1 ) as $term_id ) {
+					$this->add_tag( (string) get_term_meta( $term_id, 'instagram', true ), $row['x'], $row['y'] );
+				}
+			}
+			$this->slide_meta['image_path'] = $path;
+			self::$last_slides[]            = $this->slide_meta;
+		}
+	}
+
+	private function draw_photo( GDRenderer $renderer ): void {
+		$photo = RoundupPhotos::select( $this->photo_options['background'] ?? '', count( self::$last_slides ), (string) ( $this->photo_options['location'] ?? '' ), $this->used_photos );
+		if ( ! $photo ) {
+			return;
+		}
+		$data = is_readable( $photo['path'] ) ? file_get_contents( $photo['path'] ) : false; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local attachment file.
+		if ( false === $data || '' === $data ) {
+			return;
+		}
+		$source = imagecreatefromstring( $data );
+		if ( ! $source ) {
+			return;
+		}
+		$w      = $renderer->get_width();
+		$h      = $renderer->get_height();
+		$scale  = max( $w / imagesx( $source ), $h / imagesy( $source ) );
+		$sw     = (int) round( $w / $scale );
+		$sh     = (int) round( $h / $scale );
+		$canvas = $renderer->get_image();
+		imagecopyresampled( $canvas, $source, 0, 0, (int) ( ( imagesx( $source ) - $sw ) / 2 ), (int) ( ( imagesy( $source ) - $sh ) / 2 ), $w, $h, $sw, $sh );
+		imagedestroy( $source );
+		if ( 'day' === $this->slide_kind ) {
+			for ( $i = 0; $i < 8; ++$i ) {
+				imagefilter( $canvas, IMG_FILTER_GAUSSIAN_BLUR );
+			}
+		}
+		imagealphablending( $canvas, true );
+		for ( $y = 0; $y < $h; ++$y ) {
+			$brightness = 'day' === $this->slide_kind ? 0.30 - 0.18 * $y / max( 1, $h - 1 ) : 0.45;
+			$alpha      = max( 0, min( 127, (int) round( 127 * $brightness ) ) );
+			$shade      = imagecolorallocatealpha( $canvas, 0, 0, 0, $alpha );
+			if ( false !== $shade ) {
+				imageline( $canvas, 0, $y, $w - 1, $y, $shade );
+			}
+		}
+		$this->used_photos[] = $photo['attachment_id'];
+		unset( $photo['path'], $photo['score'] );
+		$this->slide_meta = array_merge( $this->slide_meta, $photo );
+		$this->add_tag( $photo['photographer_instagram'], 0.9, 0.95 );
+	}
+
+	public static function username( string $value ): string {
+		$value = trim( $value );
+		$value = preg_replace( '~^https?://(?:www\\.)?instagram\\.com/~i', '', $value );
+		$value = trim( $value, "@/ \t\n\r" );
+		return preg_match( '/^[a-zA-Z0-9_.]{1,30}$/D', $value ) ? strtolower( $value ) : '';
+	}
+
+	private function add_tag( string $handle, float $x, float $y ): void {
+		$username = self::username( $handle );
+		if ( '' !== $username && count( $this->slide_meta['user_tags'] ) < 20 && ! in_array( $username, array_column( $this->slide_meta['user_tags'], 'username' ), true ) ) {
+			$this->slide_meta['user_tags'][] = compact( 'username', 'x', 'y' );
+		}
+	}
+
+	private function map_event( GDRenderer $renderer, array $item, int $left, int $top ): void {
+		$id                           = (int) ( $item['post']->ID ?? 0 );
+		$x                            = min( 1.0, max( 0.0, $left / $renderer->get_width() ) );
+		$y                            = min( 1.0, max( 0.0, $top / $renderer->get_height() ) );
+		$venues                       = wp_get_post_terms( $id, 'venue', array( 'fields' => 'ids' ) );
+		$artists                      = wp_get_post_terms( $id, 'artist', array( 'fields' => 'ids' ) );
+		$venues                       = is_wp_error( $venues ) ? array() : $venues;
+		$artists                      = is_wp_error( $artists ) ? array() : $artists;
+		$this->slide_meta['events'][] = array(
+			'event_id'        => $id,
+			'x'               => $x,
+			'y'               => $y,
+			'venue_term_id'   => (int) ( $venues[0] ?? 0 ),
+			'artist_term_ids' => $artists,
+		);
+	}
+
 	public function get_id(): string {
 		return 'event_roundup';
 	}
@@ -233,9 +342,12 @@ class EventRoundupTemplate implements TemplateInterface {
 	}
 
 	public function render( array $data, GDRenderer $renderer, array $options = array() ): array {
-		$preset  = $options['preset'] ?? $this->get_default_preset();
-		$format  = $options['format'] ?? 'png';
-		$context = $options['context'] ?? array();
+		self::$last_slides   = array();
+		$this->photo_options = $data;
+		$this->used_photos   = array();
+		$preset              = $options['preset'] ?? $this->get_default_preset();
+		$format              = $options['format'] ?? 'png';
+		$context             = $options['context'] ?? array();
 
 		$day_groups = (array) ( $data['day_groups'] ?? array() );
 		$title      = (string) ( $data['title'] ?? '' );
@@ -304,6 +416,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		);
 
 		if ( $cover ) {
+			$this->begin_slide( 'cover' );
 			$path = $this->render_cover_slide( ++$slide_number, $title, self::cover_stats( $day_groups ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
 			if ( $path ) {
 				$image_paths[] = $path;
@@ -311,6 +424,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		foreach ( array_values( $slides_distribution ) as $index => $slide_days ) {
+			$this->begin_slide( 'day' );
 			$slide_title = ( 0 === $index ) ? $list_title : '';
 
 			$path = $this->render_slide(
@@ -337,6 +451,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		if ( $closing ) {
+			$this->begin_slide( 'closing' );
 			$path = $this->render_closing_slide( ++$slide_number, $cta_text, trim( (string) ( $data['closing_text'] ?? '' ) ), $day_groups, $preset, $format, $context, $heading_path, $body_path, $colors, $day_palette );
 			if ( $path ) {
 				$image_paths[] = $path;
@@ -408,6 +523,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$renderer->register_font( 'header', $heading_path ? $heading_path : 'Heading.ttf' );
 		$renderer->register_font( 'body', $body_path ? $body_path : 'Body.ttf' );
 		$renderer->fill( $renderer->color_hex( 'bg', $bg_hex ) );
+		$this->draw_photo( $renderer );
 		return $renderer;
 	}
 
@@ -420,6 +536,7 @@ class EventRoundupTemplate implements TemplateInterface {
 			? $renderer->save_to_repository( $filename, $context, $format )
 			: $renderer->save_temp( $format );
 		$renderer->destroy();
+		$this->record_slide( $path );
 		return $path;
 	}
 
@@ -527,16 +644,16 @@ class EventRoundupTemplate implements TemplateInterface {
 			$url      = $m[2];
 		}
 
-		$y = (int) ( $height * 0.36 );
+		$headline = 'Find your next night out →';
+		$url      = 'extrachill.com/events';
+		$y        = (int) ( $height * 0.36 );
 		if ( $this->has_brand_mark() ) {
 			$y = $this->draw_brand_mark( $renderer, self::CLOSING_MARK_HEIGHT, 'center', (int) ( $height * 0.3 ), $text ) + 60;
 		}
 		$y  = $renderer->draw_text_wrapped( $headline, self::CLOSING_HEADLINE_SIZE, self::PADDING, $y, $text, 'header', $max_w, 1.15, 'center' );
 		$y += 24;
 
-		if ( '' !== $url ) {
-			$y = $renderer->draw_text_wrapped( $url, self::CLOSING_URL_SIZE, self::PADDING, $y, $cta, 'header', $max_w, 1.3, 'center' );
-		}
+		$y = $renderer->draw_text_wrapped( $url, self::CLOSING_URL_SIZE, self::PADDING, $y, $cta, 'header', $max_w, 1.3, 'center' );
 
 		if ( '' !== $closing_text ) {
 			$renderer->draw_text_wrapped( $closing_text, self::CLOSING_TEXT_SIZE, self::PADDING, $y + 40, $muted, 'body', $max_w, 1.4, 'center' );
@@ -615,7 +732,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		$plan = static function ( int $bottom ) use ( $day_groups, $title_height, $header_height, $event_height, $trailing_gap ): array {
-			return self::plan_slides( $day_groups, self::PADDING, $bottom, $title_height, $header_height, $event_height, $trailing_gap );
+			return self::plan_slides( $day_groups, self::PADDING, $bottom, $title_height, $header_height, $event_height, $trailing_gap, 9 );
 		};
 
 		$bottom = self::content_bottom( $height, $cta_text, $this->has_brand_mark() ? self::MARK_HEIGHT : 0 );
@@ -656,7 +773,8 @@ class EventRoundupTemplate implements TemplateInterface {
 		int $title_height,
 		int $day_header_height,
 		callable $event_height,
-		int $trailing_gap = self::DAY_TRAILING_GAP
+		int $trailing_gap = self::DAY_TRAILING_GAP,
+		int $max_events = PHP_INT_MAX
 	): array {
 		$slides  = array();
 		$current = array();
@@ -676,7 +794,11 @@ class EventRoundupTemplate implements TemplateInterface {
 				$item_height = (int) $event_height( $event_item );
 				$needed      = $item_height + ( empty( $chunk ) ? $day_header_height : 0 );
 
-				if ( $cursor + $needed > $content_bottom && ( $slide_has_content || ! empty( $chunk ) ) ) {
+				$count = count( $chunk );
+				foreach ( $current as $group ) {
+					$count += count( $group['events'] );
+				}
+				if ( ( $count >= $max_events || $cursor + $needed > $content_bottom ) && ( $slide_has_content || ! empty( $chunk ) ) ) {
 					// Keep a split day readable: never strand a day header
 					// with fewer than MIN_SPLIT_EVENTS at the bottom of a
 					// slide that already holds other days, and never carry
@@ -907,6 +1029,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		$cta_color   = $renderer->color_hex( 'cta', $cta_hex );
 
 		$renderer->fill( $bg_color );
+		$this->draw_photo( $renderer );
 
 		$y = self::PADDING;
 
@@ -932,6 +1055,7 @@ class EventRoundupTemplate implements TemplateInterface {
 		}
 
 		$renderer->destroy();
+		$this->record_slide( $path );
 
 		return $path;
 	}
@@ -1018,6 +1142,7 @@ class EventRoundupTemplate implements TemplateInterface {
 	 * Render a single event row: title (wrapped) + venue/time meta.
 	 */
 	private function render_event( GDRenderer $renderer, array $event_item, int $y, int $text_color, int $muted_color ): int {
+		$this->map_event( $renderer, $event_item, self::PADDING, $y );
 		$post       = $event_item['post'] ?? null;
 		$event_data = $event_item['event_data'] ?? array();
 
@@ -1188,7 +1313,8 @@ class EventRoundupTemplate implements TemplateInterface {
 			$post       = $event_item['post'] ?? null;
 			$title      = self::decode_text( $post ? (string) $post->post_title : 'Untitled Event' );
 			$time_label = self::format_times( $event_item );
-			$baseline   = $y + self::CAL_TITLE_SIZE;
+			$this->map_event( $renderer, $event_item, $title_x, $y );
+			$baseline = $y + self::CAL_TITLE_SIZE;
 
 			if ( 0 === $i && '' !== $label ) {
 				$renderer->draw_text( $label, self::CAL_DATE_SIZE, self::PADDING, $baseline, $day_color, 'header' );

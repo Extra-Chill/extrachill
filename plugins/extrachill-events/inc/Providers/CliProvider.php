@@ -29,6 +29,8 @@ final class CliProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/EventSourceRampEvaluator.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/EventSourceRampCommand.php';
+		require_once dirname( __DIR__ ) . '/Cli/EventRoundupCommand.php';
+		\WP_CLI::add_command( 'extrachill events roundup', \ExtraChillEvents\Cli\EventRoundupCommand::class );
 		\WP_CLI::add_command( 'extrachill events ramp', \ExtraChillEvents\Cli\EventSourceRampCommand::class );
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Cli/AddCityCommand.php';

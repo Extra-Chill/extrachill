@@ -150,6 +150,11 @@ class EventRoundupAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
+						'background'        => array(
+							'type'  => array( 'string', 'integer', 'array' ),
+							'items' => array( 'type' => 'integer' ),
+						),
+						'location'          => array( 'type' => 'string' ),
 						'day_groups'        => array(
 							'type'                 => 'object',
 							'description'          => __( 'Date-keyed day groups from event-roundup-query.', 'extrachill-events' ),
@@ -200,6 +205,10 @@ class EventRoundupAbilities {
 							'items' => array( 'type' => 'string' ),
 						),
 						'slide_count' => array( 'type' => 'integer' ),
+						'slides'      => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'object' ),
+						),
 						'message'     => array( 'type' => 'string' ),
 					),
 				),
@@ -220,6 +229,10 @@ class EventRoundupAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
+						'background'        => array(
+							'type'  => array( 'string', 'integer', 'array' ),
+							'items' => array( 'type' => 'integer' ),
+						),
 						'date_start'        => array(
 							'type'        => 'string',
 							'description' => __( 'Start date (Y-m-d). Defaults to today.', 'extrachill-events' ),
@@ -290,6 +303,10 @@ class EventRoundupAbilities {
 							'items' => array( 'type' => 'string' ),
 						),
 						'slide_count'   => array( 'type' => 'integer' ),
+						'slides'        => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'object' ),
+						),
 						'date_start'    => array( 'type' => 'string' ),
 						'date_end'      => array( 'type' => 'string' ),
 						'location_name' => array( 'type' => 'string' ),
@@ -399,6 +416,7 @@ class EventRoundupAbilities {
 			'success'     => true,
 			'image_paths' => $image_paths,
 			'slide_count' => count( $image_paths ),
+			'slides'      => \ExtraChillEvents\Templates\EventRoundupTemplate::$last_slides,
 			'message'     => sprintf(
 				/* translators: %d: number of generated slides */
 				__( 'Generated %d carousel slides.', 'extrachill-events' ),
@@ -450,6 +468,7 @@ class EventRoundupAbilities {
 			'success'       => true,
 			'image_paths'   => $render_result['image_paths'],
 			'slide_count'   => $render_result['slide_count'],
+			'slides'        => $render_result['slides'],
 			'date_start'    => $query_result['date_start'],
 			'date_end'      => $query_result['date_end'],
 			'location_name' => $query_result['location_name'],
@@ -733,6 +752,8 @@ class EventRoundupAbilities {
 	 */
 	private static function slideOptions( array $input ): array {
 		return array(
+			'background'        => $input['background'] ?? '',
+			'location'          => (string) ( $input['location'] ?? '' ),
 			'cover'             => ! empty( $input['cover'] ),
 			'closing'           => ! empty( $input['closing'] ),
 			'closing_text'      => (string) ( $input['closing_text'] ?? '' ),
