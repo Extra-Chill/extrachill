@@ -1,0 +1,102 @@
+<?php
+/**
+ * WebPage Schema
+ *
+ * Outputs WebPage or CollectionPage schema based on page type.
+ * Links to WebSite and BreadcrumbList schemas.
+ *
+ * @package ExtraChill\SEO
+ */
+
+namespace ExtraChill\SEO\Schema;
+
+// Prevent direct access.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Add WebPage schema to graph
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the WebPage entity appended.
+ */
+function ec_seo_emit_webpage_schema( $graph ) {
+		$site_base_url = ec_seo_get_schema_site_base_url();
+		$current_url   = ec_seo_get_current_url();
+		$page_url      = $current_url; // Preserve current page URL for breadcrumb reference.
+
+		// Use canonical authority URL for taxonomy archives with cross-site authority.
+	if ( is_tax() && function_exists( 'ec_get_canonical_authority_url' ) ) {
+		$term          = get_queried_object();
+		$authority_url = ec_get_canonical_authority_url( $term, $term->taxonomy );
+		if ( $authority_url ) {
+			$page_url = $authority_url;
+		}
+	}
+
+		// Determine page type
+		$page_type = 'WebPage';
+
+	if ( is_home() || is_archive() ) {
+		$page_type = 'CollectionPage';
+	}
+
+	if ( is_search() ) {
+		$page_type = 'SearchResultsPage';
+	}
+
+		$webpage = array(
+			'@type'      => $page_type,
+			'@id'        => $page_url . '#webpage',
+			'url'        => $page_url,
+			'name'       => wp_get_document_title(),
+			'isPartOf'   => array(
+				'@id' => $site_base_url . '/#website',
+			),
+			'inLanguage' => 'en-US',
+		);
+
+		// Add breadcrumb reference for non-homepage.
+		// Uses current site URL (not canonical authority) since breadcrumbs are site-specific navigation.
+		if ( ! is_front_page() ) {
+			$webpage['breadcrumb'] = array(
+				'@id' => $current_url . '#breadcrumb',
+			);
+		}
+
+		// Add description if available
+		$description = \ExtraChill\SEO\Core\ec_seo_get_meta_description();
+		if ( ! empty( $description ) ) {
+			$webpage['description'] = $description;
+		}
+
+		// Add date info for singular content
+		if ( is_singular() ) {
+			$post                     = get_queried_object();
+			$webpage['datePublished'] = get_the_date( 'c', $post );
+			$webpage['dateModified']  = get_the_modified_date( 'c', $post );
+		}
+
+		// Add featured image for singular content
+		if ( is_singular() && has_post_thumbnail() ) {
+			$post     = get_queried_object();
+			$image_id = get_post_thumbnail_id( $post->ID );
+			$image    = wp_get_attachment_image_src( $image_id, 'full' );
+
+			if ( $image ) {
+				$webpage['primaryImageOfPage'] = array(
+					'@type'  => 'ImageObject',
+					'@id'    => $current_url . '#primaryimage',
+					'url'    => $image[0],
+					'width'  => $image[1],
+					'height' => $image[2],
+				);
+			}
+		}
+
+		$graph[] = $webpage;
+
+		return $graph;
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_webpage_schema' );

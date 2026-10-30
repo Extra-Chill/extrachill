@@ -1,0 +1,17 @@
+{
+  "name": "extrachill-seo",
+  "version": "0.6.1",
+  "description": "SEO functionality for Extra Chill Platform",
+  "scripts": {
+    "build": "wp-scripts build",
+    "start": "wp-scripts start"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.0.0",
+    "ajv": "^8.20.0"
+  },
+  "dependencies": {
+    "@extrachill/components": "^0.9.0",
+    "wp-native-client": "^0.0.1"
+  }
+}

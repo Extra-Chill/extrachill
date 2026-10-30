@@ -1,0 +1,21 @@
+{
+    "name": "extrachill/extrachill-seo",
+    "description": "Lean SEO plugin replacing Yoast with code-first meta tags, structured data, and robots directives",
+    "type": "wordpress-plugin",
+    "version": "0.5.1",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Chris Huber",
+            "email": "chris@extrachill.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "scripts": {
+        "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
+        "lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard=WordPress-Extra --extensions=php --ignore=vendor/*,build/* .",
+        "test": "homeboy review test extrachill-seo"
+    }
+}

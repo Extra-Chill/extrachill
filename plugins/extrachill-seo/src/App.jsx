@@ -1,0 +1,57 @@
+/**
+ * SEO Admin App
+ *
+ * Root component with button-based tab navigation for Audit and Config panels.
+ */
+
+/**
+ * WordPress dependencies
+ */
+import { useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
+import { BlockShell, BlockIntro, Panel, Tabs } from '@extrachill/components';
+import '@extrachill/components/styles/components.scss';
+/**
+ * Internal dependencies
+ */
+import { AuditProvider } from './context/AuditContext';
+import AuditDashboard from './components/AuditDashboard';
+import ConfigPanel from './components/ConfigPanel';
+import { getConfig } from './api/client';
+
+const tabs = [
+	{ id: 'audit', title: 'Audit' },
+	{ id: 'config', title: 'Config' },
+];
+
+const App = () => {
+	const config = getConfig();
+	const initialData = config.auditData || {
+		status: 'none',
+		results: {},
+		timestamp: 0,
+	};
+
+	const [ activeTab, setActiveTab ] = useState( 'audit' );
+
+	return (
+		<BlockShell className="extrachill-seo-admin">
+			<BlockIntro title="Extra Chill SEO" description="Audit and configure SEO behavior across the platform." />
+			<Tabs tabs={ tabs.map( ( tab ) => ( { id: tab.id, label: tab.title } ) ) } active={ activeTab } onChange={ setActiveTab } className="extrachill-seo-admin__tabs" classPrefix="extrachill-seo-admin" />
+
+			<Panel className="extrachill-seo-admin__content" compact>
+				{ activeTab === 'audit' ? (
+					<AuditProvider initialData={ initialData }>
+						<AuditDashboard />
+					</AuditProvider>
+				) : (
+					<ConfigPanel />
+				) }
+			</Panel>
+		</BlockShell>
+	);
+};
+
+export default App;
