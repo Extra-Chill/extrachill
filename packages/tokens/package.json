@@ -1,0 +1,63 @@
+{
+  "name": "@extrachill/tokens",
+  "version": "0.9.0",
+  "description": "Design tokens for the Extra Chill platform — colors, typography, spacing, and more. Platform-agnostic primitive.",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./css/tokens.css": "./css/tokens.css",
+    "./css/tokens-dark.css": "./css/tokens-dark.css",
+    "./css/tokens-all.css": "./css/tokens-all.css",
+    "./css/root.css": "./css/root.css",
+    "./css/taxonomy-badges.css": "./css/taxonomy-badges.css",
+    "./css/block-editor.css": "./css/block-editor.css",
+    "./css/theme.json": "./css/theme.json",
+    "./tokens.json": "./tokens.json"
+  },
+  "files": [
+    "dist",
+    "css",
+    "tokens.json"
+  ],
+  "scripts": {
+    "build": "tsc && tsc --module esnext --outDir dist/esm && node scripts/build.mjs",
+    "generate:tokens-css": "node scripts/generate-tokens-css.mjs --out css/tokens.css --out-dark css/tokens-dark.css",
+    "generate:root-css": "node scripts/generate-root-css.mjs --out css/root.css",
+    "generate:taxonomy-badges-css": "node scripts/generate-taxonomy-badges-css.mjs --out css/taxonomy-badges.css",
+    "generate:theme-json": "node scripts/generate-theme-json.mjs --out css/theme.json",
+    "generate": "npm run generate:tokens-css && npm run generate:root-css && npm run generate:taxonomy-badges-css && npm run generate:theme-json",
+    "validate": "node scripts/validate.mjs",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm run generate && npm run validate"
+  },
+  "keywords": [
+    "extrachill",
+    "design-tokens",
+    "css-variables",
+    "design-system",
+    "platform-primitive"
+  ],
+  "author": "Chris Huber <hello@chubes.net>",
+  "license": "GPL-2.0+",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Extra-Chill/extrachill-tokens.git"
+  },
+  "homepage": "https://github.com/Extra-Chill/extrachill-tokens#readme",
+  "bugs": {
+    "url": "https://github.com/Extra-Chill/extrachill-tokens/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
