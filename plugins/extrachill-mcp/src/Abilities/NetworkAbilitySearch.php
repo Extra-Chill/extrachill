@@ -49,6 +49,17 @@ final class NetworkAbilitySearch {
 
 	private Access $access;
 
+	/** Default number of ranked results returned. */
+	public const DEFAULT_LIMIT = 10;
+	/** Upper bound on ranked results returned. */
+	public const MAX_LIMIT = 50;
+	/** How many matches each site contributes before network-wide ranking. */
+	public const PER_SITE_LIMIT = 100;
+	/** Top results that carry a compact input schema. */
+	public const SCHEMA_DETAIL_COUNT = 3;
+	/** Longest property description kept in a compact schema. */
+	public const SCHEMA_DESCRIPTION_MAX = 160;
+
 	public function __construct( Access $access ) {
 		$this->access = $access;
 	}
@@ -66,7 +77,7 @@ final class NetworkAbilitySearch {
 			'extrachill/ability-search',
 			array(
 				'label'               => __( 'Search Network Abilities', 'extrachill-mcp' ),
-				'description'         => __( 'Search abilities registered anywhere on the Extra Chill network — editorial, artists, events, venues and bookings, community, shop, and newsletter. Each result is tagged with the site that owns it.', 'extrachill-mcp' ),
+				'description'         => __( 'Search abilities registered anywhere on the Extra Chill network — editorial, artists, events, venues and bookings, community, shop, and newsletter. Results are ranked by relevance and listed once with every site that exposes them (`sites`); the top hits include a compact input_schema. Use select:name for an exact ability and its parameters.', 'extrachill-mcp' ),
 				'category'            => 'extrachill-mcp',
 				'input_schema'        => $this->input_schema(),
 				'output_schema'       => $this->output_schema(),
@@ -88,16 +99,20 @@ final class NetworkAbilitySearch {
 	 * @return array<string,mixed>
 	 */
 	public function execute( array $input ): array {
-		$query    = is_string( $input['query'] ?? null ) ? trim( $input['query'] ) : '';
-		$category = is_string( $input['category'] ?? null ) ? trim( $input['category'] ) : '';
-		$limit_value = $input['limit'] ?? 20;
-		$limit       = max( 1, min( 100, is_numeric( $limit_value ) ? (int) $limit_value : 20 ) );
+		$query       = is_string( $input['query'] ?? null ) ? trim( $input['query'] ) : '';
+		$category    = is_string( $input['category'] ?? null ) ? trim( $input['category'] ) : '';
+		$limit_value = $input['limit'] ?? self::DEFAULT_LIMIT;
+		$limit       = max( 1, min( self::MAX_LIMIT, is_numeric( $limit_value ) ? (int) $limit_value : self::DEFAULT_LIMIT ) );
 
+		// Each site is searched wide; the final list is ranked and limited once.
 		$search_input = array(
 			'query'    => $query,
 			'category' => $category,
-			'limit'    => $limit,
+			'limit'    => self::PER_SITE_LIMIT,
 		);
+
+		/** @var array<string,array<string,mixed>> $remote_records Remote REST records by ability name, for ranking and schemas. */
+		$remote_records = array();
 
 		/** @var array<int,array<string,mixed>> $abilities Declared so the by-ref merge below type-checks. */
 		$abilities     = array();
@@ -123,8 +138,17 @@ final class NetworkAbilitySearch {
 			}
 
 			$sites_queried[] = $site_key;
-			$this->merge_results( $abilities, array( 'abilities' => self::match_records( $records, $query, $limit ) ), $site_key );
+			foreach ( $records as $record ) {
+				if ( is_string( $record['name'] ?? null ) && ! isset( $remote_records[ $record['name'] ] ) ) {
+					$remote_records[ $record['name'] ] = $record;
+				}
+			}
+			$this->merge_results( $abilities, array( 'abilities' => self::match_records( $records, $query, self::PER_SITE_LIMIT ) ), $site_key );
 		}
+
+		$abilities = self::rank( self::dedupe( $abilities ), $query, count( $sites_queried ), $remote_records );
+		$abilities = array_slice( $abilities, 0, $limit );
+		$abilities = self::attach_schemas( $abilities, $query, $remote_records );
 
 		return array(
 			'query'         => $query,
@@ -133,6 +157,208 @@ final class NetworkAbilitySearch {
 			'sites_queried' => $sites_queried,
 			'errors'        => $errors,
 		);
+	}
+
+	/**
+	 * Collapse entries for the same ability on several sites into one entry.
+	 *
+	 * The first site that reported the ability stays in `site` (backward
+	 * compatible); every site is listed in `sites`.
+	 *
+	 * @param array<int,array<string,mixed>> $abilities Per-site entries.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function dedupe( array $abilities ): array {
+		$merged = array();
+
+		foreach ( $abilities as $entry ) {
+			$name = is_string( $entry['name'] ?? null ) ? $entry['name'] : '';
+			if ( '' === $name ) {
+				continue;
+			}
+
+			$site = is_string( $entry['site'] ?? null ) ? $entry['site'] : null;
+
+			if ( ! isset( $merged[ $name ] ) ) {
+				$entry['sites']  = null === $site ? array() : array( $site );
+				$merged[ $name ] = $entry;
+				continue;
+			}
+
+			if ( null !== $site && ! in_array( $site, $merged[ $name ]['sites'], true ) ) {
+				$merged[ $name ]['sites'][] = $site;
+			}
+		}
+
+		return array_values( $merged );
+	}
+
+	/**
+	 * Order deduplicated entries by relevance to the query.
+	 *
+	 * Per term: a hit in the ability's local name (after the namespace) scores
+	 * 4, in the namespace 3, in the label 2, in the summary or category 1. An
+	 * exact name match wins outright. Abilities present on every queried site
+	 * (shared plumbing such as chat-run or analytics helpers) score half, so a
+	 * domain ability with the same hits ranks above them. Ties keep name order.
+	 *
+	 * @param array<int,array<string,mixed>>    $abilities      Deduplicated entries.
+	 * @param string                            $query          Search query.
+	 * @param int                               $site_count     Number of sites queried.
+	 * @param array<string,array<string,mixed>> $remote_records Remote records by name.
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function rank( array $abilities, string $query, int $site_count, array $remote_records = array() ): array {
+		$parsed = function_exists( 'agents_parse_ability_search_query' )
+			? agents_parse_ability_search_query( $query )
+			: self::parse_query( $query );
+		$terms  = array_values( array_filter( array_map( 'strtolower', array_map( 'strval', array_merge( (array) ( $parsed['terms'] ?? array() ), (array) ( $parsed['required'] ?? array() ) ) ) ) ) );
+		$exact  = strtolower( trim( $query ) );
+
+		$scored = array();
+		foreach ( $abilities as $entry ) {
+			$name     = strtolower( (string) $entry['name'] );
+			$slash    = strpos( $name, '/' );
+			$ns       = false === $slash ? '' : substr( $name, 0, $slash );
+			$local    = false === $slash ? $name : substr( $name, $slash + 1 );
+			$label    = strtolower( self::label_for( (string) $entry['name'], $remote_records ) );
+			$category = strtolower( (string) ( $remote_records[ $entry['name'] ]['category'] ?? '' ) );
+			$summary  = strtolower( (string) ( $entry['summary'] ?? '' ) );
+
+			$score = 0.0;
+			foreach ( $terms as $term ) {
+				if ( str_contains( $local, $term ) ) {
+					$score += 4;
+				} elseif ( str_contains( $ns, $term ) ) {
+					$score += 3;
+				} elseif ( '' !== $label && str_contains( $label, $term ) ) {
+					$score += 2;
+				} elseif ( str_contains( $summary, $term ) || str_contains( $category, $term ) ) {
+					++$score;
+				}
+			}
+			if ( '' !== $exact && $exact === $name ) {
+				$score += 1000;
+			}
+
+			$sites      = is_array( $entry['sites'] ?? null ) ? $entry['sites'] : array();
+			$everywhere = $site_count > 1 && count( $sites ) >= $site_count;
+			if ( $everywhere ) {
+				$score /= 2;
+			}
+
+			$scored[] = array( $score, $everywhere ? 1 : 0, (string) $entry['name'], $entry );
+		}
+
+		usort(
+			$scored,
+			static function ( array $a, array $b ): int {
+				return array( $b[0], $a[1], $a[2] ) <=> array( $a[0], $b[1], $b[2] );
+			}
+		);
+
+		return array_column( $scored, 3 );
+	}
+
+	/**
+	 * Attach a compact input schema to the top results, or to every result
+	 * of a `select:` query, so the caller can pass parameters without guessing.
+	 *
+	 * @param array<int,array<string,mixed>>    $abilities      Ranked entries.
+	 * @param string                            $query          Search query.
+	 * @param array<string,array<string,mixed>> $remote_records Remote records by name.
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function attach_schemas( array $abilities, string $query, array $remote_records ): array {
+		$is_select = str_contains( $query, 'select:' );
+
+		foreach ( $abilities as $index => $entry ) {
+			if ( ! $is_select && $index >= self::SCHEMA_DETAIL_COUNT ) {
+				break;
+			}
+
+			$name   = (string) $entry['name'];
+			$schema = null;
+			if ( isset( $remote_records[ $name ]['input_schema'] ) && is_array( $remote_records[ $name ]['input_schema'] ) ) {
+				$schema = $remote_records[ $name ]['input_schema'];
+			} elseif ( function_exists( 'wp_has_ability' ) && wp_has_ability( $name ) ) {
+				$ability = wp_get_ability( $name );
+				if ( $ability instanceof \WP_Ability ) {
+					$schema = $ability->get_input_schema();
+				}
+			}
+
+			if ( is_array( $schema ) ) {
+				$abilities[ $index ]['input_schema'] = self::compact_schema( $schema );
+			}
+		}
+
+		return $abilities;
+	}
+
+	/**
+	 * Reduce an input schema to one level: property type, trimmed
+	 * description, enum and default, plus the required list.
+	 *
+	 * @param array<string,mixed> $schema Full input schema.
+	 * @return array<string,mixed>
+	 */
+	public static function compact_schema( array $schema ): array {
+		$compact = array( 'type' => 'object' );
+
+		$properties = is_array( $schema['properties'] ?? null ) ? $schema['properties'] : array();
+		$out        = array();
+		foreach ( $properties as $key => $property ) {
+			if ( ! is_string( $key ) || ! is_array( $property ) ) {
+				continue;
+			}
+			$item = array();
+			if ( isset( $property['type'] ) ) {
+				$item['type'] = $property['type'];
+			}
+			if ( is_string( $property['description'] ?? null ) && '' !== trim( $property['description'] ) ) {
+				$description         = (string) preg_replace( '/\s+/', ' ', trim( $property['description'] ) );
+				$item['description'] = strlen( $description ) > self::SCHEMA_DESCRIPTION_MAX
+					? rtrim( substr( $description, 0, self::SCHEMA_DESCRIPTION_MAX - 1 ) ) . '…'
+					: $description;
+			}
+			if ( is_array( $property['enum'] ?? null ) ) {
+				$item['enum'] = array_values( $property['enum'] );
+			}
+			if ( array_key_exists( 'default', $property ) && is_scalar( $property['default'] ) ) {
+				$item['default'] = $property['default'];
+			}
+			$out[ $key ] = $item;
+		}
+		if ( array() !== $out ) {
+			$compact['properties'] = $out;
+		}
+
+		$required = is_array( $schema['required'] ?? null ) ? array_values( array_filter( $schema['required'], 'is_string' ) ) : array();
+		if ( array() !== $required ) {
+			$compact['required'] = $required;
+		}
+
+		return $compact;
+	}
+
+	/**
+	 * Ability label from the remote record or the local registry.
+	 *
+	 * @param string                            $name           Ability name.
+	 * @param array<string,array<string,mixed>> $remote_records Remote records by name.
+	 */
+	private static function label_for( string $name, array $remote_records ): string {
+		if ( is_string( $remote_records[ $name ]['label'] ?? null ) ) {
+			return $remote_records[ $name ]['label'];
+		}
+		if ( function_exists( 'wp_has_ability' ) && wp_has_ability( $name ) ) {
+			$ability = wp_get_ability( $name );
+			if ( $ability instanceof \WP_Ability ) {
+				return (string) $ability->get_label();
+			}
+		}
+		return '';
 	}
 
 	/**
@@ -300,10 +526,10 @@ final class NetworkAbilitySearch {
 				),
 				'limit'    => array(
 					'type'        => 'integer',
-					'description' => __( 'Maximum number of compact ability entries to return per site.', 'extrachill-mcp' ),
-					'default'     => 20,
+					'description' => __( 'Maximum number of ranked ability entries to return across the whole network.', 'extrachill-mcp' ),
+					'default'     => self::DEFAULT_LIMIT,
 					'minimum'     => 1,
-					'maximum'     => 100,
+					'maximum'     => self::MAX_LIMIT,
 				),
 			),
 		);
@@ -333,7 +559,16 @@ final class NetworkAbilitySearch {
 							),
 							'site'            => array(
 								'type'        => array( 'string', 'null' ),
-								'description' => __( 'Network site key that owns this ability (e.g. "events"), or null when unresolved.', 'extrachill-mcp' ),
+								'description' => __( 'Network site key that owns this ability (e.g. "events"), or null when unresolved. The first of `sites`.', 'extrachill-mcp' ),
+							),
+							'sites'           => array(
+								'type'        => 'array',
+								'items'       => array( 'type' => 'string' ),
+								'description' => __( 'Every network site that exposes this ability.', 'extrachill-mcp' ),
+							),
+							'input_schema'    => array(
+								'type'        => 'object',
+								'description' => __( 'Compact input schema (property type, description, enum, default; required). Present on the top results and on select: results.', 'extrachill-mcp' ),
 							),
 						),
 					),

@@ -147,4 +147,105 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		$this->assertCount( 1, NetworkAbilitySearch::match_records( $records, '', 1 ) );
 		$this->assertSame( 'List Forums', NetworkAbilitySearch::match_records( $records, 'forums', 20 )[0]['summary'] );
 	}
+
+	public function test_dedupe_lists_every_site_once_per_ability(): void {
+		$merged = NetworkAbilitySearch::dedupe(
+			array(
+				array( 'name' => 'agents/list-chat-run-events', 'summary' => 'x', 'required_fields' => array(), 'site' => 'main' ),
+				array( 'name' => 'data-machine-events/query-events', 'summary' => 'y', 'required_fields' => array(), 'site' => 'events' ),
+				array( 'name' => 'agents/list-chat-run-events', 'summary' => 'x', 'required_fields' => array(), 'site' => 'events' ),
+				array( 'name' => 'agents/list-chat-run-events', 'summary' => 'x', 'required_fields' => array(), 'site' => 'events' ),
+			)
+		);
+
+		$this->assertCount( 2, $merged );
+		$this->assertSame( 'agents/list-chat-run-events', $merged[0]['name'] );
+		$this->assertSame( 'main', $merged[0]['site'] );
+		$this->assertSame( array( 'main', 'events' ), $merged[0]['sites'] );
+		$this->assertSame( array( 'events' ), $merged[1]['sites'] );
+	}
+
+	public function test_rank_prefers_name_hits_and_domain_abilities_over_shared_plumbing(): void {
+		$entries = array(
+			array( 'name' => 'extrachill/track-cta-click', 'summary' => 'Record a cta_click event.', 'sites' => array( 'main', 'events', 'shop' ) ),
+			array( 'name' => 'agents/list-chat-run-events', 'summary' => 'List lifecycle events.', 'sites' => array( 'main', 'events', 'shop' ) ),
+			array( 'name' => 'data-machine-events/update-venue', 'summary' => 'Update a venue.', 'sites' => array( 'events' ) ),
+			array( 'name' => 'data-machine-events/query-events', 'summary' => 'Query events by date.', 'sites' => array( 'events' ) ),
+		);
+
+		$names = array_column( NetworkAbilitySearch::rank( $entries, 'event', 3 ), 'name' );
+
+		// Local-name hit on a domain ability first; a domain namespace hit
+		// next; the same local-name hit on shared plumbing (halved) after;
+		// description-only plumbing last.
+		$this->assertSame(
+			array( 'data-machine-events/query-events', 'data-machine-events/update-venue', 'agents/list-chat-run-events', 'extrachill/track-cta-click' ),
+			$names
+		);
+
+		$exact = NetworkAbilitySearch::rank( $entries, 'extrachill/track-cta-click', 3 );
+		$this->assertSame( 'extrachill/track-cta-click', $exact[0]['name'] );
+	}
+
+	public function test_limit_is_global_and_top_hits_carry_a_compact_schema(): void {
+		NetworkStub::$blog_ids = array(
+			'main'    => 1,
+			'events'  => 7,
+			'artists' => 4,
+		);
+
+		NetworkStub::$cross_site_handler = static function ( string $site_key ) {
+			$records = array();
+			for ( $i = 1; $i <= 6; $i++ ) {
+				$records[] = array(
+					'name'         => "{$site_key}/venue-tool-{$i}",
+					'label'        => "Venue tool {$i}",
+					'description'  => 'Venue helper.',
+					'input_schema' => array(
+						'type'       => 'object',
+						'required'   => array( 'venue' ),
+						'properties' => array(
+							'venue'    => array( 'type' => 'integer', 'description' => 'Venue term ID.' ),
+							'scope'    => array( 'type' => 'string', 'enum' => array( 'upcoming', 'past' ), 'default' => 'upcoming' ),
+							'nested'   => array( 'type' => 'object', 'properties' => array( 'deep' => array( 'type' => 'string' ) ) ),
+						),
+					),
+				);
+			}
+			return $records;
+		};
+
+		$result = $this->search->execute( array( 'query' => 'venue', 'limit' => 4 ) );
+
+		$this->assertSame( 4, $result['count'] );
+		$this->assertCount( 4, $result['abilities'] );
+		$this->assertArrayHasKey( 'input_schema', $result['abilities'][0] );
+		$this->assertArrayHasKey( 'input_schema', $result['abilities'][2] );
+		$this->assertArrayNotHasKey( 'input_schema', $result['abilities'][3] );
+
+		$schema = $result['abilities'][0]['input_schema'];
+		$this->assertSame( array( 'venue' ), $schema['required'] );
+		$this->assertSame( array( 'type' => 'integer', 'description' => 'Venue term ID.' ), $schema['properties']['venue'] );
+		$this->assertSame( array( 'upcoming', 'past' ), $schema['properties']['scope']['enum'] );
+		$this->assertSame( array( 'type' => 'object' ), $schema['properties']['nested'] );
+
+		$selected = $this->search->execute( array( 'query' => 'select:events/venue-tool-5,artists/venue-tool-6' ) );
+		$this->assertCount( 2, $selected['abilities'] );
+		foreach ( $selected['abilities'] as $entry ) {
+			$this->assertArrayHasKey( 'input_schema', $entry );
+		}
+	}
+
+	public function test_compact_schema_trims_long_descriptions(): void {
+		$compact = NetworkAbilitySearch::compact_schema(
+			array(
+				'properties' => array(
+					'q' => array( 'type' => 'string', 'description' => str_repeat( 'word ', 100 ) ),
+				),
+			)
+		);
+
+		$this->assertLessThanOrEqual( NetworkAbilitySearch::SCHEMA_DESCRIPTION_MAX + 3, strlen( $compact['properties']['q']['description'] ) );
+		$this->assertArrayNotHasKey( 'required', $compact );
+	}
 }
