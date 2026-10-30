@@ -130,9 +130,9 @@ describe( 'ShowList', () => {
 		await act( async () => publicRoot.unmount() );
 	} );
 
-	it( 'offers inline ratings on the owner Past list and prompts for unrated shows', async () => {
+	it( 'offers private inline ratings on the owner Past list without nagging', async () => {
 		apiFetch.mockImplementation( ( { path } ) => {
-			if ( path.includes( 'get-my-event-ratings' ) ) {
+			if ( path.includes( 'get-my-show-ratings' ) ) {
 				return Promise.resolve( { ratings: { 1: 4 } } );
 			}
 			return Promise.resolve( {
@@ -166,8 +166,9 @@ describe( 'ShowList', () => {
 			'Unrated Show (owner view) [rating:0]'
 		);
 		expect( container.textContent ).toContain(
-			'1 show below still needs your rating.'
+			'Only you see your ratings.'
 		);
+		expect( container.textContent ).not.toContain( 'need' );
 		await act( async () => root.unmount() );
 	} );
 

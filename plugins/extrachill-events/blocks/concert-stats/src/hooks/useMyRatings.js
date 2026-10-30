@@ -1,9 +1,9 @@
 /**
- * useMyRatings — the viewer's own show ratings for a list of events.
+ * useMyRatings — the viewer's own private show ratings for a list of events.
  *
- * Reads data-machine-events/get-my-event-ratings (batched, max 100 IDs per
- * request) and exposes `rate( eventId, rating )`, which writes through
- * data-machine-events/rate-event and updates local state optimistically.
+ * Reads extrachill/get-my-show-ratings (batched, max 100 IDs per request)
+ * and exposes `rate( eventId, rating )`, which writes through
+ * extrachill/rate-show (0 clears) and updates local state optimistically.
  *
  * @package
  */
@@ -14,11 +14,11 @@
 import { useState, useEffect, useCallback, useRef } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
 
-const ABILITY_BASE = '/wp-abilities/v1/abilities/data-machine-events';
+const ABILITY_BASE = '/wp-abilities/v1/abilities/extrachill';
 const BATCH = 100;
 
 const readPath = ( ids ) =>
-	`${ ABILITY_BASE }/get-my-event-ratings/run?` +
+	`${ ABILITY_BASE }/get-my-show-ratings/run?` +
 	ids.map( ( id ) => `input[event_ids][]=${ id }` ).join( '&' );
 
 /**
@@ -72,7 +72,7 @@ export default function useMyRatings( eventIds, enabled ) {
 
 		return Promise.resolve(
 			apiFetch( {
-				path: `${ ABILITY_BASE }/rate-event/run`,
+				path: `${ ABILITY_BASE }/rate-show/run`,
 				method: 'POST',
 				data: { input: { event_id: eventId, rating } },
 			} )

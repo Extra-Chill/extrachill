@@ -35,7 +35,7 @@ const ShowList = ( {
 		}
 	);
 
-	// Owners rate their past shows inline (data-machine-events ratings).
+	// Owners privately rate their past shows inline (extrachill-users).
 	const canRate = isOwn && 'past' === period;
 	const pastIds = canRate
 		? shows
@@ -43,9 +43,6 @@ const ShowList = ( {
 				.map( ( show ) => show.event_id )
 		: [];
 	const { ratings, errors, rate } = useMyRatings( pastIds, canRate );
-	const unrated = pastIds.filter(
-		( id ) => ! ratings[ String( id ) ]
-	).length;
 
 	if ( error ) {
 		return (
@@ -84,16 +81,11 @@ const ShowList = ( {
 
 	return (
 		<div className="ec-concert-stats__show-list">
-			{ canRate && unrated > 0 && (
-				<InlineStatus tone="info">
-					{ unrated === pastIds.length
-						? 'How were they? Tap the stars to rate the shows you were at.'
-						: `${ unrated } show${
-								unrated === 1 ? '' : 's'
-						  } below still need${
-								unrated === 1 ? 's' : ''
-						  } your rating.` }
-				</InlineStatus>
+			{ canRate && pastIds.length > 0 && (
+				<p className="ec-concert-stats__ratings-note">
+					Only you see your ratings. They help us suggest shows
+					you&rsquo;ll like.
+				</p>
 			) }
 			{ shows.map( ( show ) => (
 				<ShowCard

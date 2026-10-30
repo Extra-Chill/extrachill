@@ -197,6 +197,11 @@ describe( 'ShowCard opens the show', () => {
 		const onRate = jest.fn();
 		render( pastShow, { isOwn: true, rating: { value: 0, onRate } } );
 
+		act( () => {
+			container
+				.querySelector( '.ec-concert-stats__show-rating-toggle' )
+				.click();
+		} );
 		const stars = container.querySelectorAll(
 			'.ec-concert-stats__show-rating-star'
 		);
