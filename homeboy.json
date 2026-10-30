@@ -14,12 +14,16 @@
   "id": "extrachill-network",
   "remote_path": "wp-content/plugins/extrachill-network",
   "scopes": {
+    "defaults": {
+      "exclude": [
+        "plugins/",
+        "themes/",
+        "packages/"
+      ]
+    },
     "release": {
       "exclude": [
         "rigs/",
-        "plugins/",
-        "themes/",
-        "packages/",
         "MONOREPO.md"
       ]
     }
