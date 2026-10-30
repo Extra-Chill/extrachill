@@ -13,3 +13,7 @@ package-lock.json
 .claude/
 /README.md
 rigs/
+/plugins/
+/themes/
+/packages/
+/MONOREPO.md

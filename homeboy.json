@@ -16,7 +16,11 @@
   "scopes": {
     "release": {
       "exclude": [
-        "rigs/"
+        "rigs/",
+        "plugins/",
+        "themes/",
+        "packages/",
+        "MONOREPO.md"
       ]
     }
   },

@@ -1,5 +1,5 @@
 # Build output
-build/
+/build/
 
 # Dependencies
 node_modules/
@@ -24,12 +24,12 @@ Thumbs.db
 *.temp
 
 # Additional build and development files
-composer.lock
-package-lock.json
+/composer.lock
+/package-lock.json
 .claude/
 .buildignore
 
 # extrachill-network Homeboy rig runtime output
 /rigs/extrachill-network/artifacts/
-artifacts/
+/artifacts/
 rigs/extrachill-network/evidence/demo/
