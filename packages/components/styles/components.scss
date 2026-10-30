@@ -1,0 +1,1047 @@
+/**
+ * Shared Component Styles
+ *
+ * Styles for extrachill-components shared across plugins.
+ */
+
+// Data Table
+.ec-data-table {
+	&__loading,
+	&__empty {
+		padding: 40px;
+		text-align: center;
+		background: var(--card-background, #f9f9f9);
+		border: 1px solid var(--border-color, #ddd);
+		border-radius: 4px;
+
+		.components-spinner {
+			margin-right: 10px;
+		}
+	}
+
+	&__check-column {
+		width: 40px;
+		padding: 8px !important;
+	}
+
+	// Override WP table styles
+	&.wp-list-table {
+		margin-top: 15px;
+
+		th,
+		td {
+			vertical-align: middle;
+		}
+	}
+}
+
+// Pagination
+.ec-pagination {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 15px;
+	padding-top: 15px;
+	border-top: 1px solid var(--border-color, #eee);
+
+	&__info {
+		color: var(--muted-text, #646970);
+		font-size: 13px;
+	}
+
+	&__buttons {
+		display: flex;
+		gap: 8px;
+	}
+}
+
+// Search Box
+.ec-search-box {
+	display: flex;
+	gap: 8px;
+	align-items: flex-end;
+	margin-bottom: 15px;
+
+	.components-text-control {
+		min-width: 300px;
+	}
+}
+
+// Modal
+.ec-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: grid;
+	place-items: center;
+	padding: var(--spacing-md, 1rem);
+}
+
+.ec-modal__backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgb(0 0 0 / 60%);
+}
+
+.ec-modal__content {
+	position: relative;
+	display: flex;
+	overflow: hidden;
+	flex-direction: column;
+	width: min(40rem, 100%);
+	max-height: min(85vh, 100%);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 8px);
+	background: var(--card-background, #fff);
+	color: var(--text-color, #111);
+}
+
+.ec-modal__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #ddd);
+
+	h2 {
+		margin: 0;
+		font-size: var(--font-size-lg, 1.25rem);
+	}
+
+	button {
+		border: 0;
+		background: none;
+		color: var(--muted-text, #666);
+		cursor: pointer;
+		font-size: var(--font-size-lg, 1.25rem);
+		line-height: 1;
+
+		&:hover {
+			color: var(--text-color, #111);
+		}
+	}
+}
+
+.ec-modal__body {
+	overflow-y: auto;
+	padding: var(--spacing-md, 1rem);
+}
+
+// Tabs — default styles for classPrefix="ec-tabs"
+// Consumers with custom classPrefix (e.g. "ec-am") duplicate
+// these rules under their own namespace in their block SCSS.
+.ec-tabs__tabs {
+	display: inline-flex;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
+.ec-tabs__tab {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs, 0.25rem);
+	border: 1px solid var(--border-color, #ddd);
+	background: var(--card-background, #f1f5f9);
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	border-radius: var(--border-radius-sm, 4px);
+	cursor: pointer;
+	color: var(--text-color, #111);
+	font: inherit;
+	font-size: var(--font-size-base, 1rem);
+	font-weight: 600;
+	transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+
+	&:hover {
+		background: var(--card-background, #f1f5f9);
+	}
+
+	&.is-active {
+		border-color: var(--header-background, #1a1a1a);
+		background: var(--header-background, #1a1a1a);
+		color: var(--header-text-color, #fff);
+	}
+}
+
+.ec-tabs__tab-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: 10px;
+	background: var(--accent, #53940b);
+	color: var(--background-color, #fff);
+	font-size: var(--font-size-xs, 0.625rem);
+	font-weight: 600;
+
+	.ec-tabs__tab.is-active & {
+		background: var(--background-color, #fff);
+		color: var(--header-background, #1a1a1a);
+	}
+}
+
+.ec-shell-tabs {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+	background: var(--card-background, #f1f5f9);
+}
+
+.ec-responsive-tabs {
+	display: grid;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-responsive-tabs__inner {
+	width: 100%;
+	min-width: 0;
+}
+
+.ec-responsive-tabs--inner-narrow .ec-responsive-tabs__inner {
+	max-width: 700px;
+}
+
+.ec-responsive-tabs .ec-tabs__tabs {
+	padding-bottom: calc(var(--spacing-md, 1rem) + var(--spacing-sm, 0.5rem));
+}
+
+.ec-responsive-tabs__desktop-panel {
+	display: grid;
+	background: var(--background-color, #fff);
+	border-radius: 0 0 var(--border-radius-md, 8px) var(--border-radius-md, 8px);
+	padding: 0;
+	margin-bottom: 0;
+	position: relative;
+	z-index: 1;
+	box-sizing: border-box;
+}
+
+.ec-responsive-tabs__item {
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 8px);
+	overflow: hidden;
+	background: var(--card-background, #f8f8f8);
+	box-sizing: border-box;
+}
+
+.ec-responsive-tabs__item {
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-responsive-tabs__item:last-of-type {
+	margin-bottom: 0;
+}
+
+.ec-responsive-tabs__trigger {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	border: 0;
+	background: var(--card-background, #f8f8f8);
+	color: var(--text-color, #111);
+	font-family: var(--font-family-body, inherit);
+	font-size: var(--font-size-body, 1.125rem);
+	font-weight: 600;
+	cursor: pointer;
+	text-align: left;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ec-responsive-tabs__item:last-of-type .ec-responsive-tabs__trigger:not(.is-active) {
+	border-bottom: 0;
+}
+
+.ec-responsive-tabs__trigger.is-active {
+	background: var(--card-background, #f8f8f8);
+	color: var(--link-color, #0b5394);
+}
+
+.ec-responsive-tabs__trigger:focus-visible {
+	outline: 2px solid var(--focus-border-color, #53940b);
+	outline-offset: -2px;
+	box-shadow: inset 0 0 0 1px var(--focus-border-color, #53940b);
+}
+
+.ec-responsive-tabs__panel {
+	background: var(--background-color, #fff);
+	margin-bottom: 0;
+}
+
+.ec-responsive-tabs__panel > .ec-panel:first-child {
+	margin-top: 0;
+}
+
+.ec-responsive-tabs__arrow {
+	flex-shrink: 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	margin-left: var(--spacing-sm, 0.5rem);
+	color: currentColor;
+}
+
+.ec-responsive-tabs--desktop .ec-responsive-tabs__accordion {
+	display: none;
+}
+
+@media (min-width: 481px) {
+	.ec-responsive-tabs:not(.ec-responsive-tabs--mobile) .ec-responsive-tabs__accordion {
+		display: none;
+	}
+}
+
+@media (max-width: 480px) {
+	.ec-block-shell {
+		margin-left: calc(-1 * var(--spacing-md, 1rem));
+		margin-right: calc(-1 * var(--spacing-md, 1rem));
+		padding-left: 0;
+		padding-right: 0;
+	}
+
+	.ec-mobile-full-width-panel .ec-block-shell {
+		margin-left: 0;
+		margin-right: 0;
+	}
+
+	.ec-block-shell-inner {
+		max-width: none;
+	}
+
+	.ec-responsive-tabs__inner {
+		max-width: none;
+	}
+
+	.ec-responsive-tabs:not(.ec-responsive-tabs--desktop) .ec-tabs__tabs,
+	.ec-responsive-tabs:not(.ec-responsive-tabs--desktop) .ec-responsive-tabs__desktop-panel,
+	.ec-responsive-tabs--mobile .ec-tabs__tabs,
+	.ec-responsive-tabs--mobile .ec-responsive-tabs__desktop-panel {
+		display: none;
+	}
+
+	.ec-responsive-tabs__item {
+		border-left: 0;
+		border-right: 0;
+		border-radius: 0;
+		margin-bottom: 0;
+	}
+
+
+}
+
+// Panel — one rule, one look
+.ec-panel {
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-lg, 8px);
+	padding: var(--spacing-md, 1rem);
+	background: var(--card-background, #f8f8f8);
+	display: grid;
+	gap: var(--spacing-md, 1rem);
+	box-sizing: border-box;
+}
+
+// Block shell / top-level wrapper
+.ec-block-shell {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+.ec-block-shell--depth-0 {
+	background: transparent;
+}
+
+.ec-block-shell--depth-1,
+.ec-block-shell--depth-3 {
+	background: transparent;
+}
+
+.ec-block-shell--depth-2 {
+	background: transparent;
+}
+
+.ec-block-shell--compact {
+	padding: var(--spacing-md, 1rem);
+	border-radius: var(--border-radius-lg, 8px);
+}
+
+.ec-block-shell-inner {
+	width: 100%;
+	min-width: 0;
+	display: grid;
+	gap: var(--spacing-lg, 1.5rem);
+}
+
+.ec-block-shell-inner--narrow {
+	max-width: 700px;
+	margin-inline: auto;
+}
+
+.ec-block-shell-inner--wide {
+	margin-inline: auto;
+}
+
+.ec-block-intro {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+	background: var(--card-background, #f1f5f9);
+}
+
+.ec-block-intro__title {
+	margin: 0;
+	font-family: var(--font-family-heading, inherit);
+	font-size: var(--font-size-2xl, 1.75rem);
+	font-weight: 700;
+	color: var(--text-color, #111);
+}
+
+.ec-block-intro__description {
+	margin: 0;
+	font-size: var(--font-size-body, 1.125rem);
+	line-height: 1.6;
+	color: var(--text-color, #111);
+}
+
+.ec-block-shell-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	flex-wrap: wrap;
+}
+
+.ec-block-shell-header__main {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-block-shell-header__title {
+	margin: 0;
+	font-family: var(--font-family-heading, inherit);
+	font-size: var(--font-size-2xl, 1.75rem);
+	font-weight: 700;
+	color: var(--text-color, #111);
+}
+
+.ec-block-shell-header__description {
+	margin: 0;
+	font-size: var(--font-size-body, 1.125rem);
+	line-height: 1.6;
+	color: var(--text-color, #111);
+}
+
+.ec-block-shell-header__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
+
+
+
+
+// Panel Header
+.ec-panel-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: var(--spacing-md, 1rem);
+	flex-wrap: wrap;
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.ec-panel-header__main {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-panel-header__title {
+	margin: 0;
+	font-family: var(--font-family-heading, inherit);
+	font-weight: 600;
+	color: var(--text-color, #111);
+}
+
+.ec-panel-header__description {
+	color: var(--muted-text, #666);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-panel-header__actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
+// Action Row
+.ec-action-row {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+}
+
+.ec-action-row--between {
+	justify-content: space-between;
+}
+
+.ec-action-row--end {
+	justify-content: flex-end;
+}
+
+.ec-action-row--center {
+	justify-content: center;
+}
+
+// Field Group
+.ec-field-group {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-field-group__label {
+	display: block;
+	font-weight: 600;
+	color: var(--text-color, #111);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-field-group__required {
+	color: var(--error-color, #dc3232);
+}
+
+.ec-field-group__control {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-field-group__control > input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.ec-field-group__control > select,
+.ec-field-group__control > textarea {
+	width: 100%;
+	padding: var(--spacing-sm, 0.5rem);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-sm, 4px);
+	background: var(--background-color, #fff);
+	color: var(--text-color, #111);
+	font: inherit;
+	font-size: var(--font-size-base, 1rem);
+	box-sizing: border-box;
+	max-width: 100%;
+}
+
+.ec-field-group__control > textarea {
+	min-height: 120px;
+	resize: vertical;
+	font-family: inherit;
+}
+
+.ec-field-group__control > input[disabled],
+.ec-field-group__control > select[disabled],
+.ec-field-group__control > textarea[disabled] {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.ec-field-group__control > input[type='checkbox'],
+.ec-field-group__control > input[type='radio'] {
+	margin: 0;
+}
+
+.ec-field-group__help {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #666);
+}
+
+.ec-field-group__error {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--error-color, #dc3232);
+}
+
+// Inline Status
+.ec-inline-status {
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 500;
+}
+
+.ec-inline-status--success {
+	color: var(--success-color, #2e7d32);
+}
+
+.ec-inline-status--error {
+	color: var(--error-color, #dc3232);
+}
+
+.ec-inline-status--warning {
+	color: var(--warning-color, #856404);
+}
+
+.ec-inline-status--info {
+	color: var(--info-color, #004085);
+}
+
+// Mobile edge-to-edge panel principle
+// Matches the established theme pattern: small phone screens go full-width,
+// drop rounded corners, and reduce wasted side space.
+@media screen and (max-width: 480px) {
+	.ec-block-shell-header {
+		padding-bottom: var(--spacing-sm, 0.5rem);
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
+	}
+
+	.ec-mobile-full-width-panel .ec-shell-tabs {
+		padding-left: var(--spacing-md, 1rem);
+		padding-right: var(--spacing-md, 1rem);
+	}
+
+	.ec-mobile-full-width-panel .ec-panel {
+		border-radius: 0;
+		border-left: 0;
+		border-right: 0;
+		padding: var(--spacing-md, 1rem);
+	}
+
+	.ec-panel-header {
+		padding-bottom: var(--spacing-sm, 0.5rem);
+	}
+
+	.ec-action-row {
+		align-items: stretch;
+	}
+
+	.ec-action-row > * {
+		max-width: 100%;
+	}
+}
+
+// Image Preview
+.ec-image-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+	max-width: 100%;
+	overflow: hidden;
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 6px);
+	background: var(--background-color, #fff);
+	padding: var(--spacing-xs, 0.25rem);
+	box-sizing: border-box;
+}
+
+.ec-image-preview__image {
+	display: block;
+	max-width: min(100%, var(--ec-image-preview-max-width, 220px));
+	width: auto;
+	height: auto;
+	border-radius: inherit;
+}
+
+.ec-image-preview__overlay {
+	position: absolute;
+	inset: 0;
+}
+
+// Media Field
+.ec-media-field {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-media-field__input {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-media-field__surface {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-media-field__preview,
+.ec-media-field__empty {
+	display: grid;
+	gap: var(--spacing-sm, 0.5rem);
+	justify-items: start;
+}
+
+.ec-media-field__empty {
+	padding: var(--spacing-md, 1rem);
+	border: 1px dashed var(--border-color, #ddd);
+	border-radius: var(--border-radius-md, 6px);
+	background: var(--background-color, #fff);
+	color: var(--muted-text, #666);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-media-field__actions {
+	margin-top: 0;
+}
+
+// Badges
+.ec-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs, 0.25rem);
+	padding: 3px 8px;
+	border-radius: var(--border-radius-pill, 999px);
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 500;
+	line-height: 1;
+	text-decoration: none;
+	border: 1px solid transparent;
+	box-sizing: border-box;
+}
+
+.ec-badge--sm {
+	padding: 2px 8px;
+}
+
+.ec-badge--md {
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+.ec-badge--default.ec-badge--subtle {
+	background: var(--card-background, #f8f8f8);
+	color: var(--link-color, #1a1a1a);
+	border-color: var(--border-color, #ddd);
+}
+
+.ec-badge--muted.ec-badge--subtle {
+	background: var(--border-color, #ddd);
+	color: var(--muted-text, #666);
+	border-color: var(--border-color, #ddd);
+}
+
+.ec-badge--success.ec-badge--subtle,
+.ec-badge--yes.ec-badge--subtle {
+	background: #d4edda;
+	color: var(--success-color, #155724);
+	border-color: #c3e6cb;
+}
+
+.ec-badge--error.ec-badge--subtle,
+.ec-badge--no.ec-badge--subtle {
+	background: #f8d7da;
+	color: var(--error-color, #721c24);
+	border-color: #f5c6cb;
+}
+
+.ec-badge--info.ec-badge--subtle {
+	background: var(--info-bg, #cce5ff);
+	color: var(--info-color, #004085);
+	border-color: var(--info-color, #b8daff);
+}
+
+.ec-badge--warning.ec-badge--subtle {
+	background: var(--warning-bg, #fff3cd);
+	color: var(--warning-color, #856404);
+	border-color: var(--warning-color, #ffeeba);
+}
+
+.ec-badge--default.ec-badge--outline,
+.ec-badge--muted.ec-badge--outline,
+.ec-badge--success.ec-badge--outline,
+.ec-badge--error.ec-badge--outline,
+.ec-badge--warning.ec-badge--outline,
+.ec-badge--info.ec-badge--outline {
+	background: transparent;
+}
+
+.ec-badge--default.ec-badge--outline {
+	color: var(--link-color, #1a1a1a);
+	border-color: var(--border-color, #ddd);
+}
+
+.ec-badge--muted.ec-badge--outline {
+	color: var(--muted-text, #666);
+	border-color: var(--border-color, #ddd);
+}
+
+.ec-badge--success.ec-badge--outline {
+	color: var(--success-color, #155724);
+	border-color: #c3e6cb;
+}
+
+.ec-badge--error.ec-badge--outline {
+	color: var(--error-color, #721c24);
+	border-color: #f5c6cb;
+}
+
+.ec-badge--warning.ec-badge--outline {
+	color: var(--warning-color, #856404);
+	border-color: var(--warning-color, #ffeeba);
+}
+
+.ec-badge--info.ec-badge--outline {
+	color: var(--info-color, #004085);
+	border-color: var(--info-color, #b8daff);
+}
+
+.ec-badge--default.ec-badge--solid {
+	background: var(--link-color, #1a1a1a);
+	color: var(--button-text-color, #fff);
+}
+
+.ec-badge--muted.ec-badge--solid {
+	background: var(--muted-text, #666);
+	color: var(--background-color, #fff);
+}
+
+.ec-badge--success.ec-badge--solid {
+	background: var(--accent, #53940b);
+	color: var(--background-color, #fff);
+}
+
+.ec-badge--error.ec-badge--solid {
+	background: var(--error-color, #dc3232);
+	color: var(--background-color, #fff);
+}
+
+.ec-badge--warning.ec-badge--solid {
+	// Solid variants reference the canonical token so dark mode picks up
+	// the brighter dark variant. Light-mode token (#d97706) and dark-mode
+	// token (#fbbf24) both work as a solid background with appropriate text.
+	background: var(--warning-color, #f0ad4e);
+	color: #000;
+}
+
+.ec-badge--info.ec-badge--solid {
+	// Solid variants reference the canonical token so dark mode picks up
+	// the brighter dark variant. Light-mode token (#0b5394) and dark-mode
+	// token (#93c5fd) both work as a solid background.
+	background: var(--info-color, #0d6efd);
+	color: var(--button-text-color, #fff);
+}
+
+// Toolbar — horizontal bar with left content + right actions
+.ec-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+	padding: var(--spacing-sm, 0.5rem) 0;
+}
+
+.ec-toolbar__start {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+	min-width: 0;
+}
+
+.ec-toolbar__end {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm, 0.5rem);
+	flex-wrap: wrap;
+	flex-shrink: 0;
+}
+
+// Toolbar dropdown — styled native select for platform pickers etc.
+.ec-toolbar__select {
+	appearance: none;
+	border: 1px solid var(--border-color, #ddd);
+	background: var(--card-background, #f1f5f9);
+	padding: var(--spacing-sm, 0.5rem) calc(var(--spacing-md, 1rem) + 12px) var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+	border-radius: var(--border-radius-sm, 4px);
+	color: var(--text-color, #111);
+	font: inherit;
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+	cursor: pointer;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right var(--spacing-sm, 0.5rem) center;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.ec-toolbar__select:focus-visible {
+	outline: 2px solid var(--focus-border-color, #53940b);
+	outline-offset: -2px;
+}
+
+// Toolbar uses smaller tab pills to fit inline
+.ec-toolbar .ec-tabs__tabs {
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-toolbar .ec-tabs__tab {
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-sm, 0.875rem);
+}
+
+@media screen and (max-width: 480px) {
+	.ec-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.ec-toolbar__start,
+	.ec-toolbar__end {
+		width: 100%;
+	}
+
+	.ec-toolbar__select {
+		width: 100%;
+	}
+
+	.ec-toolbar .ec-tabs__tabs {
+		width: 100%;
+	}
+}
+
+// Card Grid — responsive auto-fit grid of cards/tiles.
+// Single source of truth for the `repeat(auto-fit, minmax(<floor>, 1fr))`
+// pattern re-declared across the platform. Consumers set the column floor via
+// the `--ec-card-grid-min` custom property (inline style or a wrapping class).
+// The `min(100%, <floor>)` guard keeps a single column from overflowing on
+// narrow viewports — a bug most of the raw declarations lack.
+.ec-card-grid {
+	display: grid;
+	grid-template-columns: repeat(
+		auto-fit,
+		minmax(min(100%, var(--ec-card-grid-min, 240px)), 1fr)
+	);
+	gap: var(--ec-card-grid-gap, var(--spacing-md, 1rem));
+}
+
+// Stat Group — responsive row of stat tiles.
+// Re-expressed in terms of the shared card-grid rule so the grid pattern lives
+// in exactly one place. Kept as a distinct class name for back-compat with
+// existing consumers; it only overrides the column floor.
+.ec-stat-group {
+	@extend .ec-card-grid;
+	--ec-card-grid-min: 120px;
+}
+
+// Stat Tile — large metric value over a label
+.ec-stat-tile {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs, 0.25rem);
+	padding: var(--spacing-md, 1rem);
+	border: 1px solid var(--border-color, #ddd);
+	background: var(--card-background, #f8f8f8);
+	border-radius: var(--border-radius-sm, 4px);
+	text-align: center;
+}
+
+.ec-stat-tile__value {
+	font-size: var(--font-size-2xl, 1.75rem);
+	font-weight: 700;
+	line-height: 1.1;
+	color: var(--text-color, #111);
+}
+
+.ec-stat-tile__label {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #666);
+}
+
+.ec-stat-tile--link {
+	text-decoration: none;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ec-stat-tile--link:hover,
+.ec-stat-tile--link:focus-visible {
+	border-color: var(--focus-border-color, #53940b);
+}
+
+.ec-stat-tile--link:focus-visible {
+	outline: 2px solid var(--focus-border-color, #53940b);
+	outline-offset: 2px;
+}
+
+.ec-stat-tile--success .ec-stat-tile__value {
+	color: var(--success-color, #2e7d32);
+}
+
+.ec-stat-tile--error .ec-stat-tile__value {
+	color: var(--error-color, #dc3232);
+}
+
+.ec-stat-tile--warning .ec-stat-tile__value {
+	color: var(--warning-color, #856404);
+}
+
+.ec-stat-tile--info .ec-stat-tile__value {
+	color: var(--info-color, #004085);
+}
+
+.ec-stat-tile--muted .ec-stat-tile__value {
+	color: var(--muted-text, #666);
+}
+
+// Progress Bar — determinate + indeterminate
+.ec-progress-bar {
+	display: grid;
+	gap: var(--spacing-xs, 0.25rem);
+	width: 100%;
+}
+
+.ec-progress-bar__label {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #666);
+}
+
+.ec-progress-bar__track {
+	position: relative;
+	overflow: hidden;
+	width: 100%;
+	height: 8px;
+	background: var(--card-background, #f1f5f9);
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: var(--border-radius-sm, 4px);
+}
+
+.ec-progress-bar__fill {
+	height: 100%;
+	background: var(--info-color, #0d6efd);
+	border-radius: inherit;
+	transition: width 0.2s ease;
+}
+
+.ec-progress-bar--success .ec-progress-bar__fill {
+	background: var(--success-color, #2e7d32);
+}
+
+.ec-progress-bar--error .ec-progress-bar__fill {
+	background: var(--error-color, #dc3232);
+}
+
+.ec-progress-bar--warning .ec-progress-bar__fill {
+	background: var(--warning-color, #856404);
+}
+
+.ec-progress-bar--info .ec-progress-bar__fill {
+	background: var(--info-color, #004085);
+}
+
+.ec-progress-bar--indeterminate .ec-progress-bar__fill {
+	width: 40%;
+	animation: ec-progress-bar-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes ec-progress-bar-indeterminate {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(250%);
+	}
+}

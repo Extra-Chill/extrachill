@@ -1,0 +1,250 @@
+# Changelog
+
+## [0.9.4] - 2026-09-02
+
+### Fixed
+- style Modal with theme tokens and mark it as a dialog
+- prevent nested mobile shell overflow
+
+## [0.9.3] - 2026-08-21
+
+### Changed
+- publish stable compiled component contract
+
+### Fixed
+- give SearchBox an accessible name
+
+## [0.9.2] - 2026-07-15
+
+### Fixed
+- ignore generated build output
+- align responsive tabs and keyboard behavior
+
+## [0.9.1] - 2026-07-05
+
+### Fixed
+- remove 1080px cap from wide block-shell + tab-inner so they match page width
+
+## [0.9.0] - 2026-07-03
+
+### Added
+- add Grid / .ec-card-grid responsive card-grid primitive
+
+## [0.8.0] - 2026-06-16
+
+### Added
+- broadcast active tab by default; blocks opt out, consumers opt in
+
+## [0.7.0] - 2026-06-16
+
+### Added
+- broadcast active tab to the client-context registry
+
+## [0.6.0] - 2026-05-31
+
+### Added
+- add StatTile, StatGroup, ProgressBar primitives and ActionRow center align
+
+### Changed
+- explicit React 19 support in toolchain and peer range
+
+## [0.5.2] - 2026-05-30
+
+### Fixed
+- center BlockShellInner narrow/wide variants with margin-inline:auto
+- fix(InlineStatus, Badge): use --info-color / --warning-color tokens for dark-mode parity
+
+## [0.5.1] - 2026-05-27
+
+### Changed
+- Internal improvements
+
+## [0.5.0] - 2026-05-27
+
+### Added
+- add Toolbar component for horizontal view switcher + actions layout
+
+### Fixed
+- emit canonical button-1 / button-2 classes on internal buttons
+- scroll mobile accordion trigger into view on tab switch
+- restore block-shell negative margins for mobile gutter breakout
+
+## [0.4.38] - 2026-03-26
+
+### Fixed
+- give mobile tab panels default gutter
+
+## [0.4.37] - 2026-03-26
+
+### Fixed
+- give block shell inner default gutter
+
+## [0.4.36] - 2026-03-26
+
+### Changed
+- split global and mobile full-width utilities
+
+## [0.4.35] - 2026-03-26
+
+### Changed
+- unify shared card vertical padding
+- remove shell divider variants
+
+## [0.4.34] - 2026-03-26
+
+### Fixed
+- keep active tabs on card background
+
+## [0.4.33] - 2026-03-26
+
+### Changed
+- rename mobile edge shell contract
+
+## [0.4.32] - 2026-03-26
+
+### Changed
+- centralize mobile edge surfaces behind page shells
+- remove block shell child mobile padding
+
+## [0.4.31] - 2026-03-26
+
+### Changed
+- mirror theme mobile shell gutter model
+
+## [0.4.30] - 2026-03-26
+
+### Changed
+- let block shell inner own vertical spacing
+
+## [0.4.29] - 2026-03-26
+
+### Changed
+- make block inner wrapper own mobile spacing
+
+## [0.4.28] - 2026-03-26
+
+### Changed
+- restore responsive tab padding only
+
+## [0.4.27] - 2026-03-26
+
+### Changed
+- remove responsive tab divider styling
+
+## [0.4.26] - 2026-03-26
+
+### Changed
+- add shared block inner wrapper
+
+## [0.4.25] - 2026-03-26
+
+### Changed
+- move shared tab layout into components
+
+## [0.4.23] - 2026-03-25
+
+### Changed
+- Refine responsive accordion spacing and interaction styling
+
+## [0.4.22] - 2026-03-25
+
+### Changed
+- Preserve local accordion collapse state on mobile
+
+## [0.4.21] - 2026-03-25
+
+### Changed
+- Allow responsive accordion items to collapse on second tap
+
+## [0.4.20] - 2026-03-25
+
+### Changed
+- Keep responsive tabs root structural only
+
+## [0.4.19] - 2026-03-25
+
+### Changed
+- Limit responsive tabs accordion mode to phone breakpoint
+
+## [0.4.18] - 2026-03-25
+
+### Changed
+- Remove mobile color overrides from shared surfaces
+
+## [0.4.17] - 2026-03-25
+
+### Changed
+- Fix responsive tabs mobile interaction and shared hover styling
+
+## [0.4.16] - 2026-03-25
+
+### Changed
+- Tune shared tabs and panel surfaces to current settings design
+
+## [0.4.13] - 2026-03-25
+
+### Changed
+- Limit responsive tabs styling changes to mobile only
+
+## [0.4.12] - 2026-03-25
+
+### Changed
+- Make shell and responsive tabs use one shared path
+
+## [0.4.11] - 2026-03-25
+
+### Changed
+- Add plain shell and mobile edge options to shared tabs
+
+## [0.4.10] - 2026-03-25
+
+### Changed
+- Port shared tab styling into responsive tabs component
+
+## [0.4.9] - 2026-03-25
+
+### Changed
+- Add responsive mobile accordion mode for shared tabs
+
+## [0.4.8] - 2026-03-25
+
+### Changed
+- Refine shell tabs as a grouped header region
+
+## [0.4.7] - 2026-03-25
+
+### Changed
+- Add shell-level tabs layout for consistent block structure
+
+## [0.4.6] - 2026-03-25
+
+### Changed
+- Add explicit surface depth primitives for shared mobile shell layering
+
+## [0.4.5] - 2026-03-25
+
+### Changed
+- Add shared shell-contained header primitive
+
+## [0.4.2] - 2026-03-25
+
+### Changed
+- Add mobile edge-to-edge behavior for shared panels
+
+## [0.4.1] - 2026-03-25
+
+### Changed
+- add shared badge primitive
+
+## [0.2.0] - 2026-03-25
+
+### Changed
+- Convert all components from JSX to TypeScript with exported prop interfaces
+- Remove @wordpress/components and @wordpress/element peer dependencies — use plain React
+- Add proper npm package config (exports, tsconfig, homeboy.json)
+- Add DataTable, Pagination, SearchBox, Modal, Tabs components
+
+## [0.1.0] - 2026-03-02
+
+### Added
+- Initial release with DataTable, Pagination, SearchBox, Modal components
