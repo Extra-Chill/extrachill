@@ -236,7 +236,7 @@ function ec_network_onboarding_join_intents( $intents ) {
 	$intents   = is_array( $intents ) ? $intents : array();
 	$intents[] = array(
 		'id'    => 'artist',
-		'label' => __( 'My music (artist or band)', 'extrachill-network' ),
+		'label' => __( 'Me or my act (music, comedy, any performer)', 'extrachill-network' ),
 		'roles' => array( 'artist' ),
 	);
 	$intents[] = array(
@@ -246,7 +246,7 @@ function ec_network_onboarding_join_intents( $intents ) {
 	);
 	$intents[] = array(
 		'id'    => 'promoter',
-		'label' => __( 'A promoter, collective, or event series', 'extrachill-network' ),
+		'label' => __( 'Shows or a series I promote for other acts', 'extrachill-network' ),
 		'roles' => array( 'professional' ),
 	);
 	return $intents;
@@ -259,9 +259,9 @@ add_filter( 'ec_onboarding_join_intents', 'ec_network_onboarding_join_intents' )
  * - artist (and legacy role-only answers): edit an existing artist Link Page
  *   on extrachill.link, else create an artist.
  * - venue / promoter: their Link Pages live in the Events workspace, which is
- *   team-gated today (venue_booking tier; promoter organizations are
- *   team-verified). Members who can open it go there; everyone else requests
- *   one through the contact form with the topic preselected.
+ *   gated by the venue_booking feature tier. Eligible venue members go there;
+ *   everyone else, including promoters, requests a Link Page through the
+ *   contact form with the topic preselected.
  *
  * Runs wherever onboarding runs (the community site), so it resolves
  * through network-active APIs only.
@@ -274,10 +274,9 @@ add_filter( 'ec_onboarding_join_intents', 'ec_network_onboarding_join_intents' )
  */
 function ec_network_onboarding_join_destination( $redirect_url, $user_id, $roles, $intent = '' ) {
 	if ( 'venue' === $intent || 'promoter' === $intent ) {
-		// Venue and promoter Link Pages live in the Events workspace. While that
-		// workspace is team-gated (the venue_booking feature tier), a new member
-		// cannot open it, so send them to request one: team members go straight
-		// to the workspace.
+		// Venue and promoter Link Pages live in the Events workspace, gated by
+		// the venue_booking feature tier. Eligible venue members go straight to
+		// the workspace; everyone else, including promoters, requests a Link Page.
 		if ( 'venue' === $intent && function_exists( 'ec_feature_available' ) && ec_feature_available( 'venue_booking', (int) $user_id ) ) {
 			$events = ec_get_site_url( 'events' );
 			if ( $events ) {
