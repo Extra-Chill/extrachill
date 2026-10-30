@@ -3,7 +3,8 @@
 
 Input is Homeboy's raw changed matrix. Only existing production attachments ship;
 packages/non-attached components still participate in detection and rig validation.
-Never rewrite the release poller's checked-in config.
+Monorepo members live in projects/extrachill-monorepo; the release poller
+owns projects/extrachill-site (release-based components only).
 """
 import argparse
 import json
@@ -21,7 +22,7 @@ def prepare(checkout, destination, matrix, sha, dry_run):
     if destination == source or source in destination.parents or destination in checkout.parents or destination == checkout:
         raise ValueError("config destination must be outside the source config and checkout ancestors")
     shutil.copytree(source, destination, dirs_exist_ok=True)
-    project_path = destination / "projects/extrachill-site/extrachill-site.json"
+    project_path = destination / "projects/extrachill-monorepo/extrachill-monorepo.json"
     project = json.loads(project_path.read_text())
     attachments = {item["id"]: item for item in project["components"]}
     selected = []
@@ -35,7 +36,10 @@ def prepare(checkout, destination, matrix, sha, dry_run):
         path = (checkout / entry["path"]).resolve()
         if not path.is_relative_to(checkout):
             raise ValueError("component path escapes checkout")
-        portable = json.loads((path / "homeboy.json").read_text())
+        manifest = path / "homeboy.json"
+        if not manifest.is_file():
+            raise ValueError("component path has no homeboy.json")
+        portable = json.loads(manifest.read_text())
         if portable["id"] != component:
             raise ValueError("matrix and portable component ids disagree")
         if component not in attachments:
@@ -51,7 +55,7 @@ def prepare(checkout, destination, matrix, sha, dry_run):
     # Verification must inspect only the planned components, not legacy remotes.
     project["components"] = [attachments[component] for component in selected]
     project_path.write_text(json.dumps(project, indent=2) + "\n")
-    commands = [f"deploy {component} --project extrachill-site --ref {sha} --confirm-dangerous --no-pull" +
+    commands = [f"deploy {component} --project extrachill-monorepo --ref {sha} --confirm-dangerous --no-pull" +
                 (" --dry-run" if dry_run else "") for component in selected]
     return {"components": selected, "ignored": ignored, "commands": commands}
 

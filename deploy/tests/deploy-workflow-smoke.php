@@ -8,7 +8,7 @@
 
 declare( strict_types=1 );
 
-$root     = dirname( __DIR__ );
+$root     = dirname( __DIR__, 2 );
 $workflow = $root . '/.github/workflows/deploy.yml';
 $project  = $root . '/deploy/homeboy/projects/extrachill-site/extrachill-site.json';
 $server   = $root . '/deploy/homeboy/servers/hetzner.json';
@@ -161,7 +161,9 @@ dws_assert( is_array( $p ) && is_array( $s ), 'project and server configs parse 
 dws_assert( ( $p['server_id'] ?? null ) === 'hetzner', 'project targets server hetzner' );
 dws_assert( ( $p['base_path'] ?? null ) === '/var/www/extrachill.com', 'project base_path is the site root' );
 $attachments = $p['components'] ?? null;
-dws_assert( is_array( $attachments ) && count( $attachments ) >= 30, 'project attaches the deployable component set' );
+// Monorepo members deploy through projects/extrachill-monorepo (deploy-monorepo.yml);
+// this poller owns only release-based components (deploy-monorepo-test.py checks the partition).
+dws_assert( is_array( $attachments ) && in_array( 'data-machine', array_column( $attachments, 'id' ), true ), 'project attaches the release-based component set' );
 // Only components whose repositories cut GitHub Releases can be polled.
 $not_releasing = array_filter( (array) $attachments, static fn( $c ) => in_array( $c['id'], array( 'chubes-gallery-lightbox', 'wp-native-auth' ), true ) );
 dws_assert( empty( $not_releasing ), 'components without a usable GitHub Release are not attached (homeboy#14813)' );

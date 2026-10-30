@@ -23,11 +23,16 @@ permissions:
   # startup_failure and no log to explain it.
   id-token: write
 
+# Monorepo: merging to main deploys that commit (deploy-monorepo.yml), so a
+# merge no longer cuts a release. Releases are an explicit, per-component
+# operator action.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
+      component:
+        description: 'Component ID to release (e.g. extrachill-api)'
+        required: true
+        type: string
       dry-run:
         description: 'Preview the release without making changes'
         type: boolean
@@ -42,4 +47,5 @@ jobs:
     uses: Extra-Chill/homeboy-action/.github/workflows/release.yml@v2
     with:
       dry-run: ${{ inputs.dry-run || false }}
+      component: ${{ inputs.component }}
     secrets: inherit

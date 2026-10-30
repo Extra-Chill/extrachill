@@ -309,7 +309,7 @@ jobs:
         uses: Extra-Chill/homeboy-action@v2
         with:
           version: '0.436.4'
-          commands: deploy extrachill-site --check
+          commands: deploy extrachill-monorepo --check
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
 

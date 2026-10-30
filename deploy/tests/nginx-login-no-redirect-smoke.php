@@ -11,7 +11,7 @@
 
 declare( strict_types=1 );
 
-$root     = dirname( __DIR__ );
+$root     = dirname( __DIR__, 2 );
 $configs  = array(
 	'deploy/nginx/sites-enabled/extrachill',
 	'docs/nginx/server-snippet.conf',

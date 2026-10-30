@@ -39,7 +39,7 @@ if ( null === $scenario ) {
 	}
 
 	// CLI cannot observe header(), so pin the exact apex-301 construction.
-	$artifact   = file_get_contents( dirname( __DIR__ ) . '/deploy/sunrise.php' );
+	$artifact   = file_get_contents( dirname( __DIR__, 2 ) . '/deploy/sunrise.php' );
 	$redirect   = "header( 'Location: https://extrachill.link' . \$ec_request_uri, true, 301 );";
 	$assert_pin = static function ( $condition, $message ) {
 		if ( ! $condition ) {
@@ -132,7 +132,7 @@ if ( 'gate_on_www' === $scenario ) {
 	);
 }
 
-require dirname( __DIR__ ) . '/deploy/sunrise.php';
+require dirname( __DIR__, 2 ) . '/deploy/sunrise.php';
 
 // Reached only when sunrise did not exit: assert mapping + rewrite state.
 foreach ( headers_list() as $header ) {

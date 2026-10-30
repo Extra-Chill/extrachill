@@ -1,0 +1,190 @@
+{
+  "domain": "extrachill.com",
+  "server_id": "hetzner",
+  "base_path": "/var/www/extrachill.com",
+  "path_roots": {
+    "wp_content": "wp-content"
+  },
+  "remote_files": {
+    "pinned_files": []
+  },
+  "remote_logs": {
+    "pinned_logs": [
+      {
+        "path": "wp-content/debug.log",
+        "label": "WordPress Debug Log",
+        "tail_lines": 100
+      },
+      {
+        "path": "/var/log/nginx/access.log",
+        "label": "Nginx Access Log",
+        "tail_lines": 200
+      },
+      {
+        "path": "/var/log/nginx/error.log",
+        "label": "Nginx Error Log",
+        "tail_lines": 200
+      },
+      {
+        "path": "/var/log/php8.4-fpm.log",
+        "label": "PHP-FPM Log",
+        "tail_lines": 100
+      },
+      {
+        "path": "/var/log/syslog",
+        "label": "System Log",
+        "tail_lines": 100
+      },
+      {
+        "path": "/var/log/mariadb/error.log",
+        "label": "MariaDB Error Log",
+        "tail_lines": 100
+      },
+      {
+        "path": "/var/log/mysql/slow.log",
+        "label": "MariaDB Slow Query Log",
+        "tail_lines": 200
+      },
+      {
+        "path": "/root/.kimaki/kimaki.log",
+        "label": "Kimaki Bot Log",
+        "tail_lines": 200
+      }
+    ]
+  },
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "name": "",
+    "user": "",
+    "use_ssh_tunnel": true
+  },
+  "api": {
+    "enabled": false,
+    "base_url": ""
+  },
+  "sub_targets": [],
+  "shared_tables": [],
+  "components": [
+    {
+      "id": "extrachill",
+      "remote_path": "wp-content/themes/extrachill",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-ai-adventure",
+      "remote_path": "wp-content/plugins/extrachill-ai-adventure",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-analytics",
+      "remote_path": "wp-content/plugins/extrachill-analytics",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-api",
+      "remote_path": "wp-content/plugins/extrachill-api",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-artist-platform",
+      "remote_path": "wp-content/plugins/extrachill-artist-platform",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-blog",
+      "remote_path": "wp-content/plugins/extrachill-blog",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-cache",
+      "remote_path": "wp-content/plugins/extrachill-cache",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-cli",
+      "remote_path": "wp-content/plugins/extrachill-cli",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-community",
+      "remote_path": "wp-content/plugins/extrachill-community",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-contact",
+      "remote_path": "wp-content/plugins/extrachill-contact",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-content-blocks",
+      "remote_path": "wp-content/plugins/extrachill-content-blocks",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-docs",
+      "remote_path": "wp-content/plugins/extrachill-docs",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-events",
+      "remote_path": "wp-content/plugins/extrachill-events",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-link-pages",
+      "remote_path": "wp-content/plugins/extrachill-link-pages",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-mcp",
+      "remote_path": "wp-content/plugins/extrachill-mcp",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-network",
+      "remote_path": "wp-content/plugins/extrachill-network",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-news-wire",
+      "remote_path": "wp-content/plugins/extrachill-news-wire",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-newsletter",
+      "remote_path": "wp-content/plugins/extrachill-newsletter",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-search",
+      "remote_path": "wp-content/plugins/extrachill-search",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-seo",
+      "remote_path": "wp-content/plugins/extrachill-seo",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-shop",
+      "remote_path": "wp-content/plugins/extrachill-shop",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-studio",
+      "remote_path": "wp-content/plugins/extrachill-studio",
+      "local_path": ""
+    },
+    {
+      "id": "extrachill-users",
+      "remote_path": "wp-content/plugins/extrachill-users",
+      "local_path": ""
+    }
+  ],
+  "hooks": {
+    "post:deploy:project": [
+      "wp extrachill-cache purge --all --path={{base_path}}"
+    ]
+  }
+}

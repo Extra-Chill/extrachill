@@ -12,7 +12,7 @@
  * and the documented gaps (theme remote sourcing, a handful of excluded
  * components with no public source).
  */
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -934,29 +934,11 @@ export async function prepareMonorepoSources(settings, plugins, theme, artifactD
   const sources = {};
   for (const component of [...plugins, theme]) {
     if (overrides[component.slug]) continue;
-    const isRoot = component.slug === 'extrachill-network';
-    const directory = isRoot ? root : path.join(root, component === theme ? 'themes' : 'plugins', component.slug);
+    const directory = path.join(root, component === theme ? 'themes' : 'plugins', component.slug);
     const entrypoint = component === theme ? 'style.css' : (component.activations?.[0]?.pluginFile?.split('/').slice(1).join('/') || `${component.slug}.php`);
     if (!(await isFile(path.join(directory, entrypoint)))) continue;
     await build(directory);
-    if (isRoot) {
-      // A directory source cannot express excludes in wp-codebox. Stage a
-      // filtered copy so the root plugin never recursively mounts the network.
-      await mkdir(artifactDirectory, { recursive: true });
-      const stage = await mkdtemp(path.join(artifactDirectory, 'monorepo-network-'));
-      const excluded = new Set(['plugins', 'themes', 'packages', 'rigs', 'deploy', '.github', '.git', 'node_modules', 'artifacts']);
-      const artifactRoot = path.resolve(artifactDirectory);
-      // Copy top-level entries separately: fs.cp rejects root -> descendant,
-      // even when its filter would exclude the destination subtree.
-      for (const entry of await readdir(root)) {
-        const source = path.join(root, entry);
-        if (excluded.has(entry) || source === artifactRoot || artifactRoot.startsWith(`${source}${path.sep}`)) continue;
-        await cp(source, path.join(stage, entry), { recursive: true });
-      }
-      sources[component.slug] = stage;
-    } else {
-      sources[component.slug] = directory;
-    }
+    sources[component.slug] = directory;
   }
   return sources;
 }

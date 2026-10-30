@@ -20,21 +20,44 @@ permissions:
   issues: write
 
 jobs:
+  # Monorepo CI: Homeboy detects which components (plugins/*, themes/*,
+  # packages/*) the PR or push touched and runs each one's own lint and test
+  # with its own homeboy.json, extensions and toolchain. Branch protection
+  # requires the single aggregate `homeboy / Components` check.
   homeboy:
     uses: Extra-Chill/homeboy-action/.github/workflows/ci.yml@v2
     with:
+      components: changed
+      # A change to this workflow re-checks every component.
+      shared-paths: '.github/workflows/homeboy.yml'
       extension: wordpress
-      # Scoped to what homeboy.json's self_checks actually declares (lint,
-      # test), per issue #197.
       commands: review lint,review test
-      # Full scope, not auto. Changed-scope selects zero tests when a PR
-      # only touches CI/harness config, and the runner correctly refuses to
-      # certify a harness change that never exercised the harness
-      # (changed_scope_zero_tests_for_harness_change). Full scope always
-      # exercises the whole suite; differential gating below is what stops
-      # the pre-existing PHPCS/ESLint/PHPStan baseline from blocking
-      # unrelated PRs.
+      # Full scope per component, not auto: changed-scope selects zero tests
+      # when a change only touches CI/harness config (#197). Differential
+      # gating keeps each component's pre-existing baseline from blocking.
       scope: full
       differential-gating: 'true'
       baseline-commands: auto
     secrets: inherit
+
+  # Site-level infrastructure is not a component: deploy config, the
+  # monorepo deploy planner, nginx/sunrise artifacts and the network rig.
+  site:
+    name: Site infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Deploy and server artifacts
+        run: |
+          set -euo pipefail
+          python3 -c 'import yaml' 2>/dev/null || pip install --quiet pyyaml
+          php -l deploy/sunrise.php
+          php deploy/tests/deploy-workflow-smoke.php
+          php deploy/tests/sunrise-cutover-smoke.php
+          php deploy/tests/nginx-login-no-redirect-smoke.php
+          python3 deploy/tests/deploy-monorepo-test.py
+      - name: Network rig contracts
+        run: node --test rigs/extrachill-network/tests/*.test.mjs

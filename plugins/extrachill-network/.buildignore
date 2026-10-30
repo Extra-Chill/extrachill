@@ -12,8 +12,3 @@ package-lock.json
 .DS_Store
 .claude/
 /README.md
-rigs/
-/plugins/
-/themes/
-/packages/
-/MONOREPO.md

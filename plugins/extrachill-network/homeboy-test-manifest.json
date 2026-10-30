@@ -31,9 +31,6 @@
     "tests/cross-site-rest-dispatch-smoke.php": {
       "environment": "standalone-php"
     },
-    "tests/deploy-workflow-smoke.php": {
-      "environment": "standalone-php"
-    },
     "tests/experiment-assignment-smoke.php": {
       "environment": "standalone-php"
     },
@@ -64,9 +61,6 @@
     "tests/network-term-classification-smoke.php": {
       "environment": "standalone-php"
     },
-    "tests/nginx-login-no-redirect-smoke.php": {
-      "environment": "standalone-php"
-    },
     "tests/og-card-content-addressed-cache-smoke.php": {
       "environment": "standalone-php"
     },
@@ -74,9 +68,6 @@
       "environment": "standalone-php"
     },
     "tests/service-assertion-smoke.php": {
-      "environment": "standalone-php"
-    },
-    "tests/sunrise-cutover-smoke.php": {
       "environment": "standalone-php"
     },
     "tests/taxonomy-registration-smoke.php": {

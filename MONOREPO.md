@@ -6,11 +6,23 @@ The whole Extra Chill WordPress platform in one repository: the network theme, e
 
 The code has been imported with full history (`git filter-repo --to-subdirectory-filter`; old release tags are kept as `<repo>-vX.Y.Z`). **The original repositories are still the source of truth** and still release and deploy exactly as before. Do not make changes under `plugins/`, `themes/` or `packages/` here until the cutover. A re-import before cutover brings this tree up to date.
 
-During staging, those directories are excluded from the `extrachill-network` plugin's build (`.buildignore`), release scope (`homeboy.json`) and lint (`composer lint:php`). The `extrachill-network` plugin itself stays at the repo root for now.
+Every component, including `extrachill-network`, lives in its own directory with its own `homeboy.json`. The repo root holds only site-level infrastructure:
+
+| Path | What it is |
+|---|---|
+| `deploy/homeboy/projects/extrachill-monorepo` | Deploy targets for every monorepo member (`deploy-monorepo.yml`) |
+| `deploy/homeboy/projects/extrachill-site` + `components/` | Release-polled components that are *not* in this repo (Data Machine family, `wp-codebox`, …; `deploy.yml`) |
+| `deploy/tests/` | Deploy, nginx and sunrise contract tests |
+| `deploy/nginx`, `deploy/sunrise.php`, `docs/nginx` | Server artifacts |
+| `rigs/extrachill-network` | The 11-site network rig and user journeys; boots members from this checkout |
+
+## CI
+
+`homeboy.yml` runs each changed component's own lint and tests (homeboy-action `components: changed`), reported as one `homeboy / Components` check, plus a `Site infrastructure` job for `deploy/` and the rig. `journeys.yml` boots the network from this checkout on any change under `plugins/`, `themes/` or `packages/`.
 
 ## Deploy model (after cutover)
 
-This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). There are no per-component versions and no release step, and rolling back means deploying an older commit. Changed-component detection: [homeboy#16640](https://github.com/Extra-Chill/homeboy/issues/16640).
+This works like wpcom: merging to `main` deploys that commit. Only components whose paths changed are deployed (`homeboy deploy --ref <sha>`). A merge does not cut a release, and rolling back means deploying an older commit. `release.yml` is a manual, per-component dispatch. Changed-component detection: [homeboy#16640](https://github.com/Extra-Chill/homeboy/issues/16640).
 
 ## Layout and where each component runs
 
@@ -30,7 +42,7 @@ This works like wpcom: merging to `main` deploys that commit. Only components wh
 | `extrachill-events` | `plugins/extrachill-events` | events.extrachill.com |
 | `extrachill-link-pages` | `plugins/extrachill-link-pages` | all sites (network-activated) |
 | `extrachill-mcp` | `plugins/extrachill-mcp` | auth.extrachill.com |
-| `extrachill-network` | repo root (moves to `plugins/extrachill-network` later) | all sites (network-activated) |
+| `extrachill-network` | `plugins/extrachill-network` | all sites (network-activated) |
 | `extrachill-newsletter` | `plugins/extrachill-newsletter` | all sites (network-activated) |
 | `extrachill-news-wire` | `plugins/extrachill-news-wire` | wire.extrachill.com |
 | `extrachill-search` | `plugins/extrachill-search` | all sites (network-activated) |
