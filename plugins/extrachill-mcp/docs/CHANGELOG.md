@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.5] - 2026-10-30
+
+### Fixed
+- dedupe across sites, rank results, global limit, schemas for top hits
+
 ## [0.2.4] - 2026-10-19
 
 ### Fixed
