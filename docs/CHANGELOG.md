@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.33.6] - 2026-10-30
+
+### Fixed
+- include non-music performers in the /join artist intent
+
 ## [2.33.5] - 2026-10-23
 
 ### Changed
