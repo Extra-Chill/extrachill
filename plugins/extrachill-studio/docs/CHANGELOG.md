@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.28.2] - 2026-10-30
+
+### Fixed
+- count each qualifying comment as an entry (entry_mode)
+
 ## [0.28.1] - 2026-10-11
 
 ### Changed
