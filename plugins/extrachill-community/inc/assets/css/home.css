@@ -1,0 +1,290 @@
+/* Section headers get mobile padding since extrachill-content is zero-padded */
+@media (max-width: 480px) {
+    .community-section-header {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
+
+/* --- Homepage Topic Actions --- */
+.community-newcomer-welcome {
+    width: 100%;
+    max-width: var(--content-width);
+    margin: 0 auto var(--spacing-xl);
+    padding: var(--spacing-xl);
+    background: linear-gradient(135deg, var(--card-background), var(--background-color));
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--accent);
+    border-radius: var(--border-radius-xl);
+}
+
+.community-newcomer-welcome__eyebrow {
+    margin: 0 0 var(--spacing-sm);
+    color: var(--accent);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.community-newcomer-welcome h1 {
+    margin: 0 0 var(--spacing-md);
+    max-width: 13em;
+    font-family: var(--font-family-heading);
+    font-size: var(--font-size-3xl);
+    line-height: var(--line-height-tight);
+}
+
+.community-newcomer-welcome__lede {
+    max-width: 42rem;
+    margin: 0;
+    color: var(--muted-text);
+    font-size: var(--font-size-lg);
+}
+
+.community-newcomer-welcome__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
+.community-home-topic-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin: 0 0 var(--spacing-md);
+}
+
+/* =========================================
+   Feed-first homepage (#65, layout finished #107)
+   "What's Happening" activity feed is the hero;
+   "Browse rooms" chips are demoted nav.
+
+   Layout model: the homepage body lives inside the theme's
+   .extrachill-content wrapper (max-width: var(--container-width), 1200px).
+   A bare flex-column feed inside that wide container left the topic cards
+   pinned hard-left with a large empty void on the right. Each homepage
+   section is therefore centered and constrained to var(--content-width)
+   (800px) — the platform's canonical single-column reading width — so the
+   page reads as an intentional, finished landing column rather than a thin
+   left strip. Mobile collapses to a full-bleed single column.
+
+   Cross-network content (events / wire / artist digests) and a "who's
+   around / regulars" side rail are intentionally NOT built here — deferred
+   to Phase 3 (#73) and the presence work (#111). Stubbing an empty rail now
+   would recreate the same dead right-side void this pass removes.
+   ========================================= */
+
+/* --- Shared homepage column constraint --- */
+/*
+ * Center each homepage section at the reading width and let it expand to
+ * the full container on narrower viewports. One rule keeps the CTA, feed,
+ * and browse-rooms nav vertically aligned as a single cohesive column.
+ */
+.community-activity-feed,
+.community-browse-rooms,
+.community-home-topic-actions {
+    width: 100%;
+    max-width: var(--content-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- Activity feed (hero) --- */
+.community-activity-feed {
+    margin: 0 auto var(--spacing-lg);
+}
+
+/*
+ * Single-column feed: topic cards stack at the full constrained width.
+ * The cards are nested inside .bbp-body, so the column treatment is applied
+ * there (not on the outer list wrapper).
+ */
+.community-activity-feed-list {
+    margin: var(--spacing-md) 0;
+}
+
+.community-activity-feed-list .bbp-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    width: 100%;
+}
+
+/* Override the generic .bbp-topic-card 33%-grid width: in the feed each card
+   spans the full column. */
+.community-activity-feed-list .bbp-topic-card {
+    width: 100%;
+    margin: 0;
+}
+
+.community-activity-feed-empty {
+    color: var(--muted-text);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.community-activity-feed-footer {
+    margin-top: var(--spacing-md);
+}
+
+/* --- Browse rooms (demoted chip nav) --- */
+/*
+ * Room chips use the canonical .taxonomy-badge pill (theme taxonomy-badges
+ * system), matching how subforum-button-classes.php renders forum links as
+ * badges. The .taxonomy-badges wrapper already supplies the flex-wrap row
+ * layout + gap, so only homepage-specific spacing overrides live here — no
+ * parallel pill definition.
+ */
+.community-browse-rooms {
+    margin: var(--spacing-lg) auto;
+}
+
+.community-room-chips {
+    margin: var(--spacing-md) 0 0;
+}
+
+@media (max-width: 480px) {
+    .community-room-chips {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .community-newcomer-welcome {
+        padding: var(--spacing-lg) var(--spacing-md);
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+    }
+
+    .community-newcomer-welcome h1 {
+        font-size: var(--font-size-2xl);
+    }
+
+    .community-newcomer-welcome__lede {
+        font-size: var(--font-size-base);
+    }
+
+    .community-home-topic-actions {
+        justify-content: center;
+    }
+
+    /* Full-bleed cards on phones (handled via ec-mobile-full-width-panel
+       breakout); drop the side borders/radius so they read edge-to-edge. */
+    .bbp-topic-card {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+}
+
+/* =========================================
+   Forum archive grid (/forums/)
+   Responsive 1-col-mobile / 2-col-desktop grid for the forum-index cards
+   rendered by bbpress/loop-forums.php on the forum archive. Keyed on the
+   .bbp-forums-grid CLASS — the old #forums-list-homepage id was a stale
+   leftover from when this loop was the homepage (Phase 2 / #66 moved the
+   feed-first homepage off it; the loop now serves only the forum archive).
+   home.css loads on the forum archive (see modular_bbpress_styles), so this
+   layout belongs here.
+   ========================================= */
+.bbp-forums-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-lg);
+    list-style: none;
+    padding: 0;
+    margin: var(--spacing-lg) 0;
+}
+
+.bbp-forums-grid .bbp-forum-card {
+    box-sizing: border-box;
+    flex: 1 1 calc(50% - (var(--spacing-lg) / 2));
+    min-width: 0;
+}
+
+/* Mobile (1 column) */
+@media (max-width: 768px) {
+    .bbp-forums-grid {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .bbp-forums-grid .bbp-forum-card {
+        flex: 1 1 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .bbp-forums-grid .bbp-forum-card {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+}
+
+.forum-badges {
+    font-size: var(--font-size-sm);
+}
+
+.user-custom-title {
+    color: var(--accent-2);
+}
+
+.username-badge {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.bbp-forum-artist-directory{
+    border: 1px solid var(--accent-2);
+    /* Subtle glow using the accent-2 color. Adjust spread and opacity as needed. */
+    /* Parameters: offset-x | offset-y | blur-radius | spread-radius | color */
+    box-shadow: 0 0 8px 0px rgba(var(--accent-2-rgb), 0.4); /* Softer, less spread */
+    /* Add a slight margin if cards are very close, so shadows don't overlap harshly */
+    /* For example, if cards are in a grid, you might add margin to all sides */
+    /* margin: 2px; */ 
+}
+
+/* ===============================================
+   View Recently Active Link Styles
+   =============================================== */
+.view-all-users-link {
+    display: flex;
+    justify-content: center;
+}
+
+/* ===============================================
+   Artist Platform Homepage Action Buttons
+   =============================================== */
+
+.artist-platform-homepage-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin: var(--spacing-xl) 0;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Mobile responsive for artist platform buttons */
+@media (max-width: 768px) {
+    .artist-platform-homepage-actions {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .artist-platform-homepage-actions a {
+        width: 100%;
+        text-align: center;
+        max-width: 300px;
+    }
+}

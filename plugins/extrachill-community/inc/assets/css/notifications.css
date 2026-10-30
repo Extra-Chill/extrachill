@@ -1,0 +1,98 @@
+/* Notifications page header: section title + "Mark all as read" control. */
+.extrachill-notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.extrachill-notifications-header h2 {
+    margin: 0;
+}
+
+.extrachill-notifications-mark-all-read {
+    font-size: 0.85em;
+    color: var(--muted-text);
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
+.extrachill-notifications-mark-all-read:hover {
+    color: var(--link-color);
+}
+
+/* Notification Card Styles */
+.notification-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.notification-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.notification-type-icon {
+	color: var(--link-color);
+}
+
+.notification-timestamp {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.notification-card-body {
+    display: flex;
+    gap: 15px;
+}
+
+.notification-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.notification-message {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+}
+
+.notification-card-footer {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Responsive styles */
+@media (min-width: 768px) {
+    .extrachill-notifications {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .notification-card {
+        margin-bottom: 0;
+    }
+}
+
+/*
+ * Dark mode is handled automatically by the theme's design tokens
+ * (--card-background, --border-color, --muted-text, --link-color, --card-shadow),
+ * which carry their own prefers-color-scheme: dark overrides in root.css.
+ */

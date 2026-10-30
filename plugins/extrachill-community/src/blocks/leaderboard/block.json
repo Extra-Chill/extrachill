@@ -1,0 +1,25 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/leaderboard",
+	"version": "1.27.6",
+	"title": "Leaderboard",
+	"category": "widgets",
+	"icon": "awards",
+	"description": "Display the Extra Chill Community leaderboard.",
+	"supports": {
+		"html": false,
+		"anchor": true
+	},
+	"attributes": {
+		"perPage": {
+			"type": "number",
+			"default": 25
+		}
+	},
+	"textdomain": "extra-chill-community",
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js",
+	"viewStyle": "file:./view.css",
+	"render": "file:./render.php"
+}

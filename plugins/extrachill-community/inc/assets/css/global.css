@@ -1,0 +1,13 @@
+/**
+ * Global Community Styles
+ *
+ * Styles that need to be loaded on ALL community pages, not just bbPress pages.
+ *
+ * Note: Avatar menu styles located in extrachill-users plugin (assets/css/avatar-menu.css)
+ * Note: Online users stats styles located in extrachill-users plugin (assets/css/online-users.css)
+ * Note: Notification bell styles moved to extrachill-users plugin
+ *       (assets/css/notification-bell.css) when the bell render moved network-wide.
+ *       See Extra-Chill/extrachill-users#104.
+ *
+ * @package ExtraChillCommunity
+ */

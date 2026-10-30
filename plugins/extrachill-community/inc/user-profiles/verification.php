@@ -1,0 +1,70 @@
+<?php
+/**
+ * User Verification System
+ *
+ * Admin-only interface for managing user artist and professional status.
+ * Restricted to wp-admin administrators to prevent frontend data conflicts.
+ *
+ * Meta Fields:
+ * - user_is_artist: Boolean ('1' or '0') - Artist account status
+ * - user_is_professional: Boolean ('1' or '0') - Music industry professional status
+ *
+ * Integration: Badge system in inc/social/forum-badges.php displays these statuses in forums.
+ *
+ * @package ExtraChillCommunity
+ */
+
+function extrachill_add_user_role_fields($user) {
+	if ( ! is_admin() || ! current_user_can('manage_options') ) {
+		return;
+	}
+
+	$artist       = get_user_meta($user->ID, 'user_is_artist', true) === '1';
+	$professional = get_user_meta($user->ID, 'user_is_professional', true) === '1';
+	?>
+	<h3><?php esc_html_e('Extra User Information', 'extra-chill-community'); ?></h3>
+	<table class="form-table">
+		<tr>
+			<th><label for="user_is_artist"><?php esc_html_e('Artist Status', 'extra-chill-community'); ?></label></th>
+			<td>
+				<input type="checkbox" name="user_is_artist" id="user_is_artist" value="1" <?php checked($artist, true); ?>>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="user_is_professional"><?php esc_html_e('Industry Professional Status', 'extra-chill-community'); ?></label></th>
+			<td>
+				<input type="checkbox" name="user_is_professional" id="user_is_professional" value="1" <?php checked($professional, true); ?>>
+			</td>
+		</tr>
+	</table>
+	<?php
+}
+
+add_action('show_user_profile', 'extrachill_add_user_role_fields');
+add_action('edit_user_profile', 'extrachill_add_user_role_fields');
+
+function extrachill_save_user_meta($user_id) {
+	// Only process these fields in wp-admin to prevent data loss on frontend
+	if ( ! is_admin() ) {
+		return;
+	}
+
+	if ( ! current_user_can('edit_user', $user_id) ) {
+		return false;
+	}
+
+	// Verify the core user-edit nonce (WordPress also enforces this before firing these hooks).
+	if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['_wpnonce'] ) ), 'update-user_' . $user_id ) ) {
+		return false;
+	}
+
+	// Direct save for Artist status
+	update_user_meta($user_id, 'user_is_artist', isset($_POST['user_is_artist']) ? '1' : '0');
+
+	// Direct save for Professional status
+	update_user_meta($user_id, 'user_is_professional', isset($_POST['user_is_professional']) ? '1' : '0');
+}
+
+add_action('personal_options_update', 'extrachill_save_user_meta');
+add_action('edit_user_profile_update', 'extrachill_save_user_meta');
+

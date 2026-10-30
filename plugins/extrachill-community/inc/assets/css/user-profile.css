@@ -1,0 +1,401 @@
+/* --- Profile Styles Updated to Use Global Variables --- */
+
+/* ==================================================
+   Profile link editor
+================================================== */
+
+#user-dynamic-links-container {
+	display: block;
+}
+
+#user-links-list {
+	margin-bottom: 1rem;
+}
+
+.user-dynamic-link-item {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+	padding: 0.625rem;
+	border: 1px solid var(--border-color);
+	margin-bottom: 0.625rem;
+	border-radius: var(--border-radius-sm);
+	background: var(--card-background);
+}
+
+.user-dynamic-link-item .user-link-type,
+.user-dynamic-link-item .user-link-custom-label-wrapper,
+.user-dynamic-link-item .user-link-url {
+	flex: 1 1 150px;
+}
+
+.user-dynamic-link-item .user-link-url {
+	flex: 2 1 300px;
+}
+
+.user-dynamic-link-item .user-link-remove {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+}
+
+.user-link-custom-label-wrapper[ data-visible='0' ] {
+	display: none;
+}
+
+.user-dynamic-link-item input[type='url'],
+.user-dynamic-link-item input[type='text'],
+.user-dynamic-link-item select {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.forum-title-with-icon {
+    margin-bottom: 10px;
+    margin-top: 5px;
+    font-size: var(--font-size-sm);
+}
+
+.bbp-user-profile {
+    overflow-x: auto;
+}
+
+.user-profile-activity p, 
+.profile-links p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+
+.user-profile-activity, 
+.profile-links {
+    margin-bottom: 20px;
+}
+
+
+/* --- Profile Header Card (Hero Section) --- */
+.bbp-user-profile .bbp-user-header-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--card-shadow);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding-bottom: 4rem; /* Added space for bottom links */
+}
+
+.bbp-user-profile .bbp-user-avatar-area {
+    margin-right: 2rem;
+}
+
+.bbp-user-profile .bbp-user-avatar-area img.avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.bbp-user-profile .bbp-user-header-text-area {
+    flex: 1;
+}
+
+/* Profile Display Name */
+.bbp-user-profile .bbp-user-display-name {
+    font-size: var(--font-size-3xl);
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    line-height: 1.1;
+    display: flex;
+    gap: 0.6rem;
+}
+
+/* Profile Title/Rank and Follower Count */
+.bbp-user-profile .bbp-user-title-rank {
+	font-size: var(--font-size-base);
+	color: var(--muted-text);
+	margin-bottom: 0.25rem;
+	width: 100%;
+}
+
+/* Hero meta line (join date + linked activity counts, ex-Community Activity
+   card) and identity line (Local Scene + Member of, ex-Artists card). */
+.bbp-user-profile .bbp-user-meta-line,
+.bbp-user-profile .bbp-user-identity-line {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+	margin-bottom: 0.25rem;
+	width: 100%;
+}
+
+.bbp-user-profile .bbp-user-meta-sep {
+	opacity: 0.6;
+}
+
+.bbp-user-profile .bbp-user-last-seen {
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+	margin-bottom: 0.25rem;
+}
+
+.bbp-user-profile .bbp-user-last-seen.is-online {
+	color: var(--success-color);
+	font-weight: 600;
+}
+
+.bbp-user-profile .bbp-user-last-seen.is-online::before {
+	content: "";
+	display: inline-block;
+	width: 0.5rem;
+	height: 0.5rem;
+	margin-right: 0.4rem;
+	border-radius: 50%;
+	background-color: var(--success-color);
+	vertical-align: middle;
+	animation: bbp-last-seen-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bbp-last-seen-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+/* User Actions Area */
+.bbp-user-profile .bbp-user-actions-area {
+	position: absolute;
+	top: 2rem;
+	right: 2rem;
+}
+
+
+/* New Social Links Styles */
+.bbp-user-links-inline {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0 2rem;
+}
+
+.social-link {
+    color: var(--accent-2);
+    font-size: var(--font-size-xl);
+    transition: color 0.2s ease;
+    text-decoration: none;
+}
+
+.social-link:hover {
+    color: var(--link-color-hover);
+}
+
+.social-link.website:hover {
+    color: var(--accent);
+}
+
+.social-link.utility:hover {
+    color: var(--muted-text);
+}
+
+/* Adjust forum badges font size */
+.bbp-user-display-name .forum-badges {
+    font-size: 0.7em;
+}
+
+/* --- Mini Card Base Styles --- */
+.user-mini-card {
+    background: var(--background-color);
+    border-radius: var(--border-radius-sm);
+    padding: 12px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-mini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-hover-shadow);
+}
+
+.user-mini-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.user-mini-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-mini-name a {
+    color: var(--accent-2);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.user-mini-role,
+.user-mini-rank {
+    font-size: var(--font-size-xs);
+    color: var(--muted-text);
+    line-height: 1.3;
+}
+
+/* --- User Profile Section Cards --- */
+.bbp-user-profile-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* All profile-body cards stack full-width — the 2-column flex grid is gone
+   (its former occupants live in the hero as the meta and identity lines). */
+
+/* Style headings within the profile cards */
+.bbp-user-profile-card h2,
+.bbp-user-profile-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--accent);
+    width: max-content;
+}
+
+#ec-your-profile{
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------
+   MOBILE-FRIENDLY FIXES
+   Keep your existing CSS above or as-is, and then
+   append these overrides BELOW that for final control.
+   ------------------------------------------------------ */
+
+/* Wrap flex items on small screens */
+@media (max-width: 768px) {
+    .bbp-user-profile .bbp-user-header-card {
+        /* Instead of a single row, let elements stack */
+        flex-direction: column;
+        align-items: center;
+        padding-bottom: 3rem; /* Some bottom space for social links */
+        position: relative;   /* Keep for any absolutely-positioned children */
+    }
+
+    .bbp-user-profile .bbp-user-avatar-area {
+        margin-right: 0;
+        margin-bottom: 1rem; /* Space between avatar and text */
+    }
+
+    /* Let the username & badges center-align on mobile */
+    .bbp-user-profile .bbp-user-display-name {
+        font-size: var(--font-size-xl); /* Slightly smaller for mobile */
+        justify-content: center;
+        flex-wrap: wrap;   /* If text/badges are wide, allow wrap */
+        text-align: center;
+    }
+
+    /* User actions button shouldn't be absolute in narrow view:
+       move it under the name area to prevent overlap */
+    .bbp-user-profile .bbp-user-actions-area {
+        position: static;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    /* Social links on mobile: also drop absolute,
+       place them naturally after the text area. */
+    .bbp-user-links-inline {
+        position: static;
+        margin-top: 1.5rem;
+        bottom: auto;
+        left: auto;
+        right: auto;
+    }
+}
+
+/* Edit-profile block gutter.
+ * The bbPress routing path strips .extrachill-content padding on mobile
+ * (body.page.bbpress rule in theme style.css) for edge-to-edge forum cards.
+ * The edit-profile block is a form, not a card list — restore the gutter. */
+.bbp-user-profile-edit-container {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+}
+
+/* Avatar thumbnail preview */
+#avatar-thumbnail img {
+    max-width: 100px;
+    max-height: 100px;
+}
+
+/* ==================================================
+   Concert History card (My Shows bridge)
+================================================== */
+
+.ec-concert-history-card .ec-concert-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+}
+
+.ec-concert-history-card .ec-concert-stats li {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 70px;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-sm);
+	background: var(--card-background);
+}
+
+.ec-concert-history-card .ec-concert-stat-value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.ec-concert-history-card .ec-concert-stat-label {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	opacity: 0.75;
+}
+
+.ec-concert-history-card .ec-concert-history-cta {
+	margin-top: 0.75rem;
+	font-weight: 600;
+}
+
+.ec-concert-history-empty .ec-concert-history-cta,
+.ec-concert-history-empty p {
+	margin-bottom: 0.75rem;
+}
+

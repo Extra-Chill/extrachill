@@ -1,0 +1,47 @@
+name: Homeboy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: homeboy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  wordpress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: Extra-Chill/homeboy-action@aba14988e24c30c7e1c7ea956131f861e343ad2b
+        with:
+          extension: wordpress
+          commands: review lint,review test
+          # This component has no composer.json of its own, so PHP version
+          # auto-detection has nothing to key off. Its validation-dependency
+          # graph transitively pulls in extrachill-api (via extrachill ->
+          # extrachill-api), which requires php>=8.4. Pin explicitly so
+          # setup-php provisions 8.4 for the whole job instead of falling
+          # back to the runner image's ambient PHP (8.3 as of this writing),
+          # which breaks that dependency's composer install.
+          php-version: '8.4'
+          # homeboy.json links both `wordpress` and `nodejs` extensions on
+          # this one component (PHP toolchain + JS toolchain). The action's
+          # `extension:` input only controls what gets installed in this
+          # job; it is not forwarded to the invoked `homeboy review ...`
+          # command. Force the explicit choice here rather than relying on
+          # undocumented default-extension-resolution order when a
+          # component has more than one linked extension.
+          args: '--extension wordpress'
+          scope: full
+          differential-gating: 'true'
+          pr-comment: 'false'
+          auto-issue: 'false'
+

@@ -1,0 +1,25 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/contribution-heatmap",
+	"version": "1.17.0",
+	"title": "Contribution Heatmap",
+	"category": "widgets",
+	"icon": "chart-area",
+	"description": "GitHub-style contribution activity heatmap for a community member, with year navigation.",
+	"supports": {
+		"html": false,
+		"anchor": true
+	},
+	"attributes": {
+		"userId": {
+			"type": "number",
+			"default": 0
+		}
+	},
+	"textdomain": "extra-chill-community",
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js",
+	"viewStyle": "file:./style-view.css",
+	"render": "file:./render.php"
+}

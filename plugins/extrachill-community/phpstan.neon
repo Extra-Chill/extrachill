@@ -1,0 +1,7 @@
+parameters:
+	# bbPress exposes its loop-context state through __get()/__set() magic
+	# methods without @property annotations, so static analysis cannot see
+	# properties bbPress itself assigns in bbPress::setup_globals(). The stub
+	# declares those real properties for analysis only.
+	stubFiles:
+		- tests/phpstan-bbpress-stubs.php

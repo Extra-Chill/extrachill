@@ -1,0 +1,570 @@
+/* --- Reply Card & Sidebar Profile Styles – Using Centralized Variables --- */
+
+/* Content Truncation Styles for Recent Activity Feed */
+.reply-content-truncated {
+    position: relative;
+}
+
+.reply-content-truncated .content-full.collapsed {
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease-in-out;
+}
+
+.reply-content-truncated .content-full.expanded {
+    height: auto;
+    overflow: visible;
+}
+
+.read-more-toggle {
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 500;
+    margin-top: 0.6rem;
+    padding: 0.3rem 0.6rem;
+    text-decoration: none;
+    border-radius: 3px;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.read-more-toggle:hover {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    color: var(--accent-2);
+    text-decoration: none;
+}
+
+.read-more-toggle:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.read-more-toggle .read-less-text {
+    display: none;
+}
+
+/* Ensure images always display on own line */
+.bbp-reply-content img,
+.bbp-topic-content img {
+    display: block;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+/* Reply Card Styles */
+.bbp-reply-card {
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    /* Compression: reduce width as depth increases, keeping right edge aligned */
+    width: calc(100% - (var(--depth) * 2rem));
+    margin-left: calc(var(--depth) * 2rem);
+    position: relative;
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+/* Topic Author Highlight */
+.bbp-reply-card.is-topic-author {
+    /* You can adjust this if you'd like a different background for topic authors */
+    background: var(--background-color);
+    border-left: 3px solid var(--accent);
+}
+
+/* Depth indicator for nested replies */
+.bbp-reply-card[data-depth]:not([data-depth="0"])::before {
+    content: "";
+    position: absolute;
+    left: -1rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color); /* Or use a subtle tint based on --accent-2 with transparency */
+}
+
+/* Top Header Section */
+.bbp-reply-header-content { /* Used within loop-single-reply-card.php */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    background: linear-gradient(to bottom, var(--card-background), var(--background-color));
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-md);
+}
+
+/* Reset header padding */
+div.bbp-forum-header,
+div.bbp-reply-header,
+div.bbp-topic-header,
+li.bbp-body div.hentry {
+    padding: 0;
+}
+
+/* Upvote & Date */
+.upvote-date {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: max-content;
+}
+
+@media (max-width: 768px) {
+    .upvote-date {
+        flex-direction: column;
+        width: auto;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .bbp-reply-post-date {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .bbp-reply-footer {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .bbp-reply-user-actions {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* Inline Reply Actions - Button Spacing */
+.ec-reply-actions {
+    margin-top: var(--spacing-sm);
+}
+
+.ec-inline-mode .ec-reply-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Avatar & Author Details */
+.author-details-header { /* May not exist on single-reply, adjust if needed */
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* General Avatar Styling */
+.bbp-reply-card .bbp-author-avatar { /* Keep original for topic pages */
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+.bbp-reply-card .bbp-author-avatar img{ /* Keep original for topic pages */
+    width: 40px;
+    height: 40px;}
+
+.author-name-badges {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* General Author Name Styling */
+.bbp-reply-card .bbp-author-name { /* Keep original for topic pages */
+	font-weight: bold;
+	font-size: var(--font-size-base);
+	color: var(--text-color);
+	text-decoration: none;
+}
+
+
+
+/* Badges & Role */
+.forum-badges {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+}
+
+.forum-badges .badge {
+    background-color: var(--card-background);
+    padding: 2px 6px;
+    border-radius: var(--border-radius-lg);
+    font-size: 0.75em;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.bbp-author-role {
+    font-size: 0.85em;
+    color: var(--accent-2);
+    padding: 5px 0;
+}
+
+/* Reply Content Section */
+.bbp-reply-content-area {
+    border-top: 1px solid var(--border-color);
+    gap: 1rem;
+    align-items: flex-start;
+    background-color: var(--card-background);
+}
+
+/* Reply Card Footer */
+.bbp-reply-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background: var(--card-background);
+    border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+}
+
+.bbp-reply-admin-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.bbp-reply-user-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+/* General Content Styling */
+#bbpress-forums .bbp-body div.bbp-reply-content, /* Topic loop */
+#bbpress-forums .bbp-body div.bbp-topic-content /* Topic loop */
+{
+    flex: 1;
+    min-width: 0;
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Rank & Points */
+.header-rankpoints .rankpoints {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+/* Admin Links */
+.bbp-reply-admin-links { /* General style for the links block */
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Hover effect */
+.bbp-reply-card:hover .bbp-reply-admin-links {
+    opacity: 1;
+}
+
+/* Permalink & Date */
+.bbp-reply-post-date,
+span.bbp-topic-post-date {
+    float: none;
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.bbp-reply-header a.bbp-reply-permalink {
+    color: var(--link-color);
+}
+
+.bbp-reply-permalink:hover {
+    color: var(--accent);
+}
+
+/* Reset background for headers */
+#bbpress-forums div.bbp-forum-header,
+#bbpress-forums div.bbp-reply-header,
+#bbpress-forums div.bbp-topic-header {
+    background-color: inherit;
+    border-top: none;
+}
+
+/* ==================================================
+   Topic Page Sidebar Styles
+================================================== */
+.topic-with-sidebar {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.topic-main-content {
+    flex: 2;
+    padding-right: 2rem;
+}
+
+.topic-sidebar {
+    flex: 1;
+    padding-left: 1rem;
+    margin-top: 0;
+    position: sticky;
+    top: 5rem;
+    height: 100%;
+}
+
+.topic-sidebar h3,
+.topic-sidebar h2 {
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.topic-sidebar h3 {
+    font-size: var(--font-size-body);
+    margin-bottom: 0.1rem;
+}
+
+.topic-sidebar h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .topic-with-sidebar {
+        flex-direction: column;
+    }
+    .topic-main-content,
+    .topic-sidebar {
+        flex: 1;
+        padding-right: 0;
+        padding-left: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .views-container {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+
+    #bbpress-forums .topic-card-sidebar {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+
+    .topic-sidebar h2 {
+        padding-left: var(--spacing-md);
+        padding-right: var(--spacing-md);
+    }
+}
+
+/* ==================================================
+   Sidebar Topic Card Styles
+================================================== */
+
+/* Remove bullet points from sidebar lists */
+.topic-sidebar ul {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 0;
+}
+#bbpress-forums .topic-card-sidebar {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1rem;
+    padding: 1rem;
+    font-size: var(--font-size-sm);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+}
+
+.topic-card-sidebar a.post-title  {
+    font-size: var(--font-size-lg);
+    font-weight: bold;
+}
+
+/* Avatar removed from sidebar output */
+
+.topic-card-sidebar .bbp-author-link {
+    display: inline;
+}
+
+.topic-card-sidebar .bbp-reply-header-content {
+    background: var(--background-color);
+    padding: 4px 12px;
+    display: block;
+}
+
+.topic-card-sidebar .bbp-author-name {
+    font-size: var(--font-size-sm);
+}
+
+.topic-card-sidebar .bbp-reply-post-date,
+.topic-card-sidebar span.bbp-topic-post-date {
+    font-size: var(--font-size-xs);
+    color: var(--muted-text);
+}
+
+.topic-views {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+}
+
+.views-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 15px;
+}
+
+.views-left {
+    display: flex;
+    gap: 15px;
+    align-items: baseline;
+}
+
+.topic-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.topic-actions__separator {
+    color: var(--muted-text);
+}
+
+span.bbp-admin-links {
+    float: right;
+    color: var(--muted-text);
+}
+span.bbp-admin-links a {
+    color: var(--muted-text);
+    font-weight: 400;
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    text-decoration: none;
+}
+span.bbp-author-ip {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    word-wrap: break-word;
+    color: var(--muted-text);
+}
+
+/* Revision Log (Edit History Footer) */
+#bbpress-forums ul.bbp-reply-revision-log,
+#bbpress-forums ul.bbp-topic-revision-log {
+    border-top: 1px solid var(--border-color);
+    margin: 10px 0 0 0;
+    padding: 8px 0 0;
+    list-style: none;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log li,
+#bbpress-forums ul.bbp-topic-revision-log li {
+    list-style: none;
+    margin: 0 0 2px 0;
+    padding: 0;
+    font-size: var(--font-size-xs);
+    color: var(--muted-text);
+    line-height: 1.4;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log .bbp-author-link,
+#bbpress-forums ul.bbp-topic-revision-log .bbp-author-link {
+    display: inline;
+    font-size: var(--font-size-xs);
+    font-weight: normal;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log .bbp-author-name,
+#bbpress-forums ul.bbp-topic-revision-log .bbp-author-name {
+    font-size: var(--font-size-xs);
+    font-weight: normal;
+}
+
+#bbpress-forums ul.bbp-reply-revision-log img.avatar,
+#bbpress-forums ul.bbp-topic-revision-log img.avatar {
+    display: none;
+}
+
+blockquote p{
+    padding: 15px;
+}
+
+/* ==================================================
+   Inline Reply Form Styles
+================================================== */
+
+.ec-inline-reply-form {
+    background: var(--card-background);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    margin-top: 1rem;
+    border: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.ec-inline-reply-form .bbp-form {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.ec-inline-reply-form legend {
+    font-size: 0.9rem;
+    color: var(--muted-text);
+    margin-bottom: 0.75rem;
+    padding: 0;
+    border: none;
+}
+
+.ec-inline-reply-content {
+    margin-bottom: 1rem;
+}
+
+.ec-inline-reply-content .ec-inline-textarea {
+    width: 100%;
+    min-height: 120px;
+}
+
+.ec-inline-reply-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+.ec-inline-reply-cancel {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.ec-inline-reply-cancel:hover {
+    background: var(--background-color);
+    border-color: var(--accent);
+}
+
+/* ==================================================
+   Small Screen Edge-to-Edge (≤480px)
+================================================== */
+@media (max-width: 480px) {
+    /* Remove depth indicator line on small screens */
+    .bbp-reply-card[data-depth]:not([data-depth="0"])::before {
+        display: none;
+    }
+
+    .bbp-reply-footer {
+        border-radius: 0;
+    }
+
+    .bbp-reply-header-content {
+        border-radius: 0;
+    }
+}
