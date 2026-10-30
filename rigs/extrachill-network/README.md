@@ -90,7 +90,7 @@ HOMEBOY_SETTINGS_JSON='{"extrachill_theme_source":"/absolute/path/to/extrachill-
   homeboy rig up extrachill-network
 ```
 
-`extrachill_theme_source` is required for a real `up` (omit it for `check`'s
+`extrachill_theme_source` (or a theme supplied by `extrachill_monorepo_source`) is required for a real `up` (omit it for `check`'s
 dry-run, which never mounts the theme). See "Theme sourcing" below for why
 this is a local checkout path today, not a release zip.
 
@@ -98,6 +98,7 @@ this is a local checkout path today, not a release zip.
 
 | Key | Purpose |
 | --- | --- |
+| `extrachill_monorepo_source` | Absolute checkout path of the exact monorepo commit to boot. Builds and selects components present there; see below. |
 | `extrachill_theme_source` | Absolute local theme checkout path, or (forward-compatible only, see below) an `https://…zip` URL. Required for a real `up`. |
 | `extrachill_journeys` | Array of journey IDs from `journeys/` to run after the baseline, e.g. `["gardner-event-rsvp"]`. Unknown IDs, wrong schemas, undeclared site domains, or missing persona files fail recipe validation loudly. |
 | `extrachill_journey_seed` | Optional deterministic seed string, passed through opaquely as `get_site_option('ec_rig_journey_seed')` for any selected journey's `seed.php` to consume when it needs a replayable, seeded case plan (e.g. `auth-multisite`'s fuzz plan). The rig never inspects or names what a journey does with it. |
@@ -281,6 +282,40 @@ satisfied, and the loop only throws once a full pass makes zero progress
 during this rig's own verification run (`extrachill-shop` requires
 WooCommerce to already be active).
 
+## Monorepo checkout sourcing
+
+```bash
+HOMEBOY_SETTINGS_JSON='{"extrachill_monorepo_source":"/absolute/path/to/checkout"}' \
+  homeboy rig up extrachill-network
+```
+
+The caller checks out the intended commit first. The rig selects `plugins/<slug>`
+for declared plugins and `themes/extrachill` for the theme when their entrypoint
+exists. During staging, `extrachill-network` is selected from the checkout root
+and copied into a unique artifact directory, excluding `plugins/`, `themes/`,
+`packages/`, `rigs/`, `deploy/`, `.github/`, `.git/`, `node_modules/`, and
+`artifacts/` (and the rig artifact directory itself). Its production `vendor/`
+is retained. The checkout is not mounted recursively as a plugin.
+
+Build approach: before mounting each selected component, the rig runs
+`composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader`
+when it has `composer.json`. For a `package.json` with a `build` script it runs
+`npm ci --include=dev` (or `npm install --include=dev` without a lockfile), then
+`npm run build`, in that component's checkout directory. These are direct
+checkout builds, not Homeboy registry builds; Composer/npm and dependency
+network access must be available. Build failures abort recipe creation. This
+also runs during `check`, so use a disposable, writable checkout; dependencies
+and generated assets are updated there. No versions or release artifacts are
+selected for these components.
+
+Precedence: `extrachill_component_source_overrides[slug]` wins, then the
+monorepo path, then the existing release-set/default source (or
+`extrachill_theme_source` for the theme). Theme overrides use slug `extrachill`.
+Overridden components are not built. Components absent from the checkout,
+including the Data Machine family, blocks-everywhere and wp.org/third-party
+plugins, retain their existing sources. Excluded components still require
+explicit opt-in and overrides.
+
 ## Theme sourcing (documented gap)
 
 `wp_codebox_extra_themes` / `inputs.extra_themes` accepts a remote
@@ -304,7 +339,7 @@ the remote zip path stays supported for single-site consumers of the rig.
   directory the same way `wordpress-multisite-e2e`'s own `run.mjs` already
   does, with a workflow step that `switch_theme()`s every created site.
 
-There is deliberately **no default** for `extrachill_theme_source` on a real
+Without `extrachill_monorepo_source`, there is deliberately **no default** for `extrachill_theme_source` on a real
 `up` -- callers must supply a checkout of `Extra-Chill/extrachill` (or, once
 the CLI updates, its release zip). `homeboy rig check`'s dry-run validates
 cleanly without it (no theme mount at all in that mode).
