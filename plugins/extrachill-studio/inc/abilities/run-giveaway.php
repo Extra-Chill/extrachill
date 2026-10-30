@@ -15,24 +15,52 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Giveaway entry modes.
+ *
+ * - per_comment: every qualifying comment is one entry, so a person with more
+ *   qualifying comments holds proportionally more of the pool. This matches
+ *   "more tags = more entries" giveaway rules.
+ * - per_user: every person with at least one qualifying comment holds exactly
+ *   one entry.
+ */
+const EC_STUDIO_GIVEAWAY_ENTRY_MODES  = array( 'per_comment', 'per_user' );
+const EC_STUDIO_GIVEAWAY_DEFAULT_MODE = 'per_comment';
+
+/**
+ * Normalize a requested entry mode, falling back to the default.
+ *
+ * @param mixed $mode Requested entry mode.
+ * @return string
+ */
+function ec_studio_normalize_giveaway_entry_mode( $mode ): string {
+	return is_string( $mode ) && in_array( $mode, EC_STUDIO_GIVEAWAY_ENTRY_MODES, true )
+		? $mode
+		: EC_STUDIO_GIVEAWAY_DEFAULT_MODE;
+}
+
+/**
  * Filter giveaway entries from a list of normalized comments.
  *
  * Rules:
- *   - Deduplicate by username (one entry per person).
- *   - Optionally require @mentions (tag a friend).
+ *   - Optionally require @mentions (tag a friend), at least `min_tags` each.
  *   - Exclude specific usernames (e.g. previously drawn winners).
+ *   - `entry_mode` decides whether each qualifying comment is an entry
+ *     (per_comment, default) or each qualifying person is one entry
+ *     (per_user). A comment that fails the rules never counts for its author,
+ *     so in per_user mode a person's entry is their first qualifying comment.
  *
  * @param array    $comments          Normalized SocialComment arrays.
- * @param array    $rules             Giveaway rules.
- * @param string[] $exclude_usernames Usernames to exclude (lowercase).
+ * @param array    $rules             Giveaway rules: require_tag, min_tags, entry_mode.
+ * @param string[] $exclude_usernames Usernames to exclude.
  * @return array{ entries: array, stats: array }
  */
 function ec_studio_filter_giveaway_entries( array $comments, array $rules, array $exclude_usernames = array() ): array {
-	$require_tag = ! empty( $rules['require_tag'] );
-	$min_tags    = max( 1, absint( $rules['min_tags'] ?? 1 ) );
-	$exclude_set = array_flip( array_map( 'strtolower', $exclude_usernames ) );
-	$seen        = array();
-	$entries     = array();
+	$require_tag     = ! empty( $rules['require_tag'] );
+	$min_tags        = max( 1, absint( $rules['min_tags'] ?? 1 ) );
+	$entry_mode      = ec_studio_normalize_giveaway_entry_mode( $rules['entry_mode'] ?? null );
+	$exclude_set     = array_flip( array_map( 'strtolower', $exclude_usernames ) );
+	$entries_by_user = array();
+	$entries         = array();
 
 	foreach ( $comments as $comment ) {
 		$username = strtolower( $comment['author_username'] ?? '' );
@@ -42,30 +70,31 @@ function ec_studio_filter_giveaway_entries( array $comments, array $rules, array
 			continue;
 		}
 
-		// One entry per person.
-		if ( isset( $seen[ $username ] ) ) {
+		// Must have enough @mentions if required.
+		if ( $require_tag && count( $comment['mentions'] ?? array() ) < $min_tags ) {
 			continue;
 		}
 
-		// Must have @mentions if required.
-		if ( $require_tag ) {
-			$mention_count = count( $comment['mentions'] ?? array() );
-			if ( $mention_count < $min_tags ) {
-				continue;
-			}
+		// One entry per person in per_user mode.
+		if ( 'per_user' === $entry_mode && isset( $entries_by_user[ $username ] ) ) {
+			continue;
 		}
 
-		$seen[ $username ] = true;
-		$entries[]         = $comment;
+		$entries_by_user[ $username ] = ( $entries_by_user[ $username ] ?? 0 ) + 1;
+		$entries[]                    = $comment;
 	}
+
+	arsort( $entries_by_user );
 
 	return array(
 		'entries' => $entries,
 		'stats'   => array(
-			'total_comments' => count( $comments ),
-			'valid_entries'  => count( $entries ),
-			'filtered_out'   => count( $comments ) - count( $entries ),
-			'unique_users'   => count( $seen ),
+			'entry_mode'      => $entry_mode,
+			'total_comments'  => count( $comments ),
+			'valid_entries'   => count( $entries ),
+			'filtered_out'    => count( $comments ) - count( $entries ),
+			'unique_users'    => count( $entries_by_user ),
+			'entries_by_user' => $entries_by_user,
 		),
 	);
 }
@@ -73,30 +102,37 @@ function ec_studio_filter_giveaway_entries( array $comments, array $rules, array
 /**
  * Crypto-secure random selection of winners.
  *
+ * Every entry has the same chance of being drawn. Winners are distinct
+ * people: once someone wins, their remaining entries leave the pool, so the
+ * result holds at most one winner per username.
+ *
  * @param array $entries Filtered valid entries.
  * @param int   $count   Number of winners to pick.
- * @return array Selected entries (subset of $entries).
+ * @return array Selected entries (subset of $entries), in draw order.
  */
 function ec_studio_pick_giveaway_winners( array $entries, int $count ): array {
-	$total = count( $entries );
-	if ( 0 === $total || $count <= 0 ) {
-		return array();
-	}
-
-	$actual = min( $count, $total );
-
-	// Shuffle using random_int() for crypto-secure selection.
-	$indices = range( 0, $total - 1 );
-	for ( $i = $total - 1; $i > 0; $i-- ) {
-		$j             = random_int( 0, $i );
-		$tmp           = $indices[ $i ];
-		$indices[ $i ] = $indices[ $j ];
-		$indices[ $j ] = $tmp;
-	}
-
+	$pool    = array_values( $entries );
 	$winners = array();
-	for ( $i = 0; $i < $actual; $i++ ) {
-		$winners[] = $entries[ $indices[ $i ] ];
+	$drawn   = 0;
+
+	while ( $drawn < $count && ! empty( $pool ) ) {
+		$pool_size = count( $pool );
+		$winner    = $pool[ random_int( 0, $pool_size - 1 ) ];
+		$winners[] = $winner;
+		++$drawn;
+
+		$username = strtolower( $winner['author_username'] ?? '' );
+		$pool     = array_values(
+			array_filter(
+				$pool,
+				static function ( $entry ) use ( $winner, $username ) {
+					if ( '' === $username ) {
+						return $entry !== $winner;
+					}
+					return strtolower( $entry['author_username'] ?? '' ) !== $username;
+				}
+			)
+		);
 	}
 
 	return $winners;
@@ -115,7 +151,7 @@ function ec_studio_register_run_giveaway_ability(): void {
 			'extrachill/run-giveaway',
 			array(
 				'label'               => __( 'Run Giveaway', 'extrachill-studio' ),
-				'description'         => __( 'Pick random winners from Instagram post comments and optionally announce them.', 'extrachill-studio' ),
+				'description'         => __( 'Pick random winners from Instagram post comments and optionally announce them. By default every qualifying comment is one entry (entry_mode per_comment); use per_user for one entry per person.', 'extrachill-studio' ),
 				'category'            => 'extrachill',
 				'input_schema'        => array(
 					'type'       => 'object',
@@ -123,6 +159,12 @@ function ec_studio_register_run_giveaway_ability(): void {
 						'media_input'  => array(
 							'type'        => 'string',
 							'description' => __( 'Instagram post URL, shortcode, or numeric media ID.', 'extrachill-studio' ),
+						),
+						'entry_mode'   => array(
+							'type'        => 'string',
+							'enum'        => EC_STUDIO_GIVEAWAY_ENTRY_MODES,
+							'description' => __( 'How entries are counted. per_comment (default): every qualifying comment is one entry, so more tagging comments mean more chances. per_user: every qualifying person is one entry. Every entry in the pool has equal odds; winners are always distinct people.', 'extrachill-studio' ),
+							'default'     => EC_STUDIO_GIVEAWAY_DEFAULT_MODE,
 						),
 						'require_tag'  => array(
 							'type'        => 'boolean',
@@ -191,6 +233,7 @@ function ec_studio_execute_run_giveaway( array $input ) {
 	$media_input  = $input['media_input'] ?? '';
 	$require_tag  = $input['require_tag'] ?? true;
 	$min_tags     = max( 1, absint( $input['min_tags'] ?? 1 ) );
+	$entry_mode   = ec_studio_normalize_giveaway_entry_mode( $input['entry_mode'] ?? null );
 	$winner_count = max( 1, min( 50, absint( $input['winner_count'] ?? 1 ) ) );
 	$announce     = ! empty( $input['announce'] );
 	$message_tpl  = $input['message'] ?? 'Congratulations @{username}, you won the giveaway! Check your DMs for details.';
@@ -238,6 +281,7 @@ function ec_studio_execute_run_giveaway( array $input ) {
 	$rules    = array(
 		'require_tag' => $require_tag,
 		'min_tags'    => $min_tags,
+		'entry_mode'  => $entry_mode,
 	);
 	$filtered = ec_studio_filter_giveaway_entries( $comments, $rules );
 	$entries  = $filtered['entries'];
@@ -294,12 +338,13 @@ function ec_studio_execute_run_giveaway( array $input ) {
 	}
 
 	return array(
-		'media_id' => $media_id,
-		'platform' => $platform,
-		'winners'  => $winners,
-		'stats'    => $stats,
-		'partial'  => ! empty( $comments_result['data']['partial'] ),
-		'pages'    => $comments_result['data']['pages'] ?? null,
+		'media_id'   => $media_id,
+		'platform'   => $platform,
+		'entry_mode' => $entry_mode,
+		'winners'    => $winners,
+		'stats'      => $stats,
+		'partial'    => ! empty( $comments_result['data']['partial'] ),
+		'pages'      => $comments_result['data']['pages'] ?? null,
 	);
 }
 

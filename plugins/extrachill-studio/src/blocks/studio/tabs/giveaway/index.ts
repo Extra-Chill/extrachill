@@ -20,6 +20,13 @@ import {
  */
 import { studioSocialsApi } from '../../app/client';
 import type { SocialComment } from '../../app/client';
+import { DEFAULT_ENTRY_MODE, filterEntries, pickWinners } from './entries';
+import type {
+	GiveawayEntryMode,
+	GiveawayRules,
+	GiveawayStats,
+	GiveawayWinner as GiveawayWinnerOf,
+} from './entries';
 
 const h = createElement as typeof import('react').createElement;
 const PanelView = Panel as unknown as ( props: any ) => ReactElement;
@@ -112,115 +119,7 @@ const parseMediaInput = (
 	return { platform: 'instagram', mediaId: trimmed };
 };
 
-interface GiveawayRules {
-	requireTag: boolean;
-	minTags: number;
-	winnerCount: number;
-}
-
-interface GiveawayWinner {
-	comment: SocialComment;
-	index: number;
-}
-
-interface GiveawayStats {
-	totalComments: number;
-	validEntries: number;
-	filteredOut: number;
-	uniqueUsers: number;
-}
-
-/**
- * Apply giveaway rules to a list of comments.
- * Returns filtered valid entries and stats.
- * @param comments
- * @param rules
- * @param excludeUsernames
- */
-const filterEntries = (
-	comments: SocialComment[],
-	rules: GiveawayRules,
-	excludeUsernames: string[] = []
-): { entries: SocialComment[]; stats: GiveawayStats } => {
-	const seen = new Set< string >();
-	const entries: SocialComment[] = [];
-	const excludeSet = new Set(
-		excludeUsernames.map( ( u ) => u.toLowerCase() )
-	);
-
-	for ( const comment of comments ) {
-		const username = ( comment.author_username || '' ).toLowerCase();
-
-		// Exclude previously drawn winners.
-		if ( excludeSet.has( username ) ) {
-			continue;
-		}
-
-		// Deduplicate by username (one entry per person).
-		if ( seen.has( username ) ) {
-			continue;
-		}
-
-		// Must have @mentions if required.
-		if (
-			rules.requireTag &&
-			( comment.mentions?.length ?? 0 ) < rules.minTags
-		) {
-			continue;
-		}
-
-		seen.add( username );
-		entries.push( comment );
-	}
-
-	return {
-		entries,
-		stats: {
-			totalComments: comments.length,
-			validEntries: entries.length,
-			filteredOut: comments.length - entries.length,
-			uniqueUsers: seen.size,
-		},
-	};
-};
-
-/**
- * Crypto-secure random selection of winners from entries.
- * @param entries
- * @param count
- */
-const pickWinners = (
-	entries: SocialComment[],
-	count: number
-): GiveawayWinner[] => {
-	if ( entries.length === 0 || count <= 0 ) {
-		return [];
-	}
-
-	const actualCount = Math.min( count, entries.length );
-	const indices = new Set< number >();
-
-	// Use crypto.getRandomValues for unbiased selection.
-	const randomArray = new Uint32Array( actualCount * 3 ); // Extra entropy.
-	crypto.getRandomValues( randomArray );
-
-	let randomIndex = 0;
-	while ( indices.size < actualCount && randomIndex < randomArray.length ) {
-		const idx = randomArray[ randomIndex ] % entries.length;
-		indices.add( idx );
-		randomIndex++;
-	}
-
-	// Fallback if crypto doesn't give enough unique values (extremely unlikely).
-	while ( indices.size < actualCount ) {
-		indices.add( Math.floor( Math.random() * entries.length ) );
-	}
-
-	return Array.from( indices ).map( ( idx ) => ( {
-		comment: entries[ idx ],
-		index: idx,
-	} ) );
-};
+type GiveawayWinner = GiveawayWinnerOf< SocialComment >;
 
 const GiveawayPane = (): ReactElement => {
 	// Input state.
@@ -232,6 +131,7 @@ const GiveawayPane = (): ReactElement => {
 		requireTag: true,
 		minTags: 1,
 		winnerCount: 1,
+		entryMode: DEFAULT_ENTRY_MODE,
 	} );
 
 	// Data state.
@@ -368,15 +268,17 @@ const GiveawayPane = (): ReactElement => {
 
 	/**
 	 * Draw winners from filtered entries.
+	 *
+	 * @param exclude Usernames to leave out of the pool (previous winners).
 	 */
-	const drawWinners = (): void => {
+	const drawWinners = ( exclude: string[] = excludedWinners ): void => {
 		setIsDrawing( true );
 		setError( '' );
 
 		const { entries, stats: newStats } = filterEntries(
 			allComments,
 			rules,
-			excludedWinners
+			exclude
 		);
 		setStats( newStats );
 
@@ -416,14 +318,10 @@ const GiveawayPane = (): ReactElement => {
 		const currentWinnerUsernames = winners.map(
 			( w ) => w.comment.author_username
 		);
-		setExcludedWinners( ( current ) => [
-			...current,
-			...currentWinnerUsernames,
-		] );
+		const nextExcluded = [ ...excludedWinners, ...currentWinnerUsernames ];
+		setExcludedWinners( nextExcluded );
 		setWinners( [] );
-
-		// Use setTimeout to let state update before re-drawing.
-		setTimeout( () => drawWinners(), 0 );
+		drawWinners( nextExcluded );
 	};
 
 	/**
@@ -579,6 +477,27 @@ const GiveawayPane = (): ReactElement => {
 										')'
 								  )
 								: null
+						),
+						createElement(
+							'label',
+							{ className: 'ec-studio-giveaway-rules__rule' },
+							createElement( 'input', {
+								type: 'checkbox',
+								checked: rules.entryMode === 'per_user',
+								onChange: (
+									event: ChangeEvent< HTMLInputElement >
+								) =>
+									updateRule(
+										'entryMode',
+										( event.target.checked
+											? 'per_user'
+											: 'per_comment' ) as GiveawayEntryMode
+									),
+							} ),
+							__(
+								'One entry per person (otherwise every qualifying comment is an entry)',
+								'extrachill-studio'
+							)
 						)
 					)
 				),
@@ -628,7 +547,7 @@ const GiveawayPane = (): ReactElement => {
 								{
 									type: 'button',
 									className: 'button-1 button-medium',
-									onClick: drawWinners,
+									onClick: () => drawWinners(),
 									disabled:
 										isDrawing ||
 										! stats ||
