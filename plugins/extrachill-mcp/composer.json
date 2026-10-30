@@ -1,0 +1,28 @@
+{
+	"name": "extra-chill/extrachill-mcp",
+	"description": "MCP context server for the Extra Chill platform.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.1",
+		"wordpress/mcp-adapter": "^0.6.1"
+	},
+	"autoload": {
+		"psr-4": {
+			"ExtraChillMcp\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"ExtraChillMcp\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"automattic/jetpack-autoloader": true
+		},
+		"sort-packages": true
+	},
+	"minimum-stability": "stable",
+	"prefer-stable": true
+}
