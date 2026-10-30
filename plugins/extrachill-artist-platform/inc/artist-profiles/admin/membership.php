@@ -403,6 +403,16 @@ function ec_set_artist_membership_lock_failure( $database_error ) {
 function ec_release_artist_membership_lock( $user_id, $artist_id ) {
 	global $wpdb;
 	$lock_name = sprintf( 'ec_artist_membership_%d_%d', $user_id, $artist_id );
+	ec_release_artist_membership_named_lock( $lock_name );
+}
+
+/**
+ * Release a named advisory or portable network lock owned by this request.
+ *
+ * @param string $lock_name Lock name supplied at acquisition.
+ */
+function ec_release_artist_membership_named_lock( $lock_name ) {
+	global $wpdb;
 	if ( empty( $GLOBALS['ec_artist_membership_locks'][ $lock_name ] ) ) {
 		return;
 	}

@@ -232,10 +232,13 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 
 		$lock = ec_acquire_artist_binding_lock();
 		$GLOBALS['wpdb']->query( 'START TRANSACTION' );
-		$this->assertSame( array(
-			'profile_id' => $pair['profile_id'],
-			'term_id'    => $pair['term_id'],
-		), ec_read_locked_artist_binding( $pair['profile_id'], $pair['term_id'] ) );
+		$this->assertSame(
+			array(
+				'profile_id' => $pair['profile_id'],
+				'term_id'    => $pair['term_id'],
+			),
+			ec_read_locked_artist_binding( $pair['profile_id'], $pair['term_id'] )
+		);
 		$this->assertSame( 'artist_binding_release_transaction_active', ec_release_artist_binding_lock( $lock )->get_error_code() );
 		$GLOBALS['wpdb']->query( 'COMMIT' );
 		$this->assertTrue( ec_release_artist_binding_lock( $lock ) );
@@ -294,27 +297,88 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 
 		$binding_lock = ec_acquire_artist_binding_lock();
 		$this->assertNotInstanceOf( WP_Error::class, $binding_lock );
-		$this->assertSame( array(
-			'profile_id' => $pair['profile_id'],
-			'term_id'    => $pair['term_id'],
-		), ec_read_locked_artist_binding( $pair['profile_id'], $pair['term_id'] ) );
+		$this->assertSame(
+			array(
+				'profile_id' => $pair['profile_id'],
+				'term_id'    => $pair['term_id'],
+			),
+			ec_read_locked_artist_binding( $pair['profile_id'], $pair['term_id'] )
+		);
 		$this->assertTrue( ec_acquire_artist_membership_lock( 7, $pair['profile_id'] ) );
 
 		ec_release_artist_membership_lock( 7, $pair['profile_id'] );
 		$this->assertTrue( ec_release_artist_binding_lock( $binding_lock ) );
 	}
 
-	public function test_unsupported_database_fails_closed_without_raw_database_errors(): void {
-		// The SQLite sandbox runtime IS the unsupported path.
-		if ( ! ec_artist_platform_test_wpdb_is_sqlite() ) {
-			$this->markTestSkipped( 'Requires a non-MySQL wpdb runtime.' );
+	public function test_sqlite_sync_creates_and_binds_terms_and_releases_portable_lock(): void {
+		$backend = static function () {
+			return 'sqlite';
+		};
+		$queries = array();
+		$capture = static function ( $query ) use ( &$queries ) {
+			$queries[] = $query;
+			return $query;
+		};
+		add_filter( 'ec_artist_binding_database_backend', $backend );
+		add_filter( 'query', $capture );
+		try {
+			// Exercise both creating a term and binding an existing same-slug term.
+			foreach ( array( false, true ) as $existing ) {
+				$slug       = $existing ? 'portable-existing' : 'portable-new';
+				$profile_id = $this->create_artist_profile( $slug, array( 'post_name' => $slug ) );
+				$expected   = $existing ? $this->create_artist_term( $slug ) : null;
+				$result     = ec_sync_artist_profile_term_binding( $profile_id );
+				$this->assertNotWPError( $result );
+				$term_id = (int) $this->profile_meta_value( $profile_id, '_artist_term_id' );
+				$this->assertSame( $term_id, $result );
+				$this->assertGreaterThan( 0, $term_id );
+				if ( $existing ) {
+					$this->assertSame( $expected, $term_id );
+				}
+				$this->assertSame( $profile_id, (int) $this->term_meta_value( $term_id, '_artist_profile_id' ) );
+				$this->assertEmpty( $GLOBALS['ec_artist_binding_lock'] ?? null );
+				$this->assertEmpty( $GLOBALS['ec_artist_membership_locks']['ec_artist_binding_v1'] ?? null );
+			}
+			$this->assertDoesNotMatchRegularExpression( '/GET_LOCK|RELEASE_LOCK|SET TRANSACTION/i', implode( "\n", $queries ) );
+		} finally {
+			remove_filter( 'query', $capture );
+			remove_filter( 'ec_artist_binding_database_backend', $backend );
 		}
+	}
 
-		$pair = $this->seed_pair( 'the-band' );
-
-		$this->assertFalse( ec_bind_artist_profile_to_term( $pair['profile_id'], $pair['term_id'] ) );
-		$this->assertSame( 'artist_binding_lock_unsupported', ec_get_artist_binding_failure()->get_error_code() );
-		$this->assertSame( array( 'retryable' => true ), ec_get_artist_binding_failure()->get_error_data() );
+	public function test_sqlite_portable_lock_is_exclusive_and_deferred_release_removes_option(): void {
+		$backend = static function () {
+			return 'sqlite';
+		};
+		add_filter( 'ec_artist_binding_database_backend', $backend );
+		try {
+			$lock = ec_acquire_artist_binding_lock();
+			$this->assertSame( 'ec_artist_binding_v1', $lock );
+			$state = $GLOBALS['ec_artist_membership_locks'][ $lock ];
+			$this->assertSame( 'main_site_option', $state['backend'] );
+			$this->assertWPError( ec_acquire_artist_binding_lock() );
+			$this->assertFalse( ec_acquire_artist_membership_network_lock( $lock ) );
+			switch_to_blog( get_main_site_id() );
+			try {
+				$this->assertSame( $state['payload'], get_option( $state['option'] ) );
+			} finally {
+				restore_current_blog();
+			}
+			ec_artist_binding_defer_lock_release( 'sqlite-test', $lock );
+			ec_artist_binding_release_deferred_locks();
+			$this->assertEmpty( $GLOBALS['ec_artist_binding_deferred_locks'] );
+			$this->assertEmpty( $GLOBALS['ec_artist_binding_lock'] ?? null );
+			switch_to_blog( get_main_site_id() );
+			try {
+				$this->assertFalse( get_option( $state['option'], false ) );
+			} finally {
+				restore_current_blog();
+			}
+			$this->assertSame( $lock, ec_acquire_artist_binding_lock() );
+			$this->assertTrue( ec_release_artist_binding_lock( $lock ) );
+		} finally {
+			remove_filter( 'ec_artist_binding_database_backend', $backend );
+		}
 	}
 
 	public function test_primary_boundary_failure_survives_release_failure(): void {
