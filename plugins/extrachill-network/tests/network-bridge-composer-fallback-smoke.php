@@ -49,8 +49,7 @@ function sanitize_key( string $value ): string { return strtolower( preg_replace
 function sanitize_title( string $value ): string { return strtolower( trim( preg_replace( '/[^a-z0-9]+/i', '-', $value ), '-' ) ); }
 function is_wp_error(): bool { return false; }
 function get_current_blog_id(): int { return $GLOBALS['ec_test_blog_id']; }
-function ec_get_blog_id( string $key ): int { return 'community' === $key ? 2 : 0; }
-function ec_get_site_url( string $key ): ?string { return 'community' === $key ? 'https://community.extrachill.com' : null; }
+require_once __DIR__ . '/support/network-contract.php';
 function get_site( int $blog_id ): ?WP_Site { return 2 === $blog_id && $GLOBALS['ec_test_community_site'] ? new WP_Site() : null; }
 function get_blog_option( int $blog_id, string $key, $default = false ) {
 	return 2 === $blog_id && 'extrachill_community_discussion_composer_contract' === $key

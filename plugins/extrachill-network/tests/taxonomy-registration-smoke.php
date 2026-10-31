@@ -72,7 +72,7 @@ function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 }
 
 function get_current_blog_id() { return $GLOBALS['taxonomy_registration_test']['blog_id'] ?? 1; }
-function ec_get_blog_id( $key ) { return 'studio' === $key ? 12 : 1; }
+require_once __DIR__ . '/support/network-contract.php';
 function post_type_exists( $type ) { return $GLOBALS['taxonomy_registration_test']['wiki_exists'] ?? false; }
 function register_taxonomy_for_object_type( $taxonomy, $type ) {
 	$GLOBALS['taxonomy_registration_test']['attachments'][ $taxonomy ] = $type;

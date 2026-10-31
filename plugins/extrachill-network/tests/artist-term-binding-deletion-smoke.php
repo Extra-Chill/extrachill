@@ -17,12 +17,7 @@ function add_action( string $hook, string $callback, int $priority, int $accepte
 	$GLOBALS['ec_test_actions'][] = compact( 'hook', 'callback', 'priority', 'accepted_args' );
 }
 
-function ec_get_blog_id( string $key ): int {
-	return array(
-		'main'   => 1,
-		'artist' => 4,
-	)[ $key ] ?? 0;
-}
+require_once __DIR__ . '/support/network-contract.php';
 
 function get_current_blog_id(): int {
 	return $GLOBALS['ec_test']['current_blog_id'];
