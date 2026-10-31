@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.45.0] - 2026-10-31
+
+### Added
+- password-gated, capacity-limited guest list
+
 ## [0.44.0] - 2026-10-30
 
 ### Added
