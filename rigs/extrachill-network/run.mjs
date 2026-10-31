@@ -701,6 +701,7 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
   const additionalPrepareSteps = recipeArray(settings.wordpress_runtime_prepare_steps, 'wordpress_runtime_prepare_steps');
   const additionalPostSteps = recipeArray(settings.wordpress_runtime_post_steps, 'wordpress_runtime_post_steps');
   const phpVersion = runtimePhpVersion(settings);
+  const workers = runtimeWorkers(settings);
 
   const journeys = await buildJourneys(settings, topology);
   const demoMode = settings.extrachill_demo === true;
@@ -803,6 +804,7 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
       ...(settings.wordpress_runtime_version ? { wp: settings.wordpress_runtime_version } : {}),
       ...(phpVersion ? { phpVersion } : {}),
       blueprint: { steps: [] },
+      workers,
       preview: { siteUrl: `http://${topology.sites.find((site) => site.primary)?.domain ?? topology.sites[0].domain}/` },
     },
     inputs: {
@@ -1469,6 +1471,21 @@ function browserProbeStep(site) {
 // WP Codebox's own 8.3 default runtime. Default to 8.4; callers can still pin
 // a different supported version.
 const DEFAULT_PHP_VERSION = '8.4';
+
+// Playground request workers. wp-codebox sizes its preview proxy to this, so
+// a page's parallel requests (editor REST fan-out, assets) run concurrently.
+const DEFAULT_RUNTIME_WORKERS = 4;
+
+export function runtimeWorkers(settings) {
+  if (!Object.hasOwn(settings, 'extrachill_runtime_workers')) {
+    return DEFAULT_RUNTIME_WORKERS;
+  }
+  const value = settings.extrachill_runtime_workers;
+  if (value === 'auto' || (Number.isInteger(value) && value >= 1 && value <= 64)) {
+    return value;
+  }
+  throw new Error('extrachill_runtime_workers must be an integer from 1 to 64, or "auto".');
+}
 
 function runtimePhpVersion(settings) {
   if (!Object.hasOwn(settings, 'wordpress_runtime_php_version')) {
