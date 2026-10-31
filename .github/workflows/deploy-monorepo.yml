@@ -292,6 +292,30 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      # Deploy/Verify run homeboy-action against plugins/extrachill-network, so
+      # the action installs only the extensions that component declares
+      # (wordpress). Each deployed component builds with its own declared
+      # extensions (extrachill-community also needs nodejs), so install those
+      # into the shared HOMEBOY_CONFIG_ROOT first. The action's refresh only
+      # reinstalls the network's own extensions, so these survive into Deploy.
+      # Deploy-side twin of #439/#441. Upstream gap: homeboy-action cannot
+      # install per-component extensions for project-level commands (#468).
+      # The frozen homeboy-extensions source matches what the action resolves
+      # for this Homeboy pin; the monorepo source has no nested manifests yet.
+      - name: Install deployed components' extensions
+        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for component in $(jq -r '.components[]' "${HOMEBOY_OUTPUT_DIR}/plan.json"); do
+            path="$(jq -r '.local_path' "${HOMEBOY_CONFIG_ROOT}/components/${component}.json")"
+            echo "Installing extensions declared by ${component} (${path})"
+            "${HOMEBOY_GATE_BIN_DIR}/homeboy" extension install-for-component \
+              --path "${path}" --source https://github.com/Extra-Chill/homeboy-extensions
+          done
+
       # homeboy-action executes these comma-separated commands serially.
       # In plan-only mode no Deploy/Verify action receives SSH credentials.
       - name: Deploy
