@@ -95,6 +95,17 @@ jobs:
       - name: Validate rig contracts
         run: node rigs/extrachill-network/tests/contract.test.mjs
 
+      # Built outputs (build/, vendor/, generated CSS) for every monorepo
+      # component, content-addressed by each component's tracked files, so a
+      # PR rebuilds only the components it changed. A few MB; node_modules is
+      # never cached. The rig prunes it to this run's entries before save.
+      - name: Restore component build cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/rig-build-cache
+          key: rig-component-builds-v1-${{ github.sha }}
+          restore-keys: rig-component-builds-v1-
+
       - name: Boot the network and run journeys
         env:
           HOMEBOY_WP_CODEBOX_BIN: ${{ github.workspace }}/.ci/wp-codebox/packages/cli/dist/index.js
@@ -108,9 +119,17 @@ jobs:
           export HOMEBOY_SETTINGS_JSON="$(jq -cn --argjson j "${journeys}" \
             --arg monorepo "${{ github.workspace }}" \
             --argjson demo "${DEMO:-false}" \
-            '{extrachill_monorepo_source: $monorepo, extrachill_journeys: $j, extrachill_demo: $demo}')"
+            --arg cache "${{ runner.temp }}/rig-build-cache" \
+            '{extrachill_monorepo_source: $monorepo, extrachill_journeys: $j, extrachill_demo: $demo, extrachill_build_cache: $cache}')"
           echo "Settings: ${HOMEBOY_SETTINGS_JSON}"
           node rigs/extrachill-network/run.mjs > /dev/null
+
+      - name: Save component build cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/rig-build-cache
+          key: rig-component-builds-v1-${{ github.sha }}
 
       - name: Summarize journey results
         if: always()
@@ -119,7 +138,7 @@ jobs:
           result="${{ runner.temp }}/journeys/result.json"
           [ -f "${result}" ] || { echo "No rig result was written." >> "${GITHUB_STEP_SUMMARY}"; exit 0; }
           # tee: the table also lands in the job log, not only the step summary.
-          node - "${result}" <<'NODE' | tee -a "${GITHUB_STEP_SUMMARY}"
+          node - "${result}" "${{ runner.temp }}/journeys/artifacts/component-builds.json" <<'NODE' | tee -a "${GITHUB_STEP_SUMMARY}"
           const fs = require('node:fs');
           const envelope = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
           const out = [];
@@ -161,8 +180,53 @@ jobs:
               out.push('');
             }
           }
-          console.log(out.length ? out.join('\n') : 'No journey results were found (the boot may have failed before any journey ran).');
-          if (!out.length || failed) process.exitCode = 1;
+          const judged = out.length > 0;
+          out.push(...timingSummary(envelope, process.argv[3]));
+          console.log(judged ? out.join('\n') : ['No journey results were found (the boot may have failed before any journey ran).', ...out].join('\n'));
+          if (!judged || failed) process.exitCode = 1;
+
+          // Where the wall clock went: component builds (written by run.mjs),
+          // the rig's boot phases, then each journey's own steps. Informational
+          // only; never changes the outcome.
+          function timingSummary(envelope, buildsFile) {
+            const seconds = (ms) => { const t = Math.round(ms / 1000); return t < 60 ? `${t}s` : `${Math.floor(t / 60)}m${String(t % 60).padStart(2, '0')}s`; };
+            const rows = [];
+            let builds;
+            try { builds = JSON.parse(fs.readFileSync(buildsFile, 'utf8')); } catch {}
+            if (builds) {
+              const cached = builds.components.filter((c) => c.status === 'cached').length;
+              const slowest = builds.components.filter((c) => c.status !== 'cached').sort((a, b) => b.durationMs - a.durationMs).slice(0, 4).map((c) => `${c.slug} ${seconds(c.durationMs)}`).join(', ');
+              rows.push(['Component builds', seconds(builds.wallMs), `${builds.components.length - cached} built, ${cached} from cache${slowest ? `; slowest: ${slowest}` : ''}`]);
+            }
+            for (const phase of envelope.phaseEvidence ?? []) {
+              if (phase.name !== 'run_workloads' && (phase.durationMs ?? 0) >= 1000) rows.push([`Rig: ${phase.name}`, seconds(phase.durationMs), '']);
+            }
+            const stepMs = (e) => e.diagnostics?.timing?.durationMs ?? e.result?.diagnostics?.timing?.durationMs ?? 0;
+            const groups = new Map();
+            for (const e of envelope.executions ?? []) {
+              const name = e.recipeStepMetadata?.journey ?? '(network setup and probes)';
+              const g = groups.get(name) ?? { ms: 0, steps: 0 };
+              g.ms += stepMs(e); g.steps += 1; groups.set(name, g);
+            }
+            for (const [name, g] of [...groups].sort((a, b) => b[1].ms - a[1].ms)) rows.push([name, seconds(g.ms), `${g.steps} steps`]);
+            if (!rows.length) return [];
+            const actions = [];
+            for (const e of envelope.executions ?? []) {
+              for (const step of e.result?.json?.steps ?? []) {
+                if (step?.kind === 'screenshot') continue;
+                const target = step.selector ?? step.url ?? (step.waitFor === 'duration' ? `sleep ${step.duration}` : step.waitFor) ?? '';
+                actions.push({ ms: step.durationMs ?? 0, label: `${e.recipeStepMetadata?.journey ?? 'setup'}: ${step.kind} ${String(target).slice(0, 80)}` });
+              }
+            }
+            const top = actions.sort((a, b) => b.ms - a.ms).slice(0, 8);
+            return [
+              '## Timing', '',
+              '| Phase | Time | Notes |', '| --- | --- | --- |',
+              ...rows.map((r) => `| ${r.join(' | ')} |`),
+              '',
+              ...(top.length ? ['Slowest browser actions:', '', ...top.map((a) => `- ${seconds(a.ms)} ${a.label.replace(/\|/g, '\\|')}`), ''] : []),
+            ];
+          }
           NODE
 
       - name: Upload journey evidence
@@ -172,6 +236,7 @@ jobs:
           name: network-journeys
           path: |
             ${{ runner.temp }}/journeys/result.json
+            ${{ runner.temp }}/journeys/artifacts/component-builds.json
             ${{ runner.temp }}/journeys/artifacts/runtime-*/files/browser/
             rigs/extrachill-network/evidence/demo/
           if-no-files-found: warn
