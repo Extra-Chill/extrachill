@@ -1217,6 +1217,7 @@ p.site-title {
 }
 
 .search-icon {
+    color: var(--header-text-color);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1227,6 +1228,7 @@ p.site-title {
 }
 
 .search-icon svg {
+    fill: currentColor;
     height: 1.25em;
     width: 1.25em;
     transition: transform 0.3s ease, fill 0.3s ease;

@@ -20,6 +20,7 @@
     "test": [
       "php tests/comments-section-hook.php",
       "php tests/comments-template-filters.php",
+      "php tests/header-search-icon-color.php",
       "php tests/mini-dropdown-styles.php",
       "php tests/related-posts-renderer.php",
       "php tests/share-urls.php",
