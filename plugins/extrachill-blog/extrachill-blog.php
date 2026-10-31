@@ -11,7 +11,7 @@
  * Text Domain: extrachill-blog
  * Requires at least: 5.0
  * Tested up to: 6.4
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  * Network: false
  *
  * @package ExtraChillBlog

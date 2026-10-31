@@ -12,7 +12,7 @@
  * Text Domain: extrachill-studio
  * Requires at least: 6.9
  * Tested up to: 6.9
- * Requires PHP: 7.4
+ * Requires PHP: 8.3
  * Network: false
  *
  * @package ExtraChillStudio
