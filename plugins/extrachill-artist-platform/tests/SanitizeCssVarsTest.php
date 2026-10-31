@@ -4,6 +4,44 @@ require_once __DIR__ . '/support/base-test-case.php';
 
 final class SanitizeCssVarsTest extends EC_Artist_Platform_TestCase {
 	/**
+	 * Whether the standalone Link Pages runtime owns CSS var sanitization.
+	 */
+	private static function linkPagesOwnsSanitization(): bool {
+		return function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' )
+			&& extrachill_artist_platform_uses_external_link_pages_runtime()
+			&& function_exists( 'ec_sanitize_link_page_css_vars' );
+	}
+
+	/**
+	 * The lenient cases below cover Artist Platform's fallback sanitizer, which
+	 * only runs without the Link Pages runtime. With it loaded, the wrapper
+	 * delegates to the strict Link Pages validator (covered further down).
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+		if ( self::linkPagesOwnsSanitization() && 0 !== strpos( $this->getName(), 'test_link_pages_runtime_' ) ) {
+			$this->markTestSkipped( 'The standalone Link Pages runtime owns CSS var sanitization.' );
+		}
+		if ( ! self::linkPagesOwnsSanitization() && 0 === strpos( $this->getName(), 'test_link_pages_runtime_' ) ) {
+			$this->markTestSkipped( 'Requires the standalone Link Pages runtime.' );
+		}
+	}
+
+	public function test_link_pages_runtime_owns_sanitization_and_rejects_invalid_input(): void {
+		$valid = array(
+			'--link-page-text-color' => '#123456',
+			'--link-page-accent'     => '#ff5733',
+		);
+		$this->assertSame( ec_sanitize_link_page_css_vars( $valid ), extrachill_artist_platform_sanitize_css_vars( $valid ) );
+		$this->assertSame( '#123456', extrachill_artist_platform_sanitize_css_vars( $valid )['--link-page-text-color'] );
+
+		$this->assertWPError( extrachill_artist_platform_sanitize_css_vars( null ) );
+		$this->assertWPError( extrachill_artist_platform_sanitize_css_vars( array( '--link-page-text-color' => null ) ) );
+		$this->assertWPError( extrachill_artist_platform_sanitize_css_vars( array( '--link-page-text-color' => 'not-a-color' ) ) );
+		$this->assertWPError( extrachill_artist_platform_sanitize_css_vars( array( '--evil-injected-css' => '#123456' ) ) );
+	}
+
+	/**
 	 * Runs a callback capturing PHP deprecations/notices/warnings and asserts none fire.
 	 *
 	 * @param callable $callback Callback.

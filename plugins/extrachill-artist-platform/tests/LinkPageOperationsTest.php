@@ -89,6 +89,10 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 				) )
 			);
 
+			// Saving allocates under a MySQL GET_LOCK advisory lock; the read
+			// contract above is portable, the save half needs MySQL.
+			$this->ec_require_mysql_advisory_locks();
+
 			$result = extrachill_artist_platform_ability_save_link_page_links(
 				array(
 					'artist_id' => $this->profile_id,
@@ -96,6 +100,7 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 				)
 			);
 
+			$this->assertNotWPError( $result );
 			$this->assertSame( $this->profile_id, (int) $result['artist_id'] );
 			$this->assertSame( $this->link_page_id, (int) $result['link_page_id'] );
 			$this->assertSame( array(), $result['links'] );

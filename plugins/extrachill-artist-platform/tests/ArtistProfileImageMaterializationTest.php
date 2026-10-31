@@ -4,6 +4,38 @@ require_once __DIR__ . '/support/base-test-case.php';
 require_once dirname( __DIR__ ) . '/inc/core/actions/profile-image.php';
 
 final class ArtistProfileImageMaterializationTest extends EC_Artist_Platform_TestCase {
+	/** @var int[] Sites created by this test. */
+	private $created_blogs = array();
+
+	/**
+	 * Create a site whose tables are dropped after the test.
+	 *
+	 * Site tables are created with DDL, which the per-test transaction does not
+	 * roll back. Without dropping them, a later test that is handed the same
+	 * blog ID inherits the previous test's attachments (including materialized
+	 * copies tagged with _ec_source_attachment) and the copy lookup finds them.
+	 */
+	private function isolated_blog(): int {
+		$blog_id               = (int) self::factory()->blog->create();
+		$this->created_blogs[] = $blog_id;
+		return $blog_id;
+	}
+
+	protected function tearDown(): void {
+		global $wpdb;
+		foreach ( $this->created_blogs as $blog_id ) {
+			// Drop the tables directly: on some runtimes the site row is already
+			// gone here (wp_delete_site() reports site_not_exist) while its tables
+			// remain, so the blog ID is handed out again with stale rows.
+			$prefix = $wpdb->get_blog_prefix( $blog_id );
+			foreach ( $wpdb->tables( 'blog', false ) as $table ) {
+				$wpdb->query( "DROP TABLE IF EXISTS `{$prefix}{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery -- test teardown of fixture site tables.
+			}
+		}
+		$this->created_blogs = array();
+		parent::tearDown();
+	}
+
 	/** Real image attachment with a stable local file. */
 	private function image( $contents = null ) {
 		$temp = wp_tempnam( 'avatar.png' );
@@ -19,7 +51,7 @@ final class ArtistProfileImageMaterializationTest extends EC_Artist_Platform_Tes
 		$source_blog = get_current_blog_id();
 		$source = $this->image();
 		$file = get_attached_file( $source );
-		$destination = self::factory()->blog->create();
+		$destination = $this->isolated_blog();
 		switch_to_blog( $destination );
 		try {
 			$local = ec_artist_materialize_profile_image( $source_blog, $source );
@@ -42,7 +74,7 @@ final class ArtistProfileImageMaterializationTest extends EC_Artist_Platform_Tes
 		}
 		$this->ec_require_mysql_advisory_locks();
 		$artist = $this->create_artist_profile( 'Cross blog avatar' );
-		$storage = self::factory()->blog->create();
+		$storage = $this->isolated_blog();
 		$this->ec_inject_filter( 'ec_link_page_storage_blog_id', static function () use ( $storage ) { return $storage; } );
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		grant_super_admin( $user );
@@ -94,7 +126,7 @@ final class ArtistProfileImageMaterializationTest extends EC_Artist_Platform_Tes
 	public function test_collision_is_not_reused_and_migration_copy_is_adopted() {
 		$source_blog = get_current_blog_id();
 		$source = $this->image();
-		$destination = self::factory()->blog->create();
+		$destination = $this->isolated_blog();
 		switch_to_blog( $destination );
 		try {
 			$collision = $this->image( 'unrelated image bytes' );

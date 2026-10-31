@@ -713,6 +713,8 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_fallback_cross_blog_mutation_uses_artist_site_guard_and_restores_context(): void {
+		// The cross-blog save allocates its ID under a MySQL GET_LOCK advisory lock.
+		$this->ec_require_mysql_advisory_locks();
 		$page = $this->createLinkPage( 'test-artist' );
 		switch_to_blog( $this->artistBlog() );
 		update_post_meta( $page, '_associated_artist_profile_id', $this->profile_id );

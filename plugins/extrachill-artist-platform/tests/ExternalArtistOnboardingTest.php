@@ -305,11 +305,11 @@ final class ExternalArtistOnboardingTest extends EC_Artist_Platform_TestCase {
 	}
 
 	public function test_explicit_identity_must_match_submitted_name(): void {
-		$this->create_artist_profile( 'Other Existing', array( 'post_name' => 'other-existing' ) );
+		$existing_id = (int) $this->create_artist_profile( 'Other Existing', array( 'post_name' => 'other-existing' ) );
 
 		$result = extrachill_artist_platform_ability_onboard_external_artist( $this->input( array(
 			'artist_name' => 'Different Name',
-			'artist_id'   => $this->profile_id,
+			'artist_id'   => $existing_id,
 		) ) );
 
 		$this->assertSame( 0, count( $this->profilesByTitle( 'Different Name' ) ), 'An explicit identity that does not match the submitted name must not create a profile.' );
