@@ -36,6 +36,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/RecurringScheduleGate.php';
+
 class VenueCalendarFeedSync {
 
 	public const SCHEDULE_HOOK = 'extrachill_events_sync_venue_calendar_feeds';
@@ -76,16 +78,18 @@ class VenueCalendarFeedSync {
 			return;
 		}
 
-		if ( as_has_scheduled_action( self::SCHEDULE_HOOK, array(), self::GROUP ) ) {
-			return;
-		}
-
-		as_schedule_recurring_action(
-			time() + self::INTERVAL_SECONDS,
-			self::INTERVAL_SECONDS,
+		RecurringScheduleGate::ensure(
 			self::SCHEDULE_HOOK,
-			array(),
-			self::GROUP
+			self::GROUP,
+			static function (): int {
+				return (int) as_schedule_recurring_action(
+					time() + self::INTERVAL_SECONDS,
+					self::INTERVAL_SECONDS,
+					self::SCHEDULE_HOOK,
+					array(),
+					self::GROUP
+				);
+			}
 		);
 	}
 

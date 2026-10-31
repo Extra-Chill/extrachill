@@ -25,6 +25,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/RecurringScheduleGate.php';
+
 /** Matches covered artists to Ticketmaster and maintains the import flow. */
 class ArtistCoverageSync {
 
@@ -74,11 +76,15 @@ class ArtistCoverageSync {
 		if ( function_exists( 'ec_get_blog_id' ) && (int) ec_get_blog_id( 'events' ) !== get_current_blog_id() ) {
 			return;
 		}
-		if ( '' === self::config()['flow_step_id'] || as_has_scheduled_action( self::SCHEDULE_HOOK, array(), self::GROUP ) ) {
+		if ( '' === self::config()['flow_step_id'] ) {
 			return;
 		}
 
-		as_schedule_recurring_action( time() + HOUR_IN_SECONDS, DAY_IN_SECONDS, self::SCHEDULE_HOOK, array(), self::GROUP );
+		RecurringScheduleGate::ensure(
+			self::SCHEDULE_HOOK,
+			self::GROUP,
+			static fn() => as_schedule_recurring_action( time() + HOUR_IN_SECONDS, DAY_IN_SECONDS, self::SCHEDULE_HOOK, array(), self::GROUP )
+		);
 	}
 
 	/** Scheduled entry point: refresh a batch and write the flow as the system. */
