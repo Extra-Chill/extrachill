@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.27.7] - 2026-10-31
+
+### Changed
+- hoist per-plugin workflows to the repo root
+
 ## [1.27.6] - 2026-10-22
 
 ### Changed
