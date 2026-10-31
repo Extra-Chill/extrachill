@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php
 $guest_list_full  = ! empty( $guest_list['full'] );
 $guest_list_spots = '';
-if ( isset( $guest_list['spots_left'] ) && null !== $guest_list['spots_left'] && ! $guest_list_full ) {
+if ( isset( $guest_list['spots_left'] ) && ! $guest_list_full ) {
 	$guest_list_spots = sprintf(
 		/* translators: 1: spots left, 2: total guest list spots. */
 		_n( '%1$d of %2$d spot left.', '%1$d of %2$d spots left.', (int) $guest_list['spots_left'], 'extrachill-events' ),

@@ -36,16 +36,16 @@ class EventPerkAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'event'   => array(
+						'event'          => array(
 							'type'        => 'string',
 							'description' => __( 'Event post slug or numeric ID.', 'extrachill-events' ),
 						),
-						'enabled' => array(
+						'enabled'        => array(
 							'type'        => 'boolean',
 							'description' => __( 'Whether the perk is offered.', 'extrachill-events' ),
 							'default'     => true,
 						),
-						'text'    => array(
+						'text'           => array(
 							'type'        => 'string',
 							'maxLength'   => EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN,
 							'description' => __( 'Attendee-facing perk description, e.g. "First beer on Extra Chill."', 'extrachill-events' ),
@@ -77,8 +77,8 @@ class EventPerkAbilities {
 						'event'   => array(
 							'type'       => 'object',
 							'properties' => array(
-								'post_id' => array( 'type' => 'integer' ),
-								'title'   => array( 'type' => 'string' ),
+								'post_id'           => array( 'type' => 'integer' ),
+								'title'             => array( 'type' => 'string' ),
 								'enabled'           => array( 'type' => 'boolean' ),
 								'text'              => array( 'type' => 'string' ),
 								'password_required' => array( 'type' => 'boolean' ),
@@ -229,8 +229,8 @@ class EventPerkAbilities {
 		return array(
 			'success' => true,
 			'event'   => array(
-				'post_id' => $post->ID,
-				'title'   => $post->post_title,
+				'post_id'           => $post->ID,
+				'title'             => $post->post_title,
 				'enabled'           => $enabled,
 				'text'              => $text,
 				'password_required' => extrachill_events_perk_password_required( $post->ID ),
