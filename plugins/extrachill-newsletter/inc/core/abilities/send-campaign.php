@@ -123,7 +123,7 @@ function extrachill_newsletter_register_send_campaign_ability() {
 /**
  * Preview, send, or schedule a newsletter post to Sendy lists.
  *
- * @param array $input See the ability input schema.
+ * @param mixed $input See the ability input schema.
  * @return array|WP_Error
  */
 function extrachill_newsletter_ability_send_campaign( $input ) {
@@ -299,7 +299,7 @@ function extrachill_newsletter_send_resolve_lists( array $input ) {
 	$requested = extrachill_newsletter_send_id_list( $input, 'list_ids' );
 	$excluded  = extrachill_newsletter_send_id_list( $input, 'exclude_list_ids' );
 
-	if ( $all_lists === ! empty( $requested ) ) {
+	if ( ! empty( $requested ) === $all_lists ) {
 		return new WP_Error( 'invalid_targets', __( 'Pass either list_ids or all_lists, not both and not neither.', 'extrachill-newsletter' ) );
 	}
 
@@ -375,7 +375,12 @@ function extrachill_newsletter_send_resolve_lists( array $input ) {
 function extrachill_newsletter_send_id_list( array $input, $key ) {
 	$values = isset( $input[ $key ] ) && is_array( $input[ $key ] ) ? $input[ $key ] : array();
 	$values = array_map( 'trim', array_map( 'strval', $values ) );
-	return array_values( array_unique( array_filter( $values, 'strlen' ) ) );
+	return array_values( array_unique( array_filter(
+		$values,
+		static function ( $value ) {
+			return '' !== $value;
+		}
+	) ) );
 }
 
 /**
