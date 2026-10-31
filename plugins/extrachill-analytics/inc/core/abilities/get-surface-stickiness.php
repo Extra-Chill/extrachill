@@ -101,8 +101,7 @@ function extrachill_analytics_register_surface_stickiness_ability() {
  * it lives on (for first-party retention scoping) and, where its value is the
  * content its members produce, the "stickiness post type" whose windowed
  * COUNT(*) is its activity signal. Blog IDs resolve from the canonical
- * extrachill-multisite map when available (single source of truth), with
- * hardcoded production fallbacks so the read degrades rather than fatals.
+ * extrachill-network map (single source of truth).
  *
  * The events calendar's activity is inventory we publish, not member UGC, so
  * its activity counter is still useful context but is labelled as such.
@@ -110,30 +109,28 @@ function extrachill_analytics_register_surface_stickiness_ability() {
  * @return array<string,array{label:string,blog_id:int,host:string,activity_post_type:string,activity_unit:string}>
  */
 function extrachill_analytics_stickiness_surface_map() {
-	$blog = function ( $key, $fallback ) {
-		return function_exists( 'ec_get_blog_id' ) && null !== ec_get_blog_id( $key )
-			? (int) ec_get_blog_id( $key )
-			: (int) $fallback;
+	$blog = function ( $key ) {
+		return (int) ec_get_blog_id( $key );
 	};
 
 	return array(
 		'community' => array(
 			'label'              => 'Community',
-			'blog_id'            => $blog( 'community', 2 ),
+			'blog_id'            => $blog( 'community' ),
 			'host'               => 'community.extrachill.com',
 			'activity_post_type' => 'topic',
 			'activity_unit'      => 'topics',
 		),
 		'artist'    => array(
 			'label'              => 'Artist Platform',
-			'blog_id'            => $blog( 'artist', 4 ),
+			'blog_id'            => $blog( 'artist' ),
 			'host'               => 'artist.extrachill.com',
 			'activity_post_type' => 'artist_profile',
 			'activity_unit'      => 'profiles',
 		),
 		'events'    => array(
 			'label'              => 'Events Calendar',
-			'blog_id'            => $blog( 'events', 7 ),
+			'blog_id'            => $blog( 'events' ),
 			'host'               => 'events.extrachill.com',
 			'activity_post_type' => 'data_machine_events',
 			'activity_unit'      => 'events',

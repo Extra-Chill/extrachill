@@ -106,31 +106,27 @@ function extrachill_analytics_register_surface_growth_ability() {
  *
  * Each surface declares the blog it lives on, the published post type whose
  * COUNT(*) over post_date is its supply signal, and the GA host whose organic
- * sessions are its demand signal. Blog IDs / host names resolve from the
- * canonical extrachill-multisite map when available (single source of truth),
- * with hardcoded production fallbacks so the read degrades rather than fatals
- * on a network where the helper hasn't loaded.
+ * sessions are its demand signal. Blog IDs resolve from the
+ * canonical extrachill-network map (single source of truth).
  *
  * @return array<string,array{label:string,blog_id:int,post_type:string,host:string,supply_unit:string}>
  */
 function extrachill_analytics_surface_growth_map() {
-	$blog = function ( $key, $fallback ) {
-		return function_exists( 'ec_get_blog_id' ) && null !== ec_get_blog_id( $key )
-			? (int) ec_get_blog_id( $key )
-			: (int) $fallback;
+	$blog = function ( $key ) {
+		return (int) ec_get_blog_id( $key );
 	};
 
 	return array(
 		'events'    => array(
 			'label'       => 'Events Calendar',
-			'blog_id'     => $blog( 'events', 7 ),
+			'blog_id'     => $blog( 'events' ),
 			'post_type'   => 'data_machine_events',
 			'host'        => 'events.extrachill.com',
 			'supply_unit' => 'events',
 		),
 		'wire'      => array(
 			'label'       => 'Festival Wire',
-			'blog_id'     => $blog( 'wire', 11 ),
+			'blog_id'     => $blog( 'wire' ),
 			'post_type'   => 'festival_wire',
 			'host'        => 'wire.extrachill.com',
 			'supply_unit' => 'posts',
@@ -139,21 +135,21 @@ function extrachill_analytics_surface_growth_map() {
 			// UGC growth is the community's supply: new topics per week is the
 			// closest deterministic proxy for "the forum is producing more".
 			'label'       => 'Community',
-			'blog_id'     => $blog( 'community', 2 ),
+			'blog_id'     => $blog( 'community' ),
 			'post_type'   => 'topic',
 			'host'        => 'community.extrachill.com',
 			'supply_unit' => 'topics',
 		),
 		'artist'    => array(
 			'label'       => 'Artist Platform',
-			'blog_id'     => $blog( 'artist', 4 ),
+			'blog_id'     => $blog( 'artist' ),
 			'post_type'   => 'artist_profile',
 			'host'        => 'artist.extrachill.com',
 			'supply_unit' => 'profiles',
 		),
 		'blog'      => array(
 			'label'       => 'Main Blog',
-			'blog_id'     => $blog( 'main', 1 ),
+			'blog_id'     => $blog( 'main' ),
 			'post_type'   => 'post',
 			'host'        => 'extrachill.com',
 			'supply_unit' => 'posts',

@@ -152,25 +152,21 @@ function extrachill_analytics_register_conversion_map_ability() {
  * Resolve the blog_id for an editorial-article entry surface and the platform
  * surfaces whose reach we measure.
  *
- * Resolves from the canonical extrachill-multisite map when available (single
- * source of truth) with hardcoded production fallbacks so the read degrades
- * rather than fatals if the helper hasn't loaded.
+ * Resolves from the canonical extrachill-network map (single source of truth).
  *
  * @return array{entry_blog_id:int,platform:array<string,int>}
  */
 function extrachill_analytics_conversion_surface_map() {
-	$blog = function ( $key, $fallback ) {
-		return function_exists( 'ec_get_blog_id' ) && null !== ec_get_blog_id( $key )
-			? (int) ec_get_blog_id( $key )
-			: (int) $fallback;
+	$blog = function ( $key ) {
+		return (int) ec_get_blog_id( $key );
 	};
 
 	return array(
-		'entry_blog_id' => $blog( 'main', 1 ),
+		'entry_blog_id' => $blog( 'main' ),
 		'platform'      => array(
-			'events'    => $blog( 'events', 7 ),
-			'community' => $blog( 'community', 2 ),
-			'artist'    => $blog( 'artist', 4 ),
+			'events'    => $blog( 'events' ),
+			'community' => $blog( 'community' ),
+			'artist'    => $blog( 'artist' ),
 		),
 	);
 }
