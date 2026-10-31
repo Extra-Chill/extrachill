@@ -21,6 +21,14 @@ on:
         description: 'Preview the releases without making changes'
         type: boolean
         default: false
+      component:
+        description: 'Release only this component ID (e.g. extrachill-api-client). Empty releases every changed component.'
+        type: string
+        default: ''
+      bump:
+        description: 'Explicit bump for that component: major, minor, patch or X.Y.Z. Needed when breaking commits are held back with major-requires-flag.'
+        type: string
+        default: ''
 
 concurrency:
   group: release
@@ -30,6 +38,11 @@ jobs:
   release:
     uses: Extra-Chill/homeboy-action/.github/workflows/release.yml@v2
     with:
-      components: all
+      # A manual run with a component releases just that component, with
+      # an explicit bump (--force-lower-bump lets a 0.x breaking change ship
+      # as a minor). Every other run releases all changed components.
+      components: ${{ inputs.component == '' && 'all' || '' }}
+      component: ${{ inputs.component }}
+      args: ${{ inputs.component && inputs.bump && format('--bump {0} --force-lower-bump', inputs.bump) || '' }}
       dry-run: ${{ inputs.dry-run || false }}
     secrets: inherit
