@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.PHP.DiscouragedPHPFunctions, WordPress.Security.EscapeOutput.ExceptionNotEscaped, Universal.NamingConventions.NoReservedKeywordParameterNames -- WP-CLI eval-file proof fixture, not plugin runtime.
 /** Phased fixture helpers for the disposable MariaDB multisite CLI proof. */
 
 if ( ! is_multisite() ) {
@@ -69,11 +70,14 @@ function parity_source_snapshot() {
 	$ids   = array( 100, 101, 200, 201, 300, 301 );
 	$posts = array();
 	foreach ( $ids as $id ) {
-		$post = get_post( $id );
+		$post         = get_post( $id );
 		$posts[ $id ] = $post ? ec_link_page_migration_post_fields( $post ) : null;
 	}
 	$meta = $wpdb->get_results( "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id IN (100,101,200,201,300,301) ORDER BY meta_id", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Exact disposable snapshot.
-	return array( 'posts' => $posts, 'meta' => $meta );
+	return array(
+		'posts' => $posts,
+		'meta'  => $meta,
+	);
 }
 
 function parity_assert_source_unchanged() {
@@ -83,10 +87,18 @@ function parity_assert_source_unchanged() {
 function parity_setup_sites() {
 	parity_restore_root();
 	$domains = array(
-		2 => 'community.fixture.test', 3 => 'shop.fixture.test', 4 => 'artist.fixture.test',
-		5 => 'fixture-five.test', 6 => 'fixture-six.test', 7 => 'events.fixture.test',
-		8 => 'fixture-eight.test', 9 => 'newsletter.fixture.test', 10 => 'docs.fixture.test',
-		11 => 'wire.fixture.test', 12 => 'studio.fixture.test', 13 => 'links.fixture.test',
+		2  => 'community.fixture.test',
+		3  => 'shop.fixture.test',
+		4  => 'artist.fixture.test',
+		5  => 'fixture-five.test',
+		6  => 'fixture-six.test',
+		7  => 'events.fixture.test',
+		8  => 'fixture-eight.test',
+		9  => 'newsletter.fixture.test',
+		10 => 'docs.fixture.test',
+		11 => 'wire.fixture.test',
+		12 => 'studio.fixture.test',
+		13 => 'links.fixture.test',
 	);
 	foreach ( $domains as $id => $domain ) {
 		parity_site( $id, $domain );
@@ -114,21 +126,56 @@ function parity_seed() {
 		add_user_to_blog( 4, $user, 'author' );
 		$owner_users[] = (int) $user;
 	}
-	foreach ( array( 100 => array( 'Proof Owner One', 'proof-owner-one', $owner_users[0] ), 101 => array( 'Proof Owner Two', 'proof-owner-two', $owner_users[1] ) ) as $id => $owner ) {
-		$inserted = wp_insert_post( array( 'import_id' => $id, 'post_author' => $owner[2], 'post_type' => 'artist_profile', 'post_status' => 'publish', 'post_title' => $owner[0], 'post_name' => $owner[1] ), true );
+	foreach ( array(
+		100 => array( 'Proof Owner One', 'proof-owner-one', $owner_users[0] ),
+		101 => array( 'Proof Owner Two', 'proof-owner-two', $owner_users[1] ),
+	) as $id => $owner ) {
+		$inserted = wp_insert_post( array(
+			'import_id'   => $id,
+			'post_author' => $owner[2],
+			'post_type'   => 'artist_profile',
+			'post_status' => 'publish',
+			'post_title'  => $owner[0],
+			'post_name'   => $owner[1],
+		), true );
 		parity_assert( $id === $inserted, 'Owner profile import ID mismatch.' );
 	}
+	global $wpdb;
 	$modified = '2025-02-03 04:05:06';
-	foreach ( array( 200 => array( 'proof-one', 100, $owner_users[0] ), 201 => array( 'proof-two', 101, $owner_users[1] ) ) as $id => $page ) {
+	foreach ( array(
+		200 => array( 'proof-one', 100, $owner_users[0] ),
+		201 => array( 'proof-two', 101, $owner_users[1] ),
+	) as $id => $page ) {
 		$inserted = wp_insert_post(
 			array(
-				'import_id' => $id, 'post_author' => $page[2], 'post_type' => EC_LINK_PAGE_POST_TYPE,
-				'post_status' => 'publish', 'post_title' => $page[0], 'post_name' => $page[0],
-				'post_modified' => $modified, 'post_modified_gmt' => $modified,
+				'import_id'         => $id,
+				'post_author'       => $page[2],
+				'post_type'         => EC_LINK_PAGE_POST_TYPE,
+				'post_status'       => 'publish',
+				'post_title'        => $page[0],
+				'post_name'         => $page[0],
+				'post_modified'     => $modified,
+				'post_modified_gmt' => $modified,
 			),
 			true
 		);
 		parity_assert( $id === $inserted, 'Link Page import ID mismatch.' );
+		// Core ignores supplied modified timestamps on insert (using post_date)
+		// and rewrites them on update. Seed the historical values directly so
+		// assert-applied tests migration fidelity, not unsupported insert input.
+		$updated = $wpdb->update(
+			$wpdb->posts,
+			array(
+				'post_modified'     => $modified,
+				'post_modified_gmt' => $modified,
+			),
+			array( 'ID' => $id ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+		parity_assert( false !== $updated, 'Link Page timestamp seed failed.' );
+		clean_post_cache( $id );
+		parity_assert( get_post( $id )->post_modified === $modified && get_post( $id )->post_modified_gmt === $modified, 'Source Link Page timestamp seed mismatch.' );
 		add_post_meta( $id, EC_LINK_PAGE_OWNER_META_KEY, 'post:' . get_current_blog_id() . ':artist_profile:' . $page[1] );
 		add_post_meta( $id, '_associated_artist_profile_id', $page[1] );
 		add_post_meta( $page[1], '_extrch_link_page_id', $id );
@@ -137,14 +184,39 @@ function parity_seed() {
 	parity_attachment( 301, 100, 'external.jpg', $owner_users[0] );
 	update_post_meta( 200, '_link_page_background_image_id', 300 );
 	update_post_meta( 100, '_thumbnail_id', 301 );
-	global $wpdb;
-	$wpdb->insert( $wpdb->postmeta, array( 'post_id' => 200, 'meta_key' => '_raw_duplicate', 'meta_value' => 'slashes\\and"quotes' ) );
-	$wpdb->insert( $wpdb->postmeta, array( 'post_id' => 200, 'meta_key' => '_raw_duplicate', 'meta_value' => 'a:1:{s:3:"raw";s:4:"test";}' ) );
+	$wpdb->insert( $wpdb->postmeta, array(
+		'post_id'    => 200,
+		'meta_key'   => '_raw_duplicate',
+		'meta_value' => 'slashes\\and"quotes',
+	) );
+	$wpdb->insert( $wpdb->postmeta, array(
+		'post_id'    => 200,
+		'meta_key'   => '_raw_duplicate',
+		'meta_value' => 'a:1:{s:3:"raw";s:4:"test";}',
+	) );
 	extrachill_analytics_link_page_create_table();
-	$wpdb->insert( extrachill_analytics_link_page_views_table(), array( 'view_id' => 700, 'link_page_id' => 200, 'stat_date' => '2025-02-03', 'view_count' => 11 ) );
-	$wpdb->insert( extrachill_analytics_link_page_clicks_table(), array( 'click_id' => 800, 'link_page_id' => 200, 'stat_date' => '2025-02-03', 'link_url' => 'https://example.test/song', 'link_text' => 'Song', 'click_count' => 7 ) );
+	$wpdb->insert( extrachill_analytics_link_page_views_table(), array(
+		'view_id'      => 700,
+		'link_page_id' => 200,
+		'stat_date'    => '2025-02-03',
+		'view_count'   => 11,
+	) );
+	$wpdb->insert( extrachill_analytics_link_page_clicks_table(), array(
+		'click_id'     => 800,
+		'link_page_id' => 200,
+		'stat_date'    => '2025-02-03',
+		'link_url'     => 'https://example.test/song',
+		'link_text'    => 'Song',
+		'click_count'  => 7,
+	) );
 	extrachill_analytics_events_create_table();
-	$wpdb->insert( extrachill_analytics_events_table(), array( 'event_type' => 'page_view', 'event_data' => wp_json_encode( array( 'post_id' => 200 ) ), 'source_url' => 'https://artist.fixture.test/proof-one', 'blog_id' => 4, 'created_at' => current_time( 'mysql', true ) ) );
+	$wpdb->insert( extrachill_analytics_events_table(), array(
+		'event_type' => 'page_view',
+		'event_data' => wp_json_encode( array( 'post_id' => 200 ) ),
+		'source_url' => 'https://artist.fixture.test/proof-one',
+		'blog_id'    => 4,
+		'created_at' => current_time( 'mysql', true ),
+	) );
 	switch_to_blog( 13 );
 	ec_register_link_page_post_type();
 	extrachill_analytics_link_page_create_table();
@@ -166,10 +238,13 @@ function parity_assert_applied() {
 		$source_files = array_merge( $source_files, $files );
 	}
 	switch_to_blog( 13 );
-	foreach ( array( 200 => array( 'proof-one', 100 ), 201 => array( 'proof-two', 101 ) ) as $id => $expected ) {
+	foreach ( array(
+		200 => array( 'proof-one', 100 ),
+		201 => array( 'proof-two', 101 ),
+	) as $id => $expected ) {
 		$post = get_post( $id );
-		parity_assert( $post && 'publish' === $post->post_status && $expected[0] === $post->post_name && '2025-02-03 04:05:06' === $post->post_modified, 'Destination Link Page fields mismatch.' );
-		parity_assert( 'post:4:artist_profile:' . $expected[1] === get_post_meta( $id, EC_LINK_PAGE_OWNER_META_KEY, true ), 'Canonical owner binding mismatch.' );
+		parity_assert( $post && 'publish' === $post->post_status && $expected[0] === $post->post_name && '2025-02-03 04:05:06' === $post->post_modified && '2025-02-03 04:05:06' === $post->post_modified_gmt, 'Destination Link Page fields mismatch.' );
+		parity_assert( get_post_meta( $id, EC_LINK_PAGE_OWNER_META_KEY, true ) === 'post:4:artist_profile:' . $expected[1], 'Canonical owner binding mismatch.' );
 	}
 	parity_assert( 200 === (int) get_post( 300 )->post_parent && 0 === (int) get_post( 301 )->post_parent, 'Attachment parent map mismatch.' );
 	$destination_uploads = wp_upload_dir();
@@ -213,9 +288,20 @@ function parity_collision( $kind, $remove ) {
 		delete_site_option( $key );
 	} else {
 		$data = 'id' === $kind
-			? array( 'import_id' => 200, 'post_type' => 'post', 'post_status' => 'publish', 'post_title' => 'ID collision' )
-			: array( 'import_id' => 900, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Slug collision', 'post_name' => 'proof-one' );
-		$id = wp_insert_post( $data, true );
+			? array(
+				'import_id'   => 200,
+				'post_type'   => 'post',
+				'post_status' => 'publish',
+				'post_title'  => 'ID collision',
+			)
+			: array(
+				'import_id'   => 900,
+				'post_type'   => ec_link_page_post_type( 13 ),
+				'post_status' => 'publish',
+				'post_title'  => 'Slug collision',
+				'post_name'   => 'proof-one',
+			);
+		$id   = wp_insert_post( $data, true );
 		parity_assert( ! is_wp_error( $id ), 'Collision fixture failed.' );
 		update_site_option( $key, (int) $id );
 	}
@@ -248,7 +334,10 @@ function parity_interrupt( $journal_id ) {
 			continue;
 		}
 		switch_to_blog( 13 );
-		wp_update_post( array( 'ID' => 200, 'post_name' => $entry['temporary_slug'] ) );
+		wp_update_post( array(
+			'ID'        => 200,
+			'post_name' => $entry['temporary_slug'],
+		) );
 		$entry['actual_id'] = 0;
 		$entry['phase']     = 'intent';
 		unset( $entry['phase_post'] );
@@ -259,35 +348,70 @@ function parity_interrupt( $journal_id ) {
 	$header           = get_network_option( null, ec_link_page_migration_journal_key( $journal_id ) );
 	$header['status'] = 'failed';
 	update_network_option( null, ec_link_page_migration_journal_key( $journal_id ), $header );
-	$index                           = get_network_option( null, EC_LINK_PAGE_MIGRATION_JOURNAL_INDEX_OPTION );
+	$index                          = get_network_option( null, EC_LINK_PAGE_MIGRATION_JOURNAL_INDEX_OPTION );
 	$index[ $journal_id ]['status'] = 'failed';
 	update_network_option( null, EC_LINK_PAGE_MIGRATION_JOURNAL_INDEX_OPTION, $index );
 }
 
 function parity_mutate_destination() {
 	switch_to_blog( 13 );
-	wp_update_post( array( 'ID' => 200, 'post_title' => 'User changed title' ) );
+	wp_update_post( array(
+		'ID'         => 200,
+		'post_title' => 'User changed title',
+	) );
 	restore_current_blog();
 }
 
 $phase = $args[0] ?? '';
 switch ( $phase ) {
-	case 'setup-sites': parity_setup_sites(); break;
-	case 'seed': parity_seed(); break;
-	case 'assert-applied': parity_assert_applied(); break;
-	case 'assert-rolled-back': parity_assert_rolled_back(); break;
-	case 'add-id-collision': parity_collision( 'id', false ); break;
-	case 'remove-id-collision': parity_collision( 'id', true ); break;
-	case 'add-slug-collision': parity_collision( 'slug', false ); break;
-	case 'remove-slug-collision': parity_collision( 'slug', true ); break;
-	case 'add-drift': add_post_meta( 200, '_ec_parity_drift', 'changed' ); break;
-	case 'remove-drift': delete_post_meta( 200, '_ec_parity_drift' ); break;
-	case 'remove-file': parity_missing_file( false ); break;
-	case 'restore-file': parity_missing_file( true ); break;
-	case 'interrupt': parity_interrupt( $args[1] ?? '' ); break;
-	case 'mutate-destination': parity_mutate_destination(); break;
-	default: throw new RuntimeException( 'Unknown parity fixture phase: ' . $phase );
+	case 'setup-sites':
+		parity_setup_sites();
+		break;
+	case 'seed':
+		parity_seed();
+		break;
+	case 'assert-applied':
+		parity_assert_applied();
+		break;
+	case 'assert-rolled-back':
+		parity_assert_rolled_back();
+		break;
+	case 'add-id-collision':
+		parity_collision( 'id', false );
+		break;
+	case 'remove-id-collision':
+		parity_collision( 'id', true );
+		break;
+	case 'add-slug-collision':
+		parity_collision( 'slug', false );
+		break;
+	case 'remove-slug-collision':
+		parity_collision( 'slug', true );
+		break;
+	case 'add-drift':
+		add_post_meta( 200, '_ec_parity_drift', 'changed' );
+		break;
+	case 'remove-drift':
+		delete_post_meta( 200, '_ec_parity_drift' );
+		break;
+	case 'remove-file':
+		parity_missing_file( false );
+		break;
+	case 'restore-file':
+		parity_missing_file( true );
+		break;
+	case 'interrupt':
+		parity_interrupt( $args[1] ?? '' );
+		break;
+	case 'mutate-destination':
+		parity_mutate_destination();
+		break;
+	default:
+		throw new RuntimeException( 'Unknown parity fixture phase: ' . $phase );
 }
 
 parity_assert( array() === ( $GLOBALS['_wp_switched_stack'] ?? array() ), 'Fixture phase leaked multisite context.' );
-echo wp_json_encode( array( 'status' => 'passed', 'phase' => $phase ) );
+echo wp_json_encode( array(
+	'status' => 'passed',
+	'phase'  => $phase,
+) );
