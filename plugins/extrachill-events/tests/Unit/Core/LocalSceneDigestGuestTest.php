@@ -102,6 +102,20 @@ if ( ! function_exists( 'esc_url' ) ) {
 		return htmlspecialchars( (string) $url, ENT_QUOTES, 'UTF-8' );
 	}
 }
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'wp_print_scripts' ) ) {
+	/** Prints the test script queue the way WordPress prints enqueued handles. */
+	function wp_print_scripts() {
+		foreach ( $GLOBALS['guest_digest_test']['script_queue'] ?? array() as $handle ) {
+			echo '<script id="' . htmlspecialchars( (string) $handle, ENT_QUOTES, 'UTF-8' ) . '-js"></script>'; // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript -- Test double of wp_print_scripts().
+		}
+		$GLOBALS['guest_digest_test']['script_queue'] = array();
+	}
+}
 if ( ! function_exists( 'ec_send_email_queued' ) ) {
 	function ec_send_email_queued( array $args ) {
 		$GLOBALS['guest_digest_test']['mail'][] = $args;
@@ -178,6 +192,7 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 			'transients'    => array(),
 			'subscriptions' => array(),
 			'scenes'        => array(),
+			'script_queue'  => array(),
 		);
 		$this->resolve = new GuestDigestResolveAbility(
 			array(
@@ -198,7 +213,18 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['ec_test_ability_resolver'] );
+		unset( $GLOBALS['ec_test_ability_resolver'], $GLOBALS['ec_test_filters']['extrachill_events_standalone_page_assets'] );
+	}
+
+	/** Stand in for Extra Chill Analytics: its listener enqueues the visitor-minting tracker. */
+	private function hook_analytics_view_tracker(): void {
+		add_action(
+			'extrachill_events_standalone_page_assets',
+			static function () {
+				$GLOBALS['guest_digest_test']['script_queue'][] = 'extrachill-view-tracking';
+			},
+			20
+		);
 	}
 
 	private function confirm_params(): array {
@@ -305,5 +331,59 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['guest_digest_test']['ancestors'][1618] = array( 22, 1 );
 		$this->assertSame( 'invalid_email', extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'not-an-email' )->get_error_code() );
 		$this->assertSame( array(), $GLOBALS['guest_digest_test']['mail'] );
+	}
+
+	public function test_get_confirm_page_loads_visitor_cookie_mint_without_subscribing(): void {
+		$this->hook_analytics_view_tracker();
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		$params = $this->confirm_params();
+
+		$page = extrachill_events_guest_digest_confirm_page( $params, false );
+
+		$this->assertTrue( $page['page_assets'] );
+		$this->assertStringContainsString( '<form method="post"', $page['action_html'] );
+		$this->assertStringContainsString( 'name="signature" value="' . $params['signature'] . '"', $page['action_html'] );
+
+		$html = extrachill_events_build_local_scene_digest_unsubscribe_page( $page['title'], $page['message'], $page['action_html'], extrachill_events_standalone_page_scripts_html() );
+		$this->assertStringContainsString( '<script id="extrachill-view-tracking-js"></script></body>', $html );
+
+		// GET alone (a link scanner) never subscribes or tracks anything.
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['subscriptions'] );
+		$this->assertSame( array(), $this->track->events );
+	}
+
+	public function test_post_confirm_subscribes_and_skips_page_assets(): void {
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$page = extrachill_events_guest_digest_confirm_page( $this->confirm_params(), true );
+
+		$this->assertSame( "You're in", $page['title'] );
+		$this->assertFalse( $page['page_assets'] );
+		$this->assertArrayHasKey( '42|local_scene_digest|location|charleston', $GLOBALS['guest_digest_test']['subscriptions'] );
+		$this->assertCount( 1, $this->track->events );
+	}
+
+	public function test_invalid_confirm_link_gets_no_form_assets_or_subscription(): void {
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		$params              = $this->confirm_params();
+		$params['signature'] = str_repeat( '0', 64 );
+
+		foreach ( array( false, true ) as $is_post ) {
+			$page = extrachill_events_guest_digest_confirm_page( $params, $is_post );
+			$this->assertSame( 'Confirmation link invalid', $page['title'] );
+			$this->assertSame( '', $page['action_html'] );
+			$this->assertFalse( $page['page_assets'] );
+		}
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['subscriptions'] );
+	}
+
+	public function test_standalone_page_without_assets_prints_no_scripts(): void {
+		$this->hook_analytics_view_tracker();
+
+		$html = extrachill_events_build_local_scene_digest_unsubscribe_page( 'Unsubscribe?', 'Message', '<form></form>' );
+
+		$this->assertStringNotContainsString( '<script', $html );
+		$this->assertStringEndsWith( '</div></body></html>', $html );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['script_queue'] );
 	}
 }

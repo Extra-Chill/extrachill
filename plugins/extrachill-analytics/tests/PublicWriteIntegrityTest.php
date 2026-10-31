@@ -271,6 +271,16 @@ final class PublicWriteIntegrityTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
+	 * Standalone Events pages (guest digest confirm) load the visitor-minting tracker.
+	 */
+	public function test_events_standalone_page_loads_view_tracker(): void {
+		$this->assertSame(
+			20,
+			has_action( 'extrachill_events_standalone_page_assets', 'extrachill_analytics_enqueue_view_tracking' )
+		);
+	}
+
+	/**
 	 * The unreliable cross-origin legacy adapter is explicitly rejected.
 	 */
 	public function test_legacy_mapped_domain_view_without_source_proof_is_rejected(): void {
