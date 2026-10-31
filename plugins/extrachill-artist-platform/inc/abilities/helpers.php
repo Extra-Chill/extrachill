@@ -302,114 +302,13 @@ function extrachill_artist_platform_sync_counter_from_id( $link_page_id, $type, 
 }
 
 /**
- * Sanitize links array with ID assignment.
- *
- * @param array $links        Raw links data (array of sections with nested links).
- * @param int   $link_page_id Link page post ID for counter-based ID generation.
- * @return array Sanitized links array.
- */
-function extrachill_artist_platform_sanitize_links( $links, $link_page_id = 0 ) {
-	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
-	if ( ! is_array( $links ) ) {
-		return array();
-	}
-
-	$sanitized = array();
-
-	foreach ( $links as $section ) {
-		if ( ! is_array( $section ) ) {
-			continue;
-		}
-
-		$section_id = isset( $section['id'] ) ? sanitize_text_field( $section['id'] ) : '';
-		if ( $link_page_id && extrachill_artist_platform_needs_id_assignment( $section_id ) ) {
-			$section_id = extrachill_artist_platform_get_next_id( $link_page_id, 'section' );
-		} elseif ( $link_page_id ) {
-			extrachill_artist_platform_sync_counter_from_id( $link_page_id, 'section', $section_id );
-		}
-
-		$sanitized_section = array(
-			'id'            => $section_id,
-			'section_title' => isset( $section['section_title'] ) ? sanitize_text_field( wp_unslash( $section['section_title'] ) ) : '',
-			'links'         => array(),
-		);
-
-		if ( isset( $section['links'] ) && is_array( $section['links'] ) ) {
-			foreach ( $section['links'] as $link ) {
-				if ( ! is_array( $link ) ) {
-					continue;
-				}
-
-				$link_id = isset( $link['id'] ) ? sanitize_text_field( $link['id'] ) : '';
-				if ( $link_page_id && extrachill_artist_platform_needs_id_assignment( $link_id ) ) {
-					$link_id = extrachill_artist_platform_get_next_id( $link_page_id, 'link' );
-				} elseif ( $link_page_id ) {
-					extrachill_artist_platform_sync_counter_from_id( $link_page_id, 'link', $link_id );
-				}
-
-				$sanitized_link = array(
-					'id'        => $link_id,
-					'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( $link['link_text'] ) ) : '',
-					'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( $link['link_url'] ) ) : '',
-				);
-
-				if ( isset( $link['expires_at'] ) && ! empty( $link['expires_at'] ) ) {
-					$sanitized_link['expires_at'] = sanitize_text_field( wp_unslash( $link['expires_at'] ) );
-				}
-
-				$sanitized_section['links'][] = $sanitized_link;
-			}
-		}
-
-		$sanitized[] = $sanitized_section;
-	}
-
-	return $sanitized;
-}
-
-/**
  * Sanitize CSS variables for link page styles.
  *
  * @param array $vars Raw CSS variables.
  * @return array|WP_Error Sanitized CSS variables.
  */
 function extrachill_artist_platform_sanitize_css_vars( $vars ) {
-	if ( function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) && extrachill_artist_platform_uses_external_link_pages_runtime() && function_exists( 'ec_sanitize_link_page_css_vars' ) ) {
-		return ec_sanitize_link_page_css_vars( $vars );
-	}
-	// @phpstan-ignore phpstan.function.alreadyNarrowedType (deliberate defensive guard on untyped public API input.)
-	if ( ! is_array( $vars ) ) {
-		return array();
-	}
-
-	$sanitized = array();
-
-	foreach ( $vars as $key => $value ) {
-		if ( strpos( $key, '--link-page-' ) !== 0 && 'overlay' !== $key ) {
-			continue;
-		}
-
-		if ( strpos( $key, 'color' ) !== false || strpos( $key, '-bg' ) !== false ) {
-			if ( ! is_string( $value ) ) {
-				continue;
-			}
-
-			// Accept hex (#rgb, #rrggbb), rgb(), rgba(), hsl(), hsla() — not just hex.
-			$hex = sanitize_hex_color( $value );
-			if ( $hex ) {
-				$sanitized[ $key ] = $hex;
-			} elseif ( preg_match( '/^(rgba?|hsla?)\(\s*[\d.,\s%]+\)$/', $value ) ) {
-				$sanitized[ $key ] = $value;
-			} else {
-				// Skip invalid color values silently.
-				continue;
-			}
-		} else {
-			$sanitized[ $key ] = sanitize_text_field( wp_unslash( $value ) );
-		}
-	}
-
-	return $sanitized;
+	return ec_sanitize_link_page_css_vars( $vars );
 }
 
 /**

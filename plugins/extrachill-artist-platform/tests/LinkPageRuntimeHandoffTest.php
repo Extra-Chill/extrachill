@@ -71,15 +71,18 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 1, $result['operation_providers'] );
 		$this->assertSame( 1, $result['projection_providers'] );
 		$this->assertSame( 'external-runtime', $result['link_page_cpt_owner'] );
+		$this->assertFalse( $result['artist_platform_registers_link_page_cpt'] );
 		$this->assertTrue( $result['artist_profile_exists'] );
 		$this->assertSame( 0, $result['write_calls'] );
 	}
 
-	public function test_configured_runtime_failure_is_explicit(): void {
+	public function test_missing_runtime_skips_adapters_with_an_admin_notice(): void {
 		$result = $this->runSmokeFixture( 'link-pages-missing-runtime-smoke.php' );
 
-		$this->assertSame( 'extrachill_link_pages_runtime_incomplete', $result['error_code'] );
+		$this->assertSame( 'extrachill_link_pages_runtime_missing', $result['error_code'] );
 		$this->assertTrue( $result['notice_hooked'] );
+		$this->assertFalse( $result['adapters_loaded'] );
+		$this->assertFalse( $result['generic_api_defined'] );
 	}
 
 	/**
@@ -94,7 +97,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 
 	public function activationFailureProvider(): array {
 		return array(
-			'missing runtime'       => array( 'missing', 'did not load its complete generic API' ),
+			'missing runtime'       => array( 'missing', 'requires the Extra Chill Link Pages plugin' ),
 			'no API marker'         => array( 'no-marker', 'did not declare its API version' ),
 			'stale API version'     => array( 'stale-version', 'API version is not supported' ),
 			'wrong generic arity'   => array( 'wrong-arity', 'incompatible generic function signature' ),
@@ -124,6 +127,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 			'no readiness marker'      => array( 'no-readiness', 'extrachill_link_pages_runtime_incomplete' ),
 			'readiness arity'          => array( 'readiness-arity', 'extrachill_link_pages_runtime_incompatible' ),
 			'not ready'                => array( 'readiness', 'extrachill_link_pages_runtime_incomplete' ),
+			'v3 runtime'               => array( 'v3', 'extrachill_link_pages_runtime_incompatible' ),
 			'v4 without post type fn'  => array( 'v4-no-resolver', 'extrachill_link_pages_runtime_incomplete' ),
 		);
 	}
@@ -141,14 +145,11 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 	}
 
 	/**
-	 * extrachill-link-pages#34: the handoff must accept both API version
-	 * '3' (current production) and '4' (the post-type-rename contract).
+	 * The monorepo deploys Artist Platform and Link Pages from one commit, so
+	 * the handoff accepts only the current runtime API version ('4').
 	 */
-	public function test_handoff_accepts_api_version_3_and_4(): void {
-		$v3 = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php' );
-		$this->assertSame( '', $v3['error_code'] );
-
-		$v4 = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'v4' );
+	public function test_handoff_accepts_the_current_api_version(): void {
+		$v4 = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php' );
 		$this->assertSame( '', $v4['error_code'] );
 	}
 
@@ -173,14 +174,18 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 
 	public function test_first_activation_and_next_request_use_the_real_standalone_runtime_contract(): void {
 		$this->require_real_runtime_fixture_source();
+		// Activation request: Artist Platform boots before Link Pages is loaded.
+		// It carries no fallback copy, so it declares no generic API, skips its
+		// adapters with an explicit error, and Link Pages still activates cleanly.
 		$activation = $this->runSmokeFixture( 'link-pages-real-runtime-smoke.php', 'activation' );
 		$this->assertFalse( $activation['before_boot'] );
-		$this->assertTrue( $activation['after_boot'] );
+		$this->assertFalse( $activation['after_boot'] );
+		$this->assertSame( 'extrachill_link_pages_runtime_missing', $activation['boot_error'] );
 		$this->assertTrue( $activation['ready'] );
 		$this->assertTrue( $activation['contract_matches'] );
 		$this->assertSame( 1, $activation['link_registrations'] );
-		$this->assertSame( 1, $activation['owner_providers'] );
-		$this->assertSame( 1, $activation['operation_providers'] );
+		$this->assertSame( 0, $activation['owner_providers'] );
+		$this->assertSame( 0, $activation['operation_providers'] );
 		$this->assertSame( 1, $activation['flushes'] );
 		$this->assertTrue( $activation['storage_provider_before_standalone'] );
 		$this->assertSame( 4, $activation['storage_blog_id'] );
@@ -399,50 +404,66 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( $result['cta'] );
 	}
 
-	public function test_fallback_mode_remains_configured_without_a_hard_plugin_dependency(): void {
+	public function test_link_pages_is_a_hard_plugin_dependency(): void {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
 		$source = file_get_contents( dirname( __DIR__ ) . '/extrachill-artist-platform.php' );
 
-		$this->assertStringNotContainsString( 'Requires Plugins: extrachill-link-pages', $source );
-		$this->assertTrue( defined( 'EC_LINK_PAGE_POST_TYPE' ) );
-		$this->assertTrue( function_exists( 'ec_get_link_page_owner' ) );
-		$this->assertTrue( function_exists( 'ec_read_link_page' ) );
+		$this->assertMatchesRegularExpression( '/^\s*\*\s*Requires Plugins:\s*extrachill-link-pages\s*$/m', $source );
 	}
 
 	/**
-	 * extrachill-link-pages#34: the guarded post-type resolver defers to the
-	 * runtime function when it exists, and falls back to the legacy literal
-	 * otherwise. That fallback line is the only place the legacy literal may
-	 * appear in a consumer.
+	 * Artist Platform carries no copy of the generic Link Pages runtime: no
+	 * ec_* function it declares may also be declared by extrachill-link-pages,
+	 * and the bundled/standalone switch is gone.
 	 */
-	public function test_guarded_post_type_resolver_falls_back_without_the_runtime_function(): void {
-		$result = $this->runSmokeFixture( 'link-pages-post-type-resolver-smoke.php', 'fallback' );
+	public function test_artist_platform_declares_no_generic_link_pages_functions(): void {
+		$artist_root = dirname( __DIR__ );
+		$runtime     = ec_test_link_pages_runtime_path( $artist_root );
 
-		$this->assertSame( 'artist_link_page', $result['resolved'] );
+		$artist_functions  = self::declaredEcFunctions( $artist_root );
+		$runtime_functions = self::declaredEcFunctions( $runtime );
+
+		$this->assertNotEmpty( $runtime_functions );
+		$this->assertSame( array(), array_values( array_intersect( $artist_functions, $runtime_functions ) ) );
+		$this->assertSame( array(), array_keys( array_filter( array_count_values( $artist_functions ), static function ( $count ) { return $count > 1; } ) ) );
+		$this->assertFileDoesNotExist( $artist_root . '/inc/link-pages/operations.php' );
+		$this->assertFileDoesNotExist( $artist_root . '/inc/link-pages/owner-reference.php' );
+		$this->assertFalse( function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) );
 	}
 
-	public function test_guarded_post_type_resolver_defers_to_the_runtime_function_when_present(): void {
+	/**
+	 * Every ec_* function declared in a plugin's shipped PHP source.
+	 *
+	 * @param string $root Plugin root.
+	 * @return string[]
+	 */
+	private static function declaredEcFunctions( string $root ): array {
+		$functions = array();
+		$files     = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $files as $file ) {
+			$path = $file->getPathname();
+			if ( 'php' !== $file->getExtension() || preg_match( '#/(tests|vendor|build|node_modules)/#', substr( $path, strlen( $root ) ) ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
+			preg_match_all( '/^\s*function\s+(ec_[a-z0-9_]+)\s*\(/m', (string) file_get_contents( $path ), $matches );
+			$functions = array_merge( $functions, $matches[1] );
+		}
+		sort( $functions );
+		return $functions;
+	}
+
+	public function test_post_type_resolver_matches_no_post_without_the_runtime_function(): void {
+		$result = $this->runSmokeFixture( 'link-pages-post-type-resolver-smoke.php', 'missing' );
+
+		// Never '' (WP_Query reads an empty post_type as 'post') and never the
+		// legacy artist_link_page literal.
+		$this->assertSame( 'ec_link_page_missing', $result['resolved'] );
+	}
+
+	public function test_post_type_resolver_defers_to_the_runtime_function(): void {
 		$result = $this->runSmokeFixture( 'link-pages-post-type-resolver-smoke.php', 'resolved' );
 
 		$this->assertSame( 'ec_link_page', $result['resolved'] );
-	}
-
-	public function test_site_and_network_active_configuration_select_the_external_runtime(): void {
-		$sitewide = get_site_option( 'active_sitewide_plugins', array() );
-		$saved    = $sitewide;
-
-		// The harness network-activates every validation dependency, so the
-		// external runtime is selected whenever the sibling plugin is present.
-		if ( isset( $saved['extrachill-link-pages/extrachill-link-pages.php'] ) ) {
-			$this->assertTrue( extrachill_artist_platform_uses_external_link_pages_runtime() );
-		}
-
-		update_site_option( 'active_sitewide_plugins', array( 'extrachill-link-pages/extrachill-link-pages.php' => 123 ) );
-		$this->assertTrue( extrachill_artist_platform_uses_external_link_pages_runtime() );
-
-		update_site_option( 'active_sitewide_plugins', array() );
-		$this->assertFalse( extrachill_artist_platform_uses_external_link_pages_runtime() );
-
-		update_site_option( 'active_sitewide_plugins', $saved );
 	}
 }

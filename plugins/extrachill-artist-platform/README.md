@@ -1,19 +1,15 @@
 # Extra Chill Artist Platform
 
-## Link Pages runtime handoff
+## Link Pages runtime dependency
 
-This compatibility build supports a rolling extraction to the standalone
-`extrachill-link-pages` plugin without declaring a hard `Requires Plugins`
-dependency. Deploy this Artist Platform compatibility build first, then install
-and activate the standalone plugin. During that activation request the
-standalone plugin must tolerate the already-loaded fallback symbols; on the next
-request Artist Platform sees the active configuration and fully defers. Artist
-Platform reads WordPress's site and network active plugin configuration for
-`extrachill-link-pages/extrachill-link-pages.php`; when configured, it defers the
-`artist_link_page` CPT and bundled generic owner/operation APIs to that plugin.
-The standalone plugin must expose those APIs by `plugins_loaded` priority 20,
-after which Artist Platform registers its artist adapters. Without the
-standalone plugin, the bundled runtime and current behavior remain active.
+Artist Platform requires the `extrachill-link-pages` plugin (`Requires Plugins:
+extrachill-link-pages`). That plugin is the only provider of the generic Link
+Pages runtime: the Link Page post type, owner references, operations, public
+routing, head/SEO output, and link expiration. Artist Platform carries no copy
+of it. At `plugins_loaded` priority 20 Artist Platform validates the runtime
+contract (`inc/link-pages/runtime-handoff.php`) and registers its artist
+adapters into it. If the runtime is missing or incompatible, the adapters are
+skipped and an admin notice explains why.
 
 Artist profiles, link pages, and shop management for the Extra Chill network.
 

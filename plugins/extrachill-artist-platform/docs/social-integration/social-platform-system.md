@@ -348,7 +348,7 @@ The Gutenberg block provides social platform management through the **TabSocials
 
 ## Rendering System
 
-Social links are rendered on the public link page template at `inc/link-pages/live/templates/extrch-link-page-template.php`.
+Social links are rendered on the public link page by the `extrachill-link-pages` runtime template, using Artist Platform's `social-icons-container` component.
 
 **Social Icon Integration**:
 - Uses `ExtraChillArtistPlatform_SocialLinks` class for platform data

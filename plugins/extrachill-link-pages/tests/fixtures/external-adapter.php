@@ -20,7 +20,7 @@ function get_current_blog_id() { return 1; }
 
 $root = dirname( __DIR__, 2 );
 require_once $root . '/extrachill-link-pages.php';
-$external = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform';
+$external = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: dirname( __DIR__, 3 ) . '/extrachill-artist-platform';
 if ( ! is_dir( $external . '/inc/link-pages' ) ) {
 	fwrite( STDERR, 'The external adapter fixture requires the Extra Chill Artist Platform sibling checkout. Set ARTIST_PLATFORM_WORKTREE to an extrachill-artist-platform checkout containing inc/link-pages (expected default: ' . $external . ")\n" );
 	exit( 1 );

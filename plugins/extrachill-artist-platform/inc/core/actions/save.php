@@ -19,117 +19,7 @@ function ec_handle_link_page_save( $link_page_id, $save_data = array(), $files_d
 	if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
 		return new WP_Error( 'invalid_link_page', 'Invalid link page ID' );
 	}
-	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-		return ec_handle_external_artist_link_page_save( $link_page_id, $save_data, $files_data );
-	}
-
-	// Core link page data
-	if ( isset( $save_data['links'] ) && is_array( $save_data['links'] ) ) {
-		update_post_meta( $link_page_id, '_link_page_links', $save_data['links'] );
-	}
-
-	if ( isset( $save_data['css_vars'] ) && is_array( $save_data['css_vars'] ) ) {
-		// Prevent card background color from being stored as configurable
-		unset( $save_data['css_vars']['--link-page-card-bg-color'] );
-		update_post_meta( $link_page_id, '_link_page_custom_css_vars', $save_data['css_vars'] );
-
-	}
-
-	// Short bio displayed on the public link page.
-	if ( array_key_exists( 'bio', $save_data ) ) {
-		if ( '' === $save_data['bio'] || null === $save_data['bio'] ) {
-			delete_post_meta( $link_page_id, '_link_page_bio_text' );
-		} else {
-			update_post_meta( $link_page_id, '_link_page_bio_text', $save_data['bio'] );
-		}
-	}
-
-	// Advanced settings (Advanced tab fields only)
-	$advanced_fields = array(
-		'link_expiration_enabled' => '_link_expiration_enabled',
-		'redirect_enabled'        => '_link_page_redirect_enabled',
-		'redirect_target_url'     => '_link_page_redirect_target_url',
-		'youtube_embed_enabled'   => '_enable_youtube_inline_embed',
-		'meta_pixel_id'           => '_link_page_meta_pixel_id',
-		'google_tag_id'           => '_link_page_google_tag_id',
-		'google_tag_manager_id'   => '_link_page_google_tag_manager_id',
-		'subscribe_display_mode'  => '_link_page_subscribe_display_mode',
-		'subscribe_description'   => '_link_page_subscribe_description',
-		'social_icons_position'   => '_link_page_social_icons_position',
-		'profile_image_shape'     => '_link_page_profile_img_shape',
-	);
-
-	foreach ( $advanced_fields as $key => $meta_key ) {
-		if ( array_key_exists( $key, $save_data ) ) {
-			if ( '' === $save_data[ $key ] || null === $save_data[ $key ] ) {
-				delete_post_meta( $link_page_id, $meta_key );
-			} else {
-				update_post_meta( $link_page_id, $meta_key, $save_data[ $key ] );
-			}
-		}
-	}
-
-	// Handle file uploads and removal if present
-	if ( ! empty( $files_data ) || isset( $save_data['remove_profile_image'] ) ) {
-		$upload_error = ec_handle_link_page_file_uploads( $link_page_id, $files_data, $save_data );
-		if ( $upload_error ) {
-			return new WP_Error( 'upload_error', 'File upload error', array( 'error_code' => $upload_error ) );
-		}
-	}
-
-	// Handle social icons if present
-	if ( isset( $save_data['social_icons'] ) && is_array( $save_data['social_icons'] ) ) {
-		$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
-		if ( $artist_id ) {
-			$social_manager = extrachill_artist_platform_social_links();
-			$social_result  = $social_manager->save( $artist_id, $save_data['social_icons'] );
-
-			if ( is_wp_error( $social_result ) ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf -- deliberate no-op: social save issues must not fail the whole save.
-				// Don't fail entire save for social issues
-			}
-		}
-	}
-
-	// Handle background image ID assignment (REST API - no file upload)
-	if ( isset( $save_data['background_image_id'] ) ) {
-		$bg_id = absint( $save_data['background_image_id'] );
-		if ( $bg_id > 0 ) {
-			update_post_meta( $link_page_id, '_link_page_background_image_id', $bg_id );
-		} else {
-			delete_post_meta( $link_page_id, '_link_page_background_image_id' );
-		}
-	}
-
-	// Handle profile image ID assignment (REST API - stored on artist as thumbnail)
-	if ( isset( $save_data['profile_image_id'] ) ) {
-		$artist_id = apply_filters( 'ec_get_artist_id', $link_page_id );
-		if ( $artist_id ) {
-			$profile_id = absint( $save_data['profile_image_id'] );
-			if ( $profile_id > 0 ) {
-				set_post_thumbnail( $artist_id, $profile_id );
-			} else {
-				delete_post_thumbnail( $artist_id );
-			}
-		}
-	}
-
-	/**
-	 * Fires when a link page needs post-save processing.
-	 *
-	 * This action hook triggers essential post-save operations like data
-	 * synchronization. Other plugins and theme functions can also hook in
-	 * to perform additional operations after the link page data is saved.
-	 *
-	 * Hooked functions should check for errors and may prevent save completion
-	 * by returning WP_Error or throwing exceptions.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param int $link_page_id The ID of the link page that was saved.
-	 */
-	do_action( 'ec_link_page_save', $link_page_id );
-
-	return true;
+	return ec_handle_external_artist_link_page_save( $link_page_id, $save_data, $files_data );
 }
 
 /** Save generic fields through standalone and retain artist-owned side effects. */
@@ -263,86 +153,6 @@ function ec_handle_link_page_save_completion( $link_page_id ) {
 add_action( 'ec_link_page_save', 'ec_handle_link_page_save_completion', 10, 1 );
 
 /**
- * Get public URLs for a link page on the extrachill.link domain.
- *
- * @param int $link_page_id The link page post ID.
- * @return string[] Public link page URLs.
- */
-if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-	function ec_get_link_page_public_urls( $link_page_id ) {
-		if ( ! $link_page_id || get_post_type( $link_page_id ) !== extrachill_artist_platform_link_page_post_type() ) {
-			return array();
-		}
-
-		$slug = get_post_field( 'post_name', $link_page_id );
-		if ( ! $slug ) {
-			return array();
-		}
-
-		// @phpstan-ignore phpstan.argument.type (get_post_field() returns a string for post_name at runtime; falsy values are guarded above.)
-		$urls = array( 'https://extrachill.link/' . rawurlencode( $slug ) . '/' );
-
-		if ( 'extra-chill' === $slug ) {
-			$urls[] = 'https://extrachill.link/';
-		}
-
-		return $urls;
-	}
-
-	/**
-	 * Return link page pages affected by a link page change.
-	 *
-	 * This integration keeps Link-Page-specific URL knowledge out of the generic
-	 * cache layer. Registered for post type `artist_link_page` so any core-driven
-	 * post lifecycle event (publish, trash, delete) that reaches
-	 * extrachill_cache_purge_on_post_change() purges only the affected public URLs
-	 * instead of the whole blog.
-	 *
-	 * @param null|array $urls      URLs supplied by another integration.
-	 * @param int        $post_id   Changed post ID.
-	 * @param string     $post_type Changed post type.
-	 * @return null|array Exact URLs to invalidate, or $urls untouched for other post types.
-	 */
-	function ec_link_page_cache_invalidation_urls( $urls, $post_id, $post_type ) {
-		if ( extrachill_artist_platform_link_page_post_type() !== $post_type ) {
-			return $urls;
-		}
-
-		return ec_get_link_page_public_urls( $post_id );
-	}
-	add_filter( 'extrachill_cache_post_change_urls', 'ec_link_page_cache_invalidation_urls', 10, 3 );
-
-	/**
-	 * Purge public link page URLs after a link page save.
-	 *
-	 * Link page saves are meta-only (no wp_update_post call), so they never fire
-	 * WordPress's transition_post_status hook and never reach
-	 * extrachill_cache_purge_on_post_change() on their own. This mirrors that
-	 * function's targeted-URL behavior directly, the same way extrachill-events
-	 * purges its venue booking archive after a non-post-status config change.
-	 *
-	 * @param int $link_page_id The saved link page ID.
-	 */
-	function ec_purge_link_page_cache( $link_page_id ) {
-		if ( ! function_exists( 'extrachill_cache_delete_url' ) ) {
-			return;
-		}
-
-		$urls = ec_get_link_page_public_urls( $link_page_id );
-		if ( empty( $urls ) ) {
-			return;
-		}
-
-		$blog_id = get_current_blog_id();
-		foreach ( $urls as $url ) {
-			extrachill_cache_delete_url( $url, $blog_id );
-		}
-	}
-	add_action( 'ec_link_page_save', 'ec_purge_link_page_cache', 20, 1 );
-}
-
-
-/**
  * Process social icon form fields (social_type[], social_url[]) into structured array
  */
 function ec_process_social_form_fields( $post_data ) {
@@ -416,7 +226,7 @@ function ec_process_link_form_fields( $post_data ) {
 				$link_data = array(
 					'link_text' => $link_text,
 					'link_url'  => $link_url,
-					'id'        => isset( $link_ids[ $section_idx ][ $link_idx ] ) ? sanitize_text_field( $link_ids[ $section_idx ][ $link_idx ] ) : ( extrachill_artist_platform_uses_external_link_pages_runtime() ? '' : 'link_' . time() . '_' . wp_rand() ),
+					'id'        => isset( $link_ids[ $section_idx ][ $link_idx ] ) ? sanitize_text_field( $link_ids[ $section_idx ][ $link_idx ] ) : '',
 				);
 
 				// Add expiration if available

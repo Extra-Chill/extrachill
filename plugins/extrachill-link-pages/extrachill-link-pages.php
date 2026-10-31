@@ -838,25 +838,6 @@ if ( is_wp_error( $ec_link_pages_section_sources_result ) ) {
 	ec_record_link_pages_runtime_error( $ec_link_pages_section_sources_result );
 }
 
-if ( ! function_exists( 'ec_can_register_link_page_owner_compatibility_provider' ) ) {
-	/** Preflight against a rolling fallback owner registry. */
-	function ec_can_register_link_page_owner_compatibility_provider( $name, $callback, $priority = 10 ) {
-		if ( ! is_string( $name ) || 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/', $name ) || ! is_callable( $callback ) || ! is_int( $priority ) ) {
-			return new WP_Error( 'invalid_link_page_owner_provider', 'The Link Page owner compatibility provider registration is invalid.' );
-		}
-		return in_array( $name, array_column( ec_link_page_owner_compatibility_registry()->snapshot(), 'name' ), true ) ? new WP_Error( 'duplicate_link_page_owner_provider', 'The Link Page owner compatibility provider is already registered.' ) : true;
-	}
-}
-if ( ! function_exists( 'ec_can_register_link_page_operation_provider' ) ) {
-	/** Preflight against a rolling fallback operation registry. */
-	function ec_can_register_link_page_operation_provider( $name, $callback, $priority = 10 ) {
-		if ( ! is_string( $name ) || 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]*$/', $name ) || ! is_callable( $callback ) || ! is_int( $priority ) ) {
-			return new WP_Error( 'invalid_link_page_operation_provider', 'The Link Page operation provider registration is invalid.' );
-		}
-		return in_array( $name, array_column( ec_link_page_operation_provider_registry()->snapshot(), 'name' ), true ) ? new WP_Error( 'duplicate_link_page_operation_provider', 'The Link Page operation provider is already registered.' ) : true;
-	}
-}
-
 if ( ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
 	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '4' );
 }

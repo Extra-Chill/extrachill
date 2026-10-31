@@ -47,8 +47,8 @@ if ( 'post-type' === $mode ) {
 	$GLOBALS['smoke']['wrong_readiness_arity'] = true;
 } elseif ( 'readiness' === $mode ) {
 	$GLOBALS['smoke']['runtime_ready'] = false;
-} elseif ( 'v4' === $mode ) {
-	$GLOBALS['smoke']['api_version'] = '4';
+} elseif ( 'v3' === $mode ) {
+	$GLOBALS['smoke']['api_version'] = '3';
 } elseif ( 'v4-no-resolver' === $mode ) {
 	$GLOBALS['smoke']['api_version']              = '4';
 	$GLOBALS['smoke']['omit_post_type_resolver']  = true;

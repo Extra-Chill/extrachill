@@ -155,6 +155,7 @@ if ( in_array( $mode, array( 'activation', 'activation-site' ), true ) ) {
 		array(
 			'before_boot'                        => $before_boot,
 			'after_boot'                         => $after_boot,
+			'boot_error'                         => isset( $GLOBALS['extrachill_artist_platform_link_pages_runtime_error'] ) ? $GLOBALS['extrachill_artist_platform_link_pages_runtime_error']->get_error_code() : '',
 			'ready'                              => ec_link_pages_runtime_ready(),
 			'contract_matches'                   => true === extrachill_artist_platform_validate_link_pages_runtime(),
 			'link_registrations'                 => $GLOBALS['smoke']['registration_counts']['artist_link_page'] ?? 0,

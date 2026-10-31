@@ -93,7 +93,7 @@ $css_vars = [
 The system implements custom rewrite rules:
 
 - Artist profiles: Standard WordPress post type routing
-- Link pages: Top-level slug routing via custom rewrite rules in `artist-platform-rewrite-rules.php`
+- Link pages: Top-level slug routing is owned by the `extrachill-link-pages` runtime
 
 ## Registration Process
 

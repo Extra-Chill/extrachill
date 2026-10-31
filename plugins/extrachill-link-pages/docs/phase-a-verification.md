@@ -129,8 +129,9 @@ Watch for new `debug.log` signatures for ~15 minutes of normal traffic: `extrach
 wp plugin deactivate extrachill-link-pages --network
 ```
 
-Artist Platform resumes its bundled runtime on the next request (the handoff is evaluated per-request; no cache
-warm-up needed beyond normal page cache expiry). Verify:
+Artist Platform no longer carries a bundled runtime (Extra-Chill/extrachill#443), so deactivating Link Pages takes
+artist Link Pages offline rather than falling back. Roll back by redeploying the previous commit instead. Historical
+verification steps:
 
 ```bash
 for s in delhi-2-dublin extra-chill chaz-minivan ouisee qrisg; do

@@ -137,7 +137,6 @@ require_once $root . '/inc/core/artist-platform-post-types.php';
 $first  = extrachill_artist_platform_boot_link_pages_runtime();
 $second = extrachill_artist_platform_boot_link_pages_runtime();
 extrachill_register_artist_profile_cpt();
-extrachill_register_artist_link_page_cpt();
 $owner = ec_get_link_page_owner( 40 );
 
 echo json_encode(
@@ -149,6 +148,7 @@ echo json_encode(
 		'operation_providers'    => count( $GLOBALS['smoke']['operation_providers'] ),
 		'projection_providers'   => count( $GLOBALS['smoke']['projection_providers'] ),
 		'link_page_cpt_owner'    => $GLOBALS['smoke']['registered_post_types']['artist_link_page']['owner'] ?? '',
+		'artist_platform_registers_link_page_cpt' => function_exists( 'extrachill_register_artist_link_page_cpt' ),
 		'artist_profile_exists'  => isset( $GLOBALS['smoke']['registered_post_types']['artist_profile'] ),
 		'legacy_owner_reference' => is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],
 		'write_calls'            => $GLOBALS['smoke']['post_meta_write_calls'],

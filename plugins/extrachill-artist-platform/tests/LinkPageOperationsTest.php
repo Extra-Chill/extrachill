@@ -304,13 +304,4 @@ final class LinkPageOperationsTest extends EC_Artist_Platform_TestCase {
 		$this->assertFalse( method_exists( ec_link_page_operation_provider_registry(), 'reset' ) );
 		$this->assertFalse( method_exists( ec_link_page_operation_provider_registry(), 'unregister' ) );
 	}
-
-	public function test_generic_operation_source_contains_no_domain_policy(): void {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
-		$source = strtolower( file_get_contents( dirname( __DIR__ ) . '/inc/link-pages/operations.php' ) );
-
-		foreach ( array( 'artist', 'venue', 'booking', 'events', '_associated_artist_profile_id' ) as $term ) {
-			$this->assertStringNotContainsString( $term, $source );
-		}
-	}
 }

@@ -9,6 +9,7 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: extrachill-artist-platform
+ * Requires Plugins: extrachill-link-pages
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -75,14 +76,7 @@ class ExtraChillArtistPlatform {
 	private function load_includes() {
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/class-templates.php';
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-assets.php';
-		$external_link_pages = extrachill_artist_platform_uses_external_link_pages_runtime();
-		if ( ! $external_link_pages ) {
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-rewrite-rules.php';
-		}
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/ids.php';
-		if ( ! $external_link_pages ) {
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/defaults.php';
-		}
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/create.php';
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/social-icons.php';
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/fonts.php';
@@ -112,12 +106,8 @@ class ExtraChillArtistPlatform {
 		// / extrachill-analytics#94. AP consumes it via the
 		// extrachill_get_link_page_analytics filter (see the artist-get-analytics
 		// ability) and renders it through the artist-analytics block.
-		if ( ! $external_link_pages ) {
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/minimal-head-assets.php';
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-seo.php';
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/link-expiration.php';
-		}
+		// Public Link Page routing, head, SEO and link expiration are owned by
+		// extrachill-link-pages; Artist Platform only registers adapters into it.
 
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/manage-roster-ui.php';
 		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/roster-filter-handlers.php';
@@ -162,12 +152,6 @@ class ExtraChillArtistPlatform {
 		// (ECA) as of extrachill-artist-platform#89 / extrachill-analytics#94.
 		extrachill_artist_platform_create_pages();
 		flush_rewrite_rules();
-		// Persist the rewrite-rules version so the version-gated flush on init
-		// does not immediately re-run after activation. The constant is defined
-		// in inc/core/artist-platform-rewrite-rules.php, loaded during init().
-		if ( defined( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION' ) ) {
-			update_option( 'ec_artist_platform_rewrite_version', EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION );
-		}
 		update_option( 'extrachill_artist_platform_activated', true );
 
 		// Provision platform artist profile (suspenders).

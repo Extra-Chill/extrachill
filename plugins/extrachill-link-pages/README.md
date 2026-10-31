@@ -115,17 +115,12 @@ The editor renders them in its header next to **View page** so an owner can
 get back to their own management surfaces. Entries without a label or with a
 non-http(s) URL are dropped. The editor itself names no owner pages.
 
-## Deployment order
+## Consumers
 
-1. Deploy the Artist Platform compatibility handoff while its bundled fallback remains available.
-2. Install and activate Extra Chill Link Pages on the same site or network scope.
-3. On that activation request, this plugin accepts already-loaded fallback symbols and avoids duplicate CPT registration.
-4. On subsequent requests, Artist Platform detects the exact active basename, defers the generic runtime and CPT, then registers its external adapters at `plugins_loaded` priority 20.
-
-This rolling handoff intentionally does not add a hard `Requires Plugins`
-header to Artist Platform yet: WordPress would prevent deploying that
-compatibility build before this new plugin exists. After the rolling transition
-is complete, Artist Platform can declare `Requires Plugins: extrachill-link-pages`.
+This plugin is the only provider of the generic `ec_*link_page*` runtime.
+Artist Platform declares `Requires Plugins: extrachill-link-pages`, carries no
+copy of the runtime, and registers its artist adapters at `plugins_loaded`
+priority 20 after validating this runtime's contract.
 
 ## Multisite lifecycle
 
@@ -141,9 +136,6 @@ not report a broken runtime as successfully activated.
 
 Deactivation unregisters the standalone-owned legacy storage type before
 flushing affected sites, so standalone rewrites are removed rather than
-re-created. During the rolling transition, Artist Platform fallback may resume
-on the next request. That fallback must re-establish its rewrites through Artist
-Platform's existing activation or rewrite lifecycle; this plugin does not load
-or invoke the fallback during deactivation. Deactivation deliberately preserves
-the canonical storage option because fallback code may still own records there;
-silently deleting it could fork subsequent storage ownership.
+re-created. Deactivation deliberately preserves the canonical storage option so
+a later activation rediscovers the same storage site; silently deleting it
+could fork subsequent storage ownership.
