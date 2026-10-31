@@ -17,6 +17,12 @@
  *      unsubscribe work unchanged, and saves the city as the account's
  *      Local Scene only when it has none.
  *
+ * Every request also records which city was asked for on the account
+ * (`_ec_local_scene_digest_requests` user meta, #465) so an unconfirmed
+ * request is not lost. That record is not a subscription and never sets the
+ * Local Scene; confirming stamps it so the request→confirm funnel per city
+ * stays readable.
+ *
  * The public response is always `{ status: 'check_inbox' }`: it never says
  * whether the address had an account, was throttled, or was already in.
  *
@@ -27,6 +33,20 @@ defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_EVENTS_GUEST_DIGEST_CONFIRM_TTL = 604800; // 7 days; a literal so loading never depends on WP time constants.
 const EXTRACHILL_EVENTS_GUEST_DIGEST_QUERY_VAR   = 'ec_digest_confirm';
+
+/*
+ * Pending/confirmed guest digest city requests, one meta row per account:
+ *
+ *   array<string slug, array{requested_at:int|null, confirmed_at:int|null}>
+ *
+ * Unix timestamps. `requested_at` is the first request (repeats never move
+ * it); `confirmed_at` is null until the signed link is confirmed. Bounded to
+ * EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX cities; the oldest entry drops
+ * first. Core deletes it with the rest of the user's meta on account
+ * deletion; the privacy exporter/eraser below cover export/erasure requests.
+ */
+const EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_META = '_ec_local_scene_digest_requests';
+const EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX  = 20;
 
 /**
  * Resolve a digest-eligible city (city-depth location term) by slug.
@@ -120,6 +140,9 @@ function extrachill_events_guest_subscribe_local_scene_digest( string $slug, str
 		return new WP_Error( 'guest_digest_failed', __( 'Something went wrong. Try again.', 'extrachill-events' ), array( 'status' => 500 ) );
 	}
 
+	// Record the city before the resend throttle so every request is kept.
+	extrachill_events_record_guest_digest_request( $user_id, $term->slug );
+
 	$throttle = extrachill_events_guest_digest_resend_key( $user_id, $term->slug );
 	if ( false === get_transient( $throttle ) ) {
 		$sent = extrachill_events_send_guest_digest_confirm_email( $user_id, $email, $term, (string) ( $account['claim_url'] ?? '' ) );
@@ -129,6 +152,198 @@ function extrachill_events_guest_subscribe_local_scene_digest( string $slug, str
 	}
 
 	return array( 'status' => 'check_inbox' );
+}
+
+/**
+ * Read an account's guest digest city requests.
+ *
+ * @param int $user_id User ID.
+ * @return array<string, array{requested_at:int|null, confirmed_at:int|null}>
+ */
+function extrachill_events_get_guest_digest_requests( int $user_id ): array {
+	if ( $user_id <= 0 ) {
+		return array();
+	}
+
+	$stored = get_user_meta( $user_id, EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_META, true );
+	if ( ! is_array( $stored ) ) {
+		return array();
+	}
+
+	$requests = array();
+	foreach ( $stored as $slug => $entry ) {
+		$slug = sanitize_title( (string) $slug );
+		if ( '' === $slug || ! is_array( $entry ) ) {
+			continue;
+		}
+		$requests[ $slug ] = array(
+			'requested_at' => isset( $entry['requested_at'] ) ? (int) $entry['requested_at'] : null,
+			'confirmed_at' => isset( $entry['confirmed_at'] ) ? (int) $entry['confirmed_at'] : null,
+		);
+	}
+
+	return $requests;
+}
+
+/**
+ * Persist requests, keeping the newest EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX.
+ *
+ * @param int   $user_id  User ID.
+ * @param array $requests Slug-keyed request map.
+ */
+function extrachill_events_save_guest_digest_requests( int $user_id, array $requests ): void {
+	if ( count( $requests ) > EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX ) {
+		uasort(
+			$requests,
+			static function ( array $a, array $b ): int {
+				return ( $b['requested_at'] ?? $b['confirmed_at'] ?? 0 ) <=> ( $a['requested_at'] ?? $a['confirmed_at'] ?? 0 );
+			}
+		);
+		$requests = array_slice( $requests, 0, EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX, true );
+	}
+
+	update_user_meta( $user_id, EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_META, $requests );
+}
+
+/**
+ * Record that this account asked for a city's digest. Idempotent: a repeat
+ * request for a city already on record changes nothing, so `requested_at`
+ * stays the first ask. Does not subscribe or touch the Local Scene.
+ *
+ * @param int    $user_id User ID.
+ * @param string $slug    City slug.
+ */
+function extrachill_events_record_guest_digest_request( int $user_id, string $slug ): void {
+	$slug     = sanitize_title( $slug );
+	$requests = extrachill_events_get_guest_digest_requests( $user_id );
+	if ( '' === $slug || $user_id <= 0 || isset( $requests[ $slug ] ) ) {
+		return;
+	}
+
+	$requests[ $slug ] = array(
+		'requested_at' => time(),
+		'confirmed_at' => null,
+	);
+	extrachill_events_save_guest_digest_requests( $user_id, $requests );
+}
+
+/**
+ * Mark a city's request confirmed. Kept (not cleared) so the per-city
+ * request→confirm funnel survives. A confirm with no request on record
+ * (link minted before requests were recorded) is stored with a null
+ * `requested_at`.
+ *
+ * @param int    $user_id User ID.
+ * @param string $slug    City slug.
+ */
+function extrachill_events_mark_guest_digest_request_confirmed( int $user_id, string $slug ): void {
+	$slug     = sanitize_title( $slug );
+	$requests = extrachill_events_get_guest_digest_requests( $user_id );
+	if ( '' === $slug || $user_id <= 0 || null !== ( $requests[ $slug ]['confirmed_at'] ?? null ) ) {
+		return;
+	}
+
+	$requests[ $slug ] = array(
+		'requested_at' => $requests[ $slug ]['requested_at'] ?? null,
+		'confirmed_at' => time(),
+	);
+	extrachill_events_save_guest_digest_requests( $user_id, $requests );
+}
+
+/**
+ * Register the guest digest request privacy exporter.
+ *
+ * @hook wp_privacy_personal_data_exporters
+ * @param array $exporters Exporters.
+ * @return array
+ */
+function extrachill_events_register_guest_digest_privacy_exporter( array $exporters ): array {
+	$exporters['extrachill-events-guest-digest-requests'] = array(
+		'exporter_friendly_name' => __( 'Extra Chill weekly email requests', 'extrachill-events' ),
+		'callback'               => 'extrachill_events_export_guest_digest_requests',
+	);
+	return $exporters;
+}
+add_filter( 'wp_privacy_personal_data_exporters', 'extrachill_events_register_guest_digest_privacy_exporter' );
+
+/**
+ * Register the guest digest request privacy eraser.
+ *
+ * @hook wp_privacy_personal_data_erasers
+ * @param array $erasers Erasers.
+ * @return array
+ */
+function extrachill_events_register_guest_digest_privacy_eraser( array $erasers ): array {
+	$erasers['extrachill-events-guest-digest-requests'] = array(
+		'eraser_friendly_name' => __( 'Extra Chill weekly email requests', 'extrachill-events' ),
+		'callback'             => 'extrachill_events_erase_guest_digest_requests',
+	);
+	return $erasers;
+}
+add_filter( 'wp_privacy_personal_data_erasers', 'extrachill_events_register_guest_digest_privacy_eraser' );
+
+/**
+ * Core privacy exporter callback.
+ *
+ * @param string $email_address Email address.
+ * @param int    $page          Page (single page).
+ * @return array{data:array,done:bool}
+ */
+function extrachill_events_export_guest_digest_requests( string $email_address, int $page = 1 ): array {
+	unset( $page );
+	$user = get_user_by( 'email', $email_address );
+	$data = array();
+	if ( $user ) {
+		foreach ( extrachill_events_get_guest_digest_requests( (int) $user->ID ) as $slug => $entry ) {
+			$data[] = array(
+				'group_id'    => 'extrachill-events-guest-digest-requests',
+				'group_label' => __( 'Weekly email requests', 'extrachill-events' ),
+				'item_id'     => 'guest-digest-request-' . $slug,
+				'data'        => array(
+					array(
+						'name'  => __( 'City', 'extrachill-events' ),
+						'value' => $slug,
+					),
+					array(
+						'name'  => __( 'Requested', 'extrachill-events' ),
+						'value' => null === $entry['requested_at'] ? '' : gmdate( 'c', $entry['requested_at'] ),
+					),
+					array(
+						'name'  => __( 'Confirmed', 'extrachill-events' ),
+						'value' => null === $entry['confirmed_at'] ? '' : gmdate( 'c', $entry['confirmed_at'] ),
+					),
+				),
+			);
+		}
+	}
+
+	return array(
+		'data' => $data,
+		'done' => true,
+	);
+}
+
+/**
+ * Core privacy eraser callback.
+ *
+ * @param string $email_address Email address.
+ * @param int    $page          Page (single page).
+ * @return array{items_removed:bool,items_retained:bool,messages:array,done:bool}
+ */
+function extrachill_events_erase_guest_digest_requests( string $email_address, int $page = 1 ): array {
+	unset( $page );
+	$user    = get_user_by( 'email', $email_address );
+	$removed = false;
+	if ( $user && array() !== extrachill_events_get_guest_digest_requests( (int) $user->ID ) ) {
+		$removed = (bool) delete_user_meta( (int) $user->ID, EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_META );
+	}
+
+	return array(
+		'items_removed'  => $removed,
+		'items_retained' => false,
+		'messages'       => array(),
+		'done'           => true,
+	);
 }
 
 /**
@@ -231,6 +446,8 @@ function extrachill_events_confirm_guest_digest( array $params ) {
 	if ( is_wp_error( $result ) || empty( $result['subscribed'] ) ) {
 		return new WP_Error( 'guest_digest_failed', __( 'Something went wrong. Try again.', 'extrachill-events' ), array( 'status' => 500 ) );
 	}
+
+	extrachill_events_mark_guest_digest_request_confirmed( $user_id, $term->slug );
 
 	// Save the city as the account's Local Scene only when it has none.
 	if ( function_exists( 'extrachill_users_get_local_scene' ) && function_exists( 'extrachill_users_set_local_scene' ) && null === extrachill_users_get_local_scene( $user_id ) ) {

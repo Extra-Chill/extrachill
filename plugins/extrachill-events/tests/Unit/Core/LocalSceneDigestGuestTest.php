@@ -6,7 +6,8 @@
  * email with the claim link but no subscription; confirming subscribes and
  * saves the city only when the account has none; a claimed account gets no
  * claim link; tampered, cross-purpose and expired links are rejected; repeat
- * requests are throttled; the response never leaks anything.
+ * requests are throttled; the response never leaks anything; every request
+ * records its city on the account as pending until confirmed (#465).
  *
  * @package ExtraChillEvents\Tests
  */
@@ -72,6 +73,33 @@ if ( ! function_exists( 'is_email' ) ) {
 if ( ! function_exists( 'get_userdata' ) ) {
 	function get_userdata( $user_id ) {
 		return isset( $GLOBALS['guest_digest_test']['users'][ $user_id ] ) ? (object) array( 'ID' => $user_id ) : false;
+	}
+}
+if ( ! function_exists( 'get_user_meta' ) ) {
+	function get_user_meta( $user_id, $key = '', $single = false ) {
+		unset( $single );
+		return $GLOBALS['guest_digest_test']['user_meta'][ $user_id ][ $key ] ?? '';
+	}
+}
+if ( ! function_exists( 'update_user_meta' ) ) {
+	function update_user_meta( $user_id, $key, $value ) {
+		$GLOBALS['guest_digest_test']['user_meta'][ $user_id ][ $key ] = $value;
+		++$GLOBALS['guest_digest_test']['meta_writes'];
+		return true;
+	}
+}
+if ( ! function_exists( 'delete_user_meta' ) ) {
+	function delete_user_meta( $user_id, $key ) {
+		$existed = isset( $GLOBALS['guest_digest_test']['user_meta'][ $user_id ][ $key ] );
+		unset( $GLOBALS['guest_digest_test']['user_meta'][ $user_id ][ $key ] );
+		return $existed;
+	}
+}
+if ( ! function_exists( 'get_user_by' ) ) {
+	function get_user_by( $field, $value ) {
+		unset( $field );
+		$id = $GLOBALS['guest_digest_test']['emails'][ $value ] ?? 0;
+		return $id ? (object) array( 'ID' => $id ) : false;
 	}
 }
 if ( ! function_exists( 'get_transient' ) ) {
@@ -193,6 +221,9 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 			'subscriptions' => array(),
 			'scenes'        => array(),
 			'script_queue'  => array(),
+			'user_meta'     => array(),
+			'meta_writes'   => 0,
+			'emails'        => array( 'new@example.com' => 42 ),
 		);
 		$this->resolve = new GuestDigestResolveAbility(
 			array(
@@ -331,6 +362,143 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['guest_digest_test']['ancestors'][1618] = array( 22, 1 );
 		$this->assertSame( 'invalid_email', extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'not-an-email' )->get_error_code() );
 		$this->assertSame( array(), $GLOBALS['guest_digest_test']['mail'] );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['user_meta'] );
+	}
+
+	private function add_city( string $slug, int $term_id ): void {
+		$GLOBALS['guest_digest_test']['terms'][ $slug ]     = new WP_Term( (object) array( 'term_id' => $term_id, 'name' => ucfirst( $slug ), 'slug' => $slug, 'taxonomy' => 'location' ) );
+		$GLOBALS['guest_digest_test']['ancestors'][ $term_id ] = array( 22, 1 );
+	}
+
+	public function test_request_records_pending_city_without_subscribing_or_setting_scene(): void {
+		$before = time();
+		$result = extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$this->assertSame( array( 'status' => 'check_inbox' ), $result );
+		$requests = extrachill_events_get_guest_digest_requests( 42 );
+		$this->assertSame( array( 'charleston' ), array_keys( $requests ) );
+		$this->assertGreaterThanOrEqual( $before, $requests['charleston']['requested_at'] );
+		$this->assertNull( $requests['charleston']['confirmed_at'] );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['subscriptions'] );
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['scenes'] );
+		$this->assertSame( array(), $this->track->events );
+	}
+
+	public function test_confirm_marks_the_request_confirmed_and_keeps_requested_at(): void {
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		$requested_at = extrachill_events_get_guest_digest_requests( 42 )['charleston']['requested_at'];
+
+		extrachill_events_confirm_guest_digest( $this->confirm_params() );
+
+		$entry = extrachill_events_get_guest_digest_requests( 42 )['charleston'];
+		$this->assertSame( $requested_at, $entry['requested_at'] );
+		$this->assertIsInt( $entry['confirmed_at'] );
+		$this->assertGreaterThanOrEqual( $requested_at, $entry['confirmed_at'] );
+	}
+
+	public function test_failed_confirm_leaves_the_request_pending(): void {
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		$params              = $this->confirm_params();
+		$params['signature'] = str_repeat( '0', 64 );
+
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $params ) );
+		$this->assertNull( extrachill_events_get_guest_digest_requests( 42 )['charleston']['confirmed_at'] );
+	}
+
+	public function test_repeat_request_inside_throttle_is_recorded_idempotently(): void {
+		// Seed an earlier request so a reset of requested_at would be visible.
+		$GLOBALS['guest_digest_test']['user_meta'][42]['_ec_local_scene_digest_requests'] = array(
+			'charleston' => array(
+				'requested_at' => 1000,
+				'confirmed_at' => null,
+			),
+		);
+		$GLOBALS['guest_digest_test']['transients'][ extrachill_events_guest_digest_resend_key( 42, 'charleston' ) ] = 1;
+
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['mail'] );
+		$this->assertSame( 0, $GLOBALS['guest_digest_test']['meta_writes'] );
+		$this->assertSame(
+			array(
+				'charleston' => array(
+					'requested_at' => 1000,
+					'confirmed_at' => null,
+				),
+			),
+			extrachill_events_get_guest_digest_requests( 42 )
+		);
+	}
+
+	public function test_throttled_first_request_is_still_recorded(): void {
+		$GLOBALS['guest_digest_test']['transients'][ extrachill_events_guest_digest_resend_key( 42, 'charleston' ) ] = 1;
+
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$this->assertSame( array(), $GLOBALS['guest_digest_test']['mail'] );
+		$this->assertArrayHasKey( 'charleston', extrachill_events_get_guest_digest_requests( 42 ) );
+	}
+
+	public function test_multiple_cities_are_tracked_independently(): void {
+		$this->add_city( 'austin', 2000 );
+
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		extrachill_events_guest_subscribe_local_scene_digest( 'austin', 'new@example.com' );
+		$this->assertCount( 2, $GLOBALS['guest_digest_test']['mail'] );
+
+		$url = $GLOBALS['guest_digest_test']['mail'][1]['context']['cta_url'];
+		parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $params );
+		extrachill_events_confirm_guest_digest( $params );
+
+		$requests = extrachill_events_get_guest_digest_requests( 42 );
+		$this->assertSame( array( 'charleston', 'austin' ), array_keys( $requests ) );
+		$this->assertNull( $requests['charleston']['confirmed_at'] );
+		$this->assertIsInt( $requests['austin']['confirmed_at'] );
+		$this->assertSame( 'austin', $GLOBALS['guest_digest_test']['scenes'][42] );
+	}
+
+	public function test_requests_are_bounded_dropping_the_oldest(): void {
+		$seed = array();
+		for ( $i = 0; $i < EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX; $i++ ) {
+			$seed[ 'city-' . $i ] = array(
+				'requested_at' => 1000 + $i,
+				'confirmed_at' => null,
+			);
+		}
+		$GLOBALS['guest_digest_test']['user_meta'][42]['_ec_local_scene_digest_requests'] = $seed;
+
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$requests = extrachill_events_get_guest_digest_requests( 42 );
+		$this->assertCount( EXTRACHILL_EVENTS_GUEST_DIGEST_REQUESTS_MAX, $requests );
+		$this->assertArrayHasKey( 'charleston', $requests );
+		$this->assertArrayNotHasKey( 'city-0', $requests );
+		$this->assertArrayHasKey( 'city-1', $requests );
+	}
+
+	public function test_analytics_never_carries_the_city(): void {
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		extrachill_events_confirm_guest_digest( $this->confirm_params() );
+
+		$this->assertStringNotContainsString( 'charleston', (string) wp_json_encode( $this->track->events ) );
+	}
+
+	public function test_privacy_exporter_and_eraser_cover_the_requests(): void {
+		$this->assertArrayHasKey( 'extrachill-events-guest-digest-requests', apply_filters( 'wp_privacy_personal_data_exporters', array() ) );
+		$this->assertArrayHasKey( 'extrachill-events-guest-digest-requests', apply_filters( 'wp_privacy_personal_data_erasers', array() ) );
+
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$export = extrachill_events_export_guest_digest_requests( 'new@example.com' );
+		$this->assertTrue( $export['done'] );
+		$this->assertCount( 1, $export['data'] );
+		$this->assertSame( 'charleston', $export['data'][0]['data'][0]['value'] );
+
+		$erase = extrachill_events_erase_guest_digest_requests( 'new@example.com' );
+		$this->assertTrue( $erase['items_removed'] );
+		$this->assertSame( array(), extrachill_events_get_guest_digest_requests( 42 ) );
+		$this->assertSame( array(), extrachill_events_export_guest_digest_requests( 'nobody@example.com' )['data'] );
 	}
 
 	public function test_get_confirm_page_loads_visitor_cookie_mint_without_subscribing(): void {
