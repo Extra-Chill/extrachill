@@ -78,7 +78,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
-			<?php foreach ( (array) ( $guest_rows ?? array() ) as $guest_row ) : ?>
+			<?php foreach ( (array) $guest_rows as $guest_row ) : ?>
 				<li class="ec-door-list__row">
 					<span class="ec-door-list__name"><?php echo esc_html( '' !== (string) $guest_row['guest_name'] ? (string) $guest_row['guest_name'] : __( 'Guest list pass', 'extrachill-events' ) ); ?></span>
 					<?php if ( 'redeemed' === $guest_row['status'] ) : ?>
