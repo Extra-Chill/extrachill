@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.2.1
  */
 function extrachill_docs_breadcrumb_root( $root_link ) {
-	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	$docs_blog_id = ec_get_blog_id( 'docs' );
 	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $root_link;
 	}
@@ -51,7 +51,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_docs_breadcrumb_root' );
  * @since 0.2.1
  */
 function extrachill_docs_breadcrumb_trail_homepage( $custom_trail ) {
-	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	$docs_blog_id = ec_get_blog_id( 'docs' );
 	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $custom_trail;
 	}
@@ -79,7 +79,7 @@ function extrachill_docs_breadcrumb_trail_single( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	$docs_blog_id = ec_get_blog_id( 'docs' );
 	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $custom_trail;
 	}
@@ -115,7 +115,7 @@ function extrachill_docs_breadcrumb_trail_platform( $custom_trail ) {
 		return $custom_trail;
 	}
 
-	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	$docs_blog_id = ec_get_blog_id( 'docs' );
 	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $custom_trail;
 	}
@@ -147,12 +147,12 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_docs_breadcrumb
  * @since 0.3.0
  */
 function extrachill_docs_schema_breadcrumb_items( $items ) {
-	$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+	$docs_blog_id = ec_get_blog_id( 'docs' );
 	if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 		return $items;
 	}
 
-	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → Documentation.
 	if ( is_front_page() ) {

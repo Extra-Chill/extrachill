@@ -41,9 +41,7 @@ function extrachill_docs_feedback_applies() {
  * @return string
  */
 function extrachill_docs_feedback_markup() {
-	$support_url = function_exists( 'ec_get_site_url' )
-		? trailingslashit( ec_get_site_url( 'community' ) ) . 'r/tech-support'
-		: 'https://community.extrachill.com/r/tech-support';
+	$support_url = trailingslashit( ec_get_site_url( 'community' ) ) . 'r/tech-support';
 
 	ob_start();
 	?>
