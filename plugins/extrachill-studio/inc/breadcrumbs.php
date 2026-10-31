@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.4
  */
 function extrachill_studio_breadcrumb_root( $root_link ) {
-	$studio_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'studio' ) : null;
+	$studio_blog_id = ec_get_blog_id( 'studio' );
 	if ( ! $studio_blog_id || get_current_blog_id() !== $studio_blog_id ) {
 		return $root_link;
 	}
@@ -51,7 +51,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_studio_breadcrumb_root' )
  * @since 0.1.4
  */
 function extrachill_studio_breadcrumb_trail_homepage( $custom_trail ) {
-	$studio_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'studio' ) : null;
+	$studio_blog_id = ec_get_blog_id( 'studio' );
 	if ( ! $studio_blog_id || get_current_blog_id() !== $studio_blog_id ) {
 		return $custom_trail;
 	}
@@ -80,12 +80,12 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_studio_breadcru
  * @since 0.1.4
  */
 function extrachill_studio_schema_breadcrumb_items( $items ) {
-	$studio_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'studio' ) : null;
+	$studio_blog_id = ec_get_blog_id( 'studio' );
 	if ( ! $studio_blog_id || get_current_blog_id() !== $studio_blog_id ) {
 		return $items;
 	}
 
-	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → Studio.
 	if ( is_front_page() ) {

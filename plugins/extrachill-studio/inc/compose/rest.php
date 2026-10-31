@@ -240,11 +240,8 @@ function ec_studio_compose_block_stranded_local_writes( $result, $server, $reque
 
 	// Only guard the Studio subsite. On main these routes are the correct
 	// destination, so the marker (which the proxy strips anyway) is harmless.
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		$main_blog_id = (int) ec_get_blog_id( 'main' );
-		if ( $main_blog_id > 0 && (int) get_current_blog_id() === $main_blog_id ) {
-			return $result;
-		}
+	if ( (int) get_current_blog_id() === (int) ec_get_blog_id( 'main' ) ) {
+		return $result;
 	}
 
 	// Only writes can strand content; reads are harmless.
@@ -524,14 +521,6 @@ function ec_studio_compose_create_post( \WP_REST_Request $request ) {
  * @return \WP_REST_Response|\WP_Error
  */
 function ec_studio_compose_get_post( \WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new \WP_Error(
-			'multisite_helper_missing',
-			__( 'extrachill-multisite is required for cross-site compose.', 'extrachill-studio' ),
-			array( 'status' => 500 )
-		);
-	}
-
 	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 ) {
 		return new \WP_Error(
@@ -634,14 +623,6 @@ function ec_studio_compose_update_post( \WP_REST_Request $request ) {
  * @return true|\WP_Error True when the parent remains reviewable.
  */
 function ec_studio_compose_guard_reviewable_post( int $post_id ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new \WP_Error(
-			'multisite_helper_missing',
-			__( 'extrachill-multisite is required for cross-site compose.', 'extrachill-studio' ),
-			array( 'status' => 500 )
-		);
-	}
-
 	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 ) {
 		return new \WP_Error(
@@ -775,10 +756,6 @@ function ec_studio_compose_stamp_origin_meta( $response, int $user_id ): void {
 
 	$post_id = isset( $response['id'] ) ? (int) $response['id'] : 0;
 	if ( $post_id <= 0 ) {
-		return;
-	}
-
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
 		return;
 	}
 
@@ -963,14 +940,6 @@ function ec_studio_compose_whitelist_post_params( $raw ): array {
  * @return \WP_REST_Response|\WP_Error
  */
 function ec_studio_compose_list_media( \WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new \WP_Error(
-			'multisite_helper_missing',
-			__( 'extrachill-multisite is required for cross-site media browse.', 'extrachill-studio' ),
-			array( 'status' => 500 )
-		);
-	}
-
 	$query = $request->get_query_params();
 
 	// The core-data media grid reads X-WP-Total / X-WP-TotalPages headers off
@@ -1101,14 +1070,6 @@ function ec_studio_compose_get_media_item( \WP_REST_Request $request ) {
  * @return \WP_REST_Response|\WP_Error
  */
 function ec_studio_compose_upload_media( \WP_REST_Request $request ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new \WP_Error(
-			'multisite_helper_missing',
-			__( 'extrachill-multisite is required for cross-site media upload.', 'extrachill-studio' ),
-			array( 'status' => 500 )
-		);
-	}
-
 	$files = $request->get_file_params(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- This authenticated REST route has a team-member permission callback; uploaded file fields are validated below.
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- This authenticated REST route has a team-member permission callback; uploaded file fields are validated below.
 	if ( empty( $files['file'] ) && isset( $_FILES['file'] ) ) {

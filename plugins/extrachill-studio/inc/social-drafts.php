@@ -270,7 +270,7 @@ function enqueue_social_publish( \WP_Post $post ): array {
 function social_source_attribution( int $review_post_id ) {
 	$source_post_id = (int) get_post_meta( $review_post_id, META_SOURCE_POST, true );
 	$source_url     = (string) get_post_meta( $review_post_id, META_SOURCE_URL, true );
-	$main_blog_id   = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id   = (int) ec_get_blog_id( 'main' );
 
 	if ( $source_post_id <= 0 && '' === $source_url ) {
 		return null;
@@ -348,7 +348,7 @@ function social_asset_refs( int $post_id ) {
 
 /** Resolve a pre-sourceId main-library image URL. */
 function resolve_legacy_social_asset( string $url ): string {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 || '' === $url ) {
 		return '';
 	}
