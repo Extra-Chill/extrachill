@@ -264,14 +264,52 @@ final class RsvpGuestListFakeWpdb {
 				'checked_in' => (string) $checked_in,
 			);
 		}
+		if ( preg_match( "/WHERE code = '([^']+)'/", $query, $match ) ) {
+			foreach ( $this->rows as $row ) {
+				if ( $row['code'] === $match[1] ) {
+					return $row;
+				}
+			}
+			return null;
+		}
 		if ( preg_match( '/WHERE event_id = (\d+) AND user_id = (\d+)/', $query, $match ) ) {
 			foreach ( $this->rows as $row ) {
-				if ( (int) $row['event_id'] === (int) $match[1] && (int) $row['user_id'] === (int) $match[2] ) {
+				if ( (int) $row['event_id'] === (int) $match[1] && isset( $row['user_id'] ) && (int) $row['user_id'] === (int) $match[2] ) {
 					return $row;
 				}
 			}
 		}
 		return null;
+	}
+
+	public function get_results( $query, $output = null ) {
+		unset( $output );
+		if ( preg_match( '/WHERE event_id = (\d+) AND user_id IS NULL/', $query, $match ) ) {
+			return array_values(
+				array_filter(
+					$this->rows,
+					static function ( $row ) use ( $match ) {
+						return (int) $row['event_id'] === (int) $match[1] && ! isset( $row['user_id'] );
+					}
+				)
+			);
+		}
+		return array();
+	}
+
+	public function query( $query ) {
+		// Redeem compare-and-set: UPDATE ... WHERE id = N AND status = 'active'.
+		if ( preg_match( "/SET status = '(\w+)', redeemed_at = '([^']+)', redeemed_by_user_id = (\d+).*WHERE id = (\d+) AND status = '(\w+)'/", $query, $m ) ) {
+			foreach ( $this->rows as $index => $row ) {
+				if ( (int) $row['id'] === (int) $m[4] && $row['status'] === $m[5] ) {
+					$this->rows[ $index ]['status']              = $m[1];
+					$this->rows[ $index ]['redeemed_at']         = $m[2];
+					$this->rows[ $index ]['redeemed_by_user_id'] = (int) $m[3];
+					return 1;
+				}
+			}
+		}
+		return 0;
 	}
 
 	/** Seed a pass row directly. */
@@ -514,5 +552,63 @@ final class RsvpGuestListTest extends PHPUnit\Framework\TestCase {
 
 		extrachill_events_set_perk_capacity( self::EVENT_ID, 0 );
 		$this->assertNull( extrachill_events_get_guest_list_counts( self::EVENT_ID )['spots_left'] );
+	}
+
+	public function test_guest_list_pass_needs_name_and_password_only(): void {
+		$this->assertSame( 'guest_name_required', extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, '  ' )->get_error_code() );
+		$this->assertSame( 'invalid_password', extrachill_events_issue_guest_list_pass( self::EVENT_ID, 'nope', 'Sarah' )->get_error_code() );
+		$this->assertSame( array(), $this->db->rows, 'Rejected requests leave no trace.' );
+
+		$pass = extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah' );
+
+		$this->assertSame( 'Sarah', $pass['name'] );
+		$this->assertMatchesRegularExpression( '/^[A-Z2-9]{5}-[A-Z2-9]{5}-[A-Z2-9]{5}$/', $pass['code'] );
+		$this->assertFalse( $pass['emailed'] );
+		$this->assertSame( 1, $pass['spots_left'] );
+		$this->assertArrayNotHasKey( 'user_id', $this->db->rows[0], 'No account is attached.' );
+		$this->assertSame( 'Sarah', $this->db->rows[0]['guest_name'] );
+		$this->assertSame( array(), $this->ability->calls, 'No account is resolved or created.' );
+		$this->assertSame( array(), $GLOBALS['rsvp_pass_mail_test']['sent'] );
+	}
+
+	public function test_guest_list_passes_stop_at_capacity_under_the_lock(): void {
+		extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'A' );
+		extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'B' );
+
+		$this->assertSame( 'guest_list_full', extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'C' )->get_error_code() );
+		$this->assertCount( 2, $this->db->rows );
+		$this->assertSame( array( 'get', 'release', 'get', 'release', 'get', 'release' ), $this->db->lock_calls );
+
+		$this->db->lock_available = false;
+		$this->db->rows           = array();
+		$this->assertSame( 'guest_list_full', extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'D' )->get_error_code(), 'Fails closed without the lock.' );
+	}
+
+	public function test_guest_list_pass_requires_a_gated_list(): void {
+		extrachill_events_set_perk_password( self::EVENT_ID, '' );
+
+		$this->assertSame( 'guest_list_unavailable', extrachill_events_issue_guest_list_pass( self::EVENT_ID, '', 'Sarah' )->get_error_code() );
+	}
+
+	public function test_guest_list_pass_rejects_a_bad_optional_email(): void {
+		$this->assertSame( 'invalid_email', extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah', 'not-an-email' )->get_error_code() );
+		$this->assertSame( array(), $this->db->rows );
+	}
+
+	public function test_guest_list_pass_redeems_once_by_code_on_its_own_event(): void {
+		$pass = extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah' );
+
+		$this->assertSame( 'rsvp_pass_not_found', RsvpPassesTable::redeem_by_code( 999, $pass['code'], 38 )->get_error_code() );
+
+		$first = RsvpPassesTable::redeem_by_code( self::EVENT_ID, $pass['code'], 38 );
+		$this->assertFalse( $first['already_redeemed'] );
+		$this->assertSame( 38, $first['redeemed_by_user_id'] );
+
+		$this->assertTrue( RsvpPassesTable::redeem_by_code( self::EVENT_ID, $pass['code'], 38 )['already_redeemed'] );
+		$this->assertSame( 1, extrachill_events_get_guest_list_counts( self::EVENT_ID )['checked_in'] );
+
+		$guests = RsvpPassesTable::list_guest_passes( self::EVENT_ID );
+		$this->assertCount( 1, $guests );
+		$this->assertSame( 'redeemed', $guests[0]['status'] );
 	}
 }

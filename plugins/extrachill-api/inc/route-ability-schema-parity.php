@@ -305,6 +305,13 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
 			),
 		),
+		'/extrachill/v1/events/(?P<id>\d+)/guest-list-pass|extrachill/issue-guest-list-pass' => array(
+			'ability_only'   => array( 'event_id' => 'The public path ID is translated to the canonical ability field.' ),
+			'transport_only' => array(
+				'id'                 => 'Public path alias translated to event_id.',
+				'turnstile_response' => 'Turnstile and public-write admission are completed before ability execution.',
+			),
+		),
 		'/extrachill/v1/events/(?P<id>\d+)/claim-pass|extrachill/claim-event-pass' => array(
 			'ability_only'   => array( 'event_id' => 'The public path ID is translated to the canonical ability field.' ),
 			'transport_only' => array( 'id' => 'Public path alias translated to event_id.' ),

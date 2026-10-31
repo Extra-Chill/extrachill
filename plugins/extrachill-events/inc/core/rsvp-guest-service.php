@@ -349,3 +349,132 @@ function extrachill_events_guest_rsvp_start_resend_window( int $event_id, int $u
 		set_transient( extrachill_events_guest_rsvp_resend_key( $event_id, $user_id ), 1, $window );
 	}
 }
+
+/**
+ * Issue a guest list pass for the password alone (extrachill#433).
+ *
+ * The /guest-list page flow: no account, no required email. The password is
+ * the gate and the capacity is the bound; the returned code is a bearer
+ * token the guest keeps on their phone and shows at the door. An email is
+ * optional and only used to send a copy of the pass.
+ *
+ * Only password-gated events issue account-less passes; an open perk keeps
+ * the RSVP flow, where the pass is tied to the attendee.
+ *
+ * @param int    $event_id Event post ID.
+ * @param string $password Guest list password.
+ * @param string $name     Guest's name, shown to the door at check-in.
+ * @param string $email    Optional address to send a copy to.
+ * @return array|WP_Error `{ code, name, qr_url, perk_text, emailed, spots_left }` or an error.
+ */
+function extrachill_events_issue_guest_list_pass( int $event_id, string $password, string $name, string $email = '' ) {
+	$post = get_post( $event_id );
+	if ( ! $post || 'data_machine_events' !== $post->post_type || 'publish' !== $post->post_status ) {
+		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
+	}
+
+	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_perk_password_required( $event_id ) ) {
+		return new WP_Error( 'guest_list_unavailable', __( 'This event has no guest list.', 'extrachill-events' ), array( 'status' => 403 ) );
+	}
+
+	if ( function_exists( 'ec_users_get_event_timing' ) && 'past' === ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) ) {
+		return new WP_Error( 'guest_rsvp_closed', __( 'This event has already happened.', 'extrachill-events' ), array( 'status' => 410 ) );
+	}
+
+	$name = trim( sanitize_text_field( $name ) );
+	if ( '' === $name ) {
+		return new WP_Error( 'guest_name_required', __( 'Enter your name.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+	$name = function_exists( 'mb_substr' ) ? mb_substr( $name, 0, 100 ) : substr( $name, 0, 100 );
+
+	$email = '' === $email ? '' : sanitize_email( $email );
+	if ( '' !== $email && ! is_email( $email ) ) {
+		return new WP_Error( 'invalid_email', __( 'Enter a valid email address, or leave it blank.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
+		return extrachill_events_guest_list_password_error();
+	}
+
+	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+		return new WP_Error( 'guest_list_unavailable', __( 'The guest list is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
+
+	$capacity = extrachill_events_get_perk_capacity( $event_id );
+	$pass     = \ExtraChillEvents\Core\RsvpPassesTable::issue_anonymous( $event_id, $capacity, $name );
+	if ( ! $pass ) {
+		return extrachill_events_guest_list_full_error();
+	}
+
+	if ( $capacity > 0 && function_exists( 'extrachill_cache_purge_post' ) ) {
+		extrachill_cache_purge_post( $event_id );
+	}
+
+	$code    = (string) $pass['code'];
+	$emailed = '' !== $email && extrachill_events_send_guest_list_pass_email( $event_id, $email, $code, $name );
+	$counts  = extrachill_events_get_guest_list_counts( $event_id );
+
+	return array(
+		'code'       => $code,
+		'name'       => $name,
+		'qr_url'     => function_exists( 'extrachill_events_rsvp_pass_qr_url' ) ? extrachill_events_rsvp_pass_qr_url( $code ) : '',
+		'perk_text'  => extrachill_events_get_perk_text( $event_id ),
+		'emailed'    => $emailed,
+		'spots_left' => isset( $counts['spots_left'] ) ? (int) $counts['spots_left'] : null,
+	);
+}
+
+/**
+ * Email a copy of an account-less guest list pass.
+ *
+ * Same branded template and body as the RSVP pass email, addressed to the
+ * email the guest typed. Nothing is stored about the address.
+ *
+ * @param int    $event_id Event post ID.
+ * @param string $email    Recipient.
+ * @param string $code     Pass code.
+ * @param string $name     Guest name.
+ * @return bool Whether the email was queued.
+ */
+function extrachill_events_send_guest_list_pass_email( int $event_id, string $email, string $code, string $name = '' ): bool {
+	$post = get_post( $event_id );
+	if ( ! $post || ! function_exists( 'ec_send_email_queued' ) ) {
+		return false;
+	}
+
+	$result = ec_send_email_queued(
+		array(
+			'to'        => $email,
+			/* translators: %s: Event title. */
+			'subject'   => sprintf( __( 'Your guest list pass for %s', 'extrachill-events' ), extrachill_events_rsvp_pass_event_title( $post ) ),
+			'from_name' => 'Extra Chill Events',
+			'template'  => 'extrachill/branded',
+			'context'   => array(
+				'body_html'      => extrachill_events_render_rsvp_pass_email_body( $post, extrachill_events_get_perk_text( $event_id ), $code ),
+				'recipient_name' => $name,
+				'cta_url'        => add_query_arg(
+					array(
+						'pass' => rawurlencode( $code ),
+						'name' => rawurlencode( $name ),
+					),
+					extrachill_events_guest_list_url( $event_id )
+				),
+				'cta_label'      => __( 'Open my pass', 'extrachill-events' ),
+			),
+		)
+	);
+
+	$queued = extrachill_events_rsvp_pass_email_queued( $result );
+	if ( ! $queued ) {
+		do_action(
+			'datamachine_log',
+			'error',
+			'Guest list pass email was not queued',
+			array(
+				'event_id'   => $event_id,
+				'error_code' => (string) ( $result['error_code'] ?? '' ),
+			)
+		);
+	}
+	return $queued;
+}

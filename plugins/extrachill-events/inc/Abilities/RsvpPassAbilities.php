@@ -137,10 +137,14 @@ class RsvpPassAbilities {
 						),
 						'user_id'  => array(
 							'type'        => 'integer',
-							'description' => __( 'Attendee user ID.', 'extrachill-events' ),
+							'description' => __( 'Attendee user ID. Give this or code.', 'extrachill-events' ),
+						),
+						'code'     => array(
+							'type'        => 'string',
+							'description' => __( 'Pass code, for guest list passes that belong to no account. Give this or user_id.', 'extrachill-events' ),
 						),
 					),
-					'required'   => array( 'event_id', 'user_id' ),
+					'required'   => array( 'event_id' ),
 				),
 				'output_schema'       => array(
 					'type'       => 'object',
@@ -263,6 +267,77 @@ class RsvpPassAbilities {
 					),
 				),
 			)
+		);
+
+		wp_register_ability(
+			'extrachill/issue-guest-list-pass',
+			array(
+				'label'               => __( 'Issue Guest List Pass', 'extrachill-events' ),
+				'description'         => __( 'Issue a guest list pass for the guest list password alone, with no account. Optionally emails a copy. Used by the event\'s /guest-list page.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'password' => array(
+							'type'        => 'string',
+							'description' => __( 'Guest list password.', 'extrachill-events' ),
+						),
+						'name'     => array(
+							'type'        => 'string',
+							'description' => __( 'Guest name, shown to the door at check-in.', 'extrachill-events' ),
+						),
+						'email'    => array(
+							'type'        => 'string',
+							'description' => __( 'Optional address to email a copy of the pass to.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'password', 'name' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'code'       => array( 'type' => 'string' ),
+						'name'       => array( 'type' => 'string' ),
+						'qr_url'     => array( 'type' => 'string' ),
+						'perk_text'  => array( 'type' => 'string' ),
+						'emailed'    => array( 'type' => 'boolean' ),
+						'spots_left' => array( 'type' => array( 'integer', 'null' ) ),
+					),
+				),
+				'execute_callback'    => array( $this, 'issue_guest_list_pass' ),
+				// Public by design: the guest list password is the gate, checked
+				// inside. The only public write boundary is extrachill-api's
+				// guest-list-pass route (Turnstile + shared rate limit).
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => false,
+						'destructive'  => false,
+						'instructions' => __( 'Each call issues a new pass and uses a spot. Wrong passwords return invalid_password; a full list returns guest_list_full.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Issue an account-less guest list pass.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function issue_guest_list_pass( array $input ) {
+		return extrachill_events_issue_guest_list_pass(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['password'] ?? '' ),
+			(string) ( $input['name'] ?? '' ),
+			(string) ( $input['email'] ?? '' )
 		);
 	}
 
@@ -388,7 +463,16 @@ class RsvpPassAbilities {
 	 */
 	public function redeem_event_pass( array $input ) {
 		$event_id = (int) $input['event_id'];
-		$user_id  = (int) $input['user_id'];
+		$code     = trim( (string) ( $input['code'] ?? '' ) );
+
+		if ( '' !== $code ) {
+			return RsvpPassesTable::redeem_by_code( $event_id, $code, get_current_user_id() );
+		}
+
+		$user_id = (int) ( $input['user_id'] ?? 0 );
+		if ( $user_id <= 0 ) {
+			return new \WP_Error( 'rsvp_pass_not_found', __( 'Give a user_id or a pass code.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
 
 		return RsvpPassesTable::redeem( $event_id, $user_id, get_current_user_id() );
 	}
