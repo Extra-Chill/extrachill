@@ -2,7 +2,13 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "local_workspace_dependencies": [
+          { "name": "@extrachill/components", "path": "../../packages/components" }
+        ]
+      }
+    }
   },
   "id": "extrachill-seo",
   "remote_path": "wp-content/plugins/extrachill-seo",

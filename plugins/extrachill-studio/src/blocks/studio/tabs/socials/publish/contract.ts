@@ -39,11 +39,6 @@ export interface ComposerContract {
 
 export interface ComposerPlatformConfig extends SocialPlatformConfig {
 	composer: ComposerContract | null;
-	preview?: {
-		aspectRatio?: string;
-		captionPosition?: 'above' | 'below' | 'overlay';
-		previewSurface?: string;
-	};
 }
 
 export interface ComposerRequest {
