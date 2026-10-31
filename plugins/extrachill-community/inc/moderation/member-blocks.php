@@ -94,6 +94,29 @@ function extrachill_community_member_has_blocked( $user_id, $author_id ) {
 }
 
 /**
+ * Drop notification recipients who have blocked the acting member.
+ *
+ * Shared gate for every community notification producer (replies, mentions,
+ * topic subscriptions, entity topic subscriptions): a member who blocked the
+ * actor never receives a notification caused by that actor. Order and
+ * duplicates are preserved so recipient shaping is otherwise unchanged.
+ *
+ * @param int[] $recipient_ids Candidate recipient user IDs.
+ * @param int   $actor_id      Member whose action triggers the notification.
+ * @return int[]
+ */
+function extrachill_community_filter_member_blocked_recipients( array $recipient_ids, $actor_id ) {
+	return array_values(
+		array_filter(
+			$recipient_ids,
+			static function ( $recipient_id ) use ( $actor_id ) {
+				return ! extrachill_community_member_has_blocked( (int) $recipient_id, $actor_id );
+			}
+		)
+	);
+}
+
+/**
  * Member IDs blocked by the current viewer (empty for anonymous viewers).
  *
  * @return int[]

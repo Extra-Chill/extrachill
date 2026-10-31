@@ -36,8 +36,14 @@ function extrachill_capture_reply_notifications($reply_id, $topic_id, $forum_id,
 
 	// Get topic author and topic data
 	$topic_author = (int) get_post_field('post_author', $topic_id);
-	$topic_title  = get_the_title($topic_id);
-	$reply_link   = bbp_get_reply_url($reply_id);
+
+	// Topic authors who blocked the replier are not notified.
+	if ( extrachill_community_member_has_blocked( $topic_author, $reply_author ) ) {
+		return;
+	}
+
+	$topic_title = get_the_title($topic_id);
+	$reply_link  = bbp_get_reply_url($reply_id);
 
 	// Send reply notification (mention handler will deduplicate if needed).
 	ec_users_notify_with_receipts(

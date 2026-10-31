@@ -46,6 +46,9 @@
     "tests/member-blocks-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/member-block-notifications-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/notification-receipts-smoke.php": {
       "environment": "standalone-php"
     },
