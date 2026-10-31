@@ -118,6 +118,7 @@ function parity_seed() {
 		$inserted = wp_insert_post( array( 'import_id' => $id, 'post_author' => $owner[2], 'post_type' => 'artist_profile', 'post_status' => 'publish', 'post_title' => $owner[0], 'post_name' => $owner[1] ), true );
 		parity_assert( $id === $inserted, 'Owner profile import ID mismatch.' );
 	}
+	global $wpdb;
 	$modified = '2025-02-03 04:05:06';
 	foreach ( array( 200 => array( 'proof-one', 100, $owner_users[0] ), 201 => array( 'proof-two', 101, $owner_users[1] ) ) as $id => $page ) {
 		$inserted = wp_insert_post(
@@ -129,6 +130,19 @@ function parity_seed() {
 			true
 		);
 		parity_assert( $id === $inserted, 'Link Page import ID mismatch.' );
+		// Core ignores supplied modified timestamps on insert (using post_date)
+		// and rewrites them on update. Seed the historical values directly so
+		// assert-applied tests migration fidelity, not unsupported insert input.
+		$updated = $wpdb->update(
+			$wpdb->posts,
+			array( 'post_modified' => $modified, 'post_modified_gmt' => $modified ),
+			array( 'ID' => $id ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+		parity_assert( false !== $updated, 'Link Page timestamp seed failed.' );
+		clean_post_cache( $id );
+		parity_assert( $modified === get_post( $id )->post_modified && $modified === get_post( $id )->post_modified_gmt, 'Source Link Page timestamp seed mismatch.' );
 		add_post_meta( $id, EC_LINK_PAGE_OWNER_META_KEY, 'post:' . get_current_blog_id() . ':artist_profile:' . $page[1] );
 		add_post_meta( $id, '_associated_artist_profile_id', $page[1] );
 		add_post_meta( $page[1], '_extrch_link_page_id', $id );
@@ -137,7 +151,6 @@ function parity_seed() {
 	parity_attachment( 301, 100, 'external.jpg', $owner_users[0] );
 	update_post_meta( 200, '_link_page_background_image_id', 300 );
 	update_post_meta( 100, '_thumbnail_id', 301 );
-	global $wpdb;
 	$wpdb->insert( $wpdb->postmeta, array( 'post_id' => 200, 'meta_key' => '_raw_duplicate', 'meta_value' => 'slashes\\and"quotes' ) );
 	$wpdb->insert( $wpdb->postmeta, array( 'post_id' => 200, 'meta_key' => '_raw_duplicate', 'meta_value' => 'a:1:{s:3:"raw";s:4:"test";}' ) );
 	extrachill_analytics_link_page_create_table();
@@ -168,7 +181,7 @@ function parity_assert_applied() {
 	switch_to_blog( 13 );
 	foreach ( array( 200 => array( 'proof-one', 100 ), 201 => array( 'proof-two', 101 ) ) as $id => $expected ) {
 		$post = get_post( $id );
-		parity_assert( $post && 'publish' === $post->post_status && $expected[0] === $post->post_name && '2025-02-03 04:05:06' === $post->post_modified, 'Destination Link Page fields mismatch.' );
+		parity_assert( $post && 'publish' === $post->post_status && $expected[0] === $post->post_name && '2025-02-03 04:05:06' === $post->post_modified && '2025-02-03 04:05:06' === $post->post_modified_gmt, 'Destination Link Page fields mismatch.' );
 		parity_assert( 'post:4:artist_profile:' . $expected[1] === get_post_meta( $id, EC_LINK_PAGE_OWNER_META_KEY, true ), 'Canonical owner binding mismatch.' );
 	}
 	parity_assert( 200 === (int) get_post( 300 )->post_parent && 0 === (int) get_post( 301 )->post_parent, 'Attachment parent map mismatch.' );
