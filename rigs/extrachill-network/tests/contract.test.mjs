@@ -440,3 +440,13 @@ try {
   delete process.env.HOMEBOY_ARTIFACT_ROOT;
   await rm(temporary, { recursive: true, force: true });
 }
+
+// Runtime workers: default 4, validated overrides.
+{
+  const { runtimeWorkers } = await import('../run.mjs');
+  assert.equal(runtimeWorkers({}), 4);
+  assert.equal(runtimeWorkers({ extrachill_runtime_workers: 1 }), 1);
+  assert.equal(runtimeWorkers({ extrachill_runtime_workers: 'auto' }), 'auto');
+  assert.throws(() => runtimeWorkers({ extrachill_runtime_workers: 0 }), /integer from 1 to 64/);
+  assert.throws(() => runtimeWorkers({ extrachill_runtime_workers: '4' }), /integer from 1 to 64/);
+}
