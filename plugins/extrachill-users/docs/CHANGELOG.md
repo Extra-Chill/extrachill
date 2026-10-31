@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.57.1] - 2026-10-31
+
+### Changed
+- run PHPUnit in monorepo CI
+- consume in-tree @extrachill packages via local_workspace_dependencies
+
 ## [0.57.0] - 2026-10-31
 
 ### Added
