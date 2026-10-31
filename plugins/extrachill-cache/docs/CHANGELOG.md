@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.3.10] - 2026-10-31
+
+### Fixed
+- make drop-in refresh atomic and skip when current on disk
+
 ## [0.3.9] - 2026-10-29
 
 ### Fixed
