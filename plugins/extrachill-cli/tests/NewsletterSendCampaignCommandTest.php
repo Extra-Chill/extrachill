@@ -6,9 +6,13 @@
  */
 
 namespace WP_CLI\Utils {
-	function format_items( $format, $items, $fields ) {
-		\WP_CLI::$messages[] = 'TABLE:' . implode( ',', array_column( $items, 'ID' ) );
-		unset( $format, $fields );
+	// Declared conditionally (at runtime, not compile time) so PHPUnit discovery
+	// under a real WP-CLI bootstrap does not hit "Cannot redeclare".
+	if ( ! function_exists( __NAMESPACE__ . '\\format_items' ) ) {
+		function format_items( $format, $items, $fields ) {
+			\WP_CLI::$messages[] = 'TABLE:' . implode( ',', array_column( $items, 'ID' ) );
+			unset( $format, $fields );
+		}
 	}
 }
 
