@@ -87,11 +87,6 @@
       "local_path": ""
     },
     {
-      "id": "data-machine-editor",
-      "remote_path": "wp-content/plugins/data-machine-editor",
-      "local_path": ""
-    },
-    {
       "id": "data-machine-events",
       "remote_path": "wp-content/plugins/data-machine-events",
       "local_path": ""
