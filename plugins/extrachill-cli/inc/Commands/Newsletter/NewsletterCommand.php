@@ -274,7 +274,7 @@ class NewsletterCommand {
 
 		$all_lists = ! empty( $assoc_args['all-lists'] );
 		$lists     = $this->parse_id_list( $assoc_args['lists'] ?? '' );
-		if ( $all_lists === ! empty( $lists ) ) {
+		if ( ! empty( $lists ) === $all_lists ) {
 			WP_CLI::error( 'Pass either --lists or --all-lists.' );
 		}
 
@@ -340,7 +340,13 @@ class NewsletterCommand {
 	 */
 	private function parse_id_list( $value ) {
 		$ids = array_map( 'trim', explode( ',', (string) $value ) );
-		return array_values( array_unique( array_filter( $ids, 'strlen' ) ) );
+		$ids = array_filter(
+			$ids,
+			static function ( $id ) {
+				return '' !== $id;
+			}
+		);
+		return array_values( array_unique( $ids ) );
 	}
 
 	/**
@@ -351,7 +357,7 @@ class NewsletterCommand {
 	 */
 	private function render_send_result( array $result, $format ) {
 		if ( 'json' === $format ) {
-			WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
 			return;
 		}
 
