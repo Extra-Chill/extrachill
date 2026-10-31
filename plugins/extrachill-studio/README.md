@@ -165,7 +165,6 @@ See [open Studio issues](https://github.com/Extra-Chill/extrachill-studio/issues
 - [extrachill-network](https://github.com/Extra-Chill/extrachill) — multisite and cross-site foundations
 - [data-machine](https://github.com/Extra-Chill/data-machine) — automation, pending actions, jobs, email, and abilities
 - [data-machine-socials](https://github.com/Extra-Chill/data-machine-socials) — social platform operations
-- [data-machine-editor](https://github.com/Extra-Chill/data-machine-editor) — inline editing and diff review
 - [extrachill-components](https://github.com/Extra-Chill/extrachill-components) — shared interface components
 
 ## License

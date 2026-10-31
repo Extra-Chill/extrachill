@@ -84,7 +84,6 @@ Package-specific properties prefixed with `--ec-` remain consumer overrides and 
 - `extrachill-events` - Event and venue tools
 - `extrachill-seo` - SEO tools
 - `extrachill-studio` - Team collaboration workspace
-- `data-machine-editor` - Editorial diff tools
 
 ## License
 
