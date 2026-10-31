@@ -256,6 +256,14 @@ final class RuntimeApiContractTest extends TestCase {
 				'total'    => 1,
 				'required' => 1,
 			),
+			'ec_link_page_migration_participant_registry'      => array(
+				'total'    => 0,
+				'required' => 0,
+			),
+			'ec_register_link_page_migration_participant'      => array(
+				'total'    => 4,
+				'required' => 3,
+			),
 			'ec_link_page_post_type'                           => array(
 				'total'    => 1,
 				'required' => 0,

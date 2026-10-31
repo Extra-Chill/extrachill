@@ -18,7 +18,7 @@ $templates = ExtraChillArtistPlatform_PageTemplates::instance();
 The system integrates with WordPress template hierarchy:
 
 - **Artist Profiles**: `archive-artist_profile.php`, `single-artist_profile.php`
-- **Link Pages**: `single-artist_link_page.php` via custom routing
+- **Link Pages**: rendered by the `extrachill-link-pages` runtime; Artist Platform supplies component templates and projection data
 - **Management Pages**: WordPress pages that mount Gutenberg blocks (see `extrachill_artist_platform_create_pages()` in `extrachill-artist-platform.php`).
 
 ### Template Locations
@@ -32,12 +32,10 @@ inc/artist-profiles/frontend/templates/
 ├── artist-card.php
 
 inc/link-pages/live/templates/
-├── single-artist_link_page.php
-├── extrch-link-page-template.php
+├── components/
 ├── subscribe-inline-form.php
 ├── subscribe-modal.php
-├── extrch-share-modal.php
-└── link-page-head.php
+└── extrch-share-modal.php
 
 inc/link-pages/management/templates/
 └── components/

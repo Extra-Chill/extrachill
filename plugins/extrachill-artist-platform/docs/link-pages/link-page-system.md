@@ -154,7 +154,7 @@ Background types:
 
 ### Template Rendering
 
-Location: `inc/link-pages/live/templates/single-artist_link_page.php`
+Location: rendered by the `extrachill-link-pages` runtime (`templates/single-link-page.php`), fed by Artist Platform's public projection adapter (`inc/link-pages/artist-public-runtime-adapter.php`)
 
 Features:
 - Responsive design
@@ -191,7 +191,7 @@ extract($data);
 ### Link Expiration
 
 Location: `src/blocks/link-page-editor/components/tabs/TabAdvanced.js` (editor UI)
-Backend: Cron-based implementation at `inc/core/actions/link-expiration-cron.php`
+Backend: cron cleanup owned by the `extrachill-link-pages` runtime (`ec_cleanup_expired_link_page_links()`)
 
 Features:
 - Time-based link scheduling

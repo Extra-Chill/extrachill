@@ -14,7 +14,7 @@ Features:
 - Bulk expiration management
 - Expiration notifications via Gutenberg block editor interface
 
-**Backend Implementation**: `inc/core/actions/link-expiration-cron.php`
+**Backend Implementation**: owned by the `extrachill-link-pages` runtime (`ec_cleanup_expired_link_page_links()`)
 - Scheduled WordPress cron job runs daily
 - Automatically deactivates expired links based on configured dates
 - Can be manually triggered via action hook

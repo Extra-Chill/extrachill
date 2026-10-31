@@ -1,56 +1,37 @@
 <?php
 /**
- * Coordinate the bundled and standalone Link Pages runtimes.
+ * Attach Artist Platform to the Extra Chill Link Pages runtime.
+ *
+ * extrachill-link-pages is the only provider of the generic ec_*link_page*
+ * API. Artist Platform declares it as a hard dependency (Requires Plugins) and
+ * carries no copy of its own. This file validates the runtime contract Artist
+ * Platform consumes and registers the artist adapters into it. When the
+ * runtime is missing or incompatible, the adapters are skipped and an admin
+ * notice explains why.
  *
  * @package ExtraChillArtistPlatform
  */
 
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Return whether WordPress is configured to load the standalone runtime.
- *
- * This reads configuration instead of runtime symbols because Artist Platform
- * loads before the standalone plugin in the normal plugin load order.
- *
- * @return bool
- */
-function extrachill_artist_platform_uses_external_link_pages_runtime() {
-	$plugin         = 'extrachill-link-pages/extrachill-link-pages.php';
-	$active_plugins = (array) get_option( 'active_plugins', array() );
-	if ( in_array( $plugin, $active_plugins, true ) ) {
-		return true;
-	}
-
-	$network_active = (array) get_site_option( 'active_sitewide_plugins', array() );
-	return isset( $network_active[ $plugin ] );
-}
-
-if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-	if ( ! defined( 'EC_LINK_PAGE_POST_TYPE' ) ) {
-		define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
-	}
-	if ( ! defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
-		define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
-	}
-}
+/** Unregistered post type used when the Link Pages runtime is unavailable. */
+const EXTRACHILL_ARTIST_PLATFORM_NO_LINK_PAGE_POST_TYPE = 'ec_link_page_missing';
 
 /**
  * Resolve the Link Page post type at the point of use.
  *
- * Every consumer in this plugin calls this instead of the legacy
- * 'artist_link_page' literal. It is deliberately never memoized: the
- * generic runtime resolves the post type from the current storage blog,
- * and the storage blog can change mid-request (migration dry runs,
- * a gate flip). Bundled mode never declares the generic resolver, so it
- * always falls through to the legacy literal it defines for itself above.
- * This is the only place in this plugin the legacy literal may appear
- * as a fallback.
+ * Every consumer in this plugin calls this instead of a post type literal. It
+ * is deliberately never memoized: the runtime resolves the post type from the
+ * current storage blog, and the storage blog can change mid-request
+ * (migration dry runs, a gate flip). Without the runtime there is no Link
+ * Page post type, so this returns an unregistered sentinel that matches no
+ * post. An empty string would not: WP_Query treats an empty post_type as
+ * 'post'.
  *
  * @return string
  */
 function extrachill_artist_platform_link_page_post_type() {
-	return function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+	return function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : EXTRACHILL_ARTIST_PLATFORM_NO_LINK_PAGE_POST_TYPE;
 }
 
 /**
@@ -288,7 +269,24 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 			'total'    => 4,
 			'required' => 3,
 		),
+		'ec_link_page_post_type'                           => array(
+			'total'    => 1,
+			'required' => 0,
+		),
 	);
+}
+
+/**
+ * Read one of the runtime's contract constants at run time.
+ *
+ * The constants are the contract being validated, so their values must come
+ * from the loaded runtime rather than be folded in by static analysis.
+ *
+ * @param string $name Constant name.
+ * @return mixed Constant value, or null when undefined.
+ */
+function extrachill_artist_platform_link_pages_runtime_constant( $name ) {
+	return defined( $name ) ? constant( $name ) : null;
 }
 
 /**
@@ -297,64 +295,53 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
  * @return true|WP_Error
  */
 function extrachill_artist_platform_validate_link_pages_runtime() {
-	$external = extrachill_artist_platform_uses_external_link_pages_runtime();
-	if ( ! defined( 'EC_LINK_PAGE_POST_TYPE' ) || ! defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
-		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not load its complete generic API.' );
+	if ( ! defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_missing', 'Extra Chill Artist Platform requires the Extra Chill Link Pages plugin. Activate extrachill-link-pages to enable artist Link Pages.' );
 	}
-	// @phpstan-ignore phpstan.notIdentical.alwaysFalse (contract validation: the comparison must stay so an incompatible runtime is still rejected.)
-	if ( '_ec_link_page_owner_reference' !== EC_LINK_PAGE_OWNER_META_KEY ) {
-		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime uses an incompatible storage contract.' );
+	if ( '_ec_link_page_owner_reference' !== extrachill_artist_platform_link_pages_runtime_constant( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime uses an incompatible storage contract.' );
 	}
-	if ( $external && ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
-		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not declare its API version.' );
+	if ( ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime did not declare its API version.' );
 	}
-	if ( $external && ! in_array( EC_LINK_PAGES_RUNTIME_API_VERSION, array( '3', '4' ), true ) ) {
-		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime API version is not supported.' );
+	if ( '4' !== extrachill_artist_platform_link_pages_runtime_constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime API version is not supported.' );
 	}
-	if ( $external && '4' === EC_LINK_PAGES_RUNTIME_API_VERSION && ! function_exists( 'ec_link_page_post_type' ) ) {
-		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not expose its post type resolver.' );
+	if ( ! function_exists( 'ec_link_page_post_type' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime did not expose its post type resolver.' );
 	}
-	if ( $external ) {
-		if ( ! function_exists( 'ec_validate_link_pages_runtime' ) ) {
-			return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not expose complete readiness validation.' );
-		}
-		$standalone_valid = ec_validate_link_pages_runtime();
-		if ( is_wp_error( $standalone_valid ) ) {
-			return new WP_Error( 'extrachill_link_pages_runtime_incompatible', $standalone_valid->get_error_message(), array( 'cause' => $standalone_valid->get_error_code() ) );
-		}
+	if ( ! function_exists( 'ec_validate_link_pages_runtime' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime did not expose complete readiness validation.' );
+	}
+	$standalone_valid = ec_validate_link_pages_runtime();
+	if ( is_wp_error( $standalone_valid ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', $standalone_valid->get_error_message(), array( 'cause' => $standalone_valid->get_error_code() ) );
 	}
 
-	$signatures = extrachill_artist_platform_link_pages_runtime_signatures();
-	if ( ! $external ) {
-		$signatures = array_diff_key( $signatures, array_flip( array( 'ec_link_page_migration_participant_registry', 'ec_register_link_page_migration_participant', 'ec_can_register_link_page_owner_compatibility_provider', 'ec_can_register_link_page_operation_provider', 'ec_save_link_page_persistence_composed', 'ec_provision_owned_link_page', 'ec_provision_owned_link_page_composed', 'ec_invoke_link_page_provision_precondition', 'ec_create_owned_link_page_unlocked', 'ec_can_register_link_page_public_projection_provider', 'ec_sanitize_link_page_public_projection_snapshot', 'ec_save_link_page_public_projection_snapshot', 'ec_read_link_page_public_projection_snapshot', 'ec_render_stored_link_page_social_links' ) ) );
-		$signatures = array_slice( $signatures, 0, 27, true );
-	}
-	foreach ( $signatures as $function => $signature ) {
+	foreach ( extrachill_artist_platform_link_pages_runtime_signatures() as $function => $signature ) {
 		if ( ! function_exists( $function ) ) {
-			return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not load its complete generic API.' );
+			return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime did not load its complete generic API.' );
 		}
 		$reflection = new ReflectionFunction( $function );
 		if ( $signature['total'] !== $reflection->getNumberOfParameters() || $signature['required'] !== $reflection->getNumberOfRequiredParameters() ) {
-			return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime exposes an incompatible generic function signature.' );
+			return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime exposes an incompatible generic function signature.' );
 		}
 	}
-	if ( $external && ! function_exists( 'ec_link_pages_runtime_ready' ) ) {
-		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime did not expose its readiness marker.' );
+	if ( ! function_exists( 'ec_link_pages_runtime_ready' ) ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime did not expose its readiness marker.' );
 	}
-	if ( function_exists( 'ec_link_pages_runtime_ready' ) ) {
-		$readiness = new ReflectionFunction( 'ec_link_pages_runtime_ready' );
-		if ( 0 !== $readiness->getNumberOfParameters() || 0 !== $readiness->getNumberOfRequiredParameters() ) {
-			return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime exposes an incompatible readiness marker.' );
-		}
-		try {
-			// @phpstan-ignore phpstan.arguments.count (arity is verified via ReflectionFunction immediately above; dependency signatures may vary by runtime version.)
-			$ready = ec_link_pages_runtime_ready();
-		} catch ( Throwable $throwable ) {
-			$ready = false;
-		}
-		if ( true !== $ready ) {
-			return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime reported that it is not ready.' );
-		}
+	$readiness = new ReflectionFunction( 'ec_link_pages_runtime_ready' );
+	if ( 0 !== $readiness->getNumberOfParameters() || 0 !== $readiness->getNumberOfRequiredParameters() ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime exposes an incompatible readiness marker.' );
+	}
+	try {
+		// @phpstan-ignore phpstan.arguments.count (arity is verified via ReflectionFunction immediately above; dependency signatures may vary by runtime version.)
+		$ready = ec_link_pages_runtime_ready();
+	} catch ( Throwable $throwable ) {
+		$ready = false;
+	}
+	if ( true !== $ready ) {
+		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime reported that it is not ready.' );
 	}
 
 	return true;
@@ -379,15 +366,11 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-compatibility.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-operations.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/storage-migration.php';
-	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
-	}
-	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-		add_filter( 'ec_link_page_public_query_var', 'ec_artist_link_page_public_query_var' );
-		add_filter( 'ec_link_page_public_query_vars', 'ec_artist_link_page_public_query_vars' );
-		add_filter( 'ec_link_page_public_exclusions', 'ec_artist_link_page_public_exclusions' );
-		add_filter( 'ec_link_page_public_special_route', 'ec_artist_link_page_public_special_route', 10, 2 );
-	}
+	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
+	add_filter( 'ec_link_page_public_query_var', 'ec_artist_link_page_public_query_var' );
+	add_filter( 'ec_link_page_public_query_vars', 'ec_artist_link_page_public_query_vars' );
+	add_filter( 'ec_link_page_public_exclusions', 'ec_artist_link_page_public_exclusions' );
+	add_filter( 'ec_link_page_public_special_route', 'ec_artist_link_page_public_special_route', 10, 2 );
 
 	$owner_result = ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
 	if ( is_wp_error( $owner_result ) ) {
@@ -401,11 +384,9 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	if ( is_wp_error( $migration_result ) ) {
 		return $migration_result;
 	}
-	if ( extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-		$projection_result = ec_register_link_page_public_projection_provider( 'artist-platform', 'ec_artist_link_page_public_projection_provider' );
-		if ( is_wp_error( $projection_result ) ) {
-			return $projection_result;
-		}
+	$projection_result = ec_register_link_page_public_projection_provider( 'artist-platform', 'ec_artist_link_page_public_projection_provider' );
+	if ( is_wp_error( $projection_result ) ) {
+		return $projection_result;
 	}
 
 	$registered = true;
@@ -413,36 +394,16 @@ function extrachill_artist_platform_register_link_page_adapters() {
 }
 
 /**
- * Load the rolling fallback when needed, then attach artist adapters.
+ * Attach the artist adapters to the Link Pages runtime.
  *
- * The standalone runtime contract requires generic APIs to be available by
+ * The runtime contract requires generic APIs to be available by
  * plugins_loaded priority 20. Its CPT registration remains its own init hook.
+ * A missing or incompatible runtime skips the adapters and raises an admin
+ * notice instead of loading a fallback copy.
  *
  * @return true|WP_Error
  */
 function extrachill_artist_platform_boot_link_pages_runtime() {
-	if ( ! extrachill_artist_platform_uses_external_link_pages_runtime() ) {
-		/*
-		 * Sentinel guards, not redundancy.
-		 *
-		 * extrachill_artist_platform_uses_external_link_pages_runtime() answers from
-		 * `active_plugins` / `active_sitewide_plugins`. Under a persistent object cache
-		 * those reads can be served stale while the external runtime has already declared
-		 * these generic functions in the same request — the window is plugin activation.
-		 * Without the sentinels the fallback redeclares every generic Link Pages function
-		 * and takes the request down with a hard fatal instead of degrading.
-		 *
-		 * Each sentinel is the first function its file declares, and both are also
-		 * declared by extrachill-link-pages, so either provider satisfies the check.
-		 */
-		if ( ! function_exists( 'ec_link_page_owner_compatibility_registry' ) ) {
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/owner-reference.php';
-		}
-		if ( ! function_exists( 'ec_link_page_operation_provider_registry' ) ) {
-			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/operations.php';
-		}
-	}
-
 	$result = extrachill_artist_platform_register_link_page_adapters();
 	if ( is_wp_error( $result ) ) {
 		$GLOBALS['extrachill_artist_platform_link_pages_runtime_error'] = $result;
@@ -453,7 +414,7 @@ function extrachill_artist_platform_boot_link_pages_runtime() {
 }
 
 /**
- * Display an explicit operator-facing error for an incomplete runtime.
+ * Display an explicit operator-facing error for a missing or incomplete runtime.
  *
  * @return void
  */

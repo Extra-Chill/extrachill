@@ -17,7 +17,8 @@ final class BootstrapAndPurityTest extends TestCase {
 	}
 
 	private function artistWorktree(): string {
-		$path = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: '/var/lib/datamachine/workspace/extrachill-artist-platform';
+		// Prefer the monorepo sibling over the legacy standalone checkout.
+		$path = getenv( 'ARTIST_PLATFORM_WORKTREE' ) ?: dirname( __DIR__, 2 ) . '/extrachill-artist-platform';
 		if ( ! is_dir( $path . '/inc/link-pages' ) ) {
 			$this->markTestSkipped( 'Cross-runtime coverage skipped: the Extra Chill Artist Platform sibling checkout is unavailable. Set ARTIST_PLATFORM_WORKTREE to an extrachill-artist-platform checkout containing inc/link-pages (expected default: ' . $path . ').' );
 		}
@@ -80,40 +81,20 @@ final class BootstrapAndPurityTest extends TestCase {
 		}
 	}
 
-	public function test_public_functions_and_stable_errors_match_coordinated_runtime(): void {
+	public function test_artist_platform_carries_no_copy_of_the_generic_runtime(): void {
 		$external = $this->artistWorktree();
-		$local = file_get_contents( dirname( __DIR__ ) . '/inc/owner-reference.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/operations.php' );
-		$coordinated = file_get_contents( $external . '/inc/link-pages/owner-reference.php' ) . file_get_contents( $external . '/inc/link-pages/operations.php' );
 
-		preg_match_all( '/^function\s+(ec_[a-z0-9_]+)\s*\(([^)]*)\)/m', $local, $local_functions, PREG_SET_ORDER );
-		preg_match_all( '/^function\s+(ec_[a-z0-9_]+)\s*\(([^)]*)\)/m', $coordinated, $coordinated_functions, PREG_SET_ORDER );
-		$normalize_functions = static function ( $matches ) {
-			return array_map( static function ( $match ) { return $match[1] . '(' . preg_replace( '/\s+/', ' ', trim( $match[2] ) ) . ')'; }, $matches );
-		};
-		$local_contract = array_values( array_filter( $normalize_functions( $local_functions ), static function ( $function ) { return false === strpos( $function, 'ec_can_register_link_page_' ); } ) );
-		$this->assertSame( $normalize_functions( $coordinated_functions ), array_slice( $local_contract, 0, count( $coordinated_functions ) ) );
-		$all_local = file_get_contents( dirname( __DIR__ ) . '/inc/post-type.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/compatibility.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/owner-reference.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/operations.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/storage.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-projections.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/public-runtime.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/migration.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/social-types.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/fonts.php' ) . file_get_contents( dirname( __DIR__ ) . '/inc/section-sources.php' );
-		preg_match_all( '/^function\s+(ec_[a-z0-9_]+)\s*\(([^)]*)\)/m', $all_local, $all_functions, PREG_SET_ORDER );
-		$this->assertSame( array(), array_diff( array_keys( ec_link_pages_runtime_function_contract() ), array_column( $all_functions, 1 ) ) );
+		// This plugin is the only provider of the generic API: the consumer
+		// must not ship its own owner-reference or operations runtime.
+		$this->assertFileDoesNotExist( $external . '/inc/link-pages/owner-reference.php' );
+		$this->assertFileDoesNotExist( $external . '/inc/link-pages/operations.php' );
 
-		preg_match_all( "/new\s+WP_Error\(\s*'([^']+)'\s*,\s*'([^']+)'/s", $local, $local_errors, PREG_SET_ORDER );
-		preg_match_all( "/new\s+WP_Error\(\s*'([^']+)'\s*,\s*'([^']+)'/s", $coordinated, $coordinated_errors, PREG_SET_ORDER );
-		$normalize_errors = static function ( $matches ) {
-			$errors = array_values( array_unique( array_map( static function ( $match ) { return $match[1] . '|' . $match[2]; }, $matches ) ) );
-			sort( $errors );
-			return $errors;
-		};
-		$this->assertSame( array(), array_diff( $normalize_errors( $coordinated_errors ), $normalize_errors( $local_errors ) ) );
-	}
-
-	public function test_representative_behavior_suite_passes_against_bundled_fallback(): void {
-		$this->requireSpawnablePhp();
-		$root = dirname( __DIR__ );
-		$external = $this->artistWorktree();
-		$command = 'LINK_PAGES_USE_FALLBACK=1 ARTIST_PLATFORM_WORKTREE=' . escapeshellarg( $external ) . ' ' . escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $root . '/tools/vendor/bin/phpunit' ) . ' -c ' . escapeshellarg( $root . '/phpunit.xml.dist' ) . ' --filter ' . escapeshellarg( '/^RuntimeTest::/' );
-		exec( $command, $output, $status );
-		$this->assertSame( 0, $status, implode( "\n", $output ) );
-		$this->assertMatchesRegularExpression( '/OK \(8 tests, \d+ assertions\)/', implode( "\n", $output ) );
+		$all_local = '';
+		foreach ( glob( dirname( __DIR__ ) . '/inc/*.php' ) as $file ) {
+			$all_local .= file_get_contents( $file );
+		}
+		preg_match_all( '/^function\s+(ec_[a-z0-9_]+)\s*\(/m', $all_local, $all_functions );
+		$this->assertSame( array(), array_diff( array_keys( ec_link_pages_runtime_function_contract() ), $all_functions[1] ) );
 	}
 
 	/** @dataProvider incompatibleRuntimeProvider */

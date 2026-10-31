@@ -1,7 +1,7 @@
 <?php
 /**
  * Subscribe Modal for Artist Link Page
- * Used in extrch-link-page-template.php when display mode is 'icon_modal'.
+ * Rendered by the Link Pages runtime when the subscribe display mode is 'icon_modal'.
  *
  * Assumes $artist_id is set by the including template.
  */

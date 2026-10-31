@@ -704,14 +704,6 @@ final class LinkPageOwnerReferenceTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( array(), $second['errors'] );
 	}
 
-	public function test_generic_owner_reference_helpers_have_no_domain_owner_knowledge(): void {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- local source-file read, not a remote URL.
-		$source = strtolower( file_get_contents( dirname( __DIR__ ) . '/inc/link-pages/owner-reference.php' ) );
-
-		$this->assertStringNotContainsString( 'artist', $source );
-		$this->assertStringNotContainsString( 'venue', $source );
-	}
-
 	public function test_fallback_cross_blog_mutation_uses_artist_site_guard_and_restores_context(): void {
 		// The cross-blog save allocates its ID under a MySQL GET_LOCK advisory lock.
 		$this->ec_require_mysql_advisory_locks();

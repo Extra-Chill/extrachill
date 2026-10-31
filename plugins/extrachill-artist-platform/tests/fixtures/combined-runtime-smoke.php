@@ -432,18 +432,12 @@ if ( 'orphan-owner' === ( $argv[1] ?? '' ) ) {
 }
 $projection        = is_wp_error( $created ) ? $created : ec_get_link_page_public_projection( $created );
 $rendered          = '';
-$fallback_rendered = '';
 if ( ! is_wp_error( $created ) ) {
 	$GLOBALS['wp_query']                 = new EcCombinedQuery();
 	$GLOBALS['wp_query']->queried_object = get_post( $created );
 	ob_start();
 	require $standalone . '/templates/single-link-page.php';
 	$rendered = ob_get_clean();
-	if ( 'deleted-owner' !== ( $argv[1] ?? '' ) ) {
-		ob_start();
-		require $artist_root . '/inc/link-pages/live/templates/single-artist_link_page.php';
-		$fallback_rendered = ob_get_clean();
-	}
 }
 $GLOBALS['wp_query']    = (object) array(
 	'posts'      => array(),
@@ -518,12 +512,10 @@ echo wp_json_encode(
 		'public_status'               => $GLOBALS['ec_test']['status'] ?? 200,
 		'rendered_body'               => false !== strpos( $rendered, 'data-extrch-artist-id="20"' ) && false !== strpos( $rendered, 'extrch-link-page' ),
 		'rendered_subscribe'          => false !== strpos( $rendered, 'data-template="subscribe-inline-form"' ),
+		// The Link Pages runtime template is the only public renderer.
 		'snapshot_parity'             => false !== strpos( $rendered, 'extrch-link-page-title">Combined Artist</h1>' )
-			&& false !== strpos( $fallback_rendered, 'extrch-link-page-title">Combined Artist</h1>' )
 			&& false !== strpos( $rendered, 'extrch-link-page-link-text">Song updated</span>' )
-			&& false !== strpos( $fallback_rendered, 'extrch-link-page-link-text">Song updated</span>' )
-			&& false !== strpos( $rendered, 'data-extrch-artist-id="20"' )
-			&& false !== strpos( $fallback_rendered, 'data-extrch-artist-id="20"' ),
+			&& false !== strpos( $rendered, 'data-extrch-artist-id="20"' ),
 		'head_hook'                   => 1 <= count( array_filter( $GLOBALS['ec_test']['fired_actions'], static function ( $action ) { return 'extrachill_artist_link_page_minimal_head' === $action[0] && 20 === $action[1][1]; } ) ),
 		'join_redirect'               => $join_redirect[0] ?? '',
 		'forced'                      => is_wp_error( $forced ) ? $forced->get_error_code() : $forced,

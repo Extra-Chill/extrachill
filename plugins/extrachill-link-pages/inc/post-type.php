@@ -359,9 +359,9 @@ function ec_deactivate_link_pages( $network_wide = false ) {
 }
 
 /*
- * Deactivation deliberately preserves EC_LINK_PAGE_STORAGE_BLOG_OPTION. The
- * rolling fallback may still own records on that site, and a later standalone
- * activation must rediscover the same canonical storage rather than fork it.
+ * Deactivation deliberately preserves EC_LINK_PAGE_STORAGE_BLOG_OPTION. Records
+ * stay on that site, and a later activation must rediscover the same canonical
+ * storage rather than fork it.
  */
 
 /** Remove standalone-owned storage rewrites and flush the current site. */
