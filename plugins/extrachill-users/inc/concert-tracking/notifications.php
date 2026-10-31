@@ -533,7 +533,7 @@ function ec_users_resolve_stale_show_reminders() {
 		return 0;
 	}
 
-	$events_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog = (int) ec_get_blog_id( 'events' );
 	if ( $events_blog <= 0 ) {
 		// Cannot resolve timing without the events blog — do nothing rather than
 		// risk marking upcoming reminders read.
@@ -767,12 +767,5 @@ function ec_users_my_shows_url( int $user_id ): string {
 		}
 	}
 
-	if ( function_exists( 'ec_get_blog_id' ) && function_exists( 'get_home_url' ) ) {
-		$events_blog = ec_get_blog_id( 'events' );
-		if ( $events_blog ) {
-			return (string) get_home_url( $events_blog, '/' );
-		}
-	}
-
-	return home_url( '/' );
+	return (string) get_home_url( ec_get_blog_id( 'events' ), '/' );
 }

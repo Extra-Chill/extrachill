@@ -29,11 +29,7 @@ function ec_users_get_artist_dispatch_role_caps() {
  * @return int
  */
 function ec_users_get_artist_dispatch_blog_id() {
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		return (int) ec_get_blog_id( 'main' );
-	}
-
-	return function_exists( 'get_main_site_id' ) ? (int) get_main_site_id() : 1;
+	return (int) ec_get_blog_id( 'main' );
 }
 
 /**

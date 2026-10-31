@@ -79,10 +79,6 @@ function ec_get_shop_product_count_for_user( $user_id = null ) {
 		return 0;
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return 0;
-	}
-
 	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id ) {
 		return 0;

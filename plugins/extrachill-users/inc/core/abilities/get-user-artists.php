@@ -97,7 +97,7 @@ function extrachill_users_ability_get_user_artists( array $input ): array|WP_Err
 	$artists    = array();
 
 	if ( ! empty( $artist_ids ) ) {
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		$artist_blog_id = ec_get_blog_id( 'artist' );
 		if ( $artist_blog_id ) {
 			switch_to_blog( $artist_blog_id );
 		}

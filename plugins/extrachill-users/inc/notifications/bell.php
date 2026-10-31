@@ -34,12 +34,8 @@ function extrachill_users_display_notification_bell() {
 
 	$unread_count = extrachill_users_get_unread_notification_count();
 
-	// Resolve the community notifications URL. ec_get_site_url() is provided by
-	// extrachill-network (a hard dependency of this plugin), but guard anyway
-	// so a missing helper degrades gracefully instead of fataling.
-	$notifications_url = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'community' ) . '/notifications'
-		: home_url( '/notifications' );
+	// Resolve the community notifications URL via extrachill-network (network-activated).
+	$notifications_url = ec_get_site_url( 'community' ) . '/notifications';
 	?>
 	<div class="notification-bell-icon header-right-icon">
 		<a href="<?php echo esc_url( $notifications_url ); ?>" title="Notifications">

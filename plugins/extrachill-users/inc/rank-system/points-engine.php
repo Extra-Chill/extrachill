@@ -103,7 +103,7 @@ function extrachill_get_user_total_points( $user_id ) {
  * @return array
  */
 function ec_users_main_posts_points_source( $sources, $user_id ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id ) {
 		$sources['main_posts'] = 0.0;
 		return $sources;

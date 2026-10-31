@@ -166,7 +166,7 @@ function ec_get_contribution_events( $user_id, $since_ymd = '' ) {
  * @return array
  */
 function ec_users_main_posts_contribution_events( $events, $user_id, $since_ymd ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id ) {
 		return $events;
 	}

@@ -53,7 +53,7 @@ function ec_users_review_notify_on_transition( string $new_status, string $old_s
 	}
 
 	$blog_id = (int) get_current_blog_id();
-	if ( ! function_exists( 'ec_get_blog_id' ) || (int) ec_get_blog_id( 'main' ) !== $blog_id ) {
+	if ( (int) ec_get_blog_id( 'main' ) !== $blog_id ) {
 		return;
 	}
 

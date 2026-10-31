@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Display online users stats widget.
  */
 function extrachill_users_display_online_stats() {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id ) {
 		return;
 	}

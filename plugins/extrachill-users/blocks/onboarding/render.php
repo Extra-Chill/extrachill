@@ -13,24 +13,20 @@ if ( is_admin() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 }
 
 if ( ! is_user_logged_in() ) {
-	$login_url = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'community' ) . '/login/'
-		: home_url( '/login/' );
+	$login_url = ec_get_site_url( 'community' ) . '/login/';
 	wp_safe_redirect( $login_url );
 	exit;
 }
 
 if ( function_exists( 'ec_is_onboarding_complete' ) && ec_is_onboarding_complete( get_current_user_id() ) ) {
-	$home_url = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'community' )
-		: home_url();
+	$home_url = ec_get_site_url( 'community' );
 	wp_safe_redirect( $home_url );
 	exit;
 }
 
 $user_id           = get_current_user_id();
 $stored_redirect   = get_user_meta( $user_id, 'onboarding_redirect_url', true );
-$default_url       = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
+$default_url       = ec_get_site_url( 'community' );
 $redirect_url      = $stored_redirect ? $stored_redirect : $default_url;
 $from_join         = get_user_meta( $user_id, 'onboarding_from_join', true ) === '1';
 $user              = get_userdata( $user_id );

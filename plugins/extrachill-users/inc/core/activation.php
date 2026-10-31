@@ -337,10 +337,6 @@ add_action( 'admin_init', 'extrachill_users_maybe_create_concert_import_runs_tab
  * Runs on admin_init with site option flag to prevent repeated checks.
  */
 function extrachill_users_maybe_create_onboarding_page() {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return;
-	}
-
 	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( get_current_blog_id() !== $community_blog_id ) {
 		return;

@@ -97,7 +97,7 @@ function extrachill_users_register_event_locations_ability() {
  */
 function extrachill_users_ability_event_locations( array $input ) {
 	$mode           = sanitize_key( $input['mode'] ?? '' );
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	$events_blog_id = (int) apply_filters( 'extrachill_users_events_blog_id', $events_blog_id );
 
 	if ( $events_blog_id <= 0 || ( is_multisite() && ! get_site( $events_blog_id ) ) ) {

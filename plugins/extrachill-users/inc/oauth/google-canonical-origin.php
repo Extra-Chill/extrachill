@@ -40,19 +40,7 @@ const EC_USERS_GOOGLE_REDIRECT_PARAM = 'google_redirect';
  * @return bool True if the current blog is the canonical Google origin.
  */
 function ec_users_is_canonical_google_origin() {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		// Multisite helper unavailable — fail safe and treat every site
-		// as canonical so Google sign-in keeps working (back-compat with
-		// the previous per-site behavior).
-		return true;
-	}
-
-	$community_id = (int) ec_get_blog_id( 'community' );
-	if ( $community_id <= 0 ) {
-		return true;
-	}
-
-	return (int) get_current_blog_id() === $community_id;
+	return (int) get_current_blog_id() === (int) ec_get_blog_id( 'community' );
 }
 
 /**
@@ -70,9 +58,7 @@ function ec_users_is_canonical_google_origin() {
  * @return string The canonical login URL.
  */
 function ec_users_canonical_google_signin_url( $return_to, $from_join = false ) {
-	$base = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'community' ) . '/login/'
-		: home_url( '/login/' );
+	$base = ec_get_site_url( 'community' ) . '/login/';
 
 	$args = array();
 	if ( '' !== (string) $return_to ) {

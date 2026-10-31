@@ -35,7 +35,7 @@ function ec_record_user_activity() {
 	$current_time            = time();
 	$user_activity_cache_key = 'user_activity_' . $user_id;
 
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 
 	if ( ! $community_blog_id || ! function_exists( 'switch_to_blog' ) ) {
 		return;
@@ -85,7 +85,7 @@ function ec_get_last_active( $user_id ) {
 		return null;
 	}
 
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 
 	if ( $community_blog_id && function_exists( 'switch_to_blog' ) ) {
 		switch_to_blog( $community_blog_id );

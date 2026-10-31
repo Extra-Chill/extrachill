@@ -83,7 +83,7 @@ function extrachill_get_avatar_attachment_id( $user_id ) {
 		return $cache[ $user_id ];
 	}
 
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || ! function_exists( 'switch_to_blog' ) ) {
 		$cache[ $user_id ] = false;
 		return false;
@@ -124,7 +124,7 @@ function extrachill_get_avatar_url_cached( $attachment_id, $wp_size ) {
 		return $url_cache[ $cache_key ];
 	}
 
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id ) {
 		return false;
 	}

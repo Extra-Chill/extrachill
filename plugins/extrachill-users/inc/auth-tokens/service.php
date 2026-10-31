@@ -243,14 +243,6 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 		? esc_url_raw( $redirect_to )
 		: home_url();
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error(
-			'extrachill_dependency_missing',
-			'ec_get_blog_id() is required for token authentication.',
-			array( 'status' => 500 )
-		);
-	}
-
 	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( empty( $community_blog_id ) ) {
 		return new WP_Error(
@@ -413,14 +405,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 			'invalid_device_id',
 			'device_id must be a UUID v4.',
 			array( 'status' => 400 )
-		);
-	}
-
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error(
-			'extrachill_dependency_missing',
-			'ec_get_blog_id() is required for token registration.',
-			array( 'status' => 500 )
 		);
 	}
 
