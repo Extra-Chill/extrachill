@@ -142,6 +142,12 @@ function prepare_newsletter_email_content( $post ) {
 
 	$html_template = generate_email_html_template( $subject, $content, $unsubscribe_link, $read_on_web_url, $navbar_links );
 
+	// Email clicks carry no referrer; campaign parameters are their only
+	// provenance in site analytics. Network links only (see link-tagging.php).
+	if ( function_exists( 'extrachill_newsletter_tag_email_links' ) ) {
+		$html_template = extrachill_newsletter_tag_email_links( $html_template, extrachill_newsletter_campaign_utm_params( $post ) );
+	}
+
 	$plain_text = html_entity_decode( wp_strip_all_tags( $content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	$plain_text = trim( preg_replace( '/\n{3,}/', "\n\n", $plain_text ) );
 

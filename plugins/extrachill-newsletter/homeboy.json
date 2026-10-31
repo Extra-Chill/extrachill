@@ -24,7 +24,8 @@
       "php tests/email-plain-text-smoke.php",
       "php tests/sendy-campaign-consumer-smoke.php",
       "php tests/sendy-single-config-smoke.php",
-      "php tests/optional-ability-input-smoke.php"
+      "php tests/optional-ability-input-smoke.php",
+      "php tests/newsletter-link-tagging-smoke.php"
     ]
   }
 }
