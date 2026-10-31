@@ -116,6 +116,7 @@ jobs:
             echo "sha=${sha}"
             echo "changed_count=${count}"
             echo "deploy_count=${deploy_count}"
+            echo "components=$(jq -c '.components' "${HOMEBOY_OUTPUT_DIR}/plan.json")"
             echo "dry_run=${dry_run}"
             echo "scope=monorepo ${sha}"
             echo "gate_bypassed=false"
@@ -324,10 +325,20 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          # From the Plan output, not plan.json: homeboy-action re-exports
+          # HOMEBOY_OUTPUT_DIR to its own temp dir, so plan.json is gone by now.
+          COMPONENTS: ${{ steps.plan.outputs.components }}
         run: |
           set -euo pipefail
-          for component in $(jq -r '.components[]' "${HOMEBOY_OUTPUT_DIR}/plan.json"); do
-            path="$(jq -r '.local_path' "${HOMEBOY_CONFIG_ROOT}/components/${component}.json")"
+          # mapfile + explicit count so a parse failure fails the step instead
+          # of silently looping zero times.
+          mapfile -t components < <(jq -r '.[]' <<<"${COMPONENTS}")
+          if [ "${#components[@]}" -eq 0 ]; then
+            echo "::error::Plan output 'components' is empty or unparsable: ${COMPONENTS}"
+            exit 1
+          fi
+          for component in "${components[@]}"; do
+            path="$(jq -er '.local_path' "${HOMEBOY_CONFIG_ROOT}/components/${component}.json")"
             echo "Installing extensions declared by ${component} (${path})"
             "${HOMEBOY_GATE_BIN_DIR}/homeboy" extension install-for-component \
               --path "${path}" --source https://github.com/Extra-Chill/homeboy-extensions
