@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.34.1] - 2026-10-31
+
+### Changed
+- move the network plugin under plugins/, split deploy projects, monorepo CI
+
 ## [2.34.0] - 2026-10-30
 
 ### Added
