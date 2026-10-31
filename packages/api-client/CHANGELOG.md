@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.0] - 2026-10-31
+
+### Changed
+- remove retired taxonomy sync client
+
 ## [0.9.0] - 2026-08-05
 
 ### Added
