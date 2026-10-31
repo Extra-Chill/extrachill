@@ -8,7 +8,7 @@
         "local_workspace_dependencies": [
           { "name": "@extrachill/components", "path": "../../packages/components" }
         ],
-        "validation_dependencies": ["data-machine-events", "extrachill-analytics"],
+        "validation_dependencies": ["extrachill-network", "data-machine-events", "extrachill-analytics"],
         "wp_codebox_database_service": {
           "provider": "docker",
           "engine": "mysql"

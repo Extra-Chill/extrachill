@@ -6,6 +6,9 @@
       "settings": {
         "local_workspace_dependencies": [
           { "name": "@extrachill/components", "path": "../../packages/components" }
+        ],
+        "validation_dependencies": [
+          "extrachill-network"
         ]
       }
     }

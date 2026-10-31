@@ -6,6 +6,9 @@
       "settings": {
         "local_workspace_dependencies": [
           { "name": "@extrachill/tokens", "path": "../../packages/tokens" }
+        ],
+        "validation_dependencies": [
+          "extrachill-network"
         ]
       }
     }
