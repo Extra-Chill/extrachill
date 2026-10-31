@@ -25,6 +25,14 @@ on:
       - 'packages/**'
       - 'rigs/extrachill-network/**'
       - '.github/workflows/journeys.yml'
+      # Docs and unit tests can't change what a journey sees, so a PR that
+      # only touches them skips the network boot. Order matters: later
+      # patterns override earlier ones. tests/e2e/ stays in because journeys
+      # load fixtures from it (auth-multisite).
+      - '!**/*.md'
+      - '!**/docs/**'
+      - '!**/tests/**'
+      - '**/tests/e2e/**'
   workflow_dispatch:
     inputs:
       journeys:
