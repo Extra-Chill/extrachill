@@ -41,7 +41,8 @@ jobs:
     secrets: inherit
 
   # Site-level infrastructure is not a component: deploy config, the
-  # monorepo deploy planner, nginx/sunrise artifacts and the network rig.
+  # monorepo deploy planner, nginx/sunrise artifacts, the network rig and
+  # the generated MONOREPO.md site map.
   site:
     name: Site infrastructure
     runs-on: ubuntu-latest
@@ -61,3 +62,5 @@ jobs:
           python3 deploy/tests/deploy-monorepo-test.py
       - name: Network rig contracts
         run: node --test rigs/extrachill-network/tests/*.test.mjs
+      - name: MONOREPO.md site map is current
+        run: node tools/site-map.mjs --check
