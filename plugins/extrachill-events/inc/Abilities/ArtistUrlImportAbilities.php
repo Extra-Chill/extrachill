@@ -71,7 +71,7 @@ class ArtistUrlImportAbilities {
 	private const ARTIST_FUZZY_MATCH_THRESHOLD = 85;
 
 	/** Page labels that never identify an artist on their own. */
-	private const GENERIC_SOURCE_LABELS = array( 'tour', 'tours', 'tour dates', 'dates', 'events', 'upcoming events', 'shows', 'upcoming shows', 'concerts', 'live', 'calendar', 'gigs', 'home', 'schedule' );
+	private const GENERIC_SOURCE_LABELS = array( 'tour', 'tours', 'tour dates', 'dates', 'events', 'upcoming events', 'shows', 'upcoming shows', 'concerts', 'live', 'calendar', 'gigs', 'home', 'schedule', 'official site', 'official website', 'music' );
 
 	/** Host-owned platform/aggregator pages are not bounded recurring entities. */
 	private const UNSUPPORTED_SOURCE_HOSTS = array(
@@ -1893,10 +1893,12 @@ class ArtistUrlImportAbilities {
 	 *
 	 * Tries (in order):
 	 *   1. Consistent first-billed artist across extracted events.
-	 *   2. og:title / <title> / first <h1> on the fetched HTML.
-	 *   3. URL domain → Title Case.
+	 *   2. Consistent event titles from Seated's single-artist tour API.
+	 *   3. og:title / og:site_name / <title> / first <h1> on the fetched HTML.
+	 *   4. URL domain → Title Case.
 	 *
-	 * Then fuzzy-matches the result against existing `artist` terms
+	 * Prefers the first non-generic candidate matching an existing artist term,
+	 * otherwise the first non-generic candidate. Matches existing `artist` terms
 	 * using similar_text(). Returns:
 	 *   { name: string, term_id: int|null }
 	 *
@@ -1918,9 +1920,27 @@ class ArtistUrlImportAbilities {
 			$candidates[] = array( (string) reset( $names ), 'structured' );
 		}
 
+		// Seated titles are the API's artist name, not per-show labels.
+		// Other extractors (including Bandzoogle/Gigwell) can use show titles.
+		if ( 'seated' === ( $probe['detected_format'] ?? '' ) ) {
+			$events = $probe['raw_events'] ?? array();
+			$title  = '';
+			foreach ( $events as $event ) {
+				$value = trim( (string) ( $event['title'] ?? '' ) );
+				if ( '' === $value || ( '' !== $title && 0 !== strcasecmp( $title, $value ) ) ) {
+					$title = '';
+					break;
+				}
+				$title = $value;
+			}
+			if ( '' !== $title ) {
+				$candidates[] = array( $title, 'structured' );
+			}
+		}
+
 		$html = $probe['page_html'] ?? '';
 		if ( '' !== $html ) {
-			// 2a. og:title
+			// 3a. og:title
 			if ( preg_match( '/<meta[^>]+property=[\"\']og:title[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']/i', $html, $m ) ) {
 				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
 			}
@@ -1928,17 +1948,17 @@ class ArtistUrlImportAbilities {
 			if ( preg_match( '/<meta[^>]+property=[\"\']og:site_name[\"\'][^>]+content=[\"\']([^\"\']+)[\"\']/i', $html, $m ) ) {
 				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
 			}
-			// 2b. <title>
+			// 3b. <title>
 			if ( preg_match( '/<title>([^<]+)<\/title>/i', $html, $m ) ) {
 				$candidates[] = array( $this->stripSiteTokens( html_entity_decode( $m[1] ) ), 'page' );
 			}
-			// 2c. first <h1>
+			// 3c. first <h1>
 			if ( preg_match( '/<h1[^>]*>(.*?)<\/h1>/is', $html, $m ) ) {
 				$candidates[] = array( $this->stripSiteTokens( wp_strip_all_tags( $m[1] ) ), 'page' );
 			}
 		}
 
-		// 3. URL domain.
+		// 4. URL domain.
 		$host = (string) wp_parse_url( $url, PHP_URL_HOST );
 		if ( '' !== $host ) {
 			$host = preg_replace( '/^www\./i', '', $host );
@@ -1948,18 +1968,26 @@ class ArtistUrlImportAbilities {
 			}
 		}
 
-		$name   = '';
-		$source = '';
+		$name    = '';
+		$source  = '';
+		$term_id = null;
 		foreach ( $candidates as $candidate ) {
 			$value = trim( (string) $candidate[0] );
-			if ( '' !== $value && ! $this->isGenericSourceLabel( $value ) ) {
+			if ( '' === $value || $this->isGenericSourceLabel( $value ) ) {
+				continue;
+			}
+			if ( '' === $name ) {
 				$name   = $value;
 				$source = $candidate[1];
+			}
+			$match = $this->fuzzyMatchArtistTerm( $value );
+			if ( null !== $match ) {
+				$name    = $value;
+				$source  = $candidate[1];
+				$term_id = $match;
 				break;
 			}
 		}
-
-		$term_id = $this->fuzzyMatchArtistTerm( $name );
 
 		return array(
 			'name'    => $name,

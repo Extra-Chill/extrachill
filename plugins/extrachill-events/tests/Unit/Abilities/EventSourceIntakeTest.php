@@ -351,13 +351,14 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->intake = ( new ReflectionClass( ArtistUrlImportAbilities::class ) )->newInstanceWithoutConstructor();
 	}
 
-	private function classification( array $events, string $url = 'https://venue.test/events', bool $compatibility_artist = false, string $html = '' ): array {
+	private function classification( array $events, string $url = 'https://venue.test/events', bool $compatibility_artist = false, string $html = '', string $format = '' ): array {
 		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'classifySource' );
 		$method->setAccessible( true );
 		return $method->invoke(
 			$this->intake,
 			$url,
 			array(
+				'detected_format' => $format,
 				'events_found'    => count( $events ),
 				'raw_events'      => $events,
 				'raw_first_event' => $events[0] ?? array(),
@@ -575,6 +576,65 @@ final class EventSourceIntakeTest extends BookingTestCase {
 			array( 'venue' => 'Room B' ),
 			array( 'venue' => 'Room C' ),
 		);
+	}
+
+	public function test_seated_titles_bind_existing_artist_instead_of_generic_page_title(): void {
+		foreach ( array( 'Moon Taxi' => 'Official Site', 'The 502s' => 'Official Website' ) as $artist => $label ) {
+			$GLOBALS['event_source_terms'][ 'artist:' . strtolower( $artist ) ] = new WP_Term( 80, $artist );
+			$events = array();
+			foreach ( range( 1, 8 ) as $number ) {
+				$events[] = array( 'title' => $artist, 'venue' => 'Room ' . $number );
+			}
+			$result = $this->classification( $events, 'https://ridethemoontaxi.com/', false, '<title>' . $label . '</title>', 'seated' );
+			$this->assertSame( 'artist', $result['source_kind'] );
+			$this->assertSame( $artist, $result['binding']['name'] );
+			$this->assertSame( 80, $result['binding']['term_id'] );
+			$this->assertSame( 'high', $result['confidence'] );
+		}
+	}
+
+	public function test_only_consistent_seated_titles_are_structured_artist_candidates(): void {
+		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'suggestArtist' );
+		$method->setAccessible( true );
+		foreach ( array(
+			array( 'seated', array_fill( 0, 3, array( 'title' => 'New Band' ) ), 'New Band', 'structured' ),
+			array( 'json_ld', array_fill( 0, 3, array( 'title' => 'New Band' ) ), 'Fallback', 'page' ),
+			array( 'seated', array( array( 'title' => 'New Band' ), array( 'title' => 'Other Show' ) ), 'Fallback', 'page' ),
+			array( 'seated', array( array( 'title' => 'New Band' ), array() ), 'Fallback', 'page' ),
+			array( 'seated', array(), 'Fallback', 'page' ),
+		) as list( $format, $events, $name, $source ) ) {
+			$result = $method->invoke( $this->intake, 'https://source.test', array( 'detected_format' => $format, 'raw_events' => $events, 'page_html' => '<title>Fallback</title>' ) );
+			$this->assertSame( $name, $result['name'] );
+			$this->assertSame( $source, $result['source'] );
+		}
+	}
+
+	public function test_generic_site_labels_are_rejected_case_insensitively(): void {
+		$generic = new ReflectionMethod( ArtistUrlImportAbilities::class, 'isGenericSourceLabel' );
+		$strip   = new ReflectionMethod( ArtistUrlImportAbilities::class, 'stripSiteTokens' );
+		$generic->setAccessible( true );
+		$strip->setAccessible( true );
+		foreach ( array( 'Official Site', 'Official Website', 'Home', 'Tour', 'Tour Dates', 'Shows', 'Events', 'Live', 'Music' ) as $label ) {
+			$this->assertTrue( $generic->invoke( $this->intake, strtoupper( $label ) ), $label );
+			$this->assertSame( '', $strip->invoke( $this->intake, $label . ' | Home' ), $label );
+			$this->assertSame( 'The Band', $strip->invoke( $this->intake, 'The Band | ' . $label ), $label );
+			$result = $this->classification( $this->performerless_tour(), 'https://the-band.test', false, '<title>' . $label . '</title>' );
+			$this->assertSame( 72, $result['binding']['term_id'], $label );
+		}
+	}
+
+	public function test_matched_candidate_wins_over_unmatched_structured_or_page_candidate(): void {
+		$method = new ReflectionMethod( ArtistUrlImportAbilities::class, 'suggestArtist' );
+		$method->setAccessible( true );
+		foreach ( array( array(), array( 'performer' => 'Unrelated Performer' ) ) as $first ) {
+			$result = $method->invoke( $this->intake, 'https://source.test', array(
+				'raw_first_event' => $first,
+				'page_html' => '<meta property="og:title" content="Unrelated Label"><title>The Band | Official Website</title>',
+			) );
+			$this->assertSame( 'The Band', $result['name'] );
+			$this->assertSame( 72, $result['term_id'] );
+			$this->assertSame( 'page', $result['source'] );
+		}
 	}
 
 	public function test_performerless_tour_page_with_matched_artist_term_is_artist(): void {
