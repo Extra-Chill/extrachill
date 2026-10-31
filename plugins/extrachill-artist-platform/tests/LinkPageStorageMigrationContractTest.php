@@ -68,7 +68,7 @@ final class LinkPageStorageMigrationContractTest extends EC_Artist_Platform_Test
 		parent::setUp();
 
 		$this->resetProviders();
-		ec_link_page_migration_participant_registry()->reset();
+		$this->resetMigrationParticipants();
 
 		ec_register_link_page_owner_compatibility_provider( 'artist-platform', 'ec_artist_link_page_owner_compatibility_provider' );
 		ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
@@ -135,7 +135,7 @@ final class LinkPageStorageMigrationContractTest extends EC_Artist_Platform_Test
 	/** Remove fixture providers after each test. */
 	protected function tearDown(): void {
 		$this->resetProviders();
-		ec_link_page_migration_participant_registry()->reset();
+		$this->resetMigrationParticipants();
 		parent::tearDown();
 	}
 
@@ -408,6 +408,22 @@ final class LinkPageStorageMigrationContractTest extends EC_Artist_Platform_Test
 	}
 
 	/** Reset an append-only runtime registry for test isolation. */
+	/**
+	 * Clear registered migration participants. The fixture registry exposes
+	 * reset(); the Link Pages runtime registry does not, so clear its private
+	 * participant list the same way resetProviders() clears provider registries.
+	 */
+	private function resetMigrationParticipants(): void {
+		$registry = ec_link_page_migration_participant_registry();
+		if ( method_exists( $registry, 'reset' ) ) {
+			$registry->reset();
+			return;
+		}
+		$property = ( new ReflectionObject( $registry ) )->getProperty( 'participants' );
+		$property->setAccessible( true );
+		$property->setValue( $registry, array() );
+	}
+
 	private function resetProviders(): void {
 		foreach ( array(
 			ec_link_page_owner_compatibility_registry(),
