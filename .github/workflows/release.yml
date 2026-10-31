@@ -22,7 +22,7 @@ on:
         type: boolean
         default: false
       component:
-        description: 'Release only this component ID (e.g. extrachill-api-client). Empty releases every changed component.'
+        description: 'Release only the component at this path (e.g. packages/api-client). Empty releases every changed component.'
         type: string
         default: ''
       bump:
