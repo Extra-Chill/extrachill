@@ -43,6 +43,8 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	private const THEME_CLASSES = array(
 		'ec-surface-card',
 		'ec-card-vertical-padding',
+		'ec-card-padding',
+		'ec-narrow-column',
 		'extrachill-content',
 		'notice',
 		'notice-info',
@@ -160,7 +162,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		$source = (string) preg_replace( '#^<\?php\s*/\*\*.*?\*/#s', '', $source );
 
 		$this->assertDoesNotMatchRegularExpression(
-			'/class="[^"]*\b(card|btn|btn--[a-z]+|notice--[a-z]+)\b/',
+			'/class="[^"]*(?<![\w-])(card|btn|btn--[a-z]+|notice--[a-z]+)(?![\w-])/',
 			$source,
 			"{$template} uses .card / .btn / .btn--* / .notice--*, none of which exist in the extrachill theme"
 		);

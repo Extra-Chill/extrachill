@@ -30,7 +30,7 @@ $authorized = $pass
 get_header();
 ?>
 <main class="extrachill-content ec-rsvp-verify-page">
-	<div class="ec-rsvp-verify ec-surface-card ec-card-vertical-padding">
+	<div class="ec-rsvp-verify ec-surface-card ec-card-padding ec-narrow-column">
 		<h1 class="ec-rsvp-verify__heading"><?php esc_html_e( 'RSVP Pass', 'extrachill-events' ); ?></h1>
 		<?php if ( $authorized ) : ?>
 			<?php

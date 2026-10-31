@@ -882,6 +882,18 @@ body {
 	padding-bottom: var(--spacing-md);
 }
 
+/* Full padding for a standalone .ec-surface-card (content not inside another padded container). */
+.ec-card-padding {
+	padding: var(--spacing-md);
+}
+
+/* Readable single-column width for focused task pages (forms, passes, check-in). */
+.ec-narrow-column {
+	max-width: 36rem;
+	margin-left: auto;
+	margin-right: auto;
+}
+
 /*
 ====> 13.3 Primary & Secondary Content Area
 --------------------------------------------------------------*/

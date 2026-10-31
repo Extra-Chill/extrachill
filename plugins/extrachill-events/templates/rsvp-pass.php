@@ -124,7 +124,7 @@ if ( isset( $guest_list['spots_left'] ) && ! $guest_list_full ) {
 <?php endif; ?>
 <div
 	id="ec-rsvp-pass-<?php echo esc_attr( (string) $event_id ); ?>"
-	class="ec-rsvp-pass ec-surface-card ec-card-vertical-padding"
+	class="ec-rsvp-pass ec-surface-card ec-card-padding"
 	data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
 	<?php echo $has_pass ? '' : 'hidden'; ?>
 >

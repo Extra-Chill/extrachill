@@ -26,6 +26,19 @@ $list_full  = ! empty( $guest_list['full'] );
 $timing     = function_exists( 'ec_users_get_event_timing' ) ? ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) : '';
 $is_past    = 'past' === $timing;
 
+// "Sat, Oct 31 · 11:00 pm · Lo-Fi Brewing" so guests know they're in the right place.
+$when_where = array();
+$dates      = function_exists( 'datamachine_get_event_dates' ) ? datamachine_get_event_dates( $event_id ) : null;
+if ( is_object( $dates ) && ! empty( $dates->start_datetime ) ) {
+	$start        = strtotime( (string) $dates->start_datetime );
+	$when_where[] = date_i18n( 'D, M j', $start );
+	$when_where[] = date_i18n( (string) get_option( 'time_format' ), $start );
+}
+$venues = get_the_terms( $event_id, 'venue' );
+if ( is_array( $venues ) && ! empty( $venues[0]->name ) ) {
+	$when_where[] = $venues[0]->name;
+}
+
 $spots_line = '';
 if ( isset( $guest_list['spots_left'] ) && ! $list_full ) {
 	$spots_line = sprintf(
@@ -40,16 +53,16 @@ get_header();
 ?>
 <main class="extrachill-content ec-guest-list-page">
 	<div
-		class="ec-guest-list ec-surface-card ec-card-vertical-padding"
+		class="ec-guest-list ec-surface-card ec-card-padding ec-narrow-column"
 		data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
 	>
-		<h1 class="ec-guest-list__heading"><?php esc_html_e( 'Guest List', 'extrachill-events' ); ?></h1>
+		<h1 class="ec-guest-list__heading"><?php echo esc_html( '' !== $perk_text ? $perk_text : __( 'Guest list', 'extrachill-events' ) ); ?></h1>
 		<p class="ec-guest-list__event">
 			<a href="<?php echo esc_url( (string) get_permalink( $event_id ) ); ?>"><?php echo esc_html( $event ? get_the_title( $event ) : '' ); ?></a>
+			<?php if ( $when_where ) : ?>
+				<br><?php echo esc_html( implode( ' · ', $when_where ) ); ?>
+			<?php endif; ?>
 		</p>
-		<?php if ( '' !== $perk_text ) : ?>
-			<p class="ec-rsvp-pass__perk"><?php echo esc_html( $perk_text ); ?></p>
-		<?php endif; ?>
 
 		<?php if ( $is_past ) : ?>
 			<p class="notice notice-info"><?php esc_html_e( 'This event has already happened.', 'extrachill-events' ); ?></p>
@@ -59,7 +72,7 @@ get_header();
 				if ( $list_full ) {
 					esc_html_e( 'The guest list is full.', 'extrachill-events' );
 				} else {
-					esc_html_e( 'Enter the guest list password to get your pass.', 'extrachill-events' );
+					esc_html_e( 'Enter your name and the guest list password to get your pass.', 'extrachill-events' );
 					if ( '' !== $spots_line ) {
 						echo ' ' . esc_html( $spots_line );
 					}
