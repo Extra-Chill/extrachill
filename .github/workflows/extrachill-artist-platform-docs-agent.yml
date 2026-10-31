@@ -1,0 +1,36 @@
+name: extrachill-artist-platform / Docs Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Validate the run without starting a live agent run'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  extrachill-artist-platform-docs-agent:
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@main
+    with:
+      audience: user
+      run_kind: bootstrap
+      base_ref: main
+      docs_branch: docs-agent/extrachill-artist-platform-user-docs
+      writable_paths: plugins/extrachill-artist-platform/docs/user/**
+      context_repositories: '[]'
+      bootstrap_contract: >-
+        {"required_globs":[{"pattern":"plugins/extrachill-artist-platform/docs/user/*.md","min":6}],"forbidden_phrases":["following users"]}
+      drift_checks: >-
+        [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-artist-platform/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
+      prompt: >-
+        This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-artist-platform/ and write only under plugins/extrachill-artist-platform/docs/user/. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: plain language, lead with the benefit, and never name plugins, tools, vendors, or anything technical. Write for musicians, artist managers and small label staff running artist profiles, link pages, merch stores and rosters. Extra Chill has no follow feature or follower graph; never describe following users. Cover what the published Artist Platform help already covers so nothing is lost: getting started, managing link pages, advanced link page features, link page analytics, managing your roster, and artist access. Keep and improve the existing docs/user/artist-preferences.md. Ground every article in current product behavior from the source under plugins/extrachill-artist-platform/.
+      model: gpt-6-luna
+      dry_run: ${{ inputs.dry_run || false }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      EXTERNAL_PACKAGE_SOURCE_POLICY: ${{ secrets.DOCS_AGENT_EXTERNAL_PACKAGE_SOURCE_POLICY }}

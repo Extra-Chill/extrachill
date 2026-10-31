@@ -1,4 +1,4 @@
-name: Booking MySQL transaction proofs (host)
+name: extrachill-events / Booking MySQL transaction proofs (host)
 
 # BookingAttachmentMySQLIntegrationTest (booking-mysql suite) and
 # BookingAdmissionConcurrencyMySQLProof (booking-concurrency suite) both call
@@ -33,62 +33,105 @@ name: Booking MySQL transaction proofs (host)
 on:
   pull_request:
     paths:
-      - .github/workflows/booking-mysql-transaction-proofs-host.yml
-      - composer.json
-      - composer.lock
-      - phpunit-booking-mysql.xml.dist
-      - phpunit-booking-concurrency.xml.dist
-      - tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php
-      - tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php
-      - tests/MySQLIntegration/BookingSecondSessionMySQLIntegrationTestCase.php
-      - tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php
-      - tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php
-      - tests/MySQLIntegration/BookingSchemaMultisiteTest.php
-      - tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php
-      - tests/MySQLIntegration/booking-mysql-host-bootstrap.php
-      - tests/MySQLIntegration/host-wordpress-bootstrap.php
-      - tests/MySQLIntegration/booking-schema-multisite-bootstrap.php
-      - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
-      - tests/MySQLIntegration/wp-tests-config.php
-      - inc/Abilities/TicketSettlementAbilities.php
-      - inc/Abilities/VenueBookingHoldAbilities.php
-      - inc/Abilities/VenueBookingConfigAbilities.php
-      - inc/Abilities/VenueBookingMutationAbilities.php
-      - inc/Abilities/VenueBookingEventAbilities.php
-      - inc/Abilities/VenueMembershipAbilities.php
-      - inc/Core/BookingAttachmentService.php
-      - inc/Core/BookingAttachmentRepository.php
-      - inc/Core/BookingActivityRepository.php
-      - inc/Core/BookingHoldRepository.php
-      - inc/Core/BookingRepository.php
-      - inc/Core/BookingSchema.php
-      - inc/Core/PromoterAuthoritySchema.php
-      - inc/Core/ShowSettlementService.php
-      - inc/Core/TicketSettlementService.php
-      - inc/Core/TicketReconciliationService.php
-      - inc/Core/VenueAuthorization.php
-      - inc/Core/VenueBookingConfig.php
-      - inc/Core/VenueMembershipRepository.php
-      - inc/Providers/VenueBookingProvider.php
-      - inc/Providers/AbilitiesProvider.php
+      - '.github/workflows/extrachill-events-booking-mysql-transaction-proofs-host.yml'
+      - 'plugins/extrachill-events/composer.json'
+      - 'plugins/extrachill-events/composer.lock'
+      - 'plugins/extrachill-events/phpunit-booking-mysql.xml.dist'
+      - 'plugins/extrachill-events/phpunit-booking-concurrency.xml.dist'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingSecondSessionMySQLIntegrationTestCase.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingSchemaMultisiteTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-mysql-host-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/host-wordpress-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/wp-tests-config.php'
+      - 'plugins/extrachill-events/inc/Abilities/TicketSettlementAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingHoldAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingConfigAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingMutationAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingEventAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueMembershipAbilities.php'
+      - 'plugins/extrachill-events/inc/Core/BookingAttachmentService.php'
+      - 'plugins/extrachill-events/inc/Core/BookingAttachmentRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingActivityRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingHoldRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingSchema.php'
+      - 'plugins/extrachill-events/inc/Core/PromoterAuthoritySchema.php'
+      - 'plugins/extrachill-events/inc/Core/ShowSettlementService.php'
+      - 'plugins/extrachill-events/inc/Core/TicketSettlementService.php'
+      - 'plugins/extrachill-events/inc/Core/TicketReconciliationService.php'
+      - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
+      - 'plugins/extrachill-events/inc/Core/VenueBookingConfig.php'
+      - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
+      - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/AbilitiesProvider.php'
   push:
     branches: [main]
+    paths:
+      - '.github/workflows/extrachill-events-booking-mysql-transaction-proofs-host.yml'
+      - 'plugins/extrachill-events/composer.json'
+      - 'plugins/extrachill-events/composer.lock'
+      - 'plugins/extrachill-events/phpunit-booking-mysql.xml.dist'
+      - 'plugins/extrachill-events/phpunit-booking-concurrency.xml.dist'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingSecondSessionMySQLIntegrationTestCase.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingSchemaMultisiteTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-mysql-host-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/host-wordpress-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-schema-multisite-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/wp-tests-config.php'
+      - 'plugins/extrachill-events/inc/Abilities/TicketSettlementAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingHoldAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingConfigAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingMutationAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingEventAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueMembershipAbilities.php'
+      - 'plugins/extrachill-events/inc/Core/BookingAttachmentService.php'
+      - 'plugins/extrachill-events/inc/Core/BookingAttachmentRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingActivityRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingHoldRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingSchema.php'
+      - 'plugins/extrachill-events/inc/Core/PromoterAuthoritySchema.php'
+      - 'plugins/extrachill-events/inc/Core/ShowSettlementService.php'
+      - 'plugins/extrachill-events/inc/Core/TicketSettlementService.php'
+      - 'plugins/extrachill-events/inc/Core/TicketReconciliationService.php'
+      - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
+      - 'plugins/extrachill-events/inc/Core/VenueBookingConfig.php'
+      - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
+      - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/AbilitiesProvider.php'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: booking-mysql-transaction-proofs-host-${{ github.event.pull_request.number || github.ref }}
+  group: extrachill-events-booking-mysql-transaction-proofs-host-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Pinned to this site's current WordPress release so the downloaded core
   # and the checked-out core PHPUnit test library stay version-matched.
   # Advance deliberately alongside the site's own WordPress upgrades, and
-  # alongside booking-hold-concurrency-host-proof.yml's own pin.
+  # alongside extrachill-events-booking-hold-concurrency-host-proof.yml's own pin.
   WP_PROOF_VERSION: '7.1.2'
   DME_REF: efd7579fab38beb73f6961fc33da538a8f112d93
+
+defaults:
+  run:
+    working-directory: plugins/extrachill-events
 
 jobs:
   booking-mysql-proof:
@@ -167,7 +210,7 @@ jobs:
           WP_TESTS_DIR: /tmp/wp-tests-lib
           WP_CORE_DIR: /tmp/wordpress-core
           WP_MULTISITE: '1'
-          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/plugins/extrachill-events/vendor/yoast/phpunit-polyfills
           DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
         # --exclude-group host-dme-abilities-registry-gap: this bootstrap
         # doesn't yet register DME's own ability/category hooks in the
@@ -252,6 +295,6 @@ jobs:
           DB_PORT: '3306'
           WP_TESTS_DIR: /tmp/wp-tests-lib
           WP_CORE_DIR: /tmp/wordpress-core
-          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/plugins/extrachill-events/vendor/yoast/phpunit-polyfills
           DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
         run: vendor/bin/phpunit --configuration phpunit-booking-concurrency.xml.dist --testdox

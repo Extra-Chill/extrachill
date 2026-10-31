@@ -1,11 +1,13 @@
-name: Link Page storage migration parity
+name: extrachill-cli / Link Page storage migration parity
 
 on:
   pull_request:
     paths:
-      - '.github/workflows/link-page-storage-migration-parity.yml'
-      - 'tests/integration/**'
-      - 'inc/Commands/LinkPages/**'
+      - '.github/workflows/extrachill-cli-link-page-storage-migration-parity.yml'
+      - 'plugins/extrachill-cli/tests/integration/**'
+      - 'plugins/extrachill-cli/inc/Commands/LinkPages/**'
+      - 'plugins/extrachill-analytics/inc/core/link-page-storage-migration.php'
+      - 'plugins/extrachill-link-pages/inc/migration.php'
   workflow_dispatch:
 
 jobs:
@@ -23,17 +25,15 @@ jobs:
           --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
-        with: { path: cli }
-      - uses: actions/checkout@v4
-        with: { repository: Extra-Chill/extrachill-link-pages, ref: main, path: link-pages }
-      - uses: actions/checkout@v4
-        with: { repository: Extra-Chill/extrachill-artist-platform, ref: main, path: artist }
-      - uses: actions/checkout@v4
-        with: { repository: Extra-Chill/extrachill-analytics, ref: feat-257-link-page-migration, path: analytics }
-      - uses: actions/checkout@v4
-        with: { repository: Extra-Chill/extrachill-network, ref: main, path: network }
-      - uses: actions/checkout@v4
-        with: { repository: Extra-Chill/extrachill-users, ref: main, path: users }
+        with: { path: monorepo }
+      - name: Map in-tree plugins to the paths this proof uses
+        run: |
+          ln -s monorepo/plugins/extrachill-cli cli
+          ln -s monorepo/plugins/extrachill-link-pages link-pages
+          ln -s monorepo/plugins/extrachill-artist-platform artist
+          ln -s monorepo/plugins/extrachill-analytics analytics
+          ln -s monorepo/plugins/extrachill-network network
+          ln -s monorepo/plugins/extrachill-users users
       - uses: shivammathur/setup-php@v2
         with: { php-version: '8.4', extensions: mysqli }
       - name: Install disposable WordPress multisite

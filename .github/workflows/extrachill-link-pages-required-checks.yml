@@ -1,34 +1,38 @@
-name: Required checks
+name: extrachill-link-pages / Required checks
 
 on:
   pull_request:
     paths:
-      - '*.php'
-      - 'inc/**/*.php'
-      - 'templates/**/*.php'
-      - 'assets/**/*.css'
-      - 'assets/**/*.js'
-      - 'tests/**/*.php'
-      - 'tests/**/*.js'
-      - 'src/**/*.js'
-      - 'src/**/*.scss'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tools/composer.json'
-      - 'tools/composer.lock'
-      - 'phpunit.xml.dist'
-      - 'phpcs.xml.dist'
-      - 'homeboy.json'
-      - '.buildignore'
-      - '.github/workflows/required-checks.yml'
+      - 'plugins/extrachill-link-pages/*.php'
+      - 'plugins/extrachill-link-pages/inc/**/*.php'
+      - 'plugins/extrachill-link-pages/templates/**/*.php'
+      - 'plugins/extrachill-link-pages/assets/**/*.css'
+      - 'plugins/extrachill-link-pages/assets/**/*.js'
+      - 'plugins/extrachill-link-pages/tests/**/*.php'
+      - 'plugins/extrachill-link-pages/tests/**/*.js'
+      - 'plugins/extrachill-link-pages/src/**/*.js'
+      - 'plugins/extrachill-link-pages/src/**/*.scss'
+      - 'plugins/extrachill-link-pages/package.json'
+      - 'plugins/extrachill-link-pages/package-lock.json'
+      - 'plugins/extrachill-link-pages/tools/composer.json'
+      - 'plugins/extrachill-link-pages/tools/composer.lock'
+      - 'plugins/extrachill-link-pages/phpunit.xml.dist'
+      - 'plugins/extrachill-link-pages/phpcs.xml.dist'
+      - 'plugins/extrachill-link-pages/homeboy.json'
+      - 'plugins/extrachill-link-pages/.buildignore'
+      - '.github/workflows/extrachill-link-pages-required-checks.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: plugins/extrachill-link-pages
+
 jobs:
   required-checks:
-    name: PHP, tests, and package contract
+    name: extrachill-link-pages PHP, tests, and package contract
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

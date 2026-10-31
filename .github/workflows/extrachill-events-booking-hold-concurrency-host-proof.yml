@@ -1,4 +1,4 @@
-name: Booking hold concurrency host proof
+name: extrachill-events / Booking hold concurrency host proof
 
 # InternalBookingHoldConcurrencyMySQLProof forks two real OS processes
 # (pcntl_fork) against a real MySQL advisory lock to prove overlapping public
@@ -27,36 +27,58 @@ name: Booking hold concurrency host proof
 on:
   pull_request:
     paths:
-      - .github/workflows/booking-hold-concurrency-host-proof.yml
-      - composer.json
-      - composer.lock
-      - phpunit-booking-alpha-concurrency.xml.dist
-      - tests/MySQLIntegration/InternalBookingHoldConcurrencyMySQLProof.php
-      - tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php
-      - tests/MySQLIntegration/host-wordpress-bootstrap.php
-      - tests/MySQLIntegration/wp-tests-config.php
-      - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
-      - inc/Abilities/VenueBookingHoldAbilities.php
-      - inc/Abilities/VenueBookingConfigAbilities.php
-      - inc/Abilities/VenueBookingMutationAbilities.php
-      - inc/Abilities/VenueBookingEventAbilities.php
-      - inc/Abilities/VenueMembershipAbilities.php
-      - inc/Core/BookingHoldRepository.php
-      - inc/Core/BookingRepository.php
-      - inc/Core/BookingSchema.php
-      - inc/Core/VenueAuthorization.php
-      - inc/Core/VenueMembershipRepository.php
-      - inc/Providers/VenueBookingProvider.php
-      - inc/Providers/AbilitiesProvider.php
+      - '.github/workflows/extrachill-events-booking-hold-concurrency-host-proof.yml'
+      - 'plugins/extrachill-events/composer.json'
+      - 'plugins/extrachill-events/composer.lock'
+      - 'plugins/extrachill-events/phpunit-booking-alpha-concurrency.xml.dist'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/InternalBookingHoldConcurrencyMySQLProof.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/host-wordpress-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/wp-tests-config.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingHoldAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingConfigAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingMutationAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingEventAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueMembershipAbilities.php'
+      - 'plugins/extrachill-events/inc/Core/BookingHoldRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingSchema.php'
+      - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
+      - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
+      - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/AbilitiesProvider.php'
   push:
     branches: [main]
+    paths:
+      - '.github/workflows/extrachill-events-booking-hold-concurrency-host-proof.yml'
+      - 'plugins/extrachill-events/composer.json'
+      - 'plugins/extrachill-events/composer.lock'
+      - 'plugins/extrachill-events/phpunit-booking-alpha-concurrency.xml.dist'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/InternalBookingHoldConcurrencyMySQLProof.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/host-wordpress-bootstrap.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/wp-tests-config.php'
+      - 'plugins/extrachill-events/tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingHoldAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingConfigAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingMutationAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueBookingEventAbilities.php'
+      - 'plugins/extrachill-events/inc/Abilities/VenueMembershipAbilities.php'
+      - 'plugins/extrachill-events/inc/Core/BookingHoldRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingRepository.php'
+      - 'plugins/extrachill-events/inc/Core/BookingSchema.php'
+      - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
+      - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
+      - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/AbilitiesProvider.php'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: booking-hold-concurrency-host-proof-${{ github.event.pull_request.number || github.ref }}
+  group: extrachill-events-booking-hold-concurrency-host-proof-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -65,6 +87,10 @@ env:
   # Advance deliberately alongside the site's own WordPress upgrades.
   WP_PROOF_VERSION: '7.1.2'
   DME_REF: efd7579fab38beb73f6961fc33da538a8f112d93
+
+defaults:
+  run:
+    working-directory: plugins/extrachill-events
 
 jobs:
   hold-concurrency-proof:
@@ -142,6 +168,6 @@ jobs:
           DB_PORT: '3306'
           WP_TESTS_DIR: /tmp/wp-tests-lib
           WP_CORE_DIR: /tmp/wordpress-core
-          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/plugins/extrachill-events/vendor/yoast/phpunit-polyfills
           DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
         run: vendor/bin/phpunit --configuration phpunit-booking-alpha-concurrency.xml.dist --testdox
