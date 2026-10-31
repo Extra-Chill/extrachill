@@ -6,7 +6,16 @@ const out = new URL('./journey.json', import.meta.url).pathname;
 const noErrors = { kind: 'evaluate', expression: 'window.__wpCodeboxBrowserErrors?.length ?? 0' };
 const wait = (ms) => ({ kind: 'waitFor', waitFor: 'duration', duration: `${ms}ms` });
 const shot = (name) => ({ kind: 'screenshot', name });
-const nav = (url) => ({ kind: 'navigate', url, waitFor: 'load' });
+// Navigation settles on network idle: the page's own data fetches (auth
+// handoff, editor config, owner edit button) finish before the next action.
+const nav = (url) => ({ kind: 'navigate', url, waitFor: 'networkidle' });
+// A click that navigates: mark the old document, then wait for a document
+// without the mark and let it settle.
+const markPage = { kind: 'evaluate', expression: "(document.body.dataset.ecRigOld='1',true)" };
+const newPage = [
+  { kind: 'waitFor', selector: 'body:not([data-ec-rig-old])', timeout: '90s' },
+  { kind: 'waitFor', waitFor: 'networkidle' },
+];
 let obsCounter = 0;
 const labels = {};
 // Every observation posts itself to the journey fixture's sink (see sandbox-fixture.php):
@@ -59,20 +68,19 @@ const steps = [
     hosts: ALL,
     steps: [
       nav('http://extrachill.link/'),
-      wait(2500),
       shot('01-link-page-root-anonymous'),
       ev("document.title"),
       ev("(document.querySelector('.extrch-link-page-powered a')||{}).href||'no-powered-footer'"),
       ev("Array.from(document.querySelectorAll('a')).filter(a=>/join/i.test(a.href+a.textContent)).map(a=>a.textContent.trim()+' -> '+a.href)"),
       nav('http://extrachill.com/power/'),
-      wait(2000),
       shot('02-power-page-desktop'),
       text(1500),
       ev("Array.from(document.querySelectorAll('.power-network-card')).map(c=>c.querySelector('h3').textContent.trim()+' | '+(c.querySelector('.power-network-card__cta')||{}).textContent+' -> '+c.getAttribute('href'))"),
       ev("/link page/i.test(document.body.innerText)"),
       ev("/(get|claim|create|make).{0,20}(your|a) (free )?link page/i.test(document.body.innerText)"),
+      markPage,
       { kind: 'click', selector: ".power-network-card:has-text('Artist Platform')" },
-      wait(4000),
+      ...newPage,
       here,
       shot('03-artist-platform-home-from-power'),
       text(1500),
@@ -84,7 +92,7 @@ const steps = [
     url: 'http://extrachill.com/power/',
     hosts: ['extrachill.com'],
     viewport: '390x844',
-    steps: [nav('http://extrachill.com/power/'), wait(1500), overflow, shot('04-power-page-mobile'), noErrors],
+    steps: [nav('http://extrachill.com/power/'), overflow, shot('04-power-page-mobile'), noErrors],
   }),
   // 2. The /join link: register as a brand-new musician, walk onboarding, create the artist.
   step('join-link-live-signup', {
@@ -93,7 +101,6 @@ const steps = [
     timeout: '300s',
     steps: [
       nav('http://extrachill.link/join'),
-      wait(2500),
       here,
       shot('05-join-landing'),
       text(800),
@@ -165,7 +172,7 @@ const steps = [
     url: 'http://extrachill.link/join',
     hosts: ALL,
     viewport: '390x844',
-    steps: [nav('http://extrachill.link/join'), wait(2500), here, overflow, shot('11-join-landing-mobile'), noErrors],
+    steps: [nav('http://extrachill.link/join'), here, overflow, shot('11-join-landing-mobile'), noErrors],
   }),
   // 3. Fixture musician (registered + onboarded as an artist, nothing else yet).
   step('musician-creates-artist-profile', {
@@ -174,7 +181,6 @@ const steps = [
     auth: 601,
     steps: [
       nav('http://artist.extrachill.com/'),
-      wait(2000),
       shot('12-artist-home-before-artist'),
       text(1200),
       anchors('header'),
@@ -189,12 +195,10 @@ const steps = [
       text(1200),
       anchors('main'),
       nav('http://artist.extrachill.com/manage-link-page/'),
-      wait(4000),
       shot('14b-manage-link-page-right-after-create'),
       text(700),
       anchors('main'),
       nav('http://artist.extrachill.com/manage-artist/'),
-      wait(5000),
       shot('14c-manage-artist-right-after-create'),
       ev("Array.from(document.querySelectorAll('button,a')).filter(a=>/link.?page|complete|setup/i.test(a.textContent)).map(a=>a.tagName+': '+a.textContent.trim())"),
       noErrors,
@@ -208,30 +212,24 @@ const steps = [
     timeout: '300s',
     steps: [
       nav('http://artist.extrachill.com/'),
-      wait(2000),
       shot('15-artist-home-with-artist'),
       anchors('header'),
       anchors('body', ".filter(a=>/link.?page|edit|manage/i.test(a.textContent+a.href))"),
       nav('http://artist.extrachill.com/manage-artist/'),
-      wait(5000),
       shot('16-manage-artist'),
       anchors('body', ".filter(a=>/link.?page|edit|extrachill\\.link/i.test(a.textContent+a.href))"),
       nav('http://artist.extrachill.com/manage-link-page/'),
-      wait(7000),
       here,
       shot('17-legacy-manage-link-page'),
       text(600),
       ev("!!document.querySelector('#ec-link-page-editor-root *, .ec-editor')"),
       nav('http://artist.extrachill.com/analytics/'),
-      wait(4000),
       shot('18-analytics'),
       anchors('main', ".filter(a=>/link.?page/i.test(a.textContent+a.href))"),
       nav('http://community.extrachill.com/'),
-      wait(2500),
       shot('19-community-home-logged-in'),
       anchors('header'),
       nav('http://extrachill.com/'),
-      wait(2500),
       shot('20-main-home-logged-in'),
       anchors('header'),
       anchors('body', ".filter(a=>/link.?page|artist\\.extrachill|extrachill\\.link/i.test(a.textContent+a.href))"),
@@ -247,10 +245,8 @@ const steps = [
     timeout: '360s',
     steps: [
       nav('http://artist.extrachill.com/'),
-      wait(1500),
       ev("Array.from(document.querySelectorAll('a')).filter(a=>/link.?page/i.test(a.textContent)).map(a=>a.textContent.trim()+' -> '+a.getAttribute('href'))"),
       nav('http://extrachill.link/edit'),
-      wait(12000),
       here,
       ev("(document.getElementById('ec-link-page-edit-status')||{innerText:'no-status'}).innerText"),
       ev("(async()=>{const t=JSON.parse(localStorage.getItem('ecLinkEditToken')||'null');const s=window.ecLinkPageEditShell||{};if(!t||!s.configurationUrl)return {token:!!t,cfg:s.configurationUrl||null};const r=await fetch(s.configurationUrl+'?link_page_id=0',{headers:{Authorization:'Bearer '+t.token},credentials:'omit'});return {status:r.status,body:(await r.text()).slice(0,400),cfg:s.configurationUrl}})()"),
@@ -289,19 +285,17 @@ const steps = [
       shot('26-advanced-newsletter-set'),
       ev("!!document.querySelector('.ec-editor__preview-region .extrch-link-page-subscribe-inline-form-container')"),
       { kind: 'click', selector: ".ec-editor__header button[type='submit']" },
-      wait(6000),
+      { kind: 'waitFor', selector: '.ec-editor__actions [role=status]', timeout: '90s' },
       ev("(document.querySelector('.ec-editor__actions [role=status]')||{textContent:'no-status'}).textContent"),
       ev("(document.querySelector(\".ec-editor__header button[type='submit']\")||{}).textContent"),
       shot('27-after-save'),
       ev("(document.querySelector('.ec-editor__header a')||{}).href||'no-public-url'"),
       nav('http://extrachill.link/the-porch-lights'),
-      wait(3000),
       here,
       shot('28-public-page-after-save'),
       ev("getComputedStyle(document.body).backgroundColor"),
       ev("(document.querySelector('.extrch-subscribe-inline-form-container')||{innerText:'no-inline-form'}).innerText.replace(/\\s+/g,' ')"),
       ev("Array.from(document.querySelectorAll('a')).map(a=>a.textContent.trim()+' -> '+a.getAttribute('href')).slice(0,40)"),
-      wait(4000),
       ev("(document.querySelector('.extrch-link-page-edit-btn')||{}).href||'no-owner-edit-button'"),
       shot('29-public-page-owner-view'),
       nav('http://extrachill.link/edit'),
@@ -319,7 +313,6 @@ const steps = [
     viewport: '390x844',
     steps: [
       nav('http://extrachill.link/the-porch-lights'),
-      wait(2500),
       here,
       ev("document.documentElement ? document.documentElement.outerHTML.length : -1"),
       ev("(async()=>{const r=await fetch('/the-porch-lights/',{redirect:'manual'});const t=await r.text();return {status:r.status,type:r.type,len:t.length,head:t.slice(0,300)}})()"),
@@ -356,7 +349,6 @@ const steps = [
     hosts: ALL,
     steps: [
       nav('http://extrachill.link/edit'),
-      wait(6000),
       here,
       text(600),
       shot('34-editor-logged-out'),

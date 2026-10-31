@@ -189,7 +189,7 @@
         "step-timeout=90s",
         "timeout=300s",
         "capture=steps,console,errors,network,screenshot,dom-snapshot",
-        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://artist.extrachill.com/analytics/\",\"waitFor\":\"load\"},{\"kind\":\"waitFor\",\"waitFor\":\"duration\",\"duration\":\"3000ms\"},{\"kind\":\"evaluate\",\"expression\":\"!document.body.innerText.includes('Create a link page')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"analytics\"},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"evaluate\",\"expression\":\"fetch('/?returning_artist_reached=analytics_knows_the_page', { credentials: 'same-origin' }).then((r) => r.status === 204)\",\"assert\":true}]"
+        "steps-json=[{\"kind\":\"navigate\",\"url\":\"http://artist.extrachill.com/analytics/\",\"waitFor\":\"networkidle\"},{\"kind\":\"evaluate\",\"expression\":\"!document.body.innerText.includes('Create a link page')\",\"assert\":true},{\"kind\":\"screenshot\",\"name\":\"analytics\"},{\"kind\":\"evaluate\",\"expression\":\"window.__wpCodeboxBrowserErrors?.length ?? 0\",\"assert\":0},{\"kind\":\"evaluate\",\"expression\":\"fetch('/?returning_artist_reached=analytics_knows_the_page', { credentials: 'same-origin' }).then((r) => r.status === 204)\",\"assert\":true}]"
       ]
     }
   ]
