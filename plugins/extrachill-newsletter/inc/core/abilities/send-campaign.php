@@ -375,12 +375,13 @@ function extrachill_newsletter_send_resolve_lists( array $input ) {
 function extrachill_newsletter_send_id_list( array $input, $key ) {
 	$values = isset( $input[ $key ] ) && is_array( $input[ $key ] ) ? $input[ $key ] : array();
 	$values = array_map( 'trim', array_map( 'strval', $values ) );
-	return array_values( array_unique( array_filter(
+	$values = array_filter(
 		$values,
 		static function ( $value ) {
 			return '' !== $value;
 		}
-	) ) );
+	);
+	return array_values( array_unique( $values ) );
 }
 
 /**
