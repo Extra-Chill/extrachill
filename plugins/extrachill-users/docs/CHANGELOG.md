@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.57.0] - 2026-10-31
+
+### Added
+- self-service account deletion ability
+- Sign in with Apple for the native app (network + users + api)
+
 ## [0.56.0] - 2026-10-31
 
 ### Added
