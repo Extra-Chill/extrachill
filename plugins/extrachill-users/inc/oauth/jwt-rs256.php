@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $token    JWT token.
  * @param string $jwks_url JWKS endpoint URL.
- * @param string $audience Expected audience (aud claim).
+ * @param string|string[] $audience Allowed audiences (aud claim).
  * @param string $issuer   Expected issuer (iss claim), or comma-separated list.
  * @return array|WP_Error Decoded payload or error.
  */
@@ -48,12 +48,16 @@ function ec_verify_rs256_jwt( $token, $jwks_url, $audience, $issuer ) {
 	}
 
 	// Validate audience.
-	$token_aud = isset( $payload['aud'] ) ? $payload['aud'] : '';
-	if ( is_array( $token_aud ) ) {
-		if ( ! in_array( $audience, $token_aud, true ) ) {
-			return new WP_Error( 'invalid_audience', 'Token audience mismatch.' );
+	$token_aud      = isset( $payload['aud'] ) ? $payload['aud'] : '';
+	$audience_match = false;
+	foreach ( (array) $audience as $allowed_audience ) {
+		if ( is_string( $allowed_audience ) && '' !== $allowed_audience
+			&& in_array( $allowed_audience, (array) $token_aud, true ) ) {
+			$audience_match = true;
+			break;
 		}
-	} elseif ( $token_aud !== $audience ) {
+	}
+	if ( ! $audience_match ) {
 		return new WP_Error( 'invalid_audience', 'Token audience mismatch.' );
 	}
 

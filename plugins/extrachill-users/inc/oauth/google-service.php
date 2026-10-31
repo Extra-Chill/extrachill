@@ -253,13 +253,8 @@ function ec_get_user_by_google_id( $google_id ) {
  * @return array|WP_Error Token response or error.
  */
 function ec_google_login_with_tokens( $id_token, $device_id, $options = array() ) {
-	$device_name          = isset( $options['device_name'] ) ? (string) $options['device_name'] : '';
-	$remember             = ! empty( $options['remember'] );
-	$set_cookie           = ! empty( $options['set_cookie'] );
-	$from_join            = ! empty( $options['from_join'] );
-	$success_redirect_url = isset( $options['success_redirect_url'] ) ? (string) $options['success_redirect_url'] : '';
-	$registration_source  = isset( $options['registration_source'] ) ? sanitize_text_field( (string) $options['registration_source'] ) : '';
-	$newsletter_consent   = ! empty( $options['newsletter_consent'] );
+	$from_join           = ! empty( $options['from_join'] );
+	$registration_source = isset( $options['registration_source'] ) ? sanitize_text_field( (string) $options['registration_source'] ) : '';
 
 	if ( empty( $registration_source ) ) {
 		$registration_source = 'web';
@@ -297,6 +292,30 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
+
+	return ec_oauth_complete_token_login( $result, $device_id, $options, $registration_data );
+}
+
+/**
+ * Complete a verified OAuth login for any provider.
+ *
+ * Call only after device validation and identity resolution. Browser-only options
+ * are supported for Google; native providers must omit them.
+ *
+ * @param array  $result            Resolved user, user_id and is_new.
+ * @param string $device_id         Validated UUIDv4.
+ * @param array  $options           Token and browser login options.
+ * @param array  $registration_data Sanitized registration metadata.
+ * @return array|WP_Error Token response or error.
+ */
+function ec_oauth_complete_token_login( $result, $device_id, $options, $registration_data ) {
+	$device_name          = isset( $options['device_name'] ) ? (string) $options['device_name'] : '';
+	$remember             = ! empty( $options['remember'] );
+	$set_cookie           = ! empty( $options['set_cookie'] );
+	$from_join            = ! empty( $options['from_join'] );
+	$success_redirect_url = isset( $options['success_redirect_url'] ) ? (string) $options['success_redirect_url'] : '';
+	$newsletter_consent   = ! empty( $options['newsletter_consent'] );
+	$registration_source  = $registration_data['registration_source'];
 
 	$user_id = $result['user_id'];
 	$is_new  = $result['is_new'];
@@ -351,7 +370,7 @@ function ec_google_login_with_tokens( $id_token, $device_id, $options = array() 
 	$refresh = wp_native_auth_issue_refresh_token( (int) $user_id, $device_id, $device_name );
 
 	// Preserve profile-completion state for progressive onboarding without
-	// making it an entry gate for ordinary Google registrations.
+	// making it an entry gate for ordinary OAuth registrations.
 	$onboarding_completed = function_exists( 'ec_is_onboarding_complete' )
 		? ec_is_onboarding_complete( $user_id )
 		: true;

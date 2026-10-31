@@ -50,11 +50,13 @@ function ec_handle_network_oauth_save() {
 	update_site_option( 'extrachill_google_android_client_id', $google_android_client_id );
 
 	// Apple Sign-In
+	$apple_bundle_id   = isset( $_POST['ec_apple_bundle_id'] ) ? sanitize_text_field( wp_unslash( $_POST['ec_apple_bundle_id'] ) ) : '';
 	$apple_client_id   = isset( $_POST['ec_apple_client_id'] ) ? sanitize_text_field( wp_unslash( $_POST['ec_apple_client_id'] ) ) : '';
 	$apple_team_id     = isset( $_POST['ec_apple_team_id'] ) ? sanitize_text_field( wp_unslash( $_POST['ec_apple_team_id'] ) ) : '';
 	$apple_key_id      = isset( $_POST['ec_apple_key_id'] ) ? sanitize_text_field( wp_unslash( $_POST['ec_apple_key_id'] ) ) : '';
 	$apple_private_key = isset( $_POST['ec_apple_private_key'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ec_apple_private_key'] ) ) : '';
 
+	update_site_option( 'extrachill_apple_bundle_id', $apple_bundle_id );
 	update_site_option( 'extrachill_apple_client_id', $apple_client_id );
 	update_site_option( 'extrachill_apple_team_id', $apple_team_id );
 	update_site_option( 'extrachill_apple_key_id', $apple_key_id );
@@ -82,11 +84,13 @@ function ec_render_network_oauth_page() {
 	$google_android_client_id = get_site_option( 'extrachill_google_android_client_id', '' );
 	$google_configured        = ec_is_google_oauth_configured();
 
-	$apple_client_id   = get_site_option( 'extrachill_apple_client_id', '' );
-	$apple_team_id     = get_site_option( 'extrachill_apple_team_id', '' );
-	$apple_key_id      = get_site_option( 'extrachill_apple_key_id', '' );
-	$apple_private_key = get_site_option( 'extrachill_apple_private_key', '' );
-	$apple_configured  = ec_is_apple_oauth_configured();
+	$apple_bundle_id         = get_site_option( 'extrachill_apple_bundle_id', '' );
+	$apple_client_id         = get_site_option( 'extrachill_apple_client_id', '' );
+	$apple_team_id           = get_site_option( 'extrachill_apple_team_id', '' );
+	$apple_key_id            = get_site_option( 'extrachill_apple_key_id', '' );
+	$apple_private_key       = get_site_option( 'extrachill_apple_private_key', '' );
+	$apple_configured        = ec_is_apple_oauth_configured();
+	$apple_server_configured = ec_is_apple_server_credentials_configured();
 	?>
 	<div class="wrap">
 		<h1><?php esc_html_e( 'Extra Chill OAuth Settings', 'extrachill-network' ); ?></h1>
@@ -186,13 +190,39 @@ function ec_render_network_oauth_page() {
 						<th colspan="2" style="padding-top: 30px;">
 							<h2><?php esc_html_e( 'Apple Sign-In', 'extrachill-network' ); ?></h2>
 							<p class="description">
-								<?php esc_html_e( 'Configure Apple Sign-In for "Continue with Apple" authentication.', 'extrachill-network' ); ?>
+								<?php esc_html_e( 'The Bundle ID turns on Sign in with Apple in the iOS app. The Services ID, Team ID, Key ID and private key are only needed for web sign-in and token revocation.', 'extrachill-network' ); ?>
 								<?php if ( $apple_configured ) : ?>
 									<span style="color: #46b450; font-weight: bold;">&#10003; <?php esc_html_e( 'Configured', 'extrachill-network' ); ?></span>
 								<?php else : ?>
 									<span style="color: #dc3232; font-weight: bold;">&#9888; <?php esc_html_e( 'Not configured', 'extrachill-network' ); ?></span>
 								<?php endif; ?>
 							</p>
+						</th>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="ec_apple_bundle_id"><?php esc_html_e( 'App Bundle ID', 'extrachill-network' ); ?></label>
+						</th>
+						<td>
+							<input type="text"
+									id="ec_apple_bundle_id"
+									name="ec_apple_bundle_id"
+									value="<?php echo esc_attr( $apple_bundle_id ); ?>"
+									class="regular-text"
+									placeholder="com.extrachill.app" />
+							<p class="description">
+								<?php esc_html_e( 'iOS app bundle ID. Enables native Sign in with Apple in the app.', 'extrachill-network' ); ?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row" colspan="2">
+							<?php esc_html_e( 'Web sign-in and token revocation', 'extrachill-network' ); ?>
+							<?php if ( $apple_server_configured ) : ?>
+								<span style="color: #46b450; font-weight: bold;">&#10003; <?php esc_html_e( 'Configured', 'extrachill-network' ); ?></span>
+							<?php else : ?>
+								<span style="color: #646970;"><?php esc_html_e( 'Not configured (optional for the app)', 'extrachill-network' ); ?></span>
+							<?php endif; ?>
 						</th>
 					</tr>
 					<tr>

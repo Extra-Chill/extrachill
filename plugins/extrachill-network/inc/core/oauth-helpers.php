@@ -39,11 +39,45 @@ function ec_get_google_android_client_id() {
 }
 
 /**
+ * Get the accepted audiences for Apple identity tokens.
+ *
+ * Native iOS tokens carry the app bundle ID as `aud`; web tokens carry the
+ * Services ID. Either one is enough to verify an identity token.
+ *
+ * @return string[] Non-empty, trimmed, unique audiences.
+ */
+function ec_get_apple_audiences() {
+	$audiences = array();
+	foreach ( array( 'extrachill_apple_bundle_id', 'extrachill_apple_client_id' ) as $option ) {
+		$value = trim( (string) get_site_option( $option, '' ) );
+		if ( '' !== $value && ! in_array( $value, $audiences, true ) ) {
+			$audiences[] = $value;
+		}
+	}
+	return $audiences;
+}
+
+/**
  * Check if Apple Sign-In is configured.
  *
- * @return bool True if all required Apple credentials are set.
+ * Identity-token sign-in only needs an accepted audience (the app bundle ID
+ * or the Services ID). Server credentials are checked separately.
+ *
+ * @return bool True when at least one Apple audience is set.
  */
 function ec_is_apple_oauth_configured() {
+	return ! empty( ec_get_apple_audiences() );
+}
+
+/**
+ * Check if Apple server credentials are configured.
+ *
+ * Needed for the web authorization-code flow and for token revocation,
+ * not for native identity-token sign-in.
+ *
+ * @return bool True if the Services ID, team ID, key ID and private key are set.
+ */
+function ec_is_apple_server_credentials_configured() {
 	$client_id   = get_site_option( 'extrachill_apple_client_id', '' );
 	$team_id     = get_site_option( 'extrachill_apple_team_id', '' );
 	$key_id      = get_site_option( 'extrachill_apple_key_id', '' );
