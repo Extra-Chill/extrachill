@@ -82,11 +82,6 @@
       "local_path": ""
     },
     {
-      "id": "data-machine-chat-bridge",
-      "remote_path": "wp-content/plugins/data-machine-chat-bridge",
-      "local_path": ""
-    },
-    {
       "id": "data-machine-events",
       "remote_path": "wp-content/plugins/data-machine-events",
       "local_path": ""
