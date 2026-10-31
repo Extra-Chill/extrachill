@@ -55,7 +55,7 @@ The server block references `$crawler_block_net`, `$events_scraper`, and
 `extrachill-nginx-bots` above. Configure that root-owned target once with:
 
 ```ini
-REPO_URL=https://github.com/Extra-Chill/extrachill-network.git
+REPO_URL=https://github.com/Extra-Chill/extrachill.git
 TRUST_REF=refs/heads/main
 SOURCE_PATH=deploy/nginx/conf.d/bot-blocking.conf
 DEST_PATH=/etc/nginx/conf.d/bot-blocking.conf

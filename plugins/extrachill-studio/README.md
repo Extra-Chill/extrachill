@@ -162,7 +162,7 @@ See [open Studio issues](https://github.com/Extra-Chill/extrachill-studio/issues
 ## Related Repositories
 
 - [extrachill-users](https://github.com/Extra-Chill/extrachill-users) — identity, team roles, profiles, and notifications
-- [extrachill-network](https://github.com/Extra-Chill/extrachill-network) — multisite and cross-site foundations
+- [extrachill-network](https://github.com/Extra-Chill/extrachill) — multisite and cross-site foundations
 - [data-machine](https://github.com/Extra-Chill/data-machine) — automation, pending actions, jobs, email, and abilities
 - [data-machine-socials](https://github.com/Extra-Chill/data-machine-socials) — social platform operations
 - [data-machine-editor](https://github.com/Extra-Chill/data-machine-editor) — inline editing and diff review

@@ -223,7 +223,7 @@ jobs:
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
 
-      # Only build the rig's extrachill_release_set / extrachill_theme_source
+      # Only build the rig's extrachill_release_set
       # settings, and report how many components would gate, when there is
       # something to gate. component_count == 0 is the normal state on most
       # of the */30-ish cron ticks (extrachill-network#264 point 2): the
@@ -272,27 +272,15 @@ jobs:
             ] | add // {}
           ' "${out}")"
 
-          # The theme is not a rig plugin entry; it has its own
-          # extrachill_theme_source setting. Pin it the same way when it is
-          # part of this deploy, otherwise fall back to its latest release —
-          # a real `up` always needs *some* theme source.
-          theme_ref="$(jq -r '
-            .data.results[]?
-            | select(.id == "extrachill" and (.status == "planned" or .status == "deployed"))
-            | (.deployed_ref // (if .local_version then "v" + .local_version else empty end))
-          ' "${out}")"
-          if [ -n "${theme_ref}" ]; then
-            theme_source="https://github.com/Extra-Chill/extrachill/releases/download/${theme_ref}/extrachill.zip"
-          else
-            theme_source="https://github.com/Extra-Chill/extrachill/releases/latest/download/extrachill.zip"
-          fi
-          echo "theme_source=${theme_source}" >> "${GITHUB_OUTPUT}"
+          # The theme is a monorepo member (themes/extrachill): the rig boots it
+          # from this checkout via extrachill_monorepo_source, so it needs no
+          # release-zip source of its own.
 
           # Monorepo members (plugins/, themes/) boot from this checkout of main;
           # the release set pins only the release-based components this poller owns.
-          gate_settings_json="$(jq -n --argjson release_set "${release_set_json}" --arg theme "${theme_source}" \
+          gate_settings_json="$(jq -n --argjson release_set "${release_set_json}" \
             --arg monorepo "${GITHUB_WORKSPACE}" \
-            '{extrachill_release_set: $release_set, extrachill_theme_source: $theme, extrachill_monorepo_source: $monorepo}')"
+            '{extrachill_release_set: $release_set, extrachill_monorepo_source: $monorepo}')"
           {
             echo "gate_settings_json<<GATE_SETTINGS_EOF"
             echo "${gate_settings_json}"

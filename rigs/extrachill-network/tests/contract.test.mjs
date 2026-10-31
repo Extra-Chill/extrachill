@@ -143,7 +143,7 @@ try {
   // 3. Remote https zip theme source: forward-compatible inputs.extra_themes
   // (Automattic/wp-codebox#2519). No local mount, no activation step needed
   // since wp-codebox's own extra_themes activation handles it.
-  const withRemoteTheme = await buildRecipe({ extrachill_theme_source: 'https://github.com/Extra-Chill/extrachill/releases/latest/download/extrachill.zip' }, packageRoot);
+  const withRemoteTheme = await buildRecipe({ extrachill_theme_source: 'https://github.com/Extra-Chill/extrachill-theme/releases/latest/download/extrachill.zip' }, packageRoot);
   assert.equal(withRemoteTheme.inputs.mounts.find((mount) => mount.metadata?.kind === 'wordpress-theme'), undefined);
   assert.equal(withRemoteTheme.inputs.extra_themes.length, 1);
   assert.equal(withRemoteTheme.inputs.extra_themes[0].activate, true);

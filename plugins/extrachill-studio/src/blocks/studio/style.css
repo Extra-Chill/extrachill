@@ -753,7 +753,7 @@
  * Vertical stack for the transcription option checkbox (`Identify
  * speakers`). The .ec-checkbox-row primitive from the EC theme owns each
  * row's internal layout — see
- * https://github.com/Extra-Chill/extrachill/pull/21 — so this rule
+ * https://github.com/Extra-Chill/extrachill-theme/pull/21 — so this rule
  * only handles the spacing between rows.
  */
 .ec-studio-transcribe__options {

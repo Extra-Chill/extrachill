@@ -152,7 +152,7 @@ npm run build  # Production build of blocks
 ## Network E2E journeys
 
 This repository keeps no network-boot / browser E2E harnesses of its own —
-[Extra-Chill/extrachill-network](https://github.com/Extra-Chill/extrachill-network)'s
+[Extra-Chill/extrachill](https://github.com/Extra-Chill/extrachill)'s
 Homeboy rig is the only home for those (extrachill-network#291). The
 `gardner-venue-booking`, `booking-invariants`, `venue-booking-console`,
 `venue-claim-and-discovery`, and `near-me-and-my-shows` journeys under that

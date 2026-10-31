@@ -7,7 +7,7 @@
  * genre. All include REST API support for block editor integration.
  *
  * Moved verbatim from the theme (extrachill/inc/core/custom-taxonomies.php);
- * theme removal tracked in Extra-Chill/extrachill#82.
+ * theme removal tracked in Extra-Chill/extrachill-theme#82.
  *
  * @package ExtraChillNetwork
  * @since 1.0.0

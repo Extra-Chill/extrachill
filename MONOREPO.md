@@ -1,6 +1,6 @@
 # Extra Chill monorepo
 
-The whole Extra Chill WordPress platform in one repository: the network theme, every live `extrachill-*` plugin, and the shared npm packages. Tracking: [#385](https://github.com/Extra-Chill/extrachill-network/issues/385).
+The whole Extra Chill WordPress platform in one repository: the network theme, every live `extrachill-*` plugin, and the shared npm packages. Tracking: [#385](https://github.com/Extra-Chill/extrachill/issues/385).
 
 ## Status: staging
 

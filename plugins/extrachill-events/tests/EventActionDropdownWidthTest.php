@@ -6,7 +6,7 @@
  * mobile. The Share (theme) and Add to Calendar (data-machine-events) menus
  * are absolutely positioned at left: 0 with a content-sized width, so without
  * a composition rule they open as a narrow strip pinned to the left edge of a
- * full-width button (Extra-Chill/extrachill#102).
+ * full-width button (Extra-Chill/extrachill-theme#102).
  *
  * @package ExtraChillEvents
  */
