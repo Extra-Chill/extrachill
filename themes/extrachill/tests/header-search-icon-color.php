@@ -53,7 +53,7 @@ require_search_icon_declaration( $css, '.ec-icon', 'fill', 'currentColor' );
 require_search_icon_declaration( $css, 'button.button-1', 'color', 'var(--button-text-color)' );
 
 $templates = array(
-	'inc/header/header-search.php'       => 'search-icon header-right-icon',
+	'inc/header/header-search.php'      => 'search-icon header-right-icon',
 	'inc/core/templates/searchform.php' => 'button-1 button-medium',
 );
 foreach ( $templates as $path => $classes ) {
