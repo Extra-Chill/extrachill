@@ -4,7 +4,7 @@
   "title": "Cross-widget Cloudflare Turnstile isolation smoke",
   "description": "A real-browser smoke for extrachill-network's Cloudflare Turnstile integration, focused on the cross-widget isolation guarantee PHPUnit cannot reach: a broken widget's data-callback must not abort an unrelated sibling widget on the same page (the newsletter #17 / multisite #48 lackey bug). Ported from extrachill-network's own tests/browser/ (a standalone single-plugin wp-codebox recipe) onto the full 11-site network rig (extrachill-network#293); the single-plugin recipe, its shell runner, and its bespoke artifacts directory were dropped in favor of this journey.",
   "origin": {
-    "repository": "Extra-Chill/extrachill-network",
+    "repository": "Extra-Chill/extrachill",
     "files": [
       "tests/browser/cross-widget-turnstile-recipe.json",
       "tests/browser/seed-two-widgets.php",

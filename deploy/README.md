@@ -22,7 +22,7 @@ A component repository does not have to know this workflow exists. It cuts GitHu
 
 A dropped `repository_dispatch` is invisible and silently leaves the server behind. A missed poll self-heals on the next tick. For a site where 30 minutes of latency is irrelevant, polling is the more robust half of that trade.
 
-The `repository_dispatch: component-released` trigger is still wired for the rare case where one component should ship immediately rather than within the half hour (set `dispatch-repo: Extra-Chill/extrachill-network` on that repo's `release.yml@v2` caller — homeboy-action#476). It is off by default and nothing depends on it.
+The `repository_dispatch: component-released` trigger is still wired for the rare case where one component should ship immediately rather than within the half hour (set `dispatch-repo: Extra-Chill/extrachill` on that repo's `release.yml@v2` caller — homeboy-action#476). It is off by default and nothing depends on it.
 
 ## Safety: `DEPLOY_AUTOMATION`
 
@@ -31,8 +31,8 @@ Unattended runs (schedule and `repository_dispatch`) only mutate the server when
 This means merging this workflow is inert: the schedule starts running immediately and shows you, every 30 minutes, exactly what it *would* deploy. Review a few cycles, then set the variable.
 
 ```
-gh variable set DEPLOY_AUTOMATION --body enabled  --repo Extra-Chill/extrachill-network   # go live
-gh variable set DEPLOY_AUTOMATION --body paused   --repo Extra-Chill/extrachill-network   # back to plan-only
+gh variable set DEPLOY_AUTOMATION --body enabled  --repo Extra-Chill/extrachill   # go live
+gh variable set DEPLOY_AUTOMATION --body paused   --repo Extra-Chill/extrachill   # back to plan-only
 ```
 
 A manual `workflow_dispatch` is an explicit human decision and is never gated by the variable — an operator can always deploy or verify on demand.
@@ -60,7 +60,7 @@ Adding a deployable = one attachment line in the project + one registry file. `t
 
 Every other attached component resolves from its own repository's latest release. Components outside Extra-Chill (for example `Automattic/wp-codebox`) must be public for the same reason; derive `remote_url` from `git remote get-url origin`, never by guessing the org.
 
-## Secrets (org-level, repository access restricted to `extrachill-network`)
+## Secrets (org-level, repository access restricted to `extrachill`)
 
 | Name | Contents |
 |---|---|
