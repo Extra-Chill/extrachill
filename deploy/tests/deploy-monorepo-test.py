@@ -80,7 +80,11 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertIn("changed_count != '0'", names["Network rig gate"]["if"])
         self.assertIn("extrachill_monorepo_source", names["Plan"]["run"])
         self.assertIn("MONOREPO_DEPLOY_AUTOMATION", names["Plan"]["env"]["AUTOMATION"])
-        self.assertIn("--shared-path '.github/**' --format matrix", names["Plan"]["run"])
+        self.assertIn("--shared-path '.github/**' --format matrix --direct-only", names["Plan"]["run"])
+        # Every Homeboy pin is the same release (detection, rig gate, deploy, verify).
+        text = (ROOT / ".github/workflows/deploy-monorepo.yml").read_text()
+        pins = __import__("re").findall(r"homeboy/releases/download/v([0-9.]+)/|homeboy-([0-9.]+)/homeboy|version: '([0-9.]+)'", text)
+        self.assertEqual({p for row in pins for p in row if p}, {"0.436.10"})
         self.assertIn('join(",")', names["Plan"]["run"])
 
 
