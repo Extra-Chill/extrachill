@@ -414,9 +414,7 @@
 			}
 			showStatus( '', '' );
 
-			apiFetch( config.claimPath, 'POST', {
-				input: { event_id: eventId, password },
-			} )
+			apiFetch( config.claimPath, 'POST', { password } )
 				.then( function ( response ) {
 					renderPass(
 						document.getElementById( 'ec-rsvp-pass-' + eventId ),

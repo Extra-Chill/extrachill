@@ -192,7 +192,7 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 			'eventId'       => $post_id,
 			'qrBaseUrl'     => function_exists( 'extrachill_events_rsvp_pass_qr_base_url' ) ? extrachill_events_rsvp_pass_qr_base_url() : '',
 			'guestRsvpPath' => $guest_form ? '/extrachill/v1/events/' . $post_id . '/guest-rsvp' : '',
-			'claimPath'     => ( ! $is_verify_page && is_user_logged_in() && extrachill_events_perk_password_required( $post_id ) ) ? '/wp-abilities/v1/abilities/extrachill/claim-event-pass/run' : '',
+			'claimPath'     => ( ! $is_verify_page && is_user_logged_in() && extrachill_events_perk_password_required( $post_id ) ) ? '/extrachill/v1/events/' . $post_id . '/claim-pass' : '',
 			'guestRsvpText' => array(
 				'sending' => __( 'Sending your pass...', 'extrachill-events' ),
 				'success' => __( 'Check your inbox. Your pass is on its way.', 'extrachill-events' ),

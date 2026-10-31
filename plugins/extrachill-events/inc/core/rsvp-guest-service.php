@@ -100,9 +100,8 @@ function extrachill_events_guest_rsvp( int $event_id, string $email, array $attr
 		return new WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
-	$gate = extrachill_events_guest_list_check_password( $event_id, $password, extrachill_events_guest_list_client_key() );
-	if ( is_wp_error( $gate ) ) {
-		return $gate;
+	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
+		return extrachill_events_guest_list_password_error();
 	}
 
 	if ( extrachill_events_guest_list_is_full( $event_id ) ) {
@@ -210,64 +209,15 @@ function extrachill_events_guest_list_full_error(): WP_Error {
 }
 
 /**
- * Failed password attempts allowed per client and event per window.
+ * The error returned for a wrong or missing guest list password.
  *
- * @return int
+ * Brute-force limiting is a transport concern: both public write boundaries
+ * (extrachill-api guest-rsvp and claim-pass) apply the shared per-client
+ * public-write rate limit before this runs.
+ *
+ * @return WP_Error
  */
-function extrachill_events_guest_list_password_attempt_limit(): int {
-	/**
-	 * Filters failed guest list password attempts allowed per client per event.
-	 *
-	 * @param int $limit Default 10 per 15 minutes.
-	 */
-	return max( 1, (int) apply_filters( 'extrachill_events_guest_list_password_attempt_limit', 10 ) );
-}
-
-/**
- * Identify the caller for password-attempt limiting.
- *
- * Logged-in callers are keyed by user; guests by a hash of their address.
- *
- * @return string
- */
-function extrachill_events_guest_list_client_key(): string {
-	$user_id = function_exists( 'get_current_user_id' ) ? (int) get_current_user_id() : 0;
-	if ( $user_id > 0 ) {
-		return 'u' . $user_id;
-	}
-
-	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Hashed, never output.
-	return 'ip' . md5( $ip );
-}
-
-/**
- * Check the guest list password, limiting failed attempts per client.
- *
- * Events without a password pass straight through. The failure response
- * is the same for a wrong and a missing password.
- *
- * @param int    $event_id   Event post ID.
- * @param string $password   Submitted password.
- * @param string $client_key Caller key from extrachill_events_guest_list_client_key().
- * @return true|WP_Error
- */
-function extrachill_events_guest_list_check_password( int $event_id, string $password, string $client_key ) {
-	if ( ! extrachill_events_perk_password_required( $event_id ) ) {
-		return true;
-	}
-
-	$key      = 'ec_guest_list_pw_' . $event_id . '_' . md5( $client_key );
-	$failures = (int) get_transient( $key );
-	if ( $failures >= extrachill_events_guest_list_password_attempt_limit() ) {
-		return new WP_Error( 'guest_list_password_locked', __( 'Too many wrong passwords. Try again in a few minutes.', 'extrachill-events' ), array( 'status' => 429 ) );
-	}
-
-	if ( extrachill_events_perk_check_password( $event_id, $password ) ) {
-		return true;
-	}
-
-	set_transient( $key, $failures + 1, 15 * MINUTE_IN_SECONDS );
-
+function extrachill_events_guest_list_password_error(): WP_Error {
 	return new WP_Error( 'invalid_password', __( "That password isn't right.", 'extrachill-events' ), array( 'status' => 403 ) );
 }
 
@@ -302,9 +252,8 @@ function extrachill_events_claim_guest_list_pass( int $event_id, int $user_id, s
 		return new WP_Error( 'guest_rsvp_closed', __( 'This event has already happened.', 'extrachill-events' ), array( 'status' => 410 ) );
 	}
 
-	$gate = extrachill_events_guest_list_check_password( $event_id, $password, 'u' . $user_id );
-	if ( is_wp_error( $gate ) ) {
-		return $gate;
+	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
+		return extrachill_events_guest_list_password_error();
 	}
 
 	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) || ! function_exists( 'ec_users_mark_event' ) ) {

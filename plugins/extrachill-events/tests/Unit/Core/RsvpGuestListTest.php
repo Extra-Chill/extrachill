@@ -3,7 +3,7 @@
  * Password-gated, capacity-limited guest list (extrachill#433).
  *
  * Covers capacity enforcement in RsvpPassesTable, the password gate on the
- * guest RSVP and the logged-in claim, failed-password limiting, the rule
+ * guest RSVP and the logged-in claim, the rule
  * that a bare Going mark (or the enable-time backfill) never issues a pass
  * on a gated event, and the door-facing counts.
  *
@@ -445,14 +445,6 @@ final class RsvpGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'invalid_password', $this->guest( 'a@example.com', '' )->get_error_code() );
 		$this->assertSame( array(), $this->ability->calls );
 		$this->assertSame( array(), $this->db->rows );
-	}
-
-	public function test_failed_passwords_are_limited(): void {
-		for ( $i = 0; $i < 10; $i++ ) {
-			$this->guest( 'a@example.com', 'nope' );
-		}
-
-		$this->assertSame( 'guest_list_password_locked', $this->guest( 'a@example.com' )->get_error_code() );
 	}
 
 	public function test_full_list_rejects_before_any_account_work(): void {

@@ -123,7 +123,7 @@ function extrachill_api_handle_guest_rsvp( WP_REST_Request $request ) {
 		$input['password'] = $password;
 	}
 
-		$result = $ability->execute( $input );
+	$result = $ability->execute( $input );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

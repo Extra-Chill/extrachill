@@ -252,9 +252,9 @@ class RsvpPassAbilities {
 				'execute_callback'    => array( $this, 'claim_event_pass' ),
 				'permission_callback' => 'is_user_logged_in',
 				'meta'                => array(
-					// The caller's own pass, like get-my-event-pass; failed
-					// passwords are limited per user inside the domain call.
-					'show_in_rest' => true,
+					// Public writes go through extrachill-api's claim-pass
+					// route, which applies the shared rate limit.
+					'show_in_rest' => false,
 					'annotations'  => array(
 						'readonly'     => false,
 						'idempotent'   => true,
