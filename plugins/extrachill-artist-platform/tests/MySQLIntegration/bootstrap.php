@@ -30,3 +30,5 @@ if ( ! is_string( $binding_source ) || ! file_exists( $binding_source ) ) {
 	throw new RuntimeException( 'ARTIST_BINDING_SOURCE must reference the production binding file.' );
 }
 require_once $binding_source;
+// Binding mirrors saved genres onto the bound term (v1.30.x); load that collaborator.
+require_once dirname( $binding_source ) . '/artist-genres.php';

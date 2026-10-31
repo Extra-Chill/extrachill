@@ -1,5 +1,27 @@
 /* Artist Platform Home Page Styles */
 
+/* Homepage containers also wrap the unchanged logged-in views. */
+.artist-platform-homepage,
+.artist-platform-welcome,
+.artist-platform-getting-started,
+.artist-platform-dashboard {
+  min-width: 0;
+}
+
+/* WordPress dashicons used by the feature cards. */
+.onboarding-card .dashicons-admin-links,
+.onboarding-card .dashicons-admin-users,
+.onboarding-card .dashicons-calendar-alt,
+.onboarding-card .dashicons-email-alt,
+.onboarding-card .dashicons-cart,
+.onboarding-card .dashicons-megaphone,
+.onboarding-card .dashicons-groups,
+.onboarding-card .dashicons-location,
+.onboarding-card .dashicons-media-document,
+.onboarding-card .dashicons-chart-bar {
+  flex-shrink: 0;
+}
+
 /* Welcome and Hero Sections */
 .inc-welcome {
   color: var(--text-color);
@@ -244,7 +266,7 @@
 /* Platform Onboarding Cards */
 .platform-onboarding-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
   margin-top: var(--spacing-lg);
@@ -294,27 +316,43 @@
 .onboarding-card p {
   margin: 0;
   font-size: 0.95rem;
-  color: var(--muted-text);
-  line-height: 1.5;
+  color: var(--text-color);
+  line-height: 1.6;
 }
 
-.coming-soon-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: var(--accent-2);
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.artist-home-example,
+.artist-home-how-it-works {
+  margin-block: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
 }
 
-@media (max-width: 768px) {
+.artist-home-example {
+  text-align: center;
+}
+
+.artist-home-how-it-works ol {
+  max-width: 36rem;
+  margin-inline: auto;
+  padding-left: 1.5rem;
+}
+
+.artist-home-how-it-works li {
+  padding-left: var(--spacing-sm);
+  margin-block: var(--spacing-md);
+  line-height: 1.6;
+}
+
+@media (min-width: 640px) {
   .platform-onboarding-cards {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .platform-onboarding-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

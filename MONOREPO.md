@@ -4,7 +4,7 @@ The whole Extra Chill WordPress platform in one repository: the network theme, e
 
 ## Status: staging
 
-The code has been imported with full history (`git filter-repo --to-subdirectory-filter`; old release tags are kept as `<repo>-vX.Y.Z`). **The original repositories are still the source of truth** and still release and deploy exactly as before. Do not make changes under `plugins/`, `themes/` or `packages/` here until the cutover. A re-import before cutover brings this tree up to date.
+The code has been imported with full history (`git filter-repo --to-subdirectory-filter`; old release tags are kept as `<repo>-vX.Y.Z`). **The original repositories are still the source of truth** and still release and deploy exactly as before. Do not make changes under `plugins/`, `themes/` or `packages/` here until the cutover. `tools/monorepo-sync.sh` brings this tree up to date by replaying new source commits into each path (authors, dates, messages and release tags kept); run it again right before cutover, then delete it.
 
 Every component, including `extrachill-network`, lives in its own directory with its own `homeboy.json`. The repo root holds only site-level infrastructure:
 

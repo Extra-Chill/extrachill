@@ -8,6 +8,23 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
+ * Identify the binding database backend before issuing MySQL-only SQL.
+ *
+ * @return string mysql, sqlite, or unsupported.
+ */
+function ec_artist_binding_database_backend() {
+	global $wpdb;
+	$class_name = strtolower( (string) get_class( $wpdb ) );
+	$backend    = 'mysql';
+	if ( false !== strpos( $class_name, 'sqlite' ) ) {
+		$backend = 'sqlite';
+	} elseif ( preg_match( '/pgsql|postgres/', $class_name ) ) {
+		$backend = 'unsupported';
+	}
+	return apply_filters( 'ec_artist_binding_database_backend', $backend );
+}
+
+/**
  * Acquire the network-wide canonical binding lock.
  *
  * The lock covers every profile/term pair, including absent metadata rows.
@@ -23,12 +40,20 @@ defined( 'ABSPATH' ) || exit;
 function ec_acquire_artist_binding_lock() {
 	global $wpdb;
 	$lock_name = 'ec_artist_binding_v1';
-	if ( ! empty( $GLOBALS['ec_artist_binding_lock'] ) || ! empty( $GLOBALS['ec_artist_binding_lock_pending'] ) || preg_match( '/sqlite|pgsql|postgres/', strtolower( (string) get_class( $wpdb ) ) ) ) {
+	if ( ! empty( $GLOBALS['ec_artist_binding_lock'] ) || ! empty( $GLOBALS['ec_artist_binding_lock_pending'] ) ) {
 		return new WP_Error( 'artist_binding_lock_unsupported', __( 'Canonical artist binding serialization is unavailable.', 'extrachill-artist-platform' ), array( 'retryable' => true ) );
 	}
 	$GLOBALS['ec_artist_binding_lock_pending'] = true;
 	try {
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One network-wide lock covers both multisite metadata tables and absent rows.
+		$backend = ec_artist_binding_database_backend();
+		if ( 'mysql' === $backend ) {
+			$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One network-wide lock covers both multisite metadata tables and absent rows.
+		} else {
+			$result = null;
+			if ( function_exists( 'ec_acquire_artist_membership_network_lock' ) ) {
+				$result = ec_acquire_artist_membership_network_lock( $lock_name ) ? '1' : '0';
+			}
+		}
 	} finally {
 		unset( $GLOBALS['ec_artist_binding_lock_pending'] );
 	}
@@ -36,8 +61,9 @@ function ec_acquire_artist_binding_lock() {
 		$code = '0' === (string) $result ? 'artist_binding_busy' : 'artist_binding_lock_failed';
 		return new WP_Error( $code, __( 'Canonical artist binding is temporarily unavailable.', 'extrachill-artist-platform' ), array( 'retryable' => true ) );
 	}
-	$GLOBALS['ec_artist_binding_lock'] = $lock_name;
-	$handed_off                        = false;
+	$GLOBALS['ec_artist_binding_lock']         = $lock_name;
+	$GLOBALS['ec_artist_binding_lock_backend'] = $backend;
+	$handed_off                                = false;
 	try {
 		$boundary = ec_artist_binding_prepare_mutation_boundary();
 		if ( is_wp_error( $boundary ) ) {
@@ -74,11 +100,18 @@ function ec_release_artist_binding_lock( $lock_token ) {
 	if ( is_wp_error( $boundary ) ) {
 		return new WP_Error( 'artist_binding_release_transaction_active', __( 'Canonical artist binding cannot be released before subordinate transaction work finishes.', 'extrachill-artist-platform' ), array( 'retryable' => false ) );
 	}
-	$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_token ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the exact connection-owned lock acquired above.
+	if ( 'mysql' !== ( $GLOBALS['ec_artist_binding_lock_backend'] ?? 'mysql' ) ) {
+		if ( function_exists( 'ec_release_artist_membership_named_lock' ) ) {
+			ec_release_artist_membership_named_lock( $lock_token );
+		}
+		$released = empty( $GLOBALS['ec_artist_membership_locks'][ $lock_token ] ) ? '1' : '0';
+	} else {
+		$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_token ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the exact connection-owned lock acquired above.
+	}
 	if ( '1' !== (string) $released ) {
 		return new WP_Error( 'artist_binding_release_failed', __( 'Canonical artist binding lock cleanup failed.', 'extrachill-artist-platform' ), array( 'retryable' => true ) );
 	}
-	unset( $GLOBALS['ec_artist_binding_lock'] );
+	unset( $GLOBALS['ec_artist_binding_lock'], $GLOBALS['ec_artist_binding_lock_backend'] );
 	foreach ( (array) ( $GLOBALS['ec_artist_binding_deferred_locks'] ?? array() ) as $key => $deferred_lock ) {
 		if ( $deferred_lock === $lock_token ) {
 			unset( $GLOBALS['ec_artist_binding_deferred_locks'][ $key ] );
@@ -98,7 +131,12 @@ function ec_release_artist_binding_lock( $lock_token ) {
  */
 function ec_artist_binding_prepare_mutation_boundary() {
 	global $wpdb;
-	if ( preg_match( '/sqlite|pgsql|postgres/', strtolower( (string) get_class( $wpdb ) ) ) ) {
+	$backend = ec_artist_binding_database_backend();
+	// SQLite serializes writers; it needs no MySQL isolation-level probe.
+	if ( 'sqlite' === $backend ) {
+		return true;
+	}
+	if ( 'mysql' !== $backend ) {
 		return new WP_Error( 'artist_binding_transaction_state_unsupported', __( 'Canonical artist binding transaction state is unavailable.', 'extrachill-artist-platform' ), array( 'retryable' => false ) );
 	}
 	$previous_suppression = $wpdb->suppress_errors( true );

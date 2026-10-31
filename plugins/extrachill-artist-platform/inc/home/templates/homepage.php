@@ -29,29 +29,90 @@ extrachill_breadcrumbs();
 				<div class="platform-onboarding-cards">
 					<div class="onboarding-card">
 						<div class="onboarding-card-icon">
-							<span class="dashicons dashicons-admin-links"></span>
+							<span class="dashicons dashicons-admin-links" aria-hidden="true"></span>
 						</div>
 						<h4><?php esc_html_e( 'Link Page', 'extrachill-artist-platform' ); ?></h4>
-						<p><?php esc_html_e( 'Get a beautiful, customizable link page at extrachill.link to share your music, socials, and merch.', 'extrachill-artist-platform' ); ?></p>
+						<p><?php esc_html_e( 'Share your work, socials and merch with one customizable page at extrachill.link.', 'extrachill-artist-platform' ); ?></p>
 					</div>
 
 					<div class="onboarding-card">
-						<div class="onboarding-card-icon">
-							<span class="dashicons dashicons-cart"></span>
-						</div>
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-admin-users" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Artist Profile', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Give fans a home for your bio, work and links on Extra Chill.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-calendar-alt" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Shows', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Display your shows from the Extra Chill Events calendar, where anyone can submit a show.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-email-alt" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Fan Subscribers', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Fans subscribe on your page so you can message them directly.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-cart" aria-hidden="true"></span></div>
 						<h4><?php esc_html_e( 'Artist Shop', 'extrachill-artist-platform' ); ?></h4>
-						<p><?php esc_html_e( 'Sell your merchandise directly to fans with a dedicated artist shop and integrated payments.', 'extrachill-artist-platform' ); ?></p>
-						<span class="coming-soon-badge"><?php esc_html_e( 'Coming Soon', 'extrachill-artist-platform' ); ?></span>
+						<p><?php esc_html_e( 'Sell merch directly to fans and receive payouts through Stripe.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-megaphone" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Artist Dispatch', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Post updates on Extra Chill to share what you are working on.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-groups" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Team Access', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Add bandmates or a manager to help manage your presence.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-location" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Local Scene', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Show up in your city’s scene and support local artists.', 'extrachill-artist-platform' ); ?></p>
+					</div>
+
+					<div class="onboarding-card">
+						<div class="onboarding-card-icon"><span class="dashicons dashicons-media-document" aria-hidden="true"></span></div>
+						<h4><?php esc_html_e( 'Extra Chill Coverage', 'extrachill-artist-platform' ); ?></h4>
+						<p><?php esc_html_e( 'Keep Extra Chill articles about you collected on your profile.', 'extrachill-artist-platform' ); ?></p>
 					</div>
 
 					<div class="onboarding-card">
 						<div class="onboarding-card-icon">
-							<span class="dashicons dashicons-chart-bar"></span>
+							<span class="dashicons dashicons-chart-bar" aria-hidden="true"></span>
 						</div>
 						<h4><?php esc_html_e( 'Analytics', 'extrachill-artist-platform' ); ?></h4>
-						<p><?php esc_html_e( 'Track visits, link clicks, and fan engagement across your profile with real-time insights.', 'extrachill-artist-platform' ); ?></p>
+						<p><?php esc_html_e( 'See page visits and link clicks to learn how fans find and explore your work.', 'extrachill-artist-platform' ); ?></p>
 					</div>
 				</div>
+
+				<?php $example = ec_artist_home_example(); ?>
+				<?php if ( $example ) : ?>
+					<section class="artist-home-example">
+						<h3><?php esc_html_e( 'See it live', 'extrachill-artist-platform' ); ?></h3>
+						<h4><?php echo esc_html( $example['name'] ); ?></h4>
+						<p><?php esc_html_e( 'Explore a real artist profile and link page on Extra Chill.', 'extrachill-artist-platform' ); ?></p>
+						<div class="welcome-actions">
+							<a class="button-1 button-medium" href="<?php echo esc_url( $example['profile_url'] ); ?>"><?php esc_html_e( 'View Profile', 'extrachill-artist-platform' ); ?></a>
+							<a class="button-2 button-medium" href="<?php echo esc_url( $example['link_url'] ); ?>"><?php esc_html_e( 'View Link Page', 'extrachill-artist-platform' ); ?></a>
+						</div>
+					</section>
+				<?php endif; ?>
+
+				<section class="artist-home-how-it-works">
+					<h3><?php esc_html_e( 'How it works', 'extrachill-artist-platform' ); ?></h3>
+					<ol>
+						<li><?php esc_html_e( 'Create a free account.', 'extrachill-artist-platform' ); ?></li>
+						<li><?php esc_html_e( 'Request artist access.', 'extrachill-artist-platform' ); ?></li>
+						<li><?php esc_html_e( 'Build your profile and link page.', 'extrachill-artist-platform' ); ?></li>
+					</ol>
+				</section>
 
 				<div class="featured-artists-section">
 						<h3><?php esc_html_e( 'Active Artists', 'extrachill-artist-platform' ); ?></h3>

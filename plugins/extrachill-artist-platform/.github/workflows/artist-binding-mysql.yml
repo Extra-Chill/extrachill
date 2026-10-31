@@ -43,7 +43,9 @@ jobs:
           php-version: '8.3'
           extensions: mysqli
           coverage: none
-      - run: composer install --no-interaction --prefer-dist
+      # PHPUnit lives in Homeboy's WordPress toolchain (#227), not composer.json;
+      # this standalone MySQL proof installs its own runner.
+      - run: composer require --dev --no-interaction --prefer-dist phpunit/phpunit:^9.6
       - name: Install real WordPress multisite
         run: |
           curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp
