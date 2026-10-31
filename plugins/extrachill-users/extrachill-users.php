@@ -150,6 +150,7 @@ function extrachill_users_init() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/google-canonical-origin.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/google-service.php';
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/apple-service.php';
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/oauth/jwt-rs256.php';
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/avatar-display.php';

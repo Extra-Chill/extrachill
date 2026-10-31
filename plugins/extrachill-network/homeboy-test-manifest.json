@@ -13,6 +13,9 @@
     "tests/artist-profile-discussions-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/apple-oauth-config-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/artist-term-binding-deletion-smoke.php": {
       "environment": "standalone-php"
     },
