@@ -70,7 +70,7 @@ function extrachill_newsletter_tag_url( $url, array $params ) {
 		return $url;
 	}
 
-	$parts = parse_url( $url );
+	$parts = wp_parse_url( $url );
 	if ( empty( $parts['host'] ) || ! in_array( strtolower( $parts['scheme'] ?? '' ), array( 'http', 'https' ), true ) ) {
 		return $url;
 	}

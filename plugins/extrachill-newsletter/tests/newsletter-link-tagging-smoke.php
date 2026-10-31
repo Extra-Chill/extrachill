@@ -12,6 +12,10 @@ function apply_filters( $hook, $value, ...$args ) {
 	return isset( $GLOBALS['ec_filters'][ $hook ] ) ? $GLOBALS['ec_filters'][ $hook ]( $value, ...$args ) : $value;
 }
 
+function wp_parse_url( $url, $component = -1 ) {
+	return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- Test double for core.
+}
+
 require dirname( __DIR__ ) . '/inc/core/templates/link-tagging.php';
 
 $failures = 0;
