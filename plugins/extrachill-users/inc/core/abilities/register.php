@@ -73,6 +73,7 @@ require_once __DIR__ . '/artist-access.php';
 require_once __DIR__ . '/artist-dispatch.php';
 require_once __DIR__ . '/user-administration.php';
 require_once __DIR__ . '/user-settings.php';
+require_once __DIR__ . '/delete-my-account.php';
 require_once __DIR__ . '/user-event-locations.php';
 require_once __DIR__ . '/user-profile.php';
 require_once __DIR__ . '/entity-subscriptions.php';
