@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { buildCheckoutComponent, assembleDemoArgs, buildRecipe, demoEncodeArgs, demoClickLeadMs, demoLoadCuts, demoTrimmedTime, journeyMarkers, paceDemoSteps, domainIdsMuPluginSource, DOMAIN_IDS_MU_PLUGIN_FILENAME, SANDBOX_COMPAT_MU_PLUGIN_FILENAME, journeySeedSetting, journeySelection, recipeRunArgs, recipeRunTimeout, validateJourneyDocument } from '../run.mjs';
+import { buildCheckoutComponent, assembleDemoArgs, buildRecipe, demoEncodeArgs, demoClickLeadMs, demoLoadCuts, demoTrimmedTime, journeyMarkers, paceDemoSteps, domainIdsMuPluginSource, DOMAIN_IDS_MU_PLUGIN_FILENAME, SANDBOX_COMPAT_MU_PLUGIN_FILENAME, journeySeedSetting, journeySelection, latestPrefixedReleaseTag, pinMonorepoReleases, recipeRunArgs, recipeRunTimeout, setReleaseLookup, validateJourneyDocument } from '../run.mjs';
 
 const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const topology = JSON.parse(await readFile(path.join(packageRoot, 'network-topology.json'), 'utf8'));
@@ -20,7 +20,49 @@ const themeDir = path.join(temporary, 'extrachill-theme');
 const artifactsDir = path.join(temporary, 'artifacts');
 process.env.HOMEBOY_ARTIFACT_ROOT = artifactsDir;
 
+// Monorepo-released components resolve their newest prefixed tag over the
+// network; the contract test stubs that lookup.
+const releaseLookups = [];
+setReleaseLookup(async (repo, prefix) => {
+  releaseLookups.push([repo, prefix]);
+  return `${prefix}9.9.9`;
+});
+
 try {
+  // Data Machine extensions release from the data-machine monorepo, whose
+  // GitHub Latest belongs to core, so they pin their own newest tag.
+  for (const slug of ['data-machine-events', 'data-machine-socials', 'data-machine-business']) {
+    const entry = components.plugins.find((component) => component.slug === slug);
+    assert.equal(entry.repo, 'Extra-Chill/data-machine', slug);
+    assert.equal(entry.releaseTagPrefix, `${slug}-v`, slug);
+  }
+  const core = components.plugins.find((component) => component.slug === 'data-machine');
+  assert.equal(core.releaseTagPrefix, undefined, 'core owns releases/latest');
+  const extensions = components.plugins.filter((component) => component.releaseTagPrefix);
+  const pinned = await pinMonorepoReleases(
+    [...extensions, core],
+    { 'data-machine-socials': '/override/socials' },
+    { 'data-machine-business': { ref: 'data-machine-business-v1.0.0' } },
+  );
+  assert.equal(pinned['data-machine-events'].ref, 'data-machine-events-v9.9.9');
+  assert.equal(pinned['data-machine-socials'], undefined, 'override wins');
+  assert.equal(pinned['data-machine-business'].ref, 'data-machine-business-v1.0.0', 'caller pin wins');
+  assert.equal(pinned['data-machine'], undefined, 'core keeps releases/latest');
+  assert.deepEqual(releaseLookups, [['Extra-Chill/data-machine', 'data-machine-events-v']]);
+
+  const releasePages = [
+    [{ tag_name: 'data-machine-v0.201.0' }, { tag_name: 'data-machine-events-v0.79.0', draft: true }, { tag_name: 'data-machine-events-v0.78.1', prerelease: true }],
+    [{ tag_name: 'data-machine-events-v0.78.0' }],
+  ];
+  const fakeFetch = async (url) => {
+    const page = Number(new URL(url).searchParams.get('page'));
+    const body = page === 1 ? [...releasePages[0], ...Array(97).fill({ tag_name: 'data-machine-v0.1.0' })] : releasePages[page - 1] ?? [];
+    return { ok: true, json: async () => body };
+  };
+  assert.equal(await latestPrefixedReleaseTag('Extra-Chill/data-machine', 'data-machine-events-v', fakeFetch, {}), 'data-machine-events-v0.78.0');
+  assert.equal(await latestPrefixedReleaseTag('Extra-Chill/data-machine', 'nope-v', fakeFetch, {}), null);
+  await assert.rejects(latestPrefixedReleaseTag('x/y', 'p', async () => ({ ok: false, status: 403 }), {}), /HTTP 403/);
+
   await mkdir(themeDir, { recursive: true });
   await writeFile(path.join(themeDir, 'style.css'), '/*\nTheme Name: Extra Chill\n*/\n');
   await writeFile(path.join(themeDir, 'index.php'), '<?php\n');

@@ -23,7 +23,12 @@ multisite topology, release-zip mounting, and the theme-remote-sourcing gap).
 - **Components** (`components.json`): every network-active and per-site plugin
   plus the shared theme, each defaulting to its owning repository's **latest
   GitHub Release zip** (`.../releases/latest/download/<asset>.zip`) or, for
-  WordPress.org-hosted third-party plugins, `downloads.wordpress.org`. The
+  WordPress.org-hosted third-party plugins, `downloads.wordpress.org`. A
+  component released from another monorepo declares `releaseTagPrefix` (the
+  Data Machine extensions use `<slug>-v`, because `releases/latest` in
+  `Extra-Chill/data-machine` belongs to core); the rig pins it to the newest
+  published release with that prefix, read through the GitHub API with
+  `GH_TOKEN` when set. The
   per-site/network activation matrix is data read read-only from production
   (`wp plugin list --fields=name,file`), not shell.
 - **Activation**: wp-codebox's own `extra_plugins[].activate` can only pick
