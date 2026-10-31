@@ -656,7 +656,7 @@ function wp_insert_post( $data, $wp_error = false ) {
 		array( 'post_name' => $slug )
 	);
 	// Core ignores supplied modified timestamps on insert, using post_date.
-	$inserted = $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ];
+	$inserted                    = $GLOBALS['ec_test']['blogs'][ get_current_blog_id() ]['posts'][ $id ];
 	$inserted->post_modified     = $data['post_date'] ?? '2030-01-01 00:00:00';
 	$inserted->post_modified_gmt = $data['post_date_gmt'] ?? '2030-01-01 00:00:00';
 	// Core fills an empty guid after insert; mirror it so migrations must
