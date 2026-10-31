@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.56.0] - 2026-10-31
+
+### Added
+- private personal show ratings (events + users)
+
 ## [0.55.0] - 2026-10-30
 
 ### Added
