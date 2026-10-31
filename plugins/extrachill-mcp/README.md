@@ -43,7 +43,7 @@ Note what widening it does expose: a caller who can reach `agents/ability-search
 
 ## Authentication
 
-Per-user connection runs on OAuth 2.1, served by [`wp-native-auth`](https://github.com/chubes4/wp-native/tree/main/plugins/wp-native-auth). Per-user is the requirement, not a preference: ChatGPT rejects bearer tokens outright, and Claude's static-header mode is an organization-shared credential rather than a per-user one. Neither yields a "connected account" for authorization to scope to.
+Per-user connection runs on OAuth 2.1, served by [`wp-native-auth`](https://github.com/Extra-Chill/wp-native/tree/main/plugins/wp-native-auth). Per-user is the requirement, not a preference: ChatGPT rejects bearer tokens outright, and Claude's static-header mode is an organization-shared credential rather than a per-user one. Neither yields a "connected account" for authorization to scope to.
 
 | | |
 | --- | --- |
@@ -62,7 +62,7 @@ That challenge is emitted only when `wp-native-auth` is active — `src/Server/M
 
 Authorization ends in a redirect to the client's `redirect_uri`, which for a CLI client means a loopback listener. If the client runs somewhere without a browser — a VPS, a container, a CI runner, an agent sandbox — the browser resolves `127.0.0.1` to the operator's machine rather than the client's, and the authorization code never arrives.
 
-The flow is correct on both ends; the two halves are just on different hosts. Bridge it with an SSH tunnel to the client's callback port, or copy the failed redirect URL from the browser back to the client host. The durable fix is a device grant, tracked in [chubes4/wp-native#91](https://github.com/chubes4/wp-native/issues/91).
+The flow is correct on both ends; the two halves are just on different hosts. Bridge it with an SSH tunnel to the client's callback port, or copy the failed redirect URL from the browser back to the client host. The durable fix is a device grant, tracked in [Extra-Chill/wp-native#91](https://github.com/Extra-Chill/wp-native/issues/91).
 
 ## Requirements
 
