@@ -13,7 +13,7 @@ function ec_get_artist_link_page_edit_url( $artist_id ) {
 	$link_page_id = (int) ec_get_link_page_for_artist( $artist_id );
 	if ( $link_page_id && function_exists( 'ec_link_page_public_base_url' ) && function_exists( 'ec_get_link_page_edit_endpoints' ) ) {
 		$base = ec_link_page_public_base_url();
-		if ( '' !== $base && '' !== ( ec_get_link_page_edit_endpoints()['configuration_url'] ?? '' ) ) {
+		if ( '' !== $base && '' !== ec_get_link_page_edit_endpoints()['configuration_url'] ) {
 			return add_query_arg( 'link_page', $link_page_id, $base . 'edit' );
 		}
 	}
