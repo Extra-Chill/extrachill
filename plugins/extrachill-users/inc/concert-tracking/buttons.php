@@ -355,9 +355,7 @@ function ec_users_render_attendance_visibility_notice(): void {
 	?>
 	<p class="ec-attendance-visibility">
 		<?php echo esc_html( $message ); ?>
-		<?php if ( '' !== $settings_url ) : ?>
-			<a href="<?php echo esc_url( $settings_url ); ?>"><?php echo esc_html( $link_label ); ?></a>
-		<?php endif; ?>
+		<a href="<?php echo esc_url( $settings_url ); ?>"><?php echo esc_html( $link_label ); ?></a>
 	</p>
 	<?php
 }
