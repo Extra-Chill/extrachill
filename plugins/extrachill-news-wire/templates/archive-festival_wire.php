@@ -154,7 +154,7 @@ do_action( 'extrachill_before_body_content' );
 				<div class="forum-cta-container">
 					<h2 class="forum-cta-title">Join our Community!</h2>
 					<p class="forum-cta-description">Discuss with fellow festival fans and share your experiences in our community forum.</p>
-					<?php $community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' ); ?>
+					<?php $community_url = ec_get_site_url( 'community' ); ?>
 					<a href="<?php echo esc_url( trailingslashit( $community_url ) . 'r/music-discussion' ); ?>" class="forum-cta-link button-1 button-medium" target="_blank" rel="noopener noreferrer">Visit the Forum</a>
 				</div>
 

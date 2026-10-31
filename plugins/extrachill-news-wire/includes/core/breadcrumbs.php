@@ -159,7 +159,7 @@ function ec_wire_schema_breadcrumb_items( $items ) {
 		return $items;
 	}
 
-	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → News Wire
 	if ( is_front_page() ) {
