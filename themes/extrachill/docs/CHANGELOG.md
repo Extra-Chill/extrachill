@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.16.2] - 2026-10-31
+
+### Fixed
+- inherit header text color for search icon
+
 ## [2.16.1] - 2026-10-31
 
 ### Changed
