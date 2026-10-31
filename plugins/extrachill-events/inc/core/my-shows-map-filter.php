@@ -263,9 +263,7 @@ function ec_events_my_shows_get_tracked_venue_term_ids( int $user_id ): array {
 		return array();
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' )
-		? (int) ec_get_blog_id( 'events' )
-		: 7;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	$switched = false;
 	if ( get_current_blog_id() !== $events_blog_id ) {
@@ -312,9 +310,7 @@ function ec_events_my_shows_get_tracked_events_for_venues( int $user_id, array $
 		return array();
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' )
-		? (int) ec_get_blog_id( 'events' )
-		: 7;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	$switched = false;
 	if ( get_current_blog_id() !== $events_blog_id ) {

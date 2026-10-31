@@ -549,7 +549,7 @@ class BookingRepository {
 		$profile_term_id = null;
 
 		if ( $profile_id ) {
-			$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+			$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 			if ( $artist_blog_id < 1 ) {
 				return new \WP_Error( 'artist_platform_unresolved', __( 'The Artist Platform could not be resolved.', 'extrachill-events' ) );
 			}
@@ -574,7 +574,7 @@ class BookingRepository {
 
 		$bound_profile_id = null;
 		if ( $term_id ) {
-			$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+			$main_blog_id = (int) ec_get_blog_id( 'main' );
 			if ( $main_blog_id < 1 ) {
 				return new \WP_Error( 'artist_site_unresolved', __( 'The canonical artist site could not be resolved.', 'extrachill-events' ) );
 			}

@@ -157,9 +157,7 @@ function ec_events_my_shows_get_tracked_post_ids( $user_id ) {
 		return array();
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' )
-		? (int) ec_get_blog_id( 'events' )
-		: 7;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	$table = $wpdb->base_prefix . 'ec_concert_tracking';
 	// The owning Users plugin is optional outside the full network runtime.

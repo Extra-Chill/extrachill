@@ -120,7 +120,7 @@ class VenueProfile {
 	 * @return true|\WP_Error
 	 */
 	private function authorize( int $venue_term_id, int $actor_user_id ) {
-		if ( ! function_exists( 'ec_get_blog_id' ) || ! function_exists( 'get_current_blog_id' ) || (int) get_current_blog_id() !== (int) ec_get_blog_id( 'events' ) ) {
+		if ( ! function_exists( 'get_current_blog_id' ) || (int) get_current_blog_id() !== (int) ec_get_blog_id( 'events' ) ) {
 			return new \WP_Error( 'canonical_events_site_required', __( 'Venue profiles must be managed on the canonical Events site.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 

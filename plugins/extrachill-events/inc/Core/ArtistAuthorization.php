@@ -46,8 +46,8 @@ class ArtistAuthorization {
 	 * @return int|\WP_Error Bound artist profile ID, or an error.
 	 */
 	private function artist_profile_id( int $artist_term_id ) {
-		$main_blog_id   = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+		$main_blog_id   = (int) ec_get_blog_id( 'main' );
+		$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 		if ( $main_blog_id < 1 || $artist_blog_id < 1 || $artist_term_id < 1 ) {
 			return new \WP_Error( 'invalid_canonical_artist', __( 'A valid canonical artist is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}

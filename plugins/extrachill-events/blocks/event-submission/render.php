@@ -127,9 +127,7 @@ if ( $show_landing ) {
 			$join_url         = function_exists( 'ec_users_login_url_with_redirect' )
 				? ec_users_login_url_with_redirect( $registration_url, $submit_url )
 				: add_query_arg( 'redirect_to', rawurlencode( $submit_url ), $registration_url );
-			$login_url        = function_exists( 'ec_get_site_url' )
-				? trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( $submit_url )
-				: wp_login_url( $submit_url );
+			$login_url        = trailingslashit( ec_get_site_url( 'events' ) ) . 'login/?redirect_to=' . rawurlencode( $submit_url );
 			?>
 			<div class="ec-event-submission__url-import" id="<?php echo esc_attr( $import_anchor ); ?>">
 				<strong><?php esc_html_e( 'Have a reliable event source?', 'extrachill-events' ); ?></strong>

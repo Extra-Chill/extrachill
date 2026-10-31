@@ -102,7 +102,7 @@ class ManagedVenueVoicesAbilities {
 		}
 
 		$user_id        = get_current_user_id();
-		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
+		$events_blog_id = absint( ec_get_blog_id( 'events' ) );
 		if ( $events_blog_id < 1 ) {
 			return new \WP_Error( 'events_site_unresolved', __( 'Could not resolve the Events site.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}

@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return bool
  */
 function extrachill_events_is_location_archive(): bool {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( (int) get_current_blog_id() !== $events_blog_id ) {
 		return false;
 	}

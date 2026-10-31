@@ -817,7 +817,7 @@ final class PromoterLinkPages {
 
 	/** Resolve the configured Events blog. */
 	private static function events_blog_id(): int {
-		return function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 7;
+		return (int) ec_get_blog_id( 'events' );
 	}
 
 	/** Stable non-enumerating management denial. */

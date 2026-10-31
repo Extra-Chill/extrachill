@@ -14,10 +14,6 @@ defined( 'ABSPATH' ) || exit;
  * @return int Canonical events blog ID when available.
  */
 function extrachill_events_configure_events_blog_id( int $blog_id ): int {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return $blog_id;
-	}
-
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	return $events_blog_id > 0 ? $events_blog_id : $blog_id;
 }

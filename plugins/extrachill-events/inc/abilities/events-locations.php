@@ -103,7 +103,7 @@ function extrachill_events_register_locations_ability(): void {
  */
 function extrachill_events_ability_locations( array $input ): array|\WP_Error {
 	$mode           = sanitize_key( $input['mode'] ?? '' );
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	$events_blog_id = (int) apply_filters( 'extrachill_events_canonical_blog_id', $events_blog_id );
 
 	if ( $events_blog_id <= 0 || ( is_multisite() && ! get_site( $events_blog_id ) ) ) {

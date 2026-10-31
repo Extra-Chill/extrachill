@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * @return string
  */
 function extrachill_events_docs_url( string $slug ): string {
-	$base = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'docs' ) : '';
+	$base = ec_get_site_url( 'docs' );
 	if ( ! is_string( $base ) || '' === $base ) {
 		$base = 'https://docs.extrachill.com';
 	}

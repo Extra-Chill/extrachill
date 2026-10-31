@@ -78,7 +78,7 @@ function extrachill_events_run_local_scene_digest( array $params = array() ): ar
 		'retryable_failures'          => 0,
 	);
 
-	if ( ! function_exists( 'data_machine_events_query_events' ) || ! function_exists( 'data_machine_events_parse_event_data' ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'extrachill_users_get_local_scene' ) || ! function_exists( 'ec_get_blog_id' ) || ! absint( ec_get_blog_id( 'events' ) ) ) {
+	if ( ! function_exists( 'data_machine_events_query_events' ) || ! function_exists( 'data_machine_events_parse_event_data' ) || ! function_exists( 'extrachill_users_entity_subscription_recipients' ) || ! function_exists( 'extrachill_users_get_local_scene' ) || ! absint( ec_get_blog_id( 'events' ) ) ) {
 		$counts['retryable_failures'] = 1;
 		return array(
 			'dry_run'           => $dry_run,
@@ -352,7 +352,7 @@ function extrachill_events_compare_local_scene_digest_events( array $a, array $b
 function extrachill_events_select_local_scene_digest_events( array $candidates, int $user_id, int $limit ): array {
 	$going = array();
 	$more  = array();
-	$blog  = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
+	$blog  = absint( ec_get_blog_id( 'events' ) );
 	if ( ! $blog ) {
 		return array();
 	}
@@ -582,7 +582,7 @@ function extrachill_events_release_local_scene_digest_receipt( array $result, in
 function extrachill_events_build_local_scene_digest_email( int $user_id, WP_Term $location, array $events ): array {
 	$going = array();
 	$more  = array();
-	$blog  = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
+	$blog  = absint( ec_get_blog_id( 'events' ) );
 	if ( ! $blog ) {
 		return array(
 			'subject'   => __( "Your Local Scene: This Week's Shows", 'extrachill-events' ),
