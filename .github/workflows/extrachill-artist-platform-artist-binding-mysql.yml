@@ -1,16 +1,20 @@
-name: Artist binding MySQL proof
+name: extrachill-artist-platform / Artist binding MySQL proof
 
 on:
   pull_request:
     paths:
-      - 'inc/core/artist-term-binding.php'
-      - 'tests/MySQLIntegration/**'
-      - 'phpunit-binding-mysql.xml.dist'
-      - '.github/workflows/artist-binding-mysql.yml'
+      - 'plugins/extrachill-artist-platform/inc/core/artist-term-binding.php'
+      - 'plugins/extrachill-artist-platform/tests/MySQLIntegration/**'
+      - 'plugins/extrachill-artist-platform/phpunit-binding-mysql.xml.dist'
+      - '.github/workflows/extrachill-artist-platform-artist-binding-mysql.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    working-directory: plugins/extrachill-artist-platform
 
 jobs:
   mysql-84:
@@ -35,7 +39,7 @@ jobs:
       MYSQL_PASSWORD: root
       MYSQL_DATABASE: artist_binding_test
       WP_INTEGRATION_PATH: /tmp/artist-binding-wordpress
-      ARTIST_BINDING_SOURCE: ${{ github.workspace }}/inc/core/artist-term-binding.php
+      ARTIST_BINDING_SOURCE: ${{ github.workspace }}/plugins/extrachill-artist-platform/inc/core/artist-term-binding.php
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
