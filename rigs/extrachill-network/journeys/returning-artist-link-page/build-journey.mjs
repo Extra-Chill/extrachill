@@ -3,7 +3,6 @@
 import { writeFileSync } from 'node:fs';
 
 const out = new URL('./journey.json', import.meta.url).pathname;
-const wait = (ms) => ({ kind: 'waitFor', waitFor: 'duration', duration: `${ms}ms` });
 const shot = (name) => ({ kind: 'screenshot', name });
 const nav = (url) => ({ kind: 'navigate', url, waitFor: 'load' });
 const check = (expression, expected = true) => ({ kind: 'evaluate', expression, assert: expected });
@@ -125,8 +124,7 @@ const steps = [
   step('analytics-knows-the-page', {
     url: 'http://artist.extrachill.com/analytics/',
     steps: [
-      nav('http://artist.extrachill.com/analytics/'),
-      wait(3000),
+      { kind: 'navigate', url: 'http://artist.extrachill.com/analytics/', waitFor: 'networkidle' },
       check("!document.body.innerText.includes('Create a link page')"),
       shot('analytics'),
       noErrors,
