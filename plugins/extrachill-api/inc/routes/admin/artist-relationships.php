@@ -300,7 +300,7 @@ function extrachill_api_get_artist_relationships( $request ) {
 	$search = $request->get_param( 'search' );
 
 	// Switch to artist site.
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'no_artist_site', 'Artist site not configured.', array( 'status' => 400 ) );
 	}
@@ -412,7 +412,7 @@ function extrachill_api_link_user_to_artist( $request ) {
 	$artist_id = $request->get_param( 'artist_id' );
 
 	// Switch to artist site.
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'no_artist_site', 'Artist site not configured.', array( 'status' => 400 ) );
 	}
@@ -446,7 +446,7 @@ function extrachill_api_unlink_user_from_artist( $request ) {
 	$artist_id = $request->get_param( 'artist_id' );
 
 	// Switch to artist site.
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'no_artist_site', 'Artist site not configured.', array( 'status' => 400 ) );
 	}
@@ -476,7 +476,7 @@ function extrachill_api_unlink_user_from_artist( $request ) {
  */
 function extrachill_api_get_orphaned_relationships() {
 	// Switch to artist site.
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'no_artist_site', 'Artist site not configured.', array( 'status' => 400 ) );
 	}

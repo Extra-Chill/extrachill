@@ -13,7 +13,7 @@ class ExtraChill_Docs_Sync_Controller {
 	 * @return WP_REST_Response|WP_Error The response object.
 	 */
 	public static function sync_doc( $request ) {
-		$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+		$docs_blog_id = ec_get_blog_id( 'docs' );
 		if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
 			return new WP_Error(
 				'invalid_site',

@@ -103,7 +103,7 @@ function extrachill_api_register_shop_products_routes() {
  * @return int|null Shop blog ID or null if not available.
  */
 function extrachill_api_shop_get_blog_id() {
-	return function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	return ec_get_blog_id( 'shop' );
 }
 
 /**

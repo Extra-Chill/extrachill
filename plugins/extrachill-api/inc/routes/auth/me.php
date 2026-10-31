@@ -89,13 +89,11 @@ function extrachill_api_auth_me_handler( WP_REST_Request $request ) {
 		$response['shop_product_count'] = (int) ec_get_shop_product_count_for_user( $user->ID );
 	}
 
-	if ( function_exists( 'ec_get_site_url' ) ) {
-		$response['site_urls'] = array(
-			'community' => (string) ec_get_site_url( 'community' ),
-			'artist'    => (string) ec_get_site_url( 'artist' ),
-			'shop'      => (string) ec_get_site_url( 'shop' ),
-		);
-	}
+	$response['site_urls'] = array(
+		'community' => (string) ec_get_site_url( 'community' ),
+		'artist'    => (string) ec_get_site_url( 'artist' ),
+		'shop'      => (string) ec_get_site_url( 'shop' ),
+	);
 
 	$response = apply_filters( 'extrachill_auth_me_response', $response, $user );
 

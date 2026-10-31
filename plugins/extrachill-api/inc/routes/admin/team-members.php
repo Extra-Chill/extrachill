@@ -124,7 +124,7 @@ function extrachill_api_get_team_members( $request ) {
 	// We check role membership on the main blog (extrachill.com) as the
 	// canonical site — the role is synced network-wide so any subsite
 	// would give the same answer, but main is the deterministic choice.
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 1;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 
 	$formatted_users = array();
 	foreach ( $users as $user ) {
