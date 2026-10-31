@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.47.0] - 2026-10-31
+
+### Added
+- Sign in with Apple for the native app (network + users + api)
+
 ## [0.46.0] - 2026-10-31
 
 ### Added
