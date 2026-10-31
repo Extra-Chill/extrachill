@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Network sites with name, url, description
  */
 function ec_seo_get_network_sites() {
-	if ( ! function_exists( 'ec_get_blog_ids' ) || ! function_exists( 'ec_get_site_url' ) ) {
+	if ( ! function_exists( 'ec_get_blog_ids' ) ) {
 		return array();
 	}
 

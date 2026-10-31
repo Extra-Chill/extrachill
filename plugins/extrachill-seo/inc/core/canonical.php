@@ -131,10 +131,6 @@ function ec_seo_get_default_canonical_url() {
  * @return string|null Canonical login URL or null if helper unavailable.
  */
 function ec_seo_get_login_canonical_url() {
-	if ( ! function_exists( 'ec_get_site_url' ) ) {
-		return null;
-	}
-
 	$community_url = ec_get_site_url( 'community' );
 	if ( ! $community_url ) {
 		return null;
