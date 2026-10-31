@@ -216,6 +216,9 @@ jobs:
           HOMEBOY_OUTPUT_DIR: ${{ runner.temp }}/homeboy-resolve-output
         uses: Extra-Chill/homeboy-action@v2
         with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
           commands: ${{ steps.plan.outputs.resolve_command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
@@ -521,6 +524,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         uses: Extra-Chill/homeboy-action@v2
         with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
           commands: ${{ steps.plan.outputs.command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
@@ -532,6 +538,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         uses: Extra-Chill/homeboy-action@v2
         with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
           commands: deploy extrachill-site --check
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
