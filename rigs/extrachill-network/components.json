@@ -309,20 +309,6 @@
       ]
     },
     {
-      "slug": "data-machine-editor",
-      "repo": "Extra-Chill/data-machine-editor",
-      "asset": "data-machine-editor.zip",
-      "source": "github",
-      "activations": [
-        {
-          "pluginFile": "data-machine-editor/data-machine-editor.php",
-          "scope": [
-            "extrachill.com"
-          ]
-        }
-      ]
-    },
-    {
       "slug": "data-machine-socials",
       "repo": "Extra-Chill/data-machine-socials",
       "asset": "data-machine-socials.zip",
