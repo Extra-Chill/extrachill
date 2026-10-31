@@ -42,11 +42,11 @@ function extrachill_events_rsvp_pass_on_marked( int $user_id, int $event_id, int
 		return;
 	}
 
-	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+	if ( ! extrachill_events_rsvp_pass_may_issue( $event_id, $user_id ) ) {
 		return;
 	}
 
-	$pass = \ExtraChillEvents\Core\RsvpPassesTable::issue_or_reactivate( $event_id, $user_id );
+	$pass = extrachill_events_issue_rsvp_pass( $event_id, $user_id );
 	if ( ! $pass ) {
 		return;
 	}
@@ -54,6 +54,84 @@ function extrachill_events_rsvp_pass_on_marked( int $user_id, int $event_id, int
 	extrachill_events_send_rsvp_pass_email( $event_id, $user_id, $pass );
 }
 add_action( 'ec_users_event_marked', 'extrachill_events_rsvp_pass_on_marked', 10, 3 );
+
+/**
+ * Request-scoped guest list authorization (extrachill#433).
+ *
+ * A password-gated event issues passes only to a claim that carried the
+ * right password. The claim path (guest RSVP or the logged-in claim) checks
+ * the password, then flags the (event, user) pair here before marking Going,
+ * so the ec_users_event_marked listener, which only receives IDs, knows
+ * this mark is allowed to issue. A bare Going click never sets it.
+ *
+ * @param int       $event_id   Event post ID.
+ * @param int       $user_id    User ID.
+ * @param bool|null $authorized True to grant, false to clear, null to read.
+ * @return bool Whether the pair is currently authorized.
+ */
+function extrachill_events_rsvp_guest_list_authorization( int $event_id, int $user_id, ?bool $authorized = null ): bool {
+	static $granted = array();
+
+	$key = $event_id . ':' . $user_id;
+	if ( true === $authorized ) {
+		$granted[ $key ] = true;
+	} elseif ( false === $authorized ) {
+		unset( $granted[ $key ] );
+	}
+
+	return isset( $granted[ $key ] );
+}
+
+/**
+ * Whether a pass may be issued to this user right now.
+ *
+ * Open perks always may. Password-gated perks only may inside an
+ * authorized claim (see extrachill_events_rsvp_guest_list_authorization()).
+ * Capacity is enforced separately, atomically, by the table.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $user_id  User ID.
+ * @return bool
+ */
+function extrachill_events_rsvp_pass_may_issue( int $event_id, int $user_id ): bool {
+	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+		return false;
+	}
+
+	if ( function_exists( 'extrachill_events_perk_password_required' ) && extrachill_events_perk_password_required( $event_id ) ) {
+		return extrachill_events_rsvp_guest_list_authorization( $event_id, $user_id );
+	}
+
+	return true;
+}
+
+/**
+ * Issue (or return) a pass, honoring the event's guest list capacity.
+ *
+ * The single issuance entry point for every path (mark listener, backfill,
+ * guest re-send, logged-in claim). Purges the event page cache after a new
+ * pass on a capped list so logged-out visitors see current spots left.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $user_id  User ID.
+ * @return array|null Active pass row, or null when the list is full.
+ */
+function extrachill_events_issue_rsvp_pass( int $event_id, int $user_id ): ?array {
+	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+		return null;
+	}
+
+	$capacity = function_exists( 'extrachill_events_get_perk_capacity' ) ? extrachill_events_get_perk_capacity( $event_id ) : 0;
+	$before   = \ExtraChillEvents\Core\RsvpPassesTable::find_for_user_event( $event_id, $user_id );
+	$pass     = \ExtraChillEvents\Core\RsvpPassesTable::issue_or_reactivate( $event_id, $user_id, $capacity );
+
+	$newly_issued = $pass && ( ! $before || \ExtraChillEvents\Core\RsvpPassesTable::STATUS_ACTIVE !== $before['status'] );
+	if ( $newly_issued && $capacity > 0 && function_exists( 'extrachill_cache_purge_post' ) ) {
+		extrachill_cache_purge_post( $event_id );
+	}
+
+	return $pass;
+}
 
 /**
  * Issue passes to everyone already marked Going when a perk is turned on.
@@ -80,6 +158,12 @@ function extrachill_events_backfill_rsvp_passes( int $event_id ): int {
 		return 0;
 	}
 
+	// A password-gated guest list is claimed one person at a time with the
+	// password; being marked Going beforehand doesn't grant a spot.
+	if ( function_exists( 'extrachill_events_perk_password_required' ) && extrachill_events_perk_password_required( $event_id ) ) {
+		return 0;
+	}
+
 	$limit     = defined( 'EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX' ) ? (int) EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX : 1000;
 	$attendees = ec_users_get_event_attendees_full( $event_id, (int) get_current_blog_id(), $limit );
 
@@ -95,7 +179,7 @@ function extrachill_events_backfill_rsvp_passes( int $event_id ): int {
 			continue;
 		}
 
-		$pass = \ExtraChillEvents\Core\RsvpPassesTable::issue_or_reactivate( $event_id, $user_id );
+		$pass = extrachill_events_issue_rsvp_pass( $event_id, $user_id );
 		if ( ! $pass ) {
 			continue;
 		}

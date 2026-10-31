@@ -190,6 +190,10 @@ class RsvpPassAbilities {
 							'type'        => 'object',
 							'description' => __( 'Optional UTM parameters for attribution.', 'extrachill-events' ),
 						),
+						'password' => array(
+							'type'        => 'string',
+							'description' => __( 'Guest list password, required when the event has one.', 'extrachill-events' ),
+						),
 					),
 					'required'   => array( 'event_id', 'email' ),
 				),
@@ -215,6 +219,51 @@ class RsvpPassAbilities {
 				),
 			)
 		);
+
+		wp_register_ability(
+			'extrachill/claim-event-pass',
+			array(
+				'label'               => __( 'Claim Event Guest List Pass', 'extrachill-events' ),
+				'description'         => __( 'Claim a spot on a perk event\'s guest list as the current user: checks the guest list password and capacity, marks Going, and returns the pass.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'password' => array(
+							'type'        => 'string',
+							'description' => __( 'Guest list password, required when the event has one.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'issued'    => array( 'type' => 'boolean' ),
+						'code'      => array( 'type' => 'string' ),
+						'perk_text' => array( 'type' => 'string' ),
+						'status'    => array( 'type' => 'string' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'claim_event_pass' ),
+				'permission_callback' => 'is_user_logged_in',
+				'meta'                => array(
+					// The caller's own pass, like get-my-event-pass; failed
+					// passwords are limited per user inside the domain call.
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => true,
+						'destructive'  => false,
+						'instructions' => __( 'Returns the caller\'s own pass. Wrong passwords return invalid_password; a full list returns guest_list_full.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -230,7 +279,22 @@ class RsvpPassAbilities {
 			array(
 				'referrer' => (string) ( $input['referrer'] ?? '' ),
 				'utm'      => is_array( $input['utm'] ?? null ) ? $input['utm'] : array(),
-			)
+			),
+			(string) ( $input['password'] ?? '' )
+		);
+	}
+
+	/**
+	 * Claim a guest list pass as the current logged-in user.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function claim_event_pass( array $input ) {
+		return extrachill_events_claim_guest_list_pass(
+			(int) ( $input['event_id'] ?? 0 ),
+			get_current_user_id(),
+			(string) ( $input['password'] ?? '' )
 		);
 	}
 

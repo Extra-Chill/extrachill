@@ -4,7 +4,8 @@
  *
  * POST /extrachill/v1/events/{id}/guest-rsvp
  *
- * Lets a logged-out visitor RSVP to a perk-enabled event with only an email.
+ * Lets a logged-out visitor RSVP to a perk-enabled event with only an email
+ * (plus the guest list password when the event has one).
  * The extrachill-events ability owns everything behind it (account
  * resolution, attendance, pass email) and is hidden from the core REST
  * runner; this route is the public write boundary: Cloudflare Turnstile,
@@ -44,6 +45,7 @@ function extrachill_api_register_guest_rsvp_route() {
 				),
 				'referrer'           => array( 'type' => 'string' ),
 				'utm'                => array( 'type' => 'object' ),
+				'password'           => array( 'type' => 'string' ),
 				'turnstile_response' => array(
 					'required' => false,
 					'type'     => 'string',
@@ -114,7 +116,14 @@ function extrachill_api_handle_guest_rsvp( WP_REST_Request $request ) {
 		}
 	}
 
-	$result = $ability->execute( $input );
+	// Guest list password (extrachill#433). Passed through verbatim; the
+	// owner ability verifies it against the stored hash.
+	$password = $request->get_param( 'password' );
+	if ( is_string( $password ) && '' !== $password ) {
+		$input['password'] = $password;
+	}
+
+		$result = $ability->execute( $input );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}

@@ -208,6 +208,37 @@ final class RsvpPassesTable {
 	}
 
 	/**
+	 * Count an event's outstanding passes for guest list capacity.
+	 *
+	 * `claimed` is every pass that holds a spot (active + redeemed); a
+	 * revoked pass gives its spot back. `checked_in` is the redeemed subset.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @return array{claimed:int, checked_in:int}
+	 */
+	public static function count_for_event( int $event_id ): array {
+		global $wpdb;
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Capacity must read live rows, never a cache.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT SUM(status IN (%s, %s)) AS claimed, SUM(status = %s) AS checked_in FROM {$table} WHERE event_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				self::STATUS_ACTIVE,
+				self::STATUS_REDEEMED,
+				self::STATUS_REDEEMED,
+				$event_id
+			),
+			ARRAY_A
+		);
+
+		return array(
+			'claimed'    => (int) ( $row['claimed'] ?? 0 ),
+			'checked_in' => (int) ( $row['checked_in'] ?? 0 ),
+		);
+	}
+
+	/**
 	 * Idempotently issue a pass, or reactivate a previously revoked one.
 	 *
 	 * Called only from the transition unmarked -> marked (see
@@ -216,18 +247,119 @@ final class RsvpPassesTable {
 	 * window safe: a losing concurrent insert fails on the duplicate key and
 	 * simply re-selects the winner's row.
 	 *
+	 * With a capacity (guest list, extrachill#433), the count-and-issue runs
+	 * under a per-event MySQL named lock (GET_LOCK), so two guests claiming
+	 * the last spot at the same moment can't both get it. An attendee who
+	 * already holds an active pass always gets it back; capacity only gates
+	 * new or reactivated passes.
+	 *
 	 * @param int $event_id Event post ID.
 	 * @param int $user_id  User ID.
-	 * @return array|null The active pass row, or null on unrecoverable failure.
+	 * @param int $capacity Max outstanding passes (active + redeemed). 0 = unlimited.
+	 * @return array|null The active pass row, or null when full or on unrecoverable failure.
 	 */
-	public static function issue_or_reactivate( int $event_id, int $user_id ): ?array {
-		global $wpdb;
-		$table = self::table_name();
-
+	public static function issue_or_reactivate( int $event_id, int $user_id, int $capacity = 0 ): ?array {
 		$existing = self::find_for_user_event( $event_id, $user_id );
 		if ( $existing && self::STATUS_ACTIVE === $existing['status'] ) {
 			return $existing;
 		}
+
+		if ( $capacity <= 0 ) {
+			return self::write_pass( $event_id, $user_id, $existing );
+		}
+
+		if ( ! self::acquire_capacity_lock( $event_id ) ) {
+			return null;
+		}
+
+		try {
+			// Re-read under the lock: a concurrent request may have issued
+			// this user's pass, or filled the last spot, since the check above.
+			$existing = self::find_for_user_event( $event_id, $user_id );
+			if ( $existing && self::STATUS_ACTIVE === $existing['status'] ) {
+				return $existing;
+			}
+
+			$counts = self::count_for_event( $event_id );
+			if ( $counts['claimed'] >= $capacity ) {
+				return null;
+			}
+
+			return self::write_pass( $event_id, $user_id, $existing );
+		} finally {
+			self::release_capacity_lock( $event_id );
+		}
+	}
+
+	/**
+	 * Whether an event has room for one more pass for this user.
+	 *
+	 * A non-locking pre-check for friendly errors; issue_or_reactivate()
+	 * remains the authority under its lock.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @param int $user_id  User ID.
+	 * @param int $capacity Capacity; 0 = unlimited.
+	 * @return bool
+	 */
+	public static function has_room_for( int $event_id, int $user_id, int $capacity ): bool {
+		if ( $capacity <= 0 ) {
+			return true;
+		}
+
+		$existing = self::find_for_user_event( $event_id, $user_id );
+		if ( $existing && self::STATUS_REVOKED !== $existing['status'] ) {
+			return true;
+		}
+
+		return self::count_for_event( $event_id )['claimed'] < $capacity;
+	}
+
+	/**
+	 * Per-event capacity lock name. Includes the table name so blogs and
+	 * installs sharing a MySQL server never contend.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @return string
+	 */
+	private static function capacity_lock_name( int $event_id ): string {
+		return substr( 'ec_rsvp_cap_' . md5( self::table_name() . ':' . $event_id ), 0, 64 );
+	}
+
+	/**
+	 * Acquire the per-event capacity lock, waiting up to 5 seconds.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @return bool
+	 */
+	private static function acquire_capacity_lock( int $event_id ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Named lock is the concurrency primitive.
+		return 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', self::capacity_lock_name( $event_id ), 5 ) );
+	}
+
+	/**
+	 * Release the per-event capacity lock.
+	 *
+	 * @param int $event_id Event post ID.
+	 */
+	private static function release_capacity_lock( int $event_id ): void {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Named lock is the concurrency primitive.
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', self::capacity_lock_name( $event_id ) ) );
+	}
+
+	/**
+	 * Insert a new pass, or reactivate an existing non-active row.
+	 *
+	 * @param int        $event_id Event post ID.
+	 * @param int        $user_id  User ID.
+	 * @param array|null $existing Existing non-active row, if any.
+	 * @return array|null
+	 */
+	private static function write_pass( int $event_id, int $user_id, ?array $existing ): ?array {
+		global $wpdb;
+		$table = self::table_name();
 
 		$now  = current_time( 'mysql', true );
 		$code = self::generate_code();

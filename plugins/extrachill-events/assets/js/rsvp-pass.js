@@ -272,7 +272,7 @@
 			return;
 		}
 
-		const form = document.querySelector( '.ec-rsvp-guest' );
+		const form = document.querySelector( '.ec-rsvp-guest:not([data-mode="claim"])' );
 		if ( ! form ) {
 			return;
 		}
@@ -310,6 +310,14 @@
 				email,
 				turnstile_response: tokenField ? tokenField.value : '',
 			};
+			const passwordInput = form.querySelector( 'input[name="password"]' );
+			if ( passwordInput ) {
+				if ( ! passwordInput.value ) {
+					showStatus( 'error', text.needPw );
+					return;
+				}
+				data.password = passwordInput.value;
+			}
 			if ( document.referrer ) {
 				data.referrer = document.referrer;
 			}
@@ -335,6 +343,9 @@
 					if ( emailInput ) {
 						emailInput.disabled = true;
 					}
+					if ( passwordInput ) {
+						passwordInput.disabled = true;
+					}
 					if ( button ) {
 						button.hidden = true;
 					}
@@ -355,6 +366,76 @@
 		} );
 	}
 
+	/**
+	 * Wire the logged-in guest list claim form (extrachill#433): the guest
+	 * list password goes to the claim-event-pass ability, which returns the
+	 * caller's own pass, rendered straight into the pass card.
+	 */
+	function initClaimForm() {
+		const config = window.ecRsvpPass || {};
+		if ( ! config.claimPath ) {
+			return;
+		}
+
+		const form = document.querySelector( '.ec-rsvp-guest[data-mode="claim"]' );
+		if ( ! form ) {
+			return;
+		}
+
+		const text = config.guestRsvpText || {};
+		const status = form.querySelector( '.ec-rsvp-guest__status' );
+		const button = form.querySelector( 'button[type="submit"]' );
+		const passwordInput = form.querySelector( 'input[name="password"]' );
+		const eventId = parseInt( form.getAttribute( 'data-event-id' ), 10 );
+
+		function showStatus( kind, message ) {
+			if ( ! status ) {
+				return;
+			}
+			status.classList.remove( 'notice-success', 'notice-error' );
+			if ( kind ) {
+				status.classList.add( 'notice-' + kind );
+			}
+			status.textContent = message || '';
+			status.hidden = ! message;
+		}
+
+		form.addEventListener( 'submit', function ( event ) {
+			event.preventDefault();
+
+			const password = passwordInput ? passwordInput.value : '';
+			if ( ! password ) {
+				showStatus( 'error', text.needPw );
+				return;
+			}
+
+			if ( button ) {
+				button.disabled = true;
+			}
+			showStatus( '', '' );
+
+			apiFetch( config.claimPath, 'POST', {
+				input: { event_id: eventId, password },
+			} )
+				.then( function ( response ) {
+					renderPass(
+						document.getElementById( 'ec-rsvp-pass-' + eventId ),
+						response
+					);
+					form.hidden = true;
+				} )
+				.catch( function ( error ) {
+					if ( button ) {
+						button.disabled = false;
+					}
+					showStatus(
+						'error',
+						( error && error.message ) || text.error
+					);
+				} );
+		} );
+	}
+
 	// Enqueued with in_footer=true (see inc/core/rsvp-pass-integration.php),
 	// so the DOM is already parsed by the time this executes — no
 	// DOMContentLoaded listener needed.
@@ -362,4 +443,5 @@
 	initDoorList();
 	initVerifyPage();
 	initGuestForm();
+	initClaimForm();
 } )();

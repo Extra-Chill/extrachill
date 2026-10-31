@@ -95,6 +95,29 @@ class GuestRsvpRouteTest extends WP_UnitTestCase {
 		$this->assertSame( array( 'utm_source' => 'instagram' ), $this->ability_inputs[0]['utm'] );
 	}
 
+	/** The guest list password is forwarded verbatim to the ability (extrachill#433). */
+	public function test_handler_forwards_guest_list_password() {
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/events/640348/guest-rsvp' );
+		$request->set_param( 'id', '640348' );
+		$request->set_param( 'email', 'guest@example.com' );
+		$request->set_param( 'password', ' Spooky <31> ' );
+
+		extrachill_api_handle_guest_rsvp( $request );
+
+		$this->assertSame( ' Spooky <31> ', $this->ability_inputs[0]['password'] );
+	}
+
+	/** No password param, no password key. */
+	public function test_handler_omits_absent_password() {
+		$request = new WP_REST_Request( 'POST', '/extrachill/v1/events/640348/guest-rsvp' );
+		$request->set_param( 'id', '640348' );
+		$request->set_param( 'email', 'guest@example.com' );
+
+		extrachill_api_handle_guest_rsvp( $request );
+
+		$this->assertArrayNotHasKey( 'password', $this->ability_inputs[0] );
+	}
+
 	/** Success response is opaque even if the ability returns more. */
 	public function test_success_response_is_opaque() {
 		$this->ability_result = array(
