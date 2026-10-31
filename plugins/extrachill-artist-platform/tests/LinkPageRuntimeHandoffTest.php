@@ -1,31 +1,38 @@
 <?php
 
 require_once __DIR__ . '/support/base-test-case.php';
+require_once __DIR__ . '/fixtures/link-pages-runtime-fixture.php';
 
 final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
-	/**
-	 * The standalone-runtime smoke fixtures exec a fresh PHP process against a
-	 * sibling extrachill-link-pages checkout. The sandbox only mounts the
-	 * component under test, so the fixture source is unavailable there.
-	 */
-	private function require_fixture_source(): void {
-		if ( ! is_dir( '/var/lib/datamachine/workspace/extrachill-link-pages' ) ) {
-			$this->markTestSkipped( 'Standalone runtime fixture source (sibling extrachill-link-pages checkout) is unavailable in this environment.' );
-		}
+	/** Require the same dependency path used by the child fixtures. */
+	private function require_real_runtime_fixture_source(): void {
+		ec_test_link_pages_runtime_path( dirname( __DIR__ ) );
 	}
 
 	/**
-	 * The real-runtime fixtures resolve the deterministic sibling
-	 * extrachill-link-pages primary (or a LINK_PAGES_WORKTREE override), so
-	 * the same fixture-source availability check applies.
+	 * Whether a PHP subprocess can run here. The WordPress sandbox (php.wasm)
+	 * cannot spawn processes; these fixtures also run as standalone PHP smokes
+	 * (homeboy.json standalone_php_smokes), which is their coverage there.
 	 */
-	private function require_real_runtime_fixture_source(): void {
-		$this->require_fixture_source();
+	private static function canRunPhpSubprocess(): bool {
+		static $available = null;
+		if ( null === $available ) {
+			$available = false;
+			if ( function_exists( 'exec' ) && '' !== (string) PHP_BINARY ) {
+				$probe  = array();
+				$status = 1;
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- probes whether the runtime can spawn the helper binary.
+				@exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( 'echo "ok";' ) . ' 2>/dev/null', $probe, $status ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+				$available = 0 === $status && array( 'ok' ) === $probe;
+			}
+		}
+		return $available;
 	}
 
 	private function runSmokeFixture( $fixture, $argument = '' ) {
-		$this->require_fixture_source();
-
+		if ( ! self::canRunPhpSubprocess() ) {
+			$this->markTestSkipped( 'No PHP subprocess in this runtime; the fixture runs as a standalone PHP smoke instead.' );
+		}
 		$output  = array();
 		$status  = 0;
 		$command = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/' . $fixture );
@@ -33,7 +40,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 			$command .= ' ' . escapeshellarg( $argument );
 		}
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- intentionally shells out to a helper binary for the runtime-handoff proof.
-		exec( $command, $output, $status );
+		exec( $command . ' 2>&1', $output, $status );
 
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		$result = json_decode( implode( "\n", $output ), true );
@@ -154,6 +161,14 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$result = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'v4-mismatched-post-type-constant' );
 
 		$this->assertSame( '', $result['error_code'] );
+	}
+
+	public function test_real_runtime_smoke_defaults_to_activation(): void {
+		$result = $this->runSmokeFixture( 'link-pages-real-runtime-smoke.php' );
+
+		$this->assertTrue( $result['ready'] );
+		$this->assertTrue( $result['contract_matches'] );
+		$this->assertSame( 1, $result['flushes'] );
 	}
 
 	public function test_first_activation_and_next_request_use_the_real_standalone_runtime_contract(): void {

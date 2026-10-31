@@ -12,13 +12,21 @@
           "extrachill-network",
           "extrachill-api",
           "extrachill-users",
-          "agents-api"
+          "agents-api",
+          "extrachill-link-pages"
         ],
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed",
         "wp_codebox_phpunit_config": "/wordpress/wp-content/plugins/extrachill-artist-platform/phpunit.xml.dist",
         "wp_codebox_phpunit_preload_files": [
           "/wordpress/wp-content/plugins/extrachill-artist-platform/tests/support/managed-preload.php"
+        ],
+        "wp_codebox_extra_plugins": [
+          {
+            "source": "tests/support/harness-topology",
+            "slug": "ec-artist-harness-topology",
+            "loadAs": "mu-plugin"
+          }
         ]
       }
     }

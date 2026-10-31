@@ -23,67 +23,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! function_exists( 'ec_artist_platform_test_seed_site' ) ) {
-	/**
-	 * Create one canonical network site row with real per-site tables.
-	 *
-	 * @param int    $blog_id Exact canonical blog ID (EC_BLOG_ID_*).
-	 * @param string $slug    URL path segment for the site.
-	 * @param string $title   Site title.
-	 * @return void
-	 */
-	function ec_artist_platform_test_seed_site( $blog_id, $slug, $title ) {
-		global $wpdb;
+require_once __DIR__ . '/topology-seed.php';
 
-		$blog_id = (int) $blog_id;
-		$exists  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT blog_id FROM {$wpdb->blogs} WHERE blog_id = %d", $blog_id ) );
-		if ( $exists ) {
-			return;
-		}
+ec_artist_platform_test_seed_topology();
 
-		$now      = current_time( 'mysql' );
-		$inserted = $wpdb->insert(
-			$wpdb->blogs,
-			array(
-				'blog_id'      => $blog_id,
-				'site_id'      => 1,
-				'domain'       => (string) parse_url( home_url(), PHP_URL_HOST ),
-				'path'         => $slug ? '/' . trim( $slug, '/' ) . '/' : '/',
-				'registered'   => $now,
-				'last_updated' => $now,
-				'public'       => 1,
-				'archived'     => 0,
-				'mature'       => 0,
-				'spam'         => 0,
-				'deleted'      => 0,
-				'lang_id'      => 0,
-			)
-		);
-		if ( ! $inserted ) {
-			throw new RuntimeException( "Managed harness could not seed site {$blog_id}: " . $wpdb->last_error );
-		}
+// Public Link Page redirects end the request with exit; inside PHPUnit that
+// would end the whole suite. Link Pages exposes this seam for tests.
+add_filter( 'ec_link_page_terminate_request', '__return_false' );
 
-		if ( 1 === $blog_id ) {
-			// The network primary already has base-prefix tables; creating them
-			// again trips install_blog()'s already-installed guard.
-			clean_blog_cache( $blog_id );
-			return;
-		}
-
-		$did_switch = get_current_blog_id() !== $blog_id;
-		if ( $did_switch ) {
-			switch_to_blog( $blog_id );
-		}
-		$previous_level = error_reporting( E_ALL & ~E_DEPRECATED );
-		install_blog( $blog_id, $title );
-		error_reporting( $previous_level );
-		if ( $did_switch ) {
-			restore_current_blog();
-		}
-		clean_blog_cache( $blog_id );
-	}
+// The WordPress PHPUnit bootstrap unhooks core's ability categories
+// (_unhook_core_ability_categories_registration removes the priority-10
+// callback). Link Pages registers abilities in the core `site` category, which
+// always exists in production, so restore the core categories after the unhook.
+if ( function_exists( 'wp_register_core_ability_categories' ) ) {
+	add_action( 'wp_abilities_api_categories_init', 'wp_register_core_ability_categories', 11 );
 }
-
-ec_artist_platform_test_seed_site( 1, '', 'Extra Chill' );
-ec_artist_platform_test_seed_site( 4, 'artist', 'Extra Chill Artist Platform' );
-ec_artist_platform_test_seed_site( 7, 'events', 'Extra Chill Events' );

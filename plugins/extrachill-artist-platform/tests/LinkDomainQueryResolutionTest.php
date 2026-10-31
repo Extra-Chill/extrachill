@@ -32,6 +32,13 @@ final class LinkDomainQueryResolutionTest extends EC_Artist_Platform_TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
+		// This covers Artist Platform's legacy fallback resolver. When the
+		// standalone Link Pages runtime is loaded it owns link-domain
+		// resolution (storage-blog lookups) and this file is never loaded.
+		if ( function_exists( 'extrachill_artist_platform_uses_external_link_pages_runtime' ) && extrachill_artist_platform_uses_external_link_pages_runtime() ) {
+			$this->markTestSkipped( 'The standalone Link Pages runtime owns link-domain query resolution.' );
+		}
+
 		foreach ( array( 'HTTP_HOST', 'SERVER_NAME', 'REQUEST_URI', 'REQUEST_METHOD' ) as $key ) {
 			$this->ec_saved_server[ $key ] = $_SERVER[ $key ] ?? null;
 		}
