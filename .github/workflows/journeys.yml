@@ -58,9 +58,32 @@ env:
   DEFAULT_JOURNEYS: '["musician-link-page-onboarding","returning-artist-link-page","anonymous-event-submission","show-ratings-fan"]'
 
 jobs:
-  journey:
-    name: Journeys on the network rig
+  # One runner per journey: each boots its own network, so wall time is the
+  # slowest journey instead of the sum of all of them (#428).
+  plan:
+    name: Select journeys
     runs-on: ubuntu-latest
+    outputs:
+      journeys: ${{ steps.select.outputs.journeys }}
+    steps:
+      - id: select
+        env:
+          JOURNEYS: ${{ inputs.journeys }}
+        run: |
+          set -euo pipefail
+          journeys="$(jq -c . <<<"${JOURNEYS:-$DEFAULT_JOURNEYS}")"
+          jq -e 'type == "array" and length > 0 and all(type == "string")' <<<"${journeys}" >/dev/null \
+            || { echo "::error::journeys must be a non-empty JSON array of journey IDs, got: ${journeys}"; exit 1; }
+          echo "journeys=${journeys}" >> "${GITHUB_OUTPUT}"
+
+  journey:
+    name: Journey ${{ matrix.journey }}
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        journey: ${{ fromJSON(needs.plan.outputs.journeys) }}
     # Setup (theme build, WP Codebox build, Chromium) + the rig's 50m
     # recipe-run --timeout + summary/upload headroom.
     timeout-minutes: 75
@@ -111,16 +134,15 @@ jobs:
           HOMEBOY_WP_CODEBOX_BIN: ${{ github.workspace }}/.ci/wp-codebox/packages/cli/dist/index.js
           HOMEBOY_ARTIFACT_ROOT: ${{ runner.temp }}/journeys/artifacts
           HOMEBOY_NETWORK_RESULT_FILE: ${{ runner.temp }}/journeys/result.json
-          JOURNEYS: ${{ inputs.journeys }}
+          JOURNEY: ${{ matrix.journey }}
           DEMO: ${{ inputs.demo }}
         run: |
           set -euo pipefail
-          journeys="${JOURNEYS:-$DEFAULT_JOURNEYS}"
-          export HOMEBOY_SETTINGS_JSON="$(jq -cn --argjson j "${journeys}" \
+          export HOMEBOY_SETTINGS_JSON="$(jq -cn --arg journey "${JOURNEY}" \
             --arg monorepo "${{ github.workspace }}" \
             --argjson demo "${DEMO:-false}" \
             --arg cache "${{ runner.temp }}/rig-build-cache" \
-            '{extrachill_monorepo_source: $monorepo, extrachill_journeys: $j, extrachill_demo: $demo, extrachill_build_cache: $cache}')"
+            '{extrachill_monorepo_source: $monorepo, extrachill_journeys: [$journey], extrachill_demo: $demo, extrachill_build_cache: $cache}')"
           echo "Settings: ${HOMEBOY_SETTINGS_JSON}"
           node rigs/extrachill-network/run.mjs > /dev/null
 
@@ -233,7 +255,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: network-journeys
+          name: network-journeys-${{ matrix.journey }}
           path: |
             ${{ runner.temp }}/journeys/result.json
             ${{ runner.temp }}/journeys/artifacts/component-builds.json
@@ -241,3 +263,17 @@ jobs:
             rigs/extrachill-network/evidence/demo/
           if-no-files-found: warn
           retention-days: 14
+
+  # One stable check name for the whole set, whatever journeys ran.
+  result:
+    name: Journeys on the network rig
+    needs: [plan, journey]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          PLAN: ${{ needs.plan.result }}
+          JOURNEYS: ${{ needs.journey.result }}
+        run: |
+          echo "plan=${PLAN} journeys=${JOURNEYS}"
+          [ "${PLAN}" = success ] && [ "${JOURNEYS}" = success ]
