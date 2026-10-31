@@ -57,7 +57,7 @@ if ( ! function_exists( 'extrachill_community_render_activity_feed' ) ) {
 			'update_post_meta_cache' => true,
 		);
 
-		return new WP_Query( $query_args );
+		return new WP_Query( extrachill_community_exclude_member_blocked_authors( $query_args ) );
 	}
 
 	/**

@@ -19,6 +19,9 @@
     "tests/concert-history-privacy-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/content-reports-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/content-filters-smoke.php": {
       "environment": "standalone-php"
     },
@@ -38,6 +41,9 @@
       "environment": "standalone-php"
     },
     "tests/local-scene-digest-settings-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/member-blocks-smoke.php": {
       "environment": "standalone-php"
     },
     "tests/notification-receipts-smoke.php": {

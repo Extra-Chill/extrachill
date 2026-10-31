@@ -174,7 +174,7 @@ function extrachill_community_ability_recent_public_activity( $input ) {
 	}
 
 	$items = array();
-	$query = new WP_Query( $query_args );
+	$query = new WP_Query( extrachill_community_exclude_member_blocked_authors( $query_args ) );
 	foreach ( $query->posts as $activity ) {
 		$activity = $activity instanceof WP_Post ? $activity : get_post( $activity );
 		if ( ! $activity ) {
