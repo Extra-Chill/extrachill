@@ -277,6 +277,19 @@ function extrachill_artist_platform_link_pages_runtime_signatures() {
 }
 
 /**
+ * Read one of the runtime's contract constants at run time.
+ *
+ * The constants are the contract being validated, so their values must come
+ * from the loaded runtime rather than be folded in by static analysis.
+ *
+ * @param string $name Constant name.
+ * @return mixed Constant value, or null when undefined.
+ */
+function extrachill_artist_platform_link_pages_runtime_constant( $name ) {
+	return defined( $name ) ? constant( $name ) : null;
+}
+
+/**
  * Validate the generic API surface consumed by the artist adapters.
  *
  * @return true|WP_Error
@@ -285,15 +298,13 @@ function extrachill_artist_platform_validate_link_pages_runtime() {
 	if ( ! defined( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_missing', 'Extra Chill Artist Platform requires the Extra Chill Link Pages plugin. Activate extrachill-link-pages to enable artist Link Pages.' );
 	}
-	// Read the runtime's constants at run time: they are the contract being
-	// validated, so their values must not be assumed from static analysis.
-	if ( '_ec_link_page_owner_reference' !== constant( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
+	if ( '_ec_link_page_owner_reference' !== extrachill_artist_platform_link_pages_runtime_constant( 'EC_LINK_PAGE_OWNER_META_KEY' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime uses an incompatible storage contract.' );
 	}
 	if ( ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incomplete', 'The Extra Chill Link Pages runtime did not declare its API version.' );
 	}
-	if ( '4' !== constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
+	if ( '4' !== extrachill_artist_platform_link_pages_runtime_constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
 		return new WP_Error( 'extrachill_link_pages_runtime_incompatible', 'The Extra Chill Link Pages runtime API version is not supported.' );
 	}
 	if ( ! function_exists( 'ec_link_page_post_type' ) ) {
