@@ -2,7 +2,8 @@
 
 // phpcs:ignoreFile WordPress.WP.GlobalVariablesOverride.Prohibited,Universal.Operators.DisallowShortTernary.Found,Universal.Files.SeparateFunctionsFromOO.Mixed,Universal.NamingConventions.NoReservedKeywordParameterNames.defaultFound,WordPress.WP.AlternativeFunctions.json_encode_json_encode -- standalone smoke harness mirroring the plugin bootstrap under test; runs outside WP with mirrored signatures.
 
-$mode       = $argv[1] ?? '';
+// Direct invocation exercises activation rather than silently exiting 2.
+$mode       = $argv[1] ?? 'activation';
 $artist     = dirname( __DIR__, 2 );
 require_once __DIR__ . '/link-pages-runtime-fixture.php';
 $standalone = ec_test_link_pages_runtime_path( $artist );
@@ -191,4 +192,5 @@ if ( 'external' === $mode ) {
 	exit;
 }
 
+fwrite( STDERR, 'Unknown real-runtime smoke mode: ' . $mode . PHP_EOL );
 exit( 2 );
