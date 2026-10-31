@@ -1,0 +1,49 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 2,
+	"name": "extrachill/event-submission",
+	"version": "0.100.0",
+	"title": "Event Submission Form",
+	"category": "widgets",
+	"icon": "calendar-alt",
+	"description": "Self-contained event submission form with AI-powered flyer processing.",
+	"keywords": ["events", "calendar", "submission"],
+	"textdomain": "extrachill-events",
+	"attributes": {
+		"landing": {
+			"type": "boolean",
+			"default": true
+		},
+		"headline": {
+			"type": "string",
+			"default": "Submit an Event"
+		},
+		"description": {
+			"type": "string",
+			"default": "Share your show details and we'll review them for the events calendar."
+		},
+		"successMessage": {
+			"type": "string",
+			"default": "Thanks! We'll review your submission and reach out if we need anything else."
+		},
+		"buttonLabel": {
+			"type": "string",
+			"default": "Send Submission"
+		},
+		"systemPrompt": {
+			"type": "string",
+			"default": "You are processing an event submission. Extract event details from the uploaded flyer image. Fill in any missing information like venue address, exact times, ticket prices, and performer details. Use the upsert_event tool to create the event."
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": false,
+		"spacing": {
+			"margin": ["top", "bottom"]
+		}
+	},
+	"editorScript": "file:./index.js",
+	"render": "file:./render.php",
+	"style": "file:./style.css",
+	"viewScript": "file:./view.js"
+}

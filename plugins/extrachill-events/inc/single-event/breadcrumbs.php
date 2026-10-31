@@ -1,0 +1,320 @@
+<?php
+/**
+ * Single Event Breadcrumbs
+ *
+ * Handles breadcrumb overrides for single event pages.
+ *
+ * @package ExtraChillEvents
+ * @since 0.1.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Override data-machine-events breadcrumbs with theme breadcrumb system
+ *
+ * Replaces data-machine-events breadcrumbs with theme's extrachill_breadcrumbs() function
+ * for consistent breadcrumb styling across site.
+ *
+ * @hook data_machine_events_breadcrumbs
+ * @param string|null $breadcrumbs Plugin's default breadcrumb HTML
+ * @param int         $post_id Event post ID
+ * @return string Theme breadcrumb HTML
+ * @since 0.1.0
+ */
+function ec_events_override_breadcrumbs( $breadcrumbs, $post_id ) {
+	unset( $post_id );
+	if ( ! ec_is_events_site() ) {
+		return $breadcrumbs;
+	}
+	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+		ob_start();
+		extrachill_breadcrumbs();
+		return ob_get_clean();
+	}
+	return $breadcrumbs;
+}
+add_filter( 'data_machine_events_breadcrumbs', 'ec_events_override_breadcrumbs', 10, 2 );
+
+/**
+ * Customize breadcrumb root for events site
+ *
+ * Produces "Extra Chill" root on homepage, "Extra Chill → Events" on other pages.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * @hook extrachill_breadcrumbs_root
+ * @param string $root_link Default root breadcrumb link HTML from theme
+ * @return string Modified root link with events context
+ * @since 0.1.0
+ */
+function ec_events_breadcrumb_root( $root_link ) {
+	if ( ! ec_is_events_site() ) {
+		return $root_link;
+	}
+	if ( is_front_page() ) {
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
+	}
+
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Events Calendar</a>';
+}
+add_filter( 'extrachill_breadcrumbs_root', 'ec_events_breadcrumb_root' );
+
+/**
+ * Override breadcrumb trail for homepage
+ *
+ * Produces "Events" trail on homepage. Root function provides "Extra Chill" link.
+ * Only applies on blog ID 7 (events.extrachill.com) homepage.
+ *
+ * @hook extrachill_breadcrumbs_override_trail
+ * @param string|false $custom_trail Existing custom trail from other filters
+ * @return string|false Custom trail for homepage, unchanged otherwise
+ * @since 0.1.0
+ */
+function ec_events_breadcrumb_trail_homepage( $custom_trail ) {
+	if ( ! ec_is_events_site() ) {
+		return $custom_trail;
+	}
+	if ( is_front_page() ) {
+		return '<span class="network-dropdown-target">Events Calendar</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_homepage' );
+
+/**
+ * Override breadcrumb trail for archive pages
+ *
+ * Produces taxonomy-specific or post type archive trails. Root function provides
+ * "Extra Chill → Events" prefix. Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * Output patterns:
+ * - Location directory: "Extra Chill → Events → Live Music by Location"
+ * - All events: "Extra Chill → Events → All Live Music Events"
+ * - Taxonomy: "Extra Chill → Events → [Term Name]"
+ * - Post type: "Extra Chill → Events"
+ *
+ * @hook extrachill_breadcrumbs_override_trail
+ * @param string|false $custom_trail Custom breadcrumb trail from other filters
+ * @return string|false Custom trail for archives, unchanged otherwise
+ * @since 0.1.0
+ */
+function ec_events_breadcrumb_trail_archives( $custom_trail ) {
+	if ( ! ec_is_events_site() ) {
+		return $custom_trail;
+	}
+	if ( extrachill_events_is_location_index() ) {
+		return '<span>' . esc_html__( 'Live Music by Location', 'extrachill-events' ) . '</span>';
+	}
+	if ( extrachill_events_is_all_events_page() ) {
+		return '<span>' . esc_html__( 'All Live Music Events', 'extrachill-events' ) . '</span>';
+	}
+	if ( is_tax() ) {
+		$term = get_queried_object();
+		if ( $term && isset( $term->name ) ) {
+			return '<span>' . esc_html( $term->name ) . '</span>';
+		}
+	}
+
+	if ( is_post_type_archive( 'data_machine_events' ) ) {
+		return '<span class="network-dropdown-target">Events Calendar</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_archives' );
+
+/**
+ * Get the primary venue term for an event post
+ *
+ * Returns the first venue term attached to an event, or null when no venue
+ * is assigned. Events are tagged with a single venue in practice, but this
+ * defensively picks the first term when multiple exist.
+ *
+ * @param int $post_id Event post ID
+ * @return \WP_Term|null Primary venue term, or null when none assigned
+ * @since 0.3.0
+ */
+function ec_events_get_primary_venue_term( $post_id ) {
+	$terms = get_the_terms( $post_id, 'venue' );
+	if ( empty( $terms ) || is_wp_error( $terms ) ) {
+		return null;
+	}
+	return $terms[0];
+}
+
+/**
+ * Override breadcrumb trail for single event posts
+ *
+ * Produces event title trail with venue link when a venue is assigned. Root
+ * function provides "Extra Chill → Events" prefix.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * Output patterns:
+ * - With venue: "Extra Chill → Events Calendar → [Venue] → [Event Title]"
+ * - Without venue: "Extra Chill → Events Calendar → [Event Title]"
+ *
+ * @hook extrachill_breadcrumbs_override_trail
+ * @param string|false $custom_trail Custom breadcrumb trail from other filters
+ * @return string|false Custom trail for single events, unchanged otherwise
+ * @since 0.1.0
+ */
+function ec_events_breadcrumb_trail_single( $custom_trail ) {
+	if ( ! ec_is_events_site() ) {
+		return $custom_trail;
+	}
+	if ( is_singular( 'data_machine_events' ) ) {
+		$trail = '';
+
+		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		if ( $venue ) {
+			$venue_link = get_term_link( $venue );
+			if ( ! is_wp_error( $venue_link ) ) {
+				$trail .= '<a href="' . esc_url( $venue_link ) . '">' . esc_html( $venue->name ) . '</a> › ';
+			}
+		}
+
+		$trail .= '<span class="breadcrumb-title">' . get_the_title() . '</span>';
+		return $trail;
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'ec_events_breadcrumb_trail_single' );
+
+/**
+ * Override back-to-home link label for event pages
+ *
+ * Produces "Back to Events" on non-homepage pages. Homepage retains default
+ * "Back to Extra Chill" label pointing to main site.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * @hook extrachill_back_to_home_label
+ * @param string $label Default back-to-home link label from theme
+ * @param string $url Back-to-home link URL
+ * @return string Modified label for event pages, unchanged for homepage
+ * @since 0.1.0
+ */
+function ec_events_back_to_home_label( $label, $url ) {
+	unset( $url );
+	if ( ! ec_is_events_site() ) {
+		return $label;
+	}
+	if ( is_front_page() ) {
+		return $label;
+	}
+
+	return '← Back to Events Calendar';
+}
+add_filter( 'extrachill_back_to_home_label', 'ec_events_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for events site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for events.extrachill.com.
+ * Only applies on blog ID 7 (events.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Events Calendar]
+ * - Single event (with venue): [Extra Chill, Events Calendar, Venue, Event Title]
+ * - Single event (no venue): [Extra Chill, Events Calendar, Event Title]
+ * - Taxonomy archive: [Extra Chill, Events Calendar, Term Name]
+ * - Post type archive: [Extra Chill, Events Calendar]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for events context
+ * @since 0.2.0
+ */
+function ec_events_schema_breadcrumb_items( $items ) {
+	if ( ! ec_is_events_site() ) {
+		return $items;
+	}
+	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+
+	// Homepage: Extra Chill → Events Calendar
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Events Calendar',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single event: Extra Chill → Events Calendar → [Venue →] Event Title
+	if ( is_singular( 'data_machine_events' ) ) {
+		$items = array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Events Calendar',
+				'url'  => home_url( '/' ),
+			),
+		);
+
+		$venue = ec_events_get_primary_venue_term( get_the_ID() );
+		if ( $venue ) {
+			$venue_link = get_term_link( $venue );
+			$items[]    = array(
+				'name' => $venue->name,
+				'url'  => is_wp_error( $venue_link ) ? '' : $venue_link,
+			);
+		}
+
+		$items[] = array(
+			'name' => get_the_title(),
+			'url'  => '',
+		);
+
+		return $items;
+	}
+
+	// Taxonomy archive: Extra Chill → Events Calendar → Term Name
+	if ( is_tax() ) {
+		$term = get_queried_object();
+		if ( $term && isset( $term->name ) ) {
+			return array(
+				array(
+					'name' => 'Extra Chill',
+					'url'  => $main_site_url,
+				),
+				array(
+					'name' => 'Events Calendar',
+					'url'  => home_url( '/' ),
+				),
+				array(
+					'name' => $term->name,
+					'url'  => '',
+				),
+			);
+		}
+	}
+
+	// Post type archive: Extra Chill → Events Calendar
+	if ( is_post_type_archive( 'data_machine_events' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Events Calendar',
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'ec_events_schema_breadcrumb_items' );

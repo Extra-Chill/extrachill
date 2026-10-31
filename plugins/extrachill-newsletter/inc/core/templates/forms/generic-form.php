@@ -1,0 +1,107 @@
+<?php
+/**
+ * Generic Newsletter Form Template
+ *
+ * Unified template for all newsletter subscription forms.
+ * Accepts $context and $args for customization.
+ *
+ * @package ExtraChillNewsletter
+ * @since 0.1.2
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** @var array $args Newsletter form arguments. */
+/** @var string $context Newsletter form context. */
+$defaults = array(
+	'wrapper_element'   => 'div',
+	'wrapper_class'     => '',
+	'heading'           => null,
+	'heading_level'     => 'h3',
+	'description'       => null,
+	'layout'            => 'section',
+	'placeholder'       => __( 'Enter your email', 'extrachill-newsletter' ),
+	'button_text'       => __( 'Subscribe', 'extrachill-newsletter' ),
+	'show_archive_link' => false,
+	'archive_link_text' => __( 'Browse past newsletters', 'extrachill-newsletter' ),
+);
+
+$args = wp_parse_args( $args, $defaults );
+
+$layout_class = 'newsletter-' . esc_attr( $args['layout'] ) . '-form';
+$input_id     = 'newsletter-email-' . esc_attr( $context );
+
+$wrapper_tag   = tag_escape( $args['wrapper_element'] );
+$wrapper_class = trim( $args['wrapper_class'] . ' newsletter-form-wrapper' );
+$heading_tag   = tag_escape( $args['heading_level'] );
+?>
+
+<<?php echo esc_attr( $wrapper_tag ); ?> class="<?php echo esc_attr( $wrapper_class ); ?>">
+
+	<?php if ( $args['heading'] || $args['description'] ) : ?>
+		<?php if ( 'section' === $args['layout'] ) : ?>
+			<div class="newsletter-form-header">
+		<?php endif; ?>
+
+		<?php if ( $args['heading'] ) : ?>
+			<<?php echo esc_attr( $heading_tag ); ?> class="newsletter-form-heading">
+				<?php echo esc_html( $args['heading'] ); ?>
+			</<?php echo esc_attr( $heading_tag ); ?>>
+		<?php endif; ?>
+
+		<?php if ( $args['description'] ) : ?>
+			<p class="newsletter-form-description">
+				<?php echo esc_html( $args['description'] ); ?>
+			</p>
+		<?php endif; ?>
+
+		<?php if ( 'section' === $args['layout'] ) : ?>
+			</div>
+		<?php endif; ?>
+	<?php endif; ?>
+
+	<form data-newsletter-form data-newsletter-context="<?php echo esc_attr( $context ); ?>" data-ec-track="<?php echo esc_attr( 'newsletter-' . sanitize_key( $context ) ); ?>" class="newsletter-form <?php echo esc_attr( $layout_class ); ?>">
+
+
+		<input
+			type="email"
+			id="<?php echo esc_attr( $input_id ); ?>"
+			name="email"
+			required
+			placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
+			aria-label="<?php esc_attr_e( 'Email address', 'extrachill-newsletter' ); ?>"
+		>
+
+		<?php
+		// Render Cloudflare Turnstile widget for bot mitigation.
+		// In appearance="interaction-only" mode, the widget is invisible until a
+		// challenge is required, and resolves silently for most legitimate users.
+		// Bots that skip the JS-side Turnstile execution will be rejected by the
+		// REST permission_callback in extrachill-api.
+		if ( function_exists( 'ec_render_turnstile_widget' ) ) {
+			echo ec_render_turnstile_widget( array( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- widget output is built from escaped attrs internally.
+				'data-size' => 'invisible',
+			) );
+		}
+		?>
+
+		<button type="submit" class="button-2 button-medium"><?php echo esc_html( $args['button_text'] ); ?></button>
+
+		<p data-newsletter-feedback class="notice" style="display:none;" aria-live="polite"></p>
+
+		<?php if ( $args['show_archive_link'] ) : ?>
+			<?php $archive_url = get_post_type_archive_link( 'newsletter' ); ?>
+			<?php if ( $archive_url ) : ?>
+				<p class="newsletter-archive-link">
+					<a href="<?php echo esc_url( $archive_url ); ?>">
+						<?php echo esc_html( $args['archive_link_text'] ); ?>
+					</a>
+				</p>
+			<?php endif; ?>
+		<?php endif; ?>
+
+	</form>
+
+</<?php echo esc_attr( $wrapper_tag ); ?>>

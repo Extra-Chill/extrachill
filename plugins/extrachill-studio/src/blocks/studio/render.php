@@ -1,0 +1,139 @@
+<?php
+/**
+ * Studio block render.
+ *
+ * @package ExtraChillStudio
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+$defaults = array(
+	'headline'      => __( 'Extra Chill Studio', 'extrachill-studio' ),
+	'description'   => __( 'Publishing tools, social workflows, and AI chat for the Extra Chill team.', 'extrachill-studio' ),
+	'deniedMessage' => __( 'Studio is available to Extra Chill team members. Contact Chris if you need access.', 'extrachill-studio' ),
+);
+
+$attributes     = isset( $attributes ) && is_array( $attributes ) ? $attributes : array();
+$attributes     = wp_parse_args( $attributes, $defaults );
+$headline       = $attributes['headline'] ?? $defaults['headline'];
+$description    = $attributes['description'] ?? $defaults['description'];
+$denied_message = $attributes['deniedMessage'] ?? $defaults['deniedMessage'];
+
+$wrapper_attributes = get_block_wrapper_attributes(
+	array(
+		'class' => 'ec-studio-block',
+	)
+);
+
+if ( ! function_exists( 'ec_is_team_member' ) ) :
+	?>
+	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?> >
+		<div class="ec-studio-card ec-studio-card--dependency-missing notice notice-error">
+			<p><?php esc_html_e( 'Extra Chill Studio requires the Extra Chill Users plugin to load team permissions.', 'extrachill-studio' ); ?></p>
+		</div>
+	</div>
+	<?php
+	return;
+endif;
+
+if ( ! is_user_logged_in() ) {
+	return;
+}
+
+if ( ! current_user_can( 'manage_options' ) && ! ec_is_team_member() ) :
+	?>
+	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?> >
+		<div class="ec-studio-card ec-studio-card--denied notice notice-info">
+			<p class="ec-studio-card__description"><?php echo esc_html( $denied_message ); ?></p>
+		</div>
+	</div>
+	<?php
+	return;
+endif;
+
+$studio_user   = wp_get_current_user();
+$site_name     = get_bloginfo( 'name' );
+$site_url      = home_url( '/' );
+$rest_nonce    = wp_create_nonce( 'wp_rest' );
+$socials_api   = rest_url( 'datamachine/v1/socials/' );
+$network_sites = array();
+
+if ( is_multisite() ) {
+	$sites = get_sites(
+		array(
+			'public'   => 1,
+			'archived' => 0,
+			'deleted'  => 0,
+			'spam'     => 0,
+			'number'   => 0,
+		)
+	);
+
+	foreach ( $sites as $site ) {
+		$site_id          = (int) $site->blog_id;
+		$network_site_url = get_home_url( $site_id, '/' );
+		$site_host        = wp_parse_url( $network_site_url, PHP_URL_HOST );
+
+		if ( ! is_string( $site_host ) || '' === $site_host ) {
+			continue;
+		}
+
+		$network_sites[] = array(
+			'id'   => $site_id,
+			'name' => (string) get_blog_option( $site_id, 'blogname', $site_host ),
+			'url'  => $network_site_url,
+			'host' => $site_host,
+		);
+	}
+}
+
+/**
+ * Filter the social platform slugs shown in Studio's Socials tab.
+ *
+ * Return an array of platform slugs to show (allowlist). Platforms not
+ * in this list are hidden from the Socials tab UI. Return an empty
+ * array to show all authenticated publish-capable platforms (default).
+ *
+ * @param string[] $platforms Allowed platform slugs. Empty = show all.
+ */
+$allowed_platforms      = apply_filters( 'extrachill_studio_social_platforms', array() );
+$allowed_platforms_json = wp_json_encode( $allowed_platforms );
+if ( false === $allowed_platforms_json ) {
+	$allowed_platforms_json = '[]';
+}
+$network_sites_json = wp_json_encode( $network_sites );
+if ( false === $network_sites_json ) {
+	$network_sites_json = '[]';
+}
+
+/*
+ * Whether this user may access the shared brand social accounts. The Socials
+ * tab operates the official Extra Chill accounts (credentials stored
+ * network-wide), so it is gated behind the EC `brand_socials` rollout feature
+ * (admin-only by default) or an explicit per-person capability grant. The
+ * boolean is passed to the React app, which drops the Socials tab when false.
+ * Missing gate dependencies fail closed unless the explicit capability exists.
+ */
+$can_brand_socials = current_user_can( 'manage_brand_socials' )
+	|| ( function_exists( 'ec_feature_available' ) && ec_feature_available( 'brand_socials' ) );
+
+?>
+
+<div
+	<?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_block_wrapper_attributes() returns escaped HTML attributes. ?>
+	data-ec-studio-root
+	data-user-name="<?php echo esc_attr( $studio_user->display_name ); ?>"
+	data-site-name="<?php echo esc_attr( $site_name ); ?>"
+	data-site-url="<?php echo esc_url( $site_url ); ?>"
+	data-rest-nonce="<?php echo esc_attr( $rest_nonce ); ?>"
+	data-socials-api-base="<?php echo esc_url( $socials_api ); ?>"
+	data-headline="<?php echo esc_attr( $headline ); ?>"
+	data-description="<?php echo esc_attr( $description ); ?>"
+	data-social-platforms="<?php echo esc_attr( $allowed_platforms_json ); ?>"
+	data-can-brand-socials="<?php echo $can_brand_socials ? 'true' : 'false'; ?>"
+	data-network-sites="<?php echo esc_attr( $network_sites_json ); ?>"
+>
+	<div class="ec-studio-app__mount" data-ec-studio-app></div>
+</div>

@@ -1,0 +1,909 @@
+/**
+ * Concert Stats Block — Styles
+ *
+ * Uses @extrachill/components for layout primitives (BlockShell, Panel,
+ * PanelHeader, Section, ActionRow, FieldGroup, InlineStatus, SearchBox,
+ * Tabs). Component-specific styles use ec-concert-stats BEM namespace
+ * and are limited to what the canonical primitives do NOT cover:
+ *   - bespoke stat tiles (no canonical stat-tile primitive yet)
+ *   - bespoke import-run progress bar (no canonical ProgressBar yet)
+ *   - inline content layouts inside the canonical containers
+ *
+ * @package ExtraChillEvents
+ */
+
+@import '@extrachill/components/styles/components.scss';
+
+/* ─── ActionRow center alignment ───────────────────────────────────────── */
+
+/*
+ * Local extension of the canonical `<ActionRow align="center">` variant.
+ * The shared package ships `--between` and `--end` modifiers only; the
+ * concert-stats block uses `align="center"` for load-more rows below
+ * lists. If/when `@extrachill/components` ships a `--center` modifier,
+ * this rule can be deleted.
+ */
+.ec-action-row--center {
+	justify-content: center;
+}
+
+/* ─── Anonymous My Shows landing page ─────────────────────────────────── */
+
+/* stylelint-disable no-descending-specificity */
+.ec-concert-stats-shell--marketing {
+
+	.ec-block-shell-inner {
+		max-width: 1120px;
+	}
+
+	h1,
+	h2,
+	h3,
+	p {
+		margin-top: 0;
+	}
+}
+
+.ec-concert-stats-marketing__hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+	align-items: center;
+	gap: clamp(2rem, 6vw, 5rem);
+	padding: clamp(2.5rem, 7vw, 6rem) 0;
+}
+
+.ec-concert-stats-marketing__hero-copy h1 {
+	max-width: 720px;
+	margin-bottom: var(--spacing-lg, 1.5rem);
+	font-size: clamp(2.5rem, 6vw, 5.5rem);
+	line-height: 0.98;
+	letter-spacing: -0.045em;
+}
+
+.ec-concert-stats-marketing__lede {
+	max-width: 680px;
+	margin-bottom: var(--spacing-xl, 2rem);
+	font-size: clamp(1.05rem, 2vw, 1.3rem);
+	line-height: 1.65;
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats-marketing__eyebrow,
+.ec-concert-stats-marketing__feature-label {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--accent-color, #53940b);
+}
+
+.ec-concert-stats-marketing__assurance {
+	margin: var(--spacing-md, 1rem) 0 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats-marketing__preview {
+	position: relative;
+	padding: clamp(1.25rem, 3vw, 2rem);
+	overflow: hidden;
+	background:
+		radial-gradient(circle at 90% 5%, rgba(83, 148, 11, 0.2), transparent 34%),
+		var(--card-background, #f9fafb);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-lg, 16px);
+	box-shadow: var(--card-shadow, 0 18px 48px rgba(0, 0, 0, 0.1));
+}
+
+.ec-concert-stats-marketing__preview-header {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--spacing-md, 1rem);
+	padding-bottom: var(--spacing-md, 1rem);
+	font-weight: 700;
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ec-concert-stats-marketing__preview-status {
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 600;
+	color: var(--accent-color, #53940b);
+}
+
+.ec-concert-stats-marketing__trail {
+	position: relative;
+	padding: var(--spacing-lg, 1.5rem) 0;
+	margin: 0;
+	list-style: none;
+}
+
+.ec-concert-stats-marketing__trail::before {
+	position: absolute;
+	top: 2rem;
+	bottom: 2rem;
+	left: 2.2rem;
+	width: 2px;
+	content: "";
+	background: var(--accent-color, #53940b);
+	opacity: 0.35;
+}
+
+.ec-concert-stats-marketing__trail li {
+	position: relative;
+	display: grid;
+	grid-template-columns: 4.5rem 1fr;
+	gap: var(--spacing-md, 1rem);
+	align-items: center;
+	min-height: 4.5rem;
+}
+
+.ec-concert-stats-marketing__trail li span {
+	z-index: 1;
+	display: grid;
+	width: 4.5rem;
+	height: 2rem;
+	place-items: center;
+	font-size: var(--font-size-xs, 0.75rem);
+	font-weight: 700;
+	background: var(--background-color, #fff);
+	border: 1px solid var(--accent-color, #53940b);
+	border-radius: 999px;
+}
+
+.ec-concert-stats-marketing__trail-copy {
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 700;
+}
+
+.ec-concert-stats-marketing__preview-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-concert-stats-marketing__preview-tabs span {
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+	background: var(--background-color, #fff);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: 999px;
+}
+
+.ec-concert-stats-marketing__section {
+	padding: clamp(2.5rem, 6vw, 5rem) 0;
+	border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.ec-concert-stats-marketing__section > h2 {
+	max-width: 760px;
+	margin-bottom: clamp(2rem, 4vw, 3rem);
+	font-size: clamp(1.8rem, 4vw, 3.25rem);
+	line-height: 1.12;
+	letter-spacing: -0.025em;
+}
+
+.ec-concert-stats-marketing__steps,
+.ec-concert-stats-marketing__feature-grid,
+.ec-concert-stats-marketing__split {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--spacing-xl, 2rem);
+}
+
+.ec-concert-stats-marketing__steps article span {
+	display: grid;
+	width: 2.5rem;
+	height: 2.5rem;
+	margin-bottom: var(--spacing-md, 1rem);
+	place-items: center;
+	font-weight: 700;
+	color: var(--background-color, #fff);
+	background: var(--accent-color, #53940b);
+	border-radius: 999px;
+}
+
+.ec-concert-stats-marketing__steps h3,
+.ec-concert-stats-marketing__feature-grid h3 {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats-marketing__steps p,
+.ec-concert-stats-marketing__feature-grid article > p:last-child,
+.ec-concert-stats-marketing__split article > p:not(.ec-concert-stats-marketing__eyebrow),
+.ec-concert-stats-marketing__docs p {
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats-marketing__feature-grid {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ec-concert-stats-marketing__feature-grid article {
+	padding: clamp(1.25rem, 3vw, 2rem);
+	background: var(--card-background, #f9fafb);
+	border-left: 3px solid var(--accent-color, #53940b);
+}
+
+.ec-concert-stats-marketing__split {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ec-concert-stats-marketing__split article {
+	padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.ec-concert-stats-marketing__split article > a {
+	display: inline-block;
+	margin-top: var(--spacing-md, 1rem);
+	font-weight: 700;
+}
+
+.ec-concert-stats-marketing__docs {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-xl, 2rem);
+}
+
+.ec-concert-stats-marketing__docs > div {
+	max-width: 680px;
+}
+
+.ec-concert-stats-marketing__docs h2 {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats-marketing__closing {
+	padding: clamp(3rem, 8vw, 6rem) clamp(1.25rem, 5vw, 4rem);
+	text-align: center;
+	background: var(--card-background, #f9fafb);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-lg, 16px);
+}
+
+.ec-concert-stats-marketing__closing h2 {
+	margin-bottom: var(--spacing-sm, 0.5rem);
+	font-size: clamp(2rem, 5vw, 4rem);
+	line-height: 1.05;
+	letter-spacing: -0.035em;
+}
+
+.ec-concert-stats-marketing__closing p {
+	margin-bottom: var(--spacing-xl, 2rem);
+	color: var(--muted-text, #6b7280);
+}
+
+@media (max-width: 780px) {
+
+	.ec-concert-stats-marketing__hero,
+	.ec-concert-stats-marketing__steps,
+	.ec-concert-stats-marketing__feature-grid,
+	.ec-concert-stats-marketing__split {
+		grid-template-columns: 1fr;
+	}
+
+	.ec-concert-stats-marketing__hero {
+		padding-top: var(--spacing-xl, 2rem);
+	}
+
+	.ec-concert-stats-marketing__docs {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
+/* stylelint-enable no-descending-specificity */
+
+/* ─── Stats Bar (canonical StatGroup / StatTile primitives) ─────────────── */
+
+/*
+ * The stat tiles consume the canonical `StatGroup` / `StatTile`
+ * primitives from @extrachill/components (which ship their own base
+ * `.ec-stat-group` grid and `.ec-stat-tile` card chrome). These local
+ * `.ec-concert-stats__stats-bar` / `__stat` selectors are passed in as
+ * `className` overrides for the concert-stats summary row: four
+ * equal-width tiles spread edge-to-edge across the row with a divider
+ * beneath, plus the interactive (link) tile affordance so the row
+ * doubles as navigation.
+ */
+.ec-concert-stats__stats-bar {
+	/* The primitive `.ec-stat-group` already provides `display: grid`
+	 * (auto-fill minmax columns, which can leave empty tracks on wide
+	 * rows). Pin the summary row to exactly four equal tracks so the
+	 * tiles fill the row evenly at every viewport; `minmax(0, 1fr)`
+	 * lets them shrink on narrow screens without overflowing the
+	 * container. */
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: var(--spacing-lg, 1.5rem);
+	padding: var(--spacing-md, 1rem) 0;
+	margin-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+/*
+ * Compact the primitive tile typography for the summary-row context
+ * and keep the centered column. The primitive's card chrome (border,
+ * background, padding, radius) is intentionally kept. When the tile
+ * is a link (`.ec-stat-tile--link`, set by StatTile when an `href` is
+ * present) add a clear interactive affordance on top of the
+ * primitive's border-color hover — pointer cursor, a subtle hover
+ * lift, and a visible focus ring for keyboard users — so the
+ * "stat → tab" navigation reads as clickable. Padding stays inside
+ * the tile box (no negative-margin offsets), so tiles align with the
+ * container edges instead of clipping past them.
+ */
+.ec-concert-stats__stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 0;
+	text-decoration: none;
+	transition: background-color 0.15s ease, transform 0.15s ease;
+
+	.ec-stat-tile__value {
+		font-size: var(--font-size-2xl, 1.5rem);
+		font-weight: 700;
+		line-height: 1.2;
+		color: var(--text-color, #1f2937);
+	}
+
+	.ec-stat-tile__label {
+		font-size: var(--font-size-xs, 0.625rem);
+		color: var(--muted-text, #6b7280);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+}
+
+a.ec-concert-stats__stat {
+	cursor: pointer;
+
+	&:hover {
+		background-color: var(--surface-hover, rgba(0, 0, 0, 0.04));
+		transform: translateY(-1px);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--accent-color, #2563eb);
+		outline-offset: 2px;
+	}
+}
+
+/* ─── Show Cards ────────────────────────────────────────────────────────── */
+
+.ec-concert-stats__show-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.ec-concert-stats__show-card {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--spacing-md, 1rem);
+	padding: var(--spacing-sm, 0.5rem) var(--spacing-xs, 0.25rem);
+	border-radius: var(--border-radius-sm, 5px);
+	transition: background-color 0.1s ease;
+}
+
+.ec-concert-stats__show-card:hover {
+	background-color: var(--card-background, #f9fafb);
+}
+
+.ec-concert-stats__show-date {
+	flex-shrink: 0;
+	width: 50px;
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+	color: var(--muted-text, #6b7280);
+	white-space: nowrap;
+	text-decoration: none;
+
+	&:hover,
+	&:focus {
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
+.ec-concert-stats__show-details {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.ec-concert-stats__show-artist {
+	font-weight: 500;
+	font-size: var(--font-size-body, 1rem);
+	color: var(--text-color, #1f2937);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ec-concert-stats__show-artist-link {
+	color: var(--text-color, #1f2937);
+	text-decoration: none;
+
+	&:hover,
+	&:focus {
+		text-decoration: underline;
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
+.ec-concert-stats__show-venue {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__show-venue-link,
+.ec-concert-stats__show-city-link {
+	color: var(--muted-text, #6b7280);
+	text-decoration: none;
+
+	&:hover,
+	&:focus {
+		text-decoration: underline;
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
+.ec-concert-stats__show-rating {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs, 0.25rem);
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__show-rating-stars {
+	display: inline-flex;
+}
+
+.ec-concert-stats__show-rating-star {
+	background: none;
+	border: 0;
+	padding: 0 1px;
+	font-size: 1.25rem;
+	line-height: 1;
+	cursor: pointer;
+	color: var(--border-color, #c4c4c4);
+
+	&.is-on {
+		color: #f5b301;
+	}
+
+	&:focus-visible {
+		outline: 2px solid currentcolor;
+		outline-offset: 1px;
+	}
+}
+
+.ec-concert-stats__show-rating-error {
+	color: var(--error-color, #b91c1c);
+}
+
+.ec-concert-stats__show-sep {
+	color: var(--muted-text, #6b7280);
+}
+
+/*
+ * Taxonomy-badge glue for the show-card venue / city row.
+ *
+ * Venue + city render as platform taxonomy badges (`.taxonomy-badge` +
+ * `venue-badge`/`location-badge` + per-term slug class) from the theme's
+ * taxonomy-badges.css. We do NOT redefine badge colors here. The row is
+ * laid out as an inline-flex cluster so the pills, with the `·` separator
+ * between them, align vertically and wrap cleanly with a small gap instead
+ * of butting against the baseline text spacing.
+ */
+.ec-concert-stats__show-venue {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+/* ─── Leaderboards (inside Panel) ───────────────────────────────────────── */
+
+/*
+ * Grid layout is provided by the shared `.ec-card-grid` primitive
+ * (`<Grid>` from @extrachill/components, minColumnWidth="200px",
+ * gap="var(--spacing-lg, 1.5rem)"). Only the mobile override below
+ * remains local — it forces a single column earlier than the auto-fit
+ * floor would.
+ */
+
+.ec-concert-stats__leaderboard-title {
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--muted-text, #6b7280);
+	margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__leaderboard-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	counter-reset: leaderboard;
+}
+
+.ec-concert-stats__leaderboard-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--spacing-xs, 0.25rem) 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	counter-increment: leaderboard;
+}
+
+.ec-concert-stats__leaderboard-item::before {
+	content: counter(leaderboard) '.';
+	color: var(--muted-text, #6b7280);
+	font-weight: 600;
+	min-width: 24px;
+}
+
+.ec-concert-stats__leaderboard-name {
+	flex: 1;
+	color: var(--text-color, #1f2937);
+}
+
+.ec-concert-stats__leaderboard-link {
+	text-decoration: none;
+	color: var(--link-color, var(--text-color, #1f2937));
+
+	&:hover,
+	&:focus {
+		text-decoration: underline;
+		color: var(--link-hover-color, var(--accent-color, #53940b));
+	}
+}
+
+.ec-concert-stats__leaderboard-count {
+	color: var(--muted-text, #6b7280);
+	font-weight: 500;
+}
+
+/*
+ * Taxonomy-badge glue for venue / city leaderboard rows.
+ *
+ * Venue + city names render as platform taxonomy badges (`.taxonomy-badge`
+ * + `venue-badge`/`location-badge` + per-term slug class) defined in the
+ * theme's taxonomy-badges.css. We do NOT redefine badge colors here — this
+ * rule only undoes the `flex: 1` stretch that `__leaderboard-name` applies
+ * (which would balloon the pill to fill the row) so the badge keeps its
+ * intrinsic pill width and stays left-aligned beside the count.
+ */
+.ec-concert-stats__leaderboard-name.ec-concert-stats__leaderboard-badge {
+	flex: 0 1 auto;
+	margin-right: auto;
+}
+
+/* ─── Year Filter (select inside FieldGroup) ────────────────────────────── */
+
+.ec-concert-stats__year-filter {
+	padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+	border: 1px solid var(--border-color, #d1d5db);
+	border-radius: var(--border-radius-sm, 5px);
+	background: var(--background-color, #fff);
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--text-color, #1f2937);
+	cursor: pointer;
+}
+
+/* ─── Loading Skeleton ──────────────────────────────────────────────────── */
+
+.ec-concert-stats__skeleton {
+	background: linear-gradient(90deg, var(--card-background, #f3f4f6) 25%, #e5e7eb 50%, var(--card-background, #f3f4f6) 75%);
+	background-size: 200% 100%;
+	animation: ec-shimmer 1.5s ease-in-out infinite;
+	border-radius: var(--border-radius-sm, 5px);
+}
+
+.ec-concert-stats__skeleton--header {
+	height: 32px;
+	width: 160px;
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__skeleton-row {
+	display: flex;
+	gap: var(--spacing-lg, 1.5rem);
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__skeleton--stat {
+	height: 48px;
+	width: 72px;
+}
+
+.ec-concert-stats__skeleton--tabs {
+	height: 40px;
+	width: 100%;
+	margin-bottom: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__skeleton--list {
+	height: 200px;
+	width: 100%;
+}
+
+@keyframes ec-shimmer {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+
+/* ─── Past Tab — combined add-affordance + tracked list (#159) ──────────── */
+
+/*
+ * #159 folded the standalone "Add Past Shows" tab into the "Past" tab.
+ * PastTab stacks the owner-only AddPastShows search affordance above the
+ * read-only ShowList of tracked past shows. The gap keeps the search
+ * surface visually distinct from the list below; the divider under the
+ * add block reinforces "search up here / your history down there" so the
+ * two surfaces don't read as one undifferentiated stream.
+ */
+.ec-concert-stats__past-tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md, 1rem);
+}
+
+/*
+ * When the AddPastShows block is present (owner view) give it a bottom
+ * divider so it separates cleanly from the tracked-shows list. Non-owner
+ * views omit AddPastShows entirely, so the list sits flush — no empty
+ * divider is rendered.
+ */
+.ec-concert-stats__past-tab .ec-concert-stats__add-past {
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+/*
+ * #837: the Upcoming tab mirrors PastTab — EventQuickAdd (period=
+ * "upcoming") stacks above the tracked upcoming list with the same
+ * gap + divider treatment.
+ */
+.ec-concert-stats__upcoming-tab {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md, 1rem);
+}
+
+.ec-concert-stats__upcoming-tab .ec-concert-stats__event-quick-add {
+	padding-bottom: var(--spacing-md, 1rem);
+	border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* ─── Search Result inner layout (inside ActionRow) ─────────────────────── */
+
+.ec-concert-stats__search-result-link {
+	display: flex;
+	flex: 1;
+	min-width: 0;
+	align-items: flex-start;
+	gap: var(--spacing-md, 1rem);
+	text-decoration: none;
+	color: inherit;
+}
+
+.ec-concert-stats__search-result-date {
+	flex-shrink: 0;
+	width: 95px;
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+	color: var(--muted-text, #6b7280);
+	white-space: nowrap;
+}
+
+.ec-concert-stats__search-result-details {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	flex: 1;
+}
+
+.ec-concert-stats__search-result-artist {
+	font-weight: 500;
+	font-size: var(--font-size-body, 1rem);
+	color: var(--text-color, #1f2937);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ec-concert-stats__search-result-venue {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
+ * Action area inside the search-result row. The canonical button-1 /
+ * button-2 classes own the button visuals; InlineStatus owns the error
+ * pill. This rule only provides the column-stack layout (button on top,
+ * error below, right-aligned) the ActionRow's right side needs.
+ */
+.ec-concert-stats__search-result-action {
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 2px;
+}
+
+/* ─── Mobile ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+	.ec-concert-stats__stats-bar {
+		gap: var(--spacing-md, 1rem);
+	}
+
+	.ec-concert-stats__stat .ec-stat-tile__value {
+		font-size: var(--font-size-lg, 1.25rem);
+	}
+
+	.ec-concert-stats__show-date {
+		width: 44px;
+	}
+
+	.ec-concert-stats__leaderboards {
+		grid-template-columns: 1fr;
+	}
+
+	.ec-concert-stats__search-result-date {
+		width: 80px;
+		font-size: var(--font-size-xs, 0.625rem);
+	}
+}
+
+/* ─── Import Tab — inner content ────────────────────────────────────────── */
+
+.ec-concert-stats__import-intro {
+	margin: 0 0 var(--spacing-sm, 0.5rem) 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+}
+
+/*
+ * `.ec-concert-stats__import-cards` grid layout is provided by the shared
+ * `.ec-card-grid` primitive (`<Grid>` from @extrachill/components,
+ * minColumnWidth="280px"). The default gap (--spacing-md, 1rem) matches the
+ * previous local declaration, so no gap override is needed.
+ */
+
+/* Form layout inside the import Panel */
+.ec-concert-stats__import-card-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs, 0.25rem);
+}
+
+.ec-concert-stats__import-card-input {
+	flex: 1;
+	padding: var(--spacing-sm, 0.5rem);
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: var(--border-radius-sm, 5px);
+	font-size: var(--font-size-md, 1rem);
+}
+
+.ec-concert-stats__import-card-confirm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__import-card-hint {
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	margin: 0;
+}
+
+.ec-concert-stats__import-card-history {
+	margin-top: var(--spacing-sm, 0.5rem);
+	border-top: 1px solid var(--border-color, #e5e7eb);
+	padding-top: var(--spacing-sm, 0.5rem);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm, 0.5rem);
+}
+
+.ec-concert-stats__import-card-history-title {
+	margin: 0;
+	font-size: var(--font-size-sm, 0.875rem);
+	color: var(--muted-text, #6b7280);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+/* ─── Import Run Progress (bespoke bar + counts inside Section) ─────────── */
+
+/*
+ * Inner layout for ImportRunProgress. The outer chrome comes from
+ * `<Section>`. The progress bar itself (`__import-run-bar*`) stays
+ * bespoke until `@extrachill/components` ships a canonical
+ * `ProgressBar` primitive.
+ */
+.ec-concert-stats__import-run-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: var(--font-size-sm, 0.875rem);
+	font-weight: 600;
+}
+
+.ec-concert-stats__import-run-status {
+	color: var(--text-color, #1f2937);
+}
+
+.ec-concert-stats__import-run-pct {
+	color: var(--muted-text, #6b7280);
+	font-variant-numeric: tabular-nums;
+}
+
+.ec-concert-stats__import-run-bar {
+	height: 6px;
+	background: var(--border-color, #e5e7eb);
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.ec-concert-stats__import-run-bar-fill {
+	height: 100%;
+	background: var(--primary-color, #1f2937);
+	transition: width 0.3s ease;
+}
+
+.ec-concert-stats__import-run-counts {
+	display: flex;
+	gap: var(--spacing-md, 1rem);
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+}
+
+.ec-concert-stats__import-run-counts strong {
+	color: var(--text-color, #1f2937);
+	font-weight: 700;
+}
+
+.ec-concert-stats__import-run-note {
+	font-size: var(--font-size-xs, 0.75rem);
+	color: var(--muted-text, #6b7280);
+}
+
+/* ─── Embedded Calendar (#110, My Shows Calendar tab) ───────────────────── */
+
+/*
+ * Wrapper for the server-rendered data-machine-events/calendar block
+ * emitted as a sibling to the React root in render.php. Visual weight
+ * comes from the calendar block's own styles — we intentionally don't
+ * override them here. This rule just provides a small top spacer so
+ * the calendar isn't flush against the tab strip when revealed.
+ *
+ * `hidden` is honored natively by the browser; this margin only
+ * applies when the tab is active.
+ */
+.ec-concert-stats__embedded-calendar {
+	margin-top: var(--spacing-md, 1rem);
+}
+
+/* ─── Embedded Map (#111) ─────────────────────────────────────────────── */
+
+/*
+ * Map tab sibling, mirroring .ec-concert-stats__embedded-calendar above.
+ * Visual styling lives entirely in the data-machine-events events-map
+ * block itself; we only add a small top margin so the map isn't flush
+ * against the tab strip on reveal.
+ */
+.ec-concert-stats__embedded-map {
+	margin-top: var(--spacing-md, 1rem);
+}

@@ -1,0 +1,50 @@
+<?php
+/**
+ * Edit Profile block server render.
+ *
+ * Outputs a container div that the React app hydrates into.
+ * Passes configuration via data attributes.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// Redirect to login if not authenticated.
+if ( ! is_user_logged_in() ) {
+	auth_redirect();
+	return;
+}
+
+// Script modules cannot declare classic script dependencies.
+foreach ( array( 'react', 'react-jsx-runtime', 'wp-api-fetch', 'wp-element' ) as $handle ) {
+	wp_enqueue_script( $handle );
+}
+
+$class = 'wp-block-extrachill-edit-profile';
+
+$artist_site_url = ec_get_site_url( 'artist' );
+
+$current_user_id = get_current_user_id();
+
+$profile_url = function_exists( 'bbp_get_user_profile_url' )
+	? bbp_get_user_profile_url( $current_user_id )
+	: '#';
+
+$has_artists = function_exists( 'ec_get_artists_for_user' )
+	? ! empty( ec_get_artists_for_user( $current_user_id ) )
+	: false;
+
+$can_create_artists = function_exists( 'ec_can_create_artist_profiles' )
+	? ec_can_create_artist_profiles( $current_user_id )
+	: false;
+
+printf(
+	'<div class="%1$s" data-artist-site-url="%2$s" data-user-id="%3$d" data-profile-url="%4$s" data-has-artists="%5$s" data-can-create-artists="%6$s"></div>',
+	esc_attr( $class ),
+	esc_url( $artist_site_url ),
+	(int) $current_user_id,
+	esc_url( $profile_url ),
+	$has_artists ? '1' : '0',
+	$can_create_artists ? '1' : '0'
+);

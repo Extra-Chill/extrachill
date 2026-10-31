@@ -1,0 +1,14 @@
+node_modules/
+vendor/
+.git/
+.github/
+tests/
+build/
+dist/
+.DS_Store
+*.md
+.buildignore
+composer.lock
+package-lock.json
+phpunit.xml
+.phpcs.xml

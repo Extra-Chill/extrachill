@@ -1,0 +1,137 @@
+<?php
+/**
+ * Article Schema
+ *
+ * Outputs Article schema for singular posts.
+ * Links to Organization as publisher and WebSite as isPartOf.
+ *
+ * @package ExtraChill\SEO
+ */
+
+namespace ExtraChill\SEO\Schema;
+
+// Prevent direct access.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Add Article schema to graph for singular posts
+ *
+ * @param array $graph Current schema graph.
+ * @return array Graph with the Article entity appended when applicable.
+ */
+function ec_seo_emit_article_schema( $graph ) {
+		$post_types = array( 'post', 'festival_wire', 'ec_doc' );
+		$post_types = apply_filters( 'extrachill_seo_article_post_types', $post_types );
+
+	if ( ! is_singular( $post_types ) ) {
+		return $graph;
+	}
+
+		$post          = get_queried_object();
+		$site_base_url = ec_seo_get_schema_site_base_url();
+		$org_base_url  = ec_seo_get_schema_organization_base_url();
+		$permalink     = get_permalink( $post->ID );
+
+		$schema_type_map = array(
+			'post'          => 'Article',
+			'festival_wire' => 'NewsArticle',
+			'ec_doc'        => 'TechArticle',
+		);
+		$schema_type_map = apply_filters( 'extrachill_seo_article_schema_type_map', $schema_type_map );
+
+		$schema_type = isset( $schema_type_map[ $post->post_type ] ) ? $schema_type_map[ $post->post_type ] : 'Article';
+
+		$article = array(
+			'@type'            => $schema_type,
+			'@id'              => $permalink . '#article',
+			'isPartOf'         => array(
+				'@id' => $site_base_url . '/#website',
+			),
+			'author'           => ec_seo_get_article_author( $post ),
+			'headline'         => get_the_title( $post->ID ),
+			'datePublished'    => get_the_date( 'c', $post ),
+			'dateModified'     => get_the_modified_date( 'c', $post ),
+			'mainEntityOfPage' => array(
+				'@id' => $permalink . '#webpage',
+			),
+			'publisher'        => array(
+				'@id' => $org_base_url . '/#organization',
+			),
+			'inLanguage'       => 'en-US',
+		);
+
+		// Add featured image
+		if ( has_post_thumbnail( $post->ID ) ) {
+			$image_id = get_post_thumbnail_id( $post->ID );
+			$image    = wp_get_attachment_image_src( $image_id, 'full' );
+
+			if ( $image ) {
+				$article['image'] = array(
+					'@type'  => 'ImageObject',
+					'url'    => $image[0],
+					'width'  => $image[1],
+					'height' => $image[2],
+				);
+			}
+		}
+
+		// Add word count
+		$word_count = str_word_count( wp_strip_all_tags( $post->post_content ) );
+		if ( $word_count > 0 ) {
+			$article['wordCount'] = $word_count;
+		}
+
+		// Add description from excerpt for all article types
+		if ( ! empty( $post->post_excerpt ) ) {
+			$article['description'] = wp_strip_all_tags( $post->post_excerpt );
+		}
+
+		// Festival Wire specific enhancements
+		if ( 'festival_wire' === $post->post_type ) {
+			$festivals = get_the_terms( $post->ID, 'festival' );
+
+			if ( $festivals && ! is_wp_error( $festivals ) ) {
+				// First term as articleSection
+				$article['articleSection'] = $festivals[0]->name;
+
+				// All terms as keywords
+				$keywords = wp_list_pluck( $festivals, 'name' );
+				if ( ! empty( $keywords ) ) {
+					$article['keywords'] = $keywords;
+				}
+			}
+		}
+
+		$graph[] = $article;
+
+		return $graph;
+}
+add_filter( 'extrachill_seo_schema_graph', __NAMESPACE__ . '\\ec_seo_emit_article_schema' );
+
+/**
+ * Get author data for article schema
+ *
+ * @param WP_Post $post Post object
+ * @return array Author schema data
+ */
+function ec_seo_get_article_author( $post ) {
+	$author_id   = $post->post_author;
+	$author_name = get_the_author_meta( 'display_name', $author_id );
+	$author_url  = get_author_posts_url( $author_id );
+
+	$author = array(
+		'@type' => 'Person',
+		'name'  => $author_name,
+		'url'   => $author_url,
+	);
+
+	// Add author image if available
+	$avatar_url = get_avatar_url( $author_id, array( 'size' => 96 ) );
+	if ( $avatar_url ) {
+		$author['image'] = $avatar_url;
+	}
+
+	return $author;
+}

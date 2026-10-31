@@ -1,0 +1,178 @@
+/**
+ * Styles for the /power network explorer.
+ *
+ * Built entirely on the live Extra Chill design tokens (the `--*` CSS custom
+ * properties from the theme's root.css). Because EC dark mode flips those
+ * variables via `@media (prefers-color-scheme: dark)` in root.css, this page
+ * gets correct light AND dark rendering for free — no theme.json preset classes
+ * (which bake static light hex values and do NOT flip), no hardcoded colors,
+ * no !important.
+ */
+
+.power-page {
+	max-width: var(--content-width);
+	margin: 0 auto;
+	padding: var(--spacing-lg) 0;
+	color: var(--text-color);
+}
+
+/* ---- Hero ---- */
+
+.power-hero {
+	text-align: center;
+	padding: var(--spacing-xl) var(--spacing-md);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-md);
+}
+
+.power-hero__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-3xl);
+	line-height: 1.1;
+	color: var(--text-color);
+}
+
+.power-hero__lede {
+	margin: 0;
+	max-width: 42rem;
+	font-size: var(--font-size-lg);
+	color: var(--text-color);
+}
+
+/* ---- Sections ---- */
+
+.power-section {
+	padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.power-section__heading {
+	/*
+	 * single-post.css gives `.entry-content h2` `width: fit-content`, which
+	 * shrinks the underlined box to the text width and pins it left. Center the
+	 * shrunk box so the accent underline hugs the text AND sits centered.
+	 */
+	margin: 0 auto var(--spacing-sm);
+	width: fit-content;
+	text-align: center;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-2xl);
+	color: var(--text-color);
+}
+
+.power-section__lede {
+	margin: 0 auto var(--spacing-lg);
+	max-width: 40rem;
+	text-align: center;
+	font-size: var(--font-size-body);
+	color: var(--muted-text);
+}
+
+/* ---- Network map ---- */
+
+.power-network-map {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--spacing-md);
+}
+
+@media (min-width: 600px) {
+	.power-network-map {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 900px) {
+	.power-network-map {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+.power-network-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-lg);
+	text-decoration: none;
+	color: var(--text-color);
+	transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.power-network-card:hover,
+.power-network-card:focus {
+	border-color: var(--accent);
+	transform: translateY(-2px);
+}
+
+.power-network-card__title {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-lg);
+	color: var(--text-color);
+}
+
+.power-network-card__proof {
+	margin: 0;
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-xl);
+	color: var(--accent);
+	line-height: 1.1;
+}
+
+.power-network-card__desc {
+	margin: 0;
+	font-size: var(--font-size-base);
+	color: var(--muted-text);
+	flex: 1 1 auto;
+}
+
+.power-network-card__cta {
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+	color: var(--link-color);
+}
+
+/* ---- Independence note ---- */
+
+.power-note {
+	text-align: center;
+	margin: var(--spacing-xl) var(--spacing-md);
+	padding: var(--spacing-xl);
+	background: var(--card-background);
+	border-left: 5px solid var(--accent);
+	border-radius: var(--border-radius-xl);
+}
+
+.power-note__title {
+	margin: 0 0 var(--spacing-sm);
+	font-family: var(--font-family-heading);
+	font-size: var(--font-size-2xl);
+	color: var(--text-color);
+}
+
+.power-note p {
+	margin: 0 auto;
+	max-width: 40rem;
+	font-size: var(--font-size-body);
+	color: var(--text-color);
+}
+
+/* Link Page footer visitors: lead with getting their own (extrachill-blog#114). */
+.power-link-page-callout {
+	margin: 0 auto var(--spacing-xl);
+	max-width: 720px;
+	padding: var(--spacing-lg);
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	text-align: center;
+}
+
+.power-link-page-callout__title {
+	margin-top: 0;
+}

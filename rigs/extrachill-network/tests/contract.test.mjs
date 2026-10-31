@@ -9,7 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { assembleDemoArgs, buildRecipe, demoEncodeArgs, demoClickLeadMs, demoLoadCuts, demoTrimmedTime, journeyMarkers, paceDemoSteps, domainIdsMuPluginSource, DOMAIN_IDS_MU_PLUGIN_FILENAME, SANDBOX_COMPAT_MU_PLUGIN_FILENAME, journeySeedSetting, journeySelection, recipeRunArgs, recipeRunTimeout, validateJourneyDocument } from '../run.mjs';
+import { buildCheckoutComponent, assembleDemoArgs, buildRecipe, demoEncodeArgs, demoClickLeadMs, demoLoadCuts, demoTrimmedTime, journeyMarkers, paceDemoSteps, domainIdsMuPluginSource, DOMAIN_IDS_MU_PLUGIN_FILENAME, SANDBOX_COMPAT_MU_PLUGIN_FILENAME, journeySeedSetting, journeySelection, recipeRunArgs, recipeRunTimeout, validateJourneyDocument } from '../run.mjs';
 
 const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const topology = JSON.parse(await readFile(path.join(packageRoot, 'network-topology.json'), 'utf8'));
@@ -25,12 +25,52 @@ try {
   await writeFile(path.join(themeDir, 'style.css'), '/*\nTheme Name: Extra Chill\n*/\n');
   await writeFile(path.join(themeDir, 'index.php'), '<?php\n');
 
+  // Monorepo sources beat release pins and legacy theme settings, while
+  // components absent from the checkout retain their exact default URLs.
+  const checkout = path.join(temporary, 'checkout');
+  for (const dir of ['plugins/extrachill-users', 'plugins/extrachill-network', 'themes/extrachill']) {
+    await mkdir(path.join(checkout, dir), { recursive: true });
+  }
+  await writeFile(path.join(checkout, 'plugins/extrachill-network/extrachill-network.php'), '<?php');
+  await writeFile(path.join(checkout, 'plugins/extrachill-users/extrachill-users.php'), '<?php');
+  await writeFile(path.join(checkout, 'themes/extrachill/style.css'), '/* Theme Name: Extra Chill */');
+  const monorepo = await buildRecipe({ extrachill_monorepo_source: checkout, extrachill_theme_source: '/old/theme', extrachill_release_set: { 'extrachill-users': { ref: 'old' } } }, packageRoot);
+  const localUsers = monorepo.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-users');
+  assert.equal(localUsers.source, path.join(checkout, 'plugins/extrachill-users'));
+  assert.equal(monorepo.inputs.mounts.find((mount) => mount.metadata?.kind === 'wordpress-theme').source, path.join(checkout, 'themes/extrachill'));
+  // The network plugin is an ordinary member under plugins/ (no root special case).
+  const networkPlugin = monorepo.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-network');
+  assert.equal(networkPlugin.source, path.join(checkout, 'plugins/extrachill-network'));
+  const monoOverride = await buildRecipe({ extrachill_monorepo_source: checkout, extrachill_component_source_overrides: { 'extrachill-users': '/override/users', 'extrachill-network': '/override/root', extrachill: '/override/theme' } }, packageRoot);
+  assert.equal(monoOverride.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-users').source, '/override/users');
+  assert.equal(monoOverride.inputs.extra_plugins.find((plugin) => plugin.slug === 'extrachill-network').source, '/override/root');
+  assert.equal(monoOverride.inputs.mounts.find((mount) => mount.metadata?.kind === 'wordpress-theme').source, '/override/theme');
+  await assert.rejects(buildRecipe({ extrachill_monorepo_source: 'relative' }, packageRoot), /absolute checkout path/);
+
+  const buildDir = path.join(temporary, 'build-component');
+  await mkdir(buildDir);
+  await writeFile(path.join(buildDir, 'composer.json'), '{}');
+  await writeFile(path.join(buildDir, 'package.json'), JSON.stringify({ scripts: { build: 'build-assets' } }));
+  await writeFile(path.join(buildDir, 'package-lock.json'), '{}');
+  const calls = [];
+  await buildCheckoutComponent(buildDir, async (...args) => calls.push(args));
+  assert.deepEqual(calls, [
+    ['composer', ['install', '--no-dev', '--prefer-dist', '--no-interaction', '--optimize-autoloader'], buildDir],
+    ['npm', ['ci', '--include=dev'], buildDir],
+    ['npm', ['run', 'build'], buildDir],
+  ]);
+  await assert.rejects(buildCheckoutComponent(buildDir, async () => { throw new Error('build failed'); }), /build failed/);
+
   // 1. No theme source supplied: recipe still builds (dry-run/check must not
   // require a local checkout of the theme repo), just without a theme mount.
   const withoutTheme = await buildRecipe({}, packageRoot);
   assert.equal(withoutTheme.schema, 'wp-codebox/workspace-recipe/v1');
   assert.equal(withoutTheme.runtime.backend, 'wordpress');
   assert.equal(withoutTheme.inputs.extra_themes, undefined);
+  for (const plugin of withoutTheme.inputs.extra_plugins) {
+    if (['extrachill-network', 'extrachill-users'].includes(plugin.slug)) continue;
+    assert.equal(monorepo.inputs.extra_plugins.find((entry) => entry.slug === plugin.slug).source, plugin.source, `${plugin.slug} absent from checkout retains default`);
+  }
   assert.equal(withoutTheme.inputs.siteSeeds.length, 1);
   const seed = withoutTheme.inputs.siteSeeds[0];
   assert.equal(seed.type, 'parent_site');

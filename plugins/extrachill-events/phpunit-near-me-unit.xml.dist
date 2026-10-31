@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			near-me-unit: pure-PHP unit tests for the Near Me city grid. This
+			suite owns its file-level WP doubles (get_term, get_term_meta,
+			WP_Term) because sibling pure suites define the same symbols; a
+			shared suite would make whichever file loads first win.
+		-->
+		<testsuite name="near-me-unit">
+			<file>tests/Unit/Core/NearMeCityRowsTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

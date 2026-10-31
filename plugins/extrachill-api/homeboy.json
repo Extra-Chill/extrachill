@@ -1,0 +1,22 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "settings": {
+        "validation_dependencies": ["extrachill-network"],
+        "wordpress_runtime_php_version": "8.4",
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed"
+      }
+    }
+  },
+  "id": "extrachill-api",
+  "remote_path": "wp-content/plugins/extrachill-api",
+  "version_targets": [
+    {
+      "file": "extrachill-api.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    }
+  ]
+}

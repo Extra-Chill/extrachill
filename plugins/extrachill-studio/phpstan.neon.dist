@@ -1,0 +1,10 @@
+# The WordPress environment comes from the Homeboy wordpress extension:
+# phpstan-wordpress, the WordPress and WP-CLI stubs, dynamicConstantNames, the
+# shared ignoreErrors, and the core API overrides. This file carries only what
+# is specific to this component.
+parameters:
+	level: 5
+	scanFiles:
+		# Constants and functions owned by sibling Extra Chill plugins and
+		# wp-native-auth, not by WordPress core.
+		- tests/phpstan-external-stubs.php

@@ -1,0 +1,11 @@
+/* --- Topics Loop Styles – Using Centralized Color Variables --- */
+
+.bbp-forum-description {
+    margin-bottom: var(--spacing-md);
+}
+
+.artist-forum-topics ol, .artist-forum-topics ul {
+	margin: 0;
+}
+
+/* Small-screen edge-to-edge topic card surface is owned by theme/style.css */

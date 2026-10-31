@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "extrachill/edit-profile",
+  "version": "1.27.6",
+  "title": "Edit Profile",
+  "category": "widgets",
+  "icon": "admin-users",
+  "description": "Profile editor: avatar, custom title, bio, local city, social/music links.",
+  "supports": {
+    "html": false,
+    "anchor": true
+  },
+  "textdomain": "extra-chill-community",
+  "editorScript": "file:./index.js",
+  "viewScriptModule": "file:./view.js",
+  "viewStyle": "file:./view.css",
+  "render": "file:./render.php"
+}

@@ -1,0 +1,90 @@
+<?php
+/**
+ * Homepage Platform Cards
+ *
+ * Renders dynamic platform cards on the docs homepage via extrachill_homepage_content hook.
+ *
+ * @package ExtraChillDocs
+ * @since 0.1.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+add_action( 'extrachill_homepage_content', 'extrachill_docs_render_homepage_cards' );
+
+/**
+ * Renders platform cards grid on the homepage.
+ *
+ * Dynamically displays ec_doc_platform terms that have published documentation.
+ * Only platforms with content are shown to keep the homepage focused and useful.
+ *
+ * @since 0.1.0
+ * @return void
+ */
+function extrachill_docs_render_homepage_cards() {
+	$platforms = get_terms(
+		array(
+			'taxonomy'   => 'ec_doc_platform',
+			'hide_empty' => true,
+			'orderby'    => 'name',
+			'order'      => 'ASC',
+		)
+	);
+
+	if ( empty( $platforms ) || is_wp_error( $platforms ) ) {
+		return;
+	}
+
+	extrachill_breadcrumbs();
+	?>
+	<div class="docs-homepage">
+		<div class="docs-intro">
+			<h1><?php esc_html_e( 'Extra Chill Documentation', 'extrachill-docs' ); ?></h1>
+			<p><?php esc_html_e( 'Learn how to use the Extra Chill platform. Choose a topic below to get started.', 'extrachill-docs' ); ?></p>
+		</div>
+
+		<div class="docs-category-grid">
+			<?php foreach ( $platforms as $platform ) : ?>
+				<?php
+				$recent_docs = get_posts(
+					array(
+						'post_type'      => 'ec_doc',
+						'posts_per_page' => 3,
+						'tax_query'      => array(
+							array(
+								'taxonomy' => 'ec_doc_platform',
+								'terms'    => $platform->term_id,
+							),
+						),
+					)
+				);
+				?>
+				<div class="docs-category-card">
+					<h2><?php echo esc_html( $platform->name ); ?></h2>
+					<?php if ( ! empty( $platform->description ) ) : ?>
+						<p class="docs-category-description"><?php echo esc_html( $platform->description ); ?></p>
+					<?php endif; ?>
+					<?php if ( ! empty( $recent_docs ) ) : ?>
+						<ul class="docs-recent-list">
+							<?php foreach ( $recent_docs as $doc ) : ?>
+								<li><a href="<?php echo esc_url( get_permalink( $doc ) ); ?>"><?php echo esc_html( $doc->post_title ); ?></a></li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
+					<a href="<?php echo esc_url( get_term_link( $platform ) ); ?>" class="docs-view-all">
+						<?php
+						printf(
+							/* translators: %d: number of articles */
+							esc_html( _n( 'See all %d article →', 'See all %d articles →', $platform->count, 'extrachill-docs' ) ),
+							intval( $platform->count )
+						);
+						?>
+					</a>
+				</div>
+			<?php endforeach; ?>
+		</div>
+	</div>
+	<?php
+}

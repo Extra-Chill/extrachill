@@ -1,0 +1,14 @@
+{
+	"name": "extrachill/extrachill-analytics",
+	"description": "Network-wide analytics tracking and reporting for the ExtraChill Platform multisite network",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=7.4"
+	},
+	"scripts": {
+		"lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+		"lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+		"test": "homeboy review test extrachill-analytics"
+	}
+}

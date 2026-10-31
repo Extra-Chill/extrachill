@@ -68,7 +68,7 @@ permissions:
 
 # Deploys queue; they never race each other on the same server.
 concurrency:
-  group: deploy-extrachill-site
+  group: deploy-main
   cancel-in-progress: false
 
 jobs:
@@ -285,8 +285,11 @@ jobs:
           fi
           echo "theme_source=${theme_source}" >> "${GITHUB_OUTPUT}"
 
+          # Monorepo members (plugins/, themes/) boot from this checkout of main;
+          # the release set pins only the release-based components this poller owns.
           gate_settings_json="$(jq -n --argjson release_set "${release_set_json}" --arg theme "${theme_source}" \
-            '{extrachill_release_set: $release_set, extrachill_theme_source: $theme}')"
+            --arg monorepo "${GITHUB_WORKSPACE}" \
+            '{extrachill_release_set: $release_set, extrachill_theme_source: $theme, extrachill_monorepo_source: $monorepo}')"
           {
             echo "gate_settings_json<<GATE_SETTINGS_EOF"
             echo "${gate_settings_json}"

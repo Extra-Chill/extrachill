@@ -1,0 +1,389 @@
+<?php
+/**
+ * Artist Profile Functions for Users
+ *
+ * Network-wide functions for retrieving user's artist profile relationships.
+ * Centralized location for user-artist data access across the entire multisite network.
+ *
+ * Note: ec_get_artist_profile_by_slug() moved to extrachill-network/inc/cross-site-links/entity-links.php
+ *
+ * @package ExtraChill\Users
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Get artist profiles for user
+ *
+ * Single source of truth for user-artist profile relationships across the network.
+ * Handles both frontend (user's own artists) and management contexts (admin override for all artists).
+ *
+ * @param int|null $user_id       User ID (defaults to current user).
+ * @param bool     $admin_override Allow admins to access ALL artists (default: false).
+ * @return array                   Array of published artist profile IDs
+ */
+function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( ! $user_id ) {
+		return array();
+	}
+
+	// Admin override: return ALL artists (only for management contexts).
+	if ( $admin_override && user_can( $user_id, 'manage_options' ) ) {
+		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		if ( ! $artist_blog_id ) {
+			return array();
+		}
+
+		switch_to_blog( $artist_blog_id );
+		try {
+			$artist_posts = get_posts(
+				array(
+					'post_type'   => 'artist_profile',
+					'post_status' => 'publish',
+					'numberposts' => -1,
+					'fields'      => 'ids',
+				)
+			);
+
+			return $artist_posts;
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	// Default: return user's owned artists (for regular users and frontend admins).
+	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+	if ( ! is_array( $user_artist_ids ) ) {
+		return array();
+	}
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return array();
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		$published_artists = array();
+		foreach ( $user_artist_ids as $artist_id ) {
+			$artist_id_int = absint( $artist_id );
+			if ( 0 >= $artist_id_int || 'artist_profile' !== get_post_type( $artist_id_int ) || 'publish' !== get_post_status( $artist_id_int ) ) {
+				continue;
+			}
+
+			$member_ids = get_post_meta( $artist_id_int, '_artist_member_ids', true );
+			if ( is_array( $member_ids ) && in_array( (int) $user_id, array_map( 'intval', $member_ids ), true ) ) {
+				$published_artists[] = $artist_id_int;
+			}
+		}
+
+		return $published_artists;
+	} finally {
+		restore_current_blog();
+	}
+}
+
+/**
+ * Validate or accept an artist invitation on the artist site.
+ *
+ * @param string $email     Registration email.
+ * @param string $token     Invitation token.
+ * @param int    $artist_id Artist profile ID.
+ * @param int    $user_id   User ID when accepting after account creation.
+ * @return array|WP_Error Artist-owned invitation result or an error.
+ */
+function ec_users_request_artist_invitation( $email, $token, $artist_id, $user_id = 0 ) {
+	if ( ! $token || ! $artist_id ) {
+		return new WP_Error( 'invalid_artist_invitation', __( 'A complete artist invitation is required.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+		return new WP_Error( 'artist_invitation_dependency_missing', __( 'Artist invitations are temporarily unavailable.', 'extrachill-users' ), array( 'status' => 503 ) );
+	}
+
+	$input = array(
+		'artist_id' => absint( $artist_id ),
+		'email'     => sanitize_email( $email ),
+		'token'     => sanitize_text_field( $token ),
+	);
+	if ( $user_id ) {
+		$input['user_id'] = absint( $user_id );
+	}
+
+	$force_loopback = static function () {
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	try {
+		return ec_cross_site_rest_request(
+			'artist',
+			'POST',
+			'/wp-abilities/v1/abilities/extrachill/artist-invitation/run',
+			array( 'body' => array( 'input' => $input ) )
+		);
+	} finally {
+		remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	}
+}
+
+/**
+ * Classify an artist-owned invitation failure for a created account response.
+ *
+ * Unknown and permanent failures are never presented as client-retryable.
+ *
+ * @param WP_Error $error Artist invitation failure.
+ * @return array{status:string,retryable:bool,error:array{code:string,message:string,status:int}}
+ */
+function ec_users_classify_artist_invitation_error( WP_Error $error ) {
+	$code                = $error->get_error_code();
+	$data                = $error->get_error_data();
+	$http_status         = is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 500;
+	$retryable_codes     = array(
+		'artist_membership_busy',
+		'artist_site_unavailable',
+		'artist_roster_update_failed',
+		'user_membership_update_failed',
+		'artist_membership_retry_required',
+		'invitation_cleanup_failed',
+		'ec_cross_site_request_failed',
+	);
+	$manual_repair_codes = array(
+		'artist_membership_rollback_failed',
+		'artist_invitation_rollback_failed',
+		'artist_membership_partial_remove',
+	);
+
+	if ( in_array( $code, $retryable_codes, true ) ) {
+		$status    = 'pending_repair';
+		$retryable = true;
+	} elseif ( in_array( $code, $manual_repair_codes, true ) ) {
+		$status    = 'manual_repair';
+		$retryable = false;
+	} else {
+		$status    = 'failed';
+		$retryable = false;
+	}
+
+	return array(
+		'status'    => $status,
+		'retryable' => $retryable,
+		'error'     => array(
+			'code'    => $code,
+			'message' => $error->get_error_message(),
+			'status'  => $http_status,
+		),
+	);
+}
+
+/**
+ * Check if user can create artist profiles
+ *
+ * @deprecated-soon Slated for migration to ec_user_can( 'create_artist_profile' )
+ *                  and deletion per Extra-Chill/extrachill-users#60 (pending the
+ *                  refactor tooling in homeboy#3075). Kept as a thin compat
+ *                  function; ec_user_can() delegates here so logic has one home.
+ *
+ * @param int|null $user_id User ID (defaults to current user).
+ * @return bool             True if user has permission to create artist profiles
+ */
+function ec_can_create_artist_profiles( $user_id = null ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( ! $user_id ) {
+		return false;
+	}
+
+	return user_can( $user_id, 'edit_pages' ) ||
+			get_user_meta( $user_id, 'user_is_artist', true ) === '1' ||
+			get_user_meta( $user_id, 'user_is_professional', true ) === '1';
+}
+
+/**
+ * Get the most recently active artist ID for a user
+ *
+ * Determines which artist the user has most recently worked on
+ * based on link page modification time. Falls back to first artist
+ * if no link pages exist.
+ *
+ * @param int|null $user_id User ID (defaults to current user).
+ * @return int Artist profile ID, or 0 if none found
+ */
+function ec_get_latest_artist_for_user( $user_id = null ) {
+	$user_artists = ec_get_artists_for_user( $user_id );
+
+	if ( empty( $user_artists ) ) {
+		return 0;
+	}
+
+	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+
+	$find_latest_artist_id = static function () use ( $user_artists, $link_page_type ) {
+		$latest_artist_id          = 0;
+		$latest_modified_timestamp = 0;
+
+		foreach ( $user_artists as $artist_id ) {
+			$link_pages = get_posts(
+				array(
+					'post_type'      => $link_page_type,
+					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
+					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+				)
+			);
+
+			if ( ! empty( $link_pages ) ) {
+				$link_page_id      = (int) $link_pages[0];
+				$post_modified_gmt = get_post_field( 'post_modified_gmt', $link_page_id, 'raw' );
+				if ( is_string( $post_modified_gmt ) && $post_modified_gmt ) {
+					$current_timestamp = strtotime( $post_modified_gmt );
+					if ( $current_timestamp > $latest_modified_timestamp ) {
+						$latest_modified_timestamp = $current_timestamp;
+						$latest_artist_id          = $artist_id;
+					}
+				}
+			}
+		}
+
+		return $latest_artist_id;
+	};
+
+	// Link pages are queried through the canonical storage helper so the
+	// lookup follows the storage blog (blog 4 pre-cutover, the dedicated
+	// Link Pages site post-cutover) instead of assuming the artist blog.
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$result           = ec_with_link_page_storage_blog( $find_latest_artist_id );
+		$latest_artist_id = is_wp_error( $result ) ? 0 : (int) $result;
+	} else {
+		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		if ( ! $artist_blog_id ) {
+			return 0;
+		}
+
+		switch_to_blog( $artist_blog_id );
+		try {
+			$latest_artist_id = (int) $find_latest_artist_id();
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	// Fall back to first artist if no link pages are found.
+	return $latest_artist_id > 0 ? $latest_artist_id : reset( $user_artists );
+}
+
+/**
+ * Check if user can manage a specific artist profile
+ *
+ * Network-wide permission check for artist management. The target must be a
+ * published artist profile. Returns true if the user is:
+ * - An administrator (manage_options capability)
+ * - A validated reciprocal roster member
+ *
+ * @deprecated-soon Slated for migration to ec_user_can( 'manage_artist', [ 'artist_id' => $id ] )
+ *                  and deletion per Extra-Chill/extrachill-users#60 (pending the
+ *                  refactor tooling in homeboy#3075). Kept as a thin compat
+ *                  function; ec_user_can() delegates here so logic has one home.
+ *
+ * @param int|null $user_id   User ID (defaults to current user).
+ * @param int|null $artist_id Artist profile post ID.
+ * @return bool               True if user can manage the artist
+ */
+function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
+	if ( ! $user_id ) {
+		$user_id = get_current_user_id();
+	}
+
+	if ( ! $user_id || ! $artist_id ) {
+		return false;
+	}
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return false;
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		$post = get_post( $artist_id );
+		if ( ! $post instanceof WP_Post || 'artist_profile' !== $post->post_type || 'publish' !== $post->post_status ) {
+			return false;
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( user_can( $user_id, 'manage_options' ) ) {
+		return true;
+	}
+
+	return in_array( (int) $artist_id, ec_get_artists_for_user( $user_id ), true );
+}
+
+/**
+ * Get count of link pages for a user's artists
+ *
+ * Counts how many link pages exist across all of a user's artist profiles.
+ *
+ * @param int|null $user_id User ID (defaults to current user).
+ * @return int Count of link pages
+ */
+function ec_get_link_page_count_for_user( $user_id = null ) {
+	$user_artists = ec_get_artists_for_user( $user_id );
+
+	if ( empty( $user_artists ) ) {
+		return 0;
+	}
+
+	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+
+	$count_link_pages = static function () use ( $user_artists, $link_page_type ) {
+		$link_page_count = 0;
+
+		foreach ( $user_artists as $artist_id ) {
+			$link_pages = get_posts(
+				array(
+					'post_type'      => $link_page_type,
+					'post_status'    => 'publish',
+					'meta_key'       => '_associated_artist_profile_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Canonical relationship lookup.
+					'meta_value'     => (string) $artist_id, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Canonical relationship lookup.
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+				)
+			);
+
+			if ( ! empty( $link_pages ) ) {
+				++$link_page_count;
+			}
+		}
+
+		return $link_page_count;
+	};
+
+	// Link pages are queried through the canonical storage helper so the
+	// count follows the storage blog (blog 4 pre-cutover, the dedicated
+	// Link Pages site post-cutover) instead of assuming the artist blog.
+	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
+		$result = ec_with_link_page_storage_blog( $count_link_pages );
+		return is_wp_error( $result ) ? 0 : (int) $result;
+	}
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	if ( ! $artist_blog_id ) {
+		return 0;
+	}
+
+	switch_to_blog( $artist_blog_id );
+	try {
+		return (int) $count_link_pages();
+	} finally {
+		restore_current_blog();
+	}
+}

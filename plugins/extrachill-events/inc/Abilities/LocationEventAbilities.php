@@ -1,0 +1,208 @@
+<?php
+/**
+ * Location Event Abilities
+ *
+ * WordPress 6.9 Abilities API integration for location-based event queries.
+ *
+ * @package ExtraChillEvents\Abilities
+ */
+
+namespace ExtraChillEvents\Abilities;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class LocationEventAbilities {
+
+	private static bool $registered = false;
+
+	public function __construct() {
+		if ( ! self::$registered ) {
+			$this->registerAbilities();
+			self::$registered = true;
+		}
+	}
+
+	private function registerAbilities(): void {
+		add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
+	}
+
+	public function register(): void {
+		wp_register_ability(
+			'extrachill/get-location-events',
+			array(
+				'label'               => __( 'Get Location Events', 'extrachill-events' ),
+				'description'         => __( 'Query events by Extra Chill location taxonomy.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'location'   => array(
+							'type'        => 'string',
+							'description' => __( 'Location term slug or ID.', 'extrachill-events' ),
+						),
+						'date_start' => array(
+							'type'        => 'string',
+							'description' => __( 'Optional start date (Y-m-d). Defaults to today.', 'extrachill-events' ),
+						),
+						'date_end'   => array(
+							'type'        => 'string',
+							'description' => __( 'Optional end date (Y-m-d). Defaults to 30 days from start.', 'extrachill-events' ),
+						),
+						'limit'      => array(
+							'type'        => 'integer',
+							'description' => __( 'Maximum events to return (default: 50).', 'extrachill-events' ),
+							'default'     => 50,
+						),
+					),
+					'required'   => array( 'location' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'location'       => array(
+							'type'       => 'object',
+							'properties' => array(
+								'term_id' => array( 'type' => 'integer' ),
+								'name'    => array( 'type' => 'string' ),
+								'slug'    => array( 'type' => 'string' ),
+							),
+						),
+						'events'         => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'       => 'object',
+								'properties' => array(
+									'id'         => array( 'type' => 'integer' ),
+									'title'      => array( 'type' => 'string' ),
+									'date'       => array( 'type' => 'string' ),
+									'start_time' => array( 'type' => 'string' ),
+									'venue'      => array( 'type' => 'string' ),
+									'permalink'  => array( 'type' => 'string' ),
+								),
+							),
+						),
+						'returned_count' => array( 'type' => 'integer' ),
+						'message'        => array( 'type' => 'string' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'executeGetLocationEvents' ),
+				'permission_callback' => function () {
+					return current_user_can( 'read' );
+				},
+				'meta'                => array( 'show_in_rest' => true ),
+			)
+		);
+	}
+
+	public function executeGetLocationEvents( array $input ): array|\WP_Error {
+		$location   = $input['location'] ?? '';
+		$date_start = $input['date_start'] ?? '';
+		$date_end   = $input['date_end'] ?? '';
+		$limit      = $input['limit'] ?? 50;
+
+		if ( empty( $location ) ) {
+			return new \WP_Error( 'missing_location', __( 'location is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
+		$term = $this->resolveLocationTerm( $location );
+		if ( ! $term ) {
+			return array(
+				'location'       => null,
+				'events'         => array(),
+				'returned_count' => 0,
+				'message'        => sprintf(
+					/* translators: %s: location name that could not be found. */
+					__( 'Location "%s" not found.', 'extrachill-events' ),
+					$location
+				),
+			);
+		}
+
+		if ( empty( $date_start ) ) {
+			$date_start = ( new \DateTime( 'now', wp_timezone() ) )->format( 'Y-m-d' );
+		}
+
+		if ( empty( $date_end ) ) {
+			$date_end = ( new \DateTime( $date_start, wp_timezone() ) )
+				->modify( '+30 days' )
+				->format( 'Y-m-d' );
+		}
+
+		$events = $this->queryEventsByLocation( $term->term_id, $date_start, $date_end, $limit );
+
+		return array(
+			'location'       => array(
+				'term_id' => $term->term_id,
+				'name'    => $term->name,
+				'slug'    => $term->slug,
+			),
+			'events'         => $events,
+			'returned_count' => count( $events ),
+			'message'        => sprintf(
+				/* translators: 1: number of events found, 2: location name. */
+				__( 'Found %1$d events in %2$s.', 'extrachill-events' ),
+				count( $events ),
+				$term->name
+			),
+		);
+	}
+
+	private function resolveLocationTerm( string $location ): ?\WP_Term {
+		if ( is_numeric( $location ) ) {
+			$term = get_term( (int) $location, 'location' );
+		} else {
+			$term = get_term_by( 'slug', $location, 'location' );
+		}
+
+		if ( ! $term || is_wp_error( $term ) ) {
+			return null;
+		}
+
+		return $term;
+	}
+
+	private function queryEventsByLocation( int $term_id, string $date_start, string $date_end, int $limit ): array {
+		// Uses data-machine-events public integration API. See data-machine-events
+		// docs/integration-api.md for the contract.
+		if ( ! function_exists( 'data_machine_events_query_events' ) ) {
+			return array();
+		}
+
+		$result = data_machine_events_query_events(
+			array(
+				'date_start'  => $date_start,
+				'date_end'    => $date_end,
+				'tax_filters' => array( 'location' => array( $term_id ) ),
+				'per_page'    => $limit,
+				'order'       => 'ASC',
+			)
+		);
+
+		$events = array();
+		foreach ( $result['posts'] ?? array() as $post ) {
+			$event_data = data_machine_events_parse_event_data( $post ) ?? array();
+
+			$start_time     = $event_data['startTime'] ?? '';
+			$formatted_time = '';
+			if ( $start_time ) {
+				$time_obj = \DateTime::createFromFormat( 'H:i:s', $start_time );
+				if ( $time_obj ) {
+					$formatted_time = $time_obj->format( 'g:i A' );
+				}
+			}
+
+			$events[] = array(
+				'id'         => $post->ID,
+				'title'      => $post->post_title,
+				'date'       => $event_data['startDate'] ?? '',
+				'start_time' => $formatted_time,
+				'venue'      => $event_data['venue'] ?? '',
+				'permalink'  => get_permalink( $post->ID ),
+			);
+		}
+
+		return $events;
+	}
+}

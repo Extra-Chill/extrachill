@@ -1,0 +1,290 @@
+<?php
+/**
+ * Plugin Name: Extra Chill Artist Platform
+ * Plugin URI: https://extrachill.com
+ * Description: Artist platform for musicians with profiles, link pages, analytics, and subscriber management.
+ * Version: 1.32.1
+ * Author: Chris Huber
+ * Author URI: https://chubes.net
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: extrachill-artist-platform
+ */
+
+defined( 'ABSPATH' ) || exit;
+define( 'EXTRACHILL_ARTIST_PLATFORM_VERSION', '1.32.1' );
+define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+
+require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-pages.php';
+require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/runtime-handoff.php';
+require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-genres.php';
+require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/cli/MigrateGenreCommand.php';
+
+if ( ! defined( 'EXTRCH_LINKPAGE_DEV' ) ) {
+	define( 'EXTRCH_LINKPAGE_DEV', false );
+}
+
+if ( file_exists( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'vendor/autoload.php';
+}
+
+class ExtraChillArtistPlatform {
+
+	/**
+	 * @var self|null
+	 */
+	private static $instance = null;
+
+	public static function instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	private function __construct() {
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-post-types.php';
+		$this->init_hooks();
+	}
+
+
+	private function init_hooks() {
+		add_action( 'init', 'extrachill_artist_platform_register_blocks', 30 );
+		add_action( 'init', array( $this, 'init' ), 15 );
+		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+		add_action( 'plugins_loaded', 'extrachill_artist_platform_boot_link_pages_runtime', 20 );
+		register_activation_hook( __FILE__, array( $this, 'activate' ) );
+		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+	}
+
+	public function init() {
+		$this->load_includes();
+	}
+
+	public function load_textdomain() {
+		load_plugin_textdomain(
+			'extrachill-artist-platform',
+			false,
+			dirname( EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME ) . '/languages'
+		);
+	}
+
+	private function load_includes() {
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/class-templates.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-assets.php';
+		$external_link_pages = extrachill_artist_platform_uses_external_link_pages_runtime();
+		if ( ! $external_link_pages ) {
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-platform-rewrite-rules.php';
+		}
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/ids.php';
+		if ( ! $external_link_pages ) {
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/defaults.php';
+		}
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/create.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/social-icons.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/fonts.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/templates.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/page-title.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-term-binding.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/local-support/availability.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/admin/user-linking.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/admin/relationship-admin-page.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/permissions.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/artist-grid.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/breadcrumbs.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/section-registry.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/default-sections.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/subscribe-section.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/shows-section.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/frontend/coverage-section.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/subscribe-data-functions.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/create-link-page.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/editor-adapter.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/manage-link-page-routing.php';
+		// Link-page analytics (write path, read provider, prune, and tables) is
+		// owned by extrachill-analytics (ECA) as of extrachill-artist-platform#89
+		// / extrachill-analytics#94. AP consumes it via the
+		// extrachill_get_link_page_analytics filter (see the artist-get-analytics
+		// ability) and renders it through the artist-analytics block.
+		if ( ! $external_link_pages ) {
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/minimal-head-assets.php';
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-head.php';
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/live/link-page-seo.php';
+			require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/management/advanced-tab/link-expiration.php';
+		}
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/manage-roster-ui.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/roster-filter-handlers.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/database/subscriber-db.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/save.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/sync.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/owned-content-backfill.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/delete.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/actions/add.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/home/homepage-hooks.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/home/homepage-artist-card-actions.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/join-flow.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/join/artist-access-approval.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/filters/data.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/nav.php';
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-artist-provisioning.php';
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/analytics/activation-funnel.php';
+
+		ExtraChillArtistPlatform_PageTemplates::instance();
+		ExtraChillArtistPlatform_Assets::instance();
+		ExtraChillArtistPlatform_SocialLinks::instance();
+		ExtraChillArtistPlatform_Fonts::instance();
+
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/abilities/abilities.php';
+
+		add_action('after_switch_theme', 'extrachill_artist_create_subscribers_table');
+	}
+
+	public static function activate() {
+		$runtime = extrachill_artist_platform_boot_link_pages_runtime();
+		if ( is_wp_error( $runtime ) ) {
+			wp_die( esc_html( $runtime->get_error_message() ) );
+		}
+
+		// Link-page analytics tables are owned and created by extrachill-analytics
+		// (ECA) as of extrachill-artist-platform#89 / extrachill-analytics#94.
+		extrachill_artist_platform_create_pages();
+		flush_rewrite_rules();
+		// Persist the rewrite-rules version so the version-gated flush on init
+		// does not immediately re-run after activation. The constant is defined
+		// in inc/core/artist-platform-rewrite-rules.php, loaded during init().
+		if ( defined( 'EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION' ) ) {
+			update_option( 'ec_artist_platform_rewrite_version', EXTRCH_ARTIST_PLATFORM_REWRITE_VERSION );
+		}
+		update_option( 'extrachill_artist_platform_activated', true );
+
+		// Provision platform artist profile (suspenders).
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-artist-provisioning.php';
+		if ( function_exists( 'ec_activate_provision_platform_artist' ) ) {
+			ec_activate_provision_platform_artist();
+		}
+	}
+
+	public static function deactivate() {
+		flush_rewrite_rules();
+		delete_option( 'extrachill_artist_platform_activated' );
+
+		// Link-page analytics pruning cron is owned by extrachill-analytics (ECA)
+		// as of extrachill-artist-platform#89 / extrachill-analytics#94. ECA also
+		// unschedules AP's legacy 'extrachill_artist_daily_analytics_prune_event'
+		// in its coexistence shim, so nothing to unschedule here.
+	}
+}
+
+// phpcs:ignore Universal.Files.SeparateFunctionsFromOO.Mixed -- WordPress plugin bootstrap: procedural loader helpers plus the plugin class.
+function extrachill_artist_platform() {
+	return ExtraChillArtistPlatform::instance();
+}
+
+extrachill_artist_platform();
+
+/**
+ * Register Gutenberg blocks from build directory.
+ */
+function extrachill_artist_platform_register_blocks() {
+	if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'extrachill/link-page-editor' ) ) {
+		register_block_type( __DIR__ . '/build/blocks/link-page-editor' );
+	}
+	register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
+	register_block_type( __DIR__ . '/build/blocks/artist-manager' );
+	register_block_type( __DIR__ . '/build/blocks/artist-creator' );
+	register_block_type( __DIR__ . '/build/blocks/artist-shop-manager' );
+}
+
+/**
+ * Self-heal posts whose post_modified_gmt is the MySQL zero date.
+ *
+ * WordPress core's get_feed_build_date() (wp-includes/feed.php) collects
+ * post_modified_gmt values from the feed query, discards the zero date, then
+ * calls max() on the result. When a feed query returns ONLY posts with
+ * post_modified_gmt = '0000-00-00 00:00:00' the array is empty and max([])
+ * throws a ValueError on PHP 8, fataling the entire feed. Bots crawling
+ * CPT-scoped feeds on this site (e.g. /feed/?post_type=forum) triggered this
+ * thousands of times per day on artist.extrachill.com.
+ *
+ * The historical bad rows came from a retired per-artist forum auto-creation
+ * path that bypassed wp_insert_post()'s modified-date defaults. That path has
+ * been removed, but this idempotent, run-once-per-version sweep guarantees no
+ * post can keep a zero post_modified_gmt regardless of how it was inserted.
+ *
+ * DOCUMENTED GOTCHA: the naive backfill
+ *   SET post_modified_gmt = post_date_gmt WHERE post_modified_gmt = '0000-00-00 00:00:00'
+ * SILENTLY FAILS for imported rows whose post_date_gmt is ALSO the zero date.
+ * We therefore derive GMT from the always-valid LOCAL post_date via CONVERT_TZ
+ * using THIS blog's own UTC offset (resolved from wp_timezone(), which is
+ * correct per-site: e.g. UTC on artist.extrachill.com, America/New_York on the
+ * main site). A zero post_date_gmt is repaired in the same pass so future
+ * writes have a coherent GMT baseline.
+ *
+ * @return void
+ */
+function extrachill_artist_platform_heal_zero_modified_dates() {
+	global $wpdb;
+
+	$healed_version = '1.0.0';
+	$stored         = get_option( 'extrachill_artist_platform_feed_date_heal', '0' );
+	if ( version_compare( $stored, $healed_version, '>=' ) ) {
+		return;
+	}
+
+	$zero = '0000-00-00 00:00:00';
+
+	// Resolve this blog's UTC offset as a MySQL CONVERT_TZ offset string.
+	// wp_timezone() is per-site and DST-aware; it yields '+00:00' on a site
+	// configured for UTC and e.g. '-04:00' on America/New_York during EDT.
+	$tz      = wp_timezone();
+	$seconds = $tz->getOffset( new DateTime( 'now', new DateTimeZone( 'UTC' ) ) );
+	$sign    = $seconds < 0 ? '-' : '+';
+	$abs     = abs( (int) $seconds );
+	$offset  = sprintf( '%s%02d:%02d', $sign, intdiv( $abs, HOUR_IN_SECONDS ), intdiv( $abs % HOUR_IN_SECONDS, MINUTE_IN_SECONDS ) );
+
+	// Repair a zero post_date_gmt first, derived from the valid local post_date.
+	$wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$wpdb->posts}
+             SET post_date_gmt = CONVERT_TZ( post_date, %s, '+00:00' )
+             WHERE post_date_gmt = %s
+               AND post_date <> %s",
+			$offset,
+			$zero,
+			$zero
+		)
+	);
+
+	// Backfill modified dates. post_modified mirrors the local post_date;
+	// post_modified_gmt is derived from the LOCAL post_date (never trusted from
+	// post_date_gmt). Heals all statuses so a future status flip to publish
+	// cannot resurface the feed crash.
+	$wpdb->query(
+		$wpdb->prepare(
+			"UPDATE {$wpdb->posts}
+             SET post_modified     = post_date,
+                 post_modified_gmt = CONVERT_TZ( post_date, %s, '+00:00' )
+             WHERE post_modified_gmt = %s
+               AND post_date <> %s",
+			$offset,
+			$zero,
+			$zero
+		)
+	);
+
+	update_option( 'extrachill_artist_platform_feed_date_heal', $healed_version );
+}
+add_action( 'admin_init', 'extrachill_artist_platform_heal_zero_modified_dates' );

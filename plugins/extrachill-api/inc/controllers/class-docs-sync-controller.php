@@ -1,0 +1,241 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class ExtraChill_Docs_Sync_Controller {
+
+	/**
+	 * Syncs a documentation post.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return WP_REST_Response|WP_Error The response object.
+	 */
+	public static function sync_doc( $request ) {
+		$docs_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'docs' ) : null;
+		if ( ! $docs_blog_id || get_current_blog_id() !== $docs_blog_id ) {
+			return new WP_Error(
+				'invalid_site',
+				'Documentation sync is only allowed on the docs site.',
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! post_type_exists( 'ec_doc' ) ) {
+			return new WP_Error(
+				'missing_post_type',
+				'The ec_doc post type is not registered on this site.',
+				array( 'status' => 500 )
+			);
+		}
+
+		$params        = $request->get_params();
+		$source_file   = $params['source_file'];
+		$title         = $params['title'];
+		$content       = $params['content'];
+		$platform_slug = $params['platform_slug'];
+		$filesize      = $params['filesize'];
+		$timestamp     = $params['timestamp'];
+		$force         = $params['force'];
+		$slug          = $params['slug'];
+
+		// Convert Markdown to HTML before storing.
+		require_once EXTRACHILL_API_PATH . 'vendor/autoload.php';
+		$converter_class = str_replace( '-', '\\', 'League-CommonMark-CommonMarkConverter' );
+		if ( ! class_exists( $converter_class ) ) {
+			return new WP_Error( 'markdown_dependency_missing', 'Markdown conversion is unavailable.', array( 'status' => 500 ) );
+		}
+		$converter = new $converter_class();
+		$convert   = array( $converter, 'convert' );
+		if ( ! is_callable( $convert ) ) {
+			return new WP_Error( 'markdown_dependency_invalid', 'Markdown conversion is unavailable.', array( 'status' => 500 ) );
+		}
+		$converted   = call_user_func( $convert, $content );
+		$get_content = array( $converted, 'getContent' );
+		if ( ! is_callable( $get_content ) ) {
+			return new WP_Error( 'markdown_conversion_failed', 'Markdown conversion failed.', array( 'status' => 500 ) );
+		}
+		$html_content = (string) call_user_func( $get_content );
+
+		// Add IDs to headers for TOC anchor linking.
+		$html_content = self::add_header_ids( $html_content );
+
+		// Resolve internal .md links to ec_doc permalinks.
+		$html_content = self::resolve_internal_links( $html_content );
+
+		// Calculate hash to detect changes.
+		$hash = hash( 'sha256', $content . $title . $platform_slug );
+
+		// Find existing post by source_file meta.
+		$existing_post = self::get_post_by_source_file( $source_file );
+
+		if ( $existing_post ) {
+			// Check if update is needed.
+			$stored_hash = get_post_meta( $existing_post->ID, '_sync_hash', true );
+			if ( ! $force && $stored_hash === $hash ) {
+				return new WP_REST_Response(
+					array(
+						'success' => true,
+						'action'  => 'skipped',
+						'id'      => $existing_post->ID,
+					)
+				);
+			}
+			$post_id = $existing_post->ID;
+			$action  = 'updated';
+		} else {
+			$post_id = 0;
+			$action  = 'created';
+		}
+
+		// 4. Handle Taxonomy (Platform).
+		$term_id = self::ensure_platform_term( $platform_slug );
+		if ( is_wp_error( $term_id ) ) {
+			return $term_id;
+		}
+
+		// Insert/Update Post.
+		$post_data = array(
+			'ID'           => $post_id,
+			'post_title'   => $title,
+			'post_content' => $html_content,
+			'post_name'    => $slug,
+			'post_status'  => 'publish',
+			'post_type'    => 'ec_doc',
+			'meta_input'   => array(
+				'_source_file'    => $source_file,
+				'_sync_hash'      => $hash,
+				'_sync_timestamp' => $timestamp,
+				'_sync_filesize'  => $filesize,
+			),
+		);
+
+		$id = wp_insert_post( $post_data, true );
+
+		if ( is_wp_error( $id ) ) {
+			return $id;
+		}
+
+		// 6. Set Terms.
+		wp_set_object_terms( $id, array( $term_id ), 'ec_doc_platform' );
+
+		return new WP_REST_Response(
+			array(
+				'success' => true,
+				'action'  => $action,
+				'id'      => $id,
+			)
+		);
+	}
+
+	/**
+	 * Helper to find post by source file meta.
+	 */
+	private static function get_post_by_source_file( $source_file ) {
+		$args  = array(
+			'post_type'      => 'ec_doc',
+			'post_status'    => 'any',
+			'meta_query'     => array(
+				array(
+					'key'   => '_source_file',
+					'value' => $source_file,
+				),
+			),
+			'posts_per_page' => 1,
+		);
+		$query = new WP_Query( $args );
+		return $query->have_posts() ? $query->posts[0] : null;
+	}
+
+	/**
+	 * Add IDs to headers for TOC anchor linking.
+	 *
+	 * @param string $html HTML content.
+	 * @return string HTML with IDs added to headers.
+	 */
+	private static function add_header_ids( $html ) {
+		$used_ids = array();
+
+		return preg_replace_callback(
+			'/<(h2)([^>]*)>(.*?)<\/h2>/i',
+			function ( $matches ) use ( &$used_ids ) {
+				$attrs = $matches[2];
+				$text  = $matches[3];
+
+				// Skip if already has an id.
+				if ( preg_match( '/id=["\']/', $attrs ) ) {
+					return $matches[0];
+				}
+
+				// Generate slug from text (strip tags first).
+				$slug    = sanitize_title( wp_strip_all_tags( $text ) );
+				$base_id = 'toc-' . $slug;
+				$id      = $base_id;
+
+				// Handle duplicates.
+				$counter = 2;
+				while ( in_array( $id, $used_ids, true ) ) {
+					$id = $base_id . '-' . $counter;
+					$counter++;
+				}
+				$used_ids[] = $id;
+
+				return sprintf( '<h2%s id="%s">%s</h2>', $attrs, esc_attr( $id ), $text );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Resolve internal .md links to ec_doc permalinks.
+	 *
+	 * @param string $html HTML content with potential .md links.
+	 * @return string HTML with resolved internal links.
+	 */
+	private static function resolve_internal_links( $html ) {
+		return preg_replace_callback(
+			'/<a\s+([^>]*?)href=["\']([^"\']+\.md)["\']([^>]*)>/i',
+			function ( $matches ) {
+				$before_href = $matches[1];
+				$href        = $matches[2];
+				$after_href  = $matches[3];
+
+				// Normalize path: strip leading slash.
+				$source_file = ltrim( $href, '/' );
+
+				// Find post by source file.
+				$post = self::get_post_by_source_file( $source_file );
+
+				if ( $post ) {
+					$permalink = get_permalink( $post->ID );
+					return sprintf( '<a %shref="%s"%s>', $before_href, esc_url( (string) $permalink ), $after_href );
+				}
+
+				// Return unchanged if no matching post found.
+				return $matches[0];
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Helper to get or create platform term.
+	 */
+	private static function ensure_platform_term( $slug ) {
+		$term = get_term_by( 'slug', $slug, 'ec_doc_platform' );
+		if ( $term ) {
+			return $term->term_id;
+		}
+
+		// Create if not exists.
+		$name   = ucwords( str_replace( '-', ' ', $slug ) );
+		$result = wp_insert_term( $name, 'ec_doc_platform', array( 'slug' => $slug ) );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return $result['term_id'];
+	}
+}

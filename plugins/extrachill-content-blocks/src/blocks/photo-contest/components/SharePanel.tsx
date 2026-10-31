@@ -1,0 +1,112 @@
+import { useState } from '@wordpress/element';
+import { useEntryQr } from '../use-entry-qr';
+import type { ContestConfig, Entry } from '../types';
+
+export function SharePanel( {
+	config,
+	entry,
+	prompt,
+	initialShowQr = false,
+	qrToggle = true,
+}: {
+	entry: Entry;
+	prompt: string;
+	initialShowQr?: boolean;
+	/** False when the QR is already on the photo. */
+	qrToggle?: boolean;
+	config: ContestConfig;
+} ) {
+	const [ copied, setCopied ] = useState( false );
+	const [ showQr, setShowQr ] = useState( initialShowQr );
+	const [ qrAttempt, setQrAttempt ] = useState( 0 );
+	const { image: qrImage, error: qrFailed } = useEntryQr(
+		config,
+		entry.id,
+		showQr,
+		qrAttempt
+	);
+	const qrError = qrFailed
+		? 'Could not load QR code. Copy the link or try again.'
+		: '';
+	const shareText = `Vote for ${ entry.display_name }!`;
+	const canWebShare = typeof navigator !== 'undefined' && !! navigator.share;
+
+	const webShare = async () => {
+		try {
+			await navigator.share( {
+				title: shareText,
+				text: shareText,
+				url: entry.share_url,
+			} );
+		} catch {
+			// User cancelled; ignore.
+		}
+	};
+
+	const copyLink = async () => {
+		try {
+			await navigator.clipboard.writeText( entry.share_url );
+			setCopied( true );
+			setTimeout( () => setCopied( false ), 2000 );
+		} catch {
+			// Clipboard unavailable; the visible link below remains selectable.
+		}
+	};
+
+	return (
+		<div className="extrachill-blocks-photo-contest-share">
+			<p className="extrachill-blocks-photo-contest-share-prompt">
+				{ prompt }
+			</p>
+			<div className="extrachill-blocks-photo-contest-share-buttons">
+				<button
+					className="button-1 button-medium"
+					onClick={ canWebShare ? webShare : copyLink }
+				>
+					{ canWebShare
+						? 'Share my link'
+						: copied
+						? 'Copied!'
+						: 'Copy my link' }
+				</button>
+				{ qrToggle && (
+					<button
+						className="button-2 button-medium"
+						aria-expanded={ showQr }
+						onClick={ () => setShowQr( ! showQr ) }
+					>
+						{ showQr ? 'Hide QR' : 'Show QR' }
+					</button>
+				) }
+			</div>
+			{ showQr && (
+				<div
+					className="extrachill-blocks-photo-contest-qr"
+					aria-live="polite"
+				>
+					{ qrImage ? (
+						<img
+							src={ qrImage }
+							alt={ `Scan to vote for ${ entry.display_name }` }
+						/>
+					) : qrError ? (
+						<>
+							<p className="notice notice-error">{ qrError }</p>
+							<button
+								className="button-2 button-small"
+								onClick={ () => setQrAttempt( qrAttempt + 1 ) }
+							>
+								Try again
+							</button>
+						</>
+					) : (
+						<p>Loading QR code…</p>
+					) }
+				</div>
+			) }
+			<p className="extrachill-blocks-photo-contest-share-link">
+				{ entry.share_url }
+			</p>
+		</div>
+	);
+}

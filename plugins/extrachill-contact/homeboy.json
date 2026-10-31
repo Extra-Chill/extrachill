@@ -1,0 +1,55 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "database_type": "mysql",
+      "settings": {
+        "wp_codebox_database_service": {
+          "provider": "external",
+          "engine": "mysql",
+          "allowed_hosts": [
+            "127.0.0.1:3306"
+          ],
+          "secret_env": {
+            "host": "WP_CODEBOX_DB_HOST",
+            "port": "WP_CODEBOX_DB_PORT",
+            "username": "WP_CODEBOX_DB_USER",
+            "password": "WP_CODEBOX_DB_PASSWORD"
+          }
+        },
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wordpress_runtime_php_version": "8.4",
+        "validation_dependencies": [
+          "extrachill-network",
+          "data-machine",
+          "extrachill-newsletter"
+        ]
+      }
+    }
+  },
+  "id": "extrachill-contact",
+  "remote_path": "wp-content/plugins/extrachill-contact",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "src/**"
+      ]
+    }
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-contact.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-contact.php",
+      "pattern": "EXTRACHILL_CONTACT_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "blocks/contact-form/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    }
+  ]
+}

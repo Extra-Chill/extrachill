@@ -1,0 +1,371 @@
+/* Frontend + editor shared styles */
+.ec-event-submission {
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	background: var(--card-background);
+	padding: 32px;
+	max-width: 760px;
+	margin-left: auto;
+	margin-right: auto;
+	box-shadow: var(--card-shadow);
+}
+
+.ec-event-submission__headline {
+	margin-top: 0;
+	margin-bottom: 8px;
+	font-size: var(--font-size-2xl);
+	color: var(--text-color);
+}
+
+.ec-event-submission__description {
+	margin-bottom: 24px;
+	color: var(--muted-text);
+}
+
+.ec-event-submission__user-info {
+	padding: 12px 16px;
+	margin-bottom: 20px;
+	border-radius: 8px;
+	background: var(--notice-bg);
+	border: 1px solid var(--notice-border);
+	color: var(--text-color);
+	font-size: 0.95rem;
+}
+
+
+
+/*
+ * Mirrors the shared `.ec-card-grid` auto-fit pattern locally. This block's
+ * style.css is enqueued standalone (block.json "style": "file:./style.css")
+ * and does not load @extrachill/components CSS, so the shared class/token is
+ * not available here. The `min(100%, 220px)` floor keeps a single column from
+ * overflowing on narrow viewports — the overflow-safety the shared primitive
+ * provides, applied in-place without a cross-package dependency.
+ */
+.ec-event-submission__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.ec-event-submission__field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.ec-event-submission__field label {
+	font-weight: 600;
+	color: var(--text-color);
+	font-size: 0.95rem;
+}
+
+/* Input styling now uses theme form tokens */
+
+/* Venue typeahead (#965): suggestions from existing venue terms. */
+.ec-event-submission__venue {
+	position: relative;
+}
+
+.ec-event-submission__venue-suggestions {
+	position: absolute;
+	top: calc(100% + 2px);
+	left: 0;
+	right: 0;
+	z-index: 10;
+	margin: 0;
+	padding: 4px 0;
+	list-style: none;
+	max-height: 260px;
+	overflow-y: auto;
+	background: var(--card-background);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	box-shadow: var(--card-shadow);
+}
+
+.ec-event-submission__venue-suggestions[hidden] {
+	display: none;
+}
+
+.ec-event-submission__venue-suggestion {
+	padding: 8px 12px;
+	cursor: pointer;
+	color: var(--text-color);
+}
+
+.ec-event-submission__venue-suggestion.is-active,
+.ec-event-submission__venue-suggestion:hover {
+	background: var(--background-color);
+}
+
+.ec-event-submission__venue-suggestion-place {
+	display: block;
+	font-size: var(--font-size-sm);
+	color: var(--muted-text);
+}
+
+.ec-event-submission__field--full,
+.ec-event-submission__field--file {
+	margin-bottom: 20px;
+}
+
+.ec-event-submission__field--file input[type="file"] {
+	padding: 6px;
+}
+
+.ec-event-submission__turnstile {
+	margin: 12px 0 24px;
+}
+
+.ec-event-submission__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	align-items: center;
+}
+
+.ec-event-submission__status {
+	min-height: 20px;
+	font-size: 0.95rem;
+	color: var(--success-color);
+}
+
+.ec-event-submission__status.is-error {
+	color: var(--error-color);
+}
+
+.ec-event-submission__form.is-loading {
+	opacity: 0.7;
+	pointer-events: none;
+}
+
+@media (max-width: 640px) {
+	.ec-event-submission {
+		padding: 20px;
+	}
+
+	.ec-event-submission__actions {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/* Editor preview styles */
+.ec-event-submission-editor {
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	padding: 24px;
+	background: var(--card-background);
+}
+
+.ec-event-submission-editor__headline {
+	margin-top: 0;
+	margin-bottom: 12px;
+	color: var(--text-color);
+}
+
+.ec-event-submission-editor__description {
+	margin-top: 0;
+	margin-bottom: 16px;
+	color: var(--muted-text);
+}
+
+/* Overflow-safe auto-fit grid, mirroring the shared `.ec-card-grid` pattern
+ * locally (see note above — this block's CSS loads standalone). */
+.ec-event-submission-editor__preview {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+	gap: 12px;
+}
+
+.ec-event-submission-editor__field {
+	height: 38px;
+	background: var(--background-color);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+}
+
+.ec-event-submission-editor__field--textarea {
+	height: 80px;
+	grid-column: 1 / -1;
+}
+
+.ec-event-submission-editor__field--half {
+	grid-column: auto;
+}
+
+/* Artist URL import (extrachill-events#320) */
+.ec-event-submission__url-import {
+	margin-bottom: 24px;
+	padding: 16px;
+	border: 1px dashed var(--border-color);
+	border-radius: 8px;
+	background: var(--background-color);
+}
+
+.ec-event-submission__url-import-hint {
+	margin: 4px 0 12px;
+	font-size: var(--font-size-sm);
+	color: var(--text-muted, var(--text-color));
+}
+
+.ec-event-submission__url-import-row {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.ec-event-submission__url-import-input {
+	flex: 1 1 240px;
+	padding: 8px 10px;
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--card-background);
+	color: var(--text-color);
+	font: inherit;
+}
+
+.ec-event-submission__url-import-try {
+	flex: 0 0 auto;
+}
+
+.ec-event-submission__url-import-status {
+	margin-top: 8px;
+	min-height: 1.2em;
+	font-size: var(--font-size-sm);
+}
+
+.ec-event-submission__url-import-status.is-error {
+	color: var(--color-danger, #b32d2e);
+}
+
+.ec-event-submission__url-import[data-state="loading"] .ec-event-submission__url-import-try {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.ec-event-submission__url-import-confirm {
+	margin-top: 14px;
+	padding: 14px;
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	background: var(--card-background);
+}
+
+.ec-event-submission__url-import-summary {
+	margin: 0 0 10px;
+	font-weight: 600;
+}
+
+.ec-event-submission__url-import-events {
+	margin: 0 0 12px;
+	padding-left: 18px;
+	font-size: var(--font-size-sm);
+}
+
+.ec-event-submission__url-import-events li {
+	margin-bottom: 4px;
+}
+
+.ec-event-submission__url-import-actions {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/*
+ * Landing section above the form (#959). Uses the same design tokens as the
+ * form card so the page reads as one surface.
+ */
+.ec-submit-landing {
+	max-width: 760px;
+	margin: 0 auto 32px;
+	color: var(--text-color);
+}
+
+.ec-submit-landing__lede {
+	margin: 12px 0 0;
+	font-size: 0.95rem;
+	color: var(--muted-text);
+}
+
+.ec-submit-landing__paths {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+	gap: 16px;
+}
+
+.ec-submit-landing__path {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 16px 20px;
+	border: 1px solid var(--border-color);
+	border-radius: 12px;
+	background: var(--card-background);
+	color: var(--text-color);
+	text-decoration: none;
+}
+
+.ec-submit-landing__path:hover,
+.ec-submit-landing__path:focus-visible {
+	border-color: var(--link-color, currentColor);
+}
+
+.ec-submit-landing__path span {
+	color: var(--muted-text);
+	font-size: 0.95rem;
+}
+
+.ec-submit-landing__how-link {
+	white-space: nowrap;
+	font-size: 0.95rem;
+}
+
+.ec-event-submission__field-hint {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--muted-text);
+}
+
+/* "How it works" below the form: reference material, not a gate. */
+.ec-submit-how {
+	max-width: 760px;
+	margin: 40px auto 0;
+	color: var(--text-color);
+}
+
+.ec-submit-how__title {
+	margin-top: 0;
+	margin-bottom: 16px;
+	font-size: var(--font-size-2xl, 1.5rem);
+}
+
+.ec-submit-how__list {
+	margin: 0;
+}
+
+.ec-submit-how__list dt {
+	font-weight: 600;
+}
+
+.ec-submit-how__list dd {
+	margin: 2px 0 16px;
+	color: var(--muted-text);
+}
+
+.ec-submit-how__more summary {
+	cursor: pointer;
+	margin-bottom: 12px;
+	color: var(--link-color, currentColor);
+}
+
+.ec-event-submission__url-import,
+.ec-event-submission__form,
+.ec-submit-how {
+	scroll-margin-top: 96px;
+}

@@ -1,0 +1,29 @@
+name: Homeboy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: homeboy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  homeboy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: Extra-Chill/homeboy-action@aba14988e24c30c7e1c7ea956131f861e343ad2b
+        with:
+          extension: wordpress
+          commands: review lint,review test
+          scope: full
+          pr-comment: 'false'
+          auto-issue: 'false'

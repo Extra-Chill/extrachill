@@ -1,0 +1,56 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "settings": {
+        "validation_dependencies": [
+          {
+            "source_type": "wp.org",
+            "slug": "bbpress"
+          },
+          "extrachill-users",
+          "extrachill"
+        ]
+      }
+    },
+    "nodejs": {
+      "settings": {}
+    }
+  },
+  "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",
+  "id": "extrachill-community",
+  "release": {
+    "publish": false
+  },
+  "remote_path": "wp-content/plugins/extrachill-community",
+  "scopes": {
+    "release": {
+      "exclude": [
+        "webpack.config.js"
+      ]
+    }
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-community.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-community.php",
+      "pattern": "EXTRACHILL_COMMUNITY_VERSION',\\s*'([0-9.]+)'"
+    },
+    {
+      "file": "src/blocks/user-settings/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/edit-profile/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    },
+    {
+      "file": "src/blocks/leaderboard/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\""
+    }
+  ]
+}

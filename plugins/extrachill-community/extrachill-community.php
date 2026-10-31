@@ -1,0 +1,127 @@
+<?php
+/**
+ * Plugin Name: Extra Chill Community
+ * Description: bbPress extension plugin providing community and forum functionality for the Extra Chill platform.
+ * Version: 1.27.6
+ * Author: Chris Huber
+ * Author URI: https://chubes.net
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Requires at least: 5.0
+ * Tested up to: 6.4
+ * Requires Plugins: bbpress
+ * Text Domain: extra-chill-community
+ * Domain Path: /languages
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'EXTRACHILL_COMMUNITY_VERSION', '1.27.6' );
+define( 'EXTRACHILL_COMMUNITY_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_COMMUNITY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'EXTRACHILL_COMMUNITY_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META', '_extrachill_public_voice' );
+define( 'EXTRACHILL_COMMUNITY_AUTOMATED_META', '_extrachill_automated_agent' );
+
+require_once plugin_dir_path( __FILE__ ) . 'inc/core/activation.php';
+require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-utf8-hotfix.php';
+
+/**
+ * Loads feature files via direct require_once.
+ */
+function extrachill_community_init() {
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/assets.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-templates.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-location.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-festival.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/taxonomy-artist.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/breadcrumb-filter.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/page-templates.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/legacy-topic-redirects.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-archives.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-spam-adjustments.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/sidebar.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/nav.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/cache-invalidation.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-scripts.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/filter-bar.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/notice-bridge.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-member-prompt.php';
+
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/blocks-everywhere.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities-category.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-storage.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/draft-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/drafts.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/edit-autosave.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/composer-term-picker.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/ability-helpers.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-digest-settings.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/core/subscription-inventory.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/public-voice-contract.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/public-voices.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-formatters.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-read.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-write.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-editor-permissions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-editor.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/topic-reply-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/forum-queries.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/content-filters.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/recent-feed.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/recent-public-activity.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/main-site-comments.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/content/subforum-button-classes.php';
+
+	require_once plugin_dir_path( __FILE__ ) . 'inc/abilities/community-upvote.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/abilities/community-taxonomy-counts.php';
+
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/upvote.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/upvote-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/forum-badges.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/point-calculation.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/points-sources.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/chill-forums-rank.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/rank-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/rank-system/contribution-calendar-ability.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notification-card.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-replies.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-mentions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-subscriptions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/capture-festival-topics.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/social/notifications/notifications-content.php';
+
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/contribution-heatmap.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/public-profile.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/profile-seo.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/blocked-profile.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/concert-history.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/custom-user-profile.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/profile-activity-feed.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/verification.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/settings/settings-content.php';
+
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/activity-feed.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/browse-rooms.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/actions.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/homepage-forum-display.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/home/artist-platform-buttons.php';
+
+	add_action( 'init', 'extrachill_community_register_blocks' );
+}
+add_action( 'plugins_loaded', 'extrachill_community_init' );
+
+function extrachill_community_register_blocks() {
+	$blocks_dir = file_exists( __DIR__ . '/build/blocks' ) ? 'build/blocks' : 'src/blocks';
+
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/leaderboard' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/user-settings' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/edit-profile' );
+	register_block_type( __DIR__ . '/' . $blocks_dir . '/contribution-heatmap' );
+}
+
+register_activation_hook( __FILE__, 'extrachill_community_activate' );
+register_deactivation_hook( __FILE__, 'extrachill_community_deactivate' );

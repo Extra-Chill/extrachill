@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "extrachill/artist-analytics",
+	"version": "1.32.1",
+	"title": "Artist Analytics",
+	"category": "widgets",
+	"icon": "chart-line",
+	"description": "View analytics for your artist presence including link pages and more.",
+	"textdomain": "extrachill-artist-platform",
+	"attributes": {},
+	"supports": {
+		"html": false,
+		"multiple": false,
+		"reusable": false,
+		"inserter": true
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"render": "file:./render.php"
+}

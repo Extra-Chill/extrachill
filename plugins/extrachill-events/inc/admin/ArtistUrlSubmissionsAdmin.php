@@ -1,0 +1,387 @@
+<?php
+/**
+ * Artist URL Submissions Admin
+ *
+ * Adds a submenu under the Events post-type menu for moderating
+ * recurring event-source submissions queued by the
+ * `extrachill-events/submit-event-source` ability.
+ *
+ * Migrated out of data-machine-events in extrachill-events#200. The screen
+ * still hangs off the data-machine-events Events post-type menu, but it
+ * does so through DME's PUBLIC integration surface — the
+ * `data_machine_events_post_type_menu_items` filter and the
+ * `DATA_MACHINE_EVENTS_POST_TYPE` constant — never the internal
+ * `Event_Post_Type` class.
+ *
+ * The screen is intentionally simple (v1):
+ *   - Status filter tabs: Pending review (default), Approved, Rejected, Failed scrapes.
+ *   - One row per submission with submitter, URL, suggested artist, events found.
+ *   - Approve form: artist term ID OR new artist name + schedule interval.
+ *   - Reject form: optional reason.
+ *
+ * Form submits POST back to `admin-post.php` with a nonce. Each form
+ * delegates to the corresponding ability via wp_get_ability(), then
+ * redirects back to the screen with a status flash.
+ *
+ * @package ExtraChillEvents\Admin
+ * @since   0.35.0
+ */
+
+namespace ExtraChillEvents\Admin;
+
+use ExtraChillEvents\Core\ArtistUrlSubmissionsTable;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class ArtistUrlSubmissionsAdmin {
+
+	const PAGE_SLUG = 'extrachill-events-artist-url-submissions';
+
+	const NONCE_APPROVE = 'extrachill_events_artist_url_approve';
+	const NONCE_REJECT  = 'extrachill_events_artist_url_reject';
+
+	public function __construct() {
+		add_filter( 'data_machine_events_post_type_menu_items', array( $this, 'add_menu_item' ) );
+
+		// admin-post.php endpoints for the inline forms.
+		add_action( 'admin_post_' . self::NONCE_APPROVE, array( $this, 'handle_approve_post' ) );
+		add_action( 'admin_post_' . self::NONCE_REJECT, array( $this, 'handle_reject_post' ) );
+	}
+
+	/**
+	 * Resolve the data-machine-events events post-type slug via its public
+	 * integration constant. Falls back to the known slug if the constant is
+	 * somehow unavailable (it is defined in DME's public-api.php).
+	 *
+	 * @return string
+	 */
+	private static function events_post_type(): string {
+		return defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
+	}
+
+	public function add_menu_item( $allowed_items ) {
+		$allowed_items['artist_url_submissions'] = array(
+			'type'     => 'submenu',
+			'callback' => array( $this, 'register_submenu' ),
+		);
+		return $allowed_items;
+	}
+
+	public function register_submenu(): void {
+		add_submenu_page(
+			'edit.php?post_type=' . self::events_post_type(),
+			__( 'Event Source Submissions', 'extrachill-events' ),
+			__( 'Event Source Imports', 'extrachill-events' ),
+			'manage_options',
+			self::PAGE_SLUG,
+			array( $this, 'render_page' )
+		);
+	}
+
+	public function render_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'extrachill-events' ) );
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list-filter param on an admin screen gated by current_user_can( 'manage_options' ) above; value is sanitized and whitelisted against $allowed_statuses below.
+		$status           = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( (string) $_GET['status'] ) ) : ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW;
+		$allowed_statuses = array(
+			ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW,
+			ArtistUrlSubmissionsTable::STATUS_APPROVED,
+			ArtistUrlSubmissionsTable::STATUS_REJECTED,
+			ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED,
+		);
+		if ( ! in_array( $status, $allowed_statuses, true ) ) {
+			$status = ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW;
+		}
+
+		$counts      = ArtistUrlSubmissionsTable::counts_by_status();
+		$submissions = ArtistUrlSubmissionsTable::list_by_status( $status, 100, 0 );
+
+		$base_url = admin_url( 'edit.php?post_type=' . self::events_post_type() . '&page=' . self::PAGE_SLUG );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash-notice flag set by our own nonce-protected admin-post redirect; display-only and gated by current_user_can( 'manage_options' ) above.
+		$flash = isset( $_GET['flash'] ) ? sanitize_key( wp_unslash( (string) $_GET['flash'] ) ) : '';
+
+		echo '<div class="wrap">';
+		echo '<h1>' . esc_html__( 'Event Source Imports', 'extrachill-events' ) . '</h1>';
+		echo '<p>' . esc_html__( 'Moderation queue for recurring artist tour pages and venue calendars. Ambiguous sources require an explicit source kind and entity before approval.', 'extrachill-events' ) . '</p>';
+
+		if ( 'approved' === $flash ) {
+			echo '<div class="notice notice-success"><p>' . esc_html__( 'Submission approved and pipeline created.', 'extrachill-events' ) . '</p></div>';
+		} elseif ( 'rejected' === $flash ) {
+			echo '<div class="notice notice-success"><p>' . esc_html__( 'Submission rejected.', 'extrachill-events' ) . '</p></div>';
+		} elseif ( 'error' === $flash ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flash-error text set by our own nonce-protected admin-post redirect; display-only and gated by current_user_can( 'manage_options' ) above.
+			$msg = isset( $_GET['msg'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['msg'] ) ) : __( 'Action failed.', 'extrachill-events' );
+			echo '<div class="notice notice-error"><p>' . esc_html( $msg ) . '</p></div>';
+		}
+
+		// Status tabs.
+		echo '<ul class="subsubsub">';
+		$tabs     = array(
+			ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW => __( 'Pending review', 'extrachill-events' ),
+			ArtistUrlSubmissionsTable::STATUS_APPROVED => __( 'Approved', 'extrachill-events' ),
+			ArtistUrlSubmissionsTable::STATUS_REJECTED => __( 'Rejected', 'extrachill-events' ),
+			ArtistUrlSubmissionsTable::STATUS_SCRAPING_FAILED => __( 'Failed scrapes', 'extrachill-events' ),
+		);
+		$last_idx = count( $tabs ) - 1;
+		$i        = 0;
+		foreach ( $tabs as $tab_key => $tab_label ) {
+			$url       = add_query_arg( 'status', $tab_key, $base_url );
+			$count     = (int) ( $counts[ $tab_key ] ?? 0 );
+			$is_active = ( $tab_key === $status );
+			echo '<li><a href="' . esc_url( $url ) . '"' . ( $is_active ? ' class="current"' : '' ) . '>';
+			echo esc_html( $tab_label ) . ' <span class="count">(' . esc_html( (string) $count ) . ')</span>';
+			echo '</a>' . ( $i < $last_idx ? ' |' : '' ) . '</li>';
+			++$i;
+		}
+		echo '</ul>';
+		echo '<br class="clear" />';
+
+		// Table.
+		if ( empty( $submissions ) ) {
+			echo '<p>' . esc_html__( 'No submissions in this status.', 'extrachill-events' ) . '</p>';
+			echo '</div>';
+			return;
+		}
+
+		echo '<table class="wp-list-table widefat striped">';
+		echo '<thead><tr>';
+		echo '<th>' . esc_html__( 'ID', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'URL', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Submitter', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Source / entity', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Events found', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Detected format', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Submitted', 'extrachill-events' ) . '</th>';
+		echo '<th>' . esc_html__( 'Actions', 'extrachill-events' ) . '</th>';
+		echo '</tr></thead><tbody>';
+
+		foreach ( $submissions as $row ) {
+			$this->render_row( $row, $status );
+		}
+
+		echo '</tbody></table>';
+		echo '</div>';
+	}
+
+	private function render_row( array $row, string $status_context ): void {
+		$submitter = (string) ( $row['contact_name'] ? $row['contact_name'] : ( $row['contact_email'] ? $row['contact_email'] : '—' ) );
+		$user_id   = (int) ( $row['user_id'] ?? 0 );
+		if ( $user_id > 0 ) {
+			$user = get_userdata( $user_id );
+			if ( $user ) {
+				$submitter = sprintf( '%s (#%d)', $user->display_name ? $user->display_name : $user->user_login, $user_id );
+			}
+		}
+
+		$source_kind = (string) ( $row['source_kind'] ?? 'artist' );
+		$suggested   = (string) ( $row['entity_name'] ?? $row['suggested_artist_name'] ?? '' );
+		if ( ! empty( $row['entity_term_id'] ) ) {
+			$term = get_term( (int) $row['entity_term_id'], (string) ( $row['entity_taxonomy'] ?? $source_kind ) );
+			if ( $term && ! is_wp_error( $term ) ) {
+				$suggested .= sprintf( ' (term #%d: %s)', $term->term_id, $term->name );
+			}
+		}
+		$suggested = $source_kind . ( $suggested ? ': ' . $suggested : '' );
+
+		echo '<tr>';
+		echo '<td>' . esc_html( (string) $row['id'] ) . '</td>';
+		echo '<td><a href="' . esc_url( $row['url'] ) . '" target="_blank" rel="noopener">' . esc_html( $row['url'] ) . '</a></td>';
+		echo '<td>' . esc_html( $submitter ) . '</td>';
+		echo '<td>' . esc_html( $suggested ? $suggested : '—' ) . '</td>';
+		echo '<td>' . esc_html( (string) (int) $row['events_found_count'] ) . '</td>';
+		echo '<td><code>' . esc_html( (string) ( $row['detected_format'] ?? '' ) ) . '</code></td>';
+		echo '<td>' . esc_html( (string) $row['created_at'] ) . '</td>';
+		echo '<td>';
+
+		if ( ArtistUrlSubmissionsTable::STATUS_PENDING_REVIEW === $status_context ) {
+			$this->render_approve_form( (int) $row['id'], $row );
+			echo '<hr style="margin: 8px 0; opacity: 0.4;" />';
+			$this->render_reject_form( (int) $row['id'] );
+		} elseif ( ArtistUrlSubmissionsTable::STATUS_APPROVED === $status_context ) {
+			if ( ! empty( $row['pipeline_id'] ) ) {
+				echo '<a href="' . esc_url( admin_url( 'admin.php?page=data-machine&pipeline_id=' . (int) $row['pipeline_id'] ) ) . '">';
+				echo esc_html__( 'View pipeline', 'extrachill-events' );
+				echo '</a>';
+			} else {
+				echo '—';
+			}
+		} elseif ( ArtistUrlSubmissionsTable::STATUS_REJECTED === $status_context ) {
+			$reason = (string) ( $row['rejection_reason'] ?? '' );
+			echo esc_html( $reason ? $reason : __( 'Rejected (no reason)', 'extrachill-events' ) );
+		} else {
+			// scraping_failed — read-only.
+			echo '<em>' . esc_html__( 'No actions — investigate handler coverage.', 'extrachill-events' ) . '</em>';
+		}
+
+		echo '</td>';
+		echo '</tr>';
+	}
+
+	private function render_approve_form( int $submission_id, array $row ): void {
+		$action_url        = admin_url( 'admin-post.php' );
+		$suggested_term_id = (int) ( $row['suggested_artist_term_id'] ?? 0 );
+		$suggested_name    = (string) ( $row['suggested_artist_name'] ?? '' );
+		$source_kind       = (string) ( $row['source_kind'] ?? 'artist' );
+		$entity_term_id    = (int) ( $row['entity_term_id'] ?? $suggested_term_id );
+		$entity_name       = (string) ( $row['entity_name'] ?? $suggested_name );
+		?>
+		<form method="post" action="<?php echo esc_url( $action_url ); ?>" style="display: block; margin-bottom: 6px;">
+			<?php wp_nonce_field( self::NONCE_APPROVE . '_' . $submission_id ); ?>
+			<input type="hidden" name="action" value="<?php echo esc_attr( self::NONCE_APPROVE ); ?>" />
+			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $submission_id ); ?>" />
+			<?php
+			// One-click approve (#988): the row already knows its kind and
+			// entity; venue rows resolve their city pipeline automatically.
+			$one_click = in_array( $source_kind, array( 'artist', 'venue' ), true ) && ( $entity_term_id > 0 || '' !== $entity_name );
+			$pipeline  = 'venue' === $source_kind ? ( new \ExtraChillEvents\Abilities\VenueAddAbilities() )->findCityPipelineForVenue( $entity_term_id ) : null;
+			if ( is_wp_error( $pipeline ) ) {
+				$one_click = false;
+			}
+			?>
+			<p style="margin: 2px 0 6px;">
+				<?php if ( 'venue' === $source_kind && is_array( $pipeline ) ) : ?>
+					<?php
+					/* translators: %s: pipeline name. */
+					echo esc_html( sprintf( __( 'Imports into %s.', 'extrachill-events' ), $pipeline['pipeline_name'] ) );
+					?>
+				<?php elseif ( is_wp_error( $pipeline ) ) : ?>
+					<strong><?php echo esc_html( $pipeline->get_error_message() ); ?></strong>
+				<?php elseif ( ! $one_click ) : ?>
+					<strong><?php esc_html_e( 'Pick the source kind and entity under Change details.', 'extrachill-events' ); ?></strong>
+				<?php endif; ?>
+			</p>
+			<button type="submit" class="button button-primary"><?php esc_html_e( 'Approve', 'extrachill-events' ); ?></button>
+			<details<?php echo $one_click ? '' : ' open'; ?> style="margin-top: 6px;">
+				<summary><?php esc_html_e( 'Change details', 'extrachill-events' ); ?></summary>
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'Source kind:', 'extrachill-events' ); ?>
+				<select name="source_kind">
+					<option value="unknown" <?php selected( $source_kind, 'unknown' ); ?>><?php esc_html_e( 'Unknown (cannot approve)', 'extrachill-events' ); ?></option>
+					<option value="artist" <?php selected( $source_kind, 'artist' ); ?>><?php esc_html_e( 'Artist', 'extrachill-events' ); ?></option>
+					<option value="venue" <?php selected( $source_kind, 'venue' ); ?>><?php esc_html_e( 'Venue', 'extrachill-events' ); ?></option>
+				</select>
+			</label>
+
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'Entity term ID:', 'extrachill-events' ); ?>
+				<input type="number" name="entity_term_id" min="0" value="<?php echo esc_attr( $entity_term_id ? (string) $entity_term_id : '' ); ?>" style="width: 100px;" />
+			</label>
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'Entity name:', 'extrachill-events' ); ?>
+				<input type="text" name="entity_name" value="<?php echo esc_attr( $entity_name ); ?>" style="width: 200px;" />
+			</label>
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'City pipeline ID (venue only):', 'extrachill-events' ); ?>
+				<input type="number" name="pipeline_id" min="0" placeholder="<?php echo esc_attr( is_array( $pipeline ) ? (string) $pipeline['pipeline_id'] : '' ); ?>" style="width: 100px;" />
+				<span class="description"><?php esc_html_e( 'Leave empty to use the venue’s city pipeline.', 'extrachill-events' ); ?></span>
+			</label>
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'Schedule:', 'extrachill-events' ); ?>
+				<select name="schedule_interval">
+					<option value="weekly" selected><?php esc_html_e( 'Weekly', 'extrachill-events' ); ?></option>
+					<option value="daily"><?php esc_html_e( 'Daily', 'extrachill-events' ); ?></option>
+					<option value="monthly"><?php esc_html_e( 'Monthly', 'extrachill-events' ); ?></option>
+				</select>
+			</label>
+			</details>
+		</form>
+		<?php
+	}
+
+	private function render_reject_form( int $submission_id ): void {
+		$action_url = admin_url( 'admin-post.php' );
+		?>
+		<form method="post" action="<?php echo esc_url( $action_url ); ?>" style="display: block;">
+			<?php wp_nonce_field( self::NONCE_REJECT . '_' . $submission_id ); ?>
+			<input type="hidden" name="action" value="<?php echo esc_attr( self::NONCE_REJECT ); ?>" />
+			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $submission_id ); ?>" />
+			<label style="display: block; margin: 2px 0;">
+				<?php esc_html_e( 'Rejection reason (optional):', 'extrachill-events' ); ?>
+				<input type="text" name="reason" style="width: 220px;" />
+			</label>
+			<button type="submit" class="button"><?php esc_html_e( 'Reject', 'extrachill-events' ); ?></button>
+		</form>
+		<?php
+	}
+
+	// ────────────────────────────────────────────────────────────────────
+	// admin-post.php handlers
+	// ────────────────────────────────────────────────────────────────────
+
+	public function handle_approve_post(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Forbidden.', 'extrachill-events' ), 403 );
+		}
+
+		$submission_id = isset( $_POST['submission_id'] ) ? (int) $_POST['submission_id'] : 0;
+		check_admin_referer( self::NONCE_APPROVE . '_' . $submission_id );
+
+		$ability = wp_get_ability( 'extrachill-events/approve-event-source-submission' );
+		if ( ! $ability ) {
+			$this->redirect_with_flash( 'pending_review', 'error', __( 'Ability not registered.', 'extrachill-events' ) );
+		}
+
+		$result = $ability->execute(
+			array(
+				'submission_id'     => $submission_id,
+				'source_kind'       => isset( $_POST['source_kind'] ) ? sanitize_key( wp_unslash( (string) $_POST['source_kind'] ) ) : 'unknown',
+				'entity_term_id'    => isset( $_POST['entity_term_id'] ) ? (int) $_POST['entity_term_id'] : 0,
+				'entity_name'       => isset( $_POST['entity_name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['entity_name'] ) ) : '',
+				'pipeline_id'       => isset( $_POST['pipeline_id'] ) ? (int) $_POST['pipeline_id'] : 0,
+				'schedule_interval' => isset( $_POST['schedule_interval'] ) ? sanitize_key( wp_unslash( (string) $_POST['schedule_interval'] ) ) : 'weekly',
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			$this->redirect_with_flash( 'pending_review', 'error', $result->get_error_message() );
+		}
+
+		$this->redirect_with_flash( 'approved', 'approved' );
+	}
+
+	public function handle_reject_post(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Forbidden.', 'extrachill-events' ), 403 );
+		}
+
+		$submission_id = isset( $_POST['submission_id'] ) ? (int) $_POST['submission_id'] : 0;
+		check_admin_referer( self::NONCE_REJECT . '_' . $submission_id );
+
+		$ability = wp_get_ability( 'extrachill-events/reject-event-source-submission' );
+		if ( ! $ability ) {
+			$this->redirect_with_flash( 'pending_review', 'error', __( 'Ability not registered.', 'extrachill-events' ) );
+		}
+
+		$result = $ability->execute(
+			array(
+				'submission_id' => $submission_id,
+				'reason'        => isset( $_POST['reason'] ) ? sanitize_textarea_field( wp_unslash( (string) $_POST['reason'] ) ) : '',
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			$this->redirect_with_flash( 'pending_review', 'error', $result->get_error_message() );
+		}
+
+		$this->redirect_with_flash( 'rejected', 'rejected' );
+	}
+
+	private function redirect_with_flash( string $status_filter, string $flash, string $msg = '' ): void {
+		$url = admin_url( 'edit.php?post_type=' . self::events_post_type() . '&page=' . self::PAGE_SLUG );
+		$url = add_query_arg(
+			array(
+				'status' => $status_filter,
+				'flash'  => $flash,
+				'msg'    => $msg ? rawurlencode( $msg ) : '',
+			),
+			$url
+		);
+		wp_safe_redirect( $url );
+		exit;
+	}
+}

@@ -1,0 +1,745 @@
+<?php
+/**
+ * Private venue booking repository.
+ *
+ * Queries are intentionally scoped by the current site's `$wpdb->prefix`.
+ * Callers must invoke this repository on the Events-site route; identity
+ * validation switches only while reading canonical artist records.
+ *
+ * @package ExtraChillEvents\Core
+ */
+
+namespace ExtraChillEvents\Core;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/** Provides bounded access to operational booking records. */
+class BookingRepository {
+
+	private const PAYLOAD_VERSION = 1;
+	public const STATUSES         = array( 'submitted', 'needs_info', 'under_review', 'negotiating', 'held', 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed' );
+
+	/** Create a booking without an event handoff. */
+	public function create( array $data ) {
+		global $wpdb;
+
+		$venue_term_id = $this->positive_id( $data['venue_term_id'] ?? null, 'venue_term_id', false );
+		if ( is_wp_error( $venue_term_id ) ) {
+			return $venue_term_id;
+		}
+		$venue = get_term( $venue_term_id, 'venue' );
+		if ( ! $venue || is_wp_error( $venue ) || 'venue' !== $venue->taxonomy ) {
+			return new \WP_Error( 'invalid_booking_venue', __( 'A valid Events venue term is required.', 'extrachill-events' ) );
+		}
+
+		$identity = $this->validate_identity( $data );
+		if ( is_wp_error( $identity ) ) {
+			return $identity;
+		}
+		$artist_name_input = sanitize_text_field( (string) ( $data['artist_name'] ?? '' ) );
+		$artist_name       = $this->required_text( '' !== $artist_name_input ? $artist_name_input : $identity['artist_name'], 'artist_name', 255 );
+		if ( is_wp_error( $artist_name ) ) {
+			return $artist_name;
+		}
+
+		$submitter_user_id = $this->positive_id( $data['submitter_user_id'] ?? null, 'submitter_user_id', true );
+		if ( is_wp_error( $submitter_user_id ) ) {
+			return $submitter_user_id;
+		}
+
+		$start = $this->datetime( $data['requested_start_at'] ?? null, 'requested_start_at' );
+		$end   = $this->datetime( $data['requested_end_at'] ?? null, 'requested_end_at' );
+		$dates = $this->validate_date_range( $start, $end );
+		if ( is_wp_error( $dates ) ) {
+			return $dates;
+		}
+		$performance_start = $this->datetime( $data['performance_start_at'] ?? null, 'performance_start_at' );
+		$performance_end   = $this->datetime( $data['performance_end_at'] ?? null, 'performance_end_at' );
+		$performance_dates = $this->validate_date_range( $performance_start, $performance_end, 'performance' );
+		if ( is_wp_error( $performance_dates ) ) {
+			return $performance_dates;
+		}
+
+		$intake = $this->encode_payload( $data['intake'] ?? array(), 'intake' );
+		if ( is_wp_error( $intake ) ) {
+			return $intake;
+		}
+		$deal = null;
+		if ( array_key_exists( 'deal', $data ) ) {
+			$deal_document = is_array( $data['deal'] ) ? BookingMutationService::normalize_deal_document( $data['deal'] ) : new \WP_Error( 'invalid_booking_deal', __( 'The complete version 1 deal document is required.', 'extrachill-events' ) );
+			if ( is_wp_error( $deal_document ) ) {
+				return $deal_document;
+			}
+			$deal = $this->encode_payload( $deal_document, 'deal' );
+			if ( is_wp_error( $deal ) ) {
+				return $deal;
+			}
+		}
+		$production = null;
+		if ( array_key_exists( 'production', $data ) ) {
+			$production_document = is_array( $data['production'] ) ? BookingMutationService::normalize_production_document( $data['production'] ) : new \WP_Error( 'invalid_booking_production', __( 'The production document is invalid.', 'extrachill-events' ) );
+			if ( is_wp_error( $production_document ) ) {
+				return $production_document;
+			}
+			$production = $this->encode_payload( $production_document, 'production' );
+			if ( is_wp_error( $production ) ) {
+				return $production;
+			}
+		}
+		$confirmed_deal = null;
+		if ( array_key_exists( 'confirmed_deal', $data ) ) {
+			$confirmed_document = is_array( $data['confirmed_deal'] ) ? BookingMutationService::normalize_deal_document( $data['confirmed_deal'] ) : new \WP_Error( 'invalid_booking_deal', __( 'The complete version 1 confirmed deal document is required.', 'extrachill-events' ) );
+			if ( is_wp_error( $confirmed_document ) ) {
+				return $confirmed_document;
+			}
+			$confirmed_deal = $this->encode_payload( $confirmed_document, 'confirmed_deal' );
+			if ( is_wp_error( $confirmed_deal ) ) {
+				return $confirmed_deal;
+			}
+		}
+
+		$request_hash = $this->request_hash( $data['inquiry_request_hash'] ?? null );
+		if ( is_wp_error( $request_hash ) ) {
+			return $request_hash;
+		}
+		$now = gmdate( 'Y-m-d H:i:s' );
+		$row = array(
+			'public_id'               => wp_generate_uuid4(),
+			'venue_term_id'           => $venue_term_id,
+			'artist_term_id'          => $identity['artist_term_id'],
+			'artist_profile_id'       => $identity['artist_profile_id'],
+			'artist_name'             => $artist_name,
+			'submitter_user_id'       => $submitter_user_id,
+			'contact_name'            => $this->nullable_text( $data['contact_name'] ?? null, 255 ),
+			'contact_email'           => $this->nullable_email( $data['contact_email'] ?? null ),
+			'contact_phone'           => $this->nullable_text( $data['contact_phone'] ?? null, 64 ),
+			'inquiry_idempotency_key' => $this->nullable_text( $data['inquiry_idempotency_key'] ?? null, 191 ),
+			'inquiry_request_hash'    => $request_hash,
+			'requested_space_key'     => $this->nullable_key( $data['requested_space_key'] ?? null, 64 ),
+			'space_key'               => $this->nullable_key( $data['space_key'] ?? null, 64 ),
+			'status'                  => 'admission_pending' === ( $data['status'] ?? '' ) ? 'admission_pending' : 'submitted',
+			'admission_owner_token'   => $this->nullable_text( $data['admission_owner_token'] ?? null, 36 ),
+			'version'                 => 1,
+			'requested_start_at'      => $start,
+			'requested_end_at'        => $end,
+			'performance_start_at'    => $performance_start,
+			'performance_end_at'      => $performance_end,
+			'intake_payload'          => $intake,
+			'production_payload'      => $production,
+			'deal_payload'            => $deal,
+			'confirmed_deal_payload'  => $confirmed_deal,
+			'event_id'                => null,
+			'created_at'              => $now,
+			'updated_at'              => $now,
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private operational table write.
+		if ( false === $wpdb->insert( BookingSchema::bookings_table(), $row ) ) {
+			$database_error = $wpdb->last_error;
+			if ( null !== $row['inquiry_idempotency_key'] ) {
+				return new \WP_Error( 'booking_idempotent_insert_failed', __( 'The idempotent inquiry insert failed.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
+			}
+			return new \WP_Error( 'booking_create_failed', __( 'The booking could not be created.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
+		}
+		return $this->get( (int) $wpdb->insert_id, true );
+	}
+
+	/** Find a retried inquiry by its venue-scoped key. */
+	public function find_inquiry( int $venue_term_id, string $idempotency_key ) {
+		global $wpdb;
+		$table = BookingSchema::bookings_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d AND inquiry_idempotency_key = %s LIMIT 1", $venue_term_id, $idempotency_key ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/** Claim an existing hidden reservation for the current serialized attempt. */
+	public function claim_admission( array $booking, string $owner_token ) {
+		global $wpdb;
+		if ( 'admission_pending' !== ( $booking['status'] ?? '' ) || empty( $booking['id'] ) || empty( $booking['version'] ) ) {
+			return new \WP_Error( 'booking_admission_claim_invalid', __( 'Only an admission reservation can be claimed.', 'extrachill-events' ) );
+		}
+		$updated = $wpdb->update(
+			BookingSchema::bookings_table(),
+			array(
+				'admission_owner_token' => $owner_token,
+				'version'               => (int) $booking['version'] + 1,
+				'updated_at'            => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'id'      => (int) $booking['id'],
+				'status'  => 'admission_pending',
+				'version' => (int) $booking['version'],
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Owner/version CAS under the inquiry lock.
+		return 1 === $updated ? $this->get( (int) $booking['id'], true ) : new \WP_Error( 'booking_admission_claim_conflict', __( 'The inquiry reservation changed before it could be claimed.', 'extrachill-events' ) );
+	}
+
+	/** Publish one exact owned reservation inside the caller transaction. */
+	public function publish_admission( array $booking ) {
+		global $wpdb;
+		$updated = $wpdb->update(
+			BookingSchema::bookings_table(),
+			array(
+				'status'                => 'submitted',
+				'admission_owner_token' => null,
+				'version'               => (int) $booking['version'] + 1,
+				'updated_at'            => gmdate( 'Y-m-d H:i:s' ),
+			),
+			array(
+				'id'                    => (int) $booking['id'],
+				'status'                => 'admission_pending',
+				'admission_owner_token' => (string) $booking['admission_owner_token'],
+				'version'               => (int) $booking['version'],
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Owner/version CAS inside atomic publication.
+		return 1 === $updated ? $this->get_for_update( (int) $booking['id'] ) : new \WP_Error( 'booking_admission_publish_conflict', __( 'The inquiry reservation changed before publication.', 'extrachill-events' ) );
+	}
+
+	/** Remove one exact failed inquiry during admission compensation. */
+	public function discard_inquiry( array $booking ) {
+		global $wpdb;
+		if ( empty( $booking['id'] ) || empty( $booking['inquiry_idempotency_key'] ) || empty( $booking['admission_owner_token'] ) || empty( $booking['version'] ) || 'admission_pending' !== ( $booking['status'] ?? '' ) || ! empty( $booking['event_id'] ) ) {
+			return new \WP_Error( 'booking_inquiry_compensation_invalid', __( 'Only the owned admission reservation can be compensated.', 'extrachill-events' ) );
+		}
+		$deleted = $wpdb->delete(
+			BookingSchema::bookings_table(),
+			array(
+				'id'                      => (int) $booking['id'],
+				'inquiry_idempotency_key' => (string) $booking['inquiry_idempotency_key'],
+				'status'                  => 'admission_pending',
+				'admission_owner_token'   => (string) $booking['admission_owner_token'],
+				'version'                 => (int) $booking['version'],
+				'event_id'                => null,
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact failed aggregate compensation.
+		return 1 === $deleted ? true : new \WP_Error( 'booking_inquiry_compensation_failed', __( 'The failed inquiry could not be removed safely.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+	}
+
+	/** Get a booking by numeric ID or UUID public reference. */
+	public function get( $identifier, bool $include_reservations = false ) {
+		global $wpdb;
+		$table = BookingSchema::bookings_table();
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+		if ( is_int( $identifier ) || ( is_string( $identifier ) && ctype_digit( $identifier ) ) ) {
+			$id = $this->positive_id( $identifier, 'booking_id', false );
+			if ( is_wp_error( $id ) ) {
+				return $id;
+			}
+			$sql = $include_reservations
+				? $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1", $id )
+				: $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND status <> 'admission_pending' LIMIT 1", $id ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+		} else {
+			$sql = $include_reservations
+				? $wpdb->prepare( "SELECT * FROM {$table} WHERE public_id = %s LIMIT 1", (string) $identifier )
+				: $wpdb->prepare( "SELECT * FROM {$table} WHERE public_id = %s AND status <> 'admission_pending' LIMIT 1", (string) $identifier ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+		}
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Query prepared above.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/** Get the sole booking linked to one canonical event. */
+	public function get_by_event( int $event_id ) {
+		global $wpdb;
+		if ( $event_id < 1 ) {
+			return null;
+		}
+		$table = BookingSchema::bookings_table();
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE event_id = %d AND status <> 'admission_pending' LIMIT 1", $event_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact canonical event lookup.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/** Read and lock one booking inside an existing transaction. */
+	public function get_for_update( int $id, bool $include_reservations = false ) {
+		global $wpdb;
+		$id = $this->positive_id( $id, 'booking_id', false );
+		if ( is_wp_error( $id ) ) {
+			return $id;
+		}
+		$table = BookingSchema::bookings_table();
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table.
+		$sql = $include_reservations
+			? $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d LIMIT 1 FOR UPDATE", $id )
+			: $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d AND status <> 'admission_pending' LIMIT 1 FOR UPDATE", $id );
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Aggregate row lock inside a caller-owned transaction.
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_read_failed', __( 'The booking could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		return is_array( $row ) ? $this->hydrate( $row ) : null;
+	}
+
+	/** List bookings for one venue with bounded optional filters. */
+	public function list( array $filters ) {
+		global $wpdb;
+
+		$venue_term_id = $this->positive_id( $filters['venue_term_id'] ?? null, 'venue_term_id', false );
+		if ( is_wp_error( $venue_term_id ) ) {
+			return $venue_term_id;
+		}
+		$table  = BookingSchema::bookings_table();
+		$where  = array( 'venue_term_id = %d', "status <> 'admission_pending'" );
+		$values = array( $venue_term_id );
+
+		if ( isset( $filters['status'] ) && '' !== $filters['status'] ) {
+			if ( 'admission_pending' === $filters['status'] ) {
+				return new \WP_Error( 'invalid_booking_status', __( 'The booking status is not supported.', 'extrachill-events' ) );
+			}
+			$status = $this->status( $filters['status'] );
+			if ( is_wp_error( $status ) ) {
+				return $status;
+			}
+			$where[]  = 'status = %s';
+			$values[] = $status;
+		}
+		foreach ( array( 'artist_term_id', 'artist_profile_id' ) as $field ) {
+			if ( ! array_key_exists( $field, $filters ) || null === $filters[ $field ] || '' === $filters[ $field ] ) {
+				continue;
+			}
+			$id = $this->positive_id( $filters[ $field ], $field, false );
+			if ( is_wp_error( $id ) ) {
+				return $id;
+			}
+			$where[]  = "{$field} = %d";
+			$values[] = $id;
+		}
+		$date_filters = array(
+			'requested_start_at' => '>=',
+			'requested_end_at'   => '<=',
+		);
+		foreach ( $date_filters as $field => $operator ) {
+			if ( empty( $filters[ $field ] ) ) {
+				continue;
+			}
+			$date = $this->datetime( $filters[ $field ], $field );
+			if ( is_wp_error( $date ) ) {
+				return $date;
+			}
+			$where[]  = "{$field} {$operator} %s";
+			$values[] = $date;
+		}
+		if ( ! empty( $filters['range_start'] ) && ! empty( $filters['range_end'] ) ) {
+			$range_start = $this->datetime( $filters['range_start'], 'range_start' );
+			$range_end   = $this->datetime( $filters['range_end'], 'range_end' );
+			if ( is_wp_error( $range_start ) ) {
+				return $range_start;
+			}
+			if ( is_wp_error( $range_end ) ) {
+				return $range_end;
+			}
+			$where[]  = 'COALESCE(performance_start_at, requested_start_at) < %s';
+			$values[] = $range_end;
+			$where[]  = 'COALESCE(performance_end_at, requested_end_at) > %s';
+			$values[] = $range_start;
+		}
+
+		$limit    = max( 1, min( 100, absint( $filters['limit'] ?? 50 ) ) );
+		$offset   = max( 0, absint( $filters['offset'] ?? 0 ) );
+		$values[] = $limit;
+		$values[] = $offset;
+		$query    = "SELECT * FROM {$table} WHERE " . implode( ' AND ', $where ) . ' ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d'; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted current-prefix table and fixed clauses.
+		$rows     = $wpdb->get_results( $wpdb->prepare( $query, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic values are prepared.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'booking_list_failed', __( 'Bookings could not be listed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		$hydrated = array();
+		foreach ( (array) $rows as $row ) {
+			$item = $this->hydrate( $row );
+			if ( is_wp_error( $item ) ) {
+				return $item;
+			}
+			$hydrated[] = $item;
+		}
+		return $hydrated;
+	}
+
+	/** List a bounded cursor page using confirmed bounds projected into requested local storage. */
+	public function list_competing_requests( array $confirmed, string $requested_start_at, string $requested_end_at, int $after_id = 0, int $limit = 25 ) {
+		global $wpdb;
+		if ( 'confirmed' !== ( $confirmed['status'] ?? '' ) || empty( $confirmed['space_key'] ) || empty( $confirmed['performance_start_at'] ) || empty( $confirmed['performance_end_at'] ) || is_wp_error( $this->datetime( $requested_start_at, 'requested_start_at' ) ) || is_wp_error( $this->datetime( $requested_end_at, 'requested_end_at' ) ) || $requested_end_at <= $requested_start_at ) {
+			return new \WP_Error( 'booking_competing_interval_invalid', __( 'The confirmed booking interval is invalid.', 'extrachill-events' ) );
+		}
+		$table    = BookingSchema::bookings_table();
+		$limit    = max( 1, min( 50, $limit ) );
+		$terminal = array( 'confirmed', 'declined', 'withdrawn', 'cancelled', 'completed', 'admission_pending' );
+		$sql      = "SELECT * FROM {$table} WHERE venue_term_id = %d AND requested_space_key = %s AND requested_start_at < %s AND requested_end_at > %s AND id <> %d AND id > %d AND status NOT IN ('" . implode( "','", $terminal ) . "') ORDER BY id ASC LIMIT %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed status allowlist and trusted table.
+		$rows     = $wpdb->get_results( $wpdb->prepare( $sql, $confirmed['venue_term_id'], $confirmed['space_key'], $requested_end_at, $requested_start_at, $confirmed['id'], max( 0, $after_id ), $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared.
+		if ( '' !== (string) $wpdb->last_error || ! is_array( $rows ) ) {
+			return new \WP_Error( 'booking_competing_requests_read_failed', __( 'Competing booking requests could not be read.', 'extrachill-events' ) );
+		}
+		$items = array();
+		foreach ( $rows as $row ) {
+			$item = $this->hydrate( $row );
+			if ( is_wp_error( $item ) ) {
+				return $item;
+			}
+			$items[] = $item;
+		}
+		return $items;
+	}
+
+	/** Conditionally update mutable booking fields at an expected version. */
+	public function update( int $id, array $changes, int $expected_version ) {
+		global $wpdb;
+
+		$id       = $this->positive_id( $id, 'booking_id', false );
+		$expected = $this->positive_id( $expected_version, 'expected_version', false );
+		if ( is_wp_error( $id ) || is_wp_error( $expected ) ) {
+			return is_wp_error( $id ) ? $id : $expected;
+		}
+		$current = $this->get( $id );
+		if ( is_wp_error( $current ) ) {
+			return $current;
+		}
+		if ( null === $current ) {
+			return new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+		}
+
+		if ( array_key_exists( 'artist_term_id', $changes ) || array_key_exists( 'artist_profile_id', $changes ) ) {
+			$identity = $this->validate_identity( array_merge( $current, $changes ) );
+			if ( is_wp_error( $identity ) ) {
+				return $identity;
+			}
+			$changes['artist_term_id']    = $identity['artist_term_id'];
+			$changes['artist_profile_id'] = $identity['artist_profile_id'];
+			if ( '' !== $identity['artist_name'] ) {
+				$changes['artist_name'] = $identity['artist_name'];
+			}
+		}
+
+		$allowed = array( 'artist_term_id', 'artist_profile_id', 'artist_name' );
+		$changes = array_intersect_key( $changes, array_flip( $allowed ) );
+		if ( empty( $changes ) ) {
+			return new \WP_Error( 'empty_booking_update', __( 'No supported booking fields were supplied.', 'extrachill-events' ) );
+		}
+
+		$normalized = array();
+		foreach ( $changes as $key => $value ) {
+			if ( in_array( $key, array( 'artist_term_id', 'artist_profile_id' ), true ) ) {
+				$value = $this->positive_id( $value, $key, true );
+			} elseif ( 'artist_name' === $key ) {
+				$value = $this->required_text( $value, $key, 255 );
+			}
+			if ( is_wp_error( $value ) ) {
+				return $value;
+			}
+			$normalized[ $key ] = $value;
+		}
+
+		$result = $this->conditional_update( $id, $expected, $normalized, '' );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return $this->get( $id );
+	}
+
+	/** Atomically claim one site-local Data Machine event handoff. */
+	public function claim_event( int $id, int $event_id, int $expected_version ) {
+		$id       = $this->positive_id( $id, 'booking_id', false );
+		$event_id = $this->positive_id( $event_id, 'event_id', false );
+		$expected = $this->positive_id( $expected_version, 'expected_version', false );
+		foreach ( array( $id, $event_id, $expected ) as $validated ) {
+			if ( is_wp_error( $validated ) ) {
+				return $validated;
+			}
+		}
+
+		$current = $this->get( $id );
+		if ( is_wp_error( $current ) ) {
+			return $current;
+		}
+		if ( null === $current ) {
+			return new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) );
+		}
+		if ( $event_id === $current['event_id'] ) {
+			return $current;
+		}
+		if ( null !== $current['event_id'] ) {
+			return new \WP_Error( 'booking_event_already_linked', __( 'The booking is already linked to a different event.', 'extrachill-events' ), array( 'event_id' => $current['event_id'] ) );
+		}
+
+		$event     = get_post( $event_id );
+		$post_type = defined( 'DATA_MACHINE_EVENTS_POST_TYPE' ) ? DATA_MACHINE_EVENTS_POST_TYPE : 'data_machine_events';
+		if ( ! $event || $post_type !== $event->post_type ) {
+			return new \WP_Error( 'invalid_booking_event', __( 'A valid site-local event is required.', 'extrachill-events' ) );
+		}
+
+		$result = $this->conditional_update( $id, $expected, array( 'event_id' => $event_id ), ' AND event_id IS NULL' );
+		if ( is_wp_error( $result ) && 'booking_version_conflict' === $result->get_error_code() ) {
+			$latest = $this->get( $id );
+			if ( is_wp_error( $latest ) ) {
+				return $latest;
+			}
+			if ( is_array( $latest ) && $event_id === $latest['event_id'] ) {
+				return $latest;
+			}
+			if ( is_array( $latest ) && null !== $latest['event_id'] ) {
+				return new \WP_Error( 'booking_event_already_linked', __( 'The booking is already linked to a different event.', 'extrachill-events' ), array( 'event_id' => $latest['event_id'] ) );
+			}
+		}
+		return is_wp_error( $result ) ? $result : $this->get( $id );
+	}
+
+	/** Execute an optimistic update and distinguish disappearance from conflict. */
+	private function conditional_update( int $id, int $expected, array $changes, string $extra_where ) {
+		global $wpdb;
+
+		$set    = array();
+		$values = array();
+		foreach ( $changes as $column => $value ) {
+			if ( null === $value ) {
+				$set[] = "{$column} = NULL";
+			} elseif ( is_int( $value ) ) {
+				$set[]    = "{$column} = %d";
+				$values[] = $value;
+			} else {
+				$set[]    = "{$column} = %s";
+				$values[] = $value;
+			}
+		}
+		$set[]    = 'version = version + 1';
+		$set[]    = 'updated_at = %s';
+		$values[] = gmdate( 'Y-m-d H:i:s' );
+		$values[] = $id;
+		$values[] = $expected;
+		$table    = BookingSchema::bookings_table();
+		$query    = "UPDATE {$table} SET " . implode( ', ', $set ) . " WHERE id = %d AND version = %d{$extra_where}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Columns and suffix are internal constants.
+		$result   = $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared.
+		if ( false === $result ) {
+			return new \WP_Error( 'booking_update_failed', __( 'The booking could not be updated.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+		}
+		if ( 0 === $result ) {
+			$current = $this->get( $id );
+			if ( is_wp_error( $current ) ) {
+				return $current;
+			}
+			return null === $current
+				? new \WP_Error( 'booking_not_found', __( 'The booking was not found.', 'extrachill-events' ) )
+				: new \WP_Error(
+					'booking_version_conflict',
+					__( 'Someone else updated this booking first, so nothing here was saved. Reload to see the latest version, then make your change again.', 'extrachill-events' ),
+					array(
+						'status'          => 409,
+						'current_version' => $current['version'],
+					)
+				);
+		}
+		return true;
+	}
+
+	/** Validate canonical/profile identities and their bidirectional binding. */
+	private function validate_identity( array $data ) {
+		$term_id    = $this->positive_id( $data['artist_term_id'] ?? null, 'artist_term_id', true );
+		$profile_id = $this->positive_id( $data['artist_profile_id'] ?? null, 'artist_profile_id', true );
+		if ( is_wp_error( $term_id ) || is_wp_error( $profile_id ) ) {
+			return is_wp_error( $term_id ) ? $term_id : $profile_id;
+		}
+		$name            = '';
+		$profile_term_id = null;
+
+		if ( $profile_id ) {
+			$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+			if ( $artist_blog_id < 1 ) {
+				return new \WP_Error( 'artist_platform_unresolved', __( 'The Artist Platform could not be resolved.', 'extrachill-events' ) );
+			}
+			switch_to_blog( $artist_blog_id );
+			try {
+				$profile         = get_post( $profile_id );
+				$profile_term_id = $profile ? $this->positive_id( get_post_meta( $profile_id, '_artist_term_id', true ), 'profile_artist_term_id', true ) : null;
+			} finally {
+				restore_current_blog();
+			}
+			if ( ! $profile || 'artist_profile' !== $profile->post_type || 'publish' !== $profile->post_status ) {
+				return new \WP_Error( 'invalid_booking_artist_profile', __( 'The artist profile must exist and be published.', 'extrachill-events' ) );
+			}
+			if ( is_wp_error( $profile_term_id ) ) {
+				return $profile_term_id;
+			}
+			$name = (string) $profile->post_title;
+			if ( null === $term_id && $profile_term_id ) {
+				$term_id = $profile_term_id;
+			}
+		}
+
+		$bound_profile_id = null;
+		if ( $term_id ) {
+			$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+			if ( $main_blog_id < 1 ) {
+				return new \WP_Error( 'artist_site_unresolved', __( 'The canonical artist site could not be resolved.', 'extrachill-events' ) );
+			}
+			switch_to_blog( $main_blog_id );
+			try {
+				$term             = get_term( $term_id, 'artist' );
+				$bound_profile_id = $term && ! is_wp_error( $term ) ? $this->positive_id( get_term_meta( $term_id, '_artist_profile_id', true ), 'term_artist_profile_id', true ) : null;
+			} finally {
+				restore_current_blog();
+			}
+			if ( ! $term || is_wp_error( $term ) || 'artist' !== $term->taxonomy ) {
+				return new \WP_Error( 'invalid_booking_artist_term', __( 'The canonical artist term is invalid.', 'extrachill-events' ) );
+			}
+			if ( is_wp_error( $bound_profile_id ) ) {
+				return $bound_profile_id;
+			}
+			$name = (string) $term->name;
+		}
+
+		if ( $profile_id && $term_id && ( $profile_term_id !== $term_id || $bound_profile_id !== $profile_id ) ) {
+			return new \WP_Error( 'booking_artist_identity_mismatch', __( 'The artist term and profile bindings do not agree.', 'extrachill-events' ) );
+		}
+		return array(
+			'artist_term_id'    => $term_id,
+			'artist_profile_id' => $profile_id,
+			'artist_name'       => $name,
+		);
+	}
+
+	/** Encode flexible data without silently losing invalid structures. */
+	private function encode_payload( $data, string $field ) {
+		$encoded = wp_json_encode(
+			array(
+				'version' => self::PAYLOAD_VERSION,
+				'data'    => $data,
+			)
+		);
+		if ( false === $encoded ) {
+			return new \WP_Error(
+				'booking_payload_encode_failed',
+				__( 'Booking payload JSON encoding failed.', 'extrachill-events' ),
+				array(
+					'field'      => $field,
+					'json_error' => json_last_error_msg(),
+				)
+			);
+		}
+		return $encoded;
+	}
+
+	/** Hydrate scalar IDs and validated JSON envelopes. */
+	public function hydrate( array $row ) {
+		$status = 'admission_pending' === ( $row['status'] ?? '' ) ? 'admission_pending' : $this->status( $row['status'] ?? '' );
+		if ( is_wp_error( $status ) ) {
+			return $status;
+		}
+		$row['status'] = $status;
+		foreach ( array( 'id', 'venue_term_id', 'artist_term_id', 'artist_profile_id', 'submitter_user_id', 'version', 'event_id' ) as $key ) {
+			$row[ $key ] = isset( $row[ $key ] ) ? (int) $row[ $key ] : null;
+		}
+		foreach ( array(
+			'intake'         => false,
+			'production'     => true,
+			'deal'           => true,
+			'confirmed_deal' => true,
+		) as $key => $nullable ) {
+			$decoded = $this->decode_payload( $row[ $key . '_payload' ] ?? null, $key, $nullable );
+			if ( is_wp_error( $decoded ) ) {
+				return $decoded;
+			}
+			$row[ $key ] = $decoded;
+			unset( $row[ $key . '_payload' ] );
+		}
+		return $row;
+	}
+
+	private function decode_payload( $json, string $field, bool $nullable ) {
+		if ( null === $json && $nullable ) {
+			return null;
+		}
+		$decoded = json_decode( (string) $json, true );
+		if ( JSON_ERROR_NONE !== json_last_error() || ! is_array( $decoded ) || ! array_key_exists( 'version', $decoded ) || ! array_key_exists( 'data', $decoded ) ) {
+			return new \WP_Error(
+				'booking_payload_invalid_json',
+				__( 'Stored booking payload JSON is malformed.', 'extrachill-events' ),
+				array(
+					'field'      => $field,
+					'json_error' => json_last_error_msg(),
+				)
+			);
+		}
+		if ( ! is_int( $decoded['version'] ) || self::PAYLOAD_VERSION !== $decoded['version'] ) {
+			return new \WP_Error(
+				'booking_payload_version_unsupported',
+				__( 'Stored booking payload version is unsupported.', 'extrachill-events' ),
+				array(
+					'field'   => $field,
+					'version' => $decoded['version'],
+				)
+			);
+		}
+		return $decoded;
+	}
+
+	private function positive_id( $value, string $field, bool $nullable ) {
+		if ( null === $value || '' === $value || 0 === $value || '0' === $value ) {
+			return $nullable ? null : new \WP_Error( 'invalid_booking_id', __( 'A positive identifier is required.', 'extrachill-events' ), array( 'field' => $field ) );
+		}
+		if ( ( ! is_int( $value ) && ! ( is_string( $value ) && ctype_digit( $value ) ) ) || (int) $value < 1 ) {
+			return new \WP_Error( 'invalid_booking_id', __( 'Identifiers must be positive integers.', 'extrachill-events' ), array( 'field' => $field ) );
+		}
+		return (int) $value;
+	}
+
+	private function required_text( $value, string $field, int $length ) {
+		$value = sanitize_text_field( (string) $value );
+		return '' === $value ? new \WP_Error( 'missing_booking_field', __( 'A required booking field is missing.', 'extrachill-events' ), array( 'field' => $field ) ) : mb_substr( $value, 0, $length );
+	}
+
+	private function nullable_text( $value, int $length ): ?string {
+		$value = sanitize_text_field( (string) $value );
+		return '' === $value ? null : mb_substr( $value, 0, $length );
+	}
+
+	private function nullable_email( $value ): ?string {
+		$value = sanitize_email( (string) $value );
+		return '' === $value ? null : mb_substr( $value, 0, 255 );
+	}
+
+	private function nullable_key( $value, int $length ): ?string {
+		$value = mb_substr( sanitize_key( (string) $value ), 0, $length );
+		return '' === $value ? null : $value;
+	}
+
+	private function request_hash( $value ) {
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+		$value = strtolower( (string) $value );
+		return preg_match( '/^[a-f0-9]{64}$/', $value ) ? $value : new \WP_Error( 'invalid_booking_request_hash', __( 'The booking request fingerprint is invalid.', 'extrachill-events' ) );
+	}
+
+	private function status( $value ) {
+		$value = mb_substr( sanitize_key( (string) $value ), 0, 32 );
+		return in_array( $value, self::STATUSES, true ) ? $value : new \WP_Error( 'invalid_booking_status', __( 'The booking status is not supported.', 'extrachill-events' ) );
+	}
+
+	private function datetime( $value, string $field ) {
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+		$date = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', (string) $value, new \DateTimeZone( 'UTC' ) );
+		if ( ! $date || $date->format( 'Y-m-d H:i:s' ) !== $value ) {
+			return new \WP_Error( 'invalid_booking_datetime', __( 'Booking datetimes must use UTC Y-m-d H:i:s format.', 'extrachill-events' ), array( 'field' => $field ) );
+		}
+		return $date->format( 'Y-m-d H:i:s' );
+	}
+
+	private function validate_date_range( $start, $end, string $kind = 'requested' ) {
+		if ( is_wp_error( $start ) || is_wp_error( $end ) ) {
+			return is_wp_error( $start ) ? $start : $end;
+		}
+		if ( null !== $start && null !== $end && $end <= $start ) {
+			return new \WP_Error( 'invalid_booking_date_range', 'performance' === $kind ? __( 'The performance end must be later than the performance start.', 'extrachill-events' ) : __( 'The requested end must be later than the requested start.', 'extrachill-events' ) );
+		}
+		return true;
+	}
+}

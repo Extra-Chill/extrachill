@@ -1,0 +1,376 @@
+<?php
+/**
+ * Artist Profile "Shows" Section (registered by AP core)
+ *
+ * Surfaces the events for a bound artist on the artist-profile hub. Because the
+ * profile hub is a PUBLIC, SEO-critical, server-rendered surface (it must rank
+ * for logged-out artist searches), this section is PHP-rendered.
+ *
+ * Cross-site data source: events live on the events blog, but that plugin's PHP
+ * is NOT loaded on the artist blog (blog 4) — only extrachill-artist-platform
+ * is active there. switch_to_blog() changes the DB context, not the loaded
+ * code, so a direct wp_get_ability() lookup does not resolve here. Instead this
+ * section calls the Events-owned `extrachill-events/events-by-artist` adapter
+ * through ec_cross_site_rest_request(), forcing its HTTP-loopback strategy so
+ * a fresh worker boots the events site. The adapter resolves the canonical
+ * main-site artist term ID to a validated local Events artist term and returns
+ * plain pre-resolved event scalars this surface renders directly.
+ *
+ * Presentation: a clean, date-forward LIST view (rows, not cards, not the
+ * events calendar block). Two groups — "Upcoming Shows" then "Past Shows".
+ *
+ * Data-copy / SEO note: rows LINK to the CANONICAL event page on
+ * events.extrachill.com. NO event content is duplicated as indexable content —
+ * this is a discovery surface. Events remain the single source of truth.
+ *
+ * @package ExtraChillArtistPlatform
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Register AP core's "Shows" section on the artist profile hub.
+ *
+ * @param array[] $sections       Registered sections.
+ * @param int     $artist_id      Artist profile post ID.
+ * @param int     $artist_term_id Bound main-blog `artist` term_id.
+ * @return array[]
+ */
+// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- shared section-registration filter signature; IDs unused for this static section.
+function ec_register_artist_profile_shows_section( $sections, $artist_id, $artist_term_id ) {
+	$sections[] = array(
+		'id'       => 'shows',
+		'label'    => __( 'Shows', 'extrachill-artist-platform' ),
+		'priority' => 40,
+		'as_tab'   => false,
+		'visible'  => 'ec_artist_profile_has_shows',
+		'render'   => 'ec_render_artist_profile_shows_section',
+	);
+
+	return $sections;
+}
+add_filter( 'ec_artist_profile_sections', 'ec_register_artist_profile_shows_section', 10, 3 );
+
+/**
+ * Link to Events' existing extrachill/submit-event intake, not a local form.
+ *
+ * Events currently supports only submit_venue and submit_city prefill, not
+ * lineup. An artist's home city is not necessarily the show's city, so neither
+ * is supplied here. switch_to_blog alone does not load the Events plugin.
+ *
+ * @return string Absolute submission URL.
+ */
+function ec_artist_shows_submit_url() {
+	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+
+	if ( function_exists( 'extrachill_events_submit_url' ) && $events_blog_id ) {
+		switch_to_blog( $events_blog_id );
+		try {
+			return extrachill_events_submit_url( '', '' );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
+	$base = $events_blog_id ? get_home_url( $events_blog_id ) : 'https://events.extrachill.com';
+	return trailingslashit( $base ) . 'submit/';
+}
+
+/**
+ * Whether the current viewer can manage this specific artist.
+ *
+ * @param int $artist_id Artist profile post ID.
+ * @return bool
+ */
+function ec_artist_shows_can_manage( $artist_id ) {
+	return $artist_id > 0 && function_exists( 'ec_can_manage_artist' )
+		&& ec_can_manage_artist( get_current_user_id(), $artist_id );
+}
+
+/**
+ * Build the canonical artist events-archive URL on the events site.
+ *
+ * Points at the events-blog `artist` taxonomy archive (events.extrachill.com/
+ * artist/{slug}) — the "View all shows" doorway. The events site base URL is
+ * resolved via ec_get_blog_id('events') + get_site_url() rather than hardcoding
+ * the domain, so it stays correct across environments. No-ops (returns '')
+ * when the slug or events blog is missing.
+ *
+ * @param string $slug Resolved Events-site artist term slug.
+ * @return string Absolute archive URL, or '' when unresolvable.
+ */
+function ec_artist_shows_archive_url( $slug ) {
+	$slug = (string) $slug;
+	if ( '' === $slug || ! function_exists( 'ec_get_blog_id' ) ) {
+		return '';
+	}
+
+	$events_blog_id = ec_get_blog_id( 'events' );
+	if ( ! $events_blog_id ) {
+		return '';
+	}
+
+	$base = get_site_url( (int) $events_blog_id );
+	if ( empty( $base ) ) {
+		return '';
+	}
+
+	return trailingslashit( $base ) . 'artist/' . rawurlencode( $slug );
+}
+
+/**
+ * Gather the artist's shows via the cross-site Events artist adapter.
+ *
+ * Calls the events-blog-only `extrachill-events/events-by-artist` adapter with
+ * the bound canonical main-site artist term ID. The adapter owns resolution to
+ * a local Events artist term; Artist Platform never falls back to a slug join.
+ * Results are memoized per artist term within the request so the visibility
+ * gate and the render do not trigger two loopback calls.
+ *
+ * @param int $artist_term_id Bound main-blog `artist` term_id.
+ * @return array{term_id:int,term_slug:string,upcoming:array[],past:array[]} Resolved local identity and event rows.
+ */
+function ec_artist_shows_gather( $artist_term_id ) {
+	static $memo = array();
+
+	$artist_term_id = (int) $artist_term_id;
+	if ( isset( $memo[ $artist_term_id ] ) ) {
+		return $memo[ $artist_term_id ];
+	}
+
+	$empty                   = array(
+		'term_id'   => 0,
+		'term_slug' => '',
+		'upcoming'  => array(),
+		'past'      => array(),
+	);
+	$memo[ $artist_term_id ] = $empty;
+
+	/*
+	 * The adapter is registered only on the events blog. Force the existing
+	 * cross-site seam's HTTP-loopback strategy so that site's plugins are loaded.
+	 */
+	if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+		return $empty;
+	}
+
+	if ( $artist_term_id <= 0 ) {
+		return $empty;
+	}
+
+	$route = '/wp-abilities/v1/abilities/extrachill-events/events-by-artist/run';
+	$query = array(
+		'input' => array(
+			'artist_term_id' => $artist_term_id,
+			'scope'          => 'all',
+			'limit'          => 12,
+		),
+	);
+
+	/*
+	 * Scope the loopback opt-in to this one call so the seam's global default
+	 * (in-process) is unchanged for every other cross-site caller. Add/remove
+	 * around the single dispatch.
+	 */
+	$force_loopback = static function ( $enabled ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- force-loopback contract always reports enabled regardless of input.
+		return true;
+	};
+	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+	$result = ec_cross_site_rest_request( 'events', 'GET', $route, array( 'query' => $query ) );
+	remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
+
+	if (
+		is_wp_error( $result )
+		|| ! is_array( $result )
+		|| ! isset( $result['taxonomy'] )
+		|| 'artist' !== $result['taxonomy']
+		|| ! isset( $result['term_id'] )
+		|| ! is_int( $result['term_id'] )
+		|| $result['term_id'] <= 0
+		|| ! isset( $result['term_slug'] )
+		|| ! is_string( $result['term_slug'] )
+		|| '' === $result['term_slug']
+		|| ! isset( $result['found'] )
+		|| true !== $result['found']
+		|| ! isset( $result['upcoming'] )
+		|| ! is_array( $result['upcoming'] )
+		|| ! isset( $result['past'] )
+		|| ! is_array( $result['past'] )
+	) {
+		return $empty;
+	}
+
+	$found                   = array(
+		'term_id'   => $result['term_id'],
+		'term_slug' => $result['term_slug'],
+		'upcoming'  => $result['upcoming'],
+		'past'      => $result['past'],
+	);
+	$memo[ $artist_term_id ] = $found;
+	return $found;
+}
+
+/**
+ * Visibility gate for the Shows section.
+ *
+ * Public visitors see only populated sections. Managers also see the empty
+ * state, including artists that do not yet have a bound term.
+ *
+ * @param int $artist_id      Artist profile post ID.
+ * @param int $artist_term_id Bound main-blog `artist` term_id.
+ * @return bool
+ */
+function ec_artist_profile_has_shows( $artist_id, $artist_term_id = 0 ) {
+	if ( ec_artist_shows_can_manage( $artist_id ) ) {
+		return true;
+	}
+
+	$artist_term_id = (int) $artist_term_id;
+	if ( $artist_term_id <= 0 ) {
+		return false;
+	}
+
+	$shows = ec_artist_shows_gather( $artist_term_id );
+
+	return ! empty( $shows['upcoming'] ) || ! empty( $shows['past'] );
+}
+
+/**
+ * Render the Shows section for the artist profile hub.
+ *
+ * Upcoming shows render as one list group, past shows as a second. Every row
+ * LINKS to the canonical event page on events.extrachill.com (no SEO
+ * duplication). Past rows surface the "I Was There" attendance affordance when
+ * extrachill-users is active. A "View all shows →" link closes the section,
+ * completing the discovery doorway to the full canonical artist events archive
+ * (the section caps at 12 upcoming + 12 past). Server-side render, no AJAX.
+ *
+ * @param int $artist_id      Artist profile post ID.
+ * @param int $artist_term_id Bound main-blog `artist` term_id.
+ * @return void
+ */
+function ec_render_artist_profile_shows_section( $artist_id, $artist_term_id = 0 ) {
+	$shows   = ec_artist_shows_gather( (int) $artist_term_id );
+	$can_add = empty( $shows['upcoming'] ) && ec_artist_shows_can_manage( $artist_id );
+	if ( empty( $shows['upcoming'] ) && empty( $shows['past'] ) && ! $can_add ) {
+		return;
+	}
+
+	echo '<div class="artist-shows-section">';
+	echo '<h2 class="section-title">' . esc_html__( 'Shows', 'extrachill-artist-platform' ) . '</h2>';
+
+	if ( $can_add ) {
+		echo '<div class="notice">';
+		echo '<p>' . esc_html__( 'No upcoming shows listed. Submit a flyer or enter your show details on Extra Chill Events.', 'extrachill-artist-platform' ) . '</p>';
+		printf(
+			'<a class="button-1" href="%s">%s</a>',
+			esc_url( ec_artist_shows_submit_url() ),
+			esc_html__( 'Add a show', 'extrachill-artist-platform' )
+		);
+		echo '</div>';
+	}
+
+	if ( ! empty( $shows['upcoming'] ) ) {
+		ec_render_artist_shows_group(
+			__( 'Upcoming Shows', 'extrachill-artist-platform' ),
+			$shows['upcoming']
+		);
+	}
+
+	if ( ! empty( $shows['past'] ) ) {
+		ec_render_artist_shows_group(
+			__( 'Past Shows', 'extrachill-artist-platform' ),
+			$shows['past']
+		);
+	}
+
+	// Use the current local slug returned with the validated Events identity.
+	$archive_url = ec_artist_shows_archive_url( $shows['term_slug'] );
+	if ( '' !== $archive_url ) {
+		echo '<div class="artist-shows-view-all">';
+		printf(
+			'<a href="%s" class="button-3 button-small">%s</a>',
+			esc_url( $archive_url ),
+			esc_html__( 'View all shows →', 'extrachill-artist-platform' )
+		);
+		echo '</div>';
+	}
+
+	echo '</div>'; // .artist-shows-section
+}
+
+/**
+ * Render a single group of shows as a clean, date-forward LIST.
+ *
+ * Each row shows the formatted date (and time when known), the event title
+ * linked to the CANONICAL event page, and the venue name. Past rows surface the
+ * "I Was There" attendance affordance inline when extrachill-users is active
+ * (guarded with function_exists so it no-ops cleanly otherwise). Rows lean on
+ * existing theme typography/spacing tokens via the small `.artist-shows-list`
+ * styles in artist-profile.css — no card grid, no events-plugin CSS.
+ *
+ * @param string  $heading Group heading (e.g. "Upcoming Shows").
+ * @param array[] $shows   Event rows from the events-by-artist ability. Each is
+ *                         a plain array: event_id, title, permalink, venue_name,
+ *                         date_iso, date_display, time_display, timing.
+ * @return void
+ */
+function ec_render_artist_shows_group( $heading, $shows ) {
+	if ( empty( $shows ) ) {
+		return;
+	}
+	?>
+	<div class="artist-shows-group">
+		<h3 class="artist-shows-heading"><?php echo esc_html( $heading ); ?></h3>
+
+		<ul class="artist-shows-list">
+			<?php foreach ( $shows as $show ) : ?>
+				<?php
+				$permalink    = isset( $show['permalink'] ) ? (string) $show['permalink'] : '';
+				$title        = isset( $show['title'] ) ? (string) $show['title'] : '';
+				$venue_name   = isset( $show['venue_name'] ) ? (string) $show['venue_name'] : '';
+				$date_display = isset( $show['date_display'] ) ? (string) $show['date_display'] : '';
+				$time_display = isset( $show['time_display'] ) ? (string) $show['time_display'] : '';
+				$date_iso     = isset( $show['date_iso'] ) ? (string) $show['date_iso'] : '';
+				$event_id     = isset( $show['event_id'] ) ? (int) $show['event_id'] : 0;
+				$is_past      = isset( $show['timing'] ) && 'past' === $show['timing'];
+
+				if ( '' === $title || '' === $permalink ) {
+					continue;
+				}
+				?>
+				<li class="artist-show-row">
+					<div class="artist-show-when">
+						<?php if ( '' !== $date_display ) : ?>
+							<time class="artist-show-date"<?php echo '' !== $date_iso ? ' datetime="' . esc_attr( $date_iso ) . '"' : ''; ?>><?php echo esc_html( $date_display ); ?></time>
+						<?php endif; ?>
+						<?php if ( '' !== $time_display ) : ?>
+							<span class="artist-show-time"><?php echo esc_html( $time_display ); ?></span>
+						<?php endif; ?>
+					</div>
+
+					<div class="artist-show-detail">
+						<a class="artist-show-title" href="<?php echo esc_url( $permalink ); ?>"><?php echo esc_html( $title ); ?></a>
+						<?php if ( '' !== $venue_name ) : ?>
+							<span class="artist-show-venue"><?php echo esc_html( $venue_name ); ?></span>
+						<?php endif; ?>
+					</div>
+
+					<?php
+					/*
+					 * Past-row "I Was There" affordance. Owned by extrachill-users
+					 * (active network-wide); guard with function_exists so this
+					 * no-ops cleanly if that plugin is ever inactive on a blog.
+					 */
+					if ( $is_past && $event_id > 0 && function_exists( 'ec_users_render_attendance_button' ) ) :
+						?>
+						<div class="artist-show-attendance">
+							<?php ec_users_render_attendance_button( $event_id ); ?>
+						</div>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+	<?php
+}

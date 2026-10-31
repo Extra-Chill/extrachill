@@ -1,0 +1,41 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "settings": {
+        "validation_dependencies": "data-machine",
+        "wordpress_runtime_php_version": "8.4",
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed"
+      }
+    }
+  },
+  "id": "extrachill-network",
+  "remote_path": "wp-content/plugins/extrachill-network",
+  "self_checks": {
+    "lint": [
+      "composer lint:php",
+      "php tools/check-test-registration.php"
+    ],
+    "test": [
+      "php tests/frontend-path-resolver-smoke.php",
+      "php tests/ad-policy-smoke.php",
+      "php tests/network-term-classification-smoke.php",
+      "php tests/experiment-assignment-smoke.php",
+      "php tests/service-assertion-smoke.php",
+      "node tests/ExperimentAssignmentJsTest.js",
+      "php tests/media-webp-smoke.php"
+    ]
+  },
+  "version_targets": [
+    {
+      "file": "extrachill-network.php",
+      "pattern": "Version:\\s*([0-9.]+)"
+    },
+    {
+      "file": "extrachill-network.php",
+      "pattern": "EXTRACHILL_NETWORK_VERSION',\\s*'([0-9.]+)'"
+    }
+  ]
+}

@@ -1,0 +1,139 @@
+/* Shared Tabs/Accordion Styles */
+
+.shared-tab-item {
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  margin-bottom: var(--spacing-md);
+  overflow: hidden;
+}
+
+.shared-tab-item:last-of-type {
+  margin-bottom: 0;
+}
+
+.shared-tab-button {
+  background: var(--card-background);
+  color: var(--text-color);
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1.05em;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+
+.shared-tab-item:last-of-type .shared-tab-button:not(.active) {
+    border-bottom: none;
+}
+
+.shared-tab-button .shared-tab-arrow {
+  transition: transform 0.2s ease-in-out;
+  font-size: 0.8em;
+  margin-left: var(--spacing-sm);
+}
+
+.shared-tab-button .shared-tab-arrow::before {
+  content: '▼';
+}
+
+.shared-tab-button.active .shared-tab-arrow::before {
+  content: '▲';
+}
+
+.shared-tab-button.active {
+  background: var(--background-color);
+  color: var(--link-color);
+}
+
+.shared-tab-button:not(.active):hover {
+  background: var(--muted-text);
+  color: var(--background-color);
+}
+
+.shared-tab-pane {
+  background: var(--background-color);
+  box-shadow: none;
+  padding: var(--spacing-sm);
+  margin-bottom: 0;
+  display: none;
+}
+
+/* Desktop: Tab styles */
+@media (min-width: 769px) {
+  .shared-tabs-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: -1px;
+    position: relative;
+  }
+
+  .shared-tab-item {
+    border: none;
+    border-radius: 0;
+    margin-bottom: 0;
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  .shared-tab-button {
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 1em;
+    position: relative;
+    top: 1px;
+    width: auto;
+    text-align: center;
+    margin-right: var(--spacing-xs);
+    background: var(--card-background);
+    color: var(--text-color);
+    z-index: 2;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .shared-tab-button.active {
+    background: var(--background-color);
+    color: var(--link-color);
+    border-bottom: 1px solid var(--background-color);
+    z-index: 3;
+  }
+  
+  .shared-tab-button .shared-tab-arrow {
+    display: none;
+  }
+
+  .shared-tab-pane {
+    display: none !important;
+    padding: 0;
+  }
+
+  .shared-desktop-tab-content-area {
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) var(--border-radius-md);
+    padding: var(--spacing-lg) var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    position: relative;
+    z-index: 1;
+    clear: both;
+    width: 100%;
+    box-sizing: border-box;
+    display: none;
+  }
+  
+  .shared-desktop-tab-content-area > .shared-tab-pane {
+      display: block !important;
+      border: none;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+  }
+}

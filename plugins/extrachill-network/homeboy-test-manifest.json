@@ -1,0 +1,83 @@
+{
+  "schema": "homeboy/test-manifest/v1",
+  "tests": {
+    "tests/optional-ability-input-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/ability-site-affinity-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/ad-policy-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/artist-profile-discussions-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/artist-term-binding-deletion-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/blog-ids-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/bootstrap-architecture-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/bridge-instrumentation-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/cross-site-links-invalidation-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/cross-site-rest-dispatch-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/experiment-assignment-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/ExperimentAdminPermissionCliProbe.php": {
+      "environment": "standalone-php"
+    },
+    "tests/frontend-path-resolver-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/frontend-path-resolver-runtime-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/mail-system-send-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/genre-vocabulary-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/mediavine-cache-purge-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/multisite-guard-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/network-bridge-composer-fallback-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/network-term-classification-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/og-card-content-addressed-cache-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/og-card-regeneration-ability-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/service-assertion-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/taxonomy-registration-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/user-profile-links-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/media-webp-smoke.php": {
+      "environment": "standalone-php"
+    }
+  }
+}

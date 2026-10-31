@@ -1,0 +1,309 @@
+<?php
+/**
+ * Track Page View Ability
+ *
+ * Write-side ability that records post-backed and route-level pageviews.
+ * High-frequency hot-path — keeps logic minimal.
+ *
+ * @package ExtraChill\Analytics
+ * @since 0.8.0
+ */
+
+declare( strict_types=1 );
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Keep REST schema coercion from turning invalid preferences into valid values.
+ *
+ * @param  mixed           $result  Pre-dispatch result.
+ * @param  WP_REST_Server  $server  REST server.
+ * @param  WP_REST_Request $request Request.
+ * @return mixed
+ */
+function extrachill_analytics_normalize_pageview_rest_input( $result, $server, $request ) {
+	if ( '/wp-abilities/v1/abilities/extrachill/track-page-view/run' === $request->get_route() ) {
+		$input = $request->get_param( 'input' );
+		if ( is_array( $input ) ) {
+			$valid = extrachill_analytics_valid_display_preferences( $input );
+			unset( $input['color_scheme'], $input['reduced_motion'], $input['contrast'] );
+			$request->set_param( 'input', array_merge( $input, $valid ) );
+		}
+	}
+	return $result;
+}
+add_filter( 'rest_pre_dispatch', 'extrachill_analytics_normalize_pageview_rest_input', 10, 3 );
+
+/**
+ * Extract only strictly typed, bounded display preferences.
+ *
+ * @param  array $input Beacon input.
+ * @return array
+ */
+function extrachill_analytics_valid_display_preferences( array $input ): array {
+	$valid = array();
+	foreach ( array(
+		'color_scheme' => array( 'dark', 'light' ),
+		'contrast'     => array( 'more', 'less', 'no-preference' ),
+	) as $key => $allowed ) {
+		if ( isset( $input[ $key ] ) && in_array( $input[ $key ], $allowed, true ) ) {
+			$valid[ $key ] = $input[ $key ];
+		}
+	}
+	if ( isset( $input['reduced_motion'] ) && is_bool( $input['reduced_motion'] ) ) {
+		$valid['reduced_motion'] = $input['reduced_motion'];
+	}
+	return $valid;
+}
+
+/**
+ * Register the track-page-view ability.
+ */
+function extrachill_analytics_register_track_page_view_ability(): void {
+	// Load after Core's Abilities API: strict schemas must not reject a
+	// pageview just because an optional display preference is malformed.
+	require_once __DIR__ . '/class-page-view-ability.php';
+	wp_register_ability(
+		'extrachill/track-page-view',
+		array(
+			'ability_class'       => 'ExtraChill_Analytics_Page_View_Ability',
+			'label'               => __( 'Track Page View', 'extrachill-analytics' ),
+			'description'         => __( 'Record a pageview for an eligible public route and increment legacy counters for valid post-backed views.', 'extrachill-analytics' ),
+			'category'            => 'extrachill-analytics',
+			'input_schema'        => array(
+				'type'       => 'object',
+				'properties' => array(
+					'post_id'        => array(
+						'type'        => 'integer',
+						'description' => __( 'Optional post ID for a singular post-backed view. Zero is accepted as the legacy route-view sentinel.', 'extrachill-analytics' ),
+						'minimum'     => 0,
+					),
+					'source_path'    => array(
+						'type'        => 'string',
+						'description' => __( 'Normalized query-free browser route path.', 'extrachill-analytics' ),
+						'maxLength'   => 512,
+					),
+					'route_family'   => array(
+						'type'        => 'string',
+						'description' => __( 'Bounded browser route family.', 'extrachill-analytics' ),
+						'enum'        => extrachill_analytics_route_families(),
+					),
+					'referrer'       => array(
+						'type'        => 'string',
+						'description' => __( 'Optional raw client-side referrer (document.referrer). Normalized server-side to a host-only `referrer_host` (no query strings, no PII) on the pageview event. Empty for direct traffic.', 'extrachill-analytics' ),
+						'default'     => '',
+					),
+					'utm_source'     => array(
+						'type'        => 'string',
+						'description' => __( 'Optional utm_source from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
+						'maxLength'   => 128,
+					),
+					'utm_medium'     => array(
+						'type'        => 'string',
+						'description' => __( 'Optional utm_medium from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
+						'maxLength'   => 128,
+					),
+					'utm_campaign'   => array(
+						'type'        => 'string',
+						'description' => __( 'Optional utm_campaign from the landing URL. Normalized to a bounded slug; anything else is dropped.', 'extrachill-analytics' ),
+						'maxLength'   => 128,
+					),
+					'color_scheme'   => array(
+						'type' => 'string',
+						'enum' => array( 'dark', 'light' ),
+					),
+					'reduced_motion' => array( 'type' => 'boolean' ),
+					'contrast'       => array(
+						'type' => 'string',
+						'enum' => array( 'more', 'less', 'no-preference' ),
+					),
+					'proof'          => array(
+						'type'        => 'string',
+						'description' => __( 'Cache-safe proof binding the rendered host, path, route family, and post.', 'extrachill-analytics' ),
+						'maxLength'   => 64,
+					),
+				),
+				'required'   => array( 'source_path', 'route_family', 'proof' ),
+			),
+			'output_schema'       => array(
+				'type'        => 'object',
+				'description' => __( 'Confirmation object with recorded flag.', 'extrachill-analytics' ),
+			),
+			'execute_callback'    => 'extrachill_analytics_ability_track_page_view',
+			'permission_callback' => '__return_true',
+			'meta'                => array(
+				'show_in_rest' => true,
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => false,
+					'destructive' => false,
+				),
+			),
+		)
+	);
+}
+
+/**
+ * Execute callback for track-page-view ability.
+ *
+ * Mirrors the existing REST handler: quick post-meta increment,
+ * plus link-page daily-table action when applicable. Additionally writes a
+ * `pageview` event row to the network-wide events table (carrying the
+ * anonymous visitor_id when present, plus a normalized `referrer_host` when the
+ * reader arrived from a different surface) so per-visitor retention history and
+ * cross-surface / AI-citation landing attribution exist.
+ * The post-meta bump is retained for back-compat with the theme view counter.
+ *
+ * @param array $input Input parameters.
+ * @return array{recorded: bool}|WP_Error Confirmation or error.
+ */
+function extrachill_analytics_ability_track_page_view( array $input ) {
+	$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
+		? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) )
+		: '';
+	$is_bot     = function_exists( 'extrachill_analytics_classify_user_agent' )
+		&& 'browser' !== extrachill_analytics_classify_user_agent( $user_agent );
+
+	// Exclusion is a normal analytics outcome, not a failed browser request.
+	// Return before admission, identity, counters, or event persistence so known
+	// crawlers and headless agents produce neither telemetry nor noisy errors.
+	if ( $is_bot ) {
+		return array( 'recorded' => false );
+	}
+
+	$post_id      = isset( $input['post_id'] ) ? (int) $input['post_id'] : 0;
+	$referrer     = isset( $input['referrer'] ) ? (string) $input['referrer'] : '';
+	$source_path  = isset( $input['source_path'] ) ? extrachill_analytics_normalize_route_path( $input['source_path'] ) : '';
+	$route_family = isset( $input['route_family'] ) ? sanitize_key( $input['route_family'] ) : '';
+	$proof        = isset( $input['proof'] ) ? (string) $input['proof'] : '';
+
+	if ( '' === $source_path || ! in_array( $route_family, extrachill_analytics_route_families(), true ) ) {
+		return new \WP_Error(
+			'invalid_route',
+			__( 'A normalized source_path and valid route_family are required.', 'extrachill-analytics' ),
+			array( 'status' => 400 )
+		);
+	}
+
+	$admission = extrachill_analytics_validate_pageview_write( $post_id, $source_path, $route_family, $proof );
+	if ( is_wp_error( $admission ) ) {
+		return $admission;
+	}
+
+	if ( $post_id > 0 && ! function_exists( 'ec_track_post_views' ) ) {
+		return new \WP_Error(
+			'function_missing',
+			__( 'View tracking function not available.', 'extrachill-analytics' ),
+			array( 'status' => 500 )
+		);
+	}
+
+	// Resolve identity from this request's first-party cookie, never from the
+	// request body, and never by minting: the server no longer sets `ec_vid`
+	// at all, so neither HTML nor REST responses ever carry `Set-Cookie` and
+	// every response stays edge-cacheable. The cookie is minted by the
+	// visitor's browser (view-tracking.js) — on the very first pageview the
+	// mint runs in that same script BEFORE this beacon fires, so the browser
+	// already attaches the fresh cookie here. Until then this resolves to ''
+	// and the pageview is recorded anonymously. GPC/DNT opt-out also returns
+	// an empty value via the resolver.
+	$visitor_id            = '';
+	$is_first_party_beacon = function_exists( 'extrachill_analytics_beacon_is_first_party' )
+		&& extrachill_analytics_beacon_is_first_party();
+	// Do not stitch a custom-domain request even if a browser permits its
+	// third-party cookie. Cross-site beacons have no durable first-party
+	// identity guarantee and intentionally remain anonymous.
+	if ( $is_first_party_beacon && function_exists( 'extrachill_analytics_read_visitor_id' ) ) {
+		$visitor_id = extrachill_analytics_read_visitor_id();
+	}
+
+	// All-time view increment (post meta) is retained only for post-backed views.
+	if ( $post_id > 0 ) {
+		ec_track_post_views( $post_id );
+	}
+
+	// Write a deterministic pageview event row so per-visitor retention can be
+	// queried. visitor_id is persisted only when it is a valid UUID v4; an empty
+	// or opted-out value still records the pageview anonymously (NULL visitor_id),
+	// keeping aggregate volume accurate. Bots are excluded via the canonical
+	// classifier's UA-class signal so the retention table stays bot-resistant by
+	// construction, using the one shared bot-UA pattern list.
+	//
+	// The pageview gate intentionally keys on the UA signal ONLY (not the full
+	// strict verdict): this beacon is a browser-initiated fetch, and a
+	// privacy-opted-out human (GPC/DNT, hence no ec_vid cookie) is still a real
+	// pageview we want counted anonymously. Requiring the cookie here would drop
+	// those legitimate humans. Per-visitor retention metrics already exclude
+	// NULL-visitor_id rows downstream, so anonymous pageviews never distort them.
+	if ( function_exists( 'extrachill_track_analytics_event' ) ) {
+		$permalink  = $post_id > 0 ? get_permalink( $post_id ) : home_url( $source_path );
+		$event_data = array(
+			'route_family' => $route_family,
+			'view_kind'    => $post_id > 0 ? 'post' : 'route',
+		);
+		if ( $post_id > 0 ) {
+			$event_data['post_id'] = $post_id;
+		}
+		$preferences = extrachill_analytics_valid_display_preferences( $input );
+		$event_data  = array_merge( $event_data, $preferences );
+
+		// Stamp a NORMALIZED, host-only referrer provenance on the pageview so
+		// AI-citation (chatgpt.com / perplexity.ai / gemini.google.com), social,
+		// search-engine, and cross-surface landing attribution is no longer
+		// blind. The raw referrer MUST come from the client (document.referrer):
+		// this beacon fires after page load, so the request's own HTTP Referer
+		// is the article page itself, not the page the reader came from. We
+		// reduce it to a host only — no query strings, no PII — and drop direct
+		// + same-host referrers so the field means "a different surface sent
+		// this reader here". Additive + backward-compatible: old rows simply
+		// lack the field. Mirrors the #86 search-source stamping shape (capture
+		// provenance at event time) and the 404 tracker's referer capture.
+		if ( function_exists( 'extrachill_analytics_normalize_referrer_host' ) ) {
+			$referrer_host = extrachill_analytics_normalize_referrer_host( $referrer );
+			if ( '' !== $referrer_host ) {
+				$event_data['referrer_host'] = $referrer_host;
+			}
+		}
+
+		// Campaign attribution: email and app clicks carry no referrer, so the
+		// landing URL's utm_* parameters are their only provenance. Each is
+		// reduced to a bounded slug (see campaign-attribution.php) and only
+		// present, valid values are stamped. Additive like referrer_host.
+		if ( function_exists( 'extrachill_analytics_campaign_from_input' ) ) {
+			$event_data = array_merge( $event_data, extrachill_analytics_campaign_from_input( $input ) );
+		}
+
+		// The write-time classifier in events.php treats request_origin as a
+		// bot signal for anonymous traffic, and a REST ability request like
+		// this beacon is detected as 'rest'. That would stamp every beacon
+		// pageview as is_bot:true even though this endpoint is, by construction,
+		// a browser-initiated fetch that already passed the UA-only gate above.
+		// Because the beacon knows its own caller class, supply the verdict
+		// explicitly here so the generic classifier's REST-origin policy does
+		// not condemn real human pageviews. The value is always false at this
+		// point: the surrounding `if ( ! $is_bot )` already rejected bot/empty
+		// UAs. See extrachill-analytics#115.
+		$event_data['is_bot'] = false;
+
+		extrachill_track_analytics_event(
+			defined( 'EC_ANALYTICS_EVENT_PAGEVIEW' ) ? EC_ANALYTICS_EVENT_PAGEVIEW : 'pageview',
+			$event_data,
+			is_string( $permalink ) ? $permalink : '',
+			$visitor_id
+		);
+	}
+
+	// Link pages also fire the 90-day daily-table action. This ability runs
+	// in whatever blog context served the request (there is no
+	// switch_to_blog() here), and the storage-aware post type always matches
+	// that same context, so the current-storage-blog default is correct. The
+	// literal fallback keeps this hot-path ability deployable before
+	// extrachill-link-pages ships the runtime function. See
+	// Extra-Chill/extrachill-link-pages#34.
+	$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+	if ( $post_id > 0 && get_post_type( $post_id ) === $link_page_post_type ) {
+		do_action( 'extrachill_link_page_view_recorded', $post_id );
+	}
+
+	return array( 'recorded' => true );
+}

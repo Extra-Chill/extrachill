@@ -1,0 +1,257 @@
+name: Booking MySQL transaction proofs (host)
+
+# BookingAttachmentMySQLIntegrationTest (booking-mysql suite) and
+# BookingAdmissionConcurrencyMySQLProof (booking-concurrency suite) both call
+# real mysqli::begin_transaction()/rollback() on a second, independent MySQL
+# session to prove production locking and rollback behaviour — a call
+# PHP-WASM traps unrecoverably (Automattic/wp-codebox#2518): the interpreter
+# crashes instead of raising a catchable PHP error, so PHPUnit cannot even
+# report partial results. The managed `Homeboy (review test)` gate runs both
+# suites on the WP Codebox sandbox runtime and, before this workflow existed,
+# both reported `Total: 0` — not zero failures, zero tests executed
+# (extrachill-events#870/#871/#884). Every call site that reaches
+# begin_transaction()/rollback() (or the pcntl_fork() this file's own
+# two-process races also need) is now guarded to skip cleanly in the sandbox
+# and point here.
+#
+# This job is those proofs' genuine execution home: a real ubuntu-latest host
+# with real PHP pcntl/mysqli and a real MySQL service, running the exact same
+# suite configs (phpunit-booking-mysql.xml.dist,
+# phpunit-booking-concurrency.xml.dist) against a real WordPress core +
+# WordPress core PHPUnit test library, version-matched to this site's
+# WordPress release — the same pattern
+# booking-hold-concurrency-host-proof.yml already established for
+# InternalBookingHoldConcurrencyMySQLProof (extrachill-events#881/#882).
+#
+# Moving these suites to the managed `runtime: host` lane was evaluated and
+# found infeasible for the same reason booking-hold-concurrency-host-proof.yml
+# documents: `homeboy-extensions`' `wordpress` extension's `runHostSuite()`
+# never bootstraps WordPress or wires the managed MySQL service credentials
+# (PR #872's Step 1 feasibility analysis, refs #870). This workflow drives
+# PHPUnit directly and does not depend on that adapter.
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/booking-mysql-transaction-proofs-host.yml
+      - composer.json
+      - composer.lock
+      - phpunit-booking-mysql.xml.dist
+      - phpunit-booking-concurrency.xml.dist
+      - tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php
+      - tests/MySQLIntegration/BookingAdmissionConcurrencyMySQLProof.php
+      - tests/MySQLIntegration/BookingSecondSessionMySQLIntegrationTestCase.php
+      - tests/MySQLIntegration/BookingMySQLIntegrationTestCase.php
+      - tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php
+      - tests/MySQLIntegration/BookingSchemaMultisiteTest.php
+      - tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php
+      - tests/MySQLIntegration/booking-mysql-host-bootstrap.php
+      - tests/MySQLIntegration/host-wordpress-bootstrap.php
+      - tests/MySQLIntegration/booking-schema-multisite-bootstrap.php
+      - tests/MySQLIntegration/booking-attachment-mysql-bootstrap.php
+      - tests/MySQLIntegration/wp-tests-config.php
+      - inc/Abilities/TicketSettlementAbilities.php
+      - inc/Abilities/VenueBookingHoldAbilities.php
+      - inc/Abilities/VenueBookingConfigAbilities.php
+      - inc/Abilities/VenueBookingMutationAbilities.php
+      - inc/Abilities/VenueBookingEventAbilities.php
+      - inc/Abilities/VenueMembershipAbilities.php
+      - inc/Core/BookingAttachmentService.php
+      - inc/Core/BookingAttachmentRepository.php
+      - inc/Core/BookingActivityRepository.php
+      - inc/Core/BookingHoldRepository.php
+      - inc/Core/BookingRepository.php
+      - inc/Core/BookingSchema.php
+      - inc/Core/PromoterAuthoritySchema.php
+      - inc/Core/ShowSettlementService.php
+      - inc/Core/TicketSettlementService.php
+      - inc/Core/TicketReconciliationService.php
+      - inc/Core/VenueAuthorization.php
+      - inc/Core/VenueBookingConfig.php
+      - inc/Core/VenueMembershipRepository.php
+      - inc/Providers/VenueBookingProvider.php
+      - inc/Providers/AbilitiesProvider.php
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: booking-mysql-transaction-proofs-host-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Pinned to this site's current WordPress release so the downloaded core
+  # and the checked-out core PHPUnit test library stay version-matched.
+  # Advance deliberately alongside the site's own WordPress upgrades, and
+  # alongside booking-hold-concurrency-host-proof.yml's own pin.
+  WP_PROOF_VERSION: '7.1.2'
+  DME_REF: efd7579fab38beb73f6961fc33da538a8f112d93
+
+jobs:
+  booking-mysql-proof:
+    name: Booking attachment + schema transaction proofs (real MySQL + pcntl)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        env:
+          MYSQL_ROOT_PASSWORD: ''
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: extrachill_events_booking_mysql_proof
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout Extra Chill Events
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Checkout Data Machine Events
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Extra-Chill/data-machine-events
+          ref: ${{ env.DME_REF }}
+          path: .ci/data-machine-events
+
+      - name: Set up PHP 8.4 with pcntl and mysqli
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, pcntl, mbstring
+          coverage: none
+
+      - name: Confirm the host PHP CLI can actually fork
+        run: php -r 'if (!function_exists("pcntl_fork")) { fwrite(STDERR, "pcntl_fork unavailable on this runner\n"); exit(1); } echo "pcntl_fork available\n";'
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Download WordPress core ${{ env.WP_PROOF_VERSION }}
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://wordpress.org/wordpress-${WP_PROOF_VERSION}.zip" \
+            --output /tmp/wordpress-core.zip
+          mkdir -p /tmp/wordpress-core
+          unzip -q /tmp/wordpress-core.zip -d /tmp/wordpress-unzipped
+          cp -R /tmp/wordpress-unzipped/wordpress/. /tmp/wordpress-core/
+
+      - name: Check out the matching WordPress core PHPUnit test library
+        run: |
+          git clone --quiet --depth 1 --branch "${WP_PROOF_VERSION}" \
+            https://github.com/WordPress/wordpress-develop.git /tmp/wordpress-develop
+          mkdir -p /tmp/wp-tests-lib
+          cp -R /tmp/wordpress-develop/tests/phpunit/includes /tmp/wp-tests-lib/includes
+          cp -R /tmp/wordpress-develop/tests/phpunit/data /tmp/wp-tests-lib/data
+          rm -rf /tmp/wordpress-develop
+
+      - name: Wait for MySQL and create the disposable test database
+        run: |
+          mysqladmin --host=127.0.0.1 --user=root ping --wait
+          mysql --host=127.0.0.1 --user=root --execute="CREATE DATABASE IF NOT EXISTS extrachill_events_booking_mysql_proof CHARACTER SET utf8mb4;"
+
+      - name: Run the booking-mysql transaction proofs
+        env:
+          DB_NAME: extrachill_events_booking_mysql_proof
+          DB_USER: root
+          DB_PASSWORD: ''
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          WP_TESTS_DIR: /tmp/wp-tests-lib
+          WP_CORE_DIR: /tmp/wordpress-core
+          WP_MULTISITE: '1'
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+          DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
+        # --exclude-group host-dme-abilities-registry-gap: this bootstrap
+        # doesn't yet register DME's own ability/category hooks in the
+        # correct order (see booking-mysql-host-bootstrap.php and
+        # extrachill-events#888); the one test in that group is unaffected in
+        # the managed sandbox, which activates the full data-machine-events
+        # plugin naturally.
+        run: vendor/bin/phpunit --configuration phpunit-booking-mysql.xml.dist --exclude-group host-dme-abilities-registry-gap --testdox
+
+  booking-concurrency-proof:
+    name: Booking admission concurrency proof (real MySQL + pcntl)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+        env:
+          MYSQL_ROOT_PASSWORD: ''
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: extrachill_events_booking_concurrency_proof
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout Extra Chill Events
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Checkout Data Machine Events
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Extra-Chill/data-machine-events
+          ref: ${{ env.DME_REF }}
+          path: .ci/data-machine-events
+
+      - name: Set up PHP 8.4 with pcntl and mysqli
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, pcntl, mbstring
+          coverage: none
+
+      - name: Confirm the host PHP CLI can actually fork
+        run: php -r 'if (!function_exists("pcntl_fork")) { fwrite(STDERR, "pcntl_fork unavailable on this runner\n"); exit(1); } echo "pcntl_fork available\n";'
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Download WordPress core ${{ env.WP_PROOF_VERSION }}
+        run: |
+          curl --fail --silent --show-error --location \
+            "https://wordpress.org/wordpress-${WP_PROOF_VERSION}.zip" \
+            --output /tmp/wordpress-core.zip
+          mkdir -p /tmp/wordpress-core
+          unzip -q /tmp/wordpress-core.zip -d /tmp/wordpress-unzipped
+          cp -R /tmp/wordpress-unzipped/wordpress/. /tmp/wordpress-core/
+
+      - name: Check out the matching WordPress core PHPUnit test library
+        run: |
+          git clone --quiet --depth 1 --branch "${WP_PROOF_VERSION}" \
+            https://github.com/WordPress/wordpress-develop.git /tmp/wordpress-develop
+          mkdir -p /tmp/wp-tests-lib
+          cp -R /tmp/wordpress-develop/tests/phpunit/includes /tmp/wp-tests-lib/includes
+          cp -R /tmp/wordpress-develop/tests/phpunit/data /tmp/wp-tests-lib/data
+          rm -rf /tmp/wordpress-develop
+
+      - name: Wait for MySQL and create the disposable test database
+        run: |
+          mysqladmin --host=127.0.0.1 --user=root ping --wait
+          mysql --host=127.0.0.1 --user=root --execute="CREATE DATABASE IF NOT EXISTS extrachill_events_booking_concurrency_proof CHARACTER SET utf8mb4;"
+
+      - name: Run the booking-concurrency admission proof
+        env:
+          DB_NAME: extrachill_events_booking_concurrency_proof
+          DB_USER: root
+          DB_PASSWORD: ''
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          WP_TESTS_DIR: /tmp/wp-tests-lib
+          WP_CORE_DIR: /tmp/wordpress-core
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
+          DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
+        run: vendor/bin/phpunit --configuration phpunit-booking-concurrency.xml.dist --testdox

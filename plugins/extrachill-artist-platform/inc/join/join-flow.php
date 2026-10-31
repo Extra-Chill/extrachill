@@ -1,0 +1,218 @@
+<?php
+/**
+ * Join Flow - Simplified Join Flow System
+ *
+ * Handles join flow operations:
+ * - Register-tab landing for /join visitors (inc/join/assets/js/join-flow-ui.js)
+ * - Redirect logic for login/registration via from_join parameter
+ * - Returning-user nudge: existing email at registration → login tab
+ *
+ * Flow:
+ * - New users registering via join flow → /create-artist/
+ * - Existing users with no artists → /create-artist/
+ * - Existing users with artists → /manage-link-page/
+ * - Registering with an email that already has an account → /login/ (login tab)
+ *
+ * @package ExtraChillArtistPlatform
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Detects if the current request came from the join flow
+ *
+ * @return bool True if from_join parameter is present, false otherwise
+ */
+function ec_is_join_flow_request() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only join-flow detection across login redirects; no data mutation.
+	if ( isset( $_REQUEST['from_join'] ) && 'true' === $_REQUEST['from_join'] ) {
+		return true;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only join-flow detection across login redirects; no data mutation.
+	if ( isset( $_REQUEST['redirect_to'] ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only join-flow detection across login redirects; no data mutation.
+		$redirect_to_parts = wp_parse_url( $_REQUEST['redirect_to'] );
+		if ( isset( $redirect_to_parts['query'] ) ) {
+			parse_str( $redirect_to_parts['query'], $query_params );
+			if ( isset( $query_params['from_join'] ) && 'true' === $query_params['from_join'] ) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Get the appropriate destination for a join flow user
+ *
+ * @param int $user_id The user ID
+ * @return array Destination with url, message, and type keys
+ */
+function ec_get_join_flow_destination( $user_id ) {
+	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+
+	if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
+		return array(
+			'url'     => home_url( '/manage-link-page/' ),
+			'message' => __( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),
+			'type'    => 'success',
+		);
+	}
+
+	return array(
+		'url'     => home_url( '/create-artist/' ),
+		'message' => __( 'Create an artist profile to get started with your link page.', 'extrachill-artist-platform' ),
+		'type'    => 'info',
+	);
+}
+
+/**
+ * Handle logged-in user landing on login page with from_join parameter
+ *
+ * Redirects already-logged-in users who land on the login page with from_join=true
+ * to either their link page management or artist profile creation.
+ */
+function ec_join_flow_login_page_redirect() {
+	if ( ! is_user_logged_in() || ! is_page( 'login' ) ) {
+		return;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only referral flag from the community login form; routing only.
+	if ( ! isset( $_GET['from_join'] ) || 'true' !== $_GET['from_join'] ) {
+		return;
+	}
+
+	$dest = ec_get_join_flow_destination( get_current_user_id() );
+	extrachill_set_notice( $dest['message'], $dest['type'] );
+	// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- destination is an internal Extra Chill URL resolved from site options; wp_safe_redirect would reject cross-network hosts.
+	wp_redirect( $dest['url'] );
+	exit;
+}
+add_action( 'template_redirect', 'ec_join_flow_login_page_redirect' );
+
+/**
+ * Handle post-login redirect for join flow users
+ *
+ * Intercepts the login redirect to route users who log in via join flow
+ * to either their link page management or artist profile creation.
+ *
+ * @param string  $redirect_to           Default redirect URL
+ * @param string  $requested_redirect_to Requested redirect URL
+ * @param WP_User $user                  User object
+ * @return string Modified redirect URL
+ */
+function ec_join_flow_login_redirect( $redirect_to, $requested_redirect_to, $user ) {
+	if ( ! isset( $user->ID ) || $user->ID <= 0 ) {
+		return $redirect_to;
+	}
+
+	if ( ! ec_is_join_flow_request() ) {
+		return $redirect_to;
+	}
+
+	$dest = ec_get_join_flow_destination( $user->ID );
+	extrachill_set_notice( $dest['message'], $dest['type'] );
+	return $dest['url'];
+}
+add_filter( 'login_redirect', 'ec_join_flow_login_redirect', 10, 3 );
+
+/**
+ * Nudge returning users toward login before a duplicate account is created.
+ *
+ * The join flow drops confused returning users straight onto the registration
+ * tab. A real incident (2026-06-22) had a user who couldn't tell his first
+ * registration had succeeded create a SECOND, empty account rather than logging
+ * back in — the path of least resistance with nothing stopping it.
+ *
+ * This runs on the registration submission BEFORE the user-creation handler
+ * (extrachill-users hooks the same action at the default priority 10; this fires
+ * at priority 5). For join-flow submissions only, if the submitted email already
+ * belongs to an account, we send the user back to the login tab with an explicit
+ * "you already have an account — log in" nudge instead of letting the generic
+ * anti-enumeration error fire and silently inviting a clean-slate duplicate.
+ *
+ * Scope is deliberately narrow: it only acts on verified join-flow registration
+ * submissions, so it cannot be used as an email-enumeration oracle outside a
+ * legitimate, nonce-verified registration attempt (which already reveals the same
+ * "exists" signal today via the duplicate-email error path).
+ */
+function ec_join_flow_existing_account_nudge() {
+	// Only intervene on join-flow registration submissions. ec_is_join_flow_request()
+	// inspects $_REQUEST['from_join'] / redirect_to, matching how the rest of this
+	// flow detects its own requests.
+	if ( ! ec_is_join_flow_request() ) {
+		return;
+	}
+
+	if ( ! class_exists( 'EC_Redirect_Handler' ) || ! function_exists( 'email_exists' ) ) {
+		return;
+	}
+
+	// Verify the registration nonce before reading the email, mirroring the
+	// canonical handler in extrachill-users. This guarantees we only act on a
+	// genuine form submission, not an arbitrary crafted request.
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified immediately below.
+	if (
+		! isset( $_POST['extrachill_register_nonce'] )
+		|| ! wp_verify_nonce(
+			sanitize_text_field( wp_unslash( $_POST['extrachill_register_nonce'] ) ),
+			'extrachill_register_nonce_field'
+		)
+	) {
+		return;
+	}
+
+	$email = isset( $_POST['extrachill_email'] )
+		? sanitize_email( wp_unslash( $_POST['extrachill_email'] ) )
+		: '';
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+	if ( empty( $email ) || ! email_exists( $email ) ) {
+		// Brand-new email (or no email): let the normal registration handler run.
+		return;
+	}
+
+	// Existing account detected. Route the user to the login tab with a nudge,
+	// preserving the join-flow context so the experience stays coherent.
+	$redirect = EC_Redirect_Handler::from_post( 'ec_registration' );
+
+	$login_url = add_query_arg( 'from_join', 'true', home_url( '/login/' ) ) . '#tab-login';
+
+	extrachill_set_notice(
+		__( 'Looks like you already have an Extra Chill account with that email. Log in below to continue — no need to create a new one.', 'extrachill-artist-platform' ),
+		'info'
+	);
+
+	$redirect->redirect_to( $login_url );
+}
+add_action( 'admin_post_nopriv_extrachill_register_user', 'ec_join_flow_existing_account_nudge', 5 );
+add_action( 'admin_post_extrachill_register_user', 'ec_join_flow_existing_account_nudge', 5 );
+
+/**
+ * Handle post-registration redirect for join flow users
+ *
+ * Routes new users who register via join flow to the create-artist page.
+ *
+ * @param string       $redirect_to Default redirect URL
+ * @param int|WP_Error $user_id     User ID if successful, WP_Error otherwise
+ * @return string Modified redirect URL for join flow users, original URL otherwise
+ */
+function ec_join_flow_registration_redirect( $redirect_to, $user_id ) {
+	if ( ! $user_id || is_wp_error( $user_id ) ) {
+		return $redirect_to;
+	}
+
+	if ( ! ec_is_join_flow_request() ) {
+		return $redirect_to;
+	}
+
+	extrachill_set_notice(
+		__( 'Welcome! Create your artist profile to get started.', 'extrachill-artist-platform' ),
+		'success'
+	);
+
+	return home_url( '/create-artist/' );
+}
+add_filter( 'registration_redirect', 'ec_join_flow_registration_redirect', 10, 2 );

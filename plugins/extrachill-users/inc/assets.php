@@ -1,0 +1,113 @@
+<?php
+/**
+ * Asset Management for ExtraChill Users
+ *
+ * Loads avatar menu, online users CSS/JS network-wide with filemtime() versioning.
+ *
+ * @package ExtraChill\Users
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Style dependencies that cascade after the theme root stylesheet.
+ *
+ * `extrachill-root` is registered by the Extra Chill theme. Sites running other
+ * themes (e.g. extrachill.link on Twenty Twenty-Five) never register it, and a
+ * missing dependency causes WordPress to drop the stylesheet entirely. Only
+ * declare the dependency when the handle is registered.
+ *
+ * @return array Style dependencies.
+ */
+function extrachill_users_root_style_deps() {
+	return wp_style_is( 'extrachill-root', 'registered' ) ? array( 'extrachill-root' ) : array();
+}
+
+/**
+ * Enqueue avatar menu and online users assets.
+ */
+function extrachill_users_enqueue_avatar_menu_assets() {
+	$css_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/css/avatar-menu.css';
+	if ( file_exists( $css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-users-avatar-menu',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/avatar-menu.css',
+			array(),
+			(string) filemtime( $css_path ),
+			'all'
+		);
+	}
+
+	$js_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/js/avatar-menu.js';
+	if ( file_exists( $js_path ) ) {
+		wp_enqueue_script(
+			'extrachill-users-avatar-menu',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/avatar-menu.js',
+			array(),
+			(string) filemtime( $js_path ),
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
+		);
+	}
+
+	$online_users_css_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/css/online-users.css';
+	if ( file_exists( $online_users_css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-users-online-users',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/online-users.css',
+			array(),
+			(string) filemtime( $online_users_css_path ),
+			'all'
+		);
+	}
+
+	$user_badges_css_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/css/user-badges.css';
+	if ( file_exists( $user_badges_css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-users-badges',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/user-badges.css',
+			extrachill_users_root_style_deps(),
+			(string) filemtime( $user_badges_css_path ),
+			'all'
+		);
+	}
+
+	// Notification bell styles — only needed when the bell renders, i.e. for
+	// logged-in users. The bell itself is hooked into the theme header by
+	// inc/notifications/bell.php and appears network-wide.
+	$notification_bell_css_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/css/notification-bell.css';
+	if ( is_user_logged_in() && file_exists( $notification_bell_css_path ) ) {
+		wp_enqueue_style(
+			'extrachill-users-notification-bell',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/css/notification-bell.css',
+			extrachill_users_root_style_deps(),
+			(string) filemtime( $notification_bell_css_path ),
+			'all'
+		);
+	}
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_users_enqueue_avatar_menu_assets' );
+
+/**
+ * Register shared auth utilities script for blocks.
+ */
+function extrachill_users_register_auth_utils_script() {
+	$js_path = EXTRACHILL_USERS_PLUGIN_DIR . 'assets/js/auth-utils.js';
+	if ( file_exists( $js_path ) ) {
+		wp_register_script(
+			'extrachill-auth-utils',
+			EXTRACHILL_USERS_PLUGIN_URL . 'assets/js/auth-utils.js',
+			array(),
+			(string) filemtime( $js_path ),
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
+		);
+	}
+}
+add_action( 'wp_enqueue_scripts', 'extrachill_users_register_auth_utils_script' );

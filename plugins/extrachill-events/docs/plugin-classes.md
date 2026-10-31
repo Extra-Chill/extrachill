@@ -1,0 +1,558 @@
+# Plugin Classes
+
+Object-oriented classes provided by the ExtraChill Events plugin.
+
+## ExtraChillEvents
+
+**Namespace:** Global
+
+**File:** `extrachill-events.php`
+
+**Purpose:** Main singleton class managing plugin initialization, template overrides, and integration loading
+
+### Class Properties
+
+#### $instance (static)
+**Type:** ExtraChillEvents|null
+
+**Visibility:** private static
+
+**Purpose:** Singleton instance storage
+
+---
+
+#### $integrations
+**Type:** array
+
+**Visibility:** private
+
+**Purpose:** Stores loaded integration class instances
+
+**Structure:**
+```php
+array(
+    'data_machine_events' => DataMachineEventsIntegration instance
+)
+```
+
+### Class Methods
+
+#### get_instance() (static)
+**Visibility:** public static
+
+**Parameters:** None
+
+**Return Value:** ExtraChillEvents instance
+
+**Purpose:** Get or create singleton instance
+
+**Usage:**
+```php
+$plugin = ExtraChillEvents::get_instance();
+```
+
+---
+
+#### __construct()
+**Visibility:** private
+
+**Purpose:** Initialize plugin hooks, dependencies, and integrations
+
+**Called By:** `get_instance()` when creating first instance
+
+**Actions:**
+1. `init_hooks()` - Register WordPress hooks
+2. `load_dependencies()` - Load integration files
+3. `init_integrations()` - Initialize integration classes
+
+---
+
+#### init_hooks()
+**Visibility:** private
+
+**Purpose:** Register WordPress plugin hooks
+
+**Hooks Registered:**
+- `init` → `load_textdomain()`
+- `init` → `init_datamachine_handlers()` (priority 20)
+- `register_activation_hook()` → `activate()`
+- `register_deactivation_hook()` → `deactivate()`
+
+---
+
+#### load_textdomain()
+**Visibility:** public
+
+**Purpose:** Load plugin translation files
+
+**Text Domain:** `extrachill-events`
+
+**Hook:** `init`
+
+**Implementation:** Uses `load_plugin_textdomain()` with proper path handling via `dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME)`
+
+---
+
+#### load_dependencies()
+**Visibility:** private
+
+**Purpose:** Load integration class files via direct includes
+
+**Files Loaded:**
+1. `vendor/autoload.php` (if exists, for development dependencies)
+2. `inc/core/data-machine-events-integration.php`
+3. `inc/core/nav.php`
+4. `inc/single-event/breadcrumbs.php`
+5. `inc/single-event/related-events.php`
+6. `inc/single-event/share-button.php`
+
+**Note:** Composer autoloader exists for development dependencies only (PHPUnit, PHPCS). All plugin code uses direct `require_once` includes.
+
+---
+
+#### init_datamachine_handlers()
+**Visibility:** public
+
+**Purpose:** Initialize Data Machine event handlers conditionally
+
+**Hook:** `init` (priority 20)
+
+**Condition:** Only initializes if `DataMachine\Core\Steps\Fetch\Handlers\FetchHandler` class exists
+
+**Actions:**
+1. Requires `SlideGenerator.php`
+2. Requires `WeeklyRoundupSettings.php`
+3. Requires `WeeklyRoundupHandler.php`
+4. Requires `RoundupPublishSettings.php`
+5. Requires `RoundupPublishHandler.php`
+6. Instantiates `WeeklyRoundupHandler` and `RoundupPublishHandler`
+
+**Usage:** Called during WordPress initialization to set up weekly roundup handlers when Data Machine is active
+
+**Extensibility:** Can be called from external code to manually trigger handler initialization
+
+---
+
+#### init_integrations()
+**Visibility:** private
+
+**Purpose:** Initialize event plugin integrations conditionally
+
+**Detection Logic:**
+```php
+if (defined('DATA_MACHINE_EVENTS_POST_TYPE')) {
+    $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
+}
+```
+
+Detection uses data-machine-events' public integration API constant rather
+than `class_exists()` against an internal class name. See data-machine-events
+`docs/integration-api.md`.
+
+**Extensible:** Additional event plugin integrations can be added here
+
+---
+
+#### activate()
+**Visibility:** public
+
+**Purpose:** Plugin activation hook
+
+**Actions:**
+- Flush rewrite rules to ensure custom URLs work
+
+---
+
+#### deactivate()
+**Visibility:** public
+
+**Purpose:** Plugin deactivation hook
+
+**Actions:**
+- Flush rewrite rules to clean up custom URLs
+
+---
+
+#### get_integrations()
+**Visibility:** public
+
+**Parameters:** None
+
+**Return Value:** array of integration instances
+
+**Purpose:** Access loaded integration instances
+
+**Usage:**
+```php
+$integrations = extrachill_events()->get_integrations();
+if (isset($integrations['data_machine_events'])) {
+    // Integration loaded
+}
+```
+
+---
+
+## ExtraChillEvents\DataMachineEventsIntegration
+
+**Namespace:** ExtraChillEvents
+
+**File:** `inc/core/data-machine-events-integration.php`
+
+**Purpose:** Complete data-machine-events integration providing badge/button styling, breadcrumb override, related events, share button, and CSS management
+
+### Class Methods
+
+#### __construct()
+**Visibility:** public
+
+**Purpose:** Initialize integration hooks
+
+**Actions:**
+- Calls `init_hooks()` to register all filters and actions
+
+---
+
+#### init_hooks()
+**Visibility:** private
+
+**Purpose:** Register all WordPress filters and actions
+
+**Conditional Filters (require class existence):**
+- Badge filters (require `DataMachineEvents\Blocks\Calendar\Taxonomy\Badges`)
+- Breadcrumb filter (require `DataMachineEvents\Core\Breadcrumbs`)
+
+**Always Registered:**
+- Taxonomy registration hooks
+- Button filters
+- Related posts filters
+- Share button action
+- Post meta filter
+- CSS enqueue actions
+
+---
+
+#### on_registered_post_type()
+**Visibility:** public
+
+**Hook:** `registered_post_type`
+
+**Parameters:**
+- `$post_type` (string)
+- `$post_type_object` (WP_Post_Type)
+
+**Purpose:** Trigger taxonomy registration when data_machine_events post type registers
+
+**Condition:** Only acts if `DataMachineEvents\Core\Event_Post_Type` class exists and matches the registered post type
+
+**Actions:**
+- Calls `register_event_taxonomies()` to register all event taxonomies for the post type
+
+---
+
+#### on_registered_taxonomy()
+**Visibility:** public
+
+**Hook:** `registered_taxonomy`
+
+**Parameters:**
+- `$taxonomy` (string)
+- `$object_type` (string)
+- `$args` (array)
+
+**Purpose:** Trigger taxonomy registration when event taxonomies register
+
+**Condition:** Only acts if `DataMachineEvents\Core\Event_Post_Type` class exists and the registered taxonomy is in the event taxonomies list
+
+**Actions:**
+- Calls `register_event_taxonomies()` to ensure all taxonomies are properly connected
+
+---
+
+#### register_event_taxonomies()
+**Visibility:** public
+
+**Hook:** `init` (priority 20)
+
+**Purpose:** Dynamically register all event taxonomies for data_machine_events post type
+
+**Taxonomy List:** location, artist, festival, venue
+
+**Actions:**
+1. Checks that data_machine_events post type exists
+2. Iterates through each taxonomy
+3. Registers each taxonomy for the post type via `register_taxonomy_for_object_type()`
+
+**Flexibility:** Called from multiple hooks to ensure proper registration timing and handle late plugin loading
+
+---
+
+#### get_event_taxonomies()
+**Visibility:** private
+
+**Return Value:** array of taxonomy slugs
+
+**Purpose:** Centralized list of event taxonomies managed by this integration
+
+**Taxonomies:**
+- `location`
+- `artist`
+- `festival`
+- `venue`
+
+---
+**Visibility:** public
+
+**Hook:** `data_machine_events_badge_wrapper_classes`
+
+**Parameters:**
+- `$wrapper_classes` (array)
+- `$post_id` (int)
+
+**Return Value:** array
+
+**Purpose:** Add `taxonomy-badges` class to badge container
+
+---
+
+#### add_badge_classes()
+**Visibility:** public
+
+**Hook:** `data_machine_events_badge_classes`
+
+**Parameters:**
+- `$badge_classes` (array)
+- `$taxonomy_slug` (string)
+- `$term` (WP_Term)
+- `$post_id` (int)
+
+**Return Value:** array
+
+**Purpose:** Add taxonomy-specific badge classes (festival-*, location-*)
+
+---
+
+#### exclude_venue_taxonomy()
+**Visibility:** public
+
+**Hook:** `data_machine_events_excluded_taxonomies`
+
+**Parameters:**
+- `$excluded` (array)
+
+**Return Value:** array
+
+**Purpose:** Exclude venue and artist taxonomies from badge display
+
+---
+
+#### add_modal_button_classes()
+**Visibility:** public
+
+**Hook:** `data_machine_events_modal_button_classes`
+
+**Parameters:**
+- `$classes` (array)
+- `$button_type` (string)
+
+**Return Value:** array
+
+**Purpose:** Add theme button classes to modal buttons (primary/secondary)
+
+---
+
+#### add_ticket_button_classes()
+**Visibility:** public
+
+**Hook:** `data_machine_events_ticket_button_classes`
+
+**Parameters:**
+- `$classes` (array)
+
+**Return Value:** array
+
+**Purpose:** Add theme button classes to ticket purchase button
+
+---
+
+#### add_calendar_toggle_button_classes()
+**Visibility:** public
+
+**Hook:** `data_machine_events_add_to_calendar_button_classes`
+
+**Parameters:**
+- `$classes` (array)
+
+**Return Value:** array
+
+**Purpose:** Route the Add-to-Calendar toggle through theme button classes (action-row parity)
+
+---
+
+#### override_breadcrumbs()
+**Visibility:** public
+
+**Hook:** `data_machine_events_breadcrumbs`
+
+**Parameters:**
+- `$breadcrumbs` (string|null)
+- `$post_id` (int)
+
+**Return Value:** string
+
+**Purpose:** Replace data-machine-events breadcrumbs with theme breadcrumbs
+
+---
+
+#### filter_event_taxonomies()
+**Visibility:** public
+
+**Hook:** `extrachill_related_posts_taxonomies`
+
+**Parameters:**
+- `$taxonomies` (array)
+- `$post_id` (int)
+- `$post_type` (string)
+
+**Return Value:** array
+
+**Purpose:** Use venue and location taxonomies for related events
+
+---
+
+#### allow_event_taxonomies()
+**Visibility:** public
+
+**Hook:** `extrachill_related_posts_allowed_taxonomies`
+
+**Parameters:**
+- `$allowed` (array)
+- `$post_type` (string)
+
+**Return Value:** array
+
+**Purpose:** Whitelist location taxonomy for related events
+
+---
+
+#### filter_event_query_args()
+**Visibility:** public
+
+**Hook:** `extrachill_related_posts_query_args`
+
+**Parameters:**
+- `$query_args` (array)
+- `$taxonomy` (string)
+- `$post_id` (int)
+- `$post_type` (string)
+
+**Return Value:** array
+
+**Purpose:** Show only upcoming events, ordered by date
+
+---
+
+#### exclude_venue_from_location()
+**Visibility:** public
+
+**Hook:** `extrachill_related_posts_tax_query`
+
+**Parameters:**
+- `$tax_query` (array)
+- `$taxonomy` (string)
+- `$term_id` (int)
+- `$post_id` (int)
+- `$post_type` (string)
+
+**Return Value:** array
+
+**Purpose:** Exclude same venue when showing location-based related events
+
+---
+
+#### hide_post_meta_for_events()
+**Visibility:** public
+
+**Hook:** `extrachill_post_meta`
+
+**Parameters:**
+- `$default_meta` (string)
+- `$post_id` (int)
+- `$post_type` (string)
+
+**Return Value:** string
+
+**Purpose:** Hide theme post meta for data_machine_events post type
+
+---
+
+#### enqueue_single_post_styles()
+**Visibility:** public
+
+**Hook:** `wp_enqueue_scripts`
+
+**Purpose:** Enqueue CSS for single event pages
+
+**Files Enqueued:**
+1. Theme's single-post.css
+2. Theme's sidebar.css
+3. Plugin's single-event.css
+4. Theme's share.css
+
+**Condition:** Only on `is_singular('data_machine_events')`
+
+---
+
+#### enqueue_calendar_styles()
+**Visibility:** public
+
+**Hook:** `wp_enqueue_scripts`
+
+**Purpose:** Enqueue calendar CSS for homepage
+
+**Files Enqueued:**
+1. Plugin's calendar.css
+
+**Condition:** Only on blog ID 7 AND `is_front_page()`
+
+---
+
+#### render_share_button()
+**Visibility:** public
+
+**Hook:** `data_machine_events_action_buttons`
+
+**Parameters:**
+- `$post_id` (int)
+- `$ticket_url` (string)
+
+**Return Value:** void
+
+**Purpose:** Render share button in action buttons container
+
+**Condition:** Only on blog ID 7
+
+## Class Instantiation
+
+### ExtraChillEvents
+```php
+// Singleton pattern
+$plugin = ExtraChillEvents::get_instance();
+```
+
+### DataMachineEventsIntegration
+```php
+// Instantiated by ExtraChillEvents::init_integrations()
+if (defined('DATA_MACHINE_EVENTS_POST_TYPE')) {
+    $this->integrations['data_machine_events'] = new ExtraChillEvents\DataMachineEventsIntegration();
+}
+```
+
+## Class Loading
+
+Both classes are loaded via direct `require_once` statements (NO PSR-4 autoloading):
+
+```php
+require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/data-machine-events-integration.php';
+```
+
+Composer autoloader exists only for development dependencies (PHPUnit, PHPCS).

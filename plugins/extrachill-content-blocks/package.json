@@ -1,0 +1,33 @@
+{
+  "name": "extrachill-content-blocks",
+  "version": "1.13.3",
+  "description": "Reusable content creation Gutenberg blocks for the Extra Chill platform.",
+  "author": "Chris Huber <https://extrachill.com>",
+  "license": "GPL-2.0-or-later",
+  "main": "extrachill-content-blocks.php",
+  "scripts": {
+    "build": "wp-scripts build --webpack-copy-php",
+    "prepare": "npm run build",
+    "start": "wp-scripts start",
+    "lint:js": "wp-scripts lint-js",
+    "lint:css": "wp-scripts lint-style",
+    "format": "wp-scripts format",
+    "test:js": "npm run build && node --test tests/*.test.js",
+    "test:php": "npm run build && composer run-script test",
+    "typecheck": "tsc --noEmit",
+    "verify:assets": "npm run build && node --test tests/image-voting-contract.test.js"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^30.15.0"
+  },
+  "dependencies": {
+    "@wordpress/api-fetch": "^7.0.0",
+    "@wordpress/block-editor": "^14.0.0",
+    "@wordpress/blocks": "^15.9.0",
+    "@wordpress/components": "^28.0.0",
+    "@wordpress/data": "^10.36.0",
+    "@wordpress/element": "^6.0.0",
+    "@wordpress/i18n": "^5.0.0",
+    "@wordpress/icons": "^10.0.0"
+  }
+}

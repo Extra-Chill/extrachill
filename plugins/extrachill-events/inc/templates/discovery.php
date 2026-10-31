@@ -1,0 +1,48 @@
+<?php
+/**
+ * Discovery Page Template
+ *
+ * Time-scoped landing page for queries like "live music in austin tonight".
+ * Renders scope navigation tabs, map, and a scoped calendar block.
+ *
+ * @package ExtraChillEvents
+ * @since 0.7.0
+ */
+
+get_header();
+extrachill_breadcrumbs();
+
+$queried_term = get_queried_object();
+$scope        = extrachill_events_get_current_scope();
+$label        = extrachill_events_get_scope_label( $scope );
+?>
+
+
+<div class="events-calendar-container ec-mobile-full-width-panel">
+	<div class="page-content">
+	<header class="taxonomy-archive-header location-archive-header">
+		<h1 class="page-title">Live Music in <?php echo esc_html( $queried_term->name ); ?> <?php echo esc_html( $label ); ?></h1>
+		<?php if ( term_description() ) : ?>
+			<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( term_description() ) ); ?></div>
+		<?php endif; ?>
+	</header>
+
+	<?php extrachill_events_render_scope_nav( $queried_term, $scope ); ?>
+
+	<?php do_action( 'extrachill_archive_below_description' ); ?>
+	</div>
+
+	<div class="page-content">
+		<?php
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() renders trusted block markup; the interpolated $scope is esc_attr()-escaped inside the block comment.
+		echo do_blocks(
+			sprintf(
+				'<!-- wp:data-machine-events/calendar {"defaultDateRange":"%s"} /-->',
+				esc_attr( $scope )
+			)
+		);
+		?>
+	</div>
+</div>
+
+<?php get_footer(); ?>

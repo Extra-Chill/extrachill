@@ -1,0 +1,174 @@
+<?php
+/**
+ * Newsletter Breadcrumb Customization
+ *
+ * Customizes breadcrumb display for newsletter single posts.
+ *
+ * @package ExtraChillNewsletter
+ * @since 0.1.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * Newsletter breadcrumb root
+ *
+ * On homepage: just "Extra Chill"
+ * On other pages: "Extra Chill › Newsletter"
+ *
+ * @param string $root_link Default root breadcrumb link HTML
+ * @return string Modified root link
+ * @since 0.1.0
+ */
+function newsletter_breadcrumb_root( $root_link ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
+		return $root_link;
+	}
+
+	// On homepage, just "Extra Chill" (trail will add "Newsletter")
+	if ( is_front_page() ) {
+		$main_site_url = ec_get_site_url( 'main' );
+		return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a>';
+	}
+
+	// On other pages, include "Newsletter" in root
+	$main_site_url = ec_get_site_url( 'main' );
+	return '<a href="' . esc_url( $main_site_url ) . '">Extra Chill</a> › <a href="' . esc_url( home_url() ) . '">Newsletter</a>';
+}
+add_filter( 'extrachill_breadcrumbs_root', 'newsletter_breadcrumb_root' );
+
+/**
+ * Newsletter homepage breadcrumb trail
+ *
+ * Displays just "Newsletter" (no link) on the homepage to prevent "Archives" suffix.
+ * Priority 5 to run before the single post breadcrumb function.
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Breadcrumb trail HTML
+ * @since 0.1.0
+ */
+function newsletter_breadcrumb_trail_homepage( $custom_trail ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
+		return $custom_trail;
+	}
+
+	// Only on front page (homepage)
+	if ( is_front_page() ) {
+		return '<span class="network-dropdown-target">Newsletter</span>';
+	}
+
+	return $custom_trail;
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_breadcrumb_trail_homepage', 5 );
+
+/**
+ * Newsletter breadcrumb format for single posts
+ *
+ * @param string $custom_trail Existing custom trail from other plugins
+ * @return string Empty string
+ * @since 0.1.0
+ */
+function newsletter_customize_breadcrumbs( $custom_trail ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
+		return $custom_trail;
+	}
+
+	if ( ! is_singular( 'newsletter' ) ) {
+		return $custom_trail;
+	}
+
+	return '<span class="breadcrumb-title">' . get_the_title() . '</span>';
+}
+add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_breadcrumbs' );
+
+/**
+ * Override back-to-home link label for newsletter pages
+ *
+ * Changes "Back to Extra Chill" to "Back to Newsletter" on newsletter pages.
+ * Uses theme's extrachill_back_to_home_label filter.
+ * Only applies on blog ID 9 (newsletter.extrachill.com).
+ *
+ * @param string $label Default back-to-home link label
+ * @param string $url   Back-to-home link URL
+ * @return string Modified label
+ * @since 0.1.0
+ */
+function newsletter_back_to_home_label( $label, $url ) {
+	unset( $url );
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
+		return $label;
+	}
+
+	// Don't override on homepage (homepage should say "Back to Extra Chill")
+	if ( is_front_page() ) {
+		return $label;
+	}
+
+	return '← Back to Newsletter';
+}
+add_filter( 'extrachill_back_to_home_label', 'newsletter_back_to_home_label', 10, 2 );
+
+/**
+ * Override schema breadcrumb items for newsletter site
+ *
+ * Aligns schema breadcrumbs with visual breadcrumbs for newsletter.extrachill.com.
+ * Only applies on blog ID 9 (newsletter.extrachill.com).
+ *
+ * Output patterns:
+ * - Homepage: [Extra Chill, Newsletter]
+ * - Single newsletter: [Extra Chill, Newsletter, Newsletter Title]
+ *
+ * @hook extrachill_seo_breadcrumb_items
+ * @param array $items Default breadcrumb items from SEO plugin
+ * @return array Modified breadcrumb items for newsletter context
+ * @since 0.2.0
+ */
+function newsletter_schema_breadcrumb_items( $items ) {
+	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
+		return $items;
+	}
+
+	$main_site_url = ec_get_site_url( 'main' );
+
+	// Homepage: Extra Chill → Newsletter
+	if ( is_front_page() ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Newsletter',
+				'url'  => '',
+			),
+		);
+	}
+
+	// Single newsletter: Extra Chill → Newsletter → Newsletter Title
+	if ( is_singular( 'newsletter' ) ) {
+		return array(
+			array(
+				'name' => 'Extra Chill',
+				'url'  => $main_site_url,
+			),
+			array(
+				'name' => 'Newsletter',
+				'url'  => home_url( '/' ),
+			),
+			array(
+				'name' => get_the_title(),
+				'url'  => '',
+			),
+		);
+	}
+
+	return $items;
+}
+add_filter( 'extrachill_seo_breadcrumb_items', 'newsletter_schema_breadcrumb_items' );

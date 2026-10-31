@@ -1,0 +1,52 @@
+<?php
+/**
+ * Abilities API bootstrap.
+ *
+ * @package ExtraChillArtistPlatform
+ * @since 1.7.0
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/category.php';
+require_once __DIR__ . '/registry.php';
+
+require_once __DIR__ . '/handlers/get-artist-data.php';
+require_once __DIR__ . '/handlers/get-link-page-data.php';
+require_once __DIR__ . '/handlers/create-artist.php';
+require_once __DIR__ . '/handlers/onboard-external-artist.php';
+require_once __DIR__ . '/handlers/artist-invitation.php';
+require_once __DIR__ . '/handlers/update-artist.php';
+require_once __DIR__ . '/handlers/save-link-page-links.php';
+require_once __DIR__ . '/handlers/save-link-page-styles.php';
+require_once __DIR__ . '/handlers/save-link-page-settings.php';
+require_once __DIR__ . '/handlers/create-artist-link-page.php';
+require_once __DIR__ . '/handlers/save-social-links.php';
+
+// Artist-domain ability handlers (issue #27).
+require_once __DIR__ . '/handlers/artists-list.php';
+require_once __DIR__ . '/handlers/artist-get.php';
+require_once __DIR__ . '/handlers/artist-public-projections.php';
+require_once __DIR__ . '/handlers/artist-get-links.php';
+require_once __DIR__ . '/handlers/artist-update-links.php';
+require_once __DIR__ . '/handlers/artist-get-permissions.php';
+require_once __DIR__ . '/handlers/artist-get-roster.php';
+require_once __DIR__ . '/handlers/artist-list-socials.php';
+require_once __DIR__ . '/handlers/artist-create-social.php';
+require_once __DIR__ . '/handlers/artist-update-social.php';
+require_once __DIR__ . '/handlers/artist-delete-social.php';
+require_once __DIR__ . '/handlers/artist-subscribe.php';
+require_once __DIR__ . '/handlers/artist-list-subscribers.php';
+require_once __DIR__ . '/handlers/artist-export-subscribers.php';
+require_once __DIR__ . '/handlers/artist-get-analytics.php';
+require_once __DIR__ . '/handlers/get-artist-platform-stats.php';
+require_once __DIR__ . '/handlers/artist-local-support.php';
+
+// Admin artist-relationships ability handlers.
+require_once __DIR__ . '/handlers/admin-list-artist-relationships.php';
+require_once __DIR__ . '/handlers/admin-link-artist-relationship.php';
+require_once __DIR__ . '/handlers/admin-unlink-artist-relationship.php';
+require_once __DIR__ . '/handlers/admin-list-orphan-artist-relationships.php';
+require_once __DIR__ . '/handlers/admin-cleanup-artist-relationships.php';

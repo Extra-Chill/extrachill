@@ -1,0 +1,233 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.13.3] - 2026-10-24
+
+### Fixed
+- prefill the entry email for logged-in visitors
+
+## [1.13.2] - 2026-10-24
+
+### Changed
+- cache each entry's vote QR
+
+### Fixed
+- readable welcome links and claim line placement
+
+## [1.13.1] - 2026-10-24
+
+### Fixed
+- one welcome per person, entrants who vote get no voter email
+
+## [1.13.0] - 2026-10-24
+
+### Added
+- participants get an Extra Chill account; ticket link on the event title
+
+## [1.12.0] - 2026-10-24
+
+### Added
+- participant event + per-contest welcome email
+
+## [1.11.0] - 2026-10-24
+
+### Added
+- vote QR pinned to the entry photo
+
+## [1.10.3] - 2026-10-24
+
+### Fixed
+- resolve close times in the site timezone
+
+## [1.10.2] - 2026-10-24
+
+### Fixed
+- shrink photos before upload and show upload status
+
+## [1.10.1] - 2026-10-24
+
+### Fixed
+- share + QR on the single-entry view
+
+## [1.10.0] - 2026-10-24
+
+### Added
+- HOT row showing the top 3 entries by votes
+
+## [1.9.0] - 2026-10-24
+
+### Added
+- moderators can add an entry for someone
+
+## [1.8.2] - 2026-10-24
+
+### Fixed
+- KISS pass on buttons
+
+## [1.8.1] - 2026-10-24
+
+### Fixed
+- use real buttons for photo upload so theme button styles apply
+
+## [1.8.0] - 2026-10-24
+
+### Added
+- photo-first entry in a modal, email after photo
+
+## [1.7.1] - 2026-10-24
+
+### Changed
+- split view.tsx into focused modules
+
+## [1.7.0] - 2026-10-23
+
+### Added
+- remember the entrant on this device with a live 'Your entry' card
+
+## [1.6.2] - 2026-10-23
+
+### Changed
+- Add moderator controls to close and reopen photo contest phases
+
+## [1.6.1] - 2026-10-23
+
+### Fixed
+- Fix photo contest share QR generation with scoped permission grant
+
+## [1.6.0] - 2026-10-22
+
+### Added
+- focused single-entry share view with in-person QR
+
+## [1.5.2] - 2026-10-22
+
+### Changed
+- Support photo contest opening windows and reliable clean test builds
+- Ensure contest Turnstile changes pass build-dependent tests
+
+## [1.5.1] - 2026-10-16
+
+### Changed
+- compose domain into inc/, status-coded errors, drop spoofable IP rate limit
+
+## [1.5.0] - 2026-10-16
+
+### Added
+- day-of moderator controls, duplicate-photo guard, venue-safe entry limit
+
+## [1.4.0] - 2026-10-16
+
+### Added
+- photo contest block with user-submitted entries
+- add trivia-create and trivia-list abilities
+
+### Changed
+- adopt the shared Homeboy release train
+
+### Fixed
+- exclude build-only webpack.config.js from package completeness
+- grant id-token so the shared release workflow can start
+- declare image voting editor contract
+
+## [1.3.4] - 2026-07-12
+
+### Changed
+- migrate image-voting to extrachill_network_subscribe (#17)
+
+## [1.3.3] - 2026-06-15
+
+### Changed
+- store image-voting votes as native comments instead of post_content
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+
+## [1.3.2] - 2026-06-13
+
+### Changed
+- port content-block frontends to headless React/TS (closes #6)
+
+### Fixed
+- mount blocks in place with shared score store (follow-up to #7)
+- dismiss generator/voting messages instead of leaving them lingering
+- derive blockId from clientId to prevent collisions
+
+## [1.3.1] - 2026-05-21
+
+### Fixed
+- register the extrachill-content category
+
+## [1.3.0] - 2026-05-18
+
+### Added
+- register content-block abilities
+
+### Fixed
+- sync block.json versions on release so style/script changes bust caches
+
+## [1.2.2] - 2026-04-02
+
+### Changed
+- Remove stale AI Adventure references from README
+- Bump block apiVersion 2 → 3 for Gutenberg 22.8 iframe editor compatibility
+
+## [1.2.1] - 2026-03-27
+
+### Changed
+- remove AI adventure blocks, now in standalone extrachill-ai-adventure plugin
+
+## [1.2.0] - 2026-03-27
+
+### Added
+- self-register content blocks into BE and Studio IBE allowlists
+
+## [1.1.2] - 2026-03-27
+
+### Fixed
+- load block business logic PHP files for REST API endpoints
+
+## [1.1.1] - 2026-03-27
+
+### Changed
+- auto-fix PHPCS coding standard violations
+- extract shared content blocks plugin
+- Bump version to 1.1.0
+- moved api into extrachill-api as foundational step for creation of the extra chill api
+- blocks functional and ready for boogieman costume contest
+- getting image voting block ready for Boogieman Festival Costume Contest 2025
+- Enhance image-voting block with newsletter integration and WordPress standards compliance
+- Update blocks, remove deprecated files, and refine AI adventure
+- Add vendor/ to .gitignore
+- Add .gitignore and remove node_modules/build from tracking
+- Initial commit: ExtraChill Blocks plugin
+
+## [1.1.0] - 2026-03-27
+
+### Added
+- Standalone cross-site content blocks plugin extracted from extrachill-blog
+- Homeboy component configuration for build/deploy pipeline
+- Block source files moved to `src/blocks/` subdirectory
+
+### Changed
+- Renamed plugin from "Extra Chill Blocks" to "Extra Chill Content Blocks"
+- Block namespace standardized to `extrachill/*`
+- Renamed `ExtraChill_Blog_Prompt_Builder` to `ExtraChill_Content_Blocks_Prompt_Builder`
+- Updated API paths from `/blog/` to `/content-blocks/` namespace
+- Switched from glob-based to explicit block registration
+- Minimum WordPress version raised to 6.4
+
+### Removed
+- Old `extrachill-blocks/*` block namespace
+- Shared CSS enqueue and inline style injection
+- Legacy render callback complexity
+
+## [1.0.0] - 2025-10-15
+
+### Added
+- Initial release as Extra Chill Blocks
+- Trivia block with multiple-choice questions and scoring
+- Image voting block with email capture and newsletter integration
+- Band name generator block with genre selection
+- Rapper name generator block with style categories
+- AI adventure block with branching narrative paths

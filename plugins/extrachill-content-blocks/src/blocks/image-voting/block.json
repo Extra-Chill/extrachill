@@ -1,0 +1,47 @@
+{
+   "apiVersion": 3,
+   "version": "1.13.3",
+   "name": "extrachill/image-voting",
+  "title": "Image Voting Block",
+  "icon": "thumbs-up",
+  "category": "widgets",
+  "description": "Allow users to vote on images with email capture.",
+  "textdomain": "extrachill-content-blocks",
+  "attributes": {
+    "blockTitle": {
+      "type": "string",
+      "default": "Vote for this image"
+    },
+    "mediaID": {
+      "type": "number",
+      "default": 0
+    },
+    "mediaURL": {
+      "type": "string",
+      "default": ""
+    },
+    "voteCount": {
+      "type": "number",
+      "default": 0,
+      "description": "DEPRECATED (issue #13): votes are now stored as image_vote comments. Kept only so the one-time backfill (wp extrachill-content-blocks backfill-image-votes) can read historical counts. Remove from block.json after backfill + post_content cleanup are confirmed in production."
+    },
+    "uniqueBlockId": {
+      "type": "string",
+      "default": ""
+    },
+    "voters": {
+      "type": "array",
+      "default": [],
+      "description": "DEPRECATED (issue #13): voter emails are now stored in wp_comments (image_vote type) and never rendered. Kept only for the one-time backfill to read historical voter emails. Remove from block.json after backfill + post_content cleanup are confirmed in production."
+    }
+  },
+  "viewScript": "file:./view.js",
+  "style": "file:./style-index.css",
+  "supports": {
+    "html": false,
+    "align": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "render": "file:./render.php"
+}

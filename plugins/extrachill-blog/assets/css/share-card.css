@@ -1,0 +1,25 @@
+/**
+ * Share Card Styles
+ *
+ * Styling for the share CTA card on single blog posts.
+ *
+ * @package ExtraChillBlog
+ */
+
+.share-card {
+	background: var(--background-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	padding: var(--spacing-lg);
+	margin: var(--spacing-lg) 0;
+	text-align: center;
+}
+
+.share-card p {
+	margin: 0 0 var(--spacing-md) 0;
+	color: var(--text-color);
+}
+
+.share-card .share-dropdown {
+	margin: 0;
+}

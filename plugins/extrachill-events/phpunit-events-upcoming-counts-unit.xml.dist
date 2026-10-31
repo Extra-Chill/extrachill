@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			events-upcoming-counts-unit: pure-PHP upcoming-count ability tests.
+			Isolated because its query recorder doubles conflict with
+			event-source-intake-unit and qualify-v2-unit in one process.
+		-->
+		<testsuite name="events-upcoming-counts-unit">
+			<file>tests/Unit/Abilities/EventsUpcomingCountsTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

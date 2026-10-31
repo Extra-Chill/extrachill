@@ -1,0 +1,276 @@
+# 0.4.0 - Apr 19, 2026
+
+## [0.10.0] - 2026-10-22
+
+### Added
+- ask "Did this help?" at the end of docs articles
+
+## [0.9.0] - 2026-10-11
+
+### Added
+- deterministic voice check for end-user help articles
+
+## [0.8.0] - 2026-10-11
+
+### Added
+- publish installed plugins' user docs as pages
+
+### Fixed
+- report same-slug conflicts instead of duplicating pages
+
+## [0.7.3] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
+## [0.7.2] - 2026-09-21
+
+### Changed
+- adopt the shared Homeboy release train
+
+## [0.7.1] - 2026-09-11
+
+### Fixed
+- register rewrite rules for top-level pages, not just children
+
+## [0.7.0] - 2026-09-08
+
+### Changed
+- remove repo sync subsystem
+
+## [0.6.1] - 2026-08-22
+
+### Fixed
+- regenerate docs with corrected transformer
+
+## [0.6.0] - 2026-08-04
+
+### Added
+- support team-only documentation
+
+## [0.5.7] - 2026-07-30
+
+### Fixed
+- strip source titles from synced docs
+
+## [0.5.6] - 2026-07-30
+
+### Fixed
+- normalize docs sync ability failures
+
+## [0.5.5] - 2026-07-21
+
+### Fixed
+- compile synced page rewrites first
+
+## [0.5.4] - 2026-07-21
+
+### Fixed
+- prioritize synced documentation pages
+
+## [0.5.3] - 2026-07-21
+
+### Fixed
+- resolve PHPCS + ESLint errors blocking release preflight
+- restore production documentation sync
+- make responsive card grids overflow-safe (min(100%, floor))
+
+## [0.5.2] - 2026-06-15
+
+### Fixed
+- register extrachill-docs ability category to stop _doing_it_wrong notice
+
+## [0.5.1] - 2026-06-15
+
+### Fixed
+- register upsert-doc-page ability on wp_abilities_api_init
+
+## [0.5.0] - 2026-06-13
+
+### Changed
+- Platform taxonomy terms now derived from `ec_get_blog_ids()` (canonical multisite source of truth) instead of hardcoded list
+- Renamed `ec_docs/artist-platform/` → `ec_docs/artist/` and `ec_docs/events-calendar/` → `ec_docs/events/` to match canonical slugs
+- Removed phantom platform terms (stream, horoscopes) and added missing ones (wire, studio)
+- Updated plugin requirements: PHP 8.2+, WordPress 6.9+
+
+### Removed
+- Legacy `build.sh` (replaced by homeboy build system)
+- Legacy `.buildignore` (homeboy uses `homeboy.json` config)
+
+### Added
+- `homeboy.json` portable component config for standardized build/deploy
+- `extrachill_docs_get_seed_slugs()` and `extrachill_docs_get_platform_label()` helper functions
+
+# 0.3.3 - Jan 04, 2026
+
+### Added
+- Comprehensive breadcrumb schema support for SEO, aligning visual and search engine breadcrumbs
+- New user documentation: Artist Merch Store management, Artist Roster management, and User Profile setup
+- Community documentation: detailed guides for sharing music, notifications, and upvoting system
+- Events calendar documentation: guide for submitting events and using calendar filters
+
+### Changed
+- Refined community forum documentation with updated terminology (Gutenberg block editor) and inline reply features
+- Updated AI Chat documentation to reflect multi-turn conversation capabilities and sequence-based tool usage
+- Expanded Artist Platform "Getting Started" guide with detailed sign-in flow and Google integration steps
+
+### Maintenance
+- Updated CLAUDE.md and README.md with current version and architectural details
+- Standardized documentation formatting across all new platform guides
+
+# 0.3.2 - Dec 31, 2025
+
+### Added
+- Artist platform documentation: artist access requirements, creating artist merch store, managing roster, managing artist profile
+- Community documentation: getting started guide, notifications system
+- Events calendar documentation: submitting an event, using calendar filters
+
+### Changed
+- Post meta filter now uses `extrachill_post_meta_parts` hook returning `['published', 'updated']` instead of hiding all metadata
+- Improved documentation formatting: removed YAML frontmatter, expanded content with better structure
+- Updated ec_docs/README.md with clearer file format guidelines and platform directory reference
+- Enhanced artist platform docs with detailed join flow, Google sign-in, and editor instructions
+- Expanded community docs with block editor features, social platform list, and sharing guidelines
+
+### Maintenance
+- Standardized documentation structure across all platform guides
+- Added support sections with forum and contact links to all docs
+
+# 0.3.1 - Dec 9, 2025
+
+### Changed
+- Simplified table of contents to h2-only headers for cleaner navigation
+- Split taxonomy registration into focused files for better code organization
+- Updated CSS styling for improved visual consistency
+
+### Maintenance
+- Cleaned up Composer dependencies and autoload files
+- Removed outdated documentation files via sync process
+
+# 0.3.0 - Dec 9, 2025
+
+### Added
+- Dynamic table of contents sidebar with scroll tracking and smooth scrolling
+- Recent documentation preview in homepage platform cards
+- TOC JavaScript for progressive enhancement on documentation pages
+- Platform-based related posts for documentation articles
+
+### Changed
+- Homepage platform cards now show recent articles instead of just counts
+- Replaced related docs sidebar with table of contents on single doc pages
+- Improved documentation upload script with H1 header title parsing
+- Updated getting started guide content
+- Changed rewrite rule priorities to 'top' for better precedence
+
+### Maintenance
+- Updated Composer dependencies
+
+# 0.2.5 - Dec 8, 2025
+
+### Added
+- Related documentation sidebar displaying posts from the same platform
+- Enhanced CSS styling with design tokens for improved visual consistency
+- Dynamic site URL support in breadcrumb navigation
+- Custom back-to-home label for documentation pages
+
+### Changed
+- Updated breadcrumb functions to use dynamic blog ID detection
+- Improved theme integration with sidebar content filters
+
+### Maintenance
+- Updated Composer dependencies
+
+# 0.2.4 - Dec 8, 2025
+
+### Added
+- Custom URL structure `/{platform-slug}/{doc-slug}/` with new rewrite rules system
+- Theme integration filters to hide author meta and related posts for documentation posts
+- Enhanced breadcrumb navigation with dynamic blog ID detection and support for single docs and platform archives
+- "Getting Started on the Artist Platform" user documentation guide
+- 'blog' platform to default platform seeding
+
+### Changed
+- Simplified platform seeding by removing descriptions and streamlining data structure
+- Disabled default post type/taxonomy rewrites in favor of custom rewrite rules
+- Improved sync script `.env` parsing to properly handle quoted values
+- Updated breadcrumb functions to use dynamic blog ID instead of hardcoded values
+
+### Maintenance
+- Updated Composer dependencies
+
+# 0.2.3 - Dec 8, 2025
+
+### Added
+- Homepage intro section with title and description for better user experience
+- Breadcrumb navigation integration on documentation homepage
+
+### Changed
+- Reorganized homepage rendering code from `inc/home/` to `inc/core/homepage.php` for better file structure
+- Updated 'events' platform taxonomy slug to 'events-calendar' for improved URL clarity
+- Updated CLAUDE.md with REST API endpoint documentation
+
+### Maintenance
+- Updated Composer dependencies
+
+# 0.2.2 - Dec 7, 2025
+
+### Added
+- Breadcrumb integration for docs pages with "Extra Chill → Documentation" navigation
+- Theme filter hooks for custom breadcrumb trails on homepage
+
+### Changed
+- Updated CLAUDE.md with current architecture and file structure documentation
+- Removed outdated artist platform documentation files
+- Minor formatting updates to main plugin file
+
+### Maintenance
+- Updated Composer dependencies
+
+# 0.2.1 - Dec 7, 2025
+
+### Changed
+- Simplified platform seeding by removing descriptions and unused platforms (Getting Started, Your Account)
+- Updated homepage to only display platforms with published documentation for cleaner navigation
+- Added .gitignore to exclude build/, vendor/, and .env files
+- Updated CLAUDE.md documentation to reflect platform changes
+
+# 0.2.0 - Dec 7, 2025
+
+### Added
+- Documentation sync system for publishing user docs to WordPress
+- Bash sync script (`scripts/sync.sh`) with environment variable support
+- PHP upload script (`scripts/upload.php`) with frontmatter parsing
+- WordPress REST API client (`scripts/WordPressClient.php`) for authenticated requests
+- File finder utility (`scripts/FileFinder.php`) for recursive markdown discovery
+- User documentation structure (`ec_docs/`) as source of truth
+- Artist platform guides: link page creation and advanced features
+- Documentation guidelines and sync process instructions
+
+# 0.1.1 - Dec 7, 2024
+
+### Changed
+- Version bump to 0.1.1 following initial 0.1.0 release
+- modernize repo: remove legacy build, add homeboy config, version bump 0.4.0
+- Remove stream from docs platform taxonomy seed
+- remove chat platform docs (chat.extrachill.com deprecated)
+- Remove vendor directory from git tracking
+- update
+- added .gitignore
+- Initial release: extrachill-docs v0.1.0
+
+# 0.1.0 - Dec 7, 2024
+
+### Added
+- Complete documentation platform implementation
+- ec_doc custom post type with hierarchical support
+- ec_doc_platform taxonomy with default platform seeding
+- Homepage platform cards for navigation
+- Clean URL structure (/platform-slug/doc-slug/)
+- Conditional asset loading with cache busting
+- Plugin activation hook with rewrite rule flushing
+- one-shot CLI migration of 16 ec_doc posts to hierarchical pages
+- upsert-doc-page ability + scheduled cron + edit lockdown
+- feat(docs-agent): register 'docs' execution mode with editorial voice rules
+
+### Fixed
+- derive platform terms from canonical multisite site map

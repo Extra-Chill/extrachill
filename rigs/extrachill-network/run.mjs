@@ -679,8 +679,9 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
     }
   }
 
+  const monorepoSources = await prepareMonorepoSources(settings, activePlugins, components.theme, artifactsRoot(cwd));
   const extraPlugins = activePlugins.map((component) => ({
-    source: resolveComponentSource(component, overrides, releaseSet),
+    source: resolveComponentSource(component, overrides, releaseSet, monorepoSources),
     slug: component.slug,
     // wp-codebox validates a single pluginFile exists in the mounted source
     // regardless of activate:false; components whose main file does not
@@ -693,7 +694,7 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
     metadata: { extrachillActivations: component.activations },
   }));
 
-  const themeSource = settings.extrachill_theme_source;
+  const themeSource = overrides[components.theme.slug] || monorepoSources[components.theme.slug] || settings.extrachill_theme_source;
   const theme = buildThemeInputs(components.theme, themeSource);
 
   const additionalPrepareSteps = recipeArray(settings.wordpress_runtime_prepare_steps, 'wordpress_runtime_prepare_steps');
@@ -865,9 +866,12 @@ function artifactsRoot(cwd) {
   return process.env.HOMEBOY_ARTIFACT_ROOT || path.join(cwd, 'artifacts/extrachill-network');
 }
 
-function resolveComponentSource(component, overrides, releaseSet) {
+function resolveComponentSource(component, overrides, releaseSet, monorepoSources = {}) {
   if (overrides[component.slug]) {
     return overrides[component.slug];
+  }
+  if (monorepoSources[component.slug]) {
+    return monorepoSources[component.slug];
   }
   const pin = releaseSet[component.slug];
   if (component.source === 'wporg') {
@@ -883,6 +887,60 @@ function resolveComponentSource(component, overrides, releaseSet) {
     throw new Error(`Component ${component.slug} has no default source; supply extrachill_component_source_overrides.${component.slug}.`);
   }
   throw new Error(`Unknown component source strategy for ${component.slug}: ${component.source}`);
+}
+
+/** Build only selected checkout components, never sources supplied as overrides. */
+export async function buildCheckoutComponent(directory, run = runCheckoutBuild) {
+  const composer = await optionalManifest(path.join(directory, 'composer.json'));
+  if (composer) {
+    await run('composer', ['install', '--no-dev', '--prefer-dist', '--no-interaction', '--optimize-autoloader'], directory);
+  }
+  const npm = await optionalManifest(path.join(directory, 'package.json'));
+  if (npm?.scripts?.build) {
+    const locked = await isFile(path.join(directory, 'package-lock.json'));
+    await run('npm', [locked ? 'ci' : 'install', '--include=dev'], directory);
+    await run('npm', ['run', 'build'], directory);
+  }
+}
+
+function runCheckoutBuild(command, args, cwd) {
+  // Keep stdout clean: run.mjs emits a JSON protocol response there.
+  const result = spawnSync(command, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: WP_CODEBOX_MAX_BUFFER_BYTES });
+  if (result.status !== 0 || result.error) {
+    throw new Error(`Monorepo build failed in ${cwd}: ${command} ${args.join(' ')}\n${result.error?.message ?? ''}\n${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+  }
+}
+
+async function isFile(file) {
+  try { return (await stat(file)).isFile(); } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+async function optionalManifest(file) {
+  if (!(await isFile(file))) return undefined;
+  return JSON.parse(await readFile(file, 'utf8'));
+}
+
+export async function prepareMonorepoSources(settings, plugins, theme, artifactDirectory, build = buildCheckoutComponent) {
+  const root = settings.extrachill_monorepo_source;
+  if (root === undefined) return {};
+  if (typeof root !== 'string' || !path.isAbsolute(root)) {
+    throw new Error('extrachill_monorepo_source must be an absolute checkout path.');
+  }
+  if (!(await stat(root)).isDirectory()) throw new Error('extrachill_monorepo_source must be a checkout directory.');
+  const overrides = isRecord(settings.extrachill_component_source_overrides) ? settings.extrachill_component_source_overrides : {};
+  const sources = {};
+  for (const component of [...plugins, theme]) {
+    if (overrides[component.slug]) continue;
+    const directory = path.join(root, component === theme ? 'themes' : 'plugins', component.slug);
+    const entrypoint = component === theme ? 'style.css' : (component.activations?.[0]?.pluginFile?.split('/').slice(1).join('/') || `${component.slug}.php`);
+    if (!(await isFile(path.join(directory, entrypoint)))) continue;
+    await build(directory);
+    sources[component.slug] = directory;
+  }
+  return sources;
 }
 
 function buildThemeInputs(themeComponent, themeSource) {

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			event-source-intake-unit: pure-PHP event-source intake ability tests.
+			Isolated because its WP_Term and taxonomy doubles conflict with the
+			Core stubs loaded by qualify-v2-unit and with events-upcoming-counts-unit.
+		-->
+		<testsuite name="event-source-intake-unit">
+			<file>tests/Unit/Abilities/EventSourceIntakeTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

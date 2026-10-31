@@ -1,0 +1,464 @@
+/**
+ * CSS for Single Artist Profiles (single-artist_profile.php).
+ */
+
+:root {
+    /* Define any specific variables if needed, or rely on GeneratePress/global variables */
+}
+
+.artist-profile-header {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens if needed */
+    align-items: flex-start; /* Align items to the top */
+    gap: 20px; /* Space between image and details */
+    margin-bottom: 1.5em; /* Space below the header */
+    padding-bottom: 1.5em;
+    border-bottom: 1px solid var(--border-color); /* Separator */
+}
+
+.artist-profile-image {
+    flex: 0 0 150px; /* Fixed width for the image container */
+    max-width: 150px;
+}
+
+.artist-profile-image img {
+    max-width: 100%;
+    height: auto;
+    display: block; /* Remove extra space below image */
+    border-radius: 5px; /* Optional rounded corners */
+    border: 1px solid var(--border-color);
+}
+
+.artist-profile-details {
+    flex: 1; /* Allow details to take remaining space */
+    min-width: 200px; /* Prevent excessive squishing */
+}
+
+.artist-profile-details h1 {
+    margin-top: 0; /* Remove default top margin if needed */
+    margin-bottom: 0.3em;
+}
+
+.artist-profile-details p {
+    margin-bottom: 0.5em; /* Consistent spacing for meta details */
+    font-size: 0.95em;
+    color: var(--muted-text);
+}
+
+.artist-profile-details p strong {
+    color: var(--text-color);
+    margin-right: 5px;
+}
+
+.artist-social-links {
+    margin-top: 1em;
+    display: flex;
+    gap: 15px; /* Space between icons */
+    flex-wrap: wrap;
+}
+
+.artist-social-links a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.artist-social-links a:hover {
+    color: var(--accent); /* Use theme accent color */
+}
+
+/* Artist Forum Section Styling (Basic Wrapper) */
+.artist-forum-section {
+    margin-top: 2em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border-color); /* Separator */
+}
+
+.artist-forum-title,
+.artist-topics-title {
+    margin-bottom: 1em;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+    .artist-profile-header {
+        flex-direction: column; /* Stack vertically */
+        align-items: center; /* Center items */
+        text-align: center;
+    }
+
+    .artist-profile-image {
+        flex-basis: auto; /* Allow image container to resize */
+        width: 120px; /* Slightly smaller image centered */
+        max-width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .artist-profile-details {
+        width: 100%;
+    }
+
+    .artist-social-links {
+        justify-content: center; /* Center icons */
+        gap: 20px;
+    }
+}
+
+/* --- Artist Hero Section Styles --- */
+
+/* Override previous header styles for the new hero layout */
+.artist-hero {
+    display: block; /* Reset flex */
+    flex-wrap: nowrap; /* Reset flex-wrap */
+    align-items: initial; /* Reset align-items */
+    gap: 0; /* Reset gap */
+    padding: 40px 20px; /* Reduced from 80px for better proportions */
+    margin-bottom: 30px; /* Space below hero */
+    position: relative; /* For overlay and button positioning */
+    background-size: cover;
+    background-position: center center;
+    color: var(--header-text); /* Theme text for heroes without a photo */
+    border-radius: 5px; /* Optional: subtle rounding */
+    overflow: hidden; /* Ensure overlay respects border-radius */
+    border: 1px solid var(--border-color); /* Professional border using theme variable */
+}
+
+/* Default background if no image */
+.artist-hero:not([style*='background-image']) {
+    /* Use card background for consistency with theme */
+    background-color: var(--card-background);
+    /* Ensure text contrast on default background */
+    color: var(--header-text);
+}
+
+.artist-hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent dark overlay */
+    z-index: 1;
+    pointer-events: none; /* Allows clicking through overlay if needed */
+}
+
+.artist-hero-content {
+    position: relative;
+    z-index: 2; /* Content above overlay */
+    padding: 10px; /* Optional padding within content area */
+}
+
+/* Artist Hero Top Row - Override inline styles and add flex-wrap */
+.artist-hero-top-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1em;
+    flex-wrap: wrap; /* Allow wrapping on mobile */
+}
+
+/* Artist Hero Text Content - Allow it to grow and take remaining space */
+.artist-hero-text-content {
+    flex-grow: 1;
+}
+
+/* Profile Picture specific styles within the Hero section */
+.artist-profile-featured-image {
+    flex-shrink: 0; /* Ensures the image container doesn't shrink */
+    width: 120px; /* Fixed size for consistency */
+    height: 120px; /* Fixed size for consistency */
+    margin-right: 20px; /* Replaces the gap from the parent flex container for consistency if gap is removed */
+}
+
+.artist-profile-featured-image img {
+    width: 100%; /* Fill container */
+    height: 100%; /* Fill container */
+    object-fit: cover; /* Crop to square */
+    display: block; /* Removes potential extra space below the image */
+    border-radius: 15px; /* Apply rounded corners */
+    border: 3px solid var(--border-color); /* Theme variable border, responsive to dark mode */
+    box-shadow: var(--card-shadow); /* Professional depth using theme variable */
+}
+
+.artist-hero-title {
+    color: var(--header-text) !important; /* Theme text for heroes without a photo */
+    margin-bottom: 15px;
+    font-size: 2.5em; /* Larger title */
+}
+
+.artist-meta-info {
+    color: var(--header-text); /* Theme text for heroes without a photo */
+    opacity: 0.9; /* Slightly less prominent than title */
+    margin-bottom: 15px;
+}
+
+.artist-meta-info strong {
+    color: var(--header-text); /* Ensure contrast */
+    opacity: 1;
+}
+
+.artist-meta-info .artist-genre,
+.artist-meta-info .artist-local-scene {
+    display: inline-block; /* Keep on same line if possible */
+}
+
+/* Replace attribute selector with a dedicated class for the separator */
+.artist-meta-info .artist-meta-separator {
+    margin: 0 10px;
+    color: var(--header-text);
+    opacity: 0.7;
+}
+
+.artist-social-links {
+    margin-top: 20px; /* Adjust spacing */
+    font-size: 1.2em; /* Adjusted from inline style */
+    display: flex; /* Ensure flex is still applied if overridden */
+    gap: 15px; /* Space between icons, replaces inline margin on <a> */
+}
+
+.artist-social-links a {
+    color: var(--header-text) !important; /* Ensure contrast */
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.artist-social-links a:hover {
+    opacity: 0.8;
+    color: var(--header-text) !important; /* Keep color, change opacity */
+}
+
+
+
+/* Photo heroes need light foregrounds in both color schemes, independent of theme text. */
+.artist-hero[style*='background-image'],
+.artist-hero[style*='background-image'] .artist-hero-title,
+.artist-hero[style*='background-image'] .artist-meta-info,
+.artist-hero[style*='background-image'] .artist-meta-info strong,
+.artist-hero[style*='background-image'] .artist-meta-separator,
+.artist-hero[style*='background-image'] .artist-social-links a,
+.artist-hero[style*='background-image'] .artist-social-links a:hover {
+    color: #fff !important; /* Override explicit theme colors, including title/social rules. */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* --- End Artist Hero Section Styles --- */ 
+
+/* --- Mobile Adjustments for Hero --- */
+@media (max-width: 768px) {
+    .artist-hero {
+        padding: 30px 15px; /* Reduced mobile padding for better proportions */
+    }
+
+    .artist-profile-featured-image {
+        width: 100px; /* Smaller on mobile */
+        height: 100px; /* Smaller on mobile */
+    }
+    .artist-hero-title {
+        font-size: 2em; /* Reduce title size */
+    }
+    .artist-edit-button-container {
+        top: 10px; /* Move closer to top */
+        right: 10px; /* Move closer to right */
+    }
+    .artist-edit-button-container .button {
+        padding: var(--button-padding-small); /* Make button smaller */
+        font-size: 0.8em;
+    }
+    .artist-social-links {
+        font-size: 1.4em; /* Slightly smaller icons */
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) { /* Further adjustments for very small screens */
+     .artist-hero-title {
+        font-size: 1.6em; /* Even smaller title */
+        margin-bottom: 10px;
+    }
+     .artist-edit-button-container {
+        /* Example: Stack button below title on very small screens */
+        /* position: relative; 
+        top: auto;
+        right: auto;
+        margin-top: 15px;
+        text-align: center; */
+        /* Or just keep it top right but ensure enough space */
+    }
+     .artist-meta-info {
+        font-size: 0.9em;
+    }
+} 
+
+/* --- Sorting & Search UI specific to Artist Profile Page --- */
+.sorting-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Vertically align items if they have different heights */
+    margin-bottom: 20px;
+}
+
+/* Style form elements within sorting-search if needed, or rely on global/bbPress styles */
+.sorting-search .bbp-sorting-form,
+.sorting-search .bbp-search-form {
+    /* Example: add some spacing if they wrap on small screens */
+    /* margin-bottom: 10px; */
+}
+
+.sorting-search select,
+.sorting-search input[type="text"],
+.sorting-search button {
+    /* Example: ensure consistent sizing or padding if default styles are problematic */
+    /* padding: 8px; */
+    /* font-size: 0.9em; */
+}
+
+/* --- Artist Details Columns (Bio & Members) --- */
+.artist-details-columns {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 30px; /* Space between columns */
+    margin-top: 2em;
+    margin-bottom: 2em;
+}
+
+.artist-bio-section {
+    margin-bottom: 2em;
+}
+
+.artist-details-columns .section-title {
+    margin-top: 0; /* Remove top margin if it's the first element in the column */
+    margin-bottom: 0.75em;
+    font-size: 1.4em;
+    /* border-bottom: 1px solid var(--border-color); */ /* Optional separator for titles */
+    /* padding-bottom: 0.3em; */
+}
+
+.artist-bio {
+    line-height: 1.6;
+}
+
+
+/* Responsive adjustments for the two-column layout */
+@media (max-width: 768px) {
+    .artist-details-columns {
+        flex-direction: column; /* Stack columns */
+        gap: 20px;
+    }
+    /* Columns will take full width naturally when flex-direction is column */
+} 
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .artist-hero-top-row {
+        justify-content: center; /* Center justify content on mobile */
+    }
+    
+    .artist-profile-featured-image {
+        margin-right: 0; /* Remove margin on mobile */
+        margin-bottom: 15px; /* Add bottom margin when wrapped */
+    }
+}
+
+
+/* --- Artist Forum Topics --- */
+.artist-forum-topics {
+    margin-top: 1.5em;
+}
+
+/* --- Artist Profile Actions --- */
+.artist-profile-actions {
+    margin-bottom: 1em;
+}
+
+.artist-manage-button {
+    background-color: var(--accent);
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease;
+}
+
+/* Artist manage button - should use .button-1 class in HTML */
+.artist-manage-button:hover {
+    color: #fff;
+}
+
+/* --- Artist Public Link Display --- */
+.artist-public-link-display {
+    margin-top: 1em;
+}
+
+.artist-public-link-display a {
+    color: var(--header-text);
+    text-decoration: none;
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
+}
+
+.artist-public-link-display a:hover {
+    opacity: 1;
+}
+
+/* --- Artist Shows Section (date-forward list, not cards) --- */
+.artist-shows-group {
+    margin-bottom: 1.5em;
+}
+
+.artist-shows-heading {
+    margin: 0 0 0.5em;
+}
+
+.artist-shows-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.artist-show-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25em 1em;
+    padding: 0.6em 0;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+
+.artist-show-row:last-child {
+    border-bottom: none;
+}
+
+.artist-show-when {
+    flex: 0 0 auto;
+    min-width: 8.5em;
+    font-weight: 600;
+}
+
+.artist-show-time {
+    margin-left: 0.5em;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+.artist-show-detail {
+    flex: 1 1 12em;
+    display: flex;
+    flex-direction: column;
+}
+
+.artist-show-title {
+    text-decoration: none;
+}
+
+.artist-show-venue {
+    opacity: 0.8;
+    font-size: 0.9em;
+}
+
+.artist-show-attendance {
+    flex: 0 0 auto;
+}
+
+.artist-shows-view-all {
+    margin-top: 0.5em;
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			event-publication-email-unit: pure-PHP unit tests for the branded
+			publish email sent to event submitters (#952). Uses file-level WP
+			doubles, so it runs on the host runtime with no WordPress loaded.
+		-->
+		<testsuite name="event-publication-email-unit">
+			<file>tests/Unit/Core/EventPublicationEmailProviderTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

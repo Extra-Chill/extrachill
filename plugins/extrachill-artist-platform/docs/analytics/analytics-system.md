@@ -1,0 +1,342 @@
+# Analytics System
+
+Comprehensive analytics tracking for link pages with daily aggregation, click tracking, and dashboard reporting. Analytics data is provided by the artist-platform plugin via filter hooks that feed into the extrachill-api plugin's REST endpoints.
+
+## Architecture Overview
+
+Analytics tracking follows a three-stage pattern:
+
+1. **Client-side**: JavaScript beacon on public link pages
+2. **Server-side**: REST API endpoints in extrachill-api plugin
+3. **Plugin hook**: Artist platform provides data via `extrachill_get_link_page_analytics` filter
+
+**Key Integration**: REST API routes and endpoints live in the **extrachill-api plugin**, not this plugin. This plugin provides analytics data access and handles the tracking writes to the database.
+
+## Database Architecture
+
+### Analytics Tables
+
+Two primary tables handle analytics data (per-site tables using `$wpdb->prefix`):
+
+```sql
+-- Daily page view aggregation
+CREATE TABLE {prefix}extrch_link_page_daily_views (
+    view_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    link_page_id bigint(20) unsigned NOT NULL,
+    stat_date date NOT NULL,
+    view_count bigint(20) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (view_id),
+    UNIQUE KEY unique_daily_view (link_page_id, stat_date)
+);
+
+-- Daily link click aggregation  
+CREATE TABLE {prefix}extrch_link_page_daily_link_clicks (
+    click_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    link_page_id bigint(20) unsigned NOT NULL,
+    stat_date date NOT NULL,
+    link_url varchar(2083) NOT NULL,
+    link_text text,
+    click_count bigint(20) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (click_id),
+    UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191)),
+    KEY link_page_date (link_page_id, stat_date)
+);
+```
+
+### Database Management
+
+Location: `inc/database/link-page-analytics-db.php`
+
+Creates and maintains the link page analytics tables with WordPress `dbDelta()`.
+
+## Public Tracking
+
+### Tracking Flow
+
+The tracking flow follows this pattern:
+
+1. **JavaScript sends beacon**: Public link page JavaScript sends tracking data via sendBeacon/Fetch
+2. **REST API receives**: extrachill-api plugin REST endpoints receive tracking requests
+3. **Action hook fired**: REST endpoint fires action hooks with tracking data
+4. **Plugin writes to database**: This plugin's action handlers write to analytics tables
+
+### Client-Side Tracking
+
+Location: `inc/link-pages/live/assets/js/link-page-public-tracking.js`
+
+Tracks link clicks using sendBeacon API for reliable delivery with Fetch API fallback. Page views are recorded by the signed first-party tracker attached to the minimal-head lifecycle.
+
+**Click Tracking Payload**:
+```javascript
+{
+    click_type: 'link_page_link',
+    link_page_id: linkPageId,
+    source_url: window.location.href,
+    destination_url: linkElement.href,
+    element_text: linkText
+}
+```
+
+### Server-Side Data Provider
+
+Location: `inc/link-pages/live/analytics.php`
+
+This file provides two key functions:
+
+1. **Action handlers** - Hook into tracking events fired by extrachill-api:
+   - `extrachill_link_page_view_recorded` - Writes page views to database
+   - `extrachill_link_click_recorded` - Writes link clicks to database (includes `link_url` and `link_text`)
+
+2. **Data provider filter** - `extrachill_get_link_page_analytics` filter supplies analytics data to the API:
+
+```php
+add_filter( 'extrachill_get_link_page_analytics', 'extrachill_provide_link_page_analytics', 10, 3 );
+
+/**
+ * Supplies link page analytics data to the extrachill-api endpoint.
+ * Called when extrachill-api plugin queries for analytics data.
+ *
+ * @param mixed $data         Prior filter value (unused).
+ * @param int   $link_page_id Link page post ID.
+ * @param int   $date_range   Number of days to include (1-90).
+ * @return array|WP_Error Analytics data structure
+ */
+function extrachill_provide_link_page_analytics( $data, $link_page_id, $date_range ) {
+    // Query analytics tables and return data
+    // This data is returned to the REST API response
+}
+```
+
+### Action Hook Handlers
+
+The plugin handles the actual database writes:
+
+```php
+// Called when page view is recorded
+add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
+
+// Called when link click is recorded
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 3 );
+```
+
+These action hooks are fired by the extrachill-api plugin when it receives tracking data from the client.
+
+## URL Normalization
+
+Link click URLs are automatically normalized before storage to prevent analytics clutter from auto-generated tracking parameters. This keeps the dashboard readable while preserving intentional query strings like affiliate IDs.
+
+### Stripped Parameters
+
+The following Google Analytics cross-domain linking parameters are removed:
+- `_gl` - Google Linker parameter
+- `_ga` - Google Analytics client ID
+- `_ga_*` - Google Analytics measurement ID parameters (e.g., `_ga_L362LLL9KM`)
+
+### Implementation
+
+**Server-side** (`extrachill-api/inc/routes/analytics/click.php`):
+- `extrachill_api_normalize_tracked_url()` strips parameters before firing the action hook
+
+URL normalization is handled centrally in the unified click endpoint, preserving all other query parameters (affiliate IDs, custom campaign params, etc.).
+
+## Data Recording
+
+### Page View Recording
+
+Page views are recorded when the `extrachill_link_page_view_recorded` action is fired by extrachill-api:
+
+```php
+add_action( 'extrachill_link_page_view_recorded', 'extrachill_handle_link_page_view_db_write', 10, 1 );
+
+function extrachill_handle_link_page_view_db_write( $link_page_id ) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_views';
+    $today = current_time('Y-m-d');
+    
+    // Use INSERT ... ON DUPLICATE KEY UPDATE for atomic operation
+    $sql = $wpdb->prepare("
+        INSERT INTO {$table_name} (link_page_id, stat_date, view_count) 
+        VALUES (%d, %s, 1)
+        ON DUPLICATE KEY UPDATE view_count = view_count + 1
+    ", $link_page_id, $today);
+    
+    $wpdb->query($sql);
+}
+```
+
+### Link Click Recording
+
+Link clicks are recorded when the `extrachill_link_click_recorded` action is fired by extrachill-api:
+
+```php
+add_action( 'extrachill_link_click_recorded', 'extrachill_handle_link_click_db_write', 10, 3 );
+
+function extrachill_handle_link_click_db_write( $link_page_id, $link_url, $link_text = '' ) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
+    $today = current_time('Y-m-d');
+    
+    $sql = $wpdb->prepare("
+        INSERT INTO {$table_name} (link_page_id, stat_date, link_url, link_text, click_count)
+        VALUES (%d, %s, %s, %s, 1)
+        ON DUPLICATE KEY UPDATE click_count = click_count + 1
+    ", $link_page_id, $today, $link_url, $link_text);
+    
+    $wpdb->query($sql);
+}
+```
+
+## Analytics Dashboard
+
+### Artist Analytics Block
+
+**Location**: `src/blocks/artist-analytics/`
+
+Dedicated Gutenberg block providing comprehensive analytics interface for link page performance tracking and analysis.
+
+**Block Features**:
+- Chart.js-powered analytics dashboard
+- Daily page view aggregation with visual charts
+- Link click tracking and breakdown by URL
+- Date range filtering for custom time periods
+- Visual performance metrics and trends
+- Artist context switching for multi-artist users
+- Responsive design for desktop and mobile viewing
+
+**Component Architecture**:
+- **Analytics.js**: Main analytics dashboard component with chart rendering
+- **ArtistSwitcher.js**: Artist context switching interface
+- **AnalyticsContext.js**: Context for analytics data management
+- **useAnalytics.js**: Custom hook for analytics data queries
+- **API Client**: REST API integration via `src/blocks/shared/api/client.js`
+
+**Block Registration**:
+```php
+// Registered separately from link-page-editor block
+register_block_type( __DIR__ . '/build/blocks/artist-analytics' );
+```
+
+**Version History**:
+- **v1.1.11+**: Analytics moved to separate dedicated block for better organization and performance
+- **v1.2.0+**: Enhanced block with artist switching and improved data visualization
+
+### Management Interface
+
+Analytics displayed via REST API in dedicated Gutenberg analytics block with `Analytics` component:
+
+Location: `src/blocks/artist-analytics/components/Analytics.js`
+
+### Data Queries
+
+```php
+function get_page_view_data($link_page_id, $date_range) {
+    global $wpdb;
+    
+    list($start_date, $end_date) = parse_date_range($date_range);
+    
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_views';
+    
+    $results = $wpdb->get_results($wpdb->prepare("
+        SELECT stat_date, view_count 
+        FROM {$table_name} 
+        WHERE link_page_id = %d 
+        AND stat_date BETWEEN %s AND %s 
+        ORDER BY stat_date ASC
+    ", $link_page_id, $start_date, $end_date));
+    
+    return array_map(function($row) {
+        return [
+            'date' => $row->stat_date,
+            'views' => (int) $row->view_count
+        ];
+    }, $results);
+}
+
+function get_link_click_data($link_page_id, $date_range) {
+    global $wpdb;
+    
+    list($start_date, $end_date) = parse_date_range($date_range);
+    
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
+    
+    $results = $wpdb->get_results($wpdb->prepare("
+        SELECT link_url, SUM(click_count) as total_clicks
+        FROM {$table_name} 
+        WHERE link_page_id = %d 
+        AND stat_date BETWEEN %s AND %s 
+        GROUP BY link_url 
+        ORDER BY total_clicks DESC
+    ", $link_page_id, $start_date, $end_date));
+    
+    return $results;
+}
+```
+
+### Chart.js Integration
+
+Charts are rendered directly in the Gutenberg block editor via React components
+
+## Data Pruning
+
+### Automatic Cleanup
+
+Analytics system includes automatic data pruning via scheduled cron job:
+
+Location: `inc/link-pages/live/analytics.php`
+
+A daily cron event (`extrch_daily_analytics_prune_event`) prunes link page daily view/click rows older than 90 days.
+
+## Performance Optimization
+
+### Database Indexes
+
+Tables include optimized indexes for common queries:
+
+```sql
+-- Page views table indexes
+UNIQUE KEY unique_daily_view (link_page_id, stat_date)
+
+-- Link clicks table indexes  
+UNIQUE KEY unique_daily_link_click (link_page_id, stat_date, link_url(191))
+KEY link_page_date (link_page_id, stat_date)
+```
+
+### Query Optimization
+
+Analytics queries use prepared statements and appropriate LIMIT clauses:
+
+```php
+// Efficient top links query
+function get_top_performing_links($link_page_id, $date_range, $limit = 10) {
+    global $wpdb;
+    
+    list($start_date, $end_date) = parse_date_range($date_range);
+    
+    $table_name = $wpdb->prefix . 'extrch_link_page_daily_link_clicks';
+    
+    return $wpdb->get_results($wpdb->prepare("
+        SELECT link_url, SUM(click_count) as total_clicks
+        FROM {$table_name} 
+        WHERE link_page_id = %d 
+        AND stat_date BETWEEN %s AND %s 
+        GROUP BY link_url 
+        ORDER BY total_clicks DESC 
+        LIMIT %d
+    ", $link_page_id, $start_date, $end_date, $limit));
+}
+```
+
+## Export Functionality
+
+Analytics data can be exported via REST API endpoints for integration with external reporting tools
+
+## Integration Points
+
+### Third-Party Analytics
+
+The plugin integrates with external analytics services via:
+- Google Tag Manager (GTM) tracking codes configured in TabAdvanced (link-page-editor block)
+- Meta Pixel (Facebook) integration for conversion tracking
+- Custom event tracking via action hooks and filters

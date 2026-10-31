@@ -1,0 +1,39 @@
+/**
+ * Network Dropdown Toggle Styles
+ *
+ * Toggle button styling for the network site-switcher dropdown.
+ * Menu styling provided by ec-mini-dropdown component in root.css.
+ *
+ * @package ExtraChill
+ */
+
+.network-dropdown-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: 0;
+	margin: 0;
+	background: none;
+	border: none;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+}
+
+.network-dropdown-toggle:hover {
+	color: var(--link-color);
+}
+
+.network-dropdown-toggle:focus {
+	outline: none;
+}
+
+.network-dropdown-toggle .ec-icon {
+	width: 0.8em;
+	height: 0.8em;
+	transition: transform 0.2s ease;
+}
+
+.ec-mini-dropdown[aria-expanded="true"] .network-dropdown-toggle .ec-icon {
+	transform: rotate(180deg);
+}

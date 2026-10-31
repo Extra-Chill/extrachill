@@ -1,0 +1,358 @@
+/* Artist Platform Home Page Styles */
+
+/* Homepage containers also wrap the unchanged logged-in views. */
+.artist-platform-homepage,
+.artist-platform-welcome,
+.artist-platform-getting-started,
+.artist-platform-dashboard {
+  min-width: 0;
+}
+
+/* WordPress dashicons used by the feature cards. */
+.onboarding-card .dashicons-admin-links,
+.onboarding-card .dashicons-admin-users,
+.onboarding-card .dashicons-calendar-alt,
+.onboarding-card .dashicons-email-alt,
+.onboarding-card .dashicons-cart,
+.onboarding-card .dashicons-megaphone,
+.onboarding-card .dashicons-groups,
+.onboarding-card .dashicons-location,
+.onboarding-card .dashicons-media-document,
+.onboarding-card .dashicons-chart-bar {
+  flex-shrink: 0;
+}
+
+/* Welcome and Hero Sections */
+.inc-welcome {
+  color: var(--text-color);
+}
+
+/* Artist Home Hero - Universal */
+.artist-home-hero {
+  text-align: center;
+}
+
+.artist-home-hero p {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Featured Artists Section */
+.featured-artists-section {
+  margin-top: var(--spacing-xl);
+}
+
+.featured-artists-section h3 {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-color);
+}
+
+.view-all-artists {
+  text-align: center;
+  margin-top: var(--spacing-xl);
+}
+
+.bbpress-wrapper.artist-directory-wrapper {
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Public Artist Card Styles */
+.public-artist-card .artist-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.public-artist-card .artist-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-color);
+  opacity: 0.8;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-xs);
+}
+
+.public-artist-card .meta-separator {
+  opacity: 0.5;
+}
+
+.public-artist-card .artist-card-bio {
+  margin: var(--spacing-md) 0;
+}
+
+.public-artist-card .artist-card-bio p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.no-artists-found {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  color: var(--text-color);
+}
+
+
+
+/* Getting Started Section */
+.inc-getting-started {
+  color: var(--text-color);
+}
+
+.getting-started-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.primary-action-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  box-shadow: var(--card-shadow);
+  max-width: 400px;
+  width: 100%;
+}
+
+.primary-action-card h3 {
+  margin-bottom: var(--spacing-md);
+  color: var(--text-color);
+}
+
+.primary-action-card p {
+  margin-bottom: var(--spacing-xl);
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+.discover-section {
+  text-align: center;
+}
+
+.discover-section h3 {
+  color: var(--text-color);
+}
+
+.discover-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+/* Dashboard Section */
+.inc-dashboard {
+  color: var(--text-color);
+}
+
+/* Artist Profiles Section */
+.artist-profiles-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.artist-profiles-section h3 {
+  color: var(--text-color);
+}
+
+/* Artist card grid and styles now in dedicated artist-card.css */
+
+/* Minimal Artist Cards - "Your Artist Profiles" */
+.artist-cards-minimal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.artist-card-minimal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+}
+
+.artist-card-minimal-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.artist-card-minimal-avatar {
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: var(--border-radius-md);
+  object-fit: cover;
+}
+
+.artist-card-minimal-name {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.artist-card-minimal-name:hover {
+  color: var(--accent);
+}
+
+.artist-card-minimal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .welcome-hero h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  .dashboard-welcome h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .welcome-actions,
+  .discover-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .artist-card-minimal {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .artist-card-minimal-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .primary-action-card {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Loading state for artist grid */
+.artist-cards-grid {
+  transition: opacity 0.3s ease;
+}
+
+/* Browse All Artists link */
+.browse-all-artists {
+  text-align: center;
+  margin-top: var(--spacing-xl);
+}
+
+/* Platform Onboarding Cards */
+.platform-onboarding-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  margin-top: var(--spacing-lg);
+}
+
+.onboarding-card {
+  background: var(--card-background);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--card-shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.onboarding-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--card-hover-shadow);
+}
+
+.onboarding-card-icon {
+  background: var(--accent-transparent);
+  color: var(--accent);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.onboarding-card-icon .dashicons {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.onboarding-card h4 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 1.25rem;
+}
+
+.onboarding-card p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.artist-home-example,
+.artist-home-how-it-works {
+  margin-block: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.artist-home-example {
+  text-align: center;
+}
+
+.artist-home-how-it-works ol {
+  max-width: 36rem;
+  margin-inline: auto;
+  padding-left: 1.5rem;
+}
+
+.artist-home-how-it-works li {
+  padding-left: var(--spacing-sm);
+  margin-block: var(--spacing-md);
+  line-height: 1.6;
+}
+
+@media (min-width: 640px) {
+  .platform-onboarding-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .platform-onboarding-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

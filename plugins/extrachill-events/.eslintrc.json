@@ -1,0 +1,35 @@
+{
+	"root": true,
+	"extends": [ "plugin:@wordpress/eslint-plugin/recommended" ],
+	"parserOptions": {
+		"requireConfigFile": false,
+		"babelOptions": {
+			"presets": [ "@wordpress/babel-preset-default" ]
+		}
+	},
+	"env": {
+		"browser": true
+	},
+	"overrides": [
+		{
+			"files": [ "**/*.test.js" ],
+			"env": {
+				"jest": true
+			},
+			"globals": {
+				"MouseEvent": "readonly",
+				"PopStateEvent": "readonly"
+			},
+			"rules": {
+				"no-redeclare": "off"
+			}
+		}
+	],
+	"rules": {
+		"no-console": [ "error", { "allow": [ "warn", "error" ] } ],
+		"no-unused-vars": [ "error", { "argsIgnorePattern": "^_" } ],
+		"jsdoc/require-param-type": "off",
+		"jsdoc/require-returns-description": "off",
+		"@wordpress/no-unused-vars-before-return": "off"
+	}
+}

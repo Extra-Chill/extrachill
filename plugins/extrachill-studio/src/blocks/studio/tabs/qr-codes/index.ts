@@ -1,0 +1,172 @@
+/**
+ * WordPress dependencies
+ */
+import { __ } from '@wordpress/i18n';
+import { createElement, useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
+import type { ReactElement, ChangeEvent } from 'react';
+import {
+	ActionRow,
+	FieldGroup,
+	InlineStatus,
+	Panel,
+	PanelHeader,
+} from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
+import { studioClient } from '../../app/client';
+
+const h = createElement as typeof import('react').createElement;
+const PanelView = Panel as unknown as ( props: any ) => ReactElement;
+const ActionRowView = ActionRow as unknown as ( props: any ) => ReactElement;
+const FieldGroupView = FieldGroup as unknown as ( props: any ) => ReactElement;
+const InlineStatusView = InlineStatus as unknown as (
+	props: any
+) => ReactElement;
+
+const QR_SIZE = 1000;
+
+interface QrCodeResult {
+	image_url?: string;
+}
+
+const QrCodesPane = (): ReactElement => {
+	const [ url, setUrl ] = useState( '' );
+	const [ imageUrl, setImageUrl ] = useState( '' );
+	const [ status, setStatus ] = useState( '' );
+	const [ error, setError ] = useState( '' );
+	const [ isLoading, setIsLoading ] = useState( false );
+
+	const generateQrCode = async (): Promise< void > => {
+		const trimmedUrl = url.trim();
+
+		if ( ! trimmedUrl ) {
+			setError(
+				__( 'Paste a URL to generate a QR code.', 'extrachill-studio' )
+			);
+			setStatus( '' );
+			return;
+		}
+
+		setIsLoading( true );
+		setError( '' );
+		setStatus( __( 'Generating…', 'extrachill-studio' ) );
+
+		try {
+			const responseData = ( await studioClient.admin.generateQrCode(
+				trimmedUrl,
+				QR_SIZE
+			) ) as QrCodeResult;
+			setImageUrl( responseData.image_url || '' );
+			setStatus( '' );
+		} catch ( fetchError ) {
+			setImageUrl( '' );
+			setStatus( '' );
+			setError(
+				( fetchError as Error )?.message ||
+					__(
+						'QR generation failed. Please try again.',
+						'extrachill-studio'
+					)
+			);
+		} finally {
+			setIsLoading( false );
+		}
+	};
+
+	return h(
+		'div',
+		{ className: 'ec-studio-pane ec-studio-pane--qr-codes' },
+		h(
+			PanelView,
+			{ className: 'ec-studio-panel', compact: true },
+			h( PanelHeader, {
+				description: __(
+					'Paste any URL to get a high-res QR code PNG for flyers, merch, and event signage.',
+					'extrachill-studio'
+				),
+			} ),
+			h(
+				'div',
+				{ className: 'ec-studio-composer' },
+				h(
+					FieldGroupView,
+					{
+						label: __( 'URL', 'extrachill-studio' ),
+						htmlFor: 'ec-studio-qr-url',
+					},
+					createElement( 'input', {
+						id: 'ec-studio-qr-url',
+						type: 'url',
+						value: url,
+						onChange: ( event: ChangeEvent< HTMLInputElement > ) =>
+							setUrl( event.target.value ),
+						placeholder: 'https://extrachill.com/',
+						autoComplete: 'url',
+					} )
+				),
+				h(
+					ActionRowView,
+					{ className: 'ec-studio-composer__actions' },
+					createElement(
+						'button',
+						{
+							type: 'button',
+							className: 'button-1 button-medium',
+							onClick: generateQrCode,
+							disabled: isLoading,
+						},
+						isLoading
+							? __( 'Generating…', 'extrachill-studio' )
+							: __( 'Generate', 'extrachill-studio' )
+					)
+				)
+			),
+			error
+				? h(
+						InlineStatusView,
+						{ tone: 'error', className: 'ec-studio-message' },
+						error
+				  )
+				: null,
+			! error && status
+				? h(
+						InlineStatusView,
+						{ tone: 'success', className: 'ec-studio-message' },
+						status
+				  )
+				: null
+		),
+		imageUrl
+			? h(
+					PanelView,
+					{ className: 'ec-studio-panel', compact: true },
+					createElement(
+						'div',
+						{ className: 'ec-studio-qr-result' },
+						createElement( 'img', {
+							className: 'ec-studio-qr-result__image',
+							alt: __( 'Generated QR code', 'extrachill-studio' ),
+							src: imageUrl,
+						} ),
+						createElement(
+							'a',
+							{
+								className:
+									'button-1 button-medium ec-studio-qr-result__download',
+								href: imageUrl,
+								download: 'extrachill-qr-code.png',
+							},
+							__( 'Download PNG', 'extrachill-studio' )
+						)
+					)
+			  )
+			: null
+	);
+};
+
+export default QrCodesPane;

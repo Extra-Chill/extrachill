@@ -3,8 +3,10 @@ name: Network journeys
 # User-journey regression tests on the full 11-site network rig
 # (rigs/extrachill-network, journey contract extrachill-network#291).
 #
-# Each selected journey boots the whole network from every component's
-# latest release, walks a real browser journey, and runs its grade.php.
+# Each selected journey boots the whole network from this monorepo checkout
+# (every plugin under plugins/, the theme under themes/; components outside
+# the monorepo from their latest release), walks a real browser journey, and
+# runs its grade.php.
 # A grade fails the run when a finding appears that is not pinned to an
 # open issue, or when a pinned finding starts passing (unpin it so the case
 # guards the fix). Known-open findings do not fail the run.
@@ -18,6 +20,9 @@ on:
     - cron: '23 9 * * *'
   pull_request:
     paths:
+      - 'plugins/**'
+      - 'themes/**'
+      - 'packages/**'
       - 'rigs/extrachill-network/**'
       - '.github/workflows/journeys.yml'
   workflow_dispatch:
@@ -54,34 +59,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Resolve the theme's latest release
-        id: theme
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: echo "tag=$(gh release view -R Extra-Chill/extrachill --json tagName --jq .tagName)" >> "${GITHUB_OUTPUT}"
-
-      # A local theme checkout, not the release zip: the rig's remote-zip
-      # path is not multisite-aware (see rigs/extrachill-network/README.md).
-      - name: Checkout the theme at that release
-        uses: actions/checkout@v6
-        with:
-          repository: Extra-Chill/extrachill
-          ref: ${{ steps.theme.outputs.tag }}
-          path: .ci/extrachill-theme
-
-      # assets/css/root.css (and the generated badge CSS) are build artifacts,
-      # gitignored in the theme repo and only present in the release zip. The
-      # theme only registers extrachill-root when the file exists, and every
-      # other theme stylesheet depends on it, so an unbuilt checkout renders
-      # completely unstyled. Build it the way the release does.
-      - name: Build the theme's generated assets
-        working-directory: .ci/extrachill-theme
-        run: |
-          set -euo pipefail
-          npm ci --no-audit --no-fund
-          npm run build
-          test -s assets/css/root.css
-
       - name: Checkout WP Codebox
         uses: actions/checkout@v6
         with:
@@ -107,11 +84,6 @@ jobs:
           npm run build
           npx playwright install --with-deps chromium
 
-      # The rig mounts this checkout as the extrachill-network plugin, so a PR's
-      # journey exercises the PR's own plugin code, not the last release.
-      - name: Install extrachill-network runtime dependencies
-        run: composer install --no-dev --no-interaction --no-progress --prefer-dist
-
       - name: Validate rig contracts
         run: node rigs/extrachill-network/tests/contract.test.mjs
 
@@ -126,10 +98,9 @@ jobs:
           set -euo pipefail
           journeys="${JOURNEYS:-$DEFAULT_JOURNEYS}"
           export HOMEBOY_SETTINGS_JSON="$(jq -cn --argjson j "${journeys}" \
-            --arg theme "${{ github.workspace }}/.ci/extrachill-theme" \
-            --arg network "${{ github.workspace }}" \
+            --arg monorepo "${{ github.workspace }}" \
             --argjson demo "${DEMO:-false}" \
-            '{extrachill_theme_source: $theme, extrachill_journeys: $j, extrachill_demo: $demo, extrachill_component_source_overrides: {"extrachill-network": $network}}')"
+            '{extrachill_monorepo_source: $monorepo, extrachill_journeys: $j, extrachill_demo: $demo}')"
           echo "Settings: ${HOMEBOY_SETTINGS_JSON}"
           node rigs/extrachill-network/run.mjs > /dev/null
 
@@ -139,7 +110,8 @@ jobs:
           set -euo pipefail
           result="${{ runner.temp }}/journeys/result.json"
           [ -f "${result}" ] || { echo "No rig result was written." >> "${GITHUB_STEP_SUMMARY}"; exit 0; }
-          node - "${result}" >> "${GITHUB_STEP_SUMMARY}" <<'NODE'
+          # tee: the table also lands in the job log, not only the step summary.
+          node - "${result}" <<'NODE' | tee -a "${GITHUB_STEP_SUMMARY}"
           const fs = require('node:fs');
           const envelope = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
           const out = [];

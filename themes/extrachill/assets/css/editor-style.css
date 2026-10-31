@@ -1,0 +1,241 @@
+/*
+ * Editor Styles — Universal
+ * Typography, colors, lists, blockquotes, code, tables — content styling
+ * that should look the same in any block editor canvas:
+ *   - wp-admin post editor
+ *   - Blocks Everywhere iframes (bbPress topics/replies, homepage modal)
+ *   - Studio editor surface
+ *
+ * Layout rules that assume the wp-admin post shape (centered content
+ * column, post title wrapper, outer canvas padding) live in
+ * editor-style-admin.css and are filtered out for non-admin contexts.
+ *
+ * Delivered via add_editor_style() — lives inside the editor iframe only.
+ * Selectors are auto-scoped to .editor-styles-wrapper by Gutenberg.
+ *
+ * @package ExtraChill
+ */
+
+/* @font-face declarations are registered via the wp_theme_json_data_theme
+ * filter in inc/core/assets.php so WordPress core emits <style> tags via
+ * wp_print_font_faces() in every editor iframe (wp-admin, BE, Studio) AND
+ * on wp_head for the frontend. Single source of truth.
+ *
+ * Root design tokens (--font-family-heading etc) are loaded separately
+ * via add_editor_style('assets/css/root.css') in functions.php. */
+
+
+/* ==========================================================================
+   1. Heading Sizes
+   Match the theme's frontend type scale inside the editor.
+   ========================================================================== */
+
+.edit-post-visual-editor .wp-block h1,
+.wp-block h1 { font-size: var(--font-size-3xl) !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h2,
+.wp-block h2 { font-size: var(--font-size-2xl) !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h3,
+.wp-block h3 { font-size: var(--font-size-xl) !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h4,
+.wp-block h4 { font-size: var(--font-size-lg) !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h5,
+.wp-block h5 { font-size: var(--font-size-body) !important; line-height: 1.4 !important; }
+
+.edit-post-visual-editor .wp-block h6,
+.wp-block h6 { font-size: var(--font-size-base) !important; line-height: 1.4 !important; }
+
+/* All headings should use the theme font */
+.edit-post-visual-editor .wp-block h1,
+.edit-post-visual-editor .wp-block h2,
+.edit-post-visual-editor .wp-block h3,
+.edit-post-visual-editor .wp-block h4,
+.edit-post-visual-editor .wp-block h5,
+.edit-post-visual-editor .wp-block h6,
+.wp-block h1,
+.wp-block h2,
+.wp-block h3,
+.wp-block h4,
+.wp-block h5,
+.wp-block h6 {
+    font-family: var(--font-family-heading) !important;
+    color: var(--text-color) !important;
+    font-weight: 700 !important;
+    margin: var(--spacing-lg) 0 !important;
+}
+
+
+/* ==========================================================================
+   2. Paragraph & Inline Content
+   ========================================================================== */
+
+.edit-post-visual-editor .wp-block-paragraph,
+.wp-block-paragraph {
+    font-size: var(--font-size-body) !important;
+    line-height: 1.9 !important;
+    color: var(--text-color) !important;
+    font-family: var(--font-family-body) !important;
+}
+
+/* Ensure links are visible */
+.edit-post-visual-editor .wp-block a,
+.edit-post-visual-editor a,
+.wp-block a {
+    color: var(--link-color) !important;
+}
+
+/* Fix any transparent backgrounds that might cause issues */
+.edit-post-visual-editor .wp-block[data-type],
+.wp-block[data-type] {
+    background: transparent !important;
+}
+
+/* Ensure block editor interface elements don't interfere */
+.block-editor-block-list__layout .wp-block {
+    background: transparent !important;
+}
+
+
+/* ==========================================================================
+   3. Lists
+   Restore bullets/numbers removed by global reset in style.css.
+   ========================================================================== */
+
+.editor-styles-wrapper .wp-block-list {
+    list-style-position: outside !important;
+    padding-inline-start: var(--spacing-xl) !important;
+    margin-bottom: var(--spacing-lg) !important;
+}
+
+.editor-styles-wrapper ul.wp-block-list {
+    list-style-type: disc !important;
+}
+
+.editor-styles-wrapper ol.wp-block-list {
+    list-style-type: decimal !important;
+}
+
+/* Nested lists: indent slightly but not compound excessively */
+.editor-styles-wrapper .wp-block-list .wp-block-list {
+    padding-inline-start: var(--spacing-lg) !important;
+    margin-top: var(--spacing-sm) !important;
+    margin-bottom: var(--spacing-sm) !important;
+}
+
+/* List item spacing consistent with frontend */
+.editor-styles-wrapper li {
+    line-height: inherit !important;
+    font-size: inherit !important;
+    margin: var(--spacing-sm) 0 !important;
+}
+
+/* Avoid interfering with navigation or special block list styles (e.g., menus) */
+.editor-styles-wrapper .wp-block-navigation ul,
+.editor-styles-wrapper .wp-block-navigation ol,
+.editor-styles-wrapper .wp-block-navigation li {
+    list-style: none !important;
+    margin: 0 !important;
+}
+
+/* Tighten task list (core/list with checkboxes) alignment */
+.editor-styles-wrapper .wp-block-list .wp-block-list-item {
+    display: list-item; /* Ensure proper marker rendering even if editor injects flex */
+}
+
+/* Ensure list marker color inherits (especially in dark mode) */
+.editor-styles-wrapper ul li::marker,
+.editor-styles-wrapper ol li::marker {
+    color: var(--text-color);
+}
+
+
+/* ==========================================================================
+   4. Content Formatting
+   Blockquotes, code, strong/em, hr, tables — mirroring style.css for the editor.
+   ========================================================================== */
+
+.wp-block-quote {
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
+    background-color: var(--background-color);
+    border-left: 5px solid var(--accent-2);
+    overflow: auto;
+    font-style: italic;
+}
+
+.wp-block-quote p {
+    line-height: 1.6;
+    position: relative;
+    padding-top: 0;
+    font-size: 0.9em;
+    margin-left: var(--spacing-sm);
+}
+
+.wp-block-quote cite {
+    font-style: italic;
+    font-family: inherit;
+    font-weight: 300;
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+    line-height: 1.2;
+}
+
+strong {
+    font-weight: 700;
+}
+
+b {
+    font-weight: 600;
+}
+
+cite, em, i {
+    font-style: italic;
+}
+
+pre,
+.wp-block-code {
+    background-color: var(--background-color);
+    margin-bottom: var(--spacing-lg);
+    overflow: auto;
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+code, kbd, var, samp, tt {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-base);
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
+
+hr,
+.wp-block-separator {
+    border-color: var(--border-color);
+    border-style: solid none none;
+    border-width: 1px 0 0;
+    height: 0;
+    margin: var(--spacing-xl) 0;
+}
+
+table,
+.wp-block-table table {
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 0 0 var(--spacing-lg);
+    width: 100%;
+}
+
+.wp-block-table th {
+    font-weight: bold;
+    border: 1px solid var(--border-color);
+}
+
+.wp-block-table td {
+    border: 1px solid var(--border-color);
+}

@@ -1,0 +1,799 @@
+# Changelog
+
+## [0.28.2] - 2026-10-30
+
+### Fixed
+- count each qualifying comment as an entry (entry_mode)
+
+## [0.28.1] - 2026-10-11
+
+### Changed
+- drop expected-commands from Homeboy workflow
+
+## [0.28.0] - 2026-10-04
+
+### Added
+- support video reel publishing
+
+## [0.27.17] - 2026-09-29
+
+### Changed
+- drop redundant mail authorization wrappers
+
+## [0.27.16] - 2026-09-26
+
+### Changed
+- correct the release.yml comment about which commits release
+
+## [0.27.15] - 2026-09-26
+
+### Changed
+- adopt Homeboy review CI, port standalone tests to WP_UnitTestCase
+
+## [0.27.14] - 2026-09-26
+
+### Changed
+- stub get_home_url/home_url in the transcription callback harness
+
+## [0.27.13] - 2026-09-26
+
+### Changed
+- drop Studio's own editor alert and hourly sweep in favor of core's pending transition
+
+## [0.27.12] - 2026-09-26
+
+### Fixed
+- remove the network-wide stranded-post scan and alerts (reverts #212)
+
+## [0.27.11] - 2026-09-26
+
+### Fixed
+- network-wide stranded-post detection and editor alerts
+
+## [0.27.10] - 2026-09-25
+
+### Fixed
+- queue editor review alerts through the authenticated mail seam
+
+## [0.27.9] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
+## [0.27.8] - 2026-09-21
+
+### Changed
+- adopt the shared Homeboy release train
+
+## [0.27.7] - 2026-09-13
+
+### Fixed
+- load giveaway task only when its dependency is available
+
+## [0.27.6] - 2026-09-12
+
+### Fixed
+- log why a transcription completion email failed
+
+## [0.27.5] - 2026-09-12
+
+### Fixed
+- run transcription mail through the pre-authenticated ability seam
+
+## [0.27.4] - 2026-09-12
+
+### Fixed
+- send transcription completion email from main, not Studio
+
+## [0.27.3] - 2026-09-12
+
+### Changed
+- repin Gardner released social runtime
+- align Gardner adaptive campaign budgets
+- isolate Gardner provider network oracle
+- resume Gardner social operator journey
+- add stateful Gardner social operator persona
+
+### Fixed
+- add WordPress dependency-group comments in the Transcribe pane
+- clear ESLint findings in the Transcribe pane
+- drop redundant is_array() narrowing on get_json_params()
+- make transcripts durable without the sweatpants callback
+
+## [0.27.2] - 2026-08-23
+
+### Fixed
+- clear release lint baseline
+
+## [0.27.1] - 2026-08-23
+
+### Fixed
+- preserve embedded article media
+
+## [0.27.0] - 2026-08-23
+
+### Added
+- start social drafts from articles
+- consume social composer contracts
+
+### Changed
+- use Socials publish contract
+
+### Fixed
+- align Studio social manager access
+- preserve social reply feedback
+- make transcription callbacks idempotent
+
+## [0.26.0] - 2026-08-05
+
+### Added
+- add exact Network analytics date ranges
+
+### Fixed
+- satisfy exact-date release lint
+
+## [0.25.0] - 2026-08-04
+
+### Added
+- add My posts analytics filter
+
+## [0.24.4] - 2026-08-04
+
+### Fixed
+- prevent published posts from returning to review
+
+## [0.24.3] - 2026-08-04
+
+### Fixed
+- clear Studio release lint blockers
+- recover missed editorial submission alerts
+- harden Studio editor and Socials usability
+- expose one model and drop the per-job config
+
+## [0.24.2] - 2026-08-03
+
+### Fixed
+- clear Studio release lint blockers
+- proxy compose post reads to main
+- fail closed for missing team helper
+- restore newer autosave on initial compose load
+
+## [0.24.1] - 2026-07-29
+
+### Changed
+- Internal improvements
+
+## [0.24.0] - 2026-07-18
+
+### Added
+- add real Compose post preview
+
+### Fixed
+- clear Compose REST lint error
+
+## [0.23.0] - 2026-07-15
+
+### Added
+- simplify Studio Compose workflow
+
+## [0.22.0] - 2026-07-15
+
+### Added
+- add scoped Network analytics workspace
+
+### Fixed
+- declare Studio release scope
+- resolve PHPCS findings blocking release
+
+## [0.21.2] - 2026-07-05
+
+### Fixed
+- remove bespoke compose-tab full-width breakout
+
+## [0.21.1] - 2026-07-05
+
+### Fixed
+- unscrunch Studio compose editor and use full page width
+
+## [0.21.0] - 2026-07-03
+
+### Added
+- notify writer when their Studio submission is published
+- detect silent Compose strandings on the Studio subsite
+- gate Studio compose submissions on featured image + category (#108)
+- editor-facing review queue for Studio blog submissions
+
+### Changed
+- adopt shared Grid/.ec-card-grid primitive
+
+### Fixed
+- give Network tab charts legible width in a two-column dashboard grid
+- make Studio compose born-on-main robust against silent local writes
+
+## [0.20.0] - 2026-06-28
+
+### Added
+- Network tab — team-facing analytics dashboard inside Studio
+
+## [0.19.0] - 2026-06-18
+
+### Added
+- bridge chat action-resolved to blocks-everywhere refresh
+
+## [0.18.0] - 2026-06-18
+
+### Added
+- hide socials tab for users without brand_socials access
+
+## [0.17.0] - 2026-06-17
+
+### Added
+- instrument Studio usage as team-experience analytics events
+
+### Changed
+- reference canonical analytics event-name constants (users#129)
+
+## [0.16.1] - 2026-06-16
+
+### Changed
+- Internal improvements
+
+## [0.16.0] - 2026-06-16
+
+### Added
+- broadcast active tab to Roadie via the generic tabs context
+- make Studio blog drafts born on main extrachill.com
+
+### Fixed
+- bump @extrachill/chat to ^0.14.0 to align client-context registry with widget
+- scope cross-site rewriting to the Compose pane's lifetime
+
+## [0.15.10] - 2026-06-15
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+
+## [0.15.9] - 2026-06-03
+
+### Fixed
+- sync package-lock.json so npm ci resolves on Node 25
+
+## [0.15.8] - 2026-06-03
+
+### Changed
+- pin ajv ^8 to fix wp-scripts webpack build on Node 25
+
+### Fixed
+- don't mark draft clean when edits land mid-autosave
+
+## [0.15.7] - 2026-05-30
+
+### Changed
+- Internal improvements
+
+## [0.15.6] - 2026-05-29
+
+### Fixed
+- remove dead hasUploadPermissions setting injection
+
+## [0.15.5] - 2026-05-25
+
+### Fixed
+- rename BE settings key from iso to blocksEverywhere
+
+## [0.15.4] - 2026-05-24
+
+### Fixed
+- Compose autosave reliability (items 1, 3, 4, 5, 7, 8 of #77)
+- scope loadDrafts query to current user to prevent cross-author draft leakage
+- omit status on autosave updates to preserve pending/publish transitions
+
+## [0.15.3] - 2026-05-23
+
+### Fixed
+- autosave creates draft on first activity in Compose (#74)
+
+## [0.15.2] - 2026-05-18
+
+### Changed
+- migrate transcription email, retire switch_to_blog (closes #71)
+
+## [0.15.1] - 2026-05-12
+
+### Fixed
+- use theme's .ec-checkbox-row primitive for option checkboxes
+
+## [0.15.0] - 2026-05-11
+
+### Added
+- split Transcribe options into independent model + diarize + filler-removal controls (#67)
+
+## [0.14.2] - 2026-05-11
+
+### Changed
+- remove standalone external image URL input from publish pane
+
+## [0.14.1] - 2026-05-11
+
+### Fixed
+- send completion email from main-site context so SMTP works
+
+## [0.14.0] - 2026-05-11
+
+### Added
+- React Transcribe tab passes callback handoff fields + close-the-tab UX (#61)
+
+## [0.13.0] - 2026-05-11
+
+### Added
+- transcription completion callback + email + draft creation (#60)
+
+## [0.12.2] - 2026-05-11
+
+### Fixed
+- wrap token-mint POST body under 'input' key (#57)
+
+## [0.12.1] - 2026-05-11
+
+### Fixed
+- token-mint ability call uses correct Abilities API REST path (#54)
+
+## [0.12.0] - 2026-05-10
+
+### Added
+- react Transcribe tab using direct headless sweatpants pipeline
+
+## [0.11.1] - 2026-05-10
+
+### Changed
+- drop attachment_id transcription flow in favor of headless sweatpants pipeline
+
+## [0.11.0] - 2026-05-10
+
+### Added
+- extrachill/sweatpants-token ability mints HMAC-signed bearer tokens
+
+## [0.10.3] - 2026-05-10
+
+### Fixed
+- declare draft_post_id/url and error as nullable in job-status output schema
+
+## [0.10.2] - 2026-05-10
+
+### Fixed
+- route transcription drafts to main extrachill.com via universal cross-site primitive
+
+## [0.10.1] - 2026-05-10
+
+### Changed
+- bump @extrachill/api-client to 0.7.0 and drop SocialImageInput cast
+
+### Fixed
+- create transcription drafts on the current site, not main extrachill.com
+
+## [0.10.0] - 2026-05-10
+
+### Added
+- Transcribe tab backend foundation (Phase B1)
+- thumbnail row replaces URL list for selected social images
+
+### Changed
+- reference upstream issue for SocialImageInput cast
+- reorder socials publish pane so media picker is on top
+- change selected-images state shape to carry alt/title metadata
+- use api client social job helper
+
+### Fixed
+- handle async job polling for Socials Publish Now
+
+## [0.9.3] - 2026-05-10
+
+### Fixed
+- lazy-load GiveawayTask to avoid load-order race with DM autoloader
+
+## [0.9.2] - 2026-04-26
+
+### Fixed
+- expand Studio editor in fullscreen mode
+
+## [0.9.1] - 2026-04-26
+
+### Fixed
+- enable Studio fullscreen menu item
+
+## [0.9.0] - 2026-04-26
+
+### Added
+- enable fullscreen mode in compose editor via IBE More Menu, add CSS to hide out-of-skeleton chrome (title, toolbar, actions, sidebar) when fullscreen is active
+
+### Fixed
+- register Studio ability category
+
+## [0.8.0] - 2026-04-26
+
+### Added
+- add MediaPicker for main-site media library access in Socials publish pane
+
+## [0.7.2] - 2026-04-26
+
+### Added
+- rename Compose tab to Blog
+
+## [0.7.1] - 2026-04-26
+
+### Added
+- pin Instagram to top of socials sidebar via datamachine_socials_platform_priority filter
+
+## [0.7.0] - 2026-04-26
+
+### Added
+- consume new /platforms array contract, drop client-side normalization and filtering
+
+## [0.6.0] - 2026-04-21
+
+### Added
+- migrate GiveawayTask to executeTask() contract
+
+## [0.5.1] - 2026-04-03
+
+### Added
+- data-driven Socials tab with sidebar navigation and standalone comments view
+
+### Changed
+- update socials API paths to datamachine/v1/socials namespace
+
+## [0.5.0] - 2026-04-02
+
+### Added
+- add giveaway abilities and task for server-side execution + scheduling
+- filterable social platform allowlist via extrachill_studio_social_platforms
+- unified publish targets in Compose tab
+- wire up Media tab by providing allowedMimeTypes to editor settings
+- add persistent compose sidebar shell
+
+### Changed
+- simplify Giveaway — accept Instagram URLs, remove exclude/keyword fields
+- move Giveaway into Socials tab as a view, add Toolbar view switcher
+- Remove .homeboy-build-meta.json — homeboy no longer generates this file
+- Decouple Compose from social publishing, platform-agnostic Socials tab
+- Add Giveaway tab for automated Instagram winner picking
+- Bump studio block apiVersion 2 → 3 for Gutenberg 22.8 iframe editor compatibility
+- replace synchronous cross-post with async DM Task System
+- align studio block with standard pattern
+- remove empty PanelHeaders
+- align studio with layout contract
+- rely on shared studio shell defaults
+
+### Fixed
+- align block.json version with plugin version
+- platform switcher uses design system tokens for all interactive states
+- Socials tab only shows authenticated publish-capable platforms
+- remove publish target routing from Compose tab entirely
+- inline draft picker and new button on mobile, use theme select styles
+- hide empty IBE header on mobile when detached sidebar is active
+- prevent compose columns from stretching
+- simplify compose sidebar shell
+
+## [0.4.0] - 2026-03-26
+
+### Added
+- add detached compose sidebar
+
+## [0.3.2] - 2026-03-26
+
+### Fixed
+- suppress duplicate studio page titles
+- center studio shell inner width
+
+## [0.3.1] - 2026-03-26
+
+### Changed
+- clarify studio compose header
+
+## [0.3.0] - 2026-03-26
+
+### Added
+- register compose context for shared chat clients
+
+### Changed
+- simplify studio compose layout
+- remove studio panel header titles
+
+### Fixed
+- restore green studio typecheck
+
+## [0.2.46] - 2026-03-26
+
+### Changed
+- update shared components for edge shell rename
+
+## [0.2.45] - 2026-03-26
+
+### Changed
+- remove redundant studio shell overrides
+
+## [0.2.44] - 2026-03-26
+
+### Changed
+- update studio components dependency to 0.4.31
+
+## [0.2.43] - 2026-03-26
+
+### Changed
+- update studio components dependency to 0.4.30
+
+## [0.2.42] - 2026-03-26
+
+### Changed
+- update studio components dependency to 0.4.29
+
+## [0.2.41] - 2026-03-26
+
+### Changed
+- update studio components dependency to 0.4.28
+
+## [0.2.40] - 2026-03-26
+
+### Changed
+- update studio components dependency to 0.4.27
+
+## [0.2.39] - 2026-03-26
+
+### Changed
+- use shared inner wrapper in studio layout
+- use shared block inner wrapper in studio
+
+## [0.2.38] - 2026-03-26
+
+### Changed
+- track studio block metadata version
+
+## [0.2.37] - 2026-03-26
+
+### Changed
+- remove studio tab wrapper overrides
+
+## [0.2.36] - 2026-03-26
+
+### Changed
+- update studio lockfile for components 0.4.25
+- consume shared tab layout in studio
+
+## [0.2.35] - 2026-03-26
+
+### Changed
+- remove legacy studio wrapper and shell overrides
+
+## [0.2.34] - 2026-03-26
+
+### Changed
+- update components dependency to 0.4.24
+- standardize studio block tabs and shell
+
+## [0.2.33] - 2026-03-25
+
+### Changed
+- Remove Studio breakout and defer mobile shell styling to shared components
+
+## [0.2.32] - 2026-03-25
+
+### Changed
+- Update lockfile for shared shell header rollout
+- Add shell-contained header and deeper nesting to Studio
+
+## [0.2.31] - 2026-03-25
+
+### Changed
+- Update shared components and opt Studio into generic breakout utility
+- Opt Studio block into generic full-width breakout utility
+
+## [0.2.30] - 2026-03-25
+
+### Fixed
+- Fix Studio outer shell mobile breakout
+
+## [0.2.29] - 2026-03-25
+
+### Changed
+- Improve Studio mobile edge-to-edge panel behavior
+
+## [0.2.28] - 2026-03-25
+
+### Changed
+- Update shared components dependency to 0.4.2
+
+## [0.2.27] - 2026-03-25
+
+### Changed
+- reuse shared badges in studio
+
+## [0.2.26] - 2026-03-25
+
+### Changed
+- reuse shared media field in studio
+
+## [0.2.25] - 2026-03-25
+
+### Changed
+- adopt shared studio UI primitives
+
+## [0.2.24] - 2026-03-25
+
+### Changed
+- cleanup studio panel list spacing
+
+## [0.2.23] - 2026-03-25
+
+### Changed
+- Decouple Roadie chat from Studio block
+
+### Fixed
+- fix studio team access gating
+
+## [0.2.22] - 2026-03-25
+
+### Changed
+- rewrite floating chat: conditional render, flat CSS classes, theme vars
+
+## [0.2.21] - 2026-03-25
+
+### Fixed
+- fix floating chat positioning and mount timing
+
+## [0.2.20] - 2026-03-25
+
+### Fixed
+- fix floating chat: move to viewport overlay, restore compose sidebar
+
+## [0.2.19] - 2026-03-25
+
+### Fixed
+- rename onDraftChange select handler to avoid collision with prop
+
+## [0.2.18] - 2026-03-24
+
+### Changed
+- replace Chat tab with floating Roadie panel
+
+## [0.2.17] - 2026-03-24
+
+### Changed
+- use ContentBridge API for draft switching instead of editor remount
+
+## [0.2.16] - 2026-03-24
+
+### Fixed
+- fix draft content loading with editorKey remount pattern
+
+## [0.2.15] - 2026-03-24
+
+### Changed
+- remove all panel eyebrow elements and CSS
+
+## [0.2.14] - 2026-03-24
+
+### Changed
+- add 2s debounced autosave to compose tab
+- add draft picker and auto-restore to compose tab
+
+## [0.2.13] - 2026-03-24
+
+### Changed
+- simplify QR code tab: remove size field, paste-and-generate
+
+## [0.2.12] - 2026-03-24
+
+### Changed
+- migrate studio block from JavaScript to TypeScript
+- remove overview tab, Phase 0 badge, and user status bar; clean up help text
+
+### Fixed
+- remove double border on compose editor — container already has one
+- add .gutenberg-support body class for toolbar dark mode
+
+## [0.2.11] - 2026-03-24
+
+### Fixed
+- use inline host-page styles for editor dark mode instead of iframe injection
+
+## [0.2.10] - 2026-03-24
+
+### Fixed
+- inject theme CSS into studio editor iframe for dark mode and EC tokens
+
+## [0.2.9] - 2026-03-24
+
+### Changed
+- use blocks_everywhere_contexts API instead of Frontend handler
+
+## [0.2.8] - 2026-03-23
+
+### Fixed
+- prevent jQuery dequeue when compose editor is active
+
+## [0.2.7] - 2026-03-23
+
+### Fixed
+- use Frontend handler instead of bbPress, add wp_enqueue_editor for Gutenberg deps
+
+## [0.2.6] - 2026-03-23
+
+### Fixed
+- enqueue Gutenberg editor deps during wp_enqueue_scripts for Compose tab
+
+## [0.2.5] - 2026-03-23
+
+### Fixed
+- poll for blocksEverywhereCreateEditor instead of checking synchronously
+
+## [0.2.4] - 2026-03-23
+
+### Changed
+- remove blocks-everywhere dep injection and footer group hack
+
+## [0.2.3] - 2026-03-23
+
+### Fixed
+- move viewScript to footer so it prints when enqueued during do_blocks()
+
+## [0.2.2] - 2026-03-23
+
+### Fixed
+- explicitly enqueue viewScript in render.php for template-rendered blocks
+
+## [0.2.1] - 2026-03-23
+
+### Fixed
+- add blocks-everywhere as view script dependency to resolve race condition
+
+## [0.2.0] - 2026-03-23
+
+### Added
+- add breadcrumb integration with network dropdown for studio site
+- tag-based publish routing with cross-site post transfer
+- Compose tab with isolated block editor for frontend publishing
+- social draft system with admin approval workflow
+- switch tabs to canonical Tabs component with ec-studio prefix
+- add Chat tab with @extrachill/chat integration
+
+### Changed
+- single getPlatforms() call for socials tab
+
+### Fixed
+- use card-background instead of background-color for studio card and shell
+- remove wp-components from frontend viewScript dependencies
+- socials tab crash + chat CSS not loading
+- rename webpack output from build/ to dist/ to avoid homeboy collision
+
+## [0.1.3] - 2026-03-11
+
+### Changed
+- migrate Studio to shared React tabs
+
+## [0.1.2] - 2026-03-11
+
+### Changed
+- add Studio Instagram comment reply interface
+- add contextual Studio homepage notices
+- move Studio homepage auth flow outside block
+
+### Fixed
+- fix Studio PHP lint cleanup issues
+
+## [0.1.1] - 2026-03-11
+
+### Changed
+- refactor Studio app into nested tab modules
+- add Homeboy component config for Studio
+- Add @extrachill/tokens as dependency
+- refactor Studio Instagram tab into modular Socials area
+- use api client for Studio social workflows
+- add initial Instagram publishing flow to Studio
+- add README for Studio plugin scaffold
+- add QR code generation to Studio workspace
+- add initial studio block shell for team workflows
+
+## 0.1.0
+
+- add initial `extrachill/studio` block scaffold
+- add team-gated Studio app shell with shared tabs and React-powered pane content

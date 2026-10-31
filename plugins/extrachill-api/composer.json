@@ -1,0 +1,18 @@
+{
+	"name": "extrachill/extrachill-api",
+	"description": "REST API infrastructure for the ExtraChill Platform multisite network",
+	"version": "0.10.7",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.4",
+		"endroid/qr-code": "^6.0",
+		"league/commonmark": "^2.6",
+		"league/html-to-markdown": "^5.1"
+	},
+	"scripts": {
+		"lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+		"lint:fix": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcbf\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
+		"test": "homeboy review test extrachill-api"
+	}
+}

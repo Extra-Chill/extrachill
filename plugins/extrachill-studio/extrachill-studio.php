@@ -1,0 +1,185 @@
+<?php
+/**
+ * Plugin Name: Extra Chill Studio
+ * Plugin URI: https://extrachill.com
+ * Description: Internal studio workspace for the Extra Chill team with a team-gated block shell for publishing and AI-assisted workflows.
+ * Version: 0.28.2
+ * Author: Chris Huber
+ * Author URI: https://chubes.net
+ * Requires Plugins: extrachill-users
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: extrachill-studio
+ * Requires at least: 6.9
+ * Tested up to: 6.9
+ * Requires PHP: 7.4
+ * Network: false
+ *
+ * @package ExtraChillStudio
+ * @since 0.1.0
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+define( 'EXTRACHILL_STUDIO_VERSION', '0.28.2' );
+define( 'EXTRACHILL_STUDIO_PLUGIN_FILE', __FILE__ );
+define( 'EXTRACHILL_STUDIO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'EXTRACHILL_STUDIO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+define( 'EXTRACHILL_STUDIO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/team-experience/events.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/assets.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/breadcrumbs.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/social-drafts.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose-editor.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/rest.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/notify-on-publish.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/compose/strand-detector.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/review-queue.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/resolve-instagram-media.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/run-giveaway.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/abilities/sweatpants-token.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/email-template.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/callback.php';
+require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/transcription/persist.php';
+
+/**
+ * Register Studio's ability category before abilities are registered.
+ *
+ * @return void
+ */
+function extrachill_studio_register_ability_category() {
+	if ( ! function_exists( 'wp_register_ability_category' ) ) {
+		return;
+	}
+
+	// Core's wp_abilities_api_categories_init action can fire more than once per
+	// request on multisite; guard against re-registration to avoid a
+	// _doing_it_wrong notice from WP_Ability_Categories_Registry::register().
+	if ( function_exists( 'wp_has_ability_category' ) && wp_has_ability_category( 'extrachill' ) ) {
+		return;
+	}
+
+	wp_register_ability_category(
+		'extrachill',
+		array(
+			'label'       => __( 'Extra Chill', 'extrachill-studio' ),
+			'description' => __( 'Extra Chill platform tools and workflows.', 'extrachill-studio' ),
+		)
+	);
+}
+add_action( 'wp_abilities_api_categories_init', 'extrachill_studio_register_ability_category' );
+
+/**
+ * Register the giveaway task with the Data Machine Task System.
+ *
+ * @param array $tasks Registered task classes.
+ * @return array
+ */
+add_filter( 'datamachine_tasks', function ( array $tasks ): array {
+	// Studio can boot without Data Machine; load its adapter only on registry demand.
+	if ( ! class_exists( \DataMachine\Engine\AI\System\Tasks\SystemTask::class ) ) {
+		return $tasks;
+	}
+
+	require_once EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/tasks/giveaway-task.php';
+	$tasks['giveaway'] = \ExtraChillStudio\Tasks\GiveawayTask::class;
+	return $tasks;
+} );
+
+/**
+ * Pin Instagram to the top of the social platforms response.
+ *
+ * Studio's primary social workflow targets Instagram, so the platform
+ * sidebar should default to Instagram instead of the alphabetically-first
+ * authenticated platform. Studio prepends 'instagram' to whatever priority
+ * list other plugins may have set, rather than replacing it.
+ *
+ * Filter contract is documented in
+ * data-machine-socials/inc/RestApi.php::get_platforms (since v0.13.1).
+ *
+ * @param array $priority Ordered list of platform slugs.
+ * @return array
+ */
+add_filter( 'datamachine_socials_platform_priority', function ( array $priority ): array {
+	return array_values( array_unique( array_merge( array( 'instagram' ), $priority ) ) );
+} );
+
+register_activation_hook( __FILE__, 'extrachill_studio_activate' );
+register_deactivation_hook( __FILE__, 'extrachill_studio_deactivate' );
+
+/**
+ * Activation hook.
+ *
+ * @return void
+ */
+function extrachill_studio_activate() {
+	flush_rewrite_rules();
+}
+
+/**
+ * Deactivation hook.
+ *
+ * @return void
+ */
+function extrachill_studio_deactivate() {
+	flush_rewrite_rules();
+}
+
+/**
+ * Load translations.
+ *
+ * @return void
+ */
+function extrachill_studio_load_textdomain() {
+	load_plugin_textdomain(
+		'extrachill-studio',
+		false,
+		dirname( EXTRACHILL_STUDIO_PLUGIN_BASENAME ) . '/languages'
+	);
+}
+add_action( 'init', 'extrachill_studio_load_textdomain' );
+
+/**
+ * Register Studio block.
+ *
+ * @return void
+ */
+function extrachill_studio_register_blocks() {
+	$blocks_dir = file_exists( EXTRACHILL_STUDIO_PLUGIN_DIR . 'build/blocks/studio' )
+		? 'build/blocks'
+		: 'src/blocks';
+
+	register_block_type( EXTRACHILL_STUDIO_PLUGIN_DIR . $blocks_dir . '/studio' );
+}
+add_action( 'init', 'extrachill_studio_register_blocks' );
+
+/**
+ * Hide the theme page title on the Studio homepage.
+ *
+ * The Studio block shell renders its own headline/description, so the page
+ * template H1 should not duplicate that chrome.
+ *
+ * @param bool $show Whether to show the page title.
+ * @return bool
+ */
+function extrachill_studio_hide_page_title( $show ) {
+	if ( is_front_page() || is_home() ) {
+		return false;
+	}
+
+	return $show;
+}
+add_filter( 'extrachill_show_page_title', 'extrachill_studio_hide_page_title' );
+
+/**
+ * Render homepage content for studio.extrachill.com.
+ *
+ * @return void
+ */
+function extrachill_studio_render_homepage() {
+	include EXTRACHILL_STUDIO_PLUGIN_DIR . 'inc/templates/studio-homepage.php';
+}
+add_action( 'extrachill_homepage_content', 'extrachill_studio_render_homepage' );

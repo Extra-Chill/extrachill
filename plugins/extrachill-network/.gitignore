@@ -1,0 +1,10 @@
+# Build output
+/build/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Additional build and development files
+/composer.lock
+/package-lock.json

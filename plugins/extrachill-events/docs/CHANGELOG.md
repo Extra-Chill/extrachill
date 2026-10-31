@@ -1,0 +1,1963 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
+
+## [0.100.0] - 2026-10-30
+
+### Added
+- recap photo backgrounds and per-slide share metadata
+
+## [0.99.1] - 2026-10-30
+
+### Fixed
+- bind artist sources to the lineup headliner and reuse existing artist terms
+
+## [0.99.0] - 2026-10-30
+
+### Added
+- prefill the lineup from submit_lineup
+
+## [0.98.4] - 2026-10-29
+
+### Fixed
+- lazily map newly bound canonical artists to Events terms
+
+## [0.98.3] - 2026-10-28
+
+### Fixed
+- classify performerless shared-title tours as artist sources; pass legacy_artist on submit
+
+## [0.98.2] - 2026-10-27
+
+### Fixed
+- treat an existing flow on the same artist host as coverage
+
+## [0.98.1] - 2026-10-24
+
+### Fixed
+- cache location upcoming-event counts for SEO descriptions
+
+## [0.98.0] - 2026-10-23
+
+### Added
+- rate-this-show link and rating copy on past shows
+
+## [0.97.0] - 2026-10-23
+
+### Added
+- venue archive title and meta description for 'upcoming events' searches
+
+## [0.96.0] - 2026-10-23
+
+### Added
+- unlock without reload, rate past shows from My Shows
+
+## [0.95.0] - 2026-10-23
+
+### Added
+- artist coverage auto-fills the Ticketmaster artist import
+
+### Changed
+- Add signed event-submission review links
+
+## [0.94.0] - 2026-10-22
+
+### Added
+- only attendees can rate shows
+
+## [0.93.0] - 2026-10-22
+
+### Added
+- link submit form, venue booking and home search to their docs
+
+## [0.92.0] - 2026-10-22
+
+### Added
+- approve submissions from events staff without review
+
+## [0.91.1] - 2026-10-21
+
+### Fixed
+- prefer the only matching venue over a same-named act
+
+## [0.91.0] - 2026-10-21
+
+### Added
+- one Find shows search for cities, venues, artists and shows
+
+## [0.90.2] - 2026-10-21
+
+### Fixed
+- give the booking inquiry CTA a theme button size
+
+## [0.90.1] - 2026-10-21
+
+### Fixed
+- artist Approve creates its flow again
+
+## [0.90.0] - 2026-10-21
+
+### Added
+- a flyer alone is a valid submission
+- email-only weekly digest signup, built like guest RSVP
+- one-click Approve; resolve venue city pipeline
+
+### Fixed
+- one heading, two choices, then the form
+- use theme button classes on /submit
+
+## [0.89.0] - 2026-10-17
+
+### Added
+- self-serve venue promo graphics in the venue workspace
+
+## [0.88.0] - 2026-10-16
+
+### Added
+- calendar layout for long roundups; merge repeat sets; omit single venue
+
+## [0.87.1] - 2026-10-16
+
+### Changed
+- event_poster as a thin adapter over Data Machine core poster template
+
+## [0.87.0] - 2026-10-16
+
+### Added
+- brand mark on every roundup slide; drop picks
+
+## [0.86.0] - 2026-10-16
+
+### Added
+- restaurant venue tier
+
+## [0.85.0] - 2026-10-16
+
+### Added
+- roundup passes tax filters and venue tiers to the events query
+
+## [0.84.0] - 2026-10-15
+
+### Added
+- roundup cover, picks, and closing slides
+
+## [0.83.3] - 2026-10-15
+
+### Changed
+- notify the network deploy on release
+
+## [0.83.2] - 2026-10-15
+
+### Fixed
+- declare digest slots as UTC cron expressions so they fire at the promised time
+
+## [0.83.1] - 2026-10-15
+
+### Fixed
+- list picks chronologically and hide 11:59 PM placeholder end times
+
+## [0.83.0] - 2026-10-14
+
+### Added
+- Local Scene digest offer on event pages
+
+## [0.82.0] - 2026-10-14
+
+### Added
+- email-only guest RSVP for perk events
+
+## [0.81.1] - 2026-10-14
+
+### Fixed
+- resubmitted events update the submitter's pending event instead of duplicating it
+
+## [0.81.0] - 2026-10-14
+
+### Added
+- suggest existing venues on the event submission form
+
+## [0.80.1] - 2026-10-14
+
+### Fixed
+- namespace submit CTA prefill args so /submit no longer resolves as a venue archive
+
+## [0.80.0] - 2026-10-13
+
+### Added
+- turn /submit into a landing page that says what submitters get
+
+## [0.79.0] - 2026-10-13
+
+### Added
+- context-aware 'add your show' CTAs on venue, city and event pages
+
+## [0.78.0] - 2026-10-13
+
+### Added
+- daily reviewer digest of aging pending event submissions
+- auto-publish event submissions from trusted submitters
+
+## [0.77.0] - 2026-10-13
+
+### Added
+- send a branded, next-step publish email to event submitters
+
+## [0.76.1] - 2026-10-11
+
+### Changed
+- maintain end-user docs with Automattic/docs-agent
+- run on gpt-6-luna
+
+## [0.76.0] - 2026-10-11
+
+### Added
+- landscape 16:9 layout for event_poster
+
+## [0.75.0] - 2026-10-11
+
+### Added
+- event_poster image template with QR and print preset
+
+## [0.74.1] - 2026-10-07
+
+### Changed
+- make the default phpunit config runnable and gate every test it holds
+
+## [0.74.0] - 2026-10-06
+
+### Added
+- auto-flag events from priority promoters as priority events
+
+## [0.73.0] - 2026-10-04
+
+### Added
+- artist archives use "Tour Dates" titles and an upcoming-shows meta description
+
+## [0.72.5] - 2026-10-03
+
+### Fixed
+- build the QR base URL with a trailing code= so revealed passes show their QR
+
+## [0.72.4] - 2026-10-03
+
+### Fixed
+- size mobile action dropdown menus to their full-width toggles
+
+## [0.72.3] - 2026-10-03
+
+### Fixed
+- show the pass right after tapping Going
+
+## [0.72.2] - 2026-10-02
+
+### Fixed
+- split oversized days across slides and reserve footer space
+
+## [0.72.1] - 2026-10-02
+
+### Fixed
+- share one permission gate across query, render, and build abilities
+
+## [0.72.0] - 2026-10-02
+
+### Added
+- show event-source importer to logged-out visitors as a join prompt
+
+## [0.71.10] - 2026-10-02
+
+### Fixed
+- accept artist tour pages from non-admin submitters
+
+## [0.71.9] - 2026-09-30
+
+### Fixed
+- lay out the event action row's attendance and RSVP perk pieces
+
+## [0.71.8] - 2026-09-29
+
+### Changed
+- drop redundant mail authorization wrappers
+
+## [0.71.7] - 2026-09-29
+
+### Fixed
+- issue RSVP passes to existing Going attendees when a perk is enabled
+- decode event title in RSVP pass email and log refused sends
+
+## [0.71.6] - 2026-09-29
+
+### Fixed
+- render RSVP pass QR for attendees via a scoped ability permission grant
+
+## [0.71.5] - 2026-09-27
+
+### Changed
+- Legacy event submission tests run as an anonymous visitor
+
+## [0.71.4] - 2026-09-27
+
+### Fixed
+- never let a notification failure fail an accepted event submission
+
+## [0.71.3] - 2026-09-27
+
+### Fixed
+- own event submission workflows with the system agent
+
+## [0.71.2] - 2026-09-27
+
+### Changed
+- Event submission workflow uses the current Data Machine step shape and passes WorkflowSpecValidator
+
+## [0.71.1] - 2026-09-27
+
+### Fixed
+- cook extrachill-events
+
+## [0.71.0] - 2026-09-27
+
+### Added
+- plain-language venue claim with no accidental default and a 'not listed' path
+
+## [0.70.4] - 2026-09-27
+
+### Changed
+- restore the runtime $wpdb in tearDown (fixes managed PHPUnit on main)
+
+## [0.70.3] - 2026-09-27
+
+### Fixed
+- accept Link Pages runtime API version 4, degrade venue-settings instead of fatalling
+
+## [0.70.2] - 2026-09-27
+
+### Fixed
+- accept same-date overnight end times in the publication guard
+
+## [0.70.1] - 2026-09-26
+
+### Fixed
+- let the weekly qualify digest run and send as a system task
+
+## [0.70.0] - 2026-09-26
+
+### Added
+- RSVP perk pass slice 2 — QR scan-to-redeem and the pass in My Shows
+
+## [0.69.9] - 2026-09-26
+
+### Changed
+- register the location taxonomy hierarchically everywhere tests touch it
+
+## [0.69.8] - 2026-09-26
+
+### Fixed
+- unslash direct-insert input before the publication guard parses event details
+
+## [0.69.7] - 2026-09-26
+
+### Fixed
+- resolve continent terms deterministically when a duplicate name exists
+
+## [0.69.6] - 2026-09-25
+
+### Fixed
+- compare location country codes against country terms by canonical name
+
+## [0.69.5] - 2026-09-25
+
+### Fixed
+- match a stateless city's country at its parent, not only its grandparent
+
+## [0.69.4] - 2026-09-25
+
+### Changed
+- execute booking-mysql/booking-concurrency proofs for real, stop hiding them behind Total: 0
+
+## [0.69.3] - 2026-09-25
+
+### Changed
+- bump wp-codebox and homeboy-extensions pins to the changed-scope fixes
+
+## [0.69.2] - 2026-09-24
+
+### Fixed
+- skip the pcntl_fork hold proof in the sandbox, prove it on a real host
+
+## [0.69.1] - 2026-09-24
+
+### Fixed
+- pass card listens for ec:attendance-changed instead of guessing timing
+
+## [0.69.0] - 2026-09-24
+
+### Added
+- RSVP perk pass — issue, show, email, and redeem at the door (slice 1)
+
+### Changed
+- Gardner event-RSVP persona journey against the real Oct 21 2026 Lo-Fi Brewing meetup
+
+## [0.68.3] - 2026-09-22
+
+### Fixed
+- grant id-token so the shared release workflow can start
+
+## [0.68.2] - 2026-09-22
+
+### Fixed
+- state the PHP version this plugin actually requires
+
+## [0.68.1] - 2026-09-21
+
+### Fixed
+- stop InternalBookingHoldConcurrencyMySQLProof inheriting another suite's declared tests
+
+## [0.68.0] - 2026-09-21
+
+### Added
+- render surfaces for promoted events — location archive callout + Local Scene homepage card
+
+### Changed
+- skip automatic term classification for event posts
+
+### Fixed
+- default unresolvable event types to Other, not Concert
+
+## [0.67.8] - 2026-09-21
+
+### Fixed
+- register real abilities instead of a hand-rolled wp_get_ability() stub
+
+## [0.67.7] - 2026-09-21
+
+### Changed
+- render related events through the theme shared grid renderer
+
+## [0.67.6] - 2026-09-21
+
+### Changed
+- bump homeboy-extensions pin to v3.48.5 for suite-scoped test selection
+
+## [0.67.5] - 2026-09-21
+
+### Changed
+- add continuous release pipeline
+- fix three failing tests from #848 and clear release lint errors
+
+### Fixed
+- restore venue operator disclosure above the calendar on venue archives
+
+## [0.67.4] - 2026-09-19
+
+### Fixed
+- make --no-ai actually invokable on classify-genre
+
+## [0.67.3] - 2026-09-18
+
+### Fixed
+- render archive map and sign-in prompts below the event listings
+
+## [0.67.2] - 2026-09-18
+
+### Fixed
+- Near Me city grid uses upcoming counts and home ordering
+
+## [0.67.1] - 2026-09-18
+
+### Fixed
+- degrade near-me to city grid when scoped results never arrive
+- re-pin DME calendar contract and refresh CLI command inventory
+
+## [0.67.0] - 2026-09-17
+
+### Added
+- quick-add upcoming shows from My Shows search
+
+### Fixed
+- center and evenly space My Shows stats bar tiles
+
+## [0.66.0] - 2026-09-08
+
+### Added
+- classify-genre CLI for unclaimed events-site artist terms
+- bind genre to events, materialize from artist genres, lock out import, sync-genres CLI
+- heuristic venue tier classification CLI with priority reconciliation
+
+### Fixed
+- clear release preflight findings (php 7.4 catch, phpstan, bootstrap sniffs)
+- hide event_type badge on cards, expose event_type in filter modal
+
+## [0.65.0] - 2026-09-08
+
+### Added
+- supply EC event_type vocabulary and dry-run backfill CLI
+- create missing Country/City location terms from venue metadata
+- import bound venue calendar feeds on a schedule
+- bind venues to public calendar feeds
+- open the booking inquiry form in a modal
+- send venue operators a dedicated booking inquiry email
+- reduce booking intake to the questions that qualify a show
+- add promoter managed workspace
+- add promoter-owned Link Pages
+- add venue-owned Link Pages
+- add scoped promoter venue grants
+- add verified promoter organizations
+
+### Changed
+- run on PHP 8.4 and advance the homeboy-extensions pin
+- use the shared service account provider for venue discovery
+- retire venue booking intake presentation overrides
+- remove vendor requests from the booking platform
+- remove Local Support from the booking platform
+- share Link Page editor across Events
+- isolate concert stats registration URLs
+
+### Fixed
+- guard the remaining Data Machine ability stubs
+- preload the shared test bootstrap for every sandbox suite
+- restore the promoter Link Page anchor the management URL targets
+- classify membership and promoter-authority as host suites, guard DM stub
+- restore each folded suite's own bootstrap as a per-suite preload
+- guard the Agents API principal fixture against redeclaration
+- stop declaring validation dependencies in two places
+- advance homeboy-extensions ref to restore the test phase
+- stop link-page providers flooding debug.log on every request
+- never publish private or unconfirmed calendar entries
+- advance WP Codebox pin past the typed-recipe refactor
+- advance the coupled homeboy-extensions and WP Codebox runtime pins
+- unpin CI from stale homeboy 0.319.2 binary
+- align intake answer shapes with the editor contract
+- stop coloring needs_info bookings as terminal on the venue calendar
+- make booking operations legible to a nontechnical venue manager
+- default venue booking console to calendar view
+- discover promoter Events workspaces
+- scope organizer event queries before limiting
+- lock organizer authority during mutations
+
+## [0.64.1] - 2026-08-22
+
+### Fixed
+- honor booking correspondence subjects
+- explain booking website setup
+- give public booking region a semantic heading
+- render venue claim action on archives
+
+## [0.64.0] - 2026-08-22
+
+### Added
+- add artist booking inquiry follow-through
+- add venue attachment readiness policy
+- gate private storage on operational readiness
+
+### Fixed
+- make booking draft persistence explicit
+- route My Shows signup through canonical registration
+- restore contextual venue claim acquisition
+- prevent duplicate booking message delivery
+- preserve venue-local booking instants
+- Fix Local Scene authentication continuation
+
+## [0.63.2] - 2026-08-21
+
+### Fixed
+- complete Near Me release lint
+- satisfy Near Me release lint
+- repair cold network block suite bootstrap
+- prioritize shows on city calendars
+- explain Near Me location failures
+
+## [0.63.1] - 2026-08-21
+
+### Fixed
+- prevent upcoming count cache drift
+
+## [0.63.0] - 2026-08-21
+
+### Added
+- make venue booking management action-first
+- make artist booking intake resilient
+- expose venue booking from archive headers
+
+### Changed
+- refresh Homeboy Extensions routing pin
+
+## [0.62.3] - 2026-08-15
+
+### Fixed
+- normalize location reconciliation identity
+
+## [0.62.2] - 2026-08-15
+
+### Fixed
+- constrain venue discovery to requested market
+
+## [0.62.1] - 2026-08-15
+
+### Fixed
+- preserve canonical location hierarchy
+
+## [0.62.0] - 2026-08-14
+
+### Added
+- make booking fields scannable
+
+### Fixed
+- prevent booking preview clipping
+- keep booking website prefill clean
+- restore dark booking label inputs
+- label virtual event breadcrumbs
+
+## [0.61.5] - 2026-08-14
+
+### Fixed
+- defer hidden My Shows map mounting
+- improve venue booking operations
+- simplify booking form builder
+- prevent booking editor column overlap
+- prefill booking embed website
+- align venue controls with theme buttons
+- consolidate venue booking toolbar
+
+## [0.61.4] - 2026-08-14
+
+### Fixed
+- clarify venue booking workspace
+
+## [0.61.3] - 2026-08-14
+
+### Changed
+- simplify booking field editor
+
+### Fixed
+- normalize venue pipeline location selections
+
+## [0.61.2] - 2026-08-13
+
+### Fixed
+- replace conflicting event market terms
+
+## [0.61.1] - 2026-08-13
+
+### Fixed
+- simplify venue booking form builder
+
+## [0.61.0] - 2026-08-12
+
+### Added
+- qualify generic event source intake
+
+### Changed
+- remove artist event source aliases
+
+## [0.60.0] - 2026-08-10
+
+### Added
+- expose public Events entity projections
+- add idempotent event priority boosts
+
+### Changed
+- isolate Events bootstrap providers
+- use public pipeline configuration contracts
+- extract venue booking providers
+
+### Fixed
+- clear release lint blockers
+- defer translated booking service errors
+- authorize priority boosts with service assertions
+- authorize trusted priority boost fulfillment
+
+## [0.59.1] - 2026-08-06
+
+### Changed
+- extract bootstrap feature providers
+- simplify My Venues selection
+- simplify venue booking forms
+- retire entity follow notifications
+- restore managed archive fixture isolation
+
+### Fixed
+- clear CLI provider static analysis
+- clear booking release lint
+- remove duplicate booking form address
+- remove dead public booking requirements
+
+## [0.59.0] - 2026-08-05
+
+### Added
+- add venue Booking Form workspace
+
+### Changed
+- authenticate managed venue administrator
+
+### Fixed
+- clear booking form release lint
+
+## [0.58.8] - 2026-08-04
+
+### Changed
+- retire venue email sharing
+
+## [0.58.7] - 2026-08-04
+
+### Fixed
+- send valid venue claims input
+
+## [0.58.6] - 2026-08-04
+
+### Fixed
+- compose venue workspace primitives
+- aggregate venue management workspace
+
+## [0.58.5] - 2026-08-04
+
+### Fixed
+- accept canonical venue ticketing URL output
+
+## [0.58.4] - 2026-08-04
+
+### Fixed
+- serialize read ability input as query data
+
+## [0.58.3] - 2026-08-04
+
+### Fixed
+- remove public booking noise
+- send venue ability input through POST
+
+## [0.58.2] - 2026-08-04
+
+### Changed
+- remove booking assignment system
+- simplify venue workspace
+
+## [0.58.1] - 2026-08-04
+
+### Fixed
+- collapse venue workspace header actions
+- include published events in venue calendar
+- show all venues by default
+- simplify public booking intake
+- restore venue booking surfaces
+- defer booking admission service construction
+
+## [0.58.0] - 2026-08-03
+
+### Added
+- add secure venue booking embeds
+
+### Fixed
+- clear booking embed release lint
+
+## [0.57.3] - 2026-08-03
+
+### Fixed
+- notify authorized venue booking members
+
+## [0.57.2] - 2026-08-03
+
+### Fixed
+- use product identity in transactional emails
+
+## [0.57.1] - 2026-08-02
+
+### Fixed
+- use venue timezone in booking correspondence
+
+## [0.57.0] - 2026-08-02
+
+### Added
+- add booking privacy and retention operations
+- add coordinator-controlled vendor requests
+- add venue booking guide
+- make venue booking inquiries date-first
+- automate booking receipt and competing-date follow-up
+- support 14-day booking holds
+
+### Fixed
+- clarify available booking submission dates
+- close public intake for active venue holds
+
+## [0.56.5] - 2026-08-02
+
+### Fixed
+- make venue management discoverable
+
+## [0.56.4] - 2026-08-01
+
+### Fixed
+- normalize homepage location badges
+
+## [0.56.3] - 2026-07-31
+
+### Changed
+- compose booking surfaces from shared tokens
+
+### Fixed
+- clear Events discovery PHPStan findings
+- restore Local Scene navigation
+- restore mobile booking inquiry gutter
+
+## [0.56.2] - 2026-07-29
+
+### Changed
+- migrate event notifications to receipts
+- consume public DME booking contracts
+
+### Fixed
+- consume typed import notification receipts
+- cast Local Support escape arguments to string
+- collapse venue preferences into one notice
+- scope venue workspace and privatize Local Support controls
+- guard unavailable publication timezone transitions
+- preview disabled local scene digest dry runs
+
+## [0.56.1] - 2026-07-29
+
+### Fixed
+- compose venue preference controls
+
+## [0.56.0] - 2026-07-28
+
+### Added
+- add booking performance reporting abilities
+- expose managed venue voices
+- add scoped venue email consent
+- add auditable show settlements
+
+### Changed
+- add disposable booking network E2E
+- Add private local support opportunity workspace
+
+### Fixed
+- simplify venue subscription status
+- simplify venue subscription prompt
+- register Events abilities before init
+- enrich known venues during expansion
+
+## [0.55.1] - 2026-07-28
+
+### Fixed
+- authorize linked booking cancellation
+
+## [0.55.0] - 2026-07-28
+
+### Added
+- expose booking inquiry block across network
+
+### Changed
+- Complete core booking operator controls
+- prove ticket races and migration fidelity
+- reset inquiry temporary files between repeats
+
+### Fixed
+- synchronize companion plugin version
+- bind certified ticket settlement evidence
+- polish Events homepage surfaces and stats
+- compose booking inquiry component styles
+- recover canonical booking event conversion
+
+## [0.54.1] - 2026-07-27
+
+### Fixed
+- load location guard for worker abilities
+
+## [0.54.0] - 2026-07-27
+
+### Added
+- reconcile booking ticket sales evidence
+
+### Changed
+- isolate booking harness globals
+
+### Fixed
+- unblock production-scale event expansion
+
+## [0.53.0] - 2026-07-27
+
+### Added
+- add bounded resumable venue expansion
+- add public venue booking inquiries
+- add local support matching notifications
+- add venue booking operations console
+- add local support request domain
+- orchestrate approved booking marketing
+- gate event source ramps with operational evidence
+- add explicit venue update subscriptions
+
+### Changed
+- provision switched-site MySQL fixtures
+
+## [0.52.3] - 2026-07-27
+
+### Fixed
+- accept MariaDB integer display widths
+
+## [0.52.2] - 2026-07-27
+
+### Changed
+- prove internal booking-to-calendar alpha
+
+## [0.52.1] - 2026-07-27
+
+### Fixed
+- register Events recurring task settings
+- harden booking event synchronization
+
+## [0.52.0] - 2026-07-27
+
+### Added
+- add weekly Local Scene digest
+- synchronize converted booking events
+
+### Changed
+- isolate qualify suite globals and fixtures
+
+### Fixed
+- preload booking schema after WordPress test setup
+- install booking schema on switched multisite blogs
+- clear managed PHPUnit baseline
+
+## [0.51.0] - 2026-07-26
+
+### Added
+- add immutable booking ticket settlements
+- integrate headless booking domain contracts
+- add venue settings and team management experience
+
+### Fixed
+- restore venue settings release gates
+- disambiguate canonical event locations
+
+## [0.50.2] - 2026-07-26
+
+### Changed
+- support core WP_Term fixtures
+
+## [0.50.1] - 2026-07-26
+
+### Fixed
+- preserve live discovery pagination canonical
+
+## [0.50.0] - 2026-07-26
+
+### Added
+- add fail-closed booking email reminders
+- add venue claims and invitations
+- authorize venue profile management
+- add fail-closed booking attachment contracts
+- add conflict-safe booking holds
+- add headless booking lifecycle
+- expose venue booking configuration abilities
+
+### Changed
+- Add confirmed booking event conversion
+- Add booking detail and deal mutations
+
+### Fixed
+- preserve scoped query pagination canonicals
+- clear release lint baseline
+- serialize event publication with bookings
+- normalize missing venue URLs
+- use scoped capabilities for venue access
+
+## [0.49.0] - 2026-07-22
+
+### Added
+- add venue-scoped booking authorization ([#329](https://github.com/Extra-Chill/extrachill-events/pull/329)) (by Chris Huber)
+- add venue booking storage foundation ([#306](https://github.com/Extra-Chill/extrachill-events/pull/306)) (by Chris Huber)
+
+### Fixed
+- qualify persisted flows with production context ([#328](https://github.com/Extra-Chill/extrachill-events/pull/328)) (by Chris Huber)
+
+## [0.48.2] - 2026-07-22
+
+### Fixed
+- rank qualification backlog by remediation cohort ([#302](https://github.com/Extra-Chill/extrachill-events/pull/302)) (by Chris Huber)
+- distinguish unsupported qualification sources ([#304](https://github.com/Extra-Chill/extrachill-events/pull/304)) (by Chris Huber)
+- preserve canonical event and venue adapters ([#287](https://github.com/Extra-Chill/extrachill-events/pull/287)) (by Chris Huber)
+
+## [0.48.1] - 2026-07-21
+
+### Fixed
+- anchor My Shows map to Local Scene
+
+## [0.48.0] - 2026-07-21
+
+### Added
+- turn My Shows into an onboarding surface
+- resolve canonical artist identity at Events boundary
+
+### Changed
+- require canonical artist event identity
+
+## [0.47.0] - 2026-07-20
+
+### Added
+- enforce public concert privacy
+
+### Fixed
+- fix(concert-stats): isolate paginated show queries
+- preserve scoped request state
+- render past-only public concert histories
+
+## [0.46.2] - 2026-07-15
+
+### Changed
+- own Data Machine Events configuration
+
+## [0.46.1] - 2026-07-14
+
+### Fixed
+- route paginated all-events archives
+
+## [0.46.0] - 2026-07-14
+
+### Added
+- make event exploration contextual
+
+## [0.45.1] - 2026-07-13
+
+### Changed
+- retire datamachine/v1 artist import aliases (#256)
+
+### Fixed
+- make festival event notifications idempotent
+- protect event submission ability boundary
+
+## [0.45.0] - 2026-07-13
+
+### Added
+- add taxonomy context to event rows
+
+## [0.44.0] - 2026-07-13
+
+### Added
+- prioritize nearby artist show notifications
+
+## [0.43.0] - 2026-07-13
+
+### Added
+- notify artist subscribers of new events
+
+### Fixed
+- clear release lint findings
+
+## [0.42.0] - 2026-07-12
+
+### Added
+- audit location taxonomy integrity
+- notify festival subscribers of new events
+
+## [0.41.0] - 2026-07-12
+
+### Added
+- connect Events to Local Scene
+
+## [0.40.1] - 2026-07-12
+
+### Fixed
+- prevent virtual event router 404s
+
+## [0.40.0] - 2026-07-12
+
+### Added
+- redesign event market discovery router
+
+### Fixed
+- target event cache invalidation
+
+## [0.39.0] - 2026-07-12
+
+### Added
+- apply account market fallback to event discovery
+- expose canonical event locations ability
+
+### Fixed
+- add eslint config and clear source findings for release lint gate (#226)
+
+## [0.38.3] - 2026-07-12
+
+### Fixed
+- normalize single-event action button row into one consistent system
+
+## [0.38.2] - 2026-07-11
+
+### Fixed
+- register abilities on wp_abilities_api_init instead of firing outside the action
+
+## [0.38.1] - 2026-07-10
+
+### Fixed
+- own shared artist-import pipeline, correct approve output type, and notify submitter on non-interactive approvals (#220 #221 #222)
+
+## [0.38.0] - 2026-07-10
+
+### Added
+- credit approved tour-URL submissions toward community rank (#214)
+- notify submitter on artist tour-import approval/rejection (#212)
+
+### Changed
+- use one shared Artist Tour Import pipeline with flow-per-URL (B1)
+
+### Fixed
+- clear PHPCS/phpstan lint gate on current main (supersedes #204)
+- correct stale 'update' step_type and add admin notification for URL tour-import submissions
+
+## [0.37.0] - 2026-07-06
+
+### Added
+- honest content authorship — anon submitter attribution + backfill CLI (#207)
+
+## [0.36.0] - 2026-07-04
+
+### Added
+- compose attendance-first past-event pages with import-at-intent
+
+## [0.35.0] - 2026-07-03
+
+### Added
+- adopt artist-URL-import subsystem from data-machine-events (layer purity)
+
+### Changed
+- adopt shared card-grid primitive across event blocks
+
+## [0.34.0] - 2026-06-27
+
+### Added
+- map Add-to-Calendar toggle to theme button classes
+
+### Changed
+- consume shared network bridge primitive from multisite
+
+## [0.33.0] - 2026-06-20
+
+### Added
+- all-city badges + My Shows/Submit feature cards, hold off /location
+
+## [0.32.3] - 2026-06-20
+
+### Fixed
+- call is_error() on the response, not the request
+
+## [0.32.2] - 2026-06-20
+
+### Changed
+- clean phpcs findings in router/directory templates
+- move events directory from /cities to /location/ taxonomy root
+
+## [0.32.1] - 2026-06-20
+
+### Changed
+- guard Rosarito (Mexico tree) against US market mis-mapping
+
+### Fixed
+- make Niagara Falls cross-border aware (NY->Buffalo, ON->own term)
+
+## [0.32.0] - 2026-06-20
+
+### Added
+- Canada-aware venue-city resolution for the new Canada tree
+
+### Fixed
+- fix(location-audit): surface flow-fallback as a distinct status, not 'match'
+
+## [0.31.2] - 2026-06-20
+
+### Fixed
+- use toolbar scope chips on location archives too
+- map Houston/Dallas metro suburbs so 50mi-radius events tag the right city (data-machine-events#379)
+
+## [0.31.1] - 2026-06-20
+
+### Changed
+- adopt block-native EventsMap collapse, retire EC workaround, consolidate call sites (#373)
+
+## [0.31.0] - 2026-06-19
+
+### Added
+- enable in-block scope chips on non-location archives (data-machine-events#373)
+
+## [0.30.0] - 2026-06-19
+
+### Added
+- make archive map collapsible/less-dominant and group scope nav with calendar filter controls
+
+### Changed
+- split procedural bootstrap out of main plugin file
+
+## [0.29.5] - 2026-06-16
+
+### Fixed
+- commit package-lock.json so homeboy release uses npm ci
+
+## [0.29.4] - 2026-06-16
+
+### Changed
+- stop tooling from stamping universal policy into pipeline/flow prompts
+
+## [0.29.3] - 2026-06-15
+
+### Fixed
+- guard ability category registration against double-fire _doing_it_wrong notice
+- add artifact_path to block version targets (#4614)
+
+## [0.29.2] - 2026-06-15
+
+### Fixed
+- stop synthesizing crawlable community search URLs in single-event bridge
+
+## [0.29.1] - 2026-06-02
+
+### Fixed
+- stop per-term calendar stats from warming Redis on empty term archives
+- register event taxonomy relationship caches as non-persistent on events site
+
+## [0.29.0] - 2026-06-01
+
+### Added
+- feat(concert-stats): fold Add Past Shows into the Past tab
+
+### Changed
+- pin ajv ^8 to fix wp-scripts webpack build on Node 25
+
+## [0.28.0] - 2026-06-01
+
+### Added
+- feat(artist-map): render chronological tour-route map on artist archives
+- feat(concert-stats): render venue/city as platform taxonomy badges
+- feat(concert-stats): responsive tabs + tab badges + interactive stat tiles + softer zero-state
+- feat(concert-stats): link show-card terms and badge leaderboard counts
+- feat(concert-stats): link leaderboard terms to cross-site profiles/archives
+- shared venue-city to location-term resolver for create-time normalizer
+- add reverse network bridge on single event pages
+
+### Changed
+- refactor(concert-stats): extract attendance toggle into shared useMarkAttendance hook
+- refactor(concert-stats): unify buttons on theme classes
+- refactor(my-shows): remove dead code and de-duplicate date formatting
+- clear phpcs lint debt (release preflight)
+
+### Fixed
+- scope My Shows calendar + map by signed token so owner scoping survives REST
+
+## [0.27.5] - 2026-05-30
+
+### Fixed
+- migrate @extrachill/components from file: link to published ^0.5.2
+
+## [0.27.4] - 2026-05-30
+
+### Fixed
+- use $post_id in my-shows page-title filter
+- suppress duplicate theme H1 on /my-shows/
+
+## [0.27.3] - 2026-05-30
+
+### Fixed
+- stop stranding Load More above re-injected pagination
+
+## [0.27.2] - 2026-05-27
+
+### Fixed
+- fix(my-shows): canonical CTA classes + InlineStatus error + empty-search prompt
+
+## [0.27.1] - 2026-05-27
+
+### Fixed
+- fix(venue-archive): dedup '24 upcoming events' from map summary
+- fix(my-shows): show tabs in empty state, public marketing page for logged-out (closes #126)
+- remove duplicate category registration (closes #124)
+- fix(concert-stats): hide unconfigured import sources from end users + show created-events counter (companion to extrachill-users#54)
+
+## [0.27.0] - 2026-05-27
+
+### Added
+- feat(my-shows): map view tab showing tracked venues with chronological polyline (closes #111)
+- feat(my-shows): calendar view tab embedding data-machine-events/calendar (closes #110)
+- feat(event-submission): URL field for artist tour import (closes #320 EC-events side)
+- feat(concert-stats): Import tab with setlist.fm + phish.net cards (closes #112)
+- feat(my-shows): search-and-add past shows tab (closes #109)
+- per-archive upcoming-events stats line
+
+### Changed
+- refactor(concert-stats): migrate to @extrachill/components canonical primitives (closes #120)
+- remove events-submit pass-through wrapper
+
+## [0.26.1] - 2026-05-21
+
+### Fixed
+- roll up Midlothian, TX to Dallas (the actual stray was TX, not VA)
+
+## [0.26.0] - 2026-05-21
+
+### Added
+- roll up Winter Park, Scottsdale, Berkeley, San Leandro, Wake Forest, Germantown, Midlothian to their parent markets
+
+## [0.25.0] - 2026-05-21
+
+### Added
+- repair-locations + prune-orphans CLI for flow_config location hygiene
+- add wp extrachill events flows audit-pipelines CLI
+
+## [0.24.0] - 2026-05-20
+
+### Added
+- include venue in single event breadcrumb trail
+
+## [0.23.3] - 2026-05-18
+
+### Fixed
+- sync block.json files to v0.23.2 after race with concurrent release
+- sync block.json versions on release so style/script changes bust caches
+
+## [0.23.2] - 2026-05-18
+
+### Fixed
+- TM precheck distinguishes LN-owned pages from promoter aggregators
+
+## [0.23.1] - 2026-05-18
+
+### Changed
+- migrate event submission emails to datamachine/send-email (closes #87)
+
+## [0.23.0] - 2026-05-18
+
+### Added
+- honor priority venue system in location archive badge ordering
+
+## [0.22.0] - 2026-05-18
+
+### Added
+- render venue badge graph on location archives
+
+## [0.21.3] - 2026-05-18
+
+### Changed
+- move Turnstile check out of submit-event ability (#84)
+
+## [0.21.2] - 2026-05-17
+
+### Fixed
+- fix(market-report): detect handler types across both flow schema variants
+
+## [0.21.1] - 2026-05-17
+
+### Fixed
+- propagate discovered events_url to flow source_url on resume
+
+## [0.21.0] - 2026-05-17
+
+### Added
+- unattended-safe pausing — confirmation, self-recheck, weekly digest
+
+## [0.20.1] - 2026-05-16
+
+### Fixed
+- per-shape threshold for QUALIFIED_STRUCTURED (detail pages allow 1 event)
+
+## [0.20.0] - 2026-05-16
+
+### Added
+- structured fingerprint + persistent verdict log (qualify v2)
+
+## [0.19.2] - 2026-05-13
+
+### Fixed
+- allow null slug input on events-upcoming-counts ability
+
+## [0.19.1] - 2026-05-10
+
+### Changed
+- consume data-machine-events public integration API
+
+## [0.19.0] - 2026-05-10
+
+### Added
+- register events-domain abilities (#68)
+- add CTA and shared scopes
+
+### Fixed
+- guard against renamed Taxonomy\Badges class
+
+## [0.18.1] - 2026-04-25
+
+### Fixed
+- pass date range to DateGrouper to prevent midnight-spanning bleed
+
+## [0.18.0] - 2026-04-25
+
+### Added
+- rename WeeklyRoundup → EventRoundup, add date-range native abilities
+
+## [0.17.9] - 2026-04-25
+
+### Changed
+- refactor(weekly-roundup): migrate SlideGenerator to TemplateInterface + BrandTokens
+- Add integration tests for EventSubmissionAbilities
+- Remove legacy flow-based event submission path, use ephemeral workflow only
+
+## [0.17.8] - 2026-03-31
+
+### Changed
+- Add Queens as distinct location, map Queens zips and Ridgewood to queens
+- Standardize ability callbacks on WP_Error returns
+
+### Fixed
+- Fix test-event-scraper slug reference after prefix rename
+
+## [0.17.7] - 2026-03-29
+
+### Changed
+- Add event time audit and fix abilities
+
+## [0.17.6] - 2026-03-29
+
+### Changed
+- Use button-medium for all event action buttons (ticket, share)
+- Migrate /my-shows/ from PHP template to WordPress page with concert-stats block
+- Add extrachill/concert-stats Gutenberg block with React frontend
+- Add concert tracking integration and My Shows page
+
+### Fixed
+- Fix React error #31 on My Shows page: remove React 19 from dependencies
+- Fix market report: match flows to locations via term ID, not pipeline name
+
+## [0.17.5] - 2026-03-28
+
+### Changed
+- Add card treatment to event-info section on single event pages
+
+### Fixed
+- trigger resize after hiding detect UI so Leaflet recalculates map viewport
+
+## [0.17.4] - 2026-03-28
+
+### Changed
+- Remove fallback pattern matcher from venue qualification
+- Revert scope nav specificity override
+- flatten location badges wrapper div
+- Add mobile gutter to events archive pages at 480px
+- eliminate ec-edge-shell from events templates
+- remove redundant breadcrumb gutters
+
+### Fixed
+- add Columbia MD to market map, backfill venue state data
+- disambiguate location terms by venue state
+- venue city is ground truth for location reconciliation
+- Fix scope nav tabs caught by theme .page-content ul rule
+- hook normalizer to datamachine_event_taxonomy_processed
+
+## [0.17.3] - 2026-03-26
+
+### Changed
+- align event templates to edge contract
+
+## [0.17.2] - 2026-03-26
+
+### Fixed
+- remove event-specific edge overrides
+
+## [0.17.1] - 2026-03-26
+
+### Fixed
+- own single-event mobile breakout styling
+
+## [0.16.0] - 2026-03-23
+
+### Added
+- replace calendar homepage with location directory
+
+### Changed
+- increase calendar stats transient TTL from 1hr to 6hr
+- Revert "feat: replace calendar homepage with location directory"
+
+### Fixed
+- sync version constant to 0.15.0
+
+## [0.15.0] - 2026-03-23
+
+### Added
+- venue matching supports child location terms and city aliases
+- `extrachill_events_get_location_venues()` transient + static cache with invalidation on venue CRUD
+
+### Fixed
+- auto-disambiguate pipeline names in `add-city` when city name collides across states — compares TM coordinates instead of just pipeline name
+- update NYC zip normalizer to map boroughs to new-york-city term
+
+### Changed
+- `extrachill_events_get_location_venues()` replaced N+1 `get_term_meta()` loop over 2,234 venues with single SQL JOIN query
+
+## [0.14.4] - 2026-03-22
+
+### Fixed
+- default add-city interval to daily — full catalog imports don't need higher frequency
+
+## [0.14.3] - 2026-03-22
+
+### Fixed
+- add-city used invalid interval key 'every_6_hours' — flows stayed manual
+
+## [0.14.2] - 2026-03-22
+
+### Changed
+- use DateFilter from data-machine-events for calendar stats
+- Include submission details in ephemeral workflow AI user_message
+- Add 'Tour Dates' header for artist taxonomy archives
+
+### Fixed
+- remove AEG/AXS from TM pre-qualify disqualification
+- disqualify Ticketmaster/Live Nation/AEG venues in qualify step (fixes #47)
+- calendar stats query uses start_datetime and adds 'upcoming' label
+- prevent ensureLocationTerm from re-parenting existing terms to wrong state
+
+## [0.14.1] - 2026-03-20
+
+### Changed
+- Add market-report ability for data-driven calendar scaling
+
+## [0.14.0] - 2026-03-20
+
+### Added
+- add extrachill/submit-event ability + fix Turnstile widget on mobile
+
+### Fixed
+- force turnstile widget to always render on event submission form
+- change add-venue default interval from twicedaily to daily
+
+## [0.13.1] - 2026-03-18
+
+### Fixed
+- tighten spacing between h1 and calendar stats counter
+
+## [0.13.0] - 2026-03-18
+
+### Added
+- add live event/venue/location counter to calendar homepage
+
+## [0.12.1] - 2026-03-18
+
+### Changed
+- qualify-venue now uses actual scraper test instead of pattern matching
+
+## [0.12.0] - 2026-03-18
+
+### Added
+- add-venue ability — create scraper flow for a venue in an existing pipeline
+
+## [0.11.0] - 2026-03-18
+
+### Added
+- add qualify-venue ability — find and validate events pages
+
+## [0.10.0] - 2026-03-18
+
+### Added
+- add discover-venues ability using Google Places API
+
+## [0.9.6] - 2026-03-18
+
+### Fixed
+- nest city location terms under state/country hierarchy
+
+## [0.9.5] - 2026-03-18
+
+### Fixed
+- respect continuation sort in priority venue ordering
+
+## [0.9.4] - 2026-03-16
+
+### Fixed
+- add safe city to market rollups
+
+## [0.9.3] - 2026-03-16
+
+### Fixed
+- release event location market reconciliation
+
+## [0.9.2] - 2026-03-16
+
+### Fixed
+- fix event location market reconciliation
+
+## [0.9.1] - 2026-03-16
+
+### Added
+- add `extrachill/reconcile-event-locations` ability to audit or repair event location terms against venue city, with source-flow diagnostics for mismatch cleanup
+- add `homeboy.json` component config for clean Homeboy registration and deployment
+
+### Changed
+- add event location reconciliation ability
+- show centered map block on venue archives
+- auto-fix 483 PHPCS violations via homeboy lint --fix
+
+### Fixed
+- restore ec_is_events_site() guards on block registration and homepage render
+- define missing ec_is_events_site() — was causing fatal error on main site
+
+## [0.9.0] - 2026-03-07
+
+### Added
+- location normalizer — correct event locations by venue zip code
+- only show location badges with 20+ upcoming events
+
+### Fixed
+- verify NYC zip codes against Nominatim — add 11227 (Brooklyn), remove 10090 (Orange County) and 11040 (Nassau County)
+- remove hardcoded limit on homepage location badges
+- add blog ID guards to prevent hooks firing on wrong sites
+
+## [0.8.3] - 2026-03-03
+
+### Fixed
+- Fix Near Me blue dot not showing on initial geolocation by dispatching user location event to map
+
+## [0.8.2] - 2026-03-02
+
+### Refactored
+- Remove skip_meta_description and skip_canonical filter usage
+
+### Refactored
+- Register discovery page URLs via extrachill_seo_sitemap_urls filter
+
+### Refactored
+- Replace direct wp_head meta output with extrachill_seo_meta_description filter in near-me.php, location-seo.php, discovery-pages.php
+
+### Refactored
+- Migrate all SEO output to extrachill-seo filter architecture
+
+- fix: restrict Near Me header link to events site only
+
+## [0.8.1] - 2026-03-01
+
+- feat: client-side scope switching — tabs fetch events via REST API without page reload
+
+## [0.8.0] - 2026-03-01
+
+- feat: add discovery pages — time-scoped landing pages for location archives (tonight, this-weekend, this-week)
+- fix: register missing add_filter for extrachill_seo_skip_meta_description in location-seo.php
+- fix: discovery template override priority (15 > events archive at 10) and skip location-seo on discovery pages
+- fix: suppress duplicate canonical and override og:url/og:title on discovery pages via extrachill-seo filters
+
+## [0.7.0] - 2026-03-01
+
+### Changed
+- Complete rename migration: `datamachine-events` → `data-machine-events` across all 47 files
+- Directory rename: `inc/core/datamachine-events/` → `inc/core/data-machine-events/`
+- PHP filter hooks: `datamachine_events_*` → `data_machine_events_*`
+- CSS classes: `.datamachine-event-details` → `.data-machine-event-details`, `.datamachine-more-info-button` → `.data-machine-more-info-button`
+- JS custom events: `datamachine-map-*` → `data-machine-map-*`
+- Style handles: `wp-block-datamachine-events-calendar` → `wp-block-data-machine-events-calendar`
+- Internal PHP methods renamed to match (`init_datamachine_*` → `init_data_machine_*`)
+
+### Removed
+- Dead `build.sh` symlink — homeboy is the build system
+
+## [0.6.0] - 2026-02-27
+
+### Added
+- Location venue map on city archive pages — Leaflet map centered on location geo tag showing all venue pins with clickable popups
+- `_location_coordinates` meta field for location taxonomy terms (city center lat/lon)
+- Dynamic SEO title: "Live Music in {City} Tonight & This Week" for location archives
+- Dynamic meta descriptions with event count, venue count, and top venue names
+- Venue sorting by priority flag first, then by event count
+- Responsive map sizing: 400px desktop, 300px tablet, 250px mobile (edge-to-edge)
+- New files: `location-meta.php`, `location-map.php`, `location-seo.php`, `location-map.js`, `location-map.css`
+
+### Changed
+- Location archive H1 from "{City} Live Music Calendar" to "Live Music in {City}"
+- Seeded coordinates for 58 existing city location terms
+
+### Fixed
+- remove skip_default_flow from pipeline creation
+- add-city idempotency, location term creation, skip ghost flows (#11, #12)
+
+## [0.5.3] - 2026-02-24
+
+- Reset Turnstile widget after failed event submissions so single-use tokens are refreshed for retry
+
+## [0.5.2] - 2026-01-26
+
+### Changed
+- Style Farm Friends promo as taxonomy badge
+
+## [0.5.1] - 2026-01-26
+
+### Fixed
+- "More at Venue" section not displaying on single event posts (added venue to allowed taxonomies)
+
+## [0.5.0] - 2026-01-26
+
+### Changed
+- Add priority events feature with 3-tier sorting hierarchy
+
+## [0.4.3] - 2026-01-25
+
+- Style updates for event grid text display
+
+## [0.4.2] - 2026-01-25
+
+### Added
+- Farm Friends membership promo for Music Farm events
+
+### Refactored
+- Modularize DataMachine Events integration into single-responsibility files
+
+## [0.4.1] - 2026-01-24
+
+### Fixed
+- Add missing category property to WP Abilities API registration for 5 abilities
+
+## [0.3.3] - 2026-01-10
+
+### Added
+- Event submission block `systemPrompt` attribute with editor UI, server `data-system-prompt` output, and frontend submission wiring (`blocks/event-submission/block.json`, `blocks/event-submission/src/edit.js`, `blocks/event-submission/render.php`, `blocks/event-submission/view.js`)
+
+### Changed
+- Event submission block no longer requires a Flow ID to submit; `flow_id` is only sent when configured (`blocks/event-submission/render.php`, `blocks/event-submission/src/edit.js`, `blocks/event-submission/view.js`)
+- Reorganized block inspector controls into dedicated panels (Submission Settings, AI Processing, Advanced) and removed missing Flow ID warnings (`blocks/event-submission/src/edit.js`, `blocks/event-submission/render.php`, `blocks/event-submission/view.js`)
+
+## [0.3.2] - 2026-01-08
+
+### Added
+- Homepage location badges system (`inc/home/actions.php`, `inc/home/location-badges.php`) displaying location taxonomy badges with upcoming event counts above the calendar
+- `extrachill_events_home_before_calendar` action hook in homepage template for flexible content injection before the calendar block
+- Hook-based homepage component registration via `extrachill_events_location_badges()` callback
+
+### Changed
+- WeeklyRoundupHandler refactored to ExecutionContext API pattern:
+  - `executeFetch()` method signature updated from `(int $pipeline_id, array $config, ?string $flow_step_id, int $flow_id, ?string $job_id)` to `(array $config, ExecutionContext $context)`
+  - Replaced `$this->log()` calls with `$context->log()`
+  - Replaced manual storage context building with `$context->getFileContext()`
+  - Replaced `$this->store_engine_data()` with `$context->storeEngineData()`
+
+### Removed
+- Private `store_engine_data()` method from WeeklyRoundupHandler (replaced by ExecutionContext API)
+
+## [0.3.1] - 2026-01-06
+
+### Added
+- Added `extrachill_archive_below_description` action hook to the unified archive template for flexible content injection below the header.
+
+## [0.3.0] - 2026-01-05
+
+### Added
+- Enhanced Venue and Promoter taxonomy archive headers with dynamic metadata (address, website URL)
+- Custom styling for taxonomy archive headers in `calendar.css`
+
+### Changed
+- Refactored archive template to support detailed venue and promoter metadata display
+- Expanded `calendar.css` with structured layout for taxonomy headers, descriptions, and meta information
+- Updated calendar style enqueuing to include taxonomy archive pages on the events site
+
+## [0.2.9] - 2026-01-04
+
+### Added
+- Schema breadcrumb integration (`ec_events_schema_breadcrumb_items`) to align SEO metadata with visual breadcrumbs on events.extrachill.com
+
+### Changed
+- Updated network scale documentation to reflect 11 active sites in the Extra Chill Platform
+- Improved "Back to Events Calendar" label consistency across visual and schema breadcrumbs
+
+## [0.2.8] - 2025-12-30
+
+### Fixed
+- Fixed character encoding in breadcrumb back-to-home label ("← Back to Events Calendar")
+
+### Changed
+- Refined documentation in CLAUDE.md and README.md regarding build process output and production ZIP structure
+- Updated version information across documentation files to reflect 0.2.8
+
+## [0.2.7] - 2025-12-21
+
+### Added
+- Venue taxonomy support in badge styling system (venue-badge, venue-{slug} classes)
+- Comprehensive weekly roundup handler documentation (`docs/handlers/weekly-roundup.md`)
+- Dynamic taxonomy menu item filtering via `allow_event_taxonomy_menu_items()` filter
+
+### Changed
+- Taxonomy registration refactored from simple initialization to hook-based system with proper timing
+  - `on_registered_post_type()` - Registers taxonomies when data_machine_events post type registers
+  - `on_registered_taxonomy()` - Ensures taxonomies register when event taxonomies initialize
+  - `register_event_taxonomies()` changed from private to public for external use
+  - `get_event_taxonomies()` centralized taxonomy list method (location, artist, festival, venue)
+- Code formatting and namespace improvements for better WordPress standards compliance
+- Documentation expanded across CLAUDE.md, README.md, and integration guides
+
+## [0.2.6] - 2025-12-20
+
+### Added
+- Taxonomy registration for data_machine_events post type (location, artist, festival, venue) with dynamic hooks (`registered_post_type`, `registered_taxonomy`, `init`)
+- Added EXTRACHILL_EVENTS_PLUGIN_BASENAME constant for proper textdomain path handling
+- Added `init_datamachine_handlers()` public method for flexible handler initialization
+
+### Changed
+- **Textdomain Loading**: Moved from 'plugins_loaded' to 'init' hook with proper path handling via `dirname(EXTRACHILL_EVENTS_PLUGIN_BASENAME)`
+- **Text Domain**: Updated to use 'extrachill-events' (was 'data-machine-events') for proper translation loading
+- **Taxonomy Registration**: Refactored from static registration to dynamic hooks ensuring proper timing and flexibility
+  - Changed from private to public method `register_event_taxonomies()`
+  - Added `on_registered_post_type()` hook handler
+  - Added `on_registered_taxonomy()` hook handler
+  - Added `get_event_taxonomies()` centralized list (location, artist, festival, venue)
+- **Handler Initialization**: Changed from constructor call to public `init_datamachine_handlers()` method on 'init' hook (priority 20) for conditional loading
+- **Badge Classes**: Added venue taxonomy support (venue-badge, venue-{slug}) for venue-specific styling
+
+## [0.2.5] - 2025-12-17
+
+### Changed
+- Modified archive template to use WordPress `single_term_title()` instead of DataMachineEvents `Archive_Title` class for taxonomy archive titles, maintaining "Live Music Calendar" branding
+
+## [0.2.4] - 2025-12-17
+
+### Changed
+- Rebranded "Events Calendar" to "Live Music Calendar" across homepage and archive titles
+- Added archive title display on taxonomy archive pages using DataMachineEvents Archive_Title class
+- Added data_machine_events_archive_title filter to customize archive titles with "Live Music Calendar" branding
+
+## [0.2.3] - 2025-12-16
+
+### Added
+- Slide title support with accent underline on first weekly roundup slide
+- Day-specific color coding for slide headers (unique colors for each day of week)
+- Automatic text wrapping for event titles and slide titles to prevent overflow
+- Time-based event sorting within daily slides
+- Title configuration field in WeeklyRoundupSettings
+
+### Changed
+- Enhanced slide height calculations to account for wrapped text and titles
+- Improved event metadata display with bullet separators instead of dashes
+- Refined slide layout spacing and typography hierarchy
+
+## [0.2.2] - 2025-12-16
+
+### Changed
+- WeeklyRoundupHandler: Removed unused DataPacket import and dependency
+- Simplified executeFetch return logic by removing $this->emptyResponse() and $this->successResponse() calls, returning arrays directly
+- Changed response structure from DataPacket to direct array with 'content' instead of 'body'
+- Updated array syntax from array() to [] for consistency
+
+## [0.2.1] - 2025-12-16
+
+### Added
+- Dynamic weekday-based date ranges for weekly roundup automation
+- `resolve_next_weekday_range()` method for automatic date calculation
+
+### Changed
+- WeeklyRoundupSettings: Replaced date pickers with weekday select dropdowns
+- Improved location options query to filter by actual upcoming events
+- Added fully qualified class names for better namespace compliance
+- Enhanced configuration validation and sanitization
+
+### Removed
+- `date_range_start` and `date_range_end` configuration fields (replaced with `week_start_day` and `week_end_day`)
+
+## [0.2.0] - 2025-12-14
+
+### Added
+- Weekly roundup automation handlers for Data Machine integration (SlideGenerator, WeeklyRoundupHandler, RoundupPublishHandler, RoundupPublishSettings) - enables automated post generation with carousel images
+- Comprehensive CLAUDE.md documentation file with plugin architecture, features, and integration details
+- API documentation for REST endpoints (`docs/api/rest-endpoints.md`)
+- Event submission block documentation (`docs/blocks/event-submission.md`)
+
+### Changed
+- Updated README.md with improved feature descriptions, build commands, and development workflow
+- Enhanced documentation for build process, plugin classes, functions, and constants
+- Updated .gitignore to remove CLAUDE.md, CLAUDE.md, build.sh, docs/.docs-sync.json
+
+## [0.1.7] - 2025-12-11
+
+### Changed
+- Replaced hardcoded blog ID 7 with ec_get_blog_id('events') for better multisite maintainability
+- Updated breadcrumb labels to "Events Calendar" for improved user clarity
+- Improved breadcrumb system with dynamic site URLs and network dropdown integration
+- Updated event submission form CSS to use theme variables instead of hardcoded values
+- Removed unnecessary blog ID checks in related events filter for broader compatibility
+
+## [0.1.6] - 2025-12-05
+
+### Added
+- Added navigation integration with "Submit Event" link in secondary header
+- Added promoter badge skipping when promoter name matches venue name
+
+### Changed
+- Improved event submission form error handling
+- Converted homepage rendering from template override to content hook
+- Moved share.css enqueue responsibility to theme
+
+### Removed
+- Removed taxonomy dependencies configuration
+- Removed duplicate CLAUDE.md documentation file
+
+## [0.1.5] - 2025-12-02
+
+### Added
+- Added block registration function for event-submission block from build directory
+- Added user info display in event submission form for logged-in users
+
+### Changed
+- Migrated related events icons from FontAwesome to theme's ec_icon() system
+- Enhanced event submission form UX by conditionally showing contact fields only for non-logged-in users
+- Restructured event submission form grid layout
+
+### Removed
+- Removed FontAwesome-specific CSS rules for related events icons
+
+## [0.1.4] - 2025-11-30
+
+### Added
+- Added Event Submission Block (`extrachill/event-submission`) for frontend event submissions routed through Data Machine flows
+- Added block editor interface with configurable headline, description, Flow ID, success message, and button label
+- Added frontend form with fields: contact name, email, event title, date, time, venue, city, lineup, ticket link, additional details, and flyer upload
+- Added Cloudflare Turnstile integration for spam protection via `ec_enqueue_turnstile_script()` and `ec_render_turnstile_widget()` functions
+- Added REST API submission handler with FormData support for file uploads
+- Added package.json with `@wordpress/scripts` build tooling for block compilation
+- Added responsive form styling using CSS custom properties from theme
+
+## [0.1.3] - 2025-11-29
+
+### Added
+- Added taxonomy dependency configuration for cascading venue/location filters in calendar block
+- Added proper semantic HTML5 structure to homepage template with article and header elements
+- Added contextual prepositions to related events headers ("More at" for venues, "More in" for locations)
+
+### Changed
+- Refactored related events CSS to use theme's existing grid layout instead of custom implementation
+- Updated homepage template to include proper page title and improved content hierarchy
+- Improved date/time handling in related events to use WordPress timezone settings
+- Enhanced event data field consistency by using `startDate`/`startTime` schema
+- Simplified CSS by leveraging theme's existing `related-tax-grid` and `related-tax-card` classes
+
+### Fixed
+- Fixed date parsing in related events to properly handle timezone conversion
+- Improved button positioning in related events cards for better visual hierarchy
+
+## [0.1.2] - 2025-11-26
+
+### Added
+- Added `assets/css/related-events.css` for dedicated related events styling.
+- Added taxonomy badges to related events cards using `Taxonomy_Badges::render_taxonomy_badges`.
+- Added "More Info" button to related events cards.
+- Added date and time icons to related events metadata.
+
+### Changed
+- Refactored related events HTML structure to use `ec-related-event-card` components.
+- Updated related events thumbnail size from `medium` to `medium_large`.
+- Changed related events date formatting to separate date (`D, M j, Y`) and time (`g:i A`).
+- Moved asset enqueue logic from theme to plugin in `inc/single-event/related-events.php`.
+
+## [0.1.1] - 2025-11-26
+
+### Added
+- Added `inc/single-event/related-events.php` to handle related events display.
+- Integrated with `extrachill` theme's `extrachill_override_related_posts_display` hook to replace default related posts with `data-machine-events` calendar cards.
+- Added logic to exclude the current event's venue from the related events query to encourage discovery.
+
+## [0.1.0] - 2023-10-25
+
+### Added
+- Initial release.
+- Integration with `data-machine-events` plugin.
+- Homepage and Archive template overrides for events subdomain.
+- Breadcrumb system.
+- Share button functionality.
