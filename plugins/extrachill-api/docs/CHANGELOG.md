@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.46.0] - 2026-10-31
+
+### Added
+- /guest-list page — name + password passes, no account
+
 ## [0.45.0] - 2026-10-31
 
 ### Added
