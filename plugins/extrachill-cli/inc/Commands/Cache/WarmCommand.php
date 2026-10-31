@@ -76,8 +76,8 @@ class WarmCommand {
 		}
 
 		$blog_id        = get_current_blog_id();
-		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
-		$main_blog_id   = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+		$events_blog_id = ec_get_blog_id( 'events' );
+		$main_blog_id   = ec_get_blog_id( 'main' );
 
 		if ( $blog_id === $events_blog_id ) {
 			$taxonomies = array( 'location', 'venue', 'artist', 'festival' );
@@ -104,7 +104,7 @@ class WarmCommand {
 				restore_current_blog();
 			}
 
-			$wire_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'wire' ) : null;
+			$wire_blog_id = ec_get_blog_id( 'wire' );
 			if ( $wire_blog_id ) {
 				switch_to_blog( $wire_blog_id );
 				$cached = get_transient( 'ec_wire_counts_festival' );

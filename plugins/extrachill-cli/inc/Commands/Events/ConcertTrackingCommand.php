@@ -647,7 +647,7 @@ class ConcertTrackingCommand {
 	// ─── Helpers ──────────────────────────────────────────────────────────────
 
 	private function get_events_blog_id() {
-		return function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+		return ec_get_blog_id( 'events' );
 	}
 
 	private function validate_event( $event_id ) {

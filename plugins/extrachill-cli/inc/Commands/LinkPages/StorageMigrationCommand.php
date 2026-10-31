@@ -172,7 +172,7 @@ class StorageMigrationCommand {
 		$value = trim( (string) $value );
 		if ( ctype_digit( $value ) ) {
 			return (int) $value; }
-		return function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( $value ) : 0;
+		return (int) ec_get_blog_id( $value );
 	}
 
 	/** Emit one format-correct command failure. */

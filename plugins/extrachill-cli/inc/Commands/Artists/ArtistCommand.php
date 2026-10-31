@@ -25,8 +25,8 @@ class ArtistCommand {
 	 * @return void
 	 */
 	private function ensure_artist_site_context() {
-		if ( ! function_exists( 'ec_get_blog_id' ) || get_current_blog_id() !== (int) ec_get_blog_id( 'artist' ) ) {
-			$url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : 'https://artist.extrachill.com';
+		if ( get_current_blog_id() !== (int) ec_get_blog_id( 'artist' ) ) {
+			$url = ec_get_site_url( 'artist' );
 			WP_CLI::error( sprintf( 'Artist commands must run on the Artist Platform site. Use --url=%s.', $url ) );
 		}
 	}

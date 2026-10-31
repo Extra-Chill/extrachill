@@ -24,16 +24,12 @@ class OwnerSiteAbility {
 	 * @return \WP_Ability|null Ability instance. Errors when unavailable.
 	 */
 	public static function get( $site_key, $site_label, $ability_name ) {
-		if ( ! function_exists( 'ec_get_blog_id' ) ) {
-			WP_CLI::error( 'Extra Chill Network site resolution is unavailable. Ensure the Network plugin is active.' );
-		}
-
 		$owner_blog_id = (int) ec_get_blog_id( $site_key );
 		if ( ! $owner_blog_id ) {
 			WP_CLI::error( sprintf( 'Could not resolve the %s owner site.', $site_label ) );
 		}
 
-		$owner_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( $site_key ) : get_home_url( $owner_blog_id );
+		$owner_url = ec_get_site_url( $site_key );
 		if ( get_current_blog_id() !== $owner_blog_id ) {
 			WP_CLI::error(
 				sprintf(
