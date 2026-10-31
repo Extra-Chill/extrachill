@@ -22,6 +22,8 @@
  * @var bool   $perk_enabled Whether this event has an RSVP perk enabled.
  * @var string $perk_text    Attendee-facing perk description (perk events only).
  * @var array  $guest_list   extrachill_events_get_guest_list_counts() result (perk events only).
+ * @var array  $guest_rows   Guest list passes with no account: guest_name, code, status, redeemed_at (formatted).
+ * @var string $guest_list_url Guest list page URL when the event has a password-gated list, else ''.
  * @var array  $rows         Each: user_id, display_name, marked_at (formatted), pass_status ('active'|'redeemed'|'revoked'|''), redeemed_at (formatted, or '').
  */
 
@@ -38,7 +40,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php if ( $perk_enabled && ! empty( $guest_list ) ) : ?>
 		<p class="ec-door-list__count"><?php echo esc_html( extrachill_events_format_guest_list_count( $guest_list ) ); ?></p>
 	<?php endif; ?>
-	<?php if ( empty( $rows ) ) : ?>
+	<?php if ( ! empty( $guest_list_url ) ) : ?>
+		<p class="ec-door-list__note">
+			<?php esc_html_e( 'Guests get their pass from the guest list page. Scan a pass to check someone in.', 'extrachill-events' ); ?>
+			<a href="<?php echo esc_url( $guest_list_url ); ?>"><?php esc_html_e( 'Guest list page', 'extrachill-events' ); ?></a>
+		</p>
+	<?php endif; ?>
+	<?php if ( empty( $rows ) && empty( $guest_list_url ) ) : ?>
 		<p class="notice notice-info"><?php esc_html_e( 'No one has RSVPed yet.', 'extrachill-events' ); ?></p>
 	<?php else : ?>
 		<ul class="ec-door-list__rows">
@@ -67,6 +75,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</button>
 					<?php else : ?>
 						<span class="ec-door-list__status"><?php esc_html_e( 'No pass', 'extrachill-events' ); ?></span>
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+			<?php foreach ( (array) ( $guest_rows ?? array() ) as $guest_row ) : ?>
+				<li class="ec-door-list__row">
+					<span class="ec-door-list__name"><?php echo esc_html( '' !== (string) $guest_row['guest_name'] ? (string) $guest_row['guest_name'] : __( 'Guest list pass', 'extrachill-events' ) ); ?></span>
+					<?php if ( 'redeemed' === $guest_row['status'] ) : ?>
+						<span class="ec-door-list__status">
+							<?php
+							/* translators: %s: check-in time. */
+							printf( esc_html__( 'Checked in %s', 'extrachill-events' ), esc_html( (string) $guest_row['redeemed_at'] ) );
+							?>
+						</span>
+					<?php elseif ( 'active' === $guest_row['status'] ) : ?>
+						<button
+							type="button"
+							class="button-2 button-small ec-door-list__redeem"
+							data-pass-code="<?php echo esc_attr( (string) $guest_row['code'] ); ?>"
+						>
+							<?php esc_html_e( 'Check in', 'extrachill-events' ); ?>
+						</button>
 					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>

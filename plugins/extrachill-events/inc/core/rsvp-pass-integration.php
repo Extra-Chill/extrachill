@@ -62,13 +62,19 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 		}
 	}
 
+	// Guest list (extrachill#433): a password-gated list lives on its own
+	// /guest-list page, so the public event page shows nothing about it —
+	// except a member's own pass, when they already hold one.
+	$password_required = extrachill_events_perk_password_required( $post_id );
+	if ( $password_required && ! $has_pass ) {
+		return;
+	}
+
 	$event_id   = $post_id;
 	$perk_text  = extrachill_events_get_perk_text( $post_id );
-	$guest_form = ! is_user_logged_in();
-	// Guest list (extrachill#433): password gate and spots left.
-	$password_required = extrachill_events_perk_password_required( $post_id );
-	$guest_list        = extrachill_events_get_guest_list_counts( $post_id );
-	$claim_form        = is_user_logged_in() && $password_required;
+	$guest_form = ! is_user_logged_in() && ! $password_required;
+	$guest_list = extrachill_events_get_guest_list_counts( $post_id );
+	$claim_form = false;
 
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/rsvp-pass.php';
 }
@@ -134,9 +140,28 @@ function extrachill_events_append_door_list( $content ) {
 		);
 	}
 
-	$event_id   = $post_id;
-	$perk_text  = extrachill_events_get_perk_text( $post_id );
-	$guest_list = $perk_enabled ? extrachill_events_get_guest_list_counts( $post_id ) : array();
+	$event_id       = $post_id;
+	$perk_text      = extrachill_events_get_perk_text( $post_id );
+	$guest_list     = $perk_enabled ? extrachill_events_get_guest_list_counts( $post_id ) : array();
+	$guest_list_url = ( function_exists( 'extrachill_events_has_guest_list_page' ) && extrachill_events_has_guest_list_page( $post_id ) )
+		? extrachill_events_guest_list_url( $post_id )
+		: '';
+	$guest_rows     = array();
+	if ( '' !== $guest_list_url ) {
+		foreach ( \ExtraChillEvents\Core\RsvpPassesTable::list_guest_passes( $post_id ) as $guest_pass ) {
+			if ( \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REVOKED === $guest_pass['status'] ) {
+				continue;
+			}
+			$guest_rows[] = array(
+				'guest_name'  => (string) ( $guest_pass['guest_name'] ?? '' ),
+				'code'        => (string) $guest_pass['code'],
+				'status'      => (string) $guest_pass['status'],
+				'redeemed_at' => ! empty( $guest_pass['redeemed_at'] )
+					? mysql2date( get_option( 'time_format' ), get_date_from_gmt( (string) $guest_pass['redeemed_at'] ) )
+					: '',
+			);
+		}
+	}
 
 	ob_start();
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';
@@ -158,6 +183,7 @@ add_filter( 'the_content', 'extrachill_events_append_door_list', 20 );
  */
 function extrachill_events_enqueue_rsvp_pass_assets() {
 	$is_verify_page = function_exists( 'extrachill_events_is_rsvp_verify_page' ) && extrachill_events_is_rsvp_verify_page();
+	$is_guest_list  = function_exists( 'extrachill_events_is_guest_list_request' ) && extrachill_events_is_guest_list_request();
 	$post_id        = 0;
 
 	if ( ! $is_verify_page ) {
@@ -180,8 +206,9 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 
 	// Logged-out visitors get the email-only guest RSVP form, gated by
 	// Turnstile at the extrachill-api route.
-	$guest_form = ! $is_verify_page && ! is_user_logged_in();
-	if ( $guest_form && function_exists( 'ec_enqueue_turnstile_script' ) ) {
+	$gated      = $post_id && extrachill_events_perk_password_required( $post_id );
+	$guest_form = ! $is_verify_page && ! $gated && ! is_user_logged_in();
+	if ( ( $guest_form || $is_guest_list ) && function_exists( 'ec_enqueue_turnstile_script' ) ) {
 		ec_enqueue_turnstile_script();
 	}
 
@@ -192,13 +219,16 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 			'eventId'       => $post_id,
 			'qrBaseUrl'     => function_exists( 'extrachill_events_rsvp_pass_qr_base_url' ) ? extrachill_events_rsvp_pass_qr_base_url() : '',
 			'guestRsvpPath' => $guest_form ? '/extrachill/v1/events/' . $post_id . '/guest-rsvp' : '',
-			'claimPath'     => ( ! $is_verify_page && is_user_logged_in() && extrachill_events_perk_password_required( $post_id ) ) ? '/extrachill/v1/events/' . $post_id . '/claim-pass' : '',
+			'claimPath'     => '',
+			'guestListPath' => $is_guest_list ? '/extrachill/v1/events/' . $post_id . '/guest-list-pass' : '',
 			'guestRsvpText' => array(
-				'sending' => __( 'Sending your pass...', 'extrachill-events' ),
-				'success' => __( 'Check your inbox. Your pass is on its way.', 'extrachill-events' ),
-				'error'   => __( 'Something went wrong. Check your email address and try again.', 'extrachill-events' ),
-				'claimed' => __( "You're on the list. Show this pass at the door.", 'extrachill-events' ),
-				'needPw'  => __( 'Enter the guest list password.', 'extrachill-events' ),
+				'sending'  => __( 'Sending your pass...', 'extrachill-events' ),
+				'success'  => __( 'Check your inbox. Your pass is on its way.', 'extrachill-events' ),
+				'error'    => __( 'Something went wrong. Check your email address and try again.', 'extrachill-events' ),
+				'claimed'  => __( "You're on the list. Show this pass at the door.", 'extrachill-events' ),
+				'needPw'   => __( 'Enter the guest list password.', 'extrachill-events' ),
+				'needName' => __( 'Enter your name.', 'extrachill-events' ),
+				'badEmail' => __( 'Check the email address, or leave it blank.', 'extrachill-events' ),
 			),
 		)
 	);

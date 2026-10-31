@@ -31,6 +31,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'templates/rsvp-pass.php',
 		'templates/door-list.php',
 		'inc/templates/rsvp-verify.php',
+		'inc/templates/guest-list.php',
 	);
 
 	/**
@@ -101,6 +102,11 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-rsvp-guest__status'   => 'JS write target; styled via notice + notice-success|notice-error set by JS',
 		'ec-door-list__count'     => 'plain text guest list count; inherits theme typography',
 		'ec-rsvp-verify__count'   => 'plain text guest list count; inherits theme typography',
+		'ec-guest-list-page'      => 'page-level hook only; layout comes from extrachill-content',
+		'ec-guest-list'           => 'JS hook and data-event-id carrier; surface styling from ec-surface-card',
+		'ec-guest-list__heading'  => 'plain heading; inherits theme typography',
+		'ec-guest-list__event'    => 'plain text event link; inherits theme typography',
+		'ec-guest-list__name'     => 'JS write target for the guest name; emphasis from ec-rsvp-pass__perk',
 	);
 
 	/**

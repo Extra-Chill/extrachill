@@ -74,17 +74,21 @@ function extrachill_events_location_directory_enabled(): bool {
  * Flush rewrites once when a virtual-page route is introduced or changed.
  *
  * Shared by every virtual page this plugin registers, including
- * /rsvp-verify/ (inc/core/rsvp-verify-page.php, #877 slice 2) — one
+ * /rsvp-verify/ (inc/core/rsvp-verify-page.php, #877 slice 2) and the
+ * /guest-list event endpoint (inc/core/guest-list-page.php) — one
  * flush-once mechanism, not one per route.
  */
 function extrachill_events_maybe_flush_router_rewrites(): void {
-	$rewrite_version = '7';
+	$rewrite_version = '8';
 	if ( get_option( 'extrachill_events_router_rewrite_version' ) === $rewrite_version ) {
 		return;
 	}
 
 	if ( function_exists( 'extrachill_events_rsvp_verify_rewrite_rules' ) ) {
 		extrachill_events_rsvp_verify_rewrite_rules();
+	}
+	if ( function_exists( 'extrachill_events_guest_list_rewrite_endpoint' ) ) {
+		extrachill_events_guest_list_rewrite_endpoint();
 	}
 
 	flush_rewrite_rules( false );

@@ -168,7 +168,9 @@
 				button.getAttribute( 'data-user-id' ),
 				10
 			);
-			if ( ! userId || ! eventId ) {
+			// Guest list passes (no account) redeem by code.
+			const passCode = button.getAttribute( 'data-pass-code' ) || '';
+			if ( ( ! userId && ! passCode ) || ! eventId ) {
 				return;
 			}
 
@@ -177,12 +179,14 @@
 			apiFetch(
 				'/wp-abilities/v1/abilities/extrachill/redeem-event-pass/run',
 				'POST',
-				{ input: { event_id: eventId, user_id: userId } }
+				{
+					input: passCode
+						? { event_id: eventId, code: passCode }
+						: { event_id: eventId, user_id: userId },
+				}
 			)
 				.then( function ( response ) {
-					const row = list.querySelector(
-						'.ec-door-list__row[data-user-id="' + userId + '"]'
-					);
+					const row = button.closest( '.ec-door-list__row' );
 					if ( ! row ) {
 						return;
 					}
@@ -229,9 +233,11 @@
 		const status = result.querySelector( '.ec-rsvp-verify__status' );
 		const eventId = parseInt( result.getAttribute( 'data-event-id' ), 10 );
 		const userId = parseInt( result.getAttribute( 'data-user-id' ), 10 );
+		// Guest list passes belong to no account; they redeem by code.
+		const passCode = result.getAttribute( 'data-pass-code' ) || '';
 
 		button.addEventListener( 'click', function () {
-			if ( ! eventId || ! userId ) {
+			if ( ! eventId || ( ! userId && ! passCode ) ) {
 				return;
 			}
 
@@ -240,7 +246,11 @@
 			apiFetch(
 				'/wp-abilities/v1/abilities/extrachill/redeem-event-pass/run',
 				'POST',
-				{ input: { event_id: eventId, user_id: userId } }
+				{
+					input: passCode
+						? { event_id: eventId, code: passCode }
+						: { event_id: eventId, user_id: userId },
+				}
 			)
 				.then( function ( response ) {
 					const label =
@@ -434,6 +444,185 @@
 		} );
 	}
 
+	/**
+	 * Wire the /guest-list page (extrachill#433): password (and optional
+	 * email) to the extrachill-api guest-list-pass route, QR shown on
+	 * screen. The code is kept in local storage per event, so coming back
+	 * shows the same pass instead of claiming another spot. A `?pass=` link
+	 * (from the email copy) seeds that storage on a new device.
+	 */
+	function initGuestListPage() {
+		const config = window.ecRsvpPass || {};
+		const root = document.querySelector( '.ec-guest-list' );
+		if ( ! root || ! config.guestListPath ) {
+			return;
+		}
+
+		const eventId = parseInt( root.getAttribute( 'data-event-id' ), 10 );
+		const storageKey = 'ecGuestListPass:' + eventId;
+		const form = root.querySelector( '.ec-rsvp-guest[data-mode="guest-list"]' );
+		const teaser = document.getElementById( 'ec-guest-list-teaser-' + eventId );
+		const card = document.getElementById( 'ec-guest-list-pass-' + eventId );
+		const text = config.guestRsvpText || {};
+
+		function store( code, name ) {
+			try {
+				if ( code ) {
+					window.localStorage.setItem( storageKey, code );
+					window.localStorage.setItem( storageKey + ':name', name || '' );
+				} else {
+					window.localStorage.removeItem( storageKey );
+					window.localStorage.removeItem( storageKey + ':name' );
+				}
+			} catch ( e ) {}
+		}
+
+		function stored( suffix ) {
+			try {
+				return window.localStorage.getItem( storageKey + ( suffix || '' ) ) || '';
+			} catch ( e ) {
+				return '';
+			}
+		}
+
+		function showPass( code, name ) {
+			if ( ! card || ! code ) {
+				return;
+			}
+			const img = card.querySelector( '.ec-rsvp-pass__qr' );
+			const codeEl = card.querySelector( '.ec-rsvp-pass__code' );
+			if ( img ) {
+				// A revoked or unknown code 404s the QR: forget it and
+				// offer the form again.
+				img.onerror = function () {
+					store( '' );
+					card.hidden = true;
+					if ( form ) {
+						form.hidden = false;
+					}
+					if ( teaser ) {
+						teaser.hidden = false;
+					}
+				};
+				img.src = ( config.qrBaseUrl || '' ) + encodeURIComponent( code );
+			}
+			if ( codeEl ) {
+				codeEl.textContent = code;
+			}
+			const nameEl = card.querySelector( '.ec-guest-list__name' );
+			if ( nameEl ) {
+				nameEl.textContent = name || '';
+				nameEl.hidden = ! name;
+			}
+			card.hidden = false;
+			if ( form ) {
+				form.hidden = true;
+			}
+			if ( teaser ) {
+				teaser.hidden = true;
+			}
+		}
+
+		const params = new URLSearchParams( window.location.search );
+		const linked = params.get( 'pass' );
+		if ( linked ) {
+			store( linked, params.get( 'name' ) || '' );
+			params.delete( 'name' );
+			params.delete( 'pass' );
+			const query = params.toString();
+			window.history.replaceState(
+				null,
+				'',
+				window.location.pathname + ( query ? '?' + query : '' )
+			);
+		}
+
+		const existing = stored();
+		if ( existing ) {
+			showPass( existing, stored( ':name' ) );
+		}
+
+		if ( ! form ) {
+			return;
+		}
+
+		const status = form.querySelector( '.ec-rsvp-guest__status' );
+		const button = form.querySelector( 'button[type="submit"]' );
+		const passwordInput = form.querySelector( 'input[name="password"]' );
+		const emailInput = form.querySelector( 'input[name="email"]' );
+		const nameInput = form.querySelector( 'input[name="name"]' );
+
+		function showStatus( kind, message ) {
+			if ( ! status ) {
+				return;
+			}
+			status.classList.remove( 'notice-success', 'notice-error' );
+			if ( kind ) {
+				status.classList.add( 'notice-' + kind );
+			}
+			status.textContent = message || '';
+			status.hidden = ! message;
+		}
+
+		form.addEventListener( 'submit', function ( event ) {
+			event.preventDefault();
+
+			const name = nameInput ? nameInput.value.trim() : '';
+			if ( ! name ) {
+				showStatus( 'error', text.needName );
+				return;
+			}
+			const password = passwordInput ? passwordInput.value : '';
+			if ( ! password ) {
+				showStatus( 'error', text.needPw );
+				return;
+			}
+			const email = emailInput ? emailInput.value.trim() : '';
+			if ( email && emailInput && ! emailInput.checkValidity() ) {
+				showStatus( 'error', text.badEmail );
+				return;
+			}
+
+			const tokenField = form.querySelector(
+				'input[name="cf-turnstile-response"]'
+			);
+			const data = {
+				name,
+				password,
+				turnstile_response: tokenField ? tokenField.value : '',
+			};
+			if ( email ) {
+				data.email = email;
+			}
+
+			if ( button ) {
+				button.disabled = true;
+			}
+			showStatus( '', '' );
+
+			apiFetch( config.guestListPath, 'POST', data )
+				.then( function ( response ) {
+					if ( ! response || ! response.code ) {
+						throw new Error( text.error );
+					}
+					store( response.code, response.name || name );
+					showPass( response.code, response.name || name );
+				} )
+				.catch( function ( error ) {
+					if ( button ) {
+						button.disabled = false;
+					}
+					if ( window.turnstile && window.turnstile.reset ) {
+						window.turnstile.reset();
+					}
+					showStatus(
+						'error',
+						( error && error.message ) || text.error
+					);
+				} );
+		} );
+	}
+
 	// Enqueued with in_footer=true (see inc/core/rsvp-pass-integration.php),
 	// so the DOM is already parsed by the time this executes — no
 	// DOMContentLoaded listener needed.
@@ -442,4 +631,5 @@
 	initVerifyPage();
 	initGuestForm();
 	initClaimForm();
+	initGuestListPage();
 } )();

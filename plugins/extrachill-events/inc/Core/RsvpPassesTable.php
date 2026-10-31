@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '1';
+	const SCHEMA_VERSION = '2';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -70,8 +70,9 @@ final class RsvpPassesTable {
 		$sql = "CREATE TABLE {$table} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			event_id bigint(20) unsigned NOT NULL,
-			user_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NULL DEFAULT NULL,
 			code varchar(20) NOT NULL,
+			guest_name varchar(100) NULL DEFAULT NULL,
 			status varchar(16) NOT NULL DEFAULT 'active',
 			issued_at datetime NOT NULL,
 			revoked_at datetime NULL,
@@ -86,6 +87,14 @@ final class RsvpPassesTable {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Schema 2 (guest list passes): user_id became nullable so a pass can
+		// be held by no account. dbDelta compares column types only, never
+		// nullability, so the existing NOT NULL column needs an explicit
+		// MODIFY. NULLs never collide on the (event_id, user_id) unique key,
+		// so any number of account-less passes fit on one event.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-time schema migration on a trusted internal table name.
+		$wpdb->query( "ALTER TABLE {$table} MODIFY user_id bigint(20) unsigned NULL DEFAULT NULL" );
 
 		update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
 	}
@@ -406,6 +415,95 @@ final class RsvpPassesTable {
 	}
 
 	/**
+	 * Issue a pass that belongs to no account (guest list, extrachill#433).
+	 *
+	 * The holder proves nothing but knowledge of the guest list password;
+	 * the code itself is the bearer token they keep on their phone. Always
+	 * issues a new row, so capacity is the only bound, and it is enforced
+	 * under the same per-event lock as account passes.
+	 *
+	 * @param int    $event_id   Event post ID.
+	 * @param int    $capacity   Max outstanding passes (active + redeemed). 0 = unlimited.
+	 * @param string $guest_name Name the guest gave, shown at check-in.
+	 * @return array|null The new active pass row, or null when full or the lock can't be taken.
+	 */
+	public static function issue_anonymous( int $event_id, int $capacity = 0, string $guest_name = '' ): ?array {
+		if ( $capacity > 0 && ! self::acquire_capacity_lock( $event_id ) ) {
+			return null;
+		}
+
+		try {
+			if ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] >= $capacity ) {
+				return null;
+			}
+
+			global $wpdb;
+			$now  = current_time( 'mysql', true );
+			$code = self::generate_code();
+
+			$inserted = $wpdb->insert(
+				self::table_name(),
+				array(
+					'event_id'   => $event_id,
+					'code'       => $code,
+					'guest_name' => '' === $guest_name ? null : $guest_name,
+					'status'     => self::STATUS_ACTIVE,
+					'issued_at'  => $now,
+					'updated_at' => $now,
+				)
+			);
+
+			return false === $inserted ? null : self::find_by_code( $code );
+		} finally {
+			if ( $capacity > 0 ) {
+				self::release_capacity_lock( $event_id );
+			}
+		}
+	}
+
+	/**
+	 * List an event's account-less guest list passes for the door list.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @param int $limit    Max rows. Clamped to 1-1000.
+	 * @return array[] Pass rows, oldest first.
+	 */
+	public static function list_guest_passes( int $event_id, int $limit = 500 ): array {
+		global $wpdb;
+		$table = self::table_name();
+		$limit = max( 1, min( 1000, $limit ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE event_id = %d AND user_id IS NULL ORDER BY issued_at ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id,
+				$limit
+			),
+			ARRAY_A
+		);
+
+		return (array) $rows;
+	}
+
+	/**
+	 * Redeem a pass by its code, for passes that belong to no account.
+	 *
+	 * @param int    $event_id            Event post ID the code must belong to.
+	 * @param string $code                Exact pass code.
+	 * @param int    $redeemed_by_user_id Host user ID performing the redemption.
+	 * @return array|\WP_Error Same shape as redeem().
+	 */
+	public static function redeem_by_code( int $event_id, string $code, int $redeemed_by_user_id ) {
+		$pass = '' === $code ? null : self::find_by_code( $code );
+		if ( ! $pass || (int) $pass['event_id'] !== $event_id ) {
+			return new \WP_Error( 'rsvp_pass_not_found', __( 'No pass found for this code.', 'extrachill-events' ), array( 'status' => 404 ) );
+		}
+
+		return self::redeem_row( $pass, $redeemed_by_user_id );
+	}
+
+	/**
 	 * Revoke an active pass. No-op against a pass that is already revoked
 	 * or already redeemed — a redemption record must never be erased by a
 	 * later unmark; the perk was already given.
@@ -451,13 +549,24 @@ final class RsvpPassesTable {
 	 * }
 	 */
 	public static function redeem( int $event_id, int $user_id, int $redeemed_by_user_id ) {
-		global $wpdb;
-		$table = self::table_name();
-
 		$pass = self::find_for_user_event( $event_id, $user_id );
 		if ( ! $pass ) {
 			return new \WP_Error( 'rsvp_pass_not_found', __( 'No pass found for this attendee.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
+
+		return self::redeem_row( $pass, $redeemed_by_user_id );
+	}
+
+	/**
+	 * Atomically redeem a loaded pass row (compare-and-set on status).
+	 *
+	 * @param array $pass                Pass row.
+	 * @param int   $redeemed_by_user_id Host user ID.
+	 * @return array|\WP_Error
+	 */
+	private static function redeem_row( array $pass, int $redeemed_by_user_id ) {
+		global $wpdb;
+		$table = self::table_name();
 
 		if ( self::STATUS_REVOKED === $pass['status'] ) {
 			return new \WP_Error( 'rsvp_pass_revoked', __( "This attendee's RSVP was cancelled; their pass is no longer valid.", 'extrachill-events' ), array( 'status' => 409 ) );
@@ -489,7 +598,7 @@ final class RsvpPassesTable {
 		if ( 1 !== (int) $updated ) {
 			// Lost the race to a concurrent redeemer (two hosts tapping at
 			// the same moment). Report the winner's state, not an error.
-			$current = self::find_for_user_event( $event_id, $user_id );
+			$current = self::find_by_code( (string) $pass['code'] );
 			return array(
 				'already_redeemed'    => true,
 				'redeemed_at'         => $current['redeemed_at'] ?? $now,

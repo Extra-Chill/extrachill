@@ -34,20 +34,33 @@ get_header();
 		<h1 class="ec-rsvp-verify__heading"><?php esc_html_e( 'RSVP Pass', 'extrachill-events' ); ?></h1>
 		<?php if ( $authorized ) : ?>
 			<?php
-			$attendee    = get_user_by( 'id', (int) $pass['user_id'] );
-			$event       = get_post( $event_id );
-			$perk_text   = function_exists( 'extrachill_events_get_perk_text' ) ? extrachill_events_get_perk_text( $event_id ) : '';
-			$pass_status = (string) $pass['status'];
+			// Guest list passes (extrachill#433) belong to no account.
+			$is_guest_pass = empty( $pass['user_id'] );
+			$attendee      = $is_guest_pass ? null : get_user_by( 'id', (int) $pass['user_id'] );
+			$event         = get_post( $event_id );
+			$perk_text     = function_exists( 'extrachill_events_get_perk_text' ) ? extrachill_events_get_perk_text( $event_id ) : '';
+			$pass_status   = (string) $pass['status'];
 			?>
 			<div
 				class="ec-rsvp-verify__result"
 				data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
-				data-user-id="<?php echo esc_attr( (string) $pass['user_id'] ); ?>"
+				data-user-id="<?php echo esc_attr( (string) (int) $pass['user_id'] ); ?>"
+				<?php if ( $is_guest_pass ) : ?>
+				data-pass-code="<?php echo esc_attr( (string) $pass['code'] ); ?>"
+				<?php endif; ?>
 			>
 				<?php if ( $event ) : ?>
 					<p class="ec-rsvp-verify__event"><?php echo esc_html( $event->post_title ); ?></p>
 				<?php endif; ?>
-				<p class="ec-rsvp-verify__name"><?php echo esc_html( $attendee ? $attendee->display_name : __( 'Unknown attendee', 'extrachill-events' ) ); ?></p>
+				<p class="ec-rsvp-verify__name">
+				<?php
+				if ( $is_guest_pass ) {
+					echo esc_html( ! empty( $pass['guest_name'] ) ? (string) $pass['guest_name'] : __( 'Guest list pass', 'extrachill-events' ) );
+				} else {
+					echo esc_html( $attendee ? $attendee->display_name : __( 'Unknown attendee', 'extrachill-events' ) );
+				}
+				?>
+				</p>
 				<?php if ( $perk_text ) : ?>
 					<p class="ec-rsvp-verify__perk"><?php echo esc_html( $perk_text ); ?></p>
 				<?php endif; ?>
@@ -59,14 +72,14 @@ get_header();
 						<?php
 						printf(
 							/* translators: %s: redemption time. */
-							esc_html__( 'Already redeemed %s', 'extrachill-events' ),
+							$is_guest_pass ? esc_html__( 'Already checked in %s', 'extrachill-events' ) : esc_html__( 'Already redeemed %s', 'extrachill-events' ),
 							esc_html( (string) mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (string) $pass['redeemed_at'] ) )
 						);
 						?>
 					</p>
 				<?php else : ?>
 					<button type="button" class="button-2 button-large ec-rsvp-verify__redeem">
-						<?php esc_html_e( 'Redeem', 'extrachill-events' ); ?>
+						<?php echo esc_html( $is_guest_pass ? __( 'Check in', 'extrachill-events' ) : __( 'Redeem', 'extrachill-events' ) ); ?>
 					</button>
 					<p class="ec-rsvp-verify__status" hidden></p>
 				<?php endif; ?>
