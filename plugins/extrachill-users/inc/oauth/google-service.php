@@ -253,8 +253,8 @@ function ec_get_user_by_google_id( $google_id ) {
  * @return array|WP_Error Token response or error.
  */
 function ec_google_login_with_tokens( $id_token, $device_id, $options = array() ) {
-	$from_join            = ! empty( $options['from_join'] );
-	$registration_source  = isset( $options['registration_source'] ) ? sanitize_text_field( (string) $options['registration_source'] ) : '';
+	$from_join           = ! empty( $options['from_join'] );
+	$registration_source = isset( $options['registration_source'] ) ? sanitize_text_field( (string) $options['registration_source'] ) : '';
 
 	if ( empty( $registration_source ) ) {
 		$registration_source = 'web';

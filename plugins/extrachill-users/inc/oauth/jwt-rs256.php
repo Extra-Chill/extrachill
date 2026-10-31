@@ -48,7 +48,7 @@ function ec_verify_rs256_jwt( $token, $jwks_url, $audience, $issuer ) {
 	}
 
 	// Validate audience.
-	$token_aud = isset( $payload['aud'] ) ? $payload['aud'] : '';
+	$token_aud      = isset( $payload['aud'] ) ? $payload['aud'] : '';
 	$audience_match = false;
 	foreach ( (array) $audience as $allowed_audience ) {
 		if ( is_string( $allowed_audience ) && '' !== $allowed_audience
