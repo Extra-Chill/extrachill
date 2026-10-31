@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.35.0] - 2026-10-31
+
+### Added
+- Sign in with Apple for the native app (network + users + api)
+
 ## [2.34.1] - 2026-10-31
 
 ### Changed
