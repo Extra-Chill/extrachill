@@ -36,7 +36,7 @@ if ( ! function_exists( 'extrachill_entry_meta' ) ) :
 			$author_id  = isset( $post->post_author ) ? $post->post_author : 0;
 			$author_url = function_exists( 'extrachill_get_user_profile_url' )
 				? extrachill_get_user_profile_url( $author_id )
-				: ( function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) . '/u/' . sanitize_title( $author ) : home_url( '/' ) . 'u/' . sanitize_title( $author ) );
+				: ec_get_site_url( 'community' ) . '/u/' . sanitize_title( $author );
 
 			$forum_title = isset( $post->_forum['title'] ) ? esc_html( $post->_forum['title'] ) : 'Unknown Forum';
 			$forum_link  = isset( $post->_forum['link'] ) ? esc_url( $post->_forum['link'] ) : '#';

@@ -24,7 +24,7 @@ function extrachill_display_back_to_home_link() {
 	$site_title = extrachill_get_site_title();
 
 	if ( ! is_main_site() && is_front_page() ) {
-		$url   = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
+		$url   = ec_get_site_url( 'main' );
 		$label = '← Back to ' . $site_title;
 	} else {
 		$url   = home_url();
