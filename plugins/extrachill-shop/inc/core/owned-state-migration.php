@@ -104,35 +104,33 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 function extrachill_shop_run_owned_state_migration( $apply = false ) {
 	$report = array_fill_keys( array( 'pending', 'imported', 'migrated', 'unchanged', 'conflict', 'error', 'taxonomy_pending', 'taxonomy_removed' ), 0 );
 
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
-		if ( $artist_blog_id ) {
-			switch_to_blog( $artist_blog_id );
-			try {
-				$legacy_artists = get_posts(
-					array(
-						'post_type'      => 'artist_profile',
-						'post_status'    => 'any',
-						'posts_per_page' => -1,
-						'meta_key'       => '_stripe_connect_account_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit one-time legacy migration.
-						'fields'         => 'ids',
-					)
+	$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
+	if ( $artist_blog_id ) {
+		switch_to_blog( $artist_blog_id );
+		try {
+			$legacy_artists = get_posts(
+				array(
+					'post_type'      => 'artist_profile',
+					'post_status'    => 'any',
+					'posts_per_page' => -1,
+					'meta_key'       => '_stripe_connect_account_id', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Explicit one-time legacy migration.
+					'fields'         => 'ids',
+				)
+			);
+			$stripe_records = array();
+			foreach ( $legacy_artists as $artist_id ) {
+				$stripe_records[ $artist_id ] = array(
+					'account_id'          => (string) get_post_meta( $artist_id, '_stripe_connect_account_id', true ),
+					'status'              => (string) get_post_meta( $artist_id, '_stripe_connect_status', true ),
+					'onboarding_complete' => (bool) get_post_meta( $artist_id, '_stripe_connect_onboarding_complete', true ),
 				);
-				$stripe_records = array();
-				foreach ( $legacy_artists as $artist_id ) {
-					$stripe_records[ $artist_id ] = array(
-						'account_id'          => (string) get_post_meta( $artist_id, '_stripe_connect_account_id', true ),
-						'status'              => (string) get_post_meta( $artist_id, '_stripe_connect_status', true ),
-						'onboarding_complete' => (bool) get_post_meta( $artist_id, '_stripe_connect_onboarding_complete', true ),
-					);
-				}
-			} finally {
-				restore_current_blog();
 			}
+		} finally {
+			restore_current_blog();
+		}
 
-			foreach ( $stripe_records as $artist_id => $record ) {
-				++$report[ extrachill_shop_migrate_stripe_record( $artist_id, $record, $apply ) ];
-			}
+		foreach ( $stripe_records as $artist_id => $record ) {
+			++$report[ extrachill_shop_migrate_stripe_record( $artist_id, $record, $apply ) ];
 		}
 	}
 

@@ -182,7 +182,7 @@ function extrachill_shop_create_account_link( $account_id, $type = 'account_onbo
 		);
 	}
 
-	$return_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : null;
+	$return_url = ec_get_site_url( 'artist' );
 	if ( ! $return_url ) {
 		return array(
 			'success' => false,

@@ -59,9 +59,7 @@ function extrachill_shop_get_posted_event_url() {
 function extrachill_shop_parse_event_url( $url ) {
 	$parsed = wp_parse_url( $url );
 
-	$events_host = function_exists( 'ec_get_site_url' )
-		? wp_parse_url( ec_get_site_url( 'events' ), PHP_URL_HOST )
-		: '';
+	$events_host = wp_parse_url( ec_get_site_url( 'events' ), PHP_URL_HOST );
 
 	if ( empty( $parsed['host'] ) || empty( $events_host ) || $events_host !== $parsed['host'] ) {
 		return new WP_Error( 'invalid_domain', 'URL must be from the events site.' );

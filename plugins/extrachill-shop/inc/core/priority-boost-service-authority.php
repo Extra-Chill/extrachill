@@ -56,10 +56,6 @@ function extrachill_shop_priority_boost_build_source_grant( array $config ) {
  * @return array|null Source grant, or null when unavailable.
  */
 function extrachill_shop_priority_boost_source_grant() {
-	if ( ! function_exists( 'ec_get_blog_id' ) || ! function_exists( 'ec_get_site_url' ) ) {
-		return null;
-	}
-
 	$source_site_id = (int) ec_get_blog_id( 'shop' );
 	$target_site_id = (int) ec_get_blog_id( 'events' );
 	$target_url     = (string) ec_get_site_url( 'events' );
