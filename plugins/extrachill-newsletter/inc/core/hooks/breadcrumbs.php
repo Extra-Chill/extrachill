@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 0.1.0
  */
 function newsletter_breadcrumb_root( $root_link ) {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $root_link;
 	}
@@ -51,7 +51,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'newsletter_breadcrumb_root' );
  * @since 0.1.0
  */
 function newsletter_breadcrumb_trail_homepage( $custom_trail ) {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $custom_trail;
 	}
@@ -73,7 +73,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_breadcrumb_trai
  * @since 0.1.0
  */
 function newsletter_customize_breadcrumbs( $custom_trail ) {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $custom_trail;
 	}
@@ -100,7 +100,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'newsletter_customize_bread
  */
 function newsletter_back_to_home_label( $label, $url ) {
 	unset( $url );
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $label;
 	}
@@ -130,7 +130,7 @@ add_filter( 'extrachill_back_to_home_label', 'newsletter_back_to_home_label', 10
  * @since 0.2.0
  */
 function newsletter_schema_breadcrumb_items( $items ) {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return $items;
 	}

@@ -501,7 +501,7 @@ function extrachill_newsletter_execute_delegated_campaign( $input, $operation_re
 		return extrachill_newsletter_delegated_campaign_result( 'no-op', null, null, 'newsletter_campaign_empty_source' );
 	}
 
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'newsletter' ) ) : 0;
+	$newsletter_blog_id = absint( ec_get_blog_id( 'newsletter' ) );
 	if ( ! $newsletter_blog_id ) {
 		return extrachill_newsletter_delegated_campaign_result( 'failed', null, null, 'newsletter_campaign_owner_unavailable' );
 	}
