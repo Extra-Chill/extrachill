@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.1] - 2026-10-31
+
+### Changed
+- install each component's declared extensions; add tokens tests (closes #439)
+
 ## [0.9.0] - 2026-10-22
 
 ### Added
