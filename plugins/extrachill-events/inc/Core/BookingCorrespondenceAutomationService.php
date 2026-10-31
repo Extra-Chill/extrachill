@@ -11,6 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/RecurringScheduleGate.php';
+
 /** Recovers lifecycle-backed automatic correspondence through the existing outbox. */
 class BookingCorrespondenceAutomationService {
 
@@ -47,10 +49,15 @@ class BookingCorrespondenceAutomationService {
 
 	/** Ensure a missed post-commit callback is recovered. */
 	public static function ensure_reconciliation_schedule(): void {
-		if ( ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_next_scheduled_action' ) || as_next_scheduled_action( self::RECONCILE_HOOK, array(), self::SCHEDULER_GROUP ) ) {
+		if ( ! function_exists( 'as_schedule_recurring_action' ) || ! function_exists( 'as_next_scheduled_action' ) ) {
 			return;
 		}
-		as_schedule_recurring_action( time() + MINUTE_IN_SECONDS, 5 * MINUTE_IN_SECONDS, self::RECONCILE_HOOK, array(), self::SCHEDULER_GROUP, true );
+		RecurringScheduleGate::ensure(
+			self::RECONCILE_HOOK,
+			self::SCHEDULER_GROUP,
+			static fn() => as_schedule_recurring_action( time() + MINUTE_IN_SECONDS, 5 * MINUTE_IN_SECONDS, self::RECONCILE_HOOK, array(), self::SCHEDULER_GROUP, true ),
+			5 * MINUTE_IN_SECONDS
+		);
 	}
 
 	/** Best-effort immediate processing after the owning transaction commits. */

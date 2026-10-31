@@ -88,8 +88,11 @@ class QualifyVerdictsTable {
 	 * `init` or `plugins_loaded` if needed; cheap when up to date.
 	 */
 	public static function maybe_install(): void {
+		// The version marker is written only after dbDelta. table_exists()
+		// clears it when the table is found missing, so a dropped table is
+		// recreated on the next request without probing on every request.
 		$stored = (string) get_option( self::SCHEMA_VERSION_OPTION, '' );
-		if ( self::SCHEMA_VERSION === $stored && self::table_exists() ) {
+		if ( self::SCHEMA_VERSION === $stored ) {
 			return;
 		}
 		self::create_table();
@@ -102,7 +105,11 @@ class QualifyVerdictsTable {
 		global $wpdb;
 		$table = self::table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		return $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" ) === $table;
+		$exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" ) === $table;
+		if ( ! $exists ) {
+			delete_option( self::SCHEMA_VERSION_OPTION );
+		}
+		return $exists;
 	}
 
 	/**
