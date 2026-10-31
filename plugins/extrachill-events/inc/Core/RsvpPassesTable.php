@@ -441,7 +441,7 @@ final class RsvpPassesTable {
 			$now  = current_time( 'mysql', true );
 			$code = self::generate_code();
 
-			$inserted = $wpdb->insert(
+			$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table write; cache is purged by the caller.
 				self::table_name(),
 				array(
 					'event_id'   => $event_id,

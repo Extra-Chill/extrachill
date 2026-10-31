@@ -474,13 +474,13 @@
 					window.localStorage.removeItem( storageKey );
 					window.localStorage.removeItem( storageKey + ':name' );
 				}
-			} catch ( e ) {}
+			} catch {}
 		}
 
 		function stored( suffix ) {
 			try {
 				return window.localStorage.getItem( storageKey + ( suffix || '' ) ) || '';
-			} catch ( e ) {
+			} catch {
 				return '';
 			}
 		}
