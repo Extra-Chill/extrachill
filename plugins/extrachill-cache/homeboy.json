@@ -2,7 +2,11 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "standalone_php_test_paths": [
+        "tests/*-standalone.php"
+      ]
+    }
   },
   "id": "extrachill-cache",
   "remote_path": "wp-content/plugins/extrachill-cache",
