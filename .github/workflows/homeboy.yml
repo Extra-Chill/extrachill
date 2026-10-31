@@ -30,7 +30,9 @@ jobs:
       components: changed
       # A change to this workflow re-checks every component.
       shared-paths: '.github/workflows/homeboy.yml'
-      extension: wordpress
+      # No `extension:` override: each component installs and runs the
+      # extensions its own homeboy.json declares (wordpress for plugins and
+      # the theme, nodejs for packages/*, both for community).
       commands: review lint,review test
       # Full scope per component, not auto: changed-scope selects zero tests
       # when a change only touches CI/harness config (#197). Differential

@@ -33,6 +33,7 @@
     "generate:theme-json": "node scripts/generate-theme-json.mjs --out css/theme.json",
     "generate": "npm run generate:tokens-css && npm run generate:root-css && npm run generate:taxonomy-badges-css && npm run generate:theme-json",
     "validate": "node scripts/validate.mjs",
+    "test": "node --test test/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build && npm run generate && npm run validate"
