@@ -36,20 +36,36 @@ class EventPerkAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'event'   => array(
+						'event'          => array(
 							'type'        => 'string',
 							'description' => __( 'Event post slug or numeric ID.', 'extrachill-events' ),
 						),
-						'enabled' => array(
+						'enabled'        => array(
 							'type'        => 'boolean',
 							'description' => __( 'Whether the perk is offered.', 'extrachill-events' ),
 							'default'     => true,
 						),
-						'text'    => array(
+						'text'           => array(
 							'type'        => 'string',
 							'maxLength'   => EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN,
 							'description' => __( 'Attendee-facing perk description, e.g. "First beer on Extra Chill."', 'extrachill-events' ),
 							'default'     => '',
+						),
+						'password'       => array(
+							'type'        => 'string',
+							'maxLength'   => EXTRACHILL_EVENTS_PERK_PASSWORD_MAX,
+							'description' => __( 'Guest list password. Only people who know it can claim a pass. Omit to keep the current password.', 'extrachill-events' ),
+						),
+						'clear_password' => array(
+							'type'        => 'boolean',
+							'description' => __( 'Remove the guest list password.', 'extrachill-events' ),
+							'default'     => false,
+						),
+						'capacity'       => array(
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'maximum'     => EXTRACHILL_EVENTS_PERK_CAPACITY_MAX,
+							'description' => __( 'Guest list spots: the most passes the event will issue. 0 = unlimited. Omit to keep the current value.', 'extrachill-events' ),
 						),
 					),
 					'required'   => array( 'event' ),
@@ -61,10 +77,12 @@ class EventPerkAbilities {
 						'event'   => array(
 							'type'       => 'object',
 							'properties' => array(
-								'post_id' => array( 'type' => 'integer' ),
-								'title'   => array( 'type' => 'string' ),
-								'enabled' => array( 'type' => 'boolean' ),
-								'text'    => array( 'type' => 'string' ),
+								'post_id'           => array( 'type' => 'integer' ),
+								'title'             => array( 'type' => 'string' ),
+								'enabled'           => array( 'type' => 'boolean' ),
+								'text'              => array( 'type' => 'string' ),
+								'password_required' => array( 'type' => 'boolean' ),
+								'capacity'          => array( 'type' => 'integer' ),
 							),
 						),
 					),
@@ -102,9 +120,15 @@ class EventPerkAbilities {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'post_id' => array( 'type' => 'integer' ),
-						'enabled' => array( 'type' => 'boolean' ),
-						'text'    => array( 'type' => 'string' ),
+						'post_id'           => array( 'type' => 'integer' ),
+						'enabled'           => array( 'type' => 'boolean' ),
+						'text'              => array( 'type' => 'string' ),
+						'password_required' => array( 'type' => 'boolean' ),
+						'capacity'          => array( 'type' => 'integer' ),
+						'claimed'           => array( 'type' => 'integer' ),
+						'checked_in'        => array( 'type' => 'integer' ),
+						'spots_left'        => array( 'type' => array( 'integer', 'null' ) ),
+						'full'              => array( 'type' => 'boolean' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'get_event_perk' ),
@@ -177,6 +201,19 @@ class EventPerkAbilities {
 		$enabled = (bool) ( $input['enabled'] ?? true );
 		$text    = substr( sanitize_textarea_field( (string) ( $input['text'] ?? '' ) ), 0, EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN );
 
+		// Guest list settings go first: enabling the perk backfills passes
+		// for everyone already Going, and that must see the password and
+		// capacity, not an open perk.
+		if ( ! empty( $input['clear_password'] ) ) {
+			extrachill_events_set_perk_password( $post->ID, '' );
+		} elseif ( isset( $input['password'] ) && '' !== (string) $input['password'] ) {
+			extrachill_events_set_perk_password( $post->ID, (string) $input['password'] );
+		}
+
+		if ( isset( $input['capacity'] ) ) {
+			extrachill_events_set_perk_capacity( $post->ID, (int) $input['capacity'] );
+		}
+
 		if ( $enabled ) {
 			update_post_meta( $post->ID, EXTRACHILL_EVENTS_PERK_ENABLED_META, true );
 		} else {
@@ -192,10 +229,12 @@ class EventPerkAbilities {
 		return array(
 			'success' => true,
 			'event'   => array(
-				'post_id' => $post->ID,
-				'title'   => $post->post_title,
-				'enabled' => $enabled,
-				'text'    => $text,
+				'post_id'           => $post->ID,
+				'title'             => $post->post_title,
+				'enabled'           => $enabled,
+				'text'              => $text,
+				'password_required' => extrachill_events_perk_password_required( $post->ID ),
+				'capacity'          => extrachill_events_get_perk_capacity( $post->ID ),
 			),
 		);
 	}
@@ -212,10 +251,18 @@ class EventPerkAbilities {
 			return new \WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
+		$counts = extrachill_events_get_guest_list_counts( $post->ID );
+
 		return array(
-			'post_id' => $post->ID,
-			'enabled' => extrachill_events_perk_enabled( $post->ID ),
-			'text'    => extrachill_events_get_perk_text( $post->ID ),
+			'post_id'           => $post->ID,
+			'enabled'           => extrachill_events_perk_enabled( $post->ID ),
+			'text'              => extrachill_events_get_perk_text( $post->ID ),
+			'password_required' => extrachill_events_perk_password_required( $post->ID ),
+			'capacity'          => $counts['capacity'],
+			'claimed'           => $counts['claimed'],
+			'checked_in'        => $counts['checked_in'],
+			'spots_left'        => $counts['spots_left'],
+			'full'              => $counts['full'],
 		);
 	}
 }

@@ -71,12 +71,17 @@ function extrachill_events_guest_rsvp_resend_window(): int {
 /**
  * RSVP a guest to an event by email.
  *
+ * Guest list events (extrachill#433) also require the guest list password
+ * and an open spot. Both are checked before any account is resolved or
+ * created, so a wrong password or a full list leaves no trace.
+ *
  * @param int    $event_id    Event post ID.
  * @param string $email       Guest email address.
  * @param array  $attribution Optional `referrer` (string) and `utm` (array).
+ * @param string $password    Guest list password, when the event has one.
  * @return array|WP_Error `{ status: 'rsvped' }` or an error.
  */
-function extrachill_events_guest_rsvp( int $event_id, string $email, array $attribution = array() ) {
+function extrachill_events_guest_rsvp( int $event_id, string $email, array $attribution = array(), string $password = '' ) {
 	$post = get_post( $event_id );
 	if ( ! $post || 'data_machine_events' !== $post->post_type || 'publish' !== $post->post_status ) {
 		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
@@ -93,6 +98,14 @@ function extrachill_events_guest_rsvp( int $event_id, string $email, array $attr
 	$email = sanitize_email( $email );
 	if ( '' === $email || ! is_email( $email ) ) {
 		return new WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
+		return extrachill_events_guest_list_password_error();
+	}
+
+	if ( extrachill_events_guest_list_is_full( $event_id ) ) {
+		return extrachill_events_guest_list_full_error();
 	}
 
 	$resolve = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/resolve-account-by-email' ) : null;
@@ -124,6 +137,7 @@ function extrachill_events_guest_rsvp( int $event_id, string $email, array $attr
 	}
 
 	extrachill_events_rsvp_claim_url_handoff( $user_id, (string) ( $account['claim_url'] ?? '' ) );
+	extrachill_events_rsvp_guest_list_authorization( $event_id, $user_id, true );
 
 	try {
 		$marked = ec_users_mark_event( $user_id, $event_id, (int) get_current_blog_id() );
@@ -142,9 +156,146 @@ function extrachill_events_guest_rsvp( int $event_id, string $email, array $attr
 		}
 	} finally {
 		extrachill_events_rsvp_claim_url_handoff( $user_id, '' );
+		extrachill_events_rsvp_guest_list_authorization( $event_id, $user_id, false );
+	}
+
+	// On a capped list the last spot can go between the pre-check above and
+	// the locked issuance. Tell the guest instead of claiming success.
+	if ( extrachill_events_get_perk_capacity( $event_id ) > 0 && ! extrachill_events_guest_list_holds_pass( $event_id, $user_id ) ) {
+		return extrachill_events_guest_list_full_error();
 	}
 
 	return array( 'status' => 'rsvped' );
+}
+
+/**
+ * Whether the user holds a pass that counts as their guest list spot.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $user_id  User ID.
+ * @return bool
+ */
+function extrachill_events_guest_list_holds_pass( int $event_id, int $user_id ): bool {
+	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+		return false;
+	}
+
+	$pass = \ExtraChillEvents\Core\RsvpPassesTable::find_for_user_event( $event_id, $user_id );
+	return $pass && \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REVOKED !== $pass['status'];
+}
+
+/**
+ * Whether a capped guest list has no spots left.
+ *
+ * @param int $event_id Event post ID.
+ * @return bool
+ */
+function extrachill_events_guest_list_is_full( int $event_id ): bool {
+	$capacity = extrachill_events_get_perk_capacity( $event_id );
+	if ( $capacity <= 0 || ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
+		return false;
+	}
+
+	return \ExtraChillEvents\Core\RsvpPassesTable::count_for_event( $event_id )['claimed'] >= $capacity;
+}
+
+/**
+ * The error returned when every spot is claimed.
+ *
+ * @return WP_Error
+ */
+function extrachill_events_guest_list_full_error(): WP_Error {
+	return new WP_Error( 'guest_list_full', __( 'The guest list is full.', 'extrachill-events' ), array( 'status' => 409 ) );
+}
+
+/**
+ * The error returned for a wrong or missing guest list password.
+ *
+ * Brute-force limiting is a transport concern: both public write boundaries
+ * (extrachill-api guest-rsvp and claim-pass) apply the shared per-client
+ * public-write rate limit before this runs.
+ *
+ * @return WP_Error
+ */
+function extrachill_events_guest_list_password_error(): WP_Error {
+	return new WP_Error( 'invalid_password', __( "That password isn't right.", 'extrachill-events' ), array( 'status' => 403 ) );
+}
+
+/**
+ * Claim a guest list pass as a logged-in user.
+ *
+ * The logged-in twin of the guest RSVP: checks the password and an open
+ * spot, marks the user Going through extrachill-users, and returns the pass
+ * so it can be shown on screen. Already-Going users (who marked before
+ * they had the password) are issued their pass directly.
+ *
+ * @param int    $event_id Event post ID.
+ * @param int    $user_id  Claiming user ID.
+ * @param string $password Guest list password, when the event has one.
+ * @return array|WP_Error `{ issued: true, code, perk_text, status }` or an error.
+ */
+function extrachill_events_claim_guest_list_pass( int $event_id, int $user_id, string $password = '' ) {
+	$post = get_post( $event_id );
+	if ( ! $post || 'data_machine_events' !== $post->post_type || 'publish' !== $post->post_status ) {
+		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
+	}
+
+	if ( $user_id <= 0 ) {
+		return new WP_Error( 'guest_list_login_required', __( 'Log in to claim a pass.', 'extrachill-events' ), array( 'status' => 401 ) );
+	}
+
+	if ( ! extrachill_events_perk_enabled( $event_id ) ) {
+		return new WP_Error( 'guest_list_unavailable', __( 'This event has no guest list.', 'extrachill-events' ), array( 'status' => 403 ) );
+	}
+
+	if ( function_exists( 'ec_users_get_event_timing' ) && 'past' === ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) ) {
+		return new WP_Error( 'guest_rsvp_closed', __( 'This event has already happened.', 'extrachill-events' ), array( 'status' => 410 ) );
+	}
+
+	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
+		return extrachill_events_guest_list_password_error();
+	}
+
+	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) || ! function_exists( 'ec_users_mark_event' ) ) {
+		return new WP_Error( 'guest_list_unavailable', __( 'The guest list is temporarily unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+	}
+
+	if ( ! \ExtraChillEvents\Core\RsvpPassesTable::has_room_for( $event_id, $user_id, extrachill_events_get_perk_capacity( $event_id ) ) ) {
+		return extrachill_events_guest_list_full_error();
+	}
+
+	extrachill_events_rsvp_guest_list_authorization( $event_id, $user_id, true );
+	try {
+		$marked = ec_users_mark_event( $user_id, $event_id, (int) get_current_blog_id() );
+		if ( is_wp_error( $marked ) ) {
+			return new WP_Error( 'guest_list_claim_failed', __( 'Your spot could not be saved. Try again.', 'extrachill-events' ), array( 'status' => 500 ) );
+		}
+
+		// Already Going: the listener didn't fire, so issue here.
+		if ( false === $marked ) {
+			$pass = extrachill_events_issue_rsvp_pass( $event_id, $user_id );
+			if ( $pass ) {
+				extrachill_events_send_rsvp_pass_email( $event_id, $user_id, $pass );
+			}
+		}
+	} finally {
+		extrachill_events_rsvp_guest_list_authorization( $event_id, $user_id, false );
+	}
+
+	$pass = \ExtraChillEvents\Core\RsvpPassesTable::find_for_user_event( $event_id, $user_id );
+	if ( $pass && \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REDEEMED === $pass['status'] ) {
+		return new WP_Error( 'guest_list_already_checked_in', __( "You're already checked in.", 'extrachill-events' ), array( 'status' => 409 ) );
+	}
+	if ( ! $pass || \ExtraChillEvents\Core\RsvpPassesTable::STATUS_ACTIVE !== $pass['status'] ) {
+		return extrachill_events_guest_list_full_error();
+	}
+
+	return array(
+		'issued'    => true,
+		'code'      => (string) $pass['code'],
+		'perk_text' => extrachill_events_get_perk_text( $event_id ),
+		'status'    => (string) $pass['status'],
+	);
 }
 
 /**
@@ -162,7 +313,11 @@ function extrachill_events_guest_rsvp_resend_pass( int $event_id, int $user_id )
 		return;
 	}
 
-	$pass = \ExtraChillEvents\Core\RsvpPassesTable::issue_or_reactivate( $event_id, $user_id );
+	if ( ! extrachill_events_rsvp_pass_may_issue( $event_id, $user_id ) ) {
+		return;
+	}
+
+	$pass = extrachill_events_issue_rsvp_pass( $event_id, $user_id );
 	if ( ! $pass ) {
 		return;
 	}

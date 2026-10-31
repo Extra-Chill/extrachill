@@ -51,6 +51,9 @@ get_header();
 				<?php if ( $perk_text ) : ?>
 					<p class="ec-rsvp-verify__perk"><?php echo esc_html( $perk_text ); ?></p>
 				<?php endif; ?>
+				<?php if ( function_exists( 'extrachill_events_get_guest_list_counts' ) ) : ?>
+					<p class="ec-rsvp-verify__count"><?php echo esc_html( extrachill_events_format_guest_list_count( extrachill_events_get_guest_list_counts( $event_id ) ) ); ?></p>
+				<?php endif; ?>
 				<?php if ( 'redeemed' === $pass_status ) : ?>
 					<p class="ec-rsvp-verify__status">
 						<?php

@@ -99,6 +99,8 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-rsvp-verify__status'  => 'JS write target; plain text',
 		'ec-rsvp-verify__redeem'  => 'styled via button-2 button-large; hook for JS only',
 		'ec-rsvp-guest__status'   => 'JS write target; styled via notice + notice-success|notice-error set by JS',
+		'ec-door-list__count'     => 'plain text guest list count; inherits theme typography',
+		'ec-rsvp-verify__count'   => 'plain text guest list count; inherits theme typography',
 	);
 
 	/**

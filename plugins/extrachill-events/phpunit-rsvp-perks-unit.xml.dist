@@ -19,6 +19,7 @@
 			<file>tests/Unit/Core/RsvpVerifyPageCacheTest.php</file>
 			<file>tests/Unit/Core/RsvpPassEmailTest.php</file>
 			<file>tests/Unit/Core/RsvpGuestRsvpTest.php</file>
+			<file>tests/Unit/Core/RsvpGuestListTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

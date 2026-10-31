@@ -22,6 +22,7 @@ The ability itself is `show_in_rest: false`; this route is its only public write
 | `turnstile_response` | string | Yes in production | Consumed by admission, never forwarded. |
 | `referrer` | string | No | External referrer URL for attribution. |
 | `utm` | object | No | Only `utm_*` keys are forwarded, as sanitized text. |
+| `password` | string | When the event has one | Guest list password. Forwarded verbatim; the ability checks it against the stored hash. Brute force is bounded by the admission rate limit above. |
 
 ## Response
 Success is always opaque:
@@ -42,3 +43,5 @@ The response never includes the pass code, the user ID, or whether the email alr
 | `guest_rsvp_unavailable` | 403 / 503 | Event has no RSVP perk, or a dependency is missing. |
 | `guest_rsvp_closed` | 410 | Event is in the past. |
 | `guest_rsvp_failed` | 500 | Generic failure; no account details are exposed. |
+| `invalid_password` | 403 | Wrong or missing guest list password. |
+| `guest_list_full` | 409 | Every guest list spot is claimed. |

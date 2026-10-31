@@ -21,6 +21,7 @@
  * @var int    $event_id     Event post ID.
  * @var bool   $perk_enabled Whether this event has an RSVP perk enabled.
  * @var string $perk_text    Attendee-facing perk description (perk events only).
+ * @var array  $guest_list   extrachill_events_get_guest_list_counts() result (perk events only).
  * @var array  $rows         Each: user_id, display_name, marked_at (formatted), pass_status ('active'|'redeemed'|'revoked'|''), redeemed_at (formatted, or '').
  */
 
@@ -33,6 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p class="ec-door-list__note"><?php esc_html_e( 'Visible only to you as this event\'s host. Not shown to attendees or the public.', 'extrachill-events' ); ?></p>
 	<?php if ( $perk_enabled && $perk_text ) : ?>
 		<p class="ec-door-list__perk"><?php echo esc_html( $perk_text ); ?></p>
+	<?php endif; ?>
+	<?php if ( $perk_enabled && ! empty( $guest_list ) ) : ?>
+		<p class="ec-door-list__count"><?php echo esc_html( extrachill_events_format_guest_list_count( $guest_list ) ); ?></p>
 	<?php endif; ?>
 	<?php if ( empty( $rows ) ) : ?>
 		<p class="notice notice-info"><?php esc_html_e( 'No one has RSVPed yet.', 'extrachill-events' ); ?></p>
