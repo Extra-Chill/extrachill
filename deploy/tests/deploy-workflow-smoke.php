@@ -87,6 +87,16 @@ dws_assert( str_contains( $yaml, 'Healthy no-op; staying quiet.' ), 'a healthy n
 // "deploy failed" sends people to inspect the server instead of the workflow,
 // which is what happened throughout homeboy-action#483.
 dws_assert( str_contains( $yaml, 'Deploy OK, workflow failed' ), 'a workflow failure after successful commands is reported distinctly' );
+
+// #402: a failure before Deploy ran (setup/provisioning) must not claim that
+// Homeboy commands succeeded. Both deploy workflows report it distinctly.
+foreach ( array( '.github/workflows/deploy.yml', '.github/workflows/deploy-monorepo.yml' ) as $dws_workflow ) {
+	$dws_text = (string) file_get_contents( dirname( __DIR__, 2 ) . '/' . $dws_workflow );
+	dws_assert( str_contains( $dws_text, 'DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}' ), "{$dws_workflow} passes the Deploy step outcome to the report" );
+	dws_assert( str_contains( $dws_text, 'Deploy did not run: setup failed' ), "{$dws_workflow} reports setup failures before Deploy distinctly" );
+	dws_assert( str_contains( $dws_text, 'Dry run failed during setup' ), "{$dws_workflow} labels failed dry runs as dry runs" );
+	dws_assert( strpos( $dws_text, 'Deploy did not run: setup failed' ) < strpos( $dws_text, 'Deploy OK, workflow failed' ), "{$dws_workflow} checks the setup-failure branch before the Deploy-OK branch" );
+}
 // A skipped component never deployed. Leaving that out of the report is the
 // same class of defect as a poll that never runs: absence indistinguishable
 // from health (#244).

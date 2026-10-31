@@ -337,6 +337,7 @@ jobs:
           GATE_OUTCOME: ${{ steps.gate.outcome }}
           GATE_BYPASSED: ${{ steps.plan.outputs.gate_bypassed }}
           GATE_SITE_ERRORS: ${{ steps.gate_summary.outputs.gate_site_errors }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
         run: |
           set -euo pipefail
           [ -n "${WEBHOOK:-}" ] || { echo "No webhook configured; skipping."; exit 0; }
@@ -393,6 +394,18 @@ jobs:
             if [ -n "${GATE_SITE_ERRORS:-}" ]; then
               body="${body}"$'\n\n'"${GATE_SITE_ERRORS}"
             fi
+          # extrachill-network#402: the job failed before Deploy ever ran (setup,
+          # provisioning or planning). With no operations output, commands_ok
+          # stays true and this used to fall through to "Deploy OK, workflow
+          # failed", which claims Homeboy commands succeeded when none ran.
+          elif [ "${JOB_STATUS}" != "success" ] && [ "${DEPLOY_OUTCOME:-}" != "success" ] && [ "${DEPLOY_OUTCOME:-}" != "failure" ]; then
+            if [ "${DRY_RUN}" = "true" ]; then
+              title="Dry run failed during setup - extrachill.com"
+            else
+              title="Deploy did not run: setup failed - extrachill.com"
+            fi
+            colour=15158332
+            body="Scope: ${SCOPE:-unknown}. The workflow failed before the Deploy step, so no Homeboy deploy command ran and nothing changed on the server. Investigate the run's setup steps."
           # A red job does not always mean a failed deploy. Homeboy reports its
           # own success per command; when every command succeeded and the job
           # still failed, the fault is in the CI plumbing around it, not in the
