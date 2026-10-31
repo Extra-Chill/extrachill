@@ -1506,3 +1506,100 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 		'page'   => $page,
 	);
 }
+
+/**
+ * Set or clear a user's private rating of a show they attended.
+ *
+ * Ratings are personal: they live on the user's own attendance record and
+ * are read back only by that user (ec_users_get_show_ratings()). A show can
+ * be rated once it is past and the user has marked it. Unmarking the show
+ * deletes the record, and the rating with it.
+ *
+ * @param int $user_id  User ID.
+ * @param int $event_id Event post ID.
+ * @param int $blog_id  Blog ID (default: canonical Events site).
+ * @param int $rating   1–5 to set, 0 to clear.
+ * @return int|WP_Error The stored rating (0 when cleared), or an error.
+ */
+function ec_users_set_show_rating( int $user_id, int $event_id, int $blog_id, int $rating ) {
+	global $wpdb;
+
+	if ( $rating < 0 || $rating > 5 ) {
+		return new WP_Error( 'invalid_rating', __( 'Ratings go from 1 to 5 stars.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+
+	$validated_blog_id = ec_users_validate_event_target( $event_id, $blog_id );
+	if ( is_wp_error( $validated_blog_id ) ) {
+		return $validated_blog_id;
+	}
+	$blog_id = $validated_blog_id;
+
+	if ( ! ec_users_is_event_marked( $user_id, $event_id, $blog_id ) ) {
+		return new WP_Error( 'show_not_attended', __( 'Add this show to your shows before rating it.', 'extrachill-users' ), array( 'status' => 403 ) );
+	}
+
+	if ( 'past' !== ec_users_get_event_timing( $event_id, $blog_id ) ) {
+		return new WP_Error( 'show_not_past', __( 'You can rate a show once it has happened.', 'extrachill-users' ), array( 'status' => 400 ) );
+	}
+
+	$table = extrachill_users_concert_tracking_table_name();
+	$where = array(
+		'user_id'  => $user_id,
+		'event_id' => $event_id,
+		'blog_id'  => $blog_id,
+	);
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- custom table owned by this plugin.
+	$updated = $rating > 0
+		? $wpdb->update( $table, array( 'rating' => $rating ), $where, array( '%d' ), array( '%d', '%d', '%d' ) )
+		: $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET rating = NULL WHERE user_id = %d AND event_id = %d AND blog_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from trusted helper.
+				$user_id,
+				$event_id,
+				$blog_id
+			)
+		);
+
+	if ( false === $updated ) {
+		return new WP_Error( 'rating_database_error', __( 'Your rating could not be saved.', 'extrachill-users' ), array( 'status' => 500 ) );
+	}
+
+	return $rating;
+}
+
+/**
+ * A user's own private ratings for a set of shows.
+ *
+ * @param int   $user_id   User ID.
+ * @param int[] $event_ids Event post IDs.
+ * @param int   $blog_id   Blog ID (default: canonical Events site).
+ * @return array<int,int> event_id => rating, rated shows only.
+ */
+function ec_users_get_show_ratings( int $user_id, array $event_ids, int $blog_id = 0 ): array {
+	global $wpdb;
+
+	$event_ids = array_values( array_unique( array_filter( array_map( 'intval', $event_ids ) ) ) );
+	if ( $user_id <= 0 || empty( $event_ids ) ) {
+		return array();
+	}
+
+	$blog_id      = $blog_id ? $blog_id : ec_users_get_events_blog_id();
+	$table        = extrachill_users_concert_tracking_table_name();
+	$placeholders = implode( ',', array_fill( 0, count( $event_ids ), '%d' ) );
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted table name and generated %d placeholders.
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT event_id, rating FROM {$table} WHERE user_id = %d AND blog_id = %d AND rating IS NOT NULL AND event_id IN ({$placeholders})",
+			...array_merge( array( $user_id, $blog_id ), $event_ids )
+		)
+	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+
+	$ratings = array();
+	foreach ( (array) $rows as $row ) {
+		$ratings[ (int) $row->event_id ] = (int) $row->rating;
+	}
+
+	return $ratings;
+}

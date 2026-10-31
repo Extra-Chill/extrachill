@@ -56,7 +56,7 @@ describe( 'useMyRatings', () => {
 		const root = await mount( [ 11, 12 ] );
 		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
 		expect( apiFetch.mock.calls[ 0 ][ 0 ].path ).toBe(
-			'/wp-abilities/v1/abilities/data-machine-events/get-my-event-ratings/run?input[event_ids][]=11&input[event_ids][]=12'
+			'/wp-abilities/v1/abilities/extrachill/get-my-show-ratings/run?input[event_ids][]=11&input[event_ids][]=12'
 		);
 		expect( hook.ratings ).toEqual( { 11: 4 } );
 		await act( async () => root.unmount() );
@@ -77,7 +77,7 @@ describe( 'useMyRatings', () => {
 			await hook.rate( 11, 5 );
 		} );
 		expect( apiFetch ).toHaveBeenLastCalledWith( {
-			path: '/wp-abilities/v1/abilities/data-machine-events/rate-event/run',
+			path: '/wp-abilities/v1/abilities/extrachill/rate-show/run',
 			method: 'POST',
 			data: { input: { event_id: 11, rating: 5 } },
 		} );

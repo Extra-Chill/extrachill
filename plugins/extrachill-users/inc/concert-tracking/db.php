@@ -12,6 +12,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/*
+ * Bump when the table schema changes; admin_init re-runs dbDelta once per
+ * version. v2 adds the private per-show `rating`.
+ */
+if ( ! defined( 'EXTRACHILL_USERS_CONCERT_TRACKING_SCHEMA_VERSION' ) ) {
+	define( 'EXTRACHILL_USERS_CONCERT_TRACKING_SCHEMA_VERSION', '2' );
+}
+
 /**
  * Get concert tracking table name.
  *
@@ -29,6 +37,10 @@ function extrachill_users_concert_tracking_table_name() {
  * Uses dbDelta for idempotent creation. The table stores one record per
  * user+event+blog combination — no status column needed since the
  * meaning is derived from event timing at render time.
+ *
+ * `rating` is the user's private 1–5 rating of a show they attended (NULL
+ * when unrated). It is personal: only the owner reads it, via
+ * ec_users_get_show_ratings(). Never select it into public read paths.
  */
 function extrachill_users_install_concert_tracking_table() {
 	global $wpdb;
@@ -43,6 +55,7 @@ function extrachill_users_install_concert_tracking_table() {
 		user_id bigint(20) unsigned NOT NULL,
 		event_id bigint(20) unsigned NOT NULL,
 		blog_id bigint(20) unsigned NOT NULL DEFAULT 7,
+		rating tinyint(3) unsigned NULL DEFAULT NULL,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY  (id),
 		UNIQUE KEY user_event_blog (user_id, event_id, blog_id),

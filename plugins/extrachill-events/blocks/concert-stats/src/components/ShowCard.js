@@ -1,12 +1,17 @@
 /**
  * ShowCard — Single show entry in the list.
  *
- * Each card is a cluster of cross-site on-ramps rather than one big link:
- * the date links to the event permalink, and the artist / venue / city
- * names are individual links to their respective entity pages (artist
- * profile on the artist site, venue + location archives on the events site).
- * This serves the platform's network-density goal — every show becomes
- * several doorways into the network.
+ * The whole row opens the show. The show name is the row's one event link,
+ * stretched over the card with a CSS overlay (`::after`), so tapping
+ * anywhere on the row lands on the event page, the way a list item behaves
+ * on a phone. Anchors cannot nest, so the venue / city badges, the rating
+ * stars, and the RSVP pass sit above that overlay as their own targets:
+ * the badges are still on-ramps into the venue and location archives.
+ *
+ * Artist names are part of the show name, not separate links. A fan reading
+ * their history taps the bold name to get back to the show they went to;
+ * linking it to the artist sent them to the artist's tour page instead.
+ * The event page links every artist.
  *
  * Venue + city render as platform **taxonomy badges** (colored pills)
  * matching the events calendar / archives. The class contract mirrors the
@@ -53,30 +58,23 @@ const badgeClasses = ( taxonomy, slug ) => {
 };
 
 /**
- * Render a single term (artist / venue / city) as a link when it has a
- * resolvable URL, falling back to plain text otherwise.
+ * Render a venue / city term as a taxonomy-badge link when it has a
+ * resolvable URL, falling back to a plain badge otherwise.
  *
- * When `taxonomy` is `venue` or `location`, the taxonomy-badge classes are
- * appended so venue / city terms render as platform badges. Artists pass no
- * `taxonomy` and stay plain links.
- *
- * @param {Object}      props           Component props.
- * @param {Object}      props.term      Term object with `name`, `slug`, optional `url`.
- * @param {string}      props.className Base CSS class for the rendered element.
- * @param {string|null} props.taxonomy  Badge taxonomy: `venue` | `location`.
+ * @param {Object} props           Component props.
+ * @param {Object} props.term      Term object with `name`, `slug`, optional `url`.
+ * @param {string} props.className Base CSS class for the rendered element.
+ * @param {string} props.taxonomy  Badge taxonomy: `venue` | `location`.
  * @return {Element|null} Rendered link/span, or null when nameless.
  */
-const TermLink = ( { term, className, taxonomy = null } ) => {
+const TermLink = ( { term, className, taxonomy } ) => {
 	if ( ! term || ! term.name ) {
 		return null;
 	}
 
-	const badge = badgeClasses( taxonomy, term.slug );
-	// Badged terms drop the color-bearing local link class so its muted
-	// color does not fight the badge's own background/color; the badge
-	// classes fully own the visual. Unbadged terms (artists) keep their
-	// original link class.
-	const finalClass = badge ? badge : className;
+	// The badge classes own the visual; the local link class would fight
+	// the badge's own background/color.
+	const finalClass = badgeClasses( taxonomy, term.slug ) || className;
 
 	if ( term.url ) {
 		return (
@@ -103,37 +101,30 @@ const ShowCard = ( { show, isOwn = false, rating = null } ) => {
 	const hasVenue = show.venue && show.venue.name;
 	const hasCity = show.city && show.city.name;
 
+	const name = artists
+		? artists.map( ( artist ) => artist.name ).join( ', ' )
+		: show.title || '';
+	const date = formatShortDate( show.event_date );
+
 	return (
-		<div className="ec-concert-stats__show-card">
-			<a
-				className="ec-concert-stats__show-date"
-				href={ show.permalink || '#' }
-			>
-				{ formatShortDate( show.event_date ) }
-			</a>
+		<div
+			className={
+				'ec-concert-stats__show-card' +
+				( show.permalink ? ' has-link' : '' )
+			}
+		>
+			<span className="ec-concert-stats__show-date">{ date }</span>
 			<span className="ec-concert-stats__show-details">
 				<span className="ec-concert-stats__show-artist">
-					{ artists ? (
-						artists.map( ( artist, index ) => (
-							<span key={ artist.slug || index }>
-								{ index > 0 && (
-									<span className="ec-concert-stats__show-sep">
-										{ ', ' }
-									</span>
-								) }
-								<TermLink
-									term={ artist }
-									className="ec-concert-stats__show-artist-link"
-								/>
-							</span>
-						) )
-					) : (
+					{ show.permalink ? (
 						<a
-							className="ec-concert-stats__show-artist-link"
-							href={ show.permalink || '#' }
+							className="ec-concert-stats__show-link"
+							href={ show.permalink }
 						>
-							{ show.title || '' }
+							{ name }
 						</a>
+					) : (
+						name
 					) }
 				</span>
 				{ ( hasVenue || hasCity ) && (
