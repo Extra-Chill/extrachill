@@ -26,7 +26,7 @@ if ( ! function_exists( 'extrachill_get_community_activity_items' ) ) {
 
 		if ( false === $activities ) {
 			$current_blog_id   = get_current_blog_id();
-			$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+			$community_blog_id = ec_get_blog_id( 'community' );
 			$query_limit       = 10;
 			$activities        = array();
 

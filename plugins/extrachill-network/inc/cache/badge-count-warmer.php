@@ -52,8 +52,8 @@ function ec_badge_warmer_run() {
 	$blog_id = get_current_blog_id();
 	$warmed  = array();
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
-	$main_blog_id   = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$events_blog_id = ec_get_blog_id( 'events' );
+	$main_blog_id   = ec_get_blog_id( 'main' );
 
 	if ( $blog_id === $events_blog_id ) {
 		$warmed = ec_badge_warmer_warm_events_site();

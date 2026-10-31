@@ -202,7 +202,7 @@ function extrachill_add_cross_site_linking_candidates( $candidates, $post_id, $s
 	$forward_keys   = extrachill_internal_linking_forward_surface_keys();
 	$forward_boost  = (float) apply_filters( 'extrachill_internal_linking_forward_boost', 100.0, $post_id );
 	$seen_urls      = array();
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	// Avoid offering a URL the post already links to.
 	foreach ( $candidates as $candidate ) {

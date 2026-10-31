@@ -173,7 +173,7 @@ function extrachill_network_resolve_term_identity( $taxonomy, $slug ) {
 	}
 
 	foreach ( $sources as $source_key ) {
-		$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $source_key ) : 0;
+		$blog_id = ec_get_blog_id( $source_key );
 		if ( ! $blog_id ) {
 			continue;
 		}
@@ -217,7 +217,7 @@ function extrachill_network_search_terms( $taxonomy, $query, $limit = 20 ) {
 	$results = array();
 	$slug    = sanitize_title( $query );
 	foreach ( $sources as $source_key ) {
-		$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $source_key ) : 0;
+		$blog_id = ec_get_blog_id( $source_key );
 		if ( ! $blog_id ) {
 			continue;
 		}
@@ -434,7 +434,7 @@ function extrachill_network_find_post_term_candidates( $post, $taxonomies ) {
 
 	foreach ( $taxonomies as $taxonomy ) {
 		foreach ( $policy['sources'][ $taxonomy ] ?? array() as $source_key ) {
-			$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $source_key ) : 0;
+			$blog_id = ec_get_blog_id( $source_key );
 			if ( ! $blog_id ) {
 				continue;
 			}
@@ -483,7 +483,7 @@ function extrachill_network_find_post_term_candidates( $post, $taxonomies ) {
 function extrachill_network_classify_post_terms( $args, $selector ) {
 	$site_key = sanitize_key( $args['site'] ?? '' );
 	$post_id  = absint( $args['post_id'] ?? 0 );
-	$blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : 0;
+	$blog_id  = ec_get_blog_id( $site_key );
 	if ( ! $blog_id || ! $post_id || ! is_callable( $selector ) ) {
 		return new WP_Error( 'invalid_classification_target', __( 'A valid site, post, and selector are required.', 'extrachill-network' ) );
 	}
@@ -650,7 +650,7 @@ function extrachill_network_classify_post_terms( $args, $selector ) {
 function extrachill_network_restore_term_classification_effect( $effect ) {
 	$site_key = sanitize_key( $effect['target']['site'] ?? '' );
 	$post_id  = absint( $effect['target']['post_id'] ?? 0 );
-	$blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : 0;
+	$blog_id  = ec_get_blog_id( $site_key );
 	if ( ! $blog_id || ! $post_id || empty( $effect['previous_terms'] ) || empty( $effect['applied_terms'] ) || empty( $effect['applied_provenance'] ) ) {
 		return array(
 			'status' => 'failed',

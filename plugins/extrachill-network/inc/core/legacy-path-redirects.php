@@ -21,7 +21,7 @@ add_action( 'template_redirect', 'ec_handle_legacy_path_redirects', 1 );
  * @return void
  */
 function ec_handle_legacy_path_redirects() {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( null === $main_blog_id || (int) get_current_blog_id() !== (int) $main_blog_id ) {
 		return;
 	}
@@ -40,7 +40,7 @@ function ec_handle_legacy_path_redirects() {
 		return;
 	}
 
-	$wire_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : null;
+	$wire_url = ec_get_site_url( 'wire' );
 	if ( ! $wire_url ) {
 		return;
 	}
@@ -92,7 +92,7 @@ function ec_handle_legacy_path_redirects() {
  * @return string|null Valid published slug on wire, or null if nothing resolves.
  */
 function ec_resolve_festival_wire_slug( $slug ) {
-	$wire_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'wire' ) : null;
+	$wire_blog_id = ec_get_blog_id( 'wire' );
 	if ( null === $wire_blog_id ) {
 		return null;
 	}

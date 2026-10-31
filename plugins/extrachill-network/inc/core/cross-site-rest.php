@@ -159,7 +159,7 @@ function ec_cross_site_rest_request( string $site_key, string $method, string $p
  * @return array|WP_Error  Response data or WP_Error.
  */
 function ec_cross_site_rest_request_in_process( string $site_key, string $method, string $path, array $args = array() ) {
-	$target_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : null;
+	$target_blog_id = ec_get_blog_id( $site_key );
 
 	if ( ! $target_blog_id ) {
 		return new WP_Error(

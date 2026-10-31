@@ -427,10 +427,6 @@ function extrachill_network_bridge_get_community_composer_fallback( $terms_by_ta
  * @return string Canonical composer URL, or an empty string on failure.
  */
 function extrachill_network_bridge_get_community_composer_url( $taxonomy, $slug ) {
-	if ( ! function_exists( 'ec_get_blog_id' ) || ! function_exists( 'ec_get_site_url' ) ) {
-		return '';
-	}
-
 	if ( ! is_string( $taxonomy )
 		|| ! is_string( $slug )
 		|| '' === $taxonomy

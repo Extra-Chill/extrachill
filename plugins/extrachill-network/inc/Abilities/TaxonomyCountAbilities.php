@@ -112,7 +112,7 @@ class TaxonomyCountAbilities {
 		$post_type = $input['post_type'] ?? null;
 		$slug      = isset( $input['slug'] ) ? sanitize_title( (string) $input['slug'] ) : '';
 
-		$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : null;
+		$blog_id = ec_get_blog_id( $site_key );
 		if ( ! $blog_id ) {
 			return new \WP_Error(
 				'unknown_site',

@@ -289,7 +289,7 @@ function extrachill_network_resolve_genres( $value, $cap = EXTRACHILL_NETWORK_GE
  * @return void
  */
 function extrachill_network_maybe_seed_genre_vocabulary() {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : ( defined( 'EC_BLOG_ID_MAIN' ) ? (int) EC_BLOG_ID_MAIN : 0 );
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id || get_current_blog_id() !== $main_blog_id ) {
 		return;
 	}

@@ -19,8 +19,7 @@ if ( ! function_exists( 'extrachill_network_community_activity_widget' ) ) :
 	 */
 	function extrachill_network_community_activity_widget() {
 		if ( ! function_exists( 'extrachill_get_community_activity_items' ) ||
-			! function_exists( 'extrachill_render_community_activity' ) ||
-			! function_exists( 'ec_get_site_url' ) ) {
+			! function_exists( 'extrachill_render_community_activity' ) ) {
 			return;
 		}
 

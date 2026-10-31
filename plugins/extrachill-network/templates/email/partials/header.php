@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$header_main_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+$header_main_url = ec_get_site_url( 'main' );
 ?>
 <!DOCTYPE html>
 <html lang="en">
