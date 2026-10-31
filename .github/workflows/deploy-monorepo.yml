@@ -136,6 +136,9 @@ jobs:
         if: steps.plan.outputs.changed_count != '0'
         uses: Extra-Chill/homeboy-action@v2
         with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
           version: '0.436.10'
           commands: component show extrachill-network
           auto-setup: 'false'
@@ -298,6 +301,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         uses: Extra-Chill/homeboy-action@v2
         with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
           version: '0.436.10'
           commands: ${{ steps.plan.outputs.command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
@@ -310,6 +316,9 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         uses: Extra-Chill/homeboy-action@v2
         with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
           version: '0.436.10'
           commands: deploy extrachill-monorepo --check
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
