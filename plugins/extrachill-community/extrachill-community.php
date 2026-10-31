@@ -58,6 +58,9 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/edit-autosave.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/content/editor/composer-term-picker.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/ability-helpers.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/moderation/member-blocks.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/moderation/member-block-abilities.php';
+	require_once plugin_dir_path( __FILE__ ) . 'inc/moderation/content-reports.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/infrastructure-abilities.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/local-scene-digest-settings.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/core/subscription-inventory.php';
@@ -98,6 +101,10 @@ function extrachill_community_init() {
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/public-profile.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/profile-seo.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/blocked-profile.php';
+
+	if ( is_admin() ) {
+		require_once plugin_dir_path( __FILE__ ) . 'inc/moderation/content-reports-admin.php';
+	}
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/concert-history.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/custom-user-profile.php';
 	require_once plugin_dir_path( __FILE__ ) . 'inc/user-profiles/profile-activity-feed.php';

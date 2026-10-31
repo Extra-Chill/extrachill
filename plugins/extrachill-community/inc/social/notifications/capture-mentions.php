@@ -47,7 +47,8 @@ function extrachill_capture_mention_notifications($post_id, $topic_id, $forum_id
 		$user = get_user_by('slug', $username);
 
 		// Validate user exists, is active, and isn't mentioning themselves
-		if ( $user && ! bbp_is_user_inactive( $user->ID ) && (int) $user->ID !== (int) $action_author_id ) {
+		// Members who blocked the author are not notified of their mentions.
+		if ( $user && ! bbp_is_user_inactive( $user->ID ) && (int) $user->ID !== (int) $action_author_id && ! extrachill_community_member_has_blocked( (int) $user->ID, (int) $action_author_id ) ) {
 			// Send mention notification.
 			ec_users_notify_with_receipts(
 				$user->ID,

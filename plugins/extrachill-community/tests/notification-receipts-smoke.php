@@ -110,6 +110,7 @@ class Notification_Test_DB {
 
 $wpdb = new Notification_Test_DB();
 
+require __DIR__ . '/../inc/moderation/member-blocks.php';
 require __DIR__ . '/../inc/social/notifications/capture-replies.php';
 require __DIR__ . '/../inc/social/notifications/capture-mentions.php';
 require __DIR__ . '/../inc/social/notifications/capture-subscriptions.php';

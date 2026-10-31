@@ -161,7 +161,7 @@ function extrachill_get_recent_replies_args($per_page = 15, $paged = 1, $author 
 		$args['author'] = $author;
 	}
 
-	return $args;
+	return extrachill_community_exclude_member_blocked_authors( $args );
 }
 
 /**

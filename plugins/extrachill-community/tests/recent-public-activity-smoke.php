@@ -37,6 +37,14 @@ $GLOBALS['_recent_activity_terms']       = array();
 if ( ! function_exists( 'add_action' ) ) {
 	function add_action() {}
 }
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter() {}
+}
+$GLOBALS['_recent_activity_viewer'] = 0;
+if ( ! function_exists( 'get_current_user_id' ) ) {
+	function get_current_user_id() { return $GLOBALS['_recent_activity_viewer']; }
+	function get_user_meta( $user_id ) { return 5 === (int) $user_id ? array( 7, 8 ) : ''; }
+}
 if ( ! function_exists( '__' ) ) {
 	function __( $text ) { return $text; }
 }
@@ -117,6 +125,7 @@ function recent_activity_assert( $condition, $message ) {
 }
 
 require dirname( __DIR__ ) . '/inc/core/ability-helpers.php';
+require dirname( __DIR__ ) . '/inc/moderation/member-blocks.php';
 require dirname( __DIR__ ) . '/inc/content/recent-public-activity.php';
 if ( $standalone ) {
 	extrachill_community_register_recent_public_activity_ability();
@@ -186,6 +195,14 @@ recent_activity_assert( array() === $empty['items'], 'An all-hidden query must r
 if ( $standalone ) {
 	recent_activity_assert( 'no-matches' === $GLOBALS['_recent_activity_query_args']['tax_query'][0]['terms'], 'Artist scoping must stay inside the owner query.' );
 	recent_activity_assert( 'topic' === $GLOBALS['_recent_activity_query_args']['post_type'], 'Artist scoping must query relationship-owning discussions only.' );
+}
+
+if ( $standalone ) {
+	recent_activity_assert( ! isset( $GLOBALS['_recent_activity_query_args']['author__not_in'] ), 'Anonymous activity is not member-block filtered.' );
+	$GLOBALS['_recent_activity_viewer'] = 5;
+	extrachill_community_ability_recent_public_activity( array() );
+	recent_activity_assert( array( 7, 8 ) === $GLOBALS['_recent_activity_query_args']['author__not_in'], 'Activity hides authors the viewer has blocked.' );
+	$GLOBALS['_recent_activity_viewer'] = 0;
 }
 
 echo "PASS: Recent public activity is bounded, exact, and visibility-safe.\n";

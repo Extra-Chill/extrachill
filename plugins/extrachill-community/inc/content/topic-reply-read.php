@@ -57,7 +57,7 @@ function extrachill_community_ability_list_topics( $input ) {
 		$args['post_parent__in'] = $forum_ids;
 	}
 
-	$query  = new WP_Query( $args );
+	$query  = new WP_Query( extrachill_community_exclude_member_blocked_authors( $args ) );
 	$topics = array();
 
 	foreach ( $query->posts as $post ) {
@@ -115,14 +115,16 @@ function extrachill_community_ability_get_topic( $input ) {
 		$replies_page     = isset( $input['replies_page'] ) ? max( (int) $input['replies_page'], 1 ) : 1;
 
 		$reply_query = new WP_Query(
-			array(
-				'post_type'      => bbp_get_reply_post_type(),
-				'post_parent'    => $topic_id,
-				'post_status'    => bbp_get_public_status_id(),
-				'posts_per_page' => $replies_per_page,
-				'paged'          => $replies_page,
-				'orderby'        => 'date',
-				'order'          => 'ASC',
+			extrachill_community_exclude_member_blocked_authors(
+				array(
+					'post_type'      => bbp_get_reply_post_type(),
+					'post_parent'    => $topic_id,
+					'post_status'    => bbp_get_public_status_id(),
+					'posts_per_page' => $replies_per_page,
+					'paged'          => $replies_page,
+					'orderby'        => 'date',
+					'order'          => 'ASC',
+				)
 			)
 		);
 
@@ -168,14 +170,16 @@ function extrachill_community_ability_list_replies( $input ) {
 	$page     = isset( $input['page'] ) ? max( (int) $input['page'], 1 ) : 1;
 
 	$query = new WP_Query(
-		array(
-			'post_type'      => bbp_get_reply_post_type(),
-			'post_parent'    => $topic_id,
-			'post_status'    => bbp_get_public_status_id(),
-			'posts_per_page' => $per_page,
-			'paged'          => $page,
-			'orderby'        => 'date',
-			'order'          => 'ASC',
+		extrachill_community_exclude_member_blocked_authors(
+			array(
+				'post_type'      => bbp_get_reply_post_type(),
+				'post_parent'    => $topic_id,
+				'post_status'    => bbp_get_public_status_id(),
+				'posts_per_page' => $per_page,
+				'paged'          => $page,
+				'orderby'        => 'date',
+				'order'          => 'ASC',
+			)
 		)
 	);
 

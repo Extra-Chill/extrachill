@@ -89,6 +89,9 @@ function extrachill_capture_subscription_notifications( $reply_id, $topic_id, $f
 		$recipients[] = $subscriber_id;
 	}
 
+	// Subscribers who blocked the reply author are not notified.
+	$recipients = extrachill_community_filter_member_blocked_recipients( $recipients, $reply_author );
+
 	if ( empty( $recipients ) ) {
 		return;
 	}

@@ -79,6 +79,8 @@ function extrachill_community_notify_festival_topic_subscribers( $topic_id ) {
 			array( $author_id, 0 )
 		)
 	);
+	// Subscribers who blocked the topic author are not notified.
+	$recipients = extrachill_community_filter_member_blocked_recipients( $recipients, $author_id );
 	if ( empty( $recipients ) ) {
 		return;
 	}
@@ -158,6 +160,8 @@ function extrachill_community_notify_artist_topic_subscribers( $topic_id ) {
 			array( $author_id, 0 )
 		)
 	);
+	// Subscribers who blocked the topic author are not notified.
+	$recipients = extrachill_community_filter_member_blocked_recipients( $recipients, $author_id );
 	if ( empty( $recipients ) ) {
 		return;
 	}

@@ -67,6 +67,12 @@ if ( ! class_exists( 'WP_Query' ) ) {
 $GLOBALS['_forum_read_abilities'] = array();
 $GLOBALS['_forum_read_posts'] = array();
 $GLOBALS['_forum_read_user'] = 0;
+$GLOBALS['_forum_read_blocks'] = array();
+$GLOBALS['_forum_read_blocks_stubbed'] = ! function_exists( 'get_current_user_id' ) && ! function_exists( 'get_user_meta' );
+if ( $GLOBALS['_forum_read_blocks_stubbed'] ) {
+	function get_current_user_id() { return $GLOBALS['_forum_read_user']; }
+	function get_user_meta( $user_id ) { return $GLOBALS['_forum_read_blocks'][ (int) $user_id ] ?? ''; }
+}
 
 if ( ! function_exists( '__' ) ) {
 	function __( $text ) { return $text; }
@@ -154,6 +160,9 @@ function forum_read_filter_posts( $args ) {
 				if ( isset( $args['post_parent'] ) && (int) $args['post_parent'] !== (int) $post->post_parent ) {
 					return false;
 				}
+				if ( ! empty( $args['author__not_in'] ) && in_array( (int) $post->post_author, array_map( 'intval', $args['author__not_in'] ), true ) ) {
+					return false;
+				}
 				if ( ! empty( $args['post_parent__in'] ) && ! in_array( (int) $post->post_parent, array_map( 'intval', $args['post_parent__in'] ), true ) ) {
 					return false;
 				}
@@ -198,6 +207,7 @@ foreach ( $posts as $post ) {
 
 require dirname( __DIR__ ) . '/inc/content/public-voice-contract.php';
 require dirname( __DIR__ ) . '/inc/core/ability-helpers.php';
+require dirname( __DIR__ ) . '/inc/moderation/member-blocks.php';
 require dirname( __DIR__ ) . '/inc/content/topic-reply-formatters.php';
 require dirname( __DIR__ ) . '/inc/content/topic-reply-read.php';
 require dirname( __DIR__ ) . '/inc/content/topic-reply-abilities.php';
@@ -242,5 +252,23 @@ forum_read_assert( 200 === $private_topic->get_status() && 200 === $private_topi
 forum_read_assert( array( 1000 ) === array_column( $public_replies->get_data()['replies'], 'reply_id' ), 'Reply lists must exclude draft replies.' );
 forum_read_assert( false === wp_get_ability( 'extrachill/community-list-topics' )->get_output_schema()['properties']['topics']['items']['additionalProperties'], 'Nested topic items must have an exact schema.' );
 forum_read_assert( false === wp_get_ability( 'extrachill/community-list-replies' )->get_output_schema()['properties']['replies']['items']['additionalProperties'], 'Nested reply items must have an exact schema.' );
+
+if ( $GLOBALS['_forum_read_blocks_stubbed'] ) {
+	$GLOBALS['_forum_read_posts'][1002] = forum_read_post( 1002, 'reply', 'publish', 100 );
+	$GLOBALS['_forum_read_posts'][1002]->post_author = 8;
+	$GLOBALS['_forum_read_posts'][104] = forum_read_post( 104, 'topic', 'publish', 10 );
+	$GLOBALS['_forum_read_posts'][104]->post_author = 8;
+	$GLOBALS['_forum_read_user'] = 1;
+	$GLOBALS['_forum_read_blocks'][1] = array( 8 );
+	$blocking_topics  = forum_read_request( 'extrachill/community-list-topics', array( 'forum_id' => 10 ) );
+	$blocking_replies = forum_read_request( 'extrachill/community-list-replies', array( 'topic_id' => 100 ) );
+	$blocking_detail  = forum_read_request( 'extrachill/community-get-topic', array( 'topic_id' => 100 ) );
+	forum_read_assert( array( 100, 101 ) === array_column( $blocking_topics->get_data()['topics'], 'topic_id' ), 'Topic lists hide authors the viewer blocked.' );
+	forum_read_assert( array( 1000 ) === array_column( $blocking_replies->get_data()['replies'], 'reply_id' ), 'Reply lists hide authors the viewer blocked.' );
+	forum_read_assert( array( 1000 ) === array_column( $blocking_detail->get_data()['replies'], 'reply_id' ), 'Topic detail replies hide authors the viewer blocked.' );
+	$GLOBALS['_forum_read_user'] = 2;
+	$other_replies = forum_read_request( 'extrachill/community-list-replies', array( 'topic_id' => 100 ) );
+	forum_read_assert( array( 1000, 1002 ) === array_column( $other_replies->get_data()['replies'], 'reply_id' ), 'Blocks only affect the member who blocked.' );
+}
 
 echo "PASS: Canonical forum read REST abilities preserve schemas, pagination, and bbPress visibility.\n";
