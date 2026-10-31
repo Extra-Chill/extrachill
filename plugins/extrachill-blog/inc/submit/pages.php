@@ -198,7 +198,7 @@ function extrachill_blog_dispatch_intro_html() {
  */
 function extrachill_blog_dispatch_logged_out_html() {
 	$login = wp_login_url( home_url( '/submit/' ) );
-	$join  = function_exists( 'ec_get_site_url' ) ? trailingslashit( ec_get_site_url( 'community' ) ) . 'join/' : 'https://community.extrachill.com/join/';
+	$join  = trailingslashit( ec_get_site_url( 'community' ) ) . 'join/';
 	return '<section class="artist-dispatch-state ec-surface-card ec-mobile-full-width-panel"><h2>' . esc_html__( 'Have a story to share?', 'extrachill-blog' ) . '</h2><p>' . esc_html__( 'Log in to see if you can request access. If you are new here, join the community, meet other music people, and start taking part.', 'extrachill-blog' ) . '</p><div class="artist-dispatch-actions"><a class="button-1 button-medium" href="' . esc_url( $login ) . '">' . esc_html__( 'Log in', 'extrachill-blog' ) . '</a><a class="button-2 button-medium" href="' . esc_url( $join ) . '">' . esc_html__( 'Join the community', 'extrachill-blog' ) . '</a></div></section>';
 }
 

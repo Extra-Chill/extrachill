@@ -11,7 +11,7 @@
 $is_logged_in       = is_user_logged_in();
 $user_artist_ids    = array();
 $can_create_artists = false;
-$artist_site_url    = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : 'https://artist.extrachill.com';
+$artist_site_url    = ec_get_site_url( 'artist' );
 $manage_url         = extrachill_blog_bridge_url( $artist_site_url . '/manage-artist/', 'artist' );
 $create_url         = extrachill_blog_bridge_url( $artist_site_url . '/create-artist/', 'artist' );
 $join_url           = extrachill_blog_bridge_url( 'https://extrachill.link/join', 'artist' );

@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function extrachill_blog_dispatch_artist_display( $artist_id ) {
 	$artist_id = absint( $artist_id );
-	$blog_id   = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'artist' ) ) : 0;
+	$blog_id   = absint( ec_get_blog_id( 'artist' ) );
 	if ( ! $artist_id || ! $blog_id ) {
 		return array();
 	}

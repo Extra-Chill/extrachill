@@ -23,20 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Resolve a network subsite URL with a hardcoded fallback.
+ * Resolve a network subsite URL.
  *
- * @param string $key      Site key (events|community|wire|artist).
- * @param string $fallback Fallback URL when the resolver is unavailable.
- * @return string Resolved (or fallback) URL.
+ * @param string $key Site key (events|community|wire|link_pages).
+ * @return string Resolved URL.
  */
-function extrachill_blog_power_site_url( $key, $fallback ) {
-	if ( function_exists( 'ec_get_site_url' ) ) {
-		$url = ec_get_site_url( $key );
-		if ( ! empty( $url ) ) {
-			return $url;
-		}
-	}
-	return $fallback;
+function extrachill_blog_power_site_url( $key ) {
+	return (string) ec_get_site_url( $key );
 }
 
 /**
@@ -48,7 +41,7 @@ function extrachill_blog_power_site_url( $key, $fallback ) {
  * @return string
  */
 function extrachill_blog_power_join_url() {
-	return trailingslashit( extrachill_blog_power_site_url( 'link_pages', 'https://extrachill.link' ) ) . 'join';
+	return trailingslashit( extrachill_blog_power_site_url( 'link_pages' ) ) . 'join';
 }
 
 /**
@@ -159,7 +152,7 @@ function extrachill_blog_power_network_map() {
 		array(
 			'title'    => __( 'Live Music Calendar', 'extrachill-blog' ),
 			'desc'     => __( 'Concerts everywhere — big cities and small, big artists and small — free to browse, no login wall.', 'extrachill-blog' ),
-			'url'      => extrachill_blog_power_site_url( 'events', 'https://events.extrachill.com' ),
+			'url'      => extrachill_blog_power_site_url( 'events' ),
 			'site_key' => 'events',
 			'track'    => 'power-events',
 			'cta'      => __( 'Browse the calendar', 'extrachill-blog' ),
@@ -182,7 +175,7 @@ function extrachill_blog_power_network_map() {
 		array(
 			'title'    => __( 'The Community', 'extrachill-blog' ),
 			'desc'     => __( 'Forums for musicians, fans, and industry folks — the online music scene, in conversation.', 'extrachill-blog' ),
-			'url'      => extrachill_blog_power_site_url( 'community', 'https://community.extrachill.com' ),
+			'url'      => extrachill_blog_power_site_url( 'community' ),
 			'site_key' => 'community',
 			'track'    => 'power-community',
 			'cta'      => __( 'Join the conversation', 'extrachill-blog' ),
@@ -205,7 +198,7 @@ function extrachill_blog_power_network_map() {
 		array(
 			'title'    => __( 'Festival Wire', 'extrachill-blog' ),
 			'desc'     => __( 'Timely, no-nonsense coverage of festival news and lineups as it breaks.', 'extrachill-blog' ),
-			'url'      => extrachill_blog_power_site_url( 'wire', 'https://wire.extrachill.com' ),
+			'url'      => extrachill_blog_power_site_url( 'wire' ),
 			'site_key' => 'wire',
 			'track'    => 'power-wire',
 			'cta'      => __( 'Read the Wire', 'extrachill-blog' ),

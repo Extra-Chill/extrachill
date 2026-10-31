@@ -13,9 +13,9 @@
 global $latest_blog_posts;
 
 $wire_items      = extrachill_blog_get_wire_latest( 4 );
-$wire_url        = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : 'https://wire.extrachill.com';
+$wire_url        = ec_get_site_url( 'wire' );
 $location_counts = extrachill_blog_get_location_event_counts();
-$events_url      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : 'https://events.extrachill.com';
+$events_url      = ec_get_site_url( 'events' );
 ?>
 <div class="full-width-breakout ec-edge-shell">
 	<div class="home-3x3-grid">
