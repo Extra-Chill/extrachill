@@ -54,7 +54,7 @@ Adding a deployable = one attachment line in the project + one registry file. `t
 **A component is only deployable here if Homeboy can resolve a GitHub Release for it.** Two site components are deliberately absent:
 
 - `chubes-gallery-lightbox` (`chubes4/chubes-gallery-lightbox`) has one tag and no GitHub Release. It joins once its repo gets a `release.yml`.
-- `wp-native-auth` lives in the `chubes4/wp-native` monorepo. It *does* release (`wp-native-auth-v0.4.1`), but its `homeboy.json` is at `plugins/wp-native-auth/`, not the repository root, so checkout-less resolution 404s and the zipball fallback returns HTTP 415. Both gaps are tracked in homeboy#14813; the prefixed tag also needs `tag_prefix`.
+- `wp-native-auth` lives in the `Extra-Chill/wp-native` monorepo. It *does* release (`wp-native-auth-v0.4.1`), but its `homeboy.json` is at `plugins/wp-native-auth/`, not the repository root, so checkout-less resolution 404s and the zipball fallback returns HTTP 415. Both gaps are tracked in homeboy#14813; the prefixed tag also needs `tag_prefix`.
 
 - `intelligence` (`Automattic/intelligence`) is a **private** repository. Checkout-less resolution reads each component's release metadata with the job's `github.token`, which cannot read a private repository in another organisation, so every poll skipped it and failed the run. It is used rarely on this network and is shipped manually instead (#244).
 
