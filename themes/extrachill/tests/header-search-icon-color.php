@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.WP.GlobalVariablesOverride.Prohibited -- Standalone CLI test script, not plugin runtime.
 /**
  * Source-level regression coverage for header and submit search icon colors.
  *
