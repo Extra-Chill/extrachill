@@ -103,10 +103,5 @@ if ( ! function_exists( 'absint' ) ) {
 	}
 }
 
-$ec_test_network_blog_ids_file = dirname( __DIR__, 2 ) . '/inc/core/blog-ids.php';
-if ( ! is_file( $ec_test_network_blog_ids_file ) ) {
-	fwrite( STDERR, "network-contract test support: missing {$ec_test_network_blog_ids_file}\n" );
-	exit( 1 );
-}
-require_once $ec_test_network_blog_ids_file;
-unset( $ec_test_network_blog_ids_file );
+// A missing file is a fatal require error naming the path, which fails the smoke.
+require_once dirname( __DIR__, 2 ) . '/inc/core/blog-ids.php';
