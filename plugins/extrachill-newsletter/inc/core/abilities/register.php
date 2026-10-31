@@ -38,6 +38,7 @@ function extrachill_newsletter_register_category() {
 require_once __DIR__ . '/subscribe.php';
 require_once __DIR__ . '/sync.php';
 require_once __DIR__ . '/campaign.php';
+require_once __DIR__ . '/send-campaign.php';
 require_once __DIR__ . '/campaign-management.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/stats.php';
