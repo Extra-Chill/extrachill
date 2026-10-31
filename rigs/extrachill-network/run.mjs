@@ -681,8 +681,9 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
   }
 
   const monorepoSources = await prepareMonorepoSources(settings, activePlugins, components.theme, artifactsRoot(cwd));
+  const pinnedReleaseSet = await pinMonorepoReleases(activePlugins, overrides, releaseSet, monorepoSources);
   const extraPlugins = activePlugins.map((component) => ({
-    source: resolveComponentSource(component, overrides, releaseSet, monorepoSources),
+    source: resolveComponentSource(component, overrides, pinnedReleaseSet, monorepoSources),
     slug: component.slug,
     // wp-codebox validates a single pluginFile exists in the mounted source
     // regardless of activate:false; components whose main file does not
@@ -865,6 +866,54 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
 
 function artifactsRoot(cwd) {
   return process.env.HOMEBOY_ARTIFACT_ROOT || path.join(cwd, 'artifacts/extrachill-network');
+}
+
+/**
+ * GitHub has one "Latest" release per repository, so releases/latest/download
+ * only works for the component that owns it. A component released from a
+ * monorepo under `<slug>-vX.Y.Z` tags (`releaseTagPrefix` in components.json,
+ * e.g. the Data Machine extensions) is pinned to its own newest release
+ * instead, unless an override, a monorepo checkout or the caller's release set
+ * already decides its source.
+ */
+let releaseLookup = latestPrefixedReleaseTag;
+
+/** Replace the GitHub lookup (tests run offline). Returns the previous one. */
+export function setReleaseLookup(lookup) {
+  const previous = releaseLookup;
+  releaseLookup = lookup;
+  return previous;
+}
+
+export async function pinMonorepoReleases(plugins, overrides, releaseSet, monorepoSources = {}) {
+  const pinned = { ...releaseSet };
+  for (const component of plugins) {
+    if (!component.releaseTagPrefix || component.source !== 'github') continue;
+    if (overrides[component.slug] || monorepoSources[component.slug] || pinned[component.slug]?.ref) continue;
+    const ref = await releaseLookup(component.repo, component.releaseTagPrefix);
+    if (!ref) {
+      throw new Error(`No ${component.releaseTagPrefix}* release found in ${component.repo} for ${component.slug}.`);
+    }
+    pinned[component.slug] = { ref };
+  }
+  return pinned;
+}
+
+/** Newest published release of `repo` whose tag starts with `prefix`. */
+export async function latestPrefixedReleaseTag(repo, prefix, fetchImpl = fetch, env = process.env) {
+  const token = env.GH_TOKEN || env.GITHUB_TOKEN;
+  const headers = { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  for (let page = 1; page <= 10; page += 1) {
+    const response = await fetchImpl(`https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}`, { headers });
+    if (!response.ok) {
+      throw new Error(`Listing ${repo} releases failed: HTTP ${response.status}.`);
+    }
+    const releases = await response.json();
+    const match = releases.find((release) => !release.draft && !release.prerelease && release.tag_name?.startsWith(prefix));
+    if (match) return match.tag_name;
+    if (releases.length < 100) return null;
+  }
+  return null;
 }
 
 function resolveComponentSource(component, overrides, releaseSet, monorepoSources = {}) {

@@ -201,7 +201,8 @@
     },
     {
       "slug": "data-machine-business",
-      "repo": "Extra-Chill/data-machine-business",
+      "repo": "Extra-Chill/data-machine",
+      "releaseTagPrefix": "data-machine-business-v",
       "asset": "data-machine-business.zip",
       "source": "github",
       "activations": [
@@ -310,7 +311,8 @@
     },
     {
       "slug": "data-machine-socials",
-      "repo": "Extra-Chill/data-machine-socials",
+      "repo": "Extra-Chill/data-machine",
+      "releaseTagPrefix": "data-machine-socials-v",
       "asset": "data-machine-socials.zip",
       "source": "github",
       "activations": [
@@ -482,7 +484,8 @@
     },
     {
       "slug": "data-machine-events",
-      "repo": "Extra-Chill/data-machine-events",
+      "repo": "Extra-Chill/data-machine",
+      "releaseTagPrefix": "data-machine-events-v",
       "asset": "data-machine-events.zip",
       "source": "github",
       "activations": [

@@ -136,6 +136,9 @@ jobs:
           HOMEBOY_NETWORK_RESULT_FILE: ${{ runner.temp }}/journeys/result.json
           JOURNEY: ${{ matrix.journey }}
           DEMO: ${{ inputs.demo }}
+          # Monorepo-released plugins (Data Machine extensions) resolve their
+          # newest release through the GitHub API.
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           export HOMEBOY_SETTINGS_JSON="$(jq -cn --arg journey "${JOURNEY}" \
