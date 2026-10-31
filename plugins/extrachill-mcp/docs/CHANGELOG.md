@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.6] - 2026-10-31
+
+### Changed
+- hoist per-plugin workflows to the repo root
+
 ## [0.2.5] - 2026-10-30
 
 ### Fixed
