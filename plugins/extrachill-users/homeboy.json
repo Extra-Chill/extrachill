@@ -3,8 +3,13 @@
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
     "wordpress": {
+      "database_type": "mysql",
       "settings": {
         "validation_dependencies": ["data-machine-events", "extrachill-analytics"],
+        "wp_codebox_database_service": {
+          "provider": "docker",
+          "engine": "mysql"
+        },
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed",
         "wordpress_runtime_php_version": "8.4"
