@@ -133,6 +133,50 @@ function extrachill_cache_compose_dropin() {
 }
 
 /**
+ * Replace a local file atomically, so unlocked readers only see complete files.
+ *
+ * @param string $path     Destination path.
+ * @param string $contents Complete file contents.
+ * @return bool True on success.
+ */
+function extrachill_cache_atomic_write( $path, $contents ) {
+	// Preserve symlink destinations (notably symlinked wp-config.php files).
+	if ( is_link( $path ) ) {
+		$path = realpath( $path );
+		if ( false === $path ) {
+			return false;
+		}
+	}
+
+	$directory = dirname( $path );
+	// phpcs:disable WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions -- Local atomic replacement requires native filesystem operations before WP_Filesystem is available. Failures are returned to the caller.
+	$temp = @tempnam( $directory, '.extrachill-cache-' );
+	if ( false === $temp ) {
+		return false;
+	}
+
+	// tempnam can fall back to the system temp directory. Never rename across
+	// filesystems: the temporary file must be beside the destination.
+	if ( realpath( dirname( $temp ) ) !== realpath( $directory ) ) {
+		@unlink( $temp );
+		return false;
+	}
+
+	$mode    = file_exists( $path ) ? @fileperms( $path ) : ( 0666 & ~umask() );
+	$written = @file_put_contents( $temp, $contents, LOCK_EX );
+	if ( strlen( $contents ) !== $written
+		|| false === $mode
+		|| ! @chmod( $temp, $mode & 0777 )
+		|| ! @rename( $temp, $path ) ) {
+		@unlink( $temp );
+		return false;
+	}
+	// phpcs:enable WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions
+
+	return true;
+}
+
+/**
  * Install the advanced-cache.php drop-in and enable WP_CACHE.
  *
  * Refuses to overwrite a drop-in owned by another plugin (e.g. a leftover
@@ -160,8 +204,7 @@ function extrachill_cache_install_dropin( $set_wp_cache_constant = true ) {
 		return false;
 	}
 
-	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes wp-content/advanced-cache.php directly; runs at the drop-in install layer before WP_Filesystem exists. The @ suppresses a benign write failure (handled via the false check).
-	if ( false === @file_put_contents( $dropin, $contents, LOCK_EX ) ) {
+	if ( ! extrachill_cache_atomic_write( $dropin, $contents ) ) {
 		return false;
 	}
 
@@ -194,7 +237,7 @@ function extrachill_cache_install_dropin( $set_wp_cache_constant = true ) {
  * none of them. Widening that grant to reach the drop-in would hand the deploy
  * user the webroot, so the plugin has to own its own generated file.
  *
- * The check costs nothing. WordPress loads advanced-cache.php before plugins,
+ * The common check costs nothing. WordPress loads advanced-cache.php before plugins,
  * so the drop-in's self-declared version is already a constant in memory by the
  * time this runs; the common case is one string comparison and a return.
  *
@@ -210,6 +253,17 @@ function extrachill_cache_maybe_refresh_dropin() {
 	// would otherwise retry on every single request. Back off instead; the
 	// stale drop-in keeps serving, which is the behaviour before this change.
 	if ( get_site_transient( 'extrachill_cache_dropin_refresh_backoff' ) ) {
+		return;
+	}
+
+	// WP-CLI does not load advanced-cache.php. Inspect its stamp rather than
+	// treating an undefined (or stale in-process) constant as proof of drift.
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Read the generated local file without executing it; read failures trigger the guarded install path.
+	$existing = @file_get_contents( extrachill_cache_dropin_path() );
+	if ( false !== $existing
+		&& false !== strpos( $existing, 'Extra Chill Cache' )
+		&& preg_match( "/define\\(\\s*['\"]EXTRACHILL_CACHE_DROPIN_VERSION['\"]\\s*,\\s*['\"]([^'\"]+)['\"]\\s*\\)/", $existing, $matches )
+		&& EXTRACHILL_CACHE_VERSION === $matches[1] ) {
 		return;
 	}
 
@@ -285,8 +339,7 @@ function extrachill_cache_set_wp_cache_constant( $enabled ) {
 		);
 	}
 
-	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes wp-config.php directly to toggle WP_CACHE; runs at the drop-in install layer before WP_Filesystem exists. The @ suppresses a benign write failure (returned as false).
-	return false !== @file_put_contents( $config_path, $config, LOCK_EX );
+	return extrachill_cache_atomic_write( $config_path, $config );
 }
 
 /**

@@ -1,6 +1,6 @@
 <?php
 /**
- * Standalone tests for drop-in version staleness detection (GH #27).
+ * Standalone tests for drop-in staleness detection and atomic writes (GH #27, #40).
  *
  * wp-content/advanced-cache.php is generated, lives outside the plugin
  * directory, and was only ever written by activation — which does not fire on
@@ -12,8 +12,10 @@
 
 // phpcs:disable -- Standalone test harness intentionally stubs WordPress functions and writes CLI output directly.
 
-define( 'ABSPATH', __DIR__ . '/' );
-define( 'WP_CONTENT_DIR', __DIR__ . '/dropin-version-fixture' );
+// Isolate concurrent test runs so neither can replace the other's drop-in.
+$test_root = sys_get_temp_dir() . '/extrachill-dropin-' . bin2hex( random_bytes( 8 ) );
+define( 'ABSPATH', $test_root . '/' );
+define( 'WP_CONTENT_DIR', $test_root );
 define( 'DAY_IN_SECONDS', 86400 );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'EXTRACHILL_CACHE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
@@ -21,7 +23,6 @@ define( 'EXTRACHILL_CACHE_VERSION', '0.3.3' );
 
 $GLOBALS['extrachill_cache_test_is_multisite'] = false;
 $GLOBALS['extrachill_cache_test_transients']   = array();
-$GLOBALS['extrachill_cache_test_wp_cache_set'] = 0;
 
 function is_multisite() {
 	return $GLOBALS['extrachill_cache_test_is_multisite'];
@@ -98,23 +99,49 @@ dv_assert( $stale !== $contents, 'fixture: a 0.2.0 drop-in differs from a 0.3.3 
 // ordinary page load must not attempt a webroot write, which on a hardened
 // install would fail anyway.
 // ---------------------------------------------------------------------------
+$config_path = ABSPATH . 'wp-config.php';
+$config_before_refresh = "<?php\ndefine( 'WP_CACHE', false );\n";
+file_put_contents( $config_path, $config_before_refresh );
+
+// Exercise the real CLI path: the generated drop-in has not been included.
+dv_assert( ! defined( 'EXTRACHILL_CACHE_DROPIN_VERSION' ), 'drop-in constant is undefined as under WP-CLI' );
+$old_time = time() - 3600;
+touch( $dropin, $old_time );
+clearstatcache( true, $dropin );
+$old_inode = fileinode( $dropin );
+extrachill_cache_maybe_refresh_dropin();
+clearstatcache( true, $dropin );
+dv_assert( $old_time === filemtime( $dropin ), 'matching on-disk version leaves mtime unchanged' );
+dv_assert( $old_inode === fileinode( $dropin ), 'matching on-disk version is not replaced' );
+dv_assert( $contents === file_get_contents( $dropin ), 'matching on-disk version leaves contents unchanged' );
+
+file_put_contents( $dropin, $stale );
+chmod( $dropin, 0640 );
+$reader = fopen( $dropin, 'rb' );
+extrachill_cache_maybe_refresh_dropin();
+clearstatcache( true, $dropin );
+dv_assert( $contents === file_get_contents( $dropin ), 'stale on-disk version is refreshed to composed contents' );
+dv_assert( $config_before_refresh === file_get_contents( $config_path ), 'refresh does not change WP_CACHE in wp-config.php' );
+dv_assert( $stale === stream_get_contents( $reader ), 'an already-open reader retains the complete old inode after atomic replacement' );
+fclose( $reader );
+dv_assert( 0640 === ( fileperms( $dropin ) & 0777 ), 'atomic replacement preserves existing file permissions' );
+dv_assert( array() === glob( $fixture_dir . '/.extrachill-cache-*' ), 'successful atomic write leaves no temporary files' );
+
+// A directory target forces rename to fail after the temporary file is written.
+$blocked = $fixture_dir . '/blocked';
+mkdir( $blocked );
+dv_assert( false === extrachill_cache_atomic_write( $blocked, 'replacement' ), 'failed atomic rename returns false' );
+dv_assert( is_dir( $blocked ), 'failed atomic rename leaves the original target intact' );
+dv_assert( array() === glob( $fixture_dir . '/.extrachill-cache-*' ), 'failed atomic write removes its temporary file' );
+rmdir( $blocked );
+
+// tempnam may fall back to system temp when the destination directory is absent.
+// The helper must reject that fallback rather than attempt a non-atomic move.
 dv_assert(
-	0 === $GLOBALS['extrachill_cache_test_wp_cache_set'],
-	'refresh path does not touch the WP_CACHE constant'
+	false === extrachill_cache_atomic_write( $fixture_dir . '/missing/file.php', 'replacement' ),
+	'atomic write rejects a missing destination directory'
 );
-
-// ---------------------------------------------------------------------------
-// Staleness comparison. The real function reads a constant defined by the
-// already-loaded drop-in, which cannot be redefined inside one test process,
-// so the comparison itself is exercised directly.
-// ---------------------------------------------------------------------------
-$is_stale = static function ( $dropin_version ) {
-	return $dropin_version !== EXTRACHILL_CACHE_VERSION;
-};
-
-dv_assert( $is_stale( '0.2.0' ), 'a 0.2.0 drop-in is detected as stale against 0.3.3' );
-dv_assert( ! $is_stale( '0.3.3' ), 'a matching drop-in is not rewritten' );
-dv_assert( $is_stale( '0.3.2' ), 'even a one-patch-old drop-in is stale' );
+dv_assert( array() === glob( $fixture_dir . '/.extrachill-cache-*' ), 'missing-directory failure leaves no local temporary files' );
 
 // ---------------------------------------------------------------------------
 // A foreign drop-in must never be clobbered, refresh or not. This is the guard
@@ -141,7 +168,49 @@ dv_assert(
 	'a failed refresh records a backoff instead of retrying every request'
 );
 
+// Backoff still prevents a stale owned file from being retried.
+file_put_contents( $dropin, $stale );
+extrachill_cache_maybe_refresh_dropin();
+dv_assert( $stale === file_get_contents( $dropin ), 'backoff suppresses a subsequent refresh attempt' );
+$GLOBALS['extrachill_cache_test_transients'] = array();
+
+// WP_CACHE updates use the same atomic replacement and preserve permissions.
+$config_path = ABSPATH . 'wp-config.php';
+$config = "<?php\ndefine( 'WP_CACHE', false );\n";
+file_put_contents( $config_path, $config );
+chmod( $config_path, 0600 );
+$config_reader = fopen( $config_path, 'rb' );
+dv_assert( extrachill_cache_set_wp_cache_constant( true ), 'WP_CACHE config update succeeds' );
+dv_assert( str_replace( 'false', 'true', $config ) === file_get_contents( $config_path ), 'WP_CACHE config has expected contents' );
+dv_assert( $config === stream_get_contents( $config_reader ), 'WP_CACHE config replacement leaves an open reader intact' );
+fclose( $config_reader );
+clearstatcache( true, $config_path );
+dv_assert( 0600 === ( fileperms( $config_path ) & 0777 ), 'WP_CACHE config permissions remain private' );
+dv_assert( array() === glob( $fixture_dir . '/.extrachill-cache-*' ), 'WP_CACHE update leaves no temporary files' );
+unlink( $config_path );
+
+// Symlinked configs must update the real file, not replace the symlink.
+$config_target = $fixture_dir . '/real-config.php';
+file_put_contents( $config_target, $config );
+symlink( $config_target, $config_path );
+dv_assert( extrachill_cache_set_wp_cache_constant( true ), 'symlinked WP_CACHE config update succeeds' );
+dv_assert( is_link( $config_path ), 'atomic config update preserves the symlink' );
+dv_assert( str_replace( 'false', 'true', $config ) === file_get_contents( $config_target ), 'symlink target receives the complete config' );
+dv_assert( array() === glob( $fixture_dir . '/.extrachill-cache-*' ), 'symlink update leaves no temporary files' );
+unlink( $config_path );
+unlink( $config_target );
+
+// Missing files are still installed when the drop-in was not loaded.
+unlink( $dropin );
+extrachill_cache_maybe_refresh_dropin();
+dv_assert( $contents === file_get_contents( $dropin ), 'missing drop-in is installed with the complete composed contents' );
+dv_assert( array() === glob( $fixture_dir . '/.extrachill-cache-*' ), 'missing drop-in installation leaves no temporary files' );
+
+// A matching loaded constant keeps the free fast path, even without a file.
 @unlink( $dropin );
+define( 'EXTRACHILL_CACHE_DROPIN_VERSION', EXTRACHILL_CACHE_VERSION );
+extrachill_cache_maybe_refresh_dropin();
+dv_assert( ! file_exists( $dropin ), 'matching in-process constant returns without installing' );
 @rmdir( $fixture_dir );
 
 if ( $failures > 0 ) {
