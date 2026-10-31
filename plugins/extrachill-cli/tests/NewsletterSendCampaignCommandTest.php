@@ -17,12 +17,13 @@ namespace WP_CLI\Utils {
 }
 
 namespace {
-	if ( function_exists( 'get_user_by' ) ) {
-		// Real WordPress is bootstrapped; these doubles would collide with core.
-		return;
-	}
-
 	use ExtraChill\CLI\Commands\Newsletter\NewsletterCommand;
+
+	// The managed PHPUnit harness loads every *Test.php under real WordPress,
+	// which already declares the doubles below. Declare them only standalone,
+	// inside a conditional block so PHP does not hoist them at compile time.
+	// Run standalone: php tests/NewsletterSendCampaignCommandTest.php.
+	if ( ! function_exists( 'wp_get_ability' ) && ! class_exists( 'WP_Error', false ) ) {
 
 	define( 'ABSPATH', __DIR__ . '/' );
 
@@ -191,4 +192,5 @@ namespace {
 	newsletter_send_assert( true === $decoded['dry_run'] && 3000 === $decoded['total_active'], 'json preview is the ability result' );
 
 	fwrite( STDOUT, "NewsletterSendCampaignCommand tests passed.\n" );
+	}
 }
