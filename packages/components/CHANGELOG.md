@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.5] - 2026-10-31
+
+### Changed
+- consume in-tree @extrachill packages via local_workspace_dependencies
+
 ## [0.9.4] - 2026-09-02
 
 ### Fixed
