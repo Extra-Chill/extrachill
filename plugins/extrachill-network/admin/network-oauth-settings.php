@@ -84,12 +84,12 @@ function ec_render_network_oauth_page() {
 	$google_android_client_id = get_site_option( 'extrachill_google_android_client_id', '' );
 	$google_configured        = ec_is_google_oauth_configured();
 
-	$apple_bundle_id   = get_site_option( 'extrachill_apple_bundle_id', '' );
-	$apple_client_id   = get_site_option( 'extrachill_apple_client_id', '' );
-	$apple_team_id     = get_site_option( 'extrachill_apple_team_id', '' );
-	$apple_key_id      = get_site_option( 'extrachill_apple_key_id', '' );
-	$apple_private_key = get_site_option( 'extrachill_apple_private_key', '' );
-	$apple_configured  = ec_is_apple_oauth_configured();
+	$apple_bundle_id         = get_site_option( 'extrachill_apple_bundle_id', '' );
+	$apple_client_id         = get_site_option( 'extrachill_apple_client_id', '' );
+	$apple_team_id           = get_site_option( 'extrachill_apple_team_id', '' );
+	$apple_key_id            = get_site_option( 'extrachill_apple_key_id', '' );
+	$apple_private_key       = get_site_option( 'extrachill_apple_private_key', '' );
+	$apple_configured        = ec_is_apple_oauth_configured();
 	$apple_server_configured = ec_is_apple_server_credentials_configured();
 	?>
 	<div class="wrap">
