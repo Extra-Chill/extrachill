@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile, appendFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { buildOrRestoreComponent, componentBuildKey, componentBuildOutputs } from '../run.mjs';
+import { buildOrRestoreComponent, componentBuildKey, componentBuildOutputs, localWorkspaceDependencies, prepareMonorepoSources, resolveWorkspacePackages } from '../run.mjs';
 
 const git = (cwd, ...args) => {
   const result = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', ...args], { cwd, encoding: 'utf8' });
@@ -89,6 +89,65 @@ test('without a cache directory the component is simply built', async () => {
   const { root, component } = await fixture();
   try {
     assert.equal((await buildOrRestoreComponent(component, 'demo', undefined, fakeBuild)).status, 'built');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// In-tree packages (local_workspace_dependencies) feed the consumer's key.
+async function workspaceFixture() {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'rig-workspace-'));
+  const write = async (relative, contents) => {
+    await mkdir(path.dirname(path.join(root, relative)), { recursive: true });
+    await writeFile(path.join(root, relative), contents);
+  };
+  const deps = (...paths) => JSON.stringify({ extensions: { wordpress: { settings: { local_workspace_dependencies: paths.map((p) => ({ name: `@x/${path.basename(p)}`, path: p })) } } } });
+  await write('packages/tokens/index.js', 'tokens');
+  await write('packages/components/index.js', 'components');
+  await write('packages/components/homeboy.json', deps('../tokens'));
+  await write('plugins/demo/demo.php', '<?php');
+  await write('plugins/demo/homeboy.json', deps('../../packages/components'));
+  git(root, 'init', '-q');
+  git(root, 'add', '.');
+  git(root, 'commit', '-qm', 'init');
+  return root;
+}
+
+test('in-tree packages resolve dependencies first and key the consumer', async () => {
+  const root = await workspaceFixture();
+  try {
+    const consumer = path.join(root, 'plugins', 'demo');
+    const dependencies = await localWorkspaceDependencies(consumer);
+    assert.deepEqual(dependencies, [path.join(root, 'packages', 'components')]);
+
+    const keys = await resolveWorkspacePackages(dependencies);
+    assert.deepEqual([...keys.keys()], [path.join(root, 'packages', 'tokens'), path.join(root, 'packages', 'components')]);
+    const before = componentBuildKey(consumer, undefined, dependencies.map((d) => keys.get(d)));
+
+    // A change two levels down (tokens) must invalidate the consumer.
+    await appendFile(path.join(root, 'packages', 'tokens', 'index.js'), ' v2');
+    git(root, 'commit', '-qam', 'tokens');
+    const after = await resolveWorkspacePackages(dependencies);
+    assert.notEqual(componentBuildKey(consumer, undefined, dependencies.map((d) => after.get(d))), before);
+
+    // An uncommitted package edit makes the consumer uncacheable.
+    await appendFile(path.join(root, 'packages', 'components', 'index.js'), ' dirty');
+    const dirty = await resolveWorkspacePackages(dependencies);
+    assert.equal(componentBuildKey(consumer, undefined, dependencies.map((d) => dirty.get(d))), undefined);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('prepareMonorepoSources builds in-tree packages before their consumers', async () => {
+  const root = await workspaceFixture();
+  try {
+    const order = [];
+    const build = async (directory) => { order.push(path.relative(root, directory)); };
+    const plugin = { slug: 'demo', activations: [{ pluginFile: 'demo/demo.php' }] };
+    const theme = { slug: 'missing-theme' };
+    await prepareMonorepoSources({ extrachill_monorepo_source: root }, [plugin], theme, undefined, build);
+    assert.deepEqual(order, ['packages/tokens', 'packages/components', 'plugins/demo']);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
