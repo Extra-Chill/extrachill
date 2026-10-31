@@ -6,6 +6,9 @@
       "php": "8.4",
       "database_type": "mysql",
       "settings": {
+        "local_workspace_dependencies": [
+          { "name": "@extrachill/components", "path": "../../packages/components" }
+        ],
         "wordpress_runtime_php_version": "8.4",
         "wp_codebox_database_service": {
           "provider": "external",

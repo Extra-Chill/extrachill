@@ -13,6 +13,7 @@
  * components with no public source).
  */
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
@@ -986,15 +987,50 @@ function gitOutput(args, cwd) {
  * directory can't be keyed safely -- not a git checkout, or uncommitted or
  * untracked changes under it -- so a local edit always rebuilds.
  */
-export function componentBuildKey(directory, git = gitOutput) {
+export function componentBuildKey(directory, git = gitOutput, dependencyKeys = []) {
   const index = git(['ls-files', '-s', '--', '.'], directory);
   if (!index) return undefined;
   const dirty = git(['status', '--porcelain', '--untracked-files=normal', '--', '.'], directory);
   if (dirty === undefined || dirty.trim() !== '') return undefined;
+  // A consumer bundles its in-tree packages, so their keys are part of its key.
+  if (dependencyKeys.some((key) => key === undefined)) return undefined;
   return createHash('sha256')
-    .update(`${BUILD_CACHE_FORMAT}\n${process.versions.node.split('.')[0]}\n${index}`)
+    .update(`${BUILD_CACHE_FORMAT}\n${process.versions.node.split('.')[0]}\n${index}\n${dependencyKeys.join('\n')}`)
     .digest('hex')
     .slice(0, 32);
+}
+
+/**
+ * In-tree packages a component builds against: the `local_workspace_dependencies`
+ * entries of any extension in its homeboy.json, as absolute directories.
+ */
+export async function localWorkspaceDependencies(directory) {
+  const manifest = await optionalManifest(path.join(directory, 'homeboy.json'));
+  const entries = Object.values(manifest?.extensions ?? {})
+    .flatMap((extension) => extension?.settings?.local_workspace_dependencies ?? []);
+  return [...new Set(entries.map((entry) => path.resolve(directory, entry.package_dir ? path.join(entry.path, entry.package_dir) : entry.path)))];
+}
+
+/**
+ * Order the in-tree packages the given directories depend on, dependencies
+ * first, with each package's cache key (undefined when uncacheable). A key
+ * covers the package and, transitively, the packages it builds against.
+ */
+export async function resolveWorkspacePackages(directories, git = gitOutput) {
+  const keys = new Map();
+  const visit = async (directory, trail) => {
+    if (keys.has(directory)) return keys.get(directory);
+    if (trail.includes(directory)) throw new Error(`local_workspace_dependencies cycle: ${[...trail, directory].join(' -> ')}`);
+    const dependencyKeys = [];
+    for (const dependency of await localWorkspaceDependencies(directory)) {
+      dependencyKeys.push(await visit(dependency, [...trail, directory]));
+    }
+    const key = componentBuildKey(directory, git, dependencyKeys);
+    keys.set(directory, key);
+    return key;
+  };
+  for (const directory of directories) await visit(directory, []);
+  return keys;
 }
 
 /**
@@ -1023,8 +1059,7 @@ function runTar(args) {
  * cache directory when its sources are unchanged since a cached build.
  * Returns how the component was produced, for the run's timing evidence.
  */
-export async function buildOrRestoreComponent(directory, slug, cacheDirectory, build = buildCheckoutComponent) {
-  const key = cacheDirectory ? componentBuildKey(directory) : undefined;
+export async function buildOrRestoreComponent(directory, slug, cacheDirectory, build = buildCheckoutComponent, key = cacheDirectory ? componentBuildKey(directory) : undefined) {
   const archive = key ? path.join(cacheDirectory, `${slug}-${key}.tgz`) : undefined;
   if (archive && (await isFile(archive))) {
     runTar(['-xzf', archive, '-C', directory]);
@@ -1088,17 +1123,39 @@ export async function prepareMonorepoSources(settings, plugins, theme, artifactD
     selected.push({ slug: component.slug, directory });
   }
 
+  const started = Date.now();
+  // Consumer lockfiles link in-tree packages as `file:` directories, so those
+  // need built output before any consumer installs. They are built (not
+  // cached: a restored package has no node_modules of its own) only when some
+  // consumer misses the cache, since a cached consumer already bundles them.
+  const dependencies = new Map();
+  for (const component of selected) dependencies.set(component.directory, await localWorkspaceDependencies(component.directory));
+  const packageKeys = await resolveWorkspacePackages([...new Set([...dependencies.values()].flat())]);
+  const keyFor = (directory) => (cacheDirectory ? componentBuildKey(directory, gitOutput, dependencies.get(directory).map((dependency) => packageKeys.get(dependency))) : undefined);
+  const cached = (slug, key) => Boolean(key) && existsSync(path.join(cacheDirectory, `${slug}-${key}.tgz`));
+  const packageRecords = [];
+  if (packageKeys.size && !selected.every(({ slug, directory }) => dependencies.get(directory).length === 0 || cached(slug, keyFor(directory)))) {
+    for (const directory of packageKeys.keys()) {
+      const packageStarted = Date.now();
+      await build(directory);
+      const durationMs = Date.now() - packageStarted;
+      const slug = `packages/${path.basename(directory)}`;
+      process.stderr.write(`extrachill-network: ${slug} built in ${(durationMs / 1000).toFixed(1)}s\n`);
+      packageRecords.push({ slug, status: 'built', durationMs });
+    }
+  }
+
   // npm ci dominates (one @wordpress/scripts install per plugin), so a few
   // lanes in parallel; more mostly contends for disk on a 4-core runner.
   const concurrency = Number(settings.extrachill_build_concurrency) > 0 ? Number(settings.extrachill_build_concurrency) : 3;
-  const started = Date.now();
-  const records = await mapWithConcurrency(selected, concurrency, async ({ slug, directory }) => {
+  const componentRecords = await mapWithConcurrency(selected, concurrency, async ({ slug, directory }) => {
     const componentStarted = Date.now();
-    const outcome = await buildOrRestoreComponent(directory, slug, cacheDirectory, build);
+    const outcome = await buildOrRestoreComponent(directory, slug, cacheDirectory, build, keyFor(directory));
     const durationMs = Date.now() - componentStarted;
     process.stderr.write(`extrachill-network: ${slug} ${outcome.status} in ${(durationMs / 1000).toFixed(1)}s\n`);
     return { slug, status: outcome.status, durationMs, archive: outcome.archive ? path.basename(outcome.archive) : undefined };
   });
+  const records = [...packageRecords, ...componentRecords];
   const evidence = { schema: 'extrachill-network/component-builds/v1', concurrency, cacheDirectory: cacheDirectory ?? null, wallMs: Date.now() - started, components: records };
   if (artifactDirectory) {
     await mkdir(artifactDirectory, { recursive: true });

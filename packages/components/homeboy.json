@@ -2,7 +2,13 @@
   "auto_cleanup": false,
   "changelog_target": "CHANGELOG.md",
   "extensions": {
-    "nodejs": {}
+    "nodejs": {
+      "settings": {
+        "local_workspace_dependencies": [
+          { "name": "@extrachill/tokens", "path": "../tokens" }
+        ]
+      }
+    }
   },
   "id": "extrachill-components",
   "remote_path": "",
