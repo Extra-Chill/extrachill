@@ -26,7 +26,7 @@ function extrachill_community_normalize_public_voice_reference( $reference ) {
  */
 function extrachill_community_get_managed_artist_voices( $user_id ) {
 	$user_id = absint( $user_id );
-	if ( ! $user_id || ! function_exists( 'ec_get_artists_for_user' ) || ! function_exists( 'ec_user_can' ) || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( ! $user_id || ! function_exists( 'ec_get_artists_for_user' ) || ! function_exists( 'ec_user_can' ) ) {
 		return array();
 	}
 
@@ -92,7 +92,7 @@ function extrachill_community_venue_voices_use_http_loopback( bool $use_http, st
 		return $use_http;
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	return 0 >= $events_blog_id || ! function_exists( 'get_current_blog_id' ) || (int) get_current_blog_id() !== $events_blog_id;
 }
 add_filter( 'ec_cross_site_use_http_loopback', 'extrachill_community_venue_voices_use_http_loopback', 10, 5 );
@@ -250,7 +250,7 @@ function extrachill_community_resolve_public_voice( $reference ) {
 	$id                    = absint( $raw_id );
 	$identity              = null;
 
-	if ( 'artist' === $type && function_exists( 'ec_get_blog_id' ) ) {
+	if ( 'artist' === $type ) {
 		$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
 		$switched       = $artist_blog_id && get_current_blog_id() !== $artist_blog_id;
 		if ( $switched ) {

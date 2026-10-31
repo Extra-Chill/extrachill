@@ -13,7 +13,7 @@ const EXTRACHILL_COMMUNITY_LOCAL_SCENE_REWRITE_VERSION = '1';
  * Limit the route to the Community site.
  */
 function extrachill_community_is_community_site(): bool {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : 2;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	return (int) get_current_blog_id() === (int) $community_blog_id;
 }
 
@@ -129,7 +129,7 @@ function extrachill_community_get_local_scene_archive_data() {
 }
 
 function extrachill_community_get_local_scene_url( string $slug, int $page = 1 ): string {
-	$base = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
+	$base = ec_get_site_url( 'community' );
 	$url  = trailingslashit( $base ) . 'local-scene/' . sanitize_title( $slug ) . '/';
 	return $page > 1 ? $url . 'page/' . $page . '/' : $url;
 }

@@ -46,7 +46,7 @@ add_action('bbp_register_theme_packages', 'extrachill_community_register_bbpress
  * blog so it never renders on other multisite installs.
  */
 function extrachill_community_render_homepage() {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return;
 	}

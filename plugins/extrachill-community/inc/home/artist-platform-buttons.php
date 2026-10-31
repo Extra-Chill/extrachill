@@ -17,10 +17,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array|null Action URL and label, or null when the Artist Platform is unavailable.
  */
 function ec_community_get_artist_platform_action() {
-	if ( ! function_exists( 'ec_get_site_url' ) ) {
-		return null;
-	}
-
 	$artist_site_url = ec_get_site_url( 'artist' );
 	if ( ! is_string( $artist_site_url ) || '' === $artist_site_url ) {
 		return null;

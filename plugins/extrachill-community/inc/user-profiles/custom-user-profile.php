@@ -22,7 +22,7 @@
  * @return int
  */
 function extrachill_get_main_site_post_count( $user_id ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id ) {
 		return 0;
 	}

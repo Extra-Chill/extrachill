@@ -151,7 +151,7 @@ defined( 'ABSPATH' ) || exit;
 					// standalone Artists card is gone.
 					$ec_hero_is_artist = get_user_meta( bbp_get_displayed_user_id(), 'user_is_artist', true )
 					|| get_user_meta( bbp_get_displayed_user_id(), 'user_is_professional', true );
-					if ( $ec_hero_is_artist && function_exists( 'ec_get_site_url' ) ) {
+					if ( $ec_hero_is_artist ) {
 						$ec_hero_memberships = function_exists( 'extrachill_community_get_artist_memberships' )
 						? extrachill_community_get_artist_memberships( bbp_get_displayed_user_id() )
 						: array();

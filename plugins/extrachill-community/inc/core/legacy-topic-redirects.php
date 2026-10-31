@@ -45,7 +45,7 @@ function extrachill_community_get_legacy_topic_redirect_url(): string {
 		return '';
 	}
 
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 1;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 || (int) get_current_blog_id() === $main_blog_id ) {
 		return '';
 	}
@@ -132,7 +132,7 @@ function extrachill_community_get_legacy_shortlink_redirect_url(): string {
 		return '';
 	}
 
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 1;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 || (int) get_current_blog_id() === $main_blog_id ) {
 		return '';
 	}
@@ -172,7 +172,7 @@ function extrachill_community_get_legacy_shortlink_redirect_url(): string {
  * @return string[]
  */
 function extrachill_community_allow_main_site_redirect_host( array $hosts, string $host ): array {
-	$main_site_url  = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : network_home_url( '/' );
+	$main_site_url  = ec_get_site_url( 'main' );
 	$main_site_host = wp_parse_url( $main_site_url, PHP_URL_HOST );
 
 	if ( is_string( $main_site_host ) && $main_site_host === $host ) {

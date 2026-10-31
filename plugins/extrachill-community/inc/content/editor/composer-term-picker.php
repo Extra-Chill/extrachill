@@ -202,7 +202,7 @@ function extrachill_community_get_discussion_composer_url( $taxonomy, $slug ) {
 		return '';
 	}
 
-	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
+	$community_url = ec_get_site_url( 'community' );
 
 	return add_query_arg(
 		array(
@@ -230,7 +230,7 @@ function extrachill_community_get_discussion_composer_login_url( $taxonomy, $slu
 		return '';
 	}
 
-	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url( '/' );
+	$community_url = ec_get_site_url( 'community' );
 
 	return add_query_arg( 'redirect_to', rawurlencode( $redirect_to ), trailingslashit( $community_url ) . 'login/' );
 }

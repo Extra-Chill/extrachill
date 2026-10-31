@@ -51,7 +51,7 @@ function extrachill_community_get_public_local_scene( $user_id ) {
  * @return array<string,string> Artist name => artist profile URL.
  */
 function extrachill_community_get_artist_memberships( $user_id ) {
-	if ( ! function_exists( 'ec_get_artists_for_user' ) || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( ! function_exists( 'ec_get_artists_for_user' ) ) {
 		return array();
 	}
 
