@@ -126,8 +126,8 @@ function extrachill_community_report_status_url( $report_id, $status ) {
 /**
  * Replace default row actions with Resolve / Dismiss / Reopen.
  *
- * @param array   $actions Row actions.
- * @param WP_Post $post    Report.
+ * @param array $actions Row actions.
+ * @param mixed $post    Report (filter argument; validated before use).
  * @return array
  */
 function extrachill_community_report_row_actions( $actions, $post ) {
@@ -136,6 +136,7 @@ function extrachill_community_report_row_actions( $actions, $post ) {
 	}
 
 	$actions = array();
+	// phpcs:ignore WordPress.WP.Capabilities.Unknown -- `moderate` is bbPress's forum moderator capability.
 	if ( ! current_user_can( 'moderate' ) ) {
 		return $actions;
 	}
@@ -172,7 +173,7 @@ function extrachill_community_set_report_status( $report_id, $status, $moderator
 		),
 		true
 	);
-	if ( is_wp_error( $updated ) || ! $updated ) {
+	if ( is_wp_error( $updated ) ) {
 		return false;
 	}
 
@@ -194,6 +195,7 @@ function extrachill_community_handle_report_status_action() {
 	$report_id = isset( $_GET['report_id'] ) ? absint( $_GET['report_id'] ) : 0;
 	$status    = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( $_GET['status'] ) ) : '';
 
+	// phpcs:ignore WordPress.WP.Capabilities.Unknown -- `moderate` is bbPress's forum moderator capability.
 	if ( ! current_user_can( 'moderate' ) ) {
 		wp_die( esc_html__( 'You are not allowed to moderate reports.', 'extra-chill-community' ), 403 );
 	}

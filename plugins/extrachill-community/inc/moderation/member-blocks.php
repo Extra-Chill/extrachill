@@ -152,7 +152,7 @@ add_filter( 'bbp_after_has_topics_parse_args', 'extrachill_community_member_bloc
 function extrachill_community_member_blocks_filter_replies( $args ) {
 	$blocked = extrachill_community_viewer_member_blocked_ids();
 	if ( ! empty( $blocked ) ) {
-		$args                                  = (array) $args;
+		$args                                    = (array) $args;
 		$args['ec_member_blocked_reply_authors'] = $blocked;
 	}
 
@@ -163,8 +163,8 @@ add_filter( 'bbp_after_has_replies_parse_args', 'extrachill_community_member_blo
 /**
  * Apply the reply-author exclusion requested by the bbPress reply loop.
  *
- * @param string   $where SQL WHERE clause.
- * @param WP_Query $query Query being run.
+ * @param string $where SQL WHERE clause.
+ * @param mixed  $query Query being run (filter argument; validated before use).
  * @return string
  */
 function extrachill_community_member_blocks_posts_where( $where, $query ) {

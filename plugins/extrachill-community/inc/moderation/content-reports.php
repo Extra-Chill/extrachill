@@ -442,7 +442,7 @@ function extrachill_community_report_content_permission() {
  * is still open returns that report (deduplicated) without counting against
  * the hourly rate limit.
  *
- * @param array $input Ability input.
+ * @param mixed $input Ability input (normalized to an array).
  * @return array|WP_Error
  */
 function extrachill_community_ability_report_content( $input ) {
@@ -499,7 +499,7 @@ function extrachill_community_ability_report_content( $input ) {
 		true
 	);
 
-	if ( is_wp_error( $report_id ) || ! $report_id ) {
+	if ( is_wp_error( $report_id ) ) {
 		return new WP_Error( 'report_failed', 'The report could not be saved.', array( 'status' => 500 ) );
 	}
 
