@@ -46,19 +46,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "${RUNNER_TEMP}/homeboy-0.436.4"
+          mkdir -p "${RUNNER_TEMP}/homeboy-0.436.10"
           curl --fail --silent --show-error --location \
-            'https://github.com/Extra-Chill/homeboy/releases/download/v0.436.4/homeboy-x86_64-unknown-linux-gnu.tar.xz' \
-            --output "${RUNNER_TEMP}/homeboy-0.436.4.tar.xz"
+            'https://github.com/Extra-Chill/homeboy/releases/download/v0.436.10/homeboy-x86_64-unknown-linux-gnu.tar.xz' \
+            --output "${RUNNER_TEMP}/homeboy-0.436.10.tar.xz"
           printf '%s  %s\n' \
-            '6613d6f2de42cb9383d038b8e147d3769709f182987b92300db8fc8e5eac11bc' \
-            "${RUNNER_TEMP}/homeboy-0.436.4.tar.xz" | sha256sum --check --strict
-          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.436.4.tar.xz" \
-            --directory "${RUNNER_TEMP}/homeboy-0.436.4" --strip-components=1
-          chmod +x "${RUNNER_TEMP}/homeboy-0.436.4/homeboy"
+            '364249b34a712be3fec0925f7180211a48e511b2caa57cfd57aa5f56cc4ba710' \
+            "${RUNNER_TEMP}/homeboy-0.436.10.tar.xz" | sha256sum --check --strict
+          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.436.10.tar.xz" \
+            --directory "${RUNNER_TEMP}/homeboy-0.436.10" --strip-components=1
+          chmod +x "${RUNNER_TEMP}/homeboy-0.436.10/homeboy"
           # Detection and the rig use this explicit pin. Do not add it to
           # GITHUB_PATH: Deploy/Verify use the action's separately pinned CLI.
-          echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-0.436.4" >> "${GITHUB_ENV}"
+          echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-0.436.10" >> "${GITHUB_ENV}"
 
       - name: Plan
         id: plan
@@ -85,8 +85,10 @@ jobs:
               dry_run=false
             fi
           fi
+          # --direct-only: deploy only components whose own files changed. Dependents
+          # are re-tested by PR CI, but their deployed files are identical.
           "${HOMEBOY_GATE_BIN_DIR}/homeboy" component changed --base "${base}" --head "${sha}" \
-            --path . --shared-path '.github/**' --format matrix > "${HOMEBOY_OUTPUT_DIR}/matrix.json"
+            --path . --shared-path '.github/**' --format matrix --direct-only > "${HOMEBOY_OUTPUT_DIR}/matrix.json"
           python3 deploy/prepare-monorepo.py --checkout "${GITHUB_WORKSPACE}" \
             --destination "${HOMEBOY_CONFIG_ROOT}" --matrix "${HOMEBOY_OUTPUT_DIR}/matrix.json" \
             --sha "${sha}" --dry-run "${dry_run}" > "${HOMEBOY_OUTPUT_DIR}/plan.json"
@@ -134,7 +136,7 @@ jobs:
         if: steps.plan.outputs.changed_count != '0'
         uses: Extra-Chill/homeboy-action@v2
         with:
-          version: '0.436.4'
+          version: '0.436.10'
           commands: component show extrachill-network
           auto-setup: 'false'
 
@@ -296,7 +298,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         uses: Extra-Chill/homeboy-action@v2
         with:
-          version: '0.436.4'
+          version: '0.436.10'
           commands: ${{ steps.plan.outputs.command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
@@ -308,7 +310,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         uses: Extra-Chill/homeboy-action@v2
         with:
-          version: '0.436.4'
+          version: '0.436.10'
           commands: deploy extrachill-monorepo --check
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
