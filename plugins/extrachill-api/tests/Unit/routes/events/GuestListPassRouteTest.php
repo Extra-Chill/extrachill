@@ -100,6 +100,8 @@ class GuestListPassRouteTest extends WP_UnitTestCase {
 		$request = new WP_REST_Request( 'POST', '/extrachill/v1/events/640348/guest-list-pass' );
 		$request->set_param( 'id', '640348' );
 		$request->set_param( 'password', ' Spooky <31> ' );
+		$request->set_param( 'name', ' Sarah ' );
+		$request->set_param( 'email', 'sarah@example.com' );
 
 		$response = extrachill_api_handle_guest_list_pass( $request );
 
@@ -107,6 +109,8 @@ class GuestListPassRouteTest extends WP_UnitTestCase {
 			array(
 				'event_id' => 640348,
 				'password' => ' Spooky <31> ',
+				'name'     => 'Sarah',
+				'email'    => 'sarah@example.com',
 			),
 			$this->ability_inputs[0]
 		);
