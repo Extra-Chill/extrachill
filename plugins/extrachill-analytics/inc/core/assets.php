@@ -451,6 +451,13 @@ add_action( 'wp_enqueue_scripts', 'extrachill_analytics_enqueue_view_tracking' )
 // minimal-head lifecycle must enqueue the same signed Analytics-owned tracker.
 add_action( 'extrachill_artist_link_page_minimal_head', 'extrachill_analytics_enqueue_view_tracking', 20 );
 
+// Standalone Events pages (e.g. the guest Local Scene digest confirm page)
+// also bypass wp_head(). Loading the tracker there mints `ec_vid` in the
+// browser before the person clicks the confirm button, so the resulting POST
+// carries a visitor cookie and is classified as human. Eligibility (GET/HEAD,
+// first-party host, no REST/admin) is still enforced inside the enqueue.
+add_action( 'extrachill_events_standalone_page_assets', 'extrachill_analytics_enqueue_view_tracking', 20 );
+
 /**
  * Enqueue outbound-click, CTA-click, and form-submit tracking on every
  * front-end view.

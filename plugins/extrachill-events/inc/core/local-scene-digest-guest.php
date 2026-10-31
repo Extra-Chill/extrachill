@@ -327,38 +327,65 @@ function extrachill_events_handle_guest_digest_confirm(): void {
 	$is_post = $source === $_POST;
 	// phpcs:enable WordPress.Security.NonceVerification
 
+	$page = extrachill_events_guest_digest_confirm_page( $params, $is_post );
+	extrachill_events_render_local_scene_digest_unsubscribe_page( $page['title'], $page['message'], $page['action_html'], $page['page_assets'] );
+}
+add_action( 'template_redirect', 'extrachill_events_handle_guest_digest_confirm', 1 );
+
+/**
+ * Decide what a confirm link request shows, subscribing only on POST.
+ *
+ * The GET page is the one a person lands on from the email, so it opts in to
+ * standalone page assets: Extra Chill Analytics loads its view tracker there,
+ * which mints the first-party `ec_vid` visitor cookie in the browser. The
+ * button's POST then carries that cookie, so the visitor classifier can count
+ * the `local_scene_digest_subscribed` event as a person instead of a bot.
+ * Scanners that only GET still never subscribe anyone.
+ *
+ * @param array $params  Confirm link parameters (`user`, `location`, `expires`, `signature`).
+ * @param bool  $is_post Whether the request is the button's POST.
+ * @return array{title:string,message:string,action_html:string,page_assets:bool}
+ */
+function extrachill_events_guest_digest_confirm_page( array $params, bool $is_post ): array {
+	$page = array(
+		'title'       => __( 'Confirmation link invalid', 'extrachill-events' ),
+		'message'     => __( 'This link is invalid or has expired. Ask for the weekly email again from any city calendar.', 'extrachill-events' ),
+		'action_html' => '',
+		'page_assets' => false,
+	);
+
 	$verified = extrachill_events_verify_guest_digest_confirm( $params );
 	if ( is_wp_error( $verified ) ) {
-		extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Confirmation link invalid', 'extrachill-events' ), __( 'This link is invalid or has expired. Ask for the weekly email again from any city calendar.', 'extrachill-events' ) );
-		return;
+		return $page;
 	}
 
 	$term = $verified['term'];
 	if ( ! $is_post ) {
-		extrachill_events_render_local_scene_digest_unsubscribe_page(
+		return array(
 			/* translators: %s: City name. */
-			sprintf( __( "Get this week's shows in %s?", 'extrachill-events' ), $term->name ),
-			__( 'One email a week. Unsubscribe from any email.', 'extrachill-events' ),
-			extrachill_events_build_guest_digest_confirm_form( $params )
+			'title'       => sprintf( __( "Get this week's shows in %s?", 'extrachill-events' ), $term->name ),
+			'message'     => __( 'One email a week. Unsubscribe from any email.', 'extrachill-events' ),
+			'action_html' => extrachill_events_build_guest_digest_confirm_form( $params ),
+			'page_assets' => true,
 		);
-		return;
 	}
 
 	$result = extrachill_events_confirm_guest_digest( $params );
 	if ( is_wp_error( $result ) ) {
-		extrachill_events_render_local_scene_digest_unsubscribe_page( __( 'Something went wrong', 'extrachill-events' ), __( 'Your subscription could not be saved. Open the link from your email again to retry.', 'extrachill-events' ) );
-		return;
+		$page['title']   = __( 'Something went wrong', 'extrachill-events' );
+		$page['message'] = __( 'Your subscription could not be saved. Open the link from your email again to retry.', 'extrachill-events' );
+		return $page;
 	}
 
 	$calendar = get_term_link( $term );
-	extrachill_events_render_local_scene_digest_unsubscribe_page(
-		__( "You're in", 'extrachill-events' ),
+	return array(
+		'title'       => __( "You're in", 'extrachill-events' ),
 		/* translators: %s: City name. */
-		sprintf( __( 'Upcoming shows in %s will land in your inbox once a week.', 'extrachill-events' ), $term->name ),
-		is_wp_error( $calendar ) ? '' : '<form><a href="' . esc_url( (string) $calendar ) . '">' . esc_html__( 'See the calendar', 'extrachill-events' ) . '</a></form>'
+		'message'     => sprintf( __( 'Upcoming shows in %s will land in your inbox once a week.', 'extrachill-events' ), $term->name ),
+		'action_html' => is_wp_error( $calendar ) ? '' : '<form><a href="' . esc_url( (string) $calendar ) . '">' . esc_html__( 'See the calendar', 'extrachill-events' ) . '</a></form>',
+		'page_assets' => false,
 	);
 }
-add_action( 'template_redirect', 'extrachill_events_handle_guest_digest_confirm', 1 );
 
 /**
  * Build the confirm POST form for the scanner-safe GET page.

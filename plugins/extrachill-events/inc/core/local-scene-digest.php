@@ -854,11 +854,17 @@ function extrachill_events_local_scene_digest_unsubscribe( WP_REST_Request $requ
 /**
  * Render the standalone browser confirmation used by the signed one-click route.
  *
- * @param string $title       Page title.
- * @param string $message     Confirmation message.
- * @param string $action_html Optional escaped action markup.
+ * The page is a bare document (no wp_head()/wp_footer()) so it stays light
+ * for link scanners. Pages a person is expected to act on can opt in to
+ * `$with_page_assets`, which lets site integrations enqueue scripts through
+ * `extrachill_events_standalone_page_assets` and prints them before `</body>`.
+ *
+ * @param string $title            Page title.
+ * @param string $message          Confirmation message.
+ * @param string $action_html      Optional escaped action markup.
+ * @param bool   $with_page_assets Whether to load integration scripts (e.g. analytics visitor identity).
  */
-function extrachill_events_render_local_scene_digest_unsubscribe_page( string $title, string $message, string $action_html = '' ): void {
+function extrachill_events_render_local_scene_digest_unsubscribe_page( string $title, string $message, string $action_html = '', bool $with_page_assets = false ): void {
 	if ( ! headers_sent() ) {
 		status_header( 200 );
 		nocache_headers();
@@ -866,8 +872,36 @@ function extrachill_events_render_local_scene_digest_unsubscribe_page( string $t
 		header( 'X-Robots-Tag: noindex, nofollow', true );
 	}
 
-	echo extrachill_events_build_local_scene_digest_unsubscribe_page( $title, $message, $action_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by dedicated builders.
+	$footer_html = $with_page_assets ? extrachill_events_standalone_page_scripts_html() : '';
+	echo extrachill_events_build_local_scene_digest_unsubscribe_page( $title, $message, $action_html, $footer_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by dedicated builders.
 	exit;
+}
+
+/**
+ * Collect integration scripts for a standalone page that bypasses wp_head().
+ *
+ * Fires `extrachill_events_standalone_page_assets` so integrations enqueue
+ * their own handles (Extra Chill Analytics hooks its view tracker here, which
+ * mints the first-party `ec_vid` visitor cookie in the browser), then prints
+ * the resulting script queue. Events never names another plugin's handle.
+ *
+ * @return string Script markup printed by WordPress, or '' when nothing was enqueued.
+ */
+function extrachill_events_standalone_page_scripts_html(): string {
+	/**
+	 * Fires while a standalone Events page (no wp_head()/wp_footer()) is built.
+	 *
+	 * Enqueue scripts here; they are printed before the closing body tag.
+	 */
+	do_action( 'extrachill_events_standalone_page_assets' );
+
+	if ( ! function_exists( 'wp_print_scripts' ) ) {
+		return '';
+	}
+
+	ob_start();
+	wp_print_scripts();
+	return (string) ob_get_clean();
 }
 
 /**
@@ -876,12 +910,13 @@ function extrachill_events_render_local_scene_digest_unsubscribe_page( string $t
  * @param string $title       Page title.
  * @param string $message     Confirmation message.
  * @param string $action_html Optional escaped action markup.
+ * @param string $footer_html Optional script markup printed by WordPress.
  * @return string
  */
-function extrachill_events_build_local_scene_digest_unsubscribe_page( string $title, string $message, string $action_html = '' ): string {
+function extrachill_events_build_local_scene_digest_unsubscribe_page( string $title, string $message, string $action_html = '', string $footer_html = '' ): string {
 	$html  = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>' . esc_html( $title ) . '</title>';
 	$html .= '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f6f6f6;color:#222;margin:0;padding:0}.wrap{max-width:520px;margin:10vh auto;padding:2rem;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);text-align:center}h1{font-size:1.4rem;margin:0 0 1rem}p{line-height:1.5;margin:0 0 1.5rem}a,button{display:inline-block;color:#fff;background:#222;text-decoration:none;padding:.65rem 1.25rem;border:0;border-radius:6px;cursor:pointer}form{margin:0 0 1rem}</style>';
-	$html .= '</head><body><div class="wrap"><h1>' . esc_html( $title ) . '</h1><p>' . esc_html( $message ) . '</p>' . $action_html . '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Back to Extra Chill Events', 'extrachill-events' ) . '</a></div></body></html>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- action markup comes from the escaped form builder.
+	$html .= '</head><body><div class="wrap"><h1>' . esc_html( $title ) . '</h1><p>' . esc_html( $message ) . '</p>' . $action_html . '<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Back to Extra Chill Events', 'extrachill-events' ) . '</a></div>' . $footer_html . '</body></html>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- action markup comes from the escaped form builder.
 	return $html;
 }
 
