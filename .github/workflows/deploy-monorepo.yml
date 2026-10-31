@@ -140,7 +140,8 @@ jobs:
           # under plugins/ in #394). Upstream: homeboy-action project-level commands.
           component: plugins/extrachill-network
           version: '0.436.10'
-          commands: component show extrachill-network
+          # The action appends "<component id> --path <dir>" to component commands.
+          commands: component show
           auto-setup: 'false'
 
       - name: Verify WP Codebox from homeboy-action
