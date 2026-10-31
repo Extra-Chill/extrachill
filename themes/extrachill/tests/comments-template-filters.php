@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.WP.GlobalVariablesOverride.Prohibited -- Standalone CLI test script, not plugin runtime.
 /**
  * Regression coverage: the comments heading and the logged-out note are
  * filterable so plugins can rename comments for their post types.

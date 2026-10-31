@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.WP.GlobalVariablesOverride.Prohibited -- Standalone CLI test script, not plugin runtime.
 /**
  * Regression coverage: the comments section must load through
  * comments_template(), or the comment query never runs and published

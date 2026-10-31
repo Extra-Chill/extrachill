@@ -2,11 +2,7 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {
-      "settings": {
-        "phpunit_no_tests": "fail"
-      }
-    }
+    "wordpress": {}
   },
   "id": "extrachill",
   "remote_path": "wp-content/themes/extrachill",
@@ -19,5 +15,15 @@
       "file": "package.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\""
     }
-  ]
+  ],
+  "self_checks": {
+    "test": [
+      "php tests/comments-section-hook.php",
+      "php tests/comments-template-filters.php",
+      "php tests/mini-dropdown-styles.php",
+      "php tests/related-posts-renderer.php",
+      "php tests/share-urls.php",
+      "php tests/single-post-template.php"
+    ]
+  }
 }

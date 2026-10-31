@@ -1,11 +1,12 @@
 <?php
+// phpcs:disable WordPress.WP.AlternativeFunctions, WordPress.WP.GlobalVariablesOverride.Prohibited -- Standalone CLI test script, not plugin runtime.
 /**
  * Regression coverage for mini-dropdown styles inside content lists.
  *
  * @package ExtraChill
  */
 
-$md_style = file_get_contents( dirname( __DIR__ ) . '/style.css' );
+$md_style         = file_get_contents( dirname( __DIR__ ) . '/style.css' );
 $md_menu_selector = '.ec-mini-dropdown .ec-mini-dropdown-menu';
 $md_item_selector = '.ec-mini-dropdown .ec-mini-dropdown-menu li';
 
