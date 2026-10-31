@@ -12,10 +12,11 @@
  * and the documented gaps (theme remote sourcing, a handful of excluded
  * components with no public source).
  */
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -904,11 +905,102 @@ export async function buildCheckoutComponent(directory, run = runCheckoutBuild) 
 }
 
 function runCheckoutBuild(command, args, cwd) {
-  // Keep stdout clean: run.mjs emits a JSON protocol response there.
-  const result = spawnSync(command, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: WP_CODEBOX_MAX_BUFFER_BYTES });
-  if (result.status !== 0 || result.error) {
-    throw new Error(`Monorepo build failed in ${cwd}: ${command} ${args.join(' ')}\n${result.error?.message ?? ''}\n${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+  // Keep stdout clean: run.mjs emits a JSON protocol response there. Async so
+  // several components can build at once (prepareMonorepoSources).
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    let output = '';
+    const keep = (chunk) => { output = (output + chunk).slice(-WP_CODEBOX_MAX_BUFFER_BYTES); };
+    child.stdout.on('data', keep);
+    child.stderr.on('data', keep);
+    child.on('error', (error) => reject(new Error(`Monorepo build failed in ${cwd}: ${command} ${args.join(' ')}\n${error.message}`)));
+    child.on('close', (status) => {
+      if (status === 0) resolve();
+      else reject(new Error(`Monorepo build failed in ${cwd}: ${command} ${args.join(' ')} (exit ${status})\n${output.slice(-20000)}`));
+    });
+  });
+}
+
+// Bump to invalidate every cached component build.
+const BUILD_CACHE_FORMAT = 1;
+
+function gitOutput(args, cwd) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: WP_CODEBOX_MAX_BUFFER_BYTES });
+  return result.status === 0 && !result.error ? result.stdout : undefined;
+}
+
+/**
+ * Content key for a component's build: its tracked files (git index blob
+ * ids), the Node major version and the cache format. Undefined when the
+ * directory can't be keyed safely -- not a git checkout, or uncommitted or
+ * untracked changes under it -- so a local edit always rebuilds.
+ */
+export function componentBuildKey(directory, git = gitOutput) {
+  const index = git(['ls-files', '-s', '--', '.'], directory);
+  if (!index) return undefined;
+  const dirty = git(['status', '--porcelain', '--untracked-files=normal', '--', '.'], directory);
+  if (dirty === undefined || dirty.trim() !== '') return undefined;
+  return createHash('sha256')
+    .update(`${BUILD_CACHE_FORMAT}\n${process.versions.node.split('.')[0]}\n${index}`)
+    .digest('hex')
+    .slice(0, 32);
+}
+
+/**
+ * What a build added or changed: git-ignored files (build/, vendor/,
+ * generated CSS, composer.lock), new untracked files, and tracked files the
+ * build rewrote.
+ * node_modules is install state, not build output, and stays out.
+ */
+export function componentBuildOutputs(directory, git = gitOutput) {
+  const ignored = git(['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '--', '.'], directory) ?? '';
+  const untracked = git(['ls-files', '--others', '--exclude-standard', '--', '.'], directory) ?? '';
+  const rewritten = git(['diff', '--name-only', '--relative', '--', '.'], directory) ?? '';
+  return [...new Set([...ignored.split('\n'), ...untracked.split('\n'), ...rewritten.split('\n')])]
+    .map((entry) => entry.trim())
+    .filter((entry) => entry && !entry.split('/').includes('node_modules'))
+    .sort();
+}
+
+function runTar(args) {
+  const result = spawnSync('tar', args, { encoding: 'utf8', maxBuffer: WP_CODEBOX_MAX_BUFFER_BYTES });
+  if (result.status !== 0 || result.error) throw new Error(`tar ${args.join(' ')} failed: ${result.error?.message ?? result.stderr}`);
+}
+
+/**
+ * Builds one component, or restores its outputs from the content-addressed
+ * cache directory when its sources are unchanged since a cached build.
+ * Returns how the component was produced, for the run's timing evidence.
+ */
+export async function buildOrRestoreComponent(directory, slug, cacheDirectory, build = buildCheckoutComponent) {
+  const key = cacheDirectory ? componentBuildKey(directory) : undefined;
+  const archive = key ? path.join(cacheDirectory, `${slug}-${key}.tgz`) : undefined;
+  if (archive && (await isFile(archive))) {
+    runTar(['-xzf', archive, '-C', directory]);
+    return { status: 'cached', archive };
   }
+  await build(directory);
+  if (!archive) return { status: cacheDirectory ? 'built-uncacheable' : 'built' };
+  const outputs = componentBuildOutputs(directory);
+  const partial = `${archive}.${process.pid}.tmp`;
+  // An empty file list is still a valid (empty) archive: the build ran and
+  // produced nothing new, which is worth remembering too.
+  runTar(['-czf', partial, '-C', directory, ...(outputs.length ? ['--', ...outputs] : ['-T', '/dev/null'])]);
+  await rename(partial, archive);
+  return { status: 'built', archive };
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+  const lanes = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await worker(items[index], index);
+    }
+  });
+  await Promise.all(lanes);
+  return results;
 }
 
 async function isFile(file) {
@@ -930,17 +1022,47 @@ export async function prepareMonorepoSources(settings, plugins, theme, artifactD
     throw new Error('extrachill_monorepo_source must be an absolute checkout path.');
   }
   if (!(await stat(root)).isDirectory()) throw new Error('extrachill_monorepo_source must be a checkout directory.');
+  const cacheDirectory = settings.extrachill_build_cache;
+  if (cacheDirectory !== undefined && (typeof cacheDirectory !== 'string' || !path.isAbsolute(cacheDirectory))) {
+    throw new Error('extrachill_build_cache must be an absolute directory path.');
+  }
+  if (cacheDirectory) await mkdir(cacheDirectory, { recursive: true });
   const overrides = isRecord(settings.extrachill_component_source_overrides) ? settings.extrachill_component_source_overrides : {};
-  const sources = {};
+  const selected = [];
   for (const component of [...plugins, theme]) {
     if (overrides[component.slug]) continue;
     const directory = path.join(root, component === theme ? 'themes' : 'plugins', component.slug);
     const entrypoint = component === theme ? 'style.css' : (component.activations?.[0]?.pluginFile?.split('/').slice(1).join('/') || `${component.slug}.php`);
     if (!(await isFile(path.join(directory, entrypoint)))) continue;
-    await build(directory);
-    sources[component.slug] = directory;
+    selected.push({ slug: component.slug, directory });
   }
-  return sources;
+
+  // npm ci dominates (one @wordpress/scripts install per plugin), so a few
+  // lanes in parallel; more mostly contends for disk on a 4-core runner.
+  const concurrency = Number(settings.extrachill_build_concurrency) > 0 ? Number(settings.extrachill_build_concurrency) : 3;
+  const started = Date.now();
+  const records = await mapWithConcurrency(selected, concurrency, async ({ slug, directory }) => {
+    const componentStarted = Date.now();
+    const outcome = await buildOrRestoreComponent(directory, slug, cacheDirectory, build);
+    const durationMs = Date.now() - componentStarted;
+    process.stderr.write(`extrachill-network: ${slug} ${outcome.status} in ${(durationMs / 1000).toFixed(1)}s\n`);
+    return { slug, status: outcome.status, durationMs, archive: outcome.archive ? path.basename(outcome.archive) : undefined };
+  });
+  const evidence = { schema: 'extrachill-network/component-builds/v1', concurrency, cacheDirectory: cacheDirectory ?? null, wallMs: Date.now() - started, components: records };
+  if (artifactDirectory) {
+    await mkdir(artifactDirectory, { recursive: true });
+    await writeFile(path.join(artifactDirectory, 'component-builds.json'), `${JSON.stringify(evidence, null, 2)}\n`);
+  }
+  process.stderr.write(`extrachill-network: ${records.length} monorepo components ready in ${(evidence.wallMs / 1000).toFixed(1)}s (${records.filter((r) => r.status === 'cached').length} from cache)\n`);
+
+  // Keep the cache to exactly this run's entries so it can't grow without bound.
+  if (cacheDirectory) {
+    const keep = new Set(records.map((record) => record.archive).filter(Boolean));
+    for (const entry of await readdir(cacheDirectory)) {
+      if (entry.endsWith('.tgz') && !keep.has(entry)) await rm(path.join(cacheDirectory, entry), { force: true });
+    }
+  }
+  return Object.fromEntries(selected.map(({ slug, directory }) => [slug, directory]));
 }
 
 function buildThemeInputs(themeComponent, themeSource) {
