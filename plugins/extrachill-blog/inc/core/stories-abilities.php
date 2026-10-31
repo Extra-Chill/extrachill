@@ -286,7 +286,7 @@ function extrachill_blog_stories_clamp( $value, $fallback, $max = 0 ) {
  *
  * Only published, non-password-protected posts are ever selected.
  *
- * @param array<string, mixed> $input Ability input.
+ * @param array<string, mixed>|null $input Ability input.
  * @return array<string, mixed>
  */
 function extrachill_blog_stories_query_args( $input ) {
@@ -393,8 +393,8 @@ function extrachill_blog_story_featured_image( $post ) {
 
 	return array(
 		'url'    => (string) $image[0],
-		'width'  => (int) ( $image[1] ?? 0 ),
-		'height' => (int) ( $image[2] ?? 0 ),
+		'width'  => (int) $image[1],
+		'height' => (int) $image[2],
 		'alt'    => extrachill_blog_stories_decode( get_post_meta( $thumbnail_id, '_wp_attachment_image_alt', true ) ),
 	);
 }
@@ -408,12 +408,16 @@ function extrachill_blog_story_featured_image( $post ) {
 function extrachill_blog_story_item( $post ) {
 	$author_id = (int) $post->post_author;
 	$host      = wp_parse_url( home_url(), PHP_URL_HOST );
+	$timestamp = strtotime( $post->post_date_gmt . ' UTC' );
+	if ( false === $timestamp ) {
+		$timestamp = 0;
+	}
 
 	return array(
 		'id'             => (int) $post->ID,
 		'title'          => extrachill_blog_stories_decode( get_the_title( $post ) ),
 		'excerpt'        => extrachill_blog_story_excerpt( $post ),
-		'date'           => gmdate( 'Y-m-d\TH:i:s\Z', strtotime( $post->post_date_gmt . ' UTC' ) ),
+		'date'           => gmdate( 'Y-m-d\TH:i:s\Z', $timestamp ),
 		'author'         => array(
 			'id'   => $author_id,
 			'name' => extrachill_blog_stories_decode( get_the_author_meta( 'display_name', $author_id ) ),
@@ -475,7 +479,7 @@ function extrachill_blog_list_stories( $input = array() ) {
 	$items = array();
 	foreach ( $query->posts as $post ) {
 		// Defense in depth: never leak anything the query should not have matched.
-		if ( extrachill_blog_is_public_story( $post ) ) {
+		if ( $post instanceof WP_Post && extrachill_blog_is_public_story( $post ) ) {
 			$items[] = extrachill_blog_story_item( $post );
 		}
 	}
@@ -492,7 +496,7 @@ function extrachill_blog_list_stories( $input = array() ) {
 /**
  * Execute extrachill/get-story.
  *
- * @param array<string, mixed> $input Ability input.
+ * @param array<string, mixed>|null $input Ability input.
  * @return array<string, mixed>|WP_Error
  */
 function extrachill_blog_get_story( $input ) {

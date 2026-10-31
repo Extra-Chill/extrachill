@@ -8,6 +8,11 @@
  * Run: php tests/stories-abilities-smoke.php
  */
 
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound, Universal.Files.SeparateFunctionsFromOO.Mixed -- Standalone harness defines its WordPress class stubs inline.
+// phpcs:disable WordPress.NamingConventions.ValidFunctionName.FunctionDoubleUnderscore, Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Stubs mirror WordPress core function signatures.
+// phpcs:disable WordPress.WP.AlternativeFunctions.strip_tags_strip_tags, WordPress.WP.AlternativeFunctions.parse_url_parse_url, WordPress.WP.AlternativeFunctions.json_encode_json_encode -- WordPress is not loaded; stubs use native PHP.
+// phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- CLI assertion messages, never rendered as HTML.
+
 define( 'ABSPATH', __DIR__ . '/' );
 
 class WP_Error {
@@ -116,11 +121,26 @@ function apply_filters( $hook, $value ) {
 }
 function get_object_taxonomies() {
 	return array(
-		(object) array( 'name' => 'category', 'public' => true ),
-		(object) array( 'name' => 'post_format', 'public' => true ),
-		(object) array( 'name' => 'festival', 'public' => true ),
-		(object) array( 'name' => 'author', 'public' => false ),
-		(object) array( 'name' => 'artist', 'public' => true ),
+		(object) array(
+			'name'   => 'category',
+			'public' => true,
+		),
+		(object) array(
+			'name'   => 'post_format',
+			'public' => true,
+		),
+		(object) array(
+			'name'   => 'festival',
+			'public' => true,
+		),
+		(object) array(
+			'name'   => 'author',
+			'public' => false,
+		),
+		(object) array(
+			'name'   => 'artist',
+			'public' => true,
+		),
 	);
 }
 function get_the_terms( $post, $taxonomy ) { return $GLOBALS['stories_terms'][ $taxonomy ] ?? false; }
@@ -221,15 +241,24 @@ stories_expect( 1 === $args['paged'] && 10 === $args['posts_per_page'], 'Default
 stories_expect( ! isset( $args['tax_query'] ), 'No filters means no tax_query.' );
 
 // Pagination clamping.
-$clamped = extrachill_blog_stories_query_args( array( 'page' => 0, 'per_page' => 500 ) );
+$clamped = extrachill_blog_stories_query_args( array(
+	'page'     => 0,
+	'per_page' => 500,
+) );
 stories_expect( 1 === $clamped['paged'] && 50 === $clamped['posts_per_page'], 'Out-of-range pagination is clamped to [1, 50].' );
-$clamped = extrachill_blog_stories_query_args( array( 'page' => -3, 'per_page' => -1 ) );
+$clamped = extrachill_blog_stories_query_args( array(
+	'page'     => -3,
+	'per_page' => -1,
+) );
 stories_expect( 1 === $clamped['paged'] && 1 === $clamped['posts_per_page'], 'Negative pagination is clamped to 1 (never -1 = unbounded).' );
-$clamped = extrachill_blog_stories_query_args( array( 'page' => '4', 'per_page' => 'lots' ) );
+$clamped = extrachill_blog_stories_query_args( array(
+	'page'     => '4',
+	'per_page' => 'lots',
+) );
 stories_expect( 4 === $clamped['paged'] && 10 === $clamped['posts_per_page'], 'Numeric strings are honored, garbage falls back to defaults.' );
 
 // Filters map to tax_query.
-$filtered = extrachill_blog_stories_query_args(
+$filtered       = extrachill_blog_stories_query_args(
 	array(
 		'category' => 'Live Reviews',
 		'tag'      => 12,
@@ -239,32 +268,56 @@ $filtered = extrachill_blog_stories_query_args(
 		'location' => 'charleston',
 	)
 );
-$tax      = $filtered['tax_query'];
-stories_expect( 'AND' === $tax['relation'], 'Multiple filters must all apply.' );
-unset( $tax['relation'] );
+$tax_query_args = $filtered['tax_query'];
+stories_expect( 'AND' === $tax_query_args['relation'], 'Multiple filters must all apply.' );
+unset( $tax_query_args['relation'] );
 stories_expect(
 	array(
-		array( 'taxonomy' => 'category', 'field' => 'slug', 'terms' => array( 'live-reviews' ) ),
-		array( 'taxonomy' => 'post_tag', 'field' => 'term_id', 'terms' => array( 12 ) ),
-		array( 'taxonomy' => 'festival', 'field' => 'slug', 'terms' => array( 'bonnaroo' ) ),
-		array( 'taxonomy' => 'artist', 'field' => 'term_id', 'terms' => array( 345 ) ),
-		array( 'taxonomy' => 'venue', 'field' => 'slug', 'terms' => array( 'the-pour-house' ) ),
-		array( 'taxonomy' => 'location', 'field' => 'slug', 'terms' => array( 'charleston' ) ),
-	) === array_values( $tax ),
+		array(
+			'taxonomy' => 'category',
+			'field'    => 'slug',
+			'terms'    => array( 'live-reviews' ),
+		),
+		array(
+			'taxonomy' => 'post_tag',
+			'field'    => 'term_id',
+			'terms'    => array( 12 ),
+		),
+		array(
+			'taxonomy' => 'festival',
+			'field'    => 'slug',
+			'terms'    => array( 'bonnaroo' ),
+		),
+		array(
+			'taxonomy' => 'artist',
+			'field'    => 'term_id',
+			'terms'    => array( 345 ),
+		),
+		array(
+			'taxonomy' => 'venue',
+			'field'    => 'slug',
+			'terms'    => array( 'the-pour-house' ),
+		),
+		array(
+			'taxonomy' => 'location',
+			'field'    => 'slug',
+			'terms'    => array( 'charleston' ),
+		),
+	) === array_values( $tax_query_args ),
 	'Filters must map to the right taxonomy with id or slug fields.'
 );
 $single = extrachill_blog_stories_query_args( array( 'festival' => '' ) );
 stories_expect( ! isset( $single['tax_query'] ), 'Empty filters are ignored.' );
 
 // list-stories execution: drafts, private, password-protected, and non-posts never leak.
-$published = new WP_Post(
+$published           = new WP_Post(
 	array(
 		'ID'           => 101,
 		'post_title'   => 'Live at the Pour House &amp; More',
 		'post_excerpt' => '<strong>Hand-written</strong> &amp; short.',
 	)
 );
-$auto      = new WP_Post(
+$auto                = new WP_Post(
 	array(
 		'ID'           => 102,
 		'post_title'   => 'Auto excerpt',
@@ -273,26 +326,44 @@ $auto      = new WP_Post(
 );
 $stories_query_posts = array(
 	$published,
-	new WP_Post( array( 'ID' => 103, 'post_status' => 'draft' ) ),
-	new WP_Post( array( 'ID' => 104, 'post_status' => 'private' ) ),
-	new WP_Post( array( 'ID' => 105, 'post_password' => 'secret' ) ),
-	new WP_Post( array( 'ID' => 106, 'post_type' => 'page' ) ),
+	new WP_Post( array(
+		'ID'          => 103,
+		'post_status' => 'draft',
+	) ),
+	new WP_Post( array(
+		'ID'          => 104,
+		'post_status' => 'private',
+	) ),
+	new WP_Post( array(
+		'ID'            => 105,
+		'post_password' => 'secret',
+	) ),
+	new WP_Post( array(
+		'ID'        => 106,
+		'post_type' => 'page',
+	) ),
 	$auto,
 );
 $stories_found_posts = 23;
 
-$list = extrachill_blog_list_stories( array( 'page' => 2, 'per_page' => 10 ) );
+$list = extrachill_blog_list_stories( array(
+	'page'     => 2,
+	'per_page' => 10,
+) );
 stories_validate( $list, $list_ability['output_schema'] );
 stories_expect( array( 101, 102 ) === array_column( $list['items'], 'id' ), 'Only published, unprotected posts are returned.' );
 stories_expect( 23 === $list['total'] && 3 === $list['pages'] && 2 === $list['page'] && 10 === $list['per_page'], 'Pagination totals must be reported.' );
 stories_expect( 'publish' === $stories_last_query_args['post_status'], 'The executed query must be publish-only.' );
 
 $item = $list['items'][0];
-stories_expect( $item_keys === array_keys( $item ), 'Items must have exactly the documented keys in order.' );
+stories_expect( array_keys( $item ) === $item_keys, 'Items must have exactly the documented keys in order.' );
 stories_expect( 'Live at the Pour House & More' === $item['title'], 'Titles are entity-decoded.' );
 stories_expect( 'Hand-written & short.' === $item['excerpt'], 'Excerpts are plain text.' );
 stories_expect( '2026-01-02T03:04:05Z' === $item['date'], 'Dates are ISO 8601 GMT.' );
-stories_expect( array( 'id' => 7, 'name' => 'Chris "Chubes" Huber' ) === $item['author'], 'Author is id + decoded display name.' );
+stories_expect( array(
+	'id'   => 7,
+	'name' => 'Chris "Chubes" Huber',
+) === $item['author'], 'Author is id + decoded display name.' );
 stories_expect(
 	array(
 		'url'    => 'https://extrachill.com/wp-content/uploads/cover-1024x683.jpg',
@@ -303,7 +374,10 @@ stories_expect(
 	'Featured image exposes url, width, height, alt.'
 );
 stories_expect( 'https://extrachill.com/story-101/' === $item['url'], 'URL is the canonical permalink.' );
-stories_expect( array( 'blog_id' => 1, 'host' => 'extrachill.com' ) === $item['site'], 'Site identifies the blog and host.' );
+stories_expect( array(
+	'blog_id' => 1,
+	'host'    => 'extrachill.com',
+) === $item['site'], 'Site identifies the blog and host.' );
 
 $auto_item = $list['items'][1];
 stories_expect( null === $auto_item['featured_image'], 'Missing featured image is null.' );
@@ -319,29 +393,44 @@ stories_expect( array() === $empty['items'] && 0 === $empty['total'] && 0 === $e
 // get-story.
 $stories_posts = array(
 	101 => $published,
-	103 => new WP_Post( array( 'ID' => 103, 'post_status' => 'draft' ) ),
-	104 => new WP_Post( array( 'ID' => 104, 'post_status' => 'private' ) ),
-	105 => new WP_Post( array( 'ID' => 105, 'post_password' => 'secret' ) ),
-	106 => new WP_Post( array( 'ID' => 106, 'post_type' => 'page' ) ),
-	107 => new WP_Post( array( 'ID' => 107, 'post_status' => 'future' ) ),
+	103 => new WP_Post( array(
+		'ID'          => 103,
+		'post_status' => 'draft',
+	) ),
+	104 => new WP_Post( array(
+		'ID'          => 104,
+		'post_status' => 'private',
+	) ),
+	105 => new WP_Post( array(
+		'ID'            => 105,
+		'post_password' => 'secret',
+	) ),
+	106 => new WP_Post( array(
+		'ID'        => 106,
+		'post_type' => 'page',
+	) ),
+	107 => new WP_Post( array(
+		'ID'          => 107,
+		'post_status' => 'future',
+	) ),
 );
 foreach ( array( 103, 104, 105, 106, 107, 999, 0 ) as $missing_id ) {
-	$error = extrachill_blog_get_story( array( 'id' => $missing_id ) );
-	stories_expect( is_wp_error( $error ), "get-story must refuse post $missing_id." );
-	stories_expect( 'extrachill_blog_story_not_found' === $error->code && array( 'status' => 404 ) === $error->data, "get-story must 404 for post $missing_id." );
+	$missing_error = extrachill_blog_get_story( array( 'id' => $missing_id ) );
+	stories_expect( is_wp_error( $missing_error ), "get-story must refuse post $missing_id." );
+	stories_expect( 'extrachill_blog_story_not_found' === $missing_error->code && array( 'status' => 404 ) === $missing_error->data, "get-story must 404 for post $missing_id." );
 }
 stories_expect( is_wp_error( extrachill_blog_get_story( null ) ), 'get-story must 404 without input.' );
 
-$previous        = new WP_Post( array( 'ID' => 55 ) );
-$GLOBALS['post'] = $previous;
+$previous                = new WP_Post( array( 'ID' => 55 ) );
+$GLOBALS['post']         = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Seeds the global post to prove it is restored.
 $published->post_content = 'Body copy';
-$stories_terms   = array(
+$stories_terms           = array(
 	'category'    => array( new WP_Term( 3, 'Live Music &amp; Reviews', 'live-music' ) ),
 	'post_format' => array( new WP_Term( 9, 'Gallery', 'post-format-gallery' ) ),
 	'festival'    => array( new WP_Term( 4, 'Bonnaroo', 'bonnaroo' ), new WP_Term( 5, 'Moonrise', 'moonrise' ) ),
 	'author'      => array( new WP_Term( 6, 'Guest', 'cap-guest' ) ),
 );
-$story           = extrachill_blog_get_story( array( 'id' => 101 ) );
+$story                   = extrachill_blog_get_story( array( 'id' => 101 ) );
 stories_expect( ! is_wp_error( $story ), 'Published stories resolve.' );
 stories_validate( $story, $get_ability['output_schema'] );
 stories_expect( array_merge( $item_keys, array( 'content_html', 'terms' ) ) === array_keys( $story ), 'Story has the summary keys plus content_html and terms.' );
