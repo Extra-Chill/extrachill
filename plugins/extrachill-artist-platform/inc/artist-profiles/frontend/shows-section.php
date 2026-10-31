@@ -61,7 +61,7 @@ add_filter( 'ec_artist_profile_sections', 'ec_register_artist_profile_shows_sect
  * @return string Absolute submission URL.
  */
 function ec_artist_shows_submit_url() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	if ( function_exists( 'extrachill_events_submit_url' ) && $events_blog_id ) {
 		switch_to_blog( $events_blog_id );
@@ -101,7 +101,7 @@ function ec_artist_shows_can_manage( $artist_id ) {
  */
 function ec_artist_shows_archive_url( $slug ) {
 	$slug = (string) $slug;
-	if ( '' === $slug || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( '' === $slug ) {
 		return '';
 	}
 

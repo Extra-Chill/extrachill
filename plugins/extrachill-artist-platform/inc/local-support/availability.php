@@ -32,7 +32,7 @@ function extrachill_artist_platform_resolve_local_support_scene( $slug ) {
  */
 function extrachill_artist_platform_get_local_support_availability( $artist_id ) {
 	$artist_id      = absint( $artist_id );
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'artist' ) ) : 0;
+	$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
 	if ( ! $artist_id || ! $artist_blog_id ) {
 		return new WP_Error( 'invalid_artist', __( 'A valid artist profile is required.', 'extrachill-artist-platform' ) );
 	}
@@ -86,7 +86,7 @@ function extrachill_artist_platform_update_local_support_availability( $artist_i
 		return new WP_Error( 'artist_access_denied', __( 'You are not allowed to manage this artist.', 'extrachill-artist-platform' ) );
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'artist' ) ) : 0;
+	$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'dependency_missing', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ) );
 	}
@@ -207,7 +207,7 @@ function extrachill_artist_platform_resolve_local_support_candidates( $producer,
 		return new WP_Error( 'local_support_producer_forbidden', __( 'This producer is not authorized to resolve local support candidates.', 'extrachill-artist-platform' ) );
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'artist' ) ) : 0;
+	$artist_blog_id = absint( ec_get_blog_id( 'artist' ) );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'dependency_missing', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ) );
 	}

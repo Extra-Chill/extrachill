@@ -35,7 +35,7 @@ function ec_add_artist_membership( $user_id, $artist_id ) {
 		return false;
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		ec_set_artist_membership_failure(
 			'artist_site_unavailable',
@@ -175,7 +175,7 @@ function ec_remove_artist_membership( $user_id, $artist_id ) {
 		return false;
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		ec_set_artist_membership_failure(
 			'artist_site_unavailable',
@@ -529,7 +529,7 @@ function ec_normalize_artist_relationship_ids( $ids ) {
  */
 function ec_get_linked_members( $artist_profile_id ) {
 	$artist_profile_id = absint( $artist_profile_id );
-	$artist_blog_id    = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id    = ec_get_blog_id( 'artist' );
 	if ( ! $artist_profile_id || ! $artist_blog_id ) {
 		return array();
 	}

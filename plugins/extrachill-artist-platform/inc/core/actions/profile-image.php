@@ -108,7 +108,7 @@ function ec_artist_materialize_profile_image( $source_blog, $source_id, $candida
 
 /** Read/write the artist thumbnail from any storage context. */
 function ec_artist_profile_thumbnail( $artist_id, $image_id = null ) {
-	$blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$blog = (int) ec_get_blog_id( 'artist' );
 	return ec_artist_with_image_blog( $blog, static function () use ( $artist_id, $image_id ) {
 		if ( null !== $image_id ) {
 			$image_id ? set_post_thumbnail( $artist_id, $image_id ) : delete_post_thumbnail( $artist_id );
@@ -123,7 +123,7 @@ function ec_artist_profile_thumbnail( $artist_id, $image_id = null ) {
 /** Apply a storage-site image to its artist, materializing the reverse copy. */
 function ec_artist_set_profile_image_from_page( $artist_id, $image_id ) {
 	$source_blog = get_current_blog_id();
-	$artist_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : $source_blog;
+	$artist_blog = (int) ec_get_blog_id( 'artist' );
 	$local = ec_artist_with_image_blog( $artist_blog, static function () use ( $source_blog, $image_id, $artist_id ) {
 		return ec_artist_materialize_profile_image( $source_blog, $image_id, get_post_thumbnail_id( $artist_id ) );
 	} );

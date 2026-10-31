@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit;
 function extrachill_artist_platform_ability_get_artist_platform_stats( array $input ) {
 	$days = isset( $input['days'] ) ? min( 90, max( 0, (int) $input['days'] ) ) : 28;
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
 	}

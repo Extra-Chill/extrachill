@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function ec_artist_link_page_public_projection_provider( $context ) {
 	$owner          = $context['owner'];
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( 'post' !== $owner['kind'] || $artist_blog_id !== (int) $owner['blog_id'] || 'artist_profile' !== $owner['subtype'] ) {
 		return null;
 	}

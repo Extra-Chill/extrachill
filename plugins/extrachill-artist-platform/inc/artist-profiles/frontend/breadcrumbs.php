@@ -123,14 +123,11 @@ add_filter( 'extrachill_back_to_home_label', 'ec_artist_platform_back_to_home_la
  * @since 1.1.0
  */
 function ec_artist_platform_schema_breadcrumb_items( $items ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id || get_current_blog_id() !== $artist_blog_id ) {
 		return $items;
 	}
 
-	if ( ! function_exists( 'ec_get_site_url' ) ) {
-		return $items;
-	}
 	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → Artist Platform

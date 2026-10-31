@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function extrachill_artist_platform_ability_create_artist_link_page( $input ) {
 	$artist_id      = isset( $input['artist_id'] ) ? absint( $input['artist_id'] ) : 0;
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( ! $artist_id || ! $artist_blog_id ) {
 		return new WP_Error( 'invalid_artist_profile', 'A valid artist_id is required.', array( 'status' => 400 ) );
 	}

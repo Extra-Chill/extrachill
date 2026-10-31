@@ -41,7 +41,7 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		// @phpstan-ignore phpstan.arguments.count (provided by extrachill-users at runtime; outside this component's analysis scope.)
 		$existing_artist_ids = ec_get_artists_for_user( $user_id );
 		if ( ! empty( $existing_artist_ids ) ) {
-			$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+			$artist_blog_id = ec_get_blog_id( 'artist' );
 			if ( $artist_blog_id ) {
 				switch_to_blog( $artist_blog_id );
 				$normalized_new = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name ) : strtolower( $name );
@@ -66,7 +66,7 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		}
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
 	}

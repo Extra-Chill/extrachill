@@ -32,7 +32,7 @@ class EC_CLI_MigrateGenreCommand {
 	 * @return array[]|WP_Error Rows: profile_id, name, input, resolved, status.
 	 */
 	public static function collect_rows() {
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+		$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 		if ( $artist_blog_id <= 0 ) {
 			return new WP_Error( 'artist_site_unavailable', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ) );
 		}
@@ -173,7 +173,7 @@ class EC_CLI_MigrateGenreCommand {
 
 		$applied        = 0;
 		$failed         = 0;
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+		$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 		foreach ( $resolved_rows as $row ) {
 			$profile_id = (int) $row['profile_id'];
 			$did_switch = get_current_blog_id() !== $artist_blog_id;

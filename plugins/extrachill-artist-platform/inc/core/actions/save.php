@@ -142,7 +142,7 @@ function ec_finalize_external_artist_link_page_save( $link_page_id, $artist_id, 
 function ec_handle_link_page_save_completion( $link_page_id ) {
 	$artist_id = apply_filters('ec_get_artist_id', $link_page_id);
 	if ( $artist_id ) {
-		$blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+		$blog = (int) ec_get_blog_id( 'artist' );
 		ec_artist_with_image_blog( $blog, static function () use ( $artist_id ) {
 			if ( 'artist_profile' === get_post_type( $artist_id ) ) {
 				do_action( 'ec_artist_platform_sync', $artist_id );

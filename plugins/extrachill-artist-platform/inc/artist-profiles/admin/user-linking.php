@@ -20,7 +20,7 @@ require_once __DIR__ . '/membership.php';
  * @return array|WP_Error Relationship rows or an artist-site configuration error.
  */
 function ec_get_artist_relationships_for_admin( $view = 'artists', $search = '' ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'no_artist_site', __( 'Artist site not configured.', 'extrachill-artist-platform' ), array( 'status' => 400 ) );
 	}
@@ -114,7 +114,7 @@ function ec_get_artist_relationships_for_admin( $view = 'artists', $search = '' 
  * @return array|WP_Error Orphan rows or an artist-site configuration error.
  */
 function ec_get_orphaned_artist_relationships() {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'no_artist_site', __( 'Artist site not configured.', 'extrachill-artist-platform' ), array( 'status' => 400 ) );
 	}
