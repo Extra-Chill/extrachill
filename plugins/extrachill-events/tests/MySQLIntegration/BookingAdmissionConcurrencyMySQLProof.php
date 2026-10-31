@@ -710,7 +710,11 @@ final class BookingAdmissionConcurrencyMySQLProof extends BookingSecondSessionMy
 			do {
 				$processes = $this->contender->query( 'SELECT ID, INFO FROM information_schema.PROCESSLIST WHERE COMMAND = \'Query\' AND ID IN (' . implode( ',', $thread_ids ) . ')' );
 				if ( $processes instanceof mysqli_result ) {
-					$queries = array_column( $processes->fetch_all( MYSQLI_ASSOC ), 'INFO' );
+					// PROCESSLIST.INFO is null when the statement text is unavailable; normalize like the ordered-first probe above.
+					$queries = array_map(
+						static fn( $info ): string => (string) ( $info ?? '' ),
+						array_column( $processes->fetch_all( MYSQLI_ASSOC ), 'INFO' )
+					);
 					$processes->free();
 					$both_waiting    = 2 === count( array_filter( $queries, static fn( string $query ): bool => false !== stripos( $query, 'FOR UPDATE' ) ) );
 					$booking_waiting = 1 === count( array_filter( $queries, static fn( string $query ): bool => false !== stripos( $query, $bookings ) && false !== stripos( $query, 'FOR UPDATE' ) ) );
