@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.16.3] - 2026-10-31
+
+### Changed
+- consume in-tree @extrachill packages via local_workspace_dependencies
+
+### Fixed
+- padded, readable guest list page; no ads on guest list or check-in
+
 ## [2.16.2] - 2026-10-31
 
 ### Fixed
