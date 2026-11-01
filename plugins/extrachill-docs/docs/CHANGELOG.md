@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.10.1] - 2026-11-01
+
+### Changed
+- drop function_exists guards on ec_get_blog_id / ec_get_site_url
+
 ## [0.10.0] - 2026-10-22
 
 ### Added
