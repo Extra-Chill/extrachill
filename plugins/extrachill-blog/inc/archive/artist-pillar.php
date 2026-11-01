@@ -311,7 +311,7 @@ function extrachill_blog_get_artist_platform_activity( $term ) {
 	};
 	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
 	try {
-		$profiles = ec_cross_site_rest_request(
+		$profiles = extrachill_blog_cached_cross_site_request(
 			'artist',
 			'GET',
 			'/wp/v2/artist_profile',

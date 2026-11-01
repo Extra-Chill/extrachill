@@ -73,6 +73,12 @@ function extrachill_blog_get_location_event_counts() {
  * @return array[] Location count rows.
  */
 function extrachill_blog_request_location_event_counts( $query ) {
+	$cache_key = 'ec_blog_location_counts_' . md5( (string) wp_json_encode( $query ) );
+	$cached    = get_transient( $cache_key );
+	if ( is_array( $cached ) ) {
+		return $cached;
+	}
+
 	$request = new WP_REST_Request( 'GET', '/extrachill/v1/events/upcoming-counts' );
 	$request->set_query_params( $query );
 
@@ -83,6 +89,9 @@ function extrachill_blog_request_location_event_counts( $query ) {
 	}
 
 	$data = $response->get_data();
+	if ( is_array( $data ) ) {
+		set_transient( $cache_key, $data, 10 * MINUTE_IN_SECONDS );
+	}
 	return is_array( $data ) ? $data : array();
 }
 
@@ -277,7 +286,7 @@ function extrachill_blog_fetch_recently_shipped() {
 	$repos_active_this_month = 0;
 
 	foreach ( $repos as $repo ) {
-		if ( ! empty( $repo['pushed_at'] ) && strtotime( $repo['pushed_at'] ) >= $month_start ) {
+		if ( ! empty( $repo['pushed_at'] ) && $month_start <= strtotime( $repo['pushed_at'] ) ) {
 			++$repos_active_this_month;
 		}
 	}

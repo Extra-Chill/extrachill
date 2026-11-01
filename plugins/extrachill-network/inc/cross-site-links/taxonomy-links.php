@@ -433,7 +433,6 @@ function extrachill_get_events_upcoming_count_via_api( $term_slug, $taxonomy ) {
 	$request->set_query_params(
 		array(
 			'taxonomy' => $taxonomy,
-			'slug'     => $term_slug,
 		)
 	);
 
@@ -455,15 +454,25 @@ function extrachill_get_events_upcoming_count_via_api( $term_slug, $taxonomy ) {
 	}
 
 	$data = $response->get_data();
-	if ( empty( $data ) || ! isset( $data['count'] ) ) {
+	// The bulk route returns a flat list, just like the warmer's terms.
+	if ( ! is_array( $data ) ) {
 		return null;
 	}
 
-	return array(
-		'term_id' => null,
-		'count'   => (int) $data['count'],
-		'url'     => isset( $data['url'] ) ? $data['url'] : null,
-	);
+	$switched = (int) get_current_blog_id() !== (int) $events_blog_id;
+	if ( $switched ) {
+		switch_to_blog( $events_blog_id );
+	}
+	try {
+		set_transient( 'ec_upcoming_counts_' . $taxonomy, $data, 6 * HOUR_IN_SECONDS );
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+
+	$from_bulk = extrachill_get_events_count_from_bulk_cache( $term_slug, $taxonomy, (int) $events_blog_id );
+	return empty( $from_bulk ) ? null : $from_bulk;
 }
 
 /**
