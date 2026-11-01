@@ -6,6 +6,8 @@ This is a **platform primitive**. It owns the canonical token definitions that t
 
 ## Installation
 
+In-repo consumers use the workspace source; npm is frozen at the last published version.
+
 ```bash
 npm install @extrachill/tokens
 ```

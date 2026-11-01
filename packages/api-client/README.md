@@ -4,6 +4,8 @@ Universal typed API client for the Extra Chill platform. One package, every cont
 
 ## Install
 
+In-repo consumers use the workspace source; npm is frozen at the last published version.
+
 ```bash
 npm install @extrachill/api-client
 ```

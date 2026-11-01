@@ -21,6 +21,8 @@ This package provides reusable UI components used across multiple Extra Chill Wo
 
 ## Installation
 
+In-repo consumers use the workspace source; npm is frozen at the last published version.
+
 Install the package with its React peer dependency:
 
 ```json

@@ -5,6 +5,9 @@
     "nodejs": {}
   },
   "id": "extrachill-api-client",
+  "release": {
+    "publish": false
+  },
   "remote_path": "",
   "version_targets": [
     {
