@@ -97,6 +97,11 @@
       "local_path": ""
     },
     {
+      "id": "extrachill-booking",
+      "remote_path": "wp-content/plugins/extrachill-booking",
+      "local_path": ""
+    },
+    {
       "id": "extrachill-cache",
       "remote_path": "wp-content/plugins/extrachill-cache",
       "local_path": ""

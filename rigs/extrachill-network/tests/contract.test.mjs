@@ -48,7 +48,16 @@ try {
   assert.equal(pinned['data-machine-socials'], undefined, 'override wins');
   assert.equal(pinned['data-machine-business'].ref, 'data-machine-business-v1.0.0', 'caller pin wins');
   assert.equal(pinned['data-machine'], undefined, 'core keeps releases/latest');
-  assert.deepEqual(releaseLookups, [['Extra-Chill/data-machine', 'data-machine-events-v']]);
+  assert.equal(pinned['extrachill-booking'].ref, 'extrachill-booking-v9.9.9');
+  assert.deepEqual(releaseLookups, [
+    ['Extra-Chill/extrachill', 'extrachill-booking-v'],
+    ['Extra-Chill/data-machine', 'data-machine-events-v'],
+  ]);
+  const booking = components.plugins.find((component) => component.slug === 'extrachill-booking');
+  assert.deepEqual(booking.activations, [{
+    pluginFile: 'extrachill-booking/extrachill-booking.php',
+    scope: ['events.extrachill.com'],
+  }]);
 
   const releasePages = [
     [{ tag_name: 'data-machine-v0.201.0' }, { tag_name: 'data-machine-events-v0.79.0', draft: true }, { tag_name: 'data-machine-events-v0.78.1', prerelease: true }],

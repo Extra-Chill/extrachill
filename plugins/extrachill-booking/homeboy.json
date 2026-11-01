@@ -1,0 +1,34 @@
+{
+  "auto_cleanup": false,
+  "changelog_target": "docs/CHANGELOG.md",
+  "extensions": {
+    "wordpress": {
+      "php": "8.4",
+      "database_type": "mysql",
+      "settings": {
+        "wordpress_runtime_php_version": "8.4",
+        "wp_codebox_multisite": true,
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_phpunit_suites": [
+          {
+            "name": "smoke",
+            "config": "phpunit.xml.dist",
+            "runtime": "sandbox"
+          }
+        ],
+        "validation_dependencies": [
+          "extrachill-events",
+          "extrachill-network"
+        ]
+      }
+    }
+  },
+  "id": "extrachill-booking",
+  "remote_path": "wp-content/plugins/extrachill-booking",
+  "version_targets": [
+    {
+      "file": "extrachill-booking.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    }
+  ]
+}
