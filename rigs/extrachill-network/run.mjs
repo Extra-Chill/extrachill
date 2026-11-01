@@ -810,6 +810,7 @@ export async function buildRecipe(settings = {}, cwd = process.cwd()) {
       preview: { siteUrl: `http://${topology.sites.find((site) => site.primary)?.domain ?? topology.sites[0].domain}/` },
     },
     inputs: {
+      ...inMemoryOpcacheInputs(phpVersion),
       ...(Object.keys(runtimeEnv).length > 0 ? { runtimeEnv } : {}),
       extra_plugins: extraPlugins,
       ...(theme.extraThemes ? { extra_themes: theme.extraThemes } : {}),
@@ -1591,6 +1592,32 @@ export function runtimeWorkers(settings) {
     return value;
   }
   throw new Error('extrachill_runtime_workers must be an integer from 1 to 64, or "auto".');
+}
+
+// In-memory OPcache. wp-codebox turns OPcache off by default because
+// php-wasm's file-cache-only mode is slower than compiling (#2574). The
+// in-memory cache roughly halves journey step time on PHP 8.4 (#483), but
+// crashes or misbehaves on 7.4, 8.0 and 8.5 under php-wasm
+// (WordPress/wordpress-playground#3617), so it is limited to 8.1-8.4.
+export function inMemoryOpcacheInputs(phpVersion) {
+  if (!/^8\.[1-4]$/.test(String(phpVersion ?? ''))) {
+    return {};
+  }
+  return {
+    pluginRuntime: {
+      php: {
+        bootstrapIniEntries: {
+          'opcache.enable': '1',
+          'opcache.enable_cli': '1',
+          'opcache.file_cache_only': '0',
+          'opcache.memory_consumption': '256',
+          'opcache.interned_strings_buffer': '16',
+          'opcache.max_accelerated_files': '20000',
+          'opcache.revalidate_freq': '0',
+        },
+      },
+    },
+  };
 }
 
 function runtimePhpVersion(settings) {
