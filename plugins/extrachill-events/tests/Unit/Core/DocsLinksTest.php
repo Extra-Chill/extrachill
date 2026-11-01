@@ -36,7 +36,7 @@ final class DocsLinksTest extends TestCase {
 	public static function screen_links(): array {
 		return array(
 			'submit form, logged in and logged out' => array( 'blocks/event-submission/render.php', 'add-your-tour', 2 ),
-			'venue booking button'                  => array( 'inc/templates/archive.php', 'venue-booking-inquiries', 1 ),
+			'venue booking button'                  => array( 'inc/core/booking-ui.php', 'venue-booking-inquiries', 1 ),
 			'home search'                           => array( 'inc/core/account-market.php', 'finding-live-music', 1 ),
 		);
 	}

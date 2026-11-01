@@ -42,7 +42,7 @@ final class ArchiveEventsFirstTest extends TestCase {
 
 		$calendar = strpos( $source, 'wp:data-machine-events/calendar' );
 		$hook     = strpos( $source, "do_action( 'extrachill_archive_below_calendar' )" );
-		$booking  = strpos( $source, 'wp:extrachill/venue-booking-inquiry' );
+		$booking  = strpos( $source, "do_action( 'extrachill_events_venue_archive_after_calendar'" );
 
 		$this->assertNotFalse( $calendar );
 		$this->assertNotFalse( $hook );
@@ -58,7 +58,8 @@ final class ArchiveEventsFirstTest extends TestCase {
 	/** Map, merged scene prompt, and workspace action all register below the calendar. */
 	/** The theme only pads buttons that carry a size variant. */
 	public function test_archive_buttons_carry_a_theme_size_variant(): void {
-		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/templates/archive.php' );
+		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/templates/archive.php' )
+			. file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-ui.php' );
 
 		$this->assertIsString( $source );
 		preg_match_all( '/class="(button-(?:1|2|3|danger)\b[^"]*)"/', $source, $matches );
@@ -96,6 +97,17 @@ final class ArchiveEventsFirstTest extends TestCase {
 		$this->assertStringNotContainsString( 'extrachill_archive_below_description', $digest );
 		$this->assertStringNotContainsString( 'extrachill_archive_below_calendar', $digest );
 		$this->assertStringNotContainsString( 'extrachill_events_render_local_scene_digest_opt_in', $digest );
+	}
+
+	/** The archive and common bootstrap do not import booking UI. */
+	public function test_booking_ui_is_owned_by_the_booking_provider(): void {
+		$base = dirname( __DIR__, 3 );
+		$archive = file_get_contents( $base . '/inc/templates/archive.php' );
+		$this->assertStringContainsString( "do_action( 'extrachill_events_venue_archive_actions', \$queried_term )", $archive );
+		$this->assertStringNotContainsString( 'VenueBooking', $archive );
+		$this->assertStringNotContainsString( 'venue-booking-inquiry', $archive );
+		$this->assertStringNotContainsString( 'venue-booking-inquiry', file_get_contents( $base . '/inc/core/bootstrap.php' ) );
+		$this->assertStringContainsString( 'inc/core/booking-ui.php', file_get_contents( $base . '/inc/Providers/VenueBookingProvider.php' ) );
 	}
 
 	/** Archive maps ship collapsed by default with the taller expanded height. */

@@ -2,6 +2,7 @@
  * WordPress dependencies
  */
 import { createRoot, useEffect, useRef, useState } from '@wordpress/element';
+import { applyFilters } from '@wordpress/hooks';
 
 /**
  * External dependencies
@@ -18,9 +19,6 @@ import {
  * Internal dependencies
  */
 import { errorDetails, runAbility } from './api';
-import { BookingConsole } from './booking-console';
-import { BookingFormTab } from './booking-form-tab';
-import { BookingTab } from './booking-tab';
 import { ClaimPanel, ClaimsTab } from './claims-tab';
 import {
 	ManagedIdentitySelector,
@@ -34,9 +32,42 @@ import { ProfileTab } from './profile-tab';
 import { LoadingPanel, Status } from './status';
 import { TeamTab } from './team-tab';
 import { VenueWorkspaceHeader } from './venue-workspace-header';
-import { editableConfig, profileChanges, sameDocument } from './state';
+import { profileChanges, sameDocument } from './state';
+
+// Extensions wrap the shell with feature-owned state. Tabs consume that state
+// through their extension id, without the shell importing feature modules.
+function ExtensionProviders( {
+	extensions,
+	index = 0,
+	values = {},
+	children,
+	...props
+} ) {
+	const extension = extensions[ index ];
+	if ( ! extension ) {
+		return children( values );
+	}
+	const Component = extension.component;
+	return (
+		<Component { ...props }>
+			{ ( value ) => (
+				<ExtensionProviders
+					{ ...props }
+					extensions={ extensions }
+					index={ index + 1 }
+					values={ { ...values, [ extension.id ]: value } }
+				>
+					{ children }
+				</ExtensionProviders>
+			) }
+		</Component>
+	);
+}
 
 export function VenueSettingsApp( { context } ) {
+	const [ extensions ] = useState( () =>
+		applyFilters( 'extrachill.venueSettings.extensions', [], context )
+	);
 	const selected = context.selected_venue;
 	const workspace = context.workspace || {
 		identities: [],
@@ -49,21 +80,16 @@ export function VenueSettingsApp( { context } ) {
 	const [ loadErrors, setLoadErrors ] = useState( {} );
 	const [ profiles, setProfiles ] = useState( {} );
 	const [ profileBaselines, setProfileBaselines ] = useState( {} );
-	const [ configs, setConfigs ] = useState( {} );
-	const [ configBaselines, setConfigBaselines ] = useState( {} );
-	const [ configRevisions, setConfigRevisions ] = useState( {} );
 	const [ members, setMembers ] = useState( {} );
 	const [ invitations, setInvitations ] = useState( {} );
 	const [ claims, setClaims ] = useState( [] );
 	const [ profileStatuses, setProfileStatuses ] = useState( {} );
-	const [ configStatuses, setConfigStatuses ] = useState( {} );
 	const [ savingProfiles, setSavingProfiles ] = useState( {} );
-	const [ savingConfigs, setSavingConfigs ] = useState( {} );
+	const [ extensionDirty, setExtensionDirty ] = useState( {} );
 	const [ linkPageDirtyByIdentity, setLinkPageDirtyByIdentity ] = useState(
 		{}
 	);
 	const profileRequestIds = useRef( {} );
-	const configRequestIds = useRef( {} );
 	const teamRequestIds = useRef( {} );
 	let scopedVenues = selected ? [ selected ] : context.venues;
 	if ( promoterMode ) {
@@ -89,25 +115,19 @@ export function VenueSettingsApp( { context } ) {
 	const venueDirty = scopedVenues.some( ( venue ) => {
 		const profile = profiles[ venue.id ];
 		const profileBaseline = profileBaselines[ venue.id ];
-		const config = configs[ venue.id ];
-		const configBaseline = configBaselines[ venue.id ];
-		return (
-			Boolean(
-				profile &&
-					profileBaseline &&
-					! sameDocument( profile, profileBaseline )
-			) ||
-			Boolean(
-				config &&
-					configBaseline &&
-					! sameDocument( config, configBaseline )
-			)
+		return Boolean(
+			profile &&
+				profileBaseline &&
+				! sameDocument( profile, profileBaseline )
 		);
 	} );
 	const linkPageDirty = Object.values( linkPageDirtyByIdentity ).some(
 		Boolean
 	);
-	const dirty = linkPageDirty || venueDirty;
+	const dirty =
+		linkPageDirty ||
+		venueDirty ||
+		Object.values( extensionDirty ).some( Boolean );
 	const setLinkPageDirty = ( reference, value ) =>
 		setLinkPageDirtyByIdentity( ( current ) => ( {
 			...current,
@@ -185,35 +205,9 @@ export function VenueSettingsApp( { context } ) {
 			setVenueError( venue.id, 'profile', errorDetails( error ).message );
 		}
 	};
-	const loadConfig = async ( venue ) => {
-		const currentRequest =
-			( configRequestIds.current[ venue.id ] || 0 ) + 1;
-		configRequestIds.current[ venue.id ] = currentRequest;
-		setVenueError( venue.id, 'config', null );
-		try {
-			const result = await runAbility(
-				'extrachill/get-venue-booking-config',
-				{
-					venue_term_id: venue.id,
-				}
-			);
-			if ( currentRequest !== configRequestIds.current[ venue.id ] ) {
-				return;
-			}
-			setVenueState( setConfigRevisions, venue.id, result.revision );
-			const editable = editableConfig( result );
-			setVenueState( setConfigs, venue.id, editable );
-			setVenueState( setConfigBaselines, venue.id, editable );
-		} catch ( error ) {
-			if ( currentRequest !== configRequestIds.current[ venue.id ] ) {
-				return;
-			}
-			setVenueError( venue.id, 'config', errorDetails( error ).message );
-		}
-	};
 	const loadVenue = async ( venue ) => {
 		if ( canAccess( venue ) ) {
-			await Promise.all( [ loadProfile( venue ), loadConfig( venue ) ] );
+			await loadProfile( venue );
 		}
 		await loadTeam( venue );
 	};
@@ -301,70 +295,44 @@ export function VenueSettingsApp( { context } ) {
 			setVenueState( setSavingProfiles, venue.id, false );
 		}
 	};
-	const saveConfig = async ( venue ) => {
-		const config = configs[ venue.id ];
-		setVenueState( setSavingConfigs, venue.id, true );
-		setVenueState( setConfigStatuses, venue.id, null );
-		try {
-			const result = await runAbility(
-				'extrachill/update-venue-booking-config',
-				{
-					venue_term_id: venue.id,
-					expected_revision: configRevisions[ venue.id ],
-					config,
-				}
-			);
-			const editable = editableConfig( result );
-			setVenueState( setConfigRevisions, venue.id, result.revision );
-			setVenueState( setConfigs, venue.id, editable );
-			setVenueState( setConfigBaselines, venue.id, editable );
-			setVenueState( setConfigStatuses, venue.id, {
-				tone: 'success',
-				message: 'Venue settings saved.',
-			} );
-		} catch ( error ) {
-			const details = errorDetails( error );
-			setVenueState( setConfigStatuses, venue.id, {
-				tone: details.status === 409 ? 'warning' : 'error',
-				message:
-					details.status === 409
-						? `${ details.message } Reload before saving again.`
-						: details.message,
-			} );
-		} finally {
-			setVenueState( setSavingConfigs, venue.id, false );
-		}
-	};
 
-	const tabs = [
-		...( accessibleVenues.length
-			? [
-					{ id: 'calendar', label: 'Bookings' },
-					{ id: 'venue', label: 'Venue' },
-					{ id: 'calendar-feed', label: 'Calendar Feed' },
-					{ id: 'graphics', label: 'Graphics' },
-					{ id: 'link-page', label: 'Link Page' },
-					{ id: 'booking-form', label: 'Booking Form' },
-					{ id: 'settings', label: 'Booking Rules' },
-			  ]
-			: [] ),
-		...( manageableVenues.length ? [ { id: 'team', label: 'Team' } ] : [] ),
-	];
+	const tabContext = { context, accessibleVenues, manageableVenues };
+	const tabs = applyFilters(
+		'extrachill.venueSettings.tabs',
+		[
+			...( accessibleVenues.length
+				? [
+						{ id: 'venue', label: 'Venue' },
+						{ id: 'calendar-feed', label: 'Calendar Feed' },
+						{ id: 'graphics', label: 'Graphics' },
+						{ id: 'link-page', label: 'Link Page' },
+				  ]
+				: [] ),
+			...( manageableVenues.length
+				? [ { id: 'team', label: 'Team' } ]
+				: [] ),
+		],
+		tabContext
+	).filter( ( tab ) => ! tab.isVisible || tab.isVisible( tabContext ) );
 	const resolvedActiveTab = tabs.some( ( tab ) => tab.id === activeTab )
 		? activeTab
 		: tabs[ 0 ]?.id;
-	const renderVenuePanel = ( venue, tab ) => {
-		const venueContext = {
-			...context,
-			selected_venue: venue,
-			can_access: canAccess( venue ),
-			can_manage: canManage( venue ),
-			booking_id: selected?.id === venue.id ? context.booking_id : 0,
-			booking_url: venue.booking_url || context.booking_url || '',
-		};
+	const renderVenuePanel = ( venue, tab, values ) => {
 		const errors = loadErrors[ venue.id ] || {};
-		const config = configs[ venue.id ];
 		const idPrefix = selected ? '' : `venue-${ venue.id }-`;
+		const definition = tabs.find( ( item ) => item.id === tab );
+		if ( definition?.component ) {
+			const Component = definition.component;
+			return (
+				<Component
+					venue={ venue }
+					tab={ tab }
+					idPrefix={ idPrefix }
+					context={ context }
+					extension={ values[ definition.extension ] }
+				/>
+			);
+		}
 		if ( tab === 'link-page' ) {
 			return (
 				<SharedLinkPageEditor
@@ -417,59 +385,6 @@ export function VenueSettingsApp( { context } ) {
 				<LoadingPanel label="Loading profile..." />
 			);
 		}
-		if ( tab === 'settings' || tab === 'booking-form' ) {
-			if ( errors.config ) {
-				return (
-					<Panel>
-						<InlineStatus tone="error">
-							{ errors.config }
-						</InlineStatus>
-						<button
-							type="button"
-							className="button-2"
-							onClick={ () => loadConfig( venue ) }
-						>
-							Retry booking settings
-						</button>
-					</Panel>
-				);
-			}
-			if ( ! config ) {
-				return <LoadingPanel label="Loading venue settings..." />;
-			}
-			return tab === 'booking-form' ? (
-				<BookingFormTab
-					config={ config }
-					baseline={ configBaselines[ venue.id ] }
-					setConfig={ ( value ) =>
-						setVenueState( setConfigs, venue.id, value )
-					}
-					onInitializeConfig={ ( value ) => {
-						setVenueState( setConfigs, venue.id, value );
-						setVenueState( setConfigBaselines, venue.id, value );
-					} }
-					onSave={ () => saveConfig( venue ) }
-					saving={ Boolean( savingConfigs[ venue.id ] ) }
-					status={ configStatuses[ venue.id ] }
-					bookingUrl={ venueContext.booking_url }
-					venueName={ venue.name }
-					profile={ profiles[ venue.id ] }
-					idPrefix={ idPrefix }
-				/>
-			) : (
-				<BookingTab
-					config={ config }
-					baseline={ configBaselines[ venue.id ] }
-					setConfig={ ( value ) =>
-						setVenueState( setConfigs, venue.id, value )
-					}
-					onSave={ () => saveConfig( venue ) }
-					saving={ Boolean( savingConfigs[ venue.id ] ) }
-					status={ configStatuses[ venue.id ] }
-					idPrefix={ idPrefix }
-				/>
-			);
-		}
 		if ( tab === 'team' ) {
 			return (
 				<>
@@ -493,18 +408,15 @@ export function VenueSettingsApp( { context } ) {
 		}
 		return null;
 	};
-	const renderPanel = ( tab ) => {
-		if ( tab === 'calendar' ) {
+	const renderPanel = ( tab, values ) => {
+		const definition = tabs.find( ( item ) => item.id === tab );
+		if ( definition?.scope === 'workspace' && definition.component ) {
+			const Component = definition.component;
 			return (
-				<BookingConsole
+				<Component
 					context={ context }
 					venues={ accessibleVenues }
-					defaultDeals={ Object.fromEntries(
-						accessibleVenues.map( ( venue ) => [
-							venue.id,
-							configs[ venue.id ]?.default_deal,
-						] )
-					) }
+					extension={ values[ definition.extension ] }
 				/>
 			);
 		}
@@ -522,7 +434,7 @@ export function VenueSettingsApp( { context } ) {
 						{ venue.name }
 					</h2>
 				) }
-				{ renderVenuePanel( venue, tab ) }
+				{ renderVenuePanel( venue, tab, values ) }
 			</section>
 		) );
 	};
@@ -545,7 +457,7 @@ export function VenueSettingsApp( { context } ) {
 			) }
 		</>
 	) : null;
-	const renderWorkspace = () => {
+	const renderWorkspace = ( values ) => {
 		if ( promoterMode ) {
 			return (
 				<PromoterWorkspacePanel
@@ -592,7 +504,7 @@ export function VenueSettingsApp( { context } ) {
 					tabs={ tabs }
 					active={ resolvedActiveTab }
 					onChange={ setActiveTab }
-					renderPanel={ renderPanel }
+					renderPanel={ ( tab ) => renderPanel( tab, values ) }
 					mobileBreakpoint={ 720 }
 					syncWithHash
 					contextSurface="venue-settings"
@@ -621,7 +533,17 @@ export function VenueSettingsApp( { context } ) {
 						onSwitchVenue={ switchVenue }
 					/>
 				) }
-				{ renderWorkspace() }
+				<ExtensionProviders
+					extensions={ extensions }
+					context={ context }
+					venues={ accessibleVenues }
+					profiles={ profiles }
+					onDirtyChange={ ( id, value ) =>
+						setVenueState( setExtensionDirty, id, value )
+					}
+				>
+					{ renderWorkspace }
+				</ExtensionProviders>
 			</BlockShellInner>
 		</BlockShell>
 	);

@@ -27,21 +27,7 @@ extrachill_breadcrumbs();
 		<header class="taxonomy-archive-header venue-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
 			<?php
-			if ( class_exists( '\ExtraChillEvents\Core\VenueBookingConfig' ) && class_exists( '\ExtraChillEvents\Core\VenueBookingEmbed' ) ) :
-				$booking_config = ( new \ExtraChillEvents\Core\VenueBookingConfig() )->get_public_projection( (int) $queried_term->term_id );
-				if ( ! is_wp_error( $booking_config ) && ! empty( $booking_config['enabled'] ) ) :
-					$booking_url = \ExtraChillEvents\Core\VenueBookingEmbed::booking_url( $queried_term );
-					if ( $booking_url ) :
-						?>
-						<p class="venue-booking-cta"><a class="button-1 button-medium" href="<?php echo esc_url( $booking_url ); ?>"><?php esc_html_e( 'Submit a booking inquiry', 'extrachill-events' ); ?></a>
-						<?php if ( function_exists( 'extrachill_events_docs_url' ) ) : ?>
-							<a href="<?php echo esc_url( extrachill_events_docs_url( 'venue-booking-inquiries' ) ); ?>"><?php esc_html_e( 'How booking inquiries work', 'extrachill-events' ); ?></a>
-						<?php endif; ?>
-						</p>
-						<?php
-					endif;
-				endif;
-			endif;
+			do_action( 'extrachill_events_venue_archive_actions', $queried_term );
 			?>
 			
 			<?php if ( ! empty( $queried_term->description ) ) : ?>
@@ -158,14 +144,7 @@ extrachill_breadcrumbs();
 	do_action( 'extrachill_archive_below_calendar' );
 	?>
 	<?php if ( is_tax( 'venue' ) ) : ?>
-		<div class="page-content">
-			<?php
-			/** @var \WP_Term $booking_venue */
-			$booking_venue = get_queried_object();
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- do_blocks() renders a hardcoded block with an integer term identifier.
-			echo do_blocks( '<!-- wp:extrachill/venue-booking-inquiry {"venueId":' . absint( $booking_venue->term_id ) . '} /-->' );
-			?>
-		</div>
+		<?php do_action( 'extrachill_events_venue_archive_after_calendar', get_queried_object() ); ?>
 	<?php endif; ?>
 </div>
 

@@ -15,6 +15,8 @@ import { act } from 'react';
 /**
  * Internal dependencies
  */
+import { removeFilter } from '@wordpress/hooks';
+import { registerBookingSettings } from './booking-settings';
 import { VenueSettingsApp } from './view';
 import { VenueWorkspaceHeader } from './venue-workspace-header';
 
@@ -516,6 +518,7 @@ describe( 'venue settings authorization-facing states', () => {
 		delete global.IS_REACT_ACT_ENVIRONMENT;
 	} );
 	beforeEach( () => {
+		registerBookingSettings();
 		document.body.innerHTML = '';
 		apiFetch.mockReset();
 		installApi();
@@ -551,6 +554,27 @@ describe( 'venue settings authorization-facing states', () => {
 			await act( async () => root.unmount() );
 		}
 	);
+
+	it( 'renders venue settings without any booking extensions registered', async () => {
+		removeFilter(
+			'extrachill.venueSettings.tabs',
+			'extrachill/booking-settings'
+		);
+		removeFilter(
+			'extrachill.venueSettings.extensions',
+			'extrachill/booking-settings'
+		);
+		const { container, root } = await renderApp( context() );
+		expect( container.textContent ).toContain( 'Calendar Feed' );
+		expect( container.textContent ).not.toContain( 'Booking Form' );
+		expect( container.textContent ).not.toContain( 'Booking Rules' );
+		expect(
+			apiFetch.mock.calls.some( ( [ request ] ) =>
+				request.path.includes( 'booking' )
+			)
+		).toBe( false );
+		await act( async () => root.unmount() );
+	} );
 
 	it( 'does not initialize venue resources for a selected promoter identity', async () => {
 		const { container, root } = await renderApp(
