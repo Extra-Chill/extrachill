@@ -119,6 +119,23 @@ namespace {
 		return (string) $value; }
 	function esc_url( $value ): string {
 		return (string) $value; }
+	function add_filter(): bool {
+		return true; }
+	function apply_filters( $hook, $value ) {
+		unset( $hook );
+		return $value; }
+	function get_site_option( $name, $default = false ) {
+		unset( $name );
+		return $default; }
+
+	// Load the real network blog-id contract (ec_get_site_url()). Homeboy
+	// exports EXTRACHILL_NETWORK_PATH when extrachill-network is a validation
+	// dependency; otherwise fall back to the monorepo sibling checkout.
+	$ec_network_path = getenv( 'EXTRACHILL_NETWORK_PATH' );
+	if ( ! is_string( $ec_network_path ) || '' === $ec_network_path ) {
+		$ec_network_path = dirname( __DIR__, 3 ) . '/extrachill-network';
+	}
+	require_once rtrim( $ec_network_path, '/' ) . '/inc/core/blog-ids.php';
 
 	// The exact production precondition from #899: the Link Pages plugin's own
 	// editor assets are available (its runtime loaded fine), independent of
