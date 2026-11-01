@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.35.1] - 2026-11-01
+
+### Changed
+- drop function_exists guards on ec_get_blog_id / ec_get_site_url
+- share network contract stubs from extrachill-network test support
+
 ## [2.35.0] - 2026-10-31
 
 ### Added
