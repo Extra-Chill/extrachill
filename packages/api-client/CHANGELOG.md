@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.2] - 2026-11-01
+
+### Fixed
+- untrack npm pack tarball committed by a release
+
 ## [0.10.1] - 2026-11-01
 
 ### Changed
