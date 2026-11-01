@@ -584,17 +584,18 @@ function extrachill_check_term_on_site( $term_slug, $taxonomy, $blog_id ) {
 	switch_to_blog( $blog_id );
 	try {
 		// Check if taxonomy exists on this site.
-		if ( ! taxonomy_exists( $taxonomy ) ) {
+		$tax_obj = get_taxonomy( $taxonomy );
+		if ( false === $tax_obj ) {
 			return null;
 		}
 
 		$term = get_term_by( 'slug', $term_slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
+		if ( false === $term ) {
 			return null;
 		}
 
 		// Get actual post count (term->count may include unpublished).
-		$post_types = get_taxonomy( $taxonomy )->object_type;
+		$post_types = $tax_obj->object_type;
 		$query      = new WP_Query(
 			array(
 				'post_type'      => $post_types,
@@ -663,7 +664,7 @@ function extrachill_build_term_archive_url( $term_slug, $taxonomy, $blog_id ) {
 		}
 
 		$term = get_term_by( 'slug', $term_slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
+		if ( false === $term ) {
 			return null;
 		}
 
@@ -778,7 +779,7 @@ function extrachill_cross_site_links_maybe_flush_on_transition( $new_status, $ol
 		return;
 	}
 
-	if ( ! $post instanceof WP_Post || wp_is_post_autosave( $post ) || wp_is_post_revision( $post ) ) {
+	if ( wp_is_post_autosave( $post ) || wp_is_post_revision( $post ) ) {
 		return;
 	}
 

@@ -422,8 +422,8 @@ function extrachill_network_bridge_get_community_composer_fallback( $terms_by_ta
  * contract sends logged-out visitors to `/login/` with this complete URL as
  * `redirect_to`; Extra Chill Users then preserves that validated continuation.
  *
- * @param string $taxonomy Supported entity taxonomy.
- * @param string $slug     Canonical source term slug.
+ * @param mixed $taxonomy Supported entity taxonomy; validated as a string.
+ * @param mixed $slug     Canonical source term slug; validated as a string.
  * @return string Canonical composer URL, or an empty string on failure.
  */
 function extrachill_network_bridge_get_community_composer_url( $taxonomy, $slug ) {
@@ -467,7 +467,7 @@ function extrachill_network_bridge_get_community_composer_url( $taxonomy, $slug 
 		}
 	}
 
-	if ( ! $destination_term || is_wp_error( $destination_term ) || $destination_term->slug !== $slug ) {
+	if ( false === $destination_term || $destination_term->slug !== $slug ) {
 		return '';
 	}
 

@@ -126,7 +126,7 @@ add_filter( 'ec_link_page_subscribe_url', 'ec_network_link_page_subscribe_url', 
 /**
  * Edit-button endpoints for artist-owned Link Pages.
  *
- * @param array  $endpoints       Existing endpoints.
+ * @param mixed  $endpoints       Filter input, normalized to an array.
  * @param int    $link_page_id    Link Page ID.
  * @param string $owner_reference Owner reference.
  * @return array
@@ -229,7 +229,7 @@ add_filter( 'ec_link_page_edit_endpoints', 'ec_network_link_page_edit_endpoints'
  * venues and promoters (Events). Onboarding asks one question from this list
  * (extrachill-users ec_onboarding_join_intents); the first is pre-selected.
  *
- * @param array $intents Existing intents.
+ * @param mixed $intents Filter input, normalized to an array.
  * @return array
  */
 function ec_network_onboarding_join_intents( $intents ) {

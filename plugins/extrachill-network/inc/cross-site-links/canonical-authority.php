@@ -191,7 +191,7 @@ function extrachill_resolve_term_canonical( $slug, $taxonomy, $site_key ) {
 		}
 
 		$term = get_term_by( 'slug', $slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
+		if ( false === $term ) {
 			return null;
 		}
 
@@ -318,16 +318,17 @@ function extrachill_get_festival_term_post_count( $slug, $site_key ) {
 
 	switch_to_blog( $blog_id );
 	try {
-		if ( ! taxonomy_exists( 'festival' ) ) {
+		$tax_obj = get_taxonomy( 'festival' );
+		if ( false === $tax_obj ) {
 			return 0;
 		}
 
 		$term = get_term_by( 'slug', $slug, 'festival' );
-		if ( ! $term || is_wp_error( $term ) ) {
+		if ( false === $term ) {
 			return 0;
 		}
 
-		$post_types = get_taxonomy( 'festival' )->object_type;
+		$post_types = $tax_obj->object_type;
 		$query      = new WP_Query(
 			array(
 				'post_type'      => $post_types,
@@ -363,12 +364,13 @@ function extrachill_get_festival_term_post_count( $slug, $site_key ) {
 function extrachill_site_has_taxonomy_content( $slug, $taxonomy, $blog_id, $condition ) {
 	switch_to_blog( $blog_id );
 	try {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
+		$tax_obj = get_taxonomy( $taxonomy );
+		if ( false === $tax_obj ) {
 			return false;
 		}
 
 		$term = get_term_by( 'slug', $slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
+		if ( false === $term ) {
 			return false;
 		}
 
@@ -379,7 +381,7 @@ function extrachill_site_has_taxonomy_content( $slug, $taxonomy, $blog_id, $cond
 
 		// Check for published posts.
 		if ( 'has_posts' === $condition ) {
-			$post_types = get_taxonomy( $taxonomy )->object_type;
+			$post_types = $tax_obj->object_type;
 			$query      = new WP_Query(
 				array(
 					'post_type'      => $post_types,

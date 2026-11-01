@@ -23,21 +23,22 @@ $post_ids = get_posts(
 	)
 );
 if ( empty( $post_ids ) ) {
-	throw new RuntimeException( sprintf( 'No published %s post is available for the runtime probe.', $expected_type ) );
+	throw new RuntimeException( sprintf( 'No published %s post is available for the runtime probe.', esc_html( $expected_type ) ) );
 }
 
-$post_id = (int) $post_ids[0];
-$path    = ec_normalize_frontend_path( (string) wp_parse_url( get_permalink( $post_id ), PHP_URL_PATH ) );
-$request = new WP_REST_Request( 'GET', '/extrachill-network/v1/frontend-path-resolution' );
+$probe_post_id = (int) $post_ids[0];
+$probe_path    = ec_normalize_frontend_path( (string) wp_parse_url( get_permalink( $probe_post_id ), PHP_URL_PATH ) );
+$request       = new WP_REST_Request( 'GET', '/extrachill-network/v1/frontend-path-resolution' );
 $request->set_method( 'POST' );
 $request->set_header( 'Content-Type', 'application/json' );
-$request->set_body( wp_json_encode( array( 'paths' => array( $path ) ) ) );
+$request->set_body( wp_json_encode( array( 'paths' => array( $probe_path ) ) ) );
 $response = rest_do_request( $request );
 $data     = $response->get_data();
-$result   = $data['results'][ $path ] ?? array();
+$result   = $data['results'][ $probe_path ] ?? array();
 
-if ( $response->is_error() || 'complete' !== ( $data['status'] ?? null ) || 'resolved' !== ( $result['status'] ?? null ) || $post_id !== (int) ( $result['candidate']['post_id'] ?? 0 ) || $expected_type !== ( $result['candidate']['post_type'] ?? null ) ) {
-	throw new RuntimeException( sprintf( 'Runtime resolver probe failed for %s: %s', $expected_type, wp_json_encode( $data ) ) );
+if ( $response->is_error() || 'complete' !== ( $data['status'] ?? null ) || 'resolved' !== ( $result['status'] ?? null ) || (int) ( $result['candidate']['post_id'] ?? 0 ) !== $probe_post_id || ( $result['candidate']['post_type'] ?? null ) !== $expected_type ) {
+	throw new RuntimeException( sprintf( 'Runtime resolver probe failed for %s: %s', esc_html( $expected_type ), esc_html( wp_json_encode( $data ) ) ) );
 }
 
-fwrite( STDOUT, sprintf( 'Resolved %s post %d at %s.\n', $expected_type, $post_id, $path ) );
+// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- CLI output stream, not a filesystem write.
+fwrite( STDOUT, sprintf( 'Resolved %s post %d at %s.\n', $expected_type, $probe_post_id, $probe_path ) );

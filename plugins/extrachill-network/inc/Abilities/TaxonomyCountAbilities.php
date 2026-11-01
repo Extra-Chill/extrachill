@@ -104,7 +104,7 @@ class TaxonomyCountAbilities {
 	 * posts per term, and returns structured results.
 	 *
 	 * @param array $input Input parameters.
-	 * @return array|\WP_Error Term counts sorted by post count descending, or an invalid-site/taxonomy error.
+	 * @return array|\WP_Error Term counts sorted by post count descending, or an error.
 	 */
 	public function executeGetTaxonomyPostCounts( array $input ): array|\WP_Error {
 		$taxonomy  = $input['taxonomy'];
@@ -146,7 +146,7 @@ class TaxonomyCountAbilities {
 	 * @param string      $site_key  Site key for the response.
 	 * @param string|null $post_type Optional explicit post type.
 	 * @param string      $slug      Term slug to count.
-	 * @return array|\WP_Error Structured result (same shape as computeCounts), or an invalid-taxonomy error.
+	 * @return array|\WP_Error Structured result (same shape as computeCounts), or an error.
 	 */
 	private function computeSingleCount( string $taxonomy, string $site_key, ?string $post_type, string $slug ): array|\WP_Error {
 		$tax_obj = get_taxonomy( $taxonomy );
@@ -227,7 +227,7 @@ class TaxonomyCountAbilities {
 	 * @param string      $taxonomy  Taxonomy slug.
 	 * @param string      $site_key  Site key for the response.
 	 * @param string|null $post_type Optional explicit post type.
-	 * @return array|\WP_Error Structured result, or an invalid-taxonomy error.
+	 * @return array|\WP_Error Structured result, or an error.
 	 */
 	private function computeCounts( string $taxonomy, string $site_key, ?string $post_type ): array|\WP_Error {
 		$tax_obj = get_taxonomy( $taxonomy );
