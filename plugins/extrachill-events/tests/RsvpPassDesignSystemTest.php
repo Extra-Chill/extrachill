@@ -73,6 +73,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-rsvp-pass__label'   => 'muted small label',
 		'ec-rsvp-pass__code'    => 'monospace pass code',
 		'ec-rsvp-pass__qr'      => 'centered QR block',
+		'ec-rsvp-pass__art'     => 'per-event pass artwork, phone-width block (extrachill#500)',
 		'ec-rsvp-perk-teaser'   => 'teaser line for people without a pass',
 		'ec-rsvp-guest'         => 'guest email form: full-width centered line under the teaser',
 		'ec-rsvp-guest__note'   => 'muted small note under the guest form',

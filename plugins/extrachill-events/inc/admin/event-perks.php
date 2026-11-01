@@ -32,6 +32,12 @@ const EXTRACHILL_EVENTS_PERK_PASSWORD_MAX  = 128;
 const EXTRACHILL_EVENTS_PERK_CAPACITY_MAX  = 100000;
 
 /**
+ * Pass artwork (extrachill#500): an optional image attachment shown on the
+ * pass card next to the QR code, so each event's pass can carry its own art.
+ */
+const EXTRACHILL_EVENTS_PERK_IMAGE_META = '_extrachill_event_perk_image_id';
+
+/**
  * Whether an event currently offers an RSVP perk.
  *
  * @param int $post_id Event post ID.
@@ -122,6 +128,72 @@ function extrachill_events_set_perk_capacity( int $post_id, int $capacity ): voi
 	}
 
 	update_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_CAPACITY_META, $capacity );
+}
+
+/**
+ * Attachment ID of the event's pass artwork.
+ *
+ * @param int $post_id Event post ID.
+ * @return int 0 when no artwork is set or the attachment is no longer an image.
+ */
+function extrachill_events_get_perk_image_id( int $post_id ): int {
+	$image_id = (int) get_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_IMAGE_META, true );
+	if ( $image_id <= 0 || ! wp_attachment_is_image( $image_id ) ) {
+		return 0;
+	}
+
+	return $image_id;
+}
+
+/**
+ * Store (or clear) the event's pass artwork.
+ *
+ * @param int $post_id  Event post ID.
+ * @param int $image_id Image attachment ID; 0 clears it.
+ * @return bool False when $image_id is not an image attachment (nothing stored).
+ */
+function extrachill_events_set_perk_image_id( int $post_id, int $image_id ): bool {
+	if ( $image_id <= 0 ) {
+		delete_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_IMAGE_META );
+		return true;
+	}
+
+	if ( ! wp_attachment_is_image( $image_id ) ) {
+		return false;
+	}
+
+	update_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_IMAGE_META, $image_id );
+	return true;
+}
+
+/**
+ * URL of the event's pass artwork, sized for a phone screen.
+ *
+ * @param int    $post_id Event post ID.
+ * @param string $size    Registered image size.
+ * @return string Empty string when no artwork is set.
+ */
+function extrachill_events_get_perk_image_url( int $post_id, string $size = 'large' ): string {
+	$image_id = extrachill_events_get_perk_image_id( $post_id );
+	if ( ! $image_id ) {
+		return '';
+	}
+
+	return (string) wp_get_attachment_image_url( $image_id, $size );
+}
+
+/**
+ * Alt text for the event's pass artwork: the attachment's own alt text,
+ * falling back to a generic description.
+ *
+ * @param int $post_id Event post ID.
+ * @return string
+ */
+function extrachill_events_get_perk_image_alt( int $post_id ): string {
+	$image_id = extrachill_events_get_perk_image_id( $post_id );
+	$alt      = $image_id ? trim( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '';
+
+	return '' !== $alt ? $alt : __( 'Guest list pass artwork', 'extrachill-events' );
 }
 
 /**
@@ -255,7 +327,66 @@ function extrachill_events_perk_meta_box_callback( $post ) {
 	</p>
 	<p class="description"><?php esc_html_e( 'With a password, only people who know it can claim a pass. Once every spot is claimed, the guest list closes.', 'extrachill-events' ); ?></p>
 	<?php
+	$image_id  = extrachill_events_get_perk_image_id( $post->ID );
+	$image_url = $image_id ? (string) wp_get_attachment_image_url( $image_id, 'medium' ) : '';
+	?>
+	<div class="extrachill-event-perk-image">
+		<p><strong><?php esc_html_e( 'Pass artwork (optional)', 'extrachill-events' ); ?></strong></p>
+		<input
+			type="hidden"
+			id="extrachill_event_perk_image_id"
+			name="extrachill_event_perk_image_id"
+			value="<?php echo esc_attr( (string) $image_id ); ?>"
+		>
+		<img
+			class="extrachill-event-perk-image__preview"
+			src="<?php echo esc_url( $image_url ); ?>"
+			alt=""
+			style="display:block;max-width:100%;height:auto;margin-bottom:8px;"
+			<?php echo '' === $image_url ? 'hidden' : ''; ?>
+		>
+		<p>
+			<button type="button" class="button extrachill-event-perk-image__choose"><?php esc_html_e( 'Choose image', 'extrachill-events' ); ?></button>
+			<button type="button" class="button-link extrachill-event-perk-image__remove" <?php echo $image_id ? '' : 'hidden'; ?>><?php esc_html_e( 'Remove', 'extrachill-events' ); ?></button>
+		</p>
+		<p class="description"><?php esc_html_e( 'Shown on the pass next to the QR code. A tall phone-sized image works best.', 'extrachill-events' ); ?></p>
+	</div>
+	<?php
 }
+
+/**
+ * Load the media picker for the pass artwork control on the event edit screen.
+ *
+ * @param string $hook_suffix Current admin page.
+ */
+function extrachill_events_enqueue_perk_admin_assets( $hook_suffix ): void {
+	if ( 'post.php' !== $hook_suffix && 'post-new.php' !== $hook_suffix ) {
+		return;
+	}
+
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+	if ( ! $screen || 'data_machine_events' !== $screen->post_type ) {
+		return;
+	}
+
+	wp_enqueue_media();
+	wp_enqueue_script(
+		'extrachill-events-perk-image',
+		EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/admin-perk-image.js',
+		array( 'jquery' ),
+		EXTRACHILL_EVENTS_VERSION,
+		true
+	);
+	wp_localize_script(
+		'extrachill-events-perk-image',
+		'ecPerkImage',
+		array(
+			'title'  => __( 'Choose pass artwork', 'extrachill-events' ),
+			'button' => __( 'Use this image', 'extrachill-events' ),
+		)
+	);
+}
+add_action( 'admin_enqueue_scripts', 'extrachill_events_enqueue_perk_admin_assets' );
 
 /**
  * Save RSVP perk meta on post save.
@@ -297,6 +428,10 @@ function extrachill_events_save_event_perk( $post_id ) {
 		extrachill_events_set_perk_capacity( $post_id, absint( wp_unslash( $_POST['extrachill_event_perk_capacity'] ) ) );
 	}
 
+	if ( isset( $_POST['extrachill_event_perk_image_id'] ) ) {
+		extrachill_events_set_perk_image_id( $post_id, absint( wp_unslash( $_POST['extrachill_event_perk_image_id'] ) ) );
+	}
+
 	if ( $enabled ) {
 		update_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_ENABLED_META, true );
 	} else {
@@ -331,6 +466,7 @@ function extrachill_events_purge_on_perk_meta_change( $meta_ids, $object_id, $me
 		EXTRACHILL_EVENTS_PERK_TEXT_META,
 		EXTRACHILL_EVENTS_PERK_PASSWORD_META,
 		EXTRACHILL_EVENTS_PERK_CAPACITY_META,
+		EXTRACHILL_EVENTS_PERK_IMAGE_META,
 	);
 	if ( ! in_array( $meta_key, $perk_keys, true ) ) {
 		return;

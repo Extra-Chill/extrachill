@@ -62,12 +62,16 @@ class GuestListCommand {
 	 * [--capacity=<n>]
 	 * : Most passes the event will issue. 0 = unlimited.
 	 *
+	 * [--image-id=<attachment-id>]
+	 * : Pass artwork: an image attachment ID shown on the pass next to the QR code. 0 removes it.
+	 *
 	 * [--disable]
 	 * : Turn the guest list off.
 	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill events guest-list set 640348 --text="Extra Chill guest list" --password=spooky --capacity=60 --user=1 --url=events.extrachill.com
+	 *     wp extrachill events guest-list set 640348 --image-id=812345 --user=1 --url=events.extrachill.com
 	 *
 	 * @when after_wp_load
 	 */
@@ -98,6 +102,13 @@ class GuestListCommand {
 				WP_CLI::error( '--capacity must be 0 or a positive number.' );
 			}
 			$input['capacity'] = (int) $assoc_args['capacity'];
+		}
+
+		if ( isset( $assoc_args['image-id'] ) ) {
+			if ( ! is_numeric( $assoc_args['image-id'] ) || (int) $assoc_args['image-id'] < 0 ) {
+				WP_CLI::error( '--image-id must be 0 or an attachment ID.' );
+			}
+			$input['image_id'] = (int) $assoc_args['image-id'];
 		}
 
 		$this->run( 'extrachill/set-event-perk', $input );
@@ -136,7 +147,7 @@ class GuestListCommand {
 		}
 
 		$rows = array();
-		foreach ( array( 'post_id', 'enabled', 'text', 'password_required', 'capacity', 'claimed', 'checked_in', 'spots_left', 'full' ) as $field ) {
+		foreach ( array( 'post_id', 'enabled', 'text', 'password_required', 'capacity', 'claimed', 'checked_in', 'spots_left', 'full', 'image_id', 'image_url' ) as $field ) {
 			$value = $perk[ $field ] ?? null;
 			if ( is_bool( $value ) ) {
 				$value = $value ? 'yes' : 'no';

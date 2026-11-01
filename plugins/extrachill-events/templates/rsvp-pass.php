@@ -18,6 +18,8 @@
  * @var bool   $password_required Whether claiming a pass needs the guest list password (extrachill#433).
  * @var array  $guest_list        extrachill_events_get_guest_list_counts() result.
  * @var bool   $claim_form        Whether to render the logged-in password claim form.
+ * @var string $perk_image_url    Pass artwork URL (extrachill#500). Empty when none is set.
+ * @var string $perk_image_alt    Pass artwork alt text.
  *
  * The teaser is the conversion half of the perk: anyone without an active
  * pass (logged out, not Going yet) sees what marking Going gets them. It and
@@ -129,6 +131,14 @@ if ( isset( $guest_list['spots_left'] ) && ! $guest_list_full ) {
 	<?php echo $has_pass ? '' : 'hidden'; ?>
 >
 	<p class="ec-rsvp-pass__perk"><?php echo esc_html( $perk_text ); ?></p>
+	<?php if ( '' !== $perk_image_url ) : ?>
+	<img
+		class="ec-rsvp-pass__art"
+		src="<?php echo esc_url( $perk_image_url ); ?>"
+		alt="<?php echo esc_attr( $perk_image_alt ); ?>"
+		decoding="async"
+	>
+	<?php endif; ?>
 	<p class="ec-rsvp-pass__label"><?php esc_html_e( 'Show this pass at check-in:', 'extrachill-events' ); ?></p>
 	<p class="ec-rsvp-pass__code"><?php echo esc_html( $code ); ?></p>
 	<img

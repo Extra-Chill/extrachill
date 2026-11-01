@@ -410,3 +410,17 @@
     flex: 1 0 100%;
     margin: 0;
 }
+
+/*
+ * Pass artwork (extrachill#500): optional per-event image on the pass card,
+ * on both the event page and the /guest-list page. Sized for a phone screen;
+ * tall art keeps its proportions.
+ */
+.ec-rsvp-pass .ec-rsvp-pass__art {
+    display: block;
+    width: 100%;
+    max-width: 20rem;
+    height: auto;
+    margin: 0 auto var(--spacing-sm, 0.5rem);
+    border-radius: var(--border-radius-sm, 4px);
+}

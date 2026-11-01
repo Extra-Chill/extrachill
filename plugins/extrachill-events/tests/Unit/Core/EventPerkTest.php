@@ -64,6 +64,24 @@ if ( ! function_exists( 'extrachill_cache_purge_post' ) ) {
 	}
 }
 
+if ( ! function_exists( 'absint' ) ) {
+	function absint( $value ) {
+		return abs( (int) $value );
+	}
+}
+
+if ( ! function_exists( 'wp_attachment_is_image' ) ) {
+	function wp_attachment_is_image( $post_id ) {
+		return in_array( (int) $post_id, $GLOBALS['event_perk_test']['images'] ?? array(), true );
+	}
+}
+
+if ( ! function_exists( 'wp_get_attachment_image_url' ) ) {
+	function wp_get_attachment_image_url( $attachment_id, $size = 'thumbnail' ) {
+		return 'https://events.example.test/uploads/pass-' . (int) $attachment_id . '-' . $size . '.png';
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/admin/event-perks.php';
 
 final class EventPerkTest extends PHPUnit\Framework\TestCase {
@@ -73,6 +91,7 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['event_perk_test'] = array(
 			'meta'     => array(),
 			'can_edit' => true,
+			'images'   => array( 900 ),
 		);
 	}
 
@@ -177,5 +196,81 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 		extrachill_events_purge_on_perk_meta_change( 3, 44, '_some_other_meta' );
 
 		$this->assertSame( array( 42, 43 ), $GLOBALS['event_perk_test']['purged'] );
+	}
+
+	public function test_pass_artwork_is_unset_by_default(): void {
+		$this->assertSame( 0, extrachill_events_get_perk_image_id( 42 ) );
+		$this->assertSame( '', extrachill_events_get_perk_image_url( 42 ) );
+	}
+
+	public function test_pass_artwork_stores_an_image_attachment(): void {
+		$this->assertTrue( extrachill_events_set_perk_image_id( 42, 900 ) );
+
+		$this->assertSame( 900, extrachill_events_get_perk_image_id( 42 ) );
+		$this->assertSame( 'https://events.example.test/uploads/pass-900-large.png', extrachill_events_get_perk_image_url( 42 ) );
+	}
+
+	public function test_pass_artwork_rejects_a_non_image_attachment(): void {
+		$this->assertFalse( extrachill_events_set_perk_image_id( 42, 901 ) );
+
+		$this->assertSame( 0, extrachill_events_get_perk_image_id( 42 ) );
+		$this->assertArrayNotHasKey( EXTRACHILL_EVENTS_PERK_IMAGE_META, $GLOBALS['event_perk_test']['meta'][42] ?? array() );
+	}
+
+	public function test_pass_artwork_zero_clears_it(): void {
+		extrachill_events_set_perk_image_id( 42, 900 );
+		$this->assertTrue( extrachill_events_set_perk_image_id( 42, 0 ) );
+
+		$this->assertSame( 0, extrachill_events_get_perk_image_id( 42 ) );
+		$this->assertSame( '', extrachill_events_get_perk_image_url( 42 ) );
+	}
+
+	public function test_pass_artwork_is_ignored_once_the_attachment_is_no_longer_an_image(): void {
+		extrachill_events_set_perk_image_id( 42, 900 );
+		$GLOBALS['event_perk_test']['images'] = array();
+
+		$this->assertSame( 0, extrachill_events_get_perk_image_id( 42 ) );
+		$this->assertSame( '', extrachill_events_get_perk_image_url( 42 ) );
+	}
+
+	public function test_save_stores_and_clears_pass_artwork(): void {
+		$_POST = $this->post_save_request(
+			array(
+				'extrachill_event_perk_enabled'  => '1',
+				'extrachill_event_perk_image_id' => '900',
+			)
+		);
+		extrachill_events_save_event_perk( 42 );
+		$this->assertSame( 900, extrachill_events_get_perk_image_id( 42 ) );
+
+		$_POST = $this->post_save_request(
+			array(
+				'extrachill_event_perk_enabled'  => '1',
+				'extrachill_event_perk_image_id' => '0',
+			)
+		);
+		extrachill_events_save_event_perk( 42 );
+		$this->assertSame( 0, extrachill_events_get_perk_image_id( 42 ) );
+	}
+
+	public function test_save_without_the_artwork_field_keeps_the_current_image(): void {
+		extrachill_events_set_perk_image_id( 42, 900 );
+
+		$_POST = $this->post_save_request(
+			array(
+				'extrachill_event_perk_enabled' => '1',
+			)
+		);
+		extrachill_events_save_event_perk( 42 );
+
+		$this->assertSame( 900, extrachill_events_get_perk_image_id( 42 ) );
+	}
+
+	public function test_pass_artwork_changes_purge_the_event_page(): void {
+		$GLOBALS['event_perk_test']['purged'] = array();
+
+		extrachill_events_purge_on_perk_meta_change( 4, 45, EXTRACHILL_EVENTS_PERK_IMAGE_META );
+
+		$this->assertSame( array( 45 ), $GLOBALS['event_perk_test']['purged'] );
 	}
 }

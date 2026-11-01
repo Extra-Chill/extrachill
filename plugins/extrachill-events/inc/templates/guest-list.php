@@ -18,13 +18,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$event_id   = (int) get_queried_object_id();
-$event      = get_post( $event_id );
-$perk_text  = extrachill_events_get_perk_text( $event_id );
-$guest_list = extrachill_events_get_guest_list_counts( $event_id );
-$list_full  = ! empty( $guest_list['full'] );
-$timing     = function_exists( 'ec_users_get_event_timing' ) ? ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) : '';
-$is_past    = 'past' === $timing;
+$event_id       = (int) get_queried_object_id();
+$event          = get_post( $event_id );
+$perk_text      = extrachill_events_get_perk_text( $event_id );
+$perk_image_url = extrachill_events_get_perk_image_url( $event_id );
+$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_perk_image_alt( $event_id ) : '';
+$guest_list     = extrachill_events_get_guest_list_counts( $event_id );
+$list_full      = ! empty( $guest_list['full'] );
+$timing         = function_exists( 'ec_users_get_event_timing' ) ? ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) : '';
+$is_past        = 'past' === $timing;
 
 // "Sat, Oct 31 · 11:00 pm · Lo-Fi Brewing" so guests know they're in the right place.
 $when_where = array();
@@ -135,6 +137,14 @@ get_header();
 			hidden
 		>
 			<p class="ec-rsvp-pass__perk ec-guest-list__name"></p>
+			<?php if ( '' !== $perk_image_url ) : ?>
+			<img
+				class="ec-rsvp-pass__art"
+				src="<?php echo esc_url( $perk_image_url ); ?>"
+				alt="<?php echo esc_attr( $perk_image_alt ); ?>"
+				decoding="async"
+			>
+			<?php endif; ?>
 			<p class="ec-rsvp-pass__label"><?php esc_html_e( "You're on the list. Show this at the door:", 'extrachill-events' ); ?></p>
 			<img
 				class="ec-rsvp-pass__qr"
