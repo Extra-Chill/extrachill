@@ -30,7 +30,6 @@
   },
   "id": "extrachill-link-pages",
   "remote_path": "wp-content/plugins/extrachill-link-pages",
-  "remote_url": "https://github.com/Extra-Chill/extrachill-link-pages.git",
   "version_targets": [
     {
       "file": "extrachill-link-pages.php",
