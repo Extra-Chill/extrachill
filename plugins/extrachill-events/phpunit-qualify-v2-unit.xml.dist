@@ -80,7 +80,6 @@
 			<file>tests/Unit/Cli/BackfillEventTypeClassifyTest.php</file>
 			<file>tests/Unit/Cli/ClassifyVenueTierScoreTest.php</file>
 			<file>tests/Unit/Cli/ClassifyGenreDeterministicTest.php</file>
-			<file>tests/AbilityRegistrationLifecycleTest.php</file>
 			<file>tests/VenueLinkPagesCoordinatedRuntimeTest.php</file>
 			<file>tests/VenueLinkPagesRuntimeVersionContractTest.php</file>
 			<file>tests/VenueSettingsRenderLinkPagesDegradationTest.php</file>

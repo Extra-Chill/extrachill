@@ -103,8 +103,10 @@ final class AbilitiesProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationGuard.php';
 		foreach ( $abilities as $ability ) {
-			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/' . $ability . '.php';
 			$class = '\\ExtraChillEvents\\Abilities\\' . $ability;
+			if ( ! class_exists( $class, false ) ) {
+				require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/' . $ability . '.php';
+			}
 			new $class();
 		}
 	}

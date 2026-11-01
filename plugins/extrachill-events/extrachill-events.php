@@ -42,7 +42,6 @@ require_once __DIR__ . '/inc/Providers/CoreRuntimeProvider.php';
 require_once __DIR__ . '/inc/Providers/ArtistUrlImportProvider.php';
 require_once __DIR__ . '/inc/Providers/PromoterAuthorityProvider.php';
 require_once __DIR__ . '/inc/Providers/VenueProvider.php';
-require_once __DIR__ . '/inc/Providers/BookingProvider.php';
 require_once __DIR__ . '/inc/Providers/VenueLinkPagesProvider.php';
 require_once __DIR__ . '/inc/Providers/PromoterLinkPagesProvider.php';
 require_once __DIR__ . '/inc/Providers/PublicExperienceProvider.php';

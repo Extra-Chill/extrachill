@@ -9,15 +9,6 @@
     },
     "tests/booking-boundary.php": {
       "environment": "standalone-php"
-    },
-    "tests/booking-ability-order.php": {
-      "environment": "standalone-php"
-    },
-    "tests/booking-schema-lifecycle.php": {
-      "environment": "standalone-php"
-    },
-    "tests/fixtures/venue-settings-p1d-runtime.php": {
-      "environment": "standalone-php"
     }
   }
 }

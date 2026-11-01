@@ -3,7 +3,7 @@
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 
-require_once __DIR__ . '/Support/BookingTestHarness.php';
+require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';
 
 final class VenueSchemaTest extends BookingTestCase {
 	protected function setUp(): void {

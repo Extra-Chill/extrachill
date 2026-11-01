@@ -1,54 +1,27 @@
 # Extra Chill Booking
 
-Inert placeholder for the [booking extraction](https://github.com/Extra-Chill/extrachill/issues/512).
-The bootstrap does nothing: all live booking functionality remains in `extrachill-events`
-until the atomic code move. Activating this component cannot register duplicate booking
-handlers, create tables or migrate data.
+Venue booking operations, extracted from Events in #548. PHP namespaces, ability names, tables, options and hooks retain their historical `ExtraChillEvents` / `extrachill_events` names. No migration is performed.
 
-## Ownership after extraction
+## Loading
 
-Venue booking operations: inquiries, holds, deals, correspondence, attachments,
-ticket-sales reconciliation and show settlement. This includes `Booking*`,
-`VenueBooking*`, `ArtistBookingInquiry*`, `TicketSettlement*`, `TicketReconciliation*`,
-`ShowSettlement*`, `LocalBookingPrivateFileProvider` and `BookingHold*`, their abilities
-and tests, the `extrachill/venue-booking-inquiry` block, booking embed template,
-and booking tabs, console and forms within venue settings. The later network-block
-activation swap and booking concurrency workflows belong to the extraction as well;
-none move in this scaffold.
+The active plugin registers at `plugins_loaded` priority 5, before Events' schema (20) and abilities (25). It requires Events' venue layer and does nothing when Events is inactive or an older Events already owns `BookingProvider`.
 
-Events retains the calendar, event post type, venues, membership, claims, invitations,
-onboarding (`ec_venue_*`), promoter authority/grants, RSVP passes, guest list/perks,
-event submission, local scene digest and venue link pages. Dependencies go only
-from booking to events (including VenueAuthorization and Data Machine Events),
-never from events to booking.
+Booking depends on Events. The network-wide inquiry block and its three shared configuration/policy classes remain in Events pending P3 (#549).
 
-All existing `ec_booking_*` tables, `extrachill_events_booking_*` options, hooks,
-`extrachill/*-booking-*` abilities, block names and REST routes must stay byte-identical.
-There is no data migration.
+## Development
 
-## Deploy and activate
-
-Requires PHP 8.4 and `extrachill-events`. The rig activates this plugin only on
-`events.extrachill.com`. CI discovers `homeboy.json` through `components: changed`;
-release discovers it through `components: all`. No workflow allowlist is needed.
-
-After merge and deploy, the operator must activate the placeholder once:
+Build `packages/tokens`, `packages/api-client`, and `packages/components` first, then:
 
 ```sh
-wp plugin activate extrachill-booking --url=events.extrachill.com
-```
-
-Do not network-activate it. Include this operator step in the PR body. The later
-atomic code move relies on the placeholder already being active.
-
-## Tests
-
-```sh
+npm ci
+npm run build
+npm run test:js -- --runInBand
 composer install
 composer test
+php tests/bootstrap-boundary.php
+php tests/booking-ability-order.php
+php tests/booking-schema-lifecycle.php
+php tests/fixtures/venue-settings-p1d-runtime.php
 ```
 
-The PHPUnit smoke suite runs standalone locally and in Homeboy's managed WordPress
-sandbox for CI. It loads the inert bootstrap and checks its plugin header,
-dependency and text domain. Existing events booking
-PHPUnit suites and concurrency proof workflows are unchanged.
+MySQL proof suites require the WordPress multisite test installation and the external database configured by the host-proof workflows. Homeboy validates with Events as a dependency.

@@ -51,6 +51,13 @@ class MonorepoDeployTest(unittest.TestCase):
         registry = {p.stem for p in (ROOT / "deploy/homeboy/components").glob("*.json")}
         self.assertEqual(registry, poller)
 
+    def test_booking_precedes_events_without_sorting_other_components(self):
+        ids = ['extrachill-network', 'extrachill-events', 'extrachill-api', 'extrachill-booking']
+        result, _ = self.prepare([{'component': c, 'path': 'plugins/' + c} for c in ids])
+        self.assertEqual(result['components'], ['extrachill-network', 'extrachill-booking', 'extrachill-events', 'extrachill-api'])
+        self.assertIn('deploy extrachill-booking ', result['commands'][1])
+        self.assertIn('deploy extrachill-events ', result['commands'][2])
+
     def test_empty_and_live(self):
         self.assertEqual(self.prepare([])[0]["commands"], [])
         commands = self.prepare([{"component": "extrachill-network", "path": "plugins/extrachill-network"}], False)[0]["commands"]

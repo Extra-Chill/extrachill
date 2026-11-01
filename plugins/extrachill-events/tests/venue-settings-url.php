@@ -14,7 +14,7 @@ function add_query_arg( $args, $url ) {
 	return $base[0] . '?' . http_build_query( array_merge( $query, $args ) ) . ( isset( $parts[1] ) ? '#' . $parts[1] : '' );
 }
 require dirname( __DIR__ ) . '/inc/core/venue-settings.php';
-require dirname( __DIR__ ) . '/inc/core/booking-console.php';
+require __DIR__ . '/../../extrachill-booking/inc/core/booking-console.php';
 foreach ( array( 0, 7 ) as $events_blog_id ) {
 	$GLOBALS['events_blog_id'] = $events_blog_id;
 	foreach ( array( array( 0, 0 ), array( 44, 0 ), array( 44, 91 ) ) as [ $venue_id, $booking_id ] ) {

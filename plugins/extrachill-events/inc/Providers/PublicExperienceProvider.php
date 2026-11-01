@@ -52,7 +52,6 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/router-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/home-search.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/docs-links.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/booking-console.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/location-normalizer.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/calendar-stats.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/admin/priority-venues.php';

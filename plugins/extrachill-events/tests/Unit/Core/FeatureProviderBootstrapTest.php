@@ -20,7 +20,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
 		$this->assertTrue( $result['event_source_registered'] );
-		$this->assertTrue( $result['booking_registered'] );
+		$this->assertFalse( $result['booking_registered'] );
 		$this->assertTrue( $result['ability_lifecycle_hooked'] );
 	}
 
@@ -33,16 +33,17 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertTrue( $result['ingestion_hooked'] );
 		$this->assertTrue( $result['ability_lifecycle_hooked'] );
 		$this->assertTrue( $result['event_source_registered'] );
-		$this->assertTrue( $result['booking_registered'] );
+		$this->assertFalse( $result['booking_registered'] );
 	}
 
 	/** CLI registration remains available and provider calls are idempotent. */
 	public function test_cli_boot_registers_commands_once(): void {
 		$result = $this->run_fixture( 'cli' );
 
-		$this->assertSame( 19, $result['cli_commands'] );
+		$this->assertSame( 20, $result['cli_commands'] );
 		$this->assertSame(
 			array(
+				'extrachill events roundup',
 				'extrachill events ramp',
 				'extrachill-events add-city',
 				'extrachill-events expand',
@@ -84,7 +85,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertFalse( $result['optional_users_seen'] );
 		$this->assertTrue( $result['optional_loader_present'] );
 		$this->assertTrue( $result['event_source_registered'] );
-		$this->assertTrue( $result['booking_registered'] );
+		$this->assertFalse( $result['booking_registered'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ingestion_hooked'] );
 	}
@@ -96,7 +97,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertSame( array( 'ingestion' ), $result['provider_failures'] );
 		$this->assertFalse( $result['ingestion_hooked'] );
 		$this->assertTrue( $result['event_source_registered'] );
-		$this->assertTrue( $result['booking_registered'] );
+		$this->assertFalse( $result['booking_registered'] );
 		$this->assertTrue( $result['public_registered'] );
 		$this->assertTrue( $result['ability_lifecycle_hooked'] );
 	}
@@ -136,15 +137,14 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$this->assertIsInt( $ingestion );
 		$this->assertIsInt( $core );
 		$this->assertIsInt( $artist );
-		$this->assertIsInt( $booking );
+		$this->assertFalse( $booking );
 		$this->assertIsInt( $public );
 		$this->assertIsInt( $abilities );
 		$this->assertIsInt( $optional );
 		$this->assertLessThan( $ingestion, $cli );
 		$this->assertLessThan( $public, $ingestion );
 		$this->assertLessThan( $artist, $core );
-		$this->assertLessThan( $booking, $artist );
-		$this->assertLessThan( $public, $booking );
+		$this->assertLessThan( $public, $artist );
 		$this->assertLessThan( $abilities, $public );
 		$this->assertLessThan( $optional, $public );
 	}
