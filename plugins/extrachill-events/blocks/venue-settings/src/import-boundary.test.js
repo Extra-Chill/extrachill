@@ -7,22 +7,26 @@ const owned = new Set( [
 	'booking-embed.js',
 	'booking-form-tab.js',
 	'booking-settings.js',
+	'booking-state.js',
 	'booking-tab.js',
 	'intake-tab.js',
 ] );
-// Temporary P1d exception until config validation moves to the extension.
-const exceptions = new Set( [ 'state.js' ] );
 
 function violations( filename, source ) {
-	if ( owned.has( filename ) || exceptions.has( filename ) ) {
+	if ( owned.has( filename ) ) {
 		return [];
 	}
-	return [ ...source.matchAll(
-		/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g
-	) ].map( ( match ) => match[ 1 ] ).filter( ( module ) => {
-		const target = path.basename( module ).replace( /\.js$/, '' ) + '.js';
-		return owned.has( target );
-	} );
+	return [
+		...source.matchAll(
+			/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"]([^'"]+)['"]/g
+		),
+	]
+		.map( ( match ) => match[ 1 ] )
+		.filter( ( module ) => {
+			const target =
+				path.basename( module ).replace( /\.js$/, '' ) + '.js';
+			return owned.has( target );
+		} );
 }
 
 test( 'non-booking venue settings modules do not import booking modules', () => {
@@ -31,7 +35,10 @@ test( 'non-booking venue settings modules do not import booking modules', () => 
 		if ( ! filename.endsWith( '.js' ) || filename.endsWith( '.test.js' ) ) {
 			continue;
 		}
-		for ( const module of violations( filename, fs.readFileSync( path.join( __dirname, filename ), 'utf8' ) ) ) {
+		for ( const module of violations(
+			filename,
+			fs.readFileSync( path.join( __dirname, filename ), 'utf8' )
+		) ) {
 			failures.push( `${ filename }: ${ module }` );
 		}
 	}

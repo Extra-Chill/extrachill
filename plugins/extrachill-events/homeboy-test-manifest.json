@@ -1,6 +1,9 @@
 {
   "schema": "homeboy/test-manifest/v1",
   "tests": {
+    "tests/venue-settings-url.php": {
+      "environment": "standalone-php"
+    },
     "tests/provider-split.php": {
       "environment": "standalone-php"
     },

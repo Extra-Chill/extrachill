@@ -14,13 +14,12 @@ import {
  * Internal dependencies
  */
 import { Status } from './status';
+import { normalizeKey, sameDocument } from './state';
 import {
 	BOOKING_ATTACHMENT_PURPOSES,
 	HOLD_TTL_MAX_MINUTES,
-	normalizeKey,
-	sameDocument,
 	validateConfig,
-} from './state';
+} from './booking-state';
 
 const HOLD_DURATIONS = [
 	[ 60, '1 hour' ],

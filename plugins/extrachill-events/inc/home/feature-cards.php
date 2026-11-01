@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</a>
 
 	<?php if ( is_user_logged_in() && ec_events_user_has_active_venue_membership( get_current_user_id() ) ) : ?>
-		<a class="events-feature-card events-feature-card--manage-venue" href="<?php echo esc_url( ec_events_get_booking_console_url( 0 ) ); ?>">
+		<a class="events-feature-card events-feature-card--manage-venue" href="<?php echo esc_url( ec_events_get_venue_settings_url( 0, 'calendar' ) ); ?>">
 			<h2 class="events-feature-card__title"><?php esc_html_e( 'Manage Venue', 'extrachill-events' ); ?></h2>
 			<p class="events-feature-card__body">
 				<?php esc_html_e( 'Review inquiries, manage holds, and keep your venue calendar up to date.', 'extrachill-events' ); ?>

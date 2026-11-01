@@ -668,8 +668,8 @@ final class VenueLinkPages {
 
 	/** Build the venue workspace tab contract owned by #324. */
 	private static function management_url( int $venue_term_id ): string {
-		if ( function_exists( 'ec_events_get_booking_console_url' ) ) {
-			return str_replace( '#tab-calendar', '#tab-link-page', ec_events_get_booking_console_url( $venue_term_id ) );
+		if ( function_exists( 'ec_events_get_venue_settings_url' ) ) {
+			return str_replace( '#tab-calendar', '#tab-link-page', ec_events_get_venue_settings_url( $venue_term_id, 'calendar' ) );
 		}
 		return add_query_arg( 'venue_id', $venue_term_id, get_home_url( self::events_blog_id(), '/venue-settings/' ) ) . '#tab-link-page';
 	}

@@ -10,8 +10,6 @@ $exceptions = array(
 	'inc/Providers/LifecycleProvider.php', // Remaining schema lifecycle extraction.
 	'inc/Providers/AbilitiesProvider.php', // Remaining ability lifecycle extraction.
 	'blocks/venue-settings/render.php', // Remaining render-data registry work.
-	'inc/Core/VenueLinkPages.php', // Remaining console URL registry work.
-	'inc/home/feature-cards.php', // Remaining console URL registry work.
 );
 $violations = array();
 $iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ) );

@@ -23,25 +23,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param int $booking_id    Optional booking ID.
  */
 function ec_events_get_booking_console_url( int $venue_term_id, int $booking_id = 0 ): string {
-	$events_blog_id = (int) ec_get_blog_id( 'events' );
-	$base_url       = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings/' ) : home_url( '/venue-settings/' );
-	$args           = array();
-	if ( $venue_term_id > 0 ) {
-		$args['venue_id'] = $venue_term_id;
-	}
+	$url = ec_events_get_venue_settings_url( $venue_term_id );
 	if ( $booking_id > 0 ) {
-		$args['booking_id'] = $booking_id;
+		$url = add_query_arg( array( 'booking_id' => $booking_id ), $url );
 	}
-	return ( $args ? add_query_arg( $args, $base_url ) : $base_url ) . '#tab-calendar';
-}
-
-/**
- * Build the canonical administrator claim-review URL.
- *
- * @param int $venue_term_id Optional venue context.
- */
-function ec_events_get_venue_claim_review_url( int $venue_term_id = 0 ): string {
-	return str_replace( '#tab-calendar', '#tab-claims', ec_events_get_booking_console_url( $venue_term_id ) );
+	return $url . '#tab-calendar';
 }
 
 /**
