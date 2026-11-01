@@ -1,17 +1,11 @@
 # Plan-only until MONOREPO_DEPLOY_AUTOMATION=enabled at cutover.
 name: Deploy monorepo
 
-# #485/#486: deploys run after Release and on a recovery schedule, not on
-# every push. Each merge pushes a feature commit and then Release's
-# `release: vX.Y.Z` bump commit(s), and both used to deploy the same components. Release completes before this run starts,
-# and the run deploys main as it is at that moment, so the bump rides along.
-# The release commit's own Release run then triggers a deploy that finds
-# nothing new since the last recorded deployed sha and stays a quiet no-op.
+# Deploys run after Release. Each run builds main's tip and deploys whatever
+# differs from the server (`deploy --ref <sha> --outdated`): Homeboy compares
+# deploy receipts and installed trees, so no last-deployed sha is recorded and
+# replaced or failed runs heal on the next run.
 on:
-  # #486: recover replaced pending deploys even when main goes quiet; avoid
-  # hour boundaries and deploy.yml's 7/37 polling minutes.
-  schedule:
-    - cron: '22,52 * * * *'
   workflow_run:
     workflows: [Release]
     types: [completed]
@@ -19,30 +13,30 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: 'Commit/ref to plan or deploy. Empty = workflow commit. Compared to its first parent.'
+        description: 'Commit/ref to deploy. Empty = main.'
         type: string
         default: ''
       dry_run:
-        description: 'Plan only (no production contact). Live dispatch also requires the cutover variable.'
+        description: 'Select only (read-only production check). Live dispatch also requires the cutover variable.'
         type: boolean
         default: true
 
 permissions:
   contents: read
-  # Plan reads the last successful push deploy to choose its base (#476).
-  actions: read
 
 # Workflow-level lock covers the gate AND every serial component deploy.
 # deploy.yml shares the group: both rig gates require serial production deploys.
-# Only one pending run survives; the recovery schedule heals replacements (#486).
+# Only one pending run survives; the next run deploys whatever it replaced.
 concurrency:
   group: deploy-main
   cancel-in-progress: false
 
 # Keep the gate CLI and all action installs on the same release.
 env:
-  HOMEBOY_VERSION: '0.440.1'
-  HOMEBOY_SHA256: 'bbeedf980cc6df57f6c5c685329b1217de677204d8946d0eca3439e09ba6c940'
+  HOMEBOY_VERSION: '0.443.0'
+  HOMEBOY_SHA256: '51fa01fbb25eb18089f4ec994fe75b90d91337f6292381f78b2710d8e08498f0'
+  # Content-keyed package builds, shared by selection and deploy (and across runs).
+  HOMEBOY_BUILD_CACHE_DIR: ${{ github.workspace }}/../homeboy-build-cache
 
 jobs:
   deploy:
@@ -61,7 +55,6 @@ jobs:
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/homeboy-output" "${RUNNER_TEMP}/extrachill-network-gate"
           echo "HOMEBOY_OUTPUT_DIR=${RUNNER_TEMP}/homeboy-output" >> "${GITHUB_ENV}"
-          echo "HOMEBOY_CONFIG_ROOT=${RUNNER_TEMP}/monorepo-homeboy" >> "${GITHUB_ENV}"
 
       - name: Prepare pinned Homeboy binary for the gate
         shell: bash
@@ -78,8 +71,41 @@ jobs:
             --directory "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}" --strip-components=1
           chmod +x "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}/homeboy"
           # Detection and the rig use this explicit pin. Do not add it to
-          # GITHUB_PATH: Deploy/Verify use the action's separately pinned CLI.
+          # GITHUB_PATH: Select/Deploy use the action's separately pinned CLI.
           echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}" >> "${GITHUB_ENV}"
+
+      - name: Restore Homeboy build cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOMEBOY_BUILD_CACHE_DIR }}
+          key: homeboy-build-${{ env.HOMEBOY_VERSION }}-${{ github.sha }}
+          restore-keys: homeboy-build-${{ env.HOMEBOY_VERSION }}-
+
+      - name: Resolve deploy sha
+        id: sha
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+
+      # Builds every attached component at the sha and compares it with the
+      # server's receipts and installed trees; nothing on the server changes.
+      # Also provisions the WP Codebox CLI the gate uses.
+      - name: Select outdated components
+        uses: Extra-Chill/homeboy-action@v2
+        env:
+          HOMEBOY_OUTPUT_DIR: ${{ runner.temp }}/homeboy-select
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          # Site-level steps read the network plugin's config (homeboy.json moved
+          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
+          component: plugins/extrachill-network
+          config-dir: deploy/homeboy
+          version: ${{ env.HOMEBOY_VERSION }}
+          extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
+          commands: deploy extrachill-monorepo --ref ${{ steps.sha.outputs.sha }} --outdated --dry-run
+          auto-setup: 'false'
+          ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
+          ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
 
       - name: Plan
         id: plan
@@ -88,127 +114,49 @@ jobs:
           EVENT: ${{ github.event_name }}
           REQUEST_DRY_RUN: ${{ inputs.dry_run }}
           AUTOMATION: ${{ vars.MONOREPO_DEPLOY_AUTOMATION }}
-          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.sha.outputs.sha }}
         run: |
           set -euo pipefail
-          sha="$(git rev-parse HEAD)"
-          base=""
-          if [ "${EVENT}" = workflow_dispatch ]; then
-            base="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          shopt -s nullglob
+          results=("${RUNNER_TEMP}"/homeboy-select/operations-*.json)
+          if [ "${#results[@]}" -ne 1 ]; then
+            echo "::error::Expected one selection result, found ${#results[@]}."
+            exit 1
           fi
-          # #476/#485: the deploy-main group keeps one pending run, and newer
-          # runs replace it, so automatic runs plan from the last sha this
-          # workflow actually deployed (the monorepo-deployed-sha artifact),
-          # not from whatever triggered them. Replaced and failed runs heal on
-          # the next run. Before the first artifact exists, fall back to the
-          # last successful push deploy, then to HEAD^.
-          if [ "${EVENT}" != workflow_dispatch ]; then
-            last=""
-            artifact="$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=monorepo-deployed-sha&per_page=1" \
-              --jq '.artifacts[0] | select(.expired == false) | .id' 2>/dev/null || true)"
-            if [ -n "${artifact}" ]; then
-              gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact}/zip" > "${RUNNER_TEMP}/deployed-sha.zip" \
-                && last="$(unzip -p "${RUNNER_TEMP}/deployed-sha.zip" sha.txt | tr -d '[:space:]')" || last=""
-            fi
-            if [ -z "${last}" ]; then
-              last="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-monorepo.yml/runs?branch=main&event=push&status=success&per_page=1" \
-                --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || true)"
-            fi
-            # #486: a recovery run that lands while Release is still working
-            # would deploy the feature commit ahead of its version bump. Stand
-            # down; that Release's own workflow_run deploy follows.
-            if [ "${EVENT}" = schedule ]; then
-              busy="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/release.yml/runs?branch=main&per_page=5" \
-                --jq '[.workflow_runs[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)"
-              if [ "${busy:-0}" != 0 ]; then
-                echo "Release is still running on main; leaving this to its deploy."
-                last="${sha}"
-              fi
-            fi
-            if [ "${last}" = "${sha}" ]; then
-              base="${sha}"
-            elif [ -n "${last}" ] && git merge-base --is-ancestor "${last}" "${sha}" 2>/dev/null; then
-              base="${last}"
-            else
-              base="$(git rev-parse HEAD^ 2>/dev/null || true)"
-              echo "::warning::No usable last deployed sha (got '${last:-none}'); planning from HEAD^."
-            fi
-          fi
-          if [ -z "${base}" ] || [[ "${base}" =~ ^0+$ ]]; then
-            tree="$(git hash-object -t tree /dev/null)"
-            base="$(echo initial | git -c user.name=CI -c user.email=ci@example.com commit-tree "${tree}")"
-          fi
+          components="$(jq -ce '[.data.results[] | select(.status == "planned") | .id]' "${results[0]}")"
+          deploy_count="$(jq 'length' <<<"${components}")"
           dry_run=true
           if [ "${AUTOMATION:-}" = enabled ]; then
             if [ "${EVENT}" != workflow_dispatch ] || [ "${REQUEST_DRY_RUN}" = false ]; then
               dry_run=false
             fi
           fi
-          # --direct-only: deploy only components whose own files changed. Dependents
-          # are re-tested by PR CI, but their deployed files are identical. Workflow
-          # edits change no deployed bytes, so they select no components.
-          "${HOMEBOY_GATE_BIN_DIR}/homeboy" component changed --base "${base}" --head "${sha}" \
-            --path . --format matrix --direct-only > "${HOMEBOY_OUTPUT_DIR}/matrix.json"
-          python3 deploy/prepare-monorepo.py --checkout "${GITHUB_WORKSPACE}" \
-            --destination "${HOMEBOY_CONFIG_ROOT}" --matrix "${HOMEBOY_OUTPUT_DIR}/matrix.json" \
-            --sha "${sha}" --dry-run "${dry_run}" > "${HOMEBOY_OUTPUT_DIR}/plan.json"
-          count="$(jq '.include | length' "${HOMEBOY_OUTPUT_DIR}/matrix.json")"
-          deploy_count="$(jq '.components | length' "${HOMEBOY_OUTPUT_DIR}/plan.json")"
           settings="$(jq -cn --arg source "${GITHUB_WORKSPACE}" '{extrachill_monorepo_source:$source}')"
           {
-            echo "sha=${sha}"
-            echo "base=${base}"
-            echo "changed_count=${count}"
+            echo "sha=${SHA}"
             echo "deploy_count=${deploy_count}"
-            echo "components=$(jq -c '.components' "${HOMEBOY_OUTPUT_DIR}/plan.json")"
+            echo "components=${components}"
             echo "dry_run=${dry_run}"
-            echo "scope=monorepo ${sha}"
+            echo "scope=monorepo ${SHA}"
             echo "gate_bypassed=false"
             echo "gate_settings_json=${settings}"
-            echo 'command<<MONOREPO_COMMANDS_EOF'
-            jq -r '.commands | join(",")' "${HOMEBOY_OUTPUT_DIR}/plan.json"
-            echo MONOREPO_COMMANDS_EOF
           } >> "${GITHUB_OUTPUT}"
           {
-            echo "## Monorepo plan: ${sha}"
-            echo "Base: ${base}; dry run: ${dry_run}; changed: ${count}; deployable: ${deploy_count}"
+            echo "## Monorepo plan: ${SHA}"
+            echo "Dry run: ${dry_run}; outdated: ${deploy_count}"
             echo '```json'
-            jq . "${HOMEBOY_OUTPUT_DIR}/matrix.json" "${HOMEBOY_OUTPUT_DIR}/plan.json"
+            jq '[.data.results[] | {id, status, local_version, remote_version}]' "${results[0]}"
             echo '```'
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Set up Node.js for the network rig gate
-        if: steps.plan.outputs.changed_count != '0'
+        if: steps.plan.outputs.deploy_count != '0'
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      # WP Codebox comes from homeboy-action, which provisions a pinned,
-      # already-built CLI and exports HOMEBOY_WP_CODEBOX_BIN to every later
-      # step. A second from-source checkout here was redundant and broke:
-      # it inherited the action's WP_CODEBOX_SOURCE_SHA, and wp-codebox's
-      # build provenance check refused to build a different commit under
-      # that SHA ("does not match source checkout HEAD"). The action's copy
-      # must be v0.28.2+: remote theme zips (#2519), redirects between mapped
-      # domains (#2533), and the fence that keeps server-side HTTP to the
-      # mapped production hostnames inside the sandbox (#2534). Without the
-      # fence the gate's own requests reach live extrachill.com.
-      # Fail closed if it is missing or too old.
-      - name: Provision Homeboy and WP Codebox for the gate
-        if: steps.plan.outputs.changed_count != '0'
-        uses: Extra-Chill/homeboy-action@v2
-        with:
-          # Site-level steps read the network plugin's config (homeboy.json moved
-          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
-          component: plugins/extrachill-network
-          version: ${{ env.HOMEBOY_VERSION }}
-          extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
-          # The action appends "<component id> --path <dir>" to component commands.
-          commands: component show
-          auto-setup: 'false'
-
       - name: Verify WP Codebox from homeboy-action
-        if: steps.plan.outputs.changed_count != '0'
+        if: steps.plan.outputs.deploy_count != '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -230,7 +178,7 @@ jobs:
       # it from inside the package that owns the pin (the command WP Codebox
       # itself prints), with OS deps, so the version always matches.
       - name: Install Chromium for the network rig gate
-        if: steps.plan.outputs.changed_count != '0'
+        if: steps.plan.outputs.deploy_count != '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -244,8 +192,11 @@ jobs:
           (cd "${source_root}" && node ./node_modules/playwright/cli.js install --with-deps chromium)
 
       - name: Install extrachill-network rig
-        if: steps.plan.outputs.changed_count != '0'
+        if: steps.plan.outputs.deploy_count != '0'
         shell: bash
+        env:
+          # Keep rig state out of the checked-in deploy config root.
+          HOMEBOY_CONFIG_ROOT: ${{ runner.temp }}/gate-homeboy
         run: |
           set -euo pipefail
           export PATH="${HOMEBOY_GATE_BIN_DIR}:${PATH}"
@@ -253,10 +204,11 @@ jobs:
 
       - name: Network rig gate
         id: gate
-        if: steps.plan.outputs.changed_count != '0'
+        if: steps.plan.outputs.deploy_count != '0'
         shell: bash
         env:
           HOMEBOY_ARTIFACT_ROOT: ${{ runner.temp }}/extrachill-network-gate/artifacts
+          HOMEBOY_CONFIG_ROOT: ${{ runner.temp }}/gate-homeboy
           HOMEBOY_SETTINGS_JSON: ${{ steps.plan.outputs.gate_settings_json }}
         run: |
           set -euo pipefail
@@ -355,43 +307,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      # Deploy/Verify run homeboy-action against plugins/extrachill-network, so
-      # the action installs only the extensions that component declares
-      # (wordpress). Each deployed component builds with its own declared
-      # extensions (extrachill-community also needs nodejs), so install those
-      # into the shared HOMEBOY_CONFIG_ROOT first. The action's refresh only
-      # reinstalls the network's own extensions, so these survive into Deploy.
-      # Deploy-side twin of #439/#441. Upstream gap: homeboy-action cannot
-      # install per-component extensions for project-level commands (#468).
-      # This CLI release resolves nested extension roots in the monorepo.
-      - name: Install deployed components' extensions
-        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          # From the Plan output, not plan.json: homeboy-action re-exports
-          # HOMEBOY_OUTPUT_DIR to its own temp dir, so plan.json is gone by now.
-          COMPONENTS: ${{ steps.plan.outputs.components }}
-        run: |
-          set -euo pipefail
-          # mapfile + explicit count so a parse failure fails the step instead
-          # of silently looping zero times.
-          mapfile -t components < <(jq -r '.[]' <<<"${COMPONENTS}")
-          if [ "${#components[@]}" -eq 0 ]; then
-            echo "::error::Plan output 'components' is empty or unparsable: ${COMPONENTS}"
-            exit 1
-          fi
-          for component in "${components[@]}"; do
-            path="$(jq -er '.local_path' "${HOMEBOY_CONFIG_ROOT}/components/${component}.json")"
-            echo "Installing extensions declared by ${component} (${path})"
-            "${HOMEBOY_GATE_BIN_DIR}/homeboy" extension install-for-component \
-              --path "${path}" --source https://github.com/Extra-Chill/homeboy \
-              --ref "v${HOMEBOY_VERSION}"
-          done
-
-      # Deploy consumes Plan's commands, not gate build output; Verify uses --check.
-      # homeboy-action executes these comma-separated commands serially.
-      # In plan-only mode no Deploy/Verify action receives SSH credentials.
+      # Re-selects at the same sha (cached builds), deploys what is outdated and
+      # receipt-checks exactly what it deployed.
       - name: Deploy
         id: deploy
         if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
@@ -403,44 +320,12 @@ jobs:
           # Site-level steps read the network plugin's config (homeboy.json moved
           # under plugins/ in #394). Upstream: homeboy-action project-level commands.
           component: plugins/extrachill-network
+          config-dir: deploy/homeboy
           version: ${{ env.HOMEBOY_VERSION }}
           extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
-          commands: ${{ steps.plan.outputs.command }}
+          commands: deploy extrachill-monorepo --ref ${{ steps.plan.outputs.sha }} --outdated --verify --confirm-dangerous
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
-
-      - name: Verify
-        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_TOKEN: ${{ github.token }}
-        uses: Extra-Chill/homeboy-action@v2
-        with:
-          # Site-level steps read the network plugin's config (homeboy.json moved
-          # under plugins/ in #394). Upstream: homeboy-action project-level commands.
-          component: plugins/extrachill-network
-          version: ${{ env.HOMEBOY_VERSION }}
-          extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
-          commands: deploy extrachill-monorepo --check
-          ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
-          ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
-
-      # #485: the planning base for the next automatic run. Only a fully
-      # successful live automatic run records it; a dispatch deploys a partial
-      # HEAD^ scope, so it never advances the base. No-op recovery runs do not
-      # create another artifact when the base already equals HEAD (#486).
-      - name: Record deployed sha
-        if: success() && github.event_name != 'workflow_dispatch' && steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.base != steps.plan.outputs.sha
-        shell: bash
-        run: printf '%s\n' "${{ steps.plan.outputs.sha }}" > "${RUNNER_TEMP}/sha.txt"
-
-      - name: Upload deployed sha
-        if: success() && github.event_name != 'workflow_dispatch' && steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.base != steps.plan.outputs.sha
-        uses: actions/upload-artifact@v4
-        with:
-          name: monorepo-deployed-sha
-          path: ${{ runner.temp }}/sha.txt
-          retention-days: 90
 
       - name: Report to Discord
         if: always()
@@ -455,6 +340,7 @@ jobs:
           GATE_BYPASSED: ${{ steps.plan.outputs.gate_bypassed }}
           GATE_SITE_ERRORS: ${{ steps.gate_summary.outputs.gate_site_errors }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          DEPLOY_COUNT: ${{ steps.plan.outputs.deploy_count }}
         run: |
           set -euo pipefail
           [ -n "${WEBHOOK:-}" ] || { echo "No webhook configured; skipping."; exit 0; }
@@ -486,8 +372,7 @@ jobs:
             jq -e '.success == true' "${out}" >/dev/null 2>&1 || commands_ok=false
           done
 
-          # Deduplicate: the deploy and verify invocations both report on the
-          # same component set, so an unfixed skip appears in both files.
+          # Deduplicate: a component can report the same skip more than once.
           if [ -n "${skip_lines}" ]; then
             skip_lines="$(printf '%s\n' "${skip_lines}" | sort -u)"
             skipped="$(printf '%s\n' "${skip_lines}" | grep -c '^- ' || true)"
@@ -549,7 +434,7 @@ jobs:
           elif [ "${DRY_RUN}" = "true" ]; then
             title="Deploy planned (dry run) - extrachill.com"
             colour=10181046
-            body="${deployed} component(s) would deploy."
+            body="${DEPLOY_COUNT:-0} component(s) would deploy."
           elif [ "${deployed}" -eq 0 ] && [ "${skipped}" -gt 0 ]; then
             title="Nothing deployed - ${skipped} component(s) misconfigured"
             colour=16098851
