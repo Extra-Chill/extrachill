@@ -117,7 +117,6 @@ namespace {
 	require dirname( __DIR__ ) . '/inc/access/team-private-docs.php';
 	require dirname( __DIR__ ) . '/inc/core/platform-map.php';
 	require dirname( __DIR__ ) . '/inc/core/rewrite-rules.php';
-	require dirname( __DIR__ ) . '/inc/migration/ec-doc-to-page-migration.php';
 
 	$failures = array();
 	$assert   = static function ( bool $condition, string $message ) use ( &$failures ): void {
@@ -155,24 +154,11 @@ namespace {
 	$assert( str_contains( $resolved, '![Image](diagram.md)' ), 'image targets remain unchanged' );
 
 	$platform_map = extrachill_docs_load_platform_map();
-	$studio_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'Extra-Chill/extrachill-studio' === $item['repo'] ) );
+	$studio_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'plugins/extrachill-studio' === $item['repo'] ) );
 	$assert( 'private' === ( $studio_entry[0]['post_status'] ?? '' ), 'Studio platform map entry is private' );
-	$mcp_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'Extra-Chill/extrachill-docs' === $item['repo'] ) );
+	$mcp_entry = array_values( array_filter( $platform_map, static fn( array $item ): bool => 'plugins/extrachill-docs' === $item['repo'] ) );
 	$assert( 'mcp' === ( $mcp_entry[0]['parent_slug'] ?? '' ), 'network-level MCP guide has a docs destination' );
-	$assert( ! array_key_exists( 'chat', extrachill_docs_migration_term_to_repo_map() ), 'retired chat platform has no migration repo mapping' );
-	$conflict = extrachill_docs_migration_migrate_one( new WP_Post( 20, 'Using Calendar Filters', 'using-calendar-filters' ), true );
-	$assert( 'conflict' === $conflict['action'] && 64 === $conflict['page_id'], 'migration reports an existing same-slug child page as a conflict' );
-	$GLOBALS['extrachill_docs_test_term'] = 'mcp';
-	$mcp_plan = extrachill_docs_migration_migrate_one( new WP_Post( 100, 'Connecting Your AI Client', 'connect' ), true );
-	$assert( 'would_migrate' === $mcp_plan['action'], 'MCP guide is migratable' );
-	$assert( str_contains( $mcp_plan['error'], '_source_repo=Extra-Chill/extrachill-docs' ) && str_contains( $mcp_plan['error'], '_source_path=ec_docs/mcp/connect.md' ), 'MCP guide migrates to the same source key the publisher uses for ec_docs/mcp/connect.md' );
-	unset( $GLOBALS['extrachill_docs_test_term'] );
-
-	extrachill_docs_add_rewrite_rules();
-	$legacy_rule_index = array_search( array( '^([^/]+)/([^/]+)/?$', 'index.php?ec_doc=$matches[2]&ec_doc_platform=$matches[1]', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
-	$page_rule_index   = array_search( array( '^events\-calendar/getting\-started\-with\-my\-shows/?$', 'index.php?page_id=58', 'top' ), $GLOBALS['extrachill_docs_test_rules'], true );
-	$assert( false !== $page_rule_index, 'child pages receive exact rewrite rules' );
-	$assert( false !== $legacy_rule_index && $page_rule_index < $legacy_rule_index, 'child page rules are registered before and outrank the legacy fallback' );
+	$assert( 'docs/user' === $mcp_entry[0]['docs_subpath'], 'MCP uses canonical user docs' );
 
 	$assert( ! file_exists( dirname( __DIR__ ) . '/inc/sync/sync-orchestrator.php' ), 'sync orchestrator is removed' );
 	$assert( ! file_exists( dirname( __DIR__ ) . '/inc/sync/synced-page-guard.php' ), 'synced page guard is removed' );

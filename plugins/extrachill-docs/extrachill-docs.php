@@ -14,8 +14,7 @@
  * Requires Plugins: data-machine
  * Network: false
  *
- * Deployed on docs.extrachill.com (Blog ID 10). Uses ec_doc custom post type
- * with ec_doc_platform taxonomy for clean /platform-slug/doc-slug/ URLs.
+ * Deployed on docs.extrachill.com (Blog ID 10). Uses hierarchical pages for documentation URLs.
  * Homepage displays dynamic platform cards for documentation navigation.
  *
  * @package ExtraChillDocs
@@ -29,11 +28,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'EXTRACHILL_DOCS_VERSION', '0.10.2' );
 define( 'EXTRACHILL_DOCS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EXTRACHILL_DOCS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-
-// Post types and taxonomies.
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/post-types.php';
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/register-platform-taxonomy.php';
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/taxonomy-seed.php';
 
 // Assets and templates.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/assets.php';
@@ -53,9 +47,7 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/sidebar.php';
 // Custom rewrite rules for /{platform}/{doc}/ URL structure.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/rewrite-rules.php';
 
-// Platform map — per-repo parent-page identity parsed from
-// runner-configs/platform-map.yml. Shared by the ec_doc → page migration
-// and future platform-identity consumers.
+// Monorepo component-to-parent map.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/platform-map.php';
 
 // Docs agent execution mode — registers the `docs` mode with Data Machine
@@ -75,24 +67,17 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/publish-plugin-docs.php
 // inc/core/sync-cleanup.php.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/sync-cleanup.php';
 
-// One-shot ec_doc → page migration. Registers the WP-CLI command
-// `wp extrachill docs migrate-ec-docs`. Runs once before #39 removes
-// the ec_doc CPT. See inc/migration/.
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/migration/ec-doc-to-page-migration.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/migrate-source-keys.php';
 
 register_activation_hook( __FILE__, 'extrachill_docs_activate' );
 
 /**
- * Seeds default platform terms on plugin activation.
+ * Refresh routing on plugin activation.
  *
  * @since 0.2.0
  * @return void
  */
 function extrachill_docs_activate() {
-	// Register post type and taxonomy first.
-	extrachill_docs_register_post_type();
-	extrachill_docs_seed_platforms();
-
 	// Flush rewrite rules for clean URLs.
 	flush_rewrite_rules();
 }

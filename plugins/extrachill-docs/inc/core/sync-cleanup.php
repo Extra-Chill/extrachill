@@ -7,8 +7,8 @@
  *
  *   1. A scheduled `extrachill_docs_sync_cron` event that failed on every
  *      run once data-machine-code was uninstalled from the network.
- *   2. Per-page sync bookkeeping meta (`_source_repo`, `_source_path`,
- *      `_sync_hash`, `_sync_filesize`, `_sync_timestamp`) that — via the
+ *   2. Per-page sync bookkeeping meta (`_sync_hash`, `_sync_filesize`,
+ *      `_sync_timestamp`) that — via the
  *      retired synced-page edit guard — kept 13 pages permanently
  *      uneditable.
  *
@@ -50,9 +50,9 @@ function extrachill_docs_maybe_run_sync_cleanup(): void {
 	// The sync subsystem is gone; clear any event it left scheduled.
 	wp_clear_scheduled_hook( 'extrachill_docs_sync_cron' );
 
-	// Remove sync bookkeeping meta so affected pages become normal,
-	// editable pages. Content is not modified.
-	foreach ( array( '_source_repo', '_source_path', '_sync_hash', '_sync_filesize', '_sync_timestamp' ) as $meta_key ) {
+	// Remove obsolete bookkeeping only. Keep canonical source keys: new
+	// installs and delayed upgrades may already have published pages.
+	foreach ( array( '_sync_hash', '_sync_filesize', '_sync_timestamp' ) as $meta_key ) {
 		delete_post_meta_by_key( $meta_key );
 	}
 

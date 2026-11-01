@@ -188,7 +188,7 @@ function extrachill_get_site_post_types() {
 		ec_get_blog_id( 'artist' )     => array( 'artist_profile', 'topic', 'reply' ), // artist.extrachill.com
 		ec_get_blog_id( 'events' )     => array( 'data_machine_events', 'page' ),       // events.extrachill.com (Data Machine)
 		ec_get_blog_id( 'newsletter' ) => array( 'newsletter' ),                       // newsletter.extrachill.com
-		ec_get_blog_id( 'docs' )       => array( 'ec_doc', 'page' ),                    // docs.extrachill.com
+		ec_get_blog_id( 'docs' )       => array( 'page' ),                    // docs.extrachill.com
 		ec_get_blog_id( 'wire' )       => array( 'festival_wire', 'page' ),             // wire.extrachill.com
 	);
 

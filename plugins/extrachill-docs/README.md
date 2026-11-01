@@ -12,7 +12,7 @@ Edit help in the owning plugin, not in the published page. The publisher reads i
 
 `runner-configs/platform-map.yml` maps each plugin to its parent page. The publisher is additive: missing source files are reported as orphans, not deleted automatically. Review those reports when retiring articles.
 
-The MCP connection guide remains at `ec_docs/mcp/connect.md` until its separate source-key migration. This is the only temporary exception to `docs/user/` ownership; preserve its configured source path.
+The MCP connection guide lives at `docs/user/connect.md`. Source keys are repo-root paths, such as `plugins/extrachill-docs/docs/user/connect.md`; fingerprints use component paths.
 
 ## Writing and validation
 
@@ -29,8 +29,6 @@ php scripts/check-user-docs-voice.php ../extrachill-events/docs/user
 - `inc/abilities/publish-plugin-docs.php` discovers installed help and publishes pages.
 - `inc/abilities/upsert-doc-page.php` handles Markdown conversion and page updates.
 - `inc/core/platform-map.php` reads parent-page identities from the platform map.
-- `inc/migration/ec-doc-to-page-migration.php` supports migration of legacy `ec_doc` posts to pages.
-- The legacy `ec_doc` content model and platform taxonomy remain available during that migration. Do not create new canonical help there.
 - `inc/core/sync-cleanup.php` performs one-shot cleanup of old scheduled jobs and page metadata; it does not publish documentation.
 - `extrachill-api/inc/routes/docs/docs-info.php` provides the separate live public metadata route.
 
@@ -48,3 +46,5 @@ python3 -m unittest discover -s tests -p 'test_*.py'
 ## Deployment
 
 Deploy through Homeboy. The deploy publishing step runs `extrachill-docs/publish-plugin-docs` against installed help. Review publishing errors and orphan reports after deploy. Changelogs and version strings are release-owned.
+
+Run `wp --url=https://docs.extrachill.com extrachill docs migrate-source-keys` to preview key rewrites, adoption, fingerprint changes, and legacy redirects/trashing. Add `--apply` to write. Unmatched legacy posts are reported and left untouched. Repeated runs are safe.

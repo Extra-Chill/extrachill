@@ -3,21 +3,7 @@
  * Platform Map Loader
  *
  * Parses runner-configs/platform-map.yml into the shared platform identity
- * array. Monorepo plugin keys are exposed as legacy OWNER/REPO identities
- * for existing publishing metadata and migration callers. The map identifies
- * each plugin's parent page on docs.extrachill.com:
- *
- *   - The ec_doc → page migration resolves destination parents from it.
- *   - The Docs Agent workflow reads each plugin's runner configuration.
- *
- * Entry shape:
- *   [
- *     'repo'         => 'Extra-Chill/extrachill-artist-platform',
- *     'parent_slug'  => 'artist-platform',
- *     'parent_title' => 'Artist Platform',
- *     'docs_subpath' => 'docs/user',
- *     'post_status'  => 'publish',
- *   ]
+ * array. Component paths identify publishing groups; source paths are repo-root paths.
  *
  * @package ExtraChillDocs
  * @since   0.5.0
@@ -76,7 +62,7 @@ function extrachill_docs_load_platform_map(): array {
 			extrachill_docs_flush_platform_map_entry( $out, $current_repo, $current );
 			$plugin_path  = trim( $matches[1] );
 			$current_repo = preg_match( '#^plugins/([a-z0-9-]+)$#', $plugin_path, $plugin_match )
-				? 'Extra-Chill/' . $plugin_match[1]
+				? $plugin_path
 				: null;
 			$current      = array();
 			continue;

@@ -73,8 +73,8 @@ $set_post = static function ( array $props ) {
 $set_post( array( 'ID' => 110, 'post_parent' => 54 ) );
 $check( extrachill_docs_feedback_applies(), 'child page is an article' );
 
-$set_post( array( 'ID' => 16, 'post_type' => 'ec_doc' ) );
-$check( extrachill_docs_feedback_applies(), 'ec_doc single is an article' );
+$set_post( array( 'ID' => 16, 'post_type' => 'post' ) );
+$check( ! extrachill_docs_feedback_applies(), 'non-page singles are excluded' );
 
 $set_post( array( 'ID' => 54, 'post_parent' => 0 ) );
 $check( ! extrachill_docs_feedback_applies(), 'section landing page is skipped' );
