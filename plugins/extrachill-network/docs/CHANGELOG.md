@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.35.3] - 2026-11-01
+
+### Changed
+- register the events bulk-cache smoke test
+
+### Fixed
+- clear browser lint and correct ability type contracts
+
 ## [2.35.2] - 2026-11-01
 
 ### Fixed
