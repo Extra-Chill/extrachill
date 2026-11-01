@@ -4,6 +4,8 @@
   "extensions": {
     "wordpress": {
       "settings": {
+        "wordpress_js_test_script": "test",
+        "standalone_php_test_paths": ["tests/standalone-suite-smoke.php"],
         "package_excludes": [
           "/tests/",
           "/vendor/",

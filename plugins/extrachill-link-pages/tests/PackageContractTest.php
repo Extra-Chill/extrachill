@@ -74,20 +74,11 @@ final class PackageContractTest extends TestCase {
 		);
 	}
 
-	public function test_required_workflow_installs_javascript_dependencies_before_tests(): void {
-		// The workflow lives at the monorepo root (GitHub only runs root workflows).
-		// Sandboxed runtimes that mount just this plugin cannot see it; the
-		// workflow itself runs this test from the real checkout.
-		$path = dirname( __DIR__, 3 ) . '/.github/workflows/extrachill-link-pages-required-checks.yml';
-		if ( ! is_readable( $path ) ) {
-			$this->markTestSkipped( 'Monorepo root workflow is not available in this runtime.' );
-		}
-		$workflow = file_get_contents( $path );
-		$install  = strpos( $workflow, 'run: npm ci' );
-		$test     = strpos( $workflow, 'run: npm test' );
-
-		$this->assertNotFalse( $install );
-		$this->assertNotFalse( $test );
-		$this->assertLessThan( $test, $install );
+	public function test_managed_test_scope_preserves_standalone_and_asset_proofs(): void {
+		$config   = json_decode( file_get_contents( dirname( __DIR__ ) . '/homeboy.json' ), true );
+		$settings = $config['extensions']['wordpress']['settings'];
+		$this->assertSame( 'test', $settings['wordpress_js_test_script'] );
+		$this->assertContains( 'tests/standalone-suite-smoke.php', $settings['standalone_php_test_paths'] );
+		$this->assertFileExists( __DIR__ . '/standalone-suite-smoke.php' );
 	}
 }
