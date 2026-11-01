@@ -26,6 +26,11 @@ concurrency:
   group: deploy-main
   cancel-in-progress: false
 
+# Keep the gate CLI and all action installs on the same release.
+env:
+  HOMEBOY_VERSION: '0.438.3'
+  HOMEBOY_SHA256: 'dc7a64c6de067b1d3d687dcf18742ce74fcde7fd53b2936a5aa74b0463f8fdb5'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -48,19 +53,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "${RUNNER_TEMP}/homeboy-0.436.10"
+          mkdir -p "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}"
           curl --fail --silent --show-error --location \
-            'https://github.com/Extra-Chill/homeboy/releases/download/v0.436.10/homeboy-x86_64-unknown-linux-gnu.tar.xz' \
-            --output "${RUNNER_TEMP}/homeboy-0.436.10.tar.xz"
+            "https://github.com/Extra-Chill/homeboy/releases/download/v${HOMEBOY_VERSION}/homeboy-x86_64-unknown-linux-gnu.tar.xz" \
+            --output "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}.tar.xz"
           printf '%s  %s\n' \
-            '364249b34a712be3fec0925f7180211a48e511b2caa57cfd57aa5f56cc4ba710' \
-            "${RUNNER_TEMP}/homeboy-0.436.10.tar.xz" | sha256sum --check --strict
-          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-0.436.10.tar.xz" \
-            --directory "${RUNNER_TEMP}/homeboy-0.436.10" --strip-components=1
-          chmod +x "${RUNNER_TEMP}/homeboy-0.436.10/homeboy"
+            "${HOMEBOY_SHA256}" \
+            "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}.tar.xz" | sha256sum --check --strict
+          tar --extract --xz --file "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}.tar.xz" \
+            --directory "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}" --strip-components=1
+          chmod +x "${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}/homeboy"
           # Detection and the rig use this explicit pin. Do not add it to
           # GITHUB_PATH: Deploy/Verify use the action's separately pinned CLI.
-          echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-0.436.10" >> "${GITHUB_ENV}"
+          echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}" >> "${GITHUB_ENV}"
 
       - name: Plan
         id: plan
@@ -157,7 +162,8 @@ jobs:
           # Site-level steps read the network plugin's config (homeboy.json moved
           # under plugins/ in #394). Upstream: homeboy-action project-level commands.
           component: plugins/extrachill-network
-          version: '0.436.10'
+          version: ${{ env.HOMEBOY_VERSION }}
+          extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
           # The action appends "<component id> --path <dir>" to component commands.
           commands: component show
           auto-setup: 'false'
@@ -318,8 +324,7 @@ jobs:
       # reinstalls the network's own extensions, so these survive into Deploy.
       # Deploy-side twin of #439/#441. Upstream gap: homeboy-action cannot
       # install per-component extensions for project-level commands (#468).
-      # The frozen homeboy-extensions source matches what the action resolves
-      # for this Homeboy pin; the monorepo source has no nested manifests yet.
+      # This CLI release resolves nested extension roots in the monorepo.
       - name: Install deployed components' extensions
         if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
         shell: bash
@@ -341,7 +346,7 @@ jobs:
             path="$(jq -er '.local_path' "${HOMEBOY_CONFIG_ROOT}/components/${component}.json")"
             echo "Installing extensions declared by ${component} (${path})"
             "${HOMEBOY_GATE_BIN_DIR}/homeboy" extension install-for-component \
-              --path "${path}" --source https://github.com/Extra-Chill/homeboy-extensions
+              --path "${path}" --source https://github.com/Extra-Chill/homeboy
           done
 
       # homeboy-action executes these comma-separated commands serially.
@@ -357,7 +362,8 @@ jobs:
           # Site-level steps read the network plugin's config (homeboy.json moved
           # under plugins/ in #394). Upstream: homeboy-action project-level commands.
           component: plugins/extrachill-network
-          version: '0.436.10'
+          version: ${{ env.HOMEBOY_VERSION }}
+          extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
           commands: ${{ steps.plan.outputs.command }}
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
@@ -372,7 +378,8 @@ jobs:
           # Site-level steps read the network plugin's config (homeboy.json moved
           # under plugins/ in #394). Upstream: homeboy-action project-level commands.
           component: plugins/extrachill-network
-          version: '0.436.10'
+          version: ${{ env.HOMEBOY_VERSION }}
+          extension-ref: ${{ format('v{0}', env.HOMEBOY_VERSION) }}
           commands: deploy extrachill-monorepo --check
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
