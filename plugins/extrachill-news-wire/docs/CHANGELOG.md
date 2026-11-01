@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.0] - 2026-11-01
+
+### Added
+- share the Stories projection network-wide and expose Festival Wire stories
+
 ## [0.6.5] - 2026-11-01
 
 ### Changed
