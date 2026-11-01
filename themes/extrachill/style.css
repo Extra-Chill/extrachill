@@ -887,6 +887,23 @@ body {
 	padding: var(--spacing-md);
 }
 
+/* Stacked form: label/field pairs, a clear gap before each new label and before the submit. */
+.ec-form-stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+}
+
+.ec-form-stack > label:not(:first-child) {
+	margin-top: var(--spacing-sm);
+}
+
+.ec-form-stack > button,
+.ec-form-stack > input[type="submit"] {
+	align-self: flex-start;
+	margin-top: var(--spacing-md);
+}
+
 /* Readable single-column width for focused task pages (forms, passes, check-in). */
 .ec-narrow-column {
 	max-width: 36rem;
