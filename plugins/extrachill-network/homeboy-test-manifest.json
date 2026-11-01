@@ -34,6 +34,9 @@
     "tests/cross-site-rest-dispatch-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/events-bulk-cache-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/experiment-assignment-smoke.php": {
       "environment": "standalone-php"
     },
