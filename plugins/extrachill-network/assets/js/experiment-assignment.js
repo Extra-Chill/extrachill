@@ -7,7 +7,7 @@
  * trusted persistence consumers use the corresponding server-side hooks.
  */
 ( function () {
-	var config = window.ecExperimentAssignment;
+	const config = window.ecExperimentAssignment;
 	if (
 		! config ||
 		! config.assignmentEndpoint ||
@@ -17,7 +17,7 @@
 		return;
 	}
 
-	var elements = document.querySelectorAll(
+	const elements = document.querySelectorAll(
 		'[data-ec-experiment-key][data-ec-experiment-surface]'
 	);
 	if ( ! elements.length ) {
@@ -55,7 +55,7 @@
 						assignment_policy: detail.assignment_policy,
 						variant: detail.variant,
 						surface: detail.surface,
-						context: context,
+						context,
 						exposure_token: detail.exposure_token,
 					},
 				} ),
@@ -81,7 +81,7 @@
 			return;
 		}
 
-		var observer = new window.IntersectionObserver(
+		const observer = new window.IntersectionObserver(
 			function ( entries ) {
 				if ( entries[ 0 ].isIntersecting && entries[ 0 ].intersectionRatio >= 0.5 ) {
 					observer.disconnect();
@@ -95,23 +95,23 @@
 
 	function parseContext( element ) {
 		try {
-			var context = JSON.parse( element.getAttribute( 'data-ec-experiment-context' ) || '{}' );
+			const context = JSON.parse( element.getAttribute( 'data-ec-experiment-context' ) || '{}' );
 			return context && typeof context === 'object' && ! Array.isArray( context )
 				? context
 				: {};
-		} catch ( error ) {
+		} catch {
 			return {};
 		}
 	}
 
 	function assign( element ) {
-		var experimentKey = element.getAttribute( 'data-ec-experiment-key' ) || '';
-		var surface = element.getAttribute( 'data-ec-experiment-surface' ) || '';
-		var query = new URLSearchParams();
+		const experimentKey = element.getAttribute( 'data-ec-experiment-key' ) || '';
+		const surface = element.getAttribute( 'data-ec-experiment-surface' ) || '';
+		const query = new URLSearchParams();
 		query.set( 'input[experiment_key]', experimentKey );
 		query.set( 'input[surface]', surface );
-		var rawContext = parseContext( element );
-		var context = {};
+		const rawContext = parseContext( element );
+		const context = {};
 		Object.keys( rawContext ).forEach( function ( key ) {
 			if ( [ 'string', 'number', 'boolean' ].includes( typeof rawContext[ key ] ) ) {
 				context[ key ] = String( rawContext[ key ] );
@@ -155,7 +155,7 @@
 			} );
 	}
 
-	for ( var i = 0; i < elements.length; i++ ) {
+	for ( let i = 0; i < elements.length; i++ ) {
 		assign( elements[ i ] );
 	}
 } )();

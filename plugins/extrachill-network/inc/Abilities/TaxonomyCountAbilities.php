@@ -104,9 +104,9 @@ class TaxonomyCountAbilities {
 	 * posts per term, and returns structured results.
 	 *
 	 * @param array $input Input parameters.
-	 * @return array Term counts sorted by post count descending.
+	 * @return array|\WP_Error Term counts sorted by post count descending, or an invalid-site/taxonomy error.
 	 */
-	public function executeGetTaxonomyPostCounts( array $input ): array {
+	public function executeGetTaxonomyPostCounts( array $input ): array|\WP_Error {
 		$taxonomy  = $input['taxonomy'];
 		$site_key  = $input['site'];
 		$post_type = $input['post_type'] ?? null;
@@ -146,10 +146,11 @@ class TaxonomyCountAbilities {
 	 * @param string      $site_key  Site key for the response.
 	 * @param string|null $post_type Optional explicit post type.
 	 * @param string      $slug      Term slug to count.
-	 * @return array Structured result (same shape as computeCounts).
+	 * @return array|\WP_Error Structured result (same shape as computeCounts), or an invalid-taxonomy error.
 	 */
-	private function computeSingleCount( string $taxonomy, string $site_key, ?string $post_type, string $slug ): array {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
+	private function computeSingleCount( string $taxonomy, string $site_key, ?string $post_type, string $slug ): array|\WP_Error {
+		$tax_obj = get_taxonomy( $taxonomy );
+		if ( false === $tax_obj ) {
 			return new \WP_Error(
 				'taxonomy_not_found',
 				/* translators: %s: taxonomy slug */
@@ -166,14 +167,14 @@ class TaxonomyCountAbilities {
 		);
 
 		$term = get_term_by( 'slug', $slug, $taxonomy );
-		if ( ! $term || is_wp_error( $term ) ) {
+		if ( false === $term ) {
 			return $empty;
 		}
 
 		if ( $post_type ) {
 			$post_types = array( $post_type );
 		} else {
-			$post_types = get_taxonomy( $taxonomy )->object_type;
+			$post_types = $tax_obj->object_type;
 		}
 
 		$query = new \WP_Query(
@@ -226,10 +227,11 @@ class TaxonomyCountAbilities {
 	 * @param string      $taxonomy  Taxonomy slug.
 	 * @param string      $site_key  Site key for the response.
 	 * @param string|null $post_type Optional explicit post type.
-	 * @return array Structured result.
+	 * @return array|\WP_Error Structured result, or an invalid-taxonomy error.
 	 */
-	private function computeCounts( string $taxonomy, string $site_key, ?string $post_type ): array {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
+	private function computeCounts( string $taxonomy, string $site_key, ?string $post_type ): array|\WP_Error {
+		$tax_obj = get_taxonomy( $taxonomy );
+		if ( false === $tax_obj ) {
 			return new \WP_Error(
 				'taxonomy_not_found',
 				/* translators: %s: taxonomy slug */
@@ -242,7 +244,6 @@ class TaxonomyCountAbilities {
 		if ( $post_type ) {
 			$post_types = array( $post_type );
 		} else {
-			$tax_obj    = get_taxonomy( $taxonomy );
 			$post_types = $tax_obj->object_type;
 		}
 

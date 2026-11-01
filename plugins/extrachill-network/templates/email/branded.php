@@ -16,7 +16,7 @@
  *   - preheader      string Hidden preview text.
  *
  * @package ExtraChillNetwork\Templates\Email
- * @var array $context Template context.
+ * @var mixed $context Unvalidated template context; normalized below.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

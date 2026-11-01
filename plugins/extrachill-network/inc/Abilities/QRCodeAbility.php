@@ -36,7 +36,7 @@ class QRCodeAbility {
 	 * does not go through the REST permission gate.
 	 *
 	 * @param string|null $path Path from an earlier provider, if any.
-	 * @param string      $url  URL to encode.
+	 * @param mixed       $url  Unvalidated filter input for the URL to encode.
 	 * @param int         $size Drawn size in pixels.
 	 * @return string|null Temp PNG path, or the incoming value when unable.
 	 */
