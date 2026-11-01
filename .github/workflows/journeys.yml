@@ -107,13 +107,32 @@ jobs:
         if: ${{ inputs.demo == true }}
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null && ffmpeg -version | head -1
 
+      # The pinned WP Codebox build and its Chromium are identical for every
+      # job at a given WP_CODEBOX_REF, so build them once and restore after.
+      - name: Restore WP Codebox build and Chromium
+        id: wp-codebox-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            .ci/wp-codebox
+            !.ci/wp-codebox/.git
+            ~/.cache/ms-playwright
+          key: wp-codebox-build-v1-${{ runner.os }}-${{ env.WP_CODEBOX_REF }}
+
       - name: Build WP Codebox and its pinned Chromium
+        if: steps.wp-codebox-cache.outputs.cache-hit != 'true'
         working-directory: .ci/wp-codebox
         run: |
           set -euo pipefail
           npm install
           npm run build
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+
+      # Chromium's system libraries live outside the cache; install them on
+      # every run (a few seconds from the runner's apt mirror).
+      - name: Install Chromium system dependencies
+        working-directory: .ci/wp-codebox
+        run: npx playwright install-deps chromium
 
       - name: Validate rig contracts
         run: node rigs/extrachill-network/tests/contract.test.mjs
