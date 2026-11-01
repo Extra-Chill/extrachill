@@ -16,6 +16,9 @@
     "tests/smoke-festival-wire-notifications.php": {
       "environment": "standalone-php"
     },
+    "tests/smoke-stories-abilities.php": {
+      "environment": "standalone-php"
+    },
     "tests/smoke-recent-activity-ability.php": {
       "environment": "standalone-php"
     }

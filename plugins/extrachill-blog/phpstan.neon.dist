@@ -1,0 +1,4 @@
+# Stories schemas and projections are supplied by the network foundation.
+parameters:
+	scanFiles:
+		- ../extrachill-network/inc/core/stories.php

@@ -43,6 +43,7 @@ define( 'EXTRACHILL_NETWORK_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
  * downstream changes.
  */
 require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/blog-ids.php';
+require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/stories.php';
 
 if ( file_exists( EXTRACHILL_NETWORK_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'vendor/autoload.php';

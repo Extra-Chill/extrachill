@@ -3,6 +3,8 @@
 # carries only what is specific to this component.
 
 parameters:
+	scanFiles:
+		- ../extrachill-network/inc/core/stories.php
 	# WP-CLI defines WP_CLI at runtime. The extrachill-network validation
 	# dependency is scanned for declarations, and one of its CLI probes defines
 	# WP_CLI as true, which would otherwise make the canonical
