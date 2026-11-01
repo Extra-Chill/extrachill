@@ -1,6 +1,6 @@
 <?php
 /**
- * Venue and booking dependency registration.
+ * Booking-owned dependency registration.
  *
  * @package ExtraChillEvents\Providers
  */
@@ -9,8 +9,8 @@ namespace ExtraChillEvents\Providers;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Loads the ordered venue and booking feature group once. */
-final class VenueBookingProvider {
+/** Single entry point for booking, depending only on venue-owned services. */
+final class BookingProvider {
 
 	/**
 	 * Whether dependencies have loaded.
@@ -36,26 +36,17 @@ final class VenueBookingProvider {
 			return false;
 		}
 
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueSchema.php';
+		// Booking builds on the venue layer; it never loads venue code itself.
+		if ( ! VenueProvider::register() ) {
+			return false;
+		}
+
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistMappingLock.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/ArtistAuthorization.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationToken.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingRepository.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueOnboardingService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueCalendarFeed.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueCalendarFeedSync.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueInvitationDeliveryWorker.php';
-		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingActivityRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingNotificationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCommunicationService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingCorrespondenceAutomationService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueLock.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingVenueIntervalConflictProvider.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingHoldRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingMutationService.php';
@@ -85,15 +76,11 @@ final class VenueBookingProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingReportingService.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingPrivacyService.php';
 		\ExtraChillEvents\Core\BookingPrivacyService::register();
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueProfile.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/CanonicalEventPublicationGuard.php';
 		\ExtraChillEvents\Core\BookingHoldRepository::register();
 		\ExtraChillEvents\Core\BookingCommunicationService::register();
 		\ExtraChillEvents\Core\BookingCorrespondenceAutomationService::register();
 		\ExtraChillEvents\Core\BookingNotificationService::register();
-		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
 		new \ExtraChillEvents\Core\BookingVenueIntervalConflictProvider();
-		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
 
 		self::$registered = true;
 		return true;

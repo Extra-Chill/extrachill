@@ -78,7 +78,13 @@ final class ExtraChillEvents {
 		}
 
 		try {
-			\ExtraChillEvents\Providers\VenueBookingProvider::register();
+			\ExtraChillEvents\Providers\VenueProvider::register();
+		} catch ( \Throwable $error ) {
+			$this->provider_failed( 'venue', $error );
+		}
+
+		try {
+			\ExtraChillEvents\Providers\BookingProvider::register();
 		} catch ( \Throwable $error ) {
 			$this->provider_failed( 'venue-booking', $error );
 		}

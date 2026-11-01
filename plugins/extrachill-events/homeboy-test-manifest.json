@@ -1,0 +1,11 @@
+{
+  "schema": "homeboy/test-manifest/v1",
+  "tests": {
+    "tests/provider-split.php": {
+      "environment": "standalone-php"
+    },
+    "tests/booking-boundary.php": {
+      "environment": "standalone-php"
+    }
+  }
+}
