@@ -1,5 +1,7 @@
 # ExtraChill API
 
+End-user help is owned by each plugin's `docs/user/*.md` and published on deploy by `extrachill-docs/publish-plugin-docs` as pages. There is no REST docs-push endpoint. The public `inc/routes/docs/docs-info.php` metadata route remains available.
+
 Network-activated REST API infrastructure for the Extra Chill Platform WordPress multisite network. Centralizes all custom REST endpoints under a single `extrachill/v1` namespace for consistent access across web, mobile, and AI clients.
 
 ## Overview
@@ -239,7 +241,6 @@ extrachill-api/
     │   ├── taxonomies.php
     │   └── throttle.php
     ├── controllers/
-    │   └── class-docs-sync-controller.php
     ├── utils/
     │   └── id-generator.php
     └── routes/
@@ -292,7 +293,6 @@ extrachill-api/
         │   └── submit.php
         ├── docs/
         │   └── docs-info.php
-        ├── docs-sync-routes.php
         ├── events/
         │   ├── event-submissions.php
         │   └── guest-rsvp.php

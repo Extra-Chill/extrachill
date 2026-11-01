@@ -1,5 +1,9 @@
 # Extra Chill Community Plugin
 
+## End-user help
+
+`docs/user/*.md` is the canonical source for community help. Deploy ships these files, then `extrachill-docs/publish-plugin-docs` publishes them as pages on docs.extrachill.com. Edit help here rather than in published pages; follow the docs plugin's writing rules and voice check.
+
 A WordPress plugin for the Extra Chill community platform providing forum enhancements and bbPress integration. Works with the extrachill theme to provide community functionality for community.extrachill.com.
 
  **Version**: 1.2.3

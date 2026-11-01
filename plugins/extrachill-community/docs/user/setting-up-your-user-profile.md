@@ -8,4 +8,6 @@ A thoughtful profile helps other members learn who you are and find your music o
 4. Add your local area and links you want to share, such as a website or music page.
 5. Save your changes and view your profile.
 
+You can add multiple links and reorder them. Your profile picture also appears beside your community posts. If you leave your custom title blank, it displays as "Extra Chillian".
+
 You can manage artist profiles you have access to from the profile area when that option is available to you. Only add details and links you are comfortable showing to other members. If a change does not appear, revisit the edit page and save it again.

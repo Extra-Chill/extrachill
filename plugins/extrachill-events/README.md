@@ -1,5 +1,9 @@
 # ExtraChill Events
 
+## End-user help
+
+`docs/user/*.md` is the canonical source for event help. Deploy ships these files, then `extrachill-docs/publish-plugin-docs` publishes them as pages on docs.extrachill.com. Edit help here rather than in published pages; follow the docs plugin's writing rules and voice check.
+
 WordPress plugin providing ExtraChill-side integration for events.extrachill.com.
 
 The event calendar system itself (Data Machine + data-machine-events) is external to this repo; this plugin focuses on template routing, styling integration, and event submission/automation glue.

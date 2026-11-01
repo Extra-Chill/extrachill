@@ -16,7 +16,7 @@ Use site search to look for an artist, venue, festival, or event title. Choose *
 
 ## Explore Artists and Venues
 
-Artist pages show known upcoming appearances. Venue pages provide a calendar for that room. Select taxonomy links on an event to keep exploring related listings.
+Artist pages show known upcoming appearances. Venue pages provide a calendar for that room. Select artist, venue, festival, or location links on an event to keep exploring related listings.
 
 ## Save What Matters
 

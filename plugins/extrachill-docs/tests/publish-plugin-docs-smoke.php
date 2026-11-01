@@ -121,6 +121,20 @@ namespace {
 	$assert( $before['Extra-Chill/extrachill-events'] !== $after['Extra-Chill/extrachill-events'], 'an edited doc changes its repo fingerprint' );
 	$assert( $before['Extra-Chill/extrachill-docs'] === $after['Extra-Chill/extrachill-docs'], 'other repos keep their fingerprint' );
 
+	// Real source layout: artist help has one canonical home; MCP keeps its key.
+	require dirname( __DIR__ ) . '/inc/core/platform-map.php';
+	$plugins_root = dirname( __DIR__, 2 );
+	$real_plan    = extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), $plugins_root );
+	$artist_paths = array_column( array_filter( $real_plan, static fn( $r ) => 'Extra-Chill/extrachill-artist-platform' === $r['repo'] && 'publish' === $r['action'] ), 'path' );
+	$assert( 9 <= count( $artist_paths ), 'at least nine artist help articles are published from the installed plugin' );
+	$assert( in_array( 'docs/user/managing-roster.md', $artist_paths, true ), 'moved artist help uses the canonical docs/user source key' );
+	$assert( is_file( $plugins_root . '/extrachill-docs/ec_docs/mcp/connect.md' ), 'MCP source remains in place' );
+	foreach ( array( 'artist', 'community', 'events' ) as $retired ) {
+		$assert( ! is_dir( $plugins_root . '/extrachill-docs/ec_docs/' . $retired ), 'no duplicate legacy source tree for ' . $retired );
+	}
+	$assert( ! is_file( $plugins_root . '/extrachill-api/inc/routes/docs-sync-routes.php' ), 'legacy REST push route is absent' );
+	$assert( is_file( $plugins_root . '/extrachill-api/inc/routes/docs/docs-info.php' ), 'live docs-info route is preserved' );
+
 	// Adoption of pages left unkeyed by the sync cleanup.
 	$adopted = extrachill_docs_find_child_page_by_slug( 'finding-live-music', 54 );
 	$assert( $adopted instanceof WP_Post && 57 === $adopted->ID, 'an unkeyed same-slug child is adopted instead of duplicated' );
