@@ -202,8 +202,12 @@ Running journeys on the Lab: the rig declares `"lifecycle": {"mode": "disposable
 
 ```bash
 homeboy rig up extrachill-network --placement lab \
-  --setting-json extrachill_journeys='["show-ratings-fan"]'
+  --setting-json extrachill_journeys='["show-ratings-fan"]' \
+  --setting extrachill_wp_codebox_bin=/abs/path/to/wp-codebox/packages/cli/dist/index.js
 ```
+
+`extrachill_wp_codebox_bin` pins the WP Codebox build (match `WP_CODEBOX_REF`
+in `journeys.yml`), since Lab placement forwards settings, not env vars.
 
 Writing a new journey: copy the shape of `journeys/gardner-event-rsvp/`,
 grade against the oracles of a pinned persona (or document why there is no

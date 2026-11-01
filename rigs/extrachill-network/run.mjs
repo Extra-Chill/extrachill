@@ -1648,6 +1648,7 @@ function isRecord(value) {
 async function main() {
   const dryRun = process.argv.includes('--dry-run');
   const settings = parseSettings(process.env.HOMEBOY_SETTINGS_JSON);
+  applyCodeboxBinSetting(settings);
   const recipe = await buildRecipe(settings);
   if (settings.extrachill_demo === true) assertDemoCodeboxVersion();
   const temporary = await mkdtemp(path.join(os.tmpdir(), 'extrachill-network-'));
@@ -1826,6 +1827,20 @@ function codeboxMaxBuffer() {
     throw new Error('HOMEBOY_WP_CODEBOX_MAX_BUFFER_BYTES must be a positive integer.');
   }
   return value;
+}
+
+/**
+ * `extrachill_wp_codebox_bin` pins the WP Codebox CLI for one run. Runners such
+ * as `homeboy rig up --placement lab` pass settings but not environment
+ * variables, so this is how a Lab run selects the pinned build.
+ */
+export function applyCodeboxBinSetting(settings, env = process.env) {
+  const bin = settings.extrachill_wp_codebox_bin;
+  if (bin === undefined) return;
+  if (typeof bin !== 'string' || !path.isAbsolute(bin)) {
+    throw new Error('extrachill_wp_codebox_bin must be an absolute path to the WP Codebox CLI.');
+  }
+  env.HOMEBOY_WP_CODEBOX_BIN = bin;
 }
 
 function parseSettings(raw) {
