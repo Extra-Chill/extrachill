@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.35.4] - 2026-11-01
+
+### Fixed
+- correct taxonomy error returns and runtime input contracts
+
 ## [2.35.3] - 2026-11-01
 
 ### Changed
