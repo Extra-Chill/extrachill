@@ -1,6 +1,9 @@
 {
   "schema": "homeboy/test-manifest/v1",
   "tests": {
+    "tests/taxonomy-count-errors-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/optional-ability-input-smoke.php": {
       "environment": "standalone-php"
     },

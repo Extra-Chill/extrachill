@@ -53,7 +53,7 @@ class BlogResolver {
 	 * NetworkMediaAbilities and the existing media upload routes.
 	 *
 	 * @template T
-	 * @param int      $blog_id Target blog ID.
+	 * @param int           $blog_id Target blog ID.
 	 * @param callable(): T $callback Callable executed inside the target blog.
 	 * @return T Whatever the callable returns.
 	 */
