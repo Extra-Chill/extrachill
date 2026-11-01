@@ -212,7 +212,7 @@ function extrachill_events_guest_list_full_error(): WP_Error {
  * The error returned for a wrong or missing guest list password.
  *
  * Brute-force limiting is a transport concern: both public write boundaries
- * (extrachill-api guest-rsvp and claim-pass) apply the shared per-client
+ * (extrachill-api guest-rsvp and guest-list-pass) apply the shared per-client
  * public-write rate limit before this runs.
  *
  * @return WP_Error
