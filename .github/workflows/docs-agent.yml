@@ -1,0 +1,65 @@
+name: Docs Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Plugin to document
+        type: choice
+        required: true
+        options:
+          - extrachill-artist-platform
+          - extrachill-community
+          - extrachill-events
+          - extrachill-newsletter
+      dry_run:
+        description: Validate the run without starting a live agent run
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      config: ${{ steps.config.outputs.config }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install platform map parser
+        run: python -m pip install PyYAML==6.0.3
+      - name: Resolve component configuration
+        id: config
+        env:
+          COMPONENT: ${{ inputs.component }}
+        run: python plugins/extrachill-docs/scripts/docs-agent-config.py "$COMPONENT" >> "$GITHUB_OUTPUT"
+
+  docs-agent:
+    needs: config
+    # Full main commit: v0.3.0 lacks dry_run, model and source_delta inputs.
+    # This is the sole Docs Agent pin; update here after reviewing upstream changes.
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@a4597a1ca266699612483218779b0f3c9dda7f2c
+    with:
+      audience: ${{ fromJSON(needs.config.outputs.config).audience }}
+      run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
+      base_ref: ${{ fromJSON(needs.config.outputs.config).base_ref }}
+      docs_branch: ${{ fromJSON(needs.config.outputs.config).docs_branch }}
+      writable_paths: ${{ fromJSON(needs.config.outputs.config).writable_paths }}
+      context_repositories: ${{ toJSON(fromJSON(needs.config.outputs.config).context_repositories) }}
+      bootstrap_contract: ${{ toJSON(fromJSON(needs.config.outputs.config).bootstrap_contract) }}
+      source_delta: ${{ toJSON(fromJSON(needs.config.outputs.config).source_delta) }}
+      drift_checks: ${{ toJSON(fromJSON(needs.config.outputs.config).drift_checks) }}
+      prompt: ${{ fromJSON(needs.config.outputs.config).prompt }}
+      model: ${{ fromJSON(needs.config.outputs.config).model }}
+      dry_run: ${{ inputs.dry_run }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      EXTERNAL_PACKAGE_SOURCE_POLICY: ${{ secrets.DOCS_AGENT_EXTERNAL_PACKAGE_SOURCE_POLICY }}

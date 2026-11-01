@@ -5,7 +5,7 @@ This directory holds the **editorial content** that controls how `Automattic/doc
 ## Files
 
 - **`writing-rules.md`** — the editorial voice rules from extrachill-docs issue #6. Read verbatim by the `datamachine_agent_mode_docs` filter callback and injected into the AI's system context whenever an AI step runs with `agent_modes: ['docs']`. Edit this file and the next docs-agent run picks up the change automatically.
-- **`platform-map.yml`** — per-plugin-repo platform identity (platform name, parent slug on docs.extrachill.com, audience description). Reserved for the per-target context layer (still pending — see "Per-target context" below).
+- **`platform-map.yml`** — platform identity keyed by monorepo plugin path, plus optional `runner` settings for CI (audience lane, writable paths, bootstrap contract, source delta, drift checks, model and full prompt). The PHP loader preserves legacy `Extra-Chill/plugin-name` identifiers for publishing and migration.
 - **`prompt-template.md`** — scaffold preserved from an earlier design iteration. Currently unused. May be repurposed as a per-target context template once the active-workspace exposure lands in Data Machine Code.
 
 ## How the integration actually works
@@ -39,7 +39,20 @@ that respects the editorial voice
 
 No YAML wrapper. No custom directive class. No string mashing in caller workflows. The plugin registers a mode, supplies its guidance, and Data Machine handles the rest through its existing primitive.
 
-## How a plugin opts in
+## Monorepo workflow
+
+Run `.github/workflows/docs-agent.yml` with a `component` choice. `dry_run` defaults to true; disable it explicitly for a live run. The workflow resolves the selected plugin's `runner` settings from this map and calls one SHA-pinned upstream workflow. Update that single `uses:` pin after reviewing upstream changes and input compatibility; v0.3.0 does not support the live-run inputs used here.
+
+To add a component, add its `runner` configuration to `platform-map.yml` and its name to the dispatch choices. Preserve the component's stable docs branch and constrain writable paths to its docs directory. Test locally from the monorepo root:
+
+```sh
+python3 -m pip install PyYAML==6.0.3
+python3 -m unittest discover -s plugins/extrachill-docs/tests -p 'test_docs_agent_config.py'
+```
+
+The CI workflow supplies the full per-plugin prompt, including the writing-rules path. The Data Machine execution mode below is a separate integration.
+
+## Data Machine integration (historical)
 
 This plugin lives in the Extra Chill monorepo at `plugins/extrachill-docs` (Extra-Chill/extrachill). The standalone `Extra-Chill/extrachill-docs` repository is frozen and no longer receives changes, so anything that pulls it by name sees the last pre-monorepo state.
 
@@ -68,7 +81,7 @@ Voice rules are network-wide and don't need per-repo customization. Per-target c
 
 That layer requires the AI runtime to know which repo it's running against. Data Machine Code already tracks this in worktree metadata but does not yet expose it to AI execution payloads. Issue tracked separately (see extrachill-docs#33 thread). When that exposure lands, a second callback on `datamachine_agent_mode_docs` reads `platform-map.yml` and stacks per-target context onto the same mode at a later filter priority.
 
-Until then, all docs-agent runs use the platform-wide voice rules only.
+This pending runtime context layer is separate from CI, which already reads per-plugin prompts from the platform map.
 
 ## Why these files live here, not in the docs-agent bundle
 
