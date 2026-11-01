@@ -52,6 +52,12 @@ if ( isset( $guest_list['spots_left'] ) && ! $list_full ) {
 get_header();
 ?>
 <main class="extrachill-content ec-guest-list-page">
+	<div class="content-column">
+	<?php
+	if ( function_exists( 'extrachill_breadcrumbs' ) ) {
+		extrachill_breadcrumbs();
+	}
+	?>
 	<div
 		class="ec-guest-list ec-surface-card ec-card-padding ec-narrow-column"
 		data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
@@ -82,7 +88,7 @@ get_header();
 
 			<form
 				id="ec-guest-list-form-<?php echo esc_attr( (string) $event_id ); ?>"
-				class="ec-rsvp-guest"
+				class="ec-rsvp-guest ec-form-stack"
 				data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
 				data-mode="guest-list"
 				novalidate
@@ -140,6 +146,7 @@ get_header();
 			<p class="ec-rsvp-pass__code"></p>
 			<p class="ec-rsvp-guest__note"><?php esc_html_e( 'Screenshot this to be safe. It stays on this phone if you come back to this page.', 'extrachill-events' ); ?></p>
 		</div>
+	</div>
 	</div>
 </main>
 <?php

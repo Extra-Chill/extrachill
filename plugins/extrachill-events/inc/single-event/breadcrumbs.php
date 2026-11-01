@@ -178,6 +178,13 @@ function ec_events_breadcrumb_trail_single( $custom_trail ) {
 			}
 		}
 
+		// The guest list page (/events/{slug}/guest-list) sits one level below the event.
+		if ( function_exists( 'extrachill_events_is_guest_list_request' ) && extrachill_events_is_guest_list_request() ) {
+			$trail .= '<a href="' . esc_url( (string) get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a> › ';
+			$trail .= '<span class="breadcrumb-title">' . esc_html__( 'Guest list', 'extrachill-events' ) . '</span>';
+			return $trail;
+		}
+
 		$trail .= '<span class="breadcrumb-title">' . get_the_title() . '</span>';
 		return $trail;
 	}
