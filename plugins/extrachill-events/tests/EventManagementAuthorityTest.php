@@ -19,6 +19,7 @@
 // phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO -- File intentionally pairs WP function shims, the fake $wpdb double, and the test case class, matching PromoterAuthorityTest.php's shape.
 
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -129,6 +130,7 @@ final class EventManagementTestWpdb {
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/BookingSchema.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/core/event-management-authority.php';
@@ -150,6 +152,7 @@ final class EventManagementAuthorityTest extends TestCase {
 			'options'        => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
+				VenueSchema::VERSION_OPTION           => VenueSchema::SCHEMA_VERSION,
 			),
 			'caps'           => array(),
 			'editable_posts' => array(),
@@ -192,7 +195,7 @@ final class EventManagementAuthorityTest extends TestCase {
 	}
 
 	private function seed_venue_membership( int $user_id, string $status = 'active' ): void {
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][] = array(
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][] = array(
 			'id'                 => 1,
 			'venue_term_id'      => self::VENUE_ID,
 			'user_id'            => $user_id,

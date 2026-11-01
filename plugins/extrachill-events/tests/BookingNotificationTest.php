@@ -9,6 +9,7 @@ use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingNotificationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
@@ -65,7 +66,7 @@ final class BookingNotificationTest extends BookingTestCase {
 
 	/** Add one membership fixture. */
 	private function member( int $id, int $venue, int $user, string $status, bool $owner ): void {
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][ $id ] = array(
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][ $id ] = array(
 			'id'                 => $id,
 			'venue_term_id'      => $venue,
 			'user_id'            => $user,
@@ -445,7 +446,7 @@ final class BookingNotificationTest extends BookingTestCase {
 
 		$service->reconcile( $request['id'] );
 		$this->make_retry_due( $request['id'] );
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1]['status'] = VenueAuthorization::STATUS_REVOKED;
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1]['status'] = VenueAuthorization::STATUS_REVOKED;
 		$terminal = $service->reconcile( $request['id'] );
 
 		$this->assertSame( array( array( 10 ) ), $deliveries );

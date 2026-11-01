@@ -85,7 +85,7 @@ final class PromoterVenueGrantService {
 
 	/** Validate exact terms and current feature access. */
 	private function validate_management_request( int $actor_user_id, int $promoter_term_id, int $venue_term_id ) {
-		if ( ! PromoterAuthoritySchema::is_ready() || ! BookingSchema::is_ready() ) {
+		if ( ! PromoterAuthoritySchema::is_ready() || ! VenueSchema::is_ready() ) {
 			return new \WP_Error( 'promoter_venue_authority_schema_unavailable', __( 'Promoter venue authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		if ( $actor_user_id < 1 || ! get_userdata( $actor_user_id ) || ! PromoterAuthorization::user_can( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) || ! function_exists( 'ec_feature_available' ) || ! ec_feature_available( VenueAuthorization::FEATURE, $actor_user_id ) ) {

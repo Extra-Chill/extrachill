@@ -10,6 +10,7 @@
 		<testsuite name="booking-foundation">
 			<file>tests/AbilityRegistrationLifecycleTest.php</file>
 			<file>tests/BookingFoundationTest.php</file>
+			<file>tests/VenueSchemaTest.php</file>
 			<file>tests/BookingAttachmentTest.php</file>
 			<file>tests/BookingInquiryAdmissionTest.php</file>
 			<file>tests/BookingPrivateFileProviderTest.php</file>

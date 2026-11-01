@@ -9,6 +9,7 @@ use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
 use ExtraChillEvents\Abilities\PromoterVenueGrantAbilities;
 use ExtraChillEvents\Abilities\PromoterWorkspaceAbilities;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\PromoterAuthorityService;
@@ -116,6 +117,7 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 }
 
 require_once dirname( __DIR__ ) . '/inc/Core/BookingSchema.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
@@ -514,6 +516,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'options'         => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
+				VenueSchema::VERSION_OPTION           => VenueSchema::SCHEMA_VERSION,
 			),
 			'terms'           => array(
 				100 => (object) array(
@@ -573,6 +576,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'options'           => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
+				VenueSchema::VERSION_OPTION           => VenueSchema::SCHEMA_VERSION,
 			),
 			'terms'             => $GLOBALS['promoter_test']['terms'],
 			'users'             => $GLOBALS['promoter_test']['users'],
@@ -1100,7 +1104,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	public function test_lock_context_rejects_venue_membership_overflow(): void {
 		$this->bootstrap_promoter_grant_fixtures();
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		for ( $index = 0; $index < 100; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $table ][] = $this->venue_membership_row( 3000 + $index, 200, 1000 + $index );
 		}
@@ -1127,7 +1131,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$abilities = new PromoterVenueGrantAbilities();
 		$this->assertTrue( $abilities->can_issue( $input ) );
 
-		$table                                        = BookingSchema::memberships_table();
+		$table                                        = VenueSchema::memberships_table();
 		$GLOBALS['wpdb']->rows[ $table ][0]['status'] = VenueAuthorization::STATUS_REVOKED;
 		$this->assertSame( 'promoter_venue_action_forbidden', $abilities->create( $input )->get_error_code() );
 		$this->assertNull( ( new PromoterVenueGrantRepository() )->get( 100, 200, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT ) );
@@ -1166,7 +1170,7 @@ final class PromoterAuthorityTest extends TestCase {
 		}
 		$this->assertSame( PromoterAuthorityRepository::MAX_MEMBERS, $registered['extrachill/list-promoter-memberships']['output_schema']['maxItems'] );
 		$provider = file_get_contents( dirname( __DIR__ ) . '/inc/Providers/AbilitiesProvider.php' );
-		$this->assertStringContainsString( 'BookingSchema::is_ready()', $provider );
+		$this->assertStringContainsString( 'VenueSchema::is_ready()', $provider );
 		$this->assertStringContainsString( 'PromoterAuthoritySchema::is_ready()', $provider );
 		$this->assertStringNotContainsString( 'BookingSchema::is_ready() && \\ExtraChillEvents\\Core\\PromoterAuthoritySchema::is_ready()', $provider );
 	}
@@ -1315,7 +1319,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$promoter_error = ( new PromoterAuthorityRepository() )->list_active_memberships_for_user( 2 );
 		$this->assertSame( 'promoter_membership_user_limit_exceeded', $promoter_error->get_error_code() );
 
-		$venue_memberships = BookingSchema::memberships_table();
+		$venue_memberships = VenueSchema::memberships_table();
 		for ( $index = 1; $index <= \ExtraChillEvents\Core\VenueMembershipRepository::MAX_USER_VENUES + 1; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $venue_memberships ][] = $this->venue_membership_row( $index, 200, 4 );
 		}
@@ -1374,7 +1378,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	private function seed_venue_owner( int $venue_term_id, int $user_id ): void {
-		$table                             = BookingSchema::memberships_table();
+		$table                             = VenueSchema::memberships_table();
 		$GLOBALS['wpdb']->rows[ $table ][] = $this->venue_membership_row( 1000 + $venue_term_id, $venue_term_id, $user_id );
 	}
 

@@ -9,7 +9,7 @@
  * @package ExtraChillEvents
  */
 
-use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -52,7 +52,7 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
-if ( ! BookingSchema::is_ready() ) {
+if ( ! VenueSchema::is_ready() ) {
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 		<div class="ec-inline-status ec-inline-status--error" role="alert">
@@ -106,7 +106,7 @@ if ( ! $promoter_mode && $is_admin ) {
 	}
 } elseif ( ! $promoter_mode ) {
 	global $wpdb;
-	$table = BookingSchema::memberships_table();
+	$table = VenueSchema::memberships_table();
 	$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT venue_term_id, is_owner, status FROM {$table} WHERE user_id = %d ORDER BY created_at ASC", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private current-user bootstrap scoped to the Events site.
 	foreach ( (array) $rows as $row ) {
 		$venue_term = get_term( (int) $row['venue_term_id'], 'venue' );

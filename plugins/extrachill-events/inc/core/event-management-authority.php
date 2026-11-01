@@ -86,7 +86,7 @@ function extrachill_events_user_can_manage_event( int $user_id, int $event_id ):
 		}
 	}
 
-	if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) && \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
+	if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
 		$venue_terms = wp_get_post_terms( $event_id, 'venue' );
 		if ( ! is_wp_error( $venue_terms ) && ! empty( $venue_terms ) ) {
 			$repository = new \ExtraChillEvents\Core\VenueMembershipRepository();

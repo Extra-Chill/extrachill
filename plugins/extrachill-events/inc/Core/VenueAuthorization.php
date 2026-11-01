@@ -92,7 +92,7 @@ class VenueAuthorization {
 				array( 'status' => 400 )
 			);
 		}
-		if ( ! BookingSchema::is_ready() ) {
+		if ( ! VenueSchema::is_ready() ) {
 			return new \WP_Error(
 				'venue_membership_schema_unavailable',
 				__( 'Venue membership storage is not ready.', 'extrachill-events' ),

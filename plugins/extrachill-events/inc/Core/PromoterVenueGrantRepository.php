@@ -329,7 +329,7 @@ class PromoterVenueGrantRepository {
 		global $wpdb;
 		$organizations    = PromoterAuthoritySchema::organizations_table();
 		$promoter_members = PromoterAuthoritySchema::memberships_table();
-		$venue_members    = BookingSchema::memberships_table();
+		$venue_members    = VenueSchema::memberships_table();
 		$grants           = PromoterAuthoritySchema::venue_grants_table();
 		$organization_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$organizations} WHERE promoter_term_id = %d FOR UPDATE", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- First deterministic authority lock.
 		$promoter_rows    = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$promoter_members} WHERE promoter_term_id = %d ORDER BY id ASC LIMIT %d FOR UPDATE", $promoter_term_id, self::MAX_LOCK_MEMBERS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Second deterministic authority lock with one-row overflow probe.
@@ -434,7 +434,7 @@ class PromoterVenueGrantRepository {
 	 * @param int    $actor_user_id    Actor user ID.
 	 */
 	private function validate_request( int $promoter_term_id, int $venue_term_id, string $action, int $actor_user_id ) {
-		if ( ! PromoterAuthoritySchema::is_ready() || ! BookingSchema::is_ready() ) {
+		if ( ! PromoterAuthoritySchema::is_ready() || ! VenueSchema::is_ready() ) {
 			return new \WP_Error( 'promoter_venue_authority_schema_unavailable', __( 'Promoter venue authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		$promoter = get_term( $promoter_term_id, 'promoter' );

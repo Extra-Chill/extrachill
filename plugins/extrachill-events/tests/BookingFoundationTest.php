@@ -11,6 +11,7 @@ use ExtraChillEvents\Core\BookingAttachmentReadiness;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueBookingEmbed;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -107,6 +108,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 	public function test_schema_health_validates_attributes_and_site_scope(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
 		$this->assertTrue( BookingSchema::health() );
 		$this->assertArrayHasKey( 'is_owner', $GLOBALS['wpdb']->schemas['wp_7_ec_venue_members']['columns'] );
@@ -137,21 +139,23 @@ final class BookingFoundationTest extends BookingTestCase {
 		$invitation_columns =& $GLOBALS['wpdb']->schemas['wp_7_ec_venue_invitations']['columns'];
 		$this->assertArrayHasKey( 'account_created', $invitation_columns );
 		unset( $invitation_columns['account_created'] );
-		$missing_provenance = BookingSchema::health();
-		$this->assertSame( 'booking_schema_columns_missing', $missing_provenance->get_error_code() );
+		$missing_provenance = VenueSchema::health();
+		$this->assertSame( 'venue_schema_columns_missing', $missing_provenance->get_error_code() );
 		$this->assertSame( 'account_created', $missing_provenance->get_error_data()['column'] );
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$this->assertArrayHasKey( 'account_created', $GLOBALS['wpdb']->schemas['wp_7_ec_venue_invitations']['columns'] );
 
 		$GLOBALS['wpdb']->prefix = 'wp_12_';
 		$this->assertSame( 'wp_12_ec_bookings', BookingSchema::bookings_table() );
-		$this->assertSame( 'wp_12_ec_venue_members', BookingSchema::memberships_table() );
+		$this->assertSame( 'wp_12_ec_venue_members', VenueSchema::memberships_table() );
 		$this->assertSame( 'booking_schema_table_missing', BookingSchema::health()->get_error_code() );
 	}
 
 	public function test_role_schema_migrates_only_structural_ownership(): void {
-		$this->assertTrue( BookingSchema::install() );
-		$table = BookingSchema::memberships_table();
+		$this->assertTrue( VenueSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
+		$table = VenueSchema::memberships_table();
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['role']                 = array(
 			'Type'    => 'varchar(32)',
 			'Null'    => 'NO',
@@ -172,20 +176,21 @@ final class BookingFoundationTest extends BookingTestCase {
 				'is_owner' => 1,
 			),
 		);
-		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '2';
+		$GLOBALS['ec_artist_test']['options'][ VenueSchema::VERSION_OPTION ] = '2';
 
-		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertTrue( VenueSchema::maybe_install() );
 		$this->assertSame( 1, $GLOBALS['wpdb']->rows[ $table ][1]['is_owner'] );
 		$this->assertSame( 0, $GLOBALS['wpdb']->rows[ $table ][2]['is_owner'] );
 		$this->assertArrayNotHasKey( 'role', $GLOBALS['wpdb']->rows[ $table ][1] );
 		$this->assertArrayNotHasKey( 'role', $GLOBALS['wpdb']->schemas[ $table ]['columns'] );
 		$this->assertArrayNotHasKey( 'venue_status_role', $GLOBALS['wpdb']->schemas[ $table ]['indexes'] );
-		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
+		$this->assertSame( VenueSchema::SCHEMA_VERSION, get_option( VenueSchema::VERSION_OPTION ) );
 	}
 
 	public function test_concurrent_completed_role_migration_is_treated_as_success(): void {
-		$this->assertTrue( BookingSchema::install() );
-		$table = BookingSchema::memberships_table();
+		$this->assertTrue( VenueSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
+		$table = VenueSchema::memberships_table();
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['role']                 = array(
 			'Type'    => 'varchar(32)',
 			'Null'    => 'NO',
@@ -203,16 +208,17 @@ final class BookingFoundationTest extends BookingTestCase {
 			),
 		);
 		$GLOBALS['wpdb']->concurrent_role_migration                            = true;
-		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '2';
+		$GLOBALS['ec_artist_test']['options'][ VenueSchema::VERSION_OPTION ] = '2';
 
-		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertTrue( VenueSchema::maybe_install() );
 		$this->assertSame( 1, $GLOBALS['wpdb']->rows[ $table ][1]['is_owner'] );
-		$this->assertSame( BookingSchema::SCHEMA_VERSION, get_option( BookingSchema::VERSION_OPTION ) );
-		$this->assertFalse( get_option( BookingSchema::FAILURE_OPTION, false ) );
+		$this->assertSame( VenueSchema::SCHEMA_VERSION, get_option( VenueSchema::VERSION_OPTION ) );
+		$this->assertFalse( get_option( VenueSchema::FAILURE_OPTION, false ) );
 	}
 
 	public function test_assignment_storage_migration_removes_obsolete_contract_and_preserves_booking(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$table = BookingSchema::bookings_table();
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['assignee_user_id'] = array(
 			'Type'    => 'bigint unsigned',
@@ -241,6 +247,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 	public function test_unrepairable_column_attributes_are_not_stamped(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$GLOBALS['wpdb']->schemas['wp_7_ec_bookings']['columns']['status']['Null'] = 'YES';
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ]     = '';
 		$result = BookingSchema::maybe_install();
@@ -251,6 +258,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 	public function test_mariadb_integer_display_widths_are_ignored(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$table = BookingSchema::sales_reports_table();
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['id']['Type']           = 'bigint(20) unsigned';
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['tickets_sold']['Type'] = 'bigint(20)';
@@ -261,6 +269,7 @@ final class BookingFoundationTest extends BookingTestCase {
 	public function test_partial_schema_is_not_stamped_and_repeat_install_repairs_it(): void {
 		$GLOBALS['wpdb']->schema_omit['wp_7_ec_bookings']['columns'] = array( 'event_id' );
 		$result = BookingSchema::install();
+		VenueSchema::install();
 		$this->assertSame( 'booking_schema_columns_missing', $result->get_error_code() );
 		$this->assertSame( '', get_option( BookingSchema::VERSION_OPTION, '' ) );
 		$this->assertSame( 'booking_schema_columns_missing', get_option( BookingSchema::FAILURE_OPTION )['code'] );
@@ -272,6 +281,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 	public function test_malformed_required_indexes_are_dropped_and_repaired(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$bookings = 'wp_7_ec_bookings';
 		$activity = 'wp_7_ec_booking_activity';
 		$members  = 'wp_7_ec_venue_members';
@@ -287,6 +297,7 @@ final class BookingFoundationTest extends BookingTestCase {
 		$GLOBALS['wpdb']->dropped_indexes = array();
 
 		$this->assertTrue( BookingSchema::maybe_install() );
+		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( BookingSchema::health() );
 		$this->assertSame( array( 'id' ), $GLOBALS['wpdb']->schemas[ $bookings ]['indexes']['PRIMARY']['columns'] );
 		$this->assertTrue( $GLOBALS['wpdb']->schemas[ $bookings ]['indexes']['public_id']['unique'] );
@@ -327,6 +338,7 @@ final class BookingFoundationTest extends BookingTestCase {
 
 	public function test_stamped_v14_install_adds_show_settlement_tables_without_disturbing_existing_contracts(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$wpdb             = $GLOBALS['wpdb'];
 		$show_settlements = BookingSchema::show_settlements_table();
 		$show_actions     = BookingSchema::show_settlement_actions_table();
@@ -351,23 +363,25 @@ final class BookingFoundationTest extends BookingTestCase {
 	}
 
 	public function test_membership_table_engine_is_repaired_before_version_stamp(): void {
-		$this->assertTrue( BookingSchema::install() );
-		$table                              = BookingSchema::memberships_table();
+		$this->assertTrue( VenueSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
+		$table                              = VenueSchema::memberships_table();
 		$GLOBALS['wpdb']->engines[ $table ] = 'MyISAM';
-		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
-		$this->assertTrue( BookingSchema::maybe_install() );
+		$GLOBALS['ec_artist_test']['options'][ VenueSchema::VERSION_OPTION ] = '';
+		$this->assertTrue( VenueSchema::maybe_install() );
 		$this->assertSame( 'INNODB', strtoupper( $GLOBALS['wpdb']->engines[ $table ] ) );
 
 		$GLOBALS['wpdb']->engines[ $table ]                                    = 'MyISAM';
 		$GLOBALS['wpdb']->fail_engine_repair                                   = true;
-		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = '';
-		$result = BookingSchema::maybe_install();
-		$this->assertSame( 'booking_schema_engine_repair_failed', $result->get_error_code() );
-		$this->assertSame( '', get_option( BookingSchema::VERSION_OPTION, '' ) );
+		$GLOBALS['ec_artist_test']['options'][ VenueSchema::VERSION_OPTION ] = '';
+		$result = VenueSchema::maybe_install();
+		$this->assertSame( 'venue_schema_engine_repair_failed', $result->get_error_code() );
+		$this->assertSame( '', get_option( VenueSchema::VERSION_OPTION, '' ) );
 	}
 
 	public function test_aggregate_table_engines_are_repaired_and_failures_are_not_stamped(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$bookings                              = BookingSchema::bookings_table();
 		$activity                              = BookingSchema::activity_table();
 		$GLOBALS['wpdb']->engines[ $bookings ] = 'MyISAM';

@@ -54,7 +54,7 @@ class VenueMembershipRepository {
 			'updated_at'         => $now,
 			'revoked_at'         => VenueAuthorization::STATUS_REVOKED === $status ? $now : null,
 		);
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes authorization and membership creation.
 			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
@@ -118,7 +118,7 @@ class VenueMembershipRepository {
 	/** Get one relationship by its venue/user natural key. */
 	public function get( int $venue_term_id, int $user_id ) {
 		global $wpdb;
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d AND user_id = %d LIMIT 1", $venue_term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
@@ -145,7 +145,7 @@ class VenueMembershipRepository {
 			return false;
 		}
 		global $wpdb;
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		$found = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.venue_term_id AND identity.taxonomy = %s WHERE membership.user_id = %d AND membership.status = %s LIMIT 1", 'venue', $user_id, VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded current-user authority existence check against a current venue term.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_read_failed', __( 'Managed venue access could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -166,7 +166,7 @@ class VenueMembershipRepository {
 			return array();
 		}
 
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT venue_term_id FROM {$table} WHERE user_id = %d AND status = %s ORDER BY venue_term_id ASC LIMIT %d", $user_id, VenueAuthorization::STATUS_ACTIVE, self::MAX_USER_VENUES + 1 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded private authority projection reduced to canonical public IDs.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -193,7 +193,7 @@ class VenueMembershipRepository {
 	public function list_active_venue_ids() {
 		global $wpdb;
 
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT venue_term_id FROM {$table} WHERE status = %s ORDER BY venue_term_id ASC", VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority table, reduced to canonical public IDs.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
@@ -206,7 +206,7 @@ class VenueMembershipRepository {
 	public function list_for_venue( int $venue_term_id, array $filters = array(), int $actor_user_id = 0 ) {
 		global $wpdb;
 
-		$table      = BookingSchema::memberships_table();
+		$table      = VenueSchema::memberships_table();
 		$table_from = "{$table} AS member";
 		$where      = array( 'member.venue_term_id = %d' );
 		$values     = array( $venue_term_id );
@@ -282,7 +282,7 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'invalid_venue_membership_id', __( 'Positive venue, user, and version identifiers are required.', 'extrachill-events' ) );
 		}
 
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Required for last-owner serialization.
 			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}

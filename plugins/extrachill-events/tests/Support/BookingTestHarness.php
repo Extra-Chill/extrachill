@@ -2319,6 +2319,7 @@ final class BookingWpdb {
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/ArtistAuthorization.php';

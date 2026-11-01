@@ -52,30 +52,6 @@ class BookingSchema {
 		return $wpdb->prefix . 'ec_booking_attachment_deliveries';
 	}
 
-	/** Get the venue membership table for the current site. */
-	public static function memberships_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_members';
-	}
-
-	/** Get the venue claims table for the current site. */
-	public static function claims_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_claims';
-	}
-
-	/** Get the venue invitations table for the current site. */
-	public static function invitations_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_invitations';
-	}
-
-	/** Get the privacy-safe venue onboarding audit table. */
-	public static function onboarding_audit_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_onboarding_audit';
-	}
-
 	/** Get the booking holds table for the current site. */
 	public static function holds_table(): string {
 		global $wpdb;
@@ -163,10 +139,6 @@ class BookingSchema {
 		$communication_state = self::communication_state_table();
 		$attachments         = self::attachments_table();
 		$deliveries          = self::attachment_deliveries_table();
-		$members             = self::memberships_table();
-		$claims              = self::claims_table();
-		$invites             = self::invitations_table();
-		$audit               = self::onboarding_audit_table();
 		$holds               = self::holds_table();
 		$ticket_sources      = self::ticket_sources_table();
 		$sales_reports       = self::sales_reports_table();
@@ -307,87 +279,6 @@ class BookingSchema {
 			KEY attachment_actor (attachment_id, actor_id),
 			KEY state_updated (state, updated_at),
 			KEY terminal_retention (state, terminal_at)
-		) ENGINE=InnoDB {$charset};";
-
-		$members_sql = "CREATE TABLE {$members} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
-			status VARCHAR(20) NOT NULL DEFAULT 'active',
-			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			created_by_user_id BIGINT UNSIGNED NOT NULL,
-			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL,
-			revoked_at DATETIME NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY venue_user (venue_term_id, user_id),
-			KEY user_status_venue (user_id, status, venue_term_id),
-			KEY venue_status_owner (venue_term_id, status, is_owner)
-		) ENGINE=InnoDB {$charset};";
-
-		$claims_sql = "CREATE TABLE {$claims} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			public_id CHAR(36) NOT NULL,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
-			claimant_user_id BIGINT UNSIGNED NOT NULL,
-			status VARCHAR(20) NOT NULL DEFAULT 'pending',
-			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			reviewed_by_user_id BIGINT UNSIGNED NULL,
-			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL,
-			resolved_at DATETIME NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY public_id (public_id),
-			UNIQUE KEY venue_claimant (venue_term_id, claimant_user_id),
-			KEY status_created (status, created_at),
-			KEY venue_status (venue_term_id, status),
-			KEY claimant_status_venue (claimant_user_id, status, venue_term_id)
-		) ENGINE=InnoDB {$charset};";
-
-		$invites_sql = "CREATE TABLE {$invites} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			public_id CHAR(36) NOT NULL,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
-			status VARCHAR(20) NOT NULL DEFAULT 'pending',
-			token_hash CHAR(64) NOT NULL,
-			email_hash CHAR(64) NOT NULL,
-			account_created TINYINT UNSIGNED NOT NULL DEFAULT '0',
-			delivery_id CHAR(36) NOT NULL,
-			delivery_status VARCHAR(20) NOT NULL DEFAULT 'queued',
-			delivery_attempts BIGINT UNSIGNED NOT NULL DEFAULT '0',
-			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			invited_by_user_id BIGINT UNSIGNED NOT NULL,
-			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL,
-			expires_at DATETIME NOT NULL,
-			resolved_at DATETIME NULL,
-			delivered_at DATETIME NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY public_id (public_id),
-			UNIQUE KEY delivery_id (delivery_id),
-			UNIQUE KEY venue_user (venue_term_id, user_id),
-			KEY venue_status (venue_term_id, status),
-			KEY status_expiration (status, expires_at),
-			KEY user_status_venue (user_id, status, venue_term_id)
-		) ENGINE=InnoDB {$charset};";
-
-		$audit_sql = "CREATE TABLE {$audit} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
-			entity_type VARCHAR(16) NOT NULL,
-			entity_id BIGINT UNSIGNED NOT NULL,
-			event VARCHAR(48) NOT NULL,
-			actor_user_id BIGINT UNSIGNED NULL,
-			subject_user_id BIGINT UNSIGNED NULL,
-			payload LONGTEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			PRIMARY KEY (id),
-			KEY entity_created (entity_type, entity_id, created_at, id),
-			KEY venue_created (venue_term_id, created_at, id),
-			KEY event_created (event, created_at)
 		) ENGINE=InnoDB {$charset};";
 
 		$holds_sql = "CREATE TABLE {$holds} (
@@ -617,14 +508,6 @@ class BookingSchema {
 		$attachments_error = (string) $wpdb->last_error;
 		dbDelta( $deliveries_sql );
 		$deliveries_error = (string) $wpdb->last_error;
-		dbDelta( $members_sql );
-		$members_error = (string) $wpdb->last_error;
-		dbDelta( $claims_sql );
-		$claims_error = (string) $wpdb->last_error;
-		dbDelta( $invites_sql );
-		$invites_error = (string) $wpdb->last_error;
-		dbDelta( $audit_sql );
-		$audit_error = (string) $wpdb->last_error;
 		dbDelta( $holds_sql );
 		$holds_error = (string) $wpdb->last_error;
 		dbDelta( $ticket_sources_sql );
@@ -639,7 +522,7 @@ class BookingSchema {
 		$show_settlements_error = (string) $wpdb->last_error;
 		dbDelta( $show_actions_sql );
 		$show_actions_error = (string) $wpdb->last_error;
-		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $communication_state_error || '' !== $attachments_error || '' !== $deliveries_error || '' !== $members_error || '' !== $claims_error || '' !== $invites_error || '' !== $audit_error || '' !== $holds_error || '' !== $ticket_sources_error || '' !== $sales_reports_error || '' !== $sales_resolutions_error || '' !== $settlements_error || '' !== $show_settlements_error || '' !== $show_actions_error ) {
+		if ( '' !== $bookings_error || '' !== $activity_error || '' !== $communication_state_error || '' !== $attachments_error || '' !== $deliveries_error || '' !== $holds_error || '' !== $ticket_sources_error || '' !== $sales_reports_error || '' !== $sales_resolutions_error || '' !== $settlements_error || '' !== $show_settlements_error || '' !== $show_actions_error ) {
 			$error = new \WP_Error(
 				'booking_schema_dbdelta_failed',
 				__( 'The booking schema could not be reconciled.', 'extrachill-events' ),
@@ -649,10 +532,6 @@ class BookingSchema {
 					'communication_state_error' => $communication_state_error,
 					'attachments_error'         => $attachments_error,
 					'deliveries_error'          => $deliveries_error,
-					'members_error'             => $members_error,
-					'claims_error'              => $claims_error,
-					'invites_error'             => $invites_error,
-					'audit_error'               => $audit_error,
 					'holds_error'               => $holds_error,
 					'ticket_sources_error'      => $ticket_sources_error,
 					'sales_reports_error'       => $sales_reports_error,
@@ -664,12 +543,6 @@ class BookingSchema {
 			);
 			self::record_failure( $error );
 			return $error;
-		}
-
-		$membership_migration = self::migrate_membership_authority();
-		if ( is_wp_error( $membership_migration ) ) {
-			self::record_failure( $membership_migration );
-			return $membership_migration;
 		}
 
 		$engine_repair = self::repair_storage_engines();
@@ -901,49 +774,6 @@ class BookingSchema {
 				);
 			}
 		}
-		return true;
-	}
-
-	/** Collapse the unreleased speculative role matrix into structural ownership. */
-	private static function migrate_membership_authority() {
-		global $wpdb;
-
-		$table   = self::memberships_table();
-		$columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private schema migration.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return self::database_error( __( 'Could not inspect venue membership authority.', 'extrachill-events' ), $table );
-		}
-		$column_names = array_column( (array) $columns, 'Field' );
-		if ( ! in_array( 'role', $column_names, true ) ) {
-			return true;
-		}
-
-		$result = $wpdb->query( "UPDATE `{$table}` SET is_owner = IF(role = 'owner', 1, 0)" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration from the unreleased role matrix.
-		if ( false === $result ) {
-			$remaining_columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes a concurrent completed migration from a real failure.
-			if ( '' !== (string) $wpdb->last_error || in_array( 'role', array_column( (array) $remaining_columns, 'Field' ), true ) ) {
-				return self::database_error( __( 'Could not migrate venue membership ownership.', 'extrachill-events' ), $table );
-			}
-			return true;
-		}
-
-		$indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private schema migration.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return self::database_error( __( 'Could not inspect venue membership indexes.', 'extrachill-events' ), $table );
-		}
-		if ( isset( $indexes['venue_status_role'] ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `venue_status_role`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private index.
-			$current_indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes concurrent removal from a real failure.
-			if ( '' !== (string) $wpdb->last_error || isset( $current_indexes['venue_status_role'] ) ) {
-				return self::database_error( __( 'Could not remove the obsolete venue membership index.', 'extrachill-events' ), $table );
-			}
-		}
-		if ( false === $wpdb->query( "ALTER TABLE `{$table}` DROP COLUMN `role`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes an unreleased speculative field after preserving structural ownership.
-			$current_columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes concurrent removal from a real failure.
-			if ( '' !== (string) $wpdb->last_error || in_array( 'role', array_column( (array) $current_columns, 'Field' ), true ) ) {
-				return self::database_error( __( 'Could not remove obsolete venue membership roles.', 'extrachill-events' ), $table );
-			}
-		}
-
 		return true;
 	}
 
@@ -1303,166 +1133,6 @@ class BookingSchema {
 					'terminal_retention' => array(
 						'unique'  => false,
 						'columns' => array( 'state', 'terminal_at' ),
-					),
-				),
-			),
-			self::memberships_table()             => array(
-				'engine'  => 'innodb',
-				'columns' => array(
-					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'venue_term_id'      => $required( 'bigint unsigned', false ),
-					'user_id'            => $required( 'bigint unsigned', false ),
-					'is_owner'           => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
-					'status'             => $required( 'varchar(20)', false, array( 'default' => 'active' ) ),
-					'version'            => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
-					'created_by_user_id' => $required( 'bigint unsigned', false ),
-					'created_at'         => $required( 'datetime', false ),
-					'updated_at'         => $required( 'datetime', false ),
-					'revoked_at'         => $required( 'datetime', true ),
-				),
-				'indexes' => array(
-					'PRIMARY'            => array(
-						'unique'  => true,
-						'columns' => array( 'id' ),
-					),
-					'venue_user'         => array(
-						'unique'  => true,
-						'columns' => array( 'venue_term_id', 'user_id' ),
-					),
-					'user_status_venue'  => array(
-						'unique'  => false,
-						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
-					),
-					'venue_status_owner' => array(
-						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status', 'is_owner' ),
-					),
-				),
-			),
-			self::claims_table()                  => array(
-				'engine'  => 'innodb',
-				'columns' => array(
-					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'public_id'           => $required( 'char(36)', false ),
-					'venue_term_id'       => $required( 'bigint unsigned', false ),
-					'claimant_user_id'    => $required( 'bigint unsigned', false ),
-					'status'              => $required( 'varchar(20)', false, array( 'default' => 'pending' ) ),
-					'version'             => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
-					'reviewed_by_user_id' => $required( 'bigint unsigned', true ),
-					'created_at'          => $required( 'datetime', false ),
-					'updated_at'          => $required( 'datetime', false ),
-					'resolved_at'         => $required( 'datetime', true ),
-				),
-				'indexes' => array(
-					'PRIMARY'               => array(
-						'unique'  => true,
-						'columns' => array( 'id' ),
-					),
-					'public_id'             => array(
-						'unique'  => true,
-						'columns' => array( 'public_id' ),
-					),
-					'venue_claimant'        => array(
-						'unique'  => true,
-						'columns' => array( 'venue_term_id', 'claimant_user_id' ),
-					),
-					'status_created'        => array(
-						'unique'  => false,
-						'columns' => array( 'status', 'created_at' ),
-					),
-					'venue_status'          => array(
-						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status' ),
-					),
-					'claimant_status_venue' => array(
-						'unique'  => false,
-						'columns' => array( 'claimant_user_id', 'status', 'venue_term_id' ),
-					),
-				),
-			),
-			self::invitations_table()             => array(
-				'engine'  => 'innodb',
-				'columns' => array(
-					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'public_id'          => $required( 'char(36)', false ),
-					'venue_term_id'      => $required( 'bigint unsigned', false ),
-					'user_id'            => $required( 'bigint unsigned', false ),
-					'is_owner'           => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
-					'status'             => $required( 'varchar(20)', false, array( 'default' => 'pending' ) ),
-					'token_hash'         => $required( 'char(64)', false ),
-					'email_hash'         => $required( 'char(64)', false ),
-					'account_created'    => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
-					'delivery_id'        => $required( 'char(36)', false ),
-					'delivery_status'    => $required( 'varchar(20)', false, array( 'default' => 'queued' ) ),
-					'delivery_attempts'  => $required( 'bigint unsigned', false, array( 'default' => '0' ) ),
-					'version'            => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
-					'invited_by_user_id' => $required( 'bigint unsigned', false ),
-					'created_at'         => $required( 'datetime', false ),
-					'updated_at'         => $required( 'datetime', false ),
-					'expires_at'         => $required( 'datetime', false ),
-					'resolved_at'        => $required( 'datetime', true ),
-					'delivered_at'       => $required( 'datetime', true ),
-				),
-				'indexes' => array(
-					'PRIMARY'           => array(
-						'unique'  => true,
-						'columns' => array( 'id' ),
-					),
-					'public_id'         => array(
-						'unique'  => true,
-						'columns' => array( 'public_id' ),
-					),
-					'delivery_id'       => array(
-						'unique'  => true,
-						'columns' => array( 'delivery_id' ),
-					),
-					'venue_user'        => array(
-						'unique'  => true,
-						'columns' => array( 'venue_term_id', 'user_id' ),
-					),
-					'venue_status'      => array(
-						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status' ),
-					),
-					'status_expiration' => array(
-						'unique'  => false,
-						'columns' => array( 'status', 'expires_at' ),
-					),
-					'user_status_venue' => array(
-						'unique'  => false,
-						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
-					),
-				),
-			),
-			self::onboarding_audit_table()        => array(
-				'engine'  => 'innodb',
-				'columns' => array(
-					'id'              => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'venue_term_id'   => $required( 'bigint unsigned', false ),
-					'entity_type'     => $required( 'varchar(16)', false ),
-					'entity_id'       => $required( 'bigint unsigned', false ),
-					'event'           => $required( 'varchar(48)', false ),
-					'actor_user_id'   => $required( 'bigint unsigned', true ),
-					'subject_user_id' => $required( 'bigint unsigned', true ),
-					'payload'         => $required( 'longtext', false ),
-					'created_at'      => $required( 'datetime', false ),
-				),
-				'indexes' => array(
-					'PRIMARY'        => array(
-						'unique'  => true,
-						'columns' => array( 'id' ),
-					),
-					'entity_created' => array(
-						'unique'  => false,
-						'columns' => array( 'entity_type', 'entity_id', 'created_at', 'id' ),
-					),
-					'venue_created'  => array(
-						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'created_at', 'id' ),
-					),
-					'event_created'  => array(
-						'unique'  => false,
-						'columns' => array( 'event', 'created_at' ),
 					),
 				),
 			),

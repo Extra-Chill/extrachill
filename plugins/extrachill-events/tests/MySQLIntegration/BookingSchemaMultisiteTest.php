@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 
 /** Proves the managed bootstrap installs the site-scoped schema idempotently. */
 final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
@@ -26,10 +27,10 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				BookingSchema::communication_state_table(),
 				BookingSchema::attachments_table(),
 				BookingSchema::attachment_deliveries_table(),
-				BookingSchema::memberships_table(),
-				BookingSchema::claims_table(),
-				BookingSchema::invitations_table(),
-				BookingSchema::onboarding_audit_table(),
+				VenueSchema::memberships_table(),
+				VenueSchema::claims_table(),
+				VenueSchema::invitations_table(),
+				VenueSchema::onboarding_audit_table(),
 				BookingSchema::holds_table(),
 				BookingSchema::ticket_sources_table(),
 				BookingSchema::sales_reports_table(),
@@ -50,6 +51,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			}
 
 			$this->assertTrue( BookingSchema::install() );
+			$this->assertTrue( VenueSchema::install() );
 			$this->assertTrue( BookingSchema::health() );
 		} finally {
 			restore_current_blog();
@@ -201,21 +203,21 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				'key' => 'id',
 				'row' => array( 'id' => 73104, 'correlation_id' => wp_generate_uuid4(), 'booking_id' => 73001, 'attachment_id' => 73103, 'actor_id' => 1, 'expected_bytes' => 128, 'state' => 'completed', 'outcome' => 'complete', 'bytes_sent' => 128, 'issued_at' => $created, 'consumed_at' => '2026-07-01 00:01:00', 'terminal_at' => '2026-07-01 00:02:00', 'updated_at' => '2026-07-01 00:02:00' ),
 			),
-			BookingSchema::memberships_table()           => array(
+			VenueSchema::memberships_table()           => array(
 				'key' => 'id',
 				'row' => array( 'id' => 73105, 'venue_term_id' => 73003, 'user_id' => 1, 'is_owner' => 1, 'status' => 'active', 'version' => 3, 'created_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00' ),
 			),
-			BookingSchema::claims_table()                => array(
+			VenueSchema::claims_table()                => array(
 				'key' => 'id',
 				'row' => array( 'id' => 73106, 'public_id' => wp_generate_uuid4(), 'venue_term_id' => 73003, 'claimant_user_id' => 2, 'status' => 'approved', 'version' => 2, 'reviewed_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'resolved_at' => '2026-07-02 00:00:00' ),
 			),
-			BookingSchema::invitations_table()           => array(
+			VenueSchema::invitations_table()           => array(
 				'key' => 'id',
 				'row' => array(
 					'id' => 73107, 'public_id' => wp_generate_uuid4(), 'venue_term_id' => 73003, 'user_id' => 3, 'is_owner' => 0, 'status' => 'accepted', 'token_hash' => str_repeat( '4', 64 ), 'email_hash' => str_repeat( '5', 64 ), 'account_created' => 1, 'delivery_id' => wp_generate_uuid4(), 'delivery_status' => 'delivered', 'delivery_attempts' => 1, 'version' => 2, 'invited_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'expires_at' => '2026-08-01 00:00:00', 'resolved_at' => '2026-07-02 00:00:00', 'delivered_at' => '2026-07-01 00:01:00',
 				),
 			),
-			BookingSchema::onboarding_audit_table()      => array(
+			VenueSchema::onboarding_audit_table()      => array(
 				'key' => 'id',
 				'row' => array( 'id' => 73108, 'venue_term_id' => 73003, 'entity_type' => 'membership', 'entity_id' => 73105, 'event' => 'legacy_membership_created', 'actor_user_id' => 1, 'subject_user_id' => 1, 'payload' => '{"version":1,"data":{"owner":true}}', 'created_at' => $created ),
 			),

@@ -16,7 +16,7 @@
  */
 
 namespace ExtraChillEvents\Core {
-	final class BookingSchema {
+	final class VenueSchema {
 		public static function is_ready(): bool {
 			return true;
 		}

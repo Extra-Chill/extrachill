@@ -62,6 +62,7 @@ on:
       - 'plugins/extrachill-events/inc/Core/BookingHoldRepository.php'
       - 'plugins/extrachill-events/inc/Core/BookingRepository.php'
       - 'plugins/extrachill-events/inc/Core/BookingSchema.php'
+      - 'plugins/extrachill-events/inc/Core/VenueSchema.php'
       - 'plugins/extrachill-events/inc/Core/PromoterAuthoritySchema.php'
       - 'plugins/extrachill-events/inc/Core/ShowSettlementService.php'
       - 'plugins/extrachill-events/inc/Core/TicketSettlementService.php'

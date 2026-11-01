@@ -9,6 +9,7 @@ use ExtraChillEvents\Abilities\TicketSettlementAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -73,6 +74,7 @@ final class TicketSettlementTest extends BookingTestCase {
 
 	public function test_schema_installs_signed_evidence_and_frozen_settlement_contracts(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( BookingSchema::health() );
 		$sales       = $GLOBALS['wpdb']->schemas[ BookingSchema::sales_reports_table() ];
 		$settlements = $GLOBALS['wpdb']->schemas[ BookingSchema::settlements_table() ];
@@ -616,7 +618,7 @@ final class TicketSettlementTest extends BookingTestCase {
 		$this->assertSame( 'void', $voided['status'] );
 
 		$now = gmdate( 'Y-m-d H:i:s' );
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ] = array(
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ] = array(
 			1 => $this->membership_row( 1, 55, 12, true, $now ),
 			2 => $this->membership_row( 2, 55, 13, false, $now ),
 			3 => $this->membership_row( 3, 56, 14, true, $now ),
