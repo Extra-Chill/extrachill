@@ -66,3 +66,5 @@ jobs:
         run: node --test rigs/extrachill-network/tests/*.test.mjs
       - name: MONOREPO.md site map is current
         run: node tools/site-map.mjs --check
+      - name: Documentation index covers every component
+        run: node tools/check-docs-index.mjs
