@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.16.4] - 2026-11-01
+
+### Changed
+- drop function_exists guards on ec_get_blog_id / ec_get_site_url
+
+### Fixed
+- breadcrumbs and form spacing on the guest list page
+
 ## [2.16.3] - 2026-10-31
 
 ### Changed
