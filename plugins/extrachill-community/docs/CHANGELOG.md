@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.29.0] - 2026-11-01
+
+### Added
+- actor user_id in recent activity and author_id filter on list-topics
+
 ## [1.28.0] - 2026-11-01
 
 ### Added
