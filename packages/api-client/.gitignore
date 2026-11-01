@@ -1,3 +1,6 @@
 node_modules/
 dist/
 *.tsbuildinfo
+
+# npm pack output from local_workspace_dependencies builds (#504)
+*.tgz
