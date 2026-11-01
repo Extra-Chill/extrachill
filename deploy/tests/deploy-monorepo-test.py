@@ -83,9 +83,9 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertIn("--shared-path '.github/**' --format matrix --direct-only", names["Plan"]["run"])
         # Every Homeboy pin is the same release (detection, rig gate, deploy, verify).
         text = (ROOT / ".github/workflows/deploy-monorepo.yml").read_text()
-        self.assertEqual(workflow["env"]["HOMEBOY_VERSION"], "0.438.3")
+        self.assertEqual(workflow["env"]["HOMEBOY_VERSION"], "0.439.9")
         self.assertEqual(workflow["env"]["HOMEBOY_SHA256"],
-                         "dc7a64c6de067b1d3d687dcf18742ce74fcde7fd53b2936a5aa74b0463f8fdb5")
+                         "cb89dc9fda4c52db987bf88820499ada3070a910987dbb27f353f6b45ba744dc")
         actions = [s for s in steps if s.get("uses") == "Extra-Chill/homeboy-action@v2"]
         self.assertEqual(len(actions), 3)
         for step in actions:
