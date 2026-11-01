@@ -67,6 +67,14 @@ namespace {
 	}
 
 	function apply_filters( $hook, $value ) {
+		// Execute the ability registry contribution; other filters are only recorded.
+		if ( 'extrachill_events_ability_classes' === $hook ) {
+			foreach ( $GLOBALS['bootstrap_matrix_hooks'] as $registered_hook ) {
+				if ( $hook === $registered_hook[0] ) {
+					$value = call_user_func( $registered_hook[1], $value );
+				}
+			}
+		}
 		return $value;
 	}
 

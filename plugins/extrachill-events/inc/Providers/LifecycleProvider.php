@@ -61,7 +61,7 @@ final class LifecycleProvider {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
 		}
 		\ExtraChillEvents\Core\VenueSchema::install();
-		\ExtraChillEvents\Core\BookingSchema::install();
+		do_action( 'extrachill_events_after_venue_schema_install', 'activate' );
 		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
 			\ExtraChillEvents\Core\RsvpPassesTable::create_table();
 		}
@@ -83,9 +83,7 @@ final class LifecycleProvider {
 		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) ) {
 			\ExtraChillEvents\Core\VenueSchema::maybe_install();
-		}
-		if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) ) {
-			\ExtraChillEvents\Core\BookingSchema::maybe_install();
+			do_action( 'extrachill_events_after_venue_schema_install', 'maybe_install' );
 		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();

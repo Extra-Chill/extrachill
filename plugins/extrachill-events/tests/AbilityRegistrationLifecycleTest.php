@@ -46,7 +46,9 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 		$this->assertIsString( $bootstrap );
 		$this->assertStringContainsString( "add_action( 'plugins_loaded', array( self::class, 'initialize' ), 25 );", $bootstrap );
 		$this->assertStringNotContainsString( "add_action( 'init', array( self::class, 'initialize' ), 25 );", $bootstrap );
-		$this->assertStringContainsString( 'BookingSchema::is_ready()', $bootstrap );
+		$this->assertStringContainsString( "apply_filters( 'extrachill_events_ability_classes', \$abilities )", $bootstrap );
+		$booking_provider = file_get_contents( dirname( __DIR__ ) . '/inc/Providers/BookingProvider.php' );
+		$this->assertStringContainsString( 'BookingSchema::is_ready()', $booking_provider );
 
 		$booking_abilities = new VenueBookingAbilities();
 		$admission_service = new ReflectionProperty( VenueBookingAbilities::class, 'inquiry_admission' );

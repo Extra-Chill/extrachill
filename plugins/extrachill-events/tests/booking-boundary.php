@@ -2,14 +2,11 @@
 /** Standalone booking dependency guard. Run: php tests/booking-boundary.php */
 $root = dirname( __DIR__ );
 $owned = json_decode( file_get_contents( __DIR__ . '/fixtures/booking-owned-paths.json' ), true, 512, JSON_THROW_ON_ERROR );
-// Temporary P1d exceptions: remove individually as registry/lifecycle work lands.
+// Composition roots retained until the P3 network extraction.
 $exceptions = array(
 	'inc/Core/Plugin.php', // Composition root: single booking entry point.
 	'extrachill-events.php', // Composition root: provider include.
 	'extrachill-events-network-blocks.php', // P3: network block extraction.
-	'inc/Providers/LifecycleProvider.php', // Remaining schema lifecycle extraction.
-	'inc/Providers/AbilitiesProvider.php', // Remaining ability lifecycle extraction.
-	'blocks/venue-settings/render.php', // Remaining render-data registry work.
 );
 $violations = array();
 $iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ) );

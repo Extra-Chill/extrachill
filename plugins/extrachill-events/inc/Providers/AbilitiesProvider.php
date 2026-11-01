@@ -57,31 +57,10 @@ final class AbilitiesProvider {
 				array(
 					'VenueMembershipAbilities',
 					'VenueOnboardingAbilities',
-					'VenueBookingConfigAbilities',
 					'VenueCalendarFeedAbilities',
 					'VenueProfileAbilities',
 					'VenueGraphicsAbilities',
 					'ManagedVenueVoicesAbilities',
-				)
-			);
-		}
-
-		if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) && \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
-			$abilities = array_merge(
-				$abilities,
-				array(
-					'VenueBookingAbilities',
-					'ArtistBookingInquiryAbilities',
-					'BookingAttachmentAbilities',
-					'VenueBookingHoldAbilities',
-					'VenueBookingMutationAbilities',
-					'VenueBookingEventAbilities',
-					'VenueBookingCommunicationAbilities',
-					'VenueBookingMarketingAbilities',
-					'TicketSettlementAbilities',
-					'ShowSettlementAbilities',
-					'BookingReportingAbilities',
-					'BookingPrivacyAbilities',
 				)
 			);
 		}
@@ -118,6 +97,8 @@ final class AbilitiesProvider {
 				'ArtistCoverageAbilities',
 			)
 		);
+
+		$abilities = apply_filters( 'extrachill_events_ability_classes', $abilities );
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationGuard.php';
 		foreach ( $abilities as $ability ) {

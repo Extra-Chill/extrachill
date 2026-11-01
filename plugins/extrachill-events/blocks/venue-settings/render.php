@@ -20,10 +20,8 @@ $wrapper_attributes = get_block_wrapper_attributes(
 );
 
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only venue selection; Ability authorization remains authoritative.
-$requested_venue_id         = isset( $_GET['venue_id'] ) && is_scalar( $_GET['venue_id'] ) ? absint( wp_unslash( $_GET['venue_id'] ) ) : 0;
-$requested_identity         = isset( $_GET['identity'] ) && is_scalar( $_GET['identity'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['identity'] ) ) : '';
-$requested_booking_id       = isset( $_GET['booking_id'] ) && is_scalar( $_GET['booking_id'] ) ? absint( wp_unslash( $_GET['booking_id'] ) ) : 0;
-$requested_booking_venue_id = isset( $_GET['booking_venue_id'] ) && is_scalar( $_GET['booking_venue_id'] ) ? absint( wp_unslash( $_GET['booking_venue_id'] ) ) : 0;
+$requested_venue_id = isset( $_GET['venue_id'] ) && is_scalar( $_GET['venue_id'] ) ? absint( wp_unslash( $_GET['venue_id'] ) ) : 0;
+$requested_identity = isset( $_GET['identity'] ) && is_scalar( $_GET['identity'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['identity'] ) ) : '';
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 if ( '' === $requested_identity && $requested_venue_id ) {
@@ -36,8 +34,8 @@ if ( preg_match( '/^venue:([1-9][0-9]{0,9})$/', $requested_identity, $identity_m
 }
 
 if ( ! is_user_logged_in() ) {
-	$login_venue_id = $requested_venue_id ? $requested_venue_id : $requested_booking_venue_id;
-	$login_url      = wp_login_url( ec_events_get_booking_console_url( $login_venue_id, $requested_booking_id ) );
+	$login_redirect = apply_filters( 'extrachill_events_venue_settings_login_redirect', ec_events_get_venue_settings_url( $requested_venue_id, 'calendar' ), $requested_venue_id );
+	$login_url      = wp_login_url( $login_redirect );
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 		<div class="ec-block-shell ec-block-shell--depth-0">
@@ -130,7 +128,7 @@ foreach ( $managed_venues as &$venue ) {
 	$venue['can_manage']  = true === $authorization->authorize( $user_id, $venue_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
 	$venue['slug']        = $venue_term instanceof WP_Term ? $venue_term->slug : '';
 	$venue['archive_url'] = is_wp_error( $archive_url ) ? '' : $archive_url;
-	$venue['booking_url'] = $venue['can_access'] && $venue_term instanceof WP_Term ? \ExtraChillEvents\Core\VenueBookingEmbed::booking_url( $venue_term ) : '';
+	$venue                = apply_filters( 'extrachill_events_venue_settings_venue_data', $venue, $venue_term );
 	$venue_data           = function_exists( 'data_machine_events_get_venue_data' ) ? data_machine_events_get_venue_data( $venue_id ) : null;
 	$venue['timezone']    = is_array( $venue_data ) ? (string) ( $venue_data['timezone'] ?? '' ) : '';
 	$venue['link_page']   = array( 'status' => 'unavailable' );
@@ -156,18 +154,9 @@ foreach ( $managed_venues as $venue ) {
 	}
 }
 
-$can_access       = $selected && $selected['can_access'];
-$can_manage       = $selected && $selected['can_manage'];
-$booking_venue_id = $can_access ? (int) $selected['id'] : 0;
-if ( ! $selected && $requested_booking_id && $requested_booking_venue_id ) {
-	foreach ( $managed_venues as $venue ) {
-		if ( $requested_booking_venue_id === $venue['id'] && $venue['can_access'] ) {
-			$booking_venue_id = $venue['id'];
-			break;
-		}
-	}
-}
-$workspace = ( new PromoterWorkspace( null, null, null, false ) )->resolve_for_user( $user_id, $requested_identity );
+$can_access = $selected && $selected['can_access'];
+$can_manage = $selected && $selected['can_manage'];
+$workspace  = ( new PromoterWorkspace( null, null, null, false ) )->resolve_for_user( $user_id, $requested_identity );
 if ( is_wp_error( $workspace ) ) {
 	$browser_user = get_userdata( $user_id );
 	$workspace    = array(
@@ -208,12 +197,10 @@ if ( ! $promoter_mode ) {
 			'can_access'         => $can_access,
 			'can_manage'         => $can_manage,
 			'requested_venue_id' => in_array( $requested_venue_id, array_column( $claim_venues, 'id' ), true ) ? $requested_venue_id : 0,
-			'booking_id'         => $booking_venue_id ? $requested_booking_id : 0,
-			'booking_venue_id'   => $booking_venue_id,
-			'booking_url'        => $selected['booking_url'] ?? '',
 		)
 	);
 }
+$context                               = apply_filters( 'extrachill_events_venue_settings_boot_data', $context, $selected, $managed_venues );
 $context_id                            = wp_unique_id( 'ec-venue-settings-context-' );
 $editor_available                      = function_exists( 'ec_enqueue_link_page_editor' ) && ec_enqueue_link_page_editor();
 $context['link_page_editor_available'] = $editor_available;
