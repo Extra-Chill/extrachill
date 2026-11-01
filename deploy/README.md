@@ -117,7 +117,8 @@ is independent and is not changed by this implementation.
    Push diffs use `event.before`; dispatch diffs use the selected commit's first
    parent. Initial commits/zero before SHAs use a synthetic empty commit.
 2. Run pinned Homeboy **0.436.4** `component changed --base <before> --head <sha>
-   --path . --shared-path '.github/**' --format matrix`. Evidence contains the
+   --path . --format matrix --direct-only`. Workflow-only edits select no
+   components; they change no deployed bytes. Evidence contains the
    complete matrix plus filtered deploy commands. An empty matrix succeeds and
    skips the gate and deploy. Non-attached packages are explicitly listed as
    `ignored` deployment targets; they still participate in dependency expansion
@@ -176,7 +177,7 @@ Targeted local checks:
 python3 tests/deploy-monorepo-test.py  # PyYAML; workflow parse + config tests
 php tests/deploy-workflow-smoke.php
 homeboy component changed --base HEAD^ --head HEAD --path . \
-  --shared-path '.github/**' --format matrix
+  --format matrix --direct-only
 ```
 
 Homeboy v0.436.4 was exercised on the real staging range
