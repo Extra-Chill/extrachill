@@ -196,6 +196,15 @@ HOMEBOY_SETTINGS_JSON='{
 }' homeboy rig up extrachill-network
 ```
 
+Running journeys on the Lab: the rig declares `"lifecycle": {"mode": "disposable"}`
+(no services; it boots, runs, writes artifacts and exits), so Homeboy can place
+`rig up` on a Lab runner. Pass settings as flags instead of the env var:
+
+```bash
+homeboy rig up extrachill-network --placement lab \
+  --setting-json extrachill_journeys='["show-ratings-fan"]'
+```
+
 Writing a new journey: copy the shape of `journeys/gardner-event-rsvp/`,
 grade against the oracles of a pinned persona (or document why there is no
 persona), commit curated evidence under `journeys/<id>/evidence/` (FINDINGS.md

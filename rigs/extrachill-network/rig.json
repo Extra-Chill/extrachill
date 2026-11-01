@@ -1,6 +1,7 @@
 {
   "id": "extrachill-network",
   "description": "Disposable Extra Chill 11-site subdomain multisite network fixture in WP Codebox",
+  "lifecycle": { "mode": "disposable" },
   "resources": {
     "exclusive": ["extrachill-network:${env.HOMEBOY_ARTIFACT_ROOT}"]
   },
