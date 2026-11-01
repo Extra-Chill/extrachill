@@ -115,9 +115,9 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertIn("--shared-path '.github/**' --format matrix --direct-only", names["Plan"]["run"])
         # Every Homeboy pin is the same release (detection, rig gate, deploy, verify).
         text = (ROOT / ".github/workflows/deploy-monorepo.yml").read_text()
-        self.assertEqual(workflow["env"]["HOMEBOY_VERSION"], "0.439.9")
+        self.assertEqual(workflow["env"]["HOMEBOY_VERSION"], "0.440.0")
         self.assertEqual(workflow["env"]["HOMEBOY_SHA256"],
-                         "cb89dc9fda4c52db987bf88820499ada3070a910987dbb27f353f6b45ba744dc")
+                         "2abfe4c73ee5d560b1da8f68ae15426eb2d4d786ceff1af078cdeb54dc48109e")
         actions = [s for s in steps if s.get("uses") == "Extra-Chill/homeboy-action@v2"]
         self.assertEqual(len(actions), 3)
         for step in actions:
@@ -130,7 +130,8 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertIn("sha256sum --check --strict", gate)
         self.assertIn("homeboy-${HOMEBOY_VERSION}/homeboy", gate)
         extensions = names["Install deployed components' extensions"]["run"]
-        self.assertIn("--source https://github.com/Extra-Chill/homeboy\n", extensions)
+        self.assertIn("--source https://github.com/Extra-Chill/homeboy \\\n", extensions)
+        self.assertIn('--ref "v${HOMEBOY_VERSION}"', extensions)
         self.assertNotIn("homeboy-extensions", text)
         self.assertIn('join(",")', names["Plan"]["run"])
         # #485: automatic deploys follow Release and plan from the recorded deployed sha.
