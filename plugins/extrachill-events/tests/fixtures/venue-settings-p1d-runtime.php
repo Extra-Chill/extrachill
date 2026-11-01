@@ -15,21 +15,23 @@
  * @package ExtraChillEvents\Tests
  */
 
-namespace ExtraChillEvents\Core {
-	final class VenueSchema {
+// Doubles are aliased to production names so static analysis never sees a
+// second declaration of a production class.
+namespace ExtraChillEvents\Tests\VenueSettingsP1d {
+	final class VenueSchemaDouble {
 		public static function is_ready(): bool {
 			return true;
 		}
 	}
-	final class VenueBookingEmbed {
+	final class VenueBookingEmbedDouble {
 		public static function booking_url( $term ) { return 'https://events.example/booking/' . $term->slug . '/'; }
 	}
-	final class VenueMembershipRepository {
+	final class VenueMembershipRepositoryDouble {
 		public function list_active_venue_ids() {
 			return array( 30 );
 		}
 	}
-	final class VenueAuthorization {
+	final class VenueAuthorizationDouble {
 		public const ACTION_ACCESS_VENUE   = 'access_venue';
 		public const ACTION_MANAGE_MEMBERS = 'manage_members';
 		public function is_administrator( int $user_id ): bool {
@@ -43,7 +45,7 @@ namespace ExtraChillEvents\Core {
 			return true;
 		}
 	}
-	final class PromoterWorkspace {
+	final class PromoterWorkspaceDouble {
 		public function __construct( $promoters = null, $grants = null, $venues = null, bool $use_execution_principal = true ) {
 			unset( $promoters, $grants, $venues, $use_execution_principal );
 		}
@@ -55,6 +57,11 @@ namespace ExtraChillEvents\Core {
 	// Deliberately absent: \ExtraChillEvents\Core\VenueLinkPages. This is the
 	// exact state VenueLinkPagesProvider::initialize() leaves behind when
 	// validate_runtime() fails (#899's root cause).
+	class_alias( VenueSchemaDouble::class, 'ExtraChillEvents\\Core\\VenueSchema' );
+	class_alias( VenueBookingEmbedDouble::class, 'ExtraChillEvents\\Core\\VenueBookingEmbed' );
+	class_alias( VenueMembershipRepositoryDouble::class, 'ExtraChillEvents\\Core\\VenueMembershipRepository' );
+	class_alias( VenueAuthorizationDouble::class, 'ExtraChillEvents\\Core\\VenueAuthorization' );
+	class_alias( PromoterWorkspaceDouble::class, 'ExtraChillEvents\\Core\\PromoterWorkspace' );
 }
 
 namespace {

@@ -1,21 +1,27 @@
 <?php
 // phpcs:disable -- Isolated lifecycle runtime stubs intentionally retain production class names.
 /** Run: php tests/booking-schema-lifecycle.php */
-namespace ExtraChillEvents\Core {
-	class VenueSchema {
+// Doubles are aliased to production names (no duplicate declarations).
+namespace ExtraChillEvents\Tests\SchemaLifecycle {
+	class VenueSchemaDouble {
 		public static function install() { $GLOBALS['order'][] = 'venue'; }
 		public static function maybe_install() { self::install(); }
 	}
-	class BookingSchema {
+	class BookingSchemaDouble {
 		public static function install() { $GLOBALS['order'][] = 'booking'; }
 		public static function maybe_install() { self::install(); }
 	}
-	class PromoterAuthoritySchema {
+	class PromoterAuthoritySchemaDouble {
 		public static function install() { $GLOBALS['order'][] = 'promoter'; }
 		public static function maybe_install() { self::install(); }
 	}
-	class QualifyVerdictsTable { public static function create_table() {} public static function maybe_install() {} }
-	class ArtistUrlSubmissionsTable { public static function create_table() {} public static function maybe_install() {} }
+	class QualifyVerdictsTableDouble { public static function create_table() {} public static function maybe_install() {} }
+	class ArtistUrlSubmissionsTableDouble { public static function create_table() {} public static function maybe_install() {} }
+	class_alias( VenueSchemaDouble::class, 'ExtraChillEvents\\Core\\VenueSchema' );
+	class_alias( BookingSchemaDouble::class, 'ExtraChillEvents\\Core\\BookingSchema' );
+	class_alias( PromoterAuthoritySchemaDouble::class, 'ExtraChillEvents\\Core\\PromoterAuthoritySchema' );
+	class_alias( QualifyVerdictsTableDouble::class, 'ExtraChillEvents\\Core\\QualifyVerdictsTable' );
+	class_alias( ArtistUrlSubmissionsTableDouble::class, 'ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' );
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );

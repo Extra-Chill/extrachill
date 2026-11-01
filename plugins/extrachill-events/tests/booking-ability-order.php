@@ -1,13 +1,19 @@
 <?php
 // phpcs:disable -- Standalone runtime doubles and source evaluation isolate the registration list.
 /** Run: php tests/booking-ability-order.php */
-namespace ExtraChillEvents\Core {
-	class VenueSchema {
+// Doubles live in a test namespace and are aliased to production names, so
+// static analysis never sees a second declaration of a production class.
+namespace ExtraChillEvents\Tests\AbilityOrder {
+	class SchemaDouble {
 		public static $ready = true;
 		public static function is_ready() { return static::$ready; }
 	}
-	class BookingSchema extends VenueSchema { public static $ready = true; }
-	class PromoterAuthoritySchema extends VenueSchema { public static $ready = true; }
+	class VenueSchemaDouble extends SchemaDouble { public static $ready = true; }
+	class BookingSchemaDouble extends SchemaDouble { public static $ready = true; }
+	class PromoterAuthoritySchemaDouble extends SchemaDouble { public static $ready = true; }
+	class_alias( VenueSchemaDouble::class, 'ExtraChillEvents\\Core\\VenueSchema' );
+	class_alias( BookingSchemaDouble::class, 'ExtraChillEvents\\Core\\BookingSchema' );
+	class_alias( PromoterAuthoritySchemaDouble::class, 'ExtraChillEvents\\Core\\PromoterAuthoritySchema' );
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );

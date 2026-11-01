@@ -110,20 +110,12 @@ final class BookingProvider {
 	 */
 	public static function ability_classes( array $abilities ): array {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
-			$position = array_search( 'VenueOnboardingAbilities', $abilities, true );
-			if ( false !== $position ) {
-				array_splice( $abilities, $position + 1, 0, array( 'VenueBookingConfigAbilities' ) );
-			}
+			$abilities = self::insert_after( $abilities, array( 'VenueOnboardingAbilities' ), array( 'VenueBookingConfigAbilities' ) );
 		}
 		if ( \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
-			$position = array_search( 'ManagedVenueVoicesAbilities', $abilities, true );
-			if ( false === $position ) {
-				$position = array_search( 'LocationEventAbilities', $abilities, true );
-			}
-			array_splice(
+			$abilities = self::insert_after(
 				$abilities,
-				$position + 1,
-				0,
+				array( 'ManagedVenueVoicesAbilities', 'LocationEventAbilities' ),
 				array(
 					'VenueBookingAbilities',
 					'ArtistBookingInquiryAbilities',
@@ -141,5 +133,25 @@ final class BookingProvider {
 			);
 		}
 		return $abilities;
+	}
+
+	/**
+	 * Insert classes after the first anchor present in the list, or append them.
+	 *
+	 * @param string[] $abilities Ordered ability class names.
+	 * @param string[] $anchors   Candidate anchors in preference order.
+	 * @param string[] $classes   Classes to insert.
+	 * @return string[]
+	 */
+	private static function insert_after( array $abilities, array $anchors, array $classes ): array {
+		$abilities = array_values( $abilities );
+		foreach ( $anchors as $anchor ) {
+			$position = array_search( $anchor, $abilities, true );
+			if ( is_int( $position ) ) {
+				array_splice( $abilities, $position + 1, 0, $classes );
+				return $abilities;
+			}
+		}
+		return array_merge( $abilities, $classes );
 	}
 }
