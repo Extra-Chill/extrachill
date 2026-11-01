@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.28.0] - 2026-11-01
+
+### Added
+- report content and block members
+
+### Changed
+- package on PHP 8.4 and give community's Node build its workspace deps
+- drop function_exists guards on ec_get_blog_id / ec_get_site_url
+- consume in-tree @extrachill packages via local_workspace_dependencies
+
+### Fixed
+- untrack npm pack tarball committed by a release
+- ship mapped plugin user documentation
+
 ## [1.27.7] - 2026-10-31
 
 ### Changed
