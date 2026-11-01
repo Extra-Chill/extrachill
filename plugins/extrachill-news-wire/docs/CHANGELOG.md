@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.5] - 2026-11-01
+
+### Changed
+- register smokes so CI actually runs them
+
 ## [0.6.4] - 2026-11-01
 
 ### Changed
