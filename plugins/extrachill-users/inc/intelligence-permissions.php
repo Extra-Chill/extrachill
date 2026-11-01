@@ -46,7 +46,7 @@ function ec_users_grant_studio_intelligence_read( array $allcaps, array $caps, a
 		return $allcaps;
 	}
 
-	$studio_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'studio' ) : 0;
+	$studio_blog_id = (int) ec_get_blog_id( 'studio' );
 	if ( $studio_blog_id <= 0 || get_current_blog_id() !== $studio_blog_id ) {
 		return $allcaps;
 	}

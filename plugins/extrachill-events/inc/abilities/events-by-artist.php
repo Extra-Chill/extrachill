@@ -392,7 +392,7 @@ function extrachill_events_read_artist_term( int $artist_term_id ) {
  * @return int Blog ID, or zero.
  */
 function extrachill_events_artist_blog_id( string $site ): int {
-	return function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( $site ) : 0;
+	return (int) ec_get_blog_id( $site );
 }
 
 /**

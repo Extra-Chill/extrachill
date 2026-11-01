@@ -2,7 +2,13 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "validation_dependencies": [
+          "extrachill-network"
+        ]
+      }
+    }
   },
   "id": "extrachill-news-wire",
   "remote_path": "wp-content/plugins/extrachill-news-wire",

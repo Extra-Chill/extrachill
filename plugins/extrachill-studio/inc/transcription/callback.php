@@ -311,7 +311,7 @@ function ec_studio_transcription_handle_callback( \WP_REST_Request $request ) {
  * @return array|\WP_Error Claim details or an error.
  */
 function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 ) {
 		return new \WP_Error( 'main_site_unavailable', __( 'The main site could not be resolved.', 'extrachill-studio' ), array( 'status' => 500 ) );
 	}
@@ -383,7 +383,7 @@ function ec_studio_transcription_callback_claim( int $user_id, string $job_id ) 
  * @return true|\WP_Error
  */
 function ec_studio_transcription_callback_store( string $key, array $current, array &$next ) {
-	$main_blog_id       = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id       = (int) ec_get_blog_id( 'main' );
 	$next['owner']      = (string) ( $current['owner'] ?? '' );
 	$next['updated_at'] = time();
 	if ( $main_blog_id <= 0 || ! ec_studio_transcription_callback_replace( $main_blog_id, $key, $current, $next ) ) {
@@ -403,7 +403,7 @@ function ec_studio_transcription_callback_release( string $key, array $state ): 
 	$retry_state['status']     = 'retryable';
 	$retry_state['owner']      = '';
 	$retry_state['updated_at'] = time();
-	$main_blog_id              = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id              = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id > 0 ) {
 		ec_studio_transcription_callback_replace( $main_blog_id, $key, $state, $retry_state );
 	}
@@ -471,7 +471,7 @@ function ec_studio_transcription_callback_result( array $state ): array {
  * @return int Existing post ID, or zero.
  */
 function ec_studio_transcription_callback_find_draft( int $user_id, string $job_id ): int {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 ) {
 		return 0;
 	}
@@ -596,7 +596,7 @@ function ec_studio_transcription_callback_create_draft(
 	}
 
 	// Attach Studio-specific meta on the main site.
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id > 0 ) {
 		// Switch is for post-context resolution, NOT for SMTP: the draft
 		// lives on main extrachill.com, so update_post_meta() must run in
@@ -634,18 +634,9 @@ function ec_studio_transcription_callback_create_draft(
  * @return string Absolute URL to the Studio workspace.
  */
 function ec_studio_transcription_draft_review_url(): string {
-	// The Studio subsite is where this plugin runs, so home_url() on the
-	// current blog is correct in the REST/callback context. Fall back to the
-	// resolved Studio blog id when available so the URL stays correct even
-	// if this ever runs under another site's context.
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		$studio_blog_id = (int) ec_get_blog_id( 'studio' );
-		if ( $studio_blog_id > 0 ) {
-			return get_home_url( $studio_blog_id, '/' );
-		}
-	}
-
-	return home_url( '/' );
+	// Resolve the Studio blog explicitly so the URL stays correct even if
+	// this ever runs under another site's context.
+	return get_home_url( (int) ec_get_blog_id( 'studio' ), '/' );
 }
 
 /**
@@ -763,7 +754,7 @@ function ec_studio_transcription_callback_send_email(
 
 	// Only set the key when main actually resolves. Passing an empty value
 	// would override ec_send_email()'s default rather than fall back to it.
-	$mail_site_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$mail_site_id = (int) ec_get_blog_id( 'main' );
 	if ( $mail_site_id > 0 ) {
 		$email_args['mail_site_id'] = $mail_site_id;
 	}

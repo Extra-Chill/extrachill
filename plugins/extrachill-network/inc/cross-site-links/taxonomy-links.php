@@ -408,7 +408,7 @@ function extrachill_get_blog_taxonomy_count_via_api( $term_slug, $taxonomy ) {
  * @return array|null Array with 'count' and 'url', or null if not found.
  */
 function extrachill_get_events_upcoming_count_via_api( $term_slug, $taxonomy ) {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( ! $events_blog_id ) {
 		return null;
 	}

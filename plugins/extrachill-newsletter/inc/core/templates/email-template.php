@@ -43,7 +43,7 @@ function extrachill_newsletter_get_email_logo_url() {
 		'/2026/01/Extra-Chill-Main-Logo-2026.png'
 	);
 
-	$newsletter_base = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'newsletter' ) : null;
+	$newsletter_base = ec_get_site_url( 'newsletter' );
 
 	if ( ! $newsletter_base ) {
 		$upload_dir      = wp_upload_dir();
@@ -56,7 +56,7 @@ function extrachill_newsletter_get_email_logo_url() {
 	// Multisite stores per-site uploads under /wp-content/uploads/sites/{blog_id}/.
 	$uploads_path = '/wp-content/uploads';
 	if ( is_multisite() ) {
-		$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+		$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 		// Main site (blog 1) has no /sites/{id} segment.
 		if ( $newsletter_blog_id && (int) $newsletter_blog_id > 1 ) {
 			$uploads_path .= '/sites/' . (int) $newsletter_blog_id;
@@ -110,18 +110,18 @@ function prepare_newsletter_email_content( $post ) {
 	$content = preg_replace( '/<(ol|ul)([^>]*)>/i', '<$1$2 style="font-size: 16px; line-height: 1.75em; padding-left: 20px;">', $content );
 	$content = preg_replace( '/<li([^>]*)>/i', '<li$1 style="margin: 10px 0;">', $content );
 
-	$main_site_url       = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
+	$main_site_url       = ec_get_site_url( 'main' );
 	$subject             = $post->post_title;
 	$read_on_web_url     = (string) get_permalink( $post->ID );
-	$newsletter_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'newsletter' ) : home_url();
+	$newsletter_site_url = ec_get_site_url( 'newsletter' );
 
 	$navbar_links = array(
 		__( 'Main', 'extrachill-newsletter' )            => $main_site_url,
-		__( 'Community', 'extrachill-newsletter' )       => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : '',
-		__( 'Events', 'extrachill-newsletter' )          => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : '',
-		__( 'Shop', 'extrachill-newsletter' )            => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'shop' ) : '',
-		__( 'Artist Platform', 'extrachill-newsletter' ) => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : '',
-		__( 'Documentation', 'extrachill-newsletter' )   => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'docs' ) : '',
+		__( 'Community', 'extrachill-newsletter' )       => ec_get_site_url( 'community' ),
+		__( 'Events', 'extrachill-newsletter' )          => ec_get_site_url( 'events' ),
+		__( 'Shop', 'extrachill-newsletter' )            => ec_get_site_url( 'shop' ),
+		__( 'Artist Platform', 'extrachill-newsletter' ) => ec_get_site_url( 'artist' ),
+		__( 'Documentation', 'extrachill-newsletter' )   => ec_get_site_url( 'docs' ),
 		__( 'Newsletters', 'extrachill-newsletter' )     => $newsletter_site_url,
 	);
 

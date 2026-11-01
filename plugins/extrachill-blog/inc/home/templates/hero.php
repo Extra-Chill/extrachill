@@ -32,9 +32,9 @@ $hero_stat_labels = array(
 	'artist_profiles' => __( 'artists', 'extrachill-blog' ),
 );
 
-$events_url    = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : 'https://events.extrachill.com';
-$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : 'https://community.extrachill.com';
-$artist_url    = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : 'https://artist.extrachill.com';
+$events_url    = ec_get_site_url( 'events' );
+$community_url = ec_get_site_url( 'community' );
+$artist_url    = ec_get_site_url( 'artist' );
 $events_url    = extrachill_blog_bridge_url( $events_url, 'events' );
 $community_url = extrachill_blog_bridge_url( $community_url, 'community' );
 $artist_url    = extrachill_blog_bridge_url( $artist_url, 'artist' );

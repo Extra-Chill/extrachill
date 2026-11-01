@@ -150,11 +150,9 @@ class MigratePostCommand {
 			return (int) $value;
 		}
 
-		if ( function_exists( 'ec_get_blog_id' ) ) {
-			$resolved = ec_get_blog_id( $value );
-			if ( $resolved ) {
-				return (int) $resolved;
-			}
+		$resolved = ec_get_blog_id( $value );
+		if ( $resolved ) {
+			return (int) $resolved;
 		}
 
 		return null;

@@ -29,10 +29,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return int Max upload size in bytes.
  */
 function extrachill_studio_compose_main_max_upload_size(): int {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return (int) wp_max_upload_size();
-	}
-
 	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( $main_blog_id <= 0 ) {
 		return (int) wp_max_upload_size();

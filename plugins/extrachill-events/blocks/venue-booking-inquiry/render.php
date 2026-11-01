@@ -9,7 +9,7 @@ use ExtraChillEvents\Core\VenueBookingConfig;
 
 defined( 'ABSPATH' ) || exit;
 
-$events_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
+$events_blog_id = absint( ec_get_blog_id( 'events' ) );
 $venue_id       = absint( $attributes['venueId'] ?? 0 );
 if ( $venue_id < 1 && (int) get_current_blog_id() === $events_blog_id && is_tax( 'venue' ) ) {
 	$archive_venue = get_queried_object();

@@ -103,7 +103,7 @@ function extrachill_api_events_upcoming_counts_handler( WP_REST_Request $request
 	}
 
 	// Resolve the events blog. The ability and its data live on the events site.
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	$current_blog   = get_current_blog_id();
 	$did_switch     = false;
 

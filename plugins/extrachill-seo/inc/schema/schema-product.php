@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 function ec_seo_emit_product_schema( $graph ) {
 		// Only run on shop site.
-		$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : 3;
+		$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( (int) get_current_blog_id() !== (int) $shop_blog_id ) {
 		return $graph;
 	}

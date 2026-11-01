@@ -30,7 +30,7 @@ define( 'EXTRACHILL_NEWSLETTER_ASSETS_URL', EXTRACHILL_NEWSLETTER_PLUGIN_URL . '
  * @return bool True if on newsletter.extrachill.com (blog ID 9)
  */
 function is_newsletter_site() {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	return $newsletter_blog_id && get_current_blog_id() === $newsletter_blog_id;
 }
 

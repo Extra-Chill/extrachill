@@ -70,7 +70,7 @@ class ExtraChillArtistPlatform_SocialLinks {
 	 * @return mixed
 	 */
 	private function on_artist_blog( $callback ) {
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+		$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 		if ( ! $artist_blog_id || ! is_multisite() || get_current_blog_id() === $artist_blog_id ) {
 			return $callback();
 		}

@@ -23,6 +23,8 @@ $is_archive       = false;
 
 function add_action() {}
 function add_filter() {}
+function apply_filters( $hook, $value ) { return $value; }
+function get_site_option( $name, $default = false ) { return $default; }
 function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
 function plugin_dir_url( $file )  { return 'https://example.test/' . basename( dirname( $file ) ) . '/'; }
 function is_post_type_archive( $post_type ) { global $is_archive; return $is_archive && 'festival_wire' === $post_type; }
@@ -39,6 +41,15 @@ function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $
 	global $enqueued_scripts;
 	$enqueued_scripts[] = compact( 'handle', 'src', 'deps', 'ver', 'in_footer' );
 }
+
+// Load the real network blog-id contract (ec_get_site_url()). Homeboy exports
+// EXTRACHILL_NETWORK_PATH when extrachill-network is a validation dependency;
+// otherwise fall back to the monorepo sibling checkout.
+$ec_network_path = getenv( 'EXTRACHILL_NETWORK_PATH' );
+if ( ! is_string( $ec_network_path ) || '' === $ec_network_path ) {
+	$ec_network_path = dirname( __DIR__, 2 ) . '/extrachill-network';
+}
+require_once rtrim( $ec_network_path, '/' ) . '/inc/core/blog-ids.php';
 
 require dirname( __DIR__ ) . '/extrachill-news-wire.php';
 

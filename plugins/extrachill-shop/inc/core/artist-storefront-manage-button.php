@@ -19,10 +19,6 @@ function extrachill_shop_maybe_render_manage_shop_button() {
 		return;
 	}
 
-	if ( ! function_exists( 'ec_get_site_url' ) ) {
-		return;
-	}
-
 	$term = get_queried_object();
 	if ( ! ( $term instanceof WP_Term ) || empty( $term->slug ) ) {
 		return;

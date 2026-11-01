@@ -139,7 +139,7 @@ add_action(
 function ec_artist_coverage_resolve_slug( $artist_id, $artist_term_id = 0 ) {
 	$artist_term_id = (int) $artist_term_id;
 
-	if ( $artist_term_id > 0 && function_exists( 'ec_get_blog_id' ) ) {
+	if ( $artist_term_id > 0 ) {
 		$main_blog_id = ec_get_blog_id( 'main' );
 		if ( $main_blog_id ) {
 			$slug = '';
@@ -179,7 +179,7 @@ function ec_artist_coverage_resolve_slug( $artist_id, $artist_term_id = 0 ) {
  */
 function ec_artist_coverage_archive_url( $slug ) {
 	$slug = (string) $slug;
-	if ( '' === $slug || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( '' === $slug ) {
 		return '';
 	}
 
@@ -216,7 +216,7 @@ function ec_artist_coverage_archive_url( $slug ) {
 function ec_artist_coverage_gather_cards( $slug, $limit = EC_ARTIST_COVERAGE_CARD_LIMIT ) {
 	$slug  = (string) $slug;
 	$limit = max( 1, (int) $limit );
-	if ( '' === $slug || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( '' === $slug ) {
 		return array();
 	}
 

@@ -87,10 +87,6 @@ function extrachill_shop_register_get_shipping_address_ability(): void {
 function extrachill_shop_ability_get_shipping_address( array $input ): array|WP_Error {
 	$artist_id = (int) ( $input['artist_id'] ?? 0 );
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error( 'configuration_error', 'Multisite plugin is not active.', array( 'status' => 500 ) );
-	}
-
 	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'configuration_error', 'Artist blog is not configured.', array( 'status' => 500 ) );

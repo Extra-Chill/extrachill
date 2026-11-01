@@ -191,7 +191,7 @@ function extrachill_users_ability_create_user( $input ) {
 	// Switch to community blog if needed.
 	$current_blog_id   = get_current_blog_id();
 	$switched          = false;
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 
 	if ( $community_blog_id && $current_blog_id !== $community_blog_id ) {
 		switch_to_blog( $community_blog_id );

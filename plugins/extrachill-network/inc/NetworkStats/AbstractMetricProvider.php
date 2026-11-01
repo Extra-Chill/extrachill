@@ -93,10 +93,6 @@ abstract class AbstractMetricProvider implements MetricProvider {
 	 * @return int|null Blog ID, or null when the site is unavailable.
 	 */
 	protected function resolve_blog_id( string $site_key ): ?int {
-		if ( ! function_exists( 'ec_get_blog_id' ) ) {
-			return null;
-		}
-
 		$blog_id = ec_get_blog_id( $site_key );
 
 		return $blog_id ? (int) $blog_id : null;

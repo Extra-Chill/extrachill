@@ -496,7 +496,7 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 		}
 	}
 
-	if ( isset( $event_data['dest_site'] ) && '' !== $event_data['dest_site'] && function_exists( 'ec_get_blog_id' ) ) {
+	if ( isset( $event_data['dest_site'] ) && '' !== $event_data['dest_site'] ) {
 		$dest_blog_id = ec_get_blog_id( (string) $event_data['dest_site'] );
 		if ( null === $dest_blog_id || (int) get_current_blog_id() === (int) $dest_blog_id ) {
 			return new WP_Error( 'invalid_event_destination_site', __( 'Event destination must be another network site.', 'extrachill-analytics' ), array( 'status' => 400 ) );

@@ -26,11 +26,9 @@
 function extrachill_get_network_search_excluded_blog_ids() {
 	$excluded = array();
 
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		$studio_blog_id = ec_get_blog_id( 'studio' );
-		if ( null !== $studio_blog_id ) {
-			$excluded[] = $studio_blog_id;
-		}
+	$studio_blog_id = ec_get_blog_id( 'studio' );
+	if ( null !== $studio_blog_id ) {
+		$excluded[] = $studio_blog_id;
 	}
 
 	/**
@@ -183,10 +181,6 @@ function extrachill_resolve_site_urls( $site_urls ) {
 function extrachill_get_site_post_types() {
 	// Derive blog-ID keys from canonical slug map so a blog-ID shift tracks
 	// automatically instead of silently mis-routing via literal integers.
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return apply_filters( 'extrachill_search_site_post_types_map', array() );
-	}
-
 	$site_post_types = array(
 		ec_get_blog_id( 'main' )       => array( 'post', 'page' ),                     // extrachill.com (main blog)
 		ec_get_blog_id( 'community' )  => array( 'topic', 'reply', 'forum' ),          // community.extrachill.com (bbPress)

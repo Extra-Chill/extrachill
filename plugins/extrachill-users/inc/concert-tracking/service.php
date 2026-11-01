@@ -36,7 +36,7 @@ const EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_MAX     = 1000;
  * @return int|WP_Error Canonical Events blog ID, or a validation error.
  */
 function ec_users_validate_event_target( int $event_id, int $blog_id = 0 ) {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	$events_blog_id = (int) apply_filters( 'extrachill_users_events_blog_id', $events_blog_id );
 
 	if ( $events_blog_id <= 0 || ( is_multisite() && ! get_site( $events_blog_id ) ) ) {
@@ -365,7 +365,7 @@ function ec_users_get_user_dated_event_checks( int $user_id ): array {
  * @return int Events site blog ID.
  */
 function ec_users_get_events_blog_id(): int {
-	$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$blog_id = ec_get_blog_id( 'events' );
 
 	return (int) apply_filters( 'extrachill_users_events_blog_id', $blog_id );
 }

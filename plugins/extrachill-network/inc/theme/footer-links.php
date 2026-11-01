@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Modified items.
  */
 function extrachill_network_footer_bottom_links( $items ) {
-	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url();
+	$main_site_url = ec_get_site_url( 'main' );
 
 	$items[] = array(
 		'url'      => $main_site_url . '/affiliate-disclosure/',

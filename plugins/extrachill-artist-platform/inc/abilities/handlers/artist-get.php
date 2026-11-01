@@ -24,7 +24,7 @@ function extrachill_artist_platform_ability_artist_get( array $input ) {
 		return new WP_Error( 'missing_id', 'id is required.' );
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	$did_switch     = false;
 
 	if ( $artist_blog_id && get_current_blog_id() !== $artist_blog_id ) {

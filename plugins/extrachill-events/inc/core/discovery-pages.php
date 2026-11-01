@@ -53,7 +53,7 @@ function extrachill_events_prevent_root_scope_permalink_guess( $redirect_url ) {
 		return $redirect_url;
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( (int) get_current_blog_id() !== $events_blog_id ) {
 		return null;
 	}
@@ -77,7 +77,7 @@ add_filter( 'pre_redirect_guess_404_permalink', 'extrachill_events_prevent_root_
  * @hook init
  */
 function extrachill_events_discovery_rewrite_rules() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( (int) get_current_blog_id() !== $events_blog_id ) {
 		return;
 	}
@@ -111,7 +111,7 @@ function extrachill_events_is_discovery_page(): bool {
 		return false;
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( (int) get_current_blog_id() !== $events_blog_id ) {
 		return false;
 	}
@@ -299,7 +299,7 @@ add_filter( 'extrachill_seo_open_graph_data', 'extrachill_events_discovery_og_da
  * @return array URLs with discovery pages appended.
  */
 function extrachill_events_discovery_sitemap_urls( array $urls ): array {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( (int) get_current_blog_id() !== $events_blog_id ) {
 		return $urls;
 	}
@@ -407,7 +407,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_events_discover
  * @hook wp_enqueue_scripts
  */
 function extrachill_events_discovery_scripts() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( (int) get_current_blog_id() !== $events_blog_id ) {
 		return;
 	}

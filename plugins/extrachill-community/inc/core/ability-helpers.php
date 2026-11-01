@@ -26,7 +26,7 @@ function extrachill_community_resolve_user_id( $input ) {
  * @return array{switched: bool, blog_id: int|null}
  */
 function extrachill_community_switch_to_community_blog() {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	$switched          = false;
 
 	if ( $community_blog_id && get_current_blog_id() !== $community_blog_id ) {

@@ -218,10 +218,6 @@ function ec_finish_artist_binding_lock( $lock_token ) {
  * @return array{artist:int,main:int}|array{}
  */
 function ec_artist_binding_blog_ids() {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return array();
-	}
-
 	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	$main_blog_id   = (int) ec_get_blog_id( 'main' );
 	if ( $artist_blog_id <= 0 || $main_blog_id <= 0 ) {

@@ -121,7 +121,7 @@ function ec_users_build_account_claim_url( WP_User $user ) {
 
 	update_user_meta( $user->ID, EXTRACHILL_USERS_CLAIM_MINTED_AT_META, time() );
 
-	$base = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : network_site_url();
+	$base = ec_get_site_url( 'community' );
 
 	return add_query_arg(
 		array(

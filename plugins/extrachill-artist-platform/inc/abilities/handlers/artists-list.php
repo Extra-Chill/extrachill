@@ -26,7 +26,7 @@ function extrachill_artist_platform_ability_artists_list( array $input ) {
 	$per_page = isset( $input['per_page'] ) ? max( 1, min( 100, (int) $input['per_page'] ) ) : 24;
 	$search   = isset( $input['search'] ) ? sanitize_text_field( $input['search'] ) : '';
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	$did_switch     = false;
 
 	if ( $artist_blog_id && get_current_blog_id() !== $artist_blog_id ) {

@@ -397,6 +397,26 @@ if ( ! function_exists( 'get_current_blog_id' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_site_option' ) ) {
+	function get_site_option( $option, $default_value = false ) {
+		unset( $option );
+		return $default_value;
+	}
+}
+
+// Load the real network blog-id contract (ec_get_blog_id()). Homeboy exports
+// EXTRACHILL_NETWORK_PATH when extrachill-network is a validation dependency;
+// otherwise fall back to the sibling checkout (monorepo or WordPress plugins
+// directory).
+if ( ! function_exists( 'ec_get_blog_id' ) ) {
+	$ec_network_path = getenv( 'EXTRACHILL_NETWORK_PATH' );
+	if ( ! is_string( $ec_network_path ) || '' === $ec_network_path ) {
+		$ec_network_path = dirname( __DIR__, 2 ) . '/extrachill-network';
+	}
+	require_once rtrim( $ec_network_path, '/' ) . '/inc/core/blog-ids.php';
+	unset( $ec_network_path );
+}
+
 if ( ! function_exists( 'ec_get_blog_slug_by_id' ) ) {
 	function ec_get_blog_slug_by_id( $blog_id ) {
 		return 7 === (int) $blog_id ? 'events' : '';

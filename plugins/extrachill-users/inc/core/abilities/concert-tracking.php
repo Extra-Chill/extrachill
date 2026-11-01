@@ -108,7 +108,7 @@ function extrachill_users_can_manage_event_attendance_full( array $input ): bool
 
 	$blog_id = ! empty( $input['blog_id'] )
 		? (int) $input['blog_id']
-		: ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+		: ec_get_blog_id( 'events' );
 
 	/**
 	 * Filters whether a user may read/manage an event's full (including
@@ -702,7 +702,7 @@ function extrachill_users_ability_set_event_mark( array $input ) {
 	}
 
 	$event_id     = (int) $input['event_id'];
-	$blog_id      = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+	$blog_id      = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ec_get_blog_id( 'events' );
 	$marked       = (bool) $input['marked'];
 	$write_result = $marked
 		? ec_users_mark_event( $user_id, $event_id, $blog_id )
@@ -872,7 +872,7 @@ function extrachill_users_ability_get_event_attendance( array $input ) {
 	}
 
 	$event_id = (int) $input['event_id'];
-	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ec_get_blog_id( 'events' );
 
 	$count  = ec_users_get_event_mark_count( $event_id, $blog_id );
 	$timing = ec_users_get_event_timing( $event_id );
@@ -905,7 +905,7 @@ function extrachill_users_ability_get_event_attendance( array $input ) {
  */
 function extrachill_users_ability_get_event_attendees_full( array $input ): array {
 	$event_id = (int) $input['event_id'];
-	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ( function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : get_current_blog_id() );
+	$blog_id  = ! empty( $input['blog_id'] ) ? (int) $input['blog_id'] : ec_get_blog_id( 'events' );
 	$limit    = $input['limit'] ?? EC_USERS_EVENT_ATTENDEE_FULL_LIMIT_DEFAULT;
 
 	return array(

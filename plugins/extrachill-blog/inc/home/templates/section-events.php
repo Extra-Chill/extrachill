@@ -9,7 +9,7 @@
  * @since 0.1.0
  */
 
-$events_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : 'https://events.extrachill.com';
+$events_site_url = ec_get_site_url( 'events' );
 $browse_url      = extrachill_blog_bridge_url( $events_site_url, 'events' );
 $submit_url      = extrachill_blog_bridge_url( trailingslashit( $events_site_url ) . 'submit', 'events' );
 ?>

@@ -35,7 +35,7 @@ require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/network-bridge.php';
 function enqueue_festival_wire_assets() {
 	global $wp_query;
 
-	$wire_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : null;
+	$wire_site_url = ec_get_site_url( 'wire' );
 
 	// Archive pages: Load CSS and JS
 	if ( is_post_type_archive( 'festival_wire' ) || ( $wire_site_url && ( is_front_page() || is_home() ) && untrailingslashit( home_url() ) === untrailingslashit( $wire_site_url ) ) ) {
@@ -119,7 +119,7 @@ function ec_news_wire_render_wire_hub_homepage() {
 		return;
 	}
 
-	$wire_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'wire' ) : '';
+	$wire_site_url = ec_get_site_url( 'wire' );
 	if ( ! $wire_site_url || untrailingslashit( home_url() ) !== untrailingslashit( $wire_site_url ) ) {
 		return;
 	}

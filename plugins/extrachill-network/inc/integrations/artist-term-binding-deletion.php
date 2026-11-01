@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  */
 function extrachill_network_delete_artist_term_profile_binding( $term_id, $taxonomy ) {
 	$term_id = (int) $term_id;
-	if ( 'artist' !== $taxonomy || $term_id <= 0 || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( 'artist' !== $taxonomy || $term_id <= 0 ) {
 		return;
 	}
 

@@ -64,7 +64,7 @@ function ec_has_main_site_account( $user_id ) {
 
 	$has_account = false;
 
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id ) {
 		return false;
 	}

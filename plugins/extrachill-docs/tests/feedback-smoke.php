@@ -43,6 +43,18 @@ function esc_html_e( $text ) { echo htmlspecialchars( $text, ENT_QUOTES ); }
 function esc_url( $url ) { return $url; }
 function trailingslashit( $value ) { return rtrim( $value, '/' ) . '/'; }
 function wp_enqueue_script( $handle ) { $GLOBALS['ec_test']['enqueued'][] = $handle; }
+function add_filter() { return true; }
+function apply_filters( $hook, $value ) { unset( $hook ); return $value; }
+function get_site_option( $name, $default = false ) { unset( $name ); return $default; }
+
+// Load the real network blog-id contract (ec_get_site_url()). Homeboy exports
+// EXTRACHILL_NETWORK_PATH when extrachill-network is a validation dependency;
+// otherwise fall back to the monorepo sibling checkout.
+$ec_network_path = getenv( 'EXTRACHILL_NETWORK_PATH' );
+if ( ! is_string( $ec_network_path ) || '' === $ec_network_path ) {
+	$ec_network_path = dirname( __DIR__, 2 ) . '/extrachill-network';
+}
+require_once rtrim( $ec_network_path, '/' ) . '/inc/core/blog-ids.php';
 
 require EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/feedback.php';
 

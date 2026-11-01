@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @param int $booking_id    Optional booking ID.
  */
 function ec_events_get_booking_console_url( int $venue_term_id, int $booking_id = 0 ): string {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	$base_url       = $events_blog_id > 0 ? get_home_url( $events_blog_id, '/venue-settings/' ) : home_url( '/venue-settings/' );
 	$args           = array();
 	if ( $venue_term_id > 0 ) {
@@ -82,7 +82,7 @@ function ec_events_resolve_booking_console_destination( array $booking, array $r
  * @param int $user_id User ID.
  */
 function ec_events_user_has_active_venue_membership( int $user_id ): bool {
-	if ( $user_id < 1 || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( $user_id < 1 ) {
 		return false;
 	}
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
@@ -114,7 +114,7 @@ function ec_events_user_has_active_venue_membership( int $user_id ): bool {
  * @param int $user_id User ID.
  */
 function ec_events_user_has_managed_identity( int $user_id ): bool {
-	if ( $user_id < 1 || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( $user_id < 1 ) {
 		return false;
 	}
 	if ( ! class_exists( BookingSchema::class ) || ! class_exists( VenueAuthorization::class ) || ! class_exists( VenueMembershipRepository::class ) || ! class_exists( PromoterAuthoritySchema::class ) || ! class_exists( PromoterAuthorityRepository::class ) ) {

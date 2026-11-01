@@ -146,14 +146,6 @@ function extrachill_api_media_permission_check( WP_REST_Request $request ) {
 
 	// Product image: verify user owns product on shop site
 	if ( 'product_image' === $context ) {
-		if ( ! function_exists( 'ec_get_blog_id' ) ) {
-			return new WP_Error(
-				'dependency_missing',
-				'Multisite plugin is not active.',
-				array( 'status' => 500 )
-			);
-		}
-
 		$shop_blog_id = ec_get_blog_id( 'shop' );
 		$can_manage   = false;
 

@@ -108,7 +108,7 @@ final class EventPublicationEmailProvider {
 	}
 
 	private static function site_url( string $site ): string {
-		return function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( $site ) : home_url( '/' );
+		return (string) ec_get_site_url( $site );
 	}
 
 	private static function list_link( string $url, string $label ): string {

@@ -416,18 +416,10 @@ function ec_notifications_read_redirect_allowed_hosts() {
 /**
  * Fallback redirect URL when no valid target is supplied.
  *
- * The community notifications page (the canonical network notification feed),
- * with graceful degradation to the current site root.
+ * The community notifications page (the canonical network notification feed).
  *
  * @return string
  */
 function ec_notifications_read_redirect_fallback_url() {
-	if ( function_exists( 'ec_get_site_url' ) ) {
-		$community = ec_get_site_url( 'community' );
-		if ( $community ) {
-			return trailingslashit( $community ) . 'notifications/';
-		}
-	}
-
-	return home_url( '/' );
+	return trailingslashit( ec_get_site_url( 'community' ) ) . 'notifications/';
 }

@@ -20,7 +20,7 @@ function extrachill_community_local_scene_prompt_settings() {
 	}
 
 	$settings          = false;
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : 0;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || (int) get_current_blog_id() !== (int) $community_blog_id || ! is_user_logged_in() || is_admin() ) {
 		return false;
 	}

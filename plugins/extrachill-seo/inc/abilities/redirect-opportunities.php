@@ -472,7 +472,7 @@ function ec_seo_resolve_location_destination( $city_phrase, $scope, $state_hint 
 		'state_abbr'     => '',
 	);
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 7;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	if ( ! $events_blog_id ) {
 		return $empty;
 	}

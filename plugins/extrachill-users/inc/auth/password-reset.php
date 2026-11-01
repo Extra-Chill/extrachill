@@ -190,7 +190,7 @@ function ec_users_current_claim_user() {
  * @return string URL.
  */
 function ec_users_claim_landing_url( WP_User $user ) {
-	$url = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'events' ) : '';
+	$url = (string) ec_get_site_url( 'events' );
 
 	/**
 	 * Filters the landing URL after an unclaimed account sets its password.
@@ -682,9 +682,7 @@ function ec_send_team_welcome_email( $user, $reset_key ) {
 		ec_get_site_url( 'community' ) . '/reset-password/'
 	);
 
-	$studio_url = function_exists( 'ec_get_site_url' )
-		? ec_get_site_url( 'studio' )
-		: 'https://studio.extrachill.com';
+	$studio_url = ec_get_site_url( 'studio' );
 
 	$subject = __( 'Welcome to the Extra Chill team', 'extrachill-users' );
 

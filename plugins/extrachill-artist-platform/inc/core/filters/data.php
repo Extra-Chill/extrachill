@@ -67,7 +67,7 @@ function ec_artist_link_page_is_published( $link_page_id ) {
  */
 function ec_get_user_link_page_manage_url( $user_id = 0 ) {
 	$user_id        = $user_id ? (int) $user_id : get_current_user_id();
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( $artist_blog_id && get_current_blog_id() !== $artist_blog_id ) {
 		switch_to_blog( $artist_blog_id );
 		try {
@@ -91,7 +91,7 @@ function ec_get_user_link_page_manage_url( $user_id = 0 ) {
 			}
 		}
 	}
-	$site = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : '';
+	$site = ec_get_site_url( 'artist' );
 	return ( $site ? untrailingslashit( $site ) : untrailingslashit( home_url() ) ) . '/manage-link-page/';
 }
 

@@ -67,9 +67,7 @@ function ec_users_consume_account_created_token( string $token, int $user_id ): 
  */
 function ec_users_post_registration_redirect_url( $from_join, $onboarding_completed, $success_redirect_url, $account_created_token = '' ) {
 	if ( $from_join && ! $onboarding_completed ) {
-		$redirect_url = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' ) . '/onboarding/'
-			: home_url( '/onboarding/' );
+		$redirect_url = ec_get_site_url( 'community' ) . '/onboarding/';
 	} elseif ( '' !== (string) $success_redirect_url
 		&& function_exists( 'ec_users_is_valid_return_to_url' )
 		&& ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
@@ -77,9 +75,7 @@ function ec_users_post_registration_redirect_url( $from_join, $onboarding_comple
 			? add_query_arg( 'from_join', 'true', (string) $success_redirect_url )
 			: (string) $success_redirect_url;
 	} else {
-		$redirect_url = function_exists( 'ec_get_site_url' )
-			? ec_get_site_url( 'community' )
-			: home_url();
+		$redirect_url = ec_get_site_url( 'community' );
 	}
 
 	return '' !== $account_created_token

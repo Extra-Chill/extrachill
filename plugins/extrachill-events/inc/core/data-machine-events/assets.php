@@ -75,7 +75,7 @@ function extrachill_events_enqueue_single_styles() {
  * Only loads on blog ID 7 (events.extrachill.com) homepage and taxonomy pages.
  */
 function extrachill_events_enqueue_calendar_styles() {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : null;
+	$events_blog_id = ec_get_blog_id( 'events' );
 	$is_router_page = function_exists( 'extrachill_events_is_router_page' ) && extrachill_events_is_router_page();
 	if ( ! $events_blog_id || get_current_blog_id() !== $events_blog_id || ( ! is_front_page() && ! is_tax() && ! $is_router_page ) ) {
 		return;

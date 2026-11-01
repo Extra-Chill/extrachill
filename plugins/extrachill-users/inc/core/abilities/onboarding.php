@@ -736,7 +736,7 @@ function extrachill_users_ability_complete_onboarding( $input ) {
 	// Determine redirect URL.
 	$redirect_url = get_user_meta( $user_id, 'onboarding_redirect_url', true );
 	if ( empty( $redirect_url ) ) {
-		$redirect_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : home_url();
+		$redirect_url = ec_get_site_url( 'community' );
 	}
 
 	if ( $from_join ) {

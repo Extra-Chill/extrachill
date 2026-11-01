@@ -204,7 +204,7 @@ function extrachill_events_render_account_market_context(): void {
 		return;
 	}
 
-	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : 'https://community.extrachill.com';
+	$community_url = ec_get_site_url( 'community' );
 	$settings_url  = trailingslashit( $community_url ) . 'settings/#tab-account-details';
 	$current_url   = remove_query_arg( 'explore_all' );
 	$explore_url   = add_query_arg( 'explore_all', '1', $current_url );
@@ -261,7 +261,7 @@ function extrachill_events_render_home_market_router( array $locations ): void {
 		return;
 	}
 
-	$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : 'https://community.extrachill.com';
+	$community_url = ec_get_site_url( 'community' );
 	$settings_url  = trailingslashit( $community_url ) . 'settings/#tab-account-details';
 	$market        = extrachill_events_get_account_market();
 	$is_logged_in  = is_user_logged_in();

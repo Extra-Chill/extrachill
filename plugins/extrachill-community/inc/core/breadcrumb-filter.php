@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 1.0.0
  */
 function extrachill_community_breadcrumb_root( $root_link ) {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $root_link;
 	}
@@ -52,7 +52,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_community_breadcrumb_root
  * @since 1.0.0
  */
 function extrachill_community_breadcrumb_trail_homepage( $custom_trail ) {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $custom_trail;
 	}
@@ -84,7 +84,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  * @since 1.0.0
  */
 function extrachill_community_breadcrumb_trail( $custom_trail ) {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $custom_trail;
 	}
@@ -217,7 +217,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_community_bread
  */
 function extrachill_community_back_to_home_label( $label, $url ) {
 	unset( $url );
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $label;
 	}
@@ -249,14 +249,11 @@ add_filter( 'extrachill_back_to_home_label', 'extrachill_community_back_to_home_
  * @since 1.1.0
  */
 function extrachill_community_schema_breadcrumb_items( $items ) {
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'community' ) : null;
+	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( ! $community_blog_id || get_current_blog_id() !== $community_blog_id ) {
 		return $items;
 	}
 
-	if ( ! function_exists( 'ec_get_site_url' ) ) {
-		return $items;
-	}
 	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → Community

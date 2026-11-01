@@ -299,7 +299,7 @@ final class BookingInquiryAdmissionService {
 
 	/** Fail closed before a current-prefix repository can touch the wrong site. */
 	private function validate_scope() {
-		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 7;
+		$events_blog_id = (int) ec_get_blog_id( 'events' );
 		return 0 < $events_blog_id && (int) get_current_blog_id() === $events_blog_id
 			? true
 			: new \WP_Error( 'booking_inquiry_wrong_site', __( 'Booking inquiries must execute on the Events site.', 'extrachill-events' ) );

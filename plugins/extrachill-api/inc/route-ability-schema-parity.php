@@ -411,10 +411,6 @@ function extrachill_api_rest_ability_current_site( array $manifest = array() ) {
 		return extrachill_get_current_site_key();
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return null;
-	}
-
 	$sites = array( 'main' );
 	foreach ( $manifest as $adapter ) {
 		$site = $adapter['contract']['site'] ?? null;
@@ -523,7 +519,7 @@ function extrachill_api_rest_ability_adapter_audit( $routes = null, $site = null
 		$owner_site = $contract['site'] ?? null;
 		$ability    = function_exists( 'wp_has_ability' ) && wp_has_ability( $name ) ? wp_get_ability( $name ) : null;
 
-		if ( ! is_string( $owner_site ) || '' === $owner_site || ! function_exists( 'ec_get_blog_id' ) || ! ec_get_blog_id( $owner_site ) ) {
+		if ( ! is_string( $owner_site ) || '' === $owner_site || ! ec_get_blog_id( $owner_site ) ) {
 			$report[] = extrachill_api_rest_ability_audit_record( 'malformed_affinity', $contract['route'], $name, 'site', $audit_site, (string) $owner_site, 'Route affinity must name a configured network site.' );
 			continue;
 		}

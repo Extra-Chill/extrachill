@@ -88,7 +88,7 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 		return $objects;
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( $artist_blog_id <= 0 ) {
 		return $objects;
 	}

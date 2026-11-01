@@ -155,7 +155,7 @@ function extrachill_newsletter_get_operation_campaign_record( $operation_ref, ar
 	}
 
 	$post_id            = $receipt['newsletter_post_id'] ?? 0;
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'newsletter' ) ) : 0;
+	$newsletter_blog_id = absint( ec_get_blog_id( 'newsletter' ) );
 	if ( ! is_int( $post_id ) || $post_id <= 0 || ! $newsletter_blog_id ) {
 		return null;
 	}

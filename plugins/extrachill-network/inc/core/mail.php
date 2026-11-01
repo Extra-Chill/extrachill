@@ -183,7 +183,7 @@ function extrachill_mail_site_id() {
 		return $current;
 	}
 
-	$main = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : (int) EC_BLOG_ID_MAIN;
+	$main = (int) ec_get_blog_id( 'main' );
 
 	return $main > 0 ? $main : (int) EC_BLOG_ID_MAIN;
 }

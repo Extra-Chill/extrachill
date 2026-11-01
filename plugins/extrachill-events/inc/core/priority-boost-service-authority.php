@@ -53,10 +53,6 @@ function extrachill_events_priority_boost_build_target_grant( array $config ): ?
  * @return array<string,mixed>|null Target grant, or null when unavailable.
  */
 function extrachill_events_priority_boost_target_grant(): ?array {
-	if ( ! function_exists( 'ec_get_blog_id' ) || ! function_exists( 'ec_get_site_url' ) ) {
-		return null;
-	}
-
 	$source_site_id = (int) ec_get_blog_id( 'shop' );
 	$target_site_id = (int) ec_get_blog_id( 'events' );
 	$target_url     = (string) ec_get_site_url( 'events' );

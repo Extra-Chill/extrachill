@@ -67,10 +67,6 @@ function ec_community_get_concert_stats( int $user_id ): ?array {
  *                site URL cannot be resolved.
  */
 function ec_community_my_shows_url( int $user_id ): string {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return '';
-	}
-
 	$events_blog_id = ec_get_blog_id( 'events' );
 	if ( ! $events_blog_id ) {
 		return '';

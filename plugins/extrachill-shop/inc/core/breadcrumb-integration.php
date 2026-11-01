@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return string Modified root link
  */
 function extrachill_shop_breadcrumb_root( $root_link ) {
-	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $root_link;
 	}
@@ -52,7 +52,7 @@ add_filter( 'extrachill_breadcrumbs_root', 'extrachill_shop_breadcrumb_root' );
  * @return string Breadcrumb trail HTML
  */
 function extrachill_shop_breadcrumb_trail_homepage( $custom_trail ) {
-	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $custom_trail;
 	}
@@ -75,7 +75,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_shop_breadcrumb
  * @return string Modified trail
  */
 function extrachill_shop_breadcrumb_trail( $trail ) {
-	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $trail;
 	}
@@ -162,7 +162,7 @@ remove_action( 'woocommerce_before_main_content', 'woocommerce_breadcrumb', 20 )
  * Uses theme's extrachill_before_body_content hook at priority 5.
  */
 function extrachill_shop_display_breadcrumbs_fallback() {
-	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return;
 	}
@@ -190,7 +190,7 @@ add_action( 'extrachill_before_body_content', 'extrachill_shop_display_breadcrum
  * @return string Modified label
  */
 function extrachill_shop_back_to_home_label( $label, $url ) {
-	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $label;
 	}
@@ -222,12 +222,12 @@ add_filter( 'extrachill_back_to_home_label', 'extrachill_shop_back_to_home_label
  * @since 0.3.0
  */
 function extrachill_shop_schema_breadcrumb_items( $items ) {
-	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'shop' ) : null;
+	$shop_blog_id = ec_get_blog_id( 'shop' );
 	if ( ! $shop_blog_id || get_current_blog_id() !== $shop_blog_id ) {
 		return $items;
 	}
 
-	$main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+	$main_site_url = ec_get_site_url( 'main' );
 
 	// Homepage: Extra Chill → Shop
 	if ( is_front_page() ) {

@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return string Breadcrumb trail HTML
  */
 function extrachill_blog_breadcrumb_trail( $custom_trail ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id || get_current_blog_id() !== $main_blog_id ) {
 		return $custom_trail;
 	}
@@ -48,7 +48,7 @@ add_filter( 'extrachill_breadcrumbs_override_trail', 'extrachill_blog_breadcrumb
  * @return array Modified breadcrumb items
  */
 function extrachill_blog_schema_breadcrumb_items( $items ) {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id || get_current_blog_id() !== $main_blog_id ) {
 		return $items;
 	}

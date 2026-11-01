@@ -63,13 +63,9 @@ foreach ( $user_artists as $artist_id ) {
 	}
 }
 
-$shop_rest_url = function_exists( 'ec_get_site_url' )
-	? trailingslashit( ec_get_site_url( 'shop' ) ) . 'wp-json/extrachill/v1/'
-	: rest_url( 'extrachill/v1/' );
+$shop_rest_url = trailingslashit( ec_get_site_url( 'shop' ) ) . 'wp-json/extrachill/v1/';
 
-$shop_site_url = function_exists( 'ec_get_site_url' )
-	? ec_get_site_url( 'shop' )
-	: '';
+$shop_site_url = ec_get_site_url( 'shop' );
 
 $config = array(
 	'restUrl'     => rest_url( 'extrachill/v1/' ),

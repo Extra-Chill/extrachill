@@ -23,7 +23,7 @@ function display_main_site_comments_for_user($community_user_id) {
 	$user_info     = get_userdata($community_user_id);
 	$user_nicename = $user_info ? $user_info->user_nicename : 'Unknown User';
 
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id ) {
 		return '<div class="bbpress-comments-error">Main site not configured.</div>';
 	}
@@ -91,7 +91,7 @@ function get_user_main_site_comment_count($user_id) {
 		return 0;
 	}
 
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id ) {
 		return 0;
 	}

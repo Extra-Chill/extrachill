@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$footer_main_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
+$footer_main_url = ec_get_site_url( 'main' );
 $current_year    = gmdate( 'Y' );
 ?>
 					</td>

@@ -208,11 +208,7 @@ function ec_notifications_email_is_owner_site() {
 		return (int) ec_mail_site_id() === $current;
 	}
 
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		return (int) ec_get_blog_id( 'main' ) === $current;
-	}
-
-	return false;
+	return (int) ec_get_blog_id( 'main' ) === $current;
 }
 
 // ─── Digest Run ──────────────────────────────────────────────────────────────
@@ -767,7 +763,7 @@ function ec_notifications_email_reminder_is_stale( $event_id ) {
 		return false;
 	}
 
-	$events_blog = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog = (int) ec_get_blog_id( 'events' );
 	if ( $events_blog <= 0 ) {
 		return false;
 	}
@@ -996,23 +992,10 @@ function ec_notifications_email_unsubscribe_footer_html( $user_id ) {
  * Resolve the URL of the community notifications page.
  *
  * The in-app notifications view lives at community.extrachill.com/notifications
- * (rendered by extrachill-community). Falls back to the community site root,
- * then the main site, so the CTA is never empty.
+ * (rendered by extrachill-community).
  *
  * @return string
  */
 function ec_notifications_email_notifications_url() {
-	if ( function_exists( 'ec_get_site_url' ) ) {
-		$community = ec_get_site_url( 'community' );
-		if ( $community ) {
-			return trailingslashit( $community ) . 'notifications/';
-		}
-
-		$main = ec_get_site_url( 'main' );
-		if ( $main ) {
-			return trailingslashit( $main );
-		}
-	}
-
-	return home_url( '/' );
+	return trailingslashit( ec_get_site_url( 'community' ) ) . 'notifications/';
 }

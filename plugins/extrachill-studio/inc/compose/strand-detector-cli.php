@@ -122,19 +122,12 @@ class EC_Studio_Strand_Detector_CLI {
 	 * Fail fast unless we're running against the Studio subsite.
 	 *
 	 * The detector only makes sense on blog 12; running it on main would scan
-	 * legitimate editorial posts and flag everything. When the multisite helper
-	 * is available we assert the current blog IS the Studio subsite.
+	 * legitimate editorial posts and flag everything, so assert the current blog
+	 * IS the Studio subsite.
 	 *
 	 * @return void
 	 */
 	private function assert_on_studio_subsite() {
-		if ( ! function_exists( 'ec_get_blog_id' ) ) {
-			// Can't resolve — warn but proceed, so the command still works on a
-			// single-site/dev install.
-			\WP_CLI::warning( 'extrachill-multisite not available; cannot confirm this is the Studio subsite. Proceeding against the current site.' );
-			return;
-		}
-
 		$studio_blog_id  = (int) ec_get_blog_id( 'studio' );
 		$current_blog_id = (int) get_current_blog_id();
 

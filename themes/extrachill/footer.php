@@ -22,7 +22,7 @@
 	<?php do_action( 'extrachill_footer_below_menu' ); ?>
 
 	<div class="footer-copyright">
-		<?php $main_site_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : home_url(); ?>
+		<?php $main_site_url = ec_get_site_url( 'main' ); ?>
 		&copy; <?php echo esc_html( gmdate( 'Y' ) ); ?> <a href="<?php echo esc_url( $main_site_url ); ?>"><?php echo esc_html( extrachill_get_site_title() ); ?></a>. All rights reserved.
 	</div>
 

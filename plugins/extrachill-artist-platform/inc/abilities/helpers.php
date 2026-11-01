@@ -193,7 +193,7 @@ function extrachill_artist_platform_ability_link_page_belongs_to_artist( $artist
 		return ! is_wp_error( $result ) && true === $result;
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : 0;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	$did_switch     = $artist_blog_id && get_current_blog_id() !== (int) $artist_blog_id;
 
 	if ( $did_switch ) {

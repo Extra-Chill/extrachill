@@ -96,7 +96,7 @@ function ec_users_get_artist_dispatch_artist_ids( $user_id ) {
  */
 function ec_users_get_artist_dispatch_artist_label( $artist_id ) {
 	$artist_id      = absint( $artist_id );
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( ! $artist_id || ! $artist_blog_id ) {
 		return '';
 	}

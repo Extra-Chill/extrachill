@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * @return string|WP_Error
  */
 function ec_artist_link_page_owner_reference( $artist_id ) {
-	$blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$blog_id = (int) ec_get_blog_id( 'artist' );
 
 	return ec_normalize_link_page_owner_reference(
 		array(
@@ -34,7 +34,7 @@ function ec_artist_link_page_owner_reference( $artist_id ) {
  */
 function ec_artist_link_page_operation_provider( $resolved ) {
 	$owner          = $resolved['owner'];
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( 'post' !== $owner['kind'] || $artist_blog_id !== $owner['blog_id'] || 'artist_profile' !== $owner['subtype'] ) {
 		return null;
 	}
@@ -112,7 +112,7 @@ function ec_artist_with_link_page_lock( $artist_id, $callback, $require_link_pag
 			}
 		);
 	}
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	$did_switch     = $artist_blog_id && get_current_blog_id() !== $artist_blog_id;
 	// @phpstan-ignore phpstan.booleanNot.alwaysFalse (defensive: switch_to_blog() is stubbed @return true, but the guard is retained.)
 	if ( $did_switch && ( ! switch_to_blog( $artist_blog_id ) || get_current_blog_id() !== $artist_blog_id ) ) {

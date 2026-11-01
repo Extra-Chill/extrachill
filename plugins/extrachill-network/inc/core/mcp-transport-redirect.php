@@ -18,7 +18,7 @@ add_action( 'template_redirect', 'ec_redirect_mcp_transport_to_auth', 0 );
  * @return void
  */
 function ec_redirect_mcp_transport_to_auth() {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'main' ) : null;
+	$main_blog_id = ec_get_blog_id( 'main' );
 	if ( null === $main_blog_id || (int) get_current_blog_id() !== (int) $main_blog_id ) {
 		return;
 	}
@@ -58,7 +58,7 @@ function ec_get_mcp_transport_redirect_url( $request_uri, $method, $accept ) {
 	$method       = strtoupper( (string) $method );
 	$is_transport = in_array( $method, array( 'POST', 'DELETE' ), true )
 		|| ( 'GET' === $method && false !== stripos( (string) $accept, 'text/event-stream' ) );
-	if ( ! $is_transport || ! function_exists( 'ec_get_site_url' ) ) {
+	if ( ! $is_transport ) {
 		return null;
 	}
 

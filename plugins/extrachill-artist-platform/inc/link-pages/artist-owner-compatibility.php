@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * @return array|WP_Error
  */
 function ec_artist_link_page_owner_compatibility_provider( $operation, $context ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : get_current_blog_id();
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( 'page_owner' === $operation ) {
 		$link_page_id = (int) ( $context['link_page_id'] ?? 0 );
 		$artist_id    = (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true );

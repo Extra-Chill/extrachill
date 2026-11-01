@@ -892,7 +892,7 @@ class EventSubmissionAbilities {
 		// sets their password; an existing user can reset theirs or ignore the
 		// link — so there is NO account-enumeration leak (issue #207 Phase 1).
 		if ( ! empty( $account_claim ) ) {
-			$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : '';
+			$community_url = ec_get_site_url( 'community' );
 			$body_html    .= '<hr>';
 			$body_html    .= '<p>' . esc_html__( 'Your submission is credited to your Extra Chill account, so you get the credit when it goes live.', 'extrachill-events' ) . '</p>';
 			$body_html    .= '<p>' . sprintf(

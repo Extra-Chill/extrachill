@@ -592,9 +592,7 @@ function extrachill_users_purge_visibility_caches( int $user_id, string $setting
 		return;
 	}
 
-	$blog_ids = function_exists( 'ec_get_blog_id' )
-		? array( (int) ec_get_blog_id( 'community' ), (int) ec_get_blog_id( 'events' ) )
-		: array();
+	$blog_ids = array( (int) ec_get_blog_id( 'community' ), (int) ec_get_blog_id( 'events' ) );
 
 	/**
 	 * Filters the site IDs whose anonymous HTML can project Users visibility.

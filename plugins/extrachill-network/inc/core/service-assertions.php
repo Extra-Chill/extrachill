@@ -263,8 +263,8 @@ function ec_cross_site_service_assertion_payload( array $claims, string $method,
  * @return array<string, string>|WP_Error Assertion headers or a generic error.
  */
 function ec_cross_site_build_service_assertion_headers( string $site_key, string $method, string $path, array $args, string $service_id, string $scope ) {
-	$target_url     = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( $site_key ) : '';
-	$target_site_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : null;
+	$target_url     = ec_get_site_url( $site_key );
+	$target_site_id = ec_get_blog_id( $site_key );
 	$target_host    = $target_url ? wp_parse_url( $target_url, PHP_URL_HOST ) : '';
 	$route          = ec_cross_site_rest_resolve_route( $path );
 	$method         = strtoupper( $method );

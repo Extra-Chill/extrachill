@@ -40,10 +40,6 @@ function extrachill_users_wp_native_pre_login_check( null|WP_Error $result, WP_U
 		return $result; // Earlier filter already blocked.
 	}
 
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return $result; // EC dependency missing, fall through.
-	}
-
 	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( empty( $community_blog_id ) ) {
 		return new WP_Error(

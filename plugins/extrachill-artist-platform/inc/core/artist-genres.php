@@ -194,7 +194,7 @@ function ec_artist_set_genres( $profile_id, $input ) {
  */
 function ec_artist_genres_clear_term_mirror( $term_id ) {
 	$term_id = (int) $term_id;
-	if ( $term_id <= 0 || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( $term_id <= 0 ) {
 		return;
 	}
 	$main_blog_id = (int) ec_get_blog_id( 'main' );
@@ -222,7 +222,7 @@ function ec_artist_genres_clear_term_mirror( $term_id ) {
  */
 function ec_artist_mirror_genres_to_term( $profile_id ) {
 	$profile_id = (int) $profile_id;
-	if ( $profile_id <= 0 || ! function_exists( 'ec_get_blog_id' ) ) {
+	if ( $profile_id <= 0 ) {
 		return;
 	}
 

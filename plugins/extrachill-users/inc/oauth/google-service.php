@@ -322,14 +322,6 @@ function ec_oauth_complete_token_login( $result, $device_id, $options, $registra
 	$user    = $result['user'];
 
 	// Verify community membership.
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return new WP_Error(
-			'extrachill_dependency_missing',
-			'ec_get_blog_id() is required for token authentication.',
-			array( 'status' => 500 )
-		);
-	}
-
 	$community_blog_id = ec_get_blog_id( 'community' );
 	if ( empty( $community_blog_id ) ) {
 		return new WP_Error(

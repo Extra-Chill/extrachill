@@ -69,6 +69,8 @@ function ec_get_link_page_storage_blog_id() {
  */
 function ec_link_page_post_type( $blog_id = null ) {
 	$blog_id = null === $blog_id ? ec_get_link_page_storage_blog_id() : max( 0, (int) $blog_id );
+	// Kept guard: extrachill-link-pages loads before extrachill-network (alphabetical
+	// network-activation order) and validates its runtime at file-include time.
 	if ( $blog_id && function_exists( 'ec_get_blog_id' ) ) {
 		$dedicated_blog_id = (int) ec_get_blog_id( 'link_pages' );
 		if ( $dedicated_blog_id && $blog_id === $dedicated_blog_id ) {

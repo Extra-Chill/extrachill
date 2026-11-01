@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Switch to newsletter site to query newsletters
-$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 if ( ! $newsletter_blog_id ) {
 	return;
 }

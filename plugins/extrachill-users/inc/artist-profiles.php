@@ -35,7 +35,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 
 	// Admin override: return ALL artists (only for management contexts).
 	if ( $admin_override && user_can( $user_id, 'manage_options' ) ) {
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		$artist_blog_id = ec_get_blog_id( 'artist' );
 		if ( ! $artist_blog_id ) {
 			return array();
 		}
@@ -63,7 +63,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 		return array();
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return array();
 	}
@@ -262,7 +262,7 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 		$result           = ec_with_link_page_storage_blog( $find_latest_artist_id );
 		$latest_artist_id = is_wp_error( $result ) ? 0 : (int) $result;
 	} else {
-		$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+		$artist_blog_id = ec_get_blog_id( 'artist' );
 		if ( ! $artist_blog_id ) {
 			return 0;
 		}
@@ -305,7 +305,7 @@ function ec_can_manage_artist( $user_id = null, $artist_id = null ) {
 		return false;
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return false;
 	}
@@ -375,7 +375,7 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 		return is_wp_error( $result ) ? 0 : (int) $result;
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return 0;
 	}

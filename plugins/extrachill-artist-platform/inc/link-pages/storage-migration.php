@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * @param array $context Migration owner context.
  */
 function ec_artist_link_page_migration_claim_owner( $context ) {
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	$owner          = $context['owner'] ?? array();
 	return 'post' === ( $owner['kind'] ?? '' ) && 'artist_profile' === ( $owner['subtype'] ?? '' ) && (int) ( $owner['blog_id'] ?? 0 ) === $artist_blog_id && (int) $context['source_blog_id'] === $artist_blog_id;
 }
@@ -25,7 +25,7 @@ function ec_artist_link_page_migration_claim_owner( $context ) {
  */
 function ec_artist_link_page_migration_plan( $context ) {
 	$source_blog_id = (int) $context['source_blog_id'];
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : $source_blog_id;
+	$artist_blog_id = (int) ec_get_blog_id( 'artist' );
 	if ( $source_blog_id !== $artist_blog_id ) {
 		return new WP_Error( 'artist_link_page_migration_source_mismatch', 'Artist-owned Link Pages must be inventoried on the Artist owner blog.' ); }
 	$rows              = array();

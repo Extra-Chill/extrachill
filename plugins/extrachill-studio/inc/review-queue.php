@@ -87,10 +87,6 @@ add_action( 'admin_menu', 'ec_studio_review_queue_register_page' );
  * @return int Main blog id, or 0 when unresolved.
  */
 function ec_studio_review_queue_main_blog_id(): int {
-	if ( ! function_exists( 'ec_get_blog_id' ) ) {
-		return 0;
-	}
-
 	return (int) ec_get_blog_id( 'main' );
 }
 

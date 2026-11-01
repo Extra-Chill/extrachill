@@ -162,7 +162,7 @@ class NetworkTermAbilities {
 		$site_key  = sanitize_key( $input['site'] );
 		$post_type = sanitize_key( $input['post_type'] );
 		$taxonomy  = sanitize_key( $input['taxonomy'] );
-		$blog_id   = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : 0;
+		$blog_id   = ec_get_blog_id( $site_key );
 		if ( ! $blog_id ) {
 			return new \WP_Error( 'unknown_site', __( 'Unknown target site.', 'extrachill-network' ) );
 		}
@@ -196,7 +196,7 @@ class NetworkTermAbilities {
 	 */
 	public function project( array $input ) {
 		$site_key = sanitize_key( $input['site'] );
-		$blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : 0;
+		$blog_id  = ec_get_blog_id( $site_key );
 		if ( ! $blog_id ) {
 			return new \WP_Error( 'unknown_site', __( 'Unknown target site.', 'extrachill-network' ) );
 		}
@@ -229,7 +229,7 @@ class NetworkTermAbilities {
 	 */
 	public function classify( array $input ) {
 		$site_key = sanitize_key( $input['site'] );
-		$blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : 0;
+		$blog_id  = ec_get_blog_id( $site_key );
 		if ( ! $blog_id ) {
 			return new \WP_Error( 'unknown_site', __( 'Unknown target site.', 'extrachill-network' ) );
 		}
@@ -278,7 +278,7 @@ class NetworkTermAbilities {
 
 	/** Resolve mutation permission in the runtime that owns the target type. */
 	private function canMutateInput( array $input ) {
-		$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( sanitize_key( $input['site'] ?? '' ) ) : 0;
+		$blog_id = ec_get_blog_id( sanitize_key( $input['site'] ?? '' ) );
 		if ( ! $blog_id || ! is_user_logged_in() ) {
 			return false;
 		}

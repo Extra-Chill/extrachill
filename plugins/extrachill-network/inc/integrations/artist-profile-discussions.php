@@ -41,7 +41,7 @@ add_filter( 'ec_artist_profile_sections', 'extrachill_network_register_artist_di
  */
 function extrachill_network_resolve_bound_artist_slug( $artist_term_id ) {
 	$artist_term_id = (int) $artist_term_id;
-	$main_blog_id   = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id   = (int) ec_get_blog_id( 'main' );
 	if ( $artist_term_id <= 0 || $main_blog_id <= 0 ) {
 		return '';
 	}
@@ -170,7 +170,7 @@ function extrachill_network_get_artist_discussions( $artist_id, $artist_term_id 
 	}
 
 	$slug              = extrachill_network_resolve_bound_artist_slug( $artist_term_id );
-	$community_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'community' ) : 0;
+	$community_blog_id = (int) ec_get_blog_id( 'community' );
 	$community_site    = $community_blog_id > 0 ? get_site( $community_blog_id ) : null;
 	if (
 		'' === $slug ||

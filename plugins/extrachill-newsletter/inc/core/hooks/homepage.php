@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function newsletter_render_homepage() {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id ) {
 		return;
 	}
@@ -23,7 +23,7 @@ function newsletter_render_homepage() {
 add_action( 'extrachill_homepage_content', 'newsletter_render_homepage' );
 function newsletter_homepage_query( $query ) {
 	// Only modify main query on newsletter site homepage
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( $newsletter_blog_id && ! is_admin() && $query->is_main_query() && is_front_page() && get_current_blog_id() === $newsletter_blog_id ) {
 		$query->set( 'post_type', 'newsletter' );
 		$query->set( 'posts_per_page', 10 );
@@ -33,7 +33,7 @@ function newsletter_homepage_query( $query ) {
 }
 add_action( 'pre_get_posts', 'newsletter_homepage_query' );
 function newsletter_override_archive_header() {
-	$newsletter_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'newsletter' ) : null;
+	$newsletter_blog_id = ec_get_blog_id( 'newsletter' );
 	if ( ! $newsletter_blog_id || get_current_blog_id() !== $newsletter_blog_id || ! is_front_page() ) {
 		return;
 	}

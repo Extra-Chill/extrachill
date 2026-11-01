@@ -710,7 +710,7 @@ final class VenueLinkPages {
 
 	/** Resolve the configured canonical Events blog. */
 	private static function events_blog_id(): int {
-		return function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 7;
+		return (int) ec_get_blog_id( 'events' );
 	}
 
 	/** Return a stable non-enumerating denial. */

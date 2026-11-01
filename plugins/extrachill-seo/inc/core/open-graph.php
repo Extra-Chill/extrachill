@@ -301,7 +301,7 @@ function ec_seo_get_default_image() {
 	$url = wp_get_attachment_image_url( $attachment_id, 'large' );
 
 	// On subsites the attachment lives on the main site — switch context.
-	if ( ! $url && function_exists( 'ec_get_blog_id' ) ) {
+	if ( ! $url ) {
 		$main_blog_id = ec_get_blog_id( 'main' );
 
 		if ( $main_blog_id && (int) get_current_blog_id() !== $main_blog_id ) {

@@ -81,20 +81,12 @@ function ec_seo_get_schema_site_base_url() {
  * Get schema base URL for the global Organization.
  *
  * Extra Chill is one brand across all subdomains. Derived from the canonical
- * main-site URL (ec_get_site_url) so it survives a domain change, falling back
- * to the historical literal when the multisite helper is unavailable.
+ * main-site URL (ec_get_site_url) so it survives a domain change.
  *
  * @return string Base URL
  */
 function ec_seo_get_schema_organization_base_url() {
-	if ( function_exists( 'ec_get_site_url' ) ) {
-		$main_url = ec_get_site_url( 'main' );
-		if ( $main_url ) {
-			return untrailingslashit( $main_url );
-		}
-	}
-
-	return 'https://extrachill.com';
+	return untrailingslashit( ec_get_site_url( 'main' ) );
 }
 
 /**

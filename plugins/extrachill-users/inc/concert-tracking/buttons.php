@@ -342,9 +342,7 @@ function ec_users_render_attendance_visibility_notice(): void {
 
 	$is_public = 'public' === extrachill_users_get_event_attendance_visibility( get_current_user_id() );
 
-	$settings_url = function_exists( 'ec_get_site_url' )
-		? (string) ec_get_site_url( 'community' ) . '/settings/'
-		: '';
+	$settings_url = (string) ec_get_site_url( 'community' ) . '/settings/';
 
 	$message = $is_public
 		? __( 'Your name appears in the public attendee list when you mark attendance.', 'extrachill-users' )
@@ -357,9 +355,7 @@ function ec_users_render_attendance_visibility_notice(): void {
 	?>
 	<p class="ec-attendance-visibility">
 		<?php echo esc_html( $message ); ?>
-		<?php if ( '' !== $settings_url ) : ?>
-			<a href="<?php echo esc_url( $settings_url ); ?>"><?php echo esc_html( $link_label ); ?></a>
-		<?php endif; ?>
+		<a href="<?php echo esc_url( $settings_url ); ?>"><?php echo esc_html( $link_label ); ?></a>
 	</p>
 	<?php
 }
@@ -458,7 +454,7 @@ function ec_users_render_event_attendees( int $event_id, int $blog_id ) {
  *                cannot be resolved.
  */
 function ec_users_concert_import_url(): string {
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 
 	if ( $events_blog_id > 0 && function_exists( 'get_home_url' ) ) {
 		$base = (string) get_home_url( $events_blog_id, '/my-shows/' );

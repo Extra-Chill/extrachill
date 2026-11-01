@@ -137,7 +137,7 @@ function extrachill_events_genre_sync_supported(): bool {
  * @return int 0 when the multisite blog map cannot resolve it.
  */
 function extrachill_events_main_blog_id(): int {
-	$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+	$main_blog_id = (int) ec_get_blog_id( 'main' );
 	if ( ! $main_blog_id && defined( 'EC_BLOG_ID_MAIN' ) ) {
 		$main_blog_id = (int) EC_BLOG_ID_MAIN;
 	}
@@ -497,7 +497,7 @@ function extrachill_events_on_artist_genres_meta( $meta_id, $term_id, $meta_key 
 		return;
 	}
 
-	$events_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'events' ) : 0;
+	$events_blog_id = (int) ec_get_blog_id( 'events' );
 	if ( ! $events_blog_id || get_current_blog_id() === $events_blog_id ) {
 		extrachill_events_fanout_artist_genres( (int) $term_id );
 		return;

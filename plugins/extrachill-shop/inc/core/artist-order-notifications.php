@@ -139,7 +139,7 @@ function extrachill_shop_get_artist_notification_data( $artist_id ) {
 		'name'       => 'Artist',
 	);
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return $result;
 	}
@@ -258,9 +258,5 @@ function extrachill_shop_build_order_notification_body( $order, $artist_name, $p
  * @return string Shop Manager URL.
  */
 function extrachill_shop_get_shop_manager_url() {
-	if ( ! function_exists( 'ec_get_site_url' ) ) {
-		return 'https://artist.extrachill.com/manage-shop/';
-	}
-
 	return ec_get_site_url( 'artist' ) . '/manage-shop/';
 }

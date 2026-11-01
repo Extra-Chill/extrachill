@@ -73,7 +73,7 @@ class ArtistCoverageSync {
 		if ( ! function_exists( 'as_has_scheduled_action' ) || ! function_exists( 'as_schedule_recurring_action' ) ) {
 			return;
 		}
-		if ( function_exists( 'ec_get_blog_id' ) && (int) ec_get_blog_id( 'events' ) !== get_current_blog_id() ) {
+		if ( (int) ec_get_blog_id( 'events' ) !== get_current_blog_id() ) {
 			return;
 		}
 		if ( '' === self::config()['flow_step_id'] ) {
@@ -151,7 +151,7 @@ class ArtistCoverageSync {
 	 * @return array<int,string> term_id => name.
 	 */
 	public static function covered_artists( int $min_posts ): array {
-		$main_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'main' ) : 0;
+		$main_blog_id = (int) ec_get_blog_id( 'main' );
 		if ( $main_blog_id <= 0 ) {
 			return array();
 		}

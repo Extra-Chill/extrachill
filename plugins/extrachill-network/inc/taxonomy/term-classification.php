@@ -43,7 +43,7 @@ function extrachill_network_schedule_term_classification( $args ) {
 
 	$site_key = sanitize_key( $args['site'] ?? '' );
 	$post_id  = absint( $args['post_id'] ?? 0 );
-	$blog_id  = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( $site_key ) : 0;
+	$blog_id  = ec_get_blog_id( $site_key );
 	if ( ! $blog_id || ! $post_id ) {
 		return new WP_Error( 'invalid_classification_target', __( 'A valid site and post are required.', 'extrachill-network' ) );
 	}

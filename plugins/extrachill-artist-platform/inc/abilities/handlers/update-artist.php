@@ -53,7 +53,7 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 		return new WP_Error( 'artist_access_denied', 'You are not allowed to manage this artist.' );
 	}
 
-	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'artist' ) : null;
+	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
 		return new WP_Error( 'dependency_missing', 'Multisite not configured.' );
 	}

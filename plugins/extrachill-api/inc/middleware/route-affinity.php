@@ -317,13 +317,11 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 	}
 
 	// Check if we're already on the correct site.
-	if ( function_exists( 'ec_get_blog_id' ) ) {
-		$target_blog_id  = ec_get_blog_id( $target_site );
-		$current_blog_id = get_current_blog_id();
+	$target_blog_id  = ec_get_blog_id( $target_site );
+	$current_blog_id = get_current_blog_id();
 
-		if ( $target_blog_id && (int) $current_blog_id === (int) $target_blog_id ) {
-			return $result; // Already on the right site — handle normally.
-		}
+	if ( $target_blog_id && (int) $current_blog_id === (int) $target_blog_id ) {
+		return $result; // Already on the right site — handle normally.
 	}
 
 	// Forward the request to the correct subsite.
@@ -352,7 +350,7 @@ function extrachill_api_route_affinity_dispatch( $result, WP_REST_Server $server
 		$args['user_id'] = $current_user_id;
 	}
 
-	$target_url  = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( $target_site ) : '';
+	$target_url  = ec_get_site_url( $target_site );
 	$target_host = $target_url ? wp_parse_url( $target_url, PHP_URL_HOST ) : '';
 	if ( ! $target_host ) {
 		$error = new WP_Error( 'route_affinity_target_invalid', 'Could not resolve route-affinity target host.', array( 'status' => 500 ) );

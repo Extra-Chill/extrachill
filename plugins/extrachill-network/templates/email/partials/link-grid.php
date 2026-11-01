@@ -13,17 +13,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$main_url      = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'main' ) : 'https://extrachill.com';
-$community_url = function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'community' ) : 'https://community.extrachill.com';
+$main_url      = ec_get_site_url( 'main' );
+$community_url = ec_get_site_url( 'community' );
 
 $platform_links = array(
 	'Blog'            => $main_url . '/blog',
 	'Community'       => $community_url,
-	'Events Calendar' => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'events' ) : 'https://events.extrachill.com',
-	'Artist Platform' => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'artist' ) : 'https://artist.extrachill.com',
-	'Newsletter'      => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'newsletter' ) : 'https://newsletter.extrachill.com',
-	'Shop'            => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'shop' ) : 'https://shop.extrachill.com',
-	'Documentation'   => function_exists( 'ec_get_site_url' ) ? ec_get_site_url( 'docs' ) : 'https://docs.extrachill.com',
+	'Events Calendar' => ec_get_site_url( 'events' ),
+	'Artist Platform' => ec_get_site_url( 'artist' ),
+	'Newsletter'      => ec_get_site_url( 'newsletter' ),
+	'Shop'            => ec_get_site_url( 'shop' ),
+	'Documentation'   => ec_get_site_url( 'docs' ),
 );
 
 $help_links = array(

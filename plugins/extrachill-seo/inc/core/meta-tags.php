@@ -109,7 +109,7 @@ add_filter(
 		}
 
 		// Event titles on events.extrachill.com
-		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 7;
+		$events_blog_id = ec_get_blog_id( 'events' );
 		if ( $blog_id === $events_blog_id ) {
 
 			// Single event: append venue, city, and date to disambiguate recurring events.
