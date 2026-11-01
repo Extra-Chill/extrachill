@@ -18,6 +18,12 @@ name: Network journeys
 on:
   schedule:
     - cron: '23 9 * * *'
+  # Every merge refreshes the caches PRs restore from: a PR can only restore
+  # caches saved on its own ref or on main, so a main cache that refreshes once
+  # a day makes every PR rebuild every component (#428). The push run boots one
+  # journey, which builds every component, and doubles as a post-merge smoke.
+  push:
+    branches: [main]
   pull_request:
     paths:
       - 'plugins/**'
@@ -69,8 +75,11 @@ jobs:
       - id: select
         env:
           JOURNEYS: ${{ inputs.journeys }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          # Cache warm on main: the shortest journey still builds every component.
+          if [ "${EVENT}" = "push" ]; then JOURNEYS='["anonymous-event-submission"]'; fi
           journeys="$(jq -c . <<<"${JOURNEYS:-$DEFAULT_JOURNEYS}")"
           jq -e 'type == "array" and length > 0 and all(type == "string")' <<<"${journeys}" >/dev/null \
             || { echo "::error::journeys must be a non-empty JSON array of journey IDs, got: ${journeys}"; exit 1; }
@@ -111,9 +120,12 @@ jobs:
       # job at a given WP_CODEBOX_REF, so build them once and restore after.
       # No `--with-deps`: the runner image ships Google Chrome, so Chromium's
       # system libraries are already installed (apt install-deps cost ~55s).
+      # Only main saves it: at a few hundred MB per entry, per-PR copies (which
+      # no other PR can restore) pushed the repo past GitHub's 10GB cache limit
+      # and evicted main's copy, so every job rebuilt it.
       - name: Restore WP Codebox build and Chromium
         id: wp-codebox-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             .ci/wp-codebox
@@ -130,6 +142,15 @@ jobs:
           npm run build
           npx playwright install chromium
 
+      - name: Save WP Codebox build and Chromium
+        if: github.event_name != 'pull_request' && steps.wp-codebox-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .ci/wp-codebox
+            !.ci/wp-codebox/.git
+            ~/.cache/ms-playwright
+          key: wp-codebox-build-v1-${{ runner.os }}-${{ env.WP_CODEBOX_REF }}
 
       - name: Validate rig contracts
         run: node rigs/extrachill-network/tests/contract.test.mjs
