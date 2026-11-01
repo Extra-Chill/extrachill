@@ -106,10 +106,29 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertNotIn("push", triggers)
         self.assertEqual(triggers["workflow_run"],
                          {"workflows": ["Release"], "types": ["completed"], "branches": ["main"]})
+        # #486: recovery runs must not compete at boundaries or poller minutes.
+        self.assertTrue(triggers["schedule"])
+        for schedule in triggers["schedule"]:
+            minutes, *fields = schedule["cron"].split()
+            self.assertEqual(fields, ["*", "*", "*", "*"])
+            minute_values = {int(minute) for minute in minutes.split(",")}
+            self.assertTrue(minute_values)
+            self.assertTrue(all(0 <= minute < 60 for minute in minute_values))
+            self.assertFalse(minute_values & {0, 30, 7, 37})
         checkout = steps[0]
         self.assertEqual(checkout["with"]["ref"], "${{ inputs.sha || 'main' }}")
         plan = names["Plan"]["run"]
         self.assertIn("artifacts?name=monorepo-deployed-sha", plan)
+        self.assertIn('if [ "${EVENT}" != workflow_dispatch ]; then', plan)
+        self.assertIn('echo "base=${base}"', plan)
+        # A recovery run never deploys ahead of an unfinished Release.
+        self.assertIn('if [ "${EVENT}" = schedule ]; then', plan)
+        self.assertIn("workflows/release.yml/runs?branch=main", plan)
+        self.assertIn('select(.status != "completed")', plan)
+        # Healthy scheduled no-ops use the same event-independent quiet path.
+        report = names["Report to Discord"]["run"]
+        self.assertIn('if [ "${JOB_STATUS}" = "success" ] && [ "${deployed}" -eq 0 ] && [ "${skipped}" -eq 0 ]; then', report)
+        self.assertIn('echo "Healthy no-op; staying quiet."\n  exit 0', report)
         self.assertNotIn("event.before", text)
         upload = names["Upload deployed sha"]
         self.assertEqual(upload["with"]["name"], "monorepo-deployed-sha")
@@ -118,6 +137,7 @@ class MonorepoDeployTest(unittest.TestCase):
             self.assertIn("success()", cond)
             self.assertIn("github.event_name != 'workflow_dispatch'", cond)
             self.assertIn("dry_run == 'false'", cond)
+            self.assertIn("steps.plan.outputs.base != steps.plan.outputs.sha", cond)
         order = [s.get("name") for s in steps]
         self.assertLess(order.index("Verify"), order.index("Upload deployed sha"))
 
