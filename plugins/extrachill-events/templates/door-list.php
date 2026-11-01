@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="ec-door-list ec-surface-card ec-card-padding" data-event-id="<?php echo esc_attr( (string) $event_id ); ?>">
+<div id="ec-door-list" class="ec-door-list ec-surface-card ec-card-padding" data-event-id="<?php echo esc_attr( (string) $event_id ); ?>">
 	<h3 class="ec-door-list__heading"><?php esc_html_e( 'Door List', 'extrachill-events' ); ?></h3>
 	<p class="ec-door-list__note"><?php esc_html_e( 'Visible only to you as this event\'s host. Not shown to attendees or the public.', 'extrachill-events' ); ?></p>
 	<?php if ( $perk_enabled && $perk_text ) : ?>

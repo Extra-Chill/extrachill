@@ -274,6 +274,9 @@ function extrachill_events_perk_meta_box_callback( $post ) {
 	wp_nonce_field( 'extrachill_event_perk_nonce', 'extrachill_event_perk_nonce_field' );
 	$enabled = extrachill_events_perk_enabled( $post->ID );
 	$text    = extrachill_events_get_perk_text( $post->ID );
+	if ( function_exists( 'extrachill_events_render_guest_list_management' ) ) {
+		extrachill_events_render_guest_list_management( (int) $post->ID );
+	}
 	?>
 	<p>
 		<label>

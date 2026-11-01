@@ -30,6 +30,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	private const TEMPLATES = array(
 		'templates/rsvp-pass.php',
 		'templates/door-list.php',
+		'templates/guest-list-management.php',
 		'inc/templates/rsvp-verify.php',
 		'inc/templates/guest-list.php',
 	);
@@ -207,6 +208,25 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 				"single-event.css has no rule for .{$class}"
 			);
 		}
+	}
+
+	public function test_management_controls_cover_host_workflow(): void {
+		$source = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-management.php' );
+		foreach ( array( 'name="password"', 'name="capacity"', 'data-copy-guest-list', 'Download share QR', "\$counts['claimed']", "\$counts['checked_in']", "\$counts['spots_left']", '#ec-door-list', '/rsvp-verify/' ) as $required ) {
+			$this->assertStringContainsString( $required, $source );
+		}
+		$this->assertStringNotContainsString( 'style=', $source );
+	}
+
+	public function test_management_endpoints_use_shared_authority_and_qr_tooling(): void {
+		$source = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-management.php' );
+		// Render and QR check manager authority directly; saving delegates to the set-event-perk ability's permission callback.
+		$this->assertSame( 2, substr_count( $source, 'extrachill_events_user_can_manage_event( get_current_user_id(), $event_id )' ) );
+		$this->assertStringContainsString( "wp_get_ability( 'extrachill/set-event-perk' )", $source );
+		$this->assertStringContainsString( "check_admin_referer( 'ec_guest_list_settings_' . \$event_id )", $source );
+		$this->assertStringContainsString( "wp_get_ability( 'extrachill/generate-qr-code' )", $source );
+		$this->assertStringContainsString( 'finally {', $source );
+		$this->assertStringContainsString( "remove_filter( 'wp_ability_permission_result'", $source );
 	}
 
 	/**
