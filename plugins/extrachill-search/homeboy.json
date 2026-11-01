@@ -12,7 +12,6 @@
   },
   "id": "extrachill-search",
   "remote_path": "wp-content/plugins/extrachill-search",
-  "remote_url": "https://github.com/Extra-Chill/extrachill-search.git",
   "version_targets": [
     {
       "file": "extrachill-search.php",
