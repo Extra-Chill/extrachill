@@ -1,7 +1,21 @@
-/** Booking-owned venue-settings extension, loaded before the shell. */
+/**
+ * Booking-owned venue-settings extension, loaded before the shell.
+ */
+
+/**
+ * WordPress dependencies
+ */
 import { useEffect, useRef, useState } from '@wordpress/element';
 import { addFilter, removeFilter } from '@wordpress/hooks';
+
+/**
+ * External dependencies
+ */
 import { InlineStatus, Panel } from '@extrachill/components';
+
+/**
+ * Internal dependencies
+ */
 import { errorDetails, runAbility } from './api';
 import { BookingConsole } from './booking-console';
 import { BookingFormTab } from './booking-form-tab';
