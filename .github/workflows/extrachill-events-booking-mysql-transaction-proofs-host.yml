@@ -70,7 +70,8 @@ on:
       - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
       - 'plugins/extrachill-events/inc/Core/VenueBookingConfig.php'
       - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
-      - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/BookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/VenueProvider.php'
       - 'plugins/extrachill-events/inc/Providers/AbilitiesProvider.php'
   push:
     branches: [main]
@@ -111,7 +112,8 @@ on:
       - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
       - 'plugins/extrachill-events/inc/Core/VenueBookingConfig.php'
       - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
-      - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/BookingProvider.php'
+      - 'plugins/extrachill-events/inc/Providers/VenueProvider.php'
       - 'plugins/extrachill-events/inc/Providers/AbilitiesProvider.php'
   workflow_dispatch:
 

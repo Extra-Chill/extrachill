@@ -116,7 +116,8 @@ namespace {
 	\ExtraChillEvents\Providers\LifecycleProvider::register();
 	\ExtraChillEvents\Providers\CoreRuntimeProvider::register();
 	\ExtraChillEvents\Providers\ArtistUrlImportProvider::register();
-	\ExtraChillEvents\Providers\VenueBookingProvider::register();
+	\ExtraChillEvents\Providers\VenueProvider::register();
+	\ExtraChillEvents\Providers\BookingProvider::register();
 	\ExtraChillEvents\Providers\PublicExperienceProvider::register();
 	\ExtraChillEvents\Providers\AbilitiesProvider::register();
 	\ExtraChillEvents\Providers\DataMachineEventsProvider::register();

@@ -127,7 +127,7 @@ final class FeatureProviderBootstrapTest extends TestCase {
 		$ingestion = strpos( $bootstrap, 'IngestionProvider::register()' );
 		$core      = strpos( $bootstrap, 'CoreRuntimeProvider::register()' );
 		$artist    = strpos( $bootstrap, 'ArtistUrlImportProvider::register()' );
-		$booking   = strpos( $bootstrap, 'VenueBookingProvider::register()' );
+		$booking   = strpos( $bootstrap, 'BookingProvider::register()' );
 		$public    = strpos( $bootstrap, 'PublicExperienceProvider::register()' );
 		$abilities = strpos( $bootstrap, 'AbilitiesProvider::register()' );
 		$optional  = strpos( $bootstrap, 'DataMachineEventsProvider::register()' );

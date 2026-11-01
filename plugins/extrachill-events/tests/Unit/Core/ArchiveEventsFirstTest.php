@@ -107,7 +107,7 @@ final class ArchiveEventsFirstTest extends TestCase {
 		$this->assertStringNotContainsString( 'VenueBooking', $archive );
 		$this->assertStringNotContainsString( 'venue-booking-inquiry', $archive );
 		$this->assertStringNotContainsString( 'venue-booking-inquiry', file_get_contents( $base . '/inc/core/bootstrap.php' ) );
-		$this->assertStringContainsString( 'inc/core/booking-ui.php', file_get_contents( $base . '/inc/Providers/VenueBookingProvider.php' ) );
+		$this->assertStringContainsString( 'inc/core/booking-ui.php', file_get_contents( $base . '/inc/Providers/BookingProvider.php' ) );
 	}
 
 	/** Archive maps ship collapsed by default with the taller expanded height. */
