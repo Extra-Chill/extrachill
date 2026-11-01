@@ -472,7 +472,10 @@ function extrachill_get_events_upcoming_count_via_api( $term_slug, $taxonomy ) {
 	}
 
 	$from_bulk = extrachill_get_events_count_from_bulk_cache( $term_slug, $taxonomy, (int) $events_blog_id );
-	return empty( $from_bulk ) ? null : $from_bulk;
+	if ( ! is_array( $from_bulk ) || array() === $from_bulk ) {
+		return null;
+	}
+	return $from_bulk;
 }
 
 /**
