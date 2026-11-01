@@ -118,7 +118,7 @@ function extrachill_shop_get_seller_stripe_account_record( $seller ) {
 	$record = get_option( $key, false );
 	if ( false === $record && 'artist' === $seller['type'] ) {
 		$legacy = get_option( extrachill_shop_stripe_artist_option_name( $seller['id'] ), false );
-		if ( is_array( $legacy ) && extrachill_shop_set_seller_stripe_account_record( $seller, $legacy ) ) {
+		if ( is_array( $legacy ) && extrachill_shop_set_seller_stripe_account_record( $seller, $legacy, true ) ) {
 			$record = get_option( $key, false );
 		}
 	}
@@ -129,10 +129,11 @@ function extrachill_shop_get_seller_stripe_account_record( $seller ) {
  * Persist seller state and the webhook reverse index.
  *
  * @param array $seller Seller reference.
- * @param array $record Account projection.
+ * @param array $record             Account projection.
+ * @param bool  $preserve_timestamp Keep the record's updated_at (lazy migration only).
  * @return bool
  */
-function extrachill_shop_set_seller_stripe_account_record( $seller, array $record ) {
+function extrachill_shop_set_seller_stripe_account_record( $seller, array $record, $preserve_timestamp = false ) {
 	$seller     = extrachill_shop_validate_seller_ref( $seller );
 	$account_id = sanitize_text_field( (string) ( $record['account_id'] ?? '' ) );
 	if ( is_wp_error( $seller ) || '' === $account_id ) {
@@ -160,7 +161,7 @@ function extrachill_shop_set_seller_stripe_account_record( $seller, array $recor
 		'account_id'          => $account_id,
 		'status'              => sanitize_key( (string) ( $record['status'] ?? 'pending' ) ),
 		'onboarding_complete' => ! empty( $record['onboarding_complete'] ),
-		'updated_at'          => $record['updated_at'] ?? gmdate( 'c' ),
+		'updated_at'          => $preserve_timestamp && ! empty( $record['updated_at'] ) ? (string) $record['updated_at'] : gmdate( 'c' ),
 	);
 	if ( 'artist' === $seller['type'] ) {
 		$stored['artist_id'] = $seller['id'];
