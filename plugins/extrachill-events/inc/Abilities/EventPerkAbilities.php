@@ -67,6 +67,11 @@ class EventPerkAbilities {
 							'maximum'     => EXTRACHILL_EVENTS_PERK_CAPACITY_MAX,
 							'description' => __( 'Guest list spots: the most passes the event will issue. 0 = unlimited. Omit to keep the current value.', 'extrachill-events' ),
 						),
+						'image_id'       => array(
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'description' => __( 'Pass artwork: an image attachment ID shown on the pass next to the QR code. 0 removes it. Omit to keep the current image.', 'extrachill-events' ),
+						),
 					),
 					'required'   => array( 'event' ),
 				),
@@ -83,6 +88,8 @@ class EventPerkAbilities {
 								'text'              => array( 'type' => 'string' ),
 								'password_required' => array( 'type' => 'boolean' ),
 								'capacity'          => array( 'type' => 'integer' ),
+								'image_id'          => array( 'type' => 'integer' ),
+								'image_url'         => array( 'type' => 'string' ),
 							),
 						),
 					),
@@ -129,6 +136,8 @@ class EventPerkAbilities {
 						'checked_in'        => array( 'type' => 'integer' ),
 						'spots_left'        => array( 'type' => array( 'integer', 'null' ) ),
 						'full'              => array( 'type' => 'boolean' ),
+						'image_id'          => array( 'type' => 'integer' ),
+						'image_url'         => array( 'type' => 'string' ),
 					),
 				),
 				'execute_callback'    => array( $this, 'get_event_perk' ),
@@ -198,6 +207,13 @@ class EventPerkAbilities {
 			return new \WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
+		// Validate the artwork before writing anything, so a bad ID leaves
+		// the perk untouched instead of half-applied.
+		$image_id = isset( $input['image_id'] ) ? max( 0, (int) $input['image_id'] ) : null;
+		if ( $image_id && ! wp_attachment_is_image( $image_id ) ) {
+			return new \WP_Error( 'invalid_perk_image', __( 'The pass artwork must be an image in the media library.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+
 		$enabled = (bool) ( $input['enabled'] ?? true );
 		$text    = substr( sanitize_textarea_field( (string) ( $input['text'] ?? '' ) ), 0, EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN );
 
@@ -212,6 +228,10 @@ class EventPerkAbilities {
 
 		if ( isset( $input['capacity'] ) ) {
 			extrachill_events_set_perk_capacity( $post->ID, (int) $input['capacity'] );
+		}
+
+		if ( null !== $image_id ) {
+			extrachill_events_set_perk_image_id( $post->ID, $image_id );
 		}
 
 		if ( $enabled ) {
@@ -235,6 +255,8 @@ class EventPerkAbilities {
 				'text'              => $text,
 				'password_required' => extrachill_events_perk_password_required( $post->ID ),
 				'capacity'          => extrachill_events_get_perk_capacity( $post->ID ),
+				'image_id'          => extrachill_events_get_perk_image_id( $post->ID ),
+				'image_url'         => extrachill_events_get_perk_image_url( $post->ID ),
 			),
 		);
 	}
@@ -263,6 +285,8 @@ class EventPerkAbilities {
 			'checked_in'        => $counts['checked_in'],
 			'spots_left'        => $counts['spots_left'],
 			'full'              => $counts['full'],
+			'image_id'          => extrachill_events_get_perk_image_id( $post->ID ),
+			'image_url'         => extrachill_events_get_perk_image_url( $post->ID ),
 		);
 	}
 }
