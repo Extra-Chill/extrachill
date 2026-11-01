@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.47.2] - 2026-11-01
+
+### Changed
+- remove unused claim-pass route and claim-event-pass ability
+
 ## [0.47.1] - 2026-11-01
 
 ### Changed
