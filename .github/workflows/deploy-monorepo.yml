@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "${RUNNER_TEMP}/homeboy-output" "${RUNNER_TEMP}/extrachill-network-gate"
+          mkdir -p "${RUNNER_TEMP}/homeboy-output" "${RUNNER_TEMP}/homeboy-select" "${RUNNER_TEMP}/extrachill-network-gate"
           echo "HOMEBOY_OUTPUT_DIR=${RUNNER_TEMP}/homeboy-output" >> "${GITHUB_ENV}"
 
       - name: Prepare pinned Homeboy binary for the gate
