@@ -324,12 +324,11 @@ class CanonicalEventPublicationGuard {
 		}
 	}
 
-	/** Acquire the stable venue lock and reject booking overlaps. */
+	/** Acquire the stable venue lock and reject provider-reported overlaps. */
 	public function acquire_for_publication( int $venue_id, string $start_at, string $end_at, int $post_id = 0, int $excluded_booking_id = 0, array $candidate_intervals = array() ) {
 		global $wpdb;
-		$name     = BookingHoldRepository::venue_lock_name( $venue_id );
-		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Cross-connection venue booking serialization.
-		if ( 1 !== (int) $acquired || '' !== (string) $wpdb->last_error ) {
+		$name = VenueLock::name( $venue_id );
+		if ( ! VenueLock::acquire( $name ) ) {
 			return new \WP_Error(
 				'canonical_event_booking_lock_not_acquired',
 				__( 'Venue booking availability is busy; retry publication.', 'extrachill-events' ),
@@ -347,7 +346,35 @@ class CanonicalEventPublicationGuard {
 				'end_at'   => $end_at,
 			),
 		) : $candidate_intervals;
-		$conflict            = $this->find_booking_conflict( $venue_id, $start_at, $end_at, $post_id, $excluded_booking_id, $candidate_intervals );
+		/**
+		 * Collect venue-wide conflicts while the venue lock is held.
+		 *
+		 * Providers append conflict records to the array, or return WP_Error
+		 * when availability cannot be checked safely. Preserve upstream errors.
+		 * No registered providers means no conflicts. Times are UTC SQL strings;
+		 * intervals are half-open [start_at, end_at).
+		 *
+		 * @param array|\WP_Error $conflicts Conflict records or a read failure.
+		 * @param int             $venue_id  Venue term ID on the current site.
+		 * @param string          $start_at  Conservative interval start.
+		 * @param string          $end_at    Conservative interval end.
+		 * @param array           $context   post_id, excluded_booking_id (legacy
+		 *                                   originating record ID), candidate_intervals
+		 *                                   (exact UTC intervals for DST exemptions).
+		 */
+		$conflicts = apply_filters(
+			'extrachill_events_venue_interval_conflicts',
+			array(),
+			$venue_id,
+			$start_at,
+			$end_at,
+			array(
+				'post_id'             => $post_id,
+				'excluded_booking_id' => $excluded_booking_id,
+				'candidate_intervals' => $candidate_intervals,
+			)
+		);
+		$conflict = is_wp_error( $conflicts ) ? $conflicts : ( empty( $conflicts ) ? null : reset( $conflicts ) );
 		if ( is_wp_error( $conflict ) ) {
 			$this->release();
 			return $conflict;
@@ -373,9 +400,9 @@ class CanonicalEventPublicationGuard {
 	public function release(): void {
 		global $wpdb;
 		foreach ( array_reverse( $this->acquired_locks ) as $name ) {
-			$released       = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases only locks acquired by this request.
+			$released       = VenueLock::release( $name );
 			$database_error = (string) $wpdb->last_error;
-			if ( 1 === (int) $released && '' === $database_error ) {
+			if ( $released ) {
 				continue;
 			}
 			do_action( 'extrachill_events_canonical_event_booking_lock_release_failed', $name, $database_error );
@@ -402,77 +429,6 @@ class CanonicalEventPublicationGuard {
 	/** Match only the REST request object which acquired the active lock. */
 	private function owns_rest_request( $request ): bool {
 		return is_object( $request ) && is_object( $this->active_rest_request ) && $request === $this->active_rest_request;
-	}
-
-	private function find_booking_conflict( int $venue_id, string $start_at, string $end_at, int $post_id, int $excluded_booking_id, array $candidate_intervals ) {
-		global $wpdb;
-		$hold_exact    = array();
-		$booking_exact = array();
-		$exact_values  = array();
-		foreach ( $candidate_intervals as $interval ) {
-			$hold_exact[]    = '(start_at = %s AND end_at = %s)';
-			$booking_exact[] = '(performance_start_at = %s AND performance_end_at = %s)';
-			$exact_values[]  = (string) $interval['start_at'];
-			$exact_values[]  = (string) $interval['end_at'];
-		}
-		$hold_exact_sql    = implode( ' OR ', $hold_exact );
-		$booking_exact_sql = implode( ' OR ', $booking_exact );
-		$bookings          = BookingSchema::bookings_table();
-		if ( $post_id > 0 ) {
-			$linked = $wpdb->get_row( $wpdb->prepare( "SELECT id, venue_term_id, space_key, performance_start_at, performance_end_at, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE event_id = %d AND status = 'confirmed' LIMIT 1", $post_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- A linked booking may not be silently detached by moving its event.
-			if ( '' !== (string) $wpdb->last_error ) {
-				return new \WP_Error(
-					'canonical_event_booking_conflict_check_failed',
-					__( 'The event-linked booking could not be checked safely.', 'extrachill-events' ),
-					array(
-						'status'         => 503,
-						'database_error' => $wpdb->last_error,
-					)
-				);
-			}
-			if ( is_array( $linked ) ) {
-				$exact = (int) $linked['venue_term_id'] === $venue_id;
-				foreach ( $candidate_intervals as $interval ) {
-					if ( $exact && $linked['performance_start_at'] === $interval['start_at'] && $linked['performance_end_at'] === $interval['end_at'] ) {
-						$linked = null;
-						break;
-					}
-				}
-				if ( is_array( $linked ) ) {
-					return $linked;
-				}
-			}
-		}
-		$holds       = BookingSchema::holds_table();
-		$hold_values = array_merge( array( $venue_id, $end_at, $start_at, $excluded_booking_id ), $exact_values );
-		$row         = $wpdb->get_row( $wpdb->prepare( "SELECT id, booking_id, space_key, 'hold' AS conflict_type FROM {$holds} WHERE venue_term_id = %d AND status = 'active' AND expires_at > UTC_TIMESTAMP() AND start_at < %s AND end_at > %s AND NOT (booking_id = %d AND ({$hold_exact_sql})) LIMIT 1", $hold_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array while the stable venue-wide lock is held.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error(
-				'canonical_event_booking_conflict_check_failed',
-				__( 'Venue booking holds could not be checked safely.', 'extrachill-events' ),
-				array(
-					'status'         => 503,
-					'database_error' => $wpdb->last_error,
-				)
-			);
-		}
-		if ( is_array( $row ) ) {
-			return $row;
-		}
-
-		$booking_values = array_merge( array( $venue_id, $end_at, $start_at, $excluded_booking_id, $post_id ), $exact_values );
-		$row            = $wpdb->get_row( $wpdb->prepare( "SELECT id, space_key, 'confirmed_booking' AS conflict_type FROM {$bookings} WHERE venue_term_id = %d AND status = 'confirmed' AND performance_start_at < %s AND performance_end_at > %s AND NOT ((id = %d OR event_id = %d) AND ({$booking_exact_sql})) LIMIT 1", $booking_values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic exact-interval placeholders are matched by the flattened value array; only an exact originating booking is exempt.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error(
-				'canonical_event_booking_conflict_check_failed',
-				__( 'Confirmed venue bookings could not be checked safely.', 'extrachill-events' ),
-				array(
-					'status'         => 503,
-					'database_error' => $wpdb->last_error,
-				)
-			);
-		}
-		return is_array( $row ) ? $row : null;
 	}
 
 	private function publication_from_post( $post, $request, int $post_id ) {

@@ -59,6 +59,34 @@ final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 			),
 		);
 		$GLOBALS['wpdb'] = new BookingWpdb();
+		new \ExtraChillEvents\Core\BookingVenueIntervalConflictProvider();
+	}
+
+	public function test_no_provider_means_no_conflicts(): void {
+		$GLOBALS['ec_test_filters'] = array();
+		$this->seed_hold( 'main-room', '2030-08-01 20:00:00', '2030-08-01 23:00:00' );
+		$guard = new CanonicalEventPublicationGuard();
+		$this->assertTrue( $guard->acquire_for_publication( 55, '2030-08-01 21:00:00', '2030-08-01 22:00:00' ) );
+		$guard->release();
+	}
+
+	public function test_provider_conflict_blocks_publication_while_locked(): void {
+		$GLOBALS['ec_test_filters'] = array();
+		$conflict = array( 'conflict_type' => 'external', 'id' => 123 );
+		add_filter( 'extrachill_events_venue_interval_conflicts', function ( $conflicts, $venue_id, $start_at, $end_at, $context ) use ( $conflict ) {
+			$this->assertSame( 55, $venue_id );
+			$this->assertSame( '2030-08-01 21:00:00', $start_at );
+			$this->assertSame( '2030-08-01 22:00:00', $end_at );
+			$this->assertSame( 901, $context['post_id'] );
+			$this->assertSame( 0, $this->release_count() );
+			$this->assertSame( 'get', $GLOBALS['wpdb']->lock_names[0][0] );
+			$conflicts[] = $conflict;
+			return $conflicts;
+		}, 10, 5 );
+		$result = ( new CanonicalEventPublicationGuard() )->acquire_for_publication( 55, '2030-08-01 21:00:00', '2030-08-01 22:00:00', 901 );
+		$this->assertSame( 'canonical_event_booking_conflict', $result->get_error_code() );
+		$this->assertSame( $conflict, $result->get_error_data()['conflict'] );
+		$this->assertSame( 1, $this->release_count() );
 	}
 
 	public function test_acquires_and_releases_one_stable_venue_lock(): void {
@@ -68,6 +96,7 @@ final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 		$guard->release();
 
 		$venue = BookingHoldRepository::venue_lock_name( 55 );
+		$this->assertSame( 'ecbv:' . sha1( BookingSchema::holds_table() . ':55' ), $venue );
 		$this->assertSame(
 			array(
 				array( 'get', $venue ),

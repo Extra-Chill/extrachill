@@ -1324,8 +1324,7 @@ class BookingHoldRepository {
 
 	private function with_lock( string $name, callable $callback ) {
 		global $wpdb;
-		$acquired = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Required cross-connection advisory lock.
-		if ( 1 !== (int) $acquired || '' !== (string) $wpdb->last_error ) {
+		if ( ! VenueLock::acquire( $name ) ) {
 			return new \WP_Error(
 				'booking_hold_lock_not_acquired',
 				__( 'The venue-space booking lock could not be acquired.', 'extrachill-events' ),
@@ -1342,9 +1341,9 @@ class BookingHoldRepository {
 			$error  = new \WP_Error( 'booking_hold_operation_failed', __( 'The booking hold operation failed unexpectedly.', 'extrachill-events' ), array( 'exception' => get_class( $throwable ) ) );
 			$result = $this->transaction_active ? $this->rollback( $error ) : $error;
 		} finally {
-			$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Always release the acquired lock.
+			$released = VenueLock::release( $name );
 		}
-		if ( 1 !== (int) $released || '' !== (string) $wpdb->last_error ) {
+		if ( ! $released ) {
 			return new \WP_Error(
 				'booking_hold_lock_release_failed',
 				__( 'The venue-space booking lock release could not be confirmed.', 'extrachill-events' ),
@@ -1369,7 +1368,7 @@ class BookingHoldRepository {
 
 	/** Return the shared advisory-lock name for all booking writes at one venue. */
 	public static function venue_lock_name( int $venue_id ): string {
-		return 'ecbv:' . sha1( BookingSchema::holds_table() . ':' . $venue_id );
+		return VenueLock::name( $venue_id );
 	}
 
 	/** Return the shared advisory-lock name for one venue space. */
