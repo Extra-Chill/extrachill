@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.48.0] - 2026-11-01
+
+### Added
+- venue and promoter sellers for Stripe, products, and checkout
+
 ## [0.47.2] - 2026-11-01
 
 ### Changed
