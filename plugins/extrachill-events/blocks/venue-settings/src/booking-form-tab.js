@@ -21,7 +21,8 @@ import { BookingInquiry } from '../../venue-booking-inquiry/src/view';
 import { bookingEmbedSnippet, bookingOriginFromWebsite } from './booking-embed';
 import { IntakeTab } from './intake-tab';
 import { Status } from './status';
-import { sameDocument, validateConfig } from './state';
+import { validateConfig } from './booking-state';
+import { sameDocument } from './state';
 
 const previewConfig = ( config, venueName, profile, idPrefix ) => ( {
 	instanceId: `${ idPrefix }ec-booking-preview`,

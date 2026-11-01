@@ -76,6 +76,7 @@ if ( ! function_exists( 'current_user_can' ) ) {
 	}
 }
 
+require_once dirname( __DIR__, 3 ) . '/inc/core/venue-settings.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/booking-console.php';
 
 final class BookingConsoleTest extends TestCase {

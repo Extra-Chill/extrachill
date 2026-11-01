@@ -42,6 +42,8 @@ final class VenueProvider {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/' . $dependency . '.php';
 		}
 
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-settings.php';
+
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();

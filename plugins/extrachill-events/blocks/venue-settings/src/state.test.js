@@ -1,3 +1,4 @@
+import { validateConfig } from './booking-state';
 /* global describe, expect, it */
 
 /**
@@ -7,7 +8,6 @@ import {
 	editableConfig,
 	normalizeKey,
 	profileChanges,
-	validateConfig,
 } from './state';
 
 const validConfig = () => ( {
