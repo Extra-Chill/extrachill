@@ -57,10 +57,14 @@ function extrachill_community_register_recent_public_activity_ability() {
 			'actor'         => array(
 				'type'                 => 'object',
 				'properties'           => array(
+					'user_id'      => array(
+						'type'    => 'integer',
+						'minimum' => 0,
+					),
 					'display_name' => array( 'type' => 'string' ),
 					'profile_url'  => $nullable_url,
 				),
-				'required'             => array( 'display_name', 'profile_url' ),
+				'required'             => array( 'user_id', 'display_name', 'profile_url' ),
 				'additionalProperties' => false,
 			),
 			'relationships' => array(
@@ -253,26 +257,31 @@ function extrachill_community_prepare_recent_public_activity_item( $activity ) {
 
 /** Return the public identity displayed for an activity item. */
 function extrachill_community_recent_activity_actor( $activity ) {
+	$user    = get_userdata( (int) $activity->post_author );
+	$user_id = $user ? (int) $user->ID : 0;
+
 	if ( function_exists( 'extrachill_community_format_post_public_voice' ) ) {
 		$voice = extrachill_community_format_post_public_voice( $activity->ID );
 		if ( $voice ) {
 			return array(
+				'user_id'      => $user_id,
 				'display_name' => (string) $voice['name'],
 				'profile_url'  => ! empty( $voice['url'] ) ? (string) $voice['url'] : null,
 			);
 		}
 	}
 
-	$user = get_userdata( (int) $activity->post_author );
 	if ( $user ) {
 		$profile_url = function_exists( 'extrachill_get_user_profile_url' ) ? extrachill_get_user_profile_url( $user->ID ) : '';
 		return array(
+			'user_id'      => $user_id,
 			'display_name' => (string) $user->display_name,
 			'profile_url'  => $profile_url ? (string) $profile_url : null,
 		);
 	}
 
 	return array(
+		'user_id'      => 0,
 		'display_name' => (string) get_post_meta( $activity->ID, '_bbp_anonymous_name', true ),
 		'profile_url'  => null,
 	);

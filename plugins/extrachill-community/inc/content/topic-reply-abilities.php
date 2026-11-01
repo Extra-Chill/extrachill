@@ -130,34 +130,39 @@ function extrachill_community_register_topic_reply_abilities() {
 		'extrachill/community-list-topics',
 		array(
 			'label'               => __( 'List Topics', 'extra-chill-community' ),
-			'description'         => __( 'List topics for a forum or across all forums, with pagination.', 'extra-chill-community' ),
+			'description'         => __( 'List topics for a forum or across all forums, with pagination. With author_id, return only that member’s public topics, newest first regardless of orderby or order.', 'extra-chill-community' ),
 			'category'            => 'extrachill-community',
 			'input_schema'        => array(
 				'default'              => array(),
 				'type'                 => 'object',
 				'properties'           => array(
-					'forum_id' => array(
+					'forum_id'  => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
 						'description' => 'Filter by forum ID (omit for all forums)',
 					),
-					'per_page' => array(
+					'author_id' => array(
+						'type'        => 'integer',
+						'minimum'     => 1,
+						'description' => 'Member ID; restricts to public topics and forces newest-first chronological order',
+					),
+					'per_page'  => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
 						'maximum'     => 100,
 						'description' => 'Topics per page (default 20, max 100)',
 					),
-					'page'     => array(
+					'page'      => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
 						'description' => 'Page number (default 1)',
 					),
-					'orderby'  => array(
+					'orderby'   => array(
 						'type'        => 'string',
 						'enum'        => array( 'date', 'modified', 'title' ),
 						'description' => 'Order by: date, modified, title (default date)',
 					),
-					'order'    => array(
+					'order'     => array(
 						'type'        => 'string',
 						'enum'        => array( 'ASC', 'DESC' ),
 						'description' => 'Sort order: ASC or DESC (default DESC)',

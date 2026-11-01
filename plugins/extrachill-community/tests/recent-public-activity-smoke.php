@@ -73,7 +73,7 @@ if ( ! function_exists( 'bbp_get_topic_post_type' ) ) {
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $id ) { return $GLOBALS['_recent_activity_posts'][ $id ] ?? null; }
 	function get_the_title( $post ) { return $post->post_title; }
-	function get_userdata( $id ) { return $id ? (object) array( 'ID' => $id, 'display_name' => 'User ' . $id ) : false; }
+	function get_userdata( $id ) { return $id && 999 !== $id ? (object) array( 'ID' => $id, 'display_name' => 'User ' . $id ) : false; }
 	function get_post_meta() { return ''; }
 	function get_the_terms( $id ) { return $GLOBALS['_recent_activity_terms'][ $id ] ?? array(); }
 	function get_term_link( $term ) { return 'https://community.example.test/artist/' . $term->slug; }
@@ -135,6 +135,8 @@ if ( $standalone ) {
 	recent_activity_assert( 20 === $ability['input_schema']['properties']['limit']['maximum'], 'Input must declare the strict limit.' );
 	recent_activity_assert( 20 === $ability['output_schema']['properties']['items']['maxItems'], 'Output must declare the strict limit.' );
 	recent_activity_assert( false === $ability['output_schema']['additionalProperties'], 'Top-level output must be exact.' );
+	$actor_schema = $ability['output_schema']['properties']['items']['items']['properties']['actor'];
+	recent_activity_assert( 'integer' === $actor_schema['properties']['user_id']['type'] && in_array( 'user_id', $actor_schema['required'], true ), 'Actor must require an integer user ID.' );
 } else {
 	register_post_type( 'forum', array( 'public' => true ) );
 	register_post_type( 'topic', array( 'public' => true ) );
@@ -186,6 +188,15 @@ if ( $standalone ) {
 }
 recent_activity_assert( array( 'schema_version', 'items' ) === array_keys( $result ), 'Projection must expose only version and items at the top level.' );
 recent_activity_assert( false === strpos( serialize( $result ), 'post_status' ) && false === strpos( serialize( $result ), 'topic_id' ), 'Projection must not leak storage fields.' );
+foreach ( $result['items'] as $item ) {
+	recent_activity_assert( 7 === $item['actor']['user_id'], 'Discussion and reply actors expose an integer member ID.' );
+}
+if ( $standalone ) {
+	$guest   = recent_activity_post( 40, 'topic', 'publish', 10, 0 );
+	$unknown = recent_activity_post( 41, 'topic', 'publish', 10, 999 );
+	recent_activity_assert( 0 === extrachill_community_recent_activity_actor( $guest )['user_id'], 'Guest actors use zero.' );
+	recent_activity_assert( 0 === extrachill_community_recent_activity_actor( $unknown )['user_id'], 'Unknown actors use zero.' );
+}
 $artist_rows = array_filter( $result['items'], static function ( $item ) { return ! empty( $item['relationships']['artists'] ); } );
 recent_activity_assert( 'test-artist' === reset( $artist_rows )['relationships']['artists'][0]['slug'], 'Artist relationships must be portable owner data.' );
 

@@ -52,6 +52,13 @@ if ( ! class_exists( 'WP_Query' ) ) {
 
 		public function __construct( $args ) {
 			$posts = forum_read_filter_posts( $args );
+			if ( isset( $args['author'] ) ) {
+				$GLOBALS['_forum_read_member_query'] = $args;
+				usort( $posts, static function ( $left, $right ) use ( $args ) {
+					$result = strcmp( $left->post_date, $right->post_date );
+					return 'DESC' === $args['order'] ? -$result : $result;
+				} );
+			}
 			$this->found_posts = count( $posts );
 			$per_page = (int) ( $args['posts_per_page'] ?? -1 );
 			$page = max( 1, (int) ( $args['paged'] ?? 1 ) );
@@ -158,6 +165,9 @@ function forum_read_filter_posts( $args ) {
 					return false;
 				}
 				if ( isset( $args['post_parent'] ) && (int) $args['post_parent'] !== (int) $post->post_parent ) {
+					return false;
+				}
+				if ( isset( $args['author'] ) && (int) $args['author'] !== (int) $post->post_author ) {
 					return false;
 				}
 				if ( ! empty( $args['author__not_in'] ) && in_array( (int) $post->post_author, array_map( 'intval', $args['author__not_in'] ), true ) ) {
@@ -269,6 +279,47 @@ if ( $GLOBALS['_forum_read_blocks_stubbed'] ) {
 	$GLOBALS['_forum_read_user'] = 2;
 	$other_replies = forum_read_request( 'extrachill/community-list-replies', array( 'topic_id' => 100 ) );
 	forum_read_assert( array( 1000, 1002 ) === array_column( $other_replies->get_data()['replies'], 'reply_id' ), 'Blocks only affect the member who blocked.' );
+}
+
+// Member lists remain strictly public even for viewers with private-forum access.
+$GLOBALS['_forum_read_posts'][12]  = forum_read_post( 12, 'forum', 'publish' );
+$GLOBALS['_forum_read_posts'][120] = forum_read_post( 120, 'topic', 'publish', 12 );
+$GLOBALS['_forum_read_posts'][105] = forum_read_post( 105, 'topic', 'spam', 10 );
+$GLOBALS['_forum_read_posts'][106] = forum_read_post( 106, 'topic', 'publish', 10 );
+
+$GLOBALS['_forum_read_posts'][120]->post_date   = '2026-08-02 12:00:00';
+$GLOBALS['_forum_read_posts'][106]->post_author = 8;
+$GLOBALS['_forum_read_user']                    = 2;
+
+$member_input  = array(
+	'author_id' => 7,
+	'orderby'   => 'title',
+	'order'     => 'ASC',
+	'per_page'  => 2,
+);
+$member_topics = forum_read_request( 'extrachill/community-list-topics', $member_input );
+$member_query  = $GLOBALS['_forum_read_member_query'];
+forum_read_assert( 200 === $member_topics->get_status(), 'Core REST accepts author_id without forum_id.' );
+forum_read_assert( array( 120, 100 ) === array_column( $member_topics->get_data()['topics'], 'topic_id' ), 'Member topics are newest first across public forums, excluding other authors and nonpublic topics.' );
+forum_read_assert( 3 === $member_topics->get_data()['total'], 'Member pagination excludes private, hidden, nested-private, spam, trash and draft topics.' );
+forum_read_assert( 'date' === $member_query['orderby'] && 'DESC' === $member_query['order'] && true === $member_query['ignore_sticky_posts'], 'Member lists force chronological order without sticky ranking.' );
+
+$member_input['page'] = 2;
+forum_read_assert( array( 101 ) === array_column( forum_read_request( 'extrachill/community-list-topics', $member_input )->get_data()['topics'], 'topic_id' ), 'Member pagination retains closed public topics.' );
+forum_read_assert(
+	404 === forum_read_request(
+		'extrachill/community-list-topics',
+		array(
+			'author_id' => 7,
+			'forum_id'  => 20,
+		)
+	)->get_status(),
+	'Member forum filtering never exposes private forums to moderators.'
+);
+forum_read_assert( is_wp_error( wp_get_ability( 'extrachill/community-list-topics' )->validate_input( array( 'author_id' => 0 ) ) ), 'Guest author filters are invalid.' );
+if ( $GLOBALS['_forum_read_blocks_stubbed'] ) {
+	$GLOBALS['_forum_read_blocks'][2] = array( 7 );
+	forum_read_assert( array() === forum_read_request( 'extrachill/community-list-topics', array( 'author_id' => 7 ) )->get_data()['topics'], 'Member author filters respect viewer blocks.' );
 }
 
 echo "PASS: Canonical forum read REST abilities preserve schemas, pagination, and bbPress visibility.\n";

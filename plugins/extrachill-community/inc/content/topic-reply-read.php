@@ -37,14 +37,25 @@ function extrachill_community_ability_list_topics( $input ) {
 		'order'          => $order,
 	);
 
+	$author_id = isset( $input['author_id'] ) ? max( 0, (int) $input['author_id'] ) : 0;
+	if ( $author_id ) {
+		$args['author']              = $author_id;
+		$args['orderby']             = 'date';
+		$args['order']               = 'DESC';
+		$args['ignore_sticky_posts'] = true;
+	}
+
 	if ( ! empty( $input['forum_id'] ) ) {
 		$forum_id = (int) $input['forum_id'];
-		if ( ! extrachill_community_can_read_forum( $forum_id ) ) {
+		if ( $author_id ? ! extrachill_community_is_public_forum( $forum_id ) : ! extrachill_community_can_read_forum( $forum_id ) ) {
 			return new WP_Error( 'forum_not_found', 'Forum is unavailable.', array( 'status' => 404 ) );
 		}
 		$args['post_parent'] = $forum_id;
 	} else {
 		$forum_ids = extrachill_community_get_readable_forum_ids();
+		if ( $author_id ) {
+			$forum_ids = array_values( array_filter( $forum_ids, 'extrachill_community_is_public_forum' ) );
+		}
 		if ( empty( $forum_ids ) ) {
 			return array(
 				'topics'   => array(),
@@ -65,7 +76,7 @@ function extrachill_community_ability_list_topics( $input ) {
 			continue;
 		}
 
-		if ( ! extrachill_community_can_read_forum( $post->post_parent ) ) {
+		if ( $author_id ? ! extrachill_community_is_public_forum( $post->post_parent ) : ! extrachill_community_can_read_forum( $post->post_parent ) ) {
 			continue;
 		}
 		$topics[] = extrachill_community_format_topic( $post );
