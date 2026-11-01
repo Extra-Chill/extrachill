@@ -1,3 +1,4 @@
+// verify in-tree package resolution (draft, do not merge)
 /**
  * SEO Admin App
  *
