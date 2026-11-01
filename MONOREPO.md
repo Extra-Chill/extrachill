@@ -43,6 +43,7 @@ Generated from the network rig's activation matrix, which mirrors production. Ch
 | `extrachill-api` | `plugins/extrachill-api` | all sites (network-activated) |
 | `extrachill-artist-platform` | `plugins/extrachill-artist-platform` | artist.extrachill.com |
 | `extrachill-blog` | `plugins/extrachill-blog` | extrachill.com |
+| `extrachill-booking` | `plugins/extrachill-booking` | events.extrachill.com |
 | `extrachill-cache` | `plugins/extrachill-cache` | all sites (network-activated) |
 | `extrachill-cli` | `plugins/extrachill-cli` | all sites (network-activated) |
 | `extrachill-community` | `plugins/extrachill-community` | community.extrachill.com |

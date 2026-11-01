@@ -188,6 +188,22 @@
       ]
     },
     {
+      "slug": "extrachill-booking",
+      "repo": "Extra-Chill/extrachill",
+      "releaseTagPrefix": "extrachill-booking-v",
+      "asset": "extrachill-booking.zip",
+      "source": "github",
+      "note": "Inert booking extraction placeholder; activate on events only before the atomic code move.",
+      "activations": [
+        {
+          "pluginFile": "extrachill-booking/extrachill-booking.php",
+          "scope": [
+            "events.extrachill.com"
+          ]
+        }
+      ]
+    },
+    {
       "slug": "data-machine",
       "repo": "Extra-Chill/data-machine",
       "asset": "data-machine.zip",
