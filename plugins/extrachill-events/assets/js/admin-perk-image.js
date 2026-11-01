@@ -4,6 +4,8 @@
  * Wires the "Choose image" / "Remove" controls in the RSVP Perk meta box to
  * the core media modal. The chosen attachment ID goes into a hidden input
  * that extrachill_events_save_event_perk() stores on save.
+ *
+ * @param {Function} $ jQuery.
  */
 ( function ( $ ) {
 	'use strict';
