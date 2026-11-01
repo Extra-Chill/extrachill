@@ -120,6 +120,19 @@ After reviewing the proposed detach and merge actions, pass `--apply` to perform
 ### Build Process
 Builds and releases are handled by [Homeboy](https://github.com/Extra-Chill/homeboy).
 
+### Tests
+
+Run `composer test` for all standalone PHP smoke tests, or
+`homeboy review test extrachill-news-wire` for the managed test gate.
+Run `composer lint:php` to check test registration and PHP syntax in tests and tools.
+
+Each `tests/smoke-*.php` file must be registered as `standalone-php` in
+`homeboy-test-manifest.json` and executed by the Composer `test` script.
+`tools/check-test-registration.php` checks both registrations and rejects stale
+manifest entries. The `standalone_php_test_paths` setting in `homeboy.json`
+also routes `tests/smoke-*.php` for Homeboy versions using path-based selection.
+Run each smoke in its own PHP process to isolate WordPress stubs.
+
 ### WordPress Standards
 - Follows WordPress coding standards
 - Implements proper security practices (nonces, sanitization, escaping)

@@ -1,0 +1,9 @@
+{
+  "name": "extrachill/news-wire",
+  "description": "Festival Wire content model and presentation for Extra Chill",
+  "type": "wordpress-plugin",
+  "scripts": {
+    "test": "php tools/check-test-registration.php && php tests/smoke-classification.php && php tests/smoke-content-card.php && php tests/smoke-festival-wire-assets.php && php tests/smoke-festival-wire-filters.php && php tests/smoke-festival-wire-notifications.php && php tests/smoke-recent-activity-ability.php",
+    "lint:php": "php tools/check-test-registration.php && find tests tools -name '*.php' -exec php -l {} \\;"
+  }
+}
