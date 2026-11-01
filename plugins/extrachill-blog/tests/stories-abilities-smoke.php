@@ -119,7 +119,8 @@ function setup_postdata( $post ) { $GLOBALS['stories_content_post_id'] = $post->
 function apply_filters( $hook, $value ) {
 	return 'the_content' === $hook ? '<p>' . $value . ' (post ' . $GLOBALS['stories_content_post_id'] . ')</p>]]>' : $value;
 }
-function get_object_taxonomies() {
+function get_object_taxonomies( $post_type, $output ) {
+	$GLOBALS['stories_taxonomy_post_type'] = $post_type;
 	return array(
 		(object) array(
 			'name'   => 'category',
@@ -146,6 +147,7 @@ function get_object_taxonomies() {
 function get_the_terms( $post, $taxonomy ) { return $GLOBALS['stories_terms'][ $taxonomy ] ?? false; }
 function get_term_link( $term, $taxonomy ) { return 'https://extrachill.com/' . $taxonomy . '/' . $term->slug . '/'; }
 
+require dirname( __DIR__, 2 ) . '/extrachill-network/inc/core/stories.php';
 require dirname( __DIR__ ) . '/inc/core/stories-abilities.php';
 
 function stories_expect( $condition, $message ) {
@@ -232,7 +234,7 @@ stories_expect( array( 'id' ) === $get_ability['input_schema']['required'], 'get
 stories_expect( array_merge( $item_keys, array( 'content_html', 'terms' ) ) === $get_ability['output_schema']['required'], 'get-story must add content_html and terms.' );
 
 // Query args: only published, non-password posts, newest first.
-$args = extrachill_blog_stories_query_args( array() );
+$args = extrachill_stories_query_args( array() );
 stories_expect( 'post' === $args['post_type'], 'Only posts are listed.' );
 stories_expect( 'publish' === $args['post_status'], 'Only published posts are listed.' );
 stories_expect( false === $args['has_password'], 'Password-protected posts are excluded at query time.' );
@@ -241,24 +243,24 @@ stories_expect( 1 === $args['paged'] && 10 === $args['posts_per_page'], 'Default
 stories_expect( ! isset( $args['tax_query'] ), 'No filters means no tax_query.' );
 
 // Pagination clamping.
-$clamped = extrachill_blog_stories_query_args( array(
+$clamped = extrachill_stories_query_args( array(
 	'page'     => 0,
 	'per_page' => 500,
 ) );
 stories_expect( 1 === $clamped['paged'] && 50 === $clamped['posts_per_page'], 'Out-of-range pagination is clamped to [1, 50].' );
-$clamped = extrachill_blog_stories_query_args( array(
+$clamped = extrachill_stories_query_args( array(
 	'page'     => -3,
 	'per_page' => -1,
 ) );
 stories_expect( 1 === $clamped['paged'] && 1 === $clamped['posts_per_page'], 'Negative pagination is clamped to 1 (never -1 = unbounded).' );
-$clamped = extrachill_blog_stories_query_args( array(
+$clamped = extrachill_stories_query_args( array(
 	'page'     => '4',
 	'per_page' => 'lots',
 ) );
 stories_expect( 4 === $clamped['paged'] && 10 === $clamped['posts_per_page'], 'Numeric strings are honored, garbage falls back to defaults.' );
 
 // Filters map to tax_query.
-$filtered       = extrachill_blog_stories_query_args(
+$filtered       = extrachill_stories_query_args(
 	array(
 		'category' => 'Live Reviews',
 		'tag'      => 12,
@@ -306,7 +308,7 @@ stories_expect(
 	) === array_values( $tax_query_args ),
 	'Filters must map to the right taxonomy with id or slug fields.'
 );
-$single = extrachill_blog_stories_query_args( array( 'festival' => '' ) );
+$single = extrachill_stories_query_args( array( 'festival' => '' ) );
 stories_expect( ! isset( $single['tax_query'] ), 'Empty filters are ignored.' );
 
 // list-stories execution: drafts, private, password-protected, and non-posts never leak.
@@ -346,7 +348,7 @@ $stories_query_posts = array(
 );
 $stories_found_posts = 23;
 
-$list = extrachill_blog_list_stories( array(
+$list = extrachill_list_stories( array(
 	'page'     => 2,
 	'per_page' => 10,
 ) );
@@ -386,7 +388,7 @@ stories_expect( 55 === count( explode( ' ', rtrim( $auto_item['excerpt'], '…' 
 
 $stories_query_posts = array();
 $stories_found_posts = 0;
-$empty               = extrachill_blog_list_stories( null );
+$empty               = extrachill_list_stories( null );
 stories_validate( $empty, $list_ability['output_schema'] );
 stories_expect( array() === $empty['items'] && 0 === $empty['total'] && 0 === $empty['pages'], 'Empty results are well-formed.' );
 
@@ -415,11 +417,11 @@ $stories_posts = array(
 	) ),
 );
 foreach ( array( 103, 104, 105, 106, 107, 999, 0 ) as $missing_id ) {
-	$missing_error = extrachill_blog_get_story( array( 'id' => $missing_id ) );
+	$missing_error = extrachill_get_story( array( 'id' => $missing_id ) );
 	stories_expect( is_wp_error( $missing_error ), "get-story must refuse post $missing_id." );
-	stories_expect( 'extrachill_blog_story_not_found' === $missing_error->code && array( 'status' => 404 ) === $missing_error->data, "get-story must 404 for post $missing_id." );
+	stories_expect( 'extrachill_story_not_found' === $missing_error->code && array( 'status' => 404 ) === $missing_error->data, "get-story must 404 for post $missing_id." );
 }
-stories_expect( is_wp_error( extrachill_blog_get_story( null ) ), 'get-story must 404 without input.' );
+stories_expect( is_wp_error( extrachill_get_story( null ) ), 'get-story must 404 without input.' );
 
 $previous                = new WP_Post( array( 'ID' => 55 ) );
 $GLOBALS['post']         = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Seeds the global post to prove it is restored.
@@ -430,7 +432,7 @@ $stories_terms           = array(
 	'festival'    => array( new WP_Term( 4, 'Bonnaroo', 'bonnaroo' ), new WP_Term( 5, 'Moonrise', 'moonrise' ) ),
 	'author'      => array( new WP_Term( 6, 'Guest', 'cap-guest' ) ),
 );
-$story                   = extrachill_blog_get_story( array( 'id' => 101 ) );
+$story                   = extrachill_get_story( array( 'id' => 101 ) );
 stories_expect( ! is_wp_error( $story ), 'Published stories resolve.' );
 stories_validate( $story, $get_ability['output_schema'] );
 stories_expect( array_merge( $item_keys, array( 'content_html', 'terms' ) ) === array_keys( $story ), 'Story has the summary keys plus content_html and terms.' );
@@ -449,7 +451,7 @@ stories_expect(
 stories_expect( array( 'bonnaroo', 'moonrise' ) === array_column( $story['terms']['festival'], 'slug' ), 'All terms in a taxonomy are returned.' );
 
 $stories_terms = array();
-$bare          = extrachill_blog_get_story( array( 'id' => 101 ) );
+$bare          = extrachill_get_story( array( 'id' => 101 ) );
 stories_expect( $bare['terms'] instanceof stdClass && '{}' === json_encode( $bare['terms'] ), 'No terms serializes as a JSON object.' );
 stories_validate( $bare, $get_ability['output_schema'] );
 

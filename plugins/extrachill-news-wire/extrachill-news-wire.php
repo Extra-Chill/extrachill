@@ -25,6 +25,7 @@ require_once FESTIVAL_WIRE_INCLUDE_DIR . 'classification.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-metadata.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'festival-wire-notifications.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'recent-activity-ability.php';
+require_once FESTIVAL_WIRE_INCLUDE_DIR . 'stories-abilities.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'theme-integration.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/breadcrumbs.php';
 require_once FESTIVAL_WIRE_INCLUDE_DIR . 'core/post-meta.php';
