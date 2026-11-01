@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.57.2] - 2026-11-01
+
+### Changed
+- drop function_exists guards on ec_get_blog_id / ec_get_site_url
+
 ## [0.57.1] - 2026-10-31
 
 ### Changed
