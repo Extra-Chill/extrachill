@@ -145,9 +145,11 @@ jobs:
             fi
           fi
           # --direct-only: deploy only components whose own files changed. Dependents
-          # are re-tested by PR CI, but their deployed files are identical.
+          # are re-tested by PR CI, but their deployed files are identical. Workflow
+          # edits change no deployed bytes, so they select nothing; use dispatch to
+          # force a redeploy.
           "${HOMEBOY_GATE_BIN_DIR}/homeboy" component changed --base "${base}" --head "${sha}" \
-            --path . --shared-path '.github/**' --format matrix --direct-only > "${HOMEBOY_OUTPUT_DIR}/matrix.json"
+            --path . --format matrix --direct-only > "${HOMEBOY_OUTPUT_DIR}/matrix.json"
           python3 deploy/prepare-monorepo.py --checkout "${GITHUB_WORKSPACE}" \
             --destination "${HOMEBOY_CONFIG_ROOT}" --matrix "${HOMEBOY_OUTPUT_DIR}/matrix.json" \
             --sha "${sha}" --dry-run "${dry_run}" > "${HOMEBOY_OUTPUT_DIR}/plan.json"
@@ -387,25 +389,6 @@ jobs:
               --path "${path}" --source https://github.com/Extra-Chill/homeboy \
               --ref "v${HOMEBOY_VERSION}"
           done
-
-      # #530 / Extra-Chill/homeboy#16911: gate build output forces sparse
-      # ref builds without packages/. Restore HEAD so deploy builds in place.
-      # Extensions live in HOMEBOY_CONFIG_ROOT (RUNNER_TEMP), outside this cleanup.
-      - name: Restore pristine checkout for deploy
-        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
-        shell: bash
-        run: |
-          set -euo pipefail
-          # head may close the pipe early when the gate left many build files.
-          git status --porcelain --ignored=matching -- plugins themes packages | head -50 || true
-          git reset --hard HEAD
-          git clean -ffdx -- plugins themes packages
-          status="$(git status --porcelain --untracked-files=all --ignored=matching -- plugins themes packages)"
-          if [ -n "${status}" ]; then
-            echo "::error::Deploy checkout is not pristine after gate cleanup."
-            printf '%s\n' "${status}"
-            exit 1
-          fi
 
       # Deploy consumes Plan's commands, not gate build output; Verify uses --check.
       # homeboy-action executes these comma-separated commands serially.

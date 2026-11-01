@@ -65,35 +65,12 @@ class MonorepoDeployTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.prepare([entry])
 
-    def test_deploy_restores_pristine_checkout_after_gate(self):
+    def test_deploy_builds_from_homeboy_exact_ref_tree(self):
+        # Homeboy builds --ref deploys in place only when the whole checkout is
+        # clean, otherwise from a fresh full tree, so gate output needs no reset.
         workflow = yaml.safe_load((ROOT / ".github/workflows/deploy-monorepo.yml").read_text())
-        steps = workflow["jobs"]["deploy"]["steps"]
-        names = {s.get("name"): s for s in steps}
-        order = [s.get("name") for s in steps]
-        cleanup_name = "Restore pristine checkout for deploy"
-        self.assertIn(cleanup_name, names)
-        cleanup = names[cleanup_name]
-        self.assertEqual(cleanup["if"], names["Deploy"]["if"])
-        self.assertEqual(cleanup["shell"], "bash")
-        for predecessor in ["Network rig gate", "Summarize network gate result",
-                            "Upload network rig gate evidence", "Install deployed components' extensions"]:
-            self.assertLess(order.index(predecessor), order.index(cleanup_name))
-        self.assertEqual(order.index(cleanup_name) + 1, order.index("Deploy"))
-        script = cleanup["run"]
-        self.assertIn("set -euo pipefail", script)
-        evidence = "git status --porcelain --ignored=matching -- plugins themes packages | head -50"
-        reset = "git reset --hard HEAD"
-        clean = "git clean -ffdx -- plugins themes packages"
-        assertion = 'status="$(git status --porcelain --untracked-files=all --ignored=matching -- plugins themes packages)"'
-        for command in [evidence, reset, clean, assertion]:
-            self.assertIn(command, script)
-        self.assertLess(script.index(evidence), script.index(reset))
-        self.assertLess(script.index(reset), script.index(clean))
-        self.assertLess(script.index(clean), script.index(assertion))
-        self.assertIn('if [ -n "${status}" ]; then\n'
-                      '  echo "::error::Deploy checkout is not pristine after gate cleanup."\n'
-                      '  printf \'%s\\n\' "${status}"\n'
-                      '  exit 1\nfi', script)
+        names = {s.get("name"): s for s in workflow["jobs"]["deploy"]["steps"]}
+        self.assertNotIn("Restore pristine checkout for deploy", names)
         self.assertEqual(names["Deploy"]["with"]["commands"], "${{ steps.plan.outputs.command }}")
         self.assertEqual(names["Verify"]["with"]["commands"], "deploy extrachill-monorepo --check")
 
@@ -112,7 +89,9 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertIn("changed_count != '0'", names["Network rig gate"]["if"])
         self.assertIn("extrachill_monorepo_source", names["Plan"]["run"])
         self.assertIn("MONOREPO_DEPLOY_AUTOMATION", names["Plan"]["env"]["AUTOMATION"])
-        self.assertIn("--shared-path '.github/**' --format matrix --direct-only", names["Plan"]["run"])
+        self.assertIn("--path . --format matrix --direct-only", names["Plan"]["run"])
+        # Workflow edits change no deployed bytes, so they select no components.
+        self.assertNotIn("--shared-path", names["Plan"]["run"])
         # Every Homeboy pin is the same release (detection, rig gate, deploy, verify).
         text = (ROOT / ".github/workflows/deploy-monorepo.yml").read_text()
         self.assertEqual(workflow["env"]["HOMEBOY_VERSION"], "0.440.0")
