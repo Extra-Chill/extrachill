@@ -14,7 +14,7 @@
  * widget belongs to. No fetch, no AJAX — pure client bootstrap for a 3rd-party
  * widget. This file is intentionally dependency-free.
  *
- * @package ExtraChill\Network
+ * @package
  */
 ( function () {
 	'use strict';
@@ -32,7 +32,7 @@
 		if ( ! name ) {
 			return undefined;
 		}
-		var fn = window[ name ];
+		const fn = window[ name ];
 		return ( typeof fn === 'function' ) ? fn : undefined;
 	}
 
@@ -45,14 +45,14 @@
 	 * @return {Object} Options for window.turnstile.render().
 	 */
 	function buildOptions( el ) {
-		var opts = {};
+		const opts = {};
 
-		var sitekey = el.getAttribute( 'data-sitekey' );
+		const sitekey = el.getAttribute( 'data-sitekey' );
 		if ( sitekey ) {
 			opts.sitekey = sitekey;
 		}
 
-		var simple = {
+		const simple = {
 			'data-size': 'size',
 			'data-theme': 'theme',
 			'data-appearance': 'appearance',
@@ -63,7 +63,7 @@
 			'data-execution': 'execution'
 		};
 		Object.keys( simple ).forEach( function ( attr ) {
-			var value = el.getAttribute( attr );
+			const value = el.getAttribute( attr );
 			if ( value !== null && value !== '' ) {
 				opts[ simple[ attr ] ] = value;
 			}
@@ -72,14 +72,14 @@
 		// Callbacks: map data-callback / data-expired-callback /
 		// data-error-callback to the named global ONLY when that global is a
 		// real function. A dangling name is dropped silently.
-		var callbacks = {
+		const callbacks = {
 			'data-callback': 'callback',
 			'data-expired-callback': 'expired-callback',
 			'data-error-callback': 'error-callback',
 			'data-timeout-callback': 'timeout-callback'
 		};
 		Object.keys( callbacks ).forEach( function ( attr ) {
-			var fn = resolveCallback( el.getAttribute( attr ) );
+			const fn = resolveCallback( el.getAttribute( attr ) );
 			if ( fn ) {
 				opts[ callbacks[ attr ] ] = fn;
 			}
@@ -112,9 +112,9 @@
 			return;
 		}
 
-		var widgets = document.querySelectorAll( '.cf-turnstile' );
-		for ( var i = 0; i < widgets.length; i++ ) {
-			var el = widgets[ i ];
+		const widgets = document.querySelectorAll( '.cf-turnstile' );
+		for ( let i = 0; i < widgets.length; i++ ) {
+			const el = widgets[ i ];
 			if ( isRendered( el ) ) {
 				continue;
 			}

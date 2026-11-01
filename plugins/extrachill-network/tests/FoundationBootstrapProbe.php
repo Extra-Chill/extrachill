@@ -7,9 +7,9 @@ define( 'ABSPATH', __DIR__ . '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'EXTRACHILL_NETWORK_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 
-function get_site_option( $name, $default = false ) {
+function get_site_option( $name, $fallback = false ) {
 	unset( $name );
-	return $default;
+	return $fallback;
 }
 
 function add_action( ...$args ) {
@@ -41,6 +41,7 @@ $required_functions = array(
 
 foreach ( $required_functions as $function ) {
 	if ( ! function_exists( $function ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI probe writes diagnostics to stderr, not a filesystem file.
 		fwrite( STDERR, "Missing foundation API: {$function}\n" );
 		exit( 1 );
 	}

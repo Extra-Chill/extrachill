@@ -54,8 +54,8 @@ class BlogResolver {
 	 *
 	 * @template T
 	 * @param int      $blog_id Target blog ID.
-	 * @param callable $callback Callable executed inside the target blog.
-	 * @return mixed Whatever the callable returns.
+	 * @param callable(): T $callback Callable executed inside the target blog.
+	 * @return T Whatever the callable returns.
 	 */
 	public static function withBlog( int $blog_id, callable $callback ) {
 		if ( 0 >= $blog_id || (int) get_current_blog_id() === $blog_id ) {

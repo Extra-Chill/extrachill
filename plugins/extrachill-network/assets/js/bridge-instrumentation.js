@@ -23,7 +23,7 @@
  * mathematically bounded.
  */
 ( function () {
-	var config = window.ecBridgeInstrumentation;
+	const config = window.ecBridgeInstrumentation;
 	if (
 		! config ||
 		! config.clickEndpoint ||
@@ -41,14 +41,14 @@
 	 * @param {Object} payload  Event payload.
 	 */
 	function send( endpoint, payload ) {
-		var data = JSON.stringify( payload );
-		var blob = new Blob( [ data ], { type: 'application/json' } );
-		var beaconAccepted = false;
+		const data = JSON.stringify( payload );
+		const blob = new Blob( [ data ], { type: 'application/json' } );
+		let beaconAccepted = false;
 
 		if ( navigator.sendBeacon ) {
 			try {
 				beaconAccepted = navigator.sendBeacon( endpoint, blob );
-			} catch ( error ) {
+			} catch {
 				beaconAccepted = false;
 			}
 		}
@@ -58,7 +58,7 @@
 		}
 
 		function sendWithFetch( retriesRemaining ) {
-			var request;
+			let request;
 			try {
 				request = window.fetch( endpoint, {
 					method: 'POST',
@@ -66,7 +66,7 @@
 					headers: { 'Content-Type': 'application/json' },
 					keepalive: true,
 				} );
-			} catch ( error ) {
+			} catch {
 				if ( retriesRemaining > 0 ) {
 					sendWithFetch( retriesRemaining - 1 );
 				}
@@ -92,14 +92,14 @@
 	/**
 	 * Read a query param from a URL string, returning '' when absent.
 	 *
-	 * @param {string} url   URL to parse.
-	 * @param {string} param Param name.
+	 * @param {string} url       URL to parse.
+	 * @param {string} paramName Param name.
 	 * @return {string} Param value or ''.
 	 */
-	function param( url, param ) {
+	function param( url, paramName ) {
 		try {
-			return new URL( url, window.location.origin ).searchParams.get( param ) || '';
-		} catch ( e ) {
+			return new URL( url, window.location.origin ).searchParams.get( paramName ) || '';
+		} catch {
 			return '';
 		}
 	}
@@ -120,15 +120,15 @@
 		);
 	}
 
-	var matchingLinks = document.getElementsByClassName( config.linkClass );
-	var links = [];
-	for ( var linkIndex = 0; linkIndex < matchingLinks.length; linkIndex++ ) {
+	const matchingLinks = document.getElementsByClassName( config.linkClass );
+	const links = [];
+	for ( let linkIndex = 0; linkIndex < matchingLinks.length; linkIndex++ ) {
 		links.push( matchingLinks[ linkIndex ] );
 	}
-	var exposedLinks = [];
-	var clickedLinks = [];
-	var exposureThreshold = 0.5;
-	var fallbackDuration = 30000;
+	const exposedLinks = [];
+	const clickedLinks = [];
+	const exposureThreshold = 0.5;
+	const fallbackDuration = 30000;
 
 	/**
 	 * Record one viewport exposure for a bridge element.
@@ -145,7 +145,7 @@
 
 		exposedLinks.push( link );
 
-		var href = link.getAttribute( 'href' ) || '';
+		const href = link.getAttribute( 'href' ) || '';
 		send( config.impressionEndpoint, {
 			impression_type: 'bridge',
 			source_url: window.location.href,
@@ -169,16 +169,16 @@
 			return false;
 		}
 
-		var rect = link.getBoundingClientRect();
-		var width = Math.max(
+		const rect = link.getBoundingClientRect();
+		const width = Math.max(
 			0,
 			Math.min( rect.right, window.innerWidth ) - Math.max( rect.left, 0 )
 		);
-		var height = Math.max(
+		const height = Math.max(
 			0,
 			Math.min( rect.bottom, window.innerHeight ) - Math.max( rect.top, 0 )
 		);
-		var area = Math.max( 0, rect.width * rect.height );
+		const area = Math.max( 0, rect.width * rect.height );
 
 		return area > 0 && ( width * height ) / area >= exposureThreshold;
 	}
@@ -193,15 +193,15 @@
 		}
 
 		if ( 'IntersectionObserver' in window ) {
-			var observer = new window.IntersectionObserver(
+			const observer = new window.IntersectionObserver(
 				function ( entries ) {
-					for ( var i = 0; i < entries.length; i++ ) {
+					for ( let entryIndex = 0; entryIndex < entries.length; entryIndex++ ) {
 						if (
-							entries[ i ].isIntersecting &&
-							entries[ i ].intersectionRatio >= exposureThreshold
+							entries[ entryIndex ].isIntersecting &&
+							entries[ entryIndex ].intersectionRatio >= exposureThreshold
 						) {
-							if ( expose( entries[ i ].target ) ) {
-								observer.unobserve( entries[ i ].target );
+							if ( expose( entries[ entryIndex ].target ) ) {
+								observer.unobserve( entries[ entryIndex ].target );
 							}
 						}
 					}
@@ -209,14 +209,13 @@
 				{ threshold: [ exposureThreshold ] }
 			);
 
-			for ( var i = 0; i < links.length; i++ ) {
+			for ( let i = 0; i < links.length; i++ ) {
 				observer.observe( links[ i ] );
 			}
 			return;
 		}
 
-		var stopped = false;
-		var timeoutId;
+		let stopped = false;
 		function stopFallback() {
 			if ( stopped ) {
 				return;
@@ -228,7 +227,7 @@
 		}
 
 		function checkFallback() {
-			for ( var i = 0; i < links.length; i++ ) {
+			for ( let i = 0; i < links.length; i++ ) {
 				if (
 					exposedLinks.indexOf( links[ i ] ) === -1 &&
 					isVisible( links[ i ] )
@@ -244,7 +243,7 @@
 
 		window.addEventListener( 'scroll', checkFallback );
 		window.addEventListener( 'resize', checkFallback );
-		timeoutId = window.setTimeout( stopFallback, fallbackDuration );
+		const timeoutId = window.setTimeout( stopFallback, fallbackDuration );
 		checkFallback();
 	}
 
@@ -258,12 +257,12 @@
 	document.addEventListener(
 		'click',
 		function ( event ) {
-			var target = event.target;
+			const target = event.target;
 			if ( ! target || ! target.closest ) {
 				return;
 			}
 
-			var link = target.closest( '.' + config.linkClass );
+			const link = target.closest( '.' + config.linkClass );
 			if ( ! link || links.indexOf( link ) === -1 ) {
 				return;
 			}
@@ -271,7 +270,7 @@
 				return;
 			}
 
-			var href = link.getAttribute( 'href' ) || '';
+			const href = link.getAttribute( 'href' ) || '';
 			expose( link );
 			clickedLinks.push( link );
 

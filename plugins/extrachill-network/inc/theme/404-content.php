@@ -49,11 +49,11 @@ function extrachill_network_fallback_error_heading( $heading ) { // phpcs:ignore
 function extrachill_network_404_content_links() {
 	$main_site_url = ec_get_site_url( 'main' );
 	?>
-	<p><?php esc_html_e( 'Think this page should exist?', 'extrachill' ); ?> <a href="<?php echo esc_url( $main_site_url ); ?>/contact/"><?php esc_html_e( 'Let us know.', 'extrachill' ); ?></a></p>
+	<p><?php esc_html_e( 'Think this page should exist?', 'extrachill-network' ); ?> <a href="<?php echo esc_url( $main_site_url ); ?>/contact/"><?php esc_html_e( 'Let us know.', 'extrachill-network' ); ?></a></p>
 	<div class="error-404-links">
-		<a href="<?php echo esc_url( $main_site_url ); ?>/contact/" class="button-2 button-medium"><?php esc_html_e( 'Contact Us', 'extrachill' ); ?></a>
-		<a href="<?php echo esc_url( ec_get_site_url( 'docs' ) ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Browse Documentation', 'extrachill' ); ?></a>
-		<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/r/tech-support' ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Tech Support Forum', 'extrachill' ); ?></a>
+		<a href="<?php echo esc_url( $main_site_url ); ?>/contact/" class="button-2 button-medium"><?php esc_html_e( 'Contact Us', 'extrachill-network' ); ?></a>
+		<a href="<?php echo esc_url( ec_get_site_url( 'docs' ) ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Browse Documentation', 'extrachill-network' ); ?></a>
+		<a href="<?php echo esc_url( ec_get_site_url( 'community' ) . '/r/tech-support' ); ?>" class="button-2 button-medium"><?php esc_html_e( 'Tech Support Forum', 'extrachill-network' ); ?></a>
 	</div>
 	<?php
 }
