@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.6] - 2026-11-01
+
+### Changed
+- point package metadata at the monorepo
+
 ## [0.9.5] - 2026-10-31
 
 ### Changed
