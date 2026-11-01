@@ -14,6 +14,43 @@ The following contexts are registered by default:
 - `archive`: Form displayed on the newsletter archive page.
 - `contact`: Checkbox integration for contact forms (uses a separate list).
 
+## Member preferences and account deletion
+
+The logged-in abilities `extrachill/newsletter-get-my-subscriptions` (empty input)
+and `extrachill/newsletter-set-my-subscription` (`{ "list": "<key>", "subscribed": true }`)
+are REST-visible through core `/wp-abilities/v1`. Both use the current account's
+email exclusively and reject extra input fields, including email and user ID.
+The getter returns `{ "lists": [{ "key": "newsletter", "name": "Extra Chill newsletter", "subscribed": true }] }`.
+
+Campaigns go to every network list (`all_lists`), so each signup form's list is
+a source of the same newsletter, not a separate newsletter. Members therefore see
+one preference, `newsletter`:
+
+- **Subscribed** means the account email is `Subscribed` on any configured list.
+- **On** subscribes it to the registration list (falling back to homepage).
+- **Off** unsubscribes it from every configured list, deduplicated by Sendy ID.
+
+Per-form keys and raw Sendy IDs are not accepted, and no Sendy IDs or credentials
+are returned. Sendy status failures return errors rather than falsely reporting
+an opt-out. The `lists` array keeps room for genuinely separate newsletters later.
+
+Account deletion listens to `extrachill_user_self_deleted` and unsubscribes the
+supplied pre-deletion email from **all** configured integration lists, including
+non-member lists, once per distinct Sendy ID. Each failure is logged without PII
+and does not prevent other lists being attempted or account deletion proceeding.
+The optional users-plugin unsubscriber callable is intentionally not implemented
+in addition to the action, avoiding duplicate requests during deletion.
+
+Credentials come only from Data Machine Business. Subscription and status use its
+existing Sendy primitive/client; unsubscribe follows the same form-encoded HTTP
+contract against `/unsubscribe`. Admin settings abilities are unchanged.
+
+Smoke coverage (requires the installed Data Machine Business source):
+
+```sh
+php tests/member-subscriptions-smoke.php /path/to/data-machine-business/inc/Sendy/SendyClient.php
+```
+
 ## Registering New Integrations
 
 To add a new integration context, use the `newsletter_form_integrations` filter. This adds the context to the Newsletter Settings page on `newsletter.extrachill.com`, where an administrator can map it to a Sendy List ID.

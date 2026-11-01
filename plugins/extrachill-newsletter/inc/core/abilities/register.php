@@ -35,7 +35,9 @@ function extrachill_newsletter_register_category() {
 }
 
 // Load ability files — each self-registers on wp_abilities_api_init.
+require_once dirname( __DIR__ ) . '/member-subscriptions.php';
 require_once __DIR__ . '/subscribe.php';
+require_once __DIR__ . '/member-subscriptions.php';
 require_once __DIR__ . '/sync.php';
 require_once __DIR__ . '/campaign.php';
 require_once __DIR__ . '/send-campaign.php';
