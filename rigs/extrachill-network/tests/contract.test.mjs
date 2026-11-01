@@ -514,3 +514,13 @@ try {
     assert.deepEqual(inMemoryOpcacheInputs(version), {}, `wp-codebox default OPcache on PHP ${version}`);
   }
 }
+
+{
+  const { applyCodeboxBinSetting } = await import('../run.mjs');
+  const env = { HOMEBOY_WP_CODEBOX_BIN: '/ci/wp-codebox' };
+  applyCodeboxBinSetting({}, env);
+  assert.equal(env.HOMEBOY_WP_CODEBOX_BIN, '/ci/wp-codebox', 'no setting leaves the env binary alone');
+  applyCodeboxBinSetting({ extrachill_wp_codebox_bin: '/lab/wp-codebox/index.js' }, env);
+  assert.equal(env.HOMEBOY_WP_CODEBOX_BIN, '/lab/wp-codebox/index.js', 'setting pins the binary for the run');
+  assert.throws(() => applyCodeboxBinSetting({ extrachill_wp_codebox_bin: 'relative/index.js' }, {}), /absolute path/);
+}
