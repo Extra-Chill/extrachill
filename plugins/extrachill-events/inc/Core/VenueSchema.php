@@ -48,11 +48,12 @@ class VenueSchema {
 
 	/** Create or repair all tables, stamping the version only after verification. */
 	public static function install() {
+		/** @var \wpdb $wpdb */
 		global $wpdb;
 		$schema_lock = null;
 		$lock_guard  = null;
 		if ( isset( $wpdb->dbh ) && $wpdb->dbh instanceof \mysqli ) {
-			$schema_lock = 'ec_venue_schema_' . substr( hash( 'sha256', (string) DB_NAME . "\0" . $wpdb->prefix ), 0, 40 );
+			$schema_lock = 'ec_venue_schema_' . substr( hash( 'sha256', (string) \constant( 'DB_NAME' ) . "\0" . $wpdb->prefix ), 0, 40 );
 			$acquired    = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 30)', $schema_lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes concurrent installers for this site prefix.
 			if ( 1 !== (int) $acquired ) {
 				return new \WP_Error( 'venue_schema_lock_failed', __( 'The venue schema installer could not acquire its site lock.', 'extrachill-events' ) );
@@ -93,11 +94,11 @@ class VenueSchema {
 			return true;
 		}
 
-		$members             = self::memberships_table();
-		$claims              = self::claims_table();
-		$invites             = self::invitations_table();
-		$audit               = self::onboarding_audit_table();
-		$charset             = $wpdb->get_charset_collate();
+		$members = self::memberships_table();
+		$claims  = self::claims_table();
+		$invites = self::invitations_table();
+		$audit   = self::onboarding_audit_table();
+		$charset = $wpdb->get_charset_collate();
 
 		$members_sql = "CREATE TABLE {$members} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -200,10 +201,10 @@ class VenueSchema {
 				'venue_schema_dbdelta_failed',
 				__( 'The venue schema could not be reconciled.', 'extrachill-events' ),
 				array(
-					'members_error'             => $members_error,
-					'claims_error'              => $claims_error,
-					'invites_error'             => $invites_error,
-					'audit_error'               => $audit_error,
+					'members_error' => $members_error,
+					'claims_error'  => $claims_error,
+					'invites_error' => $invites_error,
+					'audit_error'   => $audit_error,
 				)
 			);
 			self::record_failure( $error );
@@ -509,11 +510,11 @@ class VenueSchema {
 			);
 		};
 		return array(
-			self::memberships_table()             => array(
+			self::memberships_table()      => array(
 				'absent_columns' => array( 'role' ),
 				'absent_indexes' => array( 'venue_status_role' ),
-				'engine'  => 'innodb',
-				'columns' => array(
+				'engine'         => 'innodb',
+				'columns'        => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'venue_term_id'      => $required( 'bigint unsigned', false ),
 					'user_id'            => $required( 'bigint unsigned', false ),
@@ -525,7 +526,7 @@ class VenueSchema {
 					'updated_at'         => $required( 'datetime', false ),
 					'revoked_at'         => $required( 'datetime', true ),
 				),
-				'indexes' => array(
+				'indexes'        => array(
 					'PRIMARY'            => array(
 						'unique'  => true,
 						'columns' => array( 'id' ),
@@ -544,7 +545,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::claims_table()                  => array(
+			self::claims_table()           => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -585,7 +586,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::invitations_table()             => array(
+			self::invitations_table()      => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -639,7 +640,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::onboarding_audit_table()        => array(
+			self::onboarding_audit_table() => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'              => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
