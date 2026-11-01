@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.35.2] - 2026-11-01
+
+### Fixed
+- one loopback per taxonomy on a cold event-count cache; cache public cross-site reads
+
 ## [2.35.1] - 2026-11-01
 
 ### Changed
