@@ -107,6 +107,11 @@
             "runtime": "host"
           },
           {
+            "name": "commerce-seller-unit",
+            "config": "phpunit-commerce-seller-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "rsvp-perks-unit",
             "config": "phpunit-rsvp-perks-unit.xml.dist",
             "runtime": "host"

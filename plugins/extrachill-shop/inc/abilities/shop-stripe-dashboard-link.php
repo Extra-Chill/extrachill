@@ -24,7 +24,7 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
 		'extrachill/shop-stripe-dashboard-link',
 		array(
 			'label'       => __( 'Stripe Dashboard Link', 'extrachill-shop' ),
-			'description' => __( 'Generate a Stripe Express dashboard login link for an artist\'s connected account.', 'extrachill-shop' ),
+			'description' => __( 'Generate a Stripe Express dashboard login link for a seller\'s connected account (artist, venue, or promoter).', 'extrachill-shop' ),
 			'category'    => 'extrachill-shop',
 			'input_schema' => array(
 				'type'       => 'object',
@@ -33,8 +33,8 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
 					),
+					'seller'    => extrachill_shop_seller_input_schema(),
 				),
-				'required' => array( 'artist_id' ),
 			),
 			'output_schema' => array(
 				'type'       => 'object',
@@ -44,16 +44,7 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_stripe_dashboard_link',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_not_logged_in', 'You must be logged in to access this endpoint.', array( 'status' => 401 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				return extrachill_shop_current_user_can_manage_artist( $artist_id );
-			},
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
 			'meta' => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -75,9 +66,12 @@ function extrachill_shop_register_stripe_dashboard_link_ability(): void {
  * @return array|WP_Error
  */
 function extrachill_shop_ability_stripe_dashboard_link( array $input ): array|WP_Error {
-	$artist_id = (int) ( $input['artist_id'] ?? 0 );
+	$seller = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
 
-	$account_id = extrachill_shop_get_artist_stripe_account( $artist_id );
+	$account_id = extrachill_shop_get_seller_stripe_account( $seller );
 
 	if ( empty( $account_id ) ) {
 		return new WP_Error( 'no_stripe_account', 'No Stripe account connected.', array( 'status' => 400 ) );

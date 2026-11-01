@@ -151,9 +151,10 @@ function extrachill_shop_get_cart_artist_count() {
 			continue;
 		}
 
-		$artist_id = extrachill_shop_get_product_artist_id( $product_id );
-		if ( $artist_id ) {
-			$artist_ids[ $artist_id ] = true;
+		// Each seller (artist, venue, or promoter) ships separately.
+		$seller = extrachill_shop_get_product_seller( $product_id );
+		if ( $seller ) {
+			$artist_ids[ extrachill_shop_seller_key( $seller ) ] = true;
 		}
 	}
 

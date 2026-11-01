@@ -61,8 +61,9 @@ add_action( 'extrachill_api_register_routes', 'extrachill_api_register_stripe_co
 /**
  * Permission callback for Stripe Connect endpoints.
  *
- * Stripe Connect is scoped to an artist profile. The request must include
- * an artist ID that the current user can manage.
+ * Stripe Connect is scoped to a seller. Artist requests pass `artist_id`,
+ * checked here; venue and promoter requests pass `seller_type` + `seller_id`
+ * and are authorized by the Shop ability when it executes.
  *
  * @param WP_REST_Request $request Request object.
  * @return bool|WP_Error True if permitted, WP_Error otherwise.
@@ -74,6 +75,11 @@ function extrachill_api_stripe_connect_permission( $request ) {
 			'You must be logged in to access this endpoint.',
 			array( 'status' => 401 )
 		);
+	}
+
+	// Venue and promoter sellers are authorized by the Shop ability (Events-owned finance authority).
+	if ( null !== $request->get_param( 'seller_type' ) ) {
+		return true;
 	}
 
 	$artist_id = absint( $request->get_param( 'artist_id' ) );
@@ -118,7 +124,7 @@ function extrachill_api_get_stripe_status( $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array( 'artist_id' => absint( $request->get_param( 'artist_id' ) ) ) );
+	$result = $ability->execute( extrachill_api_stripe_connect_input( $request ) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -140,7 +146,7 @@ function extrachill_api_get_onboarding_link( $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array( 'artist_id' => absint( $request->get_param( 'artist_id' ) ) ) );
+	$result = $ability->execute( extrachill_api_stripe_connect_input( $request ) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
@@ -162,10 +168,28 @@ function extrachill_api_get_dashboard_link( $request ) {
 		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
 
-	$result = $ability->execute( array( 'artist_id' => absint( $request->get_param( 'artist_id' ) ) ) );
+	$result = $ability->execute( extrachill_api_stripe_connect_input( $request ) );
 	if ( is_wp_error( $result ) ) {
 		return $result;
 	}
 
 	return rest_ensure_response( $result );
+}
+
+/**
+ * Map a Stripe Connect request to Shop ability input.
+ *
+ * @param WP_REST_Request $request Request object.
+ * @return array Ability input with `seller` or `artist_id`.
+ */
+function extrachill_api_stripe_connect_input( $request ) {
+	if ( null !== $request->get_param( 'seller_type' ) ) {
+		return array(
+			'seller' => array(
+				'type' => sanitize_key( (string) $request->get_param( 'seller_type' ) ),
+				'id'   => absint( $request->get_param( 'seller_id' ) ),
+			),
+		);
+	}
+	return array( 'artist_id' => absint( $request->get_param( 'artist_id' ) ) );
 }

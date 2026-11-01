@@ -142,12 +142,12 @@ function extrachill_shop_product_can_publish( $product_id ) {
 		return new WP_Error( 'product_image_required', 'Products must have an image to publish.', array( 'status' => 400 ) );
 	}
 
-	$artist_id = absint( get_post_meta( $product_id, '_artist_profile_id', true ) );
-	if ( ! $artist_id ) {
+	$seller = extrachill_shop_get_product_seller( $product_id );
+	if ( ! $seller ) {
 		return new WP_Error( 'missing_artist', 'Product is missing an artist association.', array( 'status' => 400 ) );
 	}
 
-	$record               = extrachill_shop_get_stripe_account_record( $artist_id );
+	$record               = extrachill_shop_get_seller_stripe_account_record( $seller );
 	$stripe_account_id    = $record ? (string) $record['account_id'] : '';
 	$can_receive_payments = $record && 'active' === ( $record['status'] ?? '' );
 
@@ -156,8 +156,8 @@ function extrachill_shop_product_can_publish( $product_id ) {
 		if ( ! empty( $status['success'] ) && ! empty( $status['can_receive_payments'] ) ) {
 			$can_receive_payments = true;
 
-			extrachill_shop_set_stripe_account_record(
-				$artist_id,
+			extrachill_shop_set_seller_stripe_account_record(
+				$seller,
 				array(
 					'account_id'          => $stripe_account_id,
 					'status'              => (string) ( $status['status'] ?? '' ),

@@ -23,6 +23,62 @@ function extrachill_shop_get_product_artist_id( $product_id ) {
 }
 
 /**
+ * Get the seller that owns a product.
+ *
+ * Venue and promoter products store a typed seller in two scalar meta keys.
+ * Every other product falls back to its artist profile, so existing artist
+ * products resolve exactly as before.
+ *
+ * @param int $product_id WooCommerce product ID.
+ * @return array|false Seller reference { type, id } or false for platform products.
+ */
+function extrachill_shop_get_product_seller( $product_id ) {
+	$type = (string) get_post_meta( $product_id, '_extrachill_shop_seller_type', true );
+	$id   = (int) get_post_meta( $product_id, '_extrachill_shop_seller_id', true );
+	if ( in_array( $type, array( 'venue', 'promoter' ), true ) && $id > 0 ) {
+		return array(
+			'type' => $type,
+			'id'   => $id,
+		);
+	}
+
+	$artist_id = extrachill_shop_get_product_artist_id( $product_id );
+	return $artist_id ? array(
+		'type' => 'artist',
+		'id'   => $artist_id,
+	) : false;
+}
+
+/**
+ * Assign a product to a seller.
+ *
+ * Artists keep using `_artist_profile_id`; venues and promoters use the typed
+ * seller keys. Switching seller type clears the other storage.
+ *
+ * @param int   $product_id WooCommerce product ID.
+ * @param array $seller     Seller reference.
+ * @return bool
+ */
+function extrachill_shop_set_product_seller( $product_id, $seller ) {
+	$seller = extrachill_shop_validate_seller_ref( $seller );
+	if ( empty( $product_id ) || is_wp_error( $seller ) ) {
+		return false;
+	}
+
+	if ( 'artist' === $seller['type'] ) {
+		delete_post_meta( $product_id, '_extrachill_shop_seller_type' );
+		delete_post_meta( $product_id, '_extrachill_shop_seller_id' );
+		update_post_meta( $product_id, '_artist_profile_id', $seller['id'] );
+		return (int) get_post_meta( $product_id, '_artist_profile_id', true ) === $seller['id'];
+	}
+
+	delete_post_meta( $product_id, '_artist_profile_id' );
+	update_post_meta( $product_id, '_extrachill_shop_seller_type', $seller['type'] );
+	update_post_meta( $product_id, '_extrachill_shop_seller_id', $seller['id'] );
+	return extrachill_shop_get_product_seller( $product_id ) === $seller;
+}
+
+/**
  * Set the artist profile ID for a product.
  *
  * @param int $product_id WooCommerce product ID.
