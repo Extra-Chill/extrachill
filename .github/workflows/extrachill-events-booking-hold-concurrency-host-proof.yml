@@ -171,6 +171,6 @@ jobs:
           DB_PORT: '3306'
           WP_TESTS_DIR: /tmp/wp-tests-lib
           WP_CORE_DIR: /tmp/wordpress-core
-          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/plugins/extrachill-events/vendor/yoast/phpunit-polyfills
+          WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/plugins/extrachill-booking/vendor/yoast/phpunit-polyfills
           DME_PLUGIN_DIR: ${{ github.workspace }}/.ci/data-machine-events
         run: vendor/bin/phpunit --configuration phpunit-booking-alpha-concurrency.xml.dist --testdox

@@ -7,7 +7,8 @@
     "php": ">=8.4"
   },
   "require-dev": {
-    "phpunit/phpunit": "^9.6"
+    "phpunit/phpunit": "^9.6",
+    "yoast/phpunit-polyfills": "^3.0"
   },
   "scripts": {
     "lint:php": "homeboy extension exec wordpress -- \"$HOMEBOY_EXTENSION_PATH/vendor/bin/phpcs\" --standard='$HOMEBOY_EXTENSION_PATH/rulesets/homeboy-wordpress-project.xml' .",
