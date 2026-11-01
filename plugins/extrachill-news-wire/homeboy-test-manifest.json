@@ -1,0 +1,23 @@
+{
+  "schema": "homeboy/test-manifest/v1",
+  "tests": {
+    "tests/smoke-classification.php": {
+      "environment": "standalone-php"
+    },
+    "tests/smoke-content-card.php": {
+      "environment": "standalone-php"
+    },
+    "tests/smoke-festival-wire-assets.php": {
+      "environment": "standalone-php"
+    },
+    "tests/smoke-festival-wire-filters.php": {
+      "environment": "standalone-php"
+    },
+    "tests/smoke-festival-wire-notifications.php": {
+      "environment": "standalone-php"
+    },
+    "tests/smoke-recent-activity-ability.php": {
+      "environment": "standalone-php"
+    }
+  }
+}

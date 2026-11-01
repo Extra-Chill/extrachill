@@ -4,6 +4,9 @@
   "extensions": {
     "wordpress": {
       "settings": {
+        "standalone_php_test_paths": [
+          "tests/smoke-*.php"
+        ],
         "validation_dependencies": [
           "extrachill-network"
         ]
