@@ -32,7 +32,7 @@ function extrachill_blog_request_cross_site_ability( $site_key, $ability_name, $
 
 	add_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
 	try {
-		return ec_cross_site_rest_request(
+		return extrachill_blog_cached_cross_site_request(
 			(string) $site_key,
 			'GET',
 			'/wp-abilities/v1/abilities/' . (string) $ability_name . '/run',
@@ -43,6 +43,31 @@ function extrachill_blog_request_cross_site_ability( $site_key, $ability_name, $
 	} finally {
 		remove_filter( 'ec_cross_site_use_http_loopback', $force_loopback, 10 );
 	}
+}
+
+/**
+ * Cache public cross-site reads by destination and complete request inputs.
+ *
+ * Errors are deliberately not cached so a transport failure can recover promptly.
+ *
+ * @param string $site_key Site key.
+ * @param string $method   HTTP method.
+ * @param string $route    REST route.
+ * @param array  $args     Request arguments.
+ * @return array|string|WP_Error Owner response or transport error.
+ */
+function extrachill_blog_cached_cross_site_request( $site_key, $method, $route, $args = array() ) {
+	$cache_key = 'ec_blog_public_read_' . md5( (string) wp_json_encode( array( $site_key, $method, $route, $args ) ) );
+	$cached    = get_transient( $cache_key );
+	if ( false !== $cached ) {
+		return $cached;
+	}
+
+	$result = ec_cross_site_rest_request( $site_key, $method, $route, $args );
+	if ( ! is_wp_error( $result ) ) {
+		set_transient( $cache_key, $result, 10 * MINUTE_IN_SECONDS );
+	}
+	return $result;
 }
 
 /**

@@ -127,6 +127,13 @@ abstract class CommunityStatsProvider extends AbstractMetricProvider {
 		// site's process, so the default in-process switch_to_blog dispatch
 		// cannot satisfy it.
 		if ( function_exists( 'ec_cross_site_rest_request' ) ) {
+			$cache_key = 'ec_community_stats_' . (int) $community_blog_id;
+			$cached    = get_transient( $cache_key );
+			if ( is_array( $cached ) ) {
+				self::$payload = $cached;
+				return self::$payload;
+			}
+
 			$force_http = static function ( $use_http, $site_key ) {
 				return 'community' === $site_key ? true : $use_http;
 			};
@@ -143,6 +150,7 @@ abstract class CommunityStatsProvider extends AbstractMetricProvider {
 			}
 
 			if ( ! is_wp_error( $response ) && is_array( $response ) ) {
+				set_transient( $cache_key, $response, 10 * MINUTE_IN_SECONDS );
 				self::$payload = $response;
 				return self::$payload;
 			}
