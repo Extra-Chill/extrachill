@@ -1,9 +1,5 @@
 # Extra Chill Artist Platform
 
-## End-user help
-
-`docs/user/*.md` is the canonical source for artist help. Deploy ships these files, then `extrachill-docs/publish-plugin-docs` publishes them as pages on docs.extrachill.com. Edit help here rather than in published pages; follow the docs plugin's writing rules and voice check.
-
 ## Link Pages runtime dependency
 
 Artist Platform requires the `extrachill-link-pages` plugin (`Requires Plugins:
