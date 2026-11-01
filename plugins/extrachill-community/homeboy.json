@@ -19,7 +19,12 @@
       }
     },
     "nodejs": {
-      "settings": {}
+      "settings": {
+        "local_workspace_dependencies": [
+          { "name": "@extrachill/tokens", "path": "../../packages/tokens" },
+          { "name": "@extrachill/components", "path": "../../packages/components" }
+        ]
+      }
     }
   },
   "extract_command": "unzip -o {{artifact}} && rm {{artifact}}",
