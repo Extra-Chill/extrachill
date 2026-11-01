@@ -101,6 +101,25 @@ class MonorepoDeployTest(unittest.TestCase):
         self.assertIn("--source https://github.com/Extra-Chill/homeboy\n", extensions)
         self.assertNotIn("homeboy-extensions", text)
         self.assertIn('join(",")', names["Plan"]["run"])
+        # #485: automatic deploys follow Release and plan from the recorded deployed sha.
+        triggers = workflow[True] if True in workflow else workflow["on"]
+        self.assertNotIn("push", triggers)
+        self.assertEqual(triggers["workflow_run"],
+                         {"workflows": ["Release"], "types": ["completed"], "branches": ["main"]})
+        checkout = steps[0]
+        self.assertEqual(checkout["with"]["ref"], "${{ inputs.sha || 'main' }}")
+        plan = names["Plan"]["run"]
+        self.assertIn("artifacts?name=monorepo-deployed-sha", plan)
+        self.assertNotIn("event.before", text)
+        upload = names["Upload deployed sha"]
+        self.assertEqual(upload["with"]["name"], "monorepo-deployed-sha")
+        for name in ["Record deployed sha", "Upload deployed sha"]:
+            cond = names[name]["if"]
+            self.assertIn("success()", cond)
+            self.assertIn("github.event_name != 'workflow_dispatch'", cond)
+            self.assertIn("dry_run == 'false'", cond)
+        order = [s.get("name") for s in steps]
+        self.assertLess(order.index("Verify"), order.index("Upload deployed sha"))
 
 
 if __name__ == "__main__":

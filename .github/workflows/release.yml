@@ -10,8 +10,8 @@ permissions:
 # with unreleased commits since its own `<id>-vX.Y.Z` tag, serially in one job,
 # each with its own version bump, changelog and GitHub Release. Components with
 # nothing to release are skipped, and a component missed by one run is picked
-# up by the next. Deploys are separate: deploy-monorepo.yml ships the merged
-# commit for the changed components.
+# up by the next. Deploy monorepo runs when this workflow completes (#485) and
+# ships main's tip, so each merge's release bump deploys with the merge.
 on:
   push:
     branches: [main]
