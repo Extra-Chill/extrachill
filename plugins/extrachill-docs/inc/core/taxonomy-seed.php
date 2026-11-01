@@ -6,8 +6,9 @@
  * canonical network site map in extrachill-multisite.
  *
  * Source of truth: ec_get_blog_ids() in extrachill-multisite/inc/core/blog-ids.php.
- * Each slug maps to ec_docs/{slug}/ for markdown source and the corresponding
- * network site for docs-info API calls.
+ * End-user markdown lives in each owning plugin's docs/user/ directory;
+ * runner-configs/platform-map.yml maps sources to published page sections.
+ * Network sites supply the metadata for docs-info API calls.
  *
  * Sites excluded from seeding:
  * - docs (this site doesn't document itself)
