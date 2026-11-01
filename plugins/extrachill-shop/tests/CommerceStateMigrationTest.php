@@ -22,6 +22,40 @@ final class CommerceStateMigrationTest extends TestCase {
 		};
 	}
 
+	public function test_typed_seller_records_do_not_collide(): void {
+		foreach ( array( 'artist', 'venue', 'promoter' ) as $type ) {
+			$seller = array( 'type' => $type, 'id' => 9 );
+			$this->assertTrue( extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_' . $type ) ) );
+			$this->assertSame( $seller, extrachill_shop_get_seller_stripe_account_record( $seller )['seller'] );
+			$this->assertTrue( extrachill_shop_update_stripe_account_by_id( 'acct_' . $type, 'active', true ) );
+			$this->assertSame( 'active', extrachill_shop_get_seller_stripe_account_record( $seller )['status'] );
+		}
+		$this->assertSame( 'acct_artist', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
+	}
+
+	public function test_artist_option_migrates_once_and_old_webhook_index_remains_readable(): void {
+		$legacy = array( 'account_id' => 'acct_old', 'status' => 'pending', 'updated_at' => '2026-01-01T00:00:00Z' );
+		update_option( extrachill_shop_stripe_artist_option_name( 9 ), $legacy );
+		update_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', 'acct_old' ), 9 );
+		$record = extrachill_shop_get_stripe_account_record( 9 );
+		$this->assertSame( 2, $record['version'] );
+		$this->assertSame( $legacy['updated_at'], $record['updated_at'] );
+		$this->assertSame( $record, extrachill_shop_get_stripe_account_record( 9 ) );
+		$this->assertTrue( extrachill_shop_update_stripe_account_by_id( 'acct_old', 'active', true ) );
+		$this->assertSame( 'active', extrachill_shop_get_stripe_account_record( 9 )['status'] );
+	}
+
+	public function test_invalid_sellers_and_conflicting_bindings_are_rejected(): void {
+		foreach ( array( null, array(), array( 'type' => 'venue', 'id' => -1 ), array( 'type' => 'venue', 'id' => '9' ), array( 'type' => 'other', 'id' => 9 ) ) as $seller ) {
+			$this->assertInstanceOf( WP_Error::class, extrachill_shop_validate_seller_ref( $seller ) );
+			$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( $seller, array( 'account_id' => 'acct_invalid' ) ) );
+		}
+		$this->assertTrue( extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_one' ) ) );
+		$this->assertFalse( extrachill_shop_set_seller_stripe_account_record( array( 'type' => 'venue', 'id' => 9 ), array( 'account_id' => 'acct_one' ) ) );
+		$this->assertFalse( extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_two' ) ) );
+		$this->assertSame( 'acct_one', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
+	}
+
 	public function test_stripe_migration_is_dry_run_then_idempotent(): void {
 		$legacy = array( 'account_id' => 'acct_legacy', 'status' => 'active', 'onboarding_complete' => true );
 

@@ -83,6 +83,96 @@ function extrachill_shop_current_user_can_manage_artist( $artist_id ) {
 }
 
 /**
+ * Validate a typed seller reference without coercing invalid IDs.
+ *
+ * @param mixed $seller Seller reference.
+ * @return array|WP_Error
+ */
+function extrachill_shop_validate_seller_ref( $seller ) {
+	if ( ! is_array( $seller )
+		|| ! in_array( $seller['type'] ?? '', array( 'artist', 'venue', 'promoter' ), true )
+		|| ! is_int( $seller['id'] ?? null ) || $seller['id'] < 1 ) {
+		return new WP_Error( 'invalid_seller', __( 'A valid seller type and positive integer ID are required.', 'extrachill-shop' ), array( 'status' => 400 ) );
+	}
+	return array(
+		'type' => $seller['type'],
+		'id'   => $seller['id'],
+	);
+}
+
+/**
+ * Read seller state, lazily migrating the previous artist option in place.
+ *
+ * The legacy option is retained for safe replay; the typed record wins once
+ * present. Reads never overwrite an existing typed binding.
+ *
+ * @param array $seller Seller reference.
+ * @return array|false
+ */
+function extrachill_shop_get_seller_stripe_account_record( $seller ) {
+	$seller = extrachill_shop_validate_seller_ref( $seller );
+	if ( is_wp_error( $seller ) ) {
+		return false;
+	}
+	$key    = 'extrachill_shop_stripe_seller_' . $seller['type'] . ':' . $seller['id'];
+	$record = get_option( $key, false );
+	if ( false === $record && 'artist' === $seller['type'] ) {
+		$legacy = get_option( extrachill_shop_stripe_artist_option_name( $seller['id'] ), false );
+		if ( is_array( $legacy ) && extrachill_shop_set_seller_stripe_account_record( $seller, $legacy, true ) ) {
+			$record = get_option( $key, false );
+		}
+	}
+	return is_array( $record ) ? $record : false;
+}
+
+/**
+ * Persist seller state and the webhook reverse index.
+ *
+ * @param array $seller Seller reference.
+ * @param array $record             Account projection.
+ * @param bool  $preserve_timestamp Keep the record's updated_at (lazy migration only).
+ * @return bool
+ */
+function extrachill_shop_set_seller_stripe_account_record( $seller, array $record, $preserve_timestamp = false ) {
+	$seller     = extrachill_shop_validate_seller_ref( $seller );
+	$account_id = sanitize_text_field( (string) ( $record['account_id'] ?? '' ) );
+	if ( is_wp_error( $seller ) || '' === $account_id ) {
+		return false;
+	}
+	$key   = 'extrachill_shop_stripe_seller_' . $seller['type'] . ':' . $seller['id'];
+	$index = 'extrachill_shop_stripe_account_' . hash( 'sha256', $account_id );
+	$bound = get_option( $index, false );
+	if ( false !== $bound ) {
+		$bound = is_array( $bound ) ? $bound : array(
+			'type' => 'artist',
+			'id'   => absint( $bound ),
+		);
+		if ( $bound !== $seller ) {
+			return false;
+		}
+	}
+	$existing = get_option( $key, false );
+	if ( is_array( $existing ) && ( $existing['account_id'] ?? '' ) !== $account_id ) {
+		return false;
+	}
+	$stored = array(
+		'version'             => 2,
+		'seller'              => $seller,
+		'account_id'          => $account_id,
+		'status'              => sanitize_key( (string) ( $record['status'] ?? 'pending' ) ),
+		'onboarding_complete' => ! empty( $record['onboarding_complete'] ),
+		'updated_at'          => $preserve_timestamp && ! empty( $record['updated_at'] ) ? (string) $record['updated_at'] : gmdate( 'c' ),
+	);
+	if ( 'artist' === $seller['type'] ) {
+		$stored['artist_id'] = $seller['id'];
+	}
+	$saved   = update_option( $key, $stored, false );
+	$indexed = update_option( $index, $seller, false );
+	return ( $saved || get_option( $key, false ) === $stored )
+		&& ( $indexed || get_option( $index, false ) === $seller );
+}
+
+/**
  * Build the private option key for an artist's Shop-owned Stripe projection.
  *
  * @param int $artist_id Canonical artist profile ID.
@@ -99,8 +189,12 @@ function extrachill_shop_stripe_artist_option_name( $artist_id ) {
  * @return array|false
  */
 function extrachill_shop_get_stripe_account_record( $artist_id ) {
-	$record = get_option( extrachill_shop_stripe_artist_option_name( $artist_id ), false );
-	return is_array( $record ) ? $record : false;
+	return extrachill_shop_get_seller_stripe_account_record(
+		array(
+			'type' => 'artist',
+			'id'   => absint( $artist_id ),
+		)
+	);
 }
 
 /**
@@ -111,27 +205,13 @@ function extrachill_shop_get_stripe_account_record( $artist_id ) {
  * @return bool
  */
 function extrachill_shop_set_stripe_account_record( $artist_id, array $record ) {
-	$artist_id  = absint( $artist_id );
-	$account_id = isset( $record['account_id'] ) ? sanitize_text_field( (string) $record['account_id'] ) : '';
-	if ( ! $artist_id || '' === $account_id ) {
-		return false;
-	}
-
-	$stored = array(
-		'version'             => 1,
-		'artist_id'           => $artist_id,
-		'account_id'          => $account_id,
-		'status'              => sanitize_key( (string) ( $record['status'] ?? 'pending' ) ),
-		'onboarding_complete' => ! empty( $record['onboarding_complete'] ),
-		'updated_at'          => gmdate( 'c' ),
+	return extrachill_shop_set_seller_stripe_account_record(
+		array(
+			'type' => 'artist',
+			'id'   => absint( $artist_id ),
+		),
+		$record
 	);
-	$artist_option  = extrachill_shop_stripe_artist_option_name( $artist_id );
-	$account_option = 'extrachill_shop_stripe_account_' . hash( 'sha256', $account_id );
-	$record_saved   = update_option( $artist_option, $stored, false );
-	$index_saved    = update_option( $account_option, $artist_id, false );
-
-	return ( $record_saved || get_option( $artist_option, false ) === $stored )
-		&& ( $index_saved || absint( get_option( $account_option, 0 ) ) === $artist_id );
 }
 
 /**
@@ -143,13 +223,20 @@ function extrachill_shop_set_stripe_account_record( $artist_id, array $record ) 
  * @return bool
  */
 function extrachill_shop_update_stripe_account_by_id( $account_id, $status, $onboarding_complete ) {
-	$artist_id = absint( get_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', (string) $account_id ), 0 ) );
-	$record    = $artist_id ? extrachill_shop_get_stripe_account_record( $artist_id ) : false;
+	$reference = get_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', (string) $account_id ), 0 );
+	// Old reverse indexes contain an artist ID, not a typed reference.
+	$seller = extrachill_shop_validate_seller_ref(
+		is_array( $reference ) ? $reference : array(
+			'type' => 'artist',
+			'id'   => absint( $reference ),
+		)
+	);
+	$record = is_wp_error( $seller ) ? false : extrachill_shop_get_seller_stripe_account_record( $seller );
 	if ( ! $record || ! hash_equals( (string) $record['account_id'], (string) $account_id ) ) {
 		return false;
 	}
 
 	$record['status']              = sanitize_key( $status );
 	$record['onboarding_complete'] = (bool) $onboarding_complete;
-	return extrachill_shop_set_stripe_account_record( $artist_id, $record );
+	return extrachill_shop_set_seller_stripe_account_record( $seller, $record );
 }
