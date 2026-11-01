@@ -11,6 +11,9 @@
     }
   },
   "id": "extrachill-components",
+  "release": {
+    "publish": false
+  },
   "remote_path": "",
   "version_targets": [
     {
