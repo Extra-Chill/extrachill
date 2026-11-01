@@ -161,10 +161,11 @@
   "license": "GPL-2.0+",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Extra-Chill/extrachill-components.git"
+    "url": "https://github.com/Extra-Chill/extrachill.git",
+    "directory": "packages/components"
   },
-  "homepage": "https://github.com/Extra-Chill/extrachill-components",
-  "bugs": "https://github.com/Extra-Chill/extrachill-components/issues",
+  "homepage": "https://github.com/Extra-Chill/extrachill/tree/main/packages/components#readme",
+  "bugs": "https://github.com/Extra-Chill/extrachill/issues",
   "publishConfig": {
     "access": "public"
   },

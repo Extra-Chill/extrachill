@@ -49,11 +49,12 @@
   "license": "GPL-2.0+",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Extra-Chill/extrachill-tokens.git"
+    "url": "https://github.com/Extra-Chill/extrachill.git",
+    "directory": "packages/tokens"
   },
-  "homepage": "https://github.com/Extra-Chill/extrachill-tokens#readme",
+  "homepage": "https://github.com/Extra-Chill/extrachill/tree/main/packages/tokens#readme",
   "bugs": {
-    "url": "https://github.com/Extra-Chill/extrachill-tokens/issues"
+    "url": "https://github.com/Extra-Chill/extrachill/issues"
   },
   "publishConfig": {
     "access": "public"

@@ -30,7 +30,12 @@
   "license": "GPL-2.0+",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Extra-Chill/extrachill-api-client.git"
+    "url": "https://github.com/Extra-Chill/extrachill.git",
+    "directory": "packages/api-client"
+  },
+  "homepage": "https://github.com/Extra-Chill/extrachill/tree/main/packages/api-client#readme",
+  "bugs": {
+    "url": "https://github.com/Extra-Chill/extrachill/issues"
   },
   "keywords": [
     "extrachill",
