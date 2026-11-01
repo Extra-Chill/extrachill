@@ -387,6 +387,26 @@ jobs:
               --path "${path}" --source https://github.com/Extra-Chill/homeboy
           done
 
+      # #530 / Extra-Chill/homeboy#16911: gate build output forces sparse
+      # ref builds without packages/. Restore HEAD so deploy builds in place.
+      # Extensions live in HOMEBOY_CONFIG_ROOT (RUNNER_TEMP), outside this cleanup.
+      - name: Restore pristine checkout for deploy
+        if: steps.plan.outputs.dry_run == 'false' && steps.plan.outputs.deploy_count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # head may close the pipe early when the gate left many build files.
+          git status --porcelain --ignored=matching -- plugins themes packages | head -50 || true
+          git reset --hard HEAD
+          git clean -ffdx -- plugins themes packages
+          status="$(git status --porcelain --untracked-files=all --ignored=matching -- plugins themes packages)"
+          if [ -n "${status}" ]; then
+            echo "::error::Deploy checkout is not pristine after gate cleanup."
+            printf '%s\n' "${status}"
+            exit 1
+          fi
+
+      # Deploy consumes Plan's commands, not gate build output; Verify uses --check.
       # homeboy-action executes these comma-separated commands serially.
       # In plan-only mode no Deploy/Verify action receives SSH credentials.
       - name: Deploy

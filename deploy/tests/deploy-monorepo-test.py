@@ -65,6 +65,38 @@ class MonorepoDeployTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.prepare([entry])
 
+    def test_deploy_restores_pristine_checkout_after_gate(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/deploy-monorepo.yml").read_text())
+        steps = workflow["jobs"]["deploy"]["steps"]
+        names = {s.get("name"): s for s in steps}
+        order = [s.get("name") for s in steps]
+        cleanup_name = "Restore pristine checkout for deploy"
+        self.assertIn(cleanup_name, names)
+        cleanup = names[cleanup_name]
+        self.assertEqual(cleanup["if"], names["Deploy"]["if"])
+        self.assertEqual(cleanup["shell"], "bash")
+        for predecessor in ["Network rig gate", "Summarize network gate result",
+                            "Upload network rig gate evidence", "Install deployed components' extensions"]:
+            self.assertLess(order.index(predecessor), order.index(cleanup_name))
+        self.assertEqual(order.index(cleanup_name) + 1, order.index("Deploy"))
+        script = cleanup["run"]
+        self.assertIn("set -euo pipefail", script)
+        evidence = "git status --porcelain --ignored=matching -- plugins themes packages | head -50"
+        reset = "git reset --hard HEAD"
+        clean = "git clean -ffdx -- plugins themes packages"
+        assertion = 'status="$(git status --porcelain --untracked-files=all --ignored=matching -- plugins themes packages)"'
+        for command in [evidence, reset, clean, assertion]:
+            self.assertIn(command, script)
+        self.assertLess(script.index(evidence), script.index(reset))
+        self.assertLess(script.index(reset), script.index(clean))
+        self.assertLess(script.index(clean), script.index(assertion))
+        self.assertIn('if [ -n "${status}" ]; then\n'
+                      '  echo "::error::Deploy checkout is not pristine after gate cleanup."\n'
+                      '  printf \'%s\\n\' "${status}"\n'
+                      '  exit 1\nfi', script)
+        self.assertEqual(names["Deploy"]["with"]["commands"], "${{ steps.plan.outputs.command }}")
+        self.assertEqual(names["Verify"]["with"]["commands"], "deploy extrachill-monorepo --check")
+
     def test_workflow_contract(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/deploy-monorepo.yml").read_text())
         legacy = yaml.safe_load((ROOT / ".github/workflows/deploy.yml").read_text())
