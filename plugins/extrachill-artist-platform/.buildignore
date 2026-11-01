@@ -5,12 +5,18 @@
 .gitignore
 .gitattributes
 
+# Allow traversal and end-user help before the docs/ and Markdown exclusions.
+# No trailing slash: Homeboy strips it before passing rules to rsync.
++ /docs
++ /docs/user
++ /docs/user/*.md
+
 # Development documentation
 README.md
 MIGRATION-GUIDE.md
 CHANGELOG.md
 *.md
-docs/
+/docs/***
 
 # Development configuration
 .claude/

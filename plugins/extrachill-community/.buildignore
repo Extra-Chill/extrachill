@@ -5,6 +5,9 @@
 .gitignore
 .gitattributes
 
+# End-user help must precede the blanket Markdown exclusion (rsync first match wins).
++ /docs/user/*.md
+
 # Development documentation
 README.md
 next-steps.md
