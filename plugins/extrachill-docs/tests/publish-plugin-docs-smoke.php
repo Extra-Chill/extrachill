@@ -26,7 +26,7 @@ namespace {
 		array( 91, 'top-level', 0 ),
 	);
 	$GLOBALS['ec_test_meta']  = array(
-		90 => array( '_source_repo' => 'Extra-Chill/other' ),
+		90 => array( '_source_repo' => 'plugins/other' ),
 	);
 
 	class WP_Query {
@@ -65,29 +65,29 @@ namespace {
 	// Fixture plugins directory.
 	$root = sys_get_temp_dir() . '/ec-docs-publish-' . bin2hex( random_bytes( 4 ) );
 	mkdir( $root . '/extrachill-events/docs/user', 0777, true );
-	mkdir( $root . '/extrachill-docs/ec_docs/mcp', 0777, true );
+	mkdir( $root . '/extrachill-docs/docs/user', 0777, true );
 	file_put_contents( $root . '/extrachill-events/docs/user/finding-live-music.md', "# Finding Live Music\n\nBrowse shows.\n" );
 	file_put_contents( $root . '/extrachill-events/docs/user/b-second.md', "# Second\n" );
 	file_put_contents( $root . '/extrachill-events/docs/user/notes.txt', 'ignored' );
-	file_put_contents( $root . '/extrachill-docs/ec_docs/mcp/connect.md', "# Connecting Your AI Client\n" );
+	file_put_contents( $root . '/extrachill-docs/docs/user/connect.md', "# Connecting Your AI Client\n" );
 
 	$map = array(
 		array(
-			'repo'         => 'Extra-Chill/extrachill-events',
+			'repo'         => 'plugins/extrachill-events',
 			'parent_slug'  => 'events-calendar',
 			'parent_title' => 'Events Calendar',
 			'docs_subpath' => 'docs/user',
 			'post_status'  => 'publish',
 		),
 		array(
-			'repo'         => 'Extra-Chill/extrachill-docs',
+			'repo'         => 'plugins/extrachill-docs',
 			'parent_slug'  => 'mcp',
 			'parent_title' => 'Connect Your AI',
-			'docs_subpath' => 'ec_docs/mcp',
+			'docs_subpath' => 'docs/user',
 			'post_status'  => 'publish',
 		),
 		array(
-			'repo'         => 'Extra-Chill/extrachill-newsletter',
+			'repo'         => 'plugins/extrachill-newsletter',
 			'parent_slug'  => 'newsletter',
 			'parent_title' => 'Newsletter',
 			'docs_subpath' => 'docs/user',
@@ -100,15 +100,15 @@ namespace {
 	$paths   = array_map( static fn( $r ) => $r['repo'] . ':' . $r['path'], $publish );
 
 	$assert( 3 === count( $publish ), 'only .md files in each mapped docs path are planned' );
-	$assert( in_array( 'Extra-Chill/extrachill-events:docs/user/finding-live-music.md', $paths, true ), 'plugin docs/user files map to repo-relative source paths' );
-	$assert( in_array( 'Extra-Chill/extrachill-docs:ec_docs/mcp/connect.md', $paths, true ), 'a custom docs_subpath is honoured' );
+	$assert( in_array( 'plugins/extrachill-events:plugins/extrachill-events/docs/user/finding-live-music.md', $paths, true ), 'plugin docs/user files map to repo-relative source paths' );
+	$assert( in_array( 'plugins/extrachill-docs:plugins/extrachill-docs/docs/user/connect.md', $paths, true ), 'a custom docs_subpath is honoured' );
 	$assert( 'events-calendar' === $publish[0]['parent_slug'] && 'Events Calendar' === $publish[0]['parent_title'], 'parent comes from the platform map' );
 
 	$skipped = array_values( array_filter( $plan, static fn( $r ) => 'skipped_missing_plugin' === $r['action'] ) );
-	$assert( 1 === count( $skipped ) && 'Extra-Chill/extrachill-newsletter' === $skipped[0]['repo'], 'a mapped plugin that is not installed is skipped' );
+	$assert( 1 === count( $skipped ) && 'plugins/extrachill-newsletter' === $skipped[0]['repo'], 'a mapped plugin that is not installed is skipped' );
 
-	$only = extrachill_docs_plan_plugin_docs( $map, $root, 'Extra-Chill/extrachill-docs' );
-	$assert( 1 === count( $only ) && 'ec_docs/mcp/connect.md' === $only[0]['path'], 'repo filter restricts the plan' );
+	$only = extrachill_docs_plan_plugin_docs( $map, $root, 'plugins/extrachill-docs' );
+	$assert( 1 === count( $only ) && 'plugins/extrachill-docs/docs/user/connect.md' === $only[0]['path'], 'repo filter restricts the plan' );
 
 	$body = "# Finding Live Music\n\nBrowse shows.\n";
 	$assert( sha1( 'blob ' . strlen( $body ) . "\0" . $body ) === extrachill_docs_markdown_sha( $body ), 'sha uses the git blob format' );
@@ -118,17 +118,17 @@ namespace {
 	$assert( $before === $again, 'unchanged docs produce an unchanged fingerprint, so nothing republishes' );
 	file_put_contents( $root . '/extrachill-events/docs/user/b-second.md', "# Second, edited\n" );
 	$after = extrachill_docs_plugin_docs_fingerprints( extrachill_docs_plan_plugin_docs( $map, $root ) );
-	$assert( $before['Extra-Chill/extrachill-events'] !== $after['Extra-Chill/extrachill-events'], 'an edited doc changes its repo fingerprint' );
-	$assert( $before['Extra-Chill/extrachill-docs'] === $after['Extra-Chill/extrachill-docs'], 'other repos keep their fingerprint' );
+	$assert( $before['plugins/extrachill-events'] !== $after['plugins/extrachill-events'], 'an edited doc changes its repo fingerprint' );
+	$assert( $before['plugins/extrachill-docs'] === $after['plugins/extrachill-docs'], 'other repos keep their fingerprint' );
 
 	// Real source layout: artist help has one canonical home; MCP keeps its key.
 	require dirname( __DIR__ ) . '/inc/core/platform-map.php';
 	$plugins_root = dirname( __DIR__, 2 );
 	$real_plan    = extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), $plugins_root );
-	$artist_paths = array_column( array_filter( $real_plan, static fn( $r ) => 'Extra-Chill/extrachill-artist-platform' === $r['repo'] && 'publish' === $r['action'] ), 'path' );
+	$artist_paths = array_column( array_filter( $real_plan, static fn( $r ) => 'plugins/extrachill-artist-platform' === $r['repo'] && 'publish' === $r['action'] ), 'path' );
 	$assert( 9 <= count( $artist_paths ), 'at least nine artist help articles are published from the installed plugin' );
-	$assert( in_array( 'docs/user/managing-roster.md', $artist_paths, true ), 'moved artist help uses the canonical docs/user source key' );
-	$assert( is_file( $plugins_root . '/extrachill-docs/ec_docs/mcp/connect.md' ), 'MCP source remains in place' );
+	$assert( in_array( 'plugins/extrachill-artist-platform/docs/user/managing-roster.md', $artist_paths, true ), 'moved artist help uses the canonical docs/user source key' );
+	$assert( is_file( $plugins_root . '/extrachill-docs/docs/user/connect.md' ), 'MCP source remains in place' );
 	foreach ( array( 'artist', 'community', 'events' ) as $retired ) {
 		$assert( ! is_dir( $plugins_root . '/extrachill-docs/ec_docs/' . $retired ), 'no duplicate legacy source tree for ' . $retired );
 	}

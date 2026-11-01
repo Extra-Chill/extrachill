@@ -44,7 +44,7 @@ function extrachill_docs_register_publish_plugin_docs_ability(): void {
 				'properties' => array(
 					'repo'    => array(
 						'type'        => 'string',
-						'description' => __( 'Only publish this source repo (owner/repo). Default: every mapped repo.', 'extrachill-docs' ),
+						'description' => __( 'Only publish this component path (plugins/plugin-name). Default: every mapped repo.', 'extrachill-docs' ),
 					),
 					'dry_run' => array(
 						'type'    => 'boolean',
@@ -109,7 +109,7 @@ function extrachill_docs_plan_plugin_docs( array $platform_map, string $plugins_
 		foreach ( $files as $file ) {
 			$plan[] = array(
 				'repo'         => $repo,
-				'path'         => $subpath . '/' . basename( $file ),
+				'path'         => $repo . '/' . $subpath . '/' . basename( $file ),
 				'file'         => $file,
 				'parent_slug'  => (string) ( $platform['parent_slug'] ?? '' ),
 				'parent_title' => (string) ( $platform['parent_title'] ?? '' ),
@@ -198,7 +198,7 @@ function extrachill_docs_execute_publish_plugin_docs( array $input ): array {
 
 		$result = $upsert->execute(
 			array(
-				'repo'         => $item['repo'],
+				'repo'         => 'Extra-Chill/extrachill',
 				'path'         => $item['path'],
 				'sha'          => extrachill_docs_markdown_sha( $markdown ),
 				'markdown'     => $markdown,
@@ -244,8 +244,8 @@ function extrachill_docs_find_orphaned_doc_pages( array $plan, string $repo_filt
 	$repos   = array();
 	foreach ( $plan as $row ) {
 		if ( 'publish' === $row['action'] ) {
-			$present[ $row['repo'] . '|' . $row['path'] ] = true;
-			$repos[ $row['repo'] ]                        = true;
+			$present[ $row['path'] ] = true;
+			$repos[ $row['repo'] ]   = true;
 		}
 	}
 
@@ -261,12 +261,12 @@ function extrachill_docs_find_orphaned_doc_pages( array $plan, string $repo_filt
 				'posts_per_page' => -1,
 				'no_found_rows'  => true,
 				'meta_key'       => '_source_repo', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Small docs site.
-				'meta_value'     => $repo, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Small docs site.
+				'meta_value'     => 'Extra-Chill/extrachill', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Small docs site.
 			)
 		);
 		foreach ( $query->posts as $page ) {
 			$path = (string) get_post_meta( $page->ID, '_source_path', true );
-			if ( '' !== $path && empty( $present[ $repo . '|' . $path ] ) ) {
+			if ( str_starts_with( $path, $repo . '/' ) && empty( $present[ $path ] ) ) {
 				$orphans[] = array(
 					'repo'    => $repo,
 					'path'    => $path,

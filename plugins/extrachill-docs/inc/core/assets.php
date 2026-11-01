@@ -32,8 +32,8 @@ function extrachill_docs_enqueue_styles() {
 		);
 	}
 
-	// Load theme's single-post.css and TOC JS for ec_doc singular pages.
-	if ( is_singular( 'ec_doc' ) ) {
+	// Load theme's single-post.css and TOC JS for documentation pages.
+	if ( is_singular( 'page' ) ) {
 		$single_post_css = get_stylesheet_directory() . '/assets/css/single-post.css';
 		if ( file_exists( $single_post_css ) ) {
 			wp_enqueue_style(

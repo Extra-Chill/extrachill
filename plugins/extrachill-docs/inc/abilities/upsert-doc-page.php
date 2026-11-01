@@ -4,12 +4,10 @@
  *
  * Registers `extrachill-docs/upsert-doc-page` — the atomic operation that
  * converts a single markdown file into a hierarchical WordPress page on
- * docs.extrachill.com. Idempotent, keyed by post meta { _source_repo,
- * _source_path }.
+ * docs.extrachill.com. Idempotent, keyed by repo-root _source_path meta.
  *
  * Composability: this ability is the single write path for every doc page
- * on docs.extrachill.com. The ec_doc → page migration (#38) reuses its
- * parent-resolution helper, and agents in chat or flows can call the
+ * on docs.extrachill.com. Agents in chat or flows can call the
  * ability to create or refresh a single page.
  *
  * Dependencies:
@@ -44,7 +42,7 @@ function extrachill_docs_register_upsert_doc_page_ability(): void {
 		'extrachill-docs/upsert-doc-page',
 		array(
 			'label'               => __( 'Upsert Documentation Page', 'extrachill-docs' ),
-			'description'         => __( 'Convert a markdown file into a hierarchical WordPress page on docs.extrachill.com. Idempotent: pages are keyed by { _source_repo, _source_path } meta. Creates the parent page if it does not exist.', 'extrachill-docs' ),
+			'description'         => __( 'Convert a markdown file into a hierarchical WordPress page on docs.extrachill.com. Idempotent: pages are keyed by repo-root _source_path meta. Creates the parent page if it does not exist.', 'extrachill-docs' ),
 			'category'            => 'extrachill-docs',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -52,11 +50,11 @@ function extrachill_docs_register_upsert_doc_page_ability(): void {
 				'properties' => array(
 					'repo'         => array(
 						'type'        => 'string',
-						'description' => __( 'Source repository in owner/repo format (e.g. Extra-Chill/extrachill-artist-platform).', 'extrachill-docs' ),
+						'description' => __( 'Source repository in owner/repo format (e.g. Extra-Chill/extrachill).', 'extrachill-docs' ),
 					),
 					'path'         => array(
 						'type'        => 'string',
-						'description' => __( 'Path to the markdown file inside the source repo (e.g. docs/user/getting-started.md). Used as part of the idempotency key.', 'extrachill-docs' ),
+						'description' => __( 'Path to the markdown file inside the source repo (e.g. plugins/extrachill-community/docs/user/getting-started.md). Used as part of the idempotency key.', 'extrachill-docs' ),
 					),
 					'sha'          => array(
 						'type'        => 'string',
@@ -160,7 +158,7 @@ function extrachill_docs_upsert_doc_page_permission_callback(): bool {
  * @return array<string,mixed>
  */
 function extrachill_docs_execute_upsert_doc_page( array $input ): array {
-	$repo         = isset( $input['repo'] ) ? (string) $input['repo'] : '';
+	$repo         = 'Extra-Chill/extrachill';
 	$path         = isset( $input['path'] ) ? (string) $input['path'] : '';
 	$sha          = isset( $input['sha'] ) ? (string) $input['sha'] : '';
 	$markdown     = isset( $input['markdown'] ) ? (string) $input['markdown'] : '';
@@ -169,11 +167,11 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 	$post_status  = isset( $input['post_status'] ) && 'private' === $input['post_status'] ? 'private' : 'publish';
 	$dry_run      = ! empty( $input['dry_run'] );
 
-	if ( '' === $repo || '' === $path || '' === $parent_slug || '' === $parent_title ) {
+	if ( ! preg_match( '#^plugins/[a-z0-9-]+/[^\\\\]+\.md$#', $path ) || in_array( '..', explode( '/', $path ), true ) || '' === $parent_slug || '' === $parent_title ) {
 		return array(
 			'success'      => false,
 			'error'        => 'extrachill_docs_missing_input',
-			'error_detail' => 'repo, path, parent_slug, and parent_title are required.',
+			'error_detail' => 'A repo-root plugins/<component>/.../*.md path, parent_slug, and parent_title are required.',
 		);
 	}
 
@@ -205,7 +203,7 @@ function extrachill_docs_execute_upsert_doc_page( array $input ): array {
 	if ( $existing && '' !== $sha ) {
 		$existing_sha               = (string) get_post_meta( $existing->ID, '_source_sha', true );
 		$existing_transform_version = (int) get_post_meta( $existing->ID, '_source_transform_version', true );
-		if ( $existing_sha === $sha && EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION === $existing_transform_version && $post_status === $existing->post_status ) {
+		if ( (string) get_post_meta( $existing->ID, '_source_path', true ) === $path && (string) get_post_meta( $existing->ID, '_source_repo', true ) === $repo && $existing_sha === $sha && EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION === $existing_transform_version && $post_status === $existing->post_status ) {
 			return array(
 				'success'   => true,
 				'action'    => 'unchanged',
@@ -375,11 +373,6 @@ function extrachill_docs_find_synced_page( string $repo, string $path ): ?\WP_Po
 			'meta_query'     => array(
 				'relation' => 'AND',
 				array(
-					'key'     => '_source_repo',
-					'value'   => $repo,
-					'compare' => '=',
-				),
-				array(
 					'key'     => '_source_path',
 					'value'   => $path,
 					'compare' => '=',
@@ -388,6 +381,26 @@ function extrachill_docs_find_synced_page( string $repo, string $path ): ?\WP_Po
 		)
 	);
 
+	if ( empty( $query->posts ) && preg_match( '#^plugins/([^/]+)/(.*)$#', $path, $parts ) ) {
+		// A deploy may publish before the operator runs the key migration.
+		$legacy_path = 'extrachill-docs' === $parts[1] && 'docs/user/connect.md' === $parts[2] ? 'ec_docs/mcp/connect.md' : $parts[2];
+		$query       = new \WP_Query( array(
+			'post_type'      => 'page',
+			'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
+			'posts_per_page' => 1,
+			'no_found_rows'  => true,
+			'meta_query'     => array(
+				array(
+					'key'   => '_source_repo',
+					'value' => 'Extra-Chill/' . $parts[1],
+				),
+				array(
+					'key'   => '_source_path',
+					'value' => $legacy_path,
+				),
+			),
+		) );
+	}
 	if ( empty( $query->posts ) ) {
 		return null;
 	}
@@ -547,7 +560,7 @@ function extrachill_docs_strip_title_heading_from_markdown( string $markdown ): 
  *
  * @since 0.5.0
  *
- * @param string $path Source file path inside the repo (e.g. docs/user/getting-started.md).
+ * @param string $path Source file path inside the repo (e.g. plugins/extrachill-community/docs/user/getting-started.md).
  * @return string
  */
 function extrachill_docs_derive_slug_from_path( string $path ): string {

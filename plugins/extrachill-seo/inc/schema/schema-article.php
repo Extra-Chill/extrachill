@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array Graph with the Article entity appended when applicable.
  */
 function ec_seo_emit_article_schema( $graph ) {
-		$post_types = array( 'post', 'festival_wire', 'ec_doc' );
+		$post_types = array( 'post', 'festival_wire' );
 		$post_types = apply_filters( 'extrachill_seo_article_post_types', $post_types );
 
 	if ( ! is_singular( $post_types ) ) {
@@ -37,7 +37,6 @@ function ec_seo_emit_article_schema( $graph ) {
 		$schema_type_map = array(
 			'post'          => 'Article',
 			'festival_wire' => 'NewsArticle',
-			'ec_doc'        => 'TechArticle',
 		);
 		$schema_type_map = apply_filters( 'extrachill_seo_article_schema_type_map', $schema_type_map );
 

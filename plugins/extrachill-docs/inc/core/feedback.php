@@ -17,13 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Whether the current view is a docs article that should ask for feedback.
  *
- * Articles are ec_doc singles and child pages. The homepage and top-level
+ * Articles are child pages. The homepage and top-level
  * section landing pages are navigation, not answers, so they are skipped.
  *
  * @return bool
  */
 function extrachill_docs_feedback_applies() {
-	if ( is_admin() || is_front_page() || ! is_singular( array( 'page', 'ec_doc' ) ) ) {
+	if ( is_admin() || is_front_page() || ! is_singular( 'page' ) ) {
 		return false;
 	}
 
@@ -32,7 +32,7 @@ function extrachill_docs_feedback_applies() {
 		return false;
 	}
 
-	return 'ec_doc' === $post->post_type || (int) $post->post_parent > 0;
+	return (int) $post->post_parent > 0;
 }
 
 /**

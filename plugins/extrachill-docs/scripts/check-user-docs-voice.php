@@ -66,7 +66,8 @@ if ( PHP_SAPI === 'cli' && realpath( $argv[0] ?? '' ) === realpath( __FILE__ ) )
 	$files = is_array( $files ) ? $files : array();
 	$found = 0;
 	foreach ( $files as $file ) {
-		foreach ( ec_user_docs_voice_violations( (string) file_get_contents( $file ) ) as $v ) {
+		$markdown = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- standalone CLI script, WordPress is not loaded.
+		foreach ( ec_user_docs_voice_violations( $markdown ) as $v ) {
 			++$found;
 			printf( "%s:%d: %s (\"%s\")\n", $file, $v['line'], $v['label'], $v['match'] );
 		}

@@ -14,7 +14,7 @@ Do not move developer docs between components just to make the layout uniform. W
 
 ## How help reaches docs.extrachill.com
 
-The [platform map](../plugins/extrachill-docs/runner-configs/platform-map.yml) defines each published platform's source plugin, `docs_subpath`, parent slug, audience and optional Docs Agent configuration. `docs/user/` is the default; the existing Connect Your AI help uses `plugins/extrachill-docs/ec_docs/mcp/`. Studio help is configured as private. A docs directory alone does not opt a component into publishing.
+The [platform map](../plugins/extrachill-docs/runner-configs/platform-map.yml) defines each published platform's source plugin, `docs_subpath`, parent slug, audience and optional Docs Agent configuration. Every platform publishes from its plugin's `docs/user/`, including Connect Your AI (`plugins/extrachill-docs/docs/user/`). Studio help is configured as private. A docs directory alone does not opt a component into publishing.
 
 The manually dispatched [Docs Agent workflow](../.github/workflows/docs-agent.yml) uses that map to propose changes under the configured component's `docs/user/` path, following the writing rules and voice checks. Only entries with runner configuration participate; this workflow writes help, not developer reference.
 

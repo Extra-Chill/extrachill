@@ -9,7 +9,7 @@ plugins:
     platform_name: "Connect Your AI"
     parent_slug: "mcp"
     audience: "Extra Chill members connecting their own AI clients to network-wide capabilities"
-    docs_subpath: "ec_docs/mcp"
+    docs_subpath: "docs/user"
 
   plugins/extrachill-artist-platform:
     platform_name: "Artist Platform"
