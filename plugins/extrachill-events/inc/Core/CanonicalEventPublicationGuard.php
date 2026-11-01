@@ -374,7 +374,7 @@ class CanonicalEventPublicationGuard {
 				'candidate_intervals' => $candidate_intervals,
 			)
 		);
-		$conflict = is_wp_error( $conflicts ) ? $conflicts : ( empty( $conflicts ) ? null : reset( $conflicts ) );
+		$conflict  = is_wp_error( $conflicts ) ? $conflicts : ( empty( $conflicts ) ? null : reset( $conflicts ) );
 		if ( is_wp_error( $conflict ) ) {
 			$this->release();
 			return $conflict;

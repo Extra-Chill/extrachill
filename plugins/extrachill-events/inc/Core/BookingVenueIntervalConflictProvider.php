@@ -24,7 +24,12 @@ class BookingVenueIntervalConflictProvider {
 		}
 		$intervals = $context['candidate_intervals'] ?? array();
 		if ( empty( $intervals ) ) {
-			$intervals = array( array( 'start_at' => $start_at, 'end_at' => $end_at ) );
+			$intervals = array(
+				array(
+					'start_at' => $start_at,
+					'end_at'   => $end_at,
+				),
+			);
 		}
 		$conflict = $this->find_booking_conflict( $venue_id, $start_at, $end_at, (int) ( $context['post_id'] ?? 0 ), (int) ( $context['excluded_booking_id'] ?? 0 ), $intervals );
 		if ( is_wp_error( $conflict ) ) {
@@ -37,6 +42,7 @@ class BookingVenueIntervalConflictProvider {
 	}
 
 	private function find_booking_conflict( int $venue_id, string $start_at, string $end_at, int $post_id, int $excluded_booking_id, array $candidate_intervals ) {
+		/** @var \wpdb $wpdb */
 		global $wpdb;
 		$hold_exact    = array();
 		$booking_exact = array();
@@ -106,5 +112,4 @@ class BookingVenueIntervalConflictProvider {
 		}
 		return is_array( $row ) ? $row : null;
 	}
-
 }
