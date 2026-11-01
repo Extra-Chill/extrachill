@@ -33,6 +33,7 @@ function extrachill_shop_register_create_product_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
 					),
+					'seller'         => extrachill_shop_seller_input_schema(),
 					'name'           => array(
 						'type'        => 'string',
 						'description' => 'Product name.',
@@ -82,7 +83,7 @@ function extrachill_shop_register_create_product_ability(): void {
 						'description' => 'Whether the product ships free.',
 					),
 				),
-				'required' => array( 'artist_id', 'name', 'price' ),
+				'required' => array( 'name', 'price' ),
 			),
 			'output_schema' => array(
 				'type'       => 'object',
@@ -97,6 +98,16 @@ function extrachill_shop_register_create_product_ability(): void {
 			'permission_callback' => static function ( array $input ): bool|WP_Error {
 				if ( ! is_user_logged_in() ) {
 					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
+				}
+				if ( isset( $input['seller'] ) ) {
+					$seller = extrachill_shop_validate_seller_ref( $input['seller'] );
+					if ( is_wp_error( $seller ) ) {
+						return $seller;
+					}
+					if ( true !== extrachill_shop_current_user_can_manage_seller( $seller ) ) {
+						return new WP_Error( 'rest_forbidden', 'You do not have permission to create products for this seller.', array( 'status' => 403 ) );
+					}
+					return true;
 				}
 				if ( ! extrachill_shop_user_has_artists() ) {
 					return new WP_Error( 'rest_forbidden', 'You must be an artist to manage products.', array( 'status' => 403 ) );
@@ -157,7 +168,14 @@ function extrachill_shop_ability_create_product( array $input ): array|WP_Error 
 		return new WP_Error( 'create_failed', 'Failed to create product.', array( 'status' => 500 ) );
 	}
 
-	update_post_meta( $product_id, '_artist_profile_id', $artist_id );
+	$seller = isset( $input['seller'] ) ? extrachill_shop_validate_seller_ref( $input['seller'] ) : array(
+		'type' => 'artist',
+		'id'   => $artist_id,
+	);
+	if ( is_wp_error( $seller ) || ! extrachill_shop_set_product_seller( $product_id, $seller ) ) {
+		wp_delete_post( $product_id, true );
+		return new WP_Error( 'create_failed', 'Failed to assign the product seller.', array( 'status' => 500 ) );
+	}
 	update_post_meta( $product_id, '_regular_price', (string) $price );
 	update_post_meta( $product_id, '_price', (string) $price );
 

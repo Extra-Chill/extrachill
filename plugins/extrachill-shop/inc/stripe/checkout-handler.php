@@ -13,36 +13,70 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Group cart items by artist.
+ * Resolve the payout seller for a product, or null for platform products.
+ *
+ * @param int $product_id WooCommerce product ID.
+ * @return array|null Seller reference.
+ */
+function extrachill_shop_get_product_payout_seller( $product_id ) {
+	$seller = extrachill_shop_get_product_seller( $product_id );
+	if ( ! $seller ) {
+		return null;
+	}
+	// Platform artist products are platform products.
+	if ( 'artist' === $seller['type'] && defined( 'EC_PLATFORM_ARTIST_ID' ) && $seller['id'] === EC_PLATFORM_ARTIST_ID ) {
+		return null;
+	}
+	return $seller;
+}
+
+/**
+ * Group cart items by seller.
+ *
+ * Artist groups stay keyed by artist profile ID (with the same shape as
+ * before); venue and promoter groups are keyed `type:id` and carry `seller`.
+ * Platform products go to group 0.
  *
  * @param array $cart_items WooCommerce cart items.
- * @return array Grouped items keyed by artist_profile_id.
+ * @return array Grouped items keyed by artist ID, `type:id`, or 0.
  */
 function extrachill_shop_group_cart_by_artist( $cart_items ) {
 	$grouped = array();
 
 	foreach ( $cart_items as $cart_item_key => $cart_item ) {
-		$product_id = $cart_item['product_id'];
-		$artist_id  = extrachill_shop_get_product_artist_id( $product_id );
+		$seller = extrachill_shop_get_product_payout_seller( $cart_item['product_id'] );
+		$key    = $seller ? extrachill_shop_seller_key( $seller ) : 0;
 
-		// Non-artist and platform artist products go to platform group (artist_id = 0).
-		if ( ! $artist_id || ( defined( 'EC_PLATFORM_ARTIST_ID' ) && $artist_id === EC_PLATFORM_ARTIST_ID ) ) {
-			$artist_id = 0;
-		}
-
-		if ( ! isset( $grouped[ $artist_id ] ) ) {
-			$grouped[ $artist_id ] = array(
-				'artist_id' => $artist_id,
+		if ( ! isset( $grouped[ $key ] ) ) {
+			$grouped[ $key ] = array(
+				'artist_id' => is_int( $key ) ? $key : 0,
 				'items'     => array(),
 				'total'     => 0,
 			);
+			if ( $seller && 'artist' !== $seller['type'] ) {
+				$grouped[ $key ]['seller'] = $seller;
+			}
 		}
 
-		$grouped[ $artist_id ]['items'][ $cart_item_key ] = $cart_item;
-		$grouped[ $artist_id ]['total']                  += $cart_item['line_total'];
+		$grouped[ $key ]['items'][ $cart_item_key ] = $cart_item;
+		$grouped[ $key ]['total']                  += $cart_item['line_total'];
 	}
 
 	return $grouped;
+}
+
+/**
+ * Seller reference for a grouped cart entry.
+ *
+ * @param int|string $key   Group key.
+ * @param array      $group Group data.
+ * @return array Seller reference.
+ */
+function extrachill_shop_group_seller( $key, array $group ) {
+	return $group['seller'] ?? array(
+		'type' => 'artist',
+		'id'   => (int) $key,
+	);
 }
 
 /**
@@ -65,7 +99,7 @@ function extrachill_shop_validate_cart_artists() {
 			continue;
 		}
 
-		$stripe_account = extrachill_shop_get_artist_stripe_account( $artist_id );
+		$stripe_account = extrachill_shop_get_seller_stripe_account( extrachill_shop_group_seller( $artist_id, $group ) );
 
 		if ( ! $stripe_account ) {
 			// Artist has no Stripe account connected.
@@ -143,16 +177,19 @@ function extrachill_shop_calculate_artist_charges( $grouped_items ) {
 		$application_fee = round( $total * $commission_rate, 2 );
 		$artist_payout   = round( $total - $application_fee, 2 );
 
-		$stripe_account = extrachill_shop_get_artist_stripe_account( $artist_id );
+		$stripe_account = extrachill_shop_get_seller_stripe_account( extrachill_shop_group_seller( $artist_id, $group ) );
 
 		$charges[ $artist_id ] = array(
-			'artist_id'       => $artist_id,
+			'artist_id'       => $group['artist_id'],
 			'stripe_account'  => $stripe_account,
 			'total'           => $total,
 			'application_fee' => $application_fee,
 			'artist_payout'   => $artist_payout,
 			'items'           => $group['items'],
 		);
+		if ( isset( $group['seller'] ) ) {
+			$charges[ $artist_id ]['seller'] = $group['seller'];
+		}
 	}
 
 	return $charges;
@@ -196,7 +233,19 @@ function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
 	try {
 		foreach ( $charges as $artist_id => $charge_data ) {
 			if ( ! $charge_data['stripe_account'] ) {
-				throw new \Exception( 'Artist ' . $artist_id . ' does not have a connected Stripe account.' );
+				$label = isset( $charge_data['seller'] ) ? 'Seller ' . $artist_id : 'Artist ' . $artist_id;
+				throw new \Exception( $label . ' does not have a connected Stripe account.' );
+			}
+
+			$metadata = array(
+				'order_id'        => $order->get_id(),
+				'artist_id'       => $artist_id,
+				'platform'        => 'extrachill',
+				'commission_rate' => extrachill_shop_get_default_commission_rate(),
+			);
+			if ( isset( $charge_data['seller'] ) ) {
+				unset( $metadata['artist_id'] );
+				$metadata['seller_reference'] = $artist_id;
 			}
 
 			// Transfer artist payout (total minus commission) in cents.
@@ -209,12 +258,7 @@ function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
 					'destination'        => $charge_data['stripe_account'],
 					'source_transaction' => $charge_id,
 					'transfer_group'     => $transfer_group,
-					'metadata'           => array(
-						'order_id'        => $order->get_id(),
-						'artist_id'       => $artist_id,
-						'platform'        => 'extrachill',
-						'commission_rate' => extrachill_shop_get_default_commission_rate(),
-					),
+					'metadata'           => $metadata,
 				)
 			);
 
@@ -228,7 +272,17 @@ function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
 
 		// Store transfer data on order.
 		$order->update_meta_data( '_stripe_transfers', $successful_transfers );
-		$order->update_meta_data( '_artist_payouts', $charges );
+		// Artist payouts keep their artist-keyed record; venue/promoter payouts are stored separately.
+		$seller_payouts = array_filter(
+			$charges,
+			static function ( $charge ) {
+				return isset( $charge['seller'] );
+			}
+		);
+		$order->update_meta_data( '_artist_payouts', array_diff_key( $charges, $seller_payouts ) );
+		if ( $seller_payouts ) {
+			$order->update_meta_data( '_seller_payouts', $seller_payouts );
+		}
 		$order->update_meta_data( '_stripe_transfer_group', $transfer_group );
 		$order->save();
 
@@ -328,16 +382,14 @@ function extrachill_shop_handle_charge_failure( $successful_charges, $failed_art
 }
 
 /**
- * Check if order contains only platform products (no artist products).
+ * Check if order contains only platform products (no artist, venue, or promoter products).
  *
  * @param WC_Order $order WooCommerce order.
  * @return bool True if order has no artist products.
  */
 function extrachill_shop_order_is_platform_only( $order ) {
 	foreach ( $order->get_items() as $item ) {
-		$artist_id = extrachill_shop_get_product_artist_id( $item->get_product_id() );
-		// Platform artist products are treated as platform products.
-		if ( $artist_id && ( ! defined( 'EC_PLATFORM_ARTIST_ID' ) || $artist_id !== EC_PLATFORM_ARTIST_ID ) ) {
+		if ( extrachill_shop_get_product_payout_seller( $item->get_product_id() ) ) {
 			return false;
 		}
 	}

@@ -9,8 +9,10 @@ Stripe Connect is scoped to an `artist_profile` post (artist site). These endpoi
 
 ## Permission
 - User must be logged in.
-- `artist_id` is required.
-- User must be able to manage the artist: `ec_can_manage_artist( get_current_user_id(), artist_id )`.
+- Pass either `artist_id`, or `seller_type` (`venue` | `promoter`) with `seller_id`.
+- Artists: the user must be able to manage the artist: `ec_can_manage_artist( get_current_user_id(), artist_id )`.
+- Venues and promoters: the user must hold finance authority on the Events site (venue owner with booking access, or owner of an active promoter organization). The Shop ability checks this through `extrachill/get-commerce-seller`.
+- Venue and promoter onboarding returns to the seller's Events profile.
 
 ## GET status
 Returns the current Stripe connection status and account capabilities.

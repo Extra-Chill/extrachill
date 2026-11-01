@@ -94,6 +94,25 @@ function extrachill_shop_get_stripe_publishable_key() {
  * @return array{success: bool, account_id?: string, error?: string}
  */
 function extrachill_shop_create_stripe_account( $artist_profile_id ) {
+	return extrachill_shop_create_seller_stripe_account(
+		array(
+			'type' => 'artist',
+			'id'   => absint( $artist_profile_id ),
+		)
+	);
+}
+
+/**
+ * Create (or return) the Stripe Express connected account for a seller.
+ *
+ * Artists keep their existing account shape (individual business type and
+ * `artist_reference` metadata). Venues and promoters choose their business
+ * type during Stripe onboarding.
+ *
+ * @param array $seller Seller reference { type: artist|venue|promoter, id }.
+ * @return array{success: bool, account_id?: string, error?: string}
+ */
+function extrachill_shop_create_seller_stripe_account( $seller ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
@@ -101,23 +120,24 @@ function extrachill_shop_create_stripe_account( $artist_profile_id ) {
 		);
 	}
 
-	$artist_profile_id = absint( $artist_profile_id );
-	if ( ! $artist_profile_id ) {
+	$is_artist = is_array( $seller ) && 'artist' === ( $seller['type'] ?? '' );
+	$seller    = extrachill_shop_validate_seller_ref( $seller );
+	if ( is_wp_error( $seller ) ) {
 		return array(
 			'success' => false,
-			'error'   => 'Artist profile ID is required.',
+			'error'   => $is_artist ? 'Artist profile ID is required.' : 'A valid seller is required.',
 		);
 	}
 
-	$artist = extrachill_shop_get_canonical_artist( $artist_profile_id );
-	if ( is_wp_error( $artist ) || absint( $artist['id'] ?? 0 ) !== $artist_profile_id ) {
+	$canonical = extrachill_shop_get_canonical_seller( $seller );
+	if ( is_wp_error( $canonical ) ) {
 		return array(
 			'success' => false,
-			'error'   => 'Artist profile not found.',
+			'error'   => $is_artist ? 'Artist profile not found.' : 'Seller not found.',
 		);
 	}
 
-	$existing = extrachill_shop_get_stripe_account_record( $artist_profile_id );
+	$existing = extrachill_shop_get_seller_stripe_account_record( $seller );
 	if ( $existing ) {
 		return array(
 			'success'    => true,
@@ -125,21 +145,28 @@ function extrachill_shop_create_stripe_account( $artist_profile_id ) {
 		);
 	}
 
-	try {
-		$account = \Stripe\Account::create(
-			array(
-				'type'          => 'express',
-				'capabilities'  => array(
-					'card_payments' => array( 'requested' => true ),
-					'transfers'     => array( 'requested' => true ),
-				),
-				'business_type' => 'individual',
-				'metadata'      => array(
-					'artist_reference' => 'artist:' . $artist_profile_id,
-					'platform'         => 'extrachill',
-				),
-			)
+	$params = array(
+		'type'         => 'express',
+		'capabilities' => array(
+			'card_payments' => array( 'requested' => true ),
+			'transfers'     => array( 'requested' => true ),
+		),
+	);
+	if ( $is_artist ) {
+		$params['business_type'] = 'individual';
+		$params['metadata']      = array(
+			'artist_reference' => 'artist:' . $seller['id'],
+			'platform'         => 'extrachill',
 		);
+	} else {
+		$params['metadata'] = array(
+			'seller_reference' => $seller['type'] . ':' . $seller['id'],
+			'platform'         => 'extrachill',
+		);
+	}
+
+	try {
+		$account = \Stripe\Account::create( $params );
 	} catch ( \Stripe\Exception\ApiErrorException $e ) {
 		return array(
 			'success' => false,
@@ -147,8 +174,8 @@ function extrachill_shop_create_stripe_account( $artist_profile_id ) {
 		);
 	}
 
-	if ( ! extrachill_shop_set_stripe_account_record(
-		$artist_profile_id,
+	if ( ! extrachill_shop_set_seller_stripe_account_record(
+		$seller,
 		array(
 			'account_id'          => $account->id,
 			'status'              => 'pending',
@@ -170,11 +197,12 @@ function extrachill_shop_create_stripe_account( $artist_profile_id ) {
 /**
  * Create an Account Link for Stripe Express onboarding or dashboard access.
  *
- * @param string $account_id Stripe connected account ID.
- * @param string $type       Link type: 'account_onboarding' or 'account_update'.
+ * @param string     $account_id Stripe connected account ID.
+ * @param string     $type       Link type: 'account_onboarding' or 'account_update'.
+ * @param array|null $seller     Optional seller reference; artists (default) return to the artist shop manager.
  * @return array{success: bool, url?: string, error?: string}
  */
-function extrachill_shop_create_account_link( $account_id, $type = 'account_onboarding' ) {
+function extrachill_shop_create_account_link( $account_id, $type = 'account_onboarding', $seller = null ) {
 	if ( ! extrachill_shop_stripe_init() ) {
 		return array(
 			'success' => false,
@@ -182,15 +210,27 @@ function extrachill_shop_create_account_link( $account_id, $type = 'account_onbo
 		);
 	}
 
-	$return_url = ec_get_site_url( 'artist' );
-	if ( ! $return_url ) {
-		return array(
-			'success' => false,
-			'error'   => 'Artist site URL is not available.',
-		);
+	if ( is_array( $seller ) && 'artist' !== ( $seller['type'] ?? 'artist' ) ) {
+		// Venues and promoters return to their Events profile until a seller shop UI exists.
+		$canonical  = extrachill_shop_get_canonical_seller( $seller );
+		$return_url = is_wp_error( $canonical ) ? '' : (string) $canonical['url'];
+		if ( ! $return_url ) {
+			return array(
+				'success' => false,
+				'error'   => 'Seller URL is not available.',
+			);
+		}
+	} else {
+		$return_url = ec_get_site_url( 'artist' );
+		if ( ! $return_url ) {
+			return array(
+				'success' => false,
+				'error'   => 'Artist site URL is not available.',
+			);
+		}
+		$return_url = trailingslashit( $return_url ) . 'manage-shop/';
 	}
 
-	$return_url  = trailingslashit( $return_url ) . 'manage-shop/';
 	$refresh_url = add_query_arg( 'stripe_refresh', '1', $return_url );
 
 	try {
@@ -333,8 +373,12 @@ function extrachill_shop_update_account_status_cache( $account_id, $account_data
  * @return string|false Stripe account ID or false if not found.
  */
 function extrachill_shop_get_artist_stripe_account( $artist_profile_id ) {
-	$record = extrachill_shop_get_stripe_account_record( $artist_profile_id );
-	return $record && ! empty( $record['account_id'] ) ? (string) $record['account_id'] : false;
+	return extrachill_shop_get_seller_stripe_account(
+		array(
+			'type' => 'artist',
+			'id'   => absint( $artist_profile_id ),
+		)
+	);
 }
 
 /**

@@ -25,7 +25,7 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
 		'extrachill/shop-stripe-onboarding-link',
 		array(
 			'label'       => __( 'Stripe Onboarding Link', 'extrachill-shop' ),
-			'description' => __( 'Generate a Stripe Connect onboarding link for an artist. Creates the account if needed.', 'extrachill-shop' ),
+			'description' => __( 'Generate a Stripe Connect onboarding link for a seller (artist, venue, or promoter). Creates the account if needed.', 'extrachill-shop' ),
 			'category'    => 'extrachill-shop',
 			'input_schema' => array(
 				'type'       => 'object',
@@ -34,8 +34,8 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
 					),
+					'seller'    => extrachill_shop_seller_input_schema(),
 				),
-				'required' => array( 'artist_id' ),
 			),
 			'output_schema' => array(
 				'type'       => 'object',
@@ -45,16 +45,7 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_stripe_onboarding_link',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_not_logged_in', 'You must be logged in to access this endpoint.', array( 'status' => 401 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				return extrachill_shop_current_user_can_manage_artist( $artist_id );
-			},
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
 			'meta' => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -76,13 +67,16 @@ function extrachill_shop_register_stripe_onboarding_link_ability(): void {
  * @return array|WP_Error
  */
 function extrachill_shop_ability_stripe_onboarding_link( array $input ): array|WP_Error {
-	$artist_id = (int) ( $input['artist_id'] ?? 0 );
+	$seller = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
 
-	if ( ! function_exists( 'extrachill_shop_create_stripe_account' ) ) {
+	if ( ! function_exists( 'extrachill_shop_create_seller_stripe_account' ) ) {
 		return new WP_Error( 'stripe_not_available', 'Stripe integration is not available.', array( 'status' => 500 ) );
 	}
 
-	$result = extrachill_shop_create_stripe_account( $artist_id );
+	$result = extrachill_shop_create_seller_stripe_account( $seller );
 	if ( ! $result['success'] ) {
 		return new WP_Error( 'stripe_account_creation_failed', $result['error'], array( 'status' => 500 ) );
 	}
@@ -93,7 +87,7 @@ function extrachill_shop_ability_stripe_onboarding_link( array $input ): array|W
 		return new WP_Error( 'stripe_not_available', 'Stripe integration is not available.', array( 'status' => 500 ) );
 	}
 
-	$link_result = extrachill_shop_create_account_link( $account_id, 'account_onboarding' );
+	$link_result = extrachill_shop_create_account_link( $account_id, 'account_onboarding', $seller );
 
 	if ( ! $link_result['success'] ) {
 		return new WP_Error( 'stripe_link_creation_failed', $link_result['error'], array( 'status' => 500 ) );

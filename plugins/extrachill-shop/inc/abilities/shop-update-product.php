@@ -37,6 +37,7 @@ function extrachill_shop_register_update_product_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Reassign to a different artist profile ID.',
 					),
+					'seller'         => extrachill_shop_seller_input_schema(),
 					'name'           => array(
 						'type'        => 'string',
 						'description' => 'Product name.',
@@ -120,11 +121,8 @@ function extrachill_shop_register_update_product_ability(): void {
 				if ( ! $product_post || 'product' !== $product_post->post_type ) {
 					return new WP_Error( 'product_not_found', 'Product not found.', array( 'status' => 404 ) );
 				}
-				$artist_id = (int) get_post_meta( $product_id, '_artist_profile_id', true );
-				if ( ! $artist_id ) {
-					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-				}
-				if ( ! extrachill_shop_user_can_manage_artist( $artist_id ) ) {
+				$seller = extrachill_shop_get_product_seller( $product_id );
+				if ( ! $seller || true !== extrachill_shop_current_user_can_manage_seller( $seller ) ) {
 					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
 				}
 				return true;
@@ -241,13 +239,18 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 		}
 	}
 
-	// Artist reassignment.
-	$artist_id = $input['artist_id'] ?? null;
-	if ( $artist_id !== null ) {
-		$artist_id = (int) $artist_id;
-		if ( extrachill_shop_user_can_manage_artist( $artist_id ) ) {
-			update_post_meta( $product_id, '_artist_profile_id', $artist_id );
-		}
+	// Seller reassignment (typed seller, or the legacy artist_id).
+	$new_seller = null;
+	if ( isset( $input['seller'] ) ) {
+		$new_seller = extrachill_shop_validate_seller_ref( $input['seller'] );
+	} elseif ( isset( $input['artist_id'] ) ) {
+		$new_seller = array(
+			'type' => 'artist',
+			'id'   => (int) $input['artist_id'],
+		);
+	}
+	if ( is_array( $new_seller ) && true === extrachill_shop_current_user_can_manage_seller( $new_seller ) ) {
+		extrachill_shop_set_product_seller( $product_id, $new_seller );
 	}
 
 	// Sizes / variations.

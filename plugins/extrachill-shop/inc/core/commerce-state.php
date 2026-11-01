@@ -101,6 +101,176 @@ function extrachill_shop_validate_seller_ref( $seller ) {
 }
 
 /**
+ * Resolve a seller reference from ability input.
+ *
+ * Accepts the typed `seller` object, or the legacy `artist_id` integer.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error Seller reference.
+ */
+function extrachill_shop_seller_from_input( array $input ) {
+	if ( isset( $input['seller'] ) ) {
+		return extrachill_shop_validate_seller_ref( $input['seller'] );
+	}
+	$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
+	if ( $artist_id > 0 ) {
+		return array(
+			'type' => 'artist',
+			'id'   => $artist_id,
+		);
+	}
+	return new WP_Error( 'missing_seller', __( 'A seller or artist ID is required.', 'extrachill-shop' ), array( 'status' => 400 ) );
+}
+
+/**
+ * Stable grouping key for a seller: the artist ID for artists, `type:id` otherwise.
+ *
+ * Artist keys stay integers so existing artist payout records keep their shape.
+ *
+ * @param array $seller Seller reference.
+ * @return int|string
+ */
+function extrachill_shop_seller_key( array $seller ) {
+	return 'artist' === $seller['type'] ? (int) $seller['id'] : $seller['type'] . ':' . (int) $seller['id'];
+}
+
+/**
+ * Resolve a seller's canonical identity from its owning site.
+ *
+ * Artists resolve through the Artist owner; venues and promoters through the
+ * Events owner (`extrachill/get-commerce-seller`), which also reports whether
+ * the current user may manage the seller's finances.
+ *
+ * @param mixed $seller Seller reference.
+ * @return array|WP_Error { type, id, name, url, can_manage_finances? }
+ */
+function extrachill_shop_get_canonical_seller( $seller ) {
+	static $sellers = array();
+
+	$seller = extrachill_shop_validate_seller_ref( $seller );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
+	$key = $seller['type'] . ':' . $seller['id'] . ':' . get_current_user_id();
+	if ( array_key_exists( $key, $sellers ) ) {
+		return $sellers[ $key ];
+	}
+
+	$not_found = new WP_Error( 'seller_not_found', __( 'Seller not found.', 'extrachill-shop' ), array( 'status' => 404 ) );
+	if ( 'artist' === $seller['type'] ) {
+		$artist = extrachill_shop_get_canonical_artist( $seller['id'] );
+		if ( is_wp_error( $artist ) ) {
+			$sellers[ $key ] = $artist;
+		} elseif ( absint( $artist['id'] ?? 0 ) !== $seller['id'] ) {
+			$sellers[ $key ] = $not_found;
+		} else {
+			$sellers[ $key ] = array(
+				'type' => 'artist',
+				'id'   => $seller['id'],
+				'name' => (string) ( $artist['name'] ?? '' ),
+				'url'  => (string) ( $artist['permalink'] ?? '' ),
+			);
+		}
+		return $sellers[ $key ];
+	}
+
+	$result = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-commerce-seller', 'GET', $seller );
+	if ( is_wp_error( $result ) ) {
+		$sellers[ $key ] = $result;
+	} elseif ( ( $result['type'] ?? '' ) !== $seller['type'] || absint( $result['id'] ?? 0 ) !== $seller['id'] ) {
+		$sellers[ $key ] = $not_found;
+	} else {
+		$sellers[ $key ] = array(
+			'type'                => $seller['type'],
+			'id'                  => $seller['id'],
+			'name'                => (string) ( $result['name'] ?? '' ),
+			'url'                 => (string) ( $result['url'] ?? '' ),
+			'can_manage_finances' => ! empty( $result['can_manage_finances'] ),
+		);
+	}
+	return $sellers[ $key ];
+}
+
+/**
+ * Ask the seller's owner whether the current actor can manage it.
+ *
+ * Artists keep the Artist owner's edit permission. Venues and promoters
+ * require finance authority on the Events site (venue or promoter owner).
+ *
+ * @param mixed $seller Seller reference.
+ * @return true|WP_Error
+ */
+function extrachill_shop_current_user_can_manage_seller( $seller ) {
+	$seller = extrachill_shop_validate_seller_ref( $seller );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
+	if ( 'artist' === $seller['type'] ) {
+		return extrachill_shop_current_user_can_manage_artist( $seller['id'] );
+	}
+
+	$canonical = extrachill_shop_get_canonical_seller( $seller );
+	if ( is_wp_error( $canonical ) ) {
+		return $canonical;
+	}
+	return ! empty( $canonical['can_manage_finances'] )
+		? true
+		: new WP_Error( 'cannot_manage_seller', __( 'You do not have access to this seller.', 'extrachill-shop' ), array( 'status' => 403 ) );
+}
+
+/**
+ * Ability input schema fragment for a typed seller reference.
+ *
+ * @return array
+ */
+function extrachill_shop_seller_input_schema() {
+	return array(
+		'type'                 => 'object',
+		'description'          => 'Typed seller reference. Use instead of artist_id for venues and promoters.',
+		'properties'           => array(
+			'type' => array(
+				'type' => 'string',
+				'enum' => array( 'artist', 'venue', 'promoter' ),
+			),
+			'id'   => array(
+				'type'    => 'integer',
+				'minimum' => 1,
+			),
+		),
+		'required'             => array( 'type', 'id' ),
+		'additionalProperties' => false,
+	);
+}
+
+/**
+ * Permission check shared by seller-scoped Shop abilities.
+ *
+ * @param array $input Ability input with `seller` or `artist_id`.
+ * @return true|WP_Error
+ */
+function extrachill_shop_authorize_seller_input( array $input ) {
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error( 'rest_not_logged_in', 'You must be logged in to access this endpoint.', array( 'status' => 401 ) );
+	}
+	$seller = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
+	return extrachill_shop_current_user_can_manage_seller( $seller );
+}
+
+/**
+ * Get the Stripe account ID bound to a seller.
+ *
+ * @param mixed $seller Seller reference.
+ * @return string|false
+ */
+function extrachill_shop_get_seller_stripe_account( $seller ) {
+	$record = extrachill_shop_get_seller_stripe_account_record( $seller );
+	return $record && ! empty( $record['account_id'] ) ? (string) $record['account_id'] : false;
+}
+
+/**
  * Read seller state, lazily migrating the previous artist option in place.
  *
  * The legacy option is retained for safe replay; the typed record wins once

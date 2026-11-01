@@ -61,6 +61,7 @@ final class AbilitiesProvider {
 					'VenueProfileAbilities',
 					'VenueGraphicsAbilities',
 					'ManagedVenueVoicesAbilities',
+					'CommerceSellerAbilities',
 				)
 			);
 		}
