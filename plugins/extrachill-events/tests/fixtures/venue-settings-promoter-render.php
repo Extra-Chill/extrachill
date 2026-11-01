@@ -109,6 +109,7 @@ namespace {
 	function home_url( $path = '' ): string {
 		return 'https://events.example' . $path;
 	}
+	require_once __DIR__ . '/stubs/apply-filters-passthrough.php';
 	function wp_unique_id( $prefix = '' ): string {
 		return $prefix . '1';
 	}
