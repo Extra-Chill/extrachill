@@ -17,7 +17,6 @@
  * @var bool   $guest_form Whether to render the email-only guest RSVP form (logged-out viewers).
  * @var bool   $password_required Whether claiming a pass needs the guest list password (extrachill#433).
  * @var array  $guest_list        extrachill_events_get_guest_list_counts() result.
- * @var bool   $claim_form        Whether to render the logged-in password claim form.
  * @var string $perk_image_url    Pass artwork URL (extrachill#500). Empty when none is set.
  * @var string $perk_image_alt    Pass artwork alt text.
  *
@@ -101,26 +100,6 @@ if ( isset( $guest_list['spots_left'] ) && ! $guest_list_full ) {
 	?>
 	<button type="submit" class="button-1 button-medium"><?php esc_html_e( 'Get my pass', 'extrachill-events' ); ?></button>
 	<p class="ec-rsvp-guest__note"><?php esc_html_e( "We'll email your pass and a link to set up your free Extra Chill account.", 'extrachill-events' ); ?></p>
-	<div class="notice ec-rsvp-guest__status" role="status" hidden></div>
-</form>
-<?php endif; ?>
-<?php if ( ! empty( $claim_form ) && ! $has_pass && ! $guest_list_full ) : ?>
-<form
-	id="ec-rsvp-claim-<?php echo esc_attr( (string) $event_id ); ?>"
-	class="ec-rsvp-guest"
-	data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
-	data-mode="claim"
-	novalidate
->
-	<label for="ec-rsvp-claim-password-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Guest list password', 'extrachill-events' ); ?></label>
-	<input
-		type="password"
-		id="ec-rsvp-claim-password-<?php echo esc_attr( (string) $event_id ); ?>"
-		name="password"
-		autocomplete="off"
-		required
-	>
-	<button type="submit" class="button-1 button-medium"><?php esc_html_e( 'Get my pass', 'extrachill-events' ); ?></button>
 	<div class="notice ec-rsvp-guest__status" role="status" hidden></div>
 </form>
 <?php endif; ?>

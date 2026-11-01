@@ -74,7 +74,6 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 	$perk_text  = extrachill_events_get_perk_text( $post_id );
 	$guest_form = ! is_user_logged_in() && ! $password_required;
 	$guest_list = extrachill_events_get_guest_list_counts( $post_id );
-	$claim_form = false;
 
 	$perk_image_url = function_exists( 'extrachill_events_get_perk_image_url' ) ? extrachill_events_get_perk_image_url( $post_id ) : '';
 	$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_perk_image_alt( $post_id ) : '';
@@ -222,7 +221,6 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 			'eventId'       => $post_id,
 			'qrBaseUrl'     => function_exists( 'extrachill_events_rsvp_pass_qr_base_url' ) ? extrachill_events_rsvp_pass_qr_base_url() : '',
 			'guestRsvpPath' => $guest_form ? '/extrachill/v1/events/' . $post_id . '/guest-rsvp' : '',
-			'claimPath'     => '',
 			'guestListPath' => $is_guest_list ? '/extrachill/v1/events/' . $post_id . '/guest-list-pass' : '',
 			'guestRsvpText' => array(
 				'sending'  => __( 'Sending your pass...', 'extrachill-events' ),
