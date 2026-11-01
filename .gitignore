@@ -31,3 +31,4 @@ Thumbs.db
 /rigs/extrachill-network/artifacts/
 /artifacts/
 rigs/extrachill-network/evidence/demo/
+__pycache__/
