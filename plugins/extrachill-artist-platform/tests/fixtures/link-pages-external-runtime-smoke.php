@@ -128,6 +128,15 @@ function _x( $text ) {
 	return $text;
 }
 
+// Load the real network blog-id contract (ec_get_blog_id()). Homeboy exports
+// EXTRACHILL_NETWORK_PATH when extrachill-network is a validation dependency;
+// otherwise fall back to the monorepo sibling checkout.
+$ec_network_path = getenv( 'EXTRACHILL_NETWORK_PATH' );
+if ( ! is_string( $ec_network_path ) || '' === $ec_network_path ) {
+	$ec_network_path = dirname( $root ) . '/extrachill-network';
+}
+require_once rtrim( $ec_network_path, '/' ) . '/inc/core/blog-ids.php';
+
 // Simulate a standalone generic API loading after Artist Platform's handoff code.
 require_once $root . '/inc/link-pages/runtime-handoff.php';
 require_once __DIR__ . '/fake-external-link-pages-runtime.php';
