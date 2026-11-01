@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.10.2] - 2026-11-01
+
+### Changed
+- consolidate and pin docs-agent workflows
+
 ## [0.10.1] - 2026-11-01
 
 ### Changed
