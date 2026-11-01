@@ -71,9 +71,9 @@ function extrachill_get_user_total_points( $user_id ) {
 	/**
 	 * Additive scalar point contributions (legacy seam).
 	 *
-	 * Preserved from the original engine. Concert attendance
-	 * (inc/concert-tracking/rank-points.php) contributes here. New sources
-	 * should prefer the structured `ec_points_sources` registry above.
+	 * Preserved for legacy contributors. New sources should prefer the
+	 * structured `ec_points_sources` registry above, which also receives
+	 * concert-attendance points from inc/concert-tracking/rank-points.php.
 	 *
 	 * @param float $extra   Running extra-points total. Default 0.0.
 	 * @param int   $user_id WordPress user ID.

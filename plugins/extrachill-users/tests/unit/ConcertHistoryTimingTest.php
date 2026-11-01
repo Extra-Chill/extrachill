@@ -85,6 +85,73 @@ class Test_Concert_History_Timing extends WP_UnitTestCase {
 		return $this->now;
 	}
 
+	public function test_rank_points_count_only_tracked_past_shows(): void {
+		$blog_id = get_current_blog_id();
+		$this->assertSame( 3, ec_users_get_user_past_event_count( $this->user_id ) );
+		$this->assertSame( $blog_id, get_current_blog_id() );
+
+		$sources = apply_filters( 'ec_points_sources', array( 'existing' => 7 ), $this->user_id );
+		$this->assertArrayHasKey( 'concert_attendance', $sources );
+		$this->assertSame( 9, $sources['concert_attendance'] );
+		$this->assertSame( 7, $sources['existing'] );
+		$this->assertSame( 0.0, apply_filters( 'ec_rank_extra_points', 0.0, $this->user_id ) );
+		$this->assertFalse( has_filter( 'ec_rank_extra_points', 'ec_users_concert_rank_extra_points' ) );
+	}
+
+	public function test_one_past_mark_earns_three_points_but_upcoming_mark_earns_none(): void {
+		$past_user   = self::factory()->user->create();
+		$future_user = self::factory()->user->create();
+		$this->track_event( 'Attended', '2026-07-18 20:00:00', null, $past_user );
+		$this->track_event( 'Planning', '2026-07-20 20:00:00', null, $future_user );
+
+		$this->assertSame( 1, ec_users_get_user_past_event_count( $past_user ) );
+		$this->assertSame( 0, ec_users_get_user_past_event_count( $future_user ) );
+		$this->assertSame( 3, apply_filters( 'ec_points_sources', array(), $past_user )['concert_attendance'] );
+		$this->assertSame( 0, apply_filters( 'ec_points_sources', array(), $future_user )['concert_attendance'] );
+		delete_transient( 'user_points_' . $past_user );
+		delete_transient( 'user_points_' . $future_user );
+		$this->assertSame( 3.0, extrachill_get_user_total_points( $past_user ) );
+		$this->assertSame( 0.0, extrachill_get_user_total_points( $future_user ) );
+	}
+
+	public function test_show_ratings_do_not_change_concert_points(): void {
+		$before = apply_filters( 'ec_points_sources', array(), $this->user_id )['concert_attendance'];
+		$this->assertSame( 5, ec_users_set_show_rating( $this->user_id, $this->events['ended_today'], $this->events_blog_id, 5 ) );
+		$this->assertSame( $before, apply_filters( 'ec_points_sources', array(), $this->user_id )['concert_attendance'] );
+		$this->assertSame( 1, ec_users_set_show_rating( $this->user_id, $this->events['ended_today'], $this->events_blog_id, 1 ) );
+		$this->assertSame( $before, apply_filters( 'ec_points_sources', array(), $this->user_id )['concert_attendance'] );
+	}
+
+	public function test_concert_rank_weight_filter_still_applies(): void {
+		$filter = static function ( $weight, $user_id ) {
+			return 5;
+		};
+		add_filter( 'ec_users_concert_rank_points_per_show', $filter, 10, 2 );
+		try {
+			$this->assertSame( 15, apply_filters( 'ec_points_sources', array(), $this->user_id )['concert_attendance'] );
+		} finally {
+			remove_filter( 'ec_users_concert_rank_points_per_show', $filter, 10 );
+		}
+	}
+
+	public function test_past_count_excludes_other_users_and_blogs(): void {
+		global $wpdb;
+
+		$wpdb->insert(
+			extrachill_users_concert_tracking_table_name(),
+			array(
+				'user_id'  => $this->user_id,
+				'event_id' => $this->events['ended_today'],
+				'blog_id'  => get_current_blog_id(),
+			)
+		);
+		$other_user = self::factory()->user->create();
+		$this->track_event( 'Other User', '2026-07-18 20:00:00', null, $other_user );
+
+		$this->assertSame( 3, ec_users_get_user_past_event_count( $this->user_id ) );
+		$this->assertSame( 0, ec_users_get_user_past_event_count( self::factory()->user->create() ) );
+	}
+
 	public function test_tabs_use_canonical_timing_for_rows_totals_pages_and_years(): void {
 		$upcoming_page_one   = ec_users_get_user_events(
 			$this->user_id,
