@@ -3,12 +3,12 @@
  * Platform Map Loader
  *
  * Parses runner-configs/platform-map.yml into the shared platform identity
- * array. The map is the single source of truth for which plugin repo owns
- * which parent page on docs.extrachill.com:
+ * array. Monorepo plugin keys are exposed as legacy OWNER/REPO identities
+ * for existing publishing metadata and migration callers. The map identifies
+ * each plugin's parent page on docs.extrachill.com:
  *
  *   - The ec_doc → page migration resolves destination parents from it.
- *   - The pending docs-agent per-target context layer will read it to
- *     orient the agent toward the platform it is documenting.
+ *   - The Docs Agent workflow reads each plugin's runner configuration.
  *
  * Entry shape:
  *   [
@@ -63,23 +63,26 @@ function extrachill_docs_load_platform_map(): array {
 			continue;
 		}
 
-		// Top-level 'repos:' marker.
+		// Top-level 'plugins:' marker.
 		if ( ! $in_repos ) {
-			if ( preg_match( '/^repos:\s*$/', $trimmed ) ) {
+			if ( preg_match( '/^plugins:\s*$/', $trimmed ) ) {
 				$in_repos = true;
 			}
 			continue;
 		}
 
-		// Two-space-indented repo key: 'OWNER/REPO:'.
+		// Two-space-indented monorepo key: 'plugins/plugin-name:'.
 		if ( preg_match( '/^  ([^\s:][^:]*):\s*$/', $raw, $matches ) ) {
 			extrachill_docs_flush_platform_map_entry( $out, $current_repo, $current );
-			$current_repo = trim( $matches[1] );
+			$plugin_path  = trim( $matches[1] );
+			$current_repo = preg_match( '#^plugins/([a-z0-9-]+)$#', $plugin_path, $plugin_match )
+				? 'Extra-Chill/' . $plugin_match[1]
+				: null;
 			$current      = array();
 			continue;
 		}
 
-		// Four-space-indented field: '    key: "value"' or '    key: value'.
+		// Only identity fields at four spaces; nested runner settings are ignored.
 		if ( null !== $current_repo && preg_match( '/^    ([a-z_]+):\s*"?([^"\n]*)"?\s*$/', $raw, $matches ) ) {
 			$key   = $matches[1];
 			$value = trim( $matches[2], " \t\"'" );
