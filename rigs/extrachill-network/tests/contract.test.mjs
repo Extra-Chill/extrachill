@@ -492,3 +492,16 @@ try {
   assert.throws(() => runtimeWorkers({ extrachill_runtime_workers: 0 }), /integer from 1 to 64/);
   assert.throws(() => runtimeWorkers({ extrachill_runtime_workers: '4' }), /integer from 1 to 64/);
 }
+
+// In-memory OPcache: only on PHP 8.1-8.4, where php-wasm runs it safely.
+{
+  const { inMemoryOpcacheInputs } = await import('../run.mjs');
+  for (const version of ['8.1', '8.2', '8.3', '8.4']) {
+    const entries = inMemoryOpcacheInputs(version).pluginRuntime?.php?.bootstrapIniEntries;
+    assert.equal(entries?.['opcache.enable'], '1', `in-memory OPcache on PHP ${version}`);
+    assert.equal(entries?.['opcache.file_cache_only'], '0', `no file-cache-only mode on PHP ${version}`);
+  }
+  for (const version of ['7.4', '8.0', '8.5', undefined]) {
+    assert.deepEqual(inMemoryOpcacheInputs(version), {}, `wp-codebox default OPcache on PHP ${version}`);
+  }
+}
