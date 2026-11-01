@@ -41,8 +41,8 @@ concurrency:
 
 # Keep the gate CLI and all action installs on the same release.
 env:
-  HOMEBOY_VERSION: '0.439.9'
-  HOMEBOY_SHA256: 'cb89dc9fda4c52db987bf88820499ada3070a910987dbb27f353f6b45ba744dc'
+  HOMEBOY_VERSION: '0.440.0'
+  HOMEBOY_SHA256: '2abfe4c73ee5d560b1da8f68ae15426eb2d4d786ceff1af078cdeb54dc48109e'
 
 jobs:
   deploy:
@@ -384,7 +384,8 @@ jobs:
             path="$(jq -er '.local_path' "${HOMEBOY_CONFIG_ROOT}/components/${component}.json")"
             echo "Installing extensions declared by ${component} (${path})"
             "${HOMEBOY_GATE_BIN_DIR}/homeboy" extension install-for-component \
-              --path "${path}" --source https://github.com/Extra-Chill/homeboy
+              --path "${path}" --source https://github.com/Extra-Chill/homeboy \
+              --ref "v${HOMEBOY_VERSION}"
           done
 
       # #530 / Extra-Chill/homeboy#16911: gate build output forces sparse
