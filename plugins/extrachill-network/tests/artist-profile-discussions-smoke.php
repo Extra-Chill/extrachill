@@ -51,7 +51,7 @@ $GLOBALS['ec_test_topics']  = array(
 	new WP_Post( 73, 'topic', 'private', 'private-topic', 'Private Topic' ),
 );
 
-function add_filter( string $hook, string $callback, int $priority, int $accepted_args ): void {
+function add_filter( string $hook, string $callback, int $priority = 10, int $accepted_args = 1 ): void {
 	$GLOBALS['ec_test_filters'][] = compact( 'hook', 'callback', 'priority', 'accepted_args' );
 }
 
@@ -68,7 +68,6 @@ function get_current_blog_id(): int { return $GLOBALS['ec_test_blog_id']; }
 function get_post_type( int $post_id ): string { return in_array( $post_id, array( 700, 701, 702 ), true ) ? 'artist_profile' : 'post'; }
 function get_site( int $blog_id ): ?WP_Site { return 2 === $blog_id ? new WP_Site() : null; }
 function get_site_url( int $blog_id ): string { return 2 === $blog_id ? 'https://community.example' : 'https://example.test'; }
-function ec_get_blog_id( string $key ): int { return array( 'main' => 1, 'community' => 2 )[ $key ] ?? 0; }
 
 function switch_to_blog( int $blog_id ): void {
 	$GLOBALS['ec_test_blog_stack'][] = $GLOBALS['ec_test_blog_id'];
@@ -128,6 +127,8 @@ function get_bloginfo( string $show ): string { return 'UTF-8'; }
 function wp_strip_all_tags( string $text ): string { return strip_tags( $text ); }
 
 require_once dirname( __DIR__ ) . '/inc/integrations/artist-profile-discussions.php';
+
+require_once __DIR__ . '/support/network-contract.php';
 
 /** Fail the standalone process with a useful message. */
 function ec_test_assert( bool $condition, string $message ): void {

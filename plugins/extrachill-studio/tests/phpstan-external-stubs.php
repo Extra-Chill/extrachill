@@ -21,8 +21,9 @@ function wp_native_auth_sign_external_token( array $payload, string $secret ) {}
 
 function extrachill_breadcrumbs(): void {}
 
-/** @return int|null */
-function ec_get_blog_id( string $site ) {}
+// ec_get_blog_id() and the EC_BLOG_ID_* constants come from the real
+// extrachill-network inc/core/blog-ids.php, which the PHPStan runner scans as a
+// declared validation dependency (#446). Do not re-declare them here.
 
 /** @return array<string, mixed> */
 function ec_send_email( array $args ) {}

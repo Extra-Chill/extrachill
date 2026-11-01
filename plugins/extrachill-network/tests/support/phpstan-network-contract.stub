@@ -1,0 +1,87 @@
+<?php
+/**
+ * PHPStan stub for the Extra Chill network contract (#446).
+ *
+ * Declarations only — never executed. Mirrors inc/core/blog-ids.php so that
+ * components which call ec_get_blog_id() / ec_get_site_url() / EC_BLOG_ID_*
+ * can analyse without hand-copying signatures. Keep in lockstep with
+ * blog-ids.php; tests/network-contract-support-smoke.php fails when a
+ * function, parameter or constant value drifts.
+ *
+ * Usage (phpstan.neon in a sibling component):
+ *
+ *     parameters:
+ *         scanFiles:
+ *             - ../extrachill-network/tests/support/phpstan-network-contract.stub
+ *
+ * @package ExtraChillNetwork
+ */
+
+define( 'EC_BLOG_ID_MAIN', 1 );
+define( 'EC_BLOG_ID_COMMUNITY', 2 );
+define( 'EC_BLOG_ID_SHOP', 3 );
+define( 'EC_BLOG_ID_ARTIST', 4 );
+define( 'EC_BLOG_ID_EVENTS', 7 );
+define( 'EC_BLOG_ID_NEWSLETTER', 9 );
+define( 'EC_BLOG_ID_DOCS', 10 );
+define( 'EC_BLOG_ID_WIRE', 11 );
+define( 'EC_BLOG_ID_STUDIO', 12 );
+define( 'EC_BLOG_ID_LINK_PAGES', 13 );
+define( 'EC_BLOG_ID_AUTH', 14 );
+define( 'EC_PLATFORM_ARTIST_ID', 12114 );
+define( 'EC_LINK_PAGES_SITE_CUTOVER_OPTION', 'ec_link_pages_site_cutover' );
+
+/**
+ * @return array<string, int>
+ */
+function ec_get_blog_ids() {}
+
+/**
+ * @param string $key Logical site key, e.g. 'artist'.
+ * @return int|null
+ */
+function ec_get_blog_id( $key ) {}
+
+/**
+ * @return array<string, int>
+ */
+function ec_get_domain_map() {}
+
+/**
+ * @return bool
+ */
+function ec_link_pages_site_cutover_enabled() {}
+
+/**
+ * @param int $blog_id Existing configured blog ID.
+ * @return int
+ */
+function ec_filter_link_page_storage_blog_id( $blog_id ) {}
+
+/**
+ * @param int $blog_id Blog ID to resolve.
+ * @return string|null
+ */
+function ec_get_blog_slug_by_id( $blog_id ) {}
+
+/**
+ * @param string $key Logical site key, e.g. 'main'.
+ * @return string|null
+ */
+function ec_get_site_url( $key ) {}
+
+/**
+ * @return string[]
+ */
+function ec_get_allowed_redirect_hosts() {}
+
+/**
+ * @return int[]
+ */
+function ec_get_all_site_ids() {}
+
+/**
+ * @param array<int|string, string> $hosts Existing allowed hosts.
+ * @return array<int|string, string>
+ */
+function ec_filter_allowed_redirect_hosts( $hosts ) {}

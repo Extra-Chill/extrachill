@@ -136,7 +136,7 @@ namespace {
 		$GLOBALS['ntc_blog_id'] = (int) array_pop( $GLOBALS['ntc_blog_stack'] );
 		return true;
 	}
-	function ec_get_blog_id( string $key ): int { return array( 'main' => 1, 'community' => 2, 'events' => 7, 'wire' => 11, 'studio' => 12 )[ $key ] ?? 0; }
+	require_once __DIR__ . '/support/network-contract.php';
 	function extrachill_get_current_site_key(): ?string { return array( 1 => 'main', 2 => 'community', 7 => 'events', 11 => 'wire', 12 => 'studio' )[ get_current_blog_id() ] ?? null; }
 	function taxonomy_exists( string $taxonomy ): bool { return in_array( $taxonomy, array( 'artist', 'festival', 'location' ), true ); }
 	function post_type_exists( string $post_type ): bool { return in_array( $post_type, $GLOBALS['ntc_post_types'], true ); }

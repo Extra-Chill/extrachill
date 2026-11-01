@@ -81,6 +81,9 @@
     },
     "tests/media-webp-smoke.php": {
       "environment": "standalone-php"
+    },
+    "tests/network-contract-support-smoke.php": {
+      "environment": "standalone-php"
     }
   }
 }

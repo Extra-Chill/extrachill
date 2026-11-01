@@ -35,13 +35,7 @@ function absint( $value ): int {
 	return abs( (int) $value );
 }
 
-function ec_get_blog_id( string $site ): int {
-	return 'community' === $site ? 2 : 0;
-}
-
-function ec_get_site_url( string $site ): string {
-	return 'community' === $site ? 'https://community.extrachill.com' : '';
-}
+require_once __DIR__ . '/support/network-contract.php';
 
 function switch_to_blog( $blog_id ): bool {
 	$GLOBALS['upl_blog_stack'][] = $GLOBALS['upl_blog_id'];

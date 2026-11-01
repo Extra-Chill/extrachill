@@ -73,9 +73,7 @@ function get_current_blog_id() {
 	return $GLOBALS['genre_test']['blog_id'];
 }
 
-function ec_get_blog_id( $key ) {
-	return 'main' === $key ? 1 : null;
-}
+require_once __DIR__ . '/support/network-contract.php';
 
 function get_option( $key, $default = false ) {
 	return $GLOBALS['genre_test']['options'][ $key ] ?? $default;
