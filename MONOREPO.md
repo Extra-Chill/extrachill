@@ -18,6 +18,10 @@ Every component, including `extrachill-network`, lives in its own directory with
 | `deploy/nginx`, `deploy/sunrise.php`, `docs/nginx` | Server artifacts |
 | `rigs/extrachill-network` | The 11-site network rig and user journeys; boots members from this checkout |
 
+## Documentation
+
+The [documentation map](docs/README.md) defines where user help, developer reference and cross-component architecture belong, explains publishing to docs.extrachill.com, and indexes every component's docs. Start with the [architecture overview](docs/architecture.md) for relationships between network services and access surfaces.
+
 ## CI
 
 `homeboy.yml` runs each changed component's own lint and tests (homeboy-action `components: changed`), reported as one `homeboy / Components` check, plus a `Site infrastructure` job for `deploy/` and the rig. `journeys.yml` boots the network from this checkout on any change under `plugins/`, `themes/` or `packages/`.
