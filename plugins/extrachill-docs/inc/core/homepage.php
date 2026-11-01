@@ -24,7 +24,14 @@ add_action( 'extrachill_homepage_content', 'extrachill_docs_render_homepage_card
  * @return void
  */
 function extrachill_docs_render_homepage_cards() {
-	$platforms = get_posts( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_parent' => 0, 'posts_per_page' => -1, 'orderby' => 'title', 'order' => 'ASC' ) );
+	$platforms = get_posts( array(
+		'post_type'      => 'page',
+		'post_status'    => 'publish',
+		'post_parent'    => 0,
+		'posts_per_page' => -1,
+		'orderby'        => 'title',
+		'order'          => 'ASC',
+	) );
 
 	if ( empty( $platforms ) || is_wp_error( $platforms ) ) {
 		return;
@@ -43,12 +50,14 @@ function extrachill_docs_render_homepage_cards() {
 				<?php
 				$recent_docs = get_posts(
 					array(
-						'post_type' => 'page',
+						'post_type'      => 'page',
 						'posts_per_page' => -1,
-						'post_parent' => $platform->ID,
+						'post_parent'    => $platform->ID,
 					)
 				);
-				if ( empty( $recent_docs ) ) { continue; }
+				if ( empty( $recent_docs ) ) {
+					continue;
+				}
 				?>
 				<div class="docs-category-card">
 					<h2><?php echo esc_html( $platform->post_title ); ?></h2>

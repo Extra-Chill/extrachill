@@ -245,7 +245,7 @@ function extrachill_docs_find_orphaned_doc_pages( array $plan, string $repo_filt
 	foreach ( $plan as $row ) {
 		if ( 'publish' === $row['action'] ) {
 			$present[ $row['path'] ] = true;
-			$repos[ $row['repo'] ]                        = true;
+			$repos[ $row['repo'] ]   = true;
 		}
 	}
 

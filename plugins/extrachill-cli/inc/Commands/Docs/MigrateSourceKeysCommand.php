@@ -28,10 +28,16 @@ class MigrateSourceKeysCommand {
 			WP_CLI::error( '--apply and --dry-run are mutually exclusive.' );
 		}
 		$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill-docs/migrate-source-keys' ) : null;
-		if ( ! $ability ) { WP_CLI::error( 'Docs migration ability unavailable. Run on the docs site with Extra Chill Docs active.' ); }
+		if ( ! $ability ) {
+			WP_CLI::error( 'Docs migration ability unavailable. Run on the docs site with Extra Chill Docs active.' );
+		}
 		$result = $ability->execute( array( 'apply' => isset( $assoc_args['apply'] ) ) );
-		if ( is_wp_error( $result ) ) { WP_CLI::error( $result->get_error_message() ); }
-		WP_CLI::line( wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
-		if ( empty( $result['success'] ) ) { WP_CLI::error( 'Migration failed; inspect the report.' ); }
+		if ( is_wp_error( $result ) ) {
+			WP_CLI::error( $result->get_error_message() );
+		}
+		WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+		if ( empty( $result['success'] ) ) {
+			WP_CLI::error( 'Migration failed; inspect the report.' );
+		}
 	}
 }

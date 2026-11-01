@@ -9,7 +9,7 @@ function extrachill_docs_redirect_target( string $path ): int {
 
 function extrachill_docs_redirect_legacy_path(): void {
 	$path = wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
-	$id = extrachill_docs_redirect_target( (string) $path );
+	$id   = extrachill_docs_redirect_target( (string) $path );
 	if ( ! $id || 'publish' !== get_post_status( $id ) ) {
 		return;
 	}

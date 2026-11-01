@@ -68,7 +68,7 @@ class CommandRegistry {
 			'extrachill seo redirects'                 => Commands\SEO\RedirectsCommand::class,
 
 			// Documentation migration.
-			'extrachill docs migrate-source-keys' => Commands\Docs\MigrateSourceKeysCommand::class,
+			'extrachill docs migrate-source-keys'      => Commands\Docs\MigrateSourceKeysCommand::class,
 
 			// Content commands.
 			'extrachill content'                       => Commands\Content\TriviaCommand::class,

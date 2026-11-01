@@ -384,14 +384,20 @@ function extrachill_docs_find_synced_page( string $repo, string $path ): ?\WP_Po
 	if ( empty( $query->posts ) && preg_match( '#^plugins/([^/]+)/(.*)$#', $path, $parts ) ) {
 		// A deploy may publish before the operator runs the key migration.
 		$legacy_path = 'extrachill-docs' === $parts[1] && 'docs/user/connect.md' === $parts[2] ? 'ec_docs/mcp/connect.md' : $parts[2];
-		$query = new \WP_Query( array(
-			'post_type' => 'page',
-			'post_status' => array( 'publish', 'draft', 'private', 'pending' ),
+		$query       = new \WP_Query( array(
+			'post_type'      => 'page',
+			'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
 			'posts_per_page' => 1,
-			'no_found_rows' => true,
-			'meta_query' => array(
-				array( 'key' => '_source_repo', 'value' => 'Extra-Chill/' . $parts[1] ),
-				array( 'key' => '_source_path', 'value' => $legacy_path ),
+			'no_found_rows'  => true,
+			'meta_query'     => array(
+				array(
+					'key'   => '_source_repo',
+					'value' => 'Extra-Chill/' . $parts[1],
+				),
+				array(
+					'key'   => '_source_path',
+					'value' => $legacy_path,
+				),
 			),
 		) );
 	}
