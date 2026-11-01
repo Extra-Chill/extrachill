@@ -1,0 +1,11 @@
+# The WordPress environment (phpstan-wordpress, stubs, analysis level and the
+# shared ignoreErrors) comes from the Homeboy wordpress extension. This file
+# carries only what is specific to this component.
+
+parameters:
+	# WP-CLI defines WP_CLI at runtime. The extrachill-network validation
+	# dependency is scanned for declarations, and one of its CLI probes defines
+	# WP_CLI as true, which would otherwise make the canonical
+	# `defined( 'WP_CLI' ) && WP_CLI` guard look always-true.
+	dynamicConstantNames:
+		- WP_CLI
