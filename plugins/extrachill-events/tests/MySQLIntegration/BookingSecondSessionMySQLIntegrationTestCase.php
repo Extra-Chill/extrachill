@@ -29,6 +29,7 @@ require_once __DIR__ . '/BookingMySQLIntegrationTestCase.php';
 
 use ExtraChillEvents\Core\BookingPrivateFileProvider;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
 
 /** Provider probe that pauses inside production service callbacks. */
@@ -242,6 +243,7 @@ abstract class BookingSecondSessionMySQLIntegrationTestCase extends BookingMySQL
 			$this->reconnect_wordpress_database();
 			file_put_contents( $started, 'started', LOCK_EX );
 			$installed = BookingSchema::install();
+			VenueSchema::install();
 			file_put_contents( $result, is_wp_error( $installed ) ? $installed->get_error_code() : 'ok', LOCK_EX );
 			exit( 0 );
 		}

@@ -98,7 +98,7 @@ final class PromoterVenueAuthorization {
 
 	/** Validate every non-persisted term in the effective-access formula. */
 	private function validate_request( int $user_id, int $promoter_term_id, int $venue_term_id, string $action, bool $validate_venue = true ) {
-		if ( ! PromoterAuthoritySchema::is_ready() || ! BookingSchema::is_ready() ) {
+		if ( ! PromoterAuthoritySchema::is_ready() || ! VenueSchema::is_ready() ) {
 			return new \WP_Error( 'promoter_venue_authority_schema_unavailable', __( 'Promoter venue authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		$promoter = get_term( $promoter_term_id, 'promoter' );

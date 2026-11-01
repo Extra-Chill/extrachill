@@ -46,6 +46,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', __DIR__ . '/' );
 }
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingHoldRepository.php';
 
 $holds      = \ExtraChillEvents\Core\BookingSchema::holds_table();

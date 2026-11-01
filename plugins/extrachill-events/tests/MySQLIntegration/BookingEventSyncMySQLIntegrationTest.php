@@ -14,6 +14,7 @@ use ExtraChillEvents\Core\BookingEventSyncService;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -45,6 +46,7 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		get_user_by( 'id', $this->actor_id )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
 		wp_set_current_user( $this->actor_id );
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		foreach ( array( $this->old_venue_id, $this->new_venue_id ) as $venue_id ) {
 			$this->assertIsArray(
 				( new VenueMembershipRepository() )->create(
@@ -70,7 +72,7 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		if ( isset( $this->contender ) ) {
 			$this->contender->close();
 		}
-		foreach ( array( BookingSchema::holds_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), BookingSchema::memberships_table(), BookingSchema::communication_state_table() ) as $table ) {
+		foreach ( array( BookingSchema::holds_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), VenueSchema::memberships_table(), BookingSchema::communication_state_table() ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
 		}
 		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}datamachine_event_dates" );

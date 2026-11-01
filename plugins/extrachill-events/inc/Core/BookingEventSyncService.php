@@ -248,7 +248,7 @@ class BookingEventSyncService {
 			return new \WP_Error( 'booking_event_sync_transaction_start_failed', __( 'Booking event synchronization could not start.', 'extrachill-events' ) );
 		}
 		$this->transaction_active = true;
-		$table                    = BookingSchema::memberships_table();
+		$table                    = VenueSchema::memberships_table();
 		$venue_ids                = array( (int) $initial['venue_term_id'] );
 		if ( ! empty( $changes['venue_term_id'] ) ) {
 			$venue_ids[] = absint( $changes['venue_term_id'] );

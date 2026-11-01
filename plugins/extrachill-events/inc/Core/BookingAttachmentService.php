@@ -1188,7 +1188,7 @@ class BookingAttachmentService {
 		}
 		$venue_ids = array_keys( $venues );
 		sort( $venue_ids, SORT_NUMERIC );
-		$memberships = BookingSchema::memberships_table();
+		$memberships = VenueSchema::memberships_table();
 		foreach ( $venue_ids as $venue_id ) {
 			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$memberships} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Global order locks authority ranges first.
 			if ( '' !== (string) $wpdb->last_error ) {

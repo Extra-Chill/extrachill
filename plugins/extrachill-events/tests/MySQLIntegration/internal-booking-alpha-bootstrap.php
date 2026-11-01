@@ -16,6 +16,7 @@ while ( ! get_site( 7 ) ) {
 switch_to_blog( 7 );
 try {
 	$booking_schema = ExtraChillEvents\Core\BookingSchema::install();
+	\ExtraChillEvents\Core\VenueSchema::install();
 	if ( is_wp_error( $booking_schema ) ) {
 		throw new RuntimeException( $booking_schema->get_error_code() . ': ' . wp_json_encode( $booking_schema->get_error_data() ) );
 	}

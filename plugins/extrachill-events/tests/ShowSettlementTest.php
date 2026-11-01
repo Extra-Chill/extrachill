@@ -11,6 +11,7 @@ use ExtraChillEvents\Core\BookingAttachmentRepository;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\ShowSettlementService;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\TicketSettlementService;
@@ -180,6 +181,7 @@ final class ShowSettlementTest extends BookingTestCase {
 
 	public function test_schema_adds_revision_and_action_tables_without_changing_commission_contract(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( BookingSchema::health() );
 		$revisions = $GLOBALS['wpdb']->schemas[ BookingSchema::show_settlements_table() ];
 		$actions   = $GLOBALS['wpdb']->schemas[ BookingSchema::show_settlement_actions_table() ];

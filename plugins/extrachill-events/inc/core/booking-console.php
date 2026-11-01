@@ -6,6 +6,7 @@
  */
 
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -99,7 +100,7 @@ function ec_events_user_has_active_venue_membership( int $user_id ): bool {
 			return false;
 		}
 		global $wpdb;
-		$table = BookingSchema::memberships_table();
+		$table = VenueSchema::memberships_table();
 		return (bool) $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} WHERE user_id = %d AND status = 'active' LIMIT 1", $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact current-user membership lookup on the Events site.
 	} finally {
 		if ( $switched ) {

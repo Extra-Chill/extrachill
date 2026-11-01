@@ -10,6 +10,7 @@ use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingMarketingService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use DataMachineSocials\Operations\DelegatedCrossPostAction;
 use PHPUnit\Framework\TestCase;
@@ -298,7 +299,7 @@ final class BookingMarketingTest extends BookingTestCase {
 			'post_meta'        => array(),
 		);
 		$GLOBALS['wpdb']           = new BookingWpdb();
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1] = array(
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1] = array(
 			'id'                 => 1,
 			'venue_term_id'      => 55,
 			'user_id'            => 12,
@@ -444,6 +445,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_effect_authorization_uses_frozen_binding_before_submit_receipt_lands(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social() ) );
 		$authorized = null;
@@ -479,6 +481,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_newsletter_execute_authorization_uses_frozen_binding_before_submit_receipt_lands(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->newsletter( 'newsletter', 'direct' ) ) );
 		$authorized = null;
@@ -515,6 +518,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_identical_pre_receipt_channels_bind_distinct_trusted_operation_refs(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure(
 			array(
@@ -774,6 +778,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_approved_apply_recovers_after_authorization_mapping_write_failure(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social( 'social', 'required' ) ) );
 		$service  = $this->service();
@@ -1045,6 +1050,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_delayed_operation_can_be_cancelled_after_booking_and_event_become_stale(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social() ) );
 		$submitted = $this->service()->trigger( $booking['id'], 12 )['channels']['social'];
@@ -1068,6 +1074,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_owner_action_rechecks_exact_actor_resource_and_frozen_binding(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social() ) );
 		$submitted              = $this->service()->trigger( $booking['id'], 12 )['channels']['social'];
@@ -1112,6 +1119,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_owner_action_rejects_same_attachment_id_after_asset_replacement(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social() ) );
 		$submitted = $this->service()->trigger( $booking['id'], 12 )['channels']['social'];
@@ -1129,6 +1137,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_owner_action_rejects_same_attachment_url_after_file_bytes_change(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social() ) );
 		$submitted = $this->service()->trigger( $booking['id'], 12 )['channels']['social'];
@@ -1272,6 +1281,7 @@ final class BookingMarketingTest extends BookingTestCase {
 
 	public function test_automatic_trigger_records_and_logs_each_channel_failure(): void {
 		BookingSchema::install();
+		VenueSchema::install();
 		$booking = $this->booking();
 		$this->configure( array( $this->social() ) );
 		unset( $GLOBALS['ec_artist_test']['attachment_urls'][7][301] );

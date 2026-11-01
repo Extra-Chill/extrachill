@@ -51,7 +51,7 @@ final class AbilitiesProvider {
 			'LocationEventAbilities',
 		);
 
-		if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) && \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
+		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
 			$abilities = array_merge(
 				$abilities,
 				array(
@@ -62,6 +62,14 @@ final class AbilitiesProvider {
 					'VenueProfileAbilities',
 					'VenueGraphicsAbilities',
 					'ManagedVenueVoicesAbilities',
+				)
+			);
+		}
+
+		if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) && \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
+			$abilities = array_merge(
+				$abilities,
+				array(
 					'VenueBookingAbilities',
 					'ArtistBookingInquiryAbilities',
 					'BookingAttachmentAbilities',
@@ -81,7 +89,7 @@ final class AbilitiesProvider {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
 			$abilities[] = 'PromoterAuthorityAbilities';
 			$abilities[] = 'PromoterVenueGrantAbilities';
-			if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema' ) && \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
+			if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
 				$abilities[] = 'PromoterWorkspaceAbilities';
 			}
 		}

@@ -36,6 +36,7 @@ final class VenueBookingProvider {
 			return false;
 		}
 
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueMembershipRepository.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueAuthorization.php';

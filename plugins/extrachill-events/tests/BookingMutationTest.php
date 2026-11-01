@@ -12,6 +12,7 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingMutationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use PHPUnit\Framework\TestCase;
 
@@ -120,6 +121,7 @@ final class BookingMutationTest extends BookingTestCase {
 	public function test_schema_and_public_inquiry_separate_requested_from_authoritative_fields(): void {
 		$this->assertSame( '16', BookingSchema::SCHEMA_VERSION );
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$columns = $GLOBALS['wpdb']->schemas[ BookingSchema::bookings_table() ]['columns'];
 		foreach ( array( 'requested_space_key', 'performance_start_at', 'performance_end_at', 'production_payload', 'confirmed_deal_payload' ) as $column ) {
 			$this->assertArrayHasKey( $column, $columns );

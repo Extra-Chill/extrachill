@@ -14,6 +14,7 @@ use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Abilities\TicketSettlementAbilities;
@@ -68,7 +69,7 @@ class BookingAttachmentMySQLIntegrationTest extends BookingSecondSessionMySQLInt
 		);
 		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : '' );
 
-		$memberships                 = BookingSchema::memberships_table();
+		$memberships                 = VenueSchema::memberships_table();
 		$this->provider->claim_probe = function () use ( $memberships ): void {
 			try {
 				$updated                        = $this->contender->query( "UPDATE {$memberships} SET status = 'revoked' WHERE venue_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Independent test connection races the production transaction.

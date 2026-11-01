@@ -11,6 +11,7 @@ use ExtraChillEvents\Core\BookingAttachmentRepository;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 
@@ -284,7 +285,7 @@ final class BookingAttachmentTest extends BookingTestCase {
 	public function test_authorization_uses_the_membership_rows_locked_by_the_transaction(): void {
 		$booking       = $this->booking();
 		$authorization = new BookingTestAuthorization();
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1] = array(
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1] = array(
 			'id'                 => 1,
 			'venue_term_id'      => 55,
 			'user_id'            => 12,

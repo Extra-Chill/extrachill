@@ -44,6 +44,7 @@ on:
       - 'plugins/extrachill-events/inc/Core/BookingHoldRepository.php'
       - 'plugins/extrachill-events/inc/Core/BookingRepository.php'
       - 'plugins/extrachill-events/inc/Core/BookingSchema.php'
+      - 'plugins/extrachill-events/inc/Core/VenueSchema.php'
       - 'plugins/extrachill-events/inc/Core/VenueAuthorization.php'
       - 'plugins/extrachill-events/inc/Core/VenueMembershipRepository.php'
       - 'plugins/extrachill-events/inc/Providers/VenueBookingProvider.php'

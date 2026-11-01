@@ -14,6 +14,7 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingMutationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use PHPUnit\Framework\TestCase;
 
@@ -68,7 +69,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 			'post_meta'     => array(),
 		);
 		$GLOBALS['wpdb'] = new BookingWpdb();
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1] = array(
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1] = array(
 			'id'            => 1,
 			'venue_term_id' => 55,
 			'user_id'       => 12,
@@ -135,6 +136,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 
 	public function test_schema_indexes_durable_communication_state_and_audit_reads(): void {
 		$this->assertTrue( BookingSchema::install() );
+		$this->assertTrue( VenueSchema::install() );
 		$activity_indexes = $GLOBALS['wpdb']->schemas[ BookingSchema::activity_table() ]['indexes'];
 		$state_indexes    = $GLOBALS['wpdb']->schemas[ BookingSchema::communication_state_table() ]['indexes'];
 		$this->assertSame( array( 'booking_id', 'is_communication', 'occurred_at', 'id' ), $activity_indexes['booking_communication_occurred']['columns'] );
@@ -177,7 +179,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 			array( 'id' => 8, 'venue_term_id' => 55, 'user_id' => 28, 'status' => 'active' ),
 		);
 		foreach ( $rows as $row ) {
-			$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][ $row['id'] ] = $row;
+			$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][ $row['id'] ] = $row;
 		}
 		$GLOBALS['ec_artist_test']['users'] += array(
 			21 => (object) array( 'ID' => 21, 'user_email' => 'owner@example.com' ),
@@ -265,8 +267,8 @@ final class BookingCommunicationTest extends BookingTestCase {
 			}
 		);
 		$state = $service->request( $this->input( $booking['id'], array( 'template' => 'follow_up' ) ), 12 );
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][1]['status'] = 'revoked';
-		$GLOBALS['wpdb']->rows[ BookingSchema::memberships_table() ][2] = array( 'id' => 2, 'venue_term_id' => 55, 'user_id' => 22, 'status' => 'active' );
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1]['status'] = 'revoked';
+		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][2] = array( 'id' => 2, 'venue_term_id' => 55, 'user_id' => 22, 'status' => 'active' );
 
 		$result = $service->dispatch_reminder( $state['intent_id'] );
 

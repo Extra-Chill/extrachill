@@ -195,7 +195,7 @@ class VenueBookingConfig {
 			return new \WP_Error( 'booking_config_transaction_failed', __( 'The venue booking configuration transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 
-		$memberships = BookingSchema::memberships_table();
+		$memberships = VenueSchema::memberships_table();
 		$wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$memberships} WHERE venue_term_id = %d AND user_id = %d FOR UPDATE", $venue_term_id, $actor_user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks the actor's exact venue scope before reauthorization.
 		if ( $this->has_database_error() ) {
 			return $this->rollback_error( 'booking_config_authorization_lock_failed', __( 'Venue configuration authority could not be locked.', 'extrachill-events' ) );

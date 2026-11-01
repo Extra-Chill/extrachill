@@ -915,7 +915,7 @@ class ShowSettlementService {
 			$allowed = $this->authorize_action( $booking, $actor_id, $authority );
 			return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
 		}
-		$table   = BookingSchema::memberships_table();
+		$table   = VenueSchema::memberships_table();
 		$members = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $booking['venue_term_id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks exact venue authority first.
 		$allowed = '' === (string) $wpdb->last_error ? $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_MANAGE_FINANCES, (array) $members ) : false;
 		return true === $allowed ? true : $this->rollback( $this->denied( $allowed ) );
