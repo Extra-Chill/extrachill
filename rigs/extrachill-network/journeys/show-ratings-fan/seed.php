@@ -3,9 +3,8 @@
  * Seed for show-ratings-fan.
  *
  * Two past Goose shows in Charleston on the events site, a My Shows page,
- * and a non-technical fan account who attended both. The fan has marked
- * "I Was There" on the older show only (as an import would); the newer
- * show is unmarked so the journey walks the mark-then-rate path.
+ * and two subscriber accounts. Both shows are attended by the fan;
+ * the older show starts with a private 5-star rating.
  *
  * @package ExtraChillNetwork
  */
@@ -117,8 +116,36 @@ $make = static function ( string $slug, string $title, int $days_ago ) use ( $ve
 $recent = $make( 'goose-charleston-pour-house-fall', 'Goose at Charleston Pour House', 30 );
 $older  = $make( 'goose-charleston-pour-house-summer', 'Goose at Charleston Pour House (Summer)', 90 );
 
-// The older show is already in the fan's history, as an import would leave it.
-ec_users_mark_event( EC_RATINGS_FAN_ID, $older, $events_blog_id );
+// Reset both records so repeated runs start from the same state.
+foreach ( array( $recent, $older ) as $event_id ) {
+	ec_users_mark_event( EC_RATINGS_FAN_ID, $event_id, $events_blog_id );
+}
+wp_set_current_user( EC_RATINGS_FAN_ID );
+foreach ( array( $recent => 0, $older => 5 ) as $event_id => $rating ) {
+	$result = wp_get_ability( 'extrachill/rate-show' )->execute(
+		array( 'event_id' => $event_id, 'rating' => $rating, 'blog_id' => $events_blog_id )
+	);
+	if ( is_wp_error( $result ) ) {
+		throw new RuntimeException( $result->get_error_message() );
+	}
+}
+extrachill_users_set_concert_history_visibility( EC_RATINGS_FAN_ID, 'public' );
+
+// A genuine non-owner (not an administrator) for the privacy walk.
+if ( ! get_user_by( 'id', 712 ) ) {
+	$wpdb->insert( $wpdb->users, array(
+		'ID' => 712,
+		'user_login' => 'ratings_other_fan',
+		'user_pass' => wp_hash_password( wp_generate_password( 32, true, true ) ),
+		'user_nicename' => 'ratings-other-fan',
+		'user_email' => 'ratings-other-fan@example.invalid',
+		'user_registered' => current_time( 'mysql', true ),
+		'display_name' => 'Other Fan',
+	) ); // phpcs:ignore WordPress.DB
+	clean_user_cache( 712 );
+}
+add_user_to_blog( $events_blog_id, 712, 'subscriber' );
+wp_set_current_user( 1 );
 
 if ( ! get_page_by_path( 'my-shows' ) ) {
 	wp_insert_post(
@@ -142,11 +169,7 @@ $fixture = array(
 	'older_url'      => get_permalink( $older ),
 	'artist_url'     => get_term_link( $artist_id, 'artist' ),
 	'venue_url'      => get_term_link( $venue_id, 'venue' ),
-	'options'        => array(
-		'comment_moderation'          => get_option( 'comment_moderation' ),
-		'comment_previously_approved' => get_option( 'comment_previously_approved' ),
-		'comment_registration'        => get_option( 'comment_registration' ),
-	),
+	'other_id'       => 712,
 );
 
 restore_current_blog();
