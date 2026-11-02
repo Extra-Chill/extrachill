@@ -1,2 +1,13 @@
-const config = require('@wordpress/scripts/config/jest-unit.config');
-module.exports = { ...config, moduleNameMapper: { ...config.moduleNameMapper, '^@wordpress/(.*)$': '<rootDir>/node_modules/@wordpress/$1', '^react$': require.resolve('react'), '^react-dom(.*)$': '<rootDir>/node_modules/react-dom$1', '^@extrachill/components$': '<rootDir>/../../packages/components/dist/index.js' }, transformIgnorePatterns: [ '/node_modules/(?!@extrachill/)' ] };
+const config = require( '@wordpress/scripts/config/jest-unit.config' );
+module.exports = {
+	...config,
+	moduleNameMapper: {
+		...config.moduleNameMapper,
+		'^@wordpress/(.*)$': '<rootDir>/node_modules/@wordpress/$1',
+		'^react$': require.resolve( 'react' ),
+		'^react-dom(.*)$': '<rootDir>/node_modules/react-dom$1',
+		'^@extrachill/components$':
+			'<rootDir>/../../packages/components/dist/index.js',
+	},
+	transformIgnorePatterns: [ '/node_modules/(?!@extrachill/)' ],
+};

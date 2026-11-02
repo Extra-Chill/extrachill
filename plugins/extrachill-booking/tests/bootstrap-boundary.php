@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable -- Standalone process harness: rewrites fixture source and evaluates it in child PHP processes.
 /** Standalone combined and mixed-deploy bootstrap proof. */
 $events = dirname( __DIR__, 2 ) . '/extrachill-events';
 $fixture = file_get_contents( $events . '/tests/fixtures/bootstrap-matrix.php' );
