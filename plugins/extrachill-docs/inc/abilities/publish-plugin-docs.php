@@ -164,7 +164,11 @@ function extrachill_docs_execute_publish_plugin_docs( array $input ): array {
 	$repo_filter = isset( $input['repo'] ) ? (string) $input['repo'] : '';
 	$dry_run     = ! empty( $input['dry_run'] );
 	if ( ! class_exists( 'WP_Markdown_CLI' ) || ! function_exists( 'markdown_db_register_content_layout_profile' ) ) {
-		return array( 'success' => false, 'error' => 'mdi_unavailable', 'rows' => array() );
+		return array(
+			'success' => false,
+			'error'   => 'mdi_unavailable',
+			'rows'    => array(),
+		);
 	}
 	extrachill_docs_register_mdi_layout();
 	$plan = extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), WP_PLUGIN_DIR, $repo_filter );
@@ -174,23 +178,27 @@ function extrachill_docs_execute_publish_plugin_docs( array $input ): array {
 		}
 		$parent = extrachill_docs_resolve_or_create_parent_page( $item['parent_slug'], $item['parent_title'], $item['post_status'], $dry_run );
 		if ( is_wp_error( $parent ) ) {
-			return array( 'success' => false, 'error' => $parent->get_error_message(), 'rows' => array() );
+			return array(
+				'success' => false,
+				'error'   => $parent->get_error_message(),
+				'rows'    => array(),
+			);
 		}
 	}
-	$GLOBALS['extrachill_docs_mdi_repo'] = $repo_filter;
+	$GLOBALS['extrachill_docs_mdi_repo']      = $repo_filter;
 	$GLOBALS['extrachill_docs_mdi_importing'] = true;
 	try {
 		$result = WP_Markdown_CLI::import( array(
-			'path' => WP_PLUGIN_DIR,
+			'path'           => WP_PLUGIN_DIR,
 			'layout_profile' => EXTRACHILL_DOCS_MDI_LAYOUT,
-			'profile' => 'markdown-h1-title',
-			'dry_run' => $dry_run,
+			'profile'        => 'markdown-h1-title',
+			'dry_run'        => $dry_run,
 		) );
 	} finally {
 		unset( $GLOBALS['extrachill_docs_mdi_repo'], $GLOBALS['extrachill_docs_mdi_importing'] );
 	}
 	$rows = array( $result );
-	$ok = ! empty( $result['success'] ) && empty( $result['skipped_count'] );
+	$ok   = ! empty( $result['success'] ) && empty( $result['skipped_count'] );
 
 	foreach ( extrachill_docs_find_orphaned_doc_pages( $plan, $repo_filter ) as $orphan ) {
 		$rows[] = $orphan;
@@ -238,6 +246,9 @@ function extrachill_docs_find_orphaned_doc_pages( array $plan, string $repo_filt
 			)
 		);
 		foreach ( $query->posts as $page ) {
+			if ( ! $page instanceof \WP_Post ) {
+				continue;
+			}
 			$path = (string) get_post_meta( $page->ID, '_source_path', true );
 			if ( str_starts_with( $path, $repo . '/' ) && empty( $present[ $path ] ) ) {
 				$orphans[] = array(

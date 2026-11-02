@@ -7,7 +7,7 @@ const EXTRACHILL_DOCS_MDI_LAYOUT = 'extrachill-plugin-docs';
 /** Resolve a canonical identity against the platform map, not arbitrary paths. */
 function extrachill_docs_mdi_source( string $identity ): ?array {
 	foreach ( extrachill_docs_load_platform_map() as $entry ) {
-		$prefix = $entry['repo'] . '/' . trim( $entry['docs_subpath'] ?: 'docs/user', '/' ) . '/';
+		$prefix = $entry['repo'] . '/' . trim( ! empty( $entry['docs_subpath'] ) ? $entry['docs_subpath'] : 'docs/user', '/' ) . '/';
 		if ( str_starts_with( $identity, $prefix ) && preg_match( '/^[a-z0-9-]+\.md$/', substr( $identity, strlen( $prefix ) ) ) ) {
 			return $entry;
 		}
@@ -20,7 +20,7 @@ function extrachill_docs_register_mdi_layout(): void {
 		return;
 	}
 	markdown_db_register_content_layout_profile( EXTRACHILL_DOCS_MDI_LAYOUT, array(
-		'enumerate' => static function ( string $root ): array {
+		'enumerate'     => static function ( string $root ): array {
 			$paths = array();
 			foreach ( extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), $root, $GLOBALS['extrachill_docs_mdi_repo'] ?? '' ) as $row ) {
 				if ( 'publish' === $row['action'] ) {
@@ -29,21 +29,22 @@ function extrachill_docs_register_mdi_layout(): void {
 			}
 			return $paths;
 		},
-		'map_source' => static function ( string $path ): array {
+		'map_source'    => static function ( string $path ): array {
 			$entry = extrachill_docs_mdi_source( 'plugins/' . $path );
 			if ( ! $entry ) {
 				return array();
 			}
 			$parent = get_page_by_path( $entry['parent_slug'], OBJECT, 'page' );
 			return array(
-				'post_type' => 'page',
-				'post_name' => extrachill_docs_derive_slug_from_path( $path ),
-				'post_parent' => $parent ? (int) $parent->ID : 0,
+				'post_type'       => 'page',
+				'post_name'       => extrachill_docs_derive_slug_from_path( $path ),
+				'post_parent'     => $parent ? (int) $parent->ID : 0,
 				'source_identity' => 'plugins/' . $path,
 			);
 		},
 		'path_for_post' => static function ( object $post ): string {
-			$identity = (string) get_post_meta( $post->ID, '_markdown_source_identity', true );
+			$post_id  = $post instanceof \WP_Post ? $post->ID : (int) ( $post->ID ?? 0 );
+			$identity = (string) get_post_meta( $post_id, '_markdown_source_identity', true );
 			return extrachill_docs_mdi_source( $identity ) ? substr( $identity, strlen( 'plugins/' ) ) : '';
 		},
 	) );
@@ -60,12 +61,12 @@ function extrachill_docs_mdi_post_data( array $data, array $context, object $sou
 		return $data;
 	}
 	$identity = (string) ( $context['source_path'] ?? '' );
-	$entry = extrachill_docs_mdi_source( $identity );
+	$entry    = extrachill_docs_mdi_source( $identity );
 	if ( $entry ) {
 		$data['post_status'] = $entry['post_status'] ?? 'publish';
 		// MDI's synthetic source IDs must not remap a real platform parent ID.
-		$parent = get_page_by_path( $entry['parent_slug'], OBJECT, 'page' );
-		$data['post_parent'] = $parent ? (int) $parent->ID : 0;
+		$parent                             = get_page_by_path( $entry['parent_slug'], OBJECT, 'page' );
+		$data['post_parent']                = $parent ? (int) $parent->ID : 0;
 		$data['meta_input']['_source_path'] = $identity;
 		$data['meta_input']['_source_repo'] = 'Extra-Chill/extrachill';
 	}
