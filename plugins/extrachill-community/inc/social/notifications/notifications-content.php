@@ -42,7 +42,7 @@ function extrachill_display_notifications() {
 	);
 
 	?>
-	<p><a href="<?php echo esc_url( extrachill_community_docs_url( 'notifications-system' ) ); ?>" data-ec-track="docs-help-notifications-system"><?php esc_html_e( 'How does this work?', 'extrachill-community' ); ?></a></p>
+	<p><a href="<?php echo esc_url( extrachill_community_docs_url( 'notifications-system' ) ); ?>" data-ec-track="docs-help-notifications-system"><?php esc_html_e( 'How does this work?', 'extra-chill-community' ); ?></a></p>
 	<?php
 	if ( empty( $notifications ) ) {
 		echo '<p>No notifications found.</p>';

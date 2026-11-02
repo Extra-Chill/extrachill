@@ -473,7 +473,7 @@ export function EditProfileApp( {
 	return (
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
-				<p><a href={ docsHelpUrl } data-ec-track="docs-help-setting-up-your-user-profile">{ __( 'How does this work?', 'extrachill-community' ) }</a></p>
+				<p><a href={ docsHelpUrl } data-ec-track="docs-help-setting-up-your-user-profile">{ __( 'How does this work?', 'extra-chill-community' ) }</a></p>
 				<BlockShellHeader
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."

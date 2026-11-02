@@ -151,6 +151,9 @@ function hasExplicitTabParam( isOwn ) {
  * @param {boolean} root0.hasCalendar  Whether an embedded calendar sibling is present.
  * @param {boolean} root0.hasMap       Whether an embedded map sibling is present.
  * @param {Object}  root0.containerRef Ref object pointing at the React mount container.
+ * @param {string}  root0.docsHelpUrl    My Shows getting-started doc URL.
+ * @param {string}  root0.docsImportUrl  Concert history import doc URL.
+ * @param {string}  root0.docsPrivacyUrl Concert history privacy doc URL.
  */
 export function ConcertStatsApp( {
 	userId,
