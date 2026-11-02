@@ -7,12 +7,11 @@
  * SHARED EVENT CONTRACT (Extra-Chill/extrachill-users#127)
  * --------------------------------------------------------
  * The team-experience instrumentation spans three plugins
- * (extrachill-users, extrachill-studio, extrachill-roadie) plus the
+ * (extrachill-users, extrachill-studio, extrachill-mcp) plus the
  * artist-funnel work (extrachill-artist-platform#72). The event NAMES
  * and payload shape are a shared contract. Each plugin owns its own
- * emit helper and now defines its own event-name CONSTANTS (the names
- * it emits/reads) so a rename is mechanical within the plugin rather
- * than a scattered string edit (extrachill-users#129). Plugins use the
+ * emit helper; canonical event-name constants live in extrachill-analytics
+ * so readers share one event contract (extrachill-users#129). Plugins use the
  * SAME event_type strings and the SAME `user_id`-in-payload convention
  * so the cohort rollups can join on the `extra_chill_team` role.
  *
@@ -26,7 +25,7 @@
  * single-source contract — emitted in their own plugins):
  *   - extrachill-studio:  studio_draft_created, studio_submitted_for_review,
  *                         studio_transcription_run
- *   - extrachill-roadie:  roadie_session_started, roadie_tool_invoked
+ *   - extrachill-mcp:     mcp_session_started, mcp_tool_invoked
  *   - extrachill-artist-platform: artist_profile_created (sibling-owned)
  *
  * Payload convention: every event carries a `user_id` key in event_data

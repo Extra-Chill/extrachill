@@ -7,7 +7,7 @@
  * SHARED EVENT CONTRACT (Extra-Chill/extrachill-users#127)
  * --------------------------------------------------------
  * The team-experience instrumentation spans three plugins
- * (extrachill-users, extrachill-studio, extrachill-roadie). The event
+ * (extrachill-users, extrachill-studio, extrachill-mcp). The event
  * NAMES and payload shape are a shared contract defined once and reused
  * verbatim at every emit site, so the team-cohort rollup in
  * extrachill-users (`extrachill/get-team-experience-stats`) can join the

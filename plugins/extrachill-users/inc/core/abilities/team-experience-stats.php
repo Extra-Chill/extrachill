@@ -11,8 +11,8 @@
  * event_type windowed counts and is the read path for those. This ability
  * adds ONLY the cohort rollup that summary can't express — the current
  * `extra_chill_team` membership count plus a curated view of the
- * team/tool event counts in one call. It composes the existing reader; it
- * does not reimplement event counting.
+ * team/tool event counts in one call. It composes the existing counter and
+ * event reader, scoping MCP payload subjects to current team members.
  *
  * @package ExtraChill\Users
  * @since   0.18.0
@@ -30,7 +30,7 @@ function extrachill_users_register_team_experience_stats_ability() {
 		'extrachill/get-team-experience-stats',
 		array(
 			'label'               => __( 'Get Team Experience Stats', 'extrachill-users' ),
-			'description'         => __( 'Team cohort rollup: current extra_chill_team count, members added/removed in window, and Studio/Roadie/submission event counts.', 'extrachill-users' ),
+			'description'         => __( 'Team cohort rollup: current extra_chill_team count, members added/removed in window, and Studio/MCP/submission event counts.', 'extrachill-users' ),
 			'category'            => 'extrachill-users',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -75,9 +75,16 @@ function extrachill_users_ability_get_team_experience_stats( $input ) {
 	// emit sites (which reference the same EC_ANALYTICS_EVENT_* constants).
 	$team_event_types = EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS;
 
-	$events = array();
+	$mcp_usage = extrachill_users_team_mcp_usage( $days );
+	$events    = array();
 	foreach ( $team_event_types as $event_type ) {
-		$events[ $event_type ] = extrachill_users_count_window_events( $event_type, $days );
+		if ( EC_ANALYTICS_EVENT_MCP_SESSION_STARTED === $event_type ) {
+			$events[ $event_type ] = $mcp_usage['sessions'];
+		} elseif ( EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED === $event_type ) {
+			$events[ $event_type ] = $mcp_usage['tool_calls'];
+		} else {
+			$events[ $event_type ] = extrachill_users_count_window_events( $event_type, $days );
+		}
 	}
 
 	return array(
@@ -90,7 +97,92 @@ function extrachill_users_ability_get_team_experience_stats( $input ) {
 		'team_members_removed' => $events[ EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED ],
 		'team_login_activity'  => extrachill_users_team_login_activity( $days ),
 		'events'               => $events,
+		'mcp_usage'            => $mcp_usage,
 	);
+}
+
+/**
+ * Roll up live MCP usage for current team members by payload subject ID.
+ *
+ * Uses the canonical reader with ID keyset pagination, not the table's acting
+ * user_id filter: the payload identifies the subject. Unknown statuses remain
+ * explicit rather than being classified as failures. Top abilities count all
+ * calls with a resolved ability, ordered by frequency (then name).
+ *
+ * @param int $days Window in days. 0 for all time.
+ * @return array MCP session, tool outcome, and top-ability counts.
+ */
+function extrachill_users_team_mcp_usage( $days ) {
+	$usage = array(
+		'sessions'           => 0,
+		'tool_calls'         => 0,
+		'tool_calls_success' => 0,
+		'tool_calls_failure' => 0,
+		'tool_calls_unknown' => 0,
+		'top_abilities'      => array(),
+	);
+	if ( ! function_exists( 'extrachill_get_analytics_events' ) ) {
+		return $usage;
+	}
+
+	$team_ids = array_fill_keys(
+		get_users(
+			array(
+				'role'   => defined( 'EC_USERS_TEAM_ROLE' ) ? EC_USERS_TEAM_ROLE : 'extra_chill_team',
+				'fields' => 'ID',
+			)
+		),
+		true
+	);
+	if ( empty( $team_ids ) ) {
+		return $usage;
+	}
+
+	$args = array(
+		'event_type' => array( EC_ANALYTICS_EVENT_MCP_SESSION_STARTED, EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED ),
+		'limit'      => 500,
+		'orderby'    => 'id',
+		'order'      => 'DESC',
+	);
+	if ( $days > 0 ) {
+		$args['date_from'] = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
+	}
+
+	$abilities = array();
+	do {
+		$rows = extrachill_get_analytics_events( $args );
+		foreach ( $rows as $row ) {
+			$data = $row->event_data;
+			if ( ! isset( $team_ids[ (int) ( $data['user_id'] ?? 0 ) ] ) ) {
+				continue;
+			}
+			if ( EC_ANALYTICS_EVENT_MCP_SESSION_STARTED === $row->event_type ) {
+				++$usage['sessions'];
+				continue;
+			}
+			++$usage['tool_calls'];
+			$status = $data['status'] ?? '';
+			if ( 'success' === $status ) {
+				++$usage['tool_calls_success'];
+			} elseif ( in_array( $status, array( 'error', 'failure' ), true ) ) {
+				++$usage['tool_calls_failure'];
+			} else {
+				++$usage['tool_calls_unknown'];
+			}
+			$ability = $data['ability'] ?? '';
+			if ( is_string( $ability ) && '' !== trim( $ability ) ) {
+				$abilities[ $ability ] = ( $abilities[ $ability ] ?? 0 ) + 1;
+			}
+		}
+		if ( ! empty( $rows ) ) {
+			$args['before_id'] = (int) end( $rows )->id;
+		}
+	} while ( count( $rows ) === $args['limit'] );
+
+	ksort( $abilities );
+	arsort( $abilities );
+	$usage['top_abilities'] = array_slice( $abilities, 0, 10, true );
+	return $usage;
 }
 
 /**
