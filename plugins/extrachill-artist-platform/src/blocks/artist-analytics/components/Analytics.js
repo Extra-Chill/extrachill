@@ -133,6 +133,7 @@ export default function Analytics() {
 	return (
 		<BlockShell className="ec-aa">
 			<BlockShellInner maxWidth="wide">
+				<p><a href={ window.ecArtistAnalyticsConfig.docsHelpUrl } data-ec-track="docs-help-understanding-link-page-analytics">{ __( 'How does this work?', 'extrachill-artist-platform' ) }</a></p>
 				<BlockShellHeader
 					title={ __(
 						'Artist Analytics',

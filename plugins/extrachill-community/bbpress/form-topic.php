@@ -49,6 +49,8 @@ if ( ! bbp_is_single_forum() ) : ?>
 
 				</legend>
 
+				<p><a href="<?php echo esc_url( extrachill_community_docs_url( 'using-the-forums' ) ); ?>" data-ec-track="docs-help-using-the-forums"><?php esc_html_e( 'How does this work?', 'extrachill-community' ); ?></a></p>
+
 				<?php do_action( 'bbp_theme_before_topic_form_notices' ); ?>
 
 				<?php if ( ! bbp_is_topic_edit() && bbp_is_forum_closed() ) : ?>

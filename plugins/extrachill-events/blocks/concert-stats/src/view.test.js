@@ -142,6 +142,9 @@ async function renderApp( { isOwn, tab, userId = 34 } ) {
 		<ConcertStatsApp
 			userId={ nextUserId }
 			eventsUrl="https://events.example"
+			docsHelpUrl="https://docs.example/events-calendar/getting-started-with-my-shows/"
+			docsImportUrl="https://docs.example/events-calendar/importing-concert-history/"
+			docsPrivacyUrl="https://docs.example/events-calendar/concert-history-privacy/"
 			isOwn={ isOwn }
 			publicDateTo="2026-07-18"
 			hasCalendar={ isOwn }
@@ -167,6 +170,8 @@ async function renderApp( { isOwn, tab, userId = 34 } ) {
 		},
 	};
 }
+
+jest.mock( './components/ImportTab', () => () => null );
 
 describe( 'ConcertStatsApp request boundaries', () => {
 	beforeAll( () => {
@@ -223,6 +228,18 @@ describe( 'ConcertStatsApp request boundaries', () => {
 			)
 		).toBe( false );
 
+		await act( async () => root.unmount() );
+	} );
+
+	it.each( [
+		[ 'past', 'getting-started-with-my-shows' ],
+		[ 'import', 'importing-concert-history' ],
+	] )( 'links the %s tab to contextual docs', async ( tab, slug ) => {
+		const { container, root } = await renderApp( { isOwn: true, tab } );
+		const help = container.querySelector( `[data-ec-track="docs-help-${ slug }"]` );
+		expect( help.getAttribute( 'href' ) ).toBe( `https://docs.example/events-calendar/${ slug }/` );
+		const privacy = container.querySelector( '[data-ec-track="docs-help-concert-history-privacy"]' );
+		expect( privacy.getAttribute( 'href' ) ).toBe( 'https://docs.example/events-calendar/concert-history-privacy/' );
 		await act( async () => root.unmount() );
 	} );
 

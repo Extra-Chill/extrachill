@@ -11,6 +11,7 @@
  * WordPress dependencies
  */
 import { createRoot, useState, useEffect, useRef } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 /**
  * External dependencies
@@ -159,6 +160,9 @@ export function ConcertStatsApp( {
 	hasCalendar,
 	hasMap,
 	containerRef,
+	docsHelpUrl,
+	docsImportUrl,
+	docsPrivacyUrl,
 } ) {
 	const [ year, setYear ] = useState( 0 );
 	const [ activeTab, setActiveTab ] = useState( () =>
@@ -600,6 +604,9 @@ export function ConcertStatsApp( {
 					}
 				/>
 
+				<p><a href={ activeTab === 'import' ? docsImportUrl : docsHelpUrl } data-ec-track={ activeTab === 'import' ? 'docs-help-importing-concert-history' : 'docs-help-getting-started-with-my-shows' }>{ __( 'How does this work?', 'extrachill-events' ) }</a></p>
+				{ isOwn && <p><a href={ docsPrivacyUrl } data-ec-track="docs-help-concert-history-privacy">{ __( 'How does concert history privacy work?', 'extrachill-events' ) }</a></p> }
+
 				{ /*
 				   #126 zero-state softening: don't greet a brand-new
 				   owner with four "0" stat tiles — that reads as a
@@ -683,6 +690,9 @@ function init() {
 				hasCalendar={ hasCalendar }
 				hasMap={ hasMap }
 				mountNode={ container }
+				docsHelpUrl={ container.dataset.docsHelpUrl }
+				docsImportUrl={ container.dataset.docsImportUrl }
+				docsPrivacyUrl={ container.dataset.docsPrivacyUrl }
 			/>
 		);
 	} );

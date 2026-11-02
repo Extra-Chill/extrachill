@@ -36,6 +36,7 @@ defined( 'ABSPATH' ) || exit;
 		<p class="bbp-user-title-rank">
 			<b>Title:</b> <?php echo esc_html(bbp_get_user_display_role()); ?>
 			| <b>Points:</b> <?php echo esc_html(extrachill_display_user_points(bbp_get_displayed_user_id())); ?>
+			<a class="button-3 button-small" href="<?php echo esc_url( extrachill_community_docs_url( 'understanding-ranks' ) ); ?>" data-ec-track="docs-help-understanding-ranks"><?php esc_html_e( 'How does this work?', 'extrachill-community' ); ?></a>
 		</p>
 		<?php
 		// Compact meta line: join date + linked activity counts (threads,

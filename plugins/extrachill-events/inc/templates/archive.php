@@ -108,6 +108,7 @@ extrachill_breadcrumbs();
 	</div>
 
 	<div class="page-content">
+		<p><a href="<?php echo esc_url( extrachill_events_docs_url( 'using-calendar-filters' ) ); ?>" data-ec-track="docs-help-using-calendar-filters"><?php esc_html_e( 'How does this work?', 'extrachill-events' ); ?></a></p>
 		<?php
 		// Render the in-block scope-preset chips (data-machine-events#374) in
 		// the calendar's filter-bar toolbar on EVERY archive type — venue,

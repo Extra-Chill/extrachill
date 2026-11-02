@@ -9,6 +9,7 @@ import {
 	createRoot,
 } from '@wordpress/element';
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 
 /**
  * External dependencies
@@ -312,12 +313,14 @@ type TabId = 'avatar-title' | 'about' | 'links' | 'artist-profiles';
 
 export function EditProfileApp( {
 	artistSiteUrl,
+	docsHelpUrl,
 	userId,
 	profileUrl,
 	hasArtists,
 	canCreateArtists,
 }: {
 	artistSiteUrl: string;
+	docsHelpUrl?: string;
 	userId: number;
 	profileUrl: string;
 	hasArtists: boolean;
@@ -470,6 +473,7 @@ export function EditProfileApp( {
 	return (
 		<BlockShell>
 			<BlockShellInner maxWidth="narrow">
+				<p><a href={ docsHelpUrl } data-ec-track="docs-help-setting-up-your-user-profile">{ __( 'How does this work?', 'extrachill-community' ) }</a></p>
 				<BlockShellHeader
 					title="Edit Profile"
 					description="Update your public profile, links, and artist profile access."
@@ -635,6 +639,7 @@ function init(): void {
 			root.render(
 				<EditProfileApp
 					artistSiteUrl={ artistSiteUrl }
+					docsHelpUrl={ container.dataset.docsHelpUrl }
 					userId={ userId }
 					profileUrl={ profileUrl }
 					hasArtists={ hasArtists }

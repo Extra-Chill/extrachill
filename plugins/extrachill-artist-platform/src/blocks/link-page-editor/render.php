@@ -151,6 +151,9 @@ $config = array(
 );
 
 
+$config['docsHelpUrl']         = extrachill_artist_platform_docs_url( 'managing-link-pages' );
+$config['docsAdvancedHelpUrl'] = extrachill_artist_platform_docs_url( 'link-page-advanced-features' );
+
 // Enqueue the frontend script with localized data.
 $asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/link-page-editor/view.asset.php';
 
