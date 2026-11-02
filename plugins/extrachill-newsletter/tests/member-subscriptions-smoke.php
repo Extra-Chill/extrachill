@@ -1,8 +1,8 @@
 <?php
 /**
  * Current-user preferences and deletion smoke test with mocked WordPress HTTP.
- * Run: php tests/member-subscriptions-smoke.php /path/to/data-machine-business/inc/Sendy/SendyClient.php
- * Uses the real DMB client, not a replacement status/subscribe implementation.
+ * Run: php tests/member-subscriptions-smoke.php
+ * Stubs the DMB provider boundary; no checkout or network access is required.
  *
  * @package ExtraChillNewsletter\Tests
  */
@@ -11,6 +11,25 @@ namespace DataMachineBusiness\Abilities\Sendy {
 	class SendyAbilities {
 		public static function get_campaign_config(): array {
 			return array( 'api_key' => 'secret', 'sendy_url' => 'https://sendy.invalid' );
+		}
+	}
+}
+
+namespace DataMachineBusiness\Sendy {
+	/** Test double for the only client method consumed by member preferences. */
+	final class SendyClient {
+		private array $config;
+
+		public function __construct( array $config ) {
+			$this->config = $config;
+		}
+
+		public function subscriber_status( string $list_id, string $email ) {
+			$response = \wp_remote_post(
+				$this->config['sendy_url'] . '/api/subscribers/subscription-status.php',
+				array( 'body' => array( 'api_key' => $this->config['api_key'], 'list_id' => $list_id, 'email' => $email ) )
+			);
+			return \is_wp_error( $response ) ? $response : \wp_remote_retrieve_body( $response );
 		}
 	}
 }
@@ -51,8 +70,12 @@ namespace {
 	function wp_get_ability( $key ) {
 		return new class() {
 			public function execute( $input ) {
-				$client = new \DataMachineBusiness\Sendy\SendyClient( extrachill_newsletter_subscription_config() );
-				return $client->subscribe( $input['list_id'], $input['email'] );
+				$config = extrachill_newsletter_subscription_config();
+				$response = wp_remote_post(
+					$config['sendy_url'] . '/subscribe',
+					array( 'body' => array( 'api_key' => $config['api_key'], 'list' => $input['list_id'], 'email' => $input['email'] ) )
+				);
+				return is_wp_error( $response ) ? $response : array( 'success' => true, 'status' => 'subscribed' );
 			}
 		};
 	}
@@ -60,11 +83,6 @@ namespace {
 		if ( ! $condition ) { throw new \RuntimeException( $message ); }
 	}
 
-	if ( empty( $argv[1] ) || ! is_file( $argv[1] ) ) {
-		fwrite( STDERR, "Supply the real DMB SendyClient.php path.\n" );
-		exit( 1 );
-	}
-	require $argv[1];
 	require dirname( __DIR__ ) . '/inc/core/sendy-api.php';
 	require dirname( __DIR__ ) . '/inc/core/member-subscriptions.php';
 	require dirname( __DIR__ ) . '/inc/core/abilities/subscribe.php';

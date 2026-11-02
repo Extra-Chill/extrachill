@@ -2,7 +2,33 @@
   "auto_cleanup": false,
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "database_type": "mysql",
+      "settings": {
+        "wp_codebox_database_service": {
+          "provider": "external",
+          "engine": "mysql",
+          "allowed_hosts": ["127.0.0.1:3306"],
+          "secret_env": {
+            "host": "WP_CODEBOX_DB_HOST",
+            "port": "WP_CODEBOX_DB_PORT",
+            "username": "WP_CODEBOX_DB_USER",
+            "password": "WP_CODEBOX_DB_PASSWORD"
+          }
+        },
+        "wp_codebox_phpunit_bootstrap_mode": "managed",
+        "wp_codebox_multisite": true,
+        "wordpress_runtime_php_version": "8.4",
+        "validation_dependencies": ["extrachill-network", "data-machine"],
+        "wp_config_defines": {
+          "EC_BLOG_ID_NEWSLETTER": 1,
+          "EC_BLOG_ID_EVENTS": 1
+        },
+        "wp_codebox_phpunit_preload_files": [
+          "/wordpress/wp-content/plugins/extrachill-newsletter/tests/bootstrap-integration.php"
+        ]
+      }
+    }
   },
   "id": "extrachill-newsletter",
   "remote_path": "wp-content/plugins/extrachill-newsletter",
@@ -24,6 +50,7 @@
       "php tests/email-plain-text-smoke.php",
       "php tests/sendy-campaign-consumer-smoke.php",
       "php tests/sendy-single-config-smoke.php",
+      "php tests/member-subscriptions-smoke.php",
       "php tests/optional-ability-input-smoke.php",
       "php tests/newsletter-link-tagging-smoke.php"
     ]
