@@ -26,6 +26,7 @@ define( 'EXTRACHILL_COMMUNITY_PUBLIC_VOICE_META', '_extrachill_public_voice' );
 define( 'EXTRACHILL_COMMUNITY_AUTOMATED_META', '_extrachill_automated_agent' );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/core/activation.php';
+require_once plugin_dir_path( __FILE__ ) . 'inc/core/docs-links.php';
 require_once plugin_dir_path( __FILE__ ) . 'inc/core/bbpress-utf8-hotfix.php';
 
 /**

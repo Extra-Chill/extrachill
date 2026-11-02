@@ -112,6 +112,7 @@ if ( ! $link_page_id || ! ec_artist_link_page_is_published( $link_page_id ) ) {
 }
 
 $config = array(
+	'docsHelpUrl'     => extrachill_artist_platform_docs_url( 'understanding-link-page-analytics' ),
 	'artistId'        => (int) $artist_id,
 	'userArtists'     => $user_artists_data,
 	'restUrl'         => rest_url( 'extrachill/v1/' ),

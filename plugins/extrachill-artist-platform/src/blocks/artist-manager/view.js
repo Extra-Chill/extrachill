@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { render } from '@wordpress/element';
 import {
@@ -646,6 +647,10 @@ const App = () => {
 	return (
 		<BlockShell className="ec-am">
 			<BlockShellInner maxWidth="wide">
+				<p><a
+					href={ activeTab === 'managers' ? window.ecArtistManagerConfig.docsRosterHelpUrl : window.ecArtistManagerConfig.docsProfileHelpUrl }
+					data-ec-track={ activeTab === 'managers' ? 'docs-help-managing-roster' : 'docs-help-managing-your-artist-profile' }
+				>{ __( 'How does this work?', 'extrachill-artist-platform' ) }</a></p>
 				<BlockShellHeader
 					title={artistName || 'Manage Artist'}
 					actions={
