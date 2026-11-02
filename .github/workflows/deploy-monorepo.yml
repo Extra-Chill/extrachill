@@ -256,6 +256,7 @@ jobs:
         if: steps.plan.outputs.changed_count != '0'
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           HOMEBOY_ARTIFACT_ROOT: ${{ runner.temp }}/extrachill-network-gate/artifacts
           HOMEBOY_SETTINGS_JSON: ${{ steps.plan.outputs.gate_settings_json }}
         run: |

@@ -399,6 +399,7 @@ jobs:
         if: steps.release_set.outputs.component_count != '0' && steps.plan.outputs.gate_bypassed != 'true'
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           HOMEBOY_ARTIFACT_ROOT: ${{ runner.temp }}/extrachill-network-gate/artifacts
           HOMEBOY_SETTINGS_JSON: ${{ steps.release_set.outputs.gate_settings_json }}
         run: |

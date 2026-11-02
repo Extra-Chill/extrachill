@@ -910,6 +910,10 @@ export async function latestPrefixedReleaseTag(repo, prefix, fetchImpl = fetch, 
   for (let page = 1; page <= 10; page += 1) {
     const response = await fetchImpl(`https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}`, { headers });
     if (!response.ok) {
+      if (response.status === 403 || response.status === 429) {
+        const remaining = response.headers?.get('x-ratelimit-remaining');
+        throw new Error(`Listing ${repo} releases failed: HTTP ${response.status}. Likely a GitHub API rate limit${remaining != null ? ` (x-ratelimit-remaining: ${remaining})` : ''}. Token sent: ${token ? 'yes' : 'no'}.`);
+      }
       throw new Error(`Listing ${repo} releases failed: HTTP ${response.status}.`);
     }
     const releases = await response.json();
