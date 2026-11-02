@@ -27,7 +27,8 @@ add_action(
 				'blog_id' => (int) $fixture['events_blog_id'],
 			) );
 			wp_set_current_user( $previous_user );
-			$body['server'] = is_wp_error( $truth ) ? array( 'error' => $truth->get_error_message() ) : $truth;
+			// The ability returns ratings as an object (JSON map); store a plain array for grading.
+			$body['server'] = is_wp_error( $truth ) ? array( 'error' => $truth->get_error_message() ) : json_decode( wp_json_encode( $truth ), true );
 		}
 		$log   = get_site_option( 'ec_show_ratings_observations', array() );
 		$log[] = is_array( $body ) ? $body : array( 'raw' => 'unparseable' );

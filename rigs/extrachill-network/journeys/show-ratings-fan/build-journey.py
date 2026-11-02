@@ -67,7 +67,8 @@ def privacy(persona):
                          ('artist', HOST + '/artist/goose/?past=1')]:
         steps.append(navigate(url))
         if surface == 'history':
-            steps.append({'kind': 'waitFor', 'selector': C})
+            # Two cards render; wait for the first (Playwright locators are strict).
+            steps.append({'kind': 'waitFor', 'selector': C + ' >> nth=0'})
         steps.extend(checkpoint(persona + '-' + surface))
     return steps
 
