@@ -21,3 +21,5 @@ README.md
 CHANGELOG.md
 .claude/
 CLAUDE.md
+# Jest configuration (development only).
+jest.config.js
