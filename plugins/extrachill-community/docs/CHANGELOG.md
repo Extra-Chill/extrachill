@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.30.0] - 2026-11-02
+
+### Added
+- contextual help links from product screens to docs articles
+
 ## [1.29.0] - 2026-11-01
 
 ### Added
