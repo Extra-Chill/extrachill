@@ -86,6 +86,10 @@
   "remote_path": "wp-content/plugins/extrachill-booking",
   "version_targets": [
     {
+      "file": "extrachill-booking-network-blocks.php",
+      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
+    },
+    {
       "file": "extrachill-booking.php",
       "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
     }

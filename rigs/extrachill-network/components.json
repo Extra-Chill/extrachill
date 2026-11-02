@@ -193,13 +193,17 @@
       "releaseTagPrefix": "extrachill-booking-v",
       "asset": "extrachill-booking.zip",
       "source": "github",
-      "note": "Inert booking extraction placeholder; activate on events only before the atomic code move.",
+      "note": "Booking runtime on events plus a network inquiry-block adapter. The adapter defers to Events during the P3 overlap and takes over once Events stops registering.",
       "activations": [
         {
           "pluginFile": "extrachill-booking/extrachill-booking.php",
           "scope": [
             "events.extrachill.com"
           ]
+        },
+        {
+          "pluginFile": "extrachill-booking/extrachill-booking-network-blocks.php",
+          "scope": "network"
         }
       ]
     },

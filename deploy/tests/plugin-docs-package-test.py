@@ -63,6 +63,16 @@ webpack.config.js
 
 
 class PluginDocsPackageTest(unittest.TestCase):
+    def test_booking_network_entry_survives_package_staging(self):
+        component = PLUGINS / "extrachill-booking"
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary = Path(temporary)
+            package = temporary / "package"
+            stage(component, package, temporary / "excludes")
+            entry = "extrachill-booking-network-blocks.php"
+            self.assertEqual((component / entry).read_bytes(), (package / entry).read_bytes())
+            self.assertFalse((package / "tests").exists())
+
     def test_mapped_docs_survive_package_staging(self):
         config = PLUGINS / "extrachill-docs/runner-configs/platform-map.yml"
         platforms = yaml.safe_load(config.read_text())["repos"]

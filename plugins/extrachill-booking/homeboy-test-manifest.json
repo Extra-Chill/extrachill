@@ -1,6 +1,9 @@
 {
   "schema": "homeboy/test-manifest/v1",
   "tests": {
+    "tests/network-block-handover.php": {
+      "environment": "standalone-php"
+    },
     "tests/booking-ability-order.php": {
       "environment": "standalone-php"
     },

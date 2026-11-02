@@ -57,6 +57,9 @@ try {
   assert.deepEqual(booking.activations, [{
     pluginFile: 'extrachill-booking/extrachill-booking.php',
     scope: ['events.extrachill.com'],
+  }, {
+    pluginFile: 'extrachill-booking/extrachill-booking-network-blocks.php',
+    scope: 'network',
   }]);
 
   const releasePages = [
