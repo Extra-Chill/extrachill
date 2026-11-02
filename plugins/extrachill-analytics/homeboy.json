@@ -274,5 +274,10 @@
       "file": "extrachill-analytics.php",
       "pattern": "EXTRACHILL_ANALYTICS_VERSION',\\s*'([0-9.]+)'"
     }
-  ]
+  ],
+  "scopes": {
+    "package": {
+      "exclude": ["jest.config.cjs"]
+    }
+  }
 }
