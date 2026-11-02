@@ -5,17 +5,6 @@
  * Run with: php tests/runtime-smoke.php
  */
 
-namespace DataMachine\Core\Content {
-	class ContentFormat {
-		public static $result = '';
-
-		public static function convert( string $content, string $from, string $to, array $context = array() ) {
-			unset( $content, $from, $to, $context );
-			return self::$result;
-		}
-	}
-}
-
 namespace {
 	define( 'ABSPATH', __DIR__ . '/' );
 	define( 'OBJECT', 'OBJECT' );
@@ -113,7 +102,7 @@ namespace {
 		return $value instanceof WP_Error;
 	}
 
-	require dirname( __DIR__ ) . '/inc/abilities/upsert-doc-page.php';
+	require dirname( __DIR__ ) . '/inc/core/doc-page-helpers.php';
 	require dirname( __DIR__ ) . '/inc/access/team-private-docs.php';
 	require dirname( __DIR__ ) . '/inc/core/platform-map.php';
 	require dirname( __DIR__ ) . '/inc/core/rewrite-rules.php';
@@ -125,23 +114,6 @@ namespace {
 		}
 	};
 
-	\DataMachine\Core\Content\ContentFormat::$result = '<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->';
-	$converted = extrachill_docs_convert_markdown_to_blocks( '# Hello' );
-	$assert( is_string( $converted ) && str_contains( $converted, '<!-- wp:paragraph -->' ), 'canonical converter result is returned' );
-
-	$conversion_error = new WP_Error( 'conversion_failed', 'No conversion.' );
-	\DataMachine\Core\Content\ContentFormat::$result = $conversion_error;
-	$assert( $conversion_error === extrachill_docs_convert_markdown_to_blocks( '# Hello' ), 'converter errors are preserved' );
-
-	$titled_markdown = "# Artist Preferences\n\nIntroduction.\n\n## Notifications\nDetails.";
-	$stripped_title  = extrachill_docs_strip_title_heading_from_markdown( $titled_markdown );
-	$assert( ! str_contains( $stripped_title, '# Artist Preferences' ), 'source H1 is removed from synced content' );
-	$assert( str_starts_with( $stripped_title, 'Introduction.' ), 'content begins after the removed source H1' );
-	$assert( str_contains( $stripped_title, '## Notifications' ), 'subsequent headings are preserved' );
-	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( $titled_markdown, 'artist-preferences.md' ), 'source H1 remains the page title' );
-	$assert( 'Artist Preferences' === extrachill_docs_extract_title_from_markdown( 'Introduction.', 'artist-preferences.md' ), 'title falls back to the filename without an H1' );
-	$assert( 'Introduction.' === extrachill_docs_strip_title_heading_from_markdown( 'Introduction.' ), 'markdown without an H1 is unchanged' );
-	$assert( 3 === EXTRACHILL_DOCS_CONTENT_TRANSFORM_VERSION, 'content transform version forces existing pages through the corrected conversion' );
 	$team_caps = extrachill_docs_grant_team_private_page_access( array( 'access_studio' => true ) );
 	$assert( ! empty( $team_caps['read_private_pages'] ), 'Studio access grants private docs access' );
 	$public_caps = extrachill_docs_grant_team_private_page_access( array( 'read' => true ) );

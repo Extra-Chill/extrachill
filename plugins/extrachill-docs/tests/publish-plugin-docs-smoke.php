@@ -1,157 +1,71 @@
 <?php
-/**
- * Installed-plugin docs publisher smoke tests (#79).
- *
- * Run with: php tests/publish-plugin-docs-smoke.php
- */
-
-namespace {
-	define( 'ABSPATH', __DIR__ . '/' );
-	define( 'EXTRACHILL_DOCS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
-
-	class WP_Post {
-		public $ID;
-		public $post_name;
-
-		public function __construct( int $id, string $slug = '' ) {
-			$this->ID        = $id;
-			$this->post_name = $slug;
-		}
-	}
-
-	// Pages on the fake docs site: [ id, slug, parent ].
-	$GLOBALS['ec_test_pages'] = array(
-		array( 57, 'finding-live-music', 54 ),
-		array( 90, 'owned-elsewhere', 54 ),
-		array( 91, 'top-level', 0 ),
+/** Standalone MDI adapter smoke: no WordPress or MDI required. */
+define( 'ABSPATH', __DIR__ );
+define( 'OBJECT', 'OBJECT' );
+define( 'WP_PLUGIN_DIR', sys_get_temp_dir() . '/ec-mdi-' . getmypid() );
+function add_action( ...$args ) {}
+function add_filter( ...$args ) {}
+function sanitize_title( $s ) { return strtolower( $s ); }
+function home_url( $s ) { return 'https://docs.example' . $s; }
+function is_wp_error( $v ) { return false; }
+class WP_Post { public $ID = 7; public $post_status = 'publish'; }
+function get_page_by_path( ...$args ) { return new WP_Post(); }
+function get_post_meta( $id, $key, $single ) { return $GLOBALS['meta'][$id][$key] ?? ''; }
+function update_post_meta( $id, $key, $value ) { $GLOBALS['meta'][$id][$key] = $value; }
+function get_posts( ...$args ) { return array( (object) array( 'ID' => 42 ) ); }
+function extrachill_docs_load_platform_map() {
+	return array(
+		array( 'repo' => 'plugins/public', 'docs_subpath' => 'docs/user', 'parent_slug' => 'help', 'parent_title' => 'Help', 'post_status' => 'publish' ),
+		array( 'repo' => 'plugins/team', 'docs_subpath' => 'docs/user', 'parent_slug' => 'team', 'parent_title' => 'Team', 'post_status' => 'private' ),
 	);
-	$GLOBALS['ec_test_meta']  = array(
-		90 => array( '_source_repo' => 'plugins/other' ),
-	);
-
-	class WP_Query {
-		public $posts = array();
-
-		public function __construct( array $args ) {
-			foreach ( $GLOBALS['ec_test_pages'] as $page ) {
-				if ( ( $args['name'] ?? null ) === $page[1] && ( $args['post_parent'] ?? null ) === $page[2] ) {
-					$this->posts[] = new WP_Post( $page[0], $page[1] );
-				}
-			}
-		}
-	}
-
-	function add_action() {}
-	function get_post_meta( $id, $key ) {
-		return $GLOBALS['ec_test_meta'][ $id ][ $key ] ?? '';
-	}
-	function sanitize_title( $title ) {
-		return strtolower( preg_replace( '/[^a-z0-9]+/i', '-', $title ) );
-	}
-	function __( $text ) {
-		return $text;
-	}
-
-	require dirname( __DIR__ ) . '/inc/abilities/upsert-doc-page.php';
-	require dirname( __DIR__ ) . '/inc/abilities/publish-plugin-docs.php';
-
-	$failures = array();
-	$assert   = static function ( bool $condition, string $message ) use ( &$failures ): void {
-		if ( ! $condition ) {
-			$failures[] = $message;
-		}
-	};
-
-	// Fixture plugins directory.
-	$root = sys_get_temp_dir() . '/ec-docs-publish-' . bin2hex( random_bytes( 4 ) );
-	mkdir( $root . '/extrachill-events/docs/user', 0777, true );
-	mkdir( $root . '/extrachill-docs/docs/user', 0777, true );
-	file_put_contents( $root . '/extrachill-events/docs/user/finding-live-music.md', "# Finding Live Music\n\nBrowse shows.\n" );
-	file_put_contents( $root . '/extrachill-events/docs/user/b-second.md', "# Second\n" );
-	file_put_contents( $root . '/extrachill-events/docs/user/notes.txt', 'ignored' );
-	file_put_contents( $root . '/extrachill-docs/docs/user/connect.md', "# Connecting Your AI Client\n" );
-
-	$map = array(
-		array(
-			'repo'         => 'plugins/extrachill-events',
-			'parent_slug'  => 'events-calendar',
-			'parent_title' => 'Events Calendar',
-			'docs_subpath' => 'docs/user',
-			'post_status'  => 'publish',
-		),
-		array(
-			'repo'         => 'plugins/extrachill-docs',
-			'parent_slug'  => 'mcp',
-			'parent_title' => 'Connect Your AI',
-			'docs_subpath' => 'docs/user',
-			'post_status'  => 'publish',
-		),
-		array(
-			'repo'         => 'plugins/extrachill-newsletter',
-			'parent_slug'  => 'newsletter',
-			'parent_title' => 'Newsletter',
-			'docs_subpath' => 'docs/user',
-			'post_status'  => 'publish',
-		),
-	);
-
-	$plan    = extrachill_docs_plan_plugin_docs( $map, $root );
-	$publish = array_values( array_filter( $plan, static fn( $r ) => 'publish' === $r['action'] ) );
-	$paths   = array_map( static fn( $r ) => $r['repo'] . ':' . $r['path'], $publish );
-
-	$assert( 3 === count( $publish ), 'only .md files in each mapped docs path are planned' );
-	$assert( in_array( 'plugins/extrachill-events:plugins/extrachill-events/docs/user/finding-live-music.md', $paths, true ), 'plugin docs/user files map to repo-relative source paths' );
-	$assert( in_array( 'plugins/extrachill-docs:plugins/extrachill-docs/docs/user/connect.md', $paths, true ), 'a custom docs_subpath is honoured' );
-	$assert( 'events-calendar' === $publish[0]['parent_slug'] && 'Events Calendar' === $publish[0]['parent_title'], 'parent comes from the platform map' );
-
-	$skipped = array_values( array_filter( $plan, static fn( $r ) => 'skipped_missing_plugin' === $r['action'] ) );
-	$assert( 1 === count( $skipped ) && 'plugins/extrachill-newsletter' === $skipped[0]['repo'], 'a mapped plugin that is not installed is skipped' );
-
-	$only = extrachill_docs_plan_plugin_docs( $map, $root, 'plugins/extrachill-docs' );
-	$assert( 1 === count( $only ) && 'plugins/extrachill-docs/docs/user/connect.md' === $only[0]['path'], 'repo filter restricts the plan' );
-
-	$body = "# Finding Live Music\n\nBrowse shows.\n";
-	$assert( sha1( 'blob ' . strlen( $body ) . "\0" . $body ) === extrachill_docs_markdown_sha( $body ), 'sha uses the git blob format' );
-
-	$before = extrachill_docs_plugin_docs_fingerprints( $plan );
-	$again  = extrachill_docs_plugin_docs_fingerprints( extrachill_docs_plan_plugin_docs( $map, $root ) );
-	$assert( $before === $again, 'unchanged docs produce an unchanged fingerprint, so nothing republishes' );
-	file_put_contents( $root . '/extrachill-events/docs/user/b-second.md', "# Second, edited\n" );
-	$after = extrachill_docs_plugin_docs_fingerprints( extrachill_docs_plan_plugin_docs( $map, $root ) );
-	$assert( $before['plugins/extrachill-events'] !== $after['plugins/extrachill-events'], 'an edited doc changes its repo fingerprint' );
-	$assert( $before['plugins/extrachill-docs'] === $after['plugins/extrachill-docs'], 'other repos keep their fingerprint' );
-
-	// Real source layout: artist help has one canonical home; MCP keeps its key.
-	require dirname( __DIR__ ) . '/inc/core/platform-map.php';
-	$plugins_root = dirname( __DIR__, 2 );
-	$real_plan    = extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), $plugins_root );
-	$artist_paths = array_column( array_filter( $real_plan, static fn( $r ) => 'plugins/extrachill-artist-platform' === $r['repo'] && 'publish' === $r['action'] ), 'path' );
-	$assert( 9 <= count( $artist_paths ), 'at least nine artist help articles are published from the installed plugin' );
-	$assert( in_array( 'plugins/extrachill-artist-platform/docs/user/managing-roster.md', $artist_paths, true ), 'moved artist help uses the canonical docs/user source key' );
-	$assert( is_file( $plugins_root . '/extrachill-docs/docs/user/connect.md' ), 'MCP source remains in place' );
-	foreach ( array( 'artist', 'community', 'events' ) as $retired ) {
-		$assert( ! is_dir( $plugins_root . '/extrachill-docs/ec_docs/' . $retired ), 'no duplicate legacy source tree for ' . $retired );
-	}
-	$assert( ! is_file( $plugins_root . '/extrachill-api/inc/routes/docs-sync-routes.php' ), 'legacy REST push route is absent' );
-	$assert( is_file( $plugins_root . '/extrachill-api/inc/routes/docs/docs-info.php' ), 'live docs-info route is preserved' );
-
-	// Adoption of pages left unkeyed by the sync cleanup.
-	$adopted = extrachill_docs_find_child_page_by_slug( 'finding-live-music', 54 );
-	$assert( $adopted instanceof WP_Post && 57 === $adopted->ID, 'an unkeyed same-slug child is adopted instead of duplicated' );
-	$assert( null === extrachill_docs_find_child_page_by_slug( 'owned-elsewhere', 54 ), 'a page keyed to another source is never adopted' );
-	$assert( null === extrachill_docs_find_child_page_by_slug( 'top-level', 0 ), 'no adoption without a resolved parent' );
-	$assert( null === extrachill_docs_find_child_page_by_slug( 'missing', 54 ), 'no match means create' );
-
-	$cleanup = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::CHILD_FIRST );
-	foreach ( $cleanup as $entry ) {
-		$entry->isDir() ? rmdir( $entry->getPathname() ) : unlink( $entry->getPathname() );
-	}
-	rmdir( $root );
-
-	if ( $failures ) {
-		fwrite( STDERR, "Publish plugin docs smoke tests failed:\n- " . implode( "\n- ", $failures ) . "\n" );
-		exit( 1 );
-	}
-
-	echo "Publish plugin docs smoke tests passed.\n";
 }
+function markdown_db_register_content_layout_profile( $id, $profile ) { $GLOBALS['profile'] = $profile; }
+function check( $ok, $message ) { if ( ! $ok ) { throw new RuntimeException( $message ); } }
+class WP_Query { public $posts = array(); }
+class WP_Markdown_CLI {
+	static function import( $options ) {
+		check( $options['path'] === WP_PLUGIN_DIR && $options['profile'] === 'markdown-h1-title' && $options['layout_profile'] === EXTRACHILL_DOCS_MDI_LAYOUT, 'import options' );
+		check( count( ($GLOBALS['profile']['enumerate'])( WP_PLUGIN_DIR ) ) === 1, 'repo filter' );
+		return array( 'success' => true, 'skipped_count' => 0 );
+	}
+}
+require dirname( __DIR__ ) . '/inc/core/doc-page-helpers.php';
+require dirname( __DIR__ ) . '/inc/abilities/publish-plugin-docs.php';
+require dirname( __DIR__ ) . '/inc/core/mdi-layout.php';
+foreach ( array( 'public', 'team' ) as $component ) {
+	mkdir( WP_PLUGIN_DIR . '/' . $component . '/docs/user', 0777, true );
+	file_put_contents( WP_PLUGIN_DIR . '/' . $component . '/docs/user/start.md', "# Start\n\n[Other](other.md#part)\n" );
+}
+try {
+	extrachill_docs_register_mdi_layout();
+	$p = $GLOBALS['profile'];
+	$paths = $p['enumerate']( WP_PLUGIN_DIR );
+	check( count( $paths ) === 2, 'nested enumeration' );
+	foreach ( $paths as $path ) {
+		$m = $p['map_source']( $path );
+		check( $m['post_parent'] === 7 && $m['post_type'] === 'page' && $m['post_name'] === 'start', 'parent and slug mapping' );
+		check( $m['source_identity'] === 'plugins/' . $path, 'canonical identity' );
+		$GLOBALS['meta'][42]['_markdown_source_identity'] = $m['source_identity'];
+		check( $p['path_for_post']( (object) array( 'ID' => 42 ) ) === $path, 'inverse path' );
+		$context = array( 'source_path' => $m['source_identity'] );
+		check( extrachill_docs_mdi_post_data( array(), $context, new stdClass() ) === array(), 'unrelated imports unchanged' );
+		$GLOBALS['extrachill_docs_mdi_importing'] = true;
+		$data = extrachill_docs_mdi_post_data( array(), $context, new stdClass() );
+		check( $data['post_status'] === ( str_starts_with( $path, 'team/' ) ? 'private' : 'publish' ), 'visibility' );
+		$text = extrachill_docs_mdi_post_content( file_get_contents( WP_PLUGIN_DIR . '/' . $path ), $context, array(), new stdClass() );
+		check( str_contains( $text, '/other/#part)' ) && str_starts_with( $text, '# Start' ), 'rewrite before conversion; H1 owned by MDI' );
+		unset( $GLOBALS['extrachill_docs_mdi_importing'] );
+	}
+	check( extrachill_docs_execute_publish_plugin_docs( array( 'repo' => 'plugins/team', 'dry_run' => true ) )['success'], 'wrapper' );
+	check( ! isset( $GLOBALS['extrachill_docs_mdi_importing'] ), 'import scope cleaned' );
+	check( extrachill_docs_mdi_source( 'plugins/team/docs/user/../evil.md' ) === null, 'reject traversal' );
+} finally {
+	foreach ( array( 'public', 'team' ) as $c ) {
+		unlink( WP_PLUGIN_DIR . '/' . $c . '/docs/user/start.md' );
+		rmdir( WP_PLUGIN_DIR . '/' . $c . '/docs/user' );
+		rmdir( WP_PLUGIN_DIR . '/' . $c . '/docs' );
+		rmdir( WP_PLUGIN_DIR . '/' . $c );
+	}
+	rmdir( WP_PLUGIN_DIR );
+}
+echo "MDI publishing smoke passed.\n";

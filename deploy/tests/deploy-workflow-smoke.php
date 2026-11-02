@@ -171,6 +171,9 @@ dws_assert( is_array( $p ) && is_array( $s ), 'project and server configs parse 
 dws_assert( ( $p['server_id'] ?? null ) === 'hetzner', 'project targets server hetzner' );
 dws_assert( ( $p['base_path'] ?? null ) === '/var/www/extrachill.com', 'project base_path is the site root' );
 $attachments = $p['components'] ?? null;
+$mdi = json_decode( file_get_contents( __DIR__ . '/../homeboy/components/markdown-database-integration.json' ), true );
+dws_assert( 'https://github.com/Automattic/markdown-database-integration' === ( $mdi['remote_url'] ?? '' ), 'MDI resolves from upstream releases' );
+dws_assert( in_array( 'markdown-database-integration', array_column( $attachments, 'id' ), true ) && 'wp-content/plugins/markdown-database-integration' === ( $mdi['remote_path'] ?? '' ), 'MDI is attached as a plain plugin' );
 // Monorepo members deploy through projects/extrachill-monorepo (deploy-monorepo.yml);
 // this poller owns only release-based components (deploy-monorepo-test.py checks the partition).
 dws_assert( is_array( $attachments ) && in_array( 'data-machine', array_column( $attachments, 'id' ), true ), 'project attaches the release-based component set' );
