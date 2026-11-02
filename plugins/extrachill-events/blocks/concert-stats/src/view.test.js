@@ -236,10 +236,18 @@ describe( 'ConcertStatsApp request boundaries', () => {
 		[ 'import', 'importing-concert-history' ],
 	] )( 'links the %s tab to contextual docs', async ( tab, slug ) => {
 		const { container, root } = await renderApp( { isOwn: true, tab } );
-		const help = container.querySelector( `[data-ec-track="docs-help-${ slug }"]` );
-		expect( help.getAttribute( 'href' ) ).toBe( `https://docs.example/events-calendar/${ slug }/` );
-		const privacy = container.querySelector( '[data-ec-track="docs-help-concert-history-privacy"]' );
-		expect( privacy.getAttribute( 'href' ) ).toBe( 'https://docs.example/events-calendar/concert-history-privacy/' );
+		const help = container.querySelector(
+			`[data-ec-track="docs-help-${ slug }"]`
+		);
+		expect( help.getAttribute( 'href' ) ).toBe(
+			`https://docs.example/events-calendar/${ slug }/`
+		);
+		const privacy = container.querySelector(
+			'[data-ec-track="docs-help-concert-history-privacy"]'
+		);
+		expect( privacy.getAttribute( 'href' ) ).toBe(
+			'https://docs.example/events-calendar/concert-history-privacy/'
+		);
 		await act( async () => root.unmount() );
 	} );
 
