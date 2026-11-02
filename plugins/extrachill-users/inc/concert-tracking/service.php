@@ -326,6 +326,36 @@ function ec_users_get_user_event_count( int $user_id, int $blog_id = 0 ): int {
 	);
 }
 
+/**
+ * Count a user's tracked past shows on the Events site for rank points.
+ *
+ * Uses the canonical Events-site timing condition: upcoming and ongoing shows
+ * do not count. Ratings are not consulted.
+ *
+ * @param int $user_id User ID.
+ * @return int Number of tracked past shows.
+ */
+function ec_users_get_user_past_event_count( int $user_id ): int {
+	global $wpdb;
+
+	$table         = extrachill_users_concert_tracking_table_name();
+	$blog_id       = ec_users_get_events_blog_id();
+	$events_prefix = $wpdb->get_blog_prefix( $blog_id );
+	$dates_table   = $events_prefix . 'datamachine_event_dates';
+	$timing        = ec_users_build_event_timing_condition( 'past', ec_users_get_events_now( $blog_id ), 'ed' );
+
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Trusted table names and canonical prepared timing fragment.
+	return (int) $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table} ct
+			INNER JOIN {$dates_table} ed ON ct.event_id = ed.post_id
+			WHERE ct.user_id = %d AND ct.blog_id = %d AND {$timing['where']}",
+			...array_merge( array( $user_id, $blog_id ), $timing['prepare'] )
+		)
+	);
+	// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+}
+
 // ─── Dated Contributions ─────────────────────────────────────────────────────
 
 /**
