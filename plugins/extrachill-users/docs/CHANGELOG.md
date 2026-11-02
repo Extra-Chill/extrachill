@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.57.3] - 2026-11-02
+
+### Changed
+- Count only past concert attendance toward rank points
+
 ## [0.57.2] - 2026-11-01
 
 ### Changed
