@@ -4,7 +4,7 @@
   "description": "User management system for ExtraChill Platform",
   "scripts": {
     "build": "npm run build:blocks && npm run copy:block-files",
-    "test:unit:js": "wp-scripts test-unit-js",
+    "test:unit:js": "wp-scripts test-unit-jest",
     "build:blocks": "npm run build:login-register && npm run build:login-register:view && npm run build:password-reset && npm run build:onboarding && npm run build:concert-attendance",
     "build:login-register": "wp-scripts build blocks/login-register/src/index.js --output-path=build/login-register",
     "build:login-register:view": "wp-scripts build blocks/login-register/view.js --output-path=build/login-register",
@@ -18,7 +18,13 @@
     "@extrachill/components": "^0.9.4"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^33.0.0",
-    "ajv": "^8.20.0"
+    "@babel/core": "^7.29.7",
+    "@wordpress/babel-preset-default": "^8.55.0",
+    "@wordpress/jest-preset-default": "^14.2.0",
+    "@wordpress/scripts": "^37.0.0",
+    "ajv": "^8.20.0",
+    "babel-jest": "^30.5.0",
+    "jest": "^30.5.0",
+    "jest-environment-jsdom": "^30.5.0"
   }
 }
