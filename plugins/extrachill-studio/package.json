@@ -5,7 +5,7 @@
 	"private": true,
 	"scripts": {
 		"build": "wp-scripts build && cp src/blocks/studio/style.css build/blocks/studio/",
-		"test:unit": "wp-scripts test-unit-js",
+		"test:unit": "wp-scripts test-unit-jest",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -14,6 +14,7 @@
 		"@extrachill/tokens": "^0.9.1"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.29.7",
 		"@extrachill/api-client": "^0.10.0",
 		"@types/react": "^18.3.0",
 		"@types/wordpress__block-editor": "^15.0.5",
@@ -21,14 +22,19 @@
 		"@types/wordpress__element": "^2.14.0",
 		"@types/wordpress__i18n": "^3.11.0",
 		"@wordpress/api-fetch": "^7.36.0",
+		"@wordpress/babel-preset-default": "^8.55.0",
 		"@wordpress/components": "^30.9.0",
 		"@wordpress/data": "10.42.0",
 		"@wordpress/dependency-extraction-webpack-plugin": "6.42.0",
 		"@wordpress/element": "^6.36.0",
 		"@wordpress/i18n": "^6.9.0",
-		"@wordpress/scripts": "^31.1.0",
+		"@wordpress/jest-preset-default": "^14.2.0",
+		"@wordpress/scripts": "^37.0.0",
 		"ajv": "^8.20.0",
+		"babel-jest": "^30.5.0",
 		"chart.js": "^4.4.0",
+		"jest": "^30.5.0",
+		"jest-environment-jsdom": "^30.5.0",
 		"typescript": "^5.7.0"
 	}
 }

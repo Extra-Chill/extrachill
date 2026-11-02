@@ -7,14 +7,20 @@
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js",
 		"lint:css": "wp-scripts lint-style",
-		"test:js": "wp-scripts test-unit-js",
+		"test:js": "wp-scripts test-unit-jest",
 		"format": "wp-scripts format"
 	},
 	"author": "Chris Huber <hello@chubes.net>",
 	"license": "GPL-2.0+",
 	"devDependencies": {
-		"@wordpress/scripts": "^30.15.0",
-		"ajv": "^8.20.0"
+		"@babel/core": "^7.29.7",
+		"@wordpress/babel-preset-default": "^8.55.0",
+		"@wordpress/jest-preset-default": "^14.2.0",
+		"@wordpress/scripts": "^37.0.0",
+		"ajv": "^8.20.0",
+		"babel-jest": "^30.5.0",
+		"jest": "^30.5.0",
+		"jest-environment-jsdom": "^30.5.0"
 	},
 	"dependencies": {
 		"@wordpress/api-fetch": "^7.0.0",
