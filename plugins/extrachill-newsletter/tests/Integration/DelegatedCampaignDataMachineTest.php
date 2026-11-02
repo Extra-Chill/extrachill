@@ -182,8 +182,11 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		$this->assertSame( 'no-op', $result['status'] );
 		$this->assertSame( 'no-op', $result['projection']['classification'] );
 		$terminal = $this->job( 'terminal-no-op' )['operation_envelope']['run_result'];
-		$this->assertSame( 'completed_no_items', $terminal['status'] );
-		$this->assertSame( 'completed_no_items', $terminal['child_job_envelopes'][0]['status'] );
+		// The run envelope normalizes `status` to the canonical vocabulary and
+		// preserves the raw job status verbatim in `status_detail`.
+		$this->assertSame( 'completed', $terminal['status'] );
+		$this->assertSame( 'completed_no_items', $terminal['status_detail'] );
+		$this->assertSame( 'completed_no_items', $terminal['child_job_envelopes'][0]['status_detail'] ?? $terminal['child_job_envelopes'][0]['status'] );
 		$this->assertIsArray( $terminal['child_job_envelopes'][0]['outputs']['counts'] );
 	}
 
