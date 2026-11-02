@@ -37,3 +37,6 @@ dist/
 *.tmp
 *.temp
 .env*
+
+# Jest configuration (development only).
+jest.config.cjs

@@ -10,3 +10,6 @@ package-lock.json
 *.md
 .buildignore
 .gitignore
+
+# Jest configuration (development only).
+jest.config.cjs

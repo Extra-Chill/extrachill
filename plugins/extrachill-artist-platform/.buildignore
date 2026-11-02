@@ -93,3 +93,6 @@ phpunit.xml.dist
 /uploads/
 /debug/
 
+
+# Jest configuration (development only).
+jest.config.cjs
