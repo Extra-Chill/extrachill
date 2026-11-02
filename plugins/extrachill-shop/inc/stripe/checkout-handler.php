@@ -174,7 +174,8 @@ function extrachill_shop_calculate_artist_charges( $grouped_items ) {
 
 		$total           = $group['total'];
 		$commission_rate = extrachill_shop_get_default_commission_rate();
-		$application_fee = round( $total * $commission_rate, 2 );
+		// A fee outside [0, total] would mean a negative transfer; never let config produce one.
+		$application_fee = min( max( round( $total * $commission_rate, 2 ), 0.0 ), (float) $total );
 		$artist_payout   = round( $total - $application_fee, 2 );
 
 		$stripe_account = extrachill_shop_get_seller_stripe_account( extrachill_shop_group_seller( $artist_id, $group ) );
@@ -249,7 +250,7 @@ function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
 			}
 
 			// Transfer artist payout (total minus commission) in cents.
-			$transfer_amount_cents = intval( $charge_data['artist_payout'] * 100 );
+			$transfer_amount_cents = (int) round( $charge_data['artist_payout'] * 100 );
 
 			$transfer = \Stripe\Transfer::create(
 				array(
@@ -259,7 +260,9 @@ function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
 					'source_transaction' => $charge_id,
 					'transfer_group'     => $transfer_group,
 					'metadata'           => $metadata,
-				)
+				),
+				// A retry after a partial failure returns the same transfer instead of paying twice.
+				array( 'idempotency_key' => 'ec-transfer-' . $order->get_id() . '-' . $artist_id )
 			);
 
 			$successful_transfers[ $artist_id ] = array(

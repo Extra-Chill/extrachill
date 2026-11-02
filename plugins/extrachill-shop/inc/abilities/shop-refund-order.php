@@ -24,7 +24,7 @@ function extrachill_shop_register_refund_order_ability(): void {
 		'extrachill/shop-refund-order',
 		array(
 			'label'       => __( 'Refund Shop Order', 'extrachill-shop' ),
-			'description' => __( 'Issue a full Stripe refund for an artist\'s portion of an order.', 'extrachill-shop' ),
+			'description' => __( 'Refund a seller\'s portion of an order and reverse that seller\'s payout.', 'extrachill-shop' ),
 			'category'    => 'extrachill-shop',
 			'input_schema' => array(
 				'type'       => 'object',
@@ -37,8 +37,13 @@ function extrachill_shop_register_refund_order_ability(): void {
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
 					),
+					'seller'    => extrachill_shop_seller_input_schema(),
+					'reason'    => array(
+						'type'        => 'string',
+						'description' => 'Optional refund reason shown on the order.',
+					),
 				),
-				'required' => array( 'id', 'artist_id' ),
+				'required' => array( 'id' ),
 			),
 			'output_schema' => array(
 				'type'       => 'object',
@@ -46,28 +51,11 @@ function extrachill_shop_register_refund_order_ability(): void {
 					'success'       => array( 'type' => 'boolean' ),
 					'order_id'      => array( 'type' => 'integer' ),
 					'refund_amount' => array( 'type' => 'number' ),
+					'reversed'      => array( 'type' => 'boolean' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_refund_order',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this artist.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return current_user_can( 'manage_options' );
-			},
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
 			'meta' => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -83,61 +71,40 @@ function extrachill_shop_register_refund_order_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * Issue a full refund for the artist's portion of an order.
+ * Refund a seller's portion of an order.
+ *
+ * Serialized per order so a double submit cannot race the resumable state in
+ * `extrachill_shop_refund_seller_portion()`.
  *
  * @param array $input Ability input.
  * @return array|WP_Error
  */
 function extrachill_shop_ability_refund_order( array $input ): array|WP_Error {
-	$order_id  = (int) ( $input['id'] ?? 0 );
-	$artist_id = (int) ( $input['artist_id'] ?? 0 );
+	global $wpdb;
+
+	$order_id = (int) ( $input['id'] ?? 0 );
+	$seller   = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
 
 	if ( ! function_exists( 'wc_get_order' ) ) {
 		return new WP_Error( 'woocommerce_missing', 'WooCommerce is not available.', array( 'status' => 500 ) );
 	}
 
-	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
-		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
-	}
-
-	$payouts = $order->get_meta( '_artist_payouts' ) ?: array();
-	if ( ! isset( $payouts[ $artist_id ] ) ) {
-		return new WP_Error( 'invalid_artist', 'This order does not contain products from your artist.', array( 'status' => 400 ) );
-	}
-
-	$artist_payout = $payouts[ $artist_id ];
-	$refund_amount = (float) ( $artist_payout['total'] ?? 0 );
-
-	if ( $refund_amount <= 0 ) {
-		return new WP_Error( 'invalid_refund_amount', 'No refundable amount found for this artist.', array( 'status' => 400 ) );
-	}
-
-	$charges            = $order->get_meta( '_stripe_charges' ) ?: array();
-	$payment_intent_id  = $charges[ $artist_id ]['payment_intent_id'] ?? '';
-
-	if ( ! $payment_intent_id ) {
-		return new WP_Error( 'no_payment_intent', 'No payment intent found for this artist order.', array( 'status' => 400 ) );
-	}
-
-	if ( ! function_exists( 'extrachill_shop_stripe_init' ) || ! extrachill_shop_stripe_init() ) {
-		return new WP_Error( 'stripe_not_configured', 'Stripe is not configured.', array( 'status' => 500 ) );
+	$lock = 'ec_shop_refund_' . $order_id;
+	if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $lock ) ) ) {
+		return new WP_Error( 'refund_busy', 'Another refund for this order is in progress. Try again shortly.', array( 'status' => 409 ) );
 	}
 
 	try {
-		\Stripe\Refund::create( array(
-			'payment_intent' => $payment_intent_id,
-		) );
-	} catch ( \Exception $e ) {
-		return new WP_Error( 'refund_failed', 'Refund failed: ' . $e->getMessage(), array( 'status' => 500 ) );
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
+		}
+
+		return extrachill_shop_refund_seller_portion( $order, $seller, sanitize_text_field( (string) ( $input['reason'] ?? '' ) ) );
+	} finally {
+		$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 	}
-
-	$order->set_status( 'refunded', 'Full refund issued by artist.' );
-	$order->save();
-
-	return array(
-		'success'       => true,
-		'order_id'      => $order_id,
-		'refund_amount' => $refund_amount,
-	);
 }
