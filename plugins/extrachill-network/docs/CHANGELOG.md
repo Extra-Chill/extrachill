@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.36.1] - 2026-11-02
+
+### Changed
+- fix stale suite failures keeping main red
+
 ## [2.36.0] - 2026-11-01
 
 ### Added
