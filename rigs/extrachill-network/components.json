@@ -173,17 +173,13 @@
       "repo": "Extra-Chill/extrachill-events",
       "asset": "extrachill-events.zip",
       "source": "github",
-      "note": "One mounted zip ships two plugin files: the events-site plugin and the network-wide 'Extra Chill Events Network Blocks' adapter (see NETWORK-ARCHITECTURE.MD Adapters section). Both activations mount from this single component entry.",
+      "note": "Events-site event and venue infrastructure; booking and its inquiry block are owned by extrachill-booking.",
       "activations": [
         {
           "pluginFile": "extrachill-events/extrachill-events.php",
           "scope": [
             "events.extrachill.com"
           ]
-        },
-        {
-          "pluginFile": "extrachill-events/extrachill-events-network-blocks.php",
-          "scope": "network"
         }
       ]
     },
@@ -193,7 +189,7 @@
       "releaseTagPrefix": "extrachill-booking-v",
       "asset": "extrachill-booking.zip",
       "source": "github",
-      "note": "Inert booking extraction placeholder; activate on events only before the atomic code move.",
+      "note": "Booking runtime and inquiry block, activated only on events.extrachill.com. Deploy before events for compatibility.",
       "activations": [
         {
           "pluginFile": "extrachill-booking/extrachill-booking.php",

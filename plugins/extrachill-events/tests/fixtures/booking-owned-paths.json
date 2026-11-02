@@ -48,5 +48,5 @@
   "inc/core/booking-venue-settings.php",
   "inc/core/booking-console.php",
   "inc/templates/booking-embed.php",
-  "blocks/venue-booking-inquiry/render.php"
+  "blocks/venue-booking-inquiry/"
 ]

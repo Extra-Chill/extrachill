@@ -897,7 +897,7 @@ require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationDeliveryWorker.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueBookingConfig.php';
+require_once __DIR__ . '/../../extrachill-booking/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueProfile.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueMembershipAbilities.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Abilities/VenueBookingConfigAbilities.php';

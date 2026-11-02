@@ -1262,8 +1262,8 @@ if (!is_array($matrix)) {
 
 /**
  * A plugin's own activation hook can legitimately call wp_die() to hard-fail
- * an unmet requirement (extrachill-events-network-blocks does exactly this
- * when it is not being network-activated). This step batches every
+ * an unmet requirement (for example, a missing network dependency).
+ * This step batches every
  * network-wide AND per-site activation into ONE PHP process; an uncaught
  * wp_die() from any single plugin's hook -- fired with hooks enabled since
  * this step deliberately activates with $silent=false -- kills that whole

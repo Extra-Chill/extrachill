@@ -9,13 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Register the inquiry block as part of the booking feature (its build stays in Events until P3). */
+/** Register the inquiry block on the Events site as part of booking. */
 function extrachill_events_register_booking_blocks() {
 	if ( ! ec_is_events_site() ) {
 		return;
 	}
-	$directory = EXTRACHILL_EVENTS_PLUGIN_DIR . 'build/venue-booking-inquiry';
-	if ( file_exists( $directory . '/block.json' ) ) {
+	$directory = EXTRACHILL_BOOKING_PLUGIN_DIR . 'build/venue-booking-inquiry';
+	if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'extrachill/venue-booking-inquiry' ) && file_exists( $directory . '/block.json' ) ) {
 		register_block_type( $directory );
 	}
 }
@@ -43,6 +43,13 @@ function extrachill_events_booking_settings_metadata( $metadata ) {
 		$asset['version'],
 		true
 	);
+	wp_register_style(
+		'extrachill-booking-settings',
+		EXTRACHILL_BOOKING_PLUGIN_URL . 'build/venue-settings/style-booking-settings.css',
+		array(),
+		$asset['version']
+	);
+	$metadata['style'] = array_merge( (array) ( $metadata['style'] ?? array() ), array( 'extrachill-booking-settings' ) );
 	// WordPress preserves viewScript order when enqueuing the block's scripts.
 	$metadata['viewScript'] = array_merge( array( 'extrachill-booking-settings' ), (array) ( $metadata['viewScript'] ?? array() ) );
 	return $metadata;

@@ -16,7 +16,10 @@
   },
   "name": "extrachill-booking",
   "scripts": {
-    "build": "wp-scripts build blocks/venue-settings/src/booking-settings.js --output-path=build/venue-settings",
+    "build": "npm run build:venue-settings && npm run build:venue-booking-inquiry && npm run copy:venue-booking-inquiry",
+    "build:venue-settings": "wp-scripts build blocks/venue-settings/src/booking-settings.js --output-path=build/venue-settings",
+    "build:venue-booking-inquiry": "wp-scripts build blocks/venue-booking-inquiry/src/index.js blocks/venue-booking-inquiry/src/view.js --output-path=build/venue-booking-inquiry",
+    "copy:venue-booking-inquiry": "cp blocks/venue-booking-inquiry/block.json blocks/venue-booking-inquiry/render.php build/venue-booking-inquiry/",
     "test:js": "wp-scripts test-unit-js"
   }
 }

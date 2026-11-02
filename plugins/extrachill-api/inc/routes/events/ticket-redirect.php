@@ -119,7 +119,7 @@ function extrachill_api_handle_ticket_redirect( WP_REST_Request $request ) {
  * navigation, NOT stripped by a page's Referrer-Policy, and absent from
  * curl/wget/most scripted clients. same-origin and same-site are admitted
  * (same-site covers the case where a ticket button renders on a different
- * Extra Chill subdomain via extrachill-events-network-blocks but still
+ * Extra Chill subdomain but still
  * targets this endpoint on events.extrachill.com). cross-site and none are
  * rejected outright.
  *

@@ -58,7 +58,7 @@ if ( preg_match_all( '/VenueProvider::(\w+)\(/', $booking, $calls ) && array( 'r
 	$failures[] = 'BookingProvider may only call VenueProvider::register().';
 }
 
-preg_match_all( "#require_once EXTRACHILL_EVENTS_PLUGIN_DIR \\. '([^']+)'#", $booking, $loads );
+preg_match_all( "#require_once EXTRACHILL_BOOKING_PLUGIN_DIR \\. '([^']+)'#", $booking, $loads );
 foreach ( $loads[1] as $path ) {
 	if ( ! in_array( $path, $owned, true ) ) {
 		$failures[] = "BookingProvider loads {$path}, which is not in tests/fixtures/booking-owned-paths.json.";

@@ -155,11 +155,6 @@
             "runtime": "host"
           },
           {
-            "name": "network-block",
-            "config": "phpunit-network-block.xml.dist",
-            "runtime": "host"
-          },
-          {
             "name": "venue-calendar-feed",
             "config": "phpunit-venue-calendar-feed.xml.dist",
             "runtime": "host"
@@ -194,10 +189,6 @@
     {
       "file": "extrachill-events.php",
       "pattern": "EXTRACHILL_EVENTS_VERSION',\\s*'([0-9.]+)'"
-    },
-    {
-      "file": "extrachill-events-network-blocks.php",
-      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
     },
     {
       "file": "blocks/concert-stats/block.json",
