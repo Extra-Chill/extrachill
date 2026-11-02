@@ -30,8 +30,7 @@ function scopeLabel(scope) {
   return [...scope].sort().join(', ');
 }
 
-// One label per activation. A plugin that ships extra plugin files (e.g.
-// extrachill-events' network-blocks) names each extra file next to its scope.
+// One label per activation; name each extra plugin file next to its scope.
 function activeOn(plugin) {
   const activations = plugin.activations ?? [];
   const mainFile = `${plugin.slug}/${plugin.slug}.php`;

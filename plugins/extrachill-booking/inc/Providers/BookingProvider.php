@@ -62,12 +62,19 @@ final class BookingProvider {
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/LocalBookingPrivateFileProvider.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingPrivateStorageReadiness.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingPrivateFileProviders.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentPolicy.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/BookingAttachmentReadiness.php';
+		// Old Events' network adapter may have declared these before Booking deploys.
+		if ( ! class_exists( '\ExtraChillEvents\Core\BookingAttachmentPolicy', false ) ) {
+			require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingAttachmentPolicy.php';
+		}
+		if ( ! class_exists( '\ExtraChillEvents\Core\BookingAttachmentReadiness', false ) ) {
+			require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingAttachmentReadiness.php';
+		}
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingAttachmentRepository.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingAttachmentDeliveryRepository.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingAttachmentService.php';
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueBookingConfig.php';
+		if ( ! class_exists( '\ExtraChillEvents\Core\VenueBookingConfig', false ) ) {
+			require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/VenueBookingConfig.php';
+		}
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingInquiryAdmissionService.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/ArtistBookingInquiryService.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/VenueBookingEmbed.php';
