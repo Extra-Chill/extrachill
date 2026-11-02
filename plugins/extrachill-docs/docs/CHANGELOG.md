@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.11.1] - 2026-11-02
+
+### Fixed
+- load the ability category file again
+
 ## [0.11.0] - 2026-11-02
 
 ### Added
