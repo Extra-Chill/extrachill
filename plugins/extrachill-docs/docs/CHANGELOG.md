@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.11.0] - 2026-11-02
+
+### Added
+- publish docs through Markdown Database Integration
+
 ## [0.10.2] - 2026-11-01
 
 ### Changed
