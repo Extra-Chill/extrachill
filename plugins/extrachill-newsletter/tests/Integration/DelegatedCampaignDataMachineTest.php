@@ -66,7 +66,7 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		extrachill_newsletter_register_delegated_campaign_task();
 		$this->first_actor     = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->second_actor    = self::factory()->user->create( array( 'role' => 'subscriber' ) );
-		$this->owner_user      = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->owner_user      = $this->registered_agent_owner() ?: self::factory()->user->create( array( 'role' => 'administrator' ) );
 		$this->events_blog     = get_current_blog_id();
 		$this->newsletter_blog = get_current_blog_id();
 		$GLOBALS['newsletter_integration_blogs'] = array(
@@ -95,6 +95,25 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		}
 		wp_set_current_user( 0 );
 		parent::tear_down();
+	}
+
+	/**
+	 * Data Machine records the agent owner when the agent is first registered,
+	 * and later runs require the resolved owner to match it. Reuse that owner
+	 * so the filtered owner below stays consistent with the registered agent.
+	 */
+	private function registered_agent_owner(): int {
+		if ( ! class_exists( \DataMachine\Core\Agents\AgentIdentityResolver::class ) ) {
+			return 0;
+		}
+		try {
+			$identity = ( new \DataMachine\Core\Agents\AgentIdentityResolver() )->resolve_agent_identity( EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_AGENT );
+		} catch ( \Throwable $exception ) {
+			unset( $exception );
+			return 0;
+		}
+		$owner = (int) $identity->owner_id;
+		return $owner > 0 && get_user_by( 'id', $owner ) ? $owner : 0;
 	}
 
 	public function owner_user_id(): int {
