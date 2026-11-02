@@ -7,7 +7,7 @@
 
 use DataMachine\Core\Database\Jobs\Jobs;
 use DataMachine\Core\DelegatedOperations\DelegatedOperationService;
-use DataMachine\Core\RunResult;
+use DataMachine\Core\RunResultEnvelope;
 use ExtraChillNewsletter\Tasks\DelegatedCampaignTask;
 
 if ( ! defined( 'UPLOADBLOGSDIR' ) ) {
@@ -172,7 +172,7 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 				'parent_job_id' => (int) $job['job_id'],
 			)
 		);
-		$child_result = RunResult::fromStepResults( array(), array( 'status' => 'completed_no_items', 'outputs' => array( 'effect_count' => 0 ) ) );
+		$child_result = RunResultEnvelope::fromSteps( array(), array( 'status' => 'completed_no_items', 'outputs' => array( 'effect_count' => 0 ) ) );
 		$this->assertTrue( $jobs->store_engine_data( $child_id, array( 'run_result' => $child_result ) ) );
 		$this->assertTrue( $jobs->complete_job( $child_id, 'completed_no_items' ) );
 		$this->assertTrue( extrachill_newsletter_record_delegated_campaign_outcome( $submitted['operation_ref'], extrachill_newsletter_delegated_campaign_result( 'no-op', null, null, 'newsletter_campaign_empty_source' ) ) );
