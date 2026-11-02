@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.48.1] - 2026-11-02
+
+### Fixed
+- store commission as a decimal and make seller refunds work
+
 ## [0.48.0] - 2026-11-01
 
 ### Added
