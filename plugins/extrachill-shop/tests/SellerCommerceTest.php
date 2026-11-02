@@ -23,12 +23,7 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 		return true;
 	}
 }
-if ( ! function_exists( 'extrachill_shop_get_default_commission_rate' ) ) {
-	function extrachill_shop_get_default_commission_rate() {
-		return 0.1;
-	}
-}
-
+require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-product-meta.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
 

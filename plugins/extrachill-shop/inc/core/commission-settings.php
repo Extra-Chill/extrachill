@@ -24,7 +24,32 @@ define( 'EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE', 0.10 );
  * @return float Commission rate as decimal (0.10 = 10%).
  */
 function extrachill_shop_get_default_commission_rate() {
-	return (float) get_option( 'extrachill_shop_commission_rate', EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE );
+	return extrachill_shop_normalize_commission_rate( get_option( 'extrachill_shop_commission_rate', EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE ) );
+}
+
+/**
+ * Normalize a stored commission rate to a decimal in [0, 1].
+ *
+ * Rates are stored as decimals (0.10 = 10%). Values above 1 are percentages
+ * written by the pre-fix settings save path (`10` meant 10%), so they are
+ * converted rather than applied as a 1000% fee. Anything non-numeric or out of
+ * range falls back to the default.
+ *
+ * @param mixed $rate Stored rate.
+ * @return float Commission rate as decimal.
+ */
+function extrachill_shop_normalize_commission_rate( $rate ) {
+	if ( ! is_numeric( $rate ) ) {
+		return EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE;
+	}
+	$rate = (float) $rate;
+	if ( $rate > 1 && $rate <= 100 ) {
+		$rate = $rate / 100;
+	}
+	if ( $rate < 0 || $rate > 1 ) {
+		return EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE;
+	}
+	return $rate;
 }
 
 /**
@@ -39,7 +64,7 @@ function extrachill_shop_get_product_commission_rate( $product_id ) {
 	$product_rate = get_post_meta( $product_id, '_artist_commission_rate', true );
 
 	if ( '' !== $product_rate && is_numeric( $product_rate ) ) {
-		return (float) $product_rate;
+		return extrachill_shop_normalize_commission_rate( $product_rate );
 	}
 
 	return extrachill_shop_get_default_commission_rate();
@@ -136,6 +161,8 @@ function extrachill_shop_add_settings_fields( $settings, $current_section ) {
 			'id'                => 'extrachill_shop_commission_rate',
 			'type'              => 'number',
 			'default'           => EXTRACHILL_SHOP_DEFAULT_COMMISSION_RATE * 100,
+			// Stored as a decimal, edited as a percentage.
+			'value'             => extrachill_shop_get_default_commission_rate() * 100,
 			'css'               => 'width: 80px;',
 			'desc_tip'          => true,
 			'custom_attributes' => array(
@@ -170,7 +197,7 @@ add_filter( 'woocommerce_get_settings_products', 'extrachill_shop_add_settings_f
  * @return mixed Processed value.
  */
 function extrachill_shop_process_commission_rate( $value, $option, $raw_value ) {
-	if ( 'extrachill_shop_commission_rate' !== $option['id'] ) {
+	if ( 'extrachill_shop_commission_rate' !== ( $option['id'] ?? '' ) ) {
 		return $value;
 	}
 
@@ -180,26 +207,6 @@ function extrachill_shop_process_commission_rate( $value, $option, $raw_value ) 
 	return $percentage / 100;
 }
 add_filter( 'woocommerce_admin_settings_sanitize_option', 'extrachill_shop_process_commission_rate', 10, 3 );
-
-/**
- * Display commission rate as percentage in settings field.
- *
- * @param mixed  $value Option value.
- * @param array  $option Option config.
- * @return mixed Display value.
- */
-function extrachill_shop_display_commission_rate( $value, $option ) {
-	if ( 'extrachill_shop_commission_rate' !== $option['id'] ) {
-		return $value;
-	}
-
-	if ( is_numeric( $value ) && $value <= 1 ) {
-		return $value * 100;
-	}
-
-	return $value;
-}
-add_filter( 'woocommerce_admin_settings_sanitize_option_extrachill_shop_commission_rate', 'extrachill_shop_display_commission_rate', 10, 2 );
 
 /**
  * Check if product approval is required.
