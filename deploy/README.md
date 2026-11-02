@@ -43,7 +43,7 @@ A Homeboy config root, selected with `HOMEBOY_CONFIG_ROOT` (homeboy#14783):
 
 | Path | Contents |
 |---|---|
-| `projects/extrachill-site/extrachill-site.json` | server id, base path, path roots, remote logs, and the 34 deployable attachments (`id` + `remote_path`, `local_path` empty) |
+| `projects/extrachill-site/extrachill-site.json` | server id, base path, path roots, remote logs, and the 9 deployable attachments (`id` + `remote_path`, `local_path` empty) |
 | `servers/hetzner.json` | host, user, port; `identity_file` is `null` |
 | `components/<id>.json` | standalone registry: `remote_url` (GitHub) + `remote_path`. The GitHub `remote_url` is what makes checkout-less resolution apply. |
 
@@ -54,11 +54,9 @@ Adding a deployable = one attachment line in the project + one registry file. `t
 **A component is only deployable here if Homeboy can resolve a GitHub Release for it.** Two site components are deliberately absent:
 
 - `chubes-gallery-lightbox` (`chubes4/chubes-gallery-lightbox`) has one tag and no GitHub Release. It joins once its repo gets a `release.yml`.
-- `wp-native-auth` lives in the `Extra-Chill/wp-native` monorepo. It *does* release (`wp-native-auth-v0.4.1`), but its `homeboy.json` is at `plugins/wp-native-auth/`, not the repository root, so checkout-less resolution 404s and the zipball fallback returns HTTP 415. Both gaps are tracked in homeboy#14813; the prefixed tag also needs `tag_prefix`.
-
 - `intelligence` (`Automattic/intelligence`) is a **private** repository. Checkout-less resolution reads each component's release metadata with the job's `github.token`, which cannot read a private repository in another organisation, so every poll skipped it and failed the run. It is used rarely on this network and is shipped manually instead (#244).
 
-Every other attached component resolves from its own repository's latest release. Components outside Extra-Chill (for example `Automattic/wp-codebox`) must be public for the same reason; derive `remote_url` from `git remote get-url origin`, never by guessing the org.
+Every other attached component resolves from its own repository's latest release. Components in a multi-component monorepo (`data-machine-socials` in `Extra-Chill/data-machine`, `wp-native-auth` in `Extra-Chill/wp-native`) resolve from their newest prefixed `<id>-v*` release and the `homeboy.json` in their subdirectory. Components outside Extra-Chill (for example `Automattic/wp-codebox`) must be public for the same reason; derive `remote_url` from `git remote get-url origin`, never by guessing the org.
 
 ## Secrets (org-level, repository access restricted to `extrachill`)
 
