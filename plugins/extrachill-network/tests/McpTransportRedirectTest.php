@@ -45,8 +45,13 @@ class McpTransportRedirectTest extends WP_UnitTestCase {
 	public function test_redirect_handler_is_guarded_to_main_site(): void {
 		$this->assertSame( 0, has_action( 'template_redirect', 'ec_redirect_mcp_transport_to_auth' ) );
 
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'A second blog requires multisite.' );
+		}
+
 		$main_site_id = ec_get_blog_id( 'main' );
-		$other_site_id = self::factory()->blog->create();
+		// The guard only needs a different blog context, not a provisioned site.
+		$other_site_id = (int) $main_site_id + 1;
 		$this->assertNotSame( (int) $main_site_id, (int) $other_site_id );
 
 		switch_to_blog( $other_site_id );

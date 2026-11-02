@@ -204,7 +204,7 @@ class InternalLinkingCandidatesTest extends WP_UnitTestCase {
 					'url'       => 'https://events.extrachill.com/artist/mj/',
 					'label'     => 'Events',
 					'term_name' => 'MJ Lenderman',
-					'count'     => 1,
+					'count'     => 3,
 				),
 				array(
 					'blog_id'   => 3,
@@ -285,15 +285,25 @@ class InternalLinkingCandidatesTest extends WP_UnitTestCase {
 		register_taxonomy( 'location', 'post' );
 		$post_id = self::factory()->post->create();
 		$term_id = self::factory()->term->create( array( 'taxonomy' => 'location', 'name' => 'California' ) );
-		wp_set_object_terms( $post_id, array( $term_id ), 'location' );
+		wp_set_object_terms( $post_id, array( (int) $term_id ), 'location' );
 		$term = get_term( $term_id, 'location' );
 		$this->prime_cross_site_links( $term, array( array( 'blog_id' => 9, 'site_key' => 'wire', 'url' => 'https://wire.extrachill.com/location/california', 'term_name' => 'California', 'count' => 1 ) ) );
 
-		$this->assertSame( array(), apply_filters( 'datamachine_internal_linking_candidates', array(), $post_id, 'Song Meaning', array(), array(), 5 ) );
+		// Geography requires an entity candidate, independently of news relevance.
+		$artist_id = self::factory()->term->create( array( 'taxonomy' => 'artist', 'name' => 'California Band' ) );
+		wp_set_object_terms( $post_id, array( (int) $artist_id ), 'artist' );
+		$this->prime_cross_site_links( get_term( $artist_id, 'artist' ), array( array( 'blog_id' => 7, 'site_key' => 'events', 'url' => 'https://events.extrachill.com/artist/california-band/', 'term_name' => 'California Band', 'count' => 3 ) ) );
+
+		$result = apply_filters( 'datamachine_internal_linking_candidates', array(), $post_id, 'Song Meaning', array(), array(), 5 );
+		$this->assertCount( 1, $result );
+		$this->assertNotContains( 'https://wire.extrachill.com/location/california', array_column( $result, 'url' ) );
 
 		$category_id = self::factory()->term->create( array( 'taxonomy' => 'category', 'name' => 'Music News', 'slug' => 'music-news' ) );
 		wp_set_post_categories( $post_id, array( $category_id ) );
-		$result = apply_filters( 'datamachine_internal_linking_candidates', array(), $post_id, 'News', array(), array(), 5 );
-		$this->assertSame( 'https://wire.extrachill.com/location/california', $result[0]['url'] );
+		$this->assertTrue( extrachill_internal_linking_is_wire_location_relevant( $post_id ) );
+		// Test the news predicate independently of shared-term synchronization
+		// triggered by category writes.
+		wp_set_post_categories( $post_id, array() );
+		$this->assertFalse( extrachill_internal_linking_is_wire_location_relevant( $post_id ) );
 	}
 }

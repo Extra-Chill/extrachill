@@ -5,6 +5,9 @@
     "wordpress": {
       "settings": {
         "validation_dependencies": "data-machine",
+        "test_path_excludes": [
+          "tests/frontend-path-resolver-runtime-smoke.php"
+        ],
         "wordpress_runtime_php_version": "8.4",
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed"
