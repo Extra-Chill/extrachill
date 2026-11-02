@@ -1,7 +1,13 @@
 <?php
 /**
  * Dev-only PHPStan/Homeboy stubs for runtime dependencies.
+ *
+ * Scanned by PHPStan, never loaded at runtime. Declaring global and namespaced
+ * symbols together requires multiple braced namespace blocks, which the WPCS
+ * file-structure sniffs reject by design.
  */
+
+// phpcs:ignoreFile
 
 namespace {
 	const EXTRACHILL_USERS_PLUGIN_DIR = '';
@@ -20,7 +26,12 @@ namespace {
 	const EC_ANALYTICS_EVENT_SEARCH                            = 'search';
 	const EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED                 = 'team_member_added';
 	const EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED               = 'team_member_removed';
-	const EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS                  = array( 'team_member_added', 'team_member_removed' );
+	const EC_ANALYTICS_EVENT_MCP_SESSION_STARTED               = 'mcp_session_started';
+	const EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED                  = 'mcp_tool_invoked';
+	const EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS                  = array( 'team_member_added', 'team_member_removed', 'studio_draft_created', 'studio_submitted_for_review', 'studio_transcription_run', 'mcp_session_started', 'mcp_tool_invoked' );
+
+	/** @return array<object> */
+	function extrachill_get_analytics_events( array $args = array() ): array {}
 
 	function ec_get_site_url( string $site ): string {}
 	function ec_get_blog_id( string $site ): int {}

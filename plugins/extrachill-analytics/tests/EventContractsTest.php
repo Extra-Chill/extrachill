@@ -86,6 +86,35 @@ final class EventContractsTest extends Extrachill_Analytics_TestCase {
 	}
 
 	/**
+	 * Team and experiment readers follow live surfaces, not retired Roadie.
+	 */
+	public function test_team_experience_group_tracks_live_mcp_usage(): void {
+		$this->assertSame(
+			array(
+				EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED,
+				EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED,
+				EC_ANALYTICS_EVENT_STUDIO_DRAFT_CREATED,
+				EC_ANALYTICS_EVENT_STUDIO_SUBMITTED,
+				EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN,
+				EC_ANALYTICS_EVENT_MCP_SESSION_STARTED,
+				EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED,
+			),
+			EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS
+		);
+		$outcomes = extrachill_analytics_experiment_outcome_types();
+		foreach ( EC_ANALYTICS_MCP_USAGE_EVENTS as $type ) {
+			$this->assertContains( $type, $outcomes );
+			$this->assertNotContains( $type, EC_ANALYTICS_PUBLIC_BROWSER_EVENTS );
+		}
+		foreach ( array( 'roadie_session_started', 'roadie_tool_invoked' ) as $type ) {
+			$this->assertNotContains( $type, EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS );
+			$this->assertNotContains( $type, $outcomes );
+		}
+		$this->assertFalse( defined( 'EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED' ) );
+		$this->assertFalse( defined( 'EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED' ) );
+	}
+
+	/**
 	 * Experiment events never enter the generic public browser event boundary.
 	 */
 	public function test_experiment_events_are_not_public_browser_events(): void {
