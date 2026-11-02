@@ -1,7 +1,13 @@
 <?php
 /**
  * Dev-only PHPStan/Homeboy stubs for runtime dependencies.
+ *
+ * Scanned by PHPStan, never loaded at runtime. Declaring global and namespaced
+ * symbols together requires multiple braced namespace blocks, which the WPCS
+ * file-structure sniffs reject by design.
  */
+
+// phpcs:ignoreFile
 
 namespace {
 	const EXTRACHILL_USERS_PLUGIN_DIR = '';

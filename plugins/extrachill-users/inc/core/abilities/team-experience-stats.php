@@ -174,10 +174,11 @@ function extrachill_users_team_mcp_usage( $days ) {
 				$abilities[ $ability ] = ( $abilities[ $ability ] ?? 0 ) + 1;
 			}
 		}
-		if ( ! empty( $rows ) ) {
+		$row_count = count( $rows );
+		if ( $row_count > 0 ) {
 			$args['before_id'] = (int) end( $rows )->id;
 		}
-	} while ( count( $rows ) === $args['limit'] );
+	} while ( $row_count === $args['limit'] );
 
 	ksort( $abilities );
 	arsort( $abilities );
