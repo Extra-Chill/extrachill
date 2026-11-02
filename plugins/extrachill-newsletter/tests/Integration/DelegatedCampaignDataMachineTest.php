@@ -186,8 +186,11 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		// preserves the raw job status verbatim in `status_detail`.
 		$this->assertSame( 'completed', $terminal['status'] );
 		$this->assertSame( 'completed_no_items', $terminal['status_detail'] );
-		$this->assertSame( 'completed_no_items', $terminal['child_job_envelopes'][0]['status_detail'] ?? $terminal['child_job_envelopes'][0]['status'] );
-		$this->assertIsArray( $terminal['child_job_envelopes'][0]['outputs']['counts'] );
+		// Parents carry bounded child summaries, not inlined child envelopes.
+		$child_summary = $terminal['metadata']['datamachine']['child_job_summaries'][0];
+		$this->assertSame( $child_id, $child_summary['job_id'] );
+		$this->assertSame( 'completed_no_items', $child_summary['status'] );
+		$this->assertSame( 'completed_no_items', $terminal['child_run_refs'][0]['status'] );
 	}
 
 	public function test_real_task_executes_frozen_owner_workflow_and_reconciles(): void {
