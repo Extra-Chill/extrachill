@@ -70,7 +70,25 @@ try {
   };
   assert.equal(await latestPrefixedReleaseTag('Extra-Chill/data-machine', 'data-machine-events-v', fakeFetch, {}), 'data-machine-events-v0.78.0');
   assert.equal(await latestPrefixedReleaseTag('Extra-Chill/data-machine', 'nope-v', fakeFetch, {}), null);
-  await assert.rejects(latestPrefixedReleaseTag('x/y', 'p', async () => ({ ok: false, status: 403 }), {}), /HTTP 403/);
+  // Authenticated lookups must send the token, but never expose it in errors.
+  const token = 'offline-test-token';
+  await assert.rejects(latestPrefixedReleaseTag('x/y', 'p', async (_url, { headers }) => {
+    assert.equal(headers.Authorization, `Bearer ${token}`);
+    return { ok: false, status: 403, headers: new Headers({ 'x-ratelimit-remaining': '0' }) };
+  }, { GH_TOKEN: token }), (error) => {
+    assert.equal(error.message, 'Listing x/y releases failed: HTTP 403. Likely a GitHub API rate limit (x-ratelimit-remaining: 0). Token sent: yes.');
+    assert.ok(!error.message.includes(token));
+    return true;
+  });
+  for (const status of [403, 429]) {
+    await assert.rejects(latestPrefixedReleaseTag('x/y', 'p', async (_url, { headers }) => {
+      assert.equal(headers.Authorization, undefined);
+      return { ok: false, status, headers: new Headers() };
+    }, {}), { message: `Listing x/y releases failed: HTTP ${status}. Likely a GitHub API rate limit. Token sent: no.` });
+  }
+  await assert.rejects(latestPrefixedReleaseTag('x/y', 'p', async () => ({ ok: false, status: 500 }), {}), {
+    message: 'Listing x/y releases failed: HTTP 500.',
+  });
 
   await mkdir(themeDir, { recursive: true });
   await writeFile(path.join(themeDir, 'style.css'), '/*\nTheme Name: Extra Chill\n*/\n');
