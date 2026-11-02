@@ -129,7 +129,7 @@ final class EventManagementTestWpdb {
 
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/BookingSchema.php';
+require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';

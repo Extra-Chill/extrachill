@@ -52,6 +52,13 @@ def prepare(checkout, destination, matrix, sha, dry_run):
         config.pop("remote_url", None)
         (destination / "components" / f"{component}.json").write_text(json.dumps(config, indent=2) + "\n")
         selected.append(component)
+    # Booking must arrive before Events relinquishes ownership. Preserve all
+    # other components' matrix order, including when callers supply an unsorted matrix.
+    if "extrachill-booking" in selected and "extrachill-events" in selected:
+        booking = selected.index("extrachill-booking")
+        events = selected.index("extrachill-events")
+        if booking > events:
+            selected.insert(events, selected.pop(booking))
     # Verification must inspect only the planned components, not legacy remotes.
     project["components"] = [attachments[component] for component in selected]
     project_path.write_text(json.dumps(project, indent=2) + "\n")

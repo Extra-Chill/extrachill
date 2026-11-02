@@ -59,7 +59,7 @@ final class ArchiveEventsFirstTest extends TestCase {
 	/** The theme only pads buttons that carry a size variant. */
 	public function test_archive_buttons_carry_a_theme_size_variant(): void {
 		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/templates/archive.php' )
-			. file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-ui.php' );
+			. file_get_contents( __DIR__ . '/../../../../extrachill-booking/inc/core/booking-ui.php' );
 
 		$this->assertIsString( $source );
 		preg_match_all( '/class="(button-(?:1|2|3|danger)\b[^"]*)"/', $source, $matches );

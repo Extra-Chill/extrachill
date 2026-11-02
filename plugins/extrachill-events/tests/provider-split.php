@@ -13,7 +13,7 @@ $root     = dirname( __DIR__ );
 $failures = array();
 
 $venue   = file_get_contents( $root . '/inc/Providers/VenueProvider.php' );
-$booking = file_get_contents( $root . '/inc/Providers/BookingProvider.php' );
+$booking = file_get_contents( $root . '/../extrachill-booking/inc/Providers/BookingProvider.php' );
 $plugin  = file_get_contents( $root . '/inc/Core/Plugin.php' );
 $owned   = json_decode( file_get_contents( __DIR__ . '/fixtures/booking-owned-paths.json' ), true, 512, JSON_THROW_ON_ERROR );
 
@@ -67,7 +67,7 @@ foreach ( $loads[1] as $path ) {
 
 $venue_at   = strpos( $plugin, 'VenueProvider::register()' );
 $booking_at = strpos( $plugin, 'BookingProvider::register()' );
-if ( false === $venue_at || false === $booking_at || $venue_at > $booking_at ) {
+if ( false === $venue_at || false !== $booking_at ) {
 	$failures[] = 'Plugin must register VenueProvider before BookingProvider.';
 }
 

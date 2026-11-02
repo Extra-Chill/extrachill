@@ -20,7 +20,7 @@ use ExtraChillEvents\Core\VenueOnboardingService;
 use ExtraChillEvents\Core\VenueProfile;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/Support/BookingTestHarness.php';
+require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';
 
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );
@@ -896,11 +896,11 @@ require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationToken.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationDeliveryWorker.php';
-require_once dirname( __DIR__ ) . '/inc/Core/BookingRepository.php';
+require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueBookingConfig.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueProfile.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueMembershipAbilities.php';
-require_once dirname( __DIR__ ) . '/inc/Abilities/VenueBookingConfigAbilities.php';
+require_once __DIR__ . '/../../extrachill-booking/inc/Abilities/VenueBookingConfigAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/VenueProfileAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/ManagedVenueVoicesAbilities.php';
 
