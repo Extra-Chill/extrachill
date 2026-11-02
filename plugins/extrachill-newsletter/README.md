@@ -29,6 +29,27 @@ Deployments and remote operations run through **Homeboy** (`homeboy/` in this re
 The build artifact is `build/extrachill-newsletter.zip`.
 
 
+## Tests
+
+CI runs `phpunit.xml.dist` through Homeboy's managed WP Codebox PHPUnit
+bootstrap on PHP 8.4 with multisite MySQL. Validation loads `extrachill-network`
+and `data-machine`; the test runtime maps the events and newsletter sites to
+blog 1, matching the delegated campaign fixtures. `tests/bootstrap-integration.php`
+is preloaded for integration helpers, not for installing WordPress.
+`WP_TESTS_DIR` and `DATAMACHINE_PATH` are not required.
+
+Standalone checks are listed in `homeboy.json` under `self_checks.test`. Run
+these from this plugin directory, for example:
+
+```sh
+php tests/member-subscriptions-smoke.php
+php tests/sendy-campaign-consumer-smoke.php
+php tests/sendy-single-config-smoke.php
+```
+
+These smokes stub Sendy and need neither provider credentials nor an external
+Data Machine Business checkout. Full PHPUnit validation runs in PR CI.
+
 ## Configuration
 
 ### Sendy API Settings

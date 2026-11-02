@@ -7,7 +7,7 @@
 
 use DataMachine\Core\Database\Jobs\Jobs;
 use DataMachine\Core\DelegatedOperations\DelegatedOperationService;
-use DataMachine\Core\RunResult;
+use DataMachine\Core\RunResultEnvelope;
 use ExtraChillNewsletter\Tasks\DelegatedCampaignTask;
 
 if ( ! defined( 'UPLOADBLOGSDIR' ) ) {
@@ -66,7 +66,7 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		extrachill_newsletter_register_delegated_campaign_task();
 		$this->first_actor     = self::factory()->user->create( array( 'role' => 'subscriber' ) );
 		$this->second_actor    = self::factory()->user->create( array( 'role' => 'subscriber' ) );
-		$this->owner_user      = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->owner_user      = $this->registered_agent_owner() ?: self::factory()->user->create( array( 'role' => 'administrator' ) );
 		$this->events_blog     = get_current_blog_id();
 		$this->newsletter_blog = get_current_blog_id();
 		$GLOBALS['newsletter_integration_blogs'] = array(
@@ -95,6 +95,25 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		}
 		wp_set_current_user( 0 );
 		parent::tear_down();
+	}
+
+	/**
+	 * Data Machine records the agent owner when the agent is first registered,
+	 * and later runs require the resolved owner to match it. Reuse that owner
+	 * so the filtered owner below stays consistent with the registered agent.
+	 */
+	private function registered_agent_owner(): int {
+		if ( ! class_exists( \DataMachine\Core\Agents\AgentIdentityResolver::class ) ) {
+			return 0;
+		}
+		try {
+			$identity = ( new \DataMachine\Core\Agents\AgentIdentityResolver() )->resolve_agent_identity( EXTRACHILL_NEWSLETTER_DELEGATED_CAMPAIGN_AGENT );
+		} catch ( \Throwable $exception ) {
+			unset( $exception );
+			return 0;
+		}
+		$owner = (int) $identity->owner_id;
+		return $owner > 0 && get_user_by( 'id', $owner ) ? $owner : 0;
 	}
 
 	public function owner_user_id(): int {
@@ -153,7 +172,7 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 				'parent_job_id' => (int) $job['job_id'],
 			)
 		);
-		$child_result = RunResult::fromStepResults( array(), array( 'status' => 'completed_no_items', 'outputs' => array( 'effect_count' => 0 ) ) );
+		$child_result = RunResultEnvelope::fromSteps( array(), array( 'status' => 'completed_no_items', 'outputs' => array( 'effect_count' => 0 ) ) );
 		$this->assertTrue( $jobs->store_engine_data( $child_id, array( 'run_result' => $child_result ) ) );
 		$this->assertTrue( $jobs->complete_job( $child_id, 'completed_no_items' ) );
 		$this->assertTrue( extrachill_newsletter_record_delegated_campaign_outcome( $submitted['operation_ref'], extrachill_newsletter_delegated_campaign_result( 'no-op', null, null, 'newsletter_campaign_empty_source' ) ) );
@@ -163,9 +182,15 @@ final class DelegatedCampaignDataMachineTest extends WP_UnitTestCase {
 		$this->assertSame( 'no-op', $result['status'] );
 		$this->assertSame( 'no-op', $result['projection']['classification'] );
 		$terminal = $this->job( 'terminal-no-op' )['operation_envelope']['run_result'];
-		$this->assertSame( 'completed_no_items', $terminal['status'] );
-		$this->assertSame( 'completed_no_items', $terminal['child_job_envelopes'][0]['status'] );
-		$this->assertIsArray( $terminal['child_job_envelopes'][0]['outputs']['counts'] );
+		// The run envelope normalizes `status` to the canonical vocabulary and
+		// preserves the raw job status verbatim in `status_detail`.
+		$this->assertSame( 'completed', $terminal['status'] );
+		$this->assertSame( 'completed_no_items', $terminal['status_detail'] );
+		// Parents carry bounded child summaries, not inlined child envelopes.
+		$child_summary = $terminal['metadata']['datamachine']['child_job_summaries'][0];
+		$this->assertSame( $child_id, $child_summary['job_id'] );
+		$this->assertSame( 'completed_no_items', $child_summary['status'] );
+		$this->assertSame( 'completed_no_items', $terminal['child_run_refs'][0]['status'] );
 	}
 
 	public function test_real_task_executes_frozen_owner_workflow_and_reconciles(): void {
