@@ -3,23 +3,14 @@
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
     "wordpress": {
-      "database_type": "mysql",
       "settings": {
-        "wp_codebox_database_service": {
-          "provider": "external",
-          "engine": "mysql",
-          "allowed_hosts": ["127.0.0.1:3306"],
-          "secret_env": {
-            "host": "WP_CODEBOX_DB_HOST",
-            "port": "WP_CODEBOX_DB_PORT",
-            "username": "WP_CODEBOX_DB_USER",
-            "password": "WP_CODEBOX_DB_PASSWORD"
-          }
-        },
         "wp_codebox_phpunit_bootstrap_mode": "managed",
         "wp_codebox_multisite": true,
         "wordpress_runtime_php_version": "8.4",
-        "validation_dependencies": ["extrachill-network", "data-machine"],
+        "validation_dependencies": [
+          "extrachill-network",
+          "data-machine"
+        ],
         "wp_config_defines": {
           "EC_BLOG_ID_NEWSLETTER": 1,
           "EC_BLOG_ID_EVENTS": 1
