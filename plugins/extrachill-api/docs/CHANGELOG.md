@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.48.2] - 2026-11-02
+
+### Changed
+- remove events network-blocks adapter and move the inquiry block into booking (P3, #549)
+
 ## [0.48.1] - 2026-11-02
 
 ### Fixed
