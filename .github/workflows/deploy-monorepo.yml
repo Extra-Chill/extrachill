@@ -75,10 +75,10 @@ jobs:
           echo "HOMEBOY_GATE_BIN_DIR=${RUNNER_TEMP}/homeboy-${HOMEBOY_VERSION}" >> "${GITHUB_ENV}"
 
       - name: Restore Homeboy build cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.HOMEBOY_BUILD_CACHE_DIR }}
-          key: homeboy-build-${{ env.HOMEBOY_VERSION }}-${{ github.sha }}
+          key: homeboy-build-${{ env.HOMEBOY_VERSION }}-${{ github.sha }}-${{ github.run_id }}
           restore-keys: homeboy-build-${{ env.HOMEBOY_VERSION }}-
 
       - name: Resolve deploy sha
@@ -326,6 +326,14 @@ jobs:
           commands: deploy extrachill-monorepo --ref ${{ steps.plan.outputs.sha }} --outdated --verify --confirm-dangerous
           ssh-key: ${{ secrets.EXTRACHILL_DEPLOY_SSH_KEY }}
           ssh-known-hosts: ${{ secrets.EXTRACHILL_DEPLOY_KNOWN_HOSTS }}
+
+      # Saved even when a later step fails, so a red run still warms the next.
+      - name: Save Homeboy build cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.HOMEBOY_BUILD_CACHE_DIR }}
+          key: homeboy-build-${{ env.HOMEBOY_VERSION }}-${{ github.sha }}-${{ github.run_id }}
 
       - name: Report to Discord
         if: always()
