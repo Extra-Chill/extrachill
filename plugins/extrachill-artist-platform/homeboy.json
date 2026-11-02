@@ -38,6 +38,7 @@
   "id": "extrachill-artist-platform",
   "remote_path": "wp-content/plugins/extrachill-artist-platform",
   "scopes": {
+    "package": { "exclude": ["jest.config.cjs"] },
     "release": {
       "exclude": [
         "src/**",

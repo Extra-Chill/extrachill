@@ -200,5 +200,10 @@
       "pattern": "\"version\":\\s*\"([0-9.]+)\"",
       "artifact_path": "build/event-submission/block.json"
     }
-  ]
+  ],
+  "scopes": {
+    "package": {
+      "exclude": ["jest.config.js"]
+    }
+  }
 }

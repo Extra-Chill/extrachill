@@ -34,6 +34,7 @@
   },
   "remote_path": "wp-content/plugins/extrachill-community",
   "scopes": {
+    "package": { "exclude": ["jest.config.cjs"] },
     "release": {
       "exclude": [
         "webpack.config.js"
