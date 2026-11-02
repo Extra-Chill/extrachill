@@ -31,7 +31,7 @@ class LegacyDB {
 }
 $GLOBALS['wpdb'] = new LegacyDB();
 require dirname( __DIR__ ) . '/inc/core/platform-map.php';
-require dirname( __DIR__ ) . '/inc/abilities/upsert-doc-page.php';
+require dirname( __DIR__ ) . '/inc/core/doc-page-helpers.php';
 require dirname( __DIR__ ) . '/inc/abilities/publish-plugin-docs.php';
 require dirname( __DIR__ ) . '/inc/abilities/migrate-source-keys.php';
 require dirname( __DIR__ ) . '/inc/core/rewrite-rules.php';

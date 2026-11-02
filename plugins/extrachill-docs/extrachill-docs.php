@@ -55,11 +55,10 @@ require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/platform-map.php';
 // configured with agent_modes: ['docs']. See runner-configs/README.md.
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/docs-agent/docs-mode.php';
 
-// Docs write path — the `extrachill-docs/upsert-doc-page` ability that
-// converts markdown into hierarchical pages. The ability category must be
-// registered before any ability assigns itself to it, so load it first.
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/category.php';
-require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/upsert-doc-page.php';
+// MDI import adapter and shared hierarchy helpers.
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/doc-page-helpers.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/core/mdi-layout.php';
+require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/adopt-mdi-pages.php';
 require_once EXTRACHILL_DOCS_PLUGIN_DIR . 'inc/abilities/publish-plugin-docs.php';
 
 // One-shot cleanup of the removed repo→docs sync subsystem (leftover cron

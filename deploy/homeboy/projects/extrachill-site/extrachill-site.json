@@ -67,6 +67,11 @@
   "shared_tables": [],
   "components": [
     {
+      "id": "markdown-database-integration",
+      "remote_path": "wp-content/plugins/markdown-database-integration",
+      "local_path": ""
+    },
+    {
       "id": "blocks-everywhere",
       "remote_path": "wp-content/plugins/blocks-everywhere",
       "local_path": ""

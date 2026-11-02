@@ -5,8 +5,7 @@
  * Feature plugins keep their end-user help articles as Markdown in their own
  * repository (docs/user/*.md by default, maintained by docs-agent) and ship
  * them with every deploy. This publishes those installed files as pages on
- * the docs site through the canonical extrachill-docs/upsert-doc-page
- * ability. No remote fetch is involved: the deploy already put the files on
+ * the docs site through MDI import. No remote fetch is involved: the deploy already put the files on
  * disk.
  *
  * Publishing is additive. A page whose source file disappears is reported as
@@ -123,7 +122,7 @@ function extrachill_docs_plan_plugin_docs( array $platform_map, string $plugins_
 }
 
 /**
- * Git-blob-style SHA of Markdown content, matching the upsert sha contract.
+ * Git-blob-style SHA of Markdown content for fingerprint change detection.
  *
  * @param string $markdown File content.
  */
@@ -164,63 +163,34 @@ function extrachill_docs_plugin_docs_fingerprints( array $plan ): array {
 function extrachill_docs_execute_publish_plugin_docs( array $input ): array {
 	$repo_filter = isset( $input['repo'] ) ? (string) $input['repo'] : '';
 	$dry_run     = ! empty( $input['dry_run'] );
-	$upsert      = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill-docs/upsert-doc-page' ) : null;
-
-	if ( ! $upsert ) {
-		return array(
-			'success' => false,
-			'error'   => 'upsert_ability_unavailable',
-			'rows'    => array(),
-		);
+	if ( ! class_exists( 'WP_Markdown_CLI' ) || ! function_exists( 'markdown_db_register_content_layout_profile' ) ) {
+		return array( 'success' => false, 'error' => 'mdi_unavailable', 'rows' => array() );
 	}
-
+	extrachill_docs_register_mdi_layout();
 	$plan = extrachill_docs_plan_plugin_docs( extrachill_docs_load_platform_map(), WP_PLUGIN_DIR, $repo_filter );
-	$rows = array();
-	$ok   = true;
-
 	foreach ( $plan as $item ) {
 		if ( 'publish' !== $item['action'] ) {
-			$rows[] = $item;
 			continue;
 		}
-
-		$markdown = file_get_contents( $item['file'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local installed plugin file.
-		if ( false === $markdown ) {
-			$ok     = false;
-			$rows[] = array(
-				'repo'   => $item['repo'],
-				'path'   => $item['path'],
-				'action' => 'error',
-				'error'  => 'unreadable_file',
-			);
-			continue;
+		$parent = extrachill_docs_resolve_or_create_parent_page( $item['parent_slug'], $item['parent_title'], $item['post_status'], $dry_run );
+		if ( is_wp_error( $parent ) ) {
+			return array( 'success' => false, 'error' => $parent->get_error_message(), 'rows' => array() );
 		}
-
-		$result = $upsert->execute(
-			array(
-				'repo'         => 'Extra-Chill/extrachill',
-				'path'         => $item['path'],
-				'sha'          => extrachill_docs_markdown_sha( $markdown ),
-				'markdown'     => $markdown,
-				'parent_slug'  => $item['parent_slug'],
-				'parent_title' => $item['parent_title'],
-				'post_status'  => $item['post_status'],
-				'dry_run'      => $dry_run,
-			)
-		);
-
-		if ( ! is_array( $result ) || empty( $result['success'] ) ) {
-			$ok = false;
-		}
-
-		$rows[] = array_merge(
-			array(
-				'repo' => $item['repo'],
-				'path' => $item['path'],
-			),
-			is_array( $result ) ? $result : array( 'action' => 'error' )
-		);
 	}
+	$GLOBALS['extrachill_docs_mdi_repo'] = $repo_filter;
+	$GLOBALS['extrachill_docs_mdi_importing'] = true;
+	try {
+		$result = WP_Markdown_CLI::import( array(
+			'path' => WP_PLUGIN_DIR,
+			'layout_profile' => EXTRACHILL_DOCS_MDI_LAYOUT,
+			'profile' => 'markdown-h1-title',
+			'dry_run' => $dry_run,
+		) );
+	} finally {
+		unset( $GLOBALS['extrachill_docs_mdi_repo'], $GLOBALS['extrachill_docs_mdi_importing'] );
+	}
+	$rows = array( $result );
+	$ok = ! empty( $result['success'] ) && empty( $result['skipped_count'] );
 
 	foreach ( extrachill_docs_find_orphaned_doc_pages( $plan, $repo_filter ) as $orphan ) {
 		$rows[] = $orphan;
@@ -242,6 +212,9 @@ function extrachill_docs_execute_publish_plugin_docs( array $input ): array {
 function extrachill_docs_find_orphaned_doc_pages( array $plan, string $repo_filter = '' ): array {
 	$present = array();
 	$repos   = array();
+	foreach ( extrachill_docs_load_platform_map() as $entry ) {
+		$repos[ $entry['repo'] ] = true;
+	}
 	foreach ( $plan as $row ) {
 		if ( 'publish' === $row['action'] ) {
 			$present[ $row['path'] ] = true;
@@ -286,6 +259,14 @@ function extrachill_docs_find_orphaned_doc_pages( array $plan, string $repo_filt
  * without anyone visiting wp-admin.
  */
 function extrachill_docs_publish_changed_plugin_docs(): void {
+	if ( ! class_exists( 'WP_Markdown_CLI' ) || ! function_exists( 'markdown_db_register_content_layout_profile' ) ) {
+		static $logged = false;
+		if ( ! $logged ) {
+			error_log( 'Extra Chill Docs: MDI inactive; skipping docs import.' );
+			$logged = true;
+		}
+		return;
+	}
 	$stored = get_option( EXTRACHILL_DOCS_PUBLISHED_FINGERPRINTS_OPTION, array() );
 	$stored = is_array( $stored ) ? $stored : array();
 	$next   = $stored;
