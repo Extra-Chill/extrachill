@@ -20,7 +20,7 @@ class ArtistRouteGenresAdapterTest extends TestCase {
 	public function test_create_route_exposes_sanitized_genres_array() {
 		$source = $this->artist_route_source();
 
-		$this->assertStringContainsString( "'genres'     => array(", $source );
+		$this->assertStringContainsString( "'genres'      => array(", $source );
 		$this->assertStringContainsString( "'maxItems'          => 3,", $source );
 		$this->assertStringContainsString( "'items'             => array(", $source );
 		$this->assertStringContainsString( "array_map( 'sanitize_text_field', \$value )", $source );
