@@ -46,6 +46,26 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'charleston', extrachill_artist_platform_get_local_support_availability( $artist_id )['scene']['slug'] );
 	}
 
+	public function test_legacy_form_save_uses_shared_scene_writer_and_display_fallback(): void {
+		$artist_id = array_key_first( $this->profiles );
+		switch_to_blog( $this->artist_blog_id() );
+		try {
+			update_post_meta( $artist_id, '_local_city', 'Legacy hometown' );
+			delete_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META );
+			$this->assertSame( 'Legacy hometown', extrachill_artist_platform_get_local_scene_label( $artist_id ) );
+			$data = ec_prepare_artist_profile_save_data( array( 'local_scene' => 'austin' ) );
+			$this->assertTrue( ec_handle_artist_profile_save( $artist_id, $data ) );
+			$this->assertSame( 'austin', get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) );
+			$scene = extrachill_artist_platform_resolve_local_support_scene( 'austin' );
+			$this->assertSame( $scene['hierarchy']['label'] ?? $scene['name'], extrachill_artist_platform_get_local_scene_label( $artist_id ) );
+			$this->assertWPError( ec_handle_artist_profile_save( $artist_id, array( 'local_scene' => 'not-a-real-scene' ) ) );
+			$this->assertSame( 'austin', get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) );
+			$this->assertSame( 'Legacy hometown', get_post_meta( $artist_id, '_local_city', true ) );
+		} finally {
+			restore_current_blog();
+		}
+	}
+
 	private $manager_id;
 	private $stale_manager_id;
 	private $profiles;

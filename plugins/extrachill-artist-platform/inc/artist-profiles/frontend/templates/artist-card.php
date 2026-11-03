@@ -49,7 +49,7 @@ $header_image_id  = get_post_meta( $artist_id, '_artist_profile_header_image_id'
 $header_image_url = $header_image_id ? wp_get_attachment_image_url( absint( $header_image_id ), 'large' ) : '';
 
 $genre      = implode( ', ', ec_artist_get_genre_labels( $artist_id ) );
-$local_city = get_post_meta( $artist_id, '_local_city', true );
+$local_city = extrachill_artist_platform_get_local_scene_label( $artist_id );
 
 $hero_style = $header_image_url ? 'background-image: url(' . esc_url( $header_image_url ) . ');' : '';
 ?>

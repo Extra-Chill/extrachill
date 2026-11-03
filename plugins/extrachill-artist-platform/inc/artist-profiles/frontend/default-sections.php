@@ -70,7 +70,7 @@ add_filter( 'ec_artist_profile_sections', 'ec_register_default_artist_profile_se
 // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- shared section-render signature; term ID unused by the hero section.
 function ec_render_artist_profile_hero_section( $artist_profile_id, $artist_term_id = 0 ) {
 	$genre      = implode( ', ', ec_artist_get_genre_labels( $artist_profile_id ) );
-	$local_city = get_post_meta( $artist_profile_id, '_local_city', true );
+	$local_city = extrachill_artist_platform_get_local_scene_label( $artist_profile_id );
 
 	// Prepare for Hero Section
 	$hero_background_style = '';
