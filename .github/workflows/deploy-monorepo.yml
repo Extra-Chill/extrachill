@@ -33,8 +33,8 @@ concurrency:
 
 # Keep the gate CLI and all action installs on the same release.
 env:
-  HOMEBOY_VERSION: '0.444.5'
-  HOMEBOY_SHA256: '79a946dcf645a3577d8c3906b0ecc0b5863dd782c6099049db3e28c080a0863f'
+  HOMEBOY_VERSION: '0.444.16'
+  HOMEBOY_SHA256: '0ddc74b8b60a809f2947ffe4f352343f931d9be43ba5f7a512c47786faf8e208'
 
 jobs:
   deploy:
