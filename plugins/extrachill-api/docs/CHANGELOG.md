@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.49.1] - 2026-11-03
+
+### Fixed
+- drop unused endroid/qr-code and pin Composer platform to PHP 8.4
+
 ## [0.49.0] - 2026-11-03
 
 ### Added
