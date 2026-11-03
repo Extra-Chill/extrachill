@@ -16,6 +16,20 @@ add_action(
 			return;
 		}
 		$body  = json_decode( (string) file_get_contents( 'php://input' ), true );
+		// Capture real storage at each browser checkpoint, not just final state.
+		$fixture = get_site_option( 'ec_rig_journey_fixture_show_ratings_fan', array() );
+		if ( is_array( $body ) ) {
+			$body['viewer_id'] = get_current_user_id();
+			$previous_user = get_current_user_id();
+			wp_set_current_user( (int) ( $fixture['fan_id'] ?? 0 ) );
+			$truth = wp_get_ability( 'extrachill/get-my-show-ratings' )->execute( array(
+				'event_ids' => array( (int) $fixture['recent_id'], (int) $fixture['older_id'] ),
+				'blog_id' => (int) $fixture['events_blog_id'],
+			) );
+			wp_set_current_user( $previous_user );
+			// The ability returns ratings as an object (JSON map); store a plain array for grading.
+			$body['server'] = is_wp_error( $truth ) ? array( 'error' => $truth->get_error_message() ) : json_decode( wp_json_encode( $truth ), true );
+		}
 		$log   = get_site_option( 'ec_show_ratings_observations', array() );
 		$log[] = is_array( $body ) ? $body : array( 'raw' => 'unparseable' );
 		update_site_option( 'ec_show_ratings_observations', array_slice( $log, -40 ) );
