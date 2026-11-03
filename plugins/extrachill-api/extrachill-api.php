@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Load Composer autoloader for dependencies (Endroid QR Code)
+// Load Composer autoloader for dependencies (League HTML-to-Markdown, CommonMark).
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/autoload.php';
 }
