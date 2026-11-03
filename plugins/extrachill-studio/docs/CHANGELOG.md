@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.28.6] - 2026-11-03
+
+### Fixed
+- drop stale AI chat mention from block description
+
 ## [0.28.5] - 2026-11-02
 
 ### Changed
