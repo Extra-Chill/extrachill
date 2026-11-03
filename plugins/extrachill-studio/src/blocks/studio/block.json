@@ -6,7 +6,7 @@
 	"title": "Extra Chill Studio",
 	"category": "widgets",
 	"icon": "format-audio",
-	"description": "Publishing tools, social workflows, and AI chat for the Extra Chill team.",
+	"description": "Publishing tools and social workflows for the Extra Chill team.",
 	"keywords": [ "studio", "team", "publishing" ],
 	"textdomain": "extrachill-studio",
 	"attributes": {
@@ -16,7 +16,7 @@
 		},
 		"description": {
 			"type": "string",
-			"default": "Publishing tools, social workflows, and AI chat for the Extra Chill team."
+			"default": "Publishing tools and social workflows for the Extra Chill team."
 		},
 		"deniedMessage": {
 			"type": "string",

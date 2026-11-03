@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $defaults = array(
 	'headline'      => __( 'Extra Chill Studio', 'extrachill-studio' ),
-	'description'   => __( 'Publishing tools, social workflows, and AI chat for the Extra Chill team.', 'extrachill-studio' ),
+	'description'   => __( 'Publishing tools and social workflows for the Extra Chill team.', 'extrachill-studio' ),
 	'deniedMessage' => __( 'Studio is available to Extra Chill team members. Contact Chris if you need access.', 'extrachill-studio' ),
 );
 
