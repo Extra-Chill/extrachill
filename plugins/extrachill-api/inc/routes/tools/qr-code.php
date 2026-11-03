@@ -3,7 +3,7 @@
  * QR Code Generator REST API Endpoint
  *
  * Generates high-resolution print-ready QR codes for any URL.
- * Uses Endroid QR Code library for PNG generation.
+ * PNG generation is owned by the extrachill/generate-qr-code ability (extrachill-network).
  *
  * Admin-tool route: the backing extrachill/generate-qr-code ability requires
  * network-admin permission. Despite the open transport callback, non-admin
