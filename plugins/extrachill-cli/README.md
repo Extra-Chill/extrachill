@@ -81,7 +81,7 @@ transitioned or reported because they have no registered code definition.
 
 ### Tools — QR Code
 
-Generate print-ready QR code PNG files through the existing admin-tools ability primitive.
+Generate print-ready QR code PNG files through the `extrachill/generate-qr-code` ability owned by extrachill-network.
 
 ```bash
 # Generate a QR code in current directory

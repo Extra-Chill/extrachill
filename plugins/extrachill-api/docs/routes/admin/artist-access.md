@@ -44,7 +44,7 @@ One-click email approval. Redirects to admin tools page after processing.
 | type | string | query | `artist` or `professional` |
 | token | string | query | HMAC-signed approval token |
 
-**Response**: HTTP redirect to `admin/tools.php?page=extrachill-admin-tools#artist-access-requests&approved=1`
+**Response**: HTTP redirect to `users.php?page=extrachill-artist-access&approved=1` (network admin, owned by extrachill-users)
 
 **Token Generation**: Tokens are generated using `extrachill_api_generate_artist_access_token()` when the request email is sent. Tokens are HMAC-signed with `wp_salt('auth')` and do not expire until the request is processed.
 
@@ -111,4 +111,4 @@ Email approval links use HMAC-signed tokens instead of WordPress nonces to avoid
 
 - `extrachill_api_generate_artist_access_token()` - Generate HMAC token for email links
 - `extrachill_api_validate_artist_access_token()` - Validate HMAC token
-- `ec_send_artist_access_approval_email()` - Send approval notification to user (in extrachill-admin-tools)
+- `ec_send_artist_access_approval_email()` - Send approval notification to user (in extrachill-users)
