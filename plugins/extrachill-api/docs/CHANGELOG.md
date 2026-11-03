@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.49.0] - 2026-11-03
+
+### Added
+- artist profiles choose a canonical Local Scene
+
 ## [0.48.2] - 2026-11-02
 
 ### Changed
