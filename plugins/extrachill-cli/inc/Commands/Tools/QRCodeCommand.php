@@ -84,12 +84,22 @@ class QRCodeCommand {
 			WP_CLI::error( sprintf( 'Output directory does not exist: %s', $directory ) );
 		}
 
-		$bytes_written = $wp_filesystem->put_contents( $output, $binary );
-		if ( false === $bytes_written ) {
+		if ( ! $wp_filesystem instanceof \WP_Filesystem_Base ) {
+			if ( ! function_exists( 'WP_Filesystem' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+			WP_Filesystem();
+		}
+		if ( ! $wp_filesystem instanceof \WP_Filesystem_Base ) {
+			WP_CLI::error( 'Could not initialise the WordPress filesystem to write the QR code.' );
+		}
+
+		// WP_Filesystem_Base::put_contents() returns a bool, not a byte count.
+		if ( ! $wp_filesystem->put_contents( $output, $binary ) ) {
 			WP_CLI::error( sprintf( 'Failed to write QR code file: %s', $output ) );
 		}
 
-		WP_CLI::success( sprintf( 'QR code generated: %s (%d bytes)', $output, $bytes_written ) );
+		WP_CLI::success( sprintf( 'QR code generated: %s (%d bytes)', $output, strlen( (string) $binary ) ) );
 		WP_CLI::log( sprintf( 'URL: %s', $url ) );
 	}
 

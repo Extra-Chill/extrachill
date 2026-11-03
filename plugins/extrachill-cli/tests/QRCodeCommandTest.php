@@ -48,9 +48,12 @@ namespace {
 			}
 		}
 
-		class QRCodeCommandTestFilesystem {
+		class WP_Filesystem_Base {}
+
+		class QRCodeCommandTestFilesystem extends WP_Filesystem_Base {
 			public function put_contents( $path, $contents ) {
-				return file_put_contents( $path, $contents );
+				// Core returns a bool, never a byte count.
+				return false !== file_put_contents( $path, $contents );
 			}
 		}
 
@@ -77,6 +80,16 @@ namespace {
 			++$qr_code_test_get_calls;
 
 			return $qr_code_test_ability;
+		}
+
+		$qr_code_test_fs_inits = 0;
+
+		// Models core: WP_Filesystem() populates the global on demand.
+		function WP_Filesystem() {
+			global $wp_filesystem, $qr_code_test_fs_inits;
+			++$qr_code_test_fs_inits;
+			$wp_filesystem = new QRCodeCommandTestFilesystem();
+			return true;
 		}
 
 		function wp_parse_url( $url ) {
@@ -132,6 +145,16 @@ namespace {
 				WP_CLI::$messages,
 				'Command success output must remain compatible.'
 			);
+
+			// #1109: in WP-CLI the global starts null; the command must initialise it.
+			global $qr_code_test_fs_inits;
+			$wp_filesystem         = null;
+			$qr_code_test_fs_inits = 0;
+			WP_CLI::$messages      = array();
+			file_put_contents( $output, '' );
+			$command->generate( array( 'https://example.com/path' ), array( 'output' => $output ) );
+			qr_code_test_assert_same( 1, $qr_code_test_fs_inits, 'Command must initialise WP_Filesystem when the global is null.' );
+			qr_code_test_assert_same( 'png-bytes', file_get_contents( $output ), 'Command must write the PNG after initialising the filesystem.' );
 
 			$qr_code_test_ability   = null;
 			$qr_code_test_get_calls = 0;
