@@ -1,5 +1,16 @@
-import { useEffect, useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import { FieldGroup, InlineStatus } from '@extrachill/components';
+
+/**
+ * WordPress dependencies
+ */
+import { useEffect, useState } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import { searchEventLocations } from '../../shared/api/client';
 
 // Users owns the canonical search and resolution contract used by onboarding.
@@ -18,7 +29,9 @@ export default function ScenePicker( { slug, label, onChange } ) {
 		setLocations( [] );
 		setError( '' );
 		if ( search.trim().length < 2 || search === label ) {
-			return () => { active = false; };
+			return () => {
+				active = false;
+			};
 		}
 		const timer = setTimeout( async () => {
 			try {
@@ -35,7 +48,10 @@ export default function ScenePicker( { slug, label, onChange } ) {
 				}
 			}
 		}, 300 );
-		return () => { active = false; clearTimeout( timer ); };
+		return () => {
+			active = false;
+			clearTimeout( timer );
+		};
 	}, [ search, label ] );
 
 	return (

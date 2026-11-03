@@ -1,5 +1,16 @@
-import { useEffect, useState } from '@wordpress/element';
+/**
+ * External dependencies
+ */
 import { ActionRow, InlineStatus, Panel } from '@extrachill/components';
+
+/**
+ * WordPress dependencies
+ */
+import { useEffect, useState } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
 import {
 	getLocalSupportAvailability,
 	updateLocalSupportAvailability,
@@ -23,11 +34,17 @@ const LocalSupportTab = ( { artistId, onSaved } ) => {
 				setError( '' );
 			}
 		} ).catch( ( err ) => {
-			if ( active ) setError( err?.message || 'Could not load local support settings.' );
+			if ( active ) {
+				setError( err?.message || 'Could not load local support settings.' );
+			}
 		} ).finally( () => {
-			if ( active ) setLoading( false );
+			if ( active ) {
+				setLoading( false );
+			}
 		} );
-		return () => { active = false; };
+		return () => {
+			active = false;
+		};
 	}, [ artistId ] );
 
 	const save = async () => {

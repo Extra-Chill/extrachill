@@ -28,23 +28,27 @@ function extrachill_api_register_artist_routes() {
 				'callback'            => 'extrachill_api_artist_post_handler',
 				'permission_callback' => 'extrachill_api_artist_create_permission_check',
 				'args'                => array(
-					'name'       => array(
+					'name'        => array(
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'bio'        => array(
+					'bio'         => array(
 						'required'          => false,
 						'type'              => 'string',
 						'sanitize_callback' => 'wp_kses_post',
 					),
-					'local_scene' => array( 'type' => 'string', 'required' => false ),
-					'local_city' => array(
+					'local_scene' => array(
+						'required'          => false,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_title',
+					),
+					'local_city'  => array(
 						'required'          => false,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_text_field',
 					),
-					'genres'     => array(
+					'genres'      => array(
 						'required'          => false,
 						'type'              => 'array',
 						'maxItems'          => 3,

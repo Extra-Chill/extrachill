@@ -78,7 +78,7 @@ function extrachill_artist_platform_read_artist_data( $artist_id ) {
 		'slug'              => $artist->post_name,
 		'bio'               => $artist->post_content,
 		'local_city'        => '' !== $local_city ? $local_city : null,
-		'local_scene'       => $local_scene ?: null,
+		'local_scene'       => $local_scene ? $local_scene : null,
 		'local_scene_label' => $local_scene ? extrachill_artist_platform_get_local_scene_label( $artist_id ) : '',
 		'genres'            => $genres,
 		'genre_labels'      => $genre_labels,

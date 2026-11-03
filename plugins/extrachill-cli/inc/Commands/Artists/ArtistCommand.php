@@ -31,10 +31,11 @@ class ArtistCommand {
 	 */
 	public function backfill_local_scenes( $args, $assoc_args ) {
 		$this->ensure_artist_site_context();
-		if ( ! function_exists( 'extrachill_artist_platform_backfill_local_scenes' ) ) {
-			WP_CLI::error( 'Artist Local Scene backfill is unavailable.' );
+		$ability = $this->get_artist_ability( 'extrachill/artist-backfill-local-scenes' );
+		if ( ! $ability ) {
+			WP_CLI::error( 'extrachill/artist-backfill-local-scenes ability not available.' );
 		}
-		$rows = extrachill_artist_platform_backfill_local_scenes( isset( $assoc_args['apply'] ) );
+		$rows = $ability->execute( array( 'apply' => isset( $assoc_args['apply'] ) ) );
 		if ( is_wp_error( $rows ) ) {
 			WP_CLI::error( $rows->get_error_message() );
 		}

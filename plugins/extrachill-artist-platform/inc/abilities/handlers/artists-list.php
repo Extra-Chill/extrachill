@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  *     @type int    $per_page Results per page (default 24, max 100).
  *     @type string $search   Optional search term to filter by title.
  * }
- * @return array
+ * @return array|WP_Error
  */
 function extrachill_artist_platform_ability_artists_list( array $input ) {
 	$page     = isset( $input['page'] ) ? max( 1, (int) $input['page'] ) : 1;
@@ -56,10 +56,12 @@ function extrachill_artist_platform_ability_artists_list( array $input ) {
 	}
 
 	if ( null !== $scene ) {
-		$query_args['meta_query'] = array( array(
-			'key'   => EXTRACHILL_ARTIST_LOCAL_SCENE_META,
-			'value' => $scene['slug'],
-		) );
+		$query_args['meta_query'] = array(
+			array(
+				'key'   => EXTRACHILL_ARTIST_LOCAL_SCENE_META,
+				'value' => $scene['slug'],
+			),
+		);
 	}
 
 	$query   = new WP_Query( $query_args );
@@ -81,7 +83,7 @@ function extrachill_artist_platform_ability_artists_list( array $input ) {
 				'name'              => get_the_title(),
 				'slug'              => get_post_field( 'post_name', $artist_id ),
 				'local_city'        => ( $local_city ? $local_city : null ),
-				'local_scene'       => get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) ?: null,
+				'local_scene'       => ( get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) ? get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) : null ),
 				'genres'            => ec_artist_get_genres( $artist_id ),
 				'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
 				'profile_image_url' => $profile_image_url,

@@ -8,10 +8,12 @@
 defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_ARTIST_LOCAL_SUPPORT_AVAILABLE_META = '_local_support_available';
-// The artist's hometown, shared by discovery and local support. Keep the existing
-// key so previously selected scenes remain canonical without a second value.
-const EXTRACHILL_ARTIST_LOCAL_SCENE_META             = '_local_support_scene';
-const EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META     = EXTRACHILL_ARTIST_LOCAL_SCENE_META;
+/*
+ * The artist's hometown, shared by discovery and local support. Keep the existing
+ * key so previously selected scenes remain canonical without a second value.
+ */
+const EXTRACHILL_ARTIST_LOCAL_SCENE_META         = '_local_support_scene';
+const EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META = EXTRACHILL_ARTIST_LOCAL_SCENE_META;
 
 /** Resolve the hometown display label, retaining legacy free text as a fallback. */
 function extrachill_artist_platform_get_local_scene_label( $artist_id ) {
@@ -72,13 +74,20 @@ function extrachill_artist_platform_backfill_local_scenes( $apply = false ) {
 		switch_to_blog( $blog_id );
 	}
 	try {
-		$ids = get_posts( array( 'post_type' => 'artist_profile', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ) );
+		$ids  = get_posts(
+			array(
+				'post_type'      => 'artist_profile',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+			)
+		);
 		$rows = array();
 		foreach ( $ids as $id ) {
 			if ( '' !== (string) get_post_meta( $id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) ) {
 				continue;
 			}
-			$label = (string) get_post_meta( $id, '_local_city', true );
+			$label  = (string) get_post_meta( $id, '_local_city', true );
 			$result = extrachill_users_resolve_legacy_local_city( $label );
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -90,7 +99,12 @@ function extrachill_artist_platform_backfill_local_scenes( $apply = false ) {
 					return $saved;
 				}
 			}
-			$rows[] = array( 'artist_id' => $id, 'local_city' => $label, 'local_scene' => $slug, 'status' => $result['status'] );
+			$rows[] = array(
+				'artist_id'   => $id,
+				'local_city'  => $label,
+				'local_scene' => $slug,
+				'status'      => $result['status'],
+			);
 		}
 		return $rows;
 	} finally {
@@ -98,6 +112,16 @@ function extrachill_artist_platform_backfill_local_scenes( $apply = false ) {
 			restore_current_blog();
 		}
 	}
+}
+
+/**
+ * Ability callback for extrachill/artist-backfill-local-scenes.
+ *
+ * @param array $input Ability input.
+ * @return array|WP_Error
+ */
+function extrachill_artist_platform_ability_backfill_local_scenes( $input = array() ) {
+	return extrachill_artist_platform_backfill_local_scenes( ! empty( $input['apply'] ) );
 }
 
 /**
