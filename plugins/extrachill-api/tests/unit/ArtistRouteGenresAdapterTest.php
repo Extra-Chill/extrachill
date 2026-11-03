@@ -32,7 +32,7 @@ class ArtistRouteGenresAdapterTest extends TestCase {
 	public function test_create_handler_forwards_genres() {
 		$source = $this->artist_route_source();
 
-		$this->assertStringContainsString( "array( 'bio', 'local_city', 'genres' )", $source );
+		$this->assertStringContainsString( "array( 'bio', 'local_city', 'genres', 'local_scene' )", $source );
 	}
 
 	/**
@@ -42,7 +42,7 @@ class ArtistRouteGenresAdapterTest extends TestCase {
 		$source = $this->artist_route_source();
 
 		$this->assertStringContainsString(
-			"array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id' )",
+			"array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id', 'local_scene' )",
 			$source
 		);
 	}

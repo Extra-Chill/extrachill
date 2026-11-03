@@ -70,6 +70,16 @@ function extrachill_artist_platform_ability_update_artist_under_lock( $input, $l
 		return new WP_Error( 'invalid_artist', 'Artist not found.' );
 	}
 
+	if ( array_key_exists( 'local_scene', $input ) ) {
+		$scene = extrachill_artist_platform_set_local_scene( $artist_id, $input['local_scene'] );
+		if ( is_wp_error( $scene ) ) {
+			if ( $did_switch ) {
+				restore_current_blog();
+			}
+			return $scene;
+		}
+	}
+
 	$post_data   = array( 'ID' => $artist_id );
 	$has_updates = false;
 

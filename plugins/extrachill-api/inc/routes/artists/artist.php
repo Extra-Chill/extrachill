@@ -38,6 +38,7 @@ function extrachill_api_register_artist_routes() {
 						'type'              => 'string',
 						'sanitize_callback' => 'wp_kses_post',
 					),
+					'local_scene' => array( 'type' => 'string', 'required' => false ),
 					'local_city' => array(
 						'required'          => false,
 						'type'              => 'string',
@@ -200,7 +201,7 @@ function extrachill_api_artist_post_handler( WP_REST_Request $request ) {
 
 	$input = array( 'name' => $request->get_param( 'name' ) );
 
-	$optional = array( 'bio', 'local_city', 'genres' );
+	$optional = array( 'bio', 'local_city', 'genres', 'local_scene' );
 	foreach ( $optional as $field ) {
 		$value = $request->get_param( $field );
 		if ( null !== $value ) {
@@ -234,7 +235,7 @@ function extrachill_api_artist_put_handler( WP_REST_Request $request ) {
 
 	$input = array( 'artist_id' => $request->get_param( 'id' ) );
 
-	$fields = array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id' );
+	$fields = array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id', 'local_scene' );
 	foreach ( $fields as $field ) {
 		if ( array_key_exists( $field, $body ) ) {
 			$input[ $field ] = $body[ $field ];

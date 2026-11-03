@@ -54,6 +54,7 @@ function extrachill_artist_platform_ability_artist_get( array $input ) {
 		'permalink'         => $data['permalink'],
 		'bio'               => $data['bio'],
 		'local_city'        => '' !== $data['local_city'] ? $data['local_city'] : null,
+		'local_scene'       => ! empty( $data['local_scene'] ) ? $data['local_scene'] : null,
 		'genres'            => $data['genres'],
 		'genre_labels'      => $data['genre_labels'],
 		'profile_image_id'  => $data['profile_image_id'] ? (int) $data['profile_image_id'] : null,

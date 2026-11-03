@@ -386,6 +386,7 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'string',
 						'description' => __( 'Artist bio (HTML allowed).', 'extrachill-artist-platform' ),
 					),
+					'local_scene' => array( 'type' => 'string' ),
 					'local_city' => array(
 						'type'        => 'string',
 						'description' => __( 'Local city/scene.', 'extrachill-artist-platform' ),
@@ -441,6 +442,7 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'string',
 						'description' => __( 'Artist bio (HTML allowed).', 'extrachill-artist-platform' ),
 					),
+					'local_scene'      => array( 'type' => 'string' ),
 					'local_city'       => array(
 						'type'        => 'string',
 						'description' => __( 'Local city/scene.', 'extrachill-artist-platform' ),
@@ -705,6 +707,7 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'string',
 						'description' => __( 'Search by artist name.', 'extrachill-artist-platform' ),
 					),
+					'local_scene' => array( 'type' => 'string' ),
 				),
 				'additionalProperties' => false,
 			),
@@ -811,6 +814,7 @@ function extrachill_artist_platform_register_abilities() {
 						'format' => 'uri',
 					),
 					'bio'               => array( 'type' => 'string' ),
+					'local_scene'       => array( 'type' => array( 'string', 'null' ) ),
 					'local_city'        => array( 'type' => array( 'string', 'null' ) ),
 					'genres'            => array(
 						'type'  => 'array',

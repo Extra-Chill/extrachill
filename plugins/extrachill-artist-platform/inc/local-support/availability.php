@@ -8,7 +8,23 @@
 defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_ARTIST_LOCAL_SUPPORT_AVAILABLE_META = '_local_support_available';
-const EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META     = '_local_support_scene';
+// The artist's hometown, shared by discovery and local support. Keep the existing
+// key so previously selected scenes remain canonical without a second value.
+const EXTRACHILL_ARTIST_LOCAL_SCENE_META             = '_local_support_scene';
+const EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META     = EXTRACHILL_ARTIST_LOCAL_SCENE_META;
+
+/** Save a canonical artist scene in the current artist-blog context. */
+function extrachill_artist_platform_set_local_scene( $artist_id, $slug ) {
+	$scene = extrachill_artist_platform_resolve_local_support_scene( $slug );
+	if ( is_wp_error( $scene ) ) {
+		return $scene;
+	}
+	update_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, $scene['slug'] );
+	if ( get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) !== $scene['slug'] ) {
+		return new WP_Error( 'local_scene_save_failed', 'The artist Local Scene could not be saved.' );
+	}
+	return $scene;
+}
 
 /**
  * Resolve a canonical Events location through the Users-owned contract.
@@ -22,6 +38,54 @@ function extrachill_artist_platform_resolve_local_support_scene( $slug ) {
 	}
 
 	return extrachill_users_resolve_local_scene( sanitize_title( $slug ) );
+}
+
+/**
+ * Map legacy artist labels without overwriting an existing canonical scene.
+ * Dry run by default. Returns every considered row, including unresolved labels.
+ *
+ * @param bool $apply Persist matched scenes.
+ * @return array|WP_Error
+ */
+function extrachill_artist_platform_backfill_local_scenes( $apply = false ) {
+	if ( ! function_exists( 'extrachill_users_resolve_legacy_local_city' ) ) {
+		return new WP_Error( 'local_scene_dependency_missing', 'Legacy Local Scene resolution is unavailable.' );
+	}
+	$blog_id = absint( ec_get_blog_id( 'artist' ) );
+	if ( ! $blog_id ) {
+		return new WP_Error( 'dependency_missing', 'The artist site is unavailable.' );
+	}
+	$switched = get_current_blog_id() !== $blog_id;
+	if ( $switched ) {
+		switch_to_blog( $blog_id );
+	}
+	try {
+		$ids = get_posts( array( 'post_type' => 'artist_profile', 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ) );
+		$rows = array();
+		foreach ( $ids as $id ) {
+			if ( '' !== (string) get_post_meta( $id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true ) ) {
+				continue;
+			}
+			$label = (string) get_post_meta( $id, '_local_city', true );
+			$result = extrachill_users_resolve_legacy_local_city( $label );
+			if ( is_wp_error( $result ) ) {
+				return $result;
+			}
+			$slug = $result['location']['slug'] ?? '';
+			if ( $apply && 'matched' === $result['status'] ) {
+				$saved = extrachill_artist_platform_set_local_scene( $id, $slug );
+				if ( is_wp_error( $saved ) ) {
+					return $saved;
+				}
+			}
+			$rows[] = array( 'artist_id' => $id, 'local_city' => $label, 'local_scene' => $slug, 'status' => $result['status'] );
+		}
+		return $rows;
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
 }
 
 /**
@@ -101,17 +165,15 @@ function extrachill_artist_platform_update_local_support_availability( $artist_i
 			return new WP_Error( 'invalid_artist', __( 'A valid artist profile is required.', 'extrachill-artist-platform' ) );
 		}
 
+		$artist_scene_slug = (string) get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, true );
+
 		if ( ! $available ) {
 			delete_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_AVAILABLE_META );
 			if ( '' !== (string) get_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_AVAILABLE_META, true ) ) {
 				return new WP_Error( 'local_support_save_failed', __( 'Local support availability could not be disabled.', 'extrachill-artist-platform' ) );
 			}
-			delete_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META );
-			return array(
-				'artist_id' => $artist_id,
-				'available' => false,
-				'scene'     => null,
-			);
+			// Opting out must not erase the artist's hometown.
+			return extrachill_artist_platform_get_local_support_availability( $artist_id );
 		}
 	} finally {
 		if ( $did_switch ) {
@@ -121,6 +183,8 @@ function extrachill_artist_platform_update_local_support_availability( $artist_i
 
 	if ( null !== $scene_slug && '' !== trim( (string) $scene_slug ) ) {
 		$scene = extrachill_artist_platform_resolve_local_support_scene( $scene_slug );
+	} elseif ( '' !== $artist_scene_slug ) {
+		$scene = extrachill_artist_platform_resolve_local_support_scene( $artist_scene_slug );
 	} elseif ( function_exists( 'extrachill_users_get_local_scene' ) ) {
 		$scene = extrachill_users_get_local_scene( $actor_id );
 	} else {

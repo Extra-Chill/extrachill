@@ -20,6 +20,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ArtistCommand {
 
 	/**
+	 * Backfill artist hometown scenes from legacy city labels (dry run by default).
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--apply]
+	 * : Persist resolved scenes. Existing scenes are never overwritten.
+	 *
+	 * @subcommand backfill-local-scenes
+	 */
+	public function backfill_local_scenes( $args, $assoc_args ) {
+		$this->ensure_artist_site_context();
+		if ( ! function_exists( 'extrachill_artist_platform_backfill_local_scenes' ) ) {
+			WP_CLI::error( 'Artist Local Scene backfill is unavailable.' );
+		}
+		$rows = extrachill_artist_platform_backfill_local_scenes( isset( $assoc_args['apply'] ) );
+		if ( is_wp_error( $rows ) ) {
+			WP_CLI::error( $rows->get_error_message() );
+		}
+		Utils\format_items( 'table', $rows, array( 'artist_id', 'local_city', 'local_scene', 'status' ) );
+		WP_CLI::success( isset( $assoc_args['apply'] ) ? 'Backfill applied.' : 'Dry run: no scenes changed. Use --apply to write.' );
+	}
+
+	/**
 	 * Require the native Artist Platform WP-CLI bootstrap.
 	 *
 	 * @return void
@@ -168,7 +191,10 @@ class ArtistCommand {
 	 * : Artist bio (HTML allowed).
 	 *
 	 * [--local-city=<city>]
-	 * : Local city/scene.
+	 * : Optional legacy display label.
+	 *
+	 * [--local-scene=<slug>]
+	 * : Canonical hometown Local Scene slug.
 	 *
 	 * [--genre=<genre>]
 	 * : Genre.
@@ -199,6 +225,9 @@ class ArtistCommand {
 
 		if ( isset( $assoc_args['bio'] ) ) {
 			$input['bio'] = $assoc_args['bio'];
+		}
+		if ( isset( $assoc_args['local-scene'] ) ) {
+			$input['local_scene'] = $assoc_args['local-scene'];
 		}
 		if ( isset( $assoc_args['local-city'] ) ) {
 			$input['local_city'] = $assoc_args['local-city'];
@@ -244,7 +273,10 @@ class ArtistCommand {
 	 * : New artist bio.
 	 *
 	 * [--local-city=<city>]
-	 * : Local city/scene. Empty string to clear.
+	 * : Optional legacy display label. Empty string to clear.
+	 *
+	 * [--local-scene=<slug>]
+	 * : Canonical hometown Local Scene slug.
 	 *
 	 * [--genre=<genre>]
 	 * : Genre. Empty string to clear.
@@ -281,6 +313,7 @@ class ArtistCommand {
 			'name'             => 'name',
 			'bio'              => 'bio',
 			'local-city'       => 'local_city',
+			'local-scene'      => 'local_scene',
 			'genre'            => 'genre',
 			'profile-image-id' => 'profile_image_id',
 			'header-image-id'  => 'header_image_id',
