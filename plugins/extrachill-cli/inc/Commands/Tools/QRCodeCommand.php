@@ -99,7 +99,7 @@ class QRCodeCommand {
 			WP_CLI::error( sprintf( 'Failed to write QR code file: %s', $output ) );
 		}
 
-		WP_CLI::success( sprintf( 'QR code generated: %s (%d bytes)', $output, strlen( $binary ) ) );
+		WP_CLI::success( sprintf( 'QR code generated: %s (%d bytes)', $output, strlen( (string) $binary ) ) );
 		WP_CLI::log( sprintf( 'URL: %s', $url ) );
 	}
 
