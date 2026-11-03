@@ -378,25 +378,26 @@ function extrachill_artist_platform_register_abilities() {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'name'       => array(
+					'name'        => array(
 						'type'        => 'string',
 						'description' => __( 'Artist name.', 'extrachill-artist-platform' ),
 					),
-					'bio'        => array(
+					'bio'         => array(
 						'type'        => 'string',
 						'description' => __( 'Artist bio (HTML allowed).', 'extrachill-artist-platform' ),
 					),
-					'local_city' => array(
+					'local_scene' => array( 'type' => 'string' ),
+					'local_city'  => array(
 						'type'        => 'string',
 						'description' => __( 'Local city/scene.', 'extrachill-artist-platform' ),
 					),
-					'genres'     => array(
+					'genres'      => array(
 						'type'        => 'array',
 						'items'       => array( 'type' => 'string' ),
 						'maxItems'    => 3,
 						'description' => __( 'Genre slugs or names, resolved against the network genre vocabulary (max 3). Unresolvable values are dropped.', 'extrachill-artist-platform' ),
 					),
-					'user_id'    => array(
+					'user_id'     => array(
 						'type'        => 'integer',
 						'description' => __( 'User ID to link as member. Defaults to current user.', 'extrachill-artist-platform' ),
 					),
@@ -441,6 +442,7 @@ function extrachill_artist_platform_register_abilities() {
 						'type'        => 'string',
 						'description' => __( 'Artist bio (HTML allowed).', 'extrachill-artist-platform' ),
 					),
+					'local_scene'      => array( 'type' => 'string' ),
 					'local_city'       => array(
 						'type'        => 'string',
 						'description' => __( 'Local city/scene.', 'extrachill-artist-platform' ),
@@ -690,21 +692,22 @@ function extrachill_artist_platform_register_abilities() {
 				'type'                 => 'object',
 				'required'             => array(),
 				'properties'           => array(
-					'page'     => array(
+					'page'        => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
 						'description' => __( 'Page number.', 'extrachill-artist-platform' ),
 					),
-					'per_page' => array(
+					'per_page'    => array(
 						'type'        => 'integer',
 						'minimum'     => 1,
 						'maximum'     => 100,
 						'description' => __( 'Results per page.', 'extrachill-artist-platform' ),
 					),
-					'search'   => array(
+					'search'      => array(
 						'type'        => 'string',
 						'description' => __( 'Search by artist name.', 'extrachill-artist-platform' ),
 					),
+					'local_scene' => array( 'type' => 'string' ),
 				),
 				'additionalProperties' => false,
 			),
@@ -811,6 +814,7 @@ function extrachill_artist_platform_register_abilities() {
 						'format' => 'uri',
 					),
 					'bio'               => array( 'type' => 'string' ),
+					'local_scene'       => array( 'type' => array( 'string', 'null' ) ),
 					'local_city'        => array( 'type' => array( 'string', 'null' ) ),
 					'genres'            => array(
 						'type'  => 'array',
@@ -869,6 +873,39 @@ function extrachill_artist_platform_register_abilities() {
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
+					'destructive' => false,
+					'idempotent'  => true,
+				),
+			),
+		)
+	);
+
+	wp_register_ability(
+		'extrachill/artist-backfill-local-scenes',
+		array(
+			'label'               => __( 'Backfill artist Local Scenes', 'extrachill-artist-platform' ),
+			'description'         => __( 'Maps legacy free-text artist locations to canonical Local Scenes. Dry run unless apply is true; existing scenes are never overwritten.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artists',
+			'input_schema'        => array(
+				'type'                 => 'object',
+				'properties'           => array(
+					'apply' => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+				),
+				'additionalProperties' => false,
+			),
+			'output_schema'       => array(
+				'type'  => 'array',
+				'items' => array( 'type' => 'object' ),
+			),
+			'execute_callback'    => 'extrachill_artist_platform_ability_backfill_local_scenes',
+			'permission_callback' => 'extrachill_artist_platform_ability_admin_permission',
+			'meta'                => array(
+				'show_in_rest' => false,
+				'annotations'  => array(
+					'readonly'    => false,
 					'destructive' => false,
 					'idempotent'  => true,
 				),

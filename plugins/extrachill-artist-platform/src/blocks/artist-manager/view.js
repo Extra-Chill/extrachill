@@ -31,6 +31,7 @@ import {
 import ArtistSwitcher from '../shared/components/ArtistSwitcher';
 import LocalSupportTab from './components/LocalSupportTab';
 import ShowsTab from './components/ShowsTab';
+import ScenePicker from './components/ScenePicker';
 
 const isValidEmail = (email) => {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -174,13 +175,16 @@ const InfoTab = ({ formState, setFormState, selectedId }) => {
 				/>
 			</FieldGroup>
 
-			<FieldGroup label="City / Region">
-				<input
-					type="text"
-					value={formState.localCity}
-					onChange={(e) => setFormState((prev) => ({ ...prev, localCity: e.target.value }))}
-				/>
-			</FieldGroup>
+			<ScenePicker
+				key={ selectedId }
+				slug={ formState.localScene }
+				label={ formState.localSceneLabel }
+				onChange={ ( slug, label, pending ) => setFormState( ( prev ) => ( {
+					...prev,
+					...( pending ? {} : { localScene: slug, localSceneLabel: label } ),
+					scenePending: pending,
+				} ) ) }
+			/>
 
 			<FieldGroup label="Genre">
 				<input
@@ -503,7 +507,9 @@ const SubscribersTab = ({ artistId }) => {
 const getInitialFormState = (artist) => ({
 	name: artist?.name || '',
 	bio: artist?.bio || '',
-	localCity: artist?.local_city || '',
+	localScene: artist?.local_scene || '',
+	localSceneLabel: artist?.local_scene_label || artist?.local_scene || '',
+	scenePending: false,
 	genres: Array.isArray(artist?.genre_labels) ? artist.genre_labels.join(', ') : '',
 	profileImage: artist?.profile_image_url || '',
 	headerImage: artist?.header_image_url || '',
@@ -572,6 +578,11 @@ const App = () => {
 			return;
 		}
 
+		if ( formState.scenePending ) {
+			setError( 'Select a Local Scene from the search results before saving.' );
+			return;
+		}
+
 		setSaving(true);
 		setSaveSuccess(false);
 		setError('');
@@ -579,7 +590,7 @@ const App = () => {
 		const payload = {
 			name: formState.name,
 			bio: formState.bio,
-			local_city: formState.localCity,
+			...( formState.localScene ? { local_scene: formState.localScene } : {} ),
 			genres: formState.genres
 				.split(',')
 				.map((g) => g.trim())
@@ -637,7 +648,7 @@ const App = () => {
 				return selectedId ? <SubscribersTab artistId={ selectedId } /> : null;
 			case 'local-support':
 				return selectedId ? (
-					<LocalSupportTab artistId={ selectedId } />
+					<LocalSupportTab artistId={ selectedId } onSaved={ () => loadArtist( selectedId ) } />
 				) : null;
 			default:
 				return null;

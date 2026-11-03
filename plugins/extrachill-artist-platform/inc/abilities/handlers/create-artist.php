@@ -29,6 +29,14 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		return new WP_Error( 'invalid_artist_name', 'Artist name is required.' );
 	}
 
+	$local_scene = null;
+	if ( array_key_exists( 'local_scene', $input ) ) {
+		$local_scene = extrachill_artist_platform_resolve_local_support_scene( $input['local_scene'] );
+		if ( is_wp_error( $local_scene ) ) {
+			return $local_scene;
+		}
+	}
+
 	// Duplicate guard: reject when this same user already owns an
 	// artist_profile with an identical case-insensitive, trimmed title.
 	// Enforced server-side regardless of client (Extra-Chill/extrachill-artist-platform#80).
@@ -103,6 +111,10 @@ function extrachill_artist_platform_ability_create_artist( $input ) {
 		}
 		restore_current_blog();
 		return $membership_failure ? $membership_failure : new WP_Error( 'artist_membership_failed', 'Artist membership could not be established. No profile was created.' );
+	}
+
+	if ( null !== $local_scene ) {
+		update_post_meta( $artist_id, EXTRACHILL_ARTIST_LOCAL_SCENE_META, $local_scene['slug'] );
 	}
 
 	if ( '' !== $local_city ) {

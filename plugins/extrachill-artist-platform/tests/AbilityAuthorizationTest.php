@@ -190,6 +190,7 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 			'extrachill/admin-unlink-artist-relationship',
 			'extrachill/admin-list-orphan-artist-relationships',
 			'extrachill/admin-cleanup-artist-relationships',
+			'extrachill/artist-backfill-local-scenes',
 		);
 
 		$expected_artist_abilities = array_keys( $this->artistAbilityMatrix() );

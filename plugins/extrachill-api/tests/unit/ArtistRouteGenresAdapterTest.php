@@ -20,7 +20,7 @@ class ArtistRouteGenresAdapterTest extends TestCase {
 	public function test_create_route_exposes_sanitized_genres_array() {
 		$source = $this->artist_route_source();
 
-		$this->assertStringContainsString( "'genres'     => array(", $source );
+		$this->assertStringContainsString( "'genres'      => array(", $source );
 		$this->assertStringContainsString( "'maxItems'          => 3,", $source );
 		$this->assertStringContainsString( "'items'             => array(", $source );
 		$this->assertStringContainsString( "array_map( 'sanitize_text_field', \$value )", $source );
@@ -32,7 +32,7 @@ class ArtistRouteGenresAdapterTest extends TestCase {
 	public function test_create_handler_forwards_genres() {
 		$source = $this->artist_route_source();
 
-		$this->assertStringContainsString( "array( 'bio', 'local_city', 'genres' )", $source );
+		$this->assertStringContainsString( "array( 'bio', 'local_city', 'genres', 'local_scene' )", $source );
 	}
 
 	/**
@@ -42,7 +42,7 @@ class ArtistRouteGenresAdapterTest extends TestCase {
 		$source = $this->artist_route_source();
 
 		$this->assertStringContainsString(
-			"array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id' )",
+			"array( 'name', 'bio', 'local_city', 'genres', 'profile_image_id', 'header_image_id', 'local_scene' )",
 			$source
 		);
 	}
