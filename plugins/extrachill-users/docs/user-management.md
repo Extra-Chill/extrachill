@@ -50,4 +50,4 @@ Network-wide user management plugin providing authentication (including Google O
 ## Integration points
 - Blog switching is used where the single source of truth lives on a different site (notably community + main-site author archives).
 - OAuth client config is stored as network options (managed by extrachill-network).
-- **Administrative Management**: User memberships (e.g., Lifetime Membership) and artist-user relationships are managed via the `extrachill-admin-tools` React interface, consuming REST endpoints from `extrachill-api`.
+- **Administrative Management**: User memberships (e.g., Lifetime Membership) and artist-user relationships are managed by this plugin's abilities and network-admin screens; `extrachill-api` exposes the REST routes and artist relationships live in `extrachill-artist-platform`.

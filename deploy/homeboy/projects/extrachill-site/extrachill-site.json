@@ -97,11 +97,6 @@
       "local_path": ""
     },
     {
-      "id": "extrachill-admin-tools",
-      "remote_path": "wp-content/plugins/extrachill-admin-tools",
-      "local_path": ""
-    },
-    {
       "id": "wp-codebox",
       "remote_path": "wp-content/plugins/wp-codebox",
       "local_path": ""

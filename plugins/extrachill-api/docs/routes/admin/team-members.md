@@ -58,7 +58,7 @@ Manage team membership across the multisite network. Team membership is stored a
 ```
 
 **Implementation Details**:
-- Wraps the `extrachill/sync-team-members` ability registered by `extrachill-admin-tools`. Backed by `ec_users_grant_team_role()` from `extrachill-users`.
+- Wraps the `extrachill/sync-team-members` ability registered by `extrachill-users`. Backed by `ec_users_grant_team_role()` from `extrachill-users`.
 
 **File**: `inc/routes/admin/team-members.php`
 
@@ -105,7 +105,7 @@ Manage team membership across the multisite network. Team membership is stored a
 - `403` - Permission denied
 
 **Implementation Details**:
-- Wraps the `extrachill/manage-team-member` ability registered by `extrachill-admin-tools`. Backed by `ec_users_grant_team_role()` / `ec_users_revoke_team_role()` from `extrachill-users`.
+- Wraps the `extrachill/manage-team-member` ability registered by `extrachill-users`. Backed by `ec_users_grant_team_role()` / `ec_users_revoke_team_role()` from `extrachill-users`.
 - The previous `reset_auto` action is gone — there is no auto-derivation step anymore. The role IS the state.
 
 **File**: `inc/routes/admin/team-members.php`
