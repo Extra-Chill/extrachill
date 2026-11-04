@@ -27,7 +27,7 @@ function extrachill_events_render_guest_list_management( int $event_id, bool $se
 		'ecGuestListManagement',
 		array(
 			'copied'   => __( 'Share link copied.', 'extrachill-events' ),
-			'copyHint' => __( 'Select and copy the share link above.', 'extrachill-events' ),
+			'copyHint' => __( 'Select and copy the link above.', 'extrachill-events' ),
 		)
 	);
 	$counts = extrachill_events_get_guest_list_counts( $event_id );
@@ -86,6 +86,77 @@ function extrachill_events_save_guest_list_management(): void {
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_settings', 'extrachill_events_save_guest_list_management' );
+
+/**
+ * Run a host guest-list ability from a panel or door-list form, then return
+ * to the event page. The ability owns validation and authorization.
+ *
+ * @param string $ability_name Ability to execute.
+ * @param array  $input        Ability input.
+ * @return array Ability result. Dies on error.
+ */
+function extrachill_events_run_guest_list_form_ability( string $ability_name, array $input ): array {
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( $ability_name ) : null;
+	if ( ! $ability ) {
+		wp_die( esc_html__( 'The guest list is unavailable.', 'extrachill-events' ), '', array( 'response' => 503 ) );
+	}
+
+	$result = $ability->execute( $input );
+	if ( is_wp_error( $result ) ) {
+		$data = $result->get_error_data();
+		wp_die(
+			esc_html( $result->get_error_message() ),
+			'',
+			array(
+				'response'  => is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 400,
+				'back_link' => true,
+			)
+		);
+	}
+
+	return (array) $result;
+}
+
+/**
+ * Host panel "Add a guest" form, through extrachill/add-guest-list-name.
+ */
+function extrachill_events_add_guest_list_name_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_list_add_' . $event_id );
+
+	$result = extrachill_events_run_guest_list_form_ability(
+		'extrachill/add-guest-list-name',
+		array(
+			'event_id' => $event_id,
+			'name'     => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+			'email'    => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
+		)
+	);
+
+	wp_safe_redirect( add_query_arg( 'ec_guest_added', rawurlencode( (string) ( $result['code'] ?? '' ) ), get_permalink( $event_id ) ) . '#ec-guest-list-management' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_list_add', 'extrachill_events_add_guest_list_name_from_panel' );
+
+/**
+ * Door list "Remove" button, through extrachill/remove-guest-list-name.
+ */
+function extrachill_events_remove_guest_list_name_from_door_list(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_list_remove_' . $event_id );
+
+	extrachill_events_run_guest_list_form_ability(
+		'extrachill/remove-guest-list-name',
+		array(
+			'event_id' => $event_id,
+			'code'     => isset( $_POST['code'] ) ? sanitize_text_field( wp_unslash( $_POST['code'] ) ) : '',
+		)
+	);
+
+	wp_safe_redirect( get_permalink( $event_id ) . '#ec-door-list' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_list_remove', 'extrachill_events_remove_guest_list_name_from_door_list' );
 
 /**
  * Serve the guest-list share QR (PNG) to event managers.

@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '2';
+	const SCHEMA_VERSION = '3';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -78,6 +78,7 @@ final class RsvpPassesTable {
 			revoked_at datetime NULL,
 			redeemed_at datetime NULL,
 			redeemed_by_user_id bigint(20) unsigned NULL,
+			issued_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY event_user (event_id, user_id),
@@ -88,6 +89,9 @@ final class RsvpPassesTable {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
+		// Schema 3 (extrachill#1119) adds issued_by_user_id: the host who put
+		// a guest on the list by name. dbDelta adds the column itself.
+		//
 		// Schema 2 (guest list passes): user_id became nullable so a pass can
 		// be held by no account. dbDelta compares column types only, never
 		// nullability, so the existing NOT NULL column needs an explicit
@@ -424,10 +428,11 @@ final class RsvpPassesTable {
 	 *
 	 * @param int    $event_id   Event post ID.
 	 * @param int    $capacity   Max outstanding passes (active + redeemed). 0 = unlimited.
-	 * @param string $guest_name Name the guest gave, shown at check-in.
+	 * @param string $guest_name        Name the guest gave, shown at check-in.
+	 * @param int    $issued_by_user_id Host who added the guest by name (extrachill#1119); 0 when the guest claimed it with the password.
 	 * @return array|null The new active pass row, or null when full or the lock can't be taken.
 	 */
-	public static function issue_anonymous( int $event_id, int $capacity = 0, string $guest_name = '' ): ?array {
+	public static function issue_anonymous( int $event_id, int $capacity = 0, string $guest_name = '', int $issued_by_user_id = 0 ): ?array {
 		if ( $capacity > 0 && ! self::acquire_capacity_lock( $event_id ) ) {
 			return null;
 		}
@@ -451,6 +456,7 @@ final class RsvpPassesTable {
 					'issued_at'  => $now,
 					'updated_at' => $now,
 				)
+				+ ( $issued_by_user_id > 0 ? array( 'issued_by_user_id' => $issued_by_user_id ) : array() )
 			);
 
 			return false === $inserted ? null : self::find_by_code( $code );
@@ -501,6 +507,41 @@ final class RsvpPassesTable {
 		}
 
 		return self::redeem_row( $pass, $redeemed_by_user_id );
+	}
+
+	/**
+	 * Revoke an active guest list pass (no account) by its code: a host
+	 * taking a name off the list. Frees the spot. A pass that was already
+	 * checked in stays checked in.
+	 *
+	 * @param int    $event_id Event post ID the code must belong to.
+	 * @param string $code     Exact pass code.
+	 * @return bool Whether a pass was revoked.
+	 */
+	public static function revoke_by_code( int $event_id, string $code ): bool {
+		if ( '' === $code ) {
+			return false;
+		}
+
+		global $wpdb;
+		$now = current_time( 'mysql', true );
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write; cache is purged by the caller.
+			self::table_name(),
+			array(
+				'status'     => self::STATUS_REVOKED,
+				'revoked_at' => $now,
+				'updated_at' => $now,
+			),
+			array(
+				'event_id' => $event_id,
+				'code'     => $code,
+				'user_id'  => null,
+				'status'   => self::STATUS_ACTIVE,
+			)
+		);
+
+		return false !== $updated && $updated > 0;
 	}
 
 	/**
@@ -569,7 +610,10 @@ final class RsvpPassesTable {
 		$table = self::table_name();
 
 		if ( self::STATUS_REVOKED === $pass['status'] ) {
-			return new \WP_Error( 'rsvp_pass_revoked', __( "This attendee's RSVP was cancelled; their pass is no longer valid.", 'extrachill-events' ), array( 'status' => 409 ) );
+			$message = empty( $pass['user_id'] )
+				? __( 'Not on the list: this guest was taken off the guest list.', 'extrachill-events' )
+				: __( "This attendee's RSVP was cancelled; their pass is no longer valid.", 'extrachill-events' );
+			return new \WP_Error( 'rsvp_pass_revoked', $message, array( 'status' => 409 ) );
 		}
 
 		if ( self::STATUS_REDEEMED === $pass['status'] ) {

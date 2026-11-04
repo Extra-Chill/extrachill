@@ -77,6 +77,10 @@ get_header();
 						);
 						?>
 					</p>
+				<?php elseif ( 'revoked' === $pass_status ) : ?>
+					<p class="ec-rsvp-verify__status notice notice-error">
+						<?php echo esc_html( $is_guest_pass ? __( 'Not on the list. This guest was taken off the guest list.', 'extrachill-events' ) : __( 'Not valid. This RSVP was cancelled.', 'extrachill-events' ) ); ?>
+					</p>
 				<?php else : ?>
 					<button type="button" class="button-2 button-large ec-rsvp-verify__redeem">
 						<?php echo esc_html( $is_guest_pass ? __( 'Check in', 'extrachill-events' ) : __( 'Redeem', 'extrachill-events' ) ); ?>

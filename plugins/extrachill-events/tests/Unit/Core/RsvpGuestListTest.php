@@ -174,6 +174,27 @@ if ( ! defined( 'EXTRACHILL_EVENTS_PLUGIN_DIR' ) ) {
 	define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', dirname( __DIR__, 3 ) . '/' );
 }
 
+if ( ! function_exists( 'extrachill_events_guest_list_url' ) ) {
+	function extrachill_events_guest_list_url( int $event_id ): string {
+		return 'https://events.extrachill.com/events/' . $event_id . '/guest-list';
+	}
+}
+
+if ( ! function_exists( 'add_query_arg' ) ) {
+	// Same shape as RsvpPassQrUrlsTest's stub, which loads first in the suite.
+	function add_query_arg( ...$args ): string {
+		if ( 2 === count( $args ) && is_array( $args[0] ) ) {
+			$pairs = array();
+			foreach ( $args[0] as $k => $v ) {
+				$pairs[] = $k . '=' . $v;
+			}
+			return $args[1] . ( false === strpos( $args[1], '?' ) ? '?' : '&' ) . implode( '&', $pairs );
+		}
+		list( $key, $value, $url ) = $args;
+		return $url . ( false === strpos( $url, '?' ) ? '?' : '&' ) . $key . '=' . $value;
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/admin/event-perks.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/RsvpPassesTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-service.php';
@@ -365,13 +386,13 @@ final class RsvpGuestListTest extends PHPUnit\Framework\TestCase {
 			return 'extrachill/resolve-account-by-email' === $name ? $ability : null;
 		};
 
-		$GLOBALS['rsvp_guest_test']     = array(
+		$GLOBALS['rsvp_guest_test'] = array(
 			'marks'         => array(),
 			'claim_at_mark' => array(),
 			'marked'        => array(),
 			'transients'    => array(),
 		);
-		$users                          = array();
+		$users                      = array();
 		foreach ( array_merge( range( 1, 10 ), range( 5001, 5010 ) ) as $id ) {
 			$users[ $id ] = (object) array(
 				'ID'           => $id,
@@ -610,5 +631,81 @@ final class RsvpGuestListTest extends PHPUnit\Framework\TestCase {
 		$guests = RsvpPassesTable::list_guest_passes( self::EVENT_ID );
 		$this->assertCount( 1, $guests );
 		$this->assertSame( 'redeemed', $guests[0]['status'] );
+	}
+
+	public function test_host_adds_a_guest_by_name_without_the_password(): void {
+		$pass = extrachill_events_add_guest_list_name( self::EVENT_ID, '  Jake +1 ', '', 38 );
+
+		$this->assertSame( 'Jake +1', $pass['name'] );
+		$this->assertMatchesRegularExpression( '/^[A-Z2-9]{5}-[A-Z2-9]{5}-[A-Z2-9]{5}$/', $pass['code'] );
+		$this->assertStringContainsString( 'pass=' . rawurlencode( $pass['code'] ), $pass['pass_url'] );
+		$this->assertFalse( $pass['emailed'] );
+		$this->assertSame( 1, $pass['spots_left'] );
+		$this->assertArrayNotHasKey( 'user_id', $this->db->rows[0], 'No account is attached.' );
+		$this->assertSame( 38, $this->db->rows[0]['issued_by_user_id'], 'The door can see who comped the guest.' );
+		$this->assertSame( array(), $this->ability->calls, 'No account is resolved or created.' );
+	}
+
+	public function test_password_claims_record_no_host(): void {
+		extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah' );
+
+		$this->assertArrayNotHasKey( 'issued_by_user_id', $this->db->rows[0] );
+	}
+
+	public function test_host_added_guests_share_the_spots_with_password_claims(): void {
+		extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah' );
+		extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 );
+
+		$this->assertSame( 'guest_list_full', extrachill_events_add_guest_list_name( self::EVENT_ID, 'Late add', '', 38 )->get_error_code() );
+		$this->assertSame( 'guest_list_full', extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Walk-up' )->get_error_code() );
+		$this->assertCount( 2, $this->db->rows );
+	}
+
+	public function test_adding_a_guest_needs_a_name_and_a_guest_list(): void {
+		$this->assertSame( 'guest_name_required', extrachill_events_add_guest_list_name( self::EVENT_ID, '  ', '', 38 )->get_error_code() );
+		$this->assertSame( 'invalid_email', extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', 'nope', 38 )->get_error_code() );
+		$this->assertSame( 'event_not_found', extrachill_events_add_guest_list_name( 999, 'Jake', '', 38 )->get_error_code() );
+
+		extrachill_events_set_perk_password( self::EVENT_ID, '' );
+		$this->assertSame( 'guest_list_unavailable', extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 )->get_error_code() );
+		$this->assertSame( array(), $this->db->rows, 'Rejected adds leave no trace.' );
+	}
+
+	public function test_adding_a_guest_with_an_email_sends_the_pass(): void {
+		$pass = extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', 'jake@example.com', 38 );
+
+		$this->assertTrue( $pass['emailed'] );
+		$this->assertCount( 1, $GLOBALS['rsvp_pass_mail_test']['sent'] );
+		$this->assertSame( 'jake@example.com', $GLOBALS['rsvp_pass_mail_test']['sent'][0]['to'] );
+		$this->assertSame( $pass['pass_url'], $GLOBALS['rsvp_pass_mail_test']['sent'][0]['context']['cta_url'] );
+	}
+
+	public function test_removing_a_guest_frees_the_spot(): void {
+		$pass = extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 );
+		extrachill_events_add_guest_list_name( self::EVENT_ID, 'Amy', '', 38 );
+
+		$result = extrachill_events_remove_guest_list_name( self::EVENT_ID, strtolower( $pass['code'] ) );
+
+		$this->assertTrue( $result['removed'] );
+		$this->assertSame( 1, $result['spots_left'] );
+		$this->assertSame( 'revoked', $this->db->rows[0]['status'] );
+		$this->assertSame( 1, extrachill_events_get_guest_list_counts( self::EVENT_ID )['claimed'] );
+		$door = RsvpPassesTable::redeem_by_code( self::EVENT_ID, $pass['code'], 38 );
+		$this->assertSame( 'rsvp_pass_revoked', $door->get_error_code(), 'A removed guest does not get in.' );
+		$this->assertStringContainsString( 'Not on the list', $door->get_error_message() );
+	}
+
+	public function test_removing_never_undoes_a_check_in_or_touches_other_events_or_accounts(): void {
+		$pass = extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 );
+		RsvpPassesTable::redeem_by_code( self::EVENT_ID, $pass['code'], 38 );
+		$this->assertSame( 'guest_not_removable', extrachill_events_remove_guest_list_name( self::EVENT_ID, $pass['code'] )->get_error_code() );
+		$this->assertSame( 'redeemed', $this->db->rows[0]['status'] );
+
+		$other = extrachill_events_add_guest_list_name( self::EVENT_ID, 'Amy', '', 38 );
+		$this->assertSame( 'guest_not_removable', extrachill_events_remove_guest_list_name( 999, $other['code'] )->get_error_code() );
+
+		$this->db->seed( self::EVENT_ID, 7, 'active' );
+		$this->assertSame( 'guest_not_removable', extrachill_events_remove_guest_list_name( self::EVENT_ID, 'SEED-7' )->get_error_code(), 'Account passes are revoked by un-RSVPing, not here.' );
+		$this->assertSame( 'guest_not_removable', extrachill_events_remove_guest_list_name( self::EVENT_ID, '' )->get_error_code() );
 	}
 }

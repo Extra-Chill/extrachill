@@ -4,7 +4,9 @@
  *
  * Thin adapter over the extrachill-events RSVP perk abilities
  * (`extrachill/set-event-perk`, `extrachill/get-event-perk`) for running a
- * password-gated, capacity-limited guest list (extrachill#433).
+ * password-gated, capacity-limited guest list (extrachill#433), and the
+ * host comp abilities (`extrachill/add-guest-list-name`,
+ * `extrachill/remove-guest-list-name`, extrachill#1119).
  *
  * @package ExtraChill\CLI\Commands\Events
  */
@@ -161,5 +163,88 @@ class GuestListCommand {
 		}
 
 		Utils\format_items( 'table', $rows, array( 'field', 'value' ) );
+	}
+
+	/**
+	 * Put a guest on an event's guest list by name (a comp). No password needed.
+	 *
+	 * Runs as the --user, who must manage the event. Prints the pass link to
+	 * send the guest.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <event>
+	 * : Event post ID or slug.
+	 *
+	 * <name>
+	 * : Guest name shown to the door, e.g. "Jake +1".
+	 *
+	 * [--email=<email>]
+	 * : Email the pass to the guest.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list add 640348 "Jake +1" --user=1 --url=events.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function add( $args, $assoc_args ) {
+		$perk  = $this->run( 'extrachill/get-event-perk', array( 'event' => (string) $args[0] ) );
+		$input = array(
+			'event_id' => (int) ( $perk['post_id'] ?? 0 ),
+			'name'     => (string) $args[1],
+		);
+		if ( isset( $assoc_args['email'] ) ) {
+			$input['email'] = (string) $assoc_args['email'];
+		}
+
+		$result = $this->run( 'extrachill/add-guest-list-name', $input );
+
+		if ( 'json' === Utils\get_flag_value( $assoc_args, 'format', 'table' ) ) {
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		WP_CLI::success( sprintf( '%s is on the list. Code %s. Pass link: %s', $result['name'] ?? '', $result['code'] ?? '', $result['pass_url'] ?? '' ) );
+	}
+
+	/**
+	 * Take a guest off an event's guest list by pass code. Frees the spot.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <event>
+	 * : Event post ID or slug.
+	 *
+	 * <code>
+	 * : The guest's pass code.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list remove 640348 ABCDE-FGH2J-K3LMN --user=1 --url=events.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function remove( $args, $assoc_args ) {
+		unset( $assoc_args );
+		$perk = $this->run( 'extrachill/get-event-perk', array( 'event' => (string) $args[0] ) );
+		$this->run(
+			'extrachill/remove-guest-list-name',
+			array(
+				'event_id' => (int) ( $perk['post_id'] ?? 0 ),
+				'code'     => (string) $args[1],
+			)
+		);
+
+		WP_CLI::success( 'Guest removed from the list.' );
 	}
 }
