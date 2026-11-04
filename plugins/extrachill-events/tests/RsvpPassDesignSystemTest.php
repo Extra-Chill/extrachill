@@ -29,6 +29,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 */
 	private const TEMPLATES = array(
 		'templates/rsvp-pass.php',
+		'templates/rsvp-pass-card.php',
 		'templates/door-list.php',
 		'templates/guest-list-management.php',
 		'inc/templates/rsvp-verify.php',
@@ -64,6 +65,22 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	);
 
 	/**
+	 * Events calendar item classes, styled by the data-machine-events calendar
+	 * stylesheet (wp-block-data-machine-events-calendar), which
+	 * extrachill_events_render_pass_card() enqueues. The pass card reuses the
+	 * calendar's markup so it looks like a calendar item (extrachill#1127).
+	 *
+	 * @var string[]
+	 */
+	private const CALENDAR_CLASSES = array(
+		'data-machine-event-item',
+		'data-machine-event-link',
+		'data-machine-event-title',
+		'data-machine-event-meta',
+		'data-machine-event-time',
+	);
+
+	/**
 	 * Classes styled by this plugin's single-event composition stylesheet
 	 * (assets/css/single-event.css), which owns the layout of the event action
 	 * row and the door list. Each must have a real rule there.
@@ -75,6 +92,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-rsvp-pass__code'            => 'monospace pass code',
 		'ec-rsvp-pass__qr'              => 'centered QR block',
 		'ec-rsvp-pass__art'             => 'per-event pass artwork, phone-width block (extrachill#500)',
+		'ec-rsvp-pass__card'            => 'calendar-style event card when there is no art: resets the calendar grid-cell size (extrachill#1127)',
 		'ec-guest-list-management__art' => 'pass image preview in the host panel (extrachill#1118)',
 		'ec-rsvp-perk-teaser'           => 'teaser line for people without a pass',
 		'ec-rsvp-guest'                 => 'guest email form: full-width centered line under the teaser',
@@ -148,7 +166,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 * @dataProvider templates
 	 */
 	public function test_template_uses_only_classes_that_actually_render( string $template ): void {
-		$allowed  = array_merge( self::THEME_CLASSES, array_keys( self::CSS_FREE_CLASSES ), array_keys( self::COMPOSITION_CLASSES ) );
+		$allowed  = array_merge( self::THEME_CLASSES, self::CALENDAR_CLASSES, array_keys( self::CSS_FREE_CLASSES ), array_keys( self::COMPOSITION_CLASSES ) );
 		$unstyled = array_diff( $this->classes_in( $template ), $allowed );
 
 		$this->assertSame(

@@ -198,10 +198,11 @@ function extrachill_events_get_perk_image_alt( int $post_id ): string {
 
 /**
  * Where the pass artwork comes from: the custom pass image, the event's
- * poster (featured image) as the default, or nothing.
+ * poster (featured image) as the default, or — when the event has neither —
+ * a calendar-style event card (extrachill#1127).
  *
  * @param int $post_id Event post ID.
- * @return string 'custom' | 'poster' | 'none'
+ * @return string 'custom' | 'poster' | 'card'
  */
 function extrachill_events_get_pass_image_source( int $post_id ): string {
 	if ( extrachill_events_get_perk_image_id( $post_id ) ) {
@@ -209,7 +210,7 @@ function extrachill_events_get_pass_image_source( int $post_id ): string {
 	}
 
 	$poster_id = (int) get_post_thumbnail_id( $post_id );
-	return ( $poster_id > 0 && wp_attachment_is_image( $poster_id ) ) ? 'poster' : 'none';
+	return ( $poster_id > 0 && wp_attachment_is_image( $poster_id ) ) ? 'poster' : 'card';
 }
 
 /**
@@ -259,6 +260,82 @@ function extrachill_events_get_pass_image_alt( int $post_id ): string {
 		/* translators: %s: event title. */
 		? sprintf( __( '%s poster', 'extrachill-events' ), get_the_title( $post_id ) )
 		: __( 'Guest list pass artwork', 'extrachill-events' );
+}
+
+/**
+ * Time line for the pass card: "Wed, Jun 4 · 8:00 - 11:00 PM".
+ *
+ * Reads the event-dates table (the same source the guest list page uses).
+ * The end time is shown only when it falls within a day of the start and is
+ * not the 23:59 sentinel stored for events with no real end time; a shared
+ * trailing token ("PM") is printed once, like the calendar card.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Empty when the event has no start date.
+ */
+function extrachill_events_get_pass_card_time( int $post_id ): string {
+	$dates = function_exists( 'datamachine_get_event_dates' ) ? datamachine_get_event_dates( $post_id ) : null;
+	if ( ! is_object( $dates ) || empty( $dates->start_datetime ) ) {
+		return '';
+	}
+
+	$start = strtotime( (string) $dates->start_datetime );
+	if ( false === $start ) {
+		return '';
+	}
+
+	$time_format = (string) get_option( 'time_format', 'g:i a' );
+	$time        = date_i18n( $time_format, $start );
+
+	$end = ! empty( $dates->end_datetime ) ? strtotime( (string) $dates->end_datetime ) : false;
+	if ( false !== $end && $end > $start && ( $end - $start ) < DAY_IN_SECONDS && '23:59' !== substr( (string) $dates->end_datetime, 11, 5 ) ) {
+		$start_parts = explode( ' ', $time );
+		$end_time    = date_i18n( $time_format, $end );
+		$end_parts   = explode( ' ', $end_time );
+		$shared      = end( $start_parts );
+
+		if ( count( $start_parts ) > 1 && end( $end_parts ) === $shared && ! preg_match( '/\d/', $shared ) ) {
+			array_pop( $start_parts );
+			$time = implode( ' ', $start_parts );
+		}
+		$time .= ' - ' . $end_time;
+	}
+
+	return date_i18n( 'D, M j', $start ) . ' · ' . $time;
+}
+
+/**
+ * Calendar-style event card shown on the pass when the event has no custom
+ * pass art and no poster (extrachill#1127): taxonomy badges (location, venue,
+ * promoter), the title, and the time, in the events calendar's own markup.
+ *
+ * Badges come from data-machine-events' public badge renderer, and the
+ * calendar stylesheet is enqueued when registered. Without data-machine-events
+ * the card degrades to title and time.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Card markup; empty when the event does not exist.
+ */
+function extrachill_events_render_pass_card( int $post_id ): string {
+	$post = get_post( $post_id );
+	if ( ! $post ) {
+		return '';
+	}
+
+	if ( wp_style_is( 'wp-block-data-machine-events-calendar', 'registered' ) ) {
+		wp_enqueue_style( 'wp-block-data-machine-events-calendar' );
+	}
+
+	$card_badges = function_exists( 'data_machine_events_render_taxonomy_badges' )
+		? (string) data_machine_events_render_taxonomy_badges( $post_id )
+		: '';
+	$card_title  = (string) get_the_title( $post_id );
+	$card_url    = (string) get_permalink( $post );
+	$card_time   = extrachill_events_get_pass_card_time( $post_id );
+
+	ob_start();
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/rsvp-pass-card.php';
+	return (string) ob_get_clean();
 }
 
 /**

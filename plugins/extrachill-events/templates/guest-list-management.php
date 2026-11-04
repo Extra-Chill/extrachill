@@ -38,7 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			} elseif ( 'poster' === $pass_image_source ) {
 				esc_html_e( 'Passes show the event poster. Upload an image to use your own instead.', 'extrachill-events' );
 			} else {
-				esc_html_e( 'No pass image yet. Upload one, or add an event poster and passes will use it.', 'extrachill-events' );
+				esc_html_e( 'No pass image yet, so passes show an event card with the title and time. Upload an image, or add an event poster and passes will use it.', 'extrachill-events' );
 			}
 			?>
 			</p>
