@@ -22,7 +22,7 @@
  * @var bool   $perk_enabled Whether this event has an RSVP perk enabled.
  * @var string $perk_text    Attendee-facing perk description (perk events only).
  * @var array  $guest_list   extrachill_events_get_guest_list_counts() result (perk events only).
- * @var array  $guest_rows   Guest list passes with no account: guest_name, code, status, redeemed_at (formatted), added_by (host display name, or '' when the guest claimed it with the password).
+ * @var array  $guest_rows   Guest list passes with no account (extrachill_events_door_list_guest_rows()): label ("Jake (Slim S.O.U.L.)" when an invited band added them), guest_name, source (party name or ''), code, status, redeemed_at (formatted), added_by (host display name, or '' when the guest claimed it with the password or a band added it).
  * @var string $guest_list_url Guest list page URL when the event has a password-gated list, else ''.
  * @var array  $rows         Each: user_id, display_name, marked_at (formatted), pass_status ('active'|'redeemed'|'revoked'|''), redeemed_at (formatted, or '').
  */
@@ -80,7 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endforeach; ?>
 			<?php foreach ( (array) $guest_rows as $guest_row ) : ?>
 				<li class="ec-door-list__row">
-					<span class="ec-door-list__name"><?php echo esc_html( '' !== (string) $guest_row['guest_name'] ? (string) $guest_row['guest_name'] : __( 'Guest list pass', 'extrachill-events' ) ); ?></span>
+					<span class="ec-door-list__name"><?php echo esc_html( (string) $guest_row['label'] ); ?></span>
 					<?php if ( '' !== (string) ( $guest_row['added_by'] ?? '' ) ) : ?>
 						<span class="ec-door-list__status">
 							<?php

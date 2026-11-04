@@ -455,13 +455,19 @@ function extrachill_events_guest_list_pass_link( int $event_id, string $code, st
  * pass link has a /guest-list page to open on. The password itself never
  * has to be shared; hosts can keep it private and add every name directly.
  *
+ * Invited bands and management (extrachill#1128) add names through this
+ * same path with their party ID, and their allotment when allotments are
+ * on; see inc/core/guest-list-parties.php.
+ *
  * @param int    $event_id     Event post ID.
  * @param string $name         Guest name, shown to the door at check-in.
  * @param string $email        Optional address to send the pass to.
- * @param int    $host_user_id Host adding the guest.
+ * @param int    $host_user_id Host adding the guest (0 when an invited party adds it).
+ * @param int    $party_id     Invited party adding the guest; 0 for a host add.
+ * @param int    $party_cap    The party's allotment, enforced under the capacity lock. 0 = no party cap.
  * @return array|WP_Error `{ code, name, pass_url, qr_url, emailed, spots_left }` or an error.
  */
-function extrachill_events_add_guest_list_name( int $event_id, string $name, string $email = '', int $host_user_id = 0 ) {
+function extrachill_events_add_guest_list_name( int $event_id, string $name, string $email = '', int $host_user_id = 0, int $party_id = 0, int $party_cap = 0 ) {
 	$post = get_post( $event_id );
 	if ( ! $post || 'data_machine_events' !== $post->post_type ) {
 		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
@@ -491,7 +497,7 @@ function extrachill_events_add_guest_list_name( int $event_id, string $name, str
 	}
 
 	$capacity = extrachill_events_get_perk_capacity( $event_id );
-	$pass     = \ExtraChillEvents\Core\RsvpPassesTable::issue_anonymous( $event_id, $capacity, $name, $host_user_id );
+	$pass     = \ExtraChillEvents\Core\RsvpPassesTable::issue_anonymous( $event_id, $capacity, $name, $host_user_id, $party_id, $party_cap );
 	if ( ! $pass ) {
 		return extrachill_events_guest_list_full_error();
 	}
