@@ -30,7 +30,10 @@ function extrachill_events_render_guest_list_management( int $event_id, bool $se
 			'copyHint' => __( 'Select and copy the link above.', 'extrachill-events' ),
 		)
 	);
-	$counts = extrachill_events_get_guest_list_counts( $event_id );
+	$counts             = extrachill_events_get_guest_list_counts( $event_id );
+	$allotments_enabled = extrachill_events_guest_list_allotments_enabled( $event_id );
+	$parties            = function_exists( 'extrachill_events_list_guest_list_parties' ) ? extrachill_events_list_guest_list_parties( $event_id ) : array();
+	$parties            = is_wp_error( $parties ) ? array() : (array) ( $parties['parties'] ?? array() );
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-management.php';
 }
 
@@ -66,10 +69,12 @@ function extrachill_events_save_guest_list_management(): void {
 	}
 
 	$input    = array(
-		'event'    => (string) $event_id,
-		'enabled'  => true,
-		'text'     => extrachill_events_get_perk_text( $event_id ),
-		'capacity' => isset( $_POST['capacity'] ) ? absint( $_POST['capacity'] ) : 0,
+		'event'              => (string) $event_id,
+		'enabled'            => true,
+		'text'               => extrachill_events_get_perk_text( $event_id ),
+		'capacity'           => isset( $_POST['capacity'] ) ? absint( $_POST['capacity'] ) : 0,
+		// Unchecked box = off: the checkbox always renders with this form.
+		'allotments_enabled' => ! empty( $_POST['allotments_enabled'] ),
 	);
 	$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are hashed, not sanitized.
 	if ( '' !== $password ) {
@@ -235,6 +240,73 @@ function extrachill_events_remove_guest_list_name_from_door_list(): void {
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_remove', 'extrachill_events_remove_guest_list_name_from_door_list' );
+
+/**
+ * Host panel "Invite a band" form, through extrachill/create-guest-list-party.
+ *
+ * Returns to the panel with the new link so the host can also text it; the
+ * raw token exists only in this redirect and the invite email.
+ */
+function extrachill_events_invite_guest_list_party_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_party_invite_' . $event_id );
+
+	$input = array(
+		'event_id' => $event_id,
+		'name'     => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+		'email'    => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
+	);
+	if ( isset( $_POST['allotment'] ) && '' !== $_POST['allotment'] ) {
+		$input['allotment'] = absint( $_POST['allotment'] );
+	}
+
+	$result = extrachill_events_run_guest_list_form_ability( 'extrachill/create-guest-list-party', $input );
+
+	wp_safe_redirect( add_query_arg( 'ec_party_invite', rawurlencode( (string) ( $result['invite_url'] ?? '' ) ), get_permalink( $event_id ) ) . '#ec-guest-list-parties' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_party_invite', 'extrachill_events_invite_guest_list_party_from_panel' );
+
+/**
+ * Host panel "Revoke" button, through extrachill/revoke-guest-list-party.
+ */
+function extrachill_events_revoke_guest_list_party_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_party_manage_' . $event_id );
+
+	extrachill_events_run_guest_list_form_ability(
+		'extrachill/revoke-guest-list-party',
+		array(
+			'event_id' => $event_id,
+			'party_id' => isset( $_POST['party_id'] ) ? absint( $_POST['party_id'] ) : 0,
+		)
+	);
+
+	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-parties' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_party_revoke', 'extrachill_events_revoke_guest_list_party_from_panel' );
+
+/**
+ * Host panel per-party spots form, through extrachill/set-guest-list-party-allotment.
+ */
+function extrachill_events_set_guest_list_party_allotment_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_party_manage_' . $event_id );
+
+	extrachill_events_run_guest_list_form_ability(
+		'extrachill/set-guest-list-party-allotment',
+		array(
+			'event_id'  => $event_id,
+			'party_id'  => isset( $_POST['party_id'] ) ? absint( $_POST['party_id'] ) : 0,
+			'allotment' => isset( $_POST['allotment'] ) ? absint( $_POST['allotment'] ) : 0,
+		)
+	);
+
+	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-parties' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_party_allotment', 'extrachill_events_set_guest_list_party_allotment_from_panel' );
 
 /**
  * Serve the guest-list share QR (PNG) to event managers.

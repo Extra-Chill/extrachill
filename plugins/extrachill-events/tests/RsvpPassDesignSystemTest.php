@@ -34,6 +34,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'templates/guest-list-management.php',
 		'inc/templates/rsvp-verify.php',
 		'inc/templates/guest-list.php',
+		'inc/templates/guest-list-invite.php',
 	);
 
 	/**

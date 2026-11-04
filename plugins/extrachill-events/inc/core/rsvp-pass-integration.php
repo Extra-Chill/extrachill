@@ -149,25 +149,11 @@ function extrachill_events_append_door_list( $content ) {
 	$guest_list_url = ( function_exists( 'extrachill_events_has_guest_list_page' ) && extrachill_events_has_guest_list_page( $post_id ) )
 		? extrachill_events_guest_list_url( $post_id )
 		: '';
-	$guest_rows     = array();
-	if ( '' !== $guest_list_url ) {
-		foreach ( \ExtraChillEvents\Core\RsvpPassesTable::list_guest_passes( $post_id ) as $guest_pass ) {
-			if ( \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REVOKED === $guest_pass['status'] ) {
-				continue;
-			}
-			$added_by_id  = (int) ( $guest_pass['issued_by_user_id'] ?? 0 );
-			$added_by     = $added_by_id ? get_userdata( $added_by_id ) : false;
-			$guest_rows[] = array(
-				'added_by'    => $added_by ? (string) $added_by->display_name : '',
-				'guest_name'  => (string) ( $guest_pass['guest_name'] ?? '' ),
-				'code'        => (string) $guest_pass['code'],
-				'status'      => (string) $guest_pass['status'],
-				'redeemed_at' => ! empty( $guest_pass['redeemed_at'] )
-					? mysql2date( get_option( 'time_format' ), get_date_from_gmt( (string) $guest_pass['redeemed_at'] ) )
-					: '',
-			);
-		}
-	}
+	// Each row carries its source: the invited band or management that
+	// added it (extrachill#1128), or the host who comped it (#1119).
+	$guest_rows = ( '' !== $guest_list_url && function_exists( 'extrachill_events_door_list_guest_rows' ) )
+		? extrachill_events_door_list_guest_rows( $post_id )
+		: array();
 
 	ob_start();
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';

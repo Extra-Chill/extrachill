@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '3';
+	const SCHEMA_VERSION = '4';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -79,15 +79,24 @@ final class RsvpPassesTable {
 			redeemed_at datetime NULL,
 			redeemed_by_user_id bigint(20) unsigned NULL,
 			issued_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
+			party_id bigint(20) unsigned NULL DEFAULT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY event_user (event_id, user_id),
 			UNIQUE KEY code (code),
-			KEY event_status (event_id, status)
+			KEY event_status (event_id, status),
+			KEY event_party (event_id, party_id)
 		) ENGINE=InnoDB {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Schema 4 (extrachill#1128) adds party_id, the invited band or
+		// management that put a guest on the list, and the party table
+		// itself. Both are plain dbDelta additions.
+		if ( class_exists( GuestListPartiesTable::class ) ) {
+			dbDelta( GuestListPartiesTable::schema_sql( $charset ) );
+		}
 
 		// Schema 3 (extrachill#1119) adds issued_by_user_id: the host who put
 		// a guest on the list by name. dbDelta adds the column itself.
@@ -248,6 +257,29 @@ final class RsvpPassesTable {
 		return array(
 			'claimed'    => (int) ( $row['claimed'] ?? 0 ),
 			'checked_in' => (int) ( $row['checked_in'] ?? 0 ),
+		);
+	}
+
+	/**
+	 * Count the spots one invited party holds (active + redeemed).
+	 *
+	 * @param int $event_id Event post ID.
+	 * @param int $party_id Party ID.
+	 * @return int
+	 */
+	public static function count_for_party( int $event_id, int $party_id ): int {
+		global $wpdb;
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Allotments must read live rows, never a cache.
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE event_id = %d AND party_id = %d AND status IN (%s, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id,
+				$party_id,
+				self::STATUS_ACTIVE,
+				self::STATUS_REDEEMED
+			)
 		);
 	}
 
@@ -430,15 +462,22 @@ final class RsvpPassesTable {
 	 * @param int    $capacity   Max outstanding passes (active + redeemed). 0 = unlimited.
 	 * @param string $guest_name        Name the guest gave, shown at check-in.
 	 * @param int    $issued_by_user_id Host who added the guest by name (extrachill#1119); 0 when the guest claimed it with the password.
+	 * @param int    $party_id          Invited party that added the guest (extrachill#1128); 0 for none.
+	 * @param int    $party_cap         The party's allotment, enforced under the same lock. 0 = no party cap.
 	 * @return array|null The new active pass row, or null when full or the lock can't be taken.
 	 */
-	public static function issue_anonymous( int $event_id, int $capacity = 0, string $guest_name = '', int $issued_by_user_id = 0 ): ?array {
-		if ( $capacity > 0 && ! self::acquire_capacity_lock( $event_id ) ) {
+	public static function issue_anonymous( int $event_id, int $capacity = 0, string $guest_name = '', int $issued_by_user_id = 0, int $party_id = 0, int $party_cap = 0 ): ?array {
+		$party_cap = $party_id > 0 ? $party_cap : 0;
+		$locked    = $capacity > 0 || $party_cap > 0;
+		if ( $locked && ! self::acquire_capacity_lock( $event_id ) ) {
 			return null;
 		}
 
 		try {
 			if ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] >= $capacity ) {
+				return null;
+			}
+			if ( $party_cap > 0 && self::count_for_party( $event_id, $party_id ) >= $party_cap ) {
 				return null;
 			}
 
@@ -457,11 +496,12 @@ final class RsvpPassesTable {
 					'updated_at' => $now,
 				)
 				+ ( $issued_by_user_id > 0 ? array( 'issued_by_user_id' => $issued_by_user_id ) : array() )
+				+ ( $party_id > 0 ? array( 'party_id' => $party_id ) : array() )
 			);
 
 			return false === $inserted ? null : self::find_by_code( $code );
 		} finally {
-			if ( $capacity > 0 ) {
+			if ( $locked ) {
 				self::release_capacity_lock( $event_id );
 			}
 		}
@@ -516,9 +556,10 @@ final class RsvpPassesTable {
 	 *
 	 * @param int    $event_id Event post ID the code must belong to.
 	 * @param string $code     Exact pass code.
+	 * @param int    $party_id When set, the pass must also belong to this invited party.
 	 * @return bool Whether a pass was revoked.
 	 */
-	public static function revoke_by_code( int $event_id, string $code ): bool {
+	public static function revoke_by_code( int $event_id, string $code, int $party_id = 0 ): bool {
 		if ( '' === $code ) {
 			return false;
 		}
@@ -539,6 +580,7 @@ final class RsvpPassesTable {
 				'user_id'  => null,
 				'status'   => self::STATUS_ACTIVE,
 			)
+			+ ( $party_id > 0 ? array( 'party_id' => $party_id ) : array() )
 		);
 
 		return false !== $updated && $updated > 0;

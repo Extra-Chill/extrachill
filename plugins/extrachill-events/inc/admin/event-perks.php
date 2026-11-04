@@ -38,6 +38,13 @@ const EXTRACHILL_EVENTS_PERK_CAPACITY_MAX  = 100000;
 const EXTRACHILL_EVENTS_PERK_IMAGE_META = '_extrachill_event_perk_image_id';
 
 /**
+ * Per-party allotments (extrachill#1128). Off by default: invited bands and
+ * management add names limited only by the event's overall capacity. When
+ * on, each invited party is capped at its own allotment.
+ */
+const EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META = '_extrachill_event_guest_list_allotments';
+
+/**
  * Whether an event currently offers an RSVP perk.
  *
  * @param int $post_id Event post ID.
@@ -128,6 +135,31 @@ function extrachill_events_set_perk_capacity( int $post_id, int $capacity ): voi
 	}
 
 	update_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_CAPACITY_META, $capacity );
+}
+
+/**
+ * Whether invited parties are capped at per-party allotments.
+ *
+ * @param int $post_id Event post ID.
+ * @return bool False (the default) means only overall capacity applies.
+ */
+function extrachill_events_guest_list_allotments_enabled( int $post_id ): bool {
+	return (bool) get_post_meta( $post_id, EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META, true );
+}
+
+/**
+ * Turn per-party allotments on or off.
+ *
+ * @param int  $post_id Event post ID.
+ * @param bool $enabled Whether allotments apply.
+ */
+function extrachill_events_set_guest_list_allotments( int $post_id, bool $enabled ): void {
+	if ( $enabled ) {
+		update_post_meta( $post_id, EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META, true );
+		return;
+	}
+
+	delete_post_meta( $post_id, EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META );
 }
 
 /**
@@ -612,6 +644,7 @@ function extrachill_events_purge_on_perk_meta_change( $meta_ids, $object_id, $me
 		EXTRACHILL_EVENTS_PERK_PASSWORD_META,
 		EXTRACHILL_EVENTS_PERK_CAPACITY_META,
 		EXTRACHILL_EVENTS_PERK_IMAGE_META,
+		EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META,
 	);
 	if ( ! in_array( $meta_key, $perk_keys, true ) ) {
 		return;
