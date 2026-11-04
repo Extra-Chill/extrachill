@@ -197,6 +197,71 @@ function extrachill_events_get_perk_image_alt( int $post_id ): string {
 }
 
 /**
+ * Where the pass artwork comes from: the custom pass image, the event's
+ * poster (featured image) as the default, or nothing.
+ *
+ * @param int $post_id Event post ID.
+ * @return string 'custom' | 'poster' | 'none'
+ */
+function extrachill_events_get_pass_image_source( int $post_id ): string {
+	if ( extrachill_events_get_perk_image_id( $post_id ) ) {
+		return 'custom';
+	}
+
+	$poster_id = (int) get_post_thumbnail_id( $post_id );
+	return ( $poster_id > 0 && wp_attachment_is_image( $poster_id ) ) ? 'poster' : 'none';
+}
+
+/**
+ * Attachment ID of the artwork actually shown on the pass: the custom pass
+ * image, else the event poster.
+ *
+ * @param int $post_id Event post ID.
+ * @return int 0 when neither is set.
+ */
+function extrachill_events_get_pass_image_id( int $post_id ): int {
+	switch ( extrachill_events_get_pass_image_source( $post_id ) ) {
+		case 'custom':
+			return extrachill_events_get_perk_image_id( $post_id );
+		case 'poster':
+			return (int) get_post_thumbnail_id( $post_id );
+		default:
+			return 0;
+	}
+}
+
+/**
+ * URL of the artwork actually shown on the pass (custom image, else poster).
+ *
+ * @param int    $post_id Event post ID.
+ * @param string $size    Registered image size.
+ * @return string Empty string when neither is set.
+ */
+function extrachill_events_get_pass_image_url( int $post_id, string $size = 'large' ): string {
+	$image_id = extrachill_events_get_pass_image_id( $post_id );
+	return $image_id ? (string) wp_get_attachment_image_url( $image_id, $size ) : '';
+}
+
+/**
+ * Alt text for the artwork actually shown on the pass.
+ *
+ * @param int $post_id Event post ID.
+ * @return string
+ */
+function extrachill_events_get_pass_image_alt( int $post_id ): string {
+	$image_id = extrachill_events_get_pass_image_id( $post_id );
+	$alt      = $image_id ? trim( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '';
+	if ( '' !== $alt ) {
+		return $alt;
+	}
+
+	return 'poster' === extrachill_events_get_pass_image_source( $post_id )
+		/* translators: %s: event title. */
+		? sprintf( __( '%s poster', 'extrachill-events' ), get_the_title( $post_id ) )
+		: __( 'Guest list pass artwork', 'extrachill-events' );
+}
+
+/**
  * Guest list counts for display and enforcement.
  *
  * @param int $post_id Event post ID.

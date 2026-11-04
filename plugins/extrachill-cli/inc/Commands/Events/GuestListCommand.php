@@ -63,7 +63,7 @@ class GuestListCommand {
 	 * : Most passes the event will issue. 0 = unlimited.
 	 *
 	 * [--image-id=<attachment-id>]
-	 * : Pass artwork: an image attachment ID shown on the pass next to the QR code. 0 removes it.
+	 * : Pass artwork: an image attachment ID shown on the pass next to the QR code. 0 removes it (the pass then shows the event poster, if any).
 	 *
 	 * [--disable]
 	 * : Turn the guest list off.
@@ -147,7 +147,7 @@ class GuestListCommand {
 		}
 
 		$rows = array();
-		foreach ( array( 'post_id', 'enabled', 'text', 'password_required', 'capacity', 'claimed', 'checked_in', 'spots_left', 'full', 'image_id', 'image_url' ) as $field ) {
+		foreach ( array( 'post_id', 'enabled', 'text', 'password_required', 'capacity', 'claimed', 'checked_in', 'spots_left', 'full', 'image_id', 'image_url', 'pass_image_source', 'pass_image_url' ) as $field ) {
 			$value = $perk[ $field ] ?? null;
 			if ( is_bool( $value ) ) {
 				$value = $value ? 'yes' : 'no';

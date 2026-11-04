@@ -424,3 +424,14 @@
     margin: 0 auto var(--spacing-sm, 0.5rem);
     border-radius: var(--border-radius-sm, 4px);
 }
+
+/*
+ * Pass image preview in the host guest-list panel (extrachill#1118).
+ */
+.ec-guest-list-management__art {
+    display: block;
+    width: 100%;
+    max-width: 12rem;
+    height: auto;
+    border-radius: var(--border-radius-sm, 4px);
+}

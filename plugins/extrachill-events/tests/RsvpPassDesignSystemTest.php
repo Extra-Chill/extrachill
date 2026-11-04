@@ -69,21 +69,22 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 * row and the door list. Each must have a real rule there.
 	 */
 	private const COMPOSITION_CLASSES = array(
-		'ec-rsvp-pass'          => 'pass card: full-width centered line in the action row',
-		'ec-rsvp-pass__perk'    => 'emphasized perk line',
-		'ec-rsvp-pass__label'   => 'muted small label',
-		'ec-rsvp-pass__code'    => 'monospace pass code',
-		'ec-rsvp-pass__qr'      => 'centered QR block',
-		'ec-rsvp-pass__art'     => 'per-event pass artwork, phone-width block (extrachill#500)',
-		'ec-rsvp-perk-teaser'   => 'teaser line for people without a pass',
-		'ec-rsvp-guest'         => 'guest email form: full-width centered line under the teaser',
-		'ec-rsvp-guest__note'   => 'muted small note under the guest form',
-		'ec-door-list'          => 'door list card spacing',
-		'ec-door-list__heading' => 'heading margin reset',
-		'ec-door-list__note'    => 'muted small note',
-		'ec-door-list__rows'    => 'bullet-free list',
-		'ec-door-list__row'     => 'name/action row',
-		'ec-door-list__status'  => 'muted status',
+		'ec-rsvp-pass'                  => 'pass card: full-width centered line in the action row',
+		'ec-rsvp-pass__perk'            => 'emphasized perk line',
+		'ec-rsvp-pass__label'           => 'muted small label',
+		'ec-rsvp-pass__code'            => 'monospace pass code',
+		'ec-rsvp-pass__qr'              => 'centered QR block',
+		'ec-rsvp-pass__art'             => 'per-event pass artwork, phone-width block (extrachill#500)',
+		'ec-guest-list-management__art' => 'pass image preview in the host panel (extrachill#1118)',
+		'ec-rsvp-perk-teaser'           => 'teaser line for people without a pass',
+		'ec-rsvp-guest'                 => 'guest email form: full-width centered line under the teaser',
+		'ec-rsvp-guest__note'           => 'muted small note under the guest form',
+		'ec-door-list'                  => 'door list card spacing',
+		'ec-door-list__heading'         => 'heading margin reset',
+		'ec-door-list__note'            => 'muted small note',
+		'ec-door-list__rows'            => 'bullet-free list',
+		'ec-door-list__row'             => 'name/action row',
+		'ec-door-list__status'          => 'muted status',
 	);
 
 	/**

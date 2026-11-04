@@ -76,6 +76,17 @@ function extrachill_events_save_guest_list_management(): void {
 		$input['password'] = $password;
 	}
 
+	if ( ! empty( $_POST['remove_pass_image'] ) ) {
+		$input['image_id'] = 0;
+	}
+	if ( ! empty( $_FILES['pass_image']['name'] ) ) {
+		$image_id = extrachill_events_handle_pass_image_upload( $event_id, get_current_user_id() );
+		if ( is_wp_error( $image_id ) ) {
+			wp_die( esc_html( $image_id->get_error_message() ), '', array( 'response' => (int) ( $image_id->get_error_data()['status'] ?? 400 ) ) );
+		}
+		$input['image_id'] = $image_id;
+	}
+
 	// The ability owns validation, authorization, and persistence.
 	$result = $ability->execute( $input );
 	if ( is_wp_error( $result ) ) {
@@ -86,6 +97,73 @@ function extrachill_events_save_guest_list_management(): void {
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_settings', 'extrachill_events_save_guest_list_management' );
+
+/** Largest pass image a host may upload from the panel, in bytes. */
+const EXTRACHILL_EVENTS_PASS_IMAGE_MAX_BYTES = 10 * MB_IN_BYTES;
+
+/**
+ * Upload a pass image from the host panel into the media library.
+ *
+ * Venue and promoter team members manage events without holding
+ * upload_files, so authorization is the event-management check, not the
+ * media capability. Only raster images within the size cap are accepted.
+ * The new attachment is attached to the event.
+ *
+ * @param int $event_id Event post ID.
+ * @param int $user_id  Uploading user.
+ * @return int|WP_Error Attachment ID.
+ */
+function extrachill_events_handle_pass_image_upload( int $event_id, int $user_id ) {
+	if ( ! extrachill_events_user_can_manage_event( $user_id, $event_id ) ) {
+		return new WP_Error( 'forbidden', __( 'You cannot manage this event.', 'extrachill-events' ), array( 'status' => 403 ) );
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput -- Nonce checked by the caller; the file array is validated below and handled by core.
+	$file = isset( $_FILES['pass_image'] ) && is_array( $_FILES['pass_image'] ) ? $_FILES['pass_image'] : array();
+	if ( empty( $file['tmp_name'] ) || UPLOAD_ERR_OK !== (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+		return new WP_Error( 'invalid_pass_image', __( 'The pass image did not upload. Try again.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+	if ( (int) ( $file['size'] ?? 0 ) > EXTRACHILL_EVENTS_PASS_IMAGE_MAX_BYTES ) {
+		return new WP_Error( 'invalid_pass_image', __( 'The pass image must be 10 MB or smaller.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	$allowed = array(
+		'jpg|jpeg|jpe' => 'image/jpeg',
+		'png'          => 'image/png',
+		'gif'          => 'image/gif',
+		'webp'         => 'image/webp',
+	);
+	$check   = wp_check_filetype_and_ext( (string) $file['tmp_name'], (string) $file['name'], $allowed );
+	if ( empty( $check['type'] ) || ! in_array( $check['type'], $allowed, true ) ) {
+		return new WP_Error( 'invalid_pass_image', __( 'The pass image must be a JPG, PNG, GIF, or WebP image.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	// admin-post.php already loads these through wp-admin/includes/admin.php.
+	if ( ! function_exists( 'media_handle_upload' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+	}
+
+	$attachment_id = media_handle_upload(
+		'pass_image',
+		$event_id,
+		array( 'post_author' => $user_id ),
+		array(
+			'test_form' => false,
+			'mimes'     => $allowed,
+		)
+	);
+	if ( is_wp_error( $attachment_id ) ) {
+		return new WP_Error( 'invalid_pass_image', $attachment_id->get_error_message(), array( 'status' => 400 ) );
+	}
+	if ( ! wp_attachment_is_image( $attachment_id ) ) {
+		wp_delete_attachment( $attachment_id, true );
+		return new WP_Error( 'invalid_pass_image', __( 'The pass image must be an image.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	return (int) $attachment_id;
+}
 
 /**
  * Serve the guest-list share QR (PNG) to event managers.

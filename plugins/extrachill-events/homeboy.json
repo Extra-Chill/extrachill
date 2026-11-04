@@ -80,6 +80,11 @@
             "runtime": "host"
           },
           {
+            "name": "guest-list-pass-image-unit",
+            "config": "phpunit-guest-list-pass-image-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "archive-layout-unit",
             "config": "phpunit-archive-layout-unit.xml.dist",
             "runtime": "host"

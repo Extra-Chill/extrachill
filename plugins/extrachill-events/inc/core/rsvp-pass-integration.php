@@ -75,8 +75,8 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 	$guest_form = ! is_user_logged_in() && ! $password_required;
 	$guest_list = extrachill_events_get_guest_list_counts( $post_id );
 
-	$perk_image_url = function_exists( 'extrachill_events_get_perk_image_url' ) ? extrachill_events_get_perk_image_url( $post_id ) : '';
-	$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_perk_image_alt( $post_id ) : '';
+	$perk_image_url = function_exists( 'extrachill_events_get_pass_image_url' ) ? extrachill_events_get_pass_image_url( $post_id ) : '';
+	$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_pass_image_alt( $post_id ) : '';
 
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/rsvp-pass.php';
 }
