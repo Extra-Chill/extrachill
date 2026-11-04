@@ -15,3 +15,12 @@ document.addEventListener( 'click', async ( event ) => {
 		status.textContent = i18n.copyHint || '';
 	}
 } );
+
+/** Ask before a host takes a guest off the list from the door list. */
+document.addEventListener( 'submit', ( event ) => {
+	const form = event.target.closest( 'form[data-confirm]' );
+	// eslint-disable-next-line no-alert -- A native confirm is the right guard against a mis-tap at the door.
+	if ( form && ! window.confirm( form.dataset.confirm ) ) {
+		event.preventDefault();
+	}
+} );

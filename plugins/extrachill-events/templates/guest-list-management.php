@@ -90,6 +90,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php else : ?>
 		<p><?php esc_html_e( 'Enable the perk and set a password, then save to activate the share page and QR.', 'extrachill-events' ); ?></p>
 	<?php endif; ?>
+	<?php if ( $settings && extrachill_events_has_guest_list_page( $event_id ) ) : ?>
+		<?php
+		// Front end only: the wp-admin meta box renders this panel inside the post form, where a nested form would break saving.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation after the add redirect; the code is checked against this event below.
+		$added_code = isset( $_GET['ec_guest_added'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_GET['ec_guest_added'] ) ) ) : '';
+		$added_pass = ( '' !== $added_code && class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) ? \ExtraChillEvents\Core\RsvpPassesTable::find_by_code( $added_code ) : null;
+		if ( $added_pass && (int) $added_pass['event_id'] === $event_id && empty( $added_pass['user_id'] ) ) :
+			$added_name = (string) ( $added_pass['guest_name'] ?? '' );
+			?>
+			<div class="notice notice-success" data-guest-list-share>
+				<p>
+				<?php
+				/* translators: %s: guest name. */
+				printf( esc_html__( '%s is on the list. Text them this link so they have their pass at the door:', 'extrachill-events' ), esc_html( $added_name ) );
+				?>
+				</p>
+				<label><?php esc_html_e( 'Pass link', 'extrachill-events' ); ?>
+					<input type="url" readonly value="<?php echo esc_attr( extrachill_events_guest_list_pass_link( $event_id, $added_code, $added_name ) ); ?>">
+				</label>
+				<button type="button" class="button-2 button-small" data-copy-guest-list><?php esc_html_e( 'Copy pass link', 'extrachill-events' ); ?></button>
+				<p role="status" aria-live="polite" data-copy-status></p>
+			</div>
+		<?php endif; ?>
+		<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<h4><?php esc_html_e( 'Add a guest', 'extrachill-events' ); ?></h4>
+			<p><?php esc_html_e( 'Comps and guest list spots: add a name and they get a pass that scans at the door. No password needed. If they are not on the list, they are not on the list.', 'extrachill-events' ); ?></p>
+			<input type="hidden" name="action" value="ec_guest_list_add">
+			<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+			<?php wp_nonce_field( 'ec_guest_list_add_' . $event_id, '_wpnonce', false ); ?>
+			<label><?php esc_html_e( 'Guest name', 'extrachill-events' ); ?>
+				<input type="text" name="name" required maxlength="100" autocomplete="off">
+			</label>
+			<label><?php esc_html_e( 'Email (optional, sends them the pass)', 'extrachill-events' ); ?>
+				<input type="email" name="email" maxlength="200" autocomplete="off">
+			</label>
+			<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Add to guest list', 'extrachill-events' ); ?></button>
+		</form>
+	<?php endif; ?>
 	<p><a class="button-2 button-small" href="<?php echo esc_url( get_permalink( $event_id ) . '#ec-door-list' ); ?>"><?php esc_html_e( 'Open door list', 'extrachill-events' ); ?></a></p>
 	<p><?php esc_html_e( 'Door staff: log in on your phone before doors. Scan the attendee’s pass to open /rsvp-verify/, then tap Check in. You can also check in manually from the door list.', 'extrachill-events' ); ?></p>
 </section>

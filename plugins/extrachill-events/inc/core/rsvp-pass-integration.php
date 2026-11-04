@@ -154,7 +154,10 @@ function extrachill_events_append_door_list( $content ) {
 			if ( \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REVOKED === $guest_pass['status'] ) {
 				continue;
 			}
+			$added_by_id  = (int) ( $guest_pass['issued_by_user_id'] ?? 0 );
+			$added_by     = $added_by_id ? get_userdata( $added_by_id ) : false;
 			$guest_rows[] = array(
+				'added_by'    => $added_by ? (string) $added_by->display_name : '',
 				'guest_name'  => (string) ( $guest_pass['guest_name'] ?? '' ),
 				'code'        => (string) $guest_pass['code'],
 				'status'      => (string) $guest_pass['status'],
