@@ -110,9 +110,9 @@ final class NetworkAbilitySearch {
 		$sites_queried = array();
 		$errors        = array();
 
-		$local_site_key = NetworkDispatch::local_site_key();
+		$local_site_key  = NetworkDispatch::local_site_key();
 		$sites_queried[] = $local_site_key ?? 'local';
-		$local_records  = self::local_records( $category );
+		$local_records   = self::local_records( $category );
 		foreach ( $local_records as $record ) {
 			$remote_records[ $record['name'] ] = $record;
 		}

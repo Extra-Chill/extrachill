@@ -155,6 +155,23 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 
 	public function test_local_best_match_after_position_100_is_ranked_first(): void {
 		$records = self::late_best_records();
+		if ( ! wp_has_ability_category( 'extrachill-mcp' ) ) {
+			add_action(
+				'wp_abilities_api_categories_init',
+				static function (): void {
+					if ( ! wp_has_ability_category( 'extrachill-mcp' ) ) {
+						wp_register_ability_category(
+							'extrachill-mcp',
+							array(
+								'label'       => 'Extra Chill MCP',
+								'description' => 'Test category.',
+							)
+						);
+					}
+				}
+			);
+			do_action( 'wp_abilities_api_categories_init' );
+		}
 		$register = static function () use ( $records ): void {
 			foreach ( $records as $record ) {
 				if ( wp_has_ability( $record['name'] ) ) {
