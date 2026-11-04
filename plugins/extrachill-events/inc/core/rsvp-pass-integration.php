@@ -77,6 +77,7 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 
 	$perk_image_url = function_exists( 'extrachill_events_get_pass_image_url' ) ? extrachill_events_get_pass_image_url( $post_id ) : '';
 	$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_pass_image_alt( $post_id ) : '';
+	$pass_card_html = '' === $perk_image_url && function_exists( 'extrachill_events_render_pass_card' ) ? extrachill_events_render_pass_card( $post_id ) : '';
 
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/rsvp-pass.php';
 }

@@ -93,7 +93,7 @@ class EventPerkAbilities {
 								'pass_image_url'    => array( 'type' => 'string' ),
 								'pass_image_source' => array(
 									'type' => 'string',
-									'enum' => array( 'custom', 'poster', 'none' ),
+									'enum' => array( 'custom', 'poster', 'card' ),
 								),
 							),
 						),
@@ -146,7 +146,7 @@ class EventPerkAbilities {
 						'pass_image_url'    => array( 'type' => 'string' ),
 						'pass_image_source' => array(
 							'type' => 'string',
-							'enum' => array( 'custom', 'poster', 'none' ),
+							'enum' => array( 'custom', 'poster', 'card' ),
 						),
 					),
 				),

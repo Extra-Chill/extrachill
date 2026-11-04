@@ -307,8 +307,8 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'https://events.example.test/uploads/pass-900-large.png', extrachill_events_get_pass_image_url( 42 ) );
 	}
 
-	public function test_pass_image_is_empty_without_custom_art_or_poster(): void {
-		$this->assertSame( 'none', extrachill_events_get_pass_image_source( 42 ) );
+	public function test_pass_falls_back_to_the_event_card_without_custom_art_or_poster(): void {
+		$this->assertSame( 'card', extrachill_events_get_pass_image_source( 42 ) );
 		$this->assertSame( 0, extrachill_events_get_pass_image_id( 42 ) );
 		$this->assertSame( '', extrachill_events_get_pass_image_url( 42 ) );
 	}
@@ -316,7 +316,7 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 	public function test_a_non_image_poster_is_not_used_on_the_pass(): void {
 		$GLOBALS['event_perk_test']['thumbnails'][42] = 901;
 
-		$this->assertSame( 'none', extrachill_events_get_pass_image_source( 42 ) );
+		$this->assertSame( 'card', extrachill_events_get_pass_image_source( 42 ) );
 		$this->assertSame( '', extrachill_events_get_pass_image_url( 42 ) );
 	}
 
