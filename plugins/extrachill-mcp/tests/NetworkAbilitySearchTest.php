@@ -2,13 +2,8 @@
 /**
  * Tests for `extrachill/ability-search`'s network fan-out.
  *
- * The local hop reuses the Agents API substrate's own
- * `agents/ability-search` (via `NetworkDispatch::run_local_ability()`),
- * which is not registered in this plugin's isolated test environment, so
- * every test here genuinely observes a local-hop error alongside the
- * remote fan-out — that degraded local leg is real environment behavior,
- * not a test artifact, and these assertions treat it as such rather than
- * hiding it. The remote fan-out across `NetworkDispatch::remote_sites()`
+ * Local discovery reads the exposed registry directly, without requiring
+ * agents/ability-search. Remote fan-out across `NetworkDispatch::remote_sites()`
  * is fully exercised through `NetworkStub`'s cross-site transport.
  *
  * @package ExtraChillMcp\Tests
@@ -81,7 +76,7 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 
 		$result = $this->search->execute( array( 'query' => 'venue' ) );
 
-		$this->assertSame( array( 'events' ), $result['sites_queried'] );
+		$this->assertSame( array( 'main', 'events' ), $result['sites_queried'] );
 		$this->assertCount( 1, $result['abilities'] );
 		$this->assertSame( 'extrachill/get-venue', $result['abilities'][0]['name'] );
 		$this->assertSame( 'events', $result['abilities'][0]['site'] );
@@ -90,10 +85,7 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 		$this->assertSame( 1, $result['count'] );
 		$this->assertTrue( $forced, 'The remote search hop must force the target site\'s own bootstrap over HTTP loopback.' );
 
-		// The local hop degrades in this isolated environment because
-		// agents/ability-search is not registered — proving it was actually
-		// attempted, tagged under this site's own key.
-		$this->assertArrayHasKey( 'main', $result['errors'] );
+		$this->assertArrayNotHasKey( 'main', $result['errors'] );
 	}
 
 	public function test_fan_out_records_a_remote_site_error_without_failing_the_whole_search(): void {
@@ -101,14 +93,14 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 			return new WP_Error( 'http_request_failed', 'timeout' );
 		};
 
-		$result = $this->search->execute( array() );
+		$result = $this->search->execute( array( 'query' => 'nonexistent-network-search-fixture' ) );
 
-		$this->assertSame( array(), $result['sites_queried'] );
+		$this->assertSame( array( 'main' ), $result['sites_queried'] );
 		$this->assertSame( array(), $result['abilities'] );
 		$this->assertSame( 0, $result['count'] );
 		$this->assertArrayHasKey( 'events', $result['errors'] );
 		$this->assertSame( 'timeout (http_request_failed)', $result['errors']['events'] );
-		$this->assertArrayHasKey( 'main', $result['errors'] );
+		$this->assertArrayNotHasKey( 'main', $result['errors'] );
 	}
 
 	public function test_fan_out_queries_every_remote_site_with_the_same_search_input(): void {
@@ -141,11 +133,67 @@ class NetworkAbilitySearchTest extends WP_UnitTestCase {
 
 		$names = static fn( array $entries ): array => array_column( $entries, 'name' );
 
-		$this->assertSame( array( 'datamachine/instagram-account', 'datamachine/instagram-read' ), $names( NetworkAbilitySearch::match_records( $records, 'instagram', 20 ) ) );
-		$this->assertSame( array( 'datamachine/instagram-read' ), $names( NetworkAbilitySearch::match_records( $records, 'instagram +recent', 20 ) ) );
-		$this->assertSame( array( 'extrachill/community-list-forums' ), $names( NetworkAbilitySearch::match_records( $records, 'select:extrachill/community-list-forums', 20 ) ) );
-		$this->assertCount( 1, NetworkAbilitySearch::match_records( $records, '', 1 ) );
-		$this->assertSame( 'List Forums', NetworkAbilitySearch::match_records( $records, 'forums', 20 )[0]['summary'] );
+		$this->assertSame( array( 'datamachine/instagram-account', 'datamachine/instagram-read' ), $names( NetworkAbilitySearch::match_records( $records, 'instagram' ) ) );
+		$this->assertSame( array( 'datamachine/instagram-read' ), $names( NetworkAbilitySearch::match_records( $records, 'instagram +recent' ) ) );
+		$this->assertSame( array( 'extrachill/community-list-forums' ), $names( NetworkAbilitySearch::match_records( $records, 'select:extrachill/community-list-forums' ) ) );
+		$this->assertCount( 3, NetworkAbilitySearch::match_records( $records, '' ) );
+		$this->assertSame( 'List Forums', NetworkAbilitySearch::match_records( $records, 'forums' )[0]['summary'] );
+	}
+
+	public function test_remote_best_match_after_position_100_is_ranked_first(): void {
+		$records = self::late_best_records();
+		NetworkStub::$cross_site_handler = static function ( string $site, string $method, string $path, array $args ) use ( $records ) {
+			return array_slice( $records, ( ( $args['query']['page'] ?? 1 ) - 1 ) * 100, 100 );
+		};
+
+		$this->assertCount( 151, NetworkAbilitySearch::match_records( $records, 'event' ) );
+		$result = $this->search->execute( array( 'query' => 'event', 'limit' => 1 ) );
+		$this->assertSame( 1, $result['count'] );
+		$this->assertSame( 'data-machine-events/update-event', $result['abilities'][0]['name'] );
+		$this->assertSame( array( 'events' ), $result['abilities'][0]['sites'] );
+	}
+
+	public function test_local_best_match_after_position_100_is_ranked_first(): void {
+		$records = self::late_best_records();
+		$register = static function () use ( $records ): void {
+			foreach ( $records as $record ) {
+				if ( wp_has_ability( $record['name'] ) ) {
+					continue;
+				}
+				wp_register_ability(
+					$record['name'],
+					$record + array(
+						'category'            => 'extrachill-mcp',
+						'execute_callback'    => '__return_empty_array',
+						'permission_callback' => '__return_true',
+						'meta'                => array( 'mcp' => array( 'public' => true ) ),
+					)
+				);
+			}
+		};
+		add_action( 'wp_abilities_api_init', $register );
+		try {
+			do_action( 'wp_abilities_api_init' );
+			NetworkStub::$cross_site_handler = static fn() => array();
+			$result = $this->search->execute( array( 'query' => 'event', 'limit' => 1 ) );
+			$this->assertSame( 1, $result['count'] );
+			$this->assertSame( 'data-machine-events/update-event', $result['abilities'][0]['name'] );
+			$this->assertSame( array( 'main' ), $result['abilities'][0]['sites'] );
+		} finally {
+			remove_action( 'wp_abilities_api_init', $register );
+			foreach ( $records as $record ) {
+				wp_unregister_ability( $record['name'] );
+			}
+		}
+	}
+
+	private static function late_best_records(): array {
+		$records = array();
+		for ( $i = 0; $i < 150; ++$i ) {
+			$records[] = array( 'name' => "extrachill/booking-{$i}", 'label' => 'Booking', 'description' => 'An event booking.' );
+		}
+		$records[] = array( 'name' => 'data-machine-events/update-event', 'label' => 'Update Event', 'description' => 'Update an existing event.' );
+		return $records;
 	}
 
 	public function test_dedupe_lists_every_site_once_per_ability(): void {
