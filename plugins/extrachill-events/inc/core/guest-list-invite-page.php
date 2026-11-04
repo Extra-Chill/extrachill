@@ -234,3 +234,38 @@ function extrachill_events_guest_invite_remove_name(): void {
 }
 add_action( 'admin_post_ec_guest_party_remove', 'extrachill_events_guest_invite_remove_name' );
 add_action( 'admin_post_nopriv_ec_guest_party_remove', 'extrachill_events_guest_invite_remove_name' );
+
+/**
+ * Invite page "Ask for more spots" form (extrachill#1129).
+ */
+function extrachill_events_guest_invite_request_spots(): void {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified inside extrachill_events_run_guest_invite_form().
+	extrachill_events_run_guest_invite_form(
+		'extrachill/party-request-more-spots',
+		array(
+			'token' => isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '',
+			'spots' => isset( $_POST['spots'] ) ? absint( $_POST['spots'] ) : 0,
+			'note'  => isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : '',
+		)
+	);
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+}
+add_action( 'admin_post_ec_guest_party_request_spots', 'extrachill_events_guest_invite_request_spots' );
+add_action( 'admin_post_nopriv_ec_guest_party_request_spots', 'extrachill_events_guest_invite_request_spots' );
+
+/**
+ * Invite page "Send a list for approval" form (extrachill#1129).
+ */
+function extrachill_events_guest_invite_submit_list(): void {
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified inside extrachill_events_run_guest_invite_form().
+	extrachill_events_run_guest_invite_form(
+		'extrachill/party-submit-guest-list',
+		array(
+			'token' => isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '',
+			'names' => isset( $_POST['names'] ) ? sanitize_textarea_field( wp_unslash( $_POST['names'] ) ) : '',
+		)
+	);
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
+}
+add_action( 'admin_post_ec_guest_party_submit_list', 'extrachill_events_guest_invite_submit_list' );
+add_action( 'admin_post_nopriv_ec_guest_party_submit_list', 'extrachill_events_guest_invite_submit_list' );

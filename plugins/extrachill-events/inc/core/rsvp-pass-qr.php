@@ -149,7 +149,8 @@ function extrachill_events_serve_rsvp_pass_qr(): void {
 	}
 
 	$pass = \ExtraChillEvents\Core\RsvpPassesTable::find_by_code( $code );
-	if ( ! $pass || \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REVOKED === $pass['status'] ) {
+	// Only passes that work at the door get a QR: not revoked, pending, or denied (extrachill#1129).
+	if ( ! $pass || ! in_array( $pass['status'], array( \ExtraChillEvents\Core\RsvpPassesTable::STATUS_ACTIVE, \ExtraChillEvents\Core\RsvpPassesTable::STATUS_REDEEMED ), true ) ) {
 		status_header( 404 );
 		exit;
 	}

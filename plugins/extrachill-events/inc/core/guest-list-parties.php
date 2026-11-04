@@ -102,14 +102,19 @@ function extrachill_events_guest_list_party_summary( int $event_id, array $party
 	$used = RsvpPassesTable::count_for_party( $event_id, (int) $party['id'] );
 
 	return array(
-		'party_id'   => (int) $party['id'],
-		'name'       => (string) $party['name'],
-		'email'      => (string) $party['email'],
-		'status'     => (string) $party['status'],
-		'allotment'  => isset( $party['allotment'] ) && null !== $party['allotment'] ? (int) $party['allotment'] : null,
-		'used'       => $used,
-		'spots_left' => null === $cap ? null : max( 0, $cap - $used ),
-		'created_at' => (string) ( $party['created_at'] ?? '' ),
+		'party_id'        => (int) $party['id'],
+		'name'            => (string) $party['name'],
+		'email'           => (string) $party['email'],
+		'status'          => (string) $party['status'],
+		'allotment'       => isset( $party['allotment'] ) && null !== $party['allotment'] ? (int) $party['allotment'] : null,
+		'used'            => $used,
+		'spots_left'      => null === $cap ? null : max( 0, $cap - $used ),
+		'created_at'      => (string) ( $party['created_at'] ?? '' ),
+		// Requests and submitted lists (extrachill#1129).
+		'origin'          => (string) ( $party['origin'] ?? GuestListPartiesTable::ORIGIN_INVITE ),
+		'requested_spots' => isset( $party['requested_spots'] ) && null !== $party['requested_spots'] ? (int) $party['requested_spots'] : null,
+		'request_note'    => (string) ( $party['request_note'] ?? '' ),
+		'pending_names'   => RsvpPassesTable::count_pending_for_party( $event_id, (int) $party['id'] ),
 	);
 }
 
@@ -188,6 +193,9 @@ function extrachill_events_revoke_guest_list_party( int $event_id, int $party_id
 	if ( ! GuestListPartiesTable::revoke( $event_id, $party_id ) ) {
 		return new WP_Error( 'party_not_revocable', __( 'That invite is not on this event, or was already revoked.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
+
+	// Names still waiting for approval (extrachill#1129) die with the invite.
+	RsvpPassesTable::deny_pending_for_party( $event_id, $party_id );
 
 	return array(
 		'revoked'     => true,
@@ -336,7 +344,9 @@ function extrachill_events_party_remove_guest_list_name( string $token, string $
 }
 
 /**
- * The names a party has on the list (active and checked in), oldest first.
+ * The names a party has on the list (active and checked in), plus the
+ * names it submitted that are waiting for (or were refused) the venue's
+ * OK (extrachill#1129), oldest first.
  *
  * @param array $party Party row.
  * @return array[] Pass rows.
@@ -396,7 +406,9 @@ function extrachill_events_door_list_guest_rows( int $event_id ): array {
 		array_filter(
 			RsvpPassesTable::list_guest_passes( $event_id ),
 			static function ( $pass ) {
-				return RsvpPassesTable::STATUS_REVOKED !== $pass['status'];
+				// Only names the venue put on the list: pending and denied
+				// submissions (extrachill#1129) are not on the door list.
+				return in_array( $pass['status'], array( RsvpPassesTable::STATUS_ACTIVE, RsvpPassesTable::STATUS_REDEEMED ), true );
 			}
 		)
 	);

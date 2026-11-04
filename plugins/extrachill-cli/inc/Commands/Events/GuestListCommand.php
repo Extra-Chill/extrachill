@@ -9,7 +9,10 @@
  * `extrachill/remove-guest-list-name`, extrachill#1119), and band /
  * management invites (`extrachill/create-guest-list-party`,
  * `extrachill/list-guest-list-parties`, `extrachill/revoke-guest-list-party`,
- * `extrachill/set-guest-list-party-allotment`, extrachill#1128).
+ * `extrachill/set-guest-list-party-allotment`, extrachill#1128), and the
+ * venue's request queue (`extrachill/list-guest-list-requests`,
+ * `extrachill/approve-guest-list-request`,
+ * `extrachill/deny-guest-list-request`, extrachill#1129).
  *
  * @package ExtraChill\CLI\Commands\Events
  */
@@ -446,5 +449,148 @@ class GuestListCommand {
 		);
 
 		WP_CLI::success( sprintf( '%s: %d of %d spots used.', $party['name'] ?? '', (int) ( $party['used'] ?? 0 ), (int) ( $party['allotment'] ?? 0 ) ) );
+	}
+	/**
+	 * List what is waiting for the venue on an event: uninvited bands
+	 * asking to be on the list (party), invited bands asking for more spots
+	 * (spots), and lists of names sent for approval (list).
+	 *
+	 * ## OPTIONS
+	 *
+	 * <event>
+	 * : Event post ID or slug.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list requests 640348 --user=1 --url=events.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function requests( $args, $assoc_args ) {
+		$result = $this->run( 'extrachill/list-guest-list-requests', array( 'event_id' => $this->event_id( $args[0] ) ) );
+
+		if ( 'json' === Utils\get_flag_value( $assoc_args, 'format', 'table' ) ) {
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		$rows = array();
+		foreach ( (array) ( $result['requests'] ?? array() ) as $request ) {
+			$rows[] = array(
+				'party_id'        => (int) $request['party_id'],
+				'kind'            => (string) $request['kind'],
+				'name'            => (string) $request['name'],
+				'email'           => (string) $request['email'],
+				'requested_spots' => null === $request['requested_spots'] ? '' : (string) $request['requested_spots'],
+				'names'           => implode( ', ', (array) $request['names'] ),
+				'note'            => (string) $request['note'],
+			);
+		}
+		if ( empty( $rows ) ) {
+			WP_CLI::line( 'No pending requests.' );
+			return;
+		}
+		Utils\format_items( 'table', $rows, array( 'party_id', 'kind', 'name', 'email', 'requested_spots', 'names', 'note' ) );
+	}
+
+	/**
+	 * Approve a pending request. spots: the band's allotment grows. list:
+	 * the submitted names go live. party: the uninvited band becomes an
+	 * invited party and is emailed its private link.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <event>
+	 * : Event post ID or slug.
+	 *
+	 * <party-id>
+	 * : Party ID from `requests`.
+	 *
+	 * [--kind=<kind>]
+	 * : party, spots, or list. Needed only when the party has more than one request waiting.
+	 *
+	 * [--spots=<n>]
+	 * : Grant this many spots instead of what was asked (spots and party requests).
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list approve 640348 12 --user=1 --url=events.extrachill.com
+	 *     wp extrachill events guest-list approve 640348 12 --kind=spots --spots=2 --user=1 --url=events.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function approve( $args, $assoc_args ) {
+		$input = array(
+			'event_id' => $this->event_id( $args[0] ),
+			'party_id' => (int) $args[1],
+			'kind'     => (string) Utils\get_flag_value( $assoc_args, 'kind', '' ),
+		);
+		$spots = Utils\get_flag_value( $assoc_args, 'spots', null );
+		if ( null !== $spots ) {
+			if ( ! is_numeric( $spots ) || (int) $spots < 0 ) {
+				WP_CLI::error( '--spots must be 0 or a positive number.' );
+			}
+			$input['spots'] = (int) $spots;
+		}
+
+		$result = $this->run( 'extrachill/approve-guest-list-request', $input );
+
+		$party = (array) ( $result['party'] ?? array() );
+		$line  = sprintf( 'Approved %s request from %s.', $result['kind'] ?? '', $party['name'] ?? '' );
+		if ( ! empty( $result['activated'] ) ) {
+			$line .= sprintf( ' %d name(s) now on the list.', (int) $result['activated'] );
+		}
+		if ( null !== ( $party['allotment'] ?? null ) ) {
+			$line .= sprintf( ' %d of %d spots used.', (int) ( $party['used'] ?? 0 ), (int) $party['allotment'] );
+		}
+		if ( ! empty( $result['invite_url'] ) ) {
+			$line .= sprintf( '%s Link: %s', empty( $result['emailed'] ) ? ' Email NOT sent.' : ' Email sent.', $result['invite_url'] );
+		}
+		if ( ! empty( $result['names_waiting'] ) ) {
+			$line .= sprintf( ' %d name(s) did not fit the guest list and are still waiting.', (int) $result['names_waiting'] );
+		}
+		WP_CLI::success( $line );
+	}
+
+	/**
+	 * Deny a pending request and email the band. Denied names never scan.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <event>
+	 * : Event post ID or slug.
+	 *
+	 * <party-id>
+	 * : Party ID from `requests`.
+	 *
+	 * [--kind=<kind>]
+	 * : party, spots, or list. Needed only when the party has more than one request waiting.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list deny 640348 12 --user=1 --url=events.extrachill.com
+	 *
+	 * @when after_wp_load
+	 */
+	public function deny( $args, $assoc_args ) {
+		$result = $this->run(
+			'extrachill/deny-guest-list-request',
+			array(
+				'event_id' => $this->event_id( $args[0] ),
+				'party_id' => (int) $args[1],
+				'kind'     => (string) Utils\get_flag_value( $assoc_args, 'kind', '' ),
+			)
+		);
+
+		WP_CLI::success( sprintf( 'Denied %s request (%d name(s) denied)%s.', $result['kind'] ?? '', (int) ( $result['denied_names'] ?? 0 ), empty( $result['emailed'] ) ? ', email NOT sent' : ', band emailed' ) );
 	}
 }
