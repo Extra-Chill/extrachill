@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.7] - 2026-11-04
+
+### Fixed
+- rank all network ability matches before limiting
+
 ## [0.2.6] - 2026-10-31
 
 ### Changed
