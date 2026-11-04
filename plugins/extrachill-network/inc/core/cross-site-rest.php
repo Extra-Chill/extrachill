@@ -383,13 +383,15 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 
 	// If the target returned an error status, wrap it.
 	if ( $status_code >= 400 ) {
-		$error_message = 'Cross-site request failed';
-		$error_code    = 'ec_cross_site_error';
-		$error_data    = array( 'status' => $status_code );
+		$error_message   = 'Cross-site request failed';
+		$error_code      = 'ec_cross_site_error';
+		$error_data      = array( 'status' => $status_code );
+		$has_target_code = false;
 
 		if ( is_array( $decoded ) ) {
 			if ( isset( $decoded['code'] ) && is_string( $decoded['code'] ) && strlen( $decoded['code'] ) <= 64 && preg_match( '/^[a-z0-9_-]+$/D', $decoded['code'] ) ) {
-				$error_code = $decoded['code'];
+				$error_code      = $decoded['code'];
+				$has_target_code = true;
 			}
 
 			$target_data = $decoded['data'] ?? null;
@@ -403,6 +405,24 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 				// Retry delays are whole seconds, bounded to one day.
 				if ( isset( $target_data['retry_after'] ) && ( is_int( $target_data['retry_after'] ) || is_float( $target_data['retry_after'] ) ) ) {
 					$retry_after = (float) $target_data['retry_after'];
+					if ( is_finite( $retry_after ) && $retry_after > 0 ) {
+						$error_data['retry_after'] = (int) ceil( min( 86400.0, $retry_after ) );
+					}
+				}
+			}
+		}
+
+		if ( ! $has_target_code ) {
+			$error_message = sprintf( 'Cross-site request failed (HTTP %d)', $status_code );
+			if ( in_array( $status_code, array( 429, 503 ), true ) ) {
+				$error_code              = 429 === $status_code ? 'ec_cross_site_rate_limited' : 'ec_cross_site_unavailable';
+				$error_data['retryable'] = true;
+				$error_data['transient'] = true;
+
+				// Retry-After may be a delay in seconds or an HTTP date.
+				$retry_header = wp_remote_retrieve_header( $response, 'retry-after' );
+				if ( is_string( $retry_header ) && '' !== trim( $retry_header ) ) {
+					$retry_after = is_numeric( $retry_header ) ? (float) $retry_header : (float) ( strtotime( $retry_header ) - time() );
 					if ( is_finite( $retry_after ) && $retry_after > 0 ) {
 						$error_data['retry_after'] = (int) ceil( min( 86400.0, $retry_after ) );
 					}
