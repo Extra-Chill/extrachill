@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			guest-list-pass-image-unit: pure-PHP test for the host-panel pass
+			image upload (extrachill#1118). It doubles
+			extrachill_events_user_can_manage_event(), which the rsvp-perks
+			suite loads for real (EventManagementAuthorityTest), so it runs in
+			its own host process.
+		-->
+		<testsuite name="guest-list-pass-image-unit">
+			<file>tests/Unit/Core/GuestListPassImageUploadTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>

@@ -17,7 +17,7 @@
  * @var bool   $guest_form Whether to render the email-only guest RSVP form (logged-out viewers).
  * @var bool   $password_required Whether claiming a pass needs the guest list password (extrachill#433).
  * @var array  $guest_list        extrachill_events_get_guest_list_counts() result.
- * @var string $perk_image_url    Pass artwork URL (extrachill#500). Empty when none is set.
+ * @var string $perk_image_url    Pass artwork URL: custom pass image (extrachill#500), else the event poster (extrachill#1118). Empty when neither is set.
  * @var string $perk_image_alt    Pass artwork alt text.
  *
  * The teaser is the conversion half of the perk: anyone without an active

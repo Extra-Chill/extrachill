@@ -90,6 +90,11 @@ class EventPerkAbilities {
 								'capacity'          => array( 'type' => 'integer' ),
 								'image_id'          => array( 'type' => 'integer' ),
 								'image_url'         => array( 'type' => 'string' ),
+								'pass_image_url'    => array( 'type' => 'string' ),
+								'pass_image_source' => array(
+									'type' => 'string',
+									'enum' => array( 'custom', 'poster', 'none' ),
+								),
 							),
 						),
 					),
@@ -138,6 +143,11 @@ class EventPerkAbilities {
 						'full'              => array( 'type' => 'boolean' ),
 						'image_id'          => array( 'type' => 'integer' ),
 						'image_url'         => array( 'type' => 'string' ),
+						'pass_image_url'    => array( 'type' => 'string' ),
+						'pass_image_source' => array(
+							'type' => 'string',
+							'enum' => array( 'custom', 'poster', 'none' ),
+						),
 					),
 				),
 				'execute_callback'    => array( $this, 'get_event_perk' ),
@@ -257,6 +267,8 @@ class EventPerkAbilities {
 				'capacity'          => extrachill_events_get_perk_capacity( $post->ID ),
 				'image_id'          => extrachill_events_get_perk_image_id( $post->ID ),
 				'image_url'         => extrachill_events_get_perk_image_url( $post->ID ),
+				'pass_image_url'    => extrachill_events_get_pass_image_url( $post->ID ),
+				'pass_image_source' => extrachill_events_get_pass_image_source( $post->ID ),
 			),
 		);
 	}
@@ -287,6 +299,8 @@ class EventPerkAbilities {
 			'full'              => $counts['full'],
 			'image_id'          => extrachill_events_get_perk_image_id( $post->ID ),
 			'image_url'         => extrachill_events_get_perk_image_url( $post->ID ),
+			'pass_image_url'    => extrachill_events_get_pass_image_url( $post->ID ),
+			'pass_image_source' => extrachill_events_get_pass_image_source( $post->ID ),
 		);
 	}
 }

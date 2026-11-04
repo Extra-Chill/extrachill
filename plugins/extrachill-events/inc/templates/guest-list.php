@@ -21,8 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $event_id       = (int) get_queried_object_id();
 $event          = get_post( $event_id );
 $perk_text      = extrachill_events_get_perk_text( $event_id );
-$perk_image_url = extrachill_events_get_perk_image_url( $event_id );
-$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_perk_image_alt( $event_id ) : '';
+$perk_image_url = extrachill_events_get_pass_image_url( $event_id );
+$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_pass_image_alt( $event_id ) : '';
 $guest_list     = extrachill_events_get_guest_list_counts( $event_id );
 $list_full      = ! empty( $guest_list['full'] );
 $timing         = function_exists( 'ec_users_get_event_timing' ) ? ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) : '';
