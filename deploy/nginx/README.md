@@ -21,6 +21,28 @@ The two answer different questions — "why is the edge shaped like this" versus
 "what exactly is running" — and both are worth keeping. Only `deploy/` is
 authoritative for the second.
 
+## Testing changes
+
+From the repository root, run the rate-limit regression guard and the existing
+login routing guard:
+
+```sh
+php deploy/tests/nginx-loopback-rate-limit-smoke.php
+php deploy/tests/nginx-login-no-redirect-smoke.php
+```
+
+For an isolated syntax check of the HTTP-scope bot configuration (requires Docker):
+
+```sh
+docker run --rm \
+  -v "$PWD/deploy/nginx/conf.d/bot-blocking.conf:/etc/nginx/conf.d/bot-blocking.conf:ro" \
+  nginx:stable nginx -t
+```
+
+This checks the bot configuration against the container's stock nginx config,
+not the production server block and its host-specific dependencies. The operator's
+edge-apply still validates the complete production configuration before reloading.
+
 ## Applying a change
 
 Open a pull request, get it reviewed, merge it. Then on the host:
