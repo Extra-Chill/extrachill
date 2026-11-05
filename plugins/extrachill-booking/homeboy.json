@@ -57,8 +57,8 @@
           }
         ],
         "validation_dependencies": [
-          "extrachill-events",
-          "extrachill-network"
+          "../extrachill-events",
+          "../extrachill-network"
         ],
         "local_workspace_dependencies": [
           {

@@ -13,8 +13,8 @@
             "source_type": "wp.org",
             "slug": "bbpress"
           },
-          "extrachill-users",
-          "extrachill"
+          "../extrachill-users",
+          "../../themes/extrachill"
         ]
       }
     },
