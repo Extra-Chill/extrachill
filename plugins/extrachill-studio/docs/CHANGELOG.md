@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.28.7] - 2026-11-05
+
+### Fixed
+- count live MCP team usage in team stats instead of retired Roadie events
+
 ## [0.28.6] - 2026-11-03
 
 ### Fixed
