@@ -82,6 +82,43 @@ if ( ! function_exists( 'ec_send_email_queued' ) ) {
 	}
 }
 
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( '__' ) ) {
+	function __( $text, $domain = null ) {
+		unset( $domain );
+		return (string) $text;
+	}
+}
+
+if ( ! function_exists( 'wp_attachment_is_image' ) ) {
+	function wp_attachment_is_image( $post_id ) {
+		return in_array( (int) $post_id, $GLOBALS['event_perk_test']['images'] ?? array(), true );
+	}
+}
+
+if ( ! function_exists( 'wp_get_attachment_image_url' ) ) {
+	function wp_get_attachment_image_url( $attachment_id, $size = 'thumbnail' ) {
+		return 'https://events.example.test/uploads/pass-' . (int) $attachment_id . '-' . $size . '.png';
+	}
+}
+
+if ( ! function_exists( 'get_post_thumbnail_id' ) ) {
+	function get_post_thumbnail_id( $post = null ) {
+		return (int) ( $GLOBALS['event_perk_test']['thumbnails'][ (int) $post ] ?? 0 );
+	}
+}
+
+if ( ! function_exists( 'get_the_title' ) ) {
+	function get_the_title( $post = 0 ) {
+		return 'Event ' . (int) $post;
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/admin/event-perks.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-service.php';
 
@@ -152,6 +189,27 @@ final class RsvpPassEmailTest extends PHPUnit\Framework\TestCase {
 		$this->assertStringNotContainsString( '&amp;amp;', $body );
 		$this->assertStringContainsString( 'DL4QD-754DX-UMMEH', $body );
 		$this->assertStringContainsString( 'First beer is on Extra Chill.', $body );
+	}
+
+	public function test_body_shows_pass_art_above_the_qr(): void {
+		$GLOBALS['event_perk_test']['images'] = array( 683670 );
+		$GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ]['_extrachill_event_perk_image_id'] = 683670;
+
+		$this->send();
+
+		$body = $GLOBALS['rsvp_pass_mail_test']['sent'][0]['context']['body_html'];
+		$art  = strpos( $body, 'pass-683670-medium_large.png' );
+		$this->assertNotFalse( $art );
+		$this->assertLessThan( strpos( $body, 'DL4QD-754DX-UMMEH' ), $art );
+
+		unset( $GLOBALS['event_perk_test']['images'] );
+	}
+
+	public function test_body_has_no_art_without_an_image(): void {
+		$this->send();
+
+		$body = $GLOBALS['rsvp_pass_mail_test']['sent'][0]['context']['body_html'];
+		$this->assertStringNotContainsString( 'events.example.test/uploads', $body );
 	}
 
 	public function test_successful_send_logs_nothing(): void {

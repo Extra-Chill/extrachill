@@ -361,6 +361,14 @@ function extrachill_events_render_rsvp_pass_email_body( $post, string $perk_text
 		$html .= '<p><strong>' . esc_html( $perk_text ) . '</strong></p>';
 	}
 
+	// Same artwork the on-screen pass shows (custom pass image, else poster),
+	// so the emailed pass matches what the guest sees on the event page.
+	$art_url = function_exists( 'extrachill_events_get_pass_image_url' ) ? extrachill_events_get_pass_image_url( (int) $post->ID, 'medium_large' ) : '';
+	if ( '' !== $art_url ) {
+		$art_alt = function_exists( 'extrachill_events_get_pass_image_alt' ) ? extrachill_events_get_pass_image_alt( (int) $post->ID ) : '';
+		$html   .= '<p><img src="' . esc_url( $art_url ) . '" width="320" style="max-width:100%;height:auto;" alt="' . esc_attr( $art_alt ) . '"></p>';
+	}
+
 	$html .= '<p>' . esc_html__( 'Show this pass at check-in:', 'extrachill-events' ) . '</p>';
 	$html .= '<p style="font-size:20px;font-weight:bold;letter-spacing:2px;">' . esc_html( $code ) . '</p>';
 
