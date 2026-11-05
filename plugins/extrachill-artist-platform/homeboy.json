@@ -13,11 +13,11 @@
         "runtime_wordpress_version": "7.0",
         "wordpress_runtime_php_version": "8.4",
         "validation_dependencies": [
-          "extrachill-network",
-          "extrachill-api",
-          "extrachill-users",
+          "../extrachill-network",
+          "../extrachill-api",
+          "../extrachill-users",
           "agents-api",
-          "extrachill-link-pages"
+          "../extrachill-link-pages"
         ],
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed",

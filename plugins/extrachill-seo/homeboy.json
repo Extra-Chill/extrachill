@@ -8,7 +8,7 @@
           { "name": "@extrachill/components", "path": "../../packages/components" }
         ],
         "validation_dependencies": [
-          "extrachill-network"
+          "../extrachill-network"
         ],
         "wordpress_runtime_php_version": "8.4"
       }

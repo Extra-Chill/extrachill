@@ -8,7 +8,7 @@
         "wp_codebox_multisite": true,
         "wordpress_runtime_php_version": "8.4",
         "validation_dependencies": [
-          "extrachill-network",
+          "../extrachill-network",
           "data-machine"
         ],
         "wp_config_defines": {

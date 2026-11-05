@@ -11,10 +11,15 @@
           { "name": "@extrachill/components", "path": "../../packages/components" }
         ],
         "validation_dependencies": [
-          "extrachill-network",
-          "extrachill-users",
-          "extrachill-analytics",
-          "../wp-native-auth"
+          "../extrachill-network",
+          "../extrachill-users",
+          "../extrachill-analytics",
+          {
+            "source_type": "github",
+            "repo": "Extra-Chill/wp-native",
+            "slug": "wp-native-auth",
+            "package_path": "plugins/wp-native-auth"
+          }
         ],
         "wp_codebox_database_service": {
           "provider": "external",

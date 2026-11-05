@@ -8,7 +8,7 @@
           "tests/smoke-*.php"
         ],
         "validation_dependencies": [
-          "extrachill-network"
+          "../extrachill-network"
         ]
       }
     }
