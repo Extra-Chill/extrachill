@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '5';
+	const SCHEMA_VERSION = '6';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -99,6 +99,15 @@ final class RsvpPassesTable {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Schema 6 (extrachill#1130) adds the owner's guest list: a venue's
+		// or promoter's standing list and its per-event check-ins, in their
+		// own two tables (OwnerGuestListTable). Plain dbDelta creates.
+		if ( class_exists( OwnerGuestListTable::class ) ) {
+			foreach ( OwnerGuestListTable::schema_sql( $charset ) as $owner_list_sql ) {
+				dbDelta( $owner_list_sql );
+			}
+		}
 
 		// Schema 5 (extrachill#1129) adds the party request columns (origin,
 		// requested_spots, request_note, requested_at, decided_*). Pass rows

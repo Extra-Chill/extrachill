@@ -220,11 +220,19 @@
 	 * redemption rather than erroring or double-redeeming.
 	 */
 	function initVerifyPage() {
-		const result = document.querySelector( '.ec-rsvp-verify__result' );
-		if ( ! result ) {
-			return;
-		}
+		// One result per show: an owner's-list pass (extrachill#1130) can
+		// list more than one show tonight, each with its own Check in.
+		document
+			.querySelectorAll( '.ec-rsvp-verify__result' )
+			.forEach( initVerifyResult );
+	}
 
+	/**
+	 * Wire one verify result's Redeem / Check in button.
+	 *
+	 * @param {Element} result Result container carrying the data-* attributes.
+	 */
+	function initVerifyResult( result ) {
 		const button = result.querySelector( '.ec-rsvp-verify__redeem' );
 		if ( ! button ) {
 			return;

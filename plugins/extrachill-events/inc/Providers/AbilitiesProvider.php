@@ -83,6 +83,7 @@ final class AbilitiesProvider {
 				'EventPerkAbilities',
 				'RsvpPassAbilities',
 				'GuestListPartyAbilities',
+				'OwnerGuestListAbilities',
 				'LocalSceneDigestGuestAbilities',
 				'CityAbilities',
 				'VenueDiscoveryAbilities',

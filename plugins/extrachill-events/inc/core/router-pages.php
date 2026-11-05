@@ -79,7 +79,7 @@ function extrachill_events_location_directory_enabled(): bool {
  * flush-once mechanism, not one per route.
  */
 function extrachill_events_maybe_flush_router_rewrites(): void {
-	$rewrite_version = '9';
+	$rewrite_version = '10';
 	if ( get_option( 'extrachill_events_router_rewrite_version' ) === $rewrite_version ) {
 		return;
 	}
@@ -92,6 +92,9 @@ function extrachill_events_maybe_flush_router_rewrites(): void {
 	}
 	if ( function_exists( 'extrachill_events_guest_invite_rewrite_endpoint' ) ) {
 		extrachill_events_guest_invite_rewrite_endpoint();
+	}
+	if ( function_exists( 'extrachill_events_owner_pass_rewrite_rules' ) ) {
+		extrachill_events_owner_pass_rewrite_rules();
 	}
 
 	flush_rewrite_rules( false );
