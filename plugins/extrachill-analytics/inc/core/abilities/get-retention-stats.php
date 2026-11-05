@@ -9,9 +9,9 @@
  *
  * Why this is deterministic and bot-resistant:
  *
- *   `pageview` rows are written server-side by the track-page-view ability ONLY
- *   for real, JS-executing browsers (the beacon fires post-load) and ONLY when
- *   the request is not a known bot (user-agent filter, mirroring the 404 path).
+ *   The track-page-view writer stamps and keeps bot pageviews. Every query
+ *   here excludes rows whose canonical event_data.is_bot stamp IS TRUE;
+ *   explicit false and missing legacy stamps remain eligible as human.
  *   The visitor_id is a random first-party UUID v4 — no PII, no fingerprint —
  *   so counting distinct visitor_ids across distinct days is a clean,
  *   reproducible retention signal that GA4's sampled/bot-inflated numbers cannot
@@ -37,7 +37,7 @@ function extrachill_analytics_register_retention_stats_ability() {
 		'extrachill/get-retention-stats',
 		array(
 			'label'               => __( 'Get Retention Stats', 'extrachill-analytics' ),
-			'description'         => __( 'Returns deterministic, bot-filtered visitor-retention metrics (return rate, cohort retention, cross-site return, session depth) plus a cross-surface referrer-host breakdown from first-party pageview events.', 'extrachill-analytics' ),
+			'description'         => __( 'Returns first-party visitor-retention metrics (return rate, cohort retention, cross-site return, session depth) and attribution breakdowns, excluding bot-stamped pageviews while keeping unclassified legacy rows as human.', 'extrachill-analytics' ),
 			'category'            => 'extrachill-analytics',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -154,7 +154,8 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// rows are excluded from per-visitor metrics), optional blog filter. An
 	// upper bound is added only when the window ends in the past so the default
 	// (end_days_ago=0) query and its index usage are unchanged.
-	$base_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
+	$human_where = extrachill_analytics_human_events_sql();
+	$base_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s', $human_where );
 	$base_values = array( $event_type, $since );
 
 	if ( $date_range || $end_days_ago > 0 ) {
@@ -197,8 +198,9 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// ---------------------------------------------------------------------
 	$cohort_since = gmdate( 'Y-m-d H:i:s', (int) strtotime( "-{$cohort_weeks} weeks", (int) strtotime( $now_utc ) ) );
 
-	$cohort_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at < %s' );
-	$cohort_values = array( $event_type, $now_utc );
+	$activity_human_where = extrachill_analytics_human_events_sql( 'activity' );
+	$cohort_where         = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at < %s', $human_where );
+	$cohort_values        = array( $event_type, $now_utc );
 	if ( $blog_id > 0 ) {
 		$cohort_where[]  = 'blog_id = %d';
 		$cohort_values[] = $blog_id;
@@ -232,6 +234,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 			LEFT JOIN {$table} AS activity
 				ON activity.visitor_id = acquisition.visitor_id
 				AND activity.event_type = %s
+				AND {$activity_human_where}
 				AND activity.visitor_id IS NOT NULL
 				AND activity.created_at < %s
 				AND activity.created_at >= DATE_ADD(acquisition.cohort_week_start, INTERVAL 7 DAY)
@@ -263,7 +266,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// different UTC days. Only meaningful network-wide, so this ignores the
 	// blog_id filter by design (the question is inherently cross-site).
 	// ---------------------------------------------------------------------
-	$xsite_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s' );
+	$xsite_where  = array( 'event_type = %s', "visitor_id IS NOT NULL AND visitor_id != ''", 'created_at >= %s', $human_where );
 	$xsite_values = array( $event_type, $since );
 	if ( $date_range || $end_days_ago > 0 ) {
 		$xsite_where[]  = 'created_at < %s';
@@ -322,7 +325,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// rows that actually carry a referrer_host participate (direct + same-host
 	// traffic omit the field). Old rows predating the field simply don't appear.
 	// ---------------------------------------------------------------------
-	$ref_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.referrer_host')) IS NOT NULL" );
+	$ref_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.referrer_host')) IS NOT NULL", $human_where );
 	$ref_values = array( $event_type, $since );
 	if ( $date_range || $end_days_ago > 0 ) {
 		$ref_where[]  = 'created_at < %s';
@@ -362,7 +365,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// Counts ALL pageviews carrying utm_source; rows predating the field and
 	// untagged traffic do not appear.
 	// ---------------------------------------------------------------------
-	$utm_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.utm_source')) IS NOT NULL" );
+	$utm_where  = array( 'event_type = %s', 'created_at >= %s', "JSON_UNQUOTE(JSON_EXTRACT(event_data, '$.utm_source')) IS NOT NULL", $human_where );
 	$utm_values = array( $event_type, $since );
 	if ( $date_range || $end_days_ago > 0 ) {
 		$utm_where[]  = 'created_at < %s';
@@ -404,7 +407,7 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 	// Collection coverage is explicit because route-level rows begin only after
 	// issue #182 ships. Historical rows remain valid post-backed observations;
 	// they must not be silently presented as whole-platform route coverage.
-	$coverage_where  = array( 'event_type = %s', 'created_at >= %s' );
+	$coverage_where  = array( 'event_type = %s', 'created_at >= %s', $human_where );
 	$coverage_values = array( $event_type, $since );
 	if ( $date_range || $end_days_ago > 0 ) {
 		$coverage_where[]  = 'created_at < %s';
@@ -475,6 +478,6 @@ function extrachill_analytics_compute_retention_stats( $input ) {
 		'since'               => $since,
 		'until'               => $window_end,
 		'as_of'               => $now_utc,
-		'note'                => 'Deterministic + bot-filtered: pageview rows are written server-side only for non-bot, JS-executing browsers; visitor_id is an anonymous first-party UUID v4 (no PII). Opted-out (GPC/DNT) rows have NULL visitor_id and are excluded from per-visitor metrics. Route-level collection is additive from issue #182 onward; use collection_coverage before comparing periods that cross deployment.',
+		'note'                => 'Deterministic + bot-filtered: the writer stamps and keeps bot pageviews; all queries exclude canonical event_data.is_bot IS TRUE rows, retaining explicit false and missing legacy stamps as human; visitor_id is an anonymous first-party UUID v4 (no PII). Opted-out (GPC/DNT) rows have NULL visitor_id and are excluded from per-visitor metrics. Route-level collection is additive from issue #182 onward; use collection_coverage before comparing periods that cross deployment.',
 	);
 }
