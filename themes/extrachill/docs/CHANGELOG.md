@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.16.5] - 2026-11-05
+
+### Changed
+- resolve in-repo validation dependencies by path, not archived repos
+
 ## [2.16.4] - 2026-11-01
 
 ### Changed
