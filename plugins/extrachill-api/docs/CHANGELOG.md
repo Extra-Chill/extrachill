@@ -2,6 +2,21 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.49.1] - 2026-11-03
+
+### Fixed
+- drop unused endroid/qr-code and pin Composer platform to PHP 8.4
+
+## [0.49.0] - 2026-11-03
+
+### Added
+- artist profiles choose a canonical Local Scene
+
+## [0.48.2] - 2026-11-02
+
+### Changed
+- remove events network-blocks adapter and move the inquiry block into booking (P3, #549)
+
 ## [0.48.1] - 2026-11-02
 
 ### Fixed

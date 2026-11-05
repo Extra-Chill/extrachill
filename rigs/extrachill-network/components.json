@@ -173,17 +173,13 @@
       "repo": "Extra-Chill/extrachill-events",
       "asset": "extrachill-events.zip",
       "source": "github",
-      "note": "One mounted zip ships two plugin files: the events-site plugin and the network-wide 'Extra Chill Events Network Blocks' adapter (see NETWORK-ARCHITECTURE.MD Adapters section). Both activations mount from this single component entry.",
+      "note": "Events-site event and venue infrastructure; booking and its inquiry block are owned by extrachill-booking.",
       "activations": [
         {
           "pluginFile": "extrachill-events/extrachill-events.php",
           "scope": [
             "events.extrachill.com"
           ]
-        },
-        {
-          "pluginFile": "extrachill-events/extrachill-events-network-blocks.php",
-          "scope": "network"
         }
       ]
     },
@@ -193,7 +189,7 @@
       "releaseTagPrefix": "extrachill-booking-v",
       "asset": "extrachill-booking.zip",
       "source": "github",
-      "note": "Inert booking extraction placeholder; activate on events only before the atomic code move.",
+      "note": "Booking runtime and inquiry block, activated only on events.extrachill.com. Deploy before events for compatibility.",
       "activations": [
         {
           "pluginFile": "extrachill-booking/extrachill-booking.php",
@@ -317,7 +313,8 @@
       "repo": "Extra-Chill/wp-native",
       "asset": "wp-native-auth.zip",
       "source": "github",
-      "note": "Extra-Chill/wp-native is a multi-component monorepo (wp-native-auth, wp-native-client, wp-native-shell each release independently with prefixed tags). releases/latest/download/wp-native-auth.zip only resolves correctly while a wp-native-auth-* tag happens to be the repo's overall latest release. Verified true on 2026-09-23; if another component releases after wp-native-auth, this default will 404 until wp-native-auth releases again. Use extrachill_release_set to pin an explicit wp-native-auth-* tag when that matters.",
+      "releaseTagPrefix": "wp-native-auth-v",
+      "note": "Extra-Chill/wp-native is a multi-component monorepo (wp-native-auth, wp-native-client, wp-native-gutenberg, wp-native-shell release independently with prefixed tags), so releases/latest/download only works while wp-native-auth owns the repo's overall latest release. releaseTagPrefix pins it to its own newest wp-native-auth-v* release instead.",
       "activations": [
         {
           "pluginFile": "wp-native-auth/wp-native-auth.php",
@@ -337,7 +334,8 @@
           "scope": [
             "extrachill.com",
             "wire.extrachill.com",
-            "studio.extrachill.com"
+            "studio.extrachill.com",
+            "events.extrachill.com"
           ]
         }
       ]

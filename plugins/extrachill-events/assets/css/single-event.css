@@ -424,3 +424,32 @@
     margin: 0 auto var(--spacing-sm, 0.5rem);
     border-radius: var(--border-radius-sm, 4px);
 }
+
+/*
+ * Calendar-style event card (extrachill#1127): shown on the pass in place of
+ * artwork when the event has no custom pass image and no poster. The markup
+ * reuses the calendar item classes; this resets the calendar's fixed
+ * grid-cell size and centering so the card fits the pass.
+ */
+.ec-rsvp-pass .ec-rsvp-pass__card {
+    width: 100%;
+    max-width: 20rem;
+    height: auto;
+    margin: 0 auto var(--spacing-sm, 0.5rem);
+    text-align: left;
+}
+
+.ec-rsvp-pass .ec-rsvp-pass__card:hover {
+    transform: none;
+}
+
+/*
+ * Pass image preview in the host guest-list panel (extrachill#1118).
+ */
+.ec-guest-list-management__art {
+    display: block;
+    width: 100%;
+    max-width: 12rem;
+    height: auto;
+    border-radius: var(--border-radius-sm, 4px);
+}

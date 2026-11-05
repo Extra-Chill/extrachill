@@ -41,6 +41,9 @@ function extrachill_display_notifications() {
 		esc_html__( 'Manage notification settings', 'extra-chill-community' )
 	);
 
+	?>
+	<p><a href="<?php echo esc_url( extrachill_community_docs_url( 'notifications-system' ) ); ?>" data-ec-track="docs-help-notifications-system"><?php esc_html_e( 'How does this work?', 'extra-chill-community' ); ?></a></p>
+	<?php
 	if ( empty( $notifications ) ) {
 		echo '<p>No notifications found.</p>';
 		return;

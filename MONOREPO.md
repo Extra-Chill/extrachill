@@ -54,7 +54,7 @@ Generated from the network rig's activation matrix, which mirrors production. Ch
 | `extrachill-contact` | `plugins/extrachill-contact` | extrachill.com |
 | `extrachill-content-blocks` | `plugins/extrachill-content-blocks` | community.extrachill.com, extrachill.com |
 | `extrachill-docs` | `plugins/extrachill-docs` | docs.extrachill.com |
-| `extrachill-events` | `plugins/extrachill-events` | events.extrachill.com; all sites (network-activated): `extrachill-events-network-blocks` |
+| `extrachill-events` | `plugins/extrachill-events` | events.extrachill.com |
 | `extrachill-link-pages` | `plugins/extrachill-link-pages` | all sites (network-activated) |
 | `extrachill-mcp` | `plugins/extrachill-mcp` | auth.extrachill.com |
 | `extrachill-network` | `plugins/extrachill-network` | all sites (network-activated) |

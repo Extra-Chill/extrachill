@@ -1579,7 +1579,7 @@ final class BookingFoundationTest extends BookingTestCase {
 			'Built-in field labels are fixed, not venue-configurable.'
 		);
 
-		$view = file_get_contents( __DIR__ . '/../../extrachill-events/blocks/venue-booking-inquiry/src/view.js' );
+		$view = file_get_contents( __DIR__ . '/../blocks/venue-booking-inquiry/src/view.js' );
 		$this->assertStringContainsString( 'label="What\'s your vision for the show?"', $view );
 		$this->assertStringNotContainsString( 'config.presentation', $view );
 	}

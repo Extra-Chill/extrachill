@@ -32,6 +32,9 @@ if ( ! function_exists( 'ec_can_create_artist_profiles' ) ) {
 $can_create = ec_can_create_artist_profiles( $current_user_id );
 
 if ( ! $can_create ) {
+	?>
+	<p><a href="<?php echo esc_url( extrachill_artist_platform_docs_url( 'artist-access-requirements' ) ); ?>" data-ec-track="docs-help-artist-access-requirements"><?php esc_html_e( 'How does this work?', 'extrachill-artist-platform' ); ?></a></p>
+	<?php
 	echo '<div class="notice notice-info">';
 	echo '<p>' . esc_html__( 'Artist profiles are for artists and music professionals.', 'extrachill-artist-platform' ) . '</p>';
 	echo '</div>';

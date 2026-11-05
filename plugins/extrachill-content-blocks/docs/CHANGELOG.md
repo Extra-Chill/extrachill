@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.4] - 2026-11-02
+
+### Changed
+- move scripts-30+ consumers to @wordpress/scripts ^37
+
 ## [1.13.3] - 2026-10-24
 
 ### Fixed

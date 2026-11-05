@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.30.1] - 2026-11-02
+
+### Changed
+- declare jest configs as intentional release package omissions
+- move scripts-30+ consumers to @wordpress/scripts ^37
+
+## [1.30.0] - 2026-11-02
+
+### Added
+- contextual help links from product screens to docs articles
+
 ## [1.29.0] - 2026-11-01
 
 ### Added

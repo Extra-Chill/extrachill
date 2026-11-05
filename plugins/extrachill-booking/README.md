@@ -6,7 +6,9 @@ Venue booking operations, extracted from Events in #548. PHP namespaces, ability
 
 The active plugin registers at `plugins_loaded` priority 5, before Events' schema (20) and abilities (25). It requires Events' venue layer and does nothing when Events is inactive or an older Events already owns `BookingProvider`.
 
-Booking depends on Events. The network-wide inquiry block and its three shared configuration/policy classes remain in Events pending P3 (#549).
+Booking depends on Events and owns the inquiry block and its configuration/policy classes. The block is registered only on events.extrachill.com; other sites use the unchanged booking embed iframe.
+
+Deploy Booking before Events. After deployment, network-deactivate the retired Events inquiry adapter. Booking tolerates the old adapter's already-loaded classes during the deploy window.
 
 ## Development
 

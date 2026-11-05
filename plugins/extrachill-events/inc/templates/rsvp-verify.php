@@ -55,7 +55,12 @@ get_header();
 				<p class="ec-rsvp-verify__name">
 				<?php
 				if ( $is_guest_pass ) {
-					echo esc_html( ! empty( $pass['guest_name'] ) ? (string) $pass['guest_name'] : __( 'Guest list pass', 'extrachill-events' ) );
+					// Invited-band passes read "Jake (Slim S.O.U.L.)" (extrachill#1128).
+					echo esc_html(
+						function_exists( 'extrachill_events_guest_list_pass_label' )
+							? extrachill_events_guest_list_pass_label( (string) ( $pass['guest_name'] ?? '' ), extrachill_events_guest_list_pass_party_name( $pass ) )
+							: ( ! empty( $pass['guest_name'] ) ? (string) $pass['guest_name'] : __( 'Guest list pass', 'extrachill-events' ) )
+					);
 				} else {
 					echo esc_html( $attendee ? $attendee->display_name : __( 'Unknown attendee', 'extrachill-events' ) );
 				}
@@ -76,6 +81,10 @@ get_header();
 							esc_html( (string) mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (string) $pass['redeemed_at'] ) )
 						);
 						?>
+					</p>
+				<?php elseif ( 'revoked' === $pass_status ) : ?>
+					<p class="ec-rsvp-verify__status notice notice-error">
+						<?php echo esc_html( $is_guest_pass ? __( 'Not on the list. This guest was taken off the guest list.', 'extrachill-events' ) : __( 'Not valid. This RSVP was cancelled.', 'extrachill-events' ) ); ?>
 					</p>
 				<?php else : ?>
 					<button type="button" class="button-2 button-large ec-rsvp-verify__redeem">

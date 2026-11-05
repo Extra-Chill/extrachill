@@ -12,3 +12,6 @@ build.sh
 .buildignore
 .gitignore
 blocks/
+
+# Jest configuration (development only).
+jest.config.cjs

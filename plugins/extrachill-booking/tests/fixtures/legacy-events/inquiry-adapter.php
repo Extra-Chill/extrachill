@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Extra Chill Events Network Blocks
+ * Legacy fixture: retired Events inquiry adapter
  * Description: Exposes Events-owned public blocks across the Extra Chill network without loading the Events runtime on other sites.
  * Version: 0.107.1
  * Author: Chris Huber
@@ -30,7 +30,7 @@ require_once __DIR__ . '/inc/Core/VenueBookingConfig.php';
  */
 function extrachill_events_network_blocks_activation_error( bool $network_wide ) {
 	if ( ! is_multisite() || ! $network_wide ) {
-		return new WP_Error( 'network_activation_required', __( 'Extra Chill Events Network Blocks must be activated for the entire multisite network.', 'extrachill-events' ) );
+		return new WP_Error( 'network_activation_required', __( 'The legacy inquiry adapter must be activated for the entire multisite network.', 'extrachill-events' ) );
 	}
 
 	if ( ! function_exists( 'is_plugin_active_for_network' ) ) {

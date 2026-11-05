@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.57.4] - 2026-11-02
+
+### Changed
+- declare jest configs as intentional release package omissions
+- move scripts-30+ consumers to @wordpress/scripts ^37
+
 ## [0.57.3] - 2026-11-02
 
 ### Changed

@@ -82,6 +82,18 @@ if ( ! function_exists( 'wp_get_attachment_image_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_post_thumbnail_id' ) ) {
+	function get_post_thumbnail_id( $post = null ) {
+		return (int) ( $GLOBALS['event_perk_test']['thumbnails'][ (int) $post ] ?? 0 );
+	}
+}
+
+if ( ! function_exists( 'get_the_title' ) ) {
+	function get_the_title( $post = 0 ) {
+		return 'Event ' . (int) $post;
+	}
+}
+
 require_once dirname( __DIR__, 3 ) . '/inc/admin/event-perks.php';
 
 final class EventPerkTest extends PHPUnit\Framework\TestCase {
@@ -89,9 +101,10 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['event_perk_test'] = array(
-			'meta'     => array(),
-			'can_edit' => true,
-			'images'   => array( 900 ),
+			'meta'       => array(),
+			'can_edit'   => true,
+			'images'     => array( 900, 950 ),
+			'thumbnails' => array(),
 		);
 	}
 
@@ -272,5 +285,47 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 		extrachill_events_purge_on_perk_meta_change( 4, 45, EXTRACHILL_EVENTS_PERK_IMAGE_META );
 
 		$this->assertSame( array( 45 ), $GLOBALS['event_perk_test']['purged'] );
+	}
+
+	public function test_pass_image_defaults_to_the_event_poster(): void {
+		$GLOBALS['event_perk_test']['thumbnails'][42] = 950;
+
+		$this->assertSame( 'poster', extrachill_events_get_pass_image_source( 42 ) );
+		$this->assertSame( 950, extrachill_events_get_pass_image_id( 42 ) );
+		$this->assertSame( 'https://events.example.test/uploads/pass-950-large.png', extrachill_events_get_pass_image_url( 42 ) );
+		$this->assertSame( 'Event 42 poster', extrachill_events_get_pass_image_alt( 42 ) );
+		// The explicit custom setting stays empty: the poster is a fallback, not a stored value.
+		$this->assertSame( 0, extrachill_events_get_perk_image_id( 42 ) );
+	}
+
+	public function test_custom_pass_image_overrides_the_poster(): void {
+		$GLOBALS['event_perk_test']['thumbnails'][42] = 950;
+		extrachill_events_set_perk_image_id( 42, 900 );
+
+		$this->assertSame( 'custom', extrachill_events_get_pass_image_source( 42 ) );
+		$this->assertSame( 900, extrachill_events_get_pass_image_id( 42 ) );
+		$this->assertSame( 'https://events.example.test/uploads/pass-900-large.png', extrachill_events_get_pass_image_url( 42 ) );
+	}
+
+	public function test_pass_falls_back_to_the_event_card_without_custom_art_or_poster(): void {
+		$this->assertSame( 'card', extrachill_events_get_pass_image_source( 42 ) );
+		$this->assertSame( 0, extrachill_events_get_pass_image_id( 42 ) );
+		$this->assertSame( '', extrachill_events_get_pass_image_url( 42 ) );
+	}
+
+	public function test_a_non_image_poster_is_not_used_on_the_pass(): void {
+		$GLOBALS['event_perk_test']['thumbnails'][42] = 901;
+
+		$this->assertSame( 'card', extrachill_events_get_pass_image_source( 42 ) );
+		$this->assertSame( '', extrachill_events_get_pass_image_url( 42 ) );
+	}
+
+	public function test_clearing_custom_art_falls_back_to_the_poster(): void {
+		$GLOBALS['event_perk_test']['thumbnails'][42] = 950;
+		extrachill_events_set_perk_image_id( 42, 900 );
+		extrachill_events_set_perk_image_id( 42, 0 );
+
+		$this->assertSame( 'poster', extrachill_events_get_pass_image_source( 42 ) );
+		$this->assertSame( 950, extrachill_events_get_pass_image_id( 42 ) );
 	}
 }

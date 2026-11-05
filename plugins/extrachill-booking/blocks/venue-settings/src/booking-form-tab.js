@@ -17,7 +17,7 @@ import {
 /**
  * Internal dependencies
  */
-import { BookingInquiry } from '../../../../extrachill-events/blocks/venue-booking-inquiry/src/view';
+import { BookingInquiry } from '../../venue-booking-inquiry/src/view';
 import { bookingEmbedSnippet, bookingOriginFromWebsite } from './booking-embed';
 import { IntakeTab } from './intake-tab';
 import { Status } from '../../../../extrachill-events/blocks/venue-settings/src/status';

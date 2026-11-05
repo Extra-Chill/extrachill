@@ -36,6 +36,11 @@ try {
     assert.equal(entry.repo, 'Extra-Chill/data-machine', slug);
     assert.equal(entry.releaseTagPrefix, `${slug}-v`, slug);
   }
+  // wp-native is a multi-package repo too: its GitHub Latest can belong to
+  // wp-native-shell/client/gutenberg, so wp-native-auth pins its own tag.
+  const wpNativeAuth = components.plugins.find((component) => component.slug === 'wp-native-auth');
+  assert.equal(wpNativeAuth.repo, 'Extra-Chill/wp-native');
+  assert.equal(wpNativeAuth.releaseTagPrefix, 'wp-native-auth-v');
   const core = components.plugins.find((component) => component.slug === 'data-machine');
   assert.equal(core.releaseTagPrefix, undefined, 'core owns releases/latest');
   const extensions = components.plugins.filter((component) => component.releaseTagPrefix);
@@ -49,8 +54,10 @@ try {
   assert.equal(pinned['data-machine-business'].ref, 'data-machine-business-v1.0.0', 'caller pin wins');
   assert.equal(pinned['data-machine'], undefined, 'core keeps releases/latest');
   assert.equal(pinned['extrachill-booking'].ref, 'extrachill-booking-v9.9.9');
+  assert.equal(pinned['wp-native-auth'].ref, 'wp-native-auth-v9.9.9');
   assert.deepEqual(releaseLookups, [
     ['Extra-Chill/extrachill', 'extrachill-booking-v'],
+    ['Extra-Chill/wp-native', 'wp-native-auth-v'],
     ['Extra-Chill/data-machine', 'data-machine-events-v'],
   ]);
   const booking = components.plugins.find((component) => component.slug === 'extrachill-booking');

@@ -120,6 +120,10 @@ export default function Editor() {
 	return (
 		<BlockShell className="ec-editor">
 			<BlockShellInner maxWidth="wide">
+				<p><a
+					href={ activeTab === 'advanced' ? window.ecLinkPageEditorConfig.docsAdvancedHelpUrl : window.ecLinkPageEditorConfig.docsHelpUrl }
+					data-ec-track={ activeTab === 'advanced' ? 'docs-help-link-page-advanced-features' : 'docs-help-managing-link-pages' }
+				>{ __( 'How does this work?', 'extrachill-artist-platform' ) }</a></p>
 				<BlockShellHeader
 					title={
 						<div className="ec-editor__header-left">

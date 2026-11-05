@@ -279,6 +279,123 @@ class RsvpPassAbilities {
 				),
 			)
 		);
+		wp_register_ability(
+			'extrachill/add-guest-list-name',
+			array(
+				'label'               => __( 'Add Guest List Name', 'extrachill-events' ),
+				'description'         => __( 'Host-only: put a guest on the event guest list by name, with no password. Issues an account-less pass that counts against the guest list spots and shows on the door list. Optionally emails the pass.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'name'     => array(
+							'type'        => 'string',
+							'description' => __( 'Guest name, shown to the door at check-in. Include a plus-one in the name if you like ("Jake +1"); each name is one spot.', 'extrachill-events' ),
+						),
+						'email'    => array(
+							'type'        => 'string',
+							'description' => __( 'Optional address to email the pass to.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'name' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'code'       => array( 'type' => 'string' ),
+						'name'       => array( 'type' => 'string' ),
+						'pass_url'   => array( 'type' => 'string' ),
+						'qr_url'     => array( 'type' => 'string' ),
+						'emailed'    => array( 'type' => 'boolean' ),
+						'spots_left' => array( 'type' => array( 'integer', 'null' ) ),
+					),
+				),
+				'execute_callback'    => array( $this, 'add_guest_list_name' ),
+				'permission_callback' => array( $this, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => false,
+						'destructive'  => false,
+						'instructions' => __( 'Each call adds a new guest and uses a spot. Needs the guest list turned on (perk enabled with a password); otherwise returns guest_list_unavailable. A full list returns guest_list_full.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/remove-guest-list-name',
+			array(
+				'label'               => __( 'Remove Guest List Name', 'extrachill-events' ),
+				'description'         => __( 'Host-only: take a guest off the event guest list by pass code. Frees the spot. A guest who already checked in stays checked in.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'code'     => array(
+							'type'        => 'string',
+							'description' => __( 'Guest list pass code.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'code' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'removed'    => array( 'type' => 'boolean' ),
+						'spots_left' => array( 'type' => array( 'integer', 'null' ) ),
+					),
+				),
+				'execute_callback'    => array( $this, 'remove_guest_list_name' ),
+				'permission_callback' => array( $this, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => false,
+						'destructive'  => true,
+						'instructions' => __( 'Only active, account-less guest list passes can be removed; checked-in or unknown codes return guest_not_removable.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Host adds a guest by name.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function add_guest_list_name( array $input ) {
+		return extrachill_events_add_guest_list_name(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['name'] ?? '' ),
+			(string) ( $input['email'] ?? '' ),
+			get_current_user_id()
+		);
+	}
+
+	/**
+	 * Host removes a guest by pass code.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function remove_guest_list_name( array $input ) {
+		return extrachill_events_remove_guest_list_name(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['code'] ?? '' )
+		);
 	}
 
 	/**

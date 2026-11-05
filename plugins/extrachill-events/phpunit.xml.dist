@@ -40,6 +40,7 @@
 			<exclude>tests/Unit/Abilities/SubmissionTrustPolicyTest.php</exclude>
 			<exclude>tests/Unit/Abilities/PendingEventSubmissionsAbilityTest.php</exclude>
 			<exclude>tests/Unit/Core/EventPerkTest.php</exclude>
+			<exclude>tests/Unit/Core/GuestListPassImageUploadTest.php</exclude>
 			<exclude>tests/Unit/Core/FeatureProviderBootstrapTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestSystemTaskTest.php</exclude>
 			<exclude>tests/Unit/Core/LocalSceneDigestTest.php</exclude>

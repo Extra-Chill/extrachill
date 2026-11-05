@@ -65,26 +65,26 @@ webpack.config.js
 class PluginDocsPackageTest(unittest.TestCase):
     def test_mapped_docs_survive_package_staging(self):
         config = PLUGINS / "extrachill-docs/runner-configs/platform-map.yml"
-        platforms = yaml.safe_load(config.read_text())["repos"]
+        platforms = yaml.safe_load(config.read_text())["plugins"]
         self.assertTrue(platforms, "platform map must not be empty")
         checked = 0
-        for repo, platform in platforms.items():
-            component = PLUGINS / repo.rsplit("/", 1)[-1]
+        for key, platform in platforms.items():
+            component = ROOT / key
             subpath = platform.get("docs_subpath", "docs/user")
             articles = sorted((component / subpath).glob("*.md"))
             if not articles:
                 continue
             checked += 1
-            with self.subTest(repo=repo), tempfile.TemporaryDirectory() as temporary:
+            with self.subTest(plugin=key), tempfile.TemporaryDirectory() as temporary:
                 temporary = Path(temporary)
                 package = temporary / "package"
                 stage(component, package, temporary / "excludes")
                 for article in articles:
                     relative = article.relative_to(component)
                     shipped = package / relative
-                    self.assertTrue(shipped.is_file(), f"{repo}: package drops {relative}")
+                    self.assertTrue(shipped.is_file(), f"{key}: package drops {relative}")
                     self.assertEqual(article.read_bytes(), shipped.read_bytes())
-                print(f"{repo}: verified {len(articles)} packaged articles at {subpath}")
+                print(f"{key}: verified {len(articles)} packaged articles at {subpath}")
 
                 # These two components intentionally exclude all developer Markdown.
                 if component.name in ("extrachill-community", "extrachill-artist-platform"):

@@ -184,11 +184,13 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 			$this->setExpectedDeprecated( 'Theme without header.php' );
 			$this->setExpectedDeprecated( 'Theme without footer.php' );
 			$output = $this->render_archive();
-			// The archive template can trip a WP_Styles::add notice depending on
-			// which styles earlier suites left registered in this shared runtime.
-			// It is harness noise, not this test's contract: tolerate it when it
-			// fires, but don't demand it (that made the test order-dependent).
-			if ( isset( $this->caught_doing_it_wrong['WP_Styles::add'] ) ) {
+			/*
+			 * The archive template can trip a WP_Styles::add notice depending on
+			 * which styles earlier suites left registered in this shared runtime.
+			 * It is harness noise, not this test's contract: tolerate it when it
+			 * fires, but don't demand it (that made the test order-dependent).
+			 */
+												if ( isset( $this->caught_doing_it_wrong['WP_Styles::add'] ) ) {
 				$this->setExpectedIncorrectUsage( 'WP_Styles::add' );
 			}
 			$heading_position  = strpos( $output, 'class="page-title"' );
@@ -235,97 +237,6 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		}
 	}
 
-	/** Register the existing dynamic block assets without the Events runtime. */
-	public function test_network_entrypoint_registers_existing_assets_on_all_intended_sites(): void {
-		require_once __DIR__ . '/../../../extrachill-events/extrachill-events-network-blocks.php';
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		$registry = WP_Block_Type_Registry::get_instance();
-		$plugins  = get_plugins( '/extrachill-events' );
-		$this->assertArrayHasKey( 'extrachill-events-network-blocks.php', $plugins );
-		$this->assertTrue( $plugins['extrachill-events-network-blocks.php']['Network'] );
-		$this->assertSame( EXTRACHILL_EVENTS_VERSION, $plugins['extrachill-events-network-blocks.php']['Version'] );
-
-		foreach ( array( self::MAIN_BLOG_ID, self::STUDIO_BLOG_ID ) as $blog_id ) {
-			if ( $registry->is_registered( 'extrachill/venue-booking-inquiry' ) ) {
-				$registry->unregister( 'extrachill/venue-booking-inquiry' );
-			}
-			switch_to_blog( $blog_id );
-			try {
-				extrachill_events_register_network_blocks();
-				$block = $registry->get_registered( 'extrachill/venue-booking-inquiry' );
-				$this->assertInstanceOf( WP_Block_Type::class, $block );
-				$this->assertIsCallable( $block->render_callback );
-				$this->assertNotEmpty( $block->style_handles );
-				$this->assertNotEmpty( $block->view_script_handles );
-			} finally {
-				restore_current_blog();
-			}
-		}
-
-		foreach ( array( 'extrachill/venue-booking-inquiry', 'extrachill/event-submission', 'extrachill/concert-stats', 'extrachill/venue-settings' ) as $block_name ) {
-			if ( $registry->is_registered( $block_name ) ) {
-				$registry->unregister( $block_name );
-			}
-		}
-		switch_to_blog( self::EVENTS_BLOG_ID );
-		try {
-			extrachill_events_register_network_blocks();
-			$this->assertFalse( $registry->is_registered( 'extrachill/venue-booking-inquiry' ) );
-			extrachill_events_register_blocks();
-			$this->assertTrue( $registry->is_registered( 'extrachill/venue-booking-inquiry' ) );
-		} finally {
-			restore_current_blog();
-		}
-	}
-
-	/** Enforce network-active dependencies through WordPress's activation path. */
-	public function test_network_entrypoint_activation_uses_actual_network_plugin_state(): void {
-		$plugin_file = __DIR__ . '/../../../extrachill-events/extrachill-events-network-blocks.php';
-		require_once $plugin_file;
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		// WP_UnitTestCase resets hooks between tests after require_once has loaded the entrypoint.
-		register_activation_hook( $plugin_file, 'extrachill_events_activate_network_blocks' );
-
-		$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
-		$site_plugins    = get_option( 'active_plugins', array() );
-		$plugin          = 'extrachill-events/extrachill-events-network-blocks.php';
-		$required        = array(
-			'extrachill-network/extrachill-network.php' => time(),
-			'extrachill-api/extrachill-api.php'         => time(),
-		);
-		try {
-			update_site_option( 'active_sitewide_plugins', $required );
-			$this->assertNull( activate_plugin( $plugin, '', true, false ) );
-			$this->assertTrue( is_plugin_active_for_network( $plugin ) );
-			deactivate_plugins( $plugin, true, true );
-
-			update_site_option( 'active_sitewide_plugins', array() );
-			update_option( 'active_plugins', array_keys( $required ) );
-			$die_handler = static function () {
-				return static function ( $message ): void {
-					throw new RuntimeException( wp_strip_all_tags( $message ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test catches this exception; it is never rendered.
-				};
-			};
-			add_filter( 'wp_die_handler', $die_handler );
-			$buffer_level = ob_get_level();
-			try {
-				activate_plugin( $plugin, '', true, false );
-				$this->fail( 'Site-only dependencies must not permit network activation.' );
-			} catch ( RuntimeException $error ) {
-				$this->assertStringContainsString( 'Network-activate these required plugins first', $error->getMessage() );
-			} finally {
-				remove_filter( 'wp_die_handler', $die_handler );
-				while ( ob_get_level() > $buffer_level ) {
-					ob_end_clean();
-				}
-			}
-			$this->assertFalse( is_plugin_active_for_network( $plugin ) );
-		} finally {
-			update_site_option( 'active_sitewide_plugins', $network_plugins );
-			update_option( 'active_plugins', $site_plugins );
-		}
-	}
-
 	/**
 	 * Render from one caller blog and restore the test's original context.
 	 *
@@ -350,7 +261,7 @@ final class VenueBookingInquiryRenderTest extends WP_UnitTestCase {
 		$blog_id      = get_current_blog_id();
 		$switch_depth = count( $GLOBALS['_wp_switched_stack'] ?? array() );
 		ob_start();
-		include __DIR__ . '/../../../extrachill-events/blocks/venue-booking-inquiry/render.php';
+		include __DIR__ . '/../../blocks/venue-booking-inquiry/render.php';
 		$output = (string) ob_get_clean();
 
 		$this->assertSame( $blog_id, get_current_blog_id() );

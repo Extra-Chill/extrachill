@@ -20,6 +20,8 @@
 			<file>tests/Unit/Core/RsvpPassEmailTest.php</file>
 			<file>tests/Unit/Core/RsvpGuestRsvpTest.php</file>
 			<file>tests/Unit/Core/RsvpGuestListTest.php</file>
+			<file>tests/Unit/Core/RsvpPassCardTest.php</file>
+			<file>tests/Unit/Core/RsvpGuestListPartiesTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

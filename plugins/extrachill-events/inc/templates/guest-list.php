@@ -21,8 +21,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $event_id       = (int) get_queried_object_id();
 $event          = get_post( $event_id );
 $perk_text      = extrachill_events_get_perk_text( $event_id );
-$perk_image_url = extrachill_events_get_perk_image_url( $event_id );
-$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_perk_image_alt( $event_id ) : '';
+$perk_image_url = extrachill_events_get_pass_image_url( $event_id );
+$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_pass_image_alt( $event_id ) : '';
+// No art and no poster: a calendar-style event card instead (extrachill#1127).
+// Rendered before get_header() so the calendar stylesheet lands in <head>.
+$pass_card_html = '' === $perk_image_url ? extrachill_events_render_pass_card( $event_id ) : '';
 $guest_list     = extrachill_events_get_guest_list_counts( $event_id );
 $list_full      = ! empty( $guest_list['full'] );
 $timing         = function_exists( 'ec_users_get_event_timing' ) ? ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) : '';
@@ -144,6 +147,8 @@ get_header();
 				alt="<?php echo esc_attr( $perk_image_alt ); ?>"
 				decoding="async"
 			>
+			<?php elseif ( '' !== $pass_card_html ) : ?>
+				<?php echo $pass_card_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by extrachill_events_render_pass_card(). ?>
 			<?php endif; ?>
 			<p class="ec-rsvp-pass__label"><?php esc_html_e( "You're on the list. Show this at the door:", 'extrachill-events' ); ?></p>
 			<img

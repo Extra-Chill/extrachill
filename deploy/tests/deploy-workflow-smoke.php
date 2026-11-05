@@ -178,7 +178,7 @@ dws_assert( in_array( 'markdown-database-integration', array_column( $attachment
 // this poller owns only release-based components (deploy-monorepo-test.py checks the partition).
 dws_assert( is_array( $attachments ) && in_array( 'data-machine', array_column( $attachments, 'id' ), true ), 'project attaches the release-based component set' );
 // Only components whose repositories cut GitHub Releases can be polled.
-$not_releasing = array_filter( (array) $attachments, static fn( $c ) => in_array( $c['id'], array( 'chubes-gallery-lightbox', 'wp-native-auth' ), true ) );
+$not_releasing = array_filter( (array) $attachments, static fn( $c ) => in_array( $c['id'], array( 'chubes-gallery-lightbox' ), true ) );
 dws_assert( empty( $not_releasing ), 'components without a usable GitHub Release are not attached (homeboy#14813)' );
 // local_path must be empty: the runner has no checkouts and Homeboy resolves
 // each component from its GitHub Release (homeboy#14782). The key is still

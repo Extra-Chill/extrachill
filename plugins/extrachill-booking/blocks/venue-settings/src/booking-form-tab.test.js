@@ -16,7 +16,7 @@ const intake = readFileSync(
 );
 const styles = readFileSync( path.resolve( __dirname, '../../../../extrachill-events/blocks/venue-settings/src/style.scss' ), 'utf8' );
 const publicForm = readFileSync(
-	path.resolve( __dirname, '../../../../extrachill-events/blocks/venue-booking-inquiry/src/view.js' ),
+	path.resolve( __dirname, '../../venue-booking-inquiry/src/view.js' ),
 	'utf8'
 );
 
@@ -162,7 +162,7 @@ describe( 'booking form workspace', () => {
 
 	it( 'previews through the production booking form component', () => {
 		expect( workspace ).toContain(
-			"import { BookingInquiry } from '../../../../extrachill-events/blocks/venue-booking-inquiry/src/view';"
+			"import { BookingInquiry } from '../../venue-booking-inquiry/src/view';"
 		);
 		expect( workspace ).toContain( '<BookingInquiry' );
 		expect( workspace ).not.toContain( 'booking-embed=1' );

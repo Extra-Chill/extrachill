@@ -17,8 +17,9 @@
  * @var bool   $guest_form Whether to render the email-only guest RSVP form (logged-out viewers).
  * @var bool   $password_required Whether claiming a pass needs the guest list password (extrachill#433).
  * @var array  $guest_list        extrachill_events_get_guest_list_counts() result.
- * @var string $perk_image_url    Pass artwork URL (extrachill#500). Empty when none is set.
+ * @var string $perk_image_url    Pass artwork URL: custom pass image (extrachill#500), else the event poster (extrachill#1118). Empty when neither is set.
  * @var string $perk_image_alt    Pass artwork alt text.
+ * @var string $pass_card_html    Calendar-style event card (extrachill#1127), used when there is no artwork. Escaped by extrachill_events_render_pass_card().
  *
  * The teaser is the conversion half of the perk: anyone without an active
  * pass (logged out, not Going yet) sees what marking Going gets them. It and
@@ -117,6 +118,8 @@ if ( isset( $guest_list['spots_left'] ) && ! $guest_list_full ) {
 		alt="<?php echo esc_attr( $perk_image_alt ); ?>"
 		decoding="async"
 	>
+	<?php elseif ( ! empty( $pass_card_html ) ) : ?>
+		<?php echo $pass_card_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by extrachill_events_render_pass_card(). ?>
 	<?php endif; ?>
 	<p class="ec-rsvp-pass__label"><?php esc_html_e( 'Show this pass at check-in:', 'extrachill-events' ); ?></p>
 	<p class="ec-rsvp-pass__code"><?php echo esc_html( $code ); ?></p>

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "wp-scripts build --webpack-copy-php --experimental-modules",
     "start": "wp-scripts start --experimental-modules",
-    "test:js": "wp-scripts test-unit-js --runInBand",
+    "test:js": "wp-scripts test-unit-jest --runInBand",
     "lint:js": "wp-scripts lint-js",
     "lint:css": "wp-scripts lint-style",
     "format": "wp-scripts format",
@@ -35,8 +35,14 @@
     "node": ">=22.0.0"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^30.15.0",
+    "@babel/core": "^7.29.7",
+    "@wordpress/babel-preset-default": "^8.55.0",
+    "@wordpress/jest-preset-default": "^14.2.0",
+    "@wordpress/scripts": "^37.0.0",
     "ajv": "^8.20.0",
+    "babel-jest": "^30.5.0",
+    "jest": "^30.5.0",
+    "jest-environment-jsdom": "^30.5.0",
     "typescript": "^5.4.5"
   },
   "dependencies": {

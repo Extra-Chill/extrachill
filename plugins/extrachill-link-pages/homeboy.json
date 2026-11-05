@@ -41,6 +41,7 @@
     }
   ],
   "scopes": {
+    "package": { "exclude": ["jest.config.cjs"] },
     "release": {
       "exclude": [
         "src/**"

@@ -70,6 +70,9 @@ $config = array(
 	),
 );
 
+$config['docsProfileHelpUrl'] = extrachill_artist_platform_docs_url( 'managing-your-artist-profile' );
+$config['docsRosterHelpUrl']  = extrachill_artist_platform_docs_url( 'managing-roster' );
+
 // Enqueue frontend script and styles
 $asset_file = include EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'build/blocks/artist-manager/view.asset.php';
 

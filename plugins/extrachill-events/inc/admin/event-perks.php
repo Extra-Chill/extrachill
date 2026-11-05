@@ -38,6 +38,13 @@ const EXTRACHILL_EVENTS_PERK_CAPACITY_MAX  = 100000;
 const EXTRACHILL_EVENTS_PERK_IMAGE_META = '_extrachill_event_perk_image_id';
 
 /**
+ * Per-party allotments (extrachill#1128). Off by default: invited bands and
+ * management add names limited only by the event's overall capacity. When
+ * on, each invited party is capped at its own allotment.
+ */
+const EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META = '_extrachill_event_guest_list_allotments';
+
+/**
  * Whether an event currently offers an RSVP perk.
  *
  * @param int $post_id Event post ID.
@@ -131,6 +138,31 @@ function extrachill_events_set_perk_capacity( int $post_id, int $capacity ): voi
 }
 
 /**
+ * Whether invited parties are capped at per-party allotments.
+ *
+ * @param int $post_id Event post ID.
+ * @return bool False (the default) means only overall capacity applies.
+ */
+function extrachill_events_guest_list_allotments_enabled( int $post_id ): bool {
+	return (bool) get_post_meta( $post_id, EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META, true );
+}
+
+/**
+ * Turn per-party allotments on or off.
+ *
+ * @param int  $post_id Event post ID.
+ * @param bool $enabled Whether allotments apply.
+ */
+function extrachill_events_set_guest_list_allotments( int $post_id, bool $enabled ): void {
+	if ( $enabled ) {
+		update_post_meta( $post_id, EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META, true );
+		return;
+	}
+
+	delete_post_meta( $post_id, EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META );
+}
+
+/**
  * Attachment ID of the event's pass artwork.
  *
  * @param int $post_id Event post ID.
@@ -194,6 +226,148 @@ function extrachill_events_get_perk_image_alt( int $post_id ): string {
 	$alt      = $image_id ? trim( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '';
 
 	return '' !== $alt ? $alt : __( 'Guest list pass artwork', 'extrachill-events' );
+}
+
+/**
+ * Where the pass artwork comes from: the custom pass image, the event's
+ * poster (featured image) as the default, or — when the event has neither —
+ * a calendar-style event card (extrachill#1127).
+ *
+ * @param int $post_id Event post ID.
+ * @return string 'custom' | 'poster' | 'card'
+ */
+function extrachill_events_get_pass_image_source( int $post_id ): string {
+	if ( extrachill_events_get_perk_image_id( $post_id ) ) {
+		return 'custom';
+	}
+
+	$poster_id = (int) get_post_thumbnail_id( $post_id );
+	return ( $poster_id > 0 && wp_attachment_is_image( $poster_id ) ) ? 'poster' : 'card';
+}
+
+/**
+ * Attachment ID of the artwork actually shown on the pass: the custom pass
+ * image, else the event poster.
+ *
+ * @param int $post_id Event post ID.
+ * @return int 0 when neither is set.
+ */
+function extrachill_events_get_pass_image_id( int $post_id ): int {
+	switch ( extrachill_events_get_pass_image_source( $post_id ) ) {
+		case 'custom':
+			return extrachill_events_get_perk_image_id( $post_id );
+		case 'poster':
+			return (int) get_post_thumbnail_id( $post_id );
+		default:
+			return 0;
+	}
+}
+
+/**
+ * URL of the artwork actually shown on the pass (custom image, else poster).
+ *
+ * @param int    $post_id Event post ID.
+ * @param string $size    Registered image size.
+ * @return string Empty string when neither is set.
+ */
+function extrachill_events_get_pass_image_url( int $post_id, string $size = 'large' ): string {
+	$image_id = extrachill_events_get_pass_image_id( $post_id );
+	return $image_id ? (string) wp_get_attachment_image_url( $image_id, $size ) : '';
+}
+
+/**
+ * Alt text for the artwork actually shown on the pass.
+ *
+ * @param int $post_id Event post ID.
+ * @return string
+ */
+function extrachill_events_get_pass_image_alt( int $post_id ): string {
+	$image_id = extrachill_events_get_pass_image_id( $post_id );
+	$alt      = $image_id ? trim( (string) get_post_meta( $image_id, '_wp_attachment_image_alt', true ) ) : '';
+	if ( '' !== $alt ) {
+		return $alt;
+	}
+
+	return 'poster' === extrachill_events_get_pass_image_source( $post_id )
+		/* translators: %s: event title. */
+		? sprintf( __( '%s poster', 'extrachill-events' ), get_the_title( $post_id ) )
+		: __( 'Guest list pass artwork', 'extrachill-events' );
+}
+
+/**
+ * Time line for the pass card: "Wed, Jun 4 · 8:00 - 11:00 PM".
+ *
+ * Reads the event-dates table (the same source the guest list page uses).
+ * The end time is shown only when it falls within a day of the start and is
+ * not the 23:59 sentinel stored for events with no real end time; a shared
+ * trailing token ("PM") is printed once, like the calendar card.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Empty when the event has no start date.
+ */
+function extrachill_events_get_pass_card_time( int $post_id ): string {
+	$dates = function_exists( 'datamachine_get_event_dates' ) ? datamachine_get_event_dates( $post_id ) : null;
+	if ( ! is_object( $dates ) || empty( $dates->start_datetime ) ) {
+		return '';
+	}
+
+	$start = strtotime( (string) $dates->start_datetime );
+	if ( false === $start ) {
+		return '';
+	}
+
+	$time_format = (string) get_option( 'time_format', 'g:i a' );
+	$time        = date_i18n( $time_format, $start );
+
+	$end = ! empty( $dates->end_datetime ) ? strtotime( (string) $dates->end_datetime ) : false;
+	if ( false !== $end && $end > $start && ( $end - $start ) < DAY_IN_SECONDS && '23:59' !== substr( (string) $dates->end_datetime, 11, 5 ) ) {
+		$start_parts = explode( ' ', $time );
+		$end_time    = date_i18n( $time_format, $end );
+		$end_parts   = explode( ' ', $end_time );
+		$shared      = end( $start_parts );
+
+		if ( count( $start_parts ) > 1 && end( $end_parts ) === $shared && ! preg_match( '/\d/', $shared ) ) {
+			array_pop( $start_parts );
+			$time = implode( ' ', $start_parts );
+		}
+		$time .= ' - ' . $end_time;
+	}
+
+	return date_i18n( 'D, M j', $start ) . ' · ' . $time;
+}
+
+/**
+ * Calendar-style event card shown on the pass when the event has no custom
+ * pass art and no poster (extrachill#1127): taxonomy badges (location, venue,
+ * promoter), the title, and the time, in the events calendar's own markup.
+ *
+ * Badges come from data-machine-events' public badge renderer, and the
+ * calendar stylesheet is enqueued when registered. Without data-machine-events
+ * the card degrades to title and time.
+ *
+ * @param int $post_id Event post ID.
+ * @return string Card markup; empty when the event does not exist.
+ */
+function extrachill_events_render_pass_card( int $post_id ): string {
+	$post = get_post( $post_id );
+	if ( ! $post ) {
+		return '';
+	}
+
+	if ( wp_style_is( 'wp-block-data-machine-events-calendar', 'registered' ) ) {
+		wp_enqueue_style( 'wp-block-data-machine-events-calendar' );
+	}
+
+	$card_badges = function_exists( 'data_machine_events_render_taxonomy_badges' )
+		? (string) data_machine_events_render_taxonomy_badges( $post_id )
+		: '';
+	$card_title  = (string) get_the_title( $post_id );
+	$card_url    = (string) get_permalink( $post );
+	$card_time   = extrachill_events_get_pass_card_time( $post_id );
+
+	ob_start();
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/rsvp-pass-card.php';
+	return (string) ob_get_clean();
 }
 
 /**
@@ -470,6 +644,7 @@ function extrachill_events_purge_on_perk_meta_change( $meta_ids, $object_id, $me
 		EXTRACHILL_EVENTS_PERK_PASSWORD_META,
 		EXTRACHILL_EVENTS_PERK_CAPACITY_META,
 		EXTRACHILL_EVENTS_PERK_IMAGE_META,
+		EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META,
 	);
 	if ( ! in_array( $meta_key, $perk_keys, true ) ) {
 		return;

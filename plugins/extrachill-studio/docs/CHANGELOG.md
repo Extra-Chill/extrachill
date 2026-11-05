@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.28.6] - 2026-11-03
+
+### Fixed
+- drop stale AI chat mention from block description
+
+## [0.28.5] - 2026-11-02
+
+### Changed
+- declare jest configs as intentional release package omissions
+- move scripts-30+ consumers to @wordpress/scripts ^37
+
 ## [0.28.4] - 2026-11-01
 
 ### Changed

@@ -2,6 +2,12 @@
 /**
  * Runs the worktree resolver against installed main, Events, and Wire boots.
  *
+ * Deployment-only probe: requires WP-CLI, the three configured network sites,
+ * their site-specific plugins, and published posts on each site. A disposable
+ * WordPress test installation does not provide these production fixtures.
+ * Excluded from portable Homeboy discovery via test_path_excludes; run explicitly:
+ * WP_CLI_RUNTIME_PATH=/path/to/wordpress php tests/frontend-path-resolver-runtime-smoke.php
+ *
  * @package ExtraChillNetwork
  */
 

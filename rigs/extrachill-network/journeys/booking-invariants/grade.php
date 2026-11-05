@@ -222,18 +222,14 @@ booking_invariants_grade_bootstrap();
 
 /*
  * ---------------------------------------------------------------------------
- * Cross-site block rendering: the public booking-inquiry block must render
- * identically (context restored, no private data leaked, no-cache) on the
- * events site AND on any other site the network-blocks companion plugin
- * reaches.
+ * Events-site block rendering: the public booking-inquiry block must restore
+ * context, leak no private data and disable caching. Other sites use embeds.
  * ---------------------------------------------------------------------------
  */
 restore_current_blog();
 $render_results = array();
 foreach (
 	array(
-		'main'   => $main_blog_id,
-		'studio' => $studio_blog_id,
 		'events' => $events_blog_id,
 	) as $site_key => $site_blog_id
 ) {
@@ -270,8 +266,10 @@ if ( ! class_exists( '\\ExtraChillEvents\\Core\\VenueAuthorization' ) ) {
 }
 
 wp_set_current_user( 0 );
-// Other journeys selected in the same boot may mount a Turnstile bypass
-// (fixtureMuPlugins are boot-global); this case asserts the real gate.
+/*
+ * Other journeys selected in the same boot may mount a Turnstile bypass
+ * (fixtureMuPlugins are boot-global); this case asserts the real gate.
+ */
 remove_all_filters( 'extrachill_bypass_turnstile_verification' );
 $request = new WP_REST_Request( 'POST', '/extrachill/v1/venues/' . $venue_a . '/booking-inquiries' );
 $request->set_param( 'venue', $venue_a );
@@ -545,12 +543,14 @@ $message_retry              = booking_invariants_execute( 'extrachill/send-booki
 $changed_message            = $message_input;
 $changed_message['message'] = 'Changed E2E booking update.';
 $message_conflict           = booking_invariants_execute( 'extrachill/send-booking-message', $changed_message );
-// Verified empirically on this rig: send-booking-message returns
-// booking_message_delivery_uncertain (no real mail transport in this
-// sandbox to confirm delivery) rather than a clean success object. The
-// idempotency-conflict path is unaffected (still a real WP_Error), so only
-// the exact-retry equality case -- which needs a comparable success object
-// -- is a genuine runtime skip, not a product finding.
+/*
+ * Verified empirically on this rig: send-booking-message returns
+ * booking_message_delivery_uncertain (no real mail transport in this
+ * sandbox to confirm delivery) rather than a clean success object. The
+ * idempotency-conflict path is unaffected (still a real WP_Error), so only
+ * the exact-retry equality case -- which needs a comparable success object
+ * -- is a genuine runtime skip, not a product finding.
+ */
 $message_delivery_uncertain = 'booking_message_delivery_uncertain' === booking_invariants_code( $message );
 if ( $message_delivery_uncertain ) {
 	booking_invariants_skip(
@@ -672,14 +672,16 @@ if ( is_array( $confirmed ) ) {
 			'expected_version' => (int) $confirmed['version'],
 		)
 	);
-	// Verified empirically on this rig: canonical event conversion returns
-	// booking_event_ability_unavailable (HTTP 503, retryable) -- the
-	// canonical upsert serializes on the MySQL-only GET_LOCK primitive,
-	// which this SQLite-backed runtime does not provide. Every downstream
-	// case that depends on a real converted event is a runtime skip, not a
-	// product finding, exactly the pattern journeys/gardner-venue-booking
-	// already established for this same ability.
-	$conversion_blocked_by_runtime = in_array( booking_invariants_code( $converted ), array( 'booking_event_upsert_failed', 'booking_event_ability_unavailable' ), true );
+	/*
+	 * Verified empirically on this rig: canonical event conversion returns
+	 * booking_event_ability_unavailable (HTTP 503, retryable) -- the
+	 * canonical upsert serializes on the MySQL-only GET_LOCK primitive,
+	 * which this SQLite-backed runtime does not provide. Every downstream
+	 * case that depends on a real converted event is a runtime skip, not a
+	 * product finding, exactly the pattern journeys/gardner-venue-booking
+	 * already established for this same ability.
+	 */
+							$conversion_blocked_by_runtime = in_array( booking_invariants_code( $converted ), array( 'booking_event_upsert_failed', 'booking_event_ability_unavailable' ), true );
 	if ( $conversion_blocked_by_runtime ) {
 		booking_invariants_skip(
 			'event-conversion-succeeds',

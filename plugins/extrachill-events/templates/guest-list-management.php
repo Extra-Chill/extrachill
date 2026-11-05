@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <section id="ec-guest-list-management" class="ec-surface-card ec-card-padding">
 	<h3><?php esc_html_e( 'Manage guest list', 'extrachill-events' ); ?></h3>
 	<?php if ( $settings ) : ?>
-	<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+	<form class="ec-form-stack" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 		<input type="hidden" name="action" value="ec_guest_list_settings">
 		<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
 		<?php wp_nonce_field( 'ec_guest_list_settings_' . $event_id ); ?>
@@ -22,6 +22,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<label><?php esc_html_e( 'Guest list spots (0 = unlimited)', 'extrachill-events' ); ?>
 			<input type="number" name="capacity" min="0" max="100000" value="<?php echo esc_attr( (string) $counts['capacity'] ); ?>">
 		</label>
+		<label>
+			<input type="checkbox" name="allotments_enabled" value="1" <?php checked( $allotments_enabled ); ?>>
+			<?php esc_html_e( 'Give each invited band a set number of spots (allotments). Off: bands can add names until the list is full.', 'extrachill-events' ); ?>
+		</label>
+		<?php
+		$pass_image_source = extrachill_events_get_pass_image_source( $event_id );
+		$pass_image_url    = extrachill_events_get_pass_image_url( $event_id, 'medium' );
+		?>
+		<fieldset>
+			<legend><?php esc_html_e( 'Pass image', 'extrachill-events' ); ?></legend>
+			<?php if ( '' !== $pass_image_url ) : ?>
+				<img class="ec-guest-list-management__art" src="<?php echo esc_url( $pass_image_url ); ?>" alt="<?php echo esc_attr( extrachill_events_get_pass_image_alt( $event_id ) ); ?>" loading="lazy">
+			<?php endif; ?>
+			<p>
+			<?php
+			if ( 'custom' === $pass_image_source ) {
+				esc_html_e( 'Passes show your custom image.', 'extrachill-events' );
+			} elseif ( 'poster' === $pass_image_source ) {
+				esc_html_e( 'Passes show the event poster. Upload an image to use your own instead.', 'extrachill-events' );
+			} else {
+				esc_html_e( 'No pass image yet, so passes show an event card with the title and time. Upload an image, or add an event poster and passes will use it.', 'extrachill-events' );
+			}
+			?>
+			</p>
+			<label><?php echo esc_html( 'custom' === $pass_image_source ? __( 'Replace pass image', 'extrachill-events' ) : __( 'Upload pass image (optional)', 'extrachill-events' ) ); ?>
+				<input type="file" name="pass_image" accept="image/jpeg,image/png,image/gif,image/webp">
+			</label>
+			<?php if ( 'custom' === $pass_image_source ) : ?>
+				<label>
+					<input type="checkbox" name="remove_pass_image" value="1">
+					<?php esc_html_e( 'Remove custom image (use the event poster)', 'extrachill-events' ); ?>
+				</label>
+			<?php endif; ?>
+		</fieldset>
 		<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Save and enable guest list', 'extrachill-events' ); ?></button>
 	</form>
 	<?php endif; ?>
@@ -59,6 +93,137 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 	<?php else : ?>
 		<p><?php esc_html_e( 'Enable the perk and set a password, then save to activate the share page and QR.', 'extrachill-events' ); ?></p>
+	<?php endif; ?>
+	<?php if ( $settings && extrachill_events_has_guest_list_page( $event_id ) ) : ?>
+		<?php
+		// Front end only: the wp-admin meta box renders this panel inside the post form, where a nested form would break saving.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation after the add redirect; the code is checked against this event below.
+		$added_code = isset( $_GET['ec_guest_added'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_GET['ec_guest_added'] ) ) ) : '';
+		$added_pass = ( '' !== $added_code && class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) ? \ExtraChillEvents\Core\RsvpPassesTable::find_by_code( $added_code ) : null;
+		if ( $added_pass && (int) $added_pass['event_id'] === $event_id && empty( $added_pass['user_id'] ) ) :
+			$added_name = (string) ( $added_pass['guest_name'] ?? '' );
+			?>
+			<div class="notice notice-success" data-guest-list-share>
+				<p>
+				<?php
+				/* translators: %s: guest name. */
+				printf( esc_html__( '%s is on the list. Text them this link so they have their pass at the door:', 'extrachill-events' ), esc_html( $added_name ) );
+				?>
+				</p>
+				<label><?php esc_html_e( 'Pass link', 'extrachill-events' ); ?>
+					<input type="url" readonly value="<?php echo esc_attr( extrachill_events_guest_list_pass_link( $event_id, $added_code, $added_name ) ); ?>">
+				</label>
+				<button type="button" class="button-2 button-small" data-copy-guest-list><?php esc_html_e( 'Copy pass link', 'extrachill-events' ); ?></button>
+				<p role="status" aria-live="polite" data-copy-status></p>
+			</div>
+		<?php endif; ?>
+		<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<h4><?php esc_html_e( 'Add a guest', 'extrachill-events' ); ?></h4>
+			<p><?php esc_html_e( 'Comps and guest list spots: add a name and they get a pass that scans at the door. No password needed. If they are not on the list, they are not on the list.', 'extrachill-events' ); ?></p>
+			<input type="hidden" name="action" value="ec_guest_list_add">
+			<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+			<?php wp_nonce_field( 'ec_guest_list_add_' . $event_id, '_wpnonce', false ); ?>
+			<label><?php esc_html_e( 'Guest name', 'extrachill-events' ); ?>
+				<input type="text" name="name" required maxlength="100" autocomplete="off">
+			</label>
+			<label><?php esc_html_e( 'Email (optional, sends them the pass)', 'extrachill-events' ); ?>
+				<input type="email" name="email" maxlength="200" autocomplete="off">
+			</label>
+			<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Add to guest list', 'extrachill-events' ); ?></button>
+		</form>
+		<div id="ec-guest-list-parties">
+			<h4><?php esc_html_e( 'Invite a band', 'extrachill-events' ); ?></h4>
+			<p><?php esc_html_e( 'Send a band or their management a private link. They add their own guest names, no account or password, and the door list shows who added each guest.', 'extrachill-events' ); ?></p>
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation after the invite redirect; the token is resolved against this event below.
+			$invite_link  = isset( $_GET['ec_party_invite'] ) ? sanitize_text_field( wp_unslash( $_GET['ec_party_invite'] ) ) : '';
+			$invite_token = preg_match( '#/' . EXTRACHILL_EVENTS_GUEST_INVITE_ENDPOINT . '/([a-f0-9]{64})/#', $invite_link, $invite_match ) ? $invite_match[1] : '';
+			$invite_party = '' !== $invite_token ? extrachill_events_resolve_guest_list_party( $invite_token ) : null;
+			if ( is_array( $invite_party ) && (int) $invite_party['event_id'] === $event_id ) :
+				?>
+				<div class="notice notice-success" data-guest-list-share>
+					<p>
+					<?php
+					/* translators: %s: band or management name. */
+					printf( esc_html__( 'Invite sent to %s. You can also text them their private link:', 'extrachill-events' ), esc_html( (string) $invite_party['name'] ) );
+					?>
+					</p>
+					<label><?php esc_html_e( 'Invite link', 'extrachill-events' ); ?>
+						<input type="url" readonly value="<?php echo esc_attr( extrachill_events_guest_list_party_invite_url( $event_id, $invite_token ) ); ?>">
+					</label>
+					<button type="button" class="button-2 button-small" data-copy-guest-list><?php esc_html_e( 'Copy invite link', 'extrachill-events' ); ?></button>
+					<p role="status" aria-live="polite" data-copy-status></p>
+				</div>
+			<?php endif; ?>
+			<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="ec_guest_party_invite">
+				<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+				<?php wp_nonce_field( 'ec_guest_party_invite_' . $event_id, '_wpnonce', false ); ?>
+				<label><?php esc_html_e( 'Band or management name', 'extrachill-events' ); ?>
+					<input type="text" name="name" required maxlength="100" autocomplete="off">
+				</label>
+				<label><?php esc_html_e( 'Email for the invite link', 'extrachill-events' ); ?>
+					<input type="email" name="email" required maxlength="200" autocomplete="off">
+				</label>
+				<?php if ( $allotments_enabled ) : ?>
+					<label><?php esc_html_e( 'Spots for this band', 'extrachill-events' ); ?>
+						<input type="number" name="allotment" required min="0" max="100000" value="2">
+					</label>
+				<?php endif; ?>
+				<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Send invite', 'extrachill-events' ); ?></button>
+			</form>
+			<?php if ( ! empty( $parties ) ) : ?>
+				<ul>
+					<?php foreach ( $parties as $party ) : ?>
+						<?php $party_active = 'active' === $party['status']; ?>
+						<li>
+							<strong><?php echo esc_html( (string) $party['name'] ); ?></strong>
+							(<?php echo esc_html( (string) $party['email'] ); ?>):
+							<?php
+							if ( $allotments_enabled ) {
+								printf(
+									/* translators: 1: names added, 2: spots allotted. */
+									esc_html__( '%1$d of %2$d spots used', 'extrachill-events' ),
+									(int) $party['used'],
+									(int) $party['allotment']
+								);
+							} else {
+								printf(
+									/* translators: %d: names added. */
+									esc_html( _n( '%d name added', '%d names added', (int) $party['used'], 'extrachill-events' ) ),
+									(int) $party['used']
+								);
+							}
+							if ( ! $party_active ) {
+								echo ' · ' . esc_html__( 'Invite revoked', 'extrachill-events' );
+							}
+							?>
+							<?php if ( $party_active && $allotments_enabled ) : ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+									<input type="hidden" name="action" value="ec_guest_party_allotment">
+									<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+									<input type="hidden" name="party_id" value="<?php echo esc_attr( (string) $party['party_id'] ); ?>">
+									<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'ec_guest_party_manage_' . $event_id ) ); ?>">
+									<label><?php esc_html_e( 'Spots', 'extrachill-events' ); ?>
+										<input type="number" name="allotment" min="0" max="100000" value="<?php echo esc_attr( (string) (int) $party['allotment'] ); ?>">
+									</label>
+									<button type="submit" class="button-2 button-small"><?php esc_html_e( 'Save spots', 'extrachill-events' ); ?></button>
+								</form>
+							<?php endif; ?>
+							<?php if ( $party_active ) : ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-confirm="<?php echo esc_attr( sprintf( /* translators: %s: band or management name. */ __( 'Revoke the invite for %s? Their link stops working. Guests they already added stay on the list.', 'extrachill-events' ), (string) $party['name'] ) ); ?>">
+									<input type="hidden" name="action" value="ec_guest_party_revoke">
+									<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+									<input type="hidden" name="party_id" value="<?php echo esc_attr( (string) $party['party_id'] ); ?>">
+									<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'ec_guest_party_manage_' . $event_id ) ); ?>">
+									<button type="submit" class="button-danger button-small"><?php esc_html_e( 'Revoke', 'extrachill-events' ); ?></button>
+								</form>
+							<?php endif; ?>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php endif; ?>
+		</div>
 	<?php endif; ?>
 	<p><a class="button-2 button-small" href="<?php echo esc_url( get_permalink( $event_id ) . '#ec-door-list' ); ?>"><?php esc_html_e( 'Open door list', 'extrachill-events' ); ?></a></p>
 	<p><?php esc_html_e( 'Door staff: log in on your phone before doors. Scan the attendee’s pass to open /rsvp-verify/, then tap Check in. You can also check in manually from the door list.', 'extrachill-events' ); ?></p>

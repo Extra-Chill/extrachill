@@ -286,6 +286,7 @@ function ec_get_artist_profile_data( $artist_id, $overrides = array() ) {
 		'genres'            => ec_artist_get_genres( $artist_id ),
 		'genre_labels'      => ec_artist_get_genre_labels( $artist_id ),
 		'local_city'        => $meta['_local_city'][0] ?? '',
+		'local_scene'       => $meta[ EXTRACHILL_ARTIST_LOCAL_SCENE_META ][0] ?? '',
 		'website_url'       => $meta['_website_url'][0] ?? '',
 		'spotify_url'       => $meta['_spotify_url'][0] ?? '',
 		'apple_music_url'   => $meta['_apple_music_url'][0] ?? '',

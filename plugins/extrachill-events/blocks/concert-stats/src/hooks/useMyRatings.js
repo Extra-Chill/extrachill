@@ -41,7 +41,9 @@ export default function useMyRatings( eventIds, enabled ) {
 		for ( let i = 0; i < pending.length; i += BATCH ) {
 			const ids = pending.slice( i, i + BATCH );
 			ids.forEach( ( id ) => requested.current.add( id ) );
-			Promise.resolve( apiFetch( { path: readPath( ids ) } ) )
+			Promise.resolve(
+				apiFetch( { path: readPath( ids ), method: 'GET' } )
+			)
 				.then( ( response ) => {
 					const found = ( response && response.ratings ) || {};
 					setRatings( ( prev ) => {
@@ -54,8 +56,11 @@ export default function useMyRatings( eventIds, enabled ) {
 						return next;
 					} );
 				} )
-				.catch( () => {
-					// Unknown ratings render as unrated; rating still works.
+				.catch( ( error ) => {
+					// Allow a later visit to these IDs to retry a failed read.
+					ids.forEach( ( id ) => requested.current.delete( id ) );
+					// eslint-disable-next-line no-console
+					console.error( 'Could not load your show ratings.', error );
 				} );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps

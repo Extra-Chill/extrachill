@@ -20,9 +20,9 @@ defined( 'ABSPATH' ) || exit;
  * Wraps the Agents API substrate's `agents/ability-search` — which is
  * local-only by design, the substrate must not learn about Extra Chill's
  * multisite (Extra-Chill/extrachill-mcp#7) — with a fan-out across every
- * known network site. The local hop reuses `agents/ability-search` directly
- * via `NetworkDispatch::run_local_ability()` and drops entries the MCP may
- * not invoke (see Exposure). Every other known site is listed through core's
+ * known network site. The local registry is matched without a pre-ranking
+ * limit, excluding entries the MCP may not invoke (see Exposure).
+ * Every other known site is listed through core's
  * `GET /wp-abilities/v1/abilities` collection via
  * `NetworkDispatch::list_abilities()` (`ec_cross_site_rest_request()`
  * underneath, forced onto the HTTP-loopback transport so the target's own
@@ -53,8 +53,6 @@ final class NetworkAbilitySearch {
 	public const DEFAULT_LIMIT = 10;
 	/** Upper bound on ranked results returned. */
 	public const MAX_LIMIT = 50;
-	/** How many matches each site contributes before network-wide ranking. */
-	public const PER_SITE_LIMIT = 100;
 	/** Top results that carry a compact input schema. */
 	public const SCHEMA_DETAIL_COUNT = 3;
 	/** Longest property description kept in a compact schema. */
@@ -104,14 +102,7 @@ final class NetworkAbilitySearch {
 		$limit_value = $input['limit'] ?? self::DEFAULT_LIMIT;
 		$limit       = max( 1, min( self::MAX_LIMIT, is_numeric( $limit_value ) ? (int) $limit_value : self::DEFAULT_LIMIT ) );
 
-		// Each site is searched wide; the final list is ranked and limited once.
-		$search_input = array(
-			'query'    => $query,
-			'category' => $category,
-			'limit'    => self::PER_SITE_LIMIT,
-		);
-
-		/** @var array<string,array<string,mixed>> $remote_records Remote REST records by ability name, for ranking and schemas. */
+		/** @var array<string,array<string,mixed>> $remote_records Local and remote records by ability name, for ranking and schemas. */
 		$remote_records = array();
 
 		/** @var array<int,array<string,mixed>> $abilities Declared so the by-ref merge below type-checks. */
@@ -119,15 +110,13 @@ final class NetworkAbilitySearch {
 		$sites_queried = array();
 		$errors        = array();
 
-		$local_site_key = NetworkDispatch::local_site_key();
-		$local_result    = NetworkDispatch::run_local_ability( 'agents/ability-search', $search_input );
-
-		if ( is_wp_error( $local_result ) ) {
-			$errors[ $local_site_key ?? 'local' ] = NetworkDispatch::describe_error( $local_result );
-		} else {
-			$sites_queried[] = $local_site_key ?? 'local';
-			$this->merge_results( $abilities, self::exposed_only( $local_result ), $local_site_key );
+		$local_site_key  = NetworkDispatch::local_site_key();
+		$sites_queried[] = $local_site_key ?? 'local';
+		$local_records   = self::local_records( $category );
+		foreach ( $local_records as $record ) {
+			$remote_records[ $record['name'] ] = $record;
 		}
+		$this->merge_results( $abilities, array( 'abilities' => self::match_records( $local_records, $query ) ), $local_site_key );
 
 		foreach ( NetworkDispatch::remote_sites() as $site_key ) {
 			$records = NetworkDispatch::list_abilities( $site_key, $category );
@@ -143,7 +132,7 @@ final class NetworkAbilitySearch {
 					$remote_records[ $record['name'] ] = $record;
 				}
 			}
-			$this->merge_results( $abilities, array( 'abilities' => self::match_records( $records, $query, self::PER_SITE_LIMIT ) ), $site_key );
+			$this->merge_results( $abilities, array( 'abilities' => self::match_records( $records, $query ) ), $site_key );
 		}
 
 		$abilities = self::rank( self::dedupe( $abilities ), $query, count( $sites_queried ), $remote_records );
@@ -374,7 +363,7 @@ final class NetworkAbilitySearch {
 	 * @param array<int,array<string,mixed>> $records REST ability records.
 	 * @return array<int,array<string,mixed>>
 	 */
-	public static function match_records( array $records, string $query, int $limit ): array {
+	public static function match_records( array $records, string $query ): array {
 		$parsed   = function_exists( 'agents_parse_ability_search_query' )
 			? agents_parse_ability_search_query( $query )
 			: self::parse_query( $query );
@@ -413,10 +402,6 @@ final class NetworkAbilitySearch {
 				'summary'         => (string) preg_replace( '/\s+/', ' ', $summary ),
 				'required_fields' => $required,
 			);
-
-			if ( count( $entries ) >= $limit ) {
-				break;
-			}
 		}
 
 		return $entries;
@@ -454,27 +439,28 @@ final class NetworkAbilitySearch {
 	}
 
 	/**
-	 * Drop local entries the MCP may not invoke (see Exposure), so search
-	 * never advertises an ability that ability-call would refuse.
+	 * Read exposed local abilities in the same record shape as remote REST
+	 * results. Matching and ranking must see every candidate on every site.
 	 *
-	 * @param mixed $result Raw local search result.
-	 * @return mixed
+	 * @return array<int,array<string,mixed>>
 	 */
-	private static function exposed_only( $result ) {
-		if ( ! is_array( $result ) || ! isset( $result['abilities'] ) || ! is_array( $result['abilities'] ) ) {
-			return $result;
+	private static function local_records( string $category ): array {
+		$records = array();
+		foreach ( wp_get_abilities() as $ability ) {
+			if ( ! Exposure::meta_is_exposed( $ability->get_meta() ) || ( '' !== $category && $category !== $ability->get_category() ) ) {
+				continue;
+			}
+
+			$records[] = array(
+				'name'         => $ability->get_name(),
+				'label'        => $ability->get_label(),
+				'description'  => $ability->get_description(),
+				'category'     => $ability->get_category(),
+				'input_schema' => $ability->get_input_schema(),
+			);
 		}
 
-		$result['abilities'] = array_values(
-			array_filter(
-				$result['abilities'],
-				static function ( $entry ): bool {
-					return ! is_array( $entry ) || ! is_string( $entry['name'] ?? null ) || Exposure::is_locally_exposed( $entry['name'] );
-				}
-			)
-		);
-
-		return $result;
+		return $records;
 	}
 
 	/**

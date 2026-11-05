@@ -80,6 +80,11 @@
             "runtime": "host"
           },
           {
+            "name": "guest-list-pass-image-unit",
+            "config": "phpunit-guest-list-pass-image-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "archive-layout-unit",
             "config": "phpunit-archive-layout-unit.xml.dist",
             "runtime": "host"
@@ -155,11 +160,6 @@
             "runtime": "host"
           },
           {
-            "name": "network-block",
-            "config": "phpunit-network-block.xml.dist",
-            "runtime": "host"
-          },
-          {
             "name": "venue-calendar-feed",
             "config": "phpunit-venue-calendar-feed.xml.dist",
             "runtime": "host"
@@ -196,10 +196,6 @@
       "pattern": "EXTRACHILL_EVENTS_VERSION',\\s*'([0-9.]+)'"
     },
     {
-      "file": "extrachill-events-network-blocks.php",
-      "pattern": "(?m)^\\s*\\*?\\s*Version:\\s*([0-9.]+)"
-    },
-    {
       "file": "blocks/concert-stats/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\"",
       "artifact_path": "build/concert-stats/block.json"
@@ -209,5 +205,10 @@
       "pattern": "\"version\":\\s*\"([0-9.]+)\"",
       "artifact_path": "build/event-submission/block.json"
     }
-  ]
+  ],
+  "scopes": {
+    "package": {
+      "exclude": ["jest.config.js"]
+    }
+  }
 }

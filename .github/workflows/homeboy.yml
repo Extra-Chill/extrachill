@@ -56,12 +56,13 @@ jobs:
       - name: Deploy and server artifacts
         run: |
           set -euo pipefail
-          python3 -c 'import yaml' 2>/dev/null || pip install --quiet pyyaml
+          python3 -c 'import yaml' 2>/dev/null || python3 -m pip install --user --quiet pyyaml
           php -l deploy/sunrise.php
           php deploy/tests/deploy-workflow-smoke.php
           php deploy/tests/sunrise-cutover-smoke.php
           php deploy/tests/nginx-login-no-redirect-smoke.php
           python3 deploy/tests/deploy-monorepo-test.py
+          python3 deploy/tests/plugin-docs-package-test.py
       - name: Network rig contracts
         run: node --test rigs/extrachill-network/tests/*.test.mjs
       - name: MONOREPO.md site map is current

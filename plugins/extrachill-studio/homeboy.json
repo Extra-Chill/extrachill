@@ -36,6 +36,7 @@
     }
   },
   "scopes": {
+    "package": { "exclude": ["jest.config.cjs"] },
     "release": {
       "exclude": [
         "webpack.config.js"

@@ -421,6 +421,13 @@ function ec_handle_artist_profile_save( $artist_id, $save_data = array(), $files
 		return new WP_Error( 'invalid_artist_profile', 'Invalid artist profile ID' );
 	}
 
+	if ( array_key_exists( 'local_scene', $save_data ) ) {
+		$scene = extrachill_artist_platform_set_local_scene( $artist_id, $save_data['local_scene'] );
+		if ( is_wp_error( $scene ) ) {
+			return $scene;
+		}
+	}
+
 	// Prepare post update data
 	$post_data           = array( 'ID' => $artist_id );
 	$perform_post_update = false;
@@ -563,6 +570,10 @@ function ec_prepare_artist_profile_save_data( $post_data ) {
 	}
 
 	// Local Scene (City)
+	if ( isset( $post_data['local_scene'] ) ) {
+		$save_data['local_scene'] = sanitize_text_field( $post_data['local_scene'] );
+	}
+
 	if ( isset( $post_data['local_city'] ) ) {
 		$save_data['local_city'] = sanitize_text_field( $post_data['local_city'] );
 	}

@@ -19,6 +19,7 @@ import { InlineStatus, Panel } from '@extrachill/components';
 import { errorDetails, runAbility } from '../../../../extrachill-events/blocks/venue-settings/src/api';
 import { BookingConsole } from './booking-console';
 import { BookingFormTab } from './booking-form-tab';
+import '../../venue-booking-inquiry/src/style.scss';
 import { BookingTab } from './booking-tab';
 import { LoadingPanel } from '../../../../extrachill-events/blocks/venue-settings/src/status';
 import { editableConfig, sameDocument } from '../../../../extrachill-events/blocks/venue-settings/src/state';

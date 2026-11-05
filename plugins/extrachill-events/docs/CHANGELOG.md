@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.110.0] - 2026-11-04
+
+### Added
+- venue invites bands/management to fill guest-list spots
+- calendar-style pass card when an event has no art
+
+## [0.109.0] - 2026-11-04
+
+### Added
+- hosts add comps to the guest list by name
+- event poster as default pass art + pass image upload in the host guest-list panel
+
+## [0.108.2] - 2026-11-03
+
+### Fixed
+- surface My Shows rating read failures and pin the wire shape
+
+## [0.108.1] - 2026-11-02
+
+### Changed
+- declare jest configs as intentional release package omissions
+- move events + booking to @wordpress/scripts ^37
+
+## [0.108.0] - 2026-11-02
+
+### Added
+- contextual help links from product screens to docs articles
+
+## [0.107.2] - 2026-11-02
+
+### Changed
+- remove events network-blocks adapter and move the inquiry block into booking (P3, #549)
+
 ## [0.107.1] - 2026-11-02
 
 ### Changed

@@ -40,11 +40,12 @@ $can_create_artists = function_exists( 'ec_can_create_artist_profiles' )
 	: false;
 
 printf(
-	'<div class="%1$s" data-artist-site-url="%2$s" data-user-id="%3$d" data-profile-url="%4$s" data-has-artists="%5$s" data-can-create-artists="%6$s"></div>',
+	'<div class="%1$s" data-artist-site-url="%2$s" data-user-id="%3$d" data-profile-url="%4$s" data-has-artists="%5$s" data-can-create-artists="%6$s" data-docs-help-url="%7$s"></div>',
 	esc_attr( $class ),
 	esc_url( $artist_site_url ),
 	(int) $current_user_id,
 	esc_url( $profile_url ),
 	$has_artists ? '1' : '0',
-	$can_create_artists ? '1' : '0'
+	$can_create_artists ? '1' : '0',
+	esc_url( extrachill_community_docs_url( 'setting-up-your-user-profile' ) )
 );

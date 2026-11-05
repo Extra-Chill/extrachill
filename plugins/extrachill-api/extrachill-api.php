@@ -3,7 +3,7 @@
  * Plugin Name: Extra Chill API
  * Plugin URI: https://extrachill.com
  * Description: Central REST API infrastructure for the Extra Chill multisite network.
- * Version: 0.48.1
+ * Version: 0.49.1
  * Requires PHP: 8.4
  * Requires Plugins: extrachill-network
  * Author: Extra Chill
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Load Composer autoloader for dependencies (Endroid QR Code)
+// Load Composer autoloader for dependencies (League HTML-to-Markdown, CommonMark).
 if ( file_exists( __DIR__ . '/vendor/autoload.php' ) ) {
 	require_once __DIR__ . '/vendor/autoload.php';
 }

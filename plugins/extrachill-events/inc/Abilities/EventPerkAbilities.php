@@ -36,41 +36,45 @@ class EventPerkAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
-						'event'          => array(
+						'event'              => array(
 							'type'        => 'string',
 							'description' => __( 'Event post slug or numeric ID.', 'extrachill-events' ),
 						),
-						'enabled'        => array(
+						'enabled'            => array(
 							'type'        => 'boolean',
 							'description' => __( 'Whether the perk is offered.', 'extrachill-events' ),
 							'default'     => true,
 						),
-						'text'           => array(
+						'text'               => array(
 							'type'        => 'string',
 							'maxLength'   => EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN,
 							'description' => __( 'Attendee-facing perk description, e.g. "First beer on Extra Chill."', 'extrachill-events' ),
 							'default'     => '',
 						),
-						'password'       => array(
+						'password'           => array(
 							'type'        => 'string',
 							'maxLength'   => EXTRACHILL_EVENTS_PERK_PASSWORD_MAX,
 							'description' => __( 'Guest list password. Only people who know it can claim a pass. Omit to keep the current password.', 'extrachill-events' ),
 						),
-						'clear_password' => array(
+						'clear_password'     => array(
 							'type'        => 'boolean',
 							'description' => __( 'Remove the guest list password.', 'extrachill-events' ),
 							'default'     => false,
 						),
-						'capacity'       => array(
+						'capacity'           => array(
 							'type'        => 'integer',
 							'minimum'     => 0,
 							'maximum'     => EXTRACHILL_EVENTS_PERK_CAPACITY_MAX,
 							'description' => __( 'Guest list spots: the most passes the event will issue. 0 = unlimited. Omit to keep the current value.', 'extrachill-events' ),
 						),
-						'image_id'       => array(
+						'image_id'           => array(
 							'type'        => 'integer',
 							'minimum'     => 0,
 							'description' => __( 'Pass artwork: an image attachment ID shown on the pass next to the QR code. 0 removes it. Omit to keep the current image.', 'extrachill-events' ),
+						),
+						'allotments_enabled' => array(
+							'type'        => 'boolean',
+							'description' => __( 'Cap each invited band or management at its own allotment of spots. Off by default: invited parties are limited only by capacity. Omit to keep the current setting.', 'extrachill-events' ),
 						),
 					),
 					'required'   => array( 'event' ),
@@ -82,14 +86,20 @@ class EventPerkAbilities {
 						'event'   => array(
 							'type'       => 'object',
 							'properties' => array(
-								'post_id'           => array( 'type' => 'integer' ),
-								'title'             => array( 'type' => 'string' ),
-								'enabled'           => array( 'type' => 'boolean' ),
-								'text'              => array( 'type' => 'string' ),
-								'password_required' => array( 'type' => 'boolean' ),
-								'capacity'          => array( 'type' => 'integer' ),
-								'image_id'          => array( 'type' => 'integer' ),
-								'image_url'         => array( 'type' => 'string' ),
+								'post_id'            => array( 'type' => 'integer' ),
+								'title'              => array( 'type' => 'string' ),
+								'enabled'            => array( 'type' => 'boolean' ),
+								'text'               => array( 'type' => 'string' ),
+								'password_required'  => array( 'type' => 'boolean' ),
+								'capacity'           => array( 'type' => 'integer' ),
+								'allotments_enabled' => array( 'type' => 'boolean' ),
+								'image_id'           => array( 'type' => 'integer' ),
+								'image_url'          => array( 'type' => 'string' ),
+								'pass_image_url'     => array( 'type' => 'string' ),
+								'pass_image_source'  => array(
+									'type' => 'string',
+									'enum' => array( 'custom', 'poster', 'card' ),
+								),
 							),
 						),
 					),
@@ -127,17 +137,23 @@ class EventPerkAbilities {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						'post_id'           => array( 'type' => 'integer' ),
-						'enabled'           => array( 'type' => 'boolean' ),
-						'text'              => array( 'type' => 'string' ),
-						'password_required' => array( 'type' => 'boolean' ),
-						'capacity'          => array( 'type' => 'integer' ),
-						'claimed'           => array( 'type' => 'integer' ),
-						'checked_in'        => array( 'type' => 'integer' ),
-						'spots_left'        => array( 'type' => array( 'integer', 'null' ) ),
-						'full'              => array( 'type' => 'boolean' ),
-						'image_id'          => array( 'type' => 'integer' ),
-						'image_url'         => array( 'type' => 'string' ),
+						'post_id'            => array( 'type' => 'integer' ),
+						'enabled'            => array( 'type' => 'boolean' ),
+						'text'               => array( 'type' => 'string' ),
+						'password_required'  => array( 'type' => 'boolean' ),
+						'capacity'           => array( 'type' => 'integer' ),
+						'claimed'            => array( 'type' => 'integer' ),
+						'checked_in'         => array( 'type' => 'integer' ),
+						'spots_left'         => array( 'type' => array( 'integer', 'null' ) ),
+						'full'               => array( 'type' => 'boolean' ),
+						'allotments_enabled' => array( 'type' => 'boolean' ),
+						'image_id'           => array( 'type' => 'integer' ),
+						'image_url'          => array( 'type' => 'string' ),
+						'pass_image_url'     => array( 'type' => 'string' ),
+						'pass_image_source'  => array(
+							'type' => 'string',
+							'enum' => array( 'custom', 'poster', 'card' ),
+						),
 					),
 				),
 				'execute_callback'    => array( $this, 'get_event_perk' ),
@@ -234,6 +250,10 @@ class EventPerkAbilities {
 			extrachill_events_set_perk_image_id( $post->ID, $image_id );
 		}
 
+		if ( isset( $input['allotments_enabled'] ) ) {
+			extrachill_events_set_guest_list_allotments( $post->ID, (bool) $input['allotments_enabled'] );
+		}
+
 		if ( $enabled ) {
 			update_post_meta( $post->ID, EXTRACHILL_EVENTS_PERK_ENABLED_META, true );
 		} else {
@@ -249,14 +269,17 @@ class EventPerkAbilities {
 		return array(
 			'success' => true,
 			'event'   => array(
-				'post_id'           => $post->ID,
-				'title'             => $post->post_title,
-				'enabled'           => $enabled,
-				'text'              => $text,
-				'password_required' => extrachill_events_perk_password_required( $post->ID ),
-				'capacity'          => extrachill_events_get_perk_capacity( $post->ID ),
-				'image_id'          => extrachill_events_get_perk_image_id( $post->ID ),
-				'image_url'         => extrachill_events_get_perk_image_url( $post->ID ),
+				'post_id'            => $post->ID,
+				'title'              => $post->post_title,
+				'enabled'            => $enabled,
+				'text'               => $text,
+				'password_required'  => extrachill_events_perk_password_required( $post->ID ),
+				'capacity'           => extrachill_events_get_perk_capacity( $post->ID ),
+				'allotments_enabled' => extrachill_events_guest_list_allotments_enabled( $post->ID ),
+				'image_id'           => extrachill_events_get_perk_image_id( $post->ID ),
+				'image_url'          => extrachill_events_get_perk_image_url( $post->ID ),
+				'pass_image_url'     => extrachill_events_get_pass_image_url( $post->ID ),
+				'pass_image_source'  => extrachill_events_get_pass_image_source( $post->ID ),
 			),
 		);
 	}
@@ -276,17 +299,20 @@ class EventPerkAbilities {
 		$counts = extrachill_events_get_guest_list_counts( $post->ID );
 
 		return array(
-			'post_id'           => $post->ID,
-			'enabled'           => extrachill_events_perk_enabled( $post->ID ),
-			'text'              => extrachill_events_get_perk_text( $post->ID ),
-			'password_required' => extrachill_events_perk_password_required( $post->ID ),
-			'capacity'          => $counts['capacity'],
-			'claimed'           => $counts['claimed'],
-			'checked_in'        => $counts['checked_in'],
-			'spots_left'        => $counts['spots_left'],
-			'full'              => $counts['full'],
-			'image_id'          => extrachill_events_get_perk_image_id( $post->ID ),
-			'image_url'         => extrachill_events_get_perk_image_url( $post->ID ),
+			'post_id'            => $post->ID,
+			'enabled'            => extrachill_events_perk_enabled( $post->ID ),
+			'text'               => extrachill_events_get_perk_text( $post->ID ),
+			'password_required'  => extrachill_events_perk_password_required( $post->ID ),
+			'capacity'           => $counts['capacity'],
+			'claimed'            => $counts['claimed'],
+			'checked_in'         => $counts['checked_in'],
+			'spots_left'         => $counts['spots_left'],
+			'full'               => $counts['full'],
+			'allotments_enabled' => extrachill_events_guest_list_allotments_enabled( $post->ID ),
+			'image_id'           => extrachill_events_get_perk_image_id( $post->ID ),
+			'image_url'          => extrachill_events_get_perk_image_url( $post->ID ),
+			'pass_image_url'     => extrachill_events_get_pass_image_url( $post->ID ),
+			'pass_image_source'  => extrachill_events_get_pass_image_source( $post->ID ),
 		);
 	}
 }
