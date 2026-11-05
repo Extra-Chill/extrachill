@@ -25,7 +25,7 @@ class TeamCommand {
 	 *
 	 * Thin wrapper over the extrachill/get-team-experience-stats ability:
 	 * current extra_chill_team count, members added/removed in the window,
-	 * and the Studio/Roadie/submission event counts. All logic lives in the
+	 * and the Studio/MCP/submission event counts. All logic lives in the
 	 * ability (extrachill-users#127).
 	 *
 	 * ## OPTIONS
@@ -99,6 +99,19 @@ class TeamCommand {
 			$rows[] = array(
 				'Metric' => (string) $event_type,
 				'Value'  => (string) (int) $count,
+			);
+		}
+
+		foreach ( array( 'tool_calls_success', 'tool_calls_failure', 'tool_calls_unknown' ) as $metric ) {
+			$rows[] = array(
+				'Metric' => 'mcp_' . $metric,
+				'Value'  => (string) ( $result['mcp_usage'][ $metric ] ?? 0 ),
+			);
+		}
+		foreach ( $result['mcp_usage']['top_abilities'] ?? array() as $ability => $count ) {
+			$rows[] = array(
+				'Metric' => 'mcp_ability: ' . $ability,
+				'Value'  => (string) $count,
 			);
 		}
 

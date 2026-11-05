@@ -9,7 +9,7 @@
  * -----------------------------------------
  * extrachill-analytics owns the analytics substrate: the events table and
  * the `extrachill/track-analytics-event` ability that EVERY emitter across
- * extrachill-users / -studio / -roadie / -artist-platform already calls at
+ * extrachill-users / -studio / -mcp / -artist-platform already calls at
  * runtime. That ability call is an existing hard runtime dependency on this
  * plugin — so referencing a constant defined here adds ZERO new coupling.
  * extrachill-analytics is also `Network: true` (active on every site), so
@@ -125,19 +125,12 @@ const EC_ANALYTICS_PUBLIC_BROWSER_EVENTS = array(
 	EC_ANALYTICS_EVENT_FORM_SUBMIT,
 );
 
-/** Team-experience events (team membership + Studio + Roadie usage). */
+/** Team-experience events (team membership + Studio usage; MCP defined below). */
 const EC_ANALYTICS_EVENT_TEAM_MEMBER_ADDED        = 'team_member_added';
 const EC_ANALYTICS_EVENT_TEAM_MEMBER_REMOVED      = 'team_member_removed';
 const EC_ANALYTICS_EVENT_STUDIO_DRAFT_CREATED     = 'studio_draft_created';
 const EC_ANALYTICS_EVENT_STUDIO_SUBMITTED         = 'studio_submitted_for_review';
 const EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN = 'studio_transcription_run';
-// Roadie is retired from the network (Extra-Chill/extrachill-network#210)
-// and these are no longer emitted, but 63 historical rows carry these
-// event types. The constants and their registrations stay so existing
-// reports and queries keep resolving; pruning them is a separate
-// decision with a data-migration question attached.
-const EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED   = 'roadie_session_started';
-const EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED      = 'roadie_tool_invoked';
 
 /**
  * MCP server usage.
@@ -338,8 +331,8 @@ const EC_ANALYTICS_TEAM_EXPERIENCE_EVENTS = array(
 	EC_ANALYTICS_EVENT_STUDIO_DRAFT_CREATED,
 	EC_ANALYTICS_EVENT_STUDIO_SUBMITTED,
 	EC_ANALYTICS_EVENT_STUDIO_TRANSCRIPTION_RUN,
-	EC_ANALYTICS_EVENT_ROADIE_SESSION_STARTED,
-	EC_ANALYTICS_EVENT_ROADIE_TOOL_INVOKED,
+	EC_ANALYTICS_EVENT_MCP_SESSION_STARTED,
+	EC_ANALYTICS_EVENT_MCP_TOOL_INVOKED,
 );
 
 /**
