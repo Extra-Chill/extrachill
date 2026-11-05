@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] - 2026-11-05
+
+### Changed
+- resolve in-repo validation dependencies by path, not archived repos
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
