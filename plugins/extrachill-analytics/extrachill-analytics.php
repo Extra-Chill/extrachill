@@ -77,6 +77,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-cta-funne
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-link-page-analytics.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-bridge-ctr.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-outbound-clicks.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/human-events-sql.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/retention-cohorts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-retention-stats.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/abilities/get-display-preferences.php';

@@ -59,7 +59,7 @@ final class RetentionCohortsTest extends TestCase {
 		$this->assertStringContainsString( 'WHERE {$cohort_where_clause}', $source );
 		$this->assertStringContainsString( 'HAVING MIN(created_at) >= %s', $source );
 		$this->assertStringContainsString( 'DATE_SUB( DATE( MIN(created_at) )', $source );
-		$this->assertStringContainsString( '$cohort_values = array( $event_type, $now_utc );', $source );
+		$this->assertStringContainsString( '$cohort_values        = array( $event_type, $now_utc );', $source );
 		$this->assertStringNotContainsString( '$cohort_values = array( $event_type, $cohort_since );', $source );
 	}
 
