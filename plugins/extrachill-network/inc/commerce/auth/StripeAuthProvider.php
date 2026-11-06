@@ -31,31 +31,31 @@ final class StripeAuthProvider extends CommerceAuthProvider {
 
 	public function get_config_fields(): array {
 		return array(
-			'secret_key'        => array(
+			'secret_key'             => array(
 				'label'       => __( 'Secret Key', 'extrachill-network' ),
 				'type'        => 'password',
 				'required'    => true,
 				'description' => __( 'Stripe secret API key (sk_live_... / sk_test_...). Confidential.', 'extrachill-network' ),
 			),
-			'publishable_key'   => array(
+			'publishable_key'        => array(
 				'label'       => __( 'Publishable Key', 'extrachill-network' ),
 				'type'        => 'text',
 				'required'    => true,
 				'description' => __( 'Stripe publishable key (pk_live_... / pk_test_...). Non-secret by Stripe design.', 'extrachill-network' ),
 			),
-			'connect_client_id' => array(
+			'connect_client_id'      => array(
 				'label'       => __( 'Connect Client ID', 'extrachill-network' ),
 				'type'        => 'password',
 				'required'    => false,
 				'description' => __( 'Stripe Connect client ID (ca_...).', 'extrachill-network' ),
 			),
 			'connect_webhook_secret' => array(
-				'label' => 'Connect webhook signing secret',
-				'type' => 'password',
-				'required' => false,
+				'label'       => 'Connect webhook signing secret',
+				'type'        => 'password',
+				'required'    => false,
 				'description' => 'Signing secret for connected-account events.',
 			),
-			'webhook_secret'    => array(
+			'webhook_secret'         => array(
 				'label'       => __( 'Webhook Signing Secret', 'extrachill-network' ),
 				'type'        => 'password',
 				'required'    => false,

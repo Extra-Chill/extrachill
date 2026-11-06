@@ -87,8 +87,10 @@ function ec_network_commerce_fields() {
 			'description' => __( 'Webhook signing secret used to verify Stripe webhook events.', 'extrachill-network' ),
 		),
 		array(
-			'section' => 'stripe', 'key' => 'connect_webhook_secret',
-			'label' => 'Connect Webhook Secret', 'placeholder' => 'whsec_...',
+			'section'     => 'stripe',
+			'key'         => 'connect_webhook_secret',
+			'label'       => 'Connect Webhook Secret',
+			'placeholder' => 'whsec_...',
 			'description' => 'Signing secret for connected-account events (tickets).',
 		),
 		// Shipping (Shippo label generation).
@@ -168,7 +170,7 @@ function ec_handle_network_payments_save() {
 	$fees = get_site_option( 'extrachill_ticket_fees', array() );
 	foreach ( array( 'buyer_fee_flat_minor', 'buyer_fee_percent', 'seller_fee_percent' ) as $key ) {
 		if ( isset( $_POST[ $key ] ) && is_numeric( $_POST[ $key ] ) ) {
-			$value = max( 0, (float) wp_unslash( $_POST[ $key ] ) );
+			$value        = max( 0, (float) wp_unslash( $_POST[ $key ] ) );
 			$fees[ $key ] = 'buyer_fee_flat_minor' === $key ? (int) $value : min( 100, $value );
 		}
 	}
@@ -209,10 +211,10 @@ function ec_network_commerce_field_is_set( array $field ): bool {
 
 	$stripe  = new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider();
 	$getters = array(
-		'secret_key'        => 'get_secret_key',
-		'publishable_key'   => 'get_publishable_key',
-		'connect_client_id' => 'get_connect_client_id',
-		'webhook_secret'    => 'get_webhook_secret',
+		'secret_key'             => 'get_secret_key',
+		'publishable_key'        => 'get_publishable_key',
+		'connect_client_id'      => 'get_connect_client_id',
+		'webhook_secret'         => 'get_webhook_secret',
 		'connect_webhook_secret' => 'get_connect_webhook_secret',
 	);
 
