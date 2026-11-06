@@ -157,6 +157,50 @@ function extrachill_artist_platform_register_abilities() {
 		)
 	);
 
+	wp_register_ability(
+		'extrachill/preview-link-page',
+		array(
+			'label'               => __( 'Preview Link Page', 'extrachill-artist-platform' ),
+			'description'         => __( 'Preview an artist Link Page: public URL, resolved CSS defaults and derived variables, and WCAG contrast checks (4.5 threshold). Image/gradient contrast is unknown. Live screenshots are unavailable until WP Codebox supports public URL capture.', 'extrachill-artist-platform' ),
+			'category'            => 'extrachill-artist-platform',
+			'input_schema'        => array(
+				'type' => 'object',
+				'required' => array( 'artist_id' ),
+				'additionalProperties' => false,
+				'properties' => array(
+					'artist_id' => array( 'type' => 'integer', 'minimum' => 1 ),
+					'viewport' => array(
+						'type' => 'object',
+						'required' => array( 'width', 'height' ),
+						'additionalProperties' => false,
+						'default' => array( 'width' => 390, 'height' => 844 ),
+						'properties' => array(
+							'width' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 10000 ),
+							'height' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 10000 ),
+						),
+					),
+				),
+			),
+			'output_schema' => array(
+				'type' => 'object',
+				'required' => array( 'public_url', 'viewport', 'resolved_styles', 'contrast_report', 'screenshot' ),
+				'properties' => array(
+					'public_url' => array( 'type' => 'string', 'format' => 'uri' ),
+					'viewport' => array( 'type' => 'object' ),
+					'resolved_styles' => array( 'type' => 'object' ),
+					'contrast_report' => array( 'type' => 'object' ),
+					'screenshot' => array( 'type' => 'object' ),
+				),
+			),
+			'execute_callback' => 'extrachill_artist_platform_ability_preview_link_page',
+			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
+			'meta' => array(
+				'show_in_rest' => true,
+				'annotations' => array( 'readonly' => true, 'idempotent' => true, 'destructive' => false ),
+			),
+		)
+	);
+
 	// --- Write abilities ---
 
 	wp_register_ability(
