@@ -323,6 +323,10 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 				'name'     => 'Derived from the admitted multipart file payload.',
 				'type'     => 'Derived from the admitted multipart file payload.',
 				'size'     => 'Derived from the admitted multipart file payload.',
+				'blog_id'      => 'Ability callers choose the target site; the REST route keeps the main library.',
+				'source_url'   => 'URL imports are an ability-level source; the REST route accepts multipart files.',
+				'image_base64' => 'Base64 imports are an ability-level source; the REST route accepts multipart files.',
+				'crop'         => 'Crop applies to URL and base64 imports only.',
 			),
 		),
 		'/extrachill/v1/community/notifications|extrachill/get-notifications' => array(

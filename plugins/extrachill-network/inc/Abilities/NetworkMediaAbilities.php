@@ -2,7 +2,9 @@
 /**
  * Network Media Abilities
  *
- * Cross-site media library access for the network. Phase 1 of the network-wide
+ * Cross-site media library access for the network. Uploads can target any
+ * network site via blog_id and accept URL or base64 image sources, so callers
+ * without a local file (agents, native clients) can add images. Phase 1 of the network-wide
  * unified media library tracked in extrachill-network#2 — currently scoped to
  * blog 1 (the main site, where editorial media lives) so consumers like Studio
  * can read and write that library from any subsite.
@@ -34,6 +36,17 @@ class NetworkMediaAbilities {
 	 * a list of sites to iterate.
 	 */
 	private const MAIN_BLOG_ID = 1;
+
+	/** URL and base64 imports: accepted image types and their extensions. */
+	private const IMAGE_TYPES = array(
+		'image/jpeg' => 'jpg',
+		'image/png'  => 'png',
+		'image/gif'  => 'gif',
+		'image/webp' => 'webp',
+	);
+
+	/** URL and base64 import size cap. */
+	private const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
 	public function __construct() {
 		if ( ! self::$registered ) {
@@ -113,7 +126,7 @@ class NetworkMediaAbilities {
 					),
 				),
 				'execute_callback'    => array( $this, 'executeList' ),
-				'permission_callback' => array( $this, 'permissionCallback' ),
+				'permission_callback' => array( $this, 'listPermissionCallback' ),
 				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
@@ -128,12 +141,54 @@ class NetworkMediaAbilities {
 			'extrachill/network-media-upload',
 			array(
 				'label'               => __( 'Upload to Network Media', 'extrachill-network' ),
-				'description'         => __( 'Upload a file to the main editorial media library and return the resulting attachment.', 'extrachill-network' ),
+				'description'         => __( 'Add a file to a network site\'s media library and return the attachment. Sources: a multipart upload, a public image URL (for example a chat attachment URL), or base64 image bytes. Defaults to the main editorial library; pass blog_id to target another network site, e.g. the link pages site for link page images or the artist site for artist profile images, then assign the returned id with that domain\'s ability. Optional crop. URL and base64 imports accept JPG, PNG, GIF or WebP up to 5MB.', 'extrachill-network' ),
 				'category'            => 'extrachill-network',
 				'input_schema'        => array(
 					'type'       => 'object',
-					'required'   => array( 'tmp_name', 'name', 'type', 'size' ),
+					'default'    => array(),
 					'properties' => array(
+						'blog_id'      => array(
+							'type'        => 'integer',
+							'minimum'     => 1,
+							'description' => __( 'Network site whose media library receives the file. Defaults to the main editorial site.', 'extrachill-network' ),
+						),
+						'source_url'   => array(
+							'type'        => 'string',
+							'format'      => 'uri',
+							'description' => __( 'Public http(s) image URL to import.', 'extrachill-network' ),
+						),
+						'image_base64' => array(
+							'type'        => 'string',
+							'description' => __( 'Base64 image bytes or a data: URI.', 'extrachill-network' ),
+						),
+						'crop'         => array(
+							'type'                 => 'object',
+							'description'          => __( 'Optional crop as fractions of the source image. The top two thirds is {x:0,y:0,width:1,height:0.667}.', 'extrachill-network' ),
+							'required'             => array( 'x', 'y', 'width', 'height' ),
+							'properties'           => array(
+								'x'      => array(
+									'type'    => 'number',
+									'minimum' => 0,
+									'maximum' => 1,
+								),
+								'y'      => array(
+									'type'    => 'number',
+									'minimum' => 0,
+									'maximum' => 1,
+								),
+								'width'  => array(
+									'type'    => 'number',
+									'minimum' => 0.01,
+									'maximum' => 1,
+								),
+								'height' => array(
+									'type'    => 'number',
+									'minimum' => 0.01,
+									'maximum' => 1,
+								),
+							),
+							'additionalProperties' => false,
+						),
 						'tmp_name' => array(
 							'type'        => 'string',
 							'description' => __( 'PHP $_FILES["tmp_name"] path.', 'extrachill-network' ),
@@ -182,20 +237,36 @@ class NetworkMediaAbilities {
 	}
 
 	/**
-	 * Permission check.
+	 * List permission check.
 	 *
-	 * Phase 1 requires `upload_files` on blog 1 (the main editorial site).
-	 * This naturally restricts access to team members who already have edit
-	 * rights on the main site — Studio team membership inherits from there.
+	 * Listing always reads blog 1, so its check ignores any blog_id input.
 	 *
 	 * @return bool
 	 */
-	public function permissionCallback(): bool {
+	public function listPermissionCallback(): bool {
+		return $this->permissionCallback( array() );
+	}
+
+	/**
+	 * Upload permission check.
+	 *
+	 * Requires `upload_files` on the target site: blog 1 (the main editorial
+	 * site) unless `blog_id` names another network site.
+	 *
+	 * @param mixed $input Ability input.
+	 * @return bool
+	 */
+	public function permissionCallback( $input = array() ): bool {
 		if ( ! is_user_logged_in() ) {
 			return false;
 		}
 
-		switch_to_blog( self::MAIN_BLOG_ID );
+		$blog_id = self::targetBlogId( is_array( $input ) ? $input : array() );
+		if ( ! $blog_id ) {
+			return false;
+		}
+
+		switch_to_blog( $blog_id );
 		try {
 			return current_user_can( 'upload_files' );
 		} finally {
@@ -269,6 +340,26 @@ class NetworkMediaAbilities {
 	 * @return array|\WP_Error Normalised attachment, or WP_Error.
 	 */
 	public function executeUpload( array $input ) {
+		$sources = (int) isset( $input['tmp_name'] ) + (int) isset( $input['source_url'] ) + (int) isset( $input['image_base64'] );
+		if ( 1 !== $sources ) {
+			return new \WP_Error( 'invalid_source', __( 'Supply exactly one of a file upload, source_url, or image_base64.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		$blog_id = self::targetBlogId( $input );
+		if ( ! $blog_id ) {
+			return new \WP_Error( 'invalid_blog', __( 'blog_id must be an existing network site.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		if ( ! isset( $input['tmp_name'] ) ) {
+			return $this->importImage( $input, $blog_id );
+		}
+		if ( isset( $input['crop'] ) ) {
+			return new \WP_Error( 'invalid_crop', __( 'crop applies to source_url and image_base64 imports.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		foreach ( array( 'name', 'type', 'size' ) as $field ) {
+			if ( ! isset( $input[ $field ] ) ) {
+				return new \WP_Error( 'invalid_source', __( 'A file upload needs tmp_name, name, type and size.', 'extrachill-network' ), array( 'status' => 400 ) );
+			}
+		}
+
 		$file_descriptor = array(
 			'tmp_name' => (string) $input['tmp_name'],
 			'name'     => (string) $input['name'],
@@ -280,8 +371,7 @@ class NetworkMediaAbilities {
 		$title = isset( $input['title'] ) ? (string) $input['title'] : '';
 		$alt   = isset( $input['alt'] ) ? (string) $input['alt'] : '';
 
-		// Validate the uploaded file before crossing the blog boundary so
-		// any rejection short-circuits cleanly.
+		/* Validate the uploaded file before crossing the blog boundary so any rejection short-circuits cleanly. */
 		$check = wp_check_filetype_and_ext( $file_descriptor['tmp_name'], $file_descriptor['name'] );
 		if ( empty( $check['type'] ) ) {
 			return new \WP_Error(
@@ -291,7 +381,7 @@ class NetworkMediaAbilities {
 			);
 		}
 
-		switch_to_blog( self::MAIN_BLOG_ID );
+		switch_to_blog( $blog_id );
 		try {
 			if ( ! function_exists( 'wp_handle_upload' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -346,6 +436,199 @@ class NetworkMediaAbilities {
 		} finally {
 			restore_current_blog();
 		}
+	}
+
+	/**
+	 * Resolve the target site: blog 1 by default, otherwise an existing,
+	 * non-archived network site. Returns 0 when invalid.
+	 *
+	 * @param array $input Ability input.
+	 * @return int
+	 */
+	private static function targetBlogId( array $input ): int {
+		if ( ! isset( $input['blog_id'] ) ) {
+			return self::MAIN_BLOG_ID;
+		}
+		$blog_id = (int) $input['blog_id'];
+		$site    = $blog_id > 0 && function_exists( 'get_site' ) ? get_site( $blog_id ) : null;
+		if ( ! $site || ! empty( $site->deleted ) || ! empty( $site->archived ) || ! empty( $site->spam ) ) {
+			return 0;
+		}
+		return $blog_id;
+	}
+
+	/**
+	 * Normalise an optional crop box of fractions.
+	 *
+	 * @param mixed $crop Crop input.
+	 * @return array|null|\WP_Error
+	 */
+	public static function cropBox( $crop ) {
+		if ( null === $crop ) {
+			return null;
+		}
+		if ( ! is_array( $crop ) ) {
+			return new \WP_Error( 'invalid_crop', __( 'crop must be an object with x, y, width and height fractions.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		$box = array();
+		foreach ( array( 'x', 'y', 'width', 'height' ) as $key ) {
+			if ( ! isset( $crop[ $key ] ) || ! is_numeric( $crop[ $key ] ) ) {
+				return new \WP_Error( 'invalid_crop', __( 'crop requires numeric x, y, width and height.', 'extrachill-network' ), array( 'status' => 400 ) );
+			}
+			$box[ $key ] = (float) $crop[ $key ];
+		}
+		if ( $box['x'] < 0 || $box['y'] < 0 || $box['width'] <= 0 || $box['height'] <= 0 || $box['x'] + $box['width'] > 1.0001 || $box['y'] + $box['height'] > 1.0001 ) {
+			return new \WP_Error( 'invalid_crop', __( 'crop must stay inside the image (fractions from 0 to 1).', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		return $box;
+	}
+
+	/**
+	 * Import an image from a public URL or base64, optionally crop it, and
+	 * sideload it into the target site's library. Temp files are always removed.
+	 *
+	 * @param array $input   Ability input.
+	 * @param int   $blog_id Target site.
+	 * @return array|\WP_Error
+	 */
+	private function importImage( array $input, int $blog_id ) {
+		$crop = self::cropBox( $input['crop'] ?? null );
+		if ( is_wp_error( $crop ) ) {
+			return $crop;
+		}
+
+		if ( isset( $input['source_url'] ) ) {
+			$url = $input['source_url'];
+			if ( ! is_string( $url ) || ! in_array( strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ), array( 'http', 'https' ), true ) || ! wp_http_validate_url( $url ) ) {
+				return new \WP_Error( 'invalid_source_url', __( 'A public http(s) image URL is required.', 'extrachill-network' ), array( 'status' => 400 ) );
+			}
+			self::loadMediaApi();
+			$temp = download_url( $url, 30 );
+			if ( is_wp_error( $temp ) ) {
+				return $temp;
+			}
+		} else {
+			$temp = self::tempFromBase64( $input['image_base64'] );
+			if ( is_wp_error( $temp ) ) {
+				return $temp;
+			}
+		}
+
+		$cropped = '';
+		try {
+			$mime = self::validateImageFile( $temp );
+			if ( is_wp_error( $mime ) ) {
+				return $mime;
+			}
+			$extension = self::IMAGE_TYPES[ $mime ];
+			$source    = $temp;
+			if ( $crop ) {
+				$editor = wp_get_image_editor( $temp, array( 'mime_type' => $mime ) );
+				if ( is_wp_error( $editor ) ) {
+					return $editor;
+				}
+				$size = $editor->get_size();
+				$x    = (int) round( $crop['x'] * $size['width'] );
+				$y    = (int) round( $crop['y'] * $size['height'] );
+				$w    = max( 1, min( (int) round( $crop['width'] * $size['width'] ), $size['width'] - $x ) );
+				$h    = max( 1, min( (int) round( $crop['height'] * $size['height'] ), $size['height'] - $y ) );
+				$done = $editor->crop( $x, $y, $w, $h );
+				if ( is_wp_error( $done ) ) {
+					return $done;
+				}
+				$saved = $editor->save( $temp . '-crop.' . $extension, $mime );
+				if ( is_wp_error( $saved ) ) {
+					return $saved;
+				}
+				$cropped = $saved['path'];
+				$source  = $cropped;
+			}
+
+			$title = isset( $input['title'] ) ? sanitize_text_field( (string) $input['title'] ) : '';
+			$name  = ( '' !== $title ? sanitize_file_name( $title ) : 'image' ) . '.' . $extension;
+
+			switch_to_blog( $blog_id );
+			try {
+				$attachment_id = media_handle_sideload(
+					array(
+						'name'     => $name,
+						'tmp_name' => $source,
+					),
+					0,
+					'' !== $title ? $title : null
+				);
+				if ( is_wp_error( $attachment_id ) ) {
+					return $attachment_id;
+				}
+				if ( isset( $input['alt'] ) && '' !== $input['alt'] ) {
+					update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( (string) $input['alt'] ) );
+				}
+				$item = $this->normaliseAttachment( (int) $attachment_id );
+				return null !== $item ? $item : new \WP_Error( 'attachment_normalise_failed', __( 'Upload succeeded but the attachment could not be loaded.', 'extrachill-network' ), array( 'status' => 500 ) );
+			} finally {
+				restore_current_blog();
+			}
+		} finally {
+			foreach ( array( $temp, $cropped ) as $file ) {
+				if ( $file && file_exists( $file ) ) {
+					wp_delete_file( $file );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check actual image bytes and the size cap.
+	 *
+	 * @param string $file Local path.
+	 * @return string|\WP_Error Detected MIME type.
+	 */
+	public static function validateImageFile( string $file ) {
+		$mime = wp_get_image_mime( $file );
+		if ( ! $mime || ! isset( self::IMAGE_TYPES[ $mime ] ) ) {
+			return new \WP_Error( 'invalid_file_type', __( 'Only JPG, PNG, GIF, and WebP images are allowed.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		if ( filesize( $file ) > self::MAX_IMPORT_BYTES ) {
+			return new \WP_Error( 'file_too_large', __( 'Images are limited to 5MB.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		return $mime;
+	}
+
+	/**
+	 * Decode base64 (raw or data: URI) into a temp file, rejecting oversized
+	 * payloads before decoding.
+	 *
+	 * @param mixed $data Base64 payload.
+	 * @return string|\WP_Error Temp path.
+	 */
+	public static function tempFromBase64( $data ) {
+		if ( ! is_string( $data ) || '' === $data ) {
+			return new \WP_Error( 'invalid_source', __( 'image_base64 must be a non-empty string.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		if ( 0 === strpos( $data, 'data:' ) ) {
+			$comma = strpos( $data, ',' );
+			$data  = false === $comma ? '' : substr( $data, $comma + 1 );
+		}
+		if ( strlen( $data ) > (int) ceil( self::MAX_IMPORT_BYTES * 4 / 3 ) + 8 ) {
+			return new \WP_Error( 'file_too_large', __( 'Images are limited to 5MB.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		$bytes = base64_decode( (string) preg_replace( '/\s+/', '', $data ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- decoding a caller-supplied image payload.
+		if ( false === $bytes || '' === $bytes ) {
+			return new \WP_Error( 'invalid_source', __( 'image_base64 is not valid base64.', 'extrachill-network' ), array( 'status' => 400 ) );
+		}
+		self::loadMediaApi();
+		$temp = wp_tempnam( 'network-media' );
+		if ( ! $temp || false === file_put_contents( $temp, $bytes ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- staging a temp file for sideload.
+			return new \WP_Error( 'upload_failed', __( 'Could not stage the image.', 'extrachill-network' ), array( 'status' => 500 ) );
+		}
+		return $temp;
+	}
+
+	/** Load the admin media API only after a source has been validated. */
+	private static function loadMediaApi(): void {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
 	}
 
 	/**
