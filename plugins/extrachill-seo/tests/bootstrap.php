@@ -393,7 +393,7 @@ if ( ! function_exists( 'wp_get_document_title' ) ) {
 
 if ( ! function_exists( 'get_current_blog_id' ) ) {
 	function get_current_blog_id() {
-		return 7; // events.extrachill.com
+		return $GLOBALS['ec_seo_test_blog_id'] ?? 7; // events.extrachill.com
 	}
 }
 
