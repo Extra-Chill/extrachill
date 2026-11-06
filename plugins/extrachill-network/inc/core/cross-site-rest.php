@@ -466,8 +466,10 @@ function ec_cross_site_build_auth_headers( int $user_id ): array {
 	// Strategy 2: Signed internal user header (works without cookies).
 	if ( $user_id > 0 ) {
 		$timestamp = time();
-		$signature = ec_cross_site_sign_request( $user_id, $timestamp );
+		$nonce     = bin2hex( random_bytes( 16 ) );
+		$signature = ec_cross_site_sign_request( $user_id, $timestamp, $nonce );
 
+		$headers['X-EC-Internal-Nonce']     = $nonce;
 		$headers['X-EC-Internal-User']      = (string) $user_id;
 		$headers['X-EC-Internal-Timestamp'] = (string) $timestamp;
 		$headers['X-EC-Internal-Signature'] = $signature;
@@ -479,16 +481,18 @@ function ec_cross_site_build_auth_headers( int $user_id ): array {
 /**
  * Generate an HMAC signature for internal cross-site auth.
  *
- * Uses the WordPress AUTH_SALT as the shared secret — it's the same
- * across all sites in the multisite network (shared wp-config.php).
+ * Uses a purpose-derived network key, never AUTH_SALT directly. Deployments
+ * may set EC_CROSS_SITE_INTERNAL_SECRET to independent random secret material.
+ * The nonce makes each signed assertion unique, including within one second.
  *
  * @param int $user_id   User ID to sign.
  * @param int $timestamp Unix timestamp.
  * @return string HMAC-SHA256 hex signature.
  */
-function ec_cross_site_sign_request( int $user_id, int $timestamp ): string {
-	$secret  = defined( 'AUTH_SALT' ) ? AUTH_SALT : wp_salt( 'auth' );
-	$payload = sprintf( 'ec-internal:%d:%d', $user_id, $timestamp );
+function ec_cross_site_sign_request( int $user_id, int $timestamp, string $nonce = '' ): string {
+	$material = defined( 'EC_CROSS_SITE_INTERNAL_SECRET' ) ? EC_CROSS_SITE_INTERNAL_SECRET : wp_salt( 'auth' );
+	$secret   = hash_hmac( 'sha256', 'ec-cross-site-internal-v2', $material, true );
+	$payload  = sprintf( 'ec-internal-v2:%d:%d:%s', $user_id, $timestamp, $nonce );
 
 	return hash_hmac( 'sha256', $payload, $secret );
 }
@@ -501,15 +505,60 @@ function ec_cross_site_sign_request( int $user_id, int $timestamp ): string {
  * @param string $signature HMAC signature to verify.
  * @return bool True if valid and not expired (5 minute window).
  */
-function ec_cross_site_verify_signature( int $user_id, int $timestamp, string $signature ): bool {
-	// Reject requests older than 5 minutes.
-	if ( abs( time() - $timestamp ) > 300 ) {
+function ec_cross_site_verify_signature( int $user_id, int $timestamp, string $signature, ?string $nonce = null ): bool {
+	// Read from the incoming request for existing independent permission checks.
+	$nonce = $nonce ?? ( $_SERVER['HTTP_X_EC_INTERNAL_NONCE'] ?? '' );
+	if ( $user_id <= 0 || ! is_string( $nonce ) || 1 !== preg_match( '/^[a-f0-9]{32}$/D', $nonce ) || abs( time() - $timestamp ) > 300 ) {
 		return false;
 	}
 
-	$expected = ec_cross_site_sign_request( $user_id, $timestamp );
+	$expected = ec_cross_site_sign_request( $user_id, $timestamp, $nonce );
 
 	return hash_equals( $expected, $signature );
+}
+
+/**
+ * Consume an internal assertion atomically in shared network storage.
+ *
+ * A network option uses a unique option_name in the main site's options table,
+ * so simultaneous requests (even to different subsites) cannot both succeed.
+ * Missing or failed persistent storage fails closed. Markers live until the
+ * assertion's entire validity window, including allowed clock skew, has ended.
+ */
+function ec_cross_site_consume_internal_signature( string $signature, int $timestamp ): bool {
+	global $wpdb;
+
+	if ( ! ( $wpdb instanceof wpdb ) ) {
+		return false;
+	}
+
+	$table    = $wpdb->get_blog_prefix( get_main_site_id() ) . 'options';
+	$name     = '_ec_internal_replay_' . hash( 'sha256', $signature );
+	$inserted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Unique key is the atomic replay boundary.
+		$wpdb->prepare(
+			'INSERT IGNORE INTO %i (`option_name`, `option_value`, `autoload`) VALUES (%s, %s, %s)',
+			$table,
+			$name,
+			(string) ( $timestamp + 300 ),
+			'off'
+		)
+	);
+
+	if ( 1 !== $inserted || ! empty( $wpdb->last_error ) ) {
+		return false;
+	}
+
+	// Bounded cleanup of expired markers; never remove a still-valid assertion.
+	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Internal replay marker garbage collection.
+		$wpdb->prepare(
+			'DELETE FROM %i WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d LIMIT 100',
+			$table,
+			$wpdb->esc_like( '_ec_internal_replay_' ) . '%',
+			time()
+		)
+	);
+
+	return true;
 }
 
 /**
@@ -559,6 +608,16 @@ function ec_cross_site_authenticate_internal_request( $result ) {
 		return new WP_Error(
 			'ec_internal_user_not_found',
 			'Internal auth user not found.',
+			array( 'status' => 403 )
+		);
+	}
+
+	// Consume only after cryptographic and user checks. Plain signature verification
+	// remains side-effect-free for downstream permission callbacks.
+	if ( ! ec_cross_site_consume_internal_signature( $signature, $timestamp ) ) {
+		return new WP_Error(
+			'ec_internal_auth_failed',
+			'Internal cross-site authentication failed.',
 			array( 'status' => 403 )
 		);
 	}
