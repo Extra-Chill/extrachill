@@ -48,6 +48,7 @@ require_once __DIR__ . '/inc/Providers/PublicExperienceProvider.php';
 require_once __DIR__ . '/inc/Providers/AbilitiesProvider.php';
 require_once __DIR__ . '/inc/Providers/DataMachineEventsProvider.php';
 require_once __DIR__ . '/inc/Core/Plugin.php';
+require_once __DIR__ . '/inc/core/link-page-upcoming-shows.php';
 
 /** Return the initialized Extra Chill Events facade. */
 function extrachill_events() {
