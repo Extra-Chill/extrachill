@@ -78,6 +78,36 @@ function extrachill_events_hide_external_ticket_button( $show, $post_id ) {
 }
 add_filter( 'data_machine_events_show_ticket_button', 'extrachill_events_hide_external_ticket_button', 10, 2 );
 
+/**
+ * Advertise the first-party ticket offer instead of the scraped vendor.
+ *
+ * @param array $offers     Incoming Offer schema.
+ * @param int   $post_id    Event post ID.
+ * @param array $event_data Event data supplied by Data Machine Events.
+ * @return array
+ */
+function extrachill_events_ticket_offer_schema( $offers, $post_id, $event_data ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Filter signature.
+	if ( ! class_exists( \ExtraChillEvents\Abilities\TicketAbilities::class ) || empty( \ExtraChillEvents\Abilities\TicketAbilities::settings( (int) $post_id )['tickets_enabled'] ) ) {
+		return $offers;
+	}
+	$offer = extrachill_events_checkout_offer( $post_id );
+	if ( ! is_array( $offer ) ) {
+		return $offers;
+	}
+	$schema = array(
+		'@type'         => 'Offer',
+		'url'           => get_permalink( $post_id ),
+		'price'         => $offer['price_minor'] / 100,
+		'priceCurrency' => strtoupper( $offer['currency'] ),
+		'availability'  => 0 === $offer['remaining'] ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock',
+	);
+	if ( isset( $offers['validFrom'] ) ) {
+		$schema['validFrom'] = $offers['validFrom'];
+	}
+	return $schema;
+}
+add_filter( 'data_machine_events_offer_schema', 'extrachill_events_ticket_offer_schema', 10, 3 );
+
 /** Checkout runs on Shop, where the protected payment ability lives. */
 function extrachill_events_enqueue_ticket_checkout() {
 	if ( ! is_singular( 'data_machine_events' ) || ! function_exists( 'ec_is_events_site' ) || ! ec_is_events_site() || 'success' === extrachill_events_ticket_return_state() ) {

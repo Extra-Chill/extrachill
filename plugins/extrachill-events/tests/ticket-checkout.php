@@ -4,7 +4,11 @@
 define( 'ABSPATH', __DIR__ );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 function add_action( ...$args ) {}
-function add_filter( ...$args ) {}
+function add_filter( ...$args ) { $GLOBALS['filters'][ $args[0] ] = array_slice( $args, 1 ); }
+function get_permalink( $post_id ) {
+	check( 42 === $post_id, 'Permalink uses event ID' );
+	return 'https://events.extrachill.com/event/test-show/';
+}
 function ec_is_events_site() { return true; }
 function is_singular( $type ) { return $GLOBALS['singular']; }
 function sanitize_text_field( $value ) { return strip_tags( $value ); }
@@ -84,4 +88,28 @@ $GLOBALS['ticket_settings'] = array( 'tickets_enabled' => false );
 check( true === extrachill_events_hide_external_ticket_button( true, 42 ), 'External ticket link stays when first-party tickets are off' );
 check( false === extrachill_events_hide_external_ticket_button( false, 42 ), 'Never re-shows a link Data Machine Events hid (past show)' );
 echo "Ticket link replacement passed.\n";
+
+check( array( 'extrachill_events_ticket_offer_schema', 10, 3 ) === $GLOBALS['filters']['data_machine_events_offer_schema'], 'Offer filter registered with all three arguments' );
+$external = array( '@type' => 'Offer', 'url' => 'https://external.example/tickets', 'price' => 99, 'validFrom' => '2026-06-01T12:00:00Z' );
+check( $external === extrachill_events_ticket_offer_schema( $external, 42, array() ), 'Non-ticketed event schema passes through unchanged' );
+$GLOBALS['ticket_settings']['tickets_enabled'] = true;
+$GLOBALS['offer'] = array( 'enabled' => true, 'price_minor' => 2550, 'currency' => 'usd', 'remaining' => 3 );
+$expected = array(
+	'@type' => 'Offer',
+	'url' => 'https://events.extrachill.com/event/test-show/',
+	'price' => 25.5,
+	'priceCurrency' => 'USD',
+	'availability' => 'https://schema.org/InStock',
+	'validFrom' => $external['validFrom'],
+);
+check( $expected === extrachill_events_ticket_offer_schema( $external, 42, array() ), 'First-party offer replaces scraped URL, price and currency, preserving validFrom' );
+$GLOBALS['offer']['remaining'] = 0;
+$schema = extrachill_events_ticket_offer_schema( array(), 42, array() );
+check( 'https://schema.org/SoldOut' === $schema['availability'], 'Sold-out schema availability' );
+check( ! isset( $schema['validFrom'] ), 'No invented validFrom when incoming offer is empty' );
+$GLOBALS['offer']['remaining'] = null;
+check( 'https://schema.org/InStock' === extrachill_events_ticket_offer_schema( array(), 42, array() )['availability'], 'Unlimited tickets are in stock' );
+$GLOBALS['offer'] = null;
+check( $external === extrachill_events_ticket_offer_schema( $external, 42, array() ), 'Unavailable public offer leaves schema unchanged' );
+echo "Ticket offer schema passed.\n";
 
