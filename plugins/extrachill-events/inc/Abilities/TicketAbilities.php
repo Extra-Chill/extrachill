@@ -94,7 +94,8 @@ class TicketAbilities {
 	 * @return array|\WP_Error Merged settings or an error.
 	 */
 	public static function validate_settings( int $id, array $input ) {
-		$settings = array_merge( self::settings( $id ), array_intersect_key( $input, self::fields() ) );
+		$current  = self::settings( $id );
+		$settings = array_merge( $current, array_intersect_key( $input, self::fields() ) );
 
 		if ( isset( $input['ticket_seller'] ) ) {
 			if ( ! extrachill_events_user_can_manage_event( get_current_user_id(), $id ) ) {
@@ -120,7 +121,57 @@ class TicketAbilities {
 			return new \WP_Error( 'invalid_ticket_offer', 'Enabled tickets require a positive price and a seller.', array( 'status' => 400 ) );
 		}
 
+		// Only turning sales on, or moving them to another seller, asks Shop.
+		// Unrelated saves on a show that is already on sale stay local.
+		$seller_key = static function ( array $seller ): string {
+			return (string) ( $seller['type'] ?? '' ) . ':' . (int) ( $seller['id'] ?? 0 );
+		};
+		$opening    = $settings['tickets_enabled']
+			&& ( ! $current['tickets_enabled'] || $seller_key( $current['ticket_seller'] ) !== $seller_key( $settings['ticket_seller'] ) );
+		if ( $opening ) {
+			$ready = self::seller_can_receive_payments( $settings['ticket_seller'] );
+			if ( is_wp_error( $ready ) ) {
+				return $ready;
+			}
+		}
+
 		return $settings;
+	}
+
+	/**
+	 * Ask Shop, which owns Stripe Connect, whether a seller can take payments.
+	 *
+	 * Runs as the current user, who already holds finance authority for the
+	 * seller. An unknown status refuses: tickets never open on a guess.
+	 *
+	 * @param array $seller Seller reference with type and id.
+	 * @return true|\WP_Error
+	 */
+	public static function seller_can_receive_payments( array $seller ) {
+		$unknown = new \WP_Error( 'ticket_seller_payments_unknown', 'Could not confirm the seller\'s payment setup. Try again in a moment.', array( 'status' => 503 ) );
+		if ( ! function_exists( 'ec_cross_site_rest_request' ) ) {
+			return $unknown;
+		}
+
+		$status = ec_cross_site_rest_request(
+			'shop',
+			'GET',
+			'/shop/stripe-connect/status',
+			array(
+				'query' => array(
+					'seller_type' => (string) ( $seller['type'] ?? '' ),
+					'seller_id'   => (int) ( $seller['id'] ?? 0 ),
+				),
+			)
+		);
+		if ( is_wp_error( $status ) || ! is_array( $status ) || ! isset( $status['can_receive_payments'] ) ) {
+			return $unknown;
+		}
+		if ( true !== $status['can_receive_payments'] ) {
+			return new \WP_Error( 'ticket_seller_payments_unavailable', 'This seller has to finish payment setup before tickets can go on sale.', array( 'status' => 409 ) );
+		}
+
+		return true;
 	}
 
 	/**
