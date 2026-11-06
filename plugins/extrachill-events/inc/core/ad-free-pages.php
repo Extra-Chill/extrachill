@@ -25,6 +25,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return bool
  */
 function extrachill_events_is_ad_free_page(): bool {
+	if ( function_exists( 'extrachill_events_ticket_return_state' ) && '' !== extrachill_events_ticket_return_state() ) {
+		return true;
+	}
+
 	if ( function_exists( 'extrachill_events_is_guest_list_request' ) && extrachill_events_is_guest_list_request() ) {
 		return true;
 	}
