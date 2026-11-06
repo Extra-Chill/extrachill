@@ -253,6 +253,11 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		}
 	}
 
+	public function test_saved_styles_response_matches_fresh_persisted_projection(): void {
+		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'save-styles-response' );
+		$this->assertTrue( $result['save_styles_response'] );
+	}
+
 	public function test_real_combined_runtime_compensates_force_detach_failure(): void {
 		$this->require_real_runtime_fixture_source();
 		$result = $this->runSmokeFixture( 'combined-runtime-smoke.php', 'force-failure' );

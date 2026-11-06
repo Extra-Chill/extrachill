@@ -36,16 +36,12 @@ function extrachill_artist_platform_ability_save_link_page_styles( $input ) {
 		return new WP_Error( 'no_link_page', 'No link page exists for this artist.' );
 	}
 
-	$existing_vars = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
-	$existing_vars = is_array( $existing_vars ) ? $existing_vars : array();
-
 	$sanitized_vars = extrachill_artist_platform_sanitize_css_vars( $css_vars );
 	if ( is_wp_error( $sanitized_vars ) ) {
 		return $sanitized_vars;
 	}
-	$merged_vars = array_merge( $existing_vars, $sanitized_vars );
-
-	$save_data = array( 'css_vars' => $merged_vars );
+	// Storage merges the patch with persisted styles in its canonical blog/lock.
+	$save_data = array( 'css_vars' => $sanitized_vars );
 	$result    = ec_save_link_page(
 		array(
 			'link_page_id'    => $link_page_id,
