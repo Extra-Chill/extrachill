@@ -63,7 +63,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		$this->assertTrue( function_exists( 'ec_cross_site_rest_request' ), 'The extrachill-network validation dependency must load the real cross-site helper.' );
 		$this->assertTrue( function_exists( 'ec_get_route_site_affinity' ), 'The real route-affinity resolver must be available.' );
 
-		foreach ( array( 'REMOTE_ADDR', 'HTTP_HOST', 'HTTP_COOKIE', 'HTTP_X_WP_NONCE', 'HTTP_X_EC_INTERNAL_USER', 'HTTP_X_EC_INTERNAL_TIMESTAMP', 'HTTP_X_EC_INTERNAL_SIGNATURE' ) as $key ) {
+		foreach ( array( 'REMOTE_ADDR', 'HTTP_HOST', 'HTTP_COOKIE', 'HTTP_X_WP_NONCE', 'HTTP_X_EC_INTERNAL_USER', 'HTTP_X_EC_INTERNAL_TIMESTAMP', 'HTTP_X_EC_INTERNAL_SIGNATURE', 'HTTP_X_EC_INTERNAL_NONCE' ) as $key ) {
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Preserve exact server state for teardown.
 			$this->original_server[ $key ] = $_SERVER[ $key ] ?? null;
 		}
@@ -74,7 +74,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		$this->loopback_error_bytes = '';
 		$this->handoff_failure      = false;
 		wp_set_current_user( 0 );
-		unset( $_SERVER['HTTP_COOKIE'], $_SERVER['HTTP_X_WP_NONCE'], $_SERVER['HTTP_X_EC_INTERNAL_USER'], $_SERVER['HTTP_X_EC_INTERNAL_TIMESTAMP'], $_SERVER['HTTP_X_EC_INTERNAL_SIGNATURE'] );
+		unset( $_SERVER['HTTP_COOKIE'], $_SERVER['HTTP_X_WP_NONCE'], $_SERVER['HTTP_X_EC_INTERNAL_USER'], $_SERVER['HTTP_X_EC_INTERNAL_TIMESTAMP'], $_SERVER['HTTP_X_EC_INTERNAL_SIGNATURE'], $_SERVER['HTTP_X_EC_INTERNAL_NONCE'] );
 
 		add_filter( 'pre_http_request', array( $this, 'intercept_loopback' ), 10, 3 );
 		if ( ! wp_has_ability_category( 'extrachill-api-tests' ) ) {
@@ -467,7 +467,8 @@ class Route_AffinityTest extends WP_UnitTestCase {
 			ec_cross_site_verify_signature(
 				$user_id,
 				(int) $headers['X-EC-Internal-Timestamp'],
-				$headers['X-EC-Internal-Signature']
+				$headers['X-EC-Internal-Signature'],
+				$headers['X-EC-Internal-Nonce']
 			)
 		);
 
@@ -475,6 +476,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 		$_SERVER['HTTP_X_EC_INTERNAL_USER']      = $headers['X-EC-Internal-User'];
 		$_SERVER['HTTP_X_EC_INTERNAL_TIMESTAMP'] = $headers['X-EC-Internal-Timestamp'];
 		$_SERVER['HTTP_X_EC_INTERNAL_SIGNATURE'] = $headers['X-EC-Internal-Signature'];
+		$_SERVER['HTTP_X_EC_INTERNAL_NONCE']     = $headers['X-EC-Internal-Nonce'];
 		wp_set_current_user( 0 );
 
 		$this->assertTrue( ec_cross_site_authenticate_internal_request( null ) );
@@ -573,7 +575,7 @@ class Route_AffinityTest extends WP_UnitTestCase {
 			$this->dispatch_affinity( $request );
 			$headers = $this->last_http_args['headers'];
 			$this->assertSame( (string) $user_id, $headers['X-EC-Internal-User'] );
-			$this->assertTrue( ec_cross_site_verify_signature( $user_id, (int) $headers['X-EC-Internal-Timestamp'], $headers['X-EC-Internal-Signature'] ) );
+			$this->assertTrue( ec_cross_site_verify_signature( $user_id, (int) $headers['X-EC-Internal-Timestamp'], $headers['X-EC-Internal-Signature'], $headers['X-EC-Internal-Nonce'] ) );
 			$this->assertStringStartsWith( 'multipart/form-data; boundary=', $headers['Content-Type'] );
 			$this->assertStringContainsString( 'press notes', $this->last_http_args['body'] );
 		} finally {

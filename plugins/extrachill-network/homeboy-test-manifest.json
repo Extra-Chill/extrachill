@@ -90,6 +90,9 @@
     },
     "tests/network-contract-support-smoke.php": {
       "environment": "standalone-php"
+    },
+    "tests/internal-loopback-auth-smoke.php": {
+      "environment": "standalone-php"
     }
   }
 }

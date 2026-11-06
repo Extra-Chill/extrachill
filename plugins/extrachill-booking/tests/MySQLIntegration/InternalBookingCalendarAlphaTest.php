@@ -480,7 +480,7 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 			$request->set_header( 'Content-Type', 'application/json' );
 			$request->set_body( (string) $args['body'] );
 		}
-		$server_keys = array( 'REMOTE_ADDR', 'HTTP_HOST', 'HTTP_X_EC_INTERNAL_USER', 'HTTP_X_EC_INTERNAL_TIMESTAMP', 'HTTP_X_EC_INTERNAL_SIGNATURE' );
+		$server_keys = array( 'REMOTE_ADDR', 'HTTP_HOST', 'HTTP_X_EC_INTERNAL_USER', 'HTTP_X_EC_INTERNAL_TIMESTAMP', 'HTTP_X_EC_INTERNAL_SIGNATURE', 'HTTP_X_EC_INTERNAL_NONCE' );
 		$server      = array();
 		foreach ( $server_keys as $key ) {
 			$server[ $key ] = $_SERVER[ $key ] ?? null;
@@ -488,7 +488,7 @@ final class InternalBookingCalendarAlphaTest extends WP_UnitTestCase {
 		$source_user = get_current_user_id();
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 		$_SERVER['HTTP_HOST']   = (string) ( $args['headers']['Host'] ?? 'events.extrachill.com' );
-		foreach ( array( 'User', 'Timestamp', 'Signature' ) as $suffix ) {
+		foreach ( array( 'User', 'Timestamp', 'Signature', 'Nonce' ) as $suffix ) {
 			$key = 'HTTP_X_EC_INTERNAL_' . strtoupper( $suffix );
 			$header = 'X-EC-Internal-' . $suffix;
 			if ( isset( $args['headers'][ $header ] ) ) {
