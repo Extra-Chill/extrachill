@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 function extrachill_shop_ticket_service_operations() {
-	return array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes' );
+	return array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales' );
 }
 
 function extrachill_shop_register_ticket_source_grants( array $grants ) {

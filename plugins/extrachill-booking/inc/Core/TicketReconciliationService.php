@@ -438,6 +438,13 @@ class TicketReconciliationService {
 
 	/** Revalidate and project the exact provenance frozen by formula v3. */
 	public function settlement_provenance_evidence( array $report, array $booking, ?array $resolution, int $actor_id, bool $lock, bool $authenticate_bytes = true ) {
+		if ( 'extrachill_checkout' === $report['source_type'] ) {
+			return array(
+				'provider'    => 'extrachill',
+				'event_id'    => $report['event_id'],
+				'source_type' => 'extrachill_checkout',
+			);
+		}
 		$source_id = is_array( $resolution ) && null !== $resolution['ticket_source_id'] ? $resolution['ticket_source_id'] : $report['ticket_source_id'];
 		if ( null === $source_id ) {
 			return new \WP_Error( 'settlement_source_evidence_missing', __( 'Settlement evidence has no immutable ticket source attribution.', 'extrachill-events' ), array( 'status' => 409 ) );
@@ -555,7 +562,7 @@ class TicketReconciliationService {
 			}
 			$source_id = is_array( $resolution ) && null !== $resolution['ticket_source_id'] ? $resolution['ticket_source_id'] : $report['ticket_source_id'];
 			$issues    = array();
-			if ( null === $source_id ) {
+			if ( null === $source_id && 'extrachill_checkout' !== $report['source_type'] ) {
 				$issues[] = 'unattributed';
 			}
 			if ( 'csv_certified' === $report['source_type'] && null === $report['evidence_attachment_id'] ) {
@@ -576,7 +583,7 @@ class TicketReconciliationService {
 		}
 		foreach ( $reports as $left => $report ) {
 			foreach ( $reports as $right => $candidate ) {
-				if ( $right <= $left || $report['provider'] !== $candidate['provider'] || $report['period_start'] > $candidate['period_end'] || $candidate['period_start'] > $report['period_end'] ) {
+				if ( ( 'extrachill_checkout' === $report['source_type'] && 'extrachill_checkout' === $candidate['source_type'] ) || $right <= $left || $report['provider'] !== $candidate['provider'] || $report['period_start'] > $candidate['period_end'] || $candidate['period_start'] > $report['period_end'] ) {
 					continue;
 				}
 				$financial = array( 'tickets_sold', 'tickets_refunded', 'gross_minor', 'fees_minor', 'tax_minor', 'refunds_minor', 'net_minor', 'currency' );

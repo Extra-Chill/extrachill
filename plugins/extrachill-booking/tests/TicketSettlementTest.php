@@ -17,6 +17,10 @@ use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 
+function extrachill_events_ticket_has_service_authority(): bool {
+	return ! empty( $GLOBALS['checkout_test_authority'] );
+}
+
 final class TicketSettlementTest extends BookingTestCase {
 	/** @var BookingRepository */
 	private $bookings;
@@ -70,6 +74,33 @@ final class TicketSettlementTest extends BookingTestCase {
 		$this->authorization       = new BookingTestAuthorization();
 		$this->reconciliation      = new TicketReconciliationService( $this->bookings, new BookingActivityRepository(), $this->authorization );
 		$this->service             = new TicketSettlementService( $this->bookings, new BookingActivityRepository(), $this->authorization, null, $this->reconciliation );
+	}
+
+	public function test_checkout_authority_no_booking_recording_and_refund_replays(): void {
+		$input = array( 'event_id' => 900, 'external_report_id' => 'cs_paid', 'order_reference' => 'cs_paid', 'period_start' => '2026-01-01 12:00:00', 'currency' => 'usd', 'tickets_sold' => 2, 'gross_minor' => 2100, 'fees_minor' => 200 );
+		$GLOBALS['checkout_test_authority'] = false;
+		$this->assertSame( 'ticket_service_required', $this->service->record_checkout( $input )->get_error_code() );
+		$GLOBALS['checkout_test_authority'] = true;
+		$this->assertSame( array( 'recorded' => false ), $this->service->record_checkout( $input ) );
+		$booking = $this->create_event_booking();
+		$this->assertSame( array( 'recorded' => true ), $this->service->record_checkout( $input ) );
+		$this->assertSame( array( 'recorded' => true ), $this->service->record_checkout( $input ) );
+		$refund = $input;
+		$refund['external_report_id'] = 're_paid';
+		$refund['tickets_sold'] = -2;
+		$refund['gross_minor'] = -2100;
+		$refund['fees_minor'] = -200;
+		$this->assertSame( array( 'recorded' => true ), $this->service->record_checkout( $refund ) );
+		$this->assertSame( array( 'recorded' => true ), $this->service->record_checkout( $refund ) );
+		$reports = $this->service->list_sales( $booking['id'], 12 );
+		$this->assertCount( 2, $reports );
+		$this->assertSame( 1900, $reports[0]['net_minor'] );
+		$this->assertSame( -1900, $reports[1]['net_minor'] );
+		$this->assertSame( 0, $reports[0]['tax_minor'] );
+		$this->assertTrue( $this->reconciliation->diagnostics( $booking['id'], 12 )['ready_for_settlement'] );
+		$input['source_type'] = 'extrachill_checkout';
+		$this->assertSame( 'ticket_service_required', $this->service->record_sales( $input, 12 )->get_error_code() );
+		$GLOBALS['checkout_test_authority'] = false;
 	}
 
 	public function test_schema_installs_signed_evidence_and_frozen_settlement_contracts(): void {

@@ -45,6 +45,40 @@ class TicketSettlementAbilities {
 
 	/** Register settlement and reconciliation operations. */
 	public function register(): void {
+		$properties = array(
+			'event_id'           => array(
+				'type'    => 'integer',
+				'minimum' => 1,
+			),
+			'external_report_id' => array(
+				'type'      => 'string',
+				'minLength' => 1,
+				'maxLength' => 191,
+			),
+			'order_reference'    => array(
+				'type'      => 'string',
+				'minLength' => 1,
+				'maxLength' => 191,
+			),
+			'period_start'       => array( 'type' => 'string' ),
+			'currency'           => array(
+				'type'    => 'string',
+				'pattern' => '^[a-zA-Z]{3}$',
+			),
+			'tickets_sold'       => array( 'type' => 'integer' ),
+			'gross_minor'        => array( 'type' => 'integer' ),
+			'fees_minor'         => array( 'type' => 'integer' ),
+		);
+		$this->register_ability( 'extrachill/record-checkout-ticket-sales', 'Record Checkout Ticket Sales', array(
+			'type'                 => 'object',
+			'properties'           => $properties,
+			'required'             => array_keys( $properties ),
+			'additionalProperties' => false,
+		), array(
+			'type'       => 'object',
+			'properties' => array( 'recorded' => array( 'type' => 'boolean' ) ),
+			'required'   => array( 'recorded' ),
+		), 'record_checkout', 'can_record_checkout', false, true );
 		$this->register_ability( 'extrachill/register-booking-ticket-source', __( 'Register Booking Ticket Source', 'extrachill-events' ), $this->source_input_schema(), $this->source_schema(), 'register_source', 'can_manage_booking_finances', false, true );
 		$this->register_ability(
 			'extrachill/list-booking-ticket-sources',
@@ -118,6 +152,14 @@ class TicketSettlementAbilities {
 				),
 			)
 		);
+	}
+
+	public function can_record_checkout() {
+		return function_exists( 'extrachill_events_ticket_has_service_authority' ) && extrachill_events_ticket_has_service_authority();
+	}
+
+	public function record_checkout( array $input ) {
+		return $this->service()->record_checkout( $input );
 	}
 
 	public function record_sales( array $input ) {
