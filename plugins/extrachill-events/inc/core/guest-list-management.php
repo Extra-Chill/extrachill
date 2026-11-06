@@ -129,7 +129,7 @@ function extrachill_events_save_guest_list_management(): void {
 		wp_die( esc_html__( 'Guest list settings are unavailable.', 'extrachill-events' ), '', array( 'response' => 503 ) );
 	}
 
-	$input    = array(
+	$input                       = array(
 		'event'              => (string) $event_id,
 		'enabled'            => true,
 		'text'               => extrachill_events_get_perk_text( $event_id ),
@@ -137,12 +137,15 @@ function extrachill_events_save_guest_list_management(): void {
 		// Unchecked box = off: the checkbox always renders with this form.
 		'allotments_enabled' => ! empty( $_POST['allotments_enabled'] ),
 	);
-	$input['tickets_enabled'] = ! empty( $_POST['tickets_enabled'] );
-	$input['ticket_price_minor'] = isset( $_POST['ticket_price_minor'] ) ? (int) $_POST['ticket_price_minor'] : 0;
-	$input['ticket_quantity'] = isset( $_POST['ticket_quantity'] ) ? (int) $_POST['ticket_quantity'] : 0;
+	$input['tickets_enabled']    = ! empty( $_POST['tickets_enabled'] );
+	$input['ticket_price_minor'] = isset( $_POST['ticket_price'] ) ? (int) round( (float) sanitize_text_field( wp_unslash( $_POST['ticket_price'] ) ) * 100 ) : 0;
+	$input['ticket_quantity']    = isset( $_POST['ticket_quantity'] ) ? (int) $_POST['ticket_quantity'] : 0;
 	if ( ! empty( $_POST['ticket_seller'] ) && is_string( $_POST['ticket_seller'] ) ) {
-		$seller_parts = explode( ':', sanitize_text_field( wp_unslash( $_POST['ticket_seller'] ) ), 2 );
-		$input['ticket_seller'] = array( 'type' => $seller_parts[0], 'id' => (int) ( $seller_parts[1] ?? 0 ) );
+		$seller_parts           = explode( ':', sanitize_text_field( wp_unslash( $_POST['ticket_seller'] ) ), 2 );
+		$input['ticket_seller'] = array(
+			'type' => $seller_parts[0],
+			'id'   => (int) ( $seller_parts[1] ?? 0 ),
+		);
 	}
 	$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are hashed, not sanitized.
 	if ( '' !== $password ) {

@@ -538,9 +538,29 @@ final class RsvpPassesTable {
 	/** Find the passes belonging to a paid order or issuance key. */
 	public static function ticket_rows( string $reference, bool $by_key = false ): array {
 		global $wpdb;
-		$table = self::table_name();
+		$table  = self::table_name();
 		$column = $by_key ? 'idempotency_key' : 'order_reference';
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$column} = %s ORDER BY id", $reference ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (array) $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE {$column} = %s ORDER BY id", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name and a fixed column choice.
+				$reference
+			),
+			ARRAY_A
+		);
+	}
+
+	/** Count live paid passes for an event (active or checked in). */
+	public static function paid_ticket_count( int $event_id ): int {
+		global $wpdb;
+		$table = self::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE event_id = %d AND order_reference IS NOT NULL AND status IN ('active','redeemed')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id
+			)
+		);
 	}
 
 	/**
@@ -571,7 +591,7 @@ final class RsvpPassesTable {
 				return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
 			}
 			$table = self::table_name();
-			$paid = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE event_id = %d AND order_reference IS NOT NULL AND status IN ('active','redeemed')", $event_id ) );
+			$paid  = self::paid_ticket_count( $event_id );
 			if ( ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] + $quantity > $capacity ) || ( $ticket_quantity > 0 && $paid + $quantity > $ticket_quantity ) ) {
 				return null;
 			}
@@ -581,9 +601,15 @@ final class RsvpPassesTable {
 			$now = current_time( 'mysql', true );
 			for ( $i = 0; $i < $quantity; ++$i ) {
 				if ( false === $wpdb->insert( $table, array(
-					'event_id' => $event_id, 'code' => self::generate_code(), 'guest_name' => $name,
-					'status' => self::STATUS_ACTIVE, 'issued_at' => $now, 'updated_at' => $now,
-					'idempotency_key' => $key, 'order_reference' => $order, 'payment_reference' => $payment,
+					'event_id'          => $event_id,
+					'code'              => self::generate_code(),
+					'guest_name'        => $name,
+					'status'            => self::STATUS_ACTIVE,
+					'issued_at'         => $now,
+					'updated_at'        => $now,
+					'idempotency_key'   => $key,
+					'order_reference'   => $order,
+					'payment_reference' => $payment,
 				) ) ) {
 					$wpdb->query( 'ROLLBACK' );
 					return new \WP_Error( 'ticket_storage_failed', 'No tickets issued; retry fulfillment.', array( 'status' => 500 ) );
@@ -610,6 +636,7 @@ final class RsvpPassesTable {
 			return new \WP_Error( 'ticket_storage_failed', 'Could not start revocation.', array( 'status' => 500 ) );
 		}
 		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name; row lock must hit the database.
 			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_reference = %s ORDER BY id FOR UPDATE", $order ), ARRAY_A );
 			if ( null === $rows ) {
 				throw new \RuntimeException( 'Could not read ticket order.' );
@@ -620,8 +647,15 @@ final class RsvpPassesTable {
 					return new \WP_Error( 'ticket_already_redeemed', 'Checked-in tickets cannot be refunded.', array( 'status' => 409 ) );
 				}
 			}
-			$now = current_time( 'mysql', true );
-			$count = $wpdb->update( $table, array( 'status' => self::STATUS_REVOKED, 'revoked_at' => $now, 'updated_at' => $now ), array( 'order_reference' => $order, 'status' => self::STATUS_ACTIVE ) );
+			$now   = current_time( 'mysql', true );
+			$count = $wpdb->update( $table, array(
+				'status'     => self::STATUS_REVOKED,
+				'revoked_at' => $now,
+				'updated_at' => $now,
+			), array(
+				'order_reference' => $order,
+				'status'          => self::STATUS_ACTIVE,
+			) );
 			if ( false === $count || false === $wpdb->query( 'COMMIT' ) ) {
 				throw new \RuntimeException( 'Could not revoke ticket order.' );
 			}
