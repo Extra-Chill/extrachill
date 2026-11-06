@@ -12,7 +12,10 @@
  * `extrachill/set-guest-list-party-allotment`, extrachill#1128), and the
  * venue's request queue (`extrachill/list-guest-list-requests`,
  * `extrachill/approve-guest-list-request`,
- * `extrachill/deny-guest-list-request`, extrachill#1129).
+ * `extrachill/deny-guest-list-request`, extrachill#1129), and a venue's or
+ * promoter's permanent owner's list (`extrachill/list-owner-guest-list`,
+ * `extrachill/add-owner-guest-list-name`,
+ * `extrachill/remove-owner-guest-list-name`, extrachill#1130).
  *
  * @package ExtraChill\CLI\Commands\Events
  */
@@ -592,5 +595,167 @@ class GuestListCommand {
 		);
 
 		WP_CLI::success( sprintf( 'Denied %s request (%d name(s) denied)%s.', $result['kind'] ?? '', (int) ( $result['denied_names'] ?? 0 ), empty( $result['emailed'] ) ? ', email NOT sent' : ', band emailed' ) );
+	}
+
+	/**
+	 * Resolve the owner of an owner's list: a venue or promoter by term ID or slug.
+	 *
+	 * @param string $type  venue|promoter.
+	 * @param string $owner Term ID or slug.
+	 * @return array{owner_type: string, owner_id: int}
+	 */
+	private function owner( $type, $owner ) {
+		if ( ! in_array( $type, array( 'venue', 'promoter' ), true ) ) {
+			WP_CLI::error( 'The list owner type must be venue or promoter.' );
+		}
+
+		if ( is_numeric( $owner ) ) {
+			$owner_id = (int) $owner;
+		} else {
+			$term     = get_term_by( 'slug', sanitize_title( $owner ), $type );
+			$owner_id = $term ? (int) $term->term_id : 0;
+			if ( ! $owner_id ) {
+				WP_CLI::error( sprintf( 'No %1$s found with slug "%2$s".', $type, $owner ) );
+			}
+		}
+
+		return array(
+			'owner_type' => $type,
+			'owner_id'   => $owner_id,
+		);
+	}
+
+	/**
+	 * List a venue's or promoter's permanent owner's list: the people who
+	 * get in at every one of their shows, with their pass links.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <type>
+	 * : venue or promoter.
+	 *
+	 * <owner>
+	 * : Venue or promoter term ID or slug.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list owner-list venue lo-fi-brewing --user=1 --url=events.extrachill.com
+	 *
+	 * @subcommand owner-list
+	 * @when after_wp_load
+	 */
+	public function owner_list( $args, $assoc_args ) {
+		$result = $this->run( 'extrachill/list-owner-guest-list', $this->owner( (string) $args[0], (string) $args[1] ) );
+
+		if ( 'json' === Utils\get_flag_value( $assoc_args, 'format', 'table' ) ) {
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		WP_CLI::line( sprintf( '%s: %s', $result['label'] ?? '', $result['owner_name'] ?? '' ) );
+		$rows = array();
+		foreach ( (array) ( $result['members'] ?? array() ) as $member ) {
+			$rows[] = array(
+				'member_id' => (int) $member['member_id'],
+				'name'      => (string) $member['name'],
+				'email'     => (string) $member['email'],
+				'code'      => (string) $member['code'],
+				'pass_url'  => (string) $member['pass_url'],
+			);
+		}
+		Utils\format_items( 'table', $rows, array( 'member_id', 'name', 'email', 'code', 'pass_url' ) );
+	}
+
+	/**
+	 * Put someone on a venue's or promoter's permanent owner's list. One
+	 * pass works at every published show tagged with that venue or
+	 * promoter and never uses a show's guest list spots. Runs as the
+	 * --user, who must be on the venue's team or the promoter's members.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <type>
+	 * : venue or promoter.
+	 *
+	 * <owner>
+	 * : Venue or promoter term ID or slug.
+	 *
+	 * <name>
+	 * : Name shown at the door.
+	 *
+	 * [--email=<email>]
+	 * : Send them the pass.
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list owner-add venue lo-fi-brewing "Sam the Engineer" --email=sam@example.com --user=1 --url=events.extrachill.com
+	 *
+	 * @subcommand owner-add
+	 * @when after_wp_load
+	 */
+	public function owner_add( $args, $assoc_args ) {
+		$input         = $this->owner( (string) $args[0], (string) $args[1] );
+		$input['name'] = (string) $args[2];
+		if ( isset( $assoc_args['email'] ) ) {
+			$input['email'] = (string) $assoc_args['email'];
+		}
+
+		$result = $this->run( 'extrachill/add-owner-guest-list-name', $input );
+
+		if ( 'json' === Utils\get_flag_value( $assoc_args, 'format', 'table' ) ) {
+			WP_CLI::line( (string) wp_json_encode( $result, JSON_PRETTY_PRINT ) );
+			return;
+		}
+
+		WP_CLI::success( sprintf( 'Added %1$s to the %2$s %3$s (person %4$d)%5$s. Pass: %6$s', $result['name'] ?? '', $result['owner_name'] ?? '', strtolower( (string) ( $result['label'] ?? '' ) ), (int) ( $result['member_id'] ?? 0 ), empty( $result['emailed'] ) ? '' : ', pass emailed', $result['pass_url'] ?? '' ) );
+	}
+
+	/**
+	 * Take someone off a venue's or promoter's owner's list. Their pass
+	 * stops working at once.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <type>
+	 * : venue or promoter.
+	 *
+	 * <owner>
+	 * : Venue or promoter term ID or slug.
+	 *
+	 * <member-id>
+	 * : Person ID from `owner-list`.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp extrachill events guest-list owner-remove venue lo-fi-brewing 12 --user=1 --url=events.extrachill.com
+	 *
+	 * @subcommand owner-remove
+	 * @when after_wp_load
+	 */
+	public function owner_remove( $args, $assoc_args ) {
+		unset( $assoc_args );
+		$input              = $this->owner( (string) $args[0], (string) $args[1] );
+		$input['member_id'] = (int) $args[2];
+
+		$this->run( 'extrachill/remove-owner-guest-list-name', $input );
+		WP_CLI::success( 'Removed. Their pass no longer works.' );
 	}
 }

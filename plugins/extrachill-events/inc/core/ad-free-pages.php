@@ -33,6 +33,10 @@ function extrachill_events_is_ad_free_page(): bool {
 		return true;
 	}
 
+	if ( function_exists( 'extrachill_events_is_owner_pass_page' ) && extrachill_events_is_owner_pass_page() ) {
+		return true;
+	}
+
 	return false;
 }
 

@@ -141,7 +141,7 @@ class RsvpPassAbilities {
 						),
 						'code'     => array(
 							'type'        => 'string',
-							'description' => __( 'Pass code, for guest list passes that belong to no account. Give this or user_id.', 'extrachill-events' ),
+							'description' => __( 'Pass code, for guest list passes that belong to no account (including a venue\'s or promoter\'s standing owner\'s list pass, checked in once per event). Give this or user_id.', 'extrachill-events' ),
 						),
 					),
 					'required'   => array( 'event_id' ),
@@ -524,7 +524,13 @@ class RsvpPassAbilities {
 		$code     = trim( (string) ( $input['code'] ?? '' ) );
 
 		if ( '' !== $code ) {
-			return RsvpPassesTable::redeem_by_code( $event_id, $code, get_current_user_id() );
+			$result = RsvpPassesTable::redeem_by_code( $event_id, $code, get_current_user_id() );
+			// Not a pass for this event: it may be a venue's or promoter's
+			// standing list pass (extrachill#1130), checked in per event.
+			if ( is_wp_error( $result ) && 'rsvp_pass_not_found' === $result->get_error_code() && function_exists( 'extrachill_events_owner_list_check_in' ) ) {
+				return extrachill_events_owner_list_check_in( $event_id, $code, get_current_user_id() );
+			}
+			return $result;
 		}
 
 		$user_id = (int) ( $input['user_id'] ?? 0 );

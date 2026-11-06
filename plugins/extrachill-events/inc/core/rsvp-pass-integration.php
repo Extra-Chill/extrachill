@@ -154,6 +154,11 @@ function extrachill_events_append_door_list( $content ) {
 	$guest_rows = ( '' !== $guest_list_url && function_exists( 'extrachill_events_door_list_guest_rows' ) )
 		? extrachill_events_door_list_guest_rows( $post_id )
 		: array();
+	// The venue's and promoter's standing lists (extrachill#1130) work at
+	// every show they're tagged on, guest list perk or not.
+	if ( function_exists( 'extrachill_events_owner_list_door_rows' ) && class_exists( '\\ExtraChillEvents\\Core\\OwnerGuestListTable' ) ) {
+		$guest_rows = array_merge( $guest_rows, extrachill_events_owner_list_door_rows( $post_id ) );
+	}
 
 	ob_start();
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';

@@ -35,6 +35,8 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'inc/templates/rsvp-verify.php',
 		'inc/templates/guest-list.php',
 		'inc/templates/guest-list-invite.php',
+		'templates/owner-guest-list.php',
+		'inc/templates/owner-pass.php',
 	);
 
 	/**
@@ -134,6 +136,10 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'ec-guest-list__heading'  => 'plain heading; inherits theme typography',
 		'ec-guest-list__event'    => 'plain text event link; inherits theme typography',
 		'ec-guest-list__name'     => 'JS write target for the guest name; emphasis from ec-rsvp-pass__perk',
+		'ec-owner-pass-page'      => 'page-level hook only; layout comes from extrachill-content (extrachill#1130)',
+		'ec-owner-pass'           => 'test hook; surface styling from ec-surface-card',
+		'ec-owner-pass__name'     => 'plain heading; inherits theme typography',
+		'ec-owner-pass__list'     => 'plain text "Venue list: X"; inherits theme typography',
 	);
 
 	/**

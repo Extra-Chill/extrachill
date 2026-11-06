@@ -23,6 +23,7 @@
  * @var string $perk_text    Attendee-facing perk description (perk events only).
  * @var array  $guest_list   extrachill_events_get_guest_list_counts() result (perk events only).
  * @var array  $guest_rows   Guest list passes with no account (extrachill_events_door_list_guest_rows()): label ("Jake (Slim S.O.U.L.)" when an invited band added them), guest_name, source (party name or ''), code, status, redeemed_at (formatted), added_by (host display name, or '' when the guest claimed it with the password or a band added it).
+ *                            Also the venue's and promoter's standing owner's-list people (extrachill_events_owner_list_door_rows(), extrachill#1130): label "Name (Venue list)", owner_list true, status 'redeemed' once checked in at this event; never removable from here (that is the owner's list panel).
  * @var string $guest_list_url Guest list page URL when the event has a password-gated list, else ''.
  * @var array  $rows         Each: user_id, display_name, marked_at (formatted), pass_status ('active'|'redeemed'|'revoked'|''), redeemed_at (formatted, or '').
  */
@@ -46,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<a href="<?php echo esc_url( $guest_list_url ); ?>"><?php esc_html_e( 'Guest list page', 'extrachill-events' ); ?></a>
 		</p>
 	<?php endif; ?>
-	<?php if ( empty( $rows ) && empty( $guest_list_url ) ) : ?>
+	<?php if ( empty( $rows ) && empty( $guest_list_url ) && empty( $guest_rows ) ) : ?>
 		<p class="notice notice-info"><?php esc_html_e( 'No one has RSVPed yet.', 'extrachill-events' ); ?></p>
 	<?php else : ?>
 		<ul class="ec-door-list__rows">
@@ -104,6 +105,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						>
 							<?php esc_html_e( 'Check in', 'extrachill-events' ); ?>
 						</button>
+						<?php if ( empty( $guest_row['owner_list'] ) ) : ?>
 						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-confirm="<?php echo esc_attr( sprintf( /* translators: %s: guest name. */ __( 'Take %s off the guest list?', 'extrachill-events' ), '' !== (string) $guest_row['guest_name'] ? (string) $guest_row['guest_name'] : __( 'this guest', 'extrachill-events' ) ) ); ?>">
 							<input type="hidden" name="action" value="ec_guest_list_remove">
 							<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
@@ -111,6 +113,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'ec_guest_list_remove_' . $event_id ) ); ?>">
 							<button type="submit" class="button-danger button-small"><?php esc_html_e( 'Remove', 'extrachill-events' ); ?></button>
 						</form>
+						<?php endif; ?>
 					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
