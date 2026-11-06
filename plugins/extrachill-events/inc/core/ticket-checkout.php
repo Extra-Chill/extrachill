@@ -63,6 +63,21 @@ function extrachill_events_render_ticket_checkout( $post_id, $ticket_url = '', $
 }
 add_action( 'data_machine_events_action_buttons', 'extrachill_events_render_ticket_checkout', 7, 3 );
 
+/**
+ * First-party tickets replace the external ticket link, never sit beside it.
+ *
+ * @param bool $show    Whether Data Machine Events would show its ticket button.
+ * @param int  $post_id Event post ID.
+ * @return bool
+ */
+function extrachill_events_hide_external_ticket_button( $show, $post_id ) {
+	if ( ! $show || ! class_exists( \ExtraChillEvents\Abilities\TicketAbilities::class ) ) {
+		return $show;
+	}
+	return empty( \ExtraChillEvents\Abilities\TicketAbilities::settings( (int) $post_id )['tickets_enabled'] );
+}
+add_filter( 'data_machine_events_show_ticket_button', 'extrachill_events_hide_external_ticket_button', 10, 2 );
+
 /** Checkout runs on Shop, where the protected payment ability lives. */
 function extrachill_events_enqueue_ticket_checkout() {
 	if ( ! is_singular( 'data_machine_events' ) || ! function_exists( 'ec_is_events_site' ) || ! ec_is_events_site() || 'success' === extrachill_events_ticket_return_state() ) {

@@ -76,3 +76,12 @@ $_GET = array( 'tickets' => 'cancelled' );
 $GLOBALS['singular'] = false;
 check( ! extrachill_events_is_ad_free_page(), 'Return state only affects event pages' );
 echo "Ticket checkout rendering passed.\n";
+
+eval( 'namespace ExtraChillEvents\\Abilities; class TicketAbilities { public static function settings( $id ) { return $GLOBALS["ticket_settings"]; } }' );
+$GLOBALS['ticket_settings'] = array( 'tickets_enabled' => true );
+check( false === extrachill_events_hide_external_ticket_button( true, 42 ), 'Enabled first-party tickets replace the external ticket link' );
+$GLOBALS['ticket_settings'] = array( 'tickets_enabled' => false );
+check( true === extrachill_events_hide_external_ticket_button( true, 42 ), 'External ticket link stays when first-party tickets are off' );
+check( false === extrachill_events_hide_external_ticket_button( false, 42 ), 'Never re-shows a link Data Machine Events hid (past show)' );
+echo "Ticket link replacement passed.\n";
+
