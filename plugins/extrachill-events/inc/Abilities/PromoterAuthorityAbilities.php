@@ -75,12 +75,15 @@ final class PromoterAuthorityAbilities {
 		$this->register_ability(
 			'extrachill/verify-promoter-organization',
 			__( 'Verify Promoter Organization', 'extrachill-events' ),
-			__( 'Verify a promoter term and bootstrap its first explicit owner.', 'extrachill-events' ),
+			__( 'Verify a promoter term, optionally bootstrapping an initial explicit owner. Without owner_user_id the organization is verified with no members; site administrators manage members afterwards.', 'extrachill-events' ),
 			array(
 				'promoter_term_id' => $term,
-				'owner_user_id'    => $user,
+				'owner_user_id'    => array_merge(
+					$user,
+					array( 'description' => __( 'Optional existing network user ID to bootstrap as the initial owner. Omit to verify without an owner.', 'extrachill-events' ) )
+				),
 			),
-			array( 'promoter_term_id', 'owner_user_id' ),
+			array( 'promoter_term_id' ),
 			array( $this, 'verify' ),
 			array( $this, 'can_verify' ),
 			false,
@@ -107,7 +110,7 @@ final class PromoterAuthorityAbilities {
 		$this->register_ability(
 			'extrachill/create-promoter-membership',
 			__( 'Create Promoter Membership', 'extrachill-events' ),
-			__( 'Add an existing network user to a verified promoter.', 'extrachill-events' ),
+			__( 'Add an existing network user to a verified promoter. Allowed for site administrators and active promoter owners.', 'extrachill-events' ),
 			array(
 				'promoter_term_id' => $term,
 				'user_id'          => $user,
@@ -194,7 +197,7 @@ final class PromoterAuthorityAbilities {
 	}
 
 	/**
-	 * Authorize promoter-owner membership management.
+	 * Authorize site-administrator or promoter-owner membership management.
 	 *
 	 * @param array $input Ability input.
 	 */
@@ -203,12 +206,13 @@ final class PromoterAuthorityAbilities {
 	}
 
 	/**
-	 * Execute organization verification and owner bootstrap.
+	 * Execute organization verification and optional owner bootstrap.
 	 *
 	 * @param array $input Ability input.
 	 */
 	public function verify( array $input ) {
-		return $this->service->verify( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), absint( $input['owner_user_id'] ?? 0 ) );
+		$owner_user_id = isset( $input['owner_user_id'] ) ? absint( $input['owner_user_id'] ) : null;
+		return $this->service->verify( PromoterAuthorization::effective_user_id(), absint( $input['promoter_term_id'] ?? 0 ), $owner_user_id );
 	}
 
 	/**
@@ -299,13 +303,15 @@ final class PromoterAuthorityAbilities {
 		);
 	}
 
-	/** Return the closed bootstrap result schema. */
+	/** Return the closed bootstrap result schema; membership is null when verified without an owner. */
 	private function bootstrap_schema(): array {
+		$membership         = $this->membership_schema();
+		$membership['type'] = array( 'object', 'null' );
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
 				'organization' => $this->organization_schema(),
-				'membership'   => $this->membership_schema(),
+				'membership'   => $membership,
 			),
 			'required'             => array( 'organization', 'membership' ),
 			'additionalProperties' => false,

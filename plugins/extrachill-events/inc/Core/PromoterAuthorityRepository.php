@@ -15,6 +15,8 @@ class PromoterAuthorityRepository {
 	public const STATUS_REVOKED    = 'revoked';
 	public const MAX_MEMBERS       = 100;
 	public const MAX_ORGANIZATIONS = 500;
+	public const ACTOR_ADMIN       = 'admin';
+	public const ACTOR_OWNER       = 'owner';
 
 	/** Return every persisted authority status. */
 	public static function statuses(): array {
@@ -22,18 +24,21 @@ class PromoterAuthorityRepository {
 	}
 
 	/**
-	 * Atomically verify an organization and create its first explicit owner.
+	 * Atomically verify an organization and optionally create its first explicit owner.
 	 *
-	 * @param int $promoter_term_id Exact promoter term ID.
-	 * @param int $owner_user_id    Initial owner network user ID.
-	 * @param int $actor_user_id    Administrator network user ID.
+	 * Without an initial owner the organization is verified with no memberships;
+	 * site administrators manage its members afterwards.
+	 *
+	 * @param int      $promoter_term_id Exact promoter term ID.
+	 * @param int|null $owner_user_id    Initial owner network user ID, or null for an ownerless organization.
+	 * @param int      $actor_user_id    Administrator network user ID.
 	 */
-	public function verify( int $promoter_term_id, int $owner_user_id, int $actor_user_id ) {
-		$valid = $this->validate_principals( $promoter_term_id, array( $owner_user_id, $actor_user_id ) );
+	public function verify( int $promoter_term_id, ?int $owner_user_id, int $actor_user_id ) {
+		$valid = $this->validate_principals( $promoter_term_id, null === $owner_user_id ? array( $actor_user_id ) : array( $owner_user_id, $actor_user_id ) );
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
-		if ( ! PromoterAuthorization::user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! PromoterAuthorization::is_site_admin( $actor_user_id ) ) {
 			return $this->forbidden();
 		}
 
@@ -86,24 +91,26 @@ class PromoterAuthorityRepository {
 			}
 			return $this->database_error( 'promoter_organization_create_failed', __( 'The promoter organization could not be verified.', 'extrachill-events' ), $database_error );
 		}
-		$membership = array(
-			'promoter_term_id'   => $promoter_term_id,
-			'user_id'            => $owner_user_id,
-			'is_owner'           => 1,
-			'status'             => self::STATUS_ACTIVE,
-			'version'            => 1,
-			'created_by_user_id' => $actor_user_id,
-			'created_at'         => $now,
-			'updated_at'         => $now,
-			'revoked_by_user_id' => null,
-			'revoked_at'         => null,
-		);
-		if ( false === $wpdb->insert( PromoterAuthoritySchema::memberships_table(), $membership ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic bootstrap write.
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_organization_bootstrap_failed', __( 'The promoter organization owner could not be established.', 'extrachill-events' ), $database_error );
+		if ( null !== $owner_user_id ) {
+			$membership = array(
+				'promoter_term_id'   => $promoter_term_id,
+				'user_id'            => $owner_user_id,
+				'is_owner'           => 1,
+				'status'             => self::STATUS_ACTIVE,
+				'version'            => 1,
+				'created_by_user_id' => $actor_user_id,
+				'created_at'         => $now,
+				'updated_at'         => $now,
+				'revoked_by_user_id' => null,
+				'revoked_at'         => null,
+			);
+			if ( false === $wpdb->insert( PromoterAuthoritySchema::memberships_table(), $membership ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic bootstrap write.
+				$database_error = (string) $wpdb->last_error;
+				$this->rollback();
+				return $this->database_error( 'promoter_organization_bootstrap_failed', __( 'The promoter organization owner could not be established.', 'extrachill-events' ), $database_error );
+			}
 		}
-		if ( ! $this->audit( $promoter_term_id, 'organization_verified', $actor_user_id, $owner_user_id, 1, array( 'initial_owner' => true ) ) ) {
+		if ( ! $this->audit( $promoter_term_id, 'organization_verified', $actor_user_id, $owner_user_id, 1, array( 'initial_owner' => null !== $owner_user_id ) ) ) {
 			$database_error = (string) $wpdb->last_error;
 			$this->rollback();
 			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
@@ -114,7 +121,7 @@ class PromoterAuthorityRepository {
 		$this->domain_changed( $promoter_term_id, 'organization_verified' );
 		return array(
 			'organization' => $this->get_organization( $promoter_term_id ),
-			'membership'   => $this->get_membership( $promoter_term_id, $owner_user_id ),
+			'membership'   => null === $owner_user_id ? null : $this->get_membership( $promoter_term_id, $owner_user_id ),
 		);
 	}
 
@@ -130,7 +137,7 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
-		if ( ! PromoterAuthorization::user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! PromoterAuthorization::is_site_admin( $actor_user_id ) ) {
 			return $this->forbidden();
 		}
 		global $wpdb;
@@ -181,7 +188,7 @@ class PromoterAuthorityRepository {
 	}
 
 	/**
-	 * Add one active member; only a locked-current owner may act.
+	 * Add one active member; only a site administrator or a locked-current owner may act.
 	 *
 	 * @param int  $promoter_term_id Exact promoter term ID.
 	 * @param int  $user_id          Target network user ID.
@@ -197,11 +204,11 @@ class PromoterAuthorityRepository {
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serialized member creation.
 			return $this->database_error( 'promoter_authority_transaction_failed', __( 'The promoter authority transaction could not start.', 'extrachill-events' ) );
 		}
-		$locked  = $this->lock_rows( $promoter_term_id );
-		$allowed = is_wp_error( $locked ) ? $locked : $this->authorize_locked_owner( $actor_user_id, $locked );
-		if ( true !== $allowed ) {
+		$locked = $this->lock_rows( $promoter_term_id );
+		$actor  = is_wp_error( $locked ) ? $locked : $this->authorize_locked_manager( $actor_user_id, $locked );
+		if ( is_wp_error( $actor ) ) {
 			$this->rollback();
-			return $allowed;
+			return $actor;
 		}
 		foreach ( $locked['memberships'] as $membership ) {
 			if ( $membership['user_id'] === $user_id ) {
@@ -554,7 +561,7 @@ class PromoterAuthorityRepository {
 	 * @param int       $promoter_term_id Exact promoter term ID.
 	 * @param int       $user_id          Target network user ID.
 	 * @param int       $expected_version Optimistic membership version.
-	 * @param int       $actor_user_id    Acting owner network user ID.
+	 * @param int       $actor_user_id    Acting administrator or owner network user ID.
 	 * @param bool|null $is_owner         New owner state, or null for revocation.
 	 * @param bool      $revoke           Whether to revoke the membership.
 	 */
@@ -567,11 +574,11 @@ class PromoterAuthorityRepository {
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Required for final-owner serialization.
 			return $this->database_error( 'promoter_authority_transaction_failed', __( 'The promoter authority transaction could not start.', 'extrachill-events' ) );
 		}
-		$locked  = $this->lock_rows( $promoter_term_id );
-		$allowed = is_wp_error( $locked ) ? $locked : $this->authorize_locked_owner( $actor_user_id, $locked );
-		if ( true !== $allowed ) {
+		$locked = $this->lock_rows( $promoter_term_id );
+		$actor  = is_wp_error( $locked ) ? $locked : $this->authorize_locked_manager( $actor_user_id, $locked );
+		if ( is_wp_error( $actor ) ) {
 			$this->rollback();
-			return $allowed;
+			return $actor;
 		}
 		$current       = null;
 		$active_owners = 0;
@@ -591,7 +598,10 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			return new \WP_Error( 'promoter_membership_revoked', __( 'A revoked promoter membership cannot be changed.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		if ( $current['is_owner'] && ( $revoke || false === $is_owner ) && $active_owners < 2 ) {
+		// Owners cannot remove the final owner (self-lockout protection). Site
+		// administrators may leave an organization ownerless; they retain
+		// membership management regardless of owner state.
+		if ( self::ACTOR_ADMIN !== $actor && $current['is_owner'] && ( $revoke || false === $is_owner ) && $active_owners < 2 ) {
 			$this->rollback();
 			return new \WP_Error( 'promoter_membership_last_owner', __( 'The final active promoter owner cannot be removed.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
@@ -687,21 +697,25 @@ class PromoterAuthorityRepository {
 	}
 
 	/**
-	 * Reauthorize an active owner from lock-current rows.
+	 * Reauthorize a site administrator or active owner from lock-current rows.
 	 *
 	 * @param int   $actor_user_id Acting network user ID.
 	 * @param array $locked        Hydrated lock-current rows.
+	 * @return string|\WP_Error ACTOR_ADMIN or ACTOR_OWNER, or a denial.
 	 */
-	private function authorize_locked_owner( int $actor_user_id, array $locked ) {
+	private function authorize_locked_manager( int $actor_user_id, array $locked ) {
 		if ( ! is_array( $locked['organization'] ) || self::STATUS_ACTIVE !== $locked['organization']['status'] ) {
 			return $this->forbidden();
+		}
+		if ( PromoterAuthorization::is_site_admin( $actor_user_id ) ) {
+			return self::ACTOR_ADMIN;
 		}
 		if ( ! PromoterAuthorization::principal_allows( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) ) {
 			return $this->forbidden();
 		}
 		foreach ( $locked['memberships'] as $membership ) {
 			if ( $membership['user_id'] === $actor_user_id && $membership['is_owner'] && self::STATUS_ACTIVE === $membership['status'] ) {
-				return true;
+				return self::ACTOR_OWNER;
 			}
 		}
 		return $this->forbidden();

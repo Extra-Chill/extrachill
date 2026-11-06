@@ -9,7 +9,7 @@ namespace ExtraChillEvents\Core;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Authorizes administrators for bootstrap/revocation and owners for membership management. */
+/** Authorizes administrators for bootstrap/revocation and administrators or owners for membership management. */
 final class PromoterAuthorization {
 	public const ACTION_VERIFY_ORGANIZATION = 'verify_organization';
 	public const ACTION_REVOKE_ORGANIZATION = 'revoke_organization';
@@ -93,6 +93,20 @@ final class PromoterAuthorization {
 	}
 
 	/**
+	 * Whether a represented user holds site-administrator authority over promoter organizations.
+	 *
+	 * This is the single administrator check for verify, revoke, and membership
+	 * management. It composes the active execution-principal ceiling, so an agent
+	 * acting for an administrator without `manage_options` in its ceiling is denied.
+	 *
+	 * @param int  $user_id                 Represented WordPress user ID.
+	 * @param bool $use_execution_principal Whether to apply an active agent principal.
+	 */
+	public static function is_site_admin( int $user_id, bool $use_execution_principal = true ): bool {
+		return self::user_can( $user_id, 'manage_options', $use_execution_principal );
+	}
+
+	/**
 	 * Apply a capability only as an active execution-principal ceiling.
 	 *
 	 * Normal WordPress requests retain their established domain-only policy.
@@ -130,7 +144,7 @@ final class PromoterAuthorization {
 			return $this->denied();
 		}
 		if ( in_array( $action, array( self::ACTION_VERIFY_ORGANIZATION, self::ACTION_REVOKE_ORGANIZATION ), true ) ) {
-			return self::user_can( $user_id, 'manage_options', $this->use_execution_principal ) ? true : $this->denied();
+			return self::is_site_admin( $user_id, $this->use_execution_principal ) ? true : $this->denied();
 		}
 
 		$organization = $this->repository->get_organization( $promoter_term_id );
@@ -139,6 +153,9 @@ final class PromoterAuthorization {
 		}
 		if ( ! is_array( $organization ) || PromoterAuthorityRepository::STATUS_ACTIVE !== $organization['status'] ) {
 			return $this->denied();
+		}
+		if ( self::ACTION_MANAGE_MEMBERS === $action && self::is_site_admin( $user_id, $this->use_execution_principal ) ) {
+			return true;
 		}
 		$membership = $this->repository->get_active_membership( $promoter_term_id, $user_id );
 		if ( is_wp_error( $membership ) ) {
