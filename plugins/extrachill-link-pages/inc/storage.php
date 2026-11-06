@@ -599,6 +599,10 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 			}
 		}
 	}
+	// Compatibility style aliases are projections, not independent settings.
+	$styles['_link_page_profile_img_shape']  = $settings['profile_image_shape'];
+	$styles['--link-page-profile-img-shape'] = $settings['profile_image_shape'];
+	$styles['--link-page-background-image-url'] = ! empty( $settings['background_image_id'] ) ? (string) wp_get_attachment_url( absint( $settings['background_image_id'] ) ) : '';
 	$settings['overlay_enabled'] = '1' === (string) ( $styles['overlay'] ?? '1' );
 	if ( ! in_array( $settings['subscribe_display_mode'], array( 'icon_modal', 'inline_form', 'disabled' ), true ) ) {
 		$settings['subscribe_display_mode'] = 'icon_modal';
@@ -639,7 +643,7 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 		'settings'               => $settings,
 		'previous_links'         => ec_get_link_page_previous_links( $link_page_id ),
 		'background_image_id'    => absint( $settings['background_image_id'] ),
-		'background_image_url'   => ! empty( $settings['background_image_id'] ) ? (string) wp_get_attachment_url( absint( $settings['background_image_id'] ) ) : '',
+		'background_image_url'   => $styles['--link-page-background-image-url'],
 	);
 	return array_replace_recursive( $data, is_array( $overrides ) ? $overrides : array() );
 }

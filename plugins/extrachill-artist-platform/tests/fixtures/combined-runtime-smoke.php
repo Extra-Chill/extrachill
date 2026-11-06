@@ -165,6 +165,10 @@ $GLOBALS['ec_test']['blogs'][4]['post_meta'][40] = array(
 );
 
 $created                        = ec_create_link_page( 20 );
+if ( 'save-styles-response' === ( $argv[1] ?? '' ) ) {
+	require __DIR__ . '/../support/save-styles-response-cases.php';
+	exit( 0 );
+}
 $creation_hooks                 = array_values( array_map( static function ( $action ) { return $action[0];
 }, array_filter( $GLOBALS['ec_test']['fired_actions'], static function ( $action ) { return in_array( $action[0], array( 'ec_link_page_created', 'ec_owned_link_page_created' ), true );
 } ) ) );
