@@ -86,11 +86,15 @@ export default function TabSocials() {
 					<i className={ iconClass } aria-hidden="true"></i>
 				</span>
 				<input
-					type="url"
+					type={ 'email' === social.type ? 'text' : 'url' }
 					className="ec-social-item__url"
 					value={ social.url || '' }
 					onChange={ ( e ) => updateSocialUrl( index, e.target.value ) }
-					placeholder={ `${ label } URL` }
+					placeholder={
+						'email' === social.type
+							? 'Email address'
+							: `${ label } URL`
+					}
 				/>
 				<button
 					type="button"

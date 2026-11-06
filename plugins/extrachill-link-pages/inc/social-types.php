@@ -35,6 +35,10 @@ function ec_social_link_types() {
 				'icon'             => 'fas fa-link',
 				'has_custom_label' => true,
 			),
+			'email'       => array(
+				'label' => 'Email',
+				'icon'  => 'fas fa-envelope',
+			),
 			'facebook'    => array(
 				'label' => 'Facebook',
 				'icon'  => 'fab fa-facebook-f',
@@ -110,6 +114,27 @@ function ec_link_page_social_types() {
 }
 
 /**
+ * Normalize an email contact link to a mailto: URL.
+ *
+ * Accepts a bare address or a mailto: URL. Returns '' when the address is
+ * not a valid email.
+ *
+ * @param string $raw Candidate address or mailto: URL.
+ * @return string
+ */
+function ec_social_link_email_url( $raw ) {
+	$address = trim( (string) $raw );
+	if ( 0 === stripos( $address, 'mailto:' ) ) {
+		$address = substr( $address, 7 );
+	}
+	$address = sanitize_email( rawurldecode( strtok( $address, '?' ) ) );
+	if ( '' === $address || ! is_email( $address ) ) {
+		return '';
+	}
+	return 'mailto:' . $address;
+}
+
+/**
  * Validate and sanitize a social links array for any consumer.
  *
  * Returns the sanitized list or a WP_Error naming the first invalid entry.
@@ -149,13 +174,25 @@ function ec_sanitize_social_links( $social_links, $args = array() ) {
 		++$sequence;
 		$type = isset( $social['type'] ) ? sanitize_key( (string) $social['type'] ) : '';
 		if ( ! isset( $known[ $type ] ) ) {
-			return new WP_Error( 'invalid_' . $prefix . '_type', 'A social link type is not supported.', array( 'type' => $type ) );
+			$valid = array_keys( $known );
+			return new WP_Error(
+				'invalid_' . $prefix . '_type',
+				sprintf( 'Social link type "%s" is not supported. Valid types: %s.', $type, implode( ', ', $valid ) ),
+				array(
+					'type'        => $type,
+					'valid_types' => $valid,
+				)
+			);
 		}
 		$raw_url = isset( $social['url'] ) ? trim( wp_unslash( (string) $social['url'] ) ) : '';
-		if ( '' !== $raw_url && ! preg_match( '#^[a-z][a-z0-9+.-]*:#i', $raw_url ) ) {
-			$raw_url = 'https://' . ltrim( $raw_url, '/' );
+		if ( 'email' === $type ) {
+			$url = ec_social_link_email_url( $raw_url );
+		} else {
+			if ( '' !== $raw_url && ! preg_match( '#^[a-z][a-z0-9+.-]*:#i', $raw_url ) ) {
+				$raw_url = 'https://' . ltrim( $raw_url, '/' );
+			}
+			$url = '' === $raw_url ? '' : esc_url_raw( $raw_url, array( 'http', 'https' ) );
 		}
-		$url = '' === $raw_url ? '' : esc_url_raw( $raw_url, array( 'http', 'https' ) );
 		if ( '' === $url ) {
 			return new WP_Error( 'invalid_' . $prefix . '_url', 'A social link URL is invalid.' );
 		}
