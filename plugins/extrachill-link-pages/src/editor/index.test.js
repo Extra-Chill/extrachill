@@ -286,6 +286,65 @@ describe( 'portable editor behavior', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it( 'edits arbitrary gradient angles and enables or removes a middle stop', async () => {
+		const save = jest.fn( async ( id, draft ) =>
+			documentFor( id, { css_vars: draft.page.styles } )
+		);
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: async ( id ) =>
+				documentFor( id, {
+					css_vars: {
+						'--link-page-background-type': 'gradient',
+						'--link-page-background-gradient-direction': 'to right',
+					},
+				} ),
+			save,
+		};
+		const { container, root } = await renderEditor();
+		await act( async () =>
+			[ ...container.querySelectorAll( '[role="tab"]' ) ]
+				.find( ( tab ) => tab.textContent === 'Customize' )
+				.click()
+		);
+		const control = ( label ) => {
+			const element = [ ...container.querySelectorAll( 'label' ) ].find(
+				( item ) => item.textContent === label
+			);
+			return container.querySelector( `[id="${ element.htmlFor }"]` );
+		};
+		expect( control( 'Gradient Angle (degrees)' ).value ).toBe( '90' );
+		await input( control( 'Gradient Angle (degrees)' ), '27.5' );
+		await act( async () => control( 'Use Middle Color' ).click() );
+		await input( control( 'Gradient Middle' ), '#8000ff' );
+		const preview = () =>
+			container.querySelector( '.extrch-link-page-preview-container' )
+				.dataset.backgroundImage;
+		expect( preview() ).toBe(
+			'linear-gradient(27.5deg, #0b5394, #8000ff, #53940b)'
+		);
+		await act( async () =>
+			container.querySelector( 'form' ).requestSubmit()
+		);
+		expect(
+			save.mock.calls[ 0 ][ 1 ].page.styles[
+				'--link-page-background-gradient-middle'
+			]
+		).toBe( '#8000ff' );
+		await act( async () => control( 'Use Middle Color' ).click() );
+		expect( preview() ).toBe(
+			'linear-gradient(27.5deg, #0b5394, #53940b)'
+		);
+		await act( async () =>
+			container.querySelector( 'form' ).requestSubmit()
+		);
+		expect(
+			save.mock.calls[ 1 ][ 1 ].page.styles[
+				'--link-page-background-gradient-middle'
+			]
+		).toBe( '' );
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'renders gradient, cleared image, and public link wrappers faithfully', async () => {
 		const container = document.createElement( 'div' );
 		const root = createRoot( container );

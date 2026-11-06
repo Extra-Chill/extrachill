@@ -27,6 +27,7 @@ function ec_link_page_defaults() {
 			'--link-page-background-type'               => 'color',
 			'--link-page-background-gradient-start'     => '#0b5394',
 			'--link-page-background-gradient-end'       => '#53940b',
+			'--link-page-background-gradient-middle'    => '',
 			'--link-page-background-gradient-direction' => 'to right',
 			'--link-page-background-image-url'          => '',
 			'--link-page-image-size'                    => 'cover',
@@ -367,12 +368,22 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 	return $legacy_flat ? $sanitized[0]['links'] : $sanitized;
 }
 
+/** Build gradient color stops, preserving the historical two-stop output. */
+function ec_link_page_gradient_colors( $vars ) {
+	$colors = array( $vars['--link-page-background-gradient-start'] ?? '#0b5394' );
+	if ( ! empty( $vars['--link-page-background-gradient-middle'] ) ) {
+		$colors[] = $vars['--link-page-background-gradient-middle'];
+	}
+	$colors[] = $vars['--link-page-background-gradient-end'] ?? '#53940b';
+	return implode( ', ', $colors );
+}
+
 /** Sanitize supported CSS custom properties. */
 function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 	if ( ! is_array( $vars ) ) {
 		return new WP_Error( 'invalid_link_page_css_vars', 'Link Page styles must be an array.' );
 	}
-	$colors    = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-gradient-start', '--link-page-background-gradient-end' );
+	$colors    = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-middle' );
 	$enums     = array(
 		'--link-page-button-finish'                 => array( 'flat', 'gloss' ),
 		'--link-page-background-type'               => array( 'color', 'gradient', 'image' ),
@@ -396,7 +407,11 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 		if ( preg_match( '/[;{}\x00-\x1F]|\/\*|\*\/|url\s*\(|@import/i', $value ) ) {
 			return new WP_Error( 'invalid_link_page_css_value', 'A Link Page style contains unsafe CSS.' );
 		}
-		if ( in_array( $key, $colors, true ) ) {
+		if ( '--link-page-background-gradient-middle' === $key && '' === $value ) {
+			$sanitized[ $key ] = '';
+		} elseif ( '--link-page-background-gradient-direction' === $key && preg_match( '/^(?:\d+(?:\.\d+)?|\.\d+)deg$/', $value ) && (float) $value <= 360 ) {
+			$sanitized[ $key ] = $value;
+		} elseif ( in_array( $key, $colors, true ) ) {
 			$hex = sanitize_hex_color( $value );
 			if ( $hex ) {
 				$sanitized[ $key ] = $hex;

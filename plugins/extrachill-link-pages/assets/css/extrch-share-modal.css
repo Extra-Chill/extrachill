@@ -167,13 +167,11 @@ body button.extrch-share-item-trigger:active {
 .extrch-share-modal-content[data-bg-type="gradient"] {
     background: linear-gradient(
         var(--link-page-background-gradient-direction),
-        var(--link-page-background-gradient-start),
-        var(--link-page-background-gradient-end)
+        var(--link-page-background-gradient-colors, var(--link-page-background-gradient-start), var(--link-page-background-gradient-end))
     );
     background-image: linear-gradient(
         var(--link-page-background-gradient-direction),
-        var(--link-page-background-gradient-start),
-        var(--link-page-background-gradient-end)
+        var(--link-page-background-gradient-colors, var(--link-page-background-gradient-start), var(--link-page-background-gradient-end))
     );
     background-color: transparent; /* Ensure no base color shows through */
 }
