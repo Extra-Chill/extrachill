@@ -585,6 +585,18 @@ describe( 'portable editor behavior', () => {
 		expect( container.textContent ).toContain( 'Title Size' );
 		expect( container.textContent ).toContain( 'Profile Image Size' );
 		expect( container.textContent ).toContain( 'Button Hover Color' );
+		expect( container.textContent ).toContain( 'Button Finish' );
+		const finish = [ ...container.querySelectorAll( 'select' ) ].find(
+			( select ) => select.querySelector( 'option[value="gloss"]' )
+		);
+		expect( finish.value ).toBe( 'flat' );
+		await act( async () => {
+			finish.value = 'gloss';
+			finish.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		} );
+		const preview = container.querySelector( '.extrch-link-page-preview-container' );
+		expect( preview.style.getPropertyValue( '--link-page-button-finish' ) ).toBe( 'gloss' );
+		expect( preview.style.getPropertyValue( '--link-page-button-sheen' ) ).toContain( 'linear-gradient' );
 		expect(
 			container.querySelector( '.extrch-share-page-trigger' )
 		).not.toBeNull();

@@ -21,6 +21,7 @@ const DEFAULT_STYLES = {
 	'--link-page-background-gradient-direction': 'to right',
 	'--link-page-title-font-size': '2.1em',
 	'--link-page-button-radius': '8px',
+	'--link-page-button-finish': 'flat',
 	'--link-page-profile-img-size': '30%',
 	overlay: '1',
 };
@@ -714,6 +715,17 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 					}
 				/>
 			</Field>
+			<Field label="Button Finish">
+				<select
+					value={ styles[ '--link-page-button-finish' ] || 'flat' }
+					onChange={ ( event ) =>
+						style( '--link-page-button-finish', event.target.value )
+					}
+				>
+					<option value="flat">Flat</option>
+					<option value="gloss">Gloss</option>
+				</select>
+			</Field>
 			<Field label="Button Radius">
 				<input
 					type="range"
@@ -887,6 +899,10 @@ export function Preview( {
 	subscriptions = true,
 } ) {
 	const style = { ...draft.page.styles };
+	style[ '--link-page-button-sheen' ] =
+		style[ '--link-page-button-finish' ] === 'gloss'
+			? 'linear-gradient(to bottom, rgba(255,255,255,.45), rgba(255,255,255,.12) 48%, transparent 50%)'
+			: 'none';
 	const backgroundType =
 		draft.page.styles[ '--link-page-background-type' ] || 'color';
 	style.backgroundImage = 'none';
