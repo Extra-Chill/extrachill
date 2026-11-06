@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.49.3] - 2026-11-06
+
+### Fixed
+- derived key + single-use nonce for loopback user assertions
+
 ## [0.49.2] - 2026-11-05
 
 ### Changed
