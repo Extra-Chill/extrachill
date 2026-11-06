@@ -158,7 +158,7 @@
 	margin: 30px auto;
 	padding: 30px;
 	text-align: center;
-	background: rgba(0, 0, 0, 0.4);
+	background: var(--link-page-card-bg-color, rgba(0, 0, 0, 0.4));
 	border-radius: 16px;
 }
 .extrch-link-page-content-wrapper.no-overlay {

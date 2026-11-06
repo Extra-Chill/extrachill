@@ -11,6 +11,7 @@ import './style.scss';
 
 const DEFAULT_STYLES = {
 	'--link-page-background-color': '#121212',
+	'--link-page-card-bg-color': 'rgba(0, 0, 0, 0.4)',
 	'--link-page-text-color': '#e5e5e5',
 	'--link-page-link-text-color': '#ffffff',
 	'--link-page-button-bg-color': '#0b5394',
@@ -455,8 +456,45 @@ function LinksPanel( { draft, change, limits } ) {
 	);
 }
 
+export const cardBackgroundParts = ( value ) => {
+	if ( value === 'transparent' || value === 'none' ) {
+		return { color: '#000000', opacity: 0 };
+	}
+	if ( /^#[\da-f]{3}(?:[\da-f]{3})?$/i.test( value ) ) {
+		return {
+			color:
+				value.length === 4
+					? `#${ [ ...value.slice( 1 ) ].map( ( digit ) => digit + digit ).join( '' ) }`
+					: value,
+			opacity: 1,
+		};
+	}
+	const channels = value
+		?.match( /^rgba?\(([^)]+)\)$/ )?.[ 1 ]
+		.split( ',' )
+		.map( Number );
+	if ( channels?.length >= 3 ) {
+		return {
+			color: `#${ channels
+				.slice( 0, 3 )
+				.map( ( channel ) => channel.toString( 16 ).padStart( 2, '0' ) )
+				.join( '' ) }`,
+			opacity: channels[ 3 ] ?? 1,
+		};
+	}
+	return { color: '#000000', opacity: 0.4 };
+};
+
+export const cardBackgroundValue = ( color, opacity ) => {
+	const channels = [ 1, 3, 5 ].map( ( offset ) =>
+		parseInt( color.slice( offset, offset + 2 ), 16 )
+	);
+	return `rgba(${ channels.join( ', ' ) }, ${ opacity })`;
+};
+
 function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 	const styles = draft.page.styles;
+	const card = cardBackgroundParts( styles[ '--link-page-card-bg-color' ] );
 	const setting = ( key, value ) =>
 		change(
 			{
@@ -775,6 +813,42 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 						) }
 					</Field>
 				) }
+			<Field label="Card Color">
+				<input
+					type="color"
+					value={ card.color }
+					onChange={ ( event ) =>
+						style(
+							'--link-page-card-bg-color',
+							cardBackgroundValue(
+								event.target.value,
+								card.opacity
+							)
+						)
+					}
+				/>
+			</Field>
+			<Field
+				label="Card Opacity"
+				help="0% means none (fully transparent)."
+			>
+				<input
+					type="range"
+					min="0"
+					max="100"
+					value={ Math.round( card.opacity * 100 ) }
+					onChange={ ( event ) =>
+						style(
+							'--link-page-card-bg-color',
+							cardBackgroundValue(
+								card.color,
+								Number( event.target.value ) / 100
+							)
+						)
+					}
+				/>
+				<output>{ Math.round( card.opacity * 100 ) }%</output>
+			</Field>
 			<Field label="Text Color">
 				<input
 					type="color"

@@ -442,6 +442,21 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 		} elseif ( '--link-page-background-gradient-direction' === $key && preg_match( '/^(?:\d+(?:\.\d+)?|\.\d+)deg$/', $value ) && (float) $value <= 360 ) {
 			$sanitized[ $key ] = $value;
 		} elseif ( in_array( $key, $colors, true ) ) {
+			/* CSS backgrounds use transparent for the editor's "none" option. */
+			if ( '--link-page-card-bg-color' === $key && in_array( strtolower( $value ), array( 'none', 'transparent' ), true ) ) {
+				$sanitized[ $key ] = 'transparent';
+				continue;
+			}
+			if ( '--link-page-card-bg-color' === $key && preg_match( '/^rgba?\(/i', $value ) ) {
+				/* Require valid channels and an alpha between zero and one. */
+				$channel = '(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})';
+				$rgb = $channel . '\s*,\s*' . $channel . '\s*,\s*' . $channel;
+				if ( ! preg_match( '/^(?:rgb\(\s*' . $rgb . '\s*\)|rgba\(\s*' . $rgb . '\s*,\s*(?:0|1|0?\.\d+|1\.0+)\s*\))$/i', $value ) ) {
+					return new WP_Error( 'invalid_link_page_css_value', 'A Link Page color is invalid.' );
+				}
+				$sanitized[ $key ] = $value;
+				continue;
+			}
 			$hex = sanitize_hex_color( $value );
 			if ( $hex ) {
 				$sanitized[ $key ] = $hex;
@@ -621,7 +636,6 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	$defaults                            = ec_link_page_defaults_for( 'styles' );
 	$stored_styles                       = is_array( $styles ) ? $styles : array();
 	$styles                              = array_merge( $defaults, $stored_styles );
-	$styles['--link-page-card-bg-color'] = $defaults['--link-page-card-bg-color'];
 	// Resolve legacy derived colors only when no independent value was saved.
 	if ( ! isset( $stored_styles['--link-page-button-hover-text-color'] ) ) {
 		$styles['--link-page-button-hover-text-color'] = $styles['--link-page-link-text-color'];
@@ -870,7 +884,6 @@ function ec_save_link_page_persistence_composed_locked( $link_page_id, $save_dat
 		if ( is_wp_error( $vars ) ) {
 			return ec_compensate_link_page_save_error( $link_page_id, $snapshots, $vars );
 		}
-		unset( $vars['--link-page-card-bg-color'] );
 		$writes['_link_page_custom_css_vars'] = array(
 			'value'  => $vars,
 			'delete' => false,
