@@ -28,6 +28,10 @@ $lines = preg_split( '/\R/', $yaml ) ?: array();
 
 dws_assert( (bool) preg_match( '/^\s+repository_dispatch:\s*$/m', $yaml ), 'repository_dispatch trigger present' );
 dws_assert( (bool) preg_match( '/^\s+types:\s*\[component-released\]/m', $yaml ), 'repository_dispatch listens for component-released' );
+// #1092: multi-plugin repos dispatch every released component, including ones
+// this network never installs. Those are a logged no-op, not a red run.
+dws_assert( str_contains( $yaml, "if: needs.route.outputs.deploy == 'true'" ), 'the deploy job is skipped for dispatched components it does not own (#1092)' );
+dws_assert( str_contains( $yaml, 'deploy/homeboy/projects/extrachill-monorepo/extrachill-monorepo.json' ), 'dispatched monorepo members are left to deploy-monorepo.yml (#1092)' );
 dws_assert( (bool) preg_match( '/^\s+workflow_dispatch:\s*$/m', $yaml ), 'workflow_dispatch trigger present' );
 dws_assert( (bool) preg_match( '/^\s+schedule:\s*$/m', $yaml ), 'schedule trigger present' );
 dws_assert( (bool) preg_match( '/^concurrency:\s*\n\s+group:\s*deploy-main\s*\n\s+cancel-in-progress:\s*false/m', $yaml ), 'deploys queue under one concurrency group' );
