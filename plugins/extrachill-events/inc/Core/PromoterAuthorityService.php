@@ -37,13 +37,13 @@ final class PromoterAuthorityService {
 	}
 
 	/**
-	 * Verify and bootstrap one promoter organization.
+	 * Verify one promoter organization, optionally bootstrapping an initial owner.
 	 *
-	 * @param int $actor_user_id    Administrator network user ID.
-	 * @param int $promoter_term_id Exact promoter term ID.
-	 * @param int $owner_user_id    Initial owner network user ID.
+	 * @param int      $actor_user_id    Administrator network user ID.
+	 * @param int      $promoter_term_id Exact promoter term ID.
+	 * @param int|null $owner_user_id    Initial owner network user ID, or null to verify without an owner.
 	 */
-	public function verify( int $actor_user_id, int $promoter_term_id, int $owner_user_id ) {
+	public function verify( int $actor_user_id, int $promoter_term_id, ?int $owner_user_id = null ) {
 		$allowed = $this->authorization->authorize( $actor_user_id, $promoter_term_id, PromoterAuthorization::ACTION_VERIFY_ORGANIZATION );
 		return is_wp_error( $allowed ) ? $allowed : $this->repository->verify( $promoter_term_id, $owner_user_id, $actor_user_id );
 	}
@@ -63,7 +63,7 @@ final class PromoterAuthorityService {
 	/**
 	 * Create one explicit active membership.
 	 *
-	 * @param int  $actor_user_id    Acting owner network user ID.
+	 * @param int  $actor_user_id    Acting administrator or owner network user ID.
 	 * @param int  $promoter_term_id Exact promoter term ID.
 	 * @param int  $user_id          Target network user ID.
 	 * @param bool $is_owner         Structural owner state.
@@ -76,7 +76,7 @@ final class PromoterAuthorityService {
 	/**
 	 * Change one membership's structural owner state.
 	 *
-	 * @param int  $actor_user_id    Acting owner network user ID.
+	 * @param int  $actor_user_id    Acting administrator or owner network user ID.
 	 * @param int  $promoter_term_id Exact promoter term ID.
 	 * @param int  $user_id          Target network user ID.
 	 * @param bool $is_owner         Structural owner state.
@@ -90,7 +90,7 @@ final class PromoterAuthorityService {
 	/**
 	 * Revoke one membership while preserving its row.
 	 *
-	 * @param int $actor_user_id    Acting owner network user ID.
+	 * @param int $actor_user_id    Acting administrator or owner network user ID.
 	 * @param int $promoter_term_id Exact promoter term ID.
 	 * @param int $user_id          Target network user ID.
 	 * @param int $expected_version Optimistic membership version.
@@ -103,7 +103,7 @@ final class PromoterAuthorityService {
 	/**
 	 * List the bounded membership set for one promoter.
 	 *
-	 * @param int $actor_user_id    Acting owner network user ID.
+	 * @param int $actor_user_id    Acting administrator or owner network user ID.
 	 * @param int $promoter_term_id Exact promoter term ID.
 	 */
 	public function list_memberships( int $actor_user_id, int $promoter_term_id ) {

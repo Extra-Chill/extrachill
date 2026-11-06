@@ -965,14 +965,137 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'promoter_membership_limit_exceeded', $error->get_error_code() );
 	}
 
-	public function test_administrator_revokes_organization_without_membership_authority(): void {
+	public function test_administrator_revokes_organization_and_loses_member_management_after_revocation(): void {
 		$service = new PromoterAuthorityService();
 		$service->verify( 1, 100, 2 );
-		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 1, 100, 3, false )->get_error_code() );
 		$organization = $service->revoke_organization( 1, 100, 1 );
 		$this->assertSame( PromoterAuthorityRepository::STATUS_REVOKED, $organization['status'] );
 		$this->assertSame( 2, $organization['version'] );
 		$this->assertSame( 'promoter_authority_forbidden', $service->list_memberships( 2, 100 )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->list_memberships( 1, 100 )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 1, 100, 3, false )->get_error_code() );
+	}
+
+	/** Issue #1181: a site administrator adds members without being a member or owner. */
+	public function test_site_administrator_can_add_member_without_membership(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+
+		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 1, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
+		$created = $service->create_membership( 1, 100, 3, false );
+		$this->assertIsArray( $created );
+		$this->assertSame( 3, $created['user_id'] );
+		$this->assertFalse( $created['is_owner'] );
+		$this->assertSame( 1, $created['created_by_user_id'] );
+		$this->assertNull( ( new PromoterAuthorityRepository() )->get_membership( 100, 1 ) );
+		$this->assertCount( 2, $service->list_memberships( 1, 100 ) );
+
+		$abilities = new PromoterAuthorityAbilities();
+		$input     = array(
+			'promoter_term_id' => 100,
+			'user_id'          => 4,
+			'is_owner'         => false,
+		);
+		$this->assertTrue( $abilities->can_manage_members( $input ) );
+		$this->assertSame( 4, $abilities->create_membership( $input )['user_id'] );
+	}
+
+	/** Site administrators may grant and remove ownership, including the final owner. */
+	public function test_site_administrator_can_change_ownership_and_leave_organization_ownerless(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		$service->create_membership( 1, 100, 3, false );
+
+		$promoted = $service->update_membership( 1, 100, 3, true, 1 );
+		$this->assertTrue( $promoted['is_owner'] );
+		$this->assertSame( 2, $promoted['version'] );
+		$demoted = $service->update_membership( 1, 100, 2, false, 1 );
+		$this->assertFalse( $demoted['is_owner'] );
+
+		// Owners still cannot remove the final owner, but administrators can.
+		$this->assertSame( 'promoter_membership_last_owner', $service->update_membership( 3, 100, 3, false, 2 )->get_error_code() );
+		$ownerless = $service->update_membership( 1, 100, 3, false, 2 );
+		$this->assertFalse( $ownerless['is_owner'] );
+		$this->assertNotContains( true, array_column( $service->list_memberships( 1, 100 ), 'is_owner' ) );
+
+		// Former owners are now ordinary members and cannot manage the team.
+		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 2, 100, 4, false )->get_error_code() );
+		$this->assertSame( 4, $service->create_membership( 1, 100, 4, true )['user_id'] );
+		$this->assertSame( PromoterAuthorityRepository::STATUS_REVOKED, $service->revoke_membership( 1, 100, 4, 1 )['status'] );
+	}
+
+	/** Owner promotion remains the only member path; non-owner members are still denied. */
+	public function test_non_owner_member_still_cannot_manage_members(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		$service->create_membership( 1, 100, 3, false );
+
+		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 3, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 3, 100, 4, false )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->update_membership( 3, 100, 3, true, 1 )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->revoke_membership( 3, 100, 2, 1 )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->list_memberships( 3, 100 )->get_error_code() );
+		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
+	}
+
+	/** The admin member-management branch honors the execution-principal ceiling like verify/revoke. */
+	public function test_site_administrator_under_restricted_principal_cannot_manage_members(): void {
+		$service = new PromoterAuthorityService();
+		$service->verify( 1, 100, 2 );
+		$GLOBALS['promoter_link_page_fixture']['principal_user_id']      = 1;
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( VenueAuthorization::ACCESS_CAPABILITY );
+
+		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 1, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', $service->create_membership( 1, 100, 3, false )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorityRepository() )->create_membership( 100, 3, false, 1 )->get_error_code() );
+		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorityRepository() )->update_owner( 100, 2, false, 1, 1 )->get_error_code() );
+		$this->assertNull( ( new PromoterAuthorityRepository() )->get_membership( 100, 3 ) );
+
+		$GLOBALS['promoter_link_page_fixture']['principal_capabilities'] = array( 'manage_options' );
+		$this->assertSame( 3, $service->create_membership( 1, 100, 3, false )['user_id'] );
+	}
+
+	/** Verification without an owner creates a verified organization with no memberships. */
+	public function test_verify_without_owner_creates_ownerless_organization(): void {
+		$service = new PromoterAuthorityService();
+		$result  = $service->verify( 1, 100 );
+		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $result['organization']['status'] );
+		$this->assertNull( $result['membership'] );
+		$this->assertSame( array(), $service->list_memberships( 1, 100 ) );
+		$activity = array_values( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::activity_table() ] );
+		$this->assertCount( 1, $activity );
+		$this->assertSame( 'organization_verified', $activity[0]['event'] );
+		$this->assertNull( $activity[0]['subject_user_id'] );
+		$this->assertSame( wp_json_encode( array( 'initial_owner' => false ) ), $activity[0]['payload'] );
+		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
+		$this->assertSame( 2, $service->create_membership( 1, 100, 2, false )['user_id'] );
+
+		$abilities = new PromoterAuthorityAbilities();
+		$abilities->register();
+		$definition = $this->registered_abilities()['extrachill/verify-promoter-organization'];
+		$this->assertSame( array( 'promoter_term_id' ), $definition['input_schema']['required'] );
+		$this->assertSame( array( 'object', 'null' ), $definition['output_schema']['properties']['membership']['type'] );
+		$via_ability = $abilities->verify( array( 'promoter_term_id' => 102 ) );
+		$this->assertNull( $via_ability['membership'] );
+		$this->assertSame( 102, $via_ability['organization']['promoter_term_id'] );
+		$this->assertSame( 'promoter_organization_exists', $service->verify( 1, 102 )->get_error_code() );
+	}
+
+	/** Verification with an owner keeps the established bootstrap behavior. */
+	public function test_verify_with_owner_is_unchanged(): void {
+		$abilities = new PromoterAuthorityAbilities();
+		$result    = $abilities->verify(
+			array(
+				'promoter_term_id' => 100,
+				'owner_user_id'    => 2,
+			)
+		);
+		$this->assertTrue( $result['membership']['is_owner'] );
+		$this->assertSame( 2, $result['membership']['user_id'] );
+		$activity = array_values( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::activity_table() ] );
+		$this->assertSame( 2, (int) $activity[0]['subject_user_id'] );
+		$this->assertSame( wp_json_encode( array( 'initial_owner' => true ) ), $activity[0]['payload'] );
+		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
 	}
 
 	public function test_multiple_promoters_share_one_venue_without_direct_membership_widening(): void {
@@ -1418,10 +1541,10 @@ final class PromoterAuthorityTest extends TestCase {
 			$this->assertClosedSchema( $schema['items'] );
 			return;
 		}
-		$this->assertSame( 'object', $schema['type'] );
+		$this->assertContains( 'object', (array) $schema['type'] );
 		$this->assertFalse( $schema['additionalProperties'] );
 		foreach ( $schema['properties'] as $property ) {
-			if ( 'object' === ( $property['type'] ?? '' ) ) {
+			if ( in_array( 'object', (array) ( $property['type'] ?? '' ), true ) ) {
 				$this->assertClosedSchema( $property );
 			}
 		}
