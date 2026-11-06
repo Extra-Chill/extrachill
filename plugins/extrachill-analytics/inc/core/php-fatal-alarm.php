@@ -185,11 +185,11 @@ const EXTRACHILL_ANALYTICS_FATAL_ALARM_DISPATCH_SOURCE = 'extrachill-analytics-f
 /**
  * Grant agents/dispatch-message permission for the alarm's own dispatch only.
  *
- * The alarm runs in cron context (no logged-in user), but the dispatch ability
- * gates on manage_options. Rather than weaken the ability globally, we narrowly
- * authorize ONLY dispatches this plugin originated (identified by our metadata
- * source marker) AND only in a trusted server context (cron or WP-CLI). All
- * other callers are unaffected and still hit the default gate.
+ * The system task also runs through Action Scheduler's async AJAX runner,
+ * without a logged-in user or cron/CLI flags. Authorize its marked dispatch
+ * only while FatalRateAlarmTask is evaluating, not merely because some AS job
+ * is running. Keep cron/CLI support for existing manual/legacy alarm callers.
+ * All other callers are unaffected and still hit the default gate.
  *
  * @param bool  $allowed Current decision from the ability's default gate.
  * @param array $input   Canonical dispatch-message input.
@@ -209,7 +209,9 @@ function extrachill_analytics_grant_fatal_alarm_dispatch_permission( $allowed, $
 		return $allowed;
 	}
 
-	$trusted_context = wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI );
+	$alarm_task_running = class_exists( '\\ExtraChill\\Analytics\\FatalRateAlarmTask', false )
+		&& \ExtraChill\Analytics\FatalRateAlarmTask::isEvaluating();
+	$trusted_context    = $alarm_task_running || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI );
 
 	return $trusted_context ? true : $allowed;
 }

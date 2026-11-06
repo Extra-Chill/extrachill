@@ -36,6 +36,25 @@ defined( 'ABSPATH' ) || exit;
 class FatalRateAlarmTask extends SystemTask {
 
 	/**
+	 * Evaluation depth, shared across instances for nested task execution.
+	 *
+	 * @var int
+	 */
+	private static $evaluation_depth = 0;
+
+	/**
+	 * Whether this task is currently evaluating an alarm in this process.
+	 *
+	 * Independent of the runner: Action Scheduler async, cron, and CLI all
+	 * enter executeTask(). Request parameters cannot set this context.
+	 *
+	 * @return bool
+	 */
+	public static function isEvaluating(): bool {
+		return self::$evaluation_depth > 0;
+	}
+
+	/**
 	 * Task type identifier (registered via the `datamachine_tasks` filter).
 	 */
 	public const TASK_TYPE = 'fatal_rate_alarm';
@@ -172,7 +191,14 @@ class FatalRateAlarmTask extends SystemTask {
 		// The evaluator always returns a fully-populated result array
 		// (window_seconds, threshold, candidates, alarms, beacon), so the
 		// fields below are read directly without defensive ?? / isset.
-		$result = extrachill_analytics_evaluate_fatal_alarm( $dry_run, $test_delivery );
+		++self::$evaluation_depth;
+		try {
+			$result = extrachill_analytics_evaluate_fatal_alarm( $dry_run, $test_delivery );
+		} finally {
+			// Async workers can execute more jobs in the same request. Never
+			// leak the grant to the next job, even when dispatch throws.
+			--self::$evaluation_depth;
+		}
 
 		$summary = array(
 			'dry_run'         => $result['dry_run'],
