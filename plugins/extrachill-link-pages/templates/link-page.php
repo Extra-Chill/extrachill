@@ -9,8 +9,9 @@ defined( 'ABSPATH' ) || exit;
 
 $shape         = in_array( $data['settings']['profile_image_shape'], array( 'circle', 'rectangle', 'square' ), true ) ? $data['settings']['profile_image_shape'] : 'square';
 $wrapper_class = 'extrch-link-page-content-wrapper' . ( empty( $data['settings']['overlay_enabled'] ) ? ' no-overlay' : '' );
+$image_style = ! empty( $data['background_image_url'] ) ? '--link-page-background-image-url:url("' . esc_url( $data['background_image_url'] ) . '");' : '';
 ?>
-<div class="extrch-link-page-container" data-button-fill="<?php echo esc_attr( $data['css_vars']['--link-page-button-fill'] ?? 'solid' ); ?>" data-button-shadow="<?php echo esc_attr( $data['css_vars']['--link-page-button-shadow'] ?? 'none' ); ?>" data-bg-type="<?php echo esc_attr( $data['css_vars']['--link-page-background-type'] ?? 'color' ); ?>">
+<div class="extrch-link-page-container" data-button-fill="<?php echo esc_attr( $data['css_vars']['--link-page-button-fill'] ?? 'solid' ); ?>" data-button-shadow="<?php echo esc_attr( $data['css_vars']['--link-page-button-shadow'] ?? 'none' ); ?>" data-bg-type="<?php echo esc_attr( $data['css_vars']['--link-page-background-type'] ?? 'color' ); ?>" style="<?php echo esc_attr( $image_style ); ?>">
 	<div class="<?php echo esc_attr( $wrapper_class ); ?>" style="flex-grow:1;">
 		<?php echo $projection['_rendered_components']['before_header']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output. ?>
 		<div class="extrch-link-page-header-content">
