@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.58.1] - 2026-11-06
+
+### Changed
+- stop block-markup words and per-row subqueries from scanning every event
+
 ## [0.58.0] - 2026-11-06
 
 ### Added
