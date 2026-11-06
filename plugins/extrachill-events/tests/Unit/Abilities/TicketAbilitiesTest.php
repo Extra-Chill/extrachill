@@ -21,6 +21,10 @@ function ec_get_blog_id( $site ) { return 'events' === $site ? 7 : 8; }
 function ec_get_site_url( $site ) { return 'https://' . $site . '.test'; }
 function get_current_user_id() { return 1; }
 function extrachill_events_user_can_manage_event( $user, $event ) { return false; }
+function ec_cross_site_rest_request( $site, $method, $path, $args = array() ) {
+	$GLOBALS['shop_calls'][] = array( $site, $method, $path, $args['query'] ?? array() );
+	return $GLOBALS['shop_status'];
+}
 
 /** Query-shape fake: transactions retain a snapshot for rollback tests. */
 final class TicketWpdb {
@@ -67,6 +71,8 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['ticket_emails'] = array();
 		$GLOBALS['wpdb'] = new TicketWpdb();
 		$GLOBALS['ticket_timing'] = array( 10 => 'upcoming' );
+		$GLOBALS['shop_calls'] = array();
+		$GLOBALS['shop_status'] = array( 'can_receive_payments' => true );
 		$GLOBALS['ticket_meta'] = array( 10 => array( '_extrachill_ticket_offer' => array( 'tickets_enabled' => true, 'ticket_price_minor' => 1500, 'ticket_quantity' => 0, 'ticket_seller' => array( 'type' => 'venue', 'id' => 2 ) ) ) );
 	}
 	private function issue( $quantity = 2, $key = 'key', $order = 'cs_123' ) {
@@ -89,6 +95,36 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 	public function test_invalid_offer_and_seller_authority(): void {
 		$this->assertSame( 'invalid_ticket_offer', TicketAbilities::validate_settings( 10, array( 'ticket_price_minor' => 0 ) )->get_error_code() );
 		$this->assertSame( 'ticket_seller_forbidden', TicketAbilities::validate_settings( 10, array( 'ticket_seller' => array( 'type' => 'venue', 'id' => 4 ) ) )->get_error_code() );
+	}
+	private function off_sale(): array {
+		$GLOBALS['ticket_meta'][10]['_extrachill_ticket_offer']['tickets_enabled'] = false;
+		return array( 'tickets_enabled' => true );
+	}
+	public function test_enabling_with_ready_seller_asks_shop_and_succeeds(): void {
+		$settings = TicketAbilities::validate_settings( 10, $this->off_sale() );
+		$this->assertTrue( $settings['tickets_enabled'] );
+		$this->assertSame( array( array( 'shop', 'GET', '/shop/stripe-connect/status', array( 'seller_type' => 'venue', 'seller_id' => 2 ) ) ), $GLOBALS['shop_calls'] );
+	}
+	public function test_enabling_with_unready_seller_is_refused(): void {
+		$GLOBALS['shop_status'] = array( 'can_receive_payments' => false );
+		$error = TicketAbilities::validate_settings( 10, $this->off_sale() );
+		$this->assertSame( 'ticket_seller_payments_unavailable', $error->get_error_code() );
+		$this->assertSame( 409, $error->get_error_data()['status'] );
+	}
+	public function test_lookup_failure_refuses(): void {
+		$input = $this->off_sale();
+		foreach ( array( new \WP_Error( 'http', 'down' ), array(), 'garbage' ) as $status ) {
+			$GLOBALS['shop_status'] = $status;
+			$this->assertSame( 'ticket_seller_payments_unknown', TicketAbilities::validate_settings( 10, $input )->get_error_code() );
+		}
+	}
+	public function test_disabling_and_unrelated_saves_skip_shop(): void {
+		$GLOBALS['shop_status'] = array( 'can_receive_payments' => false );
+		$this->assertFalse( TicketAbilities::validate_settings( 10, array( 'tickets_enabled' => false ) )['tickets_enabled'] );
+		$this->assertTrue( TicketAbilities::validate_settings( 10, array( 'ticket_quantity' => 50 ) )['tickets_enabled'], 'Already on sale with the same seller.' );
+		$this->off_sale();
+		$this->assertFalse( TicketAbilities::validate_settings( 10, array( 'ticket_price_minor' => 2000 ) )['tickets_enabled'] );
+		$this->assertSame( array(), $GLOBALS['shop_calls'] );
 	}
 	public function test_replay_and_conflicting_key(): void {
 		$first = $this->issue();
