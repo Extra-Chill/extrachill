@@ -509,6 +509,12 @@ function ec_link_page_css_variables_style_block( $css_vars, $element_id = 'link-
 
 /** Render one section with the historical DOM contract. */
 function ec_render_link_page_section( $section, $link_page_id, $youtube_enabled ) {
+	$featured_seen = false;
+	return ec_render_link_page_section_with_featured( $section, $link_page_id, $youtube_enabled, $featured_seen );
+}
+
+/** Render with page-scoped featured state, keeping the public three-argument API. */
+function ec_render_link_page_section_with_featured( $section, $link_page_id, $youtube_enabled, &$featured_seen ) {
 	if ( ! is_array( $section ) ) {
 		return '';
 	}
@@ -521,6 +527,9 @@ function ec_render_link_page_section( $section, $link_page_id, $youtube_enabled 
 		if ( empty( $link['link_url'] ) || empty( $link['link_text'] ) ) {
 			continue;
 		}
+		$featured = ! $featured_seen && ! empty( $link['featured'] );
+		$featured_seen = $featured_seen || $featured;
+		$thumbnail_url = $featured ? ec_link_page_thumbnail_url( $link['thumbnail_url'] ?? '' ) : '';
 		$youtube = $youtube_enabled && ( false !== strpos( $link['link_url'], 'youtube.com' ) || false !== strpos( $link['link_url'], 'youtu.be' ) );
 		require EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'templates/components/single-link.php';
 	}

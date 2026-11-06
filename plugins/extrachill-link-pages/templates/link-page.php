@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 $shape         = in_array( $data['settings']['profile_image_shape'], array( 'circle', 'rectangle', 'square' ), true ) ? $data['settings']['profile_image_shape'] : 'square';
 $wrapper_class = 'extrch-link-page-content-wrapper' . ( empty( $data['settings']['overlay_enabled'] ) ? ' no-overlay' : '' );
 ?>
-<div class="extrch-link-page-container" data-bg-type="<?php echo esc_attr( $data['css_vars']['--link-page-background-type'] ?? 'color' ); ?>">
+<div class="extrch-link-page-container" data-button-fill="<?php echo esc_attr( $data['css_vars']['--link-page-button-fill'] ?? 'solid' ); ?>" data-button-shadow="<?php echo esc_attr( $data['css_vars']['--link-page-button-shadow'] ?? 'none' ); ?>" data-bg-type="<?php echo esc_attr( $data['css_vars']['--link-page-background-type'] ?? 'color' ); ?>">
 	<div class="<?php echo esc_attr( $wrapper_class ); ?>" style="flex-grow:1;">
 		<?php echo $projection['_rendered_components']['before_header']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output. ?>
 		<div class="extrch-link-page-header-content">
@@ -29,8 +29,9 @@ $wrapper_class = 'extrch-link-page-content-wrapper' . ( empty( $data['settings']
 		<?php echo $projection['_rendered_components']['after_header']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output. ?>
 		<?php
 		echo $projection['_rendered_social_above']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output.
+		$featured_seen = false;
 		foreach ( $data['link_sections'] as $section ) {
-			echo ec_render_link_page_section( $section, $link_page_id, ! empty( $data['settings']['youtube_embed_enabled'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by renderer.
+			echo ec_render_link_page_section_with_featured( $section, $link_page_id, ! empty( $data['settings']['youtube_embed_enabled'] ), $featured_seen ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by renderer.
 		}
 		echo $projection['_rendered_components']['after_links']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output.
 		echo $projection['_rendered_social_below']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Validated provider output.

@@ -529,7 +529,7 @@ function extrachill_artist_platform_register_abilities() {
 		'extrachill/save-link-page-links',
 		array(
 			'label'               => __( 'Save Link Page Links', 'extrachill-artist-platform' ),
-			'description'         => __( 'Save link sections and buttons to a link page. Full replacement with ID assignment.', 'extrachill-artist-platform' ),
+			'description'         => __( 'Save link sections and buttons to a link page. Full replacement with ID assignment. Links support a featured boolean (first on the page wins) and optional thumbnail_url (absolute HTTP/HTTPS only).', 'extrachill-artist-platform' ),
 			'category'            => 'extrachill-artist-platform',
 			'input_schema'        => array(
 				'type'       => 'object',
@@ -570,7 +570,7 @@ function extrachill_artist_platform_register_abilities() {
 		'extrachill/save-link-page-styles',
 		array(
 			'label'               => __( 'Save Link Page Styles', 'extrachill-artist-platform' ),
-			'description'         => __( 'Save CSS variables for a link page. Merges with existing styles. Set --link-page-button-finish to flat (default) or gloss for a translucent button sheen. Gradients support --link-page-background-gradient-direction (0 to 360deg, to right, or to bottom), start/end colors, and optional --link-page-background-gradient-middle (empty string disables the middle stop). Independent element colors: --link-page-link-text-color (button text), --link-page-button-hover-text-color (hover/tapped text), and --link-page-icon-color (icons, defaults to page text color).', 'extrachill-artist-platform' ),
+			'description'         => __( 'Save CSS variables for a link page. Merges with existing styles. Set --link-page-button-finish to flat (default) or gloss for a translucent button sheen. Gradients support --link-page-background-gradient-direction (0 to 360deg, to right, or to bottom), start/end colors, and optional --link-page-background-gradient-middle (empty string disables the middle stop). Independent element colors: --link-page-link-text-color (button text), --link-page-button-hover-text-color (hover/tapped text), and --link-page-icon-color (icons, defaults to page text color). Supports --link-page-button-fill (solid|gradient, background to accent) and --link-page-button-shadow (none|soft|glow, using border/accent color).', 'extrachill-artist-platform' ),
 			'category'            => 'extrachill-artist-platform',
 			'input_schema'        => array(
 				'type'       => 'object',
