@@ -498,7 +498,11 @@ function ec_link_page_css_variables_style_block( $css_vars, $element_id = 'link-
 			$output .= ec_link_page_css_declaration_text( $key ) . ':' . ec_link_page_css_declaration_text( $value ) . ';';
 		}
 	}
-	return $output . '}</style>';
+	/* Use an image layer below the text, leaving the base and hover colors intact. */
+	$sheen = 'gloss' === ( $css_vars['--link-page-button-finish'] ?? 'flat' )
+		? 'linear-gradient(to bottom, rgba(255,255,255,.45), rgba(255,255,255,.12) 48%, transparent 50%)'
+		: 'none';
+	return $output . '--link-page-button-sheen:' . $sheen . ';}</style>';
 }
 
 /** Render one section with the historical DOM contract. */

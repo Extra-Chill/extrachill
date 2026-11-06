@@ -176,6 +176,13 @@ body {
   align-items: center;
 }
 
+/* The finish image sits above the existing background, never above text or tap targets. */
+.extrch-link-button-wrapper,
+.extrch-link-button-wrapper:hover,
+.extrch-link-button-wrapper:active {
+  background-image: var(--link-page-button-sheen, none) !important;
+}
+
 /* New class for the link text span */
 .extrch-link-page-link-text {
   flex-grow: 1; /* Allows text to expand and effectively center */

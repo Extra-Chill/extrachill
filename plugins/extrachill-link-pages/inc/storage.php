@@ -37,6 +37,7 @@ function ec_link_page_defaults() {
 			'--link-page-title-font-size'               => '2.1em',
 			'--link-page-body-font-family'              => 'Helvetica',
 			'--link-page-button-radius'                 => '8px',
+			'--link-page-button-finish'                 => 'flat',
 			'--link-page-button-border-width'           => '0px',
 			'--link-page-profile-img-size'              => '30%',
 			'_link_page_profile_img_shape'              => 'circle',
@@ -369,6 +370,7 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 	}
 	$colors    = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-gradient-start', '--link-page-background-gradient-end' );
 	$enums     = array(
+		'--link-page-button-finish'                 => array( 'flat', 'gloss' ),
 		'--link-page-background-type'               => array( 'color', 'gradient', 'image' ),
 		'--link-page-background-gradient-direction' => array( 'to right', 'to bottom', '135deg' ),
 		'--link-page-image-size'                    => array( 'cover', 'contain', 'auto' ),
