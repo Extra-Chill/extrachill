@@ -270,10 +270,12 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 		}
 		$seen[ $section_id ] = true;
 
-		// Absent type = manual (back-compat): every existing all-manual
-		// page keeps its exact historical section shape, since `type` /
-		// `source_config` / `refreshed_at` are only ever added below for a
-		// genuinely managed section (extrachill-link-pages#37).
+		/*
+		 * Absent type = manual (back-compat): every existing all-manual
+		 * page keeps its exact historical section shape, since `type` /
+		 * `source_config` / `refreshed_at` are only ever added below for a
+		 * genuinely managed section (extrachill-link-pages#37).
+		 */
 		$type = isset( $section['type'] ) && is_string( $section['type'] ) ? sanitize_key( $section['type'] ) : '';
 		if ( '' === $type ) {
 			$type = 'manual';
@@ -304,10 +306,12 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 			$clean['refreshed_at']  = $existing_section['refreshed_at'] ?? null;
 
 			if ( $link_page_id ) {
-				// Managed links only ever change through the section-source
-				// refresh write operation, never through a general save
-				// (#37 rule: "the save path rejects manual edits to the
-				// links of a managed section").
+				/*
+				 * Managed links only ever change through the section-source
+				 * refresh write operation, never through a general save
+				 * (#37 rule: "the save path rejects manual edits to the
+				 * links of a managed section").
+				 */
 				$stored_links_for_section = is_array( $existing_section['links'] ?? null ) ? $existing_section['links'] : array();
 				$existing_type            = $existing_section['type'] ?? 'manual';
 				$existing_type            = '' === $existing_type ? 'manual' : $existing_type;
@@ -601,10 +605,12 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	}
 	$settings['subscribe_description'] = (string) $settings['subscribe_description'];
 
-	// Page-owned content (extrachill-link-pages#37): display_title falls
-	// back to post_title only when the page does not yet own it, so the
-	// projection layer can tell a genuinely-owned value apart from that
-	// fallback and never let a "deprecated fallback" regress an owned page.
+	/*
+	 * Page-owned content (extrachill-link-pages#37): display_title falls
+	 * back to post_title only when the page does not yet own it, so the
+	 * projection layer can tell a genuinely-owned value apart from that
+	 * fallback and never let a "deprecated fallback" regress an owned page.
+	 */
 	$display_title_raw      = (string) get_post_meta( $link_page_id, '_link_page_display_title', true );
 	$display_title_is_owned = '' !== trim( $display_title_raw );
 	$profile_image_id       = absint( get_post_meta( $link_page_id, '_link_page_profile_image_id', true ) );
