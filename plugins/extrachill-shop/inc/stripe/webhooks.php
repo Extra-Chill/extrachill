@@ -38,6 +38,13 @@ function extrachill_shop_handle_webhook( $request ) {
 		extrachill_shop_resolve_stripe_webhook_secret()
 	);
 
+	// This untrusted hint only selects a signing key; constructEvent authenticates
+	// the entire payload (including account) before any routing or state change.
+	$hint = json_decode( $payload, true );
+	if ( ! empty( $hint['account'] ) ) {
+		$webhook_secret = apply_filters( 'extrachill_stripe_connect_webhook_secret', '' );
+	}
+
 	if ( empty( $webhook_secret ) ) {
 		return new WP_Error( 'webhook_secret_missing', 'Webhook secret not configured.', array( 'status' => 500 ) );
 	}
@@ -68,6 +75,21 @@ function extrachill_shop_handle_webhook( $request ) {
 function extrachill_shop_route_webhook_event( $event ) {
 	$event_type = $event->type;
 	$data       = $event->data->object;
+
+	if ( ! empty( $event->account ) ) {
+		if ( 'checkout.session.completed' === $event_type && 'extrachill_ticket' === ( $data->metadata->kind ?? '' ) ) {
+			return extrachill_shop_fulfil_ticket_session( $data, $event->account );
+		}
+		// Charges do not inherit PaymentIntent metadata, so ticket refunds are
+		// recognised by the payment index written at fulfilment, not by metadata.
+		if ( 'charge.refunded' === $event_type && ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $event->account . '_' . $data->payment_intent ) ) {
+			return extrachill_shop_ticket_charge_refunded( $data, $event->account );
+		}
+	}
+	// Connected-account payments must never mutate platform Woo orders.
+	if ( ! empty( $event->account ) && 'account.updated' !== $event_type ) {
+		return true;
+	}
 
 	switch ( $event_type ) {
 		case 'account.updated':
