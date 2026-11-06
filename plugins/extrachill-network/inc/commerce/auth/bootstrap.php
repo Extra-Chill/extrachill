@@ -60,6 +60,9 @@ add_action(
  * previously-stored encrypted values keep decrypting.
  */
 function extrachill_network_register_commerce_read_filters(): void {
+	add_filter( 'extrachill_stripe_connect_webhook_secret', static function ( $value ) {
+		return '' !== $value ? $value : ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_connect_webhook_secret();
+	} );
 	add_filter(
 		'extrachill_stripe_secret_key',
 		static function ( $value ) {
