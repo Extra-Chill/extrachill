@@ -38,6 +38,8 @@ function ec_link_page_defaults() {
 			'--link-page-title-font-family'             => 'Loft Sans',
 			'--link-page-title-font-size'               => '2.1em',
 			'--link-page-body-font-family'              => 'Helvetica',
+			'--link-page-button-fill'                   => 'solid',
+			'--link-page-button-shadow'                 => 'none',
 			'--link-page-button-radius'                 => '8px',
 			'--link-page-button-finish'                 => 'flat',
 			'--link-page-button-border-width'           => '0px',
@@ -358,6 +360,12 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 					'link_text' => isset( $link['link_text'] ) ? sanitize_text_field( wp_unslash( (string) $link['link_text'] ) ) : '',
 					'link_url'  => isset( $link['link_url'] ) ? esc_url_raw( wp_unslash( (string) $link['link_url'] ) ) : '',
 				);
+				if ( array_key_exists( 'featured', $link ) ) {
+					$item['featured'] = filter_var( $link['featured'], FILTER_VALIDATE_BOOLEAN );
+				}
+				if ( isset( $link['thumbnail_url'] ) ) {
+					$item['thumbnail_url'] = ec_link_page_thumbnail_url( $link['thumbnail_url'] );
+				}
 				if ( ! empty( $link['expires_at'] ) ) {
 					$item['expires_at'] = sanitize_text_field( wp_unslash( (string) $link['expires_at'] ) );
 				}
@@ -366,6 +374,17 @@ function ec_sanitize_link_page_links_locked( $links, $link_page_id, $existing_id
 		}
 		$sanitized[] = $clean;
 	}
+	$featured_seen = false;
+	foreach ( $sanitized as &$section ) {
+		foreach ( $section['links'] as &$item ) {
+			if ( ! empty( $item['featured'] ) ) {
+				$item['featured'] = ! $featured_seen;
+				$featured_seen = true;
+			}
+		}
+		unset( $item );
+	}
+	unset( $section );
 	return $legacy_flat ? $sanitized[0]['links'] : $sanitized;
 }
 
@@ -379,6 +398,14 @@ function ec_link_page_gradient_colors( $vars ) {
 	return implode( ', ', $colors );
 }
 
+/** Only absolute HTTP(S) URLs may be used as link thumbnails. */
+function ec_link_page_thumbnail_url( $url ) {
+	if ( ! is_string( $url ) || ! preg_match( '#^https?://#i', trim( $url ) ) ) {
+		return '';
+	}
+	return esc_url_raw( wp_unslash( trim( $url ) ), array( 'http', 'https' ) );
+}
+
 /** Sanitize supported CSS custom properties. */
 function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 	if ( ! is_array( $vars ) ) {
@@ -387,6 +414,8 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 	$colors    = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-icon-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-middle' );
 	$enums     = array(
 		'--link-page-button-finish'                 => array( 'flat', 'gloss' ),
+		'--link-page-button-fill'                   => array( 'solid', 'gradient' ),
+		'--link-page-button-shadow'                 => array( 'none', 'soft', 'glow' ),
 		'--link-page-background-type'               => array( 'color', 'gradient', 'image' ),
 		'--link-page-background-gradient-direction' => array( 'to right', 'to bottom', '135deg' ),
 		'--link-page-image-size'                    => array( 'cover', 'contain', 'auto' ),

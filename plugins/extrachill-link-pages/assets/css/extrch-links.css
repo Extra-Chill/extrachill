@@ -158,7 +158,7 @@ body {
   font-family: var(--link-page-body-font-family); /* Directly apply body font */
   font-size: 1.08em;
   transition: background 0.18s, color 0.18s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: none;
   
   /* Flexbox for layout */
   display: flex;
@@ -166,11 +166,39 @@ body {
   align-items: center;
 }
 
-/* The finish image sits above the existing background, never above text or tap targets. */
+/* The finish image sits above the existing background (and any gradient fill), never above text or tap targets. */
 .extrch-link-button-wrapper,
 .extrch-link-button-wrapper:hover,
 .extrch-link-button-wrapper:active {
   background-image: var(--link-page-button-sheen, none) !important;
+}
+/* Enum custom properties are exposed as data attributes by the renderer/editor. */
+[data-button-fill="gradient"] .extrch-link-button-wrapper {
+  background-image: var(--link-page-button-sheen, none), linear-gradient(135deg, var(--link-page-button-bg-color), var(--link-page-accent)) !important;
+}
+[data-button-fill="gradient"] .extrch-link-button-wrapper:hover,
+[data-button-fill="gradient"] .extrch-link-button-wrapper:focus-within,
+[data-button-fill="gradient"] .extrch-link-button-wrapper:active {
+  background-image: var(--link-page-button-sheen, none) !important;
+}
+[data-button-shadow="soft"] .extrch-link-button-wrapper {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+[data-button-shadow="glow"] .extrch-link-button-wrapper {
+  box-shadow: 0 0 16px var(--link-page-button-border-color, var(--link-page-accent));
+}
+.extrch-link-button-wrapper.is-featured {
+  min-height: 5em;
+  padding: 1.3em;
+  font-size: 1.2em;
+}
+.extrch-link-thumbnail {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--link-page-button-radius);
+  margin-right: 1em;
+  flex-shrink: 0;
 }
 
 /* New class for the link text span */
@@ -191,9 +219,10 @@ body {
 }
 
 .extrch-link-button-wrapper:hover,
-.extrch-link-button-wrapper:active,
-.extrch-link-button-wrapper:focus-within {
+.extrch-link-button-wrapper:focus-within,
+.extrch-link-button-wrapper:active {
   background: var(--link-page-button-hover-bg-color);
+  background-image: none;
   color: var(--link-page-button-hover-text-color, var(--link-page-link-text-color));
 }
 

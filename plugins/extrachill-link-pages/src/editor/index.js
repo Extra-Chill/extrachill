@@ -21,6 +21,8 @@ const DEFAULT_STYLES = {
 	'--link-page-background-gradient-middle': '',
 	'--link-page-background-gradient-direction': 'to right',
 	'--link-page-title-font-size': '2.1em',
+	'--link-page-button-fill': 'solid',
+	'--link-page-button-shadow': 'none',
 	'--link-page-button-radius': '8px',
 	'--link-page-button-finish': 'flat',
 	'--link-page-profile-img-size': '30%',
@@ -299,6 +301,43 @@ function LinksPanel( { draft, change, limits } ) {
 											items[ linkIndex ] = {
 												...link,
 												link_url: event.target.value,
+											};
+											updateSection( sectionIndex, {
+												links: items,
+											} );
+										} }
+									/>
+									<label>
+										<input
+											type="checkbox"
+											checked={ !! link.featured }
+											onChange={ ( event ) => {
+												const items = [
+													...section.links,
+												];
+												items[ linkIndex ] = {
+													...link,
+													featured:
+														event.target.checked,
+												};
+												updateSection( sectionIndex, {
+													links: items,
+												} );
+											} }
+										/>{ ' ' }
+										Featured (first on page wins)
+									</label>
+									<input
+										aria-label="Featured thumbnail URL"
+										type="url"
+										placeholder="https://..."
+										value={ link.thumbnail_url || '' }
+										onChange={ ( event ) => {
+											const items = [ ...section.links ];
+											items[ linkIndex ] = {
+												...link,
+												thumbnail_url:
+													event.target.value,
 											};
 											updateSection( sectionIndex, {
 												links: items,
@@ -825,6 +864,32 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 					<option value="gloss">Gloss</option>
 				</select>
 			</Field>
+			{ [
+				[ 'fill', [ 'solid', 'gradient' ] ],
+				[ 'shadow', [ 'none', 'soft', 'glow' ] ],
+			].map( ( [ name, values ] ) => (
+				<Field key={ name } label={ `Button ${ name }` }>
+					<select
+						aria-label={ `Button ${ name }` }
+						value={
+							styles[ `--link-page-button-${ name }` ] ||
+							values[ 0 ]
+						}
+						onChange={ ( event ) =>
+							style(
+								`--link-page-button-${ name }`,
+								event.target.value
+							)
+						}
+					>
+						{ values.map( ( value ) => (
+							<option key={ value } value={ value }>
+								{ value }
+							</option>
+						) ) }
+					</select>
+				</Field>
+			) ) }
 			<Field label="Button Radius">
 				<input
 					type="range"
@@ -1081,6 +1146,12 @@ export function Preview( {
 		<div className="ec-preview-wrapper">
 			<div
 				className="extrch-link-page-container extrch-link-page-preview-container"
+				data-button-fill={
+					draft.page.styles[ '--link-page-button-fill' ] || 'solid'
+				}
+				data-button-shadow={
+					draft.page.styles[ '--link-page-button-shadow' ] || 'none'
+				}
 				style={ style }
 				data-bg-type={ backgroundType }
 				data-background-image={ style.backgroundImage }
@@ -1149,13 +1220,34 @@ export function Preview( {
 									( link, itemIndex ) => (
 										<div
 											key={ link.id || itemIndex }
-											className="extrch-link-button-wrapper"
+											className={ `extrch-link-button-wrapper${ link.featured && draft.page.links.flatMap( ( item ) => item.links || [] ).find( ( item ) => item.featured ) === link ? ' is-featured' : '' }` }
 										>
 											<a
 												href={ link.link_url || '#' }
 												className="extrch-link-page-link"
 												rel="ugc noopener"
 											>
+												{ link.featured &&
+													draft.page.links
+														.flatMap(
+															( item ) =>
+																item.links || []
+														)
+														.find(
+															( item ) =>
+																item.featured
+														) === link &&
+													/^https?:\/\//i.test(
+														link.thumbnail_url || ''
+													) && (
+														<img
+															className="extrch-link-thumbnail"
+															src={
+																link.thumbnail_url
+															}
+															alt=""
+														/>
+													) }
 												<span className="extrch-link-page-link-text">
 													{ link.link_text ||
 														'Untitled Link' }
