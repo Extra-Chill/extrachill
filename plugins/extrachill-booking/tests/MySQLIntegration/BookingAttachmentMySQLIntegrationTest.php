@@ -524,7 +524,7 @@ class BookingAttachmentMySQLIntegrationTest extends BookingSecondSessionMySQLInt
 
 	/** Register settlement definitions into the real Core Abilities registry. */
 	private function register_settlement_abilities( TicketSettlementService $service ): array {
-		$names = array( 'extrachill/register-booking-ticket-source', 'extrachill/list-booking-ticket-sources', 'extrachill/record-booking-ticket-sales', 'extrachill/import-booking-ticket-sales-csv', 'extrachill/list-booking-ticket-sales', 'extrachill/diagnose-booking-ticket-sales', 'extrachill/resolve-booking-ticket-sales', 'extrachill/calculate-booking-settlement', 'extrachill/finalize-booking-settlement', 'extrachill/mark-booking-settlement-paid', 'extrachill/void-booking-settlement' );
+		$names = array( 'extrachill/register-booking-ticket-source', 'extrachill/list-booking-ticket-sources', 'extrachill/record-booking-ticket-sales', 'extrachill/record-checkout-ticket-sales', 'extrachill/import-booking-ticket-sales-csv', 'extrachill/list-booking-ticket-sales', 'extrachill/diagnose-booking-ticket-sales', 'extrachill/resolve-booking-ticket-sales', 'extrachill/calculate-booking-settlement', 'extrachill/finalize-booking-settlement', 'extrachill/mark-booking-settlement-paid', 'extrachill/void-booking-settlement' );
 		foreach ( $names as $name ) {
 			if ( wp_has_ability( $name ) ) {
 				wp_unregister_ability( $name );
