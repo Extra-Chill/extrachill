@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.37.1] - 2026-11-06
+
+### Fixed
+- preserve cross-site error context and identify timeouts
+
 ## [2.37.0] - 2026-11-06
 
 ### Added
