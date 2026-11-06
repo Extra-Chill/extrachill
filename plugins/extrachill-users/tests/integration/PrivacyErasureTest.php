@@ -13,16 +13,25 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 		global $wpdb;
 		foreach ( range( 1, $count ) as $i ) {
 			$wpdb->insert( $wpdb->base_prefix . 'ec_concert_tracking', array(
-				'user_id' => $user_id, 'event_id' => $i, 'blog_id' => 1,
+				'user_id'  => $user_id,
+				'event_id' => $i,
+				'blog_id'  => 1,
 			) );
 			$wpdb->insert( $wpdb->base_prefix . 'ec_concert_import_runs', array(
-				'user_id' => $user_id, 'source_slug' => 'test', 'external_username' => 'private',
+				'user_id'           => $user_id,
+				'source_slug'       => 'test',
+				'external_username' => 'private',
 			) );
 			$wpdb->insert( $wpdb->base_prefix . 'ec_entity_subscriptions', array(
-				'user_id' => $user_id, 'entity_type' => 'artist', 'taxonomy' => 'artist', 'entity_slug' => 'test-' . $i,
+				'user_id'     => $user_id,
+				'entity_type' => 'artist',
+				'taxonomy'    => 'artist',
+				'entity_slug' => 'test-' . $i,
 			) );
 			$wpdb->insert( $wpdb->base_prefix . 'ec_notifications', array(
-				'user_id' => $user_id, 'title' => 'private', 'link' => '',
+				'user_id' => $user_id,
+				'title'   => 'private',
+				'link'    => '',
 			) );
 		}
 		update_user_meta( $user_id, 'ec_concert_import_setlistfm_username', 'private' );
@@ -30,12 +39,15 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 
 	public function test_core_workflow_drains_partial_batches_and_retries() {
 		global $wpdb;
-		$user = self::factory()->user->create();
+		$user  = self::factory()->user->create();
 		$other = self::factory()->user->create();
 		$this->seed( $user, 3 );
 		$this->seed( $other );
 		$wpdb->insert( $wpdb->base_prefix . 'ec_notifications', array(
-			'user_id' => $other, 'actor_id' => $user, 'title' => 'private actor', 'link' => '',
+			'user_id'  => $other,
+			'actor_id' => $user,
+			'title'    => 'private actor',
+			'link'     => '',
 		) );
 		update_user_meta( $user, 'other_plugin_private_data', 'owner handles this' );
 		$first = extrachill_users_erase_user_data_batch( $user, 2 );
@@ -49,16 +61,16 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 		$this->assertSame( 0, $retry['removed'] );
 		$this->assertSame( 'owner handles this', get_user_meta( $user, 'other_plugin_private_data', true ) );
 		$this->assertSame( 'private', get_user_meta( $other, 'ec_concert_import_setlistfm_username', true ) );
-		$erasers = apply_filters( 'wp_privacy_personal_data_erasers', array() );
+		$erasers  = apply_filters( 'wp_privacy_personal_data_erasers', array() );
 		$response = call_user_func( $erasers['extrachill-users']['callback'], get_userdata( $user )->user_email, 4 );
 		$this->assertTrue( $response['done'] );
 	}
 
 	public function test_database_failure_is_reported_and_retry_recovers() {
 		global $wpdb;
-		$user = self::factory()->user->create();
+		$user  = self::factory()->user->create();
 		$table = $wpdb->base_prefix . 'ec_entity_subscriptions';
-		$wpdb->query( "ALTER TABLE {$table} CHANGE user_id broken_user_id bigint(20) unsigned NOT NULL" );
+		$wpdb->query( "ALTER TABLE {$table} CHANGE user_id broken_user_id bigint(20) unsigned NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- test fixture table.
 		$previous = $wpdb->suppress_errors( true );
 		try {
 			$result = extrachill_users_erase_user_data_batch( $user );
@@ -67,7 +79,7 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 			$this->assertSame( 1, $result['failed'] );
 			$this->assertStringNotContainsString( 'broken_user_id', implode( ' ', $result['messages'] ) );
 		} finally {
-			$wpdb->query( "ALTER TABLE {$table} CHANGE broken_user_id user_id bigint(20) unsigned NOT NULL" );
+			$wpdb->query( "ALTER TABLE {$table} CHANGE broken_user_id user_id bigint(20) unsigned NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- test fixture table.
 			$wpdb->suppress_errors( $previous );
 		}
 		$this->assertTrue( extrachill_users_erase_user_data_batch( $user )['done'] );
@@ -77,7 +89,7 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 		global $wpdb;
 		$user  = self::factory()->user->create();
 		$table = $wpdb->base_prefix . 'ec_entity_subscriptions';
-		$wpdb->query( "ALTER TABLE {$table} CHANGE user_id broken_user_id bigint(20) unsigned NOT NULL" );
+		$wpdb->query( "ALTER TABLE {$table} CHANGE user_id broken_user_id bigint(20) unsigned NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- test fixture table.
 		$previous = $wpdb->suppress_errors( true );
 		try {
 			$erasers  = apply_filters( 'wp_privacy_personal_data_erasers', array() );
@@ -85,7 +97,7 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 			$this->assertTrue( $response['done'], 'A failing eraser must not make core page forever.' );
 			$this->assertTrue( $response['items_retained'] );
 		} finally {
-			$wpdb->query( "ALTER TABLE {$table} CHANGE broken_user_id user_id bigint(20) unsigned NOT NULL" );
+			$wpdb->query( "ALTER TABLE {$table} CHANGE broken_user_id user_id bigint(20) unsigned NOT NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- test fixture table.
 			$wpdb->suppress_errors( $previous );
 		}
 	}
@@ -131,12 +143,15 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 	public function test_missing_table_and_orphan_diagnostics() {
 		global $wpdb;
 		$table = $wpdb->base_prefix . 'ec_concert_import_runs';
-		$wpdb->query( "DROP TABLE {$table}" );
+		$wpdb->query( "DROP TABLE {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- test fixture table.
 		try {
 			$user = self::factory()->user->create();
 			$this->assertTrue( extrachill_users_erase_user_data_batch( $user )['done'] );
 			$wpdb->insert( $wpdb->base_prefix . 'ec_notifications', array(
-				'user_id' => 999999999, 'actor_id' => 0, 'title' => 'secret', 'link' => '',
+				'user_id'  => 999999999,
+				'actor_id' => 0,
+				'title'    => 'secret',
+				'link'     => '',
 			) );
 			$counts = extrachill_users_privacy_orphan_counts();
 			$this->assertSame( 0, $counts['ec_concert_import_runs.user_id'] );
@@ -152,7 +167,7 @@ class Test_Users_Privacy_Erasure extends WP_UnitTestCase {
 		$user = self::factory()->user->create();
 		$this->seed( $user, 1001 );
 		$called = false;
-		$owner = function ( $id ) use ( $user, &$called ) {
+		$owner  = function ( $id ) use ( $user, &$called ) {
 			if ( $id === $user ) {
 				$called = true;
 				$this->assertNotFalse( get_userdata( $id ) );

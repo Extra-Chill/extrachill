@@ -19,26 +19,59 @@ function extrachill_users_privacy_tables() {
 /** Users-owned metadata only. Never erase arbitrary cross-plugin metadata. */
 function extrachill_users_privacy_meta_keys() {
 	return array(
-		'registration_timestamp', 'registration_source', 'registration_method',
-		'registration_page', 'registration_referrer', 'registration_utm',
-		'last_login', 'last_active', 'onboarding_completed', 'onboarding_completed_at',
-		'onboarding_from_join', 'onboarding_redirect_url', 'onboarding_join_intent',
-		'onboarding_reminder_sent_at', 'welcome_email_sent', 'welcome_email_complete_sent',
-		'welcome_email_incomplete_sent', 'user_is_artist',
-		'user_is_professional', 'artist_access_request', 'ec_unclaimed',
-		'ec_custom_title', 'local_city', '_user_profile_dynamic_links',
-		'custom_avatar', 'custom_avatar_id', 'extrachill_total_points',
-		'extrachill_team', 'extrachill_team_manual_override', 'extrachill_lifetime_membership',
-		'extrachill_user_moderation', 'extrachill_user_ban',
-		'extrachill_artist_dispatch_access', 'extrachill_artist_dispatch_access_event',
-		'extrachill_artist_dispatch_access_lock', 'extrachill_artist_dispatch_delivery_receipt',
-		'extrachill_newsletter_registration_consent', 'extrachill_notifications',
-		'ec_notifications_last_emailed', 'ec_notification_emails_disabled',
-		'ec_auto_subscribe_replies_disabled', '_extrachill_default_event_location',
-		'_extrachill_local_scene', '_extrachill_local_scene_visibility',
-		'_extrachill_local_scene_prompt_dismissed', '_extrachill_concert_history_visibility',
-		'_extrachill_event_attendance_visibility', '_extrachill_onboarding_artist_grant',
-		'_ec_account_claim_minted_at', 'google_user_id', 'apple_user_id', 'apple_refresh_token', 'oauth_linked_at',
+		'registration_timestamp',
+		'registration_source',
+		'registration_method',
+		'registration_page',
+		'registration_referrer',
+		'registration_utm',
+		'last_login',
+		'last_active',
+		'onboarding_completed',
+		'onboarding_completed_at',
+		'onboarding_from_join',
+		'onboarding_redirect_url',
+		'onboarding_join_intent',
+		'onboarding_reminder_sent_at',
+		'welcome_email_sent',
+		'welcome_email_complete_sent',
+		'welcome_email_incomplete_sent',
+		'user_is_artist',
+		'user_is_professional',
+		'artist_access_request',
+		'ec_unclaimed',
+		'ec_custom_title',
+		'local_city',
+		'_user_profile_dynamic_links',
+		'custom_avatar',
+		'custom_avatar_id',
+		'extrachill_total_points',
+		'extrachill_team',
+		'extrachill_team_manual_override',
+		'extrachill_lifetime_membership',
+		'extrachill_user_moderation',
+		'extrachill_user_ban',
+		'extrachill_artist_dispatch_access',
+		'extrachill_artist_dispatch_access_event',
+		'extrachill_artist_dispatch_access_lock',
+		'extrachill_artist_dispatch_delivery_receipt',
+		'extrachill_newsletter_registration_consent',
+		'extrachill_notifications',
+		'ec_notifications_last_emailed',
+		'ec_notification_emails_disabled',
+		'ec_auto_subscribe_replies_disabled',
+		'_extrachill_default_event_location',
+		'_extrachill_local_scene',
+		'_extrachill_local_scene_visibility',
+		'_extrachill_local_scene_prompt_dismissed',
+		'_extrachill_concert_history_visibility',
+		'_extrachill_event_attendance_visibility',
+		'_extrachill_onboarding_artist_grant',
+		'_ec_account_claim_minted_at',
+		'google_user_id',
+		'apple_user_id',
+		'apple_refresh_token',
+		'oauth_linked_at',
 	);
 }
 
@@ -59,9 +92,14 @@ function extrachill_users_privacy_table_exists( $table ) {
  */
 function extrachill_users_erase_user_data_batch( $user_id, $limit = 100 ) {
 	global $wpdb;
-	$result = array(
-		'items_removed' => false, 'items_retained' => false, 'messages' => array(),
-		'done' => true, 'removed' => 0, 'retained' => 0, 'failed' => 0,
+	$result  = array(
+		'items_removed'  => false,
+		'items_retained' => false,
+		'messages'       => array(),
+		'done'           => true,
+		'removed'        => 0,
+		'retained'       => 0,
+		'failed'         => 0,
 	);
 	$user_id = absint( $user_id );
 	$limit   = max( 1, min( 1000, (int) $limit ) );
@@ -79,11 +117,16 @@ function extrachill_users_erase_user_data_batch( $user_id, $limit = 100 ) {
 			++$result['failed'];
 			continue;
 		}
-		$where = implode( ' OR ', array_map( static function ( $column ) use ( $user_id ) {
-			return $column . ' = ' . $user_id;
-		}, $columns ) );
-		// Table and columns come exclusively from the fixed inventory above.
-		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE {$where} LIMIT %d", $limit ) );
+		// Table and columns come exclusively from the fixed inventory above and
+		// are bound as identifiers; $where holds placeholders only.
+		$where = implode( ' OR ', array_fill( 0, count( $columns ), '%i = %d' ) );
+		$args  = array( $table );
+		foreach ( $columns as $column ) {
+			$args[] = $column;
+			$args[] = $user_id;
+		}
+		$args[]  = $limit;
+		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE {$where} LIMIT %d", $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where contains only placeholders.
 		if ( false === $deleted ) {
 			++$result['failed'];
 		} else {
@@ -94,15 +137,16 @@ function extrachill_users_erase_user_data_batch( $user_id, $limit = 100 ) {
 		}
 	}
 
-	$keys = extrachill_users_privacy_meta_keys();
+	$keys         = extrachill_users_privacy_meta_keys();
 	$placeholders = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
-	$args = array_merge( array( $user_id ), $keys, array(
+	$args         = array_merge( array( $user_id ), $keys, array(
 		$wpdb->esc_like( 'ec_concert_import_' ) . '%' . $wpdb->esc_like( '_username' ),
 		$wpdb->esc_like( 'welcome_email_sent_' ) . '%',
 		$limit,
 	) );
+	// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $args is spread across a dynamic IN list.
 	$ids = $wpdb->get_col( $wpdb->prepare(
-		"SELECT umeta_id FROM {$wpdb->usermeta} WHERE user_id = %d AND (meta_key IN ({$placeholders}) OR meta_key LIKE %s OR meta_key LIKE %s) LIMIT %d",
+		"SELECT umeta_id FROM {$wpdb->usermeta} WHERE user_id = %d AND (meta_key IN ({$placeholders}) OR meta_key LIKE %s OR meta_key LIKE %s) LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders contains only %s placeholders.
 		$args
 	) );
 	if ( $wpdb->last_error ) {
@@ -119,10 +163,10 @@ function extrachill_users_erase_user_data_batch( $user_id, $limit = 100 ) {
 			$result['done'] = false;
 		}
 	}
-	$result['items_removed'] = $result['removed'] > 0;
+	$result['items_removed']  = $result['removed'] > 0;
 	$result['items_retained'] = $result['failed'] > 0;
-	$result['done'] = $result['done'] && ! $result['failed'];
-	$result['messages'][] = sprintf(
+	$result['done']           = $result['done'] && ! $result['failed'];
+	$result['messages'][]     = sprintf(
 		/* translators: 1: removed count, 2: retained count, 3: failed operations. */
 		__( 'Users data: %1$d removed; %2$d retained by policy; %3$d failed operations. Retry failures before closing the request.', 'extrachill-users' ),
 		$result['removed'], $result['retained'], $result['failed']
@@ -149,7 +193,7 @@ function extrachill_users_personal_data_eraser( $email_address, $page = 1 ) {
 function extrachill_users_register_personal_data_eraser( $erasers ) {
 	$erasers['extrachill-users'] = array(
 		'eraser_friendly_name' => __( 'Extra Chill Users', 'extrachill-users' ),
-		'callback' => 'extrachill_users_personal_data_eraser',
+		'callback'             => 'extrachill_users_personal_data_eraser',
 	);
 	return $erasers;
 }
@@ -195,7 +239,7 @@ function extrachill_users_privacy_orphan_counts() {
 	global $wpdb;
 	$counts = array();
 	foreach ( extrachill_users_privacy_tables() as $suffix => $columns ) {
-		$table = $wpdb->base_prefix . $suffix;
+		$table  = $wpdb->base_prefix . $suffix;
 		$exists = extrachill_users_privacy_table_exists( $table );
 		foreach ( $columns as $column ) {
 			$key = $suffix . '.' . $column;
@@ -203,7 +247,16 @@ function extrachill_users_privacy_orphan_counts() {
 				$counts[ $key ] = false === $exists ? 0 : null;
 				continue;
 			}
-			$count = $wpdb->get_var( "SELECT COUNT(DISTINCT t.{$column}) FROM {$table} t LEFT JOIN {$wpdb->users} u ON u.ID = t.{$column} WHERE t.{$column} <> 0 AND u.ID IS NULL" );
+			$count          = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT COUNT(DISTINCT t.%i) FROM %i t LEFT JOIN %i u ON u.ID = t.%i WHERE t.%i <> 0 AND u.ID IS NULL',
+					$column,
+					$table,
+					$wpdb->users,
+					$column,
+					$column
+				)
+			);
 			$counts[ $key ] = $wpdb->last_error ? null : (int) $count;
 		}
 	}
