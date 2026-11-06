@@ -189,6 +189,15 @@
 	background: var(--link-page-button-bg-color);
 	text-decoration: none;
 }
+.extrch-link-button-wrapper:hover .extrch-link-page-link,
+.extrch-link-button-wrapper:active .extrch-link-page-link,
+.extrch-link-button-wrapper:focus-within .extrch-link-page-link {
+	color: var(--link-page-button-hover-text-color, var(--link-page-link-text-color));
+}
+.extrch-social-icon,
+.extrch-link-page-powered {
+	color: var(--link-page-icon-color, var(--link-page-text-color));
+}
 .extrch-link-page-section-title {
 	margin-top: 18px;
 	font-weight: 700;

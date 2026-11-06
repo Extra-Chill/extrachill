@@ -15,6 +15,7 @@ function ec_link_page_defaults() {
 			'--link-page-card-bg-color'                 => 'rgba(0, 0, 0, 0.4)',
 			'--link-page-text-color'                    => '#e5e5e5',
 			'--link-page-link-text-color'               => '#ffffff',
+			'--link-page-icon-color'                    => '#e5e5e5',
 			'--link-page-button-bg-color'               => '#0b5394',
 			'--link-page-button-border-color'           => '#0b5394',
 			'--link-page-button-hover-bg-color'         => '#53940b',
@@ -383,7 +384,7 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 	if ( ! is_array( $vars ) ) {
 		return new WP_Error( 'invalid_link_page_css_vars', 'Link Page styles must be an array.' );
 	}
-	$colors    = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-middle' );
+	$colors    = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-icon-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-middle' );
 	$enums     = array(
 		'--link-page-button-finish'                 => array( 'flat', 'gloss' ),
 		'--link-page-background-type'               => array( 'color', 'gradient', 'image' ),
@@ -589,9 +590,16 @@ function ec_read_link_page_persistence( $link_page_id, $overrides = array() ) {
 	$styles                              = get_post_meta( $link_page_id, '_link_page_custom_css_vars', true );
 	$links                               = get_post_meta( $link_page_id, '_link_page_links', true );
 	$defaults                            = ec_link_page_defaults_for( 'styles' );
-	$styles                              = array_merge( $defaults, is_array( $styles ) ? $styles : array() );
+	$stored_styles                       = is_array( $styles ) ? $styles : array();
+	$styles                              = array_merge( $defaults, $stored_styles );
 	$styles['--link-page-card-bg-color'] = $defaults['--link-page-card-bg-color'];
-	$styles['--link-page-button-hover-text-color'] = $styles['--link-page-link-text-color'];
+	// Resolve legacy derived colors only when no independent value was saved.
+	if ( ! isset( $stored_styles['--link-page-button-hover-text-color'] ) ) {
+		$styles['--link-page-button-hover-text-color'] = $styles['--link-page-link-text-color'];
+	}
+	if ( ! isset( $stored_styles['--link-page-icon-color'] ) ) {
+		$styles['--link-page-icon-color'] = $styles['--link-page-text-color'];
+	}
 	$settings                                      = ec_link_page_defaults_for( 'settings' );
 	$map = array(
 		'link_expiration_enabled' => '_link_expiration_enabled',

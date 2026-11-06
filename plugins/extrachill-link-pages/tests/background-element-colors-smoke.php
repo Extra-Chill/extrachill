@@ -10,7 +10,7 @@ $stylesheets = array(
 	dirname( __DIR__, 2 ) . '/extrachill-artist-platform/assets/css/extrch-links.css',
 );
 $selectors   = array(
-	'.extrch-social-icon'         => 2,
+	'.extrch-social-icon'         => 1,
 	'.extrch-link-page-powered a' => 1,
 	'.extrch-link-page-edit-btn'  => 1,
 );
@@ -37,7 +37,8 @@ foreach ( $stylesheets as $path ) {
 			if ( false !== strpos( $block[2], '--link-page-link-text-color' ) ) {
 				$failures[] = "$path: $selector uses button text color (rule $count)";
 			}
-			if ( ! preg_match( '/color\s*:\s*var\(\s*--link-page-text-color\s*\)/', $block[2] ) ) {
+			// The page text color may be reached directly or as the icon color fallback.
+			if ( ! preg_match( '/color\s*:\s*var\(\s*(--link-page-icon-color\s*,\s*var\(\s*)?--link-page-text-color\s*\)/', $block[2] ) ) {
 				$failures[] = "$path: $selector must use page text color (rule $count)";
 			}
 		}

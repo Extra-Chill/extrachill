@@ -771,6 +771,20 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 					}
 				/>
 			</Field>
+			<Field label="Button Hover / Tapped Text Color">
+				<input
+					type="color"
+					value={ styles[ '--link-page-button-hover-text-color' ] || styles[ '--link-page-link-text-color' ] }
+					onChange={ ( event ) => style( '--link-page-button-hover-text-color', event.target.value ) }
+				/>
+			</Field>
+			<Field label="Icon Color">
+				<input
+					type="color"
+					value={ styles[ '--link-page-icon-color' ] || styles[ '--link-page-text-color' ] }
+					onChange={ ( event ) => style( '--link-page-icon-color', event.target.value ) }
+				/>
+			</Field>
 			<Field label="Button Hover Color">
 				<input
 					type="color"
