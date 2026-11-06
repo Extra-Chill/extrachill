@@ -23,7 +23,9 @@
 # Triggers:
 #   schedule                                 → deploy everything behind its latest release
 #   workflow_dispatch                        → manual deploy / one component / dry run
-#   repository_dispatch component-released   → optional fast path for one component
+#   repository_dispatch component-released   → optional fast path for one component;
+#                                              unregistered or monorepo-member
+#                                              components are a logged no-op (#1092)
 
 name: Deploy
 
@@ -72,8 +74,70 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # repository_dispatch is sent by every component a release run publishes,
+  # including components of multi-plugin repos (data-machine, wp-native) that
+  # this network never installs, e.g. wp-native-shell (#1092). Those must not
+  # turn into a red run and a Discord alert. This job answers one question:
+  # is a dispatched component one this workflow deploys? If not, it logs why
+  # and the deploy job is skipped, which leaves the run green and silent.
+  #
+  # Only repository_dispatch is filtered. A schedule run has no component,
+  # and a manual workflow_dispatch naming an unknown component still fails
+  # loudly in Plan, because there a typo is a human mistake worth surfacing.
+  #
+  # Monorepo members of this repository (plugins/*, themes/*) are deployed by
+  # deploy-monorepo.yml from main, never by this release poller. A dispatch
+  # naming one is skipped here too, so it cannot double-deploy or race
+  # deploy-monorepo.yml with a release-asset install.
+  route:
+    name: Route dispatched component
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deploy: ${{ steps.route.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: deploy/homeboy
+
+      - name: Route
+        id: route
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          D_COMPONENT: ${{ github.event.client_payload.component }}
+          D_VERSION: ${{ github.event.client_payload.version }}
+          D_REPOSITORY: ${{ github.event.client_payload.repository }}
+        run: |
+          set -euo pipefail
+          deploy="true"
+          # A malformed id is left for Plan to reject loudly; only a
+          # well-formed id is looked up, so it is safe to use in a path.
+          if [ "${EVENT}" = "repository_dispatch" ] \
+            && [[ "${D_COMPONENT:-}" =~ ^[a-z0-9][a-z0-9-]*$ ]] \
+            && [ ! -f "deploy/homeboy/components/${D_COMPONENT}.json" ]; then
+            deploy="false"
+            source="${D_REPOSITORY:-unknown repository}"
+            if jq -e --arg id "${D_COMPONENT}" 'any(.components[]?; .id == $id)' \
+              deploy/homeboy/projects/extrachill-monorepo/extrachill-monorepo.json >/dev/null; then
+              reason="is a member of this monorepo and is deployed by deploy-monorepo.yml, not this release poller"
+            else
+              reason="is not a registered deployable on this network (deploy/homeboy/components/)"
+            fi
+            message="Skipping dispatched ${D_COMPONENT} ${D_VERSION:-} from ${source}: it ${reason}. Nothing to deploy."
+            echo "::notice::${message}"
+            {
+              echo "## Dispatch ignored"
+              echo
+              echo "${message}"
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+          echo "deploy=${deploy}" >> "${GITHUB_OUTPUT}"
+
   deploy:
     name: Deploy to extrachill.com
+    needs: route
+    if: needs.route.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -139,6 +203,8 @@ jobs:
 
           if [ -n "${component}" ]; then
             [[ "${component}" =~ ^[a-z0-9][a-z0-9-]*$ ]] || { echo "::error::invalid component id '${component}'"; exit 1; }
+            # repository_dispatch of an unregistered component never reaches
+            # here (the route job skips it); a manual run still fails loudly.
             test -f "deploy/homeboy/components/${component}.json" || { echo "::error::'${component}' is not a registered deployable (deploy/homeboy/components/)"; exit 1; }
             if [ -n "${version}" ]; then
               [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.]+)?$ ]] || { echo "::error::invalid version '${version}'"; exit 1; }

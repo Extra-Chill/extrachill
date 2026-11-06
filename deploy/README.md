@@ -24,6 +24,8 @@ A dropped `repository_dispatch` is invisible and silently leaves the server behi
 
 The `repository_dispatch: component-released` trigger is still wired for the rare case where one component should ship immediately rather than within the half hour (set `dispatch-repo: Extra-Chill/extrachill` on that repo's `release.yml@v2` caller — homeboy-action#476). It is off by default and nothing depends on it.
 
+A multi-plugin repo dispatches every component it releases, so some dispatches name components this network does not deploy (for example `wp-native-shell`). The `route` job checks the dispatched id against `deploy/homeboy/components/`. When the id isn't registered, the run logs a notice, skips the `deploy` job and stays green with no Discord post (#1092). A dispatch that names a member of this monorepo (`plugins/*`, `themes/*`) is skipped the same way, because `deploy-monorepo.yml` deploys those from `main`. That stops a release-asset install from double-deploying or racing it. Only `repository_dispatch` is filtered. A manual `workflow_dispatch` that names an unknown component still fails in Plan.
+
 ## Safety: `DEPLOY_AUTOMATION`
 
 Unattended runs (schedule and `repository_dispatch`) only mutate the server when the repository variable `DEPLOY_AUTOMATION` is exactly `enabled`. Anything else — unset, empty, `paused` — and they plan and report without touching anything.
