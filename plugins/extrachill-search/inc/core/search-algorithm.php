@@ -109,14 +109,13 @@ function extrachill_compute_markup_noise_words( array $samples ) {
  */
 function extrachill_fulltext_tokenize( $text ) {
 	$tokens = preg_split( '/[^\p{L}\p{N}_]+/u', strtolower( (string) $text ), -1, PREG_SPLIT_NO_EMPTY );
-	return array_values(
-		array_filter(
-			(array) $tokens,
-			static function ( $token ) {
-				return strlen( $token ) >= 3;
-			}
-		)
-	);
+	$words  = array();
+	foreach ( is_array( $tokens ) ? $tokens : array() as $token ) {
+		if ( strlen( (string) $token ) >= 3 ) {
+			$words[] = (string) $token;
+		}
+	}
+	return $words;
 }
 
 /**
@@ -534,8 +533,9 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 			// Try FULLTEXT natural language mode (forgiving — returns partial matches).
 			if ( extrachill_has_fulltext_index() ) {
 				global $wpdb;
+				$raw_words     = preg_split( '/\s+/', extrachill_normalize_search_term( $search_term ), -1, PREG_SPLIT_NO_EMPTY );
 				$natural_words = extrachill_strip_search_noise_words(
-					preg_split( '/\s+/', extrachill_normalize_search_term( $search_term ), -1, PREG_SPLIT_NO_EMPTY ),
+					is_array( $raw_words ) ? $raw_words : array(),
 					extrachill_get_markup_noise_words()
 				);
 				if ( empty( $natural_words ) ) {
