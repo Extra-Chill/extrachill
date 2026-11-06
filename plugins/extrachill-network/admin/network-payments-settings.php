@@ -86,6 +86,11 @@ function ec_network_commerce_fields() {
 			'placeholder' => 'whsec_...',
 			'description' => __( 'Webhook signing secret used to verify Stripe webhook events.', 'extrachill-network' ),
 		),
+		array(
+			'section' => 'stripe', 'key' => 'connect_webhook_secret',
+			'label' => 'Connect Webhook Secret', 'placeholder' => 'whsec_...',
+			'description' => 'Signing secret for connected-account events (tickets).',
+		),
 		// Shipping (Shippo label generation).
 		array(
 			'section'     => 'shipping',
@@ -160,6 +165,15 @@ function ec_handle_network_payments_save() {
 		);
 	}
 
+	$fees = get_site_option( 'extrachill_ticket_fees', array() );
+	foreach ( array( 'buyer_fee_flat_minor', 'buyer_fee_percent', 'seller_fee_percent' ) as $key ) {
+		if ( isset( $_POST[ $key ] ) && is_numeric( $_POST[ $key ] ) ) {
+			$value = max( 0, (float) wp_unslash( $_POST[ $key ] ) );
+			$fees[ $key ] = 'buyer_fee_flat_minor' === $key ? (int) $value : min( 100, $value );
+		}
+	}
+	update_site_option( 'extrachill_ticket_fees', $fees );
+
 	$redirect_url = add_query_arg(
 		array(
 			'page'    => 'extrachill-payments',
@@ -199,6 +213,7 @@ function ec_network_commerce_field_is_set( array $field ): bool {
 		'publishable_key'   => 'get_publishable_key',
 		'connect_client_id' => 'get_connect_client_id',
 		'webhook_secret'    => 'get_webhook_secret',
+		'connect_webhook_secret' => 'get_connect_webhook_secret',
 	);
 
 	if ( ! isset( $getters[ $field['key'] ] ) ) {
@@ -282,6 +297,11 @@ function ec_render_network_payments_page() {
 					</tr>
 					<?php foreach ( $shipping_fields as $field ) : ?>
 						<?php ec_render_commerce_field_row( $field, ! empty( $statuses[ $field['key'] ] ) ); ?>
+					<?php endforeach; ?>
+					<tr><th colspan="2"><h2>Ticket fees</h2><p>Prices include tax. Sellers handle tax. All fees default to zero.</p></th></tr>
+					<?php $fees = get_site_option( 'extrachill_ticket_fees', array() ); ?>
+					<?php foreach ( array( 'buyer_fee_flat_minor', 'buyer_fee_percent', 'seller_fee_percent' ) as $key ) : ?>
+					<tr><th><label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $key ); ?></label></th><td><input type="number" min="0" step="<?php echo 'buyer_fee_flat_minor' === $key ? '1' : '0.01'; ?>" id="<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $fees[ $key ] ?? 0 ); ?>"></td></tr>
 					<?php endforeach; ?>
 				</tbody>
 			</table>

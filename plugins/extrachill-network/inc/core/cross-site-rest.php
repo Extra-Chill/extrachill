@@ -594,6 +594,7 @@ function ec_get_route_site_affinity( string $route ): ?string {
 			'/extrachill/v1/blog/'      => 'main',
 			'/extrachill/v1/community/' => 'community',
 			'/extrachill/v1/artists/'   => 'artist',
+			'/extrachill/v1/events/tickets/checkout' => 'shop',
 			'/extrachill/v1/events/'    => 'events',
 			'/extrachill/v1/shop/'      => 'shop',
 			'/extrachill/v1/wire/'      => 'wire',

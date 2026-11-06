@@ -84,6 +84,9 @@ class ExtraChillShop {
 		// registered by multisite. See extrachill-multisite#92.
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/auth/resolvers.php';
 
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/ticket-service-authority.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/tickets.php';
+
 		// Stripe Connect integration
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/stripe-connect.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/stripe/checkout-handler.php';

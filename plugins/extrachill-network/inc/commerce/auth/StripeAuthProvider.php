@@ -49,6 +49,12 @@ final class StripeAuthProvider extends CommerceAuthProvider {
 				'required'    => false,
 				'description' => __( 'Stripe Connect client ID (ca_...).', 'extrachill-network' ),
 			),
+			'connect_webhook_secret' => array(
+				'label' => 'Connect webhook signing secret',
+				'type' => 'password',
+				'required' => false,
+				'description' => 'Signing secret for connected-account events.',
+			),
 			'webhook_secret'    => array(
 				'label'       => __( 'Webhook Signing Secret', 'extrachill-network' ),
 				'type'        => 'password',
@@ -60,7 +66,7 @@ final class StripeAuthProvider extends CommerceAuthProvider {
 
 	public static function encrypted_fields(): array {
 		// publishable_key intentionally omitted — public by Stripe design.
-		return array( 'secret_key', 'connect_client_id', 'webhook_secret' );
+		return array( 'secret_key', 'connect_client_id', 'webhook_secret', 'connect_webhook_secret' );
 	}
 
 	public function is_authenticated(): bool {
@@ -78,6 +84,10 @@ final class StripeAuthProvider extends CommerceAuthProvider {
 
 	public function get_connect_client_id(): string {
 		return $this->config_string( 'connect_client_id' );
+	}
+
+	public function get_connect_webhook_secret(): string {
+		return $this->config_string( 'connect_webhook_secret' );
 	}
 
 	public function get_webhook_secret(): string {
