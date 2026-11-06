@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.8] - 2026-11-06
+
+### Fixed
+- match any plain ability search term
+
 ## [0.2.7] - 2026-11-04
 
 ### Fixed
