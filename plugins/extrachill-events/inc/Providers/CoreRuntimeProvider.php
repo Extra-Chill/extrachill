@@ -31,6 +31,7 @@ final class CoreRuntimeProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/genre-sync.php';
 		extrachill_events_init_genre_sync();
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/priority-boost-service-authority.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/ticket-service-authority.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdict.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictsTable.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/QualifyVerdictResolver.php';

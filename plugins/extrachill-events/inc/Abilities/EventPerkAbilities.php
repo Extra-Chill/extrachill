@@ -36,6 +36,7 @@ class EventPerkAbilities {
 				'input_schema'        => array(
 					'type'       => 'object',
 					'properties' => array(
+						...TicketAbilities::fields(),
 						'event'              => array(
 							'type'        => 'string',
 							'description' => __( 'Event post slug or numeric ID.', 'extrachill-events' ),
@@ -86,6 +87,7 @@ class EventPerkAbilities {
 						'event'   => array(
 							'type'       => 'object',
 							'properties' => array(
+								...TicketAbilities::fields(),
 								'post_id'            => array( 'type' => 'integer' ),
 								'title'              => array( 'type' => 'string' ),
 								'enabled'            => array( 'type' => 'boolean' ),
@@ -137,6 +139,7 @@ class EventPerkAbilities {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
+						...TicketAbilities::fields(),
 						'post_id'            => array( 'type' => 'integer' ),
 						'enabled'            => array( 'type' => 'boolean' ),
 						'text'               => array( 'type' => 'string' ),
@@ -223,6 +226,11 @@ class EventPerkAbilities {
 			return new \WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 
+		$ticket_settings = TicketAbilities::validate_settings( $post->ID, $input );
+		if ( is_wp_error( $ticket_settings ) ) {
+			return $ticket_settings;
+		}
+
 		// Validate the artwork before writing anything, so a bad ID leaves
 		// the perk untouched instead of half-applied.
 		$image_id = isset( $input['image_id'] ) ? max( 0, (int) $input['image_id'] ) : null;
@@ -230,6 +238,7 @@ class EventPerkAbilities {
 			return new \WP_Error( 'invalid_perk_image', __( 'The pass artwork must be an image in the media library.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
+		update_post_meta( $post->ID, '_extrachill_ticket_offer', $ticket_settings );
 		$enabled = (bool) ( $input['enabled'] ?? true );
 		$text    = substr( sanitize_textarea_field( (string) ( $input['text'] ?? '' ) ), 0, EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN );
 
@@ -269,6 +278,7 @@ class EventPerkAbilities {
 		return array(
 			'success' => true,
 			'event'   => array(
+				...$ticket_settings,
 				'post_id'            => $post->ID,
 				'title'              => $post->post_title,
 				'enabled'            => $enabled,
@@ -299,6 +309,7 @@ class EventPerkAbilities {
 		$counts = extrachill_events_get_guest_list_counts( $post->ID );
 
 		return array(
+			...TicketAbilities::settings( $post->ID ),
 			'post_id'            => $post->ID,
 			'enabled'            => extrachill_events_perk_enabled( $post->ID ),
 			'text'               => extrachill_events_get_perk_text( $post->ID ),

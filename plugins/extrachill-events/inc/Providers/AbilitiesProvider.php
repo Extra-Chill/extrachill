@@ -80,6 +80,7 @@ final class AbilitiesProvider {
 				'PriorityVenueAbilities',
 				'PriorityEventAbilities',
 				'PriorityPromoterAbilities',
+				'TicketAbilities',
 				'EventPerkAbilities',
 				'RsvpPassAbilities',
 				'GuestListPartyAbilities',
