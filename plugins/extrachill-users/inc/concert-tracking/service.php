@@ -1340,6 +1340,87 @@ function ec_users_get_event_attendees_full( int $event_id, int $blog_id = 0, int
 // ─── Search Events for Marking ───────────────────────────────────────────────
 
 /**
+ * Build a FULLTEXT boolean prefilter for event title search.
+ *
+ * Returns a MATCH() AGAINST() clause over the `ft` alias requiring every
+ * usable word of the query as a word prefix (`+word*`), or '' when the
+ * table has no matching FULLTEXT index or the query has no word of at
+ * least three characters (InnoDB's minimum token size) outside the default
+ * stopwords. Callers still apply the exact title LIKE to the candidates.
+ *
+ * @param string $query       Raw search query.
+ * @param string $posts_table Trusted posts table name.
+ * @return string SQL clause or ''.
+ */
+function ec_users_build_title_prefilter( string $query, string $posts_table ): string {
+	$words = ec_users_fulltext_prefix_words( $query );
+	if ( empty( $words ) || ! ec_users_posts_table_has_fulltext( $posts_table ) ) {
+		return '';
+	}
+
+	$boolean = implode(
+		' ',
+		array_map(
+			static function ( $word ) {
+				return '+' . $word . '*';
+			},
+			$words
+		)
+	);
+
+	return "MATCH(ft.post_title, ft.post_excerpt, ft.post_content) AGAINST('" . esc_sql( $boolean ) . "' IN BOOLEAN MODE)";
+}
+
+/**
+ * Split a query into FULLTEXT-safe words for a prefix prefilter.
+ *
+ * Tokenizes like InnoDB (letters, digits, underscore), drops tokens shorter
+ * than three characters and InnoDB default stopwords, and strips every
+ * boolean operator by construction.
+ *
+ * @param string $query Raw search query.
+ * @return string[] Lowercase words.
+ */
+function ec_users_fulltext_prefix_words( string $query ): array {
+	$stopwords = array( 'about', 'are', 'com', 'for', 'from', 'how', 'that', 'the', 'this', 'was', 'what', 'when', 'where', 'who', 'will', 'with', 'und', 'www' );
+	$tokens    = preg_split( '/[^\p{L}\p{N}_]+/u', strtolower( $query ), -1, PREG_SPLIT_NO_EMPTY );
+	$words     = array();
+	foreach ( (array) $tokens as $token ) {
+		if ( strlen( $token ) >= 3 && ! in_array( $token, $stopwords, true ) ) {
+			$words[ $token ] = true;
+		}
+	}
+
+	return array_keys( $words );
+}
+
+/**
+ * Whether a posts table has the (post_title, post_excerpt, post_content)
+ * FULLTEXT index the prefilter needs. Cached per table.
+ *
+ * @param string $posts_table Trusted posts table name.
+ * @return bool
+ */
+function ec_users_posts_table_has_fulltext( string $posts_table ): bool {
+	$cache_key = 'posts_fulltext_' . $posts_table;
+	$cached    = wp_cache_get( $cache_key, 'extrachill-users' );
+	if ( false !== $cached ) {
+		return 'yes' === $cached;
+	}
+
+	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- trusted table name; cached.
+	$columns = $wpdb->get_col( "SHOW INDEX FROM {$posts_table} WHERE Index_type = 'FULLTEXT'", 4 );
+	$columns = array_map( 'strtolower', (array) $columns );
+	sort( $columns );
+	$has = array( 'post_content', 'post_excerpt', 'post_title' ) === array_values( array_unique( $columns ) );
+
+	wp_cache_set( $cache_key, $has ? 'yes' : 'no', 'extrachill-users', HOUR_IN_SECONDS );
+
+	return $has;
+}
+
+/**
  * Search events for the My Shows quick-add search feature.
  *
  * Returns published events matching the query against:
@@ -1434,15 +1515,26 @@ function ec_users_search_events_for_marking( int $user_id, array $args = array()
 
 	$like = '%' . $wpdb->esc_like( $query ) . '%';
 
-	// Subquery: term-ids whose names match the query, restricted to artist/venue.
-	// We use IN (...) against tr.term_taxonomy_id via a join in OR clause.
-	$where[]   = '(p.post_title LIKE %s OR EXISTS (
-			SELECT 1
+	/*
+	 * Title matches: a bare `post_title LIKE '%q%'` scans every event row
+	 * (7s+ on 329k events). When the posts table has its FULLTEXT index,
+	 * narrow candidates with a boolean word-prefix match first, then apply
+	 * the same LIKE to that small set. Term matches resolve the matching
+	 * artist/venue terms once (uncorrelated IN) instead of a correlated subquery per row.
+	 */
+	$title_prefilter = ec_users_build_title_prefilter( $query, $posts_table );
+	if ( '' !== $title_prefilter ) {
+		$title_sql = 'p.ID IN ( SELECT ft.ID FROM ' . $posts_table . ' ft WHERE ' . $title_prefilter . ' AND ft.post_title LIKE %s )';
+	} else {
+		$title_sql = 'p.post_title LIKE %s';
+	}
+
+	$where[]   = '(' . $title_sql . ' OR p.ID IN (
+			SELECT tr2.object_id
 			FROM ' . $tr_table . ' tr2
 			INNER JOIN ' . $tt_table . ' tt2 ON tr2.term_taxonomy_id = tt2.term_taxonomy_id
 			INNER JOIN ' . $terms_table . ' t2 ON tt2.term_id = t2.term_id
-			WHERE tr2.object_id = p.ID
-			  AND tt2.taxonomy IN (\'artist\', \'venue\')
+			WHERE tt2.taxonomy IN (\'artist\', \'venue\')
 			  AND t2.name LIKE %s
 		))';
 	$prepare[] = $like;

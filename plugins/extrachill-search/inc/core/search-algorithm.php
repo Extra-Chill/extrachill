@@ -19,6 +19,140 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Words that appear in the block markup of nearly every post on this site.
+ *
+ * Block delimiter comments (`<!-- wp:namespace/name {"attr":...} -->`) are
+ * stored in post_content, so their words are indexed by the FULLTEXT index.
+ * When one block wraps every post (the events site's event-details block),
+ * words like "data", "machine", "events" or "startdate" match every row and
+ * any query containing them makes MariaDB rank the whole table (13s+ on
+ * 329k rows). These words carry no search meaning on that site.
+ *
+ * Samples the newest block posts on the current blog and returns words found
+ * inside block delimiters in at least 90% of them. Cached per blog.
+ *
+ * @return string[] Lowercase noise words.
+ */
+function extrachill_get_markup_noise_words() {
+	$blog_id   = get_current_blog_id();
+	$cache_key = 'markup_noise_words_' . $blog_id;
+	$cached    = wp_cache_get( $cache_key, 'extrachill-search' );
+
+	if ( ! is_array( $cached ) ) {
+		$cached = get_transient( 'extrachill_search_markup_noise_words' );
+	}
+
+	if ( ! is_array( $cached ) ) {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Small bounded sample, cached below.
+		$samples = $wpdb->get_col( "SELECT post_content FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_content LIKE '<!-- wp:%' ORDER BY ID DESC LIMIT 50" );
+		$cached  = extrachill_compute_markup_noise_words( (array) $samples );
+		set_transient( 'extrachill_search_markup_noise_words', $cached, 12 * HOUR_IN_SECONDS );
+	}
+
+	wp_cache_set( $cache_key, $cached, 'extrachill-search', HOUR_IN_SECONDS );
+
+	/*
+	 * Filter extrachill_search_noise_words: the words dropped from FULLTEXT
+	 * queries on the current blog. Receives the lowercase words and blog ID.
+	 */
+	return array_values( array_map( 'strtolower', (array) apply_filters( 'extrachill_search_noise_words', $cached, $blog_id ) ) );
+}
+
+/**
+ * Compute markup noise words from sampled post_content values.
+ *
+ * Tokenizes the way InnoDB FULLTEXT does (letters, digits and underscore;
+ * minimum three characters) and keeps words present in block delimiters of
+ * at least 90% of samples. Needs at least 10 samples to say anything.
+ *
+ * @param string[] $samples Post content samples.
+ * @return string[] Lowercase noise words.
+ */
+function extrachill_compute_markup_noise_words( array $samples ) {
+	$samples = array_values( array_filter( $samples, 'is_string' ) );
+	if ( count( $samples ) < 10 ) {
+		return array();
+	}
+
+	$document_frequency = array();
+	foreach ( $samples as $content ) {
+		preg_match_all( '/<!--\s+\/?wp:(.*?)\s*\/?-->/s', $content, $matches );
+		$words = array();
+		foreach ( $matches[1] as $delimiter ) {
+			foreach ( extrachill_fulltext_tokenize( $delimiter ) as $word ) {
+				$words[ $word ] = true;
+			}
+		}
+		foreach ( array_keys( $words ) as $word ) {
+			$document_frequency[ $word ] = ( $document_frequency[ $word ] ?? 0 ) + 1;
+		}
+	}
+
+	$threshold = (int) ceil( count( $samples ) * 0.9 );
+	$noise     = array();
+	foreach ( $document_frequency as $word => $count ) {
+		if ( $count >= $threshold ) {
+			$noise[] = (string) $word;
+		}
+	}
+	sort( $noise );
+
+	return $noise;
+}
+
+/**
+ * Split text into lowercase FULLTEXT tokens (InnoDB rules, min length 3).
+ *
+ * @param string $text Text.
+ * @return string[] Tokens.
+ */
+function extrachill_fulltext_tokenize( $text ) {
+	$tokens = preg_split( '/[^\p{L}\p{N}_]+/u', strtolower( (string) $text ), -1, PREG_SPLIT_NO_EMPTY );
+	$words  = array();
+	foreach ( is_array( $tokens ) ? $tokens : array() as $token ) {
+		if ( strlen( (string) $token ) >= 3 ) {
+			$words[] = (string) $token;
+		}
+	}
+	return $words;
+}
+
+/**
+ * Remove markup noise words from a search term's words.
+ *
+ * Each word is compared by its FULLTEXT tokens, so "Wu-Tang" is kept unless
+ * every token in it is noise. Returns an empty array when nothing searchable
+ * is left; callers then skip the site instead of scanning every row.
+ *
+ * @param string[] $words Search words.
+ * @param string[] $noise Lowercase noise words.
+ * @return string[] Remaining words.
+ */
+function extrachill_strip_search_noise_words( array $words, array $noise ) {
+	if ( empty( $noise ) ) {
+		return $words;
+	}
+
+	$noise_lookup = array_flip( $noise );
+	$kept         = array();
+	foreach ( $words as $word ) {
+		$tokens = extrachill_fulltext_tokenize( $word );
+		$useful = array_filter(
+			$tokens,
+			static function ( $token ) use ( $noise_lookup ) {
+				return ! isset( $noise_lookup[ $token ] );
+			}
+		);
+		if ( ! empty( $useful ) ) {
+			$kept[] = $word;
+		}
+	}
+
+	return $kept;
+}
+
+/**
  * Build a FULLTEXT MATCH AGAINST clause for the current posts table.
  *
  * Uses BOOLEAN MODE for precise matching: each word must appear.
@@ -36,6 +170,16 @@ function extrachill_build_fulltext_clause( $search_term ) {
 
 	if ( empty( $words ) ) {
 		return false;
+	}
+
+	/*
+	 * Words that only occur in this site's block markup match every row.
+	 * Drop them; if nothing is left, match nothing on this site rather than
+	 * ranking the whole table.
+	 */
+	$words = extrachill_strip_search_noise_words( $words, extrachill_get_markup_noise_words() );
+	if ( empty( $words ) ) {
+		return '1=0';
 	}
 
 	// Build boolean search: +word1 +word2 (all required).
@@ -389,7 +533,15 @@ function extrachill_word_level_search_fallback( $search_term, $blog_ids, $args )
 			// Try FULLTEXT natural language mode (forgiving — returns partial matches).
 			if ( extrachill_has_fulltext_index() ) {
 				global $wpdb;
-				$escaped = $wpdb->_real_escape( extrachill_normalize_search_term( $search_term ) );
+				$raw_words     = preg_split( '/\s+/', extrachill_normalize_search_term( $search_term ), -1, PREG_SPLIT_NO_EMPTY );
+				$natural_words = extrachill_strip_search_noise_words(
+					is_array( $raw_words ) ? $raw_words : array(),
+					extrachill_get_markup_noise_words()
+				);
+				if ( empty( $natural_words ) ) {
+					continue;
+				}
+				$escaped = $wpdb->_real_escape( implode( ' ', $natural_words ) );
 
 				$natural_clause = sprintf(
 					"MATCH(%s.post_title, %s.post_excerpt, %s.post_content) AGAINST('%s' IN NATURAL LANGUAGE MODE)",
