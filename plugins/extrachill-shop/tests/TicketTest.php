@@ -12,7 +12,7 @@ namespace Stripe {
 		public static function create( $params, $options ) {
 			if ( ! empty( $GLOBALS['ticket_refund_fail'] ) ) { throw new \RuntimeException( 'Stripe unavailable' ); }
 			$GLOBALS['ticket_refunds'][] = array( $params, $options );
-			return (object) array( 'id' => 're_ticket' );
+			return (object) array( 'id' => 're_ticket', 'amount' => 2000, 'created' => 1700000000, 'metadata' => (object) $params['metadata'] );
 		}
 	}
 }
@@ -44,6 +44,7 @@ namespace {
 				if ( str_contains( $route, 'get-commerce-seller' ) ) { return array( 'type' => 'venue', 'id' => 9911, 'can_manage_finances' => true ); }
 				if ( str_contains( $route, 'issue-ticket-passes' ) ) { return array( 'status' => $GLOBALS['ticket_issue_status'], 'passes' => array() ); }
 				if ( str_contains( $route, 'get-ticket-order-status' ) ) { return array( 'event_id' => 101, 'passes' => array(), 'any_redeemed' => $GLOBALS['ticket_redeemed'], 'refundable' => ! $GLOBALS['ticket_redeemed'] ); }
+				if ( str_contains( $route, 'record-checkout-ticket-sales' ) ) { return array( 'recorded' => true ); }
 				if ( $GLOBALS['ticket_redeemed'] ) { return new WP_Error( 'ticket_already_redeemed', 'Already redeemed.' ); }
 				return array( 'revoked' => true );
 			};
@@ -52,10 +53,23 @@ namespace {
 		private function event( $type = 'checkout.session.completed' ) {
 			if ( 'charge.refunded' === $type ) {
 				// Real charges carry no PaymentIntent metadata.
-				return (object) array( 'type' => $type, 'account' => 'acct_venue', 'data' => (object) array( 'object' => (object) array( 'id' => 'ch_ticket', 'payment_intent' => 'pi_ticket', 'metadata' => (object) array() ) ) );
+				return (object) array( 'type' => $type, 'account' => 'acct_venue', 'data' => (object) array( 'object' => (object) array( 'refunds' => (object) array( 'has_more' => false, 'data' => array( (object) array( 'id' => 're_ticket', 'amount' => 2000, 'created' => 1700000000, 'status' => 'succeeded', 'metadata' => (object) array() ) ) ), 'id' => 'ch_ticket', 'payment_intent' => 'pi_ticket', 'metadata' => (object) array() ) ) );
 			}
 			return (object) array( 'type' => $type, 'account' => 'acct_venue', 'data' => (object) array( 'object' => (object) array( 'id' => 'cs_ticket', 'payment_status' => 'paid', 'payment_intent' => 'pi_ticket', 'customer_email' => 'buyer@example.com', 'metadata' => (object) array( 'kind' => 'extrachill_ticket', 'quantity' => 2, 'name' => 'Buyer' ) ) ) );
 		}
+		public function test_checkout_and_refund_observations(): void {
+			$this->checkout();
+			extrachill_shop_route_webhook_event( $this->event() );
+			extrachill_shop_refund_ticket_order( array( 'order_reference' => 'cs_ticket' ) );
+			$calls = array_values( array_filter( $GLOBALS['test_owner_calls'], static fn( $call ) => str_contains( $call['route'], 'record-checkout-ticket-sales' ) ) );
+			$this->assertCount( 2, $calls );
+			$this->assertSame( 'cs_ticket', $calls[0]['args']['body']['input']['external_report_id'] );
+			$this->assertSame( 2000, $calls[0]['args']['body']['input']['gross_minor'] );
+			$this->assertSame( 're_ticket', $calls[1]['args']['body']['input']['external_report_id'] );
+			$this->assertSame( -2000, $calls[1]['args']['body']['input']['gross_minor'] );
+			$this->assertSame( -2, $calls[1]['args']['body']['input']['tickets_sold'] );
+		}
+
 		public function test_fee_math_and_defaults(): void {
 			$this->assertSame( array( 'buyer' => 0, 'application' => 0 ), extrachill_shop_ticket_fees( 2000, array() ) );
 			$this->assertSame( array( 'buyer' => 160, 'application' => 260 ), extrachill_shop_ticket_fees( 2000, array( 'buyer_fee_flat_minor' => 100, 'buyer_fee_percent' => 3, 'seller_fee_percent' => 5 ) ) );
@@ -141,7 +155,7 @@ namespace {
 			add_filter( 'extrachill_shop_ticket_service_assertion_keys', static function () { return array( 'test' => 'secret' ); } );
 			add_filter( 'extrachill_shop_ticket_service_assertion_active_key_id', static function () { return 'test'; } );
 			$grants = extrachill_shop_register_ticket_source_grants( array() );
-			$this->assertCount( 3, $grants );
+			$this->assertCount( 4, $grants );
 			foreach ( $grants as $grant ) {
 				$this->assertSame( 'POST', $grant['method'] );
 				$this->assertSame( 'events.extrachill.com', $grant['target_host'] );

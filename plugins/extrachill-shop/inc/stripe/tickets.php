@@ -82,6 +82,14 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 			'event'          => $offer['event_id'],
 			'payment_intent' => '',
 			'status'         => 'pending',
+			'sales'          => array(
+				'event_id'     => (int) $offer['event_id'],
+				'tickets_sold' => $input['quantity'],
+				'gross_minor'  => $offer['price_minor'] * $input['quantity'] + $fees['buyer'],
+				'fees_minor'   => $fees['application'],
+				'currency'     => $offer['currency'],
+				'period_start' => gmdate( 'Y-m-d H:i:s' ),
+			),
 		), false );
 		return array(
 			'checkout_url' => $session->url,
@@ -91,19 +99,46 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 		return new WP_Error( 'ticket_checkout_failed', 'Ticket checkout failed.', array( 'status' => 502 ) ); }
 }
 
+function extrachill_shop_record_ticket_sales( $reference, array $order, $refund = null ) {
+	if ( empty( $order['sales'] ) ) {
+		return new WP_Error( 'ticket_sales_missing', 'Ticket financial snapshot is unavailable.' );
+	}
+	$input                       = $order['sales'];
+	$input['external_report_id'] = $refund ? $refund->id : $reference;
+	$input['order_reference']    = $reference;
+	if ( $refund ) {
+		$input['gross_minor']  = - (int) $refund->amount;
+		$input['fees_minor']   = - (int) ( $refund->metadata->application_fee_minor ?? 0 );
+		$input['tickets_sold'] = (int) $refund->amount === $order['sales']['gross_minor'] ? -$order['sales']['tickets_sold'] : 0;
+		$input['period_start'] = ( new DateTimeImmutable( '@' . (int) $refund->created ) )->format( 'Y-m-d H:i:s' );
+	}
+	$result = extrachill_shop_execute_ticket_owner_ability( 'record-checkout-ticket-sales', $input );
+	return is_wp_error( $result ) ? $result : true;
+}
+
 function extrachill_shop_ticket_refund_payment( $reference, array $order, $reason ) {
 	try {
-		\Stripe\Refund::create( array(
+		$refund = \Stripe\Refund::create( array(
 			'payment_intent'         => $order['payment_intent'],
 			'refund_application_fee' => true,
 			'metadata'               => array(
-				'order_reference' => $reference,
-				'reason'          => $reason,
+				'order_reference'       => $reference,
+				'reason'                => $reason,
+				'application_fee_minor' => (string) ( $order['sales']['fees_minor'] ?? 0 ),
 			),
 		), array(
 			'stripe_account'  => $order['account'],
 			'idempotency_key' => 'ticket-refund-' . $reference,
 		) );
+		if ( 'succeeded' !== ( $refund->status ?? 'succeeded' ) ) {
+			return new WP_Error( 'ticket_refund_pending', 'Ticket refund has not succeeded yet.', array( 'status' => 409 ) );
+		}
+		// The money has moved, so never report this refund as failed. The
+		// charge.refunded webhook re-records the observation idempotently.
+		$result = extrachill_shop_record_ticket_sales( $reference, $order, $refund );
+		if ( is_wp_error( $result ) ) {
+			error_log( 'Extra Chill ticket settlement record deferred for refund ' . $refund->id . ': ' . $result->get_error_code() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility; webhook retries the record.
+		}
 		$order['status']        = 'refunded';
 		$order['refund_reason'] = $reason;
 		update_option( 'extrachill_ticket_order_' . $reference, $order, false );
@@ -123,6 +158,10 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 	$order['payment_intent'] = $session->payment_intent;
 	update_option( 'extrachill_ticket_order_' . $session->id, $order, false );
 	update_option( 'extrachill_ticket_payment_' . $account . '_' . $session->payment_intent, $session->id, false );
+	$result = extrachill_shop_record_ticket_sales( $session->id, $order );
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
 	$result = extrachill_shop_execute_ticket_owner_ability( 'issue-ticket-passes', array(
 		'event'             => $order['event'],
 		'quantity'          => (int) $session->metadata->quantity,
@@ -185,6 +224,27 @@ function extrachill_shop_ticket_charge_refunded( $charge, $account ) {
 	$order = get_option( 'extrachill_ticket_order_' . $reference );
 	if ( ! $order || $order['account'] !== $account ) {
 		return new WP_Error( 'ticket_account_mismatch', 'Ticket account mismatch.' ); }
+	// Stripe embeds only a bounded refund list; fetch all pages when needed.
+	$refunds = $charge->refunds ?? null;
+	if ( ! $refunds || ! empty( $refunds->has_more ) ) {
+		// @phpstan-ignore-next-line staticMethod.notFound -- Refund::all comes from the SDK's ApiOperations\All trait.
+		$refunds = \Stripe\Refund::all( array(
+			'charge' => $charge->id,
+			'limit'  => 100,
+		), array( 'stripe_account' => $account ) );
+		$rows    = $refunds->autoPagingIterator();
+	} else {
+		$rows = $refunds->data;
+	}
+	foreach ( $rows as $refund ) {
+		if ( 'succeeded' !== $refund->status ) {
+			continue;
+		}
+		$result = extrachill_shop_record_ticket_sales( $reference, $order, $refund );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+	}
 	$order['status']        = 'refunded';
 	$order['refund_reason'] = 'stripe_refund';
 	update_option( 'extrachill_ticket_order_' . $reference, $order, false );

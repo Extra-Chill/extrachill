@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TicketSettlementService {
 	public const FORMULA_VERSION = 3;
 	public const BASES           = array( 'gross_ticket_sales', 'net_ticket_sales' );
-	public const SOURCE_TYPES    = array( 'manual', 'csv_certified' );
+	public const SOURCE_TYPES    = array( 'manual', 'csv_certified', 'extrachill_checkout' );
 	public const STATUSES        = array( 'finalized', 'paid', 'void' );
 
 	/** @var BookingRepository */
@@ -47,7 +47,32 @@ class TicketSettlementService {
 		if ( 'csv_certified' === ( $input['source_type'] ?? null ) ) {
 			return new \WP_Error( 'sales_csv_import_required', __( 'Certified CSV observations must be created by the authenticated CSV importer.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
+		if ( 'extrachill_checkout' === ( $input['source_type'] ?? null ) ) {
+			return new \WP_Error( 'ticket_service_required', 'Checkout evidence requires ticket service authority.', array( 'status' => 403 ) );
+		}
 		return $this->record_report( $input, $actor_id, null );
+	}
+
+	/** Append first-party evidence only from the verified Shop ticket service. */
+	public function record_checkout( array $input ) {
+		if ( ! function_exists( 'extrachill_events_ticket_has_service_authority' ) || ! extrachill_events_ticket_has_service_authority() ) {
+			return new \WP_Error( 'ticket_service_required', 'Verified ticket service authority is required.', array( 'status' => 403 ) );
+		}
+		$booking = $this->bookings->get_by_event( (int) ( $input['event_id'] ?? 0 ) );
+		if ( is_wp_error( $booking ) || null === $booking ) {
+			return is_wp_error( $booking ) ? $booking : array( 'recorded' => false );
+		}
+		$input['booking_id']       = $booking['id'];
+		$input['provider']         = 'extrachill';
+		$input['source_type']      = 'extrachill_checkout';
+		$input['tax_minor']        = 0;
+		$input['tickets_refunded'] = 0;
+		$input['refunds_minor']    = 0;
+		$input['net_minor']        = $input['gross_minor'] - $input['fees_minor'];
+		$input['source']           = array( 'order_reference' => $input['order_reference'] );
+		$input['period_end']       = $input['period_start'];
+		$result                    = $this->record_report( $input, 0, null, true );
+		return is_wp_error( $result ) ? $result : array( 'recorded' => true );
 	}
 
 	/** Authenticate and import every CSV row through the sole certified boundary. */
@@ -90,12 +115,12 @@ class TicketSettlementService {
 	}
 
 	/** Record one already-normalized provenance class. */
-	private function record_report( array $input, int $actor_id, ?array $csv_certification ) {
+	private function record_report( array $input, int $actor_id, ?array $csv_certification, bool $checkout = false ) {
 		$booking = $this->booking( $input['booking_id'] ?? 0 );
 		if ( is_wp_error( $booking ) ) {
 			return $booking;
 		}
-		$allowed = $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
+		$allowed = $checkout ? true : $this->authorization->authorize( $actor_id, $booking['venue_term_id'], VenueAuthorization::ACTION_ACCESS_VENUE );
 		if ( true !== $allowed ) {
 			return $this->denied( $allowed );
 		}
@@ -103,7 +128,7 @@ class TicketSettlementService {
 		if ( is_wp_error( $normalized ) ) {
 			return $normalized;
 		}
-		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE );
+		$started = $this->begin_authorized( $booking, $actor_id, VenueAuthorization::ACTION_ACCESS_VENUE, $checkout );
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
@@ -170,7 +195,7 @@ class TicketSettlementService {
 			array(
 				'booking_id'      => $booking['id'],
 				'kind'            => 'ticket_sales_report_recorded',
-				'actor_type'      => 'user',
+				'actor_type'      => $checkout ? 'system' : 'user',
 				'actor_id'        => $actor_id,
 				'external_id'     => (string) $report['id'],
 				'idempotency_key' => 'sales-report:' . $report['id'],
@@ -832,14 +857,17 @@ class TicketSettlementService {
 		);
 	}
 
-	private function begin_authorized( array $booking, int $actor_id, string $action ) {
+	private function begin_authorized( array $booking, int $actor_id, string $action, bool $checkout = false ) {
 		global $wpdb;
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Financial aggregate boundary.
 			return new \WP_Error( 'settlement_transaction_start_failed', __( 'The ticket settlement transaction could not start.', 'extrachill-events' ) );
 		}
 		$this->transaction_active = true;
-		$table                    = VenueSchema::memberships_table();
-		$members                  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $booking['venue_term_id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks exact venue authority.
+		if ( $checkout ) {
+			return true; // Service authority was verified before entering this private boundary.
+		}
+		$table   = VenueSchema::memberships_table();
+		$members = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $booking['venue_term_id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks exact venue authority.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->rollback( new \WP_Error( 'settlement_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-events' ) ) );
 		}
