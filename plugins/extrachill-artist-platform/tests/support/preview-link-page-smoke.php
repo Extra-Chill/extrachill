@@ -48,13 +48,15 @@ $preview = extrachill_artist_platform_ability_preview_link_page( array( 'artist_
 check( 'artist:7' === $GLOBALS['read_owner'], 'Only artist-owned page can be selected' );
 check( 'https://extrachill.link/test' === $preview['public_url'], 'Canonical public URL' );
 check( array( 'width' => 390, 'height' => 844 ) === $preview['viewport'], 'Mobile default' );
-check( 'rgba(0, 0, 0, 0.4)' === $preview['resolved_styles']['--link-page-card-bg-color'], 'Persistence overrides stored card color' );
+check( '#fff' === $preview['resolved_styles']['--link-page-card-bg-color'], 'Stored card color is preserved' );
 check( '#000000' === $preview['resolved_styles']['--link-page-button-hover-text-color'], 'Derived hover text' );
 check( 21.0 === $preview['contrast_report']['button_text_on_button']['ratio'], 'Black/white WCAG ratio' );
 check( $preview['contrast_report']['icons_on_background']['below_threshold'], 'Low contrast flagged' );
 check( 'unavailable' === $preview['screenshot']['status'] && null === $preview['screenshot']['url'], 'Honest screenshot fallback' );
 $styles = $preview['resolved_styles'];
 $styles['--link-page-background-type'] = 'image';
+// A translucent card over an image has no measurable backdrop.
+$styles['--link-page-card-bg-color'] = 'rgba(0, 0, 0, 0.4)';
 $report = extrachill_artist_platform_preview_contrast( $styles, array( 'overlay_enabled' => true ) );
 check( 'unknown' === $report['page_text_on_card']['status'], 'Image cannot falsely pass' );
 check( 'pass' === $report['button_text_on_button']['status'], 'Opaque button still measurable' );
