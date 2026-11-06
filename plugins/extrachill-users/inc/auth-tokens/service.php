@@ -312,15 +312,11 @@ function extrachill_users_login_with_tokens( string $identifier, string $passwor
 }
 
 /**
- * Register service: validates, creates user, optionally sets cookies, and returns tokens.
+ * Validate password registration and queue a core multisite signup.
  *
- * User is created with an auto-generated username. Ordinary registrations can
- * participate immediately and customize their profile later; /join still
- * requires artist/professional onboarding.
- *
- * EC policy (Turnstile, invite redemption, onboarding redirect fields,
- * community provisioning) is enforced here; token minting is delegated to the
- * wp-native-auth primitives. Response shape is unchanged.
+ * Anti-automation runs before pending signup/resend. No user, cookie or tokens
+ * are created here. Activation provisions the user; clients then sign in with
+ * the chosen password and their current device context.
  *
  * @param array $payload Registration payload from REST route.
  * @return array|WP_Error
@@ -454,92 +450,15 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		$has_artist_invitation = true;
 	}
 
-	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
-	if ( is_wp_error( $user_id ) ) {
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for failed auth/registration flows.
-		error_log( 'User registration failed: ' . $user_id->get_error_code() . ' - ' . implode( ', ', $user_id->get_error_messages() ) );
-		return new WP_Error(
-			'registration_failed',
-			'Registration could not be completed. Please try again or contact support.',
-			array( 'status' => 500 )
-		);
-	}
-
-	if ( empty( $user_id ) ) {
-		return new WP_Error(
-			'registration_failed',
-			'User registration failed.',
-			array( 'status' => 500 )
-		);
-	}
-
-	update_user_meta( (int) $user_id, 'registration_timestamp', current_time( 'mysql' ) );
-
-	if ( $from_join && ! empty( $success_redirect_url ) ) {
-		update_user_meta( (int) $user_id, 'onboarding_redirect_url', $success_redirect_url );
-	}
-
-	extrachill_users_record_registration_newsletter_consent( (int) $user_id, $email, $newsletter_consent, $registration_source, $registration_method, $registration_page );
-
-	$processed_invite_artist_id = null;
-	$invitation_outcome         = array();
-	if ( $has_artist_invitation ) {
-		$acceptance = ec_users_request_artist_invitation( $email, $invite_token, $invite_artist_id, (int) $user_id );
-		if ( is_wp_error( $acceptance ) ) {
-			$invitation_outcome = ec_users_classify_artist_invitation_error( $acceptance );
-		} else {
-			$processed_invite_artist_id = $invite_artist_id;
-		}
-	}
-
-	$user = get_user_by( 'id', (int) $user_id );
-	if ( ! $user ) {
-		return new WP_Error(
-			'invalid_user',
-			'User not found after registration.',
-			array( 'status' => 500 )
-		);
-	}
-
-	if ( ! is_user_member_of_blog( (int) $user_id, $community_blog_id ) ) {
-		return new WP_Error(
-			'extrachill_not_a_member',
-			'User is not a member of the community site.',
-			array( 'status' => 403 )
-		);
-	}
-
-	if ( $set_cookie ) {
-		wp_set_current_user( (int) $user_id, $user->user_login );
-		wp_set_auth_cookie( (int) $user_id, $remember );
-		do_action( 'wp_login', $user->user_login, $user );
-	}
-
-	$tokens = extrachill_users_mint_token_pair( (int) $user_id, $device_id, $device_name );
-
-	$account_created_token = $set_cookie ? ec_users_create_account_created_token( (int) $user_id ) : '';
-	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, false, $success_redirect_url, $account_created_token );
-
-	$response = array(
-		'access_token'         => $tokens['access']['token'],
-		'access_expires_at'    => gmdate( 'c', (int) $tokens['access']['expires_at'] ),
-		'refresh_token'        => $tokens['refresh']['token'],
-		'refresh_expires_at'   => gmdate( 'c', (int) $tokens['refresh']['expires_at'] ),
-		'onboarding_completed' => false,
-		'redirect_url'         => $redirect_url,
-		'user'                 => extrachill_users_token_user_payload( $user ),
+	return extrachill_users_create_pending_signup(
+		$registration_data,
+		array(
+			'device_id'            => $device_id,
+			'device_name'          => $device_name,
+			'newsletter_consent'   => $newsletter_consent,
+			'invite_token'         => $invite_token,
+			'invite_artist_id'     => $invite_artist_id,
+			'success_redirect_url' => $success_redirect_url,
+		)
 	);
-
-	if ( $processed_invite_artist_id ) {
-		$response['invite_artist_id'] = (int) $processed_invite_artist_id;
-	}
-	if ( $has_artist_invitation ) {
-		$response['artist_invitation_status'] = $invitation_outcome ? $invitation_outcome['status'] : 'applied';
-		if ( $invitation_outcome ) {
-			$response['artist_invitation_retryable'] = $invitation_outcome['retryable'];
-			$response['artist_invitation_error']     = $invitation_outcome['error'];
-		}
-	}
-
-	return $response;
 }
