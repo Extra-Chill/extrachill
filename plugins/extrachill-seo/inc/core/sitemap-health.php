@@ -131,10 +131,22 @@ function ec_seo_check_sitemap_health( $args = array() ) {
 			$switched = true;
 		}
 
-		$label = get_bloginfo( 'name' );
-		$urls  = ec_seo_collect_sitemap_sample_urls();
+		$label         = get_bloginfo( 'name' );
+		$index_failure = null;
+		$urls          = ec_seo_collect_sitemap_sample_urls( $index_failure );
 
 		$site_failures = array();
+		if ( null !== $index_failure ) {
+			$entry           = array_merge(
+				$index_failure,
+				array(
+					'blog_id' => $id,
+					'label'   => $label,
+				)
+			);
+			$failures[]      = $entry;
+			$site_failures[] = $entry;
+		}
 		foreach ( $urls as $url ) {
 			++$checked;
 			$status = ec_seo_fetch_status_code( $url );
@@ -207,56 +219,83 @@ function ec_seo_sitemap_health_target_blog_ids( $blog_id = null ) {
  * boundaries keeps the check cheap on large networks (e.g. 40 event pages)
  * while still catching page-number-scoped edge rules.
  *
+ * @param array|null $index_failure Set to URL and status on fetch/parse failure.
  * @return string[] Absolute sub-sitemap URLs to verify.
  */
-function ec_seo_collect_sitemap_sample_urls() {
+function ec_seo_collect_sitemap_sample_urls( &$index_failure = null ) {
+	$index_failure = null;
+
+	// These checks read the switched site's options, not its registered types.
+	if ( ! get_option( 'blog_public' ) || ( function_exists( 'wp_sitemaps_get_server' ) && ! wp_sitemaps_get_server()->sitemaps_enabled() ) ) {
+		return array();
+	}
+
+	$index_url = get_home_url( get_current_blog_id(), '/wp-sitemap.xml' );
+	$response  = ec_seo_fetch_sitemap_response( $index_url );
+	$status    = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+	$urls      = 200 === $status ? ec_seo_parse_sitemap_sample_urls( wp_remote_retrieve_body( $response ) ) : null;
+
+	if ( null === $urls ) {
+		$index_failure = array(
+			'url'    => $index_url,
+			'status' => $status,
+		);
+		return array();
+	}
+
+	return $urls;
+}
+
+/**
+ * Sample advertised page boundaries, without consulting request-local providers.
+ *
+ * Unknown URL formats are checked individually rather than silently omitted.
+ *
+ * @param string $body Live sitemap index XML.
+ * @return string[]|null Sample URLs, or null for an invalid index.
+ */
+function ec_seo_parse_sitemap_sample_urls( $body ) {
+	$previous = libxml_use_internal_errors( true );
+	$index    = simplexml_load_string( $body, 'SimpleXMLElement', LIBXML_NONET );
+	libxml_clear_errors();
+	libxml_use_internal_errors( $previous );
+	if ( false === $index || 'sitemapindex' !== $index->getName() ) {
+		return null;
+	}
+
+	$groups = array();
+	foreach ( $index->xpath( './*[local-name()="sitemap"]' ) as $sitemap ) {
+		$locations = $sitemap->xpath( './*[local-name()="loc"]' );
+		$url       = isset( $locations[0] ) ? trim( (string) $locations[0] ) : '';
+		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) || ! in_array( wp_parse_url( $url, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ) {
+			return null;
+		}
+
+		$key  = $url;
+		$page = 1;
+		if ( preg_match( '~^(.*wp-sitemap-.+)-(\d+)\.xml$~', $url, $matches ) ) {
+			$key  = $matches[1];
+			$page = (int) $matches[2];
+		} else {
+			$query = array();
+			parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
+			if ( isset( $query['sitemap'], $query['paged'] ) ) {
+				$page = (int) $query['paged'];
+				unset( $query['paged'] );
+				ksort( $query );
+				$key = strtok( $url, '?' ) . '?' . http_build_query( $query );
+			}
+		}
+		$groups[ $key ][ $page ] = $url;
+	}
+
 	$urls = array();
-
-	if ( ! function_exists( 'wp_get_sitemap_providers' ) ) {
-		return $urls;
+	foreach ( $groups as $pages ) {
+		ksort( $pages, SORT_NUMERIC );
+		$urls[] = reset( $pages );
+		$urls[] = end( $pages );
 	}
-
-	// A site whose sitemaps are disabled (e.g. blog_public = 0) serves no
-	// wp-sitemap-* URLs by design; sampling it would report false failures.
-	if ( function_exists( 'wp_sitemaps_get_server' ) && ! wp_sitemaps_get_server()->sitemaps_enabled() ) {
-		return $urls;
-	}
-
-	$providers = wp_get_sitemap_providers();
-
-	foreach ( $providers as $provider ) {
-		$subtypes = $provider->get_object_subtypes();
-
-		// Providers with no subtypes (e.g. users) still expose a single sitemap.
-		if ( empty( $subtypes ) ) {
-			$subtypes = array( '' => (object) array( 'name' => '' ) );
-		}
-
-		foreach ( $subtypes as $subtype_object ) {
-			$subtype_name = is_object( $subtype_object ) && isset( $subtype_object->name )
-				? $subtype_object->name
-				: (string) $subtype_object;
-
-			$max_pages = (int) $provider->get_max_num_pages( $subtype_name );
-			if ( $max_pages < 1 ) {
-				continue;
-			}
-
-			$pages_to_check = array( 1 );
-			if ( $max_pages > 1 ) {
-				$pages_to_check[] = $max_pages;
-			}
-
-			foreach ( array_unique( $pages_to_check ) as $page ) {
-				$url = $provider->get_sitemap_url( $subtype_name, $page );
-				if ( $url ) {
-					$urls[ $url ] = true;
-				}
-			}
-		}
-	}
-
-	return array_keys( $urls );
+	return array_values( array_unique( $urls ) );
 }
 
 /**
@@ -269,7 +308,18 @@ function ec_seo_collect_sitemap_sample_urls() {
  * @return int HTTP status code, or 0 on transport error.
  */
 function ec_seo_fetch_status_code( $url ) {
-	$response = wp_remote_get(
+	$response = ec_seo_fetch_sitemap_response( $url );
+	return is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+}
+
+/**
+ * Fetch a sitemap or index using the same crawler-facing request options.
+ *
+ * @param string $url URL to fetch.
+ * @return array|\WP_Error HTTP response.
+ */
+function ec_seo_fetch_sitemap_response( $url ) {
+	return wp_remote_get(
 		$url,
 		array(
 			'timeout'     => 10,
@@ -279,12 +329,6 @@ function ec_seo_fetch_status_code( $url ) {
 			'headers'     => array( 'Accept' => 'application/xml,text/xml' ),
 		)
 	);
-
-	if ( is_wp_error( $response ) ) {
-		return 0;
-	}
-
-	return (int) wp_remote_retrieve_response_code( $response );
 }
 
 /**

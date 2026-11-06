@@ -43,6 +43,7 @@ final class BookingProvider {
 
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingSchema.php';
 		add_action( 'extrachill_events_after_venue_schema_install', array( self::class, 'install_schema' ) );
+		add_filter( 'extrachill_events_schema_versions', array( self::class, 'schema_versions' ) );
 		add_filter( 'extrachill_events_ability_classes', array( self::class, 'ability_classes' ) );
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/core/booking-venue-settings.php';
 		require_once EXTRACHILL_BOOKING_PLUGIN_DIR . 'inc/Core/BookingRepository.php';
@@ -108,6 +109,22 @@ final class BookingProvider {
 		} else {
 			\ExtraChillEvents\Core\BookingSchema::maybe_install();
 		}
+	}
+
+	/**
+	 * Register the booking schema version so a stale booking schema opens the
+	 * Events lock-guarded install path that fires install_schema().
+	 *
+	 * @param array $versions Schema versions keyed by version option name.
+	 * @return array
+	 */
+	public static function schema_versions( $versions ): array {
+		$versions = is_array( $versions ) ? $versions : array();
+		$versions[ \ExtraChillEvents\Core\BookingSchema::VERSION_OPTION ] = array(
+			'version' => \ExtraChillEvents\Core\BookingSchema::SCHEMA_VERSION,
+			'network' => false,
+		);
+		return $versions;
 	}
 
 	/**
