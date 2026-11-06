@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.58.0] - 2026-11-06
+
+### Added
+- personal-data eraser + account-deletion cleanup for Users tables
+
 ## [0.57.6] - 2026-11-05
 
 ### Changed
