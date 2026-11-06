@@ -354,9 +354,9 @@ final class NetworkAbilitySearch {
 	 * Match a remote site's REST ability records against a search query and
 	 * shape them like agents/ability-search compact entries.
 	 *
-	 * Mirrors the substrate's matching (agents_ability_matches_query()):
-	 * `select:` picks exact names, otherwise every term and +required term
-	 * must appear in the name, label, description or category. Parsing is
+	 * `select:` picks exact names. Otherwise at least one plain term and every
+	 * +required term must appear in the name, label, description or category.
+	 * Queries without plain terms only apply the required filters. Parsing is
 	 * delegated to the substrate when it is loaded, so query syntax stays
 	 * owned there.
 	 *
@@ -364,11 +364,12 @@ final class NetworkAbilitySearch {
 	 * @return array<int,array<string,mixed>>
 	 */
 	public static function match_records( array $records, string $query ): array {
-		$parsed   = function_exists( 'agents_parse_ability_search_query' )
+		$parsed         = function_exists( 'agents_parse_ability_search_query' )
 			? agents_parse_ability_search_query( $query )
 			: self::parse_query( $query );
-		$selected = array_map( 'strval', (array) ( $parsed['selected'] ?? array() ) );
-		$terms    = array_map( 'strval', array_merge( (array) ( $parsed['terms'] ?? array() ), (array) ( $parsed['required'] ?? array() ) ) );
+		$selected       = array_map( 'strval', (array) ( $parsed['selected'] ?? array() ) );
+		$terms          = array_values( array_filter( array_map( 'strval', (array) ( $parsed['terms'] ?? array() ) ), static fn( string $term ): bool => '' !== $term ) );
+		$required_terms = array_map( 'strval', (array) ( $parsed['required'] ?? array() ) );
 
 		$entries = array();
 		foreach ( $records as $record ) {
@@ -383,10 +384,21 @@ final class NetworkAbilitySearch {
 				}
 			} else {
 				$haystack = strtolower( implode( ' ', array( $name, (string) ( $record['label'] ?? '' ), (string) ( $record['description'] ?? '' ), (string) ( $record['category'] ?? '' ) ) ) );
-				foreach ( $terms as $term ) {
+				foreach ( $required_terms as $term ) {
 					if ( '' !== $term && ! str_contains( $haystack, strtolower( $term ) ) ) {
 						continue 2;
 					}
+				}
+
+				$matches_term = array() === $terms;
+				foreach ( $terms as $term ) {
+					if ( str_contains( $haystack, strtolower( $term ) ) ) {
+						$matches_term = true;
+						break;
+					}
+				}
+				if ( ! $matches_term ) {
+					continue;
 				}
 			}
 
@@ -502,7 +514,7 @@ final class NetworkAbilitySearch {
 			'properties' => array(
 				'query'    => array(
 					'type'        => 'string',
-					'description' => __( 'Search query. Supports name/category substrings, +keyword requirements, and select:foo/bar,baz/qux.', 'extrachill-mcp' ),
+					'description' => __( 'Search query. Plain terms match any word and rank by relevance across name, label, description and category. Use +keyword for required terms and select:foo/bar,baz/qux for exact abilities.', 'extrachill-mcp' ),
 					'default'     => '',
 				),
 				'category' => array(
