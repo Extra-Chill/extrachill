@@ -82,6 +82,7 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-invite-page.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/ad-free-pages.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-pass-integration.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/ticket-checkout.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-scope-token.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/my-shows-calendar-filter.php';
