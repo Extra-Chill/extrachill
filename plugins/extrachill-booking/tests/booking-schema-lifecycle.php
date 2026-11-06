@@ -30,6 +30,17 @@ namespace {
 		ExtraChillEvents\Providers\BookingProvider::install_schema( $context );
 	}
 	function flush_rewrite_rules() {}
+	// Version-gated, lock-guarded install path: doubles carry no version
+	// constants, so every schema reads stale and the lock is always granted.
+	function apply_filters( $hook, $value ) { return $value; }
+	function get_option( $name, $default = false ) { return $default; }
+	function get_site_option( $name, $default = false ) { return $default; }
+	function wp_cache_delete( $key, $group = '' ) { return true; }
+	$GLOBALS['wpdb'] = new class() {
+		public $base_prefix = 'wp_';
+		public function prepare( $query, ...$args ) { return vsprintf( str_replace( '%s', "'%s'", $query ), $args ); }
+		public function get_var( $query ) { return '1'; }
+	};
 	require __DIR__ . '/../../extrachill-events/inc/Providers/LifecycleProvider.php';
 	require dirname( __DIR__ ) . '/inc/Providers/BookingProvider.php';
 	// Historical order per entry point (main before P1d): activation installs
