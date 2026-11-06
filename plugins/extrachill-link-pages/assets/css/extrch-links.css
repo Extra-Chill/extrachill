@@ -139,14 +139,6 @@ body {
   justify-content: center;
   margin-bottom: 1.5em;
 }
-.extrch-social-icon {
-  font-size: 1.5em;
-  color: var(--link-page-text-color); /* Social icons sit on the page background. */
-  transition: color 0.18s;
-}
-.extrch-social-icon:hover {
-  color: var(--link-page-button-hover-bg-color); /* Consistent hover, using button hover bg as link hover color */
-}
 
 .extrch-link-page-links {
   display: flex;
@@ -198,9 +190,11 @@ body {
   text-decoration: none;
 }
 
-.extrch-link-button-wrapper:hover {
+.extrch-link-button-wrapper:hover,
+.extrch-link-button-wrapper:active,
+.extrch-link-button-wrapper:focus-within {
   background: var(--link-page-button-hover-bg-color);
-  color: var(--link-page-button-bg-color); /* Revert to original button background color for text on hover */
+  color: var(--link-page-button-hover-text-color, var(--link-page-link-text-color));
 }
 
 .extrch-link-page-link:hover {
@@ -214,12 +208,12 @@ body {
 .extrch-link-page-powered {
   margin-top: 2em;
   font-size: 0.98em;
-  color: var(--link-page-muted-text-color);
+  color: var(--link-page-icon-color, var(--link-page-text-color));
   font-family: var(--link-page-body-font-family); /* Directly apply body font */
   text-align: center;
 }
 .extrch-link-page-powered a {
-  color: var(--link-page-text-color); /* Footer links sit on the page background. */
+  color: var(--link-page-icon-color, var(--link-page-text-color)); /* Defaults to page text color: sits on the page background. */
   text-decoration: underline;
 }
 
@@ -312,7 +306,7 @@ body {
 }
 .extrch-social-icon {
   font-size: 1.5em;
-  color: var(--link-page-text-color); /* Social icons sit on the page background. */
+  color: var(--link-page-icon-color, var(--link-page-text-color)); /* Defaults to page text color: sits on the page background. */
   transition: color 0.18s;
 }
 .extrch-social-icon:hover {
