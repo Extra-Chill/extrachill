@@ -33,8 +33,8 @@ class QualifyVerdictsTable {
 	 *     aimed at chat agents that read verdicts and decide next actions.
 	 *     Human-readable hints stay in improvement_hint.
 	 */
-	private const SCHEMA_VERSION        = '2';
-	private const SCHEMA_VERSION_OPTION = 'extrachill_events_qualify_verdicts_schema_version';
+	public const SCHEMA_VERSION        = '2';
+	public const SCHEMA_VERSION_OPTION = 'extrachill_events_qualify_verdicts_schema_version';
 
 	/**
 	 * Full table name for the current site.

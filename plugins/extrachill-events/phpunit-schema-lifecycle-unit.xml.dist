@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="tests/bootstrap.php" colors="true" beStrictAboutOutputDuringTests="true" beStrictAboutTestsThatDoNotTestAnything="true" failOnRisky="true" failOnWarning="true">
+	<testsuites>
+		<!--
+			schema-lifecycle-unit: pure-PHP unit tests for the lock-guarded,
+			version-gated schema install entry point
+			(LifecycleProvider::maybe_install_schema). Kept in its own suite
+			because it defines option/cache shims with a request-local cache
+			model that sibling suites define differently.
+		-->
+		<testsuite name="schema-lifecycle-unit">
+			<file>tests/Unit/Providers/LifecycleProviderSchemaLockTest.php</file>
+		</testsuite>
+	</testsuites>
+</phpunit>
