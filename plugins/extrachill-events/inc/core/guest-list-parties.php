@@ -399,7 +399,7 @@ function extrachill_events_guest_list_pass_party_name( array $pass ): string {
  * The account-less guest rows for the door list, with their source.
  *
  * @param int $event_id Event post ID.
- * @return array[] Each: label, guest_name, source (party name or ''), added_by (host display name or ''), code, status, redeemed_at (formatted).
+ * @return array[] Each: pass_id, label, guest_name, source (party name or ''), added_by (host display name or ''), code, status, redeemed_at (formatted).
  */
 function extrachill_events_door_list_guest_rows( int $event_id ): array {
 	$passes = array_values(
@@ -430,6 +430,7 @@ function extrachill_events_door_list_guest_rows( int $event_id ): array {
 		$guest_name  = (string) ( $pass['guest_name'] ?? '' );
 		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? '';
 		$rows[]      = array(
+			'pass_id'     => (int) ( $pass['id'] ?? 0 ),
 			'label'       => extrachill_events_guest_list_pass_label( $guest_name, $source ),
 			'guest_name'  => $guest_name,
 			'source'      => $source,

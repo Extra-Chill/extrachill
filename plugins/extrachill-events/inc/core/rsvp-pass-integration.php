@@ -160,6 +160,23 @@ function extrachill_events_append_door_list( $content ) {
 		$guest_rows = array_merge( $guest_rows, extrachill_events_owner_list_door_rows( $post_id ) );
 	}
 
+	// One A to Z list for the door: accounts, guests, and owner's lists
+	// interleaved by name, each "+N" right after its primary (extrachill#1142).
+	$door_rows = array();
+	foreach ( $rows as $row ) {
+		$door_rows[] = array( 'kind' => 'attendee' ) + $row;
+	}
+	foreach ( $guest_rows as $guest_row ) {
+		$door_rows[] = array( 'kind' => 'guest' ) + $guest_row;
+	}
+	$door_rows = function_exists( 'extrachill_events_sort_guest_rows' ) ? extrachill_events_sort_guest_rows( $door_rows ) : $door_rows;
+
+	// The type-to-filter box lives in the host panel script; the panel
+	// usually enqueued it already.
+	if ( $door_rows && ! wp_script_is( 'ec-guest-list-management', 'enqueued' ) ) {
+		wp_enqueue_script( 'ec-guest-list-management', EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/guest-list-management.js', array(), EXTRACHILL_EVENTS_VERSION, true );
+	}
+
 	ob_start();
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';
 	$door_list_html = ob_get_clean();

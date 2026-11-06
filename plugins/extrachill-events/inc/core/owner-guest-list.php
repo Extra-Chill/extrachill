@@ -341,6 +341,7 @@ function extrachill_events_owner_list_door_rows( int $event_id ): array {
 		foreach ( $members as $member ) {
 			$checkin = $checkins[ (int) $member['id'] ] ?? null;
 			$rows[]  = array(
+				'pass_id'     => (int) ( $member['id'] ?? 0 ),
 				'label'       => sprintf(
 					/* translators: 1: guest name, 2: "Venue list" or "Promoter list". */
 					__( '%1$s (%2$s)', 'extrachill-events' ),
