@@ -75,6 +75,10 @@ final class FatalAlarmAsyncPermissionTest extends Extrachill_Analytics_TestCase 
 	 * Running the task leaves no grant behind for the next job in the request.
 	 */
 	public function test_execute_task_restores_evaluation_state(): void {
+		// The evaluator looks up agents/dispatch-message, which is not
+		// registered in this plugin's test environment.
+		$this->setExpectedIncorrectUsage( 'WP_Abilities_Registry::get_registered' );
+
 		$task = new FatalRateAlarmTask();
 		$task->executeTask( 1, array( 'dry_run' => true ) );
 
