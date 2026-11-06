@@ -127,7 +127,7 @@ function ec_social_link_email_url( $raw ) {
 	if ( 0 === stripos( $address, 'mailto:' ) ) {
 		$address = substr( $address, 7 );
 	}
-	$address = sanitize_email( rawurldecode( strtok( $address, '?' ) ) );
+	$address = sanitize_email( rawurldecode( explode( '?', $address, 2 )[0] ) );
 	if ( '' === $address || ! is_email( $address ) ) {
 		return '';
 	}
