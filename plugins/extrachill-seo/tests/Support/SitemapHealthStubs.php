@@ -50,3 +50,7 @@ function wp_remote_retrieve_response_code( $response ) {
 function wp_remote_retrieve_body( $response ) {
 	return $response['body'];
 }
+
+function wp_parse_url( $url, $component = -1 ) {
+	return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url -- test double for core's wrapper.
+}

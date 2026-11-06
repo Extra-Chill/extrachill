@@ -137,7 +137,13 @@ function ec_seo_check_sitemap_health( $args = array() ) {
 
 		$site_failures = array();
 		if ( null !== $index_failure ) {
-			$entry           = array_merge( $index_failure, array( 'blog_id' => $id, 'label' => $label ) );
+			$entry           = array_merge(
+				$index_failure,
+				array(
+					'blog_id' => $id,
+					'label'   => $label,
+				)
+			);
 			$failures[]      = $entry;
 			$site_failures[] = $entry;
 		}
@@ -230,7 +236,10 @@ function ec_seo_collect_sitemap_sample_urls( &$index_failure = null ) {
 	$urls      = 200 === $status ? ec_seo_parse_sitemap_sample_urls( wp_remote_retrieve_body( $response ) ) : null;
 
 	if ( null === $urls ) {
-		$index_failure = array( 'url' => $index_url, 'status' => $status );
+		$index_failure = array(
+			'url'    => $index_url,
+			'status' => $status,
+		);
 		return array();
 	}
 
@@ -258,7 +267,7 @@ function ec_seo_parse_sitemap_sample_urls( $body ) {
 	foreach ( $index->xpath( './*[local-name()="sitemap"]' ) as $sitemap ) {
 		$locations = $sitemap->xpath( './*[local-name()="loc"]' );
 		$url       = isset( $locations[0] ) ? trim( (string) $locations[0] ) : '';
-		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) || ! in_array( parse_url( $url, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ) {
+		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) || ! in_array( wp_parse_url( $url, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ) {
 			return null;
 		}
 
@@ -269,7 +278,7 @@ function ec_seo_parse_sitemap_sample_urls( $body ) {
 			$page = (int) $matches[2];
 		} else {
 			$query = array();
-			parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $query );
+			parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $query );
 			if ( isset( $query['sitemap'], $query['paged'] ) ) {
 				$page = (int) $query['paged'];
 				unset( $query['paged'] );
@@ -320,7 +329,6 @@ function ec_seo_fetch_sitemap_response( $url ) {
 			'headers'     => array( 'Accept' => 'application/xml,text/xml' ),
 		)
 	);
-
 }
 
 /**
