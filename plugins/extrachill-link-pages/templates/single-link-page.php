@@ -48,7 +48,7 @@ $background_image_url = $data['background_image_url'];
 if ( 'image' === $background_type && $background_image_url ) {
 	$body_style = 'background-image:url(' . esc_url( $background_image_url ) . ');background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed;';
 } elseif ( 'gradient' === $background_type ) {
-	$body_style = 'background:linear-gradient(' . esc_attr( $data['css_vars']['--link-page-background-gradient-direction'] ) . ', ' . esc_attr( $data['css_vars']['--link-page-background-gradient-start'] ) . ', ' . esc_attr( $data['css_vars']['--link-page-background-gradient-end'] ) . ');background-attachment:fixed;';
+	$body_style = 'background:linear-gradient(' . esc_attr( $data['css_vars']['--link-page-background-gradient-direction'] ) . ', ' . esc_attr( ec_link_page_gradient_colors( $data['css_vars'] ) ) . ');background-attachment:fixed;';
 } else {
 	$body_style = 'background-color:' . esc_attr( $data['css_vars']['--link-page-background-color'] ) . ';';
 }

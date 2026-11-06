@@ -488,6 +488,8 @@ function ec_link_page_css_variables_style_block( $css_vars, $element_id = 'link-
 	if ( ! is_array( $css_vars ) || empty( $css_vars ) ) {
 		return '';
 	}
+	// Keep the optional stop out of comma-separated CSS when it is disabled.
+	$css_vars['--link-page-background-gradient-colors'] = ec_link_page_gradient_colors( $css_vars );
 	$output = '<style id="' . esc_attr( $element_id ) . '">:root {';
 	foreach ( $css_vars as $key => $value ) {
 		if ( null !== $value && false !== $value ) {

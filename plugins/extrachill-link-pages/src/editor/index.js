@@ -18,6 +18,7 @@ const DEFAULT_STYLES = {
 	'--link-page-background-type': 'color',
 	'--link-page-background-gradient-start': '#0b5394',
 	'--link-page-background-gradient-end': '#53940b',
+	'--link-page-background-gradient-middle': '',
 	'--link-page-background-gradient-direction': 'to right',
 	'--link-page-title-font-size': '2.1em',
 	'--link-page-button-radius': '8px',
@@ -41,9 +42,7 @@ const text = ( value, fallback = '' ) =>
 const hasOwn = ( value, key ) =>
 	Object.prototype.hasOwnProperty.call( value, key );
 const tempId = ( type ) =>
-	`temp-${ type }-${ Date.now() }-${ Math.random()
-		.toString( 36 )
-		.slice( 2, 8 ) }`;
+	`temp-${ type }-${ Date.now() }-${ Math.random().toString( 36 ).slice( 2, 8 ) }`;
 const storageKey = ( adapter, id ) =>
 	`ec-link-page-editor:dirty:${ adapter }:${ id }`;
 let editorInstance = 0;
@@ -597,6 +596,77 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 							}
 						/>
 					</Field>
+					<Field label="Use Middle Color">
+						<input
+							type="checkbox"
+							checked={
+								!! styles[
+									'--link-page-background-gradient-middle'
+								]
+							}
+							onChange={ ( event ) =>
+								style(
+									'--link-page-background-gradient-middle',
+									event.target.checked ? '#800080' : ''
+								)
+							}
+						/>
+					</Field>
+					{ styles[ '--link-page-background-gradient-middle' ] && (
+						<Field label="Gradient Middle">
+							<input
+								type="color"
+								value={
+									styles[
+										'--link-page-background-gradient-middle'
+									]
+								}
+								onChange={ ( event ) =>
+									style(
+										'--link-page-background-gradient-middle',
+										event.target.value
+									)
+								}
+							/>
+						</Field>
+					) }
+					<Field label="Gradient Angle (degrees)">
+						<input
+							type="number"
+							min="0"
+							max="360"
+							step="any"
+							value={
+								styles[
+									'--link-page-background-gradient-direction'
+								] === 'to right'
+									? 90
+									: styles[
+												'--link-page-background-gradient-direction'
+										  ] === 'to bottom'
+										? 180
+										: parseFloat(
+												styles[
+													'--link-page-background-gradient-direction'
+												]
+											)
+							}
+							onChange={ ( event ) => {
+								const angle = Number( event.target.value );
+								if (
+									event.target.value !== '' &&
+									Number.isFinite( angle ) &&
+									angle >= 0 &&
+									angle <= 360
+								) {
+									style(
+										'--link-page-background-gradient-direction',
+										`${ angle }deg`
+									);
+								}
+							} }
+						/>
+					</Field>
 					<Field label="Gradient Direction">
 						<select
 							value={
@@ -614,6 +684,21 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 							<option value="to right">Left to Right</option>
 							<option value="to bottom">Top to Bottom</option>
 							<option value="135deg">Diagonal</option>
+							{ ! [ 'to right', 'to bottom', '135deg' ].includes(
+								styles[
+									'--link-page-background-gradient-direction'
+								]
+							) && (
+								<option
+									value={
+										styles[
+											'--link-page-background-gradient-direction'
+										]
+									}
+								>
+									Custom Angle
+								</option>
+							) }
 						</select>
 					</Field>
 				</>
@@ -915,7 +1000,7 @@ export function Preview( {
 		}, ${
 			draft.page.styles[ '--link-page-background-gradient-start' ] ||
 			'#0b5394'
-		}, ${
+		}, ${ draft.page.styles[ '--link-page-background-gradient-middle' ] ? `${ draft.page.styles[ '--link-page-background-gradient-middle' ] }, ` : '' }${
 			draft.page.styles[ '--link-page-background-gradient-end' ] ||
 			'#53940b'
 		})`;

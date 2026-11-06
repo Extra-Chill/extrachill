@@ -526,7 +526,7 @@ function extrachill_artist_platform_register_abilities() {
 		'extrachill/save-link-page-styles',
 		array(
 			'label'               => __( 'Save Link Page Styles', 'extrachill-artist-platform' ),
-			'description'         => __( 'Save CSS variables for a link page. Merges with existing styles. Set --link-page-button-finish to flat (default) or gloss for a translucent button sheen.', 'extrachill-artist-platform' ),
+			'description'         => __( 'Save CSS variables for a link page. Merges with existing styles. Set --link-page-button-finish to flat (default) or gloss for a translucent button sheen. Gradients support --link-page-background-gradient-direction (0 to 360deg, to right, or to bottom), start/end colors, and optional --link-page-background-gradient-middle (empty string disables the middle stop).', 'extrachill-artist-platform' ),
 			'category'            => 'extrachill-artist-platform',
 			'input_schema'        => array(
 				'type'       => 'object',
