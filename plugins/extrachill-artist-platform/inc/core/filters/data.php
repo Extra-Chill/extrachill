@@ -207,13 +207,14 @@ function ec_get_external_artist_link_page_data( $artist_id, $link_page_id, $over
 		array(
 			'subscribe_display_mode' => ( get_post_meta( $link_page_id, '_link_page_subscribe_display_mode', true ) ? get_post_meta( $link_page_id, '_link_page_subscribe_display_mode', true ) : 'icon_modal' ),
 			'subscribe_description'  => (string) get_post_meta( $link_page_id, '_link_page_subscribe_description', true ),
-			'profile_image_id'       => ( get_post_thumbnail_id( $artist_id ) ? get_post_thumbnail_id( $artist_id ) : '' ),
+			// Use page-owned media resolved on the storage blog, not the artist thumbnail.
+			'profile_image_id'       => $persistence['profile_image_id'],
 		)
 	);
 	$data     = array(
 		'display_title'                     => ! empty( $overrides['artist_profile_title'] ) ? $overrides['artist_profile_title'] : (string) get_the_title( $artist_id ),
 		'bio'                               => ! empty( $overrides['link_page_bio_text'] ) ? $overrides['link_page_bio_text'] : $persistence['bio'],
-		'profile_img_url'                   => ! empty( $overrides['profile_img_url'] ) ? $overrides['profile_img_url'] : ( get_the_post_thumbnail_url( $artist_id, 'large' ) ? get_the_post_thumbnail_url( $artist_id, 'large' ) : '' ),
+		'profile_img_url'                   => ! empty( $overrides['profile_img_url'] ) ? $overrides['profile_img_url'] : $persistence['profile_image_url'],
 		'social_links'                      => isset( $overrides['social_links'] ) ? $overrides['social_links'] : $socials,
 		'socials'                           => $socials,
 		'link_sections'                     => $persistence['link_sections'],
