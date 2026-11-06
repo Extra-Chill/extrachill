@@ -3,11 +3,31 @@ import { createRoot } from '@wordpress/element';
 import { act } from 'react';
 import {
 	AdapterBoundary,
+	cardBackgroundParts,
+	cardBackgroundValue,
 	Editor,
 	exitLinksFor,
 	Preview,
 	registerAdapter,
 } from './index';
+
+describe( 'card background controls', () => {
+	it( 'preserves color and opacity including zero across reloads', () => {
+		for ( const opacity of [ 0, 0.4, 1 ] ) {
+			const value = cardBackgroundValue( '#123456', opacity );
+			expect( cardBackgroundParts( value ) ).toEqual( {
+				color: '#123456',
+				opacity,
+			} );
+		}
+		expect( cardBackgroundParts( 'none' ).opacity ).toBe( 0 );
+		expect( cardBackgroundParts( 'transparent' ).opacity ).toBe( 0 );
+		expect( cardBackgroundParts( '#abc' ) ).toEqual( {
+			color: '#aabbcc',
+			opacity: 1,
+		} );
+	} );
+} );
 
 const deferred = () => {
 	let resolve;
@@ -201,6 +221,45 @@ describe( 'portable editor behavior', () => {
 			container.querySelector( '[aria-label="Link Page identity"]' )
 				.disabled
 		).toBe( false );
+		await act( async () => root.unmount() );
+	} );
+
+	it( 'updates the card preview and saves fully transparent color', async () => {
+		const save = jest.fn( async ( id, draft ) =>
+			documentFor( id, { css_vars: draft.page.styles } )
+		);
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async ( id ) => documentFor( id ) ),
+			save,
+		};
+		const { container, root } = await renderEditor();
+		await act( async () =>
+			[ ...container.querySelectorAll( '[role="tab"]' ) ]
+				.find( ( tab ) => tab.textContent === 'Customize' )
+				.click()
+		);
+		const controlFor = ( label ) =>
+			container.querySelector(
+				`#${ [ ...container.querySelectorAll( 'label' ) ].find( ( item ) => item.textContent === label ).htmlFor }`
+			);
+		await input( controlFor( 'Card Color' ), '#123456' );
+		await input( controlFor( 'Card Opacity' ), '0' );
+		expect(
+			container
+				.querySelector( '.extrch-link-page-preview-container' )
+				.style.getPropertyValue( '--link-page-card-bg-color' )
+		).toBe( 'rgba(18, 52, 86, 0)' );
+		await act( async () =>
+			container
+				.querySelector( 'form' )
+				.dispatchEvent(
+					new Event( 'submit', { bubbles: true, cancelable: true } )
+				)
+		);
+		expect(
+			save.mock.calls[ 0 ][ 1 ].page.styles[ '--link-page-card-bg-color' ]
+		).toBe( 'rgba(18, 52, 86, 0)' );
+		expect( controlFor( 'Card Opacity' ).value ).toBe( '0' );
 		await act( async () => root.unmount() );
 	} );
 
