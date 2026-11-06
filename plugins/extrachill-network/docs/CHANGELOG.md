@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.37.0] - 2026-11-06
+
+### Added
+- ticket checkout on the seller's Stripe account, fulfilment and refunds
+
 ## [2.36.3] - 2026-11-06
 
 ### Fixed
