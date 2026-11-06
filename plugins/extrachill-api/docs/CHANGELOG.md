@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.50.0] - 2026-11-06
+
+### Added
+- ticket checkout on the seller's Stripe account, fulfilment and refunds
+
 ## [0.49.3] - 2026-11-06
 
 ### Fixed
