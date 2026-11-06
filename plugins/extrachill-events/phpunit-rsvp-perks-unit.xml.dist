@@ -23,6 +23,7 @@
 			<file>tests/Unit/Core/RsvpPassCardTest.php</file>
 			<file>tests/Unit/Core/RsvpGuestListPartiesTest.php</file>
 			<file>tests/Unit/Core/GuestListShowDayPinTest.php</file>
+			<file>tests/Unit/Core/RsvpGuestListRequestsTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

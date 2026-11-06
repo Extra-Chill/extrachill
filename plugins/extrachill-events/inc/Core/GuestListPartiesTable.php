@@ -15,6 +15,13 @@
  * passes it already issued stay on the list, and the host can remove them
  * one by one with the existing remove flow.
  *
+ * A band can also ask for spots on a show it was not invited to
+ * (extrachill#1129): that party starts `pending`, with no working link,
+ * and becomes an ordinary `active` party only when the venue accepts it
+ * (a fresh token is minted and mailed then). An active party can ask for
+ * more spots; the open ask lives on its row (`requested_spots`,
+ * `request_note`, `requested_at`) until the venue approves or denies it.
+ *
  * Installed alongside the passes table, under RsvpPassesTable's schema
  * version, so one option tracks both.
  *
@@ -30,6 +37,14 @@ final class GuestListPartiesTable {
 
 	const STATUS_ACTIVE  = 'active';
 	const STATUS_REVOKED = 'revoked';
+	const STATUS_PENDING = 'pending';
+	const STATUS_DENIED  = 'denied';
+
+	/** The host invited the party. */
+	const ORIGIN_INVITE = 'invite';
+
+	/** The party asked for spots on its own, from the public guest list page. */
+	const ORIGIN_REQUEST = 'request';
 
 	/**
 	 * Full table name. Site-scoped, like the passes table.
@@ -58,6 +73,12 @@ final class GuestListPartiesTable {
 			token_hash char(64) NOT NULL,
 			allotment int(10) unsigned NULL DEFAULT NULL,
 			status varchar(16) NOT NULL DEFAULT 'active',
+			origin varchar(16) NOT NULL DEFAULT 'invite',
+			requested_spots int(10) unsigned NULL DEFAULT NULL,
+			request_note varchar(500) NOT NULL DEFAULT '',
+			requested_at datetime NULL,
+			decided_at datetime NULL,
+			decided_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
 			created_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
 			created_at datetime NOT NULL,
 			revoked_at datetime NULL,
@@ -95,9 +116,10 @@ final class GuestListPartiesTable {
 	 * @param string   $email              Where the invite went.
 	 * @param int|null $allotment          Per-party spot cap; null = none set.
 	 * @param int      $created_by_user_id Host who invited them.
+	 * @param array    $request            Uninvited request (extrachill#1129): `requested_spots`, `request_note`. Non-empty makes the party pending.
 	 * @return array{party: array, token: string}|null Null on write failure.
 	 */
-	public static function create( int $event_id, string $name, string $email, ?int $allotment, int $created_by_user_id ): ?array {
+	public static function create( int $event_id, string $name, string $email, ?int $allotment, int $created_by_user_id, array $request = array() ): ?array {
 		global $wpdb;
 
 		$token = self::generate_token();
@@ -110,10 +132,16 @@ final class GuestListPartiesTable {
 				'name'       => $name,
 				'email'      => $email,
 				'token_hash' => self::hash_token( $token ),
-				'status'     => self::STATUS_ACTIVE,
+				'status'     => $request ? self::STATUS_PENDING : self::STATUS_ACTIVE,
 				'created_at' => $now,
 				'updated_at' => $now,
 			)
+			+ ( $request ? array(
+				'origin'          => self::ORIGIN_REQUEST,
+				'requested_spots' => max( 0, (int) ( $request['requested_spots'] ?? 0 ) ),
+				'request_note'    => (string) ( $request['request_note'] ?? '' ),
+				'requested_at'    => $now,
+			) : array() )
 			+ ( null !== $allotment ? array( 'allotment' => max( 0, $allotment ) ) : array() )
 			+ ( $created_by_user_id > 0 ? array( 'created_by_user_id' => $created_by_user_id ) : array() )
 		);
@@ -259,5 +287,162 @@ final class GuestListPartiesTable {
 		);
 
 		return false !== $updated;
+	}
+	/**
+	 * Open (or replace) an active party's ask for more spots.
+	 *
+	 * @param int    $event_id Event the party must belong to.
+	 * @param int    $party_id Party ID.
+	 * @param int    $spots    Extra spots asked for.
+	 * @param string $note     Optional note to the venue.
+	 * @return bool Whether an active party on the event was updated.
+	 */
+	public static function set_spot_request( int $event_id, int $party_id, int $spots, string $note ): bool {
+		global $wpdb;
+		$now = current_time( 'mysql', true );
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write.
+			self::table_name(),
+			array(
+				'requested_spots' => max( 0, $spots ),
+				'request_note'    => $note,
+				'requested_at'    => $now,
+				'updated_at'      => $now,
+			),
+			array(
+				'id'       => $party_id,
+				'event_id' => $event_id,
+				'status'   => self::STATUS_ACTIVE,
+			)
+		);
+
+		return false !== $updated && $updated > 0;
+	}
+
+	/**
+	 * Close an active party's ask for more spots, recording who decided.
+	 * Approving also adds the granted spots to the allotment.
+	 *
+	 * @param int $event_id       Event the party must belong to.
+	 * @param int $party_id       Party ID.
+	 * @param int $added_spots    Spots to add to the allotment; 0 for a denial.
+	 * @param int $actor_user_id  Host deciding.
+	 * @return bool Whether an open ask was closed.
+	 */
+	public static function close_spot_request( int $event_id, int $party_id, int $added_spots, int $actor_user_id ): bool {
+		$party = self::find( $party_id );
+		if ( ! $party || (int) $party['event_id'] !== $event_id || self::STATUS_ACTIVE !== $party['status'] || null === ( $party['requested_spots'] ?? null ) ) {
+			return false;
+		}
+
+		global $wpdb;
+		$now  = current_time( 'mysql', true );
+		$data = array(
+			'requested_spots'    => null,
+			'request_note'       => '',
+			'requested_at'       => null,
+			'decided_at'         => $now,
+			'decided_by_user_id' => $actor_user_id > 0 ? $actor_user_id : null,
+			'updated_at'         => $now,
+		);
+		if ( $added_spots > 0 ) {
+			$data['allotment'] = max( 0, (int) ( $party['allotment'] ?? 0 ) ) + $added_spots;
+		}
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write.
+			self::table_name(),
+			$data,
+			array(
+				'id'     => $party_id,
+				'status' => self::STATUS_ACTIVE,
+			)
+		);
+
+		return false !== $updated && $updated > 0;
+	}
+
+	/**
+	 * The venue accepts an uninvited request: the party turns active with
+	 * a fresh token (the one minted at request time was never shown to
+	 * anyone and is discarded).
+	 *
+	 * @param int      $event_id      Event the party must belong to.
+	 * @param int      $party_id      Party ID.
+	 * @param int|null $allotment     Spots granted; null leaves none set.
+	 * @param int      $actor_user_id Host accepting.
+	 * @return string|null The new raw token, or null when no pending party matched.
+	 */
+	public static function accept( int $event_id, int $party_id, ?int $allotment, int $actor_user_id ): ?string {
+		global $wpdb;
+		$token = self::generate_token();
+		$now   = current_time( 'mysql', true );
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write; the status in WHERE is the compare-and-set.
+			self::table_name(),
+			array(
+				'status'             => self::STATUS_ACTIVE,
+				'token_hash'         => self::hash_token( $token ),
+				'allotment'          => null === $allotment ? null : max( 0, $allotment ),
+				'requested_spots'    => null,
+				'requested_at'       => null,
+				'decided_at'         => $now,
+				'decided_by_user_id' => $actor_user_id > 0 ? $actor_user_id : null,
+				'updated_at'         => $now,
+			),
+			array(
+				'id'       => $party_id,
+				'event_id' => $event_id,
+				'status'   => self::STATUS_PENDING,
+			)
+		);
+
+		return ( false !== $updated && $updated > 0 ) ? $token : null;
+	}
+
+	/**
+	 * The venue declines an uninvited request. The party stays dead.
+	 *
+	 * @param int $event_id      Event the party must belong to.
+	 * @param int $party_id      Party ID.
+	 * @param int $actor_user_id Host declining.
+	 * @return bool Whether a pending party was denied.
+	 */
+	public static function deny( int $event_id, int $party_id, int $actor_user_id ): bool {
+		global $wpdb;
+		$now = current_time( 'mysql', true );
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write.
+			self::table_name(),
+			array(
+				'status'             => self::STATUS_DENIED,
+				'decided_at'         => $now,
+				'decided_by_user_id' => $actor_user_id > 0 ? $actor_user_id : null,
+				'revoked_at'         => $now,
+				'updated_at'         => $now,
+			),
+			array(
+				'id'       => $party_id,
+				'event_id' => $event_id,
+				'status'   => self::STATUS_PENDING,
+			)
+		);
+
+		return false !== $updated && $updated > 0;
+	}
+
+	/**
+	 * Whether this email already has a request waiting on this event.
+	 *
+	 * @param int    $event_id Event post ID.
+	 * @param string $email    Requester email.
+	 * @return bool
+	 */
+	public static function has_pending_request( int $event_id, string $email ): bool {
+		foreach ( self::list_for_event( $event_id ) as $party ) {
+			if ( self::STATUS_PENDING === $party['status'] && 0 === strcasecmp( (string) $party['email'], $email ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

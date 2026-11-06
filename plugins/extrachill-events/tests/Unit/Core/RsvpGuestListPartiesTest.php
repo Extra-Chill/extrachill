@@ -225,9 +225,11 @@ final class RsvpGuestListPartiesFakeWpdb {
 			return '1';
 		}
 		if ( preg_match( '/COUNT\(\*\).*WHERE event_id = (\d+) AND party_id = (\d+)/', $query, $m ) ) {
-			$count = 0;
+			// "status = 'pending'" counts names waiting for approval (extrachill#1129); otherwise spots held.
+			$statuses = preg_match( "/status = '(\w+)'/", $query, $s ) ? array( $s[1] ) : array( 'active', 'redeemed' );
+			$count    = 0;
 			foreach ( $this->passes as $row ) {
-				$count += ( (int) $row['event_id'] === (int) $m[1] && (int) ( $row['party_id'] ?? 0 ) === (int) $m[2] && in_array( $row['status'], array( 'active', 'redeemed' ), true ) ) ? 1 : 0;
+				$count += ( (int) $row['event_id'] === (int) $m[1] && (int) ( $row['party_id'] ?? 0 ) === (int) $m[2] && in_array( $row['status'], $statuses, true ) ) ? 1 : 0;
 			}
 			return (string) $count;
 		}

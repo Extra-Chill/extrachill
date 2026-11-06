@@ -34,6 +34,8 @@ function extrachill_events_render_guest_list_management( int $event_id, bool $se
 	$allotments_enabled = extrachill_events_guest_list_allotments_enabled( $event_id );
 	$parties            = function_exists( 'extrachill_events_list_guest_list_parties' ) ? extrachill_events_list_guest_list_parties( $event_id ) : array();
 	$parties            = is_wp_error( $parties ) ? array() : (array) ( $parties['parties'] ?? array() );
+	$requests           = function_exists( 'extrachill_events_list_guest_list_requests' ) ? extrachill_events_list_guest_list_requests( $event_id ) : array();
+	$requests           = is_wp_error( $requests ) ? array() : (array) ( $requests['requests'] ?? array() );
 	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-management.php';
 }
 
@@ -366,6 +368,56 @@ function extrachill_events_set_guest_list_party_allotment_from_panel(): void {
 	exit;
 }
 add_action( 'admin_post_ec_guest_party_allotment', 'extrachill_events_set_guest_list_party_allotment_from_panel' );
+
+/**
+ * Host panel "Pending requests" Accept button, through
+ * extrachill/approve-guest-list-request (extrachill#1129).
+ */
+function extrachill_events_approve_guest_list_request_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_party_manage_' . $event_id );
+
+	$input = array(
+		'event_id' => $event_id,
+		'party_id' => isset( $_POST['party_id'] ) ? absint( $_POST['party_id'] ) : 0,
+		'kind'     => isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '',
+	);
+	if ( isset( $_POST['spots'] ) && '' !== $_POST['spots'] ) {
+		$input['spots'] = absint( $_POST['spots'] );
+	}
+
+	$result = extrachill_events_run_guest_list_form_ability( 'extrachill/approve-guest-list-request', $input );
+
+	// An accepted uninvited band: show its new link once, like a fresh invite.
+	$url = ! empty( $result['invite_url'] )
+		? add_query_arg( 'ec_party_invite', rawurlencode( (string) $result['invite_url'] ), get_permalink( $event_id ) )
+		: get_permalink( $event_id );
+	wp_safe_redirect( $url . '#ec-guest-list-parties' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_request_approve', 'extrachill_events_approve_guest_list_request_from_panel' );
+
+/**
+ * Host panel "Pending requests" Deny button, through
+ * extrachill/deny-guest-list-request (extrachill#1129).
+ */
+function extrachill_events_deny_guest_list_request_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_party_manage_' . $event_id );
+
+	extrachill_events_run_guest_list_form_ability(
+		'extrachill/deny-guest-list-request',
+		array(
+			'event_id' => $event_id,
+			'party_id' => isset( $_POST['party_id'] ) ? absint( $_POST['party_id'] ) : 0,
+			'kind'     => isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '',
+		)
+	);
+
+	wp_safe_redirect( get_permalink( $event_id ) . '#ec-guest-list-requests' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_request_deny', 'extrachill_events_deny_guest_list_request_from_panel' );
 
 /**
  * Serve the guest-list share QR (PNG) to event managers.

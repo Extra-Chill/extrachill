@@ -136,3 +136,62 @@ function extrachill_events_guest_list_title( $parts ) {
 	return $parts;
 }
 add_filter( 'document_title_parts', 'extrachill_events_guest_list_title' );
+
+/**
+ * Guest list page "Request guest list spots" form (extrachill#1129): a
+ * band or manager not invited to the show asks the venue for spots.
+ *
+ * Abuse guards: a nonce, a honeypot field (a filled one gets the normal
+ * "sent" page and nothing is saved), a required email, and the per-IP and
+ * per-email rate limits inside extrachill_events_request_guest_list_party().
+ * The request itself is inert until a host accepts it.
+ */
+function extrachill_events_guest_list_request_from_page(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_party_request_' . $event_id );
+
+	if ( 'data_machine_events' !== get_post_type( $event_id ) || ! extrachill_events_has_guest_list_page( $event_id ) ) {
+		wp_die( esc_html__( 'This event has no guest list.', 'extrachill-events' ), '', array( 'response' => 404 ) );
+	}
+
+	$sent_url = add_query_arg( 'ec_request', 'sent', extrachill_events_guest_list_url( $event_id ) ) . '#ec-guest-list-request';
+
+	// Honeypot: people never see this field; bots fill it.
+	if ( ! empty( $_POST['website'] ) ) {
+		wp_safe_redirect( $sent_url );
+		exit;
+	}
+
+	$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/request-guest-list-party' ) : null;
+	if ( ! $ability ) {
+		wp_die( esc_html__( 'The guest list is unavailable.', 'extrachill-events' ), '', array( 'response' => 503 ) );
+	}
+
+	$result = $ability->execute(
+		array(
+			'event_id'  => $event_id,
+			'name'      => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '',
+			'email'     => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
+			'spots'     => isset( $_POST['spots'] ) ? absint( $_POST['spots'] ) : 0,
+			'names'     => isset( $_POST['names'] ) ? sanitize_textarea_field( wp_unslash( $_POST['names'] ) ) : '',
+			'note'      => isset( $_POST['note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['note'] ) ) : '',
+			'client_ip' => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		$data = $result->get_error_data();
+		wp_die(
+			esc_html( $result->get_error_message() ),
+			'',
+			array(
+				'response'  => is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 400,
+				'back_link' => true,
+			)
+		);
+	}
+
+	wp_safe_redirect( $sent_url );
+	exit;
+}
+add_action( 'admin_post_ec_guest_party_request', 'extrachill_events_guest_list_request_from_page' );
+add_action( 'admin_post_nopriv_ec_guest_party_request', 'extrachill_events_guest_list_request_from_page' );

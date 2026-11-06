@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '4';
+	const SCHEMA_VERSION = '5';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -40,6 +40,15 @@ final class RsvpPassesTable {
 	const STATUS_ACTIVE   = 'active';
 	const STATUS_REVOKED  = 'revoked';
 	const STATUS_REDEEMED = 'redeemed';
+
+	/**
+	 * A name an invited or requesting band submitted for the venue's OK
+	 * (extrachill#1129). Holds no spot and never redeems.
+	 */
+	const STATUS_PENDING = 'pending';
+
+	/** A submitted name the venue turned down. Dead forever; never redeems. */
+	const STATUS_DENIED = 'denied';
 
 	/** Charset-safe alphabet for pass codes: no ambiguous 0/O/1/I/L. */
 	private const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -91,6 +100,11 @@ final class RsvpPassesTable {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
 
+		// Schema 5 (extrachill#1129) adds the party request columns (origin,
+		// requested_spots, request_note, requested_at, decided_*). Pass rows
+		// only gain the pending/denied status values, which fit the existing
+		// varchar. Both are plain dbDelta work on the party table below.
+		//
 		// Schema 4 (extrachill#1128) adds party_id, the invited band or
 		// management that put a guest on the list, and the party table
 		// itself. Both are plain dbDelta additions.
@@ -567,23 +581,166 @@ final class RsvpPassesTable {
 		global $wpdb;
 		$now = current_time( 'mysql', true );
 
-		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write; cache is purged by the caller.
+		// A name still waiting for the venue's OK (extrachill#1129) can be
+		// taken off too; it never held a spot.
+		foreach ( array( self::STATUS_ACTIVE, self::STATUS_PENDING ) as $status ) {
+			$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write; cache is purged by the caller.
+				self::table_name(),
+				array(
+					'status'     => self::STATUS_REVOKED,
+					'revoked_at' => $now,
+					'updated_at' => $now,
+				),
+				array(
+					'event_id' => $event_id,
+					'code'     => $code,
+					'user_id'  => null,
+					'status'   => $status,
+				)
+				+ ( $party_id > 0 ? array( 'party_id' => $party_id ) : array() )
+			);
+			if ( false !== $updated && $updated > 0 ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Hold a submitted name for the venue's approval (extrachill#1129).
+	 *
+	 * The row is an account-less pass in `pending`: it holds no spot (only
+	 * active and redeemed rows count), never redeems, and is never shown to
+	 * the band as a pass link until the venue approves it.
+	 *
+	 * @param int    $event_id   Event post ID.
+	 * @param string $guest_name Guest name.
+	 * @param int    $party_id   Party that submitted it.
+	 * @return array|null The pending row, or null on write failure.
+	 */
+	public static function issue_pending( int $event_id, string $guest_name, int $party_id ): ?array {
+		global $wpdb;
+		$now  = current_time( 'mysql', true );
+		$code = self::generate_code();
+
+		$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table write.
 			self::table_name(),
 			array(
-				'status'     => self::STATUS_REVOKED,
-				'revoked_at' => $now,
+				'event_id'   => $event_id,
+				'code'       => $code,
+				'guest_name' => '' === $guest_name ? null : $guest_name,
+				'status'     => self::STATUS_PENDING,
+				'party_id'   => $party_id,
+				'issued_at'  => $now,
 				'updated_at' => $now,
-			),
-			array(
-				'event_id' => $event_id,
-				'code'     => $code,
-				'user_id'  => null,
-				'status'   => self::STATUS_ACTIVE,
 			)
-			+ ( $party_id > 0 ? array( 'party_id' => $party_id ) : array() )
 		);
 
-		return false !== $updated && $updated > 0;
+		return false === $inserted ? null : self::find_by_code( $code );
+	}
+
+	/**
+	 * Count a party's names waiting for the venue's approval.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @param int $party_id Party ID.
+	 * @return int
+	 */
+	public static function count_pending_for_party( int $event_id, int $party_id ): int {
+		global $wpdb;
+		$table = self::table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Approval must read live rows, never a cache.
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE event_id = %d AND party_id = %d AND status = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id,
+				$party_id,
+				self::STATUS_PENDING
+			)
+		);
+	}
+
+	/**
+	 * The venue approves a party's pending names: they go live together.
+	 *
+	 * With a capacity, the count-and-activate runs under the same per-event
+	 * lock as every other issue, so approving a list can never push the
+	 * event past its spots. All or nothing: a list that doesn't fit is left
+	 * pending and the host raises the spots first.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @param int $party_id Party ID.
+	 * @param int $capacity Event capacity; 0 = unlimited.
+	 * @return int|null Names activated, or null when they don't fit (or the lock can't be taken).
+	 */
+	public static function activate_pending_for_party( int $event_id, int $party_id, int $capacity = 0 ): ?int {
+		if ( $capacity > 0 && ! self::acquire_capacity_lock( $event_id ) ) {
+			return null;
+		}
+
+		try {
+			$pending = self::count_pending_for_party( $event_id, $party_id );
+			if ( 0 === $pending ) {
+				return 0;
+			}
+			if ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] + $pending > $capacity ) {
+				return null;
+			}
+
+			return self::set_party_pending_status( $event_id, $party_id, self::STATUS_ACTIVE );
+		} finally {
+			if ( $capacity > 0 ) {
+				self::release_capacity_lock( $event_id );
+			}
+		}
+	}
+
+	/**
+	 * The venue declines a party's pending names. They stay dead.
+	 *
+	 * @param int $event_id Event post ID.
+	 * @param int $party_id Party ID.
+	 * @return int Names denied.
+	 */
+	public static function deny_pending_for_party( int $event_id, int $party_id ): int {
+		return self::set_party_pending_status( $event_id, $party_id, self::STATUS_DENIED );
+	}
+
+	/**
+	 * Move every pending row of a party to a new status.
+	 *
+	 * @param int    $event_id Event post ID.
+	 * @param int    $party_id Party ID.
+	 * @param string $status   STATUS_ACTIVE or STATUS_DENIED.
+	 * @return int Rows moved.
+	 */
+	private static function set_party_pending_status( int $event_id, int $party_id, string $status ): int {
+		global $wpdb;
+		$now = current_time( 'mysql', true );
+
+		$data = array(
+			'status'     => $status,
+			'updated_at' => $now,
+		);
+		if ( self::STATUS_ACTIVE === $status ) {
+			$data['issued_at'] = $now;
+		} else {
+			$data['revoked_at'] = $now;
+		}
+
+		$updated = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write; cache is purged by the caller.
+			self::table_name(),
+			$data,
+			array(
+				'event_id' => $event_id,
+				'party_id' => $party_id,
+				'status'   => self::STATUS_PENDING,
+			)
+		);
+
+		return false === $updated ? 0 : (int) $updated;
 	}
 
 	/**
@@ -656,6 +813,20 @@ final class RsvpPassesTable {
 				? __( 'Not on the list: this guest was taken off the guest list.', 'extrachill-events' )
 				: __( "This attendee's RSVP was cancelled; their pass is no longer valid.", 'extrachill-events' );
 			return new \WP_Error( 'rsvp_pass_revoked', $message, array( 'status' => 409 ) );
+		}
+
+		// Pending and denied names (extrachill#1129) were never put on the
+		// list by the venue: nothing a band submits works at the door until
+		// the venue accepts it.
+		if ( self::STATUS_PENDING === $pass['status'] || self::STATUS_DENIED === $pass['status'] ) {
+			$message = self::STATUS_PENDING === $pass['status']
+				? __( 'Not on the list: the venue has not approved this name yet.', 'extrachill-events' )
+				: __( 'Not on the list: the venue declined this name.', 'extrachill-events' );
+			return new \WP_Error( 'rsvp_pass_not_approved', $message, array( 'status' => 409 ) );
+		}
+
+		if ( self::STATUS_REDEEMED !== $pass['status'] && self::STATUS_ACTIVE !== $pass['status'] ) {
+			return new \WP_Error( 'rsvp_pass_not_approved', __( 'Not on the list.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
 		if ( self::STATUS_REDEEMED === $pass['status'] ) {

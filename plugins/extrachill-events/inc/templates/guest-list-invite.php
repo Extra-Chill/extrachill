@@ -7,6 +7,10 @@
  * turned allotments on, otherwise the event's), the names they added with a
  * pass link to text each guest, and a Remove button.
  *
+ * Requests (extrachill#1129): with allotments on, the band can ask the
+ * venue for more spots; any band can send a whole list for the venue to
+ * approve. Submitted names show as waiting (no pass link) until approved.
+ *
  * Ships no CSS of its own: theme classes plus the guest-list page hooks,
  * allow-listed in RsvpPassDesignSystemTest.php.
  *
@@ -48,6 +52,10 @@ if ( ! $revoked ) {
 			(int) $summary['used']
 		);
 	}
+
+	$allotments_on = extrachill_events_guest_list_allotments_enabled( $event_id );
+	$asked_spots   = $summary['requested_spots'];
+	$nonce_action  = 'ec_guest_party_' . (int) $party['id'];
 
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only confirmation after the add redirect; the code is checked against this party below.
 	$added_code = isset( $_GET['added'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_GET['added'] ) ) ) : '';
@@ -101,7 +109,7 @@ get_header();
 			<?php if ( $is_past ) : ?>
 				<p class="notice notice-info"><?php esc_html_e( 'This event has already happened.', 'extrachill-events' ); ?></p>
 			<?php elseif ( $no_room ) : ?>
-				<p class="notice notice-info"><?php esc_html_e( "You've used all your guest list spots. Ask the venue for more.", 'extrachill-events' ); ?></p>
+				<p class="notice notice-info"><?php echo esc_html( $allotments_on ? __( "You've used all your guest list spots. Ask the venue for more below.", 'extrachill-events' ) : __( 'The guest list is full.', 'extrachill-events' ) ); ?></p>
 			<?php else : ?>
 				<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<input type="hidden" name="action" value="ec_guest_party_add">
@@ -117,6 +125,48 @@ get_header();
 				</form>
 			<?php endif; ?>
 
+			<?php if ( ! $is_past ) : ?>
+				<?php if ( $allotments_on ) : ?>
+					<?php if ( null !== $asked_spots ) : ?>
+						<p class="notice notice-info">
+						<?php
+						/* translators: %d: extra spots asked for. */
+						printf( esc_html( _n( 'You asked the venue for %d more spot. They will email you when they decide.', 'You asked the venue for %d more spots. They will email you when they decide.', (int) $asked_spots, 'extrachill-events' ) ), (int) $asked_spots );
+						?>
+						</p>
+					<?php else : ?>
+						<details>
+							<summary><?php esc_html_e( 'Need more spots? Ask the venue', 'extrachill-events' ); ?></summary>
+							<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="ec_guest_party_request_spots">
+								<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+								<?php wp_nonce_field( $nonce_action, '_wpnonce', false ); ?>
+								<label><?php esc_html_e( 'Extra spots', 'extrachill-events' ); ?>
+									<input type="number" name="spots" min="1" max="<?php echo esc_attr( (string) EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_MAX_SPOTS ); ?>" value="2" required>
+								</label>
+								<label><?php esc_html_e( 'Note to the venue (optional)', 'extrachill-events' ); ?>
+									<textarea name="note" rows="2" maxlength="500"></textarea>
+								</label>
+								<button type="submit" class="button-2 button-medium"><?php esc_html_e( 'Ask for more spots', 'extrachill-events' ); ?></button>
+							</form>
+						</details>
+					<?php endif; ?>
+				<?php endif; ?>
+				<details>
+					<summary><?php esc_html_e( 'Send a whole list for the venue to approve', 'extrachill-events' ); ?></summary>
+					<p><?php esc_html_e( 'Paste one name per line. The names are not on the list (and their passes do not work) until the venue approves them.', 'extrachill-events' ); ?></p>
+					<form class="ec-form-stack" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="ec_guest_party_submit_list">
+						<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+						<?php wp_nonce_field( $nonce_action, '_wpnonce', false ); ?>
+						<label><?php esc_html_e( 'Guest names', 'extrachill-events' ); ?>
+							<textarea name="names" rows="6" required></textarea>
+						</label>
+						<button type="submit" class="button-2 button-medium"><?php esc_html_e( 'Send list for approval', 'extrachill-events' ); ?></button>
+					</form>
+				</details>
+			<?php endif; ?>
+
 			<h2 id="ec-guest-invite-names"><?php esc_html_e( 'Your names', 'extrachill-events' ); ?></h2>
 			<?php if ( empty( $guests ) ) : ?>
 				<p><?php esc_html_e( 'No one yet.', 'extrachill-events' ); ?></p>
@@ -127,8 +177,14 @@ get_header();
 							<?php echo esc_html( (string) $guest['guest_name'] ); ?>
 							<?php if ( 'redeemed' === $guest['status'] ) : ?>
 								— <?php esc_html_e( 'checked in', 'extrachill-events' ); ?>
+							<?php elseif ( 'denied' === $guest['status'] ) : ?>
+								— <?php esc_html_e( 'not approved by the venue', 'extrachill-events' ); ?>
 							<?php else : ?>
+								<?php if ( 'pending' === $guest['status'] ) : ?>
+									— <?php esc_html_e( 'waiting for the venue', 'extrachill-events' ); ?>
+								<?php else : ?>
 								— <a href="<?php echo esc_url( extrachill_events_guest_list_pass_link( $event_id, (string) $guest['code'], (string) $guest['guest_name'] ) ); ?>" rel="noreferrer"><?php esc_html_e( 'Pass link', 'extrachill-events' ); ?></a>
+								<?php endif; ?>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-confirm="<?php echo esc_attr( sprintf( /* translators: %s: guest name. */ __( 'Take %s off the guest list?', 'extrachill-events' ), (string) $guest['guest_name'] ) ); ?>">
 									<input type="hidden" name="action" value="ec_guest_party_remove">
 									<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">

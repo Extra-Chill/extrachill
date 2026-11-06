@@ -7,6 +7,9 @@
  * response, and refilled from the phone's local storage on later visits,
  * so a reload shows the same pass and never uses another spot.
  *
+ * Below the pass, bands and managers who weren't invited can ask the venue
+ * for spots (extrachill#1129). The ask is inert until the venue accepts it.
+ *
  * Ships no CSS of its own: theme classes plus the single-event composition
  * classes the event page already uses, allow-listed in
  * RsvpPassDesignSystemTest.php.
@@ -161,6 +164,41 @@ get_header();
 			<p class="ec-rsvp-pass__code"></p>
 			<p class="ec-rsvp-guest__note"><?php esc_html_e( 'Screenshot this to be safe. It stays on this phone if you come back to this page.', 'extrachill-events' ); ?></p>
 		</div>
+
+		<?php if ( ! $is_past ) : ?>
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flag set by our own redirect.
+			$request_sent = isset( $_GET['ec_request'] ) && 'sent' === sanitize_key( wp_unslash( $_GET['ec_request'] ) );
+			?>
+			<details class="ec-form-stack" id="ec-guest-list-request" <?php echo $request_sent ? 'open' : ''; ?>>
+				<summary><?php esc_html_e( 'Playing this show? Request guest list spots', 'extrachill-events' ); ?></summary>
+				<?php if ( $request_sent ) : ?>
+					<p class="notice notice-success" role="status"><?php esc_html_e( 'Request sent. The venue will email you when they decide. Nothing is on the list until they accept it.', 'extrachill-events' ); ?></p>
+				<?php else : ?>
+					<p><?php esc_html_e( 'For bands and managers who were not sent a guest list link. The venue reviews every request.', 'extrachill-events' ); ?></p>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ec-form-stack">
+						<input type="hidden" name="action" value="ec_guest_party_request">
+						<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+						<?php wp_nonce_field( 'ec_guest_party_request_' . $event_id ); ?>
+						<div hidden aria-hidden="true">
+							<label for="ec-guest-request-website-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Leave this empty', 'extrachill-events' ); ?></label>
+							<input type="text" id="ec-guest-request-website-<?php echo esc_attr( (string) $event_id ); ?>" name="website" tabindex="-1" autocomplete="off">
+						</div>
+						<label for="ec-guest-request-name-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Band or management name', 'extrachill-events' ); ?></label>
+						<input type="text" id="ec-guest-request-name-<?php echo esc_attr( (string) $event_id ); ?>" name="name" maxlength="100" required>
+						<label for="ec-guest-request-email-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Email (the venue replies here)', 'extrachill-events' ); ?></label>
+						<input type="email" id="ec-guest-request-email-<?php echo esc_attr( (string) $event_id ); ?>" name="email" autocomplete="email" required>
+						<label for="ec-guest-request-spots-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Spots needed', 'extrachill-events' ); ?></label>
+						<input type="number" id="ec-guest-request-spots-<?php echo esc_attr( (string) $event_id ); ?>" name="spots" min="1" max="<?php echo esc_attr( (string) EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_MAX_SPOTS ); ?>" value="2" required>
+						<label for="ec-guest-request-names-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Guest names (optional, one per line)', 'extrachill-events' ); ?></label>
+						<textarea id="ec-guest-request-names-<?php echo esc_attr( (string) $event_id ); ?>" name="names" rows="4"></textarea>
+						<label for="ec-guest-request-note-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Note to the venue (optional)', 'extrachill-events' ); ?></label>
+						<textarea id="ec-guest-request-note-<?php echo esc_attr( (string) $event_id ); ?>" name="note" rows="2" maxlength="500"></textarea>
+						<button type="submit" class="button-2 button-medium"><?php esc_html_e( 'Send request', 'extrachill-events' ); ?></button>
+					</form>
+				<?php endif; ?>
+			</details>
+		<?php endif; ?>
 	</div>
 	</div>
 </main>

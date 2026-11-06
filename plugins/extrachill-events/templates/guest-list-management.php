@@ -131,6 +131,69 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</label>
 			<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Add to guest list', 'extrachill-events' ); ?></button>
 		</form>
+		<?php if ( ! empty( $requests ) ) : ?>
+			<div id="ec-guest-list-requests">
+				<h4><?php esc_html_e( 'Pending requests', 'extrachill-events' ); ?></h4>
+				<p><?php esc_html_e( 'Nothing here works at the door until you accept it.', 'extrachill-events' ); ?></p>
+				<ul>
+					<?php foreach ( $requests as $request ) : ?>
+						<?php
+						$request_kind  = (string) $request['kind'];
+						$request_names = (array) $request['names'];
+						$request_spots = null !== $request['requested_spots'] ? (int) $request['requested_spots'] : count( $request_names );
+						?>
+						<li>
+							<strong><?php echo esc_html( (string) $request['name'] ); ?></strong>
+							(<?php echo esc_html( (string) $request['email'] ); ?>):
+							<?php
+							if ( 'party' === $request_kind ) {
+								/* translators: %d: spots asked for. */
+								printf( esc_html( _n( 'not invited, asks for %d spot', 'not invited, asks for %d spots', $request_spots, 'extrachill-events' ) ), (int) $request_spots );
+							} elseif ( 'spots' === $request_kind ) {
+								printf(
+									/* translators: 1: extra spots asked for, 2: spots used, 3: spots allotted. */
+									esc_html( _n( 'asks for %1$d more spot (%2$d of %3$d used)', 'asks for %1$d more spots (%2$d of %3$d used)', $request_spots, 'extrachill-events' ) ),
+									(int) $request_spots,
+									(int) $request['used'],
+									(int) $request['allotment']
+								);
+							} else {
+								/* translators: %d: names submitted. */
+								printf( esc_html( _n( 'sent %d name for approval', 'sent %d names for approval', count( $request_names ), 'extrachill-events' ) ), count( $request_names ) );
+							}
+							?>
+							<?php if ( '' !== (string) $request['note'] ) : ?>
+								<br><em><?php echo esc_html( (string) $request['note'] ); ?></em>
+							<?php endif; ?>
+							<?php if ( $request_names ) : ?>
+								<br><?php echo esc_html( implode( ', ', $request_names ) ); ?>
+							<?php endif; ?>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+								<input type="hidden" name="action" value="ec_guest_request_approve">
+								<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+								<input type="hidden" name="party_id" value="<?php echo esc_attr( (string) $request['party_id'] ); ?>">
+								<input type="hidden" name="kind" value="<?php echo esc_attr( $request_kind ); ?>">
+								<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'ec_guest_party_manage_' . $event_id ) ); ?>">
+								<?php if ( 'spots' === $request_kind || ( 'party' === $request_kind && $allotments_enabled ) ) : ?>
+									<label><?php echo esc_html( 'spots' === $request_kind ? __( 'Extra spots', 'extrachill-events' ) : __( 'Spots for this band', 'extrachill-events' ) ); ?>
+										<input type="number" name="spots" min="<?php echo 'spots' === $request_kind ? '1' : '0'; ?>" max="100000" value="<?php echo esc_attr( (string) $request_spots ); ?>">
+									</label>
+								<?php endif; ?>
+								<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Accept', 'extrachill-events' ); ?></button>
+							</form>
+							<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-confirm="<?php echo esc_attr( sprintf( /* translators: %s: band or management name. */ __( 'Deny this request from %s? They will be emailed.', 'extrachill-events' ), (string) $request['name'] ) ); ?>">
+								<input type="hidden" name="action" value="ec_guest_request_deny">
+								<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+								<input type="hidden" name="party_id" value="<?php echo esc_attr( (string) $request['party_id'] ); ?>">
+								<input type="hidden" name="kind" value="<?php echo esc_attr( $request_kind ); ?>">
+								<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'ec_guest_party_manage_' . $event_id ) ); ?>">
+								<button type="submit" class="button-danger button-small"><?php esc_html_e( 'Deny', 'extrachill-events' ); ?></button>
+							</form>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</div>
+		<?php endif; ?>
 		<div id="ec-guest-list-parties">
 			<h4><?php esc_html_e( 'Invite a band', 'extrachill-events' ); ?></h4>
 			<p><?php esc_html_e( 'Send a band or their management a private link. They add their own guest names, no account or password, and the door list shows who added each guest.', 'extrachill-events' ); ?></p>
@@ -175,7 +238,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php if ( ! empty( $parties ) ) : ?>
 				<ul>
 					<?php foreach ( $parties as $party ) : ?>
-						<?php $party_active = 'active' === $party['status']; ?>
+						<?php
+						// Uninvited requests (extrachill#1129) show under Pending requests; denied ones never were parties.
+						if ( in_array( $party['status'], array( 'pending', 'denied' ), true ) ) {
+							continue;
+						}
+						$party_active = 'active' === $party['status'];
+						?>
 						<li>
 							<strong><?php echo esc_html( (string) $party['name'] ); ?></strong>
 							(<?php echo esc_html( (string) $party['email'] ); ?>):

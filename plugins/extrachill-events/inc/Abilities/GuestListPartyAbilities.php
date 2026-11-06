@@ -75,15 +75,32 @@ class GuestListPartyAbilities {
 		return array(
 			'type'       => 'object',
 			'properties' => array(
-				'party_id'   => array( 'type' => 'integer' ),
-				'name'       => array( 'type' => 'string' ),
-				'email'      => array( 'type' => 'string' ),
-				'status'     => array( 'type' => 'string' ),
-				'allotment'  => array( 'type' => array( 'integer', 'null' ) ),
-				'used'       => array( 'type' => 'integer' ),
-				'spots_left' => array( 'type' => array( 'integer', 'null' ) ),
-				'created_at' => array( 'type' => 'string' ),
+				'party_id'        => array( 'type' => 'integer' ),
+				'name'            => array( 'type' => 'string' ),
+				'email'           => array( 'type' => 'string' ),
+				'status'          => array( 'type' => 'string' ),
+				'allotment'       => array( 'type' => array( 'integer', 'null' ) ),
+				'used'            => array( 'type' => 'integer' ),
+				'spots_left'      => array( 'type' => array( 'integer', 'null' ) ),
+				'created_at'      => array( 'type' => 'string' ),
+				'origin'          => array( 'type' => 'string' ),
+				'requested_spots' => array( 'type' => array( 'integer', 'null' ) ),
+				'request_note'    => array( 'type' => 'string' ),
+				'pending_names'   => array( 'type' => 'integer' ),
 			),
+		);
+	}
+
+	/**
+	 * Shared input property: which request on a party is being decided.
+	 *
+	 * @return array
+	 */
+	private static function kind_property(): array {
+		return array(
+			'type'        => 'string',
+			'enum'        => array( '', 'party', 'spots', 'list' ),
+			'description' => __( 'party = an uninvited band asking to be on the list; spots = an invited band asking for more spots; list = names a band submitted for approval. Omit when the party has only one request waiting.', 'extrachill-events' ),
 		);
 	}
 
@@ -332,6 +349,294 @@ class GuestListPartyAbilities {
 				),
 			)
 		);
+
+		$this->register_requests( $host );
+	}
+
+	/**
+	 * Register the request abilities (extrachill#1129).
+	 *
+	 * @param RsvpPassAbilities $host Host authority.
+	 */
+	private function register_requests( RsvpPassAbilities $host ): void {
+		wp_register_ability(
+			'extrachill/party-request-more-spots',
+			array(
+				'label'               => __( 'Invited Party Requests More Spots', 'extrachill-events' ),
+				'description'         => __( 'An invited band or management asks the venue for more guest list spots, through its invite token. Only while the event has allotments on. A host approves or denies it.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'token' => self::token_property(),
+						'spots' => array(
+							'type'        => 'integer',
+							'minimum'     => 1,
+							'description' => __( 'Extra spots asked for.', 'extrachill-events' ),
+						),
+						'note'  => array(
+							'type'        => 'string',
+							'description' => __( 'Optional note to the venue.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'token', 'spots' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'requested_spots' => array( 'type' => 'integer' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'party_request_more_spots' ),
+				// Public by design: the 256-bit invite token is the gate, checked inside.
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/party-submit-guest-list',
+			array(
+				'label'               => __( 'Invited Party Submits Guest List', 'extrachill-events' ),
+				'description'         => __( 'An invited band or management sends a list of names for the venue to approve, through its invite token. The names are held pending: they take no spot and do not scan at the door until a host approves the list.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'token' => self::token_property(),
+						'names' => array(
+							'type'        => array( 'array', 'string' ),
+							'items'       => array( 'type' => 'string' ),
+							'description' => __( 'Guest names: an array, or one name per line.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'token', 'names' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'submitted' => array( 'type' => 'integer' ),
+						'pending'   => array( 'type' => 'integer' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'party_submit_list' ),
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => false,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/request-guest-list-party',
+			array(
+				'label'               => __( 'Request Guest List Spots', 'extrachill-events' ),
+				'description'         => __( 'A band or manager asks for guest list spots on a show they were not invited to. Creates a pending request with no working link; nothing works at the door until the venue accepts it. Rate limited per IP and email.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id'  => self::event_id_property(),
+						'name'      => array(
+							'type'        => 'string',
+							'description' => __( 'Band or management name.', 'extrachill-events' ),
+						),
+						'email'     => array(
+							'type'        => 'string',
+							'description' => __( 'Where the venue replies.', 'extrachill-events' ),
+						),
+						'spots'     => array(
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'description' => __( 'Spots asked for (raised to the number of names given).', 'extrachill-events' ),
+						),
+						'names'     => array(
+							'type'        => array( 'array', 'string' ),
+							'items'       => array( 'type' => 'string' ),
+							'description' => __( 'Optional guest names: an array, or one name per line.', 'extrachill-events' ),
+						),
+						'note'      => array(
+							'type'        => 'string',
+							'description' => __( 'Optional note to the venue.', 'extrachill-events' ),
+						),
+						'client_ip' => array(
+							'type'        => 'string',
+							'description' => __( 'Requester IP for the rate limit (set by the form handler).', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'name', 'email' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'requested'       => array( 'type' => 'boolean' ),
+						'party_id'        => array( 'type' => 'integer' ),
+						'requested_spots' => array( 'type' => 'integer' ),
+						'names'           => array( 'type' => 'integer' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'request_party' ),
+				// Public by design: the request is inert until a host accepts it.
+				'permission_callback' => '__return_true',
+				'meta'                => array(
+					'show_in_rest' => false,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => false,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/list-guest-list-requests',
+			array(
+				'label'               => __( 'List Guest List Requests', 'extrachill-events' ),
+				'description'         => __( 'Host-only: list what is waiting for the venue on an event: uninvited bands asking to be on the list, invited bands asking for more spots, and submitted lists of names.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => self::event_id_property(),
+					),
+					'required'   => array( 'event_id' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'allotments_enabled' => array( 'type' => 'boolean' ),
+						'requests'           => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'       => 'object',
+								'properties' => array(
+									'party_id'        => array( 'type' => 'integer' ),
+									'kind'            => array( 'type' => 'string' ),
+									'name'            => array( 'type' => 'string' ),
+									'email'           => array( 'type' => 'string' ),
+									'origin'          => array( 'type' => 'string' ),
+									'requested_spots' => array( 'type' => array( 'integer', 'null' ) ),
+									'note'            => array( 'type' => 'string' ),
+									'names'           => array(
+										'type'  => 'array',
+										'items' => array( 'type' => 'string' ),
+									),
+									'allotment'       => array( 'type' => array( 'integer', 'null' ) ),
+									'used'            => array( 'type' => 'integer' ),
+									'requested_at'    => array( 'type' => 'string' ),
+								),
+							),
+						),
+					),
+				),
+				'execute_callback'    => array( $this, 'list_requests' ),
+				'permission_callback' => array( $host, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/approve-guest-list-request',
+			array(
+				'label'               => __( 'Approve Guest List Request', 'extrachill-events' ),
+				'description'         => __( 'Host-only: approve a waiting request. spots: the band\'s allotment grows. list: the submitted names go live. party: the uninvited band becomes a normal invited party and is emailed its private link.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => self::event_id_property(),
+						'party_id' => self::party_id_property(),
+						'kind'     => self::kind_property(),
+						'spots'    => array(
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'description' => __( 'Spots to grant instead of what was asked (spots and party requests).', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'party_id' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'approved'      => array( 'type' => 'boolean' ),
+						'kind'          => array( 'type' => 'string' ),
+						'activated'     => array( 'type' => 'integer' ),
+						'invite_url'    => array( 'type' => 'string' ),
+						'emailed'       => array( 'type' => 'boolean' ),
+						'names_waiting' => array( 'type' => 'integer' ),
+						'party'         => self::party_schema(),
+					),
+				),
+				'execute_callback'    => array( $this, 'approve_request' ),
+				'permission_callback' => array( $host, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => false,
+						'destructive'  => false,
+						'instructions' => __( 'A list that does not fit the event\'s spots returns guest_list_full and stays pending. Accepting a party returns its invite_url once; it cannot be retrieved later.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+
+		wp_register_ability(
+			'extrachill/deny-guest-list-request',
+			array(
+				'label'               => __( 'Deny Guest List Request', 'extrachill-events' ),
+				'description'         => __( 'Host-only: deny a waiting request and email the band. Denied names never scan at the door.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => self::event_id_property(),
+						'party_id' => self::party_id_property(),
+						'kind'     => self::kind_property(),
+					),
+					'required'   => array( 'event_id', 'party_id' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'denied'       => array( 'type' => 'boolean' ),
+						'kind'         => array( 'type' => 'string' ),
+						'denied_names' => array( 'type' => 'integer' ),
+						'emailed'      => array( 'type' => 'boolean' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'deny_request' ),
+				'permission_callback' => array( $host, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => false,
+						'destructive' => true,
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -408,6 +713,88 @@ class GuestListPartyAbilities {
 		return extrachill_events_party_remove_guest_list_name(
 			(string) ( $input['token'] ?? '' ),
 			(string) ( $input['code'] ?? '' )
+		);
+	}
+	/**
+	 * Party asks for more spots through its token.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function party_request_more_spots( array $input ) {
+		return extrachill_events_party_request_more_spots(
+			(string) ( $input['token'] ?? '' ),
+			(int) ( $input['spots'] ?? 0 ),
+			(string) ( $input['note'] ?? '' )
+		);
+	}
+
+	/**
+	 * Party submits a list for approval through its token.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function party_submit_list( array $input ) {
+		return extrachill_events_party_submit_guest_list( (string) ( $input['token'] ?? '' ), $input['names'] ?? '' );
+	}
+
+	/**
+	 * Anyone asks for spots on a show they weren't invited to.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function request_party( array $input ) {
+		return extrachill_events_request_guest_list_party(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['name'] ?? '' ),
+			(string) ( $input['email'] ?? '' ),
+			(int) ( $input['spots'] ?? 0 ),
+			$input['names'] ?? '',
+			(string) ( $input['note'] ?? '' ),
+			(string) ( $input['client_ip'] ?? '' )
+		);
+	}
+
+	/**
+	 * Host lists waiting requests.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function list_requests( array $input ) {
+		return extrachill_events_list_guest_list_requests( (int) ( $input['event_id'] ?? 0 ) );
+	}
+
+	/**
+	 * Host approves a request.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function approve_request( array $input ) {
+		return extrachill_events_approve_guest_list_request(
+			(int) ( $input['event_id'] ?? 0 ),
+			(int) ( $input['party_id'] ?? 0 ),
+			(string) ( $input['kind'] ?? '' ),
+			isset( $input['spots'] ) ? (int) $input['spots'] : null,
+			get_current_user_id()
+		);
+	}
+
+	/**
+	 * Host denies a request.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function deny_request( array $input ) {
+		return extrachill_events_deny_guest_list_request(
+			(int) ( $input['event_id'] ?? 0 ),
+			(int) ( $input['party_id'] ?? 0 ),
+			(string) ( $input['kind'] ?? '' ),
+			get_current_user_id()
 		);
 	}
 }
