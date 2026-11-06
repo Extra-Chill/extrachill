@@ -129,6 +129,60 @@ describe( 'portable editor behavior', () => {
 		delete window.ecLinkPageEditorAdapters;
 	} );
 
+	it( 'previews background treatment and saves focal point and overlay alpha', async () => {
+		const save = jest.fn( async () => documentFor() );
+		window.ecLinkPageEditorAdapters[ 'test-adapter' ] = {
+			read: jest.fn( async () =>
+				documentFor( 'a', {
+					css_vars: {
+						'--link-page-background-type': 'image',
+						'--link-page-image-position': 'left top',
+						'--link-page-overlay-color': 'rgba(12, 34, 56, 0.25)',
+					},
+					background_image_url: 'https://example.com/photo.jpg',
+				} )
+			),
+			save,
+		};
+		const { container, root } = await renderEditor();
+		await act( async () =>
+			container.querySelector( '[role="tab"][id$="-customize"]' ).click()
+		);
+		const control = ( text ) => {
+			const label = Array.from(
+				container.querySelectorAll( 'label' )
+			).find( ( item ) => item.textContent === text );
+			return document.getElementById( label.htmlFor );
+		};
+		expect( control( 'Overlay Color' ).value ).toBe( '#0c2238' );
+		expect( control( 'Overlay Opacity' ).value ).toBe( '0.25' );
+		await input( control( 'Background Blur' ), '12' );
+		await input( control( 'Background Brightness' ), '80' );
+		await input( control( 'Horizontal Focal Point' ), '27' );
+		await input( control( 'Vertical Focal Point' ), '63' );
+		await input( control( 'Overlay Opacity' ), '0' );
+		const preview = container.querySelector(
+			'.extrch-link-page-preview-container'
+		);
+		expect( preview.style.backgroundImage ).toBe( 'none' );
+		expect(
+			preview.style.getPropertyValue( '--link-page-image-position' )
+		).toBe( '27% 63%' );
+		expect(
+			preview.style.getPropertyValue( '--link-page-overlay-color' )
+		).toBe( 'rgba(12, 34, 56, 0)' );
+		await act( async () =>
+			container.querySelector( 'button[type="submit"]' ).click()
+		);
+		expect( save.mock.calls[ 0 ][ 1 ].page.styles ).toMatchObject( {
+			'--link-page-image-blur': '12px',
+			'--link-page-image-brightness': '80%',
+			'--link-page-image-position': '27% 63%',
+			'--link-page-overlay-color': 'rgba(12, 34, 56, 0)',
+		} );
+		await act( async () => root.unmount() );
+	} );
+
 	it( 'disables edits and identity switching until a save settles', async () => {
 		const pending = deferred();
 		const dirty = jest.fn();
@@ -214,8 +268,9 @@ describe( 'portable editor behavior', () => {
 			} )
 		);
 		expect(
-			container.querySelector( '.extrch-link-page-preview-container' )
-				.style.backgroundImage
+			container
+				.querySelector( '.extrch-link-page-preview-container' )
+				.style.getPropertyValue( '--link-page-background-image-url' )
 		).toContain( 'uploaded.jpg' );
 		expect(
 			container.querySelector( '[aria-label="Link Page identity"]' )

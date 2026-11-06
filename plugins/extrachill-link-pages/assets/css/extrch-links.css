@@ -48,7 +48,21 @@ body {
   background-color: transparent; /* Ensure no base color shows through */
 }
 .extrch-link-page-container[data-bg-type="image"] {
+  position: relative;
+  isolation: isolate;
+  background-image: none;
+  background-color: var(--link-page-background-color);
+}
+
+/* Keep image treatment behind content, including in the editor preview. */
+.extrch-link-page-container[data-bg-type="image"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image: var(--link-page-background-image-url);
+  filter: blur(var(--link-page-image-blur, 0px)) brightness(var(--link-page-image-brightness, 100%));
   background-size: var(--link-page-image-size); /* Use variable */
   background-position: var(--link-page-image-position); /* Use variable */
   background-repeat: var(--link-page-image-repeat); /* Use variable */
@@ -56,7 +70,7 @@ body {
 }
 
 .extrch-link-page-content-wrapper {
-  background-color: var(--link-page-card-bg-color);
+  background-color: var(--link-page-overlay-color, var(--link-page-card-bg-color));
   color: inherit;
   width: 100%;
   max-width: 680px;

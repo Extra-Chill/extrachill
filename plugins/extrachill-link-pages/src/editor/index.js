@@ -495,6 +495,52 @@ export const cardBackgroundValue = ( color, opacity ) => {
 function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 	const styles = draft.page.styles;
 	const card = cardBackgroundParts( styles[ '--link-page-card-bg-color' ] );
+	const overlay =
+		styles[ '--link-page-overlay-color' ] || 'rgba(0, 0, 0, 0.5)';
+	const channels = overlay.match(
+		/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/
+	);
+	const expandedHex =
+		overlay.length === 4
+			? '#' +
+				overlay
+					.slice( 1 )
+					.split( '' )
+					.map( ( value ) => value + value )
+					.join( '' )
+			: overlay;
+	const overlayHex = channels
+		? '#' +
+			channels
+				.slice( 1, 4 )
+				.map( ( value ) =>
+					Number( value ).toString( 16 ).padStart( 2, '0' )
+				)
+				.join( '' )
+		: expandedHex;
+	const overlayAlpha =
+		channels && channels[ 4 ] !== undefined ? Number( channels[ 4 ] ) : 1;
+	const setOverlay = ( hex, alpha ) => {
+		const rgb = [ 1, 3, 5 ].map( ( index ) =>
+			parseInt( hex.slice( index, index + 2 ), 16 )
+		);
+		style(
+			'--link-page-overlay-color',
+			`rgba(${ rgb.join( ', ' ) }, ${ alpha })`
+		);
+	};
+	const position = (
+		styles[ '--link-page-image-position' ] || 'center center'
+	).split( /\s+/ );
+	const focal = position.map(
+		( value ) =>
+			( { left: 0, top: 0, center: 50, right: 100, bottom: 100 } )[
+				value
+			] ?? parseFloat( value )
+	);
+	if ( focal.length < 2 ) {
+		focal.push( 50 );
+	}
 	const setting = ( key, value ) =>
 		change(
 			{
@@ -575,6 +621,88 @@ function CustomizePanel( { draft, change, adapter, runUpload, fonts } ) {
 					</Field>
 				</>
 			) }
+			{ styles[ '--link-page-background-type' ] === 'image' && (
+				<>
+					{ [
+						[
+							'Background Blur',
+							'--link-page-image-blur',
+							0,
+							20,
+							'px',
+							0,
+						],
+						[
+							'Background Brightness',
+							'--link-page-image-brightness',
+							50,
+							150,
+							'%',
+							100,
+						],
+					].map( ( [ label, key, min, max, unit, fallback ] ) => (
+						<Field key={ key } label={ label }>
+							<input
+								type="range"
+								min={ min }
+								max={ max }
+								value={ parseFloat(
+									styles[ key ] ?? fallback
+								) }
+								onChange={ ( event ) =>
+									style(
+										key,
+										`${ event.target.value }${ unit }`
+									)
+								}
+							/>
+						</Field>
+					) ) }
+					{ [ 'Horizontal Focal Point', 'Vertical Focal Point' ].map(
+						( label, index ) => (
+							<Field key={ label } label={ label }>
+								<input
+									type="range"
+									min="0"
+									max="100"
+									value={ focal[ index ] }
+									onChange={ ( event ) => {
+										const next = [ ...focal ];
+										next[ index ] = Number(
+											event.target.value
+										);
+										style(
+											'--link-page-image-position',
+											`${ next[ 0 ] }% ${ next[ 1 ] }%`
+										);
+									} }
+								/>
+							</Field>
+						)
+					) }
+				</>
+			) }
+			<Field label="Overlay Color">
+				<input
+					type="color"
+					value={ overlayHex }
+					onChange={ ( event ) =>
+						setOverlay( event.target.value, overlayAlpha )
+					}
+				/>
+			</Field>
+			<Field label="Overlay Opacity">
+				<input
+					type="range"
+					min="0"
+					max="1"
+					step="0.01"
+					value={ overlayAlpha }
+					onChange={ ( event ) =>
+						setOverlay( overlayHex, Number( event.target.value ) )
+					}
+				/>
+			</Field>
 			<Field label="Title Size">
 				<input
 					type="range"
@@ -1158,7 +1286,8 @@ export function Preview( {
 			'#53940b'
 		})`;
 	} else if ( 'image' === backgroundType && draft.page.backgroundImageUrl ) {
-		style.backgroundImage = `url(${ draft.page.backgroundImageUrl })`;
+		style[ '--link-page-background-image-url' ] =
+			`url("${ draft.page.backgroundImageUrl.replace( /["\\\n\r]/g, '' ) }")`;
 		style.backgroundSize =
 			draft.page.styles[ '--link-page-image-size' ] || 'cover';
 		style.backgroundPosition =

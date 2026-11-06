@@ -33,6 +33,8 @@ function ec_link_page_defaults() {
 			'--link-page-background-image-url'          => '',
 			'--link-page-image-size'                    => 'cover',
 			'--link-page-image-position'                => 'center center',
+			'--link-page-image-blur'                    => '0px',
+			'--link-page-image-brightness'              => '100%',
 			'--link-page-image-repeat'                  => 'no-repeat',
 			'overlay'                                   => '1',
 			'--link-page-title-font-family'             => 'Loft Sans',
@@ -473,7 +475,11 @@ function ec_sanitize_link_page_css_vars( $vars, $existing_vars = array() ) {
 			$sanitized[ $key ] = $value;
 		} elseif ( in_array( $key, array( '--link-page-title-font-family', '--link-page-body-font-family' ), true ) && preg_match( '/^[a-z0-9 ,\'"-]+$/i', $value ) ) {
 			$sanitized[ $key ] = $value;
-		} elseif ( '--link-page-image-position' === $key && preg_match( '/^(?:left|center|right)(?:\s+(?:top|center|bottom))?$/', $value ) ) {
+		} elseif ( '--link-page-image-blur' === $key && preg_match( '/^(?:\d+(?:\.\d+)?)px$/', $value ) && (float) $value <= 20 ) {
+			$sanitized[ $key ] = $value;
+		} elseif ( '--link-page-image-brightness' === $key && preg_match( '/^\d+(?:\.\d+)?%$/', $value ) && (float) $value >= 50 && (float) $value <= 150 ) {
+			$sanitized[ $key ] = $value;
+		} elseif ( '--link-page-image-position' === $key && ( preg_match( '/^(?:left|center|right)(?:\s+(?:top|center|bottom))?$/', $value ) || preg_match( '/^(?:100(?:\.0+)?|\d{1,2}(?:\.\d+)?)%\s+(?:100(?:\.0+)?|\d{1,2}(?:\.\d+)?)%$/', $value ) ) ) {
 			$sanitized[ $key ] = $value;
 		} elseif ( '--link-page-background-image-url' === $key && '' === $value ) {
 			$sanitized[ $key ] = '';
