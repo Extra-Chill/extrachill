@@ -431,7 +431,7 @@ function extrachill_events_door_list_guest_rows( int $event_id ): array {
 		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? '';
 		$rows[]      = array(
 			'pass_id'     => (int) ( $pass['id'] ?? 0 ),
-			'label'       => extrachill_events_guest_list_pass_label( $guest_name, $source ),
+			'label'       => ( ! empty( $pass['order_reference'] ) ? __( 'Ticket · ', 'extrachill-events' ) : '' ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),
 			'guest_name'  => $guest_name,
 			'source'      => $source,
 			'added_by'    => $added_by ? (string) $added_by->display_name : '',

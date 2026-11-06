@@ -3,6 +3,11 @@
  * Guest-list management, shared by the event page and perk meta box.
  *
  * @package ExtraChillEvents
+ *
+ * @var int        $event_id           Event post ID.
+ * @var array|null $settings           Guest list settings.
+ * @var array      $counts             Claimed and checked-in counts.
+ * @var bool       $allotments_enabled Whether party allotments are on.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -55,6 +60,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php esc_html_e( 'Remove custom image (use the event poster)', 'extrachill-events' ); ?>
 				</label>
 			<?php endif; ?>
+		</fieldset>
+		<?php
+		$ticket_settings = \ExtraChillEvents\Abilities\TicketAbilities::settings( $event_id );
+		$seller_resolver = new \ExtraChillEvents\Abilities\CommerceSellerAbilities( null, null, false );
+		?>
+		<fieldset>
+			<legend><?php esc_html_e( 'Paid tickets (tax included; seller responsible for tax)', 'extrachill-events' ); ?></legend>
+			<label><input type="checkbox" name="tickets_enabled" value="1" <?php checked( $ticket_settings['tickets_enabled'] ); ?>> <?php esc_html_e( 'Enable tickets', 'extrachill-events' ); ?></label>
+			<label><?php esc_html_e( 'Price per ticket ($, tax included)', 'extrachill-events' ); ?> <input type="number" name="ticket_price" min="0" step="0.01" inputmode="decimal" value="<?php echo esc_attr( $ticket_settings['ticket_price_minor'] ? number_format( $ticket_settings['ticket_price_minor'] / 100, 2, '.', '' ) : '' ); ?>"></label>
+			<label><?php esc_html_e( 'Quantity (0 uses guest list capacity)', 'extrachill-events' ); ?> <input type="number" name="ticket_quantity" min="0" step="1" value="<?php echo esc_attr( $ticket_settings['ticket_quantity'] ); ?>"></label>
+			<label><?php esc_html_e( 'Seller', 'extrachill-events' ); ?>
+			<select name="ticket_seller">
+				<option value=""><?php esc_html_e( 'Choose a seller', 'extrachill-events' ); ?></option>
+				<?php foreach ( array( 'venue', 'promoter' ) as $seller_type ) : ?>
+					<?php
+					$seller_terms = get_terms( array(
+						'taxonomy'   => $seller_type,
+						'hide_empty' => false,
+					) );
+					?>
+					<?php foreach ( is_wp_error( $seller_terms ) ? array() : $seller_terms as $seller_term ) : ?>
+						<?php
+						$seller = $seller_resolver->execute( array(
+							'type' => $seller_type,
+							'id'   => (int) $seller_term->term_id,
+						) );
+						?>
+						<?php if ( ! is_wp_error( $seller ) && $seller['can_manage_finances'] ) : ?>
+							<option value="<?php echo esc_attr( $seller_type . ':' . $seller['id'] ); ?>" <?php selected( $ticket_settings['ticket_seller']['type'] . ':' . $ticket_settings['ticket_seller']['id'], $seller_type . ':' . $seller['id'] ); ?>><?php echo esc_html( $seller['name'] ); ?></option>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				<?php endforeach; ?>
+			</select></label>
 		</fieldset>
 		<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Save and enable guest list', 'extrachill-events' ); ?></button>
 	</form>
