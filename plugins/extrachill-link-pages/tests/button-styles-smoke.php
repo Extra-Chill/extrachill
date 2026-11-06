@@ -4,8 +4,7 @@ require_once __DIR__ . '/bootstrap.php';
 ec_test_reset();
 function button_styles_check( $condition, $message ) {
 	if ( ! $condition ) {
-		fwrite( STDERR, $message . "\n" );
-		exit( 1 );
+		throw new RuntimeException( $message );
 	}
 }
 $defaults = ec_link_page_defaults_for( 'styles' );
