@@ -56,9 +56,10 @@ function extrachill_events_guest_list_url( int $event_id ): string {
  * @return bool
  */
 function extrachill_events_has_guest_list_page( int $event_id ): bool {
-	return $event_id > 0
-		&& extrachill_events_perk_enabled( $event_id )
-		&& extrachill_events_perk_password_required( $event_id );
+	$ticket_offer = get_post_meta( $event_id, '_extrachill_ticket_offer', true );
+	// Keep purchased pass links usable even when ticket sales are disabled.
+	$has_tickets = is_array( $ticket_offer ) && ! empty( $ticket_offer['ticket_seller']['id'] );
+	return $event_id > 0 && ( $has_tickets || ( extrachill_events_perk_enabled( $event_id ) && extrachill_events_perk_password_required( $event_id ) ) );
 }
 
 /**

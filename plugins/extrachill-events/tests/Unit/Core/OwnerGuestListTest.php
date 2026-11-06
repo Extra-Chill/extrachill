@@ -621,7 +621,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 	}
 
 	public function test_schema_is_versioned_with_the_passes_table(): void {
-		$this->assertSame( '6', RsvpPassesTable::SCHEMA_VERSION );
+		$this->assertSame( '7', RsvpPassesTable::SCHEMA_VERSION );
 		$sql = implode( "\n", OwnerGuestListTable::schema_sql( 'DEFAULT CHARSET=utf8mb4' ) );
 		$this->assertStringContainsString( 'UNIQUE KEY code (code)', $sql );
 		$this->assertStringContainsString( 'UNIQUE KEY member_event (member_id, event_id)', $sql );

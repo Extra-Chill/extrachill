@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
 final class RsvpPassesTable {
 
 	/** Schema version. Bump when the CREATE TABLE definition changes. */
-	const SCHEMA_VERSION = '6';
+	const SCHEMA_VERSION = '7';
 
 	/** Site option key that stores the installed schema version. */
 	const VERSION_OPTION = 'extrachill_events_rsvp_passes_db_version';
@@ -89,12 +89,17 @@ final class RsvpPassesTable {
 			redeemed_by_user_id bigint(20) unsigned NULL,
 			issued_by_user_id bigint(20) unsigned NULL DEFAULT NULL,
 			party_id bigint(20) unsigned NULL DEFAULT NULL,
+			order_reference varchar(191) NULL DEFAULT NULL,
+			payment_reference varchar(191) NULL DEFAULT NULL,
+			idempotency_key varchar(191) NULL DEFAULT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY event_user (event_id, user_id),
 			UNIQUE KEY code (code),
 			KEY event_status (event_id, status),
-			KEY event_party (event_id, party_id)
+			KEY event_party (event_id, party_id),
+			KEY order_reference (order_reference),
+			KEY idempotency_key (idempotency_key)
 		) ENGINE=InnoDB {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -530,6 +535,137 @@ final class RsvpPassesTable {
 		}
 	}
 
+	/** Find the passes belonging to a paid order or issuance key. */
+	public static function ticket_rows( string $reference, bool $by_key = false ): array {
+		global $wpdb;
+		$table  = self::table_name();
+		$column = $by_key ? 'idempotency_key' : 'order_reference';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (array) $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE {$column} = %s ORDER BY id", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name and a fixed column choice.
+				$reference
+			),
+			ARRAY_A
+		);
+	}
+
+	/** Count live paid passes for an event (active or checked in). */
+	public static function paid_ticket_count( int $event_id ): int {
+		global $wpdb;
+		$table = self::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM {$table} WHERE event_id = %d AND order_reference IS NOT NULL AND status IN ('active','redeemed')", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id
+			)
+		);
+	}
+
+	/**
+	 * All-or-nothing paid issuance, serialized with every capacity-capped pass writer.
+	 * A key lock also prevents the same key being used concurrently across events.
+	 * Returns null only when there is insufficient room; failures are errors.
+	 */
+	public static function issue_tickets( int $event_id, int $quantity, int $capacity, int $ticket_quantity, string $name, string $key, string $order, string $payment ) {
+		global $wpdb;
+		if ( $quantity < 1 || $quantity > 10 || '' === trim( $name ) || strlen( $name ) > 100 || '' === $key || strlen( $key ) > 191 || '' === $order || strlen( $order ) > 191 || '' === $payment || strlen( $payment ) > 191 ) {
+			return new \WP_Error( 'invalid_ticket_purchase', 'A bounded purchase reference and quantity from 1 to 10 are required.', array( 'status' => 400 ) );
+		}
+		$key_lock = 'ec_ticket_' . md5( self::table_name() . ':' . $key );
+		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $key_lock ) ) ) {
+			return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
+		}
+		$locked = false;
+		try {
+			$rows = self::ticket_rows( $key, true );
+			if ( $rows ) {
+				if ( (int) $rows[0]['event_id'] !== $event_id || count( $rows ) !== $quantity || $rows[0]['order_reference'] !== $order || $rows[0]['payment_reference'] !== $payment ) {
+					return new \WP_Error( 'ticket_idempotency_conflict', 'Key already used for another purchase.', array( 'status' => 409 ) );
+				}
+				return $rows;
+			}
+			$locked = self::acquire_capacity_lock( $event_id );
+			if ( ! $locked ) {
+				return new \WP_Error( 'ticket_lock_unavailable', 'Please retry fulfillment.', array( 'status' => 503 ) );
+			}
+			$table = self::table_name();
+			$paid  = self::paid_ticket_count( $event_id );
+			if ( ( $capacity > 0 && self::count_for_event( $event_id )['claimed'] + $quantity > $capacity ) || ( $ticket_quantity > 0 && $paid + $quantity > $ticket_quantity ) ) {
+				return null;
+			}
+			if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+				return new \WP_Error( 'ticket_storage_failed', 'Could not start issuance.', array( 'status' => 500 ) );
+			}
+			$now = current_time( 'mysql', true );
+			for ( $i = 0; $i < $quantity; ++$i ) {
+				if ( false === $wpdb->insert( $table, array(
+					'event_id'          => $event_id,
+					'code'              => self::generate_code(),
+					'guest_name'        => $name,
+					'status'            => self::STATUS_ACTIVE,
+					'issued_at'         => $now,
+					'updated_at'        => $now,
+					'idempotency_key'   => $key,
+					'order_reference'   => $order,
+					'payment_reference' => $payment,
+				) ) ) {
+					$wpdb->query( 'ROLLBACK' );
+					return new \WP_Error( 'ticket_storage_failed', 'No tickets issued; retry fulfillment.', array( 'status' => 500 ) );
+				}
+			}
+			if ( false === $wpdb->query( 'COMMIT' ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return new \WP_Error( 'ticket_storage_failed', 'Could not commit issuance.', array( 'status' => 500 ) );
+			}
+			return self::ticket_rows( $key, true );
+		} finally {
+			if ( $locked ) {
+				self::release_capacity_lock( $event_id );
+			}
+			$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $key_lock ) );
+		}
+	}
+
+	/** Lock all order rows so redemption and refund cannot both win. */
+	public static function revoke_ticket_order( string $order ) {
+		global $wpdb;
+		$table = self::table_name();
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) {
+			return new \WP_Error( 'ticket_storage_failed', 'Could not start revocation.', array( 'status' => 500 ) );
+		}
+		try {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name; row lock must hit the database.
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE order_reference = %s ORDER BY id FOR UPDATE", $order ), ARRAY_A );
+			if ( null === $rows ) {
+				throw new \RuntimeException( 'Could not read ticket order.' );
+			}
+			foreach ( $rows as $row ) {
+				if ( self::STATUS_REDEEMED === $row['status'] ) {
+					$wpdb->query( 'ROLLBACK' );
+					return new \WP_Error( 'ticket_already_redeemed', 'Checked-in tickets cannot be refunded.', array( 'status' => 409 ) );
+				}
+			}
+			$now   = current_time( 'mysql', true );
+			$count = $wpdb->update( $table, array(
+				'status'     => self::STATUS_REVOKED,
+				'revoked_at' => $now,
+				'updated_at' => $now,
+			), array(
+				'order_reference' => $order,
+				'status'          => self::STATUS_ACTIVE,
+			) );
+			if ( false === $count || false === $wpdb->query( 'COMMIT' ) ) {
+				throw new \RuntimeException( 'Could not revoke ticket order.' );
+			}
+			return array( 'revoked' => (int) $count );
+		} catch ( \Throwable $error ) {
+			$wpdb->query( 'ROLLBACK' );
+			return new \WP_Error( 'ticket_storage_failed', $error->getMessage(), array( 'status' => 500 ) );
+		}
+	}
+
 	/**
 	 * List an event's account-less guest list passes for the door list.
 	 *
@@ -865,6 +1001,9 @@ final class RsvpPassesTable {
 			// Lost the race to a concurrent redeemer (two hosts tapping at
 			// the same moment). Report the winner's state, not an error.
 			$current = self::find_by_code( (string) $pass['code'] );
+			if ( ! $current || self::STATUS_REDEEMED !== $current['status'] ) {
+				return new \WP_Error( 'rsvp_pass_revoked', 'This pass is no longer active.', array( 'status' => 409 ) );
+			}
 			return array(
 				'already_redeemed'    => true,
 				'redeemed_at'         => $current['redeemed_at'] ?? $now,
