@@ -198,9 +198,8 @@ function extrachill_users_validate_registration_form_request( array $request ) {
 /**
  * Handle registration form submission.
  *
- * Creates user on community.extrachill.com via extrachill_create_community_user filter,
- * processes roster invitations, subscribes to newsletter, auto-logs in user,
- * and redirects to onboarding.
+ * Queue a pending core signup after anti-abuse and invitation validation.
+ * Provisioning and consent processing are deferred until email activation.
  */
 function extrachill_handle_registration() {
 	$redirect = EC_Redirect_Handler::from_post( 'ec_registration' );
@@ -255,50 +254,36 @@ function extrachill_handle_registration() {
 		: 'user' . wp_rand( 10000, 99999 );
 
 	$registration_data = array(
-		'username'          => $username,
-		'password'          => $password,
-		'email'             => $email,
-		'registration_page' => $registration_page,
-		'from_join'         => $from_join,
+		'username'            => $username,
+		'password'            => $password,
+		'email'               => $email,
+		'registration_page'   => $registration_page,
+		'from_join'           => $from_join,
+		'registration_source' => 'web',
+		'registration_method' => 'standard',
 	);
 
-	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
-
-	if ( is_wp_error( $user_id ) ) {
-		$error_messages = implode( ', ', $user_id->get_error_messages() );
-		/* translators: %s: registration failure messages. */
-		$redirect->error( sprintf( __( 'Registration failed: %s', 'extrachill-users' ), $error_messages ) );
-	}
-
-	if ( ! $user_id ) {
-		$redirect->error( __( 'Registration failed. Please try again or contact support.', 'extrachill-users' ) );
-	}
-
-	update_user_meta( $user_id, 'registration_timestamp', current_time( 'mysql' ) );
-
-	extrachill_users_record_registration_newsletter_consent( $user_id, $email, $newsletter_consent, 'web', 'standard', $registration_page );
-
-	$processed_invite_artist_id = null;
-	$invitation_outcome         = array();
-	if ( $has_artist_invitation ) {
-		$acceptance = ec_users_request_artist_invitation( $email, $invite_token_posted, $invite_artist_id_posted, $user_id );
-		if ( is_wp_error( $acceptance ) ) {
-			$invitation_outcome = ec_users_classify_artist_invitation_error( $acceptance );
-		} else {
-			$processed_invite_artist_id = $invite_artist_id_posted;
-		}
-	}
-
 	$success_redirect_url = isset( $_POST['success_redirect_url'] ) ? wp_unslash( $_POST['success_redirect_url'] ) : '';
-	if ( ! function_exists( 'ec_users_is_valid_return_to_url' )
-		|| ! ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
+	if ( ! function_exists( 'ec_users_is_valid_return_to_url' ) || ! ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
 		$success_redirect_url = '';
 	} else {
 		$success_redirect_url = esc_url_raw( $success_redirect_url );
 	}
-	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-	extrachill_auto_login_new_user( $user_id, $redirect, $processed_invite_artist_id, $success_redirect_url, $invitation_outcome );
+	$result = extrachill_users_create_pending_signup(
+		$registration_data,
+		array(
+			'newsletter_consent'   => $newsletter_consent,
+			'invite_token'         => $invite_token_posted,
+			'invite_artist_id'     => $invite_artist_id_posted,
+			'success_redirect_url' => $success_redirect_url,
+		)
+	);
+	if ( is_wp_error( $result ) ) {
+		$redirect->error( $result->get_error_message() );
+	}
+	$redirect->success( $result['message'] );
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 }
 add_action( 'admin_post_nopriv_extrachill_register_user', 'extrachill_handle_registration' );
 add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registration' );

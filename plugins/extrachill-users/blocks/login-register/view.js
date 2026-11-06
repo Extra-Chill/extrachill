@@ -396,6 +396,15 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 				throw new Error( data?.message || 'Registration failed. Please try again.' );
 			}
 
+			if ( data?.status === 'pending_activation' ) {
+				setNotice( { type: 'success', message: data.message } );
+				form.reset();
+				restore();
+				if ( turnstileWidget && window.turnstile ) {
+					window.turnstile.reset( turnstileWidget );
+				}
+				return;
+			}
 			window.location.assign( data?.redirect_url || config.successRedirectUrl || window.location.href );
 		} catch ( error ) {
 			setNotice( {

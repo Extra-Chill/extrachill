@@ -236,53 +236,73 @@ function extrachill_users_ability_create_user( $input ) {
 	}
 
 	if ( ! is_wp_error( $user_id ) ) {
-		if ( ! empty( $registration_page ) ) {
+		extrachill_users_provision_registered_user( (int) $user_id, $input );
+	}
+
+	if ( $switched ) {
+		restore_current_blog();
+	}
+
+	return $user_id;
+}
+
+/**
+ * Apply canonical registration side effects to a newly created user.
+ * Caller must switch to the community blog before invoking this function.
+ *
+ * @param int   $user_id Newly created user.
+ * @param array $input Registration context (never includes stored plaintext credentials).
+ */
+function extrachill_users_provision_registered_user( int $user_id, array $input ) {
+	$registration_page   = $input['registration_page'] ?? '';
+	$registration_source = $input['registration_source'] ?? '';
+	$registration_method = $input['registration_method'] ?? '';
+	$from_join           = ! empty( $input['from_join'] );
+	$role                = $input['role'] ?? '';
+	$referrer            = $input['referrer'] ?? '';
+	$utm                 = extrachill_users_sanitize_utm( $input['utm'] ?? array() );
+	if ( ! empty( $registration_page ) ) {
 			update_user_meta( $user_id, 'registration_page', esc_url_raw( (string) $registration_page ) );
-		}
+	}
 
-		if ( ! empty( $registration_source ) ) {
-			update_user_meta( $user_id, 'registration_source', sanitize_text_field( (string) $registration_source ) );
-		}
+	if ( ! empty( $registration_source ) ) {
+		update_user_meta( $user_id, 'registration_source', sanitize_text_field( (string) $registration_source ) );
+	}
 
-		if ( ! empty( $registration_method ) ) {
-			update_user_meta( $user_id, 'registration_method', sanitize_text_field( (string) $registration_method ) );
-		}
+	if ( ! empty( $registration_method ) ) {
+		update_user_meta( $user_id, 'registration_method', sanitize_text_field( (string) $registration_method ) );
+	}
 
 		// Explicit role override. wp_create_user() assigns the blog default_role
 		// (subscriber on the community blog); callers that need a specific role —
 		// e.g. event-submission attribution creating a locked subscriber account —
 		// pass `role` to pin it. Runs in the switched (community) context so the
 		// role lands on the right blog's capabilities meta.
-		if ( ! empty( $role ) ) {
-			$user = new WP_User( $user_id );
-			$user->set_role( $role );
-		}
+	if ( ! empty( $role ) ) {
+		$user = new WP_User( $user_id );
+		$user->set_role( $role );
+	}
 
 		// Source attribution (last-touch): persist the external referrer and any
 		// UTM parameters captured at registration so new-member growth can be
 		// attributed to its traffic source. Both are optional and absent for
 		// legacy/internal-only signups.
-		if ( ! empty( $referrer ) ) {
-			update_user_meta( $user_id, 'registration_referrer', $referrer );
-		}
+	if ( ! empty( $referrer ) ) {
+		update_user_meta( $user_id, 'registration_referrer', $referrer );
+	}
 
-		if ( ! empty( $utm ) ) {
-			update_user_meta( $user_id, 'registration_utm', $utm );
-		}
+	if ( ! empty( $utm ) ) {
+		update_user_meta( $user_id, 'registration_utm', $utm );
+	}
 
-		if ( function_exists( 'ec_mark_user_for_onboarding' ) ) {
-			ec_mark_user_for_onboarding( $user_id, $from_join );
-		} else {
-			update_user_meta( $user_id, 'onboarding_completed', '0' );
-			update_user_meta( $user_id, 'onboarding_from_join', $from_join ? '1' : '0' );
-		}
+	if ( function_exists( 'ec_mark_user_for_onboarding' ) ) {
+		ec_mark_user_for_onboarding( $user_id, $from_join );
+	} else {
+		update_user_meta( $user_id, 'onboarding_completed', '0' );
+		update_user_meta( $user_id, 'onboarding_from_join', $from_join ? '1' : '0' );
+	}
 
 		update_user_meta( $user_id, 'welcome_email_sent', '0' );
-	}
-
-	if ( $switched ) {
-		restore_current_blog();
-	}
 
 	if ( ! is_wp_error( $user_id ) ) {
 		/**
