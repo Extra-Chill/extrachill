@@ -14,6 +14,8 @@ class WP_Error {
 	public function __construct( public $code = '', public $message = '', public $data = null ) {}
 }
 
+class wpdb {}
+
 function add_filter( ...$args ) {}
 function add_action( ...$args ) {}
 function wp_salt( $scheme = 'auth' ) { return 'test-network-secret'; }
@@ -39,7 +41,7 @@ function ila_assert( bool $condition, string $message ): void {
 function ila_reset(): void {
 	$_SERVER                     = array( 'REMOTE_ADDR' => '127.0.0.1' );
 	$GLOBALS['ila_current_user'] = 0;
-	$GLOBALS['wpdb']             = new class() {
+	$GLOBALS['wpdb']             = new class() extends wpdb {
 		public $last_error = '';
 		public $seen       = array();
 		public $fail       = false;
@@ -53,7 +55,7 @@ function ila_reset(): void {
 			if ( str_starts_with( $query[0], 'DELETE' ) ) {
 				return 0;
 			}
-			$key = $query[1][0];
+			$key = $query[1][1]; // [0] is the %i table identifier.
 			if ( isset( $this->seen[ $key ] ) ) {
 				return 0;
 			}

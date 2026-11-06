@@ -470,7 +470,6 @@ function ec_cross_site_build_auth_headers( int $user_id ): array {
 		$signature = ec_cross_site_sign_request( $user_id, $timestamp, $nonce );
 
 		$headers['X-EC-Internal-Nonce']     = $nonce;
-
 		$headers['X-EC-Internal-User']      = (string) $user_id;
 		$headers['X-EC-Internal-Timestamp'] = (string) $timestamp;
 		$headers['X-EC-Internal-Signature'] = $signature;
@@ -529,15 +528,16 @@ function ec_cross_site_verify_signature( int $user_id, int $timestamp, string $s
 function ec_cross_site_consume_internal_signature( string $signature, int $timestamp ): bool {
 	global $wpdb;
 
-	if ( ! isset( $wpdb ) || ! method_exists( $wpdb, 'get_blog_prefix' ) || ! method_exists( $wpdb, 'query' ) || ! method_exists( $wpdb, 'prepare' ) ) {
+	if ( ! ( $wpdb instanceof wpdb ) ) {
 		return false;
 	}
 
-	$table = $wpdb->get_blog_prefix( get_main_site_id() ) . 'options';
-	$name  = '_ec_internal_replay_' . hash( 'sha256', $signature );
+	$table    = $wpdb->get_blog_prefix( get_main_site_id() ) . 'options';
+	$name     = '_ec_internal_replay_' . hash( 'sha256', $signature );
 	$inserted = $wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Unique key is the atomic replay boundary.
 		$wpdb->prepare(
-			"INSERT IGNORE INTO `$table` (`option_name`, `option_value`, `autoload`) VALUES (%s, %s, %s)",
+			'INSERT IGNORE INTO %i (`option_name`, `option_value`, `autoload`) VALUES (%s, %s, %s)',
+			$table,
 			$name,
 			(string) ( $timestamp + 300 ),
 			'off'
@@ -551,7 +551,8 @@ function ec_cross_site_consume_internal_signature( string $signature, int $times
 	// Bounded cleanup of expired markers; never remove a still-valid assertion.
 	$wpdb->query( // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Internal replay marker garbage collection.
 		$wpdb->prepare(
-			"DELETE FROM `$table` WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d LIMIT 100",
+			'DELETE FROM %i WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d LIMIT 100',
+			$table,
 			$wpdb->esc_like( '_ec_internal_replay_' ) . '%',
 			time()
 		)
