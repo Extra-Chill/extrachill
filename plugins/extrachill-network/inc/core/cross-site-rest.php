@@ -89,7 +89,7 @@ function ec_cross_site_rest_resolve_route( string $path ): string {
  *                         - 'body'    => array|string  Request body for POST/PUT.
  *                         - 'query'   => array         Query parameters for GET.
  *                         - 'headers' => array         Additional headers (HTTP path only).
- *                         - 'timeout' => int           Request timeout (HTTP path only). Default 15.
+ *                         - 'timeout' => int           Request timeout (HTTP path only). Default 30 for reads, 15 otherwise.
  *                         - 'user_id' => int           Override user ID for auth. Default: current user.
  *                         - 'service_assertion' => array Explicit service_id and scope for HTTP authority.
  * @return array|string|WP_Error Decoded JSON response body, raw response body, or WP_Error on failure.
@@ -353,7 +353,22 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 		$headers = array_merge( $headers, $service_headers );
 	}
 
-	$timeout = (float) ( $args['timeout'] ?? 15 );
+	$is_read = 'GET' === $method;
+	$route   = ec_cross_site_rest_resolve_route( $path );
+	if ( ! $is_read && function_exists( 'wp_get_ability' ) && function_exists( 'wp_has_ability' )
+		&& preg_match( '#^/wp-abilities/v1/abilities/([a-zA-Z0-9\-/]+)/run/?$#', $route, $matches )
+		&& wp_has_ability( $matches[1] ) ) {
+		$ability = wp_get_ability( $matches[1] );
+		$is_read = $ability && true === ( $ability->get_meta()['annotations']['readonly'] ?? false );
+	}
+
+	/*
+	 * Filter ec_cross_site_http_timeout: default HTTP timeout in seconds
+	 * (30 for reads, 15 otherwise). Receives $timeout, $site_key, $method,
+	 * $path and $is_read (GET or an ability annotated readonly). An explicit
+	 * 'timeout' arg takes precedence.
+	 */
+	$timeout = (float) ( $args['timeout'] ?? apply_filters( 'ec_cross_site_http_timeout', $is_read ? 30.0 : 15.0, $site_key, $method, $path, $is_read ) );
 
 	$request_args = array(
 		'method'    => $method,
@@ -370,10 +385,16 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 	$response = wp_remote_request( $url, $request_args );
 
 	if ( is_wp_error( $response ) ) {
+		$message    = $response->get_error_message();
+		$is_timeout = 'cross_site_timeout' === $response->get_error_code()
+			|| (bool) preg_match( '/cURL error 28\b|timed?\s*out|timeout/i', $message );
+
 		return new WP_Error(
-			'ec_cross_site_request_failed',
-			sprintf( 'Cross-site request to %s failed: %s', $site_key, $response->get_error_message() ),
-			array( 'status' => 502 )
+			$is_timeout ? 'cross_site_timeout' : 'ec_cross_site_request_failed',
+			$is_timeout
+				? sprintf( 'Cross-site request to %s %s timed out after %s seconds: %s', $site_key, $path, $timeout, $message )
+				: sprintf( 'Cross-site request to %s %s failed: %s', $site_key, $path, $message ),
+			array( 'status' => $is_timeout ? 504 : 502, 'site_key' => $site_key, 'path' => $path, 'timeout' => $timeout )
 		);
 	}
 
@@ -385,7 +406,7 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 	if ( $status_code >= 400 ) {
 		$error_message   = 'Cross-site request failed';
 		$error_code      = 'ec_cross_site_error';
-		$error_data      = array( 'status' => $status_code );
+		$error_data      = array( 'status' => $status_code, 'site_key' => $site_key, 'path' => $path );
 		$has_target_code = false;
 
 		if ( is_array( $decoded ) ) {
@@ -430,11 +451,42 @@ function ec_cross_site_rest_request_http( string $site_key, string $method, stri
 			}
 		}
 
+		if ( is_array( $decoded ) && isset( $decoded['message'] ) && is_string( $decoded['message'] ) ) {
+			$safe_message = ec_cross_site_safe_upstream_message( $decoded['message'] );
+			if ( '' !== $safe_message ) {
+				$error_message = $safe_message;
+			}
+		}
+		$error_message = sprintf( 'Cross-site request to %s %s failed: %s', $site_key, $path, $error_message );
+
 		return new WP_Error( $error_code, $error_message, $error_data );
 	}
 
 	// Return decoded JSON, or the raw body if JSON parsing failed.
 	return is_array( $decoded ) ? $decoded : $body;
+}
+
+/**
+ * Return an upstream error message that is safe to pass back to the caller.
+ *
+ * WordPress REST error messages are written for consumers, so they are kept
+ * when short, single-line plain text. Anything that looks like it carries a
+ * credential (authorization headers, bearer tokens, cookies, passwords,
+ * secrets, API keys) or is oversized returns '' so the caller keeps the
+ * generic message.
+ *
+ * @param string $message Upstream error message.
+ * @return string Safe message, or '' when it must not be reflected.
+ */
+function ec_cross_site_safe_upstream_message( string $message ): string {
+	$message = trim( wp_strip_all_tags( $message ) );
+	if ( '' === $message || strlen( $message ) > 300 || preg_match( '/[\r\n]/', $message ) ) {
+		return '';
+	}
+	if ( preg_match( '/authorization|bearer\s|cookie|passw(or)?d|secret|api[_\s-]?key|private[_\s-]?key|access[_\s-]?token|\bsk-[a-z0-9]/i', $message ) ) {
+		return '';
+	}
+	return $message;
 }
 
 /**

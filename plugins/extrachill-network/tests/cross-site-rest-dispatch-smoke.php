@@ -3,6 +3,12 @@
  * Standalone tests for cross-site REST transport fallback.
  */
 
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	function wp_strip_all_tags( $text ) {
+		return trim( strip_tags( (string) $text ) );
+	}
+}
+
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'AUTH_SALT', 'cross-site-rest-test-salt' );
 
@@ -298,10 +304,12 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/retry'] = array(
 );
 $retry_error = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/retry' );
 csr_assert( 'target_busy' === $retry_error->get_error_code(), 'valid target machine code is preserved' );
-csr_assert( 'Cross-site request failed' === $retry_error->get_error_message(), 'target-provided error messages are not reflected' );
+csr_assert( 'Cross-site request to target /example/v1/retry failed: Try again later.' === $retry_error->get_error_message(), 'target-provided error message includes request context' );
 csr_assert(
 	array(
 		'status'      => 429,
+		'site_key'    => 'target',
+		'path'        => '/example/v1/retry',
 		'retryable'   => true,
 		'transient'   => false,
 		'retry_after' => 13,
@@ -323,7 +331,7 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/invalid-retry'] = array(
 	),
 );
 $invalid_retry = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/invalid-retry' );
-csr_assert( array( 'status' => 503 ) === $invalid_retry->get_error_data(), 'invalid retry metadata types are omitted' );
+csr_assert( array( 'status' => 503, 'site_key' => 'target', 'path' => '/example/v1/invalid-retry' ) === $invalid_retry->get_error_data(), 'invalid retry metadata types are omitted' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/retry-tiny']     = array(
 	'response' => array( 'code' => 503 ),
@@ -342,7 +350,7 @@ $retry_huge     = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1
 $retry_infinite = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/retry-infinite' );
 csr_assert( 1 === $retry_tiny->get_error_data()['retry_after'], 'tiny positive retry delay rounds up to one second' );
 csr_assert( 86400 === $retry_huge->get_error_data()['retry_after'], 'huge finite retry delay clamps before integer conversion' );
-csr_assert( array( 'status' => 503 ) === $retry_infinite->get_error_data(), 'infinite retry delay is omitted' );
+csr_assert( array( 'status' => 503, 'site_key' => 'target', 'path' => '/example/v1/retry-infinite' ) === $retry_infinite->get_error_data(), 'infinite retry delay is omitted' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/retry-negative'] = array(
 	'response' => array( 'code' => 503 ),
@@ -354,8 +362,8 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/retry-zero']     = array(
 );
 $retry_negative = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/retry-negative' );
 $retry_zero     = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/retry-zero' );
-csr_assert( array( 'status' => 503 ) === $retry_negative->get_error_data(), 'negative retry delay is omitted' );
-csr_assert( array( 'status' => 503 ) === $retry_zero->get_error_data(), 'zero retry delay is omitted' );
+csr_assert( array( 'status' => 503, 'site_key' => 'target', 'path' => '/example/v1/retry-negative' ) === $retry_negative->get_error_data(), 'negative retry delay is omitted' );
+csr_assert( array( 'status' => 503, 'site_key' => 'target', 'path' => '/example/v1/retry-zero' ) === $retry_zero->get_error_data(), 'zero retry delay is omitted' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/credential-message'] = array(
 	'response' => array( 'code' => 500 ),
@@ -368,7 +376,7 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/credential-message'] = array
 );
 $credential_message = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/credential-message' );
 csr_assert( 'target_failure' === $credential_message->get_error_code(), 'credential message does not affect valid target code' );
-csr_assert( 'Cross-site request failed' === $credential_message->get_error_message(), 'credential-shaped target messages are not reflected' );
+csr_assert( 'Cross-site request to target /example/v1/credential-message failed: Cross-site request failed' === $credential_message->get_error_message(), 'credential-shaped target messages are not reflected' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/invalid-envelope'] = array(
 	'response' => array( 'code' => 500 ),
@@ -381,7 +389,7 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/invalid-envelope'] = array(
 );
 $invalid_envelope = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/invalid-envelope' );
 csr_assert( 'ec_cross_site_error' === $invalid_envelope->get_error_code(), 'invalid target machine code is omitted' );
-csr_assert( 'Cross-site request failed (HTTP 500)' === $invalid_envelope->get_error_message(), 'invalid envelope gets status without reflecting target message' );
+csr_assert( 'Cross-site request to target /example/v1/invalid-envelope failed: Cross-site request failed (HTTP 500)' === $invalid_envelope->get_error_message(), 'invalid envelope gets status without reflecting target message' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/array-message'] = array(
 	'response' => array( 'code' => 500 ),
@@ -393,22 +401,22 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/array-message'] = array(
 	),
 );
 $array_message = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/array-message' );
-csr_assert( 'Cross-site request failed' === $array_message->get_error_message(), 'array-shaped target message is ignored' );
+csr_assert( 'Cross-site request to target /example/v1/array-message failed: Cross-site request failed' === $array_message->get_error_message(), 'array-shaped target message is ignored' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/retry-nan'] = array(
 	'response' => array( 'code' => 503 ),
 	'body'     => '{"data":{"retry_after":NaN}}',
 );
 $retry_nan = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/retry-nan' );
-csr_assert( array( 'status' => 503, 'retryable' => true, 'transient' => true ) === $retry_nan->get_error_data(), 'malformed JSON gets status-based retry hints without a delay' );
+csr_assert( array( 'status' => 503, 'site_key' => 'target', 'path' => '/example/v1/retry-nan', 'retryable' => true, 'transient' => true ) === $retry_nan->get_error_data(), 'malformed JSON gets status-based retry hints without a delay' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/malformed'] = array(
 	'response' => array( 'code' => 502 ),
 	'body'     => '<html>bad gateway</html>',
 );
 $malformed = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/malformed' );
-csr_assert( 'ec_cross_site_error' === $malformed->get_error_code() && 'Cross-site request failed (HTTP 502)' === $malformed->get_error_message(), 'malformed error body keeps generic code and names HTTP status' );
-csr_assert( array( 'status' => 502 ) === $malformed->get_error_data(), 'malformed error body preserves only HTTP status' );
+csr_assert( 'ec_cross_site_error' === $malformed->get_error_code() && 'Cross-site request to target /example/v1/malformed failed: Cross-site request failed (HTTP 502)' === $malformed->get_error_message(), 'malformed error body keeps generic code and names HTTP status' );
+csr_assert( array( 'status' => 502, 'site_key' => 'target', 'path' => '/example/v1/malformed' ) === $malformed->get_error_data(), 'malformed error body preserves only HTTP status' );
 
 foreach ( array( 429 => 'ec_cross_site_rate_limited', 503 => 'ec_cross_site_unavailable', 500 => 'ec_cross_site_error' ) as $status => $code ) {
 	$GLOBALS['csr_http_responses']['/wp-json/example/v1/html-error'] = array(
@@ -416,13 +424,13 @@ foreach ( array( 429 => 'ec_cross_site_rate_limited', 503 => 'ec_cross_site_unav
 		'body'     => '<html>nginx error: private upstream details</html>',
 	);
 	$error = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/html-error' );
-	$expected_data = array( 'status' => $status );
+	$expected_data = array( 'status' => $status, 'site_key' => 'target', 'path' => '/example/v1/html-error' );
 	if ( 500 !== $status ) {
 		$expected_data['retryable'] = true;
 		$expected_data['transient'] = true;
 	}
 	csr_assert( $code === $error->get_error_code(), "HTML HTTP {$status} gets expected code" );
-	csr_assert( "Cross-site request failed (HTTP {$status})" === $error->get_error_message(), "HTML HTTP {$status} message names status without upstream details" );
+	csr_assert( "Cross-site request to target /example/v1/html-error failed: Cross-site request failed (HTTP {$status})" === $error->get_error_message(), "HTML HTTP {$status} message names status without upstream details" );
 	csr_assert( $expected_data === $error->get_error_data(), "HTML HTTP {$status} gets expected retry hints" );
 }
 
@@ -445,7 +453,7 @@ $GLOBALS['csr_http_responses']['/wp-json/example/v1/json-error'] = array(
 	'body'     => wp_json_encode( array( 'code' => 'target_failure', 'message' => 'private details', 'data' => array( 'retryable' => false ) ) ),
 );
 $error = ec_cross_site_rest_request_http( 'target', 'GET', '/example/v1/json-error' );
-csr_assert( 'target_failure' === $error->get_error_code() && 'Cross-site request failed' === $error->get_error_message(), 'JSON error code and safe message retain existing behavior' );
-csr_assert( array( 'status' => 503, 'retryable' => false ) === $error->get_error_data(), 'JSON error metadata is not overridden by HTTP fallback or headers' );
+csr_assert( 'target_failure' === $error->get_error_code() && 'Cross-site request to target /example/v1/json-error failed: private details' === $error->get_error_message(), 'JSON error code and upstream message are preserved' );
+csr_assert( array( 'status' => 503, 'site_key' => 'target', 'path' => '/example/v1/json-error', 'retryable' => false ) === $error->get_error_data(), 'JSON error metadata is not overridden by HTTP fallback or headers' );
 
 echo "All cross-site REST dispatch tests passed.\n";
