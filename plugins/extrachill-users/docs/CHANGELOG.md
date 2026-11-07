@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.59.0] - 2026-11-07
+
+### Added
+- show the Local Scene in guest digest signup admin email
+
 ## [0.58.1] - 2026-11-06
 
 ### Changed
