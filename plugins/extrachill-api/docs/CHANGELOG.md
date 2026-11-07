@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.50.2] - 2026-11-07
+
+### Fixed
+- link page media lands on the storage blog, assigned through the save ability
+
 ## [0.50.1] - 2026-11-07
 
 ### Fixed
