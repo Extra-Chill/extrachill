@@ -358,9 +358,6 @@ function extrachill_api_rest_ability_contract_exceptions( array $contract ) {
 				'source'             => 'Public attribution metadata is normalized into the subscription context.',
 			),
 		),
-		'/extrachill/v1/admin/artist-access/(?P<user_id>\d+)/approve|extrachill/approve-artist-access' => array(
-			'transport_only' => array( 'token' => 'Approval token is verified by the REST admission layer before ability execution.' ),
-		),
 		'/extrachill/v1/venues/(?P<venue>\d+)/booking-inquiries/follow-through/status|' . EXTRACHILL_API_BOOKING_STATUS_ABILITY => array(
 			'ability_only'   => array( 'venue_term_id' => 'Derived exclusively from the trusted venue path segment before ability execution.' ),
 			'transport_only' => array( 'venue' => 'The venue path segment is the signed route-affinity boundary and is verified against the internal ability result.' ),

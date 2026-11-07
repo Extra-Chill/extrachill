@@ -72,6 +72,21 @@ final class AbilityErrorPreservationTest extends WP_UnitTestCase {
 		$this->assertSame( $error, extrachill_api_artist_links_get_handler( $request ) );
 	}
 
+	/** Email GET approval is gone; authenticated POST approval remains. */
+	public function test_artist_access_approval_is_post_only() {
+		$routes = rest_get_server()->get_routes();
+		$route = '/extrachill/v1/admin/artist-access/(?P<user_id>\d+)/approve';
+		$this->assertArrayHasKey( $route, $routes );
+		$post = false;
+		foreach ( $routes[ $route ] as $endpoint ) {
+			$this->assertEmpty( $endpoint['methods']['GET'] );
+			$post = $post || ! empty( $endpoint['methods']['POST'] );
+		}
+		$this->assertTrue( $post );
+		$this->assertFalse( function_exists( 'extrachill_api_generate_artist_access_token' ) );
+		$this->assertFalse( function_exists( 'extrachill_api_validate_artist_access_token' ) );
+	}
+
 	/** Conflict errors retain their canonical status and metadata. */
 	public function test_artist_access_preserves_conflict_error() {
 		$error = $this->error( 'artist_access_conflict', 'Request already resolved.', 409, array( 'state' => 'approved' ) );
