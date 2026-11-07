@@ -161,15 +161,20 @@ function extrachill_artist_platform_register_abilities() {
 		'extrachill/preview-link-page',
 		array(
 			'label'               => __( 'Preview Link Page', 'extrachill-artist-platform' ),
-			'description'         => __( 'Preview an artist Link Page: public URL, resolved CSS defaults and derived variables, and WCAG contrast checks (4.5 threshold). Image/gradient contrast is unknown. Live screenshots are unavailable until WP Codebox supports public URL capture.', 'extrachill-artist-platform' ),
+			'description'         => __( 'Preview an artist Link Page: public URL, resolved CSS defaults and derived variables, and WCAG contrast checks (4.5 threshold). Also captures a full-page screenshot of the live public URL at the viewport (default 390x844) and returns its image URL; pass screenshot=false to skip it.', 'extrachill-artist-platform' ),
 			'category'            => 'extrachill-artist-platform',
 			'input_schema'        => array(
 				'type' => 'object',
 				'required' => array( 'artist_id' ),
 				'additionalProperties' => false,
 				'properties' => array(
-					'artist_id' => array( 'type' => 'integer', 'minimum' => 1 ),
-					'viewport' => array(
+					'artist_id'  => array( 'type' => 'integer', 'minimum' => 1 ),
+					'screenshot' => array(
+						'type'        => 'boolean',
+						'default'     => true,
+						'description' => 'Capture a full-page screenshot of the live public URL (up to 30s).',
+					),
+					'viewport'   => array(
 						'type' => 'object',
 						'required' => array( 'width', 'height' ),
 						'additionalProperties' => false,

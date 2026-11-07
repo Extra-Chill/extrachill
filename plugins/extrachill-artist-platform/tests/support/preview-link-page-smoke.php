@@ -9,6 +9,7 @@ class WP_Error {
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function absint( $value ) { return abs( (int) $value ); }
 function apply_filters( $name, $value ) { return $value; }
+function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 function add_action( ...$args ) {}
 function __( $text, $domain ) { return $text; }
 function wp_register_ability( $name, $config ) { $GLOBALS['abilities'][$name] = $config; }
