@@ -27,6 +27,9 @@ const EXTRACHILL_ARTIST_PLATFORM_PREVIEW_TIMEOUT = 30;
  */
 function extrachill_artist_platform_preview_config_path( $constant, $filter, $fallback = '' ) {
 	$value = defined( $constant ) ? (string) constant( $constant ) : $fallback;
+	if ( '' === $filter ) {
+		return $value;
+	}
 	return (string) apply_filters( $filter, $value );
 }
 
@@ -171,6 +174,7 @@ JS;
 		'PATH' => getenv( 'PATH' ) ? getenv( 'PATH' ) : '/usr/local/bin:/usr/bin:/bin',
 	);
 	$pipes   = array();
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Fixed argv (no shell) to a configured Chromium runner; disabled hosts report unavailable.
 	$process = proc_open(
 		$command,
 		array(
@@ -189,12 +193,19 @@ JS;
 
 	$stderr   = '';
 	$deadline = microtime( true ) + $timeout;
-	$status   = proc_get_status( $process );
+	$poll     = static function () use ( $process ) {
+		$current = proc_get_status( $process );
+		return is_array( $current ) ? $current : array(
+			'running'  => false,
+			'exitcode' => -1,
+		);
+	};
+	$status   = $poll();
 	while ( $status['running'] && microtime( true ) < $deadline ) {
 		usleep( 100000 );
 		$stderr .= (string) stream_get_contents( $pipes[2] );
 		stream_get_contents( $pipes[1] );
-		$status = proc_get_status( $process );
+		$status = $poll();
 	}
 	$stderr .= (string) stream_get_contents( $pipes[2] );
 	if ( $status['running'] ) {

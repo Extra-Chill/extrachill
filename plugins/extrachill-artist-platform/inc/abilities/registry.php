@@ -168,13 +168,13 @@ function extrachill_artist_platform_register_abilities() {
 				'required' => array( 'artist_id' ),
 				'additionalProperties' => false,
 				'properties' => array(
-					'artist_id' => array( 'type' => 'integer', 'minimum' => 1 ),
+					'artist_id'  => array( 'type' => 'integer', 'minimum' => 1 ),
 					'screenshot' => array(
-						'type' => 'boolean',
-						'default' => true,
+						'type'        => 'boolean',
+						'default'     => true,
 						'description' => 'Capture a full-page screenshot of the live public URL (up to 30s).',
 					),
-					'viewport' => array(
+					'viewport'   => array(
 						'type' => 'object',
 						'required' => array( 'width', 'height' ),
 						'additionalProperties' => false,
