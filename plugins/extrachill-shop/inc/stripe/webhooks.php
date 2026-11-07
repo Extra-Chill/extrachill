@@ -76,6 +76,14 @@ function extrachill_shop_route_webhook_event( $event ) {
 	$event_type = $event->type;
 	$data       = $event->data->object;
 
+	if ( in_array( $event_type, array( 'checkout.session.completed', 'checkout.session.async_payment_succeeded' ), true ) && 'extrachill_merch' === ( $data->metadata->kind ?? '' ) ) {
+		return extrachill_shop_fulfil_merch_session( $data, $event->account ?? '' );
+	}
+	// Merch is fulfilled only by its account-bound Checkout Session.
+	if ( 'extrachill_merch' === ( $data->metadata->kind ?? '' ) ) {
+		return true;
+	}
+
 	if ( ! empty( $event->account ) ) {
 		if ( 'checkout.session.completed' === $event_type && 'extrachill_ticket' === ( $data->metadata->kind ?? '' ) ) {
 			return extrachill_shop_fulfil_ticket_session( $data, $event->account );

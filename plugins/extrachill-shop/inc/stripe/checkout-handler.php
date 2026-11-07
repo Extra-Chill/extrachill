@@ -1,420 +1,168 @@
 <?php
-/**
- * Stripe Checkout Handler
- *
- * Handles WooCommerce checkout integration with Stripe Connect using the
- * "Separate Charges and Transfers" pattern. Groups cart items by artist and
- * transfers artist portions to connected accounts after WooCommerce payment.
- *
- * @package ExtraChillShop
- * @since 0.2.0
- */
-
+/** Single-seller merch checkout. */
 defined( 'ABSPATH' ) || exit;
 
-/**
- * Resolve the payout seller for a product, or null for platform products.
- *
- * @param int $product_id WooCommerce product ID.
- * @return array|null Seller reference.
- */
 function extrachill_shop_get_product_payout_seller( $product_id ) {
 	$seller = extrachill_shop_get_product_seller( $product_id );
-	if ( ! $seller ) {
-		return null;
-	}
-	// Platform artist products are platform products.
-	if ( 'artist' === $seller['type'] && defined( 'EC_PLATFORM_ARTIST_ID' ) && $seller['id'] === EC_PLATFORM_ARTIST_ID ) {
+	if ( ! $seller || ( 'artist' === $seller['type'] && defined( 'EC_PLATFORM_ARTIST_ID' ) && EC_PLATFORM_ARTIST_ID === $seller['id'] ) ) {
 		return null;
 	}
 	return $seller;
 }
 
-/**
- * Group cart items by seller.
- *
- * Artist groups stay keyed by artist profile ID (with the same shape as
- * before); venue and promoter groups are keyed `type:id` and carry `seller`.
- * Platform products go to group 0.
- *
- * @param array $cart_items WooCommerce cart items.
- * @return array Grouped items keyed by artist ID, `type:id`, or 0.
- */
-function extrachill_shop_group_cart_by_artist( $cart_items ) {
-	$grouped = array();
-
-	foreach ( $cart_items as $cart_item_key => $cart_item ) {
-		$seller = extrachill_shop_get_product_payout_seller( $cart_item['product_id'] );
-		$key    = $seller ? extrachill_shop_seller_key( $seller ) : 0;
-
-		if ( ! isset( $grouped[ $key ] ) ) {
-			$grouped[ $key ] = array(
-				'artist_id' => is_int( $key ) ? $key : 0,
-				'items'     => array(),
-				'total'     => 0,
-			);
-			if ( $seller && 'artist' !== $seller['type'] ) {
-				$grouped[ $key ]['seller'] = $seller;
-			}
+/** Returns null for platform products, or an error for a mixed cart/order. */
+function extrachill_shop_single_seller( array $product_ids ) {
+	$seen   = false;
+	$seller = null;
+	foreach ( $product_ids as $id ) {
+		$current = extrachill_shop_get_product_payout_seller( $id );
+		if ( $seen && $current !== $seller ) {
+			return new WP_Error( 'mixed_sellers', 'Your cart has items from another seller. Check out or empty it first.' );
 		}
-
-		$grouped[ $key ]['items'][ $cart_item_key ] = $cart_item;
-		$grouped[ $key ]['total']                  += $cart_item['line_total'];
+		$seller = $current;
+		$seen   = true;
 	}
-
-	return $grouped;
+	return $seller;
 }
 
-/**
- * Seller reference for a grouped cart entry.
- *
- * @param int|string $key   Group key.
- * @param array      $group Group data.
- * @return array Seller reference.
- */
-function extrachill_shop_group_seller( $key, array $group ) {
-	return $group['seller'] ?? array(
-		'type' => 'artist',
-		'id'   => (int) $key,
-	);
+function extrachill_shop_validate_add_to_cart( $valid, $product_id ) {
+	$ids    = array_column( WC()->cart ? WC()->cart->get_cart() : array(), 'product_id' );
+	$ids[]  = $product_id;
+	$result = extrachill_shop_single_seller( $ids );
+	if ( is_wp_error( $result ) ) {
+		wc_add_notice( $result->get_error_message(), 'error' );
+		return false;
+	}
+	return $valid;
 }
+add_filter( 'woocommerce_add_to_cart_validation', 'extrachill_shop_validate_add_to_cart', 10, 2 );
 
-/**
- * Validate that all artists in cart have connected Stripe accounts.
- *
- * @return array{valid: bool, invalid_products?: array}
- */
-function extrachill_shop_validate_cart_artists() {
-	$cart = WC()->cart;
-	if ( ! $cart ) {
-		return array( 'valid' => true );
-	}
-
-	$grouped          = extrachill_shop_group_cart_by_artist( $cart->get_cart() );
-	$invalid_products = array();
-
-	foreach ( $grouped as $artist_id => $group ) {
-		// Skip platform products (no artist).
-		if ( 0 === $artist_id ) {
-			continue;
-		}
-
-		$stripe_account = extrachill_shop_get_seller_stripe_account( extrachill_shop_group_seller( $artist_id, $group ) );
-
-		if ( ! $stripe_account ) {
-			// Artist has no Stripe account connected.
-			foreach ( $group['items'] as $cart_item ) {
-				$product            = wc_get_product( $cart_item['product_id'] );
-				$invalid_products[] = array(
-					'product_id'   => $cart_item['product_id'],
-					'product_name' => $product ? $product->get_name() : 'Unknown',
-					'reason'       => 'artist_not_connected',
-				);
-			}
-			continue;
-		}
-
-		// Check if account can receive payments.
-		if ( ! extrachill_shop_account_can_receive_payments( $stripe_account ) ) {
-			foreach ( $group['items'] as $cart_item ) {
-				$product            = wc_get_product( $cart_item['product_id'] );
-				$invalid_products[] = array(
-					'product_id'   => $cart_item['product_id'],
-					'product_name' => $product ? $product->get_name() : 'Unknown',
-					'reason'       => 'artist_account_restricted',
-				);
-			}
-		}
-	}
-
-	if ( ! empty( $invalid_products ) ) {
-		return array(
-			'valid'            => false,
-			'invalid_products' => $invalid_products,
-		);
-	}
-
-	return array( 'valid' => true );
-}
-
-/**
- * Validate cart at checkout.
- *
- * Hooked to woocommerce_check_cart_items.
- */
 function extrachill_shop_validate_cart_at_checkout() {
-	$validation = extrachill_shop_validate_cart_artists();
-
-	if ( ! $validation['valid'] ) {
-		$product_names = wp_list_pluck( $validation['invalid_products'], 'product_name' );
-		$message       = sprintf(
-			/* translators: %s: comma-separated list of product names */
-			__( 'The following items cannot be purchased at this time: %s. Please remove them from your cart to continue.', 'extrachill-shop' ),
-			implode( ', ', $product_names )
-		);
-		wc_add_notice( $message, 'error' );
+	if ( ! WC()->cart ) {
+		return;
+	}
+	$seller = extrachill_shop_single_seller( array_column( WC()->cart->get_cart(), 'product_id' ) );
+	if ( is_wp_error( $seller ) ) {
+		wc_add_notice( $seller->get_error_message(), 'error' );
+	} elseif ( $seller ) {
+		$account = extrachill_shop_get_seller_stripe_account( $seller );
+		if ( ! $account || ! extrachill_shop_account_can_receive_payments( $account ) ) {
+			wc_add_notice( 'Seller cannot receive payments. Please try again later.', 'error' );
+		}
 	}
 }
 add_action( 'woocommerce_check_cart_items', 'extrachill_shop_validate_cart_at_checkout' );
 
-/**
- * Calculate charge amounts per artist.
- *
- * @param array $grouped_items Grouped cart items from extrachill_shop_group_cart_by_artist().
- * @return array Charge data per artist.
- */
-function extrachill_shop_calculate_artist_charges( $grouped_items ) {
-	$charges = array();
-
-	foreach ( $grouped_items as $artist_id => $group ) {
-		// Skip platform products for now (handled separately).
-		if ( 0 === $artist_id ) {
-			continue;
-		}
-
-		$total           = $group['total'];
-		$commission_rate = extrachill_shop_get_default_commission_rate();
-		// A fee outside [0, total] would mean a negative transfer; never let config produce one.
-		$application_fee = min( max( round( $total * $commission_rate, 2 ), 0.0 ), (float) $total );
-		$artist_payout   = round( $total - $application_fee, 2 );
-
-		$stripe_account = extrachill_shop_get_seller_stripe_account( extrachill_shop_group_seller( $artist_id, $group ) );
-
-		$charges[ $artist_id ] = array(
-			'artist_id'       => $group['artist_id'],
-			'stripe_account'  => $stripe_account,
-			'total'           => $total,
-			'application_fee' => $application_fee,
-			'artist_payout'   => $artist_payout,
-			'items'           => $group['items'],
-		);
-		if ( isset( $group['seller'] ) ) {
-			$charges[ $artist_id ]['seller'] = $group['seller'];
-		}
-	}
-
-	return $charges;
-}
-
-/**
- * Process artist transfers after WooCommerce payment completes.
- *
- * Uses Stripe's "Separate Charges and Transfers" pattern:
- * - WooCommerce Stripe Gateway charges customer once for full amount
- * - This function creates Transfer objects to move artist portions to connected accounts
- * - Platform keeps commission by simply not transferring it
- *
- * @param WC_Order $order     WooCommerce order.
- * @param string   $charge_id Stripe charge ID from WooCommerce payment.
- * @return array{success: bool, transfers?: array, error?: string}
- */
-function extrachill_shop_process_artist_transfers( $order, $charge_id ) {
-	if ( ! extrachill_shop_stripe_init() ) {
-		return array(
-			'success' => false,
-			'error'   => 'Stripe is not configured.',
-		);
-	}
-
-	$cart_items = array();
+/** Build a direct charge, binding the order to its original seller account. */
+function extrachill_shop_start_merch_checkout( $order ) {
+	$ids = array();
 	foreach ( $order->get_items() as $item ) {
-		$cart_items[] = array(
-			'product_id' => $item->get_product_id(),
-			'line_total' => $item->get_total(),
-			'quantity'   => $item->get_quantity(),
-		);
+		$ids[] = $item->get_product_id();
 	}
-
-	$grouped = extrachill_shop_group_cart_by_artist( $cart_items );
-	$charges = extrachill_shop_calculate_artist_charges( $grouped );
-
-	$successful_transfers = array();
-	$transfer_group       = 'ORDER_' . $order->get_id();
-
-	try {
-		foreach ( $charges as $artist_id => $charge_data ) {
-			if ( ! $charge_data['stripe_account'] ) {
-				$label = isset( $charge_data['seller'] ) ? 'Seller ' . $artist_id : 'Artist ' . $artist_id;
-				throw new \Exception( $label . ' does not have a connected Stripe account.' );
-			}
-
-			$metadata = array(
-				'order_id'        => $order->get_id(),
-				'artist_id'       => $artist_id,
-				'platform'        => 'extrachill',
-				'commission_rate' => extrachill_shop_get_default_commission_rate(),
-			);
-			if ( isset( $charge_data['seller'] ) ) {
-				unset( $metadata['artist_id'] );
-				$metadata['seller_reference'] = $artist_id;
-			}
-
-			// Transfer artist payout (total minus commission) in cents.
-			$transfer_amount_cents = (int) round( $charge_data['artist_payout'] * 100 );
-
-			$transfer = \Stripe\Transfer::create(
-				array(
-					'amount'             => $transfer_amount_cents,
-					'currency'           => strtolower( get_woocommerce_currency() ),
-					'destination'        => $charge_data['stripe_account'],
-					'source_transaction' => $charge_id,
-					'transfer_group'     => $transfer_group,
-					'metadata'           => $metadata,
-				),
-				// A retry after a partial failure returns the same transfer instead of paying twice.
-				array( 'idempotency_key' => 'ec-transfer-' . $order->get_id() . '-' . $artist_id )
-			);
-
-			$successful_transfers[ $artist_id ] = array(
-				'transfer_id'     => $transfer->id,
-				'amount'          => $charge_data['artist_payout'],
-				'application_fee' => $charge_data['application_fee'],
-				'status'          => 'transferred',
-			);
+	$seller = extrachill_shop_single_seller( $ids );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
+	}
+	if ( ! $ids || ! extrachill_shop_stripe_init() ) {
+		return new WP_Error( 'checkout_unavailable', 'Checkout is unavailable.' );
+	}
+	$account = '';
+	if ( $seller ) {
+		$canonical = extrachill_shop_get_canonical_seller( $seller );
+		if ( is_wp_error( $canonical ) ) {
+			return $canonical;
 		}
-
-		// Store transfer data on order.
-		$order->update_meta_data( '_stripe_transfers', $successful_transfers );
-		// Artist payouts keep their artist-keyed record; venue/promoter payouts are stored separately.
-		$seller_payouts = array_filter(
-			$charges,
-			static function ( $charge ) {
-				return isset( $charge['seller'] );
-			}
-		);
-		$order->update_meta_data( '_artist_payouts', array_diff_key( $charges, $seller_payouts ) );
-		if ( $seller_payouts ) {
-			$order->update_meta_data( '_seller_payouts', $seller_payouts );
-		}
-		$order->update_meta_data( '_stripe_transfer_group', $transfer_group );
-		$order->save();
-
-		return array(
-			'success'   => true,
-			'transfers' => $successful_transfers,
-		);
-
-	} catch ( \Exception $e ) {
-		// Transfers can be reversed if needed, but typically we'd investigate manually.
-		// Log the error and failed state for admin review.
-		error_log( 'Stripe transfer failed for order ' . $order->get_id() . ': ' . $e->getMessage() );
-
-		return array(
-			'success' => false,
-			'error'   => $e->getMessage(),
-		);
-	}
-}
-
-/**
- * Get or create a Stripe customer for the order.
- *
- * @param WC_Order $order WooCommerce order.
- * @return \Stripe\Customer Stripe customer object.
- */
-function extrachill_shop_get_or_create_stripe_customer( $order ) {
-	$user_id       = $order->get_user_id();
-	$customer_id   = '';
-	$billing_email = $order->get_billing_email();
-
-	// Check for existing customer ID.
-	if ( $user_id ) {
-		$customer_id = get_user_meta( $user_id, '_stripe_customer_id', true );
-	}
-
-	if ( $customer_id ) {
-		try {
-			return \Stripe\Customer::retrieve( $customer_id );
-		} catch ( \Exception $e ) {
-			// Customer doesn't exist, create new one.
+		$account = extrachill_shop_get_seller_stripe_account( $seller );
+		if ( ! $account || ! extrachill_shop_account_can_receive_payments( $account ) ) {
+			return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments. Please try again later.' );
 		}
 	}
-
-	// Create new customer.
-	$customer = \Stripe\Customer::create(
-		array(
-			'email'    => $billing_email,
-			'name'     => $order->get_formatted_billing_full_name(),
-			'metadata' => array(
-				'wordpress_user_id' => $user_id,
-				'platform'          => 'extrachill',
+	$items       = array();
+	$fee         = 0;
+	$total_minor = (int) round( $order->get_total() * 100 );
+	$items_minor = 0;
+	foreach ( $order->get_items() as $item ) {
+		// One Stripe line per discounted order line avoids unit rounding drift.
+		$amount       = (int) round( ( $item->get_total() + $item->get_total_tax() ) * 100 );
+		$items_minor += $amount;
+		$items[]      = array(
+			'quantity'   => 1,
+			'price_data' => array(
+				'currency'     => strtolower( $order->get_currency() ),
+				'unit_amount'  => $amount,
+				'product_data' => array( 'name' => $item->get_name() . ' × ' . $item->get_quantity() ),
 			),
-		)
-	);
-
-	// Store customer ID for future use.
-	if ( $user_id ) {
-		update_user_meta( $user_id, '_stripe_customer_id', $customer->id );
+		);
+		$fee         += (int) round( extrachill_shop_calculate_commission( $item->get_total(), $item->get_product_id() ) * 100 );
 	}
-
-	return $customer;
-}
-
-/**
- * Handle charge failure with rollback.
- *
- * @param array  $successful_charges Charges that succeeded before failure.
- * @param int    $failed_artist_id   The artist whose charge failed.
- * @param string $error_message      The error message.
- * @return array Rollback result.
- */
-function extrachill_shop_handle_charge_failure( $successful_charges, $failed_artist_id, $error_message ) {
-	$refunded = array();
-	$failed   = array();
-
-	foreach ( $successful_charges as $artist_id => $charge ) {
-		try {
-			\Stripe\Refund::create(
-				array(
-					'payment_intent' => $charge['payment_intent_id'],
-				)
+	// Preserve Woo shipping/fee/tax totals without calculating tax here.
+	if ( $total_minor < $items_minor || $total_minor <= 0 ) {
+		return new WP_Error( 'invalid_checkout_total', 'This order total cannot be processed.' );
+	}
+	if ( $total_minor > $items_minor ) {
+		$items[] = array(
+			'quantity'   => 1,
+			'price_data' => array(
+				'currency'     => strtolower( $order->get_currency() ),
+				'unit_amount'  => $total_minor - $items_minor,
+				'product_data' => array( 'name' => 'Shipping and order fees' ),
+			),
+		);
+	}
+	$metadata = array(
+		'kind'     => 'extrachill_merch',
+		'order_id' => (string) $order->get_id(),
+	);
+	$data     = array(
+		'mode'                => 'payment',
+		'line_items'          => $items,
+		'metadata'            => $metadata,
+		'payment_intent_data' => array( 'metadata' => $metadata ),
+		'success_url'         => $order->get_checkout_order_received_url(),
+		'cancel_url'          => wc_get_cart_url(),
+		'customer_email'      => $order->get_billing_email(),
+	);
+	$options  = array( 'idempotency_key' => 'ec-merch-' . $order->get_id() . '-' . hash( 'sha256', wp_json_encode( array( $account, $data ) ) ) );
+	if ( $account ) {
+		$options['stripe_account']                             = $account;
+		$data['payment_intent_data']['application_fee_amount'] = min( $total_minor, max( 0, $fee ) );
+	}
+	try {
+		$session = \Stripe\Checkout\Session::create( $data, $options );
+		$fee     = $account ? min( $total_minor, max( 0, $fee ) ) : 0;
+		$order->update_meta_data( '_extrachill_stripe_account', $account );
+		$order->update_meta_data( '_extrachill_checkout_session', $session->id );
+		$order->update_meta_data( '_extrachill_seller', $seller );
+		// Keep reporting and seller refund readers compatible with existing orders.
+		if ( $seller ) {
+			$payout = array(
+				'total'           => (float) $order->get_total(),
+				'artist_payout'   => ( $total_minor - $fee ) / 100,
+				'application_fee' => $fee / 100,
+				'stripe_account'  => $account,
 			);
-			$refunded[] = $artist_id;
-		} catch ( \Exception $e ) {
-			$failed[ $artist_id ] = $e->getMessage();
-			error_log( 'Rollback refund failed for artist ' . $artist_id . ': ' . $e->getMessage() );
+			$order->update_meta_data( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts', array( extrachill_shop_seller_key( $seller ) => $payout ) );
 		}
+		$order->save();
+		return $session;
+	} catch ( \Exception $e ) {
+		return new WP_Error( 'merch_checkout_failed', 'Checkout failed. Please try again.' );
 	}
-
-	return array(
-		'refunded'         => $refunded,
-		'failed_refunds'   => $failed,
-		'original_error'   => $error_message,
-		'failed_artist_id' => $failed_artist_id,
-	);
 }
 
-/**
- * Check if order contains only platform products (no artist, venue, or promoter products).
- *
- * @param WC_Order $order WooCommerce order.
- * @return bool True if order has no artist products.
- */
-function extrachill_shop_order_is_platform_only( $order ) {
-	foreach ( $order->get_items() as $item ) {
-		if ( extrachill_shop_get_product_payout_seller( $item->get_product_id() ) ) {
-			return false;
-		}
+function extrachill_shop_fulfil_merch_session( $session, $account ) {
+	if ( 'paid' !== $session->payment_status ) {
+		return true;
 	}
+	$order = wc_get_order( (int) ( $session->metadata->order_id ?? 0 ) );
+	if ( ! $order || 'extrachill_stripe_checkout' !== $order->get_payment_method() || $order->get_meta( '_extrachill_checkout_session' ) !== $session->id || (string) $order->get_meta( '_extrachill_stripe_account' ) !== (string) $account ) {
+		return new WP_Error( 'merch_account_mismatch', 'Unknown merch order or account.', array( 'status' => 409 ) );
+	}
+	if ( $order->get_meta( '_extrachill_payment_intent' ) || $order->is_paid() ) {
+		return true;
+	}
+	$order->update_meta_data( '_extrachill_payment_intent', $session->payment_intent );
+	$order->payment_complete( $session->payment_intent );
+	$order->save();
 	return true;
-}
-
-/**
- * Get order charges by artist.
- *
- * @param WC_Order $order WooCommerce order.
- * @return array Charges indexed by artist ID.
- */
-function extrachill_shop_get_order_charges( $order ) {
-	return $order->get_meta( '_stripe_charges' ) ?: array();
-}
-
-/**
- * Get order artist payouts.
- *
- * @param WC_Order $order WooCommerce order.
- * @return array Payout data indexed by artist ID.
- */
-function extrachill_shop_get_order_artist_payouts( $order ) {
-	return $order->get_meta( '_artist_payouts' ) ?: array();
 }
