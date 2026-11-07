@@ -24,8 +24,6 @@ namespace ExtraChillEvents\Core {
 }
 
 namespace {
-	function switch_to_blog( $id ) { $GLOBALS['notification_switches'][] = $id; }
-	function restore_current_blog() { array_pop( $GLOBALS['notification_switches'] ); }
 	function get_userdata( $id ) { return (object) array( 'user_email' => "user$id@example.com" ); }
 	function get_term( $id, $type ) { return (object) array(
 		'taxonomy' => $type,
@@ -51,7 +49,7 @@ namespace {
 
 	final class SellerOrderNotificationsTest extends \PHPUnit\Framework\TestCase {
 		protected function setUp(): void {
-			$GLOBALS['notification_mail']       = $GLOBALS['notification_switches'] = array();
+			$GLOBALS['notification_mail']       = $GLOBALS['test_blog_stack'] = array();
 			$GLOBALS['notification_org_status'] = 'active';
 			$GLOBALS['notification_members']    = array(
 				array(
@@ -105,7 +103,7 @@ namespace {
 				public function get_address( $type ) { return array( 'address_1' => '123 Main' ); }
 			};
 			extrachill_shop_notify_sellers_of_order( 1 );
-			$this->assertSame( array(), $GLOBALS['notification_switches'] );
+			$this->assertSame( array(), $GLOBALS['test_blog_stack'] );
 			return $GLOBALS['notification_mail'];
 		}
 		public function test_artist_roster_is_unchanged(): void {
