@@ -34,18 +34,20 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 						'type'        => 'integer',
 						'description' => 'WooCommerce order ID.',
 					),
+					'seller'    => extrachill_shop_seller_input_schema(),
 					'artist_id' => array(
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
 					),
 				),
-				'required'   => array( 'order_id', 'artist_id' ),
+				'required'   => array( 'order_id' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success'         => array( 'type' => 'boolean' ),
 					'order_id'        => array( 'type' => 'integer' ),
+					'seller'          => extrachill_shop_seller_input_schema(),
 					'artist_id'       => array( 'type' => 'integer' ),
 					'label_url'       => array( 'type' => 'string' ),
 					'tracking_number' => array( 'type' => 'string' ),
@@ -55,25 +57,7 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_create_shipping_label',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this artist.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return current_user_can( 'manage_options' );
-			},
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
 			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
@@ -95,15 +79,18 @@ function extrachill_shop_register_create_shipping_label_ability(): void {
  * @return array|WP_Error
  */
 function extrachill_shop_ability_create_shipping_label( array $input ): array|WP_Error {
-	$order_id  = (int) ( $input['order_id'] ?? 0 );
-	$artist_id = (int) ( $input['artist_id'] ?? 0 );
-	$user_id   = get_current_user_id();
-
-	if ( ! function_exists( 'extrachill_api_artist_has_shipping_address' ) ) {
-		return new WP_Error( 'configuration_error', 'Shipping address API not available.', array( 'status' => 500 ) );
+	$order_id = (int) ( $input['order_id'] ?? 0 );
+	$seller   = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
 	}
+	$seller_key   = extrachill_shop_seller_key( $seller );
+	$artist_id    = 'artist' === $seller['type'] ? $seller['id'] : 0;
+	$label_prefix = 'artist' === $seller['type'] ? '_artist_' : '_seller_';
+	$user_id      = get_current_user_id();
+	$from_address = extrachill_shop_get_seller_shipping_address( $seller );
 
-	if ( ! extrachill_api_artist_has_shipping_address( $artist_id ) ) {
+	if ( empty( $from_address['name'] ) || empty( $from_address['street1'] ) ) {
 		return new WP_Error(
 			'no_shipping_address',
 			'Please set up your shipping address in the Settings tab before printing labels.',
@@ -124,14 +111,15 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
 	}
 
-	$payouts = $order->get_meta( '_artist_payouts' ) ? $order->get_meta( '_artist_payouts' ) : array();
-	if ( ! isset( $payouts[ $artist_id ] ) ) {
-		return new WP_Error( 'invalid_artist', 'This order does not contain products from your artist.', array( 'status' => 400 ) );
+	$payouts = $order->get_meta( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts' );
+	$payouts = is_array( $payouts ) ? $payouts : array();
+	if ( ! isset( $payouts[ $seller_key ] ) ) {
+		return new WP_Error( 'invalid_seller', 'This order does not contain products from your seller.', array( 'status' => 400 ) );
 	}
 
 	// Check if order contains only ships-free products.
 	if ( function_exists( 'extrachill_api_shop_order_ships_free_only' ) ) {
-		$artist_payout = $payouts[ $artist_id ] ?? array();
+		$artist_payout = $payouts[ $seller_key ] ?? array();
 		if ( extrachill_api_shop_order_ships_free_only( $artist_payout ) ) {
 			return new WP_Error(
 				'ships_free_order',
@@ -142,14 +130,16 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 	}
 
 	// Return existing label if already purchased.
-	$existing_label = $order->get_meta( '_artist_label_' . $artist_id );
+	$existing_label = $order->get_meta( $label_prefix . 'label_' . $seller_key );
 	if ( ! empty( $existing_label ) ) {
-		$tracking   = $order->get_meta( '_artist_tracking_' . $artist_id ) ? $order->get_meta( '_artist_tracking_' . $artist_id ) : '';
-		$label_data = $order->get_meta( '_artist_label_data_' . $artist_id ) ? $order->get_meta( '_artist_label_data_' . $artist_id ) : array();
+		$tracking   = (string) $order->get_meta( $label_prefix . 'tracking_' . $seller_key );
+		$label_data = $order->get_meta( $label_prefix . 'label_data_' . $seller_key );
+		$label_data = $label_data ? $label_data : array();
 
 		return array(
 			'success'         => true,
 			'reprint'         => true,
+			'seller'          => $seller,
 			'order_id'        => $order_id,
 			'artist_id'       => $artist_id,
 			'label_url'       => $existing_label,
@@ -159,8 +149,6 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 			'cost'            => $label_data['cost'] ?? 0,
 		);
 	}
-
-	$from_address = extrachill_api_get_artist_shipping_address( $artist_id );
 
 	$shipping = $order->get_address( 'shipping' );
 	$billing  = $order->get_address( 'billing' );
@@ -190,9 +178,9 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		return $label_result;
 	}
 
-	$order->update_meta_data( '_artist_label_' . $artist_id, $label_result['label_url'] );
-	$order->update_meta_data( '_artist_tracking_' . $artist_id, $label_result['tracking_number'] );
-	$order->update_meta_data( '_artist_label_data_' . $artist_id, array(
+	$order->update_meta_data( $label_prefix . 'label_' . $seller_key, $label_result['label_url'] );
+	$order->update_meta_data( $label_prefix . 'tracking_' . $seller_key, $label_result['tracking_number'] );
+	$order->update_meta_data( $label_prefix . 'label_data_' . $seller_key, array(
 		'carrier'        => $label_result['carrier'],
 		'service'        => $label_result['service'],
 		'cost'           => $label_result['cost'],
@@ -224,7 +212,7 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 			$order,
 			$artist_id,
 			$label_result,
-			$payouts[ $artist_id ]
+			$payouts[ $seller_key ]
 		);
 	}
 
@@ -234,6 +222,7 @@ function extrachill_shop_ability_create_shipping_label( array $input ): array|WP
 		'artist_id'       => $artist_id,
 		'label_url'       => $label_result['label_url'],
 		'tracking_number' => $label_result['tracking_number'],
+		'seller'          => $seller,
 		'tracking_url'    => $label_result['tracking_url'] ?? '',
 		'carrier'         => $label_result['carrier'],
 		'service'         => $label_result['service'],

@@ -260,6 +260,54 @@ function extrachill_shop_authorize_seller_input( array $input ) {
 }
 
 /**
+ * Read a Shop-owned ship-from address, lazily migrating legacy artist meta.
+ *
+ * @param array $seller Seller reference.
+ * @return array|false
+ */
+function extrachill_shop_get_seller_shipping_address( $seller ) {
+	$seller = extrachill_shop_validate_seller_ref( $seller );
+	if ( is_wp_error( $seller ) ) {
+		return false;
+	}
+	$key     = 'extrachill_shop_shipping_seller_' . $seller['type'] . ':' . $seller['id'];
+	$address = get_option( $key, false );
+	if ( false === $address && 'artist' === $seller['type'] ) {
+		$artist_blog_id = ec_get_blog_id( 'artist' );
+		if ( $artist_blog_id ) {
+			switch_to_blog( $artist_blog_id );
+			try {
+				$legacy = get_post_meta( $seller['id'], '_shipping_address', true );
+			} finally {
+				restore_current_blog();
+			}
+			if ( is_array( $legacy ) && ! empty( $legacy ) ) {
+				// An atomic add prevents migration from replacing a concurrent save.
+				add_option( $key, $legacy, '', false );
+				$address = get_option( $key, false );
+			}
+		}
+	}
+	return is_array( $address ) ? $address : false;
+}
+
+/**
+ * Persist a seller's ship-from address on Shop, including idempotent saves.
+ *
+ * @param array $seller Seller reference.
+ * @param array $address Shipping address.
+ * @return bool
+ */
+function extrachill_shop_set_seller_shipping_address( $seller, array $address ) {
+	$seller = extrachill_shop_validate_seller_ref( $seller );
+	if ( is_wp_error( $seller ) ) {
+		return false;
+	}
+	$key = 'extrachill_shop_shipping_seller_' . $seller['type'] . ':' . $seller['id'];
+	return update_option( $key, $address, false ) || get_option( $key, false ) === $address;
+}
+
+/**
  * Get the Stripe account ID bound to a seller.
  *
  * @param mixed $seller Seller reference.

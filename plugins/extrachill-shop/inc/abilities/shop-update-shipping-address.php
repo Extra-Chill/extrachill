@@ -23,12 +23,13 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-update-shipping-address',
 		array(
-			'label'       => __( 'Update Shipping Address', 'extrachill-shop' ),
-			'description' => __( 'Update an artist\'s shipping from-address.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Update Shipping Address', 'extrachill-shop' ),
+			'description'         => __( 'Update an artist\'s shipping from-address.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
+					'seller'    => extrachill_shop_seller_input_schema(),
 					'artist_id' => array(
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
@@ -63,37 +64,20 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
 						'description' => 'Country code.',
 					),
 				),
-				'required' => array( 'artist_id', 'name', 'street1', 'city', 'state', 'zip' ),
+				'required'   => array( 'name', 'street1', 'city', 'state', 'zip' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success'   => array( 'type' => 'boolean' ),
+					'seller'    => extrachill_shop_seller_input_schema(),
 					'artist_id' => array( 'type' => 'integer' ),
 					'address'   => array( 'type' => 'object' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_update_shipping_address',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this artist.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return current_user_can( 'manage_options' );
-			},
-			'meta' => array(
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,
@@ -114,11 +98,9 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
  * @return array|WP_Error
  */
 function extrachill_shop_ability_update_shipping_address( array $input ): array|WP_Error {
-	$artist_id = (int) ( $input['artist_id'] ?? 0 );
-
-	$artist_blog_id = ec_get_blog_id( 'artist' );
-	if ( ! $artist_blog_id ) {
-		return new WP_Error( 'configuration_error', 'Artist blog is not configured.', array( 'status' => 500 ) );
+	$seller = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
 	}
 
 	$address = array(
@@ -131,12 +113,13 @@ function extrachill_shop_ability_update_shipping_address( array $input ): array|
 		'country' => 'US',
 	);
 
-	switch_to_blog( $artist_blog_id );
-	try {
-		$result = update_post_meta( $artist_id, '_shipping_address', $address );
-	} finally {
-		restore_current_blog();
+	foreach ( array( 'name', 'street1', 'city', 'state', 'zip' ) as $field ) {
+		if ( '' === $address[ $field ] ) {
+			return new WP_Error( 'invalid_address', 'Name, street, city, state and ZIP are required.', array( 'status' => 400 ) );
+		}
 	}
+
+	$result = extrachill_shop_set_seller_shipping_address( $seller, $address );
 
 	if ( false === $result ) {
 		return new WP_Error( 'save_failed', 'Failed to save shipping address.', array( 'status' => 500 ) );
@@ -144,7 +127,8 @@ function extrachill_shop_ability_update_shipping_address( array $input ): array|
 
 	return array(
 		'success'   => true,
-		'artist_id' => $artist_id,
+		'seller'    => $seller,
+		'artist_id' => 'artist' === $seller['type'] ? $seller['id'] : 0,
 		'address'   => $address,
 	);
 }
