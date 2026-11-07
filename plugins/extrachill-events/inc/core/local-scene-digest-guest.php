@@ -121,6 +121,10 @@ function extrachill_events_guest_subscribe_local_scene_digest( string $slug, str
 		'email'               => $email,
 		'registration_source' => 'local_scene_digest',
 	);
+	$registration_page = get_term_link( $term );
+	if ( ! is_wp_error( $registration_page ) ) {
+		$resolve_input['registration_page'] = $registration_page;
+	}
 	if ( ! empty( $attribution['referrer'] ) ) {
 		$resolve_input['referrer'] = (string) $attribution['referrer'];
 	}

@@ -32,7 +32,7 @@ if ( ! function_exists( 'get_ancestors' ) ) {
 }
 if ( ! function_exists( 'get_term_link' ) ) {
 	function get_term_link( $term ) {
-		return 'https://events.example/location/' . $term->slug . '/';
+		return $GLOBALS['guest_digest_test']['term_link_error'] ?? 'https://events.example/location/' . $term->slug . '/';
 	}
 }
 if ( ! function_exists( 'home_url' ) ) {
@@ -270,6 +270,7 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 
 		$this->assertSame( array( 'status' => 'check_inbox' ), $result );
 		$this->assertSame( 'local_scene_digest', $this->resolve->calls[0]['registration_source'] );
+		$this->assertSame( 'https://events.example/location/charleston/', $this->resolve->calls[0]['registration_page'] );
 		$this->assertCount( 1, $GLOBALS['guest_digest_test']['mail'] );
 		$mail = $GLOBALS['guest_digest_test']['mail'][0];
 		$this->assertSame( 'new@example.com', $mail['to'] );
@@ -277,6 +278,16 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 		$this->assertStringContainsString( 'https://extrachill.com/claim?key=abc', $mail['context']['body_html'] );
 		$this->assertStringStartsWith( 'https://events.example/location/charleston/?ec_digest_confirm=1', $mail['context']['cta_url'] );
 		$this->assertSame( array(), $GLOBALS['guest_digest_test']['subscriptions'] );
+	}
+
+	public function test_term_link_error_omits_registration_page_without_blocking_signup(): void {
+		$GLOBALS['guest_digest_test']['term_link_error'] = new WP_Error( 'invalid_term', 'Invalid term.' );
+
+		$result = extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+
+		$this->assertSame( array( 'status' => 'check_inbox' ), $result );
+		$this->assertArrayNotHasKey( 'registration_page', $this->resolve->calls[0] );
+		$this->assertCount( 1, $GLOBALS['guest_digest_test']['mail'] );
 	}
 
 	public function test_confirm_subscribes_saves_city_and_tracks_via_guest(): void {
