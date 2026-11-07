@@ -203,10 +203,23 @@ function extrachill_users_ability_approve_artist_access( $input ) {
 		return $allowed;
 	}
 
-	$user_id = isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0;
-	$type    = isset( $input['type'] ) ? sanitize_text_field( $input['type'] ) : '';
+	return extrachill_users_grant_artist_access(
+		isset( $input['user_id'] ) ? absint( $input['user_id'] ) : 0,
+		isset( $input['type'] ) ? sanitize_text_field( $input['type'] ) : ''
+	);
+}
 
-	if ( ! $user_id ) {
+/**
+ * Grant access after the caller has authorized the operation.
+ *
+ * Internal: callers must enforce admin permission or consume a pending-action receipt.
+ *
+ * @param int    $user_id User requesting access.
+ * @param string $type    Access type.
+ * @return array|WP_Error
+ */
+function extrachill_users_grant_artist_access( int $user_id, string $type ) {
+	if ( $user_id <= 0 ) {
 		return new WP_Error( 'missing_user_id', 'user_id is required.' );
 	}
 
@@ -385,20 +398,7 @@ function extrachill_users_send_artist_access_request_email( $user_id, $user, $ac
 		? __( 'I am a musician', 'extrachill-users' )
 		: __( 'I work in the music industry', 'extrachill-users' );
 
-	$token = function_exists( 'extrachill_api_generate_artist_access_token' )
-		? extrachill_api_generate_artist_access_token( $user_id, $access_type, time() )
-		: '';
-
-	$approve_url = '';
-	if ( $token ) {
-		$approve_url = add_query_arg(
-			array(
-				'type'  => $access_type,
-				'token' => $token,
-			),
-			rest_url( 'extrachill/v1/admin/artist-access/' . $user_id . '/approve' )
-		);
-	}
+	$approve_url = extrachill_users_stage_artist_access_approval( $user_id, $user, $access_type );
 
 	$admin_tools_url = network_admin_url( 'admin.php?page=extrachill-artist-access' );
 
