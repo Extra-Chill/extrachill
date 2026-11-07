@@ -9,8 +9,6 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 	}
 }
 
-function is_user_logged_in() { return 0 < get_current_user_id(); }
-function wp_register_ability( $name, $args ) { $GLOBALS['shipping_abilities'][ $name ] = $args; }
 function switch_to_blog( $id ) { $GLOBALS['shipping_blog_stack'][] = $id; }
 function restore_current_blog() { array_pop( $GLOBALS['shipping_blog_stack'] ); }
 function add_option( $key, $value, $deprecated = '', $autoload = false ) {
@@ -87,10 +85,11 @@ final class ShippingAddressTest extends TestCase {
 	}
 
 	public function test_abilities_refuse_unauthorized_seller(): void {
+		$GLOBALS['test_abilities'] = array();
 		extrachill_shop_register_get_shipping_address_ability();
 		extrachill_shop_register_update_shipping_address_ability();
 		extrachill_shop_register_create_shipping_label_ability();
-		foreach ( $GLOBALS['shipping_abilities'] as $ability ) {
+		foreach ( $GLOBALS['test_abilities'] as $ability ) {
 			$this->assertSame( 'extrachill_shop_authorize_seller_input', $ability['permission_callback'] );
 			$error = call_user_func( $ability['permission_callback'], array(
 				'seller' => array(
