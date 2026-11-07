@@ -33,6 +33,8 @@ final class AbilitiesProvider {
 		}
 
 		self::$registered = true;
+		// Internal commerce mail lookup is also needed outside authenticated ability requests.
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Abilities/CommerceSellerNotifications.php';
 		add_action( 'plugins_loaded', array( self::class, 'initialize' ), 25 );
 	}
 

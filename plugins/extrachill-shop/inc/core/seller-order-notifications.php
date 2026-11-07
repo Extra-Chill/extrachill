@@ -1,9 +1,8 @@
 <?php
 /**
- * Artist Order Notifications
+ * Seller Order Notifications
  *
- * Sends email notifications to artists when orders containing their products
- * are placed. All roster members for each artist receive the notification.
+ * Notifies artist roster members and Events-owned seller finance participants.
  *
  * Mail dispatch is delegated to `ec_send_email()` (extrachill-multisite),
  * which wraps the `datamachine/send-email` ability and auto-routes the send
@@ -22,35 +21,52 @@
 
 defined( 'ABSPATH' ) || exit;
 
-add_action( 'woocommerce_order_status_processing', 'extrachill_shop_notify_artists_of_order', 10, 1 );
+add_action( 'woocommerce_order_status_processing', 'extrachill_shop_notify_sellers_of_order', 10, 1 );
 
 /**
- * Notify artists when an order containing their products is placed.
+ * Group purchased line items by payout seller and notify each seller.
  *
  * @param int $order_id WooCommerce order ID.
  */
-function extrachill_shop_notify_artists_of_order( $order_id ) {
+function extrachill_shop_notify_sellers_of_order( $order_id ) {
 	$order = wc_get_order( $order_id );
 	if ( ! $order ) {
 		return;
 	}
 
-	$payouts = $order->get_meta( '_artist_payouts' );
-	if ( empty( $payouts ) || ! is_array( $payouts ) ) {
-		return;
-	}
-
-	foreach ( $payouts as $artist_id => $payout_data ) {
-		if ( 0 === (int) $artist_id ) {
+	$groups = array();
+	foreach ( $order->get_items() as $item ) {
+		$product_id = $item->get_product_id();
+		$seller     = extrachill_shop_get_product_payout_seller( $product_id );
+		if ( ! $seller ) {
 			continue;
 		}
+		$key = $seller['type'] . ':' . $seller['id'];
+		if ( ! isset( $groups[ $key ] ) ) {
+			$groups[ $key ] = array(
+				'seller' => $seller,
+				'items'  => array(),
+				'total'  => 0,
+			);
+		}
+		$groups[ $key ]['items'][] = array(
+			'product_id' => $product_id,
+			'quantity'   => $item->get_quantity(),
+			'line_total' => (float) $item->get_total(),
+		);
+		$groups[ $key ]['total']  += (float) $item->get_total();
+	}
 
-		extrachill_shop_send_artist_order_notification( $order, $artist_id, $payout_data );
+	foreach ( $groups as $group ) {
+		$total                  = $group['total'];
+		$fee                    = min( max( round( $total * extrachill_shop_get_default_commission_rate(), 2 ), 0.0 ), $total );
+		$group['seller_payout'] = round( $total - $fee, 2 );
+		extrachill_shop_send_seller_order_notification( $order, $group['seller'], $group );
 	}
 }
 
 /**
- * Send order notification email to an artist's roster members.
+ * Send one seller's order details to its authorized recipients.
  *
  * Resolution flow (note the explicit separation between data-context
  * `switch_to_blog()` and mail-context routing):
@@ -67,14 +83,19 @@ function extrachill_shop_notify_artists_of_order( $order_id ) {
  *      wrap the send in their own `switch_to_blog()`.
  *
  * @param WC_Order $order       WooCommerce order object.
- * @param int      $artist_id   Artist profile ID.
- * @param array    $payout_data Artist payout data from _artist_payouts meta.
+ * @param array    $seller      Typed seller reference.
+ * @param array    $payout_data Grouped line items and seller payout.
  */
-function extrachill_shop_send_artist_order_notification( $order, $artist_id, $payout_data ) {
-	// Step 1: artist-blog DATA lookup (NOT mail routing).
-	$artist_data = extrachill_shop_get_artist_notification_data( $artist_id );
-	$recipients  = $artist_data['recipients'];
-	$artist_name = $artist_data['name'];
+function extrachill_shop_send_seller_order_notification( $order, $seller, $payout_data ) {
+	if ( 'artist' === $seller['type'] ) {
+		$data = extrachill_shop_get_artist_notification_data( $seller['id'] );
+	} elseif ( class_exists( '\\ExtraChillEvents\\Abilities\\CommerceSellerNotifications' ) ) {
+		$data = \ExtraChillEvents\Abilities\CommerceSellerNotifications::get_data( $seller['type'], $seller['id'] );
+	} else {
+		return;
+	}
+	$recipients  = $data['recipients'];
+	$seller_name = $data['name'];
 
 	if ( empty( $recipients ) ) {
 		return;
@@ -82,19 +103,19 @@ function extrachill_shop_send_artist_order_notification( $order, $artist_id, $pa
 
 	$order_number = $order->get_order_number();
 
-	$subject = sprintf( 'New Order #%s - %s', $order_number, $artist_name );
+	$subject = sprintf( 'New Order #%s - %s', $order_number, $seller_name );
 
 	// Step 2: build email body using order data (current shop-blog context is fine).
 	$body_html = extrachill_shop_build_order_notification_body(
 		$order,
-		$artist_name,
+		$seller_name,
 		$payout_data
 	);
 
 	$preheader = sprintf(
 		'New order #%s for %s — view details in Shop Manager.',
 		$order_number,
-		$artist_name
+		$seller_name
 	);
 
 	// Step 3: dispatch. `ec_send_email()` injects `mail_site_id` itself —
@@ -108,9 +129,9 @@ function extrachill_shop_send_artist_order_notification( $order, $artist_id, $pa
 				'context'  => array(
 					'subject_html'   => esc_html( $subject ),
 					'preheader'      => $preheader,
-					'recipient_name' => $artist_name,
+					'recipient_name' => $seller_name,
 					'body_html'      => $body_html,
-					'cta_url'        => extrachill_shop_get_shop_manager_url(),
+					'cta_url'        => add_query_arg( 'seller', $seller['type'] . ':' . $seller['id'], extrachill_shop_get_shop_manager_url() ),
 					'cta_label'      => 'View Order in Shop Manager',
 				),
 			)
@@ -180,14 +201,14 @@ function extrachill_shop_get_artist_notification_data( $artist_id ) {
  * `context.body_html`.
  *
  * @param WC_Order $order       WooCommerce order object.
- * @param string   $artist_name Artist display name.
- * @param array    $payout_data Artist payout data.
+ * @param string   $seller_name Seller display name.
+ * @param array    $payout_data Seller payout data.
  * @return string HTML body fragment.
  */
-function extrachill_shop_build_order_notification_body( $order, $artist_name, $payout_data ) {
+function extrachill_shop_build_order_notification_body( $order, $seller_name, $payout_data ) {
 	$order_number  = $order->get_order_number();
 	$customer_name = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
-	$artist_payout = number_format( floatval( $payout_data['artist_payout'] ?? 0 ), 2 );
+	$seller_payout = number_format( floatval( $payout_data['seller_payout'] ?? 0 ), 2 );
 
 	$shipping = $order->get_address( 'shipping' );
 	$billing  = $order->get_address( 'billing' );
@@ -223,7 +244,7 @@ function extrachill_shop_build_order_notification_body( $order, $artist_name, $p
 
 	$html = sprintf(
 		'<p>You have a new order for <strong>%s</strong> (Order <strong>#%s</strong>).</p>',
-		esc_html( $artist_name ),
+		esc_html( $seller_name ),
 		esc_html( $order_number )
 	);
 
@@ -235,7 +256,7 @@ function extrachill_shop_build_order_notification_body( $order, $artist_name, $p
 
 	$html .= sprintf(
 		'<p style="margin-top: 15px; font-size: 16px;"><strong>Your Payout:</strong> $%s</p>',
-		$artist_payout
+		$seller_payout
 	);
 
 	$html .= '<h3 style="margin-top: 30px; margin-bottom: 10px;">Ship To</h3>';
