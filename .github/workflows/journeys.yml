@@ -55,7 +55,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: network-journeys-${{ github.ref }}
+  # Nightlies and manual runs must not be cancelled by main's cache-warm pushes.
+  group: network-journeys-${{ github.event_name == 'schedule' && 'nightly' || github.event_name == 'workflow_dispatch' && 'manual' || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -307,6 +308,8 @@ jobs:
   # One stable check name for the whole set, whatever journeys ran.
   result:
     name: Journeys on the network rig
+    permissions:
+      actions: read
     needs: [plan, journey]
     if: always()
     runs-on: ubuntu-latest
@@ -317,3 +320,35 @@ jobs:
         run: |
           echo "plan=${PLAN} journeys=${JOURNEYS}"
           [ "${PLAN}" = success ] && [ "${JOURNEYS}" = success ]
+
+      - name: Alert Discord on nightly failure
+        if: always() && github.event_name == 'schedule' && (needs.plan.result != 'success' || needs.journey.result != 'success')
+        # Notification failures must not replace the plan/journey result above.
+        continue-on-error: true
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PLAN: ${{ needs.plan.result }}
+          JOURNEYS: ${{ needs.journey.result }}
+        run: |
+          set -euo pipefail
+          [ -n "${WEBHOOK:-}" ] || { echo "No alerts webhook configured; skipping."; exit 0; }
+
+          # Paginate so every matrix job is included. If the API is unavailable,
+          # still send the aggregate failure with a link to investigate.
+          failed=""
+          if jobs="$(gh api --paginate "repos/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100")"; then
+            failed="$(jq -rs '[.[].jobs[] | select(.name | startswith("Journey ")) | select(.conclusion != "success") | "- \(.name): \(.conclusion // .status)"] | join("\n")' <<<"${jobs}")"
+          else
+            echo "::warning::Could not fetch journey job conclusions."
+          fi
+          body="Plan: ${PLAN}. Journeys: ${JOURNEYS}."$'\n\n'"${failed:-No unsuccessful journey details available; see the run (planning may have failed).}"
+          payload="$(jq -n \
+            --arg url "${RUN_URL}" \
+            --arg body "${body}" \
+            '{content: "@here Nightly network journeys failed", allowed_mentions: {parse: ["everyone"]}, embeds: [{title: "Nightly network journeys failed", color: 15158332, description: $body, url: $url}]}')"
+          curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+            -H 'Content-Type: application/json' --data "${payload}" "${WEBHOOK}"
