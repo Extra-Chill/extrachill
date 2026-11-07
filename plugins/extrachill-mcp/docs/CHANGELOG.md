@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.2.9] - 2026-11-07
+
+### Fixed
+- split hyphenated ability-search terms, rank name segments, drop stopwords
+
 ## [0.2.8] - 2026-11-06
 
 ### Fixed
