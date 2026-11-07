@@ -194,12 +194,19 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 		if ( ! function_exists( 'ec_with_link_page_storage_blog' ) ) {
 			return new WP_Error( 'dependency_missing', 'Link Page storage is unavailable.', array( 'status' => 500 ) );
 		}
-		if ( get_current_blog_id() !== ec_get_link_page_storage_blog_id() ) {
-			return ec_with_link_page_storage_blog(
-				static function () use ( $request ) {
-					return extrachill_api_media_upload_handler( $request );
-				}
-			);
+		/* Re-enter once with the storage blog current so the attachment lands there. */
+		static $in_storage_blog = false;
+		if ( ! $in_storage_blog ) {
+			$in_storage_blog = true;
+			try {
+				return ec_with_link_page_storage_blog(
+					static function () use ( $request ) {
+						return extrachill_api_media_upload_handler( $request );
+					}
+				);
+			} finally {
+				$in_storage_blog = false;
+			}
 		}
 	}
 
@@ -406,7 +413,12 @@ function extrachill_api_media_assign( $context, $target_id, $attachment_id ) {
 				return new WP_Error( 'ability_not_found', 'Link Page settings ability is unavailable.', array( 'status' => 500 ) );
 			}
 			$field  = 'link_page_profile' === $context ? 'profile_image_id' : 'background_image_id';
-			$result = $ability->execute( array( 'artist_id' => $target_id, $field => $attachment_id ) );
+			$result = $ability->execute(
+				array(
+					'artist_id' => $target_id,
+					$field      => $attachment_id,
+				)
+			);
 			/* Retain previous media: it may still be referenced by other content. */
 			return is_wp_error( $result ) ? $result : null;
 
@@ -449,7 +461,13 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 					return $result;
 				}
 				/* Clear the reference without deleting potentially shared media. */
-				return rest_ensure_response( array( 'deleted' => true, 'context' => $context, 'target_id' => $target_id ) );
+				return rest_ensure_response(
+					array(
+						'deleted'   => true,
+						'context'   => $context,
+						'target_id' => $target_id,
+					)
+				);
 			}
 		);
 	}
@@ -461,6 +479,9 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 
 	// Get current attachment ID and clear assignment
 	$attachment_id = extrachill_api_media_unassign( $context, $target_id );
+	if ( is_wp_error( $attachment_id ) ) {
+		return $attachment_id;
+	}
 
 	if ( ! $attachment_id ) {
 		return new WP_Error(
