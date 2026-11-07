@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.59.1] - 2026-11-07
+
+### Fixed
+- route artist access email approval through Data Machine signed pending actions
+
 ## [0.59.0] - 2026-11-07
 
 ### Added
