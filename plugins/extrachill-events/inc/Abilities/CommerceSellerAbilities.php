@@ -13,6 +13,7 @@ namespace ExtraChillEvents\Abilities;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
+use ExtraChillEvents\Core\VenueMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -100,6 +101,53 @@ class CommerceSellerAbilities {
 				),
 			)
 		);
+
+		wp_register_ability(
+			'extrachill/list-commerce-sellers',
+			array(
+				'label'               => __( 'List Commerce Sellers', 'extrachill-events' ),
+				'description'         => __( 'List venues and promoters whose finances the current user may manage.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'output_schema'       => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'sellers' => array(
+							'type'  => 'array',
+							'items' => array(
+								'type'                 => 'object',
+								'properties'           => array(
+									'type'                => array(
+										'type' => 'string',
+										'enum' => array( 'venue', 'promoter' ),
+									),
+									'id'                  => array( 'type' => 'integer' ),
+									'name'                => array( 'type' => 'string' ),
+									'url'                 => array( 'type' => 'string' ),
+									'can_manage_finances' => array(
+										'type' => 'boolean',
+										'enum' => array( true ),
+									),
+								),
+								'required'             => array( 'type', 'id', 'name', 'url', 'can_manage_finances' ),
+								'additionalProperties' => false,
+							),
+						),
+					),
+					'required'             => array( 'sellers' ),
+					'additionalProperties' => false,
+				),
+				'execute_callback'    => array( $this, 'execute_list' ),
+				'permission_callback' => array( $this, 'authorize' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => true,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -140,6 +188,63 @@ class CommerceSellerAbilities {
 
 		try {
 			return $this->resolve( $type, $id, get_current_user_id() );
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+		}
+	}
+
+	/**
+	 * List the current user's finance-authorized sellers on the Events site.
+	 *
+	 * @return array|\WP_Error
+	 */
+	public function execute_list() {
+		$allowed = $this->authorize();
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+
+		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
+		$switched       = $events_blog_id > 0 && get_current_blog_id() !== $events_blog_id;
+		if ( $switched ) {
+			switch_to_blog( $events_blog_id );
+		}
+
+		try {
+			$user_id   = get_current_user_id();
+			$venue_ids = ( new VenueMembershipRepository() )->list_active_venue_ids_for_user( $user_id );
+			if ( is_wp_error( $venue_ids ) ) {
+				return $venue_ids;
+			}
+			$memberships = $this->promoters ? $this->promoters->list_active_memberships_for_user( $user_id ) : array();
+			if ( is_wp_error( $memberships ) ) {
+				return $memberships;
+			}
+			$candidates = array(
+				'venue'    => $venue_ids,
+				'promoter' => array_column( $memberships, 'promoter_term_id' ),
+			);
+			$sellers    = array();
+			foreach ( $candidates as $type => $ids ) {
+				foreach ( array_unique( $ids ) as $id ) {
+					$seller = $this->resolve( $type, (int) $id, $user_id );
+					if ( is_wp_error( $seller ) ) {
+						if ( 'commerce_seller_not_found' === $seller->get_error_code() ) {
+							continue;
+						}
+						return $seller;
+					}
+					if ( $seller['can_manage_finances'] ) {
+						$sellers[] = $seller;
+					}
+				}
+			}
+			usort( $sellers, static function ( array $a, array $b ): int {
+				return array( strtolower( $a['name'] ), $a['type'], $a['id'] ) <=> array( strtolower( $b['name'] ), $b['type'], $b['id'] );
+			} );
+			return array( 'sellers' => $sellers );
 		} finally {
 			if ( $switched ) {
 				restore_current_blog();

@@ -5,20 +5,22 @@
  * @package ExtraChillEvents\Tests
  */
 
-// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Squiz.Commenting -- File-local WordPress doubles.
+// phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO,Universal.Namespaces,Generic.CodeAnalysis.UnusedFunctionParameter,Squiz.Commenting -- File-local WordPress doubles.
 
 namespace {
 	foreach ( array(
 		'get_current_user_id'  => static fn() => $GLOBALS['cs_user'],
-		'get_current_blog_id'  => static fn() => 7,
+		'get_current_blog_id'  => static fn() => $GLOBALS['cs_blog'],
+		'wp_register_ability'  => static function ( $name, $args ) { $GLOBALS['cs_abilities'][ $name ] = $args; },
 		'ec_get_blog_id'       => static fn() => 7,
 		'get_term'             => static fn( $id, $tax ) => $GLOBALS['cs_terms'][ $tax ][ $id ] ?? null,
 		'get_term_link'        => static fn( $term ) => 'https://events.example/' . $term->taxonomy . '/' . $term->term_id . '/',
 		'esc_url_raw'          => static fn( $url ) => $url,
 		'sanitize_text_field'  => static fn( $value ) => trim( (string) $value ),
 		'absint'               => static fn( $value ) => abs( (int) $value ),
-		'switch_to_blog'       => static fn() => true,
-		'restore_current_blog' => static fn() => true,
+		'switch_to_blog'       => static function ( $id ) { $GLOBALS['cs_stack'][] = $GLOBALS['cs_blog'];
+			$GLOBALS['cs_blog'] = $id; },
+		'restore_current_blog' => static function () { $GLOBALS['cs_blog'] = array_pop( $GLOBALS['cs_stack'] ); },
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
 			$GLOBALS['cs_impl'][ $name ] = $impl;
@@ -28,6 +30,12 @@ namespace {
 }
 
 namespace ExtraChillEvents\Core {
+	class VenueMembershipRepository {
+		public function list_active_venue_ids_for_user( int $user_id ) {
+			$GLOBALS['cs_read_blog'] = get_current_blog_id();
+			return $GLOBALS['cs_venue_ids'];
+		}
+	}
 	if ( ! class_exists( VenueAuthorization::class, false ) ) {
 		class VenueAuthorization {
 			public const ACTION_MANAGE_FINANCES = 'manage_finances';
@@ -39,6 +47,9 @@ namespace ExtraChillEvents\Core {
 	if ( ! class_exists( PromoterAuthorityRepository::class, false ) ) {
 		class PromoterAuthorityRepository {
 			public const STATUS_ACTIVE = 'active';
+			public function list_active_memberships_for_user( int $user_id ) {
+				return array_map( static fn( $id ) => array( 'promoter_term_id' => $id ), array_keys( $GLOBALS['cs_members'] ) );
+			}
 			public function get_organization( int $id ) {
 				return $GLOBALS['cs_orgs'][ $id ] ?? null;
 			}
@@ -68,6 +79,9 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 		private CommerceSellerAbilities $ability;
 
 		protected function setUp(): void {
+			$GLOBALS['cs_blog']         = 7;
+			$GLOBALS['cs_stack']        = array();
+			$GLOBALS['cs_venue_ids']    = array( 1524 );
 			$GLOBALS['cs_user']         = 5;
 			$GLOBALS['cs_terms']        = array(
 				'venue'    => array(
@@ -94,6 +108,49 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 				),
 			);
 			$this->ability              = new CommerceSellerAbilities( new VenueAuthorization(), new PromoterAuthorityRepository(), false );
+		}
+
+		public function test_lists_only_finance_authorized_sellers_sorted_by_name(): void {
+			$GLOBALS['cs_terms']['promoter'][88]->name = 'Alpha Promotions';
+			$sellers                                   = $this->ability->execute_list()['sellers'];
+			$this->assertSame( array( 'Alpha Promotions', 'Lo-Fi Brewing' ), array_column( $sellers, 'name' ) );
+			foreach ( $sellers as $seller ) {
+				$this->assertSame( $this->ability->execute( array(
+					'type' => $seller['type'],
+					'id'   => $seller['id'],
+				) ), $seller );
+			}
+			$GLOBALS['cs_user'] = 6;
+			$this->assertSame( array( 'sellers' => array() ), $this->ability->execute_list() );
+		}
+
+		public function test_list_excludes_inactive_and_missing_sellers(): void {
+			$GLOBALS['cs_orgs'][88]['status'] = 'revoked';
+			$GLOBALS['cs_venue_ids'][]        = 999;
+			$this->assertSame( array( 1524 ), array_column( $this->ability->execute_list()['sellers'], 'id' ) );
+		}
+
+		public function test_list_requires_authentication(): void {
+			$GLOBALS['cs_user'] = 0;
+			$this->assertSame( 'commerce_seller_authentication_required', $this->ability->execute_list()->get_error_code() );
+		}
+
+		public function test_list_routes_to_events_and_restores_after_success_and_error(): void {
+			$GLOBALS['cs_blog'] = 4;
+			$this->assertCount( 2, $this->ability->execute_list()['sellers'] );
+			$this->assertSame( 7, $GLOBALS['cs_read_blog'] );
+			$this->assertSame( 4, $GLOBALS['cs_blog'] );
+			$GLOBALS['cs_venue_ids'] = new \WP_Error( 'read_failed' );
+			$this->assertSame( 'read_failed', $this->ability->execute_list()->get_error_code() );
+			$this->assertSame( 4, $GLOBALS['cs_blog'] );
+		}
+
+		public function test_list_is_registered_for_rest_with_authenticated_permission(): void {
+			$this->ability->register();
+			$definition = $GLOBALS['cs_abilities']['extrachill/list-commerce-sellers'];
+			$this->assertTrue( $definition['meta']['show_in_rest'] );
+			$this->assertSame( array( $this->ability, 'authorize' ), $definition['permission_callback'] );
+			$this->assertSame( array( $this->ability, 'execute_list' ), $definition['execute_callback'] );
 		}
 
 		public function test_venue_finance_owner_can_manage(): void {
