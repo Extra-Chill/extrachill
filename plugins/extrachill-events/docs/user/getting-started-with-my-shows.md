@@ -41,4 +41,4 @@ Read [Concert History Privacy](https://docs.extrachill.com/events-calendar/conce
 
 ## Support
 
-If a show is missing or something does not look right, read [Troubleshooting My Shows](https://docs.extrachill.com/events-calendar/troubleshooting-my-shows/) or visit the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+If a show is missing or something does not look right, read [Troubleshooting My Shows](https://docs.extrachill.com/events-calendar/troubleshooting-my-shows/) or visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.

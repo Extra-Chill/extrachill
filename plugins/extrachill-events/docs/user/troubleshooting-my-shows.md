@@ -34,4 +34,4 @@ See [Concert History Privacy](https://docs.extrachill.com/events-calendar/concer
 
 ## Get Help
 
-Post the event URL, expected date, and what you already tried in the [Tech Support Forum](https://community.extrachill.com/r/tech-support). Do not include passwords or private source-account credentials.
+Post the event URL, expected date, and what you already tried in [The Lab](https://community.extrachill.com/r/the-lab), the community help forum. Do not include passwords or private source-account credentials.

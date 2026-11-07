@@ -19,4 +19,4 @@ Open the link in your invitation email and sign in or register when asked. Use t
 
 Find the person in **Profile Managers** and choose **Remove**. They will no longer be able to manage this artist's profile or link page through that membership. Removing a manager does not delete the artist's pages.
 
-If you cannot access the artist you expected to manage, check that you are signed in to the right account. Ask an existing manager to check your membership, or visit the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+If you cannot access the artist you expected to manage, check that you are signed in to the right account. Ask an existing manager to check your membership, or visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.

@@ -1,8 +1,14 @@
+# End-user help must precede the docs/ exclusion (rsync first match wins).
+# No trailing slash: Homeboy strips it before passing rules to rsync.
++ /docs
++ /docs/user
++ /docs/user/*.md
+
 # Development files
 node_modules/
 .git/
 .github/
-docs/
+/docs/***
 
 # Build files
 build/

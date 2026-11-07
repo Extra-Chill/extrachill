@@ -65,7 +65,7 @@ plugins:
   plugins/extrachill-newsletter:
     platform_name: "Newsletter"
     parent_slug: "newsletter"
-    audience: "newsletter subscribers managing their preferences, and artists or organizers sending their own newsletters through Extra Chill"
+    audience: "readers signing up for, reading, and unsubscribing from the Extra Chill newsletter"
     docs_subpath: "docs/user"
     runner:
       audience: "user"
@@ -76,13 +76,19 @@ plugins:
       context_repositories: []
       bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-newsletter/docs/user/**/*.md", "min": 2}], "forbidden_phrases": ["following users"]}
       drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-newsletter/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
-      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-newsletter/ and write only under plugins/extrachill-newsletter/docs/user/. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for newsletter subscribers managing preferences and artists or organizers sending newsletters. Extra Chill has no follow feature or follower graph; never describe following users. There is no existing published help content for this platform to seed, so this is a true bootstrap. Ground all help in current product behavior."
+      prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-newsletter/ and write only under plugins/extrachill-newsletter/docs/user/. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for readers signing up for, reading, and unsubscribing from the Extra Chill newsletter. Artists do not send newsletters through this product; artist mailing lists belong to the Artist Platform docs. Extra Chill has no follow feature or follower graph; never describe following users. Keep and improve the existing docs/user/getting-the-newsletter.md and docs/user/unsubscribing.md. Ground all help in current product behavior."
       model: "gpt-6-luna"
 
   plugins/extrachill-shop:
     platform_name: "Shop"
     parent_slug: "shop"
-    audience: "customers ordering merchandise and music from the Extra Chill shop, including artists fulfilling orders through their own merch stores"
+    audience: "customers buying merch, memberships, and event boosts from the Extra Chill shop and tracking their orders; artists running their own merch store are covered by the Artist Platform docs"
+    docs_subpath: "docs/user"
+
+  plugins/extrachill-news-wire:
+    platform_name: "News Wire"
+    parent_slug: "news-wire"
+    audience: "music fans reading and filtering festival news on the Extra Chill News Wire"
     docs_subpath: "docs/user"
 
   plugins/extrachill-blog:

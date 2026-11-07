@@ -28,7 +28,7 @@ Use the organizer's official source whenever possible.
 
 Submission does not guarantee immediate publication. Extra Chill reviews and processes the information before it becomes a public event listing.
 
-Avoid submitting the same event repeatedly. If you need to correct a pending or published listing, send the existing event URL and corrected information through the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+Avoid submitting the same event repeatedly. If you need to correct a pending or published listing, send the existing event URL and corrected information through [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.
 
 ## After Publication
 
