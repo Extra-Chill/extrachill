@@ -9,8 +9,6 @@ require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-list-orders.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-list-products.php';
 
-function is_user_logged_in() { return true; }
-function wp_register_ability( $name, $args ) { $GLOBALS['listing_abilities'][ $name ] = $args; }
 function wc_get_order_statuses() { return array(
 	'wc-processing' => 'Processing',
 	'wc-completed'  => 'Completed',
@@ -181,9 +179,10 @@ final class SellerListingTest extends TestCase {
 		);
 		$this->assertInstanceOf( WP_Error::class, extrachill_shop_ability_list_orders( $input ) );
 		$this->assertInstanceOf( WP_Error::class, extrachill_shop_ability_list_products( $input ) );
+		$GLOBALS['test_abilities'] = array();
 		extrachill_shop_register_list_orders_ability();
 		extrachill_shop_register_list_products_ability();
-		foreach ( $GLOBALS['listing_abilities'] as $ability ) {
+		foreach ( $GLOBALS['test_abilities'] as $ability ) {
 			$this->assertSame( 'extrachill_shop_authorize_seller_input', $ability['permission_callback'] );
 		}
 	}
