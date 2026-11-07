@@ -3,7 +3,7 @@ declare(strict_types=1);
 /**
  * Ability: extrachill/shop-list-orders
  *
- * List orders containing products from a specific artist.
+ * List orders containing products from a specific seller.
  * Canonical implementation — the REST route in extrachill-api refactors
  * to a thin shim that delegates here.
  *
@@ -23,12 +23,13 @@ function extrachill_shop_register_list_orders_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-list-orders',
 		array(
-			'label'       => __( 'List Shop Orders', 'extrachill-shop' ),
-			'description' => __( 'List orders containing products from a specific artist, with filtering and pagination.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'List Shop Orders', 'extrachill-shop' ),
+			'description'         => __( 'List orders containing products from a specific seller, with filtering and pagination.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
+					'seller'    => extrachill_shop_seller_input_schema(),
 					'artist_id' => array(
 						'type'        => 'integer',
 						'description' => 'Artist profile ID.',
@@ -50,9 +51,8 @@ function extrachill_shop_register_list_orders_ability(): void {
 						'description' => 'Items per page.',
 					),
 				),
-				'required' => array( 'artist_id' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'orders'                  => array(
@@ -67,26 +67,8 @@ function extrachill_shop_register_list_orders_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_list_orders',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-				if ( ! $artist_id ) {
-					return new WP_Error( 'missing_artist_id', 'Artist ID is required.', array( 'status' => 400 ) );
-				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to view orders for this artist.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return current_user_can( 'manage_options' );
-			},
-			'meta' => array(
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
@@ -107,64 +89,60 @@ function extrachill_shop_register_list_orders_ability(): void {
  * @return array|WP_Error
  */
 function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
-	$artist_id = (int) ( $input['artist_id'] ?? 0 );
-	$status    = (string) ( $input['status'] ?? 'all' );
-	$page      = max( 1, (int) ( $input['page'] ?? 1 ) );
-	$per_page  = min( 100, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
+	$authorized = extrachill_shop_authorize_seller_input( $input );
+	if ( is_wp_error( $authorized ) ) {
+		return $authorized;
+	}
+	$seller   = extrachill_shop_seller_from_input( $input );
+	$status   = (string) ( $input['status'] ?? 'all' );
+	$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
+	$per_page = min( 100, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
 
 	if ( ! function_exists( 'wc_get_orders' ) ) {
 		return new WP_Error( 'woocommerce_missing', 'WooCommerce is not available.', array( 'status' => 500 ) );
 	}
 
-	$wc_statuses = array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' );
-
-	$orders = wc_get_orders( array(
-		'limit'      => -1,
-		'status'     => $wc_statuses,
-		'orderby'    => 'date',
-		'order'      => 'DESC',
-		'meta_query' => array(
+	$seller_key = $seller['type'] . ':' . $seller['id'];
+	$args       = array(
+		'limit'    => $per_page,
+		'paged'    => $page,
+		'paginate' => true,
+		'orderby'  => 'date',
+		'order'    => 'DESC',
+		'status'   => array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' ),
+	);
+	// HPOS supports meta_query natively; the CPT adapter translates our query var.
+	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
+		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		$args['meta_query'] = array(
 			array(
-				'key'     => '_artist_payouts',
-				'compare' => 'EXISTS',
+				'key'   => '_extrachill_order_seller',
+				'value' => $seller_key,
 			),
-		),
-	) );
-
-	$filtered_orders         = array();
-	$needs_fulfillment_count = 0;
-
-	foreach ( $orders as $order ) {
-		$payouts = $order->get_meta( '_artist_payouts' ) ?: array();
-		if ( ! isset( $payouts[ $artist_id ] ) ) {
-			continue;
-		}
-
-		$order_status = $order->get_status();
-
-		if ( 'processing' === $order_status || 'on-hold' === $order_status ) {
-			$needs_fulfillment_count++;
-		}
-
-		if ( 'needs_fulfillment' === $status && ! in_array( $order_status, array( 'processing', 'on-hold' ), true ) ) {
-			continue;
-		}
-
-		if ( 'completed' === $status && 'completed' !== $order_status && 'refunded' !== $order_status ) {
-			continue;
-		}
-
-		$filtered_orders[] = $order;
+		);
+	} else {
+		$args['extrachill_order_seller'] = $seller_key;
 	}
-
-	$total        = count( $filtered_orders );
-	$total_pages  = (int) ceil( $total / $per_page );
-	$offset       = ( $page - 1 ) * $per_page;
-	$paged_orders = array_slice( $filtered_orders, $offset, $per_page );
+	if ( 'needs_fulfillment' === $status ) {
+		$args['status'] = array( 'wc-processing', 'wc-on-hold' );
+	} elseif ( 'completed' === $status ) {
+		$args['status'] = array( 'wc-completed', 'wc-refunded' );
+	}
+	$result                  = wc_get_orders( $args );
+	$count_args              = array_merge( $args, array(
+		'limit'  => 1,
+		'paged'  => 1,
+		'return' => 'ids',
+		'status' => array( 'wc-processing', 'wc-on-hold' ),
+	) );
+	$needs_fulfillment_count = (int) wc_get_orders( $count_args )->total;
+	$total                   = (int) $result->total;
+	$total_pages             = (int) $result->max_num_pages;
+	$paged_orders            = $result->orders;
 
 	$response_orders = array();
 	foreach ( $paged_orders as $order ) {
-		$response_orders[] = extrachill_shop_ability_build_order_response( $order, $artist_id );
+		$response_orders[] = extrachill_shop_ability_build_order_response( $order, extrachill_shop_seller_key( $seller ) );
 	}
 
 	return array(
@@ -186,10 +164,29 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
  * @param int      $artist_id Artist profile ID.
  * @return array
  */
-function extrachill_shop_ability_build_order_response( $order, int $artist_id ): array {
+function extrachill_shop_ability_build_order_response( $order, int|string $artist_id ): array {
 	$payouts         = $order->get_meta( '_artist_payouts' ) ?: array();
 	$artist_payout   = $payouts[ $artist_id ] ?? array();
 	$tracking_number = $order->get_meta( '_artist_tracking_' . $artist_id ) ?: '';
+
+	// Orders may be indexed before payment projections exist. Never include
+	// another seller's lines when constructing the compatible response shape.
+	if ( empty( $artist_payout['items'] ) ) {
+		$artist_payout['items'] = array();
+		$artist_payout['total'] = 0;
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			$seller = extrachill_shop_get_product_payout_seller( $item->get_product_id() );
+			if ( ! $seller || extrachill_shop_seller_key( $seller ) !== $artist_id ) {
+				continue;
+			}
+			$artist_payout['items'][] = array(
+				'product_id' => $item->get_product_id(),
+				'quantity'   => $item->get_quantity(),
+				'line_total' => $item->get_total(),
+			);
+			$artist_payout['total']  += (float) $item->get_total();
+		}
+	}
 
 	$items = array();
 	if ( ! empty( $artist_payout['items'] ) ) {
