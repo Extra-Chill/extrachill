@@ -47,7 +47,13 @@ class Test_Resolve_Account_By_Email extends WP_UnitTestCase {
 	}
 
 	public function test_new_email_creates_unclaimed_subscriber_with_claim_url(): void {
-		$result = $this->resolve( 'guest-new@example.com', array( 'utm' => array( 'source' => 'ig' ) ) );
+		$result = $this->resolve(
+			'guest-new@example.com',
+			array(
+				'utm'               => array( 'source' => 'ig' ),
+				'registration_page' => 'https://events.example/location/charleston/',
+			)
+		);
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['created'] );
@@ -59,11 +65,40 @@ class Test_Resolve_Account_By_Email extends WP_UnitTestCase {
 		$this->assertSame( 'guest-new@example.com', $user->user_email );
 		$this->assertSame( '1', (string) get_user_meta( $user->ID, 'ec_unclaimed', true ) );
 		$this->assertSame( 'event_rsvp', get_user_meta( $user->ID, 'registration_source', true ) );
+		$this->assertSame( 'https://events.example/location/charleston/', get_user_meta( $user->ID, 'registration_page', true ) );
 
 		$this->assertStringContainsString( '/reset-password/', $result['claim_url'] );
 		$this->assertStringContainsString( 'action=reset', $result['claim_url'] );
 		$this->assertStringContainsString( 'login=' . rawurlencode( $user->user_login ), $result['claim_url'] );
 		$this->assertInstanceOf( WP_User::class, check_password_reset_key( $this->claim_key( $result['claim_url'] ), $user->user_login ) );
+	}
+
+	public function test_registration_page_is_sanitized_and_forwarded_only_when_nonempty(): void {
+		$user_id = self::factory()->user->create();
+		$captured = array();
+		$capture = static function ( $pre, $name, $input ) use ( &$captured, $user_id ) {
+			if ( 'extrachill/create-user' !== $name ) {
+				return $pre;
+			}
+			$captured[] = $input;
+			return $user_id;
+		};
+		add_filter( 'wp_pre_execute_ability', $capture, 10, 3 );
+
+		try {
+			$this->resolve( 'guest-page@example.com', array( 'registration_page' => 'https://events.example/location/charleston/?q=live shows' ) );
+			$this->resolve( 'guest-empty-page@example.com', array( 'registration_page' => '' ) );
+			$this->resolve( 'guest-no-page@example.com' );
+			$this->resolve( 'guest-invalid-page@example.com', array( 'registration_page' => 'javascript:alert(1)' ) );
+		} finally {
+			remove_filter( 'wp_pre_execute_ability', $capture, 10 );
+		}
+
+		$this->assertCount( 4, $captured );
+		$this->assertSame( 'https://events.example/location/charleston/?q=live%20shows', $captured[0]['registration_page'] );
+		$this->assertArrayNotHasKey( 'registration_page', $captured[1] );
+		$this->assertArrayNotHasKey( 'registration_page', $captured[2] );
+		$this->assertArrayNotHasKey( 'registration_page', $captured[3] );
 	}
 
 	public function test_existing_unclaimed_account_is_reused_with_claim_url(): void {

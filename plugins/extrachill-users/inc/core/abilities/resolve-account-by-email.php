@@ -53,6 +53,10 @@ function extrachill_users_register_resolve_account_by_email_ability() {
 						'type'        => 'string',
 						'description' => __( 'Source label for newly created accounts (e.g. event_rsvp, event_submission, newsletter).', 'extrachill-users' ),
 					),
+					'registration_page'   => array(
+						'type'        => 'string',
+						'description' => __( 'Optional URL where registration occurred, passed through to create-user.', 'extrachill-users' ),
+					),
 					'referrer'            => array(
 						'type'        => 'string',
 						'description' => __( 'Optional external referrer URL passed through to create-user.', 'extrachill-users' ),
@@ -163,7 +167,7 @@ function ec_users_is_account_claim_throttled( $user_id ) {
 /**
  * Resolve or create an account for an email.
  *
- * @param array $input {email, registration_source, referrer?, utm?}.
+ * @param array $input {email, registration_source, registration_page?, referrer?, utm?}.
  * @return array|WP_Error {user_id, created, unclaimed, claim_url, claim_throttled}.
  */
 function extrachill_users_ability_resolve_account_by_email( $input ) {
@@ -196,6 +200,11 @@ function extrachill_users_ability_resolve_account_by_email( $input ) {
 			'registration_source' => $source,
 			'registration_method' => 'email_only',
 		);
+
+		$registration_page = isset( $input['registration_page'] ) ? esc_url_raw( (string) $input['registration_page'] ) : '';
+		if ( '' !== $registration_page ) {
+			$create_input['registration_page'] = $registration_page;
+		}
 
 		if ( ! empty( $input['referrer'] ) ) {
 			$create_input['referrer'] = (string) $input['referrer'];
