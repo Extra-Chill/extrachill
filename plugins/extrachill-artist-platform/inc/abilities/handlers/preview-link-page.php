@@ -7,6 +7,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/preview-link-page-screenshot.php';
+
 /** Return the same defaults and derived variables used by public persistence. */
 function extrachill_artist_platform_ability_preview_link_page( $input ) {
 	$viewport = $input['viewport'] ?? array( 'width' => 390, 'height' => 844 );
@@ -27,16 +29,22 @@ function extrachill_artist_platform_ability_preview_link_page( $input ) {
 	if ( class_exists( 'ExtraChillArtistPlatform_Fonts' ) ) {
 		$styles = ExtraChillArtistPlatform_Fonts::instance()->process_font_css_vars( $styles );
 	}
+	/* The capture URL is always the page's own public URL, never input. */
+	$public_url = ec_get_link_page_public_url( $data['link_page_id'] );
+	$screenshot = array(
+		'status' => 'skipped',
+		'url'    => null,
+		'reason' => 'Screenshot not requested.',
+	);
+	if ( false !== ( $input['screenshot'] ?? true ) ) {
+		$screenshot = extrachill_artist_platform_preview_screenshot( $data['link_page_id'], $public_url, $viewport );
+	}
 	return array(
-		'public_url'      => ec_get_link_page_public_url( $data['link_page_id'] ),
+		'public_url'      => $public_url,
 		'viewport'        => $viewport,
 		'resolved_styles' => $styles,
 		'contrast_report' => extrachill_artist_platform_preview_contrast( $styles, $data['settings'] ?? array() ),
-		'screenshot'      => array(
-			'status' => 'unavailable',
-			'url'    => null,
-			'reason' => 'WP Codebox viewport replay requires a Playground archive and route; it does not capture a live public URL.',
-		),
+		'screenshot'      => $screenshot,
 	);
 }
 
