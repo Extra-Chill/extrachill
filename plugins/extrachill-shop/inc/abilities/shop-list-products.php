@@ -23,28 +23,31 @@ function extrachill_shop_register_list_products_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-list-products',
 		array(
-			'label'       => __( 'List Shop Products', 'extrachill-shop' ),
-			'description' => __( 'List products belonging to the current user\'s artist profiles.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'List Shop Products', 'extrachill-shop' ),
+			'description'         => __( 'List products belonging to the current user\'s artist profiles.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
-				'properties' => array(),
+				'properties' => array(
+					'seller'    => extrachill_shop_seller_input_schema(),
+					'artist_id' => array( 'type' => 'integer' ),
+					'page'      => array(
+						'type'    => 'integer',
+						'default' => 1,
+					),
+					'per_page'  => array(
+						'type'    => 'integer',
+						'default' => 20,
+					),
+				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'  => 'array',
 				'items' => array( 'type' => 'object' ),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_list_products',
-			'permission_callback' => static function (): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				if ( ! extrachill_shop_user_has_artists() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be an artist to manage products.', array( 'status' => 403 ) );
-				}
-				return true;
-			},
-			'meta' => array(
+			'permission_callback' => 'extrachill_shop_authorize_seller_input',
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,
@@ -65,26 +68,38 @@ function extrachill_shop_register_list_products_ability(): void {
  * @return array|WP_Error
  */
 function extrachill_shop_ability_list_products( array $input ): array|WP_Error {
-	$artist_ids = extrachill_shop_get_user_artist_ids();
-
+	$authorized = extrachill_shop_authorize_seller_input( $input );
+	if ( is_wp_error( $authorized ) ) {
+		return $authorized;
+	}
+	$seller     = extrachill_shop_seller_from_input( $input );
 	$query_args = array(
 		'post_type'      => 'product',
 		'post_status'    => array( 'publish', 'pending', 'draft' ),
-		'posts_per_page' => -1,
+		'posts_per_page' => min( 100, max( 1, (int) ( $input['per_page'] ?? 20 ) ) ),
+		'paged'          => max( 1, (int) ( $input['page'] ?? 1 ) ),
+		'orderby'        => 'ID',
+		'order'          => 'DESC',
 	);
-
-	if ( ! current_user_can( 'manage_options' ) ) {
-		if ( empty( $artist_ids ) ) {
-			return array();
-		}
-
-		$artist_ids               = array_map( 'absint', $artist_ids );
+	if ( 'artist' === $seller['type'] ) {
 		$query_args['meta_query'] = array(
 			array(
-				'key'     => '_artist_profile_id',
-				'value'   => $artist_ids,
-				'compare' => 'IN',
-				'type'    => 'NUMERIC',
+				'key'   => '_artist_profile_id',
+				'value' => $seller['id'],
+				'type'  => 'NUMERIC',
+			),
+		);
+	} else {
+		$query_args['meta_query'] = array(
+			'relation' => 'AND',
+			array(
+				'key'   => '_extrachill_shop_seller_type',
+				'value' => $seller['type'],
+			),
+			array(
+				'key'   => '_extrachill_shop_seller_id',
+				'value' => $seller['id'],
+				'type'  => 'NUMERIC',
 			),
 		);
 	}
@@ -140,12 +155,12 @@ function extrachill_shop_ability_build_product_response( int $product_id ): arra
 	}
 
 	foreach ( $gallery_ids as $gid ) {
-		$url = (string) wp_get_attachment_image_url( $gid, 'thumbnail' );
+		$url            = (string) wp_get_attachment_image_url( $gid, 'thumbnail' );
 		$gallery_urls[] = array(
 			'id'  => $gid,
 			'url' => $url,
 		);
-		$images[] = array(
+		$images[]       = array(
 			'id'  => $gid,
 			'url' => $url,
 		);
@@ -167,7 +182,7 @@ function extrachill_shop_ability_build_product_response( int $product_id ): arra
 			},
 			0
 		);
-		$manage_stock = true;
+		$manage_stock   = true;
 	} elseif ( $manage_stock ) {
 		$stock_quantity = '' !== $stock ? (int) $stock : 0;
 	}

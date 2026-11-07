@@ -65,6 +65,12 @@ function sanitize_title( $value ) {
 function get_current_user_id() {
 	return $GLOBALS['test_user_id'] ?? 1;
 }
+function is_user_logged_in() {
+	return 0 < get_current_user_id();
+}
+function wp_register_ability( $name, $args ) {
+	$GLOBALS['test_abilities'][ $name ] = $args;
+}
 function get_current_blog_id() {
 	return 3;
 }
