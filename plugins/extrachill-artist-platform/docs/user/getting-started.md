@@ -20,4 +20,4 @@ Start with a short bio and a clear picture. Put your most important listening or
 
 You can invite collaborators to help with edits and collect email signups from fans. Direct artist signups are separate from Extra Chill newsletters and account notifications.
 
-For help, visit the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+For help, visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.

@@ -30,4 +30,4 @@ The importer only handles historical attendance. It does not create upcoming Goi
 
 My Shows stores one mark per person and event. Importing a show you already marked does not create a second attendance entry.
 
-If one real-world concert appears twice because the source data matched two different event records, report both event links in the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+If one real-world concert appears twice because the source data matched two different event records, report both event links in [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.

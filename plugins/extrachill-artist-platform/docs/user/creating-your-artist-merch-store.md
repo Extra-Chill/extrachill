@@ -26,4 +26,4 @@ Open **Orders** and select an order to see the items and shipping address. For a
 
 After sending the package, check or enter its tracking number and choose **Mark as Shipped**. Do not mark an order shipped before handing it over for delivery.
 
-If you need to refund an order, use **Refund Order** and review the amount before confirming. For questions about an order or payment, visit the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+If you need to refund an order, use **Refund Order** and review the amount before confirming. For questions about an order or payment, visit [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.

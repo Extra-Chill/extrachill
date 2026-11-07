@@ -13,7 +13,7 @@ Start at [Join Extra Chill](https://extrachill.link/join) and follow the prompts
 3. Choose whether you are a musician or work in the music industry.
 4. Choose **Request Access**.
 
-The Extra Chill team reviews these requests. An approval email explains how to get started. Do not create extra accounts while waiting. If you need help with a request, use the [Tech Support Forum](https://community.extrachill.com/r/tech-support).
+The Extra Chill team reviews these requests. An approval email explains how to get started. Do not create extra accounts while waiting. If you need help with a request, use [The Lab](https://community.extrachill.com/r/the-lab), the community help forum.
 
 ## What access includes
 
