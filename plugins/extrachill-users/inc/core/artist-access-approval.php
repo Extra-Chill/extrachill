@@ -56,7 +56,10 @@ function extrachill_users_stage_artist_access_approval( $user_id, $user, $type )
 	if ( ! class_exists( PendingActionHelper::class ) || ! class_exists( SignPendingActionResolutionAbility::class ) || ! class_exists( PendingActionAuthorizationReceipt::class ) ) {
 		return '';
 	}
-	$input   = array( 'user_id' => (int) $user_id, 'type' => $type );
+	$input   = array(
+		'user_id' => (int) $user_id,
+		'type'    => $type,
+	);
 	$summary = sprintf( 'Approve artist platform access for %s (%s) as %s', $user->display_name, $user->user_email, $type );
 	$staged  = PendingActionHelper::stage(
 		array(
@@ -65,10 +68,15 @@ function extrachill_users_stage_artist_access_approval( $user_id, $user, $type )
 			'apply_input'     => $input,
 			'preview_data'    => $input + array( 'summary' => $summary ),
 			'ttl'             => 2592000,
-			'resolver_grants' => array( array( 'type' => 'operator', 'kinds' => array( 'extrachill_artist_access' ) ) ),
+			'resolver_grants' => array(
+				array(
+					'type'  => 'operator',
+					'kinds' => array( 'extrachill_artist_access' ),
+				),
+			),
 		)
 	);
-	if ( is_wp_error( $staged ) || ( isset( $staged['staged'] ) && false === $staged['staged'] ) ) {
+	if ( isset( $staged['staged'] ) && false === $staged['staged'] ) {
 		return '';
 	}
 	$action_id = (string) ( $staged['action_id'] ?? $staged['payload']['pending_action']['action_id'] ?? $staged['payload']['action_id'] ?? '' );
@@ -80,6 +88,11 @@ function extrachill_users_stage_artist_access_approval( $user_id, $user, $type )
 		$request['action_id'] = $action_id;
 		update_user_meta( $user_id, 'artist_access_request', $request );
 	}
-	$signed = SignPendingActionResolutionAbility::execute( array( 'action_id' => $action_id, 'lifetime' => 2592000 ) );
-	return ! is_wp_error( $signed ) && ! empty( $signed['success'] ) ? (string) ( $signed['approve_url'] ?? '' ) : '';
+	$signed = SignPendingActionResolutionAbility::execute(
+		array(
+			'action_id' => $action_id,
+			'lifetime'  => 2592000,
+		)
+	);
+	return ! empty( $signed['success'] ) ? (string) ( $signed['approve_url'] ?? '' ) : '';
 }
