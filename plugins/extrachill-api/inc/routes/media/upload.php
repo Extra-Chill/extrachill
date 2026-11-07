@@ -190,6 +190,26 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 	$context   = $request->get_param( 'context' );
 	$target_id = $request->get_param( 'target_id' );
 
+	if ( in_array( $context, array( 'link_page_profile', 'link_page_background' ), true ) ) {
+		if ( ! function_exists( 'ec_with_link_page_storage_blog' ) ) {
+			return new WP_Error( 'dependency_missing', 'Link Page storage is unavailable.', array( 'status' => 500 ) );
+		}
+		/* Re-enter once with the storage blog current so the attachment lands there. */
+		static $in_storage_blog = false;
+		if ( ! $in_storage_blog ) {
+			$in_storage_blog = true;
+			try {
+				return ec_with_link_page_storage_blog(
+					static function () use ( $request ) {
+						return extrachill_api_media_upload_handler( $request );
+					}
+				);
+			} finally {
+				$in_storage_blog = false;
+			}
+		}
+	}
+
 	// Get uploaded file
 	$files = $request->get_file_params();
 
@@ -274,6 +294,10 @@ function extrachill_api_media_upload_handler( WP_REST_Request $request ) {
 
 	// Assign to target based on context
 	$old_attachment_id = extrachill_api_media_assign( $context, $target_id, $attachment_id );
+	if ( is_wp_error( $old_attachment_id ) ) {
+		wp_delete_attachment( $attachment_id, true );
+		return $old_attachment_id;
+	}
 
 	// Delete old attachment if replaced
 	if ( $old_attachment_id && $old_attachment_id !== $attachment_id ) {
@@ -361,7 +385,7 @@ function extrachill_api_media_upload_product_image( $uploaded_file, $product_id 
 /**
  * Assign uploaded attachment to target based on context
  *
- * @return int|null Old attachment ID if replaced, null otherwise
+ * @return int|null|WP_Error Old attachment ID if replaced, null otherwise, or save error
  */
 function extrachill_api_media_assign( $context, $target_id, $attachment_id ) {
 	$old_attachment_id = null;
@@ -383,28 +407,20 @@ function extrachill_api_media_assign( $context, $target_id, $attachment_id ) {
 			break;
 
 		case 'link_page_profile':
-			// Profile image is stored on artist (thumbnail) and link page (meta)
-			$old_attachment_id = get_post_thumbnail_id( $target_id );
-			set_post_thumbnail( $target_id, $attachment_id );
-
-			// Also update link page meta
-			if ( function_exists( 'ec_get_link_page_for_artist' ) ) {
-				$link_page_id = ec_get_link_page_for_artist( $target_id );
-				if ( $link_page_id ) {
-					update_post_meta( $link_page_id, '_link_page_profile_image_id', $attachment_id );
-				}
-			}
-			break;
-
 		case 'link_page_background':
-			if ( function_exists( 'ec_get_link_page_for_artist' ) ) {
-				$link_page_id = ec_get_link_page_for_artist( $target_id );
-				if ( $link_page_id ) {
-					$old_attachment_id = get_post_meta( $link_page_id, '_link_page_background_image_id', true );
-					update_post_meta( $link_page_id, '_link_page_background_image_id', $attachment_id );
-				}
+			$ability = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/save-link-page-settings' ) : null;
+			if ( ! $ability ) {
+				return new WP_Error( 'ability_not_found', 'Link Page settings ability is unavailable.', array( 'status' => 500 ) );
 			}
-			break;
+			$field  = 'link_page_profile' === $context ? 'profile_image_id' : 'background_image_id';
+			$result = $ability->execute(
+				array(
+					'artist_id' => $target_id,
+					$field      => $attachment_id,
+				)
+			);
+			/* Retain previous media: it may still be referenced by other content. */
+			return is_wp_error( $result ) ? $result : null;
 
 		case 'content_embed':
 			// No assignment needed, attachment is already created
@@ -421,6 +437,41 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 	$context   = $request->get_param( 'context' );
 	$target_id = $request->get_param( 'target_id' );
 
+	if ( in_array( $context, array( 'link_page_profile', 'link_page_background' ), true ) ) {
+		if ( ! function_exists( 'ec_with_link_page_storage_blog' ) ) {
+			return new WP_Error( 'dependency_missing', 'Link Page storage is unavailable.', array( 'status' => 500 ) );
+		}
+		return ec_with_link_page_storage_blog(
+			static function () use ( $context, $target_id ) {
+				$read = function_exists( 'wp_get_ability' ) ? wp_get_ability( 'extrachill/get-link-page-data' ) : null;
+				if ( ! $read ) {
+					return new WP_Error( 'ability_not_found', 'Link Page read ability is unavailable.', array( 'status' => 500 ) );
+				}
+				$data = $read->execute( array( 'artist_id' => $target_id ) );
+				if ( is_wp_error( $data ) ) {
+					return $data;
+				}
+				$field         = 'link_page_profile' === $context ? 'profile_image_id' : 'background_image_id';
+				$attachment_id = isset( $data[ $field ] ) ? (int) $data[ $field ] : 0;
+				if ( ! $attachment_id ) {
+					return new WP_Error( 'no_image', 'No image is assigned for this context.', array( 'status' => 404 ) );
+				}
+				$result = extrachill_api_media_unassign( $context, $target_id );
+				if ( is_wp_error( $result ) ) {
+					return $result;
+				}
+				/* Clear the reference without deleting potentially shared media. */
+				return rest_ensure_response(
+					array(
+						'deleted'   => true,
+						'context'   => $context,
+						'target_id' => $target_id,
+					)
+				);
+			}
+		);
+	}
+
 	// Product images delete from shop site
 	if ( 'product_image' === $context ) {
 		return extrachill_api_media_delete_product_image( $target_id );
@@ -428,6 +479,9 @@ function extrachill_api_media_delete_handler( WP_REST_Request $request ) {
 
 	// Get current attachment ID and clear assignment
 	$attachment_id = extrachill_api_media_unassign( $context, $target_id );
+	if ( is_wp_error( $attachment_id ) ) {
+		return $attachment_id;
+	}
 
 	if ( ! $attachment_id ) {
 		return new WP_Error(
@@ -503,7 +557,7 @@ function extrachill_api_media_delete_product_image( $product_id ) {
 /**
  * Unassign image from target based on context
  *
- * @return int|null Attachment ID that was unassigned, null if none
+ * @return int|null|WP_Error Attachment ID that was unassigned, null if retained, or save error
  */
 function extrachill_api_media_unassign( $context, $target_id ) {
 	$attachment_id = null;
@@ -525,26 +579,8 @@ function extrachill_api_media_unassign( $context, $target_id ) {
 			break;
 
 		case 'link_page_profile':
-			$attachment_id = get_post_thumbnail_id( $target_id );
-			delete_post_thumbnail( $target_id );
-
-			if ( function_exists( 'ec_get_link_page_for_artist' ) ) {
-				$link_page_id = ec_get_link_page_for_artist( $target_id );
-				if ( $link_page_id ) {
-					delete_post_meta( $link_page_id, '_link_page_profile_image_id' );
-				}
-			}
-			break;
-
 		case 'link_page_background':
-			if ( function_exists( 'ec_get_link_page_for_artist' ) ) {
-				$link_page_id = ec_get_link_page_for_artist( $target_id );
-				if ( $link_page_id ) {
-					$attachment_id = get_post_meta( $link_page_id, '_link_page_background_image_id', true );
-					delete_post_meta( $link_page_id, '_link_page_background_image_id' );
-				}
-			}
-			break;
+			return extrachill_api_media_assign( $context, $target_id, 0 );
 	}
 
 	return $attachment_id ? (int) $attachment_id : null;
