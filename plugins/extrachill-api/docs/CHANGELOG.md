@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.50.1] - 2026-11-07
+
+### Fixed
+- route artist access email approval through Data Machine signed pending actions
+
 ## [0.50.0] - 2026-11-06
 
 ### Added
