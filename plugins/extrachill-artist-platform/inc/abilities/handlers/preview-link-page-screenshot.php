@@ -17,13 +17,27 @@ defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_ARTIST_PLATFORM_PREVIEW_TIMEOUT = 30;
 
-/** Resolve a configured host path from its constant, then its filter. */
+/**
+ * Resolve a configured host path from its constant, then its filter.
+ *
+ * @param string $constant Constant name.
+ * @param string $filter   Filter name.
+ * @param string $fallback Value when the constant is undefined.
+ * @return string
+ */
 function extrachill_artist_platform_preview_config_path( $constant, $filter, $fallback = '' ) {
 	$value = defined( $constant ) ? (string) constant( $constant ) : $fallback;
 	return (string) apply_filters( $filter, $value );
 }
 
-/** Capture the public URL; always returns a screenshot status object. */
+/**
+ * Capture the public URL; always returns a screenshot status object.
+ *
+ * @param int    $link_page_id Link page ID (names the stored file).
+ * @param string $public_url   The link page's own public URL.
+ * @param array  $viewport     Width and height.
+ * @return array
+ */
 function extrachill_artist_platform_preview_screenshot( $link_page_id, $public_url, $viewport ) {
 	$unavailable = static function ( $reason ) {
 		return array(
@@ -116,7 +130,12 @@ function extrachill_artist_platform_preview_screenshot( $link_page_id, $public_u
 	);
 }
 
-/** Default runner: node + playwright-core, killed after the timeout. */
+/**
+ * Default runner: node + playwright-core, killed after the timeout.
+ *
+ * @param array $job Capture job (url, output, width, height, chrome, playwright, node, timeout).
+ * @return true|WP_Error
+ */
 function extrachill_artist_platform_preview_run_playwright( $job ) {
 	$script = <<<'JS'
 const [ playwrightPath, chrome, url, output, width, height, timeout ] = process.argv.slice( 1 );
@@ -152,7 +171,16 @@ JS;
 		'PATH' => getenv( 'PATH' ) ? getenv( 'PATH' ) : '/usr/local/bin:/usr/bin:/bin',
 	);
 	$pipes   = array();
-	$process = proc_open( $command, array( 1 => array( 'pipe', 'w' ), 2 => array( 'pipe', 'w' ) ), $pipes, null, $env );
+	$process = proc_open(
+		$command,
+		array(
+			1 => array( 'pipe', 'w' ),
+			2 => array( 'pipe', 'w' ),
+		),
+		$pipes,
+		null,
+		$env
+	);
 	if ( ! is_resource( $process ) ) {
 		return new WP_Error( 'screenshot_spawn_failed', 'Could not start node.' );
 	}
