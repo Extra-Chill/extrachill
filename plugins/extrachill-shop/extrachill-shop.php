@@ -101,7 +101,7 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/checkout-shipping.php';
 
 		// Artist notifications
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-order-notifications.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-order-notifications.php';
 
 		// Notices
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/under-construction-notice.php';
