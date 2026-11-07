@@ -2,7 +2,7 @@
 /**
  * Seller refunds for marketplace orders.
  *
- * Orders use Stripe "separate charges and transfers": the platform charges the
+ * Legacy orders use Stripe "separate charges and transfers": the platform charges the
  * customer once, then transfers each seller's payout. Refunding one seller's
  * portion therefore takes two steps:
  *
@@ -167,4 +167,40 @@ function extrachill_shop_refund_seller_portion( $order, array $seller, $reason =
 		'refund_amount' => $refund_amount,
 		'reversed'      => ! empty( $state['reversal_id'] ),
 	);
+}
+
+/** Refund a direct charge using the immutable account stored at checkout. */
+function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
+	if ( ! $order || ! $order->get_meta( '_extrachill_payment_intent' ) || ! extrachill_shop_stripe_init() ) {
+		return new WP_Error( 'refund_unavailable', 'No refundable Stripe payment found.' );
+	}
+	$minor = (int) round( (float) $amount * 100 );
+	if ( $minor <= 0 || $amount > $order->get_remaining_refund_amount() ) {
+		return new WP_Error( 'invalid_refund_amount', 'Invalid refund amount.' );
+	}
+	$params = array(
+		'payment_intent' => $order->get_meta( '_extrachill_payment_intent' ),
+		'amount'         => $minor,
+		'metadata'       => array(
+			'order_id' => (string) $order->get_id(),
+			'reason'   => $reason,
+		),
+	);
+	// Woo records a refund only after this call succeeds. A retry uses the same
+	// key; a later partial refund gets a different already-refunded balance.
+	$options = array( 'idempotency_key' => 'ec-merch-refund-' . $order->get_id() . '-' . $minor . '-' . (int) round( $order->get_total_refunded() * 100 ) );
+	$account = $order->get_meta( '_extrachill_stripe_account' );
+	if ( $account ) {
+		$options['stripe_account']        = $account;
+		$params['refund_application_fee'] = true;
+	}
+	try {
+		$refund = \Stripe\Refund::create( $params, $options );
+		if ( ! in_array( $refund->status ?? 'succeeded', array( 'succeeded', 'pending' ), true ) ) {
+			return new WP_Error( 'refund_failed', 'Stripe refund failed.' );
+		}
+		return true;
+	} catch ( \Exception $e ) {
+		return new WP_Error( 'refund_failed', 'Stripe refund failed. Please retry.' );
+	}
 }

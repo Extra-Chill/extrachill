@@ -169,65 +169,20 @@ final class SellerCommerceTest extends TestCase {
 		$this->assertFalse( extrachill_shop_get_product_seller( 11 ) );
 	}
 
-	public function test_checkout_groups_and_charges_artist_exactly_as_before_and_venue_separately(): void {
+	public function test_checkout_refuses_mixed_sellers_including_platform(): void {
 		update_post_meta( 1, '_artist_profile_id', 9 );
-		extrachill_shop_set_product_seller(
-			2,
-			array(
-				'type' => 'venue',
-				'id'   => 1524,
-			)
-		);
-		extrachill_shop_set_stripe_account_record( 9, array( 'account_id' => 'acct_artist' ) );
-		extrachill_shop_set_seller_stripe_account_record(
-			array(
-				'type' => 'venue',
-				'id'   => 1524,
-			),
-			array( 'account_id' => 'acct_venue' )
-		);
-
-		$grouped = extrachill_shop_group_cart_by_artist(
-			array(
-				'a' => array(
-					'product_id' => 1,
-					'line_total' => 20.0,
-				),
-				'b' => array(
-					'product_id' => 2,
-					'line_total' => 30.0,
-				),
-				'c' => array(
-					'product_id' => 3,
-					'line_total' => 5.0,
-				),
-			)
-		);
-		$this->assertSame( array( 9, 'venue:1524', 0 ), array_keys( $grouped ) );
-		$this->assertSame( array( 'artist_id', 'items', 'total' ), array_keys( $grouped[9] ) );
-		$this->assertSame(
-			array(
-				'type' => 'venue',
-				'id'   => 1524,
-			),
-			$grouped['venue:1524']['seller']
-		);
-
-		$charges = extrachill_shop_calculate_artist_charges( $grouped );
-		$this->assertSame( array( 9, 'venue:1524' ), array_keys( $charges ) );
-		$this->assertSame(
-			array(
-				'artist_id'       => 9,
-				'stripe_account'  => 'acct_artist',
-				'total'           => 20.0,
-				'application_fee' => 2.0,
-				'artist_payout'   => 18.0,
-				'items'           => $grouped[9]['items'],
-			),
-			$charges[9]
-		);
-		$this->assertSame( 'acct_venue', $charges['venue:1524']['stripe_account'] );
-		$this->assertSame( 27.0, $charges['venue:1524']['artist_payout'] );
-		$this->assertSame( 0, $charges['venue:1524']['artist_id'] );
+		update_post_meta( 2, '_artist_profile_id', 9 );
+		extrachill_shop_set_product_seller( 3, array(
+			'type' => 'venue',
+			'id'   => 1524,
+		) );
+		$this->assertSame( array(
+			'type' => 'artist',
+			'id'   => 9,
+		), extrachill_shop_single_seller( array( 1, 2 ) ) );
+		$this->assertSame( 'mixed_sellers', extrachill_shop_single_seller( array( 1, 3 ) )->get_error_code() );
+		$this->assertSame( 'mixed_sellers', extrachill_shop_single_seller( array( 1, 4 ) )->get_error_code() );
+		$this->assertSame( 'mixed_sellers', extrachill_shop_single_seller( array( 4, 1 ) )->get_error_code() );
+		$this->assertNull( extrachill_shop_single_seller( array( 4, 5 ) ) );
 	}
 }
