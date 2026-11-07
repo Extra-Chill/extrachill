@@ -51,11 +51,11 @@ check( array( 'width' => 390, 'height' => 844 ) === $preview['viewport'], 'Mobil
 check( '#fff' === $preview['resolved_styles']['--link-page-card-bg-color'], 'Stored card color is preserved' );
 check( '#000000' === $preview['resolved_styles']['--link-page-button-hover-text-color'], 'Derived hover text' );
 check( 21.0 === $preview['contrast_report']['button_text_on_button']['ratio'], 'Black/white WCAG ratio' );
-check( $preview['contrast_report']['icons_on_background']['below_threshold'], 'Low contrast flagged' );
+check( $preview['contrast_report']['icons_on_background'] === $preview['contrast_report']['page_text_on_background'], 'Icons default to page text, not button text' );
 check( 'unavailable' === $preview['screenshot']['status'] && null === $preview['screenshot']['url'], 'Honest screenshot fallback' );
 $styles = $preview['resolved_styles'];
 $styles['--link-page-background-type'] = 'image';
-// A translucent card over an image has no measurable backdrop.
+/* A translucent card over a missing image has no measurable backdrop. */
 $styles['--link-page-card-bg-color'] = 'rgba(0, 0, 0, 0.4)';
 $report = extrachill_artist_platform_preview_contrast( $styles, array( 'overlay_enabled' => true ) );
 check( 'unknown' === $report['page_text_on_card']['status'], 'Image cannot falsely pass' );
