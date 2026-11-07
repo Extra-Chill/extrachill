@@ -185,11 +185,14 @@ final class NetworkAbilitySearch {
 	/**
 	 * Order deduplicated entries by relevance to the query.
 	 *
-	 * Per term: a hit in the ability's local name (after the namespace) scores
-	 * 4, in the namespace 3, in the label 2, in the summary or category 1. An
-	 * exact name match wins outright. Abilities present on every queried site
-	 * (shared plumbing such as chat-run or analytics helpers) score half, so a
-	 * domain ability with the same hits ranks above them. Ties keep name order.
+	 * Per query word (see expand_terms()): a whole hyphen-delimited segment of
+	 * the local name (after the namespace) scores 6, a substring of the local
+	 * name 4, the namespace 3, the label 2, the summary or category 1.
+	 * Synonyms score at a reduced weight. When every query word hits the name
+	 * or label the score gets a 1.5x bonus. An exact name match wins outright.
+	 * Abilities present on every queried site score 0.75x, so a domain ability
+	 * with the same hits ranks above them while network-wide tools such as
+	 * web-fetch still surface. Ties keep name order.
 	 *
 	 * @param array<int,array<string,mixed>>    $abilities      Deduplicated entries.
 	 * @param string                            $query          Search query.
@@ -201,7 +204,7 @@ final class NetworkAbilitySearch {
 		$parsed = function_exists( 'agents_parse_ability_search_query' )
 			? agents_parse_ability_search_query( $query )
 			: self::parse_query( $query );
-		$terms  = array_values( array_filter( array_map( 'strtolower', array_map( 'strval', array_merge( (array) ( $parsed['terms'] ?? array() ), (array) ( $parsed['required'] ?? array() ) ) ) ) ) );
+		$groups = self::expand_terms( array_merge( (array) ( $parsed['terms'] ?? array() ), (array) ( $parsed['required'] ?? array() ) ) );
 		$exact  = strtolower( trim( $query ) );
 
 		$scored = array();
@@ -214,26 +217,54 @@ final class NetworkAbilitySearch {
 			$category = strtolower( (string) ( $remote_records[ $entry['name'] ]['category'] ?? '' ) );
 			$summary  = strtolower( (string) ( $entry['summary'] ?? '' ) );
 
-			$score = 0.0;
-			foreach ( $terms as $term ) {
-				if ( str_contains( $local, $term ) ) {
-					$score += 4;
-				} elseif ( str_contains( $ns, $term ) ) {
-					$score += 3;
-				} elseif ( '' !== $label && str_contains( $label, $term ) ) {
-					$score += 2;
-				} elseif ( str_contains( $summary, $term ) || str_contains( $category, $term ) ) {
-					++$score;
+			$segments = preg_split( '/[^a-z0-9]+/', $local, -1, PREG_SPLIT_NO_EMPTY );
+			$segments = is_array( $segments ) ? $segments : array();
+
+			$score   = 0.0;
+			$covered = 0;
+			foreach ( $groups as $group ) {
+				$best     = 0.0;
+				$in_title = false;
+				foreach ( $group['alternates'] as $term => $weight ) {
+					$hit = 0.0;
+					if ( in_array( $term, $segments, true ) ) {
+						$hit = 6;
+					} elseif ( str_contains( $local, $term ) ) {
+						$hit = 4;
+					} elseif ( str_contains( $ns, $term ) ) {
+						$hit = 3;
+					} elseif ( '' !== $label && str_contains( $label, $term ) ) {
+						$hit = 2;
+					} elseif ( str_contains( $summary, $term ) || str_contains( $category, $term ) ) {
+						$hit = 1;
+					}
+					$best     = max( $best, $hit * $weight );
+					$in_title = $in_title || $hit >= 2;
 				}
+				$score += $best;
+				if ( $in_title && $group['counts'] ) {
+					++$covered;
+				}
+			}
+
+			/* Every query word in the name or label beats one word matched strongly. */
+			$counted = count( array_filter( array_column( $groups, 'counts' ) ) );
+			if ( $counted > 1 && $covered === $counted ) {
+				$score *= 1.5;
 			}
 			if ( '' !== $exact && $exact === $name ) {
 				$score += 1000;
 			}
 
+			/*
+			 * Abilities present on every queried site (network-active plugins)
+			 * are often plumbing, but some are real tools (web fetch, media
+			 * upload). Demote them gently so a strong match still surfaces.
+			 */
 			$sites      = is_array( $entry['sites'] ?? null ) ? $entry['sites'] : array();
 			$everywhere = $site_count > 1 && count( $sites ) >= $site_count;
 			if ( $everywhere ) {
-				$score /= 2;
+				$score *= 0.75;
 			}
 
 			$scored[] = array( $score, $everywhere ? 1 : 0, (string) $entry['name'], $entry );
@@ -391,10 +422,12 @@ final class NetworkAbilitySearch {
 				}
 
 				$matches_term = array() === $terms;
-				foreach ( $terms as $term ) {
-					if ( str_contains( $haystack, strtolower( $term ) ) ) {
-						$matches_term = true;
-						break;
+				foreach ( self::expand_terms( $terms ) as $group ) {
+					foreach ( array_keys( $group['alternates'] ) as $alternate ) {
+						if ( str_contains( $haystack, (string) $alternate ) ) {
+							$matches_term = true;
+							break 2;
+						}
 					}
 				}
 				if ( ! $matches_term ) {
@@ -417,6 +450,84 @@ final class NetworkAbilitySearch {
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Words that carry no meaning in an ability search.
+	 */
+	private const STOPWORDS = array( 'a', 'an', 'and', 'the', 'to', 'of', 'for', 'in', 'on', 'with', 'my', 'me', 'i', 'is', 'it', 'from', 'by', 'or' );
+
+	/**
+	 * Light vocabulary bridges: a query word also matches these words, at a
+	 * reduced weight, so "fetch url" or "read a web page" reach web-fetch.
+	 */
+	private const SYNONYMS = array(
+		'url'     => array( 'web', 'link' ),
+		'urls'    => array( 'web', 'link' ),
+		'link'    => array( 'url', 'web' ),
+		'website' => array( 'web', 'site' ),
+		'webpage' => array( 'web', 'page' ),
+		'page'    => array( 'web' ),
+		'open'    => array( 'fetch', 'read' ),
+		'download' => array( 'fetch' ),
+		'scrape'  => array( 'fetch' ),
+		'browse'  => array( 'fetch', 'web' ),
+		'image'   => array( 'media' ),
+		'photo'   => array( 'media', 'image' ),
+		'picture' => array( 'media', 'image' ),
+		'upload'  => array( 'media' ),
+	);
+
+	private const SYNONYM_WEIGHT = 0.6;
+
+	/**
+	 * Expand raw query terms into scoring groups.
+	 *
+	 * Each group is one query word with its alternates (the word itself at
+	 * weight 1, synonyms at a reduced weight). Words are split on hyphens,
+	 * underscores, slashes and dots ("fetch-url" -> fetch, url), and the
+	 * joined token is kept as an extra, non-counting group so exact ability
+	 * names still score. Stopwords are dropped.
+	 *
+	 * @param array<int,mixed> $terms Raw terms.
+	 * @return array<int,array{alternates: array<string,float>, counts: bool}>
+	 */
+	public static function expand_terms( array $terms ): array {
+		$groups = array();
+		$seen   = array();
+		foreach ( $terms as $raw ) {
+			$raw = strtolower( trim( (string) $raw ) );
+			if ( '' === $raw ) {
+				continue;
+			}
+			$parts = preg_split( '/[-_\/.]+/', $raw, -1, PREG_SPLIT_NO_EMPTY );
+			$parts = is_array( $parts ) ? $parts : array( $raw );
+			if ( count( $parts ) > 1 && ! isset( $seen[ $raw ] ) ) {
+				$seen[ $raw ] = true;
+				$groups[]     = array(
+					'alternates' => array( $raw => 1.0 ),
+					'counts'     => false,
+				);
+			}
+			foreach ( $parts as $part ) {
+				if ( isset( $seen[ $part ] ) || in_array( $part, self::STOPWORDS, true ) ) {
+					continue;
+				}
+				$seen[ $part ] = true;
+				$alternates    = array( $part => 1.0 );
+				foreach ( self::SYNONYMS[ $part ] ?? array() as $synonym ) {
+					if ( ! isset( $alternates[ $synonym ] ) ) {
+						$alternates[ $synonym ] = self::SYNONYM_WEIGHT;
+					}
+				}
+				$groups[] = array(
+					'alternates' => $alternates,
+					'counts'     => true,
+				);
+			}
+		}
+
+		return $groups;
 	}
 
 	/**

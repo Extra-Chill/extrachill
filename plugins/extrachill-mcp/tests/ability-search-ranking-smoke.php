@@ -2,7 +2,7 @@
 /**
  * Standalone regression coverage for network ability search ranking.
  *
- * Run: php plugins/extrachill-mcp/tests/ability-search-ranking.php
+ * Run: php plugins/extrachill-mcp/tests/ability-search-ranking-smoke.php
  *
  * @package ExtraChillMcp
  */
@@ -112,6 +112,73 @@ function check_search( bool $condition, string $message ): void {
 	);
 	check_search( 2 === count( NetworkAbilitySearch::match_records( $fields, 'ARTIST missing' ) ), 'Label and category should support any-match queries.' );
 	check_search( 2 === count( NetworkAbilitySearch::match_records( $fields, '+ARTIST' ) ), 'Required terms should match label and category case-insensitively.' );
+
+	/* #1223: hyphenated and natural queries reach network-wide tools like web-fetch. */
+	$all_sites = array( 'auth', 'main', 'community', 'shop', 'artist', 'events', 'newsletter', 'docs', 'wire', 'studio', 'link_pages' );
+	$web       = array(
+		array(
+			'name'        => 'datamachine/web-fetch',
+			'label'       => 'Web Fetch',
+			'description' => 'Fetch a public web page (http/https) and return its title and readable text. Use it to read an article, show listing, episode page or profile you have a link for.',
+			'sites'       => $all_sites,
+		),
+		array(
+			'name'        => 'data-machine-events/backfill-canonical-ticket-urls',
+			'label'       => 'Backfill Canonical Ticket URLs',
+			'description' => 'Backfill canonical ticket URLs for events.',
+			'sites'       => array( 'events' ),
+		),
+		array(
+			'name'        => 'data-machine-events/resync-ticket-urls',
+			'label'       => 'Resync Ticket URLs',
+			'description' => 'Resync ticket URLs from sources.',
+			'sites'       => array( 'events' ),
+		),
+		array(
+			'name'        => 'datamachine/fetch-reddit',
+			'label'       => 'Fetch Reddit',
+			'description' => 'Fetch posts from a subreddit.',
+			'sites'       => $all_sites,
+		),
+		array(
+			'name'        => 'datamachine/facebook-read',
+			'label'       => 'Facebook Read',
+			'description' => 'Read posts from the connected Facebook Page.',
+			'sites'       => array( 'main' ),
+		),
+		array(
+			'name'        => 'data-machine-events/get-calendar-page',
+			'label'       => 'Get Calendar Page',
+			'description' => 'Render one page of the events calendar.',
+			'sites'       => array( 'events' ),
+		),
+		array(
+			'name'        => 'datamachine/webhook-trigger-enable',
+			'label'       => 'Enable Webhook Trigger',
+			'description' => 'Enable webhook trigger for a flow.',
+			'sites'       => $all_sites,
+		),
+	);
+	$web_by_name = array_column( $web, null, 'name' );
+	$web_rank    = static function ( string $web_query ) use ( $web, $web_by_name, $all_sites ): array {
+		$matched = NetworkAbilitySearch::match_records( $web, $web_query );
+		foreach ( $matched as &$match ) {
+			$match['sites'] = $web_by_name[ $match['name'] ]['sites'];
+		}
+		unset( $match );
+		return array_column( NetworkAbilitySearch::rank( $matched, $web_query, count( $all_sites ), $web_by_name ), 'name' );
+	};
+	foreach ( array( 'fetch-url' => 1, 'fetch url' => 1, 'web' => 1, 'read a web page' => 3, 'open link' => 3 ) as $web_query => $within ) {
+		$position = array_search( 'datamachine/web-fetch', $web_rank( $web_query ), true );
+		check_search( false !== $position && $position < $within, "web-fetch must rank in the top {$within} for '{$web_query}'." );
+	}
+
+	/* Term expansion: split on separators, drop stopwords, keep the joined token as a non-counting group. */
+	$groups = NetworkAbilitySearch::expand_terms( array( 'fetch-url', 'a', 'the' ) );
+	check_search( array( 'fetch-url', 'fetch', 'url' ) === array_map( static fn( $g ) => array_key_first( $g['alternates'] ), $groups ), 'Hyphenated terms split and stopwords drop.' );
+	check_search( false === $groups[0]['counts'] && true === $groups[1]['counts'], 'Only split words count toward coverage.' );
+	check_search( isset( $groups[2]['alternates']['web'] ) && $groups[2]['alternates']['web'] < 1.0, 'Synonyms carry a reduced weight.' );
+	check_search( array() !== NetworkAbilitySearch::match_records( $web, 'fetch-url' ), 'Hyphenated query must match records.' );
 
 	echo "Ability search ranking tests passed.\n";
 } )();
