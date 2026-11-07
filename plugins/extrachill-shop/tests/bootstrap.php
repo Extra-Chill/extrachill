@@ -211,3 +211,10 @@ final class PriorityBoostTestOrder {
 		++$this->save_count;
 	}
 }
+
+function switch_to_blog( $id ) {
+	$GLOBALS['test_blog_stack'][] = $id;
+}
+function restore_current_blog() {
+	array_pop( $GLOBALS['test_blog_stack'] );
+}

@@ -9,8 +9,6 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 	}
 }
 
-function switch_to_blog( $id ) { $GLOBALS['shipping_blog_stack'][] = $id; }
-function restore_current_blog() { array_pop( $GLOBALS['shipping_blog_stack'] ); }
 function add_option( $key, $value, $deprecated = '', $autoload = false ) {
 	if ( false !== get_option( $key, false ) ) {
 		return false; }
@@ -29,7 +27,7 @@ final class ShippingAddressTest extends TestCase {
 	protected function setUp(): void {
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_post_meta']      = array();
-		$GLOBALS['shipping_blog_stack'] = array();
+		$GLOBALS['test_blog_stack'] = array();
 		$GLOBALS['test_user_id']        = 812;
 		$GLOBALS['test_owner_callback'] = static function () {
 			return array(
@@ -77,7 +75,7 @@ final class ShippingAddressTest extends TestCase {
 		);
 		$GLOBALS['test_post_meta'][25]['_shipping_address'] = $this->address();
 		$this->assertSame( $this->address(), extrachill_shop_get_seller_shipping_address( $seller ) );
-		$this->assertSame( array(), $GLOBALS['shipping_blog_stack'] );
+		$this->assertSame( array(), $GLOBALS['test_blog_stack'] );
 		$updated = array_merge( $this->address(), array( 'name' => 'New address' ) );
 		extrachill_shop_set_seller_shipping_address( $seller, $updated );
 		$this->assertSame( $updated, extrachill_shop_get_seller_shipping_address( $seller ) );
