@@ -321,11 +321,15 @@ jobs:
           echo "plan=${PLAN} journeys=${JOURNEYS}"
           [ "${PLAN}" = success ] && [ "${JOURNEYS}" = success ]
 
-      - name: Alert Discord on nightly failure
+      - name: 'Alert #alerts on nightly failure'
         if: always() && github.event_name == 'schedule' && (needs.plan.result != 'success' || needs.journey.result != 'success')
+        # Trigger WordPress triage first, with Discord as a fallback if WordPress is down.
         # Notification failures must not replace the plan/journey result above.
         continue-on-error: true
         env:
+          ALERT_URL: ${{ vars.EXTRACHILL_JOURNEYS_ALERT_URL }}
+          ALERT_TOKEN: ${{ secrets.EXTRACHILL_JOURNEYS_ALERT_TOKEN }}
+          SHA: ${{ github.sha }}
           WEBHOOK: ${{ secrets.DISCORD_ALERTS_WEBHOOK }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -335,7 +339,10 @@ jobs:
           JOURNEYS: ${{ needs.journey.result }}
         run: |
           set -euo pipefail
-          [ -n "${WEBHOOK:-}" ] || { echo "No alerts webhook configured; skipping."; exit 0; }
+          if { [ -z "${ALERT_URL:-}" ] || [ -z "${ALERT_TOKEN:-}" ]; } && [ -z "${WEBHOOK:-}" ]; then
+            echo "Neither WordPress triage nor Discord fallback is configured; skipping."
+            exit 0
+          fi
 
           # Paginate so every matrix job is included. If the API is unavailable,
           # still send the aggregate failure with a link to investigate.
@@ -345,7 +352,28 @@ jobs:
           else
             echo "::warning::Could not fetch journey job conclusions."
           fi
-          body="Plan: ${PLAN}. Journeys: ${JOURNEYS}."$'\n\n'"${failed:-No unsuccessful journey details available; see the run (planning may have failed).}"
+          failed="${failed:-No unsuccessful journey details available; see the run (planning may have failed).}"
+          if [ -n "${ALERT_URL:-}" ] && [ -n "${ALERT_TOKEN:-}" ]; then
+            payload="$(jq -n \
+              --arg failed "${failed}" \
+              --arg url "${RUN_URL}" \
+              --arg run_id "${RUN_ID}" \
+              --arg sha "${SHA}" \
+              '{title: "Nightly network journeys failed", failed_journeys: $failed, run_url: $url, run_id: $run_id, sha: $sha}')"
+            echo "Sending nightly failure to WordPress triage."
+            if curl --fail --silent --show-error --connect-timeout 10 --max-time 30 --retry 2 \
+              -H "Authorization: Bearer ${ALERT_TOKEN}" \
+              -H 'Content-Type: application/json' --data "${payload}" "${ALERT_URL}"; then
+              echo "WordPress triage alert sent."
+              exit 0
+            fi
+            echo "::warning::WordPress triage POST failed; trying Discord fallback."
+          else
+            echo "WordPress triage is unconfigured; trying Discord fallback."
+          fi
+          [ -n "${WEBHOOK:-}" ] || { echo "No Discord fallback configured; skipping."; exit 0; }
+          echo "Sending nightly failure via Discord fallback."
+          body="Plan: ${PLAN}. Journeys: ${JOURNEYS}."$'\n\n'"${failed}"
           payload="$(jq -n \
             --arg url "${RUN_URL}" \
             --arg body "${body}" \
