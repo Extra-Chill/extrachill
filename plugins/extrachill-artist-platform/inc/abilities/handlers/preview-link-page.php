@@ -94,23 +94,154 @@ function extrachill_artist_platform_preview_luminance( $color ) {
 	return 0.2126 * $linear[0] + 0.7152 * $linear[1] + 0.0722 * $linear[2];
 }
 
-/** Report unknown rather than claiming image/gradient backgrounds pass. */
+/**
+ * Sample an image on the link storage site, caching successes and failures.
+ *
+ * @param array $styles   Resolved link page CSS variables.
+ * @param array $settings Link page settings.
+ * @return array|null RGBA average color, or null when unreadable.
+ */
+function extrachill_artist_platform_preview_image_average( $styles, $settings ) {
+	$site     = function_exists( 'ec_get_link_page_storage_blog_id' ) ? ec_get_link_page_storage_blog_id() : 0;
+	$switched = $site && get_current_blog_id() !== $site;
+	if ( $switched ) {
+		switch_to_blog( $site );
+	}
+	try {
+		$id  = (int) ( $settings['background_image_id'] ?? 0 );
+		$url = trim( $styles['--link-page-background-image-url'] ?? '' );
+		if ( preg_match( '/^url\([\'\"]?(.*?)[\'\"]?\)$/', $url, $match ) ) {
+			$url = $match[1];
+		}
+		if ( ! $id && ! $url ) {
+			return null;
+		}
+		$file   = $id ? get_attached_file( $id ) : false;
+		$key    = 'ec_preview_average_' . md5( $id . '|' . $url . '|' . ( $file && is_file( $file ) ? filemtime( $file ) : '' ) );
+		$cached = get_transient( $key );
+		if ( false !== $cached ) {
+			return $cached['color'];
+		}
+		$bytes = false;
+		if ( $file && is_readable( $file ) ) {
+			$bytes = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local attachment file, not a URL.
+		} elseif ( $url ) {
+			$response = wp_safe_remote_get(
+				$url,
+				array(
+					'timeout'             => 5,
+					'limit_response_size' => 10 * 1024 * 1024,
+				)
+			);
+			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+				$bytes = wp_remote_retrieve_body( $response );
+			}
+		}
+		$color = null;
+		if ( $bytes && function_exists( 'imagecreatefromstring' ) ) {
+			$image = getimagesizefromstring( $bytes ) ? imagecreatefromstring( $bytes ) : false;
+			if ( $image ) {
+				$sample = imagecreatetruecolor( 1, 1 );
+				imagecopyresampled( $sample, $image, 0, 0, 0, 0, 1, 1, imagesx( $image ), imagesy( $image ) );
+				$rgb   = imagecolorat( $sample, 0, 0 );
+				$color = array( ( $rgb >> 16 ) & 255, ( $rgb >> 8 ) & 255, $rgb & 255, 1.0 );
+				imagedestroy( $sample );
+				imagedestroy( $image );
+			}
+		} elseif ( $bytes && class_exists( 'Imagick' ) ) {
+			$image = new Imagick();
+			try {
+				$image->readImageBlob( $bytes );
+				$image->setIteratorIndex( 0 );
+				$image->scaleImage( 1, 1 );
+				$rgb   = $image->getImagePixelColor( 0, 0 )->getColor();
+				$color = array( $rgb['r'], $rgb['g'], $rgb['b'], 1.0 );
+			} catch ( Exception $exception ) {
+				$color = null;
+			} finally {
+				$image->clear();
+			}
+		}
+		set_transient( $key, array( 'color' => $color ), $color ? 86400 : 300 );
+		return $color;
+	} finally {
+		if ( $switched ) {
+			restore_current_blog();
+		}
+	}
+}
+
+/**
+ * Estimate each surface; gradient reports retain the worst stop.
+ *
+ * @param array $styles   Resolved link page CSS variables.
+ * @param array $settings Link page settings.
+ * @return array Contrast report keyed by pair name.
+ */
 function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	$get = static function ( $key ) use ( $styles ) {
 		return extrachill_artist_platform_preview_color( $styles[ '--link-page-' . $key ] ?? '' );
 	};
-	$page = 'color' === ( $styles['--link-page-background-type'] ?? 'color' ) ? $get( 'background-color' ) : null;
+	$type = $styles['--link-page-background-type'] ?? 'color';
+	if ( 'gradient' === $type ) {
+		$reports = array();
+		foreach ( array( 'start', 'middle', 'end' ) as $stop ) {
+			$color = $styles[ '--link-page-background-gradient-' . $stop ] ?? '';
+			if ( 'middle' === $stop && '' === trim( $color ) ) {
+				continue;
+			}
+			$solid                                 = $styles;
+			$solid['--link-page-background-type']  = 'color';
+			$solid['--link-page-background-color'] = $color;
+			foreach ( extrachill_artist_platform_preview_contrast( $solid, $settings ) as $name => $entry ) {
+				$reports[ $name ][] = array(
+					'color' => $color,
+					'entry' => $entry,
+				);
+			}
+		}
+		$result = array();
+		foreach ( $reports as $name => $stops ) {
+			$worst = $stops[0]['entry'];
+			foreach ( $stops as $stop ) {
+				if ( null === $stop['entry']['ratio'] || ( null !== $worst['ratio'] && $stop['entry']['ratio'] < $worst['ratio'] ) ) {
+					$worst = $stop['entry'];
+				}
+			}
+			$worst['stops']  = array_map(
+				static function ( $stop ) {
+					return array(
+						'color' => $stop['color'],
+						'ratio' => $stop['entry']['ratio'],
+					);
+				},
+				$stops
+			);
+			$result[ $name ] = $worst;
+		}
+		return $result;
+	}
+	$page = 'color' === $type ? $get( 'background-color' ) : null;
+	if ( 'image' === $type ) {
+		$page = extrachill_artist_platform_preview_image_average( $styles, $settings );
+		if ( $page && ! empty( $settings['overlay_enabled'] ) ) {
+			$overlay = $get( 'overlay-color' );
+			$page    = extrachill_artist_platform_preview_composite( $overlay ? $overlay : $get( 'card-bg-color' ), $page );
+		}
+	}
 	if ( $page && $page[3] < 1 ) {
 		$page = null;
 	}
 	$card = empty( $settings['overlay_enabled'] ) ? $page : extrachill_artist_platform_preview_composite( $get( 'card-bg-color' ), $page );
 	$button = extrachill_artist_platform_preview_composite( $get( 'button-bg-color' ), $card );
-	$pairs = array(
-		'button_text_on_button' => array( $get( 'link-text-color' ), $button ),
+	$icon   = $get( 'icon-color' );
+	$icon   = $icon ? $icon : $get( 'text-color' );
+	$pairs  = array(
+		'button_text_on_button'   => array( $get( 'link-text-color' ), $button ),
 		'page_text_on_background' => array( $get( 'text-color' ), $page ),
-		'page_text_on_card' => array( $get( 'text-color' ), $card ),
-		'icons_on_background' => array( $get( 'link-text-color' ), $page ),
-		'icons_on_card' => array( $get( 'link-text-color' ), $card ),
+		'page_text_on_card'       => array( $get( 'text-color' ), $card ),
+		'icons_on_background'     => array( $icon, $page ),
+		'icons_on_card'           => array( $icon, $card ),
 	);
 	$report = array();
 	foreach ( $pairs as $name => $pair ) {
@@ -127,6 +258,9 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 			'below_threshold' => null === $ratio ? null : $ratio < 4.5,
 			'status' => null === $ratio ? 'unknown' : ( $ratio < 4.5 ? 'fail' : 'pass' ),
 		);
+		if ( null === $ratio && 'image' === $type ) {
+			$report[ $name ]['reason'] = $page ? 'Unsupported foreground or surface color.' : 'Background image average could not be read or its overlay is unsupported.';
+		}
 	}
 	return $report;
 }
