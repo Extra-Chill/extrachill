@@ -30,13 +30,16 @@ add_action( 'woocommerce_order_status_processing', 'extrachill_shop_notify_selle
  */
 function extrachill_shop_notify_sellers_of_order( $order_id ) {
 	$order = wc_get_order( $order_id );
-	if ( ! $order ) {
+	if ( ! $order || true === $order ) {
 		return;
 	}
+	/** @var WC_Order $order Order notifications only run for real orders. */
 
 	$groups = array();
 	foreach ( $order->get_items() as $item ) {
+		/** @var WC_Order_Item_Product $item Line items on a shop order. */
 		$product_id = $item->get_product_id();
+		$line_total = (float) $item->get_total();
 		$seller     = extrachill_shop_get_product_payout_seller( $product_id );
 		if ( ! $seller ) {
 			continue;
@@ -52,9 +55,9 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
 		$groups[ $key ]['items'][] = array(
 			'product_id' => $product_id,
 			'quantity'   => $item->get_quantity(),
-			'line_total' => (float) $item->get_total(),
+			'line_total' => $line_total,
 		);
-		$groups[ $key ]['total']  += (float) $item->get_total();
+		$groups[ $key ]['total']  += $line_total;
 	}
 
 	foreach ( $groups as $group ) {
