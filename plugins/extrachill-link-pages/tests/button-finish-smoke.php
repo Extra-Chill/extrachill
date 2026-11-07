@@ -45,12 +45,18 @@ check_finish( false !== strpos( $css, '.extrch-link-button-wrapper:active' ), 'T
 function extrachill_artist_platform_ability_artist_permission( $input ) { return true; }
 function ec_artist_link_page_owner_reference( $id ) { return array( 'artist_id' => $id ); }
 function ec_get_link_page_id_for_owner( $owner ) { return 42; }
-function get_post_meta( $id, $key, $single ) { return array( '--link-page-button-radius' => '8px' ); }
 function extrachill_artist_platform_sanitize_css_vars( $vars ) { return ec_sanitize_link_page_css_vars( $vars ); }
-function ec_save_link_page( $target, $data ) { return $data; }
+$GLOBALS['finish_save_calls'] = array();
+function ec_save_link_page( $target, $data ) {
+	$GLOBALS['finish_save_calls'][] = array( 'target' => $target, 'data' => $data );
+	return $data;
+}
 require dirname( __DIR__, 2 ) . '/extrachill-artist-platform/inc/abilities/handlers/save-link-page-styles.php';
 $result = extrachill_artist_platform_ability_save_link_page_styles( array( 'artist_id' => 7, 'css_vars' => array( $key => 'gloss' ) ) );
 check_finish( 'gloss' === $result['css_vars'][ $key ], 'Ability must save the finish.' );
-check_finish( '8px' === $result['css_vars']['--link-page-button-radius'], 'Ability must preserve existing styles.' );
+/* Storage owns the locked merge with persisted styles; the handler submits only the patch. */
+check_finish( array( 'css_vars' => array( $key => 'gloss' ) ) === $result, 'Ability must delegate the style patch to storage.' );
+check_finish( array( 'link_page_id' => 42, 'owner_reference' => array( 'artist_id' => 7 ) ) === $GLOBALS['finish_save_calls'][0]['target'], 'Ability must target the resolved owner and link page.' );
 check_finish( is_wp_error( extrachill_artist_platform_ability_save_link_page_styles( array( 'artist_id' => 7, 'css_vars' => array( $key => 'shiny' ) ) ) ), 'Ability must reject invalid finishes.' );
+check_finish( 1 === count( $GLOBALS['finish_save_calls'] ), 'Invalid finishes must not reach storage.' );
 echo "Button finish smoke test passed.\n";
