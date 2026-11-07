@@ -94,13 +94,13 @@ function extrachill_artist_platform_preview_luminance( $color ) {
  * @return array|null RGBA average color, or null when unreadable.
  */
 function extrachill_artist_platform_preview_image_average( $styles, $settings ) {
-	$site = function_exists( 'ec_get_link_page_storage_blog_id' ) ? ec_get_link_page_storage_blog_id() : 0;
+	$site     = function_exists( 'ec_get_link_page_storage_blog_id' ) ? ec_get_link_page_storage_blog_id() : 0;
 	$switched = $site && get_current_blog_id() !== $site;
 	if ( $switched ) {
 		switch_to_blog( $site );
 	}
 	try {
-		$id = (int) ( $settings['background_image_id'] ?? 0 );
+		$id  = (int) ( $settings['background_image_id'] ?? 0 );
 		$url = trim( $styles['--link-page-background-image-url'] ?? '' );
 		if ( preg_match( '/^url\([\'\"]?(.*?)[\'\"]?\)$/', $url, $match ) ) {
 			$url = $match[1];
@@ -108,15 +108,15 @@ function extrachill_artist_platform_preview_image_average( $styles, $settings ) 
 		if ( ! $id && ! $url ) {
 			return null;
 		}
-		$file = $id ? get_attached_file( $id ) : false;
-		$key = 'ec_preview_average_' . md5( $id . '|' . $url . '|' . ( $file && is_file( $file ) ? filemtime( $file ) : '' ) );
+		$file   = $id ? get_attached_file( $id ) : false;
+		$key    = 'ec_preview_average_' . md5( $id . '|' . $url . '|' . ( $file && is_file( $file ) ? filemtime( $file ) : '' ) );
 		$cached = get_transient( $key );
 		if ( false !== $cached ) {
 			return $cached['color'];
 		}
 		$bytes = false;
 		if ( $file && is_readable( $file ) ) {
-			$bytes = file_get_contents( $file );
+			$bytes = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local attachment file, not a URL.
 		} elseif ( $url ) {
 			$response = wp_safe_remote_get(
 				$url,
@@ -131,11 +131,11 @@ function extrachill_artist_platform_preview_image_average( $styles, $settings ) 
 		}
 		$color = null;
 		if ( $bytes && function_exists( 'imagecreatefromstring' ) ) {
-			$image = @imagecreatefromstring( $bytes );
+			$image = getimagesizefromstring( $bytes ) ? imagecreatefromstring( $bytes ) : false;
 			if ( $image ) {
 				$sample = imagecreatetruecolor( 1, 1 );
 				imagecopyresampled( $sample, $image, 0, 0, 0, 0, 1, 1, imagesx( $image ), imagesy( $image ) );
-				$rgb = imagecolorat( $sample, 0, 0 );
+				$rgb   = imagecolorat( $sample, 0, 0 );
 				$color = array( ( $rgb >> 16 ) & 255, ( $rgb >> 8 ) & 255, $rgb & 255, 1.0 );
 				imagedestroy( $sample );
 				imagedestroy( $image );
@@ -146,7 +146,7 @@ function extrachill_artist_platform_preview_image_average( $styles, $settings ) 
 				$image->readImageBlob( $bytes );
 				$image->setIteratorIndex( 0 );
 				$image->scaleImage( 1, 1 );
-				$rgb = $image->getImagePixelColor( 0, 0 )->getColor();
+				$rgb   = $image->getImagePixelColor( 0, 0 )->getColor();
 				$color = array( $rgb['r'], $rgb['g'], $rgb['b'], 1.0 );
 			} catch ( Exception $exception ) {
 				$color = null;
@@ -182,8 +182,8 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 			if ( 'middle' === $stop && '' === trim( $color ) ) {
 				continue;
 			}
-			$solid = $styles;
-			$solid['--link-page-background-type'] = 'color';
+			$solid                                 = $styles;
+			$solid['--link-page-background-type']  = 'color';
 			$solid['--link-page-background-color'] = $color;
 			foreach ( extrachill_artist_platform_preview_contrast( $solid, $settings ) as $name => $entry ) {
 				$reports[ $name ][] = array(
@@ -200,7 +200,7 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 					$worst = $stop['entry'];
 				}
 			}
-			$worst['stops'] = array_map(
+			$worst['stops']  = array_map(
 				static function ( $stop ) {
 					return array(
 						'color' => $stop['color'],
@@ -226,14 +226,14 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	}
 	$card = empty( $settings['overlay_enabled'] ) ? $page : extrachill_artist_platform_preview_composite( $get( 'card-bg-color' ), $page );
 	$button = extrachill_artist_platform_preview_composite( $get( 'button-bg-color' ), $card );
-	$icon  = $get( 'icon-color' );
-	$icon  = $icon ? $icon : $get( 'text-color' );
-	$pairs = array(
-		'button_text_on_button' => array( $get( 'link-text-color' ), $button ),
+	$icon   = $get( 'icon-color' );
+	$icon   = $icon ? $icon : $get( 'text-color' );
+	$pairs  = array(
+		'button_text_on_button'   => array( $get( 'link-text-color' ), $button ),
 		'page_text_on_background' => array( $get( 'text-color' ), $page ),
-		'page_text_on_card' => array( $get( 'text-color' ), $card ),
-		'icons_on_background' => array( $icon, $page ),
-		'icons_on_card' => array( $icon, $card ),
+		'page_text_on_card'       => array( $get( 'text-color' ), $card ),
+		'icons_on_background'     => array( $icon, $page ),
+		'icons_on_card'           => array( $icon, $card ),
 	);
 	$report = array();
 	foreach ( $pairs as $name => $pair ) {
