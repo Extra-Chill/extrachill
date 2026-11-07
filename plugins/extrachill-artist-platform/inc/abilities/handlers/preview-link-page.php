@@ -86,7 +86,13 @@ function extrachill_artist_platform_preview_luminance( $color ) {
 	return 0.2126 * $linear[0] + 0.7152 * $linear[1] + 0.0722 * $linear[2];
 }
 
-/** Sample an image on the link storage site, caching successes and failures. */
+/**
+ * Sample an image on the link storage site, caching successes and failures.
+ *
+ * @param array $styles   Resolved link page CSS variables.
+ * @param array $settings Link page settings.
+ * @return array|null RGBA average color, or null when unreadable.
+ */
 function extrachill_artist_platform_preview_image_average( $styles, $settings ) {
 	$site = function_exists( 'ec_get_link_page_storage_blog_id' ) ? ec_get_link_page_storage_blog_id() : 0;
 	$switched = $site && get_current_blog_id() !== $site;
@@ -112,7 +118,13 @@ function extrachill_artist_platform_preview_image_average( $styles, $settings ) 
 		if ( $file && is_readable( $file ) ) {
 			$bytes = file_get_contents( $file );
 		} elseif ( $url ) {
-			$response = wp_safe_remote_get( $url, array( 'timeout' => 5, 'limit_response_size' => 10 * 1024 * 1024 ) );
+			$response = wp_safe_remote_get(
+				$url,
+				array(
+					'timeout'             => 5,
+					'limit_response_size' => 10 * 1024 * 1024,
+				)
+			);
 			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
 				$bytes = wp_remote_retrieve_body( $response );
 			}
@@ -151,7 +163,13 @@ function extrachill_artist_platform_preview_image_average( $styles, $settings ) 
 	}
 }
 
-/** Estimate each surface; gradient reports retain the worst stop. */
+/**
+ * Estimate each surface; gradient reports retain the worst stop.
+ *
+ * @param array $styles   Resolved link page CSS variables.
+ * @param array $settings Link page settings.
+ * @return array Contrast report keyed by pair name.
+ */
 function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	$get = static function ( $key ) use ( $styles ) {
 		return extrachill_artist_platform_preview_color( $styles[ '--link-page-' . $key ] ?? '' );
@@ -168,7 +186,10 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 			$solid['--link-page-background-type'] = 'color';
 			$solid['--link-page-background-color'] = $color;
 			foreach ( extrachill_artist_platform_preview_contrast( $solid, $settings ) as $name => $entry ) {
-				$reports[ $name ][] = array( 'color' => $color, 'entry' => $entry );
+				$reports[ $name ][] = array(
+					'color' => $color,
+					'entry' => $entry,
+				);
 			}
 		}
 		$result = array();
@@ -179,9 +200,15 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 					$worst = $stop['entry'];
 				}
 			}
-			$worst['stops'] = array_map( static function ( $stop ) {
-				return array( 'color' => $stop['color'], 'ratio' => $stop['entry']['ratio'] );
-			}, $stops );
+			$worst['stops'] = array_map(
+				static function ( $stop ) {
+					return array(
+						'color' => $stop['color'],
+						'ratio' => $stop['entry']['ratio'],
+					);
+				},
+				$stops
+			);
 			$result[ $name ] = $worst;
 		}
 		return $result;
@@ -190,7 +217,8 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	if ( 'image' === $type ) {
 		$page = extrachill_artist_platform_preview_image_average( $styles, $settings );
 		if ( $page && ! empty( $settings['overlay_enabled'] ) ) {
-			$page = extrachill_artist_platform_preview_composite( $get( 'overlay-color' ) ?: $get( 'card-bg-color' ), $page );
+			$overlay = $get( 'overlay-color' );
+			$page    = extrachill_artist_platform_preview_composite( $overlay ? $overlay : $get( 'card-bg-color' ), $page );
 		}
 	}
 	if ( $page && $page[3] < 1 ) {
@@ -198,12 +226,14 @@ function extrachill_artist_platform_preview_contrast( $styles, $settings ) {
 	}
 	$card = empty( $settings['overlay_enabled'] ) ? $page : extrachill_artist_platform_preview_composite( $get( 'card-bg-color' ), $page );
 	$button = extrachill_artist_platform_preview_composite( $get( 'button-bg-color' ), $card );
+	$icon  = $get( 'icon-color' );
+	$icon  = $icon ? $icon : $get( 'text-color' );
 	$pairs = array(
 		'button_text_on_button' => array( $get( 'link-text-color' ), $button ),
 		'page_text_on_background' => array( $get( 'text-color' ), $page ),
 		'page_text_on_card' => array( $get( 'text-color' ), $card ),
-		'icons_on_background' => array( $get( 'icon-color' ) ?: $get( 'text-color' ), $page ),
-		'icons_on_card' => array( $get( 'icon-color' ) ?: $get( 'text-color' ), $card ),
+		'icons_on_background' => array( $icon, $page ),
+		'icons_on_card' => array( $icon, $card ),
 	);
 	$report = array();
 	foreach ( $pairs as $name => $pair ) {
