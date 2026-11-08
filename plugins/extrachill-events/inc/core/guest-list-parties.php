@@ -396,6 +396,18 @@ function extrachill_events_guest_list_pass_party_name( array $pass ): string {
 }
 
 /**
+ * Source label for a pass imported from another ticketing service.
+ *
+ * @param array $pass Pass row.
+ * @return string 'Eventbrite' for Eventbrite imports, otherwise ''.
+ */
+function extrachill_events_door_list_import_source( array $pass ): string {
+	return function_exists( 'extrachill_events_pass_is_eventbrite_import' ) && extrachill_events_pass_is_eventbrite_import( $pass )
+		? __( 'Eventbrite', 'extrachill-events' )
+		: '';
+}
+
+/**
  * The account-less guest rows for the door list, with their source.
  *
  * @param int $event_id Event post ID.
@@ -428,7 +440,7 @@ function extrachill_events_door_list_guest_rows( int $event_id ): array {
 		$added_by_id = (int) ( $pass['issued_by_user_id'] ?? 0 );
 		$added_by    = $added_by_id ? get_userdata( $added_by_id ) : false;
 		$guest_name  = (string) ( $pass['guest_name'] ?? '' );
-		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? '';
+		$source      = $party_names[ (int) ( $pass['party_id'] ?? 0 ) ] ?? extrachill_events_door_list_import_source( $pass );
 		$rows[]      = array(
 			'pass_id'     => (int) ( $pass['id'] ?? 0 ),
 			'label'       => ( ! empty( $pass['order_reference'] ) ? __( 'Ticket · ', 'extrachill-events' ) : '' ) . extrachill_events_guest_list_pass_label( $guest_name, $source ),

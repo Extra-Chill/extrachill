@@ -293,6 +293,50 @@ function extrachill_events_add_guest_list_name_from_panel(): void {
 add_action( 'admin_post_ec_guest_list_add', 'extrachill_events_add_guest_list_name_from_panel' );
 
 /**
+ * Host panel "Bring your Eventbrite list" upload, through
+ * extrachill/import-eventbrite-attendees.
+ */
+function extrachill_events_import_eventbrite_attendees_from_panel(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_eventbrite_import_' . $event_id );
+
+	$file = $_FILES['eventbrite_csv'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload metadata; contents are parsed as CSV, never stored as a file.
+	if ( ! is_array( $file ) || UPLOAD_ERR_OK !== (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) || ! is_uploaded_file( (string) $file['tmp_name'] ) ) {
+		wp_die(
+			esc_html__( 'Choose the Eventbrite attendee CSV to upload.', 'extrachill-events' ),
+			'',
+			array(
+				'response'  => 400,
+				'back_link' => true,
+			)
+		);
+	}
+	if ( (int) $file['size'] > 2097152 ) {
+		wp_die(
+			esc_html__( 'That file is too large. Export only this show\'s attendees.', 'extrachill-events' ),
+			'',
+			array(
+				'response'  => 413,
+				'back_link' => true,
+			)
+		);
+	}
+
+	$result = extrachill_events_run_guest_list_form_ability(
+		'extrachill/import-eventbrite-attendees',
+		array(
+			'event_id' => $event_id,
+			'csv'      => (string) file_get_contents( (string) $file['tmp_name'] ), // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading the PHP upload temp file.
+		)
+	);
+
+	$summary = implode( '.', array( (int) ( $result['added'] ?? 0 ), (int) ( $result['already_listed'] ?? 0 ), (int) ( $result['skipped'] ?? 0 ) ) );
+	wp_safe_redirect( add_query_arg( 'ec_eventbrite_imported', $summary, get_permalink( $event_id ) ) . '#ec-eventbrite-import' );
+	exit;
+}
+add_action( 'admin_post_ec_eventbrite_import', 'extrachill_events_import_eventbrite_attendees_from_panel' );
+
+/**
  * Door list "Remove" button, through extrachill/remove-guest-list-name.
  */
 function extrachill_events_remove_guest_list_name_from_door_list(): void {

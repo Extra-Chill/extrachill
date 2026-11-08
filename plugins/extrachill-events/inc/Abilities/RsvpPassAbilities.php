@@ -280,6 +280,46 @@ class RsvpPassAbilities {
 			)
 		);
 		wp_register_ability(
+			'extrachill/import-eventbrite-attendees',
+			array(
+				'label'               => __( 'Import Eventbrite Attendees', 'extrachill-events' ),
+				'description'         => __( 'Host-only: put the attendees from an Eventbrite attendee report (CSV) on the event door list by name, labeled Eventbrite. Nobody is emailed and no email addresses are stored. Re-importing a newer report only adds new tickets.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'csv'      => array(
+							'type'        => 'string',
+							'description' => __( 'Contents of the Eventbrite attendee report CSV.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'csv' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'added'          => array( 'type' => 'integer' ),
+						'already_listed' => array( 'type' => 'integer' ),
+						'skipped'        => array( 'type' => 'integer' ),
+					),
+				),
+				'execute_callback'    => array( $this, 'import_eventbrite_attendees' ),
+				'permission_callback' => array( $this, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => true,
+						'destructive' => false,
+					),
+				),
+			)
+		);
+		wp_register_ability(
 			'extrachill/add-guest-list-name',
 			array(
 				'label'               => __( 'Add Guest List Name', 'extrachill-events' ),
@@ -367,6 +407,21 @@ class RsvpPassAbilities {
 					),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Host imports an Eventbrite attendee report onto the door list.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function import_eventbrite_attendees( array $input ) {
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/eventbrite-attendee-import.php';
+		return extrachill_events_import_eventbrite_attendees(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['csv'] ?? '' ),
+			get_current_user_id()
 		);
 	}
 
