@@ -85,9 +85,7 @@ function ec_events_user_has_active_venue_membership( int $user_id ): bool {
 		if ( ! BookingSchema::is_ready() ) {
 			return false;
 		}
-		global $wpdb;
-		$table = VenueSchema::memberships_table();
-		return (bool) $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} WHERE user_id = %d AND status = 'active' LIMIT 1", $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact current-user membership lookup on the Events site.
+		return true === ( new VenueMembershipRepository() )->has_active_membership_for_user( $user_id );
 	} finally {
 		if ( $switched ) {
 			restore_current_blog();

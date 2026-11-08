@@ -282,10 +282,10 @@ class VenueOnboardingRepository {
 			}
 		}
 
-		$now           = gmdate( 'Y-m-d H:i:s' );
-		$public_id     = wp_generate_uuid4();
-		$delivery_id   = wp_generate_uuid4();
-		$member_row    = array(
+		$now         = gmdate( 'Y-m-d H:i:s' );
+		$public_id   = wp_generate_uuid4();
+		$delivery_id = wp_generate_uuid4();
+		$member_row  = array(
 			'venue_term_id'      => $venue_term_id,
 			'user_id'            => $user_id,
 			'is_owner'           => $is_owner ? 1 : 0,
@@ -295,13 +295,20 @@ class VenueOnboardingRepository {
 			'created_at'         => $now,
 			'updated_at'         => $now,
 		);
-		$members_table = VenueSchema::memberships_table();
+		$memberships = new VenueMembershipRepository();
 		if ( is_array( $current_member ) ) {
-			$member_result = $wpdb->query( $wpdb->prepare( "UPDATE {$members_table} SET is_owner = %d, status = %s, version = version + 1, created_by_user_id = %d, updated_at = %s, revoked_at = NULL WHERE venue_term_id = %d AND user_id = %d AND version = %d", $is_owner ? 1 : 0, VenueAuthorization::STATUS_INVITED, $actor_user_id, $now, $venue_term_id, $user_id, (int) $current_member['version'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reactivates only the exact terminal membership under venue lock.
+			$member_result = $memberships->update_onboarding_member( $venue_term_id, $user_id, (int) $current_member['version'], array(
+				'is_owner'           => $is_owner ? 1 : 0,
+				'status'             => VenueAuthorization::STATUS_INVITED,
+				'version'            => (int) $current_member['version'] + 1,
+				'created_by_user_id' => $actor_user_id,
+				'updated_at'         => $now,
+				'revoked_at'         => null,
+			) );
 			if ( 1 !== $member_result ) {
 				return $this->rollback_error( 'venue_invitation_membership_failed', __( 'The terminal venue membership could not be reactivated.', 'extrachill-events' ) );
 			}
-		} elseif ( false === $wpdb->insert( $members_table, $member_row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical invited membership under venue lock.
+		} elseif ( false === $memberships->insert_onboarding_member( $member_row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Canonical invited membership under venue lock.
 			return $this->rollback_error( 'venue_invitation_membership_failed', __( 'The invited membership could not be created.', 'extrachill-events' ) );
 		}
 		$invite_row = array(
@@ -429,9 +436,8 @@ class VenueOnboardingRepository {
 			$this->rollback();
 			return false;
 		}
-		$members_table = VenueSchema::memberships_table();
-		$members       = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$members_table} WHERE user_id = %d ORDER BY venue_term_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- User-first index locks every membership range and insertion gap.
-		if ( '' !== (string) $wpdb->last_error ) {
+		$members = ( new VenueMembershipRepository() )->lock_for_user( $user_id );
+		if ( is_wp_error( $members ) ) {
 			$this->rollback();
 			return false;
 		}
@@ -885,8 +891,7 @@ class VenueOnboardingRepository {
 		$now = gmdate( 'Y-m-d H:i:s' );
 		if ( null === $current ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit owner bootstrap under venue lock.
-			$result = $wpdb->insert(
-				VenueSchema::memberships_table(),
+			$result = ( new VenueMembershipRepository() )->insert_onboarding_member(
 				array(
 					'venue_term_id'      => $claim['venue_term_id'],
 					'user_id'            => $claim['claimant_user_id'],
@@ -903,15 +908,19 @@ class VenueOnboardingRepository {
 		if ( VenueAuthorization::STATUS_REVOKED === $current['status'] ) {
 			return new \WP_Error( 'venue_claim_membership_revoked', __( 'A revoked membership requires explicit operator repair.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$table  = VenueSchema::memberships_table();
-		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET is_owner = 1, status = %s, version = version + 1, updated_at = %s, revoked_at = NULL WHERE venue_term_id = %d AND user_id = %d AND version = %d", VenueAuthorization::STATUS_ACTIVE, $now, $claim['venue_term_id'], $claim['claimant_user_id'], (int) $current['version'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Operator-approved promotion under lock.
+		$result = ( new VenueMembershipRepository() )->update_onboarding_member( $claim['venue_term_id'], $claim['claimant_user_id'], (int) $current['version'], array(
+			'is_owner'   => 1,
+			'status'     => VenueAuthorization::STATUS_ACTIVE,
+			'version'    => (int) $current['version'] + 1,
+			'updated_at' => $now,
+			'revoked_at' => null,
+		) );
 		return 1 === $result ? true : new \WP_Error( 'venue_claim_owner_update_failed', __( 'The approved venue owner could not be updated.', 'extrachill-events' ) );
 	}
 
 	/** Transition only the matching canonical invited membership. */
 	private function set_invited_membership_status( array $invite, string $status ) { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private transition arguments are self-describing.
 		global $wpdb;
-		$table   = VenueSchema::memberships_table();
 		$row     = null;
 		$members = $this->lock_memberships( $invite['venue_term_id'] );
 		if ( is_wp_error( $members ) ) {
@@ -934,18 +943,15 @@ class VenueOnboardingRepository {
 		}
 		$revoked_at = VenueAuthorization::STATUS_REVOKED === $status ? gmdate( 'Y-m-d H:i:s' ) : null;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked canonical membership transition.
-		$result = $wpdb->update(
-			$table,
+		$result = ( new VenueMembershipRepository() )->update_onboarding_member(
+			$invite['venue_term_id'],
+			$invite['user_id'],
+			(int) $row['version'],
 			array(
 				'status'     => $status,
 				'version'    => (int) $row['version'] + 1,
 				'updated_at' => gmdate( 'Y-m-d H:i:s' ),
 				'revoked_at' => $revoked_at,
-			),
-			array(
-				'venue_term_id' => $invite['venue_term_id'],
-				'user_id'       => $invite['user_id'],
-				'version'       => (int) $row['version'],
 			)
 		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked canonical membership transition.
 		return 1 === $result ? true : new \WP_Error( 'venue_invitation_membership_update_failed', __( 'The invited membership could not be updated.', 'extrachill-events' ) );
@@ -968,9 +974,8 @@ class VenueOnboardingRepository {
 	/** Read lock-current membership authority for a venue. */
 	private function lock_memberships( int $venue_term_id ) { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private lock helper.
 		global $wpdb;
-		$table = VenueSchema::memberships_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Lock-current authority rows.
-		if ( '' !== (string) $wpdb->last_error ) {
+		$rows = ( new VenueMembershipRepository() )->lock_for_venue( $venue_term_id );
+		if ( is_wp_error( $rows ) ) {
 			return new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ) );
 		}
 		return (array) $rows;

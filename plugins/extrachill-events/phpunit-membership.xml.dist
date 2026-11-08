@@ -10,6 +10,7 @@
 		<testsuite name="venue-membership-authorization">
 			<file>tests/VenueMembershipAuthorizationTest.php</file>
 			<file>tests/PromoterAuthorityTest.php</file>
+			<file>tests/VenueMembershipLockTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

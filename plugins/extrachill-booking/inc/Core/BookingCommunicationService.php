@@ -1339,12 +1339,11 @@ class BookingCommunicationService {
 
 	/** Lock the exact venue membership set before recipient and booking reads. */
 	private function lock_venue_memberships( int $venue_id ) {
-		global $wpdb;
-		$table  = VenueSchema::memberships_table();
-		$locked = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d AND status = %s ORDER BY id ASC LIMIT 101 FOR UPDATE", $venue_id, VenueAuthorization::STATUS_ACTIVE ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes a bounded active recipient set with membership changes.
-		if ( '' !== (string) $wpdb->last_error || ! is_array( $locked ) ) {
+		$locked = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
+		if ( is_wp_error( $locked ) ) {
 			return new \WP_Error( 'booking_communication_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ) );
 		}
+		$locked = array_values( array_filter( $locked, static fn( $member ) => VenueAuthorization::STATUS_ACTIVE === $member['status'] ) );
 		if ( count( $locked ) > 100 ) {
 			return new \WP_Error( 'booking_correspondence_venue_recipients_invalid', __( 'The venue has too many membership records to resolve booking recipients safely.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}

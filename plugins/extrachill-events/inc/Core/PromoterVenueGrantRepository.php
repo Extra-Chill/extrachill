@@ -328,13 +328,17 @@ class PromoterVenueGrantRepository {
 	private function lock_context( int $promoter_term_id, int $venue_term_id, string $action ) {
 		global $wpdb;
 		$organizations    = PromoterAuthoritySchema::organizations_table();
-		$promoter_members = PromoterAuthoritySchema::memberships_table();
-		$venue_members    = VenueSchema::memberships_table();
 		$grants           = PromoterAuthoritySchema::venue_grants_table();
 		$organization_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$organizations} WHERE promoter_term_id = %d FOR UPDATE", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- First deterministic authority lock.
-		$promoter_rows    = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$promoter_members} WHERE promoter_term_id = %d ORDER BY id ASC LIMIT %d FOR UPDATE", $promoter_term_id, self::MAX_LOCK_MEMBERS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Second deterministic authority lock with one-row overflow probe.
-		$venue_rows       = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$venue_members} WHERE venue_term_id = %d ORDER BY id ASC LIMIT %d FOR UPDATE", $venue_term_id, self::MAX_LOCK_MEMBERS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Third deterministic authority lock with one-row overflow probe.
-		$grant_row        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$grants} WHERE promoter_term_id = %d AND venue_term_id = %d AND action = %s FOR UPDATE", $promoter_term_id, $venue_term_id, $action ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Final exact natural-key lock.
+		$promoter_rows    = ( new PromoterAuthorityRepository() )->lock_memberships_for_grant( $promoter_term_id, self::MAX_LOCK_MEMBERS + 1 );
+		if ( is_wp_error( $promoter_rows ) ) {
+			return $promoter_rows;
+		}
+		$venue_rows = ( new VenueMembershipRepository() )->lock_for_grant( $venue_term_id, self::MAX_LOCK_MEMBERS + 1 );
+		if ( is_wp_error( $venue_rows ) ) {
+			return $this->database_error( 'promoter_venue_grant_read_failed', __( 'Promoter venue authority could not be locked.', 'extrachill-events' ) );
+		}
+		$grant_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$grants} WHERE promoter_term_id = %d AND venue_term_id = %d AND action = %s FOR UPDATE", $promoter_term_id, $venue_term_id, $action ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Final exact natural-key lock.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_venue_grant_read_failed', __( 'Promoter venue authority could not be locked.', 'extrachill-events' ) );
 		}

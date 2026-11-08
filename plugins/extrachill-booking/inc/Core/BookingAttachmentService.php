@@ -1188,11 +1188,10 @@ class BookingAttachmentService {
 		}
 		$venue_ids = array_keys( $venues );
 		sort( $venue_ids, SORT_NUMERIC );
-		$memberships = VenueSchema::memberships_table();
 		foreach ( $venue_ids as $venue_id ) {
-			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$memberships} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Global order locks authority ranges first.
-			if ( '' !== (string) $wpdb->last_error ) {
-				return new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			$rows = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
+			if ( is_wp_error( $rows ) ) {
+				return new \WP_Error( 'booking_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), $rows->get_error_data() );
 			}
 			$locked_memberships[ $venue_id ] = (array) $rows;
 		}
