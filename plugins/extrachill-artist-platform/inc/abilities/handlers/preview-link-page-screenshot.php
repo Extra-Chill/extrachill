@@ -9,6 +9,7 @@
  * - EXTRACHILL_PREVIEW_CHROME_PATH / filter extrachill_artist_platform_preview_chrome_path
  * - EXTRACHILL_PREVIEW_PLAYWRIGHT_PATH / filter extrachill_artist_platform_preview_playwright_path
  * - EXTRACHILL_PREVIEW_NODE_PATH / filter extrachill_artist_platform_preview_node_path (default: node on PATH)
+ * - EXTRACHILL_PREVIEW_RESOLVE_IP / filter extrachill_artist_platform_preview_resolve_ip (optional origin IP)
  *
  * @package ExtraChillArtistPlatform
  */
@@ -59,6 +60,9 @@ function extrachill_artist_platform_preview_screenshot( $link_page_id, $public_u
 	$chrome     = extrachill_artist_platform_preview_config_path( 'EXTRACHILL_PREVIEW_CHROME_PATH', 'extrachill_artist_platform_preview_chrome_path' );
 	$playwright = extrachill_artist_platform_preview_config_path( 'EXTRACHILL_PREVIEW_PLAYWRIGHT_PATH', 'extrachill_artist_platform_preview_playwright_path' );
 	$node       = extrachill_artist_platform_preview_config_path( 'EXTRACHILL_PREVIEW_NODE_PATH', 'extrachill_artist_platform_preview_node_path', 'node' );
+	/* Optional origin pin: serve the page's own host from this IP, skipping the CDN. TLS still verifies. */
+	$resolve_ip = extrachill_artist_platform_preview_config_path( 'EXTRACHILL_PREVIEW_RESOLVE_IP', 'extrachill_artist_platform_preview_resolve_ip' );
+	$resolve_ip = false !== filter_var( $resolve_ip, FILTER_VALIDATE_IP ) ? $resolve_ip : '';
 
 	/* Tests and alternate hosts can swap the capture runner. */
 	$runner = apply_filters( 'extrachill_artist_platform_preview_screenshot_runner', 'extrachill_artist_platform_preview_run_playwright' );
@@ -100,6 +104,7 @@ function extrachill_artist_platform_preview_screenshot( $link_page_id, $public_u
 			'chrome'     => $chrome,
 			'playwright' => $playwright,
 			'node'       => $node,
+			'resolve_ip' => $resolve_ip,
 			'timeout'    => EXTRACHILL_ARTIST_PLATFORM_PREVIEW_TIMEOUT,
 		)
 	);
@@ -141,17 +146,24 @@ function extrachill_artist_platform_preview_screenshot( $link_page_id, $public_u
  */
 function extrachill_artist_platform_preview_run_playwright( $job ) {
 	$script = <<<'JS'
-const [ playwrightPath, chrome, url, output, width, height, timeout ] = process.argv.slice( 1 );
+const [ playwrightPath, chrome, url, output, width, height, timeout, resolveIp ] = process.argv.slice( 1 );
 const { chromium } = require( playwrightPath );
+const args = [ '--no-sandbox', '--disable-dev-shm-usage' ];
+if ( resolveIp ) {
+	args.push( '--host-resolver-rules=MAP ' + new URL( url ).hostname + ' ' + resolveIp );
+}
 ( async () => {
-	const browser = await chromium.launch( { executablePath: chrome, args: [ '--no-sandbox', '--disable-dev-shm-usage' ] } );
-	try {
-		const page = await browser.newPage( { viewport: { width: Number( width ), height: Number( height ) }, deviceScaleFactor: 1 } );
-		await page.goto( url, { waitUntil: 'networkidle', timeout: Number( timeout ) } );
-		await page.screenshot( { path: output, fullPage: true } );
-	} finally {
-		await browser.close();
-	}
+	const browser = await chromium.launch( { executablePath: chrome, args } );
+	const page = await browser.newPage( { viewport: { width: Number( width ), height: Number( height ) }, deviceScaleFactor: 1 } );
+	/* Capture the anonymous visitor view: skip the edit-button token handoff redirect (link-page-edit-button.js). */
+	await page.addInitScript( () => { try { window.sessionStorage.setItem( 'ecLinkEditHandoffAttempted', '1' ); } catch ( e ) {} } );
+	/* Previews are not visits: drop analytics and view tracking so captures never inflate stats. */
+	await page.route( /google-analytics\.com|googletagmanager\.com|doubleclick\.net|\/extrachill\/v1\/analytics\/|\/extrachill\/track-page-view\//, ( route ) => route.abort() );
+	await page.goto( url, { waitUntil: 'load', timeout: Number( timeout ) } );
+	await page.evaluate( () => document.fonts.ready );
+	await page.screenshot( { path: output, fullPage: true } );
+	/* Playwright kills the browser on exit; waiting for a graceful close only adds latency. */
+	process.exit( 0 );
 } )().catch( ( error ) => { console.error( String( error && error.message || error ) ); process.exit( 1 ); } );
 JS;
 
@@ -167,11 +179,13 @@ JS;
 		(string) $job['width'],
 		(string) $job['height'],
 		(string) ( max( 1, $timeout - 5 ) * 1000 ),
+		(string) ( $job['resolve_ip'] ?? '' ),
 	);
 	$home    = sys_get_temp_dir();
 	$env     = array(
-		'HOME' => $home,
-		'PATH' => getenv( 'PATH' ) ? getenv( 'PATH' ) : '/usr/local/bin:/usr/bin:/bin',
+		'HOME'               => $home,
+		'NODE_COMPILE_CACHE' => trailingslashit( $home ) . 'ec-preview-node-cache',
+		'PATH'               => getenv( 'PATH' ) ? getenv( 'PATH' ) : '/usr/local/bin:/usr/bin:/bin',
 	);
 	$pipes   = array();
 	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open -- Fixed argv (no shell) to a configured Chromium runner; disabled hosts report unavailable.

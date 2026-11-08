@@ -116,6 +116,25 @@ check( is_file( $GLOBALS['uploads_dir'] . '/link-page-previews/12187.png' ), 'Im
 check( true === $result['screenshot']['full_page'] && 1 === $result['screenshot']['width'], 'Image dimensions come from the capture.' );
 check( false !== strtotime( $result['screenshot']['captured_at'] ), 'captured_at is a timestamp.' );
 
+check( '' === $job['resolve_ip'], 'No origin pin by default.' );
+
+/* Origin pin: a valid IP reaches the runner; anything else is dropped. */
+$GLOBALS['filters']['extrachill_artist_platform_preview_resolve_ip'] = '127.0.0.1';
+extrachill_artist_platform_ability_preview_link_page( array( 'artist_id' => 12186 ) );
+check( '127.0.0.1' === end( $GLOBALS['runner_jobs'] )['resolve_ip'], 'Valid resolve IP is passed to the runner.' );
+check( 'https://extrachill.link/qrisg' === end( $GLOBALS['runner_jobs'] )['url'], 'Origin pin never changes the captured URL.' );
+$GLOBALS['filters']['extrachill_artist_platform_preview_resolve_ip'] = 'evil.example --remote-debugging-port=9222';
+extrachill_artist_platform_ability_preview_link_page( array( 'artist_id' => 12186 ) );
+check( '' === end( $GLOBALS['runner_jobs'] )['resolve_ip'], 'Invalid resolve IP is ignored.' );
+unset( $GLOBALS['filters']['extrachill_artist_platform_preview_resolve_ip'] );
+$GLOBALS['runner_jobs'] = array( $GLOBALS['runner_jobs'][0] );
+
+$script_source = (string) file_get_contents( dirname( __DIR__ ) . '/inc/abilities/handlers/preview-link-page-screenshot.php' );
+check( false !== strpos( $script_source, "waitUntil: 'load'" ) && false === strpos( $script_source, 'networkidle' ), 'Runner waits for load, not a networkidle window.' );
+check( false !== strpos( $script_source, 'ecLinkEditHandoffAttempted' ), 'Runner skips the edit-button token handoff redirect.' );
+check( false !== strpos( $script_source, 'route.abort()' ) && false !== strpos( $script_source, '\\/extrachill\\/v1\\/analytics\\/' ), 'Runner blocks analytics so previews never count as visits.' );
+check( false !== strpos( $script_source, 'track-page-view' ), 'Runner blocks the page-view tracking ability.' );
+
 /* Re-capture overwrites rather than accumulating files. */
 extrachill_artist_platform_ability_preview_link_page( array( 'artist_id' => 12186, 'viewport' => array( 'width' => 1280, 'height' => 800 ) ) );
 check( 1280 === $GLOBALS['runner_jobs'][1]['width'], 'Requested viewport reaches the runner.' );
