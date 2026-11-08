@@ -17,6 +17,7 @@ import {
  * Internal dependencies
  */
 import { runAbility } from './api';
+import { TicketsTab } from './tickets-tab';
 
 const noop = () => {};
 
@@ -344,6 +345,10 @@ export function PromoterWorkspacePanel( {
 					</p>
 				) }
 			</Panel>
+
+			{ promoter.is_owner && (
+				<TicketsTab seller={ { type: 'promoter', id: promoter.id } } />
+			) }
 
 			<section aria-labelledby="promoter-venues-heading">
 				<h2 id="promoter-venues-heading">Granted venues</h2>

@@ -28,6 +28,8 @@ jest.mock( './api', () => ( {
 	} ),
 } ) );
 
+jest.mock( './tickets-tab', () => ( { TicketsTab: () => null } ) );
+
 jest.mock( '@extrachill/components', () => {
 	const React = require( 'react' );
 	const Wrapper = ( { children, compact, depth, ...props } ) => {

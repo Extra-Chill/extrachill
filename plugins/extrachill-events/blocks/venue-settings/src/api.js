@@ -16,6 +16,7 @@ const METHODS = {
 	'extrachill/events-calendar': 'GET',
 	'extrachill/get-promoter-link-page': 'GET',
 	'extrachill/get-venue-link-page': 'GET',
+	'extrachill/list-seller-ticket-sales': 'GET',
 	'extrachill/review-venue-claim': 'DELETE',
 	'extrachill/cancel-venue-invitation': 'DELETE',
 	'extrachill/cancel-venue-claim': 'DELETE',

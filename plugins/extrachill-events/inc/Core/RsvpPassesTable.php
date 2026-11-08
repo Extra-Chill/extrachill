@@ -550,6 +550,31 @@ final class RsvpPassesTable {
 		);
 	}
 
+	/**
+	 * Paid ticket pass rows for a set of events, newest first.
+	 *
+	 * @param int[] $event_ids Event post IDs.
+	 * @return array[] Rows with event_id, order_reference, guest_name, status, issued_at.
+	 */
+	public static function ticket_rows_for_events( array $event_ids ): array {
+		global $wpdb;
+		$event_ids = array_values( array_filter( array_map( 'absint', $event_ids ) ) );
+		if ( empty( $event_ids ) ) {
+			return array();
+		}
+		$table        = self::table_name();
+		$placeholders = implode( ',', array_fill( 0, count( $event_ids ), '%d' ) );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Trusted internal table name; one %d per event ID.
+		return (array) $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT event_id, order_reference, guest_name, status, issued_at FROM {$table} WHERE event_id IN ({$placeholders}) AND order_reference IS NOT NULL ORDER BY issued_at DESC, id ASC",
+				...$event_ids
+			),
+			ARRAY_A
+		);
+		// phpcs:enable
+	}
+
 	/** Count live paid passes for an event (active or checked in). */
 	public static function paid_ticket_count( int $event_id ): int {
 		global $wpdb;

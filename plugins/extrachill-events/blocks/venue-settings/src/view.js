@@ -31,6 +31,7 @@ import { GraphicsTab } from './graphics-tab';
 import { ProfileTab } from './profile-tab';
 import { LoadingPanel, Status } from './status';
 import { TeamTab } from './team-tab';
+import { TicketsTab } from './tickets-tab';
 import { VenueWorkspaceHeader } from './venue-workspace-header';
 import { profileChanges, sameDocument } from './state';
 
@@ -306,6 +307,7 @@ export function VenueSettingsApp( { context } ) {
 						{ id: 'calendar-feed', label: 'Calendar Feed' },
 						{ id: 'graphics', label: 'Graphics' },
 						{ id: 'link-page', label: 'Link Page' },
+						{ id: 'tickets', label: 'Tickets' },
 					]
 				: [] ),
 			...( manageableVenues.length
@@ -351,6 +353,9 @@ export function VenueSettingsApp( { context } ) {
 		}
 		if ( tab === 'graphics' ) {
 			return <GraphicsTab venue={ venue } />;
+		}
+		if ( tab === 'tickets' ) {
+			return <TicketsTab seller={ { type: 'venue', id: venue.id } } />;
 		}
 		if ( tab === 'venue' ) {
 			if ( errors.profile ) {
