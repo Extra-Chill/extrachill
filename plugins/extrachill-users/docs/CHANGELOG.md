@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.0] - 2026-11-08
+
+### Added
+- seller storefronts at /<type>/<slug>/ instead of ?seller=
+
 ## [0.62.0] - 2026-11-08
 
 ### Added
