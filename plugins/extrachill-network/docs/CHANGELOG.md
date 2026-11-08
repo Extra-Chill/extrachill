@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.38.1] - 2026-11-08
+
+### Changed
+- register cross-site-http-errors and link-editor-hint smoke tests
+
 ## [2.38.0] - 2026-11-08
 
 ### Added
