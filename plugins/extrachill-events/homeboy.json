@@ -85,6 +85,11 @@
             "runtime": "host"
           },
           {
+            "name": "eventbrite-import-unit",
+            "config": "phpunit-eventbrite-import-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "rsvp-perks-unit",
             "config": "phpunit-rsvp-perks-unit.xml.dist",
             "runtime": "host"

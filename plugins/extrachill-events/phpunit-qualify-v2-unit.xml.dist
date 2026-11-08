@@ -47,6 +47,9 @@
 			<exclude>tests/Unit/Core/LocalSceneDigestGuestTest.php</exclude>
 			<exclude>tests/Unit/Core/NearMeCityRowsTest.php</exclude>
 			<exclude>tests/Unit/Core/PriorityPromoterTest.php</exclude>
+			<!-- Pure-PHP Eventbrite import test with file-level doubles; runs in
+			     phpunit-eventbrite-import-unit.xml.dist. -->
+			<exclude>tests/Unit/Core/EventbriteAttendeeImportTest.php</exclude>
 			<exclude>tests/Unit/Core/PromotedEventsResolverTest.php</exclude>
 			<exclude>tests/Unit/Core/QualifyFingerprinterScraperPermissionTest.php</exclude>
 			<exclude>tests/Unit/Core/RsvpPassEmailTest.php</exclude>

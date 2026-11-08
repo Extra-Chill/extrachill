@@ -575,6 +575,50 @@ final class RsvpPassesTable {
 		// phpcs:enable
 	}
 
+	/**
+	 * Add an account-less pass for an attendee who bought elsewhere (e.g.
+	 * Eventbrite), at most once per source key. Ignores capacity: the
+	 * attendee already holds a ticket.
+	 *
+	 * @param int    $event_id          Event post ID.
+	 * @param string $guest_name        Name shown at the door.
+	 * @param string $source_key        Stable source key, stored as the idempotency key.
+	 * @param int    $issued_by_user_id Host who ran the import.
+	 * @return string 'added', 'exists', or 'failed'.
+	 */
+	public static function import_external_pass( int $event_id, string $guest_name, string $source_key, int $issued_by_user_id ): string {
+		global $wpdb;
+		$table = self::table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+		$exists = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM {$table} WHERE event_id = %d AND idempotency_key = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted internal table name.
+				$event_id,
+				$source_key
+			)
+		);
+		if ( $exists ) {
+			return 'exists';
+		}
+
+		$now      = current_time( 'mysql', true );
+		$inserted = $wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table write; cache is purged by the caller.
+			$table,
+			array(
+				'event_id'          => $event_id,
+				'code'              => self::generate_code(),
+				'guest_name'        => $guest_name,
+				'status'            => self::STATUS_ACTIVE,
+				'issued_at'         => $now,
+				'updated_at'        => $now,
+				'issued_by_user_id' => $issued_by_user_id > 0 ? $issued_by_user_id : null,
+				'idempotency_key'   => $source_key,
+			)
+		);
+
+		return false === $inserted ? 'failed' : 'added';
+	}
+
 	/** Count live paid passes for an event (active or checked in). */
 	public static function paid_ticket_count( int $event_id ): int {
 		global $wpdb;

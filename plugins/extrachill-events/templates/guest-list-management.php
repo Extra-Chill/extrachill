@@ -169,6 +169,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</label>
 			<button type="submit" class="button-1 button-small"><?php esc_html_e( 'Add to guest list', 'extrachill-events' ); ?></button>
 		</form>
+		<div id="ec-eventbrite-import">
+			<?php
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only counts after the import redirect.
+			$eventbrite_summary = isset( $_GET['ec_eventbrite_imported'] ) ? sanitize_text_field( wp_unslash( $_GET['ec_eventbrite_imported'] ) ) : '';
+			if ( preg_match( '/^(\d+)\.(\d+)\.(\d+)$/', $eventbrite_summary, $eventbrite_counts ) ) :
+				?>
+				<div class="notice notice-success" role="status">
+					<p>
+					<?php
+					printf(
+						/* translators: 1: names added, 2: names already on the list, 3: rows skipped. */
+						esc_html__( 'Eventbrite import: %1$d added to the door list, %2$d already there, %3$d skipped (refunded, cancelled, or no name).', 'extrachill-events' ),
+						(int) $eventbrite_counts[1],
+						(int) $eventbrite_counts[2],
+						(int) $eventbrite_counts[3]
+					);
+					?>
+					</p>
+				</div>
+			<?php endif; ?>
+			<form class="ec-form-stack" method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<h4><?php esc_html_e( 'Bring your Eventbrite list', 'extrachill-events' ); ?></h4>
+				<p><?php esc_html_e( 'Selling this show on Eventbrite too? In Eventbrite, open the event, go to Reports, then Attendee summary, and export it as CSV. Upload it here and those buyers go on the door list by name, marked Eventbrite, so the door checks everyone in from one list.', 'extrachill-events' ); ?></p>
+				<p><?php esc_html_e( 'Nobody gets emailed and no email addresses are kept. Upload a newer export any time; only new tickets are added.', 'extrachill-events' ); ?></p>
+				<input type="hidden" name="action" value="ec_eventbrite_import">
+				<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
+				<?php wp_nonce_field( 'ec_eventbrite_import_' . $event_id, '_wpnonce', false ); ?>
+				<label><?php esc_html_e( 'Eventbrite attendee CSV', 'extrachill-events' ); ?>
+					<input type="file" name="eventbrite_csv" accept=".csv,text/csv" required>
+				</label>
+				<button type="submit" class="button-2 button-small"><?php esc_html_e( 'Import to door list', 'extrachill-events' ); ?></button>
+			</form>
+		</div>
 		<?php if ( ! empty( $requests ) ) : ?>
 			<div id="ec-guest-list-requests">
 				<h4><?php esc_html_e( 'Pending requests', 'extrachill-events' ); ?></h4>

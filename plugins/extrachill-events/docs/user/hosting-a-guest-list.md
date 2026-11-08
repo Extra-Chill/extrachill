@@ -59,6 +59,17 @@ You'll see "(name) is on the list" with their pass link. Tap **Copy pass link** 
 
 To take someone off, tap **Remove** next to their name on the door list. You can only do this before they check in. Their pass stops working right away.
 
+## Bring Your Eventbrite List
+
+Selling the same show on Eventbrite too? Put those buyers on your door list so the door checks everyone in from one list.
+
+1. In Eventbrite, open the event, go to **Reports**, then **Attendee summary**, and export it as CSV.
+2. On the event page here, under **Bring your Eventbrite list**, choose that file and tap **Import to door list**.
+
+Each attending ticket shows up on the door list by name, marked "(Eventbrite)". Refunded, cancelled, and transferred tickets are skipped. Nobody gets emailed and no email addresses are kept. Their Eventbrite tickets don't scan here, so the door finds them by name and taps **Check in**.
+
+Upload a newer export any time, like the afternoon of the show. Only new tickets are added. Imported buyers count toward your spots, since they'll be in the room.
+
 ## Band Spots
 
 The box **Give each invited band a set number of spots (allotments)** decides how invited bands share the list.
