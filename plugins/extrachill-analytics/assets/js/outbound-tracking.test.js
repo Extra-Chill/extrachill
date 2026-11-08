@@ -1,6 +1,7 @@
 /* global afterEach, beforeEach, describe, expect, it, jest, MouseEvent, HTMLFormElement */
 
 const CTA_ENDPOINT = '/wp-json/wp-abilities/v1/abilities/extrachill/track-cta-click/run';
+const NETWORK_ENDPOINT = '/wp-json/wp-abilities/v1/abilities/extrachill/track-network-click/run';
 const FORM_ENDPOINT = '/wp-json/wp-abilities/v1/abilities/extrachill/track-form-submit/run';
 const OUTBOUND_ENDPOINT = '/wp-json/extrachill/v1/analytics/click';
 
@@ -12,6 +13,7 @@ const baseConfig = {
 	// outbound exit in these tests.
 	networkHosts: [ 'extrachill.com', 'localhost' ],
 	ctaEndpoint: CTA_ENDPOINT,
+	networkEndpoint: NETWORK_ENDPOINT,
 	formEndpoint: FORM_ENDPOINT,
 	route: 'singular',
 };
@@ -276,6 +278,53 @@ describe( 'form_submit', () => {
 		const serialized = JSON.stringify( calls[ 0 ].input );
 		expect( serialized ).not.toContain( 'reader@example.test' );
 		expect( serialized ).not.toContain( 'email' );
+	} );
+} );
+
+describe( 'network_click', () => {
+	beforeEach( () => {
+		window.history.pushState( {}, '', '/story/?private=yes#top' );
+	} );
+
+	afterEach( () => {
+		delete global.ecOutboundTracking;
+		jest.restoreAllMocks();
+	} );
+
+	it( 'records exactly one cross-network click with path-only attribution', () => {
+		document.body.innerHTML = '<header data-ec-track-placement="site-menu"><a href="https://community.extrachill.com/recent/?secret=x#top"><span> Recent   activity </span></a></header>';
+		const calls = loadTracker( baseConfig );
+		document.querySelector( 'span' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls ).toEqual( [ { endpoint: NETWORK_ENDPOINT, input: { input: {
+			dest_host: 'community.extrachill.com',
+			dest_path: '/recent/',
+			label: 'Recent activity',
+			placement: 'site-menu',
+			route: 'singular',
+			source_url: 'http://localhost/story/',
+		} } } ] );
+	} );
+
+	it.each( [
+		'<a href="/same/">Same site</a>',
+		'<a href="https://tickets.example/show/">Off network</a>',
+		'<a data-ec-track="menu" href="https://community.extrachill.com/">Tracked</a>',
+		'<a data-ec-track="off" href="https://community.extrachill.com/">Opt out</a>',
+		'<a class="button-2" href="https://community.extrachill.com/">CTA</a>',
+		'<a class="ec-cross-site-link" href="https://community.extrachill.com/">Bridge</a>',
+	] )( 'does not attribute excluded link %s', ( markup ) => {
+		document.body.innerHTML = markup;
+		const calls = loadTracker( baseConfig );
+		document.querySelector( 'a' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls.filter( ( c ) => c.endpoint === NETWORK_ENDPOINT ) ).toHaveLength( 0 );
+	} );
+
+	it( 'uses the nearest landmark and works without the outbound endpoint', () => {
+		document.body.innerHTML = '<footer><nav><a href="https://extrachill.com/">Home</a></nav></footer>';
+		const calls = loadTracker( { ...baseConfig, endpoint: undefined } );
+		document.querySelector( 'a' ).dispatchEvent( new MouseEvent( 'click', { bubbles: true } ) );
+		expect( calls ).toHaveLength( 1 );
+		expect( calls[ 0 ].input.input.placement ).toBe( 'nav' );
 	} );
 } );
 
