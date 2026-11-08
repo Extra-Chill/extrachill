@@ -5,7 +5,7 @@
 		"build": "wp-scripts build src/editor/index.js src/editor/block.js --output-path=build/editor && cp src/editor/block.json src/editor/render.php build/editor/ && rm -rf build/editor/editor",
 		"lint:js": "wp-scripts lint-js src/editor/index.js src/editor/block.js",
 		"test:react": "wp-scripts test-unit-jest src/editor/index.test.js --runInBand",
-		"test": "node tests/js/assets.test.js && node tests/js/dom.test.js && node tests/js/editor-contract.test.js && npm run test:react"
+		"test": "node tests/js/assets.test.js && node tests/js/edit-button.test.js && node tests/js/dom.test.js && node tests/js/editor-contract.test.js && npm run test:react"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.29.7",

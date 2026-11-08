@@ -7,6 +7,12 @@
  * redirect that returns a token in the URL fragment). Bearer tokens are used
  * because the public Link Page host may not share the auth cookie domain.
  * Anonymous or unauthorized visitors get no button and no DOM.
+ *
+ * The handoff is a full top-level navigation, so it only runs when there is a
+ * signal the visitor may be an editor: they arrived from the host site's
+ * network, this browser has received an edit token before, or the host has
+ * primed a first-party `ec_link_editor=1` hint cookie for a signed-in owner.
+ * Everyone else loads the page once with no cross-site redirect.
  */
 (function () {
     'use strict';
@@ -15,6 +21,77 @@
     // Marker so an anonymous visitor only round-trips through the mint handoff
     // once per browser tab session instead of redirecting on every page view.
     var HANDOFF_ATTEMPTED_KEY = 'ecLinkEditHandoffAttempted';
+    // Persistent marker: this browser has received an edit token before, so a
+    // handoff is worth a redirect once the short-lived token expires.
+    const KNOWN_EDITOR_KEY = 'ecLinkEditKnownEditor';
+
+    /**
+     * Whether this browser has ever received an edit token.
+     *
+     * @return {boolean} True when a token was received here before.
+     */
+    function isKnownEditor() {
+        try {
+            return window.localStorage.getItem(KNOWN_EDITOR_KEY) === '1';
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Whether the host primed this browser for a signed-in owner.
+     *
+     * @return {boolean} True when the hint cookie is present.
+     */
+    function hasEditorHint() {
+        return /(?:^|;\s*)ec_link_editor=1(?:;|$)/.test(document.cookie || '');
+    }
+
+    /**
+     * Forget editor signals after a handoff proves the visitor is signed out.
+     *
+     * @return {void}
+     */
+    function forgetEditor() {
+        try {
+            window.localStorage.removeItem(KNOWN_EDITOR_KEY);
+        } catch {}
+        document.cookie = 'ec_link_editor=; Max-Age=0; Path=/; SameSite=Lax';
+    }
+
+    /**
+     * Remember that this browser belongs to someone who can receive tokens.
+     *
+     * @return {void}
+     */
+    function markKnownEditor() {
+        try {
+            window.localStorage.setItem(KNOWN_EDITOR_KEY, '1');
+        } catch {}
+    }
+
+    /**
+     * Whether the referrer is the host site or a sibling on its parent domain
+     * (e.g. the handoff host's network), i.e. the visitor may be signed in.
+     *
+     * @param {string} handoffUrl Handoff URL on the host site.
+     * @param {string} referrer   document.referrer.
+     * @return {boolean} True when the referrer is on the host's network.
+     */
+    function cameFromHostNetwork(handoffUrl, referrer) {
+        if (!handoffUrl || !referrer) {
+            return false;
+        }
+        try {
+            const hostname = new URL(handoffUrl).hostname;
+            const from = new URL(referrer).hostname;
+            const labels = hostname.split('.');
+            const parent = labels.length > 2 ? labels.slice(1).join('.') : hostname;
+            return from === hostname || from === parent || from.slice(-(parent.length + 1)) === '.' + parent;
+        } catch {
+            return false;
+        }
+    }
 
     /**
      * Read a non-expired cached token from localStorage.
@@ -222,6 +299,7 @@
         var fragment = consumeFragmentToken();
         if (fragment.token) {
             storeToken(fragment.token);
+            markKnownEditor();
         }
 
         // 2. Use a cached/just-captured token if we have one.
@@ -234,11 +312,15 @@
         // 3. No token. If the handoff already ran this session (including the
         //    tokenless "not logged in" return), stop — anonymous visitor.
         if (fragment.attempted) {
+            forgetEditor();
             return;
         }
 
-        // 4. Bootstrap a token via the one-time handoff redirect.
-        attemptHandoff(handoffUrl);
+        // 4. Bootstrap a token via the one-time handoff redirect, but only for
+        //    likely editors. Anonymous visitors never leave the page.
+        if (isKnownEditor() || hasEditorHint() || cameFromHostNetwork(handoffUrl, document.referrer || '')) {
+            attemptHandoff(handoffUrl);
+        }
     }
 
     if (document.readyState === 'loading') {

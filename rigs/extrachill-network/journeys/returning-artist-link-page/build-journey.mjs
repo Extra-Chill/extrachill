@@ -96,7 +96,15 @@ const steps = [
   step('returns-from-own-public-page', {
     url: PUBLIC,
     steps: [
+      // A signed-in artist's browser has been on the network before (that is
+      // where they signed in). Their first network page view primes the
+      // public host's editor hint, so opening their page directly later, with
+      // no referrer, still gets the pencil. Anonymous visitors are never
+      // redirected (#1247).
+      nav('http://artist.extrachill.com/'),
+      check("location.hostname === 'artist.extrachill.com'"),
       nav(PUBLIC),
+      check("document.cookie.includes('ec_link_editor=1')"),
       // The owner's pencil appears after a token handoff round-trip.
       { kind: 'waitFor', selector: '.extrch-link-page-edit-btn', timeout: '60s' },
       shot('public-page-owner-pencil'),
