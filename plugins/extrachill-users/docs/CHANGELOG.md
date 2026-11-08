@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.60.0] - 2026-11-08
+
+### Added
+- seller shop manager at shop.extrachill.com/manage
+
 ## [0.59.1] - 2026-11-07
 
 ### Fixed
