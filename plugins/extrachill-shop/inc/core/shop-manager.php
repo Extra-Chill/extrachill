@@ -82,6 +82,19 @@ function extrachill_shop_maybe_provision_manager_page(): void {
 }
 
 /**
+ * Shop manager URL, optionally preselecting a seller.
+ *
+ * Delegates to the network-wide `ec_get_shop_manager_url()` (Users) so every
+ * site builds the same URL.
+ *
+ * @param array|null $seller Optional `{type, id}` reference.
+ * @return string Manager URL, or '' when unavailable.
+ */
+function extrachill_shop_get_shop_manager_url( $seller = null ): string {
+	return function_exists( 'ec_get_shop_manager_url' ) ? (string) ec_get_shop_manager_url( $seller ) : '';
+}
+
+/**
  * Format a seller reference as its `type:id` key.
  *
  * @param array $seller Seller reference.

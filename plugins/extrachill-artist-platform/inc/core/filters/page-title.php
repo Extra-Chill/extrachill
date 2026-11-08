@@ -17,7 +17,7 @@ add_filter( 'extrachill_show_page_title', 'ec_hide_management_page_titles', 10, 
  */
 // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- WP page template filter signature; $post_id unused by design.
 function ec_hide_management_page_titles( $show, $post_id ) {
-	if ( is_page( 'manage-link-page' ) || is_page( 'manage-artist' ) || is_page( 'create-artist' ) || is_page( 'manage-shop' ) ) {
+	if ( is_page( 'manage-link-page' ) || is_page( 'manage-artist' ) || is_page( 'create-artist' ) ) {
 		return false;
 	}
 	return $show;

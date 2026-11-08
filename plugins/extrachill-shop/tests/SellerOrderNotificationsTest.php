@@ -45,6 +45,7 @@ namespace {
 	require_once dirname( __DIR__ ) . '/inc/core/artist-product-meta.php';
 	require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
 	require_once dirname( __DIR__, 2 ) . '/extrachill-events/inc/Abilities/CommerceSellerNotifications.php';
+	require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
 	require_once dirname( __DIR__ ) . '/inc/core/seller-order-notifications.php';
 
 	final class SellerOrderNotificationsTest extends \PHPUnit\Framework\TestCase {
@@ -109,7 +110,7 @@ namespace {
 		public function test_artist_roster_is_unchanged(): void {
 			$mail = $this->notify( array( 'artist' ) );
 			$this->assertSame( array( 'user4@example.com', 'user5@example.com' ), array_column( $mail, 'to' ) );
-			$this->assertStringContainsString( 'seller=artist:9', $mail[0]['context']['cta_url'] );
+			$this->assertSame( 'https://shop.extrachill.com/manage/?seller=artist:9', $mail[0]['context']['cta_url'] );
 		}
 		public function test_venue_only_notifies_explicit_finance_authority(): void {
 			$mail = $this->notify( array( 'venue' ) );
@@ -131,7 +132,7 @@ namespace {
 			$this->assertStringContainsString( 'Product 11', $venue['context']['body_html'] );
 			$this->assertStringContainsString( 'Product 13', $venue['context']['body_html'] );
 			$this->assertStringNotContainsString( 'Product 10', $venue['context']['body_html'] );
-			$this->assertStringContainsString( 'seller=venue:9', $venue['context']['cta_url'] );
+			$this->assertSame( 'https://shop.extrachill.com/manage/?seller=venue:9', $venue['context']['cta_url'] );
 		}
 	}
 }

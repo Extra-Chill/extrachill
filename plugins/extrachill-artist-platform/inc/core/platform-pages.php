@@ -47,10 +47,6 @@ function extrachill_artist_platform_create_pages() {
 			'title'   => 'Manage Link Page',
 			'content' => '<!-- wp:extrachill/link-page-editor /-->',
 		),
-		'manage-shop'      => array(
-			'title'   => 'Manage Shop',
-			'content' => '<!-- wp:extrachill/artist-shop-manager /-->',
-		),
 		'analytics'        => array(
 			'title'   => 'Analytics',
 			'content' => '<!-- wp:extrachill/artist-analytics /-->',

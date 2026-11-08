@@ -140,7 +140,7 @@ class Test_Avatar_Menu_Items extends WP_UnitTestCase {
 			$items[] = array(
 				'id'       => 'manage_shop',
 				'label'    => 'Manage Shop',
-				'url'      => 'https://artist.extrachill.com/manage-shop/',
+				'url'      => 'https://shop.extrachill.com/manage/',
 				'priority' => 50,
 			);
 			return $items;

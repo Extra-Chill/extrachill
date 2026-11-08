@@ -4,9 +4,6 @@
  * Delegates all calls to @extrachill/api-client via WpApiFetchTransport.
  * Exports match the original function names so all consuming components
  * need zero changes.
- *
- * shopFetch calls remain as raw fetch() — they target shop.extrachill.com
- * cross-origin and cannot go through the api-client transport.
  */
 
 /**
@@ -26,7 +23,6 @@ const client = new ExtraChillClient( transport );
 const getConfig = () =>
 	window.ecArtistPlatformConfig ||
 	window.ecLinkPageEditorConfig ||
-	window.ecArtistShopManagerConfig ||
 	{};
 
 export { getConfig };
@@ -138,109 +134,6 @@ export const getSubscribers = ( artistId, page = 1, perPage = 20 ) =>
 export const exportSubscribers = ( artistId, includeExported = false ) =>
 	client.artists.exportSubscribers( artistId, includeExported );
 
-// ─── Shop products ──────────────────────────────────────────────────────────
-
-export const listShopProducts = () => client.shop.listProducts();
-export const createShopProduct = ( data ) => client.shop.createProduct( data );
-export const updateShopProduct = ( productId, data ) =>
-	client.shop.updateProduct( productId, data );
-export const deleteShopProduct = ( productId ) =>
-	client.shop.deleteProduct( productId );
-
-export const uploadShopProductImages = ( productId, files ) => {
-	const formData = new FormData();
-	( files || [] ).forEach( ( file ) => {
-		formData.append( 'files[]', file );
-	} );
-	return client.shop.uploadProductImages( productId, formData );
-};
-
-export const deleteShopProductImage = ( productId, attachmentId ) =>
-	client.shop.deleteProductImage( productId, attachmentId );
-
-// ─── Shop payments (Stripe Connect) — cross-origin, stays as raw fetch ─────
-
-const shopFetch = ( path, options = {} ) => {
-	const config = getConfig();
-	const shopRestUrl = config.shopRestUrl || config.restUrl;
-	const url = shopRestUrl + path;
-
-	return fetch( url, {
-		...options,
-		credentials: 'include',
-		headers: {
-			'Content-Type': 'application/json',
-			'X-WP-Nonce': config.nonce,
-			...( options.headers || {} ),
-		},
-	} ).then( ( res ) => {
-		if ( ! res.ok ) {
-			return res.json().then( ( err ) => {
-				throw new Error( err?.message || 'Request failed' );
-			} );
-		}
-		return res.json();
-	} );
-};
-
-export const getStripeConnectStatus = ( artistId ) =>
-	shopFetch( `shop/stripe-connect/status?artist_id=${ artistId }`, {
-		method: 'GET',
-	} );
-export const createStripeConnectOnboardingLink = ( artistId ) =>
-	shopFetch( 'shop/stripe-connect/onboarding-link', {
-		method: 'POST',
-		body: JSON.stringify( { artist_id: artistId } ),
-	} );
-export const createStripeConnectDashboardLink = ( artistId ) =>
-	shopFetch( 'shop/stripe-connect/dashboard-link', {
-		method: 'POST',
-		body: JSON.stringify( { artist_id: artistId } ),
-	} );
-
-// ─── Shop orders — cross-origin ─────────────────────────────────────────────
-
-export const listShopOrders = ( artistId, status = 'all', page = 1 ) =>
-	shopFetch(
-		`shop/orders?artist_id=${ artistId }&status=${ status }&page=${ page }`,
-		{ method: 'GET' }
-	);
-
-export const updateShopOrderStatus = (
-	orderId,
-	artistId,
-	status,
-	trackingNumber = null
-) =>
-	shopFetch( `shop/orders/${ orderId }/status`, {
-		method: 'PUT',
-		body: JSON.stringify( {
-			artist_id: artistId,
-			status,
-			tracking_number: trackingNumber,
-		} ),
-	} );
-
-export const refundShopOrder = ( orderId, artistId ) =>
-	shopFetch( `shop/orders/${ orderId }/refund`, {
-		method: 'POST',
-		body: JSON.stringify( { artist_id: artistId } ),
-	} );
-
-// ─── Shipping ───────────────────────────────────────────────────────────────
-
-export const getArtistShippingAddress = ( artistId ) =>
-	client.shop.getShippingAddress( artistId );
-
-export const updateArtistShippingAddress = ( artistId, address ) =>
-	client.shop.updateShippingAddress( artistId, address );
-
-export const purchaseShippingLabel = ( orderId, artistId ) =>
-	client.shop.purchaseShippingLabel( orderId, artistId );
-
-export const getShippingLabel = ( orderId, artistId ) =>
-	client.shop.getShippingLabel( orderId, artistId );
-
 // ─── Permissions ────────────────────────────────────────────────────────────
 
 export const getArtistPermissions = ( artistId ) =>
@@ -275,22 +168,6 @@ export default {
 	searchArtistCapableUsers,
 	getSubscribers,
 	exportSubscribers,
-	listShopProducts,
-	createShopProduct,
-	updateShopProduct,
-	deleteShopProduct,
-	uploadShopProductImages,
-	deleteShopProductImage,
-	getStripeConnectStatus,
-	createStripeConnectOnboardingLink,
-	createStripeConnectDashboardLink,
-	listShopOrders,
-	updateShopOrderStatus,
-	refundShopOrder,
-	getArtistShippingAddress,
-	updateArtistShippingAddress,
-	purchaseShippingLabel,
-	getShippingLabel,
 	getArtistPermissions,
 	generateQRCode,
 };

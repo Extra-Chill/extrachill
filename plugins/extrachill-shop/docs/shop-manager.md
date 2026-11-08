@@ -14,6 +14,16 @@ https://shop.extrachill.com/manage/?seller=promoter:8
 
 An explicit `?seller=` must be one the user can manage. An invalid one shows an error and never falls back to another seller. Without `?seller=`, the manager opens the last seller chosen (`_ec_shop_recent_seller` user meta, written only by the `extrachill/shop-select-seller` ability), then the first seller the user manages.
 
+## Entry points
+
+All of them build the URL with `ec_get_shop_manager_url( $seller )` (Users), or `extrachill_shop_get_shop_manager_url()` on Shop:
+
+- Avatar menu and artist-site nav: plain `/manage/`.
+- Artist storefront "Manage Shop" button: `?seller=artist:{id}`.
+- Events venue settings and promoter workspace: "Manage shop" with `?seller=venue:{id}` / `?seller=promoter:{id}`, shown only when the shop rollout has reached the user and they hold finance authority for that seller.
+- Seller order emails and the Stripe onboarding return URL: the seller's own shop.
+- `artist.extrachill.com/manage-shop/` (retired) 302-redirects here with the user's latest artist preselected, keeping `stripe_refresh`.
+
 ## Authority
 
 - Discovery: `ec_get_manageable_shop_sellers()` in Users lists artist memberships plus the venues and promoters Events' `extrachill/list-commerce-sellers` reports with finance authority.

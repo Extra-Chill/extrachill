@@ -21,6 +21,8 @@ namespace {
 		'switch_to_blog'       => static function ( $id ) { $GLOBALS['cs_stack'][] = $GLOBALS['cs_blog'];
 			$GLOBALS['cs_blog'] = $id; },
 		'restore_current_blog' => static function () { $GLOBALS['cs_blog'] = array_pop( $GLOBALS['cs_stack'] ); },
+		'ec_feature_available' => static fn( $feature, $user_id ) => in_array( $user_id, $GLOBALS['cs_shop_rollout'] ?? array(), true ),
+		'ec_get_shop_manager_url' => static fn( $seller = null ) => 'https://shop.example/manage/' . ( $seller ? '?seller=' . $seller['type'] . ':' . $seller['id'] : '' ),
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
 			$GLOBALS['cs_impl'][ $name ] = $impl;
@@ -122,6 +124,22 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			}
 			$GLOBALS['cs_user'] = 6;
 			$this->assertSame( array( 'sellers' => array() ), $this->ability->execute_list() );
+		}
+
+		public function test_shop_link_only_for_finance_authorized_users_in_rollout(): void {
+			$GLOBALS['cs_shop_rollout'] = array( 5, 6 );
+			$this->assertSame( 'https://shop.example/manage/?seller=venue:1524', $this->ability->shop_manager_url( 'venue', 1524 ) );
+			$this->assertSame( 'https://shop.example/manage/?seller=promoter:88', $this->ability->shop_manager_url( 'promoter', 88 ) );
+			$this->assertSame( '', $this->ability->shop_manager_url( 'venue', 999 ) );
+			$this->assertSame( '', $this->ability->shop_manager_url( 'artist', 1524 ) );
+
+			$GLOBALS['cs_user'] = 6; // Promoter member without ownership, no venue finance grant.
+			$this->assertSame( '', $this->ability->shop_manager_url( 'venue', 1524 ) );
+			$this->assertSame( '', $this->ability->shop_manager_url( 'promoter', 88 ) );
+
+			$GLOBALS['cs_user']         = 5;
+			$GLOBALS['cs_shop_rollout'] = array();
+			$this->assertSame( '', $this->ability->shop_manager_url( 'venue', 1524 ) );
 		}
 
 		public function test_list_excludes_inactive_and_missing_sellers(): void {

@@ -33,7 +33,7 @@ export function SharedLinkPageEditor( {
 	const [ runtimeReady, setRuntimeReady ] = useState(
 		Boolean(
 			window.ExtraChillLinkPageEditor?.mount &&
-				window.ExtraChillLinkPageEditor?.registerAdapter
+			window.ExtraChillLinkPageEditor?.registerAdapter
 		)
 	);
 	const [ runtimeExpired, setRuntimeExpired ] = useState( false );
@@ -117,11 +117,11 @@ export function SharedLinkPageEditor( {
 					? await runAbility(
 							`extrachill/patch-${ identityType }-link-page`,
 							patch
-					  )
+						)
 					: await runAbility(
 							`extrachill/get-${ identityType }-link-page`,
 							{ [ field ]: identityId }
-					  );
+						);
 				return mapDocument( document );
 			},
 			onDirtyChange: ( value ) => dirtyChangeRef.current( value ),
@@ -282,7 +282,11 @@ export function ManagedIdentitySelector( {
 	);
 }
 
-export function PromoterWorkspacePanel( { workspace, onLinkPageDirtyChange } ) {
+export function PromoterWorkspacePanel( {
+	workspace,
+	onLinkPageDirtyChange,
+	shopManagerUrl = '',
+} ) {
 	const { selection, promoter, granted_venues: venues } = workspace;
 	if ( selection.state === 'stale' ) {
 		return (
@@ -332,6 +336,13 @@ export function PromoterWorkspacePanel( { workspace, onLinkPageDirtyChange } ) {
 						</Badge>
 					) }
 				</p>
+				{ shopManagerUrl && (
+					<p>
+						<a className="button-2" href={ shopManagerUrl }>
+							Manage shop
+						</a>
+					</p>
+				) }
 			</Panel>
 
 			<section aria-labelledby="promoter-venues-heading">

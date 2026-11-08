@@ -84,7 +84,7 @@ function ec_artist_platform_secondary_header_items( $items ) {
 			: 0;
 
 		$items[] = array(
-			'url'      => home_url( '/manage-shop/' ),
+			'url'      => ec_get_shop_manager_url(),
 			'label'    => $product_count > 0
 				? __( 'Manage Shop', 'extrachill-artist-platform' )
 				: __( 'Create Shop', 'extrachill-artist-platform' ),

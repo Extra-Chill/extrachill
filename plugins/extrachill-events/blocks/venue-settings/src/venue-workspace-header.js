@@ -52,7 +52,12 @@ function VenueIdentityCard( { venue, onOpen } ) {
 	);
 }
 
-export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
+export function VenueWorkspaceHeader( {
+	venues,
+	selected,
+	onSwitchVenue,
+	shopManagerUrl = '',
+} ) {
 	const visibleVenues = selected ? [ selected ] : venues;
 
 	return (
@@ -66,13 +71,20 @@ export function VenueWorkspaceHeader( { venues, selected, onSwitchVenue } ) {
 				}
 				actions={
 					selected ? (
-						<button
-							type="button"
-							className="button-2"
-							onClick={ () => onSwitchVenue( 0 ) }
-						>
-							Back to My Venues
-						</button>
+						<ActionRow>
+							{ shopManagerUrl && (
+								<a className="button-2" href={ shopManagerUrl }>
+									Manage shop
+								</a>
+							) }
+							<button
+								type="button"
+								className="button-2"
+								onClick={ () => onSwitchVenue( 0 ) }
+							>
+								Back to My Venues
+							</button>
+						</ActionRow>
 					) : null
 				}
 			/>

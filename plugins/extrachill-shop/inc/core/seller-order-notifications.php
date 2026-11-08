@@ -134,7 +134,7 @@ function extrachill_shop_send_seller_order_notification( $order, $seller, $payou
 					'preheader'      => $preheader,
 					'recipient_name' => $seller_name,
 					'body_html'      => $body_html,
-					'cta_url'        => add_query_arg( 'seller', $seller['type'] . ':' . $seller['id'], extrachill_shop_get_shop_manager_url() ),
+					'cta_url'        => extrachill_shop_get_shop_manager_url( $seller ),
 					'cta_label'      => 'View Order in Shop Manager',
 				),
 			)
@@ -270,17 +270,4 @@ function extrachill_shop_build_order_notification_body( $order, $seller_name, $p
 	);
 
 	return $html;
-}
-
-/**
- * Get Shop Manager URL on artist site.
- *
- * Reads the artist subsite URL via `ec_get_site_url()` — no
- * `switch_to_blog()` needed because the helper resolves cross-site
- * URLs without changing the current blog context.
- *
- * @return string Shop Manager URL.
- */
-function extrachill_shop_get_shop_manager_url() {
-	return ec_get_site_url( 'artist' ) . '/manage-shop/';
 }

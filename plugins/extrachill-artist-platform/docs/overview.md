@@ -28,19 +28,18 @@ The platform consists of two primary custom post types:
 - **Artist Manager Block**: Gutenberg block editor (React-based) for artist profile management
 - **Artist Analytics Block**: Dedicated analytics dashboard via Gutenberg block
 - **Artist Creator Block**: Guided artist profile creation flow
-- **Artist Shop Manager Block**: Shop product management interface
+- **Merch**: Artist shops are managed in the seller shop manager at `shop.extrachill.com/manage` (extrachill-shop)
 - **Roster Management**: Band member invitation and role assignment system
 - **Social Integration**: 15+ social platform support with comprehensive validation
 - **Analytics**: Daily aggregated page views and link click tracking with REST API access
 - **Subscription System**: Email collection with artist association
 
 ### Advanced Features
-- **Five Gutenberg Blocks**: Modern React-based blocks for complete platform management
+- **Four Gutenberg Blocks**: Modern React-based blocks for complete platform management
   - `link-page-editor`: Full link page editing with all features
   - `artist-analytics`: Analytics dashboard with Chart.js visualization
   - `artist-manager`: Artist profile management and metadata
   - `artist-creator`: Artist profile creation
-  - `artist-shop-manager`: Shop product management, orders, and Stripe Connect integration
 - **Cross-Domain Authentication**: WordPress multisite authentication across `.extrachill.com` subdomains and `extrachill.link`
 - **Link Expiration**: Time-based link scheduling and lifecycle management
 - **Asset Management**: Context-aware loading with file existence checks and timestamp cache busting
@@ -78,11 +77,6 @@ Five React-based Gutenberg blocks providing complete platform management (regist
 
 - **artist-creator**: Artist profile creation flow
 
-- **artist-shop-manager**: Shop product management
-  - Product CRUD operations with image uploads
-  - Order management with shipping label integration
-  - Stripe Connect payment processing
-  - Inventory tracking with size variants
 
 **Build Process**:
 ```bash

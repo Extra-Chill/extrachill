@@ -83,6 +83,16 @@ final class ShopManagerTest extends TestCase {
 		$this->assertNull( extrachill_shop_resolve_manager_seller( array(), null, '' ) );
 	}
 
+	public function test_manager_url_preselects_each_seller_type(): void {
+		$base = 'https://shop.extrachill.com/manage/';
+		$this->assertSame( $base, extrachill_shop_get_shop_manager_url() );
+		foreach ( array( 'artist' => 12, 'venue' => 1524, 'promoter' => 8 ) as $type => $id ) {
+			$this->assertSame( $base . '?seller=' . $type . ':' . $id, extrachill_shop_get_shop_manager_url( array( 'type' => $type, 'id' => $id ) ) );
+		}
+		$this->assertSame( $base, extrachill_shop_get_shop_manager_url( array( 'type' => 'label', 'id' => 3 ) ) );
+		$this->assertSame( $base, extrachill_shop_get_shop_manager_url( array( 'type' => 'venue', 'id' => 0 ) ) );
+	}
+
 	public function test_seller_keys_parse_strictly(): void {
 		$this->assertSame( array( 'type' => 'promoter', 'id' => 8 ), extrachill_shop_parse_seller_key( 'promoter:8' ) );
 		foreach ( array( 'shop:1', 'venue:0', 'venue:-2', 'venue:1x', 'venue', '', null, array() ) as $bad ) {

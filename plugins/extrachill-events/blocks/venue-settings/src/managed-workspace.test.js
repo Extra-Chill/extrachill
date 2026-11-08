@@ -231,6 +231,38 @@ describe( 'managed identity workspace', () => {
 		await act( async () => root.unmount() );
 	} );
 
+	it( 'links to the promoter shop only when the server granted one', async () => {
+		const workspace = {
+			selection: { state: 'active' },
+			promoter: {
+				id: 10,
+				name: 'Crew',
+				link_page: { status: 'available' },
+			},
+			granted_venues: [],
+		};
+		const withLink = await render(
+			<PromoterWorkspacePanel
+				workspace={ workspace }
+				shopManagerUrl="https://shop.extrachill.com/manage/?seller=promoter:10"
+			/>
+		);
+		const link = withLink.container.querySelector( 'a.button-2' );
+		expect( link.textContent ).toBe( 'Manage shop' );
+		expect( link.getAttribute( 'href' ) ).toBe(
+			'https://shop.extrachill.com/manage/?seller=promoter:10'
+		);
+		await act( async () => withLink.root.unmount() );
+
+		const withoutLink = await render(
+			<PromoterWorkspacePanel workspace={ workspace } />
+		);
+		expect( withoutLink.container.textContent ).not.toContain(
+			'Manage shop'
+		);
+		await act( async () => withoutLink.root.unmount() );
+	} );
+
 	it( 'renders relationships as read-only records', async () => {
 		const { container, root } = await render(
 			<VenuePromoterRelationships
