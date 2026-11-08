@@ -205,21 +205,23 @@ function ec_shop_seller_ref( $seller ) {
 }
 
 /**
- * Public storefront URL for a seller: the Shop catalog filtered to them.
+ * Public storefront URL for a seller: `shop/<type>/<slug>/`.
  *
- * Uses `?seller=type:id`, the same key as the manager. (`?artist=` collides
- * with the network `artist` taxonomy query var and 404s.)
+ * Mirrors the owner's own URL (events `/venue/<slug>/`, artist profiles), so
+ * a seller's calendar and merch read as a pair. The slug comes from the
+ * owner: venue/promoter term slug, artist profile slug.
  *
- * @param array $seller `{type, id}` seller reference.
- * @return string Storefront URL, or '' when the seller or Shop URL is invalid.
+ * @param array $seller `{type, id, slug}` seller reference.
+ * @return string Storefront URL, or '' when the seller, slug or Shop URL is invalid.
  */
 function ec_get_shop_storefront_url( $seller ) {
 	$ref      = ec_shop_seller_ref( $seller );
+	$slug     = is_array( $seller ) && isset( $seller['slug'] ) && is_string( $seller['slug'] ) ? sanitize_title( $seller['slug'] ) : '';
 	$shop_url = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'shop' ) : '';
-	if ( null === $ref || '' === $shop_url ) {
+	if ( null === $ref || '' === $slug || '' === $shop_url ) {
 		return '';
 	}
-	return add_query_arg( 'seller', $ref['type'] . ':' . $ref['id'], trailingslashit( $shop_url ) );
+	return trailingslashit( $shop_url ) . $ref['type'] . '/' . $slug . '/';
 }
 
 /**

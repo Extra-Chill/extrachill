@@ -15,15 +15,17 @@ defined( 'ABSPATH' ) || exit;
  *
  * @param string $type    Seller type: venue or promoter.
  * @param int    $term_id Seller term ID.
+ * @param string $slug    Seller term slug.
  * @return string
  */
-function extrachill_events_seller_storefront_url( string $type, int $term_id ): string {
+function extrachill_events_seller_storefront_url( string $type, int $term_id, string $slug ): string {
 	if ( ! function_exists( 'ec_shop_seller_has_products' ) || ! function_exists( 'ec_get_shop_storefront_url' ) ) {
 		return '';
 	}
 	$seller = array(
 		'type' => $type,
 		'id'   => $term_id,
+		'slug' => $slug,
 	);
 	return ec_shop_seller_has_products( $seller ) ? (string) ec_get_shop_storefront_url( $seller ) : '';
 }
@@ -37,7 +39,7 @@ function extrachill_events_render_seller_shop_link( $term ): void {
 	if ( ! $term instanceof WP_Term || ! in_array( $term->taxonomy, array( 'venue', 'promoter' ), true ) ) {
 		return;
 	}
-	$url = extrachill_events_seller_storefront_url( $term->taxonomy, (int) $term->term_id );
+	$url = extrachill_events_seller_storefront_url( $term->taxonomy, (int) $term->term_id, (string) $term->slug );
 	if ( '' === $url ) {
 		return;
 	}

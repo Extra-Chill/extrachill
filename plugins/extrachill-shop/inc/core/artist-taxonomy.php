@@ -2,8 +2,8 @@
 /**
  * Seller storefronts.
  *
- * A storefront is the Shop catalog filtered to one seller with
- * `?seller=type:id`, for artists, venues and promoters alike. Seller identity
+ * A storefront is the Shop catalog filtered to one seller at
+ * `/<type>/<slug>/` (artist, venue, promoter), matching the owner's own URLs. Seller identity
  * lives with its owner (Artist profiles, Events venues/promoters) and in Shop
  * product metadata, not a duplicate Shop-local taxonomy.
  *
@@ -15,11 +15,24 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Storefront URL for any seller.
  *
- * @param array $seller `{type, id}` seller reference.
+ * Fills in the slug from the seller's public identity when the caller only
+ * has `{type, id}`.
+ *
+ * @param mixed $seller `{type, id, slug?}` seller reference.
  * @return string Storefront URL, or '' when unavailable.
  */
 function extrachill_shop_get_seller_store_url( $seller ): string {
-	return function_exists( 'ec_get_shop_storefront_url' ) ? (string) ec_get_shop_storefront_url( $seller ) : '';
+	if ( ! function_exists( 'ec_get_shop_storefront_url' ) || ! is_array( $seller ) ) {
+		return '';
+	}
+	if ( empty( $seller['slug'] ) ) {
+		$public = extrachill_shop_get_public_seller( $seller );
+		if ( ! $public ) {
+			return '';
+		}
+		$seller['slug'] = $public['slug'];
+	}
+	return (string) ec_get_shop_storefront_url( $seller );
 }
 
 /**
@@ -51,7 +64,7 @@ function extrachill_shop_get_artist_store_url( $artist_profile_id ) {
  * owner call.
  *
  * @param array $seller `{type, id}` seller reference.
- * @return array{type: string, id: int, name: string, url: string}|null
+ * @return array|null `{type, id, name, slug, url}`, or null when unknown.
  */
 function extrachill_shop_get_public_seller( $seller ): ?array {
 	static $memo = array();
@@ -65,7 +78,7 @@ function extrachill_shop_get_public_seller( $seller ): ?array {
 		return $memo[ $key ];
 	}
 
-	$transient = 'ec_shop_public_seller_' . $ref['type'] . '_' . $ref['id'];
+	$transient = 'ec_shop_public_seller_v2_' . $ref['type'] . '_' . $ref['id'];
 	$cached    = get_site_transient( $transient );
 	if ( is_array( $cached ) ) {
 		$memo[ $key ] = $cached;
@@ -73,7 +86,7 @@ function extrachill_shop_get_public_seller( $seller ): ?array {
 	}
 
 	$canonical = extrachill_shop_get_canonical_seller( $ref );
-	if ( is_wp_error( $canonical ) || '' === (string) ( $canonical['name'] ?? '' ) ) {
+	if ( is_wp_error( $canonical ) || '' === (string) ( $canonical['name'] ?? '' ) || '' === (string) ( $canonical['slug'] ?? '' ) ) {
 		$memo[ $key ] = null;
 		return null;
 	}
@@ -82,6 +95,7 @@ function extrachill_shop_get_public_seller( $seller ): ?array {
 		'type' => $ref['type'],
 		'id'   => $ref['id'],
 		'name' => (string) $canonical['name'],
+		'slug' => (string) $canonical['slug'],
 		'url'  => (string) ( $canonical['url'] ?? '' ),
 	);
 	set_site_transient( $transient, $public, HOUR_IN_SECONDS );
@@ -90,14 +104,70 @@ function extrachill_shop_get_public_seller( $seller ): ?array {
 }
 
 /**
- * Seller the storefront is filtered to, from `?seller=type:id`.
+ * Resolve a storefront path (`/<type>/<slug>/`) to a seller.
+ *
+ * Artists resolve through the Artist profile slug; venues and promoters
+ * through their Events owner. Cached: storefronts are anonymous page views.
+ *
+ * @param string $type Seller type.
+ * @param string $slug Seller slug.
+ * @return array|null `{type, id}`, or null when unknown.
+ */
+function extrachill_shop_resolve_storefront_slug( string $type, string $slug ): ?array {
+	static $memo = array();
+
+	$slug = sanitize_title( $slug );
+	if ( '' === $slug || ! in_array( $type, array( 'artist', 'venue', 'promoter' ), true ) ) {
+		return null;
+	}
+	$key = $type . ':' . $slug;
+	if ( array_key_exists( $key, $memo ) ) {
+		return $memo[ $key ];
+	}
+
+	$transient = 'ec_shop_seller_slug_' . $type . '_' . md5( $slug );
+	$cached    = get_site_transient( $transient );
+	if ( is_array( $cached ) || 'none' === $cached ) {
+		$memo[ $key ] = is_array( $cached ) ? $cached : null;
+		return $memo[ $key ];
+	}
+
+	$id = 0;
+	if ( 'artist' === $type ) {
+		$artist = function_exists( 'extrachill_get_artist_profile_by_slug' ) ? extrachill_get_artist_profile_by_slug( $slug ) : false;
+		$id     = is_array( $artist ) ? (int) ( $artist['id'] ?? 0 ) : 0;
+	} else {
+		$result = extrachill_shop_execute_owner_ability(
+			'events',
+			'extrachill/get-commerce-seller',
+			'GET',
+			array(
+				'type' => $type,
+				'slug' => $slug,
+			)
+		);
+		$id     = ! is_wp_error( $result ) && ( $result['type'] ?? '' ) === $type ? (int) ( $result['id'] ?? 0 ) : 0;
+	}
+
+	$seller = $id > 0 ? array(
+		'type' => $type,
+		'id'   => $id,
+	) : null;
+	// Misses are cached briefly so unknown paths do not fan out to the owner.
+	set_site_transient( $transient, $seller ?? 'none', $seller ? HOUR_IN_SECONDS : 10 * MINUTE_IN_SECONDS );
+	$memo[ $key ] = $seller;
+	return $seller;
+}
+
+/**
+ * Seller the current storefront page is for, from its `/<type>/<slug>/` path.
  *
  * @return array{type: string, id: int}|null
  */
 function extrachill_shop_get_requested_storefront_seller(): ?array {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Public catalog filter.
-	$raw = isset( $_GET['seller'] ) && is_string( $_GET['seller'] ) ? sanitize_text_field( wp_unslash( $_GET['seller'] ) ) : '';
-	return '' === $raw ? null : extrachill_shop_parse_seller_key( $raw );
+	$type = (string) get_query_var( 'ec_shop_seller_type', '' );
+	$slug = (string) get_query_var( 'ec_shop_seller_slug', '' );
+	return '' === $type || '' === $slug ? null : extrachill_shop_resolve_storefront_slug( $type, $slug );
 }
 
 /**

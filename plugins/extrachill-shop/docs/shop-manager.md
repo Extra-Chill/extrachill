@@ -50,13 +50,17 @@ npm run build
 
 ## Navigation and storefronts
 
-- **Storefronts.** Every seller's public storefront is the Shop catalog filtered with
-  `?seller=type:id` (`ec_get_shop_storefront_url()` in Users), the same key the
-  manager uses. The page shows the seller name, a link to their public page
-  (artist profile or calendar), and "Manage Shop" for people who run it. The
-  filter bar lists every artist, venue and promoter with published products.
-  `?artist=` is not used: it collides with the network `artist` taxonomy query
-  var. The Shop's empty `/artist/<slug>/` archive redirects to the storefront.
+- **Storefronts.** Every seller's public storefront lives at `/<type>/<slug>/` on
+  the Shop: `shop.extrachill.com/venue/lo-fi-brewing/` pairs with
+  `events.extrachill.com/venue/lo-fi-brewing/`, and artists use their profile
+  slug (`/artist/<slug>/`). `ec_get_shop_storefront_url()` in Users builds it
+  from `{type, id, slug}`; Shop resolves the slug back through the owner
+  (Artist profile, or Events `get-commerce-seller` by `slug`), cached an hour.
+  The route renders the catalog filtered to the seller with a header (name,
+  public page link, "Manage Shop" for people who run it), titles the page
+  "<Seller> Merch" and canonicalizes to itself. Unknown slugs 404. The filter
+  bar lists every seller with published products; legacy `?seller=type:id`
+  links (and the dropdown) redirect to the path, and "All Sellers" goes home.
 - **Back link.** The manager header links back to where the seller is managed:
   Manage Artist, or Venue/Promoter Settings (`manage_url`, supplied by Events
   through `extrachill/get-commerce-seller` and `list-commerce-sellers`).

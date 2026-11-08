@@ -84,7 +84,11 @@ function ec_get_site_url( $site_key ) {
 		'shop'   => 'https://shop.extrachill.com',
 	)[ $site_key ] ?? null;
 }
-function add_query_arg( $key, $value, $url ) {
+function add_query_arg( $key, $value, $url = '' ) {
+	if ( is_array( $key ) ) {
+		$url = $value;
+		return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . http_build_query( $key );
+	}
 	return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . $key . '=' . $value;
 }
 function trailingslashit( $value ) {
@@ -102,6 +106,18 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 	function wp_unslash( $value ) {
 		return is_string( $value ) ? stripslashes( $value ) : $value;
 	}
+}
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	define( 'MINUTE_IN_SECONDS', 60 );
+}
+function get_query_var( $key, $default = '' ) {
+	return $GLOBALS['test_query_vars'][ $key ] ?? $default;
+}
+function home_url( $path = '' ) {
+	return 'https://shop.extrachill.com' . $path;
+}
+function extrachill_get_artist_profile_by_slug( $slug ) {
+	return $GLOBALS['test_artist_slugs'][ $slug ] ?? false;
 }
 function get_site_transient( $key ) {
 	return $GLOBALS['test_site_transients'][ $key ] ?? false;

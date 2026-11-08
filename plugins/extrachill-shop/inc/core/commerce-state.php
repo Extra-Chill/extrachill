@@ -168,6 +168,7 @@ function extrachill_shop_get_canonical_seller( $seller ) {
 				'type' => 'artist',
 				'id'   => $seller['id'],
 				'name' => (string) ( $artist['name'] ?? '' ),
+				'slug' => (string) ( $artist['slug'] ?? '' ),
 				'url'  => (string) ( $artist['permalink'] ?? '' ),
 			);
 		}
@@ -184,6 +185,7 @@ function extrachill_shop_get_canonical_seller( $seller ) {
 			'type'                => $seller['type'],
 			'id'                  => $seller['id'],
 			'name'                => (string) ( $result['name'] ?? '' ),
+			'slug'                => (string) ( $result['slug'] ?? '' ),
 			'url'                 => (string) ( $result['url'] ?? '' ),
 			'manage_url'          => (string) ( $result['manage_url'] ?? '' ),
 			'can_manage_finances' => ! empty( $result['can_manage_finances'] ),

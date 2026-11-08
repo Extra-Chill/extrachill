@@ -29,13 +29,12 @@ if ( empty( $product ) || ! $product->is_visible() ) {
 		$public_seller  = $product_seller ? extrachill_shop_get_public_seller( $product_seller ) : null;
 		$badge_class    = $public_seller ? $public_seller['type'] . '-badge' : '';
 		if ( $public_seller && 'artist' === $public_seller['type'] ) {
-			$badge_artist = extrachill_shop_get_canonical_artist( $public_seller['id'] );
-			$badge_class .= is_wp_error( $badge_artist ) || empty( $badge_artist['slug'] ) ? '' : ' artist-' . $badge_artist['slug'];
+			$badge_class .= ' artist-' . $public_seller['slug'];
 		}
 		if ( $public_seller ) :
 			?>
 		<div class="taxonomy-badges">
-			<a href="<?php echo esc_url( extrachill_shop_get_seller_store_url( $product_seller ) ); ?>"
+			<a href="<?php echo esc_url( extrachill_shop_get_seller_store_url( $public_seller ) ); ?>"
 			class="taxonomy-badge <?php echo esc_attr( $badge_class ); ?>">
 			<?php echo esc_html( $public_seller['name'] ); ?>
 			</a>
