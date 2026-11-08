@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Artist sellers the user is a member of.
  *
  * @param int $user_id User ID.
- * @return array<int, array{type: string, id: int, name: string}>
+ * @return array<int, array{type: string, id: int, name: string, manage_url: string}>
  */
 function ec_get_manageable_shop_artist_sellers( $user_id ) {
 	$user_id = (int) $user_id;
@@ -37,7 +37,8 @@ function ec_get_manageable_shop_artist_sellers( $user_id ) {
 		return array();
 	}
 
-	$sellers = array();
+	$manage_url = ec_get_artist_manage_url();
+	$sellers    = array();
 	switch_to_blog( $artist_blog_id );
 	try {
 		foreach ( $artist_ids as $artist_id ) {
@@ -46,9 +47,10 @@ function ec_get_manageable_shop_artist_sellers( $user_id ) {
 				continue;
 			}
 			$sellers[] = array(
-				'type' => 'artist',
-				'id'   => $artist_id,
-				'name' => $post->post_title,
+				'type'       => 'artist',
+				'id'         => $artist_id,
+				'name'       => $post->post_title,
+				'manage_url' => $manage_url,
 			);
 		}
 	} finally {
@@ -59,12 +61,21 @@ function ec_get_manageable_shop_artist_sellers( $user_id ) {
 }
 
 /**
+ * URL of the Manage Artist screen on the Artist site.
+ *
+ * @return string
+ */
+function ec_get_artist_manage_url() {
+	return function_exists( 'ec_get_site_url' ) ? trailingslashit( (string) ec_get_site_url( 'artist' ) ) . 'manage-artist/' : '';
+}
+
+/**
  * Venue and promoter sellers whose finances the user may manage.
  *
  * Authority is read from Events; it is never inferred here.
  *
  * @param int $user_id User ID.
- * @return array<int, array{type: string, id: int, name: string}>
+ * @return array<int, array{type: string, id: int, name: string, manage_url: string}>
  */
 function ec_get_manageable_shop_event_sellers( $user_id ) {
 	$user_id = (int) $user_id;
@@ -93,9 +104,10 @@ function ec_get_manageable_shop_event_sellers( $user_id ) {
 			continue;
 		}
 		$sellers[] = array(
-			'type' => $type,
-			'id'   => $id,
-			'name' => (string) ( $seller['name'] ?? '' ),
+			'type'       => $type,
+			'id'         => $id,
+			'name'       => (string) ( $seller['name'] ?? '' ),
+			'manage_url' => (string) ( $seller['manage_url'] ?? '' ),
 		);
 	}
 
@@ -106,7 +118,7 @@ function ec_get_manageable_shop_event_sellers( $user_id ) {
  * All sellers the user can manage in the shop manager.
  *
  * @param int $user_id User ID.
- * @return array<int, array{type: string, id: int, name: string}> Typed, named seller references.
+ * @return array<int, array{type: string, id: int, name: string, manage_url: string}> Typed, named seller references.
  */
 function ec_get_manageable_shop_sellers( $user_id ) {
 	$sellers = array();
@@ -169,4 +181,103 @@ function ec_get_shop_manager_url( $seller = null ) {
 	}
 
 	return add_query_arg( 'seller', $type . ':' . $id, $url );
+}
+
+/**
+ * Normalize a `{type, id}` seller reference.
+ *
+ * @param mixed $seller Seller reference.
+ * @return array{type: string, id: int}|null Null when malformed.
+ */
+function ec_shop_seller_ref( $seller ) {
+	if ( ! is_array( $seller ) ) {
+		return null;
+	}
+	$type = isset( $seller['type'] ) ? (string) $seller['type'] : '';
+	$id   = isset( $seller['id'] ) ? (int) $seller['id'] : 0;
+	if ( ! in_array( $type, array( 'artist', 'venue', 'promoter' ), true ) || $id < 1 ) {
+		return null;
+	}
+	return array(
+		'type' => $type,
+		'id'   => $id,
+	);
+}
+
+/**
+ * Public storefront URL for a seller: the Shop catalog filtered to them.
+ *
+ * Uses `?seller=type:id`, the same key as the manager. (`?artist=` collides
+ * with the network `artist` taxonomy query var and 404s.)
+ *
+ * @param array $seller `{type, id}` seller reference.
+ * @return string Storefront URL, or '' when the seller or Shop URL is invalid.
+ */
+function ec_get_shop_storefront_url( $seller ) {
+	$ref      = ec_shop_seller_ref( $seller );
+	$shop_url = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'shop' ) : '';
+	if ( null === $ref || '' === $shop_url ) {
+		return '';
+	}
+	return add_query_arg( 'seller', $ref['type'] . ':' . $ref['id'], trailingslashit( $shop_url ) );
+}
+
+/**
+ * Whether a seller has published products in the Shop.
+ *
+ * Cached briefly; owner pages (venue and promoter calendars) ask on every view.
+ *
+ * @param array $seller `{type, id}` seller reference.
+ * @return bool
+ */
+function ec_shop_seller_has_products( $seller ) {
+	$ref          = ec_shop_seller_ref( $seller );
+	$shop_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'shop' ) : 0;
+	if ( null === $ref || $shop_blog_id < 1 ) {
+		return false;
+	}
+
+	$key    = 'ec_shop_seller_products_' . $ref['type'] . '_' . $ref['id'];
+	$cached = get_site_transient( $key );
+	if ( false !== $cached ) {
+		return 'yes' === $cached;
+	}
+
+	$meta_query = 'artist' === $ref['type']
+		? array(
+			array(
+				'key'   => '_artist_profile_id',
+				'value' => $ref['id'],
+			),
+		)
+		: array(
+			array(
+				'key'   => '_extrachill_shop_seller_type',
+				'value' => $ref['type'],
+			),
+			array(
+				'key'   => '_extrachill_shop_seller_id',
+				'value' => $ref['id'],
+			),
+		);
+
+	switch_to_blog( $shop_blog_id );
+	try {
+		$query = new WP_Query(
+			array(
+				'post_type'      => 'product',
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'meta_query'     => $meta_query, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Seller identity is product meta.
+			)
+		);
+		$has   = ! empty( $query->posts );
+	} finally {
+		restore_current_blog();
+	}
+
+	set_site_transient( $key, $has ? 'yes' : 'no', 10 * MINUTE_IN_SECONDS );
+	return $has;
 }

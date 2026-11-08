@@ -61,7 +61,7 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 
 		$items[] = array(
 			'id'       => 'manage_shop',
-			'label'    => $product_count > 0
+			'label'    => $product_count > 0 || ( function_exists( 'ec_user_has_shop_event_sellers' ) && ec_user_has_shop_event_sellers( $user_id ) )
 				? __( 'Manage Shop', 'extrachill-users' )
 				: __( 'Create Shop', 'extrachill-users' ),
 			'url'      => ec_get_shop_manager_url(),

@@ -47,3 +47,24 @@ The `/manage` page is created once per site (guarded by the `extrachill_shop_man
 npm ci
 npm run build
 ```
+
+## Navigation and storefronts
+
+- **Storefronts.** Every seller's public storefront is the Shop catalog filtered with
+  `?seller=type:id` (`ec_get_shop_storefront_url()` in Users), the same key the
+  manager uses. The page shows the seller name, a link to their public page
+  (artist profile or calendar), and "Manage Shop" for people who run it. The
+  filter bar lists every artist, venue and promoter with published products.
+  `?artist=` is not used: it collides with the network `artist` taxonomy query
+  var. The Shop's empty `/artist/<slug>/` archive redirects to the storefront.
+- **Back link.** The manager header links back to where the seller is managed:
+  Manage Artist, or Venue/Promoter Settings (`manage_url`, supplied by Events
+  through `extrachill/get-commerce-seller` and `list-commerce-sellers`).
+- **Owner pages.** Venue and promoter calendar pages show "Shop Merch" when the
+  seller has published products (`ec_shop_seller_has_products()`, cached 10 minutes).
+- **Public identity.** `extrachill/get-commerce-seller` resolves name and URLs for
+  anonymous visitors; `can_manage_finances` is false for them. Shop caches public
+  identity for an hour.
+- **Tickets.** Tickets are not Shop products. They are set up on each event and
+  sold from the event page; the Payments tab notes that the same Stripe account
+  receives ticket sales.

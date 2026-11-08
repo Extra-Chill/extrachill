@@ -58,6 +58,9 @@ extrachill_breadcrumbs();
 		?>
 		<header class="taxonomy-archive-header promoter-archive-header">
 			<h1 class="page-title"><?php single_term_title(); ?> Live Music Calendar</h1>
+			<?php
+			do_action( 'extrachill_events_promoter_archive_actions', $queried_term );
+			?>
 			
 			<?php if ( ! empty( $queried_term->description ) ) : ?>
 				<div class="taxonomy-description"><?php echo wp_kses_post( wpautop( $queried_term->description ) ); ?></div>

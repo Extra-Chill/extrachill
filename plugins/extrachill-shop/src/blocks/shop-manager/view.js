@@ -40,7 +40,7 @@ import {
 	selectSeller,
 	updateShopOrderStatus,
 } from './api';
-import { sellerKey, sellerLabel, sellerUrl } from './sellers';
+import { sellerHomeLabel, sellerKey, sellerLabel, sellerUrl } from './sellers';
 
 const App = ( { config } ) => {
 	const sellers = useMemo(
@@ -246,6 +246,7 @@ const App = ( { config } ) => {
 		( s ) => sellerKey( s ) === sellerKey( seller )
 	);
 	const storefrontUrl = currentSeller?.storefront_url || '';
+	const ownerUrl = currentSeller?.manage_url || '';
 	const renderPanel = ( id ) => {
 		switch ( id ) {
 			case 'products':
@@ -298,6 +299,13 @@ const App = ( { config } ) => {
 	return (
 		<BlockShell className="ec-asm">
 			<BlockShellInner maxWidth="wide">
+				{ ownerUrl && (
+					<p className="ec-asm__back">
+						<a href={ ownerUrl }>
+							&larr; { sellerHomeLabel( currentSeller ) }
+						</a>
+					</p>
+				) }
 				<BlockShellHeader
 					title={
 						currentSeller ? (

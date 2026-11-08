@@ -95,6 +95,21 @@ require_once dirname( __DIR__, 2 ) . '/extrachill-users/inc/shop-sellers.php';
 function wp_parse_url( $url, $component = -1 ) {
 	return parse_url( $url, $component );
 }
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+if ( ! function_exists( 'wp_unslash' ) ) {
+	function wp_unslash( $value ) {
+		return is_string( $value ) ? stripslashes( $value ) : $value;
+	}
+}
+function get_site_transient( $key ) {
+	return $GLOBALS['test_site_transients'][ $key ] ?? false;
+}
+function set_site_transient( $key, $value, $expiration = 0 ) {
+	$GLOBALS['test_site_transients'][ $key ] = $value;
+	return true;
+}
 function get_option( $key, $default = false ) {
 	return $GLOBALS['test_options'][ $key ] ?? $default;
 }
