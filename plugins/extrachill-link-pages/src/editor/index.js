@@ -2031,7 +2031,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 							<a
 								href={ draft.page.publicUrl }
 								target="_blank"
-								rel="noreferrer"
+								rel="noopener"
 							>
 								{ draft.page.publicUrl }
 							</a>
@@ -2039,7 +2039,7 @@ export function Editor( { configuration, adapter: suppliedAdapter } ) {
 								className="button-2 button-small"
 								href={ draft.page.publicUrl }
 								target="_blank"
-								rel="noreferrer"
+								rel="noopener"
 							>
 								View page
 							</a>

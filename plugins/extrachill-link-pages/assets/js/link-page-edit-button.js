@@ -7,6 +7,11 @@
  * redirect that returns a token in the URL fragment). Bearer tokens are used
  * because the public Link Page host may not share the auth cookie domain.
  * Anonymous or unauthorized visitors get no button and no DOM.
+ *
+ * The handoff is a full top-level navigation, so it only runs when there is a
+ * signal the visitor may be an editor: they arrived from the host site's
+ * network, or this browser has received an edit token before. Everyone else
+ * loads the page once with no cross-site redirect.
  */
 (function () {
     'use strict';
@@ -15,6 +20,56 @@
     // Marker so an anonymous visitor only round-trips through the mint handoff
     // once per browser tab session instead of redirecting on every page view.
     var HANDOFF_ATTEMPTED_KEY = 'ecLinkEditHandoffAttempted';
+    // Persistent marker: this browser has received an edit token before, so a
+    // handoff is worth a redirect once the short-lived token expires.
+    var KNOWN_EDITOR_KEY = 'ecLinkEditKnownEditor';
+
+    /**
+     * Whether this browser has ever received an edit token.
+     *
+     * @return {boolean}
+     */
+    function isKnownEditor() {
+        try {
+            return window.localStorage.getItem(KNOWN_EDITOR_KEY) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Remember that this browser belongs to someone who can receive tokens.
+     *
+     * @return {void}
+     */
+    function markKnownEditor() {
+        try {
+            window.localStorage.setItem(KNOWN_EDITOR_KEY, '1');
+        } catch (e) {}
+    }
+
+    /**
+     * Whether the referrer is the host site or a sibling on its parent domain
+     * (e.g. the handoff host's network), i.e. the visitor may be signed in.
+     *
+     * @param {string} handoffUrl Handoff URL on the host site.
+     * @param {string} referrer   document.referrer.
+     * @return {boolean}
+     */
+    function cameFromHostNetwork(handoffUrl, referrer) {
+        if (!handoffUrl || !referrer) {
+            return false;
+        }
+        try {
+            var hostname = new URL(handoffUrl).hostname;
+            var from = new URL(referrer).hostname;
+            var labels = hostname.split('.');
+            var parent = labels.length > 2 ? labels.slice(1).join('.') : hostname;
+            return from === hostname || from === parent || from.slice(-(parent.length + 1)) === '.' + parent;
+        } catch (e) {
+            return false;
+        }
+    }
 
     /**
      * Read a non-expired cached token from localStorage.
@@ -222,6 +277,7 @@
         var fragment = consumeFragmentToken();
         if (fragment.token) {
             storeToken(fragment.token);
+            markKnownEditor();
         }
 
         // 2. Use a cached/just-captured token if we have one.
@@ -237,8 +293,11 @@
             return;
         }
 
-        // 4. Bootstrap a token via the one-time handoff redirect.
-        attemptHandoff(handoffUrl);
+        // 4. Bootstrap a token via the one-time handoff redirect, but only for
+        //    likely editors. Anonymous visitors never leave the page.
+        if (isKnownEditor() || cameFromHostNetwork(handoffUrl, document.referrer || '')) {
+            attemptHandoff(handoffUrl);
+        }
     }
 
     if (document.readyState === 'loading') {
