@@ -11,7 +11,7 @@ node_modules/
 /docs/***
 
 # Build files
-build/
+# Note: build/ is NOT excluded - it contains compiled Gutenberg blocks from wp-scripts
 .buildignore
 composer.lock
 package-lock.json
