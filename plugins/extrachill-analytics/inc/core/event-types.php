@@ -86,6 +86,9 @@ const EC_ANALYTICS_EVENT_REDIRECT_FIRE     = 'redirect_fire';
  *   `data-ec-track` override or a short stable hash of route + label + dest,
  *   computed server-side so the id survives re-renders (see
  *   extrachill/track-cta-click).
+ * - network_click: dest_host (network host), dest_path (path only, max 512),
+ *   label (max 80), placement (max 40), route. source_url is origin + pathname;
+ *   visitor_id comes from the first-party cookie and is_bot is server-owned.
  * - form_submit: form, placement, route. NEVER field values — the write gate
  *   admits no input-value dimension for this event type (see
  *   extrachill/track-form-submit).
@@ -95,6 +98,7 @@ const EC_ANALYTICS_EVENT_BRIDGE_CLICK      = 'bridge_click';
 const EC_ANALYTICS_EVENT_BRIDGE_IMPRESSION = 'bridge_impression';
 const EC_ANALYTICS_EVENT_OUTBOUND_CLICK    = 'outbound_click';
 const EC_ANALYTICS_EVENT_CTA_CLICK         = 'cta_click';
+const EC_ANALYTICS_EVENT_NETWORK_CLICK     = 'network_click';
 const EC_ANALYTICS_EVENT_FORM_SUBMIT       = 'form_submit';
 
 /**
@@ -122,6 +126,7 @@ const EC_ANALYTICS_PUBLIC_BROWSER_EVENTS = array(
 	EC_ANALYTICS_EVENT_BRIDGE_IMPRESSION,
 	EC_ANALYTICS_EVENT_OUTBOUND_CLICK,
 	EC_ANALYTICS_EVENT_CTA_CLICK,
+	EC_ANALYTICS_EVENT_NETWORK_CLICK,
 	EC_ANALYTICS_EVENT_FORM_SUBMIT,
 );
 

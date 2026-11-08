@@ -344,7 +344,7 @@ function extrachill_analytics_validate_public_event_field( $event_data, $field, 
 /**
  * Validate the event-specific dimensions accepted from public adapters.
  *
- * This intentionally remains a narrow switch over the six browser events. It
+ * This intentionally remains a narrow switch over browser events. It
  * is not a schema registry and does not constrain trusted server-owned events.
  *
  * @param string $event_type Event type.
@@ -380,6 +380,15 @@ function extrachill_analytics_validate_public_event_data( $event_type, $event_da
 				'cta'       => array( 'string', 80 ),
 				'label'     => array( 'string', 80 ),
 				'dest'      => array( 'string', 512 ),
+				'placement' => array( 'string', 40 ),
+				'route'     => array( 'string', 20 ),
+			);
+			break;
+		case EC_ANALYTICS_EVENT_NETWORK_CLICK:
+			$fields = array(
+				'dest_host' => array( 'string', 253 ),
+				'dest_path' => array( 'string', 512 ),
+				'label'     => array( 'string', 80 ),
 				'placement' => array( 'string', 40 ),
 				'route'     => array( 'string', 20 ),
 			);
@@ -462,6 +471,19 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 	$valid_event_data = extrachill_analytics_validate_public_event_data( $event_type, $event_data );
 	if ( is_wp_error( $valid_event_data ) ) {
 		return $valid_event_data;
+	}
+
+	if ( EC_ANALYTICS_EVENT_NETWORK_CLICK === $event_type ) {
+		$hosts = function_exists( 'ec_get_allowed_redirect_hosts' ) ? ec_get_allowed_redirect_hosts() : array();
+		$hosts = array_map( 'strtolower', $hosts );
+		$host  = $event_data['dest_host'] ?? '';
+		$path  = $event_data['dest_path'] ?? '';
+		if ( ! in_array( $host, $hosts, true ) || extrachill_analytics_public_write_host_is_current_site( $host ) ) {
+			return new WP_Error( 'invalid_network_destination', __( 'Destination must be another network host.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+		}
+		if ( '/' !== substr( $path, 0, 1 ) || '//' === substr( $path, 0, 2 ) || strpbrk( $path, '?#' ) !== false ) {
+			return new WP_Error( 'invalid_event_field', __( 'Destination must be a path only.', 'extrachill-analytics' ), array( 'status' => 400, 'field' => 'dest_path' ) );
+		}
 	}
 
 	$url_field = EC_ANALYTICS_EVENT_OUTBOUND_CLICK === $event_type ? 'dest_url' : 'share_url';

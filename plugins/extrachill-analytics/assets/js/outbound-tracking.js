@@ -5,7 +5,7 @@
 	}
 
 	// Hosts that belong to the Extra Chill network — a click to any of these is
-	// an INTERNAL hop (already measured by the conversion map), never an
+	// an INTERNAL hop (attributed by network_click for plain links), never an
 	// outbound exit. Lower-cased for case-insensitive comparison.
 	const networkHosts = ( config.networkHosts || [] ).map( function ( h ) {
 		return String( h ).toLowerCase();
@@ -238,7 +238,7 @@
 	document.addEventListener(
 		'click',
 		function ( event ) {
-			if ( config.endpoint ) {
+			if ( config.endpoint || config.networkEndpoint ) {
 				// Resolve the anchor the click landed on (could be a child element).
 				let anchorEl = event.target;
 				while ( anchorEl && anchorEl.nodeName !== 'A' ) {
@@ -257,8 +257,24 @@
 						( url.protocol === 'http:' || url.protocol === 'https:' )
 					) {
 						const host = url.hostname;
-						if ( host && ! isNetworkHost( host ) ) {
+						if ( host && ! isNetworkHost( host ) && config.endpoint ) {
 							sendOutboundClick( url.origin + url.pathname, host );
+						} else if (
+							isNetworkHost( host ) &&
+							url.host !== window.location.host &&
+							! isExcludedContext() &&
+							! isContentEditableContext( anchorEl ) &&
+							! event.target.closest( CTA_SELECTOR ) &&
+							! anchorEl.closest( '.ec-cross-site-link' )
+						) {
+							sendAbility( config.networkEndpoint, {
+								dest_host: host,
+								dest_path: url.pathname.slice( 0, 512 ),
+								label: resolveLabel( anchorEl ),
+								placement: resolvePlacement( anchorEl ),
+								route: config.route || 'other',
+								source_url: window.location.origin + window.location.pathname,
+							} );
 						}
 					}
 				}
