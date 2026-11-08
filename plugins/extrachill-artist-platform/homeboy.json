@@ -61,11 +61,6 @@
       "artifact_path": "build/blocks/artist-manager/block.json"
     },
     {
-      "file": "src/blocks/artist-shop-manager/block.json",
-      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
-      "artifact_path": "build/blocks/artist-shop-manager/block.json"
-    },
-    {
       "file": "src/blocks/artist-creator/block.json",
       "pattern": "\"version\":\\s*\"([0-9.]+)\"",
       "artifact_path": "build/blocks/artist-creator/block.json"

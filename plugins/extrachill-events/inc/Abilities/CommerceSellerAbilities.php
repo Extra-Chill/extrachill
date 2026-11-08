@@ -253,6 +253,43 @@ class CommerceSellerAbilities {
 	}
 
 	/**
+	 * Shop manager link for a venue or promoter the current user runs.
+	 *
+	 * Empty unless the shop rollout has reached the user and they hold finance
+	 * authority for that seller, so the link never leads to a refusal.
+	 *
+	 * @param string $type Seller type: venue or promoter.
+	 * @param int    $id   Seller term ID.
+	 * @return string Manager URL with the seller preselected, or ''.
+	 */
+	public function shop_manager_url( string $type, int $id ): string {
+		$user_id = get_current_user_id();
+		if ( $user_id < 1 || ! function_exists( 'ec_get_shop_manager_url' ) ) {
+			return '';
+		}
+		if ( ! function_exists( 'ec_feature_available' ) || ! ec_feature_available( 'shop', $user_id ) ) {
+			return '';
+		}
+
+		$seller = $this->execute(
+			array(
+				'type' => $type,
+				'id'   => $id,
+			)
+		);
+		if ( is_wp_error( $seller ) || empty( $seller['can_manage_finances'] ) ) {
+			return '';
+		}
+
+		return (string) ec_get_shop_manager_url(
+			array(
+				'type' => $seller['type'],
+				'id'   => $seller['id'],
+			)
+		);
+	}
+
+	/**
 	 * Resolve on the Events site.
 	 *
 	 * @param string $type    Seller type.

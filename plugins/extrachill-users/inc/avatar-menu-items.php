@@ -64,7 +64,7 @@ function extrachill_users_get_avatar_menu_items( $user_id ) {
 			'label'    => $product_count > 0
 				? __( 'Manage Shop', 'extrachill-users' )
 				: __( 'Create Shop', 'extrachill-users' ),
-			'url'      => ec_get_site_url( 'artist' ) . '/manage-shop/',
+			'url'      => ec_get_shop_manager_url(),
 			'priority' => 50,
 			'danger'   => false,
 		);

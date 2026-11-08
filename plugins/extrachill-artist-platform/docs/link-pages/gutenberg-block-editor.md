@@ -1,6 +1,6 @@
 ## Gutenberg Block Editor System
 
-The Extra Chill Artist Platform provides comprehensive management through five specialized Gutenberg blocks:
+The Extra Chill Artist Platform provides comprehensive management through four specialized Gutenberg blocks:
 
 ### 1. Link Page Editor Block (`src/blocks/link-page-editor/`)
 
@@ -56,28 +56,6 @@ Dedicated Gutenberg block for artist profile creation.
 - User prefill from authenticated context
 - Automatic link page creation for new profiles
 - REST API integration for save operations
-
----
-
-### 5. Artist Shop Manager Block (`src/blocks/artist-shop-manager/`)
-
-Comprehensive shop product management with Stripe integration.
-
-**Location**: `src/blocks/artist-shop-manager/`
-
-**Block Registration**: Automatically registered for shop management
-
-**Features**:
-- Complete shop product CRUD operations (create, read, update, delete)
-- Product media uploads and management (up to 5 images per product)
-- Inventory tracking and management with size variants
-- Order management with fulfillment tracking
-- Stripe Connect integration for payment processing
-- Shipping configuration and label purchasing
-- Product status management (draft/published)
-- Sale price and pricing management
-
-**For comprehensive documentation**, see [Artist Shop Manager Block Documentation](../shop-manager/shop-manager-block.md)
 
 ---
 

@@ -225,17 +225,27 @@ final class LinkPageStorageMigrationContractTest extends EC_Artist_Platform_Test
 
 	/** Missing and wrong-blog attachments fail; reads stay on the source blog. */
 	public function test_missing_and_wrong_blog_attachments_are_rejected_from_source_context(): void {
-		switch_to_blog( $this->main_blog_id() );
-		try {
-			$foreign_attachment = (int) self::factory()->post->create(
-				array(
-					'post_type'   => 'attachment',
-					'post_status' => 'inherit',
-				)
-			);
-		} finally {
-			restore_current_blog();
-		}
+		// Post IDs are per-blog sequences, so a main-blog ID can coincide with a
+		// real Artist-blog attachment; keep creating until it is truly foreign.
+		do {
+			switch_to_blog( $this->main_blog_id() );
+			try {
+				$foreign_attachment = (int) self::factory()->post->create(
+					array(
+						'post_type'   => 'attachment',
+						'post_status' => 'inherit',
+					)
+				);
+			} finally {
+				restore_current_blog();
+			}
+			switch_to_blog( $this->artist_blog_id() );
+			try {
+				$collides = 'attachment' === get_post_type( $foreign_attachment );
+			} finally {
+				restore_current_blog();
+			}
+		} while ( $collides );
 		switch_to_blog( $this->artist_blog_id() );
 		try {
 			update_post_meta( $this->ids['link_page'], '_link_page_profile_image_id', $foreign_attachment );

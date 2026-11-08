@@ -199,7 +199,7 @@ function extrachill_shop_create_seller_stripe_account( $seller ) {
  *
  * @param string     $account_id Stripe connected account ID.
  * @param string     $type       Link type: 'account_onboarding' or 'account_update'.
- * @param array|null $seller     Optional seller reference; artists (default) return to the artist shop manager.
+ * @param array|null $seller     Optional seller reference to return to in the shop manager.
  * @return array{success: bool, url?: string, error?: string}
  */
 function extrachill_shop_create_account_link( $account_id, $type = 'account_onboarding', $seller = null ) {
@@ -210,25 +210,13 @@ function extrachill_shop_create_account_link( $account_id, $type = 'account_onbo
 		);
 	}
 
-	if ( is_array( $seller ) && 'artist' !== ( $seller['type'] ?? 'artist' ) ) {
-		// Venues and promoters return to their Events profile until a seller shop UI exists.
-		$canonical  = extrachill_shop_get_canonical_seller( $seller );
-		$return_url = is_wp_error( $canonical ) ? '' : (string) $canonical['url'];
-		if ( ! $return_url ) {
-			return array(
-				'success' => false,
-				'error'   => 'Seller URL is not available.',
-			);
-		}
-	} else {
-		$return_url = ec_get_site_url( 'artist' );
-		if ( ! $return_url ) {
-			return array(
-				'success' => false,
-				'error'   => 'Artist site URL is not available.',
-			);
-		}
-		$return_url = trailingslashit( $return_url ) . 'manage-shop/';
+	// Every seller type returns to its own shop in the seller manager.
+	$return_url = extrachill_shop_get_shop_manager_url( is_array( $seller ) ? $seller : null );
+	if ( '' === $return_url ) {
+		return array(
+			'success' => false,
+			'error'   => 'Shop manager URL is not available.',
+		);
 	}
 
 	$refresh_url = add_query_arg( 'stripe_refresh', '1', $return_url );

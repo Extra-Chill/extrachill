@@ -141,3 +141,32 @@ function ec_user_has_shop_event_sellers( $user_id ) {
 	set_site_transient( $key, $has ? 'yes' : 'no', 5 * MINUTE_IN_SECONDS );
 	return $has;
 }
+
+/**
+ * URL of the seller shop manager on the Shop site.
+ *
+ * Every entry point (nav, avatar menu, storefront, emails, Stripe return,
+ * Events venue/promoter screens) links here instead of embedding the manager.
+ *
+ * @param array|null $seller Optional `{type, id}` reference to preselect.
+ * @return string Manager URL, or '' when the Shop site URL is unavailable.
+ */
+function ec_get_shop_manager_url( $seller = null ) {
+	$shop_url = function_exists( 'ec_get_site_url' ) ? (string) ec_get_site_url( 'shop' ) : '';
+	if ( '' === $shop_url ) {
+		return '';
+	}
+
+	$url = trailingslashit( $shop_url ) . 'manage/';
+	if ( ! is_array( $seller ) ) {
+		return $url;
+	}
+
+	$type = isset( $seller['type'] ) ? (string) $seller['type'] : '';
+	$id   = isset( $seller['id'] ) ? (int) $seller['id'] : 0;
+	if ( ! in_array( $type, array( 'artist', 'venue', 'promoter' ), true ) || $id < 1 ) {
+		return $url;
+	}
+
+	return add_query_arg( 'seller', $type . ':' . $id, $url );
+}

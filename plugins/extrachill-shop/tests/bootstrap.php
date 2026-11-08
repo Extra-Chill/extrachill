@@ -78,8 +78,20 @@ function ec_get_blog_id( $site_key ) {
 	return array( 'shop' => 3, 'events' => 7, 'artist' => 4 )[ $site_key ] ?? null;
 }
 function ec_get_site_url( $site_key ) {
-	return array( 'events' => 'https://events.extrachill.com', 'artist' => 'https://artist.extrachill.com' )[ $site_key ] ?? null;
+	return array(
+		'events' => 'https://events.extrachill.com',
+		'artist' => 'https://artist.extrachill.com',
+		'shop'   => 'https://shop.extrachill.com',
+	)[ $site_key ] ?? null;
 }
+function add_query_arg( $key, $value, $url ) {
+	return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . $key . '=' . $value;
+}
+function trailingslashit( $value ) {
+	return rtrim( $value, '/\\' ) . '/';
+}
+// The network-wide manager URL builder lives in Users.
+require_once dirname( __DIR__, 2 ) . '/extrachill-users/inc/shop-sellers.php';
 function wp_parse_url( $url, $component = -1 ) {
 	return parse_url( $url, $component );
 }

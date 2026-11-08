@@ -262,7 +262,7 @@ One week before public launch:
 | Stripe Connect | `extrachill-shop/inc/stripe/` |
 | Checkout Handler | `extrachill-shop/inc/stripe/checkout-handler.php` |
 | Webhooks | `extrachill-shop/inc/stripe/webhooks.php` |
-| Artist Shop Manager Block | `extrachill-artist-platform/src/blocks/artist-shop-manager/` |
+| Seller Shop Manager Block | `extrachill-shop/src/blocks/shop-manager/` |
 | Artist Creator Block | `extrachill-artist-platform/src/blocks/artist-creator/` |
 | Shop API Routes | `extrachill-api/inc/routes/shop/` |
 | WooCommerce Templates | `extrachill-shop/woocommerce/` |

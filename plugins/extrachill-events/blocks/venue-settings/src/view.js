@@ -117,8 +117,8 @@ export function VenueSettingsApp( { context } ) {
 		const profileBaseline = profileBaselines[ venue.id ];
 		return Boolean(
 			profile &&
-				profileBaseline &&
-				! sameDocument( profile, profileBaseline )
+			profileBaseline &&
+			! sameDocument( profile, profileBaseline )
 		);
 	} );
 	const linkPageDirty = Object.values( linkPageDirtyByIdentity ).some(
@@ -306,7 +306,7 @@ export function VenueSettingsApp( { context } ) {
 						{ id: 'calendar-feed', label: 'Calendar Feed' },
 						{ id: 'graphics', label: 'Graphics' },
 						{ id: 'link-page', label: 'Link Page' },
-				  ]
+					]
 				: [] ),
 			...( manageableVenues.length
 				? [ { id: 'team', label: 'Team' } ]
@@ -462,6 +462,7 @@ export function VenueSettingsApp( { context } ) {
 			return (
 				<PromoterWorkspacePanel
 					workspace={ workspace }
+					shopManagerUrl={ context.shop_manager_url || '' }
 					onLinkPageDirtyChange={ ( value ) =>
 						setLinkPageDirty(
 							`promoter:${ workspace.promoter?.id || 0 }`,
@@ -531,6 +532,7 @@ export function VenueSettingsApp( { context } ) {
 						venues={ context.venues }
 						selected={ selected }
 						onSwitchVenue={ switchVenue }
+						shopManagerUrl={ context.shop_manager_url || '' }
 					/>
 				) }
 				<ExtensionProviders

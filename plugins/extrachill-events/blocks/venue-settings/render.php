@@ -9,6 +9,7 @@
  * @package ExtraChillEvents
  */
 
+use ExtraChillEvents\Abilities\CommerceSellerAbilities;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
@@ -177,14 +178,24 @@ if ( is_wp_error( $workspace ) ) {
 		'promoter_relationships' => array(),
 	);
 }
+// "Manage shop" entry point: only for the selected seller, only with finance authority.
+$shop_seller = null;
+if ( $promoter_mode && 'active' === ( $workspace['selection']['state'] ?? '' ) && ! empty( $workspace['promoter']['id'] ) ) {
+	$shop_seller = array( 'promoter', (int) $workspace['promoter']['id'] );
+} elseif ( ! $promoter_mode && $selected ) {
+	$shop_seller = array( 'venue', (int) $selected['id'] );
+}
+$shop_manager_url = $shop_seller ? ( new CommerceSellerAbilities( null, null, false ) )->shop_manager_url( $shop_seller[0], $shop_seller[1] ) : '';
+
 $context = array(
-	'user'      => array(
+	'shop_manager_url' => $shop_manager_url,
+	'user'             => array(
 		'id'       => $user_id,
 		'name'     => wp_get_current_user()->display_name,
 		'is_admin' => $is_admin,
 	),
-	'route_url' => home_url( '/venue-settings/' ),
-	'workspace' => $workspace,
+	'route_url'        => home_url( '/venue-settings/' ),
+	'workspace'        => $workspace,
 );
 if ( ! $promoter_mode ) {
 	$context = array_merge(

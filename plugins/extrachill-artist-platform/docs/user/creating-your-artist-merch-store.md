@@ -4,7 +4,7 @@ Sell merchandise from your artist's shop and manage products, orders, shipping, 
 
 ## Set up your shop
 
-1. Sign in and open [Shop Manager](https://artist.extrachill.com/manage-shop/).
+1. Sign in and open [Shop Manager](https://shop.extrachill.com/manage/).
 2. Choose the artist whose shop you want to manage.
 3. Open **Shipping**, enter your shipping address, and choose **Save Address**.
 4. Open **Payments** and follow the prompts to connect your payment account and provide the requested business and bank details.

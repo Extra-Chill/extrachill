@@ -39,12 +39,15 @@ function extrachill_shop_maybe_render_manage_shop_button() {
 		return;
 	}
 
-	$artist_site_url = ec_get_site_url( 'artist' );
-	if ( ! $artist_site_url ) {
+	$manage_url = extrachill_shop_get_shop_manager_url(
+		array(
+			'type' => 'artist',
+			'id'   => $artist_id,
+		)
+	);
+	if ( '' === $manage_url ) {
 		return;
 	}
-
-	$manage_url = trailingslashit( $artist_site_url ) . 'manage-shop/';
 
 	echo '<div class="artist-profile-link-container">';
 	echo '<a class="button-1 button-medium" href="' . esc_url( $manage_url ) . '">';

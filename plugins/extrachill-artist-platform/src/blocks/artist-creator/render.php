@@ -111,8 +111,8 @@ $config = array(
 	'prefill'           => $prefill,
 	'manageArtistUrl'   => home_url( '/manage-artist/' ),
 	'createLinkPageUrl' => home_url( '/manage-link-page/' ),
-	// Admin-only during development
-	'createShopUrl'     => current_user_can( 'manage_options' ) ? home_url( '/manage-shop/' ) : '',
+	// Shown once the shop rollout reaches this user; the new artist makes them a seller.
+	'createShopUrl'     => function_exists( 'ec_feature_available' ) && ec_feature_available( 'shop', get_current_user_id() ) && function_exists( 'ec_get_shop_manager_url' ) ? ec_get_shop_manager_url() : '',
 );
 
 // Enqueue frontend script and styles

@@ -21,10 +21,6 @@ module.exports = {
 		'blocks/artist-manager/view': './src/blocks/artist-manager/view.js',
 		'blocks/artist-creator/index': './src/blocks/artist-creator/index.js',
 		'blocks/artist-creator/view': './src/blocks/artist-creator/view.js',
-		'blocks/artist-shop-manager/index':
-			'./src/blocks/artist-shop-manager/index.js',
-		'blocks/artist-shop-manager/view':
-			'./src/blocks/artist-shop-manager/view.js',
 	},
 	output: {
 		...defaultConfig.output,
