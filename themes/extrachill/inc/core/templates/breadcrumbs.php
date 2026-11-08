@@ -49,7 +49,10 @@ if ( ! function_exists( 'extrachill_breadcrumbs' ) ) {
 
 		// Allow plugins to override the root breadcrumb link.
 		$root_link = apply_filters( 'extrachill_breadcrumbs_root', '<a href="' . home_url() . '">' . esc_html( extrachill_get_site_title() ) . '</a>' );
-		echo wp_kses_post( $root_link ) . ' › ';
+		echo wp_kses_post( $root_link );
+		// Interactive sibling components own their escaping (buttons/SVG are not post HTML).
+		do_action( 'extrachill_breadcrumbs_after_root' );
+		echo ' › ';
 
 		// Allow plugins to override the default breadcrumb trail.
 		$custom_trail = apply_filters( 'extrachill_breadcrumbs_override_trail', '' );

@@ -27,6 +27,8 @@
       "php tests/cross-site-http-errors-smoke.php",
       "php tests/link-editor-hint-smoke.php",
       "php tests/network-dropdown-tracking-smoke.php",
+      "php tests/network-dropdown-experiment-smoke.php",
+      "node tests/NetworkDropdownExperimentJsTest.js",
       "php tests/network-term-classification-smoke.php",
       "php tests/experiment-assignment-smoke.php",
       "php tests/service-assertion-smoke.php",
