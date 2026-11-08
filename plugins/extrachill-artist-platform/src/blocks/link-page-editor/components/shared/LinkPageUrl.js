@@ -23,8 +23,7 @@ export default function LinkPageUrl( { publicUrl, onQRCodeClick } ) {
 				href={ publicUrl }
 				className="ec-editor__link-url-text"
 				target="_blank"
-				/* Own public page: keep the referrer so it can offer the owner an edit button. */
-				rel="noopener"
+				rel="noopener noreferrer"
 			>
 				{ displayUrl }
 			</a>
