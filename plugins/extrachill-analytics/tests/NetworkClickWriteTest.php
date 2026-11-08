@@ -7,6 +7,17 @@
 
 require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 
+if ( ! function_exists( 'ec_get_allowed_redirect_hosts' ) ) {
+	/**
+	 * Mirror extrachill-network's helper, which is not loaded in this suite.
+	 *
+	 * @return string[] Network hosts.
+	 */
+	function ec_get_allowed_redirect_hosts() {
+		return apply_filters( 'ec_allowed_redirect_hosts', array() );
+	}
+}
+
 final class NetworkClickWriteTest extends Extrachill_Analytics_TestCase {
 	public function set_up(): void {
 		parent::set_up();
@@ -41,7 +52,9 @@ final class NetworkClickWriteTest extends Extrachill_Analytics_TestCase {
 		$ability = wp_get_ability( 'extrachill/track-network-click' );
 		$this->assertInstanceOf( WP_Ability::class, $ability );
 		$this->assertTrue( $ability->get_meta()['show_in_rest'] );
-		$this->assertGreaterThan( 0, extrachill_analytics_ability_track_network_click( $this->valid_input() ) );
+		$id = extrachill_analytics_ability_track_network_click( $this->valid_input() );
+		$this->assertIsInt( $id );
+		$this->assertGreaterThan( 0, $id );
 		$rows = $this->event_rows( EC_ANALYTICS_EVENT_NETWORK_CLICK );
 		$this->assertCount( 1, $rows );
 		$this->assertSame( '123e4567-e89b-42d3-a456-426614174000', $rows[0]->visitor_id );
@@ -68,6 +81,7 @@ final class NetworkClickWriteTest extends Extrachill_Analytics_TestCase {
 			'placement' => str_repeat( 'x', 50 ),
 			'route' => 'invalid',
 		) ) );
+		$this->assertIsInt( $result );
 		$this->assertGreaterThan( 0, $result );
 		$data = $this->event_data( $this->event_rows( EC_ANALYTICS_EVENT_NETWORK_CLICK )[0] );
 		$this->assertSame( 512, strlen( $data['dest_path'] ) );
@@ -93,6 +107,7 @@ final class NetworkClickWriteTest extends Extrachill_Analytics_TestCase {
 	public function test_is_bot_is_server_owned(): void {
 		$_SERVER['HTTP_USER_AGENT'] = 'Googlebot/2.1';
 		$result = extrachill_analytics_ability_track_network_click( $this->valid_input( array( 'is_bot' => false ) ) );
+		$this->assertIsInt( $result );
 		$this->assertGreaterThan( 0, $result );
 		$data = $this->event_data( $this->event_rows( EC_ANALYTICS_EVENT_NETWORK_CLICK )[0] );
 		$this->assertTrue( (bool) $data['is_bot'] );
