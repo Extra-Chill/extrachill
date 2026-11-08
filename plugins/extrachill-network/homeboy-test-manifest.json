@@ -64,6 +64,9 @@
     "tests/multisite-guard-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/network-dropdown-tracking-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/network-bridge-composer-fallback-smoke.php": {
       "environment": "standalone-php"
     },
