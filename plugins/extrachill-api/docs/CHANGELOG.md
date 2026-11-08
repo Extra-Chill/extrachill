@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.0] - 2026-11-08
+
+### Added
+- Tickets tab in venue settings with sales by show and refunds until check-in
+
 ## [0.51.0] - 2026-11-08
 
 ### Added
