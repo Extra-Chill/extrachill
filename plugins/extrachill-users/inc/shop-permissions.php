@@ -18,15 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Shop manager is the first consumer of the feature-rollout primitive. The
  * "admin-only until ready" logic is no longer a hardcoded manage_options check
  * here — it now comes from the `shop` feature ceiling (currently `admin`, see
- * ec_feature_ceilings()). Management additionally requires the user to own at
- * least one artist profile.
+ * ec_feature_ceilings()). Management additionally requires at least one seller
+ * the user can manage: an artist they belong to, or a venue or promoter whose
+ * finances Events says they manage.
  *
- *     can manage shop = ec_feature_available( 'shop' ) AND (owns >= 1 artist)
+ *     can manage shop = ec_feature_available( 'shop' ) AND (manages >= 1 seller)
  *
- * With the shop ceiling at `admin` and no network-option override, this
- * preserves the prior behavior exactly (admin + has artist). Promoting shop to
- * the team becomes a one-flag flip of the network option; going public is a
- * reviewed ceiling bump — no edits to this function.
+ * Promoting shop to the team becomes a one-flag flip of the network option;
+ * going public is a reviewed ceiling bump — no edits to this function.
  *
  * @param int|null $user_id User ID (defaults to current).
  * @return bool
@@ -43,7 +42,8 @@ function ec_can_manage_shop( $user_id = null ) {
 		return false;
 	}
 
-	// Base capability: the user must own at least one artist profile.
+	// Base capability: the user manages at least one seller. Artist membership
+	// is a local lookup, so check it before asking Events about venues.
 	if ( function_exists( 'ec_get_artists_for_user' ) ) {
 		$artist_ids = ec_get_artists_for_user( $user_id );
 		if ( ! empty( $artist_ids ) ) {
@@ -51,7 +51,7 @@ function ec_can_manage_shop( $user_id = null ) {
 		}
 	}
 
-	return false;
+	return ec_user_has_shop_event_sellers( $user_id );
 }
 
 /**

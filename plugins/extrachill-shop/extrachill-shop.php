@@ -64,6 +64,7 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commerce-state.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/owned-state-migration.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/order-seller-index.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/shop-manager.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/woocommerce-templates.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/breadcrumb-integration.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/assets.php';

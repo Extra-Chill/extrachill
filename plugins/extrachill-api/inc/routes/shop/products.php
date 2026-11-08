@@ -436,9 +436,12 @@ function extrachill_api_shop_products_permission_check( WP_REST_Request $request
  * Permission check for item routes (get, update, delete).
  */
 function extrachill_api_shop_products_item_permission_check( WP_REST_Request $request ) {
-	$base_check = extrachill_api_shop_products_permission_check( $request );
-	if ( is_wp_error( $base_check ) ) {
-		return $base_check;
+	if ( ! is_user_logged_in() ) {
+		return new WP_Error(
+			'rest_forbidden',
+			'You must be logged in.',
+			array( 'status' => 401 )
+		);
 	}
 
 	$product_id = absint( $request->get_param( 'id' ) );
@@ -456,16 +459,13 @@ function extrachill_api_shop_products_item_permission_check( WP_REST_Request $re
 		return true;
 	}
 
-	$artist_id = absint( get_post_meta( $product_id, '_artist_profile_id', true ) );
-	if ( ! $artist_id ) {
-		return new WP_Error(
-			'rest_forbidden',
-			'You do not have permission to manage this product.',
-			array( 'status' => 403 )
-		);
+	// Authority follows the product's seller (artist, venue or promoter),
+	// resolved and checked by Shop against the seller's owning site.
+	if ( ! function_exists( 'extrachill_shop_get_product_seller' ) || ! function_exists( 'extrachill_shop_current_user_can_manage_seller' ) ) {
+		return new WP_Error( 'shop_unavailable', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
 	}
-
-	if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
+	$seller = extrachill_shop_get_product_seller( $product_id );
+	if ( ! $seller || true !== extrachill_shop_current_user_can_manage_seller( $seller ) ) {
 		return new WP_Error(
 			'rest_forbidden',
 			'You do not have permission to manage this product.',

@@ -2,7 +2,16 @@
   "id": "extrachill-shop",
   "changelog_target": "docs/CHANGELOG.md",
   "extensions": {
-    "wordpress": {}
+    "wordpress": {
+      "settings": {
+        "local_workspace_dependencies": [
+          {
+            "name": "@extrachill/components",
+            "path": "../../packages/components"
+          }
+        ]
+      }
+    }
   },
   "version_targets": [
     {
@@ -12,12 +21,19 @@
     {
       "file": "extrachill-shop.php",
       "pattern": "EXTRACHILL_SHOP_VERSION',\\s*'([\\d.]+)"
+    },
+    {
+      "file": "src/blocks/shop-manager/block.json",
+      "pattern": "\"version\":\\s*\"([0-9.]+)\"",
+      "artifact_path": "build/blocks/shop-manager/block.json"
     }
   ],
   "scopes": {
     "release": {
       "exclude": [
-        ".vscode/**"
+        ".vscode/**",
+        "src/**",
+        "webpack.config.js"
       ]
     }
   }

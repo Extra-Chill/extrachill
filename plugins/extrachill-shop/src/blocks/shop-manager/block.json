@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "extrachill/shop-manager",
+  "version": "0.14.0",
+  "title": "Shop Manager",
+  "category": "widgets",
+  "icon": "cart",
+  "description": "Manage products, orders, shipping and payments for an artist, venue or promoter shop.",
+  "textdomain": "extrachill-shop",
+  "attributes": {},
+  "supports": {
+    "html": false,
+    "multiple": false,
+    "reusable": false,
+    "inserter": true
+  },
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}
