@@ -26,7 +26,7 @@ The shop system is currently gated to admins only, allowing internal testing and
 | `extrachill-shop/inc/core/artist-product-meta.php` | Added user product count helper |
 | `extrachill-artist-platform/inc/core/nav.php` | Admin-gated secondary header link |
 | `extrachill-users/inc/avatar-menu.php` | Admin-gated avatar menu link |
-| `extrachill-shop/inc/core/artist-storefront-manage-button.php` | Admin-gated storefront button |
+| `extrachill-shop/inc/core/seller-storefront.php` | Storefront header (seller name, public page, Manage Shop) and artist-archive redirect |
 | `extrachill-artist-platform/src/blocks/artist-creator/render.php` | Admin-gated config URL |
 | `extrachill-artist-platform/src/blocks/artist-creator/view.js` | Conditional Create Shop button |
 
@@ -269,5 +269,5 @@ One week before public launch:
 | Product Count Helper | `extrachill-shop/inc/core/artist-product-meta.php` |
 | Secondary Header Nav | `extrachill-artist-platform/inc/core/nav.php` |
 | Avatar Menu | `extrachill-users/inc/avatar-menu.php` |
-| Storefront Button | `extrachill-shop/inc/core/artist-storefront-manage-button.php` |
+| Storefront Header | `extrachill-shop/inc/core/seller-storefront.php` |
 | Terms of Service Checklist | `extrachill-shop/terms-of-service-checklist.md` |

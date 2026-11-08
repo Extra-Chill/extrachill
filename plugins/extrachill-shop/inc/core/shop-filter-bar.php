@@ -40,12 +40,12 @@ function extrachill_shop_filter_bar_items( $items ) {
 		return $items;
 	}
 
-	$current_artist = isset( $_GET['artist'] ) ? absint( wp_unslash( $_GET['artist'] ) ) : 0;
+	$current_seller = extrachill_shop_get_requested_storefront_seller();
 	$current_sort   = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
 
-	$artist_item = extrachill_shop_build_artist_dropdown( $current_artist );
-	if ( $artist_item ) {
-		$items[] = $artist_item;
+	$seller_item = extrachill_shop_build_seller_dropdown( $current_seller ? extrachill_shop_seller_ref_key( $current_seller ) : '' );
+	if ( $seller_item ) {
+		$items[] = $seller_item;
 	}
 
 	// Sort dropdown with price options.
@@ -77,32 +77,38 @@ function extrachill_shop_filter_bar_items( $items ) {
 }
 
 /**
- * Build artist filter dropdown for shop.
+ * Build the seller filter dropdown: every artist, venue and promoter with
+ * published products. Values are `type:id`, the storefront key.
  *
- * @param int $current_artist Current canonical artist ID.
+ * @param string $current_seller Current `type:id`, or ''.
  * @return array|null Dropdown item or null.
  */
-function extrachill_shop_build_artist_dropdown( $current_artist ) {
-	$artist_ids = extrachill_shop_get_artists_with_products();
-	if ( empty( $artist_ids ) ) {
-		return null;
+function extrachill_shop_build_seller_dropdown( string $current_seller ) {
+	$sellers = extrachill_shop_get_event_sellers_with_products();
+	foreach ( extrachill_shop_get_artists_with_products() as $artist_id ) {
+		$sellers[] = array(
+			'type' => 'artist',
+			'id'   => (int) $artist_id,
+		);
 	}
 
-	$artist_options = array();
-	foreach ( $artist_ids as $artist_id ) {
-		$artist = extrachill_shop_get_canonical_artist( $artist_id );
-		if ( ! is_wp_error( $artist ) ) {
-			$artist_options[ (string) $artist_id ] = (string) $artist['name'];
+	$options = array();
+	foreach ( $sellers as $seller ) {
+		$public = extrachill_shop_get_public_seller( $seller );
+		if ( $public ) {
+			$options[ extrachill_shop_seller_ref_key( $seller ) ] = $public['name'];
 		}
 	}
-	asort( $artist_options, SORT_NATURAL | SORT_FLAG_CASE );
-	$options = array( '' => __( 'All Artists', 'extrachill-shop' ) ) + $artist_options;
+	if ( empty( $options ) ) {
+		return null;
+	}
+	asort( $options, SORT_NATURAL | SORT_FLAG_CASE );
 
 	return array(
 		'type'    => 'dropdown',
-		'id'      => 'filter-bar-artist',
-		'name'    => 'artist',
-		'options' => $options,
-		'current' => $current_artist,
+		'id'      => 'filter-bar-seller',
+		'name'    => 'seller',
+		'options' => array( '' => __( 'All Sellers', 'extrachill-shop' ) ) + $options,
+		'current' => $current_seller,
 	);
 }

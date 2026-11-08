@@ -10,6 +10,11 @@
 	font-family: var(--font-family-heading);
 }
 
+.ec-asm__back {
+	margin: 0;
+	font-size: var(--font-size-sm);
+}
+
 .ec-asm__toolbar {
 	justify-content: flex-end;
 }

@@ -22,6 +22,8 @@ namespace {
 			$GLOBALS['cs_blog'] = $id; },
 		'restore_current_blog' => static function () { $GLOBALS['cs_blog'] = array_pop( $GLOBALS['cs_stack'] ); },
 		'ec_feature_available' => static fn( $feature, $user_id ) => in_array( $user_id, $GLOBALS['cs_shop_rollout'] ?? array(), true ),
+		'ec_events_get_venue_settings_url'    => static fn( $id ) => 'https://events.example/venue-settings/?venue_id=' . $id,
+		'ec_events_get_promoter_settings_url' => static fn( $id ) => 'https://events.example/venue-settings/?identity=promoter:' . $id,
 		'ec_get_shop_manager_url' => static fn( $seller = null ) => 'https://shop.example/manage/' . ( $seller ? '?seller=' . $seller['type'] . ':' . $seller['id'] : '' ),
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
@@ -178,6 +180,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 					'id'                  => 1524,
 					'name'                => 'Lo-Fi Brewing',
 					'url'                 => 'https://events.example/venue/1524/',
+					'manage_url'          => 'https://events.example/venue-settings/?venue_id=1524',
 					'can_manage_finances' => true,
 				),
 				$this->ability->execute(
@@ -228,7 +231,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 			);
 		}
 
-		public function test_rejects_anonymous_invalid_and_unknown_sellers(): void {
+		public function test_rejects_invalid_and_unknown_sellers(): void {
 			foreach ( array(
 				array(
 					'type' => 'artist',
@@ -254,16 +257,28 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 					)
 				)->get_error_code()
 			);
+		}
+
+		public function test_anonymous_visitors_get_public_identity_without_authority(): void {
 			$GLOBALS['cs_user'] = 0;
-			$this->assertSame(
-				'commerce_seller_authentication_required',
-				$this->ability->execute(
-					array(
-						'type' => 'venue',
-						'id'   => 1524,
-					)
-				)->get_error_code()
+			$venue              = $this->ability->execute(
+				array(
+					'type' => 'venue',
+					'id'   => 1524,
+				)
 			);
+			$this->assertSame( 'Lo-Fi Brewing', $venue['name'] );
+			$this->assertFalse( $venue['can_manage_finances'] );
+			$promoter = $this->ability->execute(
+				array(
+					'type' => 'promoter',
+					'id'   => 88,
+				)
+			);
+			$this->assertSame( 'https://events.example/venue-settings/?identity=promoter:88', $promoter['manage_url'] );
+			$this->assertFalse( $promoter['can_manage_finances'] );
+			$this->ability->register();
+			$this->assertSame( '__return_true', $GLOBALS['cs_abilities']['extrachill/get-commerce-seller']['permission_callback'] );
 		}
 	}
 }

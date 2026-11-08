@@ -162,16 +162,16 @@ function extrachill_shop_get_manager_state( ?string $requested ): array {
 		&& true === extrachill_shop_current_user_can_manage_seller( $ref ) ) {
 		$canonical = extrachill_shop_get_canonical_seller( $ref );
 		$sellers[] = array(
-			'type' => $ref['type'],
-			'id'   => $ref['id'],
-			'name' => is_wp_error( $canonical ) ? '' : (string) $canonical['name'],
+			'type'       => $ref['type'],
+			'id'         => $ref['id'],
+			'name'       => is_wp_error( $canonical ) ? '' : (string) $canonical['name'],
+			'manage_url' => extrachill_shop_seller_owner_manage_url( $ref, is_wp_error( $canonical ) ? array() : $canonical ),
 		);
 	}
 
 	foreach ( $sellers as &$seller ) {
-		$seller['storefront_url'] = 'artist' === $seller['type'] && function_exists( 'extrachill_shop_get_artist_store_url' )
-			? (string) extrachill_shop_get_artist_store_url( $seller['id'] )
-			: '';
+		$seller['storefront_url'] = extrachill_shop_get_seller_store_url( $seller );
+		$seller['manage_url']     = (string) ( $seller['manage_url'] ?? '' );
 	}
 	unset( $seller );
 
@@ -183,6 +183,22 @@ function extrachill_shop_get_manager_state( ?string $requested ): array {
 			get_user_meta( $user_id, EXTRACHILL_SHOP_RECENT_SELLER_META, true )
 		),
 	);
+}
+
+/**
+ * Where the seller is managed outside the Shop (Manage Artist, Venue Settings).
+ *
+ * Venues and promoters get it from their owner (Events `manage_url`).
+ *
+ * @param array $seller    `{type, id}` seller reference.
+ * @param array $canonical Canonical seller from its owner, if resolved.
+ * @return string
+ */
+function extrachill_shop_seller_owner_manage_url( array $seller, array $canonical ): string {
+	if ( 'artist' === $seller['type'] ) {
+		return function_exists( 'ec_get_artist_manage_url' ) ? (string) ec_get_artist_manage_url() : '';
+	}
+	return (string) ( $canonical['manage_url'] ?? '' );
 }
 
 /**

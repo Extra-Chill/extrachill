@@ -60,7 +60,7 @@ class CommerceSellerAbilities {
 			'extrachill/get-commerce-seller',
 			array(
 				'label'               => __( 'Get Commerce Seller', 'extrachill-events' ),
-				'description'         => __( 'Resolve a venue or promoter as a shop seller and report whether the current user may manage its finances.', 'extrachill-events' ),
+				'description'         => __( 'Resolve a venue or promoter as a shop seller and report whether the current user may manage its finances. Public identity resolves for anyone; finance authority is false for anonymous visitors.', 'extrachill-events' ),
 				'category'            => 'extrachill-events',
 				'input_schema'        => array(
 					'type'                 => 'object',
@@ -84,13 +84,14 @@ class CommerceSellerAbilities {
 						'id'                  => array( 'type' => 'integer' ),
 						'name'                => array( 'type' => 'string' ),
 						'url'                 => array( 'type' => 'string' ),
+						'manage_url'          => array( 'type' => 'string' ),
 						'can_manage_finances' => array( 'type' => 'boolean' ),
 					),
-					'required'             => array( 'type', 'id', 'name', 'url', 'can_manage_finances' ),
+					'required'             => array( 'type', 'id', 'name', 'url', 'manage_url', 'can_manage_finances' ),
 					'additionalProperties' => false,
 				),
 				'execute_callback'    => array( $this, 'execute' ),
-				'permission_callback' => array( $this, 'authorize' ),
+				'permission_callback' => '__return_true',
 				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(
@@ -123,12 +124,13 @@ class CommerceSellerAbilities {
 									'id'                  => array( 'type' => 'integer' ),
 									'name'                => array( 'type' => 'string' ),
 									'url'                 => array( 'type' => 'string' ),
+									'manage_url'          => array( 'type' => 'string' ),
 									'can_manage_finances' => array(
 										'type' => 'boolean',
 										'enum' => array( true ),
 									),
 								),
-								'required'             => array( 'type', 'id', 'name', 'url', 'can_manage_finances' ),
+								'required'             => array( 'type', 'id', 'name', 'url', 'manage_url', 'can_manage_finances' ),
 								'additionalProperties' => false,
 							),
 						),
@@ -165,15 +167,13 @@ class CommerceSellerAbilities {
 	/**
 	 * Resolve the seller identity and the current user's finance authority.
 	 *
+	 * Identity (name, public URL, settings URL) is public, so storefronts can
+	 * name a seller for anonymous shoppers. Finance authority is false for them.
+	 *
 	 * @param array $input Ability input.
 	 * @return array|\WP_Error
 	 */
 	public function execute( array $input ) {
-		$allowed = $this->authorize();
-		if ( is_wp_error( $allowed ) ) {
-			return $allowed;
-		}
-
 		$type = isset( $input['type'] ) ? (string) $input['type'] : '';
 		$id   = isset( $input['id'] ) && is_int( $input['id'] ) ? $input['id'] : 0;
 		if ( ! in_array( $type, array( 'venue', 'promoter' ), true ) || $id < 1 ) {
@@ -253,6 +253,20 @@ class CommerceSellerAbilities {
 	}
 
 	/**
+	 * Venue Settings URL that opens this venue or promoter.
+	 *
+	 * @param string $type Seller type: venue or promoter.
+	 * @param int    $id   Seller term ID.
+	 * @return string
+	 */
+	public static function settings_url( string $type, int $id ): string {
+		if ( 'venue' === $type ) {
+			return function_exists( 'ec_events_get_venue_settings_url' ) ? ec_events_get_venue_settings_url( $id ) : '';
+		}
+		return function_exists( 'ec_events_get_promoter_settings_url' ) ? ec_events_get_promoter_settings_url( $id ) : '';
+	}
+
+	/**
 	 * Shop manager link for a venue or promoter the current user runs.
 	 *
 	 * Empty unless the shop rollout has reached the user and they hold finance
@@ -306,7 +320,7 @@ class CommerceSellerAbilities {
 		}
 
 		if ( 'venue' === $type ) {
-			$can = $this->venues->can( $user_id, $id, VenueAuthorization::ACTION_MANAGE_FINANCES );
+			$can = $user_id > 0 && $this->venues->can( $user_id, $id, VenueAuthorization::ACTION_MANAGE_FINANCES );
 		} else {
 			if ( ! $this->promoters ) {
 				return $not_found;
@@ -318,7 +332,7 @@ class CommerceSellerAbilities {
 			if ( ! is_array( $organization ) || PromoterAuthorityRepository::STATUS_ACTIVE !== ( $organization['status'] ?? '' ) ) {
 				return $not_found;
 			}
-			$membership = $this->promoters->get_active_membership( $id, $user_id );
+			$membership = $user_id > 0 ? $this->promoters->get_active_membership( $id, $user_id ) : null;
 			$can        = is_array( $membership ) && ! empty( $membership['is_owner'] );
 		}
 
@@ -329,6 +343,7 @@ class CommerceSellerAbilities {
 			'id'                  => (int) $term->term_id,
 			'name'                => sanitize_text_field( (string) $term->name ),
 			'url'                 => is_wp_error( $url ) ? '' : esc_url_raw( $url ),
+			'manage_url'          => esc_url_raw( self::settings_url( $type, (int) $term->term_id ) ),
 			'can_manage_finances' => (bool) $can,
 		);
 	}

@@ -142,7 +142,7 @@ function extrachill_shop_seller_key( array $seller ) {
  * the current user may manage the seller's finances.
  *
  * @param mixed $seller Seller reference.
- * @return array|WP_Error { type, id, name, url, can_manage_finances? }
+ * @return array|WP_Error { type, id, name, url, manage_url?, can_manage_finances? }
  */
 function extrachill_shop_get_canonical_seller( $seller ) {
 	static $sellers = array();
@@ -185,6 +185,7 @@ function extrachill_shop_get_canonical_seller( $seller ) {
 			'id'                  => $seller['id'],
 			'name'                => (string) ( $result['name'] ?? '' ),
 			'url'                 => (string) ( $result['url'] ?? '' ),
+			'manage_url'          => (string) ( $result['manage_url'] ?? '' ),
 			'can_manage_finances' => ! empty( $result['can_manage_finances'] ),
 		);
 	}

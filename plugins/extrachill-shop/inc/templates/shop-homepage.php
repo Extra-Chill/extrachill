@@ -11,13 +11,17 @@
 defined( 'ABSPATH' ) || exit;
 
 extrachill_breadcrumbs();
-extrachill_filter_bar();
 
 // Get filter params
-$current_artist = isset( $_GET['artist'] ) ? absint( wp_unslash( $_GET['artist'] ) ) : 0;
+$current_seller = extrachill_shop_get_requested_storefront_seller();
 $current_sort   = isset( $_GET['sort'] ) ? sanitize_key( $_GET['sort'] ) : 'recent';
 $current_search = isset( $_GET['s'] ) ? sanitize_text_field( wp_unslash( $_GET['s'] ) ) : '';
 $paged          = get_query_var( 'paged' ) ? get_query_var( 'paged' ) : 1;
+
+if ( $current_seller ) {
+	extrachill_shop_render_storefront_header( $current_seller );
+}
+extrachill_filter_bar();
 
 // Build query args
 $args = array(
@@ -32,16 +36,9 @@ if ( $current_search ) {
 	$args['s'] = $current_search;
 }
 
-// Artist filter
-if ( $current_artist ) {
-	$args['meta_query'] = array(
-		array(
-			'key'     => '_artist_profile_id',
-			'value'   => $current_artist,
-			'compare' => '=',
-			'type'    => 'NUMERIC',
-		),
-	);
+// Seller filter
+if ( $current_seller ) {
+	$args['meta_query'] = extrachill_shop_seller_products_meta_query( $current_seller );
 }
 
 // Sort handling
@@ -101,8 +98,8 @@ if ( $products->have_posts() ) :
 		);
 
 		// Preserve filter params in pagination links
-		if ( $current_artist ) {
-			$pagination_args['add_args']['artist'] = $current_artist;
+		if ( $current_seller ) {
+			$pagination_args['add_args']['seller'] = extrachill_shop_seller_ref_key( $current_seller );
 		}
 		if ( $current_sort && 'recent' !== $current_sort ) {
 			$pagination_args['add_args']['sort'] = $current_sort;

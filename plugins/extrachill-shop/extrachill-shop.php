@@ -76,7 +76,7 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-taxonomy.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-product-meta.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commission-settings.php';
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-storefront-manage-button.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-storefront.php';
 
 		// Commerce credential resolvers. The provider classes + DM registration +
 		// read-filter contract now live at the network layer

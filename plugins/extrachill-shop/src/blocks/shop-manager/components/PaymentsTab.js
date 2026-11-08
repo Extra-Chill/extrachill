@@ -20,6 +20,8 @@ const PaymentsTab = ( {
 	const canReceivePayments = !! status?.can_receive_payments;
 
 	const showPaymentsNote = seller && connected && ! canReceivePayments;
+	const sellsTickets =
+		seller && ( 'venue' === seller.type || 'promoter' === seller.type );
 
 	return (
 		<Panel className="ec-asm__payments">
@@ -27,6 +29,14 @@ const PaymentsTab = ( {
 				<InlineStatus tone="warning">
 					<strong>Note:</strong> Products stay as drafts until your
 					Stripe account can receive payments.
+				</InlineStatus>
+			) }
+
+			{ sellsTickets && (
+				<InlineStatus tone="info">
+					This Stripe account also receives your ticket sales. Ticket
+					prices are set on each event; ticket payouts and refunds
+					show in your Stripe dashboard.
 				</InlineStatus>
 			) }
 

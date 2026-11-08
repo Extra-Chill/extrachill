@@ -8,6 +8,15 @@ export const SELLER_TYPE_LABELS = {
 	promoter: 'Promoter',
 };
 
+export const SELLER_HOME_LABELS = {
+	artist: 'Manage Artist',
+	venue: 'Venue Settings',
+	promoter: 'Promoter Settings',
+};
+
+export const sellerHomeLabel = ( seller ) =>
+	SELLER_HOME_LABELS[ seller?.type ] || 'Back';
+
 export const sellerKey = ( seller ) =>
 	seller ? `${ seller.type }:${ Number( seller.id ) }` : '';
 
