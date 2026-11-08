@@ -248,7 +248,6 @@ class BookingEventSyncService {
 			return new \WP_Error( 'booking_event_sync_transaction_start_failed', __( 'Booking event synchronization could not start.', 'extrachill-events' ) );
 		}
 		$this->transaction_active = true;
-		$table                    = VenueSchema::memberships_table();
 		$venue_ids                = array( (int) $initial['venue_term_id'] );
 		if ( ! empty( $changes['venue_term_id'] ) ) {
 			$venue_ids[] = absint( $changes['venue_term_id'] );
@@ -256,7 +255,10 @@ class BookingEventSyncService {
 		$venue_ids = array_values( array_unique( array_filter( $venue_ids ) ) );
 		sort( $venue_ids, SORT_NUMERIC );
 		foreach ( $venue_ids as $venue_id ) {
-			$GLOBALS['wpdb']->get_results( $GLOBALS['wpdb']->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Stable exact-venue authority lock order.
+			$locked = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
+			if ( is_wp_error( $locked ) ) {
+				return $this->rollback( $locked );
+			}
 		}
 		$booking = $this->bookings->get_for_update( $booking_id );
 		if ( ! is_array( $booking ) ) {

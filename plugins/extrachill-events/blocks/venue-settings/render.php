@@ -104,10 +104,8 @@ if ( ! $promoter_mode && $is_admin ) {
 		);
 	}
 } elseif ( ! $promoter_mode ) {
-	global $wpdb;
-	$table = VenueSchema::memberships_table();
-	$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT venue_term_id, is_owner, status FROM {$table} WHERE user_id = %d ORDER BY created_at ASC", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private current-user bootstrap scoped to the Events site.
-	foreach ( (array) $rows as $row ) {
+	$rows = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->list_settings_for_user( $user_id );
+	foreach ( is_wp_error( $rows ) ? array() : $rows as $row ) {
 		$venue_term = get_term( (int) $row['venue_term_id'], 'venue' );
 		if ( ! $venue_term instanceof WP_Term ) {
 			continue;

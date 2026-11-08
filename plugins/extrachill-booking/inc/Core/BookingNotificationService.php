@@ -251,10 +251,8 @@ class BookingNotificationService {
 		if ( is_wp_error( $started ) ) {
 			return $started;
 		}
-		global $wpdb;
-		$table   = VenueSchema::memberships_table();
-		$members = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $booking['venue_term_id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes recipients with membership changes.
-		if ( '' !== (string) $wpdb->last_error ) {
+		$members = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
+		if ( is_wp_error( $members ) ) {
 			return $this->rollback( new \WP_Error( 'booking_notification_membership_read_failed', __( 'Venue notification recipients could not be locked.', 'extrachill-events' ) ) );
 		}
 		$locked = $this->bookings->get_for_update( $booking['id'] );

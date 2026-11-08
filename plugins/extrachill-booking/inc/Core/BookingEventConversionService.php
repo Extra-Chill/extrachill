@@ -571,9 +571,8 @@ class BookingEventConversionService {
 			return new \WP_Error( 'booking_event_transaction_start_failed', __( 'The booking event transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		$this->transaction_active = true;
-		$table                    = VenueSchema::memberships_table();
-		$wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Existing exact-venue authority lock order.
-		if ( '' !== (string) $wpdb->last_error ) {
+		$locked                   = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
+		if ( is_wp_error( $locked ) ) {
 			return $this->rollback( new \WP_Error( 'booking_event_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ) ) );
 		}
 		$allowed = $this->authorize( $actor_id, $venue_id );

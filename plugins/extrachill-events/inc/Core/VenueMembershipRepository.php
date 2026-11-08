@@ -58,11 +58,10 @@ class VenueMembershipRepository {
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes authorization and membership creation.
 			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
-		$locked = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks the venue authority range through the venue-prefixed unique index.
-		if ( '' !== (string) $wpdb->last_error ) {
-			$database_error = $wpdb->last_error;
+		$locked = $this->lock_for_venue( $venue_term_id );
+		if ( is_wp_error( $locked ) ) {
 			$this->rollback();
-			return new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
+			return $locked;
 		}
 		$memberships = $this->hydrate_locked( (array) $locked );
 		if ( is_wp_error( $memberships ) ) {
@@ -113,6 +112,70 @@ class VenueMembershipRepository {
 		}
 
 		return $this->get( $venue_term_id, $user_id );
+	}
+
+	/** Lock raw membership rows inside the caller's transaction. */
+	public function lock_for_venue( int $venue_term_id ): array|\WP_Error {
+		global $wpdb;
+		$table = VenueSchema::memberships_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns the transaction and authority range lock.
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
+	}
+
+	/** Lock one raw member inside the caller's transaction; an absent member returns an empty array. */
+	public function lock_member( int $venue_term_id, int $user_id ): array|\WP_Error {
+		global $wpdb;
+		$table = VenueSchema::memberships_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d AND user_id = %d FOR UPDATE", $venue_term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns the exact member transaction lock.
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
+	}
+
+	/** Test whether a user has any active relationship, without a venue identity join. */
+	public function has_active_membership_for_user( int $user_id ): bool|\WP_Error {
+		global $wpdb;
+		$table = VenueSchema::memberships_table();
+		$found = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} WHERE user_id = %d AND status = 'active' LIMIT 1", $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact current-user membership existence check.
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (bool) $found;
+	}
+
+	/** Read the current user's settings projection, including inactive relationships. */
+	public function list_settings_for_user( int $user_id ): array|\WP_Error {
+		global $wpdb;
+		$table = VenueSchema::memberships_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT venue_term_id, is_owner, status FROM {$table} WHERE user_id = %d ORDER BY created_at ASC", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private current-user settings projection.
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
+	}
+
+	/** Insert an onboarding relationship after the caller has locked and validated venue authority. */
+	public function insert_onboarding_member( array $row ) {
+		global $wpdb;
+		return $wpdb->insert( VenueSchema::memberships_table(), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns onboarding validation and transaction.
+	}
+
+	/** Transition a validated onboarding relationship at its locked version. */
+	public function update_onboarding_member( int $venue_term_id, int $user_id, int $version, array $data ) {
+		global $wpdb;
+		return $wpdb->update( VenueSchema::memberships_table(), $data, array(
+			'venue_term_id' => $venue_term_id,
+			'user_id'       => $user_id,
+			'version'       => $version,
+		) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns onboarding validation and transaction.
+	}
+
+	/** Lock every relationship and insertion gap for account-compensation checks. */
+	public function lock_for_user( int $user_id ): array|\WP_Error {
+		global $wpdb;
+		$table = VenueSchema::memberships_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d ORDER BY venue_term_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns the compensation transaction.
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
+	}
+
+	/** Lock a bounded venue set for promoter grant authority checks. */
+	public function lock_for_grant( int $venue_term_id, int $limit ): array|\WP_Error {
+		global $wpdb;
+		$table = VenueSchema::memberships_table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC LIMIT %d FOR UPDATE", $venue_term_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns the ordered grant transaction; includes overflow probe.
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
 	}
 
 	/** Get one relationship by its venue/user natural key. */
@@ -287,11 +350,10 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 
-		$locked = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes membership mutations for one venue.
-		if ( '' !== (string) $wpdb->last_error ) {
-			$database_error = $wpdb->last_error;
+		$locked = $this->lock_for_venue( $venue_term_id );
+		if ( is_wp_error( $locked ) ) {
 			$this->rollback();
-			return new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
+			return $locked;
 		}
 
 		$current      = null;

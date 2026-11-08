@@ -1312,11 +1312,9 @@ class BookingHoldRepository {
 	}
 
 	private function lock_and_authorize_venue( int $venue_id, int $actor_id ) {
-		global $wpdb;
-		$table  = VenueSchema::memberships_table();
-		$locked = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $venue_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- First transactional read locks and returns current venue authority.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return $this->rollback( new \WP_Error( 'booking_hold_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) );
+		$locked = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $venue_id );
+		if ( is_wp_error( $locked ) ) {
+			return $this->rollback( new \WP_Error( 'booking_hold_authorization_lock_failed', __( 'Venue booking authority could not be locked.', 'extrachill-events' ), $locked->get_error_data() ) );
 		}
 		$allowed = $this->authorization->authorize_locked( $actor_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE, (array) $locked );
 		return true === $allowed ? true : $this->rollback( is_wp_error( $allowed ) ? $allowed : new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to perform this venue action.', 'extrachill-events' ), array( 'status' => 403 ) ) );

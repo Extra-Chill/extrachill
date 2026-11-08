@@ -808,9 +808,8 @@ class TicketReconciliationService {
 			return new \WP_Error( 'sales_reconciliation_transaction_start_failed', __( 'The ticket reconciliation transaction could not start.', 'extrachill-events' ) );
 		}
 		$this->transaction_active = true;
-		$table                    = VenueSchema::memberships_table();
-		$members                  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE venue_term_id = %d ORDER BY id ASC FOR UPDATE", $booking['venue_term_id'] ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks exact venue authority.
-		if ( '' !== (string) $wpdb->last_error ) {
+		$members                  = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->lock_for_venue( $booking['venue_term_id'] );
+		if ( is_wp_error( $members ) ) {
 			return $this->rollback( new \WP_Error( 'sales_reconciliation_authorization_lock_failed', __( 'Venue finance authority could not be locked.', 'extrachill-events' ) ) );
 		}
 		$allowed = $this->authorization->authorize_locked( $actor_id, $booking['venue_term_id'], $action, (array) $members );
