@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.61.0] - 2026-11-08
+
+### Added
+- point every shop entry at the seller manager, retire artist block
+
 ## [0.60.0] - 2026-11-08
 
 ### Added
