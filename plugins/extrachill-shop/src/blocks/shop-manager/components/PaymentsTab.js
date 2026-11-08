@@ -1,0 +1,106 @@
+/**
+ * PaymentsTab - Stripe Connect integration for seller payments
+ */
+
+/**
+ * External dependencies
+ */
+import { ActionRow, InlineStatus, Panel } from '@extrachill/components';
+
+const PaymentsTab = ( {
+	seller,
+	status,
+	loading,
+	error,
+	onConnect,
+	onOpenDashboard,
+	onRefresh,
+} ) => {
+	const connected = !! status?.connected;
+	const canReceivePayments = !! status?.can_receive_payments;
+
+	const showPaymentsNote = seller && connected && ! canReceivePayments;
+
+	return (
+		<Panel className="ec-asm__payments">
+			{ showPaymentsNote && (
+				<InlineStatus tone="warning">
+					<strong>Note:</strong> Products stay as drafts until your
+					Stripe account can receive payments.
+				</InlineStatus>
+			) }
+
+			{ loading && (
+				<InlineStatus tone="info">Loading payments…</InlineStatus>
+			) }
+			{ error && <InlineStatus tone="error">{ error }</InlineStatus> }
+
+			{ seller ? (
+				<div className="ec-asm__stripe">
+					<div className="ec-asm__stripe-status">
+						<div>
+							<strong>Status:</strong>{ ' ' }
+							{ connected
+								? status?.status || 'connected'
+								: 'not connected' }
+						</div>
+						{ connected ? (
+							<ul>
+								<li>
+									Charges enabled:{ ' ' }
+									{ status?.charges_enabled ? 'yes' : 'no' }
+								</li>
+								<li>
+									Payouts enabled:{ ' ' }
+									{ status?.payouts_enabled ? 'yes' : 'no' }
+								</li>
+								<li>
+									Details submitted:{ ' ' }
+									{ status?.details_submitted ? 'yes' : 'no' }
+								</li>
+								<li>
+									Can receive payments:{ ' ' }
+									{ canReceivePayments ? 'yes' : 'no' }
+								</li>
+							</ul>
+						) : null }
+					</div>
+
+					<ActionRow className="ec-asm__actions">
+						{ ! connected ? (
+							<button
+								type="button"
+								className="button-1 button-small"
+								onClick={ onConnect }
+								disabled={ loading }
+							>
+								Connect Stripe
+							</button>
+						) : (
+							<button
+								type="button"
+								className="button-2 button-small"
+								onClick={ onOpenDashboard }
+								disabled={ loading }
+							>
+								Open Stripe Dashboard
+							</button>
+						) }
+						<button
+							type="button"
+							className="button-2 button-small"
+							onClick={ onRefresh }
+							disabled={ loading }
+						>
+							Refresh Status
+						</button>
+					</ActionRow>
+				</div>
+			) : (
+				<p>Select a shop to manage payments.</p>
+			) }
+		</Panel>
+	);
+};
+
+export default PaymentsTab;

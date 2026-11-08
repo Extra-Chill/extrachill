@@ -26,7 +26,6 @@ Thumbs.db
 
 # Additional build and development files
 composer.lock
-package-lock.json
  .claude/
  .buildignore
 docs/.docs-sync.json
