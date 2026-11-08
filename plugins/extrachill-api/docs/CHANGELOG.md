@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.51.0] - 2026-11-08
+
+### Added
+- seller shop manager at shop.extrachill.com/manage
+
 ## [0.50.2] - 2026-11-07
 
 ### Fixed
