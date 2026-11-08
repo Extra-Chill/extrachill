@@ -31,6 +31,9 @@
     "tests/bridge-instrumentation-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/cross-site-http-errors-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/cross-site-links-invalidation-smoke.php": {
       "environment": "standalone-php"
     },
@@ -50,6 +53,9 @@
       "environment": "standalone-php"
     },
     "tests/frontend-path-resolver-runtime-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/link-editor-hint-smoke.php": {
       "environment": "standalone-php"
     },
     "tests/mail-system-send-smoke.php": {

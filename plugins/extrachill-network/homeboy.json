@@ -24,6 +24,8 @@
     "test": [
       "php tests/frontend-path-resolver-smoke.php",
       "php tests/ad-policy-smoke.php",
+      "php tests/cross-site-http-errors-smoke.php",
+      "php tests/link-editor-hint-smoke.php",
       "php tests/network-dropdown-tracking-smoke.php",
       "php tests/network-term-classification-smoke.php",
       "php tests/experiment-assignment-smoke.php",
