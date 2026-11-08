@@ -110,11 +110,6 @@ class PromoterAuthorityRepository {
 				return $this->database_error( 'promoter_organization_bootstrap_failed', __( 'The promoter organization owner could not be established.', 'extrachill-events' ), $database_error );
 			}
 		}
-		if ( ! $this->audit( $promoter_term_id, 'organization_verified', $actor_user_id, $owner_user_id, 1, array( 'initial_owner' => null !== $owner_user_id ) ) ) {
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
-		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes atomic bootstrap.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
@@ -126,7 +121,7 @@ class PromoterAuthorityRepository {
 	}
 
 	/**
-	 * Revoke an organization without deleting its members or audit history.
+	 * Revoke an organization without deleting its members.
 	 *
 	 * @param int $promoter_term_id Exact promoter term ID.
 	 * @param int $expected_version Optimistic organization version.
@@ -169,11 +164,6 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			$latest = $this->get_organization( $promoter_term_id );
 			return is_array( $latest ) ? $this->version_conflict( 'promoter_organization_version_conflict', $latest['version'] ) : new \WP_Error( 'promoter_organization_not_found', __( 'The promoter organization was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
-		}
-		if ( ! $this->audit( $promoter_term_id, 'organization_revoked', $actor_user_id, null, $expected_version + 1, array() ) ) {
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
 		}
 		$precommit = $this->run_precommit( $promoter_term_id, 'organization_revoked' );
 		if ( true !== $precommit ) {
@@ -251,11 +241,6 @@ class PromoterAuthorityRepository {
 			$database_error = (string) $wpdb->last_error;
 			$this->rollback();
 			return $this->database_error( 'promoter_membership_create_failed', __( 'The promoter membership could not be created.', 'extrachill-events' ), $database_error );
-		}
-		if ( ! $this->audit( $promoter_term_id, 'membership_created', $actor_user_id, $user_id, 1, array( 'is_owner' => $is_owner ) ) ) {
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
 		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes creation.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
@@ -605,13 +590,7 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			return new \WP_Error( 'promoter_membership_last_owner', __( 'The final active promoter owner cannot be removed.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$now     = gmdate( 'Y-m-d H:i:s' );
-		$event   = 'membership_owner_updated';
-		$payload = array( 'is_owner' => $is_owner );
-		if ( $revoke ) {
-			$event   = 'membership_revoked';
-			$payload = array();
-		}
+		$now   = gmdate( 'Y-m-d H:i:s' );
 		$table = PromoterAuthoritySchema::memberships_table();
 		if ( $revoke ) {
 			$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET version = version + 1, updated_at = %s, status = %s, revoked_by_user_id = %d, revoked_at = %s WHERE promoter_term_id = %d AND user_id = %d AND version = %d", $now, self::STATUS_REVOKED, $actor_user_id, $now, $promoter_term_id, $user_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed query and prepared values.
@@ -627,11 +606,6 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			$latest = $this->get_membership( $promoter_term_id, $user_id );
 			return is_array( $latest ) ? $this->version_conflict( 'promoter_membership_version_conflict', $latest['version'] ) : new \WP_Error( 'promoter_membership_not_found', __( 'The promoter membership was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
-		}
-		if ( ! $this->audit( $promoter_term_id, $event, $actor_user_id, $user_id, $expected_version + 1, $payload ) ) {
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
 		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes mutation.
 			return $this->database_error( 'promoter_authority_commit_uncertain', __( 'The promoter authority transaction outcome could not be confirmed.', 'extrachill-events' ) );
@@ -738,33 +712,6 @@ class PromoterAuthorityRepository {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * Append privacy-safe evidence inside the mutation transaction.
-	 *
-	 * @param int      $promoter_term_id Exact promoter term ID.
-	 * @param string   $event            Bounded mutation event.
-	 * @param int      $actor_user_id    Acting network user ID.
-	 * @param int|null $subject_user_id  Target network user ID.
-	 * @param int      $result_version   Resulting entity version.
-	 * @param array    $payload          Privacy-safe structural evidence.
-	 */
-	private function audit( int $promoter_term_id, string $event, int $actor_user_id, ?int $subject_user_id, int $result_version, array $payload ): bool {
-		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only privacy-safe authority evidence.
-		return false !== $wpdb->insert(
-			PromoterAuthoritySchema::activity_table(),
-			array(
-				'promoter_term_id' => $promoter_term_id,
-				'event'            => $event,
-				'actor_user_id'    => $actor_user_id,
-				'subject_user_id'  => $subject_user_id,
-				'result_version'   => $result_version,
-				'payload'          => wp_json_encode( $payload ),
-				'created_at'       => gmdate( 'Y-m-d H:i:s' ),
-			)
-		);
 	}
 
 	/** Roll back the current authority mutation. */

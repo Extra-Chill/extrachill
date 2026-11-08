@@ -75,11 +75,6 @@ class PromoterVenueGrantRepository {
 			}
 			return $this->database_error( 'promoter_venue_grant_create_failed', __( 'The promoter venue grant could not be created.', 'extrachill-events' ), $database_error );
 		}
-		if ( ! $this->audit( $promoter_term_id, $venue_term_id, $action, 'venue_grant_created', $actor_user_id, 1 ) ) {
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
-		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes grant creation.
 			return $this->database_error( 'promoter_venue_grant_commit_uncertain', __( 'The promoter venue grant transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
@@ -303,12 +298,6 @@ class PromoterVenueGrantRepository {
 			$latest = $this->get( $promoter_term_id, $venue_term_id, $action );
 			return is_array( $latest ) ? $this->conflict( $latest, 'promoter_venue_grant_version_conflict' ) : new \WP_Error( 'promoter_venue_grant_not_found', __( 'The promoter venue grant was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
-		$event = PromoterAuthorityRepository::STATUS_ACTIVE === $target_status ? 'venue_grant_reactivated' : 'venue_grant_revoked';
-		if ( ! $this->audit( $promoter_term_id, $venue_term_id, $action, $event, $actor_user_id, $expected_version + 1 ) ) {
-			$database_error = (string) $wpdb->last_error;
-			$this->rollback();
-			return $this->database_error( 'promoter_authority_audit_failed', __( 'Promoter authority audit evidence could not be recorded.', 'extrachill-events' ), $database_error );
-		}
 		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes grant mutation.
 			return $this->database_error( 'promoter_venue_grant_commit_uncertain', __( 'The promoter venue grant transaction outcome could not be confirmed.', 'extrachill-events' ) );
 		}
@@ -457,29 +446,6 @@ class PromoterVenueGrantRepository {
 	/** Check the current feature and capability gate. @param int $user_id Network user ID. */
 	private function has_feature_access( int $user_id ): bool {
 		return PromoterAuthorization::user_can( $user_id, VenueAuthorization::ACCESS_CAPABILITY ) && function_exists( 'ec_feature_available' ) && ec_feature_available( VenueAuthorization::FEATURE, $user_id );
-	}
-
-	/** Append privacy-safe grant mutation evidence. */
-	private function audit( int $promoter_term_id, int $venue_term_id, string $action, string $event, int $actor_user_id, int $result_version ): bool {
-		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy-safe structural authority evidence.
-		return false !== $wpdb->insert(
-			PromoterAuthoritySchema::activity_table(),
-			array(
-				'promoter_term_id' => $promoter_term_id,
-				'event'            => $event,
-				'actor_user_id'    => $actor_user_id,
-				'subject_user_id'  => null,
-				'result_version'   => $result_version,
-				'payload'          => wp_json_encode(
-					array(
-						'venue_term_id' => $venue_term_id,
-						'action'        => $action,
-					)
-				),
-				'created_at'       => gmdate( 'Y-m-d H:i:s' ),
-			)
-		);
 	}
 
 	/** Roll back the current grant mutation. */

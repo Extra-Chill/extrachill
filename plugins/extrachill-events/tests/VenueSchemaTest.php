@@ -7,15 +7,18 @@ require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarne
 
 final class VenueSchemaTest extends BookingTestCase {
 	protected function setUp(): void {
-		$GLOBALS['ec_artist_test'] = array( 'options' => array(), 'dbdelta' => array() );
-		$GLOBALS['wpdb'] = new BookingWpdb();
+		$GLOBALS['ec_artist_test'] = array(
+			'options' => array(),
+			'dbdelta' => array(),
+		);
+		$GLOBALS['wpdb']           = new BookingWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated schema test double.
 	}
 
-	public function test_fresh_install_owns_only_four_venue_tables(): void {
+	public function test_fresh_install_owns_only_three_venue_tables(): void {
 		$this->assertTrue( VenueSchema::maybe_install() );
 		$this->assertTrue( VenueSchema::is_ready() );
 		$this->assertFalse( BookingSchema::is_ready() );
-		$this->assertCount( 4, $GLOBALS['wpdb']->schemas );
+		$this->assertCount( 3, $GLOBALS['wpdb']->schemas );
 		foreach ( array_keys( $GLOBALS['wpdb']->schemas ) as $table ) {
 			$this->assertStringStartsWith( 'wp_7_ec_venue_', $table );
 		}
@@ -25,10 +28,13 @@ final class VenueSchemaTest extends BookingTestCase {
 	public function test_existing_combined_install_is_adopted_without_ddl_or_data_changes(): void {
 		$this->assertTrue( BookingSchema::install() );
 		$this->assertTrue( VenueSchema::install() );
-		$table = VenueSchema::memberships_table();
-		$GLOBALS['wpdb']->rows[ $table ][1] = array( 'id' => 1, 'user_id' => 42 );
-		$rows = $GLOBALS['wpdb']->rows;
-		$schemas = $GLOBALS['wpdb']->schemas;
+		$table                              = VenueSchema::memberships_table();
+		$GLOBALS['wpdb']->rows[ $table ][1] = array(
+			'id'      => 1,
+			'user_id' => 42,
+		);
+		$rows                               = $GLOBALS['wpdb']->rows;
+		$schemas                            = $GLOBALS['wpdb']->schemas;
 		delete_option( VenueSchema::VERSION_OPTION );
 		$GLOBALS['ec_artist_test']['dbdelta'] = array();
 		$this->assertTrue( VenueSchema::maybe_install() );

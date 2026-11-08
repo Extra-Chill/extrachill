@@ -5,6 +5,8 @@
  * @package ExtraChillEvents\Tests
  */
 
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed, Generic.Files.OneObjectStructurePerFile.MultipleFound -- Standalone harness bundles WordPress stubs and test doubles.
+
 use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
 use ExtraChillEvents\Abilities\PromoterVenueGrantAbilities;
 use ExtraChillEvents\Abilities\PromoterWorkspaceAbilities;
@@ -166,7 +168,6 @@ final class PromoterAuthorityWpdb {
 	 *
 	 * @var bool
 	 */
-	public $fail_activity = false;
 	/** @var bool Whether the bounded identity read should fail. */
 	public $fail_identity_read = false;
 	/** @var int Number of bounded identity reads. */
@@ -247,7 +248,7 @@ final class PromoterAuthorityWpdb {
 		preg_match( '/membership\.user_id = (\d+)/', $query, $user_match );
 		preg_match( "/membership\.status = '([^']+)'/", $query, $status_match );
 		foreach ( $this->rows[ PromoterAuthoritySchema::memberships_table() ] ?? array() as $membership ) {
-			if ( (int) $membership['user_id'] !== (int) $user_match[1] || $membership['status'] !== stripslashes( $status_match[1] ) ) {
+			if ( (int) $membership['user_id'] !== (int) $user_match[1] || stripslashes( $status_match[1] ) !== $membership['status'] ) {
 				continue;
 			}
 			$promoter_term_id = (int) $membership['promoter_term_id'];
@@ -283,10 +284,6 @@ final class PromoterAuthorityWpdb {
 		}
 		if ( PromoterAuthoritySchema::organizations_table() === $table && $this->fail_organization_insert ) {
 			$this->last_error = 'Storage engine unavailable';
-			return false;
-		}
-		if ( $this->fail_activity && PromoterAuthoritySchema::activity_table() === $table ) {
-			$this->last_error = 'simulated audit failure';
 			return false;
 		}
 		foreach ( $this->rows[ $table ] ?? array() as $existing ) {
@@ -436,7 +433,8 @@ final class PromoterAuthorityWpdb {
 					}
 				)
 			);
-			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id']; } );
+			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id'];
+			} );
 			return array_slice( $rows, 0, (int) $organization_match[2] );
 		}
 		if ( preg_match( "/FROM (\S+) WHERE user_id = (\d+) AND status = 'active' ORDER BY promoter_term_id ASC, id ASC LIMIT (\d+)/", $query, $membership_match ) ) {
@@ -448,7 +446,8 @@ final class PromoterAuthorityWpdb {
 					}
 				)
 			);
-			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id']; } );
+			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id'];
+			} );
 			return array_slice( $rows, 0, (int) $membership_match[3] );
 		}
 		if ( preg_match( '/FROM (\S+) WHERE venue_term_id = (\d+)/', $query, $venue_match ) ) {
@@ -516,7 +515,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'options'         => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
-				VenueSchema::VERSION_OPTION           => VenueSchema::SCHEMA_VERSION,
+				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
 			),
 			'terms'           => array(
 				100 => (object) array(
@@ -545,12 +544,30 @@ final class PromoterAuthorityTest extends TestCase {
 				),
 			),
 			'users'           => array(
-				1 => (object) array( 'ID' => 1, 'display_name' => 'Admin' ),
-				2 => (object) array( 'ID' => 2, 'display_name' => 'Chris' ),
-				3 => (object) array( 'ID' => 3, 'display_name' => 'Gardner' ),
-				4 => (object) array( 'ID' => 4, 'display_name' => 'Venue Owner One' ),
-				5 => (object) array( 'ID' => 5, 'display_name' => 'Venue Owner Two' ),
-				6 => (object) array( 'ID' => 6, 'display_name' => 'Other Promoter' ),
+				1 => (object) array(
+					'ID'           => 1,
+					'display_name' => 'Admin',
+				),
+				2 => (object) array(
+					'ID'           => 2,
+					'display_name' => 'Chris',
+				),
+				3 => (object) array(
+					'ID'           => 3,
+					'display_name' => 'Gardner',
+				),
+				4 => (object) array(
+					'ID'           => 4,
+					'display_name' => 'Venue Owner One',
+				),
+				5 => (object) array(
+					'ID'           => 5,
+					'display_name' => 'Venue Owner Two',
+				),
+				6 => (object) array(
+					'ID'           => 6,
+					'display_name' => 'Other Promoter',
+				),
 			),
 			'administrators'  => array( 1 => true ),
 			'team_access'     => array(
@@ -576,7 +593,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'options'           => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
-				VenueSchema::VERSION_OPTION           => VenueSchema::SCHEMA_VERSION,
+				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
 			),
 			'terms'             => $GLOBALS['promoter_test']['terms'],
 			'users'             => $GLOBALS['promoter_test']['users'],
@@ -599,7 +616,6 @@ final class PromoterAuthorityTest extends TestCase {
 	public function test_schema_table_names_are_site_scoped(): void {
 		$this->assertSame( 'wp_7_ec_promoter_organizations', PromoterAuthoritySchema::organizations_table() );
 		$this->assertSame( 'wp_7_ec_promoter_members', PromoterAuthoritySchema::memberships_table() );
-		$this->assertSame( 'wp_7_ec_promoter_authority_activity', PromoterAuthoritySchema::activity_table() );
 		$this->assertSame( 'wp_7_ec_promoter_venue_grants', PromoterAuthoritySchema::venue_grants_table() );
 	}
 
@@ -643,19 +659,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertTrue( $result['membership']['is_owner'] );
 		$this->assertSame( 2, $result['membership']['user_id'] );
 		$this->assertNull( ( new PromoterAuthorityRepository() )->get_membership( 100, 1 ) );
-		$this->assertCount( 1, $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::activity_table() ] );
 		$this->assertSame( 'promoter_organization_exists', $service->verify( 1, 100, 3 )->get_error_code() );
-	}
-
-	public function test_audit_failure_is_explicit_and_rolls_back_bootstrap(): void {
-		$GLOBALS['wpdb']->fail_activity = true;
-
-		$error = ( new PromoterAuthorityService() )->verify( 1, 100, 2 );
-		$this->assertSame( 'promoter_authority_audit_failed', $error->get_error_code() );
-		$this->assertSame( array( 'status' => 500 ), $error->get_error_data() );
-		$this->assertSame( 'simulated audit failure', $GLOBALS['promoter_test']['database_errors'][0]['database_error'] );
-		$this->assertNull( ( new PromoterAuthorityRepository() )->get_organization( 100 ) );
-		$this->assertNull( ( new PromoterAuthorityRepository() )->get_membership( 100, 2 ) );
 	}
 
 	public function test_concurrent_verification_loser_returns_exact_winner_conflict(): void {
@@ -717,7 +721,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 4, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
 
 		unset( $GLOBALS['promoter_test']['feature_access'][3] );
-		$venue_feature_available = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
+		$venue_feature_available                               = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
 		$GLOBALS['venue_membership_test']['feature_available'] = false;
 		$this->assertSame( 'promoter_authority_forbidden', $authorization->authorize( 3, 100, PromoterAuthorization::ACTION_ACCESS_PROMOTER )->get_error_code() );
 		if ( null === $venue_feature_available ) {
@@ -734,7 +738,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$service = new PromoterAuthorityService();
 		$service->verify( 1, 100, 2 );
 		unset( $GLOBALS['promoter_test']['feature_access'][2] );
-		$venue_feature_available = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
+		$venue_feature_available                               = $GLOBALS['venue_membership_test']['feature_available'] ?? null;
 		$GLOBALS['venue_membership_test']['feature_available'] = false;
 
 		$authorization = new PromoterAuthorization();
@@ -770,15 +774,15 @@ final class PromoterAuthorityTest extends TestCase {
 		$table = PromoterAuthoritySchema::organizations_table();
 		for ( $index = 0; $index <= PromoterAuthorityRepository::MAX_ORGANIZATIONS; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $table ][] = array(
-				'id'                    => 1000 + $index,
-				'promoter_term_id'      => 1000 + $index,
-				'status'                => PromoterAuthorityRepository::STATUS_ACTIVE,
-				'version'               => 1,
-				'verified_by_user_id'   => 1,
-				'verified_at'           => '2026-08-24 00:00:00',
-				'updated_at'            => '2026-08-24 00:00:00',
-				'revoked_by_user_id'    => null,
-				'revoked_at'            => null,
+				'id'                  => 1000 + $index,
+				'promoter_term_id'    => 1000 + $index,
+				'status'              => PromoterAuthorityRepository::STATUS_ACTIVE,
+				'version'             => 1,
+				'verified_by_user_id' => 1,
+				'verified_at'         => '2026-08-24 00:00:00',
+				'updated_at'          => '2026-08-24 00:00:00',
+				'revoked_by_user_id'  => null,
+				'revoked_at'          => null,
 			);
 		}
 		$error = $repository->list_active_organizations();
@@ -818,7 +822,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$service = new PromoterAuthorityService();
 		$service->verify( 1, 100, 2 );
 		$GLOBALS['promoter_test']['page_status'] = 'publish';
-		$withdraw = static function ( $allowed, $promoter_term_id, $change ) {
+		$withdraw                                = static function ( $allowed, $promoter_term_id, $change ) {
 			if ( true === $allowed && 100 === $promoter_term_id && 'organization_revoked' === $change ) {
 				$GLOBALS['promoter_test']['page_status'] = 'draft';
 				return new WP_Error( 'simulated_withdrawal_failure', 'Withdrawal failed.' );
@@ -836,13 +840,13 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 1, $organization['version'] );
 	}
 
-	/** Authority audit failure occurs before any public withdrawal callback. */
-	public function test_revocation_audit_failure_never_invokes_public_withdrawal(): void {
+	/** Successful revocation invokes the public withdrawal callback. */
+	public function test_revocation_invokes_public_withdrawal(): void {
 		$service = new PromoterAuthorityService();
 		$service->verify( 1, 100, 2 );
 		$GLOBALS['promoter_test']['page_status'] = 'publish';
-		$withdrawals = 0;
-		$withdraw = static function ( $allowed, $promoter_term_id, $change ) use ( &$withdrawals ) {
+		$withdrawals                             = 0;
+		$withdraw                                = static function ( $allowed, $promoter_term_id, $change ) use ( &$withdrawals ) {
 			if ( true === $allowed && 100 === $promoter_term_id && 'organization_revoked' === $change ) {
 				++$withdrawals;
 				$GLOBALS['promoter_test']['page_status'] = 'draft';
@@ -850,16 +854,15 @@ final class PromoterAuthorityTest extends TestCase {
 			return $allowed;
 		};
 		add_filter( 'extrachill_events_promoter_authority_precommit', $withdraw, 10, 3 );
-		$GLOBALS['wpdb']->fail_activity = true;
 		$result = $service->revoke_organization( 1, 100, 1 );
 		remove_filter( 'extrachill_events_promoter_authority_precommit', $withdraw, 10 );
 
-		$this->assertSame( 'promoter_authority_audit_failed', $result->get_error_code() );
-		$this->assertSame( 0, $withdrawals );
-		$this->assertSame( 'publish', $GLOBALS['promoter_test']['page_status'] );
+		$this->assertIsArray( $result );
+		$this->assertSame( 1, $withdrawals );
+		$this->assertSame( 'draft', $GLOBALS['promoter_test']['page_status'] );
 		$organization = ( new PromoterAuthorityRepository() )->get_organization( 100 );
-		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $organization['status'] );
-		$this->assertSame( 1, $organization['version'] );
+		$this->assertSame( PromoterAuthorityRepository::STATUS_REVOKED, $organization['status'] );
+		$this->assertSame( 2, $organization['version'] );
 	}
 
 	/** Throwing post-commit listeners are observable but cannot obscure success. */
@@ -1062,11 +1065,6 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( PromoterAuthorityRepository::STATUS_ACTIVE, $result['organization']['status'] );
 		$this->assertNull( $result['membership'] );
 		$this->assertSame( array(), $service->list_memberships( 1, 100 ) );
-		$activity = array_values( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::activity_table() ] );
-		$this->assertCount( 1, $activity );
-		$this->assertSame( 'organization_verified', $activity[0]['event'] );
-		$this->assertNull( $activity[0]['subject_user_id'] );
-		$this->assertSame( wp_json_encode( array( 'initial_owner' => false ) ), $activity[0]['payload'] );
 		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
 		$this->assertSame( 2, $service->create_membership( 1, 100, 2, false )['user_id'] );
 
@@ -1092,9 +1090,6 @@ final class PromoterAuthorityTest extends TestCase {
 		);
 		$this->assertTrue( $result['membership']['is_owner'] );
 		$this->assertSame( 2, $result['membership']['user_id'] );
-		$activity = array_values( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::activity_table() ] );
-		$this->assertSame( 2, (int) $activity[0]['subject_user_id'] );
-		$this->assertSame( wp_json_encode( array( 'initial_owner' => true ) ), $activity[0]['payload'] );
 		$this->assertTrue( ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS ) );
 	}
 
@@ -1359,7 +1354,8 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->set_current_user( 1 );
 		$workspace = new PromoterWorkspace();
 		$listed    = $workspace->identities();
-		$venues    = array_values( array_filter( $listed['identities'], static function ( $identity ) { return 'venue' === $identity['type']; } ) );
+		$venues    = array_values( array_filter( $listed['identities'], static function ( $identity ) { return 'venue' === $identity['type'];
+		} ) );
 
 		$this->assertSame( array( 'venue:200', 'venue:201' ), array_column( $venues, 'reference' ) );
 		foreach ( $venues as $venue ) {
@@ -1379,7 +1375,8 @@ final class PromoterAuthorityTest extends TestCase {
 			$result = $workspace->resolve( 'promoter:100' );
 			$this->assertSame( 'active', $result['selection']['state'] );
 			$this->assertSame( array( 200, 201 ), array_column( $result['granted_venues'], 'id' ) );
-			$this->assertSame( array( 'promoter:100' ), array_values( array_filter( array_column( $result['identities'], 'reference' ), static function ( $reference ) { return 0 === strpos( $reference, 'promoter:' ); } ) ) );
+			$this->assertSame( array( 'promoter:100' ), array_values( array_filter( array_column( $result['identities'], 'reference' ), static function ( $reference ) { return 0 === strpos( $reference, 'promoter:' );
+			} ) ) );
 		}
 
 		$this->set_current_user( 6 );
