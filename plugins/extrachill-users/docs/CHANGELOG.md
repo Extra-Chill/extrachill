@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.62.0] - 2026-11-08
+
+### Added
+- clean navigation between the shop manager, storefronts and seller homes
+
 ## [0.61.0] - 2026-11-08
 
 ### Added
