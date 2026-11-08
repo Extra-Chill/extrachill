@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.0] - 2026-11-08
+
+### Added
+- add inactive breadcrumb dropdown experiment
+
 ## [2.38.1] - 2026-11-08
 
 ### Changed
