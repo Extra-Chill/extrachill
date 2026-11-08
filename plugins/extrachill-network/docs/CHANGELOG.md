@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.38.0] - 2026-11-08
+
+### Added
+- track breadcrumb network dropdown clicks via cta_click
+
 ## [2.37.2] - 2026-11-08
 
 ### Fixed
