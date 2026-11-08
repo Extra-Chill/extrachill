@@ -70,6 +70,9 @@
     "tests/multisite-guard-smoke.php": {
       "environment": "standalone-php"
     },
+    "tests/network-dropdown-experiment-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/network-dropdown-tracking-smoke.php": {
       "environment": "standalone-php"
     },

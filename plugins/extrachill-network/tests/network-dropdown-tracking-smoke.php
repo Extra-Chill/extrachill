@@ -12,6 +12,7 @@ declare( strict_types=1 );
 define( 'ABSPATH', __DIR__ . '/' );
 
 function add_filter( $hook, $callback ) {}
+function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {}
 function apply_filters( $hook, $value ) { return $value; }
 function ec_get_site_url( $site ) { return 'https://' . $site . '.example.com'; }
 function ec_icon( $name ) { return '<svg aria-hidden="true"></svg>'; }
