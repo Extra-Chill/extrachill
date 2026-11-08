@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Owns onboarding transitions and their privacy-safe audit trail. */
+/** Owns onboarding transitions. */
 class VenueOnboardingRepository {
 
 	public const CLAIM_PENDING   = 'pending';
@@ -103,7 +103,6 @@ class VenueOnboardingRepository {
 					(int) $row['version']
 				)
 			); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked optimistic claim resubmission.
-			$event  = 'claim_resubmitted';
 		} else {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private claim write under venue lock.
 			$result = $wpdb->insert(
@@ -119,14 +118,13 @@ class VenueOnboardingRepository {
 				)
 			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private claim write under venue lock.
 			$row    = array( 'id' => $wpdb->insert_id );
-			$event  = 'claim_submitted';
 		}
 		if ( false === $result || 0 === $result ) {
 			return $this->rollback_error( 'venue_claim_write_failed', __( 'The venue claim could not be saved.', 'extrachill-events' ) );
 		}
 		$claim = $this->get_claim_by_id( (int) $row['id'], true );
-		if ( ! is_array( $claim ) || ! $this->audit( $venue_term_id, 'claim', (int) $row['id'], $event, $actor_user_id, $actor_user_id, array( 'status' => self::CLAIM_PENDING ) ) ) {
-			return $this->rollback_error( 'venue_claim_audit_failed', __( 'The venue claim audit could not be recorded.', 'extrachill-events' ) );
+		if ( ! is_array( $claim ) ) {
+			return $this->rollback_error( 'venue_claim_write_failed', __( 'The venue claim could not be read after saving.', 'extrachill-events' ) );
 		}
 		if ( ! $this->commit() ) {
 			return $this->commit_error();
@@ -196,7 +194,7 @@ class VenueOnboardingRepository {
 		$now    = gmdate( 'Y-m-d H:i:s' );
 		$table  = VenueSchema::claims_table();
 		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = %s, version = version + 1, reviewed_by_user_id = %d, updated_at = %s, resolved_at = %s WHERE id = %d AND version = %d", $decision, $actor_user_id, $now, $now, $claim_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked optimistic claim review.
-		if ( 1 !== $result || ! $this->audit( $claim['venue_term_id'], 'claim', $claim_id, 'claim_' . $decision, $actor_user_id, $claim['claimant_user_id'], array( 'status' => $decision ) ) ) {
+		if ( 1 !== $result ) {
 			return $this->rollback_error( 'venue_claim_review_failed', __( 'The venue claim decision could not be saved.', 'extrachill-events' ) );
 		}
 		$updated = $this->get_claim_by_id( $claim_id, true );
@@ -336,27 +334,11 @@ class VenueOnboardingRepository {
 				return $this->rollback_error( 'venue_invitation_create_failed', __( 'The terminal venue invitation could not be reactivated.', 'extrachill-events' ) );
 			}
 			$invite_id = (int) $current_invite['id'];
-			$event     = 'invitation_reinvited';
 		} else {
 			if ( false === $wpdb->insert( $invites_table, $invite_row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private invitation under venue lock.
 				return $this->rollback_error( 'venue_invitation_create_failed', __( 'The venue invitation could not be created.', 'extrachill-events' ) );
 			}
 			$invite_id = (int) $wpdb->insert_id;
-			$event     = 'invitation_created';
-		}
-		if ( ! $this->audit(
-			$venue_term_id,
-			'invitation',
-			$invite_id,
-			$event,
-			$actor_user_id,
-			$user_id,
-			array(
-				'status'   => self::INVITE_PENDING,
-				'is_owner' => $is_owner,
-			)
-		) ) {
-			return $this->rollback_error( 'venue_invitation_audit_failed', __( 'The invitation audit could not be recorded.', 'extrachill-events' ) );
 		}
 		$created = $this->get_invitation_by_id( $invite_id, true );
 		if ( ! $this->commit() ) {
@@ -388,7 +370,7 @@ class VenueOnboardingRepository {
 	}
 
 	/** Cancel an invitation whose post-persistence delivery setup failed. */
-	public function abandon_invitation( array $invitation, int $actor_user_id, string $event ) {
+	public function abandon_invitation( array $invitation, int $actor_user_id, string $event ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Retain public compensation API compatibility.
 		$started = $this->begin_and_lock_venue( (int) $invitation['venue_term_id'] );
 		if ( is_wp_error( $started ) ) {
 			return $started;
@@ -408,7 +390,7 @@ class VenueOnboardingRepository {
 		$now    = gmdate( 'Y-m-d H:i:s' );
 		$table  = VenueSchema::invitations_table();
 		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = %s, token_hash = %s, version = version + 1, updated_at = %s, resolved_at = %s WHERE id = %d AND version = %d AND status = %s", self::INVITE_CANCELLED, str_repeat( '0', 64 ), $now, $now, $current['id'], $current['version'], self::INVITE_PENDING ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Compensates an unusable invitation under its venue lock.
-		if ( 1 !== $result || ! $this->audit( $current['venue_term_id'], 'invitation', $current['id'], $event, $actor_user_id, $current['user_id'], array( 'version' => $current['version'] + 1 ) ) ) {
+		if ( 1 !== $result ) {
 			return $this->rollback_error( 'venue_invitation_compensation_failed', __( 'The failed invitation could not be compensated.', 'extrachill-events' ) );
 		}
 		$updated = $this->get_invitation_by_id( $current['id'], true );
@@ -549,7 +531,7 @@ class VenueOnboardingRepository {
 		} else {
 			$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET delivery_status = %s, token_hash = %s, updated_at = %s, delivered_at = NULL WHERE id = %d AND version = %d AND delivery_id = %s", $status, $token_hash, $now, $current['id'], $current['version'], $delivery_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Invalidates unsent bearer material.
 		}
-		if ( 1 !== $result || ! $this->audit( $current['venue_term_id'], 'invitation', $current['id'], $sent ? 'invitation_delivery_sent' : 'invitation_delivery_failed', null, $current['user_id'], array( 'version' => $current['version'] ) ) ) {
+		if ( 1 !== $result ) {
 			return $this->rollback_error( 'venue_invitation_delivery_finish_failed', __( 'The invitation delivery outcome could not be saved.', 'extrachill-events' ) );
 		}
 		$updated = $this->get_invitation_by_delivery_id( $delivery_id, true );
@@ -610,7 +592,7 @@ class VenueOnboardingRepository {
 			return new \WP_Error( 'venue_invitation_inviter_revoked', __( 'The inviter no longer manages this venue.', 'extrachill-events' ), array( 'status' => 403 ) );
 		}
 		if ( strtotime( $invite['expires_at'] . ' UTC' ) <= time() ) {
-			$expired = $this->finish_invitation( $invite, self::INVITE_EXPIRED, $actor_user_id );
+			$expired = $this->finish_invitation( $invite, self::INVITE_EXPIRED );
 			if ( is_wp_error( $expired ) ) {
 				return $expired;
 			}
@@ -623,7 +605,7 @@ class VenueOnboardingRepository {
 				)
 			);
 		}
-		return $this->finish_invitation( $invite, $decision, $actor_user_id );
+		return $this->finish_invitation( $invite, $decision );
 	}
 
 	/**
@@ -684,17 +666,6 @@ class VenueOnboardingRepository {
 			return $this->commit_error();
 		}
 		return $result;
-	}
-
-	/**
-	 * Record delivery disposition without token, email, or message content.
-	 *
-	 * @param array $invitation   Internal invitation row.
-	 * @param int   $actor_user_id Actor user ID.
-	 * @param bool  $queued        Whether delivery was queued.
-	 */
-	public function audit_delivery( array $invitation, int $actor_user_id, bool $queued ): bool {
-		return $this->audit( $invitation['venue_term_id'], 'invitation', $invitation['id'], $queued ? 'invitation_delivery_queued' : 'invitation_delivery_failed', $actor_user_id, $invitation['user_id'], array( 'version' => $invitation['version'] ) );
 	}
 
 	/** Return bounded claim statuses. */
@@ -773,7 +744,7 @@ class VenueOnboardingRepository {
 		$now    = gmdate( 'Y-m-d H:i:s' );
 		$table  = VenueSchema::claims_table();
 		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = %s, version = version + 1, updated_at = %s, resolved_at = %s WHERE id = %d AND version = %d", $status, $now, $now, $claim['id'], $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked optimistic cancellation.
-		if ( 1 !== $result || ! $this->audit( $claim['venue_term_id'], 'claim', $claim['id'], 'claim_' . $status, $actor_user_id, $claim['claimant_user_id'], array( 'status' => $status ) ) ) {
+		if ( 1 !== $result ) {
 			return $this->rollback_error( 'venue_claim_cancel_failed', __( 'The venue claim could not be cancelled.', 'extrachill-events' ) );
 		}
 		$updated = $this->get_claim_by_id( $claim['id'], true );
@@ -825,7 +796,6 @@ class VenueOnboardingRepository {
 		if ( 'resend' === $action ) {
 			$delivery_id = wp_generate_uuid4();
 			$result      = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET token_hash = %s, delivery_id = %s, delivery_status = %s, delivery_attempts = 0, version = version + 1, invited_by_user_id = %d, updated_at = %s, expires_at = %s, delivered_at = NULL WHERE id = %d AND version = %d", str_repeat( '0', 64 ), $delivery_id, self::DELIVERY_QUEUED, $actor_user_id, $now, $now, $invitation_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rotates the opaque delivery identity before a new worker is queued.
-			$event       = 'invitation_resent';
 		} else {
 			$result     = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = %s, token_hash = %s, version = version + 1, updated_at = %s, resolved_at = %s WHERE id = %d AND version = %d", self::INVITE_CANCELLED, str_repeat( '0', 64 ), $now, $now, $invitation_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked invitation cancellation.
 			$membership = $this->set_invited_membership_status( $current, VenueAuthorization::STATUS_REVOKED );
@@ -833,9 +803,8 @@ class VenueOnboardingRepository {
 				$this->rollback();
 				return $membership;
 			}
-			$event = 'invitation_cancelled';
 		}
-		if ( 1 !== $result || ! $this->audit( $current['venue_term_id'], 'invitation', $invitation_id, $event, $actor_user_id, $current['user_id'], array( 'version' => $expected_version + 1 ) ) ) {
+		if ( 1 !== $result ) {
 			return $this->rollback_error( 'venue_invitation_update_failed', __( 'The venue invitation could not be updated.', 'extrachill-events' ) );
 		}
 		$updated = $this->get_invitation_by_id( $invitation_id, true );
@@ -846,7 +815,7 @@ class VenueOnboardingRepository {
 	}
 
 	/** Complete an invitation and its canonical membership transition. */
-	private function finish_invitation( array $invite, string $status, int $actor_user_id ) { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private transition arguments are self-describing.
+	private function finish_invitation( array $invite, string $status ) { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private transition arguments are self-describing.
 		global $wpdb;
 		$membership_status = self::INVITE_ACCEPTED === $status ? VenueAuthorization::STATUS_ACTIVE : VenueAuthorization::STATUS_REVOKED;
 		$membership        = $this->set_invited_membership_status( $invite, $membership_status );
@@ -857,18 +826,7 @@ class VenueOnboardingRepository {
 		$now    = gmdate( 'Y-m-d H:i:s' );
 		$table  = VenueSchema::invitations_table();
 		$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = %s, token_hash = %s, version = version + 1, updated_at = %s, resolved_at = %s WHERE id = %d AND version = %d AND status = %s", $status, str_repeat( '0', 64 ), $now, $now, $invite['id'], $invite['version'], self::INVITE_PENDING ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Single-use invitation transition.
-		if ( 1 !== $result || ! $this->audit(
-			$invite['venue_term_id'],
-			'invitation',
-			$invite['id'],
-			'invitation_' . $status,
-			$actor_user_id,
-			$invite['user_id'],
-			array(
-				'status'   => $status,
-				'is_owner' => $invite['is_owner'],
-			)
-		) ) {
+		if ( 1 !== $result ) {
 			return $this->rollback_error( 'venue_invitation_response_failed', __( 'The invitation response could not be saved.', 'extrachill-events' ) );
 		}
 		$updated = $this->get_invitation_by_id( $invite['id'], true );
@@ -1015,30 +973,6 @@ class VenueOnboardingRepository {
 		$lock  = $locked ? ' FOR UPDATE' : '';
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE delivery_id = %s{$lock}", $delivery_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Opaque delivery lookup.
 		return is_array( $row ) ? $this->hydrate_invitation( $row ) : null;
-	}
-
-	/** Append a privacy-safe onboarding audit event. */
-	private function audit( int $venue_term_id, string $entity_type, int $entity_id, string $event, ?int $actor_user_id, ?int $subject_user_id, array $payload ): bool { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private audit helper.
-		global $wpdb;
-		$encoded = wp_json_encode( $payload );
-		if ( false === $encoded || preg_match( '/(?:token|email)/i', implode( '|', array_keys( $payload ) ) ) ) {
-			return false;
-		}
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only private audit write.
-		$result = $wpdb->insert(
-			VenueSchema::onboarding_audit_table(),
-			array(
-				'venue_term_id'   => $venue_term_id,
-				'entity_type'     => $entity_type,
-				'entity_id'       => $entity_id,
-				'event'           => $event,
-				'actor_user_id'   => $actor_user_id,
-				'subject_user_id' => $subject_user_id,
-				'payload'         => $encoded,
-				'created_at'      => gmdate( 'Y-m-d H:i:s' ),
-			)
-		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Append-only private audit write.
-		return false !== $result;
 	}
 
 	/** Validate schema, venue, and network-user existence. */

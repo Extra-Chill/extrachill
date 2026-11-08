@@ -8,8 +8,8 @@ organization is verified with no memberships and administrators add members
 afterwards. Verification returns `membership: null` in that case.
 
 Authority is stored separately from booking in `ec_promoter_organizations`,
-`ec_promoter_members`, exact action grants in `ec_promoter_venue_grants`, and the
-append-only `ec_promoter_authority_activity` table. The schema is ready only
+`ec_promoter_members`, and exact action grants in `ec_promoter_venue_grants`.
+The schema is ready only
 after its current-prefix tables, InnoDB engines,
 required columns, and exact uniqueness contracts pass health checks. Its
 failure state does not disable venue booking abilities.

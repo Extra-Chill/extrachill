@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 /** Owns the small site-scoped promoter authority schema. */
 final class PromoterAuthoritySchema {
 
-	public const SCHEMA_VERSION = '2';
+	public const SCHEMA_VERSION = '3';
 	public const VERSION_OPTION = 'extrachill_events_promoter_authority_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_promoter_authority_schema_error';
 
@@ -26,12 +26,6 @@ final class PromoterAuthoritySchema {
 	public static function memberships_table(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'ec_promoter_members';
-	}
-
-	/** Return the current site's authority activity table. */
-	public static function activity_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_promoter_authority_activity';
 	}
 
 	/** Return the current site's exact promoter/venue grant table. */
@@ -82,9 +76,14 @@ final class PromoterAuthoritySchema {
 			};
 		}
 
+		if ( ! self::is_ready() && false === $wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}ec_promoter_authority_activity`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Version-gated removal of unused current-site storage.
+			$error = new \WP_Error( 'promoter_authority_schema_drop_failed', __( 'The retired promoter table could not be removed.', 'extrachill-events' ) );
+			self::record_failure( $error );
+			return $error;
+		}
+
 		$organizations    = self::organizations_table();
 		$memberships      = self::memberships_table();
-		$activity         = self::activity_table();
 		$venue_grants     = self::venue_grants_table();
 		$charset          = $wpdb->get_charset_collate();
 		$organization_sql = "CREATE TABLE {$organizations} (
@@ -118,19 +117,6 @@ final class PromoterAuthoritySchema {
 			KEY user_status_promoter (user_id, status, promoter_term_id),
 			KEY promoter_status_owner (promoter_term_id, status, is_owner)
 		) ENGINE=InnoDB {$charset};";
-		$activity_sql     = "CREATE TABLE {$activity} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			promoter_term_id BIGINT UNSIGNED NOT NULL,
-			event VARCHAR(48) NOT NULL,
-			actor_user_id BIGINT UNSIGNED NOT NULL,
-			subject_user_id BIGINT UNSIGNED NULL,
-			result_version BIGINT UNSIGNED NOT NULL,
-			payload LONGTEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			PRIMARY KEY (id),
-			KEY promoter_created (promoter_term_id, created_at, id),
-			KEY event_created (event, created_at)
-		) ENGINE=InnoDB {$charset};";
 		$venue_grants_sql = "CREATE TABLE {$venue_grants} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			promoter_term_id BIGINT UNSIGNED NOT NULL,
@@ -155,12 +141,10 @@ final class PromoterAuthoritySchema {
 		$organization_error = (string) $wpdb->last_error;
 		dbDelta( $membership_sql );
 		$membership_error = (string) $wpdb->last_error;
-		dbDelta( $activity_sql );
-		$activity_error = (string) $wpdb->last_error;
 		dbDelta( $venue_grants_sql );
 		$venue_grants_error = (string) $wpdb->last_error;
-		if ( '' !== $organization_error || '' !== $membership_error || '' !== $activity_error || '' !== $venue_grants_error ) {
-			$error = new \WP_Error( 'promoter_authority_schema_install_failed', __( 'The promoter authority schema could not be reconciled.', 'extrachill-events' ), compact( 'organization_error', 'membership_error', 'activity_error', 'venue_grants_error' ) );
+		if ( '' !== $organization_error || '' !== $membership_error || '' !== $venue_grants_error ) {
+			$error = new \WP_Error( 'promoter_authority_schema_install_failed', __( 'The promoter authority schema could not be reconciled.', 'extrachill-events' ), compact( 'organization_error', 'membership_error', 'venue_grants_error' ) );
 			self::record_failure( $error );
 			return $error;
 		}
@@ -203,10 +187,6 @@ final class PromoterAuthoritySchema {
 					'PRIMARY'       => array( 'id' ),
 					'promoter_user' => array( 'promoter_term_id', 'user_id' ),
 				),
-			),
-			self::activity_table()      => array(
-				'columns' => array( 'id', 'promoter_term_id', 'event', 'actor_user_id', 'subject_user_id', 'result_version', 'payload', 'created_at' ),
-				'unique'  => array( 'PRIMARY' => array( 'id' ) ),
 			),
 			self::venue_grants_table()  => array(
 				'columns' => array( 'id', 'promoter_term_id', 'venue_term_id', 'action', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_by_user_id', 'updated_at', 'revoked_by_user_id', 'revoked_at' ),

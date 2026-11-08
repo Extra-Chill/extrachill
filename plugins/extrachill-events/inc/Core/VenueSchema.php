@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Owns and verifies the site-scoped private venue schema. */
 class VenueSchema {
 
-	public const SCHEMA_VERSION = '1';
+	public const SCHEMA_VERSION = '2';
 	public const VERSION_OPTION = 'extrachill_events_venue_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_venue_schema_error';
 
@@ -38,12 +38,6 @@ class VenueSchema {
 	public static function invitations_table(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'ec_venue_invitations';
-	}
-
-	/** Get the privacy-safe venue onboarding audit table. */
-	public static function onboarding_audit_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_onboarding_audit';
 	}
 
 	/** Create or repair all tables, stamping the version only after verification. */
@@ -87,6 +81,12 @@ class VenueSchema {
 			};
 		}
 
+		if ( ! self::is_ready() && false === $wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}ec_venue_onboarding_audit`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Version-gated removal of unused current-site storage.
+			$error = new \WP_Error( 'venue_schema_drop_failed', __( 'The retired venue table could not be removed.', 'extrachill-events' ) );
+			self::record_failure( $error );
+			return $error;
+		}
+
 		// Adopt an already-current venue schema without touching production data.
 		if ( true === self::health() ) {
 			update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
@@ -97,7 +97,6 @@ class VenueSchema {
 		$members = self::memberships_table();
 		$claims  = self::claims_table();
 		$invites = self::invitations_table();
-		$audit   = self::onboarding_audit_table();
 		$charset = $wpdb->get_charset_collate();
 
 		$members_sql = "CREATE TABLE {$members} (
@@ -165,22 +164,6 @@ class VenueSchema {
 			KEY user_status_venue (user_id, status, venue_term_id)
 		) ENGINE=InnoDB {$charset};";
 
-		$audit_sql = "CREATE TABLE {$audit} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
-			entity_type VARCHAR(16) NOT NULL,
-			entity_id BIGINT UNSIGNED NOT NULL,
-			event VARCHAR(48) NOT NULL,
-			actor_user_id BIGINT UNSIGNED NULL,
-			subject_user_id BIGINT UNSIGNED NULL,
-			payload LONGTEXT NOT NULL,
-			created_at DATETIME NOT NULL,
-			PRIMARY KEY (id),
-			KEY entity_created (entity_type, entity_id, created_at, id),
-			KEY venue_created (venue_term_id, created_at, id),
-			KEY event_created (event, created_at)
-		) ENGINE=InnoDB {$charset};";
-
 		$repair = self::drop_conflicting_indexes();
 		if ( is_wp_error( $repair ) ) {
 			self::record_failure( $repair );
@@ -194,9 +177,7 @@ class VenueSchema {
 		$claims_error = (string) $wpdb->last_error;
 		dbDelta( $invites_sql );
 		$invites_error = (string) $wpdb->last_error;
-		dbDelta( $audit_sql );
-		$audit_error = (string) $wpdb->last_error;
-		if ( '' !== $members_error || '' !== $claims_error || '' !== $invites_error || '' !== $audit_error ) {
+		if ( '' !== $members_error || '' !== $claims_error || '' !== $invites_error ) {
 			$error = new \WP_Error(
 				'venue_schema_dbdelta_failed',
 				__( 'The venue schema could not be reconciled.', 'extrachill-events' ),
@@ -204,7 +185,6 @@ class VenueSchema {
 					'members_error' => $members_error,
 					'claims_error'  => $claims_error,
 					'invites_error' => $invites_error,
-					'audit_error'   => $audit_error,
 				)
 			);
 			self::record_failure( $error );
@@ -510,7 +490,7 @@ class VenueSchema {
 			);
 		};
 		return array(
-			self::memberships_table()      => array(
+			self::memberships_table() => array(
 				'absent_columns' => array( 'role' ),
 				'absent_indexes' => array( 'venue_status_role' ),
 				'engine'         => 'innodb',
@@ -545,7 +525,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::claims_table()           => array(
+			self::claims_table()      => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -586,7 +566,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::invitations_table()      => array(
+			self::invitations_table() => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -637,38 +617,6 @@ class VenueSchema {
 					'user_status_venue' => array(
 						'unique'  => false,
 						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
-					),
-				),
-			),
-			self::onboarding_audit_table() => array(
-				'engine'  => 'innodb',
-				'columns' => array(
-					'id'              => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'venue_term_id'   => $required( 'bigint unsigned', false ),
-					'entity_type'     => $required( 'varchar(16)', false ),
-					'entity_id'       => $required( 'bigint unsigned', false ),
-					'event'           => $required( 'varchar(48)', false ),
-					'actor_user_id'   => $required( 'bigint unsigned', true ),
-					'subject_user_id' => $required( 'bigint unsigned', true ),
-					'payload'         => $required( 'longtext', false ),
-					'created_at'      => $required( 'datetime', false ),
-				),
-				'indexes' => array(
-					'PRIMARY'        => array(
-						'unique'  => true,
-						'columns' => array( 'id' ),
-					),
-					'entity_created' => array(
-						'unique'  => false,
-						'columns' => array( 'entity_type', 'entity_id', 'created_at', 'id' ),
-					),
-					'venue_created'  => array(
-						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'created_at', 'id' ),
-					),
-					'event_created'  => array(
-						'unique'  => false,
-						'columns' => array( 'event', 'created_at' ),
 					),
 				),
 			),

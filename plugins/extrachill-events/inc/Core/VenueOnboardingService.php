@@ -89,7 +89,6 @@ class VenueOnboardingService {
 		if ( is_wp_error( $queued ) ) {
 			return $this->compensate_persisted_invitation( $invitation, $actor_user_id, $email, $queued, 'invitation_delivery_failed' );
 		}
-		$this->repository->audit_delivery( $invitation, $actor_user_id, true );
 		$result                    = $this->repository->public_invitation( $invitation );
 		$result['delivery_queued'] = true;
 		$result['account_created'] = $account['created'];
@@ -114,7 +113,6 @@ class VenueOnboardingService {
 			$email = $user instanceof \WP_User ? strtolower( sanitize_email( $user->user_email ) ) : '';
 			return $this->compensate_persisted_invitation( $invitation, $actor_user_id, $email, $queued, 'invitation_delivery_failed' );
 		}
-		$this->repository->audit_delivery( $invitation, $actor_user_id, true );
 		$result                    = $this->repository->public_invitation( $invitation );
 		$result['delivery_queued'] = $queued;
 		return $result;
