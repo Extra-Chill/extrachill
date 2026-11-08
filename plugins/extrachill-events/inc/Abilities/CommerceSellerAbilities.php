@@ -73,8 +73,12 @@ class CommerceSellerAbilities {
 							'type'    => 'integer',
 							'minimum' => 1,
 						),
+						'slug' => array(
+							'type'        => 'string',
+							'description' => 'Term slug; used when id is absent (storefront paths).',
+						),
 					),
-					'required'             => array( 'type', 'id' ),
+					'required'             => array( 'type' ),
 					'additionalProperties' => false,
 				),
 				'output_schema'       => array(
@@ -83,11 +87,12 @@ class CommerceSellerAbilities {
 						'type'                => array( 'type' => 'string' ),
 						'id'                  => array( 'type' => 'integer' ),
 						'name'                => array( 'type' => 'string' ),
+						'slug'                => array( 'type' => 'string' ),
 						'url'                 => array( 'type' => 'string' ),
 						'manage_url'          => array( 'type' => 'string' ),
 						'can_manage_finances' => array( 'type' => 'boolean' ),
 					),
-					'required'             => array( 'type', 'id', 'name', 'url', 'manage_url', 'can_manage_finances' ),
+					'required'             => array( 'type', 'id', 'name', 'slug', 'url', 'manage_url', 'can_manage_finances' ),
 					'additionalProperties' => false,
 				),
 				'execute_callback'    => array( $this, 'execute' ),
@@ -123,6 +128,7 @@ class CommerceSellerAbilities {
 									),
 									'id'                  => array( 'type' => 'integer' ),
 									'name'                => array( 'type' => 'string' ),
+									'slug'                => array( 'type' => 'string' ),
 									'url'                 => array( 'type' => 'string' ),
 									'manage_url'          => array( 'type' => 'string' ),
 									'can_manage_finances' => array(
@@ -130,7 +136,7 @@ class CommerceSellerAbilities {
 										'enum' => array( true ),
 									),
 								),
-								'required'             => array( 'type', 'id', 'name', 'url', 'manage_url', 'can_manage_finances' ),
+								'required'             => array( 'type', 'id', 'name', 'slug', 'url', 'manage_url', 'can_manage_finances' ),
 								'additionalProperties' => false,
 							),
 						),
@@ -176,8 +182,9 @@ class CommerceSellerAbilities {
 	public function execute( array $input ) {
 		$type = isset( $input['type'] ) ? (string) $input['type'] : '';
 		$id   = isset( $input['id'] ) && is_int( $input['id'] ) ? $input['id'] : 0;
-		if ( ! in_array( $type, array( 'venue', 'promoter' ), true ) || $id < 1 ) {
-			return new \WP_Error( 'invalid_commerce_seller', __( 'A venue or promoter seller with a positive ID is required.', 'extrachill-events' ), array( 'status' => 400 ) );
+		$slug = ! isset( $input['id'] ) && isset( $input['slug'] ) && is_string( $input['slug'] ) ? sanitize_title( $input['slug'] ) : '';
+		if ( ! in_array( $type, array( 'venue', 'promoter' ), true ) || ( $id < 1 && '' === $slug ) ) {
+			return new \WP_Error( 'invalid_commerce_seller', __( 'A venue or promoter seller with a positive ID or a slug is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 
 		$events_blog_id = function_exists( 'ec_get_blog_id' ) ? absint( ec_get_blog_id( 'events' ) ) : 0;
@@ -187,6 +194,13 @@ class CommerceSellerAbilities {
 		}
 
 		try {
+			if ( '' !== $slug ) {
+				$term = get_term_by( 'slug', $slug, $type );
+				if ( ! is_object( $term ) || empty( $term->term_id ) ) {
+					return new \WP_Error( 'commerce_seller_not_found', __( 'Seller not found.', 'extrachill-events' ), array( 'status' => 404 ) );
+				}
+				$id = (int) $term->term_id;
+			}
 			return $this->resolve( $type, $id, get_current_user_id() );
 		} finally {
 			if ( $switched ) {
@@ -342,6 +356,7 @@ class CommerceSellerAbilities {
 			'type'                => $type,
 			'id'                  => (int) $term->term_id,
 			'name'                => sanitize_text_field( (string) $term->name ),
+			'slug'                => (string) $term->slug,
 			'url'                 => is_wp_error( $url ) ? '' : esc_url_raw( $url ),
 			'manage_url'          => esc_url_raw( self::settings_url( $type, (int) $term->term_id ) ),
 			'can_manage_finances' => (bool) $can,

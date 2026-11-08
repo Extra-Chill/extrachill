@@ -14,6 +14,15 @@ namespace {
 		'wp_register_ability'  => static function ( $name, $args ) { $GLOBALS['cs_abilities'][ $name ] = $args; },
 		'ec_get_blog_id'       => static fn() => 7,
 		'get_term'             => static fn( $id, $tax ) => $GLOBALS['cs_terms'][ $tax ][ $id ] ?? null,
+		'get_term_by'          => static function ( $field, $value, $tax ) {
+			foreach ( $GLOBALS['cs_terms'][ $tax ] ?? array() as $term ) {
+				if ( 'slug' === $field && $value === $term->slug ) {
+					return $term;
+				}
+			}
+			return false;
+		},
+		'sanitize_title'       => static fn( $value ) => strtolower( trim( (string) $value ) ),
 		'get_term_link'        => static fn( $term ) => 'https://events.example/' . $term->taxonomy . '/' . $term->term_id . '/',
 		'esc_url_raw'          => static fn( $url ) => $url,
 		'sanitize_text_field'  => static fn( $value ) => trim( (string) $value ),
@@ -93,6 +102,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 						'term_id'  => 1524,
 						'taxonomy' => 'venue',
 						'name'     => ' Lo-Fi Brewing ',
+						'slug'     => 'lo-fi-brewing',
 					),
 				),
 				'promoter' => array(
@@ -100,6 +110,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 						'term_id'  => 88,
 						'taxonomy' => 'promoter',
 						'name'     => 'Real South',
+						'slug'     => 'real-south',
 					),
 				),
 			);
@@ -179,6 +190,7 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 					'type'                => 'venue',
 					'id'                  => 1524,
 					'name'                => 'Lo-Fi Brewing',
+					'slug'                => 'lo-fi-brewing',
 					'url'                 => 'https://events.example/venue/1524/',
 					'manage_url'          => 'https://events.example/venue-settings/?venue_id=1524',
 					'can_manage_finances' => true,
@@ -257,6 +269,36 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 					)
 				)->get_error_code()
 			);
+		}
+
+		public function test_sellers_resolve_by_slug_for_storefront_paths(): void {
+			$GLOBALS['cs_user'] = 0;
+			$venue              = $this->ability->execute(
+				array(
+					'type' => 'venue',
+					'slug' => 'lo-fi-brewing',
+				)
+			);
+			$this->assertSame( array( 1524, 'lo-fi-brewing' ), array( $venue['id'], $venue['slug'] ) );
+			$this->assertSame(
+				'commerce_seller_not_found',
+				$this->ability->execute(
+					array(
+						'type' => 'promoter',
+						'slug' => 'lo-fi-brewing',
+					)
+				)->get_error_code()
+			);
+			$this->assertSame(
+				'invalid_commerce_seller',
+				$this->ability->execute(
+					array(
+						'type' => 'venue',
+						'slug' => '',
+					)
+				)->get_error_code()
+			);
+			$this->assertSame( 7, $GLOBALS['cs_blog'] );
 		}
 
 		public function test_anonymous_visitors_get_public_identity_without_authority(): void {

@@ -97,10 +97,7 @@ if ( $products->have_posts() ) :
 			'add_args'  => array(),
 		);
 
-		// Preserve filter params in pagination links
-		if ( $current_seller ) {
-			$pagination_args['add_args']['seller'] = extrachill_shop_seller_ref_key( $current_seller );
-		}
+		// Preserve filter params in pagination links (the seller is in the path).
 		if ( $current_sort && 'recent' !== $current_sort ) {
 			$pagination_args['add_args']['sort'] = $current_sort;
 		}
