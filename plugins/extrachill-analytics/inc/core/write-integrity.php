@@ -482,7 +482,14 @@ function extrachill_analytics_validate_public_event_write( $event_type, $event_d
 			return new WP_Error( 'invalid_network_destination', __( 'Destination must be another network host.', 'extrachill-analytics' ), array( 'status' => 400 ) );
 		}
 		if ( '/' !== substr( $path, 0, 1 ) || '//' === substr( $path, 0, 2 ) || strpbrk( $path, '?#' ) !== false ) {
-			return new WP_Error( 'invalid_event_field', __( 'Destination must be a path only.', 'extrachill-analytics' ), array( 'status' => 400, 'field' => 'dest_path' ) );
+			return new WP_Error(
+				'invalid_event_field',
+				__( 'Destination must be a path only.', 'extrachill-analytics' ),
+				array(
+					'status' => 400,
+					'field'  => 'dest_path',
+				)
+			);
 		}
 	}
 

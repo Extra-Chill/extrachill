@@ -533,12 +533,12 @@ function extrachill_analytics_enqueue_outbound_tracking() {
 		'extrachill-outbound-tracking',
 		'ecOutboundTracking',
 		array(
-			'endpoint'     => rest_url( 'extrachill/v1/analytics/click' ),
-			'networkHosts' => $network_hosts,
+			'endpoint'        => rest_url( 'extrachill/v1/analytics/click' ),
+			'networkHosts'    => $network_hosts,
 			'networkEndpoint' => rest_url( 'wp-abilities/v1/abilities/extrachill/track-network-click/run' ),
-			'ctaEndpoint'  => rest_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
-			'formEndpoint' => rest_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
-			'route'        => $route,
+			'ctaEndpoint'     => rest_url( 'wp-abilities/v1/abilities/extrachill/track-cta-click/run' ),
+			'formEndpoint'    => rest_url( 'wp-abilities/v1/abilities/extrachill/track-form-submit/run' ),
+			'route'           => $route,
 		)
 	);
 }

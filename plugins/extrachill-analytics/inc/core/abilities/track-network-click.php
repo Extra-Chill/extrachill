@@ -20,12 +20,30 @@ function extrachill_analytics_register_track_network_click_ability(): void {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'dest_host'  => array( 'type' => 'string', 'maxLength' => 253 ),
-					'dest_path'  => array( 'type' => 'string', 'maxLength' => 512 ),
-					'label'      => array( 'type' => 'string', 'maxLength' => 80 ),
-					'placement'  => array( 'type' => 'string', 'maxLength' => 40 ),
-					'route'      => array( 'type' => 'string', 'enum' => extrachill_analytics_route_families() ),
-					'source_url' => array( 'type' => 'string', 'maxLength' => 2048 ),
+					'dest_host'  => array(
+						'type'      => 'string',
+						'maxLength' => 253,
+					),
+					'dest_path'  => array(
+						'type'      => 'string',
+						'maxLength' => 512,
+					),
+					'label'      => array(
+						'type'      => 'string',
+						'maxLength' => 80,
+					),
+					'placement'  => array(
+						'type'      => 'string',
+						'maxLength' => 40,
+					),
+					'route'      => array(
+						'type' => 'string',
+						'enum' => extrachill_analytics_route_families(),
+					),
+					'source_url' => array(
+						'type'      => 'string',
+						'maxLength' => 2048,
+					),
 				),
 				'required'   => array( 'dest_host', 'dest_path', 'label', 'placement', 'route', 'source_url' ),
 			),
@@ -34,7 +52,11 @@ function extrachill_analytics_register_track_network_click_ability(): void {
 			'permission_callback' => '__return_true',
 			'meta'                => array(
 				'show_in_rest' => true,
-				'annotations'  => array( 'readonly' => false, 'idempotent' => false, 'destructive' => false ),
+				'annotations'  => array(
+					'readonly'    => false,
+					'idempotent'  => false,
+					'destructive' => false,
+				),
 			),
 		)
 	);
@@ -57,7 +79,7 @@ function extrachill_analytics_ability_track_network_click( array $input ) {
 	if ( '/' !== substr( $path, 0, 1 ) || '//' === substr( $path, 0, 2 ) ) {
 		return new WP_Error( 'invalid_network_click', __( 'A destination path is required.', 'extrachill-analytics' ), array( 'status' => 400 ) );
 	}
-	$path = substr( (string) preg_split( '/[?#]/', $path, 2 )[0], 0, 512 );
+	$path = substr( substr( $path, 0, strcspn( $path, '?#' ) ), 0, 512 );
 
 	return extrachill_analytics_ability_track_event(
 		array(
