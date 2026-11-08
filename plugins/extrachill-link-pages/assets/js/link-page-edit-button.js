@@ -11,9 +11,8 @@
  * The handoff is a full top-level navigation, so it only runs when there is a
  * signal the visitor may be an editor: they arrived from the host site's
  * network, this browser has received an edit token before, or the host has
- * primed an `ec_link_editor` hint cookie for a signed-in artist (see
- * extrachill-network editor-hint.php). Everyone else loads the page once with
- * no cross-site redirect.
+ * primed a first-party `ec_link_editor=1` hint cookie for a signed-in owner.
+ * Everyone else loads the page once with no cross-site redirect.
  */
 (function () {
     'use strict';
@@ -24,25 +23,25 @@
     var HANDOFF_ATTEMPTED_KEY = 'ecLinkEditHandoffAttempted';
     // Persistent marker: this browser has received an edit token before, so a
     // handoff is worth a redirect once the short-lived token expires.
-    var KNOWN_EDITOR_KEY = 'ecLinkEditKnownEditor';
+    const KNOWN_EDITOR_KEY = 'ecLinkEditKnownEditor';
 
     /**
      * Whether this browser has ever received an edit token.
      *
-     * @return {boolean}
+     * @return {boolean} True when a token was received here before.
      */
     function isKnownEditor() {
         try {
             return window.localStorage.getItem(KNOWN_EDITOR_KEY) === '1';
-        } catch (e) {
+        } catch {
             return false;
         }
     }
 
     /**
-     * Whether the host primed this browser as a signed-in artist's.
+     * Whether the host primed this browser for a signed-in owner.
      *
-     * @return {boolean}
+     * @return {boolean} True when the hint cookie is present.
      */
     function hasEditorHint() {
         return /(?:^|;\s*)ec_link_editor=1(?:;|$)/.test(document.cookie || '');
@@ -56,7 +55,7 @@
     function forgetEditor() {
         try {
             window.localStorage.removeItem(KNOWN_EDITOR_KEY);
-        } catch (e) {}
+        } catch {}
         document.cookie = 'ec_link_editor=; Max-Age=0; Path=/; SameSite=Lax';
     }
 
@@ -68,7 +67,7 @@
     function markKnownEditor() {
         try {
             window.localStorage.setItem(KNOWN_EDITOR_KEY, '1');
-        } catch (e) {}
+        } catch {}
     }
 
     /**
@@ -77,19 +76,19 @@
      *
      * @param {string} handoffUrl Handoff URL on the host site.
      * @param {string} referrer   document.referrer.
-     * @return {boolean}
+     * @return {boolean} True when the referrer is on the host's network.
      */
     function cameFromHostNetwork(handoffUrl, referrer) {
         if (!handoffUrl || !referrer) {
             return false;
         }
         try {
-            var hostname = new URL(handoffUrl).hostname;
-            var from = new URL(referrer).hostname;
-            var labels = hostname.split('.');
-            var parent = labels.length > 2 ? labels.slice(1).join('.') : hostname;
+            const hostname = new URL(handoffUrl).hostname;
+            const from = new URL(referrer).hostname;
+            const labels = hostname.split('.');
+            const parent = labels.length > 2 ? labels.slice(1).join('.') : hostname;
             return from === hostname || from === parent || from.slice(-(parent.length + 1)) === '.' + parent;
-        } catch (e) {
+        } catch {
             return false;
         }
     }

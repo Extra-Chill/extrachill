@@ -1,3 +1,6 @@
+/**
+ * External dependencies
+ */
 const fs = require( 'node:fs' );
 const vm = require( 'node:vm' );
 const assert = require( 'node:assert/strict' );
@@ -83,4 +86,5 @@ const cached = run( { local: { ecLinkEditToken: JSON.stringify( { token: 't', ex
 assert.equal( cached.navigations.length, 0 );
 assert.equal( cached.fetches.length, 1 );
 
+// eslint-disable-next-line no-console
 console.log( 'edit-button handoff tests passed' );
