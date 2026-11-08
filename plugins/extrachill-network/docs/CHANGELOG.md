@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.37.2] - 2026-11-08
+
+### Fixed
+- only run the edit-token handoff redirect for likely editors
+
 ## [2.37.1] - 2026-11-06
 
 ### Fixed
