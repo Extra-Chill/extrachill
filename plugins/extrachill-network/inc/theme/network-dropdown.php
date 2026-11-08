@@ -31,7 +31,10 @@ function extrachill_network_register_dropdown_experiment( $definitions ) {
 		'default_state'        => 'inactive',
 		'default_variant'      => 'control',
 		'control_variant'      => 'control',
-		'variants'             => array( 'control' => 50, 'treatment' => 50 ),
+		'variants'             => array(
+			'control'   => 50,
+			'treatment' => 50,
+		),
 		'surfaces'             => array( 'breadcrumb-network-dropdown' ),
 		'eligibility_callback' => 'extrachill_network_dropdown_experiment_eligible',
 	);
@@ -72,7 +75,10 @@ function extrachill_network_register_dropdown_experiment_script() {
 		EXTRACHILL_NETWORK_PLUGIN_URL . 'assets/js/network-dropdown-experiment.js',
 		array( 'extrachill-experiment-assignment' ),
 		(string) filemtime( $path ),
-		array( 'strategy' => 'defer', 'in_footer' => true )
+		array(
+			'strategy'  => 'defer',
+			'in_footer' => true,
+		)
 	);
 }
 add_action( 'wp_enqueue_scripts', 'extrachill_network_register_dropdown_experiment_script', 6 );
@@ -97,7 +103,10 @@ function extrachill_network_dropdown_experiment_root( $root ) {
 	$attributes = extrachill_experiment_attributes(
 		'network-dropdown-everywhere',
 		'breadcrumb-network-dropdown',
-		array( 'blog_id' => get_current_blog_id(), 'existing_dropdown' => '0' )
+		array(
+			'blog_id'           => get_current_blog_id(),
+			'existing_dropdown' => '0',
+		)
 	);
 	if ( '' === $attributes ) {
 		return $root;
