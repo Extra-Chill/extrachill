@@ -15,7 +15,7 @@ function store( initial = {} ) {
 	};
 }
 
-function run( { referrer = '', hash = '', local = {}, session = {} } = {} ) {
+function run( { referrer = '', hash = '', local = {}, session = {}, cookie = '' } = {} ) {
 	const navigations = [];
 	const fetches = [];
 	const localStorage = store( local );
@@ -25,13 +25,14 @@ function run( { referrer = '', hash = '', local = {}, session = {} } = {} ) {
 	const document = {
 		readyState: 'complete',
 		referrer,
+		cookie,
 		body: { dataset: { extrchPermissionsApiUrl: 'https://artist.example.com/wp-json/perm', extrchTokenHandoffUrl: HANDOFF }, appendChild() {} },
 		querySelector: () => null,
 		createElement: () => ( { setAttribute() {} } ),
 	};
 	const fetch = ( url, options ) => { fetches.push( { url, options } ); return new Promise( () => {} ); };
 	vm.runInNewContext( source, { window, document, fetch, URL, URLSearchParams, Date, JSON } );
-	return { navigations, fetches, localStorage, sessionStorage };
+	return { navigations, fetches, localStorage, sessionStorage, document };
 }
 
 // Anonymous visitor from anywhere off-network: one page load, no redirect.
@@ -66,6 +67,16 @@ assert.equal( none.localStorage.getItem( 'ecLinkEditKnownEditor' ), null );
 
 // Known editor whose token expired: handoff again, from any referrer.
 assert.equal( run( { referrer: 'https://www.instagram.com/', local: { ecLinkEditKnownEditor: '1' } } ).navigations.length, 1 );
+
+// Host-primed hint cookie (signed-in artist opening their page directly): handoff.
+assert.equal( run( { cookie: 'a=b; ec_link_editor=1' } ).navigations.length, 1 );
+assert.equal( run( { cookie: 'not_ec_link_editor=1' } ).navigations.length, 0, 'cookie name must match exactly' );
+
+// Tokenless return forgets every editor signal so signed-out browsers stop redirecting.
+const out = run( { hash: '#ec_link_token_none=1', local: { ecLinkEditKnownEditor: '1' }, cookie: 'ec_link_editor=1' } );
+assert.equal( out.navigations.length, 0 );
+assert.equal( out.localStorage.getItem( 'ecLinkEditKnownEditor' ), null );
+assert.match( out.document.cookie, /^ec_link_editor=; Max-Age=0/ );
 
 // Valid cached token: no redirect, straight to the permission check.
 const cached = run( { local: { ecLinkEditToken: JSON.stringify( { token: 't', expiresAt: Date.now() + 600000 } ) } } );

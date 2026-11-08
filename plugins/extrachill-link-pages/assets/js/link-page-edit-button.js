@@ -10,8 +10,10 @@
  *
  * The handoff is a full top-level navigation, so it only runs when there is a
  * signal the visitor may be an editor: they arrived from the host site's
- * network, or this browser has received an edit token before. Everyone else
- * loads the page once with no cross-site redirect.
+ * network, this browser has received an edit token before, or the host has
+ * primed an `ec_link_editor` hint cookie for a signed-in artist (see
+ * extrachill-network editor-hint.php). Everyone else loads the page once with
+ * no cross-site redirect.
  */
 (function () {
     'use strict';
@@ -35,6 +37,27 @@
         } catch (e) {
             return false;
         }
+    }
+
+    /**
+     * Whether the host primed this browser as a signed-in artist's.
+     *
+     * @return {boolean}
+     */
+    function hasEditorHint() {
+        return /(?:^|;\s*)ec_link_editor=1(?:;|$)/.test(document.cookie || '');
+    }
+
+    /**
+     * Forget editor signals after a handoff proves the visitor is signed out.
+     *
+     * @return {void}
+     */
+    function forgetEditor() {
+        try {
+            window.localStorage.removeItem(KNOWN_EDITOR_KEY);
+        } catch (e) {}
+        document.cookie = 'ec_link_editor=; Max-Age=0; Path=/; SameSite=Lax';
     }
 
     /**
@@ -290,12 +313,13 @@
         // 3. No token. If the handoff already ran this session (including the
         //    tokenless "not logged in" return), stop — anonymous visitor.
         if (fragment.attempted) {
+            forgetEditor();
             return;
         }
 
         // 4. Bootstrap a token via the one-time handoff redirect, but only for
         //    likely editors. Anonymous visitors never leave the page.
-        if (isKnownEditor() || cameFromHostNetwork(handoffUrl, document.referrer || '')) {
+        if (isKnownEditor() || hasEditorHint() || cameFromHostNetwork(handoffUrl, document.referrer || '')) {
             attemptHandoff(handoffUrl);
         }
     }

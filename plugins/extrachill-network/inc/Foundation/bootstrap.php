@@ -23,6 +23,7 @@ function extrachill_network_boot_foundation() {
 
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/blog-ids.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/link-pages/site-integration.php';
+	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/link-pages/editor-hint.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/media/image-optimization.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/mail.php';
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/service-assertions.php';
