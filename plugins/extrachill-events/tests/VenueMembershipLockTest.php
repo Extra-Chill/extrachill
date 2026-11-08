@@ -15,21 +15,21 @@ final class VenueMembershipLockTest extends TestCase {
 		$original = $GLOBALS['wpdb'];
 		try {
 			$GLOBALS['wpdb'] = new class() {
-				public $prefix = 'wp_7_';
+				public $prefix     = 'wp_7_';
 				public $last_error = '';
-				public $queries = array();
+				public $queries    = array();
 
 				public function prepare( $query, ...$values ) {
 					return vsprintf( $query, $values );
 				}
 
 				public function get_results( $query, $format ) {
-					$this->queries[] = $query;
+					$this->queries[]  = $query;
 					$this->last_error = 'lock timeout';
 					return null;
 				}
 			};
-			$repository = new VenueMembershipRepository();
+			$repository      = new VenueMembershipRepository();
 			foreach ( array( $repository->lock_for_venue( 55 ), $repository->lock_member( 55, 22 ) ) as $error ) {
 				$this->assertInstanceOf( WP_Error::class, $error );
 				$this->assertSame( 'venue_membership_read_failed', $error->get_error_code() );
@@ -48,7 +48,7 @@ final class VenueMembershipLockTest extends TestCase {
 			$files = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root ) );
 			foreach ( $files as $file ) {
 				$path = $file->getPathname();
-				if ( 'php' !== $file->getExtension() || str_contains( $path, '/tests/' ) || in_array( $file->getFilename(), array( 'VenueSchema.php', 'VenueMembershipRepository.php' ), true ) ) {
+				if ( 'php' !== $file->getExtension() || str_contains( $path, '/tests/' ) || in_array( $file->getFilename(), array( 'VenueSchema.php', 'VenueMembershipRepository.php', 'TeamMembershipRepository.php' ), true ) ) {
 					continue;
 				}
 				$this->assertDoesNotMatchRegularExpression( '/(?<![A-Za-z])VenueSchema::memberships_table\\s*\\(/', file_get_contents( $path ), $path );
@@ -57,6 +57,36 @@ final class VenueMembershipLockTest extends TestCase {
 				}
 			}
 		}
+	}
+
+	/** Shared hydration preserves typed keys, status rules and nullable revokers. */
+	public function test_shared_typed_hydration(): void {
+		$repository = new \ExtraChillEvents\Core\TeamMembershipRepository();
+		$row        = array(
+			'id'                 => '1',
+			'venue_term_id'      => '55',
+			'promoter_term_id'   => '55',
+			'user_id'            => '22',
+			'is_owner'           => '1',
+			'status'             => 'active',
+			'version'            => '3',
+			'created_by_user_id' => '9',
+			'revoked_at'         => '',
+			'revoked_by_user_id' => '9',
+		);
+		foreach ( array( 'venue', 'promoter' ) as $type ) {
+			$hydrated = $repository->hydrate_rows( $type, array( $row ) );
+			$this->assertSame( 55, $hydrated[0][ $type . '_term_id' ] );
+			$this->assertSame( 3, $hydrated[0]['version'] );
+			$this->assertTrue( $hydrated[0]['is_owner'] );
+			$this->assertNull( $hydrated[0]['revoked_at'] );
+			$corrupt             = $row;
+			$corrupt['is_owner'] = '2';
+			$this->assertSame( $type . '_membership_corrupt_owner', $repository->hydrate_rows( $type, array( $row, $corrupt ) )->get_error_code() );
+		}
+		$this->assertSame( 9, $repository->hydrate( 'promoter', $row )['revoked_by_user_id'] );
+		$row['status'] = 'invited';
+		$this->assertSame( 'promoter_membership_corrupt_status', $repository->hydrate( 'promoter', $row )->get_error_code() );
 	}
 
 	/** Empty membership ranges are successful locks, not database errors. */

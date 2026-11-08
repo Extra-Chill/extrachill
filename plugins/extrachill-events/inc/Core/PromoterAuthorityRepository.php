@@ -9,6 +9,8 @@ namespace ExtraChillEvents\Core;
 
 defined( 'ABSPATH' ) || exit;
 
+require_once __DIR__ . '/TeamMembershipRepository.php';
+
 /** Executes serialized organization and membership mutations. */
 class PromoterAuthorityRepository {
 	public const STATUS_ACTIVE     = 'active';
@@ -177,14 +179,7 @@ class PromoterAuthorityRepository {
 		return $this->get_organization( $promoter_term_id );
 	}
 
-	/**
-	 * Add one active member; only a site administrator or a locked-current owner may act.
-	 *
-	 * @param int  $promoter_term_id Exact promoter term ID.
-	 * @param int  $user_id          Target network user ID.
-	 * @param bool $is_owner         Structural owner state.
-	 * @param int  $actor_user_id    Acting owner network user ID.
-	 */
+	/** Add an active member as a site administrator or locked-current owner. */
 	public function create_membership( int $promoter_term_id, int $user_id, bool $is_owner, int $actor_user_id ) {
 		$valid = $this->validate_principals( $promoter_term_id, array( $user_id, $actor_user_id ) );
 		if ( is_wp_error( $valid ) ) {
@@ -249,27 +244,12 @@ class PromoterAuthorityRepository {
 		return $this->get_membership( $promoter_term_id, $user_id );
 	}
 
-	/**
-	 * Change structural owner state at an expected version.
-	 *
-	 * @param int  $promoter_term_id Exact promoter term ID.
-	 * @param int  $user_id          Target network user ID.
-	 * @param bool $is_owner         Structural owner state.
-	 * @param int  $expected_version Optimistic membership version.
-	 * @param int  $actor_user_id    Acting owner network user ID.
-	 */
+	/** Change structural ownership at an expected version. */
 	public function update_owner( int $promoter_term_id, int $user_id, bool $is_owner, int $expected_version, int $actor_user_id ) {
 		return $this->mutate_membership( $promoter_term_id, $user_id, $expected_version, $actor_user_id, $is_owner, false );
 	}
 
-	/**
-	 * Revoke one membership at an expected version.
-	 *
-	 * @param int $promoter_term_id Exact promoter term ID.
-	 * @param int $user_id          Target network user ID.
-	 * @param int $expected_version Optimistic membership version.
-	 * @param int $actor_user_id    Acting owner network user ID.
-	 */
+	/** Revoke one membership at an expected version. */
 	public function revoke_membership( int $promoter_term_id, int $user_id, int $expected_version, int $actor_user_id ) {
 		return $this->mutate_membership( $promoter_term_id, $user_id, $expected_version, $actor_user_id, null, true );
 	}
@@ -294,9 +274,8 @@ class PromoterAuthorityRepository {
 	 */
 	public function get_membership( int $promoter_term_id, int $user_id ) {
 		global $wpdb;
-		$table = PromoterAuthoritySchema::memberships_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE promoter_term_id = %d AND user_id = %d LIMIT 1", $promoter_term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
-		return '' !== (string) $wpdb->last_error ? $this->database_error( 'promoter_membership_read_failed', __( 'The promoter membership could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_membership( $row ) : null );
+		$result = ( new TeamMembershipRepository() )->get( 'promoter', $promoter_term_id, $user_id );
+		return is_wp_error( $result ) && '' !== (string) $wpdb->last_error ? $this->database_error( 'promoter_membership_read_failed', __( 'The promoter membership could not be read.', 'extrachill-events' ) ) : $result;
 	}
 
 	/**
@@ -308,8 +287,7 @@ class PromoterAuthorityRepository {
 	 */
 	public function lock_memberships_for_grant( int $promoter_term_id, int $limit ) {
 		global $wpdb;
-		$table = PromoterAuthoritySchema::memberships_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE promoter_term_id = %d ORDER BY id ASC LIMIT %d FOR UPDATE", $promoter_term_id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns deterministic grant lock order and transaction.
+		$rows = ( new TeamMembershipRepository() )->lock_team( 'promoter', $promoter_term_id, $limit );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_venue_grant_read_failed', __( 'Promoter venue authority could not be locked.', 'extrachill-events' ) );
 		}
@@ -371,15 +349,7 @@ class PromoterAuthorityRepository {
 				)
 			);
 		}
-		$memberships = array();
-		foreach ( (array) $rows as $row ) {
-			$membership = $this->hydrate_membership( $row );
-			if ( is_wp_error( $membership ) ) {
-				return $membership;
-			}
-			$memberships[] = $membership;
-		}
-		return $memberships;
+		return ( new TeamMembershipRepository() )->hydrate_rows( 'promoter', (array) $rows );
 	}
 
 	/** Execute a promoter mutation while its active organization and membership rows are locked. */
@@ -479,15 +449,7 @@ class PromoterAuthorityRepository {
 				)
 			);
 		}
-		$memberships = array();
-		foreach ( (array) $rows as $row ) {
-			$membership = $this->hydrate_membership( $row );
-			if ( is_wp_error( $membership ) ) {
-				return $membership;
-			}
-			$memberships[] = $membership;
-		}
-		return $memberships;
+		return ( new TeamMembershipRepository() )->hydrate_rows( 'promoter', (array) $rows );
 	}
 
 	/** List every approved promoter identity within the public network bound. */
@@ -542,31 +504,10 @@ class PromoterAuthorityRepository {
 	 * @param array $row Raw database row.
 	 */
 	public function hydrate_membership( array $row ) {
-		if ( ! in_array( $row['status'] ?? '', self::statuses(), true ) ) {
-			return new \WP_Error( 'promoter_membership_corrupt_status', __( 'The stored promoter membership status is invalid.', 'extrachill-events' ) );
-		}
-		if ( ! in_array( $row['is_owner'] ?? null, array( 0, 1, '0', '1' ), true ) ) {
-			return new \WP_Error( 'promoter_membership_corrupt_owner', __( 'The stored promoter membership ownership value is invalid.', 'extrachill-events' ) );
-		}
-		foreach ( array( 'id', 'promoter_term_id', 'user_id', 'version', 'created_by_user_id' ) as $field ) {
-			$row[ $field ] = (int) $row[ $field ];
-		}
-		$row['is_owner']           = (bool) (int) $row['is_owner'];
-		$row['revoked_by_user_id'] = empty( $row['revoked_by_user_id'] ) ? null : (int) $row['revoked_by_user_id'];
-		$row['revoked_at']         = empty( $row['revoked_at'] ) ? null : (string) $row['revoked_at'];
-		return $row;
+		return ( new TeamMembershipRepository() )->hydrate( 'promoter', $row );
 	}
 
-	/**
-	 * Execute one serialized membership mutation.
-	 *
-	 * @param int       $promoter_term_id Exact promoter term ID.
-	 * @param int       $user_id          Target network user ID.
-	 * @param int       $expected_version Optimistic membership version.
-	 * @param int       $actor_user_id    Acting administrator or owner network user ID.
-	 * @param bool|null $is_owner         New owner state, or null for revocation.
-	 * @param bool      $revoke           Whether to revoke the membership.
-	 */
+	/** Execute a serialized owner update or revocation at an expected version. */
 	private function mutate_membership( int $promoter_term_id, int $user_id, int $expected_version, int $actor_user_id, ?bool $is_owner, bool $revoke ) {
 		$valid = $this->validate_principals( $promoter_term_id, array( $user_id, $actor_user_id ) );
 		if ( is_wp_error( $valid ) || $expected_version < 1 ) {
@@ -663,9 +604,8 @@ class PromoterAuthorityRepository {
 	private function lock_rows( int $promoter_term_id ) {
 		global $wpdb;
 		$organizations    = PromoterAuthoritySchema::organizations_table();
-		$memberships      = PromoterAuthoritySchema::memberships_table();
 		$organization_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$organizations} WHERE promoter_term_id = %d FOR UPDATE", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes one promoter authority range.
-		$membership_rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$memberships} WHERE promoter_term_id = %d ORDER BY id ASC FOR UPDATE", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locks final-owner state.
+		$membership_rows  = ( new TeamMembershipRepository() )->lock_team( 'promoter', $promoter_term_id );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_authority_read_failed', __( 'Promoter authority could not be locked.', 'extrachill-events' ) );
 		}
@@ -673,13 +613,9 @@ class PromoterAuthorityRepository {
 		if ( is_wp_error( $organization ) ) {
 			return $organization;
 		}
-		$hydrated = array();
-		foreach ( (array) $membership_rows as $row ) {
-			$membership = $this->hydrate_membership( $row );
-			if ( is_wp_error( $membership ) ) {
-				return $membership;
-			}
-			$hydrated[] = $membership;
+		$hydrated = ( new TeamMembershipRepository() )->hydrate_rows( 'promoter', $membership_rows );
+		if ( is_wp_error( $hydrated ) ) {
+			return $hydrated;
 		}
 		return array(
 			'organization' => $organization,
