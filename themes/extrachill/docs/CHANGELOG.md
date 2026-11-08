@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.17.0] - 2026-11-08
+
+### Added
+- add inactive breadcrumb dropdown experiment
+
 ## [2.16.5] - 2026-11-05
 
 ### Changed
