@@ -327,8 +327,8 @@ class PromoterVenueGrantRepository {
 	 */
 	private function lock_context( int $promoter_term_id, int $venue_term_id, string $action ) {
 		global $wpdb;
-		$organizations   = PromoterAuthoritySchema::organizations_table();
-		$grants          = PromoterAuthoritySchema::venue_grants_table();
+		$organizations    = PromoterAuthoritySchema::organizations_table();
+		$grants           = PromoterAuthoritySchema::venue_grants_table();
 		$organization_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$organizations} WHERE promoter_term_id = %d FOR UPDATE", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- First deterministic authority lock.
 		$promoter_rows    = ( new PromoterAuthorityRepository() )->lock_memberships_for_grant( $promoter_term_id, self::MAX_LOCK_MEMBERS + 1 );
 		if ( is_wp_error( $promoter_rows ) ) {
