@@ -87,7 +87,7 @@ final class NetworkTeamMembersMigration {
 	/** CLI-only retirement, with writes excluded between copy, verification and drop. */
 	public static function apply(): array {
 		global $wpdb;
-		if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+		if ( ! defined( 'WP_CLI' ) || ! constant( 'WP_CLI' ) ) {
 			return array(
 				'success'  => false,
 				'complete' => false,

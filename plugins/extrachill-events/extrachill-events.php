@@ -6,7 +6,7 @@
  * Version: 0.124.0
  * Author: Chris Huber
  * Author URI: https://chubes.net
- * Requires Plugins: data-machine, data-machine-events
+ * Requires Plugins: data-machine, data-machine-events, extrachill-users
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: extrachill-events

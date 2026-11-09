@@ -38,7 +38,7 @@ class TeamMembershipRepository {
 		);
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( $team_type . '_membership_read_failed', 'venue' === $team_type ? __( 'The venue membership could not be read.', 'extrachill-events' ) : __( 'The promoter membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( $team_type . '_membership_read_failed', 'venue' === $team_type ? __( 'The venue membership could not be read.', 'extrachill-users' ) : __( 'The promoter membership could not be read.', 'extrachill-users' ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $team_type, $row ) : null;
 	}
@@ -54,7 +54,7 @@ class TeamMembershipRepository {
 		$table = self::table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT *, team_id AS team_term_id FROM {$table} WHERE user_id = %d ORDER BY team_type ASC, team_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Fixed table and prepared user; caller owns the transaction.
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( 'team_membership_read_failed', __( 'Team memberships could not be locked.', 'extrachill-events' ) );
+			return new \WP_Error( 'team_membership_read_failed', __( 'Team memberships could not be locked.', 'extrachill-users' ) );
 		}
 		return (array) $rows;
 	}
@@ -165,10 +165,10 @@ class TeamMembershipRepository {
 		$venue    = 'venue' === $team_type;
 		$statuses = $venue ? array( 'active', 'invited', 'revoked' ) : array( 'active', 'revoked' );
 		if ( ! in_array( $row['status'] ?? '', $statuses, true ) ) {
-			return new \WP_Error( $team_type . '_membership_corrupt_status', $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-events' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( $team_type . '_membership_corrupt_status', $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-users' ) );
 		}
 		if ( ! in_array( $row['is_owner'] ?? null, array( 0, 1, '0', '1' ), true ) ) {
-			return new \WP_Error( $team_type . '_membership_corrupt_owner', $venue ? __( 'The stored venue membership ownership value is invalid.', 'extrachill-events' ) : __( 'The stored promoter membership ownership value is invalid.', 'extrachill-events' ) );
+			return new \WP_Error( $team_type . '_membership_corrupt_owner', $venue ? __( 'The stored venue membership ownership value is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership ownership value is invalid.', 'extrachill-users' ) );
 		}
 		foreach ( array( 'id', $team_type . '_term_id', 'user_id', 'version', 'created_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
