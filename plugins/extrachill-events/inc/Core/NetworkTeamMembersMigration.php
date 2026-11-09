@@ -21,6 +21,24 @@ final class NetworkTeamMembersMigration {
 		return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB -- Uncached migration state.
 	}
 
+	/** Network option recording that the deploy-time copy has completed. */
+	public const COPIED_OPTION = 'extrachill_events_network_team_members_copied';
+
+	/**
+	 * Copy once per deploy rather than on every request.
+	 *
+	 * Nothing writes the legacy table any more, so one successful copy is
+	 * complete; the operator migration re-copies under lock before dropping it.
+	 */
+	public static function maybe_copy_legacy(): void {
+		if ( get_site_option( self::COPIED_OPTION ) ) {
+			return;
+		}
+		if ( true === self::copy_legacy() ) {
+			update_site_option( self::COPIED_OPTION, 1 );
+		}
+	}
+
 	/** Idempotent deploy-time copy; never drops storage. */
 	public static function copy_legacy() {
 		global $wpdb;

@@ -459,7 +459,7 @@ class VenueSchema {
 		};
 		return array(
 
-			self::claims_table()              => array(
+			self::claims_table()      => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -501,7 +501,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::invitations_table()         => array(
+			self::invitations_table() => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
