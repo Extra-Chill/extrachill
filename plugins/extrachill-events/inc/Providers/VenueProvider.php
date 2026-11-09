@@ -44,7 +44,6 @@ final class VenueProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-settings.php';
 
-		add_filter( 'datamachine_migrations', array( self::class, 'register_migrations' ) );
 		\ExtraChillEvents\Core\TeamCapabilities::register();
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
@@ -52,20 +51,6 @@ final class VenueProvider {
 
 		self::$registered = true;
 		return true;
-	}
-
-	/**
-	 * Register the operator-run team membership migration with Data Machine.
-	 *
-	 * @param mixed $migrations Registered migrations.
-	 * @return mixed
-	 */
-	public static function register_migrations( $migrations ) {
-		if ( is_array( $migrations ) && class_exists( '\\DataMachine\\Core\\Database\\Migrations\\Migration' ) ) {
-			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/TeamMembersMigration.php';
-			$migrations[] = new \ExtraChillEvents\Core\TeamMembersMigration();
-		}
-		return $migrations;
 	}
 
 	/**

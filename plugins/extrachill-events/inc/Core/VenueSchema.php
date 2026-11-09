@@ -189,12 +189,6 @@ class VenueSchema {
 			return $error;
 		}
 
-		$adopted = self::adopt_legacy_memberships();
-		if ( is_wp_error( $adopted ) ) {
-			self::record_failure( $adopted );
-			return $adopted;
-		}
-
 		$engine_repair = self::repair_storage_engines();
 		if ( is_wp_error( $engine_repair ) ) {
 			self::record_failure( $engine_repair );
@@ -425,61 +419,6 @@ class VenueSchema {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * Copy rows from the retired per-type tables into the team table.
-	 *
-	 * Idempotent: the team table's natural key makes repeated copies no-ops, and
-	 * memberships are never deleted, so a row already in the team table is
-	 * always the newer one. The legacy tables are dropped by the operator-run
-	 * `extrachill-events.team-members` Data Machine migration.
-	 *
-	 * @param bool $copy False to only report status without writing.
-	 * @return array<string,array{exists:bool,rows:int,missing:int}>|\WP_Error Per legacy table copy status.
-	 */
-	public static function adopt_legacy_memberships( bool $copy = true ) {
-		global $wpdb;
-		$team   = TeamMembershipRepository::table();
-		$status = array();
-		foreach ( self::legacy_membership_tables() as $type => $legacy ) {
-			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $legacy ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration inspection cannot be cached.
-			if ( $found !== $legacy ) {
-				$status[ $legacy ] = array(
-					'exists'  => false,
-					'rows'    => 0,
-					'missing' => 0,
-				);
-				continue;
-			}
-			$revoked_by = 'promoter' === $type ? 'legacy.revoked_by_user_id' : 'NULL';
-			$copied     = $copy ? $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$team} (team_type, team_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, revoked_by_user_id, revoked_at) SELECT %s, legacy.{$type}_term_id, legacy.user_id, legacy.is_owner, legacy.status, legacy.version, legacy.created_by_user_id, legacy.created_at, legacy.updated_at, {$revoked_by}, legacy.revoked_at FROM {$legacy} AS legacy", $type ) ) : 0; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed legacy identifiers; idempotent copy.
-			$rows       = $wpdb->get_var( "SELECT COUNT(*) FROM {$legacy}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed legacy identifier.
-			$missing    = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$legacy} AS legacy LEFT JOIN {$team} AS team ON team.team_type = %s AND team.team_term_id = legacy.{$type}_term_id AND team.user_id = legacy.user_id WHERE team.id IS NULL", $type ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed legacy identifiers.
-			if ( false === $copied || '' !== (string) $wpdb->last_error ) {
-				return self::database_error( __( 'Could not copy legacy team memberships.', 'extrachill-events' ), $legacy );
-			}
-			$status[ $legacy ] = array(
-				'exists'  => true,
-				'rows'    => (int) $rows,
-				'missing' => (int) $missing,
-			);
-		}
-		return $status;
-	}
-
-	/**
-	 * Retired per-type membership tables, by team type.
-	 *
-	 * @return array<string,string>
-	 */
-	public static function legacy_membership_tables(): array {
-		global $wpdb;
-		$tables = array();
-		foreach ( TeamMembershipRepository::TYPES as $type ) {
-			$tables[ $type ] = $wpdb->prefix . 'ec_' . $type . '_members';
-		}
-		return $tables;
 	}
 
 	/** Return the final initial schema contract shared by health and repair. */
