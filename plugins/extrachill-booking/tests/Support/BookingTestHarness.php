@@ -477,8 +477,24 @@ if ( ! function_exists( 'get_userdata' ) ) {
 		}
 		return (int) $user_id > 0 ? (object) array( 'ID' => (int) $user_id, 'display_name' => 'Test User' ) : false; }
 }
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( $capability, ...$args ) {
+		return user_can( get_current_user_id(), $capability, ...$args );
+	}
+}
 if ( ! function_exists( 'user_can' ) ) {
-	function user_can( $user_id, $capability ) {
+	function user_can( $user_id, $capability, ...$args ) {
+		if ( 0 === strpos( $capability, 'ec_' ) && empty( $GLOBALS['ec_test_filters']['map_meta_cap'] ) ) {
+			require_once __DIR__ . '/../../../extrachill-events/inc/Core/TeamCapabilities.php';
+			\ExtraChillEvents\Core\TeamCapabilities::register();
+		}
+		$caps = function_exists( 'apply_filters' ) ? apply_filters( 'map_meta_cap', array( $capability ), $capability, (int) $user_id, $args ) : array( $capability );
+		if ( array( 'do_not_allow' ) === $caps ) {
+			return false;
+		}
+		if ( array( 'exist' ) === $caps ) {
+			return (bool) get_userdata( $user_id );
+		}
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
 			if ( 'manage_options' === $capability ) {
 				return ! empty( $GLOBALS['venue_membership_test']['administrators'][ $user_id ] );
