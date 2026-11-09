@@ -652,7 +652,7 @@ class VenueOnboardingRepository {
 			$values[] = $status;
 		}
 		$query = "SELECT * FROM {$table}{$where} ORDER BY created_at ASC, id ASC LIMIT 100"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed clauses and private table.
-		$rows  = $values ? $wpdb->get_results( $wpdb->prepare( $query, $values ), ARRAY_A ) : $wpdb->get_results( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Values are prepared when present.
+		$rows  = $wpdb->get_results( $wpdb->prepare( $query, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Team type is always a prepared value.
 		return array_map( array( $this, 'hydrate_claim' ), (array) $rows );
 	}
 
@@ -963,7 +963,7 @@ class VenueOnboardingRepository {
 	private function lock_memberships( int $venue_term_id ) { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private lock helper.
 		global $wpdb;
 		$rows = ( new TeamMembershipRepository() )->lock_team( $this->team_type, $venue_term_id );
-		if ( is_wp_error( $rows ) || '' !== (string) $wpdb->last_error ) {
+		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ) );
 		}
 		return (array) $rows;

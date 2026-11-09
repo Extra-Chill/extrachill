@@ -231,7 +231,7 @@ class VenueSchema {
 				continue;
 			}
 			$count = $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" ); // phpcs:ignore WordPress.DB -- Fixed legacy identifier; never discard rows.
-			if ( null === $count || '' !== (string) $wpdb->last_error || 0 !== (int) $count ) {
+			if ( null === $count || 0 !== (int) $count ) {
 				return new \WP_Error( 'team_onboarding_legacy_not_empty', __( 'Legacy onboarding storage must be empty before retirement.', 'extrachill-events' ), array( 'table' => $table ) );
 			}
 			$empty[] = $table;
