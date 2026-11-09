@@ -163,7 +163,7 @@ namespace {
 			add_filter( 'extrachill_shop_ticket_service_assertion_keys', static function () { return array( 'test' => 'secret' ); } );
 			add_filter( 'extrachill_shop_ticket_service_assertion_active_key_id', static function () { return 'test'; } );
 			$grants = extrachill_shop_register_ticket_source_grants( array() );
-			$this->assertCount( 4, $grants );
+			$this->assertCount( 5, $grants );
 			foreach ( $grants as $grant ) {
 				$this->assertSame( 'POST', $grant['method'] );
 				$this->assertSame( 'events.extrachill.com', $grant['target_host'] );

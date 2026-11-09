@@ -2,7 +2,8 @@
 /**
  * Seller Order Notifications
  *
- * Notifies artist roster members and Events-owned seller finance participants.
+ * Notifies artist roster members directly. Venue and promoter finance owners
+ * are emailed by Events (`extrachill/notify-commerce-seller`), which owns them.
  *
  * Mail dispatch is delegated to `ec_send_email()` (extrachill-multisite),
  * which wraps the `datamachine/send-email` ability and auto-routes the send
@@ -74,13 +75,16 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
  * Resolution flow (note the explicit separation between data-context
  * `switch_to_blog()` and mail-context routing):
  *
- *   1. Switch to the artist blog ONCE to fetch artist-blog data
+ *   1. Artists: switch to the artist blog ONCE to fetch artist-blog data
  *      (roster member emails + artist post title), then immediately
  *      restore. This switch exists purely for READ access to artist
  *      blog data — it has nothing to do with which site sends mail.
+ *      Venues and promoters: read the public name only; Events sends
+ *      the email to their finance owners (step 3).
  *   2. Build the email body using order data on the current (shop)
  *      blog — orders live here, so no switch is needed.
- *   3. Dispatch via `ec_send_email()`. The wrapper auto-supplies
+ *   3. Venues and promoters go to Events' `notify-commerce-seller`
+ *      service ability. Artists dispatch via `ec_send_email()`. The wrapper auto-supplies
  *      `mail_site_id = ec_mail_site_id()` which switches to the
  *      SMTP-configured site INSIDE the ability — callers must NOT
  *      wrap the send in their own `switch_to_blog()`.
@@ -91,39 +95,52 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
  */
 function extrachill_shop_send_seller_order_notification( $order, $seller, $payout_data ) {
 	if ( 'artist' === $seller['type'] ) {
-		$data = extrachill_shop_get_artist_notification_data( $seller['id'] );
-	} elseif ( class_exists( '\\ExtraChillEvents\\Abilities\\CommerceSellerNotifications' ) ) {
-		$data = \ExtraChillEvents\Abilities\CommerceSellerNotifications::get_data( $seller['type'], $seller['id'] );
+		$data        = extrachill_shop_get_artist_notification_data( $seller['id'] );
+		$seller_name = $data['name'];
+		if ( empty( $data['recipients'] ) ) {
+			return;
+		}
 	} else {
-		return;
-	}
-	$recipients  = $data['recipients'];
-	$seller_name = $data['name'];
-
-	if ( empty( $recipients ) ) {
-		return;
+		// Events owns venue and promoter people; only the public name is read here.
+		$canonical = extrachill_shop_get_canonical_seller( $seller );
+		if ( is_wp_error( $canonical ) ) {
+			return;
+		}
+		$seller_name = $canonical['name'];
 	}
 
 	$order_number = $order->get_order_number();
-
-	$subject = sprintf( 'New Order #%s - %s', $order_number, $seller_name );
-
-	// Step 2: build email body using order data (current shop-blog context is fine).
-	$body_html = extrachill_shop_build_order_notification_body(
-		$order,
-		$seller_name,
-		$payout_data
+	$subject      = sprintf( 'New Order #%s - %s', $order_number, $seller_name );
+	$message      = array(
+		'subject'   => $subject,
+		// Step 2: build email body using order data (current shop-blog context is fine).
+		'body_html' => extrachill_shop_build_order_notification_body( $order, $seller_name, $payout_data ),
+		'preheader' => sprintf( 'New order #%s for %s — view details in Shop Manager.', $order_number, $seller_name ),
+		'cta_url'   => extrachill_shop_get_shop_manager_url( $seller ),
+		'cta_label' => 'View Order in Shop Manager',
 	);
 
-	$preheader = sprintf(
-		'New order #%s for %s — view details in Shop Manager.',
-		$order_number,
-		$seller_name
-	);
+	if ( 'artist' !== $seller['type'] ) {
+		// Events emails the seller's finance owners (#1293): their recipients
+		// and repositories only load on the Events site.
+		$result = extrachill_shop_execute_ticket_owner_ability(
+			'notify-commerce-seller',
+			array(
+				'seller' => array(
+					'type' => $seller['type'],
+					'id'   => (int) $seller['id'],
+				),
+			) + $message
+		);
+		if ( is_wp_error( $result ) ) {
+			error_log( 'Extra Chill seller order notification failed for order ' . $order_number . ': ' . $result->get_error_code() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility for a missed seller email.
+		}
+		return;
+	}
 
 	// Step 3: dispatch. `ec_send_email()` injects `mail_site_id` itself —
 	// do NOT wrap this call in `switch_to_blog()`.
-	foreach ( $recipients as $email ) {
+	foreach ( $data['recipients'] as $email ) {
 		ec_send_email(
 			array(
 				'to'       => $email,
@@ -131,11 +148,11 @@ function extrachill_shop_send_seller_order_notification( $order, $seller, $payou
 				'template' => 'extrachill/branded',
 				'context'  => array(
 					'subject_html'   => esc_html( $subject ),
-					'preheader'      => $preheader,
+					'preheader'      => $message['preheader'],
 					'recipient_name' => $seller_name,
-					'body_html'      => $body_html,
-					'cta_url'        => extrachill_shop_get_shop_manager_url( $seller ),
-					'cta_label'      => 'View Order in Shop Manager',
+					'body_html'      => $message['body_html'],
+					'cta_url'        => $message['cta_url'],
+					'cta_label'      => $message['cta_label'],
 				),
 			)
 		);

@@ -85,6 +85,11 @@
             "runtime": "host"
           },
           {
+            "name": "commerce-seller-notifications-unit",
+            "config": "phpunit-commerce-seller-notifications-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "eventbrite-import-unit",
             "config": "phpunit-eventbrite-import-unit.xml.dist",
             "runtime": "host"
