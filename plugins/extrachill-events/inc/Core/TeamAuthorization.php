@@ -79,11 +79,11 @@ final class TeamAuthorization {
 		if ( self::ACTION_MANAGE_MEMBERS === $action && $this->is_administrator( $user_id ) ) {
 			return true;
 		}
-		// Venue deliberately gates before membership and never applies the principal ceiling.
+		// Preserve the venue feature gate before resolving membership.
 		if ( in_array( $action, array( self::ACTION_ACCESS_VENUE, self::ACTION_MANAGE_FINANCES ), true ) && ! $this->has_feature_access( $user_id ) ) {
 			return $this->denied( 'venue' );
 		}
-		return $this->authorize_venue_membership( $this->resolve_membership( $user_id, $team_type, $team_term_id, $locked_memberships ), $action );
+		return $this->authorize_venue_membership( $user_id, $this->resolve_membership( $user_id, $team_type, $team_term_id, $locked_memberships ), $action );
 	}
 
 	private function resolve_membership( int $user_id, string $team_type, int $team_term_id, ?array $locked_memberships ) {
@@ -161,7 +161,7 @@ final class TeamAuthorization {
 	}
 
 	/** Apply action policy to a resolved membership. */
-	private function authorize_venue_membership( $membership, string $action ) {
+	private function authorize_venue_membership( int $user_id, $membership, string $action ) {
 		if ( is_wp_error( $membership ) ) {
 			return $membership;
 		}
@@ -171,8 +171,11 @@ final class TeamAuthorization {
 		if ( self::STATUS_ACTIVE !== ( $membership['status'] ?? '' ) ) {
 			return $this->denied( 'venue' );
 		}
-		if ( in_array( $action, array( self::ACTION_MANAGE_MEMBERS, self::ACTION_MANAGE_FINANCES ), true ) && ! $membership['is_owner'] ) {
-			return $this->denied( 'venue' );
+		if ( in_array( $action, array( self::ACTION_MANAGE_MEMBERS, self::ACTION_MANAGE_FINANCES ), true ) ) {
+			if ( ! $membership['is_owner'] ) {
+				return $this->denied( 'venue' );
+			}
+			return ! $this->use_execution_principal || self::principal_allows( $user_id, self::ACCESS_CAPABILITY ) ? true : $this->denied( 'venue' );
 		}
 
 		return true;
@@ -186,12 +189,12 @@ final class TeamAuthorization {
 
 	/** Administrators override venue membership without receiving synthetic rows. */
 	public function is_administrator( int $user_id ): bool {
-		return $user_id > 0 && user_can( $user_id, 'manage_options' );
+		return $user_id > 0 && self::is_site_admin( $user_id, $this->use_execution_principal );
 	}
 
 	/** Check the established booking capability and rollout primitives. */
 	public function has_feature_access( int $user_id ): bool {
-		if ( $user_id < 1 || ! user_can( $user_id, self::ACCESS_CAPABILITY ) ) {
+		if ( $user_id < 1 || ! self::user_can( $user_id, self::ACCESS_CAPABILITY, $this->use_execution_principal ) ) {
 			return false;
 		}
 		return function_exists( 'ec_feature_available' ) && ec_feature_available( self::FEATURE, $user_id );
