@@ -107,8 +107,9 @@ function extrachill_shop_record_ticket_sales( $reference, array $order, $refund 
 	$input['external_report_id'] = $refund ? $refund->id : $reference;
 	$input['order_reference']    = $reference;
 	if ( $refund ) {
-		$input['gross_minor']  = - (int) $refund->amount;
-		$input['fees_minor']   = - (int) ( $refund->metadata->application_fee_minor ?? 0 );
+		$input['gross_minor'] = - (int) $refund->amount;
+		$input['fees_minor']  = - (int) ( $refund->metadata->application_fee_minor ?? 0 );
+		// Only a full refund cancels tickets; partial refunds are money only.
 		$input['tickets_sold'] = (int) $refund->amount === $order['sales']['gross_minor'] ? -$order['sales']['tickets_sold'] : 0;
 		$input['period_start'] = ( new DateTimeImmutable( '@' . (int) $refund->created ) )->format( 'Y-m-d H:i:s' );
 	}
@@ -200,6 +201,9 @@ function extrachill_shop_refund_ticket_order( array $input ) {
 	$order = get_option( 'extrachill_ticket_order_' . $reference );
 	if ( 'refunded' === $order['status'] ) {
 		return array( 'refunded' => true ); }
+	// Stripe refuses refunds on a disputed charge; the bank decides it now.
+	if ( 'disputed' === $order['status'] ) {
+		return new WP_Error( 'ticket_disputed', 'This payment is disputed, so it can only be settled in Stripe.', array( 'status' => 409 ) ); }
 	if ( ! empty( $status['any_redeemed'] ) || ( empty( $status['refundable'] ) && 'refund_pending' !== $order['status'] ) ) {
 		return new WP_Error( 'ticket_already_redeemed', 'This ticket order is not refundable.', array( 'status' => 409 ) ); }
 	if ( ! extrachill_shop_stripe_init() || empty( $order['payment_intent'] ) ) {
@@ -245,6 +249,11 @@ function extrachill_shop_ticket_charge_refunded( $charge, $account ) {
 			return $result;
 		}
 	}
+	// A partial refund (from the seller's Stripe dashboard) returns some money
+	// but cancels no tickets, so the passes keep working.
+	if ( empty( $charge->refunded ) ) {
+		return true;
+	}
 	$order['status']        = 'refunded';
 	$order['refund_reason'] = 'stripe_refund';
 	update_option( 'extrachill_ticket_order_' . $reference, $order, false );
@@ -257,4 +266,90 @@ function extrachill_shop_ticket_charge_refunded( $charge, $account ) {
 		return true;
 	}
 	return is_wp_error( $result ) ? $result : true;
+}
+
+/**
+ * A buyer disputed a ticket payment with their bank.
+ *
+ * Their passes stop working (unless they already checked in), the order can
+ * no longer be refunded here, and Events emails the seller to respond.
+ *
+ * @param object $dispute Stripe dispute.
+ * @param string $account Connected account.
+ * @return true|WP_Error
+ */
+function extrachill_shop_ticket_charge_disputed( $dispute, $account ) {
+	$reference = get_option( 'extrachill_ticket_payment_' . $account . '_' . (string) ( $dispute->payment_intent ?? '' ) );
+	$order     = $reference ? get_option( 'extrachill_ticket_order_' . $reference ) : false;
+	if ( ! $order || $order['account'] !== $account ) {
+		return new WP_Error( 'ticket_account_mismatch', 'Ticket account mismatch.' ); }
+	if ( 'disputed' === $order['status'] ) {
+		return true; }
+	// Revoke before marking, so a failed revoke is retried by Stripe.
+	$result = extrachill_shop_execute_ticket_owner_ability( 'revoke-ticket-passes', array(
+		'order_reference' => $reference,
+		'reason'          => 'dispute',
+	) );
+	if ( is_wp_error( $result ) ) {
+		return $result; }
+	$order['status']  = 'disputed';
+	$order['dispute'] = (string) ( $dispute->id ?? '' );
+	update_option( 'extrachill_ticket_order_' . $reference, $order, false );
+	return true;
+}
+
+/**
+ * References of the paid ticket orders for one show.
+ *
+ * @param int $event_id Event post ID.
+ * @return string[]
+ */
+function extrachill_shop_event_ticket_order_references( $event_id ) {
+	global $wpdb;
+	$prefix = 'extrachill_ticket_order_';
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Orders are option rows; a prefix scan is the only index.
+	$names = (array) $wpdb->get_col( $wpdb->prepare( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( $prefix ) . '%' ) );
+	$refs  = array();
+	foreach ( $names as $name ) {
+		$order = get_option( $name );
+		if ( is_array( $order ) && (int) ( $order['event'] ?? 0 ) === (int) $event_id && in_array( $order['status'] ?? '', array( 'issued', 'refund_pending' ), true ) ) {
+			$refs[] = substr( $name, strlen( $prefix ) );
+		}
+	}
+	return $refs;
+}
+
+/**
+ * Refund every order for a show that nobody has checked in on.
+ *
+ * Each order goes through the normal refund, with its own seller check and
+ * the never-after-check-in rule. Already refunded orders are left alone, so
+ * running it again only picks up what's left.
+ *
+ * @param array $input `{ event_id }`.
+ * @return array|WP_Error Counts of refunded, checked-in and failed orders.
+ */
+function extrachill_shop_refund_event_ticket_orders( array $input ) {
+	$offer = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-event-ticket-offer', 'GET', array( 'event' => (int) $input['event_id'] ) );
+	if ( is_wp_error( $offer ) ) {
+		return $offer; }
+	$permission = extrachill_shop_current_user_can_manage_seller( $offer['seller'] );
+	if ( true !== $permission ) {
+		return $permission; }
+	$counts = array(
+		'refunded'   => 0,
+		'checked_in' => 0,
+		'failed'     => 0,
+	);
+	foreach ( extrachill_shop_event_ticket_order_references( (int) $input['event_id'] ) as $reference ) {
+		$result = extrachill_shop_refund_ticket_order( array( 'order_reference' => $reference ) );
+		if ( ! is_wp_error( $result ) ) {
+			++$counts['refunded'];
+		} elseif ( 'ticket_already_redeemed' === $result->get_error_code() ) {
+			++$counts['checked_in'];
+		} else {
+			++$counts['failed'];
+		}
+	}
+	return $counts;
 }

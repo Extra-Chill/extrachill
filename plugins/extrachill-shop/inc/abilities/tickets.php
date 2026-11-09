@@ -66,4 +66,31 @@ function extrachill_shop_register_ticket_abilities() {
 		'execute_callback'    => 'extrachill_shop_refund_ticket_order',
 		'meta'                => array( 'show_in_rest' => true ),
 	) );
+	wp_register_ability( 'extrachill/refund-event-ticket-orders', array(
+		'label'               => 'Refund a show\'s ticket orders',
+		'description'         => 'Refund every ticket order for a show that nobody has checked in on. Requires finance authority on the show\'s seller.',
+		'category'            => 'extrachill-shop',
+		'input_schema'        => array(
+			'type'                 => 'object',
+			'required'             => array( 'event_id' ),
+			'properties'           => array(
+				'event_id' => array(
+					'type'    => 'integer',
+					'minimum' => 1,
+				),
+			),
+			'additionalProperties' => false,
+		),
+		'output_schema'       => array(
+			'type'       => 'object',
+			'properties' => array(
+				'refunded'   => array( 'type' => 'integer' ),
+				'checked_in' => array( 'type' => 'integer' ),
+				'failed'     => array( 'type' => 'integer' ),
+			),
+		),
+		'permission_callback' => 'is_user_logged_in',
+		'execute_callback'    => 'extrachill_shop_refund_event_ticket_orders',
+		'meta'                => array( 'show_in_rest' => true ),
+	) );
 }

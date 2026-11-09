@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once __DIR__ . '/CommerceSellerAbilities.php';
 require_once __DIR__ . '/TicketAbilities.php';
 
-/** Registers `extrachill/list-seller-ticket-sales`. */
+/** Registers `extrachill/list-seller-ticket-sales` and `extrachill/cancel-show-ticket-sales`. */
 class TicketSalesAbilities {
 
 	/** Most ticketed events read for one seller. */
@@ -124,6 +124,98 @@ class TicketSalesAbilities {
 					),
 				),
 			)
+		);
+
+		wp_register_ability(
+			'extrachill/cancel-show-ticket-sales',
+			array(
+				'label'               => __( 'Cancel Show Ticket Sales', 'extrachill-events' ),
+				'description'         => __( 'Stop selling tickets for a show and refund every order nobody has checked in on. Requires finance authority on the show\'s ticket seller.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'event_id' => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
+					),
+					'required'             => array( 'event_id' ),
+					'additionalProperties' => false,
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'refunded'   => $count,
+						'checked_in' => $count,
+						'failed'     => $count,
+					),
+					'required'   => array( 'refunded', 'checked_in', 'failed' ),
+				),
+				'execute_callback'    => array( $this, 'cancel_show' ),
+				'permission_callback' => array( $this, 'cancel_permission' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'    => false,
+						'idempotent'  => true,
+						'destructive' => true,
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Require finance authority on the show's ticket seller.
+	 *
+	 * @param array $input Ability input.
+	 * @return true|\WP_Error
+	 */
+	public function cancel_permission( $input = array() ) {
+		$event_id = (int) ( $input['event_id'] ?? 0 );
+		if ( 'data_machine_events' !== get_post_type( $event_id ) ) {
+			return new \WP_Error( 'event_not_found', __( 'The show could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
+		}
+		return $this->permission( TicketAbilities::settings( $event_id )['ticket_seller'] );
+	}
+
+	/**
+	 * Stop sales, then have Shop refund every order nobody checked in on.
+	 *
+	 * Sales close first so nobody buys into a cancelled show while refunds
+	 * run. Shop owns the money and repeats its own seller and check-in checks
+	 * for each order, so running this again only picks up what's left.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function cancel_show( array $input ) {
+		$event_id = (int) $input['event_id'];
+		$settings = TicketAbilities::settings( $event_id );
+		if ( ! empty( $settings['tickets_enabled'] ) ) {
+			$settings['tickets_enabled'] = false;
+			update_post_meta( $event_id, TicketAbilities::META_KEY, $settings );
+		}
+		if ( ! function_exists( 'ec_cross_site_rest_request_http' ) ) {
+			return new \WP_Error( 'ticket_refunds_unavailable', __( 'Sales are off, but refunds are unavailable right now. Try again shortly.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		$result = ec_cross_site_rest_request_http(
+			'shop',
+			'POST',
+			'/wp-abilities/v1/abilities/extrachill/refund-event-ticket-orders/run',
+			array(
+				'user_id' => get_current_user_id(),
+				'body'    => array( 'input' => array( 'event_id' => $event_id ) ),
+			)
+		);
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+		return array(
+			'refunded'   => (int) ( $result['refunded'] ?? 0 ),
+			'checked_in' => (int) ( $result['checked_in'] ?? 0 ),
+			'failed'     => (int) ( $result['failed'] ?? 0 ),
 		);
 	}
 

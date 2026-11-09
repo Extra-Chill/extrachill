@@ -512,6 +512,68 @@ class TicketAbilities {
 			return $allowed;
 		}
 
-		return RsvpPassesTable::revoke_ticket_order( $input['order_reference'] );
+		$result = RsvpPassesTable::revoke_ticket_order( $input['order_reference'] );
+		if ( 'dispute' === $input['reason'] ) {
+			$checked_in = is_wp_error( $result ) && 'ticket_already_redeemed' === $result->get_error_code();
+			if ( ! is_wp_error( $result ) || $checked_in ) {
+				self::notify_seller_of_dispute( RsvpPassesTable::ticket_rows( $input['order_reference'] ), $checked_in );
+			}
+			// A buyer who already got in keeps their check-in; the seller
+			// answers the dispute with it, so the webhook still succeeds.
+			if ( $checked_in ) {
+				return array( 'revoked' => 0 );
+			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Tell the seller's finance owners that a buyer disputed a ticket payment.
+	 *
+	 * Events owns the seller's recipients, so the email goes from here when
+	 * Shop revokes an order for a Stripe dispute.
+	 *
+	 * @param array $rows       The order's pass rows.
+	 * @param bool  $checked_in Whether someone on the order already checked in.
+	 */
+	public static function notify_seller_of_dispute( array $rows, bool $checked_in ): void {
+		$event_id = (int) ( $rows[0]['event_id'] ?? 0 );
+		$seller   = self::settings( $event_id )['ticket_seller'];
+		if ( ! $event_id || ! function_exists( 'ec_send_email_queued' ) || empty( $seller['id'] ) ) {
+			return;
+		}
+		$data = CommerceSellerNotifications::get_data( (string) $seller['type'], (int) $seller['id'] );
+		if ( empty( $data['recipients'] ) ) {
+			return;
+		}
+
+		$show    = html_entity_decode( (string) get_the_title( $event_id ), ENT_QUOTES );
+		$buyer   = (string) ( $rows[0]['guest_name'] ?? '' );
+		$tickets = count( $rows );
+		/* translators: 1: buyer name, 2: ticket count, 3: show title. */
+		$what = sprintf( _n( '%1$s disputed their payment for %2$d ticket to %3$s with their bank.', '%1$s disputed their payment for %2$d tickets to %3$s with their bank.', $tickets, 'extrachill-events' ), $buyer, $tickets, $show );
+		$then = $checked_in
+			? __( 'They already checked in at the door. Tell Stripe that when you respond: a check-in is strong evidence they got what they paid for.', 'extrachill-events' )
+			: __( 'Their passes are cancelled, so they won\'t get in with them.', 'extrachill-events' );
+		$body = '<p>' . esc_html( $what ) . '</p><p>' . esc_html( $then ) . '</p><p>'
+			. esc_html__( 'Stripe has held the payment and a dispute fee from your account. Respond in your Stripe dashboard under Payments, then Disputes, before the deadline shown there, or the bank keeps the money with the buyer.', 'extrachill-events' )
+			. '</p>';
+
+		foreach ( $data['recipients'] as $email ) {
+			ec_send_email_queued(
+				array(
+					'to'       => $email,
+					/* translators: %s: show title. */
+					'subject'  => sprintf( __( 'A ticket payment for %s was disputed', 'extrachill-events' ), $show ),
+					'template' => 'extrachill/branded',
+					'context'  => array(
+						'recipient_name' => $data['name'],
+						'body_html'      => $body,
+						'cta_url'        => 'https://connect.stripe.com/express_login',
+						'cta_label'      => __( 'Open Stripe', 'extrachill-events' ),
+					),
+				)
+			);
+		}
 	}
 }

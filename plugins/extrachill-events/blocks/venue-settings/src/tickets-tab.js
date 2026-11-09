@@ -85,10 +85,54 @@ const refundMessage = ( error ) => {
 	if ( error?.code === 'ticket_already_redeemed' ) {
 		return 'Someone on this order has checked in, so it can no longer be refunded.';
 	}
+	if ( error?.code === 'ticket_disputed' ) {
+		return 'The buyer disputed this payment with their bank. Respond to the dispute in your Stripe dashboard.';
+	}
 	return errorDetails( error ).message;
 };
 
-function ShowSales( { event, onRefund, refunding } ) {
+const plural = ( count, one, many ) =>
+	`${ count } ${ count === 1 ? one : many }`;
+
+/**
+ * Plain result of cancelling a show's ticket sales.
+ *
+ * @param {Object} result `{ refunded, checked_in, failed }` counts.
+ * @return {Object} Status for the Status component.
+ */
+export const cancelMessage = ( result ) => {
+	const parts = [
+		'Ticket sales are off.',
+		result.refunded > 0
+			? `Refunded ${ plural( result.refunded, 'order', 'orders' ) }.`
+			: 'Nothing left to refund.',
+	];
+	if ( result.checked_in > 0 ) {
+		parts.push(
+			`${ plural(
+				result.checked_in,
+				'order was',
+				'orders were'
+			) } not refunded because someone checked in.`
+		);
+	}
+	if ( result.failed > 0 ) {
+		parts.push(
+			`${ plural(
+				result.failed,
+				'refund',
+				'refunds'
+			) } didn't go through. Tap the button again to retry them.`
+		);
+	}
+	return {
+		tone: result.failed > 0 ? 'error' : 'success',
+		message: parts.join( ' ' ),
+	};
+};
+
+function ShowSales( { event, onRefund, refunding, onCancel, cancelling } ) {
+	const hasRefundable = event.orders.some( ( order ) => order.refundable );
 	const columns = [
 		{ key: 'name', label: 'Buyer' },
 		{ key: 'quantity', label: 'Tickets', width: '5rem' },
@@ -151,16 +195,28 @@ function ShowSales( { event, onRefund, refunding } ) {
 				rowKey="order_reference"
 				emptyMessage="No tickets sold yet."
 			/>
-			{ event.manage_url && (
-				<p>
+			<p>
+				{ event.manage_url && (
 					<a
 						className="button-3 button-small"
 						href={ event.manage_url }
 					>
 						Guest list and ticket settings
 					</a>
-				</p>
-			) }
+				) }{ ' ' }
+				{ ( event.tickets_enabled || hasRefundable ) && (
+					<button
+						type="button"
+						className="button-danger button-small"
+						disabled={ cancelling === event.event_id }
+						onClick={ () => onCancel( event ) }
+					>
+						{ cancelling === event.event_id
+							? 'Refunding everyone…'
+							: 'Show cancelled? Refund everyone' }
+					</button>
+				) }
+			</p>
 		</Panel>
 	);
 }
@@ -175,6 +231,7 @@ export function TicketsTab( { seller } ) {
 	const [ events, setEvents ] = useState( null );
 	const [ status, setStatus ] = useState( null );
 	const [ refunding, setRefunding ] = useState( '' );
+	const [ cancelling, setCancelling ] = useState( 0 );
 
 	const load = useCallback( async () => {
 		try {
@@ -228,6 +285,29 @@ export function TicketsTab( { seller } ) {
 		}
 	};
 
+	const cancelShow = async ( event ) => {
+		// eslint-disable-next-line no-alert -- This refunds every buyer; confirm it.
+		const confirmed = window.confirm(
+			`Stop selling tickets for ${ event.title } and refund everyone who hasn't checked in? Their passes stop working and the money goes back to their cards. This can't be undone.`
+		);
+		if ( ! confirmed ) {
+			return;
+		}
+		setCancelling( event.event_id );
+		try {
+			const result = await runAbility(
+				'extrachill/cancel-show-ticket-sales',
+				{ event_id: event.event_id }
+			);
+			await load();
+			setStatus( cancelMessage( result || {} ) );
+		} catch ( error ) {
+			setStatus( { tone: 'error', message: refundMessage( error ) } );
+		} finally {
+			setCancelling( 0 );
+		}
+	};
+
 	if ( events === null ) {
 		return <LoadingPanel label="Loading ticket sales..." />;
 	}
@@ -236,7 +316,7 @@ export function TicketsTab( { seller } ) {
 		<Panel>
 			<PanelHeader
 				title="Ticket sales"
-				description="Tickets sold on your Extra Chill shows. Money goes straight to your Stripe account. You can refund an order until someone on it checks in."
+				description="Tickets sold on your Extra Chill shows. Money goes straight to your Stripe account. You can refund an order until someone on it checks in. If a show is cancelled, refund everyone at once."
 			/>
 			<Status state={ status } />
 			{ events.length === 0 && ! status && (
@@ -251,6 +331,8 @@ export function TicketsTab( { seller } ) {
 					event={ event }
 					onRefund={ refund }
 					refunding={ refunding }
+					onCancel={ cancelShow }
+					cancelling={ cancelling }
 				/>
 			) ) }
 		</Panel>

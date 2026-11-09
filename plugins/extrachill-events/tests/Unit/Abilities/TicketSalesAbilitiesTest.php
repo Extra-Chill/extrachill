@@ -11,6 +11,11 @@ namespace {
 	foreach ( array(
 		'is_user_logged_in' => static fn() => ! empty( $GLOBALS['ts_logged_in'] ),
 		'__'                => static fn( $text ) => $text,
+		'get_post_type'     => static fn( $id ) => $GLOBALS['ts_post_types'][ $id ] ?? false,
+		'get_post_meta'     => static fn( $id, $key, $single = false ) => $GLOBALS['ts_meta'][ $id ][ $key ] ?? '',
+		'update_post_meta'  => static function ( $id, $key, $value ) { $GLOBALS['ts_meta'][ $id ][ $key ] = $value; return true; },
+		'get_current_user_id' => static fn() => 7,
+		'ec_cross_site_rest_request_http' => static function ( ...$args ) { $GLOBALS['ts_shop_calls'][] = $args; return $GLOBALS['ts_shop_result']; },
 	) as $name => $impl ) {
 		if ( ! function_exists( $name ) ) {
 			$GLOBALS['ts_impl'][ $name ] = $impl;
@@ -117,6 +122,43 @@ namespace ExtraChillEvents\Tests\Unit\Abilities {
 
 			$sellers->result = array( 'can_manage_finances' => true );
 			$this->assertTrue( $ability->permission( $input ) );
+		}
+			private function cancel_setup( FakeSellers $sellers ) {
+			$GLOBALS['ts_logged_in']   = true;
+			$GLOBALS['ts_post_types']  = array( 9 => 'data_machine_events', 10 => 'post' );
+			$GLOBALS['ts_meta']        = array( 9 => array( '_extrachill_ticket_offer' => $this->settings() + array( 'ticket_seller' => array( 'type' => 'venue', 'id' => 1524 ) ) ) );
+			$GLOBALS['ts_shop_calls']  = array();
+			$GLOBALS['ts_shop_result'] = array( 'refunded' => 3, 'checked_in' => 1, 'failed' => 0 );
+			$sellers->result           = array( 'can_manage_finances' => true );
+			return new TicketSalesAbilities( $sellers, false );
+		}
+
+		public function test_cancel_permission_checks_the_shows_seller() {
+			$sellers = new FakeSellers();
+			$ability = $this->cancel_setup( $sellers );
+			$this->assertTrue( $ability->cancel_permission( array( 'event_id' => 9 ) ) );
+			$this->assertSame( 'event_not_found', $ability->cancel_permission( array( 'event_id' => 10 ) )->get_error_code() );
+			$sellers->result = array( 'can_manage_finances' => false );
+			$this->assertSame( 'cannot_manage_seller_finances', $ability->cancel_permission( array( 'event_id' => 9 ) )->get_error_code() );
+		}
+
+		public function test_cancel_stops_sales_then_asks_shop_to_refund_as_the_user() {
+			$ability = $this->cancel_setup( new FakeSellers() );
+			$this->assertSame( array( 'refunded' => 3, 'checked_in' => 1, 'failed' => 0 ), $ability->cancel_show( array( 'event_id' => 9 ) ) );
+			$this->assertFalse( $GLOBALS['ts_meta'][9]['_extrachill_ticket_offer']['tickets_enabled'] );
+			$this->assertSame( 1500, $GLOBALS['ts_meta'][9]['_extrachill_ticket_offer']['ticket_price_minor'] );
+			list( $site, $method, $route, $args ) = $GLOBALS['ts_shop_calls'][0];
+			$this->assertSame( array( 'shop', 'POST' ), array( $site, $method ) );
+			$this->assertStringEndsWith( 'extrachill/refund-event-ticket-orders/run', $route );
+			$this->assertSame( 7, $args['user_id'] );
+			$this->assertSame( array( 'event_id' => 9 ), $args['body']['input'] );
+		}
+
+		public function test_cancel_keeps_sales_off_when_shop_fails() {
+			$ability                   = $this->cancel_setup( new FakeSellers() );
+			$GLOBALS['ts_shop_result'] = new \WP_Error( 'owner_runtime_unavailable', 'Down' );
+			$this->assertSame( 'owner_runtime_unavailable', $ability->cancel_show( array( 'event_id' => 9 ) )->get_error_code() );
+			$this->assertFalse( $GLOBALS['ts_meta'][9]['_extrachill_ticket_offer']['tickets_enabled'] );
 		}
 	}
 }
