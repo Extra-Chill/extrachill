@@ -44,19 +44,7 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership status is not supported.', 'extrachill-events' ) );
 		}
 
-		$now   = gmdate( 'Y-m-d H:i:s' );
-		$row   = array(
-			'venue_term_id'      => $venue_term_id,
-			'user_id'            => $user_id,
-			'is_owner'           => $is_owner ? 1 : 0,
-			'status'             => $status,
-			'version'            => 1,
-			'created_by_user_id' => $creator_id,
-			'created_at'         => $now,
-			'updated_at'         => $now,
-			'revoked_at'         => VenueAuthorization::STATUS_REVOKED === $status ? $now : null,
-		);
-		$table = VenueSchema::memberships_table();
+		$row = ( new TeamMembershipRepository() )->new_row( 'venue', $venue_term_id, $user_id, $is_owner, $creator_id, $status );
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes authorization and membership creation.
 			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
@@ -89,8 +77,7 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'venue_membership_owner_required', __( 'The first active venue member must be an owner.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private operational table write.
-		if ( false === $wpdb->insert( $table, $row ) ) {
+		if ( false === ( new TeamMembershipRepository() )->insert( 'venue', $row ) ) {
 			$database_error = $wpdb->last_error;
 			$winner         = $this->get( $venue_term_id, $user_id );
 			if ( is_array( $winner ) ) {
@@ -148,22 +135,12 @@ class VenueMembershipRepository {
 
 	/** Insert an onboarding relationship after the caller has locked and validated venue authority. */
 	public function insert_onboarding_member( array $row ) {
-		global $wpdb;
-		return $wpdb->insert( VenueSchema::memberships_table(), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns onboarding validation and transaction.
+		return ( new TeamMembershipRepository() )->insert( 'venue', $row );
 	}
 
 	/** Transition a validated onboarding relationship at its locked version. */
 	public function update_onboarding_member( int $venue_term_id, int $user_id, int $version, array $data ) {
-		global $wpdb;
-		return $wpdb->update(
-			VenueSchema::memberships_table(),
-			$data,
-			array(
-				'venue_term_id' => $venue_term_id,
-				'user_id'       => $user_id,
-				'version'       => $version,
-			)
-		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns onboarding validation and transaction.
+		return ( new TeamMembershipRepository() )->update( 'venue', $venue_term_id, $user_id, $version, $data );
 	}
 
 	/** Lock every relationship and insertion gap for account-compensation checks. */
@@ -323,7 +300,6 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'invalid_venue_membership_id', __( 'Positive venue, user, and version identifiers are required.', 'extrachill-events' ) );
 		}
 
-		$table = VenueSchema::memberships_table();
 		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Required for last-owner serialization.
 			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
@@ -371,23 +347,7 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'venue_membership_last_owner', __( 'The final active venue owner cannot be removed.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
 
-		$set    = array( 'version = version + 1', 'updated_at = %s' );
-		$values = array( gmdate( 'Y-m-d H:i:s' ) );
-		if ( null !== $is_owner ) {
-			$set[]    = 'is_owner = %d';
-			$values[] = $is_owner ? 1 : 0;
-		}
-		if ( null !== $status ) {
-			$set[]    = 'status = %s';
-			$values[] = $status;
-			$set[]    = 'revoked_at = %s';
-			$values[] = gmdate( 'Y-m-d H:i:s' );
-		}
-		$values[] = $venue_term_id;
-		$values[] = $user_id;
-		$values[] = $expected_version;
-		$query    = "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE venue_term_id = %d AND user_id = %d AND version = %d'; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed columns and trusted table.
-		$result   = $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic values are prepared.
+		$result = ( new TeamMembershipRepository() )->mutate( 'venue', $venue_term_id, $user_id, $expected_version, $is_owner, null !== $status, $actor_user_id );
 		if ( false === $result ) {
 			$database_error = $wpdb->last_error;
 			$this->rollback();

@@ -94,19 +94,8 @@ class PromoterAuthorityRepository {
 			return $this->database_error( 'promoter_organization_create_failed', __( 'The promoter organization could not be verified.', 'extrachill-events' ), $database_error );
 		}
 		if ( null !== $owner_user_id ) {
-			$membership = array(
-				'promoter_term_id'   => $promoter_term_id,
-				'user_id'            => $owner_user_id,
-				'is_owner'           => 1,
-				'status'             => self::STATUS_ACTIVE,
-				'version'            => 1,
-				'created_by_user_id' => $actor_user_id,
-				'created_at'         => $now,
-				'updated_at'         => $now,
-				'revoked_by_user_id' => null,
-				'revoked_at'         => null,
-			);
-			if ( false === $wpdb->insert( PromoterAuthoritySchema::memberships_table(), $membership ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic bootstrap write.
+			$membership = ( new TeamMembershipRepository() )->new_row( 'promoter', $promoter_term_id, $owner_user_id, true, $actor_user_id );
+			if ( false === ( new TeamMembershipRepository() )->insert( 'promoter', $membership ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic bootstrap write.
 				$database_error = (string) $wpdb->last_error;
 				$this->rollback();
 				return $this->database_error( 'promoter_organization_bootstrap_failed', __( 'The promoter organization owner could not be established.', 'extrachill-events' ), $database_error );
@@ -219,20 +208,8 @@ class PromoterAuthorityRepository {
 				)
 			);
 		}
-		$now = gmdate( 'Y-m-d H:i:s' );
-		$row = array(
-			'promoter_term_id'   => $promoter_term_id,
-			'user_id'            => $user_id,
-			'is_owner'           => $is_owner ? 1 : 0,
-			'status'             => self::STATUS_ACTIVE,
-			'version'            => 1,
-			'created_by_user_id' => $actor_user_id,
-			'created_at'         => $now,
-			'updated_at'         => $now,
-			'revoked_by_user_id' => null,
-			'revoked_at'         => null,
-		);
-		if ( false === $wpdb->insert( PromoterAuthoritySchema::memberships_table(), $row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority write.
+		$row = ( new TeamMembershipRepository() )->new_row( 'promoter', $promoter_term_id, $user_id, $is_owner, $actor_user_id );
+		if ( false === ( new TeamMembershipRepository() )->insert( 'promoter', $row ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority write.
 			$database_error = (string) $wpdb->last_error;
 			$this->rollback();
 			return $this->database_error( 'promoter_membership_create_failed', __( 'The promoter membership could not be created.', 'extrachill-events' ), $database_error );
@@ -548,13 +525,7 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			return new \WP_Error( 'promoter_membership_last_owner', __( 'The final active promoter owner cannot be removed.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$now   = gmdate( 'Y-m-d H:i:s' );
-		$table = PromoterAuthoritySchema::memberships_table();
-		if ( $revoke ) {
-			$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET version = version + 1, updated_at = %s, status = %s, revoked_by_user_id = %d, revoked_at = %s WHERE promoter_term_id = %d AND user_id = %d AND version = %d", $now, self::STATUS_REVOKED, $actor_user_id, $now, $promoter_term_id, $user_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed query and prepared values.
-		} else {
-			$result = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET version = version + 1, updated_at = %s, is_owner = %d WHERE promoter_term_id = %d AND user_id = %d AND version = %d", $now, $is_owner ? 1 : 0, $promoter_term_id, $user_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed query and prepared values.
-		}
+		$result = ( new TeamMembershipRepository() )->mutate( 'promoter', $promoter_term_id, $user_id, $expected_version, $is_owner, $revoke, $actor_user_id );
 		if ( false === $result ) {
 			$database_error = (string) $wpdb->last_error;
 			$this->rollback();

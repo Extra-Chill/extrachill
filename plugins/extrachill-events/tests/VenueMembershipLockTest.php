@@ -89,6 +89,37 @@ final class VenueMembershipLockTest extends TestCase {
 		$this->assertSame( 'promoter_membership_corrupt_status', $repository->hydrate( 'promoter', $row )->get_error_code() );
 	}
 
+	/** Shared writes always bind the natural key and expected version. */
+	public function test_shared_write_version_guard(): void {
+		$original = $GLOBALS['wpdb'];
+		try {
+			$GLOBALS['wpdb'] = new class() {
+				public $prefix = 'wp_7_';
+				public $query;
+
+				public function prepare( $query, $values ) {
+					return vsprintf( str_replace( '%s', "'%s'", $query ), $values );
+				}
+
+				public function query( $query ) {
+					$this->query = $query;
+					return 0;
+				}
+			};
+			$repository      = new \ExtraChillEvents\Core\TeamMembershipRepository();
+			foreach ( array( 'venue', 'promoter' ) as $type ) {
+				$this->assertSame( 0, $repository->mutate( $type, 55, 22, 3, false, false, 9 ) );
+				$this->assertStringContainsString( "WHERE {$type}_term_id = 55 AND user_id = 22 AND version = 3", $GLOBALS['wpdb']->query );
+				$this->assertStringContainsString( 'version = version + 1', $GLOBALS['wpdb']->query );
+				$this->assertSame( 0, $repository->mutate( $type, 55, 22, 3, null, true, 9 ) );
+				$this->assertStringContainsString( "status = 'revoked'", $GLOBALS['wpdb']->query );
+				$this->assertSame( 'promoter' === $type, str_contains( $GLOBALS['wpdb']->query, 'revoked_by_user_id = 9' ) );
+			}
+		} finally {
+			$GLOBALS['wpdb'] = $original;
+		}
+	}
+
 	/** Empty membership ranges are successful locks, not database errors. */
 	public function test_empty_lock_results(): void {
 		$repository = new VenueMembershipRepository();

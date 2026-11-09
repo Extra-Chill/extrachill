@@ -79,6 +79,68 @@ class TeamMembershipRepository {
 		return $row;
 	}
 
+	/** Build the initial row for a validated relationship. */
+	public function new_row( string $team_type, int $term_id, int $user_id, bool $is_owner, int $creator_id, string $status = 'active' ): array {
+		$now = gmdate( 'Y-m-d H:i:s' );
+		$row = array(
+			$team_type . '_term_id' => $term_id,
+			'user_id'               => $user_id,
+			'is_owner'              => $is_owner ? 1 : 0,
+			'status'                => $status,
+			'version'               => 1,
+			'created_by_user_id'    => $creator_id,
+			'created_at'            => $now,
+			'updated_at'            => $now,
+			'revoked_at'            => 'revoked' === $status ? $now : null,
+		);
+		if ( 'promoter' === $team_type ) {
+			$row['revoked_by_user_id'] = null;
+		}
+		return $row;
+	}
+
+	/** Insert a validated relationship inside the caller's transaction. */
+	public function insert( string $team_type, array $row ) {
+		global $wpdb;
+		return $wpdb->insert( $this->table( $team_type ), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Typed repository owns validation and transaction.
+	}
+
+	/** Update a validated relationship at its expected version. */
+	public function update( string $team_type, int $term_id, int $user_id, int $version, array $data ) {
+		global $wpdb;
+		$where = array_combine( array( $team_type . '_term_id', 'user_id', 'version' ), array( $term_id, $user_id, $version ) );
+		return $wpdb->update( $this->table( $team_type ), $data, $where ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Natural key and optimistic version are always included.
+	}
+
+	/** Apply a versioned owner change or revocation under the caller's lock. */
+	public function mutate( string $team_type, int $term_id, int $user_id, int $version, ?bool $is_owner, bool $revoke, int $actor_user_id ) {
+		global $wpdb;
+		$table  = $this->table( $team_type );
+		$field  = $team_type . '_term_id';
+		$now    = gmdate( 'Y-m-d H:i:s' );
+		$set    = array( 'version = version + 1', 'updated_at = %s' );
+		$values = array( $now );
+		if ( null !== $is_owner ) {
+			$set[]    = 'is_owner = %d';
+			$values[] = $is_owner ? 1 : 0;
+		}
+		if ( $revoke ) {
+			$set[]    = 'status = %s';
+			$values[] = 'revoked';
+			if ( 'promoter' === $team_type ) {
+				$set[]    = 'revoked_by_user_id = %d';
+				$values[] = $actor_user_id;
+			}
+			$set[]    = 'revoked_at = %s';
+			$values[] = $now;
+		}
+		$values[] = $term_id;
+		$values[] = $user_id;
+		$values[] = $version;
+		$query    = "UPDATE {$table} SET " . implode( ', ', $set ) . " WHERE {$field} = %d AND user_id = %d AND version = %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed columns and trusted typed table.
+		return $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- All dynamic values are prepared.
+	}
+
 	/** Resolve only the two supported authority types to trusted storage names. */
 	private function table( string $team_type ): string {
 		if ( 'venue' === $team_type ) {
