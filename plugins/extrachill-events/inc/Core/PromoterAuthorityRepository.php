@@ -292,13 +292,11 @@ class PromoterAuthorityRepository {
 			return false;
 		}
 		global $wpdb;
-		$memberships   = PromoterAuthoritySchema::memberships_table();
-		$organizations = PromoterAuthoritySchema::organizations_table();
-		$found         = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$memberships} AS membership INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.promoter_term_id AND organization.status = %s INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.promoter_term_id AND identity.taxonomy = %s WHERE membership.user_id = %d AND membership.status = %s LIMIT 1", self::STATUS_ACTIVE, 'promoter', $user_id, self::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded current-user authority existence check against an active current promoter organization.
+		$found = ( new TeamMembershipRepository() )->has_active_identity( 'promoter', $user_id );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter workspace access could not be read.', 'extrachill-events' ) );
 		}
-		return null !== $found;
+		return $found;
 	}
 
 	/**
@@ -311,8 +309,7 @@ class PromoterAuthorityRepository {
 			return array();
 		}
 		global $wpdb;
-		$table = PromoterAuthoritySchema::memberships_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d AND status = %s ORDER BY promoter_term_id ASC, id ASC LIMIT %d", $user_id, self::STATUS_ACTIVE, self::MAX_ORGANIZATIONS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded current-user authority projection.
+		$rows = ( new TeamMembershipRepository() )->list_rows( 'promoter', $user_id, self::MAX_ORGANIZATIONS + 1, true );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter memberships could not be listed.', 'extrachill-events' ) );
 		}
@@ -411,8 +408,7 @@ class PromoterAuthorityRepository {
 	 */
 	public function list_memberships( int $promoter_term_id ) {
 		global $wpdb;
-		$table = PromoterAuthoritySchema::memberships_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE promoter_term_id = %d ORDER BY created_at ASC, id ASC LIMIT %d", $promoter_term_id, self::MAX_MEMBERS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads one beyond the hard organization bound to fail explicitly.
+		$rows = ( new TeamMembershipRepository() )->list_rows( 'promoter', $promoter_term_id, self::MAX_MEMBERS + 1 );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter memberships could not be listed.', 'extrachill-events' ) );
 		}

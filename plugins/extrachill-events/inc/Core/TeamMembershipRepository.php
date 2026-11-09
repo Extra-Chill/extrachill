@@ -45,6 +45,31 @@ class TeamMembershipRepository {
 		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$field} = %d AND user_id = %d FOR UPDATE", $term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact caller-owned member lock.
 	}
 
+	/** Read a bounded team or active-user projection; facades retain error policy. */
+	public function list_rows( string $team_type, int $id, int $limit, bool $by_user = false ): array {
+		global $wpdb;
+		$table = $this->table( $team_type );
+		$field = $team_type . '_term_id';
+		$where = $by_user ? "user_id = %d AND status = 'active'" : "{$field} = %d";
+		$order = $by_user ? "{$field} ASC, id ASC" : 'created_at ASC, id ASC';
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$where} ORDER BY {$order} LIMIT %d", $id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed columns and prepared bounded projection.
+	}
+
+	/** Test active authority against a current identity and, for promoters, organization. */
+	public function has_active_identity( string $team_type, int $user_id ): bool {
+		global $wpdb;
+		$table = $this->table( $team_type );
+		$field = $team_type . '_term_id';
+		$join  = '';
+		if ( 'promoter' === $team_type ) {
+			$organizations = PromoterAuthoritySchema::organizations_table();
+			$join          = " INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.{$field} AND organization.status = 'active'";
+		}
+		$values = array( $team_type, $user_id, 'active' );
+		$found  = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership{$join} INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.{$field} AND identity.taxonomy = %s WHERE membership.user_id = %d AND membership.status = %s LIMIT 1", $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed join and prepared authority values.
+		return null !== $found;
+	}
+
 	/** Hydrate a row set, failing closed on the first corrupt relationship. */
 	public function hydrate_rows( string $team_type, array $rows ) {
 		$memberships = array();

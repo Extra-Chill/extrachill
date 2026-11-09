@@ -182,12 +182,11 @@ class VenueMembershipRepository {
 			return false;
 		}
 		global $wpdb;
-		$table = VenueSchema::memberships_table();
-		$found = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.venue_term_id AND identity.taxonomy = %s WHERE membership.user_id = %d AND membership.status = %s LIMIT 1", 'venue', $user_id, VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded current-user authority existence check against a current venue term.
+		$found = ( new TeamMembershipRepository() )->has_active_identity( 'venue', $user_id );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_read_failed', __( 'Managed venue access could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
-		return null !== $found;
+		return $found;
 	}
 
 	/**
