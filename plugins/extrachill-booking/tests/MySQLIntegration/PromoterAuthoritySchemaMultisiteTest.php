@@ -29,10 +29,6 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 						'promoter_term_id' => array( 'promoter_term_id' ),
 					),
 				),
-				PromoterAuthoritySchema::activity_table() => array(
-					'columns' => array( 'id', 'promoter_term_id', 'event', 'actor_user_id', 'subject_user_id', 'result_version', 'payload', 'created_at' ),
-					'unique'  => array( 'PRIMARY' => array( 'id' ) ),
-				),
 				PromoterAuthoritySchema::venue_grants_table() => array(
 					'columns' => array( 'id', 'promoter_term_id', 'venue_term_id', 'action', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_by_user_id', 'updated_at', 'revoked_by_user_id', 'revoked_at' ),
 					'unique'  => array(
@@ -46,7 +42,7 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 			$this->assertTrue( PromoterAuthoritySchema::is_ready() );
 			$this->assertTrue( PromoterAuthoritySchema::health() );
 			$this->assertSame( PromoterAuthoritySchema::SCHEMA_VERSION, get_option( PromoterAuthoritySchema::VERSION_OPTION ) );
-			$this->assertCount( 3, $contracts );
+			$this->assertCount( 2, $contracts );
 
 			foreach ( $contracts as $table => $contract ) {
 				$this->assertStringStartsWith( $prefix, $table );
@@ -90,7 +86,6 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 		try {
 			$organizations = PromoterAuthoritySchema::organizations_table();
 			$memberships   = TeamMembershipRepository::table();
-			$activity      = PromoterAuthoritySchema::activity_table();
 			$grants        = PromoterAuthoritySchema::venue_grants_table();
 			$created       = '2026-08-22 12:00:00';
 			$this->assertSame(
@@ -126,21 +121,6 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 					)
 				)
 			);
-			$this->assertSame(
-				1,
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Disposable migration fixture.
-				$wpdb->insert(
-					$activity,
-					array(
-						'promoter_term_id' => $promoter_term_id,
-						'event'            => 'legacy_v1_evidence',
-						'actor_user_id'    => 1,
-						'result_version'   => 3,
-						'payload'          => '{"legacy":true}',
-						'created_at'       => $created,
-					)
-				)
-			);
 
 			// This migration proof needs persistent DDL rather than the temporary
 			// table rewrites applied by WP_UnitTestCase around normal test queries.
@@ -156,13 +136,12 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 			$this->assertSame( $grants, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $grants ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Real v2 table assertion.
 			$this->assertSame( '3', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$organizations}` WHERE promoter_term_id = %d", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 organization assertion.
 			$this->assertSame( '2', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$memberships}` WHERE team_type = 'promoter' AND team_term_id = %d AND user_id = 1", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 membership assertion.
-			$this->assertSame( '{"legacy":true}', $wpdb->get_var( $wpdb->prepare( "SELECT payload FROM `{$activity}` WHERE promoter_term_id = %d AND event = 'legacy_v1_evidence'", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 activity assertion.
 		} finally {
 			if ( ! PromoterAuthoritySchema::is_ready() || true !== PromoterAuthoritySchema::health() ) {
 				PromoterAuthoritySchema::install();
 			}
 			$wpdb->delete( TeamMembershipRepository::table(), array( 'team_type' => 'promoter', 'team_term_id' => $promoter_term_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Disposable migration fixture cleanup.
-			foreach ( array( PromoterAuthoritySchema::activity_table(), PromoterAuthoritySchema::organizations_table() ) as $table ) {
+			foreach ( array( PromoterAuthoritySchema::organizations_table() ) as $table ) {
 				$wpdb->delete( $table, array( 'promoter_term_id' => $promoter_term_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Disposable migration fixture cleanup.
 			}
 			restore_current_blog();

@@ -31,7 +31,6 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				TeamMembershipRepository::table(),
 				VenueSchema::claims_table(),
 				VenueSchema::invitations_table(),
-				VenueSchema::onboarding_audit_table(),
 				BookingSchema::holds_table(),
 				BookingSchema::ticket_sources_table(),
 				BookingSchema::sales_reports_table(),
@@ -44,7 +43,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			$this->assertSame( $prefix, $wpdb->prefix );
 			$this->assertTrue( BookingSchema::is_ready() );
 			$this->assertTrue( BookingSchema::health() );
-			$this->assertCount( 16, $tables );
+			$this->assertCount( 15, $tables );
 			foreach ( $tables as $table ) {
 				$this->assertStringStartsWith( $prefix, $table );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema integration assertion.
@@ -120,7 +119,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			$this->assertSame( '', (string) $wpdb->last_error );
 			$fixtures  = $this->v13_fixture_rows( $external_id, $source_key );
 			$snapshots = $this->seed_and_snapshot_v13_rows( $fixtures );
-			$this->assertCount( 14, $snapshots );
+			$this->assertCount( count( $fixtures ), $snapshots );
 			update_option( BookingSchema::VERSION_OPTION, '13', false );
 
 			$this->assertTrue( BookingSchema::maybe_install() );
@@ -217,10 +216,6 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				'row' => array(
 					'id' => 73107, 'public_id' => wp_generate_uuid4(), 'venue_term_id' => 73003, 'user_id' => 3, 'is_owner' => 0, 'status' => 'accepted', 'token_hash' => str_repeat( '4', 64 ), 'email_hash' => str_repeat( '5', 64 ), 'account_created' => 1, 'delivery_id' => wp_generate_uuid4(), 'delivery_status' => 'delivered', 'delivery_attempts' => 1, 'version' => 2, 'invited_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'expires_at' => '2026-08-01 00:00:00', 'resolved_at' => '2026-07-02 00:00:00', 'delivered_at' => '2026-07-01 00:01:00',
 				),
-			),
-			VenueSchema::onboarding_audit_table()      => array(
-				'key' => 'id',
-				'row' => array( 'id' => 73108, 'venue_term_id' => 73003, 'entity_type' => 'membership', 'entity_id' => 73105, 'event' => 'legacy_membership_created', 'actor_user_id' => 1, 'subject_user_id' => 1, 'payload' => '{"version":1,"data":{"owner":true}}', 'created_at' => $created ),
 			),
 			BookingSchema::holds_table()                 => array(
 				'key' => 'id',
