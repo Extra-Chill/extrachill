@@ -52,4 +52,22 @@ final class NetworkTeamMembersMigrationTest extends PHPUnit\Framework\TestCase {
 			$GLOBALS['wpdb'] = $original;
 		}
 	}
+
+	public function test_single_site_never_treats_the_network_table_as_a_source(): void {
+		$original = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = new class {
+			public $base_prefix = 'wp_';
+			public $queries = array();
+			public function get_blog_prefix( $id ) { return 'wp_'; }
+			public function get_var( $query ) { $this->queries[] = $query; return 'wp_ec_team_members'; }
+			public function query( $query ) { $this->queries[] = $query; return 1; }
+		};
+		try {
+			$this->assertFalse( NetworkTeamMembersMigration::exists() );
+			$this->assertTrue( NetworkTeamMembersMigration::copy_legacy() );
+			$this->assertSame( array(), $GLOBALS['wpdb']->queries );
+		} finally {
+			$GLOBALS['wpdb'] = $original;
+		}
+	}
 }

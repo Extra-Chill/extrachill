@@ -18,6 +18,10 @@ final class NetworkTeamMembersMigration {
 	public static function exists(): bool {
 		global $wpdb;
 		$table = self::legacy_table();
+		// Single-site installs resolve blog 7 to the network prefix; there is no separate source.
+		if ( TeamMembershipRepository::table() === $table ) {
+			return false;
+		}
 		return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ); // phpcs:ignore WordPress.DB -- Uncached migration state.
 	}
 
@@ -87,7 +91,7 @@ final class NetworkTeamMembersMigration {
 	/** CLI-only retirement, with writes excluded between copy, verification and drop. */
 	public static function apply(): array {
 		global $wpdb;
-		if ( ! defined( 'WP_CLI' ) || ! constant( 'WP_CLI' ) ) {
+		if ( true !== ( defined( 'WP_CLI' ) ? constant( 'WP_CLI' ) : false ) ) {
 			return array(
 				'success'  => false,
 				'complete' => false,
