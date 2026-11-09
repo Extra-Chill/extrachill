@@ -1,9 +1,9 @@
 <?php
-/** Bounded Shop source authority for the three Events ticket service operations. */
+/** Bounded Shop source authority for the Events ticket and seller-notification service operations. */
 defined( 'ABSPATH' ) || exit;
 
 function extrachill_shop_ticket_service_operations() {
-	return array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales' );
+	return array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' );
 }
 
 function extrachill_shop_register_ticket_source_grants( array $grants ) {

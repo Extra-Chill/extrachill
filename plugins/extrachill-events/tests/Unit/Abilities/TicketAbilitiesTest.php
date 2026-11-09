@@ -236,4 +236,18 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertSame( 'ticket_already_redeemed', $result->get_error_code() );
 		$this->assertCount( 0, $GLOBALS['dispute_mail'] );
 	}
+	public function test_notify_seller_is_service_only_and_emails_finance_owners(): void {
+		$input = array( 'seller' => array( 'type' => 'promoter', 'id' => 5 ), 'subject' => 'New Order #1 - Lo-Fi', 'body_html' => '<p>Order</p>', 'cta_url' => 'https://shop.test/manage/' );
+		$this->assertSame( 'ticket_service_required', ( new TicketAbilities() )->notify_seller( $input )->get_error_code() );
+		$this->assertCount( 0, $GLOBALS['dispute_mail'] );
+		$this->service_context();
+		$this->assertSame( array( 'sent' => 1 ), ( new TicketAbilities() )->notify_seller( $input ) );
+		$this->assertSame( array( 'promoter', 5 ), $GLOBALS['dispute_seller'] );
+		$mail = $GLOBALS['dispute_mail'][0];
+		$this->assertSame( 'owner@example.com', $mail['to'] );
+		$this->assertSame( 'New Order #1 - Lo-Fi', $mail['subject'] );
+		$this->assertSame( '<p>Order</p>', $mail['context']['body_html'] );
+		$this->assertSame( 'https://shop.test/manage/', $mail['context']['cta_url'] );
+		$this->assertArrayNotHasKey( 'preheader', $mail['context'] );
+	}
 }

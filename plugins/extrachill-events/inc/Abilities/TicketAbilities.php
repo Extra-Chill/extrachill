@@ -275,6 +275,46 @@ class TicketAbilities {
 			array( 'revoked' => array( 'type' => 'integer' ) ),
 			false
 		);
+
+		$text = array(
+			'type'      => 'string',
+			'maxLength' => 300,
+		);
+		$this->register_ability(
+			'notify-commerce-seller',
+			'notify_seller',
+			array(
+				'seller'    => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						'type' => array(
+							'type' => 'string',
+							'enum' => array( 'venue', 'promoter' ),
+						),
+						'id'   => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
+					),
+					'required'             => array( 'type', 'id' ),
+					'additionalProperties' => false,
+				),
+				'subject'   => $text,
+				'preheader' => $text,
+				'body_html' => array(
+					'type'      => 'string',
+					'maxLength' => 50000,
+				),
+				'cta_url'   => array(
+					'type'   => 'string',
+					'format' => 'uri',
+				),
+				'cta_label' => $text,
+			),
+			array( 'seller', 'subject', 'body_html' ),
+			array( 'sent' => array( 'type' => 'integer' ) ),
+			false
+		);
 	}
 
 	/**
@@ -539,11 +579,7 @@ class TicketAbilities {
 	public static function notify_seller_of_dispute( array $rows, bool $checked_in ): void {
 		$event_id = (int) ( $rows[0]['event_id'] ?? 0 );
 		$seller   = self::settings( $event_id )['ticket_seller'];
-		if ( ! $event_id || ! function_exists( 'ec_send_email_queued' ) || empty( $seller['id'] ) ) {
-			return;
-		}
-		$data = CommerceSellerNotifications::get_data( (string) $seller['type'], (int) $seller['id'] );
-		if ( empty( $data['recipients'] ) ) {
+		if ( ! $event_id || empty( $seller['id'] ) ) {
 			return;
 		}
 
@@ -559,21 +595,70 @@ class TicketAbilities {
 			. esc_html__( 'Stripe has held the payment and a dispute fee from your account. Respond in your Stripe dashboard under Payments, then Disputes, before the deadline shown there, or the bank keeps the money with the buyer.', 'extrachill-events' )
 			. '</p>';
 
+		self::email_seller_owners(
+			$seller,
+			array(
+				/* translators: %s: show title. */
+				'subject'   => sprintf( __( 'A ticket payment for %s was disputed', 'extrachill-events' ), $show ),
+				'body_html' => $body,
+				'cta_url'   => 'https://connect.stripe.com/express_login',
+				'cta_label' => __( 'Open Stripe', 'extrachill-events' ),
+			)
+		);
+	}
+
+	/**
+	 * Email a venue's or promoter's finance owners.
+	 *
+	 * Events owns who those people are, so other sites (Shop) ask through
+	 * `extrachill/notify-commerce-seller` instead of reading them directly.
+	 *
+	 * @param array $seller  `{ type, id }` venue or promoter.
+	 * @param array $message `subject`, `body_html`, optional `preheader`, `cta_url`, `cta_label`.
+	 * @return int Emails queued.
+	 */
+	public static function email_seller_owners( array $seller, array $message ): int {
+		if ( ! function_exists( 'ec_send_email_queued' ) ) {
+			return 0;
+		}
+		$data = CommerceSellerNotifications::get_data( (string) ( $seller['type'] ?? '' ), (int) ( $seller['id'] ?? 0 ) );
+		$sent = 0;
 		foreach ( $data['recipients'] as $email ) {
-			ec_send_email_queued(
+			$result = ec_send_email_queued(
 				array(
 					'to'       => $email,
-					/* translators: %s: show title. */
-					'subject'  => sprintf( __( 'A ticket payment for %s was disputed', 'extrachill-events' ), $show ),
+					'subject'  => (string) $message['subject'],
 					'template' => 'extrachill/branded',
-					'context'  => array(
-						'recipient_name' => $data['name'],
-						'body_html'      => $body,
-						'cta_url'        => 'https://connect.stripe.com/express_login',
-						'cta_label'      => __( 'Open Stripe', 'extrachill-events' ),
+					'context'  => array_filter(
+						array(
+							'subject_html'   => esc_html( (string) $message['subject'] ),
+							'preheader'      => (string) ( $message['preheader'] ?? '' ),
+							'recipient_name' => $data['name'],
+							'body_html'      => (string) $message['body_html'],
+							'cta_url'        => (string) ( $message['cta_url'] ?? '' ),
+							'cta_label'      => (string) ( $message['cta_label'] ?? '' ),
+						)
 					),
 				)
 			);
+			if ( ! empty( $result['success'] ) ) {
+				++$sent;
+			}
 		}
+		return $sent;
+	}
+
+	/**
+	 * Service-only: email a seller's finance owners on Shop's behalf.
+	 *
+	 * @param array $input Ability input.
+	 * @return array|\WP_Error
+	 */
+	public function notify_seller( array $input ) {
+		$allowed = $this->authorize();
+		if ( is_wp_error( $allowed ) ) {
+			return $allowed;
+		}
+		return array( 'sent' => self::email_seller_owners( $input['seller'], $input ) );
 	}
 }

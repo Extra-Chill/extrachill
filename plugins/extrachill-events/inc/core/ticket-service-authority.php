@@ -4,7 +4,7 @@ defined( 'ABSPATH' ) || exit;
 
 function extrachill_events_ticket_service_routes(): array {
 	return array_map( static function ( $ability ) { return '/wp-abilities/v1/abilities/extrachill/' . $ability . '/run';
-	}, array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales' ) );
+	}, array( 'issue-ticket-passes', 'get-ticket-order-status', 'revoke-ticket-passes', 'record-checkout-ticket-sales', 'notify-commerce-seller' ) );
 }
 
 function extrachill_events_ticket_target_grants(): array {
