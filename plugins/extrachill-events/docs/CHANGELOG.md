@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.123.3] - 2026-11-09
+
+### Changed
+- one ec_team_members table for venue and promoter membership
+
 ## [0.123.2] - 2026-11-09
 
 ### Changed
