@@ -285,7 +285,7 @@ final class BookingAttachmentTest extends BookingTestCase {
 	public function test_authorization_uses_the_membership_rows_locked_by_the_transaction(): void {
 		$booking       = $this->booking();
 		$authorization = new BookingTestAuthorization();
-		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1] = array(
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][1] = array(
 			'id'                 => 1,
 			'venue_term_id'      => 55,
 			'user_id'            => 12,

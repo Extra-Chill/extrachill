@@ -11,6 +11,7 @@ use ExtraChillEvents\Abilities\VenueMembershipAbilities;
 use ExtraChillEvents\Abilities\VenueBookingConfigAbilities;
 use ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities;
 use ExtraChillEvents\Abilities\VenueProfileAbilities;
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueBookingConfig;
@@ -22,6 +23,7 @@ use ExtraChillEvents\Core\VenueOnboardingService;
 use ExtraChillEvents\Core\VenueProfile;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';
 
 if ( ! defined( 'ARRAY_A' ) ) {
@@ -448,6 +450,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function insert( $table, $row ) {
+
+		list( $table, $row ) = ec_team_fake_write( $table, $row );
 		if ( $this->wordpress_wpdb && in_array( $table, array( $this->users, $this->usermeta, $this->options ), true ) ) {
 			return $this->wordpress_wpdb->insert( $table, $row );
 		}
@@ -502,6 +506,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		if ( $this->wordpress_wpdb && false !== strpos( $query, $this->users ) ) {
 			return $this->wordpress_wpdb->get_row( $query, $output );
 		}
@@ -540,6 +546,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function get_var( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		if ( false !== strpos( $query, 'SELECT 1 FROM ' . $this->prefix . 'ec_venue_members AS membership' ) ) {
 			++$this->identity_queries;
@@ -594,6 +602,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function get_results( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		if ( $this->wordpress_wpdb && ( false !== strpos( $query, $this->users ) || false !== strpos( $query, $this->usermeta ) || false !== strpos( $query, $this->options ) ) ) {
 			return $this->wordpress_wpdb->get_results( $query, $output );
 		}
@@ -690,6 +700,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function get_col( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		$rows             = array_values( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() );
 		if ( preg_match( '/user_id = (\d+)/', $query, $user_match ) ) {
@@ -710,6 +722,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function query( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		if ( $this->wordpress_wpdb && ( false !== strpos( $query, $this->users ) || false !== strpos( $query, $this->usermeta ) || false !== strpos( $query, $this->options ) ) ) {
 			return $this->wordpress_wpdb->query( $query );
 		}
@@ -782,6 +796,8 @@ final class VenueMembershipWpdb {
 	}
 
 	public function update( $table, $data, $where, $format = null, $where_format = null ) {
+
+		list( $table, $data, $where ) = ec_team_fake_write( $table, $data, $where );
 		if ( $this->wordpress_wpdb && in_array( $table, array( $this->users, $this->usermeta, $this->options ), true ) ) {
 			return $this->wordpress_wpdb->update( $table, $data, $where, $format, $where_format );
 		}
@@ -1501,7 +1517,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$contracts = new \ReflectionMethod( VenueSchema::class, 'contracts' );
 		$contracts->setAccessible( true );
 		$this->assertSame(
-			array( VenueSchema::memberships_table(), VenueSchema::claims_table(), VenueSchema::invitations_table() ),
+			array( TeamMembershipRepository::table(), VenueSchema::claims_table(), VenueSchema::invitations_table() ),
 			array_keys( $contracts->invoke( null ) )
 		);
 	}

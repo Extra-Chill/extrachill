@@ -26,6 +26,7 @@ use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\RsvpPassesTable;
 use ExtraChillEvents\Core\VenueSchema;
 
+require_once __DIR__ . '/../../Support/team-members-fake.php';
 require_once __DIR__ . '/RsvpGuestListRequestsTest.php';
 
 if ( ! function_exists( 'get_term' ) ) {
@@ -70,6 +71,9 @@ final class OwnerGuestListFakeWpdb {
 	private $next_id = 1;
 
 	public function prepare( $query, ...$args ) {
+		if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+			$args = $args[0];
+		}
 		$i = 0;
 		return preg_replace_callback(
 			'/%[ds]/',
@@ -119,6 +123,8 @@ final class OwnerGuestListFakeWpdb {
 	}
 
 	public function insert( $table, $data ) {
+
+		list( $table, $data ) = ec_team_fake_write( $table, $data );
 		if ( false !== strpos( $table, 'owner_guest_list_checkins' ) ) {
 			foreach ( $this->rows( $table ) as $row ) {
 				if ( (int) $row['member_id'] === (int) $data['member_id'] && (int) $row['event_id'] === (int) $data['event_id'] ) {
@@ -133,6 +139,8 @@ final class OwnerGuestListFakeWpdb {
 	}
 
 	public function update( $table, $data, $where ) {
+
+		list( $table, $data, $where ) = ec_team_fake_write( $table, $data, $where );
 		$count = 0;
 		foreach ( $this->rows( $table ) as $index => $row ) {
 			foreach ( $where as $key => $value ) {
@@ -147,6 +155,8 @@ final class OwnerGuestListFakeWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_error = '';
 		if ( preg_match( '/SUM\(/', $query ) ) {
@@ -166,23 +176,31 @@ final class OwnerGuestListFakeWpdb {
 	}
 
 	public function get_results( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_error = '';
 		return $this->matching( $query );
 	}
 
 	public function get_col( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		$column           = preg_match( '/SELECT (\w+) FROM/', $query, $m ) ? $m[1] : '';
 		return array_column( $this->matching( $query ), $column );
 	}
 
 	public function get_var( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $query );
 		return '1';
 	}
 
 	public function query( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $query );
 		return 0;
 	}
@@ -284,7 +302,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 
 		$this->seed_venue_member( self::VENUE_MEMBER, self::VENUE_ID );
 		$this->seed_venue_member( self::OTHER_VENUE_TEAM, self::OTHER_VENUE_ID );
-		$this->db->tables[ PromoterAuthoritySchema::memberships_table() ][] = array(
+		$this->db->tables[ ec_team_fake_partition( 'promoter' ) ][] = array(
 			'id'                 => 1,
 			'promoter_term_id'   => self::PROMOTER_ID,
 			'user_id'            => self::PROMOTER_MEMBER,
@@ -313,7 +331,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 	}
 
 	private function seed_venue_member( int $user_id, int $venue_id ): void {
-		$this->db->tables[ VenueSchema::memberships_table() ][] = array(
+		$this->db->tables[ ec_team_fake_partition( 'venue' ) ][] = array(
 			'id'                 => $user_id,
 			'venue_term_id'      => $venue_id,
 			'user_id'            => $user_id,

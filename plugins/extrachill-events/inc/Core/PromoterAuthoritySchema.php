@@ -22,12 +22,6 @@ final class PromoterAuthoritySchema {
 		return $wpdb->prefix . 'ec_promoter_organizations';
 	}
 
-	/** Return the current site's membership table. */
-	public static function memberships_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_promoter_members';
-	}
-
 	/** Return the current site's exact promoter/venue grant table. */
 	public static function venue_grants_table(): string {
 		global $wpdb;
@@ -83,7 +77,6 @@ final class PromoterAuthoritySchema {
 		}
 
 		$organizations    = self::organizations_table();
-		$memberships      = self::memberships_table();
 		$venue_grants     = self::venue_grants_table();
 		$charset          = $wpdb->get_charset_collate();
 		$organization_sql = "CREATE TABLE {$organizations} (
@@ -99,23 +92,6 @@ final class PromoterAuthoritySchema {
 			PRIMARY KEY (id),
 			UNIQUE KEY promoter_term_id (promoter_term_id),
 			KEY status_updated (status, updated_at)
-		) ENGINE=InnoDB {$charset};";
-		$membership_sql   = "CREATE TABLE {$memberships} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			promoter_term_id BIGINT UNSIGNED NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
-			status VARCHAR(16) NOT NULL DEFAULT 'active',
-			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			created_by_user_id BIGINT UNSIGNED NOT NULL,
-			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL,
-			revoked_by_user_id BIGINT UNSIGNED NULL,
-			revoked_at DATETIME NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY promoter_user (promoter_term_id, user_id),
-			KEY user_status_promoter (user_id, status, promoter_term_id),
-			KEY promoter_status_owner (promoter_term_id, status, is_owner)
 		) ENGINE=InnoDB {$charset};";
 		$venue_grants_sql = "CREATE TABLE {$venue_grants} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -139,12 +115,10 @@ final class PromoterAuthoritySchema {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $organization_sql );
 		$organization_error = (string) $wpdb->last_error;
-		dbDelta( $membership_sql );
-		$membership_error = (string) $wpdb->last_error;
 		dbDelta( $venue_grants_sql );
 		$venue_grants_error = (string) $wpdb->last_error;
-		if ( '' !== $organization_error || '' !== $membership_error || '' !== $venue_grants_error ) {
-			$error = new \WP_Error( 'promoter_authority_schema_install_failed', __( 'The promoter authority schema could not be reconciled.', 'extrachill-events' ), compact( 'organization_error', 'membership_error', 'venue_grants_error' ) );
+		if ( '' !== $organization_error || '' !== $venue_grants_error ) {
+			$error = new \WP_Error( 'promoter_authority_schema_install_failed', __( 'The promoter authority schema could not be reconciled.', 'extrachill-events' ), compact( 'organization_error', 'venue_grants_error' ) );
 			self::record_failure( $error );
 			return $error;
 		}
@@ -179,13 +153,6 @@ final class PromoterAuthoritySchema {
 				'unique'  => array(
 					'PRIMARY'          => array( 'id' ),
 					'promoter_term_id' => array( 'promoter_term_id' ),
-				),
-			),
-			self::memberships_table()   => array(
-				'columns' => array( 'id', 'promoter_term_id', 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_by_user_id', 'revoked_at' ),
-				'unique'  => array(
-					'PRIMARY'       => array( 'id' ),
-					'promoter_user' => array( 'promoter_term_id', 'user_id' ),
 				),
 			),
 			self::venue_grants_table()  => array(

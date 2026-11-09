@@ -299,7 +299,7 @@ final class BookingMarketingTest extends BookingTestCase {
 			'post_meta'        => array(),
 		);
 		$GLOBALS['wpdb']           = new BookingWpdb();
-		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1] = array(
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][1] = array(
 			'id'                 => 1,
 			'venue_term_id'      => 55,
 			'user_id'            => 12,

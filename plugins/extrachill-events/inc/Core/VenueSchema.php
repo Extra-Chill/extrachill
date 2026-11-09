@@ -15,18 +15,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/TeamMembershipRepository.php';
+
 /** Owns and verifies the site-scoped private venue schema. */
 class VenueSchema {
 
-	public const SCHEMA_VERSION = '2';
+	public const SCHEMA_VERSION = '3';
 	public const VERSION_OPTION = 'extrachill_events_venue_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_venue_schema_error';
-
-	/** Get the venue membership table for the current site. */
-	public static function memberships_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_members';
-	}
 
 	/** Get the venue claims table for the current site. */
 	public static function claims_table(): string {
@@ -94,14 +90,15 @@ class VenueSchema {
 			return true;
 		}
 
-		$members = self::memberships_table();
+		$members = TeamMembershipRepository::table();
 		$claims  = self::claims_table();
 		$invites = self::invitations_table();
 		$charset = $wpdb->get_charset_collate();
 
 		$members_sql = "CREATE TABLE {$members} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
+			team_type VARCHAR(16) NOT NULL,
+			team_term_id BIGINT UNSIGNED NOT NULL,
 			user_id BIGINT UNSIGNED NOT NULL,
 			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -109,11 +106,12 @@ class VenueSchema {
 			created_by_user_id BIGINT UNSIGNED NOT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
+			revoked_by_user_id BIGINT UNSIGNED NULL,
 			revoked_at DATETIME NULL,
 			PRIMARY KEY (id),
-			UNIQUE KEY venue_user (venue_term_id, user_id),
-			KEY user_status_venue (user_id, status, venue_term_id),
-			KEY venue_status_owner (venue_term_id, status, is_owner)
+			UNIQUE KEY team_user (team_type, team_term_id, user_id),
+			KEY user_status_team (user_id, status, team_type, team_term_id),
+			KEY team_status_owner (team_type, team_term_id, status, is_owner)
 		) ENGINE=InnoDB {$charset};";
 
 		$claims_sql = "CREATE TABLE {$claims} (
@@ -191,10 +189,10 @@ class VenueSchema {
 			return $error;
 		}
 
-		$membership_migration = self::migrate_membership_authority();
-		if ( is_wp_error( $membership_migration ) ) {
-			self::record_failure( $membership_migration );
-			return $membership_migration;
+		$adopted = self::adopt_legacy_memberships();
+		if ( is_wp_error( $adopted ) ) {
+			self::record_failure( $adopted );
+			return $adopted;
 		}
 
 		$engine_repair = self::repair_storage_engines();
@@ -429,47 +427,59 @@ class VenueSchema {
 		return true;
 	}
 
-	/** Collapse the unreleased speculative role matrix into structural ownership. */
-	private static function migrate_membership_authority() {
+	/**
+	 * Copy rows from the retired per-type tables into the team table.
+	 *
+	 * Idempotent: the team table's natural key makes repeated copies no-ops, and
+	 * memberships are never deleted, so a row already in the team table is
+	 * always the newer one. The legacy tables are dropped by the operator-run
+	 * `extrachill-events.team-members` Data Machine migration.
+	 *
+	 * @param bool $copy False to only report status without writing.
+	 * @return array<string,array{exists:bool,rows:int,missing:int}>|\WP_Error Per legacy table copy status.
+	 */
+	public static function adopt_legacy_memberships( bool $copy = true ) {
 		global $wpdb;
-
-		$table   = self::memberships_table();
-		$columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private schema migration.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return self::database_error( __( 'Could not inspect venue membership authority.', 'extrachill-events' ), $table );
-		}
-		$column_names = array_column( (array) $columns, 'Field' );
-		if ( ! in_array( 'role', $column_names, true ) ) {
-			return true;
-		}
-
-		$result = $wpdb->query( "UPDATE `{$table}` SET is_owner = IF(role = 'owner', 1, 0)" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration from the unreleased role matrix.
-		if ( false === $result ) {
-			$remaining_columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes a concurrent completed migration from a real failure.
-			if ( '' !== (string) $wpdb->last_error || in_array( 'role', array_column( (array) $remaining_columns, 'Field' ), true ) ) {
-				return self::database_error( __( 'Could not migrate venue membership ownership.', 'extrachill-events' ), $table );
+		$team   = TeamMembershipRepository::table();
+		$status = array();
+		foreach ( self::legacy_membership_tables() as $type => $legacy ) {
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $legacy ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Migration inspection cannot be cached.
+			if ( $found !== $legacy ) {
+				$status[ $legacy ] = array(
+					'exists'  => false,
+					'rows'    => 0,
+					'missing' => 0,
+				);
+				continue;
 			}
-			return true;
-		}
-
-		$indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private schema migration.
-		if ( '' !== (string) $wpdb->last_error ) {
-			return self::database_error( __( 'Could not inspect venue membership indexes.', 'extrachill-events' ), $table );
-		}
-		if ( isset( $indexes['venue_status_role'] ) && false === $wpdb->query( "ALTER TABLE `{$table}` DROP INDEX `venue_status_role`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes the obsolete private index.
-			$current_indexes = self::normalize_indexes( (array) $wpdb->get_results( "SHOW INDEX FROM `{$table}`", ARRAY_A ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes concurrent removal from a real failure.
-			if ( '' !== (string) $wpdb->last_error || isset( $current_indexes['venue_status_role'] ) ) {
-				return self::database_error( __( 'Could not remove the obsolete venue membership index.', 'extrachill-events' ), $table );
+			$revoked_by = 'promoter' === $type ? 'legacy.revoked_by_user_id' : 'NULL';
+			$copied     = $copy ? $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$team} (team_type, team_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, revoked_by_user_id, revoked_at) SELECT %s, legacy.{$type}_term_id, legacy.user_id, legacy.is_owner, legacy.status, legacy.version, legacy.created_by_user_id, legacy.created_at, legacy.updated_at, {$revoked_by}, legacy.revoked_at FROM {$legacy} AS legacy", $type ) ) : 0; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed legacy identifiers; idempotent copy.
+			$rows       = $wpdb->get_var( "SELECT COUNT(*) FROM {$legacy}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed legacy identifier.
+			$missing    = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$legacy} AS legacy LEFT JOIN {$team} AS team ON team.team_type = %s AND team.team_term_id = legacy.{$type}_term_id AND team.user_id = legacy.user_id WHERE team.id IS NULL", $type ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed legacy identifiers.
+			if ( false === $copied || '' !== (string) $wpdb->last_error ) {
+				return self::database_error( __( 'Could not copy legacy team memberships.', 'extrachill-events' ), $legacy );
 			}
+			$status[ $legacy ] = array(
+				'exists'  => true,
+				'rows'    => (int) $rows,
+				'missing' => (int) $missing,
+			);
 		}
-		if ( false === $wpdb->query( "ALTER TABLE `{$table}` DROP COLUMN `role`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Removes an unreleased speculative field after preserving structural ownership.
-			$current_columns = $wpdb->get_results( "SHOW COLUMNS FROM `{$table}`", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinguishes concurrent removal from a real failure.
-			if ( '' !== (string) $wpdb->last_error || in_array( 'role', array_column( (array) $current_columns, 'Field' ), true ) ) {
-				return self::database_error( __( 'Could not remove obsolete venue membership roles.', 'extrachill-events' ), $table );
-			}
-		}
+		return $status;
+	}
 
-		return true;
+	/**
+	 * Retired per-type membership tables, by team type.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function legacy_membership_tables(): array {
+		global $wpdb;
+		$tables = array();
+		foreach ( TeamMembershipRepository::TYPES as $type ) {
+			$tables[ $type ] = $wpdb->prefix . 'ec_' . $type . '_members';
+		}
+		return $tables;
 	}
 
 	/** Return the final initial schema contract shared by health and repair. */
@@ -490,13 +500,12 @@ class VenueSchema {
 			);
 		};
 		return array(
-			self::memberships_table() => array(
-				'absent_columns' => array( 'role' ),
-				'absent_indexes' => array( 'venue_status_role' ),
-				'engine'         => 'innodb',
-				'columns'        => array(
+			TeamMembershipRepository::table() => array(
+				'engine'  => 'innodb',
+				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'venue_term_id'      => $required( 'bigint unsigned', false ),
+					'team_type'          => $required( 'varchar(16)', false ),
+					'team_term_id'       => $required( 'bigint unsigned', false ),
 					'user_id'            => $required( 'bigint unsigned', false ),
 					'is_owner'           => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
 					'status'             => $required( 'varchar(20)', false, array( 'default' => 'active' ) ),
@@ -504,28 +513,17 @@ class VenueSchema {
 					'created_by_user_id' => $required( 'bigint unsigned', false ),
 					'created_at'         => $required( 'datetime', false ),
 					'updated_at'         => $required( 'datetime', false ),
+					'revoked_by_user_id' => $required( 'bigint unsigned', true ),
 					'revoked_at'         => $required( 'datetime', true ),
 				),
-				'indexes'        => array(
-					'PRIMARY'            => array(
-						'unique'  => true,
-						'columns' => array( 'id' ),
-					),
-					'venue_user'         => array(
-						'unique'  => true,
-						'columns' => array( 'venue_term_id', 'user_id' ),
-					),
-					'user_status_venue'  => array(
-						'unique'  => false,
-						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
-					),
-					'venue_status_owner' => array(
-						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status', 'is_owner' ),
-					),
+				'indexes' => array(
+					'PRIMARY'           => $index( true, 'id' ),
+					'team_user'         => $index( true, 'team_type', 'team_term_id', 'user_id' ),
+					'user_status_team'  => $index( false, 'user_id', 'status', 'team_type', 'team_term_id' ),
+					'team_status_owner' => $index( false, 'team_type', 'team_term_id', 'status', 'is_owner' ),
 				),
 			),
-			self::claims_table()      => array(
+			self::claims_table()              => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
@@ -566,7 +564,7 @@ class VenueSchema {
 					),
 				),
 			),
-			self::invitations_table() => array(
+			self::invitations_table()         => array(
 				'engine'  => 'innodb',
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),

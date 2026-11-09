@@ -13,7 +13,7 @@ Venue authorization composes two existing platform concepts:
    `ec_feature_available( 'venue_booking' )` keeps the initial rollout on the
    `team` rung.
 2. Extra Chill Events answers which venue the user may operate through an
-   active row in the site-scoped `ec_venue_members` table.
+   active `venue` row in the site-scoped `ec_team_members` table.
 
 Both checks must pass. A team member without a venue relationship cannot access
 that venue, and a venue relationship does not grant the WordPress capability.

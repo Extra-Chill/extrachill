@@ -113,6 +113,8 @@ final class EventManagementTestWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_error = '';
 		if ( ! preg_match( '/FROM (\S+) WHERE (\w+) = (\d+) AND (\w+) = (\d+)/', $query, $match ) ) {
@@ -127,6 +129,7 @@ final class EventManagementTestWpdb {
 	}
 }
 
+require_once __DIR__ . '/Support/team-members-fake.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
@@ -179,7 +182,7 @@ final class EventManagementAuthorityTest extends TestCase {
 	}
 
 	private function seed_promoter_membership( int $user_id, string $status = 'active' ): void {
-		$GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::memberships_table() ][] = array(
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'promoter', 'wp_' ) ][] = array(
 			'id'                 => 1,
 			'promoter_term_id'   => self::PROMOTER_ID,
 			'user_id'            => $user_id,
@@ -195,7 +198,7 @@ final class EventManagementAuthorityTest extends TestCase {
 	}
 
 	private function seed_venue_membership( int $user_id, string $status = 'active' ): void {
-		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][] = array(
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue', 'wp_' ) ][] = array(
 			'id'                 => 1,
 			'venue_term_id'      => self::VENUE_ID,
 			'user_id'            => $user_id,

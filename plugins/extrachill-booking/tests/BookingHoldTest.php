@@ -805,7 +805,7 @@ final class BookingHoldTest extends BookingTestCase {
 		$holds         = new BookingHoldRepository( null, null, $authorization );
 		$lifecycle     = new BookingLifecycle( null, null, $authorization, null, $holds );
 		$booking       = $this->booking( '2031-11-01 20:00:00', '2031-11-01 23:00:00' );
-		$membership_table = VenueSchema::memberships_table();
+		$membership_table = ec_team_fake_partition( 'venue' );
 		$GLOBALS['wpdb']->rows[ $membership_table ][1] = array(
 			'id'                 => 1,
 			'venue_term_id'      => 55,

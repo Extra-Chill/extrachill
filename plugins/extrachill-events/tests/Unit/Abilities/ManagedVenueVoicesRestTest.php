@@ -7,6 +7,7 @@
 
 use ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities;
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Core\VenueSchema;
 
 require_once __DIR__ . '/../../../../extrachill-booking/inc/Core/BookingSchema.php';
@@ -47,9 +48,10 @@ final class ManagedVenueVoicesRestTest extends WP_UnitTestCase {
 			$this->assertSame(
 				1,
 				$wpdb->insert(
-					VenueSchema::memberships_table(),
+					TeamMembershipRepository::table(),
 					array(
-						'venue_term_id'      => $this->venue_term_id,
+						'team_type'          => 'venue',
+						'team_term_id'       => $this->venue_term_id,
 						'user_id'            => $this->member_user_id,
 						'is_owner'           => 0,
 						'status'             => 'active',

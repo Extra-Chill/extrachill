@@ -118,6 +118,7 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 		$GLOBALS['promoter_test']['abilities'][ $name ] = $definition; }
 }
 
+require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
@@ -235,8 +236,10 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_var( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_error = '';
-		if ( false === strpos( $query, 'SELECT 1 FROM ' . PromoterAuthoritySchema::memberships_table() . ' AS membership' ) ) {
+		if ( false === strpos( $query, 'SELECT 1 FROM ' . ec_team_fake_partition( 'promoter' ) . ' AS membership' ) ) {
 			return null;
 		}
 		++$this->identity_queries;
@@ -247,7 +250,7 @@ final class PromoterAuthorityWpdb {
 		}
 		preg_match( '/membership\.user_id = (\d+)/', $query, $user_match );
 		preg_match( "/membership\.status = '([^']+)'/", $query, $status_match );
-		foreach ( $this->rows[ PromoterAuthoritySchema::memberships_table() ] ?? array() as $membership ) {
+		foreach ( $this->rows[ ec_team_fake_partition( 'promoter' ) ] ?? array() as $membership ) {
 			if ( (int) $membership['user_id'] !== (int) $user_match[1] || stripslashes( $status_match[1] ) !== $membership['status'] ) {
 				continue;
 			}
@@ -263,6 +266,8 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function insert( $table, $row ) {
+
+		list( $table, $row ) = ec_team_fake_write( $table, $row );
 		$this->last_error = '';
 		if ( PromoterAuthoritySchema::venue_grants_table() === $table && $this->race_grant_insert ) {
 			$this->race_grant_insert     = false;
@@ -306,6 +311,8 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function query( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
 			$this->snapshot             = $this->rows;
@@ -388,6 +395,8 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_error = '';
 		if ( preg_match( "/FROM (\\S+) WHERE promoter_term_id = (\\d+) AND venue_term_id = (\\d+) AND action = '([^']+)'/", $query, $grant_match ) ) {
@@ -418,6 +427,8 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_results( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_error = '';
 		if ( preg_match( "/FROM (\S+) WHERE status = 'active' ORDER BY promoter_term_id ASC LIMIT (\d+)/", $query, $organization_match ) ) {
@@ -473,8 +484,10 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_col( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_error = '';
-		if ( preg_match( "/SELECT DISTINCT venue_term_id FROM (\S+) WHERE status = '([^']+)' ORDER BY venue_term_id ASC/", $query, $active_venue_match ) ) {
+		if ( preg_match( "/SELECT (?:DISTINCT )?venue_term_id FROM (\S+) WHERE status = '([^']+)' ORDER BY venue_term_id ASC/", $query, $active_venue_match ) ) {
 			$ids = array();
 			foreach ( $this->rows[ $active_venue_match[1] ] ?? array() as $row ) {
 				if ( $active_venue_match[2] === $row['status'] ) {
@@ -615,7 +628,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	public function test_schema_table_names_are_site_scoped(): void {
 		$this->assertSame( 'wp_7_ec_promoter_organizations', PromoterAuthoritySchema::organizations_table() );
-		$this->assertSame( 'wp_7_ec_promoter_members', PromoterAuthoritySchema::memberships_table() );
+		$this->assertSame( 'wp_7_ec_promoter_members', ec_team_fake_partition( 'promoter' ) );
 		$this->assertSame( 'wp_7_ec_promoter_venue_grants', PromoterAuthoritySchema::venue_grants_table() );
 	}
 
@@ -948,7 +961,7 @@ final class PromoterAuthorityTest extends TestCase {
 	public function test_membership_listing_fails_when_hard_organization_cap_is_exceeded(): void {
 		$service = new PromoterAuthorityService();
 		$service->verify( 1, 100, 2 );
-		$table = PromoterAuthoritySchema::memberships_table();
+		$table = ec_team_fake_partition( 'promoter' );
 		for ( $user_id = 10; $user_id < 110; ++$user_id ) {
 			$GLOBALS['wpdb']->rows[ $table ][] = array(
 				'id'                 => $user_id,
@@ -1205,7 +1218,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	public function test_lock_context_rejects_promoter_membership_overflow(): void {
 		$this->bootstrap_promoter_grant_fixtures();
-		$table = PromoterAuthoritySchema::memberships_table();
+		$table = ec_team_fake_partition( 'promoter' );
 		for ( $index = 0; $index < 99; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $table ][] = $this->promoter_membership_row( 2000 + $index, 100, 1000 + $index );
 		}
@@ -1222,7 +1235,7 @@ final class PromoterAuthorityTest extends TestCase {
 
 	public function test_lock_context_rejects_venue_membership_overflow(): void {
 		$this->bootstrap_promoter_grant_fixtures();
-		$table = VenueSchema::memberships_table();
+		$table = ec_team_fake_partition( 'venue' );
 		for ( $index = 0; $index < 100; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $table ][] = $this->venue_membership_row( 3000 + $index, 200, 1000 + $index );
 		}
@@ -1249,7 +1262,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$abilities = new PromoterVenueGrantAbilities();
 		$this->assertTrue( $abilities->can_issue( $input ) );
 
-		$table                                        = VenueSchema::memberships_table();
+		$table                                        = ec_team_fake_partition( 'venue' );
 		$GLOBALS['wpdb']->rows[ $table ][0]['status'] = VenueAuthorization::STATUS_REVOKED;
 		$this->assertSame( 'promoter_venue_action_forbidden', $abilities->create( $input )->get_error_code() );
 		$this->assertNull( ( new PromoterVenueGrantRepository() )->get( 100, 200, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT ) );
@@ -1404,7 +1417,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'denied', $workspace->resolve( 'promoter:102' )['selection']['state'] );
 		$this->assertSame( 'stale', $workspace->resolve( 'promoter:999' )['selection']['state'] );
 
-		foreach ( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::memberships_table() ] as &$membership ) {
+		foreach ( $GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'promoter' ) ] as &$membership ) {
 			if ( 100 === (int) $membership['promoter_term_id'] && 3 === (int) $membership['user_id'] ) {
 				$membership['status'] = PromoterAuthorityRepository::STATUS_REVOKED;
 			}
@@ -1432,14 +1445,14 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	public function test_workspace_repository_reads_fail_explicitly_at_their_hard_bounds(): void {
-		$promoter_memberships = PromoterAuthoritySchema::memberships_table();
+		$promoter_memberships = ec_team_fake_partition( 'promoter' );
 		for ( $index = 1; $index <= PromoterAuthorityRepository::MAX_ORGANIZATIONS + 1; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $promoter_memberships ][] = $this->promoter_membership_row( $index, 100, 2 );
 		}
 		$promoter_error = ( new PromoterAuthorityRepository() )->list_active_memberships_for_user( 2 );
 		$this->assertSame( 'promoter_membership_user_limit_exceeded', $promoter_error->get_error_code() );
 
-		$venue_memberships = VenueSchema::memberships_table();
+		$venue_memberships = ec_team_fake_partition( 'venue' );
 		for ( $index = 1; $index <= \ExtraChillEvents\Core\VenueMembershipRepository::MAX_USER_VENUES + 1; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $venue_memberships ][] = $this->venue_membership_row( $index, 200, 4 );
 		}
@@ -1498,7 +1511,7 @@ final class PromoterAuthorityTest extends TestCase {
 	}
 
 	private function seed_venue_owner( int $venue_term_id, int $user_id ): void {
-		$table                             = VenueSchema::memberships_table();
+		$table                             = ec_team_fake_partition( 'venue' );
 		$GLOBALS['wpdb']->rows[ $table ][] = $this->venue_membership_row( 1000 + $venue_term_id, $venue_term_id, $user_id );
 	}
 

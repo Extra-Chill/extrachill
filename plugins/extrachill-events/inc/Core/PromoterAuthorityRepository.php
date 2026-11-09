@@ -309,7 +309,10 @@ class PromoterAuthorityRepository {
 			return array();
 		}
 		global $wpdb;
-		$rows = ( new TeamMembershipRepository() )->list_rows( 'promoter', $user_id, self::MAX_ORGANIZATIONS + 1, true );
+		$rows = ( new TeamMembershipRepository() )->select( 'promoter', array(
+			'user_id' => $user_id,
+			'status'  => self::STATUS_ACTIVE,
+		), 'team_term_id ASC, id ASC', self::MAX_ORGANIZATIONS + 1 );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter memberships could not be listed.', 'extrachill-events' ) );
 		}
@@ -408,7 +411,7 @@ class PromoterAuthorityRepository {
 	 */
 	public function list_memberships( int $promoter_term_id ) {
 		global $wpdb;
-		$rows = ( new TeamMembershipRepository() )->list_rows( 'promoter', $promoter_term_id, self::MAX_MEMBERS + 1 );
+		$rows = ( new TeamMembershipRepository() )->select( 'promoter', array( 'term' => $promoter_term_id ), 'created_at ASC, id ASC', self::MAX_MEMBERS + 1 );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter memberships could not be listed.', 'extrachill-events' ) );
 		}

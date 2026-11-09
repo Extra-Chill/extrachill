@@ -148,14 +148,14 @@ final class BookingFoundationTest extends BookingTestCase {
 
 		$GLOBALS['wpdb']->prefix = 'wp_12_';
 		$this->assertSame( 'wp_12_ec_bookings', BookingSchema::bookings_table() );
-		$this->assertSame( 'wp_12_ec_venue_members', VenueSchema::memberships_table() );
+		$this->assertSame( 'wp_12_ec_venue_members', ec_team_fake_partition( 'venue' ) );
 		$this->assertSame( 'booking_schema_table_missing', BookingSchema::health()->get_error_code() );
 	}
 
 	public function test_role_schema_migrates_only_structural_ownership(): void {
 		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( VenueSchema::install() );
-		$table = VenueSchema::memberships_table();
+		$table = ec_team_fake_partition( 'venue' );
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['role']                 = array(
 			'Type'    => 'varchar(32)',
 			'Null'    => 'NO',
@@ -190,7 +190,7 @@ final class BookingFoundationTest extends BookingTestCase {
 	public function test_concurrent_completed_role_migration_is_treated_as_success(): void {
 		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( VenueSchema::install() );
-		$table = VenueSchema::memberships_table();
+		$table = ec_team_fake_partition( 'venue' );
 		$GLOBALS['wpdb']->schemas[ $table ]['columns']['role']                 = array(
 			'Type'    => 'varchar(32)',
 			'Null'    => 'NO',
@@ -365,7 +365,7 @@ final class BookingFoundationTest extends BookingTestCase {
 	public function test_membership_table_engine_is_repaired_before_version_stamp(): void {
 		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( VenueSchema::install() );
-		$table                              = VenueSchema::memberships_table();
+		$table                              = ec_team_fake_partition( 'venue' );
 		$GLOBALS['wpdb']->engines[ $table ] = 'MyISAM';
 		$GLOBALS['ec_artist_test']['options'][ VenueSchema::VERSION_OPTION ] = '';
 		$this->assertTrue( VenueSchema::maybe_install() );
