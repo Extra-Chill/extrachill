@@ -720,6 +720,7 @@ final class BookingWpdb {
 	public function get_col( $query ) {
 
 		$query = ec_team_fake_sql( $query );
+
 		$this->last_query = $query;
 		$this->last_error = '';
 		if ( $this->fail_reads ) {
@@ -779,6 +780,7 @@ final class BookingWpdb {
 	public function insert( $table, $row ) {
 
 		list( $table, $row ) = ec_team_fake_write( $table, $row );
+
 		$this->last_error = '';
 		if ( $this->fail_inserts || ( false !== strpos( $table, 'ec_booking_activity' ) && ( $this->fail_activity_inserts || in_array( $row['kind'] ?? '', $this->fail_activity_kinds, true ) ) ) ) {
 			$this->last_error = 'simulated insert failure';
@@ -2034,6 +2036,7 @@ final class BookingWpdb {
 	public function update( $table, $data, $where ) {
 
 		list( $table, $data, $where ) = ec_team_fake_write( $table, $data, $where );
+
 		$this->last_error = '';
 		if ( $this->fail_updates || ( $this->fail_communication_state_updates && false !== strpos( $table, 'ec_booking_communication_state' ) ) ) {
 			$this->last_error = 'simulated update failure';
