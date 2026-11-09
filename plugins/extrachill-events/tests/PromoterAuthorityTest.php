@@ -237,7 +237,7 @@ final class PromoterAuthorityWpdb {
 
 	public function get_var( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		if ( false === strpos( $query, 'SELECT 1 FROM ' . ec_team_fake_partition( 'promoter' ) . ' AS membership' ) ) {
 			return null;
@@ -268,7 +268,7 @@ final class PromoterAuthorityWpdb {
 	public function insert( $table, $row ) {
 
 		list( $table, $row ) = ec_team_fake_write( $table, $row );
-		$this->last_error = '';
+		$this->last_error    = '';
 		if ( PromoterAuthoritySchema::venue_grants_table() === $table && $this->race_grant_insert ) {
 			$this->race_grant_insert     = false;
 			$this->last_error            = 'Duplicate grant natural key';
@@ -312,7 +312,7 @@ final class PromoterAuthorityWpdb {
 
 	public function query( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		if ( 'START TRANSACTION' === $query ) {
 			$this->snapshot             = $this->rows;
@@ -485,7 +485,7 @@ final class PromoterAuthorityWpdb {
 
 	public function get_col( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		if ( preg_match( "/SELECT (?:DISTINCT )?venue_term_id FROM (\S+) WHERE status = '([^']+)' ORDER BY venue_term_id ASC/", $query, $active_venue_match ) ) {
 			$ids = array();
@@ -1294,7 +1294,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$abilities = new PromoterAuthorityAbilities();
 		$abilities->register();
 		$registered = $this->registered_abilities();
-		$this->assertCount( 6, $registered );
+		$this->assertCount( 11, $registered );
 		foreach ( $registered as $definition ) {
 			$this->assertFalse( $definition['input_schema']['additionalProperties'] );
 			$this->assertClosedSchema( $definition['output_schema'] );

@@ -27,11 +27,15 @@ class VenueOnboardingService {
 	private $authorization;
 
 	/** Build the onboarding policy service. */
-	public function __construct( ?VenueOnboardingRepository $repository = null, ?VenueInvitationToken $tokens = null, ?VenueAuthorization $authorization = null ) {
+	public function __construct( ?VenueOnboardingRepository $repository = null, ?VenueInvitationToken $tokens = null, ?TeamAuthorization $authorization = null, string $team_type = 'venue' ) {
+		$this->team_type     = $team_type;
 		$this->tokens        = $tokens ? $tokens : new VenueInvitationToken();
-		$this->authorization = $authorization ? $authorization : new VenueAuthorization();
-		$this->repository    = $repository ? $repository : new VenueOnboardingRepository( $this->tokens, $this->authorization );
+		$this->authorization = $authorization ? $authorization : new TeamAuthorization();
+		$this->repository    = $repository ? $repository : new VenueOnboardingRepository( $this->tokens, $this->authorization, $team_type );
 	}
+
+	/** @var string Team discriminator. */
+	private $team_type;
 
 	/** Submit a venue claim. */
 	public function submit_claim( int $actor_user_id, int $venue_term_id ) {
@@ -66,7 +70,7 @@ class VenueOnboardingService {
 		if ( ! is_email( $email ) ) {
 			return new \WP_Error( 'invalid_venue_invitation_email', __( 'A valid invitation email is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		$allowed = $this->authorization->authorize( $actor_user_id, $venue_term_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+		$allowed = $this->authorization->authorize( $actor_user_id, $this->team_type, $venue_term_id, TeamAuthorization::ACTION_MANAGE_MEMBERS );
 		if ( true !== $allowed ) {
 			return $allowed;
 		}

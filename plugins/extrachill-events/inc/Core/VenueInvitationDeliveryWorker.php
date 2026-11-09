@@ -40,6 +40,9 @@ class VenueInvitationDeliveryWorker {
 	 */
 	public static function run( string $delivery_id ): void {
 		$result = ( new self() )->deliver( $delivery_id );
+		if ( is_wp_error( $result ) && 'venue_invitation_delivery_not_found' === $result->get_error_code() ) {
+			$result = ( new self( new VenueOnboardingRepository( null, null, 'promoter' ) ) )->deliver( $delivery_id );
+		}
 		if ( is_wp_error( $result ) ) {
 			throw new \RuntimeException( 'Venue invitation delivery failed.' );
 		}
@@ -53,7 +56,7 @@ class VenueInvitationDeliveryWorker {
 		}
 
 		$user  = get_userdata( $invitation['user_id'] );
-		$venue = get_term( $invitation['venue_term_id'], 'venue' );
+		$venue = get_term( $invitation['team_term_id'], $invitation['team_type'] );
 		$email = $user instanceof \WP_User ? strtolower( sanitize_email( $user->user_email ) ) : '';
 		if ( ! $user || ! $venue || is_wp_error( $venue ) || '' === $email || ! hash_equals( $invitation['_email_hash'], hash_hmac( 'sha256', $email, wp_salt( 'auth' ) ) ) ) {
 			$this->repository->finish_delivery( $delivery_id, false );
@@ -74,7 +77,8 @@ class VenueInvitationDeliveryWorker {
 				'action'        => 'ec_accept_venue_invitation',
 				'invitation_id' => $invitation['public_id'],
 				'token'         => $invitation['_delivery_token'],
-				'venue_term_id' => $invitation['venue_term_id'],
+				'venue_term_id' => $invitation['team_term_id'],
+				'team_type'     => $invitation['team_type'],
 				'is_owner'      => $invitation['is_owner'] ? 1 : 0,
 				'version'       => $invitation['version'],
 			),

@@ -48,6 +48,17 @@ class TeamMembershipRepository {
 		return $this->select( $team_type, array( 'term' => $term_id ), 'id ASC', $limit, true );
 	}
 
+	/** Lock every team relationship for account compensation, including other team types. */
+	public function lock_user( int $user_id ) {
+		global $wpdb;
+		$table = self::table();
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d ORDER BY team_type ASC, team_term_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Fixed table and prepared user; caller owns the transaction.
+		if ( '' !== (string) $wpdb->last_error ) {
+			return new \WP_Error( 'team_membership_read_failed', __( 'Team memberships could not be locked.', 'extrachill-events' ) );
+		}
+		return (array) $rows;
+	}
+
 	/** Lock an exact raw relationship inside the caller's transaction. */
 	public function lock_member( string $team_type, int $term_id, int $user_id ): array {
 		return $this->select( $team_type, array(

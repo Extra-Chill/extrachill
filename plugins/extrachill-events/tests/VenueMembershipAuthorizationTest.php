@@ -547,7 +547,7 @@ final class VenueMembershipWpdb {
 
 	public function get_var( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		if ( false !== strpos( $query, 'SELECT 1 FROM ' . $this->prefix . 'ec_venue_members AS membership' ) ) {
 			++$this->identity_queries;
@@ -701,7 +701,7 @@ final class VenueMembershipWpdb {
 
 	public function get_col( $query ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
 		$rows             = array_values( $this->rows[ $this->prefix . 'ec_venue_members' ] ?? array() );
 		if ( preg_match( '/user_id = (\d+)/', $query, $user_match ) ) {
@@ -1121,6 +1121,56 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$GLOBALS['wpdb'] = $this->original_wpdb;
 		$this->set_current_user( 0 );
 		parent::tearDown();
+	}
+
+	public function test_promoter_email_invitation_acceptance_and_team_isolation(): void {
+		require_once __DIR__ . '/Support/TeamOnboardingWpdb.php';
+		require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
+		require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
+		$GLOBALS['wpdb'] = new TeamOnboardingWpdb();
+		$members         = new \ExtraChillEvents\Core\TeamMembershipRepository();
+		$members->insert( 'venue', $members->new_row( 'venue', 55, 2, true, 1 ) );
+		$venue_service = new VenueOnboardingService();
+		$venue_invite  = $venue_service->invite( 2, 55, 'existing@example.com', false );
+		$this->assertIsArray( $venue_invite );
+		$GLOBALS['venue_membership_test']['terms'][55]->taxonomy = 'promoter';
+		$GLOBALS['venue_membership_test']['options'][ \ExtraChillEvents\Core\PromoterAuthoritySchema::VERSION_OPTION ] = \ExtraChillEvents\Core\PromoterAuthoritySchema::SCHEMA_VERSION;
+		$members = new \ExtraChillEvents\Core\TeamMembershipRepository();
+		$members->insert( 'promoter', $members->new_row( 'promoter', 55, 2, true, 1 ) );
+		$members->insert( 'promoter', $members->new_row( 'promoter', 55, 3, false, 1 ) );
+		$service = new VenueOnboardingService( null, null, null, 'promoter' );
+		$this->assertSame( 'promoter_authority_forbidden', $service->invite( 3, 55, 'existing@example.com', false )->get_error_code() );
+		$invite = $service->invite( 2, 55, 'existing@example.com', false );
+		$this->assertIsArray( $invite );
+		$this->assertSame( 'promoter', $invite['team_type'] );
+		$repository = new VenueOnboardingRepository( null, null, 'promoter' );
+		$listed     = $repository->list_invitations( 2, 55 );
+		$this->assertCount( 1, $listed );
+		$prepared = $repository->prepare_delivery( $listed[0]['_delivery_id'], 3600 );
+		$this->assertIsArray( $prepared );
+		$this->assertSame( 'invalid_venue_invitation', ( new VenueOnboardingRepository() )->respond_to_invitation( 7, $prepared['public_id'], $prepared['_delivery_token'], 55, false, $prepared['version'], 'accepted' )->get_error_code() );
+		$accepted = $service->respond( 7, $prepared['public_id'], $prepared['_delivery_token'], 55, false, $prepared['version'], 'accepted' );
+		$this->assertSame( 'accepted', $accepted['status'] );
+		$this->assertSame( 'active', $members->get( 'promoter', 55, 7 )['status'] );
+		$this->assertSame( 'invited', $members->get( 'venue', 55, 7 )['status'] );
+		$GLOBALS['venue_membership_test']['terms'][55]->taxonomy = 'venue';
+		$venue_list = $venue_service->list_invitations( 2, 55 );
+		$this->assertCount( 1, $venue_list );
+		$this->assertSame( $venue_invite['public_id'], $venue_list[0]['public_id'] );
+		$this->assertSame( 'pending', $venue_list[0]['status'] );
+		$this->assertSame( 'team_claims_unsupported', $repository->submit_claim( 7, 55 )->get_error_code() );
+	}
+
+	public function test_guarded_retirement_preserves_nonempty_legacy_tables_and_version(): void {
+		require_once __DIR__ . '/Support/TeamOnboardingWpdb.php';
+		$GLOBALS['wpdb']              = new TeamOnboardingWpdb();
+		$GLOBALS['wpdb']->legacy_rows = 1;
+		$GLOBALS['venue_membership_test']['options'][ VenueSchema::VERSION_OPTION ] = '3';
+		$result = VenueSchema::install();
+		$this->assertSame( 'team_onboarding_legacy_not_empty', $result->get_error_code() );
+		$this->assertSame( '3', get_option( VenueSchema::VERSION_OPTION ) );
+		$this->assertCount( 1, $GLOBALS['wpdb']->drops );
+		$this->assertStringContainsString( 'onboarding_audit', $GLOBALS['wpdb']->drops[0] );
 	}
 
 	private function create_member( int $venue, int $user, bool $is_owner, string $status = VenueAuthorization::STATUS_ACTIVE, int $creator = 1 ) {
