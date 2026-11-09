@@ -123,8 +123,8 @@ foreach ( $managed_venues as &$venue ) {
 	$venue_id             = (int) $venue['id'];
 	$venue_term           = get_term( $venue_id, 'venue' );
 	$archive_url          = $venue_term instanceof WP_Term ? get_term_link( $venue_term ) : '';
-	$venue['can_access']  = true === $authorization->authorize( $user_id, $venue_id, VenueAuthorization::ACTION_ACCESS_VENUE );
-	$venue['can_manage']  = true === $authorization->authorize( $user_id, $venue_id, VenueAuthorization::ACTION_MANAGE_MEMBERS );
+	$venue['can_access']  = user_can( $user_id, 'ec_access_venue', $venue_id ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta capability mapped by TeamCapabilities.
+	$venue['can_manage']  = user_can( $user_id, 'ec_manage_venue_members', $venue_id ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta capability mapped by TeamCapabilities.
 	$venue['slug']        = $venue_term instanceof WP_Term ? $venue_term->slug : '';
 	$venue['archive_url'] = is_wp_error( $archive_url ) ? '' : $archive_url;
 	$venue                = apply_filters( 'extrachill_events_venue_settings_venue_data', $venue, $venue_term );

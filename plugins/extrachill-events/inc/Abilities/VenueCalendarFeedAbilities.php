@@ -293,7 +293,10 @@ class VenueCalendarFeedAbilities {
 				),
 				'output_schema'       => $this->feed_schema(),
 				'execute_callback'    => $execute,
-				'permission_callback' => array( $this, 'can_access_venue' ),
+				'permission_callback' => static function ( array $input ): bool {
+					// phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta capability mapped by TeamCapabilities, not a role capability.
+					return current_user_can( 'ec_access_venue', absint( $input['venue_term_id'] ?? 0 ) );
+				},
 				'meta'                => array(
 					'show_in_rest' => true,
 					'annotations'  => array(

@@ -45,6 +45,7 @@ final class VenueProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-settings.php';
 
 		add_filter( 'datamachine_migrations', array( self::class, 'register_migrations' ) );
+		\ExtraChillEvents\Core\TeamCapabilities::register();
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
@@ -76,6 +77,8 @@ final class VenueProvider {
 		return array(
 			'VenueSchema',
 			'VenueMembershipRepository',
+			'TeamAuthorization',
+			'TeamCapabilities',
 			'VenueAuthorization',
 			'ArtistMappingLock',
 			'ArtistAuthorization',
