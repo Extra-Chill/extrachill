@@ -5,7 +5,7 @@
  * @package ExtraChillEvents\Tests\MySQLIntegration
  */
 
-use ExtraChillEvents\Core\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 
 /** Proves promoter authority storage is strict, site-scoped, and idempotent. */
@@ -110,7 +110,7 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 					$memberships,
 					array(
 						'team_type'          => 'promoter',
-						'team_term_id'       => $promoter_term_id,
+						'team_id'       => $promoter_term_id,
 						'user_id'            => 1,
 						'is_owner'           => 1,
 						'status'             => 'active',
@@ -135,12 +135,12 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 			$this->assertSame( PromoterAuthoritySchema::SCHEMA_VERSION, get_option( PromoterAuthoritySchema::VERSION_OPTION ) );
 			$this->assertSame( $grants, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $grants ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Real v2 table assertion.
 			$this->assertSame( '3', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$organizations}` WHERE promoter_term_id = %d", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 organization assertion.
-			$this->assertSame( '2', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$memberships}` WHERE team_type = 'promoter' AND team_term_id = %d AND user_id = 1", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 membership assertion.
+			$this->assertSame( '2', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$memberships}` WHERE team_type = 'promoter' AND team_id = %d AND user_id = 1", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 membership assertion.
 		} finally {
 			if ( ! PromoterAuthoritySchema::is_ready() || true !== PromoterAuthoritySchema::health() ) {
 				PromoterAuthoritySchema::install();
 			}
-			$wpdb->delete( TeamMembershipRepository::table(), array( 'team_type' => 'promoter', 'team_term_id' => $promoter_term_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Disposable migration fixture cleanup.
+			$wpdb->delete( TeamMembershipRepository::table(), array( 'team_type' => 'promoter', 'team_id' => $promoter_term_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Disposable migration fixture cleanup.
 			foreach ( array( PromoterAuthoritySchema::organizations_table() ) as $table ) {
 				$wpdb->delete( $table, array( 'promoter_term_id' => $promoter_term_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Disposable migration fixture cleanup.
 			}

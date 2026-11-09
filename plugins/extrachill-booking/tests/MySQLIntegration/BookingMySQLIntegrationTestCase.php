@@ -14,7 +14,7 @@
  * @package ExtraChillEvents\Tests\MySQLIntegration
  */
 
-use ExtraChillEvents\Core\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;

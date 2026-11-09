@@ -93,6 +93,7 @@ if ( ! function_exists( 'get_current_blog_id' ) ) {
 
 /** Fake $wpdb answering the exact single-row lookups the two repositories issue. */
 final class EventManagementTestWpdb {
+	public $base_prefix = 'wp_';
 	public $prefix     = 'wp_';
 	public $last_error = '';
 	public $rows       = array();
@@ -114,7 +115,7 @@ final class EventManagementTestWpdb {
 
 	public function get_row( $query, $output = null ) {
 
-		$query = ec_team_fake_sql( $query );
+		$query = str_replace( 'wp_7_ec_', 'wp_ec_', ec_team_fake_sql( $query ) );
 		unset( $output );
 		$this->last_error = '';
 		if ( ! preg_match( '/FROM (\S+) WHERE (\w+) = (\d+) AND (\w+) = (\d+)/', $query, $match ) ) {
@@ -130,6 +131,8 @@ final class EventManagementTestWpdb {
 }
 
 require_once __DIR__ . '/Support/team-members-fake.php';
+require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
+require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';

@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/TeamMembershipRepository.php';
+require_once __DIR__ . '/NetworkTeamMembersMigration.php';
 
 /** Owns and verifies the site-scoped private venue schema. */
 class VenueSchema {
@@ -91,6 +91,11 @@ class VenueSchema {
 			}
 		}
 
+		$copy = NetworkTeamMembersMigration::copy_legacy();
+		if ( is_wp_error( $copy ) ) {
+			return $copy;
+		}
+
 		// Adopt an already-current venue schema without touching production data.
 		if ( true === self::health() ) {
 			update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
@@ -98,29 +103,9 @@ class VenueSchema {
 			return true;
 		}
 
-		$members = TeamMembershipRepository::table();
 		$claims  = self::claims_table();
 		$invites = self::invitations_table();
 		$charset = $wpdb->get_charset_collate();
-
-		$members_sql = "CREATE TABLE {$members} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			team_type VARCHAR(16) NOT NULL,
-			team_term_id BIGINT UNSIGNED NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
-			status VARCHAR(20) NOT NULL DEFAULT 'active',
-			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			created_by_user_id BIGINT UNSIGNED NOT NULL,
-			created_at DATETIME NOT NULL,
-			updated_at DATETIME NOT NULL,
-			revoked_by_user_id BIGINT UNSIGNED NULL,
-			revoked_at DATETIME NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY team_user (team_type, team_term_id, user_id),
-			KEY user_status_team (user_id, status, team_type, team_term_id),
-			KEY team_status_owner (team_type, team_term_id, status, is_owner)
-		) ENGINE=InnoDB {$charset};";
 
 		$claims_sql = "CREATE TABLE {$claims} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -179,18 +164,15 @@ class VenueSchema {
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $members_sql );
-		$members_error = (string) $wpdb->last_error;
 		dbDelta( $claims_sql );
 		$claims_error = (string) $wpdb->last_error;
 		dbDelta( $invites_sql );
 		$invites_error = (string) $wpdb->last_error;
-		if ( '' !== $members_error || '' !== $claims_error || '' !== $invites_error ) {
+		if ( '' !== $claims_error || '' !== $invites_error ) {
 			$error = new \WP_Error(
 				'venue_schema_dbdelta_failed',
 				__( 'The venue schema could not be reconciled.', 'extrachill-events' ),
 				array(
-					'members_error' => $members_error,
 					'claims_error'  => $claims_error,
 					'invites_error' => $invites_error,
 				)
@@ -247,7 +229,7 @@ class VenueSchema {
 	/** Install only when the stored schema version is stale. */
 	public static function maybe_install() {
 		if ( self::SCHEMA_VERSION === (string) get_option( self::VERSION_OPTION, '' ) ) {
-			return true;
+			return NetworkTeamMembersMigration::copy_legacy();
 		}
 		return self::install();
 	}
@@ -476,29 +458,7 @@ class VenueSchema {
 			);
 		};
 		return array(
-			TeamMembershipRepository::table() => array(
-				'engine'  => 'innodb',
-				'columns' => array(
-					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
-					'team_type'          => $required( 'varchar(16)', false ),
-					'team_term_id'       => $required( 'bigint unsigned', false ),
-					'user_id'            => $required( 'bigint unsigned', false ),
-					'is_owner'           => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
-					'status'             => $required( 'varchar(20)', false, array( 'default' => 'active' ) ),
-					'version'            => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
-					'created_by_user_id' => $required( 'bigint unsigned', false ),
-					'created_at'         => $required( 'datetime', false ),
-					'updated_at'         => $required( 'datetime', false ),
-					'revoked_by_user_id' => $required( 'bigint unsigned', true ),
-					'revoked_at'         => $required( 'datetime', true ),
-				),
-				'indexes' => array(
-					'PRIMARY'           => $index( true, 'id' ),
-					'team_user'         => $index( true, 'team_type', 'team_term_id', 'user_id' ),
-					'user_status_team'  => $index( false, 'user_id', 'status', 'team_type', 'team_term_id' ),
-					'team_status_owner' => $index( false, 'team_type', 'team_term_id', 'status', 'is_owner' ),
-				),
-			),
+
 			self::claims_table()              => array(
 				'engine'  => 'innodb',
 				'columns' => array(

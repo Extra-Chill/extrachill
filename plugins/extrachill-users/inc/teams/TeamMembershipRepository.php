@@ -2,14 +2,14 @@
 /**
  * The one store for venue and promoter team membership.
  *
- * Rows live in `ec_team_members`, keyed by (team_type, team_term_id, user_id).
- * Reads alias team_term_id back to the typed `venue_term_id` / `promoter_term_id`
+ * Rows live in `ec_team_members`, keyed by (team_type, team_id, user_id).
+ * Reads alias team_id back to the typed `venue_term_id` / `promoter_term_id`
  * key so the typed facades keep their public row shapes.
  *
  * @package ExtraChillEvents\Core
  */
 
-namespace ExtraChillEvents\Core;
+namespace ExtraChill\Users\Teams;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -18,10 +18,10 @@ class TeamMembershipRepository {
 	/** Supported team types. */
 	public const TYPES = array( 'venue', 'promoter' );
 
-	/** The current site's team membership table. */
+	/** The network's team membership table. */
 	public static function table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ec_team_members';
+		return $wpdb->base_prefix . 'ec_team_members';
 	}
 
 	/** Read one typed relationship, preserving the facade's error contract. */
@@ -52,7 +52,7 @@ class TeamMembershipRepository {
 	public function lock_user( int $user_id ) {
 		global $wpdb;
 		$table = self::table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d ORDER BY team_type ASC, team_term_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Fixed table and prepared user; caller owns the transaction.
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT *, team_id AS team_term_id FROM {$table} WHERE user_id = %d ORDER BY team_type ASC, team_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Fixed table and prepared user; caller owns the transaction.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'team_membership_read_failed', __( 'Team memberships could not be locked.', 'extrachill-events' ) );
 		}
@@ -61,10 +61,16 @@ class TeamMembershipRepository {
 
 	/** Lock an exact raw relationship inside the caller's transaction. */
 	public function lock_member( string $team_type, int $term_id, int $user_id ): array {
-		return $this->select( $team_type, array(
-			'term'    => $term_id,
-			'user_id' => $user_id,
-		), 'id ASC', null, true );
+		return $this->select(
+			$team_type,
+			array(
+				'term'    => $term_id,
+				'user_id' => $user_id,
+			),
+			'id ASC',
+			null,
+			true
+		);
 	}
 
 	/**
@@ -85,7 +91,7 @@ class TeamMembershipRepository {
 	/** Read the team term IDs of rows matching exact criteria, in term order. */
 	public function term_ids( string $team_type, array $criteria, ?int $limit = null ): array {
 		global $wpdb;
-		return array_map( 'intval', (array) $wpdb->get_col( $this->sql( $team_type, $criteria, 'team_term_id ASC', $limit, false, 0, 'team_term_id' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
+		return array_map( 'intval', (array) $wpdb->get_col( $this->sql( $team_type, $criteria, 'team_id ASC', $limit, false, 0, 'team_id' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
 	}
 
 	/** Build one prepared typed read; see select() for parameters. */
@@ -95,7 +101,7 @@ class TeamMembershipRepository {
 		$where  = array( 'team_type = %s' );
 		$values = array( $this->type( $team_type ) );
 		foreach ( array(
-			'term'     => 'team_term_id = %d',
+			'term'     => 'team_id = %d',
 			'user_id'  => 'user_id = %d',
 			'status'   => 'status = %s',
 			'is_owner' => 'is_owner = %d',
@@ -116,29 +122,15 @@ class TeamMembershipRepository {
 		return $wpdb->prepare( $query . ( $lock ? ' FOR UPDATE' : '' ), $values ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Fixed columns and clauses; every value is prepared.
 	}
 
-	/** Test active authority against a current identity and, for promoters, organization. */
-	public function has_active_identity( string $team_type, int $user_id ): bool {
-		global $wpdb;
-		$table = self::table();
-		$join  = '';
-		if ( 'promoter' === $team_type ) {
-			$organizations = PromoterAuthoritySchema::organizations_table();
-			$join          = " INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.team_term_id AND organization.status = 'active'";
-		}
-		$values = array( $team_type, $this->type( $team_type ), $user_id, 'active' );
-		$found  = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership{$join} INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.team_term_id AND identity.taxonomy = %s WHERE membership.team_type = %s AND membership.user_id = %d AND membership.status = %s LIMIT 1", $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed join and prepared authority values.
-		return null !== $found;
-	}
-
 	/** List one team's members, optionally only when the actor is an active owner of it. */
 	public function list_team( string $team_type, int $term_id, array $criteria, int $limit, int $offset, int $owner_actor_id = 0 ): array {
 		global $wpdb;
 		$table  = self::table();
 		$from   = "{$table} AS member";
-		$where  = array( 'member.team_type = %s', 'member.team_term_id = %d' );
+		$where  = array( 'member.team_type = %s', 'member.team_id = %d' );
 		$values = array( $this->type( $team_type ), $term_id );
 		if ( $owner_actor_id > 0 ) {
-			$from .= " INNER JOIN {$table} AS actor ON actor.team_type = member.team_type AND actor.team_term_id = member.team_term_id AND actor.user_id = %d AND actor.is_owner = 1 AND actor.status = 'active'";
+			$from .= " INNER JOIN {$table} AS actor ON actor.team_type = member.team_type AND actor.team_id = member.team_id AND actor.user_id = %d AND actor.is_owner = 1 AND actor.status = 'active'";
 			array_unshift( $values, $owner_actor_id );
 		}
 		if ( array_key_exists( 'is_owner', $criteria ) ) {
@@ -171,7 +163,7 @@ class TeamMembershipRepository {
 	/** Normalize authority scalars while preserving each typed facade's keys. */
 	public function hydrate( string $team_type, array $row ) {
 		$venue    = 'venue' === $team_type;
-		$statuses = $venue ? VenueAuthorization::statuses() : PromoterAuthorityRepository::statuses();
+		$statuses = $venue ? array( 'active', 'invited', 'revoked' ) : array( 'active', 'revoked' );
 		if ( ! in_array( $row['status'] ?? '', $statuses, true ) ) {
 			return new \WP_Error( $team_type . '_membership_corrupt_status', $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-events' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-events' ) );
 		}
@@ -212,9 +204,9 @@ class TeamMembershipRepository {
 	/** Insert a validated typed relationship inside the caller's transaction. */
 	public function insert( string $team_type, array $row ) {
 		global $wpdb;
-		$key                 = $team_type . '_term_id';
-		$row['team_type']    = $this->type( $team_type );
-		$row['team_term_id'] = (int) $row[ $key ];
+		$key              = $team_type . '_term_id';
+		$row['team_type'] = $this->type( $team_type );
+		$row['team_id']   = (int) $row[ $key ];
 		unset( $row[ $key ] );
 		return $wpdb->insert( self::table(), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Typed repository owns validation and transaction.
 	}
@@ -223,10 +215,10 @@ class TeamMembershipRepository {
 	public function update( string $team_type, int $term_id, int $user_id, int $version, array $data ) {
 		global $wpdb;
 		$where = array(
-			'team_type'    => $this->type( $team_type ),
-			'team_term_id' => $term_id,
-			'user_id'      => $user_id,
-			'version'      => $version,
+			'team_type' => $this->type( $team_type ),
+			'team_id'   => $term_id,
+			'user_id'   => $user_id,
+			'version'   => $version,
 		);
 		return $wpdb->update( self::table(), $data, $where ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Natural key and optimistic version are always included.
 	}
@@ -253,13 +245,13 @@ class TeamMembershipRepository {
 			$values[] = $now;
 		}
 		array_push( $values, $this->type( $team_type ), $term_id, $user_id, $version );
-		$query = "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE team_type = %s AND team_term_id = %d AND user_id = %d AND version = %d';
+		$query = "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE team_type = %s AND team_id = %d AND user_id = %d AND version = %d';
 		return $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed columns; every value is prepared.
 	}
 
 	/** Typed read columns, aliasing the shared term key back to the facade's key. */
 	private function columns( string $team_type, string $alias = '' ): string {
-		$columns = array( 'id', "team_term_id AS {$team_type}_term_id", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
+		$columns = array( 'id', "team_id AS {$team_type}_term_id", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
 		if ( 'promoter' === $team_type ) {
 			$columns[] = 'revoked_by_user_id';
 		}

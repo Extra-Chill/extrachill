@@ -284,6 +284,8 @@ abstract class BookingTestCase extends PHPUnit\Framework\TestCase {
 }
 
 // Load the units under test.
+require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
+require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__ ) . '/inc/Core/QualifyVerdict.php';
 require_once dirname( __DIR__ ) . '/inc/Core/QualifyCohortDeriver.php';
 require_once dirname( __DIR__ ) . '/inc/Core/QualifyVerdictResolver.php';

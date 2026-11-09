@@ -119,6 +119,8 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 }
 
 require_once __DIR__ . '/Support/team-members-fake.php';
+require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
+require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
@@ -143,6 +145,7 @@ final class PromoterAuthorityWpdb {
 	 *
 	 * @var string
 	 */
+	public $base_prefix = 'wp_';
 	public $prefix = 'wp_7_';
 	/** @var string Current site taxonomy table. */
 	public $term_taxonomy = 'wp_7_term_taxonomy';

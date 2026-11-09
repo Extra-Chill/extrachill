@@ -58,6 +58,8 @@ function extrachill_users_run_activation() {
 
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/entity-subscriptions/db.php';
 	extrachill_users_install_entity_subscriptions_table();
+	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/teams/db.php';
+	extrachill_users_install_teams_table();
 	update_site_option( 'extrachill_users_entity_subscriptions_schema_version', EXTRACHILL_USERS_ENTITY_SUBSCRIPTIONS_SCHEMA_VERSION );
 
 	extrachill_users_create_login_pages_network();

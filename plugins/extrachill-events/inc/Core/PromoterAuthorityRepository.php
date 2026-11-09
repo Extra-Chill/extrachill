@@ -9,7 +9,7 @@ namespace ExtraChillEvents\Core;
 
 defined( 'ABSPATH' ) || exit;
 
-require_once __DIR__ . '/TeamMembershipRepository.php';
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 
 /** Executes serialized organization and membership mutations. */
 class PromoterAuthorityRepository {
@@ -292,7 +292,9 @@ class PromoterAuthorityRepository {
 			return false;
 		}
 		global $wpdb;
-		$found = ( new TeamMembershipRepository() )->has_active_identity( 'promoter', $user_id );
+		$table = TeamMembershipRepository::table();
+		$organizations = PromoterAuthoritySchema::organizations_table();
+		$found = null !== $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.team_id AND organization.status = 'active' INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.team_id AND identity.taxonomy = %s WHERE membership.team_type = %s AND membership.user_id = %d AND membership.status = %s LIMIT 1", 'promoter', 'promoter', $user_id, 'active' ) ); // phpcs:ignore WordPress.DB -- Prepared authority query on the caller's site.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter workspace access could not be read.', 'extrachill-events' ) );
 		}

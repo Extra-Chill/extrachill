@@ -5,7 +5,7 @@
  * @package ExtraChillEvents\Tests\MySQLIntegration
  */
 
-use ExtraChillEvents\Core\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 
@@ -45,7 +45,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			$this->assertTrue( BookingSchema::health() );
 			$this->assertCount( 15, $tables );
 			foreach ( $tables as $table ) {
-				$this->assertStringStartsWith( $prefix, $table );
+				$this->assertStringStartsWith( TeamMembershipRepository::table() === $table ? $wpdb->base_prefix : $prefix, $table );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema integration assertion.
 				$this->assertSame( $table, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) );
 			}
@@ -205,7 +205,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			),
 			TeamMembershipRepository::table()           => array(
 				'key' => 'id',
-				'row' => array( 'id' => 73105, 'team_type' => 'venue', 'team_term_id' => 73003, 'user_id' => 1, 'is_owner' => 1, 'status' => 'active', 'version' => 3, 'created_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00' ),
+				'row' => array( 'id' => 73105, 'team_type' => 'venue', 'team_id' => 73003, 'user_id' => 1, 'is_owner' => 1, 'status' => 'active', 'version' => 3, 'created_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00' ),
 			),
 			VenueSchema::claims_table()                => array(
 				'key' => 'id',

@@ -27,6 +27,8 @@ if ( ! function_exists( 'ec_team_fake_partition' ) ) {
 		if ( ! is_string( $query ) || false === strpos( $query, 'ec_team_members' ) ) {
 			return $query;
 		}
+		$query = str_replace( 'wp_ec_team_members', 'wp_7_ec_team_members', $query );
+		$query = str_replace( 'team_id', 'team_term_id', $query );
 		if ( ! preg_match( "/team_type = '(venue|promoter)'/", $query, $type ) ) {
 			return str_replace( array( 'ec_team_members', 'team_type ASC, ', 'team_term_id' ), array( 'ec_venue_members', '', 'venue_term_id' ), $query );
 		}
@@ -49,6 +51,13 @@ if ( ! function_exists( 'ec_team_fake_partition' ) ) {
 		}
 		if ( false === strpos( $table, 'ec_team_members' ) ) {
 			return array( $table, $row, $where );
+		}
+		$table = str_replace( 'wp_ec_team_members', 'wp_7_ec_team_members', $table );
+		foreach ( array( 'row', 'where' ) as $part ) {
+			if ( isset( ${$part}['team_id'] ) ) {
+				${$part}['team_term_id'] = ${$part}['team_id'];
+				unset( ${$part}['team_id'] );
+			}
 		}
 		$type = (string) ( $row['team_type'] ?? $where['team_type'] ?? '' );
 		foreach ( array( 'row', 'where' ) as $part ) {

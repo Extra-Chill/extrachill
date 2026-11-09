@@ -11,7 +11,7 @@ use ExtraChillEvents\Abilities\VenueMembershipAbilities;
 use ExtraChillEvents\Abilities\VenueBookingConfigAbilities;
 use ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities;
 use ExtraChillEvents\Abilities\VenueProfileAbilities;
-use ExtraChillEvents\Core\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueBookingConfig;
@@ -386,6 +386,7 @@ if ( ! function_exists( 'maybe_unserialize' ) ) {
 
 /** Minimal membership wpdb fake with transaction and optimistic update support. */
 final class VenueMembershipWpdb {
+	public $base_prefix = 'wp_';
 	public $prefix                 = 'wp_7_';
 	public $users                  = 'wp_users';
 	public $usermeta               = 'wp_usermeta';
@@ -906,6 +907,8 @@ final class VenueMembershipWpdb {
 	}
 }
 
+require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
+require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
@@ -1128,14 +1131,14 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 		require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 		$GLOBALS['wpdb'] = new TeamOnboardingWpdb();
-		$members         = new \ExtraChillEvents\Core\TeamMembershipRepository();
+		$members         = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 		$members->insert( 'venue', $members->new_row( 'venue', 55, 2, true, 1 ) );
 		$venue_service = new VenueOnboardingService();
 		$venue_invite  = $venue_service->invite( 2, 55, 'existing@example.com', false );
 		$this->assertIsArray( $venue_invite );
 		$GLOBALS['venue_membership_test']['terms'][55]->taxonomy = 'promoter';
 		$GLOBALS['venue_membership_test']['options'][ \ExtraChillEvents\Core\PromoterAuthoritySchema::VERSION_OPTION ] = \ExtraChillEvents\Core\PromoterAuthoritySchema::SCHEMA_VERSION;
-		$members = new \ExtraChillEvents\Core\TeamMembershipRepository();
+		$members = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 		$members->insert( 'promoter', $members->new_row( 'promoter', 55, 2, true, 1 ) );
 		$members->insert( 'promoter', $members->new_row( 'promoter', 55, 3, false, 1 ) );
 		$service = new VenueOnboardingService( null, null, null, 'promoter' );
@@ -1567,7 +1570,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$contracts = new \ReflectionMethod( VenueSchema::class, 'contracts' );
 		$contracts->setAccessible( true );
 		$this->assertSame(
-			array( TeamMembershipRepository::table(), VenueSchema::claims_table(), VenueSchema::invitations_table() ),
+			array( VenueSchema::claims_table(), VenueSchema::invitations_table() ),
 			array_keys( $contracts->invoke( null ) )
 		);
 	}

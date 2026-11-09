@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/TeamMembershipRepository.php';
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 
 /** Provides bounded persistence for venue/user relationships. */
 class VenueMembershipRepository {
@@ -148,7 +148,7 @@ class VenueMembershipRepository {
 	/** Lock every relationship and insertion gap for account-compensation checks. */
 	public function lock_for_user( int $user_id ): array|\WP_Error {
 		global $wpdb;
-		$rows = ( new TeamMembershipRepository() )->select( 'venue', array( 'user_id' => $user_id ), 'team_term_id ASC, id ASC', null, true );
+		$rows = ( new TeamMembershipRepository() )->select( 'venue', array( 'user_id' => $user_id ), 'team_id ASC, id ASC', null, true );
 		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
 	}
 
@@ -183,7 +183,8 @@ class VenueMembershipRepository {
 			return false;
 		}
 		global $wpdb;
-		$found = ( new TeamMembershipRepository() )->has_active_identity( 'venue', $user_id );
+		$table = TeamMembershipRepository::table();
+		$found = null !== $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.team_id AND identity.taxonomy = %s WHERE membership.team_type = %s AND membership.user_id = %d AND membership.status = %s LIMIT 1", 'venue', 'venue', $user_id, 'active' ) ); // phpcs:ignore WordPress.DB -- Prepared authority query on the caller's site.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_read_failed', __( 'Managed venue access could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}

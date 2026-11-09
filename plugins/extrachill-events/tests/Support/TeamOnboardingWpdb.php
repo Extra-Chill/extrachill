@@ -7,6 +7,7 @@
 
 /** Keeps equal numeric team IDs in independent in-memory stores. */
 class TeamOnboardingWpdb {
+	public $base_prefix = 'wp_';
 	public $prefix       = 'wp_7_';
 	public $terms        = 'wp_7_terms';
 	public $users        = 'wp_users';
