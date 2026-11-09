@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.1] - 2026-11-09
+
+### Changed
+- network team membership store owned by extrachill-users
+
 ## [0.63.0] - 2026-11-08
 
 ### Added
