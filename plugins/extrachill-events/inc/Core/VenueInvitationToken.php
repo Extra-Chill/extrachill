@@ -30,7 +30,8 @@ class VenueInvitationToken {
 			'|',
 			array(
 				(string) ( $invitation['public_id'] ?? '' ),
-				(string) (int) ( $invitation['venue_term_id'] ?? 0 ),
+				(string) ( $invitation['team_type'] ?? 'venue' ),
+				(string) (int) ( $invitation['team_term_id'] ?? $invitation['venue_term_id'] ?? 0 ),
 				(string) (int) ( $invitation['user_id'] ?? 0 ),
 				! empty( $invitation['is_owner'] ) ? 'owner' : 'member',
 			)

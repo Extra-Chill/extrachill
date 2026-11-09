@@ -72,6 +72,8 @@ final class PromoterAuthorityAbilities {
 			'minimum' => 1,
 		);
 
+		$this->register_invitations( $term, $version );
+
 		$this->register_ability(
 			'extrachill/verify-promoter-organization',
 			__( 'Verify Promoter Organization', 'extrachill-events' ),
@@ -176,6 +178,97 @@ final class PromoterAuthorityAbilities {
 				'items'    => $this->membership_schema(),
 			)
 		);
+	}
+
+	/** Register email onboarding through the shared team service. */
+	private function register_invitations( array $term, array $version ): void {
+		$id                = array(
+			'type'    => 'integer',
+			'minimum' => 1,
+		);
+		$text              = array(
+			'type'      => 'string',
+			'minLength' => 1,
+		);
+		$inputs            = array(
+			'invite'  => array(
+				'promoter_term_id' => $term,
+				'email'            => $text,
+				'is_owner'         => array( 'type' => 'boolean' ),
+			),
+			'resend'  => array(
+				'invitation_id'    => $id,
+				'expected_version' => $version,
+			),
+			'cancel'  => array(
+				'invitation_id'    => $id,
+				'expected_version' => $version,
+			),
+			'list'    => array( 'promoter_term_id' => $term ),
+			'respond' => array(
+				'public_id'        => $text,
+				'token'            => $text,
+				'promoter_term_id' => $term,
+				'is_owner'         => array( 'type' => 'boolean' ),
+				'expected_version' => $version,
+				'decision'         => array(
+					'type' => 'string',
+					'enum' => array( 'accepted', 'rejected' ),
+				),
+			),
+		);
+		$authority_service = $this->service;
+		$output            = array(
+			'type'                 => 'object',
+			'properties'           => array(),
+			'additionalProperties' => false,
+		);
+		foreach ( array( 'id', 'team_term_id', 'user_id', 'version', 'invited_by_user_id', 'delivery_attempts' ) as $field ) {
+			$output['properties'][ $field ] = array( 'type' => 'integer' );
+		}
+		foreach ( array( 'public_id', 'team_type', 'status', 'created_at', 'updated_at', 'expires_at', 'delivery_status', 'display_name', 'email' ) as $field ) {
+			$output['properties'][ $field ] = array( 'type' => 'string' );
+		}
+		foreach ( array( 'resolved_at', 'delivered_at' ) as $field ) {
+			$output['properties'][ $field ] = array( 'type' => array( 'string', 'null' ) );
+		}
+		foreach ( array( 'is_owner', 'delivery_queued', 'account_created' ) as $field ) {
+			$output['properties'][ $field ] = array( 'type' => 'boolean' );
+		}
+		foreach ( $inputs as $operation => $properties ) {
+			$name = 'invite' === $operation ? 'invite-promoter-member' : $operation . '-promoter-invitation' . ( 'list' === $operation ? 's' : '' );
+			$this->register_ability(
+				'extrachill/' . $name,
+				__( 'Promoter Invitation', 'extrachill-events' ),
+				__( 'Manage email invitations for a promoter team.', 'extrachill-events' ),
+				$properties,
+				array_keys( $properties ),
+				static function ( array $input ) use ( $operation, $authority_service ) {
+					$service = $authority_service->onboarding();
+					$actor   = PromoterAuthorization::effective_user_id();
+					switch ( $operation ) {
+						case 'invite':
+							return $service->invite( $actor, $input['promoter_term_id'], $input['email'], $input['is_owner'] );
+						case 'resend':
+							return $service->resend( $actor, $input['invitation_id'], $input['expected_version'] );
+						case 'cancel':
+							return $service->cancel_invitation( $actor, $input['invitation_id'], $input['expected_version'] );
+						case 'list':
+							return $service->list_invitations( $actor, $input['promoter_term_id'] );
+						default:
+							return $service->respond( $actor, $input['public_id'], $input['token'], $input['promoter_term_id'], $input['is_owner'], $input['expected_version'], $input['decision'] );
+					}
+				},
+				static function () { return PromoterAuthorization::effective_user_id() > 0; },
+				'list' === $operation,
+				false,
+				'cancel' === $operation,
+				'list' === $operation ? array(
+					'type'  => 'array',
+					'items' => $output,
+				) : $output
+			);
+		}
 	}
 
 	/**

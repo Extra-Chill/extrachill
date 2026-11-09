@@ -20,20 +20,20 @@ require_once __DIR__ . '/TeamMembershipRepository.php';
 /** Owns and verifies the site-scoped private venue schema. */
 class VenueSchema {
 
-	public const SCHEMA_VERSION = '3';
+	public const SCHEMA_VERSION = '4';
 	public const VERSION_OPTION = 'extrachill_events_venue_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_venue_schema_error';
 
 	/** Get the venue claims table for the current site. */
 	public static function claims_table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_claims';
+		return $wpdb->prefix . 'ec_team_claims';
 	}
 
 	/** Get the venue invitations table for the current site. */
 	public static function invitations_table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'ec_venue_invitations';
+		return $wpdb->prefix . 'ec_team_invitations';
 	}
 
 	/** Create or repair all tables, stamping the version only after verification. */
@@ -83,6 +83,14 @@ class VenueSchema {
 			return $error;
 		}
 
+		if ( ! self::is_ready() ) {
+			$retired = self::drop_empty_legacy_onboarding();
+			if ( is_wp_error( $retired ) ) {
+				self::record_failure( $retired );
+				return $retired;
+			}
+		}
+
 		// Adopt an already-current venue schema without touching production data.
 		if ( true === self::health() ) {
 			update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
@@ -117,7 +125,8 @@ class VenueSchema {
 		$claims_sql = "CREATE TABLE {$claims} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			public_id CHAR(36) NOT NULL,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
+			team_type VARCHAR(16) NOT NULL,
+			team_term_id BIGINT UNSIGNED NOT NULL,
 			claimant_user_id BIGINT UNSIGNED NOT NULL,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
@@ -127,16 +136,17 @@ class VenueSchema {
 			resolved_at DATETIME NULL,
 			PRIMARY KEY (id),
 			UNIQUE KEY public_id (public_id),
-			UNIQUE KEY venue_claimant (venue_term_id, claimant_user_id),
-			KEY status_created (status, created_at),
-			KEY venue_status (venue_term_id, status),
-			KEY claimant_status_venue (claimant_user_id, status, venue_term_id)
+			UNIQUE KEY team_claimant (team_type, team_term_id, claimant_user_id),
+			KEY status_created (team_type, status, created_at),
+			KEY team_status (team_type, team_term_id, status),
+			KEY claimant_status_team (claimant_user_id, status, team_type, team_term_id)
 		) ENGINE=InnoDB {$charset};";
 
 		$invites_sql = "CREATE TABLE {$invites} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			public_id CHAR(36) NOT NULL,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
+			team_type VARCHAR(16) NOT NULL,
+			team_term_id BIGINT UNSIGNED NOT NULL,
 			user_id BIGINT UNSIGNED NOT NULL,
 			is_owner TINYINT UNSIGNED NOT NULL DEFAULT '0',
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -156,10 +166,10 @@ class VenueSchema {
 			PRIMARY KEY (id),
 			UNIQUE KEY public_id (public_id),
 			UNIQUE KEY delivery_id (delivery_id),
-			UNIQUE KEY venue_user (venue_term_id, user_id),
-			KEY venue_status (venue_term_id, status),
-			KEY status_expiration (status, expires_at),
-			KEY user_status_venue (user_id, status, venue_term_id)
+			UNIQUE KEY team_user (team_type, team_term_id, user_id),
+			KEY team_status (team_type, team_term_id, status),
+			KEY status_expiration (team_type, status, expires_at),
+			KEY user_status_team (user_id, status, team_type, team_term_id)
 		) ENGINE=InnoDB {$charset};";
 
 		$repair = self::drop_conflicting_indexes();
@@ -204,6 +214,33 @@ class VenueSchema {
 		update_option( self::VERSION_OPTION, self::SCHEMA_VERSION, false );
 		delete_option( self::FAILURE_OPTION );
 		unset( $lock_guard );
+		return true;
+	}
+
+	/** Refuse retirement unless every existing legacy onboarding table is empty. */
+	private static function drop_empty_legacy_onboarding() {
+		global $wpdb;
+		$tables = array( $wpdb->prefix . 'ec_venue_claims', $wpdb->prefix . 'ec_venue_invitations' );
+		$empty  = array();
+		foreach ( $tables as $table ) {
+			$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- Installer inspection.
+			if ( '' !== (string) $wpdb->last_error ) {
+				return self::database_error( 'Could not inspect legacy onboarding storage.', $table );
+			}
+			if ( $found !== $table ) {
+				continue;
+			}
+			$count = $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" ); // phpcs:ignore WordPress.DB -- Fixed legacy identifier; never discard rows.
+			if ( null === $count || 0 !== (int) $count ) {
+				return new \WP_Error( 'team_onboarding_legacy_not_empty', __( 'Legacy onboarding storage must be empty before retirement.', 'extrachill-events' ), array( 'table' => $table ) );
+			}
+			$empty[] = $table;
+		}
+		foreach ( $empty as $table ) {
+			if ( false === $wpdb->query( "DROP TABLE `{$table}`" ) ) { // phpcs:ignore WordPress.DB -- Only verified empty legacy tables.
+				return self::database_error( 'Could not retire legacy onboarding storage.', $table );
+			}
+		}
 		return true;
 	}
 
@@ -467,7 +504,8 @@ class VenueSchema {
 				'columns' => array(
 					'id'                  => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'public_id'           => $required( 'char(36)', false ),
-					'venue_term_id'       => $required( 'bigint unsigned', false ),
+					'team_type'           => $required( 'varchar(16)', false ),
+					'team_term_id'        => $required( 'bigint unsigned', false ),
 					'claimant_user_id'    => $required( 'bigint unsigned', false ),
 					'status'              => $required( 'varchar(20)', false, array( 'default' => 'pending' ) ),
 					'version'             => $required( 'bigint unsigned', false, array( 'default' => '1' ) ),
@@ -477,29 +515,29 @@ class VenueSchema {
 					'resolved_at'         => $required( 'datetime', true ),
 				),
 				'indexes' => array(
-					'PRIMARY'               => array(
+					'PRIMARY'              => array(
 						'unique'  => true,
 						'columns' => array( 'id' ),
 					),
-					'public_id'             => array(
+					'public_id'            => array(
 						'unique'  => true,
 						'columns' => array( 'public_id' ),
 					),
-					'venue_claimant'        => array(
+					'team_claimant'        => array(
 						'unique'  => true,
-						'columns' => array( 'venue_term_id', 'claimant_user_id' ),
+						'columns' => array( 'team_type', 'team_term_id', 'claimant_user_id' ),
 					),
-					'status_created'        => array(
+					'status_created'       => array(
 						'unique'  => false,
-						'columns' => array( 'status', 'created_at' ),
+						'columns' => array( 'team_type', 'status', 'created_at' ),
 					),
-					'venue_status'          => array(
+					'team_status'          => array(
 						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status' ),
+						'columns' => array( 'team_type', 'team_term_id', 'status' ),
 					),
-					'claimant_status_venue' => array(
+					'claimant_status_team' => array(
 						'unique'  => false,
-						'columns' => array( 'claimant_user_id', 'status', 'venue_term_id' ),
+						'columns' => array( 'claimant_user_id', 'status', 'team_type', 'team_term_id' ),
 					),
 				),
 			),
@@ -508,7 +546,8 @@ class VenueSchema {
 				'columns' => array(
 					'id'                 => $required( 'bigint unsigned', false, array( 'extra' => 'auto_increment' ) ),
 					'public_id'          => $required( 'char(36)', false ),
-					'venue_term_id'      => $required( 'bigint unsigned', false ),
+					'team_type'          => $required( 'varchar(16)', false ),
+					'team_term_id'       => $required( 'bigint unsigned', false ),
 					'user_id'            => $required( 'bigint unsigned', false ),
 					'is_owner'           => $required( 'tinyint unsigned', false, array( 'default' => '0' ) ),
 					'status'             => $required( 'varchar(20)', false, array( 'default' => 'pending' ) ),
@@ -539,21 +578,21 @@ class VenueSchema {
 						'unique'  => true,
 						'columns' => array( 'delivery_id' ),
 					),
-					'venue_user'        => array(
+					'team_user'         => array(
 						'unique'  => true,
-						'columns' => array( 'venue_term_id', 'user_id' ),
+						'columns' => array( 'team_type', 'team_term_id', 'user_id' ),
 					),
-					'venue_status'      => array(
+					'team_status'       => array(
 						'unique'  => false,
-						'columns' => array( 'venue_term_id', 'status' ),
+						'columns' => array( 'team_type', 'team_term_id', 'status' ),
 					),
 					'status_expiration' => array(
 						'unique'  => false,
-						'columns' => array( 'status', 'expires_at' ),
+						'columns' => array( 'team_type', 'status', 'expires_at' ),
 					),
-					'user_status_venue' => array(
+					'user_status_team'  => array(
 						'unique'  => false,
-						'columns' => array( 'user_id', 'status', 'venue_term_id' ),
+						'columns' => array( 'user_id', 'status', 'team_type', 'team_term_id' ),
 					),
 				),
 			),

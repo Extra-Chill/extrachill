@@ -5,6 +5,8 @@
  * @package ExtraChillEvents\Tests
  */
 
+// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed -- Standalone token tests include the WordPress salt stub.
+
 use ExtraChillEvents\Core\VenueInvitationToken;
 use PHPUnit\Framework\TestCase;
 
@@ -43,6 +45,17 @@ final class VenueOnboardingTest extends TestCase {
 		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'venue_term_id' => 56 ) ), $hash ) );
 		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'user_id' => 8 ) ), $hash ) );
 		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'is_owner' => true ) ), $hash ) );
+	}
+
+	public function test_token_cannot_cross_team_types_with_the_same_term_id(): void {
+		$tokens   = new VenueInvitationToken();
+		$token    = $tokens->generate();
+		$venue    = $this->invitation( array(
+			'team_type'    => 'venue',
+			'team_term_id' => 55,
+		) );
+		$promoter = array_merge( $venue, array( 'team_type' => 'promoter' ) );
+		$this->assertFalse( $tokens->verify( $token, $promoter, $tokens->hash( $token, $venue ) ) );
 	}
 
 	public function test_rotation_invalidates_the_previous_token(): void {

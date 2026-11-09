@@ -36,6 +36,11 @@ final class PromoterAuthorityService {
 		$this->authorization = $authorization ? $authorization : new PromoterAuthorization( $this->repository );
 	}
 
+	/** Share the canonical team onboarding service for promoter invitations. */
+	public function onboarding(): VenueOnboardingService {
+		return new VenueOnboardingService( null, null, null, 'promoter' );
+	}
+
 	/**
 	 * Verify one promoter organization, optionally bootstrapping an initial owner.
 	 *

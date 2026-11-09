@@ -209,12 +209,12 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 			),
 			VenueSchema::claims_table()                => array(
 				'key' => 'id',
-				'row' => array( 'id' => 73106, 'public_id' => wp_generate_uuid4(), 'venue_term_id' => 73003, 'claimant_user_id' => 2, 'status' => 'approved', 'version' => 2, 'reviewed_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'resolved_at' => '2026-07-02 00:00:00' ),
+				'row' => array( 'id' => 73106, 'public_id' => wp_generate_uuid4(), 'team_type' => 'venue', 'team_term_id' => 73003, 'claimant_user_id' => 2, 'status' => 'approved', 'version' => 2, 'reviewed_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'resolved_at' => '2026-07-02 00:00:00' ),
 			),
 			VenueSchema::invitations_table()           => array(
 				'key' => 'id',
 				'row' => array(
-					'id' => 73107, 'public_id' => wp_generate_uuid4(), 'venue_term_id' => 73003, 'user_id' => 3, 'is_owner' => 0, 'status' => 'accepted', 'token_hash' => str_repeat( '4', 64 ), 'email_hash' => str_repeat( '5', 64 ), 'account_created' => 1, 'delivery_id' => wp_generate_uuid4(), 'delivery_status' => 'delivered', 'delivery_attempts' => 1, 'version' => 2, 'invited_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'expires_at' => '2026-08-01 00:00:00', 'resolved_at' => '2026-07-02 00:00:00', 'delivered_at' => '2026-07-01 00:01:00',
+					'id' => 73107, 'public_id' => wp_generate_uuid4(), 'team_type' => 'venue', 'team_term_id' => 73003, 'user_id' => 3, 'is_owner' => 0, 'status' => 'accepted', 'token_hash' => str_repeat( '4', 64 ), 'email_hash' => str_repeat( '5', 64 ), 'account_created' => 1, 'delivery_id' => wp_generate_uuid4(), 'delivery_status' => 'delivered', 'delivery_attempts' => 1, 'version' => 2, 'invited_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00', 'expires_at' => '2026-08-01 00:00:00', 'resolved_at' => '2026-07-02 00:00:00', 'delivered_at' => '2026-07-01 00:01:00',
 				),
 			),
 			BookingSchema::holds_table()                 => array(
