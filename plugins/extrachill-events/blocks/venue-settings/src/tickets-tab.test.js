@@ -14,7 +14,12 @@ import { act } from 'react';
 /**
  * Internal dependencies
  */
-import { TicketsTab, formatMoney, salesSummary } from './tickets-tab';
+import {
+	TicketsTab,
+	cancelMessage,
+	formatMoney,
+	salesSummary,
+} from './tickets-tab';
 import { runAbility } from './api';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
@@ -160,6 +165,7 @@ describe( 'TicketsTab', () => {
 		const buttons = [ ...container.querySelectorAll( 'button' ) ];
 		expect( buttons.map( ( button ) => button.textContent ) ).toEqual( [
 			'Refund',
+			'Show cancelled? Refund everyone',
 		] );
 		expect( container.textContent ).toContain( 'Checked in' );
 	} );
@@ -210,5 +216,53 @@ describe( 'TicketsTab', () => {
 		} );
 		await mount();
 		expect( container.textContent ).toContain( 'Only people who manage' );
+	} );
+
+	it( 'cancels a show after confirmation and reports the result', async () => {
+		runAbility
+			.mockResolvedValueOnce( { events: [ show( [ paid, admitted ] ) ] } )
+			.mockResolvedValueOnce( { refunded: 1, checked_in: 1, failed: 0 } )
+			.mockResolvedValueOnce( { events: [ show( [ admitted ] ) ] } );
+		window.confirm = jest.fn( () => true );
+		await mount();
+
+		const cancel = [ ...container.querySelectorAll( 'button' ) ].find(
+			( button ) => button.textContent.includes( 'Refund everyone' )
+		);
+		await act( async () => cancel.click() );
+		await flush();
+
+		expect( window.confirm.mock.calls[ 0 ][ 0 ] ).toContain( 'Late Show' );
+		expect( runAbility ).toHaveBeenCalledWith(
+			'extrachill/cancel-show-ticket-sales',
+			{ event_id: 9 }
+		);
+		expect( container.textContent ).toContain(
+			'Ticket sales are off. Refunded 1 order. 1 order was not refunded because someone checked in.'
+		);
+	} );
+
+	it( 'hides the cancel button once sales are off and nothing is refundable', async () => {
+		runAbility.mockResolvedValue( {
+			events: [ { ...show( [ admitted ] ), tickets_enabled: false } ],
+		} );
+		await mount();
+		expect( container.querySelectorAll( 'button' ) ).toHaveLength( 0 );
+	} );
+
+	it( 'words cancel results plainly, including retries', () => {
+		expect(
+			cancelMessage( { refunded: 0, checked_in: 0, failed: 0 } )
+		).toEqual( {
+			tone: 'success',
+			message: 'Ticket sales are off. Nothing left to refund.',
+		} );
+		expect(
+			cancelMessage( { refunded: 2, checked_in: 0, failed: 1 } )
+		).toEqual( {
+			tone: 'error',
+			message:
+				"Ticket sales are off. Refunded 2 orders. 1 refund didn't go through. Tap the button again to retry them.",
+		} );
 	} );
 } );

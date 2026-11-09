@@ -93,6 +93,9 @@ function extrachill_shop_route_webhook_event( $event ) {
 		if ( 'charge.refunded' === $event_type && ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $event->account . '_' . $data->payment_intent ) ) {
 			return extrachill_shop_ticket_charge_refunded( $data, $event->account );
 		}
+		if ( 'charge.dispute.created' === $event_type && ! empty( $data->payment_intent ) && get_option( 'extrachill_ticket_payment_' . $event->account . '_' . $data->payment_intent ) ) {
+			return extrachill_shop_ticket_charge_disputed( $data, $event->account );
+		}
 	}
 	// Connected-account payments must never mutate platform Woo orders.
 	if ( ! empty( $event->account ) && 'account.updated' !== $event_type ) {
