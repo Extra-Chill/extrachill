@@ -15,7 +15,8 @@ final class VenueMembershipLockTest extends TestCase {
 		$original = $GLOBALS['wpdb'];
 		try {
 			$GLOBALS['wpdb'] = new class() {
-				public $prefix     = 'wp_7_';
+				public $base_prefix = 'wp_';
+	public $prefix     = 'wp_7_';
 				public $last_error = '';
 				public $queries    = array();
 
@@ -36,11 +37,11 @@ final class VenueMembershipLockTest extends TestCase {
 				$this->assertSame( 'Venue memberships could not be locked.', $error->get_error_message() );
 				$this->assertSame( array( 'database_error' => 'lock timeout' ), $error->get_error_data() );
 			}
-			$columns = 'id, team_term_id AS venue_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, revoked_at';
+			$columns = 'id, team_id AS venue_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, revoked_at';
 			$this->assertSame(
 				array(
-					"SELECT {$columns} FROM wp_7_ec_team_members WHERE team_type = venue AND team_term_id = 55 ORDER BY id ASC FOR UPDATE",
-					"SELECT {$columns} FROM wp_7_ec_team_members WHERE team_type = venue AND team_term_id = 55 AND user_id = 22 ORDER BY id ASC FOR UPDATE",
+					"SELECT {$columns} FROM wp_ec_team_members WHERE team_type = venue AND team_id = 55 ORDER BY id ASC FOR UPDATE",
+					"SELECT {$columns} FROM wp_ec_team_members WHERE team_type = venue AND team_id = 55 AND user_id = 22 ORDER BY id ASC FOR UPDATE",
 				),
 				$GLOBALS['wpdb']->queries
 			);
@@ -51,8 +52,8 @@ final class VenueMembershipLockTest extends TestCase {
 
 	/** Team membership storage is reachable only through its repository and schema. */
 	public function test_membership_storage_boundary(): void {
-		$owners = array( 'TeamMembershipRepository.php', 'VenueSchema.php' );
-		foreach ( array( dirname( __DIR__ ), dirname( __DIR__, 2 ) . '/extrachill-booking' ) as $root ) {
+		$owners = array( 'NetworkTeamMembersMigration.php', 'TeamMembershipRepository.php' );
+		foreach ( array( dirname( __DIR__ ), dirname( __DIR__, 2 ) . '/extrachill-booking', dirname( __DIR__, 2 ) . '/extrachill-users' ) as $root ) {
 			$files = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root ) );
 			foreach ( $files as $file ) {
 				$path = $file->getPathname();
@@ -61,7 +62,7 @@ final class VenueMembershipLockTest extends TestCase {
 				}
 				$source = file_get_contents( $path );
 				$this->assertStringNotContainsString( 'memberships_table(', $source, $path );
-				if ( ! in_array( $file->getFilename(), $owners, true ) ) {
+				if ( ! in_array( $file->getFilename(), $owners, true ) && ! str_ends_with( $path, '/extrachill-users/inc/teams/db.php' ) ) {
 					$this->assertDoesNotMatchRegularExpression( '/ec_(team|venue|promoter)_members/', $source, $path );
 				}
 			}
@@ -73,7 +74,8 @@ final class VenueMembershipLockTest extends TestCase {
 		$original = $GLOBALS['wpdb'];
 		try {
 			$GLOBALS['wpdb'] = new class() {
-				public $prefix        = 'wp_7_';
+				public $base_prefix = 'wp_';
+	public $prefix        = 'wp_7_';
 				public $term_taxonomy = 'wp_7_term_taxonomy';
 				public $last_error    = '';
 				public $queries       = array();
@@ -119,7 +121,7 @@ final class VenueMembershipLockTest extends TestCase {
 					return 1;
 				}
 			};
-			$repository      = new \ExtraChillEvents\Core\TeamMembershipRepository();
+			$repository      = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 			foreach ( array( 'venue', 'promoter' ) as $type ) {
 				$GLOBALS['wpdb']->queries = array();
 				$GLOBALS['wpdb']->writes  = array();
@@ -131,18 +133,18 @@ final class VenueMembershipLockTest extends TestCase {
 				$repository->select( $type, array( 'term' => 55, 'is_owner' => true ), 'id ASC', 10 );
 				$repository->term_ids( $type, array( 'status' => 'active' ) );
 				$repository->list_team( $type, 55, array( 'is_owner' => true ), 10, 0, 22 );
-				$repository->has_active_identity( $type, 22 );
+				'venue' === $type ? ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->has_active_venue_for_user( 22 ) : ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->has_active_organization_for_user( 22 );
 				$repository->mutate( $type, 55, 22, 1, true, false, 9 );
 				$repository->insert( $type, $repository->new_row( $type, 55, 22, false, 9 ) );
 				$repository->update( $type, 55, 22, 1, array( 'status' => 'active' ) );
 				$this->assertCount( 10, $GLOBALS['wpdb']->queries );
 				foreach ( $GLOBALS['wpdb']->queries as $query ) {
-					$this->assertStringContainsString( 'wp_7_ec_team_members', $query );
+					$this->assertStringContainsString( 'wp_ec_team_members', $query );
 					$this->assertMatchesRegularExpression( "/(^|\\.| )team_type = '{$type}'/", $query );
 				}
-				$this->assertSame( array( 'wp_7_ec_team_members', $type, 55 ), array( $GLOBALS['wpdb']->writes[0][0], $GLOBALS['wpdb']->writes[0][1]['team_type'], $GLOBALS['wpdb']->writes[0][1]['team_term_id'] ) );
+				$this->assertSame( array( 'wp_ec_team_members', $type, 55 ), array( $GLOBALS['wpdb']->writes[0][0], $GLOBALS['wpdb']->writes[0][1]['team_type'], $GLOBALS['wpdb']->writes[0][1]['team_id'] ) );
 				$this->assertArrayNotHasKey( $type . '_term_id', $GLOBALS['wpdb']->writes[0][1] );
-				$this->assertSame( array( 'team_type' => $type, 'team_term_id' => 55, 'user_id' => 22, 'version' => 1 ), $GLOBALS['wpdb']->writes[1][1] );
+				$this->assertSame( array( 'team_type' => $type, 'team_id' => 55, 'user_id' => 22, 'version' => 1 ), $GLOBALS['wpdb']->writes[1][1] );
 			}
 			$this->expectException( InvalidArgumentException::class );
 			$repository->lock_team( 'artist', 55 );
@@ -153,7 +155,7 @@ final class VenueMembershipLockTest extends TestCase {
 
 	/** Shared hydration preserves typed keys, status rules and nullable revokers. */
 	public function test_shared_typed_hydration(): void {
-		$repository = new \ExtraChillEvents\Core\TeamMembershipRepository();
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 		$row        = array(
 			'id'                 => '1',
 			'venue_term_id'      => '55',
@@ -186,7 +188,8 @@ final class VenueMembershipLockTest extends TestCase {
 		$original = $GLOBALS['wpdb'];
 		try {
 			$GLOBALS['wpdb'] = new class() {
-				public $prefix = 'wp_7_';
+				public $base_prefix = 'wp_';
+	public $prefix = 'wp_7_';
 				public $query;
 
 				public function prepare( $query, $values ) {
@@ -198,10 +201,10 @@ final class VenueMembershipLockTest extends TestCase {
 					return 0;
 				}
 			};
-			$repository      = new \ExtraChillEvents\Core\TeamMembershipRepository();
+			$repository      = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 			foreach ( array( 'venue', 'promoter' ) as $type ) {
 				$this->assertSame( 0, $repository->mutate( $type, 55, 22, 3, false, false, 9 ) );
-				$this->assertStringContainsString( "WHERE team_type = '{$type}' AND team_term_id = 55 AND user_id = 22 AND version = 3", $GLOBALS['wpdb']->query );
+				$this->assertStringContainsString( "WHERE team_type = '{$type}' AND team_id = 55 AND user_id = 22 AND version = 3", $GLOBALS['wpdb']->query );
 				$this->assertStringContainsString( 'version = version + 1', $GLOBALS['wpdb']->query );
 				$this->assertSame( 0, $repository->mutate( $type, 55, 22, 3, null, true, 9 ) );
 				$this->assertStringContainsString( "status = 'revoked'", $GLOBALS['wpdb']->query );

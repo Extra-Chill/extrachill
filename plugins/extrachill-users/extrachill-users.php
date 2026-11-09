@@ -28,6 +28,9 @@ define( 'EXTRACHILL_USERS_URL', plugin_dir_url( __FILE__ ) );
 register_activation_hook( __FILE__, 'extrachill_users_activate' );
 register_deactivation_hook( __FILE__, 'extrachill_users_deactivate' );
 
+require_once __DIR__ . '/inc/teams/TeamMembershipRepository.php';
+require_once __DIR__ . '/inc/teams/db.php';
+
 function extrachill_users_activate() {
 	require_once EXTRACHILL_USERS_PLUGIN_DIR . 'inc/core/activation.php';
 	extrachill_users_run_activation();

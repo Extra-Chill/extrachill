@@ -7,7 +7,7 @@
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.RestrictedFunctions -- Independent MySQL session is the subject of this integration proof.
 
-use ExtraChillEvents\Core\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingEventConversionService;

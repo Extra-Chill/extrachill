@@ -48,6 +48,8 @@ if ( ! function_exists( 'home_url' ) ) {
 	}
 }
 
+require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
+require_once __DIR__ . '/../../../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthorityRepository.php';
@@ -61,6 +63,7 @@ require_once dirname( __DIR__, 3 ) . '/inc/Abilities/OwnerGuestListAbilities.php
 /** Stateful $wpdb for the owner's-list tables, the passes table, and membership lookups. */
 final class OwnerGuestListFakeWpdb {
 
+	public $base_prefix = 'wp_';
 	public $prefix     = 'wp_7_';
 	public $last_error = '';
 	public $insert_id  = 0;

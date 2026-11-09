@@ -1,7 +1,7 @@
 <?php
 /** Independent venue schema ownership and upgrade proofs. */
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\TeamMembershipRepository;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\VenueSchema;
 
 require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';

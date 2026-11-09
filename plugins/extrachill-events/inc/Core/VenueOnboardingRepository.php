@@ -7,6 +7,8 @@
 
 namespace ExtraChillEvents\Core;
 
+use ExtraChill\Users\Teams\TeamMembershipRepository;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }

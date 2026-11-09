@@ -23,6 +23,9 @@ final class PromoterAuthorityProvider {
 		if ( self::$registered ) {
 			return true;
 		}
+		if ( ! class_exists( \ExtraChill\Users\Teams\TeamMembershipRepository::class ) ) {
+			return false;
+		}
 		foreach ( array( 'PromoterAuthoritySchema', 'PromoterAuthorityRepository', 'PromoterAuthorization', 'PromoterAuthorityService', 'PromoterVenueGrantRepository', 'PromoterVenueAuthorization', 'PromoterVenueGrantService', 'PromoterWorkspace' ) as $class ) {
 			require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/' . $class . '.php';
 		}

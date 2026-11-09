@@ -8,6 +8,9 @@ require_once getenv( 'WP_TESTS_DIR' ) . '/includes/functions.php';
 tests_add_filter(
 	'muplugins_loaded',
 	static function (): void {
+		// Events depends on the network team store owned by extrachill-users.
+		require __DIR__ . '/../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
+		require __DIR__ . '/../../../extrachill-users/inc/teams/db.php';
 		require __DIR__ . '/../../../extrachill-events/extrachill-events.php';
 		require dirname( __DIR__, 2 ) . '/extrachill-booking.php';
 	}
