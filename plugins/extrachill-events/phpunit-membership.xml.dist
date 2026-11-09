@@ -11,6 +11,7 @@
 			<file>tests/VenueMembershipAuthorizationTest.php</file>
 			<file>tests/PromoterAuthorityTest.php</file>
 			<file>tests/VenueMembershipLockTest.php</file>
+			<file>tests/TeamMembersMigrationTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

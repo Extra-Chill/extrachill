@@ -14,6 +14,7 @@
  * @package ExtraChillEvents\Tests\MySQLIntegration
  */
 
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -75,7 +76,7 @@ abstract class BookingMySQLIntegrationTestCase extends WP_UnitTestCase {
 	/** Remove all disposable booking state. */
 	public function tear_down(): void {
 		global $wpdb;
-		foreach ( array( BookingSchema::settlements_table(), BookingSchema::sales_resolutions_table(), BookingSchema::sales_reports_table(), BookingSchema::ticket_sources_table(), BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), VenueSchema::memberships_table() ) as $table ) {
+		foreach ( array( BookingSchema::settlements_table(), BookingSchema::sales_resolutions_table(), BookingSchema::sales_reports_table(), BookingSchema::ticket_sources_table(), BookingSchema::holds_table(), BookingSchema::attachment_deliveries_table(), BookingSchema::attachments_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), TeamMembershipRepository::table() ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Disposable test database cleanup.
 		}
 		delete_option( BookingSchema::VERSION_OPTION );

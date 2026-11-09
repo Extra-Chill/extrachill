@@ -1,6 +1,7 @@
 <?php
 /** Independent venue schema ownership and upgrade proofs. */
 use ExtraChillEvents\Core\BookingSchema;
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Core\VenueSchema;
 
 require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';
@@ -28,7 +29,7 @@ final class VenueSchemaTest extends BookingTestCase {
 	public function test_existing_combined_install_is_adopted_without_ddl_or_data_changes(): void {
 		$this->assertTrue( BookingSchema::install() );
 		$this->assertTrue( VenueSchema::install() );
-		$table                              = VenueSchema::memberships_table();
+		$table                              = TeamMembershipRepository::table();
 		$GLOBALS['wpdb']->rows[ $table ][1] = array(
 			'id'      => 1,
 			'user_id' => 42,

@@ -69,7 +69,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 			'post_meta'     => array(),
 		);
 		$GLOBALS['wpdb'] = new BookingWpdb();
-		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1] = array(
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][1] = array(
 			'id'            => 1,
 			'venue_term_id' => 55,
 			'user_id'       => 12,
@@ -179,7 +179,7 @@ final class BookingCommunicationTest extends BookingTestCase {
 			array( 'id' => 8, 'venue_term_id' => 55, 'user_id' => 28, 'status' => 'active' ),
 		);
 		foreach ( $rows as $row ) {
-			$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][ $row['id'] ] = $row;
+			$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][ $row['id'] ] = $row;
 		}
 		$GLOBALS['ec_artist_test']['users'] += array(
 			21 => (object) array( 'ID' => 21, 'user_email' => 'owner@example.com' ),
@@ -267,8 +267,8 @@ final class BookingCommunicationTest extends BookingTestCase {
 			}
 		);
 		$state = $service->request( $this->input( $booking['id'], array( 'template' => 'follow_up' ) ), 12 );
-		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][1]['status'] = 'revoked';
-		$GLOBALS['wpdb']->rows[ VenueSchema::memberships_table() ][2] = array( 'id' => 2, 'venue_term_id' => 55, 'user_id' => 22, 'status' => 'active' );
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][1]['status'] = 'revoked';
+		$GLOBALS['wpdb']->rows[ ec_team_fake_partition( 'venue' ) ][2] = array( 'id' => 2, 'venue_term_id' => 55, 'user_id' => 22, 'status' => 'active' );
 
 		$result = $service->dispatch_reminder( $state['intent_id'] );
 

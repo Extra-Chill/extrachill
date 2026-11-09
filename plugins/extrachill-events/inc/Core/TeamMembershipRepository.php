@@ -1,6 +1,10 @@
 <?php
 /**
- * Shared membership row persistence for typed authority repositories.
+ * The one store for venue and promoter team membership.
+ *
+ * Rows live in `ec_team_members`, keyed by (team_type, team_term_id, user_id).
+ * Reads alias team_term_id back to the typed `venue_term_id` / `promoter_term_id`
+ * key so the typed facades keep their public row shapes.
  *
  * @package ExtraChillEvents\Core
  */
@@ -9,14 +13,30 @@ namespace ExtraChillEvents\Core;
 
 defined( 'ABSPATH' ) || exit;
 
-/** Centralizes natural-key reads, row locks and authority hydration. */
+/** Owns every query against the shared team membership table. */
 class TeamMembershipRepository {
+	/** Supported team types. */
+	public const TYPES = array( 'venue', 'promoter' );
+
+	/** The current site's team membership table. */
+	public static function table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ec_team_members';
+	}
+
 	/** Read one typed relationship, preserving the facade's error contract. */
 	public function get( string $team_type, int $term_id, int $user_id ) {
 		global $wpdb;
-		$table = $this->table( $team_type );
-		$field = $team_type . '_term_id';
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$field} = %d AND user_id = %d LIMIT 1", $term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed storage identifiers and prepared natural key.
+		$sql = $this->sql(
+			$team_type,
+			array(
+				'term'    => $term_id,
+				'user_id' => $user_id,
+			),
+			'id ASC',
+			1
+		);
+		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( $team_type . '_membership_read_failed', 'venue' === $team_type ? __( 'The venue membership could not be read.', 'extrachill-events' ) : __( 'The promoter membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}
@@ -25,49 +45,103 @@ class TeamMembershipRepository {
 
 	/** Lock a team's raw rows; the caller owns the transaction and error policy. */
 	public function lock_team( string $team_type, int $term_id, ?int $limit = null ): array {
-		global $wpdb;
-		$table  = $this->table( $team_type );
-		$field  = $team_type . '_term_id';
-		$query  = "SELECT * FROM {$table} WHERE {$field} = %d ORDER BY id ASC";
-		$values = array( $term_id );
-		if ( null !== $limit ) {
-			$query   .= ' LIMIT %d';
-			$values[] = $limit;
-		}
-		return (array) $wpdb->get_results( $wpdb->prepare( $query . ' FOR UPDATE', ...$values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed storage identifiers and prepared range.
+		return $this->select( $team_type, array( 'term' => $term_id ), 'id ASC', $limit, true );
 	}
 
 	/** Lock an exact raw relationship inside the caller's transaction. */
 	public function lock_member( string $team_type, int $term_id, int $user_id ): array {
-		global $wpdb;
-		$table = $this->table( $team_type );
-		$field = $team_type . '_term_id';
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$field} = %d AND user_id = %d FOR UPDATE", $term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact caller-owned member lock.
+		return $this->select( $team_type, array(
+			'term'    => $term_id,
+			'user_id' => $user_id,
+		), 'id ASC', null, true );
 	}
 
-	/** Read a bounded team or active-user projection; facades retain error policy. */
-	public function list_rows( string $team_type, int $id, int $limit, bool $by_user = false ): array {
+	/**
+	 * Read typed rows matching exact criteria.
+	 *
+	 * @param string   $team_type Team type.
+	 * @param array    $criteria  Any of term, user_id, status, is_owner.
+	 * @param string   $order     Fixed ORDER BY clause.
+	 * @param int|null $limit     Optional bound.
+	 * @param bool     $lock      Whether to lock the rows for update.
+	 * @param int      $offset    Optional page offset.
+	 */
+	public function select( string $team_type, array $criteria, string $order, ?int $limit = null, bool $lock = false, int $offset = 0 ): array {
 		global $wpdb;
-		$table = $this->table( $team_type );
-		$field = $team_type . '_term_id';
-		$where = $by_user ? "user_id = %d AND status = 'active'" : "{$field} = %d";
-		$order = $by_user ? "{$field} ASC, id ASC" : 'created_at ASC, id ASC';
-		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$where} ORDER BY {$order} LIMIT %d", $id, $limit ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed columns and prepared bounded projection.
+		return (array) $wpdb->get_results( $this->sql( $team_type, $criteria, $order, $limit, $lock, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
+	}
+
+	/** Read the team term IDs of rows matching exact criteria, in term order. */
+	public function term_ids( string $team_type, array $criteria, ?int $limit = null ): array {
+		global $wpdb;
+		return array_map( 'intval', (array) $wpdb->get_col( $this->sql( $team_type, $criteria, 'team_term_id ASC', $limit, false, 0, 'team_term_id' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
+	}
+
+	/** Build one prepared typed read; see select() for parameters. */
+	private function sql( string $team_type, array $criteria, string $order, ?int $limit = null, bool $lock = false, int $offset = 0, string $columns = '' ): string {
+		global $wpdb;
+		$table  = self::table();
+		$where  = array( 'team_type = %s' );
+		$values = array( $this->type( $team_type ) );
+		foreach ( array(
+			'term'     => 'team_term_id = %d',
+			'user_id'  => 'user_id = %d',
+			'status'   => 'status = %s',
+			'is_owner' => 'is_owner = %d',
+		) as $key => $clause ) {
+			if ( array_key_exists( $key, $criteria ) ) {
+				$where[]  = $clause;
+				$values[] = 'is_owner' === $key ? (int) (bool) $criteria[ $key ] : $criteria[ $key ];
+			}
+		}
+		$query = 'SELECT ' . ( '' !== $columns ? $columns : $this->columns( $team_type ) ) . " FROM {$table} WHERE " . implode( ' AND ', $where ) . " ORDER BY {$order}";
+		if ( null !== $limit ) {
+			$query   .= $offset > 0 ? ' LIMIT %d OFFSET %d' : ' LIMIT %d';
+			$values[] = $limit;
+			if ( $offset > 0 ) {
+				$values[] = $offset;
+			}
+		}
+		return $wpdb->prepare( $query . ( $lock ? ' FOR UPDATE' : '' ), $values ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Fixed columns and clauses; every value is prepared.
 	}
 
 	/** Test active authority against a current identity and, for promoters, organization. */
 	public function has_active_identity( string $team_type, int $user_id ): bool {
 		global $wpdb;
-		$table = $this->table( $team_type );
-		$field = $team_type . '_term_id';
+		$table = self::table();
 		$join  = '';
 		if ( 'promoter' === $team_type ) {
 			$organizations = PromoterAuthoritySchema::organizations_table();
-			$join          = " INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.{$field} AND organization.status = 'active'";
+			$join          = " INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.team_term_id AND organization.status = 'active'";
 		}
-		$values = array( $team_type, $user_id, 'active' );
-		$found  = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership{$join} INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.{$field} AND identity.taxonomy = %s WHERE membership.user_id = %d AND membership.status = %s LIMIT 1", $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed join and prepared authority values.
+		$values = array( $team_type, $this->type( $team_type ), $user_id, 'active' );
+		$found  = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership{$join} INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.team_term_id AND identity.taxonomy = %s WHERE membership.team_type = %s AND membership.user_id = %d AND membership.status = %s LIMIT 1", $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed typed join and prepared authority values.
 		return null !== $found;
+	}
+
+	/** List one team's members, optionally only when the actor is an active owner of it. */
+	public function list_team( string $team_type, int $term_id, array $criteria, int $limit, int $offset, int $owner_actor_id = 0 ): array {
+		global $wpdb;
+		$table  = self::table();
+		$from   = "{$table} AS member";
+		$where  = array( 'member.team_type = %s', 'member.team_term_id = %d' );
+		$values = array( $this->type( $team_type ), $term_id );
+		if ( $owner_actor_id > 0 ) {
+			$from .= " INNER JOIN {$table} AS actor ON actor.team_type = member.team_type AND actor.team_term_id = member.team_term_id AND actor.user_id = %d AND actor.is_owner = 1 AND actor.status = 'active'";
+			array_unshift( $values, $owner_actor_id );
+		}
+		if ( array_key_exists( 'is_owner', $criteria ) ) {
+			$where[]  = 'member.is_owner = %d';
+			$values[] = $criteria['is_owner'] ? 1 : 0;
+		}
+		if ( isset( $criteria['status'] ) ) {
+			$where[]  = 'member.status = %s';
+			$values[] = $criteria['status'];
+		}
+		$values[] = $limit;
+		$values[] = $offset;
+		$query    = 'SELECT ' . $this->columns( $team_type, 'member.' ) . " FROM {$from} WHERE " . implode( ' AND ', $where ) . ' ORDER BY member.created_at ASC, member.id ASC LIMIT %d OFFSET %d';
+		return (array) $wpdb->get_results( $wpdb->prepare( $query, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed clauses; every value is prepared.
 	}
 
 	/** Hydrate a row set, failing closed on the first corrupt relationship. */
@@ -124,24 +198,32 @@ class TeamMembershipRepository {
 		return $row;
 	}
 
-	/** Insert a validated relationship inside the caller's transaction. */
+	/** Insert a validated typed relationship inside the caller's transaction. */
 	public function insert( string $team_type, array $row ) {
 		global $wpdb;
-		return $wpdb->insert( $this->table( $team_type ), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Typed repository owns validation and transaction.
+		$key                 = $team_type . '_term_id';
+		$row['team_type']    = $this->type( $team_type );
+		$row['team_term_id'] = (int) $row[ $key ];
+		unset( $row[ $key ] );
+		return $wpdb->insert( self::table(), $row ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Typed repository owns validation and transaction.
 	}
 
 	/** Update a validated relationship at its expected version. */
 	public function update( string $team_type, int $term_id, int $user_id, int $version, array $data ) {
 		global $wpdb;
-		$where = array_combine( array( $team_type . '_term_id', 'user_id', 'version' ), array( $term_id, $user_id, $version ) );
-		return $wpdb->update( $this->table( $team_type ), $data, $where ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Natural key and optimistic version are always included.
+		$where = array(
+			'team_type'    => $this->type( $team_type ),
+			'team_term_id' => $term_id,
+			'user_id'      => $user_id,
+			'version'      => $version,
+		);
+		return $wpdb->update( self::table(), $data, $where ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Natural key and optimistic version are always included.
 	}
 
 	/** Apply a versioned owner change or revocation under the caller's lock. */
 	public function mutate( string $team_type, int $term_id, int $user_id, int $version, ?bool $is_owner, bool $revoke, int $actor_user_id ) {
 		global $wpdb;
-		$table  = $this->table( $team_type );
-		$field  = $team_type . '_term_id';
+		$table  = self::table();
 		$now    = gmdate( 'Y-m-d H:i:s' );
 		$set    = array( 'version = version + 1', 'updated_at = %s' );
 		$values = array( $now );
@@ -159,21 +241,25 @@ class TeamMembershipRepository {
 			$set[]    = 'revoked_at = %s';
 			$values[] = $now;
 		}
-		$values[] = $term_id;
-		$values[] = $user_id;
-		$values[] = $version;
-		$query    = "UPDATE {$table} SET " . implode( ', ', $set ) . " WHERE {$field} = %d AND user_id = %d AND version = %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed columns and trusted typed table.
-		return $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- All dynamic values are prepared.
+		array_push( $values, $this->type( $team_type ), $term_id, $user_id, $version );
+		$query = "UPDATE {$table} SET " . implode( ', ', $set ) . ' WHERE team_type = %s AND team_term_id = %d AND user_id = %d AND version = %d';
+		return $wpdb->query( $wpdb->prepare( $query, $values ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed columns; every value is prepared.
 	}
 
-	/** Resolve only the two supported authority types to trusted storage names. */
-	private function table( string $team_type ): string {
-		if ( 'venue' === $team_type ) {
-			return VenueSchema::memberships_table();
-		}
+	/** Typed read columns, aliasing the shared term key back to the facade's key. */
+	private function columns( string $team_type, string $alias = '' ): string {
+		$columns = array( 'id', "team_term_id AS {$team_type}_term_id", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
 		if ( 'promoter' === $team_type ) {
-			return PromoterAuthoritySchema::memberships_table();
+			$columns[] = 'revoked_by_user_id';
 		}
-		throw new \InvalidArgumentException( 'Unsupported membership team type.' );
+		return $alias . implode( ', ' . $alias, $columns );
+	}
+
+	/** Accept only the supported team types. */
+	private function type( string $team_type ): string {
+		if ( ! in_array( $team_type, self::TYPES, true ) ) {
+			throw new \InvalidArgumentException( 'Unsupported membership team type.' );
+		}
+		return $team_type;
 	}
 }

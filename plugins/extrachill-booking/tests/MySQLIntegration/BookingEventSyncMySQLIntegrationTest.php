@@ -7,6 +7,7 @@
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.RestrictedFunctions -- Independent MySQL session is the subject of this integration proof.
 
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingEventConversionService;
@@ -72,7 +73,7 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		if ( isset( $this->contender ) ) {
 			$this->contender->close();
 		}
-		foreach ( array( BookingSchema::holds_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), VenueSchema::memberships_table(), BookingSchema::communication_state_table() ) as $table ) {
+		foreach ( array( BookingSchema::holds_table(), BookingSchema::activity_table(), BookingSchema::bookings_table(), TeamMembershipRepository::table(), BookingSchema::communication_state_table() ) as $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
 		}
 		$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}datamachine_event_dates" );

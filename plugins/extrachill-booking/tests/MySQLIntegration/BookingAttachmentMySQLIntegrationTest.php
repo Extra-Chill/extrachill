@@ -9,6 +9,7 @@
 
 require_once __DIR__ . '/BookingSecondSessionMySQLIntegrationTestCase.php';
 
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingAttachmentRepository;
 use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingActivityRepository;
@@ -69,10 +70,10 @@ class BookingAttachmentMySQLIntegrationTest extends BookingSecondSessionMySQLInt
 		);
 		$this->assertIsArray( $booking, is_wp_error( $booking ) ? $booking->get_error_code() : '' );
 
-		$memberships                 = VenueSchema::memberships_table();
+		$memberships                 = TeamMembershipRepository::table();
 		$this->provider->claim_probe = function () use ( $memberships ): void {
 			try {
-				$updated                        = $this->contender->query( "UPDATE {$memberships} SET status = 'revoked' WHERE venue_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Independent test connection races the production transaction.
+				$updated                        = $this->contender->query( "UPDATE {$memberships} SET status = 'revoked' WHERE team_type = 'venue' AND team_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Independent test connection races the production transaction.
 				$this->membership_update_waited = false === $updated && 1205 === $this->contender->errno;
 			} catch ( mysqli_sql_exception $exception ) {
 				$this->membership_update_waited = 1205 === $exception->getCode();
@@ -92,10 +93,10 @@ class BookingAttachmentMySQLIntegrationTest extends BookingSecondSessionMySQLInt
 		);
 		$this->assertIsArray( $attachment, is_wp_error( $attachment ) ? $attachment->get_error_code() : '' );
 		$this->assertTrue( $this->membership_update_waited, 'Membership revocation bypassed the rows used by production attachment authorization.' );
-		$this->assertTrue( $this->contender->query( "UPDATE {$memberships} SET status = 'revoked' WHERE venue_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ), 'Membership revocation did not complete after the production transaction committed.' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Independent test connection confirms lock release.
+		$this->assertTrue( $this->contender->query( "UPDATE {$memberships} SET status = 'revoked' WHERE team_type = 'venue' AND team_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ), 'Membership revocation did not complete after the production transaction committed.' ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Independent test connection confirms lock release.
 		$this->assertSame( 1, $this->contender->affected_rows );
 
-		$this->contender->query( "UPDATE {$memberships} SET status = 'active' WHERE venue_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Restores isolated fixture authority for cleanup.
+		$this->contender->query( "UPDATE {$memberships} SET status = 'active' WHERE team_type = 'venue' AND team_term_id = {$this->venue_id} AND user_id = {$this->actor_id}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Restores isolated fixture authority for cleanup.
 		$deleted = $service->delete( $booking['id'], $attachment['id'], $this->actor_id );
 		$this->assertIsArray( $deleted, is_wp_error( $deleted ) ? $deleted->get_error_code() : '' );
 		$wpdb->update( BookingSchema::attachments_table(), array( 'retired_at' => '2020-01-01 00:00:00' ), array( 'id' => $attachment['id'] ) );

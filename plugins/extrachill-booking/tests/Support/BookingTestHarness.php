@@ -718,6 +718,8 @@ final class BookingWpdb {
 	}
 
 	public function get_col( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		$this->last_query = $query;
 		$this->last_error = '';
 		if ( $this->fail_reads ) {
@@ -775,6 +777,8 @@ final class BookingWpdb {
 	}
 
 	public function insert( $table, $row ) {
+
+		list( $table, $row ) = ec_team_fake_write( $table, $row );
 		$this->last_error = '';
 		if ( $this->fail_inserts || ( false !== strpos( $table, 'ec_booking_activity' ) && ( $this->fail_activity_inserts || in_array( $row['kind'] ?? '', $this->fail_activity_kinds, true ) ) ) ) {
 			$this->last_error = 'simulated insert failure';
@@ -919,6 +923,8 @@ final class BookingWpdb {
 	}
 
 	public function get_var( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		if ( ! $this->ready ) {
 			$this->last_error = 'simulated closed database connection';
 			return null;
@@ -1064,6 +1070,8 @@ final class BookingWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_query = $query;
 		$this->last_error = '';
@@ -1481,6 +1489,8 @@ final class BookingWpdb {
 	}
 
 	public function get_results( $query, $output = null ) {
+
+		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_query = $query;
 		$this->last_error = '';
@@ -2022,6 +2032,8 @@ final class BookingWpdb {
 	}
 
 	public function update( $table, $data, $where ) {
+
+		list( $table, $data, $where ) = ec_team_fake_write( $table, $data, $where );
 		$this->last_error = '';
 		if ( $this->fail_updates || ( $this->fail_communication_state_updates && false !== strpos( $table, 'ec_booking_communication_state' ) ) ) {
 			$this->last_error = 'simulated update failure';
@@ -2055,6 +2067,8 @@ final class BookingWpdb {
 	}
 
 	public function query( $query ) {
+
+		$query = ec_team_fake_sql( $query );
 		if ( ! $this->ready ) {
 			$this->last_error = 'simulated closed database connection';
 			return false;
@@ -2320,6 +2334,7 @@ final class BookingWpdb {
 	}
 }
 
+require_once __DIR__ . '/../../../extrachill-events/tests/Support/team-members-fake.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueSchema.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueMembershipRepository.php';

@@ -120,17 +120,19 @@ class VenueMembershipRepository {
 	/** Test whether a user has any active relationship, without a venue identity join. */
 	public function has_active_membership_for_user( int $user_id ): bool|\WP_Error {
 		global $wpdb;
-		$table = VenueSchema::memberships_table();
-		$found = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} WHERE user_id = %d AND status = 'active' LIMIT 1", $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact current-user membership existence check.
+		$found = ( new TeamMembershipRepository() )->select( 'venue', array(
+			'user_id' => $user_id,
+			'status'  => VenueAuthorization::STATUS_ACTIVE,
+		), 'id ASC', 1 );
 		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (bool) $found;
 	}
 
 	/** Read the current user's settings projection, including inactive relationships. */
 	public function list_settings_for_user( int $user_id ): array|\WP_Error {
 		global $wpdb;
-		$table = VenueSchema::memberships_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT venue_term_id, is_owner, status FROM {$table} WHERE user_id = %d ORDER BY created_at ASC", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private current-user settings projection.
-		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
+		$rows = ( new TeamMembershipRepository() )->select( 'venue', array( 'user_id' => $user_id ), 'created_at ASC, id ASC' );
+		$keep = array_flip( array( 'venue_term_id', 'is_owner', 'status' ) );
+		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'The venue membership could not be read.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : array_map( static fn( $row ) => array_intersect_key( $row, $keep ), $rows );
 	}
 
 	/** Insert an onboarding relationship after the caller has locked and validated venue authority. */
@@ -146,8 +148,7 @@ class VenueMembershipRepository {
 	/** Lock every relationship and insertion gap for account-compensation checks. */
 	public function lock_for_user( int $user_id ): array|\WP_Error {
 		global $wpdb;
-		$table = VenueSchema::memberships_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE user_id = %d ORDER BY venue_term_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Caller owns the compensation transaction.
+		$rows = ( new TeamMembershipRepository() )->select( 'venue', array( 'user_id' => $user_id ), 'team_term_id ASC, id ASC', null, true );
 		return '' !== (string) $wpdb->last_error ? new \WP_Error( 'venue_membership_read_failed', __( 'Venue memberships could not be locked.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) ) : (array) $rows;
 	}
 
@@ -202,8 +203,10 @@ class VenueMembershipRepository {
 			return array();
 		}
 
-		$table = VenueSchema::memberships_table();
-		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT venue_term_id FROM {$table} WHERE user_id = %d AND status = %s ORDER BY venue_term_id ASC LIMIT %d", $user_id, VenueAuthorization::STATUS_ACTIVE, self::MAX_USER_VENUES + 1 ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded private authority projection reduced to canonical public IDs.
+		$ids = ( new TeamMembershipRepository() )->term_ids( 'venue', array(
+			'user_id' => $user_id,
+			'status'  => VenueAuthorization::STATUS_ACTIVE,
+		), self::MAX_USER_VENUES + 1 );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
@@ -229,8 +232,7 @@ class VenueMembershipRepository {
 	public function list_active_venue_ids() {
 		global $wpdb;
 
-		$table = VenueSchema::memberships_table();
-		$ids   = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT venue_term_id FROM {$table} WHERE status = %s ORDER BY venue_term_id ASC", VenueAuthorization::STATUS_ACTIVE ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority table, reduced to canonical public IDs.
+		$ids = ( new TeamMembershipRepository() )->term_ids( 'venue', array( 'status' => VenueAuthorization::STATUS_ACTIVE ) );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Managed venues could not be read.', 'extrachill-events' ), array( 'status' => 500 ) );
 		}
@@ -242,33 +244,16 @@ class VenueMembershipRepository {
 	public function list_for_venue( int $venue_term_id, array $filters = array(), int $actor_user_id = 0 ) {
 		global $wpdb;
 
-		$table      = VenueSchema::memberships_table();
-		$table_from = "{$table} AS member";
-		$where      = array( 'member.venue_term_id = %d' );
-		$values     = array( $venue_term_id );
-		if ( $actor_user_id > 0 && ! user_can( $actor_user_id, 'manage_options' ) ) {
-			$table_from .= " INNER JOIN {$table} AS actor ON actor.venue_term_id = member.venue_term_id AND actor.user_id = %d AND actor.is_owner = 1 AND actor.status = 'active'";
-			array_unshift( $values, $actor_user_id );
-		}
-		if ( array_key_exists( 'is_owner', $filters ) ) {
-			$where[]  = 'member.is_owner = %d';
-			$values[] = $filters['is_owner'] ? 1 : 0;
-		}
+		$criteria = array_intersect_key( $filters, array( 'is_owner' => true ) );
 		if ( ! empty( $filters['status'] ) ) {
-			$status = sanitize_key( (string) $filters['status'] );
-			if ( ! in_array( $status, VenueAuthorization::statuses(), true ) ) {
+			$criteria['status'] = sanitize_key( (string) $filters['status'] );
+			if ( ! in_array( $criteria['status'], VenueAuthorization::statuses(), true ) ) {
 				return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership filter is not supported.', 'extrachill-events' ) );
 			}
-			$where[]  = 'member.status = %s';
-			$values[] = $status;
 		}
-
-		$limit    = max( 1, min( 100, absint( $filters['limit'] ?? 50 ) ) );
-		$offset   = max( 0, absint( $filters['offset'] ?? 0 ) );
-		$values[] = $limit;
-		$values[] = $offset;
-		$query    = "SELECT member.* FROM {$table_from} WHERE " . implode( ' AND ', $where ) . ' ORDER BY member.created_at ASC, member.id ASC LIMIT %d OFFSET %d'; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted table and fixed clauses.
-		$rows     = $wpdb->get_results( $wpdb->prepare( $query, $values ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Dynamic values are prepared.
+		$owner_actor = $actor_user_id > 0 && ! user_can( $actor_user_id, 'manage_options' ) ? $actor_user_id : 0;
+		$limit       = max( 1, min( 100, absint( $filters['limit'] ?? 50 ) ) );
+		$rows        = ( new TeamMembershipRepository() )->list_team( 'venue', $venue_term_id, $criteria, $limit, max( 0, absint( $filters['offset'] ?? 0 ) ), $owner_actor );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return new \WP_Error( 'venue_membership_list_failed', __( 'Venue memberships could not be listed.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
 		}

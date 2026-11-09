@@ -5,6 +5,7 @@
  * @package ExtraChillEvents\Tests\MySQLIntegration
  */
 
+use ExtraChillEvents\Core\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 
@@ -27,7 +28,7 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				BookingSchema::communication_state_table(),
 				BookingSchema::attachments_table(),
 				BookingSchema::attachment_deliveries_table(),
-				VenueSchema::memberships_table(),
+				TeamMembershipRepository::table(),
 				VenueSchema::claims_table(),
 				VenueSchema::invitations_table(),
 				VenueSchema::onboarding_audit_table(),
@@ -203,9 +204,9 @@ final class BookingSchemaMultisiteTest extends WP_UnitTestCase {
 				'key' => 'id',
 				'row' => array( 'id' => 73104, 'correlation_id' => wp_generate_uuid4(), 'booking_id' => 73001, 'attachment_id' => 73103, 'actor_id' => 1, 'expected_bytes' => 128, 'state' => 'completed', 'outcome' => 'complete', 'bytes_sent' => 128, 'issued_at' => $created, 'consumed_at' => '2026-07-01 00:01:00', 'terminal_at' => '2026-07-01 00:02:00', 'updated_at' => '2026-07-01 00:02:00' ),
 			),
-			VenueSchema::memberships_table()           => array(
+			TeamMembershipRepository::table()           => array(
 				'key' => 'id',
-				'row' => array( 'id' => 73105, 'venue_term_id' => 73003, 'user_id' => 1, 'is_owner' => 1, 'status' => 'active', 'version' => 3, 'created_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00' ),
+				'row' => array( 'id' => 73105, 'team_type' => 'venue', 'team_term_id' => 73003, 'user_id' => 1, 'is_owner' => 1, 'status' => 'active', 'version' => 3, 'created_by_user_id' => 1, 'created_at' => $created, 'updated_at' => '2026-07-02 00:00:00' ),
 			),
 			VenueSchema::claims_table()                => array(
 				'key' => 'id',

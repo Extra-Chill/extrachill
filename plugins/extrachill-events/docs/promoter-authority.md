@@ -8,7 +8,8 @@ organization is verified with no memberships and administrators add members
 afterwards. Verification returns `membership: null` in that case.
 
 Authority is stored separately from booking in `ec_promoter_organizations`,
-`ec_promoter_members`, and exact action grants in `ec_promoter_venue_grants`.
+`promoter` rows of the shared `ec_team_members` table, and exact action grants
+in `ec_promoter_venue_grants`.
 The schema is ready only
 after its current-prefix tables, InnoDB engines,
 required columns, and exact uniqueness contracts pass health checks. Its
@@ -47,7 +48,7 @@ and team status grant no authority.
 
 Delegated promoter authority is separate from direct venue membership. A grant
 never satisfies `access_venue`, `manage_members`, or `manage_finances`, and it
-never inserts promoter members into `ec_venue_members`. The only supported
+never inserts promoter members as `venue` rows of `ec_team_members`. The only supported
 delegated action is currently `organize_local_support`.
 This branch defines and proves that venue-scoped grant only. Its event-level
 Local Support consumer and event attachment arrive separately in issue #740.
