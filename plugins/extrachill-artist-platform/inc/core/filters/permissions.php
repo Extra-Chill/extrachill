@@ -90,7 +90,10 @@ function ec_get_artist_id_for_owned_object( $object_id ) {
 }
 
 /**
- * Check object access against both sides of the reciprocal membership.
+ * Check object access against an active artist team membership.
+ *
+ * Unlike ec_can_manage_artist(), this does not require a published profile:
+ * members keep editing their draft and pending profiles.
  *
  * @param int $user_id   User ID.
  * @param int $artist_id Artist profile ID.
@@ -101,7 +104,9 @@ function ec_user_can_manage_artist_object( $user_id, $artist_id ) {
 		return true;
 	}
 
-	return ec_can_manage_artist( $user_id, $artist_id );
+	$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+	$row        = $repository->get( 'artist', (int) $artist_id, (int) $user_id );
+	return is_array( $row ) && 'active' === $row['status'];
 }
 
 /**

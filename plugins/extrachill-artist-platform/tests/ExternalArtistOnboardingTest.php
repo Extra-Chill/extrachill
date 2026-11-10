@@ -161,8 +161,8 @@ final class ExternalArtistOnboardingTest extends EC_Artist_Platform_TestCase {
 		$profile_id = (int) ( $first['artist_id'] ?? 0 );
 		$this->assertGreaterThan( 0, $profile_id );
 		$this->assertSame( 2, $this->profileCount(), 'The profile plus its link page exist on the artist site.' );
-		$this->assertSame( $user_id, (int) get_post_meta( $profile_id, '_artist_member_ids', true )[0] ?? 0 );
-		$this->assertSame( array( $profile_id ), array_map( 'intval', (array) get_user_meta( $user_id, '_artist_profile_ids', true ) ) );
+		$this->assertSame( array( $user_id ), $this->artist_team_member_ids( $profile_id ) );
+		$this->assertSame( array( $profile_id ), $this->user_artist_team_ids( $user_id ) );
 
 		$term_id = $this->boundTermId( $profile_id );
 		$this->assertGreaterThan( 0, $term_id );
@@ -191,7 +191,7 @@ final class ExternalArtistOnboardingTest extends EC_Artist_Platform_TestCase {
 		$this->assertIsArray( $result );
 		$this->assertArrayHasKey( 'outcome', $result );
 		$this->assertContains( $result['outcome'], array( 'membership_request_required', 'artist_unavailable', 'artist_consent_required' ) );
-		$this->assertSame( array( 0 ), array_map( 'intval', (array) get_user_meta( $user_id, '_artist_profile_ids', true ) ) );
+		$this->assertSame( array(), $this->user_artist_team_ids( $user_id ) );
 	}
 
 	public function test_existing_unclaimed_account_cannot_create_or_join_artist(): void {

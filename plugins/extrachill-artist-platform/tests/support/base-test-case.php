@@ -323,7 +323,7 @@ abstract class EC_Artist_Platform_TestCase extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Create both sides of an artist membership relationship.
+	 * Create an active artist membership in the network team store.
 	 *
 	 * @param int $user_id   User ID.
 	 * @param int $artist_id Artist profile post ID.
@@ -331,6 +331,65 @@ abstract class EC_Artist_Platform_TestCase extends WP_UnitTestCase {
 	protected function create_artist_membership( int $user_id, int $artist_id ): void {
 		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 		$repository->insert( 'artist', $repository->new_row( 'artist', $artist_id, $user_id, true, 0 ) );
+	}
+
+	/**
+	 * Active member user IDs of one artist, in membership order.
+	 *
+	 * @param int $artist_id Artist profile post ID.
+	 * @return int[]
+	 */
+	protected function artist_team_member_ids( int $artist_id ): array {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$rows       = $repository->select(
+			'artist',
+			array(
+				'term'   => $artist_id,
+				'status' => 'active',
+			),
+			'id ASC'
+		);
+		return array_map( 'intval', array_column( $rows, 'user_id' ) );
+	}
+
+	/**
+	 * Artist IDs a user is an active member of, in artist ID order.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int[]
+	 */
+	protected function user_artist_team_ids( int $user_id ): array {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		return $repository->term_ids(
+			'artist',
+			array(
+				'user_id' => $user_id,
+				'status'  => 'active',
+			)
+		);
+	}
+
+	/**
+	 * Make the next N writes to the network team store fail at the database.
+	 *
+	 * @param int $times Number of failing INSERT or UPDATE statements.
+	 * @return stdClass State with the remaining count.
+	 */
+	protected function fail_team_writes( int $times = 1 ): stdClass {
+		$state            = new stdClass();
+		$state->remaining = $times;
+		$table            = \ExtraChill\Users\Teams\TeamMembershipRepository::table();
+		$this->ec_inject_filter(
+			'query',
+			static function ( $query ) use ( $state, $table ) {
+				if ( $state->remaining > 0 && preg_match( '/^\s*(INSERT|UPDATE)\b/i', $query ) && false !== strpos( $query, $table ) ) {
+					--$state->remaining;
+					return 'SELECT * FROM ec_injected_team_write_failure';
+				}
+				return $query;
+			}
+		);
+		return $state;
 	}
 
 	/**

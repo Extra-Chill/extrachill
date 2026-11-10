@@ -59,7 +59,10 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 
 	// Default: return user's owned artists (for regular users and frontend admins).
 	$repository      = new \ExtraChill\Users\Teams\TeamMembershipRepository();
-	$user_artist_ids = $repository->term_ids( 'artist', array( 'user_id' => (int) $user_id, 'status' => 'active' ) );
+	$user_artist_ids = $repository->term_ids( 'artist', array(
+		'user_id' => (int) $user_id,
+		'status'  => 'active',
+	) );
 
 	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {

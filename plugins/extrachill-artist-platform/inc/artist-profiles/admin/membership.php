@@ -13,12 +13,20 @@ function ec_add_artist_membership( $user_id, $artist_id ) {
 	$user_id   = absint( $user_id );
 	$artist_id = absint( $artist_id );
 	if ( ! $user_id || ! $artist_id || ! get_userdata( $user_id ) ) {
-		ec_set_artist_membership_failure( 'invalid_artist_membership', __( 'The artist membership target is invalid.', 'extrachill-artist-platform' ), array( 'status' => 400, 'retryable' => false, 'partial_state_created' => false ) );
+		ec_set_artist_membership_failure( 'invalid_artist_membership', __( 'The artist membership target is invalid.', 'extrachill-artist-platform' ), array(
+			'status'                => 400,
+			'retryable'             => false,
+			'partial_state_created' => false,
+		) );
 		return false;
 	}
 	$blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $blog_id ) {
-		ec_set_artist_membership_failure( 'artist_site_unavailable', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ), array( 'status' => 503, 'retryable' => true, 'partial_state_created' => false ) );
+		ec_set_artist_membership_failure( 'artist_site_unavailable', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ), array(
+			'status'                => 503,
+			'retryable'             => true,
+			'partial_state_created' => false,
+		) );
 		return false;
 	}
 	switch_to_blog( $blog_id );
@@ -28,7 +36,11 @@ function ec_add_artist_membership( $user_id, $artist_id ) {
 		restore_current_blog();
 	}
 	if ( ! $valid ) {
-		ec_set_artist_membership_failure( 'invalid_artist_profile', __( 'The artist profile is unavailable.', 'extrachill-artist-platform' ), array( 'status' => 404, 'retryable' => false, 'partial_state_created' => false ) );
+		ec_set_artist_membership_failure( 'invalid_artist_profile', __( 'The artist profile is unavailable.', 'extrachill-artist-platform' ), array(
+			'status'                => 404,
+			'retryable'             => false,
+			'partial_state_created' => false,
+		) );
 		return false;
 	}
 	return ec_write_artist_team_membership( $user_id, $artist_id, true );
@@ -40,11 +52,17 @@ function ec_remove_artist_membership( $user_id, $artist_id ) {
 	$user_id   = absint( $user_id );
 	$artist_id = absint( $artist_id );
 	if ( ! $user_id || ! $artist_id ) {
-		ec_set_artist_membership_failure( 'invalid_artist_membership', __( 'The artist membership target is invalid.', 'extrachill-artist-platform' ), array( 'status' => 400, 'retryable' => false ) );
+		ec_set_artist_membership_failure( 'invalid_artist_membership', __( 'The artist membership target is invalid.', 'extrachill-artist-platform' ), array(
+			'status'    => 400,
+			'retryable' => false,
+		) );
 		return false;
 	}
 	if ( ! ec_get_blog_id( 'artist' ) ) {
-		ec_set_artist_membership_failure( 'artist_site_unavailable', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ), array( 'status' => 503, 'retryable' => true ) );
+		ec_set_artist_membership_failure( 'artist_site_unavailable', __( 'The artist site is unavailable.', 'extrachill-artist-platform' ), array(
+			'status'    => 503,
+			'retryable' => true,
+		) );
 		return false;
 	}
 	return ec_write_artist_team_membership( $user_id, $artist_id, false );
@@ -71,8 +89,12 @@ function ec_write_artist_team_membership( $user_id, $artist_id, $add ) {
 			}
 			if ( $add ) {
 				$result = $repository->update( 'artist', $artist_id, $user_id, $row['version'], array(
-					'status' => 'active', 'is_owner' => 1, 'version' => $row['version'] + 1,
-					'updated_at' => gmdate( 'Y-m-d H:i:s' ), 'revoked_at' => null, 'revoked_by_user_id' => null,
+					'status'             => 'active',
+					'is_owner'           => 1,
+					'version'            => $row['version'] + 1,
+					'updated_at'         => gmdate( 'Y-m-d H:i:s' ),
+					'revoked_at'         => null,
+					'revoked_by_user_id' => null,
 				) );
 			} else {
 				$result = $repository->mutate( 'artist', $artist_id, $user_id, $row['version'], null, true, get_current_user_id() );
@@ -85,7 +107,11 @@ function ec_write_artist_team_membership( $user_id, $artist_id, $add ) {
 			}
 		}
 	}
-	ec_set_artist_membership_failure( $add ? 'artist_roster_update_failed' : 'artist_membership_remove_failed', __( 'The artist membership could not be updated.', 'extrachill-artist-platform' ), array( 'status' => 503, 'retryable' => true, 'partial_state_created' => false ) );
+	ec_set_artist_membership_failure( $add ? 'artist_roster_update_failed' : 'artist_membership_remove_failed', __( 'The artist membership could not be updated.', 'extrachill-artist-platform' ), array(
+		'status'                => 503,
+		'retryable'             => true,
+		'partial_state_created' => false,
+	) );
 	return false;
 }
 
@@ -117,6 +143,9 @@ function ec_get_linked_members( $artist_profile_id ) {
 		return array();
 	}
 	$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
-	$rows       = $repository->select( 'artist', array( 'term' => $artist_profile_id, 'status' => 'active' ), 'id ASC' );
+	$rows       = $repository->select( 'artist', array(
+		'term'   => $artist_profile_id,
+		'status' => 'active',
+	), 'id ASC' );
 	return array_values( array_filter( array_map( 'get_userdata', array_column( $rows, 'user_id' ) ) ) );
 }

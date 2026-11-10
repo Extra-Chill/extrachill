@@ -166,12 +166,9 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 			wp_set_current_user( $this->super_admin_user_id );
 			$this->assertTrue( $ability->check_permissions( $input ), $name . ' denied a network administrator.' );
 
-			// Reset both sides of the relationship for the next matrix row.
+			// Reset the membership for the next matrix row.
 			wp_set_current_user( 0 );
-			delete_user_meta( $this->owner_user_id, '_artist_profile_ids' );
-			switch_to_blog( $this->artist_blog_id() );
-			delete_post_meta( $this->artist_id, '_artist_member_ids' );
-			restore_current_blog();
+			$this->assertTrue( ec_remove_artist_membership( $this->owner_user_id, $this->artist_id ) );
 		}
 	}
 
@@ -342,17 +339,10 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 		$missing_artist_id = $this->second_artist_id + 500;
 		$draft_artist_id   = $this->create_artist_profile( 'Draft Artist', array( 'post_status' => 'draft' ) );
 
-		// The owner's reciprocal record claims ownership of the bound artist,
-		// a missing artist ID, and a draft profile. Only reciprocal PUBLISHED
-		// membership is manageable, so all three must be denied.
-		switch_to_blog( $this->artist_blog_id() );
-		delete_post_meta( $this->artist_id, '_artist_member_ids' );
-		restore_current_blog();
-		update_user_meta(
-			$this->owner_user_id,
-			'_artist_profile_ids',
-			array( $this->artist_id, $missing_artist_id, $draft_artist_id )
-		);
+		// The owner holds team rows for a missing artist ID and a draft
+		// profile. Only membership of a PUBLISHED profile is manageable.
+		$this->create_artist_membership( $this->owner_user_id, $missing_artist_id );
+		$this->create_artist_membership( $this->owner_user_id, $draft_artist_id );
 
 		$this->assertFalse( wp_get_ability( 'extrachill/update-artist' )->check_permissions( array( 'artist_id' => $this->artist_id ) ) );
 		$this->assertFalse( wp_get_ability( 'extrachill/update-artist' )->check_permissions( array( 'artist_id' => $missing_artist_id ) ) );
@@ -503,7 +493,7 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 		$created_before = (int) wp_count_posts( 'artist_profile' )->publish;
 		restore_current_blog();
 
-		$this->fail_meta_adds( 'post', 10, '_artist_member_ids' );
+		$this->fail_team_writes( 10 );
 
 		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Rollback Band' ) );
 
@@ -519,13 +509,12 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 				'fields'      => 'ids',
 			)
 		);
-		$profiles       = get_user_meta( $this->owner_user_id, '_artist_profile_ids', true );
 		$created_after  = (int) wp_count_posts( 'artist_profile' )->publish;
 		restore_current_blog();
 
 		$this->assertSame( array(), $rollback_posts, 'The rolled-back profile must not remain.' );
 		$this->assertSame( $created_before, $created_after );
-		$this->assertEmpty( array_filter( (array) $profiles ) );
+		$this->assertSame( array(), $this->user_artist_team_ids( $this->owner_user_id ) );
 	}
 
 	public function test_create_artist_reports_failed_profile_rollback(): void {
@@ -533,7 +522,7 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 		wp_set_current_user( $this->owner_user_id );
 		update_user_meta( $this->owner_user_id, 'user_is_artist', '1' );
 
-		$this->fail_meta_adds( 'post', 10, '_artist_member_ids' );
+		$this->fail_team_writes( 10 );
 		$this->fail_post_deletes();
 
 		$result = extrachill_artist_platform_ability_create_artist( array( 'name' => 'Stranded Band' ) );

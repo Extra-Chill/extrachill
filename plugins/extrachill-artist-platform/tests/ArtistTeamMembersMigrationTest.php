@@ -58,6 +58,10 @@ final class ArtistTeamMembersMigrationTest extends EC_Artist_Platform_TestCase {
 		$this->assertTrue( ec_remove_artist_membership( $user, $artist ) );
 		ArtistTeamMembersMigration::maybe_copy_legacy();
 		$this->assertFalse( ec_can_manage_artist( $user, $artist ) );
+		// A later revocation is a decision, not a missing copy.
+		$after = ArtistTeamMembersMigration::inspect();
+		$this->assertSame( 0, $after['missing'] );
+		$this->assertSame( 'complete', $after['status'] );
 	}
 
 	public function test_apply_requires_cli(): void {

@@ -23,9 +23,6 @@ final class ArtistObjectCapabilitiesTest extends EC_Artist_Platform_TestCase {
 		$this->pending_profile_id = $this->create_artist_profile( 'Pending Artist', array( 'post_status' => 'pending' ) );
 
 		switch_to_blog( $this->artist_blog_id() );
-		update_post_meta( $this->profile_id, '_artist_member_ids', array( $this->owner_id ) );
-		update_post_meta( $this->draft_profile_id, '_artist_member_ids', array( $this->owner_id ) );
-		update_post_meta( $this->pending_profile_id, '_artist_member_ids', array( $this->owner_id ) );
 		wp_update_post(
 			array(
 				'ID'           => $this->profile_id,
@@ -34,7 +31,9 @@ final class ArtistObjectCapabilitiesTest extends EC_Artist_Platform_TestCase {
 		);
 		$this->revision_id = (int) wp_save_post_revision( $this->profile_id );
 		restore_current_blog();
-		update_user_meta( $this->owner_id, '_artist_profile_ids', array( $this->profile_id, $this->draft_profile_id, $this->pending_profile_id ) );
+		foreach ( array( $this->profile_id, $this->draft_profile_id, $this->pending_profile_id ) as $artist_id ) {
+			$this->create_artist_membership( $this->owner_id, $artist_id );
+		}
 
 		$this->regular_post_id = (int) self::factory()->post->create( array( 'post_title' => 'Regular Post' ) );
 	}
@@ -51,7 +50,7 @@ final class ArtistObjectCapabilitiesTest extends EC_Artist_Platform_TestCase {
 		$this->assertStringContainsString( "'revisions'", $source );
 	}
 
-	public function test_reciprocal_member_receives_mapped_primitives_for_core_rest_crud(): void {
+	public function test_artist_member_receives_mapped_primitives_for_core_rest_crud(): void {
 		$user = get_userdata( $this->owner_id );
 		$crud = array(
 			'read_post'    => array( 'read' ),
@@ -100,11 +99,10 @@ final class ArtistObjectCapabilitiesTest extends EC_Artist_Platform_TestCase {
 		}
 	}
 
-	public function test_one_sided_membership_and_generic_editor_caps_do_not_grant_access(): void {
+	public function test_generic_editor_caps_without_membership_do_not_grant_access(): void {
 		$one_way_id = (int) self::factory()->user->create( array( 'role' => 'editor' ) );
 		$this->ec_grant_artist_blog_role( $one_way_id, 'editor' );
-		// Editor caps exist, but no reciprocal membership.
-		update_user_meta( $one_way_id, '_artist_profile_ids', array() );
+		// Editor caps exist, but no artist membership.
 
 		$editor = get_userdata( $one_way_id );
 

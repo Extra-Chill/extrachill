@@ -128,9 +128,8 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 				'post_title'  => 'Lifecycle Artist',
 			)
 		);
-		update_post_meta( $artist_id, '_artist_member_ids', array( $user_id ) );
 		restore_current_blog();
-		update_user_meta( $user_id, '_artist_profile_ids', array( $artist_id ) );
+		ec_users_tests_set_artist_members( $artist_id, array( $user_id ) );
 
 		return array( $user_id, $artist_id );
 	}
@@ -181,11 +180,11 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 		$this->assertTrue( $eligibility['criteria']['active_moderation']['value'] );
 		$this->assertSame( array( $artist_id ), $eligibility['criteria']['claimed_artist']['artist_ids'] );
 
-		update_user_meta( $user_id, '_artist_profile_ids', array() );
+		ec_users_tests_set_user_artists( $user_id, array() );
 		$this->assertFalse( ec_users_get_artist_dispatch_eligibility( $user_id )['criteria']['claimed_artist']['passed'] );
 	}
 
-	public function test_canonical_artist_reads_require_valid_bidirectional_published_memberships(): void {
+	public function test_canonical_artist_reads_require_valid_published_memberships(): void {
 		$user_id = self::factory()->user->create();
 		switch_to_blog( $this->artist_blog_id );
 		register_post_type( 'artist_profile', array( 'public' => true ) );
@@ -225,15 +224,11 @@ class Test_Artist_Dispatch_Access extends WP_UnitTestCase {
 				'post_status' => 'publish',
 			)
 		);
-		update_post_meta( $valid_one, '_artist_member_ids', array( $user_id ) );
-		update_post_meta( $valid_two, '_artist_member_ids', array( (string) $user_id ) );
-		update_post_meta( $wrong_type, '_artist_member_ids', array( $user_id ) );
-		update_post_meta( $private, '_artist_member_ids', array( $user_id ) );
-		update_post_meta( $deleted, '_artist_member_ids', array( $user_id ) );
 		wp_delete_post( $deleted, true );
 		restore_current_blog();
 
-		update_user_meta( $user_id, '_artist_profile_ids', array( $valid_one, $one_sided, $wrong_type, $private, $deleted, $valid_two ) );
+		ec_users_tests_set_user_artists( $user_id, array( $valid_one, $wrong_type, $private, $deleted, $valid_two ) );
+		ec_users_tests_set_artist_members( $one_sided, array() );
 		$this->assertSame( array( $valid_one, $valid_two ), ec_get_artists_for_user( $user_id ) );
 	}
 

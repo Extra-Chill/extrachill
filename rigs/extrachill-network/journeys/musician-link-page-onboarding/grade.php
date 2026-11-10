@@ -82,7 +82,7 @@ if ( $live_user ) {
 			'blogs'                => array_map( 'intval', array_keys( get_blogs_of_user( $live_user->ID ) ) ),
 		)
 	);
-	$live_artists = get_user_meta( $live_user->ID, '_artist_profile_ids', true );
+	$live_artists = ec_get_artists_for_user( $live_user->ID );
 	musician_journey_record(
 		$results,
 		'join-funnel-reaches-artist-profile',
@@ -100,7 +100,7 @@ foreach ( array(
 	'promoter' => 'porch-promoter-live@example.test',
 ) as $intent_id => $email ) {
 	$member = get_user_by( 'email', $email );
-	$ids    = $member ? get_user_meta( $member->ID, '_artist_profile_ids', true ) : array();
+	$ids    = $member ? ec_get_artists_for_user( $member->ID ) : array();
 	musician_journey_record(
 		$results,
 		'join-' . $intent_id . '-not-routed-to-artist',
@@ -118,7 +118,7 @@ foreach ( array(
 // ---------------------------------------------------------------------------
 // Fixture musician: artist profile + Link Page + edits.
 // ---------------------------------------------------------------------------
-$artist_ids = get_user_meta( $musician_id, '_artist_profile_ids', true );
+$artist_ids = ec_get_artists_for_user( $musician_id );
 $artist_ids = is_array( $artist_ids ) ? array_map( 'intval', $artist_ids ) : array();
 musician_journey_record(
 	$results,

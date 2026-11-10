@@ -28,8 +28,8 @@ add_action(
 			return;
 		}
 		$fixture    = get_site_option( 'ec_rig_journey_fixture_musician_link_page_onboarding', array() );
-		$artist_ids = (array) get_user_meta( 601, '_artist_profile_ids', true );
-		$artist_id  = (int) end( $artist_ids );
+		$artist_ids = ec_get_artists_for_user( 601 );
+		$artist_id  = $artist_ids ? (int) max( $artist_ids ) : 0;
 		$pages      = ec_with_link_page_storage_blog(
 			static function () use ( $fixture, $artist_id ) {
 				$found = array();
