@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This file records notable changes in this theme.
 
+## [2.18.0] - 2026-11-10
+
+### Added
+- guest list access modes and host door view
+
 ## [2.17.0] - 2026-11-08
 
 ### Added
