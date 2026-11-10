@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.1] - 2026-11-10
+
+### Changed
+- artist membership as a network team type
+
 ## [0.52.0] - 2026-11-08
 
 ### Added
