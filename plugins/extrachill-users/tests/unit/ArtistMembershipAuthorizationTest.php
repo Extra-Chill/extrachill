@@ -47,9 +47,13 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 	}
 
 	private function set_artist_members( int $artist_id, array $user_ids ): void {
-		switch_to_blog( $this->artist_blog_id );
-		update_post_meta( $artist_id, '_artist_member_ids', $user_ids );
-		restore_current_blog();
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		foreach ( $repository->select( 'artist', array( 'term' => $artist_id, 'status' => 'active' ), 'id ASC' ) as $row ) {
+			$repository->mutate( 'artist', $artist_id, (int) $row['user_id'], (int) $row['version'], null, true, 0 );
+		}
+		foreach ( $user_ids as $user_id ) {
+			$repository->insert( 'artist', $repository->new_row( 'artist', $artist_id, $user_id, true, 0 ) );
+		}
 	}
 
 	public function test_valid_reciprocal_membership_can_manage_artist(): void {
@@ -66,7 +70,9 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 		$artist_side_id = self::factory()->user->create();
 		$artist_id      = $this->create_artist( self::factory()->user->create() );
 		update_user_meta( $user_side_id, '_artist_profile_ids', array( $artist_id ) );
-		$this->set_artist_members( $artist_id, array( $artist_side_id ) );
+		switch_to_blog( $this->artist_blog_id );
+		update_post_meta( $artist_id, '_artist_member_ids', array( $artist_side_id ) );
+		restore_current_blog();
 
 		$this->assertFalse( ec_can_manage_artist( $user_side_id, $artist_id ) );
 		$this->assertFalse( ec_can_manage_artist( $artist_side_id, $artist_id ) );

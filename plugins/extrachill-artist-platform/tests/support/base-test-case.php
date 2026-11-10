@@ -329,17 +329,8 @@ abstract class EC_Artist_Platform_TestCase extends WP_UnitTestCase {
 	 * @param int $artist_id Artist profile post ID.
 	 */
 	protected function create_artist_membership( int $user_id, int $artist_id ): void {
-		switch_to_blog( $this->artist_blog_id() );
-		$members   = get_post_meta( $artist_id, '_artist_member_ids', true );
-		$members   = is_array( $members ) ? $members : array();
-		$members[] = $user_id;
-		update_post_meta( $artist_id, '_artist_member_ids', array_map( 'intval', array_unique( $members ) ) );
-		restore_current_blog();
-
-		$profiles   = get_user_meta( $user_id, '_artist_profile_ids', true );
-		$profiles   = is_array( $profiles ) ? $profiles : array();
-		$profiles[] = $artist_id;
-		update_user_meta( $user_id, '_artist_profile_ids', array_map( 'intval', array_unique( $profiles ) ) );
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$repository->insert( 'artist', $repository->new_row( 'artist', $artist_id, $user_id, true, 0 ) );
 	}
 
 	/**
