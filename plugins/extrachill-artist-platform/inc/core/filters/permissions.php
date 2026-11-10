@@ -101,13 +101,7 @@ function ec_user_can_manage_artist_object( $user_id, $artist_id ) {
 		return true;
 	}
 
-	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-	$artist_user_ids = get_post_meta( $artist_id, '_artist_member_ids', true );
-
-	return is_array( $user_artist_ids )
-		&& is_array( $artist_user_ids )
-		&& in_array( (int) $artist_id, array_map( 'intval', $user_artist_ids ), true )
-		&& in_array( (int) $user_id, array_map( 'intval', $artist_user_ids ), true );
+	return ec_can_manage_artist( $user_id, $artist_id );
 }
 
 /**

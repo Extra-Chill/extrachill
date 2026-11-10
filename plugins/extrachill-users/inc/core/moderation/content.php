@@ -82,7 +82,7 @@ function extrachill_users_get_user_content_objects( int $user_id ): array {
 
 function extrachill_users_get_owned_artist_platform_objects( int $user_id ): array {
 	$objects            = array();
-	$artist_profile_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+	$artist_profile_ids = ec_get_artists_for_user( $user_id );
 
 	if ( ! is_array( $artist_profile_ids ) || empty( $artist_profile_ids ) ) {
 		return $objects;

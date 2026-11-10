@@ -483,11 +483,12 @@ function extrachill_api_get_orphaned_relationships() {
 
 	switch_to_blog( $artist_blog_id );
 
-	$all_users      = get_users( array( 'meta_key' => '_artist_profile_ids' ) );
+	$all_users      = get_users();
 	$orphaned_users = array();
 
 	foreach ( $all_users as $user ) {
-		$artist_ids = get_user_meta( $user->ID, '_artist_profile_ids', true );
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$artist_ids = $repository->term_ids( 'artist', array( 'user_id' => (int) $user->ID, 'status' => 'active' ) );
 		if ( ! is_array( $artist_ids ) ) {
 			continue;
 		}
@@ -522,10 +523,7 @@ function extrachill_api_cleanup_orphan( $request ) {
 	$user_id   = (int) $request->get_param( 'user_id' );
 	$artist_id = (int) $request->get_param( 'artist_id' );
 
-	// Route through the canonical two-sided remover so both sides of the
-	// relationship stay in sync: _artist_profile_ids (user meta) AND
-	// _artist_member_ids (artist post meta). Editing only the user side
-	// here would leave a stale link on the artist roster — a new orphan.
+	// Revoke through the canonical network membership primitive.
 	if ( function_exists( 'ec_remove_artist_membership' ) ) {
 		ec_remove_artist_membership( $user_id, $artist_id );
 	}

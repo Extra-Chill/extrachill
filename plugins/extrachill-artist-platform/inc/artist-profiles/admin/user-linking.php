@@ -122,8 +122,9 @@ function ec_get_orphaned_artist_relationships() {
 	$orphans = array();
 	switch_to_blog( $artist_blog_id );
 	try {
-		foreach ( get_users( array( 'meta_key' => '_artist_profile_ids' ) ) as $user ) {
-			$artist_ids = get_user_meta( $user->ID, '_artist_profile_ids', true );
+		foreach ( get_users() as $user ) {
+			$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+			$artist_ids = $repository->term_ids( 'artist', array( 'user_id' => (int) $user->ID, 'status' => 'active' ) );
 			if ( ! is_array( $artist_ids ) ) {
 				continue;
 			}
