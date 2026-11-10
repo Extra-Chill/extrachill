@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.0] - 2026-11-10
+
+### Added
+- raise MCP ceiling to public with signed-in guard and entitlement seam
+
 ## [0.11.2] - 2026-11-05
 
 ### Changed
