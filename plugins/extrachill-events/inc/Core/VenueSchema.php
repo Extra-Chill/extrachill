@@ -15,7 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once __DIR__ . '/NetworkTeamMembersMigration.php';
 
 /** Owns and verifies the site-scoped private venue schema. */
 class VenueSchema {
@@ -89,11 +88,6 @@ class VenueSchema {
 				self::record_failure( $retired );
 				return $retired;
 			}
-		}
-
-		$copy = NetworkTeamMembersMigration::copy_legacy();
-		if ( is_wp_error( $copy ) ) {
-			return $copy;
 		}
 
 		// Adopt an already-current venue schema without touching production data.
@@ -229,7 +223,7 @@ class VenueSchema {
 	/** Install only when the stored schema version is stale. */
 	public static function maybe_install() {
 		if ( self::SCHEMA_VERSION === (string) get_option( self::VERSION_OPTION, '' ) ) {
-			return NetworkTeamMembersMigration::copy_legacy();
+			return true;
 		}
 		return self::install();
 	}

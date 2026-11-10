@@ -11,7 +11,6 @@ use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\VenueSchema;
 
 require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once __DIR__ . '/../../../inc/Core/NetworkTeamMembersMigration.php';
 require_once __DIR__ . '/../../../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueAuthorization.php';
