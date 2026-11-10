@@ -58,6 +58,18 @@ if ( ! function_exists( 'sanitize_textarea_field' ) ) {
 	}
 }
 
+if ( ! function_exists( 'sanitize_key' ) ) {
+	function sanitize_key( $key ) {
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
+	}
+}
+
+if ( ! function_exists( 'wp_hash_password' ) ) {
+	function wp_hash_password( $password ) {
+		return password_hash( (string) $password, PASSWORD_BCRYPT, array( 'cost' => 4 ) );
+	}
+}
+
 if ( ! function_exists( 'extrachill_cache_purge_post' ) ) {
 	function extrachill_cache_purge_post( $post_id ) {
 		$GLOBALS['event_perk_test']['purged'][] = (int) $post_id;
@@ -159,6 +171,45 @@ final class EventPerkTest extends PHPUnit\Framework\TestCase {
 
 		$this->assertFalse( extrachill_events_perk_enabled( 42 ) );
 		$this->assertSame( '', extrachill_events_get_perk_text( 42 ) );
+	}
+
+	public function test_save_stores_the_guest_list_mode(): void {
+		$_POST = $this->post_save_request(
+			array(
+				'extrachill_event_perk_enabled' => '1',
+				'extrachill_event_perk_mode'    => 'host_list',
+			)
+		);
+		extrachill_events_save_event_perk( 42 );
+
+		$this->assertSame( 'host_list', extrachill_events_get_perk_mode( 42 ) );
+	}
+
+	public function test_save_password_mode_without_a_password_keeps_the_current_mode(): void {
+		$_POST = $this->post_save_request(
+			array(
+				'extrachill_event_perk_enabled' => '1',
+				'extrachill_event_perk_mode'    => 'password',
+			)
+		);
+		extrachill_events_save_event_perk( 42 );
+
+		$this->assertSame( 'going', extrachill_events_get_perk_mode( 42 ) );
+		$this->assertTrue( extrachill_events_perk_enabled( 42 ), 'The rest of the save still applies.' );
+	}
+
+	public function test_save_password_mode_with_a_password(): void {
+		$_POST = $this->post_save_request(
+			array(
+				'extrachill_event_perk_enabled'  => '1',
+				'extrachill_event_perk_mode'     => 'password',
+				'extrachill_event_perk_password' => 'spooky',
+			)
+		);
+		extrachill_events_save_event_perk( 42 );
+
+		$this->assertSame( 'password', extrachill_events_get_perk_mode( 42 ) );
+		$this->assertTrue( extrachill_events_perk_password_required( 42 ) );
 	}
 
 	public function test_save_is_rejected_without_a_valid_nonce(): void {

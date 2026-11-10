@@ -1625,9 +1625,9 @@ Notice System - 3 Tiers Using Theme Colors
 }
 
 /* Button Styles */
-a.button-1, a.button-2, a.button-3, a.button-danger,
-input.button-1, input.button-2, input.button-3, input.button-danger,
-button.button-1, button.button-2, button.button-3, button.button-danger {
+a.button-1, a.button-2, a.button-3, a.button-danger, a.button-success,
+input.button-1, input.button-2, input.button-3, input.button-danger, input.button-success,
+button.button-1, button.button-2, button.button-3, button.button-danger, button.button-success {
   border: none;
   border-radius: var(--border-radius-sm);
   cursor: pointer;
@@ -1697,6 +1697,30 @@ input.button-danger:hover,
 button.button-danger:hover {
   background-color: var(--error-color);
   opacity: 0.8;
+}
+
+/* Positive confirmations, e.g. door Check in and Checked in (extrachill#1246). */
+.button-success,
+a.button-success,
+input.button-success,
+button.button-success {
+  background-color: var(--success-color);
+  color: var(--button-text-color);
+}
+
+.button-success:hover,
+a.button-success:hover,
+input.button-success:hover,
+button.button-success:hover {
+  background-color: var(--success-color);
+  opacity: 0.8;
+}
+
+.button-success:disabled,
+button.button-success:disabled {
+  background-color: var(--success-color);
+  cursor: default;
+  opacity: 1;
 }
 
 .button-small,

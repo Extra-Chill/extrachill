@@ -62,18 +62,21 @@ function extrachill_events_render_rsvp_pass_card( $post_id, $ticket_url, $timing
 		}
 	}
 
-	// Guest list (extrachill#433): a password-gated list lives on its own
-	// /guest-list page, so the public event page shows nothing about it —
-	// except a member's own pass, when they already hold one.
-	$password_required = extrachill_events_perk_password_required( $post_id );
-	if ( $password_required && ! $has_pass ) {
+	// Guest list (extrachill#433, #1246): a curated list (password or
+	// host_list mode) lives on its own /guest-list page, so the public event
+	// page shows nothing about it — except a member's own pass, when they
+	// already hold one.
+	$gated = extrachill_events_guest_list_is_gated( $post_id );
+	if ( $gated && ! $has_pass ) {
 		return;
 	}
 
 	$event_id   = $post_id;
 	$perk_text  = extrachill_events_get_perk_text( $post_id );
-	$guest_form = ! is_user_logged_in() && ! $password_required;
+	$guest_form = ! is_user_logged_in() && ! $gated;
 	$guest_list = extrachill_events_get_guest_list_counts( $post_id );
+	// Read by templates/rsvp-pass.php; only reached here with a pass in hand.
+	$password_required = $gated;
 
 	$perk_image_url = function_exists( 'extrachill_events_get_pass_image_url' ) ? extrachill_events_get_pass_image_url( $post_id ) : '';
 	$perk_image_alt = '' !== $perk_image_url ? extrachill_events_get_pass_image_alt( $post_id ) : '';
@@ -121,10 +124,46 @@ function extrachill_events_append_door_list( $content ) {
 		return $content;
 	}
 
-	$perk_enabled = extrachill_events_perk_enabled( $post_id );
+	$door_list      = extrachill_events_get_door_list_rows( (int) $post_id );
+	$event_id       = $post_id;
+	$perk_enabled   = $door_list['perk_enabled'];
+	$perk_text      = $door_list['perk_text'];
+	$guest_list     = $door_list['guest_list'];
+	$guest_list_url = $door_list['guest_list_url'];
+	$rows           = $door_list['rows'];
+	$guest_rows     = $door_list['guest_rows'];
+	$door_rows      = $door_list['door_rows'];
 
-	$attendees = ec_users_get_event_attendees_full( $post_id );
-	$passes    = $perk_enabled ? \ExtraChillEvents\Core\RsvpPassesTable::list_for_event( $post_id ) : array();
+	// The type-to-filter box lives in the host panel script; the panel
+	// usually enqueued it already.
+	if ( $door_rows && ! wp_script_is( 'ec-guest-list-management', 'enqueued' ) ) {
+		wp_enqueue_script( 'ec-guest-list-management', EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/guest-list-management.js', array(), EXTRACHILL_EVENTS_VERSION, true );
+	}
+
+	ob_start();
+	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';
+	$door_list_html = ob_get_clean();
+
+	return $content . $door_list_html;
+}
+add_filter( 'the_content', 'extrachill_events_append_door_list', 20 );
+
+/**
+ * Everything the door renders for an event: account RSVPs with their pass
+ * state, account-less guests (comps, band adds, password claims, tickets),
+ * and the venue's and promoter's standing lists, merged A to Z.
+ *
+ * Shared by the event-page door list and the /guest-list host door view
+ * (extrachill#1246). Authorization is the caller's job.
+ *
+ * @param int $event_id Event post ID.
+ * @return array{perk_enabled: bool, perk_text: string, guest_list: array, guest_list_url: string, rows: array[], guest_rows: array[], door_rows: array[]}
+ */
+function extrachill_events_get_door_list_rows( int $event_id ): array {
+	$perk_enabled = extrachill_events_perk_enabled( $event_id );
+
+	$attendees = function_exists( 'ec_users_get_event_attendees_full' ) ? (array) ec_users_get_event_attendees_full( $event_id ) : array();
+	$passes    = $perk_enabled && class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ? \ExtraChillEvents\Core\RsvpPassesTable::list_for_event( $event_id ) : array();
 
 	$rows = array();
 	foreach ( $attendees as $attendee ) {
@@ -143,21 +182,20 @@ function extrachill_events_append_door_list( $content ) {
 		);
 	}
 
-	$event_id       = $post_id;
-	$perk_text      = extrachill_events_get_perk_text( $post_id );
-	$guest_list     = $perk_enabled ? extrachill_events_get_guest_list_counts( $post_id ) : array();
-	$guest_list_url = ( function_exists( 'extrachill_events_has_guest_list_page' ) && extrachill_events_has_guest_list_page( $post_id ) )
-		? extrachill_events_guest_list_url( $post_id )
+	$perk_text      = extrachill_events_get_perk_text( $event_id );
+	$guest_list     = $perk_enabled ? extrachill_events_get_guest_list_counts( $event_id ) : array();
+	$guest_list_url = ( function_exists( 'extrachill_events_has_guest_list_page' ) && extrachill_events_has_guest_list_page( $event_id ) )
+		? extrachill_events_guest_list_url( $event_id )
 		: '';
 	// Each row carries its source: the invited band or management that
 	// added it (extrachill#1128), or the host who comped it (#1119).
 	$guest_rows = ( '' !== $guest_list_url && function_exists( 'extrachill_events_door_list_guest_rows' ) )
-		? extrachill_events_door_list_guest_rows( $post_id )
+		? extrachill_events_door_list_guest_rows( $event_id )
 		: array();
 	// The venue's and promoter's standing lists (extrachill#1130) work at
 	// every show they're tagged on, guest list perk or not.
 	if ( function_exists( 'extrachill_events_owner_list_door_rows' ) && class_exists( '\\ExtraChillEvents\\Core\\OwnerGuestListTable' ) ) {
-		$guest_rows = array_merge( $guest_rows, extrachill_events_owner_list_door_rows( $post_id ) );
+		$guest_rows = array_merge( $guest_rows, extrachill_events_owner_list_door_rows( $event_id ) );
 	}
 
 	// One A to Z list for the door: accounts, guests, and owner's lists
@@ -171,19 +209,16 @@ function extrachill_events_append_door_list( $content ) {
 	}
 	$door_rows = function_exists( 'extrachill_events_sort_guest_rows' ) ? extrachill_events_sort_guest_rows( $door_rows ) : $door_rows;
 
-	// The type-to-filter box lives in the host panel script; the panel
-	// usually enqueued it already.
-	if ( $door_rows && ! wp_script_is( 'ec-guest-list-management', 'enqueued' ) ) {
-		wp_enqueue_script( 'ec-guest-list-management', EXTRACHILL_EVENTS_PLUGIN_URL . 'assets/js/guest-list-management.js', array(), EXTRACHILL_EVENTS_VERSION, true );
-	}
-
-	ob_start();
-	include EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/door-list.php';
-	$door_list_html = ob_get_clean();
-
-	return $content . $door_list_html;
+	return array(
+		'perk_enabled'   => $perk_enabled,
+		'perk_text'      => $perk_text,
+		'guest_list'     => $guest_list,
+		'guest_list_url' => $guest_list_url,
+		'rows'           => $rows,
+		'guest_rows'     => $guest_rows,
+		'door_rows'      => $door_rows,
+	);
 }
-add_filter( 'the_content', 'extrachill_events_append_door_list', 20 );
 
 /**
  * Enqueue the pass-watcher / door-list / verify-redeem script.
@@ -220,9 +255,10 @@ function extrachill_events_enqueue_rsvp_pass_assets() {
 
 	// Logged-out visitors get the email-only guest RSVP form, gated by
 	// Turnstile at the extrachill-api route.
-	$gated      = $post_id && extrachill_events_perk_password_required( $post_id );
+	$gated      = $post_id && extrachill_events_guest_list_is_gated( $post_id );
 	$guest_form = ! $is_verify_page && ! $gated && ! is_user_logged_in();
-	if ( ( $guest_form || $is_guest_list ) && function_exists( 'ec_enqueue_turnstile_script' ) ) {
+	$claim_form = $is_guest_list && $post_id && extrachill_events_guest_list_accepts_claims( $post_id );
+	if ( ( $guest_form || $claim_form ) && function_exists( 'ec_enqueue_turnstile_script' ) ) {
 		ec_enqueue_turnstile_script();
 	}
 

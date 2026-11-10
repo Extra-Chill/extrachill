@@ -134,8 +134,8 @@ function extrachill_events_create_guest_list_party( int $event_id, string $name,
 		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
-	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_perk_password_required( $event_id ) ) {
-		return new WP_Error( 'guest_list_unavailable', __( 'Turn on the guest list (set a password and save) before inviting bands.', 'extrachill-events' ), array( 'status' => 409 ) );
+	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_guest_list_is_gated( $event_id ) ) {
+		return new WP_Error( 'guest_list_unavailable', __( 'Turn on the guest list (host list or password mode) and save before inviting bands.', 'extrachill-events' ), array( 'status' => 409 ) );
 	}
 
 	$name = extrachill_events_guest_list_clean_name( $name );

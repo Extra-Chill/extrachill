@@ -250,7 +250,7 @@ describe( 'RSVP door list redeem', () => {
 		delete global.ecRsvpPass;
 	} );
 
-	it( 'replaces the Redeem button with a redeemed status on success', async () => {
+	it( 'replaces the Check in button with a ✅ and a green Checked in state on success', async () => {
 		mockApiFetch( () =>
 			Promise.resolve( {
 				already_redeemed: false,
@@ -273,9 +273,48 @@ describe( 'RSVP door list redeem', () => {
 			} )
 		);
 		expect( document.querySelector( '.ec-door-list__redeem' ) ).toBeNull();
+		const checkedIn = document.querySelector( '.ec-door-list__checked-in' );
+		expect( checkedIn.textContent ).toBe( 'Checked in' );
+		expect( checkedIn.disabled ).toBe( true );
+		expect( checkedIn.classList.contains( 'button-success' ) ).toBe( true );
+		expect( checkedIn.classList.contains( 'button-small' ) ).toBe( true );
+		expect( checkedIn.title ).toBe( 'Checked in 2026-10-21 19:05:00' );
 		expect(
-			document.querySelector( '.ec-door-list__status' ).textContent
-		).toBe( 'Redeemed 2026-10-21 19:05:00' );
+			document.querySelector( '.ec-door-list__name .ec-door-list__check' )
+				.textContent
+		).toBe( '✅' );
+	} );
+
+	it( 'keeps the big button size in the /guest-list door view and adds one ✅', async () => {
+		document.body.innerHTML = `
+			<div class="ec-guest-list-door ec-door-list" data-event-id="42">
+				<ul class="ec-door-list__rows">
+					<li class="ec-door-list__row">
+						<span class="ec-door-list__name">Jane Doe</span>
+						<button type="button" class="button-success button-large ec-door-list__redeem" data-pass-code="ABCD-EFGH">Check in</button>
+					</li>
+				</ul>
+			</div>`;
+		mockApiFetch( () =>
+			Promise.resolve( { already_redeemed: true, redeemed_at: '' } )
+		);
+		loadRsvpPass( {} );
+
+		document
+			.querySelector( '.ec-door-list__redeem' )
+			.dispatchEvent( new Event( 'click', { bubbles: true } ) );
+		await flushPromises();
+
+		expect( global.wp.apiFetch ).toHaveBeenCalledWith(
+			expect.objectContaining( {
+				data: { input: { event_id: 42, code: 'ABCD-EFGH' } },
+			} )
+		);
+		const checkedIn = document.querySelector( '.ec-door-list__checked-in' );
+		expect( checkedIn.classList.contains( 'button-large' ) ).toBe( true );
+		expect(
+			document.querySelectorAll( '.ec-door-list__check' )
+		).toHaveLength( 1 );
 	} );
 
 	it( 're-enables the Redeem button when the request fails', async () => {

@@ -13,6 +13,10 @@ If the venue, promoter, or band gave you a guest list link and a password:
 
 The page tells you how many spots are left. If you see "The guest list is full," every spot is taken. If you see "That password isn't right," check the password with whoever gave it to you.
 
+## If the Host Manages the List
+
+Some guest lists are run by the host only. The guest list page says "This guest list is managed by the host." There's no password to enter. Ask the venue, promoter, or band to add your name, and they'll send you a pass link.
+
 ## If Someone Added You
 
 When a host or a band puts you on the list, you don't need the password. They'll text you a pass link or the pass will arrive by email. Open the link on your phone and your pass appears.

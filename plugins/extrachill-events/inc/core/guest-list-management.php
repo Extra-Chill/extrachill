@@ -132,7 +132,6 @@ function extrachill_events_save_guest_list_management(): void {
 	$input                       = array(
 		'event'              => (string) $event_id,
 		'enabled'            => true,
-		'text'               => extrachill_events_get_perk_text( $event_id ),
 		'capacity'           => isset( $_POST['capacity'] ) ? absint( $_POST['capacity'] ) : 0,
 		// Unchecked box = off: the checkbox always renders with this form.
 		'allotments_enabled' => ! empty( $_POST['allotments_enabled'] ),
@@ -150,6 +149,10 @@ function extrachill_events_save_guest_list_management(): void {
 	$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are hashed, not sanitized.
 	if ( '' !== $password ) {
 		$input['password'] = $password;
+	}
+	$mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : '';
+	if ( '' !== $mode ) {
+		$input['mode'] = $mode;
 	}
 
 	if ( ! empty( $_POST['remove_pass_image'] ) ) {
@@ -291,6 +294,86 @@ function extrachill_events_add_guest_list_name_from_panel(): void {
 	exit;
 }
 add_action( 'admin_post_ec_guest_list_add', 'extrachill_events_add_guest_list_name_from_panel' );
+
+/**
+ * Door view "Add names" form (extrachill#1246): a pasted list and/or a
+ * CSV/TXT upload, one name per line, through extrachill/add-guest-list-names.
+ * The upload is read as text and parsed server-side; it is never stored.
+ */
+function extrachill_events_bulk_add_guest_list_names_from_door(): void {
+	$event_id = isset( $_POST['event_id'] ) ? absint( $_POST['event_id'] ) : 0;
+	check_admin_referer( 'ec_guest_list_bulk_add_' . $event_id );
+
+	$totals  = array(
+		'added'          => 0,
+		'already_listed' => 0,
+		'not_added'      => 0,
+	);
+	$batches = array();
+
+	$pasted = isset( $_POST['names'] ) ? sanitize_textarea_field( wp_unslash( $_POST['names'] ) ) : '';
+	if ( '' !== trim( $pasted ) ) {
+		$batches[] = array( $pasted, 'text' );
+	}
+
+	$file = $_FILES['names_file'] ?? null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Upload metadata; contents are parsed as text, never stored as a file.
+	if ( is_array( $file ) && UPLOAD_ERR_NO_FILE !== (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+		$extension = strtolower( (string) pathinfo( (string) ( $file['name'] ?? '' ), PATHINFO_EXTENSION ) );
+		if ( UPLOAD_ERR_OK !== (int) $file['error'] || ! is_uploaded_file( (string) $file['tmp_name'] ) || ! in_array( $extension, array( 'csv', 'txt' ), true ) ) {
+			wp_die(
+				esc_html__( 'Upload a .csv or .txt file with one name per line.', 'extrachill-events' ),
+				'',
+				array(
+					'response'  => 400,
+					'back_link' => true,
+				)
+			);
+		}
+		if ( (int) $file['size'] > EXTRACHILL_EVENTS_GUEST_LIST_BULK_MAX_BYTES ) {
+			wp_die(
+				esc_html__( 'That file is too large. Upload a list of names only.', 'extrachill-events' ),
+				'',
+				array(
+					'response'  => 413,
+					'back_link' => true,
+				)
+			);
+		}
+		$batches[] = array(
+			(string) file_get_contents( (string) $file['tmp_name'] ), // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading the PHP upload temp file.
+			'csv' === $extension ? 'csv' : 'text',
+		);
+	}
+
+	if ( ! $batches ) {
+		wp_die(
+			esc_html__( 'Paste names or choose a file, one name per line.', 'extrachill-events' ),
+			'',
+			array(
+				'response'  => 400,
+				'back_link' => true,
+			)
+		);
+	}
+
+	foreach ( $batches as $batch ) {
+		$result = extrachill_events_run_guest_list_form_ability(
+			'extrachill/add-guest-list-names',
+			array(
+				'event_id' => $event_id,
+				'names'    => $batch[0],
+				'format'   => $batch[1],
+			)
+		);
+		foreach ( array_keys( $totals ) as $key ) {
+			$totals[ $key ] += (int) ( $result[ $key ] ?? 0 );
+		}
+	}
+
+	wp_safe_redirect( add_query_arg( 'ec_names_added', implode( '.', $totals ), extrachill_events_guest_list_url( $event_id ) ) . '#ec-guest-list-door' );
+	exit;
+}
+add_action( 'admin_post_ec_guest_list_bulk_add', 'extrachill_events_bulk_add_guest_list_names_from_door' );
 
 /**
  * Host panel "Bring your Eventbrite list" upload, through

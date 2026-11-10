@@ -199,6 +199,8 @@ require_once dirname( __DIR__, 3 ) . '/inc/admin/event-perks.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/RsvpPassesTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-service.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/rsvp-guest-service.php';
+require_once dirname( __DIR__, 3 ) . '/inc/core/guest-list-sort.php';
+require_once dirname( __DIR__, 3 ) . '/inc/core/guest-list-bulk-add.php';
 
 /** Stateful $wpdb matching RsvpPassesTable's query shapes, plus GET_LOCK and the count query. */
 final class RsvpGuestListFakeWpdb {
@@ -666,9 +668,119 @@ final class RsvpGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertSame( 'invalid_email', extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', 'nope', 38 )->get_error_code() );
 		$this->assertSame( 'event_not_found', extrachill_events_add_guest_list_name( 999, 'Jake', '', 38 )->get_error_code() );
 
-		extrachill_events_set_perk_password( self::EVENT_ID, '' );
+		unset( $GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ]['_extrachill_event_perk_enabled'] );
 		$this->assertSame( 'guest_list_unavailable', extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 )->get_error_code() );
 		$this->assertSame( array(), $this->db->rows, 'Rejected adds leave no trace.' );
+	}
+
+	/**
+	 * Hosts add names in every mode (extrachill#1246), with no password
+	 * involved: host_list, password, and going (no password at all).
+	 *
+	 * @dataProvider every_mode
+	 */
+	public function test_adding_a_guest_works_in_every_mode( string $mode, bool $keep_password ): void {
+		if ( ! $keep_password ) {
+			extrachill_events_set_perk_password( self::EVENT_ID, '' );
+		}
+		extrachill_events_set_perk_mode( self::EVENT_ID, $mode );
+
+		$pass = extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 );
+
+		$this->assertIsArray( $pass );
+		$this->assertSame( 'Jake', $pass['name'] );
+		$this->assertCount( 1, $this->db->rows );
+	}
+
+	/** @return array<string, array{0: string, 1: bool}> */
+	public function every_mode(): array {
+		return array(
+			'host_list, no password'  => array( 'host_list', false ),
+			'host_list, old password' => array( 'host_list', true ),
+			'password'                => array( 'password', true ),
+			'going, no password'      => array( 'going', false ),
+		);
+	}
+
+	public function test_bulk_add_dedupes_against_the_batch_and_the_list(): void {
+		extrachill_events_set_perk_capacity( self::EVENT_ID, 0 );
+		extrachill_events_apply_perk_access( self::EVENT_ID, 'host_list', null, true );
+		extrachill_events_add_guest_list_name( self::EVENT_ID, 'Jake', '', 38 );
+
+		$result = extrachill_events_add_guest_list_names( self::EVENT_ID, "Jane Doe\n\n jane  doe \nJAKE\nSam\n", 'text', 38 );
+
+		$this->assertSame( 2, $result['added'] );
+		$this->assertSame( 2, $result['already_listed'], 'A repeat in the batch and a name already on the list.' );
+		$this->assertSame( 0, $result['not_added'] );
+		$this->assertSame( array( 'Jane Doe', 'Sam' ), $result['names'] );
+		$this->assertSame( array( 'Jake', 'Jane Doe', 'Sam' ), array_column( $this->db->rows, 'guest_name' ) );
+		$this->assertSame( 38, (int) $this->db->rows[1]['issued_by_user_id'] );
+
+		$again = extrachill_events_add_guest_list_names( self::EVENT_ID, "Jane Doe\nSam", 'text', 38 );
+		$this->assertSame( 0, $again['added'], 'Re-sending the same list adds nothing.' );
+	}
+
+	public function test_bulk_add_reads_a_csv_upload(): void {
+		extrachill_events_set_perk_capacity( self::EVENT_ID, 0 );
+
+		$result = extrachill_events_add_guest_list_names( self::EVENT_ID, "Name,Email\n\"Doe, Jane\",jane@example.com\nSam,\n", 'csv', 38 );
+
+		$this->assertSame( array( 'Doe, Jane', 'Sam' ), $result['names'] );
+	}
+
+	public function test_bulk_add_stops_at_capacity_and_reports_the_rest(): void {
+		$result = extrachill_events_add_guest_list_names( self::EVENT_ID, "A\nB\nC\nD", 'text', 38 );
+
+		$this->assertSame( 2, $result['added'] );
+		$this->assertSame( 2, $result['not_added'] );
+		$this->assertCount( 2, $this->db->rows );
+	}
+
+	public function test_bulk_add_needs_names_and_a_guest_list(): void {
+		$this->assertSame( 'guest_names_required', extrachill_events_add_guest_list_names( self::EVENT_ID, "\n  \n", 'text', 38 )->get_error_code() );
+
+		unset( $GLOBALS['event_perk_test']['meta'][ self::EVENT_ID ]['_extrachill_event_perk_enabled'] );
+		$this->assertSame( 'guest_list_unavailable', extrachill_events_add_guest_list_names( self::EVENT_ID, 'Jake', 'text', 38 )->get_error_code() );
+		$this->assertSame( array(), $this->db->rows );
+	}
+
+	public function test_host_list_refuses_every_self_serve_claim(): void {
+		extrachill_events_apply_perk_access( self::EVENT_ID, 'host_list', null, true );
+
+		$claim = extrachill_events_issue_guest_list_pass( self::EVENT_ID, '', 'Sarah' );
+		$this->assertInstanceOf( WP_Error::class, $claim );
+		$this->assertSame( 'guest_list_host_managed', $claim->get_error_code() );
+
+		// Even the old password, had one been kept, claims nothing.
+		extrachill_events_set_perk_password( self::EVENT_ID, self::PASSWORD );
+		$this->assertSame( 'guest_list_host_managed', extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah' )->get_error_code() );
+		$this->assertSame( array(), $this->db->rows );
+	}
+
+	public function test_host_list_going_grants_nothing(): void {
+		extrachill_events_apply_perk_access( self::EVENT_ID, 'host_list', null, true );
+
+		$this->assertFalse( extrachill_events_rsvp_pass_may_issue( self::EVENT_ID, 7 ) );
+		extrachill_events_rsvp_pass_on_marked( 7, self::EVENT_ID, (int) get_current_blog_id() );
+		$this->assertSame( 0, extrachill_events_backfill_rsvp_passes( self::EVENT_ID ) );
+		$this->assertSame( array(), $this->db->rows );
+		$this->assertSame( array(), $GLOBALS['rsvp_pass_mail_test']['sent'] );
+	}
+
+	public function test_password_mode_still_claims_with_the_password(): void {
+		$this->assertSame( 'password', extrachill_events_get_perk_mode( self::EVENT_ID ), 'A legacy password list reads as password mode.' );
+		$this->assertSame( 'invalid_password', extrachill_events_issue_guest_list_pass( self::EVENT_ID, 'nope', 'Sarah' )->get_error_code() );
+		$this->assertIsArray( extrachill_events_issue_guest_list_pass( self::EVENT_ID, self::PASSWORD, 'Sarah' ) );
+		$this->assertFalse( extrachill_events_rsvp_pass_may_issue( self::EVENT_ID, 7 ), 'Going alone grants no spot on a password list.' );
+	}
+
+	public function test_going_mode_still_issues_on_going(): void {
+		extrachill_events_apply_perk_access( self::EVENT_ID, null, null, true );
+
+		$this->assertSame( 'going', extrachill_events_get_perk_mode( self::EVENT_ID ) );
+		$this->assertTrue( extrachill_events_rsvp_pass_may_issue( self::EVENT_ID, 7 ) );
+		extrachill_events_rsvp_pass_on_marked( 7, self::EVENT_ID, (int) get_current_blog_id() );
+		$this->assertCount( 1, $this->db->rows );
 	}
 
 	public function test_adding_a_guest_with_an_email_sends_the_pass(): void {

@@ -34,6 +34,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'templates/guest-list-management.php',
 		'inc/templates/rsvp-verify.php',
 		'inc/templates/guest-list.php',
+		'templates/guest-list-door.php',
 		'inc/templates/guest-list-invite.php',
 		'templates/owner-guest-list.php',
 		'inc/templates/owner-pass.php',
@@ -62,6 +63,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		'button-2',
 		'button-3',
 		'button-danger',
+		'button-success',
 		'button-small',
 		'button-medium',
 		'button-large',
@@ -116,30 +118,33 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 	 */
 	private const CSS_FREE_CLASSES = array(
 		// Container hook; visual treatment comes entirely from ec-surface-card.
-		'ec-door-list__perk'      => 'plain text; inherits theme typography',
-		'ec-door-list__name'      => 'plain text; inherits theme typography',
-		'ec-door-list__redeem'    => 'styled via button-2 button-small; hook for JS only',
-		'ec-rsvp-verify-page'     => 'page-level hook only; layout comes from extrachill-content',
-		'ec-rsvp-verify'          => 'JS/test hook; surface styling from ec-surface-card',
-		'ec-rsvp-verify__heading' => 'plain heading; inherits theme typography',
-		'ec-rsvp-verify__result'  => 'JS/test hook; data-* attribute carrier for the redeem script',
-		'ec-rsvp-verify__event'   => 'plain text; inherits theme typography',
-		'ec-rsvp-verify__name'    => 'plain text; inherits theme typography',
-		'ec-rsvp-verify__perk'    => 'plain text; inherits theme typography',
-		'ec-rsvp-verify__status'  => 'JS write target; plain text',
-		'ec-rsvp-verify__redeem'  => 'styled via button-2 button-large; hook for JS only',
-		'ec-rsvp-guest__status'   => 'JS write target; styled via notice + notice-success|notice-error set by JS',
-		'ec-door-list__count'     => 'plain text guest list count; inherits theme typography',
-		'ec-rsvp-verify__count'   => 'plain text guest list count; inherits theme typography',
-		'ec-guest-list-page'      => 'page-level hook only; layout comes from extrachill-content',
-		'ec-guest-list'           => 'JS hook and data-event-id carrier; surface styling from ec-surface-card',
-		'ec-guest-list__heading'  => 'plain heading; inherits theme typography',
-		'ec-guest-list__event'    => 'plain text event link; inherits theme typography',
-		'ec-guest-list__name'     => 'JS write target for the guest name; emphasis from ec-rsvp-pass__perk',
-		'ec-owner-pass-page'      => 'page-level hook only; layout comes from extrachill-content (extrachill#1130)',
-		'ec-owner-pass'           => 'test hook; surface styling from ec-surface-card',
-		'ec-owner-pass__name'     => 'plain heading; inherits theme typography',
-		'ec-owner-pass__list'     => 'plain text "Venue list: X"; inherits theme typography',
+		'ec-door-list__perk'       => 'plain text; inherits theme typography',
+		'ec-door-list__name'       => 'plain text; inherits theme typography',
+		'ec-door-list__redeem'     => 'styled via button-success button-small|button-large; hook for JS only',
+		'ec-door-list__checked-in' => 'styled via button-success (disabled); checked-in state hook (extrachill#1246)',
+		'ec-door-list__check'      => 'the ✅ before a checked-in name; plain emoji text',
+		'ec-guest-list-door'       => 'host door view hook on /guest-list; surface from ec-surface-card, rows from ec-door-list (extrachill#1246)',
+		'ec-rsvp-verify-page'      => 'page-level hook only; layout comes from extrachill-content',
+		'ec-rsvp-verify'           => 'JS/test hook; surface styling from ec-surface-card',
+		'ec-rsvp-verify__heading'  => 'plain heading; inherits theme typography',
+		'ec-rsvp-verify__result'   => 'JS/test hook; data-* attribute carrier for the redeem script',
+		'ec-rsvp-verify__event'    => 'plain text; inherits theme typography',
+		'ec-rsvp-verify__name'     => 'plain text; inherits theme typography',
+		'ec-rsvp-verify__perk'     => 'plain text; inherits theme typography',
+		'ec-rsvp-verify__status'   => 'JS write target; plain text',
+		'ec-rsvp-verify__redeem'   => 'styled via button-2 button-large; hook for JS only',
+		'ec-rsvp-guest__status'    => 'JS write target; styled via notice + notice-success|notice-error set by JS',
+		'ec-door-list__count'      => 'plain text guest list count; inherits theme typography',
+		'ec-rsvp-verify__count'    => 'plain text guest list count; inherits theme typography',
+		'ec-guest-list-page'       => 'page-level hook only; layout comes from extrachill-content',
+		'ec-guest-list'            => 'JS hook and data-event-id carrier; surface styling from ec-surface-card',
+		'ec-guest-list__heading'   => 'plain heading; inherits theme typography',
+		'ec-guest-list__event'     => 'plain text event link; inherits theme typography',
+		'ec-guest-list__name'      => 'JS write target for the guest name; emphasis from ec-rsvp-pass__perk',
+		'ec-owner-pass-page'       => 'page-level hook only; layout comes from extrachill-content (extrachill#1130)',
+		'ec-owner-pass'            => 'test hook; surface styling from ec-surface-card',
+		'ec-owner-pass__name'      => 'plain heading; inherits theme typography',
+		'ec-owner-pass__list'      => 'plain text "Venue list: X"; inherits theme typography',
 	);
 
 	/**
@@ -213,7 +218,7 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 
 		foreach ( $buttons[0] as $button ) {
 			$this->assertMatchesRegularExpression(
-				'/class="[^"]*\bbutton-(1|2|3|danger)\b/',
+				'/class="[^"]*\bbutton-(1|2|3|danger|success)\b/',
 				$button,
 				"{$template}: a button has no theme button class: {$button}"
 			);
@@ -236,9 +241,41 @@ class RsvpPassDesignSystemTest extends WP_UnitTestCase {
 		}
 	}
 
+	/**
+	 * The pinned theme button and notice classes really exist in the theme
+	 * stylesheet, so adding one here without its CSS fails
+	 * (button-success landed with extrachill#1246).
+	 */
+	public function test_theme_classes_exist_in_theme_stylesheet(): void {
+		$theme_css = dirname( EXTRACHILL_EVENTS_PLUGIN_DIR, 2 ) . '/themes/extrachill/style.css';
+		if ( ! is_readable( $theme_css ) ) {
+			$this->markTestSkipped( 'Theme stylesheet not available in this checkout.' );
+		}
+		$css = (string) file_get_contents( $theme_css ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level stylesheet read; local theme file.
+
+		foreach ( array( 'button-1', 'button-2', 'button-3', 'button-danger', 'button-success', 'button-small', 'button-medium', 'button-large' ) as $class ) {
+			$this->assertMatchesRegularExpression( '/\\.' . preg_quote( $class, '/' ) . '(?![a-z0-9_-])[^{]*\\{/', $css, "theme style.css has no rule for .{$class}" );
+		}
+	}
+
+	public function test_door_views_mark_checked_in_names(): void {
+		foreach ( array( 'templates/door-list.php', 'templates/guest-list-door.php' ) as $template ) {
+			$source = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . $template ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read; local plugin file.
+			$this->assertStringContainsString( '✅', $source, "{$template} shows a ✅ for checked-in names" );
+			$this->assertStringContainsString( 'button-success', $source, "{$template} uses the green button" );
+			$this->assertStringContainsString( 'ec-door-list__checked-in', $source, "{$template} renders a Checked in state" );
+			$this->assertStringContainsString( 'ec-door-list__redeem', $source, "{$template} wires Check in to the redeem script" );
+		}
+		$door = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-door.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level template read; local plugin file.
+		$this->assertStringContainsString( 'button-large', $door );
+		$this->assertStringContainsString( 'name="names_file"', $door );
+		$this->assertStringContainsString( 'name="names"', $door );
+		$this->assertStringContainsString( 'ec_guest_list_bulk_add', $door );
+	}
+
 	public function test_management_controls_cover_host_workflow(): void {
 		$source = (string) file_get_contents( EXTRACHILL_EVENTS_PLUGIN_DIR . 'templates/guest-list-management.php' );
-		foreach ( array( 'name="password"', 'name="capacity"', 'data-copy-guest-list', 'Download share QR', "\$counts['claimed']", "\$counts['checked_in']", "\$counts['spots_left']", '#ec-door-list', '/rsvp-verify/' ) as $required ) {
+		foreach ( array( 'extrachill_events_render_perk_mode_select', 'name="password"', 'name="capacity"', 'data-copy-guest-list', 'Download share QR', "\$counts['claimed']", "\$counts['checked_in']", "\$counts['spots_left']", '#ec-door-list', '/rsvp-verify/' ) as $required ) {
 			$this->assertStringContainsString( $required, $source );
 		}
 		$this->assertStringNotContainsString( 'style=', $source );

@@ -45,6 +45,25 @@ const EXTRACHILL_EVENTS_PERK_IMAGE_META = '_extrachill_event_perk_image_id';
 const EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META = '_extrachill_event_guest_list_allotments';
 
 /**
+ * Access mode (extrachill#1246): how people get on the list, separate from
+ * the password.
+ *
+ * - host_list: hosts add every name (by hand, chat, or upload). No password,
+ *   no public claim, and marking Going grants nothing.
+ * - password:  guests claim a pass on /guest-list with the password.
+ * - going:     marking Going issues the pass (the open RSVP perk).
+ *
+ * Events saved before modes existed have no stored mode. Their mode is
+ * derived when read (extrachill_events_perk_default_mode()): a password
+ * means `password`, otherwise `going`, which is exactly how they behaved.
+ * The derived mode is written the next time the guest list is saved.
+ */
+const EXTRACHILL_EVENTS_PERK_MODE_META      = '_extrachill_event_perk_mode';
+const EXTRACHILL_EVENTS_PERK_MODE_HOST_LIST = 'host_list';
+const EXTRACHILL_EVENTS_PERK_MODE_PASSWORD  = 'password';
+const EXTRACHILL_EVENTS_PERK_MODE_GOING     = 'going';
+
+/**
  * Whether an event currently offers an RSVP perk.
  *
  * @param int $post_id Event post ID.
@@ -109,6 +128,160 @@ function extrachill_events_set_perk_password( int $post_id, string $password ): 
 	}
 
 	update_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_PASSWORD_META, wp_hash_password( substr( $password, 0, EXTRACHILL_EVENTS_PERK_PASSWORD_MAX ) ) );
+}
+
+/**
+ * Every access mode, in the order hosts see them.
+ *
+ * @return string[]
+ */
+function extrachill_events_perk_modes(): array {
+	return array( EXTRACHILL_EVENTS_PERK_MODE_HOST_LIST, EXTRACHILL_EVENTS_PERK_MODE_PASSWORD, EXTRACHILL_EVENTS_PERK_MODE_GOING );
+}
+
+/**
+ * Mode for an event with no stored mode: the migration mapping. A password
+ * means the password claim; otherwise Going issues the pass.
+ *
+ * @param int $post_id Event post ID.
+ * @return string
+ */
+function extrachill_events_perk_default_mode( int $post_id ): string {
+	return extrachill_events_perk_password_required( $post_id ) ? EXTRACHILL_EVENTS_PERK_MODE_PASSWORD : EXTRACHILL_EVENTS_PERK_MODE_GOING;
+}
+
+/**
+ * The event's guest list access mode.
+ *
+ * @param int $post_id Event post ID.
+ * @return string One of extrachill_events_perk_modes().
+ */
+function extrachill_events_get_perk_mode( int $post_id ): string {
+	$mode = (string) get_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_MODE_META, true );
+
+	return in_array( $mode, extrachill_events_perk_modes(), true ) ? $mode : extrachill_events_perk_default_mode( $post_id );
+}
+
+/**
+ * Store the event's access mode.
+ *
+ * @param int    $post_id Event post ID.
+ * @param string $mode    One of extrachill_events_perk_modes().
+ * @return bool False for an unknown mode (nothing stored).
+ */
+function extrachill_events_set_perk_mode( int $post_id, string $mode ): bool {
+	if ( ! in_array( $mode, extrachill_events_perk_modes(), true ) ) {
+		return false;
+	}
+
+	update_post_meta( $post_id, EXTRACHILL_EVENTS_PERK_MODE_META, $mode );
+	return true;
+}
+
+/**
+ * Whether the list is curated: marking Going grants nothing. True for
+ * host_list and password; false for going.
+ *
+ * @param int $post_id Event post ID.
+ * @return bool
+ */
+function extrachill_events_guest_list_is_gated( int $post_id ): bool {
+	return EXTRACHILL_EVENTS_PERK_MODE_GOING !== extrachill_events_get_perk_mode( $post_id );
+}
+
+/**
+ * Whether guests may claim a pass themselves on /guest-list with the
+ * password. Only password mode with a password set.
+ *
+ * @param int $post_id Event post ID.
+ * @return bool
+ */
+function extrachill_events_guest_list_accepts_claims( int $post_id ): bool {
+	return EXTRACHILL_EVENTS_PERK_MODE_PASSWORD === extrachill_events_get_perk_mode( $post_id )
+		&& extrachill_events_perk_password_required( $post_id );
+}
+
+/**
+ * Gate a self-serve claim (account claim, email RSVP, /guest-list form) by
+ * the access mode: host_list refuses every claim, password checks the
+ * password, going lets it through.
+ *
+ * @param int    $post_id  Event post ID.
+ * @param string $password Submitted password.
+ * @return WP_Error|null Null when the claim may go ahead.
+ */
+function extrachill_events_guest_list_claim_error( int $post_id, string $password ): ?WP_Error {
+	$mode = extrachill_events_get_perk_mode( $post_id );
+
+	if ( EXTRACHILL_EVENTS_PERK_MODE_HOST_LIST === $mode ) {
+		return new WP_Error( 'guest_list_host_managed', __( 'The host manages this guest list. Ask them to add your name.', 'extrachill-events' ), array( 'status' => 403 ) );
+	}
+
+	if ( EXTRACHILL_EVENTS_PERK_MODE_PASSWORD === $mode && ! extrachill_events_perk_check_password( $post_id, $password ) ) {
+		return function_exists( 'extrachill_events_guest_list_password_error' )
+			? extrachill_events_guest_list_password_error()
+			: new WP_Error( 'invalid_password', __( "That password isn't right.", 'extrachill-events' ), array( 'status' => 403 ) );
+	}
+
+	return null;
+}
+
+/**
+ * Apply guest list access settings: mode and password together, so the
+ * two never disagree. Shared by the set-event-perk ability and the meta box.
+ *
+ * Omitted (null) or empty fields leave the current value alone. Rules:
+ * - A new password with no mode given turns an open (going) list into a
+ *   password list, as setting a password always did. A host list keeps its
+ *   mode; the password is stored but unused.
+ * - Clearing the password with no mode given turns a password list into an
+ *   open one, as removing the password always did.
+ * - Asking for password mode with no password set is an error.
+ *
+ * Validation runs before anything is written.
+ *
+ * @param int         $post_id        Event post ID.
+ * @param string|null $mode           Requested mode, or null to keep / derive it.
+ * @param string|null $password       New password, or null / '' to keep it.
+ * @param bool        $clear_password Remove the password.
+ * @return string|WP_Error The resulting mode.
+ */
+function extrachill_events_apply_perk_access( int $post_id, ?string $mode, ?string $password, bool $clear_password ) {
+	$mode     = null === $mode || '' === $mode ? null : $mode;
+	$password = null === $password || '' === $password ? null : $password;
+
+	if ( null !== $mode && ! in_array( $mode, extrachill_events_perk_modes(), true ) ) {
+		return new WP_Error( 'invalid_perk_mode', __( 'The guest list mode must be host_list, password, or going.', 'extrachill-events' ), array( 'status' => 400 ) );
+	}
+
+	if ( null === $mode && null === $password && ! $clear_password ) {
+		return extrachill_events_get_perk_mode( $post_id );
+	}
+
+	$current      = extrachill_events_get_perk_mode( $post_id );
+	$has_password = $clear_password ? false : ( null !== $password || extrachill_events_perk_password_required( $post_id ) );
+	$resolved     = $mode ?? $current;
+
+	if ( null === $mode && null !== $password && ! $clear_password && EXTRACHILL_EVENTS_PERK_MODE_GOING === $current ) {
+		$resolved = EXTRACHILL_EVENTS_PERK_MODE_PASSWORD;
+	}
+
+	if ( EXTRACHILL_EVENTS_PERK_MODE_PASSWORD === $resolved && ! $has_password ) {
+		if ( null !== $mode ) {
+			return new WP_Error( 'perk_password_required', __( 'Set a guest list password to use password mode.', 'extrachill-events' ), array( 'status' => 400 ) );
+		}
+		$resolved = EXTRACHILL_EVENTS_PERK_MODE_GOING;
+	}
+
+	if ( $clear_password ) {
+		extrachill_events_set_perk_password( $post_id, '' );
+	} elseif ( null !== $password ) {
+		extrachill_events_set_perk_password( $post_id, $password );
+	}
+
+	extrachill_events_set_perk_mode( $post_id, $resolved );
+
+	return $resolved;
 }
 
 /**
@@ -425,6 +598,38 @@ function extrachill_events_format_guest_list_count( array $counts ): string {
 }
 
 /**
+ * Labels for the guest list access modes, as hosts see them.
+ *
+ * @return array<string, string> Mode => label.
+ */
+function extrachill_events_perk_mode_labels(): array {
+	return array(
+		EXTRACHILL_EVENTS_PERK_MODE_HOST_LIST => __( 'Host list: only names I add', 'extrachill-events' ),
+		EXTRACHILL_EVENTS_PERK_MODE_PASSWORD  => __( 'Password: guests claim with the password', 'extrachill-events' ),
+		EXTRACHILL_EVENTS_PERK_MODE_GOING     => __( 'Going: anyone who marks Going gets a pass', 'extrachill-events' ),
+	);
+}
+
+/**
+ * Render the guest list mode select.
+ *
+ * @param int    $event_id Event post ID.
+ * @param string $name     Field name.
+ * @param string $id       Field ID.
+ */
+function extrachill_events_render_perk_mode_select( int $event_id, string $name, string $id ): void {
+	$current = extrachill_events_get_perk_mode( $event_id );
+	?>
+	<label for="<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Who gets on the guest list', 'extrachill-events' ); ?></label>
+	<select id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $name ); ?>">
+		<?php foreach ( extrachill_events_perk_mode_labels() as $mode => $label ) : ?>
+			<option value="<?php echo esc_attr( $mode ); ?>" <?php selected( $current, $mode ); ?>><?php echo esc_html( $label ); ?></option>
+		<?php endforeach; ?>
+	</select>
+	<?php
+}
+
+/**
  * Add the RSVP Perk meta box to the event edit screen.
  */
 function extrachill_events_perk_meta_box() {
@@ -468,7 +673,11 @@ function extrachill_events_perk_meta_box_callback( $post ) {
 			maxlength="<?php echo esc_attr( (string) EXTRACHILL_EVENTS_PERK_TEXT_MAXLEN ); ?>"
 		><?php echo esc_textarea( $text ); ?></textarea>
 	</p>
-	<p class="description"><?php esc_html_e( 'e.g. "First beer on Extra Chill." Marking Going issues each attendee a pass shown on screen, emailed to them, and visible to you at the door.', 'extrachill-events' ); ?></p>
+	<p class="description"><?php esc_html_e( 'e.g. "First beer on Extra Chill." Each pass is shown on screen, emailed, and visible to you at the door.', 'extrachill-events' ); ?></p>
+	<p>
+		<?php extrachill_events_render_perk_mode_select( (int) $post->ID, 'extrachill_event_perk_mode', 'extrachill_event_perk_mode' ); ?>
+	</p>
+	<p class="description"><?php esc_html_e( 'Password mode needs a password. You can add names yourself in every mode.', 'extrachill-events' ); ?></p>
 	<p>
 		<label for="extrachill_event_perk_password"><?php esc_html_e( 'Guest list password', 'extrachill-events' ); ?></label>
 		<input
@@ -592,13 +801,13 @@ function extrachill_events_save_event_perk( $post_id ) {
 	// Guest list settings go before the enabled flag: enabling backfills
 	// passes, and that must see the password and capacity.
 	// Password: blank keeps the current one; the checkbox clears it.
-	if ( isset( $_POST['extrachill_event_perk_clear_password'] ) && '1' === $_POST['extrachill_event_perk_clear_password'] ) {
-		extrachill_events_set_perk_password( $post_id, '' );
-	} elseif ( isset( $_POST['extrachill_event_perk_password'] ) ) {
-		$password = (string) wp_unslash( $_POST['extrachill_event_perk_password'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are hashed verbatim, never echoed.
-		if ( '' !== $password ) {
-			extrachill_events_set_perk_password( $post_id, $password );
-		}
+	$clear_password = isset( $_POST['extrachill_event_perk_clear_password'] ) && '1' === $_POST['extrachill_event_perk_clear_password'];
+	$password       = isset( $_POST['extrachill_event_perk_password'] ) ? (string) wp_unslash( $_POST['extrachill_event_perk_password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Passwords are hashed verbatim, never echoed.
+	$mode           = isset( $_POST['extrachill_event_perk_mode'] ) ? sanitize_key( wp_unslash( $_POST['extrachill_event_perk_mode'] ) ) : '';
+	$access         = extrachill_events_apply_perk_access( (int) $post_id, $mode, $password, $clear_password );
+	if ( is_wp_error( $access ) ) {
+		// Password mode with no password: keep the access settings as they were.
+		extrachill_events_apply_perk_access( (int) $post_id, null, $password, $clear_password );
 	}
 
 	if ( isset( $_POST['extrachill_event_perk_capacity'] ) ) {
@@ -645,6 +854,7 @@ function extrachill_events_purge_on_perk_meta_change( $meta_ids, $object_id, $me
 		EXTRACHILL_EVENTS_PERK_CAPACITY_META,
 		EXTRACHILL_EVENTS_PERK_IMAGE_META,
 		EXTRACHILL_EVENTS_GUEST_LIST_ALLOTMENTS_META,
+		EXTRACHILL_EVENTS_PERK_MODE_META,
 	);
 	if ( ! in_array( $meta_key, $perk_keys, true ) ) {
 		return;

@@ -2,6 +2,13 @@
 /**
  * Guest list page — /events/{slug}/guest-list (extrachill#433).
  *
+ * Hosts (anyone who manages the event) get the door view instead
+ * (templates/guest-list-door.php, extrachill#1246). Guests get the view for
+ * the event's access mode: password mode asks for a name and password,
+ * host_list mode says the host manages the list, going mode points to the
+ * Going button. A pass link (?pass=) opens the pass in every mode with no
+ * password prompt.
+ *
  * Name and password in, QR pass out. The email field is optional and only sends a
  * copy. The pass card is filled by assets/js/rsvp-pass.js from the issue
  * response, and refilled from the phone's local storage on later visits,
@@ -21,7 +28,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$event_id       = (int) get_queried_object_id();
+$event_id = (int) get_queried_object_id();
+$view     = extrachill_events_guest_list_page_view( $event_id, (int) get_current_user_id() );
+
+// Hosts get the door view (extrachill#1246) and nothing else.
+if ( 'door' === $view ) {
+	get_header();
+	?>
+	<main class="extrachill-content ec-guest-list-page">
+		<div class="content-column">
+			<?php extrachill_events_render_guest_list_door( $event_id ); ?>
+		</div>
+	</main>
+	<?php
+	get_footer();
+	return;
+}
+
+// A pass link (?pass=) opens the pass. It never shows a password prompt.
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only; the code is validated by the QR endpoint.
+$pass_link      = isset( $_GET['pass'] ) && '' !== sanitize_text_field( wp_unslash( $_GET['pass'] ) );
 $event          = get_post( $event_id );
 $perk_text      = extrachill_events_get_perk_text( $event_id );
 $perk_image_url = extrachill_events_get_pass_image_url( $event_id );
@@ -80,8 +106,17 @@ get_header();
 
 		<?php if ( $is_past ) : ?>
 			<p class="notice notice-info"><?php esc_html_e( 'This event has already happened.', 'extrachill-events' ); ?></p>
+		<?php elseif ( 'pass_only' === $view ) : ?>
+			<?php // Ticket-only event: the page just opens purchased pass links. ?>
+		<?php elseif ( 'host_managed' === $view ) : ?>
+			<p class="notice notice-info" id="ec-guest-list-teaser-<?php echo esc_attr( (string) $event_id ); ?>" <?php echo $pass_link ? 'hidden' : ''; ?>><?php esc_html_e( 'This guest list is managed by the host. Ask them to add your name, and they will send you a link to your pass.', 'extrachill-events' ); ?></p>
+		<?php elseif ( 'going' === $view ) : ?>
+			<p class="notice notice-info" id="ec-guest-list-teaser-<?php echo esc_attr( (string) $event_id ); ?>" <?php echo $pass_link ? 'hidden' : ''; ?>>
+				<?php esc_html_e( 'Mark yourself Going on the event page to get your pass.', 'extrachill-events' ); ?>
+				<a href="<?php echo esc_url( (string) get_permalink( $event_id ) ); ?>"><?php esc_html_e( 'Go to the event', 'extrachill-events' ); ?></a>
+			</p>
 		<?php else : ?>
-			<p class="ec-rsvp-perk-teaser" id="ec-guest-list-teaser-<?php echo esc_attr( (string) $event_id ); ?>">
+			<p class="ec-rsvp-perk-teaser" id="ec-guest-list-teaser-<?php echo esc_attr( (string) $event_id ); ?>" <?php echo $pass_link ? 'hidden' : ''; ?>>
 				<?php
 				if ( $list_full ) {
 					esc_html_e( 'The guest list is full.', 'extrachill-events' );
@@ -100,7 +135,7 @@ get_header();
 				data-event-id="<?php echo esc_attr( (string) $event_id ); ?>"
 				data-mode="guest-list"
 				novalidate
-				<?php echo $list_full ? 'hidden' : ''; ?>
+				<?php echo $list_full || $pass_link ? 'hidden' : ''; ?>
 			>
 				<label for="ec-guest-list-name-<?php echo esc_attr( (string) $event_id ); ?>"><?php esc_html_e( 'Your name', 'extrachill-events' ); ?></label>
 				<input
@@ -165,7 +200,7 @@ get_header();
 			<p class="ec-rsvp-guest__note"><?php esc_html_e( 'Screenshot this to be safe. It stays on this phone if you come back to this page.', 'extrachill-events' ); ?></p>
 		</div>
 
-		<?php if ( ! $is_past ) : ?>
+		<?php if ( ! $is_past && in_array( $view, array( 'claim', 'host_managed' ), true ) ) : ?>
 			<?php
 			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only flag set by our own redirect.
 			$request_sent = isset( $_GET['ec_request'] ) && 'sent' === sanitize_key( wp_unslash( $_GET['ec_request'] ) );

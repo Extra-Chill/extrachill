@@ -26,6 +26,7 @@
 			<file>tests/Unit/Core/RsvpGuestListRequestsTest.php</file>
 			<file>tests/Unit/Core/OwnerGuestListTest.php</file>
 			<file>tests/Unit/Core/GuestListSortTest.php</file>
+			<file>tests/Unit/Core/GuestListModeTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>
