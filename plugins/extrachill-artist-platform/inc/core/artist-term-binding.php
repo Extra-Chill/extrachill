@@ -25,12 +25,104 @@ function ec_artist_binding_database_backend() {
 }
 
 /**
+ * Acquire the binding lock where MySQL advisory locks are unavailable.
+ *
+ * The main site's options table has a unique option_name key, so add_option()
+ * is the portable atomic insert. An expired owner is replaced only by a
+ * conditional update of the exact payload that was read.
+ *
+ * @param string $lock_name Lock name.
+ * @return string|null '1' when acquired, '0' when busy, null on a database error.
+ */
+function ec_artist_binding_acquire_portable_lock( $lock_name ) {
+	global $wpdb;
+	$option  = 'ec_artist_binding_lock_' . md5( $lock_name );
+	$payload = array(
+		'owner'   => wp_generate_uuid4(),
+		'expires' => time() + 30,
+	);
+
+	switch_to_blog( get_main_site_id() );
+	try {
+		if ( ! add_option( $option, $payload, '', false ) ) {
+			$existing = get_option( $option, false );
+			if ( false === $existing ) {
+				return null;
+			}
+			if ( is_array( $existing ) && (int) ( $existing['expires'] ?? 0 ) > time() ) {
+				return '0';
+			}
+			$updated = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+					maybe_serialize( $payload ),
+					$option,
+					maybe_serialize( $existing )
+				)
+			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Conditional update atomically replaces only the observed stale lock.
+			if ( false === $updated ) {
+				return null;
+			}
+			if ( 1 !== (int) $updated ) {
+				return '0';
+			}
+			wp_cache_delete( $option, 'options' );
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	$GLOBALS['ec_artist_binding_portable_locks'][ $lock_name ] = array(
+		'option'  => $option,
+		'payload' => $payload,
+	);
+	return '1';
+}
+
+/**
+ * Release a portable binding lock owned by this request.
+ *
+ * Only the exact payload this request wrote is deleted, never another owner's.
+ *
+ * @param string $lock_name Lock name supplied at acquisition.
+ * @return bool Whether this request no longer holds the lock.
+ */
+function ec_artist_binding_release_portable_lock( $lock_name ) {
+	global $wpdb;
+	$lock = $GLOBALS['ec_artist_binding_portable_locks'][ $lock_name ] ?? null;
+	if ( ! is_array( $lock ) ) {
+		return true;
+	}
+
+	switch_to_blog( get_main_site_id() );
+	try {
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s",
+				$lock['option'],
+				maybe_serialize( $lock['payload'] )
+			)
+		); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deletes only the exact owner payload acquired by this request.
+		if ( 1 === (int) $deleted ) {
+			wp_cache_delete( $lock['option'], 'options' );
+		}
+	} finally {
+		restore_current_blog();
+	}
+
+	if ( false === $deleted ) {
+		return false;
+	}
+	unset( $GLOBALS['ec_artist_binding_portable_locks'][ $lock_name ] );
+	return true;
+}
+
+/**
  * Acquire the network-wide canonical binding lock.
  *
  * The lock covers every profile/term pair, including absent metadata rows.
  * This lock is always first. Transactions, domain locks, profile/term locks,
- * and the distinct artist membership lock are subordinate and are released
- * before this lock. Consumers acquire outside a transaction, start and finish
+ * are subordinate and are released before this lock. Consumers acquire outside a transaction, start and finish
  * subordinate transaction/domain/member work, then release this lock.
  * REPEATABLE READ is the intentional isolation level for that subordinate
  * transaction, not merely a transaction-state probe.
@@ -49,10 +141,7 @@ function ec_acquire_artist_binding_lock() {
 		if ( 'mysql' === $backend ) {
 			$result = $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, %d)', $lock_name, 5 ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- One network-wide lock covers both multisite metadata tables and absent rows.
 		} else {
-			$result = null;
-			if ( function_exists( 'ec_acquire_artist_membership_network_lock' ) ) {
-				$result = ec_acquire_artist_membership_network_lock( $lock_name ) ? '1' : '0';
-			}
+			$result = ec_artist_binding_acquire_portable_lock( $lock_name );
 		}
 	} finally {
 		unset( $GLOBALS['ec_artist_binding_lock_pending'] );
@@ -101,10 +190,7 @@ function ec_release_artist_binding_lock( $lock_token ) {
 		return new WP_Error( 'artist_binding_release_transaction_active', __( 'Canonical artist binding cannot be released before subordinate transaction work finishes.', 'extrachill-artist-platform' ), array( 'retryable' => false ) );
 	}
 	if ( 'mysql' !== ( $GLOBALS['ec_artist_binding_lock_backend'] ?? 'mysql' ) ) {
-		if ( function_exists( 'ec_release_artist_membership_named_lock' ) ) {
-			ec_release_artist_membership_named_lock( $lock_token );
-		}
-		$released = empty( $GLOBALS['ec_artist_membership_locks'][ $lock_token ] ) ? '1' : '0';
+		$released = ec_artist_binding_release_portable_lock( $lock_token ) ? '1' : '0';
 	} else {
 		$released = $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_token ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Releases the exact connection-owned lock acquired above.
 	}

@@ -270,20 +270,7 @@ function extrachill_artist_platform_update_local_support_availability( $artist_i
  * @return int[]
  */
 function extrachill_artist_platform_get_local_support_manager_ids( $artist_id ) {
-	$member_ids = get_post_meta( $artist_id, '_artist_member_ids', true );
-	if ( ! is_array( $member_ids ) ) {
-		return array();
-	}
-
-	$manager_ids = array();
-	foreach ( array_unique( array_map( 'absint', $member_ids ) ) as $user_id ) {
-		$artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-		if ( $user_id && get_userdata( $user_id ) && is_array( $artist_ids ) && in_array( (int) $artist_id, array_map( 'absint', $artist_ids ), true ) ) {
-			$manager_ids[] = $user_id;
-		}
-	}
-
-	return $manager_ids;
+	return array_map( 'intval', wp_list_pluck( ec_get_linked_members( $artist_id ), 'ID' ) );
 }
 
 /**

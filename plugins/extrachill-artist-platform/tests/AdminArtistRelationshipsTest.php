@@ -42,11 +42,8 @@ final class AdminArtistRelationshipsTest extends EC_Artist_Platform_TestCase {
 		);
 
 		$this->assertSame( array( 'success' => true ), $result );
-		switch_to_blog( $this->artist_blog_id() );
-		$members = get_post_meta( $this->profile_id, '_artist_member_ids', true );
-		restore_current_blog();
-		$this->assertSame( array( $this->user_id ), array_map( 'intval', (array) $members ) );
-		$this->assertSame( array( $this->profile_id ), array_map( 'intval', (array) get_user_meta( $this->user_id, '_artist_profile_ids', true ) ) );
+		$this->assertSame( array( $this->user_id ), $this->artist_team_member_ids( $this->profile_id ) );
+		$this->assertSame( array( $this->profile_id ), $this->user_artist_team_ids( $this->user_id ) );
 	}
 
 	public function test_link_rejects_missing_user(): void {
@@ -77,13 +74,14 @@ final class AdminArtistRelationshipsTest extends EC_Artist_Platform_TestCase {
 		);
 
 		$cleanup_user_id = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
-		update_user_meta( $cleanup_user_id, '_artist_profile_ids', array( $this->profile_id ) );
+		$this->create_artist_membership( $cleanup_user_id, $this->profile_id );
 
 		extrachill_artist_platform_ability_admin_cleanup_artist_relationships( array(
 			'user_id'   => $cleanup_user_id,
 			'artist_id' => $this->profile_id,
 		) );
-		$this->assertSame( array(), (array) get_user_meta( $cleanup_user_id, '_artist_profile_ids', true ) );
+		$this->assertSame( array(), $this->user_artist_team_ids( $cleanup_user_id ) );
+		$this->assertSame( array(), $this->user_artist_team_ids( $unlink_user_id ) );
 	}
 
 	public function test_admin_mutations_fail_closed_when_handlers_are_called_directly(): void {
@@ -105,7 +103,7 @@ final class AdminArtistRelationshipsTest extends EC_Artist_Platform_TestCase {
 			$this->assertSame( 'admin_access_denied', $result->get_error_code() );
 		}
 
-		$this->assertSame( '', get_user_meta( $this->user_id, '_artist_profile_ids', true ) );
+		$this->assertSame( array(), $this->user_artist_team_ids( $this->user_id ) );
 	}
 
 	public function test_orphan_list_preserves_orphans_envelope(): void {

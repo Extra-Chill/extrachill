@@ -69,7 +69,7 @@ final class VenueMembershipLockTest extends TestCase {
 		}
 	}
 
-	/** Every statement is scoped to one supported team type, so venue and promoter rows never mix. */
+	/** Every statement is scoped to one supported team type. */
 	public function test_team_type_isolation(): void {
 		$original = $GLOBALS['wpdb'];
 		try {
@@ -122,7 +122,7 @@ final class VenueMembershipLockTest extends TestCase {
 				}
 			};
 			$repository      = new \ExtraChill\Users\Teams\TeamMembershipRepository();
-			foreach ( array( 'venue', 'promoter' ) as $type ) {
+			foreach ( array( 'venue', 'promoter', 'artist' ) as $type ) {
 				$GLOBALS['wpdb']->queries = array();
 				$GLOBALS['wpdb']->writes  = array();
 				$repository->get( $type, 55, 22 );
@@ -133,21 +133,23 @@ final class VenueMembershipLockTest extends TestCase {
 				$repository->select( $type, array( 'term' => 55, 'is_owner' => true ), 'id ASC', 10 );
 				$repository->term_ids( $type, array( 'status' => 'active' ) );
 				$repository->list_team( $type, 55, array( 'is_owner' => true ), 10, 0, 22 );
-				'venue' === $type ? ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->has_active_venue_for_user( 22 ) : ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->has_active_organization_for_user( 22 );
+				if ( 'artist' !== $type ) {
+					'venue' === $type ? ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->has_active_venue_for_user( 22 ) : ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->has_active_organization_for_user( 22 );
+				}
 				$repository->mutate( $type, 55, 22, 1, true, false, 9 );
 				$repository->insert( $type, $repository->new_row( $type, 55, 22, false, 9 ) );
 				$repository->update( $type, 55, 22, 1, array( 'status' => 'active' ) );
-				$this->assertCount( 10, $GLOBALS['wpdb']->queries );
+				$this->assertCount( 'artist' === $type ? 9 : 10, $GLOBALS['wpdb']->queries );
 				foreach ( $GLOBALS['wpdb']->queries as $query ) {
 					$this->assertStringContainsString( 'wp_ec_team_members', $query );
 					$this->assertMatchesRegularExpression( "/(^|\\.| )team_type = '{$type}'/", $query );
 				}
 				$this->assertSame( array( 'wp_ec_team_members', $type, 55 ), array( $GLOBALS['wpdb']->writes[0][0], $GLOBALS['wpdb']->writes[0][1]['team_type'], $GLOBALS['wpdb']->writes[0][1]['team_id'] ) );
-				$this->assertArrayNotHasKey( $type . '_term_id', $GLOBALS['wpdb']->writes[0][1] );
+				$this->assertArrayNotHasKey( 'artist' === $type ? 'artist_id' : $type . '_term_id', $GLOBALS['wpdb']->writes[0][1] );
 				$this->assertSame( array( 'team_type' => $type, 'team_id' => 55, 'user_id' => 22, 'version' => 1 ), $GLOBALS['wpdb']->writes[1][1] );
 			}
 			$this->expectException( InvalidArgumentException::class );
-			$repository->lock_team( 'artist', 55 );
+			$repository->lock_team( 'unsupported', 55 );
 		} finally {
 			$GLOBALS['wpdb'] = $original;
 		}
@@ -160,6 +162,7 @@ final class VenueMembershipLockTest extends TestCase {
 			'id'                 => '1',
 			'venue_term_id'      => '55',
 			'promoter_term_id'   => '55',
+			'artist_id'          => '55',
 			'user_id'            => '22',
 			'is_owner'           => '1',
 			'status'             => 'active',
@@ -168,9 +171,9 @@ final class VenueMembershipLockTest extends TestCase {
 			'revoked_at'         => '',
 			'revoked_by_user_id' => '9',
 		);
-		foreach ( array( 'venue', 'promoter' ) as $type ) {
+		foreach ( array( 'venue', 'promoter', 'artist' ) as $type ) {
 			$hydrated = $repository->hydrate_rows( $type, array( $row ) );
-			$this->assertSame( 55, $hydrated[0][ $type . '_term_id' ] );
+			$this->assertSame( 55, $hydrated[0][ 'artist' === $type ? 'artist_id' : $type . '_term_id' ] );
 			$this->assertSame( 3, $hydrated[0]['version'] );
 			$this->assertTrue( $hydrated[0]['is_owner'] );
 			$this->assertNull( $hydrated[0]['revoked_at'] );

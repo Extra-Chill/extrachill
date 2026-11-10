@@ -8,6 +8,8 @@
 /**
  * Verify blocking moderation actions invalidate existing sessions.
  */
+require_once dirname( __DIR__ ) . '/support/fixtures.php';
+
 class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 
 	/**
@@ -73,7 +75,7 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 		$link_id   = self::factory()->post->create( array( 'post_type' => 'artist_link_page' ) );
 		update_post_meta( $link_id, '_associated_artist_profile_id', (string) $artist_id );
 		restore_current_blog();
-		update_user_meta( $user_id, '_artist_profile_ids', array( $artist_id ) );
+		ec_users_tests_set_user_artists( $user_id, array( $artist_id ) );
 
 		$result = extrachill_users_apply_moderation_action( $user_id, array( 'reason_key' => 'spam' ) );
 
@@ -115,7 +117,7 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 		update_post_meta( $link_id, '_associated_artist_profile_id', (string) $artist_id );
 		restore_current_blog();
 
-		update_user_meta( $user_id, '_artist_profile_ids', array( $artist_id ) );
+		ec_users_tests_set_user_artists( $user_id, array( $artist_id ) );
 
 		$GLOBALS['test_link_page_storage_blog_id'] = $storage_blog_id;
 		$GLOBALS['test_link_page_post_type']       = 'ec_link_page';

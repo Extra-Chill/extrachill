@@ -149,3 +149,49 @@ if ( ! function_exists( 'ec_users_tests_ensure_site' ) ) {
 		return (bool) get_site( $blog_id );
 	}
 }
+
+if ( ! function_exists( 'ec_users_tests_set_artist_members' ) ) {
+	/**
+	 * Replace an artist's team rows with active memberships for the given users.
+	 *
+	 * @param int   $artist_id Artist profile post ID.
+	 * @param int[] $user_ids  Member user IDs.
+	 */
+	function ec_users_tests_set_artist_members( int $artist_id, array $user_ids ): void {
+		global $wpdb;
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$wpdb->delete(
+			\ExtraChill\Users\Teams\TeamMembershipRepository::table(),
+			array(
+				'team_type' => 'artist',
+				'team_id'   => $artist_id,
+			)
+		);
+		foreach ( array_unique( array_map( 'intval', $user_ids ) ) as $user_id ) {
+			$repository->insert( 'artist', $repository->new_row( 'artist', $artist_id, $user_id, true, 0 ) );
+		}
+	}
+}
+
+if ( ! function_exists( 'ec_users_tests_set_user_artists' ) ) {
+	/**
+	 * Replace a user's artist team rows with active memberships.
+	 *
+	 * @param int   $user_id    User ID.
+	 * @param int[] $artist_ids Artist profile post IDs.
+	 */
+	function ec_users_tests_set_user_artists( int $user_id, array $artist_ids ): void {
+		global $wpdb;
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$wpdb->delete(
+			\ExtraChill\Users\Teams\TeamMembershipRepository::table(),
+			array(
+				'team_type' => 'artist',
+				'user_id'   => $user_id,
+			)
+		);
+		foreach ( array_unique( array_map( 'intval', $artist_ids ) ) as $artist_id ) {
+			$repository->insert( 'artist', $repository->new_row( 'artist', $artist_id, $user_id, true, 0 ) );
+		}
+	}
+}

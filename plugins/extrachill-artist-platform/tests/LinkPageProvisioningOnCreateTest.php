@@ -51,7 +51,7 @@ final class LinkPageProvisioningOnCreateTest extends EC_Artist_Platform_TestCase
 		}
 		$this->assertWPError( $result );
 		$this->assertSame( 'artist_term_creation_failed', $result->get_error_code() );
-		$this->assertEmpty( get_user_meta( $this->owner_id, '_artist_profile_ids', true ) );
+		$this->assertSame( array(), $this->user_artist_team_ids( $this->owner_id ) );
 		switch_to_blog( $this->artist_blog_id() );
 		try {
 			$this->assertNull( get_page_by_path( 'binding-rollback-band', OBJECT, 'artist_profile' ) );

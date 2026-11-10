@@ -47,26 +47,26 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 	}
 
 	private function set_artist_members( int $artist_id, array $user_ids ): void {
-		switch_to_blog( $this->artist_blog_id );
-		update_post_meta( $artist_id, '_artist_member_ids', $user_ids );
-		restore_current_blog();
+		ec_users_tests_set_artist_members( $artist_id, $user_ids );
 	}
 
-	public function test_valid_reciprocal_membership_can_manage_artist(): void {
+	public function test_active_membership_can_manage_artist(): void {
 		$user_id   = self::factory()->user->create();
 		$artist_id = $this->create_artist( self::factory()->user->create() );
-		update_user_meta( $user_id, '_artist_profile_ids', array( $artist_id ) );
 		$this->set_artist_members( $artist_id, array( $user_id ) );
 
 		$this->assertTrue( ec_can_manage_artist( $user_id, $artist_id ) );
 	}
 
-	public function test_one_sided_memberships_cannot_manage_artist(): void {
+	public function test_legacy_membership_meta_alone_cannot_manage_artist(): void {
 		$user_side_id   = self::factory()->user->create();
 		$artist_side_id = self::factory()->user->create();
 		$artist_id      = $this->create_artist( self::factory()->user->create() );
 		update_user_meta( $user_side_id, '_artist_profile_ids', array( $artist_id ) );
-		$this->set_artist_members( $artist_id, array( $artist_side_id ) );
+		update_user_meta( $artist_side_id, '_artist_profile_ids', array( $artist_id ) );
+		switch_to_blog( $this->artist_blog_id );
+		update_post_meta( $artist_id, '_artist_member_ids', array( $user_side_id, $artist_side_id ) );
+		restore_current_blog();
 
 		$this->assertFalse( ec_can_manage_artist( $user_side_id, $artist_id ) );
 		$this->assertFalse( ec_can_manage_artist( $artist_side_id, $artist_id ) );
@@ -78,7 +78,6 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 		$wrong_id   = $this->create_artist( $user_id, 'publish', 'post' );
 		$deleted_id = $this->create_artist( $user_id );
 		$target_ids = array( $private_id, $wrong_id, $deleted_id );
-		update_user_meta( $user_id, '_artist_profile_ids', $target_ids );
 		foreach ( $target_ids as $target_id ) {
 			$this->set_artist_members( $target_id, array( $user_id ) );
 		}
@@ -91,13 +90,12 @@ class Test_Artist_Membership_Authorization extends WP_UnitTestCase {
 		}
 	}
 
-	public function test_former_post_author_cannot_manage_without_reciprocal_membership(): void {
+	public function test_former_post_author_cannot_manage_without_membership(): void {
 		$user_id   = self::factory()->user->create();
 		$artist_id = $this->create_artist( $user_id );
 
 		$this->assertFalse( ec_can_manage_artist( $user_id, $artist_id ) );
 
-		update_user_meta( $user_id, '_artist_profile_ids', array( $artist_id ) );
 		$this->set_artist_members( $artist_id, array( $user_id ) );
 		$this->assertTrue( ec_can_manage_artist( $user_id, $artist_id ) );
 

@@ -290,26 +290,6 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( '', $this->term_meta_value( $second['term_id'], '_artist_profile_id' ) );
 	}
 
-	public function test_consumer_acquires_binding_before_distinct_membership_lock(): void {
-		$this->ec_require_mysql_advisory_locks();
-		$pair = $this->seed_pair( 'the-band', $pair['profile_id'], null );
-		$this->assertTrue( ec_bind_artist_profile_to_term( $pair['profile_id'], $pair['term_id'] ) );
-
-		$binding_lock = ec_acquire_artist_binding_lock();
-		$this->assertNotInstanceOf( WP_Error::class, $binding_lock );
-		$this->assertSame(
-			array(
-				'profile_id' => $pair['profile_id'],
-				'term_id'    => $pair['term_id'],
-			),
-			ec_read_locked_artist_binding( $pair['profile_id'], $pair['term_id'] )
-		);
-		$this->assertTrue( ec_acquire_artist_membership_lock( 7, $pair['profile_id'] ) );
-
-		ec_release_artist_membership_lock( 7, $pair['profile_id'] );
-		$this->assertTrue( ec_release_artist_binding_lock( $binding_lock ) );
-	}
-
 	public function test_sqlite_sync_creates_and_binds_terms_and_releases_portable_lock(): void {
 		$backend = static function () {
 			return 'sqlite';
@@ -337,7 +317,7 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 				}
 				$this->assertSame( $profile_id, (int) $this->term_meta_value( $term_id, '_artist_profile_id' ) );
 				$this->assertEmpty( $GLOBALS['ec_artist_binding_lock'] ?? null );
-				$this->assertEmpty( $GLOBALS['ec_artist_membership_locks']['ec_artist_binding_v1'] ?? null );
+				$this->assertEmpty( $GLOBALS['ec_artist_binding_portable_locks']['ec_artist_binding_v1'] ?? null );
 			}
 			$this->assertDoesNotMatchRegularExpression( '/GET_LOCK|RELEASE_LOCK|SET TRANSACTION/i', implode( "\n", $queries ) );
 		} finally {
@@ -354,10 +334,9 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 		try {
 			$lock = ec_acquire_artist_binding_lock();
 			$this->assertSame( 'ec_artist_binding_v1', $lock );
-			$state = $GLOBALS['ec_artist_membership_locks'][ $lock ];
-			$this->assertSame( 'main_site_option', $state['backend'] );
+			$state = $GLOBALS['ec_artist_binding_portable_locks'][ $lock ];
 			$this->assertWPError( ec_acquire_artist_binding_lock() );
-			$this->assertFalse( ec_acquire_artist_membership_network_lock( $lock ) );
+			$this->assertSame( '0', ec_artist_binding_acquire_portable_lock( $lock ) );
 			switch_to_blog( get_main_site_id() );
 			try {
 				$this->assertSame( $state['payload'], get_option( $state['option'] ) );

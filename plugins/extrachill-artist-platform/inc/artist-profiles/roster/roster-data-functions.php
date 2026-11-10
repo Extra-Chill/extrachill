@@ -189,33 +189,6 @@ function ec_compare_and_swap_pending_invitations( $artist_id, $current, $updated
 function ec_accept_artist_membership_invitation( $user_id, $artist_id, $pending_invite_id ) {
 	if ( ! ec_add_artist_membership( $user_id, $artist_id ) ) {
 		$membership_failure = ec_get_artist_membership_failure();
-		$failure_data       = $membership_failure ? $membership_failure->get_error_data() : array();
-		if ( is_array( $failure_data ) && ! empty( $failure_data['partial_state_created'] ) ) {
-			$rolled_back = ec_remove_artist_membership( $user_id, $artist_id );
-			if ( ! $rolled_back ) {
-				$rollback_failure = ec_get_artist_membership_failure();
-				return new WP_Error(
-					'artist_invitation_rollback_failed',
-					__( 'Artist invitation rollback failed. Manual reconciliation is required.', 'extrachill-artist-platform' ),
-					array(
-						'status'           => 500,
-						'membership_error' => $membership_failure ? $membership_failure->get_error_code() : 'unknown',
-						'rollback_error'   => $rollback_failure ? $rollback_failure->get_error_code() : 'unknown',
-						'retryable'        => false,
-					)
-				);
-			}
-			return new WP_Error(
-				'artist_membership_retry_required',
-				__( 'The partial membership was removed. The invitation remains available to retry.', 'extrachill-artist-platform' ),
-				array(
-					'status'           => 503,
-					'membership_error' => $membership_failure ? $membership_failure->get_error_code() : 'unknown',
-					'retryable'        => true,
-				)
-			);
-		}
-
 		if ( $membership_failure ) {
 			return $membership_failure;
 		}

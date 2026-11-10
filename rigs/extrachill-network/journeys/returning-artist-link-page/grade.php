@@ -53,7 +53,7 @@ foreach ( $paths as $path_id => $path_task ) {
 }
 
 // Persisted state: returning never duplicated anything, and the edit stuck.
-$artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+$artist_ids = ec_get_artists_for_user( $user_id );
 $artist_ids = is_array( $artist_ids ) ? array_values( array_map( 'intval', $artist_ids ) ) : array();
 $one_artist = 1 === count( $artist_ids );
 returning_artist_record( $results, 'exactly-one-artist', 'Coming back never creates a second artist profile.', $one_artist, array( 'artist_profile_ids' => $artist_ids ) );

@@ -109,7 +109,7 @@ function ec_get_artist_relationships_for_admin( $view = 'artists', $search = '' 
 }
 
 /**
- * Finds user-side relationship entries whose artist post no longer exists.
+ * Finds active artist memberships whose artist post no longer exists.
  *
  * @return array|WP_Error Orphan rows or an artist-site configuration error.
  */
@@ -122,23 +122,21 @@ function ec_get_orphaned_artist_relationships() {
 	$orphans = array();
 	switch_to_blog( $artist_blog_id );
 	try {
-		foreach ( get_users( array( 'meta_key' => '_artist_profile_ids' ) ) as $user ) {
-			$artist_ids = get_user_meta( $user->ID, '_artist_profile_ids', true );
-			if ( ! is_array( $artist_ids ) ) {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		foreach ( $repository->select( 'artist', array( 'status' => 'active' ), 'id ASC' ) as $row ) {
+			$artist_id = (int) $row['artist_id'];
+			if ( get_post( $artist_id ) && 'artist_profile' === get_post_type( $artist_id ) ) {
 				continue;
 			}
-			foreach ( $artist_ids as $artist_id ) {
-				if ( ! get_post( $artist_id ) || 'artist_profile' !== get_post_type( $artist_id ) ) {
-					$orphans[] = array(
-						'user'              => array(
-							'ID'           => $user->ID,
-							'user_login'   => $user->user_login,
-							'display_name' => $user->display_name,
-						),
-						'invalid_artist_id' => $artist_id,
-					);
-				}
-			}
+			$user      = get_userdata( (int) $row['user_id'] );
+			$orphans[] = array(
+				'user'              => array(
+					'ID'           => (int) $row['user_id'],
+					'user_login'   => $user ? $user->user_login : '',
+					'display_name' => $user ? $user->display_name : '',
+				),
+				'invalid_artist_id' => $artist_id,
+			);
 		}
 	} finally {
 		restore_current_blog();

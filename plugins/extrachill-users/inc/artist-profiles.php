@@ -58,10 +58,11 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 	}
 
 	// Default: return user's owned artists (for regular users and frontend admins).
-	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
-	if ( ! is_array( $user_artist_ids ) ) {
-		return array();
-	}
+	$repository      = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+	$user_artist_ids = $repository->term_ids( 'artist', array(
+		'user_id' => (int) $user_id,
+		'status'  => 'active',
+	) );
 
 	$artist_blog_id = ec_get_blog_id( 'artist' );
 	if ( ! $artist_blog_id ) {
@@ -77,10 +78,7 @@ function ec_get_artists_for_user( $user_id = null, $admin_override = false ) {
 				continue;
 			}
 
-			$member_ids = get_post_meta( $artist_id_int, '_artist_member_ids', true );
-			if ( is_array( $member_ids ) && in_array( (int) $user_id, array_map( 'intval', $member_ids ), true ) ) {
-				$published_artists[] = $artist_id_int;
-			}
+			$published_artists[] = $artist_id_int;
 		}
 
 		return $published_artists;
@@ -285,7 +283,7 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
  * Network-wide permission check for artist management. The target must be a
  * published artist profile. Returns true if the user is:
  * - An administrator (manage_options capability)
- * - A validated reciprocal roster member
+ * - An active artist team member
  *
  * @deprecated-soon Slated for migration to ec_user_can( 'manage_artist', [ 'artist_id' => $id ] )
  *                  and deletion per Extra-Chill/extrachill-users#60 (pending the

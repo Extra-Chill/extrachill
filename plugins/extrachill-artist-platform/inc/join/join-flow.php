@@ -51,9 +51,9 @@ function ec_is_join_flow_request() {
  * @return array Destination with url, message, and type keys
  */
 function ec_get_join_flow_destination( $user_id ) {
-	$user_artist_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+	$user_artist_ids = ec_get_artists_for_user( $user_id );
 
-	if ( ! empty( $user_artist_ids ) && is_array( $user_artist_ids ) ) {
+	if ( ! empty( $user_artist_ids ) ) {
 		return array(
 			'url'     => home_url( '/manage-link-page/' ),
 			'message' => __( 'Welcome back! Manage your link page below.', 'extrachill-artist-platform' ),

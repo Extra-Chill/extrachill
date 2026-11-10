@@ -153,12 +153,6 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 			}
 			update_post_meta( $profile_id, '_local_support_scene', $config['scene'] );
 			update_post_meta( $profile_id, '_local_city', 'Display City' );
-			foreach ( $config['members'] as $member_id ) {
-				$members   = get_post_meta( $profile_id, '_artist_member_ids', true );
-				$members   = is_array( $members ) ? $members : array();
-				$members[] = $member_id;
-				update_post_meta( $profile_id, '_artist_member_ids', array_map( 'intval', array_unique( $members ) ) );
-			}
 			if ( ! empty( $config['genres'] ) ) {
 				$genre_ids = array();
 				foreach ( $config['genres'] as $genre_slug ) {
@@ -173,11 +167,8 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 				wp_set_object_terms( $profile_id, array_filter( $genre_ids ), 'genre', false );
 			}
 			restore_current_blog();
-			foreach ( $config['members'] as $member_id ) {
-				$ids   = get_user_meta( $member_id, '_artist_profile_ids', true );
-				$ids   = is_array( $ids ) ? $ids : array();
-				$ids[] = $profile_id;
-				update_user_meta( $member_id, '_artist_profile_ids', array_map( 'intval', array_unique( $ids ) ) );
+			foreach ( array_unique( $config['members'] ) as $member_id ) {
+				$this->create_artist_membership( (int) $member_id, $profile_id );
 			}
 		}
 
@@ -212,7 +203,7 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 		if ( ! $permitted ) {
 			$this->fail( wp_json_encode( array(
 				'owned'       => $owned,
-				'user_meta'   => get_user_meta( $this->manager_id, '_artist_profile_ids', true ),
+				'team_ids'    => $this->user_artist_team_ids( $this->manager_id ),
 				'manage'      => ec_can_manage_artist( $this->manager_id, $owned ),
 				'artists_for' => ec_get_artists_for_user( $this->manager_id ),
 			) ) );
@@ -224,7 +215,12 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 		) ) );
 
 		// Narrow the manager to one artist; the other profiles are denied.
-		update_user_meta( $this->manager_id, '_artist_profile_ids', array( $other ) );
+		foreach ( $this->user_artist_team_ids( $this->manager_id ) as $artist_id ) {
+			if ( $artist_id !== $other ) {
+				$this->assertTrue( ec_remove_artist_membership( $this->manager_id, $artist_id ) );
+			}
+		}
+		$this->create_artist_membership( $this->manager_id, $other );
 
 		$this->assertFalse( $get->check_permissions( array( 'id' => $owned ) ) );
 		$this->assertSame( 'artist_access_denied', extrachill_artist_platform_ability_get_local_support_availability( array( 'id' => $owned ) )->get_error_code() );
@@ -383,7 +379,7 @@ final class LocalSupportAvailabilityTest extends EC_Artist_Platform_TestCase {
 					'meta_value'  => '1',
 				) ),
 				'term_ids'  => array_map( fn( $id ) => ec_get_artist_term_id( $id ), array_keys( $this->profiles ) ),
-				'managers'  => array_map( fn( $id ) => get_post_meta( $id, '_artist_member_ids', true ), array_keys( $this->profiles ) ),
+				'managers'  => array_map( fn( $id ) => $this->artist_team_member_ids( $id ), array_keys( $this->profiles ) ),
 				'scenes'    => array_map( fn( $id ) => get_post_meta( $id, EXTRACHILL_ARTIST_LOCAL_SUPPORT_SCENE_META, true ), array_keys( $this->profiles ) ),
 			);
 			restore_current_blog();

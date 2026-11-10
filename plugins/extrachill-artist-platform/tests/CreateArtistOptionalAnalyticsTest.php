@@ -27,7 +27,7 @@ final class CreateArtistOptionalAnalyticsTest extends EC_Artist_Platform_TestCas
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 'No Analytics Band', $result['name'] );
-		$this->assertSame( array( (int) $result['id'] ), array_map( 'intval', (array) get_user_meta( $this->owner_id, '_artist_profile_ids', true ) ) );
+		$this->assertSame( array( (int) $result['id'] ), $this->user_artist_team_ids( $this->owner_id ) );
 		$this->assertFalse( wp_has_ability( 'extrachill/track-analytics-event' ) );
 	}
 

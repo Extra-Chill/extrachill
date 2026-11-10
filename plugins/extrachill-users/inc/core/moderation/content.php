@@ -82,9 +82,16 @@ function extrachill_users_get_user_content_objects( int $user_id ): array {
 
 function extrachill_users_get_owned_artist_platform_objects( int $user_id ): array {
 	$objects            = array();
-	$artist_profile_ids = get_user_meta( $user_id, '_artist_profile_ids', true );
+	$repository         = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+	$artist_profile_ids = $repository->term_ids(
+		'artist',
+		array(
+			'user_id' => $user_id,
+			'status'  => 'active',
+		)
+	);
 
-	if ( ! is_array( $artist_profile_ids ) || empty( $artist_profile_ids ) ) {
+	if ( empty( $artist_profile_ids ) ) {
 		return $objects;
 	}
 

@@ -323,23 +323,79 @@ abstract class EC_Artist_Platform_TestCase extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Create both sides of an artist membership relationship.
+	 * Create an active artist membership in the network team store.
 	 *
 	 * @param int $user_id   User ID.
 	 * @param int $artist_id Artist profile post ID.
 	 */
 	protected function create_artist_membership( int $user_id, int $artist_id ): void {
-		switch_to_blog( $this->artist_blog_id() );
-		$members   = get_post_meta( $artist_id, '_artist_member_ids', true );
-		$members   = is_array( $members ) ? $members : array();
-		$members[] = $user_id;
-		update_post_meta( $artist_id, '_artist_member_ids', array_map( 'intval', array_unique( $members ) ) );
-		restore_current_blog();
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$repository->insert( 'artist', $repository->new_row( 'artist', $artist_id, $user_id, true, 0 ) );
+	}
 
-		$profiles   = get_user_meta( $user_id, '_artist_profile_ids', true );
-		$profiles   = is_array( $profiles ) ? $profiles : array();
-		$profiles[] = $artist_id;
-		update_user_meta( $user_id, '_artist_profile_ids', array_map( 'intval', array_unique( $profiles ) ) );
+	/**
+	 * Active member user IDs of one artist, in membership order.
+	 *
+	 * @param int $artist_id Artist profile post ID.
+	 * @return int[]
+	 */
+	protected function artist_team_member_ids( int $artist_id ): array {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$rows       = $repository->select(
+			'artist',
+			array(
+				'term'   => $artist_id,
+				'status' => 'active',
+			),
+			'id ASC'
+		);
+		return array_map( 'intval', array_column( $rows, 'user_id' ) );
+	}
+
+	/**
+	 * Artist IDs a user is an active member of, in artist ID order.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int[]
+	 */
+	protected function user_artist_team_ids( int $user_id ): array {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		return $repository->term_ids(
+			'artist',
+			array(
+				'user_id' => $user_id,
+				'status'  => 'active',
+			)
+		);
+	}
+
+	/**
+	 * Make the next N writes to the network team store affect no rows.
+	 *
+	 * The write is swapped for a valid empty read rather than a failing
+	 * statement: a SQL error can abort the per-test transaction and leak
+	 * fixtures into later tests.
+	 *
+	 * @param int $times Number of INSERT or UPDATE statements to drop.
+	 * @return stdClass State with the remaining count.
+	 */
+	protected function fail_team_writes( int $times = 1 ): stdClass {
+		global $wpdb;
+		$state            = new stdClass();
+		$state->remaining = $times;
+		$table            = \ExtraChill\Users\Teams\TeamMembershipRepository::table();
+		$noop             = "SELECT ID FROM {$wpdb->users} WHERE 1 = 0";
+		$this->ec_inject_filter(
+			'query',
+			static function ( $query ) use ( $state, $table, $noop ) {
+				if ( $state->remaining > 0 && preg_match( '/^\s*(INSERT|UPDATE)\b/i', $query ) && false !== strpos( $query, $table ) ) {
+					--$state->remaining;
+					return $noop;
+				}
+				return $query;
+			}
+		);
+		return $state;
 	}
 
 	/**
