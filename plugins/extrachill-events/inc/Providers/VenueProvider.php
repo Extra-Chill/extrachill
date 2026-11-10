@@ -48,28 +48,10 @@ final class VenueProvider {
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-settings.php';
 
-		add_action( 'init', array( \ExtraChillEvents\Core\NetworkTeamMembersMigration::class, 'maybe_copy_legacy' ), 0 );
 		\ExtraChillEvents\Core\TeamCapabilities::register();
 		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
 		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
-
-		add_filter( 'datamachine_migrations', static function ( array $migrations ): array {
-			if ( ! class_exists( \DataMachine\Core\Database\Migrations\Migration::class ) ) {
-				return $migrations;
-			}
-			$migrations[] = new class() extends \DataMachine\Core\Database\Migrations\Migration {
-				public function id(): string { return 'extrachill-events.network-team-members'; }
-				public function description(): string { return 'Verify network memberships and retire blog-7 membership storage.'; }
-				public function inspect(): array { return \ExtraChillEvents\Core\NetworkTeamMembersMigration::inspect(); }
-				public function apply( int $limit ): array {
-					unset( $limit );
-					return \ExtraChillEvents\Core\NetworkTeamMembersMigration::apply();
-				}
-				public function isComplete(): bool { return ! \ExtraChillEvents\Core\NetworkTeamMembersMigration::exists(); }
-			};
-			return $migrations;
-		} );
 
 		self::$registered = true;
 		return true;
@@ -82,7 +64,6 @@ final class VenueProvider {
 	 */
 	public static function dependencies(): array {
 		return array(
-			'NetworkTeamMembersMigration',
 			'VenueSchema',
 			'VenueMembershipRepository',
 			'TeamAuthorization',

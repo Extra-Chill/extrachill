@@ -132,7 +132,6 @@ final class EventManagementTestWpdb {
 
 require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';

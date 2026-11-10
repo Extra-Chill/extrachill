@@ -17,7 +17,6 @@ if ( ! function_exists( 'wp_salt' ) ) {
 }
 
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationToken.php';
 
 final class VenueOnboardingTest extends TestCase {

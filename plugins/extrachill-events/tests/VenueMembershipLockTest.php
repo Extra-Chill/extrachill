@@ -52,7 +52,7 @@ final class VenueMembershipLockTest extends TestCase {
 
 	/** Team membership storage is reachable only through its repository and schema. */
 	public function test_membership_storage_boundary(): void {
-		$owners = array( 'NetworkTeamMembersMigration.php', 'TeamMembershipRepository.php' );
+		$owners = array( 'TeamMembershipRepository.php' );
 		foreach ( array( dirname( __DIR__ ), dirname( __DIR__, 2 ) . '/extrachill-booking', dirname( __DIR__, 2 ) . '/extrachill-users' ) as $root ) {
 			$files = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root ) );
 			foreach ( $files as $file ) {

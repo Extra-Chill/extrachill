@@ -49,7 +49,6 @@ if ( ! function_exists( 'home_url' ) ) {
 }
 
 require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once __DIR__ . '/../../../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthorityRepository.php';

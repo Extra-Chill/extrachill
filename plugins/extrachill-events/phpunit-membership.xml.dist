@@ -12,7 +12,6 @@
 			<file>tests/PromoterAuthorityTest.php</file>
 			<file>tests/VenueMembershipLockTest.php</file>
 			<file>tests/TeamAuthorizationTest.php</file>
-			<file>tests/NetworkTeamMembersMigrationTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

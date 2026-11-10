@@ -908,7 +908,6 @@ final class VenueMembershipWpdb {
 }
 
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once __DIR__ . '/../inc/Core/NetworkTeamMembersMigration.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
