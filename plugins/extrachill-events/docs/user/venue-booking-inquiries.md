@@ -68,3 +68,5 @@ Once an inquiry is closed or completed, there's nothing left to change.
 ## Run a Venue?
 
 Booking inquiries are open to a small number of venues right now. To take inquiries for your room, [contact Extra Chill](https://extrachill.com/contact-us/).
+
+Already taking inquiries? See [Handling Booking Inquiries](handling-booking-inquiries.md).
