@@ -37,9 +37,25 @@ Search-then-call keeps the advertised surface constant. It is the same shape as 
 
 This holds for input-dependent authorization too. Venue booking abilities resolve `booking_id` to a venue, then check that venue's grant for the requested action, per call. A connected account sees its own venues and nothing else, with no MCP-specific policy involved.
 
-`src/Access.php` widens the two meta-abilities from their upstream `manage_options` default to the Extra Chill team tier (`access_roadie`), filterable via `extrachill_mcp_capability`. That gate governs **reachability of the two meta-tools**, not what they may do.
+`src/Access.php` gates **reachability of the two meta-tools**, not what they may do. The decision, in `Access::is_authorized()`:
 
-Note what widening it does expose: a caller who can reach `agents/ability-search` can enumerate every registered ability name and JSON schema on the network, whether or not any of them are executable for that caller. Opening this below team tier is a deliberate product decision about information disclosure.
+1. **A signed-in account is required.** Always. Every MCP request carries a bearer token from the OAuth flow below, so "public" means "any account", never "anyone".
+2. **The rollout tier.** The `extrachill_mcp` feature is registered with extrachill-users' `ec_feature_available()` ladder (`admin` → `team` → `public`) at a `public` ceiling. The live tier is the network option `ec_feature_tier_extrachill_mcp`, clamped to the ceiling. While that option is unset it defaults to `team`, so deploying the raised ceiling changes nothing; opening the MCP is an explicit operator step:
+
+   ```sh
+   # read the current value (unset prints bool(false); the tier then resolves to team)
+   wp --url=https://auth.extrachill.com eval 'var_dump( get_site_option( "ec_feature_tier_extrachill_mcp" ), ec_feature_tier( "extrachill_mcp" ) );'
+   # open the MCP to every signed-in account
+   wp site option update ec_feature_tier_extrachill_mcp public
+   ```
+
+3. **The entitlement seam.** `extrachill_mcp_is_authorized` filters the tier's decision per account (`bool $authorized, WP_User $user`). Return `false` to require an entitlement such as a paid plan; return `true` to admit a named account during a narrower rollout. Only a strict `true` admits, and the filter never runs for a signed-out caller.
+
+Without extrachill-users the gate falls back to the `access_studio` capability (the team tier).
+
+The local-site hop runs the substrate's `agents/ability-call`, so `Access` also widens `agents_ability_call_permission` to the same audience, for exposed abilities only (`Abilities\Exposure`). It does **not** widen `agents_ability_search_permission`: `extrachill/ability-search` reads the registry directly through `Exposure`, while the substrate search lists hidden server-side primitives too.
+
+Opening the tier exposes the names and schemas of every **exposed** ability (`show_in_rest` or `mcp.public`) to every account. Execution is still the target ability's own `permission_callback`, run as that account. An ability that should not be callable by any signed-in account must say so in its own permission check, and should not set `show_in_rest` if it is not meant for external callers at all.
 
 ## Authentication
 
@@ -53,6 +69,14 @@ Per-user connection runs on OAuth 2.1, served by [`wp-native-auth`](https://gith
 | Client registration | Client ID Metadata Documents, or Dynamic Client Registration (RFC 7591) |
 | Scope | `account` |
 | Client authentication | none — public clients only |
+
+Command-line clients take the endpoint directly, for example:
+
+```sh
+claude mcp add --transport http extrachill https://auth.extrachill.com/wp-json/extrachill-mcp/v1/mcp
+```
+
+then run `/mcp` inside Claude Code and choose the server to sign in through the browser. End-user setup steps for the app connectors live in `plugins/extrachill-docs/docs/user/connect.md`.
 
 A spec-compliant client needs the endpoint and nothing else. The `401` carries the RFC 9728 `WWW-Authenticate` challenge, which points at `/.well-known/oauth-protected-resource`, which names the authorization server. Discovery walks itself from there.
 
@@ -80,5 +104,6 @@ The adapter ships a default server at `/wp-json/mcp/mcp-adapter-default-server` 
 
 | Filter | Purpose |
 | --- | --- |
-| `extrachill_mcp_capability` | Capability required to reach the meta-tools. Default `access_roadie`. |
+| `extrachill_mcp_is_authorized` | Per-account entitlement seam after the rollout tier. Receives `bool $authorized, WP_User $user`; only a strict `true` admits. Never runs for signed-out callers. |
+| `ec_feature_ceilings` | extrachill-users registry; this plugin registers `extrachill_mcp` at `public`. |
 | `extrachill_mcp_tools` | Ability names advertised as MCP tools. Default: search + call. |
