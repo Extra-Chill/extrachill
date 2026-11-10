@@ -63,25 +63,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php $row = $door_row; ?>
 					<?php $pass_status = (string) ( $row['pass_status'] ?? '' ); ?>
 					<li class="ec-door-list__row" data-door-group="<?php echo esc_attr( (string) ( $row['door_group'] ?? '' ) ); ?>" data-user-id="<?php echo esc_attr( (string) $row['user_id'] ); ?>">
-						<span class="ec-door-list__name"><?php echo esc_html( $row['display_name'] ); ?></span>
+						<span class="ec-door-list__name">
+							<?php if ( $perk_enabled && 'redeemed' === $pass_status ) : ?>
+								<span class="ec-door-list__check" aria-hidden="true">✅</span>
+							<?php endif; ?>
+							<?php echo esc_html( $row['display_name'] ); ?>
+						</span>
 						<?php if ( ! $perk_enabled ) : ?>
 							<span class="ec-door-list__status"><?php echo esc_html( (string) $row['marked_at'] ); ?></span>
 						<?php elseif ( 'redeemed' === $pass_status ) : ?>
-							<span class="ec-door-list__status">
-								<?php
-								/* translators: %s: redemption time. */
-								printf( esc_html__( 'Redeemed %s', 'extrachill-events' ), esc_html( (string) $row['redeemed_at'] ) );
-								?>
-							</span>
+							<?php /* translators: %s: check-in time. */ ?>
+							<button type="button" class="button-success button-small ec-door-list__checked-in" title="<?php echo esc_attr( sprintf( __( 'Checked in %s', 'extrachill-events' ), (string) $row['redeemed_at'] ) ); ?>" disabled><?php esc_html_e( 'Checked in', 'extrachill-events' ); ?></button>
 						<?php elseif ( 'revoked' === $pass_status ) : ?>
 							<span class="ec-door-list__status"><?php esc_html_e( 'RSVP cancelled', 'extrachill-events' ); ?></span>
 						<?php elseif ( 'active' === $pass_status ) : ?>
 							<button
 								type="button"
-								class="button-2 button-small ec-door-list__redeem"
+								class="button-success button-small ec-door-list__redeem"
 								data-user-id="<?php echo esc_attr( (string) $row['user_id'] ); ?>"
 							>
-								<?php esc_html_e( 'Redeem', 'extrachill-events' ); ?>
+								<?php esc_html_e( 'Check in', 'extrachill-events' ); ?>
 							</button>
 						<?php else : ?>
 							<span class="ec-door-list__status"><?php esc_html_e( 'No pass', 'extrachill-events' ); ?></span>
@@ -90,7 +91,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php else : ?>
 					<?php $guest_row = $door_row; ?>
 					<li class="ec-door-list__row" data-door-group="<?php echo esc_attr( (string) ( $guest_row['door_group'] ?? '' ) ); ?>">
-						<span class="ec-door-list__name"><?php echo esc_html( (string) $guest_row['label'] ); ?></span>
+						<span class="ec-door-list__name">
+							<?php if ( 'redeemed' === $guest_row['status'] ) : ?>
+								<span class="ec-door-list__check" aria-hidden="true">✅</span>
+							<?php endif; ?>
+							<?php echo esc_html( (string) $guest_row['label'] ); ?>
+						</span>
 						<?php if ( '' !== (string) ( $guest_row['added_by'] ?? '' ) ) : ?>
 							<span class="ec-door-list__status">
 								<?php
@@ -100,16 +106,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 							</span>
 						<?php endif; ?>
 						<?php if ( 'redeemed' === $guest_row['status'] ) : ?>
-							<span class="ec-door-list__status">
-								<?php
-								/* translators: %s: check-in time. */
-								printf( esc_html__( 'Checked in %s', 'extrachill-events' ), esc_html( (string) $guest_row['redeemed_at'] ) );
-								?>
-							</span>
+							<?php /* translators: %s: check-in time. */ ?>
+							<button type="button" class="button-success button-small ec-door-list__checked-in" title="<?php echo esc_attr( sprintf( __( 'Checked in %s', 'extrachill-events' ), (string) $guest_row['redeemed_at'] ) ); ?>" disabled><?php esc_html_e( 'Checked in', 'extrachill-events' ); ?></button>
 						<?php elseif ( 'active' === $guest_row['status'] ) : ?>
 							<button
 								type="button"
-								class="button-2 button-small ec-door-list__redeem"
+								class="button-success button-small ec-door-list__redeem"
 								data-pass-code="<?php echo esc_attr( (string) $guest_row['code'] ); ?>"
 							>
 								<?php esc_html_e( 'Check in', 'extrachill-events' ); ?>

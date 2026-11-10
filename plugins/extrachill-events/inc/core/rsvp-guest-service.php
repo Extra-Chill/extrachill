@@ -100,8 +100,9 @@ function extrachill_events_guest_rsvp( int $event_id, string $email, array $attr
 		return new WP_Error( 'invalid_email', __( 'Enter a valid email address.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
-	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
-		return extrachill_events_guest_list_password_error();
+	$claim_error = extrachill_events_guest_list_claim_error( $event_id, $password );
+	if ( $claim_error ) {
+		return $claim_error;
 	}
 
 	if ( extrachill_events_guest_list_is_full( $event_id ) ) {
@@ -252,8 +253,9 @@ function extrachill_events_claim_guest_list_pass( int $event_id, int $user_id, s
 		return new WP_Error( 'guest_rsvp_closed', __( 'This event has already happened.', 'extrachill-events' ), array( 'status' => 410 ) );
 	}
 
-	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
-		return extrachill_events_guest_list_password_error();
+	$claim_error = extrachill_events_guest_list_claim_error( $event_id, $password );
+	if ( $claim_error ) {
+		return $claim_error;
 	}
 
 	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) || ! function_exists( 'ec_users_mark_event' ) ) {
@@ -358,8 +360,9 @@ function extrachill_events_guest_rsvp_start_resend_window( int $event_id, int $u
  * token the guest keeps on their phone and shows at the door. An email is
  * optional and only used to send a copy of the pass.
  *
- * Only password-gated events issue account-less passes; an open perk keeps
- * the RSVP flow, where the pass is tied to the attendee.
+ * Only password-mode events take this self-serve claim. A host_list event
+ * answers guest_list_host_managed; an open (going) perk keeps the RSVP
+ * flow, where the pass is tied to the attendee.
  *
  * @param int    $event_id Event post ID.
  * @param string $password Guest list password.
@@ -373,7 +376,11 @@ function extrachill_events_issue_guest_list_pass( int $event_id, string $passwor
 		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
-	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_perk_password_required( $event_id ) ) {
+	if ( extrachill_events_perk_enabled( $event_id ) && EXTRACHILL_EVENTS_PERK_MODE_HOST_LIST === extrachill_events_get_perk_mode( $event_id ) ) {
+		return extrachill_events_guest_list_claim_error( $event_id, $password );
+	}
+
+	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_guest_list_accepts_claims( $event_id ) ) {
 		return new WP_Error( 'guest_list_unavailable', __( 'This event has no guest list.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 
@@ -392,8 +399,9 @@ function extrachill_events_issue_guest_list_pass( int $event_id, string $passwor
 		return new WP_Error( 'invalid_email', __( 'Enter a valid email address, or leave it blank.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
-	if ( ! extrachill_events_perk_check_password( $event_id, $password ) ) {
-		return extrachill_events_guest_list_password_error();
+	$claim_error = extrachill_events_guest_list_claim_error( $event_id, $password );
+	if ( $claim_error ) {
+		return $claim_error;
 	}
 
 	if ( ! class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
@@ -451,9 +459,9 @@ function extrachill_events_guest_list_pass_link( int $event_id, string $code, st
  * the host who added it. Authorization (the event's host) is the caller's
  * job: the extrachill/add-guest-list-name ability checks it.
  *
- * Needs a guest list set up on the event (perk on with a password), so the
- * pass link has a /guest-list page to open on. The password itself never
- * has to be shared; hosts can keep it private and add every name directly.
+ * Works in every access mode (extrachill#1246): host_list, password, and
+ * going. Only the perk has to be on, which also gives the pass link a
+ * /guest-list page to open on. No password is ever involved.
  *
  * Invited bands and management (extrachill#1128) add names through this
  * same path with their party ID, and their allotment when allotments are
@@ -473,8 +481,9 @@ function extrachill_events_add_guest_list_name( int $event_id, string $name, str
 		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
-	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_perk_password_required( $event_id ) ) {
-		return new WP_Error( 'guest_list_unavailable', __( 'Turn on the guest list (set a password and save) before adding names.', 'extrachill-events' ), array( 'status' => 409 ) );
+	// Every mode takes host adds (extrachill#1246); only the perk must be on.
+	if ( ! extrachill_events_perk_enabled( $event_id ) ) {
+		return new WP_Error( 'guest_list_unavailable', __( 'Turn on the guest list and save before adding names.', 'extrachill-events' ), array( 'status' => 409 ) );
 	}
 
 	if ( function_exists( 'ec_users_get_event_timing' ) && 'past' === ec_users_get_event_timing( $event_id, (int) get_current_blog_id() ) ) {

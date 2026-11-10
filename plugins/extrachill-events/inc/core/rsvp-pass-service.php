@@ -85,8 +85,8 @@ function extrachill_events_rsvp_guest_list_authorization( int $event_id, int $us
 /**
  * Whether a pass may be issued to this user right now.
  *
- * Open perks always may. Password-gated perks only may inside an
- * authorized claim (see extrachill_events_rsvp_guest_list_authorization()).
+ * Open (going mode) perks always may. Curated lists (password and host_list
+ * modes) only may inside an authorized claim (see extrachill_events_rsvp_guest_list_authorization()).
  * Capacity is enforced separately, atomically, by the table.
  *
  * @param int $event_id Event post ID.
@@ -98,7 +98,9 @@ function extrachill_events_rsvp_pass_may_issue( int $event_id, int $user_id ): b
 		return false;
 	}
 
-	if ( function_exists( 'extrachill_events_perk_password_required' ) && extrachill_events_perk_password_required( $event_id ) ) {
+	// Curated lists (password or host_list mode, extrachill#1246): Going
+	// alone grants nothing; only an authorized claim issues.
+	if ( function_exists( 'extrachill_events_guest_list_is_gated' ) && extrachill_events_guest_list_is_gated( $event_id ) ) {
 		return extrachill_events_rsvp_guest_list_authorization( $event_id, $user_id );
 	}
 
@@ -158,9 +160,9 @@ function extrachill_events_backfill_rsvp_passes( int $event_id ): int {
 		return 0;
 	}
 
-	// A password-gated guest list is claimed one person at a time with the
-	// password; being marked Going beforehand doesn't grant a spot.
-	if ( function_exists( 'extrachill_events_perk_password_required' ) && extrachill_events_perk_password_required( $event_id ) ) {
+	// A curated guest list (password or host_list mode) is filled one
+	// person at a time; being marked Going beforehand doesn't grant a spot.
+	if ( function_exists( 'extrachill_events_guest_list_is_gated' ) && extrachill_events_guest_list_is_gated( $event_id ) ) {
 		return 0;
 	}
 

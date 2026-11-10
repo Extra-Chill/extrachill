@@ -149,6 +149,45 @@
 		} );
 	}
 
+	/**
+	 * Show a door row as checked in (extrachill#1246): a ✅ before the
+	 * name and the button turned into a disabled green "Checked in".
+	 *
+	 * @param {Element} button   The row's Check in button.
+	 * @param {Object}  response redeem-event-pass response.
+	 */
+	function markCheckedIn( button, response ) {
+		const row = button.closest( '.ec-door-list__row' );
+		if ( ! row ) {
+			return;
+		}
+
+		const name = row.querySelector( '.ec-door-list__name' );
+		if ( name && ! name.querySelector( '.ec-door-list__check' ) ) {
+			const check = document.createElement( 'span' );
+			check.className = 'ec-door-list__check';
+			check.setAttribute( 'aria-hidden', 'true' );
+			check.textContent = '✅';
+			name.insertBefore( check, name.firstChild );
+		}
+
+		const checkedIn = document.createElement( 'button' );
+		checkedIn.type = 'button';
+		checkedIn.className = 'button-success ec-door-list__checked-in';
+		if ( button.classList.contains( 'button-large' ) ) {
+			checkedIn.classList.add( 'button-large' );
+		} else {
+			checkedIn.classList.add( 'button-small' );
+		}
+		checkedIn.disabled = true;
+		checkedIn.textContent = 'Checked in';
+		if ( response && response.redeemed_at ) {
+			checkedIn.title = 'Checked in ' + response.redeemed_at;
+		}
+
+		button.replaceWith( checkedIn );
+	}
+
 	/** Wire the host door list's one-tap Redeem buttons. */
 	function initDoorList() {
 		const list = document.querySelector( '.ec-door-list' );
@@ -186,26 +225,7 @@
 				}
 			)
 				.then( function ( response ) {
-					const row = button.closest( '.ec-door-list__row' );
-					if ( ! row ) {
-						return;
-					}
-
-					const label =
-						response && response.redeemed_at
-							? 'Redeemed ' + response.redeemed_at
-							: 'Redeemed';
-
-					const status = row.querySelector( '.ec-door-list__status' );
-					if ( status ) {
-						status.textContent = label;
-						return;
-					}
-
-					const span = document.createElement( 'span' );
-					span.className = 'ec-door-list__status';
-					span.textContent = label;
-					button.replaceWith( span );
+					markCheckedIn( button, response );
 				} )
 				.catch( function () {
 					button.disabled = false;

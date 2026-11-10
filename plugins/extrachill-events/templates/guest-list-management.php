@@ -21,7 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<input type="hidden" name="action" value="ec_guest_list_settings">
 		<input type="hidden" name="event_id" value="<?php echo esc_attr( (string) $event_id ); ?>">
 		<?php wp_nonce_field( 'ec_guest_list_settings_' . $event_id ); ?>
-		<label><?php esc_html_e( 'Guest list password (leave blank to keep)', 'extrachill-events' ); ?>
+		<?php extrachill_events_render_perk_mode_select( $event_id, 'mode', 'ec-guest-list-mode-' . $event_id ); ?>
+		<label><?php esc_html_e( 'Guest list password (password mode; leave blank to keep)', 'extrachill-events' ); ?>
 			<input type="password" name="password" autocomplete="new-password" maxlength="128">
 		</label>
 		<label><?php esc_html_e( 'Guest list spots (0 = unlimited)', 'extrachill-events' ); ?>
@@ -130,7 +131,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p><a class="button-2 button-small" href="<?php echo esc_url( add_query_arg( 'download', '1', $qr_url ) ); ?>"><?php esc_html_e( 'Download share QR', 'extrachill-events' ); ?></a></p>
 		</div>
 	<?php else : ?>
-		<p><?php esc_html_e( 'Enable the perk and set a password, then save to activate the share page and QR.', 'extrachill-events' ); ?></p>
+		<p><?php esc_html_e( 'Enable the perk and save to activate the share page and QR.', 'extrachill-events' ); ?></p>
 	<?php endif; ?>
 	<?php if ( $settings && extrachill_events_has_guest_list_page( $event_id ) ) : ?>
 		<?php
@@ -366,5 +367,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 	<?php endif; ?>
 	<p><a class="button-2 button-small" href="<?php echo esc_url( get_permalink( $event_id ) . '#ec-door-list' ); ?>"><?php esc_html_e( 'Open door list', 'extrachill-events' ); ?></a></p>
+	<?php if ( extrachill_events_has_guest_list_page( $event_id ) ) : ?>
+		<p><a class="button-1 button-small" href="<?php echo esc_url( extrachill_events_guest_list_url( $event_id ) ); ?>"><?php esc_html_e( 'Open door view', 'extrachill-events' ); ?></a> <?php esc_html_e( 'Your guest list page shows you the door view: paste or upload names and check people in.', 'extrachill-events' ); ?></p>
+	<?php endif; ?>
 	<p><?php esc_html_e( 'Door staff: log in on your phone before doors. Scan the attendee’s pass to open /rsvp-verify/, then tap Check in. You can also check in manually from the door list.', 'extrachill-events' ); ?></p>
 </section>

@@ -53,8 +53,9 @@ class GuestListCommand {
 	/**
 	 * Turn on or update an event's guest list.
 	 *
-	 * Sets the RSVP perk, its password, and its capacity in one call. The
-	 * password is stored hashed; omit it to keep the current one.
+	 * Sets the RSVP perk, its access mode, its password, and its capacity in
+	 * one call. Omitted options keep their current value. The password is
+	 * stored hashed.
 	 *
 	 * ## OPTIONS
 	 *
@@ -62,13 +63,22 @@ class GuestListCommand {
 	 * : Event post ID or slug.
 	 *
 	 * [--text=<text>]
-	 * : Attendee-facing perk text, e.g. "Extra Chill guest list".
+	 * : Attendee-facing perk text, e.g. "Extra Chill guest list". Omit to keep the current text.
+	 *
+	 * [--mode=<mode>]
+	 * : Who gets on the list. host_list: only names hosts add (no password, no public claim, Going grants nothing). password: guests claim with the password. going: marking Going issues the pass. Omit to keep the current mode.
+	 * ---
+	 * options:
+	 *   - host_list
+	 *   - password
+	 *   - going
+	 * ---
 	 *
 	 * [--password=<password>]
-	 * : Guest list password. Only people who know it can claim a pass.
+	 * : Guest list password for password mode. Setting one on a going list switches it to password mode.
 	 *
 	 * [--clear-password]
-	 * : Remove the password (anyone can claim).
+	 * : Remove the password. A password list becomes a going list; a host list stays a host list.
 	 *
 	 * [--capacity=<n>]
 	 * : Most passes the event will issue. 0 = unlimited.
@@ -85,6 +95,7 @@ class GuestListCommand {
 	 * ## EXAMPLES
 	 *
 	 *     wp extrachill events guest-list set 640348 --text="Extra Chill guest list" --password=spooky --capacity=60 --user=1 --url=events.extrachill.com
+	 *     wp extrachill events guest-list set 640348 --mode=host_list --user=1 --url=events.extrachill.com
 	 *     wp extrachill events guest-list set 640348 --image-id=812345 --user=1 --url=events.extrachill.com
 	 *
 	 * @when after_wp_load
@@ -97,9 +108,10 @@ class GuestListCommand {
 
 		if ( isset( $assoc_args['text'] ) ) {
 			$input['text'] = (string) $assoc_args['text'];
-		} else {
-			$current       = $this->run( 'extrachill/get-event-perk', array( 'event' => (string) $args[0] ) );
-			$input['text'] = (string) ( $current['text'] ?? '' );
+		}
+
+		if ( isset( $assoc_args['mode'] ) ) {
+			$input['mode'] = (string) $assoc_args['mode'];
 		}
 
 		if ( Utils\get_flag_value( $assoc_args, 'clear-password', false ) ) {
@@ -168,7 +180,7 @@ class GuestListCommand {
 		}
 
 		$rows = array();
-		foreach ( array( 'post_id', 'enabled', 'text', 'password_required', 'capacity', 'allotments_enabled', 'claimed', 'checked_in', 'spots_left', 'full', 'image_id', 'image_url', 'pass_image_source', 'pass_image_url' ) as $field ) {
+		foreach ( array( 'post_id', 'enabled', 'text', 'mode', 'password_required', 'capacity', 'allotments_enabled', 'claimed', 'checked_in', 'spots_left', 'full', 'image_id', 'image_url', 'pass_image_source', 'pass_image_url' ) as $field ) {
 			$value = $perk[ $field ] ?? null;
 			if ( is_bool( $value ) ) {
 				$value = $value ? 'yes' : 'no';

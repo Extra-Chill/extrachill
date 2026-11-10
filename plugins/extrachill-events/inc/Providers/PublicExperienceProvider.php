@@ -71,6 +71,8 @@ final class PublicExperienceProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-pass-service.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/rsvp-guest-service.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-sort.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-bulk-add.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-door.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-parties.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/eventbrite-attendee-import.php';
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-requests.php';

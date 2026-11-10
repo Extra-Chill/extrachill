@@ -592,7 +592,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$this->assertStringContainsString( 'empty( $guest_rows )', $source );
 
 		$integration = (string) file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/rsvp-pass-integration.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Source-level read.
-		$this->assertStringContainsString( 'extrachill_events_owner_list_door_rows( $post_id )', $integration );
+		$this->assertStringContainsString( 'extrachill_events_owner_list_door_rows( $event_id )', $integration );
 	}
 
 	public function test_scan_view_for_tonight_show(): void {

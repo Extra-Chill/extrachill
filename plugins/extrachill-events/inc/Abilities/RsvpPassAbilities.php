@@ -362,7 +362,58 @@ class RsvpPassAbilities {
 						'readonly'     => false,
 						'idempotent'   => false,
 						'destructive'  => false,
-						'instructions' => __( 'Each call adds a new guest and uses a spot. Needs the guest list turned on (perk enabled with a password); otherwise returns guest_list_unavailable. A full list returns guest_list_full.', 'extrachill-events' ),
+						'instructions' => __( 'Each call adds a new guest and uses a spot. Works in every guest list mode (host_list, password, going); needs the perk turned on, otherwise returns guest_list_unavailable. A full list returns guest_list_full.', 'extrachill-events' ),
+					),
+				),
+			)
+		);
+		wp_register_ability(
+			'extrachill/add-guest-list-names',
+			array(
+				'label'               => __( 'Add Guest List Names', 'extrachill-events' ),
+				'description'         => __( 'Host-only: put many guests on the event guest list at once from pasted text or a CSV/TXT file, one name per line. Blank lines are skipped, and names already on the list or repeated in the batch are added once. Each name gets an account-less pass, the same as a single add.', 'extrachill-events' ),
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'       => 'object',
+					'properties' => array(
+						'event_id' => array(
+							'type'        => 'integer',
+							'description' => __( 'Event post ID.', 'extrachill-events' ),
+						),
+						'names'    => array(
+							'type'        => 'string',
+							'description' => __( 'Names, one per line.', 'extrachill-events' ),
+						),
+						'format'   => array(
+							'type'        => 'string',
+							'enum'        => array( 'text', 'csv' ),
+							'default'     => 'text',
+							'description' => __( 'text: each whole line is a name. csv: the first cell of each line is the name, and a "Name" header row is skipped.', 'extrachill-events' ),
+						),
+					),
+					'required'   => array( 'event_id', 'names' ),
+				),
+				'output_schema'       => array(
+					'type'       => 'object',
+					'properties' => array(
+						'added'          => array( 'type' => 'integer' ),
+						'already_listed' => array( 'type' => 'integer' ),
+						'not_added'      => array( 'type' => 'integer' ),
+						'names'          => array(
+							'type'  => 'array',
+							'items' => array( 'type' => 'string' ),
+						),
+					),
+				),
+				'execute_callback'    => array( $this, 'add_guest_list_names' ),
+				'permission_callback' => array( $this, 'can_manage_door_list' ),
+				'meta'                => array(
+					'show_in_rest' => true,
+					'annotations'  => array(
+						'readonly'     => false,
+						'idempotent'   => true,
+						'destructive'  => false,
+						'instructions' => __( 'Re-sending the same list adds nothing new. Once the list is full, the remaining names are counted in not_added.', 'extrachill-events' ),
 					),
 				),
 			)
@@ -436,6 +487,22 @@ class RsvpPassAbilities {
 			(int) ( $input['event_id'] ?? 0 ),
 			(string) ( $input['name'] ?? '' ),
 			(string) ( $input['email'] ?? '' ),
+			get_current_user_id()
+		);
+	}
+
+	/**
+	 * Host adds many guests from pasted or uploaded text.
+	 *
+	 * @param array $input Validated ability input.
+	 * @return array|\WP_Error
+	 */
+	public function add_guest_list_names( array $input ) {
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/guest-list-bulk-add.php';
+		return extrachill_events_add_guest_list_names(
+			(int) ( $input['event_id'] ?? 0 ),
+			(string) ( $input['names'] ?? '' ),
+			(string) ( $input['format'] ?? 'text' ),
 			get_current_user_id()
 		);
 	}

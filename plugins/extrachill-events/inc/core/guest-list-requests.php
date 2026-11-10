@@ -226,7 +226,7 @@ function extrachill_events_request_guest_list_party( int $event_id, string $name
 		return new WP_Error( 'event_not_found', __( 'The event could not be found.', 'extrachill-events' ), array( 'status' => 404 ) );
 	}
 
-	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_perk_password_required( $event_id ) ) {
+	if ( ! extrachill_events_perk_enabled( $event_id ) || ! extrachill_events_guest_list_is_gated( $event_id ) ) {
 		return new WP_Error( 'guest_list_unavailable', __( 'This event has no guest list.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 

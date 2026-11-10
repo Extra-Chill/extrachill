@@ -9,8 +9,11 @@
  * on screen, and offers an optional email copy. The event page itself stays
  * the public listing; hosts keep the door list there.
  *
- * Only events with an enabled perk and a guest list password have the page;
- * every other event answers 404 at this URL. The page is never cached
+ * Every event with an enabled perk (any access mode) or tickets has the
+ * page; every other event answers 404 at this URL. Hosts get the door view
+ * here (extrachill#1246); guests get the claim form in password mode, a
+ * "managed by the host" notice in host_list mode, and pass links open the
+ * pass in every mode without a password prompt. The page is never cached
  * (spots left is live) and never indexed.
  *
  * @package ExtraChillEvents
@@ -52,6 +55,10 @@ function extrachill_events_guest_list_url( int $event_id ): string {
 /**
  * Whether an event offers a guest list page.
  *
+ * Every enabled perk has one, whatever its access mode (extrachill#1246):
+ * hosts add names in every mode, and each added name's pass link opens on
+ * this page. Ticketed events keep theirs for purchased pass links.
+ *
  * @param int $event_id Event post ID.
  * @return bool
  */
@@ -59,7 +66,7 @@ function extrachill_events_has_guest_list_page( int $event_id ): bool {
 	$ticket_offer = get_post_meta( $event_id, '_extrachill_ticket_offer', true );
 	// Keep purchased pass links usable even when ticket sales are disabled.
 	$has_tickets = is_array( $ticket_offer ) && ! empty( $ticket_offer['ticket_seller']['id'] );
-	return $event_id > 0 && ( $has_tickets || ( extrachill_events_perk_enabled( $event_id ) && extrachill_events_perk_password_required( $event_id ) ) );
+	return $event_id > 0 && ( $has_tickets || extrachill_events_perk_enabled( $event_id ) );
 }
 
 /**

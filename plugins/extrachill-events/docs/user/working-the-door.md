@@ -23,6 +23,16 @@ Plus-ones, like "Jake +1", sit right under the person they came with.
 
 When the show has a guest list, the top of the list shows the count, such as "12 of 60 checked in. 37 spots left."
 
+## The Door View
+
+The show's guest list page, such as https://events.extrachill.com/events/your-show/guest-list/, turns into a door view when you open it logged in on the show's team. Tap **Open door view** in **Manage guest list** to get there. It has only what the door needs:
+
+- The show's title and pass image.
+- **Add names**: paste names or upload a CSV or TXT file, one name per line.
+- Everyone with a pass, A to Z, each with a big green **Check in** button.
+
+Tap **Check in** and the name gets a ✅ and a green **Checked in**. People who are checked in already show the same.
+
 ## Find a Name
 
 Type part of a name into **Find a name**. Only matching names stay on screen, and a plus-one stays with the person they came with. Capital letters and accents don't matter, so "jose" finds "José". If nothing matches, you'll see "No names match."
@@ -39,7 +49,7 @@ If you see "This pass could not be verified," you're either logged out or logged
 
 ## Check In by Name
 
-Tap **Check in** next to a guest's name on the door list. For people who marked themselves Going, the button says **Redeem**. The row then shows the time they came in.
+Tap the green **Check in** next to a guest's name on the door list. The name gets a ✅ and the button turns into **Checked in**.
 
 ## When Someone Isn't on the List
 
