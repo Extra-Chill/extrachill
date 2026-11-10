@@ -186,14 +186,14 @@ class TeamMembershipRepository {
 		$now = gmdate( 'Y-m-d H:i:s' );
 		$row = array(
 			$this->id_key( $team_type ) => $term_id,
-			'user_id'               => $user_id,
-			'is_owner'              => $is_owner ? 1 : 0,
-			'status'                => $status,
-			'version'               => 1,
-			'created_by_user_id'    => $creator_id,
-			'created_at'            => $now,
-			'updated_at'            => $now,
-			'revoked_at'            => 'revoked' === $status ? $now : null,
+			'user_id'                   => $user_id,
+			'is_owner'                  => $is_owner ? 1 : 0,
+			'status'                    => $status,
+			'version'                   => 1,
+			'created_by_user_id'        => $creator_id,
+			'created_at'                => $now,
+			'updated_at'                => $now,
+			'revoked_at'                => 'revoked' === $status ? $now : null,
 		);
 		if ( 'venue' !== $team_type ) {
 			$row['revoked_by_user_id'] = null;
