@@ -1,10 +1,10 @@
 <?php
 /**
- * The one store for venue and promoter team membership.
+ * The one store for venue, promoter and artist team membership.
  *
  * Rows live in `ec_team_members`, keyed by (team_type, team_id, user_id).
- * Reads alias team_id back to the typed `venue_term_id` / `promoter_term_id`
- * key so the typed facades keep their public row shapes.
+ * Reads alias team_id back to `venue_term_id`, `promoter_term_id` or
+ * `artist_id` so the typed facades keep their public row shapes.
  *
  * @package ExtraChillEvents\Core
  */
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 /** Owns every query against the shared team membership table. */
 class TeamMembershipRepository {
 	/** Supported team types. */
-	public const TYPES = array( 'venue', 'promoter' );
+	public const TYPES = array( 'venue', 'promoter', 'artist' );
 
 	/** The network's team membership table. */
 	public static function table(): string {
@@ -38,7 +38,7 @@ class TeamMembershipRepository {
 		);
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( $team_type . '_membership_read_failed', 'venue' === $team_type ? __( 'The venue membership could not be read.', 'extrachill-users' ) : __( 'The promoter membership could not be read.', 'extrachill-users' ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( $team_type . '_membership_read_failed', 'artist' === $team_type ? __( 'The artist membership could not be read.', 'extrachill-users' ) : ( 'venue' === $team_type ? __( 'The venue membership could not be read.', 'extrachill-users' ) : __( 'The promoter membership could not be read.', 'extrachill-users' ) ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $team_type, $row ) : null;
 	}
@@ -165,12 +165,12 @@ class TeamMembershipRepository {
 		$venue    = 'venue' === $team_type;
 		$statuses = $venue ? array( 'active', 'invited', 'revoked' ) : array( 'active', 'revoked' );
 		if ( ! in_array( $row['status'] ?? '', $statuses, true ) ) {
-			return new \WP_Error( $team_type . '_membership_corrupt_status', $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-users' ) );
+			return new \WP_Error( $team_type . '_membership_corrupt_status', 'artist' === $team_type ? __( 'The stored artist membership status is invalid.', 'extrachill-users' ) : ( $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-users' ) ) );
 		}
 		if ( ! in_array( $row['is_owner'] ?? null, array( 0, 1, '0', '1' ), true ) ) {
-			return new \WP_Error( $team_type . '_membership_corrupt_owner', $venue ? __( 'The stored venue membership ownership value is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership ownership value is invalid.', 'extrachill-users' ) );
+			return new \WP_Error( $team_type . '_membership_corrupt_owner', 'artist' === $team_type ? __( 'The stored artist membership ownership value is invalid.', 'extrachill-users' ) : ( $venue ? __( 'The stored venue membership ownership value is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership ownership value is invalid.', 'extrachill-users' ) ) );
 		}
-		foreach ( array( 'id', $team_type . '_term_id', 'user_id', 'version', 'created_by_user_id' ) as $field ) {
+		foreach ( array( 'id', $this->id_key( $team_type ), 'user_id', 'version', 'created_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
 		$row['is_owner']   = (bool) (int) $row['is_owner'];
@@ -185,7 +185,7 @@ class TeamMembershipRepository {
 	public function new_row( string $team_type, int $term_id, int $user_id, bool $is_owner, int $creator_id, string $status = 'active' ): array {
 		$now = gmdate( 'Y-m-d H:i:s' );
 		$row = array(
-			$team_type . '_term_id' => $term_id,
+			$this->id_key( $team_type ) => $term_id,
 			'user_id'               => $user_id,
 			'is_owner'              => $is_owner ? 1 : 0,
 			'status'                => $status,
@@ -195,7 +195,7 @@ class TeamMembershipRepository {
 			'updated_at'            => $now,
 			'revoked_at'            => 'revoked' === $status ? $now : null,
 		);
-		if ( 'promoter' === $team_type ) {
+		if ( 'venue' !== $team_type ) {
 			$row['revoked_by_user_id'] = null;
 		}
 		return $row;
@@ -204,7 +204,7 @@ class TeamMembershipRepository {
 	/** Insert a validated typed relationship inside the caller's transaction. */
 	public function insert( string $team_type, array $row ) {
 		global $wpdb;
-		$key              = $team_type . '_term_id';
+		$key              = $this->id_key( $team_type );
 		$row['team_type'] = $this->type( $team_type );
 		$row['team_id']   = (int) $row[ $key ];
 		unset( $row[ $key ] );
@@ -237,7 +237,7 @@ class TeamMembershipRepository {
 		if ( $revoke ) {
 			$set[]    = 'status = %s';
 			$values[] = 'revoked';
-			if ( 'promoter' === $team_type ) {
+			if ( 'venue' !== $team_type ) {
 				$set[]    = 'revoked_by_user_id = %d';
 				$values[] = $actor_user_id;
 			}
@@ -251,11 +251,17 @@ class TeamMembershipRepository {
 
 	/** Typed read columns, aliasing the shared term key back to the facade's key. */
 	private function columns( string $team_type, string $alias = '' ): string {
-		$columns = array( 'id', "team_id AS {$team_type}_term_id", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
-		if ( 'promoter' === $team_type ) {
+		$key     = $this->id_key( $team_type );
+		$columns = array( 'id', "team_id AS {$key}", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
+		if ( 'venue' !== $team_type ) {
 			$columns[] = 'revoked_by_user_id';
 		}
 		return $alias . implode( ', ' . $alias, $columns );
+	}
+
+	/** Public identifier key for each typed relationship. */
+	private function id_key( string $team_type ): string {
+		return 'artist' === $team_type ? 'artist_id' : $team_type . '_term_id';
 	}
 
 	/** Accept only the supported team types. */
