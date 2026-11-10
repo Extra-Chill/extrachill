@@ -2,6 +2,11 @@
 
 Maintained by Homeboy. Do not edit by hand.
 
+## [0.3.0] - 2026-11-10
+
+### Added
+- raise MCP ceiling to public with signed-in guard and entitlement seam
+
 ## [0.2.9] - 2026-11-07
 
 ### Fixed
