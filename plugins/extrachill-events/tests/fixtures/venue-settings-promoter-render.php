@@ -5,12 +5,10 @@
  * @package ExtraChillEvents\Tests
  */
 
+namespace ExtraChill\Users\Teams {
+	final class TeamMembershipRepository {}
+}
 namespace ExtraChillEvents\Core {
-	final class VenueSchema {
-		public static function is_ready(): bool {
-			return true;
-		}
-	}
 	final class VenueMembershipRepository {}
 	final class VenueAuthorization {
 		public function is_administrator( int $user_id ): bool {

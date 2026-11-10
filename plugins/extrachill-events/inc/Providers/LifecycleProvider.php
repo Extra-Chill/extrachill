@@ -60,8 +60,6 @@ final class LifecycleProvider {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
 		}
-		\ExtraChillEvents\Core\VenueSchema::install();
-		do_action( 'extrachill_events_after_venue_schema_install', 'activate' );
 		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
 			\ExtraChillEvents\Core\RsvpPassesTable::create_table();
 		}
@@ -115,10 +113,6 @@ final class LifecycleProvider {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' ) ) {
 			\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::maybe_install();
 		}
-		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) ) {
-			\ExtraChillEvents\Core\VenueSchema::maybe_install();
-			do_action( 'extrachill_events_after_venue_schema_install', 'maybe_install' );
-		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();
 		}
@@ -130,10 +124,9 @@ final class LifecycleProvider {
 	/**
 	 * Expected version for every schema installed through maybe_install_schema().
 	 *
-	 * Keyed by version option name. Integrations that install through the
-	 * `extrachill_events_after_venue_schema_install` action register their
-	 * own entries via the `extrachill_events_schema_versions` filter so a
-	 * stale integration schema also opens the install path.
+	 * Keyed by version option name. Integrations register their own entries
+	 * via the `extrachill_events_schema_versions` filter so a stale
+	 * integration schema also opens the install path.
 	 *
 	 * @return array<string, array{version: string|null, network: bool}>
 	 */
@@ -141,7 +134,6 @@ final class LifecycleProvider {
 		$schemas = array(
 			'QualifyVerdictsTable'      => array( 'SCHEMA_VERSION_OPTION', false ),
 			'ArtistUrlSubmissionsTable' => array( 'VERSION_OPTION', true ),
-			'VenueSchema'               => array( 'VERSION_OPTION', false ),
 			'PromoterAuthoritySchema'   => array( 'VERSION_OPTION', false ),
 			'RsvpPassesTable'           => array( 'VERSION_OPTION', false ),
 		);

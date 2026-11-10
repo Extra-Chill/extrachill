@@ -136,7 +136,7 @@ final class TeamAuthorization {
 				array( 'status' => 400 )
 			);
 		}
-		if ( ! VenueSchema::is_ready() ) {
+		if ( ! class_exists( \ExtraChill\Users\Teams\TeamMembershipRepository::class ) ) {
 			return new \WP_Error(
 				'venue_membership_schema_unavailable',
 				__( 'Venue membership storage is not ready.', 'extrachill-events' ),

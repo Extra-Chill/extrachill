@@ -12,7 +12,6 @@ use ExtraChillEvents\Abilities\VenueBookingConfigAbilities;
 use ExtraChillEvents\Abilities\ManagedVenueVoicesAbilities;
 use ExtraChillEvents\Abilities\VenueProfileAbilities;
 use ExtraChill\Users\Teams\TeamMembershipRepository;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueMembershipRepository;
@@ -24,7 +23,7 @@ use ExtraChillEvents\Core\VenueProfile;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/team-members-fake.php';
-require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';
+require_once __DIR__ . '/Support/booking-harness.php';
 
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );
@@ -908,7 +907,6 @@ final class VenueMembershipWpdb {
 }
 
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipService.php';
@@ -1059,7 +1057,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 			'blog_stack'                   => array(),
 			'actions'                      => array(),
 			'abilities'                    => array(),
-			'options'                      => array( VenueSchema::VERSION_OPTION => VenueSchema::SCHEMA_VERSION ),
+			'options'                      => array(),
 			'term_meta'                    => array(),
 			'term_history'                 => array(),
 			'fired_actions'                => array(),
@@ -1163,17 +1161,6 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertSame( 'team_claims_unsupported', $repository->submit_claim( 7, 55 )->get_error_code() );
 	}
 
-	public function test_guarded_retirement_preserves_nonempty_legacy_tables_and_version(): void {
-		require_once __DIR__ . '/Support/TeamOnboardingWpdb.php';
-		$GLOBALS['wpdb']              = new TeamOnboardingWpdb();
-		$GLOBALS['wpdb']->legacy_rows = 1;
-		$GLOBALS['venue_membership_test']['options'][ VenueSchema::VERSION_OPTION ] = '3';
-		$result = VenueSchema::install();
-		$this->assertSame( 'team_onboarding_legacy_not_empty', $result->get_error_code() );
-		$this->assertSame( '3', get_option( VenueSchema::VERSION_OPTION ) );
-		$this->assertCount( 1, $GLOBALS['wpdb']->drops );
-		$this->assertStringContainsString( 'onboarding_audit', $GLOBALS['wpdb']->drops[0] );
-	}
 
 	private function create_member( int $venue, int $user, bool $is_owner, string $status = VenueAuthorization::STATUS_ACTIVE, int $creator = 1 ) {
 		return ( new VenueMembershipRepository() )->create(
@@ -1364,12 +1351,6 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$this->assertNull( ( new VenueMembershipRepository() )->get( 55, 3 ) );
 	}
 
-	public function test_authorization_fails_closed_until_schema_is_ready(): void {
-		unset( $GLOBALS['venue_membership_test']['options'][ VenueSchema::VERSION_OPTION ] );
-		$result = ( new VenueAuthorization() )->authorize( 1, 55, VenueAuthorization::ACTION_MANAGE_MEMBERS );
-		$this->assertSame( 'venue_membership_schema_unavailable', $result->get_error_code() );
-		$this->assertSame( 503, $result->get_error_data()['status'] );
-	}
 
 	public function test_member_listing_rechecks_actor_in_the_same_query(): void {
 		$service = new VenueMembershipService();
@@ -1565,14 +1546,6 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 	}
 
 	/** The venue schema contract contains only operational storage. */
-	public function test_schema_contract_contains_only_mutation_tables(): void {
-		$contracts = new \ReflectionMethod( VenueSchema::class, 'contracts' );
-		$contracts->setAccessible( true );
-		$this->assertSame(
-			array( VenueSchema::claims_table(), VenueSchema::invitations_table() ),
-			array_keys( $contracts->invoke( null ) )
-		);
-	}
 
 	public function test_rejection_cancellation_and_expiry_revoke_membership(): void {
 		$onboarding = new VenueOnboardingRepository();

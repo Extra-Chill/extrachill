@@ -15,12 +15,10 @@
  * @package ExtraChillEvents\Tests
  */
 
+namespace ExtraChill\Users\Teams {
+	final class TeamMembershipRepository {}
+}
 namespace ExtraChillEvents\Core {
-	final class VenueSchema {
-		public static function is_ready(): bool {
-			return true;
-		}
-	}
 	final class VenueMembershipRepository {
 		public function list_active_venue_ids() {
 			return array( 30 );

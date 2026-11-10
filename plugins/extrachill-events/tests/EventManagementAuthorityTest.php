@@ -19,7 +19,6 @@
 // phpcs:disable Generic.Files.OneObjectStructurePerFile,Universal.Files.SeparateFunctionsFromOO -- File intentionally pairs WP function shims, the fake $wpdb double, and the test case class, matching PromoterAuthorityTest.php's shape.
 
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -135,7 +134,6 @@ require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipReposito
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/core/event-management-authority.php';
@@ -157,7 +155,7 @@ final class EventManagementAuthorityTest extends TestCase {
 			'options'        => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
-				VenueSchema::VERSION_OPTION           => VenueSchema::SCHEMA_VERSION,
+
 			),
 			'caps'           => array(),
 			'editable_posts' => array(),

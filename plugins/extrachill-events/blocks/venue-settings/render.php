@@ -10,7 +10,6 @@
  */
 
 use ExtraChillEvents\Abilities\CommerceSellerAbilities;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -51,7 +50,7 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
-if ( ! VenueSchema::is_ready() ) {
+if ( ! class_exists( \ExtraChill\Users\Teams\TeamMembershipRepository::class ) ) {
 	?>
 	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
 		<div class="ec-inline-status ec-inline-status--error" role="alert">

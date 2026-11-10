@@ -13,7 +13,7 @@ use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Abilities\VenueBookingEventAbilities;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../../extrachill-booking/tests/Support/BookingTestHarness.php';
+require_once __DIR__ . '/Support/booking-harness.php';
 
 final class CanonicalEventPublicationGuardTest extends BookingTestCase {
 

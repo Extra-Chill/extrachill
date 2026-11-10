@@ -53,7 +53,7 @@ final class AbilitiesProvider {
 			'LocationEventAbilities',
 		);
 
-		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
+		if ( class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 			$abilities = array_merge(
 				$abilities,
 				array(
@@ -71,7 +71,7 @@ final class AbilitiesProvider {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
 			$abilities[] = 'PromoterAuthorityAbilities';
 			$abilities[] = 'PromoterVenueGrantAbilities';
-			if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
+			if ( class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 				$abilities[] = 'PromoterWorkspaceAbilities';
 			}
 		}

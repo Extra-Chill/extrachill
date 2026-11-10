@@ -64,7 +64,7 @@ final class VenueProvider {
 	 */
 	public static function dependencies(): array {
 		return array(
-			'VenueSchema',
+			'NetworkTeamInvitationsMigration',
 			'VenueMembershipRepository',
 			'TeamAuthorization',
 			'TeamCapabilities',

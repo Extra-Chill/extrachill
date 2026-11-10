@@ -24,7 +24,6 @@ use ExtraChillEvents\Abilities\RsvpPassAbilities;
 use ExtraChillEvents\Core\OwnerGuestListTable;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\RsvpPassesTable;
-use ExtraChillEvents\Core\VenueSchema;
 
 require_once __DIR__ . '/../../Support/team-members-fake.php';
 require_once __DIR__ . '/RsvpGuestListRequestsTest.php';
@@ -52,7 +51,6 @@ require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRe
 require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthorityRepository.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/owner-guest-list.php';
@@ -284,7 +282,7 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 		$GLOBALS['event_management_test'] = array(
 			'options'        => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
-				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
+
 				'time_format'                           => 'g:i a',
 			),
 			'caps'           => array( self::ADMIN_ID => array( 'manage_network_options' ) ),

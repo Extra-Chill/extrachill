@@ -427,7 +427,7 @@ class PromoterVenueGrantRepository {
 	 * @param int    $actor_user_id    Actor user ID.
 	 */
 	private function validate_request( int $promoter_term_id, int $venue_term_id, string $action, int $actor_user_id ) {
-		if ( ! PromoterAuthoritySchema::is_ready() || ! VenueSchema::is_ready() ) {
+		if ( ! PromoterAuthoritySchema::is_ready() ) {
 			return new \WP_Error( 'promoter_venue_authority_schema_unavailable', __( 'Promoter venue authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
 		}
 		$promoter = get_term( $promoter_term_id, 'promoter' );

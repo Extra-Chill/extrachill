@@ -8,7 +8,6 @@
 use ExtraChillEvents\Core\TeamCapabilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 
 require_once __DIR__ . '/VenueMembershipAuthorizationTest.php';
@@ -28,7 +27,7 @@ final class TeamAuthorizationTest extends \PHPUnit\Framework\TestCase {
 			'term_meta'         => array(),
 			'term_history'      => array(),
 			'options'           => array(
-				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
+
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 			),
 			'terms'             => array(
