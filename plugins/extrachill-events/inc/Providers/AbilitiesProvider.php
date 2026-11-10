@@ -58,6 +58,7 @@ final class AbilitiesProvider {
 			array(
 				'VenueMembershipAbilities',
 				'VenueOnboardingAbilities',
+				'DoorAccessAbilities',
 				'VenueCalendarFeedAbilities',
 				'VenueProfileAbilities',
 				'VenueGraphicsAbilities',
