@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.2] - 2026-11-10
+
+### Changed
+- artist membership as a network team type
+
 ## [0.63.1] - 2026-11-09
 
 ### Changed
