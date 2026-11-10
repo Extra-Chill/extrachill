@@ -158,7 +158,7 @@ add_filter( 'datamachine_migrations', static function ( array $migrations ): arr
 		public function id(): string { return 'extrachill-artist-platform.artist-team-members'; }
 		public function description(): string { return 'Copy and verify legacy artist memberships without deleting meta.'; }
 		public function inspect(): array { return ArtistTeamMembersMigration::inspect(); }
-		public function apply( int $limit ): array { return ArtistTeamMembersMigration::apply(); }
+		public function apply( int $limit ): array { return ArtistTeamMembersMigration::apply(); } // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Migration interface signature; the copy is a single pass.
 		public function isComplete(): bool { return 'complete' === ArtistTeamMembersMigration::inspect()['status']; }
 	};
 	return $migrations;

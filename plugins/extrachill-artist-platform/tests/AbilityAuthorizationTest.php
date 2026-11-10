@@ -160,7 +160,7 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 			wp_set_current_user( $this->owner_user_id );
 			$this->assertFalse( $ability->check_permissions( $input ), $name . ' allowed an unrelated user.' );
 
-			$this->create_artist_membership( $this->owner_user_id, $this->artist_id );
+			$this->assertTrue( ec_add_artist_membership( $this->owner_user_id, $this->artist_id ) );
 			$this->assertTrue( $ability->check_permissions( $input ), $name . ' denied the artist owner.' );
 
 			wp_set_current_user( $this->super_admin_user_id );

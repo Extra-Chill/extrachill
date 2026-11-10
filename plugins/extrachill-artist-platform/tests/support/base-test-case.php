@@ -370,21 +370,27 @@ abstract class EC_Artist_Platform_TestCase extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Make the next N writes to the network team store fail at the database.
+	 * Make the next N writes to the network team store affect no rows.
 	 *
-	 * @param int $times Number of failing INSERT or UPDATE statements.
+	 * The write is swapped for a valid empty read rather than a failing
+	 * statement: a SQL error can abort the per-test transaction and leak
+	 * fixtures into later tests.
+	 *
+	 * @param int $times Number of INSERT or UPDATE statements to drop.
 	 * @return stdClass State with the remaining count.
 	 */
 	protected function fail_team_writes( int $times = 1 ): stdClass {
+		global $wpdb;
 		$state            = new stdClass();
 		$state->remaining = $times;
 		$table            = \ExtraChill\Users\Teams\TeamMembershipRepository::table();
+		$noop             = "SELECT ID FROM {$wpdb->users} WHERE 1 = 0";
 		$this->ec_inject_filter(
 			'query',
-			static function ( $query ) use ( $state, $table ) {
+			static function ( $query ) use ( $state, $table, $noop ) {
 				if ( $state->remaining > 0 && preg_match( '/^\s*(INSERT|UPDATE)\b/i', $query ) && false !== strpos( $query, $table ) ) {
 					--$state->remaining;
-					return 'SELECT * FROM ec_injected_team_write_failure';
+					return $noop;
 				}
 				return $query;
 			}
