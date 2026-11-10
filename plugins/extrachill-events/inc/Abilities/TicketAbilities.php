@@ -65,6 +65,46 @@ class TicketAbilities {
 	}
 
 	/**
+	 * Ticket offer output schema: an event with no ticket seller reports null.
+	 *
+	 * The input schema stays strict (a chosen seller has a positive ID); only
+	 * what abilities return may say "no seller".
+	 *
+	 * @return array
+	 */
+	public static function output_fields(): array {
+		$fields                          = self::fields();
+		$fields['ticket_seller']['type'] = array( 'object', 'null' );
+
+		return $fields;
+	}
+
+	/**
+	 * Shape stored ticket settings for ability output.
+	 *
+	 * Storage keeps the unconfigured seller as ID 0 for internal callers; the
+	 * output contract reports it as null so it validates against output_fields().
+	 *
+	 * @param array $settings Ticket settings from settings() or validate_settings().
+	 * @return array
+	 */
+	public static function output_settings( array $settings ): array {
+		$seller = $settings['ticket_seller'] ?? null;
+		$valid  = is_array( $seller )
+			&& in_array( $seller['type'] ?? '', array( 'venue', 'promoter' ), true )
+			&& (int) ( $seller['id'] ?? 0 ) > 0;
+
+		$settings['ticket_seller'] = $valid
+			? array(
+				'type' => (string) $seller['type'],
+				'id'   => (int) $seller['id'],
+			)
+			: null;
+
+		return $settings;
+	}
+
+	/**
 	 * Stored ticket offer with defaults applied.
 	 *
 	 * @param int $id Event post ID.

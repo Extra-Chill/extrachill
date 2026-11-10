@@ -97,6 +97,17 @@ final class TicketAbilitiesTest extends \PHPUnit\Framework\TestCase {
 		$this->assertTrue( $offer['sale_open'] );
 		$this->assertFalse( TicketAbilities::settings( 11 )['tickets_enabled'] );
 	}
+	public function test_output_reports_a_missing_seller_as_null_and_keeps_input_strict(): void {
+		$unset = TicketAbilities::output_settings( TicketAbilities::settings( 11 ) );
+		$this->assertNull( $unset['ticket_seller'] );
+		$this->assertNull( TicketAbilities::output_settings( array( 'ticket_seller' => array( 'type' => 'venue', 'id' => 0 ) ) )['ticket_seller'] );
+		$this->assertNull( TicketAbilities::output_settings( array() )['ticket_seller'] );
+		$this->assertSame( array( 'type' => 'venue', 'id' => 2 ), TicketAbilities::output_settings( TicketAbilities::settings( 10 ) )['ticket_seller'] );
+		$this->assertSame( 0, TicketAbilities::settings( 11 )['ticket_seller']['id'], 'Storage keeps the internal ID-0 default.' );
+		$this->assertSame( array( 'object', 'null' ), TicketAbilities::output_fields()['ticket_seller']['type'] );
+		$this->assertSame( 'object', TicketAbilities::fields()['ticket_seller']['type'] );
+		$this->assertSame( 1, TicketAbilities::output_fields()['ticket_seller']['properties']['id']['minimum'] );
+	}
 	public function test_sale_follows_event_timing(): void {
 		$GLOBALS['ticket_timing'][10] = 'ongoing';
 		$this->assertTrue( ( new TicketAbilities() )->offer( array( 'event' => 10 ) )['sale_open'] );
