@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Extra Chill Booking
  * Description: Venue booking operations for Extra Chill.
- * Version: 0.4.2
+ * Version: 0.4.3
  * Requires PHP: 8.4
  * Requires Plugins: extrachill-events
  * Text Domain: extrachill-booking
