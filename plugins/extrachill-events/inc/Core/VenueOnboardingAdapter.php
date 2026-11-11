@@ -23,7 +23,7 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 	);
 
 	/** Accept-route action shared by venue and promoter invitations. */
-	public const ACCEPT_ACTION = 'ec_accept_venue_invitation';
+	public const ACCEPT_ACTION = 'ec_accept_team_invitation';
 
 	/** Team type. */
 	private $type;
@@ -108,6 +108,15 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 		);
 	}
 
+	public function accepted_url( int $team_id, bool $accepted ): string {
+		$term   = get_term( $team_id, $this->type );
+		$target = $term && ! is_wp_error( $term ) ? get_term_link( $term ) : home_url( '/' );
+		if ( is_wp_error( $target ) ) {
+			$target = home_url( '/' );
+		}
+		return add_query_arg( 'venue_invitation', $accepted ? 'accepted' : 'failed', $target );
+	}
+
 	/** Build the signed accept-route URL for one invitation. */
 	public static function accept_url( string $type, array $invitation, string $token ): string {
 		return add_query_arg(
@@ -115,7 +124,7 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 				'action'        => self::ACCEPT_ACTION,
 				'invitation_id' => $invitation['public_id'],
 				'token'         => $token,
-				'venue_term_id' => (int) ( $invitation['team_id'] ?? $invitation['team_term_id'] ?? 0 ),
+				'team_id'       => (int) ( $invitation['team_id'] ?? $invitation['team_term_id'] ?? 0 ),
 				'team_type'     => $type,
 				'is_owner'      => ! empty( $invitation['is_owner'] ) ? 1 : 0,
 				'version'       => (int) $invitation['version'],

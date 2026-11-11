@@ -51,6 +51,9 @@ interface TeamOnboardingAdapter {
 	/** Add any consumer compatibility aliases without exposing internal secrets. */
 	public function public_record( array $record ): array;
 
+	/** Destination after an acceptance attempt. */
+	public function accepted_url( int $team_id, bool $accepted ): string;
+
 	/** Registration source recorded on accounts created for an invitation. */
 	public function registration_source(): string;
 

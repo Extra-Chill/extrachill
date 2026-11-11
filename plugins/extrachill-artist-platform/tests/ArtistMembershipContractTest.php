@@ -39,6 +39,37 @@ final class ArtistMembershipContractTest extends EC_Artist_Platform_TestCase {
 		$this->assertSame( 'revoked', $this->membership_row( $this->user_id, $this->profile_id )['status'] );
 	}
 
+	public function test_network_artist_invitation_accepts_and_cancels_without_granting_pending_authority(): void {
+		$adapter = new \ExtraChillArtistPlatform\ArtistOnboardingAdapter();
+		$store   = new \ExtraChill\Users\Teams\TeamOnboardingRepository( $adapter );
+		$members = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		$this->assertSame( 1, $members->insert( 'artist', $members->new_row( 'artist', $this->profile_id, $this->admin_id, true, $this->admin_id ) ) );
+		$invite = $store->create_invitation( $this->admin_id, $this->profile_id, $this->user_id, false, $this->email_hash( $this->user_id ) );
+		$this->assertIsArray( $invite );
+		$this->assertSame( 'invited', $this->membership_row( $this->user_id, $this->profile_id )['status'] );
+		$this->assertFalse( ec_can_manage_artist( $this->user_id, $this->profile_id ) );
+		$this->assertFalse( ec_is_user_artist_member( $this->user_id, $this->profile_id ) );
+		$this->assertFalse( ec_user_can_manage_artist_object( $this->user_id, $this->profile_id ) );
+		$this->assertSame( array(), ec_get_artists_for_user( $this->user_id ) );
+		$this->assertNotContains( $this->user_id, $this->artist_team_member_ids( $this->profile_id ) );
+		$prepared = $store->prepare_delivery( $invite['_delivery_id'], 3600 );
+		$this->assertIsArray( $prepared );
+		$result = $store->respond_to_invitation( $this->user_id, $prepared['public_id'], $prepared['_delivery_token'], $this->profile_id, false, (int) $prepared['version'], $store::INVITE_ACCEPTED );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'active', $this->membership_row( $this->user_id, $this->profile_id )['status'] );
+		$this->assertTrue( ec_can_manage_artist( $this->user_id, $this->profile_id ) );
+
+		$other = (int) self::factory()->user->create();
+		$invite = $store->create_invitation( $this->admin_id, $this->profile_id, $other, false, $this->email_hash( $other ) );
+		$this->assertIsArray( $invite );
+		$this->assertIsArray( $store->cancel_invitation( $this->admin_id, (int) $invite['id'], (int) $invite['version'] ) );
+		$this->assertSame( 'revoked', $this->membership_row( $other, $this->profile_id )['status'] );
+	}
+
+	private function email_hash( int $user_id ): string {
+		return hash_hmac( 'sha256', strtolower( get_userdata( $user_id )->user_email ), wp_salt( 'auth' ) );
+	}
+
 	public function test_removing_a_never_linked_pair_succeeds_without_a_row(): void {
 		$this->assertTrue( ec_remove_artist_membership( $this->user_id, $this->profile_id ) );
 		$this->assertNull( $this->membership_row( $this->user_id, $this->profile_id ) );

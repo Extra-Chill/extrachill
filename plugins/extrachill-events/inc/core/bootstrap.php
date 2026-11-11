@@ -111,55 +111,22 @@ function ec_events_redirect_post_type_archive() {
 add_action( 'template_redirect', 'ec_events_redirect_post_type_archive' );
 
 /**
- * Accept a signed venue invitation from its email link.
+ * Accept invitation links delivered before the generic team route existed.
  *
- * The invitation token is the one-time request authenticator. Logged-out users
- * are sent through the canonical WordPress login flow and returned here; the
- * service still binds acceptance to the authenticated invitation user.
+ * Those links used the `ec_accept_venue_invitation` action and may omit
+ * `team_type`; route them through the users-owned team acceptance handler.
  */
-function ec_events_accept_venue_invitation() {
+function ec_events_accept_legacy_venue_invitation() {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The signed single-use invitation token authenticates this email callback.
-	$invitation_id = sanitize_text_field( wp_unslash( $_GET['invitation_id'] ?? '' ) );
-	$token         = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
-	$venue_term_id = absint( $_GET['venue_term_id'] ?? $_GET['team_term_id'] ?? 0 );
-	$team_type     = sanitize_key( wp_unslash( $_GET['team_type'] ?? 'venue' ) );
-	if ( ! isset( \ExtraChillEvents\Core\VenueOnboardingAdapter::SUPPORT[ $team_type ] ) ) {
-		wp_die( esc_html__( 'Invalid invitation team type.', 'extrachill-events' ) );
+	if ( empty( $_GET['team_type'] ) ) {
+		$_GET['team_type'] = 'venue';
 	}
-	$is_owner = ! empty( $_GET['is_owner'] );
-	$version  = absint( $_GET['version'] ?? 0 );
+	$_GET['action'] = 'ec_accept_team_invitation';
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
-
-	if ( ! get_current_user_id() ) {
-		$current_url = add_query_arg(
-			array(
-				'action'        => 'ec_accept_venue_invitation',
-				'invitation_id' => $invitation_id,
-				'token'         => $token,
-				'venue_term_id' => $venue_term_id,
-				'team_type'     => $team_type,
-				'is_owner'      => $is_owner ? 1 : 0,
-				'version'       => $version,
-			),
-			admin_url( 'admin-post.php' )
-		);
-		wp_safe_redirect( wp_login_url( $current_url ) );
-		exit;
-	}
-
-	$service = new \ExtraChillEvents\Core\VenueOnboardingService( null, null, null, $team_type );
-	$result  = $service->respond( get_current_user_id(), $invitation_id, $token, $venue_term_id, $is_owner, $version, \ExtraChillEvents\Core\VenueOnboardingRepository::INVITE_ACCEPTED );
-	$venue   = get_term( $venue_term_id, $team_type );
-	$target  = $venue && ! is_wp_error( $venue ) ? get_term_link( $venue ) : home_url( '/' );
-	if ( is_wp_error( $target ) ) {
-		$target = home_url( '/' );
-	}
-	$target = add_query_arg( 'venue_invitation', is_wp_error( $result ) ? 'failed' : 'accepted', $target );
-	wp_safe_redirect( $target );
-	exit;
+	ec_accept_team_invitation();
 }
-add_action( 'admin_post_ec_accept_venue_invitation', 'ec_events_accept_venue_invitation' );
-add_action( 'admin_post_nopriv_ec_accept_venue_invitation', 'ec_events_accept_venue_invitation' );
+add_action( 'admin_post_ec_accept_venue_invitation', 'ec_events_accept_legacy_venue_invitation' );
+add_action( 'admin_post_nopriv_ec_accept_venue_invitation', 'ec_events_accept_legacy_venue_invitation' );
 
 /**
  * Contribute approved artist tour-URL submissions to the community rank engine.
