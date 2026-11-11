@@ -15,6 +15,10 @@ defined( 'ABSPATH' ) || exit;
 
 /** Owns every query against the shared team membership table. */
 class TeamMembershipRepository {
+	public const STATUS_ACTIVE  = 'active';
+	public const STATUS_INVITED = 'invited';
+	public const STATUS_REVOKED = 'revoked';
+
 	/** Supported team types. */
 	public const TYPES = array( 'venue', 'promoter', 'artist' );
 
