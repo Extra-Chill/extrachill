@@ -1075,12 +1075,20 @@ class TeamOnboardingRepository {
 		);
 	}
 
-	/** Network admins review claims; rechecked under the team lock. */
+	/**
+	 * Network admins review claims; rechecked under the team lock.
+	 *
+	 * @phpstan-impure
+	 */
 	private function can_review_claims( int $actor_user_id ): bool {
 		return user_can( $actor_user_id, 'manage_options' );
 	}
 
-	/** Whether the last database statement failed. */
+	/**
+	 * Whether the last database statement failed.
+	 *
+	 * @phpstan-impure
+	 */
 	private function db_failed(): bool {
 		global $wpdb;
 		return '' !== (string) $wpdb->last_error;
