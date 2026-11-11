@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.3] - 2026-11-11
+
+### Changed
+- artists use the network team invitation flow
+
 ## [0.10.2] - 2026-11-01
 
 ### Fixed
