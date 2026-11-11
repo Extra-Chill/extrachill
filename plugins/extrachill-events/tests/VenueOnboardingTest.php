@@ -33,6 +33,7 @@ final class VenueOnboardingTest extends TestCase {
 			}
 			public function authorize( int $actor, int $id ) { return true; }
 			public function authorize_locked( int $actor, int $id, array $members ) { return true; }
+			public function accepted_url( int $team_id, bool $accepted ): string { return ""; }
 			public function registration_source(): string { return 'artist_invitation'; }
 			public function invitation_email( array $invitation, string $token ) { return array(); }
 			public function error_code( string $code ): string { return str_replace( 'team', 'artist', $code ); }
@@ -51,6 +52,84 @@ final class VenueOnboardingTest extends TestCase {
 			$this->assertSame( array( array( 42, true ) ), $adapter->checks );
 			$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $db->queries );
 		} finally {
+			$GLOBALS['wpdb'] = $previous;
+		}
+	}
+
+	/** All onboarding types preserve invited rows without treating them as active. */
+	public function test_invited_membership_rows_preserve_typed_identifiers(): void {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		foreach ( array( 'artist' => 'artist_id', 'venue' => 'venue_term_id', 'promoter' => 'promoter_term_id' ) as $type => $key ) {
+			$row = $repository->new_row( $type, 42, 7, false, 1, 'invited' );
+			$row['id'] = 10;
+			$hydrated = $repository->hydrate( $type, $row );
+			$this->assertIsArray( $hydrated );
+			$this->assertSame( 42, $hydrated[ $key ] );
+			$this->assertSame( 'invited', $hydrated['status'] );
+			$this->assertNotSame( 'active', $hydrated['status'] );
+		}
+	}
+
+	/** The typed artist key becomes the canonical storage key on insert. */
+	public function test_artist_invited_row_is_inserted_with_canonical_team_id(): void {
+		$previous = $GLOBALS['wpdb'] ?? null;
+		$db = new class {
+			public $base_prefix = 'wp_';
+			public $stored;
+			public function insert( $table, $row ) {
+				$this->stored = $row;
+				return 1;
+			}
+		};
+		$GLOBALS['wpdb'] = $db;
+		try {
+			$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+			$row = $repository->new_row( 'artist', 42, 7, false, 1, 'invited' );
+			$this->assertSame( 1, $repository->insert( 'artist', $row ) );
+			$this->assertSame( 42, $db->stored['team_id'] );
+			$this->assertSame( 'artist', $db->stored['team_type'] );
+			$this->assertSame( 'invited', $db->stored['status'] );
+			$this->assertArrayNotHasKey( 'artist_id', $db->stored );
+			$this->assertArrayNotHasKey( 'artist_term_id', $db->stored );
+		} finally {
+			$GLOBALS['wpdb'] = $previous;
+		}
+	}
+
+	public function test_artist_adapter_authority_requires_active_membership_not_ownership(): void {
+		require_once __DIR__ . '/../../extrachill-artist-platform/inc/artist-profiles/roster/ArtistOnboardingAdapter.php';
+		$adapter = new \ExtraChillArtistPlatform\ArtistOnboardingAdapter();
+		$this->assertSame( array( 'invitations' ), $adapter->operations() );
+		foreach ( array( 'invited', 'revoked' ) as $status ) {
+			$this->assertWPErrorDenied( $adapter->authorize_locked( 7, 42, array( array( 'user_id' => 7, 'status' => $status, 'is_owner' => true ) ) ) );
+		}
+		$this->assertTrue( $adapter->authorize_locked( 7, 42, array( array( 'user_id' => 7, 'status' => 'active', 'is_owner' => false ) ) ) );
+		$this->assertWPErrorDenied( $adapter->authorize_locked( 8, 42, array( array( 'user_id' => 7, 'status' => 'active' ) ) ) );
+		$this->assertSame( 'artist_invitation', $adapter->registration_source() );
+		$this->assertSame( 'invalid_artist_invitation', $adapter->error_code( 'invalid_team_invitation' ) );
+	}
+
+	private function assertWPErrorDenied( $result ): void {
+		$this->assertInstanceOf( WP_Error::class, $result );
+		$this->assertSame( 'permission_denied', $result->get_error_code() );
+	}
+
+	public function test_generic_accept_route_dispatches_failure_to_selected_adapter(): void {
+		require_once __DIR__ . '/../../extrachill-users/inc/teams/accept-invitation.php';
+		$adapter = new class extends \ExtraChillEvents\Core\VenueOnboardingAdapter {
+			public function accepted_url( int $team_id, bool $accepted ): string {
+				return 'selected:' . $team_id . ':' . ( $accepted ? 'accepted' : 'failed' );
+			}
+		};
+		$previous = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = new VenueMembershipWpdb();
+		$filter = static function ( $adapters ) use ( $adapter ) { $adapters['venue'] = $adapter; return $adapters; };
+		add_filter( 'extrachill_users_team_onboarding_adapters', $filter );
+		try {
+			$this->assertSame( 'selected:42:failed', ec_users_team_invitation_target( array( 'team_type' => 'venue', 'team_id' => 42 ), 7 ) );
+			$this->assertInstanceOf( WP_Error::class, ec_users_team_invitation_target( array( 'team_type' => 'unknown' ), 7 ) );
+		} finally {
+			remove_filter( 'extrachill_users_team_onboarding_adapters', $filter );
 			$GLOBALS['wpdb'] = $previous;
 		}
 	}

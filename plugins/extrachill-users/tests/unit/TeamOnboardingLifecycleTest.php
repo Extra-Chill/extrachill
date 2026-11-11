@@ -59,6 +59,7 @@ class Test_Team_Onboarding_Lifecycle extends WP_UnitTestCase {
 			public function public_record( array $record ): array {
 				return $record;
 			}
+			public function accepted_url( int $team_id, bool $accepted ): string { return ""; }
 			public function registration_source(): string {
 				return 'fake_invitation';
 			}
@@ -78,8 +79,12 @@ class Test_Team_Onboarding_Lifecycle extends WP_UnitTestCase {
 		$memberships->insert( self::TYPE, $memberships->new_row( self::TYPE, self::TEAM_ID, $this->owner, true, $this->owner ) );
 	}
 
+	private function email_hash( int $user_id ): string {
+		return hash_hmac( 'sha256', strtolower( get_userdata( $user_id )->user_email ), wp_salt( 'auth' ) );
+	}
+
 	private function invite( int $user_id ): array {
-		$invitation = $this->repository->create_invitation( $this->owner, self::TEAM_ID, $user_id, false, hash( 'sha256', 'invitee' . $user_id ) );
+		$invitation = $this->repository->create_invitation( $this->owner, self::TEAM_ID, $user_id, false, $this->email_hash( $user_id ) );
 		$this->assertIsArray( $invitation, is_wp_error( $invitation ) ? $invitation->get_error_code() : '' );
 		return $invitation;
 	}
@@ -123,7 +128,7 @@ class Test_Team_Onboarding_Lifecycle extends WP_UnitTestCase {
 		$claimant = self::factory()->user->create();
 		$claim    = $this->repository->submit_claim( $claimant, self::TEAM_ID );
 		$this->assertIsArray( $claim );
-		$blocked = $this->repository->create_invitation( $this->owner, self::TEAM_ID, $claimant, false, hash( 'sha256', 'claimant' ) );
+		$blocked = $this->repository->create_invitation( $this->owner, self::TEAM_ID, $claimant, false, $this->email_hash( $claimant ) );
 		$this->assertSame( 'fake_invitation_claim_exists', $blocked->get_error_code() );
 	}
 

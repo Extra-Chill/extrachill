@@ -102,7 +102,7 @@ class Test_Registration_Redirect extends WP_UnitTestCase {
 			}
 		};
 
-		extrachill_auto_login_new_user( $user_id, $redirect, null, $success_redirect_url );
+		extrachill_auto_login_new_user( $user_id, $redirect, $success_redirect_url );
 
 		return $redirect->captured_url;
 	}

@@ -35,6 +35,7 @@ require_once __DIR__ . '/inc/teams/TeamOnboardingAdapters.php';
 require_once __DIR__ . '/inc/teams/TeamOnboardingRepository.php';
 require_once __DIR__ . '/inc/teams/TeamOnboardingService.php';
 require_once __DIR__ . '/inc/teams/TeamInvitationDeliveryWorker.php';
+require_once __DIR__ . '/inc/teams/accept-invitation.php';
 \ExtraChill\Users\Teams\TeamInvitationDeliveryWorker::register();
 require_once __DIR__ . '/inc/teams/db.php';
 

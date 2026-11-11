@@ -336,8 +336,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	$remember             = ! empty( $payload['remember'] );
 	$set_cookie           = ! empty( $payload['set_cookie'] );
 	$from_join            = ! empty( $payload['from_join'] );
-	$invite_token         = isset( $payload['invite_token'] ) ? sanitize_text_field( (string) $payload['invite_token'] ) : '';
-	$invite_artist_id     = isset( $payload['invite_artist_id'] ) ? absint( $payload['invite_artist_id'] ) : 0;
 	$registration_page    = isset( $payload['registration_page'] ) ? esc_url_raw( (string) $payload['registration_page'] ) : '';
 	$registration_source  = isset( $payload['registration_source'] ) ? sanitize_text_field( (string) $payload['registration_source'] ) : '';
 	$registration_method  = isset( $payload['registration_method'] ) ? sanitize_text_field( (string) $payload['registration_method'] ) : '';
@@ -445,15 +443,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		$registration_data['utm'] = $utm;
 	}
 
-	$has_artist_invitation = false;
-	if ( $invite_token || $invite_artist_id ) {
-		$validation = ec_users_request_artist_invitation( $email, $invite_token, $invite_artist_id );
-		if ( is_wp_error( $validation ) ) {
-			return $validation;
-		}
-		$has_artist_invitation = true;
-	}
-
 	$user_id = apply_filters( 'extrachill_create_community_user', false, $registration_data );
 	if ( is_wp_error( $user_id ) ) {
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Expected operational logging for failed auth/registration flows.
@@ -480,17 +469,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 	}
 
 	extrachill_users_record_registration_newsletter_consent( (int) $user_id, $email, $newsletter_consent, $registration_source, $registration_method, $registration_page );
-
-	$processed_invite_artist_id = null;
-	$invitation_outcome         = array();
-	if ( $has_artist_invitation ) {
-		$acceptance = ec_users_request_artist_invitation( $email, $invite_token, $invite_artist_id, (int) $user_id );
-		if ( is_wp_error( $acceptance ) ) {
-			$invitation_outcome = ec_users_classify_artist_invitation_error( $acceptance );
-		} else {
-			$processed_invite_artist_id = $invite_artist_id;
-		}
-	}
 
 	$user = get_user_by( 'id', (int) $user_id );
 	if ( ! $user ) {
@@ -529,17 +507,6 @@ function extrachill_users_register_with_tokens( array $payload ) {
 		'redirect_url'         => $redirect_url,
 		'user'                 => extrachill_users_token_user_payload( $user ),
 	);
-
-	if ( $processed_invite_artist_id ) {
-		$response['invite_artist_id'] = (int) $processed_invite_artist_id;
-	}
-	if ( $has_artist_invitation ) {
-		$response['artist_invitation_status'] = $invitation_outcome ? $invitation_outcome['status'] : 'applied';
-		if ( $invitation_outcome ) {
-			$response['artist_invitation_retryable'] = $invitation_outcome['retryable'];
-			$response['artist_invitation_error']     = $invitation_outcome['error'];
-		}
-	}
 
 	return $response;
 }

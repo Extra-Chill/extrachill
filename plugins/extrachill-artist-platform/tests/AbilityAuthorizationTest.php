@@ -175,7 +175,6 @@ final class AbilityAuthorizationTest extends EC_Artist_Platform_TestCase {
 	public function test_every_sensitive_registration_uses_an_approved_permission_contract(): void {
 		$public  = array(
 			'extrachill/onboard-external-artist',
-			'extrachill/artist-invitation',
 			'extrachill/artists-list',
 			'extrachill/artist-get',
 			'extrachill/artist-public-projections',

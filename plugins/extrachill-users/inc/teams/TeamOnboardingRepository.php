@@ -293,17 +293,8 @@ class TeamOnboardingRepository {
 		$now         = gmdate( 'Y-m-d H:i:s' );
 		$public_id   = wp_generate_uuid4();
 		$delivery_id = wp_generate_uuid4();
-		$member_row  = array(
-			'user_id'            => $user_id,
-			'is_owner'           => $is_owner ? 1 : 0,
-			'status'             => TeamMembershipRepository::STATUS_INVITED,
-			'version'            => 1,
-			'created_by_user_id' => $actor_user_id,
-			'created_at'         => $now,
-			'updated_at'         => $now,
-		);
 		$memberships = new TeamMembershipRepository();
-		$member_row[ $this->team_type . '_term_id' ] = $team_term_id;
+		$member_row  = $memberships->new_row( $this->team_type, $team_term_id, $user_id, $is_owner, $actor_user_id, TeamMembershipRepository::STATUS_INVITED );
 
 		if ( is_array( $current_member ) ) {
 			$member_result = $memberships->update( $this->team_type, $team_term_id, $user_id, (int) $current_member['version'], array(
@@ -451,7 +442,7 @@ class TeamOnboardingRepository {
 		$allowed_invitation_id = (int) ( $invitation['id'] ?? 0 );
 		$allowed_team_id       = (int) ( $invitation['team_term_id'] ?? 0 );
 		foreach ( (array) $members as $member ) {
-			if ( ( $member['team_type'] ?? $this->team_type ) !== $this->team_type || (int) ( $member['team_id'] ?? $member['team_term_id'] ?? $member[ $this->team_type . '_term_id' ] ?? 0 ) !== $allowed_team_id || TeamMembershipRepository::STATUS_REVOKED !== $member['status'] ) {
+			if ( ( $member['team_type'] ?? $this->team_type ) !== $this->team_type || (int) ( $member['team_id'] ?? $member['team_term_id'] ?? $member[ ( new TeamMembershipRepository() )->id_key( $this->team_type ) ] ?? 0 ) !== $allowed_team_id || TeamMembershipRepository::STATUS_REVOKED !== $member['status'] ) {
 				$this->commit();
 				return true;
 			}
@@ -870,14 +861,14 @@ class TeamOnboardingRepository {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit owner bootstrap under team lock.
 			$result = ( new TeamMembershipRepository() )->insert( $this->team_type,
 				array(
-					$this->team_type . '_term_id' => $claim['team_term_id'],
-					'user_id'                     => $claim['claimant_user_id'],
-					'is_owner'                    => 1,
-					'status'                      => TeamMembershipRepository::STATUS_ACTIVE,
-					'version'                     => 1,
-					'created_by_user_id'          => $actor_user_id,
-					'created_at'                  => $now,
-					'updated_at'                  => $now,
+					( new TeamMembershipRepository() )->id_key( $this->team_type ) => $claim['team_term_id'],
+					'user_id'            => $claim['claimant_user_id'],
+					'is_owner'           => 1,
+					'status'             => TeamMembershipRepository::STATUS_ACTIVE,
+					'version'            => 1,
+					'created_by_user_id' => $actor_user_id,
+					'created_at'         => $now,
+					'updated_at'         => $now,
 				)
 			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit operator-approved owner bootstrap under team lock.
 			return false === $result ? new \WP_Error( $this->authorization->error_code( 'team_claim_owner_create_failed' ), __( 'The approved team owner could not be created.', 'extrachill-users' ) ) : true;

@@ -7,7 +7,7 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-require_once __DIR__ . '/roster-data-functions.php'; // Include the new data functions file
+require_once __DIR__ . '/roster-filter-handlers.php';
 
 /**
  * Displays the entire "Manage Artist Members" interface.
@@ -23,7 +23,14 @@ if ( ! function_exists('ec_display_manage_members_section') ) {
 		}
 
 		$linked_members_raw      = ec_get_linked_members( $artist_id );
-		$pending_invitations_raw = ec_get_pending_invitations( $artist_id );
+		$adapter                 = \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'artist' );
+		$service                 = new \ExtraChill\Users\Teams\TeamOnboardingService( $adapter );
+		$pending_invitations_raw = $service->list_invitations( (int) $current_user_id, (int) $artist_id );
+		if ( is_wp_error( $pending_invitations_raw ) ) {
+			echo '<p>' . esc_html( $pending_invitations_raw->get_error_message() ) . '</p>';
+			return;
+		}
+		$pending_invitations_raw = array_map( 'ec_artist_roster_invitation_response', array_filter( $pending_invitations_raw, static fn( $invite ) => 'pending' === $invite['status'] ) );
 
 		$linked_user_ids       = array();
 		$processed_emails      = array();
@@ -86,17 +93,7 @@ if ( ! function_exists('ec_display_manage_members_section') ) {
 					$processed_emails[] = strtolower($invite['email']);
 
 					$invited_on_formatted = date_i18n( get_option( 'date_format' ), $invite['invited_on'] );
-					$status_text          = '';
-					switch ( $invite['status'] ) {
-						case EC_INVITE_STATUS_EXISTING_ARTIST:
-							$status_text = __( 'Invited (Existing User)', 'extrachill-artist-platform' );
-							break;
-						case EC_INVITE_STATUS_NEW_USER:
-							$status_text = __( 'Invited (New User)', 'extrachill-artist-platform' );
-							break;
-						default:
-							$status_text = __( 'Invited (Status: ', 'extrachill-artist-platform' ) . esc_html( $invite['status'] ) . ')';
-					}
+					$status_text          = __( 'Invited', 'extrachill-artist-platform' );
 					?>
 					<li data-invite-id="<?php echo esc_attr( $invite['id'] ); ?>" class="ec-member-pending-invite">
 						<span class="member-avatar-placeholder"></span> 
@@ -107,7 +104,7 @@ if ( ! function_exists('ec_display_manage_members_section') ) {
 							/*
 							 * Cancel Invite is handled by the React `artist-manager` block,
 							 * which calls DELETE /extrachill/v1/artists/{id}/roster/invites/{invite_id}
-							 * (extrachill-api) -> ec_remove_pending_invitation(). No AJAX; capability
+							 * (extrachill-api) -> network team service. No AJAX; capability
 							 * enforced via ec_can_manage_artist() in the REST handler. This legacy
 							 * server-rendered roster UI is not the active surface.
 							 */

@@ -42,7 +42,6 @@ export interface RegisterRequest {
 export interface RegisterResponse extends LoginResponse {
   onboarding_completed: boolean;
   redirect_url: string;
-  invite_artist_id?: number;
 }
 
 export interface RefreshRequest {

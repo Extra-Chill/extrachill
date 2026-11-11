@@ -164,44 +164,65 @@ function extrachill_artist_platform_register_abilities() {
 			'description'         => __( 'Preview an artist Link Page: public URL, resolved CSS defaults and derived variables, and WCAG contrast checks (4.5 threshold). Also captures a full-page screenshot of the live public URL at the viewport (default 390x844) and returns its image URL; pass screenshot=false to skip it.', 'extrachill-artist-platform' ),
 			'category'            => 'extrachill-artist-platform',
 			'input_schema'        => array(
-				'type' => 'object',
-				'required' => array( 'artist_id' ),
+				'type'                 => 'object',
+				'required'             => array( 'artist_id' ),
 				'additionalProperties' => false,
-				'properties' => array(
-					'artist_id'  => array( 'type' => 'integer', 'minimum' => 1 ),
+				'properties'           => array(
+					'artist_id'  => array(
+						'type'    => 'integer',
+						'minimum' => 1,
+					),
 					'screenshot' => array(
 						'type'        => 'boolean',
 						'default'     => true,
 						'description' => 'Capture a full-page screenshot of the live public URL (up to 30s).',
 					),
 					'viewport'   => array(
-						'type' => 'object',
-						'required' => array( 'width', 'height' ),
+						'type'                 => 'object',
+						'required'             => array( 'width', 'height' ),
 						'additionalProperties' => false,
-						'default' => array( 'width' => 390, 'height' => 844 ),
-						'properties' => array(
-							'width' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 10000 ),
-							'height' => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 10000 ),
+						'default'              => array(
+							'width'  => 390,
+							'height' => 844,
+						),
+						'properties'           => array(
+							'width'  => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+								'maximum' => 10000,
+							),
+							'height' => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+								'maximum' => 10000,
+							),
 						),
 					),
 				),
 			),
-			'output_schema' => array(
-				'type' => 'object',
-				'required' => array( 'public_url', 'viewport', 'resolved_styles', 'contrast_report', 'screenshot' ),
+			'output_schema'       => array(
+				'type'       => 'object',
+				'required'   => array( 'public_url', 'viewport', 'resolved_styles', 'contrast_report', 'screenshot' ),
 				'properties' => array(
-					'public_url' => array( 'type' => 'string', 'format' => 'uri' ),
-					'viewport' => array( 'type' => 'object' ),
+					'public_url'      => array(
+						'type'   => 'string',
+						'format' => 'uri',
+					),
+					'viewport'        => array( 'type' => 'object' ),
 					'resolved_styles' => array( 'type' => 'object' ),
 					'contrast_report' => array( 'type' => 'object' ),
-					'screenshot' => array( 'type' => 'object' ),
+					'screenshot'      => array( 'type' => 'object' ),
 				),
 			),
-			'execute_callback' => 'extrachill_artist_platform_ability_preview_link_page',
+			'execute_callback'    => 'extrachill_artist_platform_ability_preview_link_page',
 			'permission_callback' => 'extrachill_artist_platform_ability_artist_permission',
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
-				'annotations' => array( 'readonly' => true, 'idempotent' => true, 'destructive' => false ),
+				'annotations'  => array(
+					'readonly'    => true,
+					'idempotent'  => true,
+					'destructive' => false,
+				),
 			),
 		)
 	);
@@ -361,58 +382,6 @@ function extrachill_artist_platform_register_abilities() {
 					'readonly'    => false,
 					'idempotent'  => true,
 					'destructive' => false,
-				),
-			),
-		)
-	);
-
-	wp_register_ability(
-		'extrachill/artist-invitation',
-		array(
-			'label'               => __( 'Artist Invitation', 'extrachill-artist-platform' ),
-			'description'         => __( 'Validate or accept a token-authenticated artist invitation.', 'extrachill-artist-platform' ),
-			'category'            => 'extrachill-artist-platform',
-			'input_schema'        => array(
-				'type'                 => 'object',
-				'required'             => array( 'artist_id', 'email', 'token' ),
-				'properties'           => array(
-					'artist_id' => array(
-						'type'    => 'integer',
-						'minimum' => 1,
-					),
-					'email'     => array(
-						'type'   => 'string',
-						'format' => 'email',
-					),
-					'token'     => array(
-						'type'      => 'string',
-						'minLength' => 1,
-					),
-					'user_id'   => array(
-						'type'    => 'integer',
-						'minimum' => 1,
-					),
-				),
-				'additionalProperties' => false,
-			),
-			'output_schema'       => array(
-				'type'       => 'object',
-				'properties' => array(
-					'status'    => array(
-						'type' => 'string',
-						'enum' => array( 'valid', 'applied' ),
-					),
-					'artist_id' => array( 'type' => 'integer' ),
-				),
-			),
-			'execute_callback'    => 'extrachill_artist_platform_ability_artist_invitation',
-			'permission_callback' => '__return_true',
-			'meta'                => array(
-				'show_in_rest' => true,
-				'annotations'  => array(
-					'readonly'    => false,
-					'destructive' => false,
-					'idempotent'  => false,
 				),
 			),
 		)

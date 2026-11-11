@@ -264,7 +264,7 @@ function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $re
 		);
 	}
 
-	if ( ! function_exists( 'ec_remove_pending_invitation' ) ) {
+	if ( ! function_exists( 'ec_cancel_artist_roster_invitation' ) ) {
 		return new WP_Error(
 			'not_supported',
 			__( 'Invite cancellation is not available.', 'extrachill-api' ),
@@ -272,7 +272,10 @@ function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $re
 		);
 	}
 
-	$removed = ec_remove_pending_invitation( $artist_id, $invite_id );
+	$removed = ec_cancel_artist_roster_invitation( (int) $artist_id, (string) $invite_id );
+	if ( is_wp_error( $removed ) ) {
+		return $removed;
+	}
 
 	if ( ! $removed ) {
 		return new WP_Error(

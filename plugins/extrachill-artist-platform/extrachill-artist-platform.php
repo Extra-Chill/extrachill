@@ -20,6 +20,12 @@ define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-pages.php';
+// Users may load after this network plugin; defer the interface implementation.
+add_action( 'plugins_loaded', static function () {
+	if ( interface_exists( '\ExtraChill\Users\Teams\TeamOnboardingAdapter' ) ) {
+		require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/artist-profiles/roster/ArtistOnboardingAdapter.php';
+	}
+}, 5 );
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/docs-links.php';
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/runtime-handoff.php';
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-genres.php';
