@@ -1301,7 +1301,7 @@ final class PromoterAuthorityTest extends TestCase {
 		}
 		$this->assertSame( PromoterAuthorityRepository::MAX_MEMBERS, $registered['extrachill/list-promoter-memberships']['output_schema']['maxItems'] );
 		$provider = file_get_contents( dirname( __DIR__ ) . '/inc/Providers/AbilitiesProvider.php' );
-		$this->assertStringContainsString( 'TeamMembershipRepository', $provider );
+		$this->assertStringNotContainsString( 'VenueSchema', $provider );
 		$this->assertStringContainsString( 'PromoterAuthoritySchema::is_ready()', $provider );
 		$this->assertStringNotContainsString( 'BookingSchema::is_ready() && \\ExtraChillEvents\\Core\\PromoterAuthoritySchema::is_ready()', $provider );
 	}
