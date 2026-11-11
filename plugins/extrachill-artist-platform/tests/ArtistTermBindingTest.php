@@ -360,6 +360,90 @@ final class ArtistTermBindingTest extends EC_Artist_Platform_TestCase {
 		}
 	}
 
+	public function test_revoked_member_cannot_keep_or_claim_artist_access_under_portable_lock(): void {
+		$profile = $this->create_artist_profile( 'Revoked owner' );
+		$user    = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$this->create_artist_membership( $user, $profile );
+		wp_set_current_user( $user );
+		$this->assertTrue( ec_can_manage_artist( $user, $profile ) );
+		$this->assertSame( '1', ec_artist_binding_acquire_portable_lock( 'ec_artist_binding_v1' ) );
+		try {
+			$this->assertTrue( ec_remove_artist_membership( $user, $profile ) );
+			$this->assertFalse( ec_can_manage_artist( $user, $profile ) );
+			$result = extrachill_artist_platform_ability_update_artist( array( 'artist_id' => $profile, 'name' => 'Unauthorized rename' ) );
+			$this->assertWPError( $result );
+			$this->assertSame( 'artist_access_denied', $result->get_error_code() );
+		} finally {
+			ec_artist_binding_release_portable_lock( 'ec_artist_binding_v1' );
+		}
+	}
+
+	public function test_foreign_artist_member_cannot_claim_artist_access_under_portable_lock(): void {
+		$profile = $this->create_artist_profile( 'Target artist' );
+		$other   = $this->create_artist_profile( 'Foreign artist' );
+		$user    = (int) self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$this->create_artist_membership( $user, $other );
+		wp_set_current_user( $user );
+		$this->assertTrue( ec_can_manage_artist( $user, $other ) );
+		$this->assertSame( '1', ec_artist_binding_acquire_portable_lock( 'ec_artist_binding_v1' ) );
+		try {
+			$this->assertFalse( ec_can_manage_artist( $user, $profile ) );
+			$result = extrachill_artist_platform_ability_update_artist( array( 'artist_id' => $profile, 'name' => 'Unauthorized rename' ) );
+			$this->assertWPError( $result );
+			$this->assertSame( 'artist_access_denied', $result->get_error_code() );
+		} finally {
+			ec_artist_binding_release_portable_lock( 'ec_artist_binding_v1' );
+		}
+	}
+
+	public function test_expired_portable_owner_cannot_release_replacement_or_reclaim_lock(): void {
+		$lock   = 'ec_artist_binding_v1';
+		$option = 'ec_artist_binding_lock_' . md5( $lock );
+		switch_to_blog( get_main_site_id() );
+		try {
+			$expired = array( 'owner' => wp_generate_uuid4(), 'expires' => time() - 1 );
+			$this->assertTrue( add_option( $option, $expired, '', false ) );
+			$this->assertSame( '1', ec_artist_binding_acquire_portable_lock( $lock ) );
+			$replacement = $GLOBALS['ec_artist_binding_portable_locks'][ $lock ];
+			$this->assertNotSame( $expired['owner'], $replacement['payload']['owner'] );
+
+			// Simulate the expired request resuming with its original ownership token.
+			$GLOBALS['ec_artist_binding_portable_locks'][ $lock ] = array( 'option' => $option, 'payload' => $expired );
+			$this->assertTrue( ec_artist_binding_release_portable_lock( $lock ) );
+			$this->assertSame( $replacement['payload'], get_option( $option ) );
+			$this->assertSame( '0', ec_artist_binding_acquire_portable_lock( $lock ) );
+			$GLOBALS['ec_artist_binding_portable_locks'][ $lock ] = $replacement;
+			$this->assertTrue( ec_artist_binding_release_portable_lock( $lock ) );
+			$this->assertFalse( get_option( $option, false ) );
+		} finally {
+			delete_option( $option );
+			unset( $GLOBALS['ec_artist_binding_portable_locks'][ $lock ] );
+			restore_current_blog();
+		}
+	}
+
+	public function test_foreign_portable_owner_cannot_take_or_release_active_lock(): void {
+		$lock   = 'ec_artist_binding_v1';
+		$option = 'ec_artist_binding_lock_' . md5( $lock );
+		switch_to_blog( get_main_site_id() );
+		try {
+			$this->assertSame( '1', ec_artist_binding_acquire_portable_lock( $lock ) );
+			$owner = $GLOBALS['ec_artist_binding_portable_locks'][ $lock ];
+			unset( $GLOBALS['ec_artist_binding_portable_locks'][ $lock ] );
+			$this->assertSame( '0', ec_artist_binding_acquire_portable_lock( $lock ) );
+			$this->assertArrayNotHasKey( $lock, $GLOBALS['ec_artist_binding_portable_locks'] );
+			$this->assertTrue( ec_artist_binding_release_portable_lock( $lock ) );
+			$this->assertSame( $owner['payload'], get_option( $option ) );
+			$GLOBALS['ec_artist_binding_portable_locks'][ $lock ] = $owner;
+			$this->assertTrue( ec_artist_binding_release_portable_lock( $lock ) );
+			$this->assertFalse( get_option( $option, false ) );
+		} finally {
+			delete_option( $option );
+			unset( $GLOBALS['ec_artist_binding_portable_locks'][ $lock ] );
+			restore_current_blog();
+		}
+	}
+
 	public function test_primary_boundary_failure_survives_release_failure(): void {
 		$this->ec_require_mysql_advisory_locks();
 		$pair = $this->seed_pair( 'the-band' );
