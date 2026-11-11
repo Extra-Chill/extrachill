@@ -2,6 +2,11 @@
 
 All notable changes to extrachill-cache are documented here.
 
+## [0.4.0] - 2026-11-11
+
+### Added
+- honour Cache-Control max-age as per-entry expiry
+
 ## [0.3.10] - 2026-10-31
 
 ### Fixed
