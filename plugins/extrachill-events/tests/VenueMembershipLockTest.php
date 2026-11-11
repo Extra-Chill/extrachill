@@ -183,6 +183,10 @@ final class VenueMembershipLockTest extends TestCase {
 		}
 		$this->assertSame( 9, $repository->hydrate( 'promoter', $row )['revoked_by_user_id'] );
 		$row['status'] = 'invited';
+		foreach ( array( 'venue', 'promoter', 'artist' ) as $type ) {
+			$this->assertSame( 'invited', $repository->hydrate( $type, $row )['status'] );
+		}
+		$row['status'] = 'unknown';
 		$this->assertSame( 'promoter_membership_corrupt_status', $repository->hydrate( 'promoter', $row )->get_error_code() );
 	}
 

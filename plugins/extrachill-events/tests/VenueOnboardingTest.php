@@ -55,6 +55,46 @@ final class VenueOnboardingTest extends TestCase {
 		}
 	}
 
+	/** All onboarding types preserve invited rows without treating them as active. */
+	public function test_invited_membership_rows_preserve_typed_identifiers(): void {
+		$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+		foreach ( array( 'artist' => 'artist_id', 'venue' => 'venue_term_id', 'promoter' => 'promoter_term_id' ) as $type => $key ) {
+			$row = $repository->new_row( $type, 42, 7, false, 1, 'invited' );
+			$row['id'] = 10;
+			$hydrated = $repository->hydrate( $type, $row );
+			$this->assertIsArray( $hydrated );
+			$this->assertSame( 42, $hydrated[ $key ] );
+			$this->assertSame( 'invited', $hydrated['status'] );
+			$this->assertNotSame( 'active', $hydrated['status'] );
+		}
+	}
+
+	/** The typed artist key becomes the canonical storage key on insert. */
+	public function test_artist_invited_row_is_inserted_with_canonical_team_id(): void {
+		$previous = $GLOBALS['wpdb'] ?? null;
+		$db = new class {
+			public $base_prefix = 'wp_';
+			public $stored;
+			public function insert( $table, $row ) {
+				$this->stored = $row;
+				return 1;
+			}
+		};
+		$GLOBALS['wpdb'] = $db;
+		try {
+			$repository = new \ExtraChill\Users\Teams\TeamMembershipRepository();
+			$row = $repository->new_row( 'artist', 42, 7, false, 1, 'invited' );
+			$this->assertSame( 1, $repository->insert( 'artist', $row ) );
+			$this->assertSame( 42, $db->stored['team_id'] );
+			$this->assertSame( 'artist', $db->stored['team_type'] );
+			$this->assertSame( 'invited', $db->stored['status'] );
+			$this->assertArrayNotHasKey( 'artist_id', $db->stored );
+			$this->assertArrayNotHasKey( 'artist_term_id', $db->stored );
+		} finally {
+			$GLOBALS['wpdb'] = $previous;
+		}
+	}
+
 	private function invitation( array $overrides = array() ): array {
 		return array_merge(
 			array(

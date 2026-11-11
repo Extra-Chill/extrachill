@@ -179,7 +179,7 @@ class TeamMembershipRepository {
 	/** Normalize authority scalars while preserving each typed facade's keys. */
 	public function hydrate( string $team_type, array $row ) {
 		$venue    = 'venue' === $team_type;
-		$statuses = $venue ? array( 'active', 'invited', 'revoked' ) : array( 'active', 'revoked' );
+		$statuses = array( 'active', 'invited', 'revoked' );
 		if ( ! in_array( $row['status'] ?? '', $statuses, true ) ) {
 			return new \WP_Error( $team_type . '_membership_corrupt_status', 'artist' === $team_type ? __( 'The stored artist membership status is invalid.', 'extrachill-users' ) : ( $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-users' ) ) );
 		}
@@ -276,7 +276,7 @@ class TeamMembershipRepository {
 	}
 
 	/** Public identifier key for each typed relationship. */
-	private function id_key( string $team_type ): string {
+	public function id_key( string $team_type ): string {
 		return 'artist' === $team_type ? 'artist_id' : $team_type . '_term_id';
 	}
 
