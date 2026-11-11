@@ -15,9 +15,6 @@
  * @package ExtraChillEvents\Tests
  */
 
-namespace ExtraChill\Users\Teams {
-	final class TeamMembershipRepository {}
-}
 namespace ExtraChillEvents\Core {
 	final class VenueMembershipRepository {
 		public function list_active_venue_ids() {
@@ -75,6 +72,9 @@ namespace {
 
 	function get_block_wrapper_attributes(): string {
 		return ''; }
+	function user_can( $user_id, $capability, ...$args ): bool {
+		return true;
+	}
 	function is_user_logged_in(): bool {
 		return true; }
 	function get_current_user_id(): int {

@@ -48,7 +48,9 @@ if ( ! function_exists( 'ec_team_fake_partition' ) ) {
 	function ec_team_fake_write( string $table, array $row, array $where = array() ): array {
 		if ( preg_match( '/ec_team_(claims|invitations)/', $table ) ) {
 			$table = str_replace( 'wp_ec_team_', 'wp_7_ec_team_', $table );
-			if ( isset( $row['team_id'] ) ) { $row['venue_term_id'] = $row['team_id']; }
+			if ( isset( $row['team_id'] ) ) {
+				$row['venue_term_id'] = $row['team_id'];
+			}
 			return array( str_replace( 'ec_team_', 'ec_venue_', $table ), $row, $where );
 		}
 		if ( false === strpos( $table, 'ec_team_members' ) ) {

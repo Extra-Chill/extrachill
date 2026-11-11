@@ -35,10 +35,10 @@ final class NetworkTeamInvitationsMigration {
 				);
 			}
 			$count = $exists ? $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ) : 0; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CLI migration inventory.
-			if ( $wpdb->last_error || null === $count ) {
+			if ( null === $count ) {
 				return array(
 					'status' => 'error',
-					'error'  => ( '' !== (string) $wpdb->last_error ? $wpdb->last_error : 'Could not count legacy rows.' ),
+					'error'  => 'Could not count legacy rows.',
 				);
 			}
 			$tables[ $table ] = array(

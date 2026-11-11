@@ -5,9 +5,6 @@
  * @package ExtraChillEvents\Tests
  */
 
-namespace ExtraChill\Users\Teams {
-	final class TeamMembershipRepository {}
-}
 namespace ExtraChillEvents\Core {
 	final class VenueMembershipRepository {}
 	final class VenueAuthorization {

@@ -50,17 +50,6 @@ if ( ! is_user_logged_in() ) {
 	return;
 }
 
-if ( ! class_exists( \ExtraChill\Users\Teams\TeamMembershipRepository::class ) ) {
-	?>
-	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
-		<div class="ec-inline-status ec-inline-status--error" role="alert">
-			<?php esc_html_e( 'Venue management is temporarily unavailable. Please try again later.', 'extrachill-events' ); ?>
-		</div>
-	</div>
-	<?php
-	return;
-}
-
 $user_id       = get_current_user_id();
 $authorization = new VenueAuthorization();
 $is_admin      = $authorization->is_administrator( $user_id );
