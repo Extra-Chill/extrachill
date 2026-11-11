@@ -21,6 +21,7 @@ if ( ! function_exists( 'ec_team_fake_partition' ) ) {
 	/** Rewrite one team-table statement into its typed partition form. */
 	function ec_team_fake_sql( $query ) {
 		if ( is_string( $query ) && preg_match( '/ec_team_(claims|invitations)/', $query ) ) {
+			$query = str_replace( array( 'wp_ec_team_', 'team_id' ), array( 'wp_7_ec_team_', 'team_term_id' ), $query );
 			$query = preg_replace( "/team_type = '(venue|promoter)' AND /", '', $query );
 			return str_replace( array( 'ec_team_claims', 'ec_team_invitations', 'team_term_id', 'team_type ASC, ' ), array( 'ec_venue_claims', 'ec_venue_invitations', 'venue_term_id', '' ), $query );
 		}
@@ -46,7 +47,10 @@ if ( ! function_exists( 'ec_team_fake_partition' ) ) {
 	 */
 	function ec_team_fake_write( string $table, array $row, array $where = array() ): array {
 		if ( preg_match( '/ec_team_(claims|invitations)/', $table ) ) {
-			$row['venue_term_id'] = $row['team_term_id'];
+			$table = str_replace( 'wp_ec_team_', 'wp_7_ec_team_', $table );
+			if ( isset( $row['team_id'] ) ) {
+				$row['venue_term_id'] = $row['team_id'];
+			}
 			return array( str_replace( 'ec_team_', 'ec_venue_', $table ), $row, $where );
 		}
 		if ( false === strpos( $table, 'ec_team_members' ) ) {

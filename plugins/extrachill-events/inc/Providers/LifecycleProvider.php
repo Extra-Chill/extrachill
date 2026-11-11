@@ -60,7 +60,6 @@ final class LifecycleProvider {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
 		}
-		\ExtraChillEvents\Core\VenueSchema::install();
 		do_action( 'extrachill_events_after_venue_schema_install', 'activate' );
 		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
 			\ExtraChillEvents\Core\RsvpPassesTable::create_table();
@@ -115,10 +114,7 @@ final class LifecycleProvider {
 		if ( class_exists( '\\ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' ) ) {
 			\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::maybe_install();
 		}
-		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) ) {
-			\ExtraChillEvents\Core\VenueSchema::maybe_install();
-			do_action( 'extrachill_events_after_venue_schema_install', 'maybe_install' );
-		}
+		do_action( 'extrachill_events_after_venue_schema_install', 'maybe_install' );
 		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
 			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();
 		}
@@ -141,7 +137,6 @@ final class LifecycleProvider {
 		$schemas = array(
 			'QualifyVerdictsTable'      => array( 'SCHEMA_VERSION_OPTION', false ),
 			'ArtistUrlSubmissionsTable' => array( 'VERSION_OPTION', true ),
-			'VenueSchema'               => array( 'VERSION_OPTION', false ),
 			'PromoterAuthoritySchema'   => array( 'VERSION_OPTION', false ),
 			'RsvpPassesTable'           => array( 'VERSION_OPTION', false ),
 		);

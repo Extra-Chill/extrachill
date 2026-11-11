@@ -33,9 +33,7 @@ register_activation_hook( __FILE__, static function () {
 	if ( true !== extrachill_booking_bootstrap() ) {
 		return;
 	}
-	if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' )
-		&& class_exists( '\\ExtraChillEvents\\Core\\BookingSchema', false ) ) {
-		\ExtraChillEvents\Core\VenueSchema::install();
+	if ( class_exists( '\\ExtraChillEvents\\Core\\BookingSchema', false ) ) {
 		\ExtraChillEvents\Core\BookingSchema::install();
 	}
 } );

@@ -11,7 +11,6 @@ use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
 use ExtraChillEvents\Abilities\PromoterVenueGrantAbilities;
 use ExtraChillEvents\Abilities\PromoterWorkspaceAbilities;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\PromoterAuthorityService;
@@ -121,7 +120,6 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
@@ -530,7 +528,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'options'         => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
-				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
+
 			),
 			'terms'           => array(
 				100 => (object) array(
@@ -608,7 +606,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'options'           => array(
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
-				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
+
 			),
 			'terms'             => $GLOBALS['promoter_test']['terms'],
 			'users'             => $GLOBALS['promoter_test']['users'],
@@ -1303,7 +1301,7 @@ final class PromoterAuthorityTest extends TestCase {
 		}
 		$this->assertSame( PromoterAuthorityRepository::MAX_MEMBERS, $registered['extrachill/list-promoter-memberships']['output_schema']['maxItems'] );
 		$provider = file_get_contents( dirname( __DIR__ ) . '/inc/Providers/AbilitiesProvider.php' );
-		$this->assertStringContainsString( 'VenueSchema::is_ready()', $provider );
+		$this->assertStringNotContainsString( 'VenueSchema', $provider );
 		$this->assertStringContainsString( 'PromoterAuthoritySchema::is_ready()', $provider );
 		$this->assertStringNotContainsString( 'BookingSchema::is_ready() && \\ExtraChillEvents\\Core\\PromoterAuthoritySchema::is_ready()', $provider );
 	}

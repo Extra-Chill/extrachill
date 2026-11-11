@@ -14,7 +14,6 @@ use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingMutationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use PHPUnit\Framework\TestCase;
 
@@ -136,7 +135,6 @@ final class BookingCommunicationTest extends BookingTestCase {
 
 	public function test_schema_indexes_durable_communication_state_and_audit_reads(): void {
 		$this->assertTrue( BookingSchema::install() );
-		$this->assertTrue( VenueSchema::install() );
 		$activity_indexes = $GLOBALS['wpdb']->schemas[ BookingSchema::activity_table() ]['indexes'];
 		$state_indexes    = $GLOBALS['wpdb']->schemas[ BookingSchema::communication_state_table() ]['indexes'];
 		$this->assertSame( array( 'booking_id', 'is_communication', 'occurred_at', 'id' ), $activity_indexes['booking_communication_occurred']['columns'] );

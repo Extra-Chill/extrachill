@@ -134,9 +134,7 @@ final class BookingProvider {
 	 * @return array
 	 */
 	public static function ability_classes( array $abilities ): array {
-		if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
-			$abilities = self::insert_after( $abilities, array( 'VenueOnboardingAbilities' ), array( 'VenueBookingConfigAbilities' ) );
-		}
+		$abilities = self::insert_after( $abilities, array( 'VenueOnboardingAbilities' ), array( 'VenueBookingConfigAbilities' ) );
 		if ( \ExtraChillEvents\Core\BookingSchema::is_ready() ) {
 			$abilities = self::insert_after(
 				$abilities,

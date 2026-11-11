@@ -16,11 +16,6 @@
  */
 
 namespace ExtraChillEvents\Core {
-	final class VenueSchema {
-		public static function is_ready(): bool {
-			return true;
-		}
-	}
 	final class VenueMembershipRepository {
 		public function list_active_venue_ids() {
 			return array( 30 );
@@ -77,6 +72,9 @@ namespace {
 
 	function get_block_wrapper_attributes(): string {
 		return ''; }
+	function user_can( $user_id, $capability, ...$args ): bool {
+		return true;
+	}
 	function is_user_logged_in(): bool {
 		return true; }
 	function get_current_user_id(): int {

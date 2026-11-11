@@ -18,7 +18,7 @@ $plugin  = file_get_contents( $root . '/inc/Core/Plugin.php' );
 $owned   = json_decode( file_get_contents( __DIR__ . '/fixtures/booking-owned-paths.json' ), true, 512, JSON_THROW_ON_ERROR );
 
 $required_venue = array(
-	'VenueSchema',
+	'NetworkTeamInvitationsMigration',
 	'VenueMembershipRepository',
 	'VenueAuthorization',
 	'VenueMembershipService',

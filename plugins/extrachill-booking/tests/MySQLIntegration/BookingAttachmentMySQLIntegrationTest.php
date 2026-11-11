@@ -15,7 +15,6 @@ use ExtraChillEvents\Core\BookingAttachmentService;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Abilities\TicketSettlementAbilities;

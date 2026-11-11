@@ -16,7 +16,6 @@
 
 use ExtraChill\Users\Teams\TeamMembershipRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -60,7 +59,6 @@ abstract class BookingMySQLIntegrationTestCase extends WP_UnitTestCase {
 		get_user_by( 'id', $this->actor_id )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
 
 		$this->assertTrue( BookingSchema::install() );
-		$this->assertTrue( VenueSchema::install() );
 		$membership = ( new VenueMembershipRepository() )->create(
 			array(
 				'venue_term_id'      => $this->venue_id,

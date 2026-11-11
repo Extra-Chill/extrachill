@@ -2355,7 +2355,6 @@ final class BookingWpdb {
 
 require_once __DIR__ . '/../../../extrachill-events/tests/Support/team-members-fake.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/BookingSchema.php';
-require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueSchema.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueMembershipRepository.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/VenueAuthorization.php';
 require_once __DIR__ . '/../../../extrachill-events/inc/Core/ArtistAuthorization.php';

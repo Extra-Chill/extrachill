@@ -9,6 +9,17 @@ class Test_Team_Membership_Repository extends WP_UnitTestCase {
 		extrachill_users_install_teams_table();
 	}
 
+	public function test_network_onboarding_tables_have_team_id(): void {
+		global $wpdb;
+		foreach ( array( TeamMembershipRepository::invitations_table(), TeamMembershipRepository::claims_table() ) as $table ) {
+			$this->assertStringStartsWith( $wpdb->base_prefix, $table );
+			$this->assertSame( $table, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) );
+			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`" );
+			$this->assertContains( 'team_id', $columns );
+			$this->assertNotContains( 'team_term_id', $columns );
+		}
+	}
+
 	public function test_unique_key_and_type_isolation(): void {
 		global $wpdb;
 		$repository = new TeamMembershipRepository();

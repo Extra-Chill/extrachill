@@ -10,7 +10,6 @@
  */
 
 use ExtraChillEvents\Abilities\CommerceSellerAbilities;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -45,17 +44,6 @@ if ( ! is_user_logged_in() ) {
 				<p><?php esc_html_e( 'Sign in to manage a venue or request access to an unclaimed profile.', 'extrachill-events' ); ?></p>
 				<a class="button-1" href="<?php echo esc_url( $login_url ); ?>"><?php esc_html_e( 'Sign in', 'extrachill-events' ); ?></a>
 			</div>
-		</div>
-	</div>
-	<?php
-	return;
-}
-
-if ( ! VenueSchema::is_ready() ) {
-	?>
-	<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by get_block_wrapper_attributes(). ?>>
-		<div class="ec-inline-status ec-inline-status--error" role="alert">
-			<?php esc_html_e( 'Venue management is temporarily unavailable. Please try again later.', 'extrachill-events' ); ?>
 		</div>
 	</div>
 	<?php

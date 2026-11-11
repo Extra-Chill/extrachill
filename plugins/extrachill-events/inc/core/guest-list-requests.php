@@ -615,7 +615,7 @@ function extrachill_events_event_manager_user_ids( int $event_id ): array {
 		$ids[] = (int) $post->post_author;
 	}
 
-	if ( function_exists( 'wp_get_post_terms' ) && class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
+	if ( function_exists( 'wp_get_post_terms' ) && class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 		$venue_terms = wp_get_post_terms( $event_id, 'venue' );
 		if ( ! is_wp_error( $venue_terms ) ) {
 			$repository = new \ExtraChillEvents\Core\VenueMembershipRepository();

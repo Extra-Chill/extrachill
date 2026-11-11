@@ -90,7 +90,7 @@ function extrachill_events_user_can_manage_owner_list( int $user_id, string $own
 	}
 
 	if ( OwnerGuestListTable::OWNER_VENUE === $owner_type ) {
-		if ( ! class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) || ! \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
+		if ( ! class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 			return false;
 		}
 		$membership = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->get_active( $term_id, $user_id );
@@ -422,7 +422,7 @@ function extrachill_events_owner_list_door_event_ids( string $owner_type, int $t
  */
 function extrachill_events_owner_list_staff_door_event_ids( int $user_id ): array {
 	$owners = array();
-	if ( class_exists( '\\ExtraChillEvents\\Core\\VenueSchema' ) && \ExtraChillEvents\Core\VenueSchema::is_ready() ) {
+	if ( class_exists( '\\ExtraChill\\Users\\Teams\\TeamMembershipRepository' ) ) {
 		$venue_ids = ( new \ExtraChillEvents\Core\VenueMembershipRepository() )->list_active_venue_ids_for_user( $user_id );
 		foreach ( is_wp_error( $venue_ids ) ? array() : (array) $venue_ids as $venue_id ) {
 			$owners[] = array( OwnerGuestListTable::OWNER_VENUE, (int) $venue_id );

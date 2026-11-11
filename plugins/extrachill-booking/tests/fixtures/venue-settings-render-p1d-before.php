@@ -9,7 +9,6 @@
  * @package ExtraChillEvents
  */
 
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
 use ExtraChillEvents\Core\VenueAuthorization;

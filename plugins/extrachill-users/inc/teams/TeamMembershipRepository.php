@@ -24,6 +24,18 @@ class TeamMembershipRepository {
 		return $wpdb->base_prefix . 'ec_team_members';
 	}
 
+	/** Network invitation storage for every team type. */
+	public static function invitations_table(): string {
+		global $wpdb;
+		return $wpdb->base_prefix . 'ec_team_invitations';
+	}
+
+	/** Network claim storage for every team type. */
+	public static function claims_table(): string {
+		global $wpdb;
+		return $wpdb->base_prefix . 'ec_team_claims';
+	}
+
 	/** Read one typed relationship, preserving the facade's error contract. */
 	public function get( string $team_type, int $term_id, int $user_id ) {
 		global $wpdb;

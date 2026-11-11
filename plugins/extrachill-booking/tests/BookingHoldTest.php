@@ -12,7 +12,6 @@ use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingLifecycle;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueBookingConfig;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
@@ -135,7 +134,6 @@ final class BookingHoldTest extends BookingTestCase {
 	public function test_combined_schema_installs_site_scoped_holds_contract(): void {
 		$this->assertSame( '16', BookingSchema::SCHEMA_VERSION );
 		$this->assertTrue( BookingSchema::install() );
-		$this->assertTrue( VenueSchema::install() );
 		$table = BookingSchema::holds_table();
 		$this->assertSame( 'wp_7_ec_booking_holds', $table );
 		$this->assertSame( 'InnoDB', $GLOBALS['wpdb']->engines[ $table ] );
@@ -799,7 +797,6 @@ final class BookingHoldTest extends BookingTestCase {
 
 	public function test_mutations_deny_lock_current_revoked_membership(): void {
 		$GLOBALS['ec_artist_test']['options'][ BookingSchema::VERSION_OPTION ] = BookingSchema::SCHEMA_VERSION;
-		$GLOBALS['ec_artist_test']['options'][ VenueSchema::VERSION_OPTION ] = VenueSchema::SCHEMA_VERSION;
 		$authorization = new BookingTestAuthorization();
 		$authorization->require_locked_membership = true;
 		$holds         = new BookingHoldRepository( null, null, $authorization );
