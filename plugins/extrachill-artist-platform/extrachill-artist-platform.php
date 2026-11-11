@@ -20,7 +20,6 @@ define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/platform-pages.php';
-require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/ArtistTeamMembersMigration.php';
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/docs-links.php';
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/runtime-handoff.php';
 require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/core/artist-genres.php';

@@ -19,7 +19,7 @@ The Extra Chill Artist Platform registers two custom post types that form the fo
 
 ### Database Fields
 Key meta fields stored for artist profiles:
-- `_artist_profile_ids`: Linked user accounts
+- Team membership: network `ec_team_members` table (not post metadata)
 - `_artist_profile_social_links`: Social media links
 
 ### Usage Patterns

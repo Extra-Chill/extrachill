@@ -40,10 +40,12 @@ $profile_data = [
 
 // Associated metadata
 $meta_data = [
-    '_artist_profile_social_links' => $social_links_array,
-    '_artist_profile_ids' => $linked_user_ids
+    '_artist_profile_social_links' => $social_links_array
 ];
 ```
+
+Team membership lives in the network `ec_team_members` table. Use
+`ec_add_artist_membership( $user_id, $artist_id )` to link users, not post metadata.
 
 ### Profile Creation Process
 

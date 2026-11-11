@@ -218,12 +218,12 @@ if (!hash_equals($expected_token, $provided_token)) {
 
 ## Database Schema
 
-Roster data stored in WordPress user meta and custom invitation tracking:
+Roster membership lives in the network `ec_team_members` table. Write through
+`ec_add_artist_membership( $user_id, $artist_id )` and
+`ec_remove_artist_membership( $user_id, $artist_id )`; read through
+`ec_get_artists_for_user( $user_id )` and `ec_can_manage_artist( $user_id, $artist_id )`.
 
 ```sql
--- User-Artist relationships in wp_usermeta
-INSERT INTO wp_usermeta (user_id, meta_key, meta_value) 
-VALUES (123, '_artist_profile_ids', 'a:2:{i:0;i:456;i:1;i:789;}');
 
 -- Invitation tracking (stored in options or custom table)
 INSERT INTO wp_options (option_name, option_value)

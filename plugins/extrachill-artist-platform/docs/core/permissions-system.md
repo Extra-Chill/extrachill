@@ -255,39 +255,23 @@ add_filter( 'user_has_cap', 'ec_filter_user_capabilities', 10, 4 );
 
 ### Membership Data Structure
 
-Artist membership stored in user meta:
+Artist membership lives in the network `ec_team_members` table, owned by
+extrachill-users' `TeamMembershipRepository`.
 
 ```php
-// User meta structure
-$artist_profile_ids = get_user_meta($user_id, '_artist_profile_ids', true);
-// Returns: [123, 456, 789] - array of artist IDs user can manage
+$artist_ids = ec_get_artists_for_user( $user_id );
+$can_manage = ec_can_manage_artist( $user_id, $artist_id );
 ```
 
 ### Membership Management
 
 ```php
-// Add user to artist (called by join-flow and roster invitations)
-function add_user_to_artist($user_id, $artist_id) {
-    $current_ids = get_user_meta($user_id, '_artist_profile_ids', true);
-    if (!is_array($current_ids)) {
-        $current_ids = [];
-    }
-    
-    if (!in_array($artist_id, $current_ids)) {
-        $current_ids[] = $artist_id;
-        update_user_meta($user_id, '_artist_profile_ids', $current_ids);
-    }
-}
-
-// Remove user from artist
-function remove_user_from_artist($user_id, $artist_id) {
-    $current_ids = get_user_meta($user_id, '_artist_profile_ids', true);
-    if (is_array($current_ids)) {
-        $current_ids = array_diff($current_ids, [$artist_id]);
-        update_user_meta($user_id, '_artist_profile_ids', $current_ids);
-    }
-}
+ec_add_artist_membership( $user_id, $artist_id );
+ec_remove_artist_membership( $user_id, $artist_id );
 ```
+
+Only active membership grants artist access; revoked rows and membership in a
+different artist do not.
 
 ## Security Best Practices
 
