@@ -358,8 +358,6 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 			return;
 		}
 
-		const inviteToken = String( formData.get( 'invite_token' ) || '' );
-		const inviteArtistId = Number( formData.get( 'invite_artist_id' ) || 0 );
 		const fromJoin = Boolean( config.fromJoin );
 		const { referrer, utm } = captureAttribution();
 
@@ -383,8 +381,6 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 					registration_method: 'standard',
 					newsletter_consent: newsletterConsent,
 					success_redirect_url: config.successRedirectUrl,
-					invite_token: inviteToken,
-					invite_artist_id: inviteArtistId,
 					from_join: fromJoin,
 					referrer,
 					utm,
@@ -420,10 +416,8 @@ export function RegisterPanel( { config, notice, setNotice } ) {
 				) }
 				<form onSubmit={ handleSubmit }>
 					<input type="hidden" name="success_redirect_url" value={ config.successRedirectUrl } />
-					{ config.inviteToken && <input type="hidden" name="invite_token" value={ config.inviteToken } /> }
-					{ config.inviteArtistId ? <input type="hidden" name="invite_artist_id" value={ config.inviteArtistId } /> : null }
 					<label htmlFor="extrachill_email">Email</label>
-					<input type="email" name="extrachill_email" id="extrachill_email" placeholder="you@example.com" required defaultValue={ config.invitedEmail } />
+					<input type="email" name="extrachill_email" id="extrachill_email" placeholder="you@example.com" required />
 					<label htmlFor="extrachill_password">Password</label>
 					<input type="password" name="extrachill_password" id="extrachill_password" placeholder="Create a password" required minLength={ 8 } />
 					<label htmlFor="extrachill_password_confirm">Confirm Password</label>

@@ -238,17 +238,7 @@ function extrachill_handle_registration() {
 		$redirect->error( __( 'Registration source is missing. Please reload and try again.', 'extrachill-users' ) );
 	}
 
-	$from_join               = isset( $_POST['from_join'] ) && 'true' === $_POST['from_join'];
-	$invite_token_posted     = isset( $_POST['invite_token'] ) ? sanitize_text_field( wp_unslash( $_POST['invite_token'] ) ) : '';
-	$invite_artist_id_posted = isset( $_POST['invite_artist_id'] ) ? absint( $_POST['invite_artist_id'] ) : 0;
-	$has_artist_invitation   = false;
-	if ( $invite_token_posted || $invite_artist_id_posted ) {
-		$validation = ec_users_request_artist_invitation( $email, $invite_token_posted, $invite_artist_id_posted );
-		if ( is_wp_error( $validation ) ) {
-			$redirect->error( $validation->get_error_message() );
-		}
-		$has_artist_invitation = true;
-	}
+	$from_join = isset( $_POST['from_join'] ) && 'true' === $_POST['from_join'];
 
 	$username = function_exists( 'ec_generate_username_from_email' )
 		? ec_generate_username_from_email( $email )
@@ -278,17 +268,6 @@ function extrachill_handle_registration() {
 
 	extrachill_users_record_registration_newsletter_consent( $user_id, $email, $newsletter_consent, 'web', 'standard', $registration_page );
 
-	$processed_invite_artist_id = null;
-	$invitation_outcome         = array();
-	if ( $has_artist_invitation ) {
-		$acceptance = ec_users_request_artist_invitation( $email, $invite_token_posted, $invite_artist_id_posted, $user_id );
-		if ( is_wp_error( $acceptance ) ) {
-			$invitation_outcome = ec_users_classify_artist_invitation_error( $acceptance );
-		} else {
-			$processed_invite_artist_id = $invite_artist_id_posted;
-		}
-	}
-
 	$success_redirect_url = isset( $_POST['success_redirect_url'] ) ? wp_unslash( $_POST['success_redirect_url'] ) : '';
 	if ( ! function_exists( 'ec_users_is_valid_return_to_url' )
 		|| ! ec_users_is_valid_return_to_url( $success_redirect_url ) ) {
@@ -298,7 +277,7 @@ function extrachill_handle_registration() {
 	}
 	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
-	extrachill_auto_login_new_user( $user_id, $redirect, $processed_invite_artist_id, $success_redirect_url, $invitation_outcome );
+	extrachill_auto_login_new_user( $user_id, $redirect, $success_redirect_url );
 }
 add_action( 'admin_post_nopriv_extrachill_register_user', 'extrachill_handle_registration' );
 add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registration' );
@@ -308,11 +287,9 @@ add_action( 'admin_post_extrachill_register_user', 'extrachill_handle_registrati
  *
  * @param int                 $user_id                    User ID.
  * @param EC_Redirect_Handler $redirect                   Redirect handler instance.
- * @param int|null            $processed_invite_artist_id Artist ID if roster invitation was processed.
  * @param string              $success_redirect_url       Custom success redirect URL from block attribute.
- * @param array               $invitation_outcome         Classified invitation failure after account creation.
  */
-function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redirect, ?int $processed_invite_artist_id = null, string $success_redirect_url = '', array $invitation_outcome = array() ) {
+function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redirect, string $success_redirect_url = '' ) {
 	$user = get_user_by( 'id', $user_id );
 
 	if ( ! $user ) {
@@ -325,13 +302,6 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 
 	$final_redirect_url = '';
 
-	if ( $processed_invite_artist_id ) {
-		$artist_post = get_post( $processed_invite_artist_id );
-		if ( $artist_post instanceof WP_Post && 'artist_profile' === $artist_post->post_type ) {
-			$final_redirect_url = get_permalink( $artist_post );
-		}
-	}
-
 	if ( empty( $final_redirect_url ) && ! empty( $success_redirect_url ) ) {
 		$final_redirect_url = $success_redirect_url;
 	}
@@ -343,14 +313,6 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 
 	$account_created_token = ec_users_create_account_created_token( $user_id );
 	$redirect_url          = ec_users_post_registration_redirect_url( $from_join, false, $final_redirect_url, $account_created_token );
-	if ( $invitation_outcome ) {
-		$query_args = array( 'artist_invitation' => $invitation_outcome['status'] );
-		if ( ! empty( $invitation_outcome['error'] ) ) {
-			$query_args['artist_invitation_error']        = $invitation_outcome['error']['code'];
-			$query_args['artist_invitation_error_status'] = $invitation_outcome['error']['status'];
-		}
-		$redirect_url = add_query_arg( $query_args, $redirect_url );
-	}
 
 	$redirect->redirect_to( $redirect_url );
 }

@@ -82,45 +82,11 @@ if ( function_exists( 'ec_users_get_validated_google_redirect_from_request' ) ) 
 	}
 }
 
-$invite_token                   = null;
-$invite_artist_id               = null;
-$invited_email                  = '';
-$artist_name_for_invite_message = '';
-$initial_notice                 = EC_Redirect_Handler::get_message( 'ec_login' );
+$initial_notice = EC_Redirect_Handler::get_message( 'ec_login' );
 
 $registration_notice = EC_Redirect_Handler::get_message( 'ec_registration' );
 if ( $registration_notice ) {
 	$initial_notice = $registration_notice;
-}
-
-// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only invite context from signed URL parameters for rendering.
-if ( isset( $_GET['action'] ) && 'ec_accept_invite' === $_GET['action'] && isset( $_GET['token'] ) && isset( $_GET['artist_id'] ) ) {
-	$token_from_url     = sanitize_text_field( wp_unslash( $_GET['token'] ) );
-	$artist_id_from_url = absint( $_GET['artist_id'] );
-
-	if ( function_exists( 'ec_get_pending_invitations' ) ) {
-		$pending_invitations = ec_get_pending_invitations( $artist_id_from_url );
-		foreach ( $pending_invitations as $invite ) {
-			if ( isset( $invite['token'] ) && $invite['token'] === $token_from_url && isset( $invite['status'] ) && 'invited_new_user' === $invite['status'] ) {
-				$invite_token           = $token_from_url;
-				$invite_artist_id       = $artist_id_from_url;
-				$invited_email          = isset( $invite['email'] ) ? sanitize_email( $invite['email'] ) : '';
-				$artist_post_for_invite = get_post( $invite_artist_id );
-
-				if ( $artist_post_for_invite instanceof WP_Post ) {
-					$artist_name_for_invite_message = $artist_post_for_invite->post_title;
-					$initial_notice                 = array(
-						/* translators: %s: artist name */
-						'text' => sprintf( __( 'You have been invited to join the artist \'%s\'! Please complete your registration below to accept.', 'extrachill-users' ), $artist_name_for_invite_message ),
-						'type' => 'info',
-					);
-				}
-
-				break;
-			}
-		}
-	}
-	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 }
 
 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only flag from URL used for analytics/UX hint, not for state changes.
@@ -145,9 +111,6 @@ $config = array(
 	'loginRedirectUrl'        => $login_redirect_url,
 	'successRedirectUrl'      => $success_redirect,
 	'resetPasswordUrl'        => ec_get_site_url( 'community' ) . '/reset-password/',
-	'inviteToken'             => $invite_token,
-	'inviteArtistId'          => $invite_artist_id,
-	'invitedEmail'            => $invited_email,
 	'fromJoin'                => $from_join,
 	'turnstileHtml'           => wp_kses_post( ec_render_turnstile_widget() ),
 	'initialNotice'           => $initial_notice ? array(

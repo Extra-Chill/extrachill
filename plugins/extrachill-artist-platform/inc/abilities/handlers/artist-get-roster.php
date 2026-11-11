@@ -57,21 +57,26 @@ function extrachill_artist_platform_ability_artist_get_roster( array $input ): a
 
 	// Build pending invites list.
 	$invites = array();
-	if ( function_exists( 'ec_get_pending_invitations' ) ) {
-		$pending = ec_get_pending_invitations( $artist_id );
-		if ( is_array( $pending ) ) {
-			foreach ( $pending as $invite ) {
-				$invited_on = isset( $invite['invited_on'] ) ? (int) $invite['invited_on'] : 0;
-				$invites[]  = array(
-					'id'                   => $invite['id'] ?? '',
-					'email'                => $invite['email'] ?? '',
-					'of_existing_user'     => email_exists( $invite['email'] ?? '' ) ? true : false,
-					'status'               => $invite['status'] ?? '',
-					'invited_on'           => $invited_on,
-					'invited_on_formatted' => $invited_on ? date_i18n( get_option( 'date_format' ), $invited_on ) : '',
-				);
-			}
+	$adapter = \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'artist' );
+	$service = new \ExtraChill\Users\Teams\TeamOnboardingService( $adapter );
+	$pending = $service->list_invitations( get_current_user_id(), $artist_id );
+	if ( is_wp_error( $pending ) ) {
+		return $pending;
+	}
+	foreach ( $pending as $invite ) {
+		if ( 'pending' !== $invite['status'] ) {
+			continue;
 		}
+		$invite     = ec_artist_roster_invitation_response( $invite );
+		$invited_on = (int) $invite['invited_on'];
+		$invites[]  = array(
+			'id'                   => $invite['id'],
+			'email'                => $invite['email'],
+			'of_existing_user'     => null !== $invite['existing_user'],
+			'status'               => $invite['status'],
+			'invited_on'           => $invited_on,
+			'invited_on_formatted' => $invite['invited_on_formatted'],
+		);
 	}
 
 	return array(

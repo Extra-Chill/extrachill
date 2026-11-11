@@ -142,7 +142,15 @@ function extrachill_api_artist_roster_invite_handler( WP_REST_Request $request )
 		);
 	}
 
-	$result = apply_filters( 'extrachill_artist_invite_member', null, $artist_id, $email );
+	$adapter = \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'artist' );
+	if ( ! $adapter ) {
+		return new WP_Error( 'not_supported', 'Artist invitations are unavailable.', array( 'status' => 503 ) );
+	}
+	$service = new \ExtraChill\Users\Teams\TeamOnboardingService( $adapter );
+	$result  = $service->invite( get_current_user_id(), (int) $artist_id, $email, false );
+	if ( is_array( $result ) ) {
+		$result = ec_artist_roster_invitation_response( $result );
+	}
 
 	if ( is_wp_error( $result ) ) {
 		return $result;
@@ -264,15 +272,25 @@ function extrachill_api_artist_roster_cancel_invite_handler( WP_REST_Request $re
 		);
 	}
 
-	if ( ! function_exists( 'ec_remove_pending_invitation' ) ) {
-		return new WP_Error(
-			'not_supported',
-			__( 'Invite cancellation is not available.', 'extrachill-api' ),
-			array( 'status' => 500 )
-		);
+	$adapter = \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'artist' );
+	if ( ! $adapter ) {
+		return new WP_Error( 'not_supported', 'Artist invitations are unavailable.', array( 'status' => 503 ) );
 	}
-
-	$removed = ec_remove_pending_invitation( $artist_id, $invite_id );
+	$service = new \ExtraChill\Users\Teams\TeamOnboardingService( $adapter );
+	$invites = $service->list_invitations( get_current_user_id(), (int) $artist_id );
+	if ( is_wp_error( $invites ) ) {
+		return $invites;
+	}
+	$removed = false;
+	foreach ( $invites as $invite ) {
+		if ( (string) $invite['id'] === (string) $invite_id && 'pending' === $invite['status'] ) {
+			$removed = $service->cancel_invitation( get_current_user_id(), (int) $invite['id'], (int) $invite['version'] );
+			break;
+		}
+	}
+	if ( is_wp_error( $removed ) ) {
+		return $removed;
+	}
 
 	if ( ! $removed ) {
 		return new WP_Error(

@@ -87,15 +87,6 @@ function extrachill_api_register_auth_register_route() {
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
 				),
-				'invite_token'         => array(
-					'required'          => false,
-					'type'              => 'string',
-					'sanitize_callback' => 'sanitize_text_field',
-				),
-				'invite_artist_id'     => array(
-					'required' => false,
-					'type'     => 'integer',
-				),
 				'from_join'            => array(
 					'required' => false,
 					'type'     => 'boolean',
@@ -181,8 +172,6 @@ function extrachill_api_auth_registration_payload( WP_REST_Request $request, str
 		'remember'             => rest_sanitize_boolean( (string) $request->get_param( 'remember' ) ),
 		'from_join'            => rest_sanitize_boolean( (string) $request->get_param( 'from_join' ) ),
 		'newsletter_consent'   => rest_sanitize_boolean( (string) $request->get_param( 'newsletter_consent' ) ),
-		'invite_token'         => sanitize_text_field( (string) $request->get_param( 'invite_token' ) ),
-		'invite_artist_id'     => absint( $request->get_param( 'invite_artist_id' ) ),
 		'registration_page'    => (string) $request->get_param( 'registration_page' ),
 		'registration_source'  => (string) $request->get_param( 'registration_source' ),
 		'registration_method'  => (string) $request->get_param( 'registration_method' ),
