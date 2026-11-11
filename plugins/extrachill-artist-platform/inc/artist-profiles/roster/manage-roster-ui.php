@@ -86,18 +86,22 @@ if ( ! function_exists('ec_display_manage_members_section') ) {
 			// 2. Display Pending Invitations (for users not already linked)
 			if ( ! empty( $pending_invitations_raw ) ) :
 				foreach ( $pending_invitations_raw as $invite ) :
-					if ( in_array( strtolower($invite['email']), $processed_emails, true ) ) {
+					// Withheld addresses are empty, so only dedupe invites that carry one.
+					$invite_email = strtolower( $invite['email'] );
+					if ( '' !== $invite_email && in_array( $invite_email, $processed_emails, true ) ) {
 						continue;
 					}
-					$has_any_members    = true;
-					$processed_emails[] = strtolower($invite['email']);
+					$has_any_members = true;
+					if ( '' !== $invite_email ) {
+						$processed_emails[] = $invite_email;
+					}
 
 					$invited_on_formatted = date_i18n( get_option( 'date_format' ), $invite['invited_on'] );
 					$status_text          = __( 'Invited', 'extrachill-artist-platform' );
 					?>
 					<li data-invite-id="<?php echo esc_attr( $invite['id'] ); ?>" class="ec-member-pending-invite">
 						<span class="member-avatar-placeholder"></span> 
-						<span class="member-email"><?php echo esc_html( $invite['email'] ); ?></span>
+						<span class="member-email"><?php echo esc_html( $invite['display_name'] ); ?></span>
 						<span class="member-status-label">(<?php echo esc_html( $status_text ); ?>: <?php echo esc_html( $invited_on_formatted ); ?>)</span>
 						<span class="member-actions">
 							<?php

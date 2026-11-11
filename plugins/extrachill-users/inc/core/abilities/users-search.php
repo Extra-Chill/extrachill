@@ -48,6 +48,7 @@ function extrachill_users_register_search_ability(): void {
 						'display_name' => array( 'type' => 'string' ),
 						'username'     => array( 'type' => 'string' ),
 						'slug'         => array( 'type' => 'string' ),
+						// Only present for administrators (manage_options).
 						'email'        => array( 'type' => 'string' ),
 						'avatar_url'   => array( 'type' => 'string' ),
 						'profile_url'  => array( 'type' => 'string' ),
@@ -157,10 +158,30 @@ function extrachill_users_ability_search( array $input ): array|WP_Error {
 }
 
 /**
+ * Whether the current principal may see and match on member email addresses.
+ *
+ * Email addresses are private account data. Only site administrators
+ * (manage_options) may search by or read them; every other caller —
+ * including artist/professional accounts using the artist-capable picker —
+ * gets identity fields only.
+ *
+ * @return bool
+ */
+function extrachill_users_search_can_view_emails(): bool {
+	return current_user_can( 'manage_options' );
+}
+
+/**
  * Search for users who can create artist profiles.
  *
  * Filters to users with user_is_artist, user_is_professional, or team member status.
  * Excludes users who are already roster members of the specified artist.
+ *
+ * Non-admin callers match on login, nicename and display name only and
+ * receive picker fields (id, display name, username, avatar, profile URL).
+ * Inviting someone by email goes through the roster invite flow, which
+ * accepts either a typed email address or a picked user ID and resolves the
+ * address server-side. Admins additionally match on and receive email.
  *
  * @param array $input Input with 'term' and optional 'exclude_artist_id'.
  * @return array Search results.
@@ -168,6 +189,7 @@ function extrachill_users_ability_search( array $input ): array|WP_Error {
 function extrachill_users_ability_search_artist_capable( array $input ): array {
 	$term              = sanitize_text_field( $input['term'] );
 	$exclude_artist_id = isset( $input['exclude_artist_id'] ) ? absint( $input['exclude_artist_id'] ) : 0;
+	$can_view_emails   = extrachill_users_search_can_view_emails();
 
 	// Get existing roster member IDs to exclude.
 	$exclude_user_ids = array();
@@ -180,10 +202,14 @@ function extrachill_users_ability_search_artist_capable( array $input ): array {
 		}
 	}
 
+	$search_columns = $can_view_emails
+		? array( 'user_login', 'user_email', 'display_name' )
+		: array( 'user_login', 'user_nicename', 'display_name' );
+
 	$users_query = new WP_User_Query(
 		array(
 			'search'         => '*' . esc_attr( $term ) . '*',
-			'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+			'search_columns' => $search_columns,
 			'number'         => 50,
 			'orderby'        => 'display_name',
 			'order'          => 'ASC',
@@ -199,7 +225,7 @@ function extrachill_users_ability_search_artist_capable( array $input ): array {
 			break;
 		}
 
-		if ( in_array( $user->ID, $exclude_user_ids, true ) ) {
+		if ( in_array( (int) $user->ID, $exclude_user_ids, true ) ) {
 			continue;
 		}
 
@@ -215,14 +241,20 @@ function extrachill_users_ability_search_artist_capable( array $input ): array {
 			? extrachill_get_user_profile_url( $user->ID, $user->user_email )
 			: '';
 
-		$users_data[] = array(
-			'id'           => $user->ID,
+		$row = array(
+			'id'           => (int) $user->ID,
 			'display_name' => $user->display_name,
 			'username'     => $user->user_login,
-			'email'        => $user->user_email,
+			'slug'         => $user->user_nicename,
 			'avatar_url'   => get_avatar_url( $user->ID, array( 'size' => 32 ) ),
 			'profile_url'  => $profile_url,
 		);
+
+		if ( $can_view_emails ) {
+			$row['email'] = $user->user_email;
+		}
+
+		$users_data[] = $row;
 
 		++$count;
 	}

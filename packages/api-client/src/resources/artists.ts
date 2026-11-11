@@ -79,8 +79,13 @@ export class ArtistsResource extends BaseResource {
     return this.get(`extrachill/v1/artists/${artistId}/roster`);
   }
 
-  inviteRosterMember(artistId: number, email: string): Promise<RosterInvite> {
-    return this.post(`extrachill/v1/artists/${artistId}/roster`, { email });
+  /**
+   * Invite by typed email, or by `{ user_id }` for a member picked from user
+   * search (the address is resolved server-side and not returned).
+   */
+  inviteRosterMember(artistId: number, invitee: string | { user_id: number }): Promise<RosterInvite> {
+    const body = typeof invitee === 'string' ? { email: invitee } : { user_id: invitee.user_id };
+    return this.post(`extrachill/v1/artists/${artistId}/roster`, body);
   }
 
   removeRosterMember(artistId: number, userId: number): Promise<void> {

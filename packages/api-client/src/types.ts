@@ -112,7 +112,12 @@ export interface User {
 
 export interface UserSearchResult {
   id: number;
-  display_name: string;
+  display_name?: string;
+  username?: string;
+  slug?: string;
+  avatar_url?: string;
+  profile_url?: string;
+  /** Only returned to administrators. */
   email?: string;
 }
 
@@ -359,7 +364,9 @@ export interface RosterMember {
 
 export interface RosterInvite {
   id: string;
+  /** Empty when the invitee was picked from user search. */
   email: string;
+  display_name?: string;
   created_at: string;
   status: string;
 }

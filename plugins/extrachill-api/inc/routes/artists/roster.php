@@ -3,7 +3,7 @@
  * REST routes for artist roster management
  *
  * GET    /artists/{id}/roster                      - List roster members and pending invites
- * POST   /artists/{id}/roster                      - Invite member by email
+ * POST   /artists/{id}/roster                      - Invite member by email or user ID
  * DELETE /artists/{id}/roster/{user_id}            - Remove roster member
  * DELETE /artists/{id}/roster/invites/{invite_id}  - Cancel pending invite
  *
@@ -49,15 +49,22 @@ function extrachill_api_register_artist_roster_routes() {
 			'callback'            => 'extrachill_api_artist_roster_invite_handler',
 			'permission_callback' => 'is_user_logged_in',
 			'args'                => array(
-				'id'    => array(
+				'id'      => array(
 					'required'          => true,
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'email' => array(
-					'required'          => true,
+				'email'   => array(
+					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_email',
+				),
+				// Invite a member picked from user search without the client
+				// ever handling their email address. Resolved server-side.
+				'user_id' => array(
+					'required'          => false,
+					'type'              => 'integer',
+					'sanitize_callback' => 'absint',
 				),
 			),
 		)
@@ -116,9 +123,10 @@ function extrachill_api_register_artist_roster_routes() {
  */
 function extrachill_api_artist_roster_invite_handler( WP_REST_Request $request ) {
 	$artist_id = $request->get_param( 'id' );
-	$email     = $request->get_param( 'email' );
+	$email     = (string) $request->get_param( 'email' );
+	$user_id   = absint( $request->get_param( 'user_id' ) );
 
-	if ( ! is_email( $email ) ) {
+	if ( ! $user_id && ! is_email( $email ) ) {
 		return new WP_Error(
 			'invalid_email',
 			__( 'Please enter a valid email address.', 'extrachill-api' ),
@@ -142,7 +150,23 @@ function extrachill_api_artist_roster_invite_handler( WP_REST_Request $request )
 		);
 	}
 
-	$result = apply_filters( 'extrachill_artist_invite_member', null, $artist_id, $email );
+	$invite_context = array();
+	if ( $user_id ) {
+		// Picked from user search: resolve the address server-side so the
+		// inviter never receives it. Handlers must not echo it back.
+		$invitee = get_userdata( $user_id );
+		if ( ! $invitee || ! is_email( $invitee->user_email ) ) {
+			return new WP_Error(
+				'invalid_user',
+				__( 'Invalid user specified.', 'extrachill-api' ),
+				array( 'status' => 400 )
+			);
+		}
+		$email          = $invitee->user_email;
+		$invite_context = array( 'user_id' => (int) $invitee->ID );
+	}
+
+	$result = apply_filters( 'extrachill_artist_invite_member', null, $artist_id, $email, $invite_context );
 
 	if ( is_wp_error( $result ) ) {
 		return $result;

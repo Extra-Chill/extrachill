@@ -210,7 +210,9 @@ const ManagersTab = ({ artistId }) => {
 	const [roster, setRoster] = useState([]);
 	const [invites, setInvites] = useState([]);
 	const [inputValue, setInputValue] = useState('');
-	const [selectedEmail, setSelectedEmail] = useState('');
+	// Member picked from search. Invited by user ID so the email address is
+	// resolved server-side and never handled by the browser.
+	const [selectedUser, setSelectedUser] = useState(null);
 	const [error, setError] = useState('');
 	const [searchResults, setSearchResults] = useState([]);
 	const [showDropdown, setShowDropdown] = useState(false);
@@ -261,11 +263,11 @@ const ManagersTab = ({ artistId }) => {
 			}
 		};
 
-		// Only search if we haven't selected a user (inputValue differs from selectedEmail)
-		if (inputValue !== selectedEmail) {
+		// Only search if we haven't selected a user (inputValue differs from the picked label)
+		if (!selectedUser || inputValue !== selectedUser.label) {
 			search();
 		}
-	}, [debouncedSearch, artistId, inputValue, selectedEmail]);
+	}, [debouncedSearch, artistId, inputValue, selectedUser]);
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
@@ -282,33 +284,37 @@ const ManagersTab = ({ artistId }) => {
 	const handleInputChange = (e) => {
 		const value = e.target.value;
 		setInputValue(value);
-		setSelectedEmail('');
+		setSelectedUser(null);
 		setError('');
 	};
 
 	const handleSelectUser = (user) => {
-		setInputValue(user.email);
-		setSelectedEmail(user.email);
+		const label = user.display_name || user.username || '';
+		setInputValue(label);
+		setSelectedUser({ id: user.id, label });
 		setShowDropdown(false);
 		setSearchResults([]);
 	};
 
 	const invite = async () => {
-		const emailToInvite = selectedEmail || inputValue.trim();
+		const picked = selectedUser && inputValue === selectedUser.label ? selectedUser : null;
+		const emailToInvite = picked ? '' : inputValue.trim();
 
-		if (!emailToInvite) return;
+		if (!picked && !emailToInvite) {
+			return;
+		}
 
-		if (!isValidEmail(emailToInvite)) {
-			setError('Please enter a valid email address.');
+		if (!picked && !isValidEmail(emailToInvite)) {
+			setError('Please pick a user or enter a valid email address.');
 			return;
 		}
 
 		setLoading(true);
 		setError('');
 		try {
-			await inviteRosterMember(artistId, emailToInvite);
+			await inviteRosterMember(artistId, picked ? { user_id: picked.id } : emailToInvite);
 			setInputValue('');
-			setSelectedEmail('');
+			setSelectedUser(null);
 			await load();
 		} catch (err) {
 			setError(err?.message || 'Error sending invite.');
@@ -369,7 +375,9 @@ const ManagersTab = ({ artistId }) => {
 									)}
 									<div className="ec-am__search-info">
 										<span className="ec-am__search-name">{user.display_name}</span>
-										<span className="ec-am__search-email">{user.email}</span>
+										{user.username && (
+											<span className="ec-am__search-email">@{user.username}</span>
+										)}
 									</div>
 								</button>
 							))}
@@ -407,7 +415,7 @@ const ManagersTab = ({ artistId }) => {
 				{invites.map((inv) => (
 					<div key={inv.id} className="ec-am__list-item">
 						<div>
-							<strong>{inv.email}</strong>
+							<strong>{inv.email || inv.display_name}</strong>
 							<Badge tone="warning">Pending</Badge>
 						</div>
 						<button type="button" className="button-danger button-small" onClick={() => handleCancelInvite(inv.id)}>
