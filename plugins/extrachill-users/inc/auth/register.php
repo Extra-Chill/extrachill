@@ -300,11 +300,7 @@ function extrachill_auto_login_new_user( int $user_id, EC_Redirect_Handler $redi
 	wp_set_auth_cookie( $user_id, false );
 	do_action( 'wp_login', $user->user_login, $user );
 
-	$final_redirect_url = '';
-
-	if ( empty( $final_redirect_url ) && ! empty( $success_redirect_url ) ) {
-		$final_redirect_url = $success_redirect_url;
-	}
+	$final_redirect_url = $success_redirect_url;
 
 	$from_join = function_exists( 'ec_is_onboarding_from_join' ) && ec_is_onboarding_from_join( $user_id );
 	if ( $from_join && ! empty( $final_redirect_url ) ) {

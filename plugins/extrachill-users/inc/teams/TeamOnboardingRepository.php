@@ -862,13 +862,13 @@ class TeamOnboardingRepository {
 			$result = ( new TeamMembershipRepository() )->insert( $this->team_type,
 				array(
 					( new TeamMembershipRepository() )->id_key( $this->team_type ) => $claim['team_term_id'],
-					'user_id'                     => $claim['claimant_user_id'],
-					'is_owner'                    => 1,
-					'status'                      => TeamMembershipRepository::STATUS_ACTIVE,
-					'version'                     => 1,
-					'created_by_user_id'          => $actor_user_id,
-					'created_at'                  => $now,
-					'updated_at'                  => $now,
+					'user_id'            => $claim['claimant_user_id'],
+					'is_owner'           => 1,
+					'status'             => TeamMembershipRepository::STATUS_ACTIVE,
+					'version'            => 1,
+					'created_by_user_id' => $actor_user_id,
+					'created_at'         => $now,
+					'updated_at'         => $now,
 				)
 			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit operator-approved owner bootstrap under team lock.
 			return false === $result ? new \WP_Error( $this->authorization->error_code( 'team_claim_owner_create_failed' ), __( 'The approved team owner could not be created.', 'extrachill-users' ) ) : true;
