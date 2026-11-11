@@ -165,6 +165,100 @@ final class ExperimentSummaryTest extends Extrachill_Analytics_TestCase {
 		$this->assertSame( 'truncated', $report['variants'][0]['assignment']['coverage_status'] );
 	}
 
+	/** A budget exhausted before any assignment is truncated, never no_data. */
+	public function test_truncation_before_any_assignment_is_not_no_data(): void {
+		$options              = $this->options( 1 );
+		$options['truncated'] = true;
+		$report               = extrachill_analytics_build_experiment_summary(
+			array( $this->row( 1, 'pageview', 50, 'visitor-early' ) ),
+			$options
+		);
+
+		$this->assertSame( 'truncated', $report['state'] );
+		$this->assertStringContainsString( 'before any matching assignment', $report['state_hint'] );
+		$this->assertSame( 'truncated', $report['variants'][0]['assignment']['coverage_status'] );
+		$this->assertSame( 'truncated', $report['variants'][0]['exposure']['coverage_status'] );
+		$this->assertSame( 'truncated', $report['variants'][0]['outcomes']['newsletter_signup']['coverage_status'] );
+		$this->assertNull( $report['variants'][0]['assignment']['people'] );
+
+		$options['truncated'] = false;
+		$empty                = extrachill_analytics_build_experiment_summary( array(), $options );
+		$this->assertSame( 'no_data', $empty['state'] );
+		$this->assertNull( $empty['state_hint'] );
+	}
+
+	/** Pre-experiment rows beyond max_events cannot hide a live experiment. */
+	public function test_pre_experiment_rows_do_not_spend_the_budget(): void {
+		$start = time() - HOUR_IN_SECONDS;
+		for ( $i = 0; $i < 150; $i++ ) {
+			$this->insert_event( 'pageview', $start + $i, 'visitor-pre-' . $i );
+		}
+		// Other keys and versions before the real start never move the window.
+		$this->insert_event( 'experiment_assignment', $start + 151, 'visitor-other', $this->experiment( 'other-test', 1, 'control', 'hero' ) );
+		$this->insert_event( 'experiment_assignment', $start + 152, 'visitor-v2', $this->experiment( 'copy-test', 2, 'control', 'hero' ) );
+		for ( $i = 0; $i < 150; $i++ ) {
+			$this->insert_event( 'pageview', $start + 200 + $i, 'visitor-pre-b-' . $i );
+		}
+		$first = $start + 400;
+		$this->insert_event( 'experiment_assignment', $first, 'visitor-control', $this->experiment( 'copy-test', 1, 'control', 'hero' ) );
+		$this->insert_event( 'experiment_assignment', $first + 1, 'visitor-treatment', $this->experiment( 'copy-test', 1, 'treatment', 'hero' ) );
+		$this->insert_event( 'experiment_exposure', $first + 2, 'visitor-treatment', $this->experiment( 'copy-test', 1, 'treatment', 'hero' ) );
+		$this->insert_event( 'newsletter_signup', $first + 3, 'visitor-treatment' );
+
+		$input  = array(
+			'experiment_key'      => 'copy-test',
+			'definition_version'  => 1,
+			'control_variant'     => 'control',
+			'variants'            => array( 'control', 'treatment' ),
+			'outcome_event_types' => array( 'newsletter_signup' ),
+			'days'                => 1,
+			'max_events'          => 100,
+		);
+		$report = extrachill_analytics_ability_get_experiment_summary( $input );
+
+		$this->assertIsArray( $report );
+		$this->assertSame( 'measured', $report['state'] );
+		$this->assertFalse( $report['coverage']['truncated'] );
+		$this->assertSame( 4, $report['coverage']['loaded_rows'] );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $first ), $report['window']['since'] );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $first ), $report['window']['first_assignment_at'] );
+		$this->assertSame( 1, $report['variants'][0]['assignment']['people'] );
+		$this->assertSame( 1, $report['variants'][1]['assignment']['people'] );
+		$this->assertSame( 1, $report['variants'][1]['exposure']['people'] );
+		$this->assertSame( 1, $report['variants'][1]['outcomes']['newsletter_signup']['after_assignment']['people'] );
+
+		// Without the version filter, the earlier version-2 row is the first assignment.
+		unset( $input['definition_version'] );
+		$any = extrachill_analytics_ability_get_experiment_summary( $input );
+		$this->assertSame( gmdate( 'Y-m-d H:i:s', $start + 152 ), $any['window']['first_assignment_at'] );
+		$this->assertSame( 'truncated', $any['state'] );
+	}
+
+	/**
+	 * Insert one stored analytics event.
+	 *
+	 * @param string $type       Event type.
+	 * @param int    $timestamp  UTC timestamp.
+	 * @param string $visitor_id Visitor ID.
+	 * @param array  $data       Event payload.
+	 */
+	private function insert_event( string $type, int $timestamp, string $visitor_id, array $data = array() ): void {
+		global $wpdb;
+		$wpdb->insert(
+			extrachill_analytics_events_table(),
+			array(
+				'event_type' => $type,
+				'event_data' => wp_json_encode( $data ),
+				'source_url' => '/',
+				'blog_id'    => 1,
+				'user_id'    => 0,
+				'visitor_id' => $visitor_id,
+				'created_at' => gmdate( 'Y-m-d H:i:s', $timestamp ),
+			),
+			array( '%s', '%s', '%s', '%d', '%d', '%s', '%s' )
+		);
+	}
+
 	/** Wilson intervals and normal lift math stay deterministic and never select a winner. */
 	public function test_confidence_and_lift_math(): void {
 		$this->assertSame(

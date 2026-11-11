@@ -136,6 +136,86 @@ function extrachill_analytics_experiment_read_events( $event_types, $since, $as_
 }
 
 /**
+ * Find the first stored assignment for one experiment key and optional version.
+ *
+ * The experiment report window must not start before the experiment's first
+ * assignment: pre-experiment pageviews and outcomes can never attribute, yet
+ * they would otherwise spend the bounded row budget before any assignment row
+ * is read. A portable LIKE prefilter narrows candidates to rows mentioning the
+ * key, and each candidate is validated in PHP so other keys, versions, bots,
+ * and invalid contracts never move the window.
+ *
+ * @param string   $experiment_key     Canonical experiment key.
+ * @param int|null $definition_version Requested version, or null for any.
+ * @param string   $since              Inclusive UTC lower bound.
+ * @param string   $as_of              Inclusive UTC upper bound.
+ * @param int      $max_scan           Hard ceiling on candidate rows scanned.
+ * @return string|null UTC created_at of the first matching assignment, or null.
+ */
+function extrachill_analytics_experiment_first_assignment_at( $experiment_key, $definition_version, $since, $as_of, $max_scan ) {
+	global $wpdb;
+
+	if ( ! extrachill_analytics_experiment_identifier_is_valid( $experiment_key ) ) {
+		return null;
+	}
+
+	$table       = extrachill_analytics_events_table();
+	$page_size   = 500;
+	$scanned     = 0;
+	$cursor_time = null;
+	$cursor_id   = 0;
+	$like        = '%' . $wpdb->esc_like( '"' . $experiment_key . '"' ) . '%';
+
+	while ( $scanned < $max_scan ) {
+		$limit  = min( $page_size, $max_scan - $scanned );
+		$where  = array( 'event_type = %s', 'created_at >= %s', 'created_at <= %s', 'event_data LIKE %s' );
+		$values = array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, $since, $as_of, $like );
+		if ( null !== $cursor_time ) {
+			$where[]  = '(created_at > %s OR (created_at = %s AND id > %d))';
+			$values[] = $cursor_time;
+			$values[] = $cursor_time;
+			$values[] = $cursor_id;
+		}
+		$values[]     = $limit;
+		$where_clause = implode( ' AND ', $where );
+
+		// phpcs:disable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery -- Bounded report; identifiers are code-defined and values are prepared.
+		$sql  = "SELECT id, event_data, created_at
+			FROM {$table}
+			WHERE {$where_clause}
+			ORDER BY created_at ASC, id ASC
+			LIMIT %d";
+		$page = (array) $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+		// phpcs:enable WordPress.DB.PreparedSQL, WordPress.DB.DirectDatabaseQuery
+
+		foreach ( $page as $row ) {
+			$data    = json_decode( (string) $row->event_data, true );
+			$data    = is_array( $data ) ? $data : array();
+			$version = $data['definition_version'] ?? null;
+			if (
+				empty( $data['is_bot'] )
+				&& (string) ( $data['experiment_key'] ?? '' ) === $experiment_key
+				&& is_int( $version )
+				&& $version > 0
+				&& $version <= 1000000
+				&& ( null === $definition_version || $version === $definition_version )
+			) {
+				return (string) $row->created_at;
+			}
+		}
+		if ( count( $page ) < $limit ) {
+			break;
+		}
+		$scanned    += count( $page );
+		$last        = end( $page );
+		$cursor_time = (string) $last->created_at;
+		$cursor_id   = (int) $last->id;
+	}
+
+	return null;
+}
+
+/**
  * Return only requested event types that have ever existed in storage.
  *
  * @param string[] $event_types Bounded requested event names.
