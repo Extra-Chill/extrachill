@@ -95,7 +95,7 @@ class EventPerkAbilities {
 						'event'   => array(
 							'type'       => 'object',
 							'properties' => array(
-								...TicketAbilities::fields(),
+								...TicketAbilities::output_fields(),
 								'post_id'            => array( 'type' => 'integer' ),
 								'title'              => array( 'type' => 'string' ),
 								'enabled'            => array( 'type' => 'boolean' ),
@@ -151,7 +151,7 @@ class EventPerkAbilities {
 				'output_schema'       => array(
 					'type'       => 'object',
 					'properties' => array(
-						...TicketAbilities::fields(),
+						...TicketAbilities::output_fields(),
 						'post_id'            => array( 'type' => 'integer' ),
 						'enabled'            => array( 'type' => 'boolean' ),
 						'text'               => array( 'type' => 'string' ),
@@ -308,7 +308,7 @@ class EventPerkAbilities {
 		return array(
 			'success' => true,
 			'event'   => array(
-				...$ticket_settings,
+				...TicketAbilities::output_settings( $ticket_settings ),
 				'post_id'            => $post->ID,
 				'title'              => $post->post_title,
 				'enabled'            => extrachill_events_perk_enabled( $post->ID ),
@@ -340,7 +340,7 @@ class EventPerkAbilities {
 		$counts = extrachill_events_get_guest_list_counts( $post->ID );
 
 		return array(
-			...TicketAbilities::settings( $post->ID ),
+			...TicketAbilities::output_settings( TicketAbilities::settings( $post->ID ) ),
 			'post_id'            => $post->ID,
 			'enabled'            => extrachill_events_perk_enabled( $post->ID ),
 			'text'               => extrachill_events_get_perk_text( $post->ID ),

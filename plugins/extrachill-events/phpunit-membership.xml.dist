@@ -12,6 +12,7 @@
 			<file>tests/PromoterAuthorityTest.php</file>
 			<file>tests/VenueMembershipLockTest.php</file>
 			<file>tests/TeamAuthorizationTest.php</file>
+			<file>tests/DoorAccessTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

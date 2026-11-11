@@ -152,11 +152,11 @@ if ( ! function_exists( 'get_userdata' ) ) {
 }
 if ( ! function_exists( 'get_user_by' ) ) {
 	function get_user_by( $field, $value ) {
-		if ( 'email' !== $field ) {
+		if ( ! in_array( $field, array( 'email', 'login' ), true ) ) {
 			return false;
 		}
 		foreach ( $GLOBALS['venue_membership_test']['users'] as $user ) {
-			if ( strtolower( $user->user_email ) === strtolower( $value ) ) {
+			if ( 'login' === $field ? $user->user_login === $value : strtolower( $user->user_email ) === strtolower( $value ) ) {
 				return $user;
 			}
 		}

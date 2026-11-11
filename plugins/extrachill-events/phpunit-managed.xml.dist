@@ -82,6 +82,8 @@
 			<file>tests/Unit/Abilities/CanonicalAdapterContractsTest.php</file>
 			<file>tests/Unit/Abilities/ManagedVenueVoicesRestTest.php</file>
 			<file>tests/Unit/Abilities/PriorityBoostAbilityTest.php</file>
+			<!-- Real-registry output validation for get/set-event-perk (extrachill#1244). -->
+			<file>tests/Unit/Abilities/EventPerkOutputSchemaManagedTest.php</file>
 			<!-- Isolated bridge doubles run in phpunit-single-event-network-bridge-unit.xml.dist. -->
 			<file>tests/Unit/ConcertStatsPublicProfileRenderTest.php</file>
 		</testsuite>
