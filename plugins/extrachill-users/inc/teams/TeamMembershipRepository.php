@@ -59,6 +59,71 @@ class TeamMembershipRepository {
 		return is_array( $row ) ? $this->hydrate( $team_type, $row ) : null;
 	}
 
+	/** Serialize an adapter-authorized ownership change or revocation. */
+	public function change_member( TeamOnboardingAdapter $adapter, int $team_id, int $user_id, int $expected_version, ?bool $is_owner, bool $revoke, int $actor_user_id, bool $enforce_owner_floor = true ) {
+		global $wpdb;
+		if ( $team_id < 1 || $user_id < 1 || $expected_version < 1 || $actor_user_id < 1 ) {
+			return $this->change_error( $adapter, 'invalid_id', 400 );
+		}
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB -- Guarded membership transaction.
+			return $this->change_error( $adapter, 'transaction_failed', 500 );
+		}
+		$result = $adapter->check_team( $team_id, true );
+		if ( ! is_wp_error( $result ) ) {
+			$rows   = $this->lock_team( $adapter->team_type(), $team_id );
+			$result = '' !== (string) $wpdb->last_error ? $this->change_error( $adapter, 'read_failed', 500 ) : $this->hydrate_rows( $adapter->team_type(), $rows );
+		}
+		if ( ! is_wp_error( $result ) ) {
+			$members = $result;
+			$result  = $adapter->authorize_locked( $actor_user_id, $team_id, $members );
+		}
+		if ( is_wp_error( $result ) ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB -- No write has committed.
+			return $result;
+		}
+		$current = null;
+		$owners  = 0;
+		foreach ( $members as $member ) {
+			if ( $user_id === $member['user_id'] ) {
+				$current = $member;
+			}
+			$owners += $member['is_owner'] && self::STATUS_ACTIVE === $member['status'] ? 1 : 0;
+		}
+		if ( null === $current ) {
+			$result = $this->change_error( $adapter, 'not_found', 404 );
+		} elseif ( $expected_version !== $current['version'] ) {
+			$result = $this->change_error( $adapter, 'version_conflict', 409, array( 'current_version' => $current['version'] ) );
+		} elseif ( self::STATUS_REVOKED === $current['status'] ) {
+			$result = $this->change_error( $adapter, 'revoked', 409 );
+		} elseif ( $enforce_owner_floor && $current['is_owner'] && self::STATUS_ACTIVE === $current['status'] && ( $revoke || false === $is_owner ) && $owners < 2 ) {
+			$result = $this->change_error( $adapter, 'last_owner', 409 );
+		} else {
+			$result = $this->mutate( $adapter->team_type(), $team_id, $user_id, $expected_version, $is_owner, $revoke, $actor_user_id );
+			if ( false === $result ) {
+				$result = $this->change_error( $adapter, 'update_failed', 500 );
+			} elseif ( 0 === $result ) {
+				$result = $this->change_error( $adapter, 'version_conflict', 409, array( 'current_version' => $current['version'] ) );
+			}
+		}
+		if ( is_wp_error( $result ) ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB -- Failed guarded change.
+			return $result;
+		}
+		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB -- A failed commit has an uncertain outcome; never roll back.
+			return $this->change_error( $adapter, 'commit_uncertain', 500 );
+		}
+		return $this->get( $adapter->team_type(), $team_id, $user_id );
+	}
+
+	/** Map shared mutation failures through the type-owned public contract. */
+	private function change_error( TeamOnboardingAdapter $adapter, string $reason, int $status, array $data = array() ): \WP_Error {
+		return new \WP_Error(
+			$adapter->error_code( 'team_membership_' . $reason ),
+			sprintf( __( 'The %1$s membership change failed: %2$s.', 'extrachill-users' ), $adapter->team_type(), $reason ),
+			array_merge( array( 'status' => $status ), $data )
+		);
+	}
+
 	/** Lock a team's raw rows; the caller owns the transaction and error policy. */
 	public function lock_team( string $team_type, int $term_id, ?int $limit = null ): array {
 		return $this->select( $team_type, array( 'term' => $term_id ), 'id ASC', $limit, true );

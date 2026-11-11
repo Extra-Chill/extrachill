@@ -20,6 +20,13 @@ require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipReposito
 
 final class VenueOnboardingTest extends TestCase {
 
+	public function test_error_codes_use_the_adapters_own_type(): void {
+		foreach ( array( 'venue', 'promoter' ) as $type ) {
+			$adapter = new \ExtraChillEvents\Core\VenueOnboardingAdapter( $type );
+			$this->assertSame( $type . '_membership_last_owner', $adapter->error_code( 'team_membership_last_owner' ) );
+		}
+	}
+
 	/** The extracted store delegates the anchor lock and rolls back adapter failures. */
 	public function test_generic_repository_uses_adapter_lock_and_error_namespace(): void {
 		require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';

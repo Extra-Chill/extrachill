@@ -55,9 +55,9 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 		return self::SUPPORT[ $this->type ];
 	}
 
-	/** Venue and promoter share the historical `venue_*` public error codes. */
+	/** Preserve the adapter's team type in public error codes. */
 	public function error_code( string $code ): string {
-		return str_replace( 'team', 'venue', $code );
+		return str_replace( 'team', $this->type, $code );
 	}
 
 	public function public_record( array $record ): array {

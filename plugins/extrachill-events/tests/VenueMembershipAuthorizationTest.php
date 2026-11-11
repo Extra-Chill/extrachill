@@ -1011,6 +1011,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 
 			( new WP_User( 1 ) )->set_role( 'administrator' );
 		}
+		add_filter( 'extrachill_users_team_onboarding_adapters', array( \ExtraChillEvents\Core\VenueOnboardingAdapter::class, 'register' ) );
 		$this->set_current_user( 1 );
 		$GLOBALS['venue_membership_test']    = array(
 			'terms'                        => array(
