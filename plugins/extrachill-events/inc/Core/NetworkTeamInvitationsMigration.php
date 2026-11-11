@@ -11,25 +11,40 @@ final class NetworkTeamInvitationsMigration {
 		global $wpdb;
 		$blog_id = function_exists( 'ec_get_blog_id' ) ? ec_get_blog_id( 'events' ) : 0;
 		if ( ! $blog_id ) {
-			return array( 'status' => 'error', 'error' => 'Events blog is unavailable.' );
+			return array(
+				'status' => 'error',
+				'error'  => 'Events blog is unavailable.',
+			);
 		}
 		$prefix = $wpdb->get_blog_prefix( $blog_id );
 		if ( $prefix === $wpdb->base_prefix ) {
-			return array( 'status' => 'error', 'error' => 'Legacy and network table prefixes overlap.' );
+			return array(
+				'status' => 'error',
+				'error'  => 'Legacy and network table prefixes overlap.',
+			);
 		}
 		$tables = array();
 		$status = 'complete';
 		foreach ( array( 'ec_team_invitations', 'ec_team_claims' ) as $suffix ) {
-			$table = $prefix . $suffix;
+			$table  = $prefix . $suffix;
 			$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) === $table;
 			if ( $wpdb->last_error ) {
-				return array( 'status' => 'error', 'error' => $wpdb->last_error );
+				return array(
+					'status' => 'error',
+					'error'  => $wpdb->last_error,
+				);
 			}
-			$count = $exists ? $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" ) : 0;
+			$count = $exists ? $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ) : 0; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- CLI migration inventory.
 			if ( $wpdb->last_error || null === $count ) {
-				return array( 'status' => 'error', 'error' => $wpdb->last_error ?: 'Could not count legacy rows.' );
+				return array(
+					'status' => 'error',
+					'error'  => ( '' !== (string) $wpdb->last_error ? $wpdb->last_error : 'Could not count legacy rows.' ),
+				);
 			}
-			$tables[ $table ] = array( 'exists' => $exists, 'rows' => (int) $count );
+			$tables[ $table ] = array(
+				'exists' => $exists,
+				'rows'   => (int) $count,
+			);
 			if ( $exists ) {
 				$status = 'pending';
 			}
@@ -39,27 +54,46 @@ final class NetworkTeamInvitationsMigration {
 				$status = 'blocked';
 			}
 		}
-		return array( 'status' => $status, 'tables' => $tables );
+		return array(
+			'status' => $status,
+			'tables' => $tables,
+		);
 	}
 
 	/** Refuse the whole operation if either legacy table contains rows. */
 	public static function apply(): array {
 		global $wpdb;
 		if ( true !== ( defined( 'WP_CLI' ) ? constant( 'WP_CLI' ) : false ) ) {
-			return array( 'status' => 'blocked', 'success' => false, 'complete' => false, 'error' => 'Run this migration from WP-CLI.' );
+			return array(
+				'status'   => 'blocked',
+				'success'  => false,
+				'complete' => false,
+				'error'    => 'Run this migration from WP-CLI.',
+			);
 		}
 		$state = self::inspect();
 		if ( in_array( $state['status'], array( 'error', 'blocked' ), true ) ) {
-			return array_merge( $state, array( 'success' => false, 'complete' => false ) );
+			return array_merge( $state, array(
+				'success'  => false,
+				'complete' => false,
+			) );
 		}
 		foreach ( $state['tables'] as $table => $info ) {
-			if ( $info['exists'] && false === $wpdb->query( "DROP TABLE `{$table}`" ) ) {
-				return array( 'status' => 'error', 'success' => false, 'complete' => false, 'error' => $wpdb->last_error );
+			if ( $info['exists'] && false === $wpdb->query( $wpdb->prepare( 'DROP TABLE %i', $table ) ) ) {
+				return array(
+					'status'   => 'error',
+					'success'  => false,
+					'complete' => false,
+					'error'    => $wpdb->last_error,
+				);
 			}
 		}
-		$state = self::inspect();
+		$state    = self::inspect();
 		$complete = 'complete' === $state['status'];
-		return array_merge( $state, array( 'success' => $complete, 'complete' => $complete ) );
+		return array_merge( $state, array(
+			'success'  => $complete,
+			'complete' => $complete,
+		) );
 	}
 
 	/** Both old tables must be absent. */

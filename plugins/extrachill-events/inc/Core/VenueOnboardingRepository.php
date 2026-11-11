@@ -128,7 +128,7 @@ class VenueOnboardingRepository {
 				array(
 					'public_id'        => wp_generate_uuid4(),
 					'team_type'        => $this->team_type,
-					'team_id'     => $venue_term_id,
+					'team_id'          => $venue_term_id,
 					'claimant_user_id' => $actor_user_id,
 					'status'           => self::CLAIM_PENDING,
 					'version'          => 1,
@@ -335,7 +335,7 @@ class VenueOnboardingRepository {
 		$invite_row = array(
 			'public_id'          => $public_id,
 			'team_type'          => $this->team_type,
-			'team_id'       => $venue_term_id,
+			'team_id'            => $venue_term_id,
 			'user_id'            => $user_id,
 			'is_owner'           => $is_owner ? 1 : 0,
 			'status'             => self::INVITE_PENDING,
@@ -708,8 +708,8 @@ class VenueOnboardingRepository {
 	 * @param array $row Stored claim row.
 	 */
 	public function hydrate_claim( array $row ): array {
-		$row['team_id']  = (int) $row['team_id'];
-		$row['team_term_id'] = $row['team_id'];
+		$row['team_id']       = (int) $row['team_id'];
+		$row['team_term_id']  = $row['team_id'];
 		$row['venue_term_id'] = $row['team_id'];
 		foreach ( array( 'id', 'venue_term_id', 'claimant_user_id', 'version' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
@@ -725,8 +725,8 @@ class VenueOnboardingRepository {
 	 * @param array $row Stored invitation row.
 	 */
 	public function hydrate_invitation( array $row ): array {
-		$row['team_id']  = (int) $row['team_id'];
-		$row['team_term_id'] = $row['team_id'];
+		$row['team_id']       = (int) $row['team_id'];
+		$row['team_term_id']  = $row['team_id'];
 		$row['venue_term_id'] = $row['team_id'];
 		foreach ( array( 'id', 'venue_term_id', 'user_id', 'version', 'invited_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];

@@ -10,7 +10,7 @@ function extrachill_users_install_teams_table(): void {
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 	$table   = $wpdb->base_prefix . 'ec_team_members';
 	$charset = $wpdb->get_charset_collate();
-	$sql = "CREATE TABLE {$table} (
+	$sql     = "CREATE TABLE {$table} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			team_type VARCHAR(16) NOT NULL,
 			team_id BIGINT UNSIGNED NOT NULL,
@@ -29,8 +29,8 @@ function extrachill_users_install_teams_table(): void {
 			KEY team_status_owner (team_type, team_id, status, is_owner)
 		) ENGINE=InnoDB {$charset};";
 
-	$claims = $wpdb->base_prefix . 'ec_team_claims';
-	$invites = $wpdb->base_prefix . 'ec_team_invitations';
+	$claims     = $wpdb->base_prefix . 'ec_team_claims';
+	$invites    = $wpdb->base_prefix . 'ec_team_invitations';
 	$claims_sql = "CREATE TABLE {$claims} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			public_id CHAR(36) NOT NULL,

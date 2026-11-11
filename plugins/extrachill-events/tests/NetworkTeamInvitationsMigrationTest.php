@@ -18,7 +18,7 @@ final class NetworkTeamInvitationsMigrationTest extends TestCase {
 			public $drops = array();
 			public function get_blog_prefix( $id ) { return 'wp_' . $id . '_'; }
 			public function esc_like( $value ) { return addcslashes( $value, '_%' ); }
-			public function prepare( $sql, $value ) { return str_replace( '%s', "'{$value}'", $sql ); }
+			public function prepare( $sql, $value ) { return str_replace( array( '%s', '%i' ), array( "'{$value}'", "`{$value}`" ), $sql ); }
 			public function get_var( $sql ) {
 				if ( preg_match( "/SHOW TABLES LIKE '(.*)'/", $sql, $match ) ) {
 					$table = stripslashes( $match[1] );
