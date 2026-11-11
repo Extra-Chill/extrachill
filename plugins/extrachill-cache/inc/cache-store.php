@@ -330,6 +330,9 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 	/**
 	 * Read a cached payload if present and fresh.
 	 *
+	 * An entry is fresh while it is younger than $ttl AND, when it carries a
+	 * stored per-entry expiry, before that expiry.
+	 *
 	 * @param string $key     sha512 key.
 	 * @param int    $blog_id Blog ID.
 	 * @param int    $ttl     TTL in seconds.
@@ -371,6 +374,14 @@ if ( ! function_exists( 'extrachill_cache_read' ) ) {
 			return false;
 		}
 
+		// Per-entry expiry (from the response's Cache-Control lifetime at store
+		// time) can only shorten the global TTL checked above, never extend it.
+		if ( ! empty( $data['expires'] ) && time() >= (int) $data['expires'] ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes an expired local cache file; reachable pre-WP where wp_delete_file is unavailable. The @ guards a benign unlink failure.
+			@unlink( $path );
+			return false;
+		}
+
 		return $data;
 	}
 }
@@ -383,9 +394,10 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 	 * @param string $body    Rendered HTML.
 	 * @param array  $headers Array of array( 'name' => ..., 'value' => ... ).
 	 * @param int    $blog_id Blog ID.
+	 * @param int    $expires Optional absolute Unix expiry for this entry. 0 = global TTL only.
 	 * @return bool True on success.
 	 */
-	function extrachill_cache_write( $key, $body, $headers = array(), $blog_id = 0 ) {
+	function extrachill_cache_write( $key, $body, $headers = array(), $blog_id = 0, $expires = 0 ) {
 		$dir = extrachill_cache_blog_dir( $blog_id );
 
 		if ( ! is_dir( $dir ) ) {
@@ -399,13 +411,18 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 			}
 		}
 
+		// 'expires' is serialized FIRST so GC can read it from the file's
+		// leading bytes without loading the body (extrachill_cache_file_expires()).
+		$payload = array();
+		$expires = (int) $expires;
+		if ( $expires > 0 ) {
+			$payload['expires'] = $expires;
+		}
+		$payload['body']    = $body;
+		$payload['headers'] = $headers;
+
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Self-written cache payload stored on disk; format parity with the reader (unserialize) is intentional.
-		$data = serialize(
-			array(
-				'body'    => $body,
-				'headers' => $headers,
-			)
-		);
+		$data = serialize( $payload );
 
 		$path = extrachill_cache_file_path( $key, $blog_id );
 
@@ -425,6 +442,123 @@ if ( ! function_exists( 'extrachill_cache_write' ) ) {
 		}
 
 		return true;
+	}
+}
+
+if ( ! function_exists( 'extrachill_cache_response_lifetime' ) ) {
+	/**
+	 * Derive the shared-cache lifetime a response declares via Cache-Control.
+	 *
+	 * Producers bound freshness with standard HTTP and never need to know about
+	 * this plugin. `s-maxage` (shared caches) wins over `max-age`. `no-store`,
+	 * `private`, or a zero lifetime mean the response must not be stored.
+	 *
+	 * @param mixed $headers Header lines ("Name: value") or name/value arrays.
+	 * @return int|false|null Lifetime in seconds, false = do not store, null = no lifetime declared.
+	 */
+	function extrachill_cache_response_lifetime( $headers ) {
+		if ( ! is_array( $headers ) ) {
+			return null;
+		}
+
+		$max_age  = null;
+		$s_maxage = null;
+
+		foreach ( $headers as $header ) {
+			if ( is_string( $header ) ) {
+				$parts = explode( ':', $header, 2 );
+				if ( 2 !== count( $parts ) ) {
+					continue;
+				}
+				list( $name, $value ) = $parts;
+			} elseif ( is_array( $header ) && isset( $header['name'], $header['value'] ) ) {
+				$name  = (string) $header['name'];
+				$value = (string) $header['value'];
+			} else {
+				continue;
+			}
+
+			if ( 'cache-control' !== strtolower( trim( $name ) ) ) {
+				continue;
+			}
+
+			foreach ( explode( ',', $value ) as $directive ) {
+				$directive = strtolower( trim( $directive ) );
+				if ( 'no-store' === $directive || 'private' === $directive || 0 === strpos( $directive, 'private=' ) ) {
+					return false;
+				}
+				if ( preg_match( '/^(s-maxage|max-age)\s*=\s*"?(\d+)"?$/', $directive, $matches ) ) {
+					$seconds = (int) $matches[2];
+					if ( 's-maxage' === $matches[1] ) {
+						$s_maxage = null === $s_maxage ? $seconds : min( $s_maxage, $seconds );
+					} else {
+						$max_age = null === $max_age ? $seconds : min( $max_age, $seconds );
+					}
+				}
+			}
+		}
+
+		$lifetime = null !== $s_maxage ? $s_maxage : $max_age;
+		if ( null === $lifetime ) {
+			return null;
+		}
+
+		return $lifetime > 0 ? $lifetime : false;
+	}
+}
+
+if ( ! function_exists( 'extrachill_cache_store_page' ) ) {
+	/**
+	 * Persist a rendered page, honouring the response's declared lifetime.
+	 *
+	 * @param string $key              sha512 key.
+	 * @param string $body             Rendered HTML.
+	 * @param array  $response_headers Raw response header lines (e.g. headers_list()).
+	 * @param int    $blog_id          Blog ID.
+	 * @param int    $now              Current Unix time. 0 = time().
+	 * @return bool True when stored.
+	 */
+	function extrachill_cache_store_page( $key, $body, $response_headers, $blog_id = 0, $now = 0 ) {
+		$lifetime = extrachill_cache_response_lifetime( $response_headers );
+		if ( false === $lifetime ) {
+			return false;
+		}
+
+		$expires = 0;
+		if ( null !== $lifetime ) {
+			$now     = $now > 0 ? (int) $now : time();
+			$ttl     = defined( 'EXTRACHILL_CACHE_TTL' ) ? (int) EXTRACHILL_CACHE_TTL : 86400;
+			$expires = $now + min( $lifetime, $ttl );
+		}
+
+		return extrachill_cache_write( $key, $body, extrachill_cache_filter_headers( $response_headers ), $blog_id, $expires );
+	}
+}
+
+if ( ! function_exists( 'extrachill_cache_file_expires' ) ) {
+	/**
+	 * Read a cache file's per-entry expiry without loading its body.
+	 *
+	 * @param string $path Cache file path.
+	 * @return int Absolute Unix expiry, or 0 when the entry has none.
+	 */
+	function extrachill_cache_file_expires( $path ) {
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Reads the leading bytes of a local cache file; the @ guards a benign open failure.
+		$handle = @fopen( $path, 'rb' );
+		if ( false === $handle ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Bounded read of a local cache file header.
+		$head = (string) fread( $handle, 64 );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Closes the handle opened above.
+		fclose( $handle );
+
+		if ( preg_match( '/^a:\d+:\{s:7:"expires";i:(\d+);/', $head, $matches ) ) {
+			return (int) $matches[1];
+		}
+
+		return 0;
 	}
 }
 

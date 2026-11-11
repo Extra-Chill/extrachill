@@ -76,9 +76,13 @@ Two entry points share one cache store:
    WordPress load normally.
 2. **`inc/page-cache.php` — the STORE path.** Runs inside WordPress. On a
    cacheable anonymous front-end miss it buffers the rendered HTML and writes it
-   to disk for next time.
+   to disk for next time. Responses honour standard `Cache-Control`:
+   `no-store` / `private` are not stored, and `s-maxage` (or `max-age`) bounds
+   the entry's lifetime to `min( N, EXTRACHILL_CACHE_TTL )`. Producers whose
+   content expires sooner than the global TTL send `max-age` instead of opting
+   out with `DONOTCACHEPAGE`.
 3. **`inc/cache-store.php` — the shared store.** Path resolution, sha512 keying
-   (device-bucketed), TTL-checked read, atomic write, recursive delete. Free of
+   (device-bucketed), TTL- and per-entry-expiry-checked read, atomic write, recursive delete. Free of
    plugin-API dependencies so both entry points can use it.
 4. **`inc/purge.php` — invalidation.** Hooks content-change actions, deleting
    targeted URLs for terms and integrated post types; other content changes

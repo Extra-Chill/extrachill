@@ -153,9 +153,10 @@ function extrachill_cache_output_buffer( $buffer ) {
 		headers_list(),
 		array( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $modified_time ) . ' GMT' )
 	);
-	$headers          = extrachill_cache_filter_headers( $response_headers );
 
-	extrachill_cache_write( $key, $stamped, $headers, get_current_blog_id() );
+	// Honours Cache-Control: no-store/private skip storage; max-age/s-maxage
+	// bound the entry's lifetime to min( N, EXTRACHILL_CACHE_TTL ).
+	extrachill_cache_store_page( $key, $stamped, $response_headers, get_current_blog_id(), $modified_time );
 
 	return $buffer;
 }
