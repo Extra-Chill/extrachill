@@ -6,7 +6,7 @@
  * the long tail of crawler-hit URLs, one-off query-string variants, and quiet
  * archive pages would otherwise accumulate forever. This module adds a
  * batched/time-budgeted scheduled GC pass that walks the cache tree and removes
- * files older than EXTRACHILL_CACHE_TTL.
+ * files older than EXTRACHILL_CACHE_TTL or past their per-entry expiry.
  *
  * Scheduled once network-wide on the main site; the walker touches every blog
  * partition, so per-site cron jobs are unnecessary.
@@ -133,7 +133,8 @@ function extrachill_cache_gc( $args = array() ) {
 	}
 
 	$ttl    = defined( 'EXTRACHILL_CACHE_TTL' ) ? (int) EXTRACHILL_CACHE_TTL : DAY_IN_SECONDS;
-	$cutoff = time() - $ttl;
+	$now    = time();
+	$cutoff = $now - $ttl;
 
 	$cursor           = (string) get_option( 'extrachill_cache_gc_cursor', '' );
 	$start            = microtime( true );
@@ -178,7 +179,13 @@ function extrachill_cache_gc( $args = array() ) {
 		}
 
 		$mtime = @filemtime( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Local cache file mtime read during GC; failure is handled via the false check.
-		if ( false !== $mtime && $mtime >= $cutoff ) {
+		$fresh = ( false !== $mtime && $mtime >= $cutoff );
+		if ( $fresh ) {
+			// Within the global TTL; a shorter per-entry expiry can still retire it.
+			$expires = extrachill_cache_file_expires( $path );
+			$fresh   = ( 0 === $expires || $expires > $now );
+		}
+		if ( $fresh ) {
 			$next_cursor = $path;
 			if ( extrachill_cache_gc_should_stop( $start, $examined, $args ) ) {
 				$budget_exhausted = true;
