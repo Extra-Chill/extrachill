@@ -264,91 +264,17 @@ class VenueMembershipRepository {
 
 	/** Change structural ownership at an expected version. */
 	public function update_owner( int $venue_term_id, int $user_id, bool $is_owner, int $expected_version, int $actor_user_id ) {
-		return $this->mutate( $venue_term_id, $user_id, $expected_version, $is_owner, null, $actor_user_id );
+		return ( new TeamMembershipRepository() )->change_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'venue' ), $venue_term_id, $user_id, $expected_version, $is_owner, false, $actor_user_id );
 	}
 
 	/** Revoke one relationship at an expected version while preserving an active owner. */
 	public function revoke( int $venue_term_id, int $user_id, int $expected_version, int $actor_user_id ) {
-		return $this->mutate( $venue_term_id, $user_id, $expected_version, null, VenueAuthorization::STATUS_REVOKED, $actor_user_id );
+		return ( new TeamMembershipRepository() )->change_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'venue' ), $venue_term_id, $user_id, $expected_version, null, true, $actor_user_id );
 	}
 
 	/** Hydrate scalar fields and fail closed on corrupt status values. */
 	public function hydrate( array $row ) {
 		return ( new TeamMembershipRepository() )->hydrate( 'venue', $row );
-	}
-
-	/** Execute one serialized membership mutation. */
-	private function mutate( int $venue_term_id, int $user_id, int $expected_version, ?bool $is_owner, ?string $status, int $actor_user_id ) {
-		global $wpdb;
-
-		if ( $venue_term_id < 1 || $user_id < 1 || $expected_version < 1 || $actor_user_id < 1 ) {
-			return new \WP_Error( 'invalid_venue_membership_id', __( 'Positive venue, user, and version identifiers are required.', 'extrachill-events' ) );
-		}
-
-		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Required for last-owner serialization.
-			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
-		}
-
-		$locked = $this->lock_for_venue( $venue_term_id );
-		if ( is_wp_error( $locked ) ) {
-			$this->rollback();
-			return $locked;
-		}
-
-		$current      = null;
-		$active_owner = 0;
-		$memberships  = $this->hydrate_locked( (array) $locked );
-		if ( is_wp_error( $memberships ) ) {
-			$this->rollback();
-			return $memberships;
-		}
-		foreach ( $memberships as $membership ) {
-			if ( $membership['user_id'] === $user_id ) {
-				$current = $membership;
-			}
-			if ( $membership['is_owner'] && VenueAuthorization::STATUS_ACTIVE === $membership['status'] ) {
-				++$active_owner;
-			}
-		}
-		if ( ! $this->actor_can_manage_members( $actor_user_id, $memberships ) ) {
-			$this->rollback();
-			return $this->forbidden();
-		}
-
-		if ( null === $current ) {
-			$this->rollback();
-			return new \WP_Error( 'venue_membership_not_found', __( 'The venue membership was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
-		}
-		if ( $current['version'] !== $expected_version ) {
-			$this->rollback();
-			return $this->version_conflict( $current );
-		}
-
-		$removes_owner = $current['is_owner']
-			&& VenueAuthorization::STATUS_ACTIVE === $current['status']
-			&& ( false === $is_owner || VenueAuthorization::STATUS_REVOKED === $status );
-		if ( $removes_owner && $active_owner < 2 ) {
-			$this->rollback();
-			return new \WP_Error( 'venue_membership_last_owner', __( 'The final active venue owner cannot be removed.', 'extrachill-events' ), array( 'status' => 409 ) );
-		}
-
-		$result = ( new TeamMembershipRepository() )->mutate( 'venue', $venue_term_id, $user_id, $expected_version, $is_owner, null !== $status, $actor_user_id );
-		if ( false === $result ) {
-			$database_error = $wpdb->last_error;
-			$this->rollback();
-			return new \WP_Error( 'venue_membership_update_failed', __( 'The venue membership could not be updated.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
-		}
-		if ( 0 === $result ) {
-			$this->rollback();
-			$latest = $this->get( $venue_term_id, $user_id );
-			return is_array( $latest ) ? $this->version_conflict( $latest ) : new \WP_Error( 'venue_membership_not_found', __( 'The venue membership was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
-		}
-
-		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes serialized mutation.
-			$database_error = $wpdb->last_error;
-			return new \WP_Error( 'venue_membership_commit_uncertain', __( 'The venue membership transaction outcome could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
-		}
-		return $this->get( $venue_term_id, $user_id );
 	}
 
 	/** Hydrate rows held under the venue transaction lock. */
@@ -391,17 +317,6 @@ class VenueMembershipRepository {
 		return new \WP_Error(
 			'venue_membership_exists',
 			__( 'A venue membership already exists for this user.', 'extrachill-events' ),
-			array(
-				'status'          => 409,
-				'current_version' => $membership['version'],
-			)
-		);
-	}
-
-	private function version_conflict( array $membership ): \WP_Error {
-		return new \WP_Error(
-			'venue_membership_version_conflict',
-			__( 'The venue membership changed since it was read.', 'extrachill-events' ),
 			array(
 				'status'          => 409,
 				'current_version' => $membership['version'],
