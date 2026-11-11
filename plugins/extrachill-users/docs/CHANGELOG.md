@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.4] - 2026-11-11
+
+### Changed
+- remove completed artist team migration
+
 ## [0.63.3] - 2026-11-11
 
 ### Changed
