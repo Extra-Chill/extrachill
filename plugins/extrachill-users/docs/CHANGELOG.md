@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.3] - 2026-11-11
+
+### Changed
+- network invitation and claim tables, delete VenueSchema
+
 ## [0.63.2] - 2026-11-10
 
 ### Changed
