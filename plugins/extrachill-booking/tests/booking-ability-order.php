@@ -8,10 +8,8 @@ namespace ExtraChillEvents\Tests\AbilityOrder {
 		public static $ready = true;
 		public static function is_ready() { return static::$ready; }
 	}
-	class VenueSchemaDouble extends SchemaDouble { public static $ready = true; }
 	class BookingSchemaDouble extends SchemaDouble { public static $ready = true; }
 	class PromoterAuthoritySchemaDouble extends SchemaDouble { public static $ready = true; }
-	class_alias( VenueSchemaDouble::class, 'ExtraChillEvents\\Core\\VenueSchema' );
 	class_alias( BookingSchemaDouble::class, 'ExtraChillEvents\\Core\\BookingSchema' );
 	class_alias( PromoterAuthoritySchemaDouble::class, 'ExtraChillEvents\\Core\\PromoterAuthoritySchema' );
 }
@@ -29,10 +27,9 @@ namespace {
 	$start = strpos( $source, '$abilities = array(' );
 	$end = strpos( $source, "require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/FlowLocationGuard.php'" );
 	$frozen = json_decode( file_get_contents( __DIR__ . '/fixtures/ability-classes-p1d-before.json' ), true );
-	foreach ( array( false, true ) as $venue_ready ) {
+	foreach ( array( true ) as $venue_ready ) {
 		foreach ( array( false, true ) as $booking_ready ) {
 			foreach ( array( false, true ) as $promoter_ready ) {
-				ExtraChillEvents\Core\VenueSchema::$ready = $venue_ready;
 				ExtraChillEvents\Core\BookingSchema::$ready = $booking_ready;
 				ExtraChillEvents\Core\PromoterAuthoritySchema::$ready = $promoter_ready;
 				eval( substr( $source, $start, $end - $start ) );

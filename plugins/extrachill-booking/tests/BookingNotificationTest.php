@@ -9,7 +9,6 @@ use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingNotificationService;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use PHPUnit\Framework\TestCase;
 

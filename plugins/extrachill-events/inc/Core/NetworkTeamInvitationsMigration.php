@@ -45,7 +45,7 @@ final class NetworkTeamInvitationsMigration {
 	/** Refuse the whole operation if either legacy table contains rows. */
 	public static function apply(): array {
 		global $wpdb;
-		if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
+		if ( true !== ( defined( 'WP_CLI' ) ? constant( 'WP_CLI' ) : false ) ) {
 			return array( 'status' => 'blocked', 'success' => false, 'complete' => false, 'error' => 'Run this migration from WP-CLI.' );
 		}
 		$state = self::inspect();
@@ -76,7 +76,7 @@ add_filter( 'datamachine_migrations', static function ( array $migrations ): arr
 		public function id(): string { return 'extrachill-events.network-team-invitations'; }
 		public function description(): string { return 'Retire empty Events-site team invitation and claim tables.'; }
 		public function inspect(): array { return NetworkTeamInvitationsMigration::inspect(); }
-		public function apply( int $limit ): array { return NetworkTeamInvitationsMigration::apply(); }
+		public function apply( int $limit ): array { return NetworkTeamInvitationsMigration::apply(); } // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Migration interface signature; retirement is a single pass.
 		public function isComplete(): bool { return NetworkTeamInvitationsMigration::isComplete(); }
 	};
 	return $migrations;

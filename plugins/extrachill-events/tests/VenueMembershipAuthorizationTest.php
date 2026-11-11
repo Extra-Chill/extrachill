@@ -23,7 +23,7 @@ use ExtraChillEvents\Core\VenueProfile;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Support/team-members-fake.php';
-require_once __DIR__ . '/Support/booking-harness.php';
+require_once dirname( __DIR__, 2 ) . '/extrachill-booking/tests/Support/BookingTestHarness.php';
 
 if ( ! defined( 'ARRAY_A' ) ) {
 	define( 'ARRAY_A', 'ARRAY_A' );

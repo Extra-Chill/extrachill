@@ -15,7 +15,6 @@ use ExtraChillEvents\Core\BookingEventSyncService;
 use ExtraChillEvents\Core\BookingHoldRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -47,7 +46,6 @@ final class BookingEventSyncMySQLIntegrationTest extends WP_UnitTestCase {
 		get_user_by( 'id', $this->actor_id )->add_cap( VenueAuthorization::ACCESS_CAPABILITY );
 		wp_set_current_user( $this->actor_id );
 		$this->assertTrue( BookingSchema::install() );
-		$this->assertTrue( VenueSchema::install() );
 		foreach ( array( $this->old_venue_id, $this->new_venue_id ) as $venue_id ) {
 			$this->assertIsArray(
 				( new VenueMembershipRepository() )->create(

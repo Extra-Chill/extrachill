@@ -3,10 +3,6 @@
 /** Run: php tests/booking-schema-lifecycle.php */
 // Doubles are aliased to production names (no duplicate declarations).
 namespace ExtraChillEvents\Tests\SchemaLifecycle {
-	class VenueSchemaDouble {
-		public static function install() { $GLOBALS['order'][] = 'venue'; }
-		public static function maybe_install() { self::install(); }
-	}
 	class BookingSchemaDouble {
 		public static function install() { $GLOBALS['order'][] = 'booking'; }
 		public static function maybe_install() { self::install(); }
@@ -17,7 +13,6 @@ namespace ExtraChillEvents\Tests\SchemaLifecycle {
 	}
 	class QualifyVerdictsTableDouble { public static function create_table() {} public static function maybe_install() {} }
 	class ArtistUrlSubmissionsTableDouble { public static function create_table() {} public static function maybe_install() {} }
-	class_alias( VenueSchemaDouble::class, 'ExtraChillEvents\\Core\\VenueSchema' );
 	class_alias( BookingSchemaDouble::class, 'ExtraChillEvents\\Core\\BookingSchema' );
 	class_alias( PromoterAuthoritySchemaDouble::class, 'ExtraChillEvents\\Core\\PromoterAuthoritySchema' );
 	class_alias( QualifyVerdictsTableDouble::class, 'ExtraChillEvents\\Core\\QualifyVerdictsTable' );
@@ -46,8 +41,8 @@ namespace {
 	// Historical order per entry point (main before P1d): activation installs
 	// promoter authority first; the plugins_loaded path installs it last.
 	$expected = array(
-		'activate'             => array( 'promoter', 'venue', 'booking' ),
-		'maybe_install_schema' => array( 'venue', 'booking', 'promoter' ),
+		'activate'             => array( 'promoter', 'booking' ),
+		'maybe_install_schema' => array( 'booking', 'promoter' ),
 	);
 	foreach ( $expected as $method => $order ) {
 		$GLOBALS['order'] = array();

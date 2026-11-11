@@ -9,7 +9,6 @@ use ExtraChillEvents\Abilities\TicketSettlementAbilities;
 use ExtraChillEvents\Core\BookingActivityRepository;
 use ExtraChillEvents\Core\BookingRepository;
 use ExtraChillEvents\Core\BookingSchema;
-use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\TicketSettlementService;
 use ExtraChillEvents\Core\TicketReconciliationService;
 use ExtraChillEvents\Core\VenueAuthorization;
@@ -105,7 +104,6 @@ final class TicketSettlementTest extends BookingTestCase {
 
 	public function test_schema_installs_signed_evidence_and_frozen_settlement_contracts(): void {
 		$this->assertTrue( BookingSchema::install() );
-		$this->assertTrue( VenueSchema::install() );
 		$this->assertTrue( BookingSchema::health() );
 		$sales       = $GLOBALS['wpdb']->schemas[ BookingSchema::sales_reports_table() ];
 		$settlements = $GLOBALS['wpdb']->schemas[ BookingSchema::settlements_table() ];
