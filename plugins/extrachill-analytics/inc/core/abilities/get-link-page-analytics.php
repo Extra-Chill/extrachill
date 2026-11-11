@@ -67,7 +67,9 @@ function extrachill_analytics_register_get_link_page_analytics_ability(): void {
 /**
  * Execute callback for get-link-page-analytics ability.
  *
- * Validates the link page, checks ownership via ec_can_manage_artist(), then
+ * Validates the link page, resolves its owning artist with
+ * extrachill_analytics_resolve_link_page_artist_id(), checks ownership via
+ * ec_can_manage_artist(), then
  * resolves analytics through the extrachill_get_link_page_analytics filter.
  *
  * As of extrachill-analytics#94 that filter is PROVIDED BY ECA itself
@@ -121,17 +123,15 @@ function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 		);
 	}
 
-	// Resolve artist ownership.
-	$artist_id = apply_filters( 'ec_get_artist_id', $link_page_id );
-	if ( ! $artist_id ) {
-		return new \WP_Error(
-			'artist_not_found',
-			__( 'Could not determine associated artist.', 'extrachill-analytics' ),
-			array( 'status' => 400 )
-		);
+	// Resolve artist ownership from the Link Page's own owner reference on its
+	// storage blog. The ID namespaces of the Link Pages site and the Artist
+	// site are unrelated, so a Link Page ID is never an artist ID.
+	$artist_id = extrachill_analytics_resolve_link_page_artist_id( $link_page_id );
+	if ( is_wp_error( $artist_id ) ) {
+		return $artist_id;
 	}
 
-	// Permission: caller must be able to manage the artist.
+	// Permission: caller must be able to manage the artist (on the Artist site).
 	if ( ! function_exists( 'ec_can_manage_artist' ) || ! ec_can_manage_artist( get_current_user_id(), $artist_id ) ) {
 		return new \WP_Error(
 			'permission_denied',
@@ -160,4 +160,58 @@ function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 	}
 
 	return $result;
+}
+
+/**
+ * Resolve the artist profile that owns a Link Page.
+ *
+ * Reads the Link Page's canonical owner reference
+ * (`post:<artist_blog>:artist_profile:<id>`) on the Link Page storage blog via
+ * the Link Pages runtime resolver ec_get_link_page_owner(). When no canonical
+ * reference is stored yet, falls back to the legacy `_associated_artist_profile_id`
+ * meta read on the same storage blog. Never treats the Link Page ID as an
+ * artist ID: the Link Pages and Artist sites have independent ID sequences.
+ *
+ * Shared by the get-link-page-analytics ability and its extrachill-api REST
+ * adapter (which delegates to the ability).
+ *
+ * @param int $link_page_id Link Page post ID on the storage blog.
+ * @return int|WP_Error Artist profile ID on the Artist site, or an error.
+ */
+function extrachill_analytics_resolve_link_page_artist_id( int $link_page_id ) {
+	$not_found = new \WP_Error(
+		'artist_not_found',
+		__( 'Could not determine associated artist.', 'extrachill-analytics' ),
+		array( 'status' => 400 )
+	);
+
+	$artist_blog_id = function_exists( 'ec_get_blog_id' ) ? (int) ec_get_blog_id( 'artist' ) : 0;
+	if ( $link_page_id <= 0 || $artist_blog_id <= 0 ) {
+		return $not_found;
+	}
+
+	if ( function_exists( 'ec_get_link_page_owner' ) ) {
+		$owner = ec_get_link_page_owner( $link_page_id );
+		if ( is_array( $owner ) ) {
+			$is_artist_owner = isset( $owner['kind'], $owner['subtype'], $owner['blog_id'], $owner['object_id'] )
+				&& 'post' === $owner['kind']
+				&& 'artist_profile' === $owner['subtype']
+				&& $artist_blog_id === (int) $owner['blog_id'];
+			return $is_artist_owner && (int) $owner['object_id'] > 0 ? (int) $owner['object_id'] : $not_found;
+		}
+		// Only a missing canonical reference may fall back to the legacy meta.
+		if ( 'link_page_owner_not_found' !== $owner->get_error_code() ) {
+			return $not_found;
+		}
+	}
+
+	// Legacy association, read on the storage blog alongside the Link Page.
+	$read_legacy = static function () use ( $link_page_id ) {
+		return (int) get_post_meta( $link_page_id, '_associated_artist_profile_id', true );
+	};
+	$artist_id   = function_exists( 'ec_with_link_page_storage_blog' )
+		? ec_with_link_page_storage_blog( $read_legacy )
+		: $read_legacy();
+
+	return is_int( $artist_id ) && $artist_id > 0 ? $artist_id : $not_found;
 }
