@@ -566,7 +566,7 @@ final class DoorAccessService {
 			return new \WP_Error( 'door_access_invalid_team', __( 'A valid venue or promoter is required.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
 		if ( 'venue' === $team_type ) {
-			return VenueSchema::is_ready() ? true : new \WP_Error( 'venue_membership_schema_unavailable', __( 'Venue membership storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
+			return true;
 		}
 		if ( ! class_exists( PromoterAuthoritySchema::class ) || ! class_exists( PromoterAuthorityRepository::class ) || ! PromoterAuthoritySchema::is_ready() ) {
 			return new \WP_Error( 'promoter_authority_schema_unavailable', __( 'Promoter authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );

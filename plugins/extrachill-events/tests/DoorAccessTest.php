@@ -13,7 +13,6 @@ use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
-use ExtraChillEvents\Core\VenueSchema;
 
 require_once __DIR__ . '/VenueMembershipAuthorizationTest.php';
 require_once __DIR__ . '/PromoterAuthorityTest.php';
@@ -69,7 +68,6 @@ final class DoorAccessTest extends \PHPUnit\Framework\TestCase {
 			'term_history'      => array(),
 			'fired_actions'     => array(),
 			'options'           => array(
-				VenueSchema::VERSION_OPTION             => VenueSchema::SCHEMA_VERSION,
 				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 			),
 			'terms'             => array(
