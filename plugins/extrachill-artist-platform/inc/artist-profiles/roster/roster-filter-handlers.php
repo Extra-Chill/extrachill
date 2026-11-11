@@ -29,10 +29,35 @@ function extrachill_handle_invite_member( $result, $artist_id, $email ) {
 	}
 	$adapter = \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'artist' );
 	if ( ! $adapter ) {
-		return new WP_Error( 'not_supported', 'Artist invitations are unavailable.', array( 'status' => 503 ) );
+		return new WP_Error( 'not_supported', __( 'Artist invitations are unavailable.', 'extrachill-artist-platform' ), array( 'status' => 503 ) );
 	}
 	$service = new \ExtraChill\Users\Teams\TeamOnboardingService( $adapter );
 	$invite  = $service->invite( get_current_user_id(), (int) $artist_id, $email, false );
 	return is_wp_error( $invite ) ? $invite : ec_artist_roster_invitation_response( $invite );
 }
 add_filter( 'extrachill_artist_invite_member', 'extrachill_handle_invite_member', 10, 3 );
+
+/**
+ * Cancel a pending artist roster invitation by its numeric network id.
+ *
+ * @param int    $artist_id Artist profile post ID.
+ * @param string $invite_id Invitation id from the roster API path.
+ * @return array|bool|WP_Error Cancelled invitation, false when no pending invite matches, or WP_Error.
+ */
+function ec_cancel_artist_roster_invitation( int $artist_id, string $invite_id ) {
+	$adapter = \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'artist' );
+	if ( ! $adapter ) {
+		return new WP_Error( 'not_supported', __( 'Artist invitations are unavailable.', 'extrachill-artist-platform' ), array( 'status' => 503 ) );
+	}
+	$service = new \ExtraChill\Users\Teams\TeamOnboardingService( $adapter );
+	$invites = $service->list_invitations( get_current_user_id(), $artist_id );
+	if ( is_wp_error( $invites ) ) {
+		return $invites;
+	}
+	foreach ( $invites as $invite ) {
+		if ( (string) $invite['id'] === $invite_id && 'pending' === $invite['status'] ) {
+			return $service->cancel_invitation( get_current_user_id(), (int) $invite['id'], (int) $invite['version'] );
+		}
+	}
+	return false;
+}
