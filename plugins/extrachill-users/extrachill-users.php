@@ -30,6 +30,8 @@ register_deactivation_hook( __FILE__, 'extrachill_users_deactivate' );
 
 require_once __DIR__ . '/inc/teams/TeamMembershipRepository.php';
 require_once __DIR__ . '/inc/teams/TeamInvitationToken.php';
+require_once __DIR__ . '/inc/teams/TeamOnboardingAdapter.php';
+require_once __DIR__ . '/inc/teams/TeamOnboardingRepository.php';
 require_once __DIR__ . '/inc/teams/db.php';
 
 function extrachill_users_activate() {
