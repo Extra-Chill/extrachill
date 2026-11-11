@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.3] - 2026-11-11
+
+### Changed
+- artists use the network team invitation flow
+
 ## [0.52.2] - 2026-11-11
 
 ### Fixed
