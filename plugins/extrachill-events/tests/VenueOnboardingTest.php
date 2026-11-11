@@ -71,6 +71,15 @@ final class VenueOnboardingTest extends TestCase {
 		$this->assertTrue( $tokens->verify( $new_token, $invitation, $new_hash ) );
 	}
 
+	public function test_legacy_binding_hash_is_unchanged_by_users_extraction(): void {
+		$tokens = new VenueInvitationToken();
+		$token  = str_repeat( 'a', 64 );
+		$grant  = $this->invitation();
+		$expected = hash_hmac( 'sha256', $token . '|' . $grant['public_id'] . '|venue|55|7|member', wp_salt( 'auth' ) );
+		$this->assertSame( $expected, $tokens->hash( $token, $grant ) );
+		$this->assertSame( $expected, ( new \ExtraChill\Users\Teams\TeamInvitationToken() )->hash( $token, array_merge( $grant, array( 'team_type' => 'venue', 'team_id' => 55 ) ) ) );
+	}
+
 	public function test_token_hash_does_not_expose_binding_values(): void {
 		$tokens     = new VenueInvitationToken();
 		$token      = $tokens->generate();

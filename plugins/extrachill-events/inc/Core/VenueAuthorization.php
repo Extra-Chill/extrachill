@@ -16,9 +16,9 @@ require_once __DIR__ . '/TeamAuthorization.php';
 /** Composes WordPress feature access with an exact venue relationship. */
 class VenueAuthorization {
 
-	public const STATUS_ACTIVE  = 'active';
-	public const STATUS_INVITED = 'invited';
-	public const STATUS_REVOKED = 'revoked';
+	public const STATUS_ACTIVE  = \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_ACTIVE;
+	public const STATUS_INVITED = \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_INVITED;
+	public const STATUS_REVOKED = \ExtraChill\Users\Teams\TeamMembershipRepository::STATUS_REVOKED;
 
 	public const ACTION_ACCESS_VENUE    = 'access_venue';
 	public const ACTION_MANAGE_MEMBERS  = 'manage_members';
