@@ -7,7 +7,7 @@
 
 // phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed -- Standalone token tests include the WordPress salt stub.
 
-use ExtraChillEvents\Core\VenueInvitationToken;
+use ExtraChill\Users\Teams\TeamInvitationToken;
 use PHPUnit\Framework\TestCase;
 
 if ( ! function_exists( 'wp_salt' ) ) {
@@ -17,7 +17,6 @@ if ( ! function_exists( 'wp_salt' ) ) {
 }
 
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationToken.php';
 
 final class VenueOnboardingTest extends TestCase {
 
@@ -32,7 +31,10 @@ final class VenueOnboardingTest extends TestCase {
 				$this->checks[] = array( $id, $lock );
 				return new WP_Error( 'artist_anchor_unavailable', 'Unavailable' );
 			}
+			public function authorize( int $actor, int $id ) { return true; }
 			public function authorize_locked( int $actor, int $id, array $members ) { return true; }
+			public function registration_source(): string { return 'artist_invitation'; }
+			public function invitation_email( array $invitation, string $token ) { return array(); }
 			public function error_code( string $code ): string { return str_replace( 'team', 'artist', $code ); }
 			public function public_record( array $record ): array { return $record; }
 		};
@@ -57,7 +59,8 @@ final class VenueOnboardingTest extends TestCase {
 		return array_merge(
 			array(
 				'public_id'     => '18b61ee7-9965-43b3-b6af-df4b6b10f24f',
-				'venue_term_id' => 55,
+				'team_type'     => 'venue',
+				'team_id'       => 55,
 				'user_id'       => 7,
 				'is_owner'      => false,
 			),
@@ -66,7 +69,7 @@ final class VenueOnboardingTest extends TestCase {
 	}
 
 	public function test_tokens_are_strong_hashed_and_exactly_bound(): void {
-		$tokens     = new VenueInvitationToken();
+		$tokens     = new TeamInvitationToken();
 		$token      = $tokens->generate();
 		$invitation = $this->invitation();
 		$hash       = $tokens->hash( $token, $invitation );
@@ -75,24 +78,21 @@ final class VenueOnboardingTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/^[a-f0-9]{64}$/', $hash );
 		$this->assertNotSame( $token, $hash );
 		$this->assertTrue( $tokens->verify( $token, $invitation, $hash ) );
-		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'venue_term_id' => 56 ) ), $hash ) );
+		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'team_id' => 56 ) ), $hash ) );
 		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'user_id' => 8 ) ), $hash ) );
 		$this->assertFalse( $tokens->verify( $token, $this->invitation( array( 'is_owner' => true ) ), $hash ) );
 	}
 
 	public function test_token_cannot_cross_team_types_with_the_same_term_id(): void {
-		$tokens   = new VenueInvitationToken();
+		$tokens   = new TeamInvitationToken();
 		$token    = $tokens->generate();
-		$venue    = $this->invitation( array(
-			'team_type'    => 'venue',
-			'team_term_id' => 55,
-		) );
+		$venue    = $this->invitation();
 		$promoter = array_merge( $venue, array( 'team_type' => 'promoter' ) );
 		$this->assertFalse( $tokens->verify( $token, $promoter, $tokens->hash( $token, $venue ) ) );
 	}
 
 	public function test_rotation_invalidates_the_previous_token(): void {
-		$tokens     = new VenueInvitationToken();
+		$tokens     = new TeamInvitationToken();
 		$invitation = $this->invitation();
 		$old_token  = $tokens->generate();
 		$new_token  = $tokens->generate();
@@ -104,16 +104,15 @@ final class VenueOnboardingTest extends TestCase {
 	}
 
 	public function test_legacy_binding_hash_is_unchanged_by_users_extraction(): void {
-		$tokens = new VenueInvitationToken();
+		$tokens = new TeamInvitationToken();
 		$token  = str_repeat( 'a', 64 );
 		$grant  = $this->invitation();
 		$expected = hash_hmac( 'sha256', $token . '|' . $grant['public_id'] . '|venue|55|7|member', wp_salt( 'auth' ) );
 		$this->assertSame( $expected, $tokens->hash( $token, $grant ) );
-		$this->assertSame( $expected, ( new \ExtraChill\Users\Teams\TeamInvitationToken() )->hash( $token, array_merge( $grant, array( 'team_type' => 'venue', 'team_id' => 55 ) ) ) );
 	}
 
 	public function test_token_hash_does_not_expose_binding_values(): void {
-		$tokens     = new VenueInvitationToken();
+		$tokens     = new TeamInvitationToken();
 		$token      = $tokens->generate();
 		$invitation = $this->invitation();
 		$hash       = $tokens->hash( $token, $invitation );

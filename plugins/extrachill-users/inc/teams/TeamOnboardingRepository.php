@@ -40,8 +40,8 @@ class TeamOnboardingRepository {
 
 	/** Build the transactional onboarding repository. */
 	public function __construct( TeamOnboardingAdapter $adapter, ?TeamInvitationToken $tokens = null ) {
-		$this->team_type = $adapter->team_type();
-		$this->tokens = $tokens ?: new TeamInvitationToken();
+		$this->team_type     = $adapter->team_type();
+		$this->tokens        = $tokens ? $tokens : new TeamInvitationToken();
 		$this->authorization = $adapter;
 	}
 
@@ -264,7 +264,7 @@ class TeamOnboardingRepository {
 			return $allowed;
 		}
 		$claims_table = \ExtraChill\Users\Teams\TeamMembershipRepository::claims_table();
-		$claim        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$claims_table} WHERE team_type = %s AND team_id = %d AND claimant_user_id = %d FOR UPDATE", $this->team_type, $team_term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prevents parallel claim and invitation authority paths.
+		$claim        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$claims_table} WHERE team_type = %s AND team_id = %d AND claimant_user_id = %d FOR UPDATE", $this->team_type, $team_term_id, $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Blocks parallel claim and invitation authority paths.
 		if ( is_array( $claim ) && in_array( $claim['status'], array( self::CLAIM_PENDING, self::CLAIM_APPROVED ), true ) ) {
 			$this->rollback();
 			return new \WP_Error( $this->authorization->error_code( 'team_invitation_claim_exists' ), __( 'This user already has a team claim.', 'extrachill-users' ), array( 'status' => 409 ) );
@@ -449,7 +449,7 @@ class TeamOnboardingRepository {
 		}
 
 		$allowed_invitation_id = (int) ( $invitation['id'] ?? 0 );
-		$allowed_team_id      = (int) ( $invitation['team_term_id'] ?? 0 );
+		$allowed_team_id       = (int) ( $invitation['team_term_id'] ?? 0 );
 		foreach ( (array) $members as $member ) {
 			if ( ( $member['team_type'] ?? $this->team_type ) !== $this->team_type || (int) ( $member['team_id'] ?? $member['team_term_id'] ?? $member[ $this->team_type . '_term_id' ] ?? 0 ) !== $allowed_team_id || TeamMembershipRepository::STATUS_REVOKED !== $member['status'] ) {
 				$this->commit();
@@ -696,9 +696,9 @@ class TeamOnboardingRepository {
 	 * @param array $row Stored claim row.
 	 */
 	public function hydrate_claim( array $row ): array {
-		$row['team_id']       = (int) $row['team_id'];
-		$row['team_term_id']  = $row['team_id'];
-		$row = $this->authorization->public_record( $row );
+		$row['team_id']      = (int) $row['team_id'];
+		$row['team_term_id'] = $row['team_id'];
+		$row                 = $this->authorization->public_record( $row );
 		foreach ( array( 'id', 'team_term_id', 'claimant_user_id', 'version' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
@@ -713,9 +713,9 @@ class TeamOnboardingRepository {
 	 * @param array $row Stored invitation row.
 	 */
 	public function hydrate_invitation( array $row ): array {
-		$row['team_id']       = (int) $row['team_id'];
-		$row['team_term_id']  = $row['team_id'];
-		$row = $this->authorization->public_record( $row );
+		$row['team_id']      = (int) $row['team_id'];
+		$row['team_term_id'] = $row['team_id'];
+		$row                 = $this->authorization->public_record( $row );
 		foreach ( array( 'id', 'team_term_id', 'user_id', 'version', 'invited_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
@@ -871,13 +871,13 @@ class TeamOnboardingRepository {
 			$result = ( new TeamMembershipRepository() )->insert( $this->team_type,
 				array(
 					$this->team_type . '_term_id' => $claim['team_term_id'],
-					'user_id'            => $claim['claimant_user_id'],
-					'is_owner'           => 1,
-					'status'             => TeamMembershipRepository::STATUS_ACTIVE,
-					'version'            => 1,
-					'created_by_user_id' => $actor_user_id,
-					'created_at'         => $now,
-					'updated_at'         => $now,
+					'user_id'                     => $claim['claimant_user_id'],
+					'is_owner'                    => 1,
+					'status'                      => TeamMembershipRepository::STATUS_ACTIVE,
+					'version'                     => 1,
+					'created_by_user_id'          => $actor_user_id,
+					'created_at'                  => $now,
+					'updated_at'                  => $now,
 				)
 			); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Explicit operator-approved owner bootstrap under team lock.
 			return false === $result ? new \WP_Error( $this->authorization->error_code( 'team_claim_owner_create_failed' ), __( 'The approved team owner could not be created.', 'extrachill-users' ) ) : true;

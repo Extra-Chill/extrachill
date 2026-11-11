@@ -10,7 +10,7 @@
  * allotment can be counted per party.
  *
  * The invite token is a 256-bit bearer secret, mailed once. Only its HMAC
- * is stored (same shape as VenueInvitationToken): a database read never
+ * is stored (same shape as TeamInvitationToken): a database read never
  * yields a working link. Revoking a party kills the link forever; the
  * passes it already issued stay on the list, and the host can remove them
  * one by one with the existing remove flow.
