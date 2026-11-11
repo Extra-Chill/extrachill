@@ -88,7 +88,7 @@ class TeamOnboardingRepository {
 
 		$table = \ExtraChill\Users\Teams\TeamMembershipRepository::claims_table();
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE team_type = %s AND team_id = %d AND claimant_user_id = %d FOR UPDATE", $this->team_type, $team_term_id, $actor_user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Locked private claim row.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->db_failed() ) {
 			return $this->rollback_error( $this->authorization->error_code( 'team_claim_read_failed' ), __( 'The team claim could not be read.', 'extrachill-users' ) );
 		}
 		if ( is_array( $row ) && self::CLAIM_PENDING === $row['status'] ) {
@@ -154,7 +154,7 @@ class TeamOnboardingRepository {
 		if ( ! in_array( $decision, array( self::CLAIM_APPROVED, self::CLAIM_REJECTED ), true ) ) {
 			return new \WP_Error( $this->authorization->error_code( 'invalid_team_claim_decision' ), __( 'The team claim decision is invalid.', 'extrachill-users' ), array( 'status' => 400 ) );
 		}
-		if ( ! user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! $this->can_review_claims( $actor_user_id ) ) {
 			return $this->forbidden();
 		}
 		$preview = $this->get_claim_by_id( $claim_id );
@@ -170,7 +170,7 @@ class TeamOnboardingRepository {
 			$this->rollback();
 			return is_wp_error( $claim ) ? $claim : $this->not_found( $this->authorization->error_code( 'team_claim_not_found' ) );
 		}
-		if ( ! user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! $this->can_review_claims( $actor_user_id ) ) {
 			$this->rollback();
 			return $this->forbidden();
 		}
@@ -426,7 +426,7 @@ class TeamOnboardingRepository {
 		}
 		$user_table = $wpdb->users;
 		$wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$user_table} WHERE ID = %d FOR UPDATE", $user_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Stabilizes account identity through compensation.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->db_failed() ) {
 			$this->rollback();
 			return false;
 		}
@@ -437,13 +437,13 @@ class TeamOnboardingRepository {
 		}
 		$invites_table = \ExtraChill\Users\Teams\TeamMembershipRepository::invitations_table();
 		$invitations   = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$invites_table} WHERE user_id = %d ORDER BY team_type ASC, team_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- User-first index locks every invitation range and insertion gap.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->db_failed() ) {
 			$this->rollback();
 			return false;
 		}
 		$claims_table = \ExtraChill\Users\Teams\TeamMembershipRepository::claims_table();
 		$claims       = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$claims_table} WHERE claimant_user_id = %d ORDER BY team_type ASC, team_id ASC, id ASC FOR UPDATE", $user_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- User-first index locks every claim range and insertion gap.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->db_failed() ) {
 			$this->rollback();
 			return false;
 		}
@@ -627,7 +627,7 @@ class TeamOnboardingRepository {
 	 * @param string $status        Optional claim status.
 	 */
 	public function list_claims( int $actor_user_id, string $status = '' ) {
-		if ( ! user_can( $actor_user_id, 'manage_options' ) ) {
+		if ( ! $this->can_review_claims( $actor_user_id ) ) {
 			return $this->forbidden();
 		}
 		global $wpdb;
@@ -670,7 +670,7 @@ class TeamOnboardingRepository {
 		}
 		$table = \ExtraChill\Users\Teams\TeamMembershipRepository::invitations_table();
 		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE team_type = %s AND team_id = %d ORDER BY created_at ASC, id ASC LIMIT 100 FOR UPDATE", $this->team_type, $team_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private team invitations under the same authorization transaction.
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->db_failed() ) {
 			return $this->rollback_error( $this->authorization->error_code( 'team_invitation_read_failed' ), __( 'Team invitations could not be read.', 'extrachill-users' ) );
 		}
 		$result = array_map( array( $this, 'hydrate_invitation' ), (array) $rows );
@@ -953,7 +953,7 @@ class TeamOnboardingRepository {
 	private function lock_memberships( int $team_term_id ) { // phpcs:ignore Squiz.Commenting.FunctionComment.MissingParamTag -- Private lock helper.
 		global $wpdb;
 		$rows = ( new TeamMembershipRepository() )->lock_team( $this->team_type, $team_term_id );
-		if ( '' !== (string) $wpdb->last_error ) {
+		if ( $this->db_failed() ) {
 			return new \WP_Error( $this->authorization->error_code( 'team_membership_read_failed' ), __( 'Team memberships could not be locked.', 'extrachill-users' ) );
 		}
 		return (array) $rows;
@@ -1073,5 +1073,16 @@ class TeamOnboardingRepository {
 				'current_version' => $current['version'],
 			)
 		);
+	}
+
+	/** Network admins review claims; rechecked under the team lock. */
+	private function can_review_claims( int $actor_user_id ): bool {
+		return user_can( $actor_user_id, 'manage_options' );
+	}
+
+	/** Whether the last database statement failed. */
+	private function db_failed(): bool {
+		global $wpdb;
+		return '' !== (string) $wpdb->last_error;
 	}
 }
