@@ -161,9 +161,16 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 	if ( is_wp_error( $options ) ) {
 		return $options;
 	}
-	$options['as_of']              = gmdate( 'Y-m-d H:i:s' );
-	$options['since']              = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $options['days'] . ' days' ) );
-	$event_types                   = array_values(
+	$options['as_of']           = gmdate( 'Y-m-d H:i:s' );
+	$options['since']           = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $options['days'] . ' days' ) );
+	$options['requested_since'] = $options['since'];
+	$first_assignment           = extrachill_analytics_experiment_first_assignment_at( $options['experiment_key'], $options['definition_version'], $options['since'], $options['as_of'], $options['max_events'] );
+	if ( null !== $first_assignment && $first_assignment > $options['since'] ) {
+		// Pre-experiment rows can never attribute; never let them spend the row budget.
+		$options['since'] = $first_assignment;
+	}
+	$options['first_assignment_at'] = $first_assignment;
+	$event_types                    = array_values(
 		array_unique(
 			array_merge(
 				array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, EC_ANALYTICS_EVENT_PAGEVIEW ),
@@ -171,9 +178,9 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 			)
 		)
 	);
-	$query                         = extrachill_analytics_experiment_read_events( $event_types, $options['since'], $options['as_of'], $options['max_events'] );
-	$options['truncated']          = $query['truncated'];
-	$options['instrumented_types'] = extrachill_analytics_experiment_instrumented_types( $event_types );
+	$query                          = extrachill_analytics_experiment_read_events( $event_types, $options['since'], $options['as_of'], $options['max_events'] );
+	$options['truncated']           = $query['truncated'];
+	$options['instrumented_types']  = extrachill_analytics_experiment_instrumented_types( $event_types );
 
 	return extrachill_analytics_build_experiment_summary( $query['rows'], $options );
 }
@@ -562,9 +569,16 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 	$instrumented     = array_values( array_unique( array_map( 'strval', $options['instrumented_types'] ?? array() ) ) );
 	$assignment_ready = in_array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, $instrumented, true );
 	$has_cohort       = ! empty( $assignments );
-	$state            = $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : ( $assignment_ready ? 'no_data' : 'not_instrumented' );
-	$control_bucket   = $buckets[ $options['control_variant'] ];
-	$variant_rows     = array();
+	$empty_status     = $coverage['truncated'] ? 'truncated' : 'no_data';
+	$state            = $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : ( $assignment_ready ? $empty_status : 'not_instrumented' );
+	$hint             = null;
+	if ( 'truncated' === $state ) {
+		$hint = $has_cohort
+			? 'The max_events budget was exhausted; counts cover only rows read before truncation. Narrow days or raise max_events for full coverage.'
+			: 'The max_events budget was exhausted before any matching assignment row was read. This is not evidence of zero assignments; narrow days or raise max_events.';
+	}
+	$control_bucket = $buckets[ $options['control_variant'] ];
+	$variant_rows   = array();
 	foreach ( $options['variants'] as $variant ) {
 		$bucket   = $buckets[ $variant ];
 		$assigned = (int) $bucket['assigned_people'];
@@ -573,7 +587,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 		foreach ( $options['outcome_event_types'] as $type ) {
 			$outcome_instrumented = in_array( $type, $instrumented, true );
 			$ready                = $has_cohort && $outcome_instrumented;
-			$outcome_coverage     = ! $outcome_instrumented ? 'not_instrumented' : ( $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : 'no_data' );
+			$outcome_coverage     = ! $outcome_instrumented ? 'not_instrumented' : ( $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : $empty_status );
 			$assignment_map       = $bucket['outcomes'][ $type ]['assignment'];
 			$exposure_map         = $bucket['outcomes'][ $type ]['exposure'];
 			$successes            = count( $assignment_map );
@@ -606,7 +620,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			'assignment' => array(
 				'people'          => $assignment_ready && $has_cohort ? $assigned : null,
 				'stored_events'   => $assignment_ready && $has_cohort ? (int) $bucket['assignment_events'] : null,
-				'coverage_status' => $assignment_ready && $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : ( $assignment_ready ? 'no_data' : 'not_instrumented' ),
+				'coverage_status' => $assignment_ready && $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : ( $assignment_ready ? $empty_status : 'not_instrumented' ),
 			),
 			'exposure'   => array(
 				'people'          => $assignment_ready && $has_cohort && in_array( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $instrumented, true ) ? $exposed : null,
@@ -614,7 +628,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 				'rate'            => $assigned > 0 && in_array( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $instrumented, true ) ? round( $exposed / $assigned, 4 ) : null,
 				'rate_status'     => ! in_array( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $instrumented, true ) ? 'not_instrumented' : ( $assigned > 0 ? 'measured' : 'zero_denominator' ),
 				'rate_ci_95'      => in_array( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $instrumented, true ) ? extrachill_analytics_experiment_wilson_interval( $exposed, $assigned ) : null,
-				'coverage_status' => ! in_array( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $instrumented, true ) ? 'not_instrumented' : ( $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : 'no_data' ),
+				'coverage_status' => ! in_array( EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, $instrumented, true ) ? 'not_instrumented' : ( $has_cohort ? ( $coverage['truncated'] ? 'truncated' : 'measured' ) : $empty_status ),
 				'analysis_lens'   => 'descriptive',
 			),
 			'outcomes'   => $outcomes,
@@ -626,6 +640,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 		'definition_version'  => $options['definition_version'],
 		'control_variant'     => $options['control_variant'],
 		'state'               => $state,
+		'state_hint'          => $hint,
 		'variants'            => $variant_rows,
 		'version_diagnostics' => array(
 			'observed_event_rows_by_version' => $versions,
@@ -655,6 +670,8 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 		'window'              => array(
 			'since'                   => (string) $options['since'],
 			'as_of'                   => (string) $options['as_of'],
+			'requested_since'         => (string) ( $options['requested_since'] ?? $options['since'] ),
+			'first_assignment_at'     => $options['first_assignment_at'] ?? null,
 			'days'                    => (int) $options['days'],
 			'attribution_window_days' => (int) $options['attribution_window_days'],
 			'session_gap_mins'        => (int) $options['session_gap_mins'],
