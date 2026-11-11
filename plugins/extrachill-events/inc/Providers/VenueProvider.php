@@ -49,7 +49,7 @@ final class VenueProvider {
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/core/venue-settings.php';
 
 		\ExtraChillEvents\Core\TeamCapabilities::register();
-		\ExtraChillEvents\Core\VenueInvitationDeliveryWorker::register();
+		add_filter( 'extrachill_users_team_onboarding_adapters', array( \ExtraChillEvents\Core\VenueOnboardingAdapter::class, 'register' ) );
 		\ExtraChillEvents\Core\VenueCalendarFeedSync::register();
 		new \ExtraChillEvents\Core\CanonicalEventPublicationGuard();
 
@@ -72,7 +72,7 @@ final class VenueProvider {
 			'ArtistMappingLock',
 			'ArtistAuthorization',
 			'VenueMembershipService',
-			'VenueInvitationToken',
+			'VenueOnboardingAdapter',
 			'VenueOnboardingRepository',
 			'VenueOnboardingService',
 			'VenueCalendarFeed',

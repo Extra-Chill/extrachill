@@ -170,7 +170,7 @@ if ( ! function_exists( 'get_user_meta' ) ) {
 }
 if ( ! function_exists( 'update_user_meta' ) ) {
 	function update_user_meta( $user_id, $key, $value ) {
-		if ( 'ec_venue_invitation_account' === $key && ! empty( $GLOBALS['venue_membership_test']['fail_provenance'] ) ) {
+		if ( 'ec_team_invitation_account' === $key && ! empty( $GLOBALS['venue_membership_test']['fail_provenance'] ) ) {
 			return false;
 		}
 		$GLOBALS['venue_membership_test']['user_meta'][ $user_id ][ $key ] = $value;
@@ -910,7 +910,7 @@ require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipReposito
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipService.php';
-require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationToken.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingAdapter.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationDeliveryWorker.php';
@@ -1865,7 +1865,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		);
 		$rejected     = $this->create_prepared_invitation( $repository, 2, 55, 8, false, 'reject-created@example.com', true );
 		$reject_token = $rejected['_delivery_token'];
-		update_user_meta( 8, 'ec_venue_invitation_account', $rejected['public_id'] );
+		update_user_meta( 8, 'ec_team_invitation_account', $rejected['public_id'] );
 		$result = $service->respond( 8, $rejected['public_id'], $reject_token, 55, false, 2, VenueOnboardingRepository::INVITE_REJECTED );
 		$this->assertSame( VenueOnboardingRepository::INVITE_REJECTED, $result['status'] );
 		$this->assertArrayNotHasKey( 8, $GLOBALS['venue_membership_test']['users'] );
@@ -1877,7 +1877,7 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		);
 		$expired      = $this->create_prepared_invitation( $repository, 3, 56, 9, false, 'expire-created@example.com', true );
 		$expire_token = $expired['_delivery_token'];
-		update_user_meta( 9, 'ec_venue_invitation_account', $expired['public_id'] );
+		update_user_meta( 9, 'ec_team_invitation_account', $expired['public_id'] );
 		$GLOBALS['wpdb']->rows['wp_7_ec_venue_invitations'][ $expired['id'] ]['expires_at'] = '2000-01-01 00:00:00';
 		$result = $service->respond( 9, $expired['public_id'], $expire_token, 56, false, 2, VenueOnboardingRepository::INVITE_ACCEPTED );
 		$this->assertSame( 'venue_invitation_expired', $result->get_error_code() );

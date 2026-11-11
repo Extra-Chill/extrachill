@@ -22,7 +22,7 @@ $required_venue = array(
 	'VenueMembershipRepository',
 	'VenueAuthorization',
 	'VenueMembershipService',
-	'VenueInvitationToken',
+	'VenueOnboardingAdapter',
 	'VenueOnboardingRepository',
 	'VenueOnboardingService',
 	'VenueCalendarFeed',
@@ -41,7 +41,7 @@ foreach ( $required_venue as $class ) {
 	}
 }
 
-foreach ( array( 'VenueInvitationDeliveryWorker::register()', 'VenueCalendarFeedSync::register()', 'new \\ExtraChillEvents\\Core\\CanonicalEventPublicationGuard()' ) as $hook ) {
+foreach ( array( 'VenueOnboardingAdapter::class, \'register\'', 'VenueCalendarFeedSync::register()', 'new \\ExtraChillEvents\\Core\\CanonicalEventPublicationGuard()' ) as $hook ) {
 	if ( false === strpos( $venue, $hook ) ) {
 		$failures[] = "VenueProvider does not register {$hook}.";
 	}

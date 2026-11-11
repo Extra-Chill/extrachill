@@ -123,7 +123,7 @@ function ec_events_accept_venue_invitation() {
 	$token         = sanitize_text_field( wp_unslash( $_GET['token'] ?? '' ) );
 	$venue_term_id = absint( $_GET['venue_term_id'] ?? $_GET['team_term_id'] ?? 0 );
 	$team_type     = sanitize_key( wp_unslash( $_GET['team_type'] ?? 'venue' ) );
-	if ( ! isset( \ExtraChillEvents\Core\VenueOnboardingRepository::SUPPORT[ $team_type ] ) ) {
+	if ( ! isset( \ExtraChillEvents\Core\VenueOnboardingAdapter::SUPPORT[ $team_type ] ) ) {
 		wp_die( esc_html__( 'Invalid invitation team type.', 'extrachill-events' ) );
 	}
 	$is_owner = ! empty( $_GET['is_owner'] );
