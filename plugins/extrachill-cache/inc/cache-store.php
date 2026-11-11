@@ -528,7 +528,7 @@ if ( ! function_exists( 'extrachill_cache_store_page' ) ) {
 		if ( null !== $lifetime ) {
 			$now     = $now > 0 ? (int) $now : time();
 			$ttl     = defined( 'EXTRACHILL_CACHE_TTL' ) ? (int) EXTRACHILL_CACHE_TTL : 86400;
-			$expires = $now + ( $ttl > 0 ? min( $lifetime, $ttl ) : $lifetime );
+			$expires = $now + min( $lifetime, $ttl );
 		}
 
 		return extrachill_cache_write( $key, $body, extrachill_cache_filter_headers( $response_headers ), $blog_id, $expires );
