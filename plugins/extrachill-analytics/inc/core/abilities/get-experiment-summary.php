@@ -161,16 +161,16 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 	if ( is_wp_error( $options ) ) {
 		return $options;
 	}
-	$options['as_of']              = gmdate( 'Y-m-d H:i:s' );
-	$options['since']              = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $options['days'] . ' days' ) );
-	$options['requested_since']    = $options['since'];
-	$first_assignment              = extrachill_analytics_experiment_first_assignment_at( $options['experiment_key'], $options['definition_version'], $options['since'], $options['as_of'], $options['max_events'] );
+	$options['as_of']           = gmdate( 'Y-m-d H:i:s' );
+	$options['since']           = gmdate( 'Y-m-d H:i:s', strtotime( '-' . $options['days'] . ' days' ) );
+	$options['requested_since'] = $options['since'];
+	$first_assignment           = extrachill_analytics_experiment_first_assignment_at( $options['experiment_key'], $options['definition_version'], $options['since'], $options['as_of'], $options['max_events'] );
 	if ( null !== $first_assignment && $first_assignment > $options['since'] ) {
 		// Pre-experiment rows can never attribute; never let them spend the row budget.
 		$options['since'] = $first_assignment;
 	}
 	$options['first_assignment_at'] = $first_assignment;
-	$event_types                   = array_values(
+	$event_types                    = array_values(
 		array_unique(
 			array_merge(
 				array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, EC_ANALYTICS_EVENT_PAGEVIEW ),
@@ -178,9 +178,9 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 			)
 		)
 	);
-	$query                         = extrachill_analytics_experiment_read_events( $event_types, $options['since'], $options['as_of'], $options['max_events'] );
-	$options['truncated']          = $query['truncated'];
-	$options['instrumented_types'] = extrachill_analytics_experiment_instrumented_types( $event_types );
+	$query                          = extrachill_analytics_experiment_read_events( $event_types, $options['since'], $options['as_of'], $options['max_events'] );
+	$options['truncated']           = $query['truncated'];
+	$options['instrumented_types']  = extrachill_analytics_experiment_instrumented_types( $event_types );
 
 	return extrachill_analytics_build_experiment_summary( $query['rows'], $options );
 }
@@ -577,8 +577,8 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			? 'The max_events budget was exhausted; counts cover only rows read before truncation. Narrow days or raise max_events for full coverage.'
 			: 'The max_events budget was exhausted before any matching assignment row was read. This is not evidence of zero assignments; narrow days or raise max_events.';
 	}
-	$control_bucket   = $buckets[ $options['control_variant'] ];
-	$variant_rows     = array();
+	$control_bucket = $buckets[ $options['control_variant'] ];
+	$variant_rows   = array();
 	foreach ( $options['variants'] as $variant ) {
 		$bucket   = $buckets[ $variant ];
 		$assigned = (int) $bucket['assigned_people'];

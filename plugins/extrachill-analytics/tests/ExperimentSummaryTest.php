@@ -244,7 +244,7 @@ final class ExperimentSummaryTest extends Extrachill_Analytics_TestCase {
 	 */
 	private function insert_event( string $type, int $timestamp, string $visitor_id, array $data = array() ): void {
 		global $wpdb;
-		$wpdb->insert(
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- plugin-owned fixture table.
 			extrachill_analytics_events_table(),
 			array(
 				'event_type' => $type,
