@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.2] - 2026-11-11
+
+### Fixed
+- resolve link-page analytics owner from the Link Page owner reference
+
 ## [0.52.1] - 2026-11-10
 
 ### Changed
