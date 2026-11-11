@@ -21,6 +21,38 @@ require_once dirname( __DIR__ ) . '/inc/Core/VenueInvitationToken.php';
 
 final class VenueOnboardingTest extends TestCase {
 
+	/** The extracted store delegates the anchor lock and rolls back adapter failures. */
+	public function test_generic_repository_uses_adapter_lock_and_error_namespace(): void {
+		require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';
+		$adapter = new class implements \ExtraChill\Users\Teams\TeamOnboardingAdapter {
+			public $checks = array();
+			public function team_type(): string { return 'artist'; }
+			public function operations(): array { return array( 'invitations', 'claims' ); }
+			public function check_team( int $id, bool $lock ) {
+				$this->checks[] = array( $id, $lock );
+				return new WP_Error( 'artist_anchor_unavailable', 'Unavailable' );
+			}
+			public function authorize_locked( int $actor, int $id, array $members ) { return true; }
+			public function error_code( string $code ): string { return str_replace( 'team', 'artist', $code ); }
+			public function public_record( array $record ): array { return $record; }
+		};
+		$previous = $GLOBALS['wpdb'] ?? null;
+		$db = new class {
+			public $queries = array();
+			public function query( $sql ) { $this->queries[] = $sql; return 1; }
+		};
+		$GLOBALS['wpdb'] = $db;
+		try {
+			$repository = new \ExtraChill\Users\Teams\TeamOnboardingRepository( $adapter );
+			$result = $repository->list_invitations( 1, 42 );
+			$this->assertSame( 'artist_anchor_unavailable', $result->get_error_code() );
+			$this->assertSame( array( array( 42, true ) ), $adapter->checks );
+			$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $db->queries );
+		} finally {
+			$GLOBALS['wpdb'] = $previous;
+		}
+	}
+
 	private function invitation( array $overrides = array() ): array {
 		return array_merge(
 			array(
