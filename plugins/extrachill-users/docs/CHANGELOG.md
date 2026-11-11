@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.5] - 2026-11-11
+
+### Changed
+- move onboarding lifecycle into users behind per-type adapters
+
 ## [0.63.4] - 2026-11-11
 
 ### Changed
