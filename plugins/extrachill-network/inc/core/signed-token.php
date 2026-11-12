@@ -7,6 +7,11 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Temporary compatibility window: delete every legacy verification branch after this date.
+if ( ! defined( 'EXTRACHILL_SIGN_LEGACY_UNTIL' ) ) {
+	define( 'EXTRACHILL_SIGN_LEGACY_UNTIL', 1797724800 ); // 2026-12-20 00:00:00 UTC.
+}
+
 /**
  * Sign claims. Invalid purposes, TTLs or unencodable claims return an empty token.
  *
