@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.5] - 2026-11-12
+
+### Changed
+- purpose-bound signed-token primitive; move short-lived signers onto it
+
 ## [0.52.4] - 2026-11-12
 
 ### Changed
