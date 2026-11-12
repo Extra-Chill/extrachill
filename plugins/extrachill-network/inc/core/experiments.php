@@ -951,23 +951,19 @@ function extrachill_experiment_exposure_token( array $metadata, $subject_key, ar
 	if ( 1 !== preg_match( '/^[a-f0-9]{32}$/', $nonce ) ) {
 		return '';
 	}
-	$message   = implode(
-		"\0",
-		array(
-			$metadata['experiment_key'],
-			(string) $metadata['definition_version'],
-			$metadata['assignment_policy'],
-			$metadata['variant'],
-			$metadata['surface'],
-			(string) $issued_at,
-			$nonce,
-			extrachill_experiment_context_json( $context ),
-			$subject_key,
-		)
+	$claims = array(
+		'experiment_key'     => $metadata['experiment_key'],
+		'definition_version' => $metadata['definition_version'],
+		'assignment_policy'  => $metadata['assignment_policy'],
+		'variant'            => $metadata['variant'],
+		'surface'            => $metadata['surface'],
+		'n'                  => $nonce,
+		'iat'                => $issued_at,
+		'context_hash'       => wp_hash( 'experiment-context|' . extrachill_experiment_context_json( $context ), 'auth' ),
+		'subject_hash'       => wp_hash( 'experiment-subject|' . $subject_key, 'auth' ),
 	);
-	$signature = hash_hmac( 'sha256', $message, wp_salt( 'auth' ) );
 
-	return $issued_at . '.' . $nonce . '.' . $signature;
+	return extrachill_sign( 'network.experiment_exposure', $claims, EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL );
 }
 
 /**
@@ -984,13 +980,16 @@ function extrachill_experiment_exposure_token( array $metadata, $subject_key, ar
  * @return array<string, mixed>|null Trusted metadata, or null when invalid.
  */
 function extrachill_validate_experiment_exposure( $experiment_key, $definition_version, $assignment_policy, $variant, $surface, array $context, $token, $now = null ) {
-	if ( 1 !== preg_match( '/^(\d{10})\.([a-f0-9]{32})\.([a-f0-9]{64})$/', (string) $token, $matches ) ) {
-		return null;
-	}
-
-	$now       = null === $now ? time() : (int) $now;
-	$issued_at = (int) $matches[1];
-	if ( $issued_at > $now + EXTRACHILL_EXPERIMENT_EXPOSURE_FUTURE_SKEW || $issued_at < $now - EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL ) {
+	$now    = null === $now ? time() : (int) $now;
+	$claims = extrachill_verify( 'network.experiment_exposure', (string) $token, $now );
+	if ( null === $claims
+		|| ! isset( $claims['iat'], $claims['n'] )
+		|| ! is_int( $claims['iat'] )
+		|| ! is_string( $claims['n'] )
+		|| 1 !== preg_match( '/^[a-f0-9]{32}$/D', $claims['n'] )
+		|| $claims['iat'] > $now + EXTRACHILL_EXPERIMENT_EXPOSURE_FUTURE_SKEW
+		|| $claims['iat'] + EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL <= $now
+	) {
 		return null;
 	}
 
@@ -1024,9 +1023,21 @@ function extrachill_validate_experiment_exposure( $experiment_key, $definition_v
 		'variant'            => (string) $variant,
 		'surface'            => (string) $surface,
 	);
-	$expected = extrachill_experiment_exposure_token( $metadata, $subject_key, $context, $issued_at, $matches[2] );
+	foreach ( $metadata as $key => $value ) {
+		if ( ! isset( $claims[ $key ] ) || $value !== $claims[ $key ] ) {
+			return null;
+		}
+	}
+	if ( ! isset( $claims['context_hash'], $claims['subject_hash'] )
+		|| ! is_string( $claims['context_hash'] )
+		|| ! is_string( $claims['subject_hash'] )
+		|| ! hash_equals( wp_hash( 'experiment-context|' . extrachill_experiment_context_json( $context ), 'auth' ), $claims['context_hash'] )
+		|| ! hash_equals( wp_hash( 'experiment-subject|' . $subject_key, 'auth' ), $claims['subject_hash'] )
+	) {
+		return null;
+	}
 
-	return hash_equals( $expected, (string) $token ) ? $metadata : null;
+	return $metadata;
 }
 
 /**
@@ -1045,16 +1056,17 @@ function extrachill_consume_experiment_exposure_token( $token, $now = null ) {
 	if ( function_exists( 'wp_using_ext_object_cache' ) && ! wp_using_ext_object_cache() ) {
 		return false;
 	}
-	if ( 1 !== preg_match( '/^(\d{10})\.[a-f0-9]{32}\.[a-f0-9]{64}$/', (string) $token, $matches ) ) {
+	$now    = null === $now ? time() : (int) $now;
+	$claims = extrachill_verify( 'network.experiment_exposure', (string) $token, $now );
+	if ( null === $claims || ! isset( $claims['iat'] ) || ! is_int( $claims['iat'] ) ) {
 		return false;
 	}
 
-	$now       = null === $now ? time() : (int) $now;
-	$issued_at = (int) $matches[1];
+	$issued_at = $claims['iat'];
 	$ttl       = $issued_at + EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL - $now;
 	if (
 		$issued_at > $now + EXTRACHILL_EXPERIMENT_EXPOSURE_FUTURE_SKEW
-		|| $ttl <= 0
+		|| 0 >= $ttl
 		|| $ttl > EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL + EXTRACHILL_EXPERIMENT_EXPOSURE_FUTURE_SKEW
 	) {
 		return false;

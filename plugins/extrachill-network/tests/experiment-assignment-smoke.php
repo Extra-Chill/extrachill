@@ -135,6 +135,9 @@ function get_current_network_id() {
 function wp_salt() {
 	return 'fixed-experiment-test-salt';
 }
+function wp_hash( $data, $scheme = 'auth' ) {
+	return hash_hmac( 'md5', $data, wp_salt( $scheme ) );
+}
 function do_action( $name, ...$args ) {
 	$GLOBALS['experiment_actions'][] = array( $name, $args );
 }
@@ -216,6 +219,7 @@ function apply_filters( $name, $value, ...$args ) {
 	return $value;
 }
 
+require dirname( __DIR__ ) . '/inc/core/signed-token.php';
 require dirname( __DIR__ ) . '/inc/core/experiments.php';
 require dirname( __DIR__ ) . '/inc/Abilities/ExperimentAssignmentAbility.php';
 
@@ -409,7 +413,10 @@ $GLOBALS['experiment_actions'] = array();
 $assigned                      = extrachill_resolve_experiment_assignment( 'geo-bridge-holdout', 'single-post-bridge' );
 experiment_check( 'provider-approved subject receives an assignment', true === $assigned['measurement_eligible'] );
 experiment_check( 'assignment stays within registered variants', in_array( $assigned['variant'], array( 'control', 'treatment' ), true ) );
-experiment_check( 'assignment returns a nonce-bearing opaque exposure proof', 1 === preg_match( '/^\d{10}\.[a-f0-9]{32}\.[a-f0-9]{64}$/', $assigned['exposure_token'] ) );
+$exposure_claims = extrachill_verify( 'network.experiment_exposure', $assigned['exposure_token'] );
+experiment_check( 'assignment returns a nonce-bearing opaque exposure proof', is_array( $exposure_claims ) && 1 === preg_match( '/^[a-f0-9]{32}$/D', $exposure_claims['n'] ) );
+experiment_check( 'exposure claims hash the subject and context', hash( 'sha256', 'visitor-123' ) === $exposure_claims['subject_hash'] && hash( 'sha256', extrachill_experiment_context_json( array() ) ) === $exposure_claims['context_hash'] );
+experiment_check( 'exposure claims do not disclose the subject', false === strpos( wp_json_encode( $exposure_claims ), 'visitor-123' ) );
 experiment_check( 'trusted server assignment hook fires once', 1 === count( $GLOBALS['experiment_actions'] ) && 'extrachill_experiment_assignment' === $GLOBALS['experiment_actions'][0][0] );
 experiment_check( 'assignment hook contains only bounded metadata', 'experiment_key,definition_version,assignment_policy,variant,surface' === implode( ',', array_keys( $GLOBALS['experiment_actions'][0][1][0] ) ) );
 experiment_check( 'cross-contract fixture locks assignment hook name', $contract_fixture['server_actions']['assignment'] === $GLOBALS['experiment_actions'][0][0] );
@@ -426,6 +433,20 @@ $exposure = extrachill_validate_experiment_exposure(
 	$assigned['exposure_token']
 );
 experiment_check( 'matching signed exposure validates', is_array( $exposure ) );
+experiment_check(
+	'tampered exposure signature is rejected',
+	null === extrachill_validate_experiment_exposure(
+		'geo-bridge-holdout', 1, 'weighted_random', $assigned['variant'],
+		'single-post-bridge', array(), $assigned['exposure_token'] . '0'
+	)
+);
+experiment_check(
+	'wrong-purpose exposure proof is rejected',
+	null === extrachill_validate_experiment_exposure(
+		'geo-bridge-holdout', 1, 'weighted_random', $assigned['variant'],
+		'single-post-bridge', array(), extrachill_sign( 'events.my_shows_scope', $exposure_claims, 3600 )
+	)
+);
 experiment_check(
 	'tampered definition version is rejected',
 	null === extrachill_validate_experiment_exposure(
@@ -481,7 +502,8 @@ $expired_metadata = array(
 	'variant'            => $assigned['variant'],
 	'surface'            => 'single-post-bridge',
 );
-$expired_token    = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), 1700000000, str_repeat( '1', 32 ) );
+$token_now       = time();
+$expired_token   = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), $token_now, str_repeat( '1', 32 ) );
 experiment_check(
 	'expired exposure proof is rejected',
 	null === extrachill_validate_experiment_exposure(
@@ -492,12 +514,15 @@ experiment_check(
 		'single-post-bridge',
 		array(),
 		$expired_token,
-		1700000000 + EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL + 1
+		$token_now + EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL + 1
 	)
 );
 
-$same_second_token_one = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), 1700000100 );
-$same_second_token_two = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), 1700000100 );
+experiment_check( 'expired proof cannot be consumed', ! extrachill_consume_experiment_exposure_token( $expired_token, $token_now + EXTRACHILL_EXPERIMENT_EXPOSURE_TOKEN_TTL + 1 ) );
+experiment_check( 'tampered proof cannot be consumed', ! extrachill_consume_experiment_exposure_token( $expired_token . '0', $token_now ) );
+
+$same_second_token_one = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), $token_now );
+$same_second_token_two = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), $token_now );
 experiment_check( 'concurrent same-second assignments receive unique random nonces', $same_second_token_one !== $same_second_token_two );
 experiment_check(
 	'first same-second nonce token validates',
@@ -510,7 +535,7 @@ experiment_check(
 			'single-post-bridge',
 			array(),
 			$same_second_token_one,
-			1700000100
+			$token_now
 		)
 	)
 );
@@ -525,12 +550,12 @@ experiment_check(
 			'single-post-bridge',
 			array(),
 			$same_second_token_two,
-			1700000100
+			$token_now
 		)
 	)
 );
 
-$future_now                       = 1700000200;
+$future_now                       = time();
 $future_issued                    = $future_now + EXTRACHILL_EXPERIMENT_EXPOSURE_FUTURE_SKEW;
 $future_token                     = extrachill_experiment_exposure_token( $expired_metadata, 'visitor-123', array(), $future_issued, str_repeat( '2', 32 ) );
 $GLOBALS['experiment_cache']      = array();
