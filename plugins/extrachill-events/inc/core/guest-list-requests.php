@@ -625,7 +625,7 @@ function extrachill_events_event_manager_user_ids( int $event_id ): array {
 			foreach ( (array) $promoter_terms as $term ) {
 				$members = $repository->list_memberships( (int) $term->term_id );
 				foreach ( is_wp_error( $members ) ? array() : (array) $members as $member ) {
-					if ( 'active' === ( $member['status'] ?? '' ) ) {
+					if ( 'active' === ( $member['status'] ?? '' ) && user_can( (int) $member['user_id'], 'ec_access_promoter', (int) $term->term_id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
 						$ids[] = (int) $member['user_id'];
 					}
 				}

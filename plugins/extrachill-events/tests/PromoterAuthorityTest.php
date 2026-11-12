@@ -93,7 +93,10 @@ if ( ! function_exists( 'get_userdata' ) ) {
 		return $GLOBALS['promoter_test']['users'][ $user_id ] ?? false; }
 }
 if ( ! function_exists( 'user_can' ) ) {
-	function user_can( $user_id, $capability ) {
+	function user_can( $user_id, $capability, ...$args ) {
+		if ( 'ec_access_promoter' === $capability ) {
+			return array( 'exist' ) === \ExtraChillEvents\Core\TeamCapabilities::map_meta_cap( array(), $capability, (int) $user_id, $args );
+		}
 		if ( 'manage_options' === $capability ) {
 			return ! empty( $GLOBALS['promoter_test']['administrators'][ $user_id ] );
 		}
@@ -117,6 +120,17 @@ if ( ! function_exists( 'wp_register_ability' ) ) {
 		$GLOBALS['promoter_test']['abilities'][ $name ] = $definition; }
 }
 
+if ( ! function_exists( 'get_post' ) ) {
+	function get_post( $post_id ) {
+		return $GLOBALS['promoter_test']['posts'][ $post_id ] ?? null;
+	}
+}
+if ( ! function_exists( 'wp_get_post_terms' ) ) {
+	function wp_get_post_terms( $post_id, $taxonomy ) {
+		return $GLOBALS['promoter_test']['post_terms'][ $post_id ][ $taxonomy ] ?? array();
+	}
+}
+
 require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
@@ -135,6 +149,11 @@ require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterAuthorityAbilities.php
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterVenueGrantAbilities.php';
 require_once dirname( __DIR__ ) . '/inc/Abilities/PromoterWorkspaceAbilities.php';
 require_once __DIR__ . '/fixtures/promoter-link-pages-principal.php';
+require_once dirname( __DIR__ ) . '/inc/Core/TeamCapabilities.php';
+require_once dirname( __DIR__ ) . '/inc/Core/OwnerGuestListTable.php';
+require_once dirname( __DIR__ ) . '/inc/core/event-management-authority.php';
+require_once dirname( __DIR__ ) . '/inc/core/owner-guest-list.php';
+require_once dirname( __DIR__ ) . '/inc/core/guest-list-requests.php';
 
 /** Minimal transaction-aware database double for promoter authority. */
 final class PromoterAuthorityWpdb {
@@ -629,6 +648,34 @@ final class PromoterAuthorityTest extends TestCase {
 			}
 		);
 		$GLOBALS['wpdb'] = new PromoterAuthorityWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated test double.
+	}
+
+	/** Revocation retains members but removes all promoter-derived event authority. */
+	public function test_organization_revocation_removes_event_and_guest_list_authority(): void {
+		$service = new PromoterAuthorityService();
+		$this->assertIsArray( $service->verify( 1, 100, 2 ) );
+		$this->assertIsArray( $service->create_membership( 2, 100, 3, false ) );
+		$GLOBALS['promoter_test']['posts'][900] = (object) array(
+			'ID'          => 900,
+			'post_type'   => 'data_machine_events',
+			'post_author' => 1,
+		);
+		$GLOBALS['promoter_test']['post_terms'][900]['promoter'] = array( $GLOBALS['promoter_test']['terms'][100] );
+
+		$this->assertTrue( extrachill_events_user_can_manage_event( 3, 900 ) );
+		$this->assertTrue( extrachill_events_user_can_manage_owner_list( 3, 'promoter', 100 ) );
+		$this->assertSame( array( 1, 2, 3 ), extrachill_events_event_manager_user_ids( 900 ) );
+
+		$this->assertIsArray( $service->revoke_organization( 1, 100, 1 ) );
+		$this->assertIsArray( ( new PromoterAuthorityRepository() )->get_active_membership( 100, 3 ) );
+		$this->assertFalse( extrachill_events_user_can_manage_event( 3, 900 ) );
+		$this->assertFalse( extrachill_events_user_can_manage_owner_list( 3, 'promoter', 100 ) );
+		$this->assertSame( array( 1 ), extrachill_events_event_manager_user_ids( 900 ) );
+
+		$GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::organizations_table() ] = array();
+		$this->assertFalse( extrachill_events_user_can_manage_event( 3, 900 ) );
+		$this->assertFalse( extrachill_events_user_can_manage_owner_list( 3, 'promoter', 100 ) );
+		$this->assertSame( array( 1 ), extrachill_events_event_manager_user_ids( 900 ) );
 	}
 
 	public function test_schema_table_names_are_site_scoped(): void {

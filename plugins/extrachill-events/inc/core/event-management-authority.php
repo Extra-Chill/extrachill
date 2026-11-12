@@ -15,7 +15,7 @@
  *    the perk meta box's own save-path check (inc/admin/event-perks.php);
  *    or
  *  - an active member of the event's promoter organization or venue team
- *    (PromoterAuthorityRepository, VenueMembershipRepository) — the
+ *    (ec_access_promoter, VenueMembershipRepository) — the
  *    organizing team, whether or not they hold edit_post on this specific
  *    post.
  *
@@ -73,15 +73,11 @@ function extrachill_events_user_can_manage_event( int $user_id, int $event_id ):
 		return true;
 	}
 
-	if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
-		$promoter_terms = wp_get_post_terms( $event_id, 'promoter' );
-		if ( ! is_wp_error( $promoter_terms ) && ! empty( $promoter_terms ) ) {
-			$repository = new \ExtraChillEvents\Core\PromoterAuthorityRepository();
-			foreach ( $promoter_terms as $term ) {
-				$membership = $repository->get_active_membership( (int) $term->term_id, $user_id );
-				if ( is_array( $membership ) ) {
-					return true;
-				}
+	$promoter_terms = wp_get_post_terms( $event_id, 'promoter' );
+	if ( ! is_wp_error( $promoter_terms ) && ! empty( $promoter_terms ) ) {
+		foreach ( $promoter_terms as $term ) {
+			if ( user_can( $user_id, 'ec_access_promoter', (int) $term->term_id ) ) { // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
+				return true;
 			}
 		}
 	}
