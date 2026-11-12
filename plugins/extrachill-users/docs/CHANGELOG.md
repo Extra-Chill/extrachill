@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.9] - 2026-11-12
+
+### Changed
+- purpose-bound signed-token primitive; move short-lived signers onto it
+
 ## [0.63.8] - 2026-11-12
 
 ### Changed
