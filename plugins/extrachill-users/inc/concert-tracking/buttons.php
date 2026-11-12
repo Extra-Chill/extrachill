@@ -38,11 +38,15 @@ const EC_USERS_ATTENDANCE_INTENT_TTL = 2 * HOUR_IN_SECONDS;
  * @return string Signed intent token.
  */
 function ec_users_create_attendance_intent( int $event_id, int $blog_id, string $action = 'mark' ): string {
-	$expires   = time() + EC_USERS_ATTENDANCE_INTENT_TTL;
-	$payload   = implode( '|', array( $event_id, $blog_id, $action, $expires ) );
-	$signature = hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) );
-	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- URL-safe transport for a signed, non-secret intent payload.
-	return rtrim( strtr( base64_encode( $payload . '|' . $signature ), '+/', '-_' ), '=' );
+	return extrachill_sign(
+		'users.attendance_intent',
+		array(
+			'event_id' => $event_id,
+			'blog_id'  => $blog_id,
+			'action'   => $action,
+		),
+		EC_USERS_ATTENDANCE_INTENT_TTL
+	);
 }
 
 /**
@@ -54,27 +58,24 @@ function ec_users_create_attendance_intent( int $event_id, int $blog_id, string 
  */
 function ec_users_get_attendance_intent( int $expected_event_id, int $expected_blog_id ): ?array {
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The signed token is read-only continuation state.
-	if ( ! isset( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] ) ) {
+	if ( ! isset( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] ) || ! is_string( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] ) ) {
 		return null;
 	}
 
 	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The signed token is read-only continuation state.
 	$encoded = sanitize_text_field( wp_unslash( $_GET[ EC_USERS_ATTENDANCE_INTENT_PARAM ] ) );
 	// phpcs:enable WordPress.Security.NonceVerification.Recommended
-	$base64 = strtr( $encoded, '-_', '+/' );
-	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Decode the signed URL transport.
-	$decoded = base64_decode( $base64 . str_repeat( '=', ( 4 - strlen( $base64 ) % 4 ) % 4 ), true );
-	$parts   = false !== $decoded ? explode( '|', $decoded ) : array();
-	if ( 5 !== count( $parts ) ) {
+	$claims = extrachill_verify( 'users.attendance_intent', $encoded );
+	if ( null === $claims || ! isset( $claims['event_id'], $claims['blog_id'], $claims['action'] ) ) {
 		return null;
 	}
 
-	[ $event_id, $blog_id, $action, $expires, $signature ] = $parts;
-	$payload = implode( '|', array( $event_id, $blog_id, $action, $expires ) );
-	if ( ! ctype_digit( $event_id ) || ! ctype_digit( $blog_id ) || ! ctype_digit( $expires )
-		|| 'mark' !== $action || (int) $expires < time()
-		|| ! hash_equals( hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) ), $signature )
-		|| (int) $event_id !== $expected_event_id || (int) $blog_id !== $expected_blog_id ) {
+	$event_id = $claims['event_id'];
+	$blog_id  = $claims['blog_id'];
+	$action   = $claims['action'];
+	if ( ! is_int( $event_id ) || ! is_int( $blog_id ) || 0 > $event_id || 0 > $blog_id
+		|| 'mark' !== $action
+		|| $event_id !== $expected_event_id || $blog_id !== $expected_blog_id ) {
 		return null;
 	}
 

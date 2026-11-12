@@ -30,9 +30,11 @@ class Test_Attendance_Intent extends WP_UnitTestCase {
 	 * @param int $expires  Expiry timestamp.
 	 */
 	private function signed_token( int $event_id, int $blog_id, int $expires ): string {
-		$payload = $event_id . '|' . $blog_id . '|mark|' . $expires;
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Match the production URL-safe token format.
-		return rtrim( strtr( base64_encode( $payload . '|' . hash_hmac( 'sha256', $payload, wp_salt( 'auth' ) ) ), '+/', '-_' ), '=' );
+		$token = extrachill_sign( 'users.attendance_intent', array( 'event_id' => $event_id, 'blog_id' => $blog_id, 'action' => 'mark' ), max( 1, $expires - time() ) );
+		if ( $expires < time() ) {
+			sleep( 2 );
+		}
+		return $token;
 	}
 
 	/** Create a published event on an Events site fixture and return its ID. */
@@ -57,9 +59,9 @@ class Test_Attendance_Intent extends WP_UnitTestCase {
 	public function test_minted_intent_covers_slow_signup_window(): void {
 		$this->assertGreaterThanOrEqual( 2 * HOUR_IN_SECONDS, EC_USERS_ATTENDANCE_INTENT_TTL );
 
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Inspect the production token format.
-		$parts = explode( '|', base64_decode( strtr( ec_users_create_attendance_intent( 123, 456 ), '-_', '+/' ) ) );
-		$this->assertGreaterThanOrEqual( time() + 2 * HOUR_IN_SECONDS - 5, (int) $parts[3] );
+		$token = ec_users_create_attendance_intent( 123, 456 );
+		$this->assertNotNull( extrachill_verify( 'users.attendance_intent', $token, time() + 2 * HOUR_IN_SECONDS - 5 ) );
+		$this->assertNull( extrachill_verify( 'users.attendance_intent', $token, time() + 2 * HOUR_IN_SECONDS + 5 ) );
 	}
 
 	/**

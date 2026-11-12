@@ -356,6 +356,23 @@ namespace {
 			}
 		}
 
+		/** Delivery metadata is purpose-, nonce- and expiry-bound. */
+		public function test_affinity_delivery_token_rejects_replay_and_tampering() {
+			$delivery = array(
+				'booking_id' => 10,
+				'attachment_id' => 2,
+				'correlation_id' => '11111111-1111-4111-8111-111111111110',
+				'success_outcome' => 'completed',
+			);
+			$headers = extrachill_api_booking_attachment_affinity_delivery_headers( $delivery, array( 'nonce' => 'request-one' ) );
+			$this->assertSame( $delivery, extrachill_api_booking_attachment_affinity_delivery_from_headers( $headers, 'request-one' ) );
+			$this->assertNull( extrachill_api_booking_attachment_affinity_delivery_from_headers( $headers, 'request-two' ) );
+			$this->assertNull( extrachill_verify( 'api.booking_attachment_delivery', $headers['X-EC-Affinity-Delivery'], time() + 301 ) );
+			$this->assertNull( extrachill_verify( 'users.attendance_intent', $headers['X-EC-Affinity-Delivery'] ) );
+			$headers['X-EC-Affinity-Delivery'] .= 'a';
+			$this->assertNull( extrachill_api_booking_attachment_affinity_delivery_from_headers( $headers, 'request-one' ) );
+		}
+
 		/** Every post-consumption spool failure records one terminal failed outcome. */
 		public function test_affinity_spool_failures_finalize_consumed_handoff() {
 			$nonce            = wp_generate_uuid4();
