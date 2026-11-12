@@ -8,7 +8,7 @@
  * loaded and exercised unmodified. This proves the COMPOSITION in
  * extrachill_events_user_can_manage_event() — that it correctly reuses
  * WordPress's own edit_post capability plus
- * PromoterAuthorityRepository::get_active_membership() and
+ * the ec_access_promoter meta-capability and
  * VenueMembershipRepository::get_active() — not the repositories'
  * internal correctness, which is already covered by
  * tests/PromoterAuthorityTest.php and tests/VenueMembershipAuthorizationTest.php.
@@ -70,6 +70,11 @@ if ( ! function_exists( 'user_can' ) ) {
 	 *                            the post ID for 'edit_post').
 	 */
 	function user_can( $user_id, $capability, ...$args ) {
+		if ( 'ec_access_promoter' === $capability ) {
+			// Model the capability here; the real organization policy is exercised
+			// through map_meta_cap in PromoterAuthorityTest.
+			return is_array( ( new PromoterAuthorityRepository() )->get_active_membership( (int) ( $args[0] ?? 0 ), (int) $user_id ) );
+		}
 		if ( 'edit_post' === $capability ) {
 			$post_id = $args[0] ?? 0;
 			return in_array( (int) $post_id, $GLOBALS['event_management_test']['editable_posts'][ $user_id ] ?? array(), true );

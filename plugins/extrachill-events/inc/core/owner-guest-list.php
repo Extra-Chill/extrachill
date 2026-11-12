@@ -98,11 +98,7 @@ function extrachill_events_user_can_manage_owner_list( int $user_id, string $own
 	}
 
 	if ( OwnerGuestListTable::OWNER_PROMOTER === $owner_type ) {
-		if ( ! class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) || ! \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
-			return false;
-		}
-		$membership = ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->get_active_membership( $term_id, $user_id );
-		return is_array( $membership );
+		return user_can( $user_id, 'ec_access_promoter', $term_id ); // phpcs:ignore WordPress.WP.Capabilities.Unknown -- Term-scoped meta-capability mapped by TeamCapabilities.
 	}
 
 	return false;
