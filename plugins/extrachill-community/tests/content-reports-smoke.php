@@ -39,7 +39,21 @@ $GLOBALS['_cr_users']         = array(
 
 function add_action( $hook, $cb ) {}
 function add_filter( $hook, $cb ) { $GLOBALS['_cr_filters'][ $hook ] = $cb; }
-function apply_filters( $hook, $value ) { return $value; }
+function apply_filters( $hook, $value ) { return 'extrachill_rate_limit_store' === $hook ? 'cr_rate_limit_store' : $value; }
+function cr_rate_limit_store( $key, $ttl, $operation ) {
+	if ( ! empty( $GLOBALS['_cr_store_unavailable'] ) ) {
+		return new WP_Error( 'rate_limiter_unavailable', '', array( 'status' => 503 ) );
+	}
+	if ( 'reset' === $operation ) {
+		unset( $GLOBALS['_cr_counts'][ $key ] );
+		return true;
+	}
+	$count = $GLOBALS['_cr_counts'][ $key ] ?? 0;
+	if ( 'increment' === $operation ) {
+		$GLOBALS['_cr_counts'][ $key ] = ++$count;
+	}
+	return $count;
+}
 function do_action() {}
 function __( $text ) { return $text; }
 function esc_html__( $text ) { return $text; }
@@ -148,6 +162,7 @@ cr_post( 103, 'topic', 'draft', 10, 2 );
 cr_post( 200, 'reply', 'publish', 100, 2 );
 cr_post( 201, 'reply', 'publish', 100, 1 );
 
+require dirname( __DIR__, 2 ) . '/extrachill-network/inc/core/rate-limit.php';
 require dirname( __DIR__ ) . '/inc/core/ability-helpers.php';
 require dirname( __DIR__ ) . '/inc/moderation/content-reports.php';
 require dirname( __DIR__ ) . '/inc/moderation/content-reports-admin.php';
@@ -197,7 +212,7 @@ cr_assert( false !== strpos( $GLOBALS['_cr_mail'][0]['body'], 'Best venues' ), '
 $dupe = cr_run( array( 'post_id' => 200, 'reason' => 'spam' ) );
 cr_assert( $report['report_id'] === $dupe['report_id'] && true === $dupe['deduplicated'], 'Re-reporting an open target returns the existing report.' );
 cr_assert( 1 === count( $GLOBALS['_cr_mail'] ), 'Deduplicated reports do not re-notify.' );
-cr_assert( 1 === count( extrachill_community_recent_report_times( 1 ) ), 'Deduplicated reports do not count against the rate limit.' );
+cr_assert( 1 === extrachill_rate_limit_count( 'ec_report_rate_1', HOUR_IN_SECONDS ), 'Deduplicated reports do not count against the rate limit.' );
 
 // Profile report.
 $profile = cr_run( array( 'user_id' => 2, 'reason' => 'spam' ) );
@@ -231,7 +246,13 @@ $limited = cr_run( array( 'post_id' => 400, 'reason' => 'spam' ) );
 cr_assert( 'rate_limited' === cr_code( $limited ) && 429 === $limited->data['status'], 'The 11th report in an hour is rate limited.' );
 $still_dedupes = cr_run( array( 'post_id' => 300, 'reason' => 'spam' ) );
 cr_assert( true === $still_dedupes['deduplicated'], 'Dedupe still answers while rate limited.' );
-$GLOBALS['_cr_transients']['ec_report_rate_1'] = array_fill( 0, 10, time() - HOUR_IN_SECONDS - 1 );
-cr_assert( is_array( cr_run( array( 'post_id' => 400, 'reason' => 'spam' ) ) ), 'Reports older than an hour no longer count.' );
+extrachill_rate_limit_reset( 'ec_report_rate_1', HOUR_IN_SECONDS );
+$GLOBALS['_cr_store_unavailable'] = true;
+$before = count( $GLOBALS['_cr_posts'] );
+$unavailable = cr_run( array( 'post_id' => 400, 'reason' => 'spam' ) );
+cr_assert( 'rate_limiter_unavailable' === cr_code( $unavailable ) && 503 === $unavailable->data['status'], 'Store failures refuse reports.' );
+cr_assert( $before === count( $GLOBALS['_cr_posts'] ), 'Unavailable admission cannot create a report.' );
+$GLOBALS['_cr_store_unavailable'] = false;
+cr_assert( is_array( cr_run( array( 'post_id' => 400, 'reason' => 'spam' ) ) ), 'A fresh window admits reports again.' );
 
 echo "PASS: Content reports validate targets, dedupe, rate limit, notify moderators, and feed the queue.\n";

@@ -192,17 +192,12 @@ function extrachill_events_party_submit_guest_list( string $token, $names ) {
 /**
  * Count one public request against a rate-limit bucket.
  *
- * @param string $key   Transient key.
+ * @param string $key   Limiter key.
  * @param int    $limit Requests allowed per hour.
  * @return bool Whether the bucket was already full.
  */
 function extrachill_events_guest_list_request_bucket_full( string $key, int $limit ): bool {
-	$count = (int) get_transient( $key );
-	if ( $count >= $limit ) {
-		return true;
-	}
-	set_transient( $key, $count + 1, HOUR_IN_SECONDS );
-	return false;
+	return true !== extrachill_rate_limit_admit( $key, $limit, HOUR_IN_SECONDS );
 }
 
 /**
