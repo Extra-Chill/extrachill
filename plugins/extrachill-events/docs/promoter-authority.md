@@ -43,6 +43,26 @@ that supported bound.
 Event attribution, promoter term assignment, `_promoter_type`, WordPress roles,
 and team status grant no authority.
 
+## Term-meta migration (staged)
+
+The CLI-only Data Machine migration `extrachill-events.promoter-verification`
+prepares the move to promoter term state on the Events blog:
+
+- `_ec_promoter_status`: scalar `active` or `revoked`, for SQL projections.
+- `_ec_promoter_verification`: audit array containing `version`,
+  `verified_by_user_id`, `verified_at`, `updated_at`, `revoked_by_user_id`,
+  and `revoked_at`.
+
+Inspection is read-only and reports legacy-table existence and the number of
+organizations without status metadata. Apply copies audit data before publishing
+status, skips already migrated terms, and drops the legacy table only after no
+unmigrated rows remain. Failed copies preserve the table and can be retried.
+
+This is a preparatory step: the current authority repository still uses the
+legacy table. Apply deliberately refuses to run while the legacy schema class
+is loaded; the repository and its readiness gates must be replaced before this
+migration is enabled for retirement. Do not bypass that deployment guard.
+
 ## Abilities
 
 - `extrachill/verify-promoter-organization`
