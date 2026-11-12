@@ -22,7 +22,7 @@ function __( $message ) {
 }
 
 function apply_filters( $hook, $value ) {
-	return 'extrachill_api_rate_limit_store' === $hook ? 'extrachill_api_concurrency_file_increment' : $value;
+	return 'extrachill_rate_limit_store' === $hook ? 'extrachill_api_concurrency_file_increment' : $value;
 }
 
 function wp_cache_add() {
@@ -53,14 +53,14 @@ function extrachill_api_concurrency_file_increment( $key ) {
 	return $count;
 }
 
-require dirname( __DIR__ ) . '/inc/middleware/public-write-admission.php';
+require dirname( __DIR__, 2 ) . '/extrachill-network/inc/core/rate-limit.php';
 
 function extrachill_api_run_concurrent_cap( $scope, $limit, $workers ) {
 	$pids = array();
 	for ( $index = 0; $index < $workers; ++$index ) {
 		$pid = pcntl_fork();
 		if ( 0 === $pid ) {
-			$admitted = extrachill_api_atomic_rate_limit_admit( $scope, $limit, 60 );
+			$admitted = extrachill_rate_limit_admit( $scope, $limit, 60 );
 			file_put_contents(
 				$GLOBALS['extrachill_api_concurrency_dir'] . '/result-' . $scope . '-' . getmypid(),
 				true === $admitted ? '1' : '0'

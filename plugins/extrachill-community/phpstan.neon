@@ -5,3 +5,6 @@ parameters:
 	# declares those real properties for analysis only.
 	stubFiles:
 		- tests/phpstan-bbpress-stubs.php
+	# Rate limiting is supplied by the network foundation.
+	scanFiles:
+		- ../extrachill-network/inc/core/rate-limit.php

@@ -377,15 +377,13 @@ function extrachill_api_check_booking_attachment_download_rate_limit() {
 		return extrachill_api_booking_attachment_download_error( 401 );
 	}
 
-	$now         = time();
-	$window      = intdiv( $now, MINUTE_IN_SECONDS );
-	$retry_after = ( ( $window + 1 ) * MINUTE_IN_SECONDS ) - $now;
-	$key         = 'booking_dl_' . substr( hash_hmac( 'sha256', $user_id . ':' . $window, wp_salt( 'nonce' ) ), 0, 40 );
-	$admitted    = extrachill_api_atomic_rate_limit_admit( $key, $limit, $retry_after );
+	$key      = 'booking_dl_' . hash_hmac( 'sha256', (string) $user_id, wp_salt( 'nonce' ) );
+	$admitted = extrachill_rate_limit_admit( $key, $limit, MINUTE_IN_SECONDS );
 	if ( is_wp_error( $admitted ) ) {
 		return extrachill_api_booking_attachment_download_error( 503 );
 	}
-	if ( ! $admitted ) {
+	if ( true !== $admitted ) {
+		$retry_after = $admitted;
 		return new WP_Error(
 			'booking_attachment_download_rate_limited',
 			'Too many attachment download requests.',

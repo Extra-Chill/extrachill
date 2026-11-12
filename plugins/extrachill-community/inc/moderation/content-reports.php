@@ -235,37 +235,6 @@ function extrachill_community_report_rate_limit() {
 }
 
 /**
- * Timestamps of a member's reports within the last hour.
- *
- * @param int $user_id Reporter ID.
- * @return int[]
- */
-function extrachill_community_recent_report_times( $user_id ) {
-	$times  = get_transient( 'ec_report_rate_' . (int) $user_id );
-	$cutoff = time() - HOUR_IN_SECONDS;
-
-	return array_values(
-		array_filter(
-			is_array( $times ) ? array_map( 'intval', $times ) : array(),
-			static function ( $time ) use ( $cutoff ) {
-				return $time > $cutoff;
-			}
-		)
-	);
-}
-
-/**
- * Record a filed report against the member's hourly rate limit.
- *
- * @param int $user_id Reporter ID.
- */
-function extrachill_community_record_report_time( $user_id ) {
-	$times   = extrachill_community_recent_report_times( $user_id );
-	$times[] = time();
-	set_transient( 'ec_report_rate_' . (int) $user_id, $times, HOUR_IN_SECONDS );
-}
-
-/**
  * Moderators who should be notified about new reports.
  *
  * @param int $reporter_id Reporter ID (never notified about their own report).
@@ -477,7 +446,11 @@ function extrachill_community_ability_report_content( $input ) {
 		);
 	}
 
-	if ( count( extrachill_community_recent_report_times( $user_id ) ) >= extrachill_community_report_rate_limit() ) {
+	$admission = extrachill_rate_limit_admit( 'community_report:' . (int) $user_id, extrachill_community_report_rate_limit(), HOUR_IN_SECONDS );
+	if ( is_wp_error( $admission ) ) {
+		return $admission;
+	}
+	if ( true !== $admission ) {
 		return new WP_Error( 'rate_limited', 'You have filed too many reports recently. Please try again later.', array( 'status' => 429 ) );
 	}
 
@@ -503,7 +476,6 @@ function extrachill_community_ability_report_content( $input ) {
 		return new WP_Error( 'report_failed', 'The report could not be saved.', array( 'status' => 500 ) );
 	}
 
-	extrachill_community_record_report_time( $user_id );
 	extrachill_community_notify_report( (int) $report_id, $user_id, $target, $reason, $note );
 
 	/**

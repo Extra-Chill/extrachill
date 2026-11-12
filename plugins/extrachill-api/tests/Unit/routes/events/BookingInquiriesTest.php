@@ -26,7 +26,7 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 		$this->ability_actor_ids = array();
 		$this->temporary_files   = array();
 		$this->rate_counts       = array();
-		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		add_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		if ( isset( wp_get_abilities()[ EXTRACHILL_API_BOOKING_ABILITY ] ) ) {
 			wp_unregister_ability( EXTRACHILL_API_BOOKING_ABILITY );
 		}
@@ -39,7 +39,7 @@ class Booking_InquiriesTest extends WP_UnitTestCase {
 		remove_all_filters( 'extrachill_bypass_turnstile_verification' );
 		remove_all_filters( 'extrachill_api_booking_inquiry_rate_limit' );
 		remove_all_filters( 'extrachill_api_allow_test_booking_file' );
-		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		foreach ( $this->temporary_files as $file ) {
 			if ( file_exists( $file ) ) {
 				unlink( $file );

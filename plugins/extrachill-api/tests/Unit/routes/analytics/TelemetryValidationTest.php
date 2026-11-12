@@ -24,12 +24,12 @@ class TelemetryValidationTest extends TestCase {
 		$_SERVER['HTTP_HOST'] = wp_parse_url( home_url(), PHP_URL_HOST );
 		$_SERVER['REMOTE_ADDR'] = '192.0.2.1';
 		$this->rate_count       = 0;
-		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_rate_limit_store' ) );
+		add_filter( 'extrachill_rate_limit_store', array( $this, 'use_rate_limit_store' ) );
 	}
 
 	/** Remove the deterministic admission store. */
 	protected function tearDown(): void {
-		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_rate_limit_store' ) );
+		remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_rate_limit_store' ) );
 		parent::tearDown();
 	}
 
