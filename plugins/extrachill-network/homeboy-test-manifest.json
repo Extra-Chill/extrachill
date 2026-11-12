@@ -1,6 +1,15 @@
 {
   "schema": "homeboy/test-manifest/v1",
   "tests": {
+    "tests/rate-limit-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/feature-rate-limit-smoke.php": {
+      "environment": "standalone-php"
+    },
+    "tests/signed-token-smoke.php": {
+      "environment": "standalone-php"
+    },
     "tests/taxonomy-count-errors-smoke.php": {
       "environment": "standalone-php"
     },

@@ -12,6 +12,7 @@ require_once __DIR__ . '/Stubs/class-wpterm.php';
 
 require_once dirname( __DIR__, 3 ) . '/inc/core/router-pages.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/discovery-pages.php';
+require_once dirname( __DIR__, 4 ) . '/extrachill-network/inc/core/signed-token.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/account-market.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/my-shows-map-filter.php';
@@ -971,8 +972,11 @@ final class AccountMarketTest extends TestCase {
 		// Both underlying capabilities survive the merge as distinct intents.
 		$digest_url = $this->intent_redirect_from_output( $output, 'Sign in for the weekly email' );
 		$save_url   = $this->intent_redirect_from_output( $output, 'Save this city' );
-		$this->assertStringContainsString( 'ec_events_intent=subscribe_digest', $digest_url );
-		$this->assertStringContainsString( 'ec_events_intent=save_scene', $save_url );
+		foreach ( array( 'subscribe_digest' => $digest_url, 'save_scene' => $save_url ) as $intent => $url ) {
+			parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $query );
+			$claims = extrachill_verify( 'events.archive_intent', $query['ec_events_intent'] );
+			$this->assertSame( $intent, $claims['intent'] );
+		}
 	}
 
 	/** Extract and decode the signed redirect carried by one prompt action. */
@@ -1139,8 +1143,11 @@ final class AccountMarketTest extends TestCase {
 		$save_url   = extrachill_events_archive_intent_login_url( $term, 'save_scene' );
 		$digest_url = extrachill_events_archive_intent_login_url( $term, 'subscribe_digest' );
 
-		$this->assertStringContainsString( 'ec_events_intent=save_scene', rawurldecode( $save_url ) );
-		$this->assertStringContainsString( 'ec_events_intent=subscribe_digest', rawurldecode( $digest_url ) );
+		foreach ( array( 'save_scene' => $save_url, 'subscribe_digest' => $digest_url ) as $intent => $url ) {
+			parse_str( (string) parse_url( $url, PHP_URL_QUERY ), $login_query );
+			parse_str( (string) parse_url( rawurldecode( $login_query['redirect_to'] ), PHP_URL_QUERY ), $_GET );
+			$this->assertSame( $intent, extrachill_events_get_archive_auth_intent( $term ) );
+		}
 		$this->assertNotSame( $save_url, $digest_url );
 	}
 
@@ -1154,8 +1161,8 @@ final class AccountMarketTest extends TestCase {
 
 		$_GET['ec_events_intent'] = 'subscribe_digest';
 		$this->assertNull( extrachill_events_get_archive_auth_intent( $term ) );
-		$_GET['ec_events_intent']         = 'save_scene';
-		$_GET['ec_events_intent_expires'] = time() - 1;
+		$_GET['ec_events_intent'] = extrachill_sign( 'events.archive_intent', array( 'intent' => 'save_scene', 'term' => $term->slug ), 1 );
+		sleep( 2 );
 		$this->assertNull( extrachill_events_get_archive_auth_intent( $term ) );
 	}
 

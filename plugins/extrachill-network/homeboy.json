@@ -22,6 +22,7 @@
       "php tools/check-test-registration.php"
     ],
     "test": [
+      "php tests/signed-token-smoke.php",
       "php tests/frontend-path-resolver-smoke.php",
       "php tests/ad-policy-smoke.php",
       "php tests/cross-site-http-errors-smoke.php",

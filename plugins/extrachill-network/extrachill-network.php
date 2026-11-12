@@ -45,6 +45,7 @@ define( 'EXTRACHILL_NETWORK_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/blog-ids.php';
 require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/stories.php';
 require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/rate-limit.php';
+require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'inc/core/signed-token.php';
 
 if ( file_exists( EXTRACHILL_NETWORK_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once EXTRACHILL_NETWORK_PLUGIN_DIR . 'vendor/autoload.php';

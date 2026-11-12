@@ -411,14 +411,17 @@ function extrachill_events_archive_intent_login_url( WP_Term $term, string $inte
 		return wp_login_url( home_url( '/' ) );
 	}
 
-	$expires   = time() + ( 15 * 60 );
-	$action    = 'extrachill_events_archive_intent_' . $intent . '_' . $term->slug . '_' . $expires;
-	$signature = hash_hmac( 'sha256', $action, wp_salt( 'auth' ) );
-	$return    = add_query_arg(
+	$token  = extrachill_sign(
+		'events.archive_intent',
 		array(
-			'ec_events_intent'           => $intent,
-			'ec_events_intent_expires'   => $expires,
-			'ec_events_intent_signature' => $signature,
+			'intent' => $intent,
+			'term'   => $term->slug,
+		),
+		15 * 60
+	);
+	$return = add_query_arg(
+		array(
+			'ec_events_intent' => $token,
 		),
 		$archive_url
 	);
@@ -433,20 +436,14 @@ function extrachill_events_archive_intent_login_url( WP_Term $term, string $inte
  * @return string|null Valid intent, or null when absent or invalid.
  */
 function extrachill_events_get_archive_auth_intent( WP_Term $term ): ?string {
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The signed nonce is verified below; this is a read-only continuation.
-	$intent = isset( $_GET['ec_events_intent'] ) && is_scalar( $_GET['ec_events_intent'] ) ? sanitize_key( (string) wp_unslash( $_GET['ec_events_intent'] ) ) : '';
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- See the intent nonce verification below.
-	$expires = isset( $_GET['ec_events_intent_expires'] ) && is_scalar( $_GET['ec_events_intent_expires'] ) ? absint( $_GET['ec_events_intent_expires'] ) : 0;
-	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- See the intent signature verification below.
-	$signature = isset( $_GET['ec_events_intent_signature'] ) && is_scalar( $_GET['ec_events_intent_signature'] ) ? sanitize_text_field( (string) wp_unslash( $_GET['ec_events_intent_signature'] ) ) : '';
-
-	if ( ! in_array( $intent, array( 'save_scene', 'subscribe_digest' ), true ) || $expires < time() || $expires > time() + ( 15 * 60 ) || '' === $signature ) {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- The signed token is verified below; this is a read-only continuation.
+	$token  = isset( $_GET['ec_events_intent'] ) && is_string( $_GET['ec_events_intent'] ) ? wp_unslash( $_GET['ec_events_intent'] ) : '';
+	$claims = extrachill_verify( 'events.archive_intent', $token );
+	if ( null === $claims || ( $claims['term'] ?? null ) !== $term->slug || ! in_array( $claims['intent'] ?? null, array( 'save_scene', 'subscribe_digest' ), true ) ) {
 		return null;
 	}
 
-	$action   = 'extrachill_events_archive_intent_' . $intent . '_' . $term->slug . '_' . $expires;
-	$expected = hash_hmac( 'sha256', $action, wp_salt( 'auth' ) );
-	return hash_equals( $expected, $signature ) ? $intent : null;
+	return $claims['intent'];
 }
 
 /**

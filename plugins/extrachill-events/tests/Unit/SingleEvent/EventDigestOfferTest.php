@@ -177,6 +177,7 @@ if ( ! function_exists( 'esc_attr_e' ) ) {
 	function esc_attr_e( $v ) { echo htmlspecialchars( (string) $v, ENT_QUOTES ); }
 }
 
+require_once dirname( __DIR__, 4 ) . '/extrachill-network/inc/core/signed-token.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/account-market.php';
 require_once dirname( __DIR__, 3 ) . '/inc/single-event/scene-digest-offer.php';
 
@@ -437,7 +438,7 @@ final class EventDigestOfferTest extends TestCase {
 
 	public function test_tampered_or_expired_continuation_is_ignored(): void {
 		$this->follow_login_redirect( $this->render() );
-		$_GET['ec_events_intent_signature'] = 'forged';
+		$_GET['ec_events_intent'] = 'forged';
 		$this->login();
 
 		$this->assertStringContainsString( 'data-event-digest-mode="set_scene"', $this->render() );
