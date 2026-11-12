@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.6] - 2026-11-12
+
+### Fixed
+- stop exposing email addresses in users-search results
+
 ## [0.52.5] - 2026-11-12
 
 ### Changed
