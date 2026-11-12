@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0/).
 
+## [0.127.5] - 2026-11-12
+
+### Changed
+- delete unused promoter→venue grants
+- purpose-bound signed-token primitive; move short-lived signers onto it
+
+### Fixed
+- revoked promoter organizations lose event and guest-list authority
+
 ## [0.127.4] - 2026-11-12
 
 ### Changed
