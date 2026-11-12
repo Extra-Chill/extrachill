@@ -21,7 +21,6 @@ npm run test:js -- --runInBand
 composer install
 composer test
 php tests/bootstrap-boundary.php
-php tests/booking-ability-order.php
 php tests/booking-schema-lifecycle.php
 php tests/fixtures/venue-settings-p1d-runtime.php
 ```

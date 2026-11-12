@@ -77,6 +77,7 @@ final class VenueMembershipLockTest extends TestCase {
 				public $base_prefix = 'wp_';
 	public $prefix        = 'wp_7_';
 				public $term_taxonomy = 'wp_7_term_taxonomy';
+				public $termmeta = 'wp_7_termmeta';
 				public $last_error    = '';
 				public $queries       = array();
 				public $writes        = array();

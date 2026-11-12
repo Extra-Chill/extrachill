@@ -4,9 +4,6 @@
     "tests/deploy-window.php": {
       "environment": "standalone-php"
     },
-    "tests/booking-ability-order.php": {
-      "environment": "standalone-php"
-    },
     "tests/booking-schema-lifecycle.php": {
       "environment": "standalone-php"
     },

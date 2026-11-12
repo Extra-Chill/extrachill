@@ -11,7 +11,6 @@
 namespace ExtraChillEvents\Abilities;
 
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -46,7 +45,7 @@ class CommerceSellerAbilities {
 	public function __construct( ?VenueAuthorization $venues = null, ?PromoterAuthorityRepository $promoters = null, bool $register = true ) {
 		$this->venues    = $venues ? $venues : new VenueAuthorization();
 		$this->promoters = $promoters;
-		if ( ! $this->promoters && class_exists( PromoterAuthoritySchema::class ) && PromoterAuthoritySchema::is_ready() ) {
+		if ( ! $this->promoters ) {
 			$this->promoters = new PromoterAuthorityRepository();
 		}
 		if ( $register ) {

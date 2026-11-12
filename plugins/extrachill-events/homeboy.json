@@ -35,6 +35,11 @@
             "runtime": "sandbox"
           },
           {
+            "name": "promoter-verification-migration",
+            "config": "phpunit-promoter-verification-migration.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "membership",
             "config": "phpunit-membership.xml.dist",
             "runtime": "host"

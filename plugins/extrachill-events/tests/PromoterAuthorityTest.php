@@ -11,7 +11,7 @@ use ExtraChillEvents\Abilities\PromoterAuthorityAbilities;
 use ExtraChillEvents\Abilities\PromoterWorkspaceAbilities;
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
+
 use ExtraChillEvents\Core\PromoterAuthorityService;
 use ExtraChillEvents\Core\PromoterAuthorization;
 use ExtraChillEvents\Core\PromoterWorkspace;
@@ -132,7 +132,7 @@ require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipReposito
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
-require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
+require_once __DIR__ . '/Support/promoter-term-meta-fake.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingAdapter.php';
@@ -158,6 +158,10 @@ final class PromoterAuthorityWpdb {
 	public $prefix = 'wp_7_';
 	/** @var string Current site taxonomy table. */
 	public $term_taxonomy = 'wp_7_term_taxonomy';
+	public $terms = 'wp_7_terms';
+	public $termmeta = 'wp_7_termmeta';
+	public $legacy_organization = null;
+	public $queries = array();
 	/**
 	 * Last database error.
 	 *
@@ -214,6 +218,8 @@ final class PromoterAuthorityWpdb {
 	 */
 	private $external_winner;
 
+	public function esc_like( $value ) { return addcslashes( $value, '_%' ); }
+
 	public function prepare( $query, ...$args ) {
 		if ( 1 === count( $args ) && is_array( $args[0] ) ) {
 			$args = $args[0];
@@ -233,9 +239,16 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_var( $query ) {
+		$this->queries[] = $query;
+		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
+			return null === $this->legacy_organization ? null : 'wp_7_ec_promoter_organizations';
+		}
 
 		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
+		if ( preg_match( '/SELECT term_id FROM \\S+ WHERE term_id = (\\d+) FOR UPDATE/', $query, $match ) ) {
+			return isset( $GLOBALS['promoter_test']['terms'][ $match[1] ] ) || isset( $GLOBALS['venue_membership_test']['terms'][ $match[1] ] ) ? $match[1] : null;
+		}
 		if ( false === strpos( $query, 'SELECT 1 FROM ' . ec_team_fake_partition( 'promoter' ) . ' AS membership' ) ) {
 			return null;
 		}
@@ -253,7 +266,7 @@ final class PromoterAuthorityWpdb {
 			}
 			$promoter_term_id = (int) $membership['promoter_term_id'];
 			$term             = $GLOBALS['promoter_test']['terms'][ $promoter_term_id ] ?? null;
-			foreach ( $this->rows[ PromoterAuthoritySchema::organizations_table() ] ?? array() as $organization ) {
+			foreach ( $this->rows[ ec_promoter_fake_table() ] ?? array() as $organization ) {
 				if ( (int) $organization['promoter_term_id'] === $promoter_term_id && PromoterAuthorityRepository::STATUS_ACTIVE === $organization['status'] && $term && 'promoter' === $term->taxonomy ) {
 					return '1';
 				}
@@ -268,14 +281,14 @@ final class PromoterAuthorityWpdb {
 		$this->last_error    = '';
 
 
-		if ( PromoterAuthoritySchema::organizations_table() === $table && $this->race_organization_insert ) {
+		if ( ec_promoter_fake_table() === $table && $this->race_organization_insert ) {
 			$this->race_organization_insert = false;
 			$this->last_error               = 'Duplicate entry for promoter term';
 			$row['id']                      = ++$this->insert_id;
 			$this->external_winner          = $row;
 			return false;
 		}
-		if ( PromoterAuthoritySchema::organizations_table() === $table && $this->fail_organization_insert ) {
+		if ( ec_promoter_fake_table() === $table && $this->fail_organization_insert ) {
 			$this->last_error = 'Storage engine unavailable';
 			return false;
 		}
@@ -310,7 +323,7 @@ final class PromoterAuthorityWpdb {
 				$GLOBALS['promoter_test']['page_status'] = $this->page_status_snapshot;
 			}
 			if ( $this->external_winner ) {
-				$this->rows[ PromoterAuthoritySchema::organizations_table() ][] = $this->external_winner;
+				$this->rows[ ec_promoter_fake_table() ][] = $this->external_winner;
 				$this->external_winner = null;
 			}
 
@@ -353,6 +366,7 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
+		if ( str_contains( $query, 'ec_promoter_organizations' ) ) { return $this->legacy_organization; }
 
 		$query = ec_team_fake_sql( $query );
 		unset( $output );
@@ -378,7 +392,9 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_results( $query, $output = null ) {
-
+		if ( str_contains( $query, "meta_key = '_ec_promoter_status'" ) ) {
+			$query = preg_replace( '/SELECT DISTINCT term_id FROM \\S+ .+ LIMIT (\\d+)/', "SELECT * FROM wp_7_promoter_term_meta_fixture WHERE status = 'active' ORDER BY promoter_term_id ASC LIMIT $1", $query );
+		}
 		$query = ec_team_fake_sql( $query );
 		unset( $output );
 		$this->last_error = '';
@@ -397,7 +413,7 @@ final class PromoterAuthorityWpdb {
 			);
 			usort( $rows, static function ( $left, $right ) { return (int) $left['promoter_term_id'] <=> (int) $right['promoter_term_id'];
 			} );
-			return array_slice( $rows, 0, (int) $organization_match[2] );
+			return array_map( static function ( $row ) { return array( 'term_id' => $row['promoter_term_id'] ); }, array_slice( $rows, 0, (int) $organization_match[2] ) );
 		}
 		if ( preg_match( "/FROM (\S+) WHERE user_id = (\d+) AND status = 'active' ORDER BY promoter_term_id ASC, id ASC LIMIT (\d+)/", $query, $membership_match ) ) {
 			$rows = array_values(
@@ -477,7 +493,6 @@ final class PromoterAuthorityTest extends TestCase {
 		unset( $GLOBALS['promoter_link_page_fixture']['principal_capabilities'] );
 		$GLOBALS['promoter_test']         = array(
 			'options'         => array(
-				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
 
 			),
@@ -555,7 +570,6 @@ final class PromoterAuthorityTest extends TestCase {
 		);
 		$GLOBALS['venue_membership_test'] = array(
 			'options'           => array(
-				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
 
 			),
@@ -576,6 +590,32 @@ final class PromoterAuthorityTest extends TestCase {
 			}
 		);
 		$GLOBALS['wpdb'] = new PromoterAuthorityWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated test double.
+	}
+
+	/** Exact reads remain available during the deploy window without legacy writes. */
+	public function test_legacy_read_fallback_yields_to_term_metadata(): void {
+		$repository = new PromoterAuthorityRepository();
+		$this->assertNull( $repository->get_organization( 100 ) );
+		$GLOBALS['wpdb']->legacy_organization = array(
+			'id'                  => 7,
+			'promoter_term_id'    => 100,
+			'status'              => 'active',
+			'version'             => 3,
+			'verified_by_user_id' => 1,
+			'verified_at'         => '2026-01-01 00:00:00',
+			'updated_at'          => '2026-01-01 00:00:00',
+			'revoked_by_user_id'  => null,
+			'revoked_at'          => null,
+		);
+		$this->assertSame( 3, $repository->get_organization( 100 )['version'] );
+		$this->assertSame( 'promoter_organization_exists', $repository->verify( 100, null, 1 )->get_error_code() );
+		$this->assertSame( 'promoter_organization_version_conflict', $repository->revoke_organization( 100, 2, 1 )->get_error_code() );
+		$this->assertSame( 'revoked', $repository->revoke_organization( 100, 3, 1 )['status'] );
+		$this->assertSame( 'active', $GLOBALS['wpdb']->legacy_organization['status'] );
+		$this->assertSame( 4, get_term_meta( 100, '_ec_promoter_verification', true )['version'] );
+		$this->assertSame( 'revoked', get_term_meta( 100, '_ec_promoter_status', true ) );
+		$this->assertSame( 100, $repository->get_organization( 100 )['id'] );
+		$this->assertStringContainsString( 'SELECT term_id FROM wp_7_terms WHERE term_id = 100 FOR UPDATE', implode( "\n", $GLOBALS['wpdb']->queries ) );
 	}
 
 	/** Revocation retains members but removes all promoter-derived event authority. */
@@ -600,14 +640,14 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertFalse( extrachill_events_user_can_manage_owner_list( 3, 'promoter', 100 ) );
 		$this->assertSame( array( 1 ), extrachill_events_event_manager_user_ids( 900 ) );
 
-		$GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::organizations_table() ] = array();
+		$GLOBALS['wpdb']->rows[ ec_promoter_fake_table() ] = array();
 		$this->assertFalse( extrachill_events_user_can_manage_event( 3, 900 ) );
 		$this->assertFalse( extrachill_events_user_can_manage_owner_list( 3, 'promoter', 100 ) );
 		$this->assertSame( array( 1 ), extrachill_events_event_manager_user_ids( 900 ) );
 	}
 
 	public function test_schema_table_names_are_site_scoped(): void {
-		$this->assertSame( 'wp_7_ec_promoter_organizations', PromoterAuthoritySchema::organizations_table() );
+		$this->assertSame( 'wp_7_termmeta', $GLOBALS['wpdb']->termmeta );
 		$this->assertSame( 'wp_7_ec_promoter_members', ec_team_fake_partition( 'promoter' ) );
 	}
 
@@ -627,7 +667,7 @@ final class PromoterAuthorityTest extends TestCase {
 		unset( $GLOBALS['promoter_test']['terms'][100] );
 		$this->assertFalse( $repository->has_active_organization_for_user( 2 ) );
 		$GLOBALS['promoter_test']['terms'][100] = $term;
-		foreach ( $GLOBALS['wpdb']->rows[ PromoterAuthoritySchema::organizations_table() ] as &$organization ) {
+		foreach ( $GLOBALS['wpdb']->rows[ ec_promoter_fake_table() ] as &$organization ) {
 			$organization['status'] = PromoterAuthorityRepository::STATUS_REVOKED;
 		}
 		unset( $organization );
@@ -763,7 +803,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( 'approved_promoter_list_failed', $error->get_error_code() );
 		unset( $GLOBALS['promoter_test']['fail_active_organization_list'] );
 
-		$table = PromoterAuthoritySchema::organizations_table();
+		$table = ec_promoter_fake_table();
 		for ( $index = 0; $index <= PromoterAuthorityRepository::MAX_ORGANIZATIONS; ++$index ) {
 			$GLOBALS['wpdb']->rows[ $table ][] = array(
 				'id'                  => 1000 + $index,
@@ -1098,8 +1138,7 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( PromoterAuthorityRepository::MAX_MEMBERS, $registered['extrachill/list-promoter-memberships']['output_schema']['maxItems'] );
 		$provider = file_get_contents( dirname( __DIR__ ) . '/inc/Providers/AbilitiesProvider.php' );
 		$this->assertStringNotContainsString( 'VenueSchema', $provider );
-		$this->assertStringContainsString( 'PromoterAuthoritySchema::is_ready()', $provider );
-		$this->assertStringNotContainsString( 'BookingSchema::is_ready() && \\ExtraChillEvents\\Core\\PromoterAuthoritySchema::is_ready()', $provider );
+		$this->assertStringNotContainsString( '::is_ready()', $provider );
 	}
 
 	public function test_workspace_honors_effective_principal_without_treating_selection_as_authority(): void {

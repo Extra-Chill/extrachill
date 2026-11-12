@@ -7,12 +7,11 @@ network user as the first active owner (`owner_user_id`); without one, the
 organization is verified with no memberships and administrators add members
 afterwards. Verification returns `membership: null` in that case.
 
-Authority is stored separately from booking in `ec_promoter_organizations`,
-and `promoter` rows of the shared `ec_team_members` table.
-The schema is ready only
-after its current-prefix tables, InnoDB engines,
-required columns, and exact uniqueness contracts pass health checks. Its
-failure state does not disable venue booking abilities.
+Verification is stored on the promoter term in `_ec_promoter_status` and
+`_ec_promoter_verification`. Memberships remain `promoter` rows of the network
+`ec_team_members` table. Mutations lock the current site's term row before
+reading verification or changing authority; optimistic versions are preserved.
+There is no promoter schema installer or readiness gate.
 
 Administrators may verify or revoke organizations but are never inserted as
 members automatically. On an active verified organization, memberships may be
@@ -42,6 +41,25 @@ that supported bound.
 
 Event attribution, promoter term assignment, `_promoter_type`, WordPress roles,
 and team status grant no authority.
+
+## Term-meta migration
+
+The CLI-only Data Machine migration `extrachill-events.promoter-verification`
+moves legacy verification to promoter term state on the Events blog:
+
+- `_ec_promoter_status`: scalar `active` or `revoked`, for SQL projections.
+- `_ec_promoter_verification`: audit array containing `version`,
+  `verified_by_user_id`, `verified_at`, `updated_at`, `revoked_by_user_id`,
+  and `revoked_at`.
+
+Inspection is read-only and reports legacy-table existence and the number of
+organizations without status metadata. Apply copies audit data before publishing
+status, skips already migrated terms, and drops the legacy table only after no
+unmigrated rows remain. Failed copies preserve the table and can be retried.
+
+Until migration runs, exact organization reads fall back read-only to the
+legacy table only when status metadata is absent. SQL discovery joins use term
+metadata immediately. Run the migration through WP-CLI, never a web request.
 
 ## Abilities
 

@@ -18,6 +18,9 @@ class PromoterAuthorityRepository {
 	public const MAX_MEMBERS       = 100;
 	public const MAX_ORGANIZATIONS = 500;
 
+	/** @var int[] Terms whose metadata cache must be invalidated after the transaction. */
+	private $changed_terms = array();
+
 	/** Return every persisted authority status. */
 	public static function statuses(): array {
 		return array( self::STATUS_ACTIVE, self::STATUS_REVOKED );
@@ -74,7 +77,7 @@ class PromoterAuthorityRepository {
 			'revoked_by_user_id'  => null,
 			'revoked_at'          => null,
 		);
-		if ( false === $wpdb->insert( PromoterAuthoritySchema::organizations_table(), $organization ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority write.
+		if ( ! $this->save_organization( $promoter_term_id, $organization ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Private authority write.
 			$database_error = (string) $wpdb->last_error;
 			$this->rollback();
 			$winner = $this->get_organization( $promoter_term_id );
@@ -142,17 +145,17 @@ class PromoterAuthorityRepository {
 			$this->rollback();
 			return new \WP_Error( 'promoter_organization_revoked', __( 'The promoter organization is already revoked.', 'extrachill-events' ), array( 'status' => 409 ) );
 		}
-		$now    = gmdate( 'Y-m-d H:i:s' );
-		$result = $wpdb->query( $wpdb->prepare( 'UPDATE ' . PromoterAuthoritySchema::organizations_table() . ' SET status = %s, version = version + 1, updated_at = %s, revoked_by_user_id = %d, revoked_at = %s WHERE promoter_term_id = %d AND version = %d', self::STATUS_REVOKED, $now, $actor_user_id, $now, $promoter_term_id, $expected_version ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed table and prepared values.
+		$now                           = gmdate( 'Y-m-d H:i:s' );
+		$current['status']             = self::STATUS_REVOKED;
+		$current['version']            = $expected_version + 1;
+		$current['updated_at']         = $now;
+		$current['revoked_by_user_id'] = $actor_user_id;
+		$current['revoked_at']         = $now;
+		$result                        = $this->save_organization( $promoter_term_id, $current );
 		if ( false === $result ) {
 			$database_error = (string) $wpdb->last_error;
 			$this->rollback();
 			return $this->database_error( 'promoter_organization_revoke_failed', __( 'The promoter organization could not be revoked.', 'extrachill-events' ), $database_error );
-		}
-		if ( 0 === $result ) {
-			$this->rollback();
-			$latest = $this->get_organization( $promoter_term_id );
-			return is_array( $latest ) ? $this->version_conflict( 'promoter_organization_version_conflict', $latest['version'] ) : new \WP_Error( 'promoter_organization_not_found', __( 'The promoter organization was not found.', 'extrachill-events' ), array( 'status' => 404 ) );
 		}
 		$precommit = $this->run_precommit( $promoter_term_id, 'organization_revoked' );
 		if ( true !== $precommit ) {
@@ -196,9 +199,16 @@ class PromoterAuthorityRepository {
 	 */
 	public function get_organization( int $promoter_term_id ) {
 		global $wpdb;
-		$table = PromoterAuthoritySchema::organizations_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE promoter_term_id = %d LIMIT 1", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Trusted current-prefix table.
-		return '' !== (string) $wpdb->last_error ? $this->database_error( 'promoter_organization_read_failed', __( 'The promoter organization could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_organization( $row ) : null );
+		$status = get_term_meta( $promoter_term_id, '_ec_promoter_status', true );
+		if ( ! metadata_exists( 'term', $promoter_term_id, '_ec_promoter_status' ) ) {
+			return $this->legacy_organization( $promoter_term_id );
+		}
+		$verification = get_term_meta( $promoter_term_id, '_ec_promoter_verification', true );
+		return $this->hydrate_organization( array_merge( is_array( $verification ) ? $verification : array(), array(
+			'id'               => $promoter_term_id,
+			'promoter_term_id' => $promoter_term_id,
+			'status'           => $status,
+		) ) );
 	}
 
 	/**
@@ -235,8 +245,8 @@ class PromoterAuthorityRepository {
 		}
 		global $wpdb;
 		$table         = TeamMembershipRepository::table();
-		$organizations = PromoterAuthoritySchema::organizations_table();
-		$found         = null !== $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership INNER JOIN {$organizations} AS organization ON organization.promoter_term_id = membership.team_id AND organization.status = 'active' INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.team_id AND identity.taxonomy = %s WHERE membership.team_type = %s AND membership.user_id = %d AND membership.status = %s LIMIT 1", 'promoter', 'promoter', $user_id, 'active' ) ); // phpcs:ignore WordPress.DB -- Prepared authority query on the caller's site.
+		$organizations = $wpdb->termmeta;
+		$found         = null !== $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$table} AS membership INNER JOIN {$organizations} AS organization ON organization.term_id = membership.team_id AND organization.meta_key = '_ec_promoter_status' AND organization.meta_value = 'active' INNER JOIN {$wpdb->term_taxonomy} AS identity ON identity.term_id = membership.team_id AND identity.taxonomy = %s WHERE membership.team_type = %s AND membership.user_id = %d AND membership.status = %s LIMIT 1", 'promoter', 'promoter', $user_id, 'active' ) ); // phpcs:ignore WordPress.DB -- Prepared authority query on the caller's site.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter workspace access could not be read.', 'extrachill-events' ) );
 		}
@@ -375,8 +385,7 @@ class PromoterAuthorityRepository {
 	/** List every approved promoter identity within the public network bound. */
 	public function list_active_organizations() {
 		global $wpdb;
-		$table = PromoterAuthoritySchema::organizations_table();
-		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} WHERE status = %s ORDER BY promoter_term_id ASC LIMIT %d", self::STATUS_ACTIVE, self::MAX_ORGANIZATIONS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded canonical approval projection.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT DISTINCT term_id FROM %i WHERE meta_key = %s AND meta_value = %s ORDER BY term_id ASC LIMIT %d', $wpdb->termmeta, '_ec_promoter_status', self::STATUS_ACTIVE, self::MAX_ORGANIZATIONS + 1 ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded canonical approval projection.
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'approved_promoter_list_failed', __( 'Approved promoters could not be listed.', 'extrachill-events' ) );
 		}
@@ -392,7 +401,7 @@ class PromoterAuthorityRepository {
 		}
 		$organizations = array();
 		foreach ( (array) $rows as $row ) {
-			$organization = $this->hydrate_organization( $row );
+			$organization = $this->get_organization( (int) $row['term_id'] );
 			if ( is_wp_error( $organization ) ) {
 				return $organization;
 			}
@@ -411,7 +420,7 @@ class PromoterAuthorityRepository {
 			return new \WP_Error( 'promoter_organization_corrupt_status', __( 'The stored promoter organization status is invalid.', 'extrachill-events' ) );
 		}
 		foreach ( array( 'id', 'promoter_term_id', 'version', 'verified_by_user_id' ) as $field ) {
-			$row[ $field ] = (int) $row[ $field ];
+			$row[ $field ] = (int) ( $row[ $field ] ?? 0 );
 		}
 		$row['revoked_by_user_id'] = empty( $row['revoked_by_user_id'] ) ? null : (int) $row['revoked_by_user_id'];
 		$row['revoked_at']         = empty( $row['revoked_at'] ) ? null : (string) $row['revoked_at'];
@@ -452,6 +461,7 @@ class PromoterAuthorityRepository {
 
 	/** Emit a privacy-safe domain signal only after a confirmed commit. */
 	private function domain_changed( int $promoter_term_id, string $change ): void {
+		$this->clear_metadata_cache();
 		try {
 			do_action( 'extrachill_events_promoter_authority_changed', $promoter_term_id, $change );
 		} catch ( \Throwable $throwable ) {
@@ -471,13 +481,17 @@ class PromoterAuthorityRepository {
 	 */
 	private function lock_rows( int $promoter_term_id ) {
 		global $wpdb;
-		$organizations    = PromoterAuthoritySchema::organizations_table();
-		$organization_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$organizations} WHERE promoter_term_id = %d FOR UPDATE", $promoter_term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes one promoter authority range.
-		$membership_rows  = ( new TeamMembershipRepository() )->lock_team( 'promoter', $promoter_term_id );
-		if ( '' !== (string) $wpdb->last_error ) {
+		$term_id = $wpdb->get_var( $wpdb->prepare( 'SELECT term_id FROM %i WHERE term_id = %d FOR UPDATE', $wpdb->terms, $promoter_term_id ) ); // phpcs:ignore WordPress.DB -- Term row is the shared transaction anchor.
+		if ( null === $term_id || '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_authority_read_failed', __( 'Promoter authority could not be locked.', 'extrachill-events' ) );
 		}
-		$organization = is_array( $organization_row ) ? $this->hydrate_organization( $organization_row ) : null;
+		// Discard any state cached before waiting for the term lock.
+		wp_cache_delete( $promoter_term_id, 'term_meta' );
+		$organization    = $this->get_organization( $promoter_term_id );
+		$membership_rows = ( new TeamMembershipRepository() )->lock_team( 'promoter', $promoter_term_id );
+		if ( is_wp_error( $membership_rows ) ) {
+			return $membership_rows;
+		}
 		if ( is_wp_error( $organization ) ) {
 			return $organization;
 		}
@@ -510,10 +524,42 @@ class PromoterAuthorityRepository {
 		return true;
 	}
 
+	/** Persist only the migration's verification payload under the locked term. */
+	private function save_organization( int $term_id, array $organization ): bool {
+		$this->changed_terms[] = $term_id;
+		$verification          = array_intersect_key( $organization, array_flip( array( 'version', 'verified_by_user_id', 'verified_at', 'updated_at', 'revoked_by_user_id', 'revoked_at' ) ) );
+		$result                = update_term_meta( $term_id, '_ec_promoter_verification', $verification );
+		if ( is_wp_error( $result ) || false === $result ) {
+			return false;
+		}
+		$result = update_term_meta( $term_id, '_ec_promoter_status', $organization['status'] );
+		return ! is_wp_error( $result ) && false !== $result;
+	}
+
+	/** Deploy-window read-only fallback; delete after promoter-verification migration. */
+	private function legacy_organization( int $term_id ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ec_promoter_organizations';
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			return null;
+		}
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE promoter_term_id = %d LIMIT 1', $table, $term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Temporary read-only legacy compatibility.
+		return '' !== (string) $wpdb->last_error ? $this->database_error( 'promoter_organization_read_failed', __( 'The promoter organization could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_organization( $row ) : null );
+	}
+
 	/** Roll back the current authority mutation. */
 	private function rollback(): void {
 		global $wpdb;
 		$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rolls back failed authority mutation.
+		$this->clear_metadata_cache();
+	}
+
+	/** WordPress metadata caches are not transactional. */
+	private function clear_metadata_cache(): void {
+		foreach ( $this->changed_terms as $term_id ) {
+			wp_cache_delete( $term_id, 'term_meta' );
+		}
+		$this->changed_terms = array();
 	}
 
 	/**

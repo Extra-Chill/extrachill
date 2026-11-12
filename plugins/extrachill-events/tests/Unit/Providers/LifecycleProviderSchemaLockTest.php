@@ -35,6 +35,7 @@ require_once dirname( __DIR__, 3 ) . '/inc/Providers/LifecycleProvider.php';
  * the cache entry is deleted.
  */
 if ( ! function_exists( 'get_option' ) ) {
+	function delete_option( $name ) { unset( $GLOBALS['schema_lock_test']['options'][ $name ] ); return true; }
 	function get_option( $name, $default_value = false ) {
 		$state = &$GLOBALS['schema_lock_test'];
 		if ( ! array_key_exists( $name, $state['cache'] ) ) {

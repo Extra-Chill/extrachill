@@ -225,6 +225,9 @@ if ( ! function_exists( 'get_terms' ) ) {
 }
 if ( ! function_exists( 'get_term_meta' ) ) {
 	function get_term_meta( $term_id, $key, $single = false ) {
+		if ( isset( $GLOBALS['promoter_test'] ) && $GLOBALS['wpdb'] instanceof PromoterAuthorityWpdb ) {
+			return ec_promoter_fake_get_meta( $term_id, $key );
+		}
 		unset( $single );
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
 			return $GLOBALS['venue_membership_test']['term_meta'][ $term_id ][ $key ] ?? '';
@@ -298,6 +301,9 @@ if ( ! function_exists( 'data_machine_events_query_venue_interval_overlaps' ) ) 
 }
 if ( ! function_exists( 'update_term_meta' ) ) {
 	function update_term_meta( $term_id, $key, $value ) {
+		if ( isset( $GLOBALS['promoter_test'] ) && $GLOBALS['wpdb'] instanceof PromoterAuthorityWpdb ) {
+			return ec_promoter_fake_update_meta( $term_id, $key, $value );
+		}
 		if ( isset( $GLOBALS['venue_membership_test'] ) ) {
 			$GLOBALS['venue_membership_test']['term_meta'][ $term_id ][ $key ] = $value;
 			return 1;

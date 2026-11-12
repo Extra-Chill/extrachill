@@ -8,7 +8,6 @@
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\VenueSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 
@@ -102,7 +101,7 @@ function ec_events_user_has_managed_identity( int $user_id ): bool {
 	if ( $user_id < 1 ) {
 		return false;
 	}
-	if ( ! class_exists( BookingSchema::class ) || ! class_exists( VenueAuthorization::class ) || ! class_exists( VenueMembershipRepository::class ) || ! class_exists( PromoterAuthoritySchema::class ) || ! class_exists( PromoterAuthorityRepository::class ) ) {
+	if ( ! class_exists( BookingSchema::class ) || ! class_exists( VenueAuthorization::class ) || ! class_exists( VenueMembershipRepository::class ) || ! class_exists( PromoterAuthorityRepository::class ) ) {
 		return false;
 	}
 	$events_blog_id = (int) ec_get_blog_id( 'events' );
@@ -121,7 +120,7 @@ function ec_events_user_has_managed_identity( int $user_id ): bool {
 		if ( BookingSchema::is_ready() && true === ( new VenueMembershipRepository() )->has_active_venue_for_user( $user_id ) ) {
 			return true;
 		}
-		return PromoterAuthoritySchema::is_ready() && true === ( new PromoterAuthorityRepository() )->has_active_organization_for_user( $user_id );
+		return true === ( new PromoterAuthorityRepository() )->has_active_organization_for_user( $user_id );
 	} finally {
 		if ( $switched ) {
 			restore_current_blog();

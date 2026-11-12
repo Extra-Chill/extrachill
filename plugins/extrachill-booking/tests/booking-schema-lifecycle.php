@@ -7,14 +7,9 @@ namespace ExtraChillEvents\Tests\SchemaLifecycle {
 		public static function install() { $GLOBALS['order'][] = 'booking'; }
 		public static function maybe_install() { self::install(); }
 	}
-	class PromoterAuthoritySchemaDouble {
-		public static function install() { $GLOBALS['order'][] = 'promoter'; }
-		public static function maybe_install() { self::install(); }
-	}
 	class QualifyVerdictsTableDouble { public static function create_table() {} public static function maybe_install() {} }
 	class ArtistUrlSubmissionsTableDouble { public static function create_table() {} public static function maybe_install() {} }
 	class_alias( BookingSchemaDouble::class, 'ExtraChillEvents\\Core\\BookingSchema' );
-	class_alias( PromoterAuthoritySchemaDouble::class, 'ExtraChillEvents\\Core\\PromoterAuthoritySchema' );
 	class_alias( QualifyVerdictsTableDouble::class, 'ExtraChillEvents\\Core\\QualifyVerdictsTable' );
 	class_alias( ArtistUrlSubmissionsTableDouble::class, 'ExtraChillEvents\\Core\\ArtistUrlSubmissionsTable' );
 }
@@ -28,6 +23,7 @@ namespace {
 	// Version-gated, lock-guarded install path: doubles carry no version
 	// constants, so every schema reads stale and the lock is always granted.
 	function apply_filters( $hook, $value ) { return $value; }
+	function delete_option( $name ) { return true; }
 	function get_option( $name, $default = false ) { return $default; }
 	function get_site_option( $name, $default = false ) { return $default; }
 	function wp_cache_delete( $key, $group = '' ) { return true; }
@@ -38,11 +34,10 @@ namespace {
 	};
 	require __DIR__ . '/../../extrachill-events/inc/Providers/LifecycleProvider.php';
 	require dirname( __DIR__ ) . '/inc/Providers/BookingProvider.php';
-	// Historical order per entry point (main before P1d): activation installs
-	// promoter authority first; the plugins_loaded path installs it last.
+	// Promoter verification has no schema installer.
 	$expected = array(
-		'activate'             => array( 'promoter', 'booking' ),
-		'maybe_install_schema' => array( 'booking', 'promoter' ),
+		'activate'             => array( 'booking' ),
+		'maybe_install_schema' => array( 'booking' ),
 	);
 	foreach ( $expected as $method => $order ) {
 		$GLOBALS['order'] = array();

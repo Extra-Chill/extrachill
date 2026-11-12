@@ -618,7 +618,7 @@ function extrachill_events_event_manager_user_ids( int $event_id ): array {
 		}
 	}
 
-	if ( function_exists( 'wp_get_post_terms' ) && class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
+	if ( function_exists( 'wp_get_post_terms' ) && class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' ) ) {
 		$promoter_terms = wp_get_post_terms( $event_id, 'promoter' );
 		if ( ! is_wp_error( $promoter_terms ) ) {
 			$repository = new \ExtraChillEvents\Core\PromoterAuthorityRepository();

@@ -22,7 +22,6 @@
 use ExtraChillEvents\Abilities\OwnerGuestListAbilities;
 use ExtraChillEvents\Abilities\RsvpPassAbilities;
 use ExtraChillEvents\Core\OwnerGuestListTable;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\RsvpPassesTable;
 
 require_once __DIR__ . '/../../Support/team-members-fake.php';
@@ -49,7 +48,6 @@ if ( ! function_exists( 'home_url' ) ) {
 
 require_once __DIR__ . '/../../../../extrachill-users/inc/teams/TeamMembershipRepository.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/OwnerGuestListTable.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__, 3 ) . '/inc/Core/VenueMembershipRepository.php';
@@ -281,7 +279,6 @@ final class OwnerGuestListTest extends PHPUnit\Framework\TestCase {
 
 		$GLOBALS['event_management_test'] = array(
 			'options'        => array(
-				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 
 				'time_format'                           => 'g:i a',
 			),

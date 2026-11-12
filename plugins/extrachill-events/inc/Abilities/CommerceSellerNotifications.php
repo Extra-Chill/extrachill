@@ -10,7 +10,6 @@ namespace ExtraChillEvents\Abilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
 
 /** Internal server-side helper; recipient addresses are not exposed through REST. */
 class CommerceSellerNotifications {
@@ -59,9 +58,6 @@ class CommerceSellerNotifications {
 					}
 				}
 			} else {
-				if ( ! $promoters && ! PromoterAuthoritySchema::is_ready() ) {
-					return $result;
-				}
 				$promoters    = $promoters ?? new PromoterAuthorityRepository();
 				$organization = $promoters->get_organization( $id );
 				if ( ! is_array( $organization ) || 'active' !== ( $organization['status'] ?? '' ) ) {
