@@ -37,7 +37,7 @@ final class VenueMembershipLockTest extends TestCase {
 				$this->assertSame( 'Venue memberships could not be locked.', $error->get_error_message() );
 				$this->assertSame( array( 'database_error' => 'lock timeout' ), $error->get_error_data() );
 			}
-			$columns = 'id, team_id AS venue_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, revoked_at';
+			$columns = 'id, team_id AS venue_term_id, user_id, is_owner, status, version, created_by_user_id, created_at, updated_at, revoked_at, revoked_by_user_id';
 			$this->assertSame(
 				array(
 					"SELECT {$columns} FROM wp_ec_team_members WHERE team_type = venue AND team_id = 55 ORDER BY id ASC FOR UPDATE",
@@ -215,7 +215,7 @@ final class VenueMembershipLockTest extends TestCase {
 				$this->assertStringContainsString( 'version = version + 1', $GLOBALS['wpdb']->query );
 				$this->assertSame( 0, $repository->mutate( $type, 55, 22, 3, null, true, 9 ) );
 				$this->assertStringContainsString( "status = 'revoked'", $GLOBALS['wpdb']->query );
-				$this->assertSame( 'promoter' === $type, str_contains( $GLOBALS['wpdb']->query, 'revoked_by_user_id = 9' ) );
+				$this->assertTrue( str_contains( $GLOBALS['wpdb']->query, 'revoked_by_user_id = 9' ) );
 			}
 		} finally {
 			$GLOBALS['wpdb'] = $original;

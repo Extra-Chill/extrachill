@@ -125,6 +125,7 @@ require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorization.php';
+require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingAdapter.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityService.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueGrantRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterVenueAuthorization.php';
@@ -226,9 +227,12 @@ final class PromoterAuthorityWpdb {
 		}
 		$i = 0;
 		return preg_replace_callback(
-			'/%[ds]/',
+			'/%[dsi]/',
 			static function ( $placeholder ) use ( &$args, &$i ) {
 				$value = $args[ $i++ ];
+				if ( '%i' === $placeholder[0] ) {
+					return (string) $value;
+				}
 				return '%d' === $placeholder[0] ? (string) (int) $value : "'" . addslashes( (string) $value ) . "'";
 			},
 			$query
@@ -617,6 +621,7 @@ final class PromoterAuthorityTest extends TestCase {
 			'abilities'         => array(),
 		);
 		$GLOBALS['ec_test_filters']       = array();
+		add_filter( 'extrachill_users_team_onboarding_adapters', array( \ExtraChillEvents\Core\VenueOnboardingAdapter::class, 'register' ) );
 		add_action(
 			'extrachill_events_promoter_authority_database_error',
 			static function ( array $context ): void {
