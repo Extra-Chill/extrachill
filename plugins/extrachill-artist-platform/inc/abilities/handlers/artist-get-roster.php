@@ -71,7 +71,9 @@ function extrachill_artist_platform_ability_artist_get_roster( array $input ): a
 		$invited_on = (int) $invite['invited_on'];
 		$invites[]  = array(
 			'id'                   => $invite['id'],
+			// Empty unless the inviter supplied the address (see ec_artist_roster_invitation_shows_email()).
 			'email'                => $invite['email'],
+			'display_name'         => $invite['display_name'],
 			'of_existing_user'     => null !== $invite['existing_user'],
 			'status'               => $invite['status'],
 			'invited_on'           => $invited_on,

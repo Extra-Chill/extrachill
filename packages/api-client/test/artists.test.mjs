@@ -47,3 +47,29 @@ test('omits undefined options', () => {
   );
   assert.equal(analyticsPath({}), 'extrachill/v1/artists/42/analytics');
 });
+
+function rosterInviteRequest(invitee) {
+  let request;
+  const resource = new ArtistsResource({
+    request(value) {
+      request = value;
+      return Promise.resolve({});
+    },
+  });
+
+  resource.inviteRosterMember(42, invitee);
+
+  return request;
+}
+
+test('invites a typed email address', () => {
+  const request = rosterInviteRequest('typed@example.com');
+  assert.equal(request.path, 'extrachill/v1/artists/42/roster');
+  assert.deepEqual(request.body, { email: 'typed@example.com' });
+});
+
+test('invites a picked member by user ID without an email', () => {
+  const request = rosterInviteRequest({ user_id: 7 });
+  assert.equal(request.path, 'extrachill/v1/artists/42/roster');
+  assert.deepEqual(request.body, { user_id: 7 });
+});

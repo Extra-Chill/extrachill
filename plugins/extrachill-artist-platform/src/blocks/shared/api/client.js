@@ -114,8 +114,14 @@ export const deleteMedia = ( context, targetId ) =>
 // ─── Roster ─────────────────────────────────────────────────────────────────
 
 export const getRoster = ( artistId ) => client.artists.getRoster( artistId );
-export const inviteRosterMember = ( artistId, email ) =>
-	client.artists.inviteRosterMember( artistId, email );
+/**
+ * Invite a roster member by typed email or by a user picked from search.
+ *
+ * @param {number}                   artistId Artist profile ID.
+ * @param {string|{user_id: number}} invitee  Email address, or `{ user_id }`.
+ */
+export const inviteRosterMember = ( artistId, invitee ) =>
+	client.artists.inviteRosterMember( artistId, invitee );
 export const removeRosterMember = ( artistId, userId ) =>
 	client.artists.removeRosterMember( artistId, userId );
 export const cancelRosterInvite = ( artistId, inviteId ) =>
