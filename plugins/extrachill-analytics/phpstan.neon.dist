@@ -1,4 +1,0 @@
-# Rate limiting is supplied by the network foundation.
-parameters:
-	scanFiles:
-		- ../extrachill-network/inc/core/rate-limit.php

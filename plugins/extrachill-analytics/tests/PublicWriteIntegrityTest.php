@@ -567,8 +567,6 @@ final class PublicWriteIntegrityTest extends Extrachill_Analytics_TestCase {
 	 * The Analytics-owned limiter rejects writes at its documented ceiling.
 	 */
 	public function test_public_write_rate_limit_is_bounded(): void {
-		$key = 'analytics_write_' . substr( hash_hmac( 'sha256', '203.0.113.10', wp_salt( 'nonce' ) ), 0, 32 );
-		extrachill_rate_limit_reset( $key, MINUTE_IN_SECONDS );
 		for ( $attempt = 0; $attempt < 240; ++$attempt ) {
 			$this->assertTrue( extrachill_analytics_check_public_write_rate_limit() );
 		}
@@ -578,7 +576,6 @@ final class PublicWriteIntegrityTest extends Extrachill_Analytics_TestCase {
 		$this->assertInstanceOf( WP_Error::class, $result );
 		$this->assertSame( 'analytics_write_rate_limited', $result->get_error_code() );
 		$this->assertSame( 429, $result->get_error_data( 'analytics_write_rate_limited' )['status'] );
-		$this->assertSame( 241, extrachill_rate_limit_count( $key, MINUTE_IN_SECONDS ) );
 	}
 
 	/**
