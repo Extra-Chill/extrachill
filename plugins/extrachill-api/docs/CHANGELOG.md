@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.4] - 2026-11-12
+
+### Changed
+- one rate-limit primitive in extrachill-network
+
 ## [0.52.3] - 2026-11-11
 
 ### Changed
