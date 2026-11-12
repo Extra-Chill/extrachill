@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.7] - 2026-11-12
+
+### Changed
+- one guarded membership store for venue and promoter
+
 ## [0.63.6] - 2026-11-11
 
 ### Changed
