@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.30.3] - 2026-11-12
+
+### Changed
+- one rate-limit primitive in extrachill-network
+
 ## [1.30.2] - 2026-11-05
 
 ### Changed
