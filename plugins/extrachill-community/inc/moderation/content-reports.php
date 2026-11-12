@@ -446,7 +446,7 @@ function extrachill_community_ability_report_content( $input ) {
 		);
 	}
 
-	$admission = extrachill_rate_limit_admit( 'ec_report_rate_' . (int) $user_id, extrachill_community_report_rate_limit(), HOUR_IN_SECONDS );
+	$admission = extrachill_rate_limit_admit( 'community_report:' . (int) $user_id, extrachill_community_report_rate_limit(), HOUR_IN_SECONDS );
 	if ( is_wp_error( $admission ) ) {
 		return $admission;
 	}

@@ -212,7 +212,7 @@ cr_assert( false !== strpos( $GLOBALS['_cr_mail'][0]['body'], 'Best venues' ), '
 $dupe = cr_run( array( 'post_id' => 200, 'reason' => 'spam' ) );
 cr_assert( $report['report_id'] === $dupe['report_id'] && true === $dupe['deduplicated'], 'Re-reporting an open target returns the existing report.' );
 cr_assert( 1 === count( $GLOBALS['_cr_mail'] ), 'Deduplicated reports do not re-notify.' );
-cr_assert( 1 === extrachill_rate_limit_count( 'ec_report_rate_1', HOUR_IN_SECONDS ), 'Deduplicated reports do not count against the rate limit.' );
+cr_assert( 1 === extrachill_rate_limit_count( 'community_report:1', HOUR_IN_SECONDS ), 'Deduplicated reports do not count against the rate limit.' );
 
 // Profile report.
 $profile = cr_run( array( 'user_id' => 2, 'reason' => 'spam' ) );
@@ -246,7 +246,7 @@ $limited = cr_run( array( 'post_id' => 400, 'reason' => 'spam' ) );
 cr_assert( 'rate_limited' === cr_code( $limited ) && 429 === $limited->data['status'], 'The 11th report in an hour is rate limited.' );
 $still_dedupes = cr_run( array( 'post_id' => 300, 'reason' => 'spam' ) );
 cr_assert( true === $still_dedupes['deduplicated'], 'Dedupe still answers while rate limited.' );
-extrachill_rate_limit_reset( 'ec_report_rate_1', HOUR_IN_SECONDS );
+extrachill_rate_limit_reset( 'community_report:1', HOUR_IN_SECONDS );
 $GLOBALS['_cr_store_unavailable'] = true;
 $before = count( $GLOBALS['_cr_posts'] );
 $unavailable = cr_run( array( 'post_id' => 400, 'reason' => 'spam' ) );

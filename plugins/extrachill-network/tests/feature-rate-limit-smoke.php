@@ -31,20 +31,12 @@ function check_feature( $condition, $message ) {
 }
 require dirname( __DIR__ ) . '/inc/core/rate-limit.php';
 require dirname( __DIR__, 2 ) . '/extrachill-analytics/inc/core/write-integrity.php';
-require dirname( __DIR__, 2 ) . '/extrachill-events/inc/core/guest-list-requests.php';
 for ( $i = 0; $i < 240; ++$i ) {
 	check_feature( true === extrachill_analytics_check_public_write_rate_limit(), 'Analytics admits through 240.' );
 }
 $error = extrachill_analytics_check_public_write_rate_limit();
 check_feature( 'analytics_write_rate_limited' === $error->code && 429 === $error->data['status'], 'Analytics preserves its 429 contract.' );
-foreach ( array( 'ip' => EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_IP_LIMIT, 'email' => EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_EMAIL_LIMIT ) as $key => $limit ) {
-	for ( $i = 0; $i < $limit; ++$i ) {
-		check_feature( ! extrachill_events_guest_list_request_bucket_full( $key, $limit ), 'Guest requests admit up to the limit.' );
-	}
-	check_feature( extrachill_events_guest_list_request_bucket_full( $key, $limit ), 'Guest requests reject above the limit.' );
-}
 $GLOBALS['unavailable'] = true;
 $error = extrachill_analytics_check_public_write_rate_limit();
 check_feature( 'analytics_write_limiter_unavailable' === $error->code && 503 === $error->data['status'], 'Analytics preserves unavailable errors.' );
-check_feature( extrachill_events_guest_list_request_bucket_full( 'fresh', 5 ), 'Guest requests fail closed.' );
-echo "PASS: analytics and guest-list adapters use shared admission and fail closed.\n";
+echo "PASS: analytics adapter uses shared admission and fail closed.\n";

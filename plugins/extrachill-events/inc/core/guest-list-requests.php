@@ -190,17 +190,6 @@ function extrachill_events_party_submit_guest_list( string $token, $names ) {
 }
 
 /**
- * Count one public request against a rate-limit bucket.
- *
- * @param string $key   Limiter key.
- * @param int    $limit Requests allowed per hour.
- * @return bool Whether the bucket was already full.
- */
-function extrachill_events_guest_list_request_bucket_full( string $key, int $limit ): bool {
-	return true !== extrachill_rate_limit_admit( $key, $limit, HOUR_IN_SECONDS );
-}
-
-/**
  * A band or manager asks for spots on a show it was not invited to.
  *
  * Creates a pending party with no working link and, optionally, pending
@@ -260,8 +249,8 @@ function extrachill_events_request_guest_list_party( int $event_id, string $name
 	}
 
 	// Rate limits: per address and per email, both counted before writing.
-	$ip_full    = '' !== $client_ip && extrachill_events_guest_list_request_bucket_full( 'ec_gl_req_ip_' . md5( $client_ip ), EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_IP_LIMIT );
-	$email_full = extrachill_events_guest_list_request_bucket_full( 'ec_gl_req_em_' . md5( strtolower( $email ) ), EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_EMAIL_LIMIT );
+	$ip_full    = '' !== $client_ip && true !== extrachill_rate_limit_admit( 'ec_gl_req_ip_' . md5( $client_ip ), EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_IP_LIMIT, HOUR_IN_SECONDS );
+	$email_full = true !== extrachill_rate_limit_admit( 'ec_gl_req_em_' . md5( strtolower( $email ) ), EXTRACHILL_EVENTS_GUEST_LIST_REQUEST_EMAIL_LIMIT, HOUR_IN_SECONDS );
 	if ( $ip_full || $email_full ) {
 		return new WP_Error( 'guest_list_request_rate_limited', __( 'Too many requests. Try again in an hour.', 'extrachill-events' ), array( 'status' => 429 ) );
 	}

@@ -13,29 +13,23 @@ defined( 'ABSPATH' ) || exit;
 
 const EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT  = 5;
 const EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW = 15 * MINUTE_IN_SECONDS;
-const EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP = 'extrachill-users-registration-admission';
 
 /**
- * Get the registration limiter key for the current requester and window.
+ * Get the registration limiter key for the current requester.
  *
- * The custom cache group is registered as global so all sites in the network
- * share one IP budget. Network ID remains in the key to isolate separate
- * networks when a cache backend serves more than one.
- *
- * @param int|null $now Optional Unix timestamp. Defaults to now.
+ * Network ID isolates networks sharing a cache backend. The shared primitive
+ * adds the fixed-window suffix.
  * @return string Cache key, or an empty string when the requester IP is unavailable.
  */
-function extrachill_users_registration_attempt_key( ?int $now = null ): string {
+function extrachill_users_registration_attempt_key(): string {
 	$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 	if ( '' === $ip ) {
 		return '';
 	}
 
-	$now       = null === $now ? time() : $now;
-	$window_id = intdiv( $now, EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW );
-	$ip_hash   = substr( hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) ), 0, 32 );
+	$ip_hash = substr( hash_hmac( 'sha256', $ip, wp_salt( 'nonce' ) ), 0, 32 );
 
-	return sprintf( 'network_%d_window_%d_ip_%s', get_current_network_id(), $window_id, $ip_hash );
+	return sprintf( 'registration_network_%d_ip_%s', get_current_network_id(), $ip_hash );
 }
 
 /**
@@ -57,55 +51,14 @@ function extrachill_users_registration_rate_limit_error( int $expires_at ): WP_E
 }
 
 /**
- * Atomically increment and admit one registration attempt.
- *
- * `wp_cache_add()` admits the first request and `wp_cache_incr()` atomically
- * admits every concurrent follower without a separate read/write race. Redis
- * preserves the original TTL on increment. Retaining each addressed key for
- * two windows prevents it from expiring between a failed add and increment,
- * while the window in the key keeps admission accounting fixed and bounded.
- *
- * @param string $key        Network-global cache key.
- * @param int    $expires_at Fixed-window expiry timestamp.
- * @return true|WP_Error True when admitted, otherwise a stable error.
- */
-function extrachill_users_increment_registration_attempt( string $key, int $expires_at ) {
-	wp_cache_add_global_groups( EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP );
-
-	$ttl = 2 * EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW;
-	if ( wp_cache_add( $key, 1, EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP, $ttl ) ) {
-		$count = 1;
-	} else {
-		$count = wp_cache_incr( $key, 1, EXTRACHILL_USERS_REGISTRATION_CACHE_GROUP );
-	}
-
-	if ( false === $count || ! is_numeric( $count ) ) {
-		return new WP_Error(
-			'registration_limiter_unavailable',
-			__( 'Registration is temporarily unavailable. Please try again.', 'extrachill-users' ),
-			array( 'status' => 503 )
-		);
-	}
-
-	return (int) $count > EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT
-		? extrachill_users_registration_rate_limit_error( $expires_at )
-		: true;
-}
-
-/**
  * Admit the current requester through the network-wide registration limiter.
  *
  * @return true|WP_Error True when admitted, otherwise a fail-closed error.
  */
 function extrachill_users_admit_registration_attempt() {
-	$key = extrachill_users_registration_attempt_key();
-	if ( '' === $key
-		|| ! function_exists( 'wp_using_ext_object_cache' )
-		|| ! wp_using_ext_object_cache()
-		|| ! function_exists( 'wp_cache_add' )
-		|| ! function_exists( 'wp_cache_incr' )
-		|| ! function_exists( 'wp_cache_add_global_groups' )
-	) {
+	$key    = extrachill_users_registration_attempt_key();
+	$result = '' === $key ? extrachill_rate_limit_unavailable() : extrachill_rate_limit_admit( $key, EXTRACHILL_USERS_REGISTRATION_RATE_LIMIT, EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW );
+	if ( is_wp_error( $result ) ) {
 		return new WP_Error(
 			'registration_limiter_unavailable',
 			__( 'Registration is temporarily unavailable. Please try again.', 'extrachill-users' ),
@@ -113,10 +66,7 @@ function extrachill_users_admit_registration_attempt() {
 		);
 	}
 
-	$now        = time();
-	$expires_at = ( intdiv( $now, EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW ) + 1 ) * EXTRACHILL_USERS_REGISTRATION_RATE_WINDOW;
-
-	return extrachill_users_increment_registration_attempt( $key, $expires_at );
+	return true === $result ? true : extrachill_users_registration_rate_limit_error( time() + $result );
 }
 
 /**
