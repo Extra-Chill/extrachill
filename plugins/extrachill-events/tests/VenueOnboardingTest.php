@@ -20,6 +20,18 @@ require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipReposito
 
 final class VenueOnboardingTest extends TestCase {
 
+	public function test_error_codes_use_the_adapters_own_type(): void {
+		foreach ( array( 'venue', 'promoter' ) as $type ) {
+			$adapter = new \ExtraChillEvents\Core\VenueOnboardingAdapter( $type );
+			$this->assertSame( $type . '_membership_last_owner', $adapter->error_code( 'team_membership_last_owner' ) );
+			$this->assertSame( $type . '_membership_exists', $adapter->error_code( 'team_membership_exists' ) );
+			$this->assertSame( $type . '_membership_limit_exceeded', $adapter->error_code( 'team_membership_limit_reached' ) );
+			$prefix = 'promoter' === $type ? 'promoter_authority' : 'venue_membership';
+			$this->assertSame( $prefix . '_transaction_failed', $adapter->error_code( 'team_membership_transaction_failed' ) );
+			$this->assertSame( $prefix . '_commit_uncertain', $adapter->error_code( 'team_membership_commit_uncertain' ) );
+		}
+	}
+
 	/** The extracted store delegates the anchor lock and rolls back adapter failures. */
 	public function test_generic_repository_uses_adapter_lock_and_error_namespace(): void {
 		require_once dirname( __DIR__ ) . '/inc/Core/VenueOnboardingRepository.php';

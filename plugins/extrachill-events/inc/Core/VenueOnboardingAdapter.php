@@ -8,6 +8,7 @@
 namespace ExtraChillEvents\Core;
 
 use ExtraChill\Users\Teams\TeamOnboardingAdapter;
+use ExtraChill\Users\Teams\TeamMembershipRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -15,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Taxonomy anchor, Events authorization and invitation copy for team onboarding. */
 class VenueOnboardingAdapter implements TeamOnboardingAdapter {
+
+	/** @var array<string, mixed>|\WP_Error|null Organization read under the anchor lock. */
+	private $locked_organization;
 
 	/** Team types this adapter serves, with their supported operations. */
 	public const SUPPORT = array(
@@ -25,10 +29,10 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 	/** Accept-route action shared by venue and promoter invitations. */
 	public const ACCEPT_ACTION = 'ec_accept_team_invitation';
 
-	/** Team type. */
+	/** @var string Team type. */
 	private $type;
 
-	/** Events authorization. */
+	/** @var TeamAuthorization Events authorization. */
 	private $authorization;
 
 	public function __construct( string $type = 'venue', ?TeamAuthorization $authorization = null ) {
@@ -55,9 +59,15 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 		return self::SUPPORT[ $this->type ];
 	}
 
-	/** Venue and promoter share the historical `venue_*` public error codes. */
+	/** Preserve the adapter's team type in public error codes. */
 	public function error_code( string $code ): string {
-		return str_replace( 'team', 'venue', $code );
+		if ( 'team_membership_limit_reached' === $code ) {
+			return $this->type . '_membership_limit_exceeded';
+		}
+		if ( 'promoter' === $this->type && in_array( $code, array( 'team_membership_transaction_failed', 'team_membership_commit_uncertain' ), true ) ) {
+			return str_replace( 'team_membership', 'promoter_authority', $code );
+		}
+		return str_replace( 'team', $this->type, $code );
 	}
 
 	public function public_record( array $record ): array {
@@ -76,11 +86,40 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 	}
 
 	public function authorize_locked( int $actor_user_id, int $team_id, array $members ) {
+		if ( 'promoter' === $this->type ) {
+			$organization = $this->locked_organization ?? ( new PromoterAuthorityRepository() )->get_organization( $team_id );
+			if ( is_wp_error( $organization ) ) {
+				return $organization;
+			}
+			if ( is_array( $organization ) && TeamMembershipRepository::STATUS_ACTIVE === $organization['status'] ) {
+				if ( TeamAuthorization::is_site_admin( $actor_user_id ) ) {
+					return true;
+				}
+				if ( TeamAuthorization::principal_allows( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) ) {
+					foreach ( $members as $member ) {
+						if ( $actor_user_id === $member['user_id'] && $member['is_owner'] && TeamMembershipRepository::STATUS_ACTIVE === $member['status'] ) {
+							return true;
+						}
+					}
+				}
+			}
+			return new \WP_Error( 'promoter_authority_forbidden', __( 'You are not authorized to perform this promoter action.', 'extrachill-events' ), array( 'status' => 403 ) );
+		}
 		return $this->authorization->authorize_locked( $actor_user_id, $this->type, $team_id, TeamAuthorization::ACTION_MANAGE_MEMBERS, $members );
 	}
 
 	public function check_team( int $team_id, bool $lock ) {
 		global $wpdb;
+		if ( $lock && 'promoter' === $this->type ) {
+			$table                     = PromoterAuthoritySchema::organizations_table();
+			$row                       = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE promoter_term_id = %d FOR UPDATE', $table, $team_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Serialize the promoter organization before its members.
+			$this->locked_organization = null;
+			if ( '' !== (string) $wpdb->last_error ) {
+				return new \WP_Error( 'promoter_membership_read_failed', __( 'Promoter authority could not be locked.', 'extrachill-events' ), array( 'status' => 500 ) );
+			}
+			$this->locked_organization = is_array( $row ) ? ( new PromoterAuthorityRepository() )->hydrate_organization( $row ) : null;
+			return is_wp_error( $this->locked_organization ) ? $this->locked_organization : true;
+		}
 		if ( $lock ) {
 			$id    = $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->terms} WHERE term_id = %d FOR UPDATE", $team_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction anchor lock.
 			$valid = (int) $id === $team_id && '' === (string) $wpdb->last_error;

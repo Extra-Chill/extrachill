@@ -54,9 +54,155 @@ class TeamMembershipRepository {
 		);
 		$row = $wpdb->get_row( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Prepared by sql().
 		if ( '' !== (string) $wpdb->last_error ) {
-			return new \WP_Error( $team_type . '_membership_read_failed', 'artist' === $team_type ? __( 'The artist membership could not be read.', 'extrachill-users' ) : ( 'venue' === $team_type ? __( 'The venue membership could not be read.', 'extrachill-users' ) : __( 'The promoter membership could not be read.', 'extrachill-users' ) ), array( 'database_error' => $wpdb->last_error ) );
+			return new \WP_Error( $team_type . '_membership_read_failed', sprintf( /* translators: %s: team type, such as venue, promoter or artist. */ __( 'The %s membership could not be read.', 'extrachill-users' ), $team_type ), array( 'database_error' => $wpdb->last_error ) );
 		}
 		return is_array( $row ) ? $this->hydrate( $team_type, $row ) : null;
+	}
+
+	/** Serialize an adapter-authorized ownership change or revocation. */
+	public function change_member( TeamOnboardingAdapter $adapter, int $team_id, int $user_id, int $expected_version, ?bool $is_owner, bool $revoke, int $actor_user_id, bool $enforce_owner_floor = true ) {
+		global $wpdb;
+		if ( $team_id < 1 || $user_id < 1 || $expected_version < 1 || $actor_user_id < 1 ) {
+			return $this->change_error( $adapter, 'invalid_id', 400 );
+		}
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB -- Guarded membership transaction.
+			return $this->change_error( $adapter, 'transaction_failed', 500 );
+		}
+		$result = $adapter->check_team( $team_id, true );
+		if ( ! is_wp_error( $result ) ) {
+			$rows   = $this->lock_team( $adapter->team_type(), $team_id );
+			$result = '' !== (string) $wpdb->last_error ? $this->change_error( $adapter, 'read_failed', 500 ) : $this->hydrate_rows( $adapter->team_type(), $rows );
+		}
+		if ( ! is_wp_error( $result ) ) {
+			$members = $result;
+			$result  = $adapter->authorize_locked( $actor_user_id, $team_id, $members );
+		}
+		if ( is_wp_error( $result ) ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB -- No write has committed.
+			return $result;
+		}
+		$members = $members ?? array();
+		$current = null;
+		$owners  = 0;
+		foreach ( $members as $member ) {
+			if ( $user_id === $member['user_id'] ) {
+				$current = $member;
+			}
+			$owners += $member['is_owner'] && self::STATUS_ACTIVE === $member['status'] ? 1 : 0;
+		}
+		if ( null === $current ) {
+			$result = $this->change_error( $adapter, 'not_found', 404 );
+		} elseif ( $expected_version !== $current['version'] ) {
+			$result = $this->change_error( $adapter, 'version_conflict', 409, array( 'current_version' => $current['version'] ) );
+		} elseif ( self::STATUS_REVOKED === $current['status'] ) {
+			$result = $this->change_error( $adapter, 'revoked', 409 );
+		} elseif ( $enforce_owner_floor && $current['is_owner'] && self::STATUS_ACTIVE === $current['status'] && ( $revoke || false === $is_owner ) && $owners < 2 ) {
+			$result = $this->change_error( $adapter, 'last_owner', 409 );
+		} else {
+			$result = $this->mutate( $adapter->team_type(), $team_id, $user_id, $expected_version, $is_owner, $revoke, $actor_user_id );
+			if ( false === $result ) {
+				$result = $this->change_error( $adapter, 'update_failed', 500 );
+			} elseif ( 0 === $result ) {
+				$result = $this->change_error( $adapter, 'version_conflict', 409, array( 'current_version' => $current['version'] ) );
+			}
+		}
+		if ( is_wp_error( $result ) ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB -- Failed guarded change.
+			return $result;
+		}
+		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB -- A failed commit has an uncertain outcome; never roll back.
+			return $this->change_error( $adapter, 'commit_uncertain', 500 );
+		}
+		return $this->get( $adapter->team_type(), $team_id, $user_id );
+	}
+
+	/** Serialize an adapter-authorized membership creation. */
+	public function add_member( TeamOnboardingAdapter $adapter, int $team_id, int $user_id, bool $is_owner, int $actor_user_id, string $status = 'active', ?int $max_members = null ) {
+		global $wpdb;
+		if ( $team_id < 1 || $user_id < 1 || $actor_user_id < 1 ) {
+			return $this->change_error( $adapter, 'invalid_id', 400 );
+		}
+		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB -- Guarded membership transaction.
+			return $this->change_error( $adapter, 'transaction_failed', 500 );
+		}
+		$result = $adapter->check_team( $team_id, true );
+		if ( ! is_wp_error( $result ) ) {
+			$rows   = $this->lock_team( $adapter->team_type(), $team_id );
+			$result = '' !== (string) $wpdb->last_error ? $this->change_error( $adapter, 'read_failed', 500 ) : $this->hydrate_rows( $adapter->team_type(), $rows );
+		}
+		if ( ! is_wp_error( $result ) ) {
+			$members = $result;
+			$result  = $adapter->authorize_locked( $actor_user_id, $team_id, $members );
+		}
+		if ( ! is_wp_error( $result ) ) {
+			$members   = $members ?? array();
+			$has_owner = false;
+			foreach ( $members as $member ) {
+				if ( $user_id === $member['user_id'] ) {
+					$result = $this->change_error( $adapter, 'exists', 409, array( 'current_version' => $member['version'] ) );
+					break;
+				}
+				$has_owner = $has_owner || ( $member['is_owner'] && self::STATUS_ACTIVE === $member['status'] );
+			}
+			if ( ! is_wp_error( $result ) ) {
+				if ( null !== $max_members && count( $members ) >= $max_members ) {
+					$result = $this->change_error( $adapter, 'limit_reached', 409, array( 'maximum' => $max_members ) );
+				} elseif ( self::STATUS_ACTIVE === $status && ! $is_owner && ! $has_owner ) {
+					$result = $this->change_error( $adapter, 'owner_required', 409 );
+				} else {
+					$result = $this->insert( $adapter->team_type(), $this->new_row( $adapter->team_type(), $team_id, $user_id, $is_owner, $actor_user_id, $status ) );
+					if ( false === $result ) {
+						$winner = $this->get( $adapter->team_type(), $team_id, $user_id );
+						$result = is_array( $winner ) ? $this->change_error( $adapter, 'exists', 409, array( 'current_version' => $winner['version'] ) ) : ( is_wp_error( $winner ) ? $winner : $this->change_error( $adapter, 'create_failed', 500 ) );
+					}
+				}
+			}
+		}
+		if ( is_wp_error( $result ) ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB -- Failed guarded creation.
+			return $result;
+		}
+		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB -- A failed commit has an uncertain outcome; never roll back.
+			return $this->change_error( $adapter, 'commit_uncertain', 500 );
+		}
+		return $this->get( $adapter->team_type(), $team_id, $user_id );
+	}
+
+	/** Map shared mutation failures through the type-owned public contract. */
+	private function change_error( TeamOnboardingAdapter $adapter, string $reason, int $status, array $data = array() ): \WP_Error {
+		$messages = array(
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'invalid_id'         => __( 'Positive identifiers are required for the %s membership.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'exists'             => __( 'A %s membership already exists for this user.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'owner_required'     => __( 'The first active %s member must be an owner.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'limit_reached'      => __( 'This %s team has reached the supported membership limit.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'create_failed'      => __( 'The %s membership could not be created.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'transaction_failed' => __( 'The %s membership transaction could not start.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'read_failed'        => __( 'The %s membership could not be read.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'not_found'          => __( 'The %s membership was not found.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'version_conflict'   => __( 'The %s membership changed since it was read.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'revoked'            => __( 'A revoked %s membership cannot be changed.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'last_owner'         => __( 'The final active %s owner cannot be removed.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'update_failed'      => __( 'The %s membership could not be changed.', 'extrachill-users' ),
+			/* translators: %s: team type, such as venue, promoter or artist. */
+			'commit_uncertain'   => __( 'The %s membership transaction outcome could not be confirmed.', 'extrachill-users' ),
+		);
+		return new \WP_Error(
+			$adapter->error_code( 'team_membership_' . $reason ),
+			sprintf( $messages[ $reason ], $adapter->team_type() ),
+			array_merge( array( 'status' => $status ), $data )
+		);
 	}
 
 	/** Lock a team's raw rows; the caller owns the transaction and error policy. */
@@ -178,29 +324,26 @@ class TeamMembershipRepository {
 
 	/** Normalize authority scalars while preserving each typed facade's keys. */
 	public function hydrate( string $team_type, array $row ) {
-		$venue    = 'venue' === $team_type;
 		$statuses = array( 'active', 'invited', 'revoked' );
 		if ( ! in_array( $row['status'] ?? '', $statuses, true ) ) {
-			return new \WP_Error( $team_type . '_membership_corrupt_status', 'artist' === $team_type ? __( 'The stored artist membership status is invalid.', 'extrachill-users' ) : ( $venue ? __( 'The stored venue membership status is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership status is invalid.', 'extrachill-users' ) ) );
+			return new \WP_Error( $team_type . '_membership_corrupt_status', sprintf( /* translators: %s: team type, such as venue, promoter or artist. */ __( 'The stored %s membership status is invalid.', 'extrachill-users' ), $team_type ) );
 		}
-		if ( ! in_array( $row['is_owner'] ?? null, array( 0, 1, '0', '1' ), true ) ) {
-			return new \WP_Error( $team_type . '_membership_corrupt_owner', 'artist' === $team_type ? __( 'The stored artist membership ownership value is invalid.', 'extrachill-users' ) : ( $venue ? __( 'The stored venue membership ownership value is invalid.', 'extrachill-users' ) : __( 'The stored promoter membership ownership value is invalid.', 'extrachill-users' ) ) );
+		if ( ! in_array( $row['is_owner'] ?? null, array( 0, 1, '0', '1', true, false ), true ) ) {
+			return new \WP_Error( $team_type . '_membership_corrupt_owner', sprintf( /* translators: %s: team type, such as venue, promoter or artist. */ __( 'The stored %s membership ownership value is invalid.', 'extrachill-users' ), $team_type ) );
 		}
 		foreach ( array( 'id', $this->id_key( $team_type ), 'user_id', 'version', 'created_by_user_id' ) as $field ) {
 			$row[ $field ] = (int) $row[ $field ];
 		}
-		$row['is_owner']   = (bool) (int) $row['is_owner'];
-		$row['revoked_at'] = empty( $row['revoked_at'] ) ? null : (string) $row['revoked_at'];
-		if ( ! $venue ) {
-			$row['revoked_by_user_id'] = empty( $row['revoked_by_user_id'] ) ? null : (int) $row['revoked_by_user_id'];
-		}
+		$row['is_owner']           = (bool) (int) $row['is_owner'];
+		$row['revoked_at']         = empty( $row['revoked_at'] ) ? null : (string) $row['revoked_at'];
+		$row['revoked_by_user_id'] = empty( $row['revoked_by_user_id'] ) ? null : (int) $row['revoked_by_user_id'];
 		return $row;
 	}
 
 	/** Build the initial row for a validated relationship. */
 	public function new_row( string $team_type, int $term_id, int $user_id, bool $is_owner, int $creator_id, string $status = 'active' ): array {
-		$now = gmdate( 'Y-m-d H:i:s' );
-		$row = array(
+		$now                       = gmdate( 'Y-m-d H:i:s' );
+		$row                       = array(
 			$this->id_key( $team_type ) => $term_id,
 			'user_id'                   => $user_id,
 			'is_owner'                  => $is_owner ? 1 : 0,
@@ -211,9 +354,7 @@ class TeamMembershipRepository {
 			'updated_at'                => $now,
 			'revoked_at'                => 'revoked' === $status ? $now : null,
 		);
-		if ( 'venue' !== $team_type ) {
-			$row['revoked_by_user_id'] = null;
-		}
+		$row['revoked_by_user_id'] = null;
 		return $row;
 	}
 
@@ -253,10 +394,8 @@ class TeamMembershipRepository {
 		if ( $revoke ) {
 			$set[]    = 'status = %s';
 			$values[] = 'revoked';
-			if ( 'venue' !== $team_type ) {
-				$set[]    = 'revoked_by_user_id = %d';
-				$values[] = $actor_user_id;
-			}
+			$set[]    = 'revoked_by_user_id = %d';
+			$values[] = $actor_user_id;
 			$set[]    = 'revoked_at = %s';
 			$values[] = $now;
 		}
@@ -267,11 +406,9 @@ class TeamMembershipRepository {
 
 	/** Typed read columns, aliasing the shared term key back to the facade's key. */
 	private function columns( string $team_type, string $alias = '' ): string {
-		$key     = $this->id_key( $team_type );
-		$columns = array( 'id', "team_id AS {$key}", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
-		if ( 'venue' !== $team_type ) {
-			$columns[] = 'revoked_by_user_id';
-		}
+		$key       = $this->id_key( $team_type );
+		$columns   = array( 'id', "team_id AS {$key}", 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_at' );
+		$columns[] = 'revoked_by_user_id';
 		return $alias . implode( ', ' . $alias, $columns );
 	}
 
