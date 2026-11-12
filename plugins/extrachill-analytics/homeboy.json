@@ -257,6 +257,7 @@
       "php": "8.2",
       "settings": {
         "phpunit_no_tests": "fail",
+        "validation_dependencies": ["../extrachill-network"],
         "runtime_wordpress_version": "7.0",
         "wp_codebox_multisite": true,
         "wp_codebox_phpunit_bootstrap_mode": "managed"

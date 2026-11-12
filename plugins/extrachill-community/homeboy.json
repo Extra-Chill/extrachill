@@ -13,6 +13,7 @@
             "source_type": "wp.org",
             "slug": "bbpress"
           },
+          "../extrachill-network",
           "../extrachill-users",
           "../extrachill-analytics",
           "agents-api",
