@@ -14,8 +14,8 @@ namespace ExtraChillEvents\Core {
 		}
 	}
 	final class PromoterWorkspace {
-		public function __construct( $promoters = null, $grants = null, $venues = null, bool $use_execution_principal = true ) {
-			unset( $promoters, $grants, $venues );
+		public function __construct( $promoters = null, $venues = null, bool $use_execution_principal = true ) {
+			unset( $promoters, $venues );
 			$GLOBALS['venue_settings_render_fixture']['uses_principal'] = $use_execution_principal;
 		}
 		public function resolve_for_user( int $user_id, string $reference ) {
@@ -37,8 +37,6 @@ namespace ExtraChillEvents\Core {
 				),
 				'promoter'               => null,
 				'venue'                  => null,
-				'granted_venues'         => array(),
-				'promoter_relationships' => array(),
 			);
 		}
 	}

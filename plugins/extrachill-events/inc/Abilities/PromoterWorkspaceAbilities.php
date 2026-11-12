@@ -7,9 +7,7 @@
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterAuthorization;
-use ExtraChillEvents\Core\PromoterVenueGrantRepository;
 use ExtraChillEvents\Core\PromoterWorkspace;
 
 defined( 'ABSPATH' ) || exit;
@@ -250,70 +248,16 @@ final class PromoterWorkspaceAbilities {
 				'venue'                  => $nullable_identity,
 				'granted_venues'         => array(
 					'type'     => 'array',
-					'maxItems' => PromoterVenueGrantRepository::MAX_GRANTS,
-					'items'    => $this->granted_venue_schema(),
+					'maxItems' => 0,
+					'items'    => array( 'type' => 'string' ),
 				),
 				'promoter_relationships' => array(
 					'type'     => 'array',
-					'maxItems' => PromoterVenueGrantRepository::MAX_GRANTS,
-					'items'    => $this->relationship_schema(),
+					'maxItems' => 0,
+					'items'    => array( 'type' => 'string' ),
 				),
 			),
 			array( 'actor', 'identities', 'selection', 'promoter', 'venue', 'granted_venues', 'promoter_relationships' )
-		);
-	}
-
-	/** Closed active grant projection. */
-	private function granted_venue_schema(): array {
-		return $this->object(
-			array(
-				'id'           => array(
-					'type'    => 'integer',
-					'minimum' => 1,
-				),
-				'name'         => array(
-					'type'      => 'string',
-					'maxLength' => 255,
-				),
-				'action'       => array(
-					'type' => 'string',
-					'enum' => PromoterVenueGrantRepository::actions(),
-				),
-				'action_label' => array(
-					'type'      => 'string',
-					'maxLength' => 100,
-				),
-			),
-			array( 'id', 'name', 'action', 'action_label' )
-		);
-	}
-
-	/** Closed venue-owner relationship projection. */
-	private function relationship_schema(): array {
-		return $this->object(
-			array(
-				'promoter_term_id' => array(
-					'type'    => 'integer',
-					'minimum' => 1,
-				),
-				'promoter_name'    => array(
-					'type'      => 'string',
-					'maxLength' => 255,
-				),
-				'action'           => array(
-					'type' => 'string',
-					'enum' => PromoterVenueGrantRepository::actions(),
-				),
-				'action_label'     => array(
-					'type'      => 'string',
-					'maxLength' => 100,
-				),
-				'status'           => array(
-					'type' => 'string',
-					'enum' => PromoterAuthorityRepository::statuses(),
-				),
-			),
-			array( 'promoter_term_id', 'promoter_name', 'action', 'action_label', 'status' )
 		);
 	}
 

@@ -166,7 +166,7 @@ if ( ! $selected && $requested_booking_id && $requested_booking_venue_id ) {
 		}
 	}
 }
-$workspace = ( new PromoterWorkspace( null, null, null, false ) )->resolve_for_user( $user_id, $requested_identity );
+$workspace = ( new PromoterWorkspace( null, null, false ) )->resolve_for_user( $user_id, $requested_identity );
 if ( is_wp_error( $workspace ) ) {
 	$browser_user = get_userdata( $user_id );
 	$workspace    = array(
@@ -183,8 +183,6 @@ if ( is_wp_error( $workspace ) ) {
 		),
 		'promoter'               => null,
 		'venue'                  => null,
-		'granted_venues'         => array(),
-		'promoter_relationships' => array(),
 	);
 }
 $context = array(

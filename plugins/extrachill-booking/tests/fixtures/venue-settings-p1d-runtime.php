@@ -46,8 +46,8 @@ namespace ExtraChillEvents\Tests\VenueSettingsP1d {
 		}
 	}
 	final class PromoterWorkspaceDouble {
-		public function __construct( $promoters = null, $grants = null, $venues = null, bool $use_execution_principal = true ) {
-			unset( $promoters, $grants, $venues, $use_execution_principal );
+		public function __construct( $promoters = null, $venues = null, bool $use_execution_principal = true ) {
+			unset( $promoters, $venues, $use_execution_principal );
 		}
 		public function resolve_for_user( int $user_id, string $reference ) {
 			unset( $user_id, $reference );
