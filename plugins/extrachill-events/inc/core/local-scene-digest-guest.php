@@ -381,10 +381,14 @@ function extrachill_events_guest_digest_confirm_url( int $user_id, WP_Term $term
 		$base,
 		array(
 			EXTRACHILL_EVENTS_GUEST_DIGEST_QUERY_VAR => 1,
-			'user'                                   => $user_id,
-			'location'                               => $term->slug,
-			'expires'                                => $expires,
-			'signature'                              => extrachill_events_guest_digest_signature( $user_id, $term->slug, $expires ),
+			'token'                                  => extrachill_sign(
+				'events.guest_digest_confirm',
+				array(
+					'user_id' => $user_id,
+					'slug'    => $term->slug,
+				),
+				max( 1, min( EXTRACHILL_EVENTS_GUEST_DIGEST_CONFIRM_TTL, $expires - time() ) )
+			),
 		)
 	);
 }
@@ -393,9 +397,27 @@ function extrachill_events_guest_digest_confirm_url( int $user_id, WP_Term $term
  * Verify a confirm link's parameters. Does not change anything.
  *
  * @param array $params `user`, `location`, `expires`, `signature`.
- * @return array{user_id:int,term:WP_Term,expires:int,signature:string}|WP_Error
+ * @return array{user_id:int,term:WP_Term,token?:string,expires?:int,signature?:string}|WP_Error
  */
-function extrachill_events_verify_guest_digest_confirm( array $params ) {
+function extrachill_events_verify_guest_digest_confirm( array $params, ?int $now = null ) {
+	$now    = $now ?? time();
+	$token  = is_string( $params['token'] ?? null ) ? $params['token'] : '';
+	$claims = extrachill_verify( 'events.guest_digest_confirm', $token, $now );
+	if ( null !== $claims ) {
+		$user_id = (int) ( $claims['user_id'] ?? 0 );
+		$slug    = sanitize_title( (string) ( $claims['slug'] ?? '' ) );
+		$term    = extrachill_events_guest_digest_city( $slug );
+		if ( $user_id > 0 && null !== $term && get_userdata( $user_id ) ) {
+			return compact( 'user_id', 'term', 'token' );
+		}
+	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
+		return extrachill_events_guest_digest_confirm_legacy_verify( $params );
+	}
+	return new WP_Error( 'invalid_guest_digest_confirm', __( 'This confirmation link is invalid or expired.', 'extrachill-events' ), array( 'status' => 403 ) );
+}
+
+/** @internal Temporary legacy verification; delete after the cutoff. */
+function extrachill_events_guest_digest_confirm_legacy_verify( array $params ) {
 	$user_id   = absint( $params['user'] ?? 0 );
 	$slug      = sanitize_title( (string) ( $params['location'] ?? '' ) );
 	$expires   = absint( $params['expires'] ?? 0 );
@@ -543,7 +565,7 @@ function extrachill_events_handle_guest_digest_confirm(): void {
 	}
 
 	$params = array();
-	foreach ( array( 'user', 'location', 'expires', 'signature' ) as $key ) {
+	foreach ( array( 'token', 'user', 'location', 'expires', 'signature' ) as $key ) {
 		$params[ $key ] = isset( $source[ $key ] ) && is_scalar( $source[ $key ] ) ? sanitize_text_field( (string) wp_unslash( $source[ $key ] ) ) : '';
 	}
 	$is_post = $source === $_POST;
@@ -618,7 +640,7 @@ function extrachill_events_guest_digest_confirm_page( array $params, bool $is_po
 function extrachill_events_build_guest_digest_confirm_form( array $params ): string {
 	$html  = '<form method="post" action="">';
 	$html .= '<input type="hidden" name="' . esc_attr( EXTRACHILL_EVENTS_GUEST_DIGEST_QUERY_VAR ) . '" value="1">';
-	foreach ( array( 'user', 'location', 'expires', 'signature' ) as $key ) {
+	foreach ( array( 'token', 'user', 'location', 'expires', 'signature' ) as $key ) {
 		$html .= '<input type="hidden" name="' . esc_attr( $key ) . '" value="' . esc_attr( (string) ( $params[ $key ] ?? '' ) ) . '">';
 	}
 	$html .= '<button type="submit">' . esc_html__( 'Yes, send me the weekly email', 'extrachill-events' ) . '</button></form>';

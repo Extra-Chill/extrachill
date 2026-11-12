@@ -674,14 +674,11 @@ function extrachill_events_local_scene_digest_tracked_url( $url ): string {
 function extrachill_events_local_scene_digest_unsubscribe_url( int $user_id, string $slug, ?int $expires = null ): string {
 	$slug    = sanitize_title( $slug );
 	$expires = $expires ?? ( time() + 30 * DAY_IN_SECONDS );
-	$token   = hash_hmac( 'sha256', $user_id . '|' . $slug . '|' . $expires, wp_salt( 'auth' ) );
+	$token   = extrachill_sign( 'events.digest_unsubscribe', compact( 'user_id', 'slug' ), max( 1, min( 30 * DAY_IN_SECONDS, $expires - time() ) ) );
 	return extrachill_events_local_scene_digest_add_query_args(
 		rest_url( 'extrachill/v1/local-scene-digest/unsubscribe' ),
 		array(
-			'user'      => $user_id,
-			'location'  => $slug,
-			'expires'   => $expires,
-			'signature' => $token,
+			'token' => $token,
 		)
 	);
 }
@@ -725,23 +722,24 @@ function extrachill_events_register_local_scene_digest_routes(): void {
 /** Return the shared signed unsubscribe request schema. */
 function extrachill_events_local_scene_digest_unsubscribe_args(): array {
 	return array(
+		'token'     => array( 'type' => 'string' ),
 		'user'      => array(
-			'required'          => true,
+			'required'          => false,
 			'type'              => 'integer',
 			'sanitize_callback' => 'absint',
 		),
 		'location'  => array(
-			'required'          => true,
+			'required'          => false,
 			'type'              => 'string',
 			'sanitize_callback' => 'sanitize_title',
 		),
 		'expires'   => array(
-			'required'          => true,
+			'required'          => false,
 			'type'              => 'integer',
 			'sanitize_callback' => 'absint',
 		),
 		'signature' => array(
-			'required'          => true,
+			'required'          => false,
 			'type'              => 'string',
 			'sanitize_callback' => 'sanitize_text_field',
 		),
@@ -754,7 +752,24 @@ function extrachill_events_local_scene_digest_unsubscribe_args(): array {
  * @param WP_REST_Request $request Unsubscribe request.
  * @return array|WP_Error
  */
-function extrachill_events_verify_local_scene_digest_unsubscribe( WP_REST_Request $request ) {
+function extrachill_events_verify_local_scene_digest_unsubscribe( WP_REST_Request $request, ?int $now = null ) {
+	$now    = $now ?? time();
+	$token  = (string) $request->get_param( 'token' );
+	$claims = extrachill_verify( 'events.digest_unsubscribe', $token, $now );
+	if ( null !== $claims ) {
+		$user_id = (int) ( $claims['user_id'] ?? 0 );
+		$slug    = sanitize_title( (string) ( $claims['slug'] ?? '' ) );
+		if ( $user_id > 0 && '' !== $slug ) {
+			return compact( 'user_id', 'slug', 'token' );
+		}
+	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
+		return extrachill_events_local_scene_digest_unsubscribe_legacy_verify( $request );
+	}
+	return new WP_Error( 'invalid_local_scene_digest_unsubscribe', __( 'This unsubscribe link is invalid or expired.', 'extrachill-events' ), array( 'status' => 403 ) );
+}
+
+/** @internal Temporary legacy verification; delete after the cutoff. */
+function extrachill_events_local_scene_digest_unsubscribe_legacy_verify( WP_REST_Request $request ) {
 	$user_id   = absint( $request->get_param( 'user' ) );
 	$slug      = sanitize_title( $request->get_param( 'location' ) );
 	$expires   = absint( $request->get_param( 'expires' ) );
@@ -801,14 +816,13 @@ function extrachill_events_local_scene_digest_unsubscribe_confirmation( WP_REST_
  */
 function extrachill_events_build_local_scene_digest_unsubscribe_form( array $verified ): string {
 	$fields = '';
-	foreach (
-		array(
-			'user'      => $verified['user_id'],
-			'location'  => $verified['slug'],
-			'expires'   => $verified['expires'],
-			'signature' => $verified['signature'],
-		) as $name => $value
-	) {
+	$args   = isset( $verified['token'] ) ? array( 'token' => $verified['token'] ) : array(
+		'user'      => $verified['user_id'],
+		'location'  => $verified['slug'],
+		'expires'   => $verified['expires'],
+		'signature' => $verified['signature'],
+	);
+	foreach ( $args as $name => $value ) {
 		$fields .= '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
 	}
 	return '<form method="post" action="' . esc_url( rest_url( 'extrachill/v1/local-scene-digest/unsubscribe' ) ) . '">' . $fields . '<button type="submit">' . esc_html__( 'Unsubscribe from this Local Scene', 'extrachill-events' ) . '</button></form>';
