@@ -48,6 +48,7 @@ final class GuardedTeamMemberChangeTest extends TestCase {
 	public function test_final_owner_floor_and_adapter_error_mapping(): void {
 		$error = $this->repository->change_member( $this->adapter, 55, 2, 1, false, false, 2 );
 		$this->assertSame( 'custom_membership_last_owner', $error->get_error_code() );
+		$this->assertSame( 'The final active artist owner cannot be removed.', $error->get_error_message() );
 		$this->assertSame( 409, $error->get_error_data()['status'] );
 		$this->assertFalse( $this->repository->written );
 		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $GLOBALS['wpdb']->queries );
@@ -62,6 +63,7 @@ final class GuardedTeamMemberChangeTest extends TestCase {
 	public function test_version_conflict(): void {
 		$error = $this->repository->change_member( $this->adapter, 55, 2, 3, true, false, 2 );
 		$this->assertSame( 'custom_membership_version_conflict', $error->get_error_code() );
+		$this->assertSame( 'The artist membership changed since it was read.', $error->get_error_message() );
 		$this->assertSame( 1, $error->get_error_data()['current_version'] );
 		$this->assertFalse( $this->repository->written );
 	}
@@ -85,6 +87,14 @@ final class GuardedTeamMemberChangeTest extends TestCase {
 		$error = $this->repository->change_member( $this->adapter, 55, 2, 1, true, false, 2 );
 		$this->assertSame( 'custom_membership_commit_uncertain', $error->get_error_code() );
 		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $GLOBALS['wpdb']->queries );
+	}
+
+	public function test_failed_update_maps_error_and_rolls_back(): void {
+		$this->repository->result = false;
+		$error = $this->repository->change_member( $this->adapter, 55, 2, 1, true, false, 2 );
+		$this->assertSame( 'custom_membership_update_failed', $error->get_error_code() );
+		$this->assertSame( 500, $error->get_error_data()['status'] );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $GLOBALS['wpdb']->queries );
 	}
 
 	public function test_zero_row_update_is_a_version_conflict(): void {
