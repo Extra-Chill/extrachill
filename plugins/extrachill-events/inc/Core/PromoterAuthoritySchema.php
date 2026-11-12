@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
 /** Owns the small site-scoped promoter authority schema. */
 final class PromoterAuthoritySchema {
 
-	public const SCHEMA_VERSION = '3';
+	public const SCHEMA_VERSION = '4';
 	public const VERSION_OPTION = 'extrachill_events_promoter_authority_schema_version';
 	public const FAILURE_OPTION = 'extrachill_events_promoter_authority_schema_error';
 
@@ -20,12 +20,6 @@ final class PromoterAuthoritySchema {
 	public static function organizations_table(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'ec_promoter_organizations';
-	}
-
-	/** Return the current site's exact promoter/venue grant table. */
-	public static function venue_grants_table(): string {
-		global $wpdb;
-		return $wpdb->prefix . 'ec_promoter_venue_grants';
 	}
 
 	/** Reconcile and verify all tables before publishing readiness. */
@@ -76,8 +70,13 @@ final class PromoterAuthoritySchema {
 			return $error;
 		}
 
+		if ( ! self::is_ready() && false === $wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}ec_promoter_venue_grants`" ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Version-gated removal of unused current-site storage.
+			$error = new \WP_Error( 'promoter_authority_schema_drop_failed', __( 'The retired promoter table could not be removed.', 'extrachill-events' ) );
+			self::record_failure( $error );
+			return $error;
+		}
+
 		$organizations    = self::organizations_table();
-		$venue_grants     = self::venue_grants_table();
 		$charset          = $wpdb->get_charset_collate();
 		$organization_sql = "CREATE TABLE {$organizations} (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -93,32 +92,12 @@ final class PromoterAuthoritySchema {
 			UNIQUE KEY promoter_term_id (promoter_term_id),
 			KEY status_updated (status, updated_at)
 		) ENGINE=InnoDB {$charset};";
-		$venue_grants_sql = "CREATE TABLE {$venue_grants} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			promoter_term_id BIGINT UNSIGNED NOT NULL,
-			venue_term_id BIGINT UNSIGNED NOT NULL,
-			action VARCHAR(48) NOT NULL,
-			status VARCHAR(16) NOT NULL DEFAULT 'active',
-			version BIGINT UNSIGNED NOT NULL DEFAULT '1',
-			created_by_user_id BIGINT UNSIGNED NOT NULL,
-			created_at DATETIME NOT NULL,
-			updated_by_user_id BIGINT UNSIGNED NOT NULL,
-			updated_at DATETIME NOT NULL,
-			revoked_by_user_id BIGINT UNSIGNED NULL,
-			revoked_at DATETIME NULL,
-			PRIMARY KEY (id),
-			UNIQUE KEY promoter_venue_action (promoter_term_id, venue_term_id, action),
-			KEY promoter_status_action (promoter_term_id, status, action, venue_term_id),
-			KEY venue_status_action (venue_term_id, status, action, promoter_term_id)
-		) ENGINE=InnoDB {$charset};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $organization_sql );
 		$organization_error = (string) $wpdb->last_error;
-		dbDelta( $venue_grants_sql );
-		$venue_grants_error = (string) $wpdb->last_error;
-		if ( '' !== $organization_error || '' !== $venue_grants_error ) {
-			$error = new \WP_Error( 'promoter_authority_schema_install_failed', __( 'The promoter authority schema could not be reconciled.', 'extrachill-events' ), compact( 'organization_error', 'venue_grants_error' ) );
+		if ( '' !== $organization_error ) {
+			$error = new \WP_Error( 'promoter_authority_schema_install_failed', __( 'The promoter authority schema could not be reconciled.', 'extrachill-events' ), compact( 'organization_error' ) );
 			self::record_failure( $error );
 			return $error;
 		}
@@ -153,13 +132,6 @@ final class PromoterAuthoritySchema {
 				'unique'  => array(
 					'PRIMARY'          => array( 'id' ),
 					'promoter_term_id' => array( 'promoter_term_id' ),
-				),
-			),
-			self::venue_grants_table()  => array(
-				'columns' => array( 'id', 'promoter_term_id', 'venue_term_id', 'action', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_by_user_id', 'updated_at', 'revoked_by_user_id', 'revoked_at' ),
-				'unique'  => array(
-					'PRIMARY'               => array( 'id' ),
-					'promoter_venue_action' => array( 'promoter_term_id', 'venue_term_id', 'action' ),
 				),
 			),
 		);

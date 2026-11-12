@@ -214,22 +214,6 @@ class PromoterAuthorityRepository {
 	}
 
 	/**
-	 * Lock raw promoter memberships inside the caller's transaction.
-	 *
-	 * @param int $promoter_term_id Promoter term ID.
-	 * @param int $limit            Maximum rows, including an overflow probe.
-	 * @return array|\WP_Error
-	 */
-	public function lock_memberships_for_grant( int $promoter_term_id, int $limit ) {
-		global $wpdb;
-		$rows = ( new TeamMembershipRepository() )->lock_team( 'promoter', $promoter_term_id, $limit );
-		if ( '' !== (string) $wpdb->last_error ) {
-			return $this->database_error( 'promoter_venue_grant_read_failed', __( 'Promoter venue authority could not be locked.', 'extrachill-events' ) );
-		}
-		return (array) $rows;
-	}
-
-	/**
 	 * Resolve only an active exact membership.
 	 *
 	 * @param int $promoter_term_id Exact promoter term ID.

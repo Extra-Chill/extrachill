@@ -42,7 +42,6 @@ You can also keep a standing list of people who get into every one of your shows
 
 A venue can let your organization help with certain things at that venue. Right now, the one thing a venue can share with you is organizing local support for their shows.
 
-Venues that work with you are listed under **Granted venues** in your workspace. If none are listed yet, you'll see "This promoter has no active venue grants."
 
 The venue stays in charge of its own settings, booking inquiries, team, and money. Your organization can't see or change those.
 

@@ -29,20 +29,13 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 						'promoter_term_id' => array( 'promoter_term_id' ),
 					),
 				),
-				PromoterAuthoritySchema::venue_grants_table() => array(
-					'columns' => array( 'id', 'promoter_term_id', 'venue_term_id', 'action', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_by_user_id', 'updated_at', 'revoked_by_user_id', 'revoked_at' ),
-					'unique'  => array(
-						'PRIMARY'               => array( 'id' ),
-						'promoter_venue_action' => array( 'promoter_term_id', 'venue_term_id', 'action' ),
-					),
-				),
 			);
 
 			$this->assertSame( $prefix, $wpdb->prefix );
 			$this->assertTrue( PromoterAuthoritySchema::is_ready() );
 			$this->assertTrue( PromoterAuthoritySchema::health() );
 			$this->assertSame( PromoterAuthoritySchema::SCHEMA_VERSION, get_option( PromoterAuthoritySchema::VERSION_OPTION ) );
-			$this->assertCount( 2, $contracts );
+			$this->assertCount( 1, $contracts );
 
 			foreach ( $contracts as $table => $contract ) {
 				$this->assertStringStartsWith( $prefix, $table );
@@ -76,8 +69,8 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 		$this->assertSame( 1, get_current_blog_id() );
 	}
 
-	/** Prove the v1 authority rows survive creation of the v2 grant table. */
-	public function test_v1_to_v2_upgrade_preserves_authority_rows(): void {
+	/** Prove authority rows survive removal of retired grant storage. */
+	public function test_v3_to_v4_upgrade_drops_grants_and_preserves_authority_rows(): void {
 		global $wpdb;
 
 		$this->assertSame( 1, get_current_blog_id() );
@@ -86,7 +79,7 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 		try {
 			$organizations = PromoterAuthoritySchema::organizations_table();
 			$memberships   = TeamMembershipRepository::table();
-			$grants        = PromoterAuthoritySchema::venue_grants_table();
+			$grants        = $wpdb->prefix . 'ec_promoter_venue_grants';
 			$created       = '2026-08-22 12:00:00';
 			$this->assertSame(
 				1,
@@ -126,14 +119,14 @@ final class PromoterAuthoritySchemaMultisiteTest extends WP_UnitTestCase {
 			// table rewrites applied by WP_UnitTestCase around normal test queries.
 			remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
 			remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
-			$wpdb->query( "DROP TABLE `{$grants}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Recreates the exact v1 schema in a disposable database.
+			$wpdb->query( "CREATE TABLE IF NOT EXISTS `{$grants}` (id BIGINT UNSIGNED NOT NULL PRIMARY KEY) ENGINE=InnoDB" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Creates retired storage in a disposable database.
 			$this->assertSame( '', (string) $wpdb->last_error );
-			update_option( PromoterAuthoritySchema::VERSION_OPTION, '1', false );
+			update_option( PromoterAuthoritySchema::VERSION_OPTION, '3', false );
 
 			$this->assertTrue( PromoterAuthoritySchema::install() );
 			$this->assertTrue( PromoterAuthoritySchema::health() );
 			$this->assertSame( PromoterAuthoritySchema::SCHEMA_VERSION, get_option( PromoterAuthoritySchema::VERSION_OPTION ) );
-			$this->assertSame( $grants, $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $grants ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Real v2 table assertion.
+			$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $grants ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Retired table removal assertion.
 			$this->assertSame( '3', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$organizations}` WHERE promoter_term_id = %d", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 organization assertion.
 			$this->assertSame( '2', $wpdb->get_var( $wpdb->prepare( "SELECT version FROM `{$memberships}` WHERE team_type = 'promoter' AND team_id = %d AND user_id = 1", $promoter_term_id ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Preserved v1 membership assertion.
 		} finally {

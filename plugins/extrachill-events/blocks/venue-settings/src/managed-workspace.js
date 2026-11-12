@@ -288,7 +288,7 @@ export function PromoterWorkspacePanel( {
 	onLinkPageDirtyChange,
 	shopManagerUrl = '',
 } ) {
-	const { selection, promoter, granted_venues: venues } = workspace;
+	const { selection, promoter } = workspace;
 	if ( selection.state === 'stale' ) {
 		return (
 			<InlineStatus tone="warning" role="status">
@@ -350,27 +350,6 @@ export function PromoterWorkspacePanel( {
 				<TicketsTab seller={ { type: 'promoter', id: promoter.id } } />
 			) }
 
-			<section aria-labelledby="promoter-venues-heading">
-				<h2 id="promoter-venues-heading">Granted venues</h2>
-				{ venues.length === 0 ? (
-					<InlineStatus tone="info" role="status">
-						This promoter has no active venue grants.
-					</InlineStatus>
-				) : (
-					<div className="ec-promoter-workspace__venues">
-						{ venues.map( ( venue ) => (
-							<Panel compact depth={ 2 } key={ venue.id }>
-								<h3>{ venue.name }</h3>
-								<p>
-									<Badge tone="info" variant="solid">
-										{ venue.action_label }
-									</Badge>
-								</p>
-							</Panel>
-						) ) }
-					</div>
-				) }
-			</section>
 
 			{ /* PromoterLinkPages::management_url() links to #promoter-link-page,
 			     so this anchor is part of that URL contract, not decoration. */ }
@@ -384,53 +363,6 @@ export function PromoterWorkspacePanel( {
 				/>
 			</div>
 
-			<InlineStatus tone="info">
-				Promoter access is limited to the delegated actions granted at
-				the venues shown here. Venue settings, private booking data,
-				team access, and finances remain venue-owned.
-			</InlineStatus>
 		</div>
-	);
-}
-
-export function VenuePromoterRelationships( { relationships } ) {
-	return (
-		<section
-			className="ec-venue-collaborations"
-			aria-labelledby="venue-promoter-collaborations-heading"
-		>
-			<h2 id="venue-promoter-collaborations-heading">
-				Promoter collaborations
-			</h2>
-			<p>Read-only delegated relationships for this venue.</p>
-			{ relationships.length === 0 ? (
-				<p>
-					No promoter relationships have been created for this venue.
-				</p>
-			) : (
-				<ul className="ec-venue-settings__records">
-					{ relationships.map( ( relationship ) => (
-						<li
-							key={ `${ relationship.promoter_term_id }:${ relationship.action }` }
-						>
-							<span>
-								<strong>{ relationship.promoter_name }</strong>{ ' ' }
-								{ relationship.action_label }
-							</span>
-							<Badge
-								tone={
-									relationship.status === 'active'
-										? 'success'
-										: 'warning'
-								}
-								variant="solid"
-							>
-								{ relationship.status }
-							</Badge>
-						</li>
-					) ) }
-				</ul>
-			) }
-		</section>
 	);
 }

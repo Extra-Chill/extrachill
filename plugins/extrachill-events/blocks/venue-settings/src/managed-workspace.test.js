@@ -17,7 +17,6 @@ import {
 	ManagedIdentitySelector,
 	PromoterWorkspacePanel,
 	SharedLinkPageEditor,
-	VenuePromoterRelationships,
 } from './managed-workspace';
 import { runAbility } from './api';
 
@@ -223,11 +222,10 @@ describe( 'managed identity workspace', () => {
 						name: 'Crew',
 						link_page: { status: 'available' },
 					},
-					granted_venues: [],
 				} }
 			/>
 		);
-		expect( container.textContent ).toContain( 'private booking data' );
+		expect( container.textContent ).not.toContain( 'Granted venues' );
 		expect( container.textContent ).not.toContain( 'Booking inbox' );
 		expect( container.textContent ).not.toContain( 'Finance' );
 		await act( async () => root.unmount() );
@@ -241,7 +239,6 @@ describe( 'managed identity workspace', () => {
 				name: 'Crew',
 				link_page: { status: 'available' },
 			},
-			granted_venues: [],
 		};
 		const withLink = await render(
 			<PromoterWorkspacePanel
@@ -265,24 +262,4 @@ describe( 'managed identity workspace', () => {
 		await act( async () => withoutLink.root.unmount() );
 	} );
 
-	it( 'renders relationships as read-only records', async () => {
-		const { container, root } = await render(
-			<VenuePromoterRelationships
-				relationships={ [
-					{
-						promoter_term_id: 10,
-						promoter_name: 'Crew',
-						action: 'organize',
-						action_label: 'Organize',
-						status: 'active',
-					},
-				] }
-			/>
-		);
-		expect( container.textContent ).toContain(
-			'Read-only delegated relationships'
-		);
-		expect( container.querySelector( 'button' ) ).toBeNull();
-		await act( async () => root.unmount() );
-	} );
 } );

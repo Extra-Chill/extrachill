@@ -14,8 +14,8 @@ namespace ExtraChillEvents\Core {
 		}
 	}
 	final class PromoterWorkspace {
-		public function __construct( $promoters = null, $grants = null, $venues = null, bool $use_execution_principal = true ) {
-			unset( $promoters, $grants, $venues );
+		public function __construct( $promoters = null, $venues = null, bool $use_execution_principal = true ) {
+			unset( $promoters, $venues );
 			$GLOBALS['venue_settings_render_fixture']['uses_principal'] = $use_execution_principal;
 		}
 		public function resolve_for_user( int $user_id, string $reference ) {
@@ -24,21 +24,19 @@ namespace ExtraChillEvents\Core {
 				return new \WP_Error( 'invalid_promoter_workspace_identity' );
 			}
 			return array(
-				'actor'                  => array(
+				'actor'      => array(
 					'id'   => $user_id,
 					'name' => 'Browser User',
 				),
-				'identities'             => array(),
-				'selection'              => array(
+				'identities' => array(),
+				'selection'  => array(
 					'reference' => $reference,
 					'type'      => 'promoter',
 					'id'        => 30,
 					'state'     => 'active',
 				),
-				'promoter'               => null,
-				'venue'                  => null,
-				'granted_venues'         => array(),
-				'promoter_relationships' => array(),
+				'promoter'   => null,
+				'venue'      => null,
 			);
 		}
 	}

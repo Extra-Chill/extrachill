@@ -20,12 +20,6 @@ final class PromoterWorkspace {
 	 */
 	private $promoters;
 	/**
-	 * Promoter venue grant persistence.
-	 *
-	 * @var PromoterVenueGrantRepository
-	 */
-	private $grants;
-	/**
 	 * Venue membership persistence.
 	 *
 	 * @var VenueMembershipRepository
@@ -37,12 +31,6 @@ final class PromoterWorkspace {
 	 * @var PromoterAuthorization
 	 */
 	private $promoter_authorization;
-	/**
-	 * Delegated venue action policy.
-	 *
-	 * @var PromoterVenueAuthorization
-	 */
-	private $promoter_venue_authorization;
 	/**
 	 * Direct venue policy.
 	 *
@@ -61,23 +49,19 @@ final class PromoterWorkspace {
 	 * Construct from the canonical authorization repositories.
 	 *
 	 * @param PromoterAuthorityRepository|null  $promoters Promoter persistence override.
-	 * @param PromoterVenueGrantRepository|null $grants    Grant persistence override.
 	 * @param VenueMembershipRepository|null    $venues    Venue persistence override.
 	 * @param bool                              $use_execution_principal Whether to apply an active agent principal.
 	 */
 	public function __construct(
 		?PromoterAuthorityRepository $promoters = null,
-		?PromoterVenueGrantRepository $grants = null,
 		?VenueMembershipRepository $venues = null,
 		bool $use_execution_principal = true
 	) {
-		$this->promoters                    = $promoters ? $promoters : new PromoterAuthorityRepository();
-		$this->grants                       = $grants ? $grants : new PromoterVenueGrantRepository();
-		$this->venues                       = $venues ? $venues : new VenueMembershipRepository();
-		$this->use_execution_principal      = $use_execution_principal;
-		$this->promoter_authorization       = new PromoterAuthorization( $this->promoters, $use_execution_principal );
-		$this->promoter_venue_authorization = new PromoterVenueAuthorization( $this->promoters, $this->grants, $use_execution_principal );
-		$this->venue_authorization          = new VenueAuthorization( $this->venues );
+		$this->promoters               = $promoters ? $promoters : new PromoterAuthorityRepository();
+		$this->venues                  = $venues ? $venues : new VenueMembershipRepository();
+		$this->use_execution_principal = $use_execution_principal;
+		$this->promoter_authorization  = new PromoterAuthorization( $this->promoters, $use_execution_principal );
+		$this->venue_authorization     = new VenueAuthorization( $this->venues );
 	}
 
 	/** List only identities currently manageable by the effective actor. */
@@ -237,26 +221,6 @@ final class PromoterWorkspace {
 		$result['selection']['state'] = 'active';
 		if ( 'venue' === $type ) {
 			$result['venue'] = $current;
-			if ( ! $current['is_owner'] ) {
-				return $result;
-			}
-			$relationships = $this->grants->list_for_venue( $term_id );
-			if ( is_wp_error( $relationships ) ) {
-				return $relationships;
-			}
-			foreach ( $relationships as $relationship ) {
-				$promoter = get_term( (int) $relationship['promoter_term_id'], 'promoter' );
-				if ( ! $promoter || is_wp_error( $promoter ) || 'promoter' !== $promoter->taxonomy ) {
-					continue;
-				}
-				$result['promoter_relationships'][] = array(
-					'promoter_term_id' => (int) $relationship['promoter_term_id'],
-					'promoter_name'    => (string) $promoter->name,
-					'action'           => (string) $relationship['action'],
-					'action_label'     => $this->action_label( (string) $relationship['action'] ),
-					'status'           => (string) $relationship['status'],
-				);
-			}
 			return $result;
 		}
 
@@ -266,22 +230,6 @@ final class PromoterWorkspace {
 			return $result;
 		}
 		$result['promoter'] = array_merge( $current, array( 'link_page' => $this->link_page( $term_id ) ) );
-		$venue_ids          = $this->promoter_venue_authorization->effective_venue_ids( $user_id, $term_id, PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT );
-		if ( is_wp_error( $venue_ids ) ) {
-			return $venue_ids;
-		}
-		foreach ( $venue_ids as $venue_term_id ) {
-			$venue = get_term( $venue_term_id, 'venue' );
-			if ( ! $venue || is_wp_error( $venue ) || 'venue' !== $venue->taxonomy ) {
-				continue;
-			}
-			$result['granted_venues'][] = array(
-				'id'           => (int) $venue_term_id,
-				'name'         => (string) $venue->name,
-				'action'       => PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT,
-				'action_label' => $this->action_label( PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT ),
-			);
-		}
 		return $result;
 	}
 
@@ -332,15 +280,6 @@ final class PromoterWorkspace {
 			'status'         => $page_id ? 'available' : 'not_provisioned',
 			'management_url' => PromoterLinkPages::management_url( $promoter_term_id ),
 		);
-	}
-
-	/**
-	 * Human label for the only delegated action currently supported.
-	 *
-	 * @param string $action Delegated action key.
-	 */
-	private function action_label( string $action ): string {
-		return PromoterVenueGrantRepository::ACTION_ORGANIZE_LOCAL_SUPPORT === $action ? __( 'Organize local support', 'extrachill-events' ) : '';
 	}
 
 	/** Build a non-enumerating self-scope denial. */

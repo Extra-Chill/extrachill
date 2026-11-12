@@ -36,7 +36,7 @@ namespace {
 				$expected = $frozen;
 				if ( ! $venue_ready ) { $expected = array_diff( $expected, array_slice( $frozen, 3, 7 ), array( 'CommerceSellerAbilities', 'PromoterWorkspaceAbilities' ) ); }
 				if ( ! $booking_ready ) { $expected = array_diff( $expected, array_slice( $frozen, 10, 12 ) ); }
-				if ( ! $promoter_ready ) { $expected = array_diff( $expected, array( 'PromoterAuthorityAbilities', 'PromoterVenueGrantAbilities', 'PromoterWorkspaceAbilities' ) ); }
+				if ( ! $promoter_ready ) { $expected = array_diff( $expected, array( 'PromoterAuthorityAbilities', 'PromoterWorkspaceAbilities' ) ); }
 				if ( array_values( $expected ) !== $abilities ) { throw new RuntimeException( 'Ability order changed: ' . json_encode( array( $venue_ready, $booking_ready, $promoter_ready, array_values( $expected ), $abilities ) ) ); }
 			}
 		}
