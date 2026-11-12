@@ -9,12 +9,10 @@
  * then renders a small confirmation page.
  *
  * Security:
- *   - The link carries a uid + an HMAC signature, NOT a raw/guessable user_id.
- *     The signature is keyed by wp_salt('auth') (a per-install secret) via
- *     hash_hmac('sha256', ...), so a tampered uid is rejected. We reuse WP's
- *     own signing material rather than rolling a new secret.
- *   - Tokens are time-boxed: the signed payload includes an issue timestamp and
- *     links expire after EC_NOTIFICATIONS_UNSUBSCRIBE_TTL.
+ *   - New links carry a purpose-bound extrachill_sign() token containing the
+ *     user ID and expire after EC_NOTIFICATIONS_UNSUBSCRIBE_TTL.
+ *   - Previously issued uid/ts/sig links remain valid only until the fixed
+ *     EXTRACHILL_SIGN_LEGACY_UNTIL cutoff (and within their original TTL).
  *   - The flag is written ONLY through the canonical setter
  *     ec_users_set_notification_emails_disabled() (defined in email.php) — the
  *     same setter the settings-UI toggle uses.
@@ -51,7 +49,9 @@ if ( ! defined( 'EC_NOTIFICATIONS_UNSUBSCRIBE_TTL' ) ) {
 const EC_NOTIFICATIONS_UNSUBSCRIBE_ACTION = 'ec_notifications_unsubscribe';
 
 /**
- * Compute the HMAC signature for an unsubscribe link.
+ * Compute the legacy HMAC signature for an already-issued unsubscribe link.
+ *
+ * New links must use ec_notifications_unsubscribe_url() instead.
  *
  * Keyed by wp_salt('auth') (per-install secret). Binds the user id, the issue
  * timestamp, and a fixed action context so the signature is non-transferable.
@@ -69,7 +69,7 @@ function ec_notifications_unsubscribe_signature( $user_id, $issued_at ) {
  * Build a signed one-click unsubscribe URL for a user.
  *
  * Returns a GET URL into the extrachill/v1/notifications/unsubscribe REST route
- * carrying uid, ts (issue time) and sig (HMAC). Returns '' for an invalid user.
+ * carrying a single purpose-bound token. Returns '' for an invalid user.
  *
  * @param int $user_id User ID.
  * @return string Absolute unsubscribe URL, or '' on invalid input.
@@ -80,31 +80,42 @@ function ec_notifications_unsubscribe_url( $user_id ) {
 		return '';
 	}
 
-	$issued_at = time();
-	$sig       = ec_notifications_unsubscribe_signature( $user_id, $issued_at );
-
 	return add_query_arg(
 		array(
-			'uid' => $user_id,
-			'ts'  => $issued_at,
-			'sig' => $sig,
+			'token' => extrachill_sign( 'users.notifications_unsubscribe', array( 'user_id' => $user_id ), EC_NOTIFICATIONS_UNSUBSCRIBE_TTL ),
 		),
 		rest_url( 'extrachill/v1/notifications/unsubscribe' )
 	);
 }
 
 /**
- * Verify an unsubscribe token triple.
+ * Verify a new token first, then a legacy triple during the migration window.
  *
- * Constant-time signature comparison + TTL window check. Returns the verified
- * user ID, or a WP_Error describing why the token is invalid.
+ * Returns the verified user ID, or a WP_Error for an invalid or expired link.
  *
  * @param int    $user_id   Claimed user ID.
  * @param int    $issued_at Claimed issue timestamp.
- * @param string $sig       Provided HMAC signature.
+ * @param string $sig       Legacy HMAC signature.
+ * @param string $token     New purpose-bound token.
+ * @param int|null $now     Optional time for expiry and cutoff checks.
  * @return int|WP_Error Verified user ID, or WP_Error on failure.
  */
-function ec_notifications_unsubscribe_verify( $user_id, $issued_at, $sig ) {
+function ec_notifications_unsubscribe_verify( $user_id, $issued_at, $sig, $token = '', ?int $now = null ) {
+	$now    = $now ?? time();
+	$claims = extrachill_verify( 'users.notifications_unsubscribe', $token, $now );
+	if ( null !== $claims ) {
+		$user_id = (int) ( $claims['user_id'] ?? 0 );
+		if ( $user_id > 0 && get_userdata( $user_id ) ) {
+			return $user_id;
+		}
+	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
+		return ec_notifications_unsubscribe_legacy_verify( $user_id, $issued_at, $sig );
+	}
+	return new WP_Error( 'invalid_unsubscribe_token', 'Invalid unsubscribe link.', array( 'status' => 400 ) );
+}
+
+/** @internal Temporary legacy email verification; delete after the cutoff. */
+function ec_notifications_unsubscribe_legacy_verify( $user_id, $issued_at, $sig ) {
 	$user_id   = (int) $user_id;
 	$issued_at = (int) $issued_at;
 	$sig       = (string) $sig;
@@ -148,18 +159,21 @@ function ec_notifications_register_unsubscribe_route() {
 			'callback'            => 'ec_notifications_handle_unsubscribe',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'uid' => array(
-					'required'          => true,
+				'token' => array(
+					'type' => 'string',
+				),
+				'uid'   => array(
+					'required'          => false,
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'ts'  => array(
-					'required'          => true,
+				'ts'    => array(
+					'required'          => false,
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'sig' => array(
-					'required'          => true,
+				'sig'   => array(
+					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
@@ -181,7 +195,8 @@ function ec_notifications_handle_unsubscribe( WP_REST_Request $request ) {
 	$verified = ec_notifications_unsubscribe_verify(
 		$request->get_param( 'uid' ),
 		$request->get_param( 'ts' ),
-		(string) $request->get_param( 'sig' )
+		(string) $request->get_param( 'sig' ),
+		(string) $request->get_param( 'token' )
 	);
 
 	if ( is_wp_error( $verified ) ) {

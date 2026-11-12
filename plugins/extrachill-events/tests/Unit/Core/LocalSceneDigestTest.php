@@ -239,6 +239,7 @@ if ( ! function_exists( 'extrachill_users_unsubscribe_from_entity' ) ) {
 	}
 }
 
+require_once dirname( __DIR__, 4 ) . '/extrachill-network/inc/core/signed-token.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest.php';
 }
 
@@ -768,6 +769,22 @@ class LocalSceneDigestTest extends TestCase {
 			'venue_id' => $id, 'venue_name' => 'Venue ' . $id, 'performer_keys' => array( 'term:' . $id ), 'price' => $has_price ? 'Free' : '',
 			'priority_event' => $priority_event, 'priority_venue' => $priority_venue, 'completeness' => $completeness, 'has_price' => $has_price,
 		);
+	}
+
+	public function test_signed_unsubscribe_and_legacy_cutoff(): void {
+		parse_str( parse_url( extrachill_events_local_scene_digest_unsubscribe_url( 7, 'austin' ), PHP_URL_QUERY ), $params );
+		$this->assertSame( array( 'token' ), array_keys( $params ) );
+		$request = new WP_REST_Request( $params );
+		$verified = extrachill_events_verify_local_scene_digest_unsubscribe( $request );
+		$this->assertSame( 7, $verified['user_id'] );
+		$this->assertSame( 'austin', $verified['slug'] );
+		$this->assertStringContainsString( 'name="token"', extrachill_events_build_local_scene_digest_unsubscribe_form( $verified ) );
+		$legacy = $this->unsubscribe_request( 7, 'austin', time() + 60 );
+		$this->assertIsArray( extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL - 1 ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $legacy, EXTRACHILL_SIGN_LEGACY_UNTIL + 1 ) );
+		$wrong = new WP_REST_Request( array( 'token' => extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 7, 'slug' => 'austin' ), 3600 ) ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_local_scene_digest_unsubscribe( $wrong ) );
 	}
 
 	private function unsubscribe_request( int $user, string $slug, int $expires, ?string $signature = null ): WP_REST_Request {

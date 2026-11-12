@@ -177,6 +177,7 @@ if ( ! defined( 'EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED' ) ) {
 	define( 'EC_ANALYTICS_EVENT_LOCAL_SCENE_DIGEST_SUBSCRIBED', 'local_scene_digest_subscribed' );
 }
 
+require_once dirname( __DIR__, 4 ) . '/extrachill-network/inc/core/signed-token.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest.php';
 require_once dirname( __DIR__, 3 ) . '/inc/single-event/scene-digest-offer.php';
 require_once dirname( __DIR__, 3 ) . '/inc/core/local-scene-digest-guest.php';
@@ -320,21 +321,30 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 		$this->assertStringNotContainsString( 'Set your password', $GLOBALS['guest_digest_test']['mail'][0]['context']['body_html'] );
 	}
 
+	public function test_legacy_confirmation_cutoff(): void {
+		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
+		$expires = time() + 60;
+		$params  = array( 'user' => 42, 'location' => 'charleston', 'expires' => $expires, 'signature' => extrachill_events_guest_digest_signature( 42, 'charleston', $expires ) );
+		$this->assertIsArray( extrachill_events_verify_guest_digest_confirm( $params, EXTRACHILL_SIGN_LEGACY_UNTIL - 1 ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_guest_digest_confirm( $params, EXTRACHILL_SIGN_LEGACY_UNTIL ) );
+		$this->assertInstanceOf( WP_Error::class, extrachill_events_verify_guest_digest_confirm( $params, EXTRACHILL_SIGN_LEGACY_UNTIL + 1 ) );
+	}
+
 	public function test_tampered_cross_purpose_and_expired_links_are_rejected(): void {
 		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
 		$params = $this->confirm_params();
 
 		$other_user         = $params;
-		$other_user['user'] = '43';
+		$other_user['token'] = extrachill_sign( 'events.guest_digest_confirm', array( 'user_id' => 43, 'slug' => 'charleston' ), 3600 );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $other_user ) );
 
 		$bad_sig              = $params;
-		$bad_sig['signature'] = str_repeat( '0', 64 );
+		$bad_sig['token'] = 'invalid';
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $bad_sig ) );
 
 		// An unsubscribe signature over the same user/city/expiry is not a confirm.
 		$unsub              = $params;
-		$unsub['signature'] = hash_hmac( 'sha256', '42|charleston|' . $params['expires'], wp_salt( 'auth' ) );
+		$unsub['token'] = extrachill_sign( 'events.digest_unsubscribe', array( 'user_id' => 42, 'slug' => 'charleston' ), 3600 );
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $unsub ) );
 
 		$expires = time() - 1;
@@ -410,7 +420,7 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 	public function test_failed_confirm_leaves_the_request_pending(): void {
 		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
 		$params              = $this->confirm_params();
-		$params['signature'] = str_repeat( '0', 64 );
+		$params['token'] = 'invalid';
 
 		$this->assertInstanceOf( WP_Error::class, extrachill_events_confirm_guest_digest( $params ) );
 		$this->assertNull( extrachill_events_get_guest_digest_requests( 42 )['charleston']['confirmed_at'] );
@@ -521,7 +531,7 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 
 		$this->assertTrue( $page['page_assets'] );
 		$this->assertStringContainsString( '<form method="post"', $page['action_html'] );
-		$this->assertStringContainsString( 'name="signature" value="' . $params['signature'] . '"', $page['action_html'] );
+		$this->assertStringContainsString( 'name="token" value="' . $params['token'] . '"', $page['action_html'] );
 
 		$html = extrachill_events_build_local_scene_digest_unsubscribe_page( $page['title'], $page['message'], $page['action_html'], extrachill_events_standalone_page_scripts_html() );
 		$this->assertStringContainsString( '<script id="extrachill-view-tracking-js"></script></body>', $html );
@@ -545,7 +555,7 @@ final class LocalSceneDigestGuestTest extends PHPUnit\Framework\TestCase {
 	public function test_invalid_confirm_link_gets_no_form_assets_or_subscription(): void {
 		extrachill_events_guest_subscribe_local_scene_digest( 'charleston', 'new@example.com' );
 		$params              = $this->confirm_params();
-		$params['signature'] = str_repeat( '0', 64 );
+		$params['token'] = 'invalid';
 
 		foreach ( array( false, true ) as $is_post ) {
 			$page = extrachill_events_guest_digest_confirm_page( $params, $is_post );

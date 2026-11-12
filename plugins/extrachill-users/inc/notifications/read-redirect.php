@@ -60,7 +60,7 @@ const EC_NOTIFICATIONS_READ_ACTION     = 'ec_notifications_read';
 const EC_NOTIFICATIONS_READ_ALL_ACTION = 'ec_notifications_read_all';
 
 /**
- * Compute the HMAC signature for a click-to-read link.
+ * Compute the legacy HMAC signature for an already-issued click-to-read link.
  *
  * Keyed by wp_salt('auth') (per-install secret). Binds the recipient user id,
  * the single notification id, and a fixed action context so the signature is
@@ -76,7 +76,7 @@ function ec_notifications_read_signature( $user_id, $notification_id ) {
 }
 
 /**
- * Compute the HMAC signature for a mark-all-read link.
+ * Compute the legacy HMAC signature for an already-issued mark-all-read link.
  *
  * Keyed by wp_salt('auth'). Binds the recipient user id and a fixed action
  * context (no per-notification id, since this flow clears all unread).
@@ -119,10 +119,15 @@ function ec_notifications_read_redirect_url( $notification_id, $target_url, $use
 
 	return add_query_arg(
 		array(
-			'id'  => $notification_id,
-			'uid' => $user_id,
-			'sig' => ec_notifications_read_signature( $user_id, $notification_id ),
-			'to'  => rawurlencode( $target_url ),
+			'token' => extrachill_sign(
+				'users.notification_read',
+				array(
+					'user_id'         => $user_id,
+					'notification_id' => $notification_id,
+				),
+				90 * DAY_IN_SECONDS
+			),
+			'to'    => rawurlencode( $target_url ),
 		),
 		rest_url( 'extrachill/v1/notifications/read' )
 	);
@@ -153,14 +158,39 @@ function ec_notifications_mark_all_read_url( $target_url, $user_id = 0 ) {
 	}
 
 	$args = array(
-		'uid' => $user_id,
-		'sig' => ec_notifications_read_all_signature( $user_id ),
+		'token' => extrachill_sign( 'users.notification_read_all', array( 'user_id' => $user_id ), 90 * DAY_IN_SECONDS ),
 	);
 	if ( '' !== $target_url ) {
 		$args['to'] = rawurlencode( $target_url );
 	}
 
 	return add_query_arg( $args, rest_url( 'extrachill/v1/notifications/read-all' ) );
+}
+
+/** Verify the purpose-bound token first, then temporary legacy email links. */
+function ec_notifications_read_verify( $user_id, $notification_id, $sig, $token = '', $all = false, ?int $now = null ) {
+	$now     = $now ?? time();
+	$purpose = $all ? 'users.notification_read_all' : 'users.notification_read';
+	$claims  = extrachill_verify( $purpose, $token, $now );
+	if ( null !== $claims ) {
+		$user_id         = (int) ( $claims['user_id'] ?? 0 );
+		$notification_id = $all ? 0 : (int) ( $claims['notification_id'] ?? 0 );
+		if ( $user_id > 0 && ( $all || $notification_id > 0 ) && get_userdata( $user_id ) ) {
+			return compact( 'user_id', 'notification_id' );
+		}
+	} elseif ( $now < EXTRACHILL_SIGN_LEGACY_UNTIL ) {
+		return ec_notifications_read_legacy_verify( $user_id, $notification_id, $sig, $all );
+	}
+	return null;
+}
+
+/** @internal Temporary legacy verification; delete after the cutoff. */
+function ec_notifications_read_legacy_verify( $user_id, $notification_id, $sig, $all ) {
+	$expected = $all ? ec_notifications_read_all_signature( $user_id ) : ec_notifications_read_signature( $user_id, $notification_id );
+	if ( $user_id > 0 && ( $all || $notification_id > 0 ) && '' !== $sig && hash_equals( $expected, $sig ) && get_userdata( $user_id ) ) {
+		return compact( 'user_id', 'notification_id' );
+	}
+	return null;
 }
 
 add_action( 'rest_api_init', 'ec_notifications_register_read_redirect_route' );
@@ -184,22 +214,20 @@ function ec_notifications_register_read_redirect_route() {
 			'callback'            => 'ec_notifications_handle_read_redirect',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'id'  => array(
-					'required'          => true,
+				'token' => array( 'type' => 'string' ),
+				'id'    => array(
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'uid' => array(
-					'required'          => true,
+				'uid'   => array(
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'sig' => array(
-					'required'          => true,
+				'sig'   => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'to'  => array(
+				'to'    => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
@@ -216,17 +244,16 @@ function ec_notifications_register_read_redirect_route() {
 			'callback'            => 'ec_notifications_handle_read_all',
 			'permission_callback' => '__return_true',
 			'args'                => array(
-				'uid' => array(
-					'required'          => true,
+				'token' => array( 'type' => 'string' ),
+				'uid'   => array(
 					'type'              => 'integer',
 					'sanitize_callback' => 'absint',
 				),
-				'sig' => array(
-					'required'          => true,
+				'sig'   => array(
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'to'  => array(
+				'to'    => array(
 					'required'          => false,
 					'type'              => 'string',
 					'sanitize_callback' => 'esc_url_raw',
@@ -252,9 +279,10 @@ function ec_notifications_handle_read_all( WP_REST_Request $request ) {
 	$sig     = (string) $request->get_param( 'sig' );
 	$target  = (string) $request->get_param( 'to' );
 
-	$expected = ec_notifications_read_all_signature( $user_id );
+	$verified = ec_notifications_read_verify( $user_id, 0, $sig, (string) $request->get_param( 'token' ), true );
 
-	if ( $user_id > 0 && '' !== $sig && hash_equals( $expected, $sig ) && get_userdata( $user_id ) ) {
+	if ( null !== $verified ) {
+		$user_id = $verified['user_id'];
 		// The HMAC proves the caller is this user. Establish them as the current
 		// user for this request so the substrate ability's session-based checks
 		// (is_user_logged_in + own-notifications-only) pass legitimately — a
@@ -285,10 +313,11 @@ function ec_notifications_handle_read_redirect( WP_REST_Request $request ) {
 	$sig             = (string) $request->get_param( 'sig' );
 	$target          = (string) $request->get_param( 'to' );
 
-	$expected = ec_notifications_read_signature( $user_id, $notification_id );
+	$verified = ec_notifications_read_verify( $user_id, $notification_id, $sig, (string) $request->get_param( 'token' ) );
 
-	if ( $user_id > 0 && $notification_id > 0 && '' !== $sig
-		&& hash_equals( $expected, $sig ) && get_userdata( $user_id ) ) {
+	if ( null !== $verified ) {
+		$user_id         = $verified['user_id'];
+		$notification_id = $verified['notification_id'];
 		// Scoped to this user + this single id. The HMAC proves the caller is
 		// this user; the substrate UPDATE is keyed by user_id so even a valid
 		// token can only touch its own row.
