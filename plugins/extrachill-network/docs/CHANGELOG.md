@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.3] - 2026-11-12
+
+### Changed
+- sign long-lived email links with extrachill_sign, legacy window to 2026-12-20
+
 ## [2.39.2] - 2026-11-12
 
 ### Changed
