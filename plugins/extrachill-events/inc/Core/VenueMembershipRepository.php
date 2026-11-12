@@ -19,8 +19,6 @@ class VenueMembershipRepository {
 
 	/** Create one unique venue/user relationship. */
 	public function create( array $data ) {
-		global $wpdb;
-
 		$venue_term_id = $this->positive_id( $data['venue_term_id'] ?? null, 'venue_term_id' );
 		$user_id       = $this->positive_id( $data['user_id'] ?? null, 'user_id' );
 		$creator_id    = $this->positive_id( $data['created_by_user_id'] ?? null, 'created_by_user_id' );
@@ -44,63 +42,7 @@ class VenueMembershipRepository {
 			return new \WP_Error( 'invalid_venue_membership_status', __( 'The venue membership status is not supported.', 'extrachill-events' ) );
 		}
 
-		$row = ( new TeamMembershipRepository() )->new_row( 'venue', $venue_term_id, $user_id, $is_owner, $creator_id, $status );
-		if ( false === $wpdb->query( 'START TRANSACTION' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Serializes authorization and membership creation.
-			return new \WP_Error( 'venue_membership_transaction_failed', __( 'The venue membership transaction could not start.', 'extrachill-events' ), array( 'database_error' => $wpdb->last_error ) );
-		}
-		$locked = $this->lock_for_venue( $venue_term_id );
-		if ( is_wp_error( $locked ) ) {
-			$this->rollback();
-			return $locked;
-		}
-		$memberships = $this->hydrate_locked( (array) $locked );
-		if ( is_wp_error( $memberships ) ) {
-			$this->rollback();
-			return $memberships;
-		}
-		if ( ! $this->actor_can_manage_members( $creator_id, $memberships ) ) {
-			$this->rollback();
-			return $this->forbidden();
-		}
-		$has_active_owner = false;
-		foreach ( $memberships as $existing ) {
-			if ( $existing['user_id'] === $user_id ) {
-				$this->rollback();
-				return $this->conflict( $existing );
-			}
-			if ( $existing['is_owner'] && VenueAuthorization::STATUS_ACTIVE === $existing['status'] ) {
-				$has_active_owner = true;
-			}
-		}
-		if ( VenueAuthorization::STATUS_ACTIVE === $status && ! $is_owner && ! $has_active_owner ) {
-			$this->rollback();
-			return new \WP_Error( 'venue_membership_owner_required', __( 'The first active venue member must be an owner.', 'extrachill-events' ), array( 'status' => 409 ) );
-		}
-
-		if ( false === ( new TeamMembershipRepository() )->insert( 'venue', $row ) ) {
-			$database_error = $wpdb->last_error;
-			$winner         = $this->get( $venue_term_id, $user_id );
-			if ( is_array( $winner ) ) {
-				$this->rollback();
-				return $this->conflict( $winner );
-			}
-			if ( is_wp_error( $winner ) ) {
-				$this->rollback();
-				return $winner;
-			}
-			$this->rollback();
-			return new \WP_Error(
-				'venue_membership_create_failed',
-				__( 'The venue membership could not be created.', 'extrachill-events' ),
-				array( 'database_error' => $database_error )
-			);
-		}
-		if ( false === $wpdb->query( 'COMMIT' ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Completes serialized creation.
-			$database_error = $wpdb->last_error;
-			return new \WP_Error( 'venue_membership_commit_uncertain', __( 'The venue membership transaction outcome could not be confirmed.', 'extrachill-events' ), array( 'database_error' => $database_error ) );
-		}
-
-		return $this->get( $venue_term_id, $user_id );
+		return ( new TeamMembershipRepository() )->add_member( \ExtraChill\Users\Teams\TeamOnboardingAdapters::get( 'venue' ), $venue_term_id, $user_id, $is_owner, $creator_id, $status );
 	}
 
 	/** Lock raw membership rows inside the caller's transaction. */
@@ -277,54 +219,10 @@ class VenueMembershipRepository {
 		return ( new TeamMembershipRepository() )->hydrate( 'venue', $row );
 	}
 
-	/** Hydrate rows held under the venue transaction lock. */
-	private function hydrate_locked( array $rows ) {
-		return ( new TeamMembershipRepository() )->hydrate_rows( 'venue', $rows );
-	}
-
-	/** Recheck owner/admin authority after venue rows are locked. */
-	private function actor_can_manage_members( int $actor_user_id, array $memberships ): bool {
-		if ( user_can( $actor_user_id, 'manage_options' ) ) {
-			return true;
-		}
-		if ( ! user_can( $actor_user_id, VenueAuthorization::ACCESS_CAPABILITY ) ) {
-			return false;
-		}
-		if ( ! function_exists( 'ec_feature_available' ) || ! ec_feature_available( VenueAuthorization::FEATURE, $actor_user_id ) ) {
-			return false;
-		}
-		foreach ( $memberships as $membership ) {
-			if ( $membership['user_id'] === $actor_user_id && $membership['is_owner'] && VenueAuthorization::STATUS_ACTIVE === $membership['status'] ) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private function rollback(): void {
-		global $wpdb;
-		$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Rolls back failed membership mutation.
-	}
-
 	private function positive_id( $value, string $field ) {
 		if ( ( ! is_int( $value ) && ! ( is_string( $value ) && ctype_digit( $value ) ) ) || (int) $value < 1 ) {
 			return new \WP_Error( 'invalid_venue_membership_id', __( 'Venue membership identifiers must be positive integers.', 'extrachill-events' ), array( 'field' => $field ) );
 		}
 		return (int) $value;
-	}
-
-	private function conflict( array $membership ): \WP_Error {
-		return new \WP_Error(
-			'venue_membership_exists',
-			__( 'A venue membership already exists for this user.', 'extrachill-events' ),
-			array(
-				'status'          => 409,
-				'current_version' => $membership['version'],
-			)
-		);
-	}
-
-	private function forbidden(): \WP_Error {
-		return new \WP_Error( 'venue_action_forbidden', __( 'You are not authorized to manage members for this venue.', 'extrachill-events' ), array( 'status' => 403 ) );
 	}
 }

@@ -1084,7 +1084,8 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertNull( $result['membership'] );
 		$this->assertSame( array(), $service->list_memberships( 1, 100 ) );
 		$this->assertSame( 'promoter_authority_forbidden', ( new PromoterAuthorization() )->authorize( 2, 100, PromoterAuthorization::ACTION_MANAGE_MEMBERS )->get_error_code() );
-		$this->assertSame( 2, $service->create_membership( 1, 100, 2, false )['user_id'] );
+		$this->assertSame( 'promoter_membership_owner_required', $service->create_membership( 1, 100, 2, false )->get_error_code() );
+		$this->assertSame( 2, $service->create_membership( 1, 100, 2, true )['user_id'] );
 
 		$abilities = new PromoterAuthorityAbilities();
 		$abilities->register();

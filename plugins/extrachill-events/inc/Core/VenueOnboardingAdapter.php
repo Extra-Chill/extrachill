@@ -61,6 +61,12 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 
 	/** Preserve the adapter's team type in public error codes. */
 	public function error_code( string $code ): string {
+		if ( 'team_membership_limit_reached' === $code ) {
+			return $this->type . '_membership_limit_exceeded';
+		}
+		if ( 'promoter' === $this->type && in_array( $code, array( 'team_membership_transaction_failed', 'team_membership_commit_uncertain' ), true ) ) {
+			return str_replace( 'team_membership', 'promoter_authority', $code );
+		}
 		return str_replace( 'team', $this->type, $code );
 	}
 

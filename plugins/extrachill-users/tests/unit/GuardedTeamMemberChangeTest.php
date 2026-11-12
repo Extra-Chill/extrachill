@@ -25,15 +25,23 @@ final class GuardedTeamMemberChangeTest extends TestCase {
 			public $status = 'active';
 			public $written = false;
 			public $result = 1;
+			public $empty = false;
+			public $read = array( 'version' => 2 );
+			public $inserted;
+			public function insert( string $type, array $row ) {
+				$this->written = true;
+				$this->inserted = $row;
+				return $this->result;
+			}
 			public function lock_team( string $type, int $id, ?int $limit = null ): array {
-				return array( array( 'user_id' => 2, 'is_owner' => true, 'status' => $this->status, 'version' => 1 ) );
+				return $this->empty ? array() : array( array( 'user_id' => 2, 'is_owner' => true, 'status' => $this->status, 'version' => 1 ) );
 			}
 			public function hydrate_rows( string $type, array $rows ) { return $rows; }
 			public function mutate( string $type, int $id, int $user, int $version, ?bool $owner, bool $revoke, int $actor ) {
 				$this->written = true;
 				return $this->result;
 			}
-			public function get( string $type, int $id, int $user ) { return array( 'version' => 2 ); }
+			public function get( string $type, int $id, int $user ) { return $this->read; }
 		};
 		$this->adapter = $this->createMock( TeamOnboardingAdapter::class );
 		$this->adapter->method( 'team_type' )->willReturn( 'artist' );
@@ -43,6 +51,74 @@ final class GuardedTeamMemberChangeTest extends TestCase {
 
 	protected function tearDown(): void {
 		$GLOBALS['wpdb'] = $this->database;
+	}
+
+	public function test_add_member_commits_and_rereads(): void {
+		$this->assertSame( array( 'version' => 2 ), $this->repository->add_member( $this->adapter, 55, 3, false, 2 ) );
+		$this->assertTrue( $this->repository->written );
+		$this->assertSame( 3, $this->repository->inserted['user_id'] );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $GLOBALS['wpdb']->queries );
+	}
+
+	public function test_add_revoked_existing_member_conflicts(): void {
+		$this->repository->status = 'revoked';
+		$error = $this->repository->add_member( $this->adapter, 55, 2, true, 2 );
+		$this->assertSame( 'custom_membership_exists', $error->get_error_code() );
+		$this->assertSame( array( 'status' => 409, 'current_version' => 1 ), $error->get_error_data() );
+		$this->assertFalse( $this->repository->written );
+	}
+
+	public function test_add_member_limit_counts_inactive_rows(): void {
+		$this->repository->status = 'revoked';
+		$error = $this->repository->add_member( $this->adapter, 55, 3, true, 2, 'active', 1 );
+		$this->assertSame( 'custom_membership_limit_reached', $error->get_error_code() );
+		$this->assertSame( array( 'status' => 409, 'maximum' => 1 ), $error->get_error_data() );
+		$this->assertFalse( $this->repository->written );
+	}
+
+	public function test_add_active_nonowner_requires_active_owner(): void {
+		$this->repository->status = 'invited';
+		$error = $this->repository->add_member( $this->adapter, 55, 3, false, 2 );
+		$this->assertSame( 'custom_membership_owner_required', $error->get_error_code() );
+		$this->assertSame( 409, $error->get_error_data()['status'] );
+		$this->assertFalse( $this->repository->written );
+	}
+
+	public function test_add_first_owner_and_invited_nonowner_are_allowed(): void {
+		$this->repository->empty = true;
+		$this->assertIsArray( $this->repository->add_member( $this->adapter, 55, 3, false, 2, 'invited' ) );
+		$this->assertSame( 'invited', $this->repository->inserted['status'] );
+	}
+
+	public function test_add_authorization_denial_rolls_back(): void {
+		$denied = new WP_Error( 'type_owned_denial', 'Denied' );
+		$this->adapter->method( 'authorize_locked' )->willReturn( $denied );
+		$this->assertSame( $denied, $this->repository->add_member( $this->adapter, 55, 3, true, 2 ) );
+		$this->assertFalse( $this->repository->written );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $GLOBALS['wpdb']->queries );
+	}
+
+	public function test_add_duplicate_key_winner_returns_conflict(): void {
+		$this->repository->result = false;
+		$error = $this->repository->add_member( $this->adapter, 55, 3, true, 2 );
+		$this->assertSame( 'custom_membership_exists', $error->get_error_code() );
+		$this->assertSame( 2, $error->get_error_data()['current_version'] );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $GLOBALS['wpdb']->queries );
+	}
+
+	public function test_add_failed_insert_without_winner(): void {
+		$this->repository->result = false;
+		$this->repository->read = null;
+		$error = $this->repository->add_member( $this->adapter, 55, 3, true, 2 );
+		$this->assertSame( 'custom_membership_create_failed', $error->get_error_code() );
+		$this->assertSame( 500, $error->get_error_data()['status'] );
+	}
+
+	public function test_add_failed_commit_never_rolls_back(): void {
+		$GLOBALS['wpdb']->fail = 'COMMIT';
+		$error = $this->repository->add_member( $this->adapter, 55, 3, true, 2 );
+		$this->assertSame( 'custom_membership_commit_uncertain', $error->get_error_code() );
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $GLOBALS['wpdb']->queries );
 	}
 
 	public function test_final_owner_floor_and_adapter_error_mapping(): void {
