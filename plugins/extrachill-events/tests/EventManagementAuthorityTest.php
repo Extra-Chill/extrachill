@@ -20,7 +20,6 @@
 
 use ExtraChillEvents\Core\BookingSchema;
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
 use PHPUnit\Framework\TestCase;
@@ -136,7 +135,6 @@ final class EventManagementTestWpdb {
 
 require_once __DIR__ . '/Support/team-members-fake.php';
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
-require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 require_once __DIR__ . '/../../extrachill-booking/inc/Core/BookingSchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/VenueAuthorization.php';
@@ -158,7 +156,6 @@ final class EventManagementAuthorityTest extends TestCase {
 		$GLOBALS['wpdb']                  = new EventManagementTestWpdb();
 		$GLOBALS['event_management_test'] = array(
 			'options'        => array(
-				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 				BookingSchema::VERSION_OPTION           => BookingSchema::SCHEMA_VERSION,
 
 			),

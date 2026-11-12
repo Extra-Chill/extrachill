@@ -11,7 +11,6 @@
 			<file>tests/MySQLIntegration/BookingAttachmentMySQLIntegrationTest.php</file>
 			<file>tests/MySQLIntegration/BookingEventSyncMySQLIntegrationTest.php</file>
 			<file>tests/MySQLIntegration/BookingSchemaMultisiteTest.php</file>
-			<file>tests/MySQLIntegration/PromoterAuthoritySchemaMultisiteTest.php</file>
 		</testsuite>
 	</testsuites>
 </phpunit>

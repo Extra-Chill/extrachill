@@ -71,13 +71,6 @@ namespace ExtraChillEvents\Core {
 			}
 		}
 	}
-	if ( ! class_exists( PromoterAuthoritySchema::class, false ) ) {
-		class PromoterAuthoritySchema {
-			public static function is_ready(): bool {
-				return true;
-			}
-		}
-	}
 }
 
 namespace ExtraChillEvents\Tests\Unit\Abilities {

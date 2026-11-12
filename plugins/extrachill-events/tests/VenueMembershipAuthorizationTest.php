@@ -291,8 +291,12 @@ if ( ! function_exists( 'get_option' ) ) {
 	function get_option( $key, $default = false ) {
 		return $GLOBALS['venue_membership_test']['options'][ $key ] ?? $default; }
 }
+if ( ! function_exists( 'metadata_exists' ) ) {
+	function metadata_exists( $type, $id, $key ) { return '' !== get_term_meta( $id, $key, true ); }
+}
 if ( ! function_exists( 'get_term_meta' ) ) {
 	function get_term_meta( $term_id, $key, $single = false ) {
+		if ( isset( $GLOBALS['promoter_test'] ) && $GLOBALS['wpdb'] instanceof PromoterAuthorityWpdb ) { return ec_promoter_fake_get_meta( $term_id, $key ); }
 		unset( $single );
 		return $GLOBALS['venue_membership_test']['term_meta'][ $term_id ][ $key ] ?? '';
 	}
@@ -311,6 +315,7 @@ if ( ! function_exists( 'data_machine_events_update_venue_profile' ) ) {
 }
 if ( ! function_exists( 'update_term_meta' ) ) {
 	function update_term_meta( $term_id, $key, $value ) {
+		if ( isset( $GLOBALS['promoter_test'] ) && $GLOBALS['wpdb'] instanceof PromoterAuthorityWpdb ) { return ec_promoter_fake_update_meta( $term_id, $key, $value ); }
 		$GLOBALS['venue_membership_test']['term_meta'][ $term_id ][ $key ] = $value;
 		return 1;
 	}
@@ -440,9 +445,12 @@ final class VenueMembershipWpdb {
 		}
 		$i = 0;
 		return preg_replace_callback(
-			'/%[ds]/',
+			'/%[dsi]/',
 			static function ( $match ) use ( &$args, &$i ) {
 				$value = $args[ $i++ ];
+				if ( '%i' === $match[0] ) {
+					return (string) $value;
+				}
 				return '%d' === $match[0] ? (string) (int) $value : "'" . addslashes( (string) $value ) . "'";
 			},
 			$query
@@ -1126,8 +1134,9 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 
 	public function test_promoter_email_invitation_acceptance_and_team_isolation(): void {
 		require_once __DIR__ . '/Support/TeamOnboardingWpdb.php';
-		require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 		require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
+		$GLOBALS['venue_membership_test']['term_meta'][55]['_ec_promoter_status'] = 'active';
+		$GLOBALS['venue_membership_test']['term_meta'][55]['_ec_promoter_verification'] = array( 'version' => 1, 'verified_by_user_id' => 1 );
 		$GLOBALS['wpdb'] = new TeamOnboardingWpdb();
 		$members         = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 		$members->insert( 'venue', $members->new_row( 'venue', 55, 2, true, 1 ) );
@@ -1135,7 +1144,6 @@ final class VenueMembershipAuthorizationTest extends BookingTestCase {
 		$venue_invite  = $venue_service->invite( 2, 55, 'existing@example.com', false );
 		$this->assertIsArray( $venue_invite );
 		$GLOBALS['venue_membership_test']['terms'][55]->taxonomy = 'promoter';
-		$GLOBALS['venue_membership_test']['options'][ \ExtraChillEvents\Core\PromoterAuthoritySchema::VERSION_OPTION ] = \ExtraChillEvents\Core\PromoterAuthoritySchema::SCHEMA_VERSION;
 		$members = new \ExtraChill\Users\Teams\TeamMembershipRepository();
 		$members->insert( 'promoter', $members->new_row( 'promoter', 55, 2, true, 1 ) );
 		$members->insert( 'promoter', $members->new_row( 'promoter', 55, 3, false, 1 ) );

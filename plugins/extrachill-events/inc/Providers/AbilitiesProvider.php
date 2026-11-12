@@ -67,7 +67,7 @@ final class AbilitiesProvider {
 			)
 		);
 
-		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
+		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' ) ) {
 			$abilities[] = 'PromoterAuthorityAbilities';
 			$abilities[] = 'PromoterWorkspaceAbilities';
 		}

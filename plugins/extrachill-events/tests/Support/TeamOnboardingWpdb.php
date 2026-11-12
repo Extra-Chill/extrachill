@@ -29,6 +29,9 @@ class TeamOnboardingWpdb {
 	}
 
 	public function get_var( $query ) {
+		if ( preg_match( '/SELECT term_id FROM .*term_id = (\\d+) FOR UPDATE/', $query, $match ) ) {
+			return isset( $GLOBALS['venue_membership_test']['terms'][ (int) $match[1] ] ) ? (int) $match[1] : null;
+		}
 		if ( preg_match( '/SHOW TABLES LIKE/', $query ) ) {
 			return $this->legacy_rows ? 'wp_7_ec_venue_claims' : null;
 		}
@@ -39,17 +42,6 @@ class TeamOnboardingWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
-		if ( false !== strpos( $query, 'ec_promoter_organizations' ) ) {
-			return array(
-				'id'                  => 1,
-				'promoter_term_id'    => 55,
-				'status'              => 'active',
-				'version'             => 1,
-				'verified_by_user_id' => 1,
-				'verified_at'         => '2026-01-01 00:00:00',
-				'updated_at'          => '2026-01-01 00:00:00',
-			);
-		}
 		return $this->dispatch( 'get_row', $query, $output );
 	}
 

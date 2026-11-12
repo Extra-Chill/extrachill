@@ -424,7 +424,7 @@ function extrachill_events_owner_list_staff_door_event_ids( int $user_id ): arra
 			$owners[] = array( OwnerGuestListTable::OWNER_VENUE, (int) $venue_id );
 		}
 	}
-	if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) && \ExtraChillEvents\Core\PromoterAuthoritySchema::is_ready() ) {
+	if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthorityRepository' ) ) {
 		$memberships = ( new \ExtraChillEvents\Core\PromoterAuthorityRepository() )->list_active_memberships_for_user( $user_id );
 		foreach ( is_wp_error( $memberships ) ? array() : (array) $memberships as $membership ) {
 			$owners[] = array( OwnerGuestListTable::OWNER_PROMOTER, (int) $membership['promoter_term_id'] );

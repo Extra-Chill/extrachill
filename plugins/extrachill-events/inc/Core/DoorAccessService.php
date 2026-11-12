@@ -568,9 +568,6 @@ final class DoorAccessService {
 		if ( 'venue' === $team_type ) {
 			return true;
 		}
-		if ( ! class_exists( PromoterAuthoritySchema::class ) || ! class_exists( PromoterAuthorityRepository::class ) || ! PromoterAuthoritySchema::is_ready() ) {
-			return new \WP_Error( 'promoter_authority_schema_unavailable', __( 'Promoter authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
-		}
 		$organization = $this->authorization->promoter_organization( $term_id );
 		if ( is_wp_error( $organization ) ) {
 			return $organization;

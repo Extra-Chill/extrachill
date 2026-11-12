@@ -285,9 +285,6 @@ final class TeamAuthorization {
 		if ( ! in_array( $action, self::actions( 'promoter' ), true ) ) {
 			return new \WP_Error( 'invalid_promoter_authority_action', __( 'The requested promoter authority action is not supported.', 'extrachill-events' ), array( 'status' => 400 ) );
 		}
-		if ( ! PromoterAuthoritySchema::is_ready() ) {
-			return new \WP_Error( 'promoter_authority_schema_unavailable', __( 'Promoter authority storage is not ready.', 'extrachill-events' ), array( 'status' => 503 ) );
-		}
 		$term = get_term( $promoter_term_id, 'promoter' );
 		if ( $promoter_term_id < 1 || ! $term || is_wp_error( $term ) || 'promoter' !== $term->taxonomy ) {
 			return new \WP_Error( 'invalid_promoter_authority_term', __( 'A valid current-site promoter term is required.', 'extrachill-events' ), array( 'status' => 400 ) );

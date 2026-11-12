@@ -111,13 +111,13 @@ class VenueOnboardingAdapter implements TeamOnboardingAdapter {
 	public function check_team( int $team_id, bool $lock ) {
 		global $wpdb;
 		if ( $lock && 'promoter' === $this->type ) {
-			$table                     = PromoterAuthoritySchema::organizations_table();
-			$row                       = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE promoter_term_id = %d FOR UPDATE', $table, $team_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Serialize the promoter organization before its members.
+			$id                        = $wpdb->get_var( $wpdb->prepare( 'SELECT term_id FROM %i WHERE term_id = %d FOR UPDATE', $wpdb->terms, $team_id ) ); // phpcs:ignore WordPress.DB -- Serialize the promoter organization before its members.
 			$this->locked_organization = null;
-			if ( '' !== (string) $wpdb->last_error ) {
+			if ( (int) $id !== $team_id || '' !== (string) $wpdb->last_error ) {
 				return new \WP_Error( 'promoter_membership_read_failed', __( 'Promoter authority could not be locked.', 'extrachill-events' ), array( 'status' => 500 ) );
 			}
-			$this->locked_organization = is_array( $row ) ? ( new PromoterAuthorityRepository() )->hydrate_organization( $row ) : null;
+			wp_cache_delete( $team_id, 'term_meta' );
+			$this->locked_organization = ( new PromoterAuthorityRepository() )->get_organization( $team_id );
 			return is_wp_error( $this->locked_organization ) ? $this->locked_organization : true;
 		}
 		if ( $lock ) {

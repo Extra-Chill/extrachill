@@ -21,9 +21,6 @@ namespace ExtraChillEvents\Core {
 				return 1 === $user && 9 === $venue && self::ACTION_MANAGE_FINANCES === $action;
 			}
 		}
-		class PromoterAuthoritySchema {
-			public static function is_ready() { return true; }
-		}
 		class PromoterAuthorityRepository {
 			public function get_organization( $id ) { return array( 'status' => $GLOBALS['csn_org_status'] ); }
 			public function list_memberships( $id ) { return $GLOBALS['csn_members']; }

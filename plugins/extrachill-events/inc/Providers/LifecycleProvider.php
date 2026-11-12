@@ -57,9 +57,6 @@ final class LifecycleProvider {
 	public static function activate(): void {
 		\ExtraChillEvents\Core\QualifyVerdictsTable::create_table();
 		\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::create_table();
-		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
-			\ExtraChillEvents\Core\PromoterAuthoritySchema::install();
-		}
 		do_action( 'extrachill_events_after_venue_schema_install', 'activate' );
 		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
 			\ExtraChillEvents\Core\RsvpPassesTable::create_table();
@@ -83,6 +80,8 @@ final class LifecycleProvider {
 	 * request retries if the winner did not finish.
 	 */
 	public static function maybe_install_schema(): void {
+		delete_option( 'extrachill_events_promoter_authority_schema_version' );
+		delete_option( 'extrachill_events_promoter_authority_schema_error' );
 		if ( self::schemas_current() ) {
 			return;
 		}
@@ -115,9 +114,6 @@ final class LifecycleProvider {
 			\ExtraChillEvents\Core\ArtistUrlSubmissionsTable::maybe_install();
 		}
 		do_action( 'extrachill_events_after_venue_schema_install', 'maybe_install' );
-		if ( class_exists( '\\ExtraChillEvents\\Core\\PromoterAuthoritySchema' ) ) {
-			\ExtraChillEvents\Core\PromoterAuthoritySchema::maybe_install();
-		}
 		if ( class_exists( '\\ExtraChillEvents\\Core\\RsvpPassesTable' ) ) {
 			\ExtraChillEvents\Core\RsvpPassesTable::maybe_install();
 		}
@@ -137,7 +133,6 @@ final class LifecycleProvider {
 		$schemas = array(
 			'QualifyVerdictsTable'      => array( 'SCHEMA_VERSION_OPTION', false ),
 			'ArtistUrlSubmissionsTable' => array( 'VERSION_OPTION', true ),
-			'PromoterAuthoritySchema'   => array( 'VERSION_OPTION', false ),
 			'RsvpPassesTable'           => array( 'VERSION_OPTION', false ),
 		);
 

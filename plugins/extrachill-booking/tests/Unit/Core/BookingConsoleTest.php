@@ -168,7 +168,7 @@ final class BookingConsoleTest extends TestCase {
 	public function test_managed_identity_discovery_source_contract(): void {
 		$source = file_get_contents( dirname( __DIR__, 3 ) . '/inc/core/booking-console.php' );
 
-		foreach ( array( 'BookingSchema::class', 'VenueAuthorization::class', 'VenueMembershipRepository::class', 'PromoterAuthoritySchema::class', 'PromoterAuthorityRepository::class' ) as $dependency ) {
+		foreach ( array( 'BookingSchema::class', 'VenueAuthorization::class', 'VenueMembershipRepository::class', 'PromoterAuthorityRepository::class' ) as $dependency ) {
 			$this->assertStringContainsString( "class_exists( {$dependency} )", $source );
 		}
 		$this->assertStringContainsString( 'has_feature_access( $user_id )', $source );

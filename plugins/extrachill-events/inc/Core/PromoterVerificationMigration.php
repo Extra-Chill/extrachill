@@ -60,10 +60,6 @@ final class PromoterVerificationMigration {
 				'complete' => true,
 			) );
 		}
-		// Staged rollout safety: the legacy writer must be removed before retirement.
-		if ( class_exists( __NAMESPACE__ . '\\PromoterAuthoritySchema' ) ) {
-			return self::failure( 'Deploy the term-meta authority repository before retiring legacy storage.', 'blocked' );
-		}
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY promoter_term_id ASC', $state['table'] ), ARRAY_A );
 		if ( ! is_array( $rows ) || $wpdb->last_error ) {
 			return self::failure( 'Could not read legacy promoter organizations.' );

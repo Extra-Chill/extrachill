@@ -8,13 +8,11 @@
 use ExtraChillEvents\Core\TeamCapabilities;
 use ExtraChillEvents\Core\VenueAuthorization;
 use ExtraChillEvents\Core\VenueMembershipRepository;
-use ExtraChillEvents\Core\PromoterAuthoritySchema;
 
 require_once __DIR__ . '/VenueMembershipAuthorizationTest.php';
 require_once __DIR__ . '/PromoterAuthorityTest.php';
 require_once __DIR__ . '/../../extrachill-users/inc/teams/TeamMembershipRepository.php';
 require_once dirname( __DIR__ ) . '/inc/Core/TeamCapabilities.php';
-require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthoritySchema.php';
 require_once dirname( __DIR__ ) . '/inc/Core/PromoterAuthorityRepository.php';
 
 /** Exercises the public WordPress boundary, not just the policy wrapper. */
@@ -28,7 +26,6 @@ final class TeamAuthorizationTest extends \PHPUnit\Framework\TestCase {
 			'term_history'      => array(),
 			'options'           => array(
 
-				PromoterAuthoritySchema::VERSION_OPTION => PromoterAuthoritySchema::SCHEMA_VERSION,
 			),
 			'terms'             => array(
 				55 => (object) array(
@@ -147,6 +144,7 @@ final class TeamAuthorizationTest extends \PHPUnit\Framework\TestCase {
 	public function test_promoter_capabilities_do_not_inherit_venue_membership(): void {
 		$GLOBALS['wpdb'] = new PromoterAuthorityWpdb();
 		$GLOBALS['venue_membership_test']['terms'][55]->taxonomy = 'promoter';
+		$GLOBALS['promoter_test']['terms'] = $GLOBALS['venue_membership_test']['terms'];
 		$repository = new \ExtraChillEvents\Core\PromoterAuthorityRepository();
 		$this->assertIsArray( $repository->verify( 55, null, 1 ) );
 		foreach ( array(
