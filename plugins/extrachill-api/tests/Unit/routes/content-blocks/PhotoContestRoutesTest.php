@@ -61,7 +61,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 		);
 		$this->original_remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : null;
 		$_SERVER['REMOTE_ADDR']     = '198.51.100.' . random_int( 1, 250 );
-		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		add_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		add_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 
 		if ( ! wp_has_ability_category( 'extrachill-api-tests' ) ) {
@@ -93,7 +93,7 @@ class PhotoContestRoutesTest extends WP_UnitTestCase {
 			$_SERVER['REMOTE_ADDR'] = $this->original_remote_addr;
 		}
 
-		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		remove_filter( 'extrachill_bypass_turnstile_verification', '__return_true' );
 		remove_all_filters( 'extrachill_api_photo_contest_submit_rate_limit' );
 		remove_all_filters( 'extrachill_api_photo_contest_vote_rate_limit' );

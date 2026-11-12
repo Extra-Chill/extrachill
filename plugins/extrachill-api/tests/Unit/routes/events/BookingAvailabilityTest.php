@@ -28,7 +28,7 @@ class Booking_AvailabilityTest extends WP_UnitTestCase {
 		$this->ability_result    = array( 'available' => true );
 		$this->rate_counts       = array();
 		$_SERVER['REMOTE_ADDR']  = '198.51.100.' . random_int( 1, 250 );
-		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		add_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 	}
 
 	/** Remove test-owned global state. */
@@ -36,7 +36,7 @@ class Booking_AvailabilityTest extends WP_UnitTestCase {
 		wp_set_current_user( 0 );
 		wp_clear_auth_cookie();
 		remove_all_filters( 'extrachill_api_booking_availability_rate_limit' );
-		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		if ( isset( wp_get_abilities()[ EXTRACHILL_API_BOOKING_AVAILABILITY_ABILITY ] ) ) {
 			wp_unregister_ability( EXTRACHILL_API_BOOKING_AVAILABILITY_ABILITY );
 		}

@@ -60,7 +60,7 @@ class Booking_Inquiry_Follow_Through_Test extends WP_UnitTestCase {
 			),
 		);
 		remove_filter( 'rest_pre_dispatch', 'extrachill_api_route_affinity_dispatch', 10 );
-		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		add_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		foreach ( $this->abilities as $operation => $name ) {
 			if ( wp_has_ability( $name ) ) {
 				wp_unregister_ability( $name );
@@ -76,7 +76,7 @@ class Booking_Inquiry_Follow_Through_Test extends WP_UnitTestCase {
 		remove_all_filters( 'extrachill_bypass_turnstile_verification' );
 		remove_all_filters( 'extrachill_api_booking_follow_through_read_rate_limit' );
 		remove_all_filters( 'extrachill_api_booking_follow_through_write_rate_limit' );
-		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		foreach ( $this->abilities as $name ) {
 			if ( wp_has_ability( $name ) ) {
 				wp_unregister_ability( $name );

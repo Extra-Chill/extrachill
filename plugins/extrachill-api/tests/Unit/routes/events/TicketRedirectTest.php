@@ -30,13 +30,13 @@ class Ticket_RedirectTest extends WP_UnitTestCase {
 			'is_affiliate' => true,
 		);
 		$_SERVER['REMOTE_ADDR'] = '198.51.100.' . random_int( 1, 250 );
-		add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		add_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 	}
 
 	/** Remove controlled fixtures and global state. */
 	public function tear_down() {
 		remove_all_filters( 'extrachill_api_ticket_redirect_rate_limit' );
-		remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+		remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 		if ( wp_has_ability( EXTRACHILL_API_TICKET_REDIRECT_ABILITY ) ) {
 			wp_unregister_ability( EXTRACHILL_API_TICKET_REDIRECT_ABILITY );
 		}

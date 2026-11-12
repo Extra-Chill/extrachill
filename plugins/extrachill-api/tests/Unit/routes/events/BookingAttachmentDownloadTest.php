@@ -55,7 +55,7 @@ namespace {
 			wp_set_current_user( 0 );
 			unset( $_SERVER['HTTP_RANGE'] );
 			remove_filter( 'rest_pre_dispatch', 'extrachill_api_route_affinity_dispatch', 10 );
-			add_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+			add_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 
 			$categories = WP_Ability_Categories_Registry::get_instance();
 			if ( ! wp_has_ability_category( 'extrachill-api-tests' ) ) {
@@ -75,7 +75,7 @@ namespace {
 		/** Remove controlled state and any unserved streams. */
 		public function tear_down() {
 			extrachill_api_cleanup_private_streams();
-			remove_filter( 'extrachill_api_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
+			remove_filter( 'extrachill_rate_limit_store', array( $this, 'use_test_rate_limit_store' ) );
 			remove_all_filters( 'extrachill_api_private_affinity_stream' );
 			remove_all_filters( 'extrachill_api_booking_attachment_max_bytes' );
 			foreach ( $this->registered_abilities as $name ) {
