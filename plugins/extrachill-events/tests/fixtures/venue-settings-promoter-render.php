@@ -24,19 +24,19 @@ namespace ExtraChillEvents\Core {
 				return new \WP_Error( 'invalid_promoter_workspace_identity' );
 			}
 			return array(
-				'actor'                  => array(
+				'actor'      => array(
 					'id'   => $user_id,
 					'name' => 'Browser User',
 				),
-				'identities'             => array(),
-				'selection'              => array(
+				'identities' => array(),
+				'selection'  => array(
 					'reference' => $reference,
 					'type'      => 'promoter',
 					'id'        => 30,
 					'state'     => 'active',
 				),
-				'promoter'               => null,
-				'venue'                  => null,
+				'promoter'   => null,
+				'venue'      => null,
 			);
 		}
 	}

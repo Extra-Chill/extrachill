@@ -170,19 +170,19 @@ $workspace = ( new PromoterWorkspace( null, null, false ) )->resolve_for_user( $
 if ( is_wp_error( $workspace ) ) {
 	$browser_user = get_userdata( $user_id );
 	$workspace    = array(
-		'actor'                  => array(
+		'actor'      => array(
 			'id'   => $user_id,
 			'name' => $browser_user ? (string) ( $browser_user->display_name ?? '' ) : '',
 		),
-		'identities'             => array(),
-		'selection'              => array(
+		'identities' => array(),
+		'selection'  => array(
 			'reference' => $requested_identity,
 			'state'     => 'denied',
 			'type'      => $promoter_mode ? 'promoter' : 'venue',
 			'reason'    => $promoter_mode ? 'invalid' : 'unavailable',
 		),
-		'promoter'               => null,
-		'venue'                  => null,
+		'promoter'   => null,
+		'venue'      => null,
 	);
 }
 $context = array(
