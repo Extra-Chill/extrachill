@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.4] - 2026-11-13
+
+### Changed
+- sign experiment exposure proofs and My Shows scope tokens with extrachill_sign
+
 ## [2.39.3] - 2026-11-12
 
 ### Changed
