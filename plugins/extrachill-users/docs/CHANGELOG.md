@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.11] - 2026-11-13
+
+### Fixed
+- stop exposing email addresses in users-search results
+
 ## [0.63.10] - 2026-11-12
 
 ### Changed
