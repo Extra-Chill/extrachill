@@ -482,7 +482,7 @@ abstract class TeamTermLinkPages {
 	 * @param int     $term_id          Deleted term ID.
 	 * @param int     $term_taxonomy_id Deleted term taxonomy ID.
 	 * @param string  $taxonomy         Term taxonomy.
-	 * @param \WP_Term $deleted_term     Deleted term copy.
+	 * @param mixed   $deleted_term     Deleted term copy.
 	 */
 	public static function orphan_after_term_deletion( $term_id, $term_taxonomy_id, $taxonomy, $deleted_term ): void {
 		unset( $term_taxonomy_id );
@@ -517,7 +517,7 @@ abstract class TeamTermLinkPages {
 				return;
 			}
 		}
-		$result = static::draft_captured_page( $capture, absint( $term_id ), static::ORPHAN_POLICY, sanitize_text_field( (string) ( $deleted_term->name ?? '' ) ) );
+		$result = static::draft_captured_page( $capture, absint( $term_id ), static::ORPHAN_POLICY, sanitize_text_field( is_object( $deleted_term ) && isset( $deleted_term->name ) ? (string) $deleted_term->name : '' ) );
 		if ( is_wp_error( $result ) ) {
 			do_action( 'extrachill_events_' . static::KIND . '_link_page_orphan_failed', absint( $term_id ), $capture, $result );
 		}
