@@ -1250,6 +1250,41 @@ final class PromoterAuthorityTest extends TestCase {
 		$this->assertSame( array( 'selected_reference' ), $registered['extrachill/resolve-managed-workspace-context']['input_schema']['required'] );
 	}
 
+	public function test_user_membership_read_orders_by_real_team_table_columns(): void {
+		// The in-memory fake rewrites team_id to {type}_term_id, which would also
+		// accept a nonexistent team_term_id column; record the raw SQL instead.
+		$real_wpdb        = $GLOBALS['wpdb'];
+		$recorder         = new class() {
+			public $base_prefix = 'wp_';
+			public $prefix      = 'wp_7_';
+			public $last_error  = '';
+			public $queries     = array();
+			public function prepare( $query, ...$args ) {
+				$args = isset( $args[0] ) && is_array( $args[0] ) ? $args[0] : $args;
+				return vsprintf( str_replace( array( '%d', '%s' ), array( '%d', "'%s'" ), $query ), $args );
+			}
+			public function get_results( $query ) {
+				$this->queries[] = $query;
+				return array();
+			}
+		};
+		$GLOBALS['wpdb'] = $recorder;
+		try {
+			$result = ( new PromoterAuthorityRepository() )->list_active_memberships_for_user( 7 );
+		} finally {
+			$GLOBALS['wpdb'] = $real_wpdb;
+		}
+
+		$this->assertSame( array(), $result );
+		$this->assertCount( 1, $recorder->queries );
+		$this->assertMatchesRegularExpression( '/ORDER BY (.+?)(?: LIMIT| FOR UPDATE|$)/', $recorder->queries[0] );
+		preg_match( '/ORDER BY (.+?)(?: LIMIT| FOR UPDATE|$)/', $recorder->queries[0], $order );
+		$columns = array( 'id', 'team_type', 'team_id', 'user_id', 'is_owner', 'status', 'version', 'created_by_user_id', 'created_at', 'updated_at', 'revoked_by_user_id', 'revoked_at' );
+		foreach ( array_map( 'trim', explode( ',', $order[1] ) ) as $term ) {
+			$this->assertContains( strtok( $term, ' ' ), $columns, 'ORDER BY must use a real ec_team_members column.' );
+		}
+	}
+
 	public function test_workspace_repository_reads_fail_explicitly_at_their_hard_bounds(): void {
 		$promoter_memberships = ec_team_fake_partition( 'promoter' );
 		for ( $index = 1; $index <= PromoterAuthorityRepository::MAX_ORGANIZATIONS + 1; ++$index ) {

@@ -265,7 +265,7 @@ class PromoterAuthorityRepository {
 		$rows = ( new TeamMembershipRepository() )->select( 'promoter', array(
 			'user_id' => $user_id,
 			'status'  => self::STATUS_ACTIVE,
-		), 'team_term_id ASC, id ASC', self::MAX_ORGANIZATIONS + 1 );
+		), 'team_id ASC, id ASC', self::MAX_ORGANIZATIONS + 1 );
 		if ( '' !== (string) $wpdb->last_error ) {
 			return $this->database_error( 'promoter_membership_list_failed', __( 'Promoter memberships could not be listed.', 'extrachill-events' ) );
 		}
