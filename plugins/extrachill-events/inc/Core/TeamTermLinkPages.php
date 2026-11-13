@@ -53,9 +53,9 @@ abstract class TeamTermLinkPages {
 	 * Returns term_id, name, slug, description, website, image_url, image_alt,
 	 * social_links, source_url, optional revision, and any kind-specific fields.
 	 *
-	 * @param int $term_id Canonical owner term ID.
+	 * @param \WP_Term $term Validated canonical owner term.
 	 */
-	abstract protected static function read_source( int $term_id );
+	abstract protected static function read_source( $term );
 
 	/**
 	 * Build the owner's management destination.
@@ -178,7 +178,7 @@ abstract class TeamTermLinkPages {
 	 * @param array $resolved Resolved runtime owner binding.
 	 */
 	public static function operation_provider( $resolved ) {
-		if ( ! static::is_owner( $resolved['owner'] ?? array() ) ) {
+		if ( ! self::is_owner( $resolved['owner'] ?? array() ) ) {
 			return null;
 		}
 		return array(
@@ -195,7 +195,7 @@ abstract class TeamTermLinkPages {
 	 * @param string $operation Runtime operation.
 	 */
 	public static function operation_authorize( $resolved, $operation ) {
-		if ( ! in_array( $operation, array( 'read', 'save' ), true ) || ! static::binding_is_exact( $resolved ) ) {
+		if ( ! in_array( $operation, array( 'read', 'save' ), true ) || ! self::binding_is_exact( $resolved ) ) {
 			return false;
 		}
 		return static::authorize( (int) $resolved['owner']['object_id'] );
@@ -211,9 +211,9 @@ abstract class TeamTermLinkPages {
 		if ( true !== $allowed ) {
 			return is_wp_error( $allowed ) ? $allowed : static::forbidden();
 		}
-		$snapshot = static::read_snapshot( (int) $resolved['link_page_id'], (string) $resolved['owner_reference'] );
+		$snapshot = self::read_snapshot( (int) $resolved['link_page_id'], (string) $resolved['owner_reference'] );
 		$data     = is_wp_error( $snapshot ) ? $snapshot : ec_read_link_page_persistence( (int) $resolved['link_page_id'] );
-		return is_wp_error( $data ) ? $data : static::compose_response( $data, $snapshot );
+		return is_wp_error( $data ) ? $data : self::compose_response( $data, $snapshot );
 	}
 
 	/**
@@ -233,7 +233,7 @@ abstract class TeamTermLinkPages {
 			static function () use ( $resolved, $data ) {
 				return ec_with_link_page_storage_blog(
 					static function () use ( $resolved, $data ) {
-						return static::operation_save_locked( $resolved, $data );
+						return self::operation_save_locked( $resolved, $data );
 					}
 				);
 			}
@@ -257,9 +257,9 @@ abstract class TeamTermLinkPages {
 			return $current;
 		}
 		$expected_revision = isset( $data['expected_revision'] ) ? (string) $data['expected_revision'] : '';
-		$lock_revision     = static::persistence_revision( $current );
+		$lock_revision     = self::persistence_revision( $current );
 		unset( $data['expected_revision'] );
-		$snapshot = static::build_snapshot( (int) $resolved['owner']['object_id'], (string) $resolved['owner_reference'] );
+		$snapshot = self::build_snapshot( (int) $resolved['owner']['object_id'], (string) $resolved['owner_reference'] );
 		if ( is_wp_error( $snapshot ) ) {
 			return $snapshot;
 		}
@@ -271,10 +271,10 @@ abstract class TeamTermLinkPages {
 				if ( $expected_revision && ! hash_equals( $lock_revision, $expected_revision ) ) {
 					return static::error( 'revision_conflict', __( 'The Link Page changed before this save could be applied.', 'extrachill-events' ), array( 'status' => 409 ) );
 				}
-				return static::finalize_owner_state( (int) $finalized_link_page_id, (string) $resolved['owner_reference'], $snapshot, 'save' );
+				return self::finalize_owner_state( (int) $finalized_link_page_id, (string) $resolved['owner_reference'], $snapshot, 'save' );
 			}
 		);
-		return is_wp_error( $saved ) ? $saved : static::compose_response( $saved, $snapshot );
+		return is_wp_error( $saved ) ? $saved : self::compose_response( $saved, $snapshot );
 	}
 
 	/**
@@ -291,7 +291,7 @@ abstract class TeamTermLinkPages {
 			$term_id,
 			false,
 			static function () use ( $term_id ) {
-				return static::provision_locked( $term_id );
+				return self::provision_locked( $term_id );
 			}
 		);
 	}
@@ -308,19 +308,19 @@ abstract class TeamTermLinkPages {
 		}
 		return ec_with_link_page_storage_blog(
 			static function () use ( $term_id, $reference ) {
-				$source = static::read_live_source( $term_id );
+				$source = self::read_live_source( $term_id );
 				if ( is_wp_error( $source ) ) {
 					return $source;
 				}
 				$provisioned = null;
-				$snapshot    = static::snapshot_from_source( $source, $reference );
-				foreach ( static::slug_candidates( $source ) as $slug ) {
+				$snapshot    = self::snapshot_from_source( $source, $reference );
+				foreach ( self::slug_candidates( $source ) as $slug ) {
 					$provisioned = ec_provision_owned_link_page_composed(
 						$reference,
 						$source['name'],
 						$slug,
 						static function ( $link_page_id, $owner_reference ) use ( $snapshot ) {
-							return static::finalize_owner_state( (int) $link_page_id, (string) $owner_reference, $snapshot, 'provision' );
+							return self::finalize_owner_state( (int) $link_page_id, (string) $owner_reference, $snapshot, 'provision' );
 						},
 						false,
 						static function () use ( $term_id ) {
@@ -335,7 +335,7 @@ abstract class TeamTermLinkPages {
 					return $provisioned;
 				}
 				$link_page_id        = (int) $provisioned['link_page_id'];
-				$response            = static::compose_response( ec_read_link_page_persistence( $link_page_id ), $snapshot );
+				$response            = self::compose_response( ec_read_link_page_persistence( $link_page_id ), $snapshot );
 				$response['created'] = ! empty( $provisioned['created'] );
 				return $response;
 			}
@@ -359,7 +359,7 @@ abstract class TeamTermLinkPages {
 			$error = static::error( 'snapshot_save_failed', __( 'The Link Page snapshot could not be saved.', 'extrachill-events' ) );
 			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $error : static::compensation_failed( $error, $operation );
 		}
-		$public = ec_save_link_page_public_projection_snapshot( $link_page_id, $reference, static::projection_from_snapshot( $snapshot, $link_page_id ) );
+		$public = ec_save_link_page_public_projection_snapshot( $link_page_id, $reference, self::projection_from_snapshot( $snapshot, $link_page_id ) );
 		if ( is_wp_error( $public ) ) {
 			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $public : static::compensation_failed( $public, $operation );
 		}
@@ -379,7 +379,7 @@ abstract class TeamTermLinkPages {
 	 * @param int $term_id Canonical owner term ID.
 	 */
 	public static function refresh_snapshot( int $term_id ) {
-		return static::refresh_snapshot_mutation( $term_id, false );
+		return self::refresh_snapshot_mutation( $term_id, false );
 	}
 
 	/**
@@ -399,7 +399,7 @@ abstract class TeamTermLinkPages {
 			$term_id,
 			$trusted,
 			static function () use ( $term_id, $trusted ) {
-				return static::refresh_snapshot_locked( $term_id, $trusted );
+				return self::refresh_snapshot_locked( $term_id, $trusted );
 			}
 		);
 	}
@@ -414,9 +414,9 @@ abstract class TeamTermLinkPages {
 		$reference    = static::owner_reference( $term_id );
 		$link_page_id = is_wp_error( $reference ) ? $reference : ec_get_link_page_id_for_owner( $reference );
 		if ( is_wp_error( $link_page_id ) || ! $link_page_id ) {
-			return is_wp_error( $link_page_id ) ? $link_page_id : static::not_found();
+			return is_wp_error( $link_page_id ) ? $link_page_id : self::not_found();
 		}
-		$snapshot = static::build_snapshot( $term_id, $reference );
+		$snapshot = self::build_snapshot( $term_id, $reference );
 		if ( is_wp_error( $snapshot ) ) {
 			return $snapshot;
 		}
@@ -431,8 +431,8 @@ abstract class TeamTermLinkPages {
 								return $allowed;
 							}
 						}
-						$finalized = static::finalize_owner_state( (int) $link_page_id, (string) $snapshot['owner_reference'], $snapshot, 'refresh' );
-						return true === $finalized ? static::compose_response( ec_read_link_page_persistence( (int) $link_page_id ), $snapshot ) : $finalized;
+						$finalized = self::finalize_owner_state( (int) $link_page_id, (string) $snapshot['owner_reference'], $snapshot, 'refresh' );
+						return true === $finalized ? self::compose_response( ec_read_link_page_persistence( (int) $link_page_id ), $snapshot ) : $finalized;
 					}
 				);
 			}
@@ -448,7 +448,7 @@ abstract class TeamTermLinkPages {
 		if ( get_current_blog_id() !== static::events_blog_id() ) {
 			return;
 		}
-		$result = static::refresh_snapshot_mutation( absint( $term_id ), true );
+		$result = self::refresh_snapshot_mutation( absint( $term_id ), true );
 		if ( is_wp_error( $result ) && ! in_array( $result->get_error_code(), array( static::KIND . '_link_page_not_found', static::KIND . '_link_page_forbidden' ), true ) ) {
 			do_action( 'extrachill_events_' . static::KIND . '_link_page_snapshot_refresh_failed', absint( $term_id ), $result );
 		}
@@ -482,7 +482,7 @@ abstract class TeamTermLinkPages {
 	 * @param int     $term_id          Deleted term ID.
 	 * @param int     $term_taxonomy_id Deleted term taxonomy ID.
 	 * @param string  $taxonomy         Term taxonomy.
-	 * @param WP_Term $deleted_term     Deleted term copy.
+	 * @param \WP_Term $deleted_term     Deleted term copy.
 	 */
 	public static function orphan_after_term_deletion( $term_id, $term_taxonomy_id, $taxonomy, $deleted_term ): void {
 		unset( $term_taxonomy_id );
@@ -585,11 +585,11 @@ abstract class TeamTermLinkPages {
 	 * @param array $context Runtime projection context.
 	 */
 	public static function public_projection_provider( $context ) {
-		if ( ! static::is_owner( $context['owner'] ?? array() ) ) {
+		if ( ! self::is_owner( $context['owner'] ?? array() ) ) {
 			return null;
 		}
-		$snapshot = static::read_snapshot( (int) $context['link_page_id'], (string) $context['owner_reference'] );
-		return is_wp_error( $snapshot ) ? $snapshot : static::projection_from_snapshot( $snapshot, (int) $context['link_page_id'] );
+		$snapshot = self::read_snapshot( (int) $context['link_page_id'], (string) $context['owner_reference'] );
+		return is_wp_error( $snapshot ) ? $snapshot : self::projection_from_snapshot( $snapshot, (int) $context['link_page_id'] );
 	}
 
 	/**
@@ -683,7 +683,7 @@ abstract class TeamTermLinkPages {
 		$reference    = static::owner_reference( $term_id );
 		$link_page_id = is_wp_error( $reference ) ? $reference : ec_get_link_page_id_for_owner( $reference );
 		if ( is_wp_error( $link_page_id ) || ! $link_page_id ) {
-			return is_wp_error( $link_page_id ) ? $link_page_id : static::not_found();
+			return is_wp_error( $link_page_id ) ? $link_page_id : self::not_found();
 		}
 		$result = ec_with_link_page_storage_blog(
 			static function () use ( $link_page_id, $date_range, $start_date, $end_date ) {
@@ -700,8 +700,8 @@ abstract class TeamTermLinkPages {
 	 * @param string $reference Owner reference.
 	 */
 	private static function build_snapshot( int $term_id, string $reference ) {
-		$source = static::read_live_source( $term_id );
-		return is_wp_error( $source ) ? $source : static::snapshot_from_source( $source, $reference );
+		$source = self::read_live_source( $term_id );
+		return is_wp_error( $source ) ? $source : self::snapshot_from_source( $source, $reference );
 	}
 
 	/**
@@ -716,7 +716,7 @@ abstract class TeamTermLinkPages {
 				if ( ! $term || is_wp_error( $term ) || static::KIND !== $term->taxonomy ) {
 					return static::error( 'owner_not_found', __( 'The canonical Link Page owner no longer exists.', 'extrachill-events' ), array( 'status' => 404 ) );
 				}
-				return static::read_source( $term_id );
+				return static::read_source( $term );
 			}
 		);
 	}
@@ -781,7 +781,7 @@ abstract class TeamTermLinkPages {
 			return $data;
 		}
 		$term_id          = (int) $snapshot['source'][ static::KIND . '_term_id' ];
-		$data['revision'] = static::persistence_revision( $data );
+		$data['revision'] = self::persistence_revision( $data );
 		return array(
 			static::KIND => array(
 				'term_id'         => $term_id,
@@ -849,7 +849,7 @@ abstract class TeamTermLinkPages {
 	 * @param array $resolved Resolved runtime owner binding.
 	 */
 	private static function binding_is_exact( array $resolved ): bool {
-		if ( ! static::is_owner( $resolved['owner'] ?? array() ) || empty( $resolved['link_page_id'] ) || empty( $resolved['owner_reference'] ) ) {
+		if ( ! self::is_owner( $resolved['owner'] ?? array() ) || empty( $resolved['link_page_id'] ) || empty( $resolved['owner_reference'] ) ) {
 			return false;
 		}
 		$owner    = ec_get_link_page_owner( (int) $resolved['link_page_id'] );

@@ -50,9 +50,10 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	/**
 	 * Read only an active verified canonical promoter.
 	 *
-	 * @param int $term_id Promoter term ID.
+	 * @param \WP_Term $term Promoter term.
 	 */
-	protected static function read_source( int $term_id ) {
+	protected static function read_source( $term ) {
+		$term_id      = (int) $term->term_id;
 		$organization = ( new PromoterAuthorityRepository() )->get_organization( $term_id );
 		if ( is_wp_error( $organization ) ) {
 			return $organization;
@@ -60,7 +61,6 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 		if ( ! is_array( $organization ) || PromoterAuthorityRepository::STATUS_ACTIVE !== $organization['status'] ) {
 			return self::forbidden();
 		}
-		$term = get_term( $term_id, self::KIND );
 		$data = function_exists( 'data_machine_events_get_promoter_data' ) ? data_machine_events_get_promoter_data( $term_id ) : array();
 		return array(
 			'term_id'      => $term_id,

@@ -30,7 +30,7 @@ final class TeamTermLinkPageAbilities {
 	/** @var string venue or promoter. */
 	private $kind;
 
-	/** @var string Owner definition class. */
+	/** @var class-string<\ExtraChillEvents\Core\TeamTermLinkPages> Owner definition class. */
 	private $owner;
 
 	/** @var string Input key carrying the owner term ID. */
@@ -43,7 +43,7 @@ final class TeamTermLinkPageAbilities {
 	 */
 	public function __construct( string $kind ) {
 		$this->kind   = $kind;
-		$this->owner  = 'venue' === $kind ? '\\ExtraChillEvents\\Core\\VenueLinkPages' : '\\ExtraChillEvents\\Core\\PromoterLinkPages';
+		$this->owner  = 'venue' === $kind ? \ExtraChillEvents\Core\VenueLinkPages::class : \ExtraChillEvents\Core\PromoterLinkPages::class;
 		$this->id_key = $kind . '_term_id';
 		if ( empty( self::$registered[ $kind ] ) ) {
 			self::$registered[ $kind ] = true;
@@ -267,7 +267,7 @@ final class TeamTermLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function authorize( array $input ) {
-		return call_user_func( array( $this->owner, 'authorize' ), $this->term_id( $input ) );
+		return $this->owner::authorize( $this->term_id( $input ) );
 	}
 
 	/** Public discovery needs no taxonomy or membership authority. */
@@ -281,7 +281,7 @@ final class TeamTermLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function provision( array $input ) {
-		return call_user_func( array( $this->owner, 'provision' ), $this->term_id( $input ) );
+		return $this->owner::provision( $this->term_id( $input ) );
 	}
 
 	/**
@@ -290,7 +290,7 @@ final class TeamTermLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function get( array $input ) {
-		$reference = call_user_func( array( $this->owner, 'owner_reference' ), $this->term_id( $input ) );
+		$reference = $this->owner::owner_reference( $this->term_id( $input ) );
 		return is_wp_error( $reference ) ? $reference : ec_read_link_page( $reference );
 	}
 
@@ -367,7 +367,7 @@ final class TeamTermLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function refresh( array $input ) {
-		return call_user_func( array( $this->owner, 'refresh_snapshot' ), $this->term_id( $input ) );
+		return $this->owner::refresh_snapshot( $this->term_id( $input ) );
 	}
 
 	/**
@@ -376,7 +376,7 @@ final class TeamTermLinkPageAbilities {
 	 * @param array $input Ability input.
 	 */
 	public function analytics( array $input ) {
-		return call_user_func( array( $this->owner, 'analytics' ), $this->term_id( $input ), absint( $input['date_range'] ?? 30 ), (string) ( $input['start_date'] ?? '' ), (string) ( $input['end_date'] ?? '' ) );
+		return $this->owner::analytics( $this->term_id( $input ), absint( $input['date_range'] ?? 30 ), (string) ( $input['start_date'] ?? '' ), (string) ( $input['end_date'] ?? '' ) );
 	}
 
 	/** List approved promoters. */
@@ -400,7 +400,7 @@ final class TeamTermLinkPageAbilities {
 	 * @param array $data  Bounded save data.
 	 */
 	private function save( array $input, array $data ) {
-		$reference = call_user_func( array( $this->owner, 'owner_reference' ), $this->term_id( $input ) );
+		$reference = $this->owner::owner_reference( $this->term_id( $input ) );
 		return is_wp_error( $reference ) ? $reference : ec_save_link_page( $reference, $data );
 	}
 

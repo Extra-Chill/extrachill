@@ -36,10 +36,10 @@ final class VenueLinkPages extends TeamTermLinkPages {
 	/**
 	 * Read the canonical venue profile.
 	 *
-	 * @param int $term_id Venue term ID.
+	 * @param \WP_Term $term Venue term.
 	 */
-	protected static function read_source( int $term_id ) {
-		$term    = get_term( $term_id, self::KIND );
+	protected static function read_source( $term ) {
+		$term_id = (int) $term->term_id;
 		$profile = function_exists( 'data_machine_events_get_venue_profile' ) ? data_machine_events_get_venue_profile( $term_id ) : array();
 		if ( is_wp_error( $profile ) ) {
 			return $profile;
