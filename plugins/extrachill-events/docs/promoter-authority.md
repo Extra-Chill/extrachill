@@ -69,3 +69,29 @@ metadata immediately. Run the migration through WP-CLI, never a web request.
 - `extrachill/update-promoter-membership`
 - `extrachill/revoke-promoter-membership`
 - `extrachill/list-promoter-memberships`
+
+## Managed events
+
+`extrachill/list-managed-events` and `extrachill/update-managed-event`
+(`inc/Abilities/ManagedEventAbilities.php`) let promoters and venue managers
+find and edit their own shows without staff capabilities, including from an
+agent connected through the Extra Chill MCP.
+
+- Scope (`ManagedEventScope`): published events at a venue where the user is
+  an active venue-team member, or tagged with a promoter where they are an
+  active promoter-team member. Holders of `edit_others_posts` may pass
+  `scope: all`. Under an agent principal, team scope needs `read` in the
+  ceiling and a principal that represents this user; `scope: all` needs
+  `edit_others_posts` in the ceiling.
+- List input: `when` (`upcoming` default, `past`, `any`), `date_from`,
+  `date_to`, `venue_term_id`, `promoter_term_id`, `limit` (max 100), `page`.
+  Filters narrow the user's scope and never widen it.
+- Update accepts only `startDate`, `startTime`, `endDate`, `endTime`,
+  `description`, `price`, `ticketUrl`, `eventStatus`, and `eventType`, and only
+  on published events. Venue, promoter, organizer, title, artists, image, and
+  post status are refused, so an edit cannot move an event out of scope or
+  publish it. It runs Data Machine Events' own update path and marks the event
+  human-owned, so later imports only fill empty fields.
+- Both are `show_in_rest: true`, because the MCP reaches the Events site
+  through `/wp-abilities/v1`. Data Machine Events' generic `update-event` stays
+  staff-only.

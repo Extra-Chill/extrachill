@@ -81,6 +81,7 @@ final class AbilitiesProvider {
 				'TicketAbilities',
 				'TicketSalesAbilities',
 				'EventPerkAbilities',
+				'ManagedEventAbilities',
 				'RsvpPassAbilities',
 				'GuestListPartyAbilities',
 				'OwnerGuestListAbilities',

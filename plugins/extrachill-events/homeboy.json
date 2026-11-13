@@ -80,6 +80,11 @@
             "runtime": "host"
           },
           {
+            "name": "managed-events-unit",
+            "config": "phpunit-managed-events-unit.xml.dist",
+            "runtime": "host"
+          },
+          {
             "name": "tickets-unit",
             "config": "phpunit-tickets-unit.xml.dist",
             "runtime": "host"
