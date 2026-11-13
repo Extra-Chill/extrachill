@@ -415,7 +415,7 @@ experiment_check( 'provider-approved subject receives an assignment', true === $
 experiment_check( 'assignment stays within registered variants', in_array( $assigned['variant'], array( 'control', 'treatment' ), true ) );
 $exposure_claims = extrachill_verify( 'network.experiment_exposure', $assigned['exposure_token'] );
 experiment_check( 'assignment returns a nonce-bearing opaque exposure proof', is_array( $exposure_claims ) && 1 === preg_match( '/^[a-f0-9]{32}$/D', $exposure_claims['n'] ) );
-experiment_check( 'exposure claims hash the subject and context', hash( 'sha256', 'visitor-123' ) === $exposure_claims['subject_hash'] && hash( 'sha256', extrachill_experiment_context_json( array() ) ) === $exposure_claims['context_hash'] );
+experiment_check( 'exposure claims carry keyed subject and context digests', wp_hash( 'experiment-subject|visitor-123', 'auth' ) === $exposure_claims['subject_hash'] && wp_hash( 'experiment-context|' . extrachill_experiment_context_json( array() ), 'auth' ) === $exposure_claims['context_hash'] && false === strpos( wp_json_encode( $exposure_claims ), 'visitor-123' ) && hash( 'sha256', 'visitor-123' ) !== $exposure_claims['subject_hash'] );
 experiment_check( 'exposure claims do not disclose the subject', false === strpos( wp_json_encode( $exposure_claims ), 'visitor-123' ) );
 experiment_check( 'trusted server assignment hook fires once', 1 === count( $GLOBALS['experiment_actions'] ) && 'extrachill_experiment_assignment' === $GLOBALS['experiment_actions'][0][0] );
 experiment_check( 'assignment hook contains only bounded metadata', 'experiment_key,definition_version,assignment_policy,variant,surface' === implode( ',', array_keys( $GLOBALS['experiment_actions'][0][1][0] ) ) );
