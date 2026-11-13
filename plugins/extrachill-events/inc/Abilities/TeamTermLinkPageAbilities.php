@@ -511,7 +511,7 @@ final class TeamTermLinkPageAbilities {
 
 	/** Closed standalone style map. */
 	private function styles_schema(): array {
-		$keys = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-type', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-direction', '--link-page-background-image-url', '--link-page-image-size', '--link-page-image-position', '--link-page-image-repeat', 'overlay', '--link-page-title-font-family', '--link-page-title-font-size', '--link-page-body-font-family', '--link-page-button-radius', '--link-page-button-border-width', '--link-page-profile-img-size', '_link_page_profile_img_shape', '--link-page-profile-img-shape', '--link-page-background-gradient-middle', '--link-page-icon-color', '--link-page-image-blur', '--link-page-image-brightness', '--link-page-button-fill', '--link-page-button-shadow', '--link-page-button-finish' );
+		$keys = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-type', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-direction', '--link-page-background-image-url', '--link-page-image-size', '--link-page-image-position', '--link-page-image-repeat', 'overlay', '--link-page-title-font-family', '--link-page-title-font-size', '--link-page-body-font-family', '--link-page-button-radius', '--link-page-button-border-width', '--link-page-profile-img-size', '_link_page_profile_img_shape', '--link-page-profile-img-shape' );
 		return array(
 			'type'                 => 'object',
 			'properties'           => array_fill_keys( $keys, array( 'type' => 'string' ) ),
@@ -653,6 +653,7 @@ final class TeamTermLinkPageAbilities {
 		$styles                         = $this->styles_schema();
 		$settings                       = $this->settings_schema();
 		unset( $styles['minProperties'] );
+		$styles['properties']                            += array_fill_keys( array( '--link-page-background-gradient-middle', '--link-page-icon-color', '--link-page-image-blur', '--link-page-image-brightness', '--link-page-button-fill', '--link-page-button-shadow', '--link-page-button-finish' ), array( 'type' => 'string' ) );
 		$settings['properties']['overlay_enabled']        = array( 'type' => 'boolean' );
 		$settings['properties']['subscribe_display_mode'] = array(
 			'type' => 'string',
