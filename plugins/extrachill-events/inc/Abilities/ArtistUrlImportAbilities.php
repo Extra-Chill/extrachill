@@ -674,6 +674,10 @@ class ArtistUrlImportAbilities {
 				'term_id'  => $performer_id,
 				'name'     => $performer_name,
 			);
+		} elseif ( 0 === count( $performers ) && count( $venues ) > 1 && $this->isMultiArtistListing( $probe, $artist ) ) {
+			// Performerless titles that name many different acts are a regional
+			// listings page, not one artist's tour widget (#1347).
+			$warnings[] = __( 'Event titles name many different acts across multiple venues; this looks like a multi-artist listings source, not one artist or venue.', 'extrachill-events' );
 		} elseif ( 0 === count( $performers ) && count( $venues ) > 1 && $this->isCredibleSiteArtist( $artist ) ) {
 			// Tour widgets (Seated, Bandsintown embeds) list dates without a
 			// per-event performer; the artist is implied by the site itself.
@@ -758,6 +762,49 @@ class ArtistUrlImportAbilities {
 			'term_id' => $term_id,
 			'source'  => 'shared_title',
 		);
+	}
+
+	/**
+	 * Recognize performerless multi-venue pages whose titles are themselves
+	 * different acts (regional listings, station band schedules) (#1347).
+	 *
+	 * A title is "foreign" when it neither names the site artist nor repeats
+	 * the event's own venue. Tour widgets title dates with the artist, the tour,
+	 * the venue, or nothing, so a listing needs at least three distinct foreign
+	 * titles that also cover at least half of all extracted events. That keeps
+	 * a tour with a couple of specially named shows classified as an artist.
+	 *
+	 * @param array $probe  Extracted event probe.
+	 * @param array $artist Site-derived artist candidate.
+	 */
+	private function isMultiArtistListing( array $probe, array $artist ): bool {
+		$events      = (array) ( $probe['raw_events'] ?? array() );
+		$artist_slug = sanitize_title( (string) ( $artist['name'] ?? '' ) );
+		$distinct    = array();
+		$foreign     = 0;
+		foreach ( $events as $event ) {
+			$title = is_array( $event ) ? ( $event['title'] ?? '' ) : '';
+			if ( ! is_string( $title ) || '' === trim( $title ) ) {
+				continue;
+			}
+			$title_slug = sanitize_title( $title );
+			if ( '' === $title_slug ) {
+				continue;
+			}
+			if ( '' !== $artist_slug && false !== strpos( $title_slug, $artist_slug ) ) {
+				continue;
+			}
+			$venue = $event['venue'] ?? '';
+			if ( is_array( $venue ) ) {
+				$venue = $venue['name'] ?? '';
+			}
+			if ( is_string( $venue ) && '' !== trim( $venue ) && sanitize_title( $venue ) === $title_slug ) {
+				continue;
+			}
+			$distinct[ $title_slug ] = true;
+			++$foreign;
+		}
+		return count( $distinct ) >= 3 && $foreign >= 0.5 * count( $events );
 	}
 
 	/**

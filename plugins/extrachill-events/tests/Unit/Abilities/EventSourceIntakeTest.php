@@ -765,6 +765,49 @@ final class EventSourceIntakeTest extends BookingTestCase {
 		$this->assertSame( 'unknown', $result['source_kind'] );
 	}
 
+	public function test_performerless_multi_artist_listing_is_not_an_artist_source(): void {
+		// Modeled on mosplaceradio.com/bandschedules (#1347): a station's band
+		// schedule, every title a different act, every date a different venue.
+		$result = $this->classification(
+			array(
+				array( 'title' => 'Carl Chloros', 'venue' => 'L Street Tavern' ),
+				array( 'title' => 'Chad Lamarsh', 'venue' => 'The Windham Restaurant' ),
+				array( 'title' => 'Open Mic', 'venue' => 'Far From The Tree' ),
+				array( 'title' => 'Joe Buford', 'venue' => 'Tour Golf & Grill' ),
+				array( 'title' => 'Karaoke', 'venue' => 'The Hong Kong' ),
+			),
+			'https://mosplaceradio.com/bandschedules',
+			false,
+			'<html><head><title>Live Music &amp; Band Schedule | Merrimack Valley, Boston &amp; NH</title></head></html>',
+			'jsonld'
+		);
+		$this->assertSame( 'unknown', $result['source_kind'] );
+		$this->assertFalse( $result['scope_evidence']['bounded'] );
+		$this->assertSame( '', $result['binding']['taxonomy'] );
+		$this->assertNotEmpty( $result['warnings'] );
+		$this->assertStringContainsString( 'multi-artist listings', implode( ' ', $result['warnings'] ) );
+	}
+
+	public function test_performerless_tour_with_venue_or_artist_titles_stays_artist(): void {
+		// Tour widgets title dates with the venue or the artist; a couple of
+		// specially named shows must not flip the page to a listing.
+		$result = $this->classification(
+			array(
+				array( 'title' => 'Room A', 'venue' => 'Room A' ),
+				array( 'title' => 'Night Moves at Room B', 'venue' => 'Room B' ),
+				array( 'title' => 'Album Release Party', 'venue' => 'Room C' ),
+				array( 'title' => 'Holiday Spectacular', 'venue' => 'Room D' ),
+				array( 'venue' => 'Room E' ),
+			),
+			'https://nightmoves.test/tour',
+			false,
+			'<html><head><title>Night Moves | Tour</title></head></html>'
+		);
+		$this->assertSame( 'artist', $result['source_kind'] );
+		$this->assertSame( 'Night Moves', $result['binding']['name'] );
+		$this->assertSame( 'site_artist_multiple_venues', $result['scope_evidence']['type'] );
+	}
+
 	public function test_submit_passes_legacy_artist_flag_to_qualification(): void {
 		foreach ( array( true, false ) as $legacy_artist ) {
 			$intake = ( new ReflectionClass( TestableEventSourceIntake::class ) )->newInstanceWithoutConstructor();
