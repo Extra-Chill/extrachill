@@ -160,7 +160,6 @@ final class PromoterAuthorityWpdb {
 	public $term_taxonomy = 'wp_7_term_taxonomy';
 	public $terms = 'wp_7_terms';
 	public $termmeta = 'wp_7_termmeta';
-	public $legacy_organization = null;
 	public $queries = array();
 	/**
 	 * Last database error.
@@ -240,9 +239,6 @@ final class PromoterAuthorityWpdb {
 
 	public function get_var( $query ) {
 		$this->queries[] = $query;
-		if ( str_starts_with( $query, 'SHOW TABLES' ) ) {
-			return null === $this->legacy_organization ? null : 'wp_7_ec_promoter_organizations';
-		}
 
 		$query            = ec_team_fake_sql( $query );
 		$this->last_error = '';
@@ -366,7 +362,6 @@ final class PromoterAuthorityWpdb {
 	}
 
 	public function get_row( $query, $output = null ) {
-		if ( str_contains( $query, 'ec_promoter_organizations' ) ) { return $this->legacy_organization; }
 
 		$query = ec_team_fake_sql( $query );
 		unset( $output );
@@ -592,30 +587,15 @@ final class PromoterAuthorityTest extends TestCase {
 		$GLOBALS['wpdb'] = new PromoterAuthorityWpdb(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Isolated test double.
 	}
 
-	/** Exact reads remain available during the deploy window without legacy writes. */
-	public function test_legacy_read_fallback_yields_to_term_metadata(): void {
+	/** Organizations live only in term metadata; a term without it is unverified. */
+	public function test_organization_reads_only_term_metadata(): void {
 		$repository = new PromoterAuthorityRepository();
 		$this->assertNull( $repository->get_organization( 100 ) );
-		$GLOBALS['wpdb']->legacy_organization = array(
-			'id'                  => 7,
-			'promoter_term_id'    => 100,
-			'status'              => 'active',
-			'version'             => 3,
-			'verified_by_user_id' => 1,
-			'verified_at'         => '2026-01-01 00:00:00',
-			'updated_at'          => '2026-01-01 00:00:00',
-			'revoked_by_user_id'  => null,
-			'revoked_at'          => null,
-		);
-		$this->assertSame( 3, $repository->get_organization( 100 )['version'] );
-		$this->assertSame( 'promoter_organization_exists', $repository->verify( 100, null, 1 )->get_error_code() );
-		$this->assertSame( 'promoter_organization_version_conflict', $repository->revoke_organization( 100, 2, 1 )->get_error_code() );
-		$this->assertSame( 'revoked', $repository->revoke_organization( 100, 3, 1 )['status'] );
-		$this->assertSame( 'active', $GLOBALS['wpdb']->legacy_organization['status'] );
-		$this->assertSame( 4, get_term_meta( 100, '_ec_promoter_verification', true )['version'] );
-		$this->assertSame( 'revoked', get_term_meta( 100, '_ec_promoter_status', true ) );
-		$this->assertSame( 100, $repository->get_organization( 100 )['id'] );
-		$this->assertStringContainsString( 'SELECT term_id FROM wp_7_terms WHERE term_id = 100 FOR UPDATE', implode( "\n", $GLOBALS['wpdb']->queries ) );
+		$this->assertStringNotContainsString( 'ec_promoter_organizations', implode( "\n", $GLOBALS['wpdb']->queries ) );
+		update_term_meta( 100, '_ec_promoter_verification', array( 'version' => 2 ) );
+		update_term_meta( 100, '_ec_promoter_status', 'active' );
+		$this->assertSame( 2, $repository->get_organization( 100 )['version'] );
+		$this->assertSame( 'active', $repository->get_organization( 100 )['status'] );
 	}
 
 	/** Revocation retains members but removes all promoter-derived event authority. */

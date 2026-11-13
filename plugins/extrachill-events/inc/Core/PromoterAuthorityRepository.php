@@ -198,11 +198,10 @@ class PromoterAuthorityRepository {
 	 * @param int $promoter_term_id Exact promoter term ID.
 	 */
 	public function get_organization( int $promoter_term_id ) {
-		global $wpdb;
-		$status = get_term_meta( $promoter_term_id, '_ec_promoter_status', true );
 		if ( ! metadata_exists( 'term', $promoter_term_id, '_ec_promoter_status' ) ) {
-			return $this->legacy_organization( $promoter_term_id );
+			return null;
 		}
+		$status       = get_term_meta( $promoter_term_id, '_ec_promoter_status', true );
 		$verification = get_term_meta( $promoter_term_id, '_ec_promoter_verification', true );
 		return $this->hydrate_organization( array_merge( is_array( $verification ) ? $verification : array(), array(
 			'id'               => $promoter_term_id,
@@ -534,17 +533,6 @@ class PromoterAuthorityRepository {
 		}
 		$result = update_term_meta( $term_id, '_ec_promoter_status', $organization['status'] );
 		return ! is_wp_error( $result ) && false !== $result;
-	}
-
-	/** Deploy-window read-only fallback; delete after promoter-verification migration. */
-	private function legacy_organization( int $term_id ) {
-		global $wpdb;
-		$table = $wpdb->prefix . 'ec_promoter_organizations';
-		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
-			return null;
-		}
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE promoter_term_id = %d LIMIT 1', $table, $term_id ), ARRAY_A ); // phpcs:ignore WordPress.DB -- Temporary read-only legacy compatibility.
-		return '' !== (string) $wpdb->last_error ? $this->database_error( 'promoter_organization_read_failed', __( 'The promoter organization could not be read.', 'extrachill-events' ) ) : ( is_array( $row ) ? $this->hydrate_organization( $row ) : null );
 	}
 
 	/** Roll back the current authority mutation. */
