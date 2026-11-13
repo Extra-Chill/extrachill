@@ -185,7 +185,7 @@ final class ManagedEventScope {
 	 * @return int[]|\WP_Error
 	 */
 	private function default_promoter_ids( int $user_id ) {
-		if ( ! class_exists( PromoterAuthorityRepository::class ) || ! class_exists( PromoterAuthoritySchema::class ) || ! PromoterAuthoritySchema::is_ready() ) {
+		if ( ! class_exists( PromoterAuthorityRepository::class ) ) {
 			return array();
 		}
 
