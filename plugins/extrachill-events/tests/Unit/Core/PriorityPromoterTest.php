@@ -5,14 +5,15 @@
  * @package ExtraChillEvents\Tests
  */
 
-use ExtraChillEvents\Abilities\PriorityPromoterAbilities;
+use ExtraChillEvents\Abilities\PriorityTermAbilities;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/Stubs/priority-promoter-stubs.php';
 require_once __DIR__ . '/Stubs/promoted-events-dm-event-dates-table-double.php';
 require_once __DIR__ . '/Stubs/promoted-events-dm-upcoming-filter-double.php';
 require_once dirname( __DIR__, 3 ) . '/inc/admin/priority-promoters.php';
-require_once dirname( __DIR__, 3 ) . '/inc/Abilities/PriorityPromoterAbilities.php';
+require_once dirname( __DIR__, 3 ) . '/inc/admin/priority-venues.php';
+require_once dirname( __DIR__, 3 ) . '/inc/Abilities/PriorityTermAbilities.php';
 
 /** Covers the priority promoter primitive end to end against in-memory doubles. */
 final class PriorityPromoterTest extends TestCase {
@@ -155,9 +156,9 @@ final class PriorityPromoterTest extends TestCase {
 
 	public function test_set_priority_promoter_ability_by_slug(): void {
 		$GLOBALS['wpdb']->seeded_post_ids = array( 11 );
-		$abilities                        = new PriorityPromoterAbilities();
+		$abilities                        = new PriorityTermAbilities();
 
-		$result = $abilities->setPriorityPromoter( array( 'promoter' => 'extra-chill' ) );
+		$result = $abilities->set_term( 'promoter', array( 'promoter' => 'extra-chill' ) );
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
@@ -168,40 +169,65 @@ final class PriorityPromoterTest extends TestCase {
 	}
 
 	public function test_set_priority_promoter_ability_errors(): void {
-		$abilities = new PriorityPromoterAbilities();
+		$abilities = new PriorityTermAbilities();
 
-		$missing = $abilities->setPriorityPromoter( array() );
+		$missing = $abilities->set_term( 'promoter', array() );
 		$this->assertInstanceOf( WP_Error::class, $missing );
 		$this->assertSame( 'missing_promoter', $missing->get_error_code() );
 
-		$unknown = $abilities->setPriorityPromoter( array( 'promoter' => 'nobody' ) );
+		$unknown = $abilities->set_term( 'promoter', array( 'promoter' => 'nobody' ) );
 		$this->assertInstanceOf( WP_Error::class, $unknown );
 		$this->assertSame( 'promoter_not_found', $unknown->get_error_code() );
 	}
 
 	public function test_list_priority_promoters_ability(): void {
-		$abilities = new PriorityPromoterAbilities();
+		$abilities = new PriorityTermAbilities();
 		$this->assertSame(
 			array(
 				'promoters' => array(),
 				'count'     => 0,
 			),
-			$abilities->listPriorityPromoters( array() )
+			$abilities->list_terms( 'promoter', array() )
 		);
 
 		ec_set_priority_promoter( self::HOUSE, true );
-		$listed = $abilities->listPriorityPromoters( array() );
+		$listed = $abilities->list_terms( 'promoter', array() );
 
 		$this->assertSame( 1, $listed['count'] );
 		$this->assertSame( 'extra-chill', $listed['promoters'][0]['slug'] );
 	}
 
 	public function test_abilities_register_expected_names(): void {
-		( new PriorityPromoterAbilities() )->register();
+		( new PriorityTermAbilities() )->register();
 
 		$registered = $GLOBALS['priority_promoter_test']['abilities'];
 		$this->assertArrayHasKey( 'extrachill/list-priority-promoters', $registered );
 		$this->assertArrayHasKey( 'extrachill/set-priority-promoter', $registered );
 		$this->assertSame( array( 'promoter' ), $registered['extrachill/set-priority-promoter']['input_schema']['required'] );
+		$this->assertArrayHasKey( 'events_flagged', $registered['extrachill/set-priority-promoter']['output_schema']['properties'] );
+	}
+
+	public function test_venue_family_registers_from_the_same_class(): void {
+		( new PriorityTermAbilities() )->register();
+
+		$registered = $GLOBALS['priority_promoter_test']['abilities'];
+		$this->assertArrayHasKey( 'extrachill/list-priority-venues', $registered );
+		$this->assertArrayHasKey( 'extrachill/set-priority-venue', $registered );
+		$this->assertSame( array( 'venue' ), $registered['extrachill/set-priority-venue']['input_schema']['required'] );
+		$this->assertArrayHasKey( 'venues', $registered['extrachill/list-priority-venues']['output_schema']['properties'] );
+		$this->assertArrayNotHasKey( 'events_flagged', $registered['extrachill/set-priority-venue']['output_schema']['properties'] );
+		$this->assertSame(
+			array_keys( $registered['extrachill/set-priority-promoter']['meta'] ),
+			array_keys( $registered['extrachill/set-priority-venue']['meta'] )
+		);
+	}
+
+	public function test_set_priority_venue_writes_meta_without_backfill(): void {
+		$this->assertSame( 0, ec_set_priority_venue( self::HOUSE, true ) );
+		$this->assertTrue( (bool) get_term_meta( self::HOUSE, '_ec_priority_venue', true ) );
+		$this->assertSame( array(), $GLOBALS['wpdb']->queries );
+
+		ec_set_priority_venue( self::HOUSE, false );
+		$this->assertFalse( (bool) get_term_meta( self::HOUSE, '_ec_priority_venue', true ) );
 	}
 }

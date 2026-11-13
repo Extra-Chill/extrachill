@@ -5,7 +5,7 @@
  * @package ExtraChillEvents\Tests
  */
 
-use ExtraChillEvents\Abilities\PriorityVenueAbilities;
+use ExtraChillEvents\Abilities\PriorityTermAbilities;
 use ExtraChillEvents\Abilities\TicketSettlementAbilities;
 use ExtraChillEvents\Abilities\BookingReportingAbilities;
 use ExtraChillEvents\Abilities\BookingPrivacyAbilities;
@@ -18,7 +18,7 @@ use ExtraChillEvents\Abilities\VenueMembershipAbilities;
 require_once __DIR__ . '/Support/BookingTestHarness.php';
 require_once __DIR__ . '/../../extrachill-events/inc/Core/VenueMembershipService.php';
 require_once __DIR__ . '/../../extrachill-events/inc/Abilities/VenueMembershipAbilities.php';
-require_once __DIR__ . '/../../extrachill-events/inc/Abilities/PriorityVenueAbilities.php';
+require_once __DIR__ . '/../../extrachill-events/inc/Abilities/PriorityTermAbilities.php';
 
 /** Covers Events ability hooks when the registry initializes early on init. */
 final class AbilityRegistrationLifecycleTest extends BookingTestCase {
@@ -61,7 +61,7 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 		new TicketSettlementAbilities();
 		new BookingReportingAbilities();
 		new BookingPrivacyAbilities();
-		new PriorityVenueAbilities();
+		new PriorityTermAbilities();
 
 		new VenueBookingAbilities();
 		new VenueMembershipAbilities();
@@ -71,7 +71,7 @@ final class AbilityRegistrationLifecycleTest extends BookingTestCase {
 		new TicketSettlementAbilities();
 		new BookingReportingAbilities();
 		new BookingPrivacyAbilities();
-		new PriorityVenueAbilities();
+		new PriorityTermAbilities();
 
 		$this->assertCount( 9, $GLOBALS['ec_test_filters']['wp_abilities_api_init'][10] );
 

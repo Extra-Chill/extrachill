@@ -49,15 +49,31 @@ function ec_events_save_priority_venue( $term_id, $tt_id ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Fires on core's edited_venue term hook, which WordPress verifies with its own term-edit nonce before dispatch; capability is re-checked via current_user_can( 'manage_categories' ) above.
 	$is_priority = isset( $_POST['ec_priority_venue'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['ec_priority_venue'] ) );
 
-	if ( $is_priority ) {
+	ec_set_priority_venue( (int) $term_id, $is_priority );
+}
+add_action( 'edited_venue', 'ec_events_save_priority_venue', 10, 2 );
+
+/**
+ * Mark or unmark a venue as priority.
+ *
+ * Shared by the term edit screen and the set-priority-venue ability. Venue
+ * priority only affects calendar sorting, so nothing is backfilled.
+ *
+ * @param int  $term_id  Venue term ID.
+ * @param bool $priority True to mark as priority, false to remove.
+ * @return int Always 0; venues flag no events.
+ */
+function ec_set_priority_venue( int $term_id, bool $priority ): int {
+	if ( $priority ) {
 		update_term_meta( $term_id, '_ec_priority_venue', true );
 	} else {
 		delete_term_meta( $term_id, '_ec_priority_venue' );
 	}
 
 	wp_cache_delete( 'ec_priority_venue_ids', 'extrachill-events' );
+
+	return 0;
 }
-add_action( 'edited_venue', 'ec_events_save_priority_venue', 10, 2 );
 
 /**
  * Get all priority venue term IDs (cached)
