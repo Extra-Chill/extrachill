@@ -75,9 +75,8 @@ final class AbilitiesProvider {
 		$abilities = array_merge(
 			$abilities,
 			array(
-				'PriorityVenueAbilities',
+				'PriorityTermAbilities',
 				'PriorityEventAbilities',
-				'PriorityPromoterAbilities',
 				'TicketAbilities',
 				'TicketSalesAbilities',
 				'EventPerkAbilities',
