@@ -1,6 +1,6 @@
 <?php
 /**
- * Regression coverage for #899: VenueLinkPagesProvider::validate_runtime()
+ * Regression coverage for #899: LinkPagesProvider::validate_runtime()
  * fatally rejected a Link Pages runtime declaring API version '4'
  * (extrachill-link-pages.php:861 in production, extrachill-link-pages 0.9.0)
  * because the provider was still pinned to exactly '3'. This left

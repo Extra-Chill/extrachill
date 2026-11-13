@@ -20,8 +20,8 @@ function add_action( $hook, $callback ) {
 function wp_register_ability( $name, $args ) {
 	$GLOBALS['promoter_link_page_abilities'][ $name ] = $args; }
 
-require_once dirname( __DIR__, 2 ) . '/inc/Abilities/PromoterLinkPageAbilities.php';
-$registrar = new ExtraChillEvents\Abilities\PromoterLinkPageAbilities();
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TeamTermLinkPageAbilities.php';
+$registrar = new ExtraChillEvents\Abilities\TeamTermLinkPageAbilities( 'promoter' );
 $registrar->register();
 
 $closed = static function ( $schema ) use ( &$closed ) {
@@ -64,7 +64,7 @@ foreach ( $GLOBALS['promoter_link_page_abilities'] as $name => $args ) {
 			'output_links'      => $output_page['links']['maxItems'],
 			'output_sections'   => $output_page['link_sections']['maxItems'],
 		);
-		$too_many                                  = array_fill( 0, ExtraChillEvents\Abilities\PromoterLinkPageAbilities::MAX_LINK_SECTIONS + 1, array( 'links' => array() ) );
+		$too_many                                  = array_fill( 0, ExtraChillEvents\Abilities\TeamTermLinkPageAbilities::MAX_LINK_SECTIONS + 1, array( 'links' => array() ) );
 		$rejected                                  = $registrar->save_links(
 			array(
 				'promoter_term_id' => 1,
@@ -76,7 +76,7 @@ foreach ( $GLOBALS['promoter_link_page_abilities'] as $name => $args ) {
 			array(
 				'links' => array(
 					array(
-						'link_text' => str_repeat( 'x', ExtraChillEvents\Abilities\PromoterLinkPageAbilities::MAX_LINK_TEXT_LENGTH + 1 ),
+						'link_text' => str_repeat( 'x', ExtraChillEvents\Abilities\TeamTermLinkPageAbilities::MAX_LINK_TEXT_LENGTH + 1 ),
 						'link_url'  => 'https://example.com',
 					),
 				),

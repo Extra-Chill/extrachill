@@ -2,7 +2,7 @@
 // phpcs:disable -- Purpose-built WordPress runtime stubs must share one isolated fixture.
 /**
  * Regression fixture for #899: a Link Pages runtime contract mismatch (any
- * reason `VenueLinkPagesProvider::validate_runtime()` fails) leaves
+ * reason `LinkPagesProvider::validate_runtime()` fails) leaves
  * `\ExtraChillEvents\Core\VenueLinkPages` unloaded. Before the fix,
  * `blocks/venue-settings/render.php` referenced that class unconditionally
  * whenever `ec_link_page_editor_is_available()` was true, fataling
@@ -45,7 +45,7 @@ namespace ExtraChillEvents\Core {
 		}
 	}
 	// Deliberately absent: \ExtraChillEvents\Core\VenueLinkPages. This is the
-	// exact state VenueLinkPagesProvider::initialize() leaves behind when
+	// exact state LinkPagesProvider::initialize() leaves behind when
 	// validate_runtime() fails (#899's root cause).
 }
 
@@ -137,7 +137,7 @@ namespace {
 
 	// The exact production precondition from #899: the Link Pages plugin's own
 	// editor assets are available (its runtime loaded fine), independent of
-	// whether Events' own VenueLinkPagesProvider successfully validated and
+	// whether Events' own LinkPagesProvider successfully validated and
 	// loaded VenueLinkPages against it.
 	function ec_link_page_editor_is_available(): bool {
 		return true; }

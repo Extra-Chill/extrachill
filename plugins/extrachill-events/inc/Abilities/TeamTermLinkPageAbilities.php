@@ -1,18 +1,16 @@
 <?php
 /**
- * Closed verified promoter Link Page and discovery abilities.
+ * Closed venue and promoter Link Page ability contracts.
  *
  * @package ExtraChillEvents\Abilities
  */
 
 namespace ExtraChillEvents\Abilities;
 
-use ExtraChillEvents\Core\PromoterLinkPages;
-
 defined( 'ABSPATH' ) || exit;
 
-/** Registers concrete promoter management and approved identity operations. */
-final class PromoterLinkPageAbilities {
+/** Registers one owner kind's management family (plus promoter discovery). */
+final class TeamTermLinkPageAbilities {
 	public const MAX_LINK_SECTIONS     = 10;
 	public const MAX_LINKS_PER_SECTION = 25;
 	public const MAX_LINK_ITEMS        = 250;
@@ -23,27 +21,73 @@ final class PromoterLinkPageAbilities {
 	public const MAX_EXPIRATION_LENGTH = 64;
 
 	/**
-	 * Whether ability registration has been attached.
+	 * Owner kinds whose registration hook is attached in this request.
 	 *
-	 * @var bool
+	 * @var array<string, bool>
 	 */
-	private static $registered = false;
+	private static $registered = array();
 
-	/** Attach registration once. */
-	public function __construct() {
-		if ( ! self::$registered ) {
-			self::$registered = true;
+	/** @var string venue or promoter. */
+	private $kind;
+
+	/** @var string Owner definition class. */
+	private $owner;
+
+	/** @var string Input key carrying the owner term ID. */
+	private $id_key;
+
+	/**
+	 * Attach registration once per owner kind.
+	 *
+	 * @param string $kind venue or promoter.
+	 */
+	public function __construct( string $kind ) {
+		$this->kind   = $kind;
+		$this->owner  = 'venue' === $kind ? '\\ExtraChillEvents\\Core\\VenueLinkPages' : '\\ExtraChillEvents\\Core\\PromoterLinkPages';
+		$this->id_key = $kind . '_term_id';
+		if ( empty( self::$registered[ $kind ] ) ) {
+			self::$registered[ $kind ] = true;
 			add_action( 'wp_abilities_api_init', array( $this, 'register' ) );
 		}
 	}
 
-	/** Register seven management operations and one public discovery operation. */
+	/** Literal translatable copy for each owner kind. */
+	private function labels(): array {
+		if ( 'venue' === $this->kind ) {
+			return array(
+				'provision'         => __( 'Provision Venue Link Page', 'extrachill-events' ),
+				'get'               => __( 'Get Venue Link Page', 'extrachill-events' ),
+				'links'             => __( 'Save Venue Link Page Links', 'extrachill-events' ),
+				'styles'            => __( 'Save Venue Link Page Styles', 'extrachill-events' ),
+				'settings'          => __( 'Save Venue Link Page Settings', 'extrachill-events' ),
+				'patch'             => __( 'Patch Venue Link Page', 'extrachill-events' ),
+				'patch_description' => __( 'Atomically patch changed venue Link Page areas.', 'extrachill-events' ),
+				'refresh'           => __( 'Refresh Venue Link Page Snapshot', 'extrachill-events' ),
+				'analytics'         => __( 'Get Venue Link Page Analytics', 'extrachill-events' ),
+			);
+		}
+		return array(
+			'provision'         => __( 'Provision Promoter Link Page', 'extrachill-events' ),
+			'get'               => __( 'Get Promoter Link Page', 'extrachill-events' ),
+			'links'             => __( 'Save Promoter Link Page Links', 'extrachill-events' ),
+			'styles'            => __( 'Save Promoter Link Page Styles', 'extrachill-events' ),
+			'settings'          => __( 'Save Promoter Link Page Settings', 'extrachill-events' ),
+			'patch'             => __( 'Patch Promoter Link Page', 'extrachill-events' ),
+			'patch_description' => __( 'Atomically patch changed promoter Link Page areas.', 'extrachill-events' ),
+			'refresh'           => __( 'Refresh Promoter Link Page Snapshot', 'extrachill-events' ),
+			'analytics'         => __( 'Get Promoter Link Page Analytics', 'extrachill-events' ),
+		);
+	}
+
+	/** Register eight management operations, plus promoter discovery. */
 	public function register(): void {
-		$this->register_management( 'extrachill/provision-promoter-link-page', __( 'Provision Promoter Link Page', 'extrachill-events' ), array(), array( $this, 'provision' ), false, true );
-		$this->register_management( 'extrachill/get-promoter-link-page', __( 'Get Promoter Link Page', 'extrachill-events' ), array(), array( $this, 'get' ), true, true );
+		$labels = $this->labels();
+		$prefix = 'extrachill/%s-' . $this->kind . '-link-page%s';
+		$this->register_management( sprintf( $prefix, 'provision', '' ), $labels['provision'], array(), array( $this, 'provision' ), false, true );
+		$this->register_management( sprintf( $prefix, 'get', '' ), $labels['get'], array(), array( $this, 'get' ), true, true );
 		$this->register_management(
-			'extrachill/save-promoter-link-page-links',
-			__( 'Save Promoter Link Page Links', 'extrachill-events' ),
+			sprintf( $prefix, 'save', '-links' ),
+			$labels['links'],
 			array(
 				'links'             => $this->links_input_schema(),
 				'expected_revision' => $this->revision_schema(),
@@ -53,8 +97,8 @@ final class PromoterLinkPageAbilities {
 			false
 		);
 		$this->register_management(
-			'extrachill/save-promoter-link-page-styles',
-			__( 'Save Promoter Link Page Styles', 'extrachill-events' ),
+			sprintf( $prefix, 'save', '-styles' ),
+			$labels['styles'],
 			array(
 				'css_vars'          => $this->styles_schema(),
 				'expected_revision' => $this->revision_schema(),
@@ -64,8 +108,8 @@ final class PromoterLinkPageAbilities {
 			false
 		);
 		$this->register_management(
-			'extrachill/save-promoter-link-page-settings',
-			__( 'Save Promoter Link Page Settings', 'extrachill-events' ),
+			sprintf( $prefix, 'save', '-settings' ),
+			$labels['settings'],
 			array(
 				'settings'          => $this->settings_schema(),
 				'expected_revision' => $this->revision_schema(),
@@ -74,11 +118,42 @@ final class PromoterLinkPageAbilities {
 			false,
 			false
 		);
-		$this->register_patch_ability();
-		$this->register_management( 'extrachill/refresh-promoter-link-page-snapshot', __( 'Refresh Promoter Link Page Snapshot', 'extrachill-events' ), array(), array( $this, 'refresh' ), false, true );
+		wp_register_ability(
+			sprintf( $prefix, 'patch', '' ),
+			array(
+				'label'               => $labels['patch'],
+				'description'         => $labels['patch_description'],
+				'category'            => 'extrachill-events',
+				'input_schema'        => array(
+					'type'                 => 'object',
+					'properties'           => array(
+						$this->id_key         => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+						),
+						'expected_revision'   => $this->revision_schema(),
+						'links'               => $this->links_input_schema(),
+						'css_vars'            => $this->styles_schema(),
+						'settings'            => $this->settings_schema(),
+						'background_image_id' => array(
+							'type'    => 'integer',
+							'minimum' => 0,
+						),
+					),
+					'required'             => array( $this->id_key, 'expected_revision' ),
+					'minProperties'        => 3,
+					'additionalProperties' => false,
+				),
+				'output_schema'       => $this->document_schema(),
+				'execute_callback'    => array( $this, 'patch' ),
+				'permission_callback' => array( $this, 'authorize' ),
+				'meta'                => $this->meta( false, false ),
+			)
+		);
+		$this->register_management( sprintf( $prefix, 'refresh', '-snapshot' ), $labels['refresh'], array(), array( $this, 'refresh' ), false, true );
 		$this->register_management(
-			'extrachill/get-promoter-link-page-analytics',
-			__( 'Get Promoter Link Page Analytics', 'extrachill-events' ),
+			sprintf( $prefix, 'get', '-analytics' ),
+			$labels['analytics'],
 			array(
 				'date_range' => array(
 					'type'    => 'integer',
@@ -100,6 +175,9 @@ final class PromoterLinkPageAbilities {
 			true,
 			$this->analytics_schema()
 		);
+		if ( 'promoter' !== $this->kind ) {
+			return;
+		}
 		wp_register_ability(
 			'extrachill/list-approved-promoters',
 			array(
@@ -114,57 +192,7 @@ final class PromoterLinkPageAbilities {
 				'output_schema'       => $this->discovery_schema(),
 				'execute_callback'    => array( $this, 'approved_promoters' ),
 				'permission_callback' => array( $this, 'allow_discovery' ),
-				'meta'                => array(
-					'show_in_rest' => true,
-					'annotations'  => array(
-						'readonly'    => true,
-						'idempotent'  => true,
-						'destructive' => false,
-					),
-				),
-			)
-		);
-	}
-
-	/** Register one atomic sparse patch contract for the shared editor. */
-	private function register_patch_ability(): void {
-		wp_register_ability(
-			'extrachill/patch-promoter-link-page',
-			array(
-				'label'               => __( 'Patch Promoter Link Page', 'extrachill-events' ),
-				'description'         => __( 'Atomically patch changed promoter Link Page areas.', 'extrachill-events' ),
-				'category'            => 'extrachill-events',
-				'input_schema'        => array(
-					'type'                 => 'object',
-					'properties'           => array(
-						'promoter_term_id'    => array(
-							'type'    => 'integer',
-							'minimum' => 1,
-						),
-						'expected_revision'   => $this->revision_schema(),
-						'links'               => $this->links_input_schema(),
-						'css_vars'            => $this->styles_schema(),
-						'settings'            => $this->settings_schema(),
-						'background_image_id' => array(
-							'type'    => 'integer',
-							'minimum' => 0,
-						),
-					),
-					'required'             => array( 'promoter_term_id', 'expected_revision' ),
-					'minProperties'        => 3,
-					'additionalProperties' => false,
-				),
-				'output_schema'       => $this->document_schema(),
-				'execute_callback'    => array( $this, 'patch' ),
-				'permission_callback' => array( $this, 'authorize' ),
-				'meta'                => array(
-					'show_in_rest' => true,
-					'annotations'  => array(
-						'readonly'    => false,
-						'idempotent'  => false,
-						'destructive' => true,
-					),
-				),
+				'meta'                => $this->meta( true, true ),
 			)
 		);
 	}
@@ -183,14 +211,14 @@ final class PromoterLinkPageAbilities {
 	private function register_management( string $name, string $label, array $properties, callable $execute, bool $is_readonly, bool $idempotent, ?array $output_schema = null ): void {
 		$properties = array_merge(
 			array(
-				'promoter_term_id' => array(
+				$this->id_key => array(
 					'type'    => 'integer',
 					'minimum' => 1,
 				),
 			),
 			$properties
 		);
-		$required   = array( 'promoter_term_id' );
+		$required   = array( $this->id_key );
 		foreach ( array( 'links', 'css_vars', 'settings', 'expected_revision' ) as $field ) {
 			if ( isset( $properties[ $field ] ) ) {
 				$required[] = $field;
@@ -211,25 +239,35 @@ final class PromoterLinkPageAbilities {
 				'output_schema'       => $output_schema ? $output_schema : $this->document_schema(),
 				'execute_callback'    => $execute,
 				'permission_callback' => array( $this, 'authorize' ),
-				'meta'                => array(
-					'show_in_rest' => true,
-					'annotations'  => array(
-						'readonly'    => $is_readonly,
-						'idempotent'  => $idempotent,
-						'destructive' => ! $is_readonly,
-					),
-				),
+				'meta'                => $this->meta( $is_readonly, $idempotent ),
 			)
 		);
 	}
 
 	/**
-	 * Authorize the exact active verified promoter member.
+	 * Deliberate core-runner exposure and annotations.
+	 *
+	 * @param bool $is_readonly Whether the operation is read-only.
+	 * @param bool $idempotent  Whether the operation is idempotent.
+	 */
+	private function meta( bool $is_readonly, bool $idempotent ): array {
+		return array(
+			'show_in_rest' => true,
+			'annotations'  => array(
+				'readonly'    => $is_readonly,
+				'idempotent'  => $idempotent,
+				'destructive' => ! $is_readonly,
+			),
+		);
+	}
+
+	/**
+	 * Authorize the exact active owner member.
 	 *
 	 * @param array $input Ability input.
 	 */
 	public function authorize( array $input ) {
-		return PromoterLinkPages::authorize_promoter( absint( $input['promoter_term_id'] ?? 0 ) );
+		return call_user_func( array( $this->owner, 'authorize' ), $this->term_id( $input ) );
 	}
 
 	/** Public discovery needs no taxonomy or membership authority. */
@@ -238,26 +276,26 @@ final class PromoterLinkPageAbilities {
 	}
 
 	/**
-	 * Provision a promoter Link Page.
+	 * Provision the owner's Link Page.
 	 *
 	 * @param array $input Ability input.
 	 */
 	public function provision( array $input ) {
-		return PromoterLinkPages::provision( absint( $input['promoter_term_id'] ) );
+		return call_user_func( array( $this->owner, 'provision' ), $this->term_id( $input ) );
 	}
 
 	/**
-	 * Read a promoter Link Page.
+	 * Read the owner's Link Page.
 	 *
 	 * @param array $input Ability input.
 	 */
 	public function get( array $input ) {
-		$reference = PromoterLinkPages::owner_reference( absint( $input['promoter_term_id'] ) );
+		$reference = call_user_func( array( $this->owner, 'owner_reference' ), $this->term_id( $input ) );
 		return is_wp_error( $reference ) ? $reference : ec_read_link_page( $reference );
 	}
 
 	/**
-	 * Save bounded promoter links.
+	 * Save bounded links.
 	 *
 	 * @param array $input Ability input.
 	 */
@@ -276,7 +314,7 @@ final class PromoterLinkPageAbilities {
 	}
 
 	/**
-	 * Save promoter styles.
+	 * Save styles.
 	 *
 	 * @param array $input Ability input.
 	 */
@@ -291,7 +329,7 @@ final class PromoterLinkPageAbilities {
 	}
 
 	/**
-	 * Save promoter settings.
+	 * Save settings.
 	 *
 	 * @param array $input Ability input.
 	 */
@@ -299,8 +337,18 @@ final class PromoterLinkPageAbilities {
 		return $this->save( $input, array_merge( $input['settings'], array( 'expected_revision' => $input['expected_revision'] ) ) );
 	}
 
-	/** Atomically save only supplied generic areas under one canonical lock. */
+	/**
+	 * Atomically save only supplied generic areas under one canonical lock.
+	 *
+	 * @param array $input Ability input.
+	 */
 	public function patch( array $input ) {
+		if ( array_key_exists( 'links', $input ) ) {
+			$valid = $this->validate_links( $input['links'] );
+			if ( true !== $valid ) {
+				return $valid;
+			}
+		}
 		$data = array( 'expected_revision' => $input['expected_revision'] );
 		foreach ( array( 'links', 'css_vars', 'background_image_id' ) as $field ) {
 			if ( array_key_exists( $field, $input ) ) {
@@ -314,26 +362,35 @@ final class PromoterLinkPageAbilities {
 	}
 
 	/**
-	 * Refresh the promoter snapshot.
+	 * Refresh the owner snapshot.
 	 *
 	 * @param array $input Ability input.
 	 */
 	public function refresh( array $input ) {
-		return PromoterLinkPages::refresh_snapshot( absint( $input['promoter_term_id'] ) );
+		return call_user_func( array( $this->owner, 'refresh_snapshot' ), $this->term_id( $input ) );
 	}
 
 	/**
-	 * Read promoter Link Page analytics.
+	 * Read Link Page analytics.
 	 *
 	 * @param array $input Ability input.
 	 */
 	public function analytics( array $input ) {
-		return PromoterLinkPages::analytics( absint( $input['promoter_term_id'] ), absint( $input['date_range'] ?? 30 ), (string) ( $input['start_date'] ?? '' ), (string) ( $input['end_date'] ?? '' ) );
+		return call_user_func( array( $this->owner, 'analytics' ), $this->term_id( $input ), absint( $input['date_range'] ?? 30 ), (string) ( $input['start_date'] ?? '' ), (string) ( $input['end_date'] ?? '' ) );
 	}
 
 	/** List approved promoters. */
 	public function approved_promoters() {
-		return PromoterLinkPages::approved_promoters();
+		return \ExtraChillEvents\Core\PromoterLinkPages::approved_promoters();
+	}
+
+	/**
+	 * Resolve the owner term ID from ability input.
+	 *
+	 * @param array $input Ability input.
+	 */
+	private function term_id( array $input ): int {
+		return absint( $input[ $this->id_key ] ?? 0 );
 	}
 
 	/**
@@ -343,7 +400,7 @@ final class PromoterLinkPageAbilities {
 	 * @param array $data  Bounded save data.
 	 */
 	private function save( array $input, array $data ) {
-		$reference = PromoterLinkPages::owner_reference( absint( $input['promoter_term_id'] ) );
+		$reference = call_user_func( array( $this->owner, 'owner_reference' ), $this->term_id( $input ) );
 		return is_wp_error( $reference ) ? $reference : ec_save_link_page( $reference, $data );
 	}
 
@@ -449,12 +506,12 @@ final class PromoterLinkPageAbilities {
 
 	/** Build the stable direct-execution validation error. */
 	private function invalid_links(): \WP_Error {
-		return new \WP_Error( 'invalid_promoter_link_page_links', __( 'Promoter Link Page links exceed the supported limits or contain invalid values.', 'extrachill-events' ), array( 'status' => 400 ) );
+		return new \WP_Error( 'invalid_' . $this->kind . '_link_page_links', __( 'Link Page links exceed the supported limits or contain invalid values.', 'extrachill-events' ), array( 'status' => 400 ) );
 	}
 
 	/** Closed standalone style map. */
 	private function styles_schema(): array {
-		$keys = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-type', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-direction', '--link-page-background-image-url', '--link-page-image-size', '--link-page-image-position', '--link-page-image-repeat', 'overlay', '--link-page-title-font-family', '--link-page-title-font-size', '--link-page-body-font-family', '--link-page-button-radius', '--link-page-button-border-width', '--link-page-profile-img-size', '_link_page_profile_img_shape', '--link-page-profile-img-shape' );
+		$keys = array( '--link-page-background-color', '--link-page-card-bg-color', '--link-page-text-color', '--link-page-link-text-color', '--link-page-button-bg-color', '--link-page-button-border-color', '--link-page-button-hover-bg-color', '--link-page-button-hover-text-color', '--link-page-muted-text-color', '--link-page-overlay-color', '--link-page-input-bg', '--link-page-accent', '--link-page-accent-hover', '--link-page-background-type', '--link-page-background-gradient-start', '--link-page-background-gradient-end', '--link-page-background-gradient-direction', '--link-page-background-image-url', '--link-page-image-size', '--link-page-image-position', '--link-page-image-repeat', 'overlay', '--link-page-title-font-family', '--link-page-title-font-size', '--link-page-body-font-family', '--link-page-button-radius', '--link-page-button-border-width', '--link-page-profile-img-size', '_link_page_profile_img_shape', '--link-page-profile-img-shape', '--link-page-background-gradient-middle', '--link-page-icon-color', '--link-page-image-blur', '--link-page-image-brightness', '--link-page-button-fill', '--link-page-button-shadow', '--link-page-button-finish' );
 		return array(
 			'type'                 => 'object',
 			'properties'           => array_fill_keys( $keys, array( 'type' => 'string' ) ),
@@ -504,6 +561,27 @@ final class PromoterLinkPageAbilities {
 		);
 	}
 
+	/** Kind-specific stored snapshot fields. */
+	private function snapshot_extras_schema(): array {
+		if ( 'venue' === $this->kind ) {
+			$fields = array( 'address', 'city', 'state', 'zip', 'country' );
+			return array(
+				'location' => array(
+					'type'                 => 'object',
+					'properties'           => array_fill_keys( $fields, array( 'type' => 'string' ) ),
+					'required'             => $fields,
+					'additionalProperties' => false,
+				),
+			);
+		}
+		return array(
+			'entity_type' => array(
+				'type' => 'string',
+				'enum' => array( 'Organization' ),
+			),
+		);
+	}
+
 	/** Closed composed management response. */
 	private function document_schema(): array {
 		$link                           = $this->link_schema( true );
@@ -538,15 +616,22 @@ final class PromoterLinkPageAbilities {
 			'required'             => array( 'type', 'url' ),
 			'additionalProperties' => false,
 		);
+		$runtime_social                 = array(
+			'type'                 => 'object',
+			'properties'           => array_fill_keys( array( 'id', 'type', 'url', 'custom_label' ), array( 'type' => 'string' ) ),
+			'required'             => array( 'id', 'type', 'url' ),
+			'additionalProperties' => false,
+		);
 		$source                         = array(
 			'type'                 => 'object',
 			'properties'           => array_fill_keys( array( 'taxonomy', 'version', 'refreshed_at', 'public_url' ), array( 'type' => 'string' ) ) + array(
-				'blog_id'          => array( 'type' => 'integer' ),
-				'promoter_term_id' => array( 'type' => 'integer' ),
+				'blog_id'     => array( 'type' => 'integer' ),
+				$this->id_key => array( 'type' => 'integer' ),
 			),
-			'required'             => array( 'blog_id', 'taxonomy', 'promoter_term_id', 'version', 'refreshed_at', 'public_url' ),
+			'required'             => array( 'blog_id', 'taxonomy', $this->id_key, 'version', 'refreshed_at', 'public_url' ),
 			'additionalProperties' => false,
 		);
+		$extras                         = $this->snapshot_extras_schema();
 		$snapshot                       = array(
 			'type'                 => 'object',
 			'properties'           => array(
@@ -561,20 +646,20 @@ final class PromoterLinkPageAbilities {
 					'type'  => 'array',
 					'items' => $social,
 				),
-				'entity_type'     => array(
-					'type' => 'string',
-					'enum' => array( 'Organization' ),
-				),
-				'source'          => $source,
-			),
-			'required'             => array( 'version', 'owner_reference', 'title', 'description', 'image_url', 'image_alt', 'website', 'social_links', 'entity_type', 'source' ),
+			) + $extras + array( 'source' => $source ),
+			'required'             => array_merge( array( 'version', 'owner_reference', 'title', 'description', 'image_url', 'image_alt', 'website', 'social_links' ), array_keys( $extras ), array( 'source' ) ),
 			'additionalProperties' => false,
 		);
 		$styles                         = $this->styles_schema();
 		$settings                       = $this->settings_schema();
 		unset( $styles['minProperties'] );
-		$settings['properties']['overlay_enabled']     = array( 'type' => 'boolean' );
-		$settings['properties']['background_image_id'] = array(
+		$settings['properties']['overlay_enabled']        = array( 'type' => 'boolean' );
+		$settings['properties']['subscribe_display_mode'] = array(
+			'type' => 'string',
+			'enum' => array( 'icon_modal', 'inline_form', 'disabled' ),
+		);
+		$settings['properties']['subscribe_description']  = array( 'type' => 'string' );
+		$settings['properties']['background_image_id']    = array(
 			'oneOf' => array(
 				array(
 					'type'    => 'integer',
@@ -586,13 +671,13 @@ final class PromoterLinkPageAbilities {
 				),
 			),
 		);
-		$settings['required']                          = array_keys( $settings['properties'] );
+		$settings['required']                             = array_keys( $settings['properties'] );
 		unset( $settings['minProperties'] );
 		return array(
 			'type'                 => 'object',
 			'properties'           => array(
 				'created'   => array( 'type' => 'boolean' ),
-				'promoter'  => array(
+				$this->kind => array(
 					'type'                 => 'object',
 					'properties'           => array(
 						'term_id'         => array( 'type' => 'integer' ),
@@ -607,30 +692,56 @@ final class PromoterLinkPageAbilities {
 				'link_page' => array(
 					'type'                 => 'object',
 					'properties'           => array(
-						'link_page_id'         => array( 'type' => 'integer' ),
-						'css_vars'             => $styles,
-						'links'                => array(
+						'link_page_id'           => array( 'type' => 'integer' ),
+						'css_vars'               => $styles,
+						'links'                  => array(
 							'type'     => 'array',
 							'maxItems' => self::MAX_LINK_ITEMS,
 							'items'    => array( 'oneOf' => array( $section, $link ) ),
 						),
-						'link_sections'        => array(
+						'link_sections'          => array(
 							'type'     => 'array',
 							'maxItems' => self::MAX_LINK_SECTIONS,
 							'items'    => $normalized_section,
 						),
-						'bio'                  => array( 'type' => 'string' ),
-						'settings'             => $settings,
-						'background_image_id'  => array( 'type' => 'integer' ),
-						'background_image_url' => array( 'type' => 'string' ),
-						'public_url'           => array( 'type' => 'string' ),
-						'revision'             => $this->revision_schema(),
+						'bio'                    => array( 'type' => 'string' ),
+						'display_title'          => array( 'type' => 'string' ),
+						'display_title_is_owned' => array( 'type' => 'boolean' ),
+						'profile_image_id'       => array( 'type' => 'integer' ),
+						'profile_image_url'      => array( 'type' => 'string' ),
+						'social_links'           => array(
+							'type'  => 'array',
+							'items' => $runtime_social,
+						),
+						'schema_entity'          => array(
+							'type'                 => 'object',
+							'properties'           => array(
+								'type' => array( 'type' => 'string' ),
+								'url'  => array( 'type' => 'string' ),
+							),
+							'required'             => array( 'type', 'url' ),
+							'additionalProperties' => false,
+						),
+						'previous_links'         => array(
+							'type'                 => array( 'object', 'null' ),
+							'properties'           => array(
+								'links'     => array( 'type' => 'array' ),
+								'stored_at' => array( 'type' => 'string' ),
+							),
+							'required'             => array( 'links', 'stored_at' ),
+							'additionalProperties' => false,
+						),
+						'settings'               => $settings,
+						'background_image_id'    => array( 'type' => 'integer' ),
+						'background_image_url'   => array( 'type' => 'string' ),
+						'public_url'             => array( 'type' => 'string' ),
+						'revision'               => $this->revision_schema(),
 					),
 					'required'             => array( 'link_page_id', 'css_vars', 'links', 'link_sections', 'bio', 'settings', 'background_image_id', 'background_image_url', 'public_url', 'revision' ),
 					'additionalProperties' => false,
 				),
 			),
-			'required'             => array( 'promoter', 'link_page' ),
+			'required'             => array( $this->kind, 'link_page' ),
 			'additionalProperties' => false,
 		);
 	}

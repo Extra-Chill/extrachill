@@ -2,7 +2,7 @@
 /**
  * Regression coverage for #899: /venue-settings/ fatalled for every venue
  * team member whenever `ec_link_page_editor_is_available()` was true but
- * `VenueLinkPagesProvider::validate_runtime()` had failed (leaving
+ * `LinkPagesProvider::validate_runtime()` had failed (leaving
  * `\ExtraChillEvents\Core\VenueLinkPages` unloaded), because
  * `blocks/venue-settings/render.php` referenced that class unconditionally.
  *

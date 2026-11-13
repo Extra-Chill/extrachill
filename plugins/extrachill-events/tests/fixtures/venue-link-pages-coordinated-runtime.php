@@ -82,8 +82,6 @@ function get_home_url( $blog_id, $path = '/' ) {
 	return ( 7 === (int) $blog_id ? 'https://events.extrachill.com' : 'https://artist.extrachill.com' ) . $path; }
 function add_query_arg( $key, $value, $url ) {
 	return $url . '?' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value ); }
-function trailingslashit( $value ) {
-	return rtrim( $value, '/' ) . '/'; }
 function data_machine_events_get_venue_profile( $term_id ) {
 	$term = $GLOBALS['ec_test']['blogs'][7]['terms'][ $term_id ] ?? null;
 	if ( ! $term ) {
@@ -107,9 +105,9 @@ function data_machine_events_get_venue_profile( $term_id ) {
 }
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueLinkPages.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueLinkPageAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TeamTermLinkPageAbilities.php';
 
-use ExtraChillEvents\Abilities\VenueLinkPageAbilities;
+use ExtraChillEvents\Abilities\TeamTermLinkPageAbilities;
 use ExtraChillEvents\Core\VenueLinkPages;
 
 $GLOBALS['venue_link_page_fixture']          = array(
@@ -191,7 +189,7 @@ $atomic_save_hooks_before = count(
 		}
 	)
 );
-$atomic_patch             = $page_id ? ( new VenueLinkPageAbilities() )->patch(
+$atomic_patch             = $page_id ? ( new TeamTermLinkPageAbilities( 'venue' ) )->patch(
 	array(
 		'venue_term_id'     => 30,
 		'expected_revision' => $saved['link_page']['revision'] ?? '',
@@ -216,7 +214,7 @@ $atomic_save_hooks_after  = count(
 $GLOBALS['venue_link_page_fixture']['revoke_on_page_lock'] = static function () use ( $page_id ) {
 	update_post_meta( $page_id, '_link_page_bio_text', 'Concurrent winner' );
 };
-$interleaved       = $page_id ? ( new VenueLinkPageAbilities() )->patch(
+$interleaved       = $page_id ? ( new TeamTermLinkPageAbilities( 'venue' ) )->patch(
 	array(
 		'venue_term_id'     => 30,
 		'expected_revision' => $atomic_patch['link_page']['revision'] ?? '',
@@ -368,10 +366,10 @@ $cache_before_delete = count(
 	)
 );
 switch_to_blog( 7 );
-VenueLinkPages::capture_before_venue_deletion( 30, 'venue' );
+VenueLinkPages::capture_before_term_deletion( 30, 'venue' );
 $deleted_term = $GLOBALS['ec_test']['blogs'][7]['terms'][30];
 unset( $GLOBALS['ec_test']['blogs'][7]['terms'][30] );
-VenueLinkPages::orphan_after_venue_deletion( 30, 300, 'venue', $deleted_term );
+VenueLinkPages::orphan_after_term_deletion( 30, 300, 'venue', $deleted_term );
 restore_current_blog();
 $deleted_owner      = $page_id ? ec_get_link_page_public_projection( $page_id ) : $created;
 $cache_after_delete = count(

@@ -11,8 +11,8 @@ function add_action( $hook, $callback ) {
 function wp_register_ability( $name, $args ) {
 	$GLOBALS['venue_link_page_abilities'][ $name ] = $args; }
 
-require_once dirname( __DIR__, 2 ) . '/inc/Abilities/VenueLinkPageAbilities.php';
-$registrar = new ExtraChillEvents\Abilities\VenueLinkPageAbilities();
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TeamTermLinkPageAbilities.php';
+$registrar = new ExtraChillEvents\Abilities\TeamTermLinkPageAbilities( 'venue' );
 $registrar->register();
 
 $schema_is_closed = static function ( $schema ) use ( &$schema_is_closed ) {

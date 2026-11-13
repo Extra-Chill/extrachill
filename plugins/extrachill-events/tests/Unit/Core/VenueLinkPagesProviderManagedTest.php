@@ -5,7 +5,7 @@
  * @package ExtraChillEvents\Tests\Unit\Core
  */
 
-use ExtraChillEvents\Providers\VenueLinkPagesProvider;
+use ExtraChillEvents\Providers\LinkPagesProvider;
 
 /** Verifies missing optional runtime states fail soft without partial registration. */
 final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
@@ -36,7 +36,7 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 	/** An absent or installed-but-inactive runtime remains an observable soft failure. */
 	public function test_absent_and_inactive_runtime_fail_soft(): void {
 		foreach ( array( 'absent', 'inactive' ) as $state ) {
-			$result = VenueLinkPagesProvider::validate_runtime();
+			$result = LinkPagesProvider::validate_runtime();
 			$this->assertWPError( $result, $state );
 			$this->assertSame( 'venue_link_pages_runtime_not_configured', $result->get_error_code(), $state );
 		}
@@ -46,10 +46,10 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 	public function test_configured_incomplete_runtime_registers_nothing(): void {
 		$this->set_runtime_active( true );
 		if ( function_exists( 'ec_link_pages_runtime_ready' ) ) {
-			$this->assertTrue( VenueLinkPagesProvider::validate_runtime() );
+			$this->assertTrue( LinkPagesProvider::validate_runtime() );
 			return;
 		}
-		$result = VenueLinkPagesProvider::initialize();
+		$result = LinkPagesProvider::initialize();
 
 		$this->assertWPError( $result );
 		$this->assertSame( 'venue_link_pages_runtime_incomplete', $result->get_error_code() );
@@ -62,28 +62,28 @@ final class VenueLinkPagesProviderManagedTest extends WP_UnitTestCase {
 
 	/** `validate_runtime()` never translates on `plugins_loaded`; messages stay in English until render time. */
 	public function test_validate_runtime_error_messages_are_untranslated(): void {
-		$result = VenueLinkPagesProvider::validate_runtime();
+		$result = LinkPagesProvider::validate_runtime();
 		$this->assertWPError( $result );
 		$this->assertSame( 'Extra Chill Link Pages must be active before venue Link Pages can load.', $result->get_error_message() );
 	}
 
 	/** The stored integration error is translated only when the admin notice actually renders. */
 	public function test_error_notice_translates_the_stored_error(): void {
-		VenueLinkPagesProvider::initialize();
+		LinkPagesProvider::initialize();
 		ob_start();
-		VenueLinkPagesProvider::error_notice();
+		LinkPagesProvider::error_notice();
 		$output = ob_get_clean();
 		$this->assertStringContainsString( __( 'Extra Chill Link Pages must be active before venue Link Pages can load.', 'extrachill-events' ), $output );
 	}
 
 	/** A permanently-unsatisfied optional dependency logs its failure at most once, not on every request. */
 	public function test_record_error_logs_only_once_per_distinct_error_code(): void {
-		VenueLinkPagesProvider::initialize();
+		LinkPagesProvider::initialize();
 		$this->assertSame( 'venue_link_pages_runtime_not_configured', get_option( 'extrachill_events_venue_link_pages_logged_error' ) );
 
 		update_option( 'extrachill_events_venue_link_pages_logged_error', 'venue_link_pages_runtime_not_configured' );
-		VenueLinkPagesProvider::initialize();
-		VenueLinkPagesProvider::initialize();
+		LinkPagesProvider::initialize();
+		LinkPagesProvider::initialize();
 		$this->assertSame( 'venue_link_pages_runtime_not_configured', get_option( 'extrachill_events_venue_link_pages_logged_error' ) );
 	}
 

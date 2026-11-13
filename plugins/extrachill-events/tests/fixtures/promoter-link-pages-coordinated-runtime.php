@@ -10,10 +10,6 @@ require_once __DIR__ . '/venue-link-pages-authorization.php';
 require_once __DIR__ . '/promoter-link-pages-authorization.php';
 require_once __DIR__ . '/promoter-link-pages-principal.php';
 
-$GLOBALS['promoter_link_page_abilities'] = array();
-function wp_register_ability( $name, $definition ) {
-	$GLOBALS['promoter_link_page_abilities'][ $name ] = $definition; }
-
 function promoter_link_page_fixture_schema_valid( $value, array $schema ): bool {
 	if ( isset( $schema['oneOf'] ) ) {
 		$matches = array_filter(
@@ -127,8 +123,6 @@ function get_home_url( $blog_id, $path = '/' ) {
 	return ( 7 === (int) $blog_id ? 'https://events.extrachill.com' : 'https://artist.extrachill.com' ) . $path; }
 function add_query_arg( $key, $value, $url ) {
 	return $url . '?' . rawurlencode( $key ) . '=' . rawurlencode( (string) $value ); }
-function trailingslashit( $value ) {
-	return rtrim( $value, '/' ) . '/'; }
 function data_machine_events_get_venue_profile( $term_id ) {
 	$term = get_term( $term_id, 'venue' );
 	return array(
@@ -153,7 +147,7 @@ function data_machine_events_get_promoter_data( $term_id ) {
 
 require_once dirname( __DIR__, 2 ) . '/inc/Core/VenueLinkPages.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/PromoterLinkPages.php';
-require_once dirname( __DIR__, 2 ) . '/inc/Abilities/PromoterLinkPageAbilities.php';
+require_once dirname( __DIR__, 2 ) . '/inc/Abilities/TeamTermLinkPageAbilities.php';
 
 use ExtraChillEvents\Core\PromoterAuthorityRepository;
 use ExtraChillEvents\Core\PromoterLinkPages;
@@ -221,7 +215,7 @@ ec_register_link_page_owner_compatibility_provider( 'events-promoters', array( P
 ec_register_link_page_operation_provider( 'events-promoters', array( PromoterLinkPages::class, 'operation_provider' ) );
 ec_register_link_page_public_projection_provider( 'events-promoters', array( PromoterLinkPages::class, 'public_projection_provider' ) );
 PromoterLinkPages::register_hooks();
-$ability_registrar = new ExtraChillEvents\Abilities\PromoterLinkPageAbilities();
+$ability_registrar = new ExtraChillEvents\Abilities\TeamTermLinkPageAbilities( 'promoter' );
 $ability_registrar->register();
 add_filter(
 	'extrachill_get_link_page_analytics',
@@ -317,7 +311,7 @@ $flat_saved           = $page_id ? ec_save_link_page(
 		),
 	)
 ) : $created;
-$flat_output_valid    = ! is_wp_error( $flat_saved ) && promoter_link_page_fixture_schema_valid( $flat_saved, $GLOBALS['promoter_link_page_abilities']['extrachill/get-promoter-link-page']['output_schema'] );
+$flat_output_valid    = ! is_wp_error( $flat_saved ) && promoter_link_page_fixture_schema_valid( $flat_saved, wp_get_ability( 'extrachill/get-promoter-link-page' )['output_schema'] );
 $analytics            = $page_id ? PromoterLinkPages::analytics( 30 ) : $created;
 $caller_after         = get_current_blog_id();
 $discovery            = PromoterLinkPages::approved_promoters();
