@@ -29,7 +29,6 @@ define( 'EC_BLOG_ID_STUDIO', 12 );
 define( 'EC_BLOG_ID_LINK_PAGES', 13 );
 define( 'EC_BLOG_ID_AUTH', 14 );
 define( 'EC_PLATFORM_ARTIST_ID', 12114 );
-define( 'EC_LINK_PAGES_SITE_CUTOVER_OPTION', 'ec_link_pages_site_cutover' );
 
 /**
  * @return array<string, int>
@@ -46,11 +45,6 @@ function ec_get_blog_id( $key ) {}
  * @return array<string, int>
  */
 function ec_get_domain_map() {}
-
-/**
- * @return bool
- */
-function ec_link_pages_site_cutover_enabled() {}
 
 /**
  * @param int $blog_id Existing configured blog ID.

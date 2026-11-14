@@ -110,57 +110,21 @@ function ec_get_domain_map() {
 }
 
 /**
- * Network option that gates the extrachill.link Link Pages site cutover.
- *
- * The gate defaults to off, so merging and deploying this plugin never cuts
- * over by itself. Flipping it is an explicit operator action (Phase D of the
- * Link Pages migration epic).
- */
-if ( ! defined( 'EC_LINK_PAGES_SITE_CUTOVER_OPTION' ) ) {
-	define( 'EC_LINK_PAGES_SITE_CUTOVER_OPTION', 'ec_link_pages_site_cutover' );
-}
-
-/**
- * Whether the extrachill.link Link Pages site cutover is enabled.
- *
- * Gate on: sunrise maps extrachill.link to the dedicated Link Pages site
- * (blog 13), www.extrachill.link canonicalizes to the apex, and the Link
- * Pages storage blog resolves to 13. Gate off (default): the pre-cutover
- * behavior is preserved — extrachill.link maps to the artist site (blog 4)
- * and Link Page storage stays on blog 4.
- *
- * Flip:   wp site option update ec_link_pages_site_cutover 1
- * Revert: wp site option update ec_link_pages_site_cutover 0
- *
- * @return bool
- */
-function ec_link_pages_site_cutover_enabled() {
-	return (bool) get_site_option( EC_LINK_PAGES_SITE_CUTOVER_OPTION, false );
-}
-
-/**
  * Configure the canonical Link Pages storage site for the standalone runtime.
  *
- * Both branch constants are overridable from wp-config (see the defined()
- * guards above), so a non-positive value is a real runtime possibility even
- * though the in-repo defaults fold to constants for static analysis.
+ * Link Pages always live on the dedicated Link Pages site (extrachill.link).
+ * EC_BLOG_ID_LINK_PAGES is overridable from wp-config (see the defined()
+ * guard above), so a non-positive value is a real runtime possibility even
+ * though the in-repo default folds to a constant for static analysis.
  *
  * @param int $blog_id Existing configured blog ID.
  * @return int
  */
 function ec_filter_link_page_storage_blog_id( $blog_id ) {
-	if ( ec_link_pages_site_cutover_enabled() ) {
-		$configured = (int) EC_BLOG_ID_LINK_PAGES;
+	$configured = (int) EC_BLOG_ID_LINK_PAGES;
 
-		// @phpstan-ignore greater.alwaysTrue (configurable constant; default folds to 13)
-		return $configured > 0 ? $configured : absint( $blog_id );
-	}
-
-	// Cutover gated off: Link Pages keep living on the historical artist site.
-	$legacy = (int) EC_BLOG_ID_ARTIST;
-
-	// @phpstan-ignore greater.alwaysTrue (configurable constant; default folds to 4)
-	return $legacy > 0 ? $legacy : absint( $blog_id );
+	// @phpstan-ignore greater.alwaysTrue (configurable constant; default folds to 13)
+	return $configured > 0 ? $configured : absint( $blog_id );
 }
 add_filter( 'ec_link_page_storage_blog_id', 'ec_filter_link_page_storage_blog_id' );
 

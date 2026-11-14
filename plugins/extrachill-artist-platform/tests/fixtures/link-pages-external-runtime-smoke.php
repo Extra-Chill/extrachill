@@ -35,7 +35,7 @@ $GLOBALS['smoke'] = array(
 		),
 		40 => (object) array(
 			'ID'        => 40,
-			'post_type' => 'artist_link_page',
+			'post_type' => 'ec_link_page',
 		),
 	),
 	'post_meta'             => array(
@@ -137,7 +137,7 @@ require_once rtrim( $ec_network_path, '/' ) . '/inc/core/blog-ids.php';
 // Simulate a standalone generic API loading after Artist Platform's handoff code.
 require_once $root . '/inc/link-pages/runtime-handoff.php';
 require_once __DIR__ . '/fake-external-link-pages-runtime.php';
-register_post_type( 'artist_link_page', array( 'owner' => 'external-runtime' ) );
+register_post_type( 'ec_link_page', array( 'owner' => 'external-runtime' ) );
 
 require_once $root . '/inc/core/artist-platform-post-types.php';
 $first  = extrachill_artist_platform_boot_link_pages_runtime();
@@ -148,12 +148,12 @@ $owner = ec_get_link_page_owner( 40 );
 echo json_encode(
 	array(
 		'booted'                 => true === $first && true === $second,
-		'post_type_constant'     => EC_LINK_PAGE_POST_TYPE,
+		'post_type_constant'     => ec_link_page_post_type(),
 		'owner_meta_constant'    => EC_LINK_PAGE_OWNER_META_KEY,
 		'owner_providers'        => count( $GLOBALS['smoke']['owner_providers'] ?? array() ),
 		'operation_providers'    => count( $GLOBALS['smoke']['operation_providers'] ),
 		'projection_providers'   => count( $GLOBALS['smoke']['projection_providers'] ),
-		'link_page_cpt_owner'    => $GLOBALS['smoke']['registered_post_types']['artist_link_page']['owner'] ?? '',
+		'link_page_cpt_owner'    => $GLOBALS['smoke']['registered_post_types']['ec_link_page']['owner'] ?? '',
 		'artist_platform_registers_link_page_cpt' => function_exists( 'extrachill_register_artist_link_page_cpt' ),
 		'artist_profile_exists'  => isset( $GLOBALS['smoke']['registered_post_types']['artist_profile'] ),
 		'owner_reference'        => is_wp_error( $owner ) ? $owner->get_error_code() : $owner['reference'],

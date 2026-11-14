@@ -3,7 +3,6 @@
 $mode = getenv( 'RUNTIME_MODE' ) ?: 'partial';
 define( 'ABSPATH', __DIR__ . '/' );
 if ( 'wrong_constants' === $mode ) {
-	define( 'EC_LINK_PAGE_POST_TYPE', 'wrong_type' );
 	define( 'EC_LINK_PAGE_OWNER_META_KEY', '_wrong_key' );
 }
 if ( 'wrong_api' === $mode ) {

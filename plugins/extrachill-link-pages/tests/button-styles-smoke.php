@@ -35,7 +35,7 @@ button_styles_check( 1 === substr_count( $html, 'class="extrch-link-thumbnail"' 
 $seen = false;
 $unsafe = ec_render_link_page_section_with_featured( array( 'links' => array( array_merge( $link, array( 'thumbnail_url' => 'javascript:alert(1)' ) ) ) ), 1, false, $seen );
 button_styles_check( false === strpos( $unsafe, '<img' ), 'Renderer accepted unsafe thumbnail' );
-$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Styles', 'post_name' => 'styles' );
+$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Styles', 'post_name' => 'styles' );
 $vars = array( '--link-page-button-fill' => 'gradient', '--link-page-button-shadow' => 'glow' );
 $saved = ec_save_link_page_persistence( 40, array( 'links' => $sections, 'css_vars' => $vars ) );
 button_styles_check( ! is_wp_error( $saved ), 'Save path rejected styles/links' );

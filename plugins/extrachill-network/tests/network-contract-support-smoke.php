@@ -38,11 +38,7 @@ $assert( 'https://extrachill.com' === ec_get_site_url( 'main' ), 'main site URL 
 $assert( 'https://community.extrachill.com' === ec_get_site_url( 'community' ), 'community site URL is the production domain' );
 $assert( 'artist' === ec_get_blog_slug_by_id( 4 ), 'reverse lookup maps blog 4 to artist' );
 $assert( 12114 === EC_PLATFORM_ARTIST_ID, 'platform artist ID falls back to production value' );
-$assert( ! ec_link_pages_site_cutover_enabled(), 'link pages cutover defaults to off' );
-$GLOBALS['ec_test_network_site_options'][ EC_LINK_PAGES_SITE_CUTOVER_OPTION ] = '1';
-$assert( ec_link_pages_site_cutover_enabled(), 'cutover reads the fixture network option' );
-$assert( 13 === ec_filter_link_page_storage_blog_id( 0 ), 'cutover on stores link pages on blog 13' );
-unset( $GLOBALS['ec_test_network_site_options'][ EC_LINK_PAGES_SITE_CUTOVER_OPTION ] );
+$assert( 13 === ec_filter_link_page_storage_blog_id( 0 ), 'link pages are stored on blog 13' );
 
 $source_file = dirname( __DIR__ ) . '/inc/core/blog-ids.php';
 $included    = array_map( 'realpath', get_included_files() );

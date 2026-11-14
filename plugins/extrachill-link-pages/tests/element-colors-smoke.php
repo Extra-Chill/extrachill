@@ -10,7 +10,7 @@ function ec_element_color_check( $condition, $message ) {
 }
 
 ec_test_reset();
-$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish' );
+$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish' );
 switch_to_blog( 4 );
 $colors = array(
 	'--link-page-link-text-color' => '#123456',

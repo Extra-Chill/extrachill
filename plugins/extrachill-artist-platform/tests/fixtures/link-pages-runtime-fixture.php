@@ -23,13 +23,6 @@ function ec_test_link_pages_runtime_path( $artist_root ) {
 	throw new RuntimeException( 'Link Pages runtime unavailable (checked: ' . implode( ', ', $candidates ) . '). Resolve validation_dependencies with Homeboy or set LINK_PAGES_WORKTREE.' );
 }
 
-/** Supply the pending migration API when testing against pre-migration main. */
-function ec_test_load_link_pages_migration_override( $runtime ) {
-	if ( ! is_file( $runtime . '/inc/migration.php' ) ) {
-		require_once __DIR__ . '/link-pages-migration-contract-override.php';
-	}
-}
-
 /** Report whether the selected runtime bootstrap owns a fixture function. */
 function ec_test_link_pages_bootstrap_defines( $runtime, $function_name ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reads a local fixture file, not a remote URL.

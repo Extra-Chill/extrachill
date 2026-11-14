@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 final class SectionSourcesTest extends TestCase {
 	protected function setUp(): void {
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Sections Page', 'post_name' => 'sections-page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Sections Page', 'post_name' => 'sections-page' );
 		$GLOBALS['ec_test']['blogs'][4]['posts'][20] = (object) array( 'ID' => 20, 'post_type' => 'profile', 'post_status' => 'publish' );
 		$this->assertTrue( ec_assign_link_page_owner( 40, 'post:4:profile:20' ) );
 	}
@@ -336,7 +336,7 @@ final class SectionSourcesTest extends TestCase {
 		$this->registerTestSource();
 		ec_save_link_page_persistence( 40, array( 'links' => array( array( 'id' => 'new-1', 'section_title' => 'Auto', 'type' => 'upcoming_events', 'links' => array() ) ) ) );
 
-		$GLOBALS['ec_test']['blogs'][4]['posts'][41] = (object) array( 'ID' => 41, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Second', 'post_name' => 'second-page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][41] = (object) array( 'ID' => 41, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Second', 'post_name' => 'second-page' );
 		$GLOBALS['ec_test']['blogs'][4]['posts'][21] = (object) array( 'ID' => 21, 'post_type' => 'profile', 'post_status' => 'publish' );
 		ec_assign_link_page_owner( 41, 'post:4:profile:21' );
 		ec_save_link_page_persistence( 41, array( 'links' => array( array( 'id' => 'new-1', 'section_title' => 'Auto', 'type' => 'upcoming_events', 'links' => array() ) ) ) );

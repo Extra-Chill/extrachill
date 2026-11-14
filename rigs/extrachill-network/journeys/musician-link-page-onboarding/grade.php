@@ -143,7 +143,7 @@ if ( $artist_id && function_exists( 'ec_get_link_page_id_for_owner' ) ) {
 	$link_page_id = is_wp_error( $owned ) ? 0 : (int) $owned;
 }
 switch_to_blog( $link_blog_id );
-$link_post_type      = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type( $link_blog_id ) : 'artist_link_page';
+$link_post_type      = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type( $link_blog_id ) : 'ec_link_page';
 $link_pages          = get_posts(
 	array(
 		'post_type'      => $link_post_type,

@@ -3,7 +3,7 @@
  * Executable database behavior for the Link Page schema-reconciliation
  * routine (#287).
  *
- * `extrachill_analytics_link_page_migration_reconcile_table()` issues real
+ * `extrachill_analytics_link_page_schema_reconcile_table()` issues real
  * `ALTER TABLE` DDL (`MODIFY COLUMN ... FIRST/AFTER`, `DROP INDEX`,
  * `ADD (UNIQUE) KEY`) against a per-site table. The managed WordPress test
  * harness runs on a SQLite-backed MySQL-grammar translator: `SHOW COLUMNS`
@@ -33,24 +33,24 @@ require_once __DIR__ . '/class-extrachill-analytics-test-case.php';
 final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCase {
 
 	/**
-	 * A fresh create_table() satisfies the migration contract exactly, for
+	 * A fresh create_table() satisfies the owned schema contract exactly, for
 	 * both owned tables. This is the regression test #287 asked for: it
 	 * would have caught link_text shipping outside unique_daily_link_click's
 	 * contract the moment the contract and the CREATE TABLE SQL diverged.
 	 */
-	public function test_fresh_create_table_satisfies_migration_contract_exactly(): void {
+	public function test_fresh_create_table_satisfies_schema_contract_exactly(): void {
 		delete_option( EXTRACHILL_ANALYTICS_LINK_PAGE_DB_VERSION_OPTION );
 		extrachill_analytics_link_page_create_table();
 
-		$views_ready = extrachill_analytics_link_page_migration_table_ready(
+		$views_ready = extrachill_analytics_link_page_schema_table_ready(
 			extrachill_analytics_link_page_views_table(),
-			extrachill_analytics_link_page_migration_view_columns(),
-			extrachill_analytics_link_page_migration_view_indexes()
+			extrachill_analytics_link_page_schema_view_columns(),
+			extrachill_analytics_link_page_schema_view_indexes()
 		);
-		$clicks_ready = extrachill_analytics_link_page_migration_table_ready(
+		$clicks_ready = extrachill_analytics_link_page_schema_table_ready(
 			extrachill_analytics_link_page_clicks_table(),
-			extrachill_analytics_link_page_migration_click_columns(),
-			extrachill_analytics_link_page_migration_click_indexes()
+			extrachill_analytics_link_page_schema_click_columns(),
+			extrachill_analytics_link_page_schema_click_indexes()
 		);
 
 		$this->assertTrue( $views_ready, is_wp_error( $views_ready ) ? $views_ready->get_error_message() . ' ' . wp_json_encode( $views_ready->get_error_data() ) : '' );
@@ -67,10 +67,10 @@ final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCa
 		$table = extrachill_analytics_link_page_clicks_table();
 
 		$captured = $this->capture_queries();
-		$result   = extrachill_analytics_link_page_migration_reconcile_table(
+		$result   = extrachill_analytics_link_page_schema_reconcile_table(
 			$table,
-			extrachill_analytics_link_page_migration_click_columns(),
-			extrachill_analytics_link_page_migration_click_indexes()
+			extrachill_analytics_link_page_schema_click_columns(),
+			extrachill_analytics_link_page_schema_click_indexes()
 		);
 		$alters   = preg_grep( '/^ALTER TABLE/i', $captured->queries );
 
@@ -110,20 +110,20 @@ final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCa
 		$before = $this->read_rows( $table );
 		$this->assertCount( 2, $before );
 
-		$columns = extrachill_analytics_link_page_migration_click_columns();
-		$indexes = extrachill_analytics_link_page_migration_click_indexes();
+		$columns = extrachill_analytics_link_page_schema_click_columns();
+		$indexes = extrachill_analytics_link_page_schema_click_indexes();
 
-		$result = extrachill_analytics_link_page_migration_reconcile_table( $table, $columns, $indexes );
+		$result = extrachill_analytics_link_page_schema_reconcile_table( $table, $columns, $indexes );
 		$this->assertTrue( $result, is_wp_error( $result ) ? $result->get_error_message() . ' ' . wp_json_encode( $result->get_error_data() ) : '' );
 
-		$ready = extrachill_analytics_link_page_migration_table_ready( $table, $columns, $indexes );
+		$ready = extrachill_analytics_link_page_schema_table_ready( $table, $columns, $indexes );
 		$this->assertTrue( $ready, is_wp_error( $ready ) ? $ready->get_error_message() . ' ' . wp_json_encode( $ready->get_error_data() ) : '' );
 
 		$after = $this->read_rows( $table );
 		$this->assertSame( $before, $after, 'Reconciling a widened unique key must not lose or alter any existing row.' );
 
 		$captured = $this->capture_queries();
-		$second   = extrachill_analytics_link_page_migration_reconcile_table( $table, $columns, $indexes );
+		$second   = extrachill_analytics_link_page_schema_reconcile_table( $table, $columns, $indexes );
 		$this->assertTrue( $second );
 		$this->assertSame( array(), array_values( preg_grep( '/^ALTER TABLE/i', $captured->queries ) ), 'A second reconcile call against an already-reconciled table must be a no-op.' );
 	}
@@ -161,10 +161,10 @@ final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCa
 		$before = $this->read_rows( $table );
 
 		$captured = $this->capture_queries();
-		$result   = extrachill_analytics_link_page_migration_reconcile_table(
+		$result   = extrachill_analytics_link_page_schema_reconcile_table(
 			$table,
-			extrachill_analytics_link_page_migration_click_columns(),
-			extrachill_analytics_link_page_migration_click_indexes()
+			extrachill_analytics_link_page_schema_click_columns(),
+			extrachill_analytics_link_page_schema_click_indexes()
 		);
 		$alters = array_values( preg_grep( '/^ALTER TABLE/i', $captured->queries ) );
 
@@ -174,7 +174,7 @@ final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCa
 		// cannot see fixed — that recheck failure is the harness artifact
 		// documented above, not evidence the DDL was wrong.
 		$this->assertTrue(
-			is_wp_error( $result ) && 'analytics_link_page_migration_schema_mismatch' === $result->get_error_code(),
+			is_wp_error( $result ) && 'analytics_link_page_schema_mismatch' === $result->get_error_code(),
 			is_wp_error( $result ) ? $result->get_error_message() : wp_json_encode( $result )
 		);
 
@@ -273,10 +273,10 @@ final class LinkPageSchemaReconciliationTest extends Extrachill_Analytics_TestCa
 		$this->assertSame( $started_on, get_current_blog_id(), 'The sweep must always restore the blog it started on.' );
 
 		switch_to_blog( $other_blog );
-		$ready = extrachill_analytics_link_page_migration_table_ready(
+		$ready = extrachill_analytics_link_page_schema_table_ready(
 			extrachill_analytics_link_page_clicks_table(),
-			extrachill_analytics_link_page_migration_click_columns(),
-			extrachill_analytics_link_page_migration_click_indexes()
+			extrachill_analytics_link_page_schema_click_columns(),
+			extrachill_analytics_link_page_schema_click_indexes()
 		);
 		restore_current_blog();
 		$this->assertTrue( $ready, 'The sweep must reconcile every network site, not only the one running the upgrade.' );

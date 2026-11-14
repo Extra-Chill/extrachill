@@ -5,8 +5,7 @@
  * Recreates the production page shape the journey walks (page slugs and
  * block content read read-only from production on 2026-09-26 via
  * `wp post list --post_type=page` / `wp post get --field=post_content` on
- * each site), turns on the Link Pages site cutover production runs with
- * (`ec_link_pages_site_cutover` = true on extrachill.com), and creates one
+ * each site), and creates one
  * single-scenario fixture musician (not a persona -- see
  * personas/README.md) so the editor half of the journey can be judged even
  * when live browser registration cannot complete in the sandbox.
@@ -117,10 +116,6 @@ $link_blog_id      = musician_journey_site_id( 'extrachill.link' );
 
 wp_set_current_user( 1 );
 
-// Production runs the dedicated Link Pages site (extrachill.link) as the
-// canonical Link Page store and editor host.
-update_site_option( 'ec_link_pages_site_cutover', true );
-
 if ( ! in_array( get_site_option( 'registration' ), array( 'user', 'all' ), true ) ) {
 	update_site_option( 'registration', 'user' );
 }
@@ -191,7 +186,6 @@ update_user_meta( MUSICIAN_JOURNEY_FIXTURE_USER_ID, 'onboarding_completed', '1' 
 update_user_meta( MUSICIAN_JOURNEY_FIXTURE_USER_ID, 'onboarding_from_join', '1' );
 
 $evidence['musician_user_id'] = $musician->ID;
-$evidence['cutover']          = (bool) get_site_option( 'ec_link_pages_site_cutover' );
 update_site_option( 'ec_rig_journey_fixture_musician_link_page_onboarding', $evidence );
 
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped,WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- Machine-readable fixture evidence.

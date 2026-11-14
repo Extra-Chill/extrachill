@@ -127,7 +127,7 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 		return $objects;
 	}
 
-	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+	$link_page_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'ec_link_page';
 
 	$collect_link_pages = static function ( $storage_blog_id ) use ( $owned_artist_ids, $link_page_type ) {
 		$found = array();
@@ -148,9 +148,8 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
 	};
 
 	// Link pages are queried through the canonical storage helper so
-	// moderation keeps finding them on either side of the storage cutover
-	// (blog 4 today, the dedicated Link Pages site once the gate flips)
-	// instead of silently assuming the artist blog.
+	// moderation finds them on the dedicated Link Pages site instead of
+	// silently assuming the artist blog.
 	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
 		$link_page_objects = ec_with_link_page_storage_blog( $collect_link_pages );
 		if ( is_array( $link_page_objects ) ) {
@@ -173,16 +172,13 @@ function extrachill_users_get_owned_artist_platform_objects( int $user_id ): arr
  * direct posts-table write instead of wp_update_post() because their
  * registrations do not exist in the switch_to_blog() request context.
  *
- * Includes both known Link Page post-type values (legacy `artist_link_page`
- * and the storage-cutover `ec_link_page`) plus whatever
- * ec_link_page_post_type() currently resolves to, so moderation keeps
- * working on either side of the cutover regardless of when an object was
- * collected.
+ * Includes the Link Page post type (`ec_link_page`, or whatever
+ * ec_link_page_post_type() resolves to).
  *
  * @return string[]
  */
 function extrachill_users_artist_platform_post_types(): array {
-	$post_types = array( 'artist_profile', 'artist_link_page', 'ec_link_page' );
+	$post_types = array( 'artist_profile', 'ec_link_page' );
 
 	if ( function_exists( 'ec_link_page_post_type' ) ) {
 		$post_types[] = ec_link_page_post_type();
@@ -392,7 +388,7 @@ function extrachill_users_purge_user_content( int $user_id ) {
 			// the loop (extrachill_users_recompute_bbp_counters()).
 			//
 			// switch_to_blog() also leaves the target site's post types (topic,
-			// reply, artist_link_page, ...) unregistered, and core cap checks
+			// reply, ec_link_page, ...) unregistered, and core cap checks
 			// against unregistered types emit _doing_it_wrong notices from
 			// map_meta_cap(). Register a minimal 'post'-capability stub for the
 			// duration of the delete, then remove it before restoring the blog.

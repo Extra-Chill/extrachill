@@ -55,29 +55,18 @@ function ec_get_link_page_storage_blog_id() {
 }
 
 /**
- * Resolve the storage-site-affine Link Page post type.
+ * Resolve the Link Page post type.
  *
- * The dedicated Link Pages site (looked up by network key, not hardcoded)
- * stores `ec_link_page`; every other blog — including the legacy storage
- * site — keeps the historical `artist_link_page` value. Resolution happens
- * strictly at call time: never cache this, and never call it before plugins
- * finish loading (the network's blog-ID lookup may not exist yet).
+ * Link Pages are always stored as `ec_link_page` on the dedicated Link Pages
+ * site. The optional blog parameter is part of the published runtime function
+ * contract and is ignored.
  *
- * @param int|null $blog_id Blog to resolve for, or null for the current
- *                          canonical Link Page storage blog.
+ * @param int|null $blog_id Unused; kept for the runtime function contract.
  * @return string
  */
 function ec_link_page_post_type( $blog_id = null ) {
-	$blog_id = null === $blog_id ? ec_get_link_page_storage_blog_id() : max( 0, (int) $blog_id );
-	// Kept guard: extrachill-link-pages loads before extrachill-network (alphabetical
-	// network-activation order) and validates its runtime at file-include time.
-	if ( $blog_id && function_exists( 'ec_get_blog_id' ) ) {
-		$dedicated_blog_id = (int) ec_get_blog_id( 'link_pages' );
-		if ( $dedicated_blog_id && $blog_id === $dedicated_blog_id ) {
-			return 'ec_link_page';
-		}
-	}
-	return EC_LINK_PAGE_POST_TYPE;
+	unset( $blog_id );
+	return 'ec_link_page';
 }
 
 /** Execute a storage callback on the canonical blog and restore the caller. */

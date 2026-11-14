@@ -102,12 +102,11 @@ function extrachill_analytics_ability_get_link_page_analytics( array $input ) {
 	// Validate post type. This ability runs in whatever blog context served
 	// the REST request, and the storage-aware post type always matches that
 	// same context (there is no switch_to_blog() in this ability), so the
-	// current-storage-blog default is correct here. The literal fallback keeps
-	// this ability deployable before extrachill-link-pages ships the runtime
-	// function. See Extra-Chill/extrachill-link-pages#34.
+	// current-storage-blog default is correct here. The literal fallback
+	// covers requests where extrachill-link-pages is not loaded.
 	// Resolve the type on the storage blog: the dashboard can run on the
 	// owner's site while pages live on the Link Pages site.
-	$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'artist_link_page';
+	$link_page_post_type = function_exists( 'ec_link_page_post_type' ) ? ec_link_page_post_type() : 'ec_link_page';
 	$stored_post_type    = function_exists( 'ec_with_link_page_storage_blog' )
 		? ec_with_link_page_storage_blog(
 			static function () use ( $link_page_id ) {

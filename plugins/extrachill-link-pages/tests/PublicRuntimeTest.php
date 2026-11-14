@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class PublicRuntimeTest extends TestCase {
 	protected function setUp(): void {
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Legacy Page', 'post_name' => 'legacy-page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Legacy Page', 'post_name' => 'legacy-page' );
 		$GLOBALS['ec_test']['blogs'][4]['posts'][20] = (object) array( 'ID' => 20, 'post_type' => 'profile', 'post_status' => 'publish', 'post_title' => 'Legacy Owner', 'post_name' => 'legacy-owner' );
 		$GLOBALS['ec_test']['blogs'][7]['terms'][30] = (object) array( 'term_id' => 30, 'taxonomy' => 'place' );
 		$GLOBALS['wp_query'] = (object) array( 'posts' => array(), 'query_vars' => array(), 'is_404' => true );
@@ -415,7 +415,7 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertFalse( method_exists( ec_link_page_public_projection_registry(), 'unregister' ) );
 
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_name' => 'page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_name' => 'page' );
 		$GLOBALS['ec_test']['blogs'][4]['posts'][20] = (object) array( 'ID' => 20, 'post_type' => 'profile', 'post_status' => 'publish' );
 		ec_assign_link_page_owner( 40, 'post:4:profile:20' );
 		ec_register_link_page_public_projection_provider( 'leak', static function () { switch_to_blog( 7 ); return array( 'display_title' => 'Unsafe' ); } );
@@ -665,7 +665,7 @@ final class PublicRuntimeTest extends TestCase {
 	}
 
 	public function test_deleted_canonical_owner_shape_carries_public_404_status(): void {
-		$GLOBALS['ec_test']['blogs'][4]['posts'][12714] = (object) array( 'ID' => 12714, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_name' => 'deleted-owner' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][12714] = (object) array( 'ID' => 12714, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_name' => 'deleted-owner' );
 		update_post_meta( 12714, EC_LINK_PAGE_OWNER_META_KEY, 'post:4:profile:12711' );
 		$result = ec_get_link_page_public_projection( 12714 );
 		$this->assertSame( 'invalid_link_page_owner_object', $this->errorCode( $result ) );
@@ -686,12 +686,12 @@ final class PublicRuntimeTest extends TestCase {
 		$this->assertSame( 1, preg_match( $regex, 'band-name/' ) );
 		$this->assertSame( 0, preg_match( $regex, 'robots.txt' ) );
 		$this->assertSame( 0, preg_match( $regex, 'favicon.ico' ) );
-		$this->assertSame( array( 'page' => 1 ), ec_exclude_link_page_from_core_sitemap( array( 'page' => 1, EC_LINK_PAGE_POST_TYPE => 1 ) ) );
+		$this->assertSame( array( 'page' => 1 ), ec_exclude_link_page_from_core_sitemap( array( 'page' => 1, 'ec_link_page' => 1 ) ) );
 		$this->assertSame( array( 'https://extrachill.link/legacy-page/' ), ec_link_page_public_urls( 40 ) );
-		$this->assertSame( ec_link_page_public_urls( 40 ), ec_link_page_cache_post_change_urls( null, 40, EC_LINK_PAGE_POST_TYPE ) );
+		$this->assertSame( ec_link_page_public_urls( 40 ), ec_link_page_cache_post_change_urls( null, 40, 'ec_link_page' ) );
 		$this->assertSame( 'https://extrachill.link/legacy-page/', ec_link_page_sitemap_urls( array() )[0]['loc'] );
 
-		$GLOBALS['ec_test']['singular'] = EC_LINK_PAGE_POST_TYPE;
+		$GLOBALS['ec_test']['singular'] = 'ec_link_page';
 		$GLOBALS['wp_query']->queried_object = get_post( 40 );
 		$_SERVER['HTTP_HOST'] = 'owner.example';
 		$_SERVER['QUERY_STRING'] = 'utm=1';

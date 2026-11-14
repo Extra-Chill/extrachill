@@ -6,7 +6,7 @@ final class RuntimeTest extends TestCase {
 	protected function setUp(): void {
 		ec_test_reset();
 		$this->post( 4, 20, 'profile' );
-		$this->post( 4, 40, EC_LINK_PAGE_POST_TYPE );
+		$this->post( 4, 40, 'ec_link_page' );
 		$this->term( 7, 30, 'place' );
 	}
 
@@ -27,14 +27,13 @@ final class RuntimeTest extends TestCase {
 		return $result->get_error_code();
 	}
 
-	public function test_runtime_contract_and_post_type_are_legacy_compatible(): void {
+	public function test_runtime_contract_and_post_type_are_compatible(): void {
 		$this->assertTrue( ec_link_pages_runtime_ready() );
 		$this->assertSame( '4', EC_LINK_PAGES_RUNTIME_API_VERSION );
-		$this->assertSame( 'artist_link_page', EC_LINK_PAGE_POST_TYPE );
-		$this->assertSame( 'artist_link_page', ec_link_page_post_type() );
+		$this->assertSame( 'ec_link_page', ec_link_page_post_type() );
 		unset( $GLOBALS['ec_test']['blogs'][4]['posts'][40] );
 		ec_register_link_page_post_type();
-		$args = $GLOBALS['ec_test']['registered_post_types'][ EC_LINK_PAGE_POST_TYPE ];
+		$args = $GLOBALS['ec_test']['registered_post_types']['ec_link_page'];
 		unset( $args['label'], $args['description'], $args['labels'] );
 		$this->assertSame(
 			array(
@@ -93,14 +92,14 @@ final class RuntimeTest extends TestCase {
 		ec_test_reset();
 		$this->post( 4, 20, 'profile' );
 		$this->post( 4, 21, 'profile' );
-		$this->post( 4, 40, EC_LINK_PAGE_POST_TYPE );
+		$this->post( 4, 40, 'ec_link_page' );
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40][ EC_LINK_PAGE_OWNER_META_KEY ] = 'post:4:profile:21';
 		ec_register_link_page_owner_compatibility_provider( 'claim', static function ( $operation, $context ) { return 'owner_pages' === $operation ? array( array( 'link_page_id' => 40, 'owner_reference' => $context['owner_reference'] ) ) : array(); } );
 		$this->assertSame( 'link_page_owner_divergence', $this->errorCode( ec_get_link_page_id_for_owner( $this->owner() ) ) );
 	}
 
 	public function test_uniqueness_conflicts_and_assignment_compensation(): void {
-		$this->post( 4, 41, EC_LINK_PAGE_POST_TYPE );
+		$this->post( 4, 41, 'ec_link_page' );
 		$this->assertTrue( ec_assign_link_page_owner( 40, $this->owner() ) );
 		$this->assertSame( 'link_page_owner_conflict', $this->errorCode( ec_assign_link_page_owner( 41, $this->owner() ) ) );
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][41][ EC_LINK_PAGE_OWNER_META_KEY ] = 'post:4:profile:20';
@@ -108,8 +107,8 @@ final class RuntimeTest extends TestCase {
 
 		ec_test_reset();
 		$this->post( 4, 20, 'profile' );
-		$this->post( 4, 40, EC_LINK_PAGE_POST_TYPE );
-		$this->post( 4, 41, EC_LINK_PAGE_POST_TYPE );
+		$this->post( 4, 40, 'ec_link_page' );
+		$this->post( 4, 41, 'ec_link_page' );
 		$GLOBALS['ec_test']['after_add'] = static function () { $GLOBALS['ec_test']['blogs'][4]['post_meta'][41][ EC_LINK_PAGE_OWNER_META_KEY ] = 'post:4:profile:20'; };
 		$this->assertSame( 'duplicate_link_pages_for_owner', $this->errorCode( ec_assign_link_page_owner( 40, $this->owner() ) ) );
 		$this->assertArrayNotHasKey( EC_LINK_PAGE_OWNER_META_KEY, $GLOBALS['ec_test']['blogs'][4]['post_meta'][40] );
@@ -142,7 +141,7 @@ final class RuntimeTest extends TestCase {
 		ec_test_reset();
 		$this->post( 4, 20, 'profile' );
 		$this->post( 4, 21, 'profile' );
-		$this->post( 4, 40, EC_LINK_PAGE_POST_TYPE );
+		$this->post( 4, 40, 'ec_link_page' );
 		$GLOBALS['ec_test']['blogs'][4]['post_meta'][40][ EC_LINK_PAGE_OWNER_META_KEY ] = 'post:4:profile:20';
 		ec_register_link_page_owner_compatibility_provider( 'stable-claim', static function ( $operation, $context ) {
 			if ( 'page_owner' === $operation ) { return array( array( 'link_page_id' => 40, 'owner_reference' => 'post:4:profile:20' ) ); }

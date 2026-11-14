@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class RestorePointGuardTest extends TestCase {
 	protected function setUp(): void {
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish', 'post_title' => 'Guarded Page', 'post_name' => 'guarded-page' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish', 'post_title' => 'Guarded Page', 'post_name' => 'guarded-page' );
 		unset( $GLOBALS['ec_test']['now'] );
 	}
 
@@ -86,7 +86,7 @@ final class RestorePointGuardTest extends TestCase {
 		$this->assertSame( $this->populated(), $previous['links'] );
 		$this->assertSame( gmdate( 'Y-m-d H:i:s', 1700000000 ), $previous['stored_at'] );
 		$this->assertSame( $previous, ec_read_link_page_persistence( 40 )['previous_links'] );
-		$GLOBALS['ec_test']['blogs'][4]['posts'][41] = (object) array( 'ID' => 41, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][41] = (object) array( 'ID' => 41, 'post_type' => 'ec_link_page', 'post_status' => 'publish' );
 		$this->assertNull( ec_get_link_page_previous_links( 41 ) );
 		$this->assertSame( 'invalid_link_page', $this->errorCode( ec_get_link_page_previous_links( 99 ) ) );
 	}

@@ -24,6 +24,7 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/events-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/php-error-log-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/mediavine-revenue-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/class-extrachill-analytics-revenue-store.php';
+require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/link-page-schema.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/link-page-analytics-db.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/database/network-schema.php';
 
@@ -50,7 +51,6 @@ require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/turnstile-rejection.php
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/source-url-backfill.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/view-counts.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/link-page-analytics.php';
-require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/link-page-storage-migration.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/assets.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-integration.php';
 require_once EXTRACHILL_ANALYTICS_PLUGIN_DIR . 'inc/core/experiment-reporting.php';

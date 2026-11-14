@@ -7,7 +7,6 @@ $mode       = $argv[1] ?? 'activation';
 $artist     = dirname( __DIR__, 2 );
 require_once __DIR__ . '/link-pages-runtime-fixture.php';
 $standalone = ec_test_link_pages_runtime_path( $artist );
-ec_test_load_link_pages_migration_override( $standalone );
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR', $artist . '/' );
@@ -158,7 +157,7 @@ if ( in_array( $mode, array( 'activation', 'activation-site' ), true ) ) {
 			'boot_error'                         => isset( $GLOBALS['extrachill_artist_platform_link_pages_runtime_error'] ) ? $GLOBALS['extrachill_artist_platform_link_pages_runtime_error']->get_error_code() : '',
 			'ready'                              => ec_link_pages_runtime_ready(),
 			'contract_matches'                   => true === extrachill_artist_platform_validate_link_pages_runtime(),
-			'link_registrations'                 => $GLOBALS['smoke']['registration_counts']['artist_link_page'] ?? 0,
+			'link_registrations'                 => $GLOBALS['smoke']['registration_counts']['ec_link_page'] ?? 0,
 			'owner_providers'                    => count( ec_link_page_owner_compatibility_registry()->snapshot() ),
 			'operation_providers'                => count( ec_link_page_operation_provider_registry()->snapshot() ),
 			'flushes'                            => $GLOBALS['smoke']['flushes'],
@@ -184,7 +183,7 @@ if ( 'external' === $mode ) {
 			'ready'                => ec_link_pages_runtime_ready(),
 			'contract_matches'     => true === extrachill_artist_platform_validate_link_pages_runtime(),
 			'second_boot'          => true === $second_boot,
-			'link_registrations'   => $GLOBALS['smoke']['registration_counts']['artist_link_page'] ?? 0,
+			'link_registrations'   => $GLOBALS['smoke']['registration_counts']['ec_link_page'] ?? 0,
 			'owner_providers'      => count( ec_link_page_owner_compatibility_registry()->snapshot() ),
 			'operation_providers'  => count( ec_link_page_operation_provider_registry()->snapshot() ),
 			'projection_providers' => count( ec_link_page_public_projection_registry()->snapshot() ),

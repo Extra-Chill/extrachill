@@ -8,7 +8,7 @@ Complete React-based Gutenberg block providing modern interface for link page ed
 
 **Location**: `src/blocks/link-page-editor/`
 
-**Block Registration**: Automatically registered on `artist_link_page` post type via `register_block_type( __DIR__ . '/build/blocks/link-page-editor' )`
+**Block Registration**: Automatically registered on the `ec_link_page` post type via `register_block_type( __DIR__ . '/build/blocks/link-page-editor' )`
 
 ### 2. Artist Analytics Block (`src/blocks/artist-analytics/`)
 
@@ -398,7 +398,7 @@ add_action( 'init', 'extrachill_artist_platform_register_blocks' );
 ### Post Type Support
 
 Block appears in Gutenberg editor for:
-- `artist_link_page` post type
+- `ec_link_page` post type
 - Only when edit permissions present
 - Automatically localized with current artist/link page
 

@@ -10,10 +10,9 @@ The plugin loads its generic API synchronously from the exact plugin basename
 `ec_link_pages_runtime_ready() === true` before registering adapters. The API is
 therefore available before `plugins_loaded` priority 20.
 
-Compatibility is deliberate: `EC_LINK_PAGE_POST_TYPE` remains the legacy
-storage slug `artist_link_page`, and `EC_LINK_PAGE_OWNER_META_KEY` remains
-`_ec_link_page_owner_reference`. Existing posts, IDs, slugs, metadata, site
-ownership, routes, and rendering remain untouched.
+Link Pages are stored as the `ec_link_page` post type on the dedicated Link
+Pages site; `ec_link_page_post_type()` returns that slug. Owner references live
+in `EC_LINK_PAGE_OWNER_META_KEY` (`_ec_link_page_owner_reference`).
 
 ## Owner adapter contract
 
@@ -136,7 +135,7 @@ logged, published through `ec_link_pages_runtime_error`, and shown in site and
 network admin notices. Activation terminates on such an error so WordPress does
 not report a broken runtime as successfully activated.
 
-Deactivation unregisters the standalone-owned legacy storage type before
+Deactivation unregisters the standalone-owned storage type before
 flushing affected sites, so standalone rewrites are removed rather than
 re-created. Deactivation deliberately preserves the canonical storage option so
 a later activation rediscovers the same storage site; silently deleting it

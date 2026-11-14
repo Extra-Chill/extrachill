@@ -72,9 +72,9 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 
 		switch_to_blog( $artist_blog_id );
 		register_post_type( 'artist_profile', array( 'public' => true ) );
-		register_post_type( 'artist_link_page', array( 'public' => true ) );
+		register_post_type( 'ec_link_page', array( 'public' => true ) );
 		$artist_id = self::factory()->post->create( array( 'post_type' => 'artist_profile' ) );
-		$link_id   = self::factory()->post->create( array( 'post_type' => 'artist_link_page' ) );
+		$link_id   = self::factory()->post->create( array( 'post_type' => 'ec_link_page' ) );
 		update_post_meta( $link_id, '_ec_link_page_owner_reference', 'post:' . $artist_blog_id . ':artist_profile:' . $artist_id );
 		restore_current_blog();
 		ec_users_tests_set_user_artists( $user_id, array( $artist_id ) );
@@ -174,8 +174,8 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 	 * not loaded in this test process.
 	 *
 	 * With no $GLOBALS overrides set, these stubs reproduce today's
-	 * gate-off behavior exactly (storage blog resolves to the artist blog,
-	 * post type resolves to `artist_link_page`), so installing them never
+	 * fallback behavior exactly (storage blog resolves to the artist blog,
+	 * post type resolves to `ec_link_page`), so installing them never
 	 * changes the outcome of the legacy-storage test above — the two tests
 	 * are safe regardless of PHPUnit execution order.
 	 */
@@ -197,7 +197,7 @@ class Test_Moderation_Session_Revocation extends WP_UnitTestCase {
 			function ec_link_page_post_type( $blog_id = null ) {
 				unset( $blog_id );
 
-				return $GLOBALS['test_link_page_post_type'] ?? 'artist_link_page';
+				return $GLOBALS['test_link_page_post_type'] ?? 'ec_link_page';
 			}
 		}
 

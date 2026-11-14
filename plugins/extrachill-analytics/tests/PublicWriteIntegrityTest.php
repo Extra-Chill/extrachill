@@ -86,7 +86,7 @@ final class PublicWriteIntegrityTest extends Extrachill_Analytics_TestCase {
 	private function create_link_page( string $slug ): int {
 		return self::factory()->post->create(
 			array(
-				'post_type'   => 'artist_link_page',
+				'post_type'   => 'ec_link_page',
 				'post_name'   => $slug,
 				'post_status' => 'publish',
 			)

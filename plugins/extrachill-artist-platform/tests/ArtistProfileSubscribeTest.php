@@ -18,7 +18,7 @@ final class ArtistProfileSubscribeTest extends EC_Artist_Platform_TestCase {
 		try {
 			$this->link_page_id = (int) self::factory()->post->create(
 				array(
-					'post_type'   => 'artist_link_page',
+					'post_type'   => 'ec_link_page',
 					'post_status' => 'publish',
 				)
 			);

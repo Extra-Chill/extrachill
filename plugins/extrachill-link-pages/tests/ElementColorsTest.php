@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class ElementColorsTest extends TestCase {
 	public function test_save_and_read_preserve_independent_colors(): void {
 		ec_test_reset();
-		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => EC_LINK_PAGE_POST_TYPE, 'post_status' => 'publish' );
+		$GLOBALS['ec_test']['blogs'][4]['posts'][40] = (object) array( 'ID' => 40, 'post_type' => 'ec_link_page', 'post_status' => 'publish' );
 		$colors = array(
 			'--link-page-link-text-color' => '#123456',
 			'--link-page-button-hover-text-color' => '#abcdef',

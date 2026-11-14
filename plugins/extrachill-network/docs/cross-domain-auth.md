@@ -18,9 +18,8 @@ The Extra Chill Platform implements WordPress native multisite authentication ac
 - Native WordPress multisite authentication
 
 **Mapped Domain**: `extrachill.link`
-- Maps to artist.extrachill.com (Blog ID 4)
+- Maps to the dedicated Link Pages site (Blog ID 13)
 - URL preservation: URLs display as extrachill.link
-- Backend operates on artist.extrachill.com
 - `extrachill.link` is a different registrable domain than `extrachill.com`, so it does **not** receive the `.extrachill.com` auth cookie — see [Cross-Domain Cookie Handling](#cross-domain-cookie-handling) below
 
 **Cookie Configuration**: WordPress sets the multisite auth cookie for:
@@ -97,48 +96,28 @@ This is the only valid path — the `SUNRISE` constant (defined in `wp-config.ph
 
 **Execution**: Runs before WordPress loads, during domain routing
 
-**Responsibility**: Route extrachill.link to Blog ID 4 (artist.extrachill.com)
+**Responsibility**: Route extrachill.link to the dedicated Link Pages site (Blog ID 13). The template shipped in this monorepo is `deploy/sunrise.php`.
 
 **Mapping Logic**:
 ```php
-// extrachill.link → Blog ID 4
-// extrachill.link/artist-slug/ displays at extrachill.link
-// Backend operates on artist.extrachill.com
+// www.extrachill.link/* → 301 → https://extrachill.link/*
+// extrachill.link → Blog ID 13 (Link Pages site)
+// If blog 13 is missing, deleted, archived or spam, WordPress core resolves the host normally.
 ```
 
-### ⚠️ Route Exclusion List (undocumented foot-gun)
-
-`wp-content/sunrise.php:36-52` also adds a `rewrite_rules_array` filter at priority `0`, scoped to the `extrachill.link` host, that installs a catch-all rewrite:
-
-```php
-// wp-content/sunrise.php:41
-$excluded = 'wp-admin|wp-login|wp-json|artists?|link-page|manage-artist|manage-link-page|join';
-
-// wp-content/sunrise.php:44-47
-$new_rules = [
-    '^(' . $excluded . ')/?$' => 'index.php?$1',
-    '^([^/]+)/?$'             => 'index.php?artist_link_page=$matches[1]',
-];
-```
-
-Any single-segment top-level path on `extrachill.link` that is **not** in that pipe-delimited `$excluded` list is captured by `^([^/]+)/?$` and routed as `artist_link_page=$matches[1]` — i.e. treated as a link-page slug, not as a real route. This means:
-
-- Adding a brand-new top-level route to the artist site (e.g. a new page slug, a new REST-adjacent endpoint, a new top-level admin-post action) will silently be swallowed by the link-page catch-all on `extrachill.link` unless its slug is also added to the `$excluded` list in `wp-content/sunrise.php`.
-- This list is defined inline in a drop-in file (`wp-content/sunrise.php`), not in this repo, not in `extrachill-artist-platform`, and not discoverable from a normal plugin-code grep — it is a live trap for anyone adding routes without knowing to check sunrise.
-- Current exclusions: `wp-admin`, `wp-login`, `wp-json`, `artist`/`artists`, `link-page`, `manage-artist`, `manage-link-page`, `join`.
+The drop-in injects no rewrite rules. The standalone extrachill-link-pages runtime owns routing on blog 13, so link-page slugs are resolved by that plugin rather than by a catch-all rule in `sunrise.php`.
 
 ### URL Preservation
 
 **Frontend Display**:
-- User visits: `https://extrachill.link/artist/john-doe/`
+- User visits: `https://extrachill.link/john-doe/`
 - Browser address bar: Shows `extrachill.link`
-- Content served from: Blog ID 4
+- Content served from: Blog ID 13
 
 **Backend Operation**:
-- WordPress operates in Blog ID 4 context
-- Database queries use Blog ID 4 prefix
+- WordPress operates in Blog ID 13 context
+- Database queries use Blog ID 13 prefix
 - Relative links work normally
-- Admin area accessible via: `https://extrachill.link/wp-admin/`
 
 **Cross-Site Navigation**: Links between sites update domain appropriately
 
@@ -160,7 +139,7 @@ Any single-segment top-level path on `extrachill.link` that is **not** in that p
 - etc.
 
 extrachill.link mapping:
-- sunrise.php routes the request to artist.extrachill.com (Blog ID 4) content
+- sunrise.php routes the request to the Link Pages site (Blog ID 13)
 - Does NOT receive the .extrachill.com cookie (different registrable domain)
 - Authenticated actions use a bearer token instead — see Notes
 ```

@@ -13,7 +13,7 @@ Comprehensive WordPress plugin providing complete artist platform functionality 
 
 The platform consists of two primary custom post types:
 - **artist_profile**: Artist/band profiles with archive at `/artists/` and individual pages at `/artists/{slug}`
-- **artist_link_page**: Link pages with top-level slug structure at `/{slug}` (accessible at `extrachill.link/{artist-slug}`)
+- **ec_link_page**: Link pages, registered by extrachill-link-pages on the Link Pages site and served at `extrachill.link/{artist-slug}`
 
 ## Core Components
 

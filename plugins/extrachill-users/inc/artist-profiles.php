@@ -185,8 +185,8 @@ function ec_get_latest_artist_for_user( $user_id = null ) {
 	};
 
 	// Link pages are queried through the canonical storage helper so the
-	// lookup follows the storage blog (blog 4 pre-cutover, the dedicated
-	// Link Pages site post-cutover) instead of assuming the artist blog.
+	// lookup follows the storage blog (the dedicated Link Pages site)
+	// instead of assuming the artist blog.
 	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
 		$result           = ec_with_link_page_storage_blog( $find_latest_artist_id );
 		$latest_artist_id = is_wp_error( $result ) ? 0 : (int) $result;
@@ -286,8 +286,8 @@ function ec_get_link_page_count_for_user( $user_id = null ) {
 	};
 
 	// Link pages are queried through the canonical storage helper so the
-	// count follows the storage blog (blog 4 pre-cutover, the dedicated
-	// Link Pages site post-cutover) instead of assuming the artist blog.
+	// count follows the storage blog (the dedicated Link Pages site)
+	// instead of assuming the artist blog.
 	if ( function_exists( 'ec_with_link_page_storage_blog' ) ) {
 		$result = ec_with_link_page_storage_blog( $count_link_pages );
 		return is_wp_error( $result ) ? 0 : (int) $result;

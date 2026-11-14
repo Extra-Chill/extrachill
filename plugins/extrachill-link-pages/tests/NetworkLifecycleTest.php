@@ -26,7 +26,7 @@ final class NetworkLifecycleTest extends TestCase {
 		ec_deactivate_link_pages( true );
 		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['site_flushes'] );
 		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['unregister_calls'] );
-		$this->assertFalse( post_type_exists( EC_LINK_PAGE_POST_TYPE ) );
+		$this->assertFalse( post_type_exists( 'ec_link_page' ) );
 		foreach ( $GLOBALS['ec_test']['site_rule_snapshots'] as $snapshots ) {
 			$this->assertSame( array( false ), $snapshots );
 		}
@@ -56,7 +56,7 @@ final class NetworkLifecycleTest extends TestCase {
 		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['unregister_calls'] );
 		$this->assertSame( array( 4 => 1 ), $GLOBALS['ec_test']['site_flushes'] );
 		$this->assertSame( array( 4 => array( false ) ), $GLOBALS['ec_test']['site_rule_snapshots'] );
-		$this->assertFalse( post_type_exists( EC_LINK_PAGE_POST_TYPE ) );
+		$this->assertFalse( post_type_exists( 'ec_link_page' ) );
 	}
 
 	public function test_deactivation_reports_unregistration_failure_without_flushing(): void {

@@ -1,9 +1,8 @@
 <?php
 
 define( 'ABSPATH', __DIR__ . '/' );
-define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
 define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
-$GLOBALS['state'] = array( 'post_types' => array( 'artist_link_page' => array() ), 'registrations' => 1, 'flushes' => 0 );
+$GLOBALS['state'] = array( 'post_types' => array( 'ec_link_page' => array() ), 'registrations' => 1, 'flushes' => 0 );
 class WP_Error {
 	private $code;
 	private $message;
