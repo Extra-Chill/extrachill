@@ -25,6 +25,7 @@ require_once dirname( __DIR__ ) . '/inc/abilities/shop-create-shipping-label.php
 
 final class ShippingAddressTest extends TestCase {
 	protected function setUp(): void {
+		extrachill_shop_reset_seller_permission_cache();
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_post_meta']      = array();
 		$GLOBALS['test_blog_stack'] = array();
@@ -64,7 +65,7 @@ final class ShippingAddressTest extends TestCase {
 			$this->assertSame( $this->address(), $result['address'] );
 			$this->assertTrue( $result['is_set'] );
 		}
-		$this->assertSame( $this->address(), extrachill_shop_ability_get_shipping_address( array( 'artist_id' => 24 ) )['address'] );
+		$this->assertSame( 'missing_seller', extrachill_shop_ability_get_shipping_address( array( 'artist_id' => 24 ) )->get_error_code() );
 		$this->assertSame( array(), $GLOBALS['test_post_meta'] );
 	}
 

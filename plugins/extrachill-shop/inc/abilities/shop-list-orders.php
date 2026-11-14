@@ -29,23 +29,19 @@ function extrachill_shop_register_list_orders_ability(): void {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
-					'status'    => array(
+					'seller'   => extrachill_shop_seller_input_schema(),
+					'status'   => array(
 						'type'        => 'string',
 						'enum'        => array( 'all', 'needs_fulfillment', 'completed' ),
 						'default'     => 'all',
 						'description' => 'Filter by fulfilment status.',
 					),
-					'page'      => array(
+					'page'     => array(
 						'type'        => 'integer',
 						'default'     => 1,
 						'description' => 'Page number.',
 					),
-					'per_page'  => array(
+					'per_page' => array(
 						'type'        => 'integer',
 						'default'     => 20,
 						'description' => 'Items per page.',
@@ -83,17 +79,16 @@ function extrachill_shop_register_list_orders_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * List orders for an artist.
+ * List a seller's orders.
  *
  * @param array $input Ability input.
  * @return array|WP_Error
  */
 function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
-	$authorized = extrachill_shop_authorize_seller_input( $input );
-	if ( is_wp_error( $authorized ) ) {
-		return $authorized;
+	$seller = extrachill_shop_seller_from_input( $input );
+	if ( is_wp_error( $seller ) ) {
+		return $seller;
 	}
-	$seller   = extrachill_shop_seller_from_input( $input );
 	$status   = (string) ( $input['status'] ?? 'all' );
 	$page     = max( 1, (int) ( $input['page'] ?? 1 ) );
 	$per_page = min( 100, max( 1, (int) ( $input['per_page'] ?? 20 ) ) );
@@ -102,8 +97,7 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 		return new WP_Error( 'woocommerce_missing', 'WooCommerce is not available.', array( 'status' => 500 ) );
 	}
 
-	$seller_key = $seller['type'] . ':' . $seller['id'];
-	$args       = array(
+	$args = array(
 		'limit'    => $per_page,
 		'paged'    => $page,
 		'paginate' => true,
@@ -111,18 +105,7 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 		'order'    => 'DESC',
 		'status'   => array( 'wc-processing', 'wc-completed', 'wc-refunded', 'wc-on-hold' ),
 	);
-	// HPOS supports meta_query natively; the CPT adapter translates our query var.
-	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
-		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
-		$args['meta_query'] = array(
-			array(
-				'key'   => '_extrachill_order_seller',
-				'value' => $seller_key,
-			),
-		);
-	} else {
-		$args['extrachill_order_seller'] = $seller_key;
-	}
+	$args = extrachill_shop_scope_order_query_to_seller( $args, $seller );
 	if ( 'needs_fulfillment' === $status ) {
 		$args['status'] = array( 'wc-processing', 'wc-on-hold' );
 	} elseif ( 'completed' === $status ) {
@@ -158,10 +141,54 @@ function extrachill_shop_ability_list_orders( array $input ): array|WP_Error {
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Build order response for an artist.
+ * Scope a `wc_get_orders()` query to one seller through the order seller index.
  *
- * @param WC_Order $order     WooCommerce order.
- * @param int      $artist_id Artist profile ID.
+ * HPOS supports meta_query natively; the CPT adapter translates our query var.
+ *
+ * @param array $args   Order query args.
+ * @param array $seller Seller reference.
+ * @return array
+ */
+function extrachill_shop_scope_order_query_to_seller( array $args, array $seller ): array {
+	$seller_key = $seller['type'] . ':' . (int) $seller['id'];
+	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
+		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		$args['meta_query'] = array(
+			array(
+				'key'   => '_extrachill_order_seller',
+				'value' => $seller_key,
+			),
+		);
+	} else {
+		$args['extrachill_order_seller'] = $seller_key;
+	}
+	return $args;
+}
+
+/**
+ * Whether every line in a seller's portion of an order ships free.
+ *
+ * @param mixed $items Seller order lines (`product_id` each).
+ * @return bool False for an empty portion.
+ */
+function extrachill_shop_items_ship_free_only( $items ): bool {
+	if ( empty( $items ) || ! is_array( $items ) ) {
+		return false;
+	}
+	foreach ( $items as $item_data ) {
+		$product_id = (int) ( $item_data['product_id'] ?? 0 );
+		if ( $product_id && '1' !== get_post_meta( $product_id, '_ships_free', true ) ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Build a seller's view of an order.
+ *
+ * @param WC_Order   $order     WooCommerce order.
+ * @param int|string $artist_id Seller key (`extrachill_shop_seller_key()`).
  * @return array
  */
 function extrachill_shop_ability_build_order_response( $order, int|string $artist_id ): array {
@@ -207,18 +234,6 @@ function extrachill_shop_ability_build_order_response( $order, int|string $artis
 	$billing  = $order->get_address( 'billing' );
 	$address  = ! empty( $shipping['address_1'] ) ? $shipping : $billing;
 
-	$ships_free_only = false;
-	if ( ! empty( $artist_payout['items'] ) && is_array( $artist_payout['items'] ) ) {
-		$ships_free_only = true;
-		foreach ( $artist_payout['items'] as $item_data ) {
-			$pid = $item_data['product_id'] ?? 0;
-			if ( $pid && '1' !== get_post_meta( $pid, '_ships_free', true ) ) {
-				$ships_free_only = false;
-				break;
-			}
-		}
-	}
-
 	return array(
 		'id'              => $order->get_id(),
 		'number'          => $order->get_order_number(),
@@ -237,9 +252,9 @@ function extrachill_shop_ability_build_order_response( $order, int|string $artis
 			),
 		),
 		'items'           => $items,
-		'artist_payout'   => (float) ( $artist_payout['artist_payout'] ?? 0 ),
+		'seller_payout'   => (float) ( $artist_payout['artist_payout'] ?? 0 ),
 		'order_total'     => (float) ( $artist_payout['total'] ?? 0 ),
 		'tracking_number' => $tracking_number,
-		'ships_free_only' => $ships_free_only,
+		'ships_free_only' => extrachill_shop_items_ship_free_only( $artist_payout['items'] ),
 	);
 }

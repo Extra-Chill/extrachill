@@ -175,7 +175,30 @@ function extrachill_shop_get_account_status() {
 	return $GLOBALS['test_stripe_status'] ?? array( 'success' => false );
 }
 
+function get_post( $id ) {
+	if ( array_key_exists( $id, $GLOBALS['test_posts'] ?? array() ) ) {
+		return $GLOBALS['test_posts'][ $id ];
+	}
+	return (object) array(
+		'ID'         => $id,
+		'post_title' => 'Artist',
+		'post_type'  => 'product',
+	);
+}
+function user_can( $user_id, $capability ) {
+	return in_array( (int) $user_id, $GLOBALS['test_admins'] ?? array(), true ) && 'manage_options' === $capability;
+}
+function ec_feature_available( $feature, $user_id = null ) {
+	$GLOBALS['test_feature_checks'][] = array( $feature, $user_id );
+	return ! in_array( (int) $user_id, $GLOBALS['test_feature_denied'] ?? array(), true );
+}
+function ec_can_manage_artist( $user_id, $artist_id ) {
+	$GLOBALS['test_artist_checks'][] = array( (int) $user_id, (int) $artist_id );
+	return in_array( (int) $artist_id, $GLOBALS['test_artist_members'][ (int) $user_id ] ?? array(), true );
+}
+
 require_once dirname( __DIR__ ) . '/inc/core/commerce-state.php';
+require_once dirname( __DIR__ ) . '/inc/core/seller-permissions.php';
 require_once dirname( __DIR__ ) . '/inc/core/priority-boost-service-authority.php';
 require_once dirname( __DIR__ ) . '/inc/products/priority-boost.php';
 require_once dirname( __DIR__ ) . '/inc/core/owned-state-migration.php';

@@ -1,89 +1,117 @@
 import { BaseResource } from './base';
 import type {
   ShopProduct,
+  ShopProductInput,
+  ShopListProductsParams,
+  ShopListOrdersParams,
   ShopOrder,
+  ShopOrdersResponse,
+  ShopRefundResponse,
+  ShopSellerRef,
   StripeConnectStatus,
   ShippingAddress,
-  ShippingLabel,
+  ShippingAddressResponse,
+  ShippingAddressUpdateResponse,
+  ShippingLabelLookup,
+  ShippingLabelPurchase,
   TaxonomyCountsResponse,
 } from '../types';
 
+/**
+ * Seller-scoped shop routes. Every seller (artist, venue or promoter) is sent
+ * as `seller_type` + `seller_id`; product item routes follow the product's
+ * own seller.
+ */
 export class ShopResource extends BaseResource {
+  private sellerParams(seller: ShopSellerRef): { seller_type: string; seller_id: number } {
+    return { seller_type: seller.type, seller_id: seller.id };
+  }
+
   // ─── Products ────────────────────────────────────────────────────────
 
-  listProducts(): Promise<ShopProduct[]> {
-    return this.get('extrachill/v1/shop/products');
+  listProducts(seller: ShopSellerRef, params: ShopListProductsParams = {}): Promise<ShopProduct[]> {
+    const query = this.buildQuery({ ...this.sellerParams(seller), ...params });
+    return this.get(`extrachill/v1/shop/products${query}`);
   }
 
   getProduct(id: number): Promise<ShopProduct> {
     return this.get(`extrachill/v1/shop/products/${id}`);
   }
 
-  createProduct(data: Partial<ShopProduct>): Promise<ShopProduct> {
-    return this.post('extrachill/v1/shop/products', data as Record<string, unknown>);
+  createProduct(seller: ShopSellerRef, data: ShopProductInput): Promise<ShopProduct> {
+    return this.post('extrachill/v1/shop/products', { ...data, ...this.sellerParams(seller) } as Record<string, unknown>);
   }
 
-  updateProduct(id: number, data: Partial<ShopProduct>): Promise<ShopProduct> {
-    return this.put(`extrachill/v1/shop/products/${id}`, data as Record<string, unknown>);
+  /** Update a product; pass `seller` to move it to another seller you manage. */
+  updateProduct(id: number, data: ShopProductInput, seller?: ShopSellerRef): Promise<ShopProduct> {
+    const body = seller ? { ...data, ...this.sellerParams(seller) } : data;
+    return this.put(`extrachill/v1/shop/products/${id}`, body as Record<string, unknown>);
   }
 
   deleteProduct(id: number): Promise<void> {
     return this.del(`extrachill/v1/shop/products/${id}`);
   }
 
-  uploadProductImages(productId: number, formData: FormData): Promise<Array<{ id: number; url: string }>> {
+  uploadProductImages(productId: number, formData: FormData): Promise<ShopProduct> {
     return this.postFormData(`extrachill/v1/shop/products/${productId}/images`, formData);
   }
 
-  deleteProductImage(productId: number, attachmentId: number): Promise<void> {
+  deleteProductImage(productId: number, attachmentId: number): Promise<ShopProduct> {
     return this.del(`extrachill/v1/shop/products/${productId}/images/${attachmentId}`);
   }
 
   // ─── Orders ──────────────────────────────────────────────────────────
 
-  listOrders(params: { artist_id: number; status?: string; page?: number } = { artist_id: 0 }): Promise<ShopOrder[]> {
-    const query = this.buildQuery(params as Record<string, string | number | boolean | undefined>);
+  listOrders(seller: ShopSellerRef, params: ShopListOrdersParams = {}): Promise<ShopOrdersResponse> {
+    const query = this.buildQuery({ ...this.sellerParams(seller), ...params });
     return this.get(`extrachill/v1/shop/orders${query}`);
   }
 
-  updateOrderStatus(orderId: number, data: { artist_id: number; status: string; tracking_number?: string }): Promise<ShopOrder> {
-    return this.put(`extrachill/v1/shop/orders/${orderId}/status`, data as Record<string, unknown>);
+  updateOrderStatus(
+    orderId: number,
+    seller: ShopSellerRef,
+    data: { status: 'completed'; tracking_number?: string }
+  ): Promise<ShopOrder> {
+    return this.put(`extrachill/v1/shop/orders/${orderId}/status`, { ...data, ...this.sellerParams(seller) });
   }
 
-  refundOrder(orderId: number, artistId: number): Promise<{ success: boolean }> {
-    return this.post(`extrachill/v1/shop/orders/${orderId}/refund`, { artist_id: artistId });
+  refundOrder(orderId: number, seller: ShopSellerRef, reason?: string): Promise<ShopRefundResponse> {
+    return this.post(`extrachill/v1/shop/orders/${orderId}/refund`, {
+      ...this.sellerParams(seller),
+      ...(reason ? { reason } : {}),
+    });
   }
 
   // ─── Stripe Connect ──────────────────────────────────────────────────
 
-  getStripeConnectStatus(artistId: number): Promise<StripeConnectStatus> {
-    return this.get(`extrachill/v1/shop/stripe-connect/status?artist_id=${artistId}`);
+  getStripeConnectStatus(seller: ShopSellerRef): Promise<StripeConnectStatus> {
+    return this.get(`extrachill/v1/shop/stripe-connect/status${this.buildQuery(this.sellerParams(seller))}`);
   }
 
-  createStripeOnboardingLink(artistId: number): Promise<{ url: string }> {
-    return this.post('extrachill/v1/shop/stripe-connect/onboarding-link', { artist_id: artistId });
+  createStripeOnboardingLink(seller: ShopSellerRef): Promise<{ success: boolean; url: string }> {
+    return this.post('extrachill/v1/shop/stripe-connect/onboarding-link', this.sellerParams(seller));
   }
 
-  createStripeDashboardLink(artistId: number): Promise<{ url: string }> {
-    return this.post('extrachill/v1/shop/stripe-connect/dashboard-link', { artist_id: artistId });
+  createStripeDashboardLink(seller: ShopSellerRef): Promise<{ success: boolean; url: string }> {
+    return this.post('extrachill/v1/shop/stripe-connect/dashboard-link', this.sellerParams(seller));
   }
 
   // ─── Shipping ────────────────────────────────────────────────────────
 
-  getShippingAddress(artistId: number): Promise<ShippingAddress> {
-    return this.get(`extrachill/v1/shop/shipping-address?artist_id=${artistId}`);
+  getShippingAddress(seller: ShopSellerRef): Promise<ShippingAddressResponse> {
+    return this.get(`extrachill/v1/shop/shipping-address${this.buildQuery(this.sellerParams(seller))}`);
   }
 
-  updateShippingAddress(artistId: number, address: ShippingAddress): Promise<ShippingAddress> {
-    return this.put('extrachill/v1/shop/shipping-address', { artist_id: artistId, ...address } as Record<string, unknown>);
+  updateShippingAddress(seller: ShopSellerRef, address: ShippingAddress): Promise<ShippingAddressUpdateResponse> {
+    return this.put('extrachill/v1/shop/shipping-address', { ...address, ...this.sellerParams(seller) } as Record<string, unknown>);
   }
 
-  purchaseShippingLabel(orderId: number, artistId: number): Promise<ShippingLabel> {
-    return this.post('extrachill/v1/shop/shipping-labels', { order_id: orderId, artist_id: artistId });
+  purchaseShippingLabel(orderId: number, seller: ShopSellerRef): Promise<ShippingLabelPurchase> {
+    return this.post('extrachill/v1/shop/shipping-labels', { order_id: orderId, ...this.sellerParams(seller) });
   }
 
-  getShippingLabel(orderId: number, artistId: number): Promise<ShippingLabel> {
-    return this.get(`extrachill/v1/shop/shipping-labels/${orderId}?artist_id=${artistId}`);
+  getShippingLabel(orderId: number, seller: ShopSellerRef): Promise<ShippingLabelLookup> {
+    return this.get(`extrachill/v1/shop/shipping-labels/${orderId}${this.buildQuery(this.sellerParams(seller))}`);
   }
 
   // ─── Taxonomy ────────────────────────────────────────────────────────

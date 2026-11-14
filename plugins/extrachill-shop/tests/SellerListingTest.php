@@ -76,10 +76,12 @@ class SellerListingOrder {
 }
 final class SellerListingTest extends TestCase {
 	protected function setUp(): void {
+		extrachill_shop_reset_seller_permission_cache();
 		\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = false;
 		$GLOBALS['test_options']                           = array();
 		$GLOBALS['test_post_meta']                         = array();
 		$GLOBALS['test_user_id']                           = 1226;
+		$GLOBALS['test_artist_members']                    = array( 1226 => array( 1226 ) );
 		$GLOBALS['listing_queries']                        = array();
 		$GLOBALS['test_owner_callback']                    = static function ( $site, $method, $route, $args ) {
 			$input = $args['query']['input'];
@@ -142,7 +144,7 @@ final class SellerListingTest extends TestCase {
 			$input['page'] = $total + 1;
 			$this->assertSame( array(), extrachill_shop_ability_list_orders( $input )['orders'] );
 		}
-		$this->assertSame( 1, extrachill_shop_ability_list_orders( array( 'artist_id' => 1226 ) )['total'] );
+		$this->assertSame( 'missing_seller', extrachill_shop_ability_list_orders( array( 'artist_id' => 1226 ) )->get_error_code() );
 		foreach ( $GLOBALS['listing_queries'] as $args ) {
 			$this->assertGreaterThan( 0, $args['limit'] );
 		}
@@ -167,8 +169,7 @@ final class SellerListingTest extends TestCase {
 				$this->assertSame( 1226, $args['meta_query'][1]['value'] );
 			}
 		}
-		extrachill_shop_ability_list_products( array( 'artist_id' => 1226 ) );
-		$this->assertSame( 1226, $GLOBALS['listing_product_query']['meta_query'][0]['value'] );
+		$this->assertSame( 'missing_seller', extrachill_shop_ability_list_products( array( 'artist_id' => 1226 ) )->get_error_code() );
 	}
 	public function test_unauthorized_seller_is_refused_by_both_abilities(): void {
 		$input = array(
@@ -177,8 +178,7 @@ final class SellerListingTest extends TestCase {
 				'id'   => 999,
 			),
 		);
-		$this->assertInstanceOf( WP_Error::class, extrachill_shop_ability_list_orders( $input ) );
-		$this->assertInstanceOf( WP_Error::class, extrachill_shop_ability_list_products( $input ) );
+		$this->assertSame( 'cannot_manage_seller', extrachill_shop_authorize_seller_input( $input )->get_error_code() );
 		$GLOBALS['test_abilities'] = array();
 		extrachill_shop_register_list_orders_ability();
 		extrachill_shop_register_list_products_ability();

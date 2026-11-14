@@ -23,10 +23,10 @@ function extrachill_shop_register_upload_product_image_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-upload-product-image',
 		array(
-			'label'       => __( 'Upload Product Image', 'extrachill-shop' ),
-			'description' => __( 'Upload one or more images to a product (max 5 total). First image becomes the featured image; the rest go to the gallery.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Upload Product Image', 'extrachill-shop' ),
+			'description'         => __( 'Upload one or more images to a product (max 5 total). First image becomes the featured image; the rest go to the gallery.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'id'    => array(
@@ -39,9 +39,9 @@ function extrachill_shop_register_upload_product_image_ability(): void {
 						'items'       => array( 'type' => 'object' ),
 					),
 				),
-				'required' => array( 'id' ),
+				'required'   => array( 'id' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'id'     => array( 'type' => 'integer' ),
@@ -52,40 +52,8 @@ function extrachill_shop_register_upload_product_image_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_upload_product_image',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				if ( current_user_can( 'manage_options' ) ) {
-					return true;
-				}
-				$product_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
-				$product_post = get_post( $product_id );
-				if ( ! $product_post || 'product' !== $product_post->post_type ) {
-					return new WP_Error( 'product_not_found', 'Product not found.', array( 'status' => 404 ) );
-				}
-				$seller = extrachill_shop_get_product_seller( $product_id );
-				if ( $seller && 'artist' !== $seller['type'] ) {
-					return true === extrachill_shop_current_user_can_manage_seller( $seller )
-						? true
-						: new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-				}
-				$artist_id = (int) get_post_meta( $product_id, '_artist_profile_id', true );
-				if ( ! $artist_id ) {
-					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-				}
-				if ( function_exists( 'extrachill_api_shop_user_can_manage_artist' ) ) {
-					if ( ! extrachill_api_shop_user_can_manage_artist( $artist_id ) ) {
-						return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-					}
-					return true;
-				}
-				if ( function_exists( 'ec_can_manage_artist' ) ) {
-					return ec_can_manage_artist( get_current_user_id(), $artist_id );
-				}
-				return false;
-			},
-			'meta' => array(
+			'permission_callback' => 'extrachill_shop_authorize_product_input',
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,

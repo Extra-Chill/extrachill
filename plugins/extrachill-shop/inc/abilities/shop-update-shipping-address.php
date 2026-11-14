@@ -29,50 +29,45 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
-					'name'      => array(
+					'seller'  => extrachill_shop_seller_input_schema(),
+					'name'    => array(
 						'type'        => 'string',
 						'description' => 'Full name.',
 					),
-					'street1'   => array(
+					'street1' => array(
 						'type'        => 'string',
 						'description' => 'Street address line 1.',
 					),
-					'street2'   => array(
+					'street2' => array(
 						'type'        => 'string',
 						'description' => 'Street address line 2.',
 					),
-					'city'      => array(
+					'city'    => array(
 						'type'        => 'string',
 						'description' => 'City.',
 					),
-					'state'     => array(
+					'state'   => array(
 						'type'        => 'string',
 						'description' => 'State.',
 					),
-					'zip'       => array(
+					'zip'     => array(
 						'type'        => 'string',
 						'description' => 'ZIP code.',
 					),
-					'country'   => array(
+					'country' => array(
 						'type'        => 'string',
 						'default'     => 'US',
 						'description' => 'Country code.',
 					),
 				),
-				'required'   => array( 'name', 'street1', 'city', 'state', 'zip' ),
+				'required'   => array( 'seller', 'name', 'street1', 'city', 'state', 'zip' ),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'success'   => array( 'type' => 'boolean' ),
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array( 'type' => 'integer' ),
-					'address'   => array( 'type' => 'object' ),
+					'success' => array( 'type' => 'boolean' ),
+					'seller'  => extrachill_shop_seller_input_schema(),
+					'address' => array( 'type' => 'object' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_update_shipping_address',
@@ -92,7 +87,7 @@ function extrachill_shop_register_update_shipping_address_ability(): void {
 // ─── Execute callback ──────────────────────────────────────────────────────────
 
 /**
- * Update artist shipping address.
+ * Update a seller's ship-from address.
  *
  * @param array $input Ability input.
  * @return array|WP_Error
@@ -126,9 +121,8 @@ function extrachill_shop_ability_update_shipping_address( array $input ): array|
 	}
 
 	return array(
-		'success'   => true,
-		'seller'    => $seller,
-		'artist_id' => 'artist' === $seller['type'] ? $seller['id'] : 0,
-		'address'   => $address,
+		'success' => true,
+		'seller'  => $seller,
+		'address' => $address,
 	);
 }

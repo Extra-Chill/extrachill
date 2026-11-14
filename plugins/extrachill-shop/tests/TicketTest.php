@@ -37,6 +37,7 @@ namespace {
 
 	final class TicketTest extends \PHPUnit\Framework\TestCase {
 		protected function setUp(): void {
+			extrachill_shop_reset_seller_permission_cache();
 			$GLOBALS['test_options'] = array( 'extrachill_shop_stripe_seller_venue:9911' => array( 'account_id' => 'acct_venue' ) );
 			$GLOBALS['test_user_id'] = 551;
 			$GLOBALS['ticket_network'] = array();

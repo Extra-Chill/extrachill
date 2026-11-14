@@ -23,29 +23,25 @@ function extrachill_shop_register_refund_order_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-refund-order',
 		array(
-			'label'       => __( 'Refund Shop Order', 'extrachill-shop' ),
-			'description' => __( 'Refund a seller\'s portion of an order and reverse that seller\'s payout.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Refund Shop Order', 'extrachill-shop' ),
+			'description'         => __( 'Refund a seller\'s portion of an order and reverse that seller\'s payout.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'id'        => array(
+					'id'     => array(
 						'type'        => 'integer',
 						'description' => 'Order ID.',
 					),
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'reason'    => array(
+					'seller' => extrachill_shop_seller_input_schema(),
+					'reason' => array(
 						'type'        => 'string',
 						'description' => 'Optional refund reason shown on the order.',
 					),
 				),
-				'required' => array( 'id' ),
+				'required'   => array( 'id', 'seller' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'success'       => array( 'type' => 'boolean' ),
@@ -56,7 +52,7 @@ function extrachill_shop_register_refund_order_ability(): void {
 			),
 			'execute_callback'    => 'extrachill_shop_ability_refund_order',
 			'permission_callback' => 'extrachill_shop_authorize_seller_input',
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,

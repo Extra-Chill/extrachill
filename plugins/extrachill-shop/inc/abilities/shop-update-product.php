@@ -23,19 +23,15 @@ function extrachill_shop_register_update_product_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-update-product',
 		array(
-			'label'       => __( 'Update Shop Product', 'extrachill-shop' ),
-			'description' => __( 'Update an existing WooCommerce product — name, pricing, stock, status, images, sizes, and shipping.', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Update Shop Product', 'extrachill-shop' ),
+			'description'         => __( 'Update an existing WooCommerce product — name, pricing, stock, status, images, sizes, and shipping.', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
 					'id'             => array(
 						'type'        => 'integer',
 						'description' => 'Product ID.',
-					),
-					'artist_id'      => array(
-						'type'        => 'integer',
-						'description' => 'Reassign to a different artist profile ID.',
 					),
 					'seller'         => extrachill_shop_seller_input_schema(),
 					'name'           => array(
@@ -97,9 +93,9 @@ function extrachill_shop_register_update_product_ability(): void {
 						'description' => 'Whether the product ships free.',
 					),
 				),
-				'required' => array( 'id' ),
+				'required'   => array( 'id' ),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'id'     => array( 'type' => 'integer' ),
@@ -109,25 +105,8 @@ function extrachill_shop_register_update_product_ability(): void {
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_update_product',
-			'permission_callback' => static function ( array $input ): bool|WP_Error {
-				if ( ! is_user_logged_in() ) {
-					return new WP_Error( 'rest_forbidden', 'You must be logged in.', array( 'status' => 401 ) );
-				}
-				if ( current_user_can( 'manage_options' ) ) {
-					return true;
-				}
-				$product_id = isset( $input['id'] ) ? (int) $input['id'] : 0;
-				$product_post = get_post( $product_id );
-				if ( ! $product_post || 'product' !== $product_post->post_type ) {
-					return new WP_Error( 'product_not_found', 'Product not found.', array( 'status' => 404 ) );
-				}
-				$seller = extrachill_shop_get_product_seller( $product_id );
-				if ( ! $seller || true !== extrachill_shop_current_user_can_manage_seller( $seller ) ) {
-					return new WP_Error( 'rest_forbidden', 'You do not have permission to manage this product.', array( 'status' => 403 ) );
-				}
-				return true;
-			},
-			'meta' => array(
+			'permission_callback' => 'extrachill_shop_authorize_product_input',
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => false,
@@ -239,17 +218,13 @@ function extrachill_shop_ability_update_product( array $input ): array|WP_Error 
 		}
 	}
 
-	// Seller reassignment (typed seller, or the legacy artist_id).
-	$new_seller = null;
+	// Seller reassignment. The permission callback already required the
+	// user to manage both the current and the new seller.
 	if ( isset( $input['seller'] ) ) {
-		$new_seller = extrachill_shop_validate_seller_ref( $input['seller'] );
-	} elseif ( isset( $input['artist_id'] ) ) {
-		$new_seller = array(
-			'type' => 'artist',
-			'id'   => (int) $input['artist_id'],
-		);
-	}
-	if ( is_array( $new_seller ) && true === extrachill_shop_current_user_can_manage_seller( $new_seller ) ) {
+		$new_seller = extrachill_shop_seller_from_input( $input );
+		if ( is_wp_error( $new_seller ) ) {
+			return $new_seller;
+		}
 		extrachill_shop_set_product_seller( $product_id, $new_seller );
 	}
 

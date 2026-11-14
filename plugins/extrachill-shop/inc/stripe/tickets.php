@@ -187,7 +187,20 @@ function extrachill_shop_ticket_refund_permission( array $input ) {
 	$order = get_option( 'extrachill_ticket_order_' . $input['order_reference'] );
 	if ( ! $order ) {
 		return new WP_Error( 'ticket_order_not_found', 'Ticket order not found.', array( 'status' => 404 ) ); }
-	return extrachill_shop_current_user_can_manage_seller( $order['seller'] );
+	return extrachill_shop_can_manage_seller( get_current_user_id(), $order['seller'] );
+}
+
+/**
+ * Permission for refunding a show's ticket orders: manage the show's ticket seller.
+ *
+ * @param array $input `{ event_id }`.
+ * @return true|WP_Error
+ */
+function extrachill_shop_event_ticket_refund_permission( array $input ) {
+	$offer = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-event-ticket-offer', 'GET', array( 'event' => (int) ( $input['event_id'] ?? 0 ) ) );
+	if ( is_wp_error( $offer ) ) {
+		return $offer; }
+	return extrachill_shop_can_manage_seller( get_current_user_id(), $offer['seller'] ?? null );
 }
 
 function extrachill_shop_refund_ticket_order( array $input ) {
@@ -330,10 +343,7 @@ function extrachill_shop_event_ticket_order_references( $event_id ) {
  * @return array|WP_Error Counts of refunded, checked-in and failed orders.
  */
 function extrachill_shop_refund_event_ticket_orders( array $input ) {
-	$offer = extrachill_shop_execute_owner_ability( 'events', 'extrachill/get-event-ticket-offer', 'GET', array( 'event' => (int) $input['event_id'] ) );
-	if ( is_wp_error( $offer ) ) {
-		return $offer; }
-	$permission = extrachill_shop_current_user_can_manage_seller( $offer['seller'] );
+	$permission = extrachill_shop_event_ticket_refund_permission( $input );
 	if ( true !== $permission ) {
 		return $permission; }
 	$counts = array(

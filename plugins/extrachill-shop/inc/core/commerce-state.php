@@ -14,14 +14,15 @@ defined( 'ABSPATH' ) || exit;
  * @param string $ability  Ability name.
  * @param string $method   HTTP method.
  * @param array  $input    Ability input.
+ * @param int    $user_id  Actor to run as; defaults to the current user.
  * @return array|WP_Error
  */
-function extrachill_shop_execute_owner_ability( $site_key, $ability, $method, array $input ) {
+function extrachill_shop_execute_owner_ability( $site_key, $ability, $method, array $input, $user_id = null ) {
 	if ( ! function_exists( 'ec_cross_site_rest_request_http' ) ) {
 		return new WP_Error( 'owner_runtime_unavailable', __( 'The owning site runtime is unavailable.', 'extrachill-shop' ), array( 'status' => 503 ) );
 	}
 
-	$args = array( 'user_id' => get_current_user_id() );
+	$args = array( 'user_id' => null === $user_id ? get_current_user_id() : (int) $user_id );
 	if ( 'GET' === $method ) {
 		$args['query'] = array( 'input' => $input );
 	} else {
@@ -60,29 +61,6 @@ function extrachill_shop_get_canonical_artist( $artist_id ) {
 }
 
 /**
- * Ask the Artist owner whether the current actor can manage an artist.
- *
- * @param int $artist_id Artist profile ID.
- * @return true|WP_Error
- */
-function extrachill_shop_current_user_can_manage_artist( $artist_id ) {
-	$result = extrachill_shop_execute_owner_ability(
-		'artist',
-		'extrachill/artist-get-permissions',
-		'GET',
-		array( 'id' => absint( $artist_id ) )
-	);
-
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	return ! empty( $result['can_edit'] )
-		? true
-		: new WP_Error( 'cannot_manage_artist', __( 'You do not have access to this artist.', 'extrachill-shop' ), array( 'status' => 403 ) );
-}
-
-/**
  * Validate a typed seller reference without coercing invalid IDs.
  *
  * @param mixed $seller Seller reference.
@@ -101,25 +79,16 @@ function extrachill_shop_validate_seller_ref( $seller ) {
 }
 
 /**
- * Resolve a seller reference from ability input.
- *
- * Accepts the typed `seller` object, or the legacy `artist_id` integer.
+ * Resolve the typed `seller` reference from ability input.
  *
  * @param array $input Ability input.
  * @return array|WP_Error Seller reference.
  */
 function extrachill_shop_seller_from_input( array $input ) {
-	if ( isset( $input['seller'] ) ) {
-		return extrachill_shop_validate_seller_ref( $input['seller'] );
+	if ( ! isset( $input['seller'] ) ) {
+		return new WP_Error( 'missing_seller', __( 'A seller is required.', 'extrachill-shop' ), array( 'status' => 400 ) );
 	}
-	$artist_id = isset( $input['artist_id'] ) ? (int) $input['artist_id'] : 0;
-	if ( $artist_id > 0 ) {
-		return array(
-			'type' => 'artist',
-			'id'   => $artist_id,
-		);
-	}
-	return new WP_Error( 'missing_seller', __( 'A seller or artist ID is required.', 'extrachill-shop' ), array( 'status' => 400 ) );
+	return extrachill_shop_validate_seller_ref( $input['seller'] );
 }
 
 /**
@@ -138,11 +107,11 @@ function extrachill_shop_seller_key( array $seller ) {
  * Resolve a seller's canonical identity from its owning site.
  *
  * Artists resolve through the Artist owner; venues and promoters through the
- * Events owner (`extrachill/get-commerce-seller`), which also reports whether
- * the current user may manage the seller's finances.
+ * Events owner (`extrachill/get-commerce-seller`). Identity only: whether a
+ * user may manage the seller is `extrachill_shop_can_manage_seller()`.
  *
  * @param mixed $seller Seller reference.
- * @return array|WP_Error { type, id, name, url, manage_url?, can_manage_finances? }
+ * @return array|WP_Error { type, id, name, slug, url, manage_url? }
  */
 function extrachill_shop_get_canonical_seller( $seller ) {
 	static $sellers = array();
@@ -182,43 +151,15 @@ function extrachill_shop_get_canonical_seller( $seller ) {
 		$sellers[ $key ] = $not_found;
 	} else {
 		$sellers[ $key ] = array(
-			'type'                => $seller['type'],
-			'id'                  => $seller['id'],
-			'name'                => (string) ( $result['name'] ?? '' ),
-			'slug'                => (string) ( $result['slug'] ?? '' ),
-			'url'                 => (string) ( $result['url'] ?? '' ),
-			'manage_url'          => (string) ( $result['manage_url'] ?? '' ),
-			'can_manage_finances' => ! empty( $result['can_manage_finances'] ),
+			'type'       => $seller['type'],
+			'id'         => $seller['id'],
+			'name'       => (string) ( $result['name'] ?? '' ),
+			'slug'       => (string) ( $result['slug'] ?? '' ),
+			'url'        => (string) ( $result['url'] ?? '' ),
+			'manage_url' => (string) ( $result['manage_url'] ?? '' ),
 		);
 	}
 	return $sellers[ $key ];
-}
-
-/**
- * Ask the seller's owner whether the current actor can manage it.
- *
- * Artists keep the Artist owner's edit permission. Venues and promoters
- * require finance authority on the Events site (venue or promoter owner).
- *
- * @param mixed $seller Seller reference.
- * @return true|WP_Error
- */
-function extrachill_shop_current_user_can_manage_seller( $seller ) {
-	$seller = extrachill_shop_validate_seller_ref( $seller );
-	if ( is_wp_error( $seller ) ) {
-		return $seller;
-	}
-	if ( 'artist' === $seller['type'] ) {
-		return extrachill_shop_current_user_can_manage_artist( $seller['id'] );
-	}
-
-	$canonical = extrachill_shop_get_canonical_seller( $seller );
-	if ( is_wp_error( $canonical ) ) {
-		return $canonical;
-	}
-	return ! empty( $canonical['can_manage_finances'] )
-		? true
-		: new WP_Error( 'cannot_manage_seller', __( 'You do not have access to this seller.', 'extrachill-shop' ), array( 'status' => 403 ) );
 }
 
 /**
@@ -229,7 +170,7 @@ function extrachill_shop_current_user_can_manage_seller( $seller ) {
 function extrachill_shop_seller_input_schema() {
 	return array(
 		'type'                 => 'object',
-		'description'          => 'Typed seller reference. Use instead of artist_id for venues and promoters.',
+		'description'          => 'Typed seller reference (artist, venue or promoter).',
 		'properties'           => array(
 			'type' => array(
 				'type' => 'string',
@@ -243,23 +184,6 @@ function extrachill_shop_seller_input_schema() {
 		'required'             => array( 'type', 'id' ),
 		'additionalProperties' => false,
 	);
-}
-
-/**
- * Permission check shared by seller-scoped Shop abilities.
- *
- * @param array $input Ability input with `seller` or `artist_id`.
- * @return true|WP_Error
- */
-function extrachill_shop_authorize_seller_input( array $input ) {
-	if ( ! is_user_logged_in() ) {
-		return new WP_Error( 'rest_not_logged_in', 'You must be logged in to access this endpoint.', array( 'status' => 401 ) );
-	}
-	$seller = extrachill_shop_seller_from_input( $input );
-	if ( is_wp_error( $seller ) ) {
-		return $seller;
-	}
-	return extrachill_shop_current_user_can_manage_seller( $seller );
 }
 
 /**
