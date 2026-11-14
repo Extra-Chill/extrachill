@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.9] - 2026-11-14
+
+### Fixed
+- direct-charge refunds; remove transfer-era refund code
+
 ## [0.52.8] - 2026-11-14
 
 ### Changed
