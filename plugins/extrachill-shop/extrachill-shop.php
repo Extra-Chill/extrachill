@@ -100,6 +100,7 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/shipping-settings.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/shippo-client.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/checkout-shipping.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/shipping-zone-provisioning.php';
 
 		// Artist notifications
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-order-notifications.php';
