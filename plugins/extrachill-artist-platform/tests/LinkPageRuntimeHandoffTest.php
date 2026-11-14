@@ -48,19 +48,6 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		return $result;
 	}
 
-	public function test_artist_runtime_requires_exact_composed_mutation_signatures(): void {
-		$signatures = extrachill_artist_platform_link_pages_runtime_signatures();
-
-		$this->assertSame( array(
-			'total'    => 3,
-			'required' => 3,
-		), $signatures['ec_save_link_page_persistence_composed'] );
-		$this->assertSame( array(
-			'total'    => 6,
-			'required' => 4,
-		), $signatures['ec_provision_owned_link_page_composed'] );
-	}
-
 	public function test_fake_external_runtime_owns_generic_symbols_and_cpt_while_artist_adapter_registers_once(): void {
 		$result = $this->runSmokeFixture( 'link-pages-external-runtime-smoke.php' );
 
@@ -97,17 +84,16 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 
 	public function activationFailureProvider(): array {
 		return array(
-			'missing runtime'       => array( 'missing', 'requires the Extra Chill Link Pages plugin' ),
-			'no API marker'         => array( 'no-marker', 'did not declare its API version' ),
-			'stale API version'     => array( 'stale-version', 'API version is not supported' ),
-			'wrong generic arity'   => array( 'wrong-arity', 'incompatible generic function signature' ),
-			'wrong required arity'  => array( 'wrong-required-arity', 'incompatible generic function signature' ),
-			'no readiness marker'   => array( 'no-readiness', 'did not expose its readiness marker' ),
-			'wrong readiness arity' => array( 'readiness-arity', 'incompatible readiness marker' ),
+			'missing runtime'   => array( 'missing', 'requires the Extra Chill Link Pages plugin' ),
+			'invalid runtime'   => array( 'invalid', 'incompatible function contract' ),
+			'runtime not ready' => array( 'not-ready', 'reported that it is not ready' ),
 		);
 	}
 
 	/**
+	 * The handoff trusts the runtime's own validation: an invalid, unready or
+	 * storage-less runtime fails closed before any adapter loads.
+	 *
 	 * @dataProvider incompatibleRuntimeProvider
 	 */
 	public function test_incompatible_external_runtime_fails_before_adapters_load( $mode, $error_code ): void {
@@ -119,49 +105,17 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 
 	public function incompatibleRuntimeProvider(): array {
 		return array(
-			'owner meta contract'      => array( 'owner-meta', 'extrachill_link_pages_runtime_incompatible' ),
-			'no API marker'            => array( 'no-marker', 'extrachill_link_pages_runtime_incomplete' ),
-			'stale API version'        => array( 'stale-version', 'extrachill_link_pages_runtime_incompatible' ),
-			'wrong generic arity'      => array( 'wrong-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'wrong required arity'     => array( 'wrong-required-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'no readiness marker'      => array( 'no-readiness', 'extrachill_link_pages_runtime_incomplete' ),
-			'readiness arity'          => array( 'readiness-arity', 'extrachill_link_pages_runtime_incompatible' ),
-			'not ready'                => array( 'readiness', 'extrachill_link_pages_runtime_incomplete' ),
-			'v3 runtime'               => array( 'v3', 'extrachill_link_pages_runtime_incompatible' ),
-			'v4 without post type fn'  => array( 'v4-no-resolver', 'extrachill_link_pages_runtime_incomplete' ),
+			'runtime reports invalid' => array( 'invalid', 'extrachill_link_pages_runtime_incompatible' ),
+			'runtime not ready'       => array( 'not-ready', 'extrachill_link_pages_runtime_incomplete' ),
+			'storage blog unresolved' => array( 'no-storage', 'extrachill_link_pages_storage_unavailable' ),
 		);
 	}
 
-	/**
-	 * extrachill-link-pages#34: the handoff must stop pinning the
-	 * EC_LINK_PAGE_POST_TYPE constant's value. A runtime that declares a
-	 * different value (as the dedicated Link Pages site does post-cutover)
-	 * is compatible now, not rejected.
-	 */
-	public function test_handoff_no_longer_pins_the_post_type_constant_value(): void {
-		$result = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'post-type' );
+	public function test_valid_runtime_registers_the_artist_adapters(): void {
+		$result = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php' );
 
 		$this->assertSame( '', $result['error_code'] );
-	}
-
-	/**
-	 * The monorepo deploys Artist Platform and Link Pages from one commit, so
-	 * the handoff accepts only the current runtime API version ('4').
-	 */
-	public function test_handoff_accepts_the_current_api_version(): void {
-		$v4 = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php' );
-		$this->assertSame( '', $v4['error_code'] );
-	}
-
-	/**
-	 * A v4 runtime declaring a different post-type constant value (e.g. the
-	 * dedicated Link Pages site returning 'ec_link_page') is compatible: only
-	 * the resolver function's callability is required, not the constant.
-	 */
-	public function test_v4_handoff_accepts_a_different_post_type_constant_value(): void {
-		$result = $this->runSmokeFixture( 'link-pages-runtime-validation-smoke.php', 'v4-mismatched-post-type-constant' );
-
-		$this->assertSame( '', $result['error_code'] );
+		$this->assertFalse( $result['notice_hooked'] );
 	}
 
 	public function test_real_runtime_smoke_defaults_to_activation(): void {

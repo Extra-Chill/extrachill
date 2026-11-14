@@ -10,7 +10,7 @@ namespace ExtraChillEvents\Providers;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Defers Events adapters until the standalone runtime (API v3 or v4) is complete.
+ * Defers Events adapters until the Link Pages runtime reports itself valid and ready.
  *
  * TODO: Add the native plugin dependency after Link Pages PR #4 is merged,
  * released, and installed across the deployment stack.
@@ -105,13 +105,11 @@ final class LinkPagesProvider {
 	}
 
 	/**
-	 * Validate configured activation and the complete standalone runtime marker.
+	 * Validate configured activation, then trust the runtime's own validation.
 	 *
-	 * Accepts runtime API version '3' or '4' (extrachill-link-pages.php:861).
-	 * Version '4' additionally requires `ec_link_page_post_type()`, the
-	 * post-type resolver that replaced the pinned `artist_link_page` literal
-	 * (extrachill-link-pages PR #34/#35) — every other function this class
-	 * depends on kept its v3 signature across the v3→v4 bump.
+	 * The runtime checks its function contract, storage contract and API
+	 * version in `ec_validate_link_pages_runtime()`. Events ships from the same
+	 * monorepo commit, so it does not keep its own copy of those signatures.
 	 *
 	 * Runs on `plugins_loaded` (before `init`), so every branch here must return
 	 * an UNTRANSLATED error message. Translating on `plugins_loaded` trips core's
@@ -125,74 +123,20 @@ final class LinkPagesProvider {
 		if ( ! in_array( self::PLUGIN, $active, true ) && ! isset( $network_active[ self::PLUGIN ] ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_not_configured', 'Extra Chill Link Pages must be active before venue Link Pages can load.' );
 		}
-		if ( ! class_exists( '\\ExtraChill\\LinkPages\\Owned_Link_Pages' ) ) {
+		if ( ! function_exists( 'ec_validate_link_pages_runtime' ) || ! class_exists( '\\ExtraChill\\LinkPages\\Owned_Link_Pages' ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
 		}
-		$runtime_version = defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ? constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) : null;
-		if ( ! in_array( $runtime_version, array( '3', '4' ), true ) ) {
-			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
-		}
-		// @phpstan-ignore identical.alwaysTrue (contract validation: the currently pinned dependency happens to define the constant as '4', but this branch must keep comparing explicitly so a future runtime regression is still caught.)
-		if ( '4' === $runtime_version && ! function_exists( 'ec_link_page_post_type' ) ) {
-			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
-		}
-		$signatures        = array(
-			'ec_validate_link_pages_runtime'               => array( 1, 0 ),
-			'ec_link_pages_runtime_ready'                  => array( 0, 0 ),
-			'ec_get_link_page_storage_blog_id'             => array( 0, 0 ),
-			'ec_can_register_link_page_owner_compatibility_provider' => array( 3, 2 ),
-			'ec_register_link_page_owner_compatibility_provider' => array( 3, 2 ),
-			'ec_can_register_link_page_operation_provider' => array( 3, 2 ),
-			'ec_register_link_page_operation_provider'     => array( 3, 2 ),
-			'ec_can_register_link_page_public_projection_provider' => array( 3, 2 ),
-			'ec_register_link_page_public_projection_provider' => array( 3, 2 ),
-			'ec_provision_owned_link_page'                 => array( 5, 3 ),
-			'ec_provision_owned_link_page_composed'        => array( 6, 4 ),
-			'ec_invoke_link_page_provision_precondition'   => array( 2, 2 ),
-			'ec_save_link_page_public_projection_snapshot' => array( 3, 3 ),
-			'ec_read_link_page_public_projection_snapshot' => array( 2, 1 ),
-			'ec_with_link_page_storage_blog'               => array( 1, 1 ),
-			'ec_with_link_page_lock_scope'                 => array( 3, 2 ),
-			'ec_get_link_page_id_for_owner'                => array( 2, 1 ),
-			'ec_normalize_link_page_owner_reference'       => array( 1, 1 ),
-			'ec_parse_link_page_owner_reference'           => array( 1, 1 ),
-			'ec_get_link_page_owner'                       => array( 1, 1 ),
-			'ec_read_link_page_persistence'                => array( 2, 1 ),
-			'ec_save_link_page_persistence_locked'         => array( 2, 2 ),
-			'ec_save_link_page_persistence_composed'       => array( 3, 3 ),
-			'ec_snapshot_link_page_meta'                   => array( 2, 2 ),
-			'ec_write_link_page_meta'                      => array( 4, 3 ),
-			'ec_restore_link_page_meta_snapshots'          => array( 2, 2 ),
-			'ec_get_link_page_public_url'                  => array( 1, 1 ),
-			'ec_compensate_created_link_page'              => array( 1, 1 ),
-			'ec_purge_link_page_after_mutation'            => array( 1, 1 ),
-			'ec_get_stored_link_page_owner_references'     => array( 1, 1 ),
-			'ec_read_link_page'                            => array( 1, 1 ),
-			'ec_save_link_page'                            => array( 2, 2 ),
-			'ec_link_page_id_meta_keys'                    => array( 0, 0 ),
-		);
-		$defined_functions = get_defined_functions();
-		$user_functions    = array_map( 'strtolower', $defined_functions['user'] );
-		foreach ( $signatures as $function => $arity ) {
-			if ( ! in_array( strtolower( $function ), $user_functions, true ) ) {
-				return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
-			}
-			$reflection = new \ReflectionFunction( $function );
-			if ( $arity[0] !== $reflection->getNumberOfParameters() || $arity[1] !== $reflection->getNumberOfRequiredParameters() ) {
-				return new \WP_Error( 'venue_link_pages_runtime_incompatible', 'The configured Extra Chill Link Pages runtime has an incompatible signature.', array( 'function' => $function ) );
-			}
-		}
-		$storage_callback = 'ec_get_link_page_storage_blog_id';
-		if ( ! call_user_func( $storage_callback ) ) {
-			return new \WP_Error( 'venue_link_pages_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
-		}
-		$validation_callback = 'ec_validate_link_pages_runtime';
-		$readiness_callback  = 'ec_link_pages_runtime_ready';
-		$valid               = call_user_func( $validation_callback );
+		$valid = ec_validate_link_pages_runtime();
 		if ( is_wp_error( $valid ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_incompatible', $valid->get_error_message(), array( 'cause' => $valid->get_error_code() ) );
 		}
-		return true === call_user_func( $readiness_callback ) ? true : new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is not ready.' );
+		if ( ! function_exists( 'ec_link_pages_runtime_ready' ) || true !== ec_link_pages_runtime_ready() ) {
+			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is not ready.' );
+		}
+		if ( ! function_exists( 'ec_get_link_page_storage_blog_id' ) || ! ec_get_link_page_storage_blog_id() ) {
+			return new \WP_Error( 'venue_link_pages_storage_unavailable', 'The canonical Link Page storage blog is unavailable.' );
+		}
+		return true;
 	}
 
 	/** Site option recording the last error code that was written to the log. */

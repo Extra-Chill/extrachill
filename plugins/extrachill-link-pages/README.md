@@ -94,9 +94,11 @@ when no provider is loaded, `ec_save_link_page_public_projection_snapshot()` and
 owner-checksummed, serializable fallback. The public renderer makes no HTTP
 request to discover owner data.
 
-The Artist companion must validate API version `3`, add the new function
-signatures, register a public provider, and delegate its existing management
-callbacks to generic persistence. It must stop loading its old public runtime
+Consumers keep no copy of the runtime's function signatures. They trust
+`ec_validate_link_pages_runtime()` and `ec_link_pages_runtime_ready()`, which
+check the runtime's own `ec_link_pages_runtime_function_contract()` and API
+version. The Artist companion registers a public provider and delegates its
+existing management callbacks to generic persistence. It must stop loading its old public runtime
 before both plugins run together. Historical Artist-named query variables, body
 attributes, and the `extrachill_artist_link_page_minimal_head` hook remain only
 as documented compatibility identifiers; the companion supplies its historical

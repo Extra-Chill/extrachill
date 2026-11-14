@@ -1,28 +1,28 @@
 <?php
 // phpcs:disable -- Purpose-built WordPress runtime stubs must share one isolated fixture.
 /**
- * Self-contained runtime-version contract fixture for
+ * Self-contained runtime contract fixture for
  * LinkPagesProvider::validate_runtime().
  *
- * Stubs the complete v3 function contract (unaffected by the v3→v4 bump) plus
- * the one v4-only addition, ec_link_page_post_type(), so the three modes below
- * exercise the exact regression from #899: a Link Pages runtime declaring API
- * version '4' (extrachill-link-pages.php:861 in production) must no longer be
- * rejected by a provider pinned to '3'.
+ * The provider trusts the Link Pages runtime's own validation instead of
+ * keeping a copy of its function signatures. These stubs report the outcome
+ * each mode asks for so the provider's error mapping can be proven.
  *
  * Usage: php venue-link-pages-runtime-version-contract.php <mode>
- *   v3               - legacy runtime, version '3', no post-type resolver.
- *   v4-complete       - current production shape: version '4' plus the
- *                        ec_link_page_post_type() resolver added in
- *                        extrachill-link-pages PR #34/#35.
- *   v4-missing-resolver - version '4' but the post-type resolver is absent
- *                        (a genuinely incomplete/incompatible v4 runtime).
+ *   valid      - active, valid, ready runtime with a storage blog.
+ *   inactive   - Link Pages is not configured as an active plugin.
+ *   missing    - active, but the runtime never loaded its validator.
+ *   invalid    - ec_validate_link_pages_runtime() returns a WP_Error.
+ *   not-ready  - ec_link_pages_runtime_ready() returns false.
+ *   no-storage - the canonical storage blog does not resolve.
  *
  * @package ExtraChillEvents\Tests
  */
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'EXTRACHILL_EVENTS_PLUGIN_DIR', dirname( __DIR__, 2 ) . '/' );
+
+$mode = $argv[1] ?? 'valid';
 
 class WP_Error {
 	private $code;
@@ -43,7 +43,8 @@ class WP_Error {
 function is_wp_error( $value ) {
 	return $value instanceof WP_Error; }
 function get_option( $name, $default = false ) {
-	return 'active_plugins' === $name ? array( 'extrachill-link-pages/extrachill-link-pages.php' ) : $default; }
+	global $mode;
+	return 'active_plugins' === $name && 'inactive' !== $mode ? array( 'extrachill-link-pages/extrachill-link-pages.php' ) : $default; }
 function get_site_option( $name, $default = false ) {
 	unset( $name );
 	return $default; }
@@ -52,96 +53,22 @@ function do_action() {}
 function update_option() {}
 function delete_option() {}
 
-$mode = $argv[1] ?? 'v3';
-define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', 'v3' === $mode ? '3' : '4' );
+if ( 'missing' !== $mode ) {
+	function ec_validate_link_pages_runtime( $check_readiness = true ) {
+		global $mode;
+		unset( $check_readiness );
+		return 'invalid' === $mode ? new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible function contract.' ) : true; }
+	function ec_link_pages_runtime_ready() {
+		global $mode;
+		return 'not-ready' !== $mode; }
+	function ec_get_link_page_storage_blog_id() {
+		global $mode;
+		return 'no-storage' === $mode ? 0 : 13; }
 
-// The complete v3 signature contract that LinkPagesProvider::validate_runtime()
-// reflects against. None of these arities changed across the v3->v4 bump
-// (verified against extrachill-link-pages PR #34/#35, #52, #53).
-function ec_validate_link_pages_runtime( $check_readiness = true ) {
-	unset( $check_readiness );
-	return true; }
-function ec_link_pages_runtime_ready() {
-	return true; }
-function ec_get_link_page_storage_blog_id() {
-	return 13; }
-function ec_can_register_link_page_owner_compatibility_provider( $a, $b, $c = 10 ) {
-	unset( $a, $b, $c );
-	return true; }
-function ec_register_link_page_owner_compatibility_provider( $a, $b, $c = 10 ) {
-	unset( $a, $b, $c );
-	return true; }
-function ec_can_register_link_page_operation_provider( $a, $b, $c = 10 ) {
-	unset( $a, $b, $c );
-	return true; }
-function ec_register_link_page_operation_provider( $a, $b, $c = 10 ) {
-	unset( $a, $b, $c );
-	return true; }
-function ec_can_register_link_page_public_projection_provider( $a, $b, $c = 10 ) {
-	unset( $a, $b, $c );
-	return true; }
-function ec_register_link_page_public_projection_provider( $a, $b, $c = 10 ) {
-	unset( $a, $b, $c );
-	return true; }
-function ec_provision_owned_link_page( $a, $b, $c, $d = false, $e = null ) {
-	unset( $a, $b, $c, $d, $e ); }
-function ec_provision_owned_link_page_composed( $a, $b, $c, $d, $e = false, $f = null ) {
-	unset( $a, $b, $c, $d, $e, $f ); }
-function ec_invoke_link_page_provision_precondition( $a, $b ) {
-	unset( $a, $b ); }
-function ec_save_link_page_public_projection_snapshot( $a, $b, $c ) {
-	unset( $a, $b, $c ); }
-function ec_read_link_page_public_projection_snapshot( $a, $b = null ) {
-	unset( $a, $b ); }
-function ec_with_link_page_storage_blog( $a ) {
-	unset( $a ); }
-function ec_with_link_page_lock_scope( $a, $b, $c = null ) {
-	unset( $a, $b, $c ); }
-function ec_get_link_page_id_for_owner( $a, $b = null ) {
-	unset( $a, $b ); }
-function ec_normalize_link_page_owner_reference( $a ) {
-	unset( $a ); }
-function ec_parse_link_page_owner_reference( $a ) {
-	unset( $a ); }
-function ec_get_link_page_owner( $a ) {
-	unset( $a ); }
-function ec_read_link_page_persistence( $a, $b = null ) {
-	unset( $a, $b ); }
-function ec_save_link_page_persistence_locked( $a, $b ) {
-	unset( $a, $b ); }
-function ec_save_link_page_persistence_composed( $a, $b, $c ) {
-	unset( $a, $b, $c ); }
-function ec_snapshot_link_page_meta( $a, $b ) {
-	unset( $a, $b ); }
-function ec_write_link_page_meta( $a, $b, $c, $d = null ) {
-	unset( $a, $b, $c, $d ); }
-function ec_restore_link_page_meta_snapshots( $a, $b ) {
-	unset( $a, $b ); }
-function ec_get_link_page_public_url( $a ) {
-	unset( $a ); }
-function ec_compensate_created_link_page( $a ) {
-	unset( $a ); }
-function ec_purge_link_page_after_mutation( $a ) {
-	unset( $a ); }
-function ec_get_stored_link_page_owner_references( $a ) {
-	unset( $a ); }
-function ec_read_link_page( $a ) {
-	unset( $a ); }
-function ec_save_link_page( $a, $b ) {
-	unset( $a, $b ); }
-function ec_link_page_id_meta_keys() {
-	return array(); }
-
-// The one v4-only addition (extrachill-link-pages PR #34/#35): the post-type
-// resolver that replaced the pinned 'artist_link_page' literal.
-if ( 'v4-missing-resolver' !== $mode ) {
-	function ec_link_page_post_type( $blog_id = null ) {
-		unset( $blog_id );
-		return 'artist_link_page'; }
+	$link_pages_engine = getenv( 'LINK_PAGES_WORKTREE' ) ? getenv( 'LINK_PAGES_WORKTREE' ) : dirname( __DIR__, 3 ) . '/extrachill-link-pages';
+	require_once $link_pages_engine . '/inc/class-owned-link-pages.php';
 }
 
-$link_pages_engine = getenv( 'LINK_PAGES_WORKTREE' ) ? getenv( 'LINK_PAGES_WORKTREE' ) : dirname( __DIR__, 3 ) . '/extrachill-link-pages';
-require_once $link_pages_engine . '/inc/class-owned-link-pages.php';
 require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Providers/LinkPagesProvider.php';
 
 $result = ExtraChillEvents\Providers\LinkPagesProvider::validate_runtime();
@@ -151,5 +78,6 @@ echo json_encode(
 		'mode'  => $mode,
 		'valid' => true === $result,
 		'error' => is_wp_error( $result ) ? $result->get_error_code() : '',
+		'cause' => is_wp_error( $result ) ? ( $result->get_error_data()['cause'] ?? '' ) : '',
 	)
 );

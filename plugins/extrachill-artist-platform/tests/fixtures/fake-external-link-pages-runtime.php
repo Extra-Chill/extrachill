@@ -2,19 +2,29 @@
 
 // phpcs:ignoreFile Generic.CodeAnalysis.UnusedFunctionParameter.Found,Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- stub fixture mirroring upstream link-pages function signatures; unused params are part of the mirrored contracts.
 
-if ( empty( $GLOBALS['smoke']['omit_api_version'] ) ) {
-	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', $GLOBALS['smoke']['api_version'] ?? '4' );
-}
-define( 'EC_LINK_PAGE_POST_TYPE', $GLOBALS['smoke']['post_type_constant'] ?? 'artist_link_page' );
-define( 'EC_LINK_PAGE_OWNER_META_KEY', $GLOBALS['smoke']['owner_meta_constant'] ?? '_ec_link_page_owner_reference' );
+define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '4' );
+define( 'EC_LINK_PAGE_POST_TYPE', 'artist_link_page' );
+define( 'EC_LINK_PAGE_OWNER_META_KEY', '_ec_link_page_owner_reference' );
 
-// Contract v4 exposes the post type resolver instead of pinning the
-// EC_LINK_PAGE_POST_TYPE constant value. Omit it to prove the handoff
-// rejects a v4 runtime that does not expose the resolver.
-if ( '4' === ( $GLOBALS['smoke']['api_version'] ?? '4' ) && empty( $GLOBALS['smoke']['omit_post_type_resolver'] ) ) {
-	function ec_link_page_post_type( $blog_id = null ) {
-		return $GLOBALS['smoke']['post_type_constant'] ?? 'artist_link_page';
+function ec_link_page_post_type( $blog_id = null ) {
+	return 'artist_link_page';
+}
+
+// The runtime owns its own contract validation; the fake reports the outcome
+// the smoke asks for so consumers can be proven to trust it.
+function ec_validate_link_pages_runtime( $check_readiness = true ) {
+	if ( ! empty( $GLOBALS['smoke']['runtime_invalid'] ) ) {
+		return new WP_Error( 'ec_link_pages_runtime_incompatible', 'The Link Pages runtime uses an incompatible function contract.' );
 	}
+	return true;
+}
+
+function ec_link_pages_runtime_ready() {
+	return $GLOBALS['smoke']['runtime_ready'] ?? true;
+}
+
+function ec_get_link_page_storage_blog_id() {
+	return $GLOBALS['smoke']['storage_blog_id'] ?? 4;
 }
 
 function ec_link_page_migration_participant_registry() { return (object) array(); }
@@ -171,7 +181,6 @@ function ec_get_link_page_public_projection( $link_page_id, $request = array() )
 function ec_render_link_page_public_components( $projection, $slot ) { return ''; }
 function ec_get_link_page_public_url( $link_page_id ) { return 'https://extrachill.link/example/'; }
 function ec_link_page_public_urls( $link_page_id ) { return array( ec_get_link_page_public_url( $link_page_id ) ); }
-function ec_validate_link_pages_runtime( $check_readiness = true ) { return true; }
 
 function ec_resolve_link_page_operation_target( $target ) {
 	return array(
@@ -197,28 +206,6 @@ function ec_read_link_page( $target ) {
 	return array();
 }
 
-if ( ! empty( $GLOBALS['smoke']['wrong_save_arity'] ) ) {
-	function ec_save_link_page( $target ) {
-		return array();
-	}
-} elseif ( ! empty( $GLOBALS['smoke']['wrong_save_required_arity'] ) ) {
-	function ec_save_link_page( $target, $data = array() ) {
-		return $data;
-	}
-} else {
-	function ec_save_link_page( $target, $data ) {
-		return $data;
-	}
-}
-
-if ( empty( $GLOBALS['smoke']['omit_readiness'] ) ) {
-	if ( ! empty( $GLOBALS['smoke']['wrong_readiness_arity'] ) ) {
-		function ec_link_pages_runtime_ready( $context ) {
-			return true;
-		}
-	} else {
-		function ec_link_pages_runtime_ready() {
-			return $GLOBALS['smoke']['runtime_ready'] ?? true;
-		}
-	}
+function ec_save_link_page( $target, $data ) {
+	return $data;
 }
