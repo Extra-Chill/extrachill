@@ -1,5 +1,10 @@
 # 0.4.0 - Apr 19, 2026
 
+## [0.12.1] - 2026-11-14
+
+### Changed
+- run newsletter docs as maintenance now that its pages exist
+
 ## [0.12.0] - 2026-11-10
 
 ### Added
