@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.15] - 2026-11-14
+
+### Changed
+- one canonical seller record per order
+
 ## [0.63.14] - 2026-11-14
 
 ### Changed
