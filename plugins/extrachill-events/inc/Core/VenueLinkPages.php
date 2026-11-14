@@ -29,7 +29,7 @@ final class VenueLinkPages extends TeamTermLinkPages {
 	 *
 	 * @param int $term_id Venue term ID.
 	 */
-	protected static function authorize_member( int $term_id ) {
+	protected static function authorize_owner( int $term_id ) {
 		return ( new VenueAuthorization() )->authorize( get_current_user_id(), $term_id, VenueAuthorization::ACTION_ACCESS_VENUE );
 	}
 
@@ -45,7 +45,7 @@ final class VenueLinkPages extends TeamTermLinkPages {
 			return $profile;
 		}
 		$logo                   = is_array( $profile['logo'] ?? null ) ? $profile['logo'] : array();
-		$profile['term_id']     = $term_id;
+		$profile['id']          = $term_id;
 		$profile['name']        = (string) ( $profile['name'] ?? $term->name );
 		$profile['slug']        = (string) $term->slug;
 		$profile['description'] = (string) ( $profile['description'] ?? $term->description );
@@ -132,6 +132,6 @@ final class VenueLinkPages extends TeamTermLinkPages {
 		if ( function_exists( 'ec_events_get_venue_settings_url' ) ) {
 			return str_replace( '#tab-calendar', '#tab-link-page', ec_events_get_venue_settings_url( $term_id, 'calendar' ) );
 		}
-		return add_query_arg( 'venue_id', $term_id, get_home_url( self::events_blog_id(), '/venue-settings/' ) ) . '#tab-link-page';
+		return add_query_arg( 'venue_id', $term_id, get_home_url( self::owner_blog_id(), '/venue-settings/' ) ) . '#tab-link-page';
 	}
 }

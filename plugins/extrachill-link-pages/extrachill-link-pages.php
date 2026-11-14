@@ -838,6 +838,9 @@ if ( is_wp_error( $ec_link_pages_section_sources_result ) ) {
 	ec_record_link_pages_runtime_error( $ec_link_pages_section_sources_result );
 }
 
+// Owner-definition engine: owner plugins extend it instead of hand-wiring providers.
+require_once EXTRACHILL_LINK_PAGES_PLUGIN_DIR . 'inc/class-owned-link-pages.php';
+
 if ( ! defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ) {
 	define( 'EC_LINK_PAGES_RUNTIME_API_VERSION', '4' );
 }

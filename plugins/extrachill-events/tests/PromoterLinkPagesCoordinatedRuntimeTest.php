@@ -132,13 +132,14 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 	public function test_layering_contract_has_no_generic_runtime_or_artist_venue_conflation(): void {
 		$root  = dirname( __DIR__ );
 		$runtime_provider = file_get_contents( $root . '/inc/Providers/LinkPagesProvider.php' );
-		$files            = file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) . file_get_contents( $root . '/inc/Abilities/TeamTermLinkPageAbilities.php' ) . $runtime_provider;
+		$engine           = file_get_contents( dirname( $root ) . '/extrachill-link-pages/inc/class-owned-link-pages.php' );
+		$files            = file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) . $engine . file_get_contents( $root . '/inc/Abilities/TeamTermLinkPageAbilities.php' ) . $runtime_provider;
 		$this->assertStringNotContainsString( 'register_rest_route', $files );
 		$this->assertStringNotContainsString( 'wp_remote_', $files );
 		$this->assertStringNotContainsString( 'MusicGroup', $files );
 		$this->assertStringNotContainsString( 'MusicVenue', $files );
 		$this->assertStringNotContainsString( 'PostalAddress', $files );
-		$this->assertStringNotContainsString( 'subscribe', strtolower( file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) ) );
+		$this->assertStringNotContainsString( 'subscribe', strtolower( file_get_contents( $root . '/inc/Core/PromoterLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) . $engine ) );
 		$this->assertFileDoesNotExist( $root . '/inc/Abilities/PromoterLinkPageAbilities.php' );
 		$this->assertFileDoesNotExist( $root . '/inc/Providers/PromoterLinkPagesProvider.php' );
 		$this->assertStringContainsString( "'events-promoters' => array( '\\\\ExtraChillEvents\\\\Core\\\\PromoterLinkPages', 'promoter' )", $runtime_provider );
