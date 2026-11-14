@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.5] - 2026-11-14
+
+### Changed
+- one seller permission primitive for every shop surface
+
 ## [0.10.4] - 2026-11-12
 
 ### Fixed
