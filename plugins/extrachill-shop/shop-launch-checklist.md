@@ -4,35 +4,15 @@ Complete checklist for launching shop.extrachill.com with artist marketplace fun
 
 ---
 
-## Current Status: Admin-Only Development Mode
+## Current Status: Feature-Rollout Gate
 
-The shop system is currently gated to admins only, allowing internal testing and dogfooding before public launch.
+Shop access goes through the network feature-rollout primitive in `extrachill-users`. The old hardcoded `manage_options` checks are gone.
 
-### Admin Gate Implementation (Completed)
+- **Code ceiling:** `ec_feature_ceilings()` in `extrachill-users/inc/core/gating.php` sets the highest tier the code is ready for. `shop` is `public`.
+- **Live tier:** the network option `ec_feature_tier_shop` (`admin` | `team` | `public`) sets the current tier and is clamped to the ceiling by `ec_feature_tier()`. If the option is unset, the tier defaults to the ceiling.
+- **Seller requirement:** `ec_can_manage_shop()` also requires that the user manages at least one artist, venue, or promoter.
 
-- [x] **Navigation Gating**
-  - [x] Secondary header shop links (Create Shop / Manage Shop) - admin only
-  - [x] Avatar menu shop links - admin only
-  - [x] Artist storefront "Manage Shop" button - admin only
-  - [x] Artist creator success screen "Create Shop" button - admin only
-
-- [x] **Helper Functions**
-  - [x] `extrachill_shop_get_product_count_for_user()` - cross-site product count
-
-### Files Modified for Admin Gate
-
-| File | Change |
-|------|--------|
-| `extrachill-shop/inc/core/artist-product-meta.php` | Added user product count helper |
-| `extrachill-artist-platform/inc/core/nav.php` | Admin-gated secondary header link |
-| `extrachill-users/inc/avatar-menu.php` | Admin-gated avatar menu link |
-| `extrachill-shop/inc/core/seller-storefront.php` | Storefront header (seller name, public page, Manage Shop) and artist-archive redirect |
-| `extrachill-artist-platform/src/blocks/artist-creator/render.php` | Admin-gated config URL |
-| `extrachill-artist-platform/src/blocks/artist-creator/view.js` | Conditional Create Shop button |
-
-### To Remove Admin Gate (Pre-Launch)
-
-Search for comments containing "Admin-only during development" or "ADMIN ONLY during development" and remove the `current_user_can('manage_options')` checks.
+Moving the shop between tiers is an operator flag flip, either from the Feature Rollout network admin screen or with `wp site option update ec_feature_tier_shop <tier>`. No code changes are needed.
 
 ---
 
@@ -235,7 +215,7 @@ One week before public launch:
 
 ## Launch Day
 
-- [ ] Remove admin gate from shop navigation (see "To Remove Admin Gate" section above)
+- [ ] Set the `ec_feature_tier_shop` network option to the launch tier (see "Feature-Rollout Gate" above)
 - [ ] Rebuild artist-platform block assets after JS changes
 - [ ] Switch Stripe to live mode
 - [ ] Announce launch (newsletter, socials)
