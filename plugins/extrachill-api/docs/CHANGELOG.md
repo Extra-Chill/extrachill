@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.7] - 2026-11-14
+
+### Changed
+- the owner reference is the only artist↔page binding
+
 ## [0.52.6] - 2026-11-12
 
 ### Fixed
