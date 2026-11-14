@@ -226,7 +226,7 @@ function ec_filter_user_capabilities( $allcaps, $caps, $args, $user ) {
     
     // Allow view_artist_link_page_analytics capability
     if ( $cap === 'view_artist_link_page_analytics' && $object_id ) {
-        if ( get_post_type( $object_id ) === 'artist_link_page' ) {
+        if ( get_post_type( $object_id ) === ec_link_page_post_type() ) {
             $artist_id = apply_filters('ec_get_artist_id', $object_id);
             if ( $artist_id && ec_can_manage_artist( $user_id, $artist_id ) ) {
                 $allcaps[$cap] = true;

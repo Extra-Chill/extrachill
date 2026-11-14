@@ -52,7 +52,7 @@ final class ArtistPlatformStatsContractTest extends EC_Artist_Platform_TestCase 
 			for ( $i = 0; $i < $count; ++$i ) {
 				$ids[] = (int) self::factory()->post->create(
 					array(
-						'post_type'   => 'artist_link_page',
+						'post_type'   => 'ec_link_page',
 						'post_status' => 'publish',
 					)
 				);

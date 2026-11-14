@@ -22,8 +22,7 @@ const EXTRACHILL_ARTIST_PLATFORM_NO_LINK_PAGE_POST_TYPE = 'ec_link_page_missing'
  *
  * Every consumer in this plugin calls this instead of a post type literal. It
  * is deliberately never memoized: the runtime resolves the post type from the
- * current storage blog, and the storage blog can change mid-request
- * (migration dry runs, a gate flip). Without the runtime there is no Link
+ * current storage blog. Without the runtime there is no Link
  * Page post type, so this returns an unregistered sentinel that matches no
  * post. An empty string would not: WP_Query treats an empty post_type as
  * 'post'.
@@ -79,7 +78,6 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	}
 
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-owner-operations.php';
-	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/storage-migration.php';
 	require_once EXTRACHILL_ARTIST_PLATFORM_PLUGIN_DIR . 'inc/link-pages/artist-public-runtime-adapter.php';
 	add_filter( 'ec_link_page_public_query_var', 'ec_artist_link_page_public_query_var' );
 	add_filter( 'ec_link_page_public_query_vars', 'ec_artist_link_page_public_query_vars' );
@@ -89,10 +87,6 @@ function extrachill_artist_platform_register_link_page_adapters() {
 	$operation_result = ec_register_link_page_operation_provider( 'artist-platform', 'ec_artist_link_page_operation_provider' );
 	if ( is_wp_error( $operation_result ) ) {
 		return $operation_result;
-	}
-	$migration_result = ec_artist_register_link_page_migration_adapter();
-	if ( is_wp_error( $migration_result ) ) {
-		return $migration_result;
 	}
 	$projection_result = ec_register_link_page_public_projection_provider( 'artist-platform', 'ec_artist_link_page_public_projection_provider' );
 	if ( is_wp_error( $projection_result ) ) {

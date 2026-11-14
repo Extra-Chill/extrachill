@@ -52,7 +52,7 @@ final class LinkPageRuntimeHandoffTest extends EC_Artist_Platform_TestCase {
 		$result = $this->runSmokeFixture( 'link-pages-external-runtime-smoke.php' );
 
 		$this->assertTrue( $result['booted'] );
-		$this->assertSame( 'artist_link_page', $result['post_type_constant'] );
+		$this->assertSame( 'ec_link_page', $result['post_type_constant'] );
 		$this->assertSame( '_ec_link_page_owner_reference', $result['owner_meta_constant'] );
 		$this->assertSame( 0, $result['owner_providers'] );
 		$this->assertSame( 1, $result['operation_providers'] );

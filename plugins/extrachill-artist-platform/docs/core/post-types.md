@@ -40,7 +40,9 @@ $profiles = ec_get_user_artist_profiles();
 $is_member = ec_is_user_artist_member($user_id, $artist_id);
 ```
 
-## Link Page (artist_link_page)
+## Link Page (ec_link_page)
+
+Registered by the extrachill-link-pages plugin and stored on the dedicated Link Pages site (extrachill.link).
 
 ### Configuration
 - **Slug**: `link-page` (internally used)
@@ -117,10 +119,10 @@ GET /wp-json/wp/v2/artist_profile
 GET /wp-json/wp/v2/artist_profile/{id}
 
 // Get all link pages
-GET /wp-json/wp/v2/artist_link_page
+GET https://extrachill.link/wp-json/wp/v2/ec_link_page
 
 // Get specific link page
-GET /wp-json/wp/v2/artist_link_page/{id}
+GET https://extrachill.link/wp-json/wp/v2/ec_link_page/{id}
 ```
 
 ### Authentication
