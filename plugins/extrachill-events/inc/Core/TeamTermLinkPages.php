@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * authorization, canonical source read, management URL, and the few
  * snapshot/schema fields that genuinely differ.
  */
-abstract class TeamTermLinkPages extends \ExtraChill\LinkPages\OwnedLinkPages {
+abstract class TeamTermLinkPages extends \ExtraChill\LinkPages\Owned_Link_Pages {
 
 	public const OWNER_KIND = 'term';
 

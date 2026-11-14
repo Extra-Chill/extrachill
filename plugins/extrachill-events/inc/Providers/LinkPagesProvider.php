@@ -125,7 +125,7 @@ final class LinkPagesProvider {
 		if ( ! in_array( self::PLUGIN, $active, true ) && ! isset( $network_active[ self::PLUGIN ] ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_not_configured', 'Extra Chill Link Pages must be active before venue Link Pages can load.' );
 		}
-		if ( ! class_exists( '\\ExtraChill\\LinkPages\\OwnedLinkPages' ) ) {
+		if ( ! class_exists( '\\ExtraChill\\LinkPages\\Owned_Link_Pages' ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
 		}
 		$runtime_version = defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ? constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) : null;

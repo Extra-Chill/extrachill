@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  * authority lock. The engine knows owner-reference shapes, never owner
  * domains.
  */
-abstract class OwnedLinkPages {
+abstract class Owned_Link_Pages {
 
 	/** Owner object kind in the owner reference: `term` or `post`. */
 	public const OWNER_KIND = 'term';
@@ -506,10 +506,10 @@ abstract class OwnedLinkPages {
 	/**
 	 * Draft the public page and preserve audit metadata after owner deletion.
 	 *
-	 * @param int     $owner_id          Deleted owner term ID.
-	 * @param int     $term_taxonomy_id Deleted term taxonomy ID.
-	 * @param string  $taxonomy         Term taxonomy.
-	 * @param mixed   $deleted_term     Deleted term copy.
+	 * @param int    $owner_id         Deleted owner term ID.
+	 * @param int    $term_taxonomy_id Deleted term taxonomy ID.
+	 * @param string $taxonomy         Term taxonomy.
+	 * @param mixed  $deleted_term     Deleted term copy.
 	 */
 	public static function orphan_after_term_deletion( $owner_id, $term_taxonomy_id, $taxonomy, $deleted_term ): void {
 		unset( $term_taxonomy_id );
@@ -527,8 +527,8 @@ abstract class OwnedLinkPages {
 						array(
 							'post_type'      => ec_link_page_post_type(),
 							'post_status'    => 'any',
-							'meta_key'       => EC_LINK_PAGE_OWNER_META_KEY,
-							'meta_value'     => $reference,
+							'meta_key'       => EC_LINK_PAGE_OWNER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Rare orphan recovery, capped at two rows.
+							'meta_value'     => $reference, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Rare orphan recovery, capped at two rows.
 							'posts_per_page' => 2,
 							'fields'         => 'ids',
 						)

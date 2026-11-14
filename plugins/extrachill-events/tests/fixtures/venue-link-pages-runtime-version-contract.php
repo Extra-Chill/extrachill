@@ -140,7 +140,8 @@ if ( 'v4-missing-resolver' !== $mode ) {
 		return 'artist_link_page'; }
 }
 
-require_once ( getenv( 'LINK_PAGES_WORKTREE' ) ? getenv( 'LINK_PAGES_WORKTREE' ) : dirname( __DIR__, 3 ) . '/extrachill-link-pages' ) . '/inc/class-owned-link-pages.php';
+$link_pages_engine = getenv( 'LINK_PAGES_WORKTREE' ) ? getenv( 'LINK_PAGES_WORKTREE' ) : dirname( __DIR__, 3 ) . '/extrachill-link-pages';
+require_once $link_pages_engine . '/inc/class-owned-link-pages.php';
 require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Providers/LinkPagesProvider.php';
 
 $result = ExtraChillEvents\Providers\LinkPagesProvider::validate_runtime();
