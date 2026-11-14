@@ -86,6 +86,19 @@ abstract class Extrachill_Analytics_TestCase extends WP_UnitTestCase {
 
 		$this->original_wpdb = $GLOBALS['wpdb'];
 
+		// Alarm tests must not depend on the runner's real disk (#1418). Tests
+		// that exercise disk pressure override this at a later priority.
+		add_filter(
+			'extrachill_analytics_disk_alarm_reading',
+			static function ( $reading ) {
+				return null === $reading ? array(
+					'free'  => 500 * GB_IN_BYTES,
+					'total' => 1000 * GB_IN_BYTES,
+				) : $reading;
+			},
+			5
+		);
+
 		// The harness install stores the site_admins network option as the
 		// literal string "" instead of an array, which breaks grant_super_admin()
 		// and every manage_network_options check. Restore the WordPress default.
