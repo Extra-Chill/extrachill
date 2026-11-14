@@ -81,8 +81,8 @@ Webhook URL: https://shop.extrachill.com/wp-json/extrachill/v1/shop/stripe-webho
 
 Create two Stripe webhook destinations at that URL:
 
-- **Your account** events (`payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `checkout.session.completed`), signed with the Webhook Secret.
-- **Connected accounts** events (`checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, `charge.dispute.created`, `account.updated`), signed with the Connect Webhook Secret.
+- **Your account** events (`checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`), signed with the Webhook Secret.
+- **Connected accounts** events (those four plus `charge.refunded`, `charge.dispute.created`, `account.updated`), signed with the Connect Webhook Secret.
 
 Network Admin → Payments shows the resolved URL.
 

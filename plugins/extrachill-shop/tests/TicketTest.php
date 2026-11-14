@@ -25,14 +25,19 @@ $GLOBALS['wpdb'] = new class() {
 final class TicketTest extends \PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
 		extrachill_shop_reset_seller_permission_cache();
-		$GLOBALS['test_options']         = array( 'extrachill_shop_stripe_seller_venue:9911' => array( 'account_id' => 'acct_venue' ) );
-		$GLOBALS['test_user_id']         = 551;
-		$GLOBALS['ticket_network']       = array();
-		$GLOBALS['ticket_account_ready'] = true;
-		$GLOBALS['ticket_refunds']       = array();
-		$GLOBALS['ticket_refund_fail']   = false;
-		$GLOBALS['test_owner_calls']     = array();
-		$GLOBALS['ticket_offer']         = array(
+		$GLOBALS['test_options']        = array(
+			'extrachill_shop_stripe_seller_venue:9911' => array(
+				'account_id'       => 'acct_venue',
+				'status'           => 'active',
+				'status_synced_at' => '2026-11-01T00:00:00+00:00',
+			),
+		);
+		$GLOBALS['test_user_id']        = 551;
+		$GLOBALS['ticket_network']      = array();
+		$GLOBALS['ticket_refunds']      = array();
+		$GLOBALS['ticket_refund_fail']  = false;
+		$GLOBALS['test_owner_calls']    = array();
+		$GLOBALS['ticket_offer']        = array(
 			'event_id'    => 101,
 			'title'       => 'Lo-Fi show',
 			'url'         => 'https://events.extrachill.com/show',
@@ -46,9 +51,9 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 				'id'   => 9911,
 			),
 		);
-		$GLOBALS['ticket_issue_status']  = 'issued';
-		$GLOBALS['ticket_redeemed']      = false;
-		$GLOBALS['test_owner_callback']  = static function ( $site, $method, $route ) {
+		$GLOBALS['ticket_issue_status'] = 'issued';
+		$GLOBALS['ticket_redeemed']     = false;
+		$GLOBALS['test_owner_callback'] = static function ( $site, $method, $route ) {
 			if ( str_contains( $route, 'get-event-ticket-offer' ) ) {
 				return $GLOBALS['ticket_offer']; }
 			if ( str_contains( $route, 'get-commerce-seller' ) ) {
@@ -188,7 +193,7 @@ final class TicketTest extends \PHPUnit\Framework\TestCase {
 		$GLOBALS['ticket_offer']['remaining'] = 1;
 		$this->assertSame( 'ticket_sold_out', $this->checkout()->get_error_code() );
 		$GLOBALS['ticket_offer']['remaining'] = null;
-		$GLOBALS['ticket_account_ready']      = false;
+		$GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['status'] = 'restricted';
 		$this->assertSame( 'seller_payments_unavailable', $this->checkout()->get_error_code() );
 	}
 	public function test_fulfilment_replay_and_service_identity(): void {

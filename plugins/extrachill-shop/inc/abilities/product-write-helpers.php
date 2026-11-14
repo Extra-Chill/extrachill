@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Product Write Helpers
  *
@@ -21,6 +20,8 @@ declare(strict_types=1);
  * @package ExtraChillShop
  * @since   0.8.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -96,6 +97,7 @@ function extrachill_shop_product_can_publish( $product_id ) {
 					'account_id'          => $stripe_account_id,
 					'status'              => (string) ( $status['status'] ?? '' ),
 					'onboarding_complete' => ! empty( $status['details_submitted'] ),
+					'status_synced_at'    => gmdate( 'c' ),
 				)
 			);
 		}
@@ -271,7 +273,7 @@ function extrachill_shop_setup_product_variations( $product_id, $sizes, $price =
 			update_post_meta( $variation_id, 'attribute_pa_size', $size_slug );
 		}
 
-		if ( $price !== null ) {
+		if ( null !== $price ) {
 			update_post_meta( $variation_id, '_regular_price', (string) $price );
 			$effective_price = $price;
 

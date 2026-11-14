@@ -84,7 +84,7 @@ function ec_network_commerce_fields() {
 			'key'         => 'connect_webhook_secret',
 			'label'       => 'Connect Webhook Secret',
 			'placeholder' => 'whsec_...',
-			'description' => 'Signing secret for connected-account events (tickets).',
+			'description' => 'Signing secret for the connected-accounts webhook destination (seller merch, tickets, disputes and account updates).',
 		),
 		// Shipping (Shippo label generation).
 		array(
@@ -307,8 +307,8 @@ function ec_render_network_payments_page() {
 			<ol>
 				<li><?php esc_html_e( 'Create a Stripe account at stripe.com and enable Stripe Connect in your dashboard.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > API keys: copy your Secret Key and Publishable Key.', 'extrachill-network' ); ?></li>
-				<li><?php esc_html_e( 'Developers > Webhooks: add a destination at the Stripe Webhook URL below for "Your account" events (payment_intent.succeeded, payment_intent.payment_failed, charge.refunded, checkout.session.completed). Paste its signing secret into the Webhook Secret field.', 'extrachill-network' ); ?></li>
-				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events (checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded, charge.dispute.created, account.updated). Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Developers > Webhooks: add a destination at the Stripe Webhook URL below for "Your account" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed and checkout.session.expired. Paste its signing secret into the Webhook Secret field.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, checkout.session.expired, charge.refunded, charge.dispute.created and account.updated. Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
 			</ol>
 			<p>
 				<strong><?php esc_html_e( 'Stripe Webhook URL:', 'extrachill-network' ); ?></strong>

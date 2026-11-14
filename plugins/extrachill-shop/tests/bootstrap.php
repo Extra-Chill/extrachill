@@ -162,6 +162,13 @@ function set_site_transient( $key, $value, $expiration = 0 ) {
 	$GLOBALS['test_site_transient_expirations'][ $key ] = $expiration;
 	return true;
 }
+function get_transient( $key ) {
+	return $GLOBALS['test_transients'][ $key ] ?? false;
+}
+function set_transient( $key, $value, $expiration = 0 ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Mirrors the core signature.
+	$GLOBALS['test_transients'][ $key ] = $value;
+	return true;
+}
 function get_option( $key, $default_value = false ) {
 	return $GLOBALS['test_options'][ $key ] ?? $default_value;
 }
@@ -207,7 +214,8 @@ function extrachill_shop_get_artist_stripe_account( $artist_id ) {
 	$record = extrachill_shop_get_stripe_account_record( $artist_id );
 	return $record ? $record['account_id'] : false;
 }
-function extrachill_shop_get_account_status() {
+function extrachill_shop_get_account_status( $account_id = '' ) {
+	$GLOBALS['test_stripe_status_calls'][] = $account_id;
 	return $GLOBALS['test_stripe_status'] ?? array( 'success' => false );
 }
 
