@@ -322,11 +322,13 @@ function ec_render_network_payments_page() {
 				<li><?php esc_html_e( 'Create a Stripe account at stripe.com and enable Stripe Connect in your dashboard.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > API keys: copy your Secret Key and Publishable Key.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > Connect: copy your platform Connect Client ID (the "ca_..." identifier).', 'extrachill-network' ); ?></li>
-				<li><?php esc_html_e( 'Create a webhook endpoint pointing to your site and copy the Webhook Signing Secret.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Developers > Webhooks: add a destination at the Stripe Webhook URL below for "Your account" events (payment_intent.succeeded, payment_intent.payment_failed, charge.refunded, checkout.session.completed). Paste its signing secret into the Webhook Secret field.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events (checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded, charge.dispute.created, account.updated). Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
 			</ol>
 			<p>
 				<strong><?php esc_html_e( 'Stripe Webhook URL:', 'extrachill-network' ); ?></strong>
-				<code><?php echo esc_url( rest_url( 'extrachill/v1/shop/stripe-webhook' ) ); ?></code>
+				<?php // The webhook handler must run on the shop site, where orders and seller accounts live. ?>
+				<code><?php echo esc_url( get_rest_url( ec_get_blog_id( 'shop' ), 'extrachill/v1/shop/stripe-webhook' ) ); ?></code>
 			</p>
 			<p><strong><?php esc_html_e( 'Shippo', 'extrachill-network' ); ?></strong></p>
 			<ol>

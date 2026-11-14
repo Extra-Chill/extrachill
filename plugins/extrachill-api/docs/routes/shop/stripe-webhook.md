@@ -73,12 +73,18 @@ Stripe-Signature: t=1234567890,v1=signature...
 
 ### Webhook Configuration
 
-Stripe webhooks should be configured to point to this endpoint:
+Stripe webhooks must point to this endpoint on the shop site. The handler does not switch blogs, so it has to run where the WooCommerce orders and seller accounts live:
 
 ```
-Webhook URL: https://yoursite.com/wp-json/extrachill/v1/shop/stripe-webhook
-Events: Select all relevant payment and subscription events
+Webhook URL: https://shop.extrachill.com/wp-json/extrachill/v1/shop/stripe-webhook
 ```
+
+Create two Stripe webhook destinations at that URL:
+
+- **Your account** events (`payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `checkout.session.completed`), signed with the Webhook Secret.
+- **Connected accounts** events (`checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`, `charge.dispute.created`, `account.updated`), signed with the Connect Webhook Secret.
+
+Network Admin → Payments shows the resolved URL.
 
 ### Event Processing
 
