@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Abilities Registration
  *
@@ -9,6 +8,8 @@ declare(strict_types=1);
  * @package ExtraChillShop
  * @since   0.7.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -61,3 +62,4 @@ require_once __DIR__ . '/shop-update-product.php';
 require_once __DIR__ . '/shop-delete-product.php';
 require_once __DIR__ . '/shop-delete-product-image.php';
 require_once __DIR__ . '/shop-create-shipping-label.php';
+require_once __DIR__ . '/shop-operator.php';

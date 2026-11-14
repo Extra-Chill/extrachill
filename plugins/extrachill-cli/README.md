@@ -61,6 +61,27 @@ Running either command group against another network site exits with the exact
 owner URL. If the owner plugin is inactive or incomplete on that site, the
 command exits with an owner-plugin capability error.
 
+### Shop
+
+Operator commands for the Shop site. Each one is a thin adapter over an
+`extrachill-shop` ability, so run it against the Shop site as a Shop manager
+(`manage_woocommerce`):
+
+```bash
+wp --url=https://shop.extrachill.com --user=1 extrachill shop sellers list
+wp --url=https://shop.extrachill.com --user=1 extrachill shop seller status artist:12
+wp --url=https://shop.extrachill.com --user=1 extrachill shop orders list --seller=venue:1524 --status=processing
+wp --url=https://shop.extrachill.com --user=1 extrachill shop order show 1234
+wp --url=https://shop.extrachill.com --user=1 extrachill shop order refund 1234 --reason="Out of stock"
+wp --url=https://shop.extrachill.com --user=1 extrachill shop webhook replay evt_123 --account=acct_123
+wp --url=https://shop.extrachill.com --user=1 extrachill shop boost retry 1234
+```
+
+`order refund` asks for confirmation (`--yes` skips it) and issues a full
+refund. `--amount` is refused until `extrachill/shop-refund-order` accepts an
+amount. `webhook replay` reads the event from the Stripe API and routes it
+through the Shop webhook router again. Pass `--account` for Connect events.
+
 ### Platform Experiments
 
 Inspect registered definitions and orphaned lifecycle records, transition

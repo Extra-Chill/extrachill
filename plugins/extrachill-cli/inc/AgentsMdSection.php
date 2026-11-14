@@ -30,6 +30,7 @@ class AgentsMdSection {
 		$lines[] = "- Events and venues: `{$wp} extrachill events --help` and `{$wp} extrachill venues --help`";
 		$lines[] = "- Artists, users, and community: `{$wp} extrachill artists --help`, `{$wp} extrachill users --help`, and `{$wp} extrachill community --help`";
 		$lines[] = "- Content and newsletters: `{$wp} extrachill content --help` and `{$wp} extrachill newsletter --help`";
+		$lines[] = "- Shop sellers, orders, refunds, and payment recovery (Shop site): `{$wp} extrachill shop --help`";
 		$lines[] = "- Diagnostics: `{$wp} extrachill analytics errors`, `{$wp} extrachill analytics 404 summary`, and `{$wp} extrachill cache status`";
 		$lines[] = '';
 		$lines[] = '**Multisite**';
