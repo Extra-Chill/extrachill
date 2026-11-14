@@ -33,16 +33,13 @@ final class CommerceStateMigrationTest extends TestCase {
 		$this->assertSame( 'acct_artist', extrachill_shop_get_stripe_account_record( 9 )['account_id'] );
 	}
 
-	public function test_artist_option_migrates_once_and_old_webhook_index_remains_readable(): void {
-		$legacy = array( 'account_id' => 'acct_old', 'status' => 'pending', 'updated_at' => '2026-01-01T00:00:00Z' );
-		update_option( extrachill_shop_stripe_artist_option_name( 9 ), $legacy );
+	public function test_artist_era_option_and_integer_index_are_ignored(): void {
+		// The legacy per-artist option and integer reverse index are gone (#1401).
+		update_option( 'extrachill_shop_stripe_artist_9', array( 'account_id' => 'acct_old', 'status' => 'pending' ) );
 		update_option( 'extrachill_shop_stripe_account_' . hash( 'sha256', 'acct_old' ), 9 );
-		$record = extrachill_shop_get_stripe_account_record( 9 );
-		$this->assertSame( 2, $record['version'] );
-		$this->assertSame( $legacy['updated_at'], $record['updated_at'] );
-		$this->assertSame( $record, extrachill_shop_get_stripe_account_record( 9 ) );
-		$this->assertTrue( extrachill_shop_update_stripe_account_by_id( 'acct_old', 'active', true ) );
-		$this->assertSame( 'active', extrachill_shop_get_stripe_account_record( 9 )['status'] );
+		$this->assertFalse( extrachill_shop_get_stripe_account_record( 9 ) );
+		$this->assertFalse( get_option( 'extrachill_shop_stripe_seller_artist:9', false ) );
+		$this->assertFalse( extrachill_shop_update_stripe_account_by_id( 'acct_old', 'active', true ) );
 	}
 
 	public function test_invalid_sellers_and_conflicting_bindings_are_rejected(): void {

@@ -8,7 +8,6 @@ Extra Chill Shop powers the merch store at shop.extrachill.com:
 
 - **Lifetime Membership** — Ad-free benefit across the network
 - **Artist Marketplace** — Artists sell merch with Stripe Connect payouts
-- **Raffle Products** — Limited-ticket products with visual countdown
 - **Shipping Labels** — Integrated USPS label generation via Shippo
 
 ## How It Works
@@ -29,7 +28,6 @@ Customers shop on **shop.extrachill.com**. Artists fulfill orders via the shop m
 |---------|-------------|
 | **Lifetime Membership** | One-time purchase, ad-free on all network sites |
 | **Stripe Connect** | Artist payouts via Express onboarding |
-| **Raffle Products** | Tag-based activation, progress bar countdown |
 | **Shipping Labels** | Shippo integration, $5 flat-rate USPS |
 | **Theme Integration** | Dark mode, breadcrumbs, cart icon |
 
@@ -40,12 +38,6 @@ Customers shop on **shop.extrachill.com**. Artists fulfill orders via the shop m
 - Cross-domain benefit (purchase on shop, ad-free on main site)
 - Community username linking at checkout
 
-### Raffle Products
-Add the "raffle" tag to any product to enable:
-- Max tickets admin field
-- Frontend progress bar with color states
-- Visual urgency as tickets sell
-
 ### Artist Products
 Artists manage their own products via the Artist Shop Manager block on artist.extrachill.com.
 
@@ -53,7 +45,7 @@ Artists manage their own products via the Artist Shop Manager block on artist.ex
 
 | System | Purpose |
 |--------|---------|
-| **Stripe Connect** | Artist payouts (Separate Charges and Transfers) |
+| **Stripe Connect** | Seller payments as direct charges on the seller's Express account, with the commission taken as an application fee |
 | **Shippo** | USPS shipping labels |
 | **extrachill-users** | Membership storage and validation |
 | **Extrachill Theme** | Styling, breadcrumbs, dark mode |

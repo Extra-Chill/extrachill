@@ -76,21 +76,8 @@ function ec_artist_platform_secondary_header_items( $items ) {
 		}
 	}
 
-	// Shop Link (priority 30).
-	$can_manage_shop = function_exists( 'ec_can_manage_shop' ) ? ec_can_manage_shop( $user_id ) : false;
-	if ( $can_manage_shop ) {
-		$product_count = function_exists( 'ec_get_shop_product_count_for_user' )
-			? ec_get_shop_product_count_for_user( $user_id )
-			: 0;
-
-		$items[] = array(
-			'url'      => ec_get_shop_manager_url(),
-			'label'    => $product_count > 0
-				? __( 'Manage Shop', 'extrachill-artist-platform' )
-				: __( 'Create Shop', 'extrachill-artist-platform' ),
-			'priority' => 30,
-		);
-	}
+	// The shop link lives in the avatar menu only
+	// (extrachill_users_get_avatar_menu_items()), which covers every seller type.
 
 	return $items;
 }

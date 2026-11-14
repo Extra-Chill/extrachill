@@ -57,8 +57,6 @@ class ExtraChillShop {
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/lifetime-membership.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/priority-boost-product.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/priority-boost.php';
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/admin-fields.php';
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/products/raffle/frontend-counter.php';
 
 		// Core functionality
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commerce-state.php';
