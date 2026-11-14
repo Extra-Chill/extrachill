@@ -125,10 +125,5 @@ function extrachill_shop_provision_ensure_product( array $config ) {
 
 	update_option( $config['option_key'], $saved_product_id );
 
-	// Link product to platform artist for shop manager visibility.
-	if ( defined( 'EC_PLATFORM_ARTIST_ID' ) && function_exists( 'extrachill_shop_set_product_artist' ) ) {
-		extrachill_shop_set_product_artist( $saved_product_id, EC_PLATFORM_ARTIST_ID );
-	}
-
 	return $saved_product_id;
 }

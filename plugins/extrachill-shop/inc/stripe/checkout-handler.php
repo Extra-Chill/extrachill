@@ -132,17 +132,9 @@ function extrachill_shop_start_merch_checkout( $order ) {
 		$fee     = $account ? min( $total_minor, max( 0, $fee ) ) : 0;
 		$order->update_meta_data( '_extrachill_stripe_account', $account );
 		$order->update_meta_data( '_extrachill_checkout_session', $session->id );
-		$order->update_meta_data( '_extrachill_seller', $seller );
-		// Keep reporting and seller refund readers compatible with existing orders.
-		if ( $seller ) {
-			$payout = array(
-				'total'           => (float) $order->get_total(),
-				'artist_payout'   => ( $total_minor - $fee ) / 100,
-				'application_fee' => $fee / 100,
-				'stripe_account'  => $account,
-			);
-			$order->update_meta_data( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts', array( extrachill_shop_seller_key( $seller ) => $payout ) );
-		}
+		// The canonical order seller record (see order-seller-index.php).
+		$order->update_meta_data( '_extrachill_seller', $seller ? $seller['type'] . ':' . (int) $seller['id'] : '' );
+		$order->update_meta_data( '_extrachill_application_fee', $fee );
 		$order->save();
 		return $session;
 	} catch ( \Exception $e ) {

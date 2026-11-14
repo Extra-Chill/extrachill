@@ -118,7 +118,7 @@ final class SellerCommerceTest extends TestCase {
 		$this->assertSame( 5, $GLOBALS['test_owner_calls'][0]['args']['user_id'] );
 	}
 
-	public function test_product_seller_storage_round_trips_and_keeps_artist_meta(): void {
+	public function test_product_seller_storage_is_one_typed_pair_for_every_seller(): void {
 		$this->assertTrue(
 			extrachill_shop_set_product_seller(
 				10,
@@ -128,7 +128,13 @@ final class SellerCommerceTest extends TestCase {
 				)
 			)
 		);
-		$this->assertSame( array( '_artist_profile_id' => 9 ), $GLOBALS['test_post_meta'][10] );
+		$this->assertSame(
+			array(
+				'_extrachill_shop_seller_type' => 'artist',
+				'_extrachill_shop_seller_id'   => 9,
+			),
+			$GLOBALS['test_post_meta'][10]
+		);
 		$this->assertSame(
 			array(
 				'type' => 'artist',
@@ -146,7 +152,13 @@ final class SellerCommerceTest extends TestCase {
 				)
 			)
 		);
-		$this->assertArrayNotHasKey( '_artist_profile_id', $GLOBALS['test_post_meta'][10] );
+		$this->assertSame(
+			array(
+				'_extrachill_shop_seller_type' => 'venue',
+				'_extrachill_shop_seller_id'   => 1524,
+			),
+			$GLOBALS['test_post_meta'][10]
+		);
 		$this->assertSame(
 			array(
 				'type' => 'venue',
@@ -165,11 +177,23 @@ final class SellerCommerceTest extends TestCase {
 			)
 		);
 		$this->assertFalse( extrachill_shop_get_product_seller( 11 ) );
+
+		extrachill_shop_clear_product_seller( 10 );
+		$this->assertFalse( extrachill_shop_get_product_seller( 10 ) );
+		// The retired artist-only key is not a seller.
+		update_post_meta( 12, '_artist_profile_id', 9 );
+		$this->assertFalse( extrachill_shop_get_product_seller( 12 ) );
 	}
 
 	public function test_checkout_refuses_mixed_sellers_including_platform(): void {
-		update_post_meta( 1, '_artist_profile_id', 9 );
-		update_post_meta( 2, '_artist_profile_id', 9 );
+		extrachill_shop_set_product_seller( 1, array(
+			'type' => 'artist',
+			'id'   => 9,
+		) );
+		extrachill_shop_set_product_seller( 2, array(
+			'type' => 'artist',
+			'id'   => 9,
+		) );
 		extrachill_shop_set_product_seller( 3, array(
 			'type' => 'venue',
 			'id'   => 1524,

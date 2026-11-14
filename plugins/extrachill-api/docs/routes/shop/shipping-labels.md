@@ -45,6 +45,7 @@ Parameters: `seller_type`, `seller_id`.
   "has_label": true,
   "label_url": "https://...",
   "tracking_number": "9400...",
+  "tracking_url": "https://tools.usps.com/...",
   "carrier": "USPS",
   "service": "Priority Mail",
   "cost": 7.5,

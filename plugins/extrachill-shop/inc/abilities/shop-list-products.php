@@ -79,28 +79,7 @@ function extrachill_shop_ability_list_products( array $input ): array|WP_Error {
 		'orderby'        => 'ID',
 		'order'          => 'DESC',
 	);
-	if ( 'artist' === $seller['type'] ) {
-		$query_args['meta_query'] = array(
-			array(
-				'key'   => '_artist_profile_id',
-				'value' => $seller['id'],
-				'type'  => 'NUMERIC',
-			),
-		);
-	} else {
-		$query_args['meta_query'] = array(
-			'relation' => 'AND',
-			array(
-				'key'   => '_extrachill_shop_seller_type',
-				'value' => $seller['type'],
-			),
-			array(
-				'key'   => '_extrachill_shop_seller_id',
-				'value' => $seller['id'],
-				'type'  => 'NUMERIC',
-			),
-		);
-	}
+	$query_args['meta_query'] = extrachill_shop_seller_products_meta_query( $seller ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Seller identity is product meta.
 
 	$query    = new WP_Query( $query_args );
 	$products = $query->posts;

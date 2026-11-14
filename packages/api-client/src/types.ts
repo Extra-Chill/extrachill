@@ -654,6 +654,8 @@ export interface ShopOrder {
   seller_payout: number;
   order_total: number;
   tracking_number: string;
+  /** Purchased shipping label, or '' when none was bought. */
+  label_url: string;
   ships_free_only: boolean;
 }
 
@@ -717,6 +719,7 @@ export interface ShippingLabel {
   seller: ShopSellerRef;
   label_url: string;
   tracking_number: string;
+  tracking_url: string;
   carrier: string;
   service: string;
   cost: number;

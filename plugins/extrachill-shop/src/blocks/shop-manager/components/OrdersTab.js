@@ -416,34 +416,25 @@ const OrdersTab = ( {
 								) }
 
 								{ /* Existing Label (from previous purchase) */ }
-								{ selectedOrder.tracking_number &&
-									! labelSuccess && (
-										<div className="ec-asm__label-existing">
-											<p>
-												<strong>
-													Label Already Purchased
-												</strong>
-											</p>
-											<p>
-												Tracking:{ ' ' }
-												{
-													selectedOrder.tracking_number
-												}
-											</p>
-											{ selectedOrder.label_url && (
-												<a
-													href={
-														selectedOrder.label_url
-													}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="button-2 button-small"
-												>
-													Reprint Label
-												</a>
-											) }
-										</div>
-									) }
+								{ selectedOrder.label_url && ! labelSuccess && (
+									<div className="ec-asm__label-existing">
+										<p>
+											<strong>Label Already Purchased</strong>
+										</p>
+										<p>
+											Tracking:{ ' ' }
+											{ selectedOrder.tracking_number }
+										</p>
+										<a
+											href={ selectedOrder.label_url }
+											target="_blank"
+											rel="noopener noreferrer"
+											className="button-2 button-small"
+										>
+											Reprint Label
+										</a>
+									</div>
+								) }
 
 								<hr className="ec-asm__divider" />
 

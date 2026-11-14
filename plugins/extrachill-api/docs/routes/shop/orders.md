@@ -43,6 +43,7 @@ curl "https://shop.extrachill.com/wp-json/extrachill/v1/shop/orders?seller_type=
       "seller_payout": 13.49,
       "order_total": 14.99,
       "tracking_number": "",
+      "label_url": "",
       "ships_free_only": false
     }
   ],
@@ -54,7 +55,7 @@ curl "https://shop.extrachill.com/wp-json/extrachill/v1/shop/orders?seller_type=
 }
 ```
 
-Only the seller's own items and payout are returned. `artist_payout` was renamed `seller_payout`.
+An order belongs to at most one seller. `seller_payout` is the order total minus the platform application fee charged at checkout. `tracking_number` and `label_url` come from the order's shipment record (a manually entered tracking number has no `label_url`).
 
 ## PUT /shop/orders/{id}/status
 

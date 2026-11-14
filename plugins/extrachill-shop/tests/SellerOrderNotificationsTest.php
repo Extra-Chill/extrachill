@@ -18,6 +18,7 @@ namespace {
 	require_once dirname( __DIR__ ) . '/inc/core/artist-product-meta.php';
 	require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
 	require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
+	require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 	require_once dirname( __DIR__ ) . '/inc/core/seller-order-notifications.php';
 
 	final class SellerOrderNotificationsTest extends \PHPUnit\Framework\TestCase {
@@ -37,7 +38,7 @@ namespace {
 				return new WP_Error( 'unexpected', $route );
 			};
 		}
-		private function notify( array $types ): array {
+		private function notify( array $types, $fee_minor = '' ): array {
 			$items = array();
 			foreach ( $types as $i => $type ) {
 				$id = $i + 10;
@@ -55,15 +56,25 @@ namespace {
 					public function get_total() { return 20; }
 				};
 			}
-			$GLOBALS['test_orders'][1] = new class( $items ) {
+			$order = new class( $items ) {
+				public $meta = array();
 				private $items;
 				public function __construct( $items ) { $this->items = $items; }
-				public function get_items() { return $this->items; }
+				public function get_items( $type = 'line_item' ) { return $this->items; }
+				public function get_total() { return 20 * count( $this->items ); }
+				public function get_meta( $key ) { return $this->meta[ $key ] ?? ''; }
+				public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
+				public function delete_meta_data( $key ) { unset( $this->meta[ $key ] ); }
+				public function save_meta_data() {}
 				public function get_order_number() { return 123; }
 				public function get_billing_first_name() { return 'Test'; }
 				public function get_billing_last_name() { return 'Buyer'; }
 				public function get_address( $type ) { return array( 'address_1' => '123 Main' ); }
 			};
+			// Order creation derives the seller; checkout records the fee.
+			extrachill_shop_index_order_seller( $order );
+			$order->meta['_extrachill_application_fee'] = $fee_minor;
+			$GLOBALS['test_orders'][1]                 = $order;
 			extrachill_shop_notify_sellers_of_order( 1 );
 			$this->assertSame( array(), $GLOBALS['test_blog_stack'] );
 			return $GLOBALS['notification_mail'];
@@ -97,15 +108,18 @@ namespace {
 			$this->assertSame( array(), $this->notify( array( 'venue' ) ) );
 			$this->assertCount( 1, $GLOBALS['notification_events'] );
 		}
-		public function test_mixed_order_groups_each_seller_once_and_excludes_platform_items(): void {
-			$mail = $this->notify( array( 'artist', 'venue', 'promoter', 'venue', null ) );
-			$this->assertCount( 2, $mail, 'Artist roster only.' );
-			$this->assertCount( 2, $GLOBALS['notification_events'] );
-			$venue = $this->events_message( 0 );
-			$this->assertStringContainsString( 'Product 11', $venue['body_html'] );
-			$this->assertStringContainsString( 'Product 13', $venue['body_html'] );
-			$this->assertStringNotContainsString( 'Product 10', $venue['body_html'] );
-			$this->assertSame( 'promoter', $this->events_message( 1 )['seller']['type'] );
+		public function test_mixed_and_platform_orders_have_no_seller_to_notify(): void {
+			$this->assertSame( array(), $this->notify( array( 'artist', 'venue' ) ) );
+			$GLOBALS['test_post_meta'] = array();
+			$this->assertSame( array(), $this->notify( array( null ) ) );
+			$this->assertSame( array(), $GLOBALS['notification_events'] );
+		}
+		public function test_payout_is_the_order_total_minus_the_checkout_fee(): void {
+			$this->notify( array( 'venue', 'venue' ), 350 );
+			$body = $this->events_message()['body_html'];
+			$this->assertStringContainsString( 'Product 10', $body );
+			$this->assertStringContainsString( 'Product 11', $body );
+			$this->assertStringContainsString( '<strong>Your Payout:</strong> $36.50', $body );
 		}
 	}
 }

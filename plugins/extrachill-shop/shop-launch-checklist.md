@@ -17,7 +17,7 @@ The shop system is currently gated to admins only, allowing internal testing and
   - [x] Artist creator success screen "Create Shop" button - admin only
 
 - [x] **Helper Functions**
-  - [x] `extrachill_shop_get_product_count_for_user()` - cross-site product count
+  - [x] `ec_get_shop_product_count_for_user()` (extrachill-users) - cross-site product count
 
 ### Files Modified for Admin Gate
 

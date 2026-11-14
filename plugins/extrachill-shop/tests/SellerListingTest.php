@@ -1,27 +1,23 @@
 <?php
 // phpcs:disable -- Test doubles and WordPress/WooCommerce stubs.
-/** Focused seller index and listing contract tests. */
+/** Order seller record and seller-scoped listing contract tests. */
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/SellerCommerceTest.php';
 require_once __DIR__ . '/fixtures/OrderUtil.php';
+require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
+require_once dirname( __DIR__ ) . '/inc/core/artist-taxonomy.php';
 require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-list-orders.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-list-products.php';
 
-function wc_get_order_statuses() { return array(
-	'wc-processing' => 'Processing',
-	'wc-completed'  => 'Completed',
-); }
-function wp_next_scheduled() { return false; }
-function wp_schedule_single_event() {}
 function wc_get_orders( $args ) {
 	$GLOBALS['listing_queries'][] = $args;
 	$orders                       = array_values( $GLOBALS['listing_orders'] );
-	$key                          = $args['extrachill_order_seller'] ?? $args['meta_query'][0]['value'] ?? null;
+	$key                          = $args['extrachill_seller'] ?? $args['meta_query'][0]['value'] ?? null;
 	if ( $key ) {
 		$orders = array_values( array_filter( $orders, static function ( $order ) use ( $key, $args ) {
-			return in_array( $key, $order->sellers, true ) && in_array( 'wc-' . $order->get_status(), $args['status'], true );
+			return $key === $order->get_meta( '_extrachill_seller' ) && in_array( 'wc-' . $order->get_status(), $args['status'], true );
 		} ) );
 	}
 	$total  = count( $orders );
@@ -40,8 +36,8 @@ class WP_Query {
 	}
 }
 class SellerListingOrder {
-	public $sellers = array();
-	public $saves   = 0;
+	public $meta  = array();
+	public $saves = 0;
 	private $products;
 	public function __construct( $products ) { $this->products = $products; }
 	public function get_items( $type = 'line_item' ) {
@@ -55,15 +51,10 @@ class SellerListingOrder {
 			};
 		}, $this->products );
 	}
-	public function get_meta( $key, $single = true ) {
-		if ( '_extrachill_order_seller' === $key && ! $single ) {
-			return array_map( static function ( $value ) { return (object) array( 'value' => $value );
-			}, $this->sellers );
-		}
-		return '';
-	}
-	public function delete_meta_data( $key ) { $this->sellers = array(); }
-	public function add_meta_data( $key, $value, $unique ) { $this->sellers[] = $value; }
+	public function get_total() { return 10 * count( $this->products ); }
+	public function get_meta( $key ) { return $this->meta[ $key ] ?? ''; }
+	public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
+	public function delete_meta_data( $key ) { unset( $this->meta[ $key ] ); }
 	public function save_meta_data() { ++$this->saves; }
 	public function get_status() { return 'processing'; }
 	public function get_address( $type ) { return array(); }
@@ -99,29 +90,38 @@ final class SellerListingTest extends TestCase {
 		$GLOBALS['listing_orders'] = array(
 			new SellerListingOrder( array( 1, 1 ) ),
 			new SellerListingOrder( array( 2 ) ),
+			new SellerListingOrder( array( 2, 2 ) ),
+			new SellerListingOrder( array( 3 ) ),
 			new SellerListingOrder( array( 2, 3 ) ),
+			new SellerListingOrder( array( 99 ) ),
 		);
-	}
-	public function test_index_handles_single_and_multiple_sellers_without_duplicates(): void {
 		foreach ( $GLOBALS['listing_orders'] as $order ) {
-			extrachill_shop_index_order_sellers( $order );
-			extrachill_shop_index_order_sellers( $order );
-			$this->assertSame( 1, $order->saves );
+			extrachill_shop_index_order_seller( $order );
 		}
-		$this->assertSame( array( 'artist:1226' ), $GLOBALS['listing_orders'][0]->sellers );
-		$this->assertSame( array( 'promoter:1226', 'venue:1226' ), $GLOBALS['listing_orders'][2]->sellers );
 	}
-	public function test_backfill_is_idempotent(): void {
-		extrachill_shop_backfill_order_sellers();
-		$this->assertSame( 1, get_option( 'extrachill_shop_order_seller_index_complete' ) );
-		unset( $GLOBALS['test_options']['extrachill_shop_order_seller_index_complete'] );
-		extrachill_shop_backfill_order_sellers();
-		foreach ( $GLOBALS['listing_orders'] as $order ) {
-			$this->assertSame( 1, $order->saves );
-		}
+	public function test_order_seller_is_one_key_derived_from_line_items(): void {
+		$orders = $GLOBALS['listing_orders'];
+		$this->assertSame( 'artist:1226', $orders[0]->meta['_extrachill_seller'] );
+		$this->assertSame( 'venue:1226', $orders[2]->meta['_extrachill_seller'] );
+		$this->assertSame( 'promoter:1226', $orders[3]->meta['_extrachill_seller'] );
+		$this->assertArrayNotHasKey( '_extrachill_seller', $orders[4]->meta, 'Mixed orders have no seller.' );
+		$this->assertArrayNotHasKey( '_extrachill_seller', $orders[5]->meta, 'Platform orders have no seller.' );
+
+		// Replays are no-ops.
+		extrachill_shop_index_order_seller( $orders[0] );
+		$this->assertSame( 1, $orders[0]->saves );
+	}
+	public function test_checkout_freezes_the_order_seller(): void {
+		$order                                        = $GLOBALS['listing_orders'][1];
+		$order->meta['_extrachill_checkout_session']  = 'cs_1';
+		extrachill_shop_set_product_seller( 2, array(
+			'type' => 'promoter',
+			'id'   => 1226,
+		) );
+		extrachill_shop_index_order_seller( $order );
+		$this->assertSame( 'venue:1226', $order->meta['_extrachill_seller'] );
 	}
 	public function test_order_listing_scopes_all_seller_types_and_paginates(): void {
-		extrachill_shop_backfill_order_sellers();
 		foreach ( array(
 			'artist'   => 1,
 			'venue'    => 2,
@@ -162,12 +162,9 @@ final class SellerListingTest extends TestCase {
 			$args = $GLOBALS['listing_product_query'];
 			$this->assertSame( 5, $args['posts_per_page'] );
 			$this->assertSame( 2, $args['paged'] );
-			if ( 'artist' === $type ) {
-				$this->assertSame( '_artist_profile_id', $args['meta_query'][0]['key'] );
-			} else {
-				$this->assertSame( $type, $args['meta_query'][0]['value'] );
-				$this->assertSame( 1226, $args['meta_query'][1]['value'] );
-			}
+			$this->assertSame( '_extrachill_shop_seller_type', $args['meta_query'][0]['key'] );
+			$this->assertSame( $type, $args['meta_query'][0]['value'] );
+			$this->assertSame( 1226, $args['meta_query'][1]['value'] );
 		}
 		$this->assertSame( 'missing_seller', extrachill_shop_ability_list_products( array( 'artist_id' => 1226 ) )->get_error_code() );
 	}
@@ -188,7 +185,6 @@ final class SellerListingTest extends TestCase {
 	}
 	public function test_hpos_uses_native_meta_query(): void {
 		\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = true;
-		extrachill_shop_backfill_order_sellers();
 		$result = extrachill_shop_ability_list_orders( array(
 			'seller'   => array(
 				'type' => 'venue',
@@ -202,15 +198,15 @@ final class SellerListingTest extends TestCase {
 		$args = $GLOBALS['listing_queries'][1];
 		$this->assertSame( array(
 			array(
-				'key'   => '_extrachill_order_seller',
+				'key'   => '_extrachill_seller',
 				'value' => 'venue:1226',
 			),
 		), $args['meta_query'] );
 	}
 	public function test_cpt_adapter_adds_exact_seller_constraint(): void {
-		$query = extrachill_shop_order_seller_cpt_query( array(), array( 'extrachill_order_seller' => 'venue:1226' ) );
+		$query = extrachill_shop_order_seller_cpt_query( array(), array( 'extrachill_seller' => 'venue:1226' ) );
 		$this->assertSame( array(
-			'key'   => '_extrachill_order_seller',
+			'key'   => '_extrachill_seller',
 			'value' => 'venue:1226',
 		), $query['meta_query'][0] );
 	}

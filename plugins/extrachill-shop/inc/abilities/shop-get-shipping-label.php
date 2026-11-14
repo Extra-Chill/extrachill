@@ -43,6 +43,7 @@ function extrachill_shop_register_get_shipping_label_ability(): void {
 					'has_label'       => array( 'type' => 'boolean' ),
 					'label_url'       => array( 'type' => 'string' ),
 					'tracking_number' => array( 'type' => 'string' ),
+					'tracking_url'    => array( 'type' => 'string' ),
 					'carrier'         => array( 'type' => 'string' ),
 					'service'         => array( 'type' => 'string' ),
 					'cost'            => array( 'type' => 'number' ),
@@ -86,7 +87,7 @@ function extrachill_shop_ability_get_shipping_label( array $input ): array|WP_Er
 		return new WP_Error( 'order_not_found', 'Order not found.', array( 'status' => 404 ) );
 	}
 
-	$label = extrachill_shop_read_order_label( $order, $seller );
+	$label = extrachill_shop_get_order_shipment( $order );
 	return array_merge(
 		array(
 			'order_id'  => $order_id,
@@ -94,28 +95,5 @@ function extrachill_shop_ability_get_shipping_label( array $input ): array|WP_Er
 			'has_label' => '' !== $label['label_url'],
 		),
 		$label
-	);
-}
-
-/**
- * Read a seller's label record from an order.
- *
- * @param WC_Order $order  Order.
- * @param array    $seller Seller reference.
- * @return array{label_url: string, tracking_number: string, carrier: string, service: string, cost: float|int, purchased_at: string}
- */
-function extrachill_shop_read_order_label( $order, array $seller ): array {
-	$prefix = 'artist' === $seller['type'] ? '_artist_' : '_seller_';
-	$key    = extrachill_shop_seller_key( $seller );
-	$data   = $order->get_meta( $prefix . 'label_data_' . $key );
-	$data   = is_array( $data ) ? $data : array();
-
-	return array(
-		'label_url'       => (string) $order->get_meta( $prefix . 'label_' . $key ),
-		'tracking_number' => (string) $order->get_meta( $prefix . 'tracking_' . $key ),
-		'carrier'         => (string) ( $data['carrier'] ?? '' ),
-		'service'         => (string) ( $data['service'] ?? '' ),
-		'cost'            => $data['cost'] ?? 0,
-		'purchased_at'    => (string) ( $data['purchased_at'] ?? '' ),
 	);
 }
