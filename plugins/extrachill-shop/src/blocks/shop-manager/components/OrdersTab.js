@@ -248,7 +248,7 @@ const OrdersTab = ( {
 								</span>
 								<span className="ec-asm__order-payout">
 									$
-									{ ( order.artist_payout || 0 ).toFixed(
+									{ ( order.seller_payout || 0 ).toFixed(
 										2
 									) }
 								</span>
@@ -333,7 +333,7 @@ const OrdersTab = ( {
 							</table>
 							<p className="ec-asm__order-payout-total">
 								<strong>Your Payout:</strong> $
-								{ ( selectedOrder.artist_payout || 0 ).toFixed(
+								{ ( selectedOrder.seller_payout || 0 ).toFixed(
 									2
 								) }
 							</p>

@@ -127,9 +127,9 @@ The plugin ships route files under `inc/routes/` (loaded recursively) and regist
 - `PUT /shop/orders/{id}/status` - Mark shipped (`status=completed`)
 - `POST /shop/orders/{id}/refund` - Issue full refund
 - `POST/DELETE /shop/products/{id}/images` - Product image management
-- `GET/POST/DELETE /shop/stripe` - Stripe Connect management
+- `GET /shop/stripe-connect/status`, `POST /shop/stripe-connect/{onboarding,dashboard}-link` - Stripe Connect management
 - `POST /shop/stripe-webhook` - Stripe webhook handler
-- `GET/PUT /shop/shipping-address` - Artist shipping from-address management
+- `GET/PUT /shop/shipping-address` - Seller ship-from address management
 - `GET/POST /shop/shipping-labels` - Purchase and retrieve shipping labels
 
 ### Stream (1)

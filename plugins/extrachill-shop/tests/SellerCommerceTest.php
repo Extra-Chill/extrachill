@@ -33,6 +33,7 @@ final class SellerCommerceTest extends TestCase {
 		$GLOBALS['test_post_meta']      = array();
 		$GLOBALS['test_owner_calls']    = array();
 		$GLOBALS['test_user_id']        = 5;
+		extrachill_shop_reset_seller_permission_cache();
 		$GLOBALS['test_events']         = array(
 			'venue:1524'  => array(
 				'name'                => 'Lo-Fi Brewing',
@@ -53,14 +54,8 @@ final class SellerCommerceTest extends TestCase {
 		};
 	}
 
-	public function test_seller_input_accepts_typed_seller_or_legacy_artist(): void {
-		$this->assertSame(
-			array(
-				'type' => 'artist',
-				'id'   => 9,
-			),
-			extrachill_shop_seller_from_input( array( 'artist_id' => 9 ) )
-		);
+	public function test_seller_input_requires_a_typed_seller(): void {
+		$this->assertSame( 'missing_seller', extrachill_shop_seller_from_input( array( 'artist_id' => 9 ) )->get_error_code() );
 		$this->assertSame(
 			array(
 				'type' => 'venue',
@@ -91,7 +86,8 @@ final class SellerCommerceTest extends TestCase {
 
 	public function test_venue_and_promoter_authority_comes_from_events_owner(): void {
 		$this->assertTrue(
-			extrachill_shop_current_user_can_manage_seller(
+			extrachill_shop_can_manage_seller(
+				5,
 				array(
 					'type' => 'venue',
 					'id'   => 1524,
@@ -100,7 +96,8 @@ final class SellerCommerceTest extends TestCase {
 		);
 		$this->assertSame(
 			'cannot_manage_seller',
-			extrachill_shop_current_user_can_manage_seller(
+			extrachill_shop_can_manage_seller(
+				5,
 				array(
 					'type' => 'promoter',
 					'id'   => 88,
@@ -109,7 +106,8 @@ final class SellerCommerceTest extends TestCase {
 		);
 		$this->assertInstanceOf(
 			WP_Error::class,
-			extrachill_shop_current_user_can_manage_seller(
+			extrachill_shop_can_manage_seller(
+				5,
 				array(
 					'type' => 'venue',
 					'id'   => 4040,

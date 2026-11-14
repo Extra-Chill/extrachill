@@ -143,7 +143,7 @@ final class CommerceStateMigrationTest extends TestCase {
 			'details_submitted'    => true,
 		);
 
-		$result = extrachill_shop_ability_stripe_status( array( 'artist_id' => 12 ) );
+		$result = extrachill_shop_ability_stripe_status( array( 'seller' => array( 'type' => 'artist', 'id' => 12 ) ) );
 
 		$this->assertArrayNotHasKey( 'account_id', $result );
 		$this->assertTrue( $result['can_receive_payments'] );

@@ -29,20 +29,15 @@ function extrachill_shop_register_get_shipping_address_ability(): void {
 			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
+					'seller' => extrachill_shop_seller_input_schema(),
 				),
 			),
 			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
-					'seller'    => extrachill_shop_seller_input_schema(),
-					'artist_id' => array( 'type' => 'integer' ),
-					'address'   => array( 'type' => 'object' ),
-					'is_set'    => array( 'type' => 'boolean' ),
+					'seller'  => extrachill_shop_seller_input_schema(),
+					'address' => array( 'type' => 'object' ),
+					'is_set'  => array( 'type' => 'boolean' ),
 				),
 			),
 			'execute_callback'    => 'extrachill_shop_ability_get_shipping_address',
@@ -87,9 +82,8 @@ function extrachill_shop_ability_get_shipping_address( array $input ): array|WP_
 	$address = is_array( $address ) ? array_merge( $default, $address ) : $default;
 
 	return array(
-		'seller'    => $seller,
-		'artist_id' => 'artist' === $seller['type'] ? $seller['id'] : 0,
-		'address'   => $address,
-		'is_set'    => ! empty( $address['name'] ) && ! empty( $address['street1'] ),
+		'seller'  => $seller,
+		'address' => $address,
+		'is_set'  => ! empty( $address['name'] ) && ! empty( $address['street1'] ),
 	);
 }

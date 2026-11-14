@@ -23,20 +23,16 @@ function extrachill_shop_register_stripe_status_ability(): void {
 	wp_register_ability(
 		'extrachill/shop-stripe-status',
 		array(
-			'label'       => __( 'Stripe Connect Status', 'extrachill-shop' ),
-			'description' => __( 'Get the Stripe Connect account status for a seller (artist, venue, or promoter).', 'extrachill-shop' ),
-			'category'    => 'extrachill-shop',
-			'input_schema' => array(
+			'label'               => __( 'Stripe Connect Status', 'extrachill-shop' ),
+			'description'         => __( 'Get the Stripe Connect account status for a seller (artist, venue, or promoter).', 'extrachill-shop' ),
+			'category'            => 'extrachill-shop',
+			'input_schema'        => array(
 				'type'       => 'object',
 				'properties' => array(
-					'artist_id' => array(
-						'type'        => 'integer',
-						'description' => 'Artist profile ID.',
-					),
-					'seller'    => extrachill_shop_seller_input_schema(),
+					'seller' => extrachill_shop_seller_input_schema(),
 				),
 			),
-			'output_schema' => array(
+			'output_schema'       => array(
 				'type'       => 'object',
 				'properties' => array(
 					'connected'            => array( 'type' => 'boolean' ),
@@ -54,7 +50,7 @@ function extrachill_shop_register_stripe_status_ability(): void {
 			),
 			'execute_callback'    => 'extrachill_shop_ability_stripe_status',
 			'permission_callback' => 'extrachill_shop_authorize_seller_input',
-			'meta' => array(
+			'meta'                => array(
 				'show_in_rest' => true,
 				'annotations'  => array(
 					'readonly'    => true,

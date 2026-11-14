@@ -1,33 +1,34 @@
 # Stripe Connect
 
-Stripe Connect is scoped to an `artist_profile` post (artist site). These endpoints support checking account status and generating onboarding/dashboard links.
+Stripe Connect accounts belong to a seller: an artist, venue or promoter. One account receives the seller's merch and ticket payouts.
 
-## Routes
-- `GET /wp-json/extrachill/v1/shop/stripe-connect/status?artist_id=123`
-- `POST /wp-json/extrachill/v1/shop/stripe-connect/onboarding-link`
-- `POST /wp-json/extrachill/v1/shop/stripe-connect/dashboard-link`
+| Route | Ability |
+|---|---|
+| `GET /wp-json/extrachill/v1/shop/stripe-connect/status` | `extrachill/shop-stripe-status` |
+| `POST /wp-json/extrachill/v1/shop/stripe-connect/onboarding-link` | `extrachill/shop-stripe-onboarding-link` |
+| `POST /wp-json/extrachill/v1/shop/stripe-connect/dashboard-link` | `extrachill/shop-stripe-dashboard-link` |
 
-## Permission
-- User must be logged in.
-- Pass either `artist_id`, or `seller_type` (`venue` | `promoter`) with `seller_id`.
-- Artists: the user must be able to manage the artist: `ec_can_manage_artist( get_current_user_id(), artist_id )`.
-- Venues and promoters: the user must hold finance authority on the Events site (venue owner with booking access, or owner of an active promoter organization). The Shop ability checks this through `extrachill/get-commerce-seller`.
-- Venue and promoter onboarding returns to the seller's Events profile.
+## Sellers and permission
+
+Every route is a thin adapter over an `extrachill-shop` ability. The route maps the request to ability input, calls the ability's own permission callback, and returns the ability result. All seller access is decided in one place: `extrachill_shop_can_manage_seller( $user_id, $seller )`.
+
+- Name the seller with `seller_type` (`artist` | `venue` | `promoter`) and `seller_id`. `artist_id` is not accepted.
+- Network admins (`manage_options`) may manage any seller.
+- Everyone else needs the `shop` feature for their tier (`ec_feature_available( 'shop' )`) and membership of the seller: artist membership through the Artist owner (`ec_can_manage_artist()`), venue/promoter finance authority through Events (`extrachill/get-commerce-seller` → `can_manage_finances`).
+- Errors: `401 rest_not_logged_in`, `403 shop_unavailable` (feature gate), `403 cannot_manage_seller`, `400 missing_seller` / `invalid_seller`.
+
+Events calls `GET status` (as the acting user) to check whether a venue or promoter can sell tickets.
 
 ## GET status
-Returns the current Stripe connection status and account capabilities.
 
-### Request
 ```bash
-curl -X GET "http://site.local/wp-json/extrachill/v1/shop/stripe-connect/status?artist_id=123" \
-  -H "X-WP-Nonce: nonce_value"
+curl "https://shop.extrachill.com/wp-json/extrachill/v1/shop/stripe-connect/status?seller_type=promoter&seller_id=88" \
+  -H "X-WP-Nonce: $NONCE"
 ```
 
-### Response
 ```json
 {
   "connected": true,
-  "account_id": "acct_123",
   "status": "active",
   "can_receive_payments": true,
   "charges_enabled": true,
@@ -36,61 +37,12 @@ curl -X GET "http://site.local/wp-json/extrachill/v1/shop/stripe-connect/status?
 }
 ```
 
-If the artist has no connected account:
-```json
-{
-  "connected": false,
-  "account_id": null,
-  "status": null,
-  "can_receive_payments": false
-}
-```
+The raw Stripe account ID is never returned.
 
-## POST onboarding link
-Creates a Stripe Express account for the artist if one doesn't exist and returns an onboarding URL.
+## POST onboarding-link
 
-### Request
-```bash
-curl -X POST "http://site.local/wp-json/extrachill/v1/shop/stripe-connect/onboarding-link" \
-  -H "Content-Type: application/json" \
-  -H "X-WP-Nonce: nonce_value" \
-  -d '{
-    "artist_id": 123
-  }'
-```
+Body: `seller_type`, `seller_id`. Creates the Express account when needed and returns `{ "success": true, "url": "https://connect.stripe.com/..." }`. Venue and promoter onboarding returns to the seller's Events profile.
 
-### Response
-```json
-{
-  "success": true,
-  "url": "https://connect.stripe.com/setup/s/..."
-}
-```
+## POST dashboard-link
 
-## POST dashboard link
-Generates a single-use login link for the artist's Stripe Express dashboard.
-
-### Request
-```bash
-curl -X POST "http://site.local/wp-json/extrachill/v1/shop/stripe-connect/dashboard-link" \
-  -H "Content-Type: application/json" \
-  -H "X-WP-Nonce: nonce_value" \
-  -d '{
-    "artist_id": 123
-  }'
-```
-
-### Response
-```json
-{
-  "success": true,
-  "url": "https://connect.stripe.com/express_login/..."
-}
-```
-
-## Notes
-- Account creation uses the artist owner's email (`artist_profile.post_author`).
-- Account data is stored on the `artist_profile` post meta, not user meta:
-  - `_stripe_connect_account_id`
-  - `_stripe_connect_status`
-  - `_stripe_connect_onboarding_complete`
+Body: `seller_type`, `seller_id`. Returns `{ "success": true, "url": "https://connect.stripe.com/express/..." }`. `404` when the seller has no Stripe account.

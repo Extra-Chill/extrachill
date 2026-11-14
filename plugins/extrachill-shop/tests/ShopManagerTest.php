@@ -61,6 +61,7 @@ final class ShopManagerTest extends TestCase {
 	);
 
 	protected function setUp(): void {
+		extrachill_shop_reset_seller_permission_cache();
 		$GLOBALS['test_options']        = array();
 		$GLOBALS['test_pages']          = array();
 		$GLOBALS['test_inserted_posts'] = array();
@@ -140,7 +141,7 @@ final class ShopManagerTest extends TestCase {
 
 		$this->assertSame( 'extrachill_shop_authorize_seller_input', $ability['permission_callback'] );
 		$this->assertArrayHasKey( 'seller', $ability['input_schema']['properties'] );
-		$this->assertSame( array( 'id', 'status' ), $ability['input_schema']['required'] );
+		$this->assertSame( array( 'id', 'seller', 'status' ), $ability['input_schema']['required'] );
 	}
 
 	public function test_order_membership_uses_index_then_payout_projection(): void {

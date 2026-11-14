@@ -173,7 +173,7 @@ function extrachill_shop_render_storefront_header( array $seller ): void {
 	}
 
 	$manage_url = '';
-	if ( is_user_logged_in() && true === extrachill_shop_current_user_can_manage_seller( $seller ) ) {
+	if ( is_user_logged_in() && true === extrachill_shop_can_manage_seller( get_current_user_id(), $seller ) ) {
 		$manage_url = extrachill_shop_get_shop_manager_url( $seller );
 	}
 	?>

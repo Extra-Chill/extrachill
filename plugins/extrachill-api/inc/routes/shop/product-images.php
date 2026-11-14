@@ -32,7 +32,7 @@ function extrachill_api_register_shop_product_images_routes() {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => 'extrachill_api_shop_product_images_upload_handler',
-				'permission_callback' => 'extrachill_api_shop_products_item_permission_check',
+				'permission_callback' => 'extrachill_api_shop_product_images_permission_check',
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -51,7 +51,7 @@ function extrachill_api_register_shop_product_images_routes() {
 			array(
 				'methods'             => WP_REST_Server::DELETABLE,
 				'callback'            => 'extrachill_api_shop_product_images_delete_handler',
-				'permission_callback' => 'extrachill_api_shop_products_item_permission_check',
+				'permission_callback' => 'extrachill_api_shop_product_images_permission_check',
 				'args'                => array(
 					'id'            => array(
 						'required'          => true,
@@ -70,27 +70,29 @@ function extrachill_api_register_shop_product_images_routes() {
 }
 
 /**
+ * Permission: the ability's product-seller check, without the upload payload.
+ *
+ * @param WP_REST_Request $request Request.
+ * @return true|WP_Error
+ */
+function extrachill_api_shop_product_images_permission_check( WP_REST_Request $request ) {
+	$ability = null === $request->get_param( 'attachment_id' ) ? 'extrachill/shop-upload-product-image' : 'extrachill/shop-delete-product-image';
+	return extrachill_api_shop_check_ability( $ability, array( 'id' => absint( $request->get_param( 'id' ) ) ) );
+}
+
+/**
  * Handle POST /shop/products/{id}/images.
  *
  * Wraps the extrachill/shop-upload-product-image ability from extrachill-shop.
  */
 function extrachill_api_shop_product_images_upload_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/shop-upload-product-image' );
-	if ( ! $ability ) {
-		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
-	}
-
-	$result = $ability->execute(
+	return extrachill_api_shop_run_ability(
+		'extrachill/shop-upload-product-image',
 		array(
 			'id'      => absint( $request->get_param( 'id' ) ),
 			'request' => $request,
 		)
 	);
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	return rest_ensure_response( $result );
 }
 
 /**
@@ -101,20 +103,11 @@ function extrachill_api_shop_product_images_upload_handler( WP_REST_Request $req
  * permanently deletes the attachment, and returns the rebuilt product response.
  */
 function extrachill_api_shop_product_images_delete_handler( WP_REST_Request $request ) {
-	$ability = wp_get_ability( 'extrachill/shop-delete-product-image' );
-	if ( ! $ability ) {
-		return new WP_Error( 'ability_not_found', 'extrachill-shop plugin is required.', array( 'status' => 500 ) );
-	}
-
-	$result = $ability->execute(
+	return extrachill_api_shop_run_ability(
+		'extrachill/shop-delete-product-image',
 		array(
 			'id'            => absint( $request->get_param( 'id' ) ),
 			'attachment_id' => absint( $request->get_param( 'attachment_id' ) ),
 		)
 	);
-	if ( is_wp_error( $result ) ) {
-		return $result;
-	}
-
-	return rest_ensure_response( $result );
 }
