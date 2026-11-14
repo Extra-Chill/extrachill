@@ -57,6 +57,8 @@ const App = ( { config } ) => {
 	const [ stripeStatus, setStripeStatus ] = useState( null );
 	const [ stripeLoading, setStripeLoading ] = useState( false );
 	const [ stripeError, setStripeError ] = useState( '' );
+	const [ sellerAgreementAccepted, setSellerAgreementAccepted ] =
+		useState( false );
 
 	const [ orders, setOrders ] = useState( [] );
 	const [ ordersLoading, setOrdersLoading ] = useState( false );
@@ -202,10 +204,19 @@ const App = ( { config } ) => {
 			setStripeError( 'Select a shop first.' );
 			return;
 		}
+		if ( ! sellerAgreementAccepted ) {
+			setStripeError(
+				'Please agree to the Seller Agreement before connecting Stripe.'
+			);
+			return;
+		}
 		setStripeLoading( true );
 		setStripeError( '' );
 		try {
-			const data = await createStripeConnectOnboardingLink( seller );
+			const data = await createStripeConnectOnboardingLink(
+				seller,
+				sellerAgreementAccepted
+			);
 			const url = data?.url;
 			if ( ! url ) {
 				throw new Error( 'Onboarding link missing.' );
@@ -217,7 +228,7 @@ const App = ( { config } ) => {
 			);
 			setStripeLoading( false );
 		}
-	}, [ seller ] );
+	}, [ seller, sellerAgreementAccepted ] );
 
 	const openStripeDashboard = useCallback( async () => {
 		if ( ! seller ) {
@@ -286,6 +297,9 @@ const App = ( { config } ) => {
 						status={ stripeStatus }
 						loading={ stripeLoading }
 						error={ stripeError }
+						sellerAgreementUrl={ config.sellerAgreementUrl || '' }
+						sellerAgreementAccepted={ sellerAgreementAccepted }
+						onSellerAgreementChange={ setSellerAgreementAccepted }
 						onConnect={ connectStripe }
 						onOpenDashboard={ openStripeDashboard }
 						onRefresh={ loadStripe }

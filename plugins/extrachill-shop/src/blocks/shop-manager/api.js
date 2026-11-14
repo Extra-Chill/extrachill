@@ -181,10 +181,16 @@ export const getStripeConnectStatus = ( seller ) =>
 		`extrachill/v1/shop/stripe-connect/status?${ new URLSearchParams( stripeParams( seller ) ) }`
 	);
 
-export const createStripeConnectOnboardingLink = ( seller ) =>
+export const createStripeConnectOnboardingLink = (
+	seller,
+	acceptSellerAgreement = false
+) =>
 	request( 'extrachill/v1/shop/stripe-connect/onboarding-link', {
 		method: 'POST',
-		body: stripeParams( seller ),
+		body: {
+			...stripeParams( seller ),
+			accept_seller_agreement: !! acceptSellerAgreement,
+		},
 	} );
 
 export const createStripeConnectDashboardLink = ( seller ) =>

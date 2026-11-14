@@ -12,6 +12,9 @@ const PaymentsTab = ( {
 	status,
 	loading,
 	error,
+	sellerAgreementUrl,
+	sellerAgreementAccepted,
+	onSellerAgreementChange,
 	onConnect,
 	onOpenDashboard,
 	onRefresh,
@@ -76,13 +79,45 @@ const PaymentsTab = ( {
 						) : null }
 					</div>
 
+					{ ! connected && (
+						<label
+							className="ec-checkbox-row"
+							htmlFor="ec-asm-seller-agreement"
+						>
+							<input
+								id="ec-asm-seller-agreement"
+								type="checkbox"
+								checked={ !! sellerAgreementAccepted }
+								onChange={ ( event ) =>
+									onSellerAgreementChange(
+										event.target.checked
+									)
+								}
+								disabled={ loading }
+							/>
+							<span>
+								I agree to the{ ' ' }
+								<a
+									href={ sellerAgreementUrl }
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									Seller Agreement
+								</a>
+								.
+							</span>
+						</label>
+					) }
+
 					<ActionRow className="ec-asm__actions">
 						{ ! connected ? (
 							<button
 								type="button"
 								className="button-1 button-small"
 								onClick={ onConnect }
-								disabled={ loading }
+								disabled={
+									loading || ! sellerAgreementAccepted
+								}
 							>
 								Connect Stripe
 							</button>
