@@ -5,6 +5,13 @@
 namespace Stripe {
 	if ( ! class_exists( '\Stripe\Event', false ) ) {
 		class Event {
+			/** Mirrors the Stripe SDK event fields the Shop reads. */
+			public $id;
+			public $type;
+			public $account;
+			public $livemode;
+			public $data;
+
 			public static function retrieve( $id, $options = array() ) {
 				$GLOBALS['operator_event_requests'][] = array( $id, $options );
 				if ( isset( $GLOBALS['operator_event_error'] ) ) {

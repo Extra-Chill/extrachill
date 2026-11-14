@@ -56,6 +56,10 @@ abstract class ShopCommandBase {
 	protected function parse_seller( $value ) {
 		if ( ! preg_match( '/^(artist|venue|promoter):([1-9][0-9]*)$/', (string) $value, $match ) ) {
 			WP_CLI::error( sprintf( 'Invalid seller "%s". Use type:id, e.g. artist:12, venue:1524, promoter:8.', $value ) );
+			return array(
+				'type' => '',
+				'id'   => 0,
+			);
 		}
 		return array(
 			'type' => $match[1],

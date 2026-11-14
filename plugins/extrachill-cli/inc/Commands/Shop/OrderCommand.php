@@ -139,7 +139,7 @@ class OrderCommand extends ShopCommandBase {
 		$input    = array( 'id' => $order_id );
 
 		if ( isset( $assoc_args['amount'] ) ) {
-			$schema = method_exists( $refund, 'get_input_schema' ) ? (array) $refund->get_input_schema() : array();
+			$schema = (array) $refund->get_input_schema();
 			if ( ! isset( $schema['properties']['amount'] ) ) {
 				WP_CLI::error( 'extrachill/shop-refund-order only issues full refunds; --amount is not supported yet. Re-run without --amount for a full refund.' );
 			}
@@ -154,19 +154,21 @@ class OrderCommand extends ShopCommandBase {
 
 		$order = $this->run( 'extrachill/shop-get-order', array( 'id' => $order_id ) );
 		if ( isset( $assoc_args['seller'] ) ) {
-			$input['seller'] = $this->parse_seller( $assoc_args['seller'] );
+			$seller = $this->parse_seller( $assoc_args['seller'] );
 		} elseif ( ! empty( $order['seller'] ) ) {
-			$input['seller'] = $order['seller'];
+			$seller = (array) $order['seller'];
 		} else {
 			WP_CLI::error( sprintf( 'Order %d has no seller (platform order). Refund it from WooCommerce.', $order_id ) );
+			return;
 		}
+		$input['seller'] = $seller;
 
 		WP_CLI::confirm(
 			sprintf(
 				'Refund %s of order %d (%s, total %s %s, already refunded %s)?',
 				isset( $input['amount'] ) ? $input['amount'] . ' ' . ( $order['currency'] ?? '' ) : 'the full amount',
 				$order_id,
-				$input['seller']['type'] . ':' . $input['seller']['id'],
+				( $seller['type'] ?? '' ) . ':' . ( $seller['id'] ?? '' ),
 				$order['total'] ?? 0,
 				$order['currency'] ?? '',
 				$order['total_refunded'] ?? 0
