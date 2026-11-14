@@ -1,9 +1,26 @@
 <?php
 namespace Stripe\Checkout {
 	class Session {
+		public $id;
+		public $status;
 		public static function create( $params, $options ) {
 			$GLOBALS['ticket_session_request'] = array( $params, $options );
-			return (object) array( 'id' => 'cs_ticket', 'url' => 'https://checkout.stripe.com/test' );
+			$GLOBALS['stripe_sessions_created'][] = array( $params, $options );
+			$id = empty( $GLOBALS['stripe_session_ids'] ) ? 'cs_ticket' : array_shift( $GLOBALS['stripe_session_ids'] );
+			return (object) array( 'id' => $id, 'url' => 'https://checkout.stripe.com/test' );
+		}
+		public static function retrieve( $id, $options = null ) {
+			if ( ! empty( $GLOBALS['stripe_session_retrieve_fail'] ) ) { throw new \RuntimeException( 'Stripe unavailable' ); }
+			$session         = new self();
+			$session->id     = $id;
+			$session->status = $GLOBALS['stripe_session_status'][ $id ] ?? 'open';
+			$GLOBALS['stripe_session_retrieved'][] = array( $id, $options );
+			return $session;
+		}
+		public function expire( $params = null, $options = null ) {
+			$GLOBALS['stripe_session_expired'][] = array( $this->id, $options );
+			$this->status = 'expired';
+			return $this;
 		}
 	}
 }
@@ -20,7 +37,6 @@ namespace {
 	function get_site_option( $key, $default = false ) { return $GLOBALS['ticket_network'][ $key ] ?? $default; }
 	function is_email( $email ) { return filter_var( $email, FILTER_VALIDATE_EMAIL ); }
 	function extrachill_shop_stripe_init() { return true; }
-	function extrachill_shop_account_can_receive_payments( $account ) { return $GLOBALS['ticket_account_ready']; }
 	function do_action( ...$args ) { $GLOBALS['ticket_actions'][] = $args; }
 	require_once dirname( __DIR__ ) . '/inc/core/ticket-service-authority.php';
 	require_once dirname( __DIR__ ) . '/inc/stripe/tickets.php';
@@ -37,10 +53,9 @@ namespace {
 
 	final class TicketTest extends \PHPUnit\Framework\TestCase {
 		protected function setUp(): void {
-			$GLOBALS['test_options'] = array( 'extrachill_shop_stripe_seller_venue:9911' => array( 'account_id' => 'acct_venue' ) );
+			$GLOBALS['test_options'] = array( 'extrachill_shop_stripe_seller_venue:9911' => array( 'account_id' => 'acct_venue', 'status' => 'active', 'status_synced_at' => '2026-11-01T00:00:00+00:00' ) );
 			$GLOBALS['test_user_id'] = 551;
 			$GLOBALS['ticket_network'] = array();
-			$GLOBALS['ticket_account_ready'] = true;
 			$GLOBALS['ticket_refunds'] = array();
 			$GLOBALS['ticket_refund_fail'] = false;
 			$GLOBALS['test_owner_calls'] = array();
@@ -105,7 +120,7 @@ namespace {
 			$GLOBALS['ticket_offer']['remaining'] = 1;
 			$this->assertSame( 'ticket_sold_out', $this->checkout()->get_error_code() );
 			$GLOBALS['ticket_offer']['remaining'] = null;
-			$GLOBALS['ticket_account_ready'] = false;
+			$GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:9911']['status'] = 'restricted';
 			$this->assertSame( 'seller_payments_unavailable', $this->checkout()->get_error_code() );
 		}
 		public function test_fulfilment_replay_and_service_identity(): void {

@@ -318,43 +318,6 @@ function extrachill_shop_get_account_status( $account_id ) {
 }
 
 /**
- * Check if a connected account can receive payments.
- *
- * Uses cached status first, falls back to API call.
- *
- * @param string $account_id Stripe connected account ID.
- * @return bool True if account can receive payments.
- */
-function extrachill_shop_account_can_receive_payments( $account_id ) {
-	$status = extrachill_shop_get_account_status( $account_id );
-
-	if ( ! $status['success'] ) {
-		return false;
-	}
-
-	return $status['can_receive_payments'];
-}
-
-/**
- * Update local account status cache from Stripe webhook data.
- *
- * Stripe account status is cached in Shop-owned storage.
- *
- * @param string $account_id Stripe account ID.
- * @param array  $account_data Account data from webhook.
- */
-function extrachill_shop_update_account_status_cache( $account_id, $account_data ) {
-	$status = 'pending';
-	if ( ! empty( $account_data['charges_enabled'] ) && ! empty( $account_data['payouts_enabled'] ) ) {
-		$status = 'active';
-	} elseif ( ! empty( $account_data['details_submitted'] ) ) {
-		$status = 'restricted';
-	}
-
-	extrachill_shop_update_stripe_account_by_id( $account_id, $status, ! empty( $account_data['details_submitted'] ) );
-}
-
-/**
  * Get the Stripe account ID for a specific artist.
  *
  * @param int $artist_profile_id Artist profile post ID.
@@ -367,20 +330,4 @@ function extrachill_shop_get_artist_stripe_account( $artist_profile_id ) {
 			'id'   => absint( $artist_profile_id ),
 		)
 	);
-}
-
-/**
- * Check if an artist has a connected Stripe account that can receive payments.
- *
- * @param int $artist_profile_id Artist profile post ID.
- * @return bool True if artist can receive payments.
- */
-function extrachill_shop_artist_can_receive_payments( $artist_profile_id ) {
-	$account_id = extrachill_shop_get_artist_stripe_account( $artist_profile_id );
-
-	if ( ! $account_id ) {
-		return false;
-	}
-
-	return extrachill_shop_account_can_receive_payments( $account_id );
 }

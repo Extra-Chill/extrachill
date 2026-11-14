@@ -1,19 +1,18 @@
 <?php
 /**
- * Seller refunds for marketplace orders.
+ * Merch order refunds.
  *
- * Legacy orders use Stripe "separate charges and transfers": the platform charges the
- * customer once, then transfers each seller's payout. Refunding one seller's
- * portion therefore takes two steps:
+ * Merch orders are Stripe direct charges. A seller order is charged on the
+ * seller's connected account (stored on the order as
+ * `_extrachill_stripe_account`) with an application fee for the platform.
+ * A platform-owned product order is charged on the platform account and has
+ * no connected account. A refund therefore takes a single Stripe call: refund
+ * the PaymentIntent on the account that holds the charge, and return the
+ * platform's application fee proportionally (`refund_application_fee`).
  *
- * 1. Reverse that seller's transfer, so the money comes back from the seller.
- * 2. Refund the customer through WooCommerce (`wc_create_refund` with
- *    `refund_payment`), so the payment gateway issues the Stripe refund and
- *    keeps its own refund bookkeeping consistent with its webhooks.
- *
- * Each completed step is recorded on the order under `_seller_refunds`, keyed
- * by seller key, so a retry after a partial failure resumes instead of
- * reversing or refunding twice.
+ * All refunds go through WooCommerce (`wc_create_refund` with
+ * `refund_payment`). WooCommerce validates the amount, saves the refund row,
+ * then calls the gateway's `process_refund()`, which issues the Stripe refund.
  *
  * @package ExtraChillShop
  */
@@ -39,143 +38,64 @@ function extrachill_shop_get_order_seller_payout( $order, array $seller ) {
 }
 
 /**
- * Reverse a seller transfer in Stripe.
+ * Refund a seller's order in full.
  *
- * @param string $transfer_id     Stripe transfer ID.
- * @param int    $amount_cents    Amount to reverse.
- * @param string $idempotency_key Idempotency key.
- * @param array  $metadata        Reversal metadata.
- * @return string|WP_Error Reversal ID.
- */
-function extrachill_shop_stripe_reverse_transfer( $transfer_id, $amount_cents, $idempotency_key, array $metadata ) {
-	if ( ! function_exists( 'extrachill_shop_stripe_init' ) || ! extrachill_shop_stripe_init() ) {
-		return new WP_Error( 'stripe_not_configured', 'Stripe is not configured.', array( 'status' => 500 ) );
-	}
-
-	try {
-		$reversal = \Stripe\Transfer::createReversal(
-			$transfer_id,
-			array(
-				'amount'   => $amount_cents,
-				'metadata' => $metadata,
-			),
-			array( 'idempotency_key' => $idempotency_key )
-		);
-	} catch ( \Exception $e ) {
-		return new WP_Error( 'transfer_reversal_failed', 'Could not reverse the seller payout: ' . $e->getMessage(), array( 'status' => 502 ) );
-	}
-
-	return (string) $reversal->id;
-}
-
-/**
- * Refund one seller's portion of an order.
+ * A cart holds products from one seller, so the seller's portion is the whole
+ * order. This refunds whatever is still refundable through WooCommerce, which
+ * calls the gateway to issue the direct-charge Stripe refund.
  *
- * Refunds the seller's item total (what the customer paid for that seller's
- * items) and reverses the seller's payout. Shipping and tax lines are not
- * included; an admin can refund those from the order screen.
- *
- * @param WC_Order      $order            Order.
- * @param array         $seller           Seller reference.
- * @param string        $reason           Refund reason shown on the order.
- * @param callable|null $reverse_transfer Transfer reverser, defaults to Stripe.
+ * @param WC_Order $order  Order.
+ * @param array    $seller Seller reference.
+ * @param string   $reason Refund reason shown on the order.
  * @return array|WP_Error
  */
-function extrachill_shop_refund_seller_portion( $order, array $seller, $reason = '', $reverse_transfer = null ) {
-	$reverse_transfer = $reverse_transfer ?? 'extrachill_shop_stripe_reverse_transfer';
-
-	$payout = extrachill_shop_get_order_seller_payout( $order, $seller );
-	if ( null === $payout ) {
+function extrachill_shop_refund_seller_portion( $order, array $seller, $reason = '' ) {
+	if ( null === extrachill_shop_get_order_seller_payout( $order, $seller ) ) {
 		return new WP_Error( 'invalid_seller', 'This order does not contain products from this seller.', array( 'status' => 400 ) );
 	}
 
-	$refund_amount = round( (float) ( $payout['total'] ?? 0 ), 2 );
-	$payout_amount = round( (float) ( $payout['artist_payout'] ?? 0 ), 2 );
+	$refund_amount = round( (float) $order->get_remaining_refund_amount(), 2 );
 	if ( $refund_amount <= 0 ) {
-		return new WP_Error( 'invalid_refund_amount', 'No refundable amount found for this seller.', array( 'status' => 400 ) );
-	}
-
-	$key      = extrachill_shop_seller_key( $seller );
-	$order_id = (int) $order->get_id();
-	$refunds  = $order->get_meta( '_seller_refunds' );
-	$refunds  = is_array( $refunds ) ? $refunds : array();
-	$state    = isset( $refunds[ $key ] ) && is_array( $refunds[ $key ] ) ? $refunds[ $key ] : array();
-
-	if ( ! empty( $state['wc_refund_id'] ) ) {
-		return new WP_Error( 'already_refunded', 'This seller\'s portion of the order has already been refunded.', array( 'status' => 409 ) );
-	}
-
-	$save_state = static function ( array $state ) use ( $order, $key ) {
-		$refunds         = $order->get_meta( '_seller_refunds' );
-		$refunds         = is_array( $refunds ) ? $refunds : array();
-		$refunds[ $key ] = $state;
-		$order->update_meta_data( '_seller_refunds', $refunds );
-		$order->save();
-	};
-
-	$transfers   = $order->get_meta( '_stripe_transfers' );
-	$transfer_id = is_array( $transfers ) ? (string) ( $transfers[ $key ]['transfer_id'] ?? '' ) : '';
-
-	// No transfer means the payout never left the platform; there is nothing to reverse.
-	if ( '' !== $transfer_id && empty( $state['reversal_id'] ) && $payout_amount > 0 ) {
-		$reversal_id = call_user_func(
-			$reverse_transfer,
-			$transfer_id,
-			(int) round( $payout_amount * 100 ),
-			'ec-refund-reversal-' . $order_id . '-' . $key,
-			array(
-				'order_id'         => $order_id,
-				'seller_reference' => (string) $seller['type'] . ':' . (int) $seller['id'],
-				'platform'         => 'extrachill',
-			)
-		);
-		if ( is_wp_error( $reversal_id ) ) {
-			return $reversal_id;
-		}
-		$state['reversal_id'] = (string) $reversal_id;
-		$save_state( $state );
+		return new WP_Error( 'already_refunded', 'This order has already been refunded.', array( 'status' => 409 ) );
 	}
 
 	$wc_refund = wc_create_refund(
 		array(
-			'order_id'       => $order_id,
+			'order_id'       => (int) $order->get_id(),
 			'amount'         => $refund_amount,
 			'reason'         => '' !== $reason ? $reason : 'Refund issued by seller.',
 			'refund_payment' => true,
 		)
 	);
 	if ( is_wp_error( $wc_refund ) ) {
-		$order->add_order_note(
-			sprintf(
-				/* translators: 1: seller reference, 2: error message */
-				__( 'Refund for seller %1$s failed: %2$s. Retrying resumes without reversing the payout twice.', 'extrachill-shop' ),
-				$seller['type'] . ':' . (int) $seller['id'],
-				$wc_refund->get_error_message()
-			)
-		);
 		return new WP_Error( 'refund_failed', 'Refund failed: ' . $wc_refund->get_error_message(), array( 'status' => 502 ) );
 	}
 
-	$state['wc_refund_id'] = (int) $wc_refund->get_id();
-	$state['amount']       = $refund_amount;
-	$state['refunded_at']  = gmdate( 'c' );
-	$save_state( $state );
-
 	return array(
 		'success'       => true,
-		'order_id'      => $order_id,
+		'order_id'      => (int) $order->get_id(),
 		'refund_amount' => $refund_amount,
-		'reversed'      => ! empty( $state['reversal_id'] ),
 	);
 }
 
-/** Refund a direct charge using the immutable account stored at checkout. */
+/**
+ * Issue the Stripe refund for a merch order.
+ *
+ * Called from the gateway's `process_refund()`. WooCommerce has already
+ * validated the amount and saved the refund row, so the order's remaining
+ * refundable amount and total refunded already include this refund.
+ *
+ * @param WC_Order|false $order  Order.
+ * @param float|string   $amount Refund amount in major units.
+ * @param string         $reason Refund reason.
+ * @return true|WP_Error
+ */
 function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 	if ( ! $order || ! $order->get_meta( '_extrachill_payment_intent' ) || ! extrachill_shop_stripe_init() ) {
 		return new WP_Error( 'refund_unavailable', 'No refundable Stripe payment found.' );
 	}
 	$minor = (int) round( (float) $amount * 100 );
-	if ( $minor <= 0 || $amount > $order->get_remaining_refund_amount() ) {
+	if ( $minor <= 0 ) {
 		return new WP_Error( 'invalid_refund_amount', 'Invalid refund amount.' );
 	}
 	$params = array(
@@ -183,14 +103,17 @@ function extrachill_shop_refund_merch_payment( $order, $amount, $reason = '' ) {
 		'amount'         => $minor,
 		'metadata'       => array(
 			'order_id' => (string) $order->get_id(),
-			'reason'   => $reason,
+			'reason'   => (string) $reason,
 		),
 	);
-	// Woo records a refund only after this call succeeds. A retry uses the same
-	// key; a later partial refund gets a different already-refunded balance.
-	$options = array( 'idempotency_key' => 'ec-merch-refund-' . $order->get_id() . '-' . $minor . '-' . (int) round( $order->get_total_refunded() * 100 ) );
-	$account = $order->get_meta( '_extrachill_stripe_account' );
-	if ( $account ) {
+	// The total refunded already includes this refund. WooCommerce deletes the
+	// refund row when this call fails, so a retry reproduces the same key, and
+	// a later refund of the same amount gets a different one.
+	$options = array( 'idempotency_key' => 'ec-merch-refund-' . $order->get_id() . '-' . $minor . '-' . (int) round( (float) $order->get_total_refunded() * 100 ) );
+	$account = (string) $order->get_meta( '_extrachill_stripe_account' );
+	if ( '' !== $account ) {
+		// Seller order: the charge and the platform's application fee live on
+		// the connected account. Platform products have no account.
 		$options['stripe_account']        = $account;
 		$params['refund_application_fee'] = true;
 	}
