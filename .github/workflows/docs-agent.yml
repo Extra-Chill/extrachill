@@ -44,9 +44,10 @@ jobs:
 
   docs-agent:
     needs: config
-    # Full main commit: v0.3.0 lacks dry_run, model and source_delta inputs.
+    # Full main commit: v0.3.0 lacks dry_run, model and source_delta inputs;
+    # 1f576e6 adds the optional PUBLISH_TOKEN (Automattic/docs-agent#184).
     # This is the sole Docs Agent pin; update here after reviewing upstream changes.
-    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@a4597a1ca266699612483218779b0f3c9dda7f2c
+    uses: Automattic/docs-agent/.github/workflows/maintain-docs.yml@1f576e66885358e314963272fbb5afe8d5f0b7b5
     with:
       audience: ${{ fromJSON(needs.config.outputs.config).audience }}
       run_kind: ${{ fromJSON(needs.config.outputs.config).run_kind }}
@@ -63,3 +64,6 @@ jobs:
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       EXTERNAL_PACKAGE_SOURCE_POLICY: ${{ secrets.DOCS_AGENT_EXTERNAL_PACKAGE_SOURCE_POLICY }}
+      # Fine-grained PAT (machine account, this repo only). PRs opened with
+      # github.token never trigger pull_request CI; unset falls back to it.
+      PUBLISH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN }}
