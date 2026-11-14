@@ -177,6 +177,15 @@ function rest_do_request( WP_REST_Request $request ) {
 		return new CrossSiteRestResponse( array( 'ability' => $matches[1], 'runtime' => 'shared' ) );
 	}
 
+	if ( '/example/v1/adapter' === $route ) {
+		// A network-shared adapter route whose wrapped ability is registered
+		// only by a plugin activated on the target site.
+		return new CrossSiteRestResponse(
+			null,
+			new WP_Error( 'ability_not_found', 'Target plugin is required.', array( 'status' => 500 ) )
+		);
+	}
+
 	if ( isset( $GLOBALS['csr_routes'][ $route ] ) ) {
 		return new CrossSiteRestResponse( $GLOBALS['csr_routes'][ $route ] );
 	}
@@ -207,6 +216,12 @@ function wp_remote_request( $url, $args ) {
 		return array(
 			'response' => array( 'code' => 200 ),
 			'body'     => wp_json_encode( array( 'ability' => 'example/target-only-ability', 'runtime' => 'target' ) ),
+		);
+	}
+	if ( 'target.example.test' === $host && '/wp-json/example/v1/adapter' === $route ) {
+		return array(
+			'response' => array( 'code' => 200 ),
+			'body'     => wp_json_encode( array( 'owner' => 'target-ability', 'query' => (string) parse_url( $url, PHP_URL_QUERY ) ) ),
 		);
 	}
 	if ( isset( $GLOBALS['csr_http_responses'][ $route ] ) ) {
@@ -284,6 +299,29 @@ csr_assert( 2 === $fallback['caller_blog_id'] && 17 === $fallback['caller_user_i
 csr_assert( isset( $fallback['args']['headers']['X-EC-Internal-Signature'] ), 'HTTP fallback preserves signed user authentication' );
 csr_assert( 2 === get_current_blog_id() && 17 === get_current_user_id(), 'target-only dispatch leaves caller context unchanged' );
 csr_assert( ! isset( $GLOBALS['ec_in_cross_site_dispatch'] ), 'cross-site dispatch marker is restored' );
+
+$in_process_before = count( $GLOBALS['csr_in_process'] );
+$http_before       = count( $GLOBALS['csr_http_requests'] );
+$adapter           = ec_cross_site_rest_request(
+	'target',
+	'GET',
+	'/example/v1/adapter',
+	array(
+		'user_id' => 31,
+		'query'   => array( 'seller_type' => 'venue', 'seller_id' => 4 ),
+	)
+);
+csr_assert( is_array( $adapter ) && 'target-ability' === $adapter['owner'], 'in-process ability_not_found retries through the target bootstrap' );
+csr_assert( $in_process_before + 1 === count( $GLOBALS['csr_in_process'] ), 'adapter route is attempted in process once' );
+csr_assert( $http_before + 1 === count( $GLOBALS['csr_http_requests'] ), 'ability_not_found performs exactly one HTTP fallback' );
+csr_assert( 'seller_type=venue&seller_id=4' === $adapter['query'], 'ability_not_found fallback preserves query arguments' );
+$adapter_fallback = end( $GLOBALS['csr_http_requests'] );
+csr_assert( 2 === $adapter_fallback['caller_blog_id'] && 17 === $adapter_fallback['caller_user_id'], 'caller context is restored before the ability_not_found fallback' );
+csr_assert( '31' === ( $adapter_fallback['args']['headers']['X-EC-Internal-User'] ?? '' ), 'ability_not_found fallback signs the requested user' );
+
+csr_assert( ec_cross_site_rest_is_missing_runtime_error( new WP_Error( 'rest_ability_not_found', 'x' ) ), 'core rest_ability_not_found counts as a missing target runtime' );
+csr_assert( ! ec_cross_site_rest_is_missing_runtime_error( new WP_Error( 'rest_forbidden', 'x' ) ), 'authorization errors do not retry over HTTP' );
+csr_assert( ! ec_cross_site_rest_is_missing_runtime_error( array( 'ok' => true ) ), 'successful results do not retry over HTTP' );
 
 $GLOBALS['csr_http_responses']['/wp-json/example/v1/retry'] = array(
 	'response' => array( 'code' => 429 ),

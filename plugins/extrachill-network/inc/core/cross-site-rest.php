@@ -74,8 +74,8 @@ function ec_cross_site_rest_resolve_route( string $path ): string {
  *
  * The default path attempts in-process dispatch via switch_to_blog() +
  * rest_do_request(). Ability routes missing their named ability in the source
- * bootstrap dispatch directly over HTTP, while a rest_no_route result retries
- * over HTTP. Both paths let the target site's active plugins register their
+ * bootstrap dispatch directly over HTTP, while a rest_no_route or
+ * ability_not_found result retries over HTTP. Both paths let the target site's active plugins register their
  * canonical runtime. Callers can force HTTP loopback through the
  * `ec_cross_site_use_http_loopback` filter.
  *
@@ -130,13 +130,35 @@ function ec_cross_site_rest_request( string $site_key, string $method, string $p
 	$result = ec_cross_site_rest_request_in_process( $site_key, $method, $path, $args );
 
 	// switch_to_blog() does not load plugins activated only on the target site.
-	// Retry a missing route through the target host so its canonical plugin
-	// bootstrap and rest_api_init lifecycle own route registration.
-	if ( is_wp_error( $result ) && 'rest_no_route' === $result->get_error_code() ) {
+	// Retry through the target host so its canonical plugin bootstrap owns the
+	// route and the abilities behind it.
+	if ( ec_cross_site_rest_is_missing_runtime_error( $result ) ) {
 		return ec_cross_site_rest_request_http( $site_key, $method, $path, $args );
 	}
 
 	return $result;
+}
+
+/**
+ * Whether an in-process result means the source bootstrap lacks the target runtime.
+ *
+ * - `rest_no_route`: the route is registered only by a plugin activated on
+ *   the target site.
+ * - `ability_not_found` / `rest_ability_not_found`: the route is a
+ *   network-shared adapter (for example an extrachill-api route), but the
+ *   ability it wraps is registered only by a plugin activated on the target
+ *   site. Adapters check for the ability before doing any work, so the HTTP
+ *   retry cannot repeat a side effect.
+ *
+ * @param mixed $result In-process dispatch result.
+ * @return bool True when the request should be retried over HTTP.
+ */
+function ec_cross_site_rest_is_missing_runtime_error( $result ): bool {
+	if ( ! is_wp_error( $result ) ) {
+		return false;
+	}
+
+	return in_array( $result->get_error_code(), array( 'rest_no_route', 'ability_not_found', 'rest_ability_not_found' ), true );
 }
 
 /**
