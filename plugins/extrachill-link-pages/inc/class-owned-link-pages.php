@@ -16,9 +16,9 @@ defined( 'ABSPATH' ) || exit;
  * An owner definition extends this class and supplies only what genuinely
  * differs: the owner reference shape (object kind, blog, subtype), its
  * authorization policy, the canonical source read, the management URL, and
- * optional snapshot/schema extras, slug qualifiers, refresh hooks, and an
- * authority lock. The engine knows owner-reference shapes, never owner
- * domains.
+ * optional snapshot/schema/projection extras, slug qualifiers, refresh hooks,
+ * and an authority lock. The owner supplies identity; the page owns content.
+ * The engine knows owner-reference shapes, never owner domains.
  */
 abstract class Owned_Link_Pages {
 
@@ -105,6 +105,22 @@ abstract class Owned_Link_Pages {
 	 */
 	protected static function schema_entity_extras( array $snapshot ): array {
 		unset( $snapshot );
+		return array();
+	}
+
+	/**
+	 * Kind-specific public projection fields merged over the engine projection.
+	 *
+	 * A definition may add `assets`, `legacy_head_arguments`, `components` or
+	 * extra `body_attributes`. Body attributes merge with the engine's; the
+	 * engine's owner-type and owner-ID attributes always win. Executable keys
+	 * apply only to the live projection and are dropped from the stored one.
+	 *
+	 * @param array $snapshot     Validated snapshot.
+	 * @param int   $link_page_id Canonical Link Page ID.
+	 */
+	protected static function projection_extras( array $snapshot, int $link_page_id ): array {
+		unset( $snapshot, $link_page_id );
 		return array();
 	}
 
@@ -386,7 +402,7 @@ abstract class Owned_Link_Pages {
 			$error = static::error( 'snapshot_save_failed', __( 'The Link Page snapshot could not be saved.', 'extrachill-link-pages' ) );
 			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $error : static::compensation_failed( $error, $operation );
 		}
-		$public = ec_save_link_page_public_projection_snapshot( $link_page_id, $reference, self::projection_from_snapshot( $snapshot, $link_page_id ) );
+		$public = ec_save_link_page_public_projection_snapshot( $link_page_id, $reference, array_diff_key( self::projection_from_snapshot( $snapshot, $link_page_id ), array_flip( array( 'assets', 'legacy_head_arguments', 'body_style', 'components' ) ) ) );
 		if ( is_wp_error( $public ) ) {
 			return ec_restore_link_page_meta_snapshots( $link_page_id, $before ) ? $public : static::compensation_failed( $public, $operation );
 		}
@@ -607,7 +623,7 @@ abstract class Owned_Link_Pages {
 	}
 
 	/**
-	 * Project public output from the canonical-storage snapshot only.
+	 * Project public output from the stored owner snapshot and page content.
 	 *
 	 * @param array $context Runtime projection context.
 	 */
@@ -620,7 +636,11 @@ abstract class Owned_Link_Pages {
 	}
 
 	/**
-	 * Build the serializable public projection shared by live and stored paths.
+	 * Build the public projection shared by live and stored paths.
+	 *
+	 * The owner supplies identity: title, schema entity, socials, website and
+	 * a fallback description and image. The page owns content: its own bio and
+	 * profile image win whenever they are set.
 	 *
 	 * @param array $snapshot     Validated snapshot.
 	 * @param int   $link_page_id Canonical Link Page ID.
@@ -629,6 +649,11 @@ abstract class Owned_Link_Pages {
 		$canonical = ec_get_link_page_public_url( $link_page_id );
 		$entity_id = $canonical . '#' . static::KIND;
 		$owner_id  = (int) $snapshot['source'][ static::source_id_key() ];
+		$page      = ec_read_link_page_persistence( $link_page_id );
+		$page_bio  = is_wp_error( $page ) ? '' : trim( (string) ( $page['bio'] ?? '' ) );
+		$page_img  = is_wp_error( $page ) ? '' : trim( (string) ( $page['profile_image_url'] ?? '' ) );
+		$bio       = '' !== $page_bio ? $page_bio : $snapshot['description'];
+		$image_url = '' !== $page_img ? $page_img : $snapshot['image_url'];
 		$entity    = array(
 			'@type'       => static::SCHEMA_TYPE,
 			'@id'         => $entity_id,
@@ -644,12 +669,12 @@ abstract class Owned_Link_Pages {
 		if ( $same_as ) {
 			$entity['sameAs'] = $same_as;
 		}
-		return array(
+		$projection = array(
 			'display_title'   => $snapshot['title'],
-			'bio'             => $snapshot['description'],
-			'profile_img_url' => $snapshot['image_url'],
+			'bio'             => $bio,
+			'profile_img_url' => $image_url,
 			'social_links'    => $snapshot['social_links'],
-			'social_renderer' => array( static::class, 'render_social_links' ),
+			'social_renderer' => 'ec_render_link_page_social_links',
 			'management_url'  => static::management_url( $owner_id ),
 			'body_attributes' => array(
 				'data-extrch-owner-type'              => static::KIND,
@@ -657,9 +682,9 @@ abstract class Owned_Link_Pages {
 			),
 			'seo'             => array(
 				'title'       => $snapshot['title'] . ' | extrachill.link',
-				'description' => $snapshot['description'],
+				'description' => $bio,
 				'canonical'   => $canonical,
-				'image'       => $snapshot['image_url'],
+				'image'       => $image_url,
 				'image_alt'   => $snapshot['image_alt'] ? $snapshot['image_alt'] : $snapshot['title'],
 				'og_type'     => static::OG_TYPE,
 				'schema'      => array(
@@ -675,23 +700,11 @@ abstract class Owned_Link_Pages {
 			),
 			'tracking_url'    => trailingslashit( get_home_url( ec_get_link_page_storage_blog_id(), '/' ) ) . 'wp-json/extrachill/v1/analytics/click',
 		);
-	}
-
-	/**
-	 * Render public owner links from the stored snapshot without owner-specific components.
-	 *
-	 * @param mixed $social_links Snapshot social links.
-	 */
-	public static function render_social_links( $social_links ): string {
-		if ( ! is_array( $social_links ) || ! $social_links ) {
-			return '';
+		$extras     = static::projection_extras( $snapshot, $link_page_id );
+		if ( isset( $extras['body_attributes'] ) && is_array( $extras['body_attributes'] ) ) {
+			$extras['body_attributes'] = array_merge( $extras['body_attributes'], $projection['body_attributes'] );
 		}
-		$html = '<nav class="extrch-link-page-socials extrch-link-page-' . static::KIND . '-socials" aria-label="' . esc_attr( ucfirst( static::KIND ) ) . ' links">';
-		foreach ( $social_links as $social ) {
-			$label = ucfirst( (string) ( $social['type'] ?? 'website' ) );
-			$html .= '<a href="' . esc_url( $social['url'] ?? '' ) . '" rel="noopener noreferrer" aria-label="' . esc_attr( $label ) . '">' . esc_html( $label ) . '</a>';
-		}
-		return $html . '</nav>';
+		return array_merge( $projection, $extras );
 	}
 
 	/**

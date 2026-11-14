@@ -112,6 +112,10 @@ final class PromoterLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$this->assertSame( 'promoter', $result['stored_projection']['body_attributes']['data-extrch-owner-type'] );
 		$this->assertSame( 'Organization', $result['stored_projection']['seo']['schema'][0]['@type'] );
 		$this->assertSame( 'ProfilePage', $result['stored_projection']['seo']['schema'][1]['@type'] );
+		// The page owns content; the owner keeps the schema identity.
+		$this->assertSame( 'Promoter managed bio.', $result['stored_projection']['bio'] );
+		$this->assertSame( 'Promoter managed bio.', $result['stored_projection']['seo']['description'] );
+		$this->assertSame( 'Independent music promoter.', $result['stored_projection']['seo']['schema'][0]['description'] );
 		$this->assertArrayNotHasKey( 'data-extrch-artist-id', $result['stored_projection']['body_attributes'] );
 		$this->assertArrayNotHasKey( 'data-extrch-venue-id', $result['stored_projection']['body_attributes'] );
 		$this->assertSame( 'draft', $result['revoked_status'] );
