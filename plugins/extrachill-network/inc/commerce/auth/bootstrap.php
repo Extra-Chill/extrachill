@@ -84,16 +84,6 @@ function extrachill_network_register_commerce_read_filters(): void {
 	);
 
 	add_filter(
-		'extrachill_stripe_connect_client_id',
-		static function ( $value ) {
-			if ( '' !== $value ) {
-				return $value;
-			}
-			return ( new \ExtraChillNetwork\Commerce\Auth\StripeAuthProvider() )->get_connect_client_id();
-		}
-	);
-
-	add_filter(
 		'extrachill_stripe_webhook_secret',
 		static function ( $value ) {
 			if ( '' !== $value ) {
@@ -131,10 +121,9 @@ function extrachill_network_migrate_plaintext_commerce_credentials(): void {
 
 	// Map legacy site_option name => provider config field.
 	$stripe_legacy = array(
-		'extrachill_stripe_secret_key'        => 'secret_key',
-		'extrachill_stripe_publishable_key'   => 'publishable_key',
-		'extrachill_stripe_connect_client_id' => 'connect_client_id',
-		'extrachill_stripe_webhook_secret'    => 'webhook_secret',
+		'extrachill_stripe_secret_key'      => 'secret_key',
+		'extrachill_stripe_publishable_key' => 'publishable_key',
+		'extrachill_stripe_webhook_secret'  => 'webhook_secret',
 	);
 
 	$stripe_data = array();

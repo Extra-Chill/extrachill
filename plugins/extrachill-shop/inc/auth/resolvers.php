@@ -47,18 +47,6 @@ function extrachill_shop_resolve_stripe_publishable_key(): string {
 }
 
 /**
- * Resolve the Stripe Connect client ID.
- *
- * Returns the empty local fallback; the value is supplied by the network-layer
- * provider via the `extrachill_stripe_connect_client_id` filter.
- *
- * @return string
- */
-function extrachill_shop_resolve_stripe_connect_client_id(): string {
-	return '';
-}
-
-/**
  * Resolve the Stripe webhook signing secret.
  *
  * Returns the empty local fallback; the decrypted value is supplied by the
