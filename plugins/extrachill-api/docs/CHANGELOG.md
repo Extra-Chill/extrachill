@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.10] - 2026-11-14
+
+### Fixed
+- checkout robustness — stored seller status, one open Session per order, expired/failed/dispute events
+
 ## [0.52.9] - 2026-11-14
 
 ### Fixed
