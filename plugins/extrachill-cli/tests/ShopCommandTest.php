@@ -30,6 +30,31 @@ namespace {
 	use ExtraChill\CLI\Commands\Shop\WebhookCommand;
 	use ExtraChill\CLI\CommandRegistry;
 
+	// Under the managed PHPUnit harness (real WordPress), check the commands
+	// load against the real plugin; the contract tests below run standalone.
+	if ( function_exists( 'wp_get_ability' ) && class_exists( 'WP_UnitTestCase' ) ) {
+		class ShopCommandRegistryTest extends WP_UnitTestCase {
+			public function test_shop_commands_are_registered_to_loadable_command_classes() {
+				require_once dirname( __DIR__ ) . '/inc/Autoloader.php';
+				\ExtraChill\CLI\Autoloader::register( dirname( __DIR__ ) . '/' );
+
+				$map = CommandRegistry::map();
+				$expected = array(
+					'extrachill shop sellers' => SellersCommand::class,
+					'extrachill shop seller'  => SellerCommand::class,
+					'extrachill shop orders'  => OrdersCommand::class,
+					'extrachill shop order'   => OrderCommand::class,
+					'extrachill shop webhook' => WebhookCommand::class,
+					'extrachill shop boost'   => BoostCommand::class,
+				);
+				foreach ( $expected as $command => $class ) {
+					$this->assertSame( $class, $map[ $command ] ?? null, $command );
+					$this->assertTrue( class_exists( $class ), $class );
+				}
+			}
+		}
+	}
+
 	// Real WordPress (managed PHPUnit harness) already declares these doubles.
 	if ( ! function_exists( 'wp_get_ability' ) && ! class_exists( 'WP_Error', false ) ) {
 
