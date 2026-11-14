@@ -37,9 +37,52 @@ namespace {
 		}
 	}
 	if ( ! function_exists( 'get_posts' ) ) {
+		/** Products matching the typed seller meta query, from `test_post_meta`. */
 		function get_posts( $args ) {
 			$GLOBALS['operator_post_queries'][] = $args;
-			return $GLOBALS['operator_product_ids'] ?? array();
+			$type = $args['meta_query'][0]['value'] ?? null;
+			$id   = $args['meta_query'][1]['value'] ?? null;
+			return array_keys( array_filter(
+				$GLOBALS['test_post_meta'] ?? array(),
+				static fn( $meta ) => $type === ( $meta['_extrachill_shop_seller_type'] ?? null ) && (int) $id === (int) ( $meta['_extrachill_shop_seller_id'] ?? 0 )
+			) );
+		}
+	}
+	if ( ! function_exists( 'wc_get_order_statuses' ) ) {
+		function wc_get_order_statuses() {
+			return array(
+				'wc-processing' => 'Processing',
+				'wc-completed'  => 'Completed',
+			);
+		}
+	}
+
+	if ( ! defined( 'ARRAY_A' ) ) {
+		define( 'ARRAY_A', 'ARRAY_A' );
+	}
+
+	/** `$wpdb` double: typed product sellers from `test_post_meta`, Stripe seller option names. */
+	final class ShopOperatorTestWpdb {
+		public $options  = 'wp_options';
+		public $postmeta = 'wp_postmeta';
+		public $posts    = 'wp_posts';
+		public function esc_like( $text ) { return $text; }
+		public function prepare( $query, ...$args ) { return array( $query, $args ); }
+		public function get_col( $prepared ) {
+			$prefix = rtrim( $prepared[1][0], '%' );
+			return array_values( array_filter( array_keys( $GLOBALS['test_options'] ), static fn( $name ) => str_starts_with( $name, $prefix ) ) );
+		}
+		public function get_results( $prepared, $output = ARRAY_A ) {
+			$rows = array();
+			foreach ( $GLOBALS['test_post_meta'] as $meta ) {
+				if ( isset( $meta['_extrachill_shop_seller_type'], $meta['_extrachill_shop_seller_id'] ) ) {
+					$rows[ $meta['_extrachill_shop_seller_type'] . ':' . $meta['_extrachill_shop_seller_id'] ] = array(
+						'seller_type' => $meta['_extrachill_shop_seller_type'],
+						'seller_id'   => $meta['_extrachill_shop_seller_id'],
+					);
+				}
+			}
+			return array_values( $rows );
 		}
 	}
 
@@ -61,7 +104,6 @@ namespace {
 	}
 
 	final class ShopOperatorTestOrder {
-		public $sellers = array();
 		public $meta    = array();
 		public $saves   = 0;
 		public $notes   = array();
@@ -98,7 +140,15 @@ namespace {
 	}
 
 	final class ShopOperatorAbilitiesTest extends TestCase {
+		private $previous_wpdb;
+
+		protected function tearDown(): void {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		}
+
 		protected function setUp(): void {
+			$this->previous_wpdb                = $GLOBALS['wpdb'] ?? null;
+			$GLOBALS['wpdb']                    = new ShopOperatorTestWpdb();
 			$GLOBALS['test_abilities']          = array();
 			$GLOBALS['test_options']            = array();
 			$GLOBALS['test_post_meta']          = array();
@@ -107,7 +157,6 @@ namespace {
 			$GLOBALS['listing_orders']          = array();
 			$GLOBALS['listing_queries']         = array();
 			$GLOBALS['operator_caps']           = array( 'manage_woocommerce' );
-			$GLOBALS['operator_product_ids']    = array();
 			$GLOBALS['operator_event_requests'] = array();
 			unset( $GLOBALS['operator_event_error'] );
 			\Automattic\WooCommerce\Utilities\OrderUtil::$hpos = false;
@@ -138,9 +187,8 @@ namespace {
 		}
 
 		public function test_list_sellers_merges_product_owners_and_stripe_records(): void {
-			$GLOBALS['operator_product_ids']                  = array( 501, 502 );
-			$GLOBALS['test_post_meta'][501]['_artist_profile_id'] = 8121;
-			$GLOBALS['test_post_meta'][502]['_artist_profile_id'] = 8121;
+			extrachill_shop_set_product_seller( 501, array( 'type' => 'artist', 'id' => 8121 ) );
+			extrachill_shop_set_product_seller( 502, array( 'type' => 'artist', 'id' => 8121 ) );
 			$GLOBALS['test_options']['extrachill_shop_stripe_seller_venue:8122'] = array( 'account_id' => 'acct_v', 'status' => 'active', 'onboarding_complete' => true );
 			$GLOBALS['test_options']['extrachill_shop_stripe_seller_bogus']       = array( 'account_id' => 'acct_x' );
 
@@ -154,12 +202,11 @@ namespace {
 			$this->assertSame( array( 'venue:8122' ), array_column( extrachill_shop_ability_list_sellers( array( 'type' => 'venue' ) )['sellers'], 'key' ) );
 		}
 
-		public function test_operator_list_orders_filters_by_seller_index_and_status(): void {
-			$a          = new ShopOperatorTestOrder( 11 );
-			$a->sellers = array( 'artist:8121' );
-			$a->meta['_extrachill_seller'] = array( 'type' => 'artist', 'id' => 8121 );
-			$b          = new ShopOperatorTestOrder( 12 );
-			$b->sellers = array( 'venue:8122' );
+		public function test_operator_list_orders_filters_by_order_seller_and_status(): void {
+			$a                             = new ShopOperatorTestOrder( 11 );
+			$a->meta['_extrachill_seller'] = 'artist:8121';
+			$b                             = new ShopOperatorTestOrder( 12 );
+			$b->meta['_extrachill_seller'] = 'venue:8122';
 			$GLOBALS['listing_orders'] = array( $a, $b );
 
 			$all = extrachill_shop_ability_operator_list_orders( array() );
@@ -167,7 +214,7 @@ namespace {
 			$this->assertSame( array( 'wc-processing', 'wc-completed' ), $GLOBALS['listing_queries'][0]['status'] );
 
 			$one = extrachill_shop_ability_operator_list_orders( array( 'seller' => array( 'type' => 'artist', 'id' => 8121 ), 'status' => 'processing' ) );
-			$this->assertSame( 'artist:8121', $GLOBALS['listing_queries'][1]['extrachill_order_seller'] );
+			$this->assertSame( 'artist:8121', $GLOBALS['listing_queries'][1]['extrachill_seller'] );
 			$this->assertSame( array( 'wc-processing' ), $GLOBALS['listing_queries'][1]['status'] );
 			$this->assertSame( array( 11 ), array_column( $one['orders'], 'id' ) );
 			$this->assertSame( 'artist:8121', $one['orders'][0]['seller'] );
@@ -178,7 +225,8 @@ namespace {
 
 		public function test_get_order_reports_seller_payment_refs_and_boost_receipts(): void {
 			$order = new ShopOperatorTestOrder( 44, array( new ShopOperatorTestItem( 10 ) ) );
-			$order->meta['_extrachill_order_seller']    = 'promoter:9';
+			$order->meta['_extrachill_seller']          = 'promoter:9';
+			$order->meta['_extrachill_checkout_sessions'] = array( 'cs_old' => 'acct_p', 'cs_new' => 'acct_p' );
 			$order->meta['_extrachill_stripe_account']  = 'acct_p';
 			$order->meta['_extrachill_payment_intent']  = 'pi_1';
 			$GLOBALS['test_orders'][44] = $order;
@@ -188,6 +236,7 @@ namespace {
 			$this->assertSame( array( 'type' => 'promoter', 'id' => 9 ), $result['seller'] );
 			$this->assertSame( 'acct_p', $result['stripe_account'] );
 			$this->assertSame( 'pi_1', $result['payment_intent'] );
+			$this->assertSame( array( 'cs_old', 'cs_new' ), $result['checkout_sessions'] );
 			$this->assertSame( 'Event Priority Boost', $result['items'][0]['name'] );
 			$this->assertSame( array( 'event' => 'event-slug', 'title' => 'Event title', 'granted' => false ), $result['items'][0]['priority_boost'] );
 			$order->meta['_extrachill_priority_boost_receipt_10'] = array( 'operation_id' => 'x' );

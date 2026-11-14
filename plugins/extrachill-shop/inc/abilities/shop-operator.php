@@ -245,34 +245,22 @@ function extrachill_shop_ability_list_sellers( array $input = array() ): array {
 	$sellers  = array();
 	$products = array();
 
-	$product_ids = get_posts(
-		array(
-			'post_type'      => 'product',
-			'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'no_found_rows'  => true,
-			// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Operator listing, bounded by catalogue size.
-			'meta_query'     => array(
-				'relation' => 'OR',
+	foreach ( extrachill_shop_get_sellers_with_products() as $seller ) {
+		$key              = extrachill_shop_seller_ref_key( $seller );
+		$sellers[ $key ]  = $seller;
+		$products[ $key ] = count(
+			get_posts(
 				array(
-					'key'     => '_artist_profile_id',
-					'compare' => 'EXISTS',
-				),
-				array(
-					'key'     => '_extrachill_shop_seller_type',
-					'compare' => 'EXISTS',
-				),
-			),
-		)
-	);
-	foreach ( $product_ids as $product_id ) {
-		$seller = extrachill_shop_get_product_seller( (int) $product_id );
-		if ( $seller ) {
-			$key              = extrachill_shop_seller_ref_key( $seller );
-			$sellers[ $key ]  = $seller;
-			$products[ $key ] = ( $products[ $key ] ?? 0 ) + 1;
-		}
+					'post_type'      => 'product',
+					'post_status'    => array( 'publish', 'draft', 'pending', 'private' ),
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'no_found_rows'  => true,
+					// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Operator listing, bounded by catalogue size.
+					'meta_query'     => extrachill_shop_seller_products_meta_query( $seller ),
+				)
+			)
+		);
 	}
 
 	$prefix       = 'extrachill_shop_stripe_seller_';
@@ -348,14 +336,14 @@ function extrachill_shop_ability_operator_list_orders( array $input ): array|WP_
 		if ( is_wp_error( $seller ) ) {
 			return $seller;
 		}
-		$args = extrachill_shop_operator_scope_orders_to_seller( $args, $seller );
+		$args = extrachill_shop_scope_order_query_to_seller( $args, $seller );
 	}
 
 	/** @var object{orders: array<WC_Order>, total: int, max_num_pages: int} $result */
 	$result = wc_get_orders( $args );
 	$orders = array();
 	foreach ( $result->orders as $order ) {
-		$seller   = extrachill_shop_operator_order_seller( $order );
+		$seller   = extrachill_shop_get_order_seller( $order );
 		$orders[] = array(
 			'id'           => (int) $order->get_id(),
 			'number'       => (string) $order->get_order_number(),
@@ -374,62 +362,6 @@ function extrachill_shop_ability_operator_list_orders( array $input ): array|WP_
 		'total_pages' => (int) $result->max_num_pages,
 		'page'        => $page,
 	);
-}
-
-/**
- * Scope an operator order query to one seller.
- *
- * Uses the same order seller index shop-list-orders reads
- * (inc/core/order-seller-index.php). Once the canonical order seller record
- * (#1411) lands, this becomes `extrachill_shop_scope_order_query_to_seller()`.
- *
- * @param array $args   `wc_get_orders()` args.
- * @param array $seller Validated seller reference.
- * @return array
- */
-function extrachill_shop_operator_scope_orders_to_seller( array $args, array $seller ): array {
-	$seller_key = extrachill_shop_seller_ref_key( $seller );
-	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\OrderUtil' )
-		&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
-		$args['meta_query'] = array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Indexed seller lookup.
-			array(
-				'key'   => '_extrachill_order_seller',
-				'value' => $seller_key,
-			),
-		);
-	} else {
-		$args['extrachill_order_seller'] = $seller_key;
-	}
-	return $args;
-}
-
-/**
- * The seller an order belongs to.
- *
- * Reads the checkout-time `_extrachill_seller` record (a `{type, id}` array
- * today, a `type:id` key under the canonical order seller record from #1411),
- * falling back to the first `_extrachill_order_seller` index row. Null for
- * platform orders. Once #1411 lands, this becomes
- * `extrachill_shop_get_order_seller()`.
- *
- * @param WC_Order $order WooCommerce order.
- * @return array|null
- */
-function extrachill_shop_operator_order_seller( $order ): ?array {
-	$stored = $order->get_meta( '_extrachill_seller', true );
-	if ( is_string( $stored ) ) {
-		$seller = extrachill_shop_parse_seller_key( $stored );
-		if ( $seller ) {
-			return $seller;
-		}
-	} else {
-		$seller = extrachill_shop_validate_seller_ref( $stored );
-		if ( ! is_wp_error( $seller ) ) {
-			return $seller;
-		}
-	}
-	$indexed = $order->get_meta( '_extrachill_order_seller', true );
-	return extrachill_shop_parse_seller_key( is_string( $indexed ) ? $indexed : '' );
 }
 
 /**
@@ -478,28 +410,28 @@ function extrachill_shop_ability_get_order( array $input ): array|WP_Error {
 		);
 	}
 
-	$seller = extrachill_shop_operator_order_seller( $order );
+	$seller = extrachill_shop_get_order_seller( $order );
 	return array(
-		'id'               => (int) $order->get_id(),
-		'number'           => (string) $order->get_order_number(),
-		'status'           => (string) $order->get_status(),
-		'date_created'     => extrachill_shop_operator_format_date( $order->get_date_created() ),
-		'date_paid'        => extrachill_shop_operator_format_date( $order->get_date_paid() ),
-		'seller'           => $seller,
-		'customer'         => array(
+		'id'                => (int) $order->get_id(),
+		'number'            => (string) $order->get_order_number(),
+		'status'            => (string) $order->get_status(),
+		'date_created'      => extrachill_shop_operator_format_date( $order->get_date_created() ),
+		'date_paid'         => extrachill_shop_operator_format_date( $order->get_date_paid() ),
+		'seller'            => $seller,
+		'customer'          => array(
 			'name'  => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
 			'email' => (string) $order->get_billing_email(),
 		),
-		'payment_method'   => (string) $order->get_payment_method(),
-		'stripe_account'   => (string) $order->get_meta( '_extrachill_stripe_account', true ),
-		'checkout_session' => (string) $order->get_meta( '_extrachill_checkout_session', true ),
-		'payment_intent'   => (string) $order->get_meta( '_extrachill_payment_intent', true ),
-		'currency'         => (string) $order->get_currency(),
-		'total'            => (float) $order->get_total(),
-		'shipping_total'   => (float) $order->get_shipping_total(),
-		'total_refunded'   => (float) $order->get_total_refunded(),
-		'items'            => $items,
-		'refunds'          => $refunds,
+		'payment_method'    => (string) $order->get_payment_method(),
+		'stripe_account'    => (string) $order->get_meta( '_extrachill_stripe_account', true ),
+		'checkout_sessions' => array_keys( extrachill_shop_order_checkout_sessions( $order ) ),
+		'payment_intent'    => (string) $order->get_meta( '_extrachill_payment_intent', true ),
+		'currency'          => (string) $order->get_currency(),
+		'total'             => (float) $order->get_total(),
+		'shipping_total'    => (float) $order->get_shipping_total(),
+		'total_refunded'    => (float) $order->get_total_refunded(),
+		'items'             => $items,
+		'refunds'           => $refunds,
 	);
 }
 

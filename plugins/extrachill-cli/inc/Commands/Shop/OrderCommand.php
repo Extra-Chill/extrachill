@@ -52,20 +52,20 @@ class OrderCommand extends ShopCommandBase {
 		$seller = (array) ( $order['seller'] ?? array() );
 		$this->print_fields(
 			array(
-				'id'               => $order['id'] ?? '',
-				'number'           => $order['number'] ?? '',
-				'status'           => $order['status'] ?? '',
-				'created'          => $order['date_created'] ?? '',
-				'paid'             => $order['date_paid'] ?? '',
-				'seller'           => $seller ? $seller['type'] . ':' . $seller['id'] : 'platform',
-				'customer'         => trim( ( $order['customer']['name'] ?? '' ) . ' <' . ( $order['customer']['email'] ?? '' ) . '>' ),
-				'payment_method'   => $order['payment_method'] ?? '',
-				'stripe_account'   => $order['stripe_account'] ?? '',
-				'checkout_session' => $order['checkout_session'] ?? '',
-				'payment_intent'   => $order['payment_intent'] ?? '',
-				'total'            => sprintf( '%s %s', $order['total'] ?? 0, $order['currency'] ?? '' ),
-				'shipping'         => $order['shipping_total'] ?? 0,
-				'refunded'         => $order['total_refunded'] ?? 0,
+				'id'                => $order['id'] ?? '',
+				'number'            => $order['number'] ?? '',
+				'status'            => $order['status'] ?? '',
+				'created'           => $order['date_created'] ?? '',
+				'paid'              => $order['date_paid'] ?? '',
+				'seller'            => $seller ? $seller['type'] . ':' . $seller['id'] : 'platform',
+				'customer'          => trim( ( $order['customer']['name'] ?? '' ) . ' <' . ( $order['customer']['email'] ?? '' ) . '>' ),
+				'payment_method'    => $order['payment_method'] ?? '',
+				'stripe_account'    => $order['stripe_account'] ?? '',
+				'checkout_sessions' => implode( ', ', (array) ( $order['checkout_sessions'] ?? array() ) ),
+				'payment_intent'    => $order['payment_intent'] ?? '',
+				'total'             => sprintf( '%s %s', $order['total'] ?? 0, $order['currency'] ?? '' ),
+				'shipping'          => $order['shipping_total'] ?? 0,
+				'refunded'          => $order['total_refunded'] ?? 0,
 			)
 		);
 
