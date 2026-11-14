@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.53.1] - 2026-11-14
+
+### Fixed
+- allow X-HTTP-Method-Override in CORS so extrachill.link editor saves work
+
 ## [0.53.0] - 2026-11-14
 
 ### Added
