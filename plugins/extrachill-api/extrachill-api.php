@@ -66,6 +66,7 @@ final class ExtraChill_API_Plugin {
 	 */
 	public function boot() {
 		require_once EXTRACHILL_API_PATH . 'inc/auth/extrachill-link-token-handoff.php';
+		require_once EXTRACHILL_API_PATH . 'inc/auth/link-editor-cors.php';
 
 		do_action( 'extrachill_api_bootstrap' );
 	}
