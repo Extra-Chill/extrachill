@@ -27,34 +27,12 @@ class WP_Error {
 }
 
 $GLOBALS['smoke'] = array( 'actions' => array() );
-if ( 'post-type' === $mode ) {
-	// The post-type constant value is no longer pinned (extrachill-link-pages#34):
-	// a runtime that differs here is now accepted, not rejected.
-	$GLOBALS['smoke']['post_type_constant'] = 'link_page';
-} elseif ( 'owner-meta' === $mode ) {
-	$GLOBALS['smoke']['owner_meta_constant'] = '_other_owner';
-} elseif ( 'stale-version' === $mode ) {
-	$GLOBALS['smoke']['api_version'] = '0';
-} elseif ( 'no-marker' === $mode ) {
-	$GLOBALS['smoke']['omit_api_version'] = true;
-} elseif ( 'wrong-arity' === $mode ) {
-	$GLOBALS['smoke']['wrong_save_arity'] = true;
-} elseif ( 'wrong-required-arity' === $mode ) {
-	$GLOBALS['smoke']['wrong_save_required_arity'] = true;
-} elseif ( 'no-readiness' === $mode ) {
-	$GLOBALS['smoke']['omit_readiness'] = true;
-} elseif ( 'readiness-arity' === $mode ) {
-	$GLOBALS['smoke']['wrong_readiness_arity'] = true;
-} elseif ( 'readiness' === $mode ) {
+if ( 'invalid' === $mode ) {
+	$GLOBALS['smoke']['runtime_invalid'] = true;
+} elseif ( 'not-ready' === $mode ) {
 	$GLOBALS['smoke']['runtime_ready'] = false;
-} elseif ( 'v3' === $mode ) {
-	$GLOBALS['smoke']['api_version'] = '3';
-} elseif ( 'v4-no-resolver' === $mode ) {
-	$GLOBALS['smoke']['api_version']              = '4';
-	$GLOBALS['smoke']['omit_post_type_resolver']  = true;
-} elseif ( 'v4-mismatched-post-type-constant' === $mode ) {
-	$GLOBALS['smoke']['api_version']        = '4';
-	$GLOBALS['smoke']['post_type_constant'] = 'link_page';
+} elseif ( 'no-storage' === $mode ) {
+	$GLOBALS['smoke']['storage_blog_id'] = 0;
 }
 
 function get_option( $name, $default = false ) {

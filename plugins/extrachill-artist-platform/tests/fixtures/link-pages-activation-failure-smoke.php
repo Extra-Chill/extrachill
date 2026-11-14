@@ -76,18 +76,10 @@ function wp_die( $message ) {
 require_once $root . '/extrachill-artist-platform.php';
 
 if ( 'missing' !== $mode ) {
-	if ( 'stale-version' === $mode ) {
-		$GLOBALS['smoke']['api_version'] = '0';
-	} elseif ( 'no-marker' === $mode ) {
-		$GLOBALS['smoke']['omit_api_version'] = true;
-	} elseif ( 'wrong-arity' === $mode ) {
-		$GLOBALS['smoke']['wrong_save_arity'] = true;
-	} elseif ( 'wrong-required-arity' === $mode ) {
-		$GLOBALS['smoke']['wrong_save_required_arity'] = true;
-	} elseif ( 'no-readiness' === $mode ) {
-		$GLOBALS['smoke']['omit_readiness'] = true;
-	} elseif ( 'readiness-arity' === $mode ) {
-		$GLOBALS['smoke']['wrong_readiness_arity'] = true;
+	if ( 'invalid' === $mode ) {
+		$GLOBALS['smoke']['runtime_invalid'] = true;
+	} elseif ( 'not-ready' === $mode ) {
+		$GLOBALS['smoke']['runtime_ready'] = false;
 	}
 	require_once __DIR__ . '/fake-external-link-pages-runtime.php';
 }

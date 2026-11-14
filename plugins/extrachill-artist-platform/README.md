@@ -6,10 +6,12 @@ Artist Platform requires the `extrachill-link-pages` plugin (`Requires Plugins:
 extrachill-link-pages`). That plugin is the only provider of the generic Link
 Pages runtime: the Link Page post type, owner references, operations, public
 routing, head/SEO output, and link expiration. Artist Platform carries no copy
-of it. At `plugins_loaded` priority 20 Artist Platform validates the runtime
-contract (`inc/link-pages/runtime-handoff.php`) and registers its artist
-adapters into it. If the runtime is missing or incompatible, the adapters are
-skipped and an admin notice explains why.
+of it. At `plugins_loaded` priority 20 Artist Platform asks the runtime whether
+it is valid and ready (`inc/link-pages/runtime-handoff.php` trusts
+`ec_validate_link_pages_runtime()` and `ec_link_pages_runtime_ready()`; it keeps
+no copy of the runtime's signatures) and registers its artist adapters into it.
+If the runtime is missing, invalid or not ready, the adapters are skipped and an
+admin notice explains why.
 
 Artist profiles, link pages, and shop management for the Extra Chill network.
 
