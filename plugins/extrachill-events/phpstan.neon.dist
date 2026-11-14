@@ -3,3 +3,4 @@ parameters:
 	scanFiles:
 		- ../extrachill-network/inc/core/rate-limit.php
 		- ../extrachill-network/inc/core/signed-token.php
+		- ../extrachill-link-pages/inc/class-owned-link-pages.php

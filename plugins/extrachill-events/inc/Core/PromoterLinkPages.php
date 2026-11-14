@@ -19,22 +19,14 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	public const ORPHAN_META_KEY   = '_extrachill_events_promoter_link_page_orphaned';
 	protected const SCHEMA_TYPE    = 'Organization';
 
-	/** @var bool */
-	private static $authority_hook_registered = false;
-
-	/** Register the revocation veto even when the optional runtime is unavailable. */
-	public static function register_authority_hook(): void {
-		if ( self::$authority_hook_registered ) {
-			return;
-		}
-		self::$authority_hook_registered = true;
-		add_filter( 'extrachill_events_promoter_authority_precommit', array( self::class, 'authority_precommit' ), 20, 3 );
-	}
-
-	/** Register shared lifecycle hooks plus the authority lifecycle. */
+	/**
+	 * Register shared lifecycle hooks plus the post-commit authority purge.
+	 *
+	 * The revocation veto is owned by LinkPagesProvider so it fails closed
+	 * even when this class cannot load.
+	 */
 	public static function register_hooks(): void {
 		parent::register_hooks();
-		self::register_authority_hook();
 		add_action( 'extrachill_events_promoter_authority_changed', array( self::class, 'authority_changed' ), 1, 2 );
 	}
 
@@ -43,7 +35,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	 *
 	 * @param int $term_id Promoter term ID.
 	 */
-	protected static function authorize_member( int $term_id ) {
+	protected static function authorize_owner( int $term_id ) {
 		return ( new PromoterAuthorization() )->authorize( PromoterAuthorization::effective_user_id(), $term_id, PromoterAuthorization::ACTION_ACCESS_PROMOTER );
 	}
 
@@ -63,7 +55,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 		}
 		$data = function_exists( 'data_machine_events_get_promoter_data' ) ? data_machine_events_get_promoter_data( $term_id ) : array();
 		return array(
-			'term_id'      => $term_id,
+			'id'           => $term_id,
 			'name'         => (string) ( $data['name'] ?? $term->name ),
 			'slug'         => (string) $term->slug,
 			'description'  => (string) ( $data['description'] ?? $term->description ),
@@ -101,7 +93,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	 * @param int $term_id Promoter term ID.
 	 */
 	public static function management_url( int $term_id ): string {
-		return add_query_arg( 'identity', 'promoter:' . $term_id, get_home_url( self::events_blog_id(), '/venue-settings/' ) ) . '#promoter-link-page';
+		return add_query_arg( 'identity', 'promoter:' . $term_id, get_home_url( self::owner_blog_id(), '/venue-settings/' ) ) . '#promoter-link-page';
 	}
 
 	/**
@@ -112,7 +104,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	 * @param callable $callback Mutation.
 	 */
 	protected static function with_authority_lock( int $term_id, bool $trusted, callable $callback ) {
-		return self::with_events_blog(
+		return self::with_owner_blog(
 			static function () use ( $term_id, $trusted, $callback ) {
 				$repository = new PromoterAuthorityRepository();
 				if ( $trusted ) {
@@ -168,7 +160,7 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 
 	/** Return the bounded public projection of verified promoter organizations. */
 	public static function approved_promoters() {
-		return self::with_events_blog(
+		return self::with_owner_blog(
 			static function () {
 				$organizations = ( new PromoterAuthorityRepository() )->list_active_organizations();
 				if ( is_wp_error( $organizations ) ) {
@@ -221,13 +213,6 @@ final class PromoterLinkPages extends TeamTermLinkPages {
 	 * @param int $promoter_term_id Promoter term ID.
 	 */
 	private static function withdraw_for_revocation( int $promoter_term_id ) {
-		$defined_functions = get_defined_functions();
-		$user_functions    = array_map( 'strtolower', $defined_functions['user'] );
-		foreach ( array( 'ec_normalize_link_page_owner_reference', 'ec_get_link_page_id_for_owner', 'ec_with_link_page_storage_blog', 'ec_get_stored_link_page_owner_references', 'ec_write_link_page_meta' ) as $function ) {
-			if ( ! in_array( strtolower( $function ), $user_functions, true ) ) {
-				return self::error( 'runtime_unavailable', __( 'Promoter authority cannot be revoked while its public projection runtime is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
-			}
-		}
 		$reference = self::owner_reference( $promoter_term_id );
 		$page_id   = is_wp_error( $reference ) ? $reference : ec_get_link_page_id_for_owner( $reference );
 		if ( is_wp_error( $page_id ) || ! $page_id ) {

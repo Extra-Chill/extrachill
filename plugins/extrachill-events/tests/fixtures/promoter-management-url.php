@@ -36,6 +36,8 @@ function add_query_arg( $key, $value, $url ): string {
 	return $url . '?' . rawurlencode( $key ) . '=' . rawurlencode( $value );
 }
 
+$link_pages_engine = getenv( 'LINK_PAGES_WORKTREE' ) ? getenv( 'LINK_PAGES_WORKTREE' ) : dirname( __DIR__, 3 ) . '/extrachill-link-pages';
+require_once $link_pages_engine . '/inc/class-owned-link-pages.php';
 require_once dirname( __DIR__, 2 ) . '/inc/Core/PromoterLinkPages.php';
 
 $url   = \ExtraChillEvents\Core\PromoterLinkPages::management_url( 30 );

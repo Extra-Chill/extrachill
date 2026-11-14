@@ -48,8 +48,7 @@ final class LinkPagesProvider {
 
 	/** Preflight every owner registry before mutating any, then register both kinds. */
 	public static function initialize() {
-		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/PromoterLinkPages.php';
-		\ExtraChillEvents\Core\PromoterLinkPages::register_authority_hook();
+		add_filter( 'extrachill_events_promoter_authority_precommit', array( self::class, 'promoter_authority_precommit' ), 20, 3 );
 		$valid = self::validate_runtime();
 		if ( is_wp_error( $valid ) ) {
 			self::record_error( $valid );
@@ -57,6 +56,7 @@ final class LinkPagesProvider {
 		}
 
 		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/VenueLinkPages.php';
+		require_once EXTRACHILL_EVENTS_PLUGIN_DIR . 'inc/Core/PromoterLinkPages.php';
 		$registries = array(
 			'ec_can_register_link_page_owner_compatibility_provider' => array( 'ec_register_link_page_owner_compatibility_provider', 'compatibility_provider' ),
 			'ec_can_register_link_page_operation_provider' => array( 'ec_register_link_page_operation_provider', 'operation_provider' ),
@@ -84,6 +84,27 @@ final class LinkPagesProvider {
 	}
 
 	/**
+	 * Withdraw a promoter's page inside the revocation transaction.
+	 *
+	 * Registered before runtime validation: when the promoter adapter could
+	 * not load, revocation fails closed so a public page never outlives its
+	 * organization's authority.
+	 *
+	 * @param mixed  $allowed          Prior precommit decision.
+	 * @param int    $promoter_term_id Promoter term ID.
+	 * @param string $change           Authority change.
+	 */
+	public static function promoter_authority_precommit( $allowed, $promoter_term_id, $change ) {
+		if ( true !== $allowed || 'organization_revoked' !== $change ) {
+			return $allowed;
+		}
+		if ( ! class_exists( '\\ExtraChillEvents\\Core\\PromoterLinkPages', false ) ) {
+			return new \WP_Error( 'promoter_link_page_runtime_unavailable', __( 'Promoter authority cannot be revoked while its public projection runtime is unavailable.', 'extrachill-events' ), array( 'status' => 503 ) );
+		}
+		return \ExtraChillEvents\Core\PromoterLinkPages::authority_precommit( $allowed, $promoter_term_id, $change );
+	}
+
+	/**
 	 * Validate configured activation and the complete standalone runtime marker.
 	 *
 	 * Accepts runtime API version '3' or '4' (extrachill-link-pages.php:861).
@@ -103,6 +124,9 @@ final class LinkPagesProvider {
 		$network_active = (array) get_site_option( 'active_sitewide_plugins', array() );
 		if ( ! in_array( self::PLUGIN, $active, true ) && ! isset( $network_active[ self::PLUGIN ] ) ) {
 			return new \WP_Error( 'venue_link_pages_runtime_not_configured', 'Extra Chill Link Pages must be active before venue Link Pages can load.' );
+		}
+		if ( ! class_exists( '\\ExtraChill\\LinkPages\\Owned_Link_Pages' ) ) {
+			return new \WP_Error( 'venue_link_pages_runtime_incomplete', 'The configured Extra Chill Link Pages runtime is incomplete.' );
 		}
 		$runtime_version = defined( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) ? constant( 'EC_LINK_PAGES_RUNTIME_API_VERSION' ) : null;
 		if ( ! in_array( $runtime_version, array( '3', '4' ), true ) ) {

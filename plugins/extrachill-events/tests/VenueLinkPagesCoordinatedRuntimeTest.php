@@ -125,7 +125,7 @@ final class VenueLinkPagesCoordinatedRuntimeTest extends TestCase {
 		$plugin    = file_get_contents( $root . '/extrachill-events.php' );
 		$provider  = file_get_contents( $root . '/inc/Providers/LinkPagesProvider.php' );
 		$abilities = file_get_contents( $root . '/inc/Abilities/TeamTermLinkPageAbilities.php' );
-		$core      = file_get_contents( $root . '/inc/Core/VenueLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' );
+		$core      = file_get_contents( $root . '/inc/Core/VenueLinkPages.php' ) . file_get_contents( $root . '/inc/Core/TeamTermLinkPages.php' ) . file_get_contents( dirname( $root ) . '/extrachill-link-pages/inc/class-owned-link-pages.php' );
 		$this->assertStringContainsString( 'Requires Plugins: data-machine, data-machine-events', $plugin );
 		$this->assertStringNotContainsString( 'Requires Plugins: data-machine, data-machine-events, extrachill-link-pages', $plugin );
 		$this->assertStringContainsString( 'Add the native plugin dependency after Link Pages PR #4', $provider );
