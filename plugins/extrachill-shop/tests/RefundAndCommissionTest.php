@@ -11,6 +11,8 @@
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/fixtures/woo-refunds.php';
+require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
+require_once dirname( __DIR__ ) . '/inc/core/order-seller-index.php';
 
 final class RefundTestOrder {
 	use WooRefundTracking;
@@ -32,6 +34,10 @@ final class RefundTestOrder {
 		return $this->total;
 	}
 
+	public function get_items( $type = 'line_item' ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Mirrors WC_Order.
+		return array();
+	}
+
 	public function get_meta( $key ) {
 		return $this->meta[ $key ] ?? '';
 	}
@@ -46,37 +52,25 @@ final class RefundAndCommissionTest extends TestCase {
 		$GLOBALS['ticket_refund_fail'] = false;
 	}
 
-	/** A paid direct-charge artist order, registered where wc_get_order() finds it. */
+	/** A paid direct-charge artist order (canonical seller record), registered where wc_get_order() finds it. */
 	private function artist_order(): RefundTestOrder {
-		$order                                     = new RefundTestOrder( 42, 25.0 );
-		$order->meta['_extrachill_payment_intent'] = 'pi_artist';
-		$order->meta['_extrachill_stripe_account'] = 'acct_artist';
-		$order->meta['_artist_payouts']            = array(
-			7 => array(
-				'total'           => 25.0,
-				'application_fee' => 2.0,
-				'artist_payout'   => 23.0,
-				'stripe_account'  => 'acct_artist',
-			),
-		);
-		$GLOBALS['test_orders'][42]                = $order;
+		$order                                      = new RefundTestOrder( 42, 25.0 );
+		$order->meta['_extrachill_payment_intent']  = 'pi_artist';
+		$order->meta['_extrachill_stripe_account']  = 'acct_artist';
+		$order->meta['_extrachill_seller']          = 'artist:7';
+		$order->meta['_extrachill_application_fee'] = 200;
+		$GLOBALS['test_orders'][42]                 = $order;
 		return $order;
 	}
 
 	/** A paid direct-charge venue order. */
 	private function venue_order(): RefundTestOrder {
-		$order                                     = new RefundTestOrder( 43, 8.29 );
-		$order->meta['_extrachill_payment_intent'] = 'pi_venue';
-		$order->meta['_extrachill_stripe_account'] = 'acct_venue';
-		$order->meta['_seller_payouts']            = array(
-			'venue:1524' => array(
-				'total'           => 8.29,
-				'application_fee' => 0.83,
-				'artist_payout'   => 7.46,
-				'stripe_account'  => 'acct_venue',
-			),
-		);
-		$GLOBALS['test_orders'][43]                = $order;
+		$order                                      = new RefundTestOrder( 43, 8.29 );
+		$order->meta['_extrachill_payment_intent']  = 'pi_venue';
+		$order->meta['_extrachill_stripe_account']  = 'acct_venue';
+		$order->meta['_extrachill_seller']          = 'venue:1524';
+		$order->meta['_extrachill_application_fee'] = 83;
+		$GLOBALS['test_orders'][43]                 = $order;
 		return $order;
 	}
 
@@ -108,7 +102,7 @@ final class RefundAndCommissionTest extends TestCase {
 		$this->assertSame( 'acct_artist', $options['stripe_account'] );
 	}
 
-	public function test_venue_refund_uses_seller_payouts_and_rounds_cents(): void {
+	public function test_venue_refund_uses_order_seller_record_and_rounds_cents(): void {
 		$order  = $this->venue_order();
 		$result = extrachill_shop_refund_seller_portion(
 			$order,

@@ -143,19 +143,11 @@ function extrachill_shop_start_merch_checkout( $order ) {
 		$sessions[ $session->id ] = $account;
 		$order->update_meta_data( '_extrachill_stripe_account', $account );
 		$order->update_meta_data( '_extrachill_checkout_sessions', $sessions );
-		$order->update_meta_data( '_extrachill_seller', $seller );
+		// The canonical order seller record (see order-seller-index.php). The
+		// application fee includes the shipping hold (see shipping-recovery.php).
+		$order->update_meta_data( '_extrachill_seller', $seller ? $seller['type'] . ':' . (int) $seller['id'] : '' );
+		$order->update_meta_data( '_extrachill_application_fee', $fee );
 		$order->update_meta_data( EXTRACHILL_SHOP_SHIPPING_HOLD_META, $shipping_minor );
-		// Keep reporting and seller refund readers compatible with existing orders.
-		if ( $seller ) {
-			$payout = array(
-				'total'           => (float) $order->get_total(),
-				'artist_payout'   => ( $total_minor - $fee ) / 100,
-				'application_fee' => $fee / 100,
-				'shipping_held'   => $shipping_minor / 100,
-				'stripe_account'  => $account,
-			);
-			$order->update_meta_data( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts', array( extrachill_shop_seller_key( $seller ) => $payout ) );
-		}
 		$order->save();
 		return $session;
 	} catch ( \Exception $e ) {
@@ -345,8 +337,8 @@ function extrachill_shop_merch_charge_disputed( $dispute, $account ) {
 	$subject = sprintf( 'Order #%s was disputed', $number );
 	$body    = '<p>' . esc_html( sprintf( 'The buyer on order #%1$s disputed their $%2$s payment with their bank (reason: %3$s).', $number, $amount, $reason ) ) . '</p>'
 		. '<p>' . esc_html( 'Stripe has held the payment and a dispute fee. If you have not shipped yet, hold the order. Respond in your Stripe dashboard under Payments, then Disputes, before the deadline shown there, or the bank keeps the money with the buyer.' ) . '</p>';
-	$seller  = $order->get_meta( '_extrachill_seller' );
-	if ( is_array( $seller ) && ! is_wp_error( extrachill_shop_validate_seller_ref( $seller ) ) ) {
+	$seller  = extrachill_shop_get_order_seller( $order );
+	if ( null !== $seller ) {
 		extrachill_shop_notify_seller(
 			$seller,
 			array(

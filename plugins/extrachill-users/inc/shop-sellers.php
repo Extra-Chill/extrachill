@@ -245,23 +245,16 @@ function ec_shop_seller_has_products( $seller ) {
 		return 'yes' === $cached;
 	}
 
-	$meta_query = 'artist' === $ref['type']
-		? array(
-			array(
-				'key'   => '_artist_profile_id',
-				'value' => $ref['id'],
-			),
-		)
-		: array(
-			array(
-				'key'   => '_extrachill_shop_seller_type',
-				'value' => $ref['type'],
-			),
-			array(
-				'key'   => '_extrachill_shop_seller_id',
-				'value' => $ref['id'],
-			),
-		);
+	$meta_query = array(
+		array(
+			'key'   => '_extrachill_shop_seller_type',
+			'value' => $ref['type'],
+		),
+		array(
+			'key'   => '_extrachill_shop_seller_id',
+			'value' => $ref['id'],
+		),
+	);
 
 	switch_to_blog( $shop_blog_id );
 	try {

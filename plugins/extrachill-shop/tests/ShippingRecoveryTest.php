@@ -43,6 +43,13 @@ namespace {
 		function wp_get_current_user() { return (object) array( 'display_name' => 'Seller' ); }
 	}
 
+	/** One shirt from the venue. */
+	final class ShippingRecoveryItem {
+		public function get_product_id() { return 10; }
+		public function get_quantity() { return 1; }
+		public function get_total() { return 18; }
+	}
+
 	/** A paid venue order with everything the label and status abilities read. */
 	final class ShippingRecoveryOrder {
 		public $meta   = array();
@@ -51,18 +58,14 @@ namespace {
 		public $saved  = 0;
 		public function get_id() { return 321; }
 		public function get_order_number() { return '321'; }
-		public function get_meta( $key, $single = true ) {
-			if ( '_extrachill_order_seller' === $key && ! $single ) {
-				return array( (object) array( 'value' => 'venue:9911' ) );
-			}
-			return $this->meta[ $key ] ?? '';
-		}
+		public function get_meta( $key ) { return $this->meta[ $key ] ?? ''; }
 		public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
 		public function add_order_note( $note ) { $this->notes[] = $note; }
 		public function set_status( $status, $note = '' ) { $this->status = $status; $this->notes[] = $note; }
 		public function get_status() { return $this->status; }
 		public function save() { ++$this->saved; }
-		public function get_items( $type = 'line_item' ) { return array(); }
+		public function get_items( $type = 'line_item' ) { return array( new ShippingRecoveryItem() ); }
+		public function get_total() { return 25; }
 		public function get_address( $type ) { return array( 'first_name' => 'Test', 'last_name' => 'Buyer', 'address_1' => '456 Destination', 'city' => 'Austin', 'state' => 'TX', 'postcode' => '78701', 'country' => 'US' ); }
 		public function get_date_created() { return null; }
 		public function get_billing_first_name() { return 'Test'; }
@@ -97,7 +100,8 @@ namespace {
 				'_extrachill_stripe_account'      => 'acct_merch',
 				'_extrachill_payment_intent'      => 'pi_merch',
 				'_extrachill_shipping_hold_minor' => $hold,
-				'_seller_payouts'                 => array( 'venue:9911' => array( 'items' => array( array( 'product_id' => 10, 'quantity' => 1 ) ) ) ),
+				'_extrachill_seller'              => 'venue:9911',
+				'_extrachill_application_fee'     => 200 + $hold,
 			);
 			$GLOBALS['test_orders'][321] = $order;
 			return $order;
@@ -124,10 +128,11 @@ namespace {
 		public function test_checkout_payout_record_shows_the_held_shipping(): void {
 			$order = new MerchCheckoutOrder();
 			extrachill_shop_start_merch_checkout( $order );
-			$payout = $order->meta['_seller_payouts']['venue:9911'];
-			$this->assertEquals( 7.0, $payout['application_fee'] );
-			$this->assertEquals( 5.0, $payout['shipping_held'] );
-			$this->assertEquals( 18.0, $payout['artist_payout'] );
+			$this->assertSame( 700, $order->meta['_extrachill_application_fee'] );
+			$record = extrachill_shop_get_order_seller_record( $order );
+			$this->assertEquals( 7.0, $record['application_fee'] );
+			$this->assertEquals( 5.0, $record['shipping_held'] );
+			$this->assertEquals( 18.0, $record['seller_payout'] );
 		}
 
 		public function test_platform_product_holds_nothing_and_has_no_fee(): void {
@@ -203,7 +208,7 @@ namespace {
 			$GLOBALS['shippo_label_result'] = array( 'tracking_number' => '9400', 'label_url' => 'https://label', 'tracking_url' => '', 'carrier' => 'USPS', 'service' => 'Ground Advantage', 'cost' => 4.35, 'rate_id' => 'r', 'transaction_id' => 't' );
 			$result                         = extrachill_shop_ability_create_shipping_label( array( 'order_id' => 321, 'seller' => self::VENUE ) );
 			$this->assertSame( '9400', $result['tracking_number'] );
-			$this->assertEquals( 5.0, $order->meta['_seller_label_data_venue:9911']['shipping_held'] );
+			$this->assertEquals( 5.0, $order->meta['_extrachill_shipment']['shipping_held'] );
 			$this->assertStringContainsString( 'Label $4.35, covered by $5.00 shipping charged', implode( ' ', $order->notes ) );
 
 			// Marking the labelled order shipped afterwards keeps the shipping with the platform.

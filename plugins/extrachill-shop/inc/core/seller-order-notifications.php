@@ -25,7 +25,7 @@ defined( 'ABSPATH' ) || exit;
 add_action( 'woocommerce_order_status_processing', 'extrachill_shop_notify_sellers_of_order', 10, 1 );
 
 /**
- * Group purchased line items by payout seller and notify each seller.
+ * Notify the order's seller, from the canonical order seller record.
  *
  * @param int $order_id WooCommerce order ID.
  */
@@ -36,37 +36,9 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
 	}
 	/** @var WC_Order $order Order notifications only run for real orders. */
 
-	$groups = array();
-	foreach ( $order->get_items() as $item ) {
-		/** @var WC_Order_Item_Product $item Line items on a shop order. */
-		$product_id = $item->get_product_id();
-		$line_total = (float) $item->get_total();
-		$seller     = extrachill_shop_get_product_payout_seller( $product_id );
-		if ( ! $seller ) {
-			continue;
-		}
-		$key = $seller['type'] . ':' . $seller['id'];
-		if ( ! isset( $groups[ $key ] ) ) {
-			$groups[ $key ] = array(
-				'seller' => $seller,
-				'items'  => array(),
-				'total'  => 0,
-			);
-		}
-		$groups[ $key ]['items'][] = array(
-			'product_id' => $product_id,
-			'quantity'   => $item->get_quantity(),
-			'line_total' => $line_total,
-		);
-		$groups[ $key ]['total']  += $line_total;
-	}
-
-	foreach ( $groups as $group ) {
-		$total_minor            = (int) round( $group['total'] * 100 );
-		$fee                    = extrachill_commerce_fee( 'extrachill_merch', $total_minor, $group['seller'] );
-		$group['seller_payout'] = ( $total_minor - $fee['application_fee'] ) / 100;
-		$group['shipping_held'] = extrachill_shop_order_shipping_hold( $order ) / 100;
-		extrachill_shop_send_seller_order_notification( $order, $group['seller'], $group );
+	$record = extrachill_shop_get_order_seller_record( $order );
+	if ( null !== $record ) {
+		extrachill_shop_send_seller_order_notification( $order, $record['seller'], $record );
 	}
 }
 
@@ -92,7 +64,7 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
  *
  * @param WC_Order $order       WooCommerce order object.
  * @param array    $seller      Typed seller reference.
- * @param array    $payout_data Grouped line items and seller payout.
+ * @param array    $payout_data Order seller record (`extrachill_shop_get_order_seller_record()`).
  */
 function extrachill_shop_send_seller_order_notification( $order, $seller, $payout_data ) {
 	$seller_name = extrachill_shop_get_seller_display_name( $seller );

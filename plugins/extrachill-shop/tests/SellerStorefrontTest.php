@@ -87,9 +87,10 @@ final class SellerStorefrontTest extends TestCase {
 		$this->assertSame( '', extrachill_shop_storefront_legacy_redirect_url( array( 'sort' => 'random' ) ) );
 	}
 
-	public function test_products_meta_query_matches_how_each_seller_is_stored(): void {
+	public function test_products_meta_query_is_the_same_typed_pair_for_every_seller(): void {
 		$artist = extrachill_shop_seller_products_meta_query( array( 'type' => 'artist', 'id' => 12 ) );
-		$this->assertSame( array( '_artist_profile_id', 12 ), array( $artist[0]['key'], $artist[0]['value'] ) );
+		$this->assertSame( array( '_extrachill_shop_seller_type', 'artist' ), array( $artist[0]['key'], $artist[0]['value'] ) );
+		$this->assertSame( array( '_extrachill_shop_seller_id', 12 ), array( $artist[1]['key'], $artist[1]['value'] ) );
 		$venue = extrachill_shop_seller_products_meta_query( array( 'type' => 'venue', 'id' => 1524 ) );
 		$this->assertSame( array( '_extrachill_shop_seller_type', 'venue' ), array( $venue[0]['key'], $venue[0]['value'] ) );
 		$this->assertSame( array( '_extrachill_shop_seller_id', 1524 ), array( $venue[1]['key'], $venue[1]['value'] ) );

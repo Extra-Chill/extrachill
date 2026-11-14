@@ -22,19 +22,14 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Payout record for one seller on an order.
  *
- * Artists live in `_artist_payouts` keyed by artist ID; venues and promoters in
- * `_seller_payouts` keyed by `type:id`.
+ * Reads the canonical order seller record (`extrachill_shop_get_order_seller_record()`).
  *
  * @param WC_Order $order  Order.
  * @param array    $seller Seller reference.
  * @return array|null
  */
 function extrachill_shop_get_order_seller_payout( $order, array $seller ) {
-	$key     = extrachill_shop_seller_key( $seller );
-	$payouts = $order->get_meta( 'artist' === $seller['type'] ? '_artist_payouts' : '_seller_payouts' );
-	$payouts = is_array( $payouts ) ? $payouts : array();
-
-	return isset( $payouts[ $key ] ) && is_array( $payouts[ $key ] ) ? $payouts[ $key ] : null;
+	return extrachill_shop_order_has_seller( $order, $seller ) ? extrachill_shop_get_order_seller_record( $order ) : null;
 }
 
 /**
