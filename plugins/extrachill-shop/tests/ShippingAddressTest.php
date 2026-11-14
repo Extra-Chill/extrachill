@@ -17,7 +17,8 @@ function add_option( $key, $value, $deprecated = '', $autoload = false ) {
 function extrachill_shop_is_shippo_configured() { return true; }
 function extrachill_shop_shippo_create_label( $from, $to ) {
 	$GLOBALS['shipping_from'] = $from;
-	return new WP_Error( 'shippo_test', 'Captured shipment.' );
+	$GLOBALS['shippo_labels_bought'] = ( $GLOBALS['shippo_labels_bought'] ?? 0 ) + 1;
+	return $GLOBALS['shippo_label_result'] ?? new WP_Error( 'shippo_test', 'Captured shipment.' );
 }
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-get-shipping-address.php';
 require_once dirname( __DIR__ ) . '/inc/abilities/shop-update-shipping-address.php';
@@ -29,6 +30,7 @@ final class ShippingAddressTest extends TestCase {
 		$GLOBALS['test_post_meta']      = array();
 		$GLOBALS['test_blog_stack'] = array();
 		$GLOBALS['test_user_id']        = 812;
+		$GLOBALS['shippo_label_result'] = null;
 		$GLOBALS['test_owner_callback'] = static function () {
 			return array(
 				'type'                => 'venue',

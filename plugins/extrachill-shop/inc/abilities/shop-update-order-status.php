@@ -105,6 +105,16 @@ function extrachill_shop_ability_update_order_status( array $input ): array|WP_E
 	}
 
 	$seller_key = extrachill_shop_seller_key( $seller );
+	$prefix     = 'artist' === $seller['type'] ? '_artist_' : '_seller_';
+	// Shipped without an Extra Chill label: the seller paid the postage, so
+	// the shipping held in the application fee goes back to them.
+	if ( 'completed' === $new_status && empty( $order->get_meta( $prefix . 'label_' . $seller_key ) ) ) {
+		$released = extrachill_shop_release_shipping_hold( $order );
+		if ( is_wp_error( $released ) ) {
+			return $released;
+		}
+	}
+
 	if ( $tracking_number ) {
 		$order->update_meta_data( '_artist_tracking_' . $seller_key, $tracking_number );
 	}

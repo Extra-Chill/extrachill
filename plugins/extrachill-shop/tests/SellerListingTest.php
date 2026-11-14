@@ -16,6 +16,9 @@ function wc_get_order_statuses() { return array(
 function wp_next_scheduled() { return false; }
 function wp_schedule_single_event() {}
 function wc_get_orders( $args ) {
+	if ( isset( $GLOBALS['test_wc_get_orders_callback'] ) ) {
+		return $GLOBALS['test_wc_get_orders_callback']( $args );
+	}
 	$GLOBALS['listing_queries'][] = $args;
 	$orders                       = array_values( $GLOBALS['listing_orders'] );
 	$key                          = $args['extrachill_order_seller'] ?? $args['meta_query'][0]['value'] ?? null;

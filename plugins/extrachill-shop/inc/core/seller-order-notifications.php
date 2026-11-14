@@ -62,9 +62,10 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
 	}
 
 	foreach ( $groups as $group ) {
-		$total                  = $group['total'];
-		$fee                    = min( max( round( $total * extrachill_shop_get_default_commission_rate(), 2 ), 0.0 ), $total );
-		$group['seller_payout'] = round( $total - $fee, 2 );
+		$total_minor            = (int) round( $group['total'] * 100 );
+		$fee                    = extrachill_commerce_fee( 'extrachill_merch', $total_minor, $group['seller'] );
+		$group['seller_payout'] = ( $total_minor - $fee['application_fee'] ) / 100;
+		$group['shipping_held'] = extrachill_shop_order_shipping_hold( $order ) / 100;
 		extrachill_shop_send_seller_order_notification( $order, $group['seller'], $group );
 	}
 }
@@ -94,32 +95,48 @@ function extrachill_shop_notify_sellers_of_order( $order_id ) {
  * @param array    $payout_data Grouped line items and seller payout.
  */
 function extrachill_shop_send_seller_order_notification( $order, $seller, $payout_data ) {
-	if ( 'artist' === $seller['type'] ) {
-		$data        = extrachill_shop_get_artist_notification_data( $seller['id'] );
-		$seller_name = $data['name'];
-		if ( empty( $data['recipients'] ) ) {
-			return;
-		}
-	} else {
-		// Events owns venue and promoter people; only the public name is read here.
-		$canonical = extrachill_shop_get_canonical_seller( $seller );
-		if ( is_wp_error( $canonical ) ) {
-			return;
-		}
-		$seller_name = $canonical['name'];
+	$seller_name = extrachill_shop_get_seller_display_name( $seller );
+	if ( null === $seller_name ) {
+		return;
 	}
 
 	$order_number = $order->get_order_number();
-	$subject      = sprintf( 'New Order #%s - %s', $order_number, $seller_name );
-	$message      = array(
-		'subject'   => $subject,
-		// Step 2: build email body using order data (current shop-blog context is fine).
-		'body_html' => extrachill_shop_build_order_notification_body( $order, $seller_name, $payout_data ),
-		'preheader' => sprintf( 'New order #%s for %s — view details in Shop Manager.', $order_number, $seller_name ),
-		'cta_url'   => extrachill_shop_get_shop_manager_url( $seller ),
-		'cta_label' => 'View Order in Shop Manager',
+	extrachill_shop_notify_seller(
+		$seller,
+		array(
+			'subject'   => sprintf( 'New Order #%s - %s', $order_number, $seller_name ),
+			// Step 2: build email body using order data (current shop-blog context is fine).
+			'body_html' => extrachill_shop_build_order_notification_body( $order, $seller_name, $payout_data ),
+			'preheader' => sprintf( 'New order #%s for %s — view details in Shop Manager.', $order_number, $seller_name ),
+			'cta_url'   => extrachill_shop_get_shop_manager_url( $seller ),
+			'cta_label' => 'View Order in Shop Manager',
+		)
 	);
+}
 
+/**
+ * Public display name for a seller, or null when it cannot be resolved.
+ *
+ * @param array $seller Typed seller reference.
+ * @return string|null
+ */
+function extrachill_shop_get_seller_display_name( $seller ) {
+	if ( 'artist' === $seller['type'] ) {
+		return extrachill_shop_get_artist_notification_data( $seller['id'] )['name'];
+	}
+	// Events owns venue and promoter people; only the public name is read here.
+	$canonical = extrachill_shop_get_canonical_seller( $seller );
+	return is_wp_error( $canonical ) ? null : $canonical['name'];
+}
+
+/**
+ * Email a seller's people: an artist's roster, or a venue's or promoter's
+ * finance owners through Events.
+ *
+ * @param array $seller  Typed seller reference.
+ * @param array $message `subject`, `body_html`, optional `preheader`, `cta_url`, `cta_label`.
+ */
+function extrachill_shop_notify_seller( $seller, array $message ) {
 	if ( 'artist' !== $seller['type'] ) {
 		// Events emails the seller's finance owners (#1293): their recipients
 		// and repositories only load on the Events site.
@@ -133,26 +150,27 @@ function extrachill_shop_send_seller_order_notification( $order, $seller, $payou
 			) + $message
 		);
 		if ( is_wp_error( $result ) ) {
-			error_log( 'Extra Chill seller order notification failed for order ' . $order_number . ': ' . $result->get_error_code() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility for a missed seller email.
+			error_log( 'Extra Chill seller notification failed (' . $message['subject'] . '): ' . $result->get_error_code() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Operator visibility for a missed seller email.
 		}
 		return;
 	}
 
+	$data = extrachill_shop_get_artist_notification_data( $seller['id'] );
 	// Step 3: dispatch. `ec_send_email()` injects `mail_site_id` itself —
 	// do NOT wrap this call in `switch_to_blog()`.
 	foreach ( $data['recipients'] as $email ) {
 		ec_send_email(
 			array(
 				'to'       => $email,
-				'subject'  => $subject,
+				'subject'  => $message['subject'],
 				'template' => 'extrachill/branded',
 				'context'  => array(
-					'subject_html'   => esc_html( $subject ),
-					'preheader'      => $message['preheader'],
-					'recipient_name' => $seller_name,
+					'subject_html'   => esc_html( $message['subject'] ),
+					'preheader'      => (string) ( $message['preheader'] ?? '' ),
+					'recipient_name' => $data['name'],
 					'body_html'      => $message['body_html'],
-					'cta_url'        => $message['cta_url'],
-					'cta_label'      => $message['cta_label'],
+					'cta_url'        => (string) ( $message['cta_url'] ?? '' ),
+					'cta_label'      => (string) ( $message['cta_label'] ?? '' ),
 				),
 			)
 		);
@@ -278,6 +296,14 @@ function extrachill_shop_build_order_notification_body( $order, $seller_name, $p
 		'<p style="margin-top: 15px; font-size: 16px;"><strong>Your Payout:</strong> $%s</p>',
 		$seller_payout
 	);
+
+	$shipping_held = (float) ( $payout_data['shipping_held'] ?? 0 );
+	if ( $shipping_held > 0 ) {
+		$html .= sprintf(
+			'<p style="margin-top: 5px;">The buyer paid $%s shipping. Extra Chill keeps it to pay for the label when you buy one from Shop Manager. If you ship the order yourself, it is paid out to you when you mark the order shipped.</p>',
+			number_format( $shipping_held, 2 )
+		);
+	}
 
 	$html .= '<h3 style="margin-top: 30px; margin-bottom: 10px;">Ship To</h3>';
 	$html .= sprintf(

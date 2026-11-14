@@ -91,7 +91,7 @@ function ec_network_commerce_fields() {
 			'key'         => 'connect_webhook_secret',
 			'label'       => 'Connect Webhook Secret',
 			'placeholder' => 'whsec_...',
-			'description' => 'Signing secret for connected-account events (tickets).',
+			'description' => 'Signing secret for the connected-accounts webhook destination (seller merch, tickets, disputes and account updates).',
 		),
 		// Shipping (Shippo label generation).
 		array(
@@ -167,14 +167,10 @@ function ec_handle_network_payments_save() {
 		);
 	}
 
-	$fees = get_site_option( 'extrachill_ticket_fees', array() );
-	foreach ( array( 'buyer_fee_flat_minor', 'buyer_fee_percent', 'seller_fee_percent' ) as $key ) {
-		if ( isset( $_POST[ $key ] ) && is_numeric( $_POST[ $key ] ) ) {
-			$value        = max( 0, (float) wp_unslash( $_POST[ $key ] ) );
-			$fees[ $key ] = 'buyer_fee_flat_minor' === $key ? (int) $value : min( 100, $value );
-		}
-	}
-	update_site_option( 'extrachill_ticket_fees', $fees );
+	// Fee rates are plain settings, not secrets: every save writes the full array.
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above via check_admin_referer().
+	$submitted_fees = isset( $_POST['ec_commerce_fees'] ) && is_array( $_POST['ec_commerce_fees'] ) ? wp_unslash( $_POST['ec_commerce_fees'] ) : array();
+	update_site_option( 'extrachill_commerce_fees', ec_commerce_fee_sanitize( $submitted_fees, ec_commerce_fee_settings() ) );
 
 	$redirect_url = add_query_arg(
 		array(
@@ -186,6 +182,20 @@ function ec_handle_network_payments_save() {
 
 	wp_safe_redirect( $redirect_url );
 	exit;
+}
+
+/**
+ * Labels for the fee fields, in display order.
+ *
+ * @return array<string,string>
+ */
+function ec_commerce_fee_labels() {
+	return array(
+		'merch_percent'               => __( 'Merch fee', 'extrachill-network' ),
+		'ticket_percent'              => __( 'Ticket fee (paid by the seller)', 'extrachill-network' ),
+		'ticket_buyer_fee_flat_minor' => __( 'Ticket service fee per order (paid by the buyer)', 'extrachill-network' ),
+		'ticket_buyer_fee_percent'    => __( 'Ticket service fee (paid by the buyer)', 'extrachill-network' ),
+	);
 }
 
 /**
@@ -300,16 +310,31 @@ function ec_render_network_payments_page() {
 					<?php foreach ( $shipping_fields as $field ) : ?>
 						<?php ec_render_commerce_field_row( $field, ! empty( $statuses[ $field['key'] ] ) ); ?>
 					<?php endforeach; ?>
-					<tr><th colspan="2"><h2>Ticket fees</h2><p>Prices include tax. Sellers handle tax. All fees default to zero.</p></th></tr>
-					<?php $fees = get_site_option( 'extrachill_ticket_fees', array() ); ?>
-					<?php foreach ( array( 'buyer_fee_flat_minor', 'buyer_fee_percent', 'seller_fee_percent' ) as $key ) : ?>
-					<tr><th><label for="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $key ); ?></label></th><td><input type="number" min="0" step="<?php echo 'buyer_fee_flat_minor' === $key ? '1' : '0.01'; ?>" id="<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $fees[ $key ] ?? 0 ); ?>"></td></tr>
+					<tr>
+						<th colspan="2" style="padding-top: 30px;">
+							<h2><?php esc_html_e( 'Fees', 'extrachill-network' ); ?></h2>
+							<p class="description"><?php esc_html_e( 'Extra Chill\'s share of seller sales, taken as the Stripe application fee. Prices include tax; sellers handle tax. Changes apply to checkouts started after saving.', 'extrachill-network' ); ?></p>
+						</th>
+					</tr>
+					<?php $fees = ec_commerce_fee_settings(); ?>
+					<?php foreach ( ec_commerce_fee_labels() as $key => $label ) : ?>
+						<?php $is_percent = ec_commerce_fee_fields()[ $key ]; ?>
+					<tr>
+						<th scope="row"><label for="ec_commerce_fees_<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></label></th>
+						<td>
+							<input type="number" min="0" <?php echo $is_percent ? 'max="100" step="0.01"' : 'step="1"'; ?> class="small-text"
+									id="ec_commerce_fees_<?php echo esc_attr( $key ); ?>"
+									name="ec_commerce_fees[<?php echo esc_attr( $key ); ?>]"
+									value="<?php echo esc_attr( $fees[ $key ] ); ?>" />
+							<?php echo $is_percent ? '%' : esc_html__( 'cents', 'extrachill-network' ); ?>
+						</td>
+					</tr>
 					<?php endforeach; ?>
 				</tbody>
 			</table>
 
 			<p class="description">
-				<?php esc_html_e( 'Stored values are never shown. Leave a field blank to keep its current value; enter a new value to replace it.', 'extrachill-network' ); ?>
+				<?php esc_html_e( 'Stored credential values are never shown. Leave a field blank to keep its current value; enter a new value to replace it.', 'extrachill-network' ); ?>
 			</p>
 
 			<?php submit_button( __( 'Save Commerce Settings', 'extrachill-network' ) ); ?>
@@ -322,7 +347,8 @@ function ec_render_network_payments_page() {
 				<li><?php esc_html_e( 'Create a Stripe account at stripe.com and enable Stripe Connect in your dashboard.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > API keys: copy your Secret Key and Publishable Key.', 'extrachill-network' ); ?></li>
 				<li><?php esc_html_e( 'Developers > Connect: copy your platform Connect Client ID (the "ca_..." identifier).', 'extrachill-network' ); ?></li>
-				<li><?php esc_html_e( 'Create a webhook endpoint pointing to your site and copy the Webhook Signing Secret.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Developers > Webhooks: add a destination at the Stripe Webhook URL below for "Your account" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed and checkout.session.expired. Paste its signing secret into the Webhook Secret field.', 'extrachill-network' ); ?></li>
+				<li><?php esc_html_e( 'Add a second destination at the same URL for "Connected accounts" events: checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, checkout.session.expired, charge.refunded, charge.dispute.created and account.updated. Paste its signing secret into the Connect Webhook Secret field.', 'extrachill-network' ); ?></li>
 			</ol>
 			<p>
 				<strong><?php esc_html_e( 'Stripe Webhook URL:', 'extrachill-network' ); ?></strong>

@@ -162,6 +162,7 @@ function extrachill_shop_product_can_publish( $product_id ) {
 					'account_id'          => $stripe_account_id,
 					'status'              => (string) ( $status['status'] ?? '' ),
 					'onboarding_complete' => ! empty( $status['details_submitted'] ),
+					'status_synced_at'    => gmdate( 'c' ),
 				)
 			);
 		}

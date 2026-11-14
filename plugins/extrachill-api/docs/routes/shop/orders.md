@@ -117,7 +117,7 @@ Manage artist shop orders, track fulfillment, and issue refunds for sold product
 
 **Endpoint**: `POST /wp-json/extrachill/v1/shop/orders/{id}/refund`
 
-**Purpose**: Refund the artist's portion of an order: reverse the artist's Stripe payout, then refund the customer through WooCommerce.
+**Purpose**: Refund the artist's order in full. The order is a Stripe direct charge on the artist's connected account, so WooCommerce issues one Stripe refund on that account and returns the platform application fee.
 
 **Permission**: Requires logged-in user who can manage the artist
 
@@ -137,8 +137,7 @@ Manage artist shop orders, track fulfillment, and issue refunds for sold product
 {
   "success": true,
   "order_id": 12345,
-  "refund_amount": 7.50,
-  "reversed": true
+  "refund_amount": 7.50
 }
 ```
 
@@ -153,9 +152,9 @@ Manage artist shop orders, track fulfillment, and issue refunds for sold product
 - Orders stored on shop site (Blog ID 3)
 - Each order contains `_artist_payouts` meta with per-artist totals
 - Delegates to the `extrachill/shop-refund-order` ability, which also accepts a typed `seller` (venue/promoter) through `/wp-abilities/v1`
-- Refunds the artist's item total; shipping and tax lines are refunded by an admin from the order screen
-- Reverses the artist's transfer first (`reversed: true`), then calls `wc_create_refund()` with `refund_payment`, so the payment gateway issues the Stripe refund
-- Each step is recorded in `_seller_refunds`; a retry after a failure resumes without reversing or refunding twice. A second refund returns `409 already_refunded`
+- A cart holds one seller's products, so the refund covers whatever is still refundable on the order, including shipping
+- Calls `wc_create_refund()` with `refund_payment`; the gateway issues a `Refund` on the order's `_extrachill_stripe_account` with `refund_application_fee`. Platform products have no connected account and refund on the platform account
+- A failed Stripe refund leaves the order refundable and can be retried. A second refund returns `409 already_refunded`
 - Order status becomes "refunded" only when the whole order has been refunded
 - Tracks artist-specific shipping info via `_artist_tracking_{artist_id}` meta
 
@@ -293,9 +292,9 @@ async function loadOrderDashboard(artistId) {
 5. Customer receives shipping notification
 
 **Refunds**:
-- One refund per seller per order, for that seller's item total
-- The seller's payout is reversed before the customer is refunded
-- Order status changes to "refunded" once every portion is refunded
+- Refunds whatever remains refundable on the order (admins can also issue partial refunds from the order screen)
+- One direct-charge Stripe refund on the seller's account; the platform application fee is refunded proportionally
+- Order status changes to "refunded" once the whole order is refunded
 - Cannot be undone via API (must be handled in Stripe dashboard)
 
 **Artist Payout**:

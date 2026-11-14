@@ -126,6 +126,13 @@ function set_site_transient( $key, $value, $expiration = 0 ) {
 	$GLOBALS['test_site_transients'][ $key ] = $value;
 	return true;
 }
+function get_transient( $key ) {
+	return $GLOBALS['test_transients'][ $key ] ?? false;
+}
+function set_transient( $key, $value, $expiration = 0 ) {
+	$GLOBALS['test_transients'][ $key ] = $value;
+	return true;
+}
 function get_option( $key, $default = false ) {
 	return $GLOBALS['test_options'][ $key ] ?? $default;
 }
@@ -133,6 +140,16 @@ function update_option( $key, $value ) {
 	$GLOBALS['test_options'][ $key ] = $value;
 	return true;
 }
+function get_site_option( $key, $default = false ) {
+	return $GLOBALS['test_site_options'][ $key ] ?? $default;
+}
+function get_blog_option( $blog_id, $key, $default = false ) {
+	return $GLOBALS['test_blog_options'][ $blog_id ][ $key ] ?? $default;
+}
+// Fee rates are a network setting owned by extrachill-network.
+require_once dirname( __DIR__, 2 ) . '/extrachill-network/inc/commerce/fee-settings.php';
+require_once dirname( __DIR__ ) . '/inc/core/commerce-fees.php';
+require_once dirname( __DIR__ ) . '/inc/shipping/shipping-recovery.php';
 function extrachill_shop_get_priority_boost_product_id() {
 	return 99;
 }
@@ -171,7 +188,8 @@ function extrachill_shop_get_artist_stripe_account( $artist_id ) {
 	$record = extrachill_shop_get_stripe_account_record( $artist_id );
 	return $record ? $record['account_id'] : false;
 }
-function extrachill_shop_get_account_status() {
+function extrachill_shop_get_account_status( $account_id = '' ) {
+	$GLOBALS['test_stripe_status_calls'][] = $account_id;
 	return $GLOBALS['test_stripe_status'] ?? array( 'success' => false );
 }
 

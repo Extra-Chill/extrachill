@@ -15,7 +15,7 @@ namespace {
 	// Reuse existing suite WordPress doubles when this file runs alone.
 	require_once __DIR__ . '/SellerCommerceTest.php';
 	require_once __DIR__ . '/TicketTest.php';
-	require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
+	require_once dirname( __DIR__ ) . '/inc/core/marketplace-settings.php';
 	require_once dirname( __DIR__ ) . '/inc/core/artist-product-meta.php';
 	require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
 	require_once dirname( __DIR__ ) . '/inc/core/shop-manager.php';
@@ -26,6 +26,8 @@ namespace {
 			$GLOBALS['notification_mail']   = $GLOBALS['test_blog_stack'] = array();
 			$GLOBALS['notification_events'] = array();
 			$GLOBALS['notification_down']   = false;
+			$GLOBALS['notification_order_meta'] = array();
+			$GLOBALS['test_site_options']   = $GLOBALS['test_blog_options'] = array();
 			$GLOBALS['test_options']        = $GLOBALS['test_post_meta'] = array();
 			$GLOBALS['test_owner_callback'] = static function ( $site, $method, $route, $args ) {
 				if ( str_contains( $route, 'get-commerce-seller' ) ) {
@@ -64,6 +66,7 @@ namespace {
 				public function get_billing_first_name() { return 'Test'; }
 				public function get_billing_last_name() { return 'Buyer'; }
 				public function get_address( $type ) { return array( 'address_1' => '123 Main' ); }
+				public function get_meta( $key ) { return $GLOBALS['notification_order_meta'][ $key ] ?? ''; }
 			};
 			extrachill_shop_notify_sellers_of_order( 1 );
 			$this->assertSame( array(), $GLOBALS['test_blog_stack'] );
@@ -107,6 +110,23 @@ namespace {
 			$this->assertStringContainsString( 'Product 13', $venue['body_html'] );
 			$this->assertStringNotContainsString( 'Product 10', $venue['body_html'] );
 			$this->assertSame( 'promoter', $this->events_message( 1 )['seller']['type'] );
+		}
+		public function test_payout_uses_the_commerce_fee(): void {
+			// Two $20 lines at the legacy 10% default: $40 - $4.
+			$mail = $this->notify( array( 'artist', 'artist' ) );
+			$this->assertStringContainsString( '<strong>Your Payout:</strong> $36.00', $mail[0]['context']['body_html'] );
+			$this->assertStringNotContainsString( 'shipping', $mail[0]['context']['body_html'] );
+
+			$GLOBALS['notification_mail']                             = array();
+			$GLOBALS['test_site_options']['extrachill_commerce_fees'] = array( 'merch_percent' => 15 );
+			$mail = $this->notify( array( 'artist', 'artist' ) );
+			$this->assertStringContainsString( '<strong>Your Payout:</strong> $34.00', $mail[0]['context']['body_html'] );
+		}
+		public function test_email_explains_the_shipping_hold(): void {
+			$GLOBALS['notification_order_meta'] = array( '_extrachill_shipping_hold_minor' => 500 );
+			$body = $this->notify( array( 'artist' ) )[0]['context']['body_html'];
+			$this->assertStringContainsString( 'The buyer paid $5.00 shipping', $body );
+			$this->assertStringContainsString( 'paid out to you when you mark the order shipped', $body );
 		}
 	}
 }

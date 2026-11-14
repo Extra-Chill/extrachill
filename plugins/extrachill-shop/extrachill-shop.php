@@ -75,7 +75,8 @@ class ExtraChillShop {
 		// Artist marketplace
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-taxonomy.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/artist-product-meta.php';
-		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commission-settings.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/marketplace-settings.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/commerce-fees.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/core/seller-storefront.php';
 
 		// Commerce credential resolvers. The provider classes + DM registration +
@@ -99,6 +100,7 @@ class ExtraChillShop {
 		// Shipping integration
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/shipping-settings.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/shippo-client.php';
+		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/shipping-recovery.php';
 		require_once EXTRACHILL_SHOP_PLUGIN_DIR . 'inc/shipping/checkout-shipping.php';
 
 		// Artist notifications

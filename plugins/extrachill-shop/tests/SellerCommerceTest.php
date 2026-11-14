@@ -23,7 +23,7 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 		return true;
 	}
 }
-require_once dirname( __DIR__ ) . '/inc/core/commission-settings.php';
+require_once dirname( __DIR__ ) . '/inc/core/marketplace-settings.php';
 require_once dirname( __DIR__ ) . '/inc/core/artist-product-meta.php';
 require_once dirname( __DIR__ ) . '/inc/stripe/checkout-handler.php';
 
