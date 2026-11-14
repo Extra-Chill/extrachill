@@ -17,7 +17,6 @@ namespace Stripe {
 	}
 }
 namespace {
-	function get_site_option( $key, $default = false ) { return $GLOBALS['ticket_network'][ $key ] ?? $default; }
 	function is_email( $email ) { return filter_var( $email, FILTER_VALIDATE_EMAIL ); }
 	function extrachill_shop_stripe_init() { return true; }
 	function extrachill_shop_account_can_receive_payments( $account ) { return $GLOBALS['ticket_account_ready']; }

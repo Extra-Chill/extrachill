@@ -34,7 +34,18 @@ array(
 )
 ```
 
-IDs and scopes are opaque. Secrets must contain at least 32 bytes and should come from deployment configuration rather than source control. Source registration selects `active_key_id`; target registration accepts every listed key. Rotation adds a new key at both sides, switches the source active key, then removes the old target key after the maximum assertion lifetime. Removing a key revokes it immediately. Removing a grant revokes its service, scope, source, and target tuple.
+IDs and scopes are opaque. Secrets must contain at least 32 bytes and must never live in source control. Source registration selects `active_key_id`; target registration accepts every listed key. Rotation adds a new key at both sides, switches the source active key, then removes the old target key after the maximum assertion lifetime. Removing a key revokes it immediately. Removing a grant revokes its service, scope, source, and target tuple.
+
+## Zero-Configuration Keys
+
+Consumers should obtain key material from `ec_cross_site_service_assertion_service_keys( SERVICE_ID )`, which returns `array( 'active_key_id' => ..., 'keys' => array( ... ) )`. No deployment configuration is required:
+
+- On first use, Network generates a root keyring (32 bytes from `random_bytes()`, hex-encoded) and stores it in the network option `ec_cross_site_service_assertion_keyring`. Every blog in the network reads the same sitemeta row, so the source and target always agree. After writing, the helper drops its cached copy and re-reads storage so concurrent first-use workers converge on the stored row.
+- Each service receives `hash_hmac( 'sha256', 'ec-service-assertion:v1:' . SERVICE_ID, ROOT )` per root key. A key derived for one service never verifies another, and the root secret is never placed in a grant.
+- A stored keyring that is missing an active key or holds secrets shorter than 32 bytes is replaced with fresh material.
+- Rotation: add a new entry to the stored `keys` map, switch `active_key_id`, and remove the old entry after the maximum assertion lifetime. Key IDs are preserved through derivation.
+
+Consumers may keep deployment constants or filters as an optional override; when an override is used it must be applied to both the source and the target registration.
 
 The source and target registrations are deliberately independent because a fresh target HTTP runtime can load a different site-specific plugin set. Both sides must register the same exact operation and key material. Network does not infer the caller from loaded plugins.
 

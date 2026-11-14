@@ -15,6 +15,7 @@ $GLOBALS['sa_user_sets']       = array();
 $GLOBALS['sa_http_request']    = null;
 $GLOBALS['sa_scheduled']       = array();
 $GLOBALS['sa_deleted']         = array();
+$GLOBALS['sa_site_options']    = array();
 
 class WP_Error {
 	private string $code;
@@ -202,6 +203,23 @@ function wp_schedule_single_event( $timestamp, $hook, $args ) {
 
 function delete_option( $option_name ) {
 	$GLOBALS['sa_deleted'][] = $option_name;
+	return true;
+}
+
+function get_site_option( $option, $default = false ) {
+	return array_key_exists( $option, $GLOBALS['sa_site_options'] ) ? $GLOBALS['sa_site_options'][ $option ] : $default;
+}
+
+function add_site_option( $option, $value ) {
+	if ( array_key_exists( $option, $GLOBALS['sa_site_options'] ) ) {
+		return false;
+	}
+	$GLOBALS['sa_site_options'][ $option ] = $value;
+	return true;
+}
+
+function update_site_option( $option, $value ) {
+	$GLOBALS['sa_site_options'][ $option ] = $value;
 	return true;
 }
 
@@ -494,6 +512,67 @@ $response                   = ec_cross_site_rest_request(
 sa_assert( array() === $response && null !== $GLOBALS['sa_http_request'], 'service requests force the fresh HTTP transport' );
 sa_assert( ! isset( $GLOBALS['sa_http_request']['args']['headers']['X-EC-Internal-User'] ), 'user zero emits no positive-user assertion' );
 sa_assert( isset( $GLOBALS['sa_http_request']['args']['headers']['X-EC-Service-Signature'] ), 'HTTP transport carries the minted assertion' );
+
+// Zero-configuration keys: no deployment constants, the network keyring is
+// provisioned on first use and both sides derive identical per-service keys.
+$GLOBALS['sa_site_options'] = array();
+$auto_keys                  = ec_cross_site_service_assertion_service_keys( 'worker.alpha' );
+$stored                     = $GLOBALS['sa_site_options'][ EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING ] ?? null;
+sa_assert( is_array( $stored ) && 64 === strlen( $stored['keys'][ $stored['active_key_id'] ] ), 'first use provisions a random network keyring' );
+sa_assert( '' !== $auto_keys['active_key_id'] && 64 === strlen( $auto_keys['keys'][ $auto_keys['active_key_id'] ] ), 'service keys derive from the provisioned keyring' );
+sa_assert( $auto_keys === ec_cross_site_service_assertion_service_keys( 'worker.alpha' ) && $stored === $GLOBALS['sa_site_options'][ EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING ], 'keyring is reused, not regenerated' );
+$other_keys = ec_cross_site_service_assertion_service_keys( 'worker.beta' );
+sa_assert( $other_keys['keys'] !== $auto_keys['keys'] && ! in_array( $stored['keys'][ $stored['active_key_id'] ], $auto_keys['keys'], true ), 'each service derives a distinct key and never exposes the root' );
+$invalid_keys = ec_cross_site_service_assertion_service_keys( 'bad service id' );
+sa_assert( array() === $invalid_keys['keys'], 'malformed service IDs derive no keys' );
+
+$auto_grant = sa_grant( $auto_keys['active_key_id'], $auto_keys['keys'] );
+$auto_sign  = static function () use ( $auto_grant, $body, $query ) {
+	sa_reset( $auto_grant );
+	$GLOBALS['sa_site_options'] = $GLOBALS['sa_auto_options'];
+	$headers                    = sa_mint( $body, $query );
+	$GLOBALS['sa_blog_id']      = 5;
+	return $headers;
+};
+$GLOBALS['sa_auto_options'] = $GLOBALS['sa_site_options'];
+
+$headers = $auto_sign();
+sa_assert( is_array( $headers ) && $auto_keys['active_key_id'] === $headers['X-EC-Service-Key-ID'], 'source mints with the provisioned active key' );
+$request = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+sa_assert( null === sa_verify( $request ), 'target verifies an assertion signed with provisioned keys' );
+$replay = sa_verify( sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query ) );
+sa_assert( is_wp_error( $replay ) && 'ec_service_assertion_replay' === $replay->get_error_code(), 'provisioned-key assertion replay is rejected' );
+
+$headers = $auto_sign();
+$request = sa_request( $headers, 'POST', '/example/v1/records/commit', array( 'z' => 3 ), $query );
+sa_assert( is_wp_error( sa_verify( $request ) ), 'tampered body under provisioned keys is rejected' );
+
+$headers                           = $auto_sign();
+$headers['X-EC-Service-Signature'] = str_repeat( 'a', 64 );
+sa_assert( is_wp_error( sa_verify( sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query ) ) ), 'tampered signature under provisioned keys is rejected' );
+
+$headers                            = $auto_sign();
+$headers['X-EC-Service-Issued-At']  = (string) ( time() - 120 );
+$headers['X-EC-Service-Expires-At'] = (string) ( time() - 60 );
+$request                            = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+sa_resign( $headers, $request, $auto_keys['keys'][ $auto_keys['active_key_id'] ] );
+$request->set_headers( $headers );
+sa_assert( is_wp_error( sa_verify( $request ) ), 'expired assertion under provisioned keys is rejected' );
+
+$headers = $auto_sign();
+$request = sa_request( $headers, 'POST', '/example/v1/records/commit', $body, $query );
+sa_resign( $headers, $request, $other_keys['keys'][ $other_keys['active_key_id'] ] );
+$request->set_headers( $headers );
+sa_assert( is_wp_error( sa_verify( $request ) ), 'a key derived for another service does not verify' );
+
+$GLOBALS['sa_site_options'] = array(
+	EC_CROSS_SITE_SERVICE_ASSERTION_KEYRING => array(
+		'active_key_id' => 'weak',
+		'keys'          => array( 'weak' => 'short' ),
+	),
+);
+$replaced                   = ec_cross_site_service_assertion_service_keys( 'worker.alpha' );
+sa_assert( 'weak' !== $replaced['active_key_id'] && 64 === strlen( $replaced['keys'][ $replaced['active_key_id'] ] ), 'unusable stored keyring is replaced with fresh material' );
 
 $source = file_get_contents( dirname( __DIR__ ) . '/inc/core/service-assertions.php' )
 	. file_get_contents( __FILE__ )
