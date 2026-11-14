@@ -69,12 +69,12 @@ plugins:
     docs_subpath: "docs/user"
     runner:
       audience: "user"
-      run_kind: "bootstrap"
+      run_kind: "maintenance"
       base_ref: "main"
       docs_branch: "docs-agent/extrachill-newsletter-user-docs"
       writable_paths: "plugins/extrachill-newsletter/docs/user/**"
       context_repositories: []
-      bootstrap_contract: {"required_globs": [{"pattern": "plugins/extrachill-newsletter/docs/user/**/*.md", "min": 2}], "forbidden_phrases": ["following users"]}
+      source_delta: [{"id": "newsletter-product-surface", "source_refs": ["plugins/extrachill-newsletter/inc/**", "plugins/extrachill-newsletter/assets/**"], "requires_documentation_change": false}]
       drift_checks: [{"command": "php plugins/extrachill-docs/scripts/check-user-docs-voice.php plugins/extrachill-newsletter/docs/user", "description": "Extra Chill writing rules: no software, vendor, developer or code terms and no follow feature in end-user help (plugins/extrachill-docs/runner-configs/writing-rules.md)"}]
       prompt: "This repository is the Extra Chill monorepo; document only the plugin at plugins/extrachill-newsletter/ and write only under plugins/extrachill-newsletter/docs/user/. Follow plugins/extrachill-docs/runner-configs/writing-rules.md in this repository verbatim as the network's voice standard: use plain language, lead with the benefit, and do not name plugins, tools, or vendors. Write for readers signing up for, reading, and unsubscribing from the Extra Chill newsletter. Artists do not send newsletters through this product; artist mailing lists belong to the Artist Platform docs. Extra Chill has no follow feature or follower graph; never describe following users. Keep and improve the existing docs/user/getting-the-newsletter.md and docs/user/unsubscribing.md. Ground all help in current product behavior."
       model: "gpt-6-luna"

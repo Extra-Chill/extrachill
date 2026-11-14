@@ -30,7 +30,7 @@ class DocsAgentConfigTest(unittest.TestCase):
             self.assertIn(f"plugins/{component}/", settings["prompt"])
             self.assertIn("writing-rules.md", settings["prompt"])
             self.assertEqual(len(settings["drift_checks"]), 1)
-            if component == "extrachill-events":
+            if component in ("extrachill-events", "extrachill-newsletter"):
                 self.assertEqual(settings["run_kind"], "maintenance")
                 self.assertTrue(settings["source_delta"])
             else:
