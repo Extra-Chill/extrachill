@@ -2,6 +2,15 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.8] - 2026-11-14
+
+### Changed
+- one seller permission primitive for every shop surface
+- the extrachill.link cutover is permanent; storage migration deleted
+
+### Fixed
+- show the shop-site Stripe webhook URL on the Payments page
+
 ## [0.52.7] - 2026-11-14
 
 ### Changed
