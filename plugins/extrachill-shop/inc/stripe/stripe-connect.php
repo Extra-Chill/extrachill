@@ -3,10 +3,11 @@
  * Stripe Connect Core Functions
  *
  * Handles Stripe API initialization, Express account creation, and account management
- * for the artist marketplace. Uses Stripe Connect destination charges for payouts.
+ * for the seller marketplace. Merch and tickets are direct charges on the
+ * seller's connected account, with the platform commission taken as an
+ * application fee.
  *
- * API keys are configured via Network Admin > Extra Chill Multisite > Payments.
- * Keys can be overridden via filters (used by extrachill-dev for local testing).
+ * API keys are configured via Network Admin > Extra Chill Network > Payments.
  *
  * @package ExtraChillShop
  * @since 0.2.0
@@ -352,35 +353,4 @@ function extrachill_shop_update_account_status_cache( $account_id, $account_data
 	}
 
 	extrachill_shop_update_stripe_account_by_id( $account_id, $status, ! empty( $account_data['details_submitted'] ) );
-}
-
-/**
- * Get the Stripe account ID for a specific artist.
- *
- * @param int $artist_profile_id Artist profile post ID.
- * @return string|false Stripe account ID or false if not found.
- */
-function extrachill_shop_get_artist_stripe_account( $artist_profile_id ) {
-	return extrachill_shop_get_seller_stripe_account(
-		array(
-			'type' => 'artist',
-			'id'   => absint( $artist_profile_id ),
-		)
-	);
-}
-
-/**
- * Check if an artist has a connected Stripe account that can receive payments.
- *
- * @param int $artist_profile_id Artist profile post ID.
- * @return bool True if artist can receive payments.
- */
-function extrachill_shop_artist_can_receive_payments( $artist_profile_id ) {
-	$account_id = extrachill_shop_get_artist_stripe_account( $artist_profile_id );
-
-	if ( ! $account_id ) {
-		return false;
-	}
-
-	return extrachill_shop_account_can_receive_payments( $account_id );
 }

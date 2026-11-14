@@ -68,18 +68,19 @@ final class ShippingAddressTest extends TestCase {
 		$this->assertSame( array(), $GLOBALS['test_post_meta'] );
 	}
 
-	public function test_lazy_migration_never_overwrites_shop_record(): void {
+	public function test_ship_from_reads_only_the_shop_record(): void {
 		$seller = array(
 			'type' => 'artist',
 			'id'   => 25,
 		);
+		// Artist-era profile meta is no longer read or migrated (#1401).
 		$GLOBALS['test_post_meta'][25]['_shipping_address'] = $this->address();
-		$this->assertSame( $this->address(), extrachill_shop_get_seller_shipping_address( $seller ) );
+		$this->assertFalse( extrachill_shop_get_seller_shipping_address( $seller ) );
 		$this->assertSame( array(), $GLOBALS['test_blog_stack'] );
+		$this->assertFalse( get_option( 'extrachill_shop_shipping_seller_artist:25', false ) );
 		$updated = array_merge( $this->address(), array( 'name' => 'New address' ) );
 		extrachill_shop_set_seller_shipping_address( $seller, $updated );
 		$this->assertSame( $updated, extrachill_shop_get_seller_shipping_address( $seller ) );
-		$this->assertSame( $this->address(), $GLOBALS['test_post_meta'][25]['_shipping_address'] );
 	}
 
 	public function test_abilities_refuse_unauthorized_seller(): void {
