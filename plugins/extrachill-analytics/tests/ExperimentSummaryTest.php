@@ -451,6 +451,71 @@ final class ExperimentSummaryTest extends Extrachill_Analytics_TestCase {
 		$this->assertSame( 'invalid_experiment_summary_outcome', $invalid->get_error_code() );
 	}
 
+	/** #1363: cross-site traversal is derived from pageviews on a different site than the anchor. */
+	public function test_cross_site_pageview_outcome(): void {
+		$options                        = $this->options( 1 );
+		$options['outcome_event_types'] = array( 'network_click', 'cross_site_pageview' );
+		$assign                         = fn( string $variant ) => $this->experiment( 'copy-test', 1, $variant, 'hero' );
+		$rows                           = array(
+			// Control A: crosses to blog 2 in-session after assignment on blog 7.
+			$this->row( 1, 'experiment_assignment', 100, 'c-a', 0, $assign( 'control' ), 7 ),
+			$this->row( 2, 'pageview', 110, 'c-a', 0, array(), 7 ),
+			$this->row( 3, 'pageview', 120, 'c-a', 0, array(), 2 ),
+			$this->row( 4, 'pageview', 130, 'c-a', 0, array(), 1 ),
+			// Control B: same-site pageviews only.
+			$this->row( 5, 'experiment_assignment', 100, 'c-b', 0, $assign( 'control' ), 7 ),
+			$this->row( 6, 'pageview', 140, 'c-b', 0, array(), 7 ),
+			// Control C: crossed BEFORE assignment; never attributes.
+			$this->row( 7, 'pageview', 90, 'c-c', 0, array(), 2 ),
+			$this->row( 8, 'experiment_assignment', 100, 'c-c', 0, $assign( 'control' ), 7 ),
+			// Treatment A: exposed on blog 1, crosses to blog 11 in a later session.
+			$this->row( 9, 'experiment_assignment', 100, 't-a', 0, $assign( 'treatment' ), 1 ),
+			$this->row( 10, 'experiment_exposure', 105, 't-a', 0, $assign( 'treatment' ), 1 ),
+			$this->row( 11, 'pageview', 105 + 2 * HOUR_IN_SECONDS, 't-a', 0, array(), 11 ),
+			// Treatment B: crosses outside the 1-day attribution window.
+			$this->row( 12, 'experiment_assignment', 100, 't-b', 0, $assign( 'treatment' ), 1 ),
+			$this->row( 13, 'pageview', 100 + 2 * DAY_IN_SECONDS, 't-b', 0, array(), 2 ),
+			// Bot crossing is excluded.
+			$this->row( 14, 'experiment_assignment', 100, 't-bot', 0, array_merge( $assign( 'treatment' ), array( 'is_bot' => true ) ), 1 ),
+			$this->row( 15, 'pageview', 120, 't-bot', 0, array( 'is_bot' => true ), 2 ),
+		);
+		$report    = extrachill_analytics_build_experiment_summary( $rows, $options );
+		$control   = $report['variants'][0]['outcomes']['cross_site_pageview'];
+		$treatment = $report['variants'][1]['outcomes']['cross_site_pageview'];
+
+		$this->assertSame( 'measured', $control['coverage_status'] );
+		$this->assertSame( 1, $control['after_assignment']['people'] );
+		$this->assertSame( 0.3333, $control['after_assignment']['rate'] );
+		$this->assertSame( 1, $control['after_assignment']['same_session_people'] );
+		$this->assertSame( 1, $treatment['after_assignment']['people'] );
+		$this->assertSame( 1, $treatment['after_assignment']['later_session_people'] );
+		$this->assertSame( 1, $treatment['after_exposure']['people'] );
+		$this->assertSame( 0, $control['after_exposure']['people'] );
+		$this->assertNotContains( 'cross_site_pageview', $report['query']['event_types'] );
+		$this->assertArrayHasKey( 'cross_site', $report['contract'] );
+		// Stored outcome without rows is honest, not conflated with the derived one.
+		$this->assertSame( 'not_instrumented', $report['variants'][0]['outcomes']['network_click']['coverage_status'] );
+
+		// Without pageview instrumentation the derived outcome is not_instrumented.
+		$options['instrumented_types'] = array( 'experiment_assignment', 'experiment_exposure' );
+		$bare                          = extrachill_analytics_build_experiment_summary( $rows, $options );
+		$this->assertSame( 'not_instrumented', $bare['variants'][0]['outcomes']['cross_site_pageview']['coverage_status'] );
+		$this->assertNull( $bare['variants'][0]['outcomes']['cross_site_pageview']['after_assignment'] );
+	}
+
+	/** #1363: the derived outcome is admitted by input validation; unknown names still are not. */
+	public function test_cross_site_pageview_is_an_admitted_outcome(): void {
+		$base    = array(
+			'experiment_key'  => 'copy-test',
+			'control_variant' => 'control',
+			'variants'        => array( 'control', 'treatment' ),
+		);
+		$options = extrachill_analytics_experiment_summary_options( array_merge( $base, array( 'outcome_event_types' => array( 'cross_site_pageview', 'network_click' ) ) ) );
+		$this->assertIsArray( $options );
+		$this->assertSame( array( 'cross_site_pageview', 'network_click' ), $options['outcome_event_types'] );
+		$this->assertWPError( extrachill_analytics_experiment_summary_options( array_merge( $base, array( 'outcome_event_types' => array( 'cross_site_made_up' ) ) ) ) );
+	}
+
 	/**
 	 * Build canonical versioned metadata.
 	 *
@@ -479,15 +544,16 @@ final class ExperimentSummaryTest extends Extrachill_Analytics_TestCase {
 	 * @param string $visitor_id Visitor ID.
 	 * @param int    $user_id    User ID.
 	 * @param array  $event_data Event payload.
+	 * @param int    $blog_id    Network site ID.
 	 * @return object Stored row.
 	 */
-	private function row( int $id, string $event_type, int $timestamp, string $visitor_id = '', int $user_id = 0, array $event_data = array() ): object {
+	private function row( int $id, string $event_type, int $timestamp, string $visitor_id = '', int $user_id = 0, array $event_data = array(), int $blog_id = 1 ): object {
 		return (object) array(
 			'id'         => $id,
 			'event_type' => $event_type,
 			'event_data' => wp_json_encode( $event_data ),
 			'source_url' => '',
-			'blog_id'    => 1,
+			'blog_id'    => $blog_id,
 			'user_id'    => $user_id,
 			'visitor_id' => $visitor_id,
 			'created_at' => gmdate( 'Y-m-d H:i:s', $timestamp ),

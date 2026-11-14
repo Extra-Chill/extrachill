@@ -132,8 +132,8 @@ function extrachill_analytics_experiment_summary_options( $input ) {
 	}
 	$canonical_outcomes = extrachill_analytics_experiment_outcome_types();
 	foreach ( $outcomes as $outcome ) {
-		if ( ! is_string( $outcome ) || ! in_array( $outcome, $canonical_outcomes, true ) ) {
-			return new WP_Error( 'invalid_experiment_summary_outcome', __( 'Every outcome must be a code-declared canonical analytics event.', 'extrachill-analytics' ), array( 'status' => 400 ) );
+		if ( ! is_string( $outcome ) || ! in_array( $outcome, array_merge( $canonical_outcomes, extrachill_analytics_experiment_derived_outcomes() ), true ) ) {
+			return new WP_Error( 'invalid_experiment_summary_outcome', __( 'Every outcome must be a code-declared canonical analytics event or derived outcome.', 'extrachill-analytics' ), array( 'status' => 400 ) );
 		}
 	}
 
@@ -174,7 +174,7 @@ function extrachill_analytics_ability_get_experiment_summary( $input ) {
 		array_unique(
 			array_merge(
 				array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, EC_ANALYTICS_EVENT_PAGEVIEW ),
-				$options['outcome_event_types']
+				array_diff( $options['outcome_event_types'], extrachill_analytics_experiment_derived_outcomes() )
 			)
 		)
 	);
@@ -396,13 +396,14 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 	foreach ( $options['variants'] as $variant ) {
 		$buckets[ $variant ] = extrachill_analytics_experiment_summary_bucket( $options['outcome_event_types'] );
 	}
-	$assignments = array();
-	$exposures   = array();
-	$versions    = array();
-	$surfaces    = array();
-	$policies    = array();
-	$cohort      = array();
-	$coverage    = array(
+	$cross_site_requested = in_array( EC_ANALYTICS_EXPERIMENT_OUTCOME_CROSS_SITE_PAGEVIEW, $options['outcome_event_types'], true );
+	$assignments          = array();
+	$exposures            = array();
+	$versions             = array();
+	$surfaces             = array();
+	$policies             = array();
+	$cohort               = array();
+	$coverage             = array(
 		'loaded_rows'                   => count( $events ),
 		'truncated'                     => ! empty( $options['truncated'] ),
 		'bot_rows_excluded'             => 0,
@@ -479,6 +480,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 					'definition_version' => $stored_version,
 					'assignment_policy'  => (string) $data['assignment_policy'],
 					'surface'            => (string) $data['surface'],
+					'blog_id'            => (int) $event['blog_id'],
 					'ts'                 => $event['ts'],
 					'id'                 => $event['id'],
 					'session_last_ts'    => $event['ts'],
@@ -505,6 +507,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			}
 			$exposures[ $person ] = array(
 				'variant'         => $variant,
+				'blog_id'         => (int) $event['blog_id'],
 				'ts'              => $event['ts'],
 				'id'              => $event['id'],
 				'session_last_ts' => $event['ts'],
@@ -527,6 +530,18 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 				}
 				if ( $event['ts'] - $anchor['session_last_ts'] > $options['session_gap_mins'] * MINUTE_IN_SECONDS ) {
 					$anchor['session_stage'] = 'later_session';
+				}
+				// Derived outcome: first pageview on another network site after the anchor.
+				$cross_site = EC_ANALYTICS_EXPERIMENT_OUTCOME_CROSS_SITE_PAGEVIEW;
+				if (
+					$cross_site_requested
+					&& (int) $anchor['blog_id'] > 0
+					&& (int) $event['blog_id'] > 0
+					&& (int) $event['blog_id'] !== (int) $anchor['blog_id']
+					&& $event['ts'] - $anchor['ts'] <= $options['attribution_window_days'] * DAY_IN_SECONDS
+					&& ! isset( $buckets[ $anchor['variant'] ]['outcomes'][ $cross_site ][ $lens ][ $person ] )
+				) {
+					$buckets[ $anchor['variant'] ]['outcomes'][ $cross_site ][ $lens ][ $person ] = $anchor['session_stage'];
 				}
 				$anchor['session_last_ts'] = $event['ts'];
 				if ( 'assignment' === $lens ) {
@@ -566,7 +581,10 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 
 	ksort( $coverage['unidentified_rows'] );
 	ksort( $versions );
-	$instrumented     = array_values( array_unique( array_map( 'strval', $options['instrumented_types'] ?? array() ) ) );
+	$instrumented = array_values( array_unique( array_map( 'strval', $options['instrumented_types'] ?? array() ) ) );
+	if ( in_array( EC_ANALYTICS_EVENT_PAGEVIEW, $instrumented, true ) ) {
+		$instrumented = array_merge( $instrumented, extrachill_analytics_experiment_derived_outcomes() );
+	}
 	$assignment_ready = in_array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, $instrumented, true );
 	$has_cohort       = ! empty( $assignments );
 	$empty_status     = $coverage['truncated'] ? 'truncated' : 'no_data';
@@ -664,6 +682,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			'assignment' => 'The first valid assignment ordered by created_at then ID fixes a person variant and version. Duplicate/conflicting rows are diagnostics and never reassign.',
 			'exposure'   => 'Exposure requires a matching variant/version event strictly after assignment and is never inferred. Exposure-conditioned outcomes are descriptive and may be selection-biased.',
 			'outcomes'   => 'Each requested canonical outcome counts once per person and lens, strictly after its anchor and within the attribution window. Pre-assignment outcomes never attribute.',
+			'cross_site' => 'cross_site_pageview is derived, not stored: a person counts once per lens at their first pageview on a different network site (blog_id) than the site where they were assigned or exposed, strictly after that anchor and within the attribution window.',
 			'identity'   => 'Bot rows are excluded before identity observation. Payload user_id, stored user_id, then visitor_id are used; visitors stitch only when exactly one user is observed.',
 			'statistics' => 'Rates use assignment or observed-exposure people as denominators. Rate intervals are 95% Wilson score intervals; absolute lift uses the Newcombe-Wilson hybrid-score difference interval; relative lift uses a Katz log risk-ratio interval only when both arms have nonzero successes and failures. Nulls carry explicit status. No winner is selected.',
 		),
@@ -677,7 +696,7 @@ function extrachill_analytics_build_experiment_summary( $rows, $options ) {
 			'session_gap_mins'        => (int) $options['session_gap_mins'],
 		),
 		'query'               => array(
-			'event_types'   => array_values( array_unique( array_merge( array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, EC_ANALYTICS_EVENT_PAGEVIEW ), $options['outcome_event_types'] ) ) ),
+			'event_types'   => array_values( array_unique( array_merge( array( EC_ANALYTICS_EVENT_EXPERIMENT_ASSIGNMENT, EC_ANALYTICS_EVENT_EXPERIMENT_EXPOSURE, EC_ANALYTICS_EVENT_PAGEVIEW ), array_diff( $options['outcome_event_types'], extrachill_analytics_experiment_derived_outcomes() ) ) ) ),
 			'order'         => 'created_at ASC, id ASC',
 			'cursor'        => '(created_at, id) > (cursor_created_at, cursor_id)',
 			'page_size'     => 500,

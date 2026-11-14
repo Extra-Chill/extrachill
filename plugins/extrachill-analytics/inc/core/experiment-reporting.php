@@ -11,6 +11,9 @@ defined( 'ABSPATH' ) || exit;
 const EC_ANALYTICS_EXPERIMENT_MAX_VARIANTS = 8;
 const EC_ANALYTICS_EXPERIMENT_MAX_OUTCOMES = 10;
 
+/** Derived outcome: a pageview on a different network site than the anchor's site. */
+const EC_ANALYTICS_EXPERIMENT_OUTCOME_CROSS_SITE_PAGEVIEW = 'cross_site_pageview';
+
 /**
  * Validate a bounded experiment identifier.
  *
@@ -54,6 +57,18 @@ function extrachill_analytics_experiment_outcome_types() {
 			)
 		)
 	);
+}
+
+/**
+ * Return derived outcomes computed from already-read pageviews.
+ *
+ * A derived outcome is not a stored event type. It needs no extra rows: the
+ * report already reads pageviews for session staging.
+ *
+ * @return string[] Derived outcome names.
+ */
+function extrachill_analytics_experiment_derived_outcomes() {
+	return array( EC_ANALYTICS_EXPERIMENT_OUTCOME_CROSS_SITE_PAGEVIEW );
 }
 
 /**
