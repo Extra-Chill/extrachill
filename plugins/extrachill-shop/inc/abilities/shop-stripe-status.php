@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 /**
  * Ability: extrachill/shop-stripe-status
  *
@@ -10,6 +9,8 @@ declare(strict_types=1);
  * @package ExtraChillShop
  * @since   0.7.0
  */
+
+declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
@@ -106,6 +107,7 @@ function extrachill_shop_ability_stripe_status( array $input ): array|WP_Error {
 			'account_id'          => $account_id,
 			'status'              => $safe_status,
 			'onboarding_complete' => ! empty( $status['details_submitted'] ),
+			'status_synced_at'    => gmdate( 'c' ),
 		)
 	);
 

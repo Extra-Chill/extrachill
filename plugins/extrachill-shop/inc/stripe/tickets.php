@@ -29,7 +29,7 @@ function extrachill_shop_start_ticket_checkout( array $input ) {
 	if ( is_wp_error( $canonical ) ) {
 		return $canonical; }
 	$account = extrachill_shop_get_seller_stripe_account( $seller );
-	if ( ! $account || ! extrachill_shop_stripe_init() || ! extrachill_shop_account_can_receive_payments( $account ) ) {
+	if ( ! $account || ! extrachill_shop_stripe_init() || ! extrachill_shop_seller_can_receive_payments( $seller ) ) {
 		return new WP_Error( 'seller_payments_unavailable', 'Seller cannot receive payments.', array( 'status' => 409 ) ); }
 	if ( ! is_int( $offer['price_minor'] ) || $offer['price_minor'] < 1 ) {
 		return new WP_Error( 'invalid_ticket_price', 'Invalid ticket price.' ); }
@@ -179,6 +179,30 @@ function extrachill_shop_fulfil_ticket_session( $session, $account ) {
 	if ( 'issued' !== ( $result['status'] ?? '' ) ) {
 		return new WP_Error( 'ticket_fulfilment_failed', 'Unexpected ticket response.', array( 'status' => 502 ) ); }
 	$order['status'] = 'issued';
+	update_option( 'extrachill_ticket_order_' . $session->id, $order, false );
+	return true;
+}
+
+/**
+ * A ticket Session ended without payment: it expired, or its delayed payment
+ * failed.
+ *
+ * Events records ticket sales and issues passes only once a Session is paid,
+ * so an unpaid order has nothing on the Events side to undo. Closing the
+ * Shop order row is the whole cancellation.
+ *
+ * @param object $session Checkout Session.
+ * @param string $account Connected account.
+ * @param string $outcome 'expired' or 'failed'.
+ * @return true|WP_Error
+ */
+function extrachill_shop_close_ticket_session( $session, $account, $outcome ) {
+	$order = get_option( 'extrachill_ticket_order_' . $session->id );
+	if ( ! $order || $order['account'] !== $account ) {
+		return new WP_Error( 'ticket_account_mismatch', 'Unknown ticket order or account.', array( 'status' => 409 ) ); }
+	if ( 'pending' !== $order['status'] ) {
+		return true; }
+	$order['status'] = 'failed' === $outcome ? 'failed' : 'expired';
 	update_option( 'extrachill_ticket_order_' . $session->id, $order, false );
 	return true;
 }

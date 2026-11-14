@@ -24,18 +24,28 @@ final class MerchCheckoutOrder {
 	public function get_currency() { return 'USD'; }
 	public function get_billing_email() { return 'buyer@example.com'; }
 	public function get_checkout_order_received_url() { return 'https://shop.example/received?key=secret'; }
+	public $status = 'pending';
+	public $notes  = array();
 	public function get_payment_method() { return 'extrachill_stripe_checkout'; }
+	public function get_order_number() { return (string) $this->get_id(); }
 	public function get_meta( $key ) { return $this->meta[ $key ] ?? ''; }
 	public function update_meta_data( $key, $value ) { $this->meta[ $key ] = $value; }
 	public function save() {}
 	public function is_paid() { return $this->paid > 0; }
-	public function payment_complete( $intent ) { ++$this->paid; }
+	public function payment_complete( $intent ) { ++$this->paid; $this->status = 'processing'; }
+	public function has_status( $statuses ) { return in_array( $this->status, (array) $statuses, true ); }
+	public function update_status( $status, $note = '' ) { $this->status = $status; $this->notes[] = $note; }
 }
 final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 	protected function setUp(): void {
 		$GLOBALS['test_options']         = array();
 		$GLOBALS['test_post_meta']       = array();
-		$GLOBALS['ticket_account_ready'] = true;
+		$GLOBALS['stripe_session_ids']        = array();
+		$GLOBALS['stripe_session_status']     = array();
+		$GLOBALS['stripe_session_expired']    = array();
+		$GLOBALS['stripe_session_retrieved']  = array();
+		$GLOBALS['stripe_sessions_created']   = array();
+		$GLOBALS['stripe_session_retrieve_fail'] = false;
 		$GLOBALS['ticket_refund_fail']   = false;
 		$GLOBALS['ticket_refunds']       = array();
 		$GLOBALS['test_wc_refunds']      = array();
@@ -52,7 +62,7 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		extrachill_shop_set_seller_stripe_account_record( array(
 			'type' => 'venue',
 			'id'   => 9911,
-		), array( 'account_id' => 'acct_merch' ) );
+		), array( 'account_id' => 'acct_merch', 'status' => 'active', 'status_synced_at' => '2026-11-01T00:00:00+00:00' ) );
 	}
 	public function test_gateway_registers_and_redirects_to_stripe(): void {
 		$this->assertContains( 'ExtraChill_Merch_Gateway', extrachill_shop_register_merch_gateway( array() ) );
@@ -151,7 +161,7 @@ final class MerchCheckoutTest extends \PHPUnit\Framework\TestCase {
 		$this->assertArrayNotHasKey( 'application_fee_amount', $data['payment_intent_data'] );
 	}
 	public function test_unready_seller_is_refused(): void {
-		$GLOBALS['ticket_account_ready'] = false;
+		extrachill_shop_update_stripe_account_by_id( 'acct_merch', 'restricted', true );
 		$this->assertSame( 'seller_payments_unavailable', extrachill_shop_start_merch_checkout( new MerchCheckoutOrder() )->get_error_code() );
 	}
 	public function test_webhook_is_account_bound_and_idempotent_on_both_endpoints(): void {
