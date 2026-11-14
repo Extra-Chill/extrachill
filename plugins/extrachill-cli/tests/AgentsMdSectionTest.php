@@ -31,6 +31,7 @@ $routes = array(
 	'extrachill community --help',
 	'extrachill content --help',
 	'extrachill newsletter --help',
+	'extrachill shop --help',
 	'extrachill analytics errors',
 	'extrachill analytics 404 summary',
 	'extrachill cache status',
