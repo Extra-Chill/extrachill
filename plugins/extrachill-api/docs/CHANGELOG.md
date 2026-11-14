@@ -2,6 +2,11 @@
 
 This file records notable changes in the ExtraChill API plugin.
 
+## [0.52.11] - 2026-11-14
+
+### Changed
+- one canonical seller record per order
+
 ## [0.52.10] - 2026-11-14
 
 ### Fixed
