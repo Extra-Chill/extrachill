@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.63.14] - 2026-11-14
+
+### Changed
+- read commerce credentials through ec_commerce_credential()
+
 ## [0.63.13] - 2026-11-14
 
 ### Changed
