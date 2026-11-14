@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.39.9] - 2026-11-14
+
+### Changed
+- one commerce fee primitive; shipping pays for Extra Chill labels
+
 ## [2.39.8] - 2026-11-14
 
 ### Fixed
