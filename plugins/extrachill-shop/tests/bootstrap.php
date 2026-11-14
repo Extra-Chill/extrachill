@@ -31,7 +31,9 @@ class WP_Error {
 	}
 }
 
-function add_action() {}
+function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	$GLOBALS['test_actions'][ $hook ][] = compact( 'callback', 'priority', 'accepted_args' );
+}
 function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 	$GLOBALS['test_filters'][ $hook ][] = compact( 'callback', 'priority', 'accepted_args' );
 }
